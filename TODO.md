@@ -47,7 +47,12 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] C3 — Editable inspector (`OnDelete`/`OnRename`) — first edit wiring
 - [x] C4 — Studio design-system CSS (verbatim) + `/design` living reference page
 - [ ] C5 — **Draw-tool interop** — region *creation* via draw tools (unlocks drawing in E3/E4/E5)
-- [ ] C6 — Block-colour overlay (the "Blocks" toggle) — needs B4
+- [x] C6 — Block-colour overlay ("Blocks" toggle) on the shared `EditorCanvas`. The reused
+      `editor-canvas.js` already had the block machinery (`loadBlockLayer`/`setBlocksVisible`/
+      `#renderBlockImage`); added `setBlocks(visible)` to the `studio-canvas.js` bridge (lazily fetches
+      B4 top-surface, returns false when no scan data) + a `Blocks` chip in the canvas subbar wired in
+      `EditorCanvas.razor`. Verified on acapulco (Regions): toggle overlays the surface colours under
+      the region outlines (island fill dims), available across all EditorCanvas activities.
 - [x] C7 — Side-view canvas for Build Regions Step 1 + draggable max-build-height line (B5-backed).
       Ported `sideview-canvas.js`; bridge `sideview-canvas-bridge.js` (`studio.mountSideview`) fetches
       `/segments?axis=` and wires the drag → `OnHeightChanged` (C# updates the height field, marks dirty;

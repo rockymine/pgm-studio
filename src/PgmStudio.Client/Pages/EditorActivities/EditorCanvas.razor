@@ -15,7 +15,11 @@
               @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
     </div>
     <div @ref="coordsRef" class="canvas-cursor"></div>
-    <div class="canvas-subbar-right"><span @ref="zoomRef" class="canvas-zoom">—</span></div>
+    <div class="canvas-subbar-right">
+      <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)" title="Overlay the top-surface block colours"
+              @onclick="ToggleBlocks">Blocks</button>
+      <span @ref="zoomRef" class="canvas-zoom">—</span>
+    </div>
   </div>
   <div @ref="wrapRef" class="svg-area">
     <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>

@@ -31,6 +31,16 @@ public partial class EditorCanvas
         if (handle is not null) await handle.InvokeVoidAsync("setTool", t);
     }
 
+    private bool blocksOn;
+
+    /// <summary>C6: toggle the top-surface block-colour overlay. Stays off if the map has no scan data.</summary>
+    private async Task ToggleBlocks()
+    {
+        if (handle is null) return;
+        var ok = await handle.InvokeAsync<bool>("setBlocks", !blocksOn);
+        if (ok) blocksOn = !blocksOn;
+    }
+
     /// <summary>Highlight the given region ids on the canvas (called by the activity when the sidebar selects).</summary>
     public async Task SetSelectionAsync(IEnumerable<string> ids)
     {
