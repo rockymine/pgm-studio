@@ -1,6 +1,7 @@
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
+using PgmStudio.Analysis;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
 using PgmStudio.Minecraft;
@@ -52,6 +53,44 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, PgmDb db) : EndpointW
         {
             ["xs"] = xs, ["zs"] = zs, ["colors"] = colors,
             ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
+        }, ct);
+    }
+}
+
+/// <summary>
+/// GET /api/map/{slug}/segments?axis=x|z — side-view depth profile (B5). Projects the map's vertical
+/// solid segments onto a 2D (primary × y) grid via <see cref="SideView"/>; feeds the Build-Regions
+/// side-view canvas (C7). Mirrors the reference <c>get_segments</c>.
+/// </summary>
+public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/map/{slug}/segments"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var axis = HttpContext.Request.Query["axis"].ToString();
+        if (string.IsNullOrEmpty(axis)) axis = "z";
+        if (axis is not ("x" or "z"))
+        {
+            await Send.ResponseAsync(new Dict { ["error"] = "axis must be 'x' or 'z'" }, 400, ct);
+            return;
+        }
+
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        var rows = await db.LayerSegments.Where(s => s.MapId == map.Id).ToListAsync(ct);
+        var result = SideView.Build(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)), axis);
+        if (result is null) { await Send.ResponseAsync(new Dict { ["error"] = "no segment data" }, 404, ct); return; }
+
+        await Send.OkAsync(new Dict
+        {
+            ["axis"] = result.Axis,
+            ["primary_min"] = result.PrimaryMin,
+            ["primary_count"] = result.PrimaryCount,
+            ["y_min"] = result.YMin,
+            ["y_count"] = result.YCount,
+            ["depth"] = result.Depth,
         }, ct);
     }
 }

@@ -83,7 +83,10 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] B4 — `GET /map/{slug}/layers/top-surface` (block-colour overlay data) → unblocks C6. Reads the
       cached `layer.parquet` artifact (`SurfaceLayer`), maps each column's (block_id,block_data) to a
       hex colour (P5 `BlockColors`), returns xs/zs/colors + bounds. Verified: 15621 pts on acapulco.
-- [ ] B5 — `GET /map/{slug}/segments?axis=` (side-view profile) → unblocks C7
+- [x] B5 — `GET /map/{slug}/segments?axis=x|z` (side-view profile) → unblocks C7. Projects the
+      `layer_segment` rows onto a 2D (primary × y) depth map (`SideView`, port of `_build_depth_map`);
+      nearest-depth normalised 0–255, empty=-1. Parity test vs reference on synthetic segs; verified
+      on acapulco (158×104). Bad axis → 400.
 - [x] B6 — `PATCH metadata` now persists authors/contributors to the `author` table (full-replace,
       skips empty-uuid rows); uuid is canonical with the resolved username cached in `author.name`.
       Added `GET /api/minecraft/player?name=|uuid=` (`MojangClient`) + Overview UI: name→uuid on blur,
