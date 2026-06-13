@@ -1,5 +1,6 @@
 @page "/design"
 @layout PgmStudio.Client.Layout.EditorLayout
+@using PgmStudio.Client.Pages.EditorActivities
 @inject IJSRuntime JS
 
 @* Living UI reference — verbatim port of studio/templates/design.html (the design system
@@ -28,6 +29,7 @@
     <a href="#workspaces">Workspaces</a>
     <a href="#canvas">Canvas</a>
     <a href="#states">States</a>
+    <a href="#suggestion">Smart suggestion</a>
     <a href="#rules">Usage rules</a>
   </nav>
 
@@ -415,10 +417,33 @@
       </div>
     </section>
 
-    <section class="ds-section" id="rules">
+    <section class="ds-section" id="suggestion">
       <div class="ds-section-heading">
         <div>
           <p class="ds-kicker">07</p>
+          <h2>Smart suggestion</h2>
+        </div>
+        <p>Sparkle-headed callout for studio-inferred actions (symmetry → teams, wiring, wools).
+           Reusable <code>&lt;SmartSuggestion&gt;</code> — header (icon + title + badge), body, accept/dismiss.
+           The suggested-team preview is always a 2-column grid (2 teams → one row, 4 → two).</p>
+      </div>
+      <div class="ds-sug-sample">
+        <SmartSuggestion Header="Smart Suggestion" Badge="rot 90" AcceptLabel="Create 4 teams" RejectLabel="Dismiss">
+          <p class="smart-suggestion__text">90° rotational symmetry suggests four teams.</p>
+          <div class="smart-suggestion-teams">
+            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FF5555"></span>Red Team</div>
+            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#5555FF"></span>Blue Team</div>
+            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#55FF55"></span>Green Team</div>
+            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FFFF55"></span>Yellow Team</div>
+          </div>
+        </SmartSuggestion>
+      </div>
+    </section>
+
+    <section class="ds-section" id="rules">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">08</p>
           <h2>Usage rules</h2>
         </div>
         <p>The short version. Full contract lives in <code>docs/contracts/ui-conventions.md</code>.</p>

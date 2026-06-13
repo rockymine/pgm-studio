@@ -14,7 +14,25 @@
           <button class="action-btn" @onclick="AddTeam">+ Add Team</button>
         </div>
         <div class="panel-list">
-          @if (teams.Count == 0) { <div class="list-empty">No teams.</div> }
+          @if (teams.Count == 0)
+          {
+            @if (symMode is not null && !suggestionDismissed)
+            {
+              <SmartSuggestion Header="Smart Suggestion" Badge="@SymBadge()" AcceptLabel="@AcceptLabel()"
+                               Busy="suggestionBusy" OnAccept="AcceptSuggestion" OnReject="RejectSuggestion">
+                <p class="smart-suggestion__text">@SuggestionText()</p>
+                <div class="smart-suggestion-teams">
+                  @foreach (var s in SuggestedTeams())
+                  {
+                    <div class="smart-suggestion-team">
+                      <span class="list-swatch list-swatch--sm" style="background-color:@GameColors.ChatHex(s.Color)"></span>@s.Name
+                    </div>
+                  }
+                </div>
+              </SmartSuggestion>
+            }
+            else { <div class="list-empty">No teams.</div> }
+          }
           @foreach (var t in teams)
           {
             <div class="list-row list-row--compact @(selTeam == t.Id ? "list-row--selected" : null)" @onclick="() => SelectTeam(t.Id)">

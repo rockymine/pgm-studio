@@ -1,0 +1,20 @@
+@namespace PgmStudio.Client.Pages.EditorActivities
+
+@* Reusable "smart suggestion" card — a sparkle-headed callout that proposes an action the studio
+   inferred (e.g. an intelligent team layout from detected symmetry) with an accept/reject choice.
+   Header mirrors the inspector's detail-header (icon + title + optional badge); the body (info text +
+   preview) is ChildContent so each caller supplies its own. Styled by .smart-suggestion in
+   components.css. Reused going forward by other intelligent prompts (wiring, wools…). *@
+
+<div class="smart-suggestion">
+  <div class="smart-suggestion__head">
+    <span class="smart-suggestion__icon"><i data-lucide="@Icon"></i></span>
+    <span class="smart-suggestion__title">@Header</span>
+    @if (!string.IsNullOrEmpty(Badge)) { <span class="badge badge--neutral">@Badge</span> }
+  </div>
+  @ChildContent
+  <div class="smart-suggestion__foot">
+    <button class="action-btn" disabled="@Busy" @onclick="OnReject">@RejectLabel</button>
+    <button class="action-btn action-btn--primary" disabled="@Busy" @onclick="OnAccept">@AcceptLabel</button>
+  </div>
+</div>

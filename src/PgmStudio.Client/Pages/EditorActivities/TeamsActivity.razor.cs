@@ -21,6 +21,11 @@ public partial class TeamsActivity
     private string? selSpawn;
     private string? error;
 
+    // intelligent team-setup suggestion (driven by the map's detected symmetry)
+    private string? symMode;             // primary symmetry type, e.g. "rot_90"; null = none detected
+    private bool suggestionDismissed;    // user rejected the suggestion this session
+    private bool suggestionBusy;         // accept in flight
+
     // spawn-assignment form state
     private string spawnTeam = "";
     private double spawnYaw;
@@ -59,10 +64,63 @@ public partial class TeamsActivity
             if (tree.TryGetProperty("groups", out var g))
                 foreach (var grp in RegionGroup.ParseGroups(g).Where(x => x.Name == "spawn"))
                     foreach (var n in grp.Regions) { spawnRegions.Add(n); Index(n); }
+
+            symMode = await DetectedSymmetryAsync();
         }
         catch (Exception ex) { error = ex.Message; }
         StateHasChanged();
     }
+
+    /// <summary>The map's detected primary symmetry mode (null if none/rejected or no scan).</summary>
+    private async Task<string?> DetectedSymmetryAsync()
+    {
+        try
+        {
+            var sym = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/symmetry");
+            return sym.TryGetProperty("primary", out var pr) && pr.ValueKind == JsonValueKind.Object
+                && pr.TryGetProperty("type", out var ty) ? ty.GetString() : null;
+        }
+        catch { return null; }   // no islands/symmetry artifact → no suggestion
+    }
+
+    // ── intelligent team suggestion ───────────────────────────────────────────────
+
+    private sealed record Suggested(string Color, string Name, string Slug);
+
+    /// <summary>Teams implied by the detected symmetry: rot_90 → 4 (one per quadrant), else → 2.</summary>
+    private List<Suggested> SuggestedTeams()
+    {
+        var colors = symMode == "rot_90"
+            ? new[] { "red", "blue", "green", "yellow" }
+            : new[] { "red", "blue" };
+        return colors.Select(c => new Suggested(c, $"{char.ToUpperInvariant(c[0])}{c[1..]} Team", $"{c}-team")).ToList();
+    }
+
+    private string AcceptLabel() => $"Create {SuggestedTeams().Count} teams";
+
+    /// <summary>Short header badge for the detected symmetry, e.g. "rot 90" / "mirror x".</summary>
+    private string SymBadge() => (symMode ?? "").Replace('_', ' ');
+
+    private string SuggestionText() => symMode switch
+    {
+        "rot_90"   => "90° rotational symmetry suggests four teams.",
+        "rot_180"  => "180° rotational symmetry suggests two teams.",
+        "mirror_x" => "Mirror symmetry across X suggests two teams.",
+        "mirror_z" => "Mirror symmetry across Z suggests two teams.",
+        "mirror_d1" or "mirror_d2" => "Diagonal mirror symmetry suggests two teams.",
+        _ => "A symmetric layout suggests these teams.",
+    };
+
+    private async Task AcceptSuggestion()
+    {
+        suggestionBusy = true; StateHasChanged();
+        foreach (var s in SuggestedTeams())
+            await Post("teams", new Dictionary<string, object?> { ["id"] = s.Slug, ["name"] = s.Name, ["color"] = s.Color, ["max_players"] = 20, ["min_players"] = 0 });
+        suggestionBusy = false;
+        await Reload();   // teams now non-empty → suggestion hides itself
+    }
+
+    private void RejectSuggestion() => suggestionDismissed = true;
 
     private void Index(RegionNode n)
     {

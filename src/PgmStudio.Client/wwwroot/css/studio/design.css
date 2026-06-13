@@ -189,3 +189,6 @@
   .ds-workspace-frame .workspace-inspector,
   .ds-workspace-frame .workspace-inspector + * { display: none; }
 }
+
+/* Smart-suggestion design-page sample: pin to sidebar width so density reads true. */
+.ds-sug-sample { max-width: 280px; }

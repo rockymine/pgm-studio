@@ -127,6 +127,17 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
        any canvas activity). These are xml-only / not-fully-pipelined maps with no bbox in
        `regions/tree`. Degrade gracefully: skip render (show an empty-canvas hint) when bbox is null,
        rather than throwing. (Related data gap: TODO D1 stale dev DB / xml-only maps.)
+- [x] C15 — **Reusable `SmartSuggestion` component + intelligent team creation.** Callout card
+      (`Pages/EditorActivities/SmartSuggestion.razor(.cs)`: Header/Icon=`sparkle`/Badge/ChildContent/
+      AcceptLabel/RejectLabel/Busy/OnAccept/OnReject), header mirrors the inspector **detail-header**
+      (icon + title + neutral badge); `.smart-suggestion*` CSS = accent-gradient bg + accent border +
+      shadow, with `.smart-suggestion-teams` **always a 2-column grid** (swatch + name only); live example
+      on `/design` (§07). TeamsActivity shows it in place of "No teams": reads `/symmetry` primary →
+      suggests teams (rot_90 → 4 red/blue/green/yellow; mirror_*/rot_180 → 2 red/blue), short symmetry text
+      + `SymBadge()` + 2-col team grid + Dismiss / "Create N teams" (Accept POSTs each team then Reload;
+      Reject = session dismiss). Design iterated with the user → "variant B2"; Chrome-verified on
+      thunder_blank (rot_90 → 4 in DB; mirror_x → 2-team one-row card; Dismiss). **Next reuse:** F1 wiring
+      suggestions, F2 wool suggestions.
 
 ## B — Backend / API
 - [x] B1 — Region authoring + tree encoders + `GET /regions/authoring`,`/regions/tree`,`/islands` (350/350)
