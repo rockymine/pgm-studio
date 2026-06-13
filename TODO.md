@@ -185,10 +185,11 @@ under `docs/`.
 - [ ] S2 — `sketch_api` (get / setup / layout / overview / export) + the sketch pages
 
 ## D — Data / ops
-- [ ] D1 — Re-import the dev DB from current `map.xml` (stale `/tmp/pyfresh`: annealing_iv/bloom miss
-      regions). **Confirmed 2026-06-13** as the cause of the C10 symptom: annealing_iv DB has 51 region
-      rows but the current map.xml codecs (C# + Python) give 52 — `blocks-filter-region` (cylinder) was
-      dropped at import from a stale `xml_data.json`. Re-import regenerates from current map.xml.
+- [x] D1 — Refreshed every map's XML entities (regions/filters/teams/wools/…) from the current `map.xml`
+      via `dotnet run --project src/PgmStudio.Import -- --refresh-xml` (parse → `SaveDocAsync`, the editor
+      write path) — preserves world features/artifacts, no re-scan. 349 maps refreshed; annealing_iv
+      51→52 regions (recovered `blocks-filter-region`, fixing the C10 symptom — verified in the tree +
+      canvas). World feature/artifact rows are unchanged (worlds didn't change); re-scan via P3 if needed.
 - [ ] D2 — Optional: a visible nav link to `/design`
 - [x] D4 — **Dropped Bootstrap.** Migrated the dashboard (`Home.razor`) to the studio shell (topbar +
       activity rail + studio map list, links to `/editor/{slug}`); set the default layout to

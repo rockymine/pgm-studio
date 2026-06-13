@@ -21,6 +21,35 @@ SchemaMigrator.MigrateUp(connectionString);
 await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connectionString));
 var importer = new MapImporter(db);
 
+// --refresh-xml: re-derive each existing map's XML entities (regions/filters/teams/wools/…) from the
+// current map.xml under the corpus roots, via the editor write path (SaveDocAsync) — preserves the
+// world-derived feature rows + artifacts (no world re-scan). Fixes stale regions (D1) cheaply.
+if (args.Contains("--refresh-xml"))
+{
+    string[] corpusRoots = ["/media/sf_repos/CommunityMaps/ctw", "/media/sf_repos/PublicMaps/ctw"];
+    var writer = new MapWriter(db);
+    var maps = await db.Maps.OrderBy(m => m.Slug).ToListAsync();
+    Console.WriteLine($"Refreshing XML for {maps.Count} map(s) from current map.xml\n");
+    int refreshed = 0, skipped = 0, errored = 0, changed = 0;
+    foreach (var map in maps)
+    {
+        var xml = corpusRoots.Select(r => Path.Combine(r, map.Slug, "map.xml")).FirstOrDefault(File.Exists);
+        if (xml is null) { skipped++; continue; }
+        try
+        {
+            var before = await db.Regions.CountAsync(r => r.MapId == map.Id);
+            var doc = Serializer.ToDict(MapParser.Parse(xml));
+            await writer.SaveDocAsync(map.Id, doc);
+            var after = await db.Regions.CountAsync(r => r.MapId == map.Id);
+            refreshed++;
+            if (before != after) { changed++; Console.WriteLine($"  {map.Slug,-24} regions {before} → {after}"); }
+        }
+        catch (Exception ex) { errored++; Console.WriteLine($"  {map.Slug,-24} FAILED: {ex.GetType().Name}: {ex.Message}"); }
+    }
+    Console.WriteLine($"\nrefreshed {refreshed} ({changed} with region-count changes), skipped {skipped} (no map.xml), failed {errored}");
+    return 0;
+}
+
 // Known-malformed maps, excluded by design (do NOT relax the schema to accommodate them).
 var exclusions = new Dictionary<string, string>
 {
