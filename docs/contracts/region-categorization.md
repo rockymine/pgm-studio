@@ -34,16 +34,20 @@ signals, never from the fact that a filter is applied to it.** Filter targeting 
 |---|---|---|
 | `spawn` | team spawn point + protected spawn area (subtype `point` \| `protection`) | `spawns[].region`; `enter=only-<team>` (with disambiguation) |
 | `observer_spawn` | observer / `<default>` spawn | `observer_spawn.region` |
-| `wool_room` | wool storage / defense | `wool_room_region`; `enter=not-<team>` (defender excluded) |
-| `monument` | wool **delivery** objective | `wool.monuments[].monument_region` |
-| `wool_spawner` | wool regeneration zone | `spawner.spawn_region` **only when the spawner dispenses wool** (the `player_region` is the wool **room**, → `wool_room`) |
+| `wool` | the objective, with subtype `room` \| `monument` \| `spawner` | `wool_room_region` / `enter=not-<team>` → `room`; `wool.monuments[].monument_region` → `monument`; wool-dispensing `spawner.spawn_region` → `spawner` |
 | `build` | buildable / traversable space (subtype `footprint` \| `traversal`) | void-structure (§5) |
 | `mechanic` | special mechanic (subtype `kit` \| `shop` \| `renewable` \| …) | **non-wool spawner** regions (golden-apple/arrow/…); renewable refs; `*spawner*` names |
 | `other` | genuine uncategorized | — |
 
-Objectives are **three categories, not one**: `wool_room` (source, defended),
-`monument` (goal, delivery), `wool_spawner` (regeneration). A monument is gameplay-opposite
-to a wool room and must not live under "wool".
+The objective is **one `wool` category split by subtype**, not three flat categories: `room`
+(the wool source/storage, defended — `enter=not-<team>`), `monument` (the delivery **goal** — gameplay-
+*opposite* to a room), `spawner` (regeneration). The three are still bound to one wool (a wool has a
+room, monument(s), and often a spawner), so they share a category, but the subtype keeps the
+room-vs-monument opposition the model depends on — they are never an indistinct bucket. (A wool-
+dispensing spawner's `player_region` is the wool **room** → subtype `room`; its `spawn_region` is the
+`spawner`.) The editor's Objective activity lists them as Wool Rooms / Monuments / Wool Spawners.
+**Parity note:** the Python reference still emits the flat `wool_room`/`monument`/`wool_spawner`; the
+`--categorize` harness maps C# `wool`+subtype ↔ those, so the 350-map guard is preserved.
 
 **Spawn subtype (implemented).** `spawn` carries a `subtype` separating the two things authors
 treat differently: **`point`** — the literal spawn, the region in `spawns[].region` (where the
@@ -265,9 +269,9 @@ Compounds give PGM meaning and are needed for round-trip, but they break naive c
 |---|---|---|---|
 | `blue-spawn-point` | cylinder | spawn (subtype `point`) | |
 | `blue-spawn` | rectangle | spawn (subtype `protection`) | `enter=only-blue` |
-| `blues-woolroom` | union | wool_room | `enter=not-blue` (blue defends), block rule |
-| `blue-team-red-wool` | block | monument | |
-| `blue-wool-spawn` | cuboid | wool_spawner | |
+| `blues-woolroom` | union | wool (subtype `room`) | `enter=not-blue` (blue defends), block rule |
+| `blue-team-red-wool` | block | wool (subtype `monument`) | |
+| `blue-wool-spawn` | cuboid | wool (subtype `spawner`) | |
 | `build-area` | union | build | |
 | `not-build-area` | negative | — | `rule_container` (void enforcement) |
 | `spawns` | union | spawn (base of its complement child) | iron-only block rules (no `rule_container`, no `rule_group`) |

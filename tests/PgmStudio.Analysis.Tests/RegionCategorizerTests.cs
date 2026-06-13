@@ -43,8 +43,11 @@ public sealed class RegionCategorizerTests
         var facets = RegionCategorizer.DeriveFacets(doc);
 
         await Assert.That(facets["red-spawn"].Category).IsEqualTo("spawn");          // referenced by a spawn
-        await Assert.That(facets["red-monument"].Category).IsEqualTo("monument");    // wool monument region
-        await Assert.That(facets["blue-wool-room"].Category).IsEqualTo("wool_room"); // name heuristic
+        // the objective trio is one `wool` category, distinguished by subtype
+        await Assert.That(facets["red-monument"].Category).IsEqualTo("wool");        // wool monument region
+        await Assert.That(facets["red-monument"].Subtype).IsEqualTo("monument");
+        await Assert.That(facets["blue-wool-room"].Category).IsEqualTo("wool");      // name heuristic
+        await Assert.That(facets["blue-wool-room"].Subtype).IsEqualTo("room");
         await Assert.That(facets["playable"].Category).IsEqualTo("build");           // carved out of the void-complement
         await Assert.That(facets["void-wrapper"].Roles).Contains("rule_container");  // negative wrapper role
     }

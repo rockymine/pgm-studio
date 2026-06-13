@@ -150,6 +150,13 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       (region-categorization.md §2/§8) updated. Deferred: protection regions don't render on the
       spawn-filtered canvas (they live in the "other" tree group). Reusable by F1 wiring.
 
+- [x] C17 — **Wool category collapse: one `wool` category, subtypes `monument`/`room`/`spawner`.**
+      Merged the objective trio into a single category (parallels the spawn split). Mapped at emission in
+      `DeriveFacets` (precedence still runs in fine terms); encoder shows one "Wool" group; ObjectiveActivity
+      `SplitWoolBySubtype` renders Wool Rooms/Monuments/Wool Spawners. Analysis untouched (it reads the wool
+      model, not the region category). `--categorize` harness maps C# wool+subtype ↔ Python flat category →
+      still 350/350. Tests + region-categorization.md §2/§8 updated. Chrome-verified on 803.
+
 ## B — Backend / API
 - [x] B1 — Region authoring + tree encoders + `GET /regions/authoring`,`/regions/tree`,`/islands` (350/350)
 - [x] B2 — `RegionBoundsDeriver` (compound/transform `bounds_2d` recomputed on read)

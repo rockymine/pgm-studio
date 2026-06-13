@@ -31,7 +31,35 @@ public partial class ObjectiveActivity
     private sealed class Monument { public string Id = ""; public string? Team; public Loc? Location; public string? MonumentRegion; }
     private sealed class Wool { public string Id = ""; public string Color = ""; public string? Team; public Loc? Location; public string? WoolRoomRegion; public List<Monument> Monuments = new(); }
 
-    private static readonly string[] WoolCategories = ["wool_room", "monument", "wool_spawner"];
+    // The objective trio is one `wool` category now; split it by subtype into the three sections authors
+    // think in (rooms / monuments / spawners). Mirrors the Teams spawn point/protection split — and like
+    // it, we walk EVERY tree group, because objective regions nest under rule-containers in "other": in
+    // annealing the 12 monuments are carved-out children of the `spawns` complement, not wool-group roots.
+    // We keep the top-most node of each subtype so a room union (woolrooms) stays nested while the buried
+    // monuments surface as flat rows.
+    private List<RegionGroup> CollectWoolGroups(List<RegionGroup> all)
+    {
+        var buckets = new Dictionary<string, List<RegionNode>> { ["room"] = new(), ["monument"] = new(), ["spawner"] = new() };
+        var claimed = new HashSet<string>();
+        foreach (var grp in all) foreach (var n in grp.Regions) CollectWool(n, claimed, buckets);
+        return
+        [
+            new() { Name = "room",     Label = "Wool Rooms",    Regions = buckets["room"] },
+            new() { Name = "monument", Label = "Monuments",     Regions = buckets["monument"] },
+            new() { Name = "spawner",  Label = "Wool Spawners", Regions = buckets["spawner"] },
+        ];
+    }
+
+    private void CollectWool(RegionNode n, HashSet<string> claimed, Dictionary<string, List<RegionNode>> buckets)
+    {
+        if (!string.IsNullOrEmpty(n.Id)) nodeMap.TryAdd(n.Id, n);
+        var s = n.Subtype;
+        var claim = s is "room" or "monument" or "spawner" && claimed.Add(s!);   // top-most of this subtype on the path
+        if (claim) buckets[s!].Add(n);
+        foreach (var c in n.Children) CollectWool(c, claimed, buckets);
+        if (n.Source is not null) CollectWool(n.Source, claimed, buckets);
+        if (claim) claimed.Remove(s!);
+    }
 
     protected override async Task OnParametersSetAsync() => await Reload();
 
@@ -60,10 +88,7 @@ public partial class ObjectiveActivity
                 }
 
             var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
-            groups = tree.TryGetProperty("groups", out var g)
-                ? RegionGroup.ParseGroups(g).Where(x => WoolCategories.Contains(x.Name)).ToList()
-                : new();
-            foreach (var grp in groups) foreach (var n in grp.Regions) Index(n);
+            groups = tree.TryGetProperty("groups", out var g) ? CollectWoolGroups(RegionGroup.ParseGroups(g)) : new();
         }
         catch (Exception ex) { error = ex.Message; }
 
@@ -74,12 +99,6 @@ public partial class ObjectiveActivity
         StateHasChanged();
     }
 
-    private void Index(RegionNode n)
-    {
-        if (!string.IsNullOrEmpty(n.Id)) nodeMap.TryAdd(n.Id, n);
-        foreach (var c in n.Children) Index(c);
-        if (n.Source is not null) Index(n.Source);
-    }
 
     // ── selection ──────────────────────────────────────────────────────────────
 

@@ -178,16 +178,26 @@ public static partial class RegionCategorizer
         foreach (var (rid, regionObj) in regions)
         {
             var region = AsDict(regionObj);
-            var category = cat.GetValueOrDefault(rid) ?? "other";
             var roles = new List<string>();
             if (region.GetValueOrDefault("type") as string == "negative") roles.Add("rule_container");
             if (ruleGroupIds.Contains(rid)) roles.Add("rule_group");
             if (timeGated.TryGetValue(rid, out var dur)) roles.Add(dur.Length > 0 ? $"time_gated={dur}" : "time_gated");
             if (rulesByRegion.TryGetValue(rid, out var evs)) roles.AddRange(evs.Select(e => $"{e.ev}={e.fid}"));
-            // Spawn subtype (spec §2): the authoritative spawn point is the region in spawns[].region;
-            // every other region the categorizer calls "spawn" is the surrounding protection/anti-grief
-            // zone (enter=only / spawn message / spawn-floor). They are disjoint across the whole corpus.
-            var subtype = category == "spawn" ? (spawnIds.Contains(rid) ? "point" : "protection") : null;
+
+            // Map the fine internal category to the emitted (category, subtype). The precedence/compound
+            // logic above works in fine terms (spawn/monument/wool_room/wool_spawner) for fidelity; here we
+            // fold the objective trio into one `wool` category (subtypes monument|room|spawner) and split
+            // `spawn` into point|protection. A spawn point is the region in spawns[].region; every other
+            // spawn region is protection (disjoint across the whole corpus).
+            var fine = cat.GetValueOrDefault(rid) ?? "other";
+            (string category, string? subtype) = fine switch
+            {
+                "monument"     => ("wool",  "monument"),
+                "wool_room"    => ("wool",  "room"),
+                "wool_spawner" => ("wool",  "spawner"),
+                "spawn"        => ("spawn", spawnIds.Contains(rid) ? "point" : "protection"),
+                _              => (fine,    (string?)null),
+            };
             output[rid] = new RegionFacet(category, roles, subtype);
         }
         return output;

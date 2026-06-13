@@ -14,7 +14,7 @@ using Dict = Dictionary<string, object?>;
 public static class RegionAuthoringEncoder
 {
     private static readonly string[] CategoryOrder =
-        ["spawn", "observer_spawn", "wool_room", "monument", "wool_spawner", "build", "mechanic", "other"];
+        ["spawn", "observer_spawn", "wool", "build", "mechanic", "other"];
 
     private static readonly HashSet<string> PolygonTypes =
         ["circle", "half", "complement", "union", "intersect", "negative", "mirror", "translate"];
@@ -291,16 +291,15 @@ public static class RegionAuthoringEncoder
 
     private static readonly IReadOnlyDictionary<string, string> CategoryLabels = new Dictionary<string, string>
     {
-        ["spawn"] = "Spawn", ["observer_spawn"] = "Observer Spawn", ["wool_room"] = "Wool Rooms",
-        ["monument"] = "Monuments", ["wool_spawner"] = "Wool Spawners", ["build"] = "Build",
-        ["mechanic"] = "Mechanics", ["other"] = "Other",
+        ["spawn"] = "Spawn", ["observer_spawn"] = "Observer Spawn", ["wool"] = "Wool",
+        ["build"] = "Build", ["mechanic"] = "Mechanics", ["other"] = "Other",
     };
 
     /// <summary>Root regions grouped into thematic categories, each a recursive node tree (render input).</summary>
     public static List<object?> EncodeTree(
         Dict regionsDict, IReadOnlyDictionary<string, string> categories,
         (double minX, double minZ, double maxX, double maxZ)? bounds,
-        IReadOnlyDictionary<string, string?>? subtypes = null)
+        IReadOnlyDictionary<string, RegionFacet>? facets = null)
     {
         var namedChildIds = new HashSet<string>();
         foreach (var ro in regionsDict.Values)
@@ -309,7 +308,7 @@ public static class RegionAuthoringEncoder
         var roots = new List<(string id, Dict node)>();
         foreach (var (regionId, ro) in regionsDict)
             if (ro is Dict region && !namedChildIds.Contains(regionId))
-                roots.Add((regionId, EncodeNode(region, bounds, regionsDict, subtypes)));
+                roots.Add((regionId, EncodeNode(region, bounds, regionsDict, facets)));
 
         var groups = new Dictionary<string, List<object?>>();
         foreach (var (regionId, node) in roots)
@@ -327,6 +326,19 @@ public static class RegionAuthoringEncoder
         }).ToList();
     }
 
+    // Spatial-access events recorded in the roles facet as "<event>=<filter>"; the rule wiring the
+    // editor cares about (excludes the rule_container/rule_group/time_gated flags).
+    private static readonly HashSet<string> SpatialEvents = ["enter", "block", "block_break", "block_place"];
+
+    private static List<object?>? WiringEvents(RegionFacet? facet)
+    {
+        if (facet is null) return null;
+        var wiring = facet.Roles
+            .Where(r => r.IndexOf('=') is var i && i > 0 && SpatialEvents.Contains(r[..i]))
+            .Cast<object?>().ToList();
+        return wiring.Count > 0 ? wiring : null;
+    }
+
     private static void CollectNamedChildIds(Dict region, HashSet<string> outSet)
     {
         foreach (var child in region.GetValueOrDefault("children") as List<object?> ?? [])
@@ -341,7 +353,7 @@ public static class RegionAuthoringEncoder
     }
 
     private static Dict EncodeNode(Dict region, (double, double, double, double)? bounds, Dict registry,
-        IReadOnlyDictionary<string, string?>? subtypes = null)
+        IReadOnlyDictionary<string, RegionFacet>? facets = null)
     {
         var xmlId = region.GetValueOrDefault("id") as string ?? "";
         var t = region.GetValueOrDefault("type") as string ?? "unknown";
@@ -351,12 +363,13 @@ public static class RegionAuthoringEncoder
         var children = new List<object?>();
         foreach (var child in region.GetValueOrDefault("children") as List<object?> ?? [])
         {
-            if (child is string s) { if (registry.GetValueOrDefault(s) is Dict cr) children.Add(EncodeNode(cr, bounds, registry, subtypes)); }
-            else if (child is Dict cd) children.Add(EncodeNode(cd, bounds, registry, subtypes));
+            if (child is string s) { if (registry.GetValueOrDefault(s) is Dict cr) children.Add(EncodeNode(cr, bounds, registry, facets)); }
+            else if (child is Dict cd) children.Add(EncodeNode(cd, bounds, registry, facets));
         }
         var rawSource = ResolveSource(region, registry);
-        var sourceNode = rawSource is not null ? EncodeNode(rawSource, bounds, registry, subtypes) : null;
+        var sourceNode = rawSource is not null ? EncodeNode(rawSource, bounds, registry, facets) : null;
 
+        var facet = xmlId.Length > 0 ? facets?.GetValueOrDefault(xmlId) : null;
         var node = new Dict
         {
             ["id"] = xmlId,
@@ -367,7 +380,10 @@ public static class RegionAuthoringEncoder
             ["is_negative"] = t == "negative",
             ["synthetic_id"] = xmlId.Length == 0,
             // subtype refines the group category (spawn → point|protection); null for most regions.
-            ["subtype"] = xmlId.Length > 0 ? subtypes?.GetValueOrDefault(xmlId) : null,
+            ["subtype"] = facet?.Subtype,
+            // the spatial filter wiring on this region ("enter=<f>", "block_break=<f>", …), for display
+            // (the first event) and R1; empty for unwired regions like monuments/spawners.
+            ["wiring"] = WiringEvents(facet),
             ["children"] = children,
             ["source"] = sourceNode,
         };

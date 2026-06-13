@@ -167,7 +167,12 @@ static int RunCategorizeParity(string pyfreshDir, string pyfacetsDir, bool verbo
                 var tCat = t.GetValueOrDefault("category") as string ?? "";
                 var tRoles = ((List<object?>)t.GetValueOrDefault("roles")!).Select(x => (string)x!).ToList();
                 if (!mine.TryGetValue(rid, out var m)) { diffs.Add($"{rid}: missing in C#"); continue; }
-                if (m.Category != tCat) diffs.Add($"{rid}: cat {m.Category}≠{tCat}");
+                // C# folds the objective trio into one `wool` category + subtype; map it back to the
+                // Python fine category for comparison so the 350-map guard survives the taxonomy change.
+                var eff = m.Category == "wool"
+                    ? m.Subtype switch { "monument" => "monument", "spawner" => "wool_spawner", _ => "wool_room" }
+                    : m.Category;
+                if (eff != tCat) diffs.Add($"{rid}: cat {eff}({m.Category}/{m.Subtype})≠{tCat}");
                 if (!m.Roles.SequenceEqual(tRoles)) diffs.Add($"{rid}: roles [{string.Join(",", m.Roles)}]≠[{string.Join(",", tRoles)}]");
             }
             if (mine.Count != theirs.Count) diffs.Add($"count {mine.Count}≠{theirs.Count}");
