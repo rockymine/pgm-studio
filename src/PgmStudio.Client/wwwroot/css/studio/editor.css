@@ -764,7 +764,14 @@ body.dashboard-page { overflow: hidden; }
   font-size: var(--font-xs);
   color: var(--text-muted);
   user-select: none;
+  /* clickable tabs (jump to step) — reset native button chrome */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
 }
+.cfg-step-bar .step-item:hover { color: var(--text-bright); }
 .cfg-step-bar .step-item.active { color: var(--text-bright); }
 .cfg-step-bar .step-item.done   { color: var(--color-success); }
 .cfg-step-bar .step-sep {

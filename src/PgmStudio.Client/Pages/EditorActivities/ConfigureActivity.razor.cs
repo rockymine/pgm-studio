@@ -202,6 +202,15 @@ public partial class ConfigureActivity : IAsyncDisposable
 
     private async Task Prev() { if (step > 1) { step--; await SyncCanvas(); } }
 
+    /// <summary>Jump straight to a step from the step-bar tabs (e.g. Symmetry) without walking Next.</summary>
+    private async Task JumpToStep(int n)
+    {
+        if (n == step) return;
+        if (n == 3) await LoadSymmetry();   // ensure the symmetry panel/canvas are fresh
+        step = n;
+        await SyncCanvas();
+    }
+
     private async Task Finish()
     {
         var payload = new Dictionary<string, object?> { ["status"] = symChoice == "none" ? "none" : "confirmed" };
@@ -226,6 +235,7 @@ public partial class ConfigureActivity : IAsyncDisposable
         else
         {
             await canvasHandle.InvokeVoidAsync("setMode", "symmetry");
+            await canvasHandle.InvokeVoidAsync("showIslands");   // island context (also when jumping straight here)
             await canvasHandle.InvokeVoidAsync("showSymmetry");
             await canvasHandle.InvokeVoidAsync("setSymmetryType", symChoice == "none" ? null : symChoice);
             await canvasHandle.InvokeVoidAsync("setCenter", centerX, centerZ);

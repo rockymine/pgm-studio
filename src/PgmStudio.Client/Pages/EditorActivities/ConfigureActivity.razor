@@ -149,7 +149,7 @@
     <div class="cfg-sidebar-nav">
       @if (step > 1) { <button class="action-btn" @onclick="Prev"><i data-lucide="arrow-left"></i></button> }
       @if (step < 3) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Next">Next <i data-lucide="arrow-right"></i></button> }
-      else { <button class="action-btn action-btn--primary action-btn--push-end" disabled="@(symChoice is null)" @onclick="Finish">Continue to Overview <i data-lucide="arrow-right"></i></button> }
+      else { <button class="action-btn action-btn--primary action-btn--push-end" disabled="@(symChoice is null)" @onclick="Finish"><i data-lucide="check"></i> @(symChoice == "none" ? "Confirm: no symmetry" : "Confirm symmetry")</button> }
     </div>
   </div>
 
@@ -157,12 +157,13 @@
 
   <div class="workspace-canvas">
     <div class="canvas-subbar">
+      @* Step tabs are clickable — jump straight to a step (e.g. Symmetry) without walking Next. *@
       <div class="cfg-step-bar">
-        <div class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)"><span class="step-number">1</span><span class="step-item-label">Scan Layer</span></div>
+        <button class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)" @onclick="() => JumpToStep(1)"><span class="step-number">1</span><span class="step-item-label">Scan Layer</span></button>
         <div class="step-sep"></div>
-        <div class="step-item @(step == 2 ? "active" : step > 2 ? "done" : null)"><span class="step-number">2</span><span class="step-item-label">Islands</span></div>
+        <button class="step-item @(step == 2 ? "active" : step > 2 ? "done" : null)" @onclick="() => JumpToStep(2)"><span class="step-number">2</span><span class="step-item-label">Islands</span></button>
         <div class="step-sep"></div>
-        <div class="step-item @(step == 3 ? "active" : null)"><span class="step-number">3</span><span class="step-item-label">Symmetry</span></div>
+        <button class="step-item @(step == 3 ? "active" : null)" @onclick="() => JumpToStep(3)"><span class="step-number">3</span><span class="step-item-label">Symmetry</span></button>
       </div>
     </div>
     <div @ref="wrapRef" class="svg-area">
