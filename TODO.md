@@ -40,12 +40,12 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [ ] C7 — Side-view canvas for Build Regions Step 1, **with a draggable max-build-height slider** — needs B5
 - [ ] C8 — `panel-resize` for `.sidebar-handle` drag (port `shared/panel-resize.js`)
 - [ ] C9 — Kits editing UI (Teams) and per-activity status dots
-- [ ] C10 — **Bug:** a region is missing from the region tree. Cylinders *do* render — the original
-       symptom was misdiagnosed: `annealing_iv` has a cylinder region `blocks-filter-region` that never
-       appears in the region tree (so it was assumed cylinders don't draw). Investigate why that region
-       is dropped from the tree — likely the tree encoder / categorizer (`RegionCategorizer` /
-       `encode_region_tree`) excludes it (filter-only region with no group? a category that the tree
-       doesn't surface?). Check whether other maps drop similar filter-referenced regions.
+- [x] C10 — **Resolved (root-caused to D1, no code bug).** Cylinders render fine; `annealing_iv`'s
+       cylinder `blocks-filter-region` was missing from the tree only because it's **absent from the DB**
+       (51 region rows, codec gives 52). Both the Python and C# codecs serialise the region from the
+       current `map.xml`, and round-trip parity (350/350) rules out the encoder/tree. The dev DB was
+       imported from a **stale `xml_data.json`** predating the region → it's the known stale-import issue.
+       Fix = re-import (D1); no change to the codec/tree/canvas. (Diagnosed 2026-06-13.)
 - [ ] C11 — **Verify:** the region inspector's edits (rename / delete / coord patch) actually write to
        the DB end-to-end across activities (only wired so far in Build Regions; not fully verified)´
 - [ ] C12 — **Extract shared Blazor components** to cut markup duplication (audit 2026-06-13).
@@ -185,7 +185,10 @@ under `docs/`.
 - [ ] S2 — `sketch_api` (get / setup / layout / overview / export) + the sketch pages
 
 ## D — Data / ops
-- [ ] D1 — Re-import the dev DB from current `map.xml` (stale `/tmp/pyfresh`: annealing_iv/bloom miss regions)
+- [ ] D1 — Re-import the dev DB from current `map.xml` (stale `/tmp/pyfresh`: annealing_iv/bloom miss
+      regions). **Confirmed 2026-06-13** as the cause of the C10 symptom: annealing_iv DB has 51 region
+      rows but the current map.xml codecs (C# + Python) give 52 — `blocks-filter-region` (cylinder) was
+      dropped at import from a stale `xml_data.json`. Re-import regenerates from current map.xml.
 - [ ] D2 — Optional: a visible nav link to `/design`
 - [x] D4 — **Dropped Bootstrap.** Migrated the dashboard (`Home.razor`) to the studio shell (topbar +
       activity rail + studio map list, links to `/editor/{slug}`); set the default layout to
