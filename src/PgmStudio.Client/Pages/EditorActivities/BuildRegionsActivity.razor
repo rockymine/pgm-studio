@@ -2,9 +2,9 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Build Regions activity — Step 1: max build height; Step 2: build-area region tree + canvas +
-   inspector (delete/rename). Port of build-regions-activity.js. Step-1 side-view canvas deferred
-   (needs a /segments endpoint + the sideview-canvas port). *@
+@* Build Regions activity — Step 1: max build height with a side-view canvas (drag the line, or type
+   a value) + an X/Z axis toggle; Step 2: build-area region tree + canvas + inspector (delete/rename).
+   Port of build-regions-activity.js (C7 side-view via studio.mountSideview / SideviewCanvas). *@
 
 <div class="workspace">
   <div class="workspace-sidebar">
@@ -20,7 +20,7 @@
           <div class="field">
             <label class="field-label">Blocks</label>
             <input class="field-input" type="number" min="0" max="255" step="1" placeholder="None"
-                   value="@maxHeight" @onchange="e => { maxHeight = e.Value?.ToString(); heightDirty = true; heightStatus = null; }" />
+                   value="@maxHeight" @onchange="OnHeightInput" />
           </div>
           <div class="panel-actions">
             <button class="action-btn action-btn--primary" disabled="@(!heightDirty)" @onclick="SaveHeight">Save</button>
@@ -51,9 +51,16 @@
   @if (step == 1)
   {
     <div class="workspace-canvas">
-      <div class="canvas-fill" style="display:flex;align-items:center;justify-content:center;">
-        <p class="panel-empty-msg">Side-view build-height canvas — coming soon.</p>
+      <div class="canvas-subbar">
+        <div class="canvas-toolbar">
+          <button class="draw-tool-btn @(axis == "z" ? "draw-tool-btn--active" : null)" title="Look along Z"
+                  @onclick='() => SetAxis("z")'>Z</button>
+          <button class="draw-tool-btn @(axis == "x" ? "draw-tool-btn--active" : null)" title="Look along X"
+                  @onclick='() => SetAxis("x")'>X</button>
+        </div>
+        <div class="canvas-subbar-right"><span class="canvas-hint">Drag the line to set the build height</span></div>
       </div>
+      <div class="svg-area"><canvas @ref="sideviewRef" class="sideview-canvas"></canvas></div>
     </div>
   }
   else

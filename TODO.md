@@ -40,7 +40,13 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] C4 — Studio design-system CSS (verbatim) + `/design` living reference page
 - [ ] C5 — **Draw-tool interop** — region *creation* via draw tools (unlocks drawing in E3/E4/E5)
 - [ ] C6 — Block-colour overlay (the "Blocks" toggle) — needs B4
-- [ ] C7 — Side-view canvas for Build Regions Step 1, **with a draggable max-build-height slider** — needs B5
+- [x] C7 — Side-view canvas for Build Regions Step 1 + draggable max-build-height line (B5-backed).
+      Ported `sideview-canvas.js`; bridge `sideview-canvas-bridge.js` (`studio.mountSideview`) fetches
+      `/segments?axis=` and wires the drag → `OnHeightChanged` (C# updates the height field, marks dirty;
+      typing/Save round-trips both ways). X/Z axis toggle re-fetches; height persists across axes.
+      Mounted only while Step 1 is shown (re-mounts on return). Verified on acapulco (drag up → Y rises,
+      input syncs, both axes render). Gotcha: bridge must call `canvas.resize()` after mount so the
+      bitmap matches the laid-out box (else the drag hit-test is off).
 - [ ] C8 — `panel-resize` for `.sidebar-handle` drag (port `shared/panel-resize.js`)
 - [ ] C9 — Kits editing UI (Teams) and per-activity status dots
 - [x] C10 — **Resolved (root-caused to D1, no code bug).** Cylinders render fine; `annealing_iv`'s
