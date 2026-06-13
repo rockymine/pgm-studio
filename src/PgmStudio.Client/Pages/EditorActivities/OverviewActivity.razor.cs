@@ -2,15 +2,19 @@ using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Pages.EditorActivities;
 
 // The PersonRow markup template stays in OverviewActivity.razor (it is Razor markup); all the
 // state and behaviour for the Overview activity lives here in the code-behind partial.
-public partial class OverviewActivity
+public partial class OverviewActivity : IAsyncDisposable
 {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public EventCallback<string?> OnStatus { get; set; }
+
+    private ElementReference svgRef, wrapRef;
+    private IJSObjectReference? canvasHandle;
 
     private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
 
@@ -112,5 +116,19 @@ public partial class OverviewActivity
         return OnStatus.InvokeAsync(complete ? null : "yellow");
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("studio.icons");
+        if (firstRender)
+            canvasHandle = await JS.InvokeAsync<IJSObjectReference>("studio.mountOverview", svgRef, wrapRef, Slug);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (canvasHandle is not null)
+        {
+            try { await canvasHandle.InvokeVoidAsync("dispose"); } catch { }
+            try { await canvasHandle.DisposeAsync(); } catch { }
+        }
+    }
 }

@@ -14,4 +14,16 @@ window.studio = {
     const mod = await import("/js/studio/studio-canvas.js");
     return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category);
   },
+
+  // Mount the Overview static map render (E7).
+  async mountOverview(svgEl, wrapEl, slug) {
+    const mod = await import("/js/studio/overview-canvas.js");
+    return mod.mount(svgEl, wrapEl, slug);
+  },
+
+  // Mount the Build-Regions side-view canvas (C7). dotnetRef.OnHeightChanged(y) fires on drag.
+  async mountSideview(canvasEl, dotnetRef, slug, axis) {
+    const mod = await import("/js/studio/sideview-canvas-bridge.js");
+    return mod.mount(canvasEl, dotnetRef, slug, axis);
+  },
 };

@@ -25,7 +25,10 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] E4 — Objective (wools + Add + inspector + monuments, wool-filtered canvas)
 - [x] E5 — Build Regions (Step 1 max-height save; Step 2 build tree + canvas + inspector delete/rename)
 - [x] E6 — Configure (3-step wizard: scan-layer / island-exclude / confirm → Overview)
-- [ ] E7 — Overview: static map image missing (port `overview-renderer` to fill the canvas preview)
+- [x] E7 — Overview static map render. Ported `overview-renderer.js` + `shared/block-render.js`; bridge
+      `overview-canvas.js` (mounted via `studio.mountOverview`) fetches bbox (regions/tree) + top-surface
+      (B4) + symmetry (B7) and paints the pixelated surface image + symmetry axis/centre overlay.
+      Verified on acapulco (full map render + purple symmetry centre).
 - [ ] E8 — Configure: canvas "leaks" xml regions + wrong canvas type — it reuses `EditorCanvas`; the
       reference uses a dedicated `configure-renderer` (islands/blocks layer preview). Re-read the
       reference impl; port the proper canvas (needs B9 pixels). Re-examine the whole Configure flow.

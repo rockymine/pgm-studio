@@ -69,7 +69,9 @@
   <div class="sidebar-handle"></div>
 
   <div class="workspace-canvas">
-    <svg class="canvas-surface" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div @ref="wrapRef" class="svg-area">
+      <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
   </div>
 </div>
 
