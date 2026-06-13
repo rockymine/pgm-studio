@@ -379,7 +379,11 @@ public static class RegionAuthoringEncoder
             ["coords"] = EncodeCoords(region),
             ["is_negative"] = t == "negative",
             ["synthetic_id"] = xmlId.Length == 0,
-            // subtype refines the group category (spawn → point|protection); null for most regions.
+            // the region's OWN derived category — distinct from the group it renders under: build regions
+            // and objective/spawn zones nest inside rule-containers (not-build-area, spawns) in "other",
+            // so a consumer needs the per-node category to surface them (e.g. the build-region tree).
+            ["category"] = facet?.Category,
+            // subtype refines the category (spawn → point|protection, wool → room|monument|spawner).
             ["subtype"] = facet?.Subtype,
             // the spatial filter wiring on this region ("enter=<f>", "block_break=<f>", …), for display
             // (the first event) and R1; empty for unwired regions like monuments/spawners.

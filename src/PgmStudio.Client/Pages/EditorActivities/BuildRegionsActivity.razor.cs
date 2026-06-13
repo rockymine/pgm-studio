@@ -63,20 +63,29 @@ public partial class BuildRegionsActivity : IAsyncDisposable
         try
         {
             var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
-            groups = tree.TryGetProperty("groups", out var g)
-                ? RegionGroup.ParseGroups(g).Where(x => x.Name == "build").ToList()
-                : new();
-            foreach (var grp in groups) foreach (var n in grp.Regions) Index(n);
+            // Build regions usually nest inside the `not-build-area` negative (a rule-container in the
+            // "other" group), so they're not roots of a "build" group — walk EVERY group and collect the
+            // top-most build-category node (its carved-out children stay nested under it). Same treatment
+            // as the spawn-protection / wool-monument trees.
+            var build = new List<RegionNode>();
+            if (tree.TryGetProperty("groups", out var g))
+                foreach (var grp in RegionGroup.ParseGroups(g))
+                    foreach (var n in grp.Regions) CollectBuild(n, false, build);
+            groups = [new RegionGroup { Name = "build", Label = "", Regions = build }];
         }
         catch (Exception ex) { error = ex.Message; }
         if (selectId is not null) await Select(selectId); else StateHasChanged();
     }
 
-    private void Index(RegionNode n)
+    // Index every node + collect the top-most build-category node on each path (so build-area is added
+    // once with its carved-out children nested, not flattened). `claimed` = a build ancestor already taken.
+    private void CollectBuild(RegionNode n, bool claimed, List<RegionNode> outList)
     {
         if (!string.IsNullOrEmpty(n.Id)) nodeMap.TryAdd(n.Id, n);
-        foreach (var c in n.Children) Index(c);
-        if (n.Source is not null) Index(n.Source);
+        var take = n.Category == "build" && !claimed;
+        if (take) outList.Add(n);
+        foreach (var c in n.Children) CollectBuild(c, claimed || take, outList);
+        if (n.Source is not null) CollectBuild(n.Source, claimed || take, outList);
     }
 
     private async Task Select(string? id)

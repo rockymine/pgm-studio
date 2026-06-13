@@ -12,7 +12,8 @@ public sealed class RegionNode
     public string Id = "";
     public string Type = "unknown";
     public string Label = "";
-    public string? Subtype;          // refines the group category, e.g. spawn → "point" | "protection"
+    public string? Category;         // the region's own derived category (may differ from its display group)
+    public string? Subtype;          // refines the category, e.g. spawn → "point" | "protection"
     public List<string> Wiring = new();  // spatial filter wiring, e.g. "enter=only-blue", "block_break=…"
     public bool Synthetic;
     public bool IsNegative;
@@ -34,6 +35,7 @@ public sealed class RegionNode
             Id = Str(e, "id"),
             Type = Str(e, "type"),
             Label = Str(e, "label"),
+            Category = e.TryGetProperty("category", out var ct) && ct.ValueKind == JsonValueKind.String ? ct.GetString() : null,
             Subtype = e.TryGetProperty("subtype", out var st) && st.ValueKind == JsonValueKind.String ? st.GetString() : null,
             Synthetic = Bool(e, "synthetic_id"),
             IsNegative = Bool(e, "is_negative"),
