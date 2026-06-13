@@ -80,7 +80,9 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] B1 — Region authoring + tree encoders + `GET /regions/authoring`,`/regions/tree`,`/islands` (350/350)
 - [x] B2 — `RegionBoundsDeriver` (compound/transform `bounds_2d` recomputed on read)
 - [x] B3 — Configure endpoints (`state` / `scan-layer` / `exclude-island`) over the map_config artifact
-- [ ] B4 — `GET /map/{slug}/layers/top-surface` (block-colour overlay data) → unblocks C6
+- [x] B4 — `GET /map/{slug}/layers/top-surface` (block-colour overlay data) → unblocks C6. Reads the
+      cached `layer.parquet` artifact (`SurfaceLayer`), maps each column's (block_id,block_data) to a
+      hex colour (P5 `BlockColors`), returns xs/zs/colors + bounds. Verified: 15621 pts on acapulco.
 - [ ] B5 — `GET /map/{slug}/segments?axis=` (side-view profile) → unblocks C7
 - [x] B6 — `PATCH metadata` now persists authors/contributors to the `author` table (full-replace,
       skips empty-uuid rows); uuid is canonical with the resolved username cached in `author.name`.
@@ -101,7 +103,9 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] P2 — Feature extractors (wool/resource/chest/spawner/segments) — 11/11 parity
 - [x] P3 — `POST /map/{slug}/scan-world` (world → DB feature rows)
 - [x] P4 — Surface scan + island detection + layer.parquet/islands.json/map_config artifacts (10/10 parity)
-- [ ] P5 — Block colours (`minecraft/colors.py`, ~214 lines) for the surface render
+- [x] P5 — Block colours (`minecraft/colors.py` → `PgmStudio.Minecraft/BlockColors.cs`) for the surface
+      render. Full known-table parity vs Python oracle (197/197, `RoundTrip --colors`) + unit tests.
+      (Unknown-block fallback isn't byte-parity — Python's `hash()` isn't portable; known blocks exact.)
 
 ## A — Analysis
 - [x] A1 — All algorithms ported + parity-verified (categorizer 350/350; buildability/traversability/wool 10/10)
