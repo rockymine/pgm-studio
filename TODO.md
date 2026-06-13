@@ -121,6 +121,13 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] A1 — All algorithms ported + parity-verified (categorizer 350/350; buildability/traversability/wool 10/10)
 - [ ] A2 — `region_geometry` IoU / counterpart for symmetry (NTS area ops)
 - [ ] A3 — Buildability endpoint perf (per-cell NTS over the grid is slow — optimise)
+- [ ] A4 — **Consolidate geometry into one module** (new `PgmStudio.Analysis/Geometry/` folder). The
+      reference single-sources transforms in `geometry.py` (reflect_point_2d / rotate_point_2d /
+      reflect_bounds_2d / rotate_bounds_2d, the converters, IoU); the port has duplicated/parallel
+      copies — point reflect+rotate in `SymmetryDetector`, NTS `Reflect`/affine in `RegionGeometry2d`,
+      bounds reflect/rotate in `RegionBoundsDeriver` (+ `RegionParser`). Establish one common geometry
+      module (point/bounds transforms + IoU) and route all call sites through it. (Not yet explored —
+      audit the duplication first; mind the Pgm↔Analysis package boundary.)
 
 ## F — Analysis-backed editor features (reference `plans/refactor-plan.md` C-series)
 The reference has the **backend done** for these; in this port the analysis *services* are ported
