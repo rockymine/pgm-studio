@@ -43,7 +43,38 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [ ] C10 — **Bug:** cylinders not rendered on the canvas (they should draw as ellipses from `bounds`
        in `renderShape`; encoder doesn't compute `polygon_2d` for cylinders — check the bounds path)
 - [ ] C11 — **Verify:** the region inspector's edits (rename / delete / coord patch) actually write to
-       the DB end-to-end across activities (only wired so far in Build Regions; not fully verified)
+       the DB end-to-end across activities (only wired so far in Build Regions; not fully verified)´
+- [ ] C12 — **Extract shared Blazor components** to cut markup duplication (audit 2026-06-13).
+      Real candidates, by payoff:
+      - **AuthorDisplay** — the author row (avatar + Mojang-resolve-on-blur name + contribution +
+        remove), today inline as `OverviewActivity.PersonRow`. The reference duplicates the *same*
+        row + resolve logic in `sketch-overview-panel.js`, so the sketch overview (S2) will reuse it
+        → **highest payoff (cross-tool reuse)**. Bundle the name↔uuid resolve helper with it.
+      - **Workspace** layout shell — `.workspace` + `.workspace-sidebar`/`.sidebar-handle`/
+        `.workspace-canvas` (+ inspector) wrappers repeat in all 6 activities; a component with
+        RenderFragment slots (Sidebar/Canvas/Inspector) removes the boilerplate. (Covers the listed
+        "Sidebar".)
+      - **ErrorToast** — `@if (error is not null) { .toast--error }` repeated in 4 activities
+        (Build/Configure/Objective/Teams). Trivial, one param.
+      - **SectionHeader** — ruled title + optional "+ Add" button, ~17 occurrences. (Covers "InputFields"
+        partially; a labeled `FormField` for `.field`/`.field-label`/`.field-input` is lower payoff.)
+      - **ActivityRail** — currently single-use in `Editor.razor`; becomes reusable once the sketch
+        shell (S2) lands (the reference `sketch.html` has its own rail). Extract when S2 is built.
+      Already done (no work): **EditorCanvas** (6 activities — and it already contains the canvas
+      toolbar, so the listed "CanvasToolBar" needs no separate extraction), **RegionTree** (3),
+      **RegionInspector** (4 — the listed "Inspector").
+      NOT components → dedupe in code-behind instead (see C14): the `Post/Patch/Delete/Send` http
+      trio and the `Index`/`CollectDescendants` region-tree walkers.
+- [ ] C14 — Dedupe activity **code-behind** (not markup): the repeated `Post/Patch/Delete/Send`
+      http-helper trio (Build/Objective/Teams) and the `Index`/`CollectDescendants` region-tree
+      walkers (3–4 activities) → a shared `MapApiClient` service and/or an `EditorActivityBase` /
+      static `RegionNode` helpers.
+- [ ] C13 — **Bug:** canvas crashes on a map with a null `bounding_box` — `buildTransform`
+       (`transform.js`) destructures `min_x` off a null `bbox`, throwing a `JSException` through
+       `EditorCanvas.OnAfterRenderAsync` → Blazor "unhandled error" banner (repro: `/editor/2d`,
+       any canvas activity). These are xml-only / not-fully-pipelined maps with no bbox in
+       `regions/tree`. Degrade gracefully: skip render (show an empty-canvas hint) when bbox is null,
+       rather than throwing. (Related data gap: TODO D1 stale dev DB / xml-only maps.)
 
 ## B — Backend / API
 - [x] B1 — Region authoring + tree encoders + `GET /regions/authoring`,`/regions/tree`,`/islands` (350/350)

@@ -90,27 +90,8 @@ else
 }
 
 @code {
-    [Parameter] public RegionNode? Node { get; set; }
-    [Parameter] public EventCallback<string> OnSelectChild { get; set; }
-    [Parameter] public EventCallback<string> OnDelete { get; set; }
-    [Parameter] public EventCallback<string> OnRename { get; set; }  // passes the new id
-
-    private async Task OnIdChanged(ChangeEventArgs e)
-    {
-        var newId = e.Value?.ToString()?.Trim() ?? "";
-        if (newId.Length > 0 && Node is not null && newId != Node.Id) await OnRename.InvokeAsync(newId);
-    }
-
-    private object? C(string k) => Node!.Coords.GetValueOrDefault(k);
-    private static string Cap(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
-
-    private List<RegionNode> Children()
-    {
-        var list = new List<RegionNode>(Node!.Children);
-        if (Node.Source is not null) list.Add(Node.Source);
-        return list.Where(k => !string.IsNullOrEmpty(k.Id)).ToList();
-    }
-
+    // Field stays here because it is a Razor markup template; the inspector logic lives in
+    // RegionInspector.razor.cs.
     private RenderFragment Field(string label, params (string prefix, object? val)[] cells) => __builder =>
     {
         <div class="field">
@@ -126,6 +107,4 @@ else
             </div>
         </div>
     };
-
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 }
