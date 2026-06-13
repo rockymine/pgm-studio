@@ -44,6 +44,12 @@
             {
               <span class="complement-base-tag">base</span>
             }
+            @* the first filter event wired to this region ("enter", "block-break", …) — surfaces the rule
+               in use at a glance (unwired regions like monuments/spawners show nothing). Good R1 prep. *@
+            @if (n.FirstEvent is { } ev)
+            {
+              <span class="list-tag">@ev</span>
+            }
           </div>
           break;
       }

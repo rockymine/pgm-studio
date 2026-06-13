@@ -70,7 +70,7 @@
             <div class="list-row list-row--compact @(selSpawn == r.Id ? "list-row--selected" : null)" @onclick="() => SelectSpawn(r.Id)">
               <span class="geo-type-icon"><i data-lucide="@RegionNode.Icon(r.Type)"></i></span>
               <span class="list-label list-label--mono">@r.Id</span>
-              <span class="list-tag">protection</span>
+              <span class="list-tag">@(r.FirstEvent ?? "")</span>
             </div>
           }
         </div>

@@ -13,8 +13,13 @@ public sealed class RegionNode
     public string Type = "unknown";
     public string Label = "";
     public string? Subtype;          // refines the group category, e.g. spawn → "point" | "protection"
+    public List<string> Wiring = new();  // spatial filter wiring, e.g. "enter=only-blue", "block_break=…"
     public bool Synthetic;
     public bool IsNegative;
+
+    /// <summary>The first filter event applied to this region ("enter", "block-break", …), or null when
+    /// unwired (monuments/spawners). Surfaced as a tag; the full wiring is in <see cref="Wiring"/>.</summary>
+    public string? FirstEvent => Wiring.Count == 0 ? null : Wiring[0].Split('=')[0].Replace('_', '-');
     public Dictionary<string, object?>? Bounds;     // min_x, min_z, max_x, max_z
     public Dictionary<string, object?> Coords = new();
     public List<RegionNode> Children = new();
@@ -35,6 +40,8 @@ public sealed class RegionNode
             Bounds = Obj(e, "bounds"),
             Coords = Obj(e, "coords") ?? new(),
         };
+        if (e.TryGetProperty("wiring", out var wr) && wr.ValueKind == JsonValueKind.Array)
+            foreach (var w in wr.EnumerateArray()) if (w.ValueKind == JsonValueKind.String) n.Wiring.Add(w.GetString() ?? "");
         if (e.TryGetProperty("children", out var kids) && kids.ValueKind == JsonValueKind.Array)
             foreach (var k in kids.EnumerateArray()) n.Children.Add(Parse(k));
         if (e.TryGetProperty("source", out var src) && src.ValueKind == JsonValueKind.Object)
