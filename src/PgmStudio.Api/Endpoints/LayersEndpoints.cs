@@ -10,6 +10,65 @@ namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
 
+/// <summary>Shared surface-parquet → pixels / block-types projection (B4 + B9).</summary>
+internal static class LayerData
+{
+    /// <summary>Parallel xs/zs/colors arrays + bounds for a column set (caller ensures non-empty).</summary>
+    public static Dict Pixels(IReadOnlyList<SurfaceCell> cells)
+    {
+        var colorCache = new Dictionary<(int, int), string>();
+        var xs = new int[cells.Count];
+        var zs = new int[cells.Count];
+        var colors = new string[cells.Count];
+        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+        for (var i = 0; i < cells.Count; i++)
+        {
+            var c = cells[i];
+            xs[i] = c.X; zs[i] = c.Z;
+            var key = (c.BlockId, c.BlockData);
+            if (!colorCache.TryGetValue(key, out var hex)) colorCache[key] = hex = BlockColors.Hex(c.BlockId, c.BlockData);
+            colors[i] = hex;
+            if (c.X < minX) minX = c.X; if (c.X > maxX) maxX = c.X;
+            if (c.Z < minZ) minZ = c.Z; if (c.Z > maxZ) maxZ = c.Z;
+        }
+        return new Dict
+        {
+            ["xs"] = xs, ["zs"] = zs, ["colors"] = colors,
+            ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
+        };
+    }
+
+    /// <summary>One entry per distinct block_id (count summed across data variants, colour/name from
+    /// the dominant variant), sorted by count desc. Port of <c>_block_types_from_parquet</c>.</summary>
+    public static List<Dict> BlockTypes(IReadOnlyList<SurfaceCell> cells)
+    {
+        var pairCounts = new Dictionary<(int id, int data), int>();
+        foreach (var c in cells) pairCounts[(c.BlockId, c.BlockData)] = pairCounts.GetValueOrDefault((c.BlockId, c.BlockData)) + 1;
+
+        var totals = new Dictionary<int, int>();
+        var dominant = new Dictionary<int, (int data, int count)>();
+        // Iterate (id, data) ascending so ties pick the lowest data variant (matches pandas stable sort).
+        foreach (var ((id, data), count) in pairCounts.OrderBy(kv => kv.Key.id).ThenBy(kv => kv.Key.data))
+        {
+            totals[id] = totals.GetValueOrDefault(id) + count;
+            if (!dominant.TryGetValue(id, out var cur) || count > cur.count) dominant[id] = (data, count);
+        }
+
+        return totals.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key)
+            .Select(kv =>
+            {
+                var data = dominant[kv.Key].data;
+                return new Dict
+                {
+                    ["block_id"] = kv.Key,
+                    ["name"] = BlockColors.Name(kv.Key, data),
+                    ["color"] = BlockColors.Hex(kv.Key, data),
+                    ["count"] = kv.Value,
+                };
+            }).ToList();
+    }
+}
+
 /// <summary>
 /// GET /api/map/{slug}/layers/top-surface — per-column surface colour overlay (B4). Reads the cached
 /// <c>layer.parquet</c> artifact, maps each column's (block_id, block_data) to a hex colour, and
@@ -31,29 +90,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, PgmDb db) : EndpointW
 
         var cells = await SurfaceLayer.ReadAsync(art.Data);
         if (cells.Count == 0) { await Send.NotFoundAsync(ct); return; }
-
-        var colorCache = new Dictionary<(int, int), string>();
-        var xs = new int[cells.Count];
-        var zs = new int[cells.Count];
-        var colors = new string[cells.Count];
-        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
-        for (var i = 0; i < cells.Count; i++)
-        {
-            var c = cells[i];
-            xs[i] = c.X; zs[i] = c.Z;
-            var key = (c.BlockId, c.BlockData);
-            if (!colorCache.TryGetValue(key, out var hex))
-                colorCache[key] = hex = BlockColors.Hex(c.BlockId, c.BlockData);
-            colors[i] = hex;
-            if (c.X < minX) minX = c.X; if (c.X > maxX) maxX = c.X;
-            if (c.Z < minZ) minZ = c.Z; if (c.Z > maxZ) maxZ = c.Z;
-        }
-
-        await Send.OkAsync(new Dict
-        {
-            ["xs"] = xs, ["zs"] = zs, ["colors"] = colors,
-            ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
-        }, ct);
+        await Send.OkAsync(LayerData.Pixels(cells), ct);
     }
 }
 

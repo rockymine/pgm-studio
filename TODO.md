@@ -100,13 +100,14 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       formatting differs) + synthetic unit test. **Remaining: frontend** Configure step-3 UI (show
       detected modes + axis overlay + confirm) — currently confirm-only; track under E8.
 - [ ] B8 — External-source endpoints: `sources`, `import-from-url`, `configure` (`player`/Mojang done in B6)
-- [ ] B9 — Configure layer endpoints — **port of `studio/routes/configure.py`** (these exist in the old
-      project): `PATCH /configure/{slug}/exclude-block` (block-exclusion toggle, like exclude-island);
-      `GET /configure/{slug}/layers/{type}/pixels` (configure-canvas preview); `GET …/layers/{type}/
-      block-types` (block-exclusion list). Includes the `_generate_layer_cache` re-scan +
-      `_pixels_from_parquet` / `_block_types_from_parquet` helpers (configure.py:155–260).
-      (Already ported from configure.py: `state`, `scan-layer`, `exclude-island`. Still separate:
-      `symmetry` PATCH → B7. top-surface=B4, segments=B5.)
+- [~] B9 — Configure layer endpoints (port of `studio/routes/configure.py`): `PATCH /configure/{slug}/
+      exclude-block` (done), `GET /configure/{slug}/layers/{type}/pixels` + `…/block-types` (done, via
+      shared `LayerData` — `_pixels_from_parquet`/`_block_types_from_parquet`). Served from the cached
+      `layer.parquet` artifact for the **scan layer**; pixels parity = identical to B4 top-surface,
+      block-types parity = exact aggregation (counts/order) + known-block colours (the 6 diffs on a real
+      map are unknown-block fallback colours, the documented P5 limit). 400 unknown type / 404|[] when
+      unavailable. **Remaining:** on-demand `_generate_layer_cache` for non-scan layers (y0/bedrock/base)
+      needs those extractors ported → P6; alternate layers currently 404/[].
 
 ## P — Pipeline / world import (M7)
 - [x] P1 — Anvil `.mca` reader (byte-exact vs Python)
@@ -116,6 +117,9 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] P5 — Block colours (`minecraft/colors.py` → `PgmStudio.Minecraft/BlockColors.cs`) for the surface
       render. Full known-table parity vs Python oracle (197/197, `RoundTrip --colors`) + unit tests.
       (Unknown-block fallback isn't byte-parity — Python's `hash()` isn't portable; known blocks exact.)
+- [ ] P6 — Port the remaining layer extractors (`minecraft/layers.py`: Y0/Bedrock/Base; Surface done in
+      P4) so Configure can regenerate non-scan layers on demand (`_generate_layer_cache`) → unblocks the
+      y0/bedrock/base paths of B9's pixels/block-types (currently 404/[] for non-scan layers).
 
 ## A — Analysis
 - [x] A1 — All algorithms ported + parity-verified (categorizer 350/350; buildability/traversability/wool 10/10)

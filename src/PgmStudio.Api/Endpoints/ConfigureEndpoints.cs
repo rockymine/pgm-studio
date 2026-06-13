@@ -14,8 +14,9 @@ using Dict = Dictionary<string, object?>;
 /// <summary>
 /// Configure-activity backend — reads/writes the per-map scan configuration (the
 /// <c>map_config_json</c> artifact: <c>scan_layer</c>, <c>exclude_blocks</c>, <c>exclude_islands</c>,
-/// <c>scan_layer_confirmed</c>). Port of the relevant routes in studio/routes/configure.py.
-/// (Re-scan on layer change + block-types/pixels previews + symmetry detection are not yet ported.)
+/// <c>scan_layer_confirmed</c>). Port of the relevant routes in studio/routes/configure.py — state,
+/// scan-layer, exclude-island/-block, and the layer pixels/block-types previews (B9). On-demand
+/// re-scan for non-scan layers (y0/bedrock/base) awaits those extractors being ported (P-series).
 /// </summary>
 internal static class ConfigureStore
 {
@@ -120,5 +121,93 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db)
         // Excluded islands feed symmetry detection — drop the cached result so step 3 recomputes.
         await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson).DeleteAsync(ct);
         await Send.OkAsync(new Dict { ["ok"] = true }, ct);
+    }
+}
+
+/// <summary>Shared bits for the B9 layer endpoints.</summary>
+internal static class ConfigureLayers
+{
+    public static readonly HashSet<string> ValidTypes = ["surface", "y0", "bedrock", "base"];
+
+    /// <summary>The cached surface cells for a layer type, or null when unavailable. Currently only the
+    /// configured <c>scan_layer</c> (the imported <c>layer.parquet</c> artifact) is served; y0/bedrock/
+    /// base need their extractors ported (P-series) to regenerate on demand.</summary>
+    public static async Task<List<SurfaceCell>?> CellsAsync(PgmDb db, long mapId, string layerType, CancellationToken ct)
+    {
+        var cfg = await ConfigureStore.LoadAsync(db, mapId, ct);
+        var scanLayer = cfg["scan_layer"]?.GetValue<string>() ?? "surface";
+        if (layerType != scanLayer) return null;
+        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.LayerParquet, ct);
+        return art is null ? null : await SurfaceLayer.ReadAsync(art.Data);
+    }
+}
+
+/// <summary>PATCH /api/configure/{slug}/exclude-block — toggle one block id's exclusion (B9).</summary>
+public sealed class ConfigureExcludeBlockEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Patch("/configure/{slug}/exclude-block"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        using var r = new StreamReader(HttpContext.Request.Body);
+        var bodyText = await r.ReadToEndAsync(ct);
+        var body = (JsonNode.Parse(string.IsNullOrWhiteSpace(bodyText) ? "{}" : bodyText) as JsonObject) ?? new JsonObject();
+
+        if (body["block_id"] is not { } bidNode) { await Send.ResponseAsync(new Dict { ["error"] = "block_id is required" }, 400, ct); return; }
+        int blockId;
+        try { blockId = bidNode.GetValue<int>(); }
+        catch { await Send.ResponseAsync(new Dict { ["error"] = "block_id must be an integer" }, 400, ct); return; }
+        var excluded = body["excluded"]?.GetValue<bool>() ?? true;
+
+        var cfg = await ConfigureStore.LoadAsync(db, map.Id, ct);
+        var ids = (cfg["exclude_blocks"]?.AsArray() ?? new JsonArray()).Select(n => n!.GetValue<int>()).ToList();
+        if (excluded) { if (!ids.Contains(blockId)) ids.Add(blockId); }   // append, preserve order (matches reference)
+        else ids = ids.Where(b => b != blockId).ToList();
+        cfg["exclude_blocks"] = new JsonArray(ids.Select(i => (JsonNode)i).ToArray());
+
+        await ConfigureStore.SaveAsync(db, map.Id, cfg, ct);
+        await Send.OkAsync(new Dict { ["ok"] = true, ["exclude_blocks"] = ids }, ct);
+    }
+}
+
+/// <summary>GET /api/configure/{slug}/layers/{type}/pixels — coloured pixel data for the configure
+/// canvas preview (B9). 400 on an unknown layer type; 404 when the layer's data isn't available.</summary>
+public sealed class ConfigureLayerPixelsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/configure/{slug}/layers/{type}/pixels"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var layerType = Route<string>("type")!;
+        if (!ConfigureLayers.ValidTypes.Contains(layerType))
+        { await Send.ResponseAsync(new Dict { ["error"] = $"Unknown layer type: {layerType}" }, 400, ct); return; }
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        var cells = await ConfigureLayers.CellsAsync(db, map.Id, layerType, ct);
+        if (cells is null || cells.Count == 0)
+        { await Send.ResponseAsync(new Dict { ["error"] = "World files not available for this map" }, 404, ct); return; }
+        await Send.OkAsync(LayerData.Pixels(cells), ct);
+    }
+}
+
+/// <summary>GET /api/configure/{slug}/layers/{type}/block-types — block-exclusion list for a layer
+/// (B9): one entry per block id, count desc. 400 on unknown type; [] when data is unavailable.</summary>
+public sealed class ConfigureLayerBlockTypesEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/configure/{slug}/layers/{type}/block-types"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var layerType = Route<string>("type")!;
+        if (!ConfigureLayers.ValidTypes.Contains(layerType))
+        { await Send.ResponseAsync(new Dict { ["error"] = $"Unknown layer type: {layerType}" }, 400, ct); return; }
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        var cells = await ConfigureLayers.CellsAsync(db, map.Id, layerType, ct);
+        await Send.OkAsync(cells is null ? new List<Dict>() : LayerData.BlockTypes(cells), ct);
     }
 }
