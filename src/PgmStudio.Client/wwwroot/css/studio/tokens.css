@@ -1,0 +1,113 @@
+/* tokens.css — CSS custom properties for PGM Map Studio.
+ * Only :root variables here. No selectors, no component rules.
+ * Load this before editor.css and components.css in every template. */
+
+:root {
+  /* ── Backgrounds ─────────────────────────────────────────────────────── */
+  --bg-deep:            #080f1a;   /* canvas area, deep layers */
+  --bg-base:            #0f172a;   /* page background */
+  --bg-panel:           #1e293b;   /* sidebars, panels, topbar */
+  --bg-multi:           #1a3a2f;   /* multi-team selection tint */
+  --bg-selected:        #1e3a5f;   /* selected row / active fill */
+  --bg-selected-hover:  color-mix(in oklch, var(--bg-selected) 27%, transparent);
+  --bg-selected-child:  color-mix(in oklch, var(--bg-selected) 47%, transparent);
+  --bg-vis-hover:       #162032;   /* visibility button hover */
+  --bg-base-glass:      color-mix(in oklch, var(--bg-base)  80%, transparent);
+  --bg-panel-glass:     color-mix(in oklch, var(--bg-panel) 80%, transparent);
+
+  /* ── Borders ─────────────────────────────────────────────────────────── */
+  --border:        #334155;
+  --border-swatch: rgba(255,255,255,0.15); /* overlay edge on color-filled swatches/dots */
+
+  /* ── Text hierarchy (quiet → strong) — all pass WCAG AA on bg-panel and bg-base ── */
+  --text-muted:     #8397b0;   /* 4.9:1 — section headers, metadata, tags */
+  --text-secondary: #94a3b8;   /* 5.7:1 — form labels, secondary content */
+  --text-primary:   #cbd5e1;   /* 9.9:1 — default body text */
+  --text-bright:    #e2e8f0;   /* 11.9:1 — headings, emphasis */
+  --text-white:     #fff;      /* active / selected text on coloured surfaces */
+
+  /* ── Accent (primary action colour) ─────────────────────────────────── */
+  --accent:          #3b82f6;
+  --accent-light:    #60a5fa;
+  --accent-lighter:  #93c5fd;
+  --accent-bg-hover: oklch(from var(--accent) calc(l - 0.12) c h); /* darkened accent for hover */
+
+  /* ── Shadows ─────────────────────────────────────────────────────────── */
+  --shadow-ring:  0 0 0 1px var(--accent);                   /* selection outline — list rows, inputs */
+  --shadow-float: 0 8px 24px oklch(0% 0 0 / 0.40);          /* elevated surfaces — menus, overlays */
+
+  /* ── Semantic status ─────────────────────────────────────────────────── */
+  /* -bg: Tailwind 900 blended into --bg-panel (color-mix preserves bg-panel tracking) */
+  --color-success:     #22c55e;   /* green-500  — 6.4:1 on bg-panel */
+  --color-success-bg:  color-mix(in srgb, #14532d 27%, var(--bg-panel)); /* green-900 @ 27% */
+  --color-error:       #f87171;   /* red-400    — 5.3:1 on bg-panel (was red-500 at 3.9:1, sub-AA) */
+  --color-error-bg:    color-mix(in srgb, #7f1d1d 27%, var(--bg-panel)); /* red-900 @ 27% */
+  --color-error-hover: color-mix(in oklch, var(--color-error) 10%, transparent); /* danger hover tint */
+  --color-warning:     #f59e0b;   /* amber-500 — 6.8:1 on bg-panel */
+  --color-warning-bg:  color-mix(in srgb, #451a03 27%, var(--bg-panel)); /* amber-900 @ 27% */
+
+  /* ── Code / monospace highlight ──────────────────────────────────────── */
+  --code-color: #7dd3fc;
+
+  /* ── Canvas SVG colours ───────────────────────────────────────────────── */
+  /* Island polygons — single fill for both editor and sketch */
+  --canvas-island:        #6b7280;   /* gray-500 — island fill */
+  --canvas-island-stroke: oklch(from var(--canvas-island) calc(l * 0.55) c h); /* darkened stroke */
+
+  /* Sketch shape operations */
+  --canvas-add-fill:    #0d9488;   /* teal-600 */
+  --canvas-add-stroke:  #0f766e;   /* teal-700 */
+  --canvas-sub-fill:    #dc2626;   /* red-600 */
+  --canvas-sub-stroke:  #b91c1c;   /* red-700 */
+
+  /* Sketch result polygon (boolean-computed island outlines) */
+  --canvas-result-fill:   #6366f1;  /* indigo-500 */
+  --canvas-result-stroke: #4338ca;  /* indigo-700 */
+
+  /* Mirror preview overlay (lower-opacity tint over computed islands) */
+  --canvas-mirror-fill:   rgba(99, 102, 241, 0.12);
+  --canvas-mirror-stroke: rgba(99, 102, 241, 0.40);
+
+  /* Symmetry axis indicator — center crosshair and axis line in Setup */
+  --canvas-axis: #a78bfa;   /* violet-400 */
+
+  /* Minecraft chunk grid (16-block boundaries, lighter purple) */
+  --canvas-chunk: color-mix(in oklab, var(--canvas-axis) 38%, transparent);
+
+  /* Canvas SVG area background */
+  --canvas-bg: var(--bg-deep);   /* alias — always equals --bg-deep */
+
+  /* Region shapes — editor canvas (all types share one colour; runtime supplies per-region value) */
+  --canvas-region: #94a3b8;   /* slate-400 — fallback / design-doc placeholder */
+
+  /* Resize handles — sketch selected + editor selected */
+  --canvas-handle-fill:   #0f172a;   /* slate-950 */
+  --canvas-handle-stroke: #94a3b8;   /* slate-400 */
+
+  /* ── Type scale ─────────────────────────────────────────────────────── */
+  --font-lg:   14px;   /* body default */
+  --font-md:   13px;   /* inputs, list labels, form values */
+  --font-base: 12px;   /* most common — badges, buttons, panels */
+  --font-sm:   11px;   /* helper text, field labels, tags */
+  --font-xs:   10px;   /* smallest prose, section headers */
+
+  /* ── Sidebar widths ─────────────────────────────────────────────────── */
+  --sidebar-width:   280px;   /* left panels — list / form content */
+  --inspector-width: 280px;   /* right panels — detail / property view */
+
+  /* ── Spacing scale ───────────────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* ── Border radii ────────────────────────────────────────────────────── */
+  --radius-sm:   3px;
+  --radius-md:   6px;
+  --radius-pill: 9999px; /* capsule / pill shapes */
+
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --transition-fast: 0.12s ease;
+}

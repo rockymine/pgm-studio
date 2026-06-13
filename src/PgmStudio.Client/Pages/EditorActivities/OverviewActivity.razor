@@ -1,0 +1,163 @@
+@namespace PgmStudio.Client.Pages.EditorActivities
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Overview activity — map identity + authors/contributors. Port of studio ov-workspace
+   (templates/editor.html) + panels/overview-panel.js. *@
+
+<div class="workspace">
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Map Identity</h2>
+        </div>
+        <div class="field">
+          <label class="field-label" for="ov-name">Map Name <span class="field-required">*</span></label>
+          <input id="ov-name" class="field-input" type="text" placeholder="My CTW Map"
+                 value="@name" @oninput="e => { name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="ov-version">Version <span class="field-required">*</span></label>
+            <input id="ov-version" class="field-input" type="text" placeholder="1.0.0"
+                   value="@version" @oninput="e => { version = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="ov-gamemode">Gamemode <span class="field-required">*</span></label>
+            <input id="ov-gamemode" class="field-input" type="text" placeholder="ctw"
+                   value="@gamemode" @oninput="e => { gamemode = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="ov-objective">Objective</label>
+          <textarea id="ov-objective" class="field-input field-input--textarea" rows="2"
+                    placeholder="Capture all enemy wools!"
+                    value="@objective" @oninput="e => { objective = e.Value?.ToString() ?? string.Empty; Dirty(); }"></textarea>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Authors</h2>
+          <button class="action-btn" @onclick="() => AddPerson(authors)">+ Add</button>
+        </div>
+        <div class="author-list">
+          @foreach (var p in authors) { @PersonRow(p, authors) }
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Contributors</h2>
+          <button class="action-btn" @onclick="() => AddPerson(contributors)">+ Add</button>
+        </div>
+        <div class="author-list">
+          @foreach (var p in contributors) { @PersonRow(p, contributors) }
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="panel-actions">
+          <button class="action-btn action-btn--primary" disabled="@(!dirty)" @onclick="Save">Save changes</button>
+          <span class="panel-save-status">@saveStatus</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-canvas">
+    <svg class="canvas-surface" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+</div>
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public EventCallback<string?> OnStatus { get; set; }
+
+    private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
+
+    private sealed class Person { public string Uuid = ""; public string Name = ""; public string Contribution = ""; }
+
+    private string name = "", version = "", gamemode = "", objective = "";
+    private readonly List<Person> authors = new();
+    private readonly List<Person> contributors = new();
+    private bool dirty;
+    private string? saveStatus;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
+            name = Str(doc, "name"); version = Str(doc, "version");
+            gamemode = Str(doc, "gamemode"); objective = Str(doc, "objective");
+            authors.Clear(); contributors.Clear();
+            if (doc.TryGetProperty("authors", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                foreach (var a in arr.EnumerateArray())
+                {
+                    var p = new Person { Uuid = Str(a, "uuid"), Name = Str(a, "name"), Contribution = Str(a, "contribution") };
+                    (Str(a, "role") == "contributor" ? contributors : authors).Add(p);
+                }
+            dirty = false; saveStatus = null;
+            await ReportStatus();
+        }
+        catch { saveStatus = "Failed to load."; }
+    }
+
+    private static string Str(JsonElement e, string key)
+        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
+
+    private void Dirty() { dirty = true; saveStatus = null; }
+
+    private void AddPerson(List<Person> list) { list.Add(new Person()); Dirty(); }
+    private void RemovePerson(List<Person> list, Person p) { list.Remove(p); Dirty(); }
+
+    private RenderFragment PersonRow(Person p, List<Person> list) => __builder =>
+    {
+        <div class="author-row">
+            <img class="author-avatar" width="16" height="16" alt=""
+                 src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
+            <input class="field-input author-name" type="text" placeholder="Minecraft username"
+                   value="@(string.IsNullOrEmpty(p.Name) ? p.Uuid : p.Name)"
+                   @oninput="e => { p.Name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+            <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"
+                   value="@p.Contribution" @oninput="e => { p.Contribution = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+            <button class="btn-remove" title="Remove" @onclick="() => RemovePerson(list, p)">✕</button>
+        </div>
+    };
+
+    private async Task Save()
+    {
+        saveStatus = "Saving…"; StateHasChanged();
+        var payload = new Dictionary<string, object?>
+        {
+            ["name"] = name,
+            ["version"] = version,
+            ["gamemode"] = gamemode,
+            ["objective"] = objective,
+            ["authors"] = authors.Select(p => Author(p, "author"))
+                .Concat(contributors.Select(p => Author(p, "contributor"))).ToList(),
+        };
+        var resp = await Http.PatchAsJsonAsync($"api/map/{Slug}/metadata", payload);
+        if (resp.IsSuccessStatusCode) { dirty = false; saveStatus = "Saved."; await ReportStatus(); }
+        else saveStatus = $"Save failed ({(int)resp.StatusCode}).";
+        StateHasChanged();
+    }
+
+    private static Dictionary<string, object?> Author(Person p, string role) => new()
+    {
+        ["uuid"] = p.Uuid, ["name"] = p.Name, ["role"] = role, ["contribution"] = p.Contribution,
+    };
+
+    // Required identity fields drive the rail status dot (yellow = incomplete).
+    private Task ReportStatus()
+    {
+        var complete = !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(version) && !string.IsNullOrWhiteSpace(gamemode);
+        return OnStatus.InvokeAsync(complete ? null : "yellow");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+}

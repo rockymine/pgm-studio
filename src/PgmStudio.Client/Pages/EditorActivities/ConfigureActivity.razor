@@ -1,0 +1,167 @@
+@namespace PgmStudio.Client.Pages.EditorActivities
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Configure activity — 3-step scan-configuration wizard (Scan Layer / Islands / Symmetry). Port of
+   configure-activity.js. Backend = the map_config_json artifact. Block-types/pixels previews,
+   re-scan, and symmetry detection are deferred; the canvas reuses EditorCanvas for the map preview. *@
+
+<div class="workspace">
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+      @if (step == 1)
+      {
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">Scan Layer</h2>
+            <span class="badge badge--dim">Step 1</span>
+          </div>
+          <p class="section-desc">Choose which extractor produced the map's surface layer.</p>
+          <div class="layer-grid">
+            @foreach (var (id, label, title) in Layers)
+            {
+              <button class="filter-chip @(scanLayer == id ? "filter-chip--active" : null)" title="@title" @onclick="() => scanLayer = id">@label</button>
+            }
+          </div>
+        </section>
+      }
+      else if (step == 2)
+      {
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">Islands</h2>
+            <span class="badge badge--dim">Step 2</span>
+          </div>
+          <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer towers).</p>
+          <div class="panel-list">
+            @if (islands.Count == 0) { <div class="list-empty">No islands.</div> }
+            @foreach (var isl in islands)
+            {
+              <div class="list-row list-row--compact">
+                <span class="list-label">Island @isl.Id</span>
+                <span class="list-tag">@isl.BlockCount blocks</span>
+                <label class="filter-chip" title="Exclude from the playable layout">
+                  <input type="checkbox" class="control-input--hidden" checked="@excluded.Contains(isl.Id)"
+                         @onchange="e => ToggleIsland(isl.Id, (bool)(e.Value ?? false))" />
+                  @(excluded.Contains(isl.Id) ? "Excluded" : "Included")
+                </label>
+              </div>
+            }
+          </div>
+        </section>
+      }
+      else
+      {
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">Symmetry</h2>
+            <span class="badge badge--dim">Step 3</span>
+          </div>
+          <p class="section-desc">Confirm the scan configuration. (Symmetry detection is not yet ported — confirm to continue.)</p>
+        </section>
+      }
+    </div>
+
+    <div class="cfg-sidebar-nav">
+      @if (step > 1) { <button class="action-btn" @onclick="Prev"><i data-lucide="arrow-left"></i></button> }
+      @if (step < 3) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Next">Next <i data-lucide="arrow-right"></i></button> }
+      else { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Finish">Continue to Overview <i data-lucide="arrow-right"></i></button> }
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-canvas">
+    <div class="canvas-subbar">
+      <div class="cfg-step-bar">
+        <div class="step-item @(step == 1 ? "active" : null)"><span class="step-number">1</span><span class="step-item-label">Scan Layer</span></div>
+        <div class="step-sep"></div>
+        <div class="step-item @(step == 2 ? "active" : null)"><span class="step-number">2</span><span class="step-item-label">Islands</span></div>
+        <div class="step-sep"></div>
+        <div class="step-item @(step == 3 ? "active" : null)"><span class="step-number">3</span><span class="step-item-label">Symmetry</span></div>
+      </div>
+    </div>
+    <EditorCanvas Slug="@Slug" />
+  </div>
+</div>
+
+@if (error is not null) { <div class="toast toast--error">@error</div> }
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public EventCallback OnComplete { get; set; }
+
+    private static readonly (string id, string label, string title)[] Layers =
+    [
+        ("surface", "Surface", "Highest solid block per column"),
+        ("y0", "Y=0", "Non-air blocks at world y=0"),
+        ("bedrock", "Bedrock", "Lowest bedrock block per column"),
+        ("base", "Base", "Lowest non-air block per column"),
+    ];
+
+    private int step = 1;
+    private string scanLayer = "surface";
+    private readonly HashSet<int> excluded = new();
+    private readonly List<Island> islands = new();
+    private string? error;
+
+    private sealed record Island(int Id, int BlockCount);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        step = 1; excluded.Clear(); islands.Clear();
+        try
+        {
+            var state = await Http.GetFromJsonAsync<JsonElement>($"api/configure/{Slug}/state");
+            scanLayer = state.TryGetProperty("scan_layer", out var sl) && sl.ValueKind == JsonValueKind.String ? sl.GetString() ?? "surface" : "surface";
+            if (state.TryGetProperty("exclude_islands", out var ex) && ex.ValueKind == JsonValueKind.Array)
+                foreach (var i in ex.EnumerateArray()) excluded.Add(i.GetInt32());
+
+            var resp = await Http.GetAsync($"api/map/{Slug}/islands");
+            if (resp.IsSuccessStatusCode)
+            {
+                var arr = await resp.Content.ReadFromJsonAsync<JsonElement>();
+                if (arr.ValueKind == JsonValueKind.Array)
+                    foreach (var isl in arr.EnumerateArray())
+                        islands.Add(new Island(isl.GetProperty("id").GetInt32(), isl.GetProperty("block_count").GetInt32()));
+            }
+        }
+        catch (Exception ex) { error = ex.Message; }
+    }
+
+    private async Task ToggleIsland(int id, bool isExcluded)
+    {
+        if (await Patch("exclude-island", new Dictionary<string, object?> { ["island_id"] = id, ["excluded"] = isExcluded }))
+        {
+            if (isExcluded) excluded.Add(id); else excluded.Remove(id);
+            StateHasChanged();
+        }
+    }
+
+    private async Task Next()
+    {
+        if (step == 1)
+            await Patch("scan-layer", new Dictionary<string, object?> { ["scan_layer"] = scanLayer, ["exclude_blocks"] = Array.Empty<int>() });
+        if (step < 3) step++;
+    }
+
+    private void Prev() { if (step > 1) step--; }
+
+    private async Task Finish()
+    {
+        await Patch("scan-layer", new Dictionary<string, object?> { ["confirmed"] = true });
+        await OnComplete.InvokeAsync();
+    }
+
+    private async Task<bool> Patch(string path, object body)
+    {
+        error = null;
+        var resp = await Http.PatchAsJsonAsync($"api/configure/{Slug}/{path}", body);
+        if (resp.IsSuccessStatusCode) return true;
+        error = $"error {(int)resp.StatusCode}";
+        StateHasChanged();
+        return false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+}

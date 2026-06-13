@@ -1,0 +1,21 @@
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+.vs/
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+
+# Tooling / runtime
+.tmp/
+*.log
+
+# Rider / VS Code
+.idea/
+.vscode/

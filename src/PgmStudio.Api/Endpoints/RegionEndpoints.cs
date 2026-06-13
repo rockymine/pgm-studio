@@ -1,0 +1,120 @@
+using FastEndpoints;
+using PgmStudio.Data.Repositories;
+using PgmStudio.Pgm.Editing;
+
+namespace PgmStudio.Api.Endpoints;
+
+using Dict = Dictionary<string, object?>;
+
+/// <summary>POST /api/map/{slug}/regions — create a primitive region.</summary>
+public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.CreateRegion(doc, p), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/regions/group — wrap regions in a compound.</summary>
+public sealed class RegionGroupEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions/group"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.GroupRegions(doc, p), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/regions/ungroup — dissolve a compound.</summary>
+public sealed class RegionUngroupEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions/ungroup"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.UngroupRegion(doc, p), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/regions/restore — restore a deleted region from its snapshot.</summary>
+public sealed class RegionRestoreEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions/restore"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var snapshot = p.GetValueOrDefault("snapshot") as Dict ?? p;
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.RestoreRegion(doc, snapshot), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
+/// <summary>DELETE /api/map/{slug}/regions/{regionId} — delete a region (returns an undo snapshot).</summary>
+public sealed class RegionDeleteEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Delete("/map/{slug}/regions/{regionId}"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("regionId")!;
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.DeleteRegion(doc, id), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
+/// <summary>PATCH /api/map/{slug}/regions/{regionId} — rename / bounds / coords.</summary>
+public sealed class RegionPatchEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Patch("/map/{slug}/regions/{regionId}"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("regionId")!;
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.PatchRegion(doc, id, p), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/regions/{regionId}/change-type — change a compound's type.</summary>
+public sealed class RegionChangeTypeEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions/{regionId}/change-type"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("regionId")!;
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.ChangeRegionType(doc, id, p), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/regions/{regionId}/remove-from-group — detach a child.</summary>
+public sealed class RegionRemoveFromGroupEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions/{regionId}/remove-from-group"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("regionId")!;
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.RemoveFromGroup(doc, id, p), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/regions/{regionId}/set-base-child — set a complement's base child.</summary>
+public sealed class RegionSetBaseChildEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions/{regionId}/set-base-child"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("regionId")!;
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.SetBaseChild(doc, id, p), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}

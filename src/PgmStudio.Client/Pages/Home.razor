@@ -1,0 +1,73 @@
+@page "/"
+@layout EditorLayout
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<PageTitle>PGM Studio — Maps</PageTitle>
+
+@* Dashboard — studio-styled map list (no Bootstrap). Each row opens the editor at /editor/{slug}. *@
+
+<div class="editor-page">
+  <div class="topbar">
+    <span class="topbar-crumb">Map Studio</span>
+  </div>
+
+  <div class="app-body">
+    <nav class="activity-rail">
+      <div class="activity-logo">
+        <div class="activity-logo-box">
+          <span class="activity-logo-pgm">pgm</span>
+          <span class="activity-logo-sub">STUDIO</span>
+        </div>
+      </div>
+      <button class="activity-btn active" title="Maps"><i data-lucide="map"></i></button>
+      <a class="activity-btn" href="design" title="UI reference"><i data-lucide="palette"></i></a>
+    </nav>
+
+    <div class="activity-viewport">
+      <div class="workspace">
+        <div class="workspace-scroll" style="max-width: 960px;">
+          <section class="panel-section">
+            <div class="section-header section-header--ruled">
+              <h2 class="section-title">Maps</h2>
+              <span class="badge badge--dim">@(maps?.Count ?? 0)</span>
+            </div>
+            <input class="field-input" placeholder="Search maps…" @bind="filter" @bind:event="oninput" />
+            <div class="panel-list" style="margin-top: var(--space-3);">
+              @if (maps is null) { <div class="list-empty">Loading…</div> }
+              else if (!Filtered.Any()) { <div class="list-empty">No maps match.</div> }
+              else
+              {
+                @foreach (var m in Filtered)
+                {
+                  <a class="list-row" href="@($"editor/{m.Slug}")">
+                    <span class="list-label list-label--mono">@m.Slug</span>
+                    <span class="list-label">@m.Name</span>
+                    <span class="list-tag">@m.Gamemode</span>
+                    @if (!string.IsNullOrEmpty(m.Version)) { <span class="list-tag">@($"v{m.Version}")</span> }
+                  </a>
+                }
+              }
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@code {
+    private List<MapSummary>? maps;
+    private string filter = "";
+
+    private IEnumerable<MapSummary> Filtered =>
+        maps is null ? [] :
+        string.IsNullOrWhiteSpace(filter)
+            ? maps
+            : maps.Where(m => (m.Slug + " " + m.Name).Contains(filter, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+        => maps = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps");
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+}

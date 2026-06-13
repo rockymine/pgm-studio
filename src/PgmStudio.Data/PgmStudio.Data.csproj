@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PgmStudio.Domain\PgmStudio.Domain.csproj" />
+    <ProjectReference Include="..\PgmStudio.Contracts\PgmStudio.Contracts.csproj" />
+    <ProjectReference Include="..\PgmStudio.Pgm\PgmStudio.Pgm.csproj" />
+    <ProjectReference Include="..\PgmStudio.Minecraft\PgmStudio.Minecraft.csproj" />
+    <ProjectReference Include="..\PgmStudio.Analysis\PgmStudio.Analysis.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="linq2db" Version="6.3.0" />
+    <PackageReference Include="MySqlConnector" Version="2.6.0" />
+    <PackageReference Include="Parquet.Net" Version="6.0.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,131 @@
+@namespace PgmStudio.Client.Pages.EditorActivities
+@inject IJSRuntime JS
+
+@* Region detail panel — header (icon/id/type), id, type-specific coords, children list.
+   Read-only port of panels/region-inspector.js (rename/edit wiring comes with the editing activities). *@
+
+@if (Node is null)
+{
+  <p class="panel-empty-msg">Select a region to inspect.</p>
+}
+else
+{
+  <div class="detail-header">
+    <span class="geo-type-icon detail-icon--muted"><i data-lucide="@RegionNode.Icon(Node.Type)"></i></span>
+    <span class="detail-label detail-label--mono">@(string.IsNullOrEmpty(Node.Id) ? Node.Type : Node.Id)</span>
+    <span class="badge badge--neutral">@Cap(Node.Type)</span>
+  </div>
+
+  @if (!string.IsNullOrEmpty(Node.Id))
+  {
+    <div class="field">
+      <label class="field-label">ID</label>
+      @if (OnRename.HasDelegate)
+      {
+        <input class="field-input" type="text" value="@Node.Id" spellcheck="false" @onchange="OnIdChanged" />
+      }
+      else
+      {
+        <input class="field-input" type="text" value="@Node.Id" readonly tabindex="-1" spellcheck="false" />
+      }
+    </div>
+  }
+
+  @switch (Node.Type)
+  {
+    case "cuboid":
+      @Field("Min", ("X", C("min_x")), ("Y", C("min_y")), ("Z", C("min_z")))
+      @Field("Max", ("X", C("max_x")), ("Y", C("max_y")), ("Z", C("max_z")))
+      break;
+    case "rectangle":
+      @Field("Min", ("X", C("min_x")), ("Z", C("min_z")))
+      @Field("Max", ("X", C("max_x")), ("Z", C("max_z")))
+      break;
+    case "cylinder":
+      @Field("Base", ("X", C("base_x")), ("Y", C("base_y")), ("Z", C("base_z")))
+      @Field("Dimensions", ("R", C("radius")), ("H", C("height")))
+      break;
+    case "circle":
+      @Field("Center", ("X", C("center_x")), ("Z", C("center_z")))
+      @Field("Radius", ("R", C("radius")))
+      break;
+    case "sphere":
+      @Field("Origin", ("X", C("origin_x")), ("Y", C("origin_y")), ("Z", C("origin_z")))
+      @Field("Radius", ("R", C("radius")))
+      break;
+    case "point":
+    case "block":
+      @Field("Position", ("X", C("x")), ("Y", C("y")), ("Z", C("z")))
+      break;
+    default:
+      @if (Node.Bounds is { } b)
+      {
+        @Field("Min", ("X", b.GetValueOrDefault("min_x")), ("Z", b.GetValueOrDefault("min_z")))
+        @Field("Max", ("X", b.GetValueOrDefault("max_x")), ("Z", b.GetValueOrDefault("max_z")))
+      }
+      break;
+  }
+
+  @if (OnDelete.HasDelegate && !string.IsNullOrEmpty(Node.Id))
+  {
+    <div class="section-footer section-footer--separated">
+      <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => OnDelete.InvokeAsync(Node.Id)">Delete Region</button>
+    </div>
+  }
+
+  @if (Children() is { Count: > 0 } kids)
+  {
+    <div class="section-header section-header--ruled"><h2 class="section-title">Children</h2></div>
+    <div class="panel-list">
+      @foreach (var kid in kids)
+      {
+        <div class="list-row list-row--compact" @onclick="() => OnSelectChild.InvokeAsync(kid.Id)">
+          <span class="geo-type-icon detail-icon--muted"><i data-lucide="@RegionNode.Icon(kid.Type)"></i></span>
+          <span class="list-label list-label--mono">@(string.IsNullOrEmpty(kid.Id) ? $"({kid.Type})" : kid.Id)</span>
+          <span class="list-tag">@kid.Type</span>
+        </div>
+      }
+    </div>
+  }
+}
+
+@code {
+    [Parameter] public RegionNode? Node { get; set; }
+    [Parameter] public EventCallback<string> OnSelectChild { get; set; }
+    [Parameter] public EventCallback<string> OnDelete { get; set; }
+    [Parameter] public EventCallback<string> OnRename { get; set; }  // passes the new id
+
+    private async Task OnIdChanged(ChangeEventArgs e)
+    {
+        var newId = e.Value?.ToString()?.Trim() ?? "";
+        if (newId.Length > 0 && Node is not null && newId != Node.Id) await OnRename.InvokeAsync(newId);
+    }
+
+    private object? C(string k) => Node!.Coords.GetValueOrDefault(k);
+    private static string Cap(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+
+    private List<RegionNode> Children()
+    {
+        var list = new List<RegionNode>(Node!.Children);
+        if (Node.Source is not null) list.Add(Node.Source);
+        return list.Where(k => !string.IsNullOrEmpty(k.Id)).ToList();
+    }
+
+    private RenderFragment Field(string label, params (string prefix, object? val)[] cells) => __builder =>
+    {
+        <div class="field">
+            <label class="field-label">@label</label>
+            <div class="ctrl-row">
+                @foreach (var (prefix, val) in cells)
+                {
+                    <div class="coord-field">
+                        <span class="coord-prefix">@prefix</span>
+                        <input class="coord-input" type="number" value="@RegionNode.Fmt(val)" readonly tabindex="-1" />
+                    </div>
+                }
+            </div>
+        </div>
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+}

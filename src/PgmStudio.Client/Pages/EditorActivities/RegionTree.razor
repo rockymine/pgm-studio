@@ -1,0 +1,103 @@
+@namespace PgmStudio.Client.Pages.EditorActivities
+@inject IJSRuntime JS
+
+@* Region geo-tree sidebar — recursive category tree with collapse, type icons, and primary/
+   descendant selection highlight. Port of panels/regions-panel.js + region/region-tree.js. *@
+
+<div class="region-tree">
+  @if (Groups is null || !Groups.Any(g => g.Regions.Count > 0))
+  {
+    <div class="panel-empty-msg">No named regions found.</div>
+  }
+  else
+  {
+    @foreach (var row in BuildRows())
+    {
+      @switch (row.Kind)
+      {
+        case "header":
+          <div class="cat-header">@row.Text</div>
+          break;
+        case "divider":
+          <div class="cat-divider"></div>
+          break;
+        default:
+          var n = row.Node!;
+          <div class="geo-row @SelClass(n.Id)" @onclick="() => OnSelect.InvokeAsync(n)">
+            <span class="geo-indent">
+              @for (var d = 0; d < row.Depth; d++)
+              {
+                <span class="indent-pipe"></span>
+              }
+              @if (n.HasKids)
+              {
+                <button class="collapse-btn" @onclick="() => Toggle(n.Id)" @onclick:stopPropagation="true">
+                  <i data-lucide="@(collapsed.Contains(n.Id) ? "chevron-right" : "chevron-down")"></i>
+                </button>
+              }
+            </span>
+            <span class="geo-type-icon"><i data-lucide="@RegionNode.Icon(n.Type)"></i></span>
+            <span class="geo-label @(n.Synthetic ? "geo-label--synthetic" : null)" title="@n.Label">
+              @(string.IsNullOrEmpty(n.Label) ? $"({n.Type})" : n.Label)
+            </span>
+            @if (row.ParentType == "complement" && row.Index == 0)
+            {
+              <span class="complement-base-tag">base</span>
+            }
+          </div>
+          break;
+      }
+    }
+  }
+</div>
+
+@code {
+    [Parameter] public List<RegionGroup>? Groups { get; set; }
+    [Parameter] public string? SelectedId { get; set; }
+    [Parameter] public ISet<string>? SelectedSet { get; set; }
+    [Parameter] public EventCallback<RegionNode> OnSelect { get; set; }
+
+    private readonly HashSet<string> collapsed = new();
+
+    private sealed record TreeRow(string Kind, string? Text, RegionNode? Node, int Depth, string? ParentType, int Index);
+
+    private List<TreeRow> BuildRows()
+    {
+        var rows = new List<TreeRow>();
+        var visible = Groups!.Where(g => g.Regions.Count > 0).ToList();
+        for (var i = 0; i < visible.Count; i++)
+        {
+            var g = visible[i];
+            if (!string.IsNullOrEmpty(g.Label)) rows.Add(new("header", g.Label, null, 0, null, 0));
+            AddNodes(g.Regions, 0, null, rows);
+            if (i < visible.Count - 1) rows.Add(new("divider", null, null, 0, null, 0));
+        }
+        return rows;
+    }
+
+    private void AddNodes(List<RegionNode> nodes, int depth, string? parentType, List<TreeRow> rows)
+    {
+        for (var idx = 0; idx < nodes.Count; idx++)
+        {
+            var node = nodes[idx];
+            rows.Add(new("node", null, node, depth, parentType, idx));
+            if (node.HasKids && !collapsed.Contains(node.Id))
+            {
+                AddNodes(node.Children, depth + 1, node.Type, rows);
+                if (node.Source is not null) AddNodes(new() { node.Source }, depth + 1, node.Type, rows);
+            }
+        }
+    }
+
+    private string? SelClass(string id)
+        => id == SelectedId ? "geo-row--selected"
+        : SelectedSet is not null && SelectedSet.Contains(id) ? "geo-row--selected-child"
+        : null;
+
+    private void Toggle(string id)
+    {
+        if (!collapsed.Remove(id)) collapsed.Add(id);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+}

@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PgmStudio.Analysis/PgmStudio.Analysis.csproj" />
+    <Project Path="src/PgmStudio.Api/PgmStudio.Api.csproj" />
+    <Project Path="src/PgmStudio.Client/PgmStudio.Client.csproj" />
+    <Project Path="src/PgmStudio.Contracts/PgmStudio.Contracts.csproj" />
+    <Project Path="src/PgmStudio.Data/PgmStudio.Data.csproj" />
+    <Project Path="src/PgmStudio.Domain/PgmStudio.Domain.csproj" />
+    <Project Path="src/PgmStudio.Import/PgmStudio.Import.csproj" />
+    <Project Path="src/PgmStudio.Migrations/PgmStudio.Migrations.csproj" />
+    <Project Path="src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj" />
+    <Project Path="src/PgmStudio.Pgm/PgmStudio.Pgm.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PgmStudio.Analysis.Tests/PgmStudio.Analysis.Tests.csproj" />
+    <Project Path="tests/PgmStudio.Api.Tests/PgmStudio.Api.Tests.csproj" />
+    <Project Path="tests/PgmStudio.Data.Tests/PgmStudio.Data.Tests.csproj" />
+    <Project Path="tests/PgmStudio.Import.Tests/PgmStudio.Import.Tests.csproj" />
+    <Project Path="tests/PgmStudio.Minecraft.Tests/PgmStudio.Minecraft.Tests.csproj" />
+    <Project Path="tests/PgmStudio.Pgm.Tests/PgmStudio.Pgm.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PgmStudio.RoundTrip/PgmStudio.RoundTrip.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,749 @@
+/*
+ * components.css — Shared UI component library for PGM Map Studio.
+ *
+ * Rule: no activity-specific ID prefixes (ov-, pt-, obj-).
+ * Structural IDs live in editor.css. This file owns all reusable blocks.
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SECTIONS & HEADERS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.panel-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.panel-stack { display: flex; flex-direction: column; gap: var(--space-6); }
+.section-body { display: flex; flex-direction: column; gap: var(--space-3); }
+.section-heading { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.section-actions { display: flex; align-items: center; gap: var(--space-2); }
+
+.section-title {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  user-select: none;
+}
+
+/*
+ * Flex row wrapping a .section-title + optional right slot (button or badge).
+ * Two context modifiers — use exactly ONE per instance:
+ *   --ruled  : right-panel inspector sections (adds border-bottom)
+ *   --list   : left-panel list-section headers (adds outer padding)
+ */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.section-header--ruled { border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
+/* Compact add-button sizing when placed in any section header */
+.section-header .action-btn { padding: 2px 10px; font-size: var(--font-base); }
+
+.panel-divider { height: 1px; flex-shrink: 0; background: var(--border); }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FORM FIELDS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.field { display: flex; flex-direction: column; gap: var(--space-1); }
+.field-row { display: flex; gap: var(--space-3); }
+.field-row > .field { flex: 1; }
+.field--compact { flex: 0 0 64px !important; }
+
+.field-label { font-size: var(--font-sm); color: var(--text-secondary); user-select: none; }
+.field-required { color: var(--color-error); }
+
+.field-value {
+  font-size: var(--font-md);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-input {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: var(--font-md);
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.field-input:focus     { border-color: var(--accent); }
+.field-input--textarea { resize: vertical; min-height: 34px; line-height: 1.4; }
+.field-input--error    { border-color: var(--color-error) !important; }
+.field-error {
+  margin-top: var(--space-1);
+  color: var(--color-error);
+  font-size: var(--font-sm);
+  line-height: 1.4;
+}
+
+.field-pick-row { display: flex; align-items: center; gap: var(--space-2); }
+.field-pick-row .field-input { flex: 1; }
+.field-swatch {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  border: 1px solid var(--border-swatch);
+}
+
+/* Author rows */
+.author-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.author-row {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+.author-avatar {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  background: var(--border);
+}
+.author-name { min-width: 0; }
+.author-contribution { min-width: 0; grid-column: 2; }
+.author-row .btn-remove { grid-column: 3; grid-row: 1 / span 2; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LIST ROWS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 4px;
+  min-height: 34px;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-sm);
+}
+.list-row:hover     { background: var(--bg-selected-hover); }
+.list-row--selected {
+  background: var(--bg-selected);
+  box-shadow: var(--shadow-ring);
+}
+.list-row--selected .list-label { color: var(--text-bright); }
+.list-row--compact  { min-height: 28px; padding: 5px 4px; gap: 8px; }
+.list-row--muted    { pointer-events: none; }
+
+.list-swatch {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-swatch);
+  display: inline-block;
+}
+
+.list-label {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-label--mono { font-family: ui-monospace, monospace; font-size: var(--font-base); }
+
+.list-tag { font-size: var(--font-sm); color: var(--text-muted); flex-shrink: 0; }
+
+.list-empty {
+  padding: 10px 12px;
+  font-size: var(--font-base);
+  color: var(--text-muted);
+  font-style: italic;
+}
+.list-empty--error { color: var(--color-error); }
+
+/* Container for a vertical stack of .list-row elements inside a panel */
+.panel-list { padding: 4px 0; }
+
+.team-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid var(--border-swatch);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 14px;
+  font-size: var(--font-base);
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+.action-btn:hover           { background: var(--border); color: var(--text-bright); }
+.action-btn:disabled        { opacity: 0.35; cursor: default; }
+/* Icon-only variant — equal padding on all sides so the button stays square */
+.action-btn--icon           { padding: 4px; }
+.action-btn--primary {
+  background: var(--bg-selected);
+  border-color: var(--accent);
+  color: var(--accent-lighter);
+}
+.action-btn--primary:hover { background: var(--accent-bg-hover); color: var(--text-white); }
+.action-btn--danger       { color: var(--color-error); border-color: var(--color-error); }
+.action-btn--danger:hover { background: var(--color-error-hover); }
+.action-btn--warn         { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning); }
+.action-btn--warn:hover   { background: color-mix(in srgb, var(--color-warning) 20%, var(--bg-panel)); color: var(--text-white); }
+.action-btn--fill         { flex: 1; justify-content: center; }
+.action-btn--push-end     { margin-left: auto; }
+.action-btn--self-start   { align-self: flex-start; }
+.action-btn--full         { width: 100%; justify-content: center; }
+.action-btn--separated    { margin-top: var(--space-2); }
+
+.btn-remove {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.btn-remove:hover { color: var(--color-error); }
+.btn-remove--hover-only { opacity: 0; transition: opacity .1s, color .1s; }
+.list-row:hover .btn-remove--hover-only { opacity: 1; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PANEL UTILITIES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.panel-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
+.panel-empty-msg { font-size: var(--font-base); color: var(--text-muted); text-align: center; padding: var(--space-4); }
+.text-muted { color: var(--text-muted); }
+.inline-error { color: var(--color-error); font-size: var(--font-sm); }
+
+.section-footer,
+.panel-actions { display: flex; align-items: center; gap: var(--space-3); padding-top: var(--space-1); }
+.section-footer--end { justify-content: flex-end; }
+.section-footer--separated { margin-top: var(--space-1); }
+.panel-save-status { font-size: var(--font-base); color: var(--text-secondary); }
+.panel-warning {
+  padding: var(--space-3);
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-base);
+  line-height: 1.5;
+}
+
+.control-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 24px;
+  color: var(--text-primary);
+  font-size: var(--font-md);
+  cursor: pointer;
+}
+.check-row input { accent-color: var(--accent); }
+.control-input--hidden { display: none; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CANVAS SUBBAR
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.canvas-subbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.canvas-toolbar { display: flex; gap: 2px; margin-right: 8px; flex-shrink: 0; }
+.canvas-cursor {
+  flex: 1;
+  text-align: center;
+  font-size: var(--font-base);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  pointer-events: none;
+}
+.canvas-zoom {
+  font-size: var(--font-base);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 40px;
+  text-align: right;
+  user-select: none;
+}
+.canvas-subbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.canvas-surface {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+.canvas-surface--svg > svg,
+svg.canvas-surface { display: block; width: 100%; height: 100%; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TOAST (Type 2 notification — Operation feedback)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9000;
+  padding: 9px 16px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-md);
+  font-family: ui-monospace, monospace;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  border: 1px solid transparent;
+}
+.toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.toast--success {
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.toast--error {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+.toast--info {
+  background: var(--bg-panel);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BADGE
+   Single chip system for status, validation, and type labels.
+   Variants are named by meaning — pick the one that fits semantically.
+   Works both inline (in text) and standalone (in list rows, panel headers).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.badge {
+  display: inline-block;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.badge--success { color: var(--color-success);  background: var(--color-success-bg); }
+.badge--warning { color: var(--color-warning);  background: var(--color-warning-bg); }
+.badge--error   { color: var(--color-error);    background: var(--color-error-bg); }
+.badge--neutral { color: var(--text-secondary); background: var(--bg-panel); border: 1px solid var(--border); }
+.badge--dim     { color: var(--text-muted);       background: var(--bg-base); }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AUTHOR CHIP  (avatar + resolved player name — used in map detail view)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.map-author-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px 2px 2px;
+}
+.map-author-avatar {
+  width: 16px; height: 16px; border-radius: var(--radius-sm);
+  image-rendering: pixelated; background: var(--border);
+  flex-shrink: 0; display: block;
+}
+.map-author-name { font-size: var(--font-sm); color: var(--text-secondary); white-space: nowrap; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FILTER CHIP  (toggleable filter option inside a filter panel)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.filter-group-options { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+/* Expanded chip row — chips stretch to fill available width */
+.filter-group-options--fill .filter-chip { flex: 1; justify-content: center; }
+
+/* Generic horizontal control row — label + inputs/buttons/chips side-by-side */
+.ctrl-row { display: flex; align-items: stretch; gap: var(--space-2); }
+.ctrl-row-label { flex-shrink: 0; min-width: calc(var(--space-5) + var(--space-6)); align-self: center; }
+.ctrl-row .filter-group-options,
+.ctrl-row .coord-field { flex: 1; }
+
+/* Stack of labeled chip rows */
+.sk-mode-stack { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Modifier: add top gap before a filter-group-options row */
+.filter-group-options--mt { margin-top: var(--space-2); }
+.filter-chip {
+  display: inline-flex; align-items: center;
+  font-size: var(--font-sm); font-family: inherit;
+  padding: 2px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-base); color: var(--text-secondary);
+  cursor: pointer;
+}
+.filter-chip:hover:not(:disabled) { border-color: var(--text-muted); color: var(--text-primary); }
+.filter-chip--active   { background: var(--bg-selected); border-color: var(--accent); color: var(--accent-lighter); }
+.filter-chip:disabled  { opacity: 0.35; cursor: default; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STEP ROW  (pipeline status lists)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.step-row { display: flex; align-items: center; gap: 10px; font-size: var(--font-md); }
+.step-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--border);
+}
+.step-dot--done    { background: var(--color-success); }
+.step-dot--running { background: var(--accent); animation: step-pulse 1s ease-in-out infinite; }
+.step-dot--error   { background: var(--color-error); }
+@keyframes step-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+.step-label  { color: var(--text-secondary); min-width: 70px; }
+.step-detail { color: var(--text-muted); font-size: var(--font-sm); flex: 1; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CONSOLE  (pipeline log output — shared across dashboard, configure, etc.)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.console-wrap { display: flex; flex-direction: column; gap: var(--space-2); }
+.console-header { display: flex; align-items: center; gap: var(--space-2); }
+.console-title {
+  font-size: var(--font-xs); font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.console-clear-btn {
+  background: none; border: none; color: var(--text-muted); font-size: var(--font-sm);
+  cursor: pointer; font-family: inherit; padding: 0;
+}
+.console-clear-btn:hover { color: var(--text-secondary); }
+.console-output {
+  background: var(--bg-base);
+  border: 1px solid var(--bg-panel);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) 10px;
+  height: 160px; overflow-y: auto;
+  font-size: var(--font-base); line-height: 1.6;
+}
+.console-line          { color: var(--text-muted);      white-space: pre-wrap; }
+.console-line--success { color: var(--color-success); }
+.console-line--error   { color: var(--color-error); }
+.console-line--warning { color: var(--color-warning); }
+.console-line--info    { color: var(--text-muted); }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   VISIBILITY TOGGLE BUTTON  (island list, region sidebar)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.vis-btn {
+  background: none; border: none; cursor: pointer; padding: 4px 3px;
+  color: var(--text-primary); flex-shrink: 0;
+  display: flex; align-items: center; line-height: 0;
+  opacity: 0; transition: opacity var(--transition-fast);
+}
+.list-row:hover .vis-btn { opacity: 1; }
+.vis-btn:hover   { background: var(--bg-vis-hover); }
+.vis-btn--always { opacity: 1; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CANVAS EMPTY HINT  (centred overlay inside .workspace-canvas when nothing is drawn)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.canvas-empty-hint {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-base);
+  color: var(--text-muted);
+  pointer-events: none;
+  text-align: center;
+  line-height: 1.8;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SECTION DESCRIPTION  (body text inside a panel section)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.section-desc {
+  font-size: var(--font-base); color: var(--text-secondary);
+  line-height: 1.6; margin-bottom: var(--space-2);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INSPECTOR HEADER  (selected-shape header row — dot + label)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+.detail-header-badges {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.coord-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-base);
+  font-variant-numeric: tabular-nums;
+}
+.simplify-section--separated { margin-top: var(--space-3); }
+.detail-dot { width: 12px; height: 12px; border-radius: var(--radius-sm); flex-shrink: 0; }
+.detail-label {
+  flex: 1;
+  font-size: var(--font-md);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.detail-label--mono { font-family: ui-monospace, monospace; }
+.detail-icon--muted { color: var(--text-muted); }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COORDINATE INPUT WIDGET  (prefixed numeric field — X/Z/R labels)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.coord-input {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: ui-monospace, monospace;
+  font-size: var(--font-base);
+  font-variant-numeric: tabular-nums;
+  padding: 3px 6px;
+  text-align: right;
+  width: 68px;
+  outline: none;
+}
+.coord-input:focus { border-color: var(--accent); }
+.coord-input--compact { width: calc(var(--space-6) * 2 + var(--space-2)); }
+
+.coord-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.coord-field:focus-within { border-color: var(--accent); }
+.coord-prefix {
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 4px 0 8px;
+  user-select: none;
+  flex-shrink: 0;
+}
+.coord-field .coord-input {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  padding: 3px 8px 3px 2px;
+  text-align: right;
+}
+.coord-field .coord-input:focus { border-color: transparent; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DETAIL TABLE  (sketch inspector — rectangle MIN/MAX/SIZE, polygon vertices)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-base);
+  font-variant-numeric: tabular-nums;
+}
+.detail-table th {
+  font-size: var(--font-sm);
+  font-weight: normal;
+  color: var(--text-secondary);
+  text-align: left;
+  padding: 0 4px 4px;
+  user-select: none;
+}
+.detail-size-head { text-align: right; }
+.detail-axis {
+  color: var(--text-muted);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 2px 4px 2px 0;
+  user-select: none;
+}
+.detail-val { padding: 2px 2px; }
+.detail-val .coord-input { width: 60px; }
+/* When a coord-field sits inside a table cell it has no flex parent,
+   so flex:1 won't expand it — this makes it fill the cell instead. */
+.detail-val .coord-field { width: 100%; }
+.detail-size {
+  text-align: right;
+  padding: 2px 4px;
+  color: var(--text-muted);
+  font-size: var(--font-base);
+}
+
+/* Scrollable vertex list used for polygon shapes */
+.detail-vertex-scroll {
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIMPLIFY WIDGET  (lasso shape inspector — area + tolerance + generalize)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.simplify-section { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.simplify-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.simplify-label { font-size: var(--font-base); color: var(--text-secondary); }
+.simplify-value {
+  font-size: var(--font-base);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.simplify-input-row { display: flex; align-items: center; gap: var(--space-1); }
+.simplify-unit { font-size: var(--font-sm); color: var(--text-muted); flex-shrink: 0; }
+
+
+/* ── Text-size utilities ─────────────────────────────────────────────── */
+/* Mirror the --font-* token scale for use in HTML markup. */
+.text-lg   { font-size: var(--font-lg);   }
+.text-md   { font-size: var(--font-md);   }
+.text-base { font-size: var(--font-base); }
+.text-sm   { font-size: var(--font-sm);   }
+.text-xs   { font-size: var(--font-xs);   }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STEP ITEMS  (used by .cfg-step-bar in editor.css — no standalone wrapper)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+  cursor: default;
+  user-select: none;
+}
+.step-item.active { color: var(--text-bright); }
+.step-item.done   { color: var(--color-success); }
+
+.step-sep {
+  width: 20px;
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  font-size: var(--font-xs);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.step-item.done .step-number {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #000;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LAYER OPTION CARDS  (Configure scan-layer selection)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* 2×2 grid of layer-type selector chips */
+.layer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.layer-grid .filter-chip { justify-content: center; }

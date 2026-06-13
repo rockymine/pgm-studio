@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PgmStudio.Data\PgmStudio.Data.csproj" />
+    <ProjectReference Include="..\PgmStudio.Pgm\PgmStudio.Pgm.csproj" />
+    <ProjectReference Include="..\PgmStudio.Contracts\PgmStudio.Contracts.csproj" />
+    <ProjectReference Include="..\PgmStudio.Migrations\PgmStudio.Migrations.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Parquet.Net" Version="6.0.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

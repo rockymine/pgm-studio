@@ -1,0 +1,444 @@
+@page "/design"
+@layout PgmStudio.Client.Layout.EditorLayout
+@inject IJSRuntime JS
+
+@* Living UI reference — verbatim port of studio/templates/design.html (the design system
+   showcase). Uses tokens/components/editor/design CSS. *@
+
+<div class="editor-page">
+
+<div id="topbar" class="topbar">
+  <a href="/" class="topbar-breadcrumb-home" title="Back to dashboard">
+    <i data-lucide="house"></i>
+    <span>Studio</span>
+  </a>
+  <span class="topbar-sep">›</span>
+  <span class="topbar-crumb">UI Reference</span>
+  <div class="topbar-right">
+    <span class="ds-file-list">tokens.css · components.css · editor.css</span>
+  </div>
+</div>
+
+<div id="ds-layout">
+  <nav id="ds-nav" aria-label="UI reference sections">
+    <div class="ds-nav-group">Reference</div>
+    <a href="#foundations">Foundations</a>
+    <a href="#panels">Panel anatomy</a>
+    <a href="#content">Panel content</a>
+    <a href="#workspaces">Workspaces</a>
+    <a href="#canvas">Canvas</a>
+    <a href="#states">States</a>
+    <a href="#rules">Usage rules</a>
+  </nav>
+
+  <main id="ds-main">
+    <header class="ds-intro">
+      <p class="ds-kicker">Production-backed examples</p>
+      <h1>Studio UI Reference</h1>
+      <p>
+        These examples use the same classes and nesting as Dashboard, Editor, and
+        Sketch. Copy the structure, keep IDs as JavaScript handles, and add new
+        component CSS only when no reference here fits.
+      </p>
+    </header>
+
+    <section class="ds-section" id="foundations">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">01</p>
+          <h2>Foundations</h2>
+        </div>
+        <p>Use tokens for every repeated color, spacing, radius, shadow, and transition.</p>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Surfaces and text</h3>
+        <div class="ds-swatches">
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-base"></span><code>--bg-base</code><small>Page background</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-panel"></span><code>--bg-panel</code><small>Shell and panels</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-deep"></span><code>--bg-deep</code><small>Canvas</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-selected"></span><code>--bg-selected</code><small>Selection</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-text-muted"></span><code>--text-muted</code><small>Quietest text</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-text-primary"></span><code>--text-primary</code><small>Body text</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-accent"></span><code>--accent</code><small>Focus and primary</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-error"></span><code>--color-error</code><small>Destructive/error</small></div>
+        </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Spacing rhythm</h3>
+        <div class="ds-spacing">
+          <div><span class="ds-space ds-space-1"></span><code>--space-1</code><small>4px</small></div>
+          <div><span class="ds-space ds-space-2"></span><code>--space-2</code><small>8px</small></div>
+          <div><span class="ds-space ds-space-3"></span><code>--space-3</code><small>12px</small></div>
+          <div><span class="ds-space ds-space-4"></span><code>--space-4</code><small>16px</small></div>
+          <div><span class="ds-space ds-space-5"></span><code>--space-5</code><small>20px</small></div>
+          <div><span class="ds-space ds-space-6"></span><code>--space-6</code><small>24px</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section" id="panels">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">02</p>
+          <h2>Panel anatomy</h2>
+        </div>
+        <p>A panel is a stack of sections. Each section has a header, body, and optional footer.</p>
+      </div>
+
+      <div class="ds-example-grid">
+        <article class="ds-example">
+          <div class="ds-example-label">Left sidebar form</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Map Identity</h2>
+                </div>
+                <div class="section-body">
+                  <div class="field">
+                    <label class="field-label" for="ds-map-name">Map Name <span class="field-required">*</span></label>
+                    <input id="ds-map-name" class="field-input" value="Annealing V"/>
+                  </div>
+                  <div class="field-row">
+                    <div class="field">
+                      <label class="field-label" for="ds-version">Version</label>
+                      <input id="ds-version" class="field-input" value="1.0.0"/>
+                    </div>
+                    <div class="field field--compact">
+                      <label class="field-label" for="ds-mode">Mode</label>
+                      <input id="ds-mode" class="field-input" value="ctw" disabled/>
+                    </div>
+                  </div>
+                </div>
+                <div class="section-footer">
+                  <button class="action-btn action-btn--primary">Save changes</button>
+                  <span class="panel-save-status">Saved</span>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">Right inspector</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <div class="panel-stack">
+                <section class="panel-section">
+                  <div class="detail-header">
+                    <span class="geo-type-icon detail-icon--muted"><i data-lucide="cylinder"></i></span>
+                    <span class="detail-label detail-label--mono">red-spawn</span>
+                    <span class="badge badge--neutral">Cylinder</span>
+                  </div>
+                  <div class="section-body">
+                    <div class="field">
+                      <label class="field-label">Base</label>
+                      <div class="ctrl-row">
+                        <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="48.5"/></div>
+                        <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="9"/></div>
+                        <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="-187"/></div>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label">Dimensions</label>
+                      <div class="ctrl-row">
+                        <div class="coord-field"><span class="coord-prefix">R</span><input class="coord-input" value="0.5"/></div>
+                        <div class="coord-field"><span class="coord-prefix">H</span><input class="coord-input" value="2"/></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="section-footer section-footer--separated">
+                    <button class="action-btn action-btn--danger action-btn--fill">Delete region</button>
+                  </div>
+                </section>
+                <section class="panel-section">
+                  <div class="section-header section-header--ruled">
+                    <h2 class="section-title">Spawn Assignment</h2>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Team</label>
+                    <select class="field-input"><option>Red</option></select>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="ds-section" id="content">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">03</p>
+          <h2>Panel content</h2>
+        </div>
+        <p>Use explicit wrappers for repeated content so spacing belongs to the collection.</p>
+      </div>
+
+      <div class="ds-example-grid">
+        <article class="ds-example">
+          <div class="ds-example-label">Field row</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Map Version</h2>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label class="field-label" for="ds-version-major">Version</label>
+                    <input id="ds-version-major" class="field-input" value="1.0.0"/>
+                  </div>
+                  <div class="field field--compact">
+                    <label class="field-label" for="ds-version-mode">Mode</label>
+                    <input id="ds-version-mode" class="field-input" value="ctw" disabled/>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">Panel list</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Teams</h2>
+                  <button class="action-btn">+ Add Team</button>
+                </div>
+                <div class="panel-list">
+                  <div class="list-row list-row--selected"><span class="list-swatch ds-team-red"></span><span class="list-label">Red</span><span class="badge badge--success">Ready</span></div>
+                  <div class="list-row"><span class="list-swatch ds-team-blue"></span><span class="list-label">Blue</span><span class="list-tag">20 players</span></div>
+                  <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="cylinder"></i></span><span class="list-label list-label--mono">red-spawn</span><span class="list-tag">Red</span></div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">Author list</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Authors <span class="field-required">*</span></h2>
+                  <button class="action-btn">+ Add</button>
+                </div>
+                <div class="author-list">
+                  <div class="author-row">
+                    <span class="author-avatar"></span>
+                    <input class="field-input author-name" value="fakejustcupcakes"/>
+                    <input class="field-input author-contribution" placeholder="Contribution (optional)"/>
+                    <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                  </div>
+                  <div class="author-row">
+                    <span class="author-avatar"></span>
+                    <input class="field-input author-name" value="killAce"/>
+                    <input class="field-input author-contribution" value="Terrain"/>
+                    <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">Control list</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Overlays</h2>
+                </div>
+                <div class="control-list">
+                  <label class="check-row"><input type="checkbox" checked/>Mirror preview</label>
+                  <label class="check-row"><input type="checkbox"/>Shapes overlay</label>
+                  <label class="check-row"><input type="checkbox" checked/>Chunk grid</label>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">Region tree</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Wool Regions</h2>
+                </div>
+                <div class="region-tree">
+                  <div class="geo-row geo-row--selected">
+                    <span class="geo-indent">
+                      <button class="collapse-btn" title="Collapse"><i data-lucide="chevron-down"></i></button>
+                    </span>
+                    <span class="geo-type-icon"><i data-lucide="combine"></i></span>
+                    <span class="geo-label">purple-wool-room</span>
+                  </div>
+                  <div class="geo-row geo-row--selected-child">
+                    <span class="geo-indent"><span class="indent-pipe"></span></span>
+                    <span class="geo-type-icon"><i data-lucide="box"></i></span>
+                    <span class="geo-label">purple-wool-bounds</span>
+                  </div>
+                  <div class="geo-row">
+                    <span class="geo-indent"></span>
+                    <span class="geo-type-icon"><i data-lucide="cylinder"></i></span>
+                    <span class="geo-label">orange-wool-room</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="ds-section" id="workspaces">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">04</p>
+          <h2>Workspaces</h2>
+        </div>
+        <p>The sidebar and inspector share the same panel construction. Handles sit directly beside resizable panels.</p>
+      </div>
+
+      <article class="ds-example">
+        <div class="ds-example-label">Three-column activity workspace</div>
+        <div class="ds-workspace-frame">
+          <div class="workspace">
+            <div class="workspace-sidebar">
+              <div class="workspace-scroll">
+                <section class="panel-section">
+                  <div class="section-header section-header--ruled"><h2 class="section-title">Islands</h2></div>
+                  <div class="panel-list">
+                    <div class="list-row list-row--selected"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Center</span></div>
+                    <div class="list-row"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Team island</span></div>
+                  </div>
+                </section>
+              </div>
+            </div>
+            <div class="sidebar-handle"></div>
+            <div class="workspace-canvas">
+              <div class="canvas-subbar">
+                <div class="canvas-toolbar">
+                  <button class="draw-tool-btn draw-tool-btn--active"><i data-lucide="hand"></i></button>
+                  <button class="draw-tool-btn"><i data-lucide="mouse-pointer-2"></i></button>
+                  <button class="draw-tool-btn"><i data-lucide="rectangle-horizontal"></i></button>
+                </div>
+                <span class="canvas-cursor">X 128 · Z -64</span>
+                <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
+              </div>
+              <div class="canvas-surface ds-canvas-sample">
+                <span class="ds-axis ds-axis-x"></span>
+                <span class="ds-axis ds-axis-z"></span>
+                <span class="ds-region-sample"></span>
+              </div>
+            </div>
+            <div class="sidebar-handle"></div>
+            <div class="workspace-inspector">
+              <div class="workspace-scroll">
+                <section class="panel-section">
+                  <div class="detail-header">
+                    <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
+                    <span class="detail-label">Team island</span>
+                    <span class="badge badge--neutral">Rectangle</span>
+                  </div>
+                  <div class="field"><label class="field-label">Operation</label><span class="badge badge--success">Add</span></div>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="ds-section" id="canvas">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">05</p>
+          <h2>Canvas subbar</h2>
+        </div>
+        <p>Keep tools left, transient coordinates centered, and persistent status right.</p>
+      </div>
+      <div class="ds-canvas-bar-example canvas-subbar">
+        <div class="canvas-toolbar">
+          <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
+          <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+          <button class="draw-tool-btn" title="Rectangle"><i data-lucide="rectangle-horizontal"></i></button>
+          <button class="draw-tool-btn" title="Circle"><i data-lucide="circle"></i></button>
+        </div>
+        <div class="subbar-sep"></div>
+        <div class="canvas-toolbar">
+          <button class="draw-tool-btn draw-tool-btn--op-add"><i data-lucide="plus-square"></i><span class="draw-tool-label">Add</span></button>
+          <button class="draw-tool-btn"><i data-lucide="minus-square"></i><span class="draw-tool-label">Sub</span></button>
+        </div>
+        <span class="canvas-cursor">X 128 · Z -64</span>
+        <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
+      </div>
+    </section>
+
+    <section class="ds-section" id="states">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">06</p>
+          <h2>Actions and states</h2>
+        </div>
+        <p>Use one vocabulary for actions, status, empty content, and validation.</p>
+      </div>
+      <div class="ds-state-row">
+        <button class="action-btn">Secondary</button>
+        <button class="action-btn action-btn--primary">Primary</button>
+        <button class="action-btn action-btn--warn">Pending</button>
+        <button class="action-btn action-btn--danger">Delete</button>
+        <span class="badge badge--success">Ready</span>
+        <span class="badge badge--warning">Review</span>
+        <span class="badge badge--error">Invalid</span>
+        <span class="badge badge--neutral">Cylinder</span>
+        <span class="badge badge--dim">Optional</span>
+      </div>
+      <div class="ds-state-grid">
+        <div class="panel-warning">The selected region overlaps the map boundary.</div>
+        <div class="ds-empty-sample"><p class="panel-empty-msg">Select a team or region to inspect.</p></div>
+        <div class="field">
+          <label class="field-label">ID</label>
+          <input class="field-input field-input--error" value="spawn-red"/>
+          <div class="field-error">Region ID "spawn-red" is already in use.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="ds-section" id="rules">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">07</p>
+          <h2>Usage rules</h2>
+        </div>
+        <p>The short version. Full contract lives in <code>docs/contracts/ui-conventions.md</code>.</p>
+      </div>
+      <table class="ds-rules-table">
+        <thead><tr><th>Do</th><th>Don't</th></tr></thead>
+        <tbody>
+          <tr><td>Copy a rendered reference structure.</td><td>Create activity-specific panel spacing.</td></tr>
+          <tr><td>Use classes for layout and IDs for JavaScript.</td><td>Patch shared layout with ID selectors.</td></tr>
+          <tr><td>Wrap repeated rows in the matching list class.</td><td>Put margins on each repeated child.</td></tr>
+          <tr><td>Use `.section-footer` for panel actions.</td><td>Inject widths and margins from JavaScript.</td></tr>
+          <tr><td>Add a production example here with a new component.</td><td>Build a separate visual mock of the component.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+}

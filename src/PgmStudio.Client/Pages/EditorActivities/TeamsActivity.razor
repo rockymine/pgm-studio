@@ -1,0 +1,340 @@
+@namespace PgmStudio.Client.Pages.EditorActivities
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Teams activity — teams (list/add/inspector CRUD) + spawn regions (list + assignment) on a
+   spawn-filtered canvas. Port of teams-activity.js + teams-panel.js. Region drawing is deferred. *@
+
+<div class="workspace">
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Teams</h2>
+          <button class="action-btn" @onclick="AddTeam">+ Add Team</button>
+        </div>
+        <div class="panel-list">
+          @if (teams.Count == 0) { <div class="list-empty">No teams.</div> }
+          @foreach (var t in teams)
+          {
+            <div class="list-row list-row--compact @(selTeam == t.Id ? "list-row--selected" : null)" @onclick="() => SelectTeam(t.Id)">
+              <span class="list-swatch" style="background-color:@GameColors.ChatHex(t.Color)"></span>
+              <span class="list-label list-label--mono">@t.Id</span>
+              <span class="list-tag">@t.Name</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Regions</h2></div>
+        <div class="panel-list geo-icons-flush">
+          @if (spawnRegions.Count == 0) { <div class="list-empty">No spawn regions.</div> }
+          @foreach (var r in spawnRegions)
+          {
+            var sp = SpawnFor(r.Id);
+            var spTeam = sp is null ? null : teams.FirstOrDefault(t => t.Id == sp.Team);
+            <div class="list-row list-row--compact @(selSpawn == r.Id ? "list-row--selected" : null)" @onclick="() => SelectSpawn(r.Id)">
+              <span class="geo-type-icon" style="color:@(spTeam is null ? "var(--text-muted)" : GameColors.ChatHex(spTeam.Color))"><i data-lucide="@RegionNode.Icon(r.Type)"></i></span>
+              <span class="list-label list-label--mono">@r.Id</span>
+              <span class="list-tag">@(spTeam?.Name ?? "—")</span>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  <EditorCanvas @ref="canvas" Slug="@Slug" Category="spawn" OnSelect="OnCanvasSelect" />
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-inspector">
+    <div class="workspace-scroll">
+      <div class="panel-section">
+        @if (selTeam is not null && CurrentTeam is { } team)
+        {
+          <div class="section-header section-header--ruled"><h2 class="section-title">Team</h2></div>
+          <div class="field">
+            <label class="field-label">ID <span class="field-required">*</span></label>
+            <input class="field-input" type="text" spellcheck="false" value="@team.Id" @onchange="e => RenameTeam(team, e.Value?.ToString())" />
+          </div>
+          <div class="field">
+            <label class="field-label">Display Name</label>
+            <input class="field-input" type="text" value="@team.Name" @onchange="async e => { team.Name = e.Value?.ToString() ?? string.Empty; await SaveTeam(team); }" />
+          </div>
+          <div class="field">
+            <label class="field-label">Chat Color <span class="field-required">*</span></label>
+            <div class="field-pick-row">
+              <span class="field-swatch" style="background-color:@GameColors.ChatHex(team.Color)"></span>
+              <select class="field-input" value="@team.Color" @onchange="async e => { team.Color = e.Value?.ToString() ?? string.Empty; await SaveTeam(team); }">
+                @foreach (var c in GameColors.ChatColors) { <option value="@c.Value">@c.Label</option> }
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">Dye Color</label>
+            <div class="field-pick-row">
+              <span class="field-swatch" style="background-color:@GameColors.DyeHex(team.DyeColor)"></span>
+              <select class="field-input" value="@(team.DyeColor ?? "")" @onchange="async e => { team.DyeColor = e.Value?.ToString(); await SaveTeam(team); }">
+                <option value="">None</option>
+                @foreach (var c in GameColors.DyeColors) { <option value="@c.Value">@c.Label</option> }
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label class="field-label">Max Players</label>
+              <input class="field-input" type="number" min="1" max="500" value="@team.MaxPlayers" @onchange="async e => { team.MaxPlayers = ToInt(e.Value, 20); await SaveTeam(team); }" />
+            </div>
+            <div class="field">
+              <label class="field-label">Min Players</label>
+              <input class="field-input" type="number" min="0" max="500" value="@team.MinPlayers" @onchange="async e => { team.MinPlayers = ToInt(e.Value, 0); await SaveTeam(team); }" />
+            </div>
+          </div>
+          <div class="panel-actions">
+            <button class="action-btn action-btn--danger" @onclick="() => DeleteTeam(team)">Delete team</button>
+          </div>
+        }
+        else if (selSpawn is not null)
+        {
+          <RegionInspector Node="SpawnNode" />
+          <section class="panel-section">
+            <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Assignment</h2></div>
+            <div class="field">
+              <label class="field-label">Team</label>
+              <select class="field-input" value="@spawnTeam" @onchange="async e => { spawnTeam = e.Value?.ToString() ?? string.Empty; await SaveSpawn(); }">
+                <option value="">— Unassigned —</option>
+                <option value="__observer__">Observer</option>
+                @foreach (var t in teams) { <option value="@t.Id">@(string.IsNullOrEmpty(t.Name) ? t.Id : t.Name)</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label">Yaw (°)</label>
+              <input class="field-input" type="number" step="1" min="-180" max="180" value="@spawnYaw" @onchange="async e => { spawnYaw = ToDouble(e.Value); await SaveSpawn(); }" />
+            </div>
+            <div class="field">
+              <label class="field-label">Kit</label>
+              <input class="field-input" type="text" spellcheck="false" value="@spawnKit" @onchange="async e => { spawnKit = e.Value?.ToString() ?? string.Empty; await SaveSpawn(); }" />
+            </div>
+            <div class="panel-actions">
+              <button class="action-btn action-btn--danger action-btn--fill" @onclick="UnlinkSpawn">Remove Spawn Link</button>
+            </div>
+          </section>
+        }
+        else
+        {
+          <p class="panel-empty-msg">Select a team or spawn region to inspect.</p>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (error is not null) { <div class="toast toast--error">@error</div> }
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+
+    private EditorCanvas? canvas;
+    private readonly List<Team> teams = new();
+    private readonly List<Spawn> spawns = new();
+    private ObserverSpawn? observer;
+    private readonly List<RegionNode> spawnRegions = new();
+    private readonly Dictionary<string, RegionNode> nodeMap = new();
+
+    private string? selTeam;
+    private string? selSpawn;
+    private string? error;
+
+    // spawn-assignment form state
+    private string spawnTeam = "";
+    private double spawnYaw;
+    private string spawnKit = "";
+
+    private Team? CurrentTeam => teams.FirstOrDefault(t => t.Id == selTeam);
+    private RegionNode? SpawnNode => selSpawn is not null ? nodeMap.GetValueOrDefault(selSpawn) : null;
+
+    private sealed class Team { public string Id = ""; public string Name = ""; public string Color = "red"; public string? DyeColor; public int MaxPlayers = 20; public int MinPlayers = 0; }
+    private sealed class Spawn { public string RegionId = ""; public string Team = ""; public double Yaw; public string Kit = ""; }
+    private sealed class ObserverSpawn { public string RegionId = ""; public double Yaw; public string Kit = ""; }
+
+    protected override async Task OnParametersSetAsync() => await Reload();
+
+    private async Task Reload()
+    {
+        teams.Clear(); spawns.Clear(); spawnRegions.Clear(); nodeMap.Clear(); observer = null;
+        try
+        {
+            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
+            if (doc.TryGetProperty("teams", out var ts) && ts.ValueKind == JsonValueKind.Array)
+                foreach (var t in ts.EnumerateArray())
+                    teams.Add(new Team
+                    {
+                        Id = S(t, "id"), Name = S(t, "name"), Color = S(t, "color", "red"),
+                        DyeColor = t.TryGetProperty("dye_color", out var dv) && dv.ValueKind == JsonValueKind.String ? dv.GetString() : null,
+                        MaxPlayers = I(t, "max_players", 20), MinPlayers = I(t, "min_players", 0),
+                    });
+            if (doc.TryGetProperty("spawns", out var sp) && sp.ValueKind == JsonValueKind.Array)
+                foreach (var s in sp.EnumerateArray())
+                    spawns.Add(new Spawn { RegionId = RegionId(s), Team = S(s, "team"), Yaw = D(s, "yaw"), Kit = S(s, "kit") });
+            if (doc.TryGetProperty("observer_spawn", out var ob) && ob.ValueKind == JsonValueKind.Object)
+                observer = new ObserverSpawn { RegionId = RegionId(ob), Yaw = D(ob, "yaw"), Kit = S(ob, "kit") };
+
+            var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
+            if (tree.TryGetProperty("groups", out var g))
+                foreach (var grp in RegionGroup.ParseGroups(g).Where(x => x.Name == "spawn"))
+                    foreach (var n in grp.Regions) { spawnRegions.Add(n); Index(n); }
+        }
+        catch (Exception ex) { error = ex.Message; }
+        StateHasChanged();
+    }
+
+    private void Index(RegionNode n)
+    {
+        if (!string.IsNullOrEmpty(n.Id)) nodeMap.TryAdd(n.Id, n);
+        foreach (var c in n.Children) Index(c);
+        if (n.Source is not null) Index(n.Source);
+    }
+
+    private Spawn? SpawnFor(string regionId) => spawns.FirstOrDefault(s => s.RegionId == regionId);
+
+    // ── selection ──────────────────────────────────────────────────────────────
+
+    private async Task SelectTeam(string id)
+    {
+        selTeam = id; selSpawn = null;
+        if (canvas is not null) await canvas.SetSelectionAsync(Array.Empty<string>());
+        StateHasChanged();
+    }
+
+    private async Task SelectSpawn(string regionId)
+    {
+        selSpawn = regionId; selTeam = null;
+        var sp = SpawnFor(regionId);
+        var isObs = observer?.RegionId == regionId;
+        spawnTeam = isObs ? "__observer__" : sp?.Team ?? "";
+        spawnYaw = isObs ? observer!.Yaw : sp?.Yaw ?? 0;
+        spawnKit = isObs ? observer!.Kit : sp?.Kit ?? "";
+        if (canvas is not null) await canvas.SetSelectionAsync(new[] { regionId });
+        StateHasChanged();
+    }
+
+    private Task OnCanvasSelect(string? id) => id is null ? Deselect() : SelectSpawn(id);
+
+    private async Task Deselect()
+    {
+        selTeam = null; selSpawn = null;
+        if (canvas is not null) await canvas.SetSelectionAsync(Array.Empty<string>());
+        StateHasChanged();
+    }
+
+    // ── team CRUD ───────────────────────────────────────────────────────────────
+
+    private async Task AddTeam()
+    {
+        var pick = GameColors.NextTeamColor(teams.Select(t => t.Color));
+        var (color, name, baseId) = pick is { } p
+            ? (p.Value, $"{p.Label} Team", $"{p.Value.Replace(' ', '-')}-team")
+            : ("blue", "New Team", "new-team");
+        var used = teams.Select(t => t.Id).ToHashSet();
+        var slug = baseId; var n = 2;
+        while (used.Contains(slug)) slug = $"{baseId}-{n++}";
+        await Post("teams", new Dictionary<string, object?> { ["id"] = slug, ["name"] = name, ["color"] = color, ["max_players"] = 20, ["min_players"] = 0 });
+        await Reload();
+        await SelectTeam(slug);
+    }
+
+    private async Task SaveTeam(Team t)
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["name"] = string.IsNullOrWhiteSpace(t.Name) ? t.Id : t.Name,
+            ["color"] = t.Color,
+            ["dye_color"] = string.IsNullOrEmpty(t.DyeColor) ? null : t.DyeColor,
+            ["max_players"] = t.MaxPlayers,
+            ["min_players"] = t.MinPlayers,
+        };
+        await Patch($"teams/{t.Id}", payload);
+    }
+
+    private async Task RenameTeam(Team t, string? raw)
+    {
+        var newId = (raw ?? "").Trim();
+        if (newId.Length == 0 || newId == t.Id) return;
+        if (teams.Any(x => x.Id == newId)) { error = $"Team ID \"{newId}\" is already in use."; StateHasChanged(); return; }
+        var payload = new Dictionary<string, object?> { ["id"] = newId, ["name"] = t.Name, ["color"] = t.Color, ["dye_color"] = string.IsNullOrEmpty(t.DyeColor) ? null : t.DyeColor, ["max_players"] = t.MaxPlayers, ["min_players"] = t.MinPlayers };
+        if (await Patch($"teams/{t.Id}", payload)) { await Reload(); await SelectTeam(newId); }
+    }
+
+    private async Task DeleteTeam(Team t)
+    {
+        if (await Delete($"teams/{t.Id}")) { selTeam = null; await Reload(); }
+    }
+
+    // ── spawn assignment ────────────────────────────────────────────────────────
+
+    private async Task SaveSpawn()
+    {
+        if (selSpawn is null) return;
+        var id = selSpawn;
+        var existing = SpawnFor(id);
+        var wasObs = observer?.RegionId == id;
+        if (spawnTeam == "__observer__")
+        {
+            if (existing is not null) await Delete($"spawns/{id}");
+            await Patch("observer-spawn", new Dictionary<string, object?> { ["region_id"] = id, ["yaw"] = spawnYaw, ["kit"] = spawnKit });
+        }
+        else if (spawnTeam.Length > 0)
+        {
+            if (wasObs) await Delete("observer-spawn");
+            if (existing is not null) await Patch($"spawns/{id}", new Dictionary<string, object?> { ["team"] = spawnTeam, ["yaw"] = spawnYaw, ["kit"] = spawnKit });
+            else await Post("spawns", new Dictionary<string, object?> { ["region_id"] = id, ["team"] = spawnTeam, ["yaw"] = spawnYaw, ["kit"] = spawnKit });
+        }
+        await Reload();
+        await SelectSpawn(id);
+    }
+
+    private async Task UnlinkSpawn()
+    {
+        if (selSpawn is null) return;
+        var id = selSpawn;
+        if (observer?.RegionId == id) await Delete("observer-spawn");
+        else await Delete($"spawns/{id}");
+        await Reload();
+        await SelectSpawn(id);
+    }
+
+    // ── http helpers ────────────────────────────────────────────────────────────
+
+    private async Task<bool> Post(string path, object body) => await Send(Http.PostAsJsonAsync($"api/map/{Slug}/{path}", body));
+    private async Task<bool> Patch(string path, object body) => await Send(Http.PatchAsJsonAsync($"api/map/{Slug}/{path}", body));
+    private async Task<bool> Delete(string path) => await Send(Http.DeleteAsync($"api/map/{Slug}/{path}"));
+    private async Task<bool> Send(Task<HttpResponseMessage> call)
+    {
+        error = null;
+        var resp = await call;
+        if (resp.IsSuccessStatusCode) return true;
+        try { var d = await resp.Content.ReadFromJsonAsync<JsonElement>(); error = d.TryGetProperty("error", out var e) ? e.GetString() : $"error {(int)resp.StatusCode}"; }
+        catch { error = $"error {(int)resp.StatusCode}"; }
+        StateHasChanged();
+        return false;
+    }
+
+    // ── parse helpers ────────────────────────────────────────────────────────────
+
+    private static string S(JsonElement e, string k, string def = "") => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? def : def;
+    private static int I(JsonElement e, string k, int def) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : def;
+    private static double D(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
+    private static string RegionId(JsonElement s)
+    {
+        if (!s.TryGetProperty("region", out var r)) return "";
+        return r.ValueKind == JsonValueKind.String ? r.GetString() ?? "" : r.ValueKind == JsonValueKind.Object && r.TryGetProperty("id", out var id) ? id.GetString() ?? "" : "";
+    }
+    private static int ToInt(object? v, int def) => int.TryParse(v?.ToString(), out var n) ? n : def;
+    private static double ToDouble(object? v) => double.TryParse(v?.ToString(), out var n) ? n : 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+}
