@@ -150,6 +150,13 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       keep separate; Bedrock is a positive id==7 match → keep separate. Net: a segment-derived
       surface/base would be a *solid* layer, NOT byte-parity with the reference. Decide: redefine
       (accept divergence) vs keep exact per-layer extractors (current). See also [[A4]] geometry merge.
+- [ ] P8 — **Pipeline re-run on config change** (Configure E8 deferral). The reference re-runs island
+      detection (+ symmetry) via an SSE `/pipeline/{slug}/run?force_layout=1` when the scan layer or
+      block exclusions change; the port has no such endpoint (scan-world is surface-only, fixed). So in
+      Configure, changing `scan_layer`/`exclude_blocks` persists + updates the preview but does NOT
+      re-detect islands. Need a parameterized re-scan (scan-world honouring `scan_layer`+`exclude_blocks`
+      → re-run island detection → rewrite the `layer.parquet`/`islands.json` artifacts, layer-tagged so
+      B9 stops mis-serving a stale canonical). Island-exclusion → symmetry re-run already works (B7).
 
 ## A — Analysis
 - [x] A1 — All algorithms ported + parity-verified (categorizer 350/350; buildability/traversability/wool 10/10)
