@@ -40,6 +40,22 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       a scan-layer/block change needs a pipeline re-run the port lacks (reference uses an SSE
       `/pipeline/run`); also the scan-layer's canonical `layer.parquet` isn't layer-tagged, so a
       config `scan_layer` that doesn't match the scanned artifact previews the scanned layer.
+- [ ] E9 — **New-map authoring + show drawn regions in the step they're drawn (priority).** Today a
+      region drawn in an activity (C5) is categorised **"other"** and only appears in the Regions
+      overview, not the step it was made in — because `RegionCategorizer` is **usage-derived and only
+      runs over full map.xml**, so it cannot reflect live editor draws (nothing is wired to them yet).
+      Storing "other" on draw is probably right (we can't stay in sync with the categorizer); the gap is
+      **display**. Fix per `docs/contracts/region-authoring.md` (R1): replace the category-grouped tree
+      with the **split view-model** (Primitives / Composed / Raw, scoped to the step by leaf-vs-compound
+      + role) so a freshly-drawn primitive shows in the active step's *Primitives* panel structurally,
+      regardless of category. Interim, at least display the drawn region in its step (or show
+      uncategorised primitives in every step). **Per-step tools + guidance:** the Objective **"Block"
+      tool = a "Monument" tool** (monuments are `block`); guide authors to define monument / wool
+      location (point) / wool-room (area) / spawn point vs protection and surface exactly those tools.
+      Resolves naturally once filters are wired (F1) + the tree layout changes (R1). **Goal: complete
+      the editor to author/config a map with NO pre-existing xml** (stripped copy of `thunder`). Always
+      validate region-authoring against **annealing_iv** + **outback_outback_edition** (author-built,
+      pre-existing xml). Next up: do F1 (filter wiring) + R1 (split tree) together.
 
 ## C — Canvas & shared UI infrastructure
 - [x] C1 — Hybrid canvas decision + interop (reused `EditorCanvas` JS via `studio-canvas.js`/`EditorCanvas.razor`)
@@ -217,7 +233,9 @@ under `docs/`.
 - [ ] R1 — Region authoring rework per **`docs/contracts/region-authoring.md`** (authoring split:
       primitives vs composed) + **`docs/contracts/region-categorization.md`** (the categorizer spec).
       Partly done: B1 (`RegionAuthoringEncoder`) + `RegionCategorizer` (parity 350/350) + the Regions
-      activity. The full authoring UI/workflow described in the doc remains.
+      activity. The full authoring UI/workflow described in the doc remains. **→ now prioritised with F1
+      (E9): the split view-model (Primitives/Composed/Raw, step-scoped) is what makes drawn regions show
+      in their step + unblocks no-xml authoring.**
 
 ## S — Sketch + design (M8)
 - [x] S1 — `/design` living UI reference (`Pages/Design.razor`)
