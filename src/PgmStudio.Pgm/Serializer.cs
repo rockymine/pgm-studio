@@ -103,6 +103,9 @@ public static class Serializer
     {
         var r = new Dict { ["uuid"] = a.Uuid, ["role"] = a.Role };
         if (a.Contribution.Length > 0) r["contribution"] = a.Contribution;
+        // name is a studio-side display cache (not present in map.xml) — emit only when set so the
+        // map.xml round-trip parity (no name) is preserved.
+        if (a.Name.Length > 0) r["name"] = a.Name;
         return r;
     }
 

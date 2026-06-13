@@ -142,6 +142,38 @@ public sealed class CodecTests
         await Assert.That(min["y"]).IsNull();
     }
 
+    // ── author name (B6) ──────────────────────────────────────────────────────────
+    // The studio caches a resolved Mojang username on the author; uuid stays canonical. The doc
+    // dict must carry `name`, but only when set — map.xml has no names, so emitting it
+    // unconditionally would break the corpus round-trip parity (tools/PgmStudio.RoundTrip).
+
+    [Test]
+    public async Task Author_name_round_trips_through_the_doc_dict()
+    {
+        var m = Parse();
+        m.Authors = [new Author { Uuid = "069a79f4-44e9-4726-a5be-fca90e38aaf5", Role = "author", Name = "Notch", Contribution = "design" }];
+
+        var doc = Serializer.ToDict(m);
+        var encoded = (Dict)((List<object?>)doc["authors"]!)[0]!;
+        await Assert.That(encoded["name"]).IsEqualTo("Notch");
+
+        var back = Deserializer.FromDict(doc).Authors[0];
+        await Assert.That(back.Uuid).IsEqualTo("069a79f4-44e9-4726-a5be-fca90e38aaf5");
+        await Assert.That(back.Name).IsEqualTo("Notch");
+        await Assert.That(back.Role).IsEqualTo("author");
+        await Assert.That(back.Contribution).IsEqualTo("design");
+    }
+
+    [Test]
+    public async Task Author_without_a_name_omits_the_name_key()   // map.xml round-trip parity guard
+    {
+        var m = Parse();
+        m.Authors = [new Author { Uuid = "069a79f4-44e9-4726-a5be-fca90e38aaf5", Role = "author" }];
+
+        var encoded = (Dict)((List<object?>)Serializer.ToDict(m)["authors"]!)[0]!;
+        await Assert.That(encoded.ContainsKey("name")).IsFalse();
+    }
+
     private static List<string> NamedRegionIds(MapXml m) => m.Regions.Keys.Where(k => !k.Contains("__")).OrderBy(x => x).ToList();
     private static List<string> NamedFilterIds(MapXml m) => m.Filters.Keys.Where(k => !k.Contains("__")).OrderBy(x => x).ToList();
 }

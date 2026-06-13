@@ -37,7 +37,9 @@ internal static class WriteSupport
     }
 }
 
-/// <summary>PATCH /api/map/{slug}/metadata — update name/version/objective/gamemode/max_build_height.</summary>
+/// <summary>PATCH /api/map/{slug}/metadata — update name/version/objective/gamemode/max_build_height
+/// (scalar columns) plus authors/contributors (the <c>author</c> table). Authors are id'd by uuid;
+/// the resolved username is cached in <c>author.name</c> for display.</summary>
 public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Patch("/map/{slug}/metadata"); AllowAnonymous(); }
@@ -48,6 +50,8 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         if (map is null) { await Send.NotFoundAsync(ct); return; }
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
 
+        await using var tx = await db.BeginTransactionAsync(ct);
+
         var u = db.Maps.Where(x => x.Id == map.Id).AsUpdatable();
         if (p.ContainsKey("name")) u = u.Set(x => x.Name, p["name"] as string ?? "");
         if (p.ContainsKey("version")) u = u.Set(x => x.Version, NullIfEmpty(p["version"] as string));
@@ -56,6 +60,29 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         if (p.ContainsKey("max_build_height")) u = u.Set(x => x.MaxBuildHeight, p["max_build_height"] is { } v ? Convert.ToDouble(v) : null);
         u = u.Set(x => x.UpdatedAt, DateTime.UtcNow);
         await u.UpdateAsync(ct);
+
+        // Authors are a full replace (mirrors the reference, which rewrites the authors array): wipe
+        // the map's rows and re-insert from the payload, skipping entries without a resolved uuid.
+        if (p.TryGetValue("authors", out var authorsRaw) && authorsRaw is List<object?> authors)
+        {
+            await db.Authors.Where(x => x.MapId == map.Id).DeleteAsync(ct);
+            foreach (var entry in authors)
+            {
+                if (entry is not Dict a) continue;
+                var uuid = (a.GetValueOrDefault("uuid") as string)?.Trim();
+                if (string.IsNullOrEmpty(uuid)) continue;
+                await db.InsertAsync(new AuthorRow
+                {
+                    MapId = map.Id,
+                    Uuid = uuid,
+                    Role = a.GetValueOrDefault("role") as string == "contributor" ? "contributor" : "author",
+                    Contribution = NullIfEmpty((a.GetValueOrDefault("contribution") as string)?.Trim()),
+                    Name = NullIfEmpty((a.GetValueOrDefault("name") as string)?.Trim()),
+                }, token: ct);
+            }
+        }
+
+        await tx.CommitAsync(ct);
         await Send.OkAsync(new Dict { ["ok"] = true }, ct);
     }
 

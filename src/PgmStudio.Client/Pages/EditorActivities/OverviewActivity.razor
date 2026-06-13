@@ -79,7 +79,7 @@
 
     private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
 
-    private sealed class Person { public string Uuid = ""; public string Name = ""; public string Contribution = ""; }
+    private sealed class Person { public string Uuid = ""; public string Name = ""; public string Contribution = ""; public bool Error; }
 
     private string name = "", version = "", gamemode = "", objective = "";
     private readonly List<Person> authors = new();
@@ -103,8 +103,40 @@
                 }
             dirty = false; saveStatus = null;
             await ReportStatus();
+            // Resolve any stored uuid that has no cached name → fill the display name (best-effort).
+            foreach (var p in authors.Concat(contributors).Where(p => p.Uuid.Length > 0 && p.Name.Length == 0))
+                _ = ResolveByUuid(p);
         }
         catch { saveStatus = "Failed to load."; }
+    }
+
+    /// <summary>Resolve a stored uuid to its current username for display (does not mark dirty).</summary>
+    private async Task ResolveByUuid(Person p)
+    {
+        try
+        {
+            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?uuid={Uri.EscapeDataString(p.Uuid)}");
+            p.Name = Str(r, "name");
+            StateHasChanged();
+        }
+        catch { /* leave the uuid showing if Mojang is unreachable / renamed-away */ }
+    }
+
+    /// <summary>On blur of a name field: look the typed value up via Mojang, storing the canonical
+    /// uuid (the persisted identity) and the resolved name. Clears the uuid + flags an error on miss.</summary>
+    private async Task ResolveName(Person p)
+    {
+        var val = p.Name.Trim();
+        if (val.Length == 0) { p.Uuid = ""; p.Error = false; return; }
+        var isUuid = val.Contains('-') && val.Length > 30;
+        var q = isUuid ? $"uuid={Uri.EscapeDataString(val)}" : $"name={Uri.EscapeDataString(val)}";
+        try
+        {
+            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?{q}");
+            p.Uuid = Str(r, "uuid"); p.Name = Str(r, "name"); p.Error = false;
+        }
+        catch { p.Uuid = ""; p.Error = true; }
+        Dirty(); StateHasChanged();
     }
 
     private static string Str(JsonElement e, string key)
@@ -120,9 +152,11 @@
         <div class="author-row">
             <img class="author-avatar" width="16" height="16" alt=""
                  src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
-            <input class="field-input author-name" type="text" placeholder="Minecraft username"
-                   value="@(string.IsNullOrEmpty(p.Name) ? p.Uuid : p.Name)"
-                   @oninput="e => { p.Name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+            <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
+                   placeholder="Minecraft username" title="@(p.Error ? "Player not found" : p.Uuid)"
+                   value="@p.Name"
+                   @oninput="e => { p.Name = e.Value?.ToString() ?? string.Empty; Dirty(); }"
+                   @onblur="() => ResolveName(p)" />
             <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"
                    value="@p.Contribution" @oninput="e => { p.Contribution = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
             <button class="btn-remove" title="Remove" @onclick="() => RemovePerson(list, p)">✕</button>

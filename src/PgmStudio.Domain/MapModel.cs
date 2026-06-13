@@ -18,6 +18,7 @@ public sealed class Author
     public string Uuid = "";
     public string Role = "author";          // "author" | "contributor"
     public string Contribution = "";
+    public string Name = "";                // resolved Mojang username — display cache; uuid is canonical
 }
 
 public sealed class KitItem

@@ -87,7 +87,7 @@ public sealed class MapWriter(PgmDb db)
     public async Task WriteEntitiesAsync(long mapId, MapXml m, CancellationToken ct = default)
     {
         foreach (var a in m.Authors)
-            await db.InsertAsync(new AuthorRow { MapId = mapId, Uuid = a.Uuid, Role = a.Role, Contribution = NullIfEmpty(a.Contribution) }, token: ct);
+            await db.InsertAsync(new AuthorRow { MapId = mapId, Uuid = a.Uuid, Role = a.Role, Contribution = NullIfEmpty(a.Contribution), Name = NullIfEmpty(a.Name) }, token: ct);
 
         foreach (var t in m.Teams)
             await db.InsertAsync(new TeamRow { MapId = mapId, TeamKey = t.Id, Name = t.Name, Color = t.Color, DyeColor = t.DyeColor, MaxPlayers = t.MaxPlayers, MinPlayers = t.MinPlayers }, token: ct);

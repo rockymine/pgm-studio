@@ -51,10 +51,12 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] B3 — Configure endpoints (`state` / `scan-layer` / `exclude-island`) over the map_config artifact
 - [ ] B4 — `GET /map/{slug}/layers/top-surface` (block-colour overlay data) → unblocks C6
 - [ ] B5 — `GET /map/{slug}/segments?axis=` (side-view profile) → unblocks C7
-- [ ] B6 — `PATCH metadata` should persist authors/contributors — **the Overview authors UI is not
-      wired** because of this (the doc path has authors; the targeted endpoint drops them)
+- [x] B6 — `PATCH metadata` now persists authors/contributors to the `author` table (full-replace,
+      skips empty-uuid rows); uuid is canonical with the resolved username cached in `author.name`.
+      Added `GET /api/minecraft/player?name=|uuid=` (`MojangClient`) + Overview UI: name→uuid on blur,
+      uuid→name on load. Codec emits author `name` only when set (map.xml round-trip parity preserved, 350/350).
 - [ ] B7 — **Symmetry detection** + `GET /map/{slug}/symmetry` + Configure step-3 wiring (currently confirm-only)
-- [ ] B8 — External-source endpoints: `sources`, `import-from-url`, `configure`, `player`/Mojang
+- [ ] B8 — External-source endpoints: `sources`, `import-from-url`, `configure` (`player`/Mojang done in B6)
 - [ ] B9 — Configure layer endpoints — **port of `studio/routes/configure.py`** (these exist in the old
       project): `PATCH /configure/{slug}/exclude-block` (block-exclusion toggle, like exclude-island);
       `GET /configure/{slug}/layers/{type}/pixels` (configure-canvas preview); `GET …/layers/{type}/

@@ -76,7 +76,7 @@ public sealed class MapReader(PgmDb db)
         };
 
         m.Authors = (await db.Authors.Where(a => a.MapId == id).OrderBy(a => a.Id).ToListAsync(ct))
-            .Select(a => new Author { Uuid = a.Uuid, Role = a.Role, Contribution = a.Contribution ?? "" }).ToList();
+            .Select(a => new Author { Uuid = a.Uuid, Role = a.Role, Contribution = a.Contribution ?? "", Name = a.Name ?? "" }).ToList();
 
         m.Teams = (await db.Teams.Where(t => t.MapId == id).OrderBy(t => t.Id).ToListAsync(ct))
             .Select(t => new Team { Id = t.TeamKey, Color = t.Color, MaxPlayers = t.MaxPlayers, MinPlayers = t.MinPlayers, Name = t.Name, DyeColor = t.DyeColor }).ToList();

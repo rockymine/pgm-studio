@@ -184,7 +184,7 @@ public static class Deserializer
     }
 
     // ── other decoders ──────────────────────────────────────────────────────────────
-    private static Author DecodeAuthor(Dict d) => new() { Uuid = Str(d, "uuid"), Role = Str(d, "role", "author"), Contribution = Str(d, "contribution") };
+    private static Author DecodeAuthor(Dict d) => new() { Uuid = Str(d, "uuid"), Role = Str(d, "role", "author"), Contribution = Str(d, "contribution"), Name = Str(d, "name") };
 
     private static Kit DecodeKit(Dict d) => new()
     {

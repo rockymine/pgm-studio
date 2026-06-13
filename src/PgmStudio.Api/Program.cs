@@ -17,6 +17,13 @@ builder.Services.AddScoped<MapWriter>();
 builder.Services.AddScoped<WorldFeatureWriter>();
 builder.Services.AddScoped<PgmStudio.Api.Services.FeatureData>();
 
+// Mojang username/uuid resolution for the Overview authors UI (typed HttpClient).
+builder.Services.AddHttpClient<PgmStudio.Api.Services.MojangClient>(c =>
+{
+    c.Timeout = TimeSpan.FromSeconds(5);
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("pgm-studio/1.0");
+});
+
 // Corpus roots used to locate a map's Minecraft world (<root>/<slug>/region) for the world scan.
 var mapsRoots = builder.Configuration.GetSection("MapsRoots").Get<string[]>()
     ?? ["/media/sf_repos/CommunityMaps/ctw", "/media/sf_repos/PublicMaps/ctw"];
