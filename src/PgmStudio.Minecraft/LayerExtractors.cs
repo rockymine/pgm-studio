@@ -13,23 +13,32 @@ public static class LayerExtractors
     /// Highest non-excluded, non-air block per column (top-down). <paramref name="maxBuildHeight"/>
     /// caps the scan (inclusive) to ignore structures above the playable ceiling.
     /// </summary>
+    // Default exclude for the Base extractor — the PISTON_MOVING_PIECE build-boundary marker
+    // (reference _DEFAULT_BASE_EXCLUDE). Surface/Y0/Bedrock have no default exclusion.
+    private static readonly HashSet<int> DefaultBaseExclude = [36];
+
+    /// <summary>Full 256-high id + data volumes for a chunk; index (y&lt;&lt;8)|(z&lt;&lt;4)|x. Absent sections stay air (0).</summary>
+    private static (ushort[] ids, byte[] data) BuildVolume(AnvilRegion.Chunk chunk)
+    {
+        var ids = new ushort[256 * 256];
+        var data = new byte[256 * 256];
+        foreach (var (sectionY, sIds, sData) in AnvilRegion.Sections(chunk))
+        {
+            var yStart = sectionY * 16;
+            if (yStart is < 0 or >= 256) continue;
+            Array.Copy(sIds, 0, ids, yStart * 256, 4096);
+            Array.Copy(sData, 0, data, yStart * 256, 4096);
+        }
+        return (ids, data);
+    }
+
     public static IEnumerable<SurfaceBlock> Surface(
         IEnumerable<AnvilRegion.Chunk> chunks, ISet<int>? excludeIds = null, int? maxBuildHeight = null)
     {
         var exclude = excludeIds ?? new HashSet<int>();
         foreach (var chunk in chunks)
         {
-            // Full 256-high id + data volumes for the chunk, index (y<<8)|(z<<4)|x.
-            var ids = new ushort[256 * 256];
-            var data = new byte[256 * 256];
-            foreach (var (sectionY, sIds, sData) in AnvilRegion.Sections(chunk))
-            {
-                var yStart = sectionY * 16;
-                if (yStart is < 0 or >= 256) continue;
-                Array.Copy(sIds, 0, ids, yStart * 256, 4096);
-                Array.Copy(sData, 0, data, yStart * 256, 4096);
-            }
-
+            var (ids, data) = BuildVolume(chunk);
             var baseX = chunk.ChunkX * 16;
             var baseZ = chunk.ChunkZ * 16;
             var yTop = maxBuildHeight is { } mh ? Math.Min(255, mh) : 255;
@@ -40,6 +49,71 @@ public static class LayerExtractors
                 {
                     var col = (lz << 4) | lx;
                     for (var y = yTop; y >= 0; y--)
+                    {
+                        int id = ids[(y << 8) | col];
+                        if (id == 0 || exclude.Contains(id)) continue;
+                        yield return new SurfaceBlock(baseX + lx, baseZ + lz, y, id, data[(y << 8) | col]);
+                        break;
+                    }
+                }
+        }
+    }
+
+    /// <summary>Non-air blocks at world y=0 (port of Y0Extractor). WorldY is always 0.</summary>
+    public static IEnumerable<SurfaceBlock> Y0(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            var (ids, data) = BuildVolume(chunk);
+            var baseX = chunk.ChunkX * 16;
+            var baseZ = chunk.ChunkZ * 16;
+            for (var lz = 0; lz < 16; lz++)
+                for (var lx = 0; lx < 16; lx++)
+                {
+                    var col = (lz << 4) | lx;       // y = 0 → index is just col
+                    int id = ids[col];
+                    if (id != 0) yield return new SurfaceBlock(baseX + lx, baseZ + lz, 0, id, data[col]);
+                }
+        }
+    }
+
+    /// <summary>Lowest bedrock block (id=7) per column, bottom-up (port of BedrockExtractor).</summary>
+    public static IEnumerable<SurfaceBlock> Bedrock(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            var (ids, data) = BuildVolume(chunk);
+            var baseX = chunk.ChunkX * 16;
+            var baseZ = chunk.ChunkZ * 16;
+            for (var lz = 0; lz < 16; lz++)
+                for (var lx = 0; lx < 16; lx++)
+                {
+                    var col = (lz << 4) | lx;
+                    for (var y = 0; y <= 255; y++)
+                    {
+                        if (ids[(y << 8) | col] != 7) continue;
+                        yield return new SurfaceBlock(baseX + lx, baseZ + lz, y, 7, data[(y << 8) | col]);
+                        break;
+                    }
+                }
+        }
+    }
+
+    /// <summary>Lowest non-excluded non-air block per column, bottom-up (port of BaseExtractor;
+    /// default exclude = {36}). Works for bedrock-floored, raised-floor and floating-island maps.</summary>
+    public static IEnumerable<SurfaceBlock> Base(IEnumerable<AnvilRegion.Chunk> chunks, ISet<int>? excludeIds = null)
+    {
+        var exclude = excludeIds ?? DefaultBaseExclude;
+        foreach (var chunk in chunks)
+        {
+            var (ids, data) = BuildVolume(chunk);
+            var baseX = chunk.ChunkX * 16;
+            var baseZ = chunk.ChunkZ * 16;
+            for (var lz = 0; lz < 16; lz++)
+                for (var lx = 0; lx < 16; lx++)
+                {
+                    var col = (lz << 4) | lx;
+                    for (var y = 0; y <= 255; y++)
                     {
                         int id = ids[(y << 8) | col];
                         if (id == 0 || exclude.Contains(id)) continue;

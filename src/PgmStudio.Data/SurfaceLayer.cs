@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Parquet.Serialization;
 
 namespace PgmStudio.Data;
@@ -22,5 +23,22 @@ public static class SurfaceLayer
                 Convert.ToInt32(d["block_id"]), Convert.ToInt32(d["block_data"])));
         }
         return cells;
+    }
+
+    /// <summary>Serialize cells to a parquet blob (same columns as the canonical layer.parquet) for caching.</summary>
+    public static async Task<byte[]> WriteAsync(IReadOnlyList<SurfaceCell> cells)
+    {
+        var rows = cells.Select(c => new Row { WorldX = c.X, WorldZ = c.Z, BlockId = c.BlockId, BlockData = c.BlockData }).ToList();
+        using var ms = new MemoryStream();
+        if (rows.Count > 0) await ParquetSerializer.SerializeAsync(rows, ms);
+        return ms.ToArray();
+    }
+
+    private sealed class Row
+    {
+        [JsonPropertyName("world_x")] public int WorldX { get; set; }
+        [JsonPropertyName("world_z")] public int WorldZ { get; set; }
+        [JsonPropertyName("block_id")] public int BlockId { get; set; }
+        [JsonPropertyName("block_data")] public int BlockData { get; set; }
     }
 }

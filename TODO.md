@@ -100,14 +100,14 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       formatting differs) + synthetic unit test. **Remaining: frontend** Configure step-3 UI (show
       detected modes + axis overlay + confirm) — currently confirm-only; track under E8.
 - [ ] B8 — External-source endpoints: `sources`, `import-from-url`, `configure` (`player`/Mojang done in B6)
-- [~] B9 — Configure layer endpoints (port of `studio/routes/configure.py`): `PATCH /configure/{slug}/
-      exclude-block` (done), `GET /configure/{slug}/layers/{type}/pixels` + `…/block-types` (done, via
-      shared `LayerData` — `_pixels_from_parquet`/`_block_types_from_parquet`). Served from the cached
-      `layer.parquet` artifact for the **scan layer**; pixels parity = identical to B4 top-surface,
-      block-types parity = exact aggregation (counts/order) + known-block colours (the 6 diffs on a real
-      map are unknown-block fallback colours, the documented P5 limit). 400 unknown type / 404|[] when
-      unavailable. **Remaining:** on-demand `_generate_layer_cache` for non-scan layers (y0/bedrock/base)
-      needs those extractors ported → P6; alternate layers currently 404/[].
+- [x] B9 — Configure layer endpoints (port of `studio/routes/configure.py`): `PATCH /configure/{slug}/
+      exclude-block` + `GET /configure/{slug}/layers/{type}/pixels` + `…/block-types` (shared `LayerData`
+      = `_pixels_from_parquet`/`_block_types_from_parquet`). Scan layer → canonical `layer.parquet`
+      artifact; non-scan layers (y0/bedrock/base) generated on demand by scanning the world (P6
+      extractors, raw default args — exclusion is client-side) and cached as per-type parquet artifacts
+      (port of `_resolve_layer_parquet`/`_generate_layer_cache`). 400 unknown type / 404|[] when no world.
+      Parity vs reference on acapulco: all 4 layers' block-types match exactly (id/name/count/order);
+      pixels = identical to B4 (the only colour diffs are unknown-block fallbacks, the P5 limit).
 
 ## P — Pipeline / world import (M7)
 - [x] P1 — Anvil `.mca` reader (byte-exact vs Python)
@@ -117,9 +117,18 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] P5 — Block colours (`minecraft/colors.py` → `PgmStudio.Minecraft/BlockColors.cs`) for the surface
       render. Full known-table parity vs Python oracle (197/197, `RoundTrip --colors`) + unit tests.
       (Unknown-block fallback isn't byte-parity — Python's `hash()` isn't portable; known blocks exact.)
-- [ ] P6 — Port the remaining layer extractors (`minecraft/layers.py`: Y0/Bedrock/Base; Surface done in
-      P4) so Configure can regenerate non-scan layers on demand (`_generate_layer_cache`) → unblocks the
-      y0/bedrock/base paths of B9's pixels/block-types (currently 404/[] for non-scan layers).
+- [x] P6 — Ported the remaining layer extractors (`minecraft/layers.py` → `LayerExtractors.Y0/Bedrock/
+      Base`; shared `BuildVolume`). Verified parity vs reference on acapulco (y0/bedrock/base block-types
+      match exactly). Wired into B9's on-demand generation. Bedrock stays a distinct id==7 extractor.
+- [ ] P7 — **DECISION (deferred): consolidate the layer extractors / scan passes.** Explored 2026-06-13:
+      enrich `SegmentsExtractor` with per-run bottom/top block id+data to derive a *solid* base/surface
+      from the single segments pass (compute once). Blockers to decide first: (1) **solid policy** — the
+      layers want different ignored-block sets (Surface/Y0 = air-only; Segments = air ∪ 31 non-solid ∪
+      {36}); one run-structure can't serve both. (2) endpoint-only runs can't honour user `exclude_blocks`
+      or `max_build_height` (need interior blocks). (3) Y0 is interior (not a run boundary) + cheap →
+      keep separate; Bedrock is a positive id==7 match → keep separate. Net: a segment-derived
+      surface/base would be a *solid* layer, NOT byte-parity with the reference. Decide: redefine
+      (accept divergence) vs keep exact per-layer extractors (current). See also [[A4]] geometry merge.
 
 ## A — Analysis
 - [x] A1 — All algorithms ported + parity-verified (categorizer 350/350; buildability/traversability/wool 10/10)
