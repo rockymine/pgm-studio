@@ -1,5 +1,6 @@
 @namespace PgmStudio.Client.Pages.EditorActivities
 @inject IJSRuntime JS
+@inject HttpClient Http
 @implements IAsyncDisposable
 
 @* Hybrid editor canvas: Blazor renders the toolbar/labels/svg shell, the reused EditorCanvas JS
@@ -13,6 +14,19 @@
               @onclick='() => SetTool("move")'><i data-lucide="hand"></i></button>
       <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select (S)"
               @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
+      @if (DrawCategory is not null)
+      {
+        <button class="draw-tool-btn @(tool == "rectangle" ? "draw-tool-btn--active" : null)" title="Rectangle"
+                @onclick='() => SetTool("rectangle")'><i data-lucide="rectangle-horizontal"></i></button>
+        <button class="draw-tool-btn @(tool == "cuboid" ? "draw-tool-btn--active" : null)" title="Cuboid"
+                @onclick='() => SetTool("cuboid")'><i data-lucide="box"></i></button>
+        <button class="draw-tool-btn @(tool == "cylinder" ? "draw-tool-btn--active" : null)" title="Cylinder"
+                @onclick='() => SetTool("cylinder")'><i data-lucide="cylinder"></i></button>
+        <button class="draw-tool-btn @(tool == "circle" ? "draw-tool-btn--active" : null)" title="Circle"
+                @onclick='() => SetTool("circle")'><i data-lucide="circle"></i></button>
+        <button class="draw-tool-btn @(tool == "point" ? "draw-tool-btn--active" : null)" title="Point"
+                @onclick='() => SetTool("point")'><i data-lucide="dot"></i></button>
+      }
     </div>
     <div @ref="coordsRef" class="canvas-cursor"></div>
     <div class="canvas-subbar-right">

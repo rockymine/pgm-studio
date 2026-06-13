@@ -35,7 +35,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <EditorCanvas @ref="canvas" Slug="@Slug" Category="wool_room,monument,wool_spawner" OnSelect="OnCanvasSelect" />
+  <EditorCanvas @ref="canvas" Slug="@Slug" Category="wool_room,monument,wool_spawner" DrawCategory="wool_room" OnSelect="OnCanvasSelect" OnRegionCreated="Reload" />
 
   <div class="sidebar-handle"></div>
 

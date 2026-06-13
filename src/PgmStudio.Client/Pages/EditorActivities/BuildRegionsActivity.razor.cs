@@ -97,6 +97,8 @@ public partial class BuildRegionsActivity : IAsyncDisposable
     private Task OnTreeSelect(RegionNode n) => Select(n.Id);
     private Task OnCanvasSelect(string? id) => Select(id);
 
+    private Task ReloadBuild() => LoadRegions();   // refresh the build tree after a drawn region is created
+
     private async Task DeleteRegion(string id)
     {
         if (await Delete($"regions/{id}")) await LoadRegions();

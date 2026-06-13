@@ -46,7 +46,17 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [x] C2 — Reusable `RegionTree` + `RegionInspector` + `Models/RegionNode.cs` + `GameColors.cs`
 - [x] C3 — Editable inspector (`OnDelete`/`OnRename`) — first edit wiring
 - [x] C4 — Studio design-system CSS (verbatim) + `/design` living reference page
-- [ ] C5 — **Draw-tool interop** — region *creation* via draw tools (unlocks drawing in E3/E4/E5)
+- [x] C5 — **Draw-tool interop** — region creation via the editor canvas. `editor-draw-controller.js`
+      already had the draw machinery; forwarded its `onRegionDraw` through `studio-canvas.js` →
+      `EditorCanvas.OnRegionDraw` [JSInvokable], which builds the create payload (port of
+      `drawResultToPayload`) and POSTs `/regions`, then reloads the canvas + fires `OnRegionCreated`.
+      Added rectangle/cuboid/cylinder/circle/point tools to the canvas toolbar (shown when `DrawCategory`
+      is set) and wired `DrawCategory`+`OnRegionCreated` in Teams(spawn)/Objective(wool_room)/
+      BuildRegions(build); Regions stays read-only. Verified on acapulco: draw → `POST /regions` 200 →
+      persisted (2 rectangles created + deleted in cleanup). **Note:** a freshly-drawn region is
+      uncategorised → lands in the tree's "other" group until it's wired to a use (spawn/wool/etc.) —
+      `region_categories` is a derived, non-persisted hint by contract (the reference SPA only shows it
+      immediately because it tracks the category client-side; the port reloads from the backend).
 - [x] C6 — Block-colour overlay ("Blocks" toggle) on the shared `EditorCanvas`. The reused
       `editor-canvas.js` already had the block machinery (`loadBlockLayer`/`setBlocksVisible`/
       `#renderBlockImage`); added `setBlocks(visible)` to the `studio-canvas.js` bridge (lazily fetches

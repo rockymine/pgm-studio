@@ -30,6 +30,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     onCanvasClick: (node) => dotnetRef.invokeMethodAsync("OnCanvasSelect", node?.id ?? null),
     onCoords: (x, z) => { if (coordsEl) coordsEl.textContent = (x === null || x === undefined) ? "" : `X ${x}  Z ${z}`; },
     onZoom: (scale) => { if (zoomEl) zoomEl.textContent = `${Math.round(scale * 100)}%`; },
+    // Draw-tool region creation (C5): a completed shape → C#, which POSTs /regions then reloads.
+    onRegionDraw: (drawResult) => dotnetRef.invokeMethodAsync("OnRegionDraw", drawResult),
   });
   canvas.setActiveTool("move");
   let blockData = null;   // cached top-surface layer (C6), fetched on first toggle-on
