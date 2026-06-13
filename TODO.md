@@ -139,6 +139,17 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       thunder_blank (rot_90 → 4 in DB; mirror_x → 2-team one-row card; Dismiss). **Next reuse:** F1 wiring
       suggestions, F2 wool suggestions.
 
+- [x] C16 — **Spawn subtype: point vs protection.** Filled the spec's documented-but-unimplemented
+      `subtype` slot to split the `spawn` category into the literal spawn point (`spawns[].region`) vs
+      the surrounding anti-grief protection zone (enter=only / spawn message / spawn-floor / spawn-kit).
+      `RegionFacet.Subtype` (DeriveFacets), `RegionFacetDto.Subtype` (/regions), subtype on every
+      region-tree node (`EncodeTree`/`EncodeNode` + tree endpoint), `RegionNode.Subtype` (client).
+      Teams activity now shows **Spawn Points** + **Spawn Protection** (CollectSpawn walks all tree groups;
+      protection nests under the `spawns` rule-container in "other"). Corpus-verified disjoint (350 maps,
+      0 overlap); `--categorize` parity still 350/350 (subtype is additive); +1 Analysis test; spec
+      (region-categorization.md §2/§8) updated. Deferred: protection regions don't render on the
+      spawn-filtered canvas (they live in the "other" tree group). Reusable by F1 wiring.
+
 ## B — Backend / API
 - [x] B1 — Region authoring + tree encoders + `GET /regions/authoring`,`/regions/tree`,`/islands` (350/350)
 - [x] B2 — `RegionBoundsDeriver` (compound/transform `bounds_2d` recomputed on read)

@@ -73,11 +73,12 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Pg
         var doc = await reader.ReadDocAsync(map, ct);
         var regions = doc.GetValueOrDefault("regions") as Dict ?? new();
         var cats = RegionCategorizer.Categorize(doc);
+        var subtypes = RegionCategorizer.DeriveFacets(doc).ToDictionary(kv => kv.Key, kv => kv.Value.Subtype);
         var bbox = await RegionsAuthoringEndpoint.IslandsBboxAsync(db, map.Id, ct);
 
         await Send.OkAsync(new Dict
         {
-            ["groups"] = RegionAuthoringEncoder.EncodeTree(regions, cats, bbox?.bounds),
+            ["groups"] = RegionAuthoringEncoder.EncodeTree(regions, cats, bbox?.bounds, subtypes),
             ["bounding_box"] = bbox?.dict,
         }, ct);
     }

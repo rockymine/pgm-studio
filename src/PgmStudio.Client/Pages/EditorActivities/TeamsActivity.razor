@@ -45,10 +45,10 @@
       </section>
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Regions</h2></div>
+        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Points</h2></div>
         <div class="panel-list geo-icons-flush">
-          @if (spawnRegions.Count == 0) { <div class="list-empty">No spawn regions.</div> }
-          @foreach (var r in spawnRegions)
+          @if (!SpawnPoints.Any()) { <div class="list-empty">No spawn points.</div> }
+          @foreach (var r in SpawnPoints)
           {
             var sp = SpawnFor(r.Id);
             var spTeam = sp is null ? null : teams.FirstOrDefault(t => t.Id == sp.Team);
@@ -56,6 +56,21 @@
               <span class="geo-type-icon" style="color:@(spTeam is null ? "var(--text-muted)" : GameColors.ChatHex(spTeam.Color))"><i data-lucide="@RegionNode.Icon(r.Type)"></i></span>
               <span class="list-label list-label--mono">@r.Id</span>
               <span class="list-tag">@(spTeam?.Name ?? "—")</span>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Protection</h2></div>
+        <div class="panel-list geo-icons-flush">
+          @if (!SpawnProtection.Any()) { <div class="list-empty">No protection regions.</div> }
+          @foreach (var r in SpawnProtection)
+          {
+            <div class="list-row list-row--compact @(selSpawn == r.Id ? "list-row--selected" : null)" @onclick="() => SelectSpawn(r.Id)">
+              <span class="geo-type-icon"><i data-lucide="@RegionNode.Icon(r.Type)"></i></span>
+              <span class="list-label list-label--mono">@r.Id</span>
+              <span class="list-tag">protection</span>
             </div>
           }
         </div>

@@ -299,7 +299,8 @@ public static class RegionAuthoringEncoder
     /// <summary>Root regions grouped into thematic categories, each a recursive node tree (render input).</summary>
     public static List<object?> EncodeTree(
         Dict regionsDict, IReadOnlyDictionary<string, string> categories,
-        (double minX, double minZ, double maxX, double maxZ)? bounds)
+        (double minX, double minZ, double maxX, double maxZ)? bounds,
+        IReadOnlyDictionary<string, string?>? subtypes = null)
     {
         var namedChildIds = new HashSet<string>();
         foreach (var ro in regionsDict.Values)
@@ -308,7 +309,7 @@ public static class RegionAuthoringEncoder
         var roots = new List<(string id, Dict node)>();
         foreach (var (regionId, ro) in regionsDict)
             if (ro is Dict region && !namedChildIds.Contains(regionId))
-                roots.Add((regionId, EncodeNode(region, bounds, regionsDict)));
+                roots.Add((regionId, EncodeNode(region, bounds, regionsDict, subtypes)));
 
         var groups = new Dictionary<string, List<object?>>();
         foreach (var (regionId, node) in roots)
@@ -339,7 +340,8 @@ public static class RegionAuthoringEncoder
         }
     }
 
-    private static Dict EncodeNode(Dict region, (double, double, double, double)? bounds, Dict registry)
+    private static Dict EncodeNode(Dict region, (double, double, double, double)? bounds, Dict registry,
+        IReadOnlyDictionary<string, string?>? subtypes = null)
     {
         var xmlId = region.GetValueOrDefault("id") as string ?? "";
         var t = region.GetValueOrDefault("type") as string ?? "unknown";
@@ -349,11 +351,11 @@ public static class RegionAuthoringEncoder
         var children = new List<object?>();
         foreach (var child in region.GetValueOrDefault("children") as List<object?> ?? [])
         {
-            if (child is string s) { if (registry.GetValueOrDefault(s) is Dict cr) children.Add(EncodeNode(cr, bounds, registry)); }
-            else if (child is Dict cd) children.Add(EncodeNode(cd, bounds, registry));
+            if (child is string s) { if (registry.GetValueOrDefault(s) is Dict cr) children.Add(EncodeNode(cr, bounds, registry, subtypes)); }
+            else if (child is Dict cd) children.Add(EncodeNode(cd, bounds, registry, subtypes));
         }
         var rawSource = ResolveSource(region, registry);
-        var sourceNode = rawSource is not null ? EncodeNode(rawSource, bounds, registry) : null;
+        var sourceNode = rawSource is not null ? EncodeNode(rawSource, bounds, registry, subtypes) : null;
 
         var node = new Dict
         {
@@ -364,6 +366,8 @@ public static class RegionAuthoringEncoder
             ["coords"] = EncodeCoords(region),
             ["is_negative"] = t == "negative",
             ["synthetic_id"] = xmlId.Length == 0,
+            // subtype refines the group category (spawn → point|protection); null for most regions.
+            ["subtype"] = xmlId.Length > 0 ? subtypes?.GetValueOrDefault(xmlId) : null,
             ["children"] = children,
             ["source"] = sourceNode,
         };

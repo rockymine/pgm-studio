@@ -32,7 +32,7 @@ signals, never from the fact that a filter is applied to it.** Filter targeting 
 
 | value | meaning | primary signal |
 |---|---|---|
-| `spawn` | team spawn point + protected spawn area | `spawns[].region`; `enter=only-<team>` (with disambiguation) |
+| `spawn` | team spawn point + protected spawn area (subtype `point` \| `protection`) | `spawns[].region`; `enter=only-<team>` (with disambiguation) |
 | `observer_spawn` | observer / `<default>` spawn | `observer_spawn.region` |
 | `wool_room` | wool storage / defense | `wool_room_region`; `enter=not-<team>` (defender excluded) |
 | `monument` | wool **delivery** objective | `wool.monuments[].monument_region` |
@@ -44,6 +44,15 @@ signals, never from the fact that a filter is applied to it.** Filter targeting 
 Objectives are **three categories, not one**: `wool_room` (source, defended),
 `monument` (goal, delivery), `wool_spawner` (regeneration). A monument is gameplay-opposite
 to a wool room and must not live under "wool".
+
+**Spawn subtype (implemented).** `spawn` carries a `subtype` separating the two things authors
+treat differently: **`point`** — the literal spawn, the region in `spawns[].region` (where the
+player materialises) — and **`protection`** — the surrounding anti-grief zone (`enter=only-<team>`,
+the "…enemy's spawn!" message, the spawn-floor block pattern, spawn-protection kits). The two are
+**disjoint across the whole 350-map corpus** (a spawn point never carries an enter rule), so the
+split is unambiguous: point ⟺ in `spawns[]`, every other `spawn` region is protection. The editor's
+Teams activity lists them as separate "Spawn Points" / "Spawn Protection" sections. (The protection
+*mechanism* — no-enter barrier vs no-edit/grief — is already in `roles`, so subtype + roles is complete.)
 
 Corpus distribution (named regions, after dropping block-targeting as a spatial signal):
 `spawn` 19% · `wool_spawner` 15% · `wool_room` 14% · `monument` 9% · `build` (incl.
@@ -254,8 +263,8 @@ Compounds give PGM meaning and are needed for round-trip, but they break naive c
 
 | region | type | category | roles |
 |---|---|---|---|
-| `blue-spawn-point` | cylinder | spawn | |
-| `blue-spawn` | rectangle | spawn | `enter=only-blue` |
+| `blue-spawn-point` | cylinder | spawn (subtype `point`) | |
+| `blue-spawn` | rectangle | spawn (subtype `protection`) | `enter=only-blue` |
 | `blues-woolroom` | union | wool_room | `enter=not-blue` (blue defends), block rule |
 | `blue-team-red-wool` | block | monument | |
 | `blue-wool-spawn` | cuboid | wool_spawner | |

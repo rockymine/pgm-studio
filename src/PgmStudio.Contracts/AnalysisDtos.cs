@@ -16,7 +16,7 @@ public sealed record TraversabilityDto(
     bool Connected, int ComponentCount, string Severity, string Message, bool HaveLayers,
     IReadOnlyList<NavPointDto> Points, IReadOnlyList<IsolatedPointDto> Isolated);
 
-public sealed record RegionFacetDto(string Category, IReadOnlyList<string> Roles);
+public sealed record RegionFacetDto(string Category, IReadOnlyList<string> Roles, string? Subtype = null);
 
 /// <summary>GET /api/map/{slug}/regions — derived region facets + a category count summary.</summary>
 public sealed record RegionsDto(

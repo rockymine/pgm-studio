@@ -31,6 +31,11 @@ public partial class TeamsActivity
     private double spawnYaw;
     private string spawnKit = "";
 
+    // spawn regions split by subtype (C-series classification improvement): the actual spawn points
+    // (where players spawn, from spawns[].region) vs the surrounding anti-grief protection zones.
+    private IEnumerable<RegionNode> SpawnPoints => spawnRegions.Where(r => r.Subtype == "point");
+    private IEnumerable<RegionNode> SpawnProtection => spawnRegions.Where(r => r.Subtype == "protection");
+
     private Team? CurrentTeam => teams.FirstOrDefault(t => t.Id == selTeam);
     private RegionNode? SpawnNode => selSpawn is not null ? nodeMap.GetValueOrDefault(selSpawn) : null;
 
@@ -62,8 +67,8 @@ public partial class TeamsActivity
 
             var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
             if (tree.TryGetProperty("groups", out var g))
-                foreach (var grp in RegionGroup.ParseGroups(g).Where(x => x.Name == "spawn"))
-                    foreach (var n in grp.Regions) { spawnRegions.Add(n); Index(n); }
+                foreach (var grp in RegionGroup.ParseGroups(g))
+                    foreach (var n in grp.Regions) CollectSpawn(n);
 
             symMode = await DetectedSymmetryAsync();
         }
@@ -122,12 +127,20 @@ public partial class TeamsActivity
 
     private void RejectSuggestion() => suggestionDismissed = true;
 
-    private void Index(RegionNode n)
+    /// <summary>Walk the whole tree: index every node, and collect spawn-family regions by subtype.
+    /// Protection zones nest under the <c>spawns</c> rule-container (in the "other" group), so we can't
+    /// rely on spawn-group roots; synthetic compound wrappers are skipped from the protection list.</summary>
+    private void CollectSpawn(RegionNode n)
     {
         if (!string.IsNullOrEmpty(n.Id)) nodeMap.TryAdd(n.Id, n);
-        foreach (var c in n.Children) Index(c);
-        if (n.Source is not null) Index(n.Source);
+        if (n.Subtype == "point" || (n.Subtype == "protection" && !IsSyntheticId(n.Id)))
+            spawnRegions.Add(n);
+        foreach (var c in n.Children) CollectSpawn(c);
+        if (n.Source is not null) CollectSpawn(n.Source);
     }
+
+    // generated compound ids (the spawns union's anonymous intermediates) — structure, not authored zones
+    private static bool IsSyntheticId(string id) => id.Length == 0 || id.Contains("__anon_") || id.Contains("__apply_");
 
     private Spawn? SpawnFor(string regionId) => spawns.FirstOrDefault(s => s.RegionId == regionId);
 

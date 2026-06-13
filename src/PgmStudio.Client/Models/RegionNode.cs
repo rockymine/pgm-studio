@@ -12,6 +12,7 @@ public sealed class RegionNode
     public string Id = "";
     public string Type = "unknown";
     public string Label = "";
+    public string? Subtype;          // refines the group category, e.g. spawn → "point" | "protection"
     public bool Synthetic;
     public bool IsNegative;
     public Dictionary<string, object?>? Bounds;     // min_x, min_z, max_x, max_z
@@ -28,6 +29,7 @@ public sealed class RegionNode
             Id = Str(e, "id"),
             Type = Str(e, "type"),
             Label = Str(e, "label"),
+            Subtype = e.TryGetProperty("subtype", out var st) && st.ValueKind == JsonValueKind.String ? st.GetString() : null,
             Synthetic = Bool(e, "synthetic_id"),
             IsNegative = Bool(e, "is_negative"),
             Bounds = Obj(e, "bounds"),

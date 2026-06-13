@@ -4,8 +4,11 @@ namespace PgmStudio.Analysis;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>One region's derived categorisation: a gameplay <see cref="Category"/> + usage <see cref="Roles"/>.</summary>
-public sealed record RegionFacet(string Category, List<string> Roles);
+/// <summary>
+/// One region's derived categorisation: a gameplay <see cref="Category"/>, usage <see cref="Roles"/>,
+/// and an optional <see cref="Subtype"/> refining the category (spec §2 — e.g. spawn → point|protection).
+/// </summary>
+public sealed record RegionFacet(string Category, List<string> Roles, string? Subtype = null);
 
 /// <summary>
 /// Two-facet region categorisation (port of studio/services/region_categorizer.py, contract
@@ -181,7 +184,11 @@ public static partial class RegionCategorizer
             if (ruleGroupIds.Contains(rid)) roles.Add("rule_group");
             if (timeGated.TryGetValue(rid, out var dur)) roles.Add(dur.Length > 0 ? $"time_gated={dur}" : "time_gated");
             if (rulesByRegion.TryGetValue(rid, out var evs)) roles.AddRange(evs.Select(e => $"{e.ev}={e.fid}"));
-            output[rid] = new RegionFacet(category, roles);
+            // Spawn subtype (spec §2): the authoritative spawn point is the region in spawns[].region;
+            // every other region the categorizer calls "spawn" is the surrounding protection/anti-grief
+            // zone (enter=only / spawn message / spawn-floor). They are disjoint across the whole corpus.
+            var subtype = category == "spawn" ? (spawnIds.Contains(rid) ? "point" : "protection") : null;
+            output[rid] = new RegionFacet(category, roles, subtype);
         }
         return output;
     }

@@ -34,7 +34,7 @@ public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : Endp
 
         var facets = RegionCategorizer.DeriveFacets(doc);
         var dto = new RegionsDto(
-            facets.ToDictionary(kv => kv.Key, kv => new RegionFacetDto(kv.Value.Category, kv.Value.Roles)),
+            facets.ToDictionary(kv => kv.Key, kv => new RegionFacetDto(kv.Value.Category, kv.Value.Roles, kv.Value.Subtype)),
             facets.Values.GroupBy(f => f.Category).ToDictionary(g => g.Key, g => g.Count()));
         await Send.OkAsync(dto, ct);
     }
