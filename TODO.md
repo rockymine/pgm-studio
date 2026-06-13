@@ -40,8 +40,12 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 - [ ] C7 — Side-view canvas for Build Regions Step 1, **with a draggable max-build-height slider** — needs B5
 - [ ] C8 — `panel-resize` for `.sidebar-handle` drag (port `shared/panel-resize.js`)
 - [ ] C9 — Kits editing UI (Teams) and per-activity status dots
-- [ ] C10 — **Bug:** cylinders not rendered on the canvas (they should draw as ellipses from `bounds`
-       in `renderShape`; encoder doesn't compute `polygon_2d` for cylinders — check the bounds path)
+- [ ] C10 — **Bug:** a region is missing from the region tree. Cylinders *do* render — the original
+       symptom was misdiagnosed: `annealing_iv` has a cylinder region `blocks-filter-region` that never
+       appears in the region tree (so it was assumed cylinders don't draw). Investigate why that region
+       is dropped from the tree — likely the tree encoder / categorizer (`RegionCategorizer` /
+       `encode_region_tree`) excludes it (filter-only region with no group? a category that the tree
+       doesn't surface?). Check whether other maps drop similar filter-referenced regions.
 - [ ] C11 — **Verify:** the region inspector's edits (rename / delete / coord patch) actually write to
        the DB end-to-end across activities (only wired so far in Build Regions; not fully verified)´
 - [ ] C12 — **Extract shared Blazor components** to cut markup duplication (audit 2026-06-13).
