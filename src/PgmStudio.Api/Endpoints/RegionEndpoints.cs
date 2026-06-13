@@ -1,4 +1,8 @@
+using System.Text.Json.Nodes;
 using FastEndpoints;
+using LinqToDB;
+using LinqToDB.Async;
+using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
 using PgmStudio.Pgm.Editing;
 
@@ -16,6 +20,42 @@ public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, M
         var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.CreateRegion(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
+}
+
+/// <summary>
+/// POST /api/map/{slug}/regions/{regionId}/counterpart — create the symmetry counterpart(s) of a
+/// region (F3). Body: {mode, center:{cx,cz}?}; centre falls back to the confirmed symmetry artifact.
+/// </summary>
+public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions/{regionId}/counterpart"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var slug = Route<string>("slug")!;
+        var regionId = Route<string>("regionId")!;
+        var map = await repo.GetBySlugAsync(slug, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var mode = (p.GetValueOrDefault("mode") as string ?? "").Trim();
+
+        double? cx = null, cz = null;
+        if (p.GetValueOrDefault("center") is Dict center) { cx = Num(center.GetValueOrDefault("cx")); cz = Num(center.GetValueOrDefault("cz")); }
+        if (cx is null || cz is null)   // fall back to the confirmed symmetry centre
+        {
+            var sym = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
+            if (sym is not null && JsonNode.Parse(sym.Data)?["center"] is JsonObject c)
+            { cx ??= c["cx"]?.GetValue<double>(); cz ??= c["cz"]?.GetValue<double>(); }
+        }
+        if (cx is null || cz is null)
+        { await Send.ResponseAsync(new Dict { ["error"] = "center {cx,cz} required (absent from body and symmetry)" }, 400, ct); return; }
+
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, slug,
+            doc => SymmetryAuthoring.CreateCounterpart(doc, regionId, mode, cx.Value, cz.Value), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+
+    private static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, float f => f, _ => null };
 }
 
 /// <summary>POST /api/map/{slug}/regions/group — wrap regions in a compound.</summary>

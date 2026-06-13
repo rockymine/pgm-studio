@@ -215,10 +215,14 @@ under `docs/`.
       `POST /map/{slug}/wool-sources` (query a drawn rect) + `GET /map/{slug}/wool-suggestions`
       (`/wool-availability` + `WoolSources` already done). Objectives step: draw→query, suggestion
       prompts, availability badges.
-- [ ] F3 (ref C13) — **Symmetry-aware authoring (source → counterparts).** Port the counterpart backend
-      (`symmetry_authoring` + `regions_equivalent`/`is_counterpart` IoU on the existing
-      `RegionGeometry2d`) + `POST /map/{slug}/regions/{id}/counterpart`; then the canvas accept/reject
-      UI. (This subsumes **A2.** data-model §7.)
+- [~] F3 (ref C13) — **Symmetry-aware authoring (source → counterparts).** **Counterpart backend done:**
+      ported `symmetry_authoring` → `SymmetryAuthoring.CreateCounterpart` (+ `Geometry2d` reflect/rotate)
+      and `POST /map/{slug}/regions/{id}/counterpart` (body {mode, center?}; centre falls back to the
+      confirmed symmetry artifact). mirror_* → native PGM `mirror` region; rot_180 → two chained mirrors;
+      rot_90 → baked primitive. Parity unit test vs reference (6 cases, all modes×types); live-verified
+      on thunder_blank (block (10,10) + rot_90 → (-9,10)). **Remaining:** orbit-fill on draw (chain to
+      make 1→4 for rot_90), the Objective draw integration, and the canvas accept/reject UI. The
+      `regions_equivalent`/`is_counterpart` IoU detection (subsumes **A2**) is still to do.
 - [ ] F4 (ref C14) — **Buildability live canvas overlay** (service + `GET /buildability` done) — UI
       overlay with the 4-class colours.
 - [ ] F5 (ref C15) — **Traversability readiness-panel** (service + `GET /traversability` done) — UI.
