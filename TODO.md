@@ -220,9 +220,21 @@ under `docs/`.
       and `POST /map/{slug}/regions/{id}/counterpart` (body {mode, center?}; centre falls back to the
       confirmed symmetry artifact). mirror_* → native PGM `mirror` region; rot_180 → two chained mirrors;
       rot_90 → baked primitive. Parity unit test vs reference (6 cases, all modes×types); live-verified
-      on thunder_blank (block (10,10) + rot_90 → (-9,10)). **Remaining:** orbit-fill on draw (chain to
-      make 1→4 for rot_90), the Objective draw integration, and the canvas accept/reject UI. The
-      `regions_equivalent`/`is_counterpart` IoU detection (subsumes **A2**) is still to do.
+      on thunder_blank (block (10,10) + rot_90 → (-9,10)).
+      **Orbit-fill on draw DONE (Chrome-verified on thunder_blank):** `SymmetryAuthoring.CreateOrbit`
+      chains the counterparts implied by the confirmed symmetry (rot_90 → 3 quarter turns = 1→4;
+      mirror/rot_180 → 1→2; counterparts inherit the source's category) + `POST /regions/{id}/orbit`
+      (reads mode+centre from the confirmed symmetry artifact; no-op 200 on asymmetric maps).
+      `EditorCanvas.OnRegionDraw` calls it after every draw across all draw activities (Teams/Objective/
+      BuildRegions) — so a drawn region appears in all symmetric positions at once. Gated by a toolbar
+      **Orbit** toggle chip (styled like the Blocks layer chip; labelled with the confirmed mode — "Orbit 90"
+      / "Orbit x" …; shown only on draw activities of symmetric maps; default on) so the user opts in/out
+      per draw — UX placeholder, real design is a later pass. Draw-enabled canvases
+      now also surface the "other" group (`CanvasFilter()`), so freshly drawn regions + counterparts (which
+      the categorizer leaves "other" until wired — see E9) are visible in the step that drew them. Added the
+      **block** draw tool to the canvas toolbar (the JS already handled it). +2 orbit unit tests.
+      **Remaining:** the canvas accept/reject UI (counterparts are created immediately, no preview/confirm).
+      The `regions_equivalent`/`is_counterpart` IoU detection (subsumes **A2**) is still to do.
 - [ ] F4 (ref C14) — **Buildability live canvas overlay** (service + `GET /buildability` done) — UI
       overlay with the 4-class colours.
 - [ ] F5 (ref C15) — **Traversability readiness-panel** (service + `GET /traversability` done) — UI.

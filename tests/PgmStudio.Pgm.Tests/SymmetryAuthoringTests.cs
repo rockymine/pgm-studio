@@ -100,6 +100,32 @@ public sealed class SymmetryAuthoringTests
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────────
+    [Test]
+    public async Task Orbit_rot90_chains_three_quarter_turns()
+    {
+        var doc = Doc();
+        var res = SymmetryAuthoring.CreateOrbit(doc, "b", "rot_90", Cx, Cz, "spawn");
+        var created = (List<object?>)res["created"]!;
+        // source + 3 counterparts = the full 4-fold orbit; baked blocks chained 90°/180°/270°.
+        await Assert.That(string.Join(",", created)).IsEqualTo("block_1,block_2,block_3");
+        await Assert.That(Bd(Region(doc, "b"))).IsEqualTo((-24.0, -90.0, -23.0, -89.0));         // source unchanged
+        await Assert.That(Bd(Region(doc, "block_1"))).IsEqualTo((90.0, -24.0, 91.0, -23.0));      // 90°
+        await Assert.That(Bd(Region(doc, "block_2"))).IsEqualTo((24.0, 90.0, 25.0, 91.0));        // 180°
+        await Assert.That(Bd(Region(doc, "block_3"))).IsEqualTo((-90.0, 24.0, -89.0, 25.0));      // 270°
+    }
+
+    [Test]
+    public async Task Orbit_mirror_adds_single_counterpart_in_category()
+    {
+        var doc = Doc();
+        var res = SymmetryAuthoring.CreateOrbit(doc, "b", "mirror_x", Cx, Cz, "spawn");
+        var created = (List<object?>)res["created"]!;
+        await Assert.That(string.Join(",", created)).IsEqualTo("mirror_1");
+        // counterpart is tracked under the source's category so it shows in the drawing activity.
+        var spawn = (List<object?>)((Dict)doc["region_categories"]!)["spawn"]!;
+        await Assert.That(spawn.Contains("mirror_1")).IsTrue();
+    }
+
     private static Dict Xyz(double x, double y, double z) => new() { ["x"] = x, ["y"] = y, ["z"] = z };
     private static Dict B(double minX, double minZ, double maxX, double maxZ)
         => new() { ["min"] = new Dict { ["x"] = minX, ["z"] = minZ }, ["max"] = new Dict { ["x"] = maxX, ["z"] = maxZ } };

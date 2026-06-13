@@ -58,6 +58,42 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
     private static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, float f => f, _ => null };
 }
 
+/// <summary>
+/// POST /api/map/{slug}/regions/{regionId}/orbit — fill the symmetry orbit of a region (F3), i.e.
+/// create every counterpart implied by the map's <b>confirmed</b> symmetry (rot_90 → 3 turns, mirror/
+/// rot_180 → 1). Used right after a draw so an authored region appears in all symmetric positions.
+/// Body: {category?}; mode + centre come from the confirmed symmetry artifact. If the map has no
+/// confirmed symmetry this is a no-op (200 {created:[]}) so the draw flow works on asymmetric maps too.
+/// </summary>
+public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/regions/{regionId}/orbit"); AllowAnonymous(); }
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var slug = Route<string>("slug")!;
+        var regionId = Route<string>("regionId")!;
+        var map = await repo.GetBySlugAsync(slug, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var category = p.GetValueOrDefault("category") as string ?? "other";
+
+        var sym = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
+        var node = sym is not null ? JsonNode.Parse(sym.Data) : null;
+        var mode = node?["primary"]?["type"]?.GetValue<string>();
+        var confirmed = node?["status"]?.GetValue<string>() == "confirmed";
+        var cx = node?["center"]?["cx"]?.GetValue<double>();
+        var cz = node?["center"]?["cz"]?.GetValue<double>();
+
+        if (!confirmed || mode is null || cx is null || cz is null)
+        { await Send.OkAsync(new Dict { ["created"] = new List<object?>() }, ct); return; }
+
+        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, slug,
+            doc => SymmetryAuthoring.CreateOrbit(doc, regionId, mode, cx.Value, cz.Value, category), ct);
+        await Send.ResponseAsync(b!, s, ct);
+    }
+}
+
 /// <summary>POST /api/map/{slug}/regions/group — wrap regions in a compound.</summary>
 public sealed class RegionGroupEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {

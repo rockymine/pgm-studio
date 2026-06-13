@@ -19,32 +19,62 @@ public static class SymmetryAuthoring
     private static readonly HashSet<string> Bakeable = ["rectangle", "cuboid", "cylinder", "circle", "sphere", "point", "block"];
 
     /// <summary>Create the counterpart(s) of <paramref name="sourceId"/>; returns {counterpart, created:[ids]}.</summary>
-    public static Dict CreateCounterpart(Dict data, string sourceId, string mode, double cx, double cz)
+    public static Dict CreateCounterpart(Dict data, string sourceId, string mode, double cx, double cz, string category = "other")
     {
         var regions = Regions(data);
         if (!regions.ContainsKey(sourceId)) throw EditException.BadRequest($"source region '{sourceId}' not found");
 
         if (ModeNormals.ContainsKey(mode))
         {
-            var rid = MakeMirror(data, sourceId, mode, cx, cz);
+            var rid = MakeMirror(data, sourceId, mode, cx, cz, category);
             return Result(rid, rid);
         }
         if (mode == "rot_180")
         {
-            var m1 = MakeMirror(data, sourceId, "mirror_x", cx, cz);
-            var m2 = MakeMirror(data, m1, "mirror_z", cx, cz);   // ⟂ composition = 180° turn
+            var m1 = MakeMirror(data, sourceId, "mirror_x", cx, cz, category);
+            var m2 = MakeMirror(data, m1, "mirror_z", cx, cz, category);   // ⟂ composition = 180° turn
             return Result(m2, m1, m2);
         }
         if (mode == "rot_90")
         {
-            var rid = BakeRot90(data, sourceId, cx, cz);
+            var rid = BakeRot90(data, sourceId, cx, cz, category);
             return Result(rid, rid);
         }
         throw EditException.BadRequest(
             $"unsupported mode '{mode}' (n-fold rot_n is out of scope; use mirror_x/z/d1/d2, rot_180, or rot_90)");
     }
 
-    private static string MakeMirror(Dict data, string sourceId, string mode, double cx, double cz)
+    /// <summary>
+    /// Fill the symmetry orbit of <paramref name="sourceId"/> (F3): create every counterpart implied by
+    /// the symmetry mode so an authored region appears in all symmetric positions at once. rot_90 chains
+    /// 3 quarter turns (1→4); mirrors and rot_180 add a single counterpart (1→2). Counterparts inherit
+    /// <paramref name="category"/> so they show in the step that drew the source. Returns {created:[ids]}.
+    /// </summary>
+    public static Dict CreateOrbit(Dict data, string sourceId, string mode, double cx, double cz, string category = "other")
+    {
+        var regions = Regions(data);
+        if (!regions.ContainsKey(sourceId)) throw EditException.BadRequest($"source region '{sourceId}' not found");
+
+        var created = new List<object?>();
+        if (mode == "rot_90")
+        {
+            var cur = sourceId;                                   // chain quarter turns: 90°, 180°, 270°
+            for (var i = 0; i < 3; i++)
+            {
+                var r = CreateCounterpart(data, cur, "rot_90", cx, cz, category);
+                cur = (string)r["counterpart"]!;
+                created.AddRange((List<object?>)r["created"]!);
+            }
+        }
+        else
+        {
+            var r = CreateCounterpart(data, sourceId, mode, cx, cz, category);
+            created.AddRange((List<object?>)r["created"]!);
+        }
+        return new Dict { ["created"] = created };
+    }
+
+    private static string MakeMirror(Dict data, string sourceId, string mode, double cx, double cz, string category = "other")
     {
         var regions = Regions(data);
         var (nx, nz) = ModeNormals[mode];
@@ -58,11 +88,11 @@ public static class SymmetryAuthoring
         };
         if (src.GetValueOrDefault("bounds_2d") is Dict b) region["bounds_2d"] = Geometry2d.ReflectBounds2d(b, nx, nz, cx, cz);
         regions[newId] = region;
-        TrackOther(data, newId);
+        Track(data, newId, category);
         return newId;
     }
 
-    private static string BakeRot90(Dict data, string sourceId, double cx, double cz)
+    private static string BakeRot90(Dict data, string sourceId, double cx, double cz, string category = "other")
     {
         var regions = Regions(data);
         var src = (Dict)regions[sourceId]!;
@@ -111,7 +141,7 @@ public static class SymmetryAuthoring
 
         if (src.GetValueOrDefault("bounds_2d") is Dict b) region["bounds_2d"] = Geometry2d.RotateBounds2d(b, 90, cx, cz);
         regions[newId] = region;
-        TrackOther(data, newId);
+        Track(data, newId, category);
         return newId;
     }
 
@@ -129,10 +159,11 @@ public static class SymmetryAuthoring
         var i = 1; while (regions.ContainsKey($"{prefix}_{i}")) i++; return $"{prefix}_{i}";
     }
 
-    private static void TrackOther(Dict data, string id)
+    private static void Track(Dict data, string id, string category)
     {
         if (data.GetValueOrDefault("region_categories") is not Dict cats) { cats = new Dict(); data["region_categories"] = cats; }
-        if (cats.GetValueOrDefault("other") is not List<object?> list) { list = []; cats["other"] = list; }
+        var key = string.IsNullOrWhiteSpace(category) ? "other" : category;
+        if (cats.GetValueOrDefault(key) is not List<object?> list) { list = []; cats[key] = list; }
         list.Add(id);
     }
 

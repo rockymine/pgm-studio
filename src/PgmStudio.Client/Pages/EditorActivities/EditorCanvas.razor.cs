@@ -23,6 +23,22 @@ public partial class EditorCanvas
     private DotNetObjectReference<EditorCanvas>? selfRef;
     private string tool = "move";
 
+    protected override async Task OnInitializedAsync()
+    {
+        // The orbit toggle only applies while drawing, and only on maps with a confirmed symmetry — fetch
+        // the primary mode so the toolbar chip can label itself ("Orbit 90" / "Orbit x" …). Default: on.
+        if (DrawCategory is null) return;
+        try
+        {
+            var sym = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/symmetry");
+            if (sym.TryGetProperty("status", out var st) && st.GetString() == "confirmed"
+                && sym.TryGetProperty("primary", out var pr) && pr.ValueKind == JsonValueKind.Object
+                && pr.TryGetProperty("type", out var ty))
+                orbitMode = ty.GetString();
+        }
+        catch { orbitMode = null; }   // no symmetry artifact / asymmetric map → no orbit chip
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("studio.icons");
@@ -30,8 +46,35 @@ public partial class EditorCanvas
         {
             selfRef = DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>(
-                "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, Category);
+                "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, CanvasFilter());
         }
+    }
+
+    /// <summary>F3: the map's confirmed symmetry mode (e.g. "rot_90"), or null when no orbit is available.</summary>
+    private string? orbitMode;
+    /// <summary>F3: whether a drawn region is mirrored into its symmetry orbit. Toggled from the toolbar.</summary>
+    private bool orbitOn = true;
+
+    private void ToggleOrbit() => orbitOn = !orbitOn;
+
+    /// <summary>Toolbar label for the orbit chip — "Orbit 90" / "Orbit 180" / "Orbit x" / "Orbit z" …</summary>
+    private string OrbitLabel() => orbitMode switch
+    {
+        "rot_90" => "Orbit 90",
+        "rot_180" => "Orbit 180",
+        { } m when m.StartsWith("mirror_") => $"Orbit {m["mirror_".Length..]}",
+        _ => "Orbit",
+    };
+
+    /// <summary>The canvas group filter. When drawing is enabled we also surface the "other" group so
+    /// freshly drawn regions and their symmetry counterparts (categorised "other" until wired) are visible
+    /// in the activity that drew them; read-only canvases keep the bare category filter.</summary>
+    private string? CanvasFilter()
+    {
+        if (DrawCategory is null || Category is null) return Category;
+        var parts = Category.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        if (!parts.Contains("other")) parts.Add("other");
+        return string.Join(",", parts);
     }
 
     private async Task SetTool(string t)
@@ -65,16 +108,27 @@ public partial class EditorCanvas
 
     [JSInvokable] public Task OnCanvasSelect(string? id) => OnSelect.InvokeAsync(id);
 
-    /// <summary>C5: a draw tool completed a shape → create the region, reload the canvas, notify the host.</summary>
+    /// <summary>C5: a draw tool completed a shape → create the region, fill its symmetry orbit (F3),
+    /// reload the canvas, notify the host.</summary>
     [JSInvokable]
     public async Task OnRegionDraw(JsonElement draw)
     {
         if (DrawCategory is null || handle is null) return;
         var resp = await Http.PostAsJsonAsync($"api/map/{Slug}/regions", BuildPayload(draw, DrawCategory));
         if (!resp.IsSuccessStatusCode) return;
+
+        // F3: when the orbit toggle is on, create the source's counterpart(s) so the drawn region appears
+        // in every symmetric position. No-op (server-side) on asymmetric maps; skipped entirely when off.
+        if (orbitOn)
+        {
+            var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
+            if (created.TryGetProperty("id", out var idEl) && idEl.GetString() is { } newId)
+                await Http.PostAsJsonAsync($"api/map/{Slug}/regions/{newId}/orbit", new { category = DrawCategory });
+        }
+
         await SetTool("select");
         StateHasChanged();                              // refresh the toolbar highlight (JSInvokable won't auto-render)
-        await handle.InvokeVoidAsync("load", Slug);     // re-render the canvas with the new region
+        await handle.InvokeVoidAsync("load", Slug);     // re-render the canvas with the new region(s)
         await OnRegionCreated.InvokeAsync();
     }
 
