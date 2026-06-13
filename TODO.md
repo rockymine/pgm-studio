@@ -91,7 +91,14 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       skips empty-uuid rows); uuid is canonical with the resolved username cached in `author.name`.
       Added `GET /api/minecraft/player?name=|uuid=` (`MojangClient`) + Overview UI: name→uuid on blur,
       uuid→name on load. Codec emits author `name` only when set (map.xml round-trip parity preserved, 350/350).
-- [ ] B7 — **Symmetry detection** + `GET /map/{slug}/symmetry` + Configure step-3 wiring (currently confirm-only)
+- [x] B7 — **Symmetry detection** (`SymmetryDetector`, port of symmetry/detection.py: island-pair
+      transforms + NTS polygon-IoU, confidence 0.4·support+0.6·iou) + `GET /map/{slug}/symmetry`
+      (computes on demand from islands_json − excluded islands, caches as symmetry_json) +
+      `PATCH /map/{slug}/symmetry` (confirm/reject/center) + Configure **state** wiring (symmetry_status
+      / configure_complete; island-exclusion invalidates the cache). Importer no longer carries stale
+      symmetry.json (port owns the cache). Parity: 7/7 maps vs reference (only `1`↔`1.0` JSON
+      formatting differs) + synthetic unit test. **Remaining: frontend** Configure step-3 UI (show
+      detected modes + axis overlay + confirm) — currently confirm-only; track under E8.
 - [ ] B8 — External-source endpoints: `sources`, `import-from-url`, `configure` (`player`/Mojang done in B6)
 - [ ] B9 — Configure layer endpoints — **port of `studio/routes/configure.py`** (these exist in the old
       project): `PATCH /configure/{slug}/exclude-block` (block-exclusion toggle, like exclude-island);

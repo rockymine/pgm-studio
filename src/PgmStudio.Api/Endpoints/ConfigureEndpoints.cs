@@ -49,12 +49,20 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db) : Endpo
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
         var cfg = await ConfigureStore.LoadAsync(db, map.Id, ct);
+
+        // Step 3 = symmetry: configure is complete once the user confirms/rejects the detection.
+        var symArt = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
+        var symmetryStatus = symArt is not null
+            ? (System.Text.Json.Nodes.JsonNode.Parse(symArt.Data)?["status"]?.GetValue<string>()) ?? "unconfirmed"
+            : "unconfirmed";
+
         await Send.OkAsync(new Dict
         {
             ["scan_layer"] = (cfg["scan_layer"]?.GetValue<string>()) ?? "surface",
             ["exclude_blocks"] = cfg["exclude_blocks"]?.AsArray().Select(n => (object?)n!.GetValue<int>()).ToList() ?? new(),
             ["exclude_islands"] = cfg["exclude_islands"]?.AsArray().Select(n => (object?)n!.GetValue<int>()).ToList() ?? new(),
-            ["configure_complete"] = cfg["scan_layer_confirmed"]?.GetValue<bool>() ?? false,
+            ["symmetry_status"] = symmetryStatus,
+            ["configure_complete"] = symmetryStatus != "unconfirmed",
         }, ct);
     }
 }
@@ -109,6 +117,8 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db)
         cfg["exclude_islands"] = new JsonArray(ids.OrderBy(i => i).Select(i => (JsonNode)i).ToArray());
 
         await ConfigureStore.SaveAsync(db, map.Id, cfg, ct);
+        // Excluded islands feed symmetry detection — drop the cached result so step 3 recomputes.
+        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson).DeleteAsync(ct);
         await Send.OkAsync(new Dict { ["ok"] = true }, ct);
     }
 }

@@ -76,7 +76,9 @@ public sealed class MapImporter(PgmDb db)
                  {
                      ("layer.parquet", ArtifactKind.LayerParquet),
                      ("islands.json", ArtifactKind.IslandsJson),
-                     ("symmetry.json", ArtifactKind.SymmetryJson),
+                     // symmetry.json is intentionally NOT imported: symmetry is computed on demand by
+                     // the B7 endpoint (the pipeline symmetry step isn't ported), and old pipeline
+                     // outputs carry a stale pre-diagonal-modes format. The endpoint owns the cache.
                      ("map_config.json", ArtifactKind.MapConfigJson),
                  })
         {
