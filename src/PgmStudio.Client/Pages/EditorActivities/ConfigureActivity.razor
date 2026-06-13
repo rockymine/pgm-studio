@@ -2,9 +2,10 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Configure activity — 3-step scan-configuration wizard (Scan Layer / Islands / Symmetry). Port of
-   configure-activity.js. Backend = the map_config_json artifact. Block-types/pixels previews,
-   re-scan, and symmetry detection are deferred; the canvas reuses EditorCanvas for the map preview. *@
+@* Configure activity — 3-step scan-configuration wizard with a dedicated preview canvas
+   (layer pixels → island outlines → symmetry overlay), port of configure-activity.js +
+   configure-renderer.js. Island exclusion re-runs symmetry on the backend (cache invalidation);
+   pipeline re-run on scan-layer/block change (island re-detection) is deferred — see TODO. *@
 
 <div class="workspace">
   <div class="workspace-sidebar">
@@ -16,11 +17,44 @@
             <h2 class="section-title">Scan Layer</h2>
             <span class="badge badge--dim">Step 1</span>
           </div>
-          <p class="section-desc">Choose which extractor produced the map's surface layer.</p>
+          <p class="section-desc">Choose which extractor produced the map's surface layer; the preview updates live.</p>
           <div class="layer-grid">
             @foreach (var (id, label, title) in Layers)
             {
-              <button class="filter-chip @(scanLayer == id ? "filter-chip--active" : null)" title="@title" @onclick="() => scanLayer = id">@label</button>
+              <button class="filter-chip @(scanLayer == id ? "filter-chip--active" : null)" title="@title" @onclick="() => OnLayerChip(id)">@label</button>
+            }
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-header section-header--ruled"><h2 class="section-title">Included Blocks</h2></div>
+          <div class="panel-list">
+            @if (Included.Count == 0) { <div class="list-empty">No blocks in layer.</div> }
+            @foreach (var b in Included)
+            {
+              <div class="list-row list-row--compact">
+                <span class="list-swatch" style="background:@b.Color"></span>
+                <span class="list-label">@b.Name</span>
+                <span class="list-tag">@b.Count.ToString("N0")</span>
+                <button class="btn-remove btn-remove--hover-only" title="Exclude this block type"
+                        disabled="@(!CanExcludeBlocks)" @onclick="() => ExcludeBlock(b.BlockId)"><i data-lucide="x"></i></button>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Blocks</h2></div>
+          <div class="panel-list">
+            @if (ExcludedBlocks.Count == 0) { <div class="list-empty">No blocks excluded.</div> }
+            @foreach (var b in ExcludedBlocks)
+            {
+              <div class="list-row list-row--compact">
+                <span class="list-swatch" style="background:@b.Color"></span>
+                <span class="list-label">@b.Name</span>
+                <button class="btn-remove btn-remove--hover-only" title="Re-include this block type"
+                        @onclick="() => IncludeBlock(b.BlockId)"><i data-lucide="rotate-ccw"></i></button>
+              </div>
             }
           </div>
         </section>
@@ -33,18 +67,37 @@
             <span class="badge badge--dim">Step 2</span>
           </div>
           <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer towers).</p>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-header section-header--ruled"><h2 class="section-title">Included Islands</h2></div>
           <div class="panel-list">
-            @if (islands.Count == 0) { <div class="list-empty">No islands.</div> }
-            @foreach (var isl in islands)
+            @if (IncludedIslands.Count == 0) { <div class="list-empty">No islands detected.</div> }
+            @foreach (var isl in IncludedIslands)
             {
               <div class="list-row list-row--compact">
+                <span class="list-swatch" style="background:#6366f1"></span>
                 <span class="list-label">Island @isl.Id</span>
-                <span class="list-tag">@isl.BlockCount blocks</span>
-                <label class="filter-chip" title="Exclude from the playable layout">
-                  <input type="checkbox" class="control-input--hidden" checked="@excluded.Contains(isl.Id)"
-                         @onchange="e => ToggleIsland(isl.Id, (bool)(e.Value ?? false))" />
-                  @(excluded.Contains(isl.Id) ? "Excluded" : "Included")
-                </label>
+                <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
+                <button class="btn-remove btn-remove--hover-only" title="Exclude island"
+                        disabled="@(IncludedIslands.Count <= 1)" @onclick="() => ToggleIsland(isl.Id, true)"><i data-lucide="x"></i></button>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Islands</h2></div>
+          <div class="panel-list">
+            @if (ExcludedIslandsList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
+            @foreach (var isl in ExcludedIslandsList)
+            {
+              <div class="list-row list-row--compact">
+                <span class="list-swatch" style="background:#6b7280"></span>
+                <span class="list-label">Island @isl.Id</span>
+                <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
+                <button class="btn-remove btn-remove--hover-only" title="Re-include island"
+                        @onclick="() => ToggleIsland(isl.Id, false)"><i data-lucide="rotate-ccw"></i></button>
               </div>
             }
           </div>
@@ -57,15 +110,46 @@
             <h2 class="section-title">Symmetry</h2>
             <span class="badge badge--dim">Step 3</span>
           </div>
-          <p class="section-desc">Confirm the scan configuration. (Symmetry detection is not yet ported — confirm to continue.)</p>
+          <p class="section-desc">Confirm the detected symmetry, choose a different one, or reject it.</p>
+          <div class="panel-list">
+            @foreach (var m in symModes)
+            {
+              <div class="list-row list-row--compact @(symChoice == m.Type ? "list-row--selected" : null)" @onclick="() => SelectSym(m.Type)">
+                <span class="list-label">@SymLabel(m.Type)</span>
+                <span class="badge @(m.Detected ? "badge--success" : "badge--neutral")">@($"{Math.Round(m.Confidence * 100)}%")</span>
+                @if (m.Detected) { <span class="badge badge--dim">detected</span> }
+              </div>
+            }
+            <div class="list-row list-row--compact @(symChoice == "none" ? "list-row--selected" : null)" @onclick='() => SelectSym("none")'>
+              <span class="list-label">No symmetry</span>
+            </div>
+          </div>
         </section>
+
+        @if (symChoice is not null && symChoice != "none")
+        {
+          <section class="panel-section">
+            <div class="section-header section-header--ruled"><h2 class="section-title">Center</h2></div>
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label">X</label>
+                <input class="field-input" type="number" step="0.5" value="@centerX" @oninput="e => OnCenter(e, true)" />
+              </div>
+              <div class="field">
+                <label class="field-label">Z</label>
+                <input class="field-input" type="number" step="0.5" value="@centerZ" @oninput="e => OnCenter(e, false)" />
+              </div>
+            </div>
+            <button class="action-btn" @onclick="ResetCenter">Reset to detected</button>
+          </section>
+        }
       }
     </div>
 
     <div class="cfg-sidebar-nav">
       @if (step > 1) { <button class="action-btn" @onclick="Prev"><i data-lucide="arrow-left"></i></button> }
       @if (step < 3) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Next">Next <i data-lucide="arrow-right"></i></button> }
-      else { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Finish">Continue to Overview <i data-lucide="arrow-right"></i></button> }
+      else { <button class="action-btn action-btn--primary action-btn--push-end" disabled="@(symChoice is null)" @onclick="Finish">Continue to Overview <i data-lucide="arrow-right"></i></button> }
     </div>
   </div>
 
@@ -74,14 +158,16 @@
   <div class="workspace-canvas">
     <div class="canvas-subbar">
       <div class="cfg-step-bar">
-        <div class="step-item @(step == 1 ? "active" : null)"><span class="step-number">1</span><span class="step-item-label">Scan Layer</span></div>
+        <div class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)"><span class="step-number">1</span><span class="step-item-label">Scan Layer</span></div>
         <div class="step-sep"></div>
-        <div class="step-item @(step == 2 ? "active" : null)"><span class="step-number">2</span><span class="step-item-label">Islands</span></div>
+        <div class="step-item @(step == 2 ? "active" : step > 2 ? "done" : null)"><span class="step-number">2</span><span class="step-item-label">Islands</span></div>
         <div class="step-sep"></div>
         <div class="step-item @(step == 3 ? "active" : null)"><span class="step-number">3</span><span class="step-item-label">Symmetry</span></div>
       </div>
     </div>
-    <EditorCanvas Slug="@Slug" />
+    <div @ref="wrapRef" class="svg-area">
+      <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
   </div>
 </div>
 

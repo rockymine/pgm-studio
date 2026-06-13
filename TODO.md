@@ -29,9 +29,17 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       `overview-canvas.js` (mounted via `studio.mountOverview`) fetches bbox (regions/tree) + top-surface
       (B4) + symmetry (B7) and paints the pixelated surface image + symmetry axis/centre overlay.
       Verified on acapulco (full map render + purple symmetry centre).
-- [ ] E8 — Configure: canvas "leaks" xml regions + wrong canvas type — it reuses `EditorCanvas`; the
-      reference uses a dedicated `configure-renderer` (islands/blocks layer preview). Re-read the
-      reference impl; port the proper canvas (needs B9 pixels). Re-examine the whole Configure flow.
+- [x] E8 — Configure rebuilt on-par with the reference. Ported `configure-renderer.js` (dedicated
+      layer/islands/symmetry preview — replaces the leaky `EditorCanvas`) via `configure-canvas.js`
+      (`studio.mountConfigure`). Full 3-step flow: Step 1 layer chips + live per-layer preview
+      (B9 on-demand pixels) + block include/exclude lists (B9 block-types, persisted via exclude-block);
+      Step 2 island include/exclude (persists + re-runs symmetry via the B7 cache invalidation) on the
+      islands canvas; Step 3 symmetry modes (confidence-sorted, detected badges) + center X/Z + reset,
+      `PATCH /symmetry` on finish → Overview. Verified on acapulco (layer switch regenerates, islands
+      outlines, rot_180 axis+centre, finish→Overview). **Deferred (P-series):** re-detecting islands on
+      a scan-layer/block change needs a pipeline re-run the port lacks (reference uses an SSE
+      `/pipeline/run`); also the scan-layer's canonical `layer.parquet` isn't layer-tagged, so a
+      config `scan_layer` that doesn't match the scanned artifact previews the scanned layer.
 
 ## C — Canvas & shared UI infrastructure
 - [x] C1 — Hybrid canvas decision + interop (reused `EditorCanvas` JS via `studio-canvas.js`/`EditorCanvas.razor`)

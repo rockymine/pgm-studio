@@ -26,4 +26,10 @@ window.studio = {
     const mod = await import("/js/studio/sideview-canvas-bridge.js");
     return mod.mount(canvasEl, dotnetRef, slug, axis);
   },
+
+  // Mount the Configure wizard preview (E8): layer / islands / symmetry modes.
+  async mountConfigure(svgEl, wrapEl, slug) {
+    const mod = await import("/js/studio/configure-canvas.js");
+    return mod.mount(svgEl, wrapEl, slug);
+  },
 };
