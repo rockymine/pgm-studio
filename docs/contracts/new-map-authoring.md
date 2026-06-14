@@ -191,6 +191,13 @@ Two checks, both reusing what exists:
   acceptable; the bar is "a valid map PGM can load," not "every map."
 - **Generated structure may differ from a human's.** Canonical generator output (auto-unions, template
   filters) is the goal, not byte-matching an existing map.
+- **No build-area "holes" (complement build regions).** The build slice emits `negative(union(areas))`
+  only. Corpus survey: 234 maps have build regions, 32 (14%) use a `complement` in the build structure —
+  but **45/49 of those are the void wrapper merely spelled as a complement** (`base − buildable rects`),
+  i.e. semantically identical to our `negative(union)`. Only **3** maps use a genuine "build base − holes"
+  form, and the holes are regions we already generate and protect separately (wool rooms, observer spawn).
+  So holes add ~nothing here. If a target map ever needs a real no-build cutout, add `Holes: List<Rect>`
+  to `BuildIntent` and emit `complement(union(areas), hole…)` (mirror still holds). Until then: YAGNI.
 
 ---
 
