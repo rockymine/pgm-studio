@@ -246,12 +246,18 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
 The reference has the **backend done** for these; in this port the analysis *services* are ported
 (M5 / A1) but most *endpoints* + all the *UI* (the D-series) are the last hurdle. Contract docs copied
 under `docs/`.
-- [ ] F1 (ref C9) — **Filter↔region wiring + intelligent templates.** Port `services/filter_wiring.py`
-      + `routes/wiring.py` — `GET /wiring/suggestions` (scan spawns/wools/build facets → propose) +
-      `POST /wiring/apply` (compose group_regions + create_filter + create_apply_rule), the 4 v1
-      templates (spawn protect / wool-room defense / wool-room edit / build-void). Then the suggest/
-      confirm UI. Docs: `docs/contracts/filter-region-wiring.md`, `docs/filter-use-cases.md`.
-      (Filter/region/apply-rule editor services already exist; the wiring layer + routes do not.)
+- [~] F1 (ref C9) — **Filter↔region wiring templates (apply only; no suggestion engine).** `Api/Services/
+      FilterWiring.cs` = the 4 v1 template **appliers** (spawn_protection `enter=only-<team>`, wool_room
+      defense/edit `not-<owner>`, build_void = group `negative` + `block_place=deny(void)`), each composing
+      the existing FilterEditor/ApplyRuleEditor/RegionEditor; the **caller chooses the region** (R1 will,
+      after grouping). `POST /map/{slug}/wiring/apply {template,params}` (WiringEndpoints.cs). 3 Api tests.
+      **Suggestion engine REMOVED on purpose:** keying off `spawns[].region` proposed wiring on the spawn
+      **point**, which by corpus invariant (814/814) is *never* wired — the protection is a separate
+      region. So `Suggest` / `GET /wiring/suggestions` / the `WiringSuggestions` cards were stripped (also
+      the cards filled the screen, one per team). Deferred until R1's group→wire flow + the geometry/name
+      area-detection hint (`region-authoring.md`). **The win: filters can now be applied to regions** —
+      that's what R1's "engine wires" step calls. GOTCHA: run Api integration tests with `dev.sh stop`
+      (the dev server + WebApplicationFactory share `src/PgmStudio.Api/obj` → content-root resolution breaks).
 - [ ] F2 (ref C12) — **Wool availability/detection UI** + the two missing endpoints:
       `POST /map/{slug}/wool-sources` (query a drawn rect) + `GET /map/{slug}/wool-suggestions`
       (`/wool-availability` + `WoolSources` already done). Objectives step: draw→query, suggestion
