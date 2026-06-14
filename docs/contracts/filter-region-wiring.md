@@ -42,7 +42,7 @@ and **confirmed by the author** — never auto-applied or silently mutated. Each
 | # | Template | Trigger (signal) | Emitted wiring | Recipe |
 |---|---|---|---|---|
 | 1 | **Build / void enforcement** | positive build region(s) in the Build Regions step (+ `layer_y0.parquet`) | group buildable regions → apply `block_place=deny(void)` (or `never`) to the **complement** | Cluster 2.4 |
-| 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | apply `enter=only-<team>` (optionally `use=only-<team>`) | Cluster 1.1 |
+| 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | on the protection zone, apply `enter=only-<team>` **and** `block=never` (anti-grief; `never` is built-in — no new filter); optionally `use=only-<team>` | Cluster 1.1 |
 | 3 | **Wool-room defense** | a wool-room region with a derived owner (§6 owner) | apply `enter=not-<owner>` (defender excluded) | Cluster 1.2 |
 | 4 | **Wool-room build/break** | a wool-room region | apply `block=<team>-woolrooms-filter` (team check + material whitelist) | Cluster 2.2 |
 
