@@ -1,0 +1,371 @@
+{
+  "map": "outback_outback_edition",
+  "counts": {
+    "primitives": 24,
+    "composed": 9
+  },
+  "primitives": [
+    {
+      "id": "yellow-spawn-point",
+      "type": "cylinder",
+      "category": "spawn",
+      "subtype": "point",
+      "wiring": []
+    },
+    {
+      "id": "purple-spawn-point",
+      "type": "cylinder",
+      "category": "spawn",
+      "subtype": "point",
+      "wiring": []
+    },
+    {
+      "id": "obs-spawn-point",
+      "type": "cylinder",
+      "category": "observer_spawn",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "blue-wool-spawn",
+      "type": "point",
+      "category": "wool",
+      "subtype": "spawner",
+      "wiring": []
+    },
+    {
+      "id": "light-blue-wool-spawn",
+      "type": "point",
+      "category": "wool",
+      "subtype": "spawner",
+      "wiring": []
+    },
+    {
+      "id": "pink-wool-spawn",
+      "type": "point",
+      "category": "wool",
+      "subtype": "spawner",
+      "wiring": []
+    },
+    {
+      "id": "purple-wool-spawn",
+      "type": "point",
+      "category": "wool",
+      "subtype": "spawner",
+      "wiring": []
+    },
+    {
+      "id": "yellow-spawn",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "only-yellow"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter the enemy\u0027s spawn!"
+        }
+      ]
+    },
+    {
+      "id": "purple-spawn",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "only-purple"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter the enemy\u0027s spawn!"
+        }
+      ]
+    },
+    {
+      "id": "yellow-team-blue-wool",
+      "type": "block",
+      "category": "wool",
+      "subtype": "monument",
+      "wiring": []
+    },
+    {
+      "id": "yellow-team-light-blue-wool",
+      "type": "block",
+      "category": "wool",
+      "subtype": "monument",
+      "wiring": []
+    },
+    {
+      "id": "purple-team-pink-wool",
+      "type": "block",
+      "category": "wool",
+      "subtype": "monument",
+      "wiring": []
+    },
+    {
+      "id": "purple-team-purple-wool",
+      "type": "block",
+      "category": "wool",
+      "subtype": "monument",
+      "wiring": []
+    },
+    {
+      "id": "pink-woolroom",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "purple-woolroom",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "blue-woolroom",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "light-blue-woolroom",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "build-region__anon_0",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "build-region__anon_1",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "build-region__anon_2",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "build-region__anon_3",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "build-region__anon_4",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "build-region__anon_5",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "build-region__anon_6",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    }
+  ],
+  "composed": [
+    {
+      "id": "spawns__anon_0__anon_0",
+      "type": "union",
+      "category": "spawn",
+      "subtype": "protection",
+      "member_ids": [
+        "yellow-spawn",
+        "purple-spawn"
+      ],
+      "wiring": []
+    },
+    {
+      "id": "spawns__anon_0",
+      "type": "complement",
+      "category": "spawn",
+      "subtype": "protection",
+      "member_ids": [
+        "spawns__anon_0__anon_0",
+        "yellow-team-blue-wool",
+        "yellow-team-light-blue-wool",
+        "purple-team-pink-wool",
+        "purple-team-purple-wool"
+      ],
+      "wiring": []
+    },
+    {
+      "id": "spawns",
+      "type": "union",
+      "category": "spawn",
+      "subtype": "protection",
+      "member_ids": [
+        "spawns__anon_0"
+      ],
+      "wiring": [
+        {
+          "event": "block_break",
+          "value": "only-iron"
+        },
+        {
+          "event": "block_place",
+          "value": "only-iron-cause-world"
+        },
+        {
+          "event": "message",
+          "value": "You may not edit spawn!"
+        }
+      ]
+    },
+    {
+      "id": "not-spawns",
+      "type": "negative",
+      "category": "other",
+      "subtype": null,
+      "member_ids": [
+        "spawns"
+      ],
+      "wiring": [
+        {
+          "event": "kit",
+          "value": "reset-resistance-kit"
+        }
+      ]
+    },
+    {
+      "id": "yellows-woolrooms",
+      "type": "union",
+      "category": "wool",
+      "subtype": "room",
+      "member_ids": [
+        "pink-woolroom",
+        "purple-woolroom"
+      ],
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "only-purple"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter your own wool room!"
+        },
+        {
+          "event": "block",
+          "value": "yellows-woolrooms-filter"
+        },
+        {
+          "event": "message",
+          "value": "You may not edit the wool room!"
+        }
+      ]
+    },
+    {
+      "id": "purples-woolrooms",
+      "type": "union",
+      "category": "wool",
+      "subtype": "room",
+      "member_ids": [
+        "blue-woolroom",
+        "light-blue-woolroom"
+      ],
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "only-yellow"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter your own wool room!"
+        },
+        {
+          "event": "block",
+          "value": "purples-woolrooms-filter"
+        },
+        {
+          "event": "message",
+          "value": "You may not edit the wool room!"
+        }
+      ]
+    },
+    {
+      "id": "woolrooms",
+      "type": "union",
+      "category": "wool",
+      "subtype": "room",
+      "member_ids": [
+        "yellows-woolrooms",
+        "purples-woolrooms"
+      ],
+      "wiring": [
+        {
+          "event": "block_physics",
+          "value": "deny-physics"
+        }
+      ]
+    },
+    {
+      "id": "build-region",
+      "type": "union",
+      "category": "build",
+      "subtype": null,
+      "member_ids": [
+        "build-region__anon_0",
+        "build-region__anon_1",
+        "build-region__anon_2",
+        "build-region__anon_3",
+        "build-region__anon_4",
+        "build-region__anon_5",
+        "build-region__anon_6"
+      ],
+      "wiring": []
+    },
+    {
+      "id": "not-build-region",
+      "type": "negative",
+      "category": "other",
+      "subtype": null,
+      "member_ids": [
+        "build-region"
+      ],
+      "wiring": [
+        {
+          "event": "block_break",
+          "value": "block-break-void-filter"
+        },
+        {
+          "event": "block_place",
+          "value": "block-place-void-filter"
+        },
+        {
+          "event": "message",
+          "value": "You may not edit the void!"
+        }
+      ]
+    }
+  ]
+}

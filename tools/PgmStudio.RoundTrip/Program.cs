@@ -76,6 +76,16 @@ var auIdx = Array.IndexOf(args, "--authoring");
 if (auIdx >= 0 && auIdx + 1 < args.Length)
     return RunAuthoringParity(args[auIdx + 1], defaultRoots, verbose);
 
+// --authoring-fixture [slug ...] [--out <dir>]: write the *readable* region-authoring split for a
+// map — primitives vs composed, each node trimmed to id/type/category/subtype/member_ids/wiring
+// (geometry omitted as noise). A review artifact (mirror of the reference
+// tools/gen_region_authoring_oracle.py), not a parity check; needs only map.xml — no islands.json or
+// pipeline run. Defaults to the region-authoring test maps; output dir defaults to
+// tools/region-authoring-fixtures/.
+var afIdx = Array.IndexOf(args, "--authoring-fixture");
+if (afIdx >= 0)
+    return RunAuthoringFixture(args, defaultRoots);
+
 // --colors <oracle.json>: compare BlockColors.Hex/Name against a Python colors.py oracle dump
 // ({"bid,bdat": {"hex": "#rrggbb", "name": "..."}}) over every known (id,data) pair.
 var colIdx = Array.IndexOf(args, "--colors");
@@ -478,6 +488,95 @@ static int RunAuthoringParity(string oracleRoot, string[] corpusRoots, bool verb
     }
     Console.WriteLine($"authoring parity: {ok} ok, {failed} failed");
     return failed == 0 ? 0 : 1;
+}
+
+// Region-authoring split as a readable JSON artifact, one file per map. Mirrors the reference
+// tools/gen_region_authoring_oracle.py: {map, counts, primitives, composed}, each node trimmed to the
+// fields that define the *authoring view* — id/type/category/subtype, composed member_ids, and the
+// apply-rule wiring (event→value). Subtype isn't on the authoring node itself; it's pulled from the
+// categoriser facets (RegionFacet.Subtype) per region id.
+static int RunAuthoringFixture(string[] args, string[] corpusRoots)
+{
+    var outIdx = Array.IndexOf(args, "--out");
+    var outDir = outIdx >= 0 && outIdx + 1 < args.Length
+        ? args[outIdx + 1]
+        : Path.Combine(RepoRoot(), "tools", "region-authoring-fixtures");
+
+    var slugs = new List<string>();
+    for (int i = 0; i < args.Length; i++)
+    {
+        if (args[i].StartsWith("--")) { if (args[i] == "--out") i++; continue; }
+        slugs.Add(args[i]);
+    }
+    if (slugs.Count == 0) slugs = ["annealing_iv", "outback_outback_edition"];
+
+    Directory.CreateDirectory(outDir);
+    int written = 0, missing = 0;
+    foreach (var slug in slugs)
+    {
+        var mapXml = corpusRoots.Select(r => Path.Combine(r, slug, "map.xml")).FirstOrDefault(File.Exists);
+        if (mapXml is null) { Console.WriteLine($"  SKIP {slug}: not in corpus"); missing++; continue; }
+
+        var doc = Serializer.ToDict(MapParser.Parse(mapXml));
+        var regions = doc.GetValueOrDefault("regions") as Dictionary<string, object?> ?? [];
+        var applyRules = doc.GetValueOrDefault("apply_rules") as List<object?>;
+        var cats = PgmStudio.Analysis.RegionCategorizer.Categorize(doc);
+        var facets = PgmStudio.Analysis.RegionCategorizer.DeriveFacets(doc);
+
+        var split = PgmStudio.Analysis.RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, null);
+        var primitives = (split["primitives"] as List<object?> ?? []).OfType<Dictionary<string, object?>>().ToList();
+        var composed = (split["composed"] as List<object?> ?? []).OfType<Dictionary<string, object?>>().ToList();
+
+        var oracle = new Dictionary<string, object?>
+        {
+            ["map"] = slug,
+            ["counts"] = new Dictionary<string, object?> { ["primitives"] = primitives.Count, ["composed"] = composed.Count },
+            ["primitives"] = primitives.Select(n => (object?)TrimAuthoringNode(n, false, facets)).ToList(),
+            ["composed"] = composed.Select(n => (object?)TrimAuthoringNode(n, true, facets)).ToList(),
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(oracle,
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true }) + "\n";
+        var path = Path.Combine(outDir, $"{slug}.json");
+        File.WriteAllText(path, json);
+        written++;
+        Console.WriteLine($"  wrote {path}  (primitives={primitives.Count}, composed={composed.Count})");
+    }
+    Console.WriteLine($"authoring fixtures: {written} written, {missing} skipped");
+    return written == 0 ? 1 : 0;
+}
+
+static Dictionary<string, object?> TrimAuthoringNode(
+    Dictionary<string, object?> n, bool composed,
+    IReadOnlyDictionary<string, PgmStudio.Analysis.RegionFacet> facets)
+{
+    var id = n.GetValueOrDefault("id") as string ?? "";
+    var node = new Dictionary<string, object?>
+    {
+        ["id"] = id,
+        ["type"] = n.GetValueOrDefault("type"),
+        ["category"] = n.GetValueOrDefault("category"),
+        ["subtype"] = facets.GetValueOrDefault(id)?.Subtype,
+    };
+    if (composed) node["member_ids"] = n.GetValueOrDefault("member_ids");
+    node["wiring"] = (n.GetValueOrDefault("wiring") as List<object?> ?? [])
+        .OfType<Dictionary<string, object?>>()
+        .Select(w => (object?)new Dictionary<string, object?>
+        {
+            ["event"] = w.GetValueOrDefault("event"),
+            ["value"] = w.GetValueOrDefault("value"),
+        })
+        .ToList();
+    return node;
+}
+
+// Walk up from the running binary to the solution dir (the .slnx anchors the repo root).
+static string RepoRoot()
+{
+    var dir = AppContext.BaseDirectory;
+    while (dir is not null && !File.Exists(Path.Combine(dir, "PgmStudio.slnx")))
+        dir = Path.GetDirectoryName(dir);
+    return dir ?? Directory.GetCurrentDirectory();
 }
 
 // ±Infinity → finite sentinel, NaN → null, so JsonDocument parses both sides identically.

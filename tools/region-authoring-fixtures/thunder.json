@@ -1,0 +1,561 @@
+{
+  "map": "thunder",
+  "counts": {
+    "primitives": 43,
+    "composed": 6
+  },
+  "primitives": [
+    {
+      "id": "__spawn_blue__anon_0",
+      "type": "cylinder",
+      "category": "spawn",
+      "subtype": "point",
+      "wiring": []
+    },
+    {
+      "id": "__spawn_green__anon_0",
+      "type": "cylinder",
+      "category": "spawn",
+      "subtype": "point",
+      "wiring": []
+    },
+    {
+      "id": "__spawn_red__anon_0",
+      "type": "cylinder",
+      "category": "spawn",
+      "subtype": "point",
+      "wiring": []
+    },
+    {
+      "id": "__spawn_yellow__anon_0",
+      "type": "cylinder",
+      "category": "spawn",
+      "subtype": "point",
+      "wiring": []
+    },
+    {
+      "id": "__observer_spawn__anon_0",
+      "type": "cylinder",
+      "category": "observer_spawn",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "blue-wool",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "not-blue"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter your own wool room!"
+        },
+        {
+          "event": "block",
+          "value": "blue-wool-edit"
+        },
+        {
+          "event": "use",
+          "value": "not-blue"
+        },
+        {
+          "event": "message",
+          "value": "You many not modify the wool room!"
+        }
+      ]
+    },
+    {
+      "id": "green-wool",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "not-green"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter your own wool room!"
+        },
+        {
+          "event": "block",
+          "value": "green-wool-edit"
+        },
+        {
+          "event": "use",
+          "value": "not-green"
+        },
+        {
+          "event": "message",
+          "value": "You many not modify the wool room!"
+        }
+      ]
+    },
+    {
+      "id": "red-wool",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "not-red"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter your own wool room!"
+        },
+        {
+          "event": "block",
+          "value": "red-wool-edit"
+        },
+        {
+          "event": "use",
+          "value": "not-red"
+        },
+        {
+          "event": "message",
+          "value": "You many not modify the wool room!"
+        }
+      ]
+    },
+    {
+      "id": "yellow-wool",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "not-yellow"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter your own wool room!"
+        },
+        {
+          "event": "block",
+          "value": "yellow-wool-edit"
+        },
+        {
+          "event": "use",
+          "value": "not-yellow"
+        },
+        {
+          "event": "message",
+          "value": "You many not modify the wool room!"
+        }
+      ]
+    },
+    {
+      "id": "blue-spawn-protect",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "only-blue"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter the enemy\u0027s spawn!"
+        }
+      ]
+    },
+    {
+      "id": "green-spawn-protect",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "only-green"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter the enemy\u0027s spawn!"
+        }
+      ]
+    },
+    {
+      "id": "red-spawn-protect",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "only-red"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter the enemy\u0027s spawn!"
+        }
+      ]
+    },
+    {
+      "id": "yellow-spawn-protect",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "only-yellow"
+        },
+        {
+          "event": "message",
+          "value": "You may not enter the enemy\u0027s spawn!"
+        }
+      ]
+    },
+    {
+      "id": "blue-monument-protect",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "monument",
+      "wiring": []
+    },
+    {
+      "id": "green-monument-protect",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "monument",
+      "wiring": []
+    },
+    {
+      "id": "red-monument-protect",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "monument",
+      "wiring": []
+    },
+    {
+      "id": "yellow-monument-protect",
+      "type": "rectangle",
+      "category": "wool",
+      "subtype": "monument",
+      "wiring": []
+    },
+    {
+      "id": "observer-spawn",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": []
+    },
+    {
+      "id": "blue-sign",
+      "type": "cuboid",
+      "category": "other",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "green-sign",
+      "type": "cuboid",
+      "category": "other",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "red-sign",
+      "type": "cuboid",
+      "category": "other",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "yellow-sign",
+      "type": "cuboid",
+      "category": "other",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "center-island",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "blue-main-and-spawn",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": []
+    },
+    {
+      "id": "green-main-and-spawn",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": []
+    },
+    {
+      "id": "red-main-and-spawn",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": []
+    },
+    {
+      "id": "yellow-main-and-spawn",
+      "type": "rectangle",
+      "category": "spawn",
+      "subtype": "protection",
+      "wiring": []
+    },
+    {
+      "id": "blue-two-islands",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "green-two-islands",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "red-two-islands",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "yellow-two-islands",
+      "type": "rectangle",
+      "category": "build",
+      "subtype": null,
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_0",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_1",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_2",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_3",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_4",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_5",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_6",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_7",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_8",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_9",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_10",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    },
+    {
+      "id": "wool-capture-points__anon_11",
+      "type": "point",
+      "category": "wool",
+      "subtype": "room",
+      "wiring": []
+    }
+  ],
+  "composed": [
+    {
+      "id": "wools",
+      "type": "union",
+      "category": "wool",
+      "subtype": "room",
+      "member_ids": [
+        "blue-wool",
+        "green-wool",
+        "red-wool",
+        "yellow-wool"
+      ],
+      "wiring": []
+    },
+    {
+      "id": "spawns-and-monuments",
+      "type": "union",
+      "category": "spawn",
+      "subtype": "protection",
+      "member_ids": [
+        "blue-spawn-protect",
+        "green-spawn-protect",
+        "red-spawn-protect",
+        "yellow-spawn-protect",
+        "blue-monument-protect",
+        "green-monument-protect",
+        "red-monument-protect",
+        "yellow-monument-protect"
+      ],
+      "wiring": [
+        {
+          "event": "block",
+          "value": "never"
+        },
+        {
+          "event": "message",
+          "value": "You may not block/break spawns or monuments!"
+        }
+      ]
+    },
+    {
+      "id": "signs-and-observer-spawn",
+      "type": "union",
+      "category": "spawn",
+      "subtype": "protection",
+      "member_ids": [
+        "observer-spawn",
+        "blue-sign",
+        "green-sign",
+        "red-sign",
+        "yellow-sign"
+      ],
+      "wiring": [
+        {
+          "event": "block",
+          "value": "never"
+        },
+        {
+          "event": "message",
+          "value": "You may not obstruct spawn!"
+        }
+      ]
+    },
+    {
+      "id": "deny-blocks__anon_0",
+      "type": "union",
+      "category": "build",
+      "subtype": null,
+      "member_ids": [
+        "center-island",
+        "blue-main-and-spawn",
+        "green-main-and-spawn",
+        "red-main-and-spawn",
+        "yellow-main-and-spawn",
+        "blue-two-islands",
+        "green-two-islands",
+        "red-two-islands",
+        "yellow-two-islands"
+      ],
+      "wiring": []
+    },
+    {
+      "id": "deny-blocks",
+      "type": "negative",
+      "category": "other",
+      "subtype": null,
+      "member_ids": [
+        "deny-blocks__anon_0"
+      ],
+      "wiring": [
+        {
+          "event": "block",
+          "value": "no-void"
+        },
+        {
+          "event": "message",
+          "value": "You may not edit the void!"
+        }
+      ]
+    },
+    {
+      "id": "wool-capture-points",
+      "type": "union",
+      "category": "wool",
+      "subtype": "room",
+      "member_ids": [
+        "wool-capture-points__anon_0",
+        "wool-capture-points__anon_1",
+        "wool-capture-points__anon_2",
+        "wool-capture-points__anon_3",
+        "wool-capture-points__anon_4",
+        "wool-capture-points__anon_5",
+        "wool-capture-points__anon_6",
+        "wool-capture-points__anon_7",
+        "wool-capture-points__anon_8",
+        "wool-capture-points__anon_9",
+        "wool-capture-points__anon_10",
+        "wool-capture-points__anon_11"
+      ],
+      "wiring": [
+        {
+          "event": "enter",
+          "value": "never"
+        },
+        {
+          "event": "message",
+          "value": "You may not block this area!"
+        }
+      ]
+    }
+  ]
+}

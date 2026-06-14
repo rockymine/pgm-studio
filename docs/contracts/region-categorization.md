@@ -8,9 +8,12 @@ A region falls into one of the gameplay categories below, with `build` taken onl
 void-enforcement *structure*, never from `lane`/`bridge` names (§5) — trading raw coverage for
 near-zero false positives.
 
-> **Implementation:** `studio/services/region_categorizer.py` — `derive_region_facets` →
-> `{id: {category, roles}}`; `categorize_regions` → flat `{id: category}` with user overrides
-> applied. Oracle: `tests/fixtures/region_categories/`.
+> **Implementation:** `src/PgmStudio.Analysis/RegionCategorizer.cs` — `DeriveFacets` →
+> `{id: RegionFacet(Category, Roles, Subtype)}`; `Categorize` → flat `{id: category}` with
+> `region_categories` user overrides applied. Verified by synthetic unit tests
+> (`tests/PgmStudio.Analysis.Tests/RegionCategorizerTests.cs`) and the corpus parity guard
+> `tools/PgmStudio.RoundTrip --categorize <pyfresh> <pyfacets>` against the Python oracle
+> (which still emits flat `wool_room`/`monument`/`wool_spawner` — see the §2 parity note).
 
 ---
 
@@ -35,9 +38,15 @@ signals, never from the fact that a filter is applied to it.** Filter targeting 
 | `spawn` | team spawn point + protected spawn area (subtype `point` \| `protection`) | `spawns[].region`; `enter=only-<team>` (with disambiguation) |
 | `observer_spawn` | observer / `<default>` spawn | `observer_spawn.region` |
 | `wool` | the objective, with subtype `room` \| `monument` \| `spawner` | `wool_room_region` / `enter=not-<team>` → `room`; `wool.monuments[].monument_region` → `monument`; wool-dispensing `spawner.spawn_region` → `spawner` |
-| `build` | buildable / traversable space (subtype `footprint` \| `traversal`) | void-structure (§5) |
-| `mechanic` | special mechanic (subtype `kit` \| `shop` \| `renewable` \| …) | **non-wool spawner** regions (golden-apple/arrow/…); renewable refs; `*spawner*` names |
+| `build` | buildable / traversable space (subtype `footprint` \| `traversal` — *designed, not yet emitted*) | void-structure (§5) |
+| `mechanic` | special mechanic (subtype `kit` \| `shop` \| `renewable` \| … — *designed, not yet emitted*) | **non-wool spawner** regions (golden-apple/arrow/…); renewable refs; `*spawner*` names |
 | `other` | genuine uncategorized | — |
+
+**Subtype status (this codebase).** `DeriveFacets` currently emits a `subtype` only for **`spawn`**
+(`point` \| `protection`) and **`wool`** (`room` \| `monument` \| `spawner`); `build` and `mechanic`
+regions are emitted with `subtype = null`. The `footprint`/`traversal` and `kit`/`shop`/`renewable`
+subtypes below are the intended refinement (still best-effort by geometry/naming) and are documented
+for the design, not because they are produced yet.
 
 The objective is **one `wool` category split by subtype**, not three flat categories: `room`
 (the wool source/storage, defended — `enter=not-<team>`), `monument` (the delivery **goal** — gameplay-
@@ -128,8 +137,10 @@ category already set by a more reliable signal.**
    the buff *outside* spawn; e.g. mushroom_gorge `base-sides`).
 7. **build** ← void-structure **and** permissive placement (§5).
 8. **mechanic** ← non-wool spawner `spawn_region` (step 3).
-9. **spawn | wool_room** ← `enter=only-<team>` rules, disambiguated: in `spawns[]` → spawn;
-   monument/spawner-adjacent or wool-named → wool_room; else leave for name heuristics.
+9. **spawn | wool_room** ← `enter=only-<team>` rules, disambiguated **by the region's own name**:
+   a `*spawn*` name → spawn, a `*wool*`/`*room*`/`*monument*` name → wool_room; else left for the
+   name heuristics (step 10). (Regions in `spawns[]` are already `spawn` from step 1, so this only
+   resolves the remaining `only-<team>` zones.)
 10. **name heuristics** on **primitives only** (not on compounds): `*monument*`, `*wool*`/`*room*`/
     `wr`-token (→ `wool_room`; `wr`/`wrs`/`wr2` match as **whole tokens** only — not the substring of
     `wrapper`, a void-mechanic region), `*spawner*` (→ `mechanic`, checked before `*spawn*`), `*spawn*`
@@ -175,8 +186,8 @@ by the `void` token in placement-rule context.
 The objective exclusion matters because the complement subtracts *every* editable region — wool
 rooms and spawns included — so name-recognisable objectives are dropped from the build subtree
 (they take their own category). This auto-captures `build-area`, `lanes`, `bridges`, and island
-footprints without enumerating their names. Subtypes: island-like → `footprint`; bridge/lane/gap
-→ `traversal`.
+footprints without enumerating their names. (Intended subtypes — island-like → `footprint`;
+bridge/lane/gap → `traversal` — are **not yet emitted**; build regions carry `subtype = null`.)
 
 **Time-gated (dynamic).** A build region whose `block` rule is gated by an `after`/`time`/
 `pulse` filter opens mid-match (anti-stalemate). Category is still `build`; add the
@@ -184,9 +195,9 @@ footprints without enumerating their names. Subtypes: island-like → `footprint
 `60m/80m/100m/120m`, `mame_…` `after-30m/60m/90m`.
 
 **Permissive placement (positive form).** The inverse of the void-negative: instead of denying
-placement outside the build area, a map can *allow* placement inside it. A region used as the
-**filter** of a `block_place` rule ("you may place where you are inside this region") **is** the
-build area, and its children are build. Vertex's global rule
+placement outside the build area, a map can *allow* placement inside it. A **region** (not a filter)
+named as the value of a `block_place` *or* `block` rule ("you may place where you are inside this
+region") **is** the build area, and its children are build. Vertex's global rule
 `<apply block-place="playable-area" block-break="deny-bottom-layer"/>` is the canonical case —
 `playable-area` (= `blue-side` ∪ `red-side`) is the whole buildable map floor.
 
@@ -249,13 +260,16 @@ while placement is fully denied (`block_break`=material filter **and** `block_pl
 
 Compounds give PGM meaning and are needed for round-trip, but they break naive categorization.
 
-- **`negative`/`complement` are containers, never spatial.** Flag `rule_container`; never
-  assign them a gameplay category from their name (`not-spawns` is **not** a spawn) and never
-  propagate a category into or out of them.
-- **`union` recursion is constrained.** Propagate a union's category to its children **only**
-  when the union's category came from an intrinsic spatial signal (e.g. a `reds-woolroom`
-  union → its children are wool_room), and **never overwrite** a child's own direct category,
-  and **never** recurse through a `negative`/`complement`.
+- **`negative` is a pure container.** It resolves to `other`, is flagged `rule_container`, and is
+  never assigned a gameplay category from its name (`not-spawns` is **not** a spawn).
+- **`complement` inherits its base.** Unlike a `negative`, a `complement` resolves to the category
+  of its first child (the positive base) and is **not** flagged `rule_container` — so a `spawns`
+  union over a `complement` keeps `category = spawn`.
+- **Compound categories resolve bottom-up.** A compound's category is *derived from its children*,
+  never pushed down onto them: a `union` takes the shared category of its named, same-category peers
+  (≥2, reached through anonymous intermediate unions) and otherwise falls back to its base child; a
+  `mirror`/`translate` takes its `source_id`'s category. Resolution **never overwrites** a child's
+  own direct category and **never** crosses a `negative` (which stays `other`).
 - A child reached only through a `rule_container` keeps its own intrinsic category (or `other`
   + role), so wool monuments and spawn areas are never relabeled by the wrapper around them.
 
@@ -287,8 +301,8 @@ Result: 34/35 named regions categorized; only `blocks-filter-region` is genuinel
 <apply region="building-water-lanes" block="water-lane-building" message="...void area!">
 ```
 
-`water-lanes` and children → `category = build` (subtype `traversal`), `roles = {time_gated:
-{duration: "30s"}, rules: [block=water-lane-building]}`. The full wiring round-trips; the model
+`water-lanes` and children → `category = build` (subtype `null` — `traversal` is not yet emitted),
+`roles = [time_gated=30s, block=water-lane-building]`. The full wiring round-trips; the model
 surfaces *that it is a build region* and *that it opens after 30s*.
 
 ---
@@ -297,11 +311,12 @@ surfaces *that it is a build region* and *that it opens after 30s*.
 
 - `enter=only-<team>` is ambiguous (spawn vs wool_room) and falls back to `spawns[]`/name; a small
   set of regions stay neutral-protected.
-- `mechanic` uses a single bucket + free-text subtype (kit/shop/renewable are low-prevalence),
-  rather than a rigid enum.
-- Build subtype (`footprint` vs `traversal`) is best-effort from geometry/naming; not all maps
-  make the distinction explicit.
+- `mechanic` is a single bucket with **no `subtype` emitted yet** (kit/shop/renewable are
+  low-prevalence; planned as free-text, not a rigid enum).
+- Build `subtype` (`footprint` vs `traversal`) is **not emitted yet** — build regions carry
+  `subtype = null`. When added it will be best-effort from geometry/naming.
 
-The hand-verified test oracle (`tests/fixtures/region_categories/`) covers `annealing_iv` (4-team),
-`vertex` (2-team), `acapulco` (multi-wool 2-team), and `icecream_sandwiched_ii` (time-gated), each
-labeled `{ region_id: { category, subtype?, roles[] } }`.
+Verification is by synthetic-fixture unit tests in `tests/PgmStudio.Analysis.Tests/RegionCategorizerTests.cs`
+(per the repo's "synthetic fixtures only" rule — no real game files under `tests/`) plus the
+`tools/PgmStudio.RoundTrip --categorize` corpus parity guard against the Python `derive_region_facets`
+oracle. There is no checked-in `tests/fixtures/region_categories/` directory in this repo.
