@@ -4,6 +4,10 @@
 //   (load / setTool / setSelection / resize). Selection + cursor + zoom call back into C#.
 import { EditorCanvas } from "./canvas/editor-canvas.js";
 
+// Set-operation / transform region types — excluded from the category filter; their primitive children
+// carry the category and render on their own.
+const COMPOUND_TYPES = new Set(["union", "complement", "negative", "intersect", "mirror", "translate"]);
+
 function geojsonToSimplified(polygon) {
   if (!polygon?.coordinates?.length) return null;
   return { exterior: polygon.coordinates[0] || [], holes: polygon.coordinates.slice(1) };
@@ -41,9 +45,25 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
       const tree = await fetchJson(`/api/map/${encodeURIComponent(slugName)}/regions/tree`);
       if (!tree) return;
       const islands = await fetchJson(`/api/map/${encodeURIComponent(slugName)}/islands`).catch(() => null);
-      // Optional category filter (comma-separated, e.g. "wool_room,monument") — port of getRegionGroups.
+      // Category filter (comma-separated). We render the PRIMITIVE regions whose own derived category is
+      // wanted, found anywhere in the tree — the same regions the activity sidebar lists. Objective/spawn/
+      // build regions nest inside rule-containers in the "other" group, so a group-name filter misses them;
+      // collecting by per-node category (compounds excluded — their primitive children carry the category)
+      // gives exactly the sidebar's primitives. No filter (Regions activity) → render the whole tree.
       const wanted = category ? new Set(category.split(",")) : null;
-      const groups = wanted ? (tree.groups ?? []).filter(g => wanted.has(g.name)) : tree.groups;
+      let groups;
+      if (wanted) {
+        const prims = [];
+        const walk = (n) => {
+          if (n.id && wanted.has(n.category) && !COMPOUND_TYPES.has(n.type)) prims.push(n);
+          (n.children ?? []).forEach(walk);
+          if (n.source) walk(n.source);
+        };
+        (tree.groups ?? []).forEach(g => (g.regions ?? []).forEach(walk));
+        groups = [{ name: "filtered", label: "", regions: prims }];
+      } else {
+        groups = tree.groups;
+      }
       canvas.render(
         { bounding_box: tree.bounding_box, islands: normalizeIslands(islands ?? []) },
         groups,

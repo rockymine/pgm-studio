@@ -46,7 +46,7 @@ public partial class EditorCanvas
         {
             selfRef = DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>(
-                "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, CanvasFilter());
+                "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, Category);
         }
     }
 
@@ -65,17 +65,6 @@ public partial class EditorCanvas
         { } m when m.StartsWith("mirror_") => $"Orbit {m["mirror_".Length..]}",
         _ => "Orbit",
     };
-
-    /// <summary>The canvas group filter. When drawing is enabled we also surface the "other" group so
-    /// freshly drawn regions and their symmetry counterparts (categorised "other" until wired) are visible
-    /// in the activity that drew them; read-only canvases keep the bare category filter.</summary>
-    private string? CanvasFilter()
-    {
-        if (DrawCategory is null || Category is null) return Category;
-        var parts = Category.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-        if (!parts.Contains("other")) parts.Add("other");
-        return string.Join(",", parts);
-    }
 
     private async Task SetTool(string t)
     {
