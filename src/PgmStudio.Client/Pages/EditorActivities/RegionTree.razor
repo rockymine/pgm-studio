@@ -23,7 +23,7 @@
           break;
         default:
           var n = row.Node!;
-          <div class="geo-row @SelClass(n.Id)" @onclick="() => OnSelect.InvokeAsync(n)">
+          <div class="geo-row @SelClass(n.Id)" @onclick="(e) => OnRow(n, e)">
             <span class="geo-indent">
               @for (var d = 0; d < row.Depth; d++)
               {

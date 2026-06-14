@@ -32,4 +32,29 @@ window.studio = {
     const mod = await import("/js/studio/configure-canvas.js");
     return mod.mount(svgEl, wrapEl, slug);
   },
+
+  // R1a: a minimal editor keyboard layer — Ctrl/Cmd+G → dotnetRef.OnGroupKey() (group/ungroup the
+  // current selection). One active listener at a time (the visible activity owns it). preventDefault
+  // so the browser's "find next" doesn't fire. Ignored while typing in a field. (Seed of B6's command
+  // system; deliberately just this one binding, no undo stack yet.)
+  _shortcutRef: null,
+  _shortcutHandler: null,
+  registerShortcuts(dotnetRef) {
+    this.clearShortcuts();
+    this._shortcutRef = dotnetRef;
+    this._shortcutHandler = (e) => {
+      const t = e.target;
+      const tag = (t && t.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select" || (t && t.isContentEditable)) return;
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === "g" || e.key === "G")) {
+        e.preventDefault();
+        this._shortcutRef && this._shortcutRef.invokeMethodAsync("OnGroupKey");
+      }
+    };
+    document.addEventListener("keydown", this._shortcutHandler);
+  },
+  clearShortcuts() {
+    if (this._shortcutHandler) { document.removeEventListener("keydown", this._shortcutHandler); this._shortcutHandler = null; }
+    this._shortcutRef = null;
+  },
 };

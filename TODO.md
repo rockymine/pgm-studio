@@ -293,12 +293,17 @@ under `docs/`.
       side-depth selection view; needs design.
 
 ## R — Region authoring rework (larger, conceptualized)
-- [ ] R1 — Region authoring rework per **`docs/contracts/region-authoring.md`** (authoring split:
+- [~] R1 — Region authoring rework per **`docs/contracts/region-authoring.md`** (authoring split:
       primitives vs composed) + **`docs/contracts/region-categorization.md`** (the categorizer spec).
-      Partly done: B1 (`RegionAuthoringEncoder`) + `RegionCategorizer` (parity 350/350) + the Regions
-      activity. The full authoring UI/workflow described in the doc remains. **→ now prioritised with F1
-      (E9): the split view-model (Primitives/Composed/Raw, step-scoped) is what makes drawn regions show
-      in their step + unblocks no-xml authoring.**
+      Partly done: B1 (`RegionAuthoringEncoder`) + `RegionCategorizer` (parity 350/350) + the Regions activity.
+      **R1a DONE (Chrome-verified) — the grouping interaction:** Ctrl/⌘-click multi-selects (set), Ctrl+G
+      groups ≥2 into a `union` (selects the new group) or ungroups a single compound (frees + selects the
+      children); refuses ungroup on a **wired** compound (toast, so the rule isn't orphaned). Keyboard via
+      `studio.registerShortcuts`/`clearShortcuts` (one active listener, preventDefault — seed of B6, no undo
+      yet); `RegionTree.OnSelectCtrl`; RegionsActivity holds the selection + calls `/regions/group`+`/ungroup`.
+      **Remaining:** R1b — the split view-model (stacked Primitives / Groups & wiring, step-scoped by
+      category/role; demote raw tree); R1c — wire-after-group (calls F1 `ApplyTemplate`) + cross-step
+      reference / carve-out (complement) + canvas Ctrl+click multi-select. Unblocks no-xml authoring (E9).
 
 ## S — Sketch + design (M8)
 - [x] S1 — `/design` living UI reference (`Pages/Design.razor`)

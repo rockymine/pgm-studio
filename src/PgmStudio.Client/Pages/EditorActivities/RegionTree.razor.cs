@@ -1,5 +1,6 @@
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using PgmStudio.Client.Models;
 
 namespace PgmStudio.Client.Pages.EditorActivities;
@@ -10,8 +11,16 @@ public partial class RegionTree
     [Parameter] public string? SelectedId { get; set; }
     [Parameter] public ISet<string>? SelectedSet { get; set; }
     [Parameter] public EventCallback<RegionNode> OnSelect { get; set; }
+    /// <summary>Ctrl/⌘-click — add/remove from a multi-selection (R1). Optional; falls back to OnSelect.</summary>
+    [Parameter] public EventCallback<RegionNode> OnSelectCtrl { get; set; }
 
     private readonly HashSet<string> collapsed = new();
+
+    private async Task OnRow(RegionNode n, MouseEventArgs e)
+    {
+        if ((e.CtrlKey || e.MetaKey) && OnSelectCtrl.HasDelegate) await OnSelectCtrl.InvokeAsync(n);
+        else await OnSelect.InvokeAsync(n);
+    }
 
     private sealed record TreeRow(string Kind, string? Text, RegionNode? Node, int Depth, string? ParentType, int Index);
 

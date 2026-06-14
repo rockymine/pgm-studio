@@ -1,0 +1,10 @@
+@namespace PgmStudio.Client.Pages.EditorActivities
+
+@* Auto-dismissing toast. Bind Message to the host's error string; when it changes to a new value the
+   toast shows for DurationMs then hides itself (the host can leave its error field set — display is
+   owned here). Reused by every activity. *@
+
+@if (showing && Message is not null)
+{
+  <div class="toast toast--@Kind visible">@Message</div>
+}

@@ -1,8 +1,10 @@
 @namespace PgmStudio.Client.Pages.EditorActivities
 @inject HttpClient Http
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
-@* Regions activity (read-only registry audit): geo-tree sidebar + hybrid canvas + region inspector,
-   with single-primary selection that also highlights descendants. Port of regions-activity.js. *@
+@* Regions activity: geo-tree sidebar + hybrid canvas + region inspector. R1a authoring interaction:
+   Ctrl/⌘-click multi-selects; Ctrl+G groups ≥2 into a union, or ungroups a single compound. *@
 
 <div class="workspace">
   <div class="workspace-sidebar">
@@ -10,7 +12,7 @@
       <section class="panel-section">
         <div class="section-header section-header--ruled"><h2 class="section-title">Regions</h2></div>
         @if (groups is null) { <div class="list-empty">Loading…</div> }
-        else { <RegionTree Groups="groups" SelectedId="selectedId" SelectedSet="selectedSet" OnSelect="OnTreeSelect" /> }
+        else { <RegionTree Groups="groups" SelectedId="primaryId" SelectedSet="selection" OnSelect="OnTreeSelect" OnSelectCtrl="OnTreeSelectCtrl" /> }
       </section>
     </div>
   </div>
@@ -24,8 +26,10 @@
   <div class="workspace-inspector">
     <div class="workspace-scroll">
       <div class="panel-section">
-        <RegionInspector Node="selectedNode" OnSelectChild="Select" />
+        <RegionInspector Node="primaryNode" OnSelectChild="SelectOne" />
       </div>
     </div>
   </div>
 </div>
+
+<Toast Message="@error" />
