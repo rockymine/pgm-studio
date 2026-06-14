@@ -46,7 +46,7 @@ regions/filters:
 intent = {
   teams:  { count, maxPlayers, kit },          // one size for all teams (symmetric map)
   spawns: [ { team, point, protection? } ],     // protection optional per team
-  build:  { maxHeight?, positiveArea[], bridges[] },
+  build:  { maxHeight?, areas[] },              // buildable rects (footprints + bridges alike)
   wools:  [ { color, owner, roomRegion, spawnRegion, monuments[] } ],
   symmetry: <ref to the confirmed symmetry mode>,
 }

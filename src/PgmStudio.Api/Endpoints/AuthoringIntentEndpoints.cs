@@ -71,7 +71,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
 
         await IntentStore.SaveAsync(db, map.Id, intent, ct);
         var (status, resp) = await WriteSupport.RunEditAsync(repo, reader, writer, slug,
-            doc => { TeamsGenerator.Apply(doc, intent); return new Dict(); }, ct);
+            doc => { IntentGenerator.Apply(doc, intent); return new Dict(); }, ct);
         await Send.ResponseAsync(resp!, status, ct);
     }
 }

@@ -21,6 +21,20 @@ public sealed class MapIntent
 
     /// <summary>The observer / <c>&lt;default&gt;</c> spawn (pre-game + spectators). Every PGM map needs one.</summary>
     public ObserverIntent? Observer { get; init; }
+
+    /// <summary>Buildable space (docs/contracts/new-map-authoring.md §5): the build height cap and the
+    /// areas/bridges where building is allowed. The generator unions them and wires the void boundary.</summary>
+    public BuildIntent? Build { get; init; }
+}
+
+/// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (main footprints
+/// and any gap-crossing bridges alike); they're unioned into one build region and the void boundary
+/// (no bridging over the void outside that union) is wired automatically.</summary>
+public sealed class BuildIntent
+{
+    /// <summary>Y cap above which no block placement is allowed (null = no ceiling).</summary>
+    public int? MaxHeight { get; init; }
+    public List<Rect> Areas { get; init; } = new();
 }
 
 /// <summary>A team to generate. <see cref="Id"/> is the stable identifier rules/spawns reference and the
