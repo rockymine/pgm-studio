@@ -98,6 +98,15 @@ public partial class EditorCanvas
         if (handle is not null) await handle.InvokeVoidAsync("resize");
     }
 
+    /// <summary>Re-fetch the region tree and re-render the canvas geometry — call after a server-side
+    /// mutation (delete / group / ungroup / rename) so the drawn shapes match the data. `setSelection`
+    /// only repaints highlights on the cached dataset, so it can't drop a deleted region on its own.
+    /// No-op until the canvas is mounted (it self-loads on mount).</summary>
+    public async Task ReloadAsync()
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("load", Slug);
+    }
+
     [JSInvokable] public Task OnCanvasSelect(string? id) => OnSelect.InvokeAsync(id);
 
     /// <summary>C5: a draw tool completed a shape → create the region, fill its symmetry orbit (F3),

@@ -79,6 +79,9 @@ public partial class BuildRegionsActivity : IAsyncDisposable
             ];
         }
         catch (Exception ex) { error = ex.Message; }
+        // Re-render canvas geometry: a delete (or rename) changed the regions, and the canvas renders
+        // from its own cached dataset — without this the deleted shape lingers until the next action.
+        if (canvas is not null) await canvas.ReloadAsync();
         if (selectId is not null) await Select(selectId); else StateHasChanged();
     }
 

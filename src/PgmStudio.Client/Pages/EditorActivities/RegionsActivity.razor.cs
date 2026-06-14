@@ -41,6 +41,9 @@ public partial class RegionsActivity
         foreach (var id in keep) selection.Add(id);
         primaryId = selection.LastOrDefault();
         primaryNode = primaryId is not null ? nodeMap.GetValueOrDefault(primaryId) : null;
+        // Re-render canvas geometry first (a group/ungroup changed the region set); SyncCanvas then
+        // re-applies the highlight, which a bare render would otherwise clear.
+        if (canvas is not null) await canvas.ReloadAsync();
         await SyncCanvas();
         StateHasChanged();
     }
