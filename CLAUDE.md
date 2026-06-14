@@ -9,7 +9,9 @@ parity in C# with all map data in **MariaDB**.
 Approved plan: `/root/.claude/plans/imperative-whistling-key.md`.
 Contract specs (copied from the reference) live in `docs/` — `contracts/region-authoring.md`,
 `contracts/region-categorization.md`, `contracts/filter-region-wiring.md`, `filter-use-cases.md` —
-the design for the `R1` / `F`-series tasks in `TODO.md`.
+the design for the `R1` / `F`-series tasks in `TODO.md`. `contracts/new-map-authoring.md` is the
+**declarative intent-model** direction for new maps (meaning→structure; generator = mirror of the
+categorizer) — original to this repo, not from the reference.
 
 ## Stack (decided, do not relitigate)
 ASP.NET Core · FastEndpoints (`/api`) · Blazor WebAssembly hosted by the backend ·
