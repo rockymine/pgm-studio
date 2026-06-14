@@ -39,7 +39,7 @@ public partial class ObjectiveActivity
     // monuments surface as flat rows.
     private List<RegionGroup> CollectWoolGroups(List<RegionGroup> all)
     {
-        var buckets = new Dictionary<string, List<RegionNode>> { ["room"] = new(), ["monument"] = new(), ["spawner"] = new() };
+        var buckets = new Dictionary<string, List<RegionNode>> { ["room"] = new(), ["monument"] = new(), ["spawner"] = new(), ["draft"] = new() };
         var claimed = new HashSet<string>();
         foreach (var grp in all) foreach (var n in grp.Regions) CollectWool(n, claimed, buckets);
         return
@@ -47,6 +47,7 @@ public partial class ObjectiveActivity
             new() { Name = "room",     Label = "Wool Rooms",    Regions = buckets["room"] },
             new() { Name = "monument", Label = "Monuments",     Regions = buckets["monument"] },
             new() { Name = "spawner",  Label = "Wool Spawners", Regions = buckets["spawner"] },
+            new() { Name = "draft",    Label = "Draft",         Regions = buckets["draft"] },   // drawn here, not yet wired (E10)
         ];
     }
 
@@ -56,6 +57,7 @@ public partial class ObjectiveActivity
         var s = n.Subtype;
         var claim = s is "room" or "monument" or "spawner" && claimed.Add(s!);   // top-most of this subtype on the path
         if (claim) buckets[s!].Add(n);
+        else if (n.DraftStep == "objective" && n.Category == "other") buckets["draft"].Add(n);
         foreach (var c in n.Children) CollectWool(c, claimed, buckets);
         if (n.Source is not null) CollectWool(n.Source, claimed, buckets);
         if (claim) claimed.Remove(s!);

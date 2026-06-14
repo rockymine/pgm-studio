@@ -15,6 +15,7 @@ public partial class TeamsActivity
     private readonly List<Spawn> spawns = new();
     private ObserverSpawn? observer;
     private readonly List<RegionNode> spawnRegions = new();
+    private readonly List<RegionNode> draftRegions = new();   // drawn in this step, not yet wired (E10)
     private readonly Dictionary<string, RegionNode> nodeMap = new();
 
     private string? selTeam;
@@ -47,7 +48,7 @@ public partial class TeamsActivity
 
     private async Task Reload()
     {
-        teams.Clear(); spawns.Clear(); spawnRegions.Clear(); nodeMap.Clear(); observer = null;
+        teams.Clear(); spawns.Clear(); spawnRegions.Clear(); draftRegions.Clear(); nodeMap.Clear(); observer = null;
         try
         {
             var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
@@ -135,6 +136,8 @@ public partial class TeamsActivity
         if (!string.IsNullOrEmpty(n.Id)) nodeMap.TryAdd(n.Id, n);
         if (n.Subtype == "point" || (n.Subtype == "protection" && !IsSyntheticId(n.Id)))
             spawnRegions.Add(n);
+        else if (n.DraftStep == "teams" && n.Category == "other")   // drawn here, not yet wired (E10)
+            draftRegions.Add(n);
         foreach (var c in n.Children) CollectSpawn(c);
         if (n.Source is not null) CollectSpawn(n.Source);
     }

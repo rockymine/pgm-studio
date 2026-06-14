@@ -68,10 +68,15 @@ public partial class BuildRegionsActivity : IAsyncDisposable
             // top-most build-category node (its carved-out children stay nested under it). Same treatment
             // as the spawn-protection / wool-monument trees.
             var build = new List<RegionNode>();
+            var draft = new List<RegionNode>();   // drawn here, not yet wired (E10)
             if (tree.TryGetProperty("groups", out var g))
                 foreach (var grp in RegionGroup.ParseGroups(g))
-                    foreach (var n in grp.Regions) CollectBuild(n, false, build);
-            groups = [new RegionGroup { Name = "build", Label = "", Regions = build }];
+                    foreach (var n in grp.Regions) CollectBuild(n, false, build, draft);
+            groups =
+            [
+                new RegionGroup { Name = "build", Label = "", Regions = build },
+                new RegionGroup { Name = "draft", Label = "Draft", Regions = draft },
+            ];
         }
         catch (Exception ex) { error = ex.Message; }
         if (selectId is not null) await Select(selectId); else StateHasChanged();
@@ -79,13 +84,14 @@ public partial class BuildRegionsActivity : IAsyncDisposable
 
     // Index every node + collect the top-most build-category node on each path (so build-area is added
     // once with its carved-out children nested, not flattened). `claimed` = a build ancestor already taken.
-    private void CollectBuild(RegionNode n, bool claimed, List<RegionNode> outList)
+    private void CollectBuild(RegionNode n, bool claimed, List<RegionNode> build, List<RegionNode> draft)
     {
         if (!string.IsNullOrEmpty(n.Id)) nodeMap.TryAdd(n.Id, n);
         var take = n.Category == "build" && !claimed;
-        if (take) outList.Add(n);
-        foreach (var c in n.Children) CollectBuild(c, claimed || take, outList);
-        if (n.Source is not null) CollectBuild(n.Source, claimed || take, outList);
+        if (take) build.Add(n);
+        else if (n.DraftStep == "build" && n.Category == "other") draft.Add(n);
+        foreach (var c in n.Children) CollectBuild(c, claimed || take, build, draft);
+        if (n.Source is not null) CollectBuild(n.Source, claimed || take, build, draft);
     }
 
     private async Task Select(string? id)

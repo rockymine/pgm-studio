@@ -14,6 +14,7 @@ public sealed class RegionNode
     public string Label = "";
     public string? Category;         // the region's own derived category (may differ from its display group)
     public string? Subtype;          // refines the category, e.g. spawn → "point" | "protection"
+    public string? DraftStep;        // editor step it was drawn in (teams/objective/build) while unwired (E10)
     public List<string> Wiring = new();  // spatial filter wiring, e.g. "enter=only-blue", "block_break=…"
     public bool Synthetic;
     public bool IsNegative;
@@ -37,6 +38,7 @@ public sealed class RegionNode
             Label = Str(e, "label"),
             Category = e.TryGetProperty("category", out var ct) && ct.ValueKind == JsonValueKind.String ? ct.GetString() : null,
             Subtype = e.TryGetProperty("subtype", out var st) && st.ValueKind == JsonValueKind.String ? st.GetString() : null,
+            DraftStep = e.TryGetProperty("draft_step", out var ds) && ds.ValueKind == JsonValueKind.String ? ds.GetString() : null,
             Synthetic = Bool(e, "synthetic_id"),
             IsNegative = Bool(e, "is_negative"),
             Bounds = Obj(e, "bounds"),

@@ -299,7 +299,8 @@ public static class RegionAuthoringEncoder
     public static List<object?> EncodeTree(
         Dict regionsDict, IReadOnlyDictionary<string, string> categories,
         (double minX, double minZ, double maxX, double maxZ)? bounds,
-        IReadOnlyDictionary<string, RegionFacet>? facets = null)
+        IReadOnlyDictionary<string, RegionFacet>? facets = null,
+        IReadOnlyDictionary<string, string>? drafts = null)
     {
         var namedChildIds = new HashSet<string>();
         foreach (var ro in regionsDict.Values)
@@ -308,7 +309,7 @@ public static class RegionAuthoringEncoder
         var roots = new List<(string id, Dict node)>();
         foreach (var (regionId, ro) in regionsDict)
             if (ro is Dict region && !namedChildIds.Contains(regionId))
-                roots.Add((regionId, EncodeNode(region, bounds, regionsDict, facets)));
+                roots.Add((regionId, EncodeNode(region, bounds, regionsDict, facets, drafts)));
 
         var groups = new Dictionary<string, List<object?>>();
         foreach (var (regionId, node) in roots)
@@ -353,7 +354,8 @@ public static class RegionAuthoringEncoder
     }
 
     private static Dict EncodeNode(Dict region, (double, double, double, double)? bounds, Dict registry,
-        IReadOnlyDictionary<string, RegionFacet>? facets = null)
+        IReadOnlyDictionary<string, RegionFacet>? facets = null,
+        IReadOnlyDictionary<string, string>? drafts = null)
     {
         var xmlId = region.GetValueOrDefault("id") as string ?? "";
         var t = region.GetValueOrDefault("type") as string ?? "unknown";
@@ -363,11 +365,11 @@ public static class RegionAuthoringEncoder
         var children = new List<object?>();
         foreach (var child in region.GetValueOrDefault("children") as List<object?> ?? [])
         {
-            if (child is string s) { if (registry.GetValueOrDefault(s) is Dict cr) children.Add(EncodeNode(cr, bounds, registry, facets)); }
-            else if (child is Dict cd) children.Add(EncodeNode(cd, bounds, registry, facets));
+            if (child is string s) { if (registry.GetValueOrDefault(s) is Dict cr) children.Add(EncodeNode(cr, bounds, registry, facets, drafts)); }
+            else if (child is Dict cd) children.Add(EncodeNode(cd, bounds, registry, facets, drafts));
         }
         var rawSource = ResolveSource(region, registry);
-        var sourceNode = rawSource is not null ? EncodeNode(rawSource, bounds, registry, facets) : null;
+        var sourceNode = rawSource is not null ? EncodeNode(rawSource, bounds, registry, facets, drafts) : null;
 
         var facet = xmlId.Length > 0 ? facets?.GetValueOrDefault(xmlId) : null;
         var node = new Dict
@@ -385,6 +387,9 @@ public static class RegionAuthoringEncoder
             ["category"] = facet?.Category,
             // subtype refines the category (spawn → point|protection, wool → room|monument|spawner).
             ["subtype"] = facet?.Subtype,
+            // editor draft step (E10): set on freshly drawn, not-yet-wired regions so the activity that
+            // drew them can still show them; absent for wired/imported regions.
+            ["draft_step"] = xmlId.Length > 0 ? drafts?.GetValueOrDefault(xmlId) : null,
             // the spatial filter wiring on this region ("enter=<f>", "block_break=<f>", …), for display
             // (the first event) and R1; empty for unwired regions like monuments/spawners.
             ["wiring"] = WiringEvents(facet),

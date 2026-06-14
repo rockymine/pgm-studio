@@ -14,6 +14,9 @@ public partial class EditorCanvas
     /// <summary>When set, draw tools are enabled and a drawn shape creates a region in this category
     /// (C5). Null = read-only (move/select only), e.g. the Regions browser.</summary>
     [Parameter] public string? DrawCategory { get; set; }
+    /// <summary>The editor step (teams/objective/build) freshly drawn regions are tagged with so they show
+    /// in this activity until they're wired (E10). Also rendered on the canvas alongside the category set.</summary>
+    [Parameter] public string? DraftStep { get; set; }
     /// <summary>Fired after a drawn region is created (and the canvas reloaded) so the host activity
     /// can refresh its sidebar tree/list.</summary>
     [Parameter] public EventCallback OnRegionCreated { get; set; }
@@ -46,7 +49,7 @@ public partial class EditorCanvas
         {
             selfRef = DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>(
-                "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, Category);
+                "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, Category, DraftStep);
         }
     }
 
@@ -103,7 +106,7 @@ public partial class EditorCanvas
     public async Task OnRegionDraw(JsonElement draw)
     {
         if (DrawCategory is null || handle is null) return;
-        var resp = await Http.PostAsJsonAsync($"api/map/{Slug}/regions", BuildPayload(draw, DrawCategory));
+        var resp = await Http.PostAsJsonAsync($"api/map/{Slug}/regions", BuildPayload(draw, DrawCategory, DraftStep));
         if (!resp.IsSuccessStatusCode) return;
 
         // F3: when the orbit toggle is on, create the source's counterpart(s) so the drawn region appears
@@ -112,7 +115,7 @@ public partial class EditorCanvas
         {
             var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
             if (created.TryGetProperty("id", out var idEl) && idEl.GetString() is { } newId)
-                await Http.PostAsJsonAsync($"api/map/{Slug}/regions/{newId}/orbit", new { category = DrawCategory });
+                await Http.PostAsJsonAsync($"api/map/{Slug}/regions/{newId}/orbit", new { category = DrawCategory, draft_step = DraftStep });
         }
 
         await SetTool("select");
@@ -122,11 +125,12 @@ public partial class EditorCanvas
     }
 
     // Convert an EditorCanvas drawResult into a createRegion payload (port of drawResultToPayload).
-    private static Dictionary<string, object?> BuildPayload(JsonElement d, string category)
+    private static Dictionary<string, object?> BuildPayload(JsonElement d, string category, string? draftStep)
     {
         double N(string k) => d.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
         var type = d.TryGetProperty("type", out var t) ? t.GetString() ?? "rectangle" : "rectangle";
         var p = new Dictionary<string, object?> { ["category"] = category, ["type"] = type };
+        if (!string.IsNullOrEmpty(draftStep)) p["draft_step"] = draftStep;
         switch (type)
         {
             case "cylinder": p["base_x"] = N("base_x"); p["base_y"] = 0; p["base_z"] = N("base_z"); p["radius"] = N("radius"); p["height"] = 10; break;

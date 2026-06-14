@@ -29,7 +29,7 @@ async function fetchJson(url) {
 /** Create an EditorCanvas on the given elements, load the map, and return a handle.
  *  Cursor/zoom labels are updated in JS (per-mousemove, hot path); only selection calls C#.
  *  Imported on demand from Blazor (await JS.import) — no global, no load-order race. */
-export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category) {
+export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {
   const canvas = new EditorCanvas(svgEl, wrapEl, {
     onCanvasClick: (node) => dotnetRef.invokeMethodAsync("OnCanvasSelect", node?.id ?? null),
     onCoords: (x, z) => { if (coordsEl) coordsEl.textContent = (x === null || x === undefined) ? "" : `X ${x}  Z ${z}`; },
@@ -55,7 +55,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
       if (wanted) {
         const prims = [];
         const walk = (n) => {
-          if (n.id && wanted.has(n.category) && !COMPOUND_TYPES.has(n.type)) prims.push(n);
+          // a region's derived category matches the activity, OR it's a still-unwired draft drawn in this
+          // step (category "other" until wired — E10). Both render as their primitive geometry.
+          const matches = wanted.has(n.category)
+            || (draftStep && n.draft_step === draftStep && n.category === "other");
+          if (n.id && matches && !COMPOUND_TYPES.has(n.type)) prims.push(n);
           (n.children ?? []).forEach(walk);
           if (n.source) walk(n.source);
         };

@@ -10,9 +10,9 @@ window.studio = {
 
   // Mount the hybrid editor canvas. Uses a native dynamic import (absolute URL) so it bypasses
   // Blazor's fingerprinting import map (which 404s for arbitrary wwwroot modules under the dev host).
-  async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category) {
+  async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {
     const mod = await import("/js/studio/studio-canvas.js");
-    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category);
+    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep);
   },
 
   // Mount the Overview static map render (E7).

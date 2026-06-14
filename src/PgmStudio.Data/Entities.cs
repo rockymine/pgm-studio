@@ -269,4 +269,9 @@ public static class ArtifactKind
     public const string IslandsJson = "islands_json";
     public const string SymmetryJson = "symmetry_json";
     public const string MapConfigJson = "map_config_json";
+    // Editor-only sidecar: {region_key: editor_step} for freshly drawn, not-yet-wired regions (E10).
+    // Lives outside the entity-replace codec so it survives MapWriter.SaveDocAsync; never part of the
+    // PGM map document. Pruned against live regions on read; entries graduate out once a region's
+    // derived category is no longer "other".
+    public const string RegionDraftsJson = "region_drafts_json";
 }

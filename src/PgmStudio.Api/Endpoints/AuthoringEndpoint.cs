@@ -76,9 +76,13 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Pg
         var facets = RegionCategorizer.DeriveFacets(doc);
         var bbox = await RegionsAuthoringEndpoint.IslandsBboxAsync(db, map.Id, ct);
 
+        // editor drafts (E10), pruned to regions that still exist (entity-replace keeps keys stable).
+        var allDrafts = await RegionDraftStore.LoadAsync(db, map.Id, ct);
+        var drafts = allDrafts.Where(kv => regions.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value);
+
         await Send.OkAsync(new Dict
         {
-            ["groups"] = RegionAuthoringEncoder.EncodeTree(regions, cats, bbox?.bounds, facets),
+            ["groups"] = RegionAuthoringEncoder.EncodeTree(regions, cats, bbox?.bounds, facets, drafts),
             ["bounding_box"] = bbox?.dict,
         }, ct);
     }

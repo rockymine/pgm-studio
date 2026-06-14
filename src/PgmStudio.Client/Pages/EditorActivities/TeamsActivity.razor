@@ -75,12 +75,29 @@
           }
         </div>
       </section>
+
+      @if (draftRegions.Count > 0)
+      {
+        <section class="panel-section">
+          <div class="section-header section-header--ruled"><h2 class="section-title">Draft</h2></div>
+          <div class="panel-list geo-icons-flush">
+            @foreach (var r in draftRegions)
+            {
+              <div class="list-row list-row--compact @(selSpawn == r.Id ? "list-row--selected" : null)" @onclick="() => SelectSpawn(r.Id)">
+                <span class="geo-type-icon"><i data-lucide="@RegionNode.Icon(r.Type)"></i></span>
+                <span class="list-label list-label--mono">@r.Id</span>
+                <span class="list-tag">unwired</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
     </div>
   </div>
 
   <div class="sidebar-handle"></div>
 
-  <EditorCanvas @ref="canvas" Slug="@Slug" Category="spawn" DrawCategory="spawn" OnSelect="OnCanvasSelect" OnRegionCreated="Reload" />
+  <EditorCanvas @ref="canvas" Slug="@Slug" Category="spawn" DrawCategory="spawn" DraftStep="teams" OnSelect="OnCanvasSelect" OnRegionCreated="Reload" />
 
   <div class="sidebar-handle"></div>
 
