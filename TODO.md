@@ -56,6 +56,16 @@ remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay)
       the editor to author/config a map with NO pre-existing xml** (stripped copy of `thunder`). Always
       validate region-authoring against **annealing_iv** + **outback_outback_edition** (author-built,
       pre-existing xml). Next up: do F1 (filter wiring) + R1 (split tree) together.
+- [ ] E10 — **Show freshly drawn regions on the draw canvas (regression to revisit soon).** The canvas
+      now renders only the sidebar's primitives — primitive nodes whose own `node.category` ∈ the
+      activity's category (commit `7be47d1`, `studio-canvas.js`). A freshly drawn region (and its F3
+      symmetry counterparts) is categorised **"other"** until wired, so it is no longer drawn on the
+      draw-activity canvas — it only appears in the Regions activity. This is consistent with "canvas =
+      sidebar", but drawing a shape that then vanishes from the step's canvas is poor authoring UX.
+      Options: (a) have the activity pass the in-progress/just-drawn region ids to the canvas so they
+      render regardless of category; (b) render "other" primitives on draw-enabled canvases (clutters on
+      busy maps); (c) resolves naturally with **E9/R1** (drawn primitives shown structurally in the step).
+      Tied to [[E9]]; tackle together with F1/R1.
 
 ## C — Canvas & shared UI infrastructure
 - [x] C1 — Hybrid canvas decision + interop (reused `EditorCanvas` JS via `studio-canvas.js`/`EditorCanvas.razor`)
