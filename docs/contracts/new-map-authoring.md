@@ -44,6 +44,8 @@ regions/filters:
 
 ```
 intent = {
+  meta:   { name, authors[], contributors[] },  // usernames → uuids; version 1.0.0, proto 1.5.0,
+                                                //   gamemode ctw, objective all auto-derived
   teams:  { count, maxPlayers, kit },          // one size for all teams (symmetric map)
   spawns: [ { team, point, protection? } ],     // protection optional per team
   build:  { maxHeight?, areas[] },              // buildable rects (footprints + bridges alike)
@@ -51,6 +53,10 @@ intent = {
   symmetry: <ref to the confirmed symmetry mode>,
 }
 ```
+
+**Map identity.** `name` + `authors`/`contributors` are authored (the latter as Minecraft usernames,
+resolved to uuids via `MojangClient` at save; the contribution attribute is unused). `version` (1.0.0),
+`gamemode` (ctw), and the `objective` text are auto-derived; `proto` (1.5.0) is fixed at XML export.
 
 Notes that fall out of the model:
 - **One authored unit per symmetry orbit.** The author defines team 0's spawn/protection, one

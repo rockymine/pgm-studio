@@ -29,6 +29,19 @@ public sealed class MapIntent
     /// <summary>The objective wools. One per defending team on a symmetric map; each is captured by the
     /// other N−1 teams (one monument each). Null/empty leaves objectives untouched.</summary>
     public List<WoolIntent>? Wools { get; init; }
+
+    /// <summary>Map identity: name + authors/contributors. Version (1.0.0), proto (1.5.0), gamemode (ctw)
+    /// and the objective text are auto-derived by the generator, not authored.</summary>
+    public MetaIntent? Meta { get; init; }
+}
+
+/// <summary>Authored map identity. Authors/contributors are Minecraft <b>usernames</b>; the endpoint
+/// resolves each to a uuid via <c>MojangClient</c> before saving (the contribution attribute is unused).</summary>
+public sealed class MetaIntent
+{
+    public string Name { get; init; } = "";
+    public List<string> Authors { get; init; } = new();
+    public List<string> Contributors { get; init; } = new();
 }
 
 /// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (main footprints

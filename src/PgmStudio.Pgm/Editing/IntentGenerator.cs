@@ -11,6 +11,7 @@ public static class IntentGenerator
 {
     public static void Apply(Dict doc, MapIntent intent)
     {
+        MetaGenerator.Apply(doc, intent);
         TeamsGenerator.Apply(doc, intent);
         BuildGenerator.Apply(doc, intent);
         WoolGenerator.Apply(doc, intent);
