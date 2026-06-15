@@ -27,6 +27,12 @@ internal static class IntentStore
         return art is null ? new MapIntent() : JsonSerializer.Deserialize<MapIntent>(art.Data, Json) ?? new MapIntent();
     }
 
+    /// <summary>True iff the map was authored through the declarative intent model (has a stored intent
+    /// blob). The export gate uses this to scope the traversability check to intent maps only — corpus
+    /// maps have no intent and keep exporting unconditionally.</summary>
+    public static Task<bool> HasAsync(PgmDb db, long mapId, CancellationToken ct) =>
+        db.Artifacts.AnyAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.MapIntentJson, ct);
+
     public static async Task SaveAsync(PgmDb db, long mapId, MapIntent intent, CancellationToken ct)
     {
         await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == ArtifactKind.MapIntentJson).DeleteAsync(ct);
