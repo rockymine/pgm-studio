@@ -12,8 +12,10 @@
     <div class="slice-head">
       <label class="field-label">@(editable ? "Side view — drag the line to set Y" : "Side view")</label>
       <div class="slice-axis">
-        <button class="draw-tool-btn @(axis == "z" ? "draw-tool-btn--active" : null)" title="Look along Z" @onclick='() => SetAxis("z")'>Z</button>
-        <button class="draw-tool-btn @(axis == "x" ? "draw-tool-btn--active" : null)" title="Look along X" @onclick='() => SetAxis("x")'>X</button>
+        <button class="draw-tool-btn @(axis == "nz" ? "draw-tool-btn--active" : null)" title="Inspect from −Z" @onclick='() => SetAxis("nz")'>Z−</button>
+        <button class="draw-tool-btn @(axis == "pz" ? "draw-tool-btn--active" : null)" title="Inspect from +Z" @onclick='() => SetAxis("pz")'>Z+</button>
+        <button class="draw-tool-btn @(axis == "nx" ? "draw-tool-btn--active" : null)" title="Inspect from −X" @onclick='() => SetAxis("nx")'>X−</button>
+        <button class="draw-tool-btn @(axis == "px" ? "draw-tool-btn--active" : null)" title="Inspect from +X" @onclick='() => SetAxis("px")'>X+</button>
       </div>
     </div>
     <div class="slice-view"><canvas @ref="canvasRef" class="slice-canvas"></canvas></div>

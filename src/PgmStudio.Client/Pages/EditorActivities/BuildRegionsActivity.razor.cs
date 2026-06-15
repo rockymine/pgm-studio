@@ -17,7 +17,7 @@ public partial class BuildRegionsActivity : IAsyncDisposable
     private string? maxHeight;
     private bool heightDirty;
     private string? heightStatus;
-    private string axis = "z";
+    private string axis = "nz";   // side-view direction: nz/pz/nx/px (camera on −/+ side of Z/X)
     private ElementReference sideviewRef;
     private IJSObjectReference? sideviewHandle;
     private DotNetObjectReference<BuildRegionsActivity>? selfRef;

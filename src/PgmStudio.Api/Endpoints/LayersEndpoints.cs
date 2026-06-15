@@ -106,10 +106,10 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
     public override async Task HandleAsync(CancellationToken ct)
     {
         var axis = HttpContext.Request.Query["axis"].ToString();
-        if (string.IsNullOrEmpty(axis)) axis = "z";
-        if (axis is not ("x" or "z"))
+        if (string.IsNullOrEmpty(axis)) axis = "nz";
+        if (axis is not ("x" or "z" or "nz" or "pz" or "nx" or "px"))
         {
-            await Send.ResponseAsync(new Dict { ["error"] = "axis must be 'x' or 'z'" }, 400, ct);
+            await Send.ResponseAsync(new Dict { ["error"] = "axis must be one of nz/pz/nx/px (or legacy x/z)" }, 400, ct);
             return;
         }
 

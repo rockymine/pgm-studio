@@ -19,7 +19,7 @@ public partial class SliceView : IAsyncDisposable
     private DotNetObjectReference<SliceView>? selfRef;
     private string? shownId;
     private string? shownAxis;
-    private string axis = "z";          // look axis: "z" → primary X, "x" → primary Z
+    private string axis = "nz";         // view direction: nz/pz look along Z (primary X), nx/px along X (primary Z)
     private bool show;
     private bool editable;
 
@@ -58,11 +58,11 @@ public partial class SliceView : IAsyncDisposable
 
     private static string DefaultAxis(RegionNode n)
     {
-        if (n.Type is "point" or "block") return "z";
+        if (n.Type is "point" or "block") return "nz";
         double? D(string k) => n.Coords.GetValueOrDefault(k) is { } v ? Convert.ToDouble(v) : null;
         if (D("min_x") is { } mnx && D("max_x") is { } mxx && D("min_z") is { } mnz && D("max_z") is { } mxz)
-            return Math.Abs(mxx - mnx) >= Math.Abs(mxz - mnz) ? "z" : "x";   // primary = the longer horizontal axis
-        return "z";
+            return Math.Abs(mxx - mnx) >= Math.Abs(mxz - mnz) ? "nz" : "nx";   // primary = the longer horizontal axis
+        return "nz";
     }
 
     // The /segments window for this region under the current look axis: a point's column ± HalfWidth
@@ -72,14 +72,16 @@ public partial class SliceView : IAsyncDisposable
     {
         double? D(string k) => n.Coords.GetValueOrDefault(k) is { } v ? Convert.ToDouble(v) : null;
 
+        var zLook = axis is "nz" or "pz";   // look along Z → primary X (window spans X); else primary Z
+
         if (n.Type is "point" or "block")
         {
             if (D("x") is not { } x || D("z") is not { } z) return null;
             int ix = (int)Math.Floor(x), iz = (int)Math.Floor(z);
             int? markerY = editable && D("y") is { } y ? (int)Math.Floor(y) : null;
-            return axis == "x"
-                ? new() { ["axis"] = "x", ["xmin"] = ix, ["xmax"] = ix, ["zmin"] = iz - HalfWidth, ["zmax"] = iz + HalfWidth, ["markerY"] = markerY }
-                : new() { ["axis"] = "z", ["xmin"] = ix - HalfWidth, ["xmax"] = ix + HalfWidth, ["zmin"] = iz, ["zmax"] = iz, ["markerY"] = markerY };
+            return zLook
+                ? new() { ["axis"] = axis, ["xmin"] = ix - HalfWidth, ["xmax"] = ix + HalfWidth, ["zmin"] = iz, ["zmax"] = iz, ["markerY"] = markerY }
+                : new() { ["axis"] = axis, ["xmin"] = ix, ["xmax"] = ix, ["zmin"] = iz - HalfWidth, ["zmax"] = iz + HalfWidth, ["markerY"] = markerY };
         }
 
         if (D("min_x") is not { } mnx || D("max_x") is not { } mxx || D("min_z") is not { } mnz || D("max_z") is not { } mxz)
