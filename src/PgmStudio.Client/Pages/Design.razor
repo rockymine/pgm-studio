@@ -399,6 +399,22 @@
         <span class="canvas-cursor">X 128 · Z -64</span>
         <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
       </div>
+
+      <div class="ds-subsection" style="margin-top:var(--space-5)">
+        <h3>Flow steps</h3>
+        <p class="ds-theming-note">A clean wizard sub-step strip for guided multi-step activities — flat text
+           labels, an accent underline on the active step, a check on completed ones. Lives in a
+           <code>canvas-subbar</code>. Use it instead of numbered-circle step bars, which clash with the chrome.</p>
+        <div class="ds-canvas-bar-example canvas-subbar">
+          <div class="flow-steps">
+            <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
+            <button class="flow-step flow-step--active">Spawn</button>
+            <button class="flow-step">Room</button>
+            <button class="flow-step">Monuments</button>
+          </div>
+          <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
+        </div>
+      </div>
     </section>
 
     <section class="ds-section" id="states">

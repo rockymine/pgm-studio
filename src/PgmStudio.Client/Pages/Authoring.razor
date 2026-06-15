@@ -5,7 +5,8 @@
 
 @* Concept showcase for the intent-driven NEW-map authoring experience (docs/contracts/new-map-authoring.md).
    UI-only, no backend: each authoring phase and its panels are laid out with real thunder map data,
-   built on the existing tokens/components/editor primitives (no new CSS). Modelled on /design. *@
+   built on the existing tokens/components/editor primitives (canvases render real region geometry,
+   fully static). Modelled on /design. *@
 
 <div class="editor-page">
 
@@ -28,12 +29,15 @@
     <div class="ds-nav-group">Concept</div>
     <a href="#overview">Overview</a>
     <a href="#flow">The flow</a>
+    <a href="#nav">Navigation model</a>
     <div class="ds-nav-group">Authoring steps</div>
-    <a href="#world">0 · World</a>
-    <a href="#teams">1 · Teams &amp; Spawns</a>
-    <a href="#build">2 · Build</a>
-    <a href="#wools">3 · Wools</a>
-    <a href="#review">Review &amp; Export</a>
+    <a href="#info">0 · Map Info</a>
+    <a href="#world">1 · World</a>
+    <a href="#teams">2 · Teams &amp; Spawns</a>
+    <a href="#build">3 · Build</a>
+    <a href="#validate">Buildability &amp; Traversability</a>
+    <a href="#wools">4 · Wools</a>
+    <a href="#review">5 · Review &amp; Export</a>
     <div class="ds-nav-group">Surfaces</div>
     <a href="#xml">XML preview</a>
     <a href="#tree">Region tree</a>
@@ -49,13 +53,13 @@
       <p>
         Today the studio runs <strong>structure → meaning</strong>: it parses a map's XML, then
         <em>derives</em> what each region means. New-map authoring runs the other way —
-        <strong>meaning → structure</strong>. The author states intent (teams, spawns, build space,
-        wools) and the system <em>generates</em> the region / filter / apply-rule graph that
-        serializes to PGM-loadable XML. This page lays out every step of that experience and the
-        panels it uses, populated with real data from <code>thunder</code> — a four-team
-        90°-rotational map — so a blank copy (<code>thunder_blank</code>) could, in theory, be
-        authored end-to-end to a valid export. It reuses the existing design system only; no new
-        primitives, no backend wiring yet.
+        <strong>meaning → structure</strong>. The author states intent (identity, teams, spawns, build
+        space, wools) and the system <em>generates</em> the region / filter / apply-rule graph that
+        serializes to PGM-loadable XML. This page lays out every step of that experience and the panels
+        it uses, with canvases drawn from the <em>real</em> region geometry of <code>thunder</code> — a
+        four-team 90°-rotational map — so a blank copy (<code>thunder_blank</code>) could, in theory, be
+        authored end-to-end to a valid export. It reuses the existing design system; the only new
+        primitive is the clean <code>flow-steps</code> sub-step bar.
       </p>
     </header>
 
@@ -64,9 +68,9 @@
       <div class="ds-section-heading">
         <div>
           <p class="ds-kicker">The flow</p>
-          <h2>Five phases, one gate — define each thing once</h2>
+          <h2>Six phases, one gate — define each thing once</h2>
         </div>
-        <p>Dead-simple and guided: the world seeds the steps, each step shapes one slice of intent,
+        <p>Dead-simple and guided: identity and world come first, each step shapes one slice of intent,
            and a playability gate closes the loop before export.</p>
       </div>
 
@@ -82,28 +86,33 @@
               <div class="section-body">
                 <div class="step-row">
                   <span class="step-dot step-dot--done"></span>
-                  <span class="step-label">0 · World</span>
-                  <span class="step-detail">Precomputed terrain analysis — islands, symmetry, buildability seed every later step.</span>
+                  <span class="step-label">0 · Map Info</span>
+                  <span class="step-detail">The basics the generator needs — map name and authors. Version, mode, objective auto-derived.</span>
+                </div>
+                <div class="step-row">
+                  <span class="step-dot step-dot--done"></span>
+                  <span class="step-label">1 · World</span>
+                  <span class="step-detail">Detect the terrain — neutral island shapes + symmetry. Seeds team count and spawn positions.</span>
                 </div>
                 <div class="step-row">
                   <span class="step-dot"></span>
-                  <span class="step-label">1 · Teams</span>
-                  <span class="step-detail">Place team 0's spawn + protection once; symmetry orbit fills the other teams; protection auto-wired.</span>
+                  <span class="step-label">2 · Teams</span>
+                  <span class="step-detail">Define teams; assign islands (orbit order); place team 0's spawn + protection once — orbit fills the rest.</span>
                 </div>
                 <div class="step-row">
                   <span class="step-dot"></span>
-                  <span class="step-label">2 · Build</span>
-                  <span class="step-detail">The terrain is already buildable; draw only the over-void bridges. System unions them + applies the void filter.</span>
+                  <span class="step-label">3 · Build</span>
+                  <span class="step-detail">Set the max build height in a side view; draw the over-void bridges. The terrain is already buildable.</span>
                 </div>
                 <div class="step-row">
                   <span class="step-dot"></span>
-                  <span class="step-label">3 · Wools</span>
-                  <span class="step-detail">Define one wool — colour, spawn, room, N−1 monuments; orbit fills the rest; room defense + capture auto-wired.</span>
+                  <span class="step-label">4 · Wools</span>
+                  <span class="step-detail">Colour → spawn → room → monuments, one sub-step at a time; orbit fills the rest; rules auto-wired.</span>
                 </div>
                 <div class="step-row">
                   <span class="step-dot step-dot--running"></span>
-                  <span class="step-label">Review</span>
-                  <span class="step-detail">Round-trip · mirror-consistency · buildability · traversability — then export the XML.</span>
+                  <span class="step-label">5 · Review</span>
+                  <span class="step-detail">Round-trip · mirror-consistency · buildability · traversability gate — then export the XML.</span>
                 </div>
               </div>
               <div class="section-footer section-footer--separated">
@@ -120,65 +129,238 @@
       </article>
     </section>
 
-    <!-- ════════════════════════ 0 · WORLD ════════════════════════ -->
-    <section class="ds-section" id="world">
+    <!-- ════════════════════════ NAVIGATION MODEL ════════════════════════ -->
+    <section class="ds-section" id="nav">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">00</p>
-          <h2>World — seed from terrain</h2>
+          <p class="ds-kicker">Navigation</p>
+          <h2>The navigation model</h2>
         </div>
-        <p>The blocks come first. Islands, symmetry, and buildability seed the team count, the spawn
-           positions, and where regions may sit — so no step starts blank.</p>
+        <p>A guided wizard at three levels: jump between phases on the rail, walk the sub-steps with the
+           flow bar, advance linearly with Back / Next.</p>
       </div>
 
       <p class="ds-theming-note">
-        A new map (the <code>thunder_blank</code> class) is a world with blocks but no
-        <code>map.xml</code>. The read-side analyses run on that terrain and bridge the physical world to
-        the logical intent. Crucially, the <strong>y=0 footprint is the void-filter substrate</strong>:
-        every column with a surface block is automatically buildable, so the terrain itself <em>is</em> the
-        build area and <em>no region rows are generated for it</em>. Island count and the detected symmetry
-        seed the team count and where each side drops its spawn.
+        Authoring is a guided wizard, not a free-form editor. The <strong>activity rail</strong> (left) holds
+        the six phases and lets you jump to any unlocked one — completed phases carry a green dot, the current
+        one a left bar. Inside a phase, the <strong>flow bar</strong> (a clean step strip in the canvas
+        sub-bar) walks the sub-steps — a check marks done, an accent underline marks the current one.
+        <strong>Back / Next</strong> advances linearly. No numbered-circle bars: the chrome stays quiet so the
+        map stays the focus.
       </p>
 
-      <div class="ds-sug-sample" style="max-width:320px;margin:var(--space-4) 0">
-        <SmartSuggestion Header="Smart Suggestion" Badge="rot 90" AcceptLabel="Use 4 teams" RejectLabel="Dismiss">
-          <p class="smart-suggestion__text">Four symmetric islands and 90° rotational symmetry suggest a four-team layout.</p>
-          <div class="smart-suggestion-teams">
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#5555FF"></span>Blue</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FF5555"></span>Red</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#55FF55"></span>Green</div>
-            <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FFFF55"></span>Yellow</div>
+      <div class="ds-example-grid">
+        <article class="ds-example">
+          <div class="ds-example-label">Phases — the activity rail</div>
+          <div class="ds-panel-frame" style="display:flex">
+            <nav class="activity-rail">
+              <div class="activity-logo">
+                <div class="activity-logo-box">
+                  <span class="activity-logo-pgm">pgm</span>
+                  <span class="activity-logo-sub">STUDIO</span>
+                </div>
+              </div>
+              <button class="activity-btn" data-status="green" title="Map Info"><i data-lucide="book-open-text"></i></button>
+              <button class="activity-btn" data-status="green" title="World"><i data-lucide="settings-2"></i></button>
+              <button class="activity-btn" data-status="green" title="Teams"><i data-lucide="users"></i></button>
+              <button class="activity-btn active" title="Build"><i data-lucide="pickaxe"></i></button>
+              <button class="activity-btn" title="Wools"><i data-lucide="goal"></i></button>
+              <button class="activity-btn" title="Review"><i data-lucide="badge-check"></i></button>
+            </nav>
+            <div class="workspace-scroll" style="flex:1">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled"><h2 class="section-title">Phases</h2></div>
+                <div class="panel-list">
+                  <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="book-open-text"></i></span><span class="list-label">Map Info</span><span class="badge badge--success">done</span></div>
+                  <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="settings-2"></i></span><span class="list-label">World</span><span class="badge badge--success">done</span></div>
+                  <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="users"></i></span><span class="list-label">Teams</span><span class="badge badge--success">done</span></div>
+                  <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="pickaxe"></i></span><span class="list-label">Build</span><span class="badge badge--neutral">current</span></div>
+                  <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="goal"></i></span><span class="list-label">Wools</span><span class="badge badge--dim">next</span></div>
+                  <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="badge-check"></i></span><span class="list-label">Review &amp; Export</span><span class="badge badge--dim">locked</span></div>
+                </div>
+              </section>
+            </div>
           </div>
-        </SmartSuggestion>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">Sub-steps — the flow bar</div>
+          <div class="ds-canvas-bar-example canvas-subbar">
+            <div class="flow-steps">
+              <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
+              <button class="flow-step flow-step--done"><i data-lucide="check"></i>Spawn</button>
+              <button class="flow-step flow-step--active">Room</button>
+              <button class="flow-step">Monuments</button>
+            </div>
+            <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
+          </div>
+          <p class="section-desc" style="margin-top:var(--space-3)">The flow bar shows where you are inside a
+             phase — a check marks done, the accent underline marks the current sub-step. The rail jumps between
+             phases; a phase stays locked until its prerequisites are met (Review needs a connected map).</p>
+          <div style="display:flex;gap:var(--space-2);margin-top:var(--space-2)">
+            <button class="action-btn">Back</button>
+            <button class="action-btn action-btn--primary">Next: Monuments</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ════════════════════════ 0 · MAP INFO ════════════════════════ -->
+    <section class="ds-section" id="info">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">00</p>
+          <h2>Map Info — identity &amp; authors</h2>
+        </div>
+        <p>The minimum the generator needs before any geometry step: a name and at least one author.
+           Version, gamemode, and objective are auto-derived and locked.</p>
       </div>
 
+      <p class="ds-theming-note">
+        The intent model's <code>meta</code> block carries the map's human-readable identity.
+        <strong>Name</strong> and <strong>authors</strong> are the only required fields — everything else is
+        fixed by convention (<code>version 1.0.0</code>), inferred from the step selection
+        (<code>gamemode ctw</code>), or templated from the objectives contract (<code>objective</code>).
+        Author usernames resolve to UUIDs via the Mojang API at save time; the inputs accept raw usernames
+        during authoring.
+      </p>
+
       <article class="ds-example">
-        <div class="ds-example-label">World workspace — read-only seed analysis</div>
+        <div class="ds-example-label">Map Info workspace — identity + authors</div>
+        <div class="ds-panel-frame">
+          <div class="workspace-scroll">
+
+            <section class="panel-section">
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Identity</h2>
+              </div>
+              <div class="section-body">
+                <div class="field">
+                  <label class="field-label">Map Name <span class="field-required">*</span></label>
+                  <input class="field-input" type="text" value="Thunder" placeholder="My CTW Map"/>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label class="field-label">Version</label>
+                    <input class="field-input" type="text" value="1.0.0" disabled title="Auto-derived"/>
+                  </div>
+                  <div class="field field--compact">
+                    <label class="field-label">Mode</label>
+                    <input class="field-input" type="text" value="ctw" disabled title="Auto-derived"/>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="field-label">Objective</label>
+                  <textarea class="field-input field-input--textarea" rows="2" disabled title="Auto-derived from gamemode">Capture the other teams' wools and take them to your victory monument to win.</textarea>
+                </div>
+                <p class="section-desc">Version, mode, and objective are auto-derived from the authoring context — they cannot be edited here.</p>
+              </div>
+            </section>
+
+            <section class="panel-section">
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Authors <span class="field-required">*</span></h2>
+                <button class="action-btn">+ Add</button>
+              </div>
+              <div class="author-list">
+                <div class="author-row">
+                  <span class="author-avatar"></span>
+                  <input class="field-input author-name" type="text" placeholder="Minecraft username"/>
+                  <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"/>
+                  <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                </div>
+                <div class="author-row">
+                  <span class="author-avatar"></span>
+                  <input class="field-input author-name" type="text" placeholder="Minecraft username"/>
+                  <input class="field-input author-contribution" type="text" value="Old XML"/>
+                  <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                </div>
+                <div class="author-row">
+                  <span class="author-avatar"></span>
+                  <input class="field-input author-name" type="text" placeholder="Minecraft username"/>
+                  <input class="field-input author-contribution" type="text" value="Provided feedback for update"/>
+                  <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                </div>
+                <div class="author-row">
+                  <span class="author-avatar"></span>
+                  <input class="field-input author-name" type="text" placeholder="Minecraft username"/>
+                  <input class="field-input author-contribution" type="text" value="Provided feedback for update"/>
+                  <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                </div>
+              </div>
+              <p class="section-desc">Usernames resolve to UUIDs via the Mojang API at save. The lead author has no contribution label; contributors carry a short freeform note — thunder ships with one author and three contributors.</p>
+            </section>
+
+            <section class="panel-section">
+              <div class="panel-actions">
+                <button class="action-btn action-btn--primary">Save &amp; continue</button>
+                <span class="panel-save-status">thunder_blank · unsaved</span>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- ════════════════════════ 1 · WORLD ════════════════════════ -->
+    <section class="ds-section" id="world">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">01</p>
+          <h2>World — detect terrain</h2>
+        </div>
+        <p>The blocks come first. Islands and symmetry are detected as neutral shapes; they seed the team
+           count and spawn positions — so no step starts blank.</p>
+      </div>
+
+      <p class="ds-theming-note">
+        A new map (<code>thunder_blank</code>) is a world with blocks but no <code>map.xml</code>. The
+        read-side analyses run on that terrain and bridge the physical world to the logical intent. The
+        <strong>y=0 footprint is the void-filter substrate</strong>: every column with a surface block is
+        automatically buildable, so the terrain itself <em>is</em> the build area and <em>no region rows are
+        generated for it</em>. Islands are detected as <strong>neutral shapes</strong> — the system does not
+        know which team owns which island yet. Ownership is an authoring decision that happens in the Teams
+        step, after the author defines their teams.
+      </p>
+
+      <article class="ds-example">
+        <div class="ds-example-label">World workspace — terrain analysis · all islands neutral</div>
         <div class="ds-workspace-frame">
           <div class="workspace">
+
             <div class="workspace-sidebar">
               <div class="workspace-scroll">
+
                 <section class="panel-section">
                   <div class="section-header section-header--ruled">
                     <h2 class="section-title">Islands</h2>
-                    <span class="badge badge--dim">5 detected</span>
+                    <span class="badge badge--dim">9 detected</span>
                   </div>
                   <div class="panel-list">
-                    <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Center</span><span class="list-tag">1,089</span></div>
-                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Blue island</span><span class="list-tag">2,310</span></div>
-                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Green island</span><span class="list-tag">2,310</span></div>
-                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Red island</span><span class="list-tag">2,310</span></div>
-                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Yellow island</span><span class="list-tag">2,310</span></div>
+                    <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · centre</span><span class="list-tag">1,089</span></div>
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · W arm</span><span class="list-tag">3,024</span></div>
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · W tip</span><span class="list-tag">1,653</span></div>
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · E arm</span><span class="list-tag">3,024</span></div>
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · E tip</span><span class="list-tag">1,653</span></div>
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · S arm</span><span class="list-tag">3,024</span></div>
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · S tip</span><span class="list-tag">1,653</span></div>
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · N arm</span><span class="list-tag">3,024</span></div>
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · N tip</span><span class="list-tag">1,653</span></div>
                   </div>
                 </section>
+
                 <section class="panel-section">
-                  <div class="section-header section-header--ruled"><h2 class="section-title">Symmetry</h2></div>
+                  <div class="section-header section-header--ruled">
+                    <h2 class="section-title">Symmetry</h2>
+                  </div>
                   <div class="panel-list">
                     <div class="list-row list-row--compact list-row--selected"><span class="list-label">90° rotational</span><span class="badge badge--success">100%</span><span class="badge badge--dim">detected</span></div>
                     <div class="list-row list-row--compact"><span class="list-label">Mirror X</span><span class="badge badge--neutral">61%</span></div>
                     <div class="list-row list-row--compact"><span class="list-label">No symmetry</span></div>
                   </div>
                 </section>
+
               </div>
             </div>
 
@@ -186,22 +368,34 @@
 
             <div class="workspace-canvas">
               <div class="canvas-subbar">
-                <div class="cfg-step-bar">
-                  <button class="step-item done"><span class="step-number">1</span><span class="step-item-label">Scan Layer</span></button>
-                  <div class="step-sep"></div>
-                  <button class="step-item done"><span class="step-number">2</span><span class="step-item-label">Islands</span></button>
-                  <div class="step-sep"></div>
-                  <button class="step-item active"><span class="step-number">3</span><span class="step-item-label">Symmetry</span></button>
+                <div class="flow-steps">
+                  <button class="flow-step flow-step--done"><i data-lucide="check"></i>Scan</button>
+                  <button class="flow-step flow-step--done"><i data-lucide="check"></i>Islands</button>
+                  <button class="flow-step flow-step--active">Symmetry</button>
                 </div>
+                <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
               </div>
-              <div class="canvas-surface ds-canvas-sample">
-                <span class="ds-axis ds-axis-x"></span>
-                <span class="ds-axis ds-axis-z"></span>
-                <span class="ds-region-sample" style="left:43%;top:43%;width:14%;height:14%;border-color:var(--canvas-island-stroke);background:color-mix(in oklch,var(--canvas-island) 40%,transparent)"></span>
-                <span class="ds-region-sample" style="left:12%;top:38%;width:22%;height:24%;border-color:#5555FF;background:color-mix(in oklch,#5555FF 22%,transparent)"></span>
-                <span class="ds-region-sample" style="left:66%;top:38%;width:22%;height:24%;border-color:#55FF55;background:color-mix(in oklch,#55FF55 22%,transparent)"></span>
-                <span class="ds-region-sample" style="left:38%;top:10%;width:24%;height:22%;border-color:#FFFF55;background:color-mix(in oklch,#FFFF55 22%,transparent)"></span>
-                <span class="ds-region-sample" style="left:38%;top:68%;width:24%;height:22%;border-color:#FF5555;background:color-mix(in oklch,#FF5555 22%,transparent)"></span>
+
+              <div class="canvas-surface canvas-surface--svg">
+                <svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+                  <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.5"/>
+                  <line x1="0" y1="128" x2="256" y2="128" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.5"/>
+                  <line x1="0" y1="0" x2="256" y2="256" stroke="var(--canvas-axis)" stroke-width="0.3" opacity="0.22"/>
+                  <line x1="256" y1="0" x2="0" y2="256" stroke="var(--canvas-axis)" stroke-width="0.3" opacity="0.22"/>
+
+                  <g fill="var(--canvas-island)" fill-opacity="0.55" stroke="var(--canvas-island-stroke)" stroke-width="0.8">
+                    <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2"/><!-- center-island -->
+                    <rect x="40.0"  y="107.0" width="72.0" height="42.0" rx="2"/><!-- blue-main-and-spawn -->
+                    <rect x="15.0"  y="144.0" width="57.0" height="29.0" rx="2"/><!-- blue-two-islands -->
+                    <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2"/><!-- green-main-and-spawn -->
+                    <rect x="185.0" y="84.0"  width="57.0" height="29.0" rx="2"/><!-- green-two-islands -->
+                    <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2"/><!-- red-main-and-spawn -->
+                    <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2"/><!-- red-two-islands -->
+                    <rect x="108.0" y="40.0"  width="42.0" height="72.0" rx="2"/><!-- yellow-main-and-spawn -->
+                    <rect x="84.0"  y="15.0"  width="29.0" height="57.0" rx="2"/><!-- yellow-two-islands -->
+                  </g>
+                  <circle cx="128.5" cy="128.5" r="1.8" fill="var(--canvas-axis)" opacity="0.6"/>
+                </svg>
               </div>
             </div>
 
@@ -212,40 +406,60 @@
                 <section class="panel-section">
                   <div class="detail-header">
                     <span class="geo-type-icon detail-icon--muted"><i data-lucide="sparkle"></i></span>
-                    <span class="detail-label">Seed summary</span>
+                    <span class="detail-label">Detection summary</span>
                   </div>
                   <div class="section-body">
-                    <div class="field"><label class="field-label">Teams</label><div class="field-pick-row"><span class="badge badge--success">4</span><span class="list-tag">from rot_90</span></div></div>
-                    <div class="field"><label class="field-label">Islands</label><div class="field-pick-row"><span class="field-value">5</span><span class="list-tag">1 center · 4 team</span></div></div>
-                    <div class="field"><label class="field-label">Buildable</label><div class="field-pick-row"><span class="field-value">terrain footprint</span></div></div>
-                    <div class="field"><label class="field-label">Center</label><div class="ctrl-row"><div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="0.5" disabled/></div><div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="0.5" disabled/></div></div></div>
-                    <p class="section-desc">Spawns, wool rooms, and monuments must sit on buildable columns — the overlay shows where solid ground is.</p>
+                    <div class="field">
+                      <label class="field-label">Islands</label>
+                      <div class="field-pick-row"><span class="badge badge--success">9</span><span class="list-tag">1 centre · 4 arm · 4 tip</span></div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label">Symmetry</label>
+                      <div class="field-pick-row"><span class="field-value">90° rotational</span><span class="badge badge--success">100%</span></div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label">Buildable</label>
+                      <div class="field-pick-row"><span class="field-value">terrain footprint</span><span class="list-tag">void-filter substrate</span></div>
+                    </div>
+                    <div class="field">
+                      <label class="field-label">Centre</label>
+                      <div class="ctrl-row">
+                        <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="0.5" disabled/></div>
+                        <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="0.5" disabled/></div>
+                      </div>
+                    </div>
+                    <p class="section-desc">Islands are <strong>neutral</strong> at this stage — the app detects shapes and their symmetry, but not ownership. Assign islands to teams in the Teams step to set the orbit order and seat each spawn.</p>
                   </div>
                 </section>
               </div>
             </div>
+
           </div>
         </div>
       </article>
     </section>
 
-    <!-- ════════════════════════ 1 · TEAMS & SPAWNS ════════════════════════ -->
+    <!-- ════════════════════════ 2 · TEAMS & SPAWNS ════════════════════════ -->
     <section class="ds-section" id="teams">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">01</p>
+          <p class="ds-kicker">02</p>
           <h2>Teams &amp; Spawns</h2>
         </div>
-        <p>Define team 0 once — symmetry orbit fills the rest, the spawn protection is auto-wired.</p>
+        <p>Define team 0 once — symmetry orbit fills the rest, the spawn protection is auto-wired. Assign
+           islands to set the orbit order.</p>
       </div>
 
       <p class="ds-theming-note">
         In the intent model a team's <em>spawn point</em> and its <em>protection zone</em> are one unit,
-        defined once for the authored team (team 0 · Blue). The system uses the confirmed
-        <code>rot_90</code> symmetry to rotate that unit onto the other three orbit positions, then
-        auto-wires the <code>enter = only-&lt;team&gt;</code> filter on each protection zone. You never touch
-        the region / filter graph. This fixes the old editor's split, where a spawn and its protection
-        lived under different tree branches.
+        defined once for the authored team (team 0 · Blue). The system uses the confirmed <code>rot_90</code>
+        symmetry to rotate that unit onto the other three orbit positions, then auto-wires the
+        <code>enter = only-&lt;team&gt;</code> filter on each protection zone. After defining teams, the
+        author tags islands to teams as <strong>authoring help</strong>: this fixes the <em>orbit order</em>
+        (the sequence the map was laid out in) and seats each team's spawn on the right island. Islands are
+        neutral by default — not every island needs a team. Thunder's centre island stays
+        <strong>contested</strong>. Authors commonly colour-code islands to teams with coloured clay or wool;
+        the assignment here mirrors that intent.
       </p>
 
       <div class="ds-sug-sample" style="max-width:320px;margin:var(--space-4) 0">
@@ -261,12 +475,13 @@
       </div>
 
       <article class="ds-example">
-        <div class="ds-example-label">Teams &amp; Spawns workspace</div>
+        <div class="ds-example-label">Teams &amp; Spawns workspace — island assignment + spawn inspector</div>
         <div class="ds-workspace-frame">
           <div class="workspace">
 
             <div class="workspace-sidebar">
               <div class="workspace-scroll">
+
                 <section class="panel-section">
                   <div class="section-header section-header--ruled"><h2 class="section-title">Teams</h2></div>
                   <div class="panel-list">
@@ -276,6 +491,23 @@
                     <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">yellow</span><span class="badge badge--dim">orbit</span></div>
                   </div>
                 </section>
+
+                <section class="panel-section">
+                  <div class="section-header section-header--ruled">
+                    <h2 class="section-title">Island Assignment</h2>
+                    <span class="badge badge--dim">authoring help</span>
+                  </div>
+                  <div class="panel-list">
+                    <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label list-label--mono">center-island</span><span class="badge badge--dim">contested</span></div>
+                    <div class="list-row list-row--compact"><span class="list-swatch" style="background:#5555FF"></span><span class="list-label list-label--mono">blue-main-and-spawn</span><span class="list-tag">blue</span></div>
+                    <div class="list-row list-row--compact"><span class="list-swatch" style="background:#5555FF"></span><span class="list-label list-label--mono">blue-two-islands</span><span class="list-tag">blue</span></div>
+                    <div class="list-row list-row--compact"><span class="list-swatch" style="background:#55FF55"></span><span class="list-label list-label--mono">green-main-and-spawn</span><span class="list-tag">green</span></div>
+                    <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FF5555"></span><span class="list-label list-label--mono">red-main-and-spawn</span><span class="list-tag">red</span></div>
+                    <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">yellow-main-and-spawn</span><span class="list-tag">yellow</span></div>
+                  </div>
+                  <p class="section-desc">Tagging an island tints its silhouette and fixes the <strong>orbit order</strong>, seating each spawn on the right island. Untagged islands stay neutral — <code>center-island</code> is contested. Thunder colours its islands with clay/wool; this mirrors that.</p>
+                </section>
+
                 <section class="panel-section">
                   <div class="section-header section-header--ruled"><h2 class="section-title">Team Size</h2></div>
                   <div class="section-body">
@@ -285,6 +517,7 @@
                     </div>
                   </div>
                 </section>
+
                 <section class="panel-section">
                   <div class="section-header section-header--ruled"><h2 class="section-title">Kit</h2></div>
                   <div class="section-body">
@@ -295,6 +528,7 @@
                     <p class="section-desc">Stone sword · bow (infinity) · iron pick &amp; axe (Eff I) — preselected.</p>
                   </div>
                 </section>
+
               </div>
             </div>
 
@@ -310,19 +544,40 @@
                 </div>
                 <div class="subbar-sep"></div>
                 <div class="canvas-toolbar">
-                  <button class="filter-chip filter-chip--active" title="Focused on Blue's quadrant">Blue island</button>
+                  <button class="filter-chip filter-chip--active" title="Orbit fill active">Orbit</button>
                   <button class="draw-tool-btn" title="Fit whole map"><i data-lucide="maximize-2"></i></button>
                 </div>
                 <span class="canvas-cursor">X -93 · Z -15</span>
-                <div class="canvas-subbar-right"><span class="canvas-zoom">250%</span></div>
+                <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
               </div>
-              <div class="canvas-surface ds-canvas-sample">
-                <span class="ds-axis ds-axis-x"></span>
-                <span class="ds-axis ds-axis-z"></span>
-                <span class="ds-region-sample" style="left:18%;top:22%;width:32%;height:28%;border-color:#5555FF;background:color-mix(in oklch,#5555FF 12%,transparent);border-style:dashed"></span>
-                <span class="ds-region-sample" style="left:30%;top:33%;width:8%;height:9%;border-color:#5555FF;background:color-mix(in oklch,#5555FF 32%,transparent)"></span>
-                <span class="ds-region-sample" style="left:50%;top:22%;width:32%;height:28%;border-color:#55FF55;background:color-mix(in oklch,#55FF55 6%,transparent);border-style:dashed;opacity:.55"></span>
-                <span class="ds-region-sample" style="left:62%;top:33%;width:8%;height:9%;border-color:#55FF55;background:color-mix(in oklch,#55FF55 15%,transparent);opacity:.55"></span>
+
+              <div class="canvas-surface canvas-surface--svg">
+                <svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+                  <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.4"/>
+                  <line x1="0" y1="128" x2="256" y2="128" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.4"/>
+
+                  <!-- contested centre — neutral gray -->
+                  <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2" fill="var(--canvas-island)" fill-opacity="0.55" stroke="var(--canvas-island-stroke)" stroke-width="0.8"/>
+                  <!-- team-tinted islands -->
+                  <rect x="40.0"  y="107.0" width="72.0" height="42.0" rx="2" fill="color-mix(in oklch, #5555FF 22%, transparent)" stroke="#5555FF" stroke-width="0.8"/>
+                  <rect x="15.0"  y="144.0" width="57.0" height="29.0" rx="2" fill="color-mix(in oklch, #5555FF 22%, transparent)" stroke="#5555FF" stroke-width="0.8"/>
+                  <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2" fill="color-mix(in oklch, #55FF55 22%, transparent)" stroke="#55FF55" stroke-width="0.8"/>
+                  <rect x="185.0" y="84.0"  width="57.0" height="29.0" rx="2" fill="color-mix(in oklch, #55FF55 22%, transparent)" stroke="#55FF55" stroke-width="0.8"/>
+                  <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2" fill="color-mix(in oklch, #FF5555 22%, transparent)" stroke="#FF5555" stroke-width="0.8"/>
+                  <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2" fill="color-mix(in oklch, #FF5555 22%, transparent)" stroke="#FF5555" stroke-width="0.8"/>
+                  <rect x="108.0" y="40.0"  width="42.0" height="72.0" rx="2" fill="color-mix(in oklch, #FFFF55 22%, transparent)" stroke="#FFFF55" stroke-width="0.8"/>
+                  <rect x="84.0"  y="15.0"  width="29.0" height="57.0" rx="2" fill="color-mix(in oklch, #FFFF55 22%, transparent)" stroke="#FFFF55" stroke-width="0.8"/>
+
+                  <!-- blue authored spawn-protect (dashed) -->
+                  <rect x="29.0" y="107.0" width="18.0" height="12.0" rx="1" fill="color-mix(in oklch, #5555FF 9%, transparent)" stroke="#5555FF" stroke-width="0.7" stroke-dasharray="2 1.5" opacity="0.75"/>
+
+                  <!-- spawn points -->
+                  <circle cx="34.5"  cy="112.5" r="2.2" fill="#5555FF" stroke="white" stroke-width="0.6"/>
+                  <circle cx="222.5" cy="144.5" r="2.2" fill="#55FF55" stroke="white" stroke-width="0.6"/>
+                  <circle cx="112.5" cy="222.5" r="2.2" fill="#FF5555" stroke="white" stroke-width="0.6"/>
+                  <circle cx="144.5" cy="34.5"  r="2.2" fill="#FFFF55" stroke="white" stroke-width="0.6"/>
+                  <circle cx="128.5" cy="128.5" r="2" fill="var(--canvas-island-stroke)" stroke="white" stroke-width="0.6" opacity="0.7"/>
+                </svg>
               </div>
             </div>
 
@@ -331,6 +586,7 @@
             <div class="workspace-inspector">
               <div class="workspace-scroll">
                 <div class="panel-stack">
+
                   <section class="panel-section">
                     <div class="detail-header">
                       <span class="geo-type-icon detail-icon--muted"><i data-lucide="cylinder"></i></span>
@@ -409,6 +665,7 @@
                     <p class="section-desc">Message “You may not enter the enemy's spawn!”. Orbit replicates this spawn unit
                        — point, protection, and wiring — for green, red, and yellow.</p>
                   </section>
+
                 </div>
               </div>
             </div>
@@ -418,58 +675,62 @@
       </article>
     </section>
 
-    <!-- ════════════════════════ 2 · BUILD ════════════════════════ -->
+    <!-- ════════════════════════ 3 · BUILD ════════════════════════ -->
     <section class="ds-section" id="build">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">02</p>
+          <p class="ds-kicker">03</p>
           <h2>Build</h2>
         </div>
-        <p>The terrain is already buildable. You draw only the bridges over the void — the system unions
-           them and enforces the rest.</p>
+        <p>Terrain is auto-buildable via the void filter — draw only the over-void bridges, set the max
+           height in the side view, and the generator unions them and enforces the rest.</p>
       </div>
 
       <p class="ds-theming-note">
-        PGM's void filter (<code>block = not(void)</code> on the <em>negative</em> of the build group) makes
-        every column that has a surface block automatically editable, so the islands' terrain <strong>is</strong>
-        the build area with no region rows generated for it. <code>BuildIntent.Areas</code> are therefore only
-        the <em>over-void extensions</em> — the bridges and platforms you want buildable across the gaps between
-        islands. Set the max build height, mark the bridges, and the generator unions them and applies the void
-        filter to the complement. Inner cut-outs (holes) are supported as a <code>complement</code>.
+        PGM's void filter makes every column that has a surface block automatically editable, so the islands'
+        terrain <strong>is</strong> the build area — no region rows are generated for it.
+        <code>BuildIntent.Areas</code> are therefore only the <em>over-void extensions</em>: the bridges and
+        platforms you want buildable across the gaps between islands. Set the max build height here (thunder =
+        <strong>Y 25</strong>), mark the bridges, and the generator unions them and applies the void filter to
+        the <code>negative</code>. Inner cut-outs (holes) are supported as a <code>complement</code>.
       </p>
 
       <article class="ds-example">
-        <div class="ds-example-label">Build workspace — bridges + live buildability overlay</div>
+        <div class="ds-example-label">Build workspace — build-height side-view + bridges + buildability overlay</div>
         <div class="ds-workspace-frame">
           <div class="workspace">
 
             <div class="workspace-sidebar">
               <div class="workspace-scroll">
+
                 <section class="panel-section">
                   <div class="section-header section-header--ruled"><h2 class="section-title">Build Height</h2></div>
                   <div class="section-body">
                     <div class="field">
-                      <label class="field-label">Max build height</label>
+                      <label class="field-label">Max build height (Y)</label>
                       <input class="field-input" type="number" value="25"/>
                     </div>
                   </div>
                 </section>
+
                 <section class="panel-section">
                   <div class="section-header section-header--ruled">
                     <h2 class="section-title">Bridges</h2>
                     <button class="action-btn">+ Add</button>
                   </div>
                   <div class="panel-list">
-                    <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">center-island</span></div>
+                    <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">center-island</span><span class="badge badge--success">selected</span></div>
                     <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">blue-main-and-spawn</span></div>
                     <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">blue-two-islands</span></div>
                     <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">green · red · yellow</span><span class="badge badge--dim">orbit</span></div>
                   </div>
                 </section>
+
                 <section class="panel-section">
                   <div class="section-header section-header--ruled"><h2 class="section-title">Holes</h2></div>
                   <div class="panel-list"><div class="list-empty">No cut-outs. Subtract a hole to carve a no-build gap.</div></div>
                 </section>
+
               </div>
             </div>
 
@@ -477,25 +738,49 @@
 
             <div class="workspace-canvas">
               <div class="canvas-subbar">
-                <div class="canvas-toolbar">
-                  <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
-                  <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
-                  <button class="draw-tool-btn draw-tool-btn--op-add" title="Add rectangle"><i data-lucide="plus-square"></i><span class="draw-tool-label">Add</span></button>
-                  <button class="draw-tool-btn draw-tool-btn--op-sub" title="Subtract hole"><i data-lucide="minus-square"></i><span class="draw-tool-label">Sub</span></button>
+                <div class="flow-steps">
+                  <button class="flow-step flow-step--done"><i data-lucide="check"></i>Height</button>
+                  <button class="flow-step flow-step--active">Bridges</button>
                 </div>
                 <div class="subbar-sep"></div>
                 <div class="canvas-toolbar">
                   <button class="filter-chip filter-chip--active" title="Buildability overlay"><i data-lucide="layers"></i> Buildable</button>
                 </div>
-                <span class="canvas-cursor">X 0 · Z 0</span>
                 <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
               </div>
-              <div class="canvas-surface ds-canvas-sample">
-                <span class="ds-axis ds-axis-x"></span>
-                <span class="ds-axis ds-axis-z"></span>
-                <span class="ds-region-sample" style="left:43%;top:43%;width:14%;height:14%;border-color:var(--canvas-add-stroke);background:color-mix(in oklch,var(--canvas-add-fill) 35%,transparent)"></span>
-                <span class="ds-region-sample" style="left:22%;top:40%;width:21%;height:20%;border-color:var(--canvas-add-stroke);background:color-mix(in oklch,var(--canvas-add-fill) 28%,transparent)"></span>
-                <span class="ds-region-sample" style="left:8%;top:62%;width:24%;height:11%;border-color:var(--canvas-add-stroke);background:color-mix(in oklch,var(--canvas-add-fill) 22%,transparent)"></span>
+
+              <div class="canvas-surface canvas-surface--svg">
+                <svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+                  <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.5"/>
+                  <line x1="0" y1="128" x2="256" y2="128" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.5"/>
+
+                  <g fill="var(--canvas-island)" fill-opacity="0.55" stroke="var(--canvas-island-stroke)" stroke-width="0.7">
+                    <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2"/>
+                    <rect x="40.0"  y="107.0" width="72.0" height="42.0" rx="2"/>
+                    <rect x="15.0"  y="144.0" width="57.0" height="29.0" rx="2"/>
+                    <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2"/>
+                    <rect x="185.0" y="84.0"  width="57.0" height="29.0" rx="2"/>
+                    <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2"/>
+                    <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2"/>
+                    <rect x="108.0" y="40.0"  width="42.0" height="72.0" rx="2"/>
+                    <rect x="84.0"  y="15.0"  width="29.0" height="57.0" rx="2"/>
+                  </g>
+                  <g fill="var(--canvas-add-fill)" fill-opacity="0.22" stroke="var(--canvas-add-stroke)" stroke-width="0.8">
+                    <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2" fill-opacity="0.38" stroke-width="1.2"/>
+                    <rect x="40.0"  y="107.0" width="72.0" height="42.0" rx="2"/>
+                    <rect x="15.0"  y="144.0" width="57.0" height="29.0" rx="2"/>
+                    <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2"/>
+                    <rect x="185.0" y="84.0"  width="57.0" height="29.0" rx="2"/>
+                    <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2"/>
+                    <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2"/>
+                    <rect x="108.0" y="40.0"  width="42.0" height="72.0" rx="2"/>
+                    <rect x="84.0"  y="15.0"  width="29.0" height="57.0" rx="2"/>
+                  </g>
+                  <circle cx="34.5"  cy="112.5" r="2.2" fill="#5555FF" stroke="white" stroke-width="0.6"/>
+                  <circle cx="222.5" cy="144.5" r="2.2" fill="#55FF55" stroke="white" stroke-width="0.6"/>
+                  <circle cx="112.5" cy="222.5" r="2.2" fill="#FF5555" stroke="white" stroke-width="0.6"/>
+                  <circle cx="144.5" cy="34.5"  r="2.2" fill="#FFFF55" stroke="white" stroke-width="0.6"/>
+                </svg>
               </div>
             </div>
 
@@ -504,6 +789,7 @@
             <div class="workspace-inspector">
               <div class="workspace-scroll">
                 <div class="panel-stack">
+
                   <section class="panel-section">
                     <div class="detail-header">
                       <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
@@ -534,6 +820,37 @@
 
                   <section class="panel-section">
                     <div class="section-header section-header--ruled">
+                      <h2 class="section-title">Build height</h2>
+                      <span class="badge badge--dim">Y 25</span>
+                    </div>
+                    <div class="section-body">
+                      <div class="field">
+                        <div class="slice-head">
+                          <label class="field-label">Side view — drag line to set max Y</label>
+                          <div class="slice-axis">
+                            <button class="draw-tool-btn draw-tool-btn--active" title="Inspect from −Z">Z−</button>
+                            <button class="draw-tool-btn" title="Inspect from +Z">Z+</button>
+                            <button class="draw-tool-btn" title="Inspect from −X">X−</button>
+                            <button class="draw-tool-btn" title="Inspect from +X">X+</button>
+                          </div>
+                        </div>
+                        <div class="slice-view" style="position:relative">
+                          <svg class="slice-canvas" viewBox="0 0 240 150" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
+                            <polygon points="0,150 0,105 18,104 28,100 38,98 50,95 65,92 80,90 90,88 100,88 108,86 115,85 120,84 128,84 135,85 142,86 152,88 162,88 174,90 188,92 200,94 210,96 222,99 230,101 240,104 240,150" fill="var(--canvas-island)" fill-opacity="0.6" stroke="var(--canvas-island-stroke)" stroke-width="0.8"/>
+                            <line x1="0" y1="25" x2="240" y2="25" stroke="var(--canvas-sideview-line)" stroke-width="1.5" stroke-dasharray="4 2"/>
+                            <circle cx="232" cy="25" r="4.5" fill="var(--canvas-sideview-line)" stroke="var(--bg-canvas)" stroke-width="1.2"/>
+                            <text x="6" y="21" font-size="9" fill="var(--canvas-sideview-line)" font-family="ui-monospace,monospace">Y 25</text>
+                            <line x1="0" y1="115" x2="240" y2="115" stroke="var(--canvas-axis)" stroke-width="0.6" opacity="0.4"/>
+                            <text x="6" y="111" font-size="8" fill="var(--canvas-axis)" opacity="0.55" font-family="ui-monospace,monospace">Y 7 (surface)</text>
+                          </svg>
+                        </div>
+                        <p class="section-desc">Drag the orange line to set the maximum build height (currently Y 25). The plan canvas is top-down — use this side view to seat the ceiling.</p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="panel-section">
+                    <div class="section-header section-header--ruled">
                       <h2 class="section-title">Auto-wiring</h2>
                       <span class="badge badge--dim">derived</span>
                     </div>
@@ -545,8 +862,9 @@
                       </div>
                     </div>
                     <p class="section-desc">The bridges union into the build group; the void filter is applied to its
-                       <code>negative</code>. Message “You may not edit the void!”.</p>
+                      <code>negative</code>. Message “You may not edit the void!”.</p>
                   </section>
+
                 </div>
               </div>
             </div>
@@ -554,35 +872,185 @@
           </div>
         </div>
       </article>
-
-      <div class="ds-subsection" style="margin-top:var(--space-5)">
-        <div class="panel-warning">
-          <strong>Live validation.</strong> Buildability re-runs after this step to surface unintended
-          <code>never</code> / <code>void_denied</code> columns, and traversability checks that the spawn↔wool chain
-          is connected over walkable surface ∪ bridgeable buildable. On a half-authored map it will report
-          <em>“Yellow island not reachable — check build regions / bridgeable gaps.”</em> — your cue to add a bridge here.
-        </div>
-      </div>
     </section>
 
-    <!-- ════════════════════════ 3 · WOOLS ════════════════════════ -->
-    <section class="ds-section" id="wools">
+    <!-- ════════════════════════ VALIDATE — Buildability & Traversability ════════════════════════ -->
+    <section class="ds-section" id="validate">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">03</p>
-          <h2>Wools</h2>
+          <p class="ds-kicker">Validation</p>
+          <h2>Buildability &amp; Traversability</h2>
         </div>
-        <p>Define one wool unit — colour, spawn, room, monuments — and orbit-fill produces the other three.</p>
+        <p>Two automated checks over the real island geometry — re-run after every Build change; the gate
+           routes failures back to Build.</p>
       </div>
 
       <p class="ds-theming-note">
-        The author defines a single wool: its colour, the block where it spawns, the room region around it, and
-        its monuments. Monument count is pre-filled from the team count — on a four-team map every <em>other</em>
-        team must capture it, so <strong>N − 1 = 3 monuments per wool</strong>. Orbit-fill then rotates the unit
-        through the remaining three teams, and the system auto-wires room defense, room build/break, and monument
-        capture from the wiring templates. Coordinate flooring is PGM-grounded: the wool <code>&lt;location&gt;</code>
-        is floored (PGM keeps it as a raw proximity vector), while monument <code>&lt;block&gt;</code> coords pass
-        through raw (PGM's <code>BlockRegion</code> floors them itself).
+        <strong>Buildability</strong> re-runs after Build to catch any unintended <code>never</code> or
+        <code>void_denied</code> cells — columns that look walkable but the filter graph has blocked.
+        <strong>Traversability</strong> checks that every spawn can reach every wool room — the spawn↔wool
+        chain must be connected across walkable surface <em>and</em> the bridgeable build geometry. A failure
+        here blocks export (HTTP&nbsp;409) and routes you back to Build to add a bridge.
+      </p>
+
+      <div class="ds-example-grid">
+
+        <article class="ds-example">
+          <div class="ds-example-label">Buildability — after Build (all bridges present)</div>
+          <div class="canvas-surface canvas-surface--svg" style="min-height:320px;border-radius:var(--radius-sm);overflow:hidden">
+            <svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+              <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.4"/>
+              <line x1="0" y1="128" x2="256" y2="128" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.4"/>
+              <g fill="var(--canvas-island)" fill-opacity="0.55" stroke="var(--canvas-island-stroke)" stroke-width="0.7">
+                <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2"/>
+                <rect x="40.0"  y="107.0" width="72.0" height="42.0" rx="2"/>
+                <rect x="15.0"  y="144.0" width="57.0" height="29.0" rx="2"/>
+                <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2"/>
+                <rect x="185.0" y="84.0"  width="57.0" height="29.0" rx="2"/>
+                <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2"/>
+                <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2"/>
+                <rect x="108.0" y="40.0"  width="42.0" height="72.0" rx="2"/>
+                <rect x="84.0"  y="15.0"  width="29.0" height="57.0" rx="2"/>
+              </g>
+              <g fill="var(--canvas-add-fill)" fill-opacity="0.18" stroke="none">
+                <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2"/>
+                <rect x="40.0"  y="107.0" width="72.0" height="42.0" rx="2"/>
+                <rect x="15.0"  y="144.0" width="57.0" height="29.0" rx="2"/>
+                <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2"/>
+                <rect x="185.0" y="84.0"  width="57.0" height="29.0" rx="2"/>
+                <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2"/>
+                <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2"/>
+                <rect x="108.0" y="40.0"  width="42.0" height="72.0" rx="2"/>
+                <rect x="84.0"  y="15.0"  width="29.0" height="57.0" rx="2"/>
+              </g>
+              <rect x="15.0" y="159.0" width="4" height="4" rx="0.5" fill="var(--canvas-sub-fill)" fill-opacity="0.75" stroke="var(--canvas-sub-stroke)" stroke-width="0.5"/>
+              <rect x="182.0" y="85.0" width="4" height="4" rx="0.5" fill="var(--canvas-sub-fill)" fill-opacity="0.75" stroke="var(--canvas-sub-stroke)" stroke-width="0.5"/>
+              <circle cx="34.5"  cy="112.5" r="2.2" fill="#5555FF" stroke="white" stroke-width="0.6"/>
+              <circle cx="222.5" cy="144.5" r="2.2" fill="#55FF55" stroke="white" stroke-width="0.6"/>
+              <circle cx="112.5" cy="222.5" r="2.2" fill="#FF5555" stroke="white" stroke-width="0.6"/>
+              <circle cx="144.5" cy="34.5"  r="2.2" fill="#FFFF55" stroke="white" stroke-width="0.6"/>
+            </svg>
+          </div>
+          <div class="panel-list" style="padding:var(--space-2) 0 0">
+            <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:var(--canvas-add-fill);opacity:0.5;border-color:var(--canvas-add-stroke)"></span><span class="list-label">Buildable</span><span class="list-tag">terrain + bridges union</span></div>
+            <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:var(--canvas-sub-fill);border-color:var(--canvas-sub-stroke)"></span><span class="list-label">Never / void-denied</span><span class="list-tag">filter blocked this column</span></div>
+            <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:var(--canvas-island);opacity:0.55;border-color:var(--canvas-island-stroke)"></span><span class="list-label">Island terrain</span><span class="list-tag">auto-buildable via void filter</span></div>
+          </div>
+          <div class="step-row" style="margin-top:var(--space-2)">
+            <span class="step-dot step-dot--done"></span>
+            <span class="step-label">Buildability</span>
+            <span class="step-detail">2 never cells — outside the build footprint, expected</span>
+          </div>
+        </article>
+
+        <article class="ds-example">
+          <div class="ds-example-label">Traversability — connected (left) vs Yellow isolated (right)</div>
+          <div class="ds-example-grid" style="gap:var(--space-3)">
+
+            <div>
+              <div class="canvas-surface canvas-surface--svg" style="min-height:260px;border-radius:var(--radius-sm);overflow:hidden">
+                <svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+                  <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.35"/>
+                  <line x1="0" y1="128" x2="256" y2="128" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.35"/>
+                  <g fill="var(--canvas-island)" fill-opacity="0.5" stroke="var(--canvas-island-stroke)" stroke-width="0.7">
+                    <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2"/>
+                    <rect x="40.0"  y="107.0" width="72.0" height="42.0" rx="2"/>
+                    <rect x="15.0"  y="144.0" width="57.0" height="29.0" rx="2"/>
+                    <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2"/>
+                    <rect x="185.0" y="84.0"  width="57.0" height="29.0" rx="2"/>
+                    <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2"/>
+                    <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2"/>
+                    <rect x="108.0" y="40.0"  width="42.0" height="72.0" rx="2"/>
+                    <rect x="84.0"  y="15.0"  width="29.0" height="57.0" rx="2"/>
+                  </g>
+                  <line x1="34.5" y1="112.5" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="1.5" opacity="0.85"/>
+                  <line x1="222.5" y1="144.5" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="1.5" opacity="0.85"/>
+                  <line x1="112.5" y1="222.5" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="1.5" opacity="0.85"/>
+                  <line x1="144.5" y1="34.5" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="1.5" opacity="0.85"/>
+                  <line x1="16" y1="138" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
+                  <line x1="241" y1="119" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
+                  <line x1="138" y1="241" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
+                  <line x1="119" y1="16" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.5"/>
+                  <circle cx="128.5" cy="128.5" r="4" fill="var(--color-success)" opacity="0.8"/>
+                  <circle cx="34.5"  cy="112.5" r="2.8" fill="#5555FF" stroke="white" stroke-width="0.7"/>
+                  <circle cx="222.5" cy="144.5" r="2.8" fill="#55FF55" stroke="white" stroke-width="0.7"/>
+                  <circle cx="112.5" cy="222.5" r="2.8" fill="#FF5555" stroke="white" stroke-width="0.7"/>
+                  <circle cx="144.5" cy="34.5"  r="2.8" fill="#FFFF55" stroke="white" stroke-width="0.7"/>
+                  <text x="4" y="12" font-size="8" fill="var(--color-success)" font-family="ui-monospace,monospace" font-weight="600">All connected</text>
+                </svg>
+              </div>
+              <div class="step-row" style="margin-top:var(--space-2)">
+                <span class="step-dot step-dot--done"></span>
+                <span class="step-label">Connected</span>
+                <span class="step-detail">blue ↔ green ↔ red ↔ yellow</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="canvas-surface canvas-surface--svg" style="min-height:260px;border-radius:var(--radius-sm);overflow:hidden">
+                <svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+                  <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.35"/>
+                  <line x1="0" y1="128" x2="256" y2="128" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.35"/>
+                  <g fill="var(--canvas-island)" fill-opacity="0.5" stroke="var(--canvas-island-stroke)" stroke-width="0.7">
+                    <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2"/>
+                    <rect x="40.0"  y="107.0" width="72.0" height="42.0" rx="2"/>
+                    <rect x="15.0"  y="144.0" width="57.0" height="29.0" rx="2"/>
+                    <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2"/>
+                    <rect x="185.0" y="84.0"  width="57.0" height="29.0" rx="2"/>
+                    <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2"/>
+                    <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2"/>
+                    <rect x="108.0" y="40.0"  width="42.0" height="72.0" rx="2"/>
+                    <rect x="84.0"  y="15.0"  width="29.0" height="57.0" rx="2"/>
+                  </g>
+                  <line x1="34.5"  y1="112.5" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="1.5" opacity="0.85"/>
+                  <line x1="222.5" y1="144.5" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="1.5" opacity="0.85"/>
+                  <line x1="112.5" y1="222.5" x2="128.5" y2="128.5" stroke="var(--color-success)" stroke-width="1.5" opacity="0.85"/>
+                  <line x1="144.5" y1="34.5" x2="128.5" y2="80" stroke="var(--color-error)" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.9"/>
+                  <circle cx="128.5" cy="80" r="3" fill="none" stroke="var(--color-error)" stroke-width="1.2" opacity="0.85"/>
+                  <circle cx="128.5" cy="128.5" r="4" fill="var(--color-success)" opacity="0.7"/>
+                  <circle cx="34.5"  cy="112.5" r="2.8" fill="#5555FF" stroke="white" stroke-width="0.7"/>
+                  <circle cx="222.5" cy="144.5" r="2.8" fill="#55FF55" stroke="white" stroke-width="0.7"/>
+                  <circle cx="112.5" cy="222.5" r="2.8" fill="#FF5555" stroke="white" stroke-width="0.7"/>
+                  <circle cx="144.5" cy="34.5" r="2.8" fill="#FFFF55" stroke="var(--color-error)" stroke-width="1.2"/>
+                  <text x="4" y="12" font-size="8" fill="var(--color-error)" font-family="ui-monospace,monospace" font-weight="600">Yellow isolated</text>
+                </svg>
+              </div>
+              <div class="step-row" style="margin-top:var(--space-2)">
+                <span class="step-dot step-dot--error"></span>
+                <span class="step-label">Isolated</span>
+                <span class="step-detail">Yellow not reachable — add a bridge</span>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="panel-warning" style="margin-top:var(--space-3)">
+            <strong>Export blocked.</strong> Yellow spawn (16,&minus;93) cannot reach any wool room — the gap
+            between <code>yellow-main-and-spawn</code> and <code>center-island</code> has no bridge. Return to
+            <strong>Build → Bridges</strong> and draw the missing rectangle; traversability re-runs on return.
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ════════════════════════ 4 · WOOLS ════════════════════════ -->
+    <section class="ds-section" id="wools">
+      <div class="ds-section-heading">
+        <div>
+          <p class="ds-kicker">04</p>
+          <h2>Wools</h2>
+        </div>
+        <p>Define one wool unit in four sub-steps — colour, spawn, room, monuments — and orbit-fill produces
+           the other three. N − 1 = 3 monuments per wool on a four-team map.</p>
+      </div>
+
+      <p class="ds-theming-note">
+        A <em>wool unit</em> is one coloured wool block, the room it lives in, and the capture monuments that
+        record each enemy team's take. Author only the blue wool; <code>rot_90</code> symmetry orbit-fills
+        green, red, and yellow. Room defense, room build/break, and monument capture are auto-wired from
+        templates — you never touch the filter graph. The four sub-steps keep each decision small: colour and
+        spawn first, then draw the room rectangle, then drop the three monument blocks.
       </p>
 
       <div class="ds-sug-sample" style="max-width:340px;margin:var(--space-4) 0">
@@ -598,7 +1066,7 @@
       </div>
 
       <article class="ds-example">
-        <div class="ds-example-label">Wools workspace — Blue authored, Green/Red/Yellow orbit-filled</div>
+        <div class="ds-example-label">Wools workspace — blue authored, green/red/yellow orbit · sub-step: Room</div>
         <div class="ds-workspace-frame">
           <div class="workspace">
 
@@ -613,13 +1081,6 @@
                     <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">yellow-wool</span><span class="badge badge--dim">orbit</span></div>
                   </div>
                 </section>
-                <section class="panel-section">
-                  <div class="section-header section-header--ruled"><h2 class="section-title">Wool</h2></div>
-                  <div class="section-body">
-                    <div class="field"><label class="field-label">Owner team</label><div class="field-pick-row"><span class="field-swatch" style="background:#5555FF"></span><span class="field-value">Blue</span></div></div>
-                    <div class="field"><label class="field-label">Monuments</label><div class="field-pick-row"><span class="badge badge--success">3 / 3</span><span class="list-tag">Green · Red · Yellow</span></div></div>
-                  </div>
-                </section>
               </div>
             </div>
 
@@ -627,26 +1088,63 @@
 
             <div class="workspace-canvas">
               <div class="canvas-subbar">
-                <div class="canvas-toolbar">
-                  <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
-                  <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
-                  <button class="draw-tool-btn" title="Place point"><i data-lucide="dot"></i></button>
-                  <button class="draw-tool-btn" title="Place block"><i data-lucide="square"></i></button>
+                <div class="flow-steps">
+                  <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
+                  <button class="flow-step flow-step--done"><i data-lucide="check"></i>Spawn</button>
+                  <button class="flow-step flow-step--active">Room</button>
+                  <button class="flow-step">Monuments</button>
                 </div>
-                <div class="subbar-sep"></div>
-                <div class="canvas-toolbar">
-                  <button class="filter-chip filter-chip--active" title="Orbit fill">Orbit</button>
+                <div class="canvas-subbar-right">
+                  <button class="filter-chip filter-chip--active" title="Orbit fill active">Orbit</button>
+                  <span class="canvas-zoom">100%</span>
                 </div>
-                <span class="canvas-cursor">X -112 · Z 8</span>
-                <div class="canvas-subbar-right"><span class="canvas-zoom">75%</span></div>
               </div>
-              <div class="canvas-surface ds-canvas-sample">
-                <span class="ds-axis ds-axis-x"></span>
-                <span class="ds-axis ds-axis-z"></span>
-                <span class="ds-region-sample" style="left:10%;top:38%;width:18%;height:22%;border-color:#5555FF;background:color-mix(in oklch,#5555FF 22%,transparent)"></span>
-                <span style="position:absolute;left:63%;top:47%;width:9px;height:9px;border-radius:50%;background:#55FF55;border:1.5px solid color-mix(in oklch,#55FF55 80%,white);box-shadow:0 0 0 2px color-mix(in oklch,#55FF55 30%,transparent)"></span>
-                <span style="position:absolute;left:48%;top:64%;width:9px;height:9px;border-radius:50%;background:#FF5555;border:1.5px solid color-mix(in oklch,#FF5555 80%,white)"></span>
-                <span style="position:absolute;left:50%;top:18%;width:9px;height:9px;border-radius:50%;background:#FFFF55;border:1.5px solid color-mix(in oklch,#FFFF55 80%,white)"></span>
+
+              <div class="canvas-surface canvas-surface--svg">
+                <svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+                  <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.5"/>
+                  <line x1="0" y1="128" x2="256" y2="128" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.5"/>
+
+                  <!-- island silhouettes, faint, team-tinted for context -->
+                  <rect x="112.0" y="112.0" width="33.0" height="33.0" rx="2" fill="var(--canvas-island)" fill-opacity=".35" stroke="var(--canvas-island-stroke)" stroke-width="0.6"/>
+                  <rect x="40.0" y="107.0" width="72.0" height="42.0" rx="2" fill="color-mix(in oklch,#5555FF 14%,transparent)" stroke="#5555FF" stroke-width="0.6" opacity=".55"/>
+                  <rect x="15.0" y="144.0" width="57.0" height="29.0" rx="2" fill="color-mix(in oklch,#5555FF 14%,transparent)" stroke="#5555FF" stroke-width="0.6" opacity=".55"/>
+                  <rect x="145.0" y="108.0" width="72.0" height="42.0" rx="2" fill="color-mix(in oklch,#55FF55 14%,transparent)" stroke="#55FF55" stroke-width="0.6" opacity=".4"/>
+                  <rect x="185.0" y="84.0" width="57.0" height="29.0" rx="2" fill="color-mix(in oklch,#55FF55 14%,transparent)" stroke="#55FF55" stroke-width="0.6" opacity=".4"/>
+                  <rect x="107.0" y="145.0" width="42.0" height="72.0" rx="2" fill="color-mix(in oklch,#FF5555 14%,transparent)" stroke="#FF5555" stroke-width="0.6" opacity=".4"/>
+                  <rect x="144.0" y="185.0" width="29.0" height="57.0" rx="2" fill="color-mix(in oklch,#FF5555 14%,transparent)" stroke="#FF5555" stroke-width="0.6" opacity=".4"/>
+                  <rect x="108.0" y="40.0" width="42.0" height="72.0" rx="2" fill="color-mix(in oklch,#FFFF55 14%,transparent)" stroke="#FFFF55" stroke-width="0.6" opacity=".4"/>
+                  <rect x="84.0" y="15.0" width="29.0" height="57.0" rx="2" fill="color-mix(in oklch,#FFFF55 14%,transparent)" stroke="#FFFF55" stroke-width="0.6" opacity=".4"/>
+
+                  <!-- wool rooms (4 corners) — blue active (highlighted), others dim -->
+                  <rect x="9.0" y="130.0" width="14.0" height="17.0" rx="1" fill="color-mix(in oklch,#5555FF 28%,transparent)" stroke="#5555FF" stroke-width="1" stroke-dasharray="2,1"/>
+                  <rect x="234.0" y="110.0" width="14.0" height="17.0" rx="1" fill="color-mix(in oklch,#55FF55 18%,transparent)" stroke="#55FF55" stroke-width="0.7" stroke-dasharray="2,1" opacity=".6"/>
+                  <rect x="130.0" y="234.0" width="17.0" height="14.0" rx="1" fill="color-mix(in oklch,#FF5555 18%,transparent)" stroke="#FF5555" stroke-width="0.7" stroke-dasharray="2,1" opacity=".6"/>
+                  <rect x="110.0" y="9.0" width="17.0" height="14.0" rx="1" fill="color-mix(in oklch,#FFFF55 18%,transparent)" stroke="#FFFF55" stroke-width="0.7" stroke-dasharray="2,1" opacity=".6"/>
+
+                  <!-- wool spawn points -->
+                  <circle cx="15.5" cy="136.5" r="2" fill="#5555FF" stroke="white" stroke-width="0.6"/>
+                  <circle cx="241.5" cy="120.5" r="2" fill="#55FF55" stroke="white" stroke-width="0.6"/>
+                  <circle cx="136.5" cy="241.5" r="2" fill="#FF5555" stroke="white" stroke-width="0.6"/>
+                  <circle cx="120.5" cy="15.5" r="2" fill="#FFFF55" stroke="white" stroke-width="0.6"/>
+
+                  <!-- 12 monument capture points (coloured by capturing team) -->
+                  <circle cx="110.0" cy="201.0" r="1.6" fill="#FF5555" opacity=".85"/>
+                  <circle cx="110.0" cy="199.0" r="1.6" fill="#FF5555" opacity=".85"/>
+                  <circle cx="110.0" cy="199.0" r="1.6" fill="#FF5555" opacity=".85"/>
+                  <circle cx="55.0" cy="110.0" r="1.6" fill="#5555FF" opacity=".85"/>
+                  <circle cx="56.0" cy="110.0" r="1.6" fill="#5555FF" opacity=".85"/>
+                  <circle cx="57.0" cy="110.0" r="1.6" fill="#5555FF" opacity=".85"/>
+                  <circle cx="146.0" cy="55.0" r="1.6" fill="#55FF55" opacity=".85"/>
+                  <circle cx="146.0" cy="56.0" r="1.6" fill="#55FF55" opacity=".85"/>
+                  <circle cx="146.0" cy="57.0" r="1.6" fill="#55FF55" opacity=".85"/>
+                  <circle cx="201.0" cy="146.0" r="1.6" fill="#FFFF55" opacity=".85"/>
+                  <circle cx="200.0" cy="146.0" r="1.6" fill="#FFFF55" opacity=".85"/>
+                  <circle cx="199.0" cy="146.0" r="1.6" fill="#FFFF55" opacity=".85"/>
+
+                  <!-- active selection glow on blue-wool room -->
+                  <rect x="7.5" y="128.5" width="17" height="20" rx="2" fill="none" stroke="#5555FF" stroke-width="1.5" opacity=".45"/>
+                </svg>
               </div>
             </div>
 
@@ -655,7 +1153,6 @@
             <div class="workspace-inspector">
               <div class="workspace-scroll">
                 <div class="panel-stack">
-
                   <section class="panel-section">
                     <div class="detail-header">
                       <span class="geo-type-icon detail-icon--muted"><i data-lucide="square"></i></span>
@@ -664,78 +1161,30 @@
                     </div>
                     <div class="section-body">
                       <div class="field">
-                        <label class="field-label">Colour</label>
-                        <div class="field-pick-row"><span class="field-swatch" style="background:#5555FF"></span><select class="field-input"><option selected>Blue</option></select></div>
+                        <label class="field-label">Wool Room Region</label>
+                        <input class="field-input" type="text" value="blue-wool"/>
                       </div>
                       <div class="field">
-                        <label class="field-label">Spawn location <span class="text-muted text-sm">(floored)</span></label>
+                        <label class="field-label">Min</label>
                         <div class="ctrl-row">
-                          <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="-112"/></div>
-                          <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="10"/></div>
-                          <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="8"/></div>
+                          <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="-119"/></div>
+                          <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="2"/></div>
                         </div>
                       </div>
                       <div class="field">
-                        <label class="field-label">Wool room region</label>
-                        <input class="field-input" value="blue-wool"/>
-                      </div>
-                      <div class="field">
-                        <div class="slice-head">
-                          <label class="field-label">Side view — drag the line to set Y</label>
-                          <div class="slice-axis">
-                            <button class="draw-tool-btn draw-tool-btn--active" title="Inspect from −Z">Z−</button>
-                            <button class="draw-tool-btn" title="Inspect from +Z">Z+</button>
-                            <button class="draw-tool-btn" title="Inspect from −X">X−</button>
-                            <button class="draw-tool-btn" title="Inspect from +X">X+</button>
-                          </div>
-                        </div>
-                        <div class="slice-view" style="position:relative">
-                          <canvas class="slice-canvas"></canvas>
-                          <span style="position:absolute;left:0;right:0;top:42%;height:2px;background:var(--accent);opacity:.85;pointer-events:none"></span>
-                          <span style="position:absolute;right:6px;top:31%;font-size:10px;color:var(--accent);font-family:ui-monospace,monospace;pointer-events:none">Y 10</span>
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="panel-section">
-                    <div class="section-header section-header--ruled">
-                      <h2 class="section-title">Monuments</h2>
-                      <button class="action-btn">+ Add</button>
-                    </div>
-                    <div class="panel-list">
-                      <div class="list-row list-row--compact list-row--selected"><span class="list-swatch" style="background:#55FF55"></span><span class="list-label list-label--mono">blue-green</span><span class="list-tag">72, 18, 18</span></div>
-                      <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FF5555"></span><span class="list-label list-label--mono">blue-red</span><span class="list-tag">-18, 8, 73</span></div>
-                      <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">blue-yellow</span><span class="list-tag">18, 8, -71</span></div>
-                    </div>
-                    <div class="section-body">
-                      <div class="field">
-                        <label class="field-label">Capturing team</label>
-                        <div class="field-pick-row"><span class="field-swatch" style="background:#55FF55"></span><select class="field-input"><option>Blue</option><option selected>Green</option><option>Red</option><option>Yellow</option></select></div>
-                      </div>
-                      <div class="field">
-                        <label class="field-label">Block position <span class="text-muted text-sm">(raw)</span></label>
+                        <label class="field-label">Max</label>
                         <div class="ctrl-row">
-                          <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="72"/></div>
-                          <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="18"/></div>
-                          <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="18"/></div>
+                          <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="-105"/></div>
+                          <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="19"/></div>
                         </div>
                       </div>
+                      <p class="section-desc">Draw a rectangle on the canvas to set the room bounds, or enter coordinates directly. Orbit derives green, red, and yellow rooms by 90° rotation.</p>
+                    </div>
+                    <div class="section-footer">
+                      <button class="action-btn">Back</button>
+                      <button class="action-btn action-btn--primary">Next: Monuments</button>
                     </div>
                   </section>
-
-                  <section class="panel-section">
-                    <div class="section-header section-header--ruled">
-                      <h2 class="section-title">Auto-wiring</h2>
-                      <span class="badge badge--dim">derived</span>
-                    </div>
-                    <div class="panel-list">
-                      <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = not-blue</span><span class="list-tag">room defense</span></div>
-                      <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = blue-wool-edit</span><span class="list-tag">build/break</span></div>
-                      <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = never</span><span class="list-tag">capture ×3</span></div>
-                    </div>
-                  </section>
-
                 </div>
               </div>
             </div>
@@ -743,13 +1192,67 @@
           </div>
         </div>
       </article>
+
+      <div class="ds-subsection" style="margin-top:var(--space-5)">
+        <h3>The four wool sub-steps</h3>
+        <table class="ds-rules-table">
+          <thead>
+            <tr><th>Sub-step</th><th>What you provide</th><th>What the system derives</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><i data-lucide="check" style="display:inline;width:11px;height:11px;color:var(--color-success);vertical-align:middle"></i> Colours</td>
+              <td>Wool colour for the authored wool (Blue)</td>
+              <td>Orbit assigns Green, Red, Yellow automatically</td>
+            </tr>
+            <tr>
+              <td><i data-lucide="check" style="display:inline;width:11px;height:11px;color:var(--color-success);vertical-align:middle"></i> Spawn</td>
+              <td>Block location of the blue wool (X -112 · Y 10 · Z 8, floored)</td>
+              <td>Orbit rotates spawn location to the other three rooms</td>
+            </tr>
+            <tr>
+              <td><strong>Room</strong> ← active</td>
+              <td>Rectangle bounds of the blue wool room (min -119,2 · max -105,19)</td>
+              <td>Orbit rotates the room rectangle; region id = team colour</td>
+            </tr>
+            <tr>
+              <td>Monuments</td>
+              <td>Three block positions — one per capturing team (Green, Red, Yellow)</td>
+              <td>Orbit fills 9 remaining capture points; N − 1 = 3 per wool</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Auto-wiring — derived at save, not authored</h3>
+        <article class="ds-example">
+          <div class="ds-example-label">Derived apply-rules for all four wools</div>
+          <div class="ds-panel-frame">
+            <div class="workspace-scroll">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Auto-wiring</h2>
+                  <span class="badge badge--dim">derived</span>
+                </div>
+                <div class="panel-list">
+                  <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = not-blue</span><span class="list-tag">room defense</span></div>
+                  <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = blue-wool-edit</span><span class="list-tag">build/break</span></div>
+                  <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = never</span><span class="list-tag">capture ×3</span></div>
+                </div>
+                <p class="section-desc">Three rules per wool × 4 wools = 12 wool apply-rules. Orbit replicates each rule for green, red, and yellow. None are edited directly — change the intent, regenerate.</p>
+              </section>
+            </div>
+          </div>
+        </article>
+      </div>
     </section>
 
-    <!-- ════════════════════════ REVIEW & EXPORT ════════════════════════ -->
+    <!-- ════════════════════════ 5 · REVIEW & EXPORT ════════════════════════ -->
     <section class="ds-section" id="review">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">04</p>
+          <p class="ds-kicker">05</p>
           <h2>Review &amp; Export</h2>
         </div>
         <p>A generated map can be structurally valid yet <em>unplayable</em>. Traversability is the closing
@@ -852,7 +1355,7 @@
     <section class="ds-section" id="xml">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">05</p>
+          <p class="ds-kicker">06</p>
           <h2>XML preview</h2>
         </div>
         <p>The generated PGM document, segmented into containers. Pick a container on the left to jump to
@@ -989,7 +1492,7 @@
     <section class="ds-section" id="tree">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">06</p>
+          <p class="ds-kicker">07</p>
           <h2>Generated region tree</h2>
         </div>
         <p>For intent maps the shaping steps drop the tree — structure is an artifact. It lives here, in the
@@ -1109,7 +1612,7 @@
     <section class="ds-section" id="focus">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">07</p>
+          <p class="ds-kicker">08</p>
           <h2>Side-view &amp; per-side focus</h2>
         </div>
         <p>The plan canvas is top-down, so a drawn point has no obvious Y, and a whole-map zoom fights small
@@ -1178,7 +1681,7 @@
     <section class="ds-section" id="principles">
       <div class="ds-section-heading">
         <div>
-          <p class="ds-kicker">08</p>
+          <p class="ds-kicker">09</p>
           <h2>Principles</h2>
         </div>
         <p>The rules that keep this experience simple. Full contract lives in
@@ -1188,10 +1691,10 @@
       <table class="ds-rules-table">
         <thead><tr><th>Do</th><th>Don't</th></tr></thead>
         <tbody>
-          <tr><td>State intent — teams, spawns, build, wools. Intent is the source of truth.</td><td>Hand-edit the region / filter graph. Regions are a derived projection.</td></tr>
+          <tr><td>State intent — identity, teams, spawns, build, wools. Intent is the source of truth.</td><td>Hand-edit the region / filter graph. Regions are a derived projection.</td></tr>
           <tr><td>Define one authored unit per symmetry orbit; let orbit fill the rest.</td><td>Place every team's spawn / wool by hand on a symmetric map.</td></tr>
+          <tr><td>Assign islands to set the orbit order; leave contested islands neutral.</td><td>Assume the app knows which island belongs to which team.</td></tr>
           <tr><td>Correct intent anytime — regenerate is a free re-save (drops + recreates all rows).</td><td>Diff or patch generated regions to “fix” a change.</td></tr>
-          <tr><td>Let templates union the regions a filter needs and wire them.</td><td>Build union / complement structure by hand to wire a filter.</td></tr>
           <tr><td>Draw only over-void bridges in Build; the terrain is auto-buildable.</td><td>Trace the islands as build rectangles — the void filter covers them.</td></tr>
           <tr><td>Floor a coordinate iff PGM won't (wool location yes, monument block no).</td><td>Normalize every coordinate blindly.</td></tr>
           <tr><td>Gate export on traversability; loop back to Build to bridge gaps.</td><td>Export a valid-but-unplayable map with isolated islands.</td></tr>

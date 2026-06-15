@@ -488,6 +488,32 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 
 /* ══════════════════════════════════════════════════════════════════════════
+   FLOW STEPS  (clean wizard sub-step strip — the authoring nav model's in-phase
+   progress, shown in a canvas-subbar. Deliberately flat: text labels, an accent
+   underline on the active step, a check on completed ones. Replaces the numbered
+   circles + dashes of .cfg-step-bar, which clash with the rest of the chrome.)
+   ══════════════════════════════════════════════════════════════════════════ */
+.flow-steps { display: flex; align-items: center; gap: var(--space-5); height: 100%; }
+.flow-step {
+  position: relative;
+  display: flex; align-items: center; gap: 5px;
+  height: 100%; padding: 0;
+  background: none; border: none;
+  font-family: inherit; font-size: var(--font-base);
+  color: var(--text-muted); cursor: pointer; white-space: nowrap;
+}
+.flow-step:hover         { color: var(--text-bright); }
+.flow-step svg           { width: 13px; height: 13px; }
+.flow-step--done         { color: var(--text-secondary); }
+.flow-step--done svg     { color: var(--color-success); }
+.flow-step--active       { color: var(--text-strong); }
+.flow-step--active::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
    STEP ROW  (pipeline status lists)
    ══════════════════════════════════════════════════════════════════════════ */
 
