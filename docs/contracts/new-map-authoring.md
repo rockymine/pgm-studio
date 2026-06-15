@@ -224,6 +224,25 @@ imprecise. New-map authoring needs **per-side focus** — zoom/fit to one team's
 restricted view-box while defining that team's regions, since the author works one orbit unit at a
 time. This is an independent canvas capability and can land before the generator.
 
+**Landed — canvas focus controls.** The editor canvas toolbar has a **Fit island** dropdown (zooms to
+an island's bbox) and a **reset-zoom** button (whole-map view), so the author can frame one side while
+working it.
+
+**Landed — the side-view slice (setting Y on a flat map).** The plan canvas is top-down, so a drawn
+point/block region has no obvious Y. The region inspector therefore shows a **side-view slice** — a
+localised vertical cross-section of the terrain at the selection (`/segments` windowed to the column ±10,
+or a rectangle's footprint):
+- **Point/block** → a **draggable Y line** sets the region's Y (persisted as a `coords` patch); this is
+  how the author lifts a spawn point / wool-spawn / monument off `y=0` onto the terrain surface.
+- **Rectangle** → display-only (read the terrain profile under a wool room / build area).
+- **Four inspect directions** (`Z− Z+ X− X+`) — the camera on either side of each axis — so the author
+  can read the near face from whichever direction is unobstructed. The same four-way control drives the
+  Build-Regions step-1 side-view.
+
+How it fits the flow: after placing a point in the plan view (often via orbit-fill, §4), select it and
+drag the Y line in the slice to seat it on the surface — the canvas gives plan position, the slice gives
+height. Buildability/traversability (§6) then validate that the placement is on solid, reachable ground.
+
 ---
 
 ## 9. Validation — the mirror property and the playability gate
