@@ -78,3 +78,11 @@ B7 (symmetry detection), plus M7 colours (P5) and M8 sketch (S2).
   — use `string.Empty` / method-group handlers. `.control-input--hidden` checkboxes are `display:none`
   — click the wrapping label.
 - Don't make the format fit: reject malformed maps (e.g. kytriak_te) rather than weakening the schema.
+- **Wool-location flooring asymmetry is intentional (PGM-grounded).** The intent generator floors the
+  wool `<location>` but passes the monument block coords through raw — *because PGM treats them
+  differently*. `<wool location="x,y,z">` parses via `XMLUtils.parseVector` → a raw `Vector` kept for
+  proximity distance and **never block-snapped**, so the generator floors it to keep the wool's goal
+  reference block-aligned. The monument is a `<block>` region whose `BlockRegion(Vector)` ctor floors
+  itself (`new Vector(getBlockX(), getBlockY(), getBlockZ())`), so flooring in the generator would be
+  redundant. Verified against `/media/sf_repos/PGM` (`wool/WoolModule`, `regions/BlockRegion`); generated
+  XML exports valid. See `docs/contracts/new-map-authoring.md` §4.

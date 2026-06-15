@@ -13,8 +13,9 @@ Read alongside:
 - `../region-data-flow.md` — **persistence + entity-replace + the `map_artifact` sidecar**. The
   intent model lives where the draft bucket lives, and for the same reasons.
 
-> **Status:** design (decision: go declarative). New maps only — e.g. `thunder_blank` (a no-xml copy
-> of thunder). Existing corpus maps stay region-first and are untouched by any of this.
+> **Status:** backend landed (generator + persistence + orbit-fill + export gate, all unit-tested);
+> frontend authoring UI not yet built. New maps only — e.g. `thunder_blank` (a no-xml copy of thunder).
+> Existing corpus maps stay region-first and are untouched by any of this.
 
 ---
 
@@ -62,6 +63,15 @@ Notes that fall out of the model:
 - **One authored unit per symmetry orbit.** The author defines team 0's spawn/protection, one
   build/bridge set, one wool — symmetry-fill (orbit) produces the rest. The intent stores the
   *authored* unit plus the symmetry; the orbit members are generated, not stored.
+  **Implemented** as `SymmetryExpander.Expand`, applied **by default** at the top of
+  `IntentGenerator.Apply`: when `MapIntent.Symmetry` (`SymmetryIntent{Mode, CenterX, CenterZ}`) is set, it
+  rotates/reflects the authored spawn(s) and wool(s) onto the other teams *before* any slice runs.
+  **Orbit-order convention:** `Teams` are listed in orbit order — step `k` maps the unit owned by
+  `Teams[i]` onto `Teams[(i+k) % n]` (and a wool's capturing-team / monument team shifts by the same `k`).
+  An already-authored team is never overwritten, so any orbit member stays hand-correctable. Build areas
+  are **not** orbited (a flat union with no per-team identity; seeded symmetric from the islands, §6).
+  Yaw is transformed by running its facing vector through the same op. *(Not yet orbited: build holes,
+  observer spawn — both intentionally global.)*
 - **`maxPlayers` is one number.** On a symmetric map every team has the same cap. **`minPlayers` is
   dropped** (not needed). **Kit is preselected** (a sensible default, overridable).
 - Geometry the author draws (spawn point, protection rect, bridge rects, wool-room rect, monument
@@ -120,16 +130,29 @@ filter CRUD, apply-rules, spawns, wools, monuments, kits) using two engines that
 
 | Author states | System derives |
 |---|---|
-| confirmed symmetry | suggested **team count** from the symmetry order (`rot_90` → 4, `mirror_*` → 2…), author-correctable |
+| confirmed symmetry (no teams) | **team count** from the symmetry order (`rot_90` → 4, `mirror_*` → 2…) **and the teams themselves** — `SymmetryExpander.SynthesizeTeams` assigns palette colours (`TeamPalette`: red/blue/green/yellow…), team 0 anchored to the authored spawn's id. Author-provided teams win. |
 | team count | **monuments per wool**: 2-team → 1, N-team → N−1 (every team *except the owner* must capture it) |
 | spawn point (+ optional protection) for team 0 | the other teams' spawns/protection via orbit, plus spawn-protection wiring (template 2) |
-| a few bridge rectangles | auto-**union** + void filter on the complement (template 1) |
+| build rectangles (over-void bridges) on one side | the other sides' build rects via orbit (+ dedup of centre/axis pieces), auto-**union** + void filter on the negative (template 1) |
 | wool-room rect, owner | defense + build/break wiring (templates 3, 4); deny-enter for the defender |
 
 **Auto-unioning over hand-grouping.** The author never builds union/complement structure by hand. The
 generator unions the regions a template needs (bridges for void, spawn rects for protection, etc.) and
 applies the filter to the union/complement. This is why the shaping activities **stop showing the
 region tree** (§7): there is no author-managed structure to show — structure is an artifact.
+
+**Coordinate flooring — match how PGM parses each field, don't normalize blindly.** The wool slice floors
+the wool `<location>` to a block but passes the monument block coordinates through *raw*. This asymmetry
+is deliberate and grounded in the PGM parser (`/media/sf_repos/PGM`):
+
+| Field | PGM parse path | Floors? | So the generator… |
+|---|---|---|---|
+| `<wool location="x,y,z">` | `XMLUtils.parseVector` → raw `Vector`, kept for proximity distance | **no** (never block-snapped) | **floors it** — keep the wool's goal reference block-aligned |
+| `<monument><block>x,y,z</block>` | `BlockRegion(Vector)` → `new Vector(getBlockX(), getBlockY(), getBlockZ())` | **yes** (PGM floors itself) | **leaves it raw** — re-flooring would be redundant |
+
+The rule: floor a coordinate iff PGM *won't*. A `<block>`/`<point>` region is already block-snapped by its
+region ctor; a bare proximity `Vector` is not. (Verified by static read of `wool/WoolModule`,
+`regions/RegionParser`, `regions/BlockRegion`; the generated XML exports valid.)
 
 ---
 
@@ -161,9 +184,16 @@ physical world and the logical intent**: the world *seeds* the intent, and the i
 back against the world. Each analysis plays both roles.
 
 **Seed (world → authoring inputs)** — so no step starts blank:
-- **`/islands` → build areas.** Each island is a `bounds` rectangle; pre-fill `BuildIntent.Areas` from
-  them (the author trims/merges rather than drawing from scratch).
-- **symmetry + island count → team count & positions** (4 symmetric islands ⇒ 4 teams).
+- **The y=0 terrain footprint is the void-filter substrate — it is *not* turned into build regions.**
+  PGM's void filter (`block = not(void)` applied to the *negative* of the build group) makes any column
+  that has a block at the surface automatically editable; the islands' terrain therefore **is** the
+  buildable area, with **no `region` rows generated for it** (see PGM `regions/VoidFilter` + `BlockRegion`).
+  `/buildability` and `/traversability` both run on this y=0 footprint. So **`BuildIntent.Areas` are only
+  the over-void extensions** — the bridges/platforms the author wants buildable *across the void* between
+  islands — never the islands themselves. (This corrects the earlier "`/islands` → build areas" framing:
+  islands seed team count/positions and the buildability overlay, not build rectangles.)
+- **symmetry + island count → team count & positions** (4 symmetric islands ⇒ 4 teams). The count feeds
+  team synthesis (§4); the positions seed where the author drops each side's spawn.
 - **`/buildability` → placement snap/validate.** Spawns, wool rooms, and monuments must sit on
   `buildable` columns; the overlay shows where solid ground is.
 
@@ -181,7 +211,7 @@ world analysis (islands / buildability / symmetry)   ← step 0, precomputed (M7
         │ seeds
    teams / spawns      (spawns validated onto buildable/surface columns)
         │
-     build             ← seeded from islands; bridges fill the gaps between them
+     build             ← over-void bridges between islands (terrain itself is auto-buildable via the void filter)
         │ (the build + bridge geometry IS the navigability substrate)
      wools             (rooms / monuments on buildable ground)
         │
@@ -255,10 +285,12 @@ Three checks, all reusing what exists:
   `wool/room`, the build union as `build`, monuments as `wool/monument`). Generator and categorizer are
   inverses; this is the strongest test that generation produced *correct* structure, not just *valid*
   structure.
-- **Playability gate (export gate):** `/traversability` must report the spawn↔wool chain `connected`
-  before the map can export (§6). A valid, mirror-correct document can still be *unplayable* (islands
-  not bridged); this is the only check that catches it. Block/warn on export when it isn't connected,
-  pointing the author at the disconnected gaps.
+- **Playability gate (export gate) — implemented.** `GET /map/{slug}/xml` now runs `Traversability.Check`
+  before rendering, and for **intent-authored maps** (those with a `map_intent_json` blob) returns **HTTP
+  409** with the failure message + the isolated spawn/wool points when the chain isn't `connected`. A
+  valid, mirror-correct document can still be *unplayable* (islands not bridged); this is the only check
+  that catches it. The gate is scoped to intent maps on purpose: corpus maps have no intent (and may have
+  no scan layers) and keep exporting unconditionally, unchanged.
 
 ---
 
@@ -271,22 +303,31 @@ Three checks, all reusing what exists:
   acceptable; the bar is "a valid map PGM can load," not "every map."
 - **Generated structure may differ from a human's.** Canonical generator output (auto-unions, template
   filters) is the goal, not byte-matching an existing map.
-- **No build-area "holes" (complement build regions).** The build slice emits `negative(union(areas))`
-  only. Corpus survey: 234 maps have build regions, 32 (14%) use a `complement` in the build structure —
-  but **45/49 of those are the void wrapper merely spelled as a complement** (`base − buildable rects`),
-  i.e. semantically identical to our `negative(union)`. Only **3** maps use a genuine "build base − holes"
-  form, and the holes are regions we already generate and protect separately (wool rooms, observer spawn).
-  So holes add ~nothing here. If a target map ever needs a real no-build cutout, add `Holes: List<Rect>`
-  to `BuildIntent` and emit `complement(union(areas), hole…)` (mirror still holds). Until then: YAGNI.
+- **Build-area "holes" (complement) — supported.** `BuildIntent.Holes` are no-build cutouts subtracted
+  from the area union: the build slice emits `buildable = complement(build-area, hole…)` (PGM `complement`
+  = first child minus the rest) and wraps *that* in the void negative; with no holes it stays a plain
+  union. Holes orbit alongside areas on symmetric maps and read back as `build` (the categorizer walks the
+  complement subtree). **Why now, not YAGNI:** the region-categorized corpus survey (350 maps) found
+  **16/233 build maps (~7%)** use a *genuine inner* complement (a real cutout), well above the earlier
+  "only 3" estimate — and per the authoring rule, a `complement` is **deliberate intent** (unlike a union
+  overlap, which PGM ignores and we may freely re-decompose), so it must be expressible and preserved.
 
 ---
 
 ## 11. Open decisions
 
-- **Intent schema location/typing** — a typed C# model + a JSON shape for the blob; where the
-  contract lives (here vs `data-model.md`).
-- **Team-count inference detail** — exact symmetry-order → count table, and the correction UX.
+- ~~**Intent schema location/typing**~~ — **resolved.** Typed C# model `MapIntent` (+ `SymmetryIntent`)
+  in `PgmStudio.Pgm/Editing/`, persisted as the camelCase `map_intent_json` blob; this doc is the contract.
+- ~~**Team-count inference detail**~~ — **resolved.** `SymmetryExpander` derives the count from the mode
+  (`SuggestedTeamCount`: `rot_90`→4, else→2) **and synthesizes the teams** from `TeamPalette`
+  (red/blue/green/yellow…) when none are listed; author-listed teams win. Still open: the **correction UX**
+  (override the count / recolour) — a frontend concern.
+- ~~**Build holes (complement = author intent)**~~ — **resolved (implemented).** `BuildIntent.Holes`
+  emits `buildable = complement(build-area, holes…)`, orbits with the areas, and reads back as `build`
+  (mirror + XML round-trip tested). Overturns the old §10 YAGNI on the strength of the ~7% corpus finding.
 - **Partial/invalid intent** — how the generator + UI handle an incomplete map (draft of a draft):
-  generate what's valid, surface what's missing.
+  generate what's valid, surface what's missing. (Backend tolerates it: null/empty slices are skipped.)
 - **First vertical slice** — recommend **Teams on thunder_blank** (exercises symmetry→count,
-  orbit-fill, auto-wiring, and idempotent regeneration in one slice).
+  orbit-fill, auto-wiring, and idempotent regeneration in one slice). Backend ready; UI not started.
+- **Yaw under reflection** — the facing-vector reflection is exact, but whether a *mirrored* spawn should
+  face the symmetric direction or be re-aimed at map centre is an authoring-taste call to revisit with the UI.
