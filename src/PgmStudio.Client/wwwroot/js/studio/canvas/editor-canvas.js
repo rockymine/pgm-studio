@@ -665,8 +665,8 @@ export class EditorCanvas extends CanvasBase {
     const rect = svgEl("rect", {
       id: "block-highlight",
       x: 0, y: 0, width: 0, height: 0, rx: 1, visibility: "hidden",
-      fill: "white", "fill-opacity": "0.06",
-      stroke: "white", "stroke-opacity": "0.4", "stroke-width": "1",
+      fill: "var(--canvas-ink)", "fill-opacity": "0.06",
+      stroke: "var(--canvas-ink)", "stroke-opacity": "0.4", "stroke-width": "1",
       "vector-effect": "non-scaling-stroke", "pointer-events": "none",
     });
     this.#highlightRect = rect;
@@ -719,7 +719,8 @@ export class EditorCanvas extends CanvasBase {
       x: mid, y: pillY + PAD_Y + FONT_SZ - 1,
       "text-anchor": "middle", "dominant-baseline": "auto",
       "font-size": FONT_SZ, "font-family": "ui-monospace, monospace",
-      fill: "var(--bg-canvas)", "font-weight": "600", "pointer-events": "none",
+      // dark ink — the pill is always a bright region colour, so stay dark in both themes
+      fill: "var(--canvas-handle-fill)", "font-weight": "600", "pointer-events": "none",
     });
     dimEl.textContent = dimText;
     this.#overlayLayer.appendChild(dimEl);

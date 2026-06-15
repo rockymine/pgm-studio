@@ -10,7 +10,7 @@
   color-scheme: dark;
 
   /* ── Backgrounds ─────────────────────────────────────────────────────── */
-  --bg-canvas:          #080f1a;   /* map/sketch VIEWPORT — stays dark in every theme */
+  --bg-canvas:          #080f1a;   /* map/sketch VIEWPORT (themed; light override in [data-theme=light]) */
   --bg-deep:            #080f1a;   /* deepest UI surface (map-detail pane, logo box) */
   --bg-base:            #0f172a;   /* page background */
   --bg-panel:           #1e293b;   /* sidebars, panels, topbar */
@@ -84,14 +84,16 @@
   /* Symmetry overlay in overview/configure previews — axis line + center marker.
      Distinct (more saturated) from --canvas-axis used by the editor's radial crosshair. */
   --canvas-symmetry: #a855f7;   /* purple-500 */
-  /* Bright outline drawn over filled canvas marker dots (symmetry / radial centers) */
-  --canvas-marker-stroke: #fff;
+  /* High-contrast "ink" for lines/labels/outlines drawn over the canvas bg (block highlight,
+     marker outlines). White on the dark viewport; the light theme flips it to dark slate. */
+  --canvas-ink: #ffffff;
+  --canvas-marker-stroke: var(--canvas-ink);
 
   /* Minecraft chunk grid (16-block boundaries, lighter purple) */
   --canvas-chunk: color-mix(in oklab, var(--canvas-axis) 38%, transparent);
 
   /* Canvas SVG area background */
-  --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (always dark) */
+  --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (follows the theme) */
 
   /* Region shapes — editor canvas (all types share one colour; runtime supplies per-region value) */
   --canvas-region: #94a3b8;   /* slate-400 — fallback / design-doc placeholder */
@@ -186,4 +188,11 @@
 
   /* ── Code / monospace highlight ──────────────────────────────────────── */
   --code-color: #0369a1;       /* sky-700 */
+
+  /* ── Canvas / map viewport — light too (the rest of --canvas-* are saturated
+       mid-tones that read on both backgrounds and are left at their dark values). ── */
+  --bg-canvas:     #e2e8f0;   /* slate-200 — light viewport (recessed under white panels) */
+  --canvas-ink:    #0f172a;   /* slate-900 — dark lines/outlines over the light canvas */
+  --canvas-axis:   #7c3aed;   /* violet-600 — axis/crosshair, darker for light bg */
+  --canvas-region: #64748b;   /* slate-500 — region fallback, darker for light bg */
 }
