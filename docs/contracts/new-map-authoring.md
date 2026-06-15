@@ -96,7 +96,7 @@ author edits ─▶ intent blob (source of truth)
                    ▼
               PGM document dict ──SaveDocAsync──▶ region/filter/apply_rule rows (canonical, derived)
                    │                                   │  read + RegionCategorizer
-                   └──────────── mirror check ─────────┘  (should recover the intent — §8)
+                   └──────────── mirror check ─────────┘  (should recover the intent — §9)
 ```
 
 ---
@@ -129,7 +129,7 @@ filter CRUD, apply-rules, spawns, wools, monuments, kits) using two engines that
 **Auto-unioning over hand-grouping.** The author never builds union/complement structure by hand. The
 generator unions the regions a template needs (bridges for void, spawn rects for protection, etc.) and
 applies the filter to the union/complement. This is why the shaping activities **stop showing the
-region tree** (§6): there is no author-managed structure to show — structure is an artifact.
+region tree** (§7): there is no author-managed structure to show — structure is an artifact.
 
 ---
 
@@ -152,7 +152,58 @@ End state: a complete, valid PGM document an author produced by *defining each t
 
 ---
 
-## 6. Coexistence — the tree view doesn't die, it moves
+## 6. World analysis — seeding, validation, and why the steps are ordered this way
+
+The new-map target is a **logical map authored on top of existing terrain** (the `thunder_blank`
+class — a world with blocks but no `map.xml`). That terrain is what the read-side analyses
+(`/islands`, `/buildability`, `/traversability`) operate on, so they become the **bridge between the
+physical world and the logical intent**: the world *seeds* the intent, and the intent is *validated*
+back against the world. Each analysis plays both roles.
+
+**Seed (world → authoring inputs)** — so no step starts blank:
+- **`/islands` → build areas.** Each island is a `bounds` rectangle; pre-fill `BuildIntent.Areas` from
+  them (the author trims/merges rather than drawing from scratch).
+- **symmetry + island count → team count & positions** (4 symmetric islands ⇒ 4 teams).
+- **`/buildability` → placement snap/validate.** Spawns, wool rooms, and monuments must sit on
+  `buildable` columns; the overlay shows where solid ground is.
+
+**Validate (intent → feedback):**
+- **`/buildability`** re-run *after* the build slice shows the *actual* buildable map produced by the
+  void enforcement — catching unintended `never`/`void_denied`.
+- **`/traversability`** checks the **spawn↔wool chain is connected** over *walkable surface ∪
+  bridgeable buildable*. (Live on a half-authored `thunder_blank` it reports `connected: false —
+  "… not reachable … check build regions / bridgeable gaps."`)
+
+**This dependency chain fixes the step order** (and confirms `meta → teams → build → wools`):
+
+```
+world analysis (islands / buildability / symmetry)   ← step 0, precomputed (M7 import)
+        │ seeds
+   teams / spawns      (spawns validated onto buildable/surface columns)
+        │
+     build             ← seeded from islands; bridges fill the gaps between them
+        │ (the build + bridge geometry IS the navigability substrate)
+     wools             (rooms / monuments on buildable ground)
+        │
+  traversability       ← closing GATE: chain connected? if not, loop back to build
+```
+
+The load-bearing rule: **build must precede wools and the traversability gate**, because
+traversability is computed over the build/bridge geometry — a wool's reachability is undefined until
+the bridges exist. So:
+- **buildability is a live overlay *within* the Build step** (seed + immediate feedback), not a step.
+- **traversability is a closing validation gate, not a step** — and it's *iterative*: its failure
+  message sends the author back to Build to add bridges (Build ⇄ Traversability is a loop).
+- a natural **Review/Validate phase** falls out: run traversability (+ buildability) on the finished
+  intent before export, and only a connected map should export (the **export gate**, §9).
+
+> Without a world (Y=0 / surface columns) these analyses can't run, so a truly from-scratch map gets
+> no seeding or connectivity validation — another reason the first target is the terrain-backed
+> `thunder_blank` class.
+
+---
+
+## 7. Coexistence — the tree view doesn't die, it moves
 
 - **Gated by intent.** A map "is intent-authored" iff it has a `map_intent_json` blob. New maps
   (thunder_blank) get one; existing corpus maps don't and keep the current **region-first** editing
@@ -166,7 +217,7 @@ End state: a complete, valid PGM document an author produced by *defining each t
 
 ---
 
-## 7. Canvas implications (separate, lands independently)
+## 8. Canvas implications (separate, lands independently)
 
 The full-map canvas fights small edits: placing one block or a small region on a whole-map zoom is
 imprecise. New-map authoring needs **per-side focus** — zoom/fit to one team's quadrant or a
@@ -175,9 +226,9 @@ time. This is an independent canvas capability and can land before the generator
 
 ---
 
-## 8. Validation — the mirror property
+## 9. Validation — the mirror property and the playability gate
 
-Two checks, both reusing what exists:
+Three checks, all reusing what exists:
 - **Round-trip:** `generate(intent)` → document → XML must pass the codec round-trip harness (the same
   350/350 guard). A generated map that doesn't round-trip is a generator bug.
 - **Mirror consistency:** `RegionCategorizer.DeriveFacets(generate(intent))` should **recover the
@@ -185,10 +236,14 @@ Two checks, both reusing what exists:
   `wool/room`, the build union as `build`, monuments as `wool/monument`). Generator and categorizer are
   inverses; this is the strongest test that generation produced *correct* structure, not just *valid*
   structure.
+- **Playability gate (export gate):** `/traversability` must report the spawn↔wool chain `connected`
+  before the map can export (§6). A valid, mirror-correct document can still be *unplayable* (islands
+  not bridged); this is the only check that catches it. Block/warn on export when it isn't connected,
+  pointing the author at the disconnected gaps.
 
 ---
 
-## 9. Scope & non-goals
+## 10. Scope & non-goals
 
 - **New maps only.** No migration of existing maps to the intent model; no intent inferred from the
   corpus.
@@ -207,7 +262,7 @@ Two checks, both reusing what exists:
 
 ---
 
-## 10. Open decisions
+## 11. Open decisions
 
 - **Intent schema location/typing** — a typed C# model + a JSON shape for the blob; where the
   contract lives (here vs `data-model.md`).
