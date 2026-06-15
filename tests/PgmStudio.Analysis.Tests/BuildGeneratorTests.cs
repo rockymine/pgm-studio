@@ -99,4 +99,61 @@ public sealed class BuildGeneratorTests
         await Assert.That(Regions(doc).Count).IsEqualTo(0);
         await Assert.That(Rules(doc).Count).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task Holes_emit_a_complement_subtracted_from_the_union()
+    {
+        var doc = Map();
+        BuildGenerator.Apply(doc, new MapIntent
+        {
+            Build = new BuildIntent
+            {
+                Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)],
+                Holes = [new Rect(10, 10, 20, 20)],
+            },
+        });
+
+        // buildable = complement(build-area, build-hole-1); first child is the base, rest subtracted
+        var comp = (Dict)Regions(doc)["buildable"]!;
+        await Assert.That(comp["type"]).IsEqualTo("complement");
+        var kids = ((List<object?>)comp["children"]!).Cast<string>().ToList();
+        await Assert.That(kids[0]).IsEqualTo("build-area");
+        await Assert.That(kids).Contains("build-hole-1");
+
+        // the void wrapper now wraps the complement, not the bare union
+        var neg = (Dict)Regions(doc)["not-build-area"]!;
+        await Assert.That(((List<object?>)neg["children"]!).Single()).IsEqualTo("buildable");
+    }
+
+    [Test]
+    public async Task Holes_and_complement_read_back_as_build()   // mirror property with a cutout
+    {
+        var doc = Map();
+        BuildGenerator.Apply(doc, new MapIntent
+        {
+            Build = new BuildIntent
+            {
+                Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)],
+                Holes = [new Rect(10, 10, 20, 20)],
+            },
+        });
+        var facets = RegionCategorizer.DeriveFacets(doc);
+
+        await Assert.That(facets["buildable"].Category).IsEqualTo("build");
+        await Assert.That(facets["build-area"].Category).IsEqualTo("build");
+        await Assert.That(facets["build-hole-1"].Category).IsEqualTo("build");
+        await Assert.That(facets["not-build-area"].Category).IsEqualTo("other");
+    }
+
+    [Test]
+    public async Task Holes_cleared_on_reapply()
+    {
+        var doc = Map();
+        var intent = new MapIntent { Build = new BuildIntent { Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)], Holes = [new Rect(10, 10, 20, 20)] } };
+        BuildGenerator.Apply(doc, intent);
+        BuildGenerator.Apply(doc, intent);
+
+        await Assert.That(Regions(doc).Keys.Count(k => k.StartsWith("build-hole-"))).IsEqualTo(1);
+        await Assert.That(Regions(doc).Keys.Count(k => k == "buildable")).IsEqualTo(1);
+    }
 }

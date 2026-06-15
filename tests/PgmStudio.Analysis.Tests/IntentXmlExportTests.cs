@@ -61,4 +61,28 @@ public sealed class IntentXmlExportTests
         // build void enforcement survived
         await Assert.That(((Dict)reparsed["regions"]!).ContainsKey("not-build-area")).IsTrue();
     }
+
+    [Test]
+    public async Task Build_holes_survive_the_xml_round_trip_as_a_complement()
+    {
+        var doc = BaseDoc();
+        var intent = new MapIntent
+        {
+            Meta = new MetaIntent { Name = "Holey" },
+            Teams = [new TeamDef { Id = "red-team", Name = "Red", Color = "red" }, new TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" }],
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10) }, new SpawnIntent { Team = "blue-team", Point = new(-10, 12, -10) }],
+            Build = new BuildIntent { Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)], Holes = [new Rect(10, 10, 20, 20)] },
+        };
+        IntentGenerator.Apply(doc, intent);
+
+        var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
+        var reparsed = Serializer.ToDict(MapParser.ParseXmlString(xml));
+        var regions = (Dict)reparsed["regions"]!;
+
+        var comp = (Dict)regions["buildable"]!;
+        await Assert.That(comp["type"]).IsEqualTo("complement");
+        await Assert.That(((List<object?>)comp["children"]!).Cast<string>().First()).IsEqualTo("build-area");
+        await Assert.That(regions.ContainsKey("build-hole-1")).IsTrue();
+        await Assert.That(((List<object?>)((Dict)regions["not-build-area"]!)["children"]!).Single()).IsEqualTo("buildable");
+    }
 }

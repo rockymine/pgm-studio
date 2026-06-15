@@ -33,6 +33,24 @@ public sealed class MapIntent
     /// <summary>Map identity: name + authors/contributors. Version (1.0.0), proto (1.5.0), gamemode (ctw)
     /// and the objective text are auto-derived by the generator, not authored.</summary>
     public MetaIntent? Meta { get; init; }
+
+    /// <summary>The confirmed symmetry of the map (docs/contracts/new-map-authoring.md §4). When set, the
+    /// generator <b>orbit-fills by default</b>: the author defines one orbit unit (team 0's spawn, one
+    /// wool) and <see cref="SymmetryExpander"/> rotates/reflects it onto the other teams before projection,
+    /// mapping orbit positions to <see cref="Teams"/> <i>in list order</i>. Null → no fill (author states
+    /// every team's units explicitly).</summary>
+    public SymmetryIntent? Symmetry { get; init; }
+}
+
+/// <summary>The confirmed map symmetry: a <see cref="Mode"/> (<c>mirror_x</c>/<c>mirror_z</c>/
+/// <c>mirror_d1</c>/<c>mirror_d2</c>/<c>rot_180</c>/<c>rot_90</c>) about the centre (<see cref="CenterX"/>,
+/// <see cref="CenterZ"/>) in world XZ. Drives orbit-fill and the suggested team count
+/// (<c>rot_90</c>→4, everything else→2).</summary>
+public sealed class SymmetryIntent
+{
+    public string Mode { get; init; } = "";
+    public double CenterX { get; init; }
+    public double CenterZ { get; init; }
 }
 
 /// <summary>Authored map identity. Authors/contributors are Minecraft <b>usernames</b>; the endpoint
@@ -44,14 +62,22 @@ public sealed class MetaIntent
     public List<string> Contributors { get; init; } = new();
 }
 
-/// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (main footprints
-/// and any gap-crossing bridges alike); they're unioned into one build region and the void boundary
-/// (no bridging over the void outside that union) is wired automatically.</summary>
+/// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (the over-void
+/// bridges/platforms — the islands' terrain is auto-buildable via the void filter, so it needs no rect,
+/// see new-map-authoring.md §6); they're unioned and the void boundary is wired automatically.
+/// <see cref="Holes"/> are no-build cutouts subtracted from that union (PGM <c>complement</c>) — genuine
+/// authored intent, unlike incidental union overlaps (which PGM ignores).</summary>
 public sealed class BuildIntent
 {
     /// <summary>Y cap above which no block placement is allowed (null = no ceiling).</summary>
     public int? MaxHeight { get; init; }
+
+    /// <summary>The buildable rectangles (over-void footprints/bridges), unioned by the generator.</summary>
     public List<Rect> Areas { get; init; } = new();
+
+    /// <summary>No-build cutouts subtracted from the area union (emitted as a <c>complement</c>). Empty →
+    /// no holes (plain union). Orbited alongside <see cref="Areas"/> on symmetric maps.</summary>
+    public List<Rect> Holes { get; init; } = new();
 }
 
 /// <summary>A team to generate. <see cref="Id"/> is the stable identifier rules/spawns reference and the
