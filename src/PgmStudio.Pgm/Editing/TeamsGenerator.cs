@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace PgmStudio.Pgm.Editing;
 
 using Dict = Dictionary<string, object?>;
@@ -109,11 +107,11 @@ public static class TeamsGenerator
     // ── spawns + protection ────────────────────────────────────────────────────────────
     private static void GenerateSpawns(Dict doc, MapIntent intent)
     {
-        foreach (var sp in intent.Spawns) RemoveSpawn(doc, SlugOf(sp.Team));   // clear-then-build (idempotent)
+        foreach (var sp in intent.Spawns) RemoveSpawn(doc, IntentNaming.Slug(sp.Team));   // clear-then-build (idempotent)
 
         foreach (var sp in intent.Spawns)
         {
-            var slug = SlugOf(sp.Team);
+            var slug = IntentNaming.Slug(sp.Team);
             var pointId = $"{slug}-spawn-point";
             RegionEditor.CreateRegion(doc, new Dict
             {
@@ -176,16 +174,6 @@ public static class TeamsGenerator
             spawns.RemoveAll(s => s is Dict d && d.GetValueOrDefault("region") as string == pointId);
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
             rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string == protId);
-    }
-
-    // Naming slug from the team *id*, not the raw colour: ids are stable single tokens (red, blue-team→red),
-    // whereas a colour can be multi-word ("dark red") and would yield ids like "only-dark red".
-    private static string SlugOf(string teamId)
-    {
-        var s = teamId.Trim().ToLowerInvariant();
-        if (s.EndsWith("-team")) s = s[..^5];
-        s = Regex.Replace(s, "[^a-z0-9]+", "-").Trim('-');
-        return s.Length > 0 ? s : teamId;
     }
 
     private static List<object?> EnsureList(Dict doc, string key) =>

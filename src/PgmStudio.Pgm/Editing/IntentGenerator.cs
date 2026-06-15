@@ -13,5 +13,6 @@ public static class IntentGenerator
     {
         TeamsGenerator.Apply(doc, intent);
         BuildGenerator.Apply(doc, intent);
+        WoolGenerator.Apply(doc, intent);
     }
 }

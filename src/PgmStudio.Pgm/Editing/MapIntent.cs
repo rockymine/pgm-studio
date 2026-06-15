@@ -25,6 +25,10 @@ public sealed class MapIntent
     /// <summary>Buildable space (docs/contracts/new-map-authoring.md §5): the build height cap and the
     /// areas/bridges where building is allowed. The generator unions them and wires the void boundary.</summary>
     public BuildIntent? Build { get; init; }
+
+    /// <summary>The objective wools. One per defending team on a symmetric map; each is captured by the
+    /// other N−1 teams (one monument each). Null/empty leaves objectives untouched.</summary>
+    public List<WoolIntent>? Wools { get; init; }
 }
 
 /// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (main footprints
@@ -62,6 +66,26 @@ public sealed class ObserverIntent
 {
     public Pt Point { get; init; }
     public double Yaw { get; init; }
+}
+
+/// <summary>One objective wool: defended by <see cref="Owner"/> in its <see cref="Room"/>, dispensed at
+/// <see cref="Spawn"/> (a point — the wool's <c>location</c> is the int-floored version), and captured by
+/// the teams in <see cref="Monuments"/> (one each, the non-owners).</summary>
+public sealed class WoolIntent
+{
+    public string Owner { get; init; } = "";
+    /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
+    public string Color { get; init; } = "";
+    public Rect Room { get; init; }
+    public Pt Spawn { get; init; }
+    public List<MonumentIntent> Monuments { get; init; } = new();
+}
+
+/// <summary>A capture point: the team that captures this wool, and where they place it.</summary>
+public sealed class MonumentIntent
+{
+    public string Team { get; init; } = "";
+    public Pt Location { get; init; }
 }
 
 /// <summary>A world point (spawn location).</summary>
