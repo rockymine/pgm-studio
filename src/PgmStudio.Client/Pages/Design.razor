@@ -17,6 +17,7 @@
   <span class="topbar-crumb">UI Reference</span>
   <div class="topbar-right">
     <span class="ds-file-list">tokens.css · components.css · editor.css</span>
+    <ThemeToggle />
   </div>
 </div>
 
@@ -58,13 +59,27 @@
         <div class="ds-swatches">
           <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-base"></span><code>--bg-base</code><small>Page background</small></div>
           <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-panel"></span><code>--bg-panel</code><small>Shell and panels</small></div>
-          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-deep"></span><code>--bg-deep</code><small>Canvas</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-deep"></span><code>--bg-deep</code><small>Recessed surface</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-canvas"></span><code>--bg-canvas</code><small>Map viewport (always dark)</small></div>
           <div class="ds-swatch"><span class="ds-swatch-chip ds-bg-selected"></span><code>--bg-selected</code><small>Selection</small></div>
           <div class="ds-swatch"><span class="ds-swatch-chip ds-text-muted"></span><code>--text-muted</code><small>Quietest text</small></div>
           <div class="ds-swatch"><span class="ds-swatch-chip ds-text-primary"></span><code>--text-primary</code><small>Body text</small></div>
+          <div class="ds-swatch"><span class="ds-swatch-chip ds-text-strong"></span><code>--text-strong</code><small>Headings / active</small></div>
           <div class="ds-swatch"><span class="ds-swatch-chip ds-accent"></span><code>--accent</code><small>Focus and primary</small></div>
           <div class="ds-swatch"><span class="ds-swatch-chip ds-error"></span><code>--color-error</code><small>Destructive/error</small></div>
         </div>
+      </div>
+
+      <div class="ds-subsection">
+        <h3>Theming</h3>
+        <p class="ds-theming-note">
+          Two themes share one token set. Dark is the default; <code>&lt;html data-theme="light"&gt;</code>
+          — toggled by the sun / moon button in the top bar — overrides only the <em>colour</em> tokens,
+          while spacing, radii, type, and motion are shared. Toggle the theme to preview the swatches above
+          live. Two things stay fixed in both themes: the map viewport (<code>--bg-canvas</code> and every
+          <code>--canvas-*</code>) stays dark, and the game palettes (chat, dye, team, wool, and
+          block-overlay colours) live outside CSS — so neither is touched by the theme.
+        </p>
       </div>
 
       <div class="ds-subsection">

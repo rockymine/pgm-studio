@@ -1,0 +1,7 @@
+@* Topbar theme switch — calls window.studioTheme.toggle(). The active icon is chosen purely by CSS
+   from <html data-theme> and reflects the CURRENT theme: a moon in dark mode, a sun in light mode. *@
+<button class="topbar-icon-btn theme-toggle" @onclick="Toggle"
+        title="Toggle light / dark theme" aria-label="Toggle light / dark theme">
+  <span class="theme-toggle-icon theme-toggle-icon--sun"><i data-lucide="sun"></i></span>
+  <span class="theme-toggle-icon theme-toggle-icon--moon"><i data-lucide="moon"></i></span>
+</button>

@@ -14,10 +14,10 @@
 import { buildTransform, svgEl } from "./transform.js";
 import { blockDataToDataUrl } from "../shared/block-render.js";
 
-const ISLAND_INCLUDED_COLOR = "#6366f1";   // indigo
-const ISLAND_EXCLUDED_COLOR = "#6b7280";   // gray-500
+const ISLAND_INCLUDED_COLOR = "var(--canvas-result-fill)";   // indigo-500
+const ISLAND_EXCLUDED_COLOR = "var(--canvas-island)";        // gray-500
 const ISLAND_STROKE_WIDTH   = 1.5;
-const SYMMETRY_COLOR        = "#a855f7";   // purple
+const SYMMETRY_COLOR        = "var(--canvas-symmetry)";      // purple-500
 const CENTER_RADIUS         = 5;
 
 export class ConfigureRenderer {
@@ -231,7 +231,7 @@ export class ConfigureRenderer {
     const pt = this.#toSvg(cx, cz);
     this.#symmetryLayerEl.appendChild(svgEl("circle", {
       cx: pt.x, cy: pt.y, r: CENTER_RADIUS,
-      fill: SYMMETRY_COLOR, stroke: "#fff", "stroke-width": "1.5", opacity: 0.9,
+      fill: SYMMETRY_COLOR, stroke: "var(--canvas-marker-stroke)", "stroke-width": "1.5", opacity: 0.9,
     }));
   }
 }

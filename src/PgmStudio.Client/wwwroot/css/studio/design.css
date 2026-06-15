@@ -24,7 +24,7 @@
   text-decoration: none;
 }
 #ds-nav a:hover { color: var(--text-bright); background: var(--bg-selected-hover); }
-#ds-nav a.active { color: var(--text-white); border-left-color: var(--accent); }
+#ds-nav a.active { color: var(--text-strong); border-left-color: var(--accent); }
 
 .ds-file-list { color: var(--text-muted); font-size: var(--font-sm); }
 .ds-nav-group,
@@ -38,7 +38,7 @@
 }
 .ds-nav-group { padding: var(--space-3) var(--space-4) var(--space-1); }
 .ds-intro { max-width: 720px; margin-bottom: calc(var(--space-6) * 2 + var(--space-2)); }
-.ds-intro h1 { margin: var(--space-2) 0; color: var(--text-white); font-size: 24px; }
+.ds-intro h1 { margin: var(--space-2) 0; color: var(--text-strong); font-size: 24px; }
 .ds-intro > p:last-child,
 .ds-section-heading > p {
   color: var(--text-secondary);
@@ -56,7 +56,7 @@
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border);
 }
-.ds-section-heading h2 { margin-top: var(--space-1); color: var(--text-white); font-size: 18px; }
+.ds-section-heading h2 { margin-top: var(--space-1); color: var(--text-strong); font-size: 18px; }
 .ds-section-heading > p { max-width: 520px; text-align: right; }
 .ds-subsection { margin-bottom: var(--space-6); }
 .ds-subsection h3 { margin-bottom: var(--space-3); color: var(--text-primary); font-size: var(--font-base); }
@@ -75,11 +75,17 @@
 .ds-bg-base { background: var(--bg-base); }
 .ds-bg-panel { background: var(--bg-panel); }
 .ds-bg-deep { background: var(--bg-deep); }
+.ds-bg-canvas { background: var(--bg-canvas); }
 .ds-bg-selected { background: var(--bg-selected); }
 .ds-text-muted { background: var(--text-muted); }
 .ds-text-primary { background: var(--text-primary); }
+.ds-text-strong { background: var(--text-strong); }
 .ds-accent { background: var(--accent); }
 .ds-error { background: var(--color-error); }
+
+.ds-theming-note { max-width: 720px; color: var(--text-secondary); font-size: var(--font-base); line-height: 1.7; }
+.ds-theming-note code { color: var(--code-color); }
+.ds-theming-note em { color: var(--text-primary); font-style: normal; font-weight: 600; }
 
 .ds-spacing { display: flex; flex-wrap: wrap; gap: var(--space-5); }
 .ds-spacing > div { display: grid; grid-template-columns: calc(var(--space-6) + var(--space-2)) auto; align-items: center; gap: 0 var(--space-2); }
@@ -123,7 +129,7 @@
   flex: 1;
   position: relative;
   overflow: hidden;
-  background-color: var(--bg-deep);
+  background-color: var(--bg-canvas);
   background-image:
     linear-gradient(var(--border) 1px, transparent 1px),
     linear-gradient(90deg, var(--border) 1px, transparent 1px);

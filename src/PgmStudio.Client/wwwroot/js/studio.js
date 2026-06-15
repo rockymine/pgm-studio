@@ -64,3 +64,21 @@ window.studio = {
     this._shortcutRef = null;
   },
 };
+
+// ── Theme (dark default / light) ────────────────────────────────────────────
+// The initial value is set by the inline no-flash script in index.html before any CSS
+// loads; the <ThemeToggle> topbar button calls toggle(). The active sun/moon icon and all
+// colours are driven by `data-theme` on <html> via CSS, so no JS-side icon sync is needed.
+// SVG canvases re-resolve their var(--*) fills live on attribute change; the 2D side-view
+// viewport stays dark (--bg-canvas) in every theme, so no canvas redraw is required —
+// we still emit `pgm:themechange` for any listener that wants it.
+window.studioTheme = {
+  KEY: "pgm-theme",
+  get() { return document.documentElement.getAttribute("data-theme") || "dark"; },
+  set(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    try { localStorage.setItem(this.KEY, t); } catch (e) { /* private mode */ }
+    window.dispatchEvent(new CustomEvent("pgm:themechange", { detail: { theme: t } }));
+  },
+  toggle() { this.set(this.get() === "light" ? "dark" : "light"); },
+};

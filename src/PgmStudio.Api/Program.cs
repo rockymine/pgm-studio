@@ -47,7 +47,16 @@ app.Use(async (ctx, next) =>
     }
     await next();
 });
-app.UseStaticFiles();
+// In Development, force revalidation of static assets (the hand-written wwwroot CSS/JS are
+// served unfingerprinted and otherwise get a heuristic cache with no Cache-Control, so edits
+// don't show up on reload). no-cache = "cache but revalidate via ETag" → 200 when changed, 304 otherwise.
+var staticFileOptions = new StaticFileOptions();
+if (app.Environment.IsDevelopment())
+{
+    staticFileOptions.OnPrepareResponse = ctx =>
+        ctx.Context.Response.Headers["Cache-Control"] = "no-cache, must-revalidate";
+}
+app.UseStaticFiles(staticFileOptions);
 
 // All API endpoints live under /api (mirrors the Python app's /api/... surface).
 app.UseFastEndpoints(c => c.Endpoints.RoutePrefix = "api");

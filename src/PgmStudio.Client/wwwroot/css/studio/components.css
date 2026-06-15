@@ -217,6 +217,8 @@
 .action-btn--danger:hover { background: var(--color-error-hover); }
 .action-btn--warn         { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning); }
 .action-btn--warn:hover   { background: color-mix(in srgb, var(--color-warning) 20%, var(--bg-panel)); color: var(--text-white); }
+/* Light theme: warn-hover bg is a pale amber tint, so white text fails — use dark text. */
+:root[data-theme="light"] .action-btn--warn:hover { color: var(--text-strong); }
 .action-btn--fill         { flex: 1; justify-content: center; }
 .action-btn--push-end     { margin-left: auto; }
 .action-btn--self-start   { align-self: flex-start; }
@@ -236,7 +238,7 @@
   border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
   border-radius: var(--radius-md);
   background: linear-gradient(165deg, color-mix(in srgb, var(--accent) 11%, var(--bg-panel)), var(--bg-panel) 68%);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent), 0 2px 8px rgb(0 0 0 / 0.22);
+  box-shadow: var(--shadow-raised);
 }
 .smart-suggestion__head { display: flex; align-items: center; gap: var(--space-2); }
 .smart-suggestion__icon {
@@ -784,7 +786,7 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 .step-item.done .step-number {
   background: var(--color-success);
   border-color: var(--color-success);
-  color: #000;
+  color: var(--text-on-status);
 }
 
 
@@ -799,3 +801,33 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   gap: var(--space-2);
 }
 .layer-grid .filter-chip { justify-content: center; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TOPBAR ICON BUTTON  (theme toggle, and any future icon-only topbar action)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.topbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.topbar-icon-btn:hover { color: var(--text-strong); background: var(--bg-vis-hover); }
+.topbar-icon-btn svg { width: 16px; height: 16px; }
+
+/* Theme toggle — show the icon for the CURRENT theme: moon while dark, sun while light.
+   Driven by <html data-theme>. */
+.theme-toggle-icon { display: inline-flex; line-height: 0; }
+.theme-toggle-icon--sun { display: none; }
+:root[data-theme="light"] .theme-toggle-icon--moon { display: none; }
+:root[data-theme="light"] .theme-toggle-icon--sun  { display: inline-flex; }

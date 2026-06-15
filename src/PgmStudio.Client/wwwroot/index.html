@@ -6,6 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PgmStudio.Client</title>
     <base href="/" />
+    <!-- Theme: set data-theme before any CSS loads so there is no dark→light flash. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("pgm-theme");
+          if (t !== "light" && t !== "dark")
+            t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) { document.documentElement.setAttribute("data-theme", "dark"); }
+      })();
+    </script>
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/app.css" />
     <!-- Studio design system (ported verbatim from pgm-map-studio): tokens → components → editor. -->

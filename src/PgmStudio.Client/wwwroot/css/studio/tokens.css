@@ -3,8 +3,15 @@
  * Load this before editor.css and components.css in every template. */
 
 :root {
+  /* Default (dark) theme. Light overrides live in the `:root[data-theme="light"]`
+   * block at the foot of this file — keep the two in sync. Only the COLOUR tokens are
+   * themed; the structural tokens (spacing, radii, fonts, widths, motion) are shared.
+   * Theme is selected by `data-theme` on <html> (set by the inline script in index.html). */
+  color-scheme: dark;
+
   /* ── Backgrounds ─────────────────────────────────────────────────────── */
-  --bg-deep:            #080f1a;   /* canvas area, deep layers */
+  --bg-canvas:          #080f1a;   /* map/sketch VIEWPORT — stays dark in every theme */
+  --bg-deep:            #080f1a;   /* deepest UI surface (map-detail pane, logo box) */
   --bg-base:            #0f172a;   /* page background */
   --bg-panel:           #1e293b;   /* sidebars, panels, topbar */
   --bg-multi:           #1a3a2f;   /* multi-team selection tint */
@@ -24,7 +31,8 @@
   --text-secondary: #94a3b8;   /* 5.7:1 — form labels, secondary content */
   --text-primary:   #cbd5e1;   /* 9.9:1 — default body text */
   --text-bright:    #e2e8f0;   /* 11.9:1 — headings, emphasis */
-  --text-white:     #fff;      /* active / selected text on coloured surfaces */
+  --text-strong:    #fff;      /* strongest text / active chrome (headings, active rail, cat headers) */
+  --text-white:     #fff;      /* text on a SATURATED accent fill (stays light in every theme) */
 
   /* ── Accent (primary action colour) ─────────────────────────────────── */
   --accent:          #3b82f6;
@@ -35,6 +43,7 @@
   /* ── Shadows ─────────────────────────────────────────────────────────── */
   --shadow-ring:  0 0 0 1px var(--accent);                   /* selection outline — list rows, inputs */
   --shadow-float: 0 8px 24px oklch(0% 0 0 / 0.40);          /* elevated surfaces — menus, overlays */
+  --shadow-raised: inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent), 0 2px 8px rgb(0 0 0 / 0.22); /* raised callout card — smart-suggestion */
 
   /* ── Semantic status ─────────────────────────────────────────────────── */
   /* -bg: Tailwind 900 blended into --bg-panel (color-mix preserves bg-panel tracking) */
@@ -45,6 +54,7 @@
   --color-error-hover: color-mix(in oklch, var(--color-error) 10%, transparent); /* danger hover tint */
   --color-warning:     #f59e0b;   /* amber-500 — 6.8:1 on bg-panel */
   --color-warning-bg:  color-mix(in srgb, #451a03 27%, var(--bg-panel)); /* amber-900 @ 27% */
+  --text-on-status:    #000;      /* text/number on a solid status fill (e.g. done step badge on green) */
 
   /* ── Code / monospace highlight ──────────────────────────────────────── */
   --code-color: #7dd3fc;
@@ -71,11 +81,17 @@
   /* Symmetry axis indicator — center crosshair and axis line in Setup */
   --canvas-axis: #a78bfa;   /* violet-400 */
 
+  /* Symmetry overlay in overview/configure previews — axis line + center marker.
+     Distinct (more saturated) from --canvas-axis used by the editor's radial crosshair. */
+  --canvas-symmetry: #a855f7;   /* purple-500 */
+  /* Bright outline drawn over filled canvas marker dots (symmetry / radial centers) */
+  --canvas-marker-stroke: #fff;
+
   /* Minecraft chunk grid (16-block boundaries, lighter purple) */
   --canvas-chunk: color-mix(in oklab, var(--canvas-axis) 38%, transparent);
 
   /* Canvas SVG area background */
-  --canvas-bg: var(--bg-deep);   /* alias — always equals --bg-deep */
+  --canvas-bg: var(--bg-canvas);   /* alias — the viewport background (always dark) */
 
   /* Region shapes — editor canvas (all types share one colour; runtime supplies per-region value) */
   --canvas-region: #94a3b8;   /* slate-400 — fallback / design-doc placeholder */
@@ -83,6 +99,9 @@
   /* Resize handles — sketch selected + editor selected */
   --canvas-handle-fill:   #0f172a;   /* slate-950 */
   --canvas-handle-stroke: #94a3b8;   /* slate-400 */
+
+  /* Side-view build-height line (2D canvas — resolved via getComputedStyle) */
+  --canvas-sideview-line: rgba(250, 110, 50, 0.9);   /* orange */
 
   /* ── Type scale ─────────────────────────────────────────────────────── */
   --font-lg:   14px;   /* body default */
@@ -110,4 +129,61 @@
 
   /* ── Motion ──────────────────────────────────────────────────────────── */
   --transition-fast: 0.12s ease;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LIGHT THEME — colour overrides only (structural tokens inherit from :root).
+   Selected via <html data-theme="light">. Deliberately does NOT touch:
+     • --bg-canvas / --canvas-* : the map viewport stays dark in every theme, so the
+       block-overlay images, bounding boxes, axes, handles and markers keep their
+       contrast. (Chat / dye / team / wool palettes live outside CSS entirely.)
+   Slate-based ramp mirroring the dark theme (Tailwind slate / blue / status hues).
+   ════════════════════════════════════════════════════════════════════════════ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── Backgrounds (elevation inverts: raised = lighter/white) ──────────── */
+  --bg-deep:            #e2e8f0;   /* slate-200 — recessed UI surface */
+  --bg-base:            #f1f5f9;   /* slate-100 — page background */
+  --bg-panel:           #ffffff;   /* white — sidebars, panels, topbar */
+  --bg-multi:           #dcfce7;   /* green-100 — multi-team tint */
+  --bg-selected:        #bfdbfe;   /* blue-200 — selected row / active fill */
+  --bg-selected-hover:  #eff6ff;   /* blue-50 — row hover (explicit; dark's color-mix is too faint here) */
+  --bg-selected-child:  #dbeafe;   /* blue-100 — child of a selected row */
+  --bg-vis-hover:       #e2e8f0;   /* slate-200 — visibility button hover */
+
+  /* ── Borders ─────────────────────────────────────────────────────────── */
+  --border:        #cbd5e1;            /* slate-300 */
+  --border-swatch: rgba(0,0,0,0.18);   /* dark edge on colour-filled swatches/dots */
+
+  /* ── Text hierarchy (quiet → strong) — all pass WCAG AA on white / slate-100 / slate-200 ── */
+  --text-muted:     #586780;   /* slate-blue 500/600 — 5.7:1 white, 5.2:1 base, 4.7:1 deep */
+  --text-secondary: #475569;   /* slate-600 — 7.6:1 white */
+  --text-primary:   #1e293b;   /* slate-800 */
+  --text-primary:   #1e293b;   /* slate-800 */
+  --text-bright:    #0f172a;   /* slate-900 */
+  --text-strong:    #0f172a;   /* slate-900 — headings / active chrome */
+  /* --text-white stays #fff (text on saturated accent fills) */
+
+  /* ── Accent — the "lighter" steps darken (they read as text on light fills) ── */
+  --accent-light:   #2563eb;   /* blue-600 — icon / text accent */
+  --accent-lighter: #1d4ed8;   /* blue-700 — text on light-blue fills */
+  /* --accent + --accent-bg-hover unchanged (work on both themes) */
+
+  /* ── Shadows — softer on light ───────────────────────────────────────── */
+  --shadow-float:  0 8px 24px rgb(15 23 42 / 0.18);
+  --shadow-raised: inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 3px rgb(15 23 42 / 0.12);
+
+  /* ── Semantic status — dark text on clean 100-level tints (AA badge text on -bg ≥4.5;
+       overrides the dark theme's color-mix -bg, which goes muddy-grey on white). ── */
+  --color-success:    #166534;   /* green-800 — 6.5:1 on success-bg */
+  --color-success-bg: #dcfce7;   /* green-100 */
+  --color-error:      #b91c1c;   /* red-700  — 5.3:1 on error-bg */
+  --color-error-bg:   #fee2e2;   /* red-100  */
+  --color-warning:    #b45309;   /* amber-700 — 4.5:1 on warning-bg */
+  --color-warning-bg: #fef3c7;   /* amber-100 */
+  --text-on-status:   #fff;      /* white text on the solid status fills (≥5:1) */
+
+  /* ── Code / monospace highlight ──────────────────────────────────────── */
+  --code-color: #0369a1;       /* sky-700 */
 }

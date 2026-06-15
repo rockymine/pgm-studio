@@ -1,7 +1,7 @@
 import { buildTransform, svgEl as makeEl } from "./transform.js";
 import { blockDataToDataUrl } from "../shared/block-render.js";
 
-const SYMMETRY_COLOR   = "#a855f7";
+const SYMMETRY_COLOR   = "var(--canvas-symmetry)";
 const SYMMETRY_SKIPPED = 0.25;
 
 export class OverviewRenderer {
@@ -129,7 +129,7 @@ export class OverviewRenderer {
     const pt = this.#toSvg(center.cx, center.cz);
     this.#symmetryLayerEl.appendChild(makeEl("circle", {
       cx: pt.x, cy: pt.y, r: 5,
-      fill: SYMMETRY_COLOR, stroke: "#fff", "stroke-width": "1.5", opacity,
+      fill: SYMMETRY_COLOR, stroke: "var(--canvas-marker-stroke)", "stroke-width": "1.5", opacity,
     }));
   }
 }

@@ -12,7 +12,7 @@
 // Color stops: nearest block = light stone, farthest = very dark
 const _NEAR  = [200, 195, 188];
 const _FAR   = [40,  38,  35];
-const _LINE_COLOR  = "rgba(250, 110, 50, 0.9)";
+const _LINE_COLOR  = "rgba(250, 110, 50, 0.9)";   // fallback; real value from --canvas-sideview-line
 const _LINE_DASH   = [5, 4];
 const _HANDLE_W    = 20;
 const _HANDLE_H    = 10;
@@ -119,7 +119,7 @@ export class SideviewCanvas {
 
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--bg-deep").trim() || "#111";
+      .getPropertyValue("--bg-canvas").trim() || "#111";
     ctx.fillRect(0, 0, W, H);
 
     if (!this.#data || !this.#offscreen) {
@@ -146,8 +146,10 @@ export class SideviewCanvas {
       if (lineY !== null) {
         const x1 = ox;
         const x2 = ox + primary_count * s;
+        const lineColor = getComputedStyle(document.documentElement)
+          .getPropertyValue("--canvas-sideview-line").trim() || _LINE_COLOR;
 
-        ctx.strokeStyle = _LINE_COLOR;
+        ctx.strokeStyle = lineColor;
         ctx.lineWidth   = 2;
         ctx.setLineDash(_LINE_DASH);
         ctx.beginPath();
@@ -158,11 +160,11 @@ export class SideviewCanvas {
 
         // Drag handle tab on right side
         const hx = x2 + 4;
-        ctx.fillStyle = _LINE_COLOR;
+        ctx.fillStyle = lineColor;
         ctx.fillRect(hx, lineY - _HANDLE_H / 2, _HANDLE_W, _HANDLE_H);
 
         // Y label
-        ctx.fillStyle  = _LINE_COLOR;
+        ctx.fillStyle  = lineColor;
         ctx.font       = "11px system-ui,sans-serif";
         ctx.textAlign  = "right";
         ctx.textBaseline = "bottom";

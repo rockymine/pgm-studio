@@ -719,7 +719,7 @@ export class EditorCanvas extends CanvasBase {
       x: mid, y: pillY + PAD_Y + FONT_SZ - 1,
       "text-anchor": "middle", "dominant-baseline": "auto",
       "font-size": FONT_SZ, "font-family": "ui-monospace, monospace",
-      fill: "var(--bg-base)", "font-weight": "600", "pointer-events": "none",
+      fill: "var(--bg-canvas)", "font-weight": "600", "pointer-events": "none",
     });
     dimEl.textContent = dimText;
     this.#overlayLayer.appendChild(dimEl);

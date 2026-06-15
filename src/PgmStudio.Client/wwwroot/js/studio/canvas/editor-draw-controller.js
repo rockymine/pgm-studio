@@ -128,7 +128,7 @@ export class EditorDrawController {
     const pt = toSvg(centerX, centerZ);
     const dot = svgEl("circle", {
       cx: pt.x, cy: pt.y, r: 5,
-      fill: "var(--canvas-axis)", stroke: "#fff", "stroke-width": "1.5",
+      fill: "var(--canvas-axis)", stroke: "var(--canvas-marker-stroke)", "stroke-width": "1.5",
       "pointer-events": "none",
     });
     const line = svgEl("line", {

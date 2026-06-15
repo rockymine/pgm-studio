@@ -45,7 +45,7 @@
   font-size: var(--font-md);
   white-space: nowrap;
 }
-.topbar-breadcrumb-home:hover { color: var(--text-white); }
+.topbar-breadcrumb-home:hover { color: var(--text-strong); }
 .topbar-sep  { color: var(--text-muted); font-size: var(--font-base); user-select: none; }
 .topbar-crumb { font-size: var(--font-md); color: var(--text-primary); white-space: nowrap; }
 .topbar-crumb--dim { color: var(--text-secondary); }
@@ -96,7 +96,7 @@
   cursor: pointer;
   padding: 0 2px;
 }
-.topbar-error-dismiss:hover { color: var(--text-white); }
+.topbar-error-dismiss:hover { color: var(--text-strong); }
 
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -131,7 +131,7 @@
   flex: 1;
   overflow: hidden;
   position: relative;
-  background: var(--bg-deep);
+  background: var(--bg-canvas);
 }
 .canvas-fill > canvas {
   display: block;
@@ -145,7 +145,7 @@
   justify-content: center;
   overflow: hidden;
   padding: 12px;
-  background: var(--bg-deep);
+  background: var(--bg-canvas);
 }
 .map-svg { max-width: 100%; max-height: 100%; cursor: default; }
 
@@ -250,7 +250,7 @@
   font-family: ui-monospace, monospace;
   font-size: var(--font-sm);
   font-weight: 700;
-  color: var(--text-white);
+  color: var(--text-strong);
   letter-spacing: 0.05em;
   line-height: 1;
 }
@@ -279,14 +279,14 @@
   transition: color var(--transition-fast);
 }
 .activity-rail .activity-btn svg { width: 22px !important; height: 22px !important; }
-.activity-btn:not(:disabled):hover { color: var(--text-white); }
-.activity-btn.active { color: var(--text-white); }
+.activity-btn:not(:disabled):hover { color: var(--text-strong); }
+.activity-btn.active { color: var(--text-strong); }
 .activity-btn.active::before {
   content: '';
   position: absolute;
   left: 0; top: 8px; bottom: 8px;
   width: 2px;
-  background: var(--text-white);
+  background: var(--text-strong);
   border-radius: 0 2px 2px 0;
 }
 .activity-btn:disabled { opacity: 0.3; cursor: not-allowed; }
@@ -356,7 +356,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: var(--bg-deep);
+  background: var(--bg-canvas);
   position: relative;
 }
 
@@ -513,7 +513,7 @@
   font-size: var(--font-base);
   font-weight: 500;
   letter-spacing: .02em;
-  color: var(--text-white);
+  color: var(--text-strong);
   user-select: none;
 }
 .cat-divider { margin: 6px 14px; border-top: 1px solid var(--border); }
@@ -695,7 +695,7 @@ body.dashboard-page { overflow: hidden; }
 /* Two-column header: main (left) + aside (right) */
 .map-detail-header { display: flex; gap: var(--space-5); align-items: flex-start; }
 .map-detail-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3); }
-.map-detail-name { font-size: 20px; font-weight: 600; color: var(--text-white); line-height: 1.2; }
+.map-detail-name { font-size: 20px; font-weight: 600; color: var(--text-strong); line-height: 1.2; }
 .map-detail-name--muted { color: var(--text-muted); font-style: italic; }
 .map-list-name--muted { color: var(--text-muted); font-style: italic; }
 .map-detail-version { font-size: var(--font-base); color: var(--text-muted); margin-top: calc(-1 * var(--space-2)); }
@@ -795,7 +795,7 @@ body.dashboard-page { overflow: hidden; }
 .cfg-step-bar .step-item.done .step-number {
   background: var(--color-success);
   border-color: var(--color-success);
-  color: #000;
+  color: var(--text-on-status);
 }
 .cfg-step-bar .step-item-label { color: inherit; }
 
@@ -824,7 +824,7 @@ body.dashboard-page { overflow: hidden; }
 .cfg-sub-section { display: flex; flex-direction: column; gap: var(--space-3); }
 
 /* Inspector side-view slice (mini SideviewCanvas) — fixed-height box; the canvas fills it 1:1. */
-.slice-view { position: relative; height: 150px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-deep); }
+.slice-view { position: relative; height: 150px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-canvas); }
 .slice-canvas { display: block; width: 100%; height: 100%; }
 
 /* Slice header: "Side view" label + the X/Z look-axis toggle on one row. */
