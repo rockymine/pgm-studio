@@ -8,6 +8,14 @@ window.studio = {
     }
   },
 
+  // Smooth-scroll an in-page section into view by id. Used by the /authoring concept page's left
+  // nav: plain `<a href="#id">` anchors get intercepted by Blazor's router (they resolve to the app
+  // root), so the nav calls this with preventDefault instead.
+  scrollToId(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  },
+
   // Mount the hybrid editor canvas. Uses a native dynamic import (absolute URL) so it bypasses
   // Blazor's fingerprinting import map (which 404s for arbitrary wwwroot modules under the dev host).
   async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {

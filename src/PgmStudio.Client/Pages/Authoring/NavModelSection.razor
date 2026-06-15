@@ -1,0 +1,87 @@
+@namespace PgmStudio.Client.Pages.AuthoringParts
+
+<section class="ds-section" id="nav">
+  <div class="ds-section-heading">
+    <div>
+      <p class="ds-kicker">Navigation</p>
+      <h2>The navigation model</h2>
+    </div>
+    <p>A guided wizard at three levels: jump between phases on the rail, walk the sub-steps with the
+       flow bar, advance linearly with Back / Next.</p>
+  </div>
+
+  <p class="ds-theming-note">
+    Authoring is a guided wizard, not a free-form editor. The <strong>activity rail</strong> (left) holds
+    the six phases and lets you jump to any unlocked one — completed phases carry a green dot, the current
+    one a left bar. Inside a phase, the <strong>flow bar</strong> is its own strip <em>above</em> the
+    workspace — never inside the canvas sub-bar, which keeps its draw toolbar. A check marks a done
+    sub-step, an accent underline the current one, and <strong>Back / Next</strong> advances linearly. No
+    numbered-circle bars: the chrome stays quiet so the map stays the focus.
+  </p>
+
+  <div class="ds-example-grid">
+    <article class="ds-example">
+      <div class="ds-example-label">Phases — the activity rail</div>
+      <div class="ds-panel-frame" style="display:flex">
+        <nav class="activity-rail">
+          <div class="activity-logo">
+            <div class="activity-logo-box">
+              <span class="activity-logo-pgm">pgm</span>
+              <span class="activity-logo-sub">STUDIO</span>
+            </div>
+          </div>
+          <button class="activity-btn" data-status="green" title="Map Info"><i data-lucide="book-open-text"></i></button>
+          <button class="activity-btn" data-status="green" title="World"><i data-lucide="settings-2"></i></button>
+          <button class="activity-btn" data-status="green" title="Teams"><i data-lucide="users"></i></button>
+          <button class="activity-btn active" title="Build"><i data-lucide="pickaxe"></i></button>
+          <button class="activity-btn" title="Wools"><i data-lucide="goal"></i></button>
+          <button class="activity-btn" title="Review"><i data-lucide="badge-check"></i></button>
+        </nav>
+        <div class="workspace-scroll" style="flex:1">
+          <section class="panel-section">
+            <div class="section-header section-header--ruled"><h2 class="section-title">Phases</h2></div>
+            <div class="panel-list">
+              <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="book-open-text"></i></span><span class="list-label">Map Info</span><span class="badge badge--success">done</span></div>
+              <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="settings-2"></i></span><span class="list-label">World</span><span class="badge badge--success">done</span></div>
+              <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="users"></i></span><span class="list-label">Teams</span><span class="badge badge--success">done</span></div>
+              <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="pickaxe"></i></span><span class="list-label">Build</span><span class="badge badge--neutral">current</span></div>
+              <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="goal"></i></span><span class="list-label">Wools</span><span class="badge badge--dim">next</span></div>
+              <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="badge-check"></i></span><span class="list-label">Review &amp; Export</span><span class="badge badge--dim">locked</span></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </article>
+
+    <article class="ds-example">
+      <div class="ds-example-label">Sub-steps — the flow bar (its own strip, above the workspace)</div>
+      <div class="flow-bar">
+        <div class="flow-steps">
+          <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
+          <button class="flow-step flow-step--done"><i data-lucide="check"></i>Spawn &amp; room</button>
+          <button class="flow-step flow-step--active">Monuments</button>
+        </div>
+        <div class="flow-bar-actions">
+          <button class="action-btn">Back</button>
+          <button class="action-btn action-btn--primary">Next</button>
+        </div>
+      </div>
+      <div class="ds-canvas-bar-example canvas-subbar" style="margin-top:var(--space-2)">
+        <div class="canvas-toolbar">
+          <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
+          <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+          <button class="draw-tool-btn" title="Place point"><i data-lucide="dot"></i></button>
+        </div>
+        <span class="canvas-cursor">X 18 · Z -71</span>
+        <div class="canvas-subbar-right">
+          <button class="draw-tool-btn" title="Fit island"><i data-lucide="maximize-2"></i></button>
+          <span class="canvas-zoom">100%</span>
+        </div>
+      </div>
+      <p class="section-desc" style="margin-top:var(--space-3)">The flow bar (top) and the canvas draw
+         toolbar (bottom) are <strong>separate strips</strong> — the step indicator never replaces the
+         tools or the navigation. The rail jumps between phases; a phase stays locked until its
+         prerequisites are met (Review needs a connected map).</p>
+    </article>
+  </div>
+</section>

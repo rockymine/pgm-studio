@@ -1,0 +1,270 @@
+@namespace PgmStudio.Client.Pages.AuthoringParts
+@using PgmStudio.Client.Pages.EditorActivities
+
+@* Teams (02) — two sub-steps: (1) team creation + island assignment, (2) spawn point + protection.
+   Canvas = thunder's REAL islands (IslandMap Mode="teams" tints by assignment; centre contested). *@
+
+<section class="ds-section" id="teams">
+  <div class="ds-section-heading">
+    <div>
+      <p class="ds-kicker">02</p>
+      <h2>Teams &amp; Spawns</h2>
+    </div>
+    <p>Two sub-steps — create the teams and assign islands (fixing the orbit order), then place team 0's
+       spawn point and protection once. Orbit fills the rest; protection is auto-wired.</p>
+  </div>
+
+  <p class="ds-theming-note">
+    Symmetry suggests the team count; the author tags islands to teams as <strong>authoring help</strong>
+    — this fixes the <em>orbit order</em> (the sequence the map was laid out in) and seats each spawn on
+    the right island. Islands are neutral by default — not every island needs a team. Thunder's centre
+    island stays <strong>contested</strong>. Authors often colour-code islands with clay or wool; the
+    assignment mirrors that intent.
+  </p>
+
+  <div class="ds-sug-sample" style="max-width:320px;margin:var(--space-4) 0">
+    <SmartSuggestion Header="Smart Suggestion" Badge="rot 90" AcceptLabel="Create 4 teams" RejectLabel="Dismiss">
+      <p class="smart-suggestion__text">90° rotational symmetry suggests four teams.</p>
+      <div class="smart-suggestion-teams">
+        <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#5555FF"></span>Blue Team</div>
+        <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FF5555"></span>Red Team</div>
+        <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#55FF55"></span>Green Team</div>
+        <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FFFF55"></span>Yellow Team</div>
+      </div>
+    </SmartSuggestion>
+  </div>
+
+  @* ── Step 1 · Team creation + island assignment ────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 1 of 2 — Teams &amp; island assignment</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--active">Teams &amp; islands</button>
+        <button class="flow-step">Spawn &amp; protection</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn" disabled>Back</button>
+        <button class="action-btn action-btn--primary">Next: Spawn</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Teams</h2></div>
+              <div class="panel-list">
+                <div class="list-row list-row--compact list-row--selected"><span class="list-swatch" style="background:#5555FF"></span><span class="list-label list-label--mono">blue</span><span class="badge badge--success">authored</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#55FF55"></span><span class="list-label list-label--mono">green</span><span class="badge badge--dim">orbit</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FF5555"></span><span class="list-label list-label--mono">red</span><span class="badge badge--dim">orbit</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">yellow</span><span class="badge badge--dim">orbit</span></div>
+              </div>
+            </section>
+            <section class="panel-section">
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Island Assignment</h2>
+                <span class="badge badge--dim">authoring help</span>
+              </div>
+              <div class="panel-list">
+                <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Centre island</span><span class="badge badge--dim">contested</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#5555FF"></span><span class="list-label">West islands</span><span class="list-tag">blue ×4</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#55FF55"></span><span class="list-label">East islands</span><span class="list-tag">green ×4</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FF5555"></span><span class="list-label">South islands</span><span class="list-tag">red ×4</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label">North islands</span><span class="list-tag">yellow ×4</span></div>
+              </div>
+              <p class="section-desc">Tagging islands tints them and fixes the orbit order. Untagged islands stay neutral — the centre is contested.</p>
+            </section>
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Team Size &amp; Kit</h2></div>
+              <div class="section-body">
+                <div class="field"><label class="field-label">Max Players <span class="list-tag">all teams</span></label><input class="field-input" type="number" value="12"/></div>
+                <div class="field"><label class="field-label">Spawn Kit</label><select class="field-input"><option selected>spawn-kit</option></select></div>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <div class="canvas-toolbar">
+              <button class="filter-chip filter-chip--active" title="Orbit fill active">Orbit</button>
+            </div>
+            <span class="canvas-cursor">X -93 · Z -15</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">100%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="teams">
+              <circle cx="34.5" cy="112.5" r="2.4" fill="#5555FF" stroke="white" stroke-width="0.6" />
+              <circle cx="222.5" cy="144.5" r="2.4" fill="#55FF55" stroke="white" stroke-width="0.6" />
+              <circle cx="112.5" cy="222.5" r="2.4" fill="#FF5555" stroke="white" stroke-width="0.6" />
+              <circle cx="144.5" cy="34.5" r="2.4" fill="#FFFF55" stroke="white" stroke-width="0.6" />
+            </IslandMap>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="detail-header">
+                <span class="geo-type-icon detail-icon--muted"><i data-lucide="users"></i></span>
+                <span class="detail-label detail-label--mono">blue</span>
+                <span class="badge badge--success">authored</span>
+              </div>
+              <div class="section-body">
+                <div class="field"><label class="field-label">Name</label><input class="field-input" value="Blue"/></div>
+                <div class="field"><label class="field-label">Colour</label><div class="field-pick-row"><span class="field-swatch" style="background:#5555FF"></span><select class="field-input"><option selected>Blue</option></select></div></div>
+                <div class="field"><label class="field-label">Islands</label><div class="field-pick-row"><span class="badge badge--neutral">4</span><span class="list-tag">west quadrant</span></div></div>
+                <p class="section-desc">Orbit position 0. Green, red, and yellow follow by 90° rotation.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  @* ── Step 2 · Spawn point + protection ─────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 2 of 2 — Spawn point &amp; protection</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Teams &amp; islands</button>
+        <button class="flow-step flow-step--active">Spawn &amp; protection</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn">Back</button>
+        <button class="action-btn action-btn--primary">Next: Build</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Spawns</h2></div>
+              <div class="panel-list">
+                <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="cylinder"></i></span><span class="list-label list-label--mono">blue-spawn</span><span class="badge badge--success">authored</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="cylinder"></i></span><span class="list-label list-label--mono">green · red · yellow</span><span class="badge badge--dim">orbit</span></div>
+              </div>
+            </section>
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Protection</h2></div>
+              <div class="control-list">
+                <label class="check-row"><input type="checkbox" checked/>Wrap spawn in a protection zone</label>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn draw-tool-btn--active" title="Place spawn point"><i data-lucide="dot"></i></button>
+              <button class="draw-tool-btn" title="Draw protection rectangle"><i data-lucide="rectangle-horizontal"></i></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <div class="canvas-toolbar">
+              <button class="filter-chip filter-chip--active" title="Orbit fill active">Orbit</button>
+            </div>
+            <span class="canvas-cursor">X -93 · Z -15</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island · Blue"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">230%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="teams">
+              @* blue authored spawn-protect (dashed) + spawn point; the other teams are orbit ghosts *@
+              <rect x="29" y="107" width="18" height="12" rx="1" fill="color-mix(in oklch,#5555FF 10%,transparent)" stroke="#5555FF" stroke-width="0.8" stroke-dasharray="2 1.5" />
+              <circle cx="34.5" cy="112.5" r="2.6" fill="#5555FF" stroke="white" stroke-width="0.7" />
+              <circle cx="222.5" cy="144.5" r="2.2" fill="#55FF55" stroke="white" stroke-width="0.5" opacity="0.55" />
+              <circle cx="112.5" cy="222.5" r="2.2" fill="#FF5555" stroke="white" stroke-width="0.5" opacity="0.55" />
+              <circle cx="144.5" cy="34.5" r="2.2" fill="#FFFF55" stroke="white" stroke-width="0.5" opacity="0.55" />
+            </IslandMap>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <div class="panel-stack">
+              <section class="panel-section">
+                <div class="detail-header">
+                  <span class="geo-type-icon detail-icon--muted"><i data-lucide="cylinder"></i></span>
+                  <span class="detail-label detail-label--mono">blue-spawn</span>
+                  <span class="badge badge--neutral">Cylinder</span>
+                </div>
+                <div class="section-body">
+                  <div class="field">
+                    <label class="field-label">Base</label>
+                    <div class="ctrl-row">
+                      <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="-93.5"/></div>
+                      <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="7"/></div>
+                      <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="-15.5"/></div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Radius / Height / Yaw</label>
+                    <div class="ctrl-row">
+                      <div class="coord-field"><span class="coord-prefix">R</span><input class="coord-input" value="1"/></div>
+                      <div class="coord-field"><span class="coord-prefix">H</span><input class="coord-input" value="0"/></div>
+                      <div class="coord-field"><span class="coord-prefix">°</span><input class="coord-input" value="0"/></div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <div class="slice-head">
+                      <label class="field-label">Side view — drag the line to set Y</label>
+                      <div class="slice-axis">
+                        <button class="draw-tool-btn draw-tool-btn--active" title="Inspect from −Z">Z−</button>
+                        <button class="draw-tool-btn" title="Inspect from +Z">Z+</button>
+                        <button class="draw-tool-btn" title="Inspect from −X">X−</button>
+                        <button class="draw-tool-btn" title="Inspect from +X">X+</button>
+                      </div>
+                    </div>
+                    <div class="slice-view" style="position:relative">
+                      <canvas class="slice-canvas"></canvas>
+                      <span style="position:absolute;left:0;right:0;top:47%;height:2px;background:var(--accent);opacity:.85;pointer-events:none"></span>
+                      <span style="position:absolute;right:6px;top:36%;font-size:10px;color:var(--accent);font-family:ui-monospace,monospace;pointer-events:none">Y 7</span>
+                    </div>
+                  </div>
+                  <div class="panel-divider"></div>
+                  <div class="field">
+                    <label class="field-label">Protection bounds</label>
+                    <div class="ctrl-row">
+                      <div class="coord-field"><span class="coord-prefix">X₁</span><input class="coord-input" value="-99"/></div>
+                      <div class="coord-field"><span class="coord-prefix">Z₁</span><input class="coord-input" value="-21"/></div>
+                    </div>
+                    <div class="ctrl-row" style="margin-top:6px">
+                      <div class="coord-field"><span class="coord-prefix">X₂</span><input class="coord-input" value="-81"/></div>
+                      <div class="coord-field"><span class="coord-prefix">Z₂</span><input class="coord-input" value="-9"/></div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Auto-wiring</h2>
+                  <span class="badge badge--dim">derived</span>
+                </div>
+                <div class="panel-list">
+                  <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = only-blue</span><span class="list-tag">spawn protect</span></div>
+                </div>
+                <p class="section-desc">Message “You may not enter the enemy's spawn!”. Orbit replicates the whole spawn unit for green, red, and yellow.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>

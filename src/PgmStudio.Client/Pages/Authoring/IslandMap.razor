@@ -1,0 +1,68 @@
+@namespace PgmStudio.Client.Pages.AuthoringParts
+
+@* Shared real-geometry canvas for the /authoring concept page. Renders thunder's ACTUAL terrain
+   islands — 17 polygons from the island detector's `simplified_polygon` exterior (RDP-decimated),
+   projected to a 256×256 viewBox (sx = x+128, sy = z+128; thunder world bbox -119..120). The
+   per-island team is its nearest team spawn (4 each + 1 contested centre). `Mode` tints the polygons
+   to match the activity; `ChildContent` adds overlays (spawn dots, wool rooms, connectivity lines …)
+   inside the same svg. Static UI mock — not interactive. *@
+
+<svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+  @if (Axes)
+  {
+    <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.4" />
+    <line x1="0" y1="128" x2="256" y2="128" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.4" />
+  }
+  @foreach (var isl in Islands)
+  {
+    var s = Style(isl.Team);
+    <polygon points="@isl.Points" fill="@s.Fill" stroke="@s.Stroke" stroke-width="0.7" />
+  }
+  @ChildContent
+</svg>
+
+@code {
+    // neutral (gray shapes) | teams (tint by assignment) | build (green build layer) |
+    // buildable (validation green footprint) | surface (traversability walkable green)
+    [Parameter] public string Mode { get; set; } = "neutral";
+    [Parameter] public bool Axes { get; set; } = true;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private record Isl(string Team, string Points);
+
+    private static string Hex(string t) => t switch
+    {
+        "blue" => "#5555FF", "green" => "#55FF55", "red" => "#FF5555", "yellow" => "#FFFF55", _ => ""
+    };
+
+    private (string Fill, string Stroke) Style(string team) => Mode switch
+    {
+        "teams" when team != "center" => ($"color-mix(in oklch, {Hex(team)} 24%, transparent)", Hex(team)),
+        "buildable" => ("color-mix(in oklch, var(--canvas-add-fill) 60%, transparent)", "var(--canvas-add-stroke)"),
+        "surface"   => ("color-mix(in oklch, var(--color-success) 55%, transparent)", "var(--color-success)"),
+        "build"     => ("color-mix(in oklch, var(--canvas-add-fill) 22%, transparent)", "var(--canvas-add-stroke)"),
+        _           => ("color-mix(in oklch, var(--canvas-island) 55%, transparent)", "var(--canvas-island-stroke)")
+    };
+
+    // thunder's real terrain — 17 island polygons (4 per team by nearest spawn + 1 contested centre).
+    private static readonly Isl[] Islands = new Isl[]
+    {
+        new("yellow","105.0,30.0 103.0,44.0 100.0,44.0 100.0,47.0 101.0,53.0 113.0,57.0 117.0,64.0 112.0,85.0 115.0,93.0 119.0,87.0 129.0,87.0 129.0,83.0 133.0,81.0 137.0,64.0 136.0,53.0 142.0,47.0 144.0,50.0 141.0,67.0 145.0,69.0 150.0,51.0 149.0,43.0 146.0,41.0 148.0,31.0 144.0,30.0 133.0,48.0 123.0,45.0 123.0,21.0 124.0,17.0 127.0,17.0 125.0,9.0 110.0,15.0 105.0,30.0"),
+        new("green","166.0,113.0 164.0,115.0 172.0,123.0 170.0,129.0 174.0,129.0 176.0,133.0 193.0,137.0 204.0,136.0 210.0,142.0 188.0,143.0 199.0,149.0 211.0,150.0 216.0,146.0 228.0,146.0 209.0,133.0 213.0,122.0 226.0,125.0 236.0,123.0 240.0,124.0 240.0,127.0 248.0,125.0 242.0,110.0 223.0,103.0 213.0,103.0 213.0,100.0 204.0,101.0 200.0,113.0 193.0,117.0 166.0,113.0"),
+        new("blue","10.0,130.0 9.0,136.0 15.0,147.0 34.0,154.0 44.0,154.0 44.0,157.0 53.0,156.0 57.0,144.0 64.0,140.0 85.0,145.0 93.0,143.0 85.0,134.0 87.0,128.0 83.0,128.0 81.0,124.0 64.0,120.0 53.0,121.0 47.0,115.0 69.0,114.0 58.0,108.0 46.0,107.0 41.0,111.0 29.0,111.0 48.0,124.0 44.0,135.0 31.0,132.0 21.0,134.0 17.0,133.0 17.0,130.0 10.0,130.0"),
+        new("red","111.0,192.0 107.0,206.0 108.0,214.0 111.0,216.0 109.0,226.0 113.0,227.0 124.0,209.0 134.0,212.0 134.0,236.0 133.0,240.0 130.0,240.0 130.0,247.0 139.0,247.0 149.0,239.0 154.0,213.0 157.0,213.0 156.0,204.0 144.0,200.0 140.0,193.0 144.0,165.0 134.0,172.0 128.0,170.0 128.0,174.0 124.0,176.0 120.0,193.0 121.0,204.0 115.0,210.0 113.0,207.0 116.0,190.0 112.0,188.0 111.0,192.0"),
+        new("yellow","118.0,105.0 113.0,110.0 114.0,117.0 119.0,117.0 130.0,107.0 143.0,105.0 145.0,99.0 136.0,94.0 124.0,94.0 118.0,105.0"),
+        new("blue","96.0,116.0 94.0,133.0 98.0,133.0 110.0,144.0 117.0,143.0 117.0,138.0 107.0,127.0 105.0,114.0 99.0,112.0 96.0,116.0"),
+        new("green","143.0,113.0 140.0,114.0 140.0,119.0 149.0,128.0 152.0,143.0 158.0,145.0 163.0,136.0 163.0,124.0 159.0,124.0 149.0,114.0 143.0,113.0"),
+        new("red","114.0,152.0 114.0,160.0 133.0,163.0 133.0,159.0 143.0,149.0 144.0,142.0 138.0,140.0 129.0,149.0 114.0,152.0"),
+        new("yellow","86.0,34.0 84.0,43.0 91.0,56.0 93.0,48.0 96.0,47.0 96.0,44.0 91.0,42.0 92.0,36.0 97.0,38.0 103.0,24.0 101.0,15.0 95.0,29.0 90.0,24.0 86.0,34.0"),
+        new("green","209.0,87.0 201.0,91.0 209.0,93.0 210.0,96.0 213.0,96.0 215.0,91.0 221.0,92.0 219.0,97.0 233.0,103.0 242.0,101.0 228.0,95.0 233.0,91.0 228.0,87.0 216.0,84.0 209.0,87.0"),
+        new("blue","24.0,154.0 15.0,157.0 29.0,162.0 24.0,166.0 29.0,170.0 43.0,173.0 56.0,167.0 47.0,161.0 44.0,161.0 42.0,166.0 36.0,165.0 38.0,160.0 24.0,154.0"),
+        new("red","156.0,227.0 154.0,238.0 157.0,242.0 162.0,228.0 167.0,233.0 171.0,225.0 173.0,214.0 167.0,201.0 161.0,210.0 161.0,213.0 166.0,215.0 165.0,221.0 161.0,218.0 156.0,227.0"),
+        new("center","123.0,125.0 121.0,130.0 124.0,134.0 130.0,136.0 134.0,133.0 136.0,127.0 133.0,123.0 127.0,121.0 123.0,125.0"),
+        new("yellow","95.0,61.0 98.0,66.0 105.0,66.0 111.0,70.0 107.0,60.0 100.0,58.0 95.0,61.0"),
+        new("green","190.0,101.0 191.0,105.0 187.0,111.0 195.0,109.0 199.0,102.0 196.0,95.0 190.0,101.0"),
+        new("blue","59.0,153.0 58.0,157.0 63.0,162.0 70.0,146.0 62.0,148.0 59.0,153.0"),
+        new("red","147.0,191.0 152.0,198.0 162.0,196.0 159.0,191.0 152.0,191.0 148.0,187.0 147.0,191.0")
+    };
+}

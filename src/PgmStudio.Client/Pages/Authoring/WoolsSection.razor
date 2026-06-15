@@ -1,0 +1,321 @@
+@namespace PgmStudio.Client.Pages.AuthoringParts
+@using PgmStudio.Client.Pages.EditorActivities
+
+@* Wools (04) — three sub-steps: Colours, Spawn + room, Monuments. Each a full workspace; the flow bar
+   is separate from the canvas toolbar; Back/Next on every step. Canvas = thunder's REAL islands faint
+   for context + the real wool rooms / spawns / 12 monument capture points. *@
+
+<section class="ds-section" id="wools">
+  <div class="ds-section-heading">
+    <div>
+      <p class="ds-kicker">04</p>
+      <h2>Wools</h2>
+    </div>
+    <p>Three sub-steps — colours, then spawn + room, then monuments. Define one wool unit; orbit-fill
+       produces the other three. N − 1 = 3 monuments per wool on a four-team map.</p>
+  </div>
+
+  <p class="ds-theming-note">
+    A <em>wool unit</em> is one coloured wool block, the room it lives in, and the capture monuments that
+    record each enemy team's take. Author only the blue wool; <code>rot_90</code> symmetry orbit-fills
+    green, red, and yellow. Room defense, room build/break, and monument capture are auto-wired from
+    templates — you never touch the filter graph.
+  </p>
+
+  <div class="ds-sug-sample" style="max-width:340px;margin:var(--space-4) 0">
+    <SmartSuggestion Header="Smart Suggestion" Badge="4 teams" AcceptLabel="Pre-fill 3 monuments" RejectLabel="Dismiss">
+      <p class="smart-suggestion__text">Four teams means each wool must be captured by every other team — three monuments per wool.</p>
+      <div class="smart-suggestion-teams">
+        <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#55FF55"></span>Green</div>
+        <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FF5555"></span>Red</div>
+        <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:#FFFF55"></span>Yellow</div>
+        <div class="smart-suggestion-team"></div>
+      </div>
+    </SmartSuggestion>
+  </div>
+
+  @* ── Step 1 · Colours ──────────────────────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 1 of 3 — Colours</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--active">Colours</button>
+        <button class="flow-step">Spawn &amp; room</button>
+        <button class="flow-step">Monuments</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn" disabled>Back</button>
+        <button class="action-btn action-btn--primary">Next: Spawn &amp; room</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Wools</h2></div>
+              <div class="panel-list">
+                <div class="list-row list-row--compact list-row--selected"><span class="list-swatch" style="background:#5555FF"></span><span class="list-label list-label--mono">blue-wool</span><span class="badge badge--success">authored</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#55FF55"></span><span class="list-label list-label--mono">green-wool</span><span class="badge badge--dim">orbit</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FF5555"></span><span class="list-label list-label--mono">red-wool</span><span class="badge badge--dim">orbit</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">yellow-wool</span><span class="badge badge--dim">orbit</span></div>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <button class="filter-chip filter-chip--active" title="Orbit fill active">Orbit</button>
+            <span class="canvas-cursor">X -112 · Z 8</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">100%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="neutral">
+              @* the 4 wool spawns coloured at their corners (orbit-derived from blue) *@
+              <circle cx="15.5" cy="136.5" r="2.6" fill="#5555FF" stroke="white" stroke-width="0.7" />
+              <circle cx="241.5" cy="120.5" r="2.4" fill="#55FF55" stroke="white" stroke-width="0.5" opacity="0.6" />
+              <circle cx="136.5" cy="241.5" r="2.4" fill="#FF5555" stroke="white" stroke-width="0.5" opacity="0.6" />
+              <circle cx="120.5" cy="15.5" r="2.4" fill="#FFFF55" stroke="white" stroke-width="0.5" opacity="0.6" />
+            </IslandMap>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="detail-header">
+                <span class="geo-type-icon detail-icon--muted"><i data-lucide="square"></i></span>
+                <span class="detail-label detail-label--mono">blue-wool</span>
+                <span class="badge badge--neutral">Wool</span>
+              </div>
+              <div class="section-body">
+                <div class="field"><label class="field-label">Colour</label><div class="field-pick-row"><span class="field-swatch" style="background:#5555FF"></span><select class="field-input"><option selected>Blue</option></select></div></div>
+                <div class="field"><label class="field-label">Owning team</label><div class="field-pick-row"><span class="field-swatch" style="background:#5555FF"></span><select class="field-input"><option selected>Blue</option><option>Green</option><option>Red</option><option>Yellow</option></select></div></div>
+                <p class="section-desc">Pick the authored wool's colour. Orbit assigns green, red, and yellow by 90° rotation.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  @* ── Step 2 · Spawn + room ─────────────────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 2 of 3 — Spawn &amp; room</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
+        <button class="flow-step flow-step--active">Spawn &amp; room</button>
+        <button class="flow-step">Monuments</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn">Back</button>
+        <button class="action-btn action-btn--primary">Next: Monuments</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Wools</h2></div>
+              <div class="panel-list">
+                <div class="list-row list-row--compact list-row--selected"><span class="list-swatch" style="background:#5555FF"></span><span class="list-label list-label--mono">blue-wool</span><span class="badge badge--success">authored</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#55FF55"></span><span class="list-label list-label--mono">green-wool</span><span class="badge badge--dim">orbit</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FF5555"></span><span class="list-label list-label--mono">red-wool</span><span class="badge badge--dim">orbit</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">yellow-wool</span><span class="badge badge--dim">orbit</span></div>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn draw-tool-btn--active" title="Place wool spawn"><i data-lucide="dot"></i></button>
+              <button class="draw-tool-btn" title="Draw room rectangle"><i data-lucide="rectangle-horizontal"></i></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <button class="filter-chip filter-chip--active" title="Orbit fill active">Orbit</button>
+            <span class="canvas-cursor">X -112 · Z 8</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island · Blue"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">220%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="neutral">
+              @* blue wool room (active, highlighted) + spawn dot; other rooms faint *@
+              <rect x="9" y="130" width="14" height="17" rx="1" fill="color-mix(in oklch,#5555FF 28%,transparent)" stroke="#5555FF" stroke-width="1" stroke-dasharray="2 1" />
+              <rect x="234" y="110" width="14" height="17" rx="1" fill="none" stroke="#55FF55" stroke-width="0.6" stroke-dasharray="2 1" opacity="0.5" />
+              <rect x="130" y="234" width="17" height="14" rx="1" fill="none" stroke="#FF5555" stroke-width="0.6" stroke-dasharray="2 1" opacity="0.5" />
+              <rect x="110" y="9" width="17" height="14" rx="1" fill="none" stroke="#FFFF55" stroke-width="0.6" stroke-dasharray="2 1" opacity="0.5" />
+              <circle cx="15.5" cy="136.5" r="2.6" fill="#5555FF" stroke="white" stroke-width="0.7" />
+            </IslandMap>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="detail-header">
+                <span class="geo-type-icon detail-icon--muted"><i data-lucide="square"></i></span>
+                <span class="detail-label detail-label--mono">blue-wool</span>
+                <span class="badge badge--neutral">Wool</span>
+              </div>
+              <div class="section-body">
+                <div class="field">
+                  <label class="field-label">Spawn location <span class="text-muted text-sm">(floored)</span></label>
+                  <div class="ctrl-row">
+                    <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="-112"/></div>
+                    <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="10"/></div>
+                    <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="8"/></div>
+                  </div>
+                </div>
+                <div class="field">
+                  <div class="slice-head">
+                    <label class="field-label">Side view — set the wool's Y</label>
+                    <div class="slice-axis">
+                      <button class="draw-tool-btn draw-tool-btn--active" title="Inspect from −Z">Z−</button>
+                      <button class="draw-tool-btn" title="Inspect from +Z">Z+</button>
+                      <button class="draw-tool-btn" title="Inspect from −X">X−</button>
+                      <button class="draw-tool-btn" title="Inspect from +X">X+</button>
+                    </div>
+                  </div>
+                  <div class="slice-view" style="position:relative">
+                    <canvas class="slice-canvas"></canvas>
+                    <span style="position:absolute;left:0;right:0;top:42%;height:2px;background:var(--accent);opacity:.85;pointer-events:none"></span>
+                    <span style="position:absolute;right:6px;top:31%;font-size:10px;color:var(--accent);font-family:ui-monospace,monospace;pointer-events:none">Y 10</span>
+                  </div>
+                </div>
+                <div class="panel-divider"></div>
+                <div class="field"><label class="field-label">Wool room region</label><input class="field-input" value="blue-wool"/></div>
+                <div class="field">
+                  <label class="field-label">Room bounds</label>
+                  <div class="ctrl-row">
+                    <div class="coord-field"><span class="coord-prefix">X₁</span><input class="coord-input" value="-119"/></div>
+                    <div class="coord-field"><span class="coord-prefix">Z₁</span><input class="coord-input" value="2"/></div>
+                  </div>
+                  <div class="ctrl-row" style="margin-top:6px">
+                    <div class="coord-field"><span class="coord-prefix">X₂</span><input class="coord-input" value="-105"/></div>
+                    <div class="coord-field"><span class="coord-prefix">Z₂</span><input class="coord-input" value="19"/></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  @* ── Step 3 · Monuments ────────────────────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 3 of 3 — Monuments</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Spawn &amp; room</button>
+        <button class="flow-step flow-step--active">Monuments</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn">Back</button>
+        <button class="action-btn action-btn--primary"><i data-lucide="check"></i> Finish wools</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Monuments</h2>
+                <button class="action-btn">+ Add</button>
+              </div>
+              <div class="panel-list">
+                <div class="list-row list-row--compact list-row--selected"><span class="list-swatch" style="background:#55FF55"></span><span class="list-label list-label--mono">blue-green</span><span class="list-tag">72, 18, 18</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FF5555"></span><span class="list-label list-label--mono">blue-red</span><span class="list-tag">-18, 8, 73</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">blue-yellow</span><span class="list-tag">18, 8, -71</span></div>
+              </div>
+              <p class="section-desc">N − 1 = 3 monuments — one per enemy team. Orbit fills the 9 for the other wools.</p>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn draw-tool-btn--active" title="Place monument block"><i data-lucide="square"></i></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <button class="filter-chip filter-chip--active" title="Orbit fill active">Orbit</button>
+            <span class="canvas-cursor">X 72 · Z 18</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">100%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="neutral">
+              @* blue-wool's 3 monuments highlighted (captured by green/red/yellow) + the other 9 faint *@
+              <circle cx="200" cy="146" r="2.4" fill="#55FF55" stroke="white" stroke-width="0.6" />
+              <circle cx="110" cy="201" r="2.4" fill="#FF5555" stroke="white" stroke-width="0.6" />
+              <circle cx="146" cy="57" r="2.4" fill="#FFFF55" stroke="white" stroke-width="0.6" />
+              <circle cx="55" cy="110" r="1.5" fill="#5555FF" opacity="0.5" />
+              <circle cx="146" cy="55" r="1.5" fill="#55FF55" opacity="0.5" />
+              <circle cx="201" cy="146" r="1.5" fill="#FFFF55" opacity="0.5" />
+              <circle cx="110" cy="199" r="1.5" fill="#FF5555" opacity="0.5" />
+              <circle cx="56" cy="110" r="1.5" fill="#5555FF" opacity="0.5" />
+              <circle cx="199" cy="146" r="1.5" fill="#FFFF55" opacity="0.5" />
+            </IslandMap>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <div class="panel-stack">
+              <section class="panel-section">
+                <div class="detail-header">
+                  <span class="geo-type-icon detail-icon--muted"><i data-lucide="square"></i></span>
+                  <span class="detail-label detail-label--mono">blue-green</span>
+                  <span class="badge badge--neutral">Monument</span>
+                </div>
+                <div class="section-body">
+                  <div class="field"><label class="field-label">Capturing team</label><div class="field-pick-row"><span class="field-swatch" style="background:#55FF55"></span><select class="field-input"><option>Blue</option><option selected>Green</option><option>Red</option><option>Yellow</option></select></div></div>
+                  <div class="field"><label class="field-label">Block position <span class="text-muted text-sm">(raw)</span></label><div class="ctrl-row"><div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="72"/></div><div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="18"/></div><div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="18"/></div></div></div>
+                </div>
+              </section>
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Auto-wiring</h2>
+                  <span class="badge badge--dim">derived</span>
+                </div>
+                <div class="panel-list">
+                  <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = not-blue</span><span class="list-tag">room defense</span></div>
+                  <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = blue-wool-edit</span><span class="list-tag">build/break</span></div>
+                  <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = never</span><span class="list-tag">capture ×3</span></div>
+                </div>
+                <p class="section-desc">Three rules per wool × 4 wools = 12 wool apply-rules. None edited directly — change the intent, regenerate.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>

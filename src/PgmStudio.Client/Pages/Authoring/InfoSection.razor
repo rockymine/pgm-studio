@@ -1,0 +1,98 @@
+@namespace PgmStudio.Client.Pages.AuthoringParts
+
+<section class="ds-section" id="info">
+  <div class="ds-section-heading">
+    <div>
+      <p class="ds-kicker">00</p>
+      <h2>Map Info — identity &amp; authors</h2>
+    </div>
+    <p>The minimum the generator needs before any geometry step: a name and at least one author.
+       Version, gamemode, and objective are auto-derived and locked.</p>
+  </div>
+
+  <p class="ds-theming-note">
+    The intent model's <code>meta</code> block carries the map's human-readable identity.
+    <strong>Name</strong> and <strong>authors</strong> are the only required fields — everything else is
+    fixed by convention (<code>version 1.0.0</code>), inferred from the step selection
+    (<code>gamemode ctw</code>), or templated from the objectives contract (<code>objective</code>).
+    Author usernames resolve to UUIDs via the Mojang API at save time; the inputs accept raw usernames
+    during authoring.
+  </p>
+
+  <article class="ds-example">
+    <div class="ds-example-label">Map Info workspace — identity + authors</div>
+    <div class="ds-panel-frame">
+      <div class="workspace-scroll">
+
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">Identity</h2>
+          </div>
+          <div class="section-body">
+            <div class="field">
+              <label class="field-label">Map Name <span class="field-required">*</span></label>
+              <input class="field-input" type="text" value="Thunder" placeholder="My CTW Map"/>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label">Version</label>
+                <input class="field-input" type="text" value="1.0.0" disabled title="Auto-derived"/>
+              </div>
+              <div class="field field--compact">
+                <label class="field-label">Mode</label>
+                <input class="field-input" type="text" value="ctw" disabled title="Auto-derived"/>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label">Objective</label>
+              <textarea class="field-input field-input--textarea" rows="2" disabled title="Auto-derived from gamemode">Capture the other teams' wools and take them to your victory monument to win.</textarea>
+            </div>
+            <p class="section-desc">Version, mode, and objective are auto-derived from the authoring context — they cannot be edited here.</p>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">Authors <span class="field-required">*</span></h2>
+            <button class="action-btn">+ Add</button>
+          </div>
+          <div class="author-list">
+            <div class="author-row">
+              <span class="author-avatar"></span>
+              <input class="field-input author-name" type="text" placeholder="Minecraft username"/>
+              <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"/>
+              <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+            </div>
+            <div class="author-row">
+              <span class="author-avatar"></span>
+              <input class="field-input author-name" type="text" placeholder="Minecraft username"/>
+              <input class="field-input author-contribution" type="text" value="Old XML"/>
+              <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+            </div>
+            <div class="author-row">
+              <span class="author-avatar"></span>
+              <input class="field-input author-name" type="text" placeholder="Minecraft username"/>
+              <input class="field-input author-contribution" type="text" value="Provided feedback for update"/>
+              <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+            </div>
+            <div class="author-row">
+              <span class="author-avatar"></span>
+              <input class="field-input author-name" type="text" placeholder="Minecraft username"/>
+              <input class="field-input author-contribution" type="text" value="Provided feedback for update"/>
+              <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+            </div>
+          </div>
+          <p class="section-desc">Usernames resolve to UUIDs via the Mojang API at save. The lead author has no contribution label; contributors carry a short freeform note — thunder ships with one author and three contributors.</p>
+        </section>
+
+        <section class="panel-section">
+          <div class="panel-actions">
+            <button class="action-btn action-btn--primary">Save &amp; continue</button>
+            <span class="panel-save-status">thunder_blank · unsaved</span>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </article>
+</section>

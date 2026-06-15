@@ -1,0 +1,204 @@
+@namespace PgmStudio.Client.Pages.AuthoringParts
+
+@* Build (03) — two sub-steps: (1) build height (a side-view cross-section with a draggable Y line),
+   (2) the buildable layer of over-void bridges (top-down, REAL islands, full draw toolbar incl.
+   Add/Sub + canvas navigation). The flow bar is separate from the canvas toolbar. *@
+
+<section class="ds-section" id="build">
+  <div class="ds-section-heading">
+    <div>
+      <p class="ds-kicker">03</p>
+      <h2>Build</h2>
+    </div>
+    <p>Two sub-steps — set the max build height in a side view, then draw the buildable layer (the
+       over-void bridges). The terrain is already buildable, so you only add what crosses the void.</p>
+  </div>
+
+  <p class="ds-theming-note">
+    PGM's void filter makes every column with a surface block automatically editable, so the islands'
+    terrain <strong>is</strong> the build area — no region rows are generated for it.
+    <code>BuildIntent.Areas</code> are only the over-void bridges. The generator unions them and applies
+    the void filter to the <code>negative</code>; inner cut-outs (holes) are a <code>complement</code>.
+  </p>
+
+  @* ── Step 1 · Build height (side view) ─────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 1 of 2 — Build height</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--active">Build height</button>
+        <button class="flow-step">Buildable layer</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn" disabled>Back</button>
+        <button class="action-btn action-btn--primary">Next: Buildable layer</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Build Height</h2></div>
+              <div class="section-body">
+                <div class="field">
+                  <label class="field-label">Max build height (Y)</label>
+                  <input class="field-input" type="number" value="25"/>
+                </div>
+                <p class="section-desc">The plan canvas is top-down, so set the ceiling in the side view. Drag the orange line, or type a value.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn draw-tool-btn--active" title="Look from −Z">Z−</button>
+              <button class="draw-tool-btn" title="Look from +Z">Z+</button>
+              <button class="draw-tool-btn" title="Look from −X">X−</button>
+              <button class="draw-tool-btn" title="Look from +X">X+</button>
+            </div>
+            <span class="canvas-cursor">Y 25</span>
+            <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            @* side-view cross-section: terrain silhouette + orange max-build-height line *@
+            <svg viewBox="0 0 256 120" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+              <polygon points="0,120 0,88 16,87 28,84 40,82 56,79 74,77 92,75 104,73 116,72 128,71 140,72 152,73 168,75 188,77 206,80 220,83 234,85 248,88 256,89 256,120"
+                       fill="color-mix(in oklch, var(--canvas-island) 60%, transparent)" stroke="var(--canvas-island-stroke)" stroke-width="0.8" />
+              <line x1="0" y1="40" x2="256" y2="40" stroke="var(--canvas-sideview-line)" stroke-width="1.5" stroke-dasharray="5 3" />
+              <circle cx="246" cy="40" r="4.5" fill="var(--canvas-sideview-line)" stroke="var(--bg-canvas)" stroke-width="1.2" />
+              <text x="6" y="35" font-size="9" fill="var(--canvas-sideview-line)" font-family="ui-monospace,monospace">Y 25 — max build</text>
+              <line x1="0" y1="76" x2="256" y2="76" stroke="var(--canvas-axis)" stroke-width="0.6" opacity="0.4" />
+              <text x="6" y="72" font-size="8" fill="var(--canvas-axis)" opacity="0.55" font-family="ui-monospace,monospace">Y 7 — surface</text>
+            </svg>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="detail-header">
+                <span class="geo-type-icon detail-icon--muted"><i data-lucide="ruler"></i></span>
+                <span class="detail-label">Height</span>
+                <span class="badge badge--dim">Y 25</span>
+              </div>
+              <div class="section-body">
+                <div class="field"><label class="field-label">Surface</label><div class="field-pick-row"><span class="field-value">Y 7</span><span class="list-tag">terrain top</span></div></div>
+                <div class="field"><label class="field-label">Max build</label><div class="field-pick-row"><span class="field-value">Y 25</span><span class="list-tag">18 above surface</span></div></div>
+                <p class="section-desc">Players can build up to Y 25 anywhere buildable. Set per map; mirrors the old editor's side-view build height.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  @* ── Step 2 · Buildable layer (bridges) ────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 2 of 2 — Buildable layer</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Build height</button>
+        <button class="flow-step flow-step--active">Buildable layer</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn">Back</button>
+        <button class="action-btn action-btn--primary">Next: Wools</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Bridges</h2>
+                <button class="action-btn">+ Add</button>
+              </div>
+              <div class="panel-list">
+                <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">center-island</span><span class="badge badge--success">selected</span></div>
+                <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">blue-main-and-spawn</span></div>
+                <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">blue-two-islands</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span><span class="list-label list-label--mono">green · red · yellow</span><span class="badge badge--dim">orbit</span></div>
+              </div>
+            </section>
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Holes</h2></div>
+              <div class="panel-list"><div class="list-empty">No cut-outs. Use the Sub tool to carve a no-build gap.</div></div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+              <button class="draw-tool-btn draw-tool-btn--active" title="Rectangle"><i data-lucide="rectangle-horizontal"></i></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn draw-tool-btn--op-add" title="Add to buildable"><i data-lucide="plus-square"></i><span class="draw-tool-label">Add</span></button>
+              <button class="draw-tool-btn draw-tool-btn--op-sub" title="Subtract a hole"><i data-lucide="minus-square"></i><span class="draw-tool-label">Sub</span></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <button class="filter-chip filter-chip--active" title="Buildability overlay"><i data-lucide="layers"></i> Buildable</button>
+            <span class="canvas-cursor">X 0 · Z 0</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">100%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="build">
+              @* over-void bridge rectangles (the BuildIntent.Areas) — center selected (brighter) *@
+              <rect x="112" y="112" width="33" height="33" rx="1" fill="color-mix(in oklch,var(--canvas-add-fill) 40%,transparent)" stroke="var(--canvas-add-stroke)" stroke-width="1.2" />
+              <rect x="40" y="107" width="72" height="42" rx="1" fill="none" stroke="var(--canvas-add-stroke)" stroke-width="0.8" stroke-dasharray="3 2" />
+              <rect x="145" y="108" width="72" height="42" rx="1" fill="none" stroke="var(--canvas-add-stroke)" stroke-width="0.8" stroke-dasharray="3 2" />
+              <rect x="107" y="145" width="42" height="72" rx="1" fill="none" stroke="var(--canvas-add-stroke)" stroke-width="0.8" stroke-dasharray="3 2" />
+              <rect x="108" y="40" width="42" height="72" rx="1" fill="none" stroke="var(--canvas-add-stroke)" stroke-width="0.8" stroke-dasharray="3 2" />
+            </IslandMap>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <div class="panel-stack">
+              <section class="panel-section">
+                <div class="detail-header">
+                  <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
+                  <span class="detail-label detail-label--mono">center-island</span>
+                  <span class="badge badge--success">buildable</span>
+                </div>
+                <div class="section-body">
+                  <div class="field"><label class="field-label">Min</label><div class="ctrl-row"><div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="-16"/></div><div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="-16"/></div></div></div>
+                  <div class="field"><label class="field-label">Max</label><div class="ctrl-row"><div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="17"/></div><div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="17"/></div></div></div>
+                  <div class="field"><label class="field-label">Operation</label><span class="badge badge--success">Add</span></div>
+                </div>
+              </section>
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Auto-wiring</h2>
+                  <span class="badge badge--dim">derived</span>
+                </div>
+                <div class="panel-list">
+                  <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = no-void</span><span class="list-tag">deny-blocks</span></div>
+                </div>
+                <p class="section-desc">The bridges union into the build group; the void filter is applied to its <code>negative</code>. Message “You may not edit the void!”.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>

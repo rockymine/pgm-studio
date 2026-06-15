@@ -1,0 +1,262 @@
+@namespace PgmStudio.Client.Pages.AuthoringParts
+
+@* World (01) — three sub-steps: Scan, Islands, Symmetry. Each mocked as a full workspace; the flow bar
+   is its own strip above the workspace, the canvas keeps its toolbar. Islands are thunder's REAL terrain
+   (shared IslandMap), all neutral — ownership is decided later, in Teams. *@
+
+<section class="ds-section" id="world">
+  <div class="ds-section-heading">
+    <div>
+      <p class="ds-kicker">01</p>
+      <h2>World — detect terrain</h2>
+    </div>
+    <p>Three sub-steps — Scan, Islands, Symmetry. The blocks come first; islands are detected as
+       <strong>neutral shapes</strong> and seed the team count and spawn positions.</p>
+  </div>
+
+  <p class="ds-theming-note">
+    A new map (<code>thunder_blank</code>) is a world with blocks but no <code>map.xml</code>. The
+    <strong>y=0 footprint is the void-filter substrate</strong>: every column with a surface block is
+    automatically buildable, so the terrain itself <em>is</em> the build area and no region rows are
+    generated for it. The canvases below render thunder's <em>real</em> 17 terrain islands. Islands are
+    neutral here — ownership is an authoring decision in the Teams step.
+  </p>
+
+  @* ── Step 1 · Scan ─────────────────────────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 1 of 3 — Scan layer</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--active">Scan</button>
+        <button class="flow-step">Islands</button>
+        <button class="flow-step">Symmetry</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn" disabled>Back</button>
+        <button class="action-btn action-btn--primary">Next: Islands</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Scan Layer</h2></div>
+              <p class="section-desc">Which extractor produced the surface layer? The preview updates live.</p>
+              <div class="layer-grid">
+                <button class="filter-chip filter-chip--active" title="Top solid block per column">Top surface</button>
+                <button class="filter-chip" title="Lowest solid block">Lowest solid</button>
+                <button class="filter-chip" title="Blocks at y=0">Y=0</button>
+              </div>
+            </section>
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Included Blocks</h2></div>
+              <div class="panel-list">
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#7a7a7a"></span><span class="list-label">Stone</span><span class="list-tag">6,142</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#9ba0a6"></span><span class="list-label">Cobblestone</span><span class="list-tag">2,610</span></div>
+                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#5b8a4b"></span><span class="list-label">Grass</span><span class="list-tag">1,488</span></div>
+              </div>
+            </section>
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Blocks</h2></div>
+              <div class="panel-list"><div class="list-empty">No blocks excluded.</div></div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+            </div>
+            <span class="canvas-cursor">X 0 · Z 0</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">100%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="neutral" />
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="detail-header">
+                <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
+                <span class="detail-label">Layer summary</span>
+              </div>
+              <div class="section-body">
+                <div class="field"><label class="field-label">Layer</label><div class="field-pick-row"><span class="field-value">Top surface</span></div></div>
+                <div class="field"><label class="field-label">Columns</label><div class="field-pick-row"><span class="badge badge--success">11,237</span></div></div>
+                <div class="field"><label class="field-label">Block types</label><div class="field-pick-row"><span class="field-value">14</span></div></div>
+                <p class="section-desc">The scanned footprint becomes the island shapes on the next step.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  @* ── Step 2 · Islands ──────────────────────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 2 of 3 — Islands</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Scan</button>
+        <button class="flow-step flow-step--active">Islands</button>
+        <button class="flow-step">Symmetry</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn">Back</button>
+        <button class="action-btn action-btn--primary">Next: Symmetry</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Islands</h2>
+                <span class="badge badge--dim">17 detected</span>
+              </div>
+              <p class="section-desc">Exclude islands that aren't part of the playable layout (observer towers, decor).</p>
+              <div class="panel-list">
+                <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · centre</span><span class="list-tag">208</span></div>
+                <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · W arm</span><span class="list-tag">2,034</span></div>
+                <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · W mid</span><span class="list-tag">612</span></div>
+                <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · W spur</span><span class="list-tag">198</span></div>
+                <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · N arm</span><span class="list-tag">2,034</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">… 12 more</span></div>
+              </div>
+            </section>
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Islands</h2></div>
+              <div class="panel-list"><div class="list-empty">No islands excluded.</div></div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+            </div>
+            <span class="canvas-cursor">X -4 · Z -77</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">100%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="neutral" />
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="detail-header">
+                <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
+                <span class="detail-label">Island · centre</span>
+                <span class="badge badge--dim">included</span>
+              </div>
+              <div class="section-body">
+                <div class="field"><label class="field-label">Centre</label><div class="ctrl-row"><div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="0.5" disabled/></div><div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="0.5" disabled/></div></div></div>
+                <div class="field"><label class="field-label">Blocks</label><div class="field-pick-row"><span class="field-value">208</span><span class="list-tag">has map centre</span></div></div>
+                <button class="action-btn action-btn--danger action-btn--fill">Exclude island</button>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  @* ── Step 3 · Symmetry ─────────────────────────────────────────────────── *@
+  <article class="ds-example">
+    <div class="ds-example-label">Step 3 of 3 — Symmetry</div>
+    <div class="flow-bar">
+      <div class="flow-steps">
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Scan</button>
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Islands</button>
+        <button class="flow-step flow-step--active">Symmetry</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn">Back</button>
+        <button class="action-btn action-btn--primary"><i data-lucide="check"></i> Confirm symmetry</button>
+      </div>
+    </div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Symmetry</h2></div>
+              <p class="section-desc">Confirm the detected symmetry, pick another, or reject it.</p>
+              <div class="panel-list">
+                <div class="list-row list-row--compact list-row--selected"><span class="list-label">90° rotational</span><span class="badge badge--success">100%</span><span class="badge badge--dim">detected</span></div>
+                <div class="list-row list-row--compact"><span class="list-label">Mirror X</span><span class="badge badge--neutral">61%</span></div>
+                <div class="list-row list-row--compact"><span class="list-label">No symmetry</span></div>
+              </div>
+            </section>
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Centre</h2></div>
+              <div class="field-row">
+                <div class="field"><label class="field-label">X</label><input class="field-input" type="number" value="0.5"/></div>
+                <div class="field"><label class="field-label">Z</label><input class="field-input" type="number" value="0.5"/></div>
+              </div>
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn draw-tool-btn--active" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn" title="Select"><i data-lucide="mouse-pointer-2"></i></button>
+            </div>
+            <span class="canvas-cursor">X 0 · Z 0</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit island"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">100%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="neutral">
+              @* 90° rotational symmetry overlay — diagonal axes + centre marker *@
+              <line x1="0" y1="0" x2="256" y2="256" stroke="var(--canvas-symmetry)" stroke-width="0.6" stroke-dasharray="3 2" opacity="0.7" />
+              <line x1="256" y1="0" x2="0" y2="256" stroke="var(--canvas-symmetry)" stroke-width="0.6" stroke-dasharray="3 2" opacity="0.7" />
+              <circle cx="128.5" cy="128.5" r="3" fill="none" stroke="var(--canvas-symmetry)" stroke-width="1" />
+            </IslandMap>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="detail-header">
+                <span class="geo-type-icon detail-icon--muted"><i data-lucide="sparkle"></i></span>
+                <span class="detail-label">Detection summary</span>
+              </div>
+              <div class="section-body">
+                <div class="field"><label class="field-label">Islands</label><div class="field-pick-row"><span class="badge badge--success">17</span><span class="list-tag">4 per quadrant · 1 centre</span></div></div>
+                <div class="field"><label class="field-label">Symmetry</label><div class="field-pick-row"><span class="field-value">90° rotational</span><span class="badge badge--success">100%</span></div></div>
+                <div class="field"><label class="field-label">Suggested teams</label><div class="field-pick-row"><span class="badge badge--success">4</span><span class="list-tag">from rot_90</span></div></div>
+                <p class="section-desc">The rotational order suggests four teams. Ownership of each island is assigned next, in Teams.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+</section>

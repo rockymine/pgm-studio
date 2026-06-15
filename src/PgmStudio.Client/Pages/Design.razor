@@ -401,18 +401,21 @@
       </div>
 
       <div class="ds-subsection" style="margin-top:var(--space-5)">
-        <h3>Flow steps</h3>
+        <h3>Flow bar (wizard sub-steps)</h3>
         <p class="ds-theming-note">A clean wizard sub-step strip for guided multi-step activities — flat text
-           labels, an accent underline on the active step, a check on completed ones. Lives in a
-           <code>canvas-subbar</code>. Use it instead of numbered-circle step bars, which clash with the chrome.</p>
-        <div class="ds-canvas-bar-example canvas-subbar">
+           labels, an accent underline on the active step, a check on completed ones, Back/Next on the right.
+           It is its <strong>own strip</strong> (<code>flow-bar</code>) above the workspace — never inside the
+           <code>canvas-subbar</code>, which keeps its draw toolbar. Use it instead of numbered-circle step bars.</p>
+        <div class="flow-bar">
           <div class="flow-steps">
             <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
-            <button class="flow-step flow-step--active">Spawn</button>
-            <button class="flow-step">Room</button>
+            <button class="flow-step flow-step--active">Spawn &amp; room</button>
             <button class="flow-step">Monuments</button>
           </div>
-          <div class="canvas-subbar-right"><span class="canvas-zoom">100%</span></div>
+          <div class="flow-bar-actions">
+            <button class="action-btn">Back</button>
+            <button class="action-btn action-btn--primary">Next</button>
+          </div>
         </div>
       </div>
     </section>

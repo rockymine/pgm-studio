@@ -1,0 +1,66 @@
+@namespace PgmStudio.Client.Pages.AuthoringParts
+
+<section class="ds-section" id="flow">
+  <div class="ds-section-heading">
+    <div>
+      <p class="ds-kicker">The flow</p>
+      <h2>Six phases, one gate — define each thing once</h2>
+    </div>
+    <p>Dead-simple and guided: identity and world come first, each step shapes one slice of intent,
+       and a playability gate closes the loop before export.</p>
+  </div>
+
+  <article class="ds-example">
+    <div class="ds-example-label">Authoring pipeline — world seeds it, traversability gates it</div>
+    <div class="ds-panel-frame">
+      <div class="workspace-scroll">
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">Phases</h2>
+            <span class="badge badge--dim">thunder_blank</span>
+          </div>
+          <div class="section-body">
+            <div class="step-row">
+              <span class="step-dot step-dot--done"></span>
+              <span class="step-label">0 · Map Info</span>
+              <span class="step-detail">The basics the generator needs — map name and authors. Version, mode, objective auto-derived.</span>
+            </div>
+            <div class="step-row">
+              <span class="step-dot step-dot--done"></span>
+              <span class="step-label">1 · World</span>
+              <span class="step-detail">Scan · Islands · Symmetry — detect the terrain as neutral shapes. Seeds team count and spawn positions.</span>
+            </div>
+            <div class="step-row">
+              <span class="step-dot"></span>
+              <span class="step-label">2 · Teams</span>
+              <span class="step-detail">Team creation + island assignment, then spawn point + protection — defined once, orbit fills the rest.</span>
+            </div>
+            <div class="step-row">
+              <span class="step-dot"></span>
+              <span class="step-label">3 · Build</span>
+              <span class="step-detail">Build height (side view) then the buildable layer of over-void bridges. The terrain is already buildable.</span>
+            </div>
+            <div class="step-row">
+              <span class="step-dot"></span>
+              <span class="step-label">4 · Wools</span>
+              <span class="step-detail">Colours, then spawn + room, then monuments — one sub-step at a time; orbit fills the rest; rules auto-wired.</span>
+            </div>
+            <div class="step-row">
+              <span class="step-dot step-dot--running"></span>
+              <span class="step-label">5 · Review</span>
+              <span class="step-detail">Round-trip · mirror-consistency · buildability · traversability gate — then export the XML.</span>
+            </div>
+          </div>
+          <div class="section-footer section-footer--separated">
+            <div class="panel-warning">
+              <strong>Build ⇄ Traversability is a loop.</strong> The closing gate is computed over the
+              build / bridge geometry, so <em>build must precede wools</em>. If a spawn can't reach a wool,
+              the gate sends you back to Build to add a bridge — it is not a separate step, it is the
+              condition for export.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </article>
+</section>

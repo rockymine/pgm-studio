@@ -488,11 +488,23 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 
 /* ══════════════════════════════════════════════════════════════════════════
-   FLOW STEPS  (clean wizard sub-step strip — the authoring nav model's in-phase
-   progress, shown in a canvas-subbar. Deliberately flat: text labels, an accent
-   underline on the active step, a check on completed ones. Replaces the numbered
-   circles + dashes of .cfg-step-bar, which clash with the rest of the chrome.)
+   FLOW BAR + FLOW STEPS  (clean wizard sub-step strip — the authoring nav model's
+   in-phase progress. The `.flow-bar` is a standalone header strip ABOVE the
+   workspace — it is NOT part of the canvas sub-bar, which keeps its own draw
+   toolbar. Holds the step labels on the left and Back/Next on the right.
+   Deliberately flat: text labels, an accent underline on the active step, a check
+   on completed ones. Replaces the numbered circles + dashes of .cfg-step-bar.)
    ══════════════════════════════════════════════════════════════════════════ */
+.flow-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-4);
+  height: 42px; padding: 0 var(--space-4);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-2);
+}
+.flow-bar-actions { display: flex; align-items: center; gap: var(--space-2); }
 .flow-steps { display: flex; align-items: center; gap: var(--space-5); height: 100%; }
 .flow-step {
   position: relative;
