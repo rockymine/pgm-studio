@@ -67,7 +67,7 @@ public static class WoolGenerator
                 });
 
             // spawner: dispense the dyed wool in the room, dropping at the spawn point
-            EnsureList(doc, "spawners").Add(new Dict
+            DocAccess.EnsureList(doc, "spawners").Add(new Dict
             {
                 ["spawn_region"] = spawnId, ["player_region"] = roomId, ["delay"] = SpawnDelay,
                 ["items"] = new List<object?> { new Dict { ["material"] = "wool", ["damage"] = DyeDamage.GetValueOrDefault(colorSlug, 0) } },
@@ -75,7 +75,7 @@ public static class WoolGenerator
 
             // room wiring: only-<owner> (reused from spawn protection if present) → not-<owner>
             var only = $"only-{ownerSlug}";
-            if (!Filters(doc).ContainsKey(only))
+            if (!DocAccess.Filters(doc).ContainsKey(only))
                 FilterEditor.CreateFilter(doc, new Dict { ["id"] = only, ["type"] = "team", ["team"] = w.Owner });
             FilterEditor.CreateFilter(doc, new Dict { ["id"] = $"not-{ownerSlug}", ["type"] = "not", ["child"] = only });
 
@@ -88,9 +88,9 @@ public static class WoolGenerator
     {
         var roomId = $"{colorSlug}-wool";
         var spawnId = $"{colorSlug}-wool-spawn";
-        Regions(doc).Remove(roomId);
-        Regions(doc).Remove(spawnId);
-        Filters(doc).Remove($"not-{ownerSlug}");   // NOT only-<owner> — the spawn-protection slice may own it
+        DocAccess.Regions(doc).Remove(roomId);
+        DocAccess.Regions(doc).Remove(spawnId);
+        DocAccess.Filters(doc).Remove($"not-{ownerSlug}");   // NOT only-<owner> — the spawn-protection slice may own it
         if (doc.GetValueOrDefault("wools") is List<object?> wools)
             wools.RemoveAll(x => x is Dict d && d.GetValueOrDefault("id") as string == colorSlug);
         if (doc.GetValueOrDefault("spawners") is List<object?> spawners)
@@ -116,11 +116,4 @@ public static class WoolGenerator
     }
 
     private static int Floor(double v) => (int)Math.Floor(v);
-
-    private static List<object?> EnsureList(Dict doc, string key) =>
-        doc.TryGetValue(key, out var v) && v is List<object?> l ? l : (List<object?>)(doc[key] = new List<object?>());
-    private static Dict Regions(Dict doc) =>
-        doc.TryGetValue("regions", out var r) && r is Dict d ? d : (Dict)(doc["regions"] = new Dict());
-    private static Dict Filters(Dict doc) =>
-        doc.TryGetValue("filters", out var f) && f is Dict d ? d : (Dict)(doc["filters"] = new Dict());
 }

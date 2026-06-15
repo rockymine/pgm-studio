@@ -53,7 +53,7 @@ public static class TeamsGenerator
     // team-coloured leather armour with chainmail leggings, all unbreakable.
     private static void GenerateKits(Dict doc, MapIntent intent)
     {
-        var kits = EnsureList(doc, "kits");
+        var kits = DocAccess.EnsureList(doc, "kits");
         kits.Clear();
         if (intent.Spawns.Count > 0) kits.Add(StandardSpawnKit(SpawnKitId));
     }
@@ -154,7 +154,7 @@ public static class TeamsGenerator
     // (the spawn-points' centroid) when the author hasn't placed an observer spawn.
     private static void GenerateObserver(Dict doc, MapIntent intent)
     {
-        Regions(doc).Remove(ObserverRegionId);
+        DocAccess.Regions(doc).Remove(ObserverRegionId);
         doc.Remove("observer_spawn");
 
         var o = intent.Observer ?? SynthesizeObserver(intent.Spawns);
@@ -182,19 +182,12 @@ public static class TeamsGenerator
     {
         var pointId = $"{slug}-spawn-point";
         var protId = $"{slug}-spawn";
-        Regions(doc).Remove(pointId);
-        Regions(doc).Remove(protId);
-        Filters(doc).Remove($"only-{slug}");
+        DocAccess.Regions(doc).Remove(pointId);
+        DocAccess.Regions(doc).Remove(protId);
+        DocAccess.Filters(doc).Remove($"only-{slug}");
         if (doc.GetValueOrDefault("spawns") is List<object?> spawns)
             spawns.RemoveAll(s => s is Dict d && d.GetValueOrDefault("region") as string == pointId);
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
             rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string == protId);
     }
-
-    private static List<object?> EnsureList(Dict doc, string key) =>
-        doc.TryGetValue(key, out var v) && v is List<object?> l ? l : (List<object?>)(doc[key] = new List<object?>());
-    private static Dict Regions(Dict doc) =>
-        doc.TryGetValue("regions", out var r) && r is Dict d ? d : (Dict)(doc["regions"] = new Dict());
-    private static Dict Filters(Dict doc) =>
-        doc.TryGetValue("filters", out var f) && f is Dict d ? d : (Dict)(doc["filters"] = new Dict());
 }
