@@ -40,6 +40,17 @@
       }
       <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)" title="Overlay the top-surface block colours"
               @onclick="ToggleBlocks">Blocks</button>
+      @if (islandIds.Count > 0)
+      {
+        <select class="field-input canvas-island-select" title="Zoom to fit an island" value="@islandSel" @onchange="OnFitIslandSelect">
+          <option value="">Fit island…</option>
+          @foreach (var id in islandIds)
+          {
+            <option value="@id">Island @id</option>
+          }
+        </select>
+      }
+      <button class="filter-chip" title="Reset zoom (fit whole map)" @onclick="OnResetClick"><i data-lucide="scan"></i></button>
       <span @ref="zoomRef" class="canvas-zoom">—</span>
     </div>
   </div>

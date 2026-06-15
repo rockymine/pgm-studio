@@ -87,6 +87,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
       return true;
     },
     resize() { canvas.resize(); },
+    fitIsland(id) { canvas.fitIsland(id); },
+    fitBounds(minX, minZ, maxX, maxZ) { canvas.fitBounds({ min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ }); },
+    resetView() { canvas.resetView(); },
     dispose() { /* no explicit teardown; dropping the reference is enough */ },
   };
 

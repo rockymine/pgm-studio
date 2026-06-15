@@ -227,21 +227,40 @@ export class EditorCanvas extends CanvasBase {
   }
 
   focusRegion(node) {
-    if (!this.#toSvg) return;
-    let min_x, max_x, min_z, max_z;
-    if (node.bounds) {
-      ({ min_x, max_x, min_z, max_z } = node.bounds);
-    } else if (node.polygon_2d?.exterior?.length) {
+    let bbox = node.bounds ?? null;
+    if (!bbox && node.polygon_2d?.exterior?.length) {
       const pts = node.polygon_2d.polygons
         ? node.polygon_2d.polygons.flatMap(p => p.exterior)
         : node.polygon_2d.exterior;
-      const xs = pts.map(([x]) => x);
-      const zs = pts.map(([, z]) => z);
-      min_x = Math.min(...xs); max_x = Math.max(...xs);
-      min_z = Math.min(...zs); max_z = Math.max(...zs);
-    } else {
-      return;
+      const xs = pts.map(([x]) => x), zs = pts.map(([, z]) => z);
+      bbox = { min_x: Math.min(...xs), max_x: Math.max(...xs), min_z: Math.min(...zs), max_z: Math.max(...zs) };
     }
+    if (bbox) this.fitBounds(bbox, 0.75);
+  }
+
+  /** Reset pan/zoom to the default whole-map view (the base transform). */
+  resetView() {
+    this._scale = 1;
+    this._panX  = 0;
+    this._panY  = 0;
+    this._applyViewportTransform();
+    this._onZoom(this._scale);
+  }
+
+  /** Pan+zoom so an island's bbox fills the viewport (a little padding). */
+  fitIsland(id, fillFrac = 0.9) {
+    const isl = (this.#ctx?.islands ?? []).find(i => i.id === id);
+    if (isl && Array.isArray(isl.bounds) && isl.bounds.length === 4) {
+      const [min_x, min_z, max_x, max_z] = isl.bounds;
+      this.fitBounds({ min_x, min_z, max_x, max_z }, fillFrac);
+    }
+  }
+
+  /** Pan+zoom so a world bbox {min_x,min_z,max_x,max_z} fills the viewport, scaled to fillFrac. */
+  fitBounds(bbox, fillFrac = 0.9) {
+    if (!this.#toSvg || !bbox) return;
+    const { min_x, max_x, min_z, max_z } = bbox;
+    if (![min_x, max_x, min_z, max_z].every(Number.isFinite)) return;
     const w  = this._wrap.clientWidth  - 24;
     const h  = this._wrap.clientHeight - 24;
     const p1 = this.#toSvg(min_x, min_z);
@@ -250,7 +269,7 @@ export class EditorCanvas extends CanvasBase {
     const sy1 = Math.min(p1.y, p2.y), sy2 = Math.max(p1.y, p2.y);
     const bw = sx2 - sx1, bh = sy2 - sy1;
     const newScale = (bw > 0 || bh > 0)
-      ? Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.min(bw > 0 ? w / bw : Infinity, bh > 0 ? h / bh : Infinity) * 0.75))
+      ? Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.min(bw > 0 ? w / bw : Infinity, bh > 0 ? h / bh : Infinity) * fillFrac))
       : this._scale;
     this._scale = newScale;
     this._panX  = w / 2 - ((sx1 + sx2) / 2) * newScale;

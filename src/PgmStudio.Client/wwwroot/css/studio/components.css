@@ -358,6 +358,8 @@
   user-select: none;
 }
 .canvas-subbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+/* Compact select sized to sit among the subbar chips (overrides .field-input's panel sizing). */
+.canvas-island-select { width: auto; min-width: 0; padding: 2px 8px; font-size: var(--font-sm); }
 .canvas-surface {
   flex: 1;
   min-width: 0;

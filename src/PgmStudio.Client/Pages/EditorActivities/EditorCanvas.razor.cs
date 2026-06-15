@@ -26,8 +26,24 @@ public partial class EditorCanvas
     private DotNetObjectReference<EditorCanvas>? selfRef;
     private string tool = "move";
 
+    /// <summary>Island ids (from /islands) offered in the "fit island" dropdown; empty hides it.</summary>
+    private List<int> islandIds = new();
+    /// <summary>Bound select value; reset to "" after a fit so the same island can be re-picked.</summary>
+    private string islandSel = "";
+
     protected override async Task OnInitializedAsync()
     {
+        // Islands power the "fit island" zoom control (any activity, if the map has scan data).
+        try
+        {
+            var isl = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/islands");
+            if (isl.ValueKind == JsonValueKind.Array)
+                islandIds = isl.EnumerateArray()
+                    .Where(e => e.TryGetProperty("id", out var v) && v.ValueKind == JsonValueKind.Number)
+                    .Select(e => e.GetProperty("id").GetInt32()).ToList();
+        }
+        catch { islandIds = new(); }
+
         // The orbit toggle only applies while drawing, and only on maps with a confirmed symmetry — fetch
         // the primary mode so the toolbar chip can label itself ("Orbit 90" / "Orbit x" …). Default: on.
         if (DrawCategory is null) return;
@@ -96,6 +112,38 @@ public partial class EditorCanvas
     public async Task ResizeAsync()
     {
         if (handle is not null) await handle.InvokeVoidAsync("resize");
+    }
+
+    /// <summary>Pan/zoom the canvas so an island's bounding box fills the viewport (with a little padding).</summary>
+    public async Task FitIslandAsync(int islandId)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("fitIsland", islandId);
+    }
+
+    /// <summary>Reset pan/zoom to the default whole-map view.</summary>
+    public async Task ResetViewAsync()
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("resetView");
+    }
+
+    // The dropdown reflects the currently-focused island; the reset button clears it back to the
+    // whole-map view (clearing islandSel here makes the bound select actually snap to the placeholder).
+    private async Task OnResetClick()
+    {
+        islandSel = "";
+        await ResetViewAsync();
+    }
+
+    private async Task OnFitIslandSelect(ChangeEventArgs e)
+    {
+        islandSel = e.Value?.ToString() ?? "";
+        if (int.TryParse(islandSel, out var id)) await FitIslandAsync(id);
+    }
+
+    /// <summary>Pan/zoom the canvas so a world bounding box fills the viewport (with a little padding).</summary>
+    public async Task FitBoundsAsync(double minX, double minZ, double maxX, double maxZ)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("fitBounds", minX, minZ, maxX, maxZ);
     }
 
     /// <summary>Re-fetch the region tree and re-render the canvas geometry — call after a server-side
