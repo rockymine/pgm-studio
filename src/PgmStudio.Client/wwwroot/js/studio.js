@@ -27,6 +27,12 @@ window.studio = {
     return mod.mount(canvasEl, dotnetRef, slug, axis);
   },
 
+  // Mount the inspector's localised side-view slice. dotnetRef.OnSliceY(y) fires when the Y line is dragged.
+  async mountSliceView(canvasEl, dotnetRef, slug) {
+    const mod = await import("/js/studio/sideview-canvas-bridge.js");
+    return mod.mountSlice(canvasEl, dotnetRef, slug);
+  },
+
   // Mount the Configure wizard preview (E8): layer / islands / symmetry modes.
   async mountConfigure(svgEl, wrapEl, slug) {
     const mod = await import("/js/studio/configure-canvas.js");

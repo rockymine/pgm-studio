@@ -128,6 +128,14 @@ public partial class BuildRegionsActivity : IAsyncDisposable
         if (await Patch($"regions/{selRegion}", new Dictionary<string, object?> { ["id"] = newId })) await LoadRegions(newId);
     }
 
+    // Side-view slice: set a point/block region's Y (coords patch), then reload keeping it selected.
+    private async Task SetRegionY(int y)
+    {
+        if (selRegion is null) return;
+        if (await Patch($"regions/{selRegion}", new Dictionary<string, object?> { ["coords"] = new Dictionary<string, object?> { ["y"] = y } }))
+            await LoadRegions(selRegion);
+    }
+
     private async Task<bool> Patch(string path, object body) => await Send(Http.PatchAsJsonAsync($"api/map/{Slug}/{path}", body));
     private async Task<bool> Delete(string path) => await Send(Http.DeleteAsync($"api/map/{Slug}/{path}"));
     private async Task<bool> Send(Task<HttpResponseMessage> call)

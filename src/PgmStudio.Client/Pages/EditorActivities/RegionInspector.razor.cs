@@ -9,9 +9,11 @@ namespace PgmStudio.Client.Pages.EditorActivities;
 public partial class RegionInspector
 {
     [Parameter] public RegionNode? Node { get; set; }
+    [Parameter] public string Slug { get; set; } = "";              // enables the side-view slice
     [Parameter] public EventCallback<string> OnSelectChild { get; set; }
     [Parameter] public EventCallback<string> OnDelete { get; set; }
     [Parameter] public EventCallback<string> OnRename { get; set; }  // passes the new id
+    [Parameter] public EventCallback<int> OnSetY { get; set; }       // set a point/block region's Y (slice)
 
     private async Task OnIdChanged(ChangeEventArgs e)
     {

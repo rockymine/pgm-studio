@@ -116,7 +116,17 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        var rows = await db.LayerSegments.Where(s => s.MapId == map.Id).ToListAsync(ct);
+        // Optional world-window filter (xmin/xmax/zmin/zmax) → a localised slice for the mini side-view
+        // (a point's column + neighbours, or a rectangle's footprint). Absent params = the whole map.
+        int? Q(string k) => int.TryParse(HttpContext.Request.Query[k], out var v) ? v : null;
+        int? xmin = Q("xmin"), xmax = Q("xmax"), zmin = Q("zmin"), zmax = Q("zmax");
+        var q = db.LayerSegments.Where(s => s.MapId == map.Id);
+        if (xmin is int a) q = q.Where(s => s.WorldX >= a);
+        if (xmax is int b) q = q.Where(s => s.WorldX <= b);
+        if (zmin is int c) q = q.Where(s => s.WorldZ >= c);
+        if (zmax is int d) q = q.Where(s => s.WorldZ <= d);
+
+        var rows = await q.ToListAsync(ct);
         var result = SideView.Build(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)), axis);
         if (result is null) { await Send.ResponseAsync(new Dict { ["error"] = "no segment data" }, 404, ct); return; }
 

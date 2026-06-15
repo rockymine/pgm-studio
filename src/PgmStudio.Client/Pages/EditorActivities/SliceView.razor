@@ -1,0 +1,21 @@
+@namespace PgmStudio.Client.Pages.EditorActivities
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@* Mini side-view slice for the inspector: a localised vertical cross-section of the map at the
+   selected region. Point/block → a draggable Y line sets the region's Y; rectangle → display only.
+   X/Z buttons switch the look axis (mirrors the Build-Regions side-view). *@
+
+@if (show)
+{
+  <div class="field">
+    <div class="slice-head">
+      <label class="field-label">@(editable ? "Side view — drag the line to set Y" : "Side view")</label>
+      <div class="slice-axis">
+        <button class="draw-tool-btn @(axis == "z" ? "draw-tool-btn--active" : null)" title="Look along Z" @onclick='() => SetAxis("z")'>Z</button>
+        <button class="draw-tool-btn @(axis == "x" ? "draw-tool-btn--active" : null)" title="Look along X" @onclick='() => SetAxis("x")'>X</button>
+      </div>
+    </div>
+    <div class="slice-view"><canvas @ref="canvasRef" class="slice-canvas"></canvas></div>
+  </div>
+}

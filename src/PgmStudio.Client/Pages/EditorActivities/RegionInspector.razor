@@ -66,6 +66,11 @@ else
       break;
   }
 
+  @if (!string.IsNullOrEmpty(Slug) && Node.Type is "point" or "block" or "rectangle")
+  {
+    <SliceView Slug="@Slug" Node="Node" OnYChanged="OnSetY" />
+  }
+
   @if (OnDelete.HasDelegate && !string.IsNullOrEmpty(Node.Id))
   {
     <div class="section-footer section-footer--separated">
@@ -101,7 +106,9 @@ else
                 {
                     <div class="coord-field">
                         <span class="coord-prefix">@prefix</span>
-                        <input class="coord-input" type="number" value="@RegionNode.Fmt(val)" readonly tabindex="-1" />
+                        @* @key on the value so Blazor recreates the input when the coord changes — a plain
+                           value="@…" on an <input> only applies on first render (stale after a Y-slice edit). *@
+                        <input @key="@($"{prefix}:{val}")" class="coord-input" type="number" value="@RegionNode.Fmt(val)" readonly tabindex="-1" />
                     </div>
                 }
             </div>

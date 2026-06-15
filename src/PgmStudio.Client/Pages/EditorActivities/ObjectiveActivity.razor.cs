@@ -215,6 +215,13 @@ public partial class ObjectiveActivity
 
     private static string? Empty(object? v) => v?.ToString() is { Length: > 0 } s ? s : null;
 
+    // Side-view slice: set a point/block region's Y (coords patch); Reload keeps the selection.
+    private async Task SetRegionY(int y)
+    {
+        if (selRegion is null) return;
+        if (await Patch($"regions/{selRegion}", new Dictionary<string, object?> { ["coords"] = new Dictionary<string, object?> { ["y"] = y } })) await Reload();
+    }
+
     // ── http ────────────────────────────────────────────────────────────────────
 
     private async Task<bool> Post(string path, object body) => await Send(Http.PostAsJsonAsync($"api/map/{Slug}/{path}", body));
