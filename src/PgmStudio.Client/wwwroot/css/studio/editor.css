@@ -106,6 +106,30 @@
 .app-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .activity-viewport { display: flex; flex: 1; min-width: 0; overflow: hidden; }
 
+/* ── App footer (dashboard shell — bottom counterpart to the topbar) ── */
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-shrink: 0;
+  padding: var(--space-2) 14px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  font-size: var(--font-base);
+}
+.app-footer-brand { color: var(--text-muted); user-select: none; }
+.app-footer-links { display: flex; align-items: center; gap: var(--space-4); }
+.app-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.app-footer-link:hover { color: var(--text-strong); }
+.app-footer-link svg { width: 14px; height: 14px; }
+
 /* ── sidebar resize handles ── */
 .sidebar-handle {
   width: 9px;
