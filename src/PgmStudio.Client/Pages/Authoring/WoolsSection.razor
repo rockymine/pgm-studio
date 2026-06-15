@@ -236,14 +236,14 @@
             <section class="panel-section">
               <div class="section-header section-header--ruled">
                 <h2 class="section-title">Wool monuments</h2>
-                <button class="action-btn">+ Add</button>
+                <span class="badge badge--warning">2 to place</span>
               </div>
+              <p class="section-desc">Place wools − 1 = 3 monuments on blue's side — one per enemy team. Orbit copies the <em>positions</em> 1:1 to the other wools, but the <em>capturing team is derived</em>: a wool is captured by its three enemies, never its own (dashed = orbited).</p>
               <div class="panel-list">
-                <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon" style="color:#55FF55"><i data-lucide="square"></i></span><span class="list-label list-label--mono">blue-green</span><span class="list-tag">72, 18, 18</span></div>
-                <div class="list-row list-row--compact"><span class="geo-type-icon" style="color:#FF5555"><i data-lucide="square"></i></span><span class="list-label list-label--mono">blue-red</span><span class="list-tag">-18, 8, 73</span></div>
-                <div class="list-row list-row--compact"><span class="geo-type-icon" style="color:#FFFF55"><i data-lucide="square"></i></span><span class="list-label list-label--mono">blue-yellow</span><span class="list-tag">18, 8, -71</span></div>
+                <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon" style="color:#55FF55"><i data-lucide="square"></i></span><span class="list-label list-label--mono">blue-green</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="square-dashed"></i></span><span class="list-label">Unassigned</span><span class="badge badge--dim">place</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="square-dashed"></i></span><span class="list-label">Unassigned</span><span class="badge badge--dim">place</span></div>
               </div>
-              <p class="section-desc">N − 1 = 3 monuments — one per enemy team. Orbit fills the 9 for the other wools.</p>
             </section>
           </div>
         </div>
@@ -265,16 +265,16 @@
           </div>
           <div class="canvas-surface canvas-surface--svg">
             <IslandMap Mode="neutral">
-              @* blue-wool's 3 monuments highlighted (captured by green/red/yellow) + the other 9 faint *@
-              <circle cx="200" cy="146" r="2.4" fill="#55FF55" stroke="white" stroke-width="0.6" />
-              <circle cx="110" cy="201" r="2.4" fill="#FF5555" stroke="white" stroke-width="0.6" />
-              <circle cx="146" cy="57" r="2.4" fill="#FFFF55" stroke="white" stroke-width="0.6" />
-              <circle cx="55" cy="110" r="1.5" fill="#5555FF" opacity="0.5" />
-              <circle cx="146" cy="55" r="1.5" fill="#55FF55" opacity="0.5" />
-              <circle cx="201" cy="146" r="1.5" fill="#FFFF55" opacity="0.5" />
-              <circle cx="110" cy="199" r="1.5" fill="#FF5555" opacity="0.5" />
-              <circle cx="56" cy="110" r="1.5" fill="#5555FF" opacity="0.5" />
-              <circle cx="199" cy="146" r="1.5" fill="#FFFF55" opacity="0.5" />
+              @* Authored blue-green monument (green, bright) orbits 1:1 to the other 3 wools — SAME rotated
+                 positions, but the captor is DERIVED, so each gets a different colour (green → red, yellow,
+                 blue), since a wool is never captured by its own team. Dashed violet ring = orbited. *@
+              <circle cx="146" cy="56" r="2.3" fill="#FF5555" opacity="0.85" />
+              <circle cx="146" cy="56" r="4.6" fill="none" stroke="var(--canvas-axis)" stroke-width="0.6" stroke-dasharray="2 1.5" opacity="0.8" />
+              <circle cx="56" cy="110" r="2.3" fill="#FFFF55" opacity="0.85" />
+              <circle cx="56" cy="110" r="4.6" fill="none" stroke="var(--canvas-axis)" stroke-width="0.6" stroke-dasharray="2 1.5" opacity="0.8" />
+              <circle cx="110" cy="200" r="2.3" fill="#5555FF" opacity="0.85" />
+              <circle cx="110" cy="200" r="4.6" fill="none" stroke="var(--canvas-axis)" stroke-width="0.6" stroke-dasharray="2 1.5" opacity="0.8" />
+              <circle cx="200" cy="146" r="2.8" fill="#55FF55" stroke="white" stroke-width="0.8" />
             </IslandMap>
           </div>
         </div>
