@@ -148,18 +148,33 @@ public static class TeamsGenerator
     }
 
     // ── observer (<default>) spawn ─────────────────────────────────────────────────────
+    private const string ObserverRegionId = "observer-spawn";
+
+    // PGM requires exactly one <default> spawn, so always emit one — synthesise a sensible default
+    // (the spawn-points' centroid) when the author hasn't placed an observer spawn.
     private static void GenerateObserver(Dict doc, MapIntent intent)
     {
-        Regions(doc).Remove("observer-spawn-point");
+        Regions(doc).Remove(ObserverRegionId);
         doc.Remove("observer_spawn");
-        if (intent.Observer is not { } o) return;
+
+        var o = intent.Observer ?? SynthesizeObserver(intent.Spawns);
+        if (o is null) return;   // no spawns and no explicit observer → not a playable map anyway
 
         RegionEditor.CreateRegion(doc, new Dict
         {
-            ["type"] = "point", ["id"] = "observer-spawn-point", ["category"] = "observer_spawn",
+            ["type"] = "point", ["id"] = ObserverRegionId, ["category"] = "observer_spawn",
             ["x"] = o.Point.X, ["y"] = o.Point.Y, ["z"] = o.Point.Z,
         });
-        SpawnEditor.SetObserverSpawn(doc, new Dict { ["region_id"] = "observer-spawn-point", ["yaw"] = o.Yaw });
+        SpawnEditor.SetObserverSpawn(doc, new Dict { ["region_id"] = ObserverRegionId, ["yaw"] = o.Yaw });
+    }
+
+    private static ObserverIntent? SynthesizeObserver(List<SpawnIntent> spawns)
+    {
+        if (spawns.Count == 0) return null;
+        double sx = 0, sy = 0, sz = 0;
+        foreach (var s in spawns) { sx += s.Point.X; sy += s.Point.Y; sz += s.Point.Z; }
+        var n = spawns.Count;
+        return new ObserverIntent { Point = new Pt(Math.Round(sx / n, 1), Math.Round(sy / n, 1), Math.Round(sz / n, 1)) };
     }
 
     // ── cleanup / helpers ──────────────────────────────────────────────────────────────

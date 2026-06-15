@@ -157,11 +157,24 @@ public sealed class TeamsGeneratorTests
             Observer = new ObserverIntent { Point = new(0, 8, 0), Yaw = 180 },
         });
 
-        await Assert.That(Regions(doc).ContainsKey("observer-spawn-point")).IsTrue();
+        await Assert.That(Regions(doc).ContainsKey("observer-spawn")).IsTrue();
         var obs = doc["observer_spawn"] as Dict;
         await Assert.That(obs).IsNotNull();
-        await Assert.That(obs!["region"]).IsEqualTo("observer-spawn-point");
-        await Assert.That(RegionCategorizer.DeriveFacets(doc)["observer-spawn-point"].Category).IsEqualTo("observer_spawn");
+        await Assert.That(obs!["region"]).IsEqualTo("observer-spawn");
+        await Assert.That(RegionCategorizer.DeriveFacets(doc)["observer-spawn"].Category).IsEqualTo("observer_spawn");
+    }
+
+    [Test]
+    public async Task Always_emits_a_default_spawn_even_without_observer_intent()   // PGM requires one
+    {
+        var doc = Map();
+        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(40, 10, -20) }] });
+
+        var obs = doc["observer_spawn"] as Dict;
+        await Assert.That(obs).IsNotNull();
+        await Assert.That(obs!["region"]).IsEqualTo("observer-spawn");
+        await Assert.That(Regions(doc).ContainsKey("observer-spawn")).IsTrue();
+        await Assert.That(RegionCategorizer.DeriveFacets(doc)["observer-spawn"].Category).IsEqualTo("observer_spawn");
     }
 
     [Test]
