@@ -16,8 +16,9 @@
   </div>
 
   <p class="ds-theming-note">
-    <strong>Buildability</strong> classifies every column — <em>buildable</em> (the terrain + bridges),
-    <em>never</em> (outside the playable area), <em>void-denied</em> (no y=0 block). <strong>Traversability</strong>
+    <strong>Buildability</strong> classifies every column — <em>buildable</em> (the island terrain plus the
+    over-void build region), and <em>void-denied</em> across the rest of the map bounding box (no y=0 block to
+    build on). <strong>Traversability</strong>
     floods the walkable surface ∪ bridgeable buildable and checks that every spawn reaches every wool. A
     point in a different connected component is the disconnection the check warns about (red ring); it
     blocks export (HTTP&nbsp;409) and routes back to Build.
@@ -30,21 +31,35 @@
       <div class="ds-example-label">Buildability — after Build (all bridges present)</div>
       <div class="canvas-surface canvas-surface--svg" style="min-height:320px;border-radius:var(--radius-sm);overflow:hidden">
         <IslandMap Mode="buildable">
-          @* a couple of `never` columns outside the playable footprint (red), one `void-denied` (orange) *@
-          <rect x="14" y="158" width="4" height="4" rx="0.5" fill="var(--canvas-sub-fill)" stroke="var(--canvas-sub-stroke)" stroke-width="0.4" />
-          <rect x="182" y="84" width="4" height="4" rx="0.5" fill="var(--canvas-sub-fill)" stroke="var(--canvas-sub-stroke)" stroke-width="0.4" />
-          <rect x="128" y="100" width="4" height="4" rx="0.5" fill="var(--canvas-warning, #f59e0b)" stroke="none" opacity="0.85" />
+          <Backdrop>
+            @* void-denied = the whole map bounding box — columns with no y=0 block aren't buildable *@
+            <rect x="9" y="9" width="239" height="239" fill="#f59e0b" fill-opacity="0.14" />
+          </Backdrop>
+          <ChildContent>
+            @* buildable REGION = the build rects / bridges (a distinct green over the terrain green) *@
+            <g fill="color-mix(in oklch, var(--color-success) 38%, transparent)" stroke="var(--color-success)" stroke-width="0.6">
+              <rect x="112" y="112" width="33" height="33" rx="1"/>
+              <rect x="40" y="107" width="72" height="42" rx="1"/>
+              <rect x="15" y="144" width="57" height="29" rx="1"/>
+              <rect x="145" y="108" width="72" height="42" rx="1"/>
+              <rect x="185" y="84" width="57" height="29" rx="1"/>
+              <rect x="107" y="145" width="42" height="72" rx="1"/>
+              <rect x="144" y="185" width="29" height="57" rx="1"/>
+              <rect x="108" y="40" width="42" height="72" rx="1"/>
+              <rect x="84" y="15" width="29" height="57" rx="1"/>
+            </g>
+          </ChildContent>
         </IslandMap>
       </div>
       <div class="panel-list" style="padding:var(--space-2) 0 0">
-        <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:var(--canvas-add-fill);border-color:var(--canvas-add-stroke)"></span><span class="list-label">Buildable</span><span class="list-tag">terrain + bridges</span></div>
-        <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:var(--canvas-sub-fill);border-color:var(--canvas-sub-stroke)"></span><span class="list-label">Never</span><span class="list-tag">outside playable area</span></div>
-        <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:#f59e0b;border-color:#b45309"></span><span class="list-label">Void-denied</span><span class="list-tag">no y=0 block</span></div>
+        <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:var(--canvas-add-fill);border-color:var(--canvas-add-stroke)"></span><span class="list-label">Buildable · terrain</span><span class="list-tag">island surface (void filter)</span></div>
+        <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:var(--color-success);border-color:var(--color-success)"></span><span class="list-label">Buildable · region</span><span class="list-tag">build rects / bridges</span></div>
+        <div class="list-row list-row--compact list-row--muted"><span class="list-swatch" style="background:#f59e0b;border-color:#b45309"></span><span class="list-label">Void-denied</span><span class="list-tag">map bbox · no y=0 block</span></div>
       </div>
       <div class="step-row" style="margin-top:var(--space-2)">
         <span class="step-dot step-dot--done"></span>
         <span class="step-label">Buildability</span>
-        <span class="step-detail">footprint buildable · 2 never + 1 void-denied outside, expected</span>
+        <span class="step-detail">terrain + build region buildable · the rest of the bbox is void-denied</span>
       </div>
     </article>
 

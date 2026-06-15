@@ -8,6 +8,7 @@
    inside the same svg. Static UI mock — not interactive. *@
 
 <svg viewBox="0 0 256 256" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;display:block">
+  @Backdrop
   @if (Axes)
   {
     <line x1="128" y1="0" x2="128" y2="256" stroke="var(--canvas-axis)" stroke-width="0.5" opacity="0.4" />
@@ -27,6 +28,8 @@
     [Parameter] public string Mode { get; set; } = "neutral";
     [Parameter] public bool Axes { get; set; } = true;
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    // optional layer drawn BEHIND the islands (e.g. the void-denied map bbox in the buildability view)
+    [Parameter] public RenderFragment? Backdrop { get; set; }
 
     private record Isl(string Team, string Points);
 

@@ -104,6 +104,9 @@
   gap: var(--space-5);
 }
 .ds-example { display: flex; min-width: 0; flex-direction: column; gap: var(--space-2); }
+/* Stack of wizard sub-steps (each a flow-bar + workspace) — gives them breathing room so a
+   "Step N" label never butts against the workspace above it. */
+.ds-steps { display: flex; flex-direction: column; gap: calc(var(--space-6) + var(--space-4)); margin-top: var(--space-5); }
 .ds-panel-frame {
   min-height: 330px;
   overflow: hidden;
