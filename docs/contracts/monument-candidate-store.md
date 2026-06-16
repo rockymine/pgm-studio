@@ -54,9 +54,9 @@ Target API:
 // ingest — over the whole world (or buildable footprint); style-agnostic, permissive
 List<MonumentCandidate> MonumentSuggester.Gather(IEnumerable<AnvilRegion.Chunk> chunks, ScanBox world);
 
-// authoring — pure; box optional (null = whole map)
+// authoring — pure; box-scoped (the author marks the area they built in)
 List<MonumentSuggestion> MonumentSuggester.Score(IEnumerable<MonumentCandidate> candidates,
-                                                 ScanBox? box, MonumentStyle style);
+                                                 ScanBox box, MonumentStyle style);
 
 // live path (parity guard, harness) stays identical in behaviour:
 Suggest(chunks, box, style)  ==  Score(Gather(chunks, box.Expand(2)), box, style)
@@ -172,16 +172,40 @@ ingest): `Confidence`, the final resolved `Color`, and the pass/fail of the pede
    `ClassifyCap ∉ {Any, Open}`) — precisely the condition under which `GeometryConfidence` already trusts
    it. This bounds the row count to ≈ real-monument-count + a few false positives.
 
-2. **The box becomes optional.** Because the mapmaker already placed the monuments, the suggestion UX
-   shifts from "draw a box to discover" to "confirm the candidates we found." `Gather` runs over the
-   whole world at ingest; `Score(candidates, box: null, style)` returns *all* candidates as confirmable
-   ghost markers. A box, if the author wants to disambiguate a packed cluster, is just a `WHERE
-   cand_* BETWEEN …` / in-memory filter at `Score` time — no re-scan. The 2-block `Expand` slack that the
-   live path used at the box edge is unnecessary when gathering globally.
+2. **Box-scoped, author-driven — the box is the mode.** The mapmaker *knows* where they placed the
+   monument, so the UX is: the author **marks the area** (a required `ScanBox`) and optionally declares the
+   style; `Score(candidates, box, style)` filters the pre-gathered candidates to that box and ranks them.
+   Displaying *every* candidate on the map is explicitly **not** the model — it's noise. `Gather` is still
+   whole-world at ingest (the box isn't known then); the box is a `WHERE cand_* BETWEEN …` / in-memory
+   filter at `Score` time. Keep a small `Expand` margin on the box (the live path's 2-block slack) so an
+   anchor projected to a cell at the box edge still resolves.
 
 ---
 
-## 5. Where it sits in the ingest pipeline
+## 5. Orbit completion — one authored unit → all teams
+
+The mapmaker builds and boxes the monument(s) for **one** symmetry orbit unit (their own team's wool).
+The other teams' monuments are the symmetric images, so once the author confirms the boxed suggestions, a
+**second request** reflects/rotates each confirmed position onto every other team to complete the wool's
+monument configuration.
+
+- **Input:** the confirmed monument cell(s) `(x, y, z)` (+ colour) from the box step.
+- **DB read (the second request):** the map's confirmed symmetry (`symmetry_json` artifact — mode +
+  centre), the same source `POST /regions/{id}/orbit` (F3) and `SymmetryExpander` already read.
+- **Transform:** the existing 2D `Geometry2d` reflect/rotate on **XZ only** (Y is preserved — symmetry is
+  horizontal). `rot_90` yields 3 counterparts (→ 4 total), `mirror_*` / `rot_180` yield 1 (→ 2 total). Each
+  counterpart's **capturing team shifts by the orbit step `k`**, per `new-map-authoring.md` §2.
+- **No candidate-table read here.** Orbit operates on the *confirmed* positions, not the gathered
+  candidates — it is pure geometry over the symmetry artifact. The candidate table answers *"where did the
+  author place it?"*; symmetry answers *"where are its mirrors?"*. Two distinct requests, two distinct
+  stores.
+
+This keeps the intent model honest: the intent persists the **authored** wool + its monument(s) plus the
+symmetry, and `SymmetryExpander.Expand` reproduces the very same orbit at generate time
+(`new-map-authoring.md` §2). The authoring-time orbit is the live **preview/confirm** of what the
+generator will emit — same transform, surfaced so the author sees all teams' monuments before export.
+
+## 6. Where it sits in the ingest pipeline
 
 The table is populated by the same once-per-upload worker that already does the world scan. After
 ingest, **no authoring operation reads `.mca`** — the web tier is stateless.
@@ -212,20 +236,32 @@ in-game command → server plugin ──HTTP upload──▶ ingest worker
 
 ---
 
-## 6. Authoring endpoint
+## 7. Authoring endpoints
+
+**Suggest within the boxed area** — `box` is required:
 
 ```
-GET /api/map/{slug}/monument-suggestions?style=<pedestal>,<label>,<cap>[&box=x0,y0,z0,x1,y1,z1]
+GET /api/map/{slug}/monument-suggestions?box=x0,y0,z0,x1,y1,z1[&style=<pedestal>,<label>,<cap>]
 ```
 
 Loads `monument_candidate` rows for the map, runs `Score(rows, box, style)`, returns ranked
 `MonumentSuggestion`s — the existing output contract from `monument-suggestion.md` §Output. No world
-access. Default `style` is `Any,Any,Any`; default `box` is the whole map. (This replaces the
-world-reading suggestion endpoint that `monument-suggestion.md` anticipated but was never wired.)
+access. `style` defaults to `Any,Any,Any`. (This replaces the world-reading suggestion endpoint that
+`monument-suggestion.md` anticipated but was never wired.)
+
+**Complete the orbit** — after the author confirms positions (§5):
+
+```
+POST /api/map/{slug}/monument-orbit   { positions: [ { x, y, z, color? } ] }
+```
+
+Reads the confirmed `symmetry_json`, reflects/rotates each position onto the other teams, and returns the
+full per-team monument set (each tagged with its capturing team) for the author to confirm. Reuses the F3
+counterpart geometry; no candidate-table or world access.
 
 ---
 
-## 7. Change checklist
+## 8. Change checklist
 
 - [ ] `PgmStudio.Minecraft`: factor `MonumentSuggester` into `Gather` (world → `List<MonumentCandidate>`)
       + `Score` (`candidates, box?, style → List<MonumentSuggestion>`); keep `Suggest` =
@@ -236,13 +272,15 @@ world-reading suggestion endpoint that `monument-suggestion.md` anticipated but 
       reader (row→record), the latter likely on `MapReader` or a small `MonumentCandidateStore`.
 - [ ] Ingest: call `Gather` in the scan worker (`WorldFeatureWriter` or its caller) and persist rows;
       delete-then-insert per map so re-gather is idempotent (mirrors the feature-row pattern).
-- [ ] `PgmStudio.Api`: `GET /map/{slug}/monument-suggestions` (load rows → `Score` → rank).
+- [ ] `PgmStudio.Api`: `GET /map/{slug}/monument-suggestions` (box required; load rows → `Score` → rank)
+      and `POST /map/{slug}/monument-orbit` (read `symmetry_json` → reflect/rotate confirmed positions →
+      per-team set, reusing the F3 counterpart geometry).
 - [ ] Tests: `Gather`/`Score` round-trip equals `Suggest` on the existing fixtures (thunder, pigland,
       dragons_hearth); re-run `--suggest-monuments-corpus` to confirm parity numbers unchanged.
 
 ---
 
-## 8. Scope & open questions
+## 9. Scope & open questions
 
 - **v1 is gather-at-ingest only.** Live `.mca` re-gather for a one-off is out of scope (the zip in object
   storage is the re-process source).
