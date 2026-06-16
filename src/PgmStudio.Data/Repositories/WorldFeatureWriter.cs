@@ -14,7 +14,7 @@ namespace PgmStudio.Data.Repositories;
 /// </summary>
 public sealed class WorldFeatureWriter(PgmDb db)
 {
-    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Islands);
+    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Islands, int MonumentCandidates);
 
     /// <summary>One surface-scan row (layer.parquet schema); column names match the Python output.</summary>
     private sealed class LayerRow
@@ -58,8 +58,22 @@ public sealed class WorldFeatureWriter(PgmDb db)
         if (spawners.Count > 0) await db.BulkCopyAsync(spawners, ct);
         if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
 
+        // Gather monument candidates over the whole world (F9) so the authoring tier can Score
+        // suggestions without re-reading the .mca — idempotent delete-then-insert, like the features.
+        var monuments = MonumentSuggester.Gather(chunks, WorldBox(chunks));
+        var monCount = await MonumentCandidateStore.WriteAsync(db, mapId, monuments, ct);
+
         var islands = await WriteArtifactsAsync(mapId, chunks, ct);
-        return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands);
+        return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount);
+    }
+
+    /// <summary>The whole-world scan box for the monument gather (full chunk extent × full height).</summary>
+    private static ScanBox WorldBox(IReadOnlyList<AnvilRegion.Chunk> chunks)
+    {
+        if (chunks.Count == 0) return new ScanBox(0, 0, 0, 0, 0, 0);
+        int minX = chunks.Min(c => c.ChunkX) * 16, maxX = chunks.Max(c => c.ChunkX) * 16 + 15;
+        int minZ = chunks.Min(c => c.ChunkZ) * 16, maxZ = chunks.Max(c => c.ChunkZ) * 16 + 15;
+        return new ScanBox(minX, 0, minZ, maxX, 255, maxZ);
     }
 
     /// <summary>Surface scan → islands; persist layer.parquet / islands.json / map_config.json artifacts. Returns island count.</summary>
@@ -107,6 +121,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
         await db.ResourceBlocks.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.ChestItems.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.SpawnerBlocks.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.MonumentCandidates.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.LayerSegments.Where(x => x.MapId == mapId).DeleteAsync(ct);
     }
 }

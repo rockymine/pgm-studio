@@ -89,6 +89,22 @@ public class MonumentSuggesterTests
     }
 
     [Test]
+    public async Task Gather_is_style_agnostic_and_Score_applies_the_style(/* F9 */)
+    {
+        // Gather once over the world — style-agnostic; the candidate carries the raw below/above evidence.
+        var candidates = MonumentSuggester.Gather([SignBelowChunk()], Whole.Expand(2));
+        await Assert.That(candidates.Any(c => (c.X, c.Y, c.Z) == (5, 8, 5) && c.Source == "sign" && c.PedestalId == 7)).IsTrue();
+
+        // The SAME candidates score to the monument for the matching style…
+        var hit = MonumentSuggester.Score(candidates, Whole, new MonumentStyle(PedestalKind.Bedrock, LabelKind.SignBelow)).Single();
+        await Assert.That((hit.X, hit.Y, hit.Z)).IsEqualTo((5, 8, 5));
+        await Assert.That(hit.Color).IsEqualTo("green");
+
+        // …and to nothing for a mismatched pedestal — all from the stored candidates, no world re-read.
+        await Assert.That(MonumentSuggester.Score(candidates, Whole, new MonumentStyle(PedestalKind.StainedGlass, LabelKind.SignBelow))).IsEmpty();
+    }
+
+    [Test]
     public async Task Box_excludes_signs_outside_it()
     {
         var box = new ScanBox(0, 0, 0, 3, 15, 15);   // the sign and its predicted cell (x=5) are outside MaxX=3

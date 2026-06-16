@@ -50,6 +50,24 @@ public sealed record MonumentSuggestion(
     string? Evidence);
 
 /// <summary>
+/// A gathered monument candidate — the <em>style-agnostic</em> output of the detector's ingest pass
+/// (<see cref="MonumentSuggester.Gather"/>), persisted in the <c>monument_candidate</c> table so the
+/// authoring tier can score suggestions without re-reading the world. One row per gathered anchor
+/// emission (the cell-merge happens at <see cref="MonumentSuggester.Score"/> time). Carries exactly what
+/// <c>Score</c> needs to reproduce the declared-style filter / confidence / colour, and nothing it can
+/// recompute. See <c>docs/contracts/monument-candidate-store.md</c>.
+/// </summary>
+public sealed record MonumentCandidate(
+    int X, int Y, int Z,
+    string Source,                       // "sign" | "armorstand" | "geometry"
+    int PedestalId, int PedestalData,    // block directly below the candidate (air) cell
+    int CapId, int CapData,              // block directly above it
+    string? ColorHint,                   // colour parsed from label text / stand head / name (stain still wins at Score)
+    int? SignX, int? SignY, int? SignZ, int? SignFacing, string? SignText,
+    string? StandHeadColor, string? StandName,
+    string? Evidence);
+
+/// <summary>
 /// The "which monument style? + box" intelligent extractor (authoring-flow backend). Given the world,
 /// the box the author drew around the monument area, and the style they declared, it suggests monument
 /// block positions. Grounded in the 345-map / 1723-monument corpus study (<c>docs/analysis/
@@ -88,28 +106,118 @@ public static class MonumentSuggester
     };
 
     /// <summary>Suggest monument blocks inside <paramref name="box"/> for the declared
-    /// <paramref name="style"/>. Chunks outside the box (+2 margin) are skipped.</summary>
+    /// <paramref name="style"/> — the live path, kept as <see cref="Score"/> over <see cref="Gather"/>
+    /// (the same composition the candidate store serves from the DB; this guards the factoring against the
+    /// corpus parity harness). Chunks outside the box (+2 margin) are skipped.</summary>
     public static List<MonumentSuggestion> Suggest(
-        IEnumerable<AnvilRegion.Chunk> chunks, ScanBox box, MonumentStyle style)
+        IEnumerable<AnvilRegion.Chunk> chunks, ScanBox box, MonumentStyle style) =>
+        Score(Gather(chunks, box.Expand(2)), box, style);
+
+    /// <summary>
+    /// Gather pass (ingest, reads the world) — find every anchor (monument-label wall signs, wool-head /
+    /// named armour stands, and distinctive-geometry cells) and project each to a candidate air cell,
+    /// capturing the surrounding evidence. <strong>Style-agnostic</strong>: it accepts any pedestal/cap and
+    /// runs every anchor type — the declared <c>MonumentStyle</c> isn't known at ingest, so all filtering
+    /// (pedestal/cap/label) and the confidence/colour are deferred to <see cref="Score"/>. The geometry
+    /// pass is bounded to distinctive pedestals/caps (§4.1) so the whole-world row count stays ≈ the real
+    /// monument count. <paramref name="world"/> is the gather region (the whole world at ingest; the
+    /// box+2 on the live path).
+    /// </summary>
+    public static List<MonumentCandidate> Gather(IEnumerable<AnvilRegion.Chunk> chunks, ScanBox world)
     {
-        var scan = box.Expand(2);   // a little slack so a sign/pedestal at the box edge still resolves
-        var (blocks, tileList, entityList) = RegionScan.Read(chunks, scan.Contains, scan.IntersectsChunk);
+        var (blocks, tileList, entityList) = RegionScan.Read(chunks, world.Contains, world.IntersectsChunk);
         var signs = tileList
             .Where(t => Str(t.Te.Get("id")) == "Sign")
             .Select(t => new Sign(t.X, t.Y, t.Z, MonumentSliceExtractor.ReadSignText(t.Te)))
             .ToList();
         var stands = entityList
-            .Where(e => Str(e.En.Get("id")) == "ArmorStand" && scan.Contains(e.Fx, (int)Math.Floor(e.Fy), e.Fz))
+            .Where(e => Str(e.En.Get("id")) == "ArmorStand" && world.Contains(e.Fx, (int)Math.Floor(e.Fy), e.Fz))
             .Select(e => new ArmorStand(e.Fx, e.Fy, e.Fz, HeadWool(e.En), Str(e.En.Get("CustomName"))))
             .ToList();
 
-        // candidate cell -> best suggestion (cluster duplicates by exact cell; signs that agree boost it)
+        var candidates = new List<MonumentCandidate>();
+
+        // An air cell + the ids/data directly below/above it (the evidence Score re-filters), or null when
+        // the cell isn't air / lies outside the gathered region.
+        ((int Id, int Data) below, (int Id, int Data) above)? Cell(int x, int y, int z)
+        {
+            if (!world.Contains(x, y, z) || blocks.ContainsKey((x, y, z))) return null;
+            blocks.TryGetValue((x, y - 1, z), out var below);
+            blocks.TryGetValue((x, y + 1, z), out var above);
+            return (below, above);
+        }
+
+        // Signs — both below- and above-of-monument placements, beside the sign and in its own column.
+        // The declared-Label gating + the pedestal/cap filter move to Score (only the real placement
+        // survives there); here we just record every air placement with its evidence.
+        foreach (var sign in signs)
+        {
+            var text = sign.Text;
+            if (!IsMonumentLabel(text)) continue;
+            if (!blocks.TryGetValue((sign.X, sign.Y, sign.Z), out var sb) || sb.Id != WallSignId) continue;   // wall sign only
+            if (!WallSignFacing.TryGetValue(sb.Data, out var f)) continue;
+            var color = ColorFromText(text);
+            (int x, int y, int z)[] placements =
+            [
+                (sign.X + f.dx, sign.Y + 1, sign.Z + f.dz), (sign.X, sign.Y + 1, sign.Z),   // below the monument
+                (sign.X + f.dx, sign.Y - 1, sign.Z + f.dz), (sign.X, sign.Y - 1, sign.Z),   // above the monument
+            ];
+            foreach (var (x, y, z) in placements)
+                if (Cell(x, y, z) is (var below, var above))
+                    candidates.Add(new MonumentCandidate(x, y, z, "sign", below.Id, below.Data, above.Id, above.Data,
+                        color, sign.X, sign.Y, sign.Z, sb.Data, text, null, null, text));
+        }
+
+        // Armour stands — one candidate per stand at the best air cell. Style-agnostic: pick the air cell
+        // nearest the expected monument over *any* solid pedestal; Score re-applies the declared pedestal.
+        foreach (var st in stands)
+        {
+            var feet = (int)Math.Floor(st.FeetY);
+            var headUp = st.HeadWool is not null;
+            var (lo, hi, target) = headUp ? (feet + 1, feet + 3, feet + 2) : (feet - 3, feet - 1, feet - 2);
+            int? best = null;
+            for (var y = lo; y <= hi; y++)
+            {
+                if (!world.Contains(st.Fx, y, st.Fz) || blocks.ContainsKey((st.Fx, y, st.Fz))) continue;   // air
+                blocks.TryGetValue((st.Fx, y - 1, st.Fz), out var bl);
+                if (!PedestalMatches(PedestalKind.Any, bl.Id)) continue;
+                if (best is null || Math.Abs(y - target) < Math.Abs(best.Value - target)) best = y;
+            }
+            if (best is { } yy && Cell(st.Fx, yy, st.Fz) is (var below, var above))
+                candidates.Add(new MonumentCandidate(st.Fx, yy, st.Fz, "armorstand", below.Id, below.Data, above.Id, above.Data,
+                    st.HeadWool ?? ColorFromText(st.CustomName ?? ""), null, null, null, null, null,
+                    st.HeadWool, st.CustomName, st.CustomName));
+        }
+
+        // Geometry — the cell above each block, BOUNDED to a distinctive pedestal or cap (§4.1) so the
+        // whole-world pass doesn't emit a row per surface column. Score includes these only for Label=None.
+        foreach (var ((x, y, z), _) in blocks)
+        {
+            if (Cell(x, y + 1, z) is not (var below, var above)) continue;
+            var pedSpecific = ClassifyPedestal(below.Id) is not (PedestalKind.Any or PedestalKind.Floating);
+            var capSpecific = ClassifyCap(above.Id) is not (CapKind.Any or CapKind.Open);
+            if (!pedSpecific && !capSpecific) continue;
+            candidates.Add(new MonumentCandidate(x, y + 1, z, "geometry", below.Id, below.Data, above.Id, above.Data,
+                null, null, null, null, null, null, null, null, null));
+        }
+
+        return candidates;
+    }
+
+    /// <summary>
+    /// Score pass (authoring, pure — no world access) — filter the gathered candidates to the author's
+    /// <paramref name="box"/> and declared <paramref name="style"/>, resolve each one's colour + confidence,
+    /// cluster duplicates by cell (agreeing signs boost), and rank highest-confidence first. Reproduces the
+    /// old <c>Suggest</c> exactly: <c>Suggest == Score(Gather(box+2), box, style)</c>.
+    /// </summary>
+    public static List<MonumentSuggestion> Score(
+        IEnumerable<MonumentCandidate> candidates, ScanBox? box, MonumentStyle style)
+    {
         var byCell = new Dictionary<(int, int, int), MonumentSuggestion>();
         void Offer(MonumentSuggestion s)
         {
             var key = (s.X, s.Y, s.Z);
             if (!byCell.TryGetValue(key, out var prev)) { byCell[key] = s; return; }
-            // keep the stronger source; if two independent signs agree, nudge confidence up.
             var merged = s.Confidence >= prev.Confidence ? s : prev;
             var boost = (prev.Source == "sign" && s.Source == "sign") ? 0.05 : 0.0;
             byCell[key] = merged with { Confidence = Math.Min(0.99, merged.Confidence + boost) };
@@ -117,81 +225,34 @@ public static class MonumentSuggester
 
         bool wantBelow = style.Label is LabelKind.Any or LabelKind.SignBelow;
         bool wantAbove = style.Label is LabelKind.Any or LabelKind.SignAbove;
+        bool wantStand = style.Label is LabelKind.Any or LabelKind.ArmorStand;
+        bool wantGeom = style.Label is LabelKind.None;
 
-        if (wantBelow || wantAbove)
-            foreach (var sign in signs)
-            {
-                var text = sign.Text;
-                if (!IsMonumentLabel(text)) continue;
-                if (!blocks.TryGetValue((sign.X, sign.Y, sign.Z), out var sb) || sb.Id != WallSignId) continue;   // wall sign only
-                if (!WallSignFacing.TryGetValue(sb.Data, out var f)) continue;
-                var color = ColorFromText(text);
-                // Two placements per level: the sign mounted *beside* the monument facing it (sign + facing),
-                // or *in the monument's own column* (e.g. nutrient's "v Orange Wool v" capping the cell). Both
-                // are validated against air + the declared pedestal/cap, so only the real one survives.
-                if (wantBelow)
-                {
-                    TryEmit(sign.X + f.dx, sign.Y + 1, sign.Z + f.dz, color, "sign", sign, text);   // beside, at pedestal level
-                    TryEmit(sign.X, sign.Y + 1, sign.Z, color, "sign", sign, text);                 // in-column, sign just under the monument
-                }
-                if (wantAbove)
-                {
-                    TryEmit(sign.X + f.dx, sign.Y - 1, sign.Z + f.dz, color, "sign", sign, text);   // beside, at cap level
-                    TryEmit(sign.X, sign.Y - 1, sign.Z, color, "sign", sign, text);                 // in-column, sign caps the monument
-                }
-            }
+        foreach (var c in candidates)
+        {
+            if (box is { } b && !b.Contains(c.X, c.Y, c.Z)) continue;
 
-        if (style.Label is LabelKind.Any or LabelKind.ArmorStand)
-            foreach (var st in stands)
+            // Declared-Label gating (old Suggest's "which anchors to run"), recovered from the source +
+            // the candidate's Y vs its sign (cand above the sign = "sign below the monument", and vice versa).
+            var include = c.Source switch
             {
-                // Disambiguate by what the stand carries: a stand with wool *on its head* marks the
-                // monument just *above* it (the wool sits where you place it — e.g. pigland); a name-only
-                // marker stand sits *above* the monument and points down at it (e.g. dragons_hearth).
-                var feet = (int)Math.Floor(st.FeetY);
-                var headUp = st.HeadWool is not null;
-                var (lo, hi, target) = headUp ? (feet + 1, feet + 3, feet + 2) : (feet - 3, feet - 1, feet - 2);
-                int? best = null;
-                for (var y = lo; y <= hi; y++)
-                {
-                    if (!box.Contains(st.Fx, y, st.Fz) || blocks.ContainsKey((st.Fx, y, st.Fz))) continue;   // must be air
-                    blocks.TryGetValue((st.Fx, y - 1, st.Fz), out var bl);
-                    if (!PedestalMatches(style.Pedestal, bl.Id)) continue;
-                    if (best is null || Math.Abs(y - target) < Math.Abs(best.Value - target)) best = y;
-                }
-                if (best is { } yy)
-                    TryEmit(st.Fx, yy, st.Fz, st.HeadWool ?? ColorFromText(st.CustomName ?? ""), "armorstand", null, st.CustomName);
-            }
+                "sign" => (wantBelow && c.SignY is { } sy && c.Y > sy) || (wantAbove && c.SignY is { } sa && c.Y < sa),
+                "armorstand" => wantStand,
+                "geometry" => wantGeom,
+                _ => false,
+            };
+            if (!include) continue;
 
-        // pure-geometry fallback when the author says there is no label — the pedestal *and cap* filter
-        // is what makes label-free monuments (e.g. lupa/lupain: bedrock below + glass cap) findable.
-        if (style.Label == LabelKind.None)
-            foreach (var ((x, y, z), _) in blocks)
-            {
-                if (!box.Contains(x, y + 1, z)) continue;
-                TryEmit(x, y + 1, z, null, "geometry", null, null);   // colour inferred from cap/pedestal
-            }
+            if (!PedestalMatches(style.Pedestal, c.PedestalId)) continue;
+            if (!CapMatches(style.Cap, c.CapId)) continue;
+
+            // A stained pedestal/cap is the placed colour and wins over the parsed label/name hint.
+            var color = ColorFromStain((c.PedestalId, c.PedestalData)) ?? ColorFromStain((c.CapId, c.CapData)) ?? c.ColorHint;
+            Offer(new MonumentSuggestion(c.X, c.Y, c.Z, color, Confidence(c.Source, color, style), c.Source,
+                c.PedestalId, c.PedestalData, c.SignX, c.SignY, c.SignZ, c.Evidence));
+        }
 
         return byCell.Values.OrderByDescending(s => s.Confidence).ThenBy(s => (s.X, s.Y, s.Z)).ToList();
-
-        // --- local: validate an air cell on the declared pedestal + under the declared cap, and offer it ---
-        bool TryEmit(int x, int y, int z, string? color, string source, Sign? sign, string? evidence)
-        {
-            if (!box.Contains(x, y, z)) return false;
-            if (blocks.ContainsKey((x, y, z))) return false;                      // monument cell must be air
-            blocks.TryGetValue((x, y - 1, z), out var below);                     // (0,0) when below is air
-            blocks.TryGetValue((x, y + 1, z), out var above);
-            if (!PedestalMatches(style.Pedestal, below.Id)) return false;
-            if (!CapMatches(style.Cap, above.Id)) return false;
-            // A stained pedestal/cap (wool/clay/glass) is the *placed* colour and is authoritative over
-            // parsed sign text (corpus: stain matches the true wool colour far more often than prose, which
-            // uses approximate words like purple↔magenta). Stain wins; the label's colour is the fallback.
-            color = ColorFromStain(below) ?? ColorFromStain(above) ?? color;
-            Offer(new MonumentSuggestion(x, y, z, color,
-                Confidence(source, color, style), source,
-                below.Id, below.Data,
-                sign?.X, sign?.Y, sign?.Z, evidence));
-            return true;
-        }
     }
 
     private static bool CapMatches(CapKind kind, int aboveId) =>

@@ -86,6 +86,13 @@ Contract: `docs/contracts/new-map-authoring.md`.
   spawn↔wool chain isn't traversable-connected. (`0ac03ae`, `MapXmlEndpoint`)
 - **Monument suggester + slice extractor** — smart-detect for the Monuments step (corpus-learned
   sign-facing → monument geometry). See `docs/contracts/monument-suggestion.md`. (`5235107`, `45209a1`)
+- **Monument candidate store** — `MonumentSuggester` split into ingest-time `Gather` (world →
+  candidates) + pure `Score` (`Suggest == Score(Gather)`, corpus parity unchanged: 96.6% / 57.8% /
+  35 FP); `monument_candidate` table (M0002) gathered in `scan-world`; served by
+  `GET /map/{slug}/monument-suggestions` (box, no world access) + `POST /map/{slug}/monument-orbit`
+  (symmetry reflect/rotate). Makes monument suggestion a DB query — the stateless-web-tier goal.
+  `docs/contracts/monument-candidate-store.md`. (F9)
+- **`--migrate-only`** — `PgmStudio.Import` applies pending migrations to a live DB without importing. (F9)
 - **`/authoring` concept page** — UI mock (no backend calls), the design reference for the real
   wizard. (`9f645dc` → `45209a1`)
 

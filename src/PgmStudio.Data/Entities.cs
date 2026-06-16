@@ -242,6 +242,33 @@ public sealed class SpawnerBlockRow
     [Column("max_nearby_entities")] public int? MaxNearbyEntities { get; set; }
 }
 
+/// <summary>A gathered monument candidate (F9, <c>monument_candidate</c>) — the style-agnostic ingest
+/// output of <c>MonumentSuggester.Gather</c>; the authoring <c>Score</c> reads these back per map + box.
+/// Mirrors <c>MonumentCandidate</c> (PgmStudio.Minecraft) minus <c>Id</c>/<c>MapId</c>.</summary>
+[Table("monument_candidate")]
+public sealed class MonumentCandidateRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("cand_x"), NotNull] public int CandX { get; set; }
+    [Column("cand_y"), NotNull] public int CandY { get; set; }
+    [Column("cand_z"), NotNull] public int CandZ { get; set; }
+    [Column("source"), NotNull] public string Source { get; set; } = "";
+    [Column("pedestal_id"), NotNull] public int PedestalId { get; set; }
+    [Column("pedestal_data"), NotNull] public int PedestalData { get; set; }
+    [Column("cap_id"), NotNull] public int CapId { get; set; }
+    [Column("cap_data"), NotNull] public int CapData { get; set; }
+    [Column("color_hint")] public string? ColorHint { get; set; }
+    [Column("sign_x")] public int? SignX { get; set; }
+    [Column("sign_y")] public int? SignY { get; set; }
+    [Column("sign_z")] public int? SignZ { get; set; }
+    [Column("sign_facing")] public int? SignFacing { get; set; }
+    [Column("sign_text")] public string? SignText { get; set; }
+    [Column("stand_head_color")] public string? StandHeadColor { get; set; }
+    [Column("stand_name")] public string? StandName { get; set; }
+    [Column("evidence")] public string? Evidence { get; set; }
+}
+
 [Table("layer_segment")]
 public sealed class LayerSegmentRow
 {

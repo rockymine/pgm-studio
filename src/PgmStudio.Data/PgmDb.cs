@@ -28,6 +28,7 @@ public sealed class PgmDb : DataConnection
     public ITable<ResourceBlockRow> ResourceBlocks => this.GetTable<ResourceBlockRow>();
     public ITable<ChestItemRow> ChestItems => this.GetTable<ChestItemRow>();
     public ITable<SpawnerBlockRow> SpawnerBlocks => this.GetTable<SpawnerBlockRow>();
+    public ITable<MonumentCandidateRow> MonumentCandidates => this.GetTable<MonumentCandidateRow>();
     public ITable<LayerSegmentRow> LayerSegments => this.GetTable<LayerSegmentRow>();
     public ITable<MapArtifactRow> Artifacts => this.GetTable<MapArtifactRow>();
 }

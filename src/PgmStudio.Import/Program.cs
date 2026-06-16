@@ -18,6 +18,9 @@ var outputRoot = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "/media/sf_rep
 Console.WriteLine($"Ensuring schema on {Mask(connectionString)} …");
 SchemaMigrator.MigrateUp(connectionString);
 
+// --migrate-only: apply pending migrations and exit (no import) — e.g. to add a new table to a live DB.
+if (args.Contains("--migrate-only")) { Console.WriteLine("schema is up to date."); return 0; }
+
 await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connectionString));
 var importer = new MapImporter(db);
 

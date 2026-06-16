@@ -106,20 +106,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   `GET /monument-obstruction`. → `N04`.
 - [ ] **F7 — Resource endpoint.** Service done (`ResourceSources`); wire `POST /resources` (renewable
   auto-config). → `N04` spawn "make renewable".
-- [ ] **F9 — Monument candidate store (gather/score refactor + table).** **Settled design**:
-  `docs/contracts/monument-candidate-store.md`. Make monument suggestion a **DB query, not a `.mca`-at-
-  runtime** op (the stateless-web-tier goal). Split `MonumentSuggester.Suggest` into **`Gather`** (ingest,
-  reads the world → `List<MonumentCandidate>`, style-agnostic, geometry-bounded per §4.1) + **`Score`**
-  (authoring, pure: `candidates, box, style` → ranked `MonumentSuggestion`); keep `Suggest =
-  Score(Gather(...))` so the corpus parity harness still guards it. Persist a **`monument_candidate`** table
-  (FluentMigrator `M0002` + `MonumentCandidateRow` entity + writer/reader); **`Gather` runs in the scan
-  worker** (delete-then-insert per map, like the feature rows). Endpoints: `GET /map/{slug}/monument-
-  suggestions?box=…[&style=…]` (box required → load rows → `Score`) and `POST /map/{slug}/monument-orbit`
-  (read `symmetry_json` → reflect/rotate confirmed positions → per-team set, reusing F3 counterpart
-  geometry). → **`N04`** (the Wools monument smart-detect consumes the suggestions endpoint) and **landing
-  "Already built"** (`ND3` — surfaces the gathered monument-candidate count). Parity test: `Score(Gather)`
-  == `Suggest` on thunder/pigland/dragons_hearth + `--suggest-monuments-corpus` unchanged.
-
 ## Existing editor — canvas & shared infrastructure (C)
 
 While `/authoring` is the focus and `/editor` is frozen these are lower priority — but **shared** infra

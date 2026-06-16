@@ -2,6 +2,7 @@ using System.Text.Json;
 using LinqToDB.Data;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
+using PgmStudio.Minecraft;
 
 namespace PgmStudio.Data.Tests;
 
@@ -28,7 +29,7 @@ public sealed class SchemaRoundTripTests
                      "map", "team", "region", "filter", "wool", "monument", "spawn", "kit",
                      "kit_item", "kit_armor", "map_spawner", "renewable", "block_drop_rule",
                      "apply_rule", "author", "wool_block", "resource_block", "chest_item",
-                     "spawner_block", "layer_segment", "map_artifact",
+                     "spawner_block", "monument_candidate", "layer_segment", "map_artifact",
                  })
         {
             await Assert.That(tables).Contains(expected);
@@ -114,5 +115,42 @@ public sealed class SchemaRoundTripTests
         await Assert.That((await repo.RegionsForMapAsync(mapId)).Count).IsEqualTo(0);
         await Assert.That((await repo.WoolsForMapAsync(mapId)).Count).IsEqualTo(0);
         await Assert.That((await repo.MonumentsForWoolAsync(woolId)).Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Monument_candidates_round_trip_and_cascade()   // F9
+    {
+        await TestDb.ResetSchemaAsync();
+        await using var db = TestDb.Connect();
+        var repo = new MapRepository(db);
+
+        var mapId = await repo.InsertAsync(new MapRow
+        {
+            Slug = "mon-map", Name = "Mon", Version = "1.0.0", Gamemode = "ctw",
+            Objective = "ctw", MaxBuildHeight = 128, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+        });
+
+        var gathered = new List<MonumentCandidate>
+        {
+            new(5, 8, 5, "sign", 7, 0, 0, 0, "green", 5, 7, 6, 3, "Green Wool", null, null, "Green Wool"),
+            new(20, 9, 20, "armorstand", 159, 1, 95, 2, "blue", null, null, null, null, null, "blue", "Blue", "Blue"),
+        };
+
+        await Assert.That(await MonumentCandidateStore.WriteAsync(db, mapId, gathered)).IsEqualTo(2);
+
+        var read = (await MonumentCandidateStore.ReadAsync(db, mapId)).OrderBy(c => c.X).ToList();
+        await Assert.That(read.Count).IsEqualTo(2);
+        await Assert.That((read[0].X, read[0].Y, read[0].Z, read[0].Source, read[0].PedestalId, read[0].ColorHint, read[0].SignFacing, read[0].SignText))
+            .IsEqualTo((5, 8, 5, "sign", 7, "green", (int?)3, "Green Wool"));
+        await Assert.That((read[1].Source, read[1].CapId, read[1].CapData, read[1].StandHeadColor, read[1].StandName))
+            .IsEqualTo(("armorstand", 95, 2, "blue", "Blue"));
+
+        // re-gather is idempotent (delete-then-insert per map).
+        await Assert.That(await MonumentCandidateStore.WriteAsync(db, mapId, gathered.Take(1).ToList())).IsEqualTo(1);
+        await Assert.That((await MonumentCandidateStore.ReadAsync(db, mapId)).Count).IsEqualTo(1);
+
+        // cascade-delete with the map.
+        await repo.DeleteMapAsync(mapId);
+        await Assert.That((await MonumentCandidateStore.ReadAsync(db, mapId)).Count).IsEqualTo(0);
     }
 }
