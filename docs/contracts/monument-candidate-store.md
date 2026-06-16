@@ -19,9 +19,10 @@ Read alongside:
 
 ## 1. Why — the hosting constraint
 
-The end goal is a hosted tool: a mapmaker runs a CLI on their server that zips the world and uploads it,
-and gets back a link to author the map to XML. The web tier should be **stateless** — no mounted
-`.mca` corpus. Today three operations read the world at runtime (`scan-world`, on-demand layer
+The end goal is a hosted tool: on the Minecraft multiplayer server where the map is built, the mapmaker
+types an **in-game command** that a server-side **plugin** handles — it saves/flushes the world, zips the
+region files, uploads them, and posts back a clickable link to author the map to XML. The web tier should
+be **stateless** — no mounted `.mca` corpus. Today three operations read the world at runtime (`scan-world`, on-demand layer
 generation B9, **monument suggestion**); monument suggestion is the hardest because `layer_segment` /
 `layer.parquet` can't drive it (no block materials, signs, or entities — see `monument-suggestion.md`
 §Scope).
@@ -186,21 +187,27 @@ The table is populated by the same once-per-upload worker that already does the 
 ingest, **no authoring operation reads `.mca`** — the web tier is stateless.
 
 ```
-mapmaker CLI:  zip world ──upload──▶ ingest worker
-                                       │ unzip to scratch
-                                       │ scan-world      → features + layer.parquet + islands   (DB)
-                                       │ pre-bake layers → surface/y0/bedrock/base               (DB, kills B9's .mca read)
-                                       │ Gather monuments → monument_candidate rows              (DB, kills suggestion's .mca read)
-                                       │ create map row → slug
-                                       ▼
-                       raw world zip → object storage (cold; re-process only, never at edit time)
-                                       ▼
-                           return edit link → /editor/{slug}   (runs 100% off MariaDB)
+in-game command → server plugin ──HTTP upload──▶ ingest worker
+   (saves world, zips region/)                     │ unzip to scratch
+                                                    │ scan-world      → features + layer.parquet + islands   (DB)
+                                                    │ pre-bake layers → surface/y0/bedrock/base               (DB, kills B9's .mca read)
+                                                    │ Gather monuments → monument_candidate rows              (DB, kills suggestion's .mca read)
+                                                    │ create map row → slug
+                                                    ▼
+                                raw world zip → object storage (cold; re-process only, never at edit time)
+                                                    ▼
+   plugin posts clickable link in chat ◀──slug──── return edit link → /editor/{slug}   (runs 100% off MariaDB)
 ```
 
+- **The plugin is the upload client, not a parser.** It only saves + zips + uploads the region files (and
+  posts the returned link); all decoding/detection stays in the C# ingest worker, so `MonumentSuggester`
+  remains the single source of truth — no Java reimplementation of the detector.
+- **Flush before zip.** A live server holds chunks in memory; the plugin must force a world save (so the
+  on-disk `.mca` is current) before zipping, or freshly placed monuments/signs are missed.
 - Gather is one extra pass over the already-decoded chunk stream (the scan worker holds them), so it adds
   little cost beyond what `scan-world` already pays.
-- Re-gathering after a detector improvement is a worker job over the retained zip — no author re-upload.
+- Re-gathering after a detector improvement is a worker job over the retained zip — no re-upload, so no
+  need to re-run the in-game command.
 - Candidates are map-scoped and cascade-delete with the map, like every other feature table.
 
 ---
