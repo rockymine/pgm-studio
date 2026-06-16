@@ -29,3 +29,11 @@ public sealed record WoolAvailabilityDto(
 
 /// <summary>GET /api/map/{slug}/wool-availability — per declared wool, is it obtainable?</summary>
 public sealed record WoolAvailabilityResponseDto(IReadOnlyList<WoolAvailabilityDto> Wools, bool HaveLayers);
+
+public sealed record MonumentObstructionDto(
+    string WoolColor, string Team, string MonumentId, int X, int Y, int Z,
+    bool Obstructed, string Severity, string Message);
+
+/// <summary>GET /api/map/{slug}/monument-obstruction — each wool monument's block must be air; a
+/// pre-existing block there blocks wool placement (PGM warns on load).</summary>
+public sealed record MonumentObstructionResponseDto(IReadOnlyList<MonumentObstructionDto> Monuments, bool HaveLayers);

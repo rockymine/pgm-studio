@@ -102,8 +102,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 - [ ] **F2 — Wool source/availability endpoints.** `GET /wool-availability` done; add
   `POST /wool-sources` (query a drawn rect against the wool-block DB rows) + `GET /wool-suggestions`.
   → `N04`.
-- [ ] **F6 — Monument-obstruction endpoint.** Service done (`SegmentIndex`/`WoolSources`); wire
-  `GET /monument-obstruction`. → `N04`.
 - [ ] **F7 — Resource endpoint.** Service done (`ResourceSources`); wire `POST /resources` (renewable
   auto-config). → `N04` spawn "make renewable".
 ## Existing editor — canvas & shared infrastructure (C)

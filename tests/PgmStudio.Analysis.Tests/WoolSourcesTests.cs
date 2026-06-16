@@ -50,4 +50,25 @@ public sealed class WoolSourcesTests
         await Assert.That(avail[0].OneTime).IsTrue();           // a bare block is one-time
         await Assert.That(avail[0].SourceTypes).Contains("block");
     }
+
+    [Test]
+    public async Task Monument_is_clear_without_a_terrain_layer_and_obstructed_when_the_block_is_solid()
+    {
+        var doc = Serializer.ToDict(MapParser.ParseXmlString(Xml));   // monument block at 1,1,1
+
+        // No terrain layer (segments null) — nothing to test against, reported clear.
+        var clear = WoolSources.CheckMonumentObstruction(doc, null);
+        await Assert.That(clear.Count).IsEqualTo(1);
+        await Assert.That(clear[0].WoolColor).IsEqualTo("red");
+        await Assert.That((clear[0].X, clear[0].Y, clear[0].Z)).IsEqualTo((1, 1, 1));
+        await Assert.That(clear[0].Obstructed).IsFalse();
+        await Assert.That(clear[0].Severity).IsEqualTo("ok");
+
+        // A solid block at the monument cell — wool can't be placed → obstructed (error).
+        var segs = new SegmentIndex([(1, 1, 0, 2)]);   // column (x=1,z=1) solid y0..2, so (1,1,1) is solid
+        var blocked = WoolSources.CheckMonumentObstruction(doc, segs);
+        await Assert.That(blocked[0].Obstructed).IsTrue();
+        await Assert.That(blocked[0].Severity).IsEqualTo("error");
+        await Assert.That(blocked[0].Message).Contains("obstructed");
+    }
 }

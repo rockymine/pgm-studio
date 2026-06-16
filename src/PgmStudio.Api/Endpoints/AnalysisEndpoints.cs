@@ -99,3 +99,22 @@ public sealed class WoolAvailabilityEndpoint(MapRepository repo, MapReader reade
         await Send.OkAsync(new WoolAvailabilityResponseDto(wools, have), ct);
     }
 }
+
+/// <summary>GET /api/map/{slug}/monument-obstruction — each wool monument's block must be air; a
+/// pre-existing block there blocks wool placement (PGM warns on load).</summary>
+public sealed class MonumentObstructionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<MonumentObstructionResponseDto>
+{
+    public override void Configure() { Get("/map/{slug}/monument-obstruction"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
+        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        var (map, doc) = loaded.Value;
+
+        var segs = await feature.SegmentsAsync(map.Id, ct);
+        var monuments = WoolSources.CheckMonumentObstruction(doc, segs)
+            .Select(c => new MonumentObstructionDto(c.WoolColor, c.Team, c.MonumentId, c.X, c.Y, c.Z, c.Obstructed, c.Severity, c.Message)).ToList();
+        await Send.OkAsync(new MonumentObstructionResponseDto(monuments, segs is not null), ct);
+    }
+}
