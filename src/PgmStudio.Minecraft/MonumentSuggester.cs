@@ -230,11 +230,14 @@ public static class MonumentSuggester
         // ringing one monument all hint at the same cell, and a monument is often marked by BOTH a stand and
         // a sign there — Score collapses by cell anyway (the stand always scores ≥ the sign), so storing the
         // duplicates just bloats the table (pigland's 64 sign rows → 40 → 8 cells, corpus parity unchanged).
-        // Drop cells sitting directly on a BARRIER: a barrier is never a real pedestal (0/593 corpus — it's
-        // only ever a *cap*, 78×), so an air cell above one is a deliberately-blocked, unreachable spot (the
-        // phantom above pigland's barrier-capped monuments). Zero real-monument loss; pigland 8 → 4.
+        // Drop cells whose pedestal Score can never accept — pure dead storage:
+        //  • a SIGN (wall 68 / post 63) is never a pedestal: PedestalMatches rejects it under *every* style
+        //    (a code-level guarantee, not just corpus). These are the in-column "monument-above" emissions
+        //    that land directly on top of the sign → thunder 24 → 12 (exactly its 12 real monuments).
+        //  • a BARRIER (166) is never a *real* pedestal (0/593 corpus — it's only ever a cap, 78×), so an air
+        //    cell above one is a deliberately-blocked, unreachable spot (pigland's barrier-cap phantom) → 8 → 4.
         return candidates
-            .Where(c => c.PedestalId != BarrierId)
+            .Where(c => c.PedestalId != WallSignId && c.PedestalId != SignPostId && c.PedestalId != BarrierId)
             .GroupBy(c => (c.X, c.Y, c.Z))
             .Select(g => g.OrderBy(c => c.Source switch { "armorstand" => 0, "sign" => 1, _ => 2 }).First())
             .ToList();
