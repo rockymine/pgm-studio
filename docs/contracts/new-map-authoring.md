@@ -231,6 +231,64 @@ the bridges exist. So:
 > no seeding or connectivity validation — another reason the first target is the terrain-backed
 > `thunder_blank` class.
 
+### 6a. The minimal World step — scan-layer selection (settles ND2)
+
+"Configure" (the old scan step) is the most unintuitive part of the editor; ND2 strips the 01-World step
+to **Scan → Islands → Symmetry**, just enough to seed team count + spawn positions + a confirmed symmetry.
+The author should **confirm, not configure** — so the studio produces one good detection layer automatically:
+
+- **Detection runs on an auto-cleaned base layer.** The `Base` (lowest-solid) extractor reads bottom-up, so on
+  decorated terrain it "looks up" into overlapping tree branches and water and the island picture jumps. The
+  fix is a **fixed, corpus-derived noise exclusion** baked into the base extractor. The reference project's
+  curated `map_layouts.json` (231 maps) justifies the set — the block ids it hand-excluded were
+  **water/lava (30 hits) · cobweb (19) · foliage = leaves/logs (9) · redstone lines (6)** (plus a few
+  map-specific decor blocks). So the cleaned base = `Base` minus `{water, lava, leaves, logs, saplings,
+  tallgrass, vines, lily_pad, redstone_wire, tripwire, cobweb}` (extends the existing `{36}` piston-marker
+  default). *(The exact foliage id set may want a render-comparison pass during `N01`.)*
+- **Tiny islands are pruned — which is why most "exclusions" don't matter.** `IslandDetector` already drops
+  components below `minIslandSize` (=10): **0 of 2780 corpus islands are < 10 blocks.** So 1×1/2×2 specks —
+  cobwebs, redstone dots, lone saplings — never become islands regardless. Excluding *them* is cosmetic; the
+  island-affecting noise is the **connected** masses (foliage canopies, water bodies), which the cleaned base
+  removes. This is why `thunder`'s `[30]` (cobweb) exclusion doesn't change its islands.
+- **Floating structures over void are pruned by a Y-discontinuity, not a height threshold.** The base scan is
+  bottom-up, so a decorative structure floating over void (no terrain beneath) has its *lowest* block "shot
+  into" by the laser and joins the picture far above the play surface (e.g. `mame_i_shrunk_the_pvpers`'
+  built **eagles** at Y≈50–82 over a play surface at Y≈0). A global height cap fails (the Y-histogram isn't
+  cleanly bimodal). The fix is **height-aware connectivity**: when detecting islands, two adjacent base cells
+  join only if their Y is *continuous* (|ΔY| ≤ ~3); a **stark Y jump** breaks the link, so the floating mass
+  becomes its own connected component and is pruned as a **height outlier above the terrain's dominant Y band**
+  (or as a mass with no support below). Validated on mame's lowest-solid layer: height-aware components isolate
+  the eagle masses (median Y≈70) for pruning while the play surface stays whole.
+- **Water is the usual "bridge" — and the cleaned base already removes it.** On `mame` the four islands are
+  joined at Y=0 by **5,796 `water_still` cells** (the reference dodged it with `bedrock`). But water is in the
+  noise set, so the cleaned base separates them on its own: island detection on mame's lowest-solid gives one
+  blob with all blocks, `[6700, 6700, 1902, 1902]` with water/lava removed, and **`[6700, 6700, 1894, 1894]`
+  with the full noise set — byte-identical to the bedrock layer's islands.** So the two cleanup passes compose:
+  height-aware connectivity drops the floating eagles, the water/lava exclusion drops the bridges, and the
+  result matches what hand-picking `bedrock` would have produced — no fallback needed for this case.
+- **Layer fallback is just a safety net now.** Because the cleaned base recovers bedrock-quality islands on the
+  motivating case, the bedrock/y0 fallback is demoted to a cheap last resort: if the cleaned base still reads
+  degenerately (one giant island, or no symmetry where the island count suggests it), retry on `bedrock`/`y0`.
+  Still studio-chosen, not user-chosen — "confirm, not configure."
+- **Surface is kept as a visual aid; segments ride along.** The top **surface** layer is messy for detection
+  but **essential for orientation** — the author toggles to it to see the map they built (wool rooms, spawns).
+  So the World canvas offers **Base (detection) · Surface (visual) · Segments** views over the same map.
+- **No user block-exclude UI, and no `P8` for the common case.** Because the clean-up is a fixed default (not
+  per-map config), the happy path never triggers a pipeline re-scan. A rare map that still needs a bespoke
+  exclude/override remains a `P8`-gated escape hatch, out of the minimal flow.
+- **Island exclusion needs no re-scan — confirmed in code.** `PATCH /configure/{slug}/exclude-island` only
+  drops the cached `symmetry_json` artifact; `islands_json` is untouched and symmetry recomputes minus the
+  excluded ids (B7). Symmetry is detectable on **99%** (332/335) of corpus maps once islands are clean, so the
+  detected order reliably seeds the team count.
+
+**P7 fits here.** The clean base is the `Base` per-layer extractor with an expanded default ignored-block set,
+and Surface/Segments stay distinct extractors used for their own roles. That settles P7's deferred "consolidate
+the layer extractors vs keep the exact per-layer ones" question in favour of **keeping them** — each has a
+distinct solid-policy and purpose (detection / visual / vertical). (P7's other half, byte-parity of a
+segment-derived surface, is unaffected.) **Build split:** the extraction-model work (expand
+`LayerExtractors.Base` exclude · `IslandDetector` height-aware connectivity + floating-mass prune ·
+degenerate-read fallback) is task **`A5`**; the World step that surfaces it is **`N01`**.
+
 ---
 
 ## 7. Coexistence — the tree view doesn't die, it moves

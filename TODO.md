@@ -14,9 +14,9 @@ M0–M5 + the M6 editor shells + the M7 pipeline are **landed** (`FEATURES.md`),
 authoring **backend** is done. The open headline is the **new `/authoring` editor** — a guided wizard
 built from the concept page, a **separate page** from the existing `/editor` (left as-is for now).
 
-1. **Settle the remaining design questions** — `ND1` (navigation/flow) is **done** (`new-map-authoring.md`
-   §12; spun off `ND3` landing screen + `ND4` save model); still open: `ND2` (stripped Configure),
-   `ND3`, `ND4` — then **scaffold the new page** (`NS`).
+1. **Settle the remaining design questions** — `ND1` (navigation/flow, §12) and `ND2` (stripped World, §6a)
+   are **done** (spinning off `ND3` landing screen, `ND4` save model, `A5` cleaned-base backend); still
+   open: `ND3`, `ND4` — then **scaffold the new page** (`NS`).
 2. **Build the steps in page order** (`N00`→`N05` + `NVAL`), starting with **Teams & Spawns** (`N02`)
    — the recommended first real slice.
 
@@ -42,13 +42,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Design & scaffold first**
-- [ ] **ND2 — Stripped Configure / World step (design + corpus).** Configure is the most unintuitive
-  part; on a fresh page design the **minimal** 01-World — just enough to seed team count + spawn
-  positions + a confirmed symmetry — and add complexity back only if needed. Decide: does Scan need
-  **block include/exclude** (which forces a pipeline re-run → `P8`) or can it rely on the default
-  top-surface scan? **Island exclusion** should work **without** a re-run (it only re-runs symmetry
-  detection — B7 already invalidates that cache); confirm. Corpus-check what symmetry + island
-  detection actually require. Scopes `N01`.
 - [ ] **ND3 — Landing / home screen (design).** `ND1` settled that the **flow overview is the wizard's
   landing screen** (`/authoring/{slug}` root; rail logo returns there) — design the richer screen it
   becomes: the six-phase flow panel **plus a brief of what the import found** (map folder + file list,
@@ -72,9 +65,13 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 **Steps — in page order, each persists its slice of intent**
 - [ ] **N00 — Map Info.** Identity (name; version / mode / objective auto-derived) + authors
   (username→uuid resolve via `MojangClient`, B6) → intent `meta`. (`InfoSection`)
-- [ ] **N01 — World.** Scan → Islands → Symmetry, per `ND2`'s stripped design: detect terrain as
-  neutral islands, confirm symmetry, seed team count + spawn positions. Reuses `SymmetryDetector` (B7)
-  + island detection (P4). (`WorldSection`)
+- [ ] **N01 — World (UI).** Scan → Islands → Symmetry per `ND2`'s minimal design (`new-map-authoring.md`
+  §6a): the **auto-cleaned base layer** (detection) over the cleaned-base extraction + height-aware island
+  detection from **`A5`**. Surface those results: a **layer-view toggle** (Base = detection · Surface =
+  visual aid for the built map · Segments) over the canvas; the cleaned-base summary (noise excluded · tiny
+  & floating-mass prune); detected islands with **stray-island exclude** (re-runs symmetry only, no re-scan
+  — B7); and **symmetry confirm** → seeds team count + spawn positions. **No user block-exclude UI** (rare
+  override stays `P8`-gated). Reuses `SymmetryDetector` (B7) + island detection (P4). (`WorldSection`)
 - [ ] **N02 — Teams & Spawns.** **The recommended first real slice** (`new-map-authoring.md` §11):
   teams + island assignment → spawn point → protection. Symmetry→count suggestion (`SmartSuggestion` +
   `SymmetryExpander`), orbit-fill the other teams, auto-wire protection, idempotent regenerate-on-save.
@@ -158,6 +155,17 @@ editor too; **`C9`/`C11`/`C18`** are existing-`/editor`-specific.
   (`SymmetryDetector`, `RegionGeometry2d`, `RegionBoundsDeriver`, `RegionParser`,
   `Pgm/Editing/Geometry2d`). Establish one geometry module (point/bounds transforms + IoU) and route
   every call site through it; mind the Pgm↔Analysis package boundary. Pairs with P7.
+- [ ] **A5 — Cleaned-base extraction + height-aware island detection (ND2 backend).** The extraction-model
+  changes behind `ND2`'s minimal World step (`new-map-authoring.md` §6a), serving `N01`. (1) **Expand
+  `LayerExtractors.Base` default-exclude** from `{36}` to the corpus-derived noise set **{water, lava,
+  leaves, logs, saplings, tallgrass, vines, lily_pad, redstone_wire, tripwire, cobweb}** (validated:
+  removing water alone splits `mame`'s islands; full set → bedrock-identical `[6700,6700,1894,1894]`).
+  Confirm the exact foliage ids with a **render-comparison pass** over a few decorated maps. (2)
+  **`IslandDetector` height-aware connectivity** — join adjacent base cells only if Y-continuous
+  (|ΔY| ≤ ~3) so a stark Y jump splits floating builds off (carry the per-cell Y the `Base` extractor
+  already records), then **prune height-outlier components** (floating decor — mame's eagles at Y≈70).
+  (3) **Degenerate-read fallback** to `bedrock`/`y0` (rare safety net). Keep per-layer extractors distinct
+  (settles `P7`'s consolidate-vs-keep half). Pairs with `P8` (the user-override re-scan path).
 
 ## Lower priority / parked
 
@@ -180,8 +188,10 @@ done (`FEATURES.md`).
 - [ ] **D3 — Evaluate `map_config` storage.** JSON-document artifact vs a relational table
   (`scan_layer`, `exclude_blocks`, `exclude_islands`, `confirmed`). Weigh against the "JSON for
   irregular leaves" rule. Evaluation only.
-- [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** Blocked on a
-  **solid-policy** decision: the layers want different ignored-block sets (Surface/Y0 = air-only;
-  Segments = air ∪ non-solid); endpoint-only runs can't honour user `exclude_blocks`; a
-  segment-derived surface would **not** be byte-parity with the reference. Decide: accept divergence
-  vs keep the exact per-layer extractors (current). Pairs with A4.
+- [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
+  "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
+  roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,
+  not duplication; their per-layer default ignored-block sets (`Base` gets the expanded ND2 noise set;
+  Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
+  surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
+  `exclude_blocks`). Pairs with A4.

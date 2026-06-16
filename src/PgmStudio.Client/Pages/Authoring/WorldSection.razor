@@ -10,10 +10,30 @@
       <p class="ds-kicker">01</p>
       <h2>World — detect terrain</h2>
     </div>
-    <p>Three sub-steps — Scan, Islands, Symmetry. The blocks come first; islands are detected as
-       <strong>neutral shapes</strong> and seed the team count and spawn positions.</p>
+    <p>Three sub-steps — <strong>Scan → Islands → Symmetry</strong>. The studio detects islands on an
+       <strong>auto-cleaned base layer</strong>, you confirm; stray islands are excluded; the symmetry is
+       confirmed — seeding team count + spawn positions. Confirm, don't configure.</p>
   </div>
 
+  <p class="ds-theming-note">
+    <strong>Why a cleaned base, not a layer picker (corpus, ND2).</strong> Choosing the scan layer is the
+    most error-prone part of the old Configure, so the studio does it: <strong>island detection runs on the
+    base (lowest-solid) layer, auto-cleaned</strong> of the blocks that destabilise it. The reference
+    project's per-map layouts justify the noise set — the block ids it hand-excluded across 231 maps were
+    <strong>water/lava (30 hits) · cobweb (19) · foliage leaves/logs (9) · redstone lines (6)</strong>:
+    a looking-up base scan otherwise catches overlapping branches and water bodies and the picture jumps.
+    <strong>Tiny islands (&lt; 10 blocks) are pruned</strong> by the detector — which is exactly why cobweb
+    or redstone specks <em>don't</em> change the islands (they never reach 10 blocks). <strong>Floating
+    builds over void</strong> (decorative structures — e.g. <code>mame_i_shrunk_the_pvpers</code>' eagles at
+    Y≈70 over a play surface at Y≈0) are caught by <strong>height-aware connectivity</strong>: a stark Y jump
+    splits the floating mass off, and it's pruned as a height outlier. And what bridges islands is usually
+    <strong>water</strong> — on mame, 5,796 water cells at Y=0 fuse the four islands into one, but since water
+    is in the noise set the cleaned base separates them to <strong>byte-identical to the bedrock layer's
+    islands</strong> (a bedrock/y0 retry stays only as a safety net). The <strong>surface layer is kept as a
+    visual aid</strong> (toggle it to see the wool rooms / spawns you built); segments ride along
+    too. No user block-exclude UI and no re-scan (<code>P8</code>) for the common case — the auto-clean is a
+    fixed, corpus-derived default. <code>thunder</code> here is the real cleaned-base result.
+  </p>
   <p class="ds-theming-note">
     A new map (<code>thunder_blank</code>) is a world with blocks but no <code>map.xml</code>. The
     <strong>y=0 footprint is the void-filter substrate</strong>: every column with a surface block is
@@ -44,25 +64,31 @@
         <div class="workspace-sidebar">
           <div class="workspace-scroll">
             <section class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Scan Layer</h2></div>
-              <p class="section-desc">Which extractor produced the surface layer? The preview updates live.</p>
-              <div class="layer-grid">
-                <button class="filter-chip filter-chip--active" title="Top solid block per column">Top surface</button>
-                <button class="filter-chip" title="Lowest solid block">Lowest solid</button>
-                <button class="filter-chip" title="Blocks at y=0">Y=0</button>
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Scan — cleaned base</h2>
+                <span class="badge badge--success">auto</span>
               </div>
-            </section>
-            <section class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Included Blocks</h2></div>
+              <p class="section-desc">Islands are detected on the <strong>base (lowest-solid)</strong> layer,
+                 auto-cleaned so the picture is stable. No block-level fiddling.</p>
               <div class="panel-list">
-                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#7a7a7a"></span><span class="list-label">Stone</span><span class="list-tag">6,142</span></div>
-                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#9ba0a6"></span><span class="list-label">Cobblestone</span><span class="list-tag">2,610</span></div>
-                <div class="list-row list-row--compact"><span class="list-swatch" style="background:#5b8a4b"></span><span class="list-label">Grass</span><span class="list-tag">1,488</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="droplet"></i></span><span class="list-label">Water · lava</span><span class="list-tag">excluded</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="trees"></i></span><span class="list-label">Foliage · leaves / logs</span><span class="list-tag">excluded</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="zap"></i></span><span class="list-label">Redstone lines</span><span class="list-tag">excluded</span></div>
+                <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="grip"></i></span><span class="list-label">Cobweb</span><span class="list-tag">excluded</span></div>
               </div>
+              <p class="section-desc">Then geometry cleanup: tiny islands (&lt; 10 blocks) are pruned (why the
+                 cobweb / redstone specks never matter), and <strong>floating builds over void</strong> — a
+                 stark Y jump from the terrain — are split off by height-aware connectivity and pruned too.</p>
             </section>
             <section class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Blocks</h2></div>
-              <div class="panel-list"><div class="list-empty">No blocks excluded.</div></div>
+              <div class="section-header section-header--ruled"><h2 class="section-title">Layer view</h2></div>
+              <div class="layer-grid">
+                <button class="filter-chip filter-chip--active" title="Cleaned base — detection runs here">Base</button>
+                <button class="filter-chip" title="Top surface — see the map you built">Surface</button>
+                <button class="filter-chip" title="Vertical segments">Segments</button>
+              </div>
+              <p class="section-desc">Switch to <strong>Surface</strong> to see the map you built — wool
+                 rooms, spawns — for orientation. Detection always runs on the cleaned base.</p>
             </section>
           </div>
         </div>
@@ -90,13 +116,17 @@
             <section class="panel-section">
               <div class="detail-header">
                 <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
-                <span class="detail-label">Layer summary</span>
+                <span class="detail-label">Detection summary</span>
+                <span class="badge badge--success">base · cleaned</span>
               </div>
               <div class="section-body">
-                <div class="field"><label class="field-label">Layer</label><div class="field-pick-row"><span class="field-value">Top surface</span></div></div>
+                <div class="field"><label class="field-label">Layer</label><div class="field-pick-row"><span class="field-value">Lowest solid</span><span class="list-tag">noise-excluded</span></div></div>
                 <div class="field"><label class="field-label">Columns</label><div class="field-pick-row"><span class="badge badge--success">11,237</span></div></div>
-                <div class="field"><label class="field-label">Block types</label><div class="field-pick-row"><span class="field-value">14</span></div></div>
-                <p class="section-desc">The scanned footprint becomes the island shapes on the next step.</p>
+                <div class="field"><label class="field-label">Islands</label><div class="field-pick-row"><span class="field-value">17</span><span class="list-tag">≥ 10 blocks</span></div></div>
+                <div class="field"><label class="field-label">Symmetry</label><div class="field-pick-row"><span class="field-value">rot_90</span><span class="badge badge--success">100%</span></div></div>
+                <p class="section-desc">The cleaned-base footprint becomes the island shapes on the next step.
+                   The per-layer extractors stay distinct (the reason to keep them, <code>P7</code>); the
+                   surface layer rides along as a visual aid only.</p>
               </div>
             </section>
           </div>
@@ -129,7 +159,8 @@
                 <h2 class="section-title">Islands</h2>
                 <span class="badge badge--dim">17 detected</span>
               </div>
-              <p class="section-desc">Exclude islands that aren't part of the playable layout (observer towers, decor).</p>
+              <p class="section-desc">Exclude islands that aren't part of the playable layout (observer towers, decor).
+                 Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
               <div class="panel-list">
                 <div class="list-row list-row--compact list-row--selected"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · centre</span><span class="list-tag">208</span></div>
                 <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Island · W arm</span><span class="list-tag">2,034</span></div>
