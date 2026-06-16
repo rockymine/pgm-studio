@@ -9,9 +9,10 @@ parity in C# with all map data in **MariaDB**.
 Approved plan: `/root/.claude/plans/imperative-whistling-key.md`.
 Contract specs (copied from the reference) live in `docs/` — `contracts/region-authoring.md`,
 `contracts/region-categorization.md`, `contracts/filter-region-wiring.md`, `filter-use-cases.md` —
-the design for the `R1` / `F`-series tasks in `TODO.md`. `contracts/new-map-authoring.md` is the
-**declarative intent-model** direction for new maps (meaning→structure; generator = mirror of the
-categorizer) — original to this repo, not from the reference.
+the design for the authoring (`N`) / `F`-series tasks in `TODO.md`. `contracts/new-map-authoring.md`
+is the **declarative intent-model** direction for new maps (meaning→structure; generator = mirror of
+the categorizer) — original to this repo, the current headline direction and the design for the `N`
+tasks; it **supersedes** the split-view-model bits of `region-authoring.md` for new maps (§7).
 
 ## Stack (decided, do not relitigate)
 ASP.NET Core · FastEndpoints (`/api`) · Blazor WebAssembly hosted by the backend ·
@@ -49,20 +50,33 @@ live under `tools/`, not `tests/`.
 Commit **only when the user explicitly asks**; branch first; end commit messages with
 `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
 
-## Status & current focus
-Task board (the single source of truth for what's done / in progress / to-do) is **`TODO.md`** —
-checkbox states + category IDs. Don't duplicate the task list here.
+## Status & task board
+Two files, two jobs — keep them current, don't duplicate either here:
+- **`TODO.md`** — **open work only** (`[ ]` to-do, `[~]` in progress). The live board.
+- **`FEATURES.md`** — the catalog of **shipped** capabilities (the "done" half), by area, with the
+  task id(s) that delivered each (for git traceability).
 
-**Done:** M0–M5 complete (scaffold, schema/DAL, codec round-trip 350/350, importer, read API,
-analysis — all parity-verified). M6 write API complete and the **editor UI is an exact port of the
-reference studio frontend** — all six activity shells (Overview, Regions, Teams, Objective, Build
-Regions, Configure) are ported and Chrome-verified, on a hybrid canvas (reused `EditorCanvas` JS via
-interop) with reusable `RegionTree`/`RegionInspector` components. M7 world-import pipeline (Anvil
-reader → extractors → scan-world → islands/artifacts) is parity-verified. `/design` page is ported.
+**Task-board rules** (the board kept exploding; these keep it honest):
+1. **`TODO.md` never holds `[x]`.** When a task is done a commit lands (its message references the id),
+   the task **leaves `TODO.md`**, and — if it's a shipped capability — one line is added to `FEATURES.md`.
+2. **No trailing "Next:/Remaining:/Deferred:" notes inside a task.** Future work is its **own** `[ ]`
+   task in the right section, not a footnote on a (near-)done one.
+3. **`[~]` describes only what REMAINS.** When a task is partly landed, reword it down to the open
+   slice; the landed part moves to `FEATURES.md`.
+4. **File a task where its REMAINING work lives.** Backend done + only UI left ⇒ it belongs in the
+   feature/UI section, not the backend section.
+5. **Sections are few and stable; ids never get renumbered.** Add the next number under an existing
+   section — commits + memory reference ids — don't spin up a new category for one task. Sections:
+   Authoring (`N`), Editor features (`F`), Editor/canvas infra (`C`), Backend/pipeline/internals,
+   Lower-priority/parked.
+6. **Deferred *decisions* are parked**, clearly marked with the blocking question — not interleaved
+   with actionable tasks.
 
-**Now:** the remaining editor work is **cross-cutting infrastructure**, not whole activities — see
-`TODO.md` C5 (draw-tool interop → region creation), C6/B4 (blocks overlay), C7/B5 (side-view canvas),
-B7 (symmetry detection), plus M7 colours (P5) and M8 sketch (S2).
+**Where it stands:** M0–M5 + the M6 editor shells + the M7 pipeline are landed (`FEATURES.md`). The
+forward direction is **new-map authoring** — the intent-model *backend* is done; the open work is the
+authoring **UI** (the `/authoring` page is a mock; `docs/contracts/new-map-authoring.md` is the
+contract). Then editor depth: the analysis-backed feature UIs (`F`) over their done services, and the
+cross-cutting editor/canvas infra (`C`). See `TODO.md` "Current focus".
 
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts

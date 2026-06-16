@@ -1,5 +1,12 @@
 # Region authoring (B4a)
 
+> **Status (this repo).** The **split view-model** (Primitives/Composed/Raw) below is **superseded for
+> new maps** by the declarative intent model — see `new-map-authoring.md` (§7: shaping activities use
+> intent forms; the Regions activity keeps the full tree). What stays live here: the **per-activity
+> building blocks** and the **author-groups → engine-wires** loop (TODO `N4`, `F1`) for editing
+> *existing* maps, and the **composites / cross-step references** section (carve-outs). The "D1 React
+> port" framing is reference-only (this is a Blazor app).
+
 *Spec — the region **authoring** surface: a curated split view-model + the per-activity
 building-block workflow.* Status: **design**; the view-model split is a near-term backend change,
 the interaction layer ships with the frontend switch (D1). Supersedes the stale region/objective bits

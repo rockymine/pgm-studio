@@ -1,326 +1,135 @@
-# pgm-studio — Tasks
+# pgm-studio — Tasks (open work only)
 
-Single source of truth for status. **Legend:** `[ ]` to-do · `[~]` in progress · `[x]` done.
-Task IDs are a category letter + number (e.g. `E3`, `B6`). Detailed history lives in git + memory;
-this file is the live task board.
+The live board. **It holds only open work:** `[ ]` to-do, `[~]` in progress — **never `[x]`.** When a
+task is done, a commit lands (its message references the id), the task **leaves this file**, and a line
+is added to **`FEATURES.md`** (the shipped-capability catalog). The board rules live in `CLAUDE.md`
+(§ "Status & task board"); follow them — this file kept exploding when they were ignored.
 
-**Current focus:** M6 editor UI — all six activity *shells* are ported & Chrome-verified; the
-remaining editor work is cross-cutting infra (draw-tool interop, blocks overlay), not whole activities.
+Task ids are a section letter + number (`F4`, `C13`, `N1`). Ids are **stable** (commits + memory
+reference them) — never renumber; new work gets the next number in its section.
 
-## M — Milestones (high level)
-- [x] M0 — Environment & scaffold (toolchain, MariaDB, solution, dev.sh)
-- [x] M1 — Schema + migrations + DAL (21 tables, linq2db)
-- [x] M2 — Domain + PGM codec (round-trip 350/350)
-- [x] M3 — Importer (parquet + json → MariaDB)
-- [x] M4 — Read API + Blazor read-only slice
-- [x] M5 — Analysis port (parity-verified)
-- [~] M6 — Write API + editor UI (write API complete; all 6 activity shells done; infra below)
-- [~] M7 — Pipeline / world import (reader + extractors + scan + artifacts done; colours/sources left)
-- [~] M8 — Sketch + design pages (`/design` done; sketch left)
+## Current focus
 
-## E — Editor activities (exact port of the reference studio frontend)
-- [x] E1 — Editor shell: topbar + activity rail + activity-switch state machine + Overview activity
-- [x] E2 — Regions (geo-tree + inspector + canvas, descendant selection)
-- [x] E3 — Teams (teams CRUD + spawn list + spawn/observer assignment, spawn-filtered canvas)
-- [x] E4 — Objective (wools + Add + inspector + monuments, wool-filtered canvas)
-- [x] E5 — Build Regions (Step 1 max-height save; Step 2 build tree + canvas + inspector delete/rename)
-- [x] E6 — Configure (3-step wizard: scan-layer / island-exclude / confirm → Overview)
-- [x] E7 — Overview static map render. Ported `overview-renderer.js` + `shared/block-render.js`; bridge
-      `overview-canvas.js` (mounted via `studio.mountOverview`) fetches bbox (regions/tree) + top-surface
-      (B4) + symmetry (B7) and paints the pixelated surface image + symmetry axis/centre overlay.
-      Verified on acapulco (full map render + purple symmetry centre).
-- [x] E8 — Configure rebuilt on-par with the reference. Ported `configure-renderer.js` (dedicated
-      layer/islands/symmetry preview — replaces the leaky `EditorCanvas`) via `configure-canvas.js`
-      (`studio.mountConfigure`). Full 3-step flow: Step 1 layer chips + live per-layer preview
-      (B9 on-demand pixels) + block include/exclude lists (B9 block-types, persisted via exclude-block);
-      Step 2 island include/exclude (persists + re-runs symmetry via the B7 cache invalidation) on the
-      islands canvas; Step 3 symmetry modes (confidence-sorted, detected badges) + center X/Z + reset,
-      `PATCH /symmetry` on finish → Overview. Verified on acapulco (layer switch regenerates, islands
-      outlines, rot_180 axis+centre, finish→Overview). **Deferred (P-series):** re-detecting islands on
-      a scan-layer/block change needs a pipeline re-run the port lacks (reference uses an SSE
-      `/pipeline/run`); also the scan-layer's canonical `layer.parquet` isn't layer-tagged, so a
-      config `scan_layer` that doesn't match the scanned artifact previews the scanned layer.
-- [ ] E9 — **New-map authoring + show drawn regions in the step they're drawn (priority).** Today a
-      region drawn in an activity (C5) is categorised **"other"** and only appears in the Regions
-      overview, not the step it was made in — because `RegionCategorizer` is **usage-derived and only
-      runs over full map.xml**, so it cannot reflect live editor draws (nothing is wired to them yet).
-      Storing "other" on draw is probably right (we can't stay in sync with the categorizer); the gap is
-      **display**. Fix per `docs/contracts/region-authoring.md` (R1): replace the category-grouped tree
-      with the **split view-model** (Primitives / Composed / Raw, scoped to the step by leaf-vs-compound
-      + role) so a freshly-drawn primitive shows in the active step's *Primitives* panel structurally,
-      regardless of category. Interim, at least display the drawn region in its step (or show
-      uncategorised primitives in every step). **Per-step tools + guidance:** the Objective **"Block"
-      tool = a "Monument" tool** (monuments are `block`); guide authors to define monument / wool
-      location (point) / wool-room (area) / spawn point vs protection and surface exactly those tools.
-      Resolves naturally once filters are wired (F1) + the tree layout changes (R1). **Goal: complete
-      the editor to author/config a map with NO pre-existing xml** (stripped copy of `thunder`). Always
-      validate region-authoring against **annealing_iv** + **outback_outback_edition** (author-built,
-      pre-existing xml). Next up: do F1 (filter wiring) + R1 (split tree) together.
-- [x] E10 — **Show freshly drawn regions in the step they're drawn (draft bucket).** A drawn region is
-      derived `other` until wired, so to surface it in its activity without faking the category we keep an
-      editor-only **draft sidecar**: a `region_drafts_json` `map_artifact` blob `{region_key: editor_step}`
-      (`teams`/`objective`/`build`), stored **outside** the entity-replace codec so it survives
-      `SaveDocAsync` and never enters the PGM document. `POST /regions` + the F3 `/orbit` follow-up carry
-      `draft_step` and tag the new region(s) (`RegionDraftStore`); `/regions/tree` prunes to live regions
-      and puts `draft_step` on each node; each activity shows a **"Draft"** section + renders drafts on the
-      canvas (`category ∈ wanted OR (draft_step==step AND category=="other")`). A draft **graduates out**
-      the moment wiring derives its real category — no double-render (the `other` guard), no cleanup.
-      Full write-up in **`docs/region-data-flow.md`** (entity-replace reasoning, derive-on-read, wired-vs-
-      drawn canvas display). Chrome-verified on thunder_blank (draw → Draft section + 4 orbit rects on
-      canvas). The real classification still lands via **E9/R1** wiring.
+M0–M5 foundation, the M6 editor shells, and the M7 pipeline are **landed** (see `FEATURES.md`). Two
+fronts remain:
 
-## C — Canvas & shared UI infrastructure
-- [x] C1 — Hybrid canvas decision + interop (reused `EditorCanvas` JS via `studio-canvas.js`/`EditorCanvas.razor`)
-- [x] C2 — Reusable `RegionTree` + `RegionInspector` + `Models/RegionNode.cs` + `GameColors.cs`
-- [x] C3 — Editable inspector (`OnDelete`/`OnRename`) — first edit wiring
-- [x] C4 — Studio design-system CSS (verbatim) + `/design` living reference page
-- [x] C5 — **Draw-tool interop** — region creation via the editor canvas. `editor-draw-controller.js`
-      already had the draw machinery; forwarded its `onRegionDraw` through `studio-canvas.js` →
-      `EditorCanvas.OnRegionDraw` [JSInvokable], which builds the create payload (port of
-      `drawResultToPayload`) and POSTs `/regions`, then reloads the canvas + fires `OnRegionCreated`.
-      Added rectangle/cuboid/cylinder/circle/point tools to the canvas toolbar (shown when `DrawCategory`
-      is set) and wired `DrawCategory`+`OnRegionCreated` in Teams(spawn)/Objective(wool_room)/
-      BuildRegions(build); Regions stays read-only. Verified on acapulco: draw → `POST /regions` 200 →
-      persisted (2 rectangles created + deleted in cleanup). **Note:** a freshly-drawn region is
-      uncategorised → lands in the tree's "other" group until it's wired to a use (spawn/wool/etc.) —
-      `region_categories` is a derived, non-persisted hint by contract (the reference SPA only shows it
-      immediately because it tracks the category client-side; the port reloads from the backend).
-- [x] C6 — Block-colour overlay ("Blocks" toggle) on the shared `EditorCanvas`. The reused
-      `editor-canvas.js` already had the block machinery (`loadBlockLayer`/`setBlocksVisible`/
-      `#renderBlockImage`); added `setBlocks(visible)` to the `studio-canvas.js` bridge (lazily fetches
-      B4 top-surface, returns false when no scan data) + a `Blocks` chip in the canvas subbar wired in
-      `EditorCanvas.razor`. Verified on acapulco (Regions): toggle overlays the surface colours under
-      the region outlines (island fill dims), available across all EditorCanvas activities.
-- [x] C7 — Side-view canvas for Build Regions Step 1 + draggable max-build-height line (B5-backed).
-      Ported `sideview-canvas.js`; bridge `sideview-canvas-bridge.js` (`studio.mountSideview`) fetches
-      `/segments?axis=` and wires the drag → `OnHeightChanged` (C# updates the height field, marks dirty;
-      typing/Save round-trips both ways). X/Z axis toggle re-fetches; height persists across axes.
-      Mounted only while Step 1 is shown (re-mounts on return). Verified on acapulco (drag up → Y rises,
-      input syncs, both axes render). Gotcha: bridge must call `canvas.resize()` after mount so the
-      bitmap matches the laid-out box (else the drag hit-test is off).
-- [ ] C8 — `panel-resize` for `.sidebar-handle` drag (port `shared/panel-resize.js`)
-- [ ] C9 — Kits editing UI (Teams) and per-activity status dots
-- [x] C10 — **Resolved (root-caused to D1, no code bug).** Cylinders render fine; `annealing_iv`'s
-       cylinder `blocks-filter-region` was missing from the tree only because it's **absent from the DB**
-       (51 region rows, codec gives 52). Both the Python and C# codecs serialise the region from the
-       current `map.xml`, and round-trip parity (350/350) rules out the encoder/tree. The dev DB was
-       imported from a **stale `xml_data.json`** predating the region → it's the known stale-import issue.
-       Fix = re-import (D1); no change to the codec/tree/canvas. (Diagnosed 2026-06-13.)
-- [ ] C11 — **Verify:** the region inspector's edits (rename / delete / coord patch) actually write to
-       the DB end-to-end across activities (only wired so far in Build Regions; not fully verified)´
-- [ ] C12 — **Extract shared Blazor components** to cut markup duplication (audit 2026-06-13).
-      Real candidates, by payoff:
-      - **AuthorDisplay** — the author row (avatar + Mojang-resolve-on-blur name + contribution +
-        remove), today inline as `OverviewActivity.PersonRow`. The reference duplicates the *same*
-        row + resolve logic in `sketch-overview-panel.js`, so the sketch overview (S2) will reuse it
-        → **highest payoff (cross-tool reuse)**. Bundle the name↔uuid resolve helper with it.
-      - **Workspace** layout shell — `.workspace` + `.workspace-sidebar`/`.sidebar-handle`/
-        `.workspace-canvas` (+ inspector) wrappers repeat in all 6 activities; a component with
-        RenderFragment slots (Sidebar/Canvas/Inspector) removes the boilerplate. (Covers the listed
-        "Sidebar".)
-      - **ErrorToast** — `@if (error is not null) { .toast--error }` repeated in 4 activities
-        (Build/Configure/Objective/Teams). Trivial, one param.
-      - **SectionHeader** — ruled title + optional "+ Add" button, ~17 occurrences. (Covers "InputFields"
-        partially; a labeled `FormField` for `.field`/`.field-label`/`.field-input` is lower payoff.)
-      - **ActivityRail** — currently single-use in `Editor.razor`; becomes reusable once the sketch
-        shell (S2) lands (the reference `sketch.html` has its own rail). Extract when S2 is built.
-      Already done (no work): **EditorCanvas** (6 activities — and it already contains the canvas
-      toolbar, so the listed "CanvasToolBar" needs no separate extraction), **RegionTree** (3),
-      **RegionInspector** (4 — the listed "Inspector").
-      NOT components → dedupe in code-behind instead (see C14): the `Post/Patch/Delete/Send` http
-      trio and the `Index`/`CollectDescendants` region-tree walkers.
-- [ ] C14 — Dedupe activity **code-behind** (not markup): the repeated `Post/Patch/Delete/Send`
-      http-helper trio (Build/Objective/Teams) and the `Index`/`CollectDescendants` region-tree
-      walkers (3–4 activities) → a shared `MapApiClient` service and/or an `EditorActivityBase` /
-      static `RegionNode` helpers.
-- [ ] C13 — **Bug:** canvas crashes on a map with a null `bounding_box` — `buildTransform`
-       (`transform.js`) destructures `min_x` off a null `bbox`, throwing a `JSException` through
-       `EditorCanvas.OnAfterRenderAsync` → Blazor "unhandled error" banner (repro: `/editor/2d`,
-       any canvas activity). These are xml-only / not-fully-pipelined maps with no bbox in
-       `regions/tree`. Degrade gracefully: skip render (show an empty-canvas hint) when bbox is null,
-       rather than throwing. (Related data gap: TODO D1 stale dev DB / xml-only maps.)
-- [x] C15 — **Reusable `SmartSuggestion` component + intelligent team creation.** Callout card
-      (`Pages/EditorActivities/SmartSuggestion.razor(.cs)`: Header/Icon=`sparkle`/Badge/ChildContent/
-      AcceptLabel/RejectLabel/Busy/OnAccept/OnReject), header mirrors the inspector **detail-header**
-      (icon + title + neutral badge); `.smart-suggestion*` CSS = accent-gradient bg + accent border +
-      shadow, with `.smart-suggestion-teams` **always a 2-column grid** (swatch + name only); live example
-      on `/design` (§07). TeamsActivity shows it in place of "No teams": reads `/symmetry` primary →
-      suggests teams (rot_90 → 4 red/blue/green/yellow; mirror_*/rot_180 → 2 red/blue), short symmetry text
-      + `SymBadge()` + 2-col team grid + Dismiss / "Create N teams" (Accept POSTs each team then Reload;
-      Reject = session dismiss). Design iterated with the user → "variant B2"; Chrome-verified on
-      thunder_blank (rot_90 → 4 in DB; mirror_x → 2-team one-row card; Dismiss). **Next reuse:** F1 wiring
-      suggestions, F2 wool suggestions.
+1. **New-map authoring — the headline.** The intent-model *backend* is done; the open work is the
+   authoring **UI**. Build the wizard, starting with the **Teams/Spawns slice on `thunder_blank`**
+   (N1). Design = the `/authoring` concept page + `docs/contracts/new-map-authoring.md`.
+2. **Editor depth.** Wire the analysis-backed feature UIs over their already-done services (F); finish
+   the cross-cutting editor/canvas infrastructure (C).
 
-- [x] C16 — **Spawn subtype: point vs protection.** Filled the spec's documented-but-unimplemented
-      `subtype` slot to split the `spawn` category into the literal spawn point (`spawns[].region`) vs
-      the surrounding anti-grief protection zone (enter=only / spawn message / spawn-floor / spawn-kit).
-      `RegionFacet.Subtype` (DeriveFacets), `RegionFacetDto.Subtype` (/regions), subtype on every
-      region-tree node (`EncodeTree`/`EncodeNode` + tree endpoint), `RegionNode.Subtype` (client).
-      Teams activity now shows **Spawn Points** + **Spawn Protection** (CollectSpawn walks all tree groups;
-      protection nests under the `spawns` rule-container in "other"). Corpus-verified disjoint (350 maps,
-      0 overlap); `--categorize` parity still 350/350 (subtype is additive); +1 Analysis test; spec
-      (region-categorization.md §2/§8) updated. Deferred: protection regions don't render on the
-      spawn-filtered canvas (they live in the "other" tree group). Reusable by F1 wiring.
+---
 
-- [x] C17 — **Wool category collapse: one `wool` category, subtypes `monument`/`room`/`spawner`.**
-      Merged the objective trio into a single category (parallels the spawn split). Mapped at emission in
-      `DeriveFacets` (precedence still runs in fine terms); encoder shows one "Wool" group; ObjectiveActivity
-      `SplitWoolBySubtype` renders Wool Rooms/Monuments/Wool Spawners. Analysis untouched (it reads the wool
-      model, not the region category). `--categorize` harness maps C# wool+subtype ↔ Python flat category →
-      still 350/350. Tests + region-categorization.md §2/§8 updated. Chrome-verified on 803.
+## Authoring (N) — the forward direction
 
-## B — Backend / API
-- [x] B1 — Region authoring + tree encoders + `GET /regions/authoring`,`/regions/tree`,`/islands` (350/350)
-- [x] B2 — `RegionBoundsDeriver` (compound/transform `bounds_2d` recomputed on read)
-- [x] B3 — Configure endpoints (`state` / `scan-layer` / `exclude-island`) over the map_config artifact
-- [x] B4 — `GET /map/{slug}/layers/top-surface` (block-colour overlay data) → unblocks C6. Reads the
-      cached `layer.parquet` artifact (`SurfaceLayer`), maps each column's (block_id,block_data) to a
-      hex colour (P5 `BlockColors`), returns xs/zs/colors + bounds. Verified: 15621 pts on acapulco.
-- [x] B5 — `GET /map/{slug}/segments?axis=x|z` (side-view profile) → unblocks C7. Projects the
-      `layer_segment` rows onto a 2D (primary × y) depth map (`SideView`, port of `_build_depth_map`);
-      nearest-depth normalised 0–255, empty=-1. Parity test vs reference on synthetic segs; verified
-      on acapulco (158×104). Bad axis → 400.
-- [x] B6 — `PATCH metadata` now persists authors/contributors to the `author` table (full-replace,
-      skips empty-uuid rows); uuid is canonical with the resolved username cached in `author.name`.
-      Added `GET /api/minecraft/player?name=|uuid=` (`MojangClient`) + Overview UI: name→uuid on blur,
-      uuid→name on load. Codec emits author `name` only when set (map.xml round-trip parity preserved, 350/350).
-- [x] B7 — **Symmetry detection** (`SymmetryDetector`, port of symmetry/detection.py: island-pair
-      transforms + NTS polygon-IoU, confidence 0.4·support+0.6·iou) + `GET /map/{slug}/symmetry`
-      (computes on demand from islands_json − excluded islands, caches as symmetry_json) +
-      `PATCH /map/{slug}/symmetry` (confirm/reject/center) + Configure **state** wiring (symmetry_status
-      / configure_complete; island-exclusion invalidates the cache). Importer no longer carries stale
-      symmetry.json (port owns the cache). Parity: 7/7 maps vs reference (only `1`↔`1.0` JSON
-      formatting differs) + synthetic unit test. **Remaining: frontend** Configure step-3 UI (show
-      detected modes + axis overlay + confirm) — currently confirm-only; track under E8.
-- [ ] B8 — External-source endpoints: `sources`, `import-from-url`, `configure` (`player`/Mojang done in B6)
-- [x] B9 — Configure layer endpoints (port of `studio/routes/configure.py`): `PATCH /configure/{slug}/
-      exclude-block` + `GET /configure/{slug}/layers/{type}/pixels` + `…/block-types` (shared `LayerData`
-      = `_pixels_from_parquet`/`_block_types_from_parquet`). Scan layer → canonical `layer.parquet`
-      artifact; non-scan layers (y0/bedrock/base) generated on demand by scanning the world (P6
-      extractors, raw default args — exclusion is client-side) and cached as per-type parquet artifacts
-      (port of `_resolve_layer_parquet`/`_generate_layer_cache`). 400 unknown type / 404|[] when no world.
-      Parity vs reference on acapulco: all 4 layers' block-types match exactly (id/name/count/order);
-      pixels = identical to B4 (the only colour diffs are unknown-block fallbacks, the P5 limit).
+Intent-model new-map authoring (`docs/contracts/new-map-authoring.md`) for new maps, plus the
+group→wire flow for editing existing maps. The backend for both is largely shipped (`FEATURES.md`);
+the work here is the **UI**. Author intent is gated on a `map_intent_json` blob — existing corpus maps
+keep the region-first editor untouched.
 
-## P — Pipeline / world import (M7)
-- [x] P1 — Anvil `.mca` reader (byte-exact vs Python)
-- [x] P2 — Feature extractors (wool/resource/chest/spawner/segments) — 11/11 parity
-- [x] P3 — `POST /map/{slug}/scan-world` (world → DB feature rows)
-- [x] P4 — Surface scan + island detection + layer.parquet/islands.json/map_config artifacts (10/10 parity)
-- [x] P5 — Block colours (`minecraft/colors.py` → `PgmStudio.Minecraft/BlockColors.cs`) for the surface
-      render. Full known-table parity vs Python oracle (197/197, `RoundTrip --colors`) + unit tests.
-      (Unknown-block fallback isn't byte-parity — Python's `hash()` isn't portable; known blocks exact.)
-- [x] P6 — Ported the remaining layer extractors (`minecraft/layers.py` → `LayerExtractors.Y0/Bedrock/
-      Base`; shared `BuildVolume`). Verified parity vs reference on acapulco (y0/bedrock/base block-types
-      match exactly). Wired into B9's on-demand generation. Bedrock stays a distinct id==7 extractor.
-- [ ] P7 — **DECISION (deferred): consolidate the layer extractors / scan passes.** Explored 2026-06-13:
-      enrich `SegmentsExtractor` with per-run bottom/top block id+data to derive a *solid* base/surface
-      from the single segments pass (compute once). Blockers to decide first: (1) **solid policy** — the
-      layers want different ignored-block sets (Surface/Y0 = air-only; Segments = air ∪ 31 non-solid ∪
-      {36}); one run-structure can't serve both. (2) endpoint-only runs can't honour user `exclude_blocks`
-      or `max_build_height` (need interior blocks). (3) Y0 is interior (not a run boundary) + cheap →
-      keep separate; Bedrock is a positive id==7 match → keep separate. Net: a segment-derived
-      surface/base would be a *solid* layer, NOT byte-parity with the reference. Decide: redefine
-      (accept divergence) vs keep exact per-layer extractors (current). See also [[A4]] geometry merge.
-- [ ] P8 — **Pipeline re-run on config change** (Configure E8 deferral). The reference re-runs island
-      detection (+ symmetry) via an SSE `/pipeline/{slug}/run?force_layout=1` when the scan layer or
-      block exclusions change; the port has no such endpoint (scan-world is surface-only, fixed). So in
-      Configure, changing `scan_layer`/`exclude_blocks` persists + updates the preview but does NOT
-      re-detect islands. Need a parameterized re-scan (scan-world honouring `scan_layer`+`exclude_blocks`
-      → re-run island detection → rewrite the `layer.parquet`/`islands.json` artifacts, layer-tagged so
-      B9 stops mis-serving a stale canonical). Island-exclusion → symmetry re-run already works (B7).
+> **Direction note.** The old "split view-model (Primitives/Composed/Raw)" plan
+> (`region-authoring.md`, ex-R1b) is **superseded** for new maps by the intent wizard (N1–N3): per
+> `new-map-authoring.md` §7 the shaping activities use **intent forms**, and the **Regions activity
+> keeps the full tree** for inspecting existing maps. R1a (grouping) shipped — `FEATURES.md`. The
+> `regions_equivalent`/`is_counterpart` IoU work (ex-A2) folds into F3.
 
-## A — Analysis
-- [x] A1 — All algorithms ported + parity-verified (categorizer 350/350; buildability/traversability/wool 10/10)
-- [ ] A2 — `region_geometry` IoU / counterpart for symmetry (NTS area ops)
-- [ ] A3 — Buildability endpoint perf (per-cell NTS over the grid is slow — optimise)
-- [ ] A4 — **Consolidate geometry into one module** (new `PgmStudio.Analysis/Geometry/` folder). The
-      reference single-sources transforms in `geometry.py` (reflect_point_2d / rotate_point_2d /
-      reflect_bounds_2d / rotate_bounds_2d, the converters, IoU); the port has duplicated/parallel
-      copies — point reflect+rotate in `SymmetryDetector`, NTS `Reflect`/affine in `RegionGeometry2d`,
-      bounds reflect/rotate in `RegionBoundsDeriver` (+ `RegionParser`). Establish one common geometry
-      module (point/bounds transforms + IoU) and route all call sites through it. (Not yet explored —
-      audit the duplication first; mind the Pgm↔Analysis package boundary.)
+- [ ] **N1 — Intent authoring UI: shell + first vertical slice (Teams & Spawns, `thunder_blank`).**
+  Turn the `/authoring` mock into a working wizard wired to `GET`/`PUT /map/{slug}/intent`. Deliver
+  Map Info + Teams & Spawns end-to-end: symmetry→team-count suggestion (reuse `SmartSuggestion` +
+  `SymmetryExpander`), place team-0 spawn + optional protection, orbit-fill the other teams, auto-wire
+  protection (F1 `spawn_protection` template), idempotent regenerate-on-save. Per `new-map-authoring.md`
+  §5/§11 (the recommended first slice).
+- [ ] **N2 — Intent authoring UI: Build + Wools slices.** *Build:* max height + over-void bridge rects
+  + holes; the F4 buildability overlay as live feedback; union + void-filter wiring (F1
+  `build_void_enforcement`). *Wools:* per-wool spawn / room / monuments — monument count pre-filled
+  from team count; the **Monument tool = the block tool** + the monument-suggester smart-detect; wire
+  room defense + build/break + capture. Per `new-map-authoring.md` §5/§6 + `region-authoring.md`
+  (Objectives building blocks).
+- [ ] **N3 — Intent authoring UI: Review & Export.** Surface the playability gate: run traversability
+  (+ buildability), show connected/disconnected + the isolated spawn/wool points, loop back to Build on
+  failure; XML preview; handle the export **409** in the UI (the gate is already enforced backend-side).
+  Per `new-map-authoring.md` §6/§9.
+- [ ] **N4 — Wire-after-group (existing-map editing).** Grouping ships (R1a); next is wiring the group:
+  group regions → apply an F1 template by role; cross-step reference + carve-out (complement) detection
+  (`region-authoring.md` "Composites & cross-step references"); canvas Ctrl-click multi-select. This is
+  the call site for F1's wiring UI.
 
-## F — Analysis-backed editor features (reference `plans/refactor-plan.md` C-series)
-The reference has the **backend done** for these; in this port the analysis *services* are ported
-(M5 / A1) but most *endpoints* + all the *UI* (the D-series) are the last hurdle. Contract docs copied
-under `docs/`.
-- [~] F1 (ref C9) — **Filter↔region wiring templates (apply only; no suggestion engine).** `Api/Services/
-      FilterWiring.cs` = the 4 v1 template **appliers** (spawn_protection `enter=only-<team>`, wool_room
-      defense/edit `not-<owner>`, build_void = group `negative` + `block_place=deny(void)`), each composing
-      the existing FilterEditor/ApplyRuleEditor/RegionEditor; the **caller chooses the region** (R1 will,
-      after grouping). `POST /map/{slug}/wiring/apply {template,params}` (WiringEndpoints.cs). 3 Api tests.
-      **Suggestion engine REMOVED on purpose:** keying off `spawns[].region` proposed wiring on the spawn
-      **point**, which by corpus invariant (814/814) is *never* wired — the protection is a separate
-      region. So `Suggest` / `GET /wiring/suggestions` / the `WiringSuggestions` cards were stripped (also
-      the cards filled the screen, one per team). Deferred until R1's group→wire flow + the geometry/name
-      area-detection hint (`region-authoring.md`). **The win: filters can now be applied to regions** —
-      that's what R1's "engine wires" step calls. GOTCHA: run Api integration tests with `dev.sh stop`
-      (the dev server + WebApplicationFactory share `src/PgmStudio.Api/obj` → content-root resolution breaks).
-- [ ] F2 (ref C12) — **Wool availability/detection UI** + the two missing endpoints:
-      `POST /map/{slug}/wool-sources` (query a drawn rect) + `GET /map/{slug}/wool-suggestions`
-      (`/wool-availability` + `WoolSources` already done). Objectives step: draw→query, suggestion
-      prompts, availability badges.
-- [~] F3 (ref C13) — **Symmetry-aware authoring (source → counterparts).** **Counterpart backend done:**
-      ported `symmetry_authoring` → `SymmetryAuthoring.CreateCounterpart` (+ `Geometry2d` reflect/rotate)
-      and `POST /map/{slug}/regions/{id}/counterpart` (body {mode, center?}; centre falls back to the
-      confirmed symmetry artifact). mirror_* → native PGM `mirror` region; rot_180 → two chained mirrors;
-      rot_90 → baked primitive. Parity unit test vs reference (6 cases, all modes×types); live-verified
-      on thunder_blank (block (10,10) + rot_90 → (-9,10)).
-      **Orbit-fill on draw DONE (Chrome-verified on thunder_blank):** `SymmetryAuthoring.CreateOrbit`
-      chains the counterparts implied by the confirmed symmetry (rot_90 → 3 quarter turns = 1→4;
-      mirror/rot_180 → 1→2; counterparts inherit the source's category) + `POST /regions/{id}/orbit`
-      (reads mode+centre from the confirmed symmetry artifact; no-op 200 on asymmetric maps).
-      `EditorCanvas.OnRegionDraw` calls it after every draw across all draw activities (Teams/Objective/
-      BuildRegions) — so a drawn region appears in all symmetric positions at once. Gated by a toolbar
-      **Orbit** toggle chip (styled like the Blocks layer chip; labelled with the confirmed mode — "Orbit 90"
-      / "Orbit x" …; shown only on draw activities of symmetric maps; default on) so the user opts in/out
-      per draw — UX placeholder, real design is a later pass. Draw-enabled canvases
-      now also surface the "other" group (`CanvasFilter()`), so freshly drawn regions + counterparts (which
-      the categorizer leaves "other" until wired — see E9) are visible in the step that drew them. Added the
-      **block** draw tool to the canvas toolbar (the JS already handled it). +2 orbit unit tests.
-      **Remaining:** the canvas accept/reject UI (counterparts are created immediately, no preview/confirm).
-      The `regions_equivalent`/`is_counterpart` IoU detection (subsumes **A2**) is still to do.
-- [ ] F4 (ref C14) — **Buildability live canvas overlay** (service + `GET /buildability` done) — UI
-      overlay with the 4-class colours.
-- [ ] F5 (ref C15) — **Traversability readiness-panel** (service + `GET /traversability` done) — UI.
-- [ ] F6 (ref C16) — **Monument-obstruction badge** — wire `GET /map/{slug}/monument-obstruction`
-      (segments-based; `SegmentIndex` + `WoolSources` ported) + the objectives-step badge.
-- [ ] F7 (ref C17) — **Resource/renewable auto-config** — wire `POST /map/{slug}/resources`
-      (`ResourceSources` ported) + the spawn-step "make renewable" UI.
-- [ ] F8 (ref D2) — **2.5D / 3D coordinate editing** (monument point/block + cuboid Y-coords) — a
-      side-depth selection view; needs design.
+## Analysis-backed editor features (F)
 
-## R — Region authoring rework (larger, conceptualized)
-- [~] R1 — Region authoring rework per **`docs/contracts/region-authoring.md`** (authoring split:
-      primitives vs composed) + **`docs/contracts/region-categorization.md`** (the categorizer spec).
-      Partly done: B1 (`RegionAuthoringEncoder`) + `RegionCategorizer` (parity 350/350) + the Regions activity.
-      **R1a DONE (Chrome-verified) — the grouping interaction:** Ctrl/⌘-click multi-selects (set), Ctrl+G
-      groups ≥2 into a `union` (selects the new group) or ungroups a single compound (frees + selects the
-      children); refuses ungroup on a **wired** compound (toast, so the rule isn't orphaned). Keyboard via
-      `studio.registerShortcuts`/`clearShortcuts` (one active listener, preventDefault — seed of B6, no undo
-      yet); `RegionTree.OnSelectCtrl`; RegionsActivity holds the selection + calls `/regions/group`+`/ungroup`.
-      **Remaining:** R1b — the split view-model (stacked Primitives / Groups & wiring, step-scoped by
-      category/role; demote raw tree); R1c — wire-after-group (calls F1 `ApplyTemplate`) + cross-step
-      reference / carve-out (complement) + canvas Ctrl+click multi-select. Unblocks no-xml authoring (E9).
+The analysis **service** is ported for all of these (`FEATURES.md`); what remains is the **endpoint
+and/or the Blazor UI** — each task says which.
 
-## S — Sketch + design (M8)
-- [x] S1 — `/design` living UI reference (`Pages/Design.razor`)
-- [ ] S2 — `sketch_api` (get / setup / layout / overview / export) + the sketch pages
+- [~] **F1 — Filter↔region wiring UI.** Appliers + `POST /wiring/apply` done. Remaining: the UI call
+  site — apply a template to a (grouped) region by role; reuse `SmartSuggestion`. Driven by N4's
+  group→wire flow. (No suggestion engine — removed on purpose: spawn points are never wired.)
+- [ ] **F2 — Wool availability/detection UI + 2 endpoints.** `GET /wool-availability` done. Add
+  `POST /wool-sources` (query a drawn rect against the wool-block DB feature rows) + `GET /wool-suggestions`;
+  Objective-step UI: draw→query, suggestion prompts, availability badges. *(May split endpoints vs UI.)*
+- [~] **F3 — Symmetry authoring: accept/reject UI + equivalence detection.** Counterpart + orbit-fill +
+  the Orbit toggle done. Remaining: the canvas **accept/reject** UI for orbit-created counterparts
+  (today created immediately, no preview) + the `regions_equivalent`/`is_counterpart` IoU detection
+  (subsumes ex-A2) to power dedup + the symmetry-violation review.
+- [ ] **F4 — Buildability live canvas overlay.** Service + `GET /buildability` done; remaining: the
+  4-class colour overlay (UI only). Also feeds N2's Build feedback.
+- [ ] **F5 — Traversability readiness panel.** Service + `GET /traversability` done; remaining: the
+  readiness/connectivity panel (UI only). Also feeds N3's gate.
+- [ ] **F6 — Monument-obstruction badge.** Service (`SegmentIndex`/`WoolSources`) done; remaining:
+  wire `GET /monument-obstruction` **endpoint** + the objectives-step badge.
+- [ ] **F7 — Resource/renewable auto-config.** Service (`ResourceSources`) done; remaining: wire
+  `POST /resources` **endpoint** + the spawn-step "make renewable" UI.
+- [~] **F8 — 2.5D/3D coordinate editing.** `SliceView` side-view + Y-PATCH shipped in Build + Objective
+  inspectors. Remaining: wire `OnSetY` in the **Teams + Regions** inspectors; design pass for a
+  side-depth **3D selection view** (monument point/block + cuboid Y). *Needs design.*
 
-## D — Data / ops
-- [x] D1 — Refreshed every map's XML entities (regions/filters/teams/wools/…) from the current `map.xml`
-      via `dotnet run --project src/PgmStudio.Import -- --refresh-xml` (parse → `SaveDocAsync`, the editor
-      write path) — preserves world features/artifacts, no re-scan. 349 maps refreshed; annealing_iv
-      51→52 regions (recovered `blocks-filter-region`, fixing the C10 symptom — verified in the tree +
-      canvas). World feature/artifact rows are unchanged (worlds didn't change); re-scan via P3 if needed.
-- [ ] D2 — Optional: a visible nav link to `/design`
-- [x] D4 — **Dropped Bootstrap.** Migrated the dashboard (`Home.razor`) to the studio shell (topbar +
-      activity rail + studio map list, links to `/editor/{slug}`); set the default layout to
-      `EditorLayout`; deleted the dead `MapDetail.razor` + `MainLayout`/`NavMenu`; removed
-      `wwwroot/lib/bootstrap` (8.4M) + the `index.html` link. Chrome-verified (349 maps, search, version
-      tags; bootstrap.css now 404). Kept `wwwroot/css/app.css` (template loading/error-UI styles, no Bootstrap).
-- [ ] D3 — Evaluate: `map_config` should probably **not** be a JSON-document artifact — consider a
-      relational table (scan_layer, exclude_blocks, exclude_islands, confirmed). Potential later
-      improvement; needs evaluation (weigh vs. the hybrid "JSON for irregular leaves" rule).
+## Editor & canvas infrastructure (C)
+
+- [ ] **C8 — Panel resize.** The `.sidebar-handle` CSS shell exists; port the JS drag handler
+  (`shared/panel-resize.js`).
+- [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
+  edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
+- [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
+  in Build Regions; the Regions/Teams/Objective inspectors are **unwired** (rename/delete silently
+  no-op). Wire all three + verify rename/delete/coord-patch end-to-end.
+- [ ] **C12 — Extract shared Blazor components.** (`Toast`/ErrorToast already done.) Remaining, by
+  payoff: **`AuthorDisplay`** (cross-tool reuse with S2 — bundle the name↔uuid resolve), the
+  **`Workspace`** layout shell (sidebar/canvas/inspector slots, repeated in 6 activities),
+  **`SectionHeader`** (ruled title + "+ Add", ~17 uses), **`ActivityRail`** (extract when S2 lands).
+- [ ] **C13 — Bug: canvas crashes on null `bounding_box`.** `buildTransform` (`transform.js`)
+  destructures `min_x` off a null bbox → `JSException` "unhandled error" banner on xml-only /
+  not-fully-pipelined maps. Degrade gracefully: skip render + show an empty-canvas hint when bbox is null.
+- [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
+  (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
+  a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
+- [ ] **C18 — Render spawn-protection regions on the spawn-filtered canvas.** C16 split spawn into
+  point/protection, but protection regions live in the "other" tree group and don't render on the
+  Teams canvas. Surface them (e.g. via the subtype facet, like the draft filter).
+
+## Backend, pipeline & internals
+
+- [ ] **B8 — External-source endpoints.** `sources` + `import-from-url` (download a map from an
+  Overcast / S3 `//download` zip link and import it). Player/Mojang already done (B6).
+- [ ] **P8 — Pipeline re-run on config change.** A parameterized re-scan honouring
+  `scan_layer`/`exclude_blocks` → re-detect islands → rewrite **layer-tagged** `layer.parquet` /
+  `islands.json` (so B9 stops mis-serving a stale canonical). Today Configure persists the change +
+  updates the preview but does **not** re-detect islands. (Island-exclusion → symmetry re-run already
+  works, B7.)
+- [ ] **A3 — Buildability endpoint perf.** Per-cell NTS over the grid is slow; optimise (spatial
+  index / batch). Becomes user-visible once F4 lands.
+- [ ] **A4 — Consolidate geometry into one module.** Duplication **audited** — 5 sites
+  (`SymmetryDetector`, `RegionGeometry2d`, `RegionBoundsDeriver`, `RegionParser`,
+  `Pgm/Editing/Geometry2d`). Establish one geometry module (point/bounds transforms + IoU) and route
+  every call site through it; mind the Pgm↔Analysis package boundary. Pairs with P7.
+
+## Lower priority / parked
+
+- [ ] **S2 — Sketch tool.** `sketch_api` (get / setup / layout / overview / export) + the sketch pages.
+  Completes M8. (`AuthorDisplay` from C12 is reused here.)
+- [ ] **D3 — Evaluate `map_config` storage.** JSON-document artifact vs a relational table
+  (`scan_layer`, `exclude_blocks`, `exclude_islands`, `confirmed`). Weigh against the "JSON for
+  irregular leaves" rule. Evaluation only.
+- [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** Blocked on a
+  **solid-policy** decision: the layers want different ignored-block sets (Surface/Y0 = air-only;
+  Segments = air ∪ non-solid); endpoint-only runs can't honour user `exclude_blocks`; a
+  segment-derived surface would **not** be byte-parity with the reference. Decide: accept divergence
+  vs keep the exact per-layer extractors (current). Pairs with A4.
