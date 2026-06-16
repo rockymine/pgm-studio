@@ -85,16 +85,19 @@ Contract: `docs/contracts/new-map-authoring.md`.
   wizard. (`9f645dc` → `45209a1`)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
+- **Buildability / traversability / wool-availability endpoints** — `GET /buildability`,
+  `GET /traversability`, `GET /wool-availability` wired over the ported analysis services. The
+  authoring overlays/panels that consume them are TODO `N03` / `NVAL` / `N04`.
 - **Filter↔region wiring templates** — 4 v1 appliers + `POST /wiring/apply` (the suggestion engine
-  was deliberately removed). UI remains (TODO F1). (F1)
+  was deliberately removed). The generator uses these to auto-wire; the hand-wiring UI is parked.
 - **Symmetry-aware authoring** — counterpart creation + orbit-fill on draw
-  (`POST /regions/{id}/counterpart`, `/orbit`) + the Orbit toggle. Accept/reject UI + IoU
-  equivalence detection remain (TODO F3). (F3)
+  (`POST /regions/{id}/counterpart`, `/orbit`) + the Orbit toggle. The generator orbit-fills
+  automatically; the accept/reject UI + IoU equivalence detection are parked.
 - **Side-view Y editing** — `SliceView` cross-section + draggable Y line (point/block) wired in Build +
-  Objective inspectors; lifts a region off `y=0` onto the surface. Teams/Regions wiring + a 3D
-  selection view remain (TODO F8). (F8, `new-map-authoring.md` §8)
+  Objective inspectors; lifts a region off `y=0` onto the surface. Authoring integration is TODO `N08`.
+  (`new-map-authoring.md` §8)
 - **Region grouping interaction** — Ctrl-click multi-select, Ctrl+G group/ungroup, shortcut registry,
-  `POST /regions/group` + `/ungroup`. Wire-after-group remains (TODO N4). (R1a)
+  `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
 - **Map XML refresh** — `--refresh-xml` re-derives every map's entities via the editor write path

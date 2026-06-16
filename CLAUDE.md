@@ -67,8 +67,8 @@ Two files, two jobs — keep them current, don't duplicate either here:
    feature/UI section, not the backend section.
 5. **Sections are few and stable; ids never get renumbered.** Add the next number under an existing
    section — commits + memory reference ids — don't spin up a new category for one task. Sections:
-   Authoring (`N`), Editor features (`F`), Editor/canvas infra (`C`), Backend/pipeline/internals,
-   Lower-priority/parked.
+   Authoring (`N`, the new `/authoring` editor — mirrors the concept page's 00…07 + Validation steps),
+   Existing-editor canvas/infra (`C`), Backend/pipeline/internals, Lower-priority/parked.
 6. **Deferred *decisions* are parked**, clearly marked with the blocking question — not interleaved
    with actionable tasks.
 
