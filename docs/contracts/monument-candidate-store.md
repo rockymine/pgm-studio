@@ -45,7 +45,7 @@ every suggestion call. It is *not* the `map_artifact` blob path.
 
 | phase | what it does | needs the world? | when it runs |
 |---|---|---|---|
-| **Gather** | `RegionScan.Read` → find anchors (monument-label wall signs, wool-head / named armour stands) → project each to a candidate **air cell** + capture surrounding evidence (pedestal/cap ids, sign text, facing, stand payload) | **yes** (`.mca`) | **ingest, once** |
+| **Gather** | `RegionScan.Read` → find anchors (monument-label wall signs, wool-head / named armour stands, wool item frames) → project each to a candidate **air cell** + capture surrounding evidence (pedestal/cap ids, sign text, facing, stand payload) | **yes** (`.mca`) | **ingest, once** |
 | **Score** | per candidate: `PedestalMatches`/`CapMatches` against the declared `MonumentStyle`, colour = `ColorFromStain(below) ?? ColorFromStain(above) ?? hint`, `Confidence`, `Offer` cell-merge + agreeing-sign boost, order | **no** (only ids/data/text already in hand) | **authoring, per call** |
 
 Target API:
@@ -108,6 +108,21 @@ a pedestal there (corpus: 16/16), whereas wool signs that merely *ring* a monume
 unchanged) and takes pigland 44 → 12 candidates. Validation: `scripts/monument_pedestal_rule.py` and the
 sign-column corpus check.
 
+**Wool item frames — a 4th anchor (`LabelKind.ItemFrame`).** An item frame holding a *wool* item marks a
+monument (the framed wool's `Damage` = the colour). The frame mounts on a vertical face of the monument's
+pedestal (→ monument **above** the support, a_new_day) or its cap (→ monument **below**, golden_drought_iii's
+"sign+frame in one block"); `support = (TileX,TileY,TileZ) + FrameSupport[Facing]`, and we try the air cell
+on each side. The catch: a corpus sweep finds **17 maps with wool frames but only ~6 use them as monument
+indicators** — the other 116/138 frames are *decorative* (molcein's 40-frame colour palette, mist's 22 on a
+floating slab, mame's black-wool "frog eyes"). Wool-only is necessary but not sufficient; the structural
+**pocket test** is what excludes the décor: emit only when the cell is air over a solid pedestal that is
+*either* capped (solid above) *or* itself grounded ≥3 blocks deep. Corpus: **20/20 real frame-cells, 0 FP**;
+adding the anchor took the whole suggester to **TP 995→1010 / colour 919→935, FP unchanged at 35**, and —
+because a wool-frame candidate now sets `anchored` — killed the geometry flood on those maps (a_new_day
+**186→4**, a_new_day_ii **171→4**). Decorative-frame maps emit no frame candidate, so they stay unanchored
+and geometry runs as before (molcein is still a geometry-flood map, unrelated to its frames). Validation:
+`scripts/monument_corpus_analysis.read_world` sweep over the 17 frame maps.
+
 ### DDL (FluentMigrator, mirrors `spawner_block` conventions)
 
 ```csharp
@@ -118,7 +133,7 @@ Create.Table("monument_candidate")
     .WithColumn("cand_x").AsInt32().NotNullable()
     .WithColumn("cand_y").AsInt32().NotNullable()
     .WithColumn("cand_z").AsInt32().NotNullable()
-    .WithColumn("source").AsString(16).NotNullable()        // sign | armorstand | geometry
+    .WithColumn("source").AsString(16).NotNullable()        // sign | armorstand | itemframe | geometry
     // block below / above the cell — PedestalMatches / CapMatches + ColorFromStain
     .WithColumn("pedestal_id").AsInt32().NotNullable()
     .WithColumn("pedestal_data").AsInt32().NotNullable()

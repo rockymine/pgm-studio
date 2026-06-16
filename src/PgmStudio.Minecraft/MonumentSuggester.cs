@@ -10,8 +10,9 @@ namespace PgmStudio.Minecraft;
 public enum PedestalKind { Any, Bedrock, StainedClay, StainedGlass, Wool, Floating }
 
 /// <summary>How the monument is labelled: a sign on the block below (34%), a sign above (16%), an
-/// armour stand (3%), or no label (~47% → geometry-only fallback).</summary>
-public enum LabelKind { Any, SignBelow, SignAbove, ArmorStand, None }
+/// armour stand (3%), an item frame holding a wool item (a_new_day / golden_drought_iii), or no label
+/// (~47% → geometry-only fallback).</summary>
+public enum LabelKind { Any, SignBelow, SignAbove, ArmorStand, ItemFrame, None }
 
 /// <summary>The block capping the monument (directly above the air cell): stained glass 19%, open/air
 /// 13%, barrier 11%, slab 11%, bedrock 9%, stained clay 6%, wool 6% (Q3). The decisive signal for
@@ -95,6 +96,13 @@ public static class MonumentSuggester
     private static readonly (int dx, int dz)[] Neighbours8 =
         [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
 
+    // Item-frame Facing byte (the front-facing dir) → horizontal offset to the block it's mounted on:
+    // support = (TileX,TileY,TileZ) + this. Front faces away from the wall, so the wall is the opposite side.
+    private static readonly IReadOnlyDictionary<int, (int dx, int dz)> FrameSupport = new Dictionary<int, (int, int)>
+    {
+        [0] = (0, -1), [1] = (1, 0), [2] = (0, 1), [3] = (-1, 0),
+    };
+
     /// <summary>Block id directly below the monument → its <see cref="PedestalKind"/> (the single
     /// id↔kind table; <c>PedestalMatches</c> and the authoring/auto-style tooling both go through it).</summary>
     public static PedestalKind ClassifyPedestal(int belowId) => belowId switch
@@ -138,6 +146,12 @@ public static class MonumentSuggester
         var stands = entityList
             .Where(e => Str(e.En.Get("id")) == "ArmorStand" && world.Contains(e.Fx, (int)Math.Floor(e.Fy), e.Fz))
             .Select(e => new ArmorStand(e.Fx, e.Fy, e.Fz, HeadWool(e.En), Str(e.En.Get("CustomName"))))
+            .ToList();
+        // Item frames holding a WOOL item — each resolved to the support block it's mounted on + the colour.
+        var frames = entityList
+            .Select(e => FrameWool(e.En))
+            .Where(fr => fr is not null)
+            .Select(fr => fr!.Value)
             .ToList();
 
         var candidates = new List<MonumentCandidate>();
@@ -204,11 +218,33 @@ public static class MonumentSuggester
                     st.HeadWool, st.CustomName, st.CustomName));
         }
 
+        // Item frames holding wool — a 4th anchor (a_new_day mounts the frame on the pedestal → monument
+        // ABOVE; golden_drought_iii mounts it on the cap → monument BELOW, the "sign+frame in one block"
+        // case). Try the cell on each side of the support and keep it only when it's a real monument POCKET:
+        // air over a solid pedestal that is either capped (solid above) or itself grounded ≥3 deep. That
+        // structural test is what separates real frame-monuments from DECORATIVE wool frames — palette walls
+        // (molcein 40: frame on a solid wall, cell isn't air), floating samplers (mist 22), and novelty
+        // builds (mame's black-wool "frog eyes" on a floating platform): corpus 20/20 real cells, 0 FP.
+        var frameAnchor = false;
+        foreach (var (sx, sy, sz, color) in frames)
+            foreach (var dy in (ReadOnlySpan<int>)[1, -1])
+            {
+                int cy = sy + dy;
+                if (Cell(sx, cy, sz) is not (var below, var above)) continue;
+                var pocket = below.Id != 0 && (above.Id != 0
+                    || (blocks.ContainsKey((sx, cy - 2, sz)) && blocks.ContainsKey((sx, cy - 3, sz))));
+                if (!pocket) continue;
+                frameAnchor = true;
+                candidates.Add(new MonumentCandidate(sx, cy, sz, "itemframe", below.Id, below.Data, above.Id, above.Data,
+                    color, null, null, null, null, null, null, null, "item frame wool: " + color));
+            }
+
         // Geometry — the LAST resort, only ever scored for Label=None. Skip it entirely when the map
-        // already has monument anchors (label signs / wool-head or named stands): the author would never
-        // declare "no label" there, so the rows would be pure noise. (corpus: this alone takes thunder's
-        // candidates 2193→24, pigland 258→68.)
-        var anchored = signs.Any(s => IsMonumentLabel(s.Text)
+        // already has monument anchors (label signs / wool-head or named stands / wool item frames): the
+        // author would never declare "no label" there, so the rows would be pure noise. (corpus: this alone
+        // takes thunder's candidates 2193→24, pigland 258→68, and a_new_day's frame-marked map 186→4.)
+        var anchored = frameAnchor
+            || signs.Any(s => IsMonumentLabel(s.Text)
                 && blocks.TryGetValue((s.X, s.Y, s.Z), out var sb) && sb.Id == WallSignId)
             || stands.Any(s => s.HeadWool is not null || !string.IsNullOrEmpty(s.CustomName));
         if (!anchored)
@@ -239,7 +275,7 @@ public static class MonumentSuggester
         return candidates
             .Where(c => c.PedestalId != WallSignId && c.PedestalId != SignPostId && c.PedestalId != BarrierId)
             .GroupBy(c => (c.X, c.Y, c.Z))
-            .Select(g => g.OrderBy(c => c.Source switch { "armorstand" => 0, "sign" => 1, _ => 2 }).First())
+            .Select(g => g.OrderBy(c => c.Source switch { "armorstand" => 0, "itemframe" => 1, "sign" => 2, _ => 3 }).First())
             .ToList();
 
         // ── geometry terrain-reject helpers (§4.1) ──────────────────────────────────────────────
@@ -283,6 +319,7 @@ public static class MonumentSuggester
         bool wantBelow = style.Label is LabelKind.Any or LabelKind.SignBelow;
         bool wantAbove = style.Label is LabelKind.Any or LabelKind.SignAbove;
         bool wantStand = style.Label is LabelKind.Any or LabelKind.ArmorStand;
+        bool wantFrame = style.Label is LabelKind.Any or LabelKind.ItemFrame;
         bool wantGeom = style.Label is LabelKind.None;
 
         foreach (var c in candidates)
@@ -295,6 +332,7 @@ public static class MonumentSuggester
             {
                 "sign" => (wantBelow && c.SignY is { } sy && c.Y > sy) || (wantAbove && c.SignY is { } sa && c.Y < sa),
                 "armorstand" => wantStand,
+                "itemframe" => wantFrame,
                 "geometry" => wantGeom,
                 _ => false,
             };
@@ -325,6 +363,7 @@ public static class MonumentSuggester
         return source switch
         {
             "armorstand" => hasColor ? 0.90 : 0.75,
+            "itemframe" => 0.88,   // always carries the framed wool colour, and the structural pocket test is strict
             "geometry" => GeometryConfidence(style),
             _ /* sign */ => style.Pedestal == PedestalKind.Any ? (hasColor ? 0.78 : 0.68)
                                                                : (hasColor ? 0.90 : 0.80),
@@ -394,6 +433,19 @@ public static class MonumentSuggester
 
     private static string? ColorFromStain((int Id, int Data) b) =>
         b.Id is 35 or 95 or 159 && b.Data is >= 0 and < 16 ? WoolData.WoolColor(b.Data) : null;
+
+    /// <summary>An item frame entity holding a wool item → the (support block it's mounted on, wool colour),
+    /// or null when it isn't a wool-bearing item frame. The monument sits directly above/below the support.</summary>
+    private static (int X, int Y, int Z, string Color)? FrameWool(NbtCompound frame)
+    {
+        if (Str(frame.Get("id")) is not ("ItemFrame" or "minecraft:item_frame")) return null;
+        if (frame.Get("Item") is not NbtCompound item) return null;
+        if (Str(item.Get("id")) is not { } iid || !iid.ToLowerInvariant().EndsWith("wool")) return null;
+        if (Int(frame.Get("TileX")) is not { } tx || Int(frame.Get("TileY")) is not { } ty
+            || Int(frame.Get("TileZ")) is not { } tz || Int(frame.Get("Facing")) is not { } fac
+            || !FrameSupport.TryGetValue(fac, out var s)) return null;
+        return (tx + s.dx, ty, tz + s.dz, WoolData.WoolColor(Int(item.Get("Damage")) ?? 0));
+    }
 
     private static string? HeadWool(NbtCompound stand)
     {

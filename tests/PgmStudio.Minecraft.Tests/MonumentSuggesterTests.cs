@@ -135,4 +135,43 @@ public class MonumentSuggesterTests
         await Assert.That(s.Source).IsEqualTo("armorstand");
         await Assert.That(s.Color).IsEqualTo("blue");
     }
+
+    // ---- geometry: item frame holding wool marks the monument pocket (a_new_day style) ----
+
+    private static NbtCompound WoolFrame(int tx, int ty, int tz, int facing, int damage) => new()
+    {
+        new NbtString("id", "ItemFrame"),
+        new NbtList("Pos", new[] { new NbtDouble(tx + 0.5), new NbtDouble(ty + 0.5), new NbtDouble(tz + 0.5) }),
+        new NbtInt("TileX", tx), new NbtInt("TileY", ty), new NbtInt("TileZ", tz), new NbtByte("Facing", (byte)facing),
+        new NbtCompound("Item") { new NbtString("id", "minecraft:wool"), new NbtShort("Damage", (short)damage), new NbtByte("Count", 1) },
+    };
+
+    [Test]
+    public async Task WoolItemFrame_marks_the_capped_pocket_and_skips_a_floating_decorative_frame()
+    {
+        var blocks = new byte[4096];
+        blocks[Idx(5, 7, 5)] = 139;   // cobble pedestal; monument air at (5,8,5); slab cap above
+        blocks[Idx(5, 9, 5)] = 44;
+        blocks[Idx(10, 7, 10)] = 44;  // a lone FLOATING slab — a decorative wool-frame support, no pocket
+        var section = new NbtCompound { new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]) };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level")
+        {
+            new NbtList("Sections", new[] { section }),
+            new NbtList("Entities", new[]
+            {
+                WoolFrame(6, 7, 5, 3, 5),       // mounted on the pedestal (support = Tile+(-1,0) = (5,7,5)); monument ABOVE; lime
+                WoolFrame(11, 7, 10, 3, 5),     // mounted on the floating slab (10,7,10) — decorative, no monument pocket
+            }),
+        });
+
+        // Gather emits exactly one item-frame candidate — the real pocket — and rejects the floating one.
+        var frameCands = MonumentSuggester.Gather([chunk], Whole.Expand(2)).Where(c => c.Source == "itemframe").ToList();
+        await Assert.That(frameCands.Count).IsEqualTo(1);
+        await Assert.That((frameCands[0].X, frameCands[0].Y, frameCands[0].Z)).IsEqualTo((5, 8, 5));
+
+        var s = MonumentSuggester.Suggest([chunk], Whole, new MonumentStyle(PedestalKind.Any, LabelKind.ItemFrame)).Single();
+        await Assert.That((s.X, s.Y, s.Z)).IsEqualTo((5, 8, 5));
+        await Assert.That(s.Source).IsEqualTo("itemframe");
+        await Assert.That(s.Color).IsEqualTo("lime");
+    }
 }
