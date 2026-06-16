@@ -78,9 +78,9 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   spawn/wool points; on failure send the author back to Build. Uses `GET /buildability` +
   `GET /traversability` (both done). (`ValidateSection`)
 - [ ] **N04 — Wools.** Colours → spawn → monuments → room. Monument count **derived** (N−1); the
-  **Monument tool = the block tool** + the monument-suggester smart-detect (backend done); the
-  generator wires room defense / build-break / capture. Consumes the wool / monument / resource
-  endpoints under "Backend the steps need". (`WoolsSection`)
+  **Monument tool = the block tool** + the monument-suggester smart-detect (detector done; stateless
+  serving = `F9`); the generator wires room defense / build-break / capture. Consumes the wool / monument
+  (`F9`) / resource endpoints under "Backend the steps need". (`WoolsSection`)
 - [ ] **N05 — Review & Export.** `ND1` settled this as **one phase, three flow-bar sub-steps:
   Pre-flight → Region tree (`N07`) → XML (`N06`)**; **Export = the flow-bar `Next` on the XML sub-step**,
   enabled only when the pre-flight gate is open (the **409**, enforced backend-side). This task = the
@@ -106,6 +106,19 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   `GET /monument-obstruction`. → `N04`.
 - [ ] **F7 — Resource endpoint.** Service done (`ResourceSources`); wire `POST /resources` (renewable
   auto-config). → `N04` spawn "make renewable".
+- [ ] **F9 — Monument candidate store (gather/score refactor + table).** **Settled design**:
+  `docs/contracts/monument-candidate-store.md`. Make monument suggestion a **DB query, not a `.mca`-at-
+  runtime** op (the stateless-web-tier goal). Split `MonumentSuggester.Suggest` into **`Gather`** (ingest,
+  reads the world → `List<MonumentCandidate>`, style-agnostic, geometry-bounded per §4.1) + **`Score`**
+  (authoring, pure: `candidates, box, style` → ranked `MonumentSuggestion`); keep `Suggest =
+  Score(Gather(...))` so the corpus parity harness still guards it. Persist a **`monument_candidate`** table
+  (FluentMigrator `M0002` + `MonumentCandidateRow` entity + writer/reader); **`Gather` runs in the scan
+  worker** (delete-then-insert per map, like the feature rows). Endpoints: `GET /map/{slug}/monument-
+  suggestions?box=…[&style=…]` (box required → load rows → `Score`) and `POST /map/{slug}/monument-orbit`
+  (read `symmetry_json` → reflect/rotate confirmed positions → per-team set, reusing F3 counterpart
+  geometry). → **`N04`** (the Wools monument smart-detect consumes the suggestions endpoint) and **landing
+  "Already built"** (`ND3` — surfaces the gathered monument-candidate count). Parity test: `Score(Gather)`
+  == `Suggest` on thunder/pigland/dragons_hearth + `--suggest-monuments-corpus` unchanged.
 
 ## Existing editor — canvas & shared infrastructure (C)
 
