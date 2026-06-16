@@ -150,14 +150,6 @@ editor too; **`C9`/`C11`/`C18`** are existing-`/editor`-specific.
   (`SymmetryDetector`, `RegionGeometry2d`, `RegionBoundsDeriver`, `RegionParser`,
   `Pgm/Editing/Geometry2d`). Establish one geometry module (point/bounds transforms + IoU) and route
   every call site through it; mind the Pgm↔Analysis package boundary. Pairs with P7.
-- [ ] **A6 — Bug: non-monument named armour stands suppress geometry.** `MonumentSuggester.Gather`'s
-  `anchored` check counts *any* stand with a `CustomName` (`s.HeadWool is not null || CustomName != ""`),
-  so a rules/info stand (e.g. **lupa**'s "§cEnemy Rushers§f may enter the middle room…") flips the map
-  to anchored and the label-free geometry pass is skipped — lupa's 4 real bedrock+glass monuments get
-  **zero** candidates (verified: 0 geometry rows, 4 off-monument stand rows). Tighten the stand half of
-  `anchored` to only count *monument-marker* stands (a wool head, or a `CustomName` that passes
-  `IsMonumentLabel`), not any named entity. lupain (truly unanchored) is detected fine — this is only the
-  named-stand false-anchor. Re-verify the corpus harness (`--suggest-monuments-corpus`).
 ## Lower priority / parked
 
 Existing-`/editor` authoring features — **not** used by the intent generator (which auto-wires), and

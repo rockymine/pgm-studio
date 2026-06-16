@@ -217,4 +217,34 @@ public class MonumentSuggesterTests
         await Assert.That(geom.Count).IsEqualTo(1);
         await Assert.That((geom[0].X, geom[0].Y, geom[0].Z)).IsEqualTo((3, 8, 3));
     }
+
+    // ---- A6: only a monument-marker stand anchors the map (a rules/info stand must not suppress geometry) ----
+
+    [Test]
+    public async Task A_rules_stand_does_not_suppress_geometry_but_a_monument_label_stand_does()
+    {
+        var blocks = new byte[4096];
+        blocks[Idx(5, 7, 5)] = 7; blocks[Idx(5, 9, 5)] = 95;   // bedrock + glass label-free monument at (5,8,5)
+
+        NbtCompound Stand(string name) => new()
+        {
+            new NbtString("id", "ArmorStand"),
+            new NbtList("Pos", new[] { new NbtDouble(12.5), new NbtDouble(5.0), new NbtDouble(12.5) }),
+            new NbtString("CustomName", name),
+        };
+        // Fresh Sections compound per chunk — an fNbt tag can't belong to two parents.
+        AnvilRegion.Chunk Chunk(NbtCompound stand) => new(0, 0, new NbtCompound("Level")
+        {
+            new NbtList("Sections", new[] { new NbtCompound { new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]) } }),
+            new NbtList("Entities", new[] { stand }),
+        });
+
+        // A rules/info stand (name is NOT a monument label) must NOT anchor the map → geometry still runs.
+        var withRules = MonumentSuggester.Gather([Chunk(Stand("Enemy Rushers may enter the middle room"))], Whole.Expand(2));
+        await Assert.That(withRules.Any(c => c.Source == "geometry" && (c.X, c.Y, c.Z) == (5, 8, 5))).IsTrue();
+
+        // A monument-label-named stand DOES anchor the map → geometry suppressed.
+        var withLabel = MonumentSuggester.Gather([Chunk(Stand("Place Blue Wool here"))], Whole.Expand(2));
+        await Assert.That(withLabel.Any(c => c.Source == "geometry")).IsFalse();
+    }
 }

@@ -239,14 +239,17 @@ public static class MonumentSuggester
                     color, null, null, null, null, null, null, null, "item frame wool: " + color));
             }
 
-        // Geometry — the LAST resort, only ever scored for Label=None. Skip it entirely when the map
-        // already has monument anchors (label signs / wool-head or named stands / wool item frames): the
-        // author would never declare "no label" there, so the rows would be pure noise. (corpus: this alone
-        // takes thunder's candidates 2193→24, pigland 258→68, and a_new_day's frame-marked map 186→4.)
+        // Geometry — the LAST resort, only ever scored for Label=None. Skip it entirely when the map has a
+        // genuine monument anchor (a label sign / a wool-head or monument-label-named stand / a wool item
+        // frame): the author would never declare "no label" there, so the rows would be pure noise. (corpus:
+        // this alone takes thunder's candidates 2193→24, pigland 258→68, and a_new_day's frame map 186→4.)
+        // The stand half checks IsMonumentLabel, not just "has a name" — else a rules/info stand (lupa's
+        // "Enemy Rushers may enter…") falsely anchors the map and suppresses geometry for its real
+        // bedrock+glass monuments (A6).
         var anchored = frameAnchor
             || signs.Any(s => IsMonumentLabel(s.Text)
                 && blocks.TryGetValue((s.X, s.Y, s.Z), out var sb) && sb.Id == WallSignId)
-            || stands.Any(s => s.HeadWool is not null || !string.IsNullOrEmpty(s.CustomName));
+            || stands.Any(s => s.HeadWool is not null || IsMonumentLabel(s.CustomName));
         if (!anchored)
             foreach (var ((x, y, z), _) in blocks)
             {
