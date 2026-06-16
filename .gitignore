@@ -19,3 +19,7 @@ TestResults/
 # Rider / VS Code
 .idea/
 .vscode/
+
+# Python
+__pycache__/
+*.pyc

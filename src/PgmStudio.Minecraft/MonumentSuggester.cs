@@ -88,7 +88,12 @@ public static class MonumentSuggester
         [2] = (0, 1), [3] = (0, -1), [4] = (1, 0), [5] = (-1, 0),
     };
 
-    private const int WallSignId = 68, SignPostId = 63, WoolId = 35;
+    private const int WallSignId = 68, SignPostId = 63, WoolId = 35, StainedClayId = 159;
+
+    // Pedestal neighbour offsets for the geometry terrain-reject rules (§4.1).
+    private static readonly (int dx, int dz)[] Faces = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+    private static readonly (int dx, int dz)[] Neighbours8 =
+        [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
 
     /// <summary>Block id directly below the monument → its <see cref="PedestalKind"/> (the single
     /// id↔kind table; <c>PedestalMatches</c> and the authoring/auto-style tooling both go through it).</summary>
@@ -189,19 +194,46 @@ public static class MonumentSuggester
                     st.HeadWool, st.CustomName, st.CustomName));
         }
 
-        // Geometry — the cell above each block, BOUNDED to a distinctive pedestal or cap (§4.1) so the
-        // whole-world pass doesn't emit a row per surface column. Score includes these only for Label=None.
-        foreach (var ((x, y, z), _) in blocks)
-        {
-            if (Cell(x, y + 1, z) is not (var below, var above)) continue;
-            var pedSpecific = ClassifyPedestal(below.Id) is not (PedestalKind.Any or PedestalKind.Floating);
-            var capSpecific = ClassifyCap(above.Id) is not (CapKind.Any or CapKind.Open);
-            if (!pedSpecific && !capSpecific) continue;
-            candidates.Add(new MonumentCandidate(x, y + 1, z, "geometry", below.Id, below.Data, above.Id, above.Data,
-                null, null, null, null, null, null, null, null, null));
-        }
+        // Geometry — the LAST resort, only ever scored for Label=None. Skip it entirely when the map
+        // already has monument anchors (label signs / wool-head or named stands): the author would never
+        // declare "no label" there, so the rows would be pure noise. (corpus: this alone takes thunder's
+        // candidates 2193→24, pigland 258→68.)
+        var anchored = signs.Any(s => IsMonumentLabel(s.Text))
+            || stands.Any(s => s.HeadWool is not null || !string.IsNullOrEmpty(s.CustomName));
+        if (!anchored)
+            foreach (var ((x, y, z), _) in blocks)
+            {
+                if (Cell(x, y + 1, z) is not (var below, var above)) continue;
+                var pedSpecific = ClassifyPedestal(below.Id) is not (PedestalKind.Any or PedestalKind.Floating);
+                var capSpecific = ClassifyCap(above.Id) is not (CapKind.Any or CapKind.Open);
+                if (!pedSpecific && !capSpecific) continue;
+                // Terrain rejects (corpus-validated: 0% real-monument loss over 593 monuments) — a real
+                // pedestal is always accessible (an air/sign neighbour) and a real clay pedestal is isolated.
+                if (BuriedPedestal(x, y, z) && OpenSkyAbove(x, y + 1, z)) continue;          // walled-in + open sky = terrain
+                if (below.Id == StainedClayId && SameMassNeighbours(x, y, z, StainedClayId) >= 3) continue;  // clay in a clay mass
+                candidates.Add(new MonumentCandidate(x, y + 1, z, "geometry", below.Id, below.Data, above.Id, above.Data,
+                    null, null, null, null, null, null, null, null, null));
+            }
 
         return candidates;
+
+        // ── geometry terrain-reject helpers (§4.1) ──────────────────────────────────────────────
+        // Pedestal walled in: none of its 4 horizontal faces is air or a sign (so it isn't visible/markable).
+        bool BuriedPedestal(int x, int y, int z)
+        {
+            foreach (var (dx, dz) in Faces)
+            {
+                if (!blocks.TryGetValue((x + dx, y, z + dz), out var b)) return false;   // air face
+                if (b.Id is SignPostId or WallSignId) return false;                      // sign face
+            }
+            return true;
+        }
+        // ≥ 2 air blocks directly above the candidate cell (real buried pedestals top out at 1).
+        bool OpenSkyAbove(int cx, int cy, int cz) =>
+            !blocks.ContainsKey((cx, cy + 1, cz)) && !blocks.ContainsKey((cx, cy + 2, cz));
+        // Same-material neighbours of the pedestal among its 8 (a clay block in a clay mass has many).
+        int SameMassNeighbours(int x, int y, int z, int id) =>
+            Neighbours8.Count(n => blocks.TryGetValue((x + n.dx, y, z + n.dz), out var b) && b.Id == id);
     }
 
     /// <summary>

@@ -166,11 +166,21 @@ ingest): `Confidence`, the final resolved `Color`, and the pass/fail of the pede
 
 ## 4. Two correctness rules
 
-1. **Bound the geometry pass.** Today's `LabelKind.None` fallback iterates *every* non-air block in the
-   box — fine for a small author box, catastrophic over a whole world. `Gather` emits a `geometry`
-   candidate **only when the pedestal or cap is distinctive** (`ClassifyPedestal ∉ {Any, Floating}` **or**
-   `ClassifyCap ∉ {Any, Open}`) — precisely the condition under which `GeometryConfidence` already trusts
-   it. This bounds the row count to ≈ real-monument-count + a few false positives.
+1. **Bound the geometry pass — it's a genuine last resort.** Today's `LabelKind.None` fallback iterates
+   *every* non-air block — fine for a small author box, catastrophic over a whole world (un-tuned, thunder
+   gathered **2193** candidates, ~99% exposed-stained-clay terrain). `Gather` bounds it, all
+   corpus-validated against the real monuments (`scripts/monument_pedestal_rule.py`, 593 monuments / 145
+   maps — **0% real-monument loss** for each rule below):
+   - **Skip geometry entirely when the map has monument anchors** (a `IsMonumentLabel` sign, or a wool-head
+     / named armour stand). Geometry is only ever scored for `Label=None`, which no author declares on a
+     labelled map. This alone takes **thunder 2193→24, pigland 258→68**.
+   - For a genuinely label-free map, still require a **distinctive pedestal or cap**
+     (`ClassifyPedestal ∉ {Any, Floating}` **or** `ClassifyCap ∉ {Any, Open}`), then drop the two terrain
+     signatures: a **walled-in pedestal** (no air/sign among its 4 faces) **with open sky** (≥2 air above) —
+     real buried pedestals top out at 1 air above; and a **stained-clay pedestal that is part of a clay
+     mass** (≥3 same-clay neighbours among 8) — real clay pedestals are isolated (≤2). *(Isolation is
+     scoped to clay on purpose: a general "mass + open sky" rule would also kill ~1.3% of real monuments on
+     bedrock/wool floors.)*
 
 2. **Box-scoped, author-driven — the box is the mode.** The mapmaker *knows* where they placed the
    monument, so the UX is: the author **marks the area** (a required `ScanBox`) and optionally declares the
