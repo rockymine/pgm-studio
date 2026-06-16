@@ -1,0 +1,251 @@
+# Monument candidate store — pre-computed suggestion via a relational table
+
+How monument suggestion stops being a **`.mca`-at-runtime** feature and becomes a **DB query**, by
+splitting the detector into a *gather* pass (runs once at ingest, needs the world) and a *score* pass
+(runs at authoring, pure). The gathered candidates persist in a relational `monument_candidate` table.
+
+Read alongside:
+- `monument-suggestion.md` — the detector this design factors. The schema here stores the output of its
+  **gather** half; the **score** half is the query-time function.
+- `new-map-authoring.md` §Wools — the Monuments step that consumes the suggestions.
+- `region-data-flow.md` — why derived data lives in MariaDB; this table is another *derived projection*
+  of the world, persisted so the authoring host never touches the world files.
+
+> **Status:** design only. Backend detector (`MonumentSuggester`) is complete and corpus-validated
+> (precision 96.6% / recall 57.8% over 1721 monuments, auto-style). This doc specifies the refactor +
+> table that make it servable without the world on disk.
+
+---
+
+## 1. Why — the hosting constraint
+
+The end goal is a hosted tool: a mapmaker runs a CLI on their server that zips the world and uploads it,
+and gets back a link to author the map to XML. The web tier should be **stateless** — no mounted
+`.mca` corpus. Today three operations read the world at runtime (`scan-world`, on-demand layer
+generation B9, **monument suggestion**); monument suggestion is the hardest because `layer_segment` /
+`layer.parquet` can't drive it (no block materials, signs, or entities — see `monument-suggestion.md`
+§Scope).
+
+The fix is the same shape as the rest of the app's data model: **process the world once at ingest,
+persist the derived result, query it at runtime.** For monuments the derived result is a small set of
+**candidate monument cells with their evidence** — dozens of rows per map, not the whole world.
+
+**Why a table, not a parquet.** Unlike `layer.parquet` (a dense per-column grid read whole), candidates
+are sparse and queried *by predicate*: spatial box filter, `source`/colour filter, join to the map. A
+relational table fits the hybrid rule in `CLAUDE.md` ("real tables for entities we list/query/edit") and
+queries trivially (`WHERE map_id = ? AND x BETWEEN …`); a blob would force a full read-and-deserialize on
+every suggestion call. It is *not* the `map_artifact` blob path.
+
+---
+
+## 2. The refactor — split `Suggest` into `Gather` + `Score`
+
+`MonumentSuggester.Suggest(chunks, box, style)` today interleaves two separable phases:
+
+| phase | what it does | needs the world? | when it runs |
+|---|---|---|---|
+| **Gather** | `RegionScan.Read` → find anchors (monument-label wall signs, wool-head / named armour stands) → project each to a candidate **air cell** + capture surrounding evidence (pedestal/cap ids, sign text, facing, stand payload) | **yes** (`.mca`) | **ingest, once** |
+| **Score** | per candidate: `PedestalMatches`/`CapMatches` against the declared `MonumentStyle`, colour = `ColorFromStain(below) ?? ColorFromStain(above) ?? hint`, `Confidence`, `Offer` cell-merge + agreeing-sign boost, order | **no** (only ids/data/text already in hand) | **authoring, per call** |
+
+Target API:
+
+```csharp
+// ingest — over the whole world (or buildable footprint); style-agnostic, permissive
+List<MonumentCandidate> MonumentSuggester.Gather(IEnumerable<AnvilRegion.Chunk> chunks, ScanBox world);
+
+// authoring — pure; box optional (null = whole map)
+List<MonumentSuggestion> MonumentSuggester.Score(IEnumerable<MonumentCandidate> candidates,
+                                                 ScanBox? box, MonumentStyle style);
+
+// live path (parity guard, harness) stays identical in behaviour:
+Suggest(chunks, box, style)  ==  Score(Gather(chunks, box.Expand(2)), box, style)
+```
+
+`Suggest` is kept as `Score(Gather(...), ...)` so the existing corpus harness
+(`--suggest-monuments[-corpus]`) and its parity numbers continue to guard the *combined* behaviour —
+the refactor is required to be a pure factoring, not a behaviour change.
+
+**Gather must be style-agnostic.** It runs every anchor type and accepts any pedestal/cap (the declared
+style isn't known at ingest), storing the raw `below`/`above` ids+data so `Score` can re-apply the
+author's `MonumentStyle` later. The `LabelKind` branch logic in today's `Suggest` (which anchors to run)
+moves into `Score` as a filter on the stored `source`.
+
+---
+
+## 3. The `monument_candidate` table
+
+One row **per gathered anchor emission** (not per final cell — `Score` does the cell-merge, so two
+agreeing signs at one cell are two rows that `Score` collapses and boosts). Columns are exactly what
+`Score` needs to reproduce `TryEmit` / `Confidence` / `Offer`, and nothing it can recompute.
+
+### DDL (FluentMigrator, mirrors `spawner_block` conventions)
+
+```csharp
+Create.Table("monument_candidate")
+    .WithColumn("id").AsInt64().PrimaryKey().Identity()
+    .WithColumn("map_id").AsInt64().NotNullable()
+    // candidate (air) monument cell — world coords; box filter + cell-merge key
+    .WithColumn("cand_x").AsInt32().NotNullable()
+    .WithColumn("cand_y").AsInt32().NotNullable()
+    .WithColumn("cand_z").AsInt32().NotNullable()
+    .WithColumn("source").AsString(16).NotNullable()        // sign | armorstand | geometry
+    // block below / above the cell — PedestalMatches / CapMatches + ColorFromStain
+    .WithColumn("pedestal_id").AsInt32().NotNullable()
+    .WithColumn("pedestal_data").AsInt32().NotNullable()
+    .WithColumn("cap_id").AsInt32().NotNullable()
+    .WithColumn("cap_data").AsInt32().NotNullable()
+    // fallback colour parsed from label text / stand head / name (stain still wins at Score)
+    .WithColumn("color_hint").AsString(24).Nullable()
+    // anchoring wall sign (null for non-sign sources)
+    .WithColumn("sign_x").AsInt32().Nullable()
+    .WithColumn("sign_y").AsInt32().Nullable()
+    .WithColumn("sign_z").AsInt32().Nullable()
+    .WithColumn("sign_facing").AsInt32().Nullable()         // wall-sign data nibble used to project
+    .WithColumn("sign_text").AsString(256).Nullable()       // decoded label — evidence / colour
+    // armour-stand evidence
+    .WithColumn("stand_head_color").AsString(24).Nullable()
+    .WithColumn("stand_name").AsString(256).Nullable()
+    .WithColumn("evidence").AsString(256).Nullable();       // human-readable note (incl. colour-conflict)
+```
+
+`map_id` gets the standard `fk_monument_candidate_map` (cascade-delete) + `ix_monument_candidate_map`
+via the existing `CreateForeignKeysAndIndexes` loop (add `"monument_candidate"` to its table list and to
+the `Down()` drop list). A composite index on `(map_id, cand_x, cand_z)` is optional — the per-map row
+count is small enough that the `map_id` index plus an in-memory box filter is fine for v1.
+
+### linq2db entity (`PgmStudio.Data/Entities.cs`)
+
+```csharp
+[Table("monument_candidate")]
+public sealed class MonumentCandidateRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("cand_x"), NotNull] public int CandX { get; set; }
+    [Column("cand_y"), NotNull] public int CandY { get; set; }
+    [Column("cand_z"), NotNull] public int CandZ { get; set; }
+    [Column("source"), NotNull] public string Source { get; set; } = "";
+    [Column("pedestal_id"), NotNull] public int PedestalId { get; set; }
+    [Column("pedestal_data"), NotNull] public int PedestalData { get; set; }
+    [Column("cap_id"), NotNull] public int CapId { get; set; }
+    [Column("cap_data"), NotNull] public int CapData { get; set; }
+    [Column("color_hint")] public string? ColorHint { get; set; }
+    [Column("sign_x")] public int? SignX { get; set; }
+    [Column("sign_y")] public int? SignY { get; set; }
+    [Column("sign_z")] public int? SignZ { get; set; }
+    [Column("sign_facing")] public int? SignFacing { get; set; }
+    [Column("sign_text")] public string? SignText { get; set; }
+    [Column("stand_head_color")] public string? StandHeadColor { get; set; }
+    [Column("stand_name")] public string? StandName { get; set; }
+    [Column("evidence")] public string? Evidence { get; set; }
+}
+```
+
+`MonumentCandidate` (the domain record `Gather` emits / `Score` consumes) carries the same fields without
+`Id`/`MapId`; the ingest writer maps record → row, the suggestion endpoint maps row → record.
+
+### Column rationale (what `Score` does with each)
+
+| column(s) | consumed by |
+|---|---|
+| `cand_x/y/z` | box filter (`box?.Contains`); `Offer` merge key; output `X,Y,Z` |
+| `source` | `Confidence`; `LabelKind` filter (`SignBelow/Above`→`sign`, `ArmorStand`→`armorstand`, `None`→`geometry`) |
+| `pedestal_id/data` | `PedestalMatches(style.Pedestal, …)`; `ColorFromStain`; output `PedestalId/Data` |
+| `cap_id/data` | `CapMatches(style.Cap, …)`; `ColorFromStain` |
+| `color_hint` | colour fallback when neither stain colours |
+| `sign_x/y/z` | output `SignX/Y/Z`; evidence |
+| `sign_facing` | audit / re-projection if a future `Score` re-derives geometry |
+| `sign_text` | `Evidence`; re-derivable colour |
+| `stand_head_color`, `stand_name` | armour-stand colour / `Evidence` |
+
+**Not stored — recomputed by `Score`** (they depend on the author's declared `MonumentStyle`, unknown at
+ingest): `Confidence`, the final resolved `Color`, and the pass/fail of the pedestal/cap/label filter.
+
+---
+
+## 4. Two correctness rules
+
+1. **Bound the geometry pass.** Today's `LabelKind.None` fallback iterates *every* non-air block in the
+   box — fine for a small author box, catastrophic over a whole world. `Gather` emits a `geometry`
+   candidate **only when the pedestal or cap is distinctive** (`ClassifyPedestal ∉ {Any, Floating}` **or**
+   `ClassifyCap ∉ {Any, Open}`) — precisely the condition under which `GeometryConfidence` already trusts
+   it. This bounds the row count to ≈ real-monument-count + a few false positives.
+
+2. **The box becomes optional.** Because the mapmaker already placed the monuments, the suggestion UX
+   shifts from "draw a box to discover" to "confirm the candidates we found." `Gather` runs over the
+   whole world at ingest; `Score(candidates, box: null, style)` returns *all* candidates as confirmable
+   ghost markers. A box, if the author wants to disambiguate a packed cluster, is just a `WHERE
+   cand_* BETWEEN …` / in-memory filter at `Score` time — no re-scan. The 2-block `Expand` slack that the
+   live path used at the box edge is unnecessary when gathering globally.
+
+---
+
+## 5. Where it sits in the ingest pipeline
+
+The table is populated by the same once-per-upload worker that already does the world scan. After
+ingest, **no authoring operation reads `.mca`** — the web tier is stateless.
+
+```
+mapmaker CLI:  zip world ──upload──▶ ingest worker
+                                       │ unzip to scratch
+                                       │ scan-world      → features + layer.parquet + islands   (DB)
+                                       │ pre-bake layers → surface/y0/bedrock/base               (DB, kills B9's .mca read)
+                                       │ Gather monuments → monument_candidate rows              (DB, kills suggestion's .mca read)
+                                       │ create map row → slug
+                                       ▼
+                       raw world zip → object storage (cold; re-process only, never at edit time)
+                                       ▼
+                           return edit link → /editor/{slug}   (runs 100% off MariaDB)
+```
+
+- Gather is one extra pass over the already-decoded chunk stream (the scan worker holds them), so it adds
+  little cost beyond what `scan-world` already pays.
+- Re-gathering after a detector improvement is a worker job over the retained zip — no author re-upload.
+- Candidates are map-scoped and cascade-delete with the map, like every other feature table.
+
+---
+
+## 6. Authoring endpoint
+
+```
+GET /api/map/{slug}/monument-suggestions?style=<pedestal>,<label>,<cap>[&box=x0,y0,z0,x1,y1,z1]
+```
+
+Loads `monument_candidate` rows for the map, runs `Score(rows, box, style)`, returns ranked
+`MonumentSuggestion`s — the existing output contract from `monument-suggestion.md` §Output. No world
+access. Default `style` is `Any,Any,Any`; default `box` is the whole map. (This replaces the
+world-reading suggestion endpoint that `monument-suggestion.md` anticipated but was never wired.)
+
+---
+
+## 7. Change checklist
+
+- [ ] `PgmStudio.Minecraft`: factor `MonumentSuggester` into `Gather` (world → `List<MonumentCandidate>`)
+      + `Score` (`candidates, box?, style → List<MonumentSuggestion>`); keep `Suggest` =
+      `Score(Gather(...), box, style)`. Apply the geometry-bounding rule (§4.1) inside `Gather`.
+- [ ] `PgmStudio.Minecraft`: `MonumentCandidate` record.
+- [ ] Migration `M0002_MonumentCandidate` (table + FK + index; add to `Down()` drops).
+- [ ] `PgmStudio.Data`: `MonumentCandidateRow` entity + `ITable` on `PgmDb`; writer (record→row) +
+      reader (row→record), the latter likely on `MapReader` or a small `MonumentCandidateStore`.
+- [ ] Ingest: call `Gather` in the scan worker (`WorldFeatureWriter` or its caller) and persist rows;
+      delete-then-insert per map so re-gather is idempotent (mirrors the feature-row pattern).
+- [ ] `PgmStudio.Api`: `GET /map/{slug}/monument-suggestions` (load rows → `Score` → rank).
+- [ ] Tests: `Gather`/`Score` round-trip equals `Suggest` on the existing fixtures (thunder, pigland,
+      dragons_hearth); re-run `--suggest-monuments-corpus` to confirm parity numbers unchanged.
+
+---
+
+## 8. Scope & open questions
+
+- **v1 is gather-at-ingest only.** Live `.mca` re-gather for a one-off is out of scope (the zip in object
+  storage is the re-process source).
+- **Recall is still labelling-bounded** (§`monument-suggestion.md` Scope) — the table inherits, not fixes,
+  that limit; it only changes *where/when* detection runs.
+- **Packed-cluster mis-attribution** (a sign at `dy=0` beside a neighbour) carries over unchanged; the
+  author corrects on confirm.
+- **Open: per-map vs cross-map gather params.** Detection is currently global-constant; if a future tuner
+  wants per-map thresholds, they belong in `map_config_json`, not this table (the table stores *results*).
+- **Open: snap-to-buildable downstream.** A confirmed suggestion can be validated/snapped onto buildable
+  ground using `layer_segment` (DB), per `monument-suggestion.md` — independent of this table.
+</content>
+</invoke>
