@@ -3,15 +3,29 @@
 <section class="ds-section" id="xml">
   <div class="ds-section-heading">
     <div>
-      <p class="ds-kicker">06</p>
-      <h2>XML preview</h2>
+      <p class="ds-kicker">05 · Review &amp; Export</p>
+      <h2>XML preview &amp; export</h2>
     </div>
-    <p>The generated PGM document, segmented into containers. Pick a container on the left to jump to
-       its block — the real serialized output, not a template or a diff.</p>
+    <p>The <strong>final sub-step</strong> of Review &amp; Export: the generated PGM document, segmented into
+       containers (pick one on the left to jump to its block — the real serialized output, not a template
+       or a diff). Here the flow bar's <strong>Next becomes Export</strong> — enabled only when the
+       Pre-flight gate is open (HTTP&nbsp;409 otherwise).</p>
   </div>
 
   <article class="ds-example">
-    <div class="ds-example-label">XML preview — Regions selected (49 entries)</div>
+    <div class="ds-example-label">Review &amp; Export · sub-step 3 — XML (Next = Export)</div>
+    <div class="flow-bar">
+      <div class="flow-bar-phase"><i data-lucide="badge-check"></i><span>Review &amp; Export</span></div>
+      <div class="flow-steps">
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Pre-flight</button>
+        <button class="flow-step flow-step--done"><i data-lucide="check"></i>Region tree</button>
+        <button class="flow-step flow-step--active">XML</button>
+      </div>
+      <div class="flow-bar-actions">
+        <button class="action-btn">Back</button>
+        <button class="action-btn action-btn--primary"><i data-lucide="download"></i> Export</button>
+      </div>
+    </div>
     <div class="ds-workspace-frame" style="height:480px">
       <div class="workspace">
         <div class="workspace-sidebar" style="width:184px">

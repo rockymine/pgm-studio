@@ -14,8 +14,9 @@ M0–M5 + the M6 editor shells + the M7 pipeline are **landed** (`FEATURES.md`),
 authoring **backend** is done. The open headline is the **new `/authoring` editor** — a guided wizard
 built from the concept page, a **separate page** from the existing `/editor` (left as-is for now).
 
-1. **Settle the two design questions** (`ND1` navigation/flow, `ND2` stripped Configure) and
-   **scaffold the new page** (`NS`).
+1. **Settle the remaining design questions** — `ND1` (navigation/flow) is **done** (`new-map-authoring.md`
+   §12; spun off `ND3` landing screen + `ND4` save model); still open: `ND2` (stripped Configure),
+   `ND3`, `ND4` — then **scaffold the new page** (`NS`).
 2. **Build the steps in page order** (`N00`→`N05` + `NVAL`), starting with **Teams & Spawns** (`N02`)
    — the recommended first real slice.
 
@@ -41,13 +42,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Design & scaffold first**
-- [ ] **ND1 — Authoring navigation & flow (design).** Turn the concept page's three-level model
-  (`NavModelSection`: activity rail = 6 phases · flow-bar = sub-steps · Back/Next) into a concrete
-  wizard spec, and **close the gaps the page leaves open:** where do **THE FLOW** (`FlowSection`, the
-  6-phase overview) and the **PRE-FLIGHT CHECKS** (`ReviewSection`: round-trip / mirror / buildability
-  / traversability) actually live — a landing screen, a Review sub-step, a persistent panel? Plus phase
-  locking (Review needs a connected map). Output: update the concept page + a flow note in
-  `new-map-authoring.md`.
 - [ ] **ND2 — Stripped Configure / World step (design + corpus).** Configure is the most unintuitive
   part; on a fresh page design the **minimal** 01-World — just enough to seed team count + spawn
   positions + a confirmed symmetry — and add complexity back only if needed. Decide: does Scan need
@@ -55,11 +49,25 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   top-surface scan? **Island exclusion** should work **without** a re-run (it only re-runs symmetry
   detection — B7 already invalidates that cache); confirm. Corpus-check what symmetry + island
   detection actually require. Scopes `N01`.
+- [ ] **ND3 — Landing / home screen (design).** `ND1` settled that the **flow overview is the wizard's
+  landing screen** (`/authoring/{slug}` root; rail logo returns there) — design the richer screen it
+  becomes: the six-phase flow panel **plus a brief of what the import found** (map folder + file list,
+  the top-down terrain render, and a summary of the generated `islands.json` / parquet blobs) as the
+  "here's what we detected" seed of the guidance model that later phases confirm. Output: a landing
+  mock (replaces/extends `FlowSection`) + the data it reads from import. (`new-map-authoring.md` §12.)
+- [ ] **ND4 — Save model (design).** Each phase persists a slice of intent via `PUT /map/{slug}/intent`,
+  but **when** that fires and **how save state is shown** is unspecified — `ND1` removed the per-step
+  "Save & continue" button + "unsaved" pill from Map Info, so the save affordance now needs a home.
+  Decide: autosave on change (debounced) vs save-on-Next vs explicit save; where the save/dirty status
+  lives (topbar? flow-bar? a global indicator); how regenerate-on-save (idempotent, §3) and the Mojang
+  UUID resolve-at-save (B6) surface. Applies to **all** phases, not just Map Info. Output: a save-UX note
+  in `new-map-authoring.md` §12 + the affordance in the concept page. Scopes the persistence half of
+  `N00`–`N05`.
 - [ ] **NS — New `/authoring` editor shell + relocate the concept mock.** Stand up the real wizard
-  shell (activity rail + flow-bar + Back/Next + three-panel workspace) per `ND1`, intent-gated. Move
-  the concept mock (`Authoring.razor` + `Pages/Authoring/*`) off `/authoring` → **`/concepts`** so the
-  real editor claims `/authoring`. Leave `/editor` and `/design` as-is. *(Open: whether `/design` also
-  moves under `/concepts`.)*
+  shell (activity rail + flow-bar [phase identity · sub-steps · Back/Next] + three-panel workspace) per
+  `ND1` (`new-map-authoring.md` §12), intent-gated. Move the concept mock (`Authoring.razor` +
+  `Pages/Authoring/*`) off `/authoring` → **`/concepts`** so the real editor claims `/authoring`. Leave
+  `/editor` and `/design` as-is. *(Open: whether `/design` also moves under `/concepts`.)*
 
 **Steps — in page order, each persists its slice of intent**
 - [ ] **N00 — Map Info.** Identity (name; version / mode / objective auto-derived) + authors
@@ -82,15 +90,18 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   **Monument tool = the block tool** + the monument-suggester smart-detect (backend done); the
   generator wires room defense / build-break / capture. Consumes the wool / monument / resource
   endpoints under "Backend the steps need". (`WoolsSection`)
-- [ ] **N05 — Review & Export.** The pre-flight checks (round-trip · mirror-consistency · buildability
-  · traversability) + export; surface the **409** gate (enforced backend-side). Pre-flight placement
-  per `ND1`. (`ReviewSection`)
+- [ ] **N05 — Review & Export.** `ND1` settled this as **one phase, three flow-bar sub-steps:
+  Pre-flight → Region tree (`N07`) → XML (`N06`)**; **Export = the flow-bar `Next` on the XML sub-step**,
+  enabled only when the pre-flight gate is open (the **409**, enforced backend-side). This task = the
+  **Pre-flight sub-step**: the four checks (round-trip · mirror-consistency · buildability ·
+  traversability) + the buildability/traversability maps. (`ReviewSection`; `new-map-authoring.md` §12.)
 
-**Surfaces & integration**
-- [ ] **N06 — XML-preview surface.** The generated XML, segmented (teams / spawns / wools / regions /
-  filters / apply-rules). (`XmlSection`)
-- [ ] **N07 — Generated region-tree surface (read-only).** The full tree as the inspect/debug view of
-  what the generator produced. (`TreeSection`)
+**Surfaces & integration** — `N06`/`N07` are the other two sub-steps of the Review & Export phase (`N05`).
+- [ ] **N06 — XML sub-step (preview + export).** The generated XML, segmented (teams / spawns / wools /
+  regions / filters / apply-rules); the flow-bar `Next` here **is Export** (gated on `N05`'s 409).
+  (`XmlSection`)
+- [ ] **N07 — Region-tree sub-step (read-only).** The full generated tree as the inspect/debug view of
+  what the generator produced — the second sub-step, between Pre-flight and XML. (`TreeSection`)
 - [ ] **N08 — Side-view + per-side focus integration.** The side-view slice is **done** (`SliceView`,
   `FEATURES.md`) — integrate it into the authoring inspector to set Y on point/block regions (lift
   spawn / monument / wool-spawn off y=0). **Fit-island** exists in parts (canvas toolbar) — refine the

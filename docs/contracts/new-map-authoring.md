@@ -331,3 +331,74 @@ Three checks, all reusing what exists:
   orbit-fill, auto-wiring, and idempotent regeneration in one slice). Backend ready; UI not started.
 - **Yaw under reflection** — the facing-vector reflection is exact, but whether a *mirrored* spawn should
   face the symmetric direction or be re-aimed at map centre is an authoring-taste call to revisit with the UI.
+
+---
+
+## 12. The authoring wizard shell — navigation & gating (settles ND1)
+
+The `/authoring` editor is a **guided wizard**, not the free-form region editor. Its chrome is three
+levels (the concept page's `NavModelSection`), and this section pins where the flow overview, the
+pre-flight checks, and phase locking actually live.
+
+**Three-level navigation**
+
+1. **Activity rail** (left, unchanged from the existing editor) — the **six phases**:
+   `0 Map Info · 1 World · 2 Teams · 3 Build · 4 Wools · 5 Review & Export`. A completed phase carries
+   a green dot, the current one a left bar, a locked one is dimmed. The rail **logo returns to the
+   landing screen**. Jump to any *unlocked* phase here.
+2. **Flow bar** — its **own strip above the workspace** (never inside the canvas sub-bar, which keeps
+   its draw toolbar). Left-to-right: a **phase-identity cluster** (the current phase's icon + name,
+   so the strip always names where you are) · the phase's **sub-steps** (check = done, accent
+   underline = current; a **single-step phase shows no sub-steps** — just the phase name, e.g. Map
+   Info) · **Back / Next** on the right, **always present**, with **Back disabled at the first step**.
+3. **Back / Next** advances one sub-step / phase at a time (the linear path).
+
+Every phase uses this same shell — including **Map Info** (the form-only phase 0; its Back is disabled
+as the entry point). There is **no per-step "Save & continue" button**: each phase persists its slice via
+`PUT /map/{slug}/intent`, but *when* that fires (autosave-on-change vs save-on-Next vs explicit) and
+*how the save / dirty state is shown* (topbar vs flow-bar vs a global indicator) is the wizard's **save
+model — deferred to ND4** (it applies to all phases, ties into the idempotent regenerate-on-save of §3
+and the resolve-at-save Mojang lookup).
+
+**The landing / home screen (→ ND3, its own design task).** `/authoring/{slug}` opens to a landing
+screen, and the rail logo returns there. It is the **six-phase flow overview** (the `FlowSection`
+panel: each phase, its one-line purpose, its progress dot, and the Build⇄Traversability caveat)
+**plus a brief of what the import found** — the map folder + file list, the top-down terrain render,
+and a summary of the generated `islands.json` / parquet blobs. That "here's what we detected" brief is
+the **seed of the guidance model**: it is exactly what the author confirms/corrects in the phases that
+follow (e.g. the detected island count → team count in World/Teams). The richer screen is **ND3**.
+
+**Where the checks live.** Validation is **not a phase of its own** (§9; the concept page's
+`ValidateSection` is a reference, not a step):
+- **Buildability is a live layer toggle inside Build** — the `Buildable` overlay chip on the canvas
+  sub-bar, immediate feedback as bridges are drawn (it is the seed + feedback of §6).
+- The **buildability and traversability maps**, plus the four **pre-flight checks** (round-trip ·
+  mirror · buildability · traversability, §9), render in the **Review** phase, where the whole map is
+  validated on entry / on demand. They are not re-run continuously on every edit.
+
+**Review & Export is one phase with three sub-steps** walked by the flow bar:
+`Pre-flight → Region tree → XML`. Pre-flight is the checks + the two maps (above); Region tree is the
+read-only generated structure (§7 — the inspect/debug surface); XML is the segmented serialized output.
+**Export is the flow bar's `Next` on the final (XML) sub-step**, enabled only when the Pre-flight gate
+is open (HTTP 409 otherwise, §9) — there is no separate Export button on Pre-flight. On the concept page
+these are still three sections (`ReviewSection` / `TreeSection` / `XmlSection`, the `N05`/`N07`/`N06`
+build units) but they are one phase. *(Map Info, by contrast, is a single-step phase — no sub-steps.)*
+
+**Phase locking — by prerequisite slice (not a rigid line).** A phase unlocks once the intent slice it
+depends on exists; you may always jump *back* to any **done** phase to edit it:
+
+| Phase | Unlocks when |
+|-------|--------------|
+| 0 Map Info | always (entry) |
+| 1 World | map exists (Map Info saved) |
+| 2 Teams | World symmetry **confirmed** (seeds team count/positions) |
+| 3 Build | Teams defined (spawns placed) |
+| 4 Wools | Build slice exists — **build must precede wools** (traversability is computed over the build geometry, §6) |
+| 5 Review | all required slices present (teams + build + wools) — i.e. there is a complete map to check |
+
+**"Review needs a connected map" is the *export gate*, not the phase lock.** Review unlocks on
+*completeness*; the **connectivity** requirement is enforced at export: `GET /map/{slug}/xml` runs
+`Traversability.Check` and returns **HTTP 409** for intent maps whose spawn↔wool chain isn't connected
+(§9). Locking Review behind connectivity would be circular — the connectivity check runs *inside*
+Review. A failed traversability/buildability result there links **back to Build** (the Build⇄Traversability
+loop, §6); a failed round-trip/mirror is a generator bug surfaced in the validate log.

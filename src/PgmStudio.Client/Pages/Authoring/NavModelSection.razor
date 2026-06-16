@@ -13,10 +13,22 @@
   <p class="ds-theming-note">
     Authoring is a guided wizard, not a free-form editor. The <strong>activity rail</strong> (left) holds
     the six phases and lets you jump to any unlocked one — completed phases carry a green dot, the current
-    one a left bar. Inside a phase, the <strong>flow bar</strong> is its own strip <em>above</em> the
-    workspace — never inside the canvas sub-bar, which keeps its draw toolbar. A check marks a done
-    sub-step, an accent underline the current one, and <strong>Back / Next</strong> advances linearly. No
-    numbered-circle bars: the chrome stays quiet so the map stays the focus.
+    one a left bar; the rail logo returns to the <strong>landing screen</strong> (the flow overview). Inside
+    a phase, the <strong>flow bar</strong> is its own strip <em>above</em> the workspace — never inside the
+    canvas sub-bar, which keeps its draw toolbar. It opens with a left-aligned <strong>phase-identity
+    cluster</strong> (the current phase's icon + name) so the strip always names where you are, then the
+    sub-steps (a check marks a done one, an accent underline the current one), then <strong>Back / Next</strong>
+    on the right — always present, with <strong>Back disabled at the first step</strong>. No numbered-circle
+    bars: the chrome stays quiet so the map stays the focus.
+  </p>
+  <p class="ds-theming-note">
+    <strong>Phase locking</strong> is by prerequisite slice, not a rigid line: a phase unlocks once the
+    intent it needs exists (Teams ← World confirmed · Build ← Teams · Wools ← Build · Review ← all required
+    slices present), and you can jump <em>back</em> to any done phase freely to edit. The
+    Build&nbsp;⇄&nbsp;Traversability loop is the reason Build precedes Wools. <strong>Review</strong> unlocks
+    when there is a complete map to check; its &ldquo;needs a connected map&rdquo; rule is the
+    <strong>export gate</strong> — traversability must pass (HTTP&nbsp;409 otherwise) — not a lock on entering
+    the phase, so the connectivity check can run <em>inside</em> Review.
   </p>
 
   <div class="ds-example-grid">
@@ -54,8 +66,9 @@
     </article>
 
     <article class="ds-example">
-      <div class="ds-example-label">Sub-steps — the flow bar (its own strip, above the workspace)</div>
+      <div class="ds-example-label">Sub-steps — the flow bar (phase identity · sub-steps · Back/Next)</div>
       <div class="flow-bar">
+        <div class="flow-bar-phase"><i data-lucide="goal"></i><span>Wools</span></div>
         <div class="flow-steps">
           <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
           <button class="flow-step flow-step--done"><i data-lucide="check"></i>Spawn &amp; room</button>
@@ -81,7 +94,7 @@
       <p class="section-desc" style="margin-top:var(--space-3)">The flow bar (top) and the canvas draw
          toolbar (bottom) are <strong>separate strips</strong> — the step indicator never replaces the
          tools or the navigation. The rail jumps between phases; a phase stays locked until its
-         prerequisites are met (Review needs a connected map).</p>
+         prerequisite slice exists (see the locking note above).</p>
     </article>
   </div>
 </section>

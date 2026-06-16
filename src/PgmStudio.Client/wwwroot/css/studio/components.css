@@ -520,7 +520,7 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
    on completed ones. Replaces the numbered circles + dashes of .cfg-step-bar.)
    ══════════════════════════════════════════════════════════════════════════ */
 .flow-bar {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center;
   gap: var(--space-4);
   height: 42px; padding: 0 var(--space-4);
   background: var(--bg-panel);
@@ -528,7 +528,18 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   border-radius: var(--radius-md);
   margin-bottom: var(--space-2);
 }
-.flow-bar-actions { display: flex; align-items: center; gap: var(--space-2); }
+/* Phase identity — the current phase's icon + name, left-aligned ahead of the sub-steps,
+   so the flow bar always says which of the 6 rail phases you're in. */
+.flow-bar-phase {
+  display: flex; align-items: center; gap: var(--space-2);
+  height: 60%;
+  color: var(--text-strong); font-weight: 600; font-size: var(--font-md);
+  white-space: nowrap;
+}
+/* Divider only when sub-steps follow — a single-step phase (Map Info) shows the name alone. */
+.flow-bar-phase:has(+ .flow-steps) { padding-right: var(--space-4); border-right: 1px solid var(--border); }
+.flow-bar-phase svg { width: 15px; height: 15px; color: var(--accent); }
+.flow-bar-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
 .flow-steps { display: flex; align-items: center; gap: var(--space-5); height: 100%; }
 .flow-step {
   position: relative;

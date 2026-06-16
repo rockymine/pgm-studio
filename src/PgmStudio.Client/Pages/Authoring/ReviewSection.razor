@@ -6,14 +6,29 @@
       <p class="ds-kicker">05</p>
       <h2>Review &amp; Export</h2>
     </div>
-    <p>A generated map can be structurally valid yet <em>unplayable</em>. Traversability is the closing
-       gate — a disconnected spawn–wool chain blocks export with HTTP&nbsp;409.</p>
+    <p>One phase, three sub-steps walked by the flow bar — <strong>Pre-flight → Region tree → XML</strong>
+       (sections 05–07 below) — where <strong>Export is the Next button on the final XML step</strong>. This
+       first sub-step: a generated map can be structurally valid yet <em>unplayable</em>, so the four
+       pre-flight checks run here, with the buildability + traversability <strong>maps</strong> alongside.
+       Traversability is the closing gate — a disconnected spawn–wool chain blocks export with HTTP&nbsp;409.</p>
   </div>
 
   <div class="ds-subsection">
     <h3>All checks pass — export enabled</h3>
     <article class="ds-example">
-      <div class="ds-example-label">Pre-flight checks · Export XML live</div>
+      <div class="ds-example-label">Review &amp; Export · sub-step 1 — Pre-flight (gate open)</div>
+      <div class="flow-bar">
+        <div class="flow-bar-phase"><i data-lucide="badge-check"></i><span>Review &amp; Export</span></div>
+        <div class="flow-steps">
+          <button class="flow-step flow-step--active">Pre-flight</button>
+          <button class="flow-step">Region tree</button>
+          <button class="flow-step">XML</button>
+        </div>
+        <div class="flow-bar-actions">
+          <button class="action-btn">Back</button>
+          <button class="action-btn action-btn--primary">Next: Region tree</button>
+        </div>
+      </div>
       <div class="ds-panel-frame">
         <div class="workspace-scroll">
           <section class="panel-section">
@@ -26,6 +41,45 @@
               <div class="step-row"><span class="step-dot step-dot--done"></span><span class="step-label">Mirror check</span><span class="step-detail">DeriveFacets(generate(intent)) recovered the intent — generator and categorizer are inverses</span></div>
               <div class="step-row"><span class="step-dot step-dot--done"></span><span class="step-label">Buildability</span><span class="step-detail">All spawn / wool / monument placements on solid ground</span></div>
               <div class="step-row"><span class="step-dot step-dot--done"></span><span class="step-label">Traversability</span><span class="step-detail">spawn ↔ wool chain connected — all 4 teams reachable across the build geometry</span></div>
+
+              @* Buildability + traversability MAPS — the visual half of the pre-flight, surfaced here
+                 (the full reference renders live in the Buildability & Traversability section below). *@
+              <div class="ds-example-grid" style="gap:var(--space-3);margin-top:var(--space-3)">
+                <div>
+                  <div class="ds-example-label">Buildability</div>
+                  <div class="canvas-surface canvas-surface--svg" style="min-height:200px;border-radius:var(--radius-sm);overflow:hidden">
+                    <IslandMap Mode="buildable">
+                      <Backdrop>
+                        <rect x="9" y="9" width="239" height="239" fill="#f59e0b" fill-opacity="0.14" />
+                      </Backdrop>
+                      <ChildContent>
+                        <g fill="color-mix(in oklch, var(--color-success) 38%, transparent)" stroke="var(--color-success)" stroke-width="0.6">
+                          <rect x="112" y="112" width="33" height="33" rx="1"/>
+                          <rect x="40" y="107" width="72" height="42" rx="1"/>
+                          <rect x="145" y="108" width="72" height="42" rx="1"/>
+                          <rect x="107" y="145" width="42" height="72" rx="1"/>
+                          <rect x="108" y="40" width="42" height="72" rx="1"/>
+                        </g>
+                      </ChildContent>
+                    </IslandMap>
+                  </div>
+                </div>
+                <div>
+                  <div class="ds-example-label">Traversability — connected</div>
+                  <div class="canvas-surface canvas-surface--svg" style="min-height:200px;border-radius:var(--radius-sm);overflow:hidden">
+                    <IslandMap Mode="surface">
+                      <circle cx="34.5" cy="112.5" r="2.6" fill="#1565c0" stroke="white" stroke-width="0.7" />
+                      <circle cx="222.5" cy="144.5" r="2.6" fill="#1565c0" stroke="white" stroke-width="0.7" />
+                      <circle cx="112.5" cy="222.5" r="2.6" fill="#1565c0" stroke="white" stroke-width="0.7" />
+                      <circle cx="144.5" cy="34.5" r="2.6" fill="#1565c0" stroke="white" stroke-width="0.7" />
+                      <rect x="13" y="134.5" width="5" height="5" fill="white" stroke="black" stroke-width="0.5" />
+                      <rect x="239" y="118" width="5" height="5" fill="white" stroke="black" stroke-width="0.5" />
+                      <rect x="134" y="239" width="5" height="5" fill="white" stroke="black" stroke-width="0.5" />
+                      <rect x="118" y="13" width="5" height="5" fill="white" stroke="black" stroke-width="0.5" />
+                    </IslandMap>
+                  </div>
+                </div>
+              </div>
 
               <div class="console-wrap">
                 <div class="console-header">
@@ -43,8 +97,8 @@
               </div>
             </div>
             <div class="section-footer">
-              <button class="action-btn action-btn--primary"><i data-lucide="download"></i> Export XML</button>
-              <span class="panel-save-status">thunder_blank · proto 1.5.0</span>
+              <span class="badge badge--success">Export gate open</span>
+              <span class="panel-save-status">advance to the XML sub-step to export · thunder_blank · proto 1.5.0</span>
             </div>
           </section>
         </div>
@@ -55,7 +109,7 @@
   <div class="ds-subsection">
     <h3>Traversability fails — export blocked (the HTTP 409 gate)</h3>
     <article class="ds-example">
-      <div class="ds-example-label">Pre-flight checks · Export XML disabled</div>
+      <div class="ds-example-label">Review &amp; Export · sub-step 1 — Pre-flight (gate blocked)</div>
       <div class="ds-panel-frame">
         <div class="workspace-scroll">
           <section class="panel-section">
@@ -92,8 +146,8 @@
               </div>
             </div>
             <div class="section-footer">
-              <button class="action-btn action-btn--primary" disabled><i data-lucide="download"></i> Export XML</button>
-              <span class="panel-save-status">HTTP 409 — traversability gate</span>
+              <span class="badge badge--error">Export gate blocked</span>
+              <span class="panel-save-status">XML-step Export stays disabled · HTTP 409 — traversability gate</span>
             </div>
           </section>
         </div>

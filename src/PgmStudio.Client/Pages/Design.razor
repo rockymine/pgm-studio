@@ -402,11 +402,14 @@
 
       <div class="ds-subsection" style="margin-top:var(--space-5)">
         <h3>Flow bar (wizard sub-steps)</h3>
-        <p class="ds-theming-note">A clean wizard sub-step strip for guided multi-step activities — flat text
-           labels, an accent underline on the active step, a check on completed ones, Back/Next on the right.
+        <p class="ds-theming-note">A clean wizard sub-step strip for guided multi-step activities — a
+           left-aligned <strong>phase-identity cluster</strong> (<code>flow-bar-phase</code>: the current
+           phase's icon + name), then flat-text sub-step labels with an accent underline on the active one
+           and a check on completed ones, then Back/Next on the right (Back disabled at the first step).
            It is its <strong>own strip</strong> (<code>flow-bar</code>) above the workspace — never inside the
            <code>canvas-subbar</code>, which keeps its draw toolbar. Use it instead of numbered-circle step bars.</p>
         <div class="flow-bar">
+          <div class="flow-bar-phase"><i data-lucide="goal"></i><span>Wools</span></div>
           <div class="flow-steps">
             <button class="flow-step flow-step--done"><i data-lucide="check"></i>Colours</button>
             <button class="flow-step flow-step--active">Spawn &amp; room</button>
