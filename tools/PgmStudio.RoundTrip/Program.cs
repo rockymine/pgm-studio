@@ -71,6 +71,22 @@ var isIdx = Array.IndexOf(args, "--islands");
 if (isIdx >= 0 && isIdx + 2 < args.Length)
     return await RunIslandParity(args[isIdx + 1], args[isIdx + 2]);
 
+// --monument-slices <regionDir> <xml_data.json> <outParquet>: sample the 3×3×5 block volume around
+// every wool monument (MonumentSliceExtractor), write monument_slices.parquet, read it back and print
+// a validation summary. The monument centres come from xml_data.json (wools[].monuments[].location).
+var msIdx = Array.IndexOf(args, "--monument-slices");
+if (msIdx >= 0 && msIdx + 3 < args.Length)
+    return await RunMonumentSlices(args[msIdx + 1], args[msIdx + 2], args[msIdx + 3]);
+
+// --suggest-monuments <regionDir> <xml_data.json> [--pedestal K] [--label K] [--margin M] [--auto-style]:
+// run the authoring-flow MonumentSuggester inside a box derived from the ground-truth monument clusters
+// (simulating the box the author draws) and score precision/recall against those monuments.
+if (args.Contains("--suggest-monuments-corpus"))
+    return RunSuggestMonumentsCorpus(args, defaultRoots, "/media/sf_repos/pgm-map-studio-output");
+var sgIdx = Array.IndexOf(args, "--suggest-monuments");
+if (sgIdx >= 0 && sgIdx + 2 < args.Length)
+    return RunSuggestMonuments(args, args[sgIdx + 1], args[sgIdx + 2]);
+
 // --authoring <oracleRoot>: RegionAuthoringEncoder vs Python authoring_oracle.json over the corpus.
 var auIdx = Array.IndexOf(args, "--authoring");
 if (auIdx >= 0 && auIdx + 1 < args.Length)
@@ -445,6 +461,269 @@ static async Task<int> RunExtractParity(string regionDir, string oracleDir)
     static string Fmt(int? v) => v is null ? "~" : v.Value.ToString();
 }
 
+static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, string outParquet)
+{
+    // Monument centres from xml_data.json: wools[].monuments[].location (the <block> coordinate).
+    var slug = Path.GetFileName(Path.GetDirectoryName(Path.GetFullPath(regionDir).TrimEnd('/'))) ?? "map";
+    using var jd = System.Text.Json.JsonDocument.Parse(File.ReadAllText(xmlDataPath));
+    if (jd.RootElement.TryGetProperty("name", out var nm) && nm.ValueKind == System.Text.Json.JsonValueKind.String)
+        slug = nm.GetString()!.ToLowerInvariant().Replace(' ', '_');
+
+    static int Coord(System.Text.Json.JsonElement loc, string axis) => (int)Math.Floor(loc.GetProperty(axis).GetDouble());
+    var monuments = new List<PgmStudio.Minecraft.MonumentTarget>();
+    if (jd.RootElement.TryGetProperty("wools", out var woolsEl))
+        foreach (var wool in woolsEl.EnumerateArray())
+        {
+            var woolId = wool.TryGetProperty("id", out var wid) ? wid.GetString() ?? "" : "";
+            var color = wool.TryGetProperty("color", out var c) ? c.GetString() ?? woolId : woolId;
+            if (!wool.TryGetProperty("monuments", out var mons)) continue;   // some maps omit it
+            foreach (var mon in mons.EnumerateArray())
+            {
+                if (!mon.TryGetProperty("location", out var loc)) continue;
+                monuments.Add(new PgmStudio.Minecraft.MonumentTarget(
+                    slug, woolId, color,
+                    mon.TryGetProperty("id", out var mid) ? mid.GetString() ?? "" : "",
+                    mon.TryGetProperty("team", out var mt) ? mt.GetString() ?? "" : "",
+                    Coord(loc, "x"), Coord(loc, "y"), Coord(loc, "z")));
+            }
+        }
+
+    var mcas = Directory.GetFiles(regionDir, "*.mca");
+    IEnumerable<PgmStudio.Minecraft.AnvilRegion.Chunk> Chunks() => mcas.SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks);
+
+    Console.WriteLine($"{slug}: {monuments.Count} monument(s) over {mcas.Length} region file(s)");
+    var cells = PgmStudio.Minecraft.MonumentSliceExtractor.Extract(Chunks(), monuments);
+
+    var rows = cells.Select(MonumentSliceRow.From).ToList();
+    Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outParquet))!);
+    await using (var os = File.Create(outParquet))
+        if (rows.Count > 0) await Parquet.Serialization.ParquetSerializer.SerializeAsync(rows, os);
+    Console.WriteLine($"wrote {rows.Count} cell(s) → {outParquet}");
+    if (rows.Count == 0) { Console.WriteLine("  (no monuments — nothing to validate)"); return 0; }
+
+    // Read back and validate against the extractor's invariants.
+    var back = await ReadParquet(outParquet);
+    var fails = 0;
+    void Require(bool ok, string what) { if (!ok) { fails++; Console.WriteLine($"  FAIL {what}"); } else Console.WriteLine($"  OK   {what}"); }
+
+    static int I(object? v) => Convert.ToInt32(v);
+    static string S(object? v) => v?.ToString() ?? "";
+    static bool B(object? v) => v is not null && Convert.ToBoolean(v);
+
+    Require(back.Count == monuments.Count * PgmStudio.Minecraft.MonumentSliceExtractor.CellsPerMonument,
+        $"row count = {monuments.Count} monuments × {PgmStudio.Minecraft.MonumentSliceExtractor.CellsPerMonument} = {monuments.Count * PgmStudio.Minecraft.MonumentSliceExtractor.CellsPerMonument} (got {back.Count})");
+
+    var byMon = back.GroupBy(r => S(r["monument_id"])).ToList();
+    Require(byMon.Count == monuments.Count, $"{monuments.Count} distinct monuments present");
+    Require(byMon.All(g => g.Count() == PgmStudio.Minecraft.MonumentSliceExtractor.CellsPerMonument), "every monument has exactly 45 cells");
+
+    var centers = back.Where(r => B(r["is_monument"])).ToList();
+    Require(centers.Count == monuments.Count, $"one centre cell per monument ({centers.Count})");
+    var centersAir = centers.Count(r => B(r["is_air"]));
+    Require(centersAir == monuments.Count, $"all {monuments.Count} monument blocks are air (got {centersAir})");
+
+    // Bedrock-below: the cell at (dx,dy,dz)=(0,-1,0) — authors' usual monument base.
+    var below = back.Where(r => I(r["dx"]) == 0 && I(r["dy"]) == -1 && I(r["dz"]) == 0).ToList();
+    var bedrockBelow = below.Count(r => I(r["block_id"]) == 7);
+    Console.WriteLine($"  info bedrock directly below monument: {bedrockBelow}/{monuments.Count}");
+
+    var signCells = back.Where(r => !string.IsNullOrWhiteSpace(S(r.GetValueOrDefault("sign_text")))).ToList();
+    Console.WriteLine($"  info sign cells in slices: {signCells.Count}");
+    var entityCells = back.Where(r => !string.IsNullOrWhiteSpace(S(r.GetValueOrDefault("entity_ids")))).ToList();
+    Console.WriteLine($"  info entity cells in slices: {entityCells.Count}");
+    foreach (var ec in entityCells)
+    {
+        Console.WriteLine($"   entity @ '{S(ec["monument_id"])}' (dx{I(ec["dx"]):+0;-0;0},dy{I(ec["dy"]):+0;-0;0},dz{I(ec["dz"]):+0;-0;0}): {S(ec["entity_ids"])}");
+        try
+        {
+            using var ed = System.Text.Json.JsonDocument.Parse(S(ec["entity_nbt"]));
+            foreach (var en in ed.RootElement.EnumerateArray())
+            {
+                var name = en.TryGetProperty("CustomName", out var cn) ? cn.GetString() : null;
+                string head = "";
+                if (en.TryGetProperty("Equipment", out var eq) && eq.ValueKind == System.Text.Json.JsonValueKind.Array && eq.GetArrayLength() >= 5)
+                {
+                    var h = eq[4];   // head slot
+                    if (h.ValueKind == System.Text.Json.JsonValueKind.Object && h.TryGetProperty("id", out var hid))
+                    {
+                        var dmg = h.TryGetProperty("Damage", out var dd) ? dd.GetInt32() : 0;
+                        var color = hid.GetString()?.EndsWith("wool") == true ? $" → {PgmStudio.Minecraft.WoolData.WoolColor(dmg)}" : "";
+                        head = $" head={hid.GetString()}:{dmg}{color}";
+                    }
+                }
+                if (name is not null || head.Length > 0) Console.WriteLine($"      name=\"{name}\"{head}");
+            }
+        }
+        catch { /* non-JSON entity payload */ }
+    }
+
+    // Show one full slice + its decoded signs so the result is eyeball-verifiable.
+    var sample = byMon.First();
+    Console.WriteLine($"\n  sample slice — monument '{sample.Key}' (wool={S(sample.First()["wool_color"])}, team={S(sample.First()["team"])}, " +
+                      $"centre={I(sample.First()["center_x"])},{I(sample.First()["center_y"])},{I(sample.First()["center_z"])}):");
+    foreach (var dy in new[] { 2, 1, 0, -1, -2 })
+    {
+        var line = new System.Text.StringBuilder($"   y{dy,+2}: ");
+        foreach (var dz in new[] { -1, 0, 1 })
+        {
+            foreach (var dx in new[] { -1, 0, 1 })
+            {
+                var cell = sample.First(r => I(r["dx"]) == dx && I(r["dy"]) == dy && I(r["dz"]) == dz);
+                var tag = B(cell["is_monument"]) ? "*" : "";
+                line.Append($"{I(cell["block_id"]),3}:{I(cell["block_data"]),-2}{tag,-1} ");
+            }
+            line.Append(" | ");
+        }
+        Console.WriteLine(line.ToString());
+    }
+    foreach (var sc in signCells.Where(r => S(r["monument_id"]) == sample.Key))
+        Console.WriteLine($"   sign @ (dx{I(sc["dx"]):+0;-0;0},dy{I(sc["dy"]):+0;-0;0},dz{I(sc["dz"]):+0;-0;0}): \"{S(sc["sign_text"]).Replace("\n", " | ")}\"");
+
+    Console.WriteLine($"\nmonument-slices: {(fails == 0 ? "ALL OK" : $"{fails} check(s) failed")}");
+    return fails == 0 ? 0 : 1;
+}
+
+static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoStyle,
+    PgmStudio.Minecraft.PedestalKind pedestal, PgmStudio.Minecraft.LabelKind label,
+    PgmStudio.Minecraft.CapKind cap, int margin)
+{
+    using var jd = System.Text.Json.JsonDocument.Parse(File.ReadAllText(xmlDataPath));
+    static int Coord(System.Text.Json.JsonElement loc, string a) => (int)Math.Floor(loc.GetProperty(a).GetDouble());
+    var truth = new List<(int x, int y, int z, string id, string color)>();
+    if (jd.RootElement.TryGetProperty("wools", out var woolsEl))
+        foreach (var wool in woolsEl.EnumerateArray())
+        {
+            var color = wool.TryGetProperty("color", out var c) ? c.GetString() ?? "" : "";
+            if (!wool.TryGetProperty("monuments", out var mons)) continue;   // some maps omit it
+            foreach (var mon in mons.EnumerateArray())
+            {
+                if (!mon.TryGetProperty("location", out var loc)) continue;
+                truth.Add((Coord(loc, "x"), Coord(loc, "y"), Coord(loc, "z"),
+                    mon.TryGetProperty("id", out var mid) ? mid.GetString() ?? "" : "", color));
+            }
+        }
+
+    var mcas = Directory.GetFiles(regionDir, "*.mca");
+    var chunks = mcas.SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();   // decode the world once
+
+    // cluster monuments (Chebyshev ≤ 16) → one box per cluster (the author boxes each monument group).
+    var clusters = new List<List<(int x, int y, int z)>>();
+    foreach (var (x, y, z, _, _) in truth)
+    {
+        var hit = clusters.FirstOrDefault(cl => cl.Any(q => Cheb(q, (x, y, z)) <= 16));
+        if (hit is null) clusters.Add([(x, y, z)]); else hit.Add((x, y, z));
+    }
+
+    // auto-style: declare the modal pedestal *and cap* of each cluster's monuments — precompute the
+    // block directly under and over every monument in a single chunk pass (the author would declare these).
+    var adj = new Dictionary<(int, int, int), int>();
+    if (autoStyle)
+    {
+        var want = truth.SelectMany(t => new[] { (t.x, t.y - 1, t.z), (t.x, t.y + 1, t.z) }).ToHashSet();
+        foreach (var ch in chunks)
+            foreach (var b in PgmStudio.Minecraft.AnvilRegion.Blocks(ch))
+                if (want.Contains((b.X, b.Y, b.Z))) adj[(b.X, b.Y, b.Z)] = b.Id;
+    }
+    // reuse the suggester's single id↔kind table, so auto-style can't drift from detection
+    PgmStudio.Minecraft.PedestalKind PedestalBelow(int x, int y, int z) =>
+        PgmStudio.Minecraft.MonumentSuggester.ClassifyPedestal(adj.GetValueOrDefault((x, y - 1, z), 0));
+    PgmStudio.Minecraft.CapKind CapAbove(int x, int y, int z) =>
+        PgmStudio.Minecraft.MonumentSuggester.ClassifyCap(adj.GetValueOrDefault((x, y + 1, z), 0));
+
+    var suggestions = new Dictionary<(int, int, int), PgmStudio.Minecraft.MonumentSuggestion>();
+    foreach (var cl in clusters)
+    {
+        var box = new PgmStudio.Minecraft.ScanBox(
+            cl.Min(q => q.x) - margin, cl.Min(q => q.y) - margin, cl.Min(q => q.z) - margin,
+            cl.Max(q => q.x) + margin, cl.Max(q => q.y) + margin, cl.Max(q => q.z) + margin);
+        var ped = autoStyle
+            ? cl.Select(q => PedestalBelow(q.x, q.y, q.z)).GroupBy(k => k).OrderByDescending(g => g.Count()).First().Key
+            : pedestal;
+        var cp = autoStyle
+            ? cl.Select(q => CapAbove(q.x, q.y, q.z)).GroupBy(k => k).OrderByDescending(g => g.Count()).First().Key
+            : cap;
+        foreach (var s in PgmStudio.Minecraft.MonumentSuggester.Suggest(chunks, box, new PgmStudio.Minecraft.MonumentStyle(ped, label, cp)))
+            if (!suggestions.TryGetValue((s.X, s.Y, s.Z), out var prev) || prev.Confidence < s.Confidence)
+                suggestions[(s.X, s.Y, s.Z)] = s;
+    }
+
+    static int Cheb((int x, int y, int z) a, (int x, int y, int z) b) =>
+        Math.Max(Math.Max(Math.Abs(a.x - b.x), Math.Abs(a.y - b.y)), Math.Abs(a.z - b.z));
+    var sites = suggestions.Values.OrderByDescending(s => s.Confidence).ToList();
+    var mt = new HashSet<int>(); var ms = new HashSet<int>();
+    // Two passes (exact cell, then within 1) so adjacent monuments pair to their own cell, not a neighbour's.
+    for (var tol = 0; tol <= 1; tol++)
+        for (var i = 0; i < sites.Count; i++)
+        {
+            if (ms.Contains(i)) continue;
+            for (var j = 0; j < truth.Count; j++)
+            {
+                if (mt.Contains(j)) continue;
+                if (Cheb((sites[i].X, sites[i].Y, sites[i].Z), (truth[j].x, truth[j].y, truth[j].z)) <= tol)
+                { ms.Add(i); mt.Add(j); break; }
+            }
+        }
+    // colour-correct: count a matched monument if ANY suggestion at/adjacent to it carries the right
+    // colour — independent of which site the greedy matcher assigned (so a wrong-colour higher-confidence
+    // site at the same cell doesn't mask a correct-colour one).
+    var colorOk = mt.Count(j => sites.Any(s =>
+        Cheb((s.X, s.Y, s.Z), (truth[j].x, truth[j].y, truth[j].z)) <= 1 && s.Color == truth[j].color));
+    return new SuggestEval(truth.Count, mt.Count, sites.Count - ms.Count, truth.Count - mt.Count, colorOk, clusters.Count, sites);
+}
+
+static int RunSuggestMonuments(string[] args, string regionDir, string xmlDataPath)
+{
+    string Flag(string name, string def) { var i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : def; }
+    var margin = int.Parse(Flag("--margin", "8"));
+    var autoStyle = args.Contains("--auto-style");
+    var pedestal = Enum.Parse<PgmStudio.Minecraft.PedestalKind>(Flag("--pedestal", "Any"), true);
+    var label = Enum.Parse<PgmStudio.Minecraft.LabelKind>(Flag("--label", "Any"), true);
+    var cap = Enum.Parse<PgmStudio.Minecraft.CapKind>(Flag("--cap", "Any"), true);
+    var slug = Path.GetFileName(Path.GetDirectoryName(Path.GetFullPath(regionDir).TrimEnd('/'))) ?? "map";
+
+    var e = EvalSuggest(regionDir, xmlDataPath, autoStyle, pedestal, label, cap, margin);
+    double prec = e.Tp + e.Fp > 0 ? (double)e.Tp / (e.Tp + e.Fp) : 0, rec = e.Tp + e.Fn > 0 ? (double)e.Tp / (e.Tp + e.Fn) : 0;
+    Console.WriteLine($"{slug}: {e.Truth} monuments in {e.Clusters} cluster(s), box margin ±{margin}, style={(autoStyle ? "auto" : pedestal.ToString())}/{label}");
+    Console.WriteLine($"  suggestions={e.Sites.Count}  TP={e.Tp} FP={e.Fp} FN={e.Fn}  precision={100 * prec:F1}%  recall={100 * rec:F1}%  colour-correct={e.ColorOk}/{e.Tp}");
+    foreach (var s in e.Sites.Take(8))
+        Console.WriteLine($"   ({s.X},{s.Y},{s.Z}) conf={s.Confidence:F2} {s.Source,-10} colour={s.Color ?? "?",-10} ped={s.PedestalId}:{s.PedestalData} \"{(s.Evidence ?? "").Replace("\n", " | ")}\"");
+    return 0;
+}
+
+// --suggest-monuments-corpus [--auto-style] [--margin M] [--pedestal K] [--label K]: sweep every CTW map
+// with a world + xml_data.json and report aggregate precision/recall for the authoring suggester.
+static int RunSuggestMonumentsCorpus(string[] args, string[] corpusRoots, string outputRoot)
+{
+    string Flag(string name, string def) { var i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : def; }
+    var margin = int.Parse(Flag("--margin", "8"));
+    var autoStyle = args.Contains("--auto-style");
+    var pedestal = Enum.Parse<PgmStudio.Minecraft.PedestalKind>(Flag("--pedestal", "Any"), true);
+    var label = Enum.Parse<PgmStudio.Minecraft.LabelKind>(Flag("--label", "Any"), true);
+    var cap = Enum.Parse<PgmStudio.Minecraft.CapKind>(Flag("--cap", "Any"), true);
+
+    int maps = 0, truth = 0, tp = 0, fp = 0, fn = 0, colorOk = 0;
+    foreach (var root in corpusRoots.Where(Directory.Exists))
+        foreach (var dir in Directory.GetDirectories(root).OrderBy(d => d, StringComparer.Ordinal))
+        {
+            var slug = Path.GetFileName(dir)!;
+            var region = Path.Combine(dir, "region");
+            var xml = Path.Combine(outputRoot, slug, "xml_data.json");
+            if (!Directory.Exists(region) || !Directory.GetFiles(region, "*.mca").Any() || !File.Exists(xml)) continue;
+            try
+            {
+                var e = EvalSuggest(region, xml, autoStyle, pedestal, label, cap, margin);
+                if (e.Truth == 0) continue;
+                maps++; truth += e.Truth; tp += e.Tp; fp += e.Fp; fn += e.Fn; colorOk += e.ColorOk;
+            }
+            catch (Exception ex) { Console.WriteLine($"  !! {slug}: {ex.GetType().Name}"); }
+            if (maps % 50 == 0 && maps > 0) Console.Error.WriteLine($"  ...{maps} maps");
+        }
+    double prec = tp + fp > 0 ? (double)tp / (tp + fp) : 0, rec = tp + fn > 0 ? (double)tp / (tp + fn) : 0;
+    Console.WriteLine($"\ncorpus suggest: {maps} maps, {truth} monuments, style={(autoStyle ? "auto" : pedestal.ToString())}/{label}, margin ±{margin}");
+    Console.WriteLine($"  TP={tp} FP={fp} FN={fn}  precision={100 * prec:F1}%  recall={100 * rec:F1}%  colour-correct={colorOk}/{tp} ({(tp > 0 ? 100.0 * colorOk / tp : 0):F1}%)");
+    return 0;
+}
+
 static async Task<List<Dictionary<string, object?>>> TryRead(string path) =>
     File.Exists(path) ? await ReadParquet(path) : [];
 
@@ -788,3 +1067,47 @@ static Dictionary<string, object?> Semantic(PgmStudio.Domain.MapXml m) => new()
     ["applies"] = (long)m.ApplyRules.Count,
     ["spawns"] = (long)m.Spawns.Count,
 };
+
+readonly record struct SuggestEval(
+    int Truth, int Tp, int Fp, int Fn, int ColorOk, int Clusters,
+    List<PgmStudio.Minecraft.MonumentSuggestion> Sites);
+
+// Parquet shape for monument_slices.parquet (snake_case columns, one row per cell).
+sealed class MonumentSliceRow
+{
+    [System.Text.Json.Serialization.JsonPropertyName("map")] public string Map { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("wool_id")] public string WoolId { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("wool_color")] public string WoolColor { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("monument_id")] public string MonumentId { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("team")] public string Team { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("center_x")] public int CenterX { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("center_y")] public int CenterY { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("center_z")] public int CenterZ { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("dx")] public int Dx { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("dy")] public int Dy { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("dz")] public int Dz { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("world_x")] public int WorldX { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("world_y")] public int WorldY { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("world_z")] public int WorldZ { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("block_id")] public int BlockId { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("block_data")] public int BlockData { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("block_name")] public string BlockName { get; set; } = "";
+    [System.Text.Json.Serialization.JsonPropertyName("is_monument")] public bool IsMonument { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("is_air")] public bool IsAir { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("tile_entity_id")] public string? TileEntityId { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("sign_text")] public string? SignText { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("tile_nbt")] public string? TileNbt { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("entity_ids")] public string? EntityIds { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("entity_nbt")] public string? EntityNbt { get; set; }
+
+    public static MonumentSliceRow From(PgmStudio.Minecraft.MonumentSliceCell c) => new()
+    {
+        Map = c.MapSlug, WoolId = c.WoolId, WoolColor = c.WoolColor, MonumentId = c.MonumentId, Team = c.Team,
+        CenterX = c.CenterX, CenterY = c.CenterY, CenterZ = c.CenterZ,
+        Dx = c.Dx, Dy = c.Dy, Dz = c.Dz, WorldX = c.WorldX, WorldY = c.WorldY, WorldZ = c.WorldZ,
+        BlockId = c.BlockId, BlockData = c.BlockData, BlockName = c.BlockName,
+        IsMonument = c.IsMonument, IsAir = c.IsAir,
+        TileEntityId = c.TileEntityId, SignText = c.SignText, TileNbt = c.TileNbtJson,
+        EntityIds = c.EntityIds, EntityNbt = c.EntityNbtJson,
+    };
+}

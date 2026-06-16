@@ -1,0 +1,122 @@
+using fNbt;
+using PgmStudio.Minecraft;
+
+namespace PgmStudio.Minecraft.Tests;
+
+/// <summary>
+/// The authoring-flow monument suggester. Pure-function text tests plus synthetic-chunk geometry tests
+/// for the dominant styles. Corpus precision/recall (thunder/pigland/dragons_hearth → 100% with the
+/// style declared) is covered by the RoundTrip <c>--suggest-monuments</c> harness.
+/// </summary>
+public class MonumentSuggesterTests
+{
+    private static int Idx(int x, int y, int z) => (y << 8) | (z << 4) | x;
+    private static void SetNibble(byte[] p, int i, int v)
+    {
+        var b = i >> 1;
+        p[b] = (i & 1) == 0 ? (byte)((p[b] & 0xF0) | (v & 0x0F)) : (byte)((p[b] & 0x0F) | ((v & 0x0F) << 4));
+    }
+    private static readonly ScanBox Whole = new(0, 0, 0, 15, 15, 15);
+
+    // ---- text classifier (pure) ----
+
+    [Test]
+    public async Task IsMonumentLabel_accepts_real_labels()
+    {
+        await Assert.That(MonumentSuggester.IsMonumentLabel("Place GREEN WOOL here!")).IsTrue();
+        await Assert.That(MonumentSuggester.IsMonumentLabel("Green Wool\nmonument")).IsTrue();
+        await Assert.That(MonumentSuggester.IsMonumentLabel("-------> Red Wool ------->")).IsTrue();   // decoration stripped before length gate
+    }
+
+    [Test]
+    public async Task IsMonumentLabel_rejects_the_false_positive_signage()
+    {
+        await Assert.That(MonumentSuggester.IsMonumentLabel("RED TEAM ONLY")).IsFalse();
+        await Assert.That(MonumentSuggester.IsMonumentLabel("Kill sheep to get wool!")).IsFalse();
+        await Assert.That(MonumentSuggester.IsMonumentLabel("Victory Monument")).IsFalse();
+        await Assert.That(MonumentSuggester.IsMonumentLabel("Back to the woolroom")).IsFalse();
+        await Assert.That(MonumentSuggester.IsMonumentLabel("v v v v")).IsFalse();   // bare arrows
+    }
+
+    [Test]
+    public async Task ColorFromText_prefers_the_longest_match()
+    {
+        await Assert.That(MonumentSuggester.ColorFromText("Place Light Blue Wool here")).IsEqualTo("light_blue");
+        await Assert.That(MonumentSuggester.ColorFromText("Green Wool")).IsEqualTo("green");
+        await Assert.That(MonumentSuggester.ColorFromText("nothing here")).IsNull();
+    }
+
+    // ---- geometry: wall sign on the block below the monument ----
+
+    private static AnvilRegion.Chunk SignBelowChunk()
+    {
+        var blocks = new byte[4096];
+        var data = new byte[2048];
+        blocks[Idx(5, 7, 5)] = 7;                                   // bedrock pedestal, directly below monument
+        blocks[Idx(5, 7, 6)] = 68; SetNibble(data, Idx(5, 7, 6), 3); // wall sign at dz+1, data 3 = faces -z (toward monument)
+        // (5,8,5) left air = the monument placement cell
+        var section = new NbtCompound { new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", data) };
+        var sign = new NbtCompound
+        {
+            new NbtString("id", "Sign"), new NbtInt("x", 5), new NbtInt("y", 7), new NbtInt("z", 6),
+            new NbtString("Text1", "{\"text\":\"\"}"),
+            new NbtString("Text2", "{\"extra\":[{\"color\":\"dark_green\",\"text\":\"Green Wool\"}],\"text\":\"\"}"),
+            new NbtString("Text3", "{\"text\":\"\"}"), new NbtString("Text4", "{\"text\":\"\"}"),
+        };
+        return new AnvilRegion.Chunk(0, 0, new NbtCompound("Level")
+        {
+            new NbtList("Sections", new[] { section }), new NbtList("TileEntities", new[] { sign }),
+        });
+    }
+
+    [Test]
+    public async Task SignBelow_predicts_the_air_cell_above_the_pedestal()
+    {
+        var s = MonumentSuggester.Suggest([SignBelowChunk()], Whole,
+            new MonumentStyle(PedestalKind.Bedrock, LabelKind.SignBelow)).Single();
+        await Assert.That((s.X, s.Y, s.Z)).IsEqualTo((5, 8, 5));
+        await Assert.That(s.Color).IsEqualTo("green");
+        await Assert.That(s.Source).IsEqualTo("sign");
+        await Assert.That(s.PedestalId).IsEqualTo(7);
+    }
+
+    [Test]
+    public async Task Declared_pedestal_filters_out_the_wrong_style()
+    {
+        var none = MonumentSuggester.Suggest([SignBelowChunk()], Whole,
+            new MonumentStyle(PedestalKind.StainedGlass, LabelKind.SignBelow));
+        await Assert.That(none).IsEmpty();   // pedestal is bedrock, not glass
+    }
+
+    [Test]
+    public async Task Box_excludes_signs_outside_it()
+    {
+        var box = new ScanBox(0, 0, 0, 3, 15, 15);   // the sign and its predicted cell (x=5) are outside MaxX=3
+        var none = MonumentSuggester.Suggest([SignBelowChunk()], box, new MonumentStyle(PedestalKind.Bedrock, LabelKind.SignBelow));
+        await Assert.That(none).IsEmpty();
+    }
+
+    // ---- geometry: name-only armour stand marks the monument below it (dragons_hearth style) ----
+
+    [Test]
+    public async Task NameOnly_ArmorStand_marks_the_monument_below_it()
+    {
+        var blocks = new byte[4096];
+        blocks[Idx(5, 7, 5)] = 7;   // bedrock; monument air at (5,8,5); stand floats above at feet y=11
+        var section = new NbtCompound { new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]) };
+        var stand = new NbtCompound
+        {
+            new NbtString("id", "ArmorStand"),
+            new NbtList("Pos", new[] { new NbtDouble(5.5), new NbtDouble(11.0), new NbtDouble(5.5) }),
+            new NbtString("CustomName", "§9§lBlue Wool Here!"),
+        };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level")
+        {
+            new NbtList("Sections", new[] { section }), new NbtList("Entities", new[] { stand }),
+        });
+        var s = MonumentSuggester.Suggest([chunk], Whole, new MonumentStyle(PedestalKind.Bedrock, LabelKind.ArmorStand)).Single();
+        await Assert.That((s.X, s.Y, s.Z)).IsEqualTo((5, 8, 5));
+        await Assert.That(s.Source).IsEqualTo("armorstand");
+        await Assert.That(s.Color).IsEqualTo("blue");
+    }
+}

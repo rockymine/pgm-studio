@@ -1,4 +1,5 @@
 using fNbt;
+using static PgmStudio.Minecraft.Nbt;
 
 namespace PgmStudio.Minecraft;
 
@@ -161,29 +162,4 @@ public static class FeatureExtractors
                 }
         }
     }
-
-    // --- NBT scalar helpers (mirror features.py _nbt_val / _int / _str) ---
-
-    private static int? Int(NbtTag? tag) => tag switch
-    {
-        NbtByte b => b.Value,
-        NbtShort s => s.Value,
-        NbtInt i => i.Value,
-        NbtLong l => (int)l.Value,
-        NbtFloat f => (int)f.Value,
-        NbtDouble d => (int)d.Value,
-        NbtString s when int.TryParse(s.Value, out var v) => v,
-        _ => null,
-    };
-
-    private static string? Str(NbtTag? tag) => tag switch
-    {
-        null => null,
-        NbtString s => s.Value,
-        NbtByte b => b.Value.ToString(),
-        NbtShort s => s.Value.ToString(),
-        NbtInt i => i.Value.ToString(),
-        NbtLong l => l.Value.ToString(),
-        _ => null,
-    };
 }
