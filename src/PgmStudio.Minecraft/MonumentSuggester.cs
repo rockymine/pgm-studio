@@ -198,7 +198,8 @@ public static class MonumentSuggester
         // already has monument anchors (label signs / wool-head or named stands): the author would never
         // declare "no label" there, so the rows would be pure noise. (corpus: this alone takes thunder's
         // candidates 2193→24, pigland 258→68.)
-        var anchored = signs.Any(s => IsMonumentLabel(s.Text))
+        var anchored = signs.Any(s => IsMonumentLabel(s.Text)
+                && blocks.TryGetValue((s.X, s.Y, s.Z), out var sb) && sb.Id == WallSignId)
             || stands.Any(s => s.HeadWool is not null || !string.IsNullOrEmpty(s.CustomName));
         if (!anchored)
             foreach (var ((x, y, z), _) in blocks)
@@ -215,7 +216,10 @@ public static class MonumentSuggester
                     null, null, null, null, null, null, null, null, null));
             }
 
-        return candidates;
+        // One row per (cell, source): several wall signs around one monument all hint at the SAME cell,
+        // and Score collapses by cell anyway — storing the duplicates only bloats the table (pigland's 64
+        // sign rows → 40 cells). Keep the first emission's evidence.
+        return candidates.GroupBy(c => (c.X, c.Y, c.Z, c.Source)).Select(g => g.First()).ToList();
 
         // ── geometry terrain-reject helpers (§4.1) ──────────────────────────────────────────────
         // Pedestal walled in: none of its 4 horizontal faces is air or a sign (so it isn't visible/markable).
@@ -224,7 +228,7 @@ public static class MonumentSuggester
             foreach (var (dx, dz) in Faces)
             {
                 if (!blocks.TryGetValue((x + dx, y, z + dz), out var b)) return false;   // air face
-                if (b.Id is SignPostId or WallSignId) return false;                      // sign face
+                if (b.Id == WallSignId) return false;   // wall-sign face (monuments are wall-signed; a post sign is terrain signage)
             }
             return true;
         }
@@ -246,13 +250,13 @@ public static class MonumentSuggester
         IEnumerable<MonumentCandidate> candidates, ScanBox? box, MonumentStyle style)
     {
         var byCell = new Dictionary<(int, int, int), MonumentSuggestion>();
+        // Cell-merge: keep the strongest candidate per cell (a cell can still get both a sign and a stand;
+        // Gather already deduped same-source emissions, so there's no agreeing-sign boost to apply).
         void Offer(MonumentSuggestion s)
         {
             var key = (s.X, s.Y, s.Z);
-            if (!byCell.TryGetValue(key, out var prev)) { byCell[key] = s; return; }
-            var merged = s.Confidence >= prev.Confidence ? s : prev;
-            var boost = (prev.Source == "sign" && s.Source == "sign") ? 0.05 : 0.0;
-            byCell[key] = merged with { Confidence = Math.Min(0.99, merged.Confidence + boost) };
+            if (!byCell.TryGetValue(key, out var prev) || s.Confidence >= prev.Confidence)
+                byCell[key] = s;
         }
 
         bool wantBelow = style.Label is LabelKind.Any or LabelKind.SignBelow;

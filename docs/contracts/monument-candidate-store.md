@@ -75,9 +75,12 @@ moves into `Score` as a filter on the stored `source`.
 
 ## 3. The `monument_candidate` table
 
-One row **per gathered anchor emission** (not per final cell — `Score` does the cell-merge, so two
-agreeing signs at one cell are two rows that `Score` collapses and boosts). Columns are exactly what
-`Score` needs to reproduce `TryEmit` / `Confidence` / `Offer`, and nothing it can recompute.
+One row **per (cell, source)**. `Gather` deduplicates same-source emissions by candidate cell: several
+wall signs ringing one monument all project to the *same* air cell (pigland places 4 against each block),
+so storing one per sign just bloats the table — keep the first emission's evidence (pigland's 64 sign rows
+→ 40 cells, no quality change: corpus precision/recall unchanged). `Score` still cell-merges *across*
+sources (a cell can be both sign- and stand-marked), keeping the strongest. Columns are exactly what
+`Score` needs to reproduce the style filter / `Confidence`, and nothing it can recompute.
 
 ### DDL (FluentMigrator, mirrors `spawner_block` conventions)
 
