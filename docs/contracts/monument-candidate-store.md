@@ -75,12 +75,13 @@ moves into `Score` as a filter on the stored `source`.
 
 ## 3. The `monument_candidate` table
 
-One row **per (cell, source)**. `Gather` deduplicates same-source emissions by candidate cell: several
-wall signs ringing one monument all project to the *same* air cell (pigland places 4 against each block),
-so storing one per sign just bloats the table — keep the first emission's evidence (pigland's 64 sign rows
-→ 40 cells, no quality change: corpus precision/recall unchanged). `Score` still cell-merges *across*
-sources (a cell can be both sign- and stand-marked), keeping the strongest. Columns are exactly what
-`Score` needs to reproduce the style filter / `Confidence`, and nothing it can recompute.
+One row **per cell**, keeping the strongest anchor (**armorstand > sign > geometry**). Several wall signs
+ringing one monument all project to the *same* air cell (pigland places 4 against each block), and a
+monument is often marked by *both* a stand and a sign at that cell. `Score` cell-merges anyway and the
+stand always scores ≥ the sign, so storing the duplicates just bloats the table — pigland's 64 sign
+emissions collapse to **8** candidates (4 stand cells + 4 sign cells), corpus precision/recall/colour all
+unchanged. Columns are exactly what `Score` needs to reproduce the style filter / `Confidence`, and nothing
+it can recompute.
 
 A wall sign emits two placement families: **beside** (the sign faces the monument — always tried) and
 **in-column** (the sign sits in the monument's own column, e.g. nutrient's "v WOOL v" cap). The in-column

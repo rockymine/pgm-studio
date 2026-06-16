@@ -226,10 +226,14 @@ public static class MonumentSuggester
                     null, null, null, null, null, null, null, null, null));
             }
 
-        // One row per (cell, source): several wall signs around one monument all hint at the SAME cell,
-        // and Score collapses by cell anyway — storing the duplicates only bloats the table (pigland's 64
-        // sign rows → 40 cells). Keep the first emission's evidence.
-        return candidates.GroupBy(c => (c.X, c.Y, c.Z, c.Source)).Select(g => g.First()).ToList();
+        // One row per CELL, keeping the strongest anchor (armorstand > sign > geometry): several wall signs
+        // ringing one monument all hint at the same cell, and a monument is often marked by BOTH a stand and
+        // a sign there — Score collapses by cell anyway (the stand always scores ≥ the sign), so storing the
+        // duplicates just bloats the table (pigland's 64 sign rows → 40 → 8 cells, corpus parity unchanged).
+        return candidates
+            .GroupBy(c => (c.X, c.Y, c.Z))
+            .Select(g => g.OrderBy(c => c.Source switch { "armorstand" => 0, "sign" => 1, _ => 2 }).First())
+            .ToList();
 
         // ── geometry terrain-reject helpers (§4.1) ──────────────────────────────────────────────
         // Pedestal walled in: none of its 4 horizontal faces is air or a sign (so it isn't visible/markable).
