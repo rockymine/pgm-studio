@@ -435,6 +435,30 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 
 /* ══════════════════════════════════════════════════════════════════════════
+   METER — thin confidence / score bar (track + fill).
+   Width is set inline; the colour band is a modifier on the fill
+   (default = high/success, --mid = warning, --low = muted).
+   Used for ranked monument suggestions (confidence) and similar scores.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.meter {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: var(--color-success);
+}
+.meter-fill--mid { background: var(--color-warning); }
+.meter-fill--low { background: var(--text-muted); }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
    AUTHOR CHIP  (avatar + resolved player name — used in map detail view)
    ══════════════════════════════════════════════════════════════════════════ */
 

@@ -299,18 +299,149 @@
       </div>
     </div>
 
-    @* IMPLEMENT: monument auto-detect. Backend is done — `MonumentSuggester` (the "which monument
-       style? + box" extractor) finds monument blocks + wool colours from the world. FULL CONTRACT
-       (inputs, MonumentStyle enums, detection anchors, colour rule, output record, API + harness
-       usage): docs/contracts/monument-suggestion.md *@
-    <p class="ds-theming-note">
-      <em>Smart-detect (to build):</em> rather than placing each monument by hand, the author can box
-      the monument area and pick its style — <em>pedestal</em> (block below), <em>label</em> (sign /
-      armour stand / none) and <em>cap</em> (block above) — and the world scan suggests the monument
-      blocks and their wool colours to confirm. Backend is done (<code>MonumentSuggester</code>); the
-      full contract — modes, inputs, output, API + harness usage — is in
-      <code>docs/contracts/monument-suggestion.md</code>.
+    @* Smart-detect path — backend = MonumentSuggester (docs/contracts/monument-suggestion.md). Instead of
+       placing each monument by hand, the author BOXES one monument cluster and declares its SCHEMATIC —
+       pedestal (block below) × label (sign / armour stand / none) × cap (block above) — and the world scan
+       returns ranked ghost suggestions (inferred wool colour + confidence + evidence) to confirm/dismiss.
+       Grounded in REAL thunder: green's cluster (blue-green/red-green/yellow-green at x71-73, z18, y8) reads
+       as bedrock pedestal + "<colour> Wool monument" sign below + open cap → 3 sign hits at conf 0.90,
+       colours blue/red/yellow (verified: tools/PgmStudio.RoundTrip --suggest-monuments thunder). *@
+    <p class="ds-theming-note" style="margin-top:var(--space-5)">
+      <em>Or — smart-detect from the world.</em> Rather than placing each monument by hand, box one
+      monument cluster and declare its <em>schematic</em>: the <em>pedestal</em> below, the <em>label</em>
+      (sign, armour stand, or none) and the <em>cap</em> above. The world scan reads the built blocks and
+      returns ranked ghost suggestions — each with an inferred wool colour, a confidence, and the evidence
+      it came from — to confirm or dismiss. Backend: <code>MonumentSuggester</code>
+      (<code>docs/contracts/monument-suggestion.md</code>).
     </p>
+
+    <div class="ds-example-label">Smart-detect — box the cluster, declare the schematic</div>
+    <div class="ds-workspace-frame">
+      <div class="workspace">
+        @* SIDEBAR · the schematic picker (the "which monument style?" menu) + ranked suggestions *@
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <div class="panel-stack">
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Monument schematic</h2>
+                  <span class="badge badge--neutral">green cluster</span>
+                </div>
+                <div class="section-body">
+                  <div class="field">
+                    <label class="field-label">Signature <span class="text-muted text-sm">(below · monument · above)</span></label>
+                    <div class="canvas-surface canvas-surface--svg" style="height:130px;border-radius:var(--radius-sm)">
+                      <svg viewBox="0 0 150 126" style="width:100%;height:100%">
+                        @* cap · open (air) — dashed empty cell above *@
+                        <rect x="46" y="8" width="42" height="30" rx="1.5" fill="none" stroke="var(--canvas-axis)" stroke-width="1" stroke-dasharray="3 2"/>
+                        <text x="94" y="27" fill="var(--text-muted)" font-size="9" font-family="ui-monospace,monospace">open</text>
+                        @* monument cell — air, the wool goes here (ghost) *@
+                        <rect x="46" y="40" width="42" height="30" rx="1.5" fill="color-mix(in oklch,#5555FF 16%,transparent)" stroke="#5555FF" stroke-width="1" stroke-dasharray="3 2"/>
+                        <rect x="58" y="47" width="18" height="16" rx="1.5" fill="#5555FF"/>
+                        <text x="94" y="59" fill="var(--text-secondary)" font-size="9" font-family="ui-monospace,monospace">wool</text>
+                        @* pedestal · bedrock — solid cell below *@
+                        <rect x="46" y="72" width="42" height="30" rx="1.5" fill="#33363d" stroke="var(--border)" stroke-width="1"/>
+                        <text x="94" y="91" fill="var(--text-muted)" font-size="9" font-family="ui-monospace,monospace">bedrock</text>
+                        @* sign below — beside the pedestal, facing the monument *@
+                        <rect x="10" y="76" width="26" height="16" rx="1.5" fill="#6b4f2a" stroke="#3f2f19" stroke-width="0.8"/>
+                        <line x1="14" y1="81" x2="32" y2="81" stroke="#d8c9a8" stroke-width="1.1"/>
+                        <line x1="14" y1="86" x2="28" y2="86" stroke="#d8c9a8" stroke-width="1.1"/>
+                        <text x="10" y="110" fill="var(--text-muted)" font-size="8" font-family="ui-monospace,monospace">sign · below</text>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="field"><label class="field-label">Pedestal · below</label><select class="field-input"><option>Any</option><option selected>Bedrock</option><option>Stained clay</option><option>Stained glass</option><option>Wool</option><option>Floating</option></select></div>
+                  <div class="field"><label class="field-label">Label</label><select class="field-input"><option>Any</option><option selected>Sign below</option><option>Sign above</option><option>Armour stand</option><option>None</option></select></div>
+                  <div class="field"><label class="field-label">Cap · above</label><select class="field-input"><option>Any</option><option selected>Open (air)</option><option>Stained glass</option><option>Stained clay</option><option>Bedrock</option><option>Slab</option><option>Barrier</option><option>Wool</option><option>Sign</option></select></div>
+                  <div class="field"><label class="field-label">Boxed area <span class="text-muted text-sm">(world)</span></label><div class="field-value">X 62‥84 · Y 0‥16 · Z 8‥28</div></div>
+                  <button class="action-btn action-btn--primary action-btn--full action-btn--separated"><i data-lucide="scan-search"></i> Detect monuments</button>
+                  <p class="section-desc">3 found · all sign-labelled · 0 dismissed.</p>
+                </div>
+              </section>
+              <section class="panel-section">
+                <div class="section-header section-header--ruled">
+                  <h2 class="section-title">Suggestions</h2>
+                  <span class="badge badge--dim">3 in box</span>
+                </div>
+                <div class="panel-list">
+                  <div class="list-row list-row--compact list-row--selected"><span class="list-swatch" style="background:#5555FF"></span><span class="list-label list-label--mono">blue-green</span><span class="badge badge--success">0.90</span></div>
+                  <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FF5555"></span><span class="list-label list-label--mono">red-green</span><span class="badge badge--success">0.90</span></div>
+                  <div class="list-row list-row--compact"><span class="list-swatch" style="background:#FFFF55"></span><span class="list-label list-label--mono">yellow-green</span><span class="badge badge--success">0.90</span></div>
+                </div>
+                <p class="section-desc">Ranked highest-confidence first. A stained pedestal/cap would set the colour directly; here the sign text does. Low-confidence geometry hits would appear muted.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        @* CANVAS · the boxed area + the three ghost suggestions on green's island *@
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn" title="Pan"><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn draw-tool-btn--active" title="Box monument area"><i data-lucide="box-select"></i></button>
+            </div>
+            <div class="subbar-sep"></div>
+            <button class="filter-chip filter-chip--active" title="Orbit fill active">Orbit</button>
+            <span class="canvas-cursor">X 72 · Z 18</span>
+            <div class="canvas-subbar-right">
+              <button class="draw-tool-btn" title="Fit cluster"><i data-lucide="maximize-2"></i></button>
+              <button class="draw-tool-btn" title="Reset zoom"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">180%</span>
+            </div>
+          </div>
+          <div class="canvas-surface canvas-surface--svg">
+            <IslandMap Mode="neutral">
+              @* faint team spawns for orientation *@
+              <circle cx="15.5" cy="136.5" r="2" fill="#5555FF" opacity="0.4" />
+              <circle cx="241.5" cy="120.5" r="2" fill="#55FF55" opacity="0.4" />
+              <circle cx="136.5" cy="241.5" r="2" fill="#FF5555" opacity="0.4" />
+              <circle cx="120.5" cy="15.5" r="2" fill="#FFFF55" opacity="0.4" />
+              @* the author-drawn scan box on green's island (world X62..84, Z8..28) *@
+              <rect x="190" y="136" width="22" height="20" rx="1" fill="color-mix(in oklch,var(--accent) 14%,transparent)" stroke="var(--accent)" stroke-width="0.8" stroke-dasharray="2.5 1.5" />
+              @* three ghost suggestions inside the box — fanned for legibility (real cluster is 3 adjacent
+                 blocks). Colour = inferred wool; dashed ring = suggestion; white ring = the selected one. *@
+              <circle cx="196" cy="143" r="4.4" fill="none" stroke="white" stroke-width="0.8" stroke-dasharray="2 1.5" />
+              <circle cx="196" cy="143" r="2.2" fill="#5555FF" />
+              <circle cx="206" cy="143" r="4.4" fill="none" stroke="var(--canvas-axis)" stroke-width="0.6" stroke-dasharray="2 1.5" opacity="0.85" />
+              <circle cx="206" cy="143" r="2.2" fill="#FF5555" opacity="0.9" />
+              <circle cx="201" cy="151.5" r="4.4" fill="none" stroke="var(--canvas-axis)" stroke-width="0.6" stroke-dasharray="2 1.5" opacity="0.85" />
+              <circle cx="201" cy="151.5" r="2.2" fill="#FFFF55" opacity="0.9" />
+            </IslandMap>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        @* INSPECTOR · the focused suggestion — confirm or dismiss *@
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="detail-header">
+                <span class="geo-type-icon detail-icon--muted"><i data-lucide="sparkles"></i></span>
+                <span class="detail-label detail-label--mono">blue-green</span>
+                <span class="badge badge--neutral">Suggestion</span>
+              </div>
+              <div class="section-body">
+                <div class="field">
+                  <label class="field-label">Confidence <span class="text-muted text-sm">· sign + bedrock</span></label>
+                  <div class="meter"><div class="meter-fill" style="width:90%"></div></div>
+                  <p class="section-desc" style="margin-top:var(--space-1)">0.90 — high; ranked first.</p>
+                </div>
+                <div class="field"><label class="field-label">Inferred wool</label><div class="field-pick-row"><span class="field-swatch" style="background:#5555FF"></span><span class="field-value">blue-wool</span></div></div>
+                <div class="field"><label class="field-label">Source</label><div class="field-pick-row"><span class="geo-type-icon detail-icon--muted"><i data-lucide="signpost"></i></span><span class="field-value">Wall sign · below</span></div></div>
+                <div class="field"><label class="field-label">Evidence</label><div class="field-value">Blue Wool · monument</div><p class="section-desc">Raw sign “-=- | Blue Wool | monument | -=-” at 71, 7, 18, facing +X toward the cell.</p></div>
+                <div class="field"><label class="field-label">Pedestal</label><div class="field-pick-row"><span class="field-swatch" style="background:#33363d;border-color:var(--border)"></span><span class="field-value">Bedrock — matches schematic</span></div></div>
+                <div class="field"><label class="field-label">Monument block <span class="text-muted text-sm">(air, raw)</span></label><div class="ctrl-row"><div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="72"/></div><div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="8"/></div><div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="18"/></div></div></div>
+                <div class="ctrl-row" style="margin-top:var(--space-2)">
+                  <button class="action-btn action-btn--fill"><i data-lucide="x"></i> Dismiss</button>
+                  <button class="action-btn action-btn--primary action-btn--fill"><i data-lucide="check"></i> Confirm</button>
+                </div>
+                <p class="section-desc">Confirm places the air monument block; the capturing team (green) is derived by orbit. A stained pedestal/cap colour wins over the sign text if they disagree.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
   </article>
 
   @* ── Step 4 · Room (sidebar: rectangle icons, header "Wool rooms") ──────── *@

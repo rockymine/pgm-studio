@@ -426,7 +426,7 @@
           <p class="ds-kicker">06</p>
           <h2>Actions and states</h2>
         </div>
-        <p>Use one vocabulary for actions, status, empty content, and validation.</p>
+        <p>Use one vocabulary for actions, status, empty content, validation, and confidence meters.</p>
       </div>
       <div class="ds-state-row">
         <button class="action-btn">Secondary</button>
@@ -447,6 +447,13 @@
           <input class="field-input field-input--error" value="spawn-red"/>
           <div class="field-error">Region ID "spawn-red" is already in use.</div>
         </div>
+      </div>
+      @* Meter — thin confidence/score bar (track + .meter-fill; width inline, colour band by modifier).
+         Used for ranked monument suggestions. *@
+      <div class="ds-state-grid" style="margin-top:var(--space-4)">
+        <div class="field"><label class="field-label">Confidence · high <span class="text-muted text-sm">0.90</span></label><div class="meter"><div class="meter-fill" style="width:90%"></div></div></div>
+        <div class="field"><label class="field-label">Confidence · mid <span class="text-muted text-sm">0.55</span></label><div class="meter"><div class="meter-fill meter-fill--mid" style="width:55%"></div></div></div>
+        <div class="field"><label class="field-label">Confidence · low <span class="text-muted text-sm">0.25</span></label><div class="meter"><div class="meter-fill meter-fill--low" style="width:25%"></div></div></div>
       </div>
     </section>
 
