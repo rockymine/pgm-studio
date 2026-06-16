@@ -322,5 +322,12 @@ under `docs/`.
       `wwwroot/lib/bootstrap` (8.4M) + the `index.html` link. Chrome-verified (349 maps, search, version
       tags; bootstrap.css now 404). Kept `wwwroot/css/app.css` (template loading/error-UI styles, no Bootstrap).
 - [ ] D3 — Evaluate: `map_config` should probably **not** be a JSON-document artifact — consider a
-      relational table (scan_layer, exclude_blocks, exclude_islands, confirmed). Potential later
-      improvement; needs evaluation (weigh vs. the hybrid "JSON for irregular leaves" rule).
+      relational table (scan_layer, exclude_blocks, exclude_islands, confirmed). Same question for
+      **`symmetry_json`**: the **selected/confirmed mode + status** are values we may want to query/list
+      across maps (e.g. "configure-complete?", "which maps are rot_90?") and are set individually, so they
+      belong in columns; keep the per-mode detection detail (candidate modes, confidence, centre) as JSON.
+      Decision rule (storage audit): **column when a value is queried/filtered/constrained or set on its
+      own; JSON when the doc is polymorphic or read/written only as an opaque unit by its single owner** —
+      by which the `*_json` leaf columns + editor/intent sidecars stay JSON, but `map_config` and the
+      symmetry *status* are the promotion candidates. Potential later improvement; needs evaluation (weigh
+      vs. the hybrid "JSON for irregular leaves" rule).
