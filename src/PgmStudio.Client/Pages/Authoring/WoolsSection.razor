@@ -288,6 +288,7 @@
                 <span class="badge badge--neutral">Monument</span>
               </div>
               <div class="section-body">
+                <div class="field"><label class="field-label">Captured wool</label><div class="field-pick-row"><span class="field-swatch" style="background:#5555FF"></span><span class="field-value">blue-wool</span></div></div>
                 <div class="field"><label class="field-label">Capturing team</label><div class="field-pick-row"><span class="field-swatch" style="background:#55FF55"></span><select class="field-input"><option>Blue</option><option selected>Green</option><option>Red</option><option>Yellow</option></select></div></div>
                 <div class="field"><label class="field-label">Block position <span class="text-muted text-sm">(raw)</span></label><div class="ctrl-row"><div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="72"/></div><div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="18"/></div><div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="18"/></div></div></div>
                 <p class="section-desc">Each enemy team must carry the blue wool to its own monument. Orbit derives the other wools' monuments.</p>
@@ -297,6 +298,19 @@
         </div>
       </div>
     </div>
+
+    @* IMPLEMENT: monument auto-detect. Backend is done — `MonumentSuggester` (the "which monument
+       style? + box" extractor) finds monument blocks + wool colours from the world. FULL CONTRACT
+       (inputs, MonumentStyle enums, detection anchors, colour rule, output record, API + harness
+       usage): docs/contracts/monument-suggestion.md *@
+    <p class="ds-theming-note">
+      <em>Smart-detect (to build):</em> rather than placing each monument by hand, the author can box
+      the monument area and pick its style — <em>pedestal</em> (block below), <em>label</em> (sign /
+      armour stand / none) and <em>cap</em> (block above) — and the world scan suggests the monument
+      blocks and their wool colours to confirm. Backend is done (<code>MonumentSuggester</code>); the
+      full contract — modes, inputs, output, API + harness usage — is in
+      <code>docs/contracts/monument-suggestion.md</code>.
+    </p>
   </article>
 
   @* ── Step 4 · Room (sidebar: rectangle icons, header "Wool rooms") ──────── *@

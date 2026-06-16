@@ -70,6 +70,24 @@ B7 (symmetry detection), plus M7 colours (P5) and M8 sketch (S2).
 - Parity harnesses in `tools/PgmStudio.RoundTrip` (`--parity`/`--categorize`/`--buildability`/
   `--traversability`/`--wool`/`--extract`/`--islands`/`--authoring`); regenerate Python oracles into
   `/tmp/pyfresh` (wiped on reboot) via `parser.parse + serializer.to_dict` over the corpus.
+- `--suggest-monuments <regionDir> <xml_data.json> [--auto-style|--pedestal K --label K] [--margin M]`
+  and `--suggest-monuments-corpus` validate `MonumentSuggester` (`PgmStudio.Minecraft`) — the
+  authoring-flow "which monument style? + box" extractor. Given the world, the box the author drew, and
+  the declared style (pedestal-below × label × cap-above), it suggests monument blocks: inverts the corpus-learned
+  wall-sign facing→monument geometry, classifies sign *text* as a label (not keyword-match), requires
+  the declared pedestal under an air cell, plus armour-stand/geometry fallbacks. Corpus (auto-style):
+  **precision 96.6% / recall 57.8% / 35 FP** over 1721 monuments (recall capped by ~⅓ unlabelled +
+  sign-post-only maps). Contract (modes/usage): `docs/contracts/monument-suggestion.md`; pattern study:
+  `docs/monument-patterns.md` (scripts in `scripts/`). `layer_segment.parquet`
+  can't drive it (no block materials/signs/entities) — see that doc's reuse note.
+- `--monument-slices <regionDir> <xml_data.json> <outParquet>` runs `MonumentSliceExtractor`
+  (`PgmStudio.Minecraft`): for every wool monument it samples a fixed **width-3 × depth-3 × height-5**
+  block volume centred on the monument `<block>` (1 each horizontal, 2 above/below) → one parquet row
+  per cell, tagged with `monument_id`/`wool_color`/`team`. Captures block id+data+name, decoded sign
+  text, full tile-entity NBT, and entities (armour stands etc.) — these are attached by vertical reach
+  (a wool-indicator stand standing below still has its head in the slice). Monument cell is air by
+  PGM's placement-region convention. Validated on thunder (signs), pigland (glass pedestal + wool-on-
+  head armour stand, the `Ruediger_LP` pattern) and dragons_hearth (armour stand above the monument).
 - **Do NOT use `app.MapStaticAssets()`** in this hosted-WASM setup — it breaks the framework boot
   (`_framework/*` → 500, app stuck on "Loading"). A path-rewrite middleware maps fingerprinted
   `/js/...<hash>.js` → real names; load JS modules via a native `import()` from the classic `studio.js`.
