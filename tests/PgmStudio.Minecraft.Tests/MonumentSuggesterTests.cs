@@ -201,4 +201,20 @@ public class MonumentSuggesterTests
         await Assert.That(s.Confidence).IsEqualTo(0.60);
         await Assert.That(s.Color).IsEqualTo("lime");
     }
+
+    [Test]
+    public async Task Geometry_requires_a_curated_cap_and_an_open_side()
+    {
+        var blocks = new byte[4096];
+        blocks[Idx(3, 7, 3)] = 7; blocks[Idx(3, 9, 3)] = 95;   // bedrock + glass, open sides -> the only valid one
+        blocks[Idx(3, 7, 8)] = 7; blocks[Idx(3, 9, 8)] = 44;   // bedrock + SLAB cap -> cap not in the allowlist, dropped
+        blocks[Idx(8, 7, 3)] = 7; blocks[Idx(8, 9, 3)] = 95;   // bedrock + glass but SEALED on all 4 sides -> dropped
+        blocks[Idx(7, 8, 3)] = 1; blocks[Idx(9, 8, 3)] = 1; blocks[Idx(8, 8, 2)] = 1; blocks[Idx(8, 8, 4)] = 1;
+        var section = new NbtCompound { new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", new byte[2048]) };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+
+        var geom = MonumentSuggester.Gather([chunk], Whole.Expand(2)).Where(c => c.Source == "geometry").ToList();
+        await Assert.That(geom.Count).IsEqualTo(1);
+        await Assert.That((geom[0].X, geom[0].Y, geom[0].Z)).IsEqualTo((3, 8, 3));
+    }
 }

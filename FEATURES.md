@@ -93,11 +93,13 @@ Contract: `docs/contracts/new-map-authoring.md`.
   stateless-web-tier goal. Four anchor types: monument-label **wall signs**, wool-head/named **armour
   stands**, **wool item frames** (4th type — frame on the monument's pedestal/cap, structural pocket test
   excludes decorative palette/“frog-eye” frames; 17 maps have wool frames, ~6 real), and a last-resort
-  **high-confidence geometry** fallback (label-free maps only, skipped when anchored; requires a
-  distinctive pedestal **and** cap — the lupain bedrock+glass case). Corpus: anchored path
-  **96.7% / 58.7% / 35 FP**; label-free geometry (`--label None`) **98.1% / 257 TP / 5 FP**. The
-  single-signal geometry spray (0.27% precision, ~95% of the old store) is **not persisted** — store
-  drops ~14× on flood maps (dreamland 5859→421). `docs/contracts/monument-candidate-store.md`. (F9)
+  **unsigned-monument allowlist** (label-free maps only, skipped when anchored): a distinctive pedestal
+  (bedrock/clay/glass/wool) under a colour/marker cap (glass/wool/clay/barrier) with ≥1 open side — the 14
+  ped×cap combos real label-free monuments use (lupain = bedrock+glass). Corpus: anchored path
+  **96.7% / 58.7% / 35 FP**; label-free (`--label None`) **97.4% / 191 TP / 5 FP / 93.7% colour**. The
+  single-signal + terrain-ambiguous geometry spray (~97% of the old store) is **not persisted** — flood
+  maps collapse (dreamland 5859→311, fall_of_babylon 5035→40, lupain 52→2).
+  `docs/contracts/monument-candidate-store.md`. (F9)
 - **`--migrate-only`** — `PgmStudio.Import` applies pending migrations to a live DB without importing. (F9)
 - **`/authoring` concept page** — UI mock (no backend calls), the design reference for the real
   wizard. (`9f645dc` → `45209a1`)

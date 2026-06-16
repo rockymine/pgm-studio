@@ -251,20 +251,22 @@ public static class MonumentSuggester
             foreach (var ((x, y, z), _) in blocks)
             {
                 if (Cell(x, y + 1, z) is not (var below, var above)) continue;
+                // UNSIGNED-MONUMENT ALLOWLIST: a distinctive pedestal (bedrock/clay/glass/wool) under a
+                // COLOUR-or-MARKER cap — glass/wool/clay encode the colour, barrier marks it. These are the
+                // 14 ped×cap combos real label-free monuments actually use (corpus: 38% of monuments; lupain
+                // = bedrock+glass). Tighter than "any distinctive cap": slab/sign/bedrock caps are
+                // terrain-ambiguous (34% of unlabelled reals but low precision) and dropped; single-signal
+                // (only one distinctive) was 0.27%-precision spray, also out.
                 var pedSpecific = ClassifyPedestal(below.Id) is not (PedestalKind.Any or PedestalKind.Floating);
-                var capSpecific = ClassifyCap(above.Id) is not (CapKind.Any or CapKind.Open);
-                // HIGH-CONFIDENCE ONLY: require a distinctive pedestal AND a distinctive cap (the lupain
-                // case — bedrock/clay below + glass/clay above). The single-signal tier (one of the two) was
-                // 62.8k of the 65k geometry rows at 0.27% precision — pure spray, dropped (not worth the
-                // storage). This keeps the 224 real label-free catches (10.3% precision) the author surfaces
-                // by declaring e.g. Pedestal=Bedrock + Cap=StainedGlass + Label=None inside the box.
-                if (!pedSpecific || !capSpecific) continue;
-                // Terrain rejects (corpus-validated, 0% real-monument loss / 593 monuments). The clay-mass
-                // rule stays load-bearing here (rejects a clay FLOOR with glass above, keeps an isolated clay
-                // pedestal). The buried+open-sky rule is now subsumed — every high-conf candidate is capped
-                // (capSpecific ⇒ solid above ⇒ no open sky) — but kept for safety if the gate ever loosens.
-                if (BuriedPedestal(x, y, z) && OpenSkyAbove(x, y + 1, z)) continue;          // walled-in + open sky = terrain
-                if (below.Id == StainedClayId && SameMassNeighbours(x, y, z, StainedClayId) >= 3) continue;  // clay in a clay mass
+                var capCurated = ClassifyCap(above.Id)
+                    is CapKind.StainedGlass or CapKind.StainedClay or CapKind.Wool or CapKind.Barrier;
+                if (!pedSpecific || !capCurated) continue;
+                // ACCESSIBLE: the cell needs ≥1 air horizontal neighbour, else it's a sealed pocket in terrain,
+                // not a placeable monument (corpus: 99.7% of these monuments have an open side). Cell-level
+                // accessibility — supersedes the old buried-pedestal + open-sky reject.
+                if (Faces.All(f => blocks.ContainsKey((x + f.dx, y + 1, z + f.dz)))) continue;
+                // A clay FLOOR with a cap (≥3 same-clay neighbours) is terrain, not an isolated clay pedestal.
+                if (below.Id == StainedClayId && SameMassNeighbours(x, y, z, StainedClayId) >= 3) continue;
                 candidates.Add(new MonumentCandidate(x, y + 1, z, "geometry", below.Id, below.Data, above.Id, above.Data,
                     null, null, null, null, null, null, null, null, null));
             }
@@ -285,20 +287,7 @@ public static class MonumentSuggester
             .Select(g => g.OrderBy(c => c.Source switch { "armorstand" => 0, "itemframe" => 1, "sign" => 2, _ => 3 }).First())
             .ToList();
 
-        // ── geometry terrain-reject helpers (§4.1) ──────────────────────────────────────────────
-        // Pedestal walled in: none of its 4 horizontal faces is air or a sign (so it isn't visible/markable).
-        bool BuriedPedestal(int x, int y, int z)
-        {
-            foreach (var (dx, dz) in Faces)
-            {
-                if (!blocks.TryGetValue((x + dx, y, z + dz), out var b)) return false;   // air face
-                if (b.Id == WallSignId) return false;   // wall-sign face (monuments are wall-signed; a post sign is terrain signage)
-            }
-            return true;
-        }
-        // ≥ 2 air blocks directly above the candidate cell (real buried pedestals top out at 1).
-        bool OpenSkyAbove(int cx, int cy, int cz) =>
-            !blocks.ContainsKey((cx, cy + 1, cz)) && !blocks.ContainsKey((cx, cy + 2, cz));
+        // ── geometry clay-mass terrain-reject helper (§4.1) ─────────────────────────────────────
         // Same-material neighbours of the pedestal among its 8 (a clay block in a clay mass has many).
         int SameMassNeighbours(int x, int y, int z, int id) =>
             Neighbours8.Count(n => blocks.TryGetValue((x + n.dx, y, z + n.dz), out var b) && b.Id == id);
