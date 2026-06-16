@@ -88,7 +88,7 @@ public static class MonumentSuggester
         [2] = (0, 1), [3] = (0, -1), [4] = (1, 0), [5] = (-1, 0),
     };
 
-    private const int WallSignId = 68, SignPostId = 63, WoolId = 35, StainedClayId = 159;
+    private const int WallSignId = 68, SignPostId = 63, WoolId = 35, StainedClayId = 159, BarrierId = 166;
 
     // Pedestal neighbour offsets for the geometry terrain-reject rules (§4.1).
     private static readonly (int dx, int dz)[] Faces = [(1, 0), (-1, 0), (0, 1), (0, -1)];
@@ -230,7 +230,11 @@ public static class MonumentSuggester
         // ringing one monument all hint at the same cell, and a monument is often marked by BOTH a stand and
         // a sign there — Score collapses by cell anyway (the stand always scores ≥ the sign), so storing the
         // duplicates just bloats the table (pigland's 64 sign rows → 40 → 8 cells, corpus parity unchanged).
+        // Drop cells sitting directly on a BARRIER: a barrier is never a real pedestal (0/593 corpus — it's
+        // only ever a *cap*, 78×), so an air cell above one is a deliberately-blocked, unreachable spot (the
+        // phantom above pigland's barrier-capped monuments). Zero real-monument loss; pigland 8 → 4.
         return candidates
+            .Where(c => c.PedestalId != BarrierId)
             .GroupBy(c => (c.X, c.Y, c.Z))
             .Select(g => g.OrderBy(c => c.Source switch { "armorstand" => 0, "sign" => 1, _ => 2 }).First())
             .ToList();

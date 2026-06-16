@@ -79,9 +79,18 @@ One row **per cell**, keeping the strongest anchor (**armorstand > sign > geomet
 ringing one monument all project to the *same* air cell (pigland places 4 against each block), and a
 monument is often marked by *both* a stand and a sign at that cell. `Score` cell-merges anyway and the
 stand always scores ≥ the sign, so storing the duplicates just bloats the table — pigland's 64 sign
-emissions collapse to **8** candidates (4 stand cells + 4 sign cells), corpus precision/recall/colour all
-unchanged. Columns are exactly what `Score` needs to reproduce the style filter / `Confidence`, and nothing
-it can recompute.
+emissions collapse to **8** candidates (4 stand cells + 4 sign cells). Columns are exactly what `Score`
+needs to reproduce the style filter / `Confidence`, and nothing it can recompute.
+
+**No-barrier-pedestal cut.** A cell sitting directly on a **barrier** (id 166) is dropped at gather. A
+barrier is *never* a real pedestal (0/593 corpus — it appears only as a *cap*, 78×, e.g. pigland caps its
+glass-pedestal monuments with a signed barrier), so an air cell *above* one is a deliberately-blocked,
+unreachable spot — the phantom that a barrier-mounted sign's "beside, monument-above" placement projects
+onto the cap. Dropping these is **zero real-monument loss** (corpus TP/FP/colour all unchanged) and takes
+pigland's stored rows **8 → 4** — exactly the 4 real (stand) monuments. (The reachability intuition "solid
+pedestal but air directly below → too high to place" is *not* used as a blanket rule: 28/541 real
+solid-pedestal monuments are legitimately raised that way; the barrier-pedestal signal is the precise,
+loss-free version.)
 
 A wall sign emits two placement families: **beside** (the sign faces the monument — always tried) and
 **in-column** (the sign sits in the monument's own column, e.g. nutrient's "v WOOL v" cap). The in-column
