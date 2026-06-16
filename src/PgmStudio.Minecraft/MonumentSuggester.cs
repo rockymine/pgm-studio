@@ -253,9 +253,16 @@ public static class MonumentSuggester
                 if (Cell(x, y + 1, z) is not (var below, var above)) continue;
                 var pedSpecific = ClassifyPedestal(below.Id) is not (PedestalKind.Any or PedestalKind.Floating);
                 var capSpecific = ClassifyCap(above.Id) is not (CapKind.Any or CapKind.Open);
-                if (!pedSpecific && !capSpecific) continue;
-                // Terrain rejects (corpus-validated: 0% real-monument loss over 593 monuments) — a real
-                // pedestal is always accessible (an air/sign neighbour) and a real clay pedestal is isolated.
+                // HIGH-CONFIDENCE ONLY: require a distinctive pedestal AND a distinctive cap (the lupain
+                // case — bedrock/clay below + glass/clay above). The single-signal tier (one of the two) was
+                // 62.8k of the 65k geometry rows at 0.27% precision — pure spray, dropped (not worth the
+                // storage). This keeps the 224 real label-free catches (10.3% precision) the author surfaces
+                // by declaring e.g. Pedestal=Bedrock + Cap=StainedGlass + Label=None inside the box.
+                if (!pedSpecific || !capSpecific) continue;
+                // Terrain rejects (corpus-validated, 0% real-monument loss / 593 monuments). The clay-mass
+                // rule stays load-bearing here (rejects a clay FLOOR with glass above, keeps an isolated clay
+                // pedestal). The buried+open-sky rule is now subsumed — every high-conf candidate is capped
+                // (capSpecific ⇒ solid above ⇒ no open sky) — but kept for safety if the gate ever loosens.
                 if (BuriedPedestal(x, y, z) && OpenSkyAbove(x, y + 1, z)) continue;          // walled-in + open sky = terrain
                 if (below.Id == StainedClayId && SameMassNeighbours(x, y, z, StainedClayId) >= 3) continue;  // clay in a clay mass
                 candidates.Add(new MonumentCandidate(x, y + 1, z, "geometry", below.Id, below.Data, above.Id, above.Data,

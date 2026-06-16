@@ -87,13 +87,17 @@ Contract: `docs/contracts/new-map-authoring.md`.
 - **Monument suggester + slice extractor** — smart-detect for the Monuments step (corpus-learned
   sign-facing → monument geometry). See `docs/contracts/monument-suggestion.md`. (`5235107`, `45209a1`)
 - **Monument candidate store** — `MonumentSuggester` split into ingest-time `Gather` (world →
-  candidates) + pure `Score` (`Suggest == Score(Gather)`, corpus parity unchanged: 96.6% / 57.8% /
-  35 FP); `monument_candidate` table (M0002) gathered in `scan-world`; served by
-  `GET /map/{slug}/monument-suggestions` (box, no world access) + `POST /map/{slug}/monument-orbit`
-  (symmetry reflect/rotate). Makes monument suggestion a DB query — the stateless-web-tier goal. The
-  last-resort geometry pass is corpus-bounded (skip when the map has sign/stand anchors; drop walled-in +
-  open-sky and clay-in-a-mass terrain — 0% real-monument loss over 593, `scripts/monument_pedestal_rule.py`),
-  taking thunder's gathered rows 2193→24, pigland 258→68. `docs/contracts/monument-candidate-store.md`. (F9)
+  candidates) + pure `Score` (`Suggest == Score(Gather)`); `monument_candidate` table (M0002) gathered in
+  `scan-world`; served by `GET /map/{slug}/monument-suggestions` (box, no world access) +
+  `POST /map/{slug}/monument-orbit` (symmetry reflect/rotate). Makes monument suggestion a DB query — the
+  stateless-web-tier goal. Four anchor types: monument-label **wall signs**, wool-head/named **armour
+  stands**, **wool item frames** (4th type — frame on the monument's pedestal/cap, structural pocket test
+  excludes decorative palette/“frog-eye” frames; 17 maps have wool frames, ~6 real), and a last-resort
+  **high-confidence geometry** fallback (label-free maps only, skipped when anchored; requires a
+  distinctive pedestal **and** cap — the lupain bedrock+glass case). Corpus: anchored path
+  **96.7% / 58.7% / 35 FP**; label-free geometry (`--label None`) **98.1% / 257 TP / 5 FP**. The
+  single-signal geometry spray (0.27% precision, ~95% of the old store) is **not persisted** — store
+  drops ~14× on flood maps (dreamland 5859→421). `docs/contracts/monument-candidate-store.md`. (F9)
 - **`--migrate-only`** — `PgmStudio.Import` applies pending migrations to a live DB without importing. (F9)
 - **`/authoring` concept page** — UI mock (no backend calls), the design reference for the real
   wizard. (`9f645dc` → `45209a1`)

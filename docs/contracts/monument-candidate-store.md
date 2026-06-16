@@ -218,13 +218,20 @@ ingest): `Confidence`, the final resolved `Color`, and the pass/fail of the pede
    - **Skip geometry entirely when the map has monument anchors** (a `IsMonumentLabel` sign, or a wool-head
      / named armour stand). Geometry is only ever scored for `Label=None`, which no author declares on a
      labelled map. This alone takes **thunder 2193→24, pigland 258→68**.
-   - For a genuinely label-free map, still require a **distinctive pedestal or cap**
-     (`ClassifyPedestal ∉ {Any, Floating}` **or** `ClassifyCap ∉ {Any, Open}`), then drop the two terrain
-     signatures: a **walled-in pedestal** (no air/sign among its 4 faces) **with open sky** (≥2 air above) —
-     real buried pedestals top out at 1 air above; and a **stained-clay pedestal that is part of a clay
-     mass** (≥3 same-clay neighbours among 8) — real clay pedestals are isolated (≤2). *(Isolation is
-     scoped to clay on purpose: a general "mass + open sky" rule would also kill ~1.3% of real monuments on
-     bedrock/wool floors.)*
+   - For a genuinely label-free map, require a **distinctive pedestal AND a distinctive cap**
+     (`ClassifyPedestal ∉ {Any, Floating}` **and** `ClassifyCap ∉ {Any, Open}`) — the **high-confidence
+     tier** (the lupain case: bedrock/clay below + glass/clay above, scored 0.60). The single-signal tier
+     (only one distinctive) was **62.8k of the 65k geometry rows at 0.27% precision** — pure spray (woolroom
+     flags, bedrock walls, exposed-clay terrain) — and is **not gathered**: not worth the storage. The
+     high-conf tier is 2k rows at ~10% raw precision and 224 real label-free catches; an author surfaces
+     them by declaring e.g. `Pedestal=Bedrock + Cap=StainedGlass + Label=None` in the box (corpus
+     `--label None`: **257 TP / 5 FP / 98.1% precision**). Then drop the remaining terrain signature: a
+     **stained-clay pedestal in a clay mass** (≥3 same-clay neighbours among 8) — real clay pedestals are
+     isolated (≤2), so this rejects a clay *floor* with glass above while keeping an isolated clay+glass
+     monument. *(Scoped to clay on purpose — a general mass rule kills ~1.3% of real monuments.)* The old
+     **walled-in + open-sky** reject is now subsumed — every high-conf candidate is capped (`capSpecific ⇒`
+     solid above `⇒` no open sky) — but kept in code in case the gate ever loosens. Store impact: the 76
+     unanchored geometry maps drop ~14× (dreamland **5859→421**, thundershock **240→12**, molcein **216→0**).
 
 2. **Box-scoped, author-driven — the box is the mode.** The mapmaker *knows* where they placed the
    monument, so the UX is: the author **marks the area** (a required `ScanBox`) and optionally declares the

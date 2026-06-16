@@ -174,4 +174,31 @@ public class MonumentSuggesterTests
         await Assert.That(s.Source).IsEqualTo("itemframe");
         await Assert.That(s.Color).IsEqualTo("lime");
     }
+
+    // ---- geometry: high-confidence label-free monument (lupain style: distinctive pedestal AND cap) ----
+
+    [Test]
+    public async Task HighConf_geometry_detects_a_capped_label_free_monument_but_drops_the_single_signal_one()
+    {
+        var blocks = new byte[4096];
+        var data = new byte[2048];
+        blocks[Idx(5, 7, 5)] = 7;                                    // bedrock pedestal; monument air at (5,8,5)
+        blocks[Idx(5, 9, 5)] = 95; SetNibble(data, Idx(5, 9, 5), 5); // stained-glass cap, data 5 = lime
+        blocks[Idx(10, 7, 10)] = 7;                                  // bedrock with OPEN air above -> single-signal, must be dropped
+        var section = new NbtCompound { new NbtByte("Y", 0), new NbtByteArray("Blocks", blocks), new NbtByteArray("Data", data) };
+        var chunk = new AnvilRegion.Chunk(0, 0, new NbtCompound("Level") { new NbtList("Sections", new[] { section }) });
+
+        // Only the capped (bedrock + glass) cell is gathered; the open-top bedrock is dropped as single-signal spray.
+        var geom = MonumentSuggester.Gather([chunk], Whole.Expand(2)).Where(c => c.Source == "geometry").ToList();
+        await Assert.That(geom.Count).IsEqualTo(1);
+        await Assert.That((geom[0].X, geom[0].Y, geom[0].Z)).IsEqualTo((5, 8, 5));
+
+        // The author declares bedrock + glass + no-label and gets the monument, at 0.60, coloured by the glass cap.
+        var s = MonumentSuggester.Suggest([chunk], Whole,
+            new MonumentStyle(PedestalKind.Bedrock, LabelKind.None, CapKind.StainedGlass)).Single();
+        await Assert.That((s.X, s.Y, s.Z)).IsEqualTo((5, 8, 5));
+        await Assert.That(s.Source).IsEqualTo("geometry");
+        await Assert.That(s.Confidence).IsEqualTo(0.60);
+        await Assert.That(s.Color).IsEqualTo("lime");
+    }
 }
