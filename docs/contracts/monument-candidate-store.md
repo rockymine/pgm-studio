@@ -82,6 +82,14 @@ so storing one per sign just bloats the table — keep the first emission's evid
 sources (a cell can be both sign- and stand-marked), keeping the strongest. Columns are exactly what
 `Score` needs to reproduce the style filter / `Confidence`, and nothing it can recompute.
 
+A wall sign emits two placement families: **beside** (the sign faces the monument — always tried) and
+**in-column** (the sign sits in the monument's own column, e.g. nutrient's "v WOOL v" cap). The in-column
+pair is emitted **only when the sign's column has a solid block within ±2** — a real in-column monument has
+a pedestal there (corpus: 16/16), whereas wool signs that merely *ring* a monument from open air (pigland's
+4-per-block) float (0/16) and would only store noise. This keeps every nutrient-style monument (corpus TP
+unchanged) and takes pigland 44 → 12 candidates. Validation: `scripts/monument_pedestal_rule.py` and the
+sign-column corpus check.
+
 ### DDL (FluentMigrator, mirrors `spawner_block` conventions)
 
 ```csharp

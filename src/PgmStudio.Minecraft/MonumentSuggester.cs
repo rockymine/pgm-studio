@@ -162,11 +162,21 @@ public static class MonumentSuggester
             if (!blocks.TryGetValue((sign.X, sign.Y, sign.Z), out var sb) || sb.Id != WallSignId) continue;   // wall sign only
             if (!WallSignFacing.TryGetValue(sb.Data, out var f)) continue;
             var color = ColorFromText(text);
-            (int x, int y, int z)[] placements =
-            [
-                (sign.X + f.dx, sign.Y + 1, sign.Z + f.dz), (sign.X, sign.Y + 1, sign.Z),   // below the monument
-                (sign.X + f.dx, sign.Y - 1, sign.Z + f.dz), (sign.X, sign.Y - 1, sign.Z),   // above the monument
-            ];
+            // Beside placements — the wall sign faces the monument (sign + facing); always tried.
+            var placements = new List<(int x, int y, int z)>
+            {
+                (sign.X + f.dx, sign.Y + 1, sign.Z + f.dz),   // beside, monument above (sign mounted below it)
+                (sign.X + f.dx, sign.Y - 1, sign.Z + f.dz),   // beside, monument below (sign caps it)
+            };
+            // In-column placements — the sign sits in the monument's OWN column (e.g. nutrient's "v WOOL v"
+            // capping the cell). Only when the sign's column isn't empty: a real in-column monument has a
+            // pedestal within the sign's ±2 (corpus: 16/16), whereas wool signs that merely *ring* a monument
+            // from open air (pigland) float (0/16 have a solid ±2) and would only emit noise.
+            if (Enumerable.Range(sign.Y - 2, 5).Any(k => k != sign.Y && blocks.ContainsKey((sign.X, k, sign.Z))))
+            {
+                placements.Add((sign.X, sign.Y + 1, sign.Z));
+                placements.Add((sign.X, sign.Y - 1, sign.Z));
+            }
             foreach (var (x, y, z) in placements)
                 if (Cell(x, y, z) is (var below, var above))
                     candidates.Add(new MonumentCandidate(x, y, z, "sign", below.Id, below.Data, above.Id, above.Data,
