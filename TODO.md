@@ -15,8 +15,8 @@ authoring **backend** is done. The open headline is the **new `/authoring` edito
 built from the concept page, a **separate page** from the existing `/editor` (left as-is for now).
 
 1. **Settle the remaining design questions** — `ND1` (navigation/flow, §12) and `ND2` (stripped World, §6a)
-   are **done** (spinning off `ND3` landing screen, `ND4` save model, `A5` cleaned-base backend); still
-   open: `ND3`, `ND4` — then **scaffold the new page** (`NS`).
+   are **done** (spinning off `ND4` save model, `A5` cleaned-base backend; `ND3` landing screen also done,
+   §12); still open: `ND4` — then **scaffold the new page** (`NS`).
 2. **Build the steps in page order** (`N00`→`N05` + `NVAL`), starting with **Teams & Spawns** (`N02`)
    — the recommended first real slice.
 
@@ -42,12 +42,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Design & scaffold first**
-- [ ] **ND3 — Landing / home screen (design).** `ND1` settled that the **flow overview is the wizard's
-  landing screen** (`/authoring/{slug}` root; rail logo returns there) — design the richer screen it
-  becomes: the six-phase flow panel **plus a brief of what the import found** (map folder + file list,
-  the top-down terrain render, and a summary of the generated `islands.json` / parquet blobs) as the
-  "here's what we detected" seed of the guidance model that later phases confirm. Output: a landing
-  mock (replaces/extends `FlowSection`) + the data it reads from import. (`new-map-authoring.md` §12.)
 - [ ] **ND4 — Save model (design).** Each phase persists a slice of intent via `PUT /map/{slug}/intent`,
   but **when** that fires and **how save state is shown** is unspecified — `ND1` removed the per-step
   "Save & continue" button + "unsaved" pill from Map Info, so the save affordance now needs a home.
@@ -142,8 +136,12 @@ editor too; **`C9`/`C11`/`C18`** are existing-`/editor`-specific.
 
 ## Backend, pipeline & internals
 
-- [ ] **B8 — External-source endpoints.** `sources` + `import-from-url` (download a map from an
-  Overcast / S3 `//download` zip link and import it). Player/Mojang already done (B6).
+- [ ] **B8 — Source ingestion (landing screen, `ND3`).** *(now)* **Open a local world folder** — list
+  xml-less world folders under the maps roots (`region/*.mca`, no `map.xml`) → create the map record →
+  `POST /map/{slug}/scan-world` (exists); the now-path that lets the landing screen validate new-map
+  authoring on real terrain folders. *(later)* **`import-from-url`** — fetch + import an Overcast / S3
+  `//download` zip link; the landing screen's download field stays disabled until this lands.
+  Player/Mojang already done (B6).
 - [ ] **P8 — Pipeline re-run on config change.** A parameterized re-scan honouring
   `scan_layer`/`exclude_blocks` → re-detect islands → rewrite **layer-tagged** `layer.parquet` /
   `islands.json` (so B9 stops mis-serving a stale canonical). Today Configure persists the change +

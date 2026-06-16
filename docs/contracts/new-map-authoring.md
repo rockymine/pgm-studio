@@ -418,13 +418,31 @@ as the entry point). There is **no per-step "Save & continue" button**: each pha
 model — deferred to ND4** (it applies to all phases, ties into the idempotent regenerate-on-save of §3
 and the resolve-at-save Mojang lookup).
 
-**The landing / home screen (→ ND3, its own design task).** `/authoring/{slug}` opens to a landing
-screen, and the rail logo returns there. It is the **six-phase flow overview** (the `FlowSection`
-panel: each phase, its one-line purpose, its progress dot, and the Build⇄Traversability caveat)
-**plus a brief of what the import found** — the map folder + file list, the top-down terrain render,
-and a summary of the generated `islands.json` / parquet blobs. That "here's what we detected" brief is
-the **seed of the guidance model**: it is exactly what the author confirms/corrects in the phases that
-follow (e.g. the detected island count → team count in World/Teams). The richer screen is **ND3**.
+**The landing / home screen (ND3 — `LandingSection`).** `/authoring` opens here, and the rail logo
+returns here. It is **a workspace with its own flow bar** (phase = **Import**) walking three sub-steps —
+**Source → Found → Plan** — the same three-level chrome as every phase, so the entry feels like the rest of
+the wizard. Only **Found** has a central canvas (the scanned-world preview); **Source** and **Plan** are
+panel-only. The sub-steps:
+
+1. **Source — pick a world.** *Now:* **open a local folder** — a world folder under the maps roots that
+   has `region/*.mca` but **no `map.xml`** (the new-map candidates); the studio scans it directly. A
+   folder-path field + "Browse" is the manual fallback. *Later (deferred):* a **download-link field** —
+   paste an Overcast / S3 `//download` zip URL and the studio fetches + imports it (the `import-from-url`
+   half of **`B8`**). The field is shown on the landing screen but disabled until B8 lands. This whole
+   step exists so we can **validate the new-map approach on real terrain folders before any download
+   integration.**
+2. **Found — the import brief.** Folder + file list (`region/` count, `level.dat`, `map.xml` absent), the
+   **top-down render**, and the detection summary — islands (on the cleaned base, ND2 §6a), symmetry,
+   suggested team count, plus the world features the scan already found (wools / resources / chests /
+   spawners). This is the **seed of the guidance model**: exactly what the author *confirms* in the phases
+   that follow (e.g. the detected island count → team count in World/Teams). Nothing here is final.
+3. **Plan — the flow + Start.** The six-phase overview (each phase, its one-line purpose, the
+   Build⇄Traversability caveat) and a **Start authoring → Map Info** action (the `Next` on this last
+   sub-step, like Review's XML→Export).
+
+Backend: the local **open-folder source** (list xml-less world folders under the roots → create the map
+record → `POST /map/{slug}/scan-world`, which exists) is the now-increment of **`B8`**; the URL download
+is the later increment.
 
 **Where the checks live.** Validation is **not a phase of its own** (§9; the concept page's
 `ValidateSection` is a reference, not a step):
