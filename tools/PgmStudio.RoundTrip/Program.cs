@@ -71,6 +71,13 @@ var isIdx = Array.IndexOf(args, "--islands");
 if (isIdx >= 0 && isIdx + 2 < args.Length)
     return await RunIslandParity(args[isIdx + 1], args[isIdx + 2]);
 
+// --clean-base-render <regionDir> <outSvg>: ND2/A5 cleaned-base island detection (noise-excluded base +
+// height-aware connectivity + floating-mass prune, with a y0/bedrock fallback) rendered as an SVG of the
+// island outlines — the render-comparison pass for the cleaned base on real worlds.
+var cbrIdx = Array.IndexOf(args, "--clean-base-render");
+if (cbrIdx >= 0 && cbrIdx + 2 < args.Length)
+    return RunCleanBaseRender(args[cbrIdx + 1], args[cbrIdx + 2]);
+
 // --monument-slices <regionDir> <xml_data.json> <outParquet>: sample the 3×3×5 block volume around
 // every wool monument (MonumentSliceExtractor), write monument_slices.parquet, read it back and print
 // a validation summary. The monument centres come from xml_data.json (wools[].monuments[].location).
@@ -977,6 +984,65 @@ static async Task<int> RunIslandParity(string regionDir, string oracleDir)
     var ok = surfOk && islOk;
     Console.WriteLine(ok ? "island parity: OK" : "island parity: MISMATCH");
     return ok ? 0 : 1;
+}
+
+static int RunCleanBaseRender(string regionDir, string outSvg)
+{
+    var chunks = Directory.GetFiles(regionDir, "*.mca")
+        .SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+
+    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    // Deferred — only extracted/scanned if the cleaned base reads degenerately (the fallback path).
+    var fallbacks = new[]
+    {
+        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
+    };
+    var islands = PgmStudio.Analysis.IslandDetector.DetectCleaned(baseCells, fallbacks);
+
+    var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
+    Console.WriteLine($"clean-base-render {name}: {baseCells.Count} cleaned-base cells → {islands.Count} islands " +
+        $"[{string.Join(",", islands.Take(12).Select(i => i.BlockCount))}]");
+
+    var polys = islands
+        .Select(i => i.Polygon as NetTopologySuite.Geometries.Polygon)
+        .Where(p => p is not null).Select(p => p!).ToList();
+    if (polys.Count == 0) { Console.WriteLine("  no islands to render"); return 1; }
+
+    var exterior = polys.SelectMany(p => p.ExteriorRing.Coordinates).ToList();
+    double minX = exterior.Min(c => c.X), maxX = exterior.Max(c => c.X);
+    double minZ = exterior.Min(c => c.Y), maxZ = exterior.Max(c => c.Y);
+    const double size = 800, pad = 24;
+    var scale = Math.Min((size - 2 * pad) / Math.Max(1, maxX - minX), (size - 2 * pad) / Math.Max(1, maxZ - minZ));
+    double SX(double x) => pad + (x - minX) * scale;
+    double SZ(double z) => pad + (z - minZ) * scale;
+
+    // Each island → one SVG path: exterior ring + interior rings (holes), cut out via fill-rule=evenodd.
+    static string RingPath(NetTopologySuite.Geometries.LineString ring, Func<double, double> sx, Func<double, double> sz)
+    {
+        var cs = ring.Coordinates;
+        var d = new System.Text.StringBuilder($"M{sx(cs[0].X):0.#},{sz(cs[0].Y):0.#}");
+        for (var k = 1; k < cs.Length; k++) d.Append($"L{sx(cs[k].X):0.#},{sz(cs[k].Y):0.#}");
+        return d.Append('Z').ToString();
+    }
+
+    var sb = new System.Text.StringBuilder();
+    sb.Append($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{size}\" height=\"{size}\" viewBox=\"0 0 {size} {size}\">\n");
+    sb.Append($"  <rect width=\"{size}\" height=\"{size}\" fill=\"#1b1e24\"/>\n");
+    sb.Append($"  <text x=\"{pad}\" y=\"{size - 10}\" fill=\"#7b828d\" font-family=\"monospace\" font-size=\"13\">{name} · cleaned base · {islands.Count} islands</text>\n");
+    var holeTotal = 0;
+    foreach (var p in polys)
+    {
+        var d = RingPath(p.ExteriorRing, SX, SZ);
+        foreach (var hole in p.InteriorRings) { d += RingPath(hole, SX, SZ); holeTotal++; }
+        sb.Append($"  <path d=\"{d}\" fill-rule=\"evenodd\" fill=\"#9aa0a8\" fill-opacity=\"0.85\" stroke=\"#cfd5de\" stroke-width=\"1\"/>\n");
+    }
+    sb.Append("</svg>\n");
+    if (holeTotal > 0) Console.WriteLine($"  ({holeTotal} hole ring(s) cut out)");
+    File.WriteAllText(outSvg, sb.ToString());
+    Console.WriteLine($"  wrote {outSvg}");
+    return 0;
 }
 
 static async Task<List<(int, int, int, int)>> ReadSegments(string path)

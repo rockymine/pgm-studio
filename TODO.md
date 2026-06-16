@@ -14,9 +14,9 @@ M0–M5 + the M6 editor shells + the M7 pipeline are **landed** (`FEATURES.md`),
 authoring **backend** is done. The open headline is the **new `/authoring` editor** — a guided wizard
 built from the concept page, a **separate page** from the existing `/editor` (left as-is for now).
 
-1. **Settle the remaining design questions** — `ND1` (navigation/flow, §12) and `ND2` (stripped World, §6a)
-   are **done** (spinning off `ND4` save model, `A5` cleaned-base backend; `ND3` landing screen also done,
-   §12); still open: `ND4` — then **scaffold the new page** (`NS`).
+1. **Settle the remaining design questions** — `ND1` (nav/flow, §12), `ND2` (stripped World, §6a) and
+   `ND3` (landing screen, §12) are **done**; `ND2`'s `A5` cleaned-base backend is **landed** (`FEATURES.md`).
+   Still open: `ND4` (save model) — then **scaffold the new page** (`NS`).
 2. **Build the steps in page order** (`N00`→`N05` + `NVAL`), starting with **Teams & Spawns** (`N02`)
    — the recommended first real slice.
 
@@ -166,18 +166,6 @@ editor too; **`C9`/`C11`/`C18`** are existing-`/editor`-specific.
   (`SymmetryDetector`, `RegionGeometry2d`, `RegionBoundsDeriver`, `RegionParser`,
   `Pgm/Editing/Geometry2d`). Establish one geometry module (point/bounds transforms + IoU) and route
   every call site through it; mind the Pgm↔Analysis package boundary. Pairs with P7.
-- [ ] **A5 — Cleaned-base extraction + height-aware island detection (ND2 backend).** The extraction-model
-  changes behind `ND2`'s minimal World step (`new-map-authoring.md` §6a), serving `N01`. (1) **Expand
-  `LayerExtractors.Base` default-exclude** from `{36}` to the corpus-derived noise set **{water, lava,
-  leaves, logs, saplings, tallgrass, vines, lily_pad, redstone_wire, tripwire, cobweb}** (validated:
-  removing water alone splits `mame`'s islands; full set → bedrock-identical `[6700,6700,1894,1894]`).
-  Confirm the exact foliage ids with a **render-comparison pass** over a few decorated maps. (2)
-  **`IslandDetector` height-aware connectivity** — join adjacent base cells only if Y-continuous
-  (|ΔY| ≤ ~3) so a stark Y jump splits floating builds off (carry the per-cell Y the `Base` extractor
-  already records), then **prune height-outlier components** (floating decor — mame's eagles at Y≈70).
-  (3) **Degenerate-read fallback** to `bedrock`/`y0` (rare safety net). Keep per-layer extractors distinct
-  (settles `P7`'s consolidate-vs-keep half). Pairs with `P8` (the user-override re-scan path).
-
 ## Lower priority / parked
 
 Existing-`/editor` authoring features — **not** used by the intent generator (which auto-wires), and

@@ -31,6 +31,51 @@ public class IslandDetectorTests
     }
 
     [Test]
+    public async Task DetectHeightAware_SplitsFloatingMassOnStarkYJump_AndPrunesIt()
+    {
+        var cells = new List<(int, int, int)>();
+        // Terrain: 10×10 at y=0 (100 cells).
+        for (var x = 0; x < 10; x++) for (var z = 0; z < 10; z++) cells.Add((x, z, 0));
+        // Floating build: 5×5 at y=70, footprint 8-adjacent to the terrain (x10..14) — plain 2D would
+        // MERGE the two into one 125-cell island; height-aware must split + prune the floating mass.
+        for (var x = 10; x < 15; x++) for (var z = 0; z < 5; z++) cells.Add((x, z, 70));
+
+        // Sanity: the (X,Z)-only detector merges them into a single island.
+        await Assert.That(IslandDetector.Detect(cells.Select(c => (c.Item1, c.Item2))).Count).IsEqualTo(1);
+
+        var islands = IslandDetector.DetectHeightAware(cells);
+        await Assert.That(islands.Count).IsEqualTo(1);            // floating mass split off + pruned
+        await Assert.That(islands[0].BlockCount).IsEqualTo(100);  // only the terrain remains
+    }
+
+    [Test]
+    public async Task DetectHeightAware_KeepsGentleSlopeConnected()
+    {
+        // A 4-wide ramp climbing 1 block per z-step (|ΔY| = 1 ≤ tol) stays one connected island.
+        var cells = new List<(int, int, int)>();
+        for (var z = 0; z < 15; z++) for (var x = 0; x < 4; x++) cells.Add((x, z, z));
+
+        var islands = IslandDetector.DetectHeightAware(cells);
+        await Assert.That(islands.Count).IsEqualTo(1);
+        await Assert.That(islands[0].BlockCount).IsEqualTo(60);
+    }
+
+    [Test]
+    public async Task DetectCleaned_FallsBackToY0WhenBaseReadsDegenerate()
+    {
+        // Base bridges everything into one blob (1 island) — degenerate.
+        var baseCells = new List<(int, int, int)>();
+        for (var x = 0; x < 20; x++) for (var z = 0; z < 20; z++) baseCells.Add((x, z, 0));
+        // y0 fallback separates into two distinct islands.
+        var y0 = new List<(int, int, int)>();
+        for (var x = 0; x < 10; x++) for (var z = 0; z < 10; z++) y0.Add((x, z, 0));
+        for (var x = 100; x < 110; x++) for (var z = 0; z < 10; z++) y0.Add((x, z, 0));
+
+        await Assert.That(IslandDetector.DetectCleaned(baseCells).Count).IsEqualTo(1);       // no fallback
+        await Assert.That(IslandDetector.DetectCleaned(baseCells, [y0]).Count).IsEqualTo(2); // fell back to y0
+    }
+
+    [Test]
     public async Task SerializeJson_EmitsGeoJsonPolygons()
     {
         var coords = new List<(int, int)>();

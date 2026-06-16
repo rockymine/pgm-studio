@@ -17,6 +17,30 @@ public static class LayerExtractors
     // (reference _DEFAULT_BASE_EXCLUDE). Surface/Y0/Bedrock have no default exclusion.
     private static readonly HashSet<int> DefaultBaseExclude = [36];
 
+    /// <summary>
+    /// The "cleaned base" exclude set for new-map island detection (ND2 §6a / A5). The bottom-up base
+    /// scan "looks up" into anything over the terrain, so on decorated worlds it catches connected masses
+    /// that destabilise the island picture. This set is the corpus-derived noise the reference project's
+    /// per-map `map_layouts.json` hand-excluded — water/lava (the usual island *bridge*), foliage
+    /// (overlapping leaves/logs/canopy), redstone lines, and cobweb — unioned with the {36} marker.
+    /// (Specks like a lone cobweb never form an island anyway; <see cref="IslandDetector"/>'s min-size
+    /// prune drops them. This set targets the *connected* masses.)
+    /// </summary>
+    public static readonly IReadOnlySet<int> CleanBaseExclude = new HashSet<int>
+    {
+        36,                                 // piston_moving_piece (the existing Base default)
+        8, 9, 10, 11,                       // water (flow/still), lava (flow/still) — the bridge
+        6, 17, 18, 31, 32, 106, 111, 161, 162, // sapling, log, leaves, tallgrass, deadbush, vine, lily_pad, leaves2, log2
+        55, 75, 76, 131, 132,               // redstone wire, redstone torch (off/on), tripwire hook, tripwire (string)
+        30,                                 // cobweb
+    };
+
+    /// <summary>The Base extractor with the cleaned-base noise exclusion (<see cref="CleanBaseExclude"/>) —
+    /// the detection layer for new-map authoring (ND2 §6a). Carries per-cell <c>WorldY</c> for the
+    /// height-aware island detection that prunes floating builds.</summary>
+    public static IEnumerable<SurfaceBlock> CleanBase(IEnumerable<AnvilRegion.Chunk> chunks) =>
+        Base(chunks, (ISet<int>)CleanBaseExclude);
+
     /// <summary>Full 256-high id + data volumes for a chunk; index (y&lt;&lt;8)|(z&lt;&lt;4)|x. Absent sections stay air (0).</summary>
     private static (ushort[] ids, byte[] data) BuildVolume(AnvilRegion.Chunk chunk)
     {

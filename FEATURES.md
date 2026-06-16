@@ -65,6 +65,11 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 - **Block colours** — `BlockColors`, 197/197 known-table parity. (P5)
 - **Layer extractors** — `Y0` / `Bedrock` / `Base` (+ shared `BuildVolume`), generated on demand and
   cached. (P6)
+- **Cleaned-base island detection** — `LayerExtractors.CleanBase` (corpus-derived noise exclude:
+  water/lava/foliage/redstone/cobweb) + `IslandDetector.DetectHeightAware`/`DetectCleaned`
+  (height-aware connectivity prunes floating builds over void; y0/bedrock fallback). The new-map
+  detection layer (ND2 §6a); validated on real worlds via `--clean-base-render`
+  (`scripts/render_clean_base.sh`). (A5)
 
 ## New-map authoring — intent model (backend) ★ headline direction
 The forward path (**meaning → structure**): the author states intent and the generator emits the

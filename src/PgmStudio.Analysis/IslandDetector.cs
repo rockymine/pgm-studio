@@ -37,6 +37,101 @@ public static class IslandDetector
         return ordered;
     }
 
+    /// <summary>
+    /// Height-aware island detection (ND2 §6a / A5). Like <see cref="Detect"/>, but two adjacent base
+    /// cells join into the same component only when their Y is <em>continuous</em>
+    /// (|ΔY| ≤ <paramref name="heightTolerance"/>) — so a stark Y jump (the bottom-up base scan "shooting
+    /// up" into a build floating over void) splits the floating mass off as its own component. Components
+    /// whose median Y sits a clear <paramref name="heightOutlierMargin"/> <em>above</em> the terrain's
+    /// dominant Y band are then pruned as floating decor (e.g. mame_i_shrunk_the_pvpers' eagles).
+    /// </summary>
+    public static List<Island> DetectHeightAware(
+        IEnumerable<(int X, int Z, int Y)> cells,
+        int minIslandSize = 10, int connectivity = 8, int heightTolerance = 3, int heightOutlierMargin = 12)
+    {
+        var yByCell = new Dictionary<(int, int), int>();
+        foreach (var (x, z, y) in cells) yByCell[(x, z)] = y;   // one cell per column; last wins
+        if (yByCell.Count == 0) return [];
+
+        // Reference terrain height = median Y over all cells (terrain dominates the column count).
+        var allYs = yByCell.Values.OrderBy(v => v).ToList();
+        var terrainY = allYs[allYs.Count / 2];
+
+        var islands = new List<Island>();
+        foreach (var comp in HeightAwareComponents(yByCell, connectivity, heightTolerance))
+        {
+            if (comp.Count < minIslandSize) continue;
+            var ys = comp.Select(c => yByCell[c]).OrderBy(v => v).ToList();
+            if (ys[ys.Count / 2] > terrainY + heightOutlierMargin) continue;   // floating build over void
+            islands.Add(new Island(0, comp.Count, BoundsOf(comp), BlocksToPolygon(comp)));
+        }
+
+        var ordered = islands.OrderByDescending(i => i.BlockCount).ToList();
+        for (var i = 0; i < ordered.Count; i++) ordered[i] = ordered[i] with { Id = i + 1 };
+        return ordered;
+    }
+
+    /// <summary>
+    /// Cleaned-base island detection with a degenerate-read fallback (ND2 §6a / A5). Runs
+    /// <see cref="DetectHeightAware"/> on the cleaned-base cells; if that reads degenerately (≤ 1 island —
+    /// e.g. a base that bridges everything at one level even after the noise exclude), retries on the
+    /// supplied fallback layers (typically y0 then bedrock) and keeps the first that separates into ≥ 2
+    /// islands. Returns the base result when no fallback does better.
+    /// </summary>
+    public static List<Island> DetectCleaned(
+        IEnumerable<(int X, int Z, int Y)> baseCells,
+        IEnumerable<IEnumerable<(int X, int Z, int Y)>>? fallbackLayers = null,
+        int minIslandSize = 10, int heightTolerance = 3, int heightOutlierMargin = 12)
+    {
+        var best = DetectHeightAware(baseCells, minIslandSize, 8, heightTolerance, heightOutlierMargin);
+        if (best.Count >= 2 || fallbackLayers is null) return best;
+        foreach (var layer in fallbackLayers)
+        {
+            var alt = DetectHeightAware(layer, minIslandSize, 8, heightTolerance, heightOutlierMargin);
+            if (alt.Count > best.Count) best = alt;
+            if (best.Count >= 2) break;
+        }
+        return best;
+    }
+
+    private static List<List<(int X, int Z)>> HeightAwareComponents(
+        Dictionary<(int, int), int> yByCell, int connectivity, int heightTolerance)
+    {
+        (int, int)[] deltas = connectivity == 8
+            ? [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+            : [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
+        var remaining = new HashSet<(int, int)>(yByCell.Keys);
+        var seeds = yByCell.Keys.OrderBy(c => c.Item1).ThenBy(c => c.Item2);
+        var components = new List<List<(int X, int Z)>>();
+
+        foreach (var seed in seeds)
+        {
+            if (!remaining.Remove(seed)) continue;
+            var comp = new List<(int, int)>();
+            var queue = new Queue<(int, int)>();
+            queue.Enqueue(seed);
+            while (queue.Count > 0)
+            {
+                var (x, z) = queue.Dequeue();
+                comp.Add((x, z));
+                var cy = yByCell[(x, z)];
+                foreach (var (dx, dz) in deltas)
+                {
+                    var nb = (x + dx, z + dz);
+                    // Join only across continuous terrain — a stark Y step breaks the link.
+                    if (remaining.Contains(nb) && Math.Abs(yByCell[nb] - cy) <= heightTolerance)
+                    {
+                        remaining.Remove(nb);
+                        queue.Enqueue(nb);
+                    }
+                }
+            }
+            components.Add(comp);
+        }
+        return components;
+    }
+
     /// <summary>Serialise islands to the <c>islands.json</c> format (GeoJSON polygons, matching Shapely's <c>mapping()</c>).</summary>
     public static string SerializeJson(IReadOnlyList<Island> islands)
     {
