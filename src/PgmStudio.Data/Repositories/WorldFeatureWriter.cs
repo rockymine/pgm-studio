@@ -76,11 +76,20 @@ public sealed class WorldFeatureWriter(PgmDb db)
         return new ScanBox(minX, 0, minZ, maxX, 255, maxZ);
     }
 
-    /// <summary>Surface scan → islands; persist layer.parquet / islands.json / map_config.json artifacts. Returns island count.</summary>
+    /// <summary>Persist the world-derived artifacts: the <b>Surface</b> layer → layer.parquet (the visual
+    /// top-down render), island detection on the <b>cleaned Base</b> (ND2 §6a — height-aware, with a deferred
+    /// y0/bedrock fallback for degenerate reads) → islands.json, and the initial map_config.json. Returns the
+    /// island count. (Symmetry is derived from islands.json on demand by the B7 endpoint.)</summary>
     private async Task<int> WriteArtifactsAsync(long mapId, IReadOnlyList<AnvilRegion.Chunk> chunks, CancellationToken ct)
     {
         var surface = LayerExtractors.Surface(chunks).ToList();
-        var islands = IslandDetector.Detect(surface.Select(s => (s.WorldX, s.WorldZ)));
+
+        // Detection runs on the cleaned base, not the surface (decorated terrain makes the surface noisy).
+        // Fallback layers are lazy — only scanned if the cleaned base reads degenerately (DetectCleaned).
+        static (int X, int Z, int Y) Cell(SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+        var baseCells = LayerExtractors.CleanBase(chunks).Select(Cell).ToList();
+        var fallbacks = new[] { LayerExtractors.Y0(chunks).Select(Cell), LayerExtractors.Bedrock(chunks).Select(Cell) };
+        var islands = IslandDetector.DetectCleaned(baseCells, fallbacks);
 
         var layerRows = surface
             .Select(s => new LayerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, BlockId = s.BlockId, BlockData = s.BlockData })
@@ -96,7 +105,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
         {
             ["exclude_islands"] = new JsonArray(),
             ["exclude_blocks"] = new JsonArray(),
-            ["scan_layer"] = "surface",
+            ["scan_layer"] = "cleanbase",
             ["scan_layer_confirmed"] = false,
         };
 
