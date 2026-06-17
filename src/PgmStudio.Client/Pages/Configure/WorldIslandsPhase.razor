@@ -1,0 +1,108 @@
+@namespace PgmStudio.Client.Pages.Configure
+@using PgmStudio.Client.Pages.EditorActivities
+
+@* World · Islands sub-step (N01): review detected islands, exclude the stray ones. Select from the list
+   or by clicking the canvas; the selection's centre / block count / exclude toggle show in the inspector.
+   The canvas is the reused EditorCanvas in island-select mode (base layer only — no surface toggle). *@
+
+<div class="workspace">
+
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Islands</h2>
+          <span class="badge badge--dim">@islands.Count detected</span>
+        </div>
+        <p class="section-desc">Exclude islands that aren't part of the playable layout (observer towers,
+          decor). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
+        <div class="panel-list">
+          @if (Included.Count == 0) { <div class="list-empty">No islands.</div> }
+          @foreach (var isl in Included)
+          {
+            <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
+                 @onclick="() => Select(isl.Id)">
+              <span class="geo-type-icon"><i data-lucide="layers"></i></span>
+              <span class="list-label">@Label(isl)</span>
+              <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
+            </div>
+          }
+        </div>
+      </section>
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Islands</h2></div>
+        <div class="panel-list">
+          @if (ExcludedList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
+          @foreach (var isl in ExcludedList)
+          {
+            <div class="list-row list-row--compact list-row--muted @(selectedId == isl.Id ? "list-row--selected" : null)"
+                 @onclick="() => Select(isl.Id)">
+              <span class="geo-type-icon"><i data-lucide="layers"></i></span>
+              <span class="list-label">@Label(isl)</span>
+              <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  @* Reused edit canvas in island-select mode — base layer only, click an island to select it. *@
+  <EditorCanvas @ref="canvas" Slug="@Slug" IslandSelect="true"
+                OnIslandSelect="Select" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-inspector">
+    <div class="workspace-scroll">
+      @if (Selected is { } sel)
+      {
+        <section class="panel-section" @key="sel.Id">
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
+            <span class="detail-label">@Label(sel)</span>
+            <span class="badge @(IsExcluded(sel) ? "badge--dim" : "badge--success")">@(IsExcluded(sel) ? "excluded" : "included")</span>
+          </div>
+          <div class="section-body">
+            <div class="field">
+              <label class="field-label">Centre</label>
+              <div class="ctrl-row">
+                <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.CentreX.ToString("0.#")" disabled /></div>
+                <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.CentreZ.ToString("0.#")" disabled /></div>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label">Blocks</label>
+              <div class="field-pick-row">
+                <span class="field-value">@sel.BlockCount.ToString("N0")</span>
+                @if (sel.HasOrigin) { <span class="list-tag">has map centre</span> }
+              </div>
+            </div>
+            @if (IsExcluded(sel))
+            {
+              <button class="action-btn action-btn--fill" @onclick="() => ToggleExclude(sel)">Include island</button>
+            }
+            else
+            {
+              <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => ToggleExclude(sel)">Exclude island</button>
+            }
+          </div>
+        </section>
+      }
+      else
+      {
+        <section class="panel-section">
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
+            <span class="detail-label">Islands</span>
+          </div>
+          <p class="section-desc">Select an island — in the list or on the canvas — to see its details and
+            exclude it.</p>
+        </section>
+      }
+    </div>
+  </div>
+
+</div>

@@ -21,6 +21,15 @@ public partial class EditorCanvas
     /// can refresh its sidebar tree/list.</summary>
     [Parameter] public EventCallback OnRegionCreated { get; set; }
 
+    /// <summary>World authoring: clicks pick an island (not a region), the Blocks layer toggle is hidden,
+    /// and only the island base layer shows. Fires <see cref="OnIslandSelect"/> on a canvas click.</summary>
+    [Parameter] public bool IslandSelect { get; set; }
+    /// <summary>Fired when a canvas click selects an island (null = clicked empty space).</summary>
+    [Parameter] public EventCallback<int?> OnIslandSelect { get; set; }
+    /// <summary>Fired once the canvas is mounted + the map is loaded, so a host can apply initial state
+    /// (e.g. the excluded-island set) that only takes effect after the islands are rendered.</summary>
+    [Parameter] public EventCallback OnReady { get; set; }
+
     private ElementReference svgRef, wrapRef, coordsRef, zoomRef;
     private IJSObjectReference? handle;
     private DotNetObjectReference<EditorCanvas>? selfRef;
@@ -66,6 +75,8 @@ public partial class EditorCanvas
             selfRef = DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>(
                 "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, Category, DraftStep);
+            if (IslandSelect) await handle.InvokeVoidAsync("setIslandSelect", true);
+            await OnReady.InvokeAsync();
         }
     }
 
@@ -156,6 +167,21 @@ public partial class EditorCanvas
     }
 
     [JSInvokable] public Task OnCanvasSelect(string? id) => OnSelect.InvokeAsync(id);
+
+    /// <summary>Canvas island pick (World authoring step) → host.</summary>
+    [JSInvokable] public Task OnCanvasIslandSelect(int? id) => OnIslandSelect.InvokeAsync(id);
+
+    /// <summary>Highlight the given island with an accent border (null clears it).</summary>
+    public async Task SetSelectedIslandAsync(int? id)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("setSelectedIsland", id);
+    }
+
+    /// <summary>Dim the excluded islands on the canvas.</summary>
+    public async Task SetExcludedIslandsAsync(IEnumerable<int> ids)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("setExcludedIslands", (object)ids.ToArray());
+    }
 
     /// <summary>C5: a draw tool completed a shape → create the region, fill its symmetry orbit (F3),
     /// reload the canvas, notify the host.</summary>

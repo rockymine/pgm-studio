@@ -24,6 +24,10 @@
   {
     <WorldScanPhase @key="@("world-scan")" />
   }
+  else if (Phase.Id == "world" && subStep == 1)
+  {
+    <WorldIslandsPhase @key="@("world-islands")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">

@@ -38,8 +38,11 @@
                 title="Mirror drawn regions across the map's confirmed symmetry"
                 @onclick="ToggleOrbit">@OrbitLabel()</button>
       }
-      <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)" title="Overlay the top-surface block colours"
-              @onclick="ToggleBlocks">Blocks</button>
+      @if (!IslandSelect)
+      {
+        <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)" title="Overlay the top-surface block colours"
+                @onclick="ToggleBlocks">Blocks</button>
+      }
       @if (islandIds.Count > 0)
       {
         <select class="field-input canvas-island-select" title="Zoom to fit an island" value="@islandSel" @onchange="OnFitIslandSelect">

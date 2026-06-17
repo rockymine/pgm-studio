@@ -87,6 +87,13 @@ export class EditorCanvas extends CanvasBase {
   #currentSelectedIds = new Set();
   #resolvedMode       = false;
 
+  // island selection (World authoring step): when on, canvas clicks pick an island instead of a region;
+  // the selected island gets an accent border and excluded islands are dimmed.
+  #islandPathMap     = new Map();   // island id → <path>
+  #selectedIslandId  = null;
+  #excludedIslandIds = new Set();
+  #islandSelect      = false;
+
   // layer state
   #showPois   = false;
   #showBuild  = false;
@@ -148,6 +155,10 @@ export class EditorCanvas extends CanvasBase {
   _onCanvasClick(e, svgPt) {
     if (!this.#toWorld) return;
     const world = this.#toWorld(svgPt.x, svgPt.y);
+    if (this.#islandSelect) {
+      this.#callbacks.onIslandClick?.(this.#hitTestIsland(world.x, world.z));
+      return;
+    }
     this.#callbacks.onCanvasClick?.(this.#hitTest(world.x, world.z));
   }
 
@@ -182,6 +193,7 @@ export class EditorCanvas extends CanvasBase {
     this.#nodeMap.clear();
     this.#visibilityMap.clear();
     this.#currentSelectedIds.clear();
+    this.#selectedIslandId = null;
     this.#blockData        = null;
     this.#blockFetchId++;
     this.#blockFetchPromise = null;
@@ -591,16 +603,58 @@ export class EditorCanvas extends CanvasBase {
   #buildIslands() {
     const g = svgEl("g", { id: "layer-islands", "fill-opacity": "0.25" });
     this.#islandLayerEl = g;
+    this.#islandPathMap.clear();
     if (this.#showBlocks) g.setAttribute("fill-opacity", "0");
     for (const island of (this.#ctx.islands || [])) {
       const poly = island.simplified_polygon ?? geojsonToSimplified(island.polygon);
       if (!poly?.exterior?.length) continue;
-      g.appendChild(svgEl("path", {
+      const path = svgEl("path", {
         d: polyToPath(poly, this.#toSvg),
         fill: "var(--canvas-island)", stroke: "var(--canvas-island-stroke)", "stroke-width": "1.2", "fill-rule": "evenodd",
-      }));
+      });
+      if (island.id != null) this.#islandPathMap.set(island.id, path);
+      g.appendChild(path);
     }
+    this.#paintIslandStates();
     return g;
+  }
+
+  // Repaint island borders/opacity for the current selection + exclusions (no full re-render).
+  #paintIslandStates() {
+    for (const [id, path] of this.#islandPathMap) {
+      const selected = this.#selectedIslandId === id;
+      const excluded = this.#excludedIslandIds.has(id);
+      path.setAttribute("stroke", selected ? "var(--accent)" : "var(--canvas-island-stroke)");
+      path.setAttribute("stroke-width", selected ? "2.5" : "1.2");
+      path.setAttribute("opacity", excluded ? "0.35" : "1");
+    }
+  }
+
+  // Smallest island whose bounding box contains the world point (mirrors #hitTest for regions).
+  #hitTestIsland(worldX, worldZ) {
+    let best = null, bestArea = Infinity;
+    for (const isl of (this.#ctx?.islands ?? [])) {
+      const b = isl.bounds;   // [min_x, min_z, max_x, max_z]
+      if (!b || isl.id == null) continue;
+      const [minX, minZ, maxX, maxZ] = b;
+      if (worldX >= minX && worldX <= maxX + 1 && worldZ >= minZ && worldZ <= maxZ + 1) {
+        const area = (maxX - minX) * (maxZ - minZ);
+        if (area < bestArea) { bestArea = area; best = isl.id; }
+      }
+    }
+    return best;
+  }
+
+  setIslandSelect(on) { this.#islandSelect = !!on; }
+
+  setSelectedIsland(id) {
+    this.#selectedIslandId = (id === null || id === undefined) ? null : id;
+    this.#paintIslandStates();
+  }
+
+  setExcludedIslands(ids) {
+    this.#excludedIslandIds = new Set(ids || []);
+    this.#paintIslandStates();
   }
 
   #buildSpawnLayer() {

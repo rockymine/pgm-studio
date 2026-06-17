@@ -36,6 +36,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     onZoom: (scale) => { if (zoomEl) zoomEl.textContent = `${Math.round(scale * 100)}%`; },
     // Draw-tool region creation (C5): a completed shape → C#, which POSTs /regions then reloads.
     onRegionDraw: (drawResult) => dotnetRef.invokeMethodAsync("OnRegionDraw", drawResult),
+    // Island pick (World authoring step): a click in island-select mode → C# (null = clicked empty space).
+    onIslandClick: (id) => dotnetRef.invokeMethodAsync("OnCanvasIslandSelect", id ?? null),
   });
   canvas.setActiveTool("move");
   let blockData = null;   // cached top-surface layer (C6), fetched on first toggle-on
@@ -87,6 +89,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
       return true;
     },
     resize() { canvas.resize(); },
+    // Island selection (World authoring step).
+    setIslandSelect(on) { canvas.setIslandSelect(on); },
+    setSelectedIsland(id) { canvas.setSelectedIsland(id ?? null); },
+    setExcludedIslands(ids) { canvas.setExcludedIslands(ids ?? []); },
     fitIsland(id) { canvas.fitIsland(id); },
     fitBounds(minX, minZ, maxX, maxZ) { canvas.fitBounds({ min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ }); },
     resetView() { canvas.resetView(); },
