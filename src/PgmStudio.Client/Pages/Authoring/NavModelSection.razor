@@ -31,7 +31,37 @@
     the phase, so the connectivity check can run <em>inside</em> Review.
   </p>
 
+  <p class="ds-theming-note">
+    <strong>Saving</strong> needs no button. A phase <strong>saves on advance</strong> — leaving it via
+    Next or a rail jump persists the whole intent (one idempotent regenerate), and the next phase's
+    prerequisite slice is now present, so the rail unlocks it. Editing marks the phase <em>dirty</em>;
+    leaving while dirty saves, leaving clean does nothing. The only save affordance is a quiet
+    <strong>topbar text indicator</strong> — <em>Saved · Saving… · Unsaved</em>, no icons — and a phase's
+    <strong>done</strong> state is the rail's green dot, backed by its intent slice being present. Re-opening
+    a part-authored map reads its progress straight from the stored intent.
+  </p>
+
   <div class="ds-example-grid">
+    <article class="ds-example">
+      <div class="ds-example-label">Save indicator — the topbar (Saved · Saving… · Unsaved)</div>
+      <div class="ds-panel-frame">
+        <div class="topbar" style="position:static">
+          <span class="topbar-crumb">Teams</span>
+          <div class="topbar-right"><span class="topbar-save-status">Saved</span></div>
+        </div>
+        <div class="topbar" style="position:static">
+          <span class="topbar-crumb">Teams</span>
+          <div class="topbar-right"><span class="topbar-save-status">Saving…</span></div>
+        </div>
+        <div class="topbar" style="position:static">
+          <span class="topbar-crumb">Teams</span>
+          <div class="topbar-right"><span class="topbar-save-status">Unsaved</span></div>
+        </div>
+      </div>
+      <p class="section-desc" style="margin-top:var(--space-3)">One global indicator, the same in every
+         phase — no per-step Save button, no per-sub-step checkmark (slices are per-phase).</p>
+    </article>
+
     <article class="ds-example">
       <div class="ds-example-label">Phases — the activity rail</div>
       <div class="ds-panel-frame" style="display:flex">

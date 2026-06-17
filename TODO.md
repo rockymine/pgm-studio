@@ -15,11 +15,12 @@ authoring **backend** is done. The open headline is the **new Configure wizard**
 — a guided wizard built from the concept page, a **separate surface** from the existing **Edit** editor
 (`/maps/{id}/edit`, left as-is). Routes + labels settled in `docs/contracts/routing-and-ia.md`.
 
-1. **Settle the remaining design questions** — `ND1` (nav/flow, §12), `ND2` (stripped World, §6a) and
-   `ND3` (landing screen, §12) are **done**; `ND2`'s `A5` cleaned-base backend is **landed** (`FEATURES.md`).
-   Still open: `ND4` (save model) — then **scaffold the new page** (`NS`).
+1. **Design questions are settled** — `ND1` (nav/flow, §12), `ND2` (stripped World, §6a), `ND3` (landing,
+   §12) and `ND4` (save model, §12) are **done**; the wizard shell, the `/maps/new` import landing, and the
+   intent-gated/save-on-advance wiring (`NS`) are **landed** (`FEATURES.md`).
 2. **Build the steps in page order** (`N00`→`N05` + `NVAL`), starting with **Teams & Spawns** (`N02`)
-   — the recommended first real slice.
+   — the recommended first real slice. Each plugs its slice into the wizard's save seam (patch `Intent`,
+   call `MarkDirty`; the wizard persists on phase-advance).
 
 Shared editor/canvas infra (C) serves both editors; the existing **Edit** (`/maps/{id}/edit`) feature UIs
 (wiring, counterparts) are **parked** until that path resumes.
@@ -42,22 +43,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > The old "split view-model (Primitives/Composed/Raw)" plan is **superseded** for new maps
 > (`new-map-authoring.md` §7: shaping activities use intent forms; the Regions activity in Edit
 > (`/maps/{id}/edit`) keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
-
-**Design & scaffold first**
-- [ ] **ND4 — Save model (design).** Each phase persists a slice of intent via `PUT /map/{slug}/intent`,
-  but **when** that fires and **how save state is shown** is unspecified — `ND1` removed the per-step
-  "Save & continue" button + "unsaved" pill from Map Info, so the save affordance now needs a home.
-  Decide: autosave on change (debounced) vs save-on-Next vs explicit save; where the save/dirty status
-  lives (topbar? flow-bar? a global indicator); how regenerate-on-save (idempotent, §3) and the Mojang
-  UUID resolve-at-save (B6) surface. **Includes the flow-bar step-status affordance** — the per-step
-  checkmark was pulled from the `NS` scaffold (it read as a status symbol with no backing); decide here
-  whether/how step status (done/saved) is shown. Applies to **all** phases, not just Map Info. Output: a save-UX note
-  in `new-map-authoring.md` §12 + the affordance in the concept page. Scopes the persistence half of
-  `N00`–`N05`.
-- [ ] **NS — Wire the Configure wizard to intent.** The **shell + the `/maps/new` import landing are
-  landed** (`FEATURES.md`). Remaining: replace the wizard's **stubbed sequential phase-gating** with real
-  **prerequisite-slice gating** off `map_intent_json` (`GET /map/{slug}/intent`), and **persist per phase**
-  via `PUT` (per `ND4`). Phase bodies are `N00`–`N05`. *(Open: whether `/design` also moves under `/concepts`.)*
 
 **Steps — in page order, each persists its slice of intent**
 - [ ] **N00 — Map Info.** Identity (name; version / mode / objective auto-derived) + authors

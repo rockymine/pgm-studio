@@ -20,6 +20,10 @@
       <span class="topbar-crumb topbar-crumb--dim">@Crumb</span>
     }
     <div class="topbar-right">
+      @if (!string.IsNullOrEmpty(SaveStatus))
+      {
+        <span class="topbar-save-status">@SaveStatus</span>
+      }
       <ThemeToggle />
     </div>
   </div>

@@ -484,11 +484,19 @@ pre-flight checks, and phase locking actually live.
 3. **Back / Next** advances one sub-step / phase at a time (the linear path).
 
 Every phase uses this same shell — including **Map Info** (the form-only phase 0; its Back is disabled
-as the entry point). There is **no per-step "Save & continue" button**: each phase persists its slice via
-`PUT /map/{slug}/intent`, but *when* that fires (autosave-on-change vs save-on-Next vs explicit) and
-*how the save / dirty state is shown* (topbar vs flow-bar vs a global indicator) is the wizard's **save
-model — deferred to ND4** (it applies to all phases, ties into the idempotent regenerate-on-save of §3
-and the resolve-at-save Mojang lookup).
+as the entry point). There is **no per-step "Save & continue" button**.
+
+**Save model (settles ND4).** A phase **saves on advance** — when you leave it via *Next* or a rail jump
+to another phase, the wizard `PUT`s the whole intent (one idempotent regenerate per phase, §3, resolving
+author usernames as it goes) and the next phase's prerequisite slice is now present, so the rail unlocks
+it. Editing a phase marks it **dirty**; leaving while dirty saves, leaving clean is a no-op (no needless
+regenerate). Save state is a **single text indicator in the topbar** — **Saved · Saving… · Unsaved**, no
+icons — global so it reads the same in every phase. **Per-phase "done" is the rail's green dot**, backed
+by the phase's intent slice being present (`meta` · `symmetry` · `teams` · `build` · `wools`); there is
+**no per-sub-step checkmark** (intent slices are per-phase, not per-sub-step, so the flow bar marks only
+the current sub-step). On entry the wizard loads the stored intent (`GET /map/{slug}/intent`) and derives
+both the unlocked range and the done dots from it, so revisiting a part-authored map opens exactly the
+phases it has reached — progress lives in the intent, not in session state.
 
 **The landing / home screen (ND3 — `LandingSection`).** `/maps/new` (the Import landing) opens here,
 and the rail logo returns here. It is **a workspace with its own flow bar** (phase = **Import**) walking three sub-steps —

@@ -54,7 +54,14 @@
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
+}
+
+/* Wizard save indicator (ND4): quiet text in the topbar — Saved · Saving… · Unsaved. */
+.topbar-save-status {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* Sketch topbar export actions */

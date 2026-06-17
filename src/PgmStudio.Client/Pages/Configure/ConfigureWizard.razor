@@ -9,10 +9,13 @@
 
 <ConfigureLayout MapName="@mapName" Crumb="Configure" ActivePhaseId="@Phase.Id" Furthest="@furthest"
               PhaseIcon="@Phase.Icon" PhaseTitle="@Phase.Title"
-              SubSteps="@Phase.SubSteps" CurrentSubStep="@subStep"
+              SubSteps="@Phase.SubSteps" CurrentSubStep="@subStep" SaveStatus="@SaveStatus"
               BackEnabled="@BackEnabled" NextLabel="@NextLabel"
               OnJumpPhase="JumpPhase" OnStep="JumpStep" OnBack="Back" OnNext="Next">
 
+  @* Phase bodies (N00–N05) render inside this cascade: they patch their slice on Intent and call
+     MarkDirty(), and the wizard persists it on the next phase-advance. *@
+  <CascadingValue Value="this" IsFixed="true">
   <div class="workspace" @key="@Phase.Id">
     <div class="workspace-sidebar">
       <div class="workspace-scroll">
@@ -60,5 +63,6 @@
       </div>
     </div>
   </div>
+  </CascadingValue>
 
 </ConfigureLayout>
