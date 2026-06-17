@@ -133,6 +133,16 @@ public partial class ConfigureWizard
         StateHasChanged();
     }
 
+    /// <summary>Run an action that persists immediately (a phase body whose edit saves on the spot, e.g.
+    /// island exclude/include — not the deferred intent PUT), reflecting it in the topbar as Saving… → Saved.
+    /// Never marks the intent dirty: there's nothing pending. Returns false if the action failed.</summary>
+    public async Task<bool> TrackInstantSaveAsync(Func<Task> action)
+    {
+        save = SaveState.Saving; StateHasChanged();
+        try { await action(); save = SaveState.Saved; StateHasChanged(); return true; }
+        catch { save = SaveState.Unsaved; StateHasChanged(); return false; }
+    }
+
     // Persist the whole intent (one idempotent regenerate, §3) when a dirty phase is left; a clean phase
     // is a no-op so we don't regenerate for nothing. After saving, a fresh slice may unlock the next phase.
     private async Task SaveIfDirtyAsync()

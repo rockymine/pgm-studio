@@ -93,12 +93,14 @@ public partial class WorldIslandsPhase
     private async Task ToggleExclude(Island isl)
     {
         var willExclude = !excluded.Contains(isl.Id);
-        try
+        // Saves immediately (re-runs symmetry server-side) — reflected in the topbar as Saving… → Saved.
+        var ok = await Wizard.TrackInstantSaveAsync(async () =>
         {
-            await Http.PatchAsJsonAsync($"api/configure/{Slug}/exclude-island",
+            var resp = await Http.PatchAsJsonAsync($"api/configure/{Slug}/exclude-island",
                 new Dictionary<string, object?> { ["island_id"] = isl.Id, ["excluded"] = willExclude });
-        }
-        catch { return; }
+            resp.EnsureSuccessStatusCode();
+        });
+        if (!ok) return;
         if (willExclude) excluded.Add(isl.Id); else excluded.Remove(isl.Id);
         if (canvas is not null) await canvas.SetExcludedIslandsAsync(excluded.ToList());
     }
