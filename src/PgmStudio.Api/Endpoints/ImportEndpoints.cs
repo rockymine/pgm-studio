@@ -169,3 +169,102 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
         try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { /* ignore */ }
     }
 }
+
+/// <summary>
+/// GET /api/maps/import-candidates — world folders under the maps roots with <c>region/*.mca</c> but no
+/// <c>map.xml</c> and not already a map: the new-map import candidates (B8 "open a local folder" source).
+/// </summary>
+public sealed class ImportCandidatesEndpoint(MapRepository repo, MapsRoots roots) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/maps/import-candidates"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var existing = (await repo.ListAsync(ct)).Select(m => m.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var candidates = new List<Dict>();
+        foreach (var root in roots.Roots)
+        {
+            if (!Directory.Exists(root)) continue;
+            foreach (var dir in Directory.EnumerateDirectories(root))
+            {
+                var folder = Path.GetFileName(dir);
+                if (!seen.Add(folder)) continue;                                   // dedupe across roots
+                if (File.Exists(Path.Combine(dir, "map.xml"))) continue;           // xml maps aren't new-map candidates
+                var region = Path.Combine(dir, "region");
+                if (!Directory.Exists(region)) continue;
+                var mca = Directory.EnumerateFiles(region, "*.mca").Count();
+                if (mca == 0) continue;
+                var slug = ImportSlug.Of(folder);
+                if (slug.Length == 0 || existing.Contains(slug)) continue;          // skip unsluggable / already-imported
+                candidates.Add(new Dict { ["folder"] = folder, ["slug"] = slug, ["region_files"] = mca });
+            }
+        }
+        candidates.Sort((a, b) => string.Compare((string)a["slug"]!, (string)b["slug"]!, StringComparison.Ordinal));
+        await Send.OkAsync(candidates, ct);
+    }
+}
+
+/// <summary>
+/// POST /api/map/import-folder { slug } — import a local xml-less world (B8 "open a folder"): resolve
+/// <c>&lt;root&gt;/&lt;slug&gt;/region</c> via <see cref="MapsRoots"/> (only configured roots — no client path),
+/// create the map row, and scan into MariaDB. The slug must be a real candidate (region/*.mca, no map.xml,
+/// not already a map). Rolls back the row on failure.
+/// </summary>
+public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter writer, MapsRoots roots) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/import-folder"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var raw = await reader.ReadToEndAsync(ct);
+        JsonObject body;
+        try { body = (JsonNode.Parse(string.IsNullOrWhiteSpace(raw) ? "{}" : raw) as JsonObject) ?? new(); }
+        catch { await Fail(400, "invalid json body", ct); return; }
+
+        var folder = (body["folder"]?.GetValue<string>() ?? "").Trim();
+        // candidate folders are single path segments — reject anything that could traverse out of a root.
+        if (folder.Length == 0 || folder.Contains('/') || folder.Contains('\\') || folder.Contains("..")) { await Fail(400, "invalid folder", ct); return; }
+        var regionDir = roots.RegionDir(folder);   // resolves only under configured roots
+        if (regionDir is null) { await Fail(404, $"no world folder '{folder}'", ct); return; }
+        if (File.Exists(Path.Combine(Path.GetDirectoryName(regionDir)!, "map.xml"))) { await Fail(422, "folder has a map.xml (not a new-map candidate)", ct); return; }
+        if (!Directory.EnumerateFiles(regionDir, "*.mca").Any()) { await Fail(422, "no region/*.mca in folder", ct); return; }
+
+        var slug = ImportSlug.Of(body["slug"]?.GetValue<string>() ?? folder);
+        if (slug.Length == 0) { await Fail(400, "could not derive a slug", ct); return; }
+        if (await repo.GetBySlugAsync(slug, ct) is not null) { await Fail(409, $"map '{slug}' already exists", ct); return; }
+
+        long? mapId = null;
+        try
+        {
+            mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw" });
+            var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
+            await Send.OkAsync(new Dict
+            {
+                ["ok"] = true, ["slug"] = slug, ["wool_blocks"] = c.WoolBlocks, ["resource_blocks"] = c.ResourceBlocks,
+                ["chest_items"] = c.ChestItems, ["spawner_blocks"] = c.SpawnerBlocks, ["islands"] = c.Islands, ["monument_candidates"] = c.MonumentCandidates,
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            if (mapId is { } id) { try { await repo.DeleteMapAsync(id, ct); } catch { /* best effort */ } }
+            Logger.LogError(ex, "import-folder failed for {Slug}", slug);
+            await Fail(500, "import failed", ct);
+        }
+    }
+
+    private async Task Fail(int code, string msg, CancellationToken ct) =>
+        await Send.ResponseAsync(new Dict { ["error"] = msg }, code, ct);
+}
+
+/// <summary>Folder name → a valid map slug (lowercase <c>[a-z0-9_]</c>; spaces/punctuation collapse to '-').</summary>
+internal static class ImportSlug
+{
+    private static readonly Regex NonSlug = new("[^a-z0-9_]+", RegexOptions.Compiled);
+    public static string Of(string s)
+    {
+        var slug = NonSlug.Replace(s.Trim().ToLowerInvariant(), "-").Trim('-', '_');
+        return slug.Length > 64 ? slug[..64] : slug;
+    }
+}
