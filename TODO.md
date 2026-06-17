@@ -106,6 +106,47 @@ bug, `C14` helpers) serves the new authoring editor too; **`C9`/`C11`/`C18`** ar
   point/protection, but protection regions live in the "other" tree group and don't render on the
   Teams canvas. Surface them (e.g. via the subtype facet, like the draft filter).
 
+## Canvas interaction & de-duplication (CV)
+
+A cross-cutting refactor of the **shared** `EditorCanvas` (used by **both** Edit `/maps/{id}/edit`
+and the Configure wizard `/maps/{id}/configure`). Goal: wire up built-but-dead interactive UX
+(resize, move), collapse render duplication, and formalise the controller pattern — **without
+degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.md`.
+
+- [ ] **CV1 — Wire region resize (Edit).** The 8-handle resize is fully built in `editor-canvas.js`
+  but unwired: nothing sets the selected node, and `onBoundsChange`/`onBoundsSave` aren't passed by
+  the bridge. Add the three links (select→`showAnchors`; the two bridge callbacks + `[JSInvokable]`
+  handlers; PATCH `regions/{id}` `{bounds}`) so rectangle/cuboid regions resize + persist on the Edit
+  page. (Contract §3.)
+- [ ] **CV2 — Resize + move in the Configure draw steps.** Make the CV1/CV3 mechanism reachable in
+  the draw steps that mount `<EditorCanvas DrawCategory>` — **N02** (spawn protection), **N03**
+  (build), **N04** (wool rooms) — saving to the phase's intent slice (`Intent` + `MarkDirty`), not
+  the raw region PATCH. (Contract §3.5.)
+- [ ] **CV3 — Arrow-key nudge.** Move the selected region 1 block (Shift = 16) via a host keydown
+  handler (guards: canvas hidden, focus in INPUT/TEXTAREA, nothing selected); translate bounds and
+  reuse the CV1 save path. Edit + Configure. (Contract §4.)
+- [ ] **CV4 — Extract `EditorEditController` (resize + move).** Pure refactor: move the inline resize
+  machinery (`#renderHandles`/`#handleFields`/`#screenBounds`/`#doResize`/`#resizeState` + the
+  `_onResize*` bodies) plus the §4 translate into a controller mirroring `EditorDrawController`. Do
+  after CV1/CV3 so it's a behaviour-preserving move. (Contract §5.2.)
+- [ ] **CV5 — Controller-ise the click modes.** Fold the `_onCanvasClick` branches (region-select /
+  island-select / spawn-pick, each owning its `#hitTest*`) into the controller contract so adding a
+  mode isn't another `if`. Establishes the abstraction the **S2** sketch port reuses. (Contract §5.3.)
+- [ ] **CV6 — Dedupe JS renderers.** Extract `renderSymmetryOverlay` + `renderIslandPaths` (next to
+  `shape-render.js`) and make `EditorCanvas` use the shared `blockDataToDataUrl` — collapsing the
+  3–4 copies across `EditorCanvas`/`ConfigureRenderer`/`OverviewRenderer`. **Fixes a latent bug:**
+  `ConfigureRenderer` can't draw diagonal mirrors (`mirror_d1`/`mirror_d2`). Also fold the bridge
+  boilerplate (`fetchJson` + mount/dispose handle) into one shared module. (Contract §6.1–6.2.)
+- [ ] **CV7 — Prune / realign the public surface.** Wire the selection/bounds methods the resize+move
+  features need through the bridge; **keep** the not-yet-wired feature methods (`addRegion`,
+  `renameNode`, `focusRegion`, …) — they back unbuilt UI, don't delete. Update the stale
+  `editor-canvas.js` doc header to match the real exposed surface. Keep `#hitTestSpawn` (it picks
+  markers, not regions). (Contract §7.)
+- [ ] **CV8 — C# symmetry label/count helper.** Collapse `SymLabel` (identical in
+  `WorldScanPhase`/`WorldSymmetryPhase`) + the suggested-team-count mapping
+  (`WorldSymmetryPhase`/`TeamsPhase`/`SpawnPhase`) into one shared `SymmetryInfo`. The `SpawnPhase`
+  geometry copies (`PointInRing`/`Orbit`/`Reflect`/`Rotate`) go through **A4**, not here. (Contract §6.3.)
+
 ## Backend, pipeline & internals
 
 - [ ] **B8 — Source ingestion (landing screen, `ND3`).** *(now)* **Open a local world folder** — list
