@@ -1,0 +1,6 @@
+# One line-ending policy for all machines. Repo stores LF; the working tree is LF
+# everywhere (Windows VS and the Linux VM share these files on disk, so they must
+# agree). eol=lf overrides each machine's core.autocrlf.
+* text=auto eol=lf
+
+*.png binary
