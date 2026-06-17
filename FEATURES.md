@@ -113,6 +113,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   reused edit-page `EditorCanvas` (its navigation toolbar — pan/zoom · fit island · reset — and its island
   base ↔ surface "Blocks" layer toggle), with a cleaned-base summary (the corpus-fixed noise exclusions)
   and a detection summary (layer · island count · detected symmetry). Writes no intent. (`WorldScanPhase`; N01)
+- **World · Islands sub-step (N01)** — review the detected islands and exclude the stray ones (decor /
+  observer towers). Islands are selectable from the list **or by clicking the canvas** (the `EditorCanvas`
+  gained island hit-testing + an accent-border highlight, gated so the editor's region selection is
+  unchanged); the inspector shows centre / block count / Exclude·Include. Excluding reuses
+  `PATCH /configure/{slug}/exclude-island` (re-runs symmetry, no re-scan) and dims the island; saves
+  instantly (topbar Saving… → Saved). (`WorldIslandsPhase`; N01)
+- **World · Symmetry sub-step (N01)** — confirm the detected symmetry (or pick another / none) + its
+  centre → the World intent slice (`intent.symmetry`), which the generator orbit-fills from. The canvas
+  (`EditorCanvas` symmetry mode — base layer only) draws the axis/centre overlay; the inspector surfaces the
+  suggested team count. Persists on phase-advance, which marks World done + unlocks Teams. (`WorldSymmetryPhase`; N01)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,

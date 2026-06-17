@@ -1,0 +1,98 @@
+@namespace PgmStudio.Client.Pages.Configure
+@using PgmStudio.Client.Pages.EditorActivities
+
+@* World · Symmetry sub-step (N01): confirm the detected symmetry (or pick another / none) + its centre.
+   The choice is the World intent slice (intent.symmetry); the canvas shows the axis/centre overlay over
+   the island base layer. *@
+
+<div class="workspace">
+
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Symmetry</h2></div>
+        <p class="section-desc">Confirm the detected symmetry, pick another, or reject it — it seeds your
+          team count and mirrors one team's setup onto the rest.</p>
+        <div class="panel-list">
+          @foreach (var m in Choices)
+          {
+            <div class="list-row list-row--compact @(selectedType == m.Type ? "list-row--selected" : null)"
+                 @key="m.Type" @onclick="() => Select(m.Type)">
+              <span class="list-label">@SymLabel(m.Type)</span>
+              <span class="badge @(m.Confidence >= 0.999 ? "badge--success" : "badge--neutral")">@m.Confidence.ToString("P0")</span>
+              @if (m.Type == primaryType) { <span class="badge badge--dim">detected</span> }
+            </div>
+          }
+          <div class="list-row list-row--compact @(selectedType is null ? "list-row--selected" : null)"
+               @key="@("none")" @onclick="() => Select(null)">
+            <span class="list-label">No symmetry</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Centre</h2></div>
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">X</label>
+            <input class="field-input" type="number" step="0.5" value="@centerX"
+                   disabled="@(selectedType is null)" @onchange="@(e => OnCenter(e, true))" />
+          </div>
+          <div class="field">
+            <label class="field-label">Z</label>
+            <input class="field-input" type="number" step="0.5" value="@centerZ"
+                   disabled="@(selectedType is null)" @onchange="@(e => OnCenter(e, false))" />
+          </div>
+        </div>
+        <p class="section-desc">The point the layout mirrors / rotates about — defaults to the detected
+          centre.</p>
+      </section>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  @* Reused edit canvas in symmetry mode — base layer + the axis/centre overlay (no surface toggle). *@
+  <EditorCanvas @ref="canvas" Slug="@Slug" SymmetryMode="true" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-inspector">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="detail-header">
+          <span class="geo-type-icon detail-icon--muted"><i data-lucide="sparkle"></i></span>
+          <span class="detail-label">Detection summary</span>
+        </div>
+        <div class="section-body">
+          <div class="field">
+            <label class="field-label">Islands</label>
+            <div class="field-pick-row"><span class="field-value">@islandCount</span></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Confirmed symmetry</label>
+            <div class="field-pick-row"><span class="field-value">@SymLabel(selectedType)</span></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Suggested teams</label>
+            <div class="field-pick-row">
+              @if (SuggestedTeams is { } n)
+              {
+                <span class="badge badge--success">@n</span>
+                <span class="list-tag">from @selectedType</span>
+              }
+              else
+              {
+                <span class="field-value">—</span>
+                <span class="list-tag">set teams manually</span>
+              }
+            </div>
+          </div>
+          <p class="section-desc">The rotational/mirror order suggests the team count. You'll confirm it and
+            assign each island's owner next, in Teams.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+</div>

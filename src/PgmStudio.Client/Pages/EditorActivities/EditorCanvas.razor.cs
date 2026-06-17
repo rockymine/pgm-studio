@@ -26,6 +26,9 @@ public partial class EditorCanvas
     [Parameter] public bool IslandSelect { get; set; }
     /// <summary>Fired when a canvas click selects an island (null = clicked empty space).</summary>
     [Parameter] public EventCallback<int?> OnIslandSelect { get; set; }
+    /// <summary>World · Symmetry: base layer only (Blocks toggle hidden); the host drives the axis/centre
+    /// overlay via <see cref="SetSymmetryAsync"/>.</summary>
+    [Parameter] public bool SymmetryMode { get; set; }
     /// <summary>Fired once the canvas is mounted + the map is loaded, so a host can apply initial state
     /// (e.g. the excluded-island set) that only takes effect after the islands are rendered.</summary>
     [Parameter] public EventCallback OnReady { get; set; }
@@ -181,6 +184,12 @@ public partial class EditorCanvas
     public async Task SetExcludedIslandsAsync(IEnumerable<int> ids)
     {
         if (handle is not null) await handle.InvokeVoidAsync("setExcludedIslands", (object)ids.ToArray());
+    }
+
+    /// <summary>Show the symmetry axis/centre overlay (type null clears it).</summary>
+    public async Task SetSymmetryAsync(string? type, double cx, double cz)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("setSymmetry", type, cx, cz);
     }
 
     /// <summary>C5: a draw tool completed a shape → create the region, fill its symmetry orbit (F3),

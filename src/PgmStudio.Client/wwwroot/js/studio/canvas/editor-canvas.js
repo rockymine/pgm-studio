@@ -94,6 +94,12 @@ export class EditorCanvas extends CanvasBase {
   #excludedIslandIds = new Set();
   #islandSelect      = false;
 
+  // symmetry overlay (World · Symmetry step): a dashed axis line (or two, for rot_90) + a centre marker.
+  #symmetryLayerEl   = null;
+  #symType           = null;
+  #symCx             = 0;
+  #symCz             = 0;
+
   // layer state
   #showPois   = false;
   #showBuild  = false;
@@ -514,6 +520,7 @@ export class EditorCanvas extends CanvasBase {
     viewport.appendChild(this.#buildBuildRegion());
     viewport.appendChild(this.#buildBlockLayer());
     viewport.appendChild(this.#buildIslands());
+    viewport.appendChild(this.#buildSymmetryLayer());
     viewport.appendChild(this.#buildSpawnLayer());
     viewport.appendChild(this.#buildXmlRegions());
     viewport.appendChild(this.#buildWoolLayer());
@@ -646,6 +653,50 @@ export class EditorCanvas extends CanvasBase {
   }
 
   setIslandSelect(on) { this.#islandSelect = !!on; }
+
+  #buildSymmetryLayer() {
+    const g = svgEl("g", { id: "layer-symmetry" });
+    this.#symmetryLayerEl = g;
+    this.#renderSymmetry();
+    return g;
+  }
+
+  // Dashed axis line(s) + a centre marker for the confirmed symmetry (mirrors ConfigureRenderer):
+  // mirror_x / rot_90 → vertical axis at cx; mirror_z / rot_90 / rot_180 → horizontal axis at cz;
+  // mirror_d1 / mirror_d2 → a diagonal through the centre. Always a centre dot.
+  #renderSymmetry() {
+    const g = this.#symmetryLayerEl;
+    if (!g) return;
+    while (g.firstChild) g.removeChild(g.firstChild);
+    const bbox = this.#ctx?.bounding_box;
+    if (!this.#symType || !bbox || !this.#toSvg) return;
+    const cx = this.#symCx, cz = this.#symCz, t = this.#symType;
+    const axis = (x1, z1, x2, z2) => {
+      const a = this.#toSvg(x1, z1), b = this.#toSvg(x2, z2);
+      g.appendChild(svgEl("line", {
+        x1: a.x, y1: a.y, x2: b.x, y2: b.y,
+        stroke: "var(--canvas-symmetry)", "stroke-width": "1.5", "stroke-dasharray": "6 3", opacity: 0.8,
+      }));
+    };
+    const span = Math.max(bbox.max_x - bbox.min_x, bbox.max_z - bbox.min_z) + 20;
+    if (t === "mirror_x" || t === "rot_90") axis(cx, bbox.min_z - 10, cx, bbox.max_z + 10);
+    if (t === "mirror_z" || t === "rot_90" || t === "rot_180") axis(bbox.min_x - 10, cz, bbox.max_x + 10, cz);
+    if (t === "mirror_d1") axis(cx - span, cz - span, cx + span, cz + span);
+    if (t === "mirror_d2") axis(cx - span, cz + span, cx + span, cz - span);
+    const p = this.#toSvg(cx, cz);
+    g.appendChild(svgEl("circle", {
+      cx: p.x, cy: p.y, r: 5,
+      fill: "var(--canvas-symmetry)", stroke: "var(--canvas-marker-stroke)", "stroke-width": "1.5", opacity: 0.9,
+    }));
+  }
+
+  /** Show the symmetry overlay for the given type + centre (type null clears it). */
+  setSymmetry(type, cx, cz) {
+    this.#symType = type || null;
+    this.#symCx = cx ?? 0;
+    this.#symCz = cz ?? 0;
+    this.#renderSymmetry();
+  }
 
   setSelectedIsland(id) {
     this.#selectedIslandId = (id === null || id === undefined) ? null : id;

@@ -28,6 +28,10 @@
   {
     <WorldIslandsPhase @key="@("world-islands")" />
   }
+  else if (Phase.Id == "world" && subStep == 2)
+  {
+    <WorldSymmetryPhase @key="@("world-symmetry")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">
