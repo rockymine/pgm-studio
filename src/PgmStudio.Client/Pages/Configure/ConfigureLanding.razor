@@ -1,84 +1,272 @@
 @page "/maps/new"
 @layout EditorLayout
+@using PgmStudio.Client.Pages.EditorActivities
 
-@* New-map landing (NS / ND3): the Import phase — Source → Found → Plan — that originates a map and
-   hands off to the Configure wizard. The rail's six phases are all locked until you Start. Source/Found
-   are scaffold stubs; the real world scan + map-record creation land with B8. See §12. *@
+@* New-map landing: the Import flow — Source → Found → Plan — that creates a map from a terrain-only
+   world and hands off to the Configure wizard. Source lists importable world folders; Next scans the
+   chosen world; Found shows the detection brief over the reused editor canvas (island base + surface
+   overlay); Plan starts the wizard. The rail's phases stay locked until Start. *@
 
-<ConfigureLayout Crumb="" ActivePhaseId="" Furthest="@(-1)"
+<ConfigureLayout MapName="@(importedSlug ?? selected?.Slug)" Crumb="Import" ActivePhaseId="" Furthest="@(-1)"
               PhaseIcon="import" PhaseTitle="Import"
               SubSteps="@SubSteps" CurrentSubStep="@step"
-              BackEnabled="@BackEnabled" NextLabel="@NextLabel"
+              BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
               OnStep="JumpStep" OnBack="Back" OnNext="Next">
 
-  <div class="workspace">
-    <div class="workspace-scroll" @key="step" style="max-width: 760px; margin: 0 auto;">
+  @* ── Sub-step 1 · Source — pick an xml-less world folder (panel only) ─────────── *@
+  @if (OnSource)
+  {
+    <div class="workspace" @key="step">
+      <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
 
-      @if (step == 0)
-      {
         <section class="panel-section">
           <div class="section-header section-header--ruled">
-            <h2 class="section-title">Open a world</h2>
-            <span class="badge badge--dim">no map.xml needed</span>
+            <h2 class="section-title">Open a world folder</h2>
+            <span class="badge badge--success">no map.xml needed</span>
           </div>
-          <p class="section-desc">World folders under the maps roots with a <code>region/</code> but no
-            <code>map.xml</code> — the new-map candidates. Pick one, or type a path.</p>
-          <div class="panel-list" style="margin-top: var(--space-3);">
-            @foreach (var c in Candidates)
+          <p class="section-desc">Worlds that have terrain but no <code>map.xml</code> yet — the new-map
+            candidates. Pick one to scan it.</p>
+
+          @if (candidates.Count == 0)
+          {
+            <p class="panel-empty-msg" style="text-align:left">
+              No worlds to import yet — add a Minecraft world folder that has terrain but no
+              <code>map.xml</code>.
+            </p>
+          }
+          else
+          {
+            <div class="panel-list" style="margin-top: var(--space-3);">
+              @foreach (var c in candidates)
+              {
+                <div class="list-row list-row--compact @(c == selected ? "list-row--selected" : null)"
+                     @onclick="() => Select(c)">
+                  <span class="geo-type-icon"><i data-lucide="@(c == selected ? "folder-open" : "folder")"></i></span>
+                  <span class="list-label list-label--mono">@c.Folder</span>
+                  <span class="list-tag">@c.RegionFiles region files</span>
+                  @if (c == selected) { <span class="badge badge--success">selected</span> }
+                </div>
+              }
+            </div>
+          }
+
+          @if (selected is not null)
+          {
+            <div class="section-footer">
+              <span class="panel-save-status">
+                <code>@selected.Folder</code> · @selected.RegionFiles <code>.mca</code> ·
+                <strong>no <code>map.xml</code></strong> — <em>Scan &amp; continue</em> to read it
+              </span>
+            </div>
+          }
+        </section>
+
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">From a download link</h2>
+            <span class="badge badge--dim">Coming soon</span>
+          </div>
+          <p class="section-desc">Paste a link to a world download (e.g. an Overcast map zip) and the studio
+            will fetch and import it.</p>
+          <div class="field">
+            <label class="field-label">Download URL</label>
+            <input class="field-input" type="text" placeholder="https://…/maps/&lt;world&gt;/download" disabled />
+          </div>
+        </section>
+
+      </div>
+    </div>
+  }
+
+  @* ── Sub-step 2 · Found — the import brief over the reused editor canvas ──────── *@
+  else if (OnFound)
+  {
+    <div class="workspace" @key="step">
+
+      <div class="workspace-sidebar">
+        <div class="workspace-scroll">
+          <section class="panel-section">
+            <div class="section-header section-header--ruled"><h2 class="section-title">Files</h2></div>
+            <div class="panel-list">
+              <div class="list-row list-row--compact list-row--muted">
+                <span class="geo-type-icon"><i data-lucide="folder-open"></i></span>
+                <span class="list-label list-label--mono">@(selected?.Folder)/</span>
+              </div>
+              <div class="list-row list-row--compact list-row--muted">
+                <span class="geo-type-icon"><i data-lucide="box"></i></span>
+                <span class="list-label list-label--mono">region/ · @(selected?.RegionFiles) .mca</span>
+              </div>
+              <div class="list-row list-row--compact list-row--muted">
+                <span class="geo-type-icon"><i data-lucide="file-x"></i></span>
+                <span class="list-label list-label--mono">map.xml</span>
+                <span class="badge badge--dim">absent</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-header section-header--ruled"><h2 class="section-title">Detected</h2></div>
+            <div class="panel-list">
+              @foreach (var f in Findings.Where(f => f.Group == "detected"))
+              {
+                <div class="list-row list-row--compact @(selectedFinding == f.Key ? "list-row--selected" : null)" @onclick="() => SelectFinding(f.Key)">
+                  <span class="geo-type-icon"><i data-lucide="@f.Icon"></i></span>
+                  <span class="list-label">@f.Label</span>
+                  <span class="list-tag">@FindingTag(f.Key)</span>
+                </div>
+              }
+            </div>
+            @if (symType is not null)
             {
-              <button class="list-row @(c.Slug == selected ? "list-row--selected" : null)"
-                      @onclick="() => Select(c.Slug)">
-                <span class="geo-type-icon"><i data-lucide="folder"></i></span>
-                <span class="list-label list-label--mono">@c.Slug</span>
-                <span class="list-label">@c.Label</span>
-                <span class="list-tag">@c.Regions</span>
-              </button>
+              <p class="section-desc">The layout is symmetric
+                (<span class="badge badge--success">@SymLabel(symType)</span>), suggesting
+                <span class="badge badge--success">@SuggestedTeams</span> teams — you'll confirm both in World &amp; Teams.</p>
             }
-          </div>
-          <div class="field" style="margin-top: var(--space-4);">
-            <label class="field-label">…or a folder path</label>
-            <input class="field-input" placeholder="/maps/<world>" value="@($"/maps/{selected}")" readonly />
-          </div>
-          <div class="field" style="margin-top: var(--space-3);">
-            <label class="field-label">From a download link <span class="badge badge--dim">soon · B8</span></label>
-            <input class="field-input" placeholder="Overcast / S3 //download URL" disabled />
-          </div>
-        </section>
-      }
-      else if (step == 1)
-      {
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Import brief — @selected</h2>
-            <span class="badge badge--neutral">scaffold</span>
-          </div>
-          <p class="section-desc">The detection summary — file list, top-down render, islands / symmetry /
-            suggested team count — is the seed of the guidance model. Wired with the world scan (B8).</p>
-          <p class="panel-empty-msg" style="text-align:left">Scanned-world preview + brief land here.</p>
-        </section>
-      }
-      else
-      {
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">The plan</h2>
-          </div>
-          <p class="section-desc">Six phases take <strong>@selected</strong> from intent to a PGM-loadable
-            <code>map.xml</code>. <em>Start authoring</em> opens the wizard at Map Info.</p>
-          <div class="panel-list" style="margin-top: var(--space-3);">
-            @foreach (var p in ConfigurePhases.All)
+            else
             {
-              <div class="list-row list-row--compact">
-                <span class="geo-type-icon"><i data-lucide="@p.Icon"></i></span>
-                <span class="list-label">@p.Title</span>
-                <span class="list-tag">@p.Task</span>
+              <p class="section-desc">No symmetry detected, so there's no suggested team count yet — you'll set teams up later.</p>
+            }
+          </section>
+
+          <section class="panel-section">
+            <div class="section-header section-header--ruled"><h2 class="section-title">Already built</h2></div>
+            <div class="panel-list">
+              @foreach (var f in Findings.Where(f => f.Group == "built"))
+              {
+                <div class="list-row list-row--compact @(selectedFinding == f.Key ? "list-row--selected" : null)" @onclick="() => SelectFinding(f.Key)">
+                  <span class="geo-type-icon"><i data-lucide="@f.Icon"></i></span>
+                  <span class="list-label">@f.Label</span>
+                  <span class="list-tag">@FindingTag(f.Key)</span>
+                </div>
+              }
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="sidebar-handle"></div>
+
+      <div class="workspace-canvas">
+        <div class="canvas-subbar">
+          <span class="canvas-cursor">Top-down</span>
+        </div>
+        <div @ref="wrapRef" class="svg-area">
+          <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
+
+      <div class="sidebar-handle"></div>
+
+      <div class="workspace-inspector">
+        <div class="workspace-scroll">
+          <section class="panel-section" @key="selectedFinding">
+            <div class="detail-header">
+              <span class="geo-type-icon detail-icon--muted"><i data-lucide="@FindingIcon(selectedFinding)"></i></span>
+              <span class="detail-label">@FindingLabel(selectedFinding)</span>
+              <span class="badge badge--dim">@FindingTag(selectedFinding)</span>
+            </div>
+            <div class="section-body">
+              <p class="section-desc">@FindingExplanation(selectedFinding)</p>
+
+              @if (selectedFinding == "wool" && woolColors.Count > 0)
+              {
+                <div class="field">
+                  <label class="field-label">Colours found</label>
+                  <div class="panel-list">
+                    @foreach (var w in woolColors)
+                    {
+                      <div class="list-row list-row--compact list-row--muted">
+                        <span class="list-swatch" style="background:@w.Hex"></span>
+                        <span class="list-label">@w.Name</span>
+                        <span class="list-tag">@w.Count</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+              else if (selectedFinding == "islands" && islands.Count > 0)
+              {
+                <div class="field">
+                  <label class="field-label">Island sizes</label>
+                  <div class="panel-list">
+                    @for (var i = 0; i < islands.Count; i++)
+                    {
+                      <div class="list-row list-row--compact list-row--muted">
+                        <span class="list-label">Island @(i + 1)</span>
+                        <span class="list-tag">@islands[i].BlockCount blocks</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+              else if (selectedFinding == "resources" && resourceTypes.Count > 0)
+              {
+                <div class="field">
+                  <label class="field-label">Types found</label>
+                  <div class="panel-list">
+                    @foreach (var r in resourceTypes)
+                    {
+                      <div class="list-row list-row--compact list-row--muted">
+                        <span class="list-label">@r.Name</span>
+                        <span class="list-tag">@r.Count</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+  }
+
+  @* ── Sub-step 3 · Plan — the six phases, then Start (panel only) ─────────────── *@
+  else
+  {
+    <div class="workspace" @key="step">
+      <div class="workspace-scroll" style="max-width: 920px; margin: 0 auto;">
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">What happens next</h2>
+            <span class="badge badge--dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymLabel(symType)}" : "")</span>
+          </div>
+          <p class="section-desc">Six guided phases take <strong>@importedSlug</strong> from terrain to a
+            PGM-ready <code>map.xml</code> — and the studio does the heavy lifting at every step.</p>
+
+          <div class="card-grid">
+            @foreach (var (p, i) in ConfigurePhases.All.Select((p, i) => (p, i)))
+            {
+              <div class="card">
+                <div class="card-head">
+                  <span class="card-icon"><i data-lucide="@p.Icon"></i></span>
+                  <span class="card-title">@p.Title</span>
+                  <span class="card-step">@(i + 1)</span>
+                </div>
+                <p class="card-desc">@PlanBlurb(p.Id)</p>
               </div>
             }
           </div>
-        </section>
-      }
 
+          <div class="callout">
+            <span class="callout-icon"><i data-lucide="repeat"></i></span>
+            <p><strong>Build and reach go hand in hand.</strong> Before export, the studio checks that
+              every team can actually reach every wool. If a path is missing it points you back to Build to
+              drop in a bridge — so a map only ships once it's genuinely playable.</p>
+          </div>
+
+          <div class="section-footer">
+            <span class="panel-save-status"><strong>Start authoring</strong> opens the wizard at Map Info.</span>
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
+  }
+
+  @if (error is not null)
+  {
+    <Toast Message="@error" />
+  }
 
 </ConfigureLayout>

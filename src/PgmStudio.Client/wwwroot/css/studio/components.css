@@ -904,3 +904,62 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 .theme-toggle-icon--sun { display: none; }
 :root[data-theme="light"] .theme-toggle-icon--moon { display: none; }
 :root[data-theme="light"] .theme-toggle-icon--sun  { display: inline-flex; }
+
+/* Card grid + card — a reusable surface for a set of items (icon + title + description). The grid
+   fills as many equal columns as fit (min 240px), so it adapts to the item count and container width. */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.12s ease, transform 0.12s ease;
+}
+.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.card-head { display: flex; align-items: center; gap: var(--space-2); }
+.card-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--radius-md);
+  background: var(--bg-selected);
+  color: var(--accent-light);
+}
+.card-icon svg { width: 20px; height: 20px; }
+.card-title { font-size: var(--font-lg); font-weight: 600; color: var(--text-bright); }
+.card-step {
+  margin-left: auto;
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.card-desc { font-size: var(--font-base); line-height: 1.5; color: var(--text-secondary); }
+
+/* Friendly info callout — an accent-edged note for a tip or an important aside. */
+.callout {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.callout-icon { flex: none; margin-top: 1px; color: var(--accent-light); }
+.callout strong { color: var(--text-bright); }

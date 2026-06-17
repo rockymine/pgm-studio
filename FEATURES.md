@@ -93,6 +93,12 @@ per-phase bodies + intent wiring the open work (TODO §Authoring). Contract: `do
   prerequisite-gated rail (done = green dot, current = bar, later = locked). The `/maps/new` landing (Import:
   Source → Found → Plan) originates a map and hands off to Map Info. Phase bodies are scaffolds that the
   `N00`–`N05` tasks fill; reuses `ConfigureLayout` across both surfaces. (NS)
+- **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
+  chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
+  (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,
+  wool colours + resource types (`GET /map/{slug}/scan-summary`), chest count — and symmetry / suggested
+  teams as inline facts; **Plan** presents the six phases as cards, then Start → the wizard at Map Info.
+  Reuses `ConfigureRenderer` via `scan-canvas.js` and a generic `.card` / `.card-grid` / `.callout`. (NS)
 - **Typed intent model** `MapIntent` (+ `SymmetryIntent`), persisted as the `map_intent_json` sidecar
   (outside the codec, like the draft bucket). (`ea76f13`)
 - **Generator** `IntentGenerator.Apply` — meta / teams / build / wool slices → PGM document via the

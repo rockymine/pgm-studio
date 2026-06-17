@@ -47,6 +47,13 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, slug);
   },
 
+  // Mount the new-map landing's "Found" preview (NS): reuses the editor ConfigureRenderer over the
+  // cached scan artifacts (works for an xml-less world with no regions tree).
+  async mountScan(svgEl, wrapEl, slug) {
+    const mod = await import("/js/studio/scan-canvas.js");
+    return mod.mount(svgEl, wrapEl, slug);
+  },
+
   // R1a: a minimal editor keyboard layer — Ctrl/Cmd+G → dotnetRef.OnGroupKey() (group/ungroup the
   // current selection). One active listener at a time (the visible activity owns it). preventDefault
   // so the browser's "find next" doesn't fire. Ignored while typing in a field. (Seed of B6's command

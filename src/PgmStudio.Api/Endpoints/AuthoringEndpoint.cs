@@ -104,3 +104,54 @@ public sealed class IslandsEndpoint(MapRepository repo, PgmDb db) : EndpointWith
         await Send.OkAsync(jd.RootElement.Clone(), ct);
     }
 }
+
+/// <summary>GET /api/map/{slug}/scan-summary — per-feature breakdowns for the import brief: wool blocks
+/// grouped by colour (with a swatch hex) and resource blocks grouped by type, each ordered by count.</summary>
+public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    private static readonly Dictionary<string, int> WoolDamage =
+        WoolColors.WoolDamageToColor.ToDictionary(kv => kv.Value, kv => kv.Key);
+
+    public override void Configure() { Get("/map/{slug}/scan-summary"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        var wool = (await db.WoolBlocks.Where(w => w.MapId == map.Id)
+                .GroupBy(w => w.Color).Select(g => new { Color = g.Key, Count = g.Count() }).ToListAsync(ct))
+            .OrderByDescending(g => g.Count)
+            .Select(g =>
+            {
+                var slug = WoolColors.Normalize(g.Color);
+                return new Dict
+                {
+                    ["color"] = slug,
+                    ["name"] = TitleCase(slug),
+                    ["hex"] = WoolDamage.TryGetValue(slug, out var dmg) ? PgmStudio.Minecraft.BlockColors.Hex(35, dmg) : "#888888",
+                    ["count"] = g.Count,
+                };
+            }).ToList();
+
+        var resources = (await db.ResourceBlocks.Where(r => r.MapId == map.Id)
+                .GroupBy(r => r.ResourceType).Select(g => new { Type = g.Key, Count = g.Count() }).ToListAsync(ct))
+            .OrderByDescending(g => g.Count)
+            .Select(g => new Dict { ["type"] = g.Type, ["name"] = TitleCase(g.Type), ["count"] = g.Count }).ToList();
+
+        // chest_item rows are per-slot; the chest count is the distinct chest positions holding them.
+        var chestCount = await db.ChestItems.Where(c => c.MapId == map.Id)
+            .Select(c => new { c.WorldX, c.WorldZ, c.WorldY }).Distinct().CountAsync(ct);
+        var chestItemCount = await db.ChestItems.CountAsync(c => c.MapId == map.Id, ct);
+
+        await Send.OkAsync(new Dict
+        {
+            ["wool_colors"] = wool, ["resource_types"] = resources,
+            ["chest_count"] = chestCount, ["chest_items"] = chestItemCount,
+        }, ct);
+    }
+
+    private static string TitleCase(string slug) => string.Join(' ',
+        slug.Split('_', StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => char.ToUpperInvariant(w[0]) + w[1..]));
+}
