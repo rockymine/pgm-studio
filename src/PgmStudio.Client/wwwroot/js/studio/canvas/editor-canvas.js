@@ -101,6 +101,12 @@ export class EditorCanvas extends CanvasBase {
   #symCx             = 0;
   #symCz             = 0;
 
+  // spawn-point authoring (Teams · Spawn step): point-pick reports the clicked world point; author spawns
+  // are rendered as team-coloured markers (the placed one bright, orbit ones faint).
+  #pointPick         = false;
+  #authorSpawnLayer  = null;
+  #authorSpawns      = [];   // [{x, z, color, primary, team}]
+
   // layer state
   #showPois   = false;
   #showBuild  = false;
@@ -140,6 +146,11 @@ export class EditorCanvas extends CanvasBase {
     const world = this.#toWorld(svgPt.x, svgPt.y);
     const bx = Math.floor(world.x), bz = Math.floor(world.z);
     if (this._activeTool === "move" || !this._activeTool) return;
+    // Spawn placement: the point tool drops a spawn at the clicked world point (host orbits the rest).
+    if (this.#pointPick && this._activeTool === "point") {
+      this.#callbacks.onPointPick?.(world.x, world.z);
+      return;
+    }
     if (!this.#drawCtrl.onMouseDown(bx, bz)) {
       if (this._activeTool === "point" || this._activeTool === "block") {
         this.#callbacks.onRegionDraw?.({ ...blockToExtentBounds(bx, bz), type: this._activeTool });
@@ -162,6 +173,8 @@ export class EditorCanvas extends CanvasBase {
   _onCanvasClick(e, svgPt) {
     if (!this.#toWorld) return;
     const world = this.#toWorld(svgPt.x, svgPt.y);
+    // Spawn-pick mode: the select tool (this click path) picks the spawn marker under the cursor.
+    if (this.#pointPick) { this.#callbacks.onSpawnPick?.(this.#hitTestSpawn(world.x, world.z)); return; }
     if (this.#islandSelect) {
       this.#callbacks.onIslandClick?.(this.#hitTestIsland(world.x, world.z));
       return;
@@ -522,6 +535,7 @@ export class EditorCanvas extends CanvasBase {
     viewport.appendChild(this.#buildBlockLayer());
     viewport.appendChild(this.#buildIslands());
     viewport.appendChild(this.#buildSymmetryLayer());
+    viewport.appendChild(this.#buildAuthorSpawnLayer());
     viewport.appendChild(this.#buildSpawnLayer());
     viewport.appendChild(this.#buildXmlRegions());
     viewport.appendChild(this.#buildWoolLayer());
@@ -709,6 +723,48 @@ export class EditorCanvas extends CanvasBase {
     this.#symCz = cz ?? 0;
     this.#renderSymmetry();
   }
+
+  #buildAuthorSpawnLayer() {
+    const g = svgEl("g", { id: "layer-author-spawns" });
+    this.#authorSpawnLayer = g;
+    this.#renderAuthorSpawns();
+    return g;
+  }
+
+  #renderAuthorSpawns() {
+    const g = this.#authorSpawnLayer;
+    if (!g) return;
+    while (g.firstChild) g.removeChild(g.firstChild);
+    if (!this.#toSvg) return;
+    for (const s of this.#authorSpawns) {
+      const p = this.#toSvg(s.x, s.z);
+      g.appendChild(svgEl("circle", {
+        cx: p.x, cy: p.y, r: s.primary ? 6 : 5,
+        fill: s.color || "var(--accent)", stroke: "var(--canvas-marker-stroke)",
+        "stroke-width": s.primary ? "2" : "1", opacity: s.primary ? 1 : 0.55,
+      }));
+    }
+  }
+
+  /** Render author spawn markers — list of { x, z, color, primary, team }. */
+  setAuthorSpawns(spawns) {
+    this.#authorSpawns = spawns || [];
+    this.#renderAuthorSpawns();
+  }
+
+  /** Nearest author spawn marker to a world point (within ~2 blocks) → its team id, else null. World-space,
+   *  like #hitTest: the click's #toWorld point vs each spawn's world position. */
+  #hitTestSpawn(worldX, worldZ) {
+    let best = null, bestD = 2 * 2;
+    for (const s of this.#authorSpawns) {
+      const dx = s.x - worldX, dz = s.z - worldZ, d = dx * dx + dz * dz;
+      if (d <= bestD) { bestD = d; best = s.team ?? null; }
+    }
+    return best;
+  }
+
+  /** When on, a canvas click reports the raw world point via onPointPick (spawn-point placement). */
+  setPointPick(on) { this.#pointPick = !!on; }
 
   setSelectedIsland(id) {
     this.#selectedIslandId = (id === null || id === undefined) ? null : id;

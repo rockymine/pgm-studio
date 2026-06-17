@@ -129,6 +129,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   team's colour) → `intent.islandTeams` (authoring aid the Spawn step consumes). Canvas = reused
   `EditorCanvas` in island-select mode, now **point-in-polygon** island hit-testing + **Select tool by
   default** (both also improve the World · Islands step). (`TeamsPhase`; N02)
+- **Teams · Spawn point sub-step (N02)** — the **point tool** drops team 0's spawn (island-aware: it
+  takes the clicked island's team) and the confirmed symmetry orbit-fills the rest, each orbit spawn
+  reassigned by the island it lands in; the **select tool** picks a placed marker (world-space hit-test,
+  like the editor's). The inspector edits X/Y/Z/Yaw — editing the authored spawn's X/Z re-derives the
+  orbit; the reused **side-view** (`SliceView`) sets the Y on the spawn's terrain, **shared across the
+  orbit**. → `intent.spawns`. (`SpawnPhase`; N02)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,

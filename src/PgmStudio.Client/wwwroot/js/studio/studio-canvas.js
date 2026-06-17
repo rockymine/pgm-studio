@@ -38,6 +38,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     onRegionDraw: (drawResult) => dotnetRef.invokeMethodAsync("OnRegionDraw", drawResult),
     // Island pick (World authoring step): a click in island-select mode → C# (null = clicked empty space).
     onIslandClick: (id) => dotnetRef.invokeMethodAsync("OnCanvasIslandSelect", id ?? null),
+    // Point pick (Teams · Spawn step): the point tool drops a spawn at the raw world point → C#.
+    onPointPick: (x, z) => dotnetRef.invokeMethodAsync("OnCanvasPointPick", x, z),
+    // Spawn pick (Teams · Spawn step): the select tool picks a spawn marker → its team id → C#.
+    onSpawnPick: (team) => dotnetRef.invokeMethodAsync("OnCanvasSpawnPick", team ?? null),
   });
   canvas.setActiveTool("move");
   let blockData = null;   // cached top-surface layer (C6), fetched on first toggle-on
@@ -95,6 +99,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     setExcludedIslands(ids) { canvas.setExcludedIslands(ids ?? []); },
     setIslandTeams(map) { canvas.setIslandTeams(map ?? {}); },
     setSymmetry(type, cx, cz) { canvas.setSymmetry(type ?? null, cx, cz); },
+    setPointPick(on) { canvas.setPointPick(on); },
+    setAuthorSpawns(spawns) { canvas.setAuthorSpawns(spawns ?? []); },
     fitIsland(id) { canvas.fitIsland(id); },
     fitBounds(minX, minZ, maxX, maxZ) { canvas.fitBounds({ min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ }); },
     resetView() { canvas.resetView(); },

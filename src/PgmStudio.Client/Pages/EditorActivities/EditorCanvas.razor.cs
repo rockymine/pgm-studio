@@ -29,6 +29,14 @@ public partial class EditorCanvas
     /// <summary>World · Symmetry: base layer only (Blocks toggle hidden); the host drives the axis/centre
     /// overlay via <see cref="SetSymmetryAsync"/>.</summary>
     [Parameter] public bool SymmetryMode { get; set; }
+    /// <summary>Teams · Spawn: base layer only; a canvas click reports the raw world point via
+    /// <see cref="OnPointPick"/> (spawn placement), and the host draws markers via <see cref="SetAuthorSpawnsAsync"/>.</summary>
+    [Parameter] public bool PointPick { get; set; }
+    /// <summary>Fired with the clicked world (x, z) when the point tool places a spawn (point-pick mode).</summary>
+    [Parameter] public EventCallback<(double X, double Z)> OnPointPick { get; set; }
+    /// <summary>Fired when the select tool picks a spawn marker (point-pick mode); arg = its team id,
+    /// or null when the click missed every marker.</summary>
+    [Parameter] public EventCallback<string?> OnSpawnPick { get; set; }
     /// <summary>Fired once the canvas is mounted + the map is loaded, so a host can apply initial state
     /// (e.g. the excluded-island set) that only takes effect after the islands are rendered.</summary>
     [Parameter] public EventCallback OnReady { get; set; }
@@ -45,9 +53,11 @@ public partial class EditorCanvas
 
     protected override async Task OnInitializedAsync()
     {
-        // Island-select canvases (World · Islands / Teams) are click-to-pick, so default to the Select tool
-        // rather than Move — otherwise the first clicks pan instead of selecting.
+        // Island-select clicks pick an island via the Select tool. Point-pick (spawn placement) leads
+        // with the Point tool so the first click drops a spawn; Select is then used to pick markers.
+        // Either way, default off Move so the first clicks register instead of panning.
         if (IslandSelect) tool = "select";
+        else if (PointPick) tool = "point";
 
         // Islands power the "fit island" zoom control (any activity, if the map has scan data).
         try
@@ -86,6 +96,11 @@ public partial class EditorCanvas
             {
                 await handle.InvokeVoidAsync("setIslandSelect", true);
                 await handle.InvokeVoidAsync("setTool", "select");   // mount defaults to "move"; islands are click-to-pick
+            }
+            if (PointPick)
+            {
+                await handle.InvokeVoidAsync("setPointPick", true);
+                await handle.InvokeVoidAsync("setTool", "point");   // mount defaults to "move"; lead with the placement tool
             }
             await OnReady.InvokeAsync();
         }
@@ -204,6 +219,18 @@ public partial class EditorCanvas
     public async Task SetIslandTeamsAsync(IReadOnlyDictionary<string, string> idToHex)
     {
         if (handle is not null) await handle.InvokeVoidAsync("setIslandTeams", idToHex);
+    }
+
+    /// <summary>Pick the raw clicked world point (point-pick mode, point tool) → host.</summary>
+    [JSInvokable] public Task OnCanvasPointPick(double x, double z) => OnPointPick.InvokeAsync((x, z));
+
+    /// <summary>Pick the spawn marker under the cursor (point-pick mode, select tool) → host.</summary>
+    [JSInvokable] public Task OnCanvasSpawnPick(string? team) => OnSpawnPick.InvokeAsync(team);
+
+    /// <summary>Draw author spawn markers — each { x, z, color, primary }.</summary>
+    public async Task SetAuthorSpawnsAsync(IEnumerable<object> spawns)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("setAuthorSpawns", (object)spawns.ToArray());
     }
 
     /// <summary>C5: a draw tool completed a shape → create the region, fill its symmetry orbit (F3),

@@ -36,6 +36,10 @@
   {
     <TeamsPhase @key="@("teams-assign")" />
   }
+  else if (Phase.Id == "teams" && subStep == 1)
+  {
+    <SpawnPhase @key="@("teams-spawn")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">
