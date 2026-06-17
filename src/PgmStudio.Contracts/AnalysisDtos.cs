@@ -37,3 +37,18 @@ public sealed record MonumentObstructionDto(
 /// <summary>GET /api/map/{slug}/monument-obstruction — each wool monument's block must be air; a
 /// pre-existing block there blocks wool placement (PGM warns on load).</summary>
 public sealed record MonumentObstructionResponseDto(IReadOnlyList<MonumentObstructionDto> Monuments, bool HaveLayers);
+
+public sealed record WoolSourceDto(string Type, string Color, int X, int Y, int Z, int Count);
+public sealed record WoolColorSummaryDto(
+    string Color, int Total, IReadOnlyList<string> SourceTypes, bool Repeatable, bool OneTime,
+    IReadOnlyList<WoolSourceDto> Sources);
+
+/// <summary>POST /api/map/{slug}/wool-sources — wool colours found inside a drawn rectangle
+/// (body: <c>{ bounds: { minX, minZ, maxX, maxZ } }</c>). HaveLayers is false for an xml-only map.</summary>
+public sealed record WoolSourcesResponseDto(IReadOnlyList<WoolColorSummaryDto> Colors, bool HaveLayers);
+
+public sealed record WoolSuggestionDto(string Color, int Total, IReadOnlyList<string> SourceTypes);
+
+/// <summary>GET /api/map/{slug}/wool-suggestions — wool colours found in the world but not yet
+/// declared as objectives.</summary>
+public sealed record WoolSuggestionsResponseDto(IReadOnlyList<WoolSuggestionDto> Suggestions, bool HaveLayers);

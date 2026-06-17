@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using FastEndpoints;
 using PgmStudio.Analysis;
 using PgmStudio.Api.Services;
@@ -116,5 +117,54 @@ public sealed class MonumentObstructionEndpoint(MapRepository repo, MapReader re
         var monuments = WoolSources.CheckMonumentObstruction(doc, segs)
             .Select(c => new MonumentObstructionDto(c.WoolColor, c.Team, c.MonumentId, c.X, c.Y, c.Z, c.Obstructed, c.Severity, c.Message)).ToList();
         await Send.OkAsync(new MonumentObstructionResponseDto(monuments, segs is not null), ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/wool-sources — wool colours found inside a drawn rectangle
+/// (body: <c>{ bounds: { minX, minZ, maxX, maxZ } }</c>).</summary>
+public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/wool-sources"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
+        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        var (map, doc) = loaded.Value;
+
+        using var sr = new StreamReader(HttpContext.Request.Body);
+        var b = (JsonNode.Parse(await sr.ReadToEndAsync(ct)) as JsonObject)?["bounds"] as JsonObject;
+        if (b?["minX"] is null || b["minZ"] is null || b["maxX"] is null || b["maxZ"] is null)
+        {
+            await Send.ResponseAsync(new Dict { ["error"] = "bounds {minX,minZ,maxX,maxZ} required" }, 400, ct);
+            return;
+        }
+
+        var have = await feature.HasScanAsync(map.Id, ct);
+        var sources = await feature.WoolSourcesAsync(map.Id, doc, ct);
+        var colors = WoolSources.SourcesInRegion(doc, sources,
+                b["minX"]!.GetValue<double>(), b["minZ"]!.GetValue<double>(), b["maxX"]!.GetValue<double>(), b["maxZ"]!.GetValue<double>())
+            .Select(c => new WoolColorSummaryDto(c.Color, c.Total, c.SourceTypes, c.Repeatable, c.OneTime,
+                c.Sources.Select(s => new WoolSourceDto(s.Type, s.Color, s.X, s.Y, s.Z, s.Count)).ToList())).ToList();
+        await Send.OkAsync(new WoolSourcesResponseDto(colors, have), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/wool-suggestions — wool colours in the world not yet declared as objectives.</summary>
+public sealed class WoolSuggestionsEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<WoolSuggestionsResponseDto>
+{
+    public override void Configure() { Get("/map/{slug}/wool-suggestions"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
+        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        var (map, doc) = loaded.Value;
+
+        var have = await feature.HasScanAsync(map.Id, ct);
+        var sources = await feature.WoolSourcesAsync(map.Id, doc, ct);
+        var suggestions = WoolSources.SuggestWools(doc, sources)
+            .Select(s => new WoolSuggestionDto(s.Color, s.Total, s.SourceTypes)).ToList();
+        await Send.OkAsync(new WoolSuggestionsResponseDto(suggestions, have), ct);
     }
 }

@@ -19,7 +19,16 @@ public static class WoolSources
     public sealed record Suggestion(string Color, int Total, List<string> SourceTypes);
     public sealed record MonumentCheck(string WoolColor, string Team, string MonumentId, int X, int Y, int Z, bool Obstructed, string Severity, string Message);
 
+    private static readonly GeometryFactory Gf = new();
+
     // ── summaries ─────────────────────────────────────────────────────────────────
+
+    /// <summary>Wool colours inside a drawn rectangle (world X/Z bounds) — the POST /wool-sources query.
+    /// Computes the renewable geoms from the doc, so the caller only supplies the bounds + sources.</summary>
+    public static List<ColorSummary> SourcesInRegion(
+        Dict data, IEnumerable<Source> sources, double minX, double minZ, double maxX, double maxZ) =>
+        SummarizeSources(sources, Gf.ToGeometry(new Envelope(minX, maxX, minZ, maxZ)), RenewableGeoms(data));
+
     public static List<ColorSummary> SummarizeSources(IEnumerable<Source> sources, Geometry? regionGeom, List<Geometry> renewableGeoms)
     {
         var order = new List<string>();

@@ -71,4 +71,34 @@ public sealed class WoolSourcesTests
         await Assert.That(blocked[0].Severity).IsEqualTo("error");
         await Assert.That(blocked[0].Message).Contains("obstructed");
     }
+
+    [Test]
+    public async Task SourcesInRegion_summarises_only_the_wool_inside_the_drawn_rectangle()
+    {
+        var doc = Serializer.ToDict(MapParser.ParseXmlString(Xml));
+        var sources = new List<WoolSources.Source>
+        {
+            new("block", "red", 5, 4, 5, 1),       // inside (0,0)-(10,10)
+            new("block", "blue", 50, 4, 50, 1),    // outside
+        };
+        var colors = WoolSources.SourcesInRegion(doc, sources, 0, 0, 10, 10);
+        await Assert.That(colors.Count).IsEqualTo(1);
+        await Assert.That(colors[0].Color).IsEqualTo("red");
+        await Assert.That(colors[0].Total).IsEqualTo(1);
+        await Assert.That(colors[0].OneTime).IsTrue();   // a bare block is one-time
+    }
+
+    [Test]
+    public async Task SuggestWools_proposes_undeclared_colours_only()
+    {
+        var doc = Serializer.ToDict(MapParser.ParseXmlString(Xml));   // declares red
+        var sources = new List<WoolSources.Source>
+        {
+            new("block", "blue", 1, 1, 1, 2),   // not declared → suggested
+            new("block", "red", 2, 2, 2, 1),    // declared → not suggested
+        };
+        var sugg = WoolSources.SuggestWools(doc, sources);
+        await Assert.That(sugg.Select(s => s.Color)).Contains("blue");
+        await Assert.That(sugg.Any(s => s.Color == "red")).IsFalse();
+    }
 }
