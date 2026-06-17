@@ -35,7 +35,7 @@
           @if (ExcludedList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
           @foreach (var isl in ExcludedList)
           {
-            <div class="list-row list-row--compact list-row--muted @(selectedId == isl.Id ? "list-row--selected" : null)"
+            <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
                  @key="isl.Id" @onclick="() => Select(isl.Id)">
               <span class="geo-type-icon"><i data-lucide="layers"></i></span>
               <span class="list-label">@Label(isl)</span>
