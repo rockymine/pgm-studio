@@ -24,9 +24,21 @@ builder.Services.AddHttpClient<PgmStudio.Api.Services.MojangClient>(c =>
     c.DefaultRequestHeaders.UserAgent.ParseAdd("pgm-studio/1.0");
 });
 
-// Corpus roots used to locate a map's Minecraft world (<root>/<slug>/region) for the world scan.
-var mapsRoots = builder.Configuration.GetSection("MapsRoots").Get<string[]>()
-    ?? ["/media/sf_repos/CommunityMaps/ctw", "/media/sf_repos/PublicMaps/ctw"];
+// B8 import-from-url (docs/contracts/new-map-authoring.md §12): a hardcoded SSRF allowlist + a dedicated
+// imports root (kept out of the curated corpus) + bounded extraction.
+var importRoot = builder.Configuration["Import:Root"] ?? "/media/sf_repos/pgm-studio-imports";
+var importHosts = builder.Configuration.GetSection("Import:AllowedHosts").Get<string[]>()
+    ?? PgmStudio.Api.Services.ImportPolicy.DefaultAllowedHosts;
+builder.Services.AddSingleton(new PgmStudio.Api.Services.ImportPolicy { AllowedHosts = importHosts, Root = importRoot });
+// Dedicated client for the import fetch — NO auto-redirect (a redirect could bounce past the allowlist).
+builder.Services.AddHttpClient("import", c => c.Timeout = TimeSpan.FromSeconds(120))
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false });
+
+// Corpus roots used to locate a map's Minecraft world (<root>/<slug>/region) for the world scan; the
+// imports root is searched too so scan-world finds B8-imported worlds.
+var mapsRoots = (builder.Configuration.GetSection("MapsRoots").Get<string[]>()
+        ?? ["/media/sf_repos/CommunityMaps/ctw", "/media/sf_repos/PublicMaps/ctw"])
+    .Append(importRoot).ToArray();
 builder.Services.AddSingleton(new PgmStudio.Api.Services.MapsRoots(mapsRoots));
 
 var app = builder.Build();
