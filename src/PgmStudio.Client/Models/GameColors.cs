@@ -52,4 +52,13 @@ public static class GameColors
             if (!used.Contains(value)) return ChatColors.First(c => c.Value == value);
         return null;
     }
+
+    /// <summary>The first <paramref name="n"/> team colours in priority order (red, blue, green, …).</summary>
+    public static IReadOnlyList<Color> FirstTeamColors(int n)
+    {
+        var result = new List<Color>();
+        var used = new List<string?>();
+        for (var i = 0; i < n && NextTeamColor(used) is { } c; i++) { result.Add(c); used.Add(c.Value); }
+        return result;
+    }
 }

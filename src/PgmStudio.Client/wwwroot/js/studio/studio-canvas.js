@@ -93,6 +93,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     setIslandSelect(on) { canvas.setIslandSelect(on); },
     setSelectedIsland(id) { canvas.setSelectedIsland(id ?? null); },
     setExcludedIslands(ids) { canvas.setExcludedIslands(ids ?? []); },
+    setIslandTeams(map) { canvas.setIslandTeams(map ?? {}); },
     setSymmetry(type, cx, cz) { canvas.setSymmetry(type ?? null, cx, cz); },
     fitIsland(id) { canvas.fitIsland(id); },
     fitBounds(minX, minZ, maxX, maxZ) { canvas.fitBounds({ min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ }); },

@@ -161,8 +161,13 @@ region ctor; a bare proximity `Vector` is not. (Verified by static read of `wool
 Each shaping activity edits a **slice of intent** through a simple form + canvas, not the region tree.
 
 1. **Teams & spawns.** Symmetry order suggests team count (correctable). Set one `maxPlayers`; pick a
-   kit (preselected). Place team 0's spawn point; toggle "wrap in a protection zone" and draw/accept
-   it. Orbit fills the other teams; templates wire protection. A team's **spawn point and its
+   kit (preselected). **Island assignment** (step 1) colour-codes islands to teams (`intent.islandTeams`,
+   island id → team) as authoring help — it tints the canvas and, crucially, feeds spawn placement: when a
+   spawn point is dropped on a tagged island it takes that island's team, and each orbit-filled spawn is
+   (re)assigned by the island it lands in (point-in-polygon) rather than blindly by orbit order, so
+   placement + orbit stay accurate even when a rotation lands slightly off. Untagged islands are neutral
+   (a contested centre). Then place team 0's spawn point; toggle "wrap in a protection zone" and
+   draw/accept it. Orbit fills the other teams; templates wire protection. A team's **spawn point and its
    protection zone are one unit in one place** — fixing the current split where they appear under
    different tree branches.
 2. **Build.** Set max build height; mark the positive build area; draw a few bridge rectangles. System

@@ -40,6 +40,13 @@ public sealed class MapIntent
     /// mapping orbit positions to <see cref="Teams"/> <i>in list order</i>. Null → no fill (author states
     /// every team's units explicitly).</summary>
     public SymmetryIntent? Symmetry { get; init; }
+
+    /// <summary>Authoring aid (Teams step): island id → team id, colour-coding which team each island
+    /// belongs to. Consumed by the <b>Spawn step</b> (not the generator): a spawn placed on a tagged island
+    /// takes that island's team, and each orbit-filled spawn is (re)assigned by the island it lands on —
+    /// making team inference + the orbit more accurate. Untagged islands stay neutral (e.g. a contested
+    /// centre). Persisted with the intent.</summary>
+    public Dictionary<string, string> IslandTeams { get; init; } = new();
 }
 
 /// <summary>The confirmed map symmetry: a <see cref="Mode"/> (<c>mirror_x</c>/<c>mirror_z</c>/

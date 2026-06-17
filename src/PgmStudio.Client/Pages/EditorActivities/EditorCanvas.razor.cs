@@ -45,6 +45,10 @@ public partial class EditorCanvas
 
     protected override async Task OnInitializedAsync()
     {
+        // Island-select canvases (World · Islands / Teams) are click-to-pick, so default to the Select tool
+        // rather than Move — otherwise the first clicks pan instead of selecting.
+        if (IslandSelect) tool = "select";
+
         // Islands power the "fit island" zoom control (any activity, if the map has scan data).
         try
         {
@@ -78,7 +82,11 @@ public partial class EditorCanvas
             selfRef = DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>(
                 "studio.mountCanvas", svgRef, wrapRef, coordsRef, zoomRef, selfRef, Slug, Category, DraftStep);
-            if (IslandSelect) await handle.InvokeVoidAsync("setIslandSelect", true);
+            if (IslandSelect)
+            {
+                await handle.InvokeVoidAsync("setIslandSelect", true);
+                await handle.InvokeVoidAsync("setTool", "select");   // mount defaults to "move"; islands are click-to-pick
+            }
             await OnReady.InvokeAsync();
         }
     }
@@ -190,6 +198,12 @@ public partial class EditorCanvas
     public async Task SetSymmetryAsync(string? type, double cx, double cz)
     {
         if (handle is not null) await handle.InvokeVoidAsync("setSymmetry", type, cx, cz);
+    }
+
+    /// <summary>Tint islands by team — a map of island id (string) → team colour hex.</summary>
+    public async Task SetIslandTeamsAsync(IReadOnlyDictionary<string, string> idToHex)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("setIslandTeams", idToHex);
     }
 
     /// <summary>C5: a draw tool completed a shape → create the region, fill its symmetry orbit (F3),

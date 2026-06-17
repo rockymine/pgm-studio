@@ -32,6 +32,10 @@
   {
     <WorldSymmetryPhase @key="@("world-symmetry")" />
   }
+  else if (Phase.Id == "teams" && subStep == 0)
+  {
+    <TeamsPhase @key="@("teams-assign")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">

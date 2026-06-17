@@ -1,0 +1,161 @@
+@namespace PgmStudio.Client.Pages.Configure
+@using PgmStudio.Client.Models
+@using PgmStudio.Client.Pages.EditorActivities
+
+@* Teams · step 1 (N02): create teams (symmetry suggests the count) + tag islands to them. Writes the
+   intent's teams / maxPlayers slice + the islandTeams aid. Canvas = reused EditorCanvas in island-select
+   mode (base layer only): pick a team, click islands to tint them that team's colour. *@
+
+<div class="workspace">
+
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+
+      @if (ShowSuggestion)
+      {
+        <SmartSuggestion Header="Smart Suggestion" Badge="@symMode" AcceptLabel="@($"Create {SuggestedCount} teams")"
+                         RejectLabel="Dismiss" OnAccept="CreateSuggestedTeams" OnReject="() => dismissedSuggestion = true">
+          <p class="smart-suggestion__text">@SymLabelShort symmetry suggests @SuggestedCount teams.</p>
+          <div class="smart-suggestion-teams">
+            @foreach (var c in SuggestedColors)
+            {
+              <div class="smart-suggestion-team"><span class="list-swatch list-swatch--sm" style="background:@c.Hex"></span>@c.Label Team</div>
+            }
+          </div>
+        </SmartSuggestion>
+      }
+
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Teams</h2>
+          <button class="action-btn" @onclick="AddTeam">+ Add</button>
+        </div>
+        <div class="panel-list">
+          @if (teams.Count == 0) { <div class="list-empty">No teams yet — accept the suggestion or add one.</div> }
+          @for (var i = 0; i < teams.Count; i++)
+          {
+            var t = teams[i];
+            var idx = i;
+            <div class="list-row list-row--compact @(selectedTeamId == t.Id ? "list-row--selected" : null)"
+                 @key="t.Id" @onclick="() => Select(t.Id)">
+              <span class="list-swatch" style="background:@Hex(t.Color)"></span>
+              <span class="list-label list-label--mono">@t.Id</span>
+              <span class="badge @(idx == 0 ? "badge--success" : "badge--dim")">@(idx == 0 ? "authored" : "orbit")</span>
+              <button class="btn-remove btn-remove--hover-only" title="Remove" @onclick:stopPropagation="true" @onclick="() => RemoveTeam(t)"><i data-lucide="x"></i></button>
+            </div>
+          }
+        </div>
+        @if (teams.Count > 0)
+        {
+          <p class="section-desc">Team 0 is <strong>authored</strong>; the rest are <strong>orbit</strong> —
+            derived by @SymLabelShort symmetry from team 0's spawn (next step).</p>
+        }
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Island Assignment</h2>
+          <span class="badge badge--dim">authoring help</span>
+        </div>
+        <p class="section-desc">Select a team above, then click its islands on the canvas to tag them.
+          Tagging tints them and fixes the orbit order; untagged islands stay neutral (a contested centre).</p>
+        @if (teams.Count > 0)
+        {
+          <div class="panel-list">
+            @foreach (var t in teams)
+            {
+              <div class="list-row list-row--compact list-row--muted">
+                <span class="list-swatch" style="background:@Hex(t.Color)"></span>
+                <span class="list-label">@t.Name</span>
+                <span class="list-tag">@IslandsFor(t.Id) islands</span>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Team Size &amp; Kit</h2></div>
+        <div class="section-body">
+          <div class="field">
+            <label class="field-label">Max Players <span class="list-tag">all teams</span></label>
+            <input class="field-input" type="number" min="1" value="@maxPlayers" @onchange="SetMaxPlayers" />
+          </div>
+          <div class="field">
+            <label class="field-label">Spawn Kit</label>
+            <input class="field-input" type="text" value="Standard" disabled title="Auto-applied" />
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  @* Reused edit canvas in island-select mode — click islands to tag the selected team. *@
+  <EditorCanvas @ref="canvas" Slug="@Slug" IslandSelect="true" OnIslandSelect="OnAssignIsland" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-inspector">
+    <div class="workspace-scroll">
+      @if (Selected is { } sel)
+      {
+        <section class="panel-section" @key="sel.Id">
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="users"></i></span>
+            <span class="detail-label detail-label--mono">@sel.Id</span>
+            <span class="badge @(teams.IndexOf(sel) == 0 ? "badge--success" : "badge--dim")">@(teams.IndexOf(sel) == 0 ? "authored" : "orbit")</span>
+          </div>
+          <div class="section-body">
+            <div class="field">
+              <label class="field-label">Name</label>
+              <input class="field-input" value="@sel.Name" @onchange="SetName" />
+            </div>
+            <div class="field">
+              <label class="field-label">Colour</label>
+              <div class="field-pick-row">
+                <span class="field-swatch" style="background:@Hex(sel.Color)"></span>
+                <select class="field-input" value="@sel.Color" @onchange="SetColor">
+                  @foreach (var c in GameColors.ChatColors)
+                  {
+                    <option value="@c.Value" selected="@(c.Value == sel.Color)">@c.Label</option>
+                  }
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label">Islands</label>
+              <div class="field-pick-row"><span class="badge badge--neutral">@IslandsFor(sel.Id)</span><span class="list-tag">tagged</span></div>
+            </div>
+            <p class="section-desc">Orbit position @teams.IndexOf(sel).@(teams.IndexOf(sel) == 0 ? $" The others follow by {SymLabelShort} symmetry." : "")</p>
+          </div>
+        </section>
+      }
+      else
+      {
+        <section class="panel-section">
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="users"></i></span>
+            <span class="detail-label">Teams</span>
+          </div>
+          <p class="section-desc">Create teams, then select one to edit its name / colour and tag its
+            islands on the canvas.</p>
+        </section>
+      }
+    </div>
+  </div>
+
+</div>
+
+@code {
+  // Short symmetry label for inline copy (e.g. "90° rotational", "mirror").
+  private string SymLabelShort => symMode switch
+  {
+    "rot_90" => "90° rotational",
+    "rot_180" => "180° rotational",
+    "mirror_x" or "mirror_z" or "mirror_d1" or "mirror_d2" => "mirror",
+    _ => "no",
+  };
+}

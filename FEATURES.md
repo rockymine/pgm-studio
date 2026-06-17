@@ -123,6 +123,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   centre → the World intent slice (`intent.symmetry`), which the generator orbit-fills from. The canvas
   (`EditorCanvas` symmetry mode — base layer only) draws the axis/centre overlay; the inspector surfaces the
   suggested team count. Persists on phase-advance, which marks World done + unlocks Teams. (`WorldSymmetryPhase`; N01)
+- **Teams · step 1 sub-step (N02, "Teams & island assignment")** — create the teams (a Smart Suggestion
+  proposes the count from the confirmed symmetry → palette teams) + edit name/colour + Max Players →
+  `intent.teams` / `maxPlayers`; and tag islands to teams by clicking them on the canvas (tinted that
+  team's colour) → `intent.islandTeams` (authoring aid the Spawn step consumes). Canvas = reused
+  `EditorCanvas` in island-select mode, now **point-in-polygon** island hit-testing + **Select tool by
+  default** (both also improve the World · Islands step). (`TeamsPhase`; N02)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,

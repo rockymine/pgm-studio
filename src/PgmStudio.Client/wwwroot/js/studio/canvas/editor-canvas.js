@@ -92,6 +92,7 @@ export class EditorCanvas extends CanvasBase {
   #islandPathMap     = new Map();   // island id → <path>
   #selectedIslandId  = null;
   #excludedIslandIds = new Set();
+  #islandTeamColors  = new Map();   // island id → team colour hex (World · Teams island assignment)
   #islandSelect      = false;
 
   // symmetry overlay (World · Symmetry step): a dashed axis line (or two, for rot_90) + a centre marker.
@@ -626,30 +627,41 @@ export class EditorCanvas extends CanvasBase {
     return g;
   }
 
-  // Repaint island borders/opacity for the current selection + exclusions (no full re-render).
+  // Repaint island fill/border/opacity for the current selection, exclusions, and team tints (no full
+  // re-render). A team-assigned island is tinted that team's colour; the selected one gets an accent border.
   #paintIslandStates() {
     for (const [id, path] of this.#islandPathMap) {
       const selected = this.#selectedIslandId === id;
       const excluded = this.#excludedIslandIds.has(id);
-      path.setAttribute("stroke", selected ? "var(--accent)" : "var(--canvas-island-stroke)");
+      const team     = this.#islandTeamColors.get(id);
+      path.setAttribute("fill", team || "var(--canvas-island)");
+      path.setAttribute("stroke", selected ? "var(--accent)" : (team || "var(--canvas-island-stroke)"));
       path.setAttribute("stroke-width", selected ? "2.5" : "1.2");
       path.setAttribute("opacity", excluded ? "0.35" : "1");
     }
   }
 
-  // Smallest island whose bounding box contains the world point (mirrors #hitTest for regions).
+  // The island whose polygon actually contains the world point. Bounds alone are ambiguous — island
+  // bounding boxes overlap on radial maps — so this point-in-polygon test picks the real island clicked.
   #hitTestIsland(worldX, worldZ) {
-    let best = null, bestArea = Infinity;
     for (const isl of (this.#ctx?.islands ?? [])) {
-      const b = isl.bounds;   // [min_x, min_z, max_x, max_z]
-      if (!b || isl.id == null) continue;
-      const [minX, minZ, maxX, maxZ] = b;
-      if (worldX >= minX && worldX <= maxX + 1 && worldZ >= minZ && worldZ <= maxZ + 1) {
-        const area = (maxX - minX) * (maxZ - minZ);
-        if (area < bestArea) { bestArea = area; best = isl.id; }
-      }
+      if (isl.id == null) continue;
+      const b = isl.bounds;   // [min_x, min_z, max_x, max_z] — quick reject before the polygon test
+      if (b && (worldX < b[0] || worldX > b[2] + 1 || worldZ < b[1] || worldZ > b[3] + 1)) continue;
+      const ring = (isl.simplified_polygon ?? geojsonToSimplified(isl.polygon))?.exterior;
+      if (ring?.length && EditorCanvas.#pointInRing(worldX, worldZ, ring)) return isl.id;
     }
-    return best;
+    return null;
+  }
+
+  // Ray-cast point-in-polygon on a [[x,z], …] ring.
+  static #pointInRing(x, z, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
+      if (((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi) + xi)) inside = !inside;
+    }
+    return inside;
   }
 
   setIslandSelect(on) { this.#islandSelect = !!on; }
@@ -705,6 +717,12 @@ export class EditorCanvas extends CanvasBase {
 
   setExcludedIslands(ids) {
     this.#excludedIslandIds = new Set(ids || []);
+    this.#paintIslandStates();
+  }
+
+  // map: { islandId: teamColourHex }. Tints each assigned island; unassigned stay neutral.
+  setIslandTeams(map) {
+    this.#islandTeamColors = new Map(Object.entries(map || {}).map(([k, v]) => [Number(k), v]));
     this.#paintIslandStates();
   }
 
