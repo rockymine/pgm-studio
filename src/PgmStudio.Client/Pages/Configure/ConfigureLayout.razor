@@ -62,7 +62,7 @@
                         : idx == CurrentSubStep ? "flow-step flow-step--active"
                         : "flow-step";
                 @* Label only — status icons (the check) deferred to ND4 (save model), where step status gets meaning. *@
-                <button class="@cls" @onclick="() => OnStep.InvokeAsync(idx)">@SubSteps[idx]</button>
+                <button class="@cls" disabled="@(idx > MaxStep)" @onclick="() => OnStep.InvokeAsync(idx)">@SubSteps[idx]</button>
               }
             </div>
           }

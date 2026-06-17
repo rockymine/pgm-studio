@@ -512,6 +512,13 @@ panel-only. The sub-steps:
    Build⇄Traversability caveat) and a **Start authoring → Map Info** action (the `Next` on this last
    sub-step, like Review's XML→Export).
 
+**Step navigation & re-pick.** The **scan** is the gate: before it only *Source* is reachable (the flow-bar
+*Found* / *Plan* steps are dimmed); after it the author moves freely across all three — a scanned world
+has its whole brief ready, so jumping straight to *Plan* is expected. **Back to *Source* stays allowed**;
+re-picking a *different* world there **resets the scan** (clears the brief + canvas, re-locking *Found* /
+*Plan* until the new world is scanned), so the preview and panels can never show a world other than the one
+currently selected.
+
 Backend: the local **open-folder source** (list xml-less world folders under the roots → create the map
 record → `POST /map/{slug}/scan-world`, which exists) is the now-increment of **`B8`**; the URL download
 is the later increment.

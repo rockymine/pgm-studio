@@ -550,6 +550,8 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   color: var(--text-muted); cursor: pointer; white-space: nowrap;
 }
 .flow-step:hover         { color: var(--text-bright); }
+.flow-step:disabled      { opacity: 0.35; cursor: default; }
+.flow-step:disabled:hover { color: var(--text-muted); }
 .flow-step svg           { width: 13px; height: 13px; }
 .flow-step--done         { color: var(--text-secondary); }
 .flow-step--done svg     { color: var(--color-success); }

@@ -25,8 +25,13 @@ export async function mount(svgEl, wrapEl, slug) {
   if (islands)    renderer.loadIslands(islands);         // detected island base outlines
   if (symmetry)   renderer.loadSymmetry(symmetry);       // axis + centre over the islands
 
+  // Re-fit on container size changes (window resize, panel drags, layout settling after mount) — the
+  // viewBox is computed from the wrap's client size, so without this it would freeze at its mount size.
+  const ro = new ResizeObserver(() => renderer.resize());
+  ro.observe(wrapEl);
+
   return {
     resize() { renderer.resize(); },
-    dispose() { /* dropping the reference is enough */ },
+    dispose() { ro.disconnect(); },
   };
 }

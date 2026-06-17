@@ -9,7 +9,7 @@
 
 <ConfigureLayout MapName="@(importedSlug ?? selected?.Slug)" Crumb="Import" ActivePhaseId="" Furthest="@(-1)"
               PhaseIcon="import" PhaseTitle="Import"
-              SubSteps="@SubSteps" CurrentSubStep="@step"
+              SubSteps="@SubSteps" CurrentSubStep="@step" MaxStep="@MaxStep"
               BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
               OnStep="JumpStep" OnBack="Back" OnNext="Next">
 

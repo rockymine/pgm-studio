@@ -14,6 +14,9 @@ public partial class ConfigureLayout
     [Parameter] public string PhaseTitle { get; set; } = "";
     [Parameter] public IReadOnlyList<string> SubSteps { get; set; } = Array.Empty<string>();
     [Parameter] public int CurrentSubStep { get; set; }
+    /// <summary>Highest sub-step the user may jump to via the flow bar — later steps are locked/dimmed.
+    /// Default unlimited (every sub-step is freely navigable).</summary>
+    [Parameter] public int MaxStep { get; set; } = int.MaxValue;
 
     [Parameter] public bool BackEnabled { get; set; }
     [Parameter] public bool NextEnabled { get; set; } = true;

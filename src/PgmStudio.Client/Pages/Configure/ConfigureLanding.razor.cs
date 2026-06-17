@@ -24,7 +24,6 @@ public partial class ConfigureLanding : IAsyncDisposable
     private List<Candidate> candidates = new();
     private Candidate? selected;
     private int step;
-    private int maxReached;
     private bool importing;
     private string? error;
 
@@ -62,6 +61,12 @@ public partial class ConfigureLanding : IAsyncDisposable
     private bool OnSource => step == 0;
     private bool OnFound => step == 1;
     private bool OnPlan => step == 2;
+
+    // The scan is what unlocks Found + Plan: before it only Source is reachable; after it the user can
+    // move freely across all three (a processed world has its whole brief ready). Re-picking a different
+    // world on Source clears the scan, re-locking the later steps until it's scanned again.
+    private bool Scanned => importedSlug is not null;
+    private int MaxStep => Scanned ? 2 : 0;
 
     private bool BackEnabled => step > 0;
     private bool NextEnabled => OnSource ? selected is not null && !importing
@@ -147,20 +152,44 @@ public partial class ConfigureLanding : IAsyncDisposable
         catch { error = "Couldn't list import candidates."; }
     }
 
-    private void Select(Candidate c) { selected = c; error = null; }
+    private void Select(Candidate c)
+    {
+        if (selected == c) return;
+        selected = c; error = null;
+        // Picking a different world than the one already scanned drops that scan's brief, so Found/Plan
+        // re-lock and the canvas/panels can't show a world other than the one currently selected.
+        if (Scanned && importedSlug != c.Slug) ResetScan();
+    }
 
-    private void JumpStep(int j) { if (j >= 0 && j <= maxReached && j != step) step = j; }
+    private void JumpStep(int j) { if (j >= 0 && j <= MaxStep && j != step) SetStep(j); }
 
-    private void Back() { if (step > 0) step--; }
+    private void Back() { if (step > 0) SetStep(step - 1); }
 
     private async Task Next()
     {
-        if (OnSource) { if (await EnsureScan()) Advance(1); }
-        else if (OnFound) Advance(2);
+        if (OnSource) { if (await EnsureScan()) SetStep(1); }
+        else if (OnFound) SetStep(2);
         else if (importedSlug is not null) Nav.NavigateTo($"maps/{importedSlug}/configure");
     }
 
-    private void Advance(int to) { step = to; if (to > maxReached) maxReached = to; }
+    // Single funnel for every step change: tear the canvas down the moment we leave Found so the next
+    // visit re-mounts on the freshly-keyed <svg> (the workspace is @key'd, so its svg ref is recreated).
+    private void SetStep(int to)
+    {
+        if (step == 1 && to != 1 && canvasHandle is not null) _ = DisposeCanvas();
+        step = to;
+    }
+
+    // Drop a scan's brief (its slug + counts + canvas) so the import resets to "pick a world".
+    private void ResetScan()
+    {
+        if (canvasHandle is not null) _ = DisposeCanvas();
+        importedSlug = null; haveCounts = false;
+        woolBlocks = resourceBlocks = chestItems = spawnerBlocks = monumentCandidates = islandCount = 0;
+        symType = null; selectedFinding = "islands";
+        islands = new(); woolColors = new(); resourceTypes = new(); chestCount = 0;
+        if (step != 0) step = 0;
+    }
 
     /// <summary>Scan the selected world into MariaDB (once per session) and load its detection brief.</summary>
     private async Task<bool> EnsureScan()
@@ -247,16 +276,35 @@ public partial class ConfigureLanding : IAsyncDisposable
         catch { /* breakdowns just stay empty */ }
     }
 
+    private bool canvasBusy;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("studio.icons");
+        await SyncCanvas();
+    }
 
-        // Mount the reused editor canvas only while Found is showing; tear it down when leaving (the
-        // step body is @key'd, so the svg refs are recreated each visit and the handle must follow).
-        if (OnFound && canvasHandle is null && importedSlug is not null)
-            canvasHandle = await JS.InvokeAsync<IJSObjectReference>("studio.mountScan", svgRef, wrapRef, importedSlug);
-        else if (!OnFound && canvasHandle is not null)
-            await DisposeCanvas();
+    // Reconcile the reused editor canvas with the current step. Re-reads the live state AFTER the
+    // studio.icons await (so a step change mid-await is honoured) and serialises with a busy flag so two
+    // close renders can't double-mount onto the same <svg>. The handle is nulled the instant we leave
+    // Found (SetStep), so re-entry always re-mounts on the recreated svg ref rather than a detached one.
+    private async Task SyncCanvas()
+    {
+        if (canvasBusy) return;
+        canvasBusy = true;
+        try
+        {
+            if (OnFound && importedSlug is not null)
+            {
+                if (canvasHandle is null)
+                    canvasHandle = await JS.InvokeAsync<IJSObjectReference>("studio.mountScan", svgRef, wrapRef, importedSlug);
+            }
+            else if (canvasHandle is not null)
+            {
+                await DisposeCanvas();
+            }
+        }
+        finally { canvasBusy = false; }
     }
 
     private async Task DisposeCanvas()
