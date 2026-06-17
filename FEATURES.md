@@ -92,13 +92,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   identity · sub-steps · Back/Next) + three-panel workspace, driven by a phase/sub-step state machine. On
   entry it loads the stored intent (`GET /map/{slug}/intent`) and derives the **rail gating from its slices**
   — a phase is done (green dot) when its slice is present (`meta`·`symmetry`·`teams`·`build`·`wools`), and the
-  unlocked range is the leading run of done phases, so revisiting a part-authored map reopens its progress.
-  The `/maps/new` landing (Import: Source → Found → Plan) originates a map and hands off to Map Info. Phase
-  bodies are scaffolds that the `N00`–`N05` tasks fill; reuses `ConfigureLayout` across both surfaces. (NS)
+  unlocked range is **purely slice-derived** (the leading run of done phases — no session "furthest"), so
+  revisiting a part-authored map reopens exactly its progress and you can't rail-jump past it.
+  The `/maps/new` landing (Import: Source → Found → Plan) originates a map and hands off to Map Info. Map
+  Info is a real phase body (`N00`); the rest are scaffolds the `N01`–`N05` tasks fill. Reuses
+  `ConfigureLayout` across both surfaces. (NS)
 - **Wizard save model (ND4)** — a phase **saves on advance**: leaving it (Next / rail jump) `PUT`s the whole
   intent (one idempotent regenerate) when dirty, a clean phase is a no-op, and a fresh slice unlocks the next
-  phase. The only affordance is a topbar text indicator — **Saved · Saving… · Unsaved** (no icons); done is the
-  rail's green dot. Phase bodies patch `Intent` + call `MarkDirty` via a cascaded wizard ref. Doc: §12. (ND4, NS)
+  phase. Forward `Next` is **gated on the current phase being complete** (`CanAdvance`; phase bodies define
+  completeness, scaffolds default to true), so you fill a phase in before progressing. The only affordance is
+  a topbar text indicator — **Saved · Saving… · Unsaved** (no icons); done is the rail's green dot. Phase
+  bodies patch `Intent` + call `MarkDirty` via a cascaded wizard ref. Doc: §12. (ND4, NS)
+- **Map Info phase (N00)** — the identity slice: map name + authors + contributors → intent `meta`, edited
+  on a form that writes the working intent live and gates `Next` until there's a name and ≥1 author. Version
+  / mode / objective are shown locked (generator-derived); author usernames resolve to UUIDs server-side at
+  save (the `PUT` regenerate, via `MojangClient`). (`InfoPhase`; N00)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,

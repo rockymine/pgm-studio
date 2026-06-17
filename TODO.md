@@ -45,8 +45,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > (`/maps/{id}/edit`) keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Steps — in page order, each persists its slice of intent**
-- [ ] **N00 — Map Info.** Identity (name; version / mode / objective auto-derived) + authors
-  (username→uuid resolve via `MojangClient`, B6) → intent `meta`. (`InfoSection`)
 - [ ] **N01 — World (UI).** Scan → Islands → Symmetry per `ND2`'s minimal design (`new-map-authoring.md`
   §6a): the **auto-cleaned base layer** (detection) over the cleaned-base extraction + height-aware island
   detection from **`A5`**. Surface those results: a **layer-view toggle** (Base = detection · Surface =

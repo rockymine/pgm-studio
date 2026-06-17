@@ -489,8 +489,10 @@ as the entry point). There is **no per-step "Save & continue" button**.
 **Save model (settles ND4).** A phase **saves on advance** — when you leave it via *Next* or a rail jump
 to another phase, the wizard `PUT`s the whole intent (one idempotent regenerate per phase, §3, resolving
 author usernames as it goes) and the next phase's prerequisite slice is now present, so the rail unlocks
-it. Editing a phase marks it **dirty**; leaving while dirty saves, leaving clean is a no-op (no needless
-regenerate). Save state is a **single text indicator in the topbar** — **Saved · Saving… · Unsaved**, no
+it. Forward *Next* is **gated on the current phase being complete** (each phase defines what that means —
+Map Info needs a name + an author), so you fill a phase in before you can progress; the unlocked range is
+**purely slice-derived** (no session "furthest"), so you can't skip ahead by clicking through. Editing a
+phase marks it **dirty**; leaving while dirty saves, leaving clean is a no-op (no needless regenerate). Save state is a **single text indicator in the topbar** — **Saved · Saving… · Unsaved**, no
 icons — global so it reads the same in every phase. **Per-phase "done" is the rail's green dot**, backed
 by the phase's intent slice being present (`meta` · `symmetry` · `teams` · `build` · `wools`); there is
 **no per-sub-step checkmark** (intent slices are per-phase, not per-sub-step, so the flow bar marks only

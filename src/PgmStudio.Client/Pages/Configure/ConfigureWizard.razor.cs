@@ -35,6 +35,17 @@ public partial class ConfigureWizard
     private string NextLabel => AtEnd ? "Export" : "Next";
     private string SubLabel => Phase.SubSteps.Length == 0 ? "Map Info" : Phase.SubSteps[subStep];
 
+    // A phase must be complete before its boundary Next persists the slice and unlocks the next phase
+    // (new-map-authoring.md §12). Sub-step moves within a phase are always allowed; only crossing the
+    // boundary is gated. Phases without a built body yet default to complete so the scaffold stays
+    // browsable — each N-task swaps in its real predicate.
+    private bool CanAdvance => Phase.Id switch
+    {
+        "info" => MetaValid(),   // Map Info: needs a name + at least one author
+        _ => true,
+    };
+    private bool NextEnabled => subStep < LastStep || CanAdvance;
+
     // Topbar indicator — Saved · Saving… · Unsaved (no icons); blank until the intent has loaded.
     private string? SaveStatus => !loaded ? null : save switch
     {
@@ -48,13 +59,22 @@ public partial class ConfigureWizard
     // build · wools; Review has no slice of its own.
     private bool PhaseDone(int i) => i switch
     {
-        0 => Obj("meta") is { } m && !string.IsNullOrWhiteSpace(Str(m, "name")),
+        0 => MetaValid(),
         1 => Obj("symmetry") is not null,
         2 => NonEmptyArray("teams"),
         3 => Obj("build") is not null,
         4 => NonEmptyArray("wools"),
         _ => false,
     };
+
+    // Map Info's slice is complete once it has a name and at least one (non-blank) author — the minimum
+    // the generator needs (new-map-authoring.md §0/§12).
+    private bool MetaValid()
+    {
+        if (Obj("meta") is not { } m || string.IsNullOrWhiteSpace(Str(m, "name"))) return false;
+        return m["authors"] is JsonArray a &&
+               a.Any(n => n is JsonValue v && v.TryGetValue(out string? s) && !string.IsNullOrWhiteSpace(s));
+    }
 
     // The unlocked range derives from the intent: every phase whose prerequisites (all earlier slices) are
     // present, plus the first not-yet-done phase to work on next.
@@ -103,10 +123,14 @@ public partial class ConfigureWizard
     /// the slice persists on the next phase-advance.</summary>
     public JsonObject Intent => intent ??= new JsonObject();
 
+    // Re-render on every edit, not just the Saved→Unsaved transition: a phase body's completeness can
+    // change with any keystroke (e.g. the first author appearing), and Next's enabled state is derived
+    // from it, so the wizard must re-evaluate each time.
     public void MarkDirty()
     {
         dirty = true;
-        if (save != SaveState.Unsaved) { save = SaveState.Unsaved; StateHasChanged(); }
+        save = SaveState.Unsaved;
+        StateHasChanged();
     }
 
     // Persist the whole intent (one idempotent regenerate, §3) when a dirty phase is left; a clean phase
@@ -156,10 +180,9 @@ public partial class ConfigureWizard
         if (subStep < LastStep) { subStep++; return; }
         if (phaseIndex < ConfigurePhases.All.Length - 1)
         {
-            await SaveIfDirtyAsync();   // crossing a phase boundary
+            await SaveIfDirtyAsync();   // crossing a phase boundary persists the slice; that unlocks the next phase
             phaseIndex++;
             subStep = 0;
-            if (phaseIndex > furthest) furthest = phaseIndex;
         }
         // AtEnd: "Export" is a no-op stub here — the gated export lands with N05/N06.
     }

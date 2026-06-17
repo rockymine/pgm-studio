@@ -39,7 +39,9 @@
       @for (var i = 0; i < ConfigurePhases.All.Length; i++)
       {
         var p = ConfigurePhases.All[i];
-        var locked = i > Furthest;
+        // The current phase is never locked — you can walk one step past the slice-derived frontier
+        // (a not-yet-completed phase) and still see where you are; only forward jumps stay gated.
+        var locked = i > Furthest && p.Id != ActivePhaseId;
         <button class="activity-btn @(p.Id == ActivePhaseId ? "active" : null)"
                 title="@p.Title" data-status="@(i < Furthest ? "green" : "")"
                 disabled="@locked" @onclick="() => OnJumpPhase.InvokeAsync(p.Id)">
