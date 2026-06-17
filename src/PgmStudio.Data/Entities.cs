@@ -289,12 +289,33 @@ public sealed class MapArtifactRow
     [Column("data"), NotNull] public byte[] Data { get; set; } = [];
 }
 
+/// <summary>Map symmetry (docs/contracts/new-map-authoring.md §6b) — promoted from the
+/// <c>symmetry_json</c> artifact to a first-class row (one per map). The scalars are what consumers query
+/// (orbit, counterpart, team-count, the World step); <c>ModesJson</c> is the irregular candidate list;
+/// <c>center_cell</c> and the <c>primary</c> projection are derived on read. <c>ExcludedIslandsJson</c> /
+/// <c>DetectionLayer</c> are the authoring World-step inputs (populated by N01; null for existing maps).</summary>
+[Table("symmetry")]
+public sealed class SymmetryRow
+{
+    [PrimaryKey, Column("map_id")] public long MapId { get; set; }
+    [Column("status"), NotNull] public string Status { get; set; } = "unconfirmed";  // unconfirmed | confirmed | none
+    [Column("center_x")] public double? CenterX { get; set; }
+    [Column("center_z")] public double? CenterZ { get; set; }
+    [Column("primary_type")] public string? PrimaryType { get; set; }
+    [Column("primary_confidence")] public double? PrimaryConfidence { get; set; }
+    [Column("primary_user_override"), NotNull] public bool PrimaryUserOverride { get; set; }
+    [Column("modes_json"), NotNull] public string ModesJson { get; set; } = "[]";     // [{type,detected,confidence}]
+    [Column("excluded_islands_json")] public string? ExcludedIslandsJson { get; set; } // §6b authoring input
+    [Column("detection_layer")] public string? DetectionLayer { get; set; }            // §6b: cleanbase|bedrock|y0
+    [Column("updated_at")] public DateTime UpdatedAt { get; set; }
+}
+
 /// <summary>Well-known <see cref="MapArtifactRow.Kind"/> values.</summary>
 public static class ArtifactKind
 {
     public const string LayerParquet = "layer_parquet";
     public const string IslandsJson = "islands_json";
-    public const string SymmetryJson = "symmetry_json";
+    // symmetry_json was promoted to the `symmetry` table (M0003, new-map-authoring.md §6b).
     public const string MapConfigJson = "map_config_json";
     // Editor-only sidecar: {region_key: editor_step} for freshly drawn, not-yet-wired regions (E10).
     // Lives outside the entity-replace codec so it survives MapWriter.SaveDocAsync; never part of the

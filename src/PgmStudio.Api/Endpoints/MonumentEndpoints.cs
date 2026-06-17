@@ -89,11 +89,10 @@ public sealed class MonumentOrbitEndpoint(MapRepository repo, PgmDb db) : Endpoi
         using var reader = new StreamReader(HttpContext.Request.Body);
         var body = JsonNode.Parse(await reader.ReadToEndAsync(ct)) as JsonObject ?? new JsonObject();
 
-        var symArt = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
-        var sym = symArt is not null ? JsonNode.Parse(symArt.Data) as JsonObject : null;
-        var mode = sym?["primary"]?["type"]?.GetValue<string>();
-        var cx = sym?["center"]?["cx"]?.GetValue<double>() ?? 0;
-        var cz = sym?["center"]?["cz"]?.GetValue<double>() ?? 0;
+        var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
+        var mode = symRow?.PrimaryType;
+        var cx = symRow?.CenterX ?? 0;
+        var cz = symRow?.CenterZ ?? 0;
 
         var outPos = new JsonArray();
         foreach (var pn in body["positions"]?.AsArray() ?? new JsonArray())

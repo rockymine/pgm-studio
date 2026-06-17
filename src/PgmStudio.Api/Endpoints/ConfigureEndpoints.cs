@@ -54,10 +54,8 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db) : Endpo
         var cfg = await ConfigureStore.LoadAsync(db, map.Id, ct);
 
         // Step 3 = symmetry: configure is complete once the user confirms/rejects the detection.
-        var symArt = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
-        var symmetryStatus = symArt is not null
-            ? (System.Text.Json.Nodes.JsonNode.Parse(symArt.Data)?["status"]?.GetValue<string>()) ?? "unconfirmed"
-            : "unconfirmed";
+        var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
+        var symmetryStatus = symRow?.Status ?? "unconfirmed";
 
         await Send.OkAsync(new Dict
         {
@@ -121,7 +119,7 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db)
 
         await ConfigureStore.SaveAsync(db, map.Id, cfg, ct);
         // Excluded islands feed symmetry detection — drop the cached result so step 3 recomputes.
-        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson).DeleteAsync(ct);
+        await SymmetryStore.DeleteAsync(db, map.Id, ct);
         await Send.OkAsync(new Dict { ["ok"] = true }, ct);
     }
 }

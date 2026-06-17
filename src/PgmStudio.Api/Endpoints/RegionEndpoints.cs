@@ -81,9 +81,8 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
         if (p.GetValueOrDefault("center") is Dict center) { cx = Num(center.GetValueOrDefault("cx")); cz = Num(center.GetValueOrDefault("cz")); }
         if (cx is null || cz is null)   // fall back to the confirmed symmetry centre
         {
-            var sym = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
-            if (sym is not null && JsonNode.Parse(sym.Data)?["center"] is JsonObject c)
-            { cx ??= c["cx"]?.GetValue<double>(); cz ??= c["cz"]?.GetValue<double>(); }
+            var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
+            if (symRow is not null) { cx ??= symRow.CenterX; cz ??= symRow.CenterZ; }
         }
         if (cx is null || cz is null)
         { await Send.ResponseAsync(new Dict { ["error"] = "center {cx,cz} required (absent from body and symmetry)" }, 400, ct); return; }
@@ -117,12 +116,11 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
         var category = p.GetValueOrDefault("category") as string ?? "other";
         var step = p.GetValueOrDefault("draft_step") as string;
 
-        var sym = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
-        var node = sym is not null ? JsonNode.Parse(sym.Data) : null;
-        var mode = node?["primary"]?["type"]?.GetValue<string>();
-        var confirmed = node?["status"]?.GetValue<string>() == "confirmed";
-        var cx = node?["center"]?["cx"]?.GetValue<double>();
-        var cz = node?["center"]?["cz"]?.GetValue<double>();
+        var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
+        var mode = symRow?.PrimaryType;
+        var confirmed = symRow?.Status == "confirmed";
+        var cx = symRow?.CenterX;
+        var cz = symRow?.CenterZ;
 
         if (!confirmed || mode is null || cx is null || cz is null)
         { await Send.OkAsync(new Dict { ["created"] = new List<object?>() }, ct); return; }

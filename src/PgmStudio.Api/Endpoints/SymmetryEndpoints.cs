@@ -46,38 +46,85 @@ internal static class SymmetrySupport
         return islands;
     }
 
-    /// <summary>Serialize a detection result to the symmetry.json shape (status/modes/center/center_cell/primary).</summary>
-    public static JsonObject ToJson(SymmetryDetector.Result r, string status)
+    /// <summary>The chosen mode for a detection: highest-confidence detected mode, ties broken by
+    /// display-strength rank. Null when nothing is detected.</summary>
+    public static (string? Type, double? Confidence) Primary(SymmetryDetector.Result r)
+    {
+        var detected = r.Modes.Where(m => m.Detected).ToList();
+        if (detected.Count == 0) return (null, null);
+        var best = detected.OrderByDescending(m => m.Confidence)
+            .ThenByDescending(m => Order.GetValueOrDefault(m.Type)).First();
+        return (best.Type, best.Confidence);
+    }
+
+    /// <summary>Serialize the candidate modes to the persisted <c>modes_json</c> form.</summary>
+    public static string ModesJson(SymmetryDetector.Result r)
     {
         var modes = new JsonArray();
         foreach (var m in r.Modes)
             modes.Add(new JsonObject { ["type"] = m.Type, ["detected"] = m.Detected, ["confidence"] = m.Confidence });
-
-        JsonObject? primary = null;
-        var detected = r.Modes.Where(m => m.Detected).ToList();
-        if (detected.Count > 0)
-        {
-            var best = detected.OrderByDescending(m => m.Confidence)
-                .ThenByDescending(m => Order.GetValueOrDefault(m.Type)).First();
-            primary = new JsonObject { ["type"] = best.Type, ["confidence"] = best.Confidence };
-        }
-
-        return new JsonObject
-        {
-            ["status"] = status,
-            ["modes"] = modes,
-            ["center"] = new JsonObject { ["cx"] = r.Cx, ["cz"] = r.Cz },
-            ["center_cell"] = CenterCell(r.Cx, r.Cz),
-            ["primary"] = primary,
-        };
+        return modes.ToJsonString();
     }
 
-    private static string CenterCell(double cx, double cz) => $"{AxisWidth(cx)}x{AxisWidth(cz)}";
+    public static string CenterCell(double cx, double cz) => $"{AxisWidth(cx)}x{AxisWidth(cz)}";
 
     private static int AxisWidth(double coord)
     {
         var frac = ((coord % 1.0) + 1.0) % 1.0;     // Python-style non-negative modulo
         return Math.Abs(frac - 0.5) < 1e-6 ? 1 : 2;
+    }
+}
+
+/// <summary>Read/write the <c>symmetry</c> table and reconstruct the symmetry.json API shape from a row
+/// (docs/contracts/new-map-authoring.md §6b) — replaces the <c>symmetry_json</c> artifact as the source.</summary>
+internal static class SymmetryStore
+{
+    public static Task<SymmetryRow?> LoadAsync(PgmDb db, long mapId, CancellationToken ct)
+        => db.Symmetries.FirstOrDefaultAsync(s => s.MapId == mapId, ct);
+
+    public static async Task SaveAsync(PgmDb db, SymmetryRow row, CancellationToken ct)
+    {
+        row.UpdatedAt = DateTime.UtcNow;
+        await db.Symmetries.Where(s => s.MapId == row.MapId).DeleteAsync(ct);
+        await db.InsertAsync(row, token: ct);
+    }
+
+    public static Task DeleteAsync(PgmDb db, long mapId, CancellationToken ct)
+        => db.Symmetries.Where(s => s.MapId == mapId).DeleteAsync(ct);
+
+    /// <summary>Build a row from a fresh detection result.</summary>
+    public static SymmetryRow FromDetection(long mapId, SymmetryDetector.Result r, string status)
+    {
+        var (ptype, pconf) = SymmetrySupport.Primary(r);
+        return new SymmetryRow
+        {
+            MapId = mapId, Status = status,
+            CenterX = r.Cx, CenterZ = r.Cz,
+            PrimaryType = ptype, PrimaryConfidence = pconf, PrimaryUserOverride = false,
+            ModesJson = SymmetrySupport.ModesJson(r),
+        };
+    }
+
+    /// <summary>Reconstruct the historic symmetry.json shape (status/modes/center/center_cell/primary).</summary>
+    public static JsonObject ToJson(SymmetryRow row)
+    {
+        JsonObject? center = row.CenterX is { } cx && row.CenterZ is { } cz
+            ? new JsonObject { ["cx"] = cx, ["cz"] = cz } : null;
+        JsonObject? primary = null;
+        if (row.PrimaryType is { } pt)
+        {
+            primary = new JsonObject { ["type"] = pt, ["confidence"] = row.PrimaryConfidence ?? 0.0 };
+            if (row.PrimaryUserOverride) primary["user_override"] = true;
+        }
+        JsonNode? centerCell = center is null ? null : SymmetrySupport.CenterCell(row.CenterX!.Value, row.CenterZ!.Value);
+        return new JsonObject
+        {
+            ["status"] = row.Status,
+            ["modes"] = JsonNode.Parse(row.ModesJson),
+            ["center"] = center,
+            ["center_cell"] = centerCell,
+            ["primary"] = primary,
+        };
     }
 }
 
@@ -95,13 +142,8 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db) : Endpoint
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        var existing = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
-        if (existing is not null)
-        {
-            using var jd = JsonDocument.Parse(existing.Data);
-            await Send.OkAsync(jd.RootElement.Clone(), ct);
-            return;
-        }
+        var existing = await SymmetryStore.LoadAsync(db, map.Id, ct);
+        if (existing is not null) { await Send.OkAsync(SymmetryStore.ToJson(existing), ct); return; }
 
         var islandsArt = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson, ct);
         if (islandsArt is null) { await Send.NotFoundAsync(ct); return; }
@@ -109,14 +151,9 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db) : Endpoint
         var exclude = await ExcludedIslandsAsync(map.Id, ct);
         var islands = SymmetrySupport.ParseIslands(islandsArt.Data, exclude);
         var result = SymmetryDetector.Detect(islands);
-        var json = SymmetrySupport.ToJson(result, "unconfirmed");
-
-        await db.InsertAsync(new MapArtifactRow
-        {
-            MapId = map.Id, Kind = ArtifactKind.SymmetryJson, Data = Encoding.UTF8.GetBytes(json.ToJsonString()),
-        }, token: ct);
-
-        await Send.OkAsync(json, ct);
+        var row = SymmetryStore.FromDetection(map.Id, result, "unconfirmed");
+        await SymmetryStore.SaveAsync(db, row, ct);
+        await Send.OkAsync(SymmetryStore.ToJson(row), ct);
     }
 
     private async Task<HashSet<int>> ExcludedIslandsAsync(long mapId, CancellationToken ct)
@@ -146,13 +183,11 @@ public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : Endpoi
         var body = await reader.ReadToEndAsync(ct);
         var payload = (JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body) as JsonObject) ?? new JsonObject();
 
-        var existing = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson, ct);
-        var sym = existing is not null
-            ? JsonNode.Parse(existing.Data) as JsonObject ?? new JsonObject()
-            : new JsonObject { ["status"] = "unconfirmed", ["modes"] = new JsonArray(), ["primary"] = null, ["center"] = null };
+        var row = await SymmetryStore.LoadAsync(db, map.Id, ct)
+            ?? new SymmetryRow { MapId = map.Id, Status = "unconfirmed", ModesJson = "[]" };
 
         var status = payload["status"]?.GetValue<string>();
-        if (status is "confirmed" or "none") sym["status"] = status;
+        if (status is "confirmed" or "none") row.Status = status;
 
         if (payload["confirmed_type"] is { } ctNode)
         {
@@ -162,26 +197,17 @@ public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : Endpoi
                 await Send.ResponseAsync(new Dict { ["error"] = $"Invalid symmetry type: {confirmedType}" }, 400, ct);
                 return;
             }
-            sym["primary"] = new JsonObject { ["type"] = confirmedType, ["confidence"] = 1.0, ["user_override"] = true };
+            row.PrimaryType = confirmedType; row.PrimaryConfidence = 1.0; row.PrimaryUserOverride = true;
         }
-        else if (status == "none") sym["primary"] = null;
+        else if (status == "none") { row.PrimaryType = null; row.PrimaryConfidence = null; row.PrimaryUserOverride = false; }
 
         if (payload.ContainsKey("cx") || payload.ContainsKey("cz"))
         {
-            var current = sym["center"] as JsonObject;
-            sym["center"] = new JsonObject
-            {
-                ["cx"] = payload["cx"]?.GetValue<double>() ?? current?["cx"]?.GetValue<double>() ?? 0.0,
-                ["cz"] = payload["cz"]?.GetValue<double>() ?? current?["cz"]?.GetValue<double>() ?? 0.0,
-            };
+            row.CenterX = payload["cx"]?.GetValue<double>() ?? row.CenterX ?? 0.0;
+            row.CenterZ = payload["cz"]?.GetValue<double>() ?? row.CenterZ ?? 0.0;
         }
 
-        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.SymmetryJson).DeleteAsync(ct);
-        await db.InsertAsync(new MapArtifactRow
-        {
-            MapId = map.Id, Kind = ArtifactKind.SymmetryJson, Data = Encoding.UTF8.GetBytes(sym.ToJsonString()),
-        }, token: ct);
-
+        await SymmetryStore.SaveAsync(db, row, ct);
         await Send.OkAsync(new Dict { ["ok"] = true }, ct);
     }
 }

@@ -64,6 +64,11 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 - **Metadata write + Mojang resolve** — authors/contributors → `author` table; `GET /minecraft/player`
   resolves name↔uuid. (B6)
 - **Symmetry detection** — `SymmetryDetector` + `GET`/`PATCH /symmetry` + Configure wiring. (B7)
+- **Symmetry table** — promoted from the `symmetry_json` blob to a first-class `symmetry` table (`M0003`):
+  hybrid shape (scalar `status`/centre/chosen-mode columns + `modes_json`; `center_cell`/`primary` derived
+  on read via `SymmetryStore`). GET/PATCH + the orbit/counterpart/Configure consumers read columns, not a
+  blob. Has the authoring World-step inputs (`excluded_islands_json`, `detection_layer`) ready for `N01`.
+  Settles `D3` (new-map-authoring.md §6b). (NS)
 
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)

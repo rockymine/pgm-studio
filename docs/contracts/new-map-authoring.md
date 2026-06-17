@@ -289,6 +289,77 @@ segment-derived surface, is unaffected.) **Build split:** the extraction-model w
 `LayerExtractors.Base` exclude · `IslandDetector` height-aware connectivity + floating-mass prune ·
 degenerate-read fallback) is task **`A5`**; the World step that surfaces it is **`N01`**.
 
+### 6b. World-step data model — scan flow + persistence (analysis → confirm → intent)
+
+The World step is an **analysis → confirm → intent** pipeline; three layers, each with its own home.
+
+**1. Scan analysis — written once at world-load** (the landing's *Found* scan). One pass over the
+`.mca` chunks (read once, materialised) fans out to:
+- **Feature tables** (`wool_block` / `resource_block` / `chest_item` / `spawner_block` / `layer_segment`)
+  + the **`monument_candidate`** gather — relational, so later phases query them without re-reading the world.
+- **`islands_json`** (blob) — island polygons from the **CleanBase** detection layer; **`layer.parquet`**
+  (blob) — the **Surface** render. Detection layer is **studio-chosen** (CleanBase, with an auto
+  `bedrock`/`y0` fallback for degenerate reads — §6a), never user-chosen.
+- **Initial symmetry** over *all* detected islands → the **`symmetry` table** (below).
+
+There is **no `exclude_blocks` and no `scan_layer` selection** — the cleanup is a fixed default, so the
+world-load path never triggers `P8`'s re-scan.
+
+**2. Confirmation — interactive, no re-scan.** The author **deselects** islands that shouldn't count
+(decorative / asymmetric). Each change updates `excluded_islands` and **recomputes symmetry from
+`islands_json` minus those ids** — no `.mca` re-read (B7, §6a) — then the author confirms the symmetry.
+
+**3. Intent commit — the phase's slice.** On confirm the studio copies the slim **`SymmetryIntent`**
+(`Mode` + `CenterX/Z`) into `map_intent_json` and PUTs the whole intent (`PUT /map/{slug}/intent`). The
+**generator reads only the intent** — never the analysis tables — keeping `map_intent_json` the
+self-contained source of truth for generation.
+
+**Storage decisions (this settles `D3`).**
+- **`symmetry` → relational table** (1 row/map; shipped as `M0003`) = the *analysis / working* layer.
+  The blob is a full detection result, so the table is hybrid: scalar columns `status` · `center_x` ·
+  `center_z` · the chosen mode (`primary_type` / `primary_confidence` / `primary_user_override`), the
+  irregular candidate list as `modes_json`, and the authoring inputs `excluded_islands_json` +
+  `detection_layer`. `center_cell` and the `primary` object are **derived on read** (`SymmetryStore.ToJson`
+  reconstructs the historic `symmetry.json` shape). Replaces the `symmetry_json` artifact; its consumers
+  (existing-editor re-run, monument orbit, region counterpart, team-count suggestion) read columns instead
+  of parsing a blob. **Not redundant with `SymmetryIntent`:** the table is the *mutable analysis* (recomputed
+  on deselect); `SymmetryIntent` is the *committed declaration* the generator consumes. Confirm = copy
+  mode+centre table → intent. *(`excluded_islands_json` / `detection_layer` are populated by the authoring
+  World step, `N01`; existing-editor maps leave them null and keep island-exclusion in `map_config`.)*
+- **Authoring `map_config` dissolves.** `exclude_blocks` gone (fixed cleanup); `scan_layer` becomes the
+  auto-recorded `detection_layer` on the symmetry table; `exclude_islands` lives on the symmetry table as its
+  input. Nothing left to store. *(The existing-editor `map_config_json` blob stays frozen — its
+  scan-layer/exclude-blocks UI is the `P8` path we are not pulling into authoring.)*
+- **Stays a blob:** `islands_json` (irregular polygon geometry, rendered not queried) · `layer.parquet`
+  (bulk pixels) · `map_intent_json` (the rich declarative leaf).
+
+Net: the World step adds exactly **one new table (`symmetry`)**, needs **no authoring `map_config`**, and
+keeps the user-block-exclude + `P8` re-scan path out of authoring entirely.
+
+### 6c. Map-record lifecycle & the `kind` column
+
+A new map enters through the **landing**, not the importer:
+- **Source → create the record.** Picking an xml-less world folder inserts a `map` row with `slug` = the
+  folder name (the world already lives at `<root>/<slug>/region`, the `MapsRoots` convention). This is task
+  **`B8`** — small, because `scan-world` already exists and finds the world by that convention; it just needs
+  the row to exist first.
+- **Found → scan.** `POST /map/{slug}/scan-world` writes the analysis (feature tables, islands, symmetry —
+  §6b) against that row.
+- **Phases → author.** Map Info (`N00`) sets the real name (until then the row is slug-named); later phases
+  PUT intent slices.
+
+**`kind` column (`xml` | `intent`).** `map` gains a discriminator, set once at creation — the importer writes
+`xml`, `B8` writes `intent`. Today the split is inferred implicitly (presence of a `map_intent_json` blob —
+how the export 409 gate detects an intent map); a column makes it explicit and cheap to query. It drives:
+- **Dashboard** — section/badge "Maps" (`xml`) vs "Authoring" (`intent` drafts) rather than one
+  undifferentiated list.
+- **Routing** — a row opens in **Edit** (`/maps/{id}/edit`) when `xml`, **Configure**
+  (`/maps/{id}/configure`) when `intent` (replaces `Home.razor`'s current hard-link to `/edit`).
+
+**Deferred:** an `intent` record created then abandoned (at Found/Plan or mid-authoring) is an orphan draft.
+`kind` keeps it out of the finished-maps list; reclaiming abandoned drafts (a TTL / manual sweep) and any
+finer `status` (`draft`/`ready`) are out of scope here.
+
 ---
 
 ## 7. Coexistence — the tree view doesn't die, it moves

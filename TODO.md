@@ -171,9 +171,6 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
 
 - [ ] **S2 — Sketch tool.** `sketch_api` (get / setup / layout / overview / export) + the sketch pages.
   Completes M8. (`AuthorDisplay` from C12 is reused here.)
-- [ ] **D3 — Evaluate `map_config` storage.** JSON-document artifact vs a relational table
-  (`scan_layer`, `exclude_blocks`, `exclude_islands`, `confirmed`). Weigh against the "JSON for
-  irregular leaves" rule. Evaluation only.
 - [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
   "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
   roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,
