@@ -1,4 +1,4 @@
-@page "/editor/{Slug}"
+@page "/maps/{Slug}/edit"
 @layout EditorLayout
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -10,7 +10,7 @@
 <div class="editor-page">
 
   <div id="topbar" class="topbar">
-    <a href="/" class="topbar-breadcrumb-home" title="Back to dashboard">
+    <a href="/maps" class="topbar-breadcrumb-home" title="Back to dashboard">
       <i data-lucide="house"></i>
       <span>Maps</span>
     </a>
@@ -60,7 +60,7 @@
       {
         @switch (active)
         {
-          case "configure":
+          case "setup":
             <ConfigureActivity Slug="@Slug" OnComplete="GoOverview" />
             break;
           case "overview":

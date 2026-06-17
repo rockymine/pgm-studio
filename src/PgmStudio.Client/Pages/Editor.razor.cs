@@ -14,7 +14,7 @@ public partial class Editor
     // Rail order + icons mirror studio/templates/editor.html.
     private static readonly Activity[] Activities =
     [
-        new("configure",     "settings-2",        "Configure"),
+        new("setup",         "settings-2",        "Setup"),
         new("overview",      "book-open-text",    "Overview"),
         new("teams",         "users",             "Teams"),
         new("build-regions", "pickaxe",           "Build Regions"),

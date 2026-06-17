@@ -11,8 +11,9 @@ reference them) — never renumber; new work gets the next number in its section
 ## Current focus
 
 M0–M5 + the M6 editor shells + the M7 pipeline are **landed** (`FEATURES.md`), and the intent-model
-authoring **backend** is done. The open headline is the **new `/authoring` editor** — a guided wizard
-built from the concept page, a **separate page** from the existing `/editor` (left as-is for now).
+authoring **backend** is done. The open headline is the **new Configure wizard** (`/maps/{id}/configure`)
+— a guided wizard built from the concept page, a **separate surface** from the existing **Edit** editor
+(`/maps/{id}/edit`, left as-is). Routes + labels settled in `docs/contracts/routing-and-ia.md`.
 
 1. **Settle the remaining design questions** — `ND1` (nav/flow, §12), `ND2` (stripped World, §6a) and
    `ND3` (landing screen, §12) are **done**; `ND2`'s `A5` cleaned-base backend is **landed** (`FEATURES.md`).
@@ -20,16 +21,17 @@ built from the concept page, a **separate page** from the existing `/editor` (le
 2. **Build the steps in page order** (`N00`→`N05` + `NVAL`), starting with **Teams & Spawns** (`N02`)
    — the recommended first real slice.
 
-Shared editor/canvas infra (C) serves both editors; the existing-`/editor` feature UIs (wiring,
-counterparts) are **parked** until that path resumes.
+Shared editor/canvas infra (C) serves both editors; the existing **Edit** (`/maps/{id}/edit`) feature UIs
+(wiring, counterparts) are **parked** until that path resumes.
 
 ---
 
-## Authoring (N) — the new-map intent editor (`/authoring`, new maps only)
+## Authoring (N) — the new-map intent editor (`/maps/{id}/configure`, new maps only)
 
-A **new guided wizard** at `/authoring` that builds a map from declarative intent
-(`docs/contracts/new-map-authoring.md`; backend = the intent model in `FEATURES.md`). **Leave the
-existing `/editor` (region-first, existing maps) untouched** — this is a separate page, not a refit.
+A **new guided wizard** at `/maps/{id}/configure` (UI label **Configure**) that builds a map from
+declarative intent (`docs/contracts/new-map-authoring.md`; backend = the intent model in `FEATURES.md`).
+**Leave the existing Edit editor (`/maps/{id}/edit`, region-first, existing maps) untouched** — a
+separate surface, not a refit.
 Tasks are **in build order** and mirror the concept page's step buckets (00…07 + Validation). Each step
 persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_intent_json` blob.
 
@@ -38,8 +40,8 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > the steps they shape.
 >
 > The old "split view-model (Primitives/Composed/Raw)" plan is **superseded** for new maps
-> (`new-map-authoring.md` §7: shaping activities use intent forms; the Regions activity in `/editor`
-> keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
+> (`new-map-authoring.md` §7: shaping activities use intent forms; the Regions activity in Edit
+> (`/maps/{id}/edit`) keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Design & scaffold first**
 - [ ] **ND4 — Save model (design).** Each phase persists a slice of intent via `PUT /map/{slug}/intent`,
@@ -50,11 +52,13 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   UUID resolve-at-save (B6) surface. Applies to **all** phases, not just Map Info. Output: a save-UX note
   in `new-map-authoring.md` §12 + the affordance in the concept page. Scopes the persistence half of
   `N00`–`N05`.
-- [ ] **NS — New `/authoring` editor shell + relocate the concept mock.** Stand up the real wizard
+- [ ] **NS — Configure wizard shell (`/maps/{id}/configure` + `/maps/new`).** Stand up the real wizard
   shell (activity rail + flow-bar [phase identity · sub-steps · Back/Next] + three-panel workspace) per
-  `ND1` (`new-map-authoring.md` §12), intent-gated. Move the concept mock (`Authoring.razor` +
-  `Pages/Authoring/*`) off `/authoring` → **`/concepts`** so the real editor claims `/authoring`. Leave
-  `/editor` and `/design` as-is. *(Open: whether `/design` also moves under `/concepts`.)*
+  `ND1` (`new-map-authoring.md` §12), intent-gated: the per-map phases at `/maps/{id}/configure` + the
+  `/maps/new` Import landing (Source → Found → Plan, §12). The **IA pass is landed**
+  (`docs/contracts/routing-and-ia.md`, `FEATURES.md`): `/editor`→`/maps/{id}/edit`, dashboard at `/maps`,
+  concept mock → `/concepts`, footer Authoring→Concepts, the inner Configure activity → Setup. *(Open:
+  whether `/design` also moves under `/concepts`.)*
 
 **Steps — in page order, each persists its slice of intent**
 - [ ] **N00 — Map Info.** Identity (name; version / mode / objective auto-derived) + authors
@@ -103,9 +107,9 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 
 ## Existing editor — canvas & shared infrastructure (C)
 
-While `/authoring` is the focus and `/editor` is frozen these are lower priority — but **shared** infra
-(`C8` panel-resize, `C12` components, `C13` canvas bbox bug, `C14` helpers) serves the new authoring
-editor too; **`C9`/`C11`/`C18`** are existing-`/editor`-specific.
+While the Configure wizard (`/maps/{id}/configure`) is the focus and Edit (`/maps/{id}/edit`) is frozen
+these are lower priority — but **shared** infra (`C8` panel-resize, `C12` components, `C13` canvas bbox
+bug, `C14` helpers) serves the new authoring editor too; **`C9`/`C11`/`C18`** are Edit-specific.
 
 - [ ] **C8 — Panel resize.** The `.sidebar-handle` CSS shell exists; port the JS drag handler
   (`shared/panel-resize.js`).
@@ -149,11 +153,11 @@ editor too; **`C9`/`C11`/`C18`** are existing-`/editor`-specific.
   every call site through it; mind the Pgm↔Analysis package boundary. Pairs with P7.
 ## Lower priority / parked
 
-Existing-`/editor` authoring features — **not** used by the intent generator (which auto-wires), and
-`/editor` is frozen. Resume when the existing-map authoring path is picked up. Their *backends* are
-done (`FEATURES.md`).
+Existing-Edit (`/maps/{id}/edit`) authoring features — **not** used by the intent generator (which
+auto-wires), and Edit is frozen. Resume when the existing-map authoring path is picked up. Their
+*backends* are done (`FEATURES.md`).
 
-- [ ] **Wire-after-group + filter-wiring UI** (ex-`N4` + ex-`F1`). Group regions in `/editor` → apply
+- [ ] **Wire-after-group + filter-wiring UI** (ex-`N4` + ex-`F1`). Group regions in Edit → apply
   a wiring template by role; cross-step carve-out (complement) detection; canvas Ctrl-click
   multi-select. The wiring backend (`FilterWiring` appliers + `POST /wiring/apply`) is done.
 - [ ] **Symmetry counterpart accept/reject UI + IoU equivalence** (ex-`F3` + ex-`A2`). Canvas

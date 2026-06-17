@@ -67,15 +67,16 @@ Two files, two jobs — keep them current, don't duplicate either here:
    feature/UI section, not the backend section.
 5. **Sections are few and stable; ids never get renumbered.** Add the next number under an existing
    section — commits + memory reference ids — don't spin up a new category for one task. Sections:
-   Authoring (`N`, the new `/authoring` editor — mirrors the concept page's 00…07 + Validation steps),
+   Authoring (`N`, the new Configure wizard at `/maps/{id}/configure` — mirrors the concept page's 00…07 + Validation steps),
    Existing-editor canvas/infra (`C`), Backend/pipeline/internals, Lower-priority/parked.
 6. **Deferred *decisions* are parked**, clearly marked with the blocking question — not interleaved
    with actionable tasks.
 
 **Where it stands:** M0–M5 + the M6 editor shells + the M7 pipeline are landed (`FEATURES.md`). The
 forward direction is **new-map authoring** — the intent-model *backend* is done; the open work is the
-authoring **UI** (the `/authoring` page is a mock; `docs/contracts/new-map-authoring.md` is the
-contract). Then editor depth: the analysis-backed feature UIs (`F`) over their done services, and the
+authoring **UI**, the Configure wizard at `/maps/{id}/configure` (the concept mock now lives at
+`/concepts`; routes/labels in `docs/contracts/routing-and-ia.md`; `docs/contracts/new-map-authoring.md`
+is the contract). Then editor depth: the analysis-backed feature UIs (`F`) over their done services, and the
 cross-cutting editor/canvas infra (`C`). See `TODO.md` "Current focus".
 
 ## Verification & gotchas (load-bearing, easy to lose)

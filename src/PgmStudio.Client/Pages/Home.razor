@@ -1,11 +1,11 @@
-@page "/"
+@page "/maps"
 @layout EditorLayout
 @inject HttpClient Http
 @inject IJSRuntime JS
 
 <PageTitle>PGM Studio — Maps</PageTitle>
 
-@* Dashboard — studio-styled map list (no Bootstrap). Each row opens the editor at /editor/{slug}. *@
+@* Dashboard — studio-styled map list (no Bootstrap). Each row opens the editor at /maps/{slug}/edit. *@
 
 <div class="editor-page">
   <div class="topbar">
@@ -42,7 +42,7 @@
               {
                 @foreach (var m in Filtered)
                 {
-                  <a class="list-row" href="@($"editor/{m.Slug}")">
+                  <a class="list-row" href="@($"maps/{m.Slug}/edit")">
                     <span class="list-label list-label--mono">@m.Slug</span>
                     <span class="list-label">@m.Name</span>
                     <span class="list-tag">@m.Gamemode</span>
@@ -60,8 +60,8 @@
   <footer class="app-footer">
     <span class="app-footer-brand">PGM Map Studio</span>
     <nav class="app-footer-links">
-      <a class="app-footer-link" href="authoring">
-        <i data-lucide="sparkle"></i><span>Authoring</span>
+      <a class="app-footer-link" href="concepts">
+        <i data-lucide="sparkle"></i><span>Concepts</span>
       </a>
       <a class="app-footer-link" href="design">
         <i data-lucide="palette"></i><span>Design</span>

@@ -18,6 +18,13 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 - **Analysis port** — categorizer, buildability, traversability, wool/resource sources, symmetry,
   region geometry — all parity-verified against the Python reference. (M5, A1)
 
+## App shell & routing
+- **Map-centric URL structure** — the map is the path resource, the mode a trailing segment. Live:
+  dashboard `/maps` (`/` redirects there), **Edit** `/maps/{id}/edit`, concept showcase `/concepts`,
+  design system `/design`. Reserved for the authoring / sketch work: **Configure** `/maps/{id}/configure`
+  + `/maps/new` (TODO `NS` / `S2`). Slugs are the on-disk map dir; query params hold view state only.
+  Contract: `docs/contracts/routing-and-ia.md`.
+
 ## Editor shell & activities (M6)
 - **Editor shell** — topbar + activity rail + activity-switch state machine. (E1)
 - **Regions activity** — geo-tree + inspector + canvas, descendant selection. (E2)
@@ -27,8 +34,9 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   **Wool Rooms / Monuments / Spawners** split by subtype. (E4, C17)
 - **Build Regions activity** — Step 1 max-build-height (side-view + draggable line), Step 2 build tree
   + canvas + inspector delete/rename. (E5)
-- **Configure activity** — 3-step wizard (scan-layer → island-exclude → symmetry confirm) with a
-  dedicated layer/islands/symmetry preview; finish → Overview. (E6, E8)
+- **Setup activity** (rail label; renamed from "Configure" to free that word for the top-level
+  Configure mode) — 3-step wizard (scan-layer → island-exclude → symmetry confirm) with a dedicated
+  layer/islands/symmetry preview; finish → Overview. (E6, E8)
 - **Overview activity** — static pixel surface render + symmetry axis/centre overlay. (E7)
 - **Draft bucket** — a freshly drawn region shows in the activity step that drew it, via an editor-only
   `region_drafts_json` sidecar kept **outside** the codec; it graduates out the moment wiring derives its

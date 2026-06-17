@@ -287,7 +287,7 @@ in-game command → server plugin ──HTTP upload──▶ ingest worker
                                                     ▼
                                 raw world zip → object storage (cold; re-process only, never at edit time)
                                                     ▼
-   plugin posts clickable link in chat ◀──slug──── return edit link → /editor/{slug}   (runs 100% off MariaDB)
+   plugin posts clickable link in chat ◀──slug──── return edit link → /maps/{slug}/edit   (runs 100% off MariaDB)
 ```
 
 - **The plugin is the upload client, not a parser.** It only saves + zips + uploads the region files (and

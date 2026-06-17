@@ -1,0 +1,8 @@
+@page "/"
+@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+
+@* Root redirect → /maps (the dashboard's canonical route; see docs/contracts/routing-and-ia.md). *@
+
+@code {
+    protected override void OnInitialized() => Nav.NavigateTo("maps", replace: true);
+}

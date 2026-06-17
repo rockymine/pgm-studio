@@ -394,7 +394,8 @@ Three checks, all reusing what exists:
 
 ## 12. The authoring wizard shell — navigation & gating (settles ND1)
 
-The `/authoring` editor is a **guided wizard**, not the free-form region editor. Its chrome is three
+The Configure wizard (route `/maps/{id}/configure`, UI label **Configure**;
+see `routing-and-ia.md`) is a **guided wizard**, not the free-form region editor. Its chrome is three
 levels (the concept page's `NavModelSection`), and this section pins where the flow overview, the
 pre-flight checks, and phase locking actually live.
 
@@ -418,8 +419,8 @@ as the entry point). There is **no per-step "Save & continue" button**: each pha
 model — deferred to ND4** (it applies to all phases, ties into the idempotent regenerate-on-save of §3
 and the resolve-at-save Mojang lookup).
 
-**The landing / home screen (ND3 — `LandingSection`).** `/authoring` opens here, and the rail logo
-returns here. It is **a workspace with its own flow bar** (phase = **Import**) walking three sub-steps —
+**The landing / home screen (ND3 — `LandingSection`).** `/maps/new` (the Import landing) opens here,
+and the rail logo returns here. It is **a workspace with its own flow bar** (phase = **Import**) walking three sub-steps —
 **Source → Found → Plan** — the same three-level chrome as every phase, so the entry feels like the rest of
 the wizard. Only **Found** has a central canvas (the scanned-world preview); **Source** and **Plan** are
 panel-only. The sub-steps:
