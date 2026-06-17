@@ -81,8 +81,13 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 
 ## New-map authoring — intent model (backend) ★ headline direction
 The forward path (**meaning → structure**): the author states intent and the generator emits the
-region/filter/apply-rule graph. Backend landed + unit-tested; the **UI is the open work** (TODO §Authoring).
-Contract: `docs/contracts/new-map-authoring.md`.
+region/filter/apply-rule graph. Backend landed + unit-tested; the **wizard shell UI is landed**, with the
+per-phase bodies + intent wiring the open work (TODO §Authoring). Contract: `docs/contracts/new-map-authoring.md`.
+- **Configure wizard shell (UI)** — `/maps/{id}/configure`: activity rail (six phases) + flow bar (phase
+  identity · sub-steps · Back/Next) + three-panel workspace, driven by a phase/sub-step state machine with
+  prerequisite-gated rail (done = green dot, current = bar, later = locked). The `/maps/new` landing (Import:
+  Source → Found → Plan) originates a map and hands off to Map Info. Phase bodies are scaffolds that the
+  `N00`–`N05` tasks fill; reuses `ConfigureLayout` across both surfaces. (NS)
 - **Typed intent model** `MapIntent` (+ `SymmetryIntent`), persisted as the `map_intent_json` sidecar
   (outside the codec, like the draft bucket). (`ea76f13`)
 - **Generator** `IntentGenerator.Apply` — meta / teams / build / wool slices → PGM document via the

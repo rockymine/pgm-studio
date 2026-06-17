@@ -49,16 +49,18 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   "Save & continue" button + "unsaved" pill from Map Info, so the save affordance now needs a home.
   Decide: autosave on change (debounced) vs save-on-Next vs explicit save; where the save/dirty status
   lives (topbar? flow-bar? a global indicator); how regenerate-on-save (idempotent, §3) and the Mojang
-  UUID resolve-at-save (B6) surface. Applies to **all** phases, not just Map Info. Output: a save-UX note
+  UUID resolve-at-save (B6) surface. **Includes the flow-bar step-status affordance** — the per-step
+  checkmark was pulled from the `NS` scaffold (it read as a status symbol with no backing); decide here
+  whether/how step status (done/saved) is shown. Applies to **all** phases, not just Map Info. Output: a save-UX note
   in `new-map-authoring.md` §12 + the affordance in the concept page. Scopes the persistence half of
   `N00`–`N05`.
-- [ ] **NS — Configure wizard shell (`/maps/{id}/configure` + `/maps/new`).** Stand up the real wizard
-  shell (activity rail + flow-bar [phase identity · sub-steps · Back/Next] + three-panel workspace) per
-  `ND1` (`new-map-authoring.md` §12), intent-gated: the per-map phases at `/maps/{id}/configure` + the
-  `/maps/new` Import landing (Source → Found → Plan, §12). The **IA pass is landed**
-  (`docs/contracts/routing-and-ia.md`, `FEATURES.md`): `/editor`→`/maps/{id}/edit`, dashboard at `/maps`,
-  concept mock → `/concepts`, footer Authoring→Concepts, the inner Configure activity → Setup. *(Open:
-  whether `/design` also moves under `/concepts`.)*
+- [ ] **NS — Wire the Configure shell to intent.** The **shell scaffold is landed** (`FEATURES.md`): rail
+  + flow-bar + three-panel workspace + phase/sub-step state machine at `/maps/{id}/configure`, the
+  `/maps/new` Import landing (Source → Found → Plan), shared `ConfigureLayout`, and stub phase bodies. Remaining:
+  replace the scaffold's **stubbed sequential phase-gating** with real **prerequisite-slice gating** off
+  `map_intent_json` (`GET /map/{slug}/intent`), and **persist per phase** via `PUT` (per `ND4`); the
+  `/maps/new` Source step needs the real xml-less-folder scan + map-record create (`B8`). Phase bodies are
+  `N00`–`N05`. *(Open: whether `/design` also moves under `/concepts`.)*
 
 **Steps — in page order, each persists its slice of intent**
 - [ ] **N00 — Map Info.** Identity (name; version / mode / objective auto-derived) + authors

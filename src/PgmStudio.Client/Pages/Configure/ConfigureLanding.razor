@@ -1,0 +1,84 @@
+@page "/maps/new"
+@layout EditorLayout
+
+@* New-map landing (NS / ND3): the Import phase — Source → Found → Plan — that originates a map and
+   hands off to the Configure wizard. The rail's six phases are all locked until you Start. Source/Found
+   are scaffold stubs; the real world scan + map-record creation land with B8. See §12. *@
+
+<ConfigureLayout Crumb="" ActivePhaseId="" Furthest="@(-1)"
+              PhaseIcon="import" PhaseTitle="Import"
+              SubSteps="@SubSteps" CurrentSubStep="@step"
+              BackEnabled="@BackEnabled" NextLabel="@NextLabel"
+              OnStep="JumpStep" OnBack="Back" OnNext="Next">
+
+  <div class="workspace">
+    <div class="workspace-scroll" @key="step" style="max-width: 760px; margin: 0 auto;">
+
+      @if (step == 0)
+      {
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">Open a world</h2>
+            <span class="badge badge--dim">no map.xml needed</span>
+          </div>
+          <p class="section-desc">World folders under the maps roots with a <code>region/</code> but no
+            <code>map.xml</code> — the new-map candidates. Pick one, or type a path.</p>
+          <div class="panel-list" style="margin-top: var(--space-3);">
+            @foreach (var c in Candidates)
+            {
+              <button class="list-row @(c.Slug == selected ? "list-row--selected" : null)"
+                      @onclick="() => Select(c.Slug)">
+                <span class="geo-type-icon"><i data-lucide="folder"></i></span>
+                <span class="list-label list-label--mono">@c.Slug</span>
+                <span class="list-label">@c.Label</span>
+                <span class="list-tag">@c.Regions</span>
+              </button>
+            }
+          </div>
+          <div class="field" style="margin-top: var(--space-4);">
+            <label class="field-label">…or a folder path</label>
+            <input class="field-input" placeholder="/maps/<world>" value="@($"/maps/{selected}")" readonly />
+          </div>
+          <div class="field" style="margin-top: var(--space-3);">
+            <label class="field-label">From a download link <span class="badge badge--dim">soon · B8</span></label>
+            <input class="field-input" placeholder="Overcast / S3 //download URL" disabled />
+          </div>
+        </section>
+      }
+      else if (step == 1)
+      {
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">Import brief — @selected</h2>
+            <span class="badge badge--neutral">scaffold</span>
+          </div>
+          <p class="section-desc">The detection summary — file list, top-down render, islands / symmetry /
+            suggested team count — is the seed of the guidance model. Wired with the world scan (B8).</p>
+          <p class="panel-empty-msg" style="text-align:left">Scanned-world preview + brief land here.</p>
+        </section>
+      }
+      else
+      {
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">The plan</h2>
+          </div>
+          <p class="section-desc">Six phases take <strong>@selected</strong> from intent to a PGM-loadable
+            <code>map.xml</code>. <em>Start authoring</em> opens the wizard at Map Info.</p>
+          <div class="panel-list" style="margin-top: var(--space-3);">
+            @foreach (var p in ConfigurePhases.All)
+            {
+              <div class="list-row list-row--compact">
+                <span class="geo-type-icon"><i data-lucide="@p.Icon"></i></span>
+                <span class="list-label">@p.Title</span>
+                <span class="list-tag">@p.Task</span>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+    </div>
+  </div>
+
+</ConfigureLayout>

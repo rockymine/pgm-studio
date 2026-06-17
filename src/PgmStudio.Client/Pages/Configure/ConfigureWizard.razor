@@ -1,0 +1,64 @@
+@page "/maps/{Slug}/configure"
+@layout EditorLayout
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* New-map Configure wizard shell (NS). Activity rail + flow bar + three-panel workspace, with a working
+   phase/sub-step state machine and prerequisite-gated rail. Each phase body is a scaffold placeholder —
+   the real panels land with the phase's N-task. See new-map-authoring.md §12 + routing-and-ia.md. *@
+
+<ConfigureLayout MapName="@mapName" Crumb="Configure" ActivePhaseId="@Phase.Id" Furthest="@furthest"
+              PhaseIcon="@Phase.Icon" PhaseTitle="@Phase.Title"
+              SubSteps="@Phase.SubSteps" CurrentSubStep="@subStep"
+              BackEnabled="@BackEnabled" NextLabel="@NextLabel"
+              OnJumpPhase="JumpPhase" OnStep="JumpStep" OnBack="Back" OnNext="Next">
+
+  <div class="workspace" @key="@Phase.Id">
+    <div class="workspace-sidebar">
+      <div class="workspace-scroll">
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
+            <h2 class="section-title">@Phase.Title</h2>
+            <span class="badge badge--dim">@Phase.Task</span>
+          </div>
+          <p class="section-desc">
+            @if (Phase.SubSteps.Length == 0)
+            {
+              <text>Single-step phase.</text>
+            }
+            else
+            {
+              <text>Step @(subStep + 1) of @Phase.SubSteps.Length — <strong>@SubLabel</strong>.</text>
+            }
+          </p>
+          <p class="panel-empty-msg" style="text-align:left">
+            Shell scaffold — the @Phase.Title panels are built by @Phase.Task.
+          </p>
+        </section>
+      </div>
+    </div>
+
+    <div class="sidebar-handle"></div>
+
+    <div class="workspace-canvas">
+      <div class="canvas-surface" style="display:flex;align-items:center;justify-content:center;">
+        <p class="panel-empty-msg">@Phase.Title · @SubLabel — canvas scaffold (@Phase.Task)</p>
+      </div>
+    </div>
+
+    <div class="sidebar-handle"></div>
+
+    <div class="workspace-inspector">
+      <div class="workspace-scroll">
+        <section class="panel-section">
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="@Phase.Icon"></i></span>
+            <span class="detail-label">Inspector</span>
+          </div>
+          <p class="section-desc">Phase-specific inspector panels land with @Phase.Task.</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+</ConfigureLayout>

@@ -1,0 +1,81 @@
+@namespace PgmStudio.Client.Pages.Configure
+@using PgmStudio.Client.Layout
+
+@* Shared layout for the new-map Configure wizard + its /maps/new landing: topbar · activity rail
+   (the six phases) · flow bar (phase identity · sub-steps · Back/Next) · a body slot for the
+   three-panel workspace. A parameterized frame (not a Blazor layout directive); the page owns the
+   state machine. See new-map-authoring.md §12. *@
+
+<div class="editor-page">
+
+  <div id="topbar" class="topbar">
+    <a href="/maps" class="topbar-breadcrumb-home" title="Back to dashboard">
+      <i data-lucide="house"></i><span>Maps</span>
+    </a>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-crumb">@(string.IsNullOrEmpty(MapName) ? "New map" : MapName)</span>
+    @if (!string.IsNullOrEmpty(Crumb))
+    {
+      <span class="topbar-sep">›</span>
+      <span class="topbar-crumb topbar-crumb--dim">@Crumb</span>
+    }
+    <div class="topbar-right">
+      <ThemeToggle />
+    </div>
+  </div>
+
+  <div id="main" class="app-body">
+    <nav class="activity-rail">
+      <a class="activity-logo" href="/maps/new" title="New-map landing">
+        <div class="activity-logo-box">
+          <span class="activity-logo-pgm">pgm</span>
+          <span class="activity-logo-sub">STUDIO</span>
+        </div>
+      </a>
+      @for (var i = 0; i < ConfigurePhases.All.Length; i++)
+      {
+        var p = ConfigurePhases.All[i];
+        var locked = i > Furthest;
+        <button class="activity-btn @(p.Id == ActivePhaseId ? "active" : null)"
+                title="@p.Title" data-status="@(i < Furthest ? "green" : "")"
+                disabled="@locked" @onclick="() => OnJumpPhase.InvokeAsync(p.Id)">
+          <i data-lucide="@p.Icon"></i>
+        </button>
+      }
+    </nav>
+
+    <div class="activity-viewport">
+      <div class="configure-main">
+
+        <div class="flow-bar configure-flow-bar">
+          @* @key the lucide-bearing regions by their content so Blazor RECREATES them on navigation
+             instead of patching DOM that studio.icons (lucide.createIcons) has replaced with <svg>
+             — patching the mutated nodes corrupts the reconciler (removeChild/non-text-child errors). *@
+          <div class="flow-bar-phase" @key="@PhaseTitle"><i data-lucide="@PhaseIcon"></i><span>@PhaseTitle</span></div>
+          @if (SubSteps.Count > 0)
+          {
+            <div class="flow-steps" @key="@($"{PhaseTitle}:{CurrentSubStep}")">
+              @for (var j = 0; j < SubSteps.Count; j++)
+              {
+                var idx = j;
+                var cls = idx < CurrentSubStep ? "flow-step flow-step--done"
+                        : idx == CurrentSubStep ? "flow-step flow-step--active"
+                        : "flow-step";
+                @* Label only — status icons (the check) deferred to ND4 (save model), where step status gets meaning. *@
+                <button class="@cls" @onclick="() => OnStep.InvokeAsync(idx)">@SubSteps[idx]</button>
+              }
+            </div>
+          }
+          <div class="flow-bar-actions">
+            <button class="action-btn" disabled="@(!BackEnabled)" @onclick="OnBack">Back</button>
+            <button class="action-btn action-btn--primary" disabled="@(!NextEnabled)" @onclick="OnNext">@NextLabel</button>
+          </div>
+        </div>
+
+        @ChildContent
+
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -33,6 +33,9 @@
             <div class="section-header section-header--ruled">
               <h2 class="section-title">Maps</h2>
               <span class="badge badge--dim">@(maps?.Count ?? 0)</span>
+              <a class="action-btn action-btn--primary" href="maps/new" style="margin-left: auto;">
+                <i data-lucide="plus"></i><span>New map</span>
+              </a>
             </div>
             <input class="field-input" placeholder="Search maps…" @bind="filter" @bind:event="oninput" />
             <div class="panel-list" style="margin-top: var(--space-3);">
