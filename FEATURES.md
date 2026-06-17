@@ -109,6 +109,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   editor's flow) → canonical name + mc-heads avatar head, or a flagged error; only verified names reach the
   intent, so a bad username can't survive into the map. Version / mode / objective are shown locked
   (generator-derived); the server re-resolves usernames → UUIDs on the save `PUT`. (`InfoPhase`; N00)
+- **World · Scan sub-step (N01)** — a read-only review of the extracted world: the centre panel is the
+  reused edit-page `EditorCanvas` (its navigation toolbar — pan/zoom · fit island · reset — and its island
+  base ↔ surface "Blocks" layer toggle), with a cleaned-base summary (the corpus-fixed noise exclusions)
+  and a detection summary (layer · island count · detected symmetry). Writes no intent. (`WorldScanPhase`; N01)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,

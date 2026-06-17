@@ -1,0 +1,74 @@
+@namespace PgmStudio.Client.Pages.Configure
+@using PgmStudio.Client.Pages.EditorActivities
+
+@* World · Scan sub-step (N01): read-only review of the extracted world. Centre panel is the reused
+   edit-page EditorCanvas — its navigation toolbar (pan/zoom · fit island · reset) and its island-base ↔
+   surface layer toggle ("Blocks"). The side panels summarise the cleaned-base detection. *@
+
+<div class="workspace">
+
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Scan — cleaned base</h2>
+          <span class="badge badge--success">auto</span>
+        </div>
+        <p class="section-desc">Islands were detected on the <strong>base (lowest-solid)</strong> layer,
+          auto-cleaned so the picture is stable. The extraction is done — this view is read-only.</p>
+        <div class="panel-list">
+          <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="droplet"></i></span><span class="list-label">Water · lava</span><span class="list-tag">excluded</span></div>
+          <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="trees"></i></span><span class="list-label">Foliage · leaves / logs</span><span class="list-tag">excluded</span></div>
+          <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="zap"></i></span><span class="list-label">Redstone lines</span><span class="list-tag">excluded</span></div>
+          <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="grip"></i></span><span class="list-label">Cobweb</span><span class="list-tag">excluded</span></div>
+        </div>
+      </section>
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Layer view</h2></div>
+        <p class="section-desc">The canvas opens on the <strong>cleaned base</strong> (the island
+          detection). Toggle <strong>Blocks</strong> in the canvas toolbar to overlay the
+          <strong>surface</strong> — the map you built (wool rooms, spawns) — for orientation. Pan with the
+          hand tool, zoom with the wheel, or fit an island / reset from the toolbar.</p>
+      </section>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  @* The reused edit canvas — read-only here (no DrawCategory ⇒ move/select only). *@
+  <EditorCanvas Slug="@Wizard.Slug" />
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-inspector">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="detail-header">
+          <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
+          <span class="detail-label">Detection summary</span>
+          <span class="badge badge--success">base · cleaned</span>
+        </div>
+        <div class="section-body">
+          <div class="field">
+            <label class="field-label">Layer</label>
+            <div class="field-pick-row"><span class="field-value">Lowest solid</span><span class="list-tag">noise-excluded</span></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Islands</label>
+            <div class="field-pick-row"><span class="field-value">@islandCount</span><span class="list-tag">≥ 10 blocks</span></div>
+          </div>
+          <div class="field">
+            <label class="field-label">Symmetry</label>
+            <div class="field-pick-row">
+              <span class="field-value">@SymLabel(symType)</span>
+              @if (symType is not null) { <span class="badge badge--success">@symConfidence.ToString("P0")</span> }
+            </div>
+          </div>
+          <p class="section-desc">The cleaned-base footprint becomes the island shapes in the next step;
+            the surface layer rides along as a visual aid only.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+</div>

@@ -45,13 +45,12 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > (`/maps/{id}/edit`) keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Steps — in page order, each persists its slice of intent**
-- [ ] **N01 — World (UI).** Scan → Islands → Symmetry per `ND2`'s minimal design (`new-map-authoring.md`
-  §6a): the **auto-cleaned base layer** (detection) over the cleaned-base extraction + height-aware island
-  detection from **`A5`**. Surface those results: a **layer-view toggle** (Base = detection · Surface =
-  visual aid for the built map · Segments) over the canvas; the cleaned-base summary (noise excluded · tiny
-  & floating-mass prune); detected islands with **stray-island exclude** (re-runs symmetry only, no re-scan
-  — B7); and **symmetry confirm** → seeds team count + spawn positions. **No user block-exclude UI** (rare
-  override stays `P8`-gated). Reuses `SymmetryDetector` (B7) + island detection (P4). (`WorldSection`)
+- [~] **N01 — World (UI), Islands + Symmetry sub-steps.** Scan landed (`FEATURES.md`). Remaining:
+  **Islands** — detected islands with **stray-island exclude** (re-runs symmetry only, no re-scan — B7),
+  selectable from the list or the canvas; and **Symmetry confirm** → seeds team count + spawn positions
+  (the World intent slice). Per `ND2`'s minimal design (`new-map-authoring.md` §6a). **No user
+  block-exclude UI** (rare override stays `P8`-gated). Reuses `SymmetryDetector` (B7) + island detection
+  (P4). (`WorldSection`)
 - [ ] **N02 — Teams & Spawns.** **The recommended first real slice** (`new-map-authoring.md` §11):
   teams + island assignment → spawn point → protection. Symmetry→count suggestion (`SmartSuggestion` +
   `SymmetryExpander`), orbit-fill the other teams, auto-wire protection, idempotent regenerate-on-save.

@@ -20,6 +20,10 @@
   {
     <InfoPhase @key="@Phase.Id" />
   }
+  else if (Phase.Id == "world" && subStep == 0)
+  {
+    <WorldScanPhase @key="@("world-scan")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">
