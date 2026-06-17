@@ -1,8 +1,9 @@
 @namespace PgmStudio.Client.Pages.Configure
 
 @* Map Info phase body (N00): the map's identity slice — name + authors/contributors → intent meta.
-   Version / mode / objective are auto-derived by the generator and shown locked. Edits patch the
-   wizard's working Intent and mark it dirty; the wizard persists meta on the next phase-advance. *@
+   Version / mode / objective are auto-derived by the generator and shown locked. Author handling mirrors
+   the Overview editor: a username resolves on blur to its head + canonical name, an unknown one is
+   flagged and kept out of the intent. Edits patch the wizard's working Intent and mark it dirty. *@
 
 <div class="workspace">
   <div class="workspace-scroll" style="max-width: 720px; margin: 0 auto;">
@@ -14,8 +15,7 @@
       <div class="section-body">
         <div class="field">
           <label class="field-label">Map name <span class="field-required">*</span></label>
-          <input class="field-input" type="text" placeholder="My CTW Map"
-                 @bind="name" @bind:event="oninput" @bind:after="Sync" />
+          <input class="field-input" type="text" placeholder="My CTW Map" value="@name" @oninput="OnName" />
         </div>
         <div class="field-row">
           <div class="field">
@@ -43,19 +43,10 @@
         <button class="action-btn" @onclick="AddAuthor">+ Add</button>
       </div>
       <div class="author-list">
-        @for (var i = 0; i < authors.Count; i++)
-        {
-          var idx = i;
-          <div class="author-row" @key="idx">
-            <span class="author-avatar"></span>
-            <input class="field-input author-name" type="text" placeholder="Minecraft username"
-                   @bind="authors[idx]" @bind:event="oninput" @bind:after="Sync" />
-            <button class="btn-remove" title="Remove" @onclick="@(() => RemoveAuthor(idx))"><i data-lucide="x"></i></button>
-          </div>
-        }
+        @foreach (var p in authors) { @PersonRow(p) }
       </div>
-      <p class="section-desc">At least one author is required. Usernames resolve to UUIDs via the Mojang
-        API at save.</p>
+      <p class="section-desc">At least one verified author is required. Usernames are checked against
+        Mojang when you leave the field.</p>
     </section>
 
     <section class="panel-section">
@@ -70,19 +61,27 @@
       else
       {
         <div class="author-list">
-          @for (var i = 0; i < contributors.Count; i++)
-          {
-            var idx = i;
-            <div class="author-row" @key="idx">
-              <span class="author-avatar"></span>
-              <input class="field-input author-name" type="text" placeholder="Minecraft username"
-                     @bind="contributors[idx]" @bind:event="oninput" @bind:after="Sync" />
-              <button class="btn-remove" title="Remove" @onclick="@(() => RemoveContributor(idx))"><i data-lucide="x"></i></button>
-            </div>
-          }
+          @foreach (var p in contributors) { @PersonRow(p) }
         </div>
       }
     </section>
 
   </div>
 </div>
+
+@code {
+  // One author/contributor row: avatar head (mc-heads, via the resolved uuid) · username field · remove.
+  // Markup template, so it lives here rather than the code-behind. Mirrors the Overview editor's row.
+  private RenderFragment PersonRow(Person p) => __builder =>
+  {
+    <div class="author-row">
+      <img class="author-avatar" width="16" height="16" alt=""
+           src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
+      <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
+             placeholder="Minecraft username" spellcheck="false"
+             title="@(p.Error ? "No Minecraft account with this username" : p.Uuid)"
+             value="@p.Name" @oninput="e => OnInput(p, e)" @onblur="() => ResolveName(p)" />
+      <button class="btn-remove" title="Remove" @onclick="() => Remove(p)"><i data-lucide="x"></i></button>
+    </div>;
+  };
+}

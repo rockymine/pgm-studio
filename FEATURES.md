@@ -104,9 +104,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a topbar text indicator — **Saved · Saving… · Unsaved** (no icons); done is the rail's green dot. Phase
   bodies patch `Intent` + call `MarkDirty` via a cascaded wizard ref. Doc: §12. (ND4, NS)
 - **Map Info phase (N00)** — the identity slice: map name + authors + contributors → intent `meta`, edited
-  on a form that writes the working intent live and gates `Next` until there's a name and ≥1 author. Version
-  / mode / objective are shown locked (generator-derived); author usernames resolve to UUIDs server-side at
-  save (the `PUT` regenerate, via `MojangClient`). (`InfoPhase`; N00)
+  on a form that writes the working intent live and gates `Next` until there's a name and ≥1 **verified**
+  author. Usernames are checked against Mojang **on blur** (`GET /minecraft/player`, reusing the Overview
+  editor's flow) → canonical name + mc-heads avatar head, or a flagged error; only verified names reach the
+  intent, so a bad username can't survive into the map. Version / mode / objective are shown locked
+  (generator-derived); the server re-resolves usernames → UUIDs on the save `PUT`. (`InfoPhase`; N00)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,
