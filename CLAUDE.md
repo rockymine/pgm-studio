@@ -46,6 +46,12 @@ the .NET 10 SDK (VSTest bridge removed) — run a test project directly:
 `dotnet run --project tests/<Project>`. Synthetic fixtures only; corpus/round-trip harnesses
 live under `tools/`, not `tests/`.
 
+## Code comments
+Comments stay **purely functional** — describe what the code does and why. **Never** reference the
+Python reference app ("port of", "mirrors the reference", parity/oracle) or implementation-phase /
+task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). Existing non-conforming comments are swept separately
+(see `TODO.md`).
+
 ## Git
 Commit **only when the user explicitly asks**; branch first; end commit messages with
 `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.

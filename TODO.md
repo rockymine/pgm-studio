@@ -169,6 +169,11 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
 - [ ] **3D / side-depth selection view** (ex-`F8` 3D half). The flat side-view slice is done (→ `N08`);
   a true 3D selection view (monument point/block + cuboid Y) needs design. Later.
 
+- [ ] **Comment hygiene sweep — purely functional comments.** Code comments must describe behaviour
+  only: **no** references to the Python reference app ("port of", "mirrors the reference", parity/oracle)
+  and **no** implementation-phase / task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). New code already
+  follows this (CLAUDE.md). Sweep the existing comments across `src/` + `tests/` + `tools/` to match.
+
 - [ ] **S2 — Sketch tool.** `sketch_api` (get / setup / layout / overview / export) + the sketch pages.
   Completes M8. (`AuthorDisplay` from C12 is reused here.)
 - [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
