@@ -170,7 +170,12 @@ public sealed class MetadataEndpointTests
     /// <summary>Boots the real app but points the connection string at the test schema.</summary>
     private sealed class TestApiFactory : WebApplicationFactory<Program>
     {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) =>
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            // Non-Development so the API's User Secrets do NOT load here — they point at the real dev DB,
+            // and ResetSchemaAsync drops tables, so loading them could wipe it. Tests use pgm_studio_test.
+            builder.UseEnvironment("Testing");
             builder.UseSetting("ConnectionStrings:PgmStudio", TestConnectionString);
+        }
     }
 }

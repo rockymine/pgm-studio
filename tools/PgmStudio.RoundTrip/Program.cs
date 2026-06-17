@@ -9,7 +9,9 @@ using PgmStudio.Pgm;
 //
 // Usage:  dotnet run --project tools/PgmStudio.RoundTrip [root ...] [--verbose]
 
-string[] defaultRoots = ["/media/sf_repos/CommunityMaps/ctw", "/media/sf_repos/PublicMaps/ctw"];
+// Corpus roots from env (PGM_STUDIO_MAPS_ROOTS, semicolon/comma-separated); an explicit [root ...] arg overrides.
+string[] defaultRoots = (Environment.GetEnvironmentVariable("PGM_STUDIO_MAPS_ROOTS") ?? "")
+    .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 var verbose = args.Contains("--verbose");
 
 // --parity <outputRoot>: compare C# ToDict(parse(map.xml)) against the real Python xml_data.json
@@ -89,7 +91,7 @@ if (msIdx >= 0 && msIdx + 3 < args.Length)
 // run the authoring-flow MonumentSuggester inside a box derived from the ground-truth monument clusters
 // (simulating the box the author draws) and score precision/recall against those monuments.
 if (args.Contains("--suggest-monuments-corpus"))
-    return RunSuggestMonumentsCorpus(args, defaultRoots, "/media/sf_repos/pgm-map-studio-output");
+    return RunSuggestMonumentsCorpus(args, defaultRoots, Environment.GetEnvironmentVariable("PGM_STUDIO_OUTPUT_ROOT") ?? "");
 var sgIdx = Array.IndexOf(args, "--suggest-monuments");
 if (sgIdx >= 0 && sgIdx + 2 < args.Length)
     return RunSuggestMonuments(args, args[sgIdx + 1], args[sgIdx + 2]);

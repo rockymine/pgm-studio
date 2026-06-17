@@ -11,9 +11,13 @@ using PgmStudio.Pgm;
 //   dotnet run --project src/PgmStudio.Import [outputRoot]
 // Connection string from PGM_STUDIO_DB, else the local dev database.
 
-var connectionString = Environment.GetEnvironmentVariable("PGM_STUDIO_DB")
-    ?? "Server=localhost;Database=pgm_studio;User ID=pgm;Password=pgm_dev_pw;";
-var outputRoot = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "/media/sf_repos/pgm-map-studio-output";
+var connectionString = Environment.GetEnvironmentVariable("PGM_STUDIO_DB");
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    Console.Error.WriteLine("Set the PGM_STUDIO_DB environment variable (the database connection string).");
+    return 1;
+}
+var outputRoot = args.FirstOrDefault(a => !a.StartsWith("--")) ?? Environment.GetEnvironmentVariable("PGM_STUDIO_OUTPUT_ROOT");
 
 Console.WriteLine($"Ensuring schema on {Mask(connectionString)} …");
 SchemaMigrator.MigrateUp(connectionString);
@@ -29,7 +33,9 @@ var importer = new MapImporter(db);
 // world-derived feature rows + artifacts (no world re-scan). Fixes stale regions (D1) cheaply.
 if (args.Contains("--refresh-xml"))
 {
-    string[] corpusRoots = ["/media/sf_repos/CommunityMaps/ctw", "/media/sf_repos/PublicMaps/ctw"];
+    string[] corpusRoots = (Environment.GetEnvironmentVariable("PGM_STUDIO_MAPS_ROOTS") ?? "")
+        .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    if (corpusRoots.Length == 0) { Console.Error.WriteLine("--refresh-xml needs PGM_STUDIO_MAPS_ROOTS (semicolon/comma-separated corpus roots)."); return 1; }
     var writer = new MapWriter(db);
     var maps = await db.Maps.OrderBy(m => m.Slug).ToListAsync();
     Console.WriteLine($"Refreshing XML for {maps.Count} map(s) from current map.xml\n");
@@ -58,6 +64,12 @@ var exclusions = new Dictionary<string, string>
 {
     ["kytriak_te"] = "two empty-id teams (violates per-map unique team id)",
 };
+
+if (string.IsNullOrWhiteSpace(outputRoot))
+{
+    Console.Error.WriteLine("No output root: pass it as an argument or set PGM_STUDIO_OUTPUT_ROOT.");
+    return 1;
+}
 
 var dirs = Directory.GetDirectories(outputRoot)
     .Where(d => File.Exists(Path.Combine(d, "xml_data.json")))

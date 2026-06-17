@@ -35,6 +35,25 @@ curl localhost:7894/api/health
 ```
 Run a test project (TUnit native runner): `dotnet run --project tests/<Proj>`.
 
-DB: `pgm_studio` on localhost; dev user `pgm` / `pgm_dev_pw`.
+## Configuration
+Environment-specific values are **config, not code**.
+
+- **DB connection (secret)** — never committed. In dev it comes from **User Secrets**; set it once per
+  machine:
+  ```bash
+  dotnet user-secrets set "ConnectionStrings:PgmStudio" \
+    "Server=localhost;Database=pgm_studio;User ID=pgm;Password=pgm_dev_pw;" \
+    --project src/PgmStudio.Api
+  ```
+  In prod set the `ConnectionStrings__PgmStudio` (or `PGM_STUDIO_DB`) environment variable instead.
+- **Non-secret paths** — corpus/import roots live in `src/PgmStudio.Api/appsettings.Development.json`
+  (`MapsRoots`, `Import:Root`); override per environment via `appsettings.{Environment}.json` or env vars
+  (`MapsRoots__0`, `Import__Root`).
+- **Tools** (`PgmStudio.Import`, `PgmStudio.RoundTrip`) read env vars: `PGM_STUDIO_DB` (connection),
+  `PGM_STUDIO_MAPS_ROOTS` (semicolon/comma-separated corpus roots), `PGM_STUDIO_OUTPUT_ROOT`. e.g.
+  ```bash
+  PGM_STUDIO_DB="Server=localhost;Database=pgm_studio;User ID=pgm;Password=pgm_dev_pw;" \
+    dotnet run --project src/PgmStudio.Import -- --migrate-only
+  ```
 
 See `CLAUDE.md` for the milestone tracker and the reference Python app.

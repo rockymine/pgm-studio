@@ -4,11 +4,24 @@ using PgmStudio.Data.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// The host launches the built DLL from an arbitrary working directory (the repo root in dev, often /
+// for a service), so the default ContentRoot-relative appsettings probe can miss them. Also load them
+// from next to the binary, then re-apply env vars last so env still overrides file config.
+builder.Configuration
+    .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"), optional: true, reloadOnChange: false)
+    .AddJsonFile(Path.Combine(AppContext.BaseDirectory, $"appsettings.{builder.Environment.EnvironmentName}.json"), optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables();
+
 builder.Services.AddFastEndpoints();
 
-// Data access: one DataOptions (singleton) + a scoped PgmDb/readers per request.
+// Data access: one DataOptions (singleton) + a scoped PgmDb/readers per request. The connection string
+// is a secret — it comes from User Secrets in dev (dotnet user-secrets) or the ConnectionStrings__PgmStudio
+// / PGM_STUDIO_DB env var in prod; never committed.
 var connectionString = builder.Configuration.GetConnectionString("PgmStudio")
-    ?? "Server=localhost;Database=pgm_studio;User ID=pgm;Password=pgm_dev_pw;";
+    ?? Environment.GetEnvironmentVariable("PGM_STUDIO_DB")
+    ?? throw new InvalidOperationException(
+        "No database connection. Set it via User Secrets (dotnet user-secrets set \"ConnectionStrings:PgmStudio\" ...) " +
+        "in development, or the ConnectionStrings__PgmStudio / PGM_STUDIO_DB environment variable in production.");
 builder.Services.AddSingleton(PgmDataOptions.ForConnectionString(connectionString));
 builder.Services.AddScoped<PgmDb>();
 builder.Services.AddScoped<MapRepository>();
@@ -26,7 +39,7 @@ builder.Services.AddHttpClient<PgmStudio.Api.Services.MojangClient>(c =>
 
 // B8 import-from-url (docs/contracts/new-map-authoring.md §12): a hardcoded SSRF allowlist + a dedicated
 // imports root (kept out of the curated corpus) + bounded extraction.
-var importRoot = builder.Configuration["Import:Root"] ?? "/media/sf_repos/pgm-studio-imports";
+var importRoot = builder.Configuration["Import:Root"] ?? Path.Combine(Path.GetTempPath(), "pgm-studio-imports");
 var importHosts = builder.Configuration.GetSection("Import:AllowedHosts").Get<string[]>()
     ?? PgmStudio.Api.Services.ImportPolicy.DefaultAllowedHosts;
 builder.Services.AddSingleton(new PgmStudio.Api.Services.ImportPolicy { AllowedHosts = importHosts, Root = importRoot });
@@ -36,8 +49,7 @@ builder.Services.AddHttpClient("import", c => c.Timeout = TimeSpan.FromSeconds(1
 
 // Corpus roots used to locate a map's Minecraft world (<root>/<slug>/region) for the world scan; the
 // imports root is searched too so scan-world finds B8-imported worlds.
-var mapsRoots = (builder.Configuration.GetSection("MapsRoots").Get<string[]>()
-        ?? ["/media/sf_repos/CommunityMaps/ctw", "/media/sf_repos/PublicMaps/ctw"])
+var mapsRoots = (builder.Configuration.GetSection("MapsRoots").Get<string[]>() ?? [])
     .Append(importRoot).ToArray();
 builder.Services.AddSingleton(new PgmStudio.Api.Services.MapsRoots(mapsRoots));
 
