@@ -3,9 +3,8 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// P5 block-colour tests. The full known-table parity vs the Python <c>colors.py</c> oracle lives in
-/// the harness (<c>tools/PgmStudio.RoundTrip --colors</c>, 197/197); these cover the lookup shape:
-/// known blocks, stained sub-colours, the (-1) any-data fallback, names, and the unknown fallback.
+/// Block-colour lookup tests: known blocks, stained sub-colours, the (-1) any-data fallback, names, and
+/// the deterministic unknown-block fallback.
 /// </summary>
 public sealed class BlockColorsTests
 {

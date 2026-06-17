@@ -111,29 +111,6 @@ var afIdx = Array.IndexOf(args, "--authoring-fixture");
 if (afIdx >= 0)
     return RunAuthoringFixture(args, defaultRoots);
 
-// --colors <oracle.json>: compare BlockColors.Hex/Name against a Python colors.py oracle dump
-// ({"bid,bdat": {"hex": "#rrggbb", "name": "..."}}) over every known (id,data) pair.
-var colIdx = Array.IndexOf(args, "--colors");
-if (colIdx >= 0 && colIdx + 1 < args.Length)
-{
-    using var jd = System.Text.Json.JsonDocument.Parse(File.ReadAllText(args[colIdx + 1]));
-    int cok = 0, cfail = 0;
-    foreach (var entry in jd.RootElement.EnumerateObject())
-    {
-        var parts = entry.Name.Split(',');
-        int bid = int.Parse(parts[0]), bdat = int.Parse(parts[1]);
-        var wantHex = entry.Value.GetProperty("hex").GetString();
-        var wantName = entry.Value.GetProperty("name").GetString();
-        var gotHex = PgmStudio.Minecraft.BlockColors.Hex(bid, bdat);
-        var gotName = PgmStudio.Minecraft.BlockColors.Name(bid, bdat);
-        if (gotHex == wantHex && gotName == wantName) { cok++; continue; }
-        cfail++;
-        Console.WriteLine($"  ({bid},{bdat}): hex {gotHex} vs {wantHex} | name '{gotName}' vs '{wantName}'");
-    }
-    Console.WriteLine($"colors parity: {cok} ok, {cfail} failed ({cok + cfail} known pairs)");
-    return cfail == 0 ? 0 : 1;
-}
-
 // --dump <map.xml>: print canonical ToDict(parse) as indented JSON for diffing against Python.
 var dumpIdx = Array.IndexOf(args, "--dump");
 if (dumpIdx >= 0 && dumpIdx + 1 < args.Length)
