@@ -109,8 +109,10 @@ Contract: `docs/contracts/new-map-authoring.md`.
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a
   solid cell that blocks placement, over the `SegmentIndex`), `POST /wool-sources` (wool colours summarised
   inside a drawn rect — `{bounds}` → per-colour totals/types/repeatable, over the wool-block + PGM-spawner
-  sources) and `GET /wool-suggestions` (wool colours found in the world but not declared as objectives).
-  The authoring overlays/panels that consume them are TODO `N03` / `NVAL` / `N04`. (F6, F2)
+  sources), `GET /wool-suggestions` (wool colours found in the world but not declared as objectives) and
+  `POST /resources` (iron/gold/diamond blocks, optionally in a drawn rect, + how many a `<renewable>`
+  already covers — renewable auto-config). The authoring overlays/panels that consume them are TODO
+  `N03` / `NVAL` / `N04`. (F6, F2, F7)
 - **Filter↔region wiring templates** — 4 v1 appliers + `POST /wiring/apply` (the suggestion engine
   was deliberately removed). The generator uses these to auto-wire; the hand-wiring UI is parked.
 - **Symmetry-aware authoring** — counterpart creation + orbit-fill on draw

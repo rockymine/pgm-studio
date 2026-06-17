@@ -14,6 +14,16 @@ public static class ResourceSources
     public sealed record BlockOut(string Type, int X, int Y, int Z);
     public sealed record TypeSummary(string Type, int Total, int Renewable, bool AllRenewable, List<BlockOut> Sources);
 
+    private static readonly GeometryFactory Gf = new();
+
+    /// <summary>Resource blocks (optionally inside a drawn rectangle — null bounds = whole map), each type
+    /// with how many a &lt;renewable&gt; already covers. The POST /resources query for renewable auto-config;
+    /// computes the renewable regions from the doc so the caller only supplies the optional bounds.</summary>
+    public static List<TypeSummary> ResourcesInRegion(
+        Dict data, IEnumerable<Block> blocks, (double minX, double minZ, double maxX, double maxZ)? bounds) =>
+        Summarize(blocks, bounds is { } b ? Gf.ToGeometry(new Envelope(b.minX, b.maxX, b.minZ, b.maxZ)) : null,
+            RenewableRegions(data));
+
     public static List<(Geometry geom, string renewFilter)> RenewableRegions(Dict data)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));

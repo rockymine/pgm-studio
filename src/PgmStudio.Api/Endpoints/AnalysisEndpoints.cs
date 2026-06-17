@@ -168,3 +168,36 @@ public sealed class WoolSuggestionsEndpoint(MapRepository repo, MapReader reader
         await Send.OkAsync(new WoolSuggestionsResponseDto(suggestions, have), ct);
     }
 }
+
+/// <summary>POST /api/map/{slug}/resources — iron/gold/diamond blocks (optionally in a drawn rect,
+/// body <c>{ bounds?: { minX, minZ, maxX, maxZ } }</c>) + how many a &lt;renewable&gt; already covers.</summary>
+public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/resources"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
+        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        var (map, doc) = loaded.Value;
+
+        using var sr = new StreamReader(HttpContext.Request.Body);
+        (double, double, double, double)? bounds = null;
+        if ((JsonNode.Parse(await sr.ReadToEndAsync(ct)) as JsonObject)?["bounds"] is JsonObject b)   // bounds is optional
+        {
+            if (b["minX"] is null || b["minZ"] is null || b["maxX"] is null || b["maxZ"] is null)
+            {
+                await Send.ResponseAsync(new Dict { ["error"] = "bounds {minX,minZ,maxX,maxZ} required" }, 400, ct);
+                return;
+            }
+            bounds = (b["minX"]!.GetValue<double>(), b["minZ"]!.GetValue<double>(), b["maxX"]!.GetValue<double>(), b["maxZ"]!.GetValue<double>());
+        }
+
+        var have = await feature.HasScanAsync(map.Id, ct);
+        var blocks = await feature.ResourceBlocksAsync(map.Id, ct);
+        var resources = ResourceSources.ResourcesInRegion(doc, blocks, bounds)
+            .Select(r => new ResourceTypeSummaryDto(r.Type, r.Total, r.Renewable, r.AllRenewable,
+                r.Sources.Select(s => new ResourceBlockDto(s.Type, s.X, s.Y, s.Z)).ToList())).ToList();
+        await Send.OkAsync(new ResourceSourcesResponseDto(resources, have), ct);
+    }
+}

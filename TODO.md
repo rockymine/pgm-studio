@@ -98,9 +98,9 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   spawn / monument / wool-spawn off y=0). **Fit-island** exists in parts (canvas toolbar) — refine the
   concept for per-side authoring (frame one team's quadrant while working its unit). (`FocusSection`)
 
-**Backend the steps need (live — kept even though the existing-`/editor` overlays are parked)**
-- [ ] **F7 — Resource endpoint.** Service done (`ResourceSources`); wire `POST /resources` (renewable
-  auto-config). → `N04` spawn "make renewable".
+> The `N04`-feeding analysis backends (`F2`/`F6`/`F7`) are **done** (`FEATURES.md`); only the
+> consuming authoring UI (`N04`) remains.
+
 ## Existing editor — canvas & shared infrastructure (C)
 
 While `/authoring` is the focus and `/editor` is frozen these are lower priority — but **shared** infra

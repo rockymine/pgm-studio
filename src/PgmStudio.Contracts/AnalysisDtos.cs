@@ -52,3 +52,12 @@ public sealed record WoolSuggestionDto(string Color, int Total, IReadOnlyList<st
 /// <summary>GET /api/map/{slug}/wool-suggestions — wool colours found in the world but not yet
 /// declared as objectives.</summary>
 public sealed record WoolSuggestionsResponseDto(IReadOnlyList<WoolSuggestionDto> Suggestions, bool HaveLayers);
+
+public sealed record ResourceBlockDto(string Type, int X, int Y, int Z);
+public sealed record ResourceTypeSummaryDto(
+    string Type, int Total, int Renewable, bool AllRenewable, IReadOnlyList<ResourceBlockDto> Sources);
+
+/// <summary>POST /api/map/{slug}/resources — iron/gold/diamond blocks (optionally inside a drawn rect,
+/// body <c>{ bounds?: { minX, minZ, maxX, maxZ } }</c>) + how many a <c>&lt;renewable&gt;</c> already
+/// covers, for renewable auto-config. HaveLayers is false for an xml-only map.</summary>
+public sealed record ResourceSourcesResponseDto(IReadOnlyList<ResourceTypeSummaryDto> Resources, bool HaveLayers);
