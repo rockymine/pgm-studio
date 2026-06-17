@@ -174,23 +174,20 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
 /// GET /api/maps/import-candidates — world folders under the maps roots with <c>region/*.mca</c> but no
 /// <c>map.xml</c> and not already a map: the new-map import candidates (B8 "open a local folder" source).
 /// </summary>
-public sealed class ImportCandidatesEndpoint(MapRepository repo, MapsRoots roots) : EndpointWithoutRequest
+public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy policy) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/maps/import-candidates"); AllowAnonymous(); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var existing = (await repo.ListAsync(ct)).Select(m => m.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var candidates = new List<Dict>();
-        foreach (var root in roots.Roots)
-        {
-            if (!Directory.Exists(root)) continue;
-            foreach (var dir in Directory.EnumerateDirectories(root))
+        // Candidates live only in the dedicated imports root — never the curated xml corpus.
+        if (Directory.Exists(policy.Root))
+            foreach (var dir in Directory.EnumerateDirectories(policy.Root))
             {
                 var folder = Path.GetFileName(dir);
-                if (!seen.Add(folder)) continue;                                   // dedupe across roots
-                if (File.Exists(Path.Combine(dir, "map.xml"))) continue;           // xml maps aren't new-map candidates
+                if (File.Exists(Path.Combine(dir, "map.xml"))) continue;           // already an xml map
                 var region = Path.Combine(dir, "region");
                 if (!Directory.Exists(region)) continue;
                 var mca = Directory.EnumerateFiles(region, "*.mca").Count();
@@ -199,8 +196,7 @@ public sealed class ImportCandidatesEndpoint(MapRepository repo, MapsRoots roots
                 if (slug.Length == 0 || existing.Contains(slug)) continue;          // skip unsluggable / already-imported
                 candidates.Add(new Dict { ["folder"] = folder, ["slug"] = slug, ["region_files"] = mca });
             }
-        }
-        candidates.Sort((a, b) => string.Compare((string)a["slug"]!, (string)b["slug"]!, StringComparison.Ordinal));
+        candidates.Sort((a, b) => string.Compare((string)a["folder"]!, (string)b["folder"]!, StringComparison.Ordinal));
         await Send.OkAsync(candidates, ct);
     }
 }
@@ -211,7 +207,7 @@ public sealed class ImportCandidatesEndpoint(MapRepository repo, MapsRoots roots
 /// create the map row, and scan into MariaDB. The slug must be a real candidate (region/*.mca, no map.xml,
 /// not already a map). Rolls back the row on failure.
 /// </summary>
-public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter writer, MapsRoots roots) : EndpointWithoutRequest
+public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter writer, ImportPolicy policy) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/map/import-folder"); AllowAnonymous(); }
 
@@ -224,11 +220,12 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
         catch { await Fail(400, "invalid json body", ct); return; }
 
         var folder = (body["folder"]?.GetValue<string>() ?? "").Trim();
-        // candidate folders are single path segments — reject anything that could traverse out of a root.
+        // candidate folders are single path segments under the imports root — reject anything that could escape it.
         if (folder.Length == 0 || folder.Contains('/') || folder.Contains('\\') || folder.Contains("..")) { await Fail(400, "invalid folder", ct); return; }
-        var regionDir = roots.RegionDir(folder);   // resolves only under configured roots
-        if (regionDir is null) { await Fail(404, $"no world folder '{folder}'", ct); return; }
-        if (File.Exists(Path.Combine(Path.GetDirectoryName(regionDir)!, "map.xml"))) { await Fail(422, "folder has a map.xml (not a new-map candidate)", ct); return; }
+        var worldDir = Path.Combine(policy.Root, folder);
+        var regionDir = Path.Combine(worldDir, "region");
+        if (!Directory.Exists(regionDir)) { await Fail(404, $"no world folder '{folder}' in the imports root", ct); return; }
+        if (File.Exists(Path.Combine(worldDir, "map.xml"))) { await Fail(422, "folder has a map.xml (not a new-map candidate)", ct); return; }
         if (!Directory.EnumerateFiles(regionDir, "*.mca").Any()) { await Fail(422, "no region/*.mca in folder", ct); return; }
 
         var slug = ImportSlug.Of(body["slug"]?.GetValue<string>() ?? folder);
