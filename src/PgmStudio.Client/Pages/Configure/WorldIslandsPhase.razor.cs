@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using PgmStudio.Client.Pages.EditorActivities;
 
 namespace PgmStudio.Client.Pages.Configure;
@@ -15,6 +16,12 @@ public partial class WorldIslandsPhase
 {
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    // Convert any new <i data-lucide> placeholders to SVG after each render. This component re-renders on
+    // its own (the parent wizard doesn't), so its list-row icons would otherwise only appear once some
+    // other render — e.g. a canvas fit — happened to re-run the icon factory globally.
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
     private sealed record Island(int Id, int BlockCount, int MinX, int MinZ, int MaxX, int MaxZ)
     {

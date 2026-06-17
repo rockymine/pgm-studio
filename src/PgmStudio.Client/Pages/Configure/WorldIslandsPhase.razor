@@ -21,7 +21,7 @@
           @foreach (var isl in Included)
           {
             <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
-                 @onclick="() => Select(isl.Id)">
+                 @key="isl.Id" @onclick="() => Select(isl.Id)">
               <span class="geo-type-icon"><i data-lucide="layers"></i></span>
               <span class="list-label">@Label(isl)</span>
               <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
@@ -36,7 +36,7 @@
           @foreach (var isl in ExcludedList)
           {
             <div class="list-row list-row--compact list-row--muted @(selectedId == isl.Id ? "list-row--selected" : null)"
-                 @onclick="() => Select(isl.Id)">
+                 @key="isl.Id" @onclick="() => Select(isl.Id)">
               <span class="geo-type-icon"><i data-lucide="layers"></i></span>
               <span class="list-label">@Label(isl)</span>
               <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
