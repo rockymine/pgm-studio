@@ -1,6 +1,7 @@
-import { buildTransform, svgEl as makeEl } from "./transform.js";
-import { blockDataToDataUrl } from "../shared/block-render.js";
-import { renderSymmetryOverlay } from "../shared/symmetry-render.js";
+import { buildTransform } from "../geometry/transform.js";
+import { svgEl as makeEl } from "../render/svg.js";
+import { blockDataToDataUrl } from "../render/block-render.js";
+import { renderSymmetryOverlay } from "../render/symmetry-render.js";
 
 const SYMMETRY_SKIPPED = 0.25;
 

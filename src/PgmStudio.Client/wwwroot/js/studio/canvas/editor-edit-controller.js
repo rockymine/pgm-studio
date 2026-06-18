@@ -18,7 +18,7 @@
  *   afterResize ()             refresh cursor + overlay once a resize drag ends
  */
 
-import { svgEl, handleRectAttrs } from "./transform.js";
+import { svgEl, handleRectAttrs } from "../render/svg.js";
 
 const HANDLE_SIZE = 14;
 const HANDLE_DEFS = [

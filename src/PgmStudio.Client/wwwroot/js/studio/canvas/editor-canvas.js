@@ -41,16 +41,17 @@
  * node shape: { id, type, label, color, bounds?: {min_x,min_z,max_x,max_z}, children?, polygon_2d? }
  */
 
-import { buildTransform, buildInverseTransform, svgEl, polyToPath, anchorBlockEl } from "./transform.js";
+import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
+import { svgEl, polyToPath, anchorBlockEl } from "../render/svg.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
 import { EditorDrawController } from "./editor-draw-controller.js";
 import { EditorEditController, RESIZABLE_TYPES } from "./editor-edit-controller.js";
 import { EditorSelectController } from "./editor-select-controller.js";
-import { chatColorHex, dyeColorHex } from "../shared/game-colors.js";
-import { blockToExtentBounds } from "../shared/converters.js";
-import { renderShape } from "../shared/shape-render.js";
-import { renderSymmetryOverlay } from "../shared/symmetry-render.js";
-import { blockDataToDataUrl } from "../shared/block-render.js";
+import { chatColorHex, dyeColorHex } from "../render/palette.js";
+import { blockToExtentBounds } from "../geometry/region-convert.js";
+import { renderShape } from "../render/shape-render.js";
+import { renderSymmetryOverlay } from "../render/symmetry-render.js";
+import { blockDataToDataUrl } from "../render/block-render.js";
 
 const COMPOSITE_TYPES = new Set(["union", "intersect", "negative", "complement"]);
 

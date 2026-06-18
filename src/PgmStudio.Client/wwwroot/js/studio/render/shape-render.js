@@ -1,11 +1,10 @@
 /**
  * Shared SVG shape renderer.
- * Used by both EditorCanvas (editor region outlines) and SketchLayoutCanvas
+ * Used by both EditorCanvas (editor region outlines) and the sketch canvas
  * (sketch shapes) to avoid duplicating type-dispatch logic.
- * See docs/contracts/geometry.md §7 (shared rendering & toolbar).
  */
 
-import { svgEl, polyToPath } from "../canvas/transform.js";
+import { svgEl, polyToPath } from "./svg.js";
 
 const RADIAL_TYPES = new Set(["cylinder", "circle", "sphere"]);
 

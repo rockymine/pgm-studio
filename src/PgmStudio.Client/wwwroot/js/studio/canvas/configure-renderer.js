@@ -11,9 +11,10 @@
  * read-only preview rather than an interactive editor.
  */
 
-import { buildTransform, svgEl, polyToPath } from "./transform.js";
-import { blockDataToDataUrl } from "../shared/block-render.js";
-import { renderSymmetryOverlay } from "../shared/symmetry-render.js";
+import { buildTransform } from "../geometry/transform.js";
+import { svgEl, polyToPath } from "../render/svg.js";
+import { blockDataToDataUrl } from "../render/block-render.js";
+import { renderSymmetryOverlay } from "../render/symmetry-render.js";
 
 const ISLAND_INCLUDED_COLOR = "var(--canvas-result-fill)";   // indigo-500
 const ISLAND_EXCLUDED_COLOR = "var(--canvas-island)";        // gray-500

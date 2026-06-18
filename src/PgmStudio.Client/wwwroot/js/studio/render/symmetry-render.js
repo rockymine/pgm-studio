@@ -11,7 +11,7 @@
  * @param opts    { lineOpacity = 0.8, dotOpacity = 0.9 }
  */
 
-import { svgEl } from "../canvas/transform.js";
+import { svgEl } from "./svg.js";
 
 const COLOR = "var(--canvas-symmetry)";
 

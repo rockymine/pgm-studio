@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Marks the repo's hand-written .js (wwwroot studio modules + tests/js) as ES modules for Node's built-in test runner. No npm dependencies; .NET ignores this file.",
+  "scripts": {
+    "test": "node --test tests/js/"
+  }
+}

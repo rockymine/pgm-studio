@@ -8,8 +8,8 @@
  *   callbacks     { onRegionDraw }
  */
 
-import { svgEl, anchorBlockEl, moveAnchorBlockEl } from "./transform.js";
-import { drawnBoundsFromBlocks } from "../shared/converters.js";
+import { svgEl, anchorBlockEl, moveAnchorBlockEl } from "../render/svg.js";
+import { drawnBoundsFromBlocks } from "../geometry/region-convert.js";
 
 export class EditorDrawController {
   #getDrawLayer;

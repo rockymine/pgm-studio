@@ -1,40 +1,9 @@
 /**
- * Pure coordinate-math and SVG-element helpers.
- * Accepts bounding_box as {min_x, min_z, max_x, max_z}.
+ * SVG element factory + path-string builders.
+ * The render layer's primitives: turn geometry (rings / bounds, via a world→SVG `toSvg`)
+ * into SVG elements and path `d` strings. Path builders are pure string math (no DOM) and
+ * are testable with a stub `toSvg`; element factories need a document.
  */
-
-const PAD = 20;
-
-/**
- * Build a world→SVG transform from a bounding box.
- * @param {{min_x,min_z,max_x,max_z}} bbox
- * @returns {(wx:number,wz:number)=>{x:number,y:number}}
- */
-export function buildTransform(bbox, svgW, svgH) {
-  const { min_x, min_z, max_x, max_z } = bbox;
-  const worldW = max_x - min_x, worldH = max_z - min_z;
-  const drawW = svgW - 2 * PAD, drawH = svgH - 2 * PAD;
-  const scale = Math.min(drawW / worldW, drawH / worldH);
-  const offX = PAD + (drawW - worldW * scale) / 2;
-  const offY = PAD + (drawH - worldH * scale) / 2;
-  return (wx, wz) => ({
-    x: offX + (wx - min_x) * scale,
-    y: offY + (wz - min_z) * scale,
-  });
-}
-
-export function buildInverseTransform(bbox, svgW, svgH) {
-  const { min_x, min_z, max_x, max_z } = bbox;
-  const worldW = max_x - min_x, worldH = max_z - min_z;
-  const drawW = svgW - 2 * PAD, drawH = svgH - 2 * PAD;
-  const scale = Math.min(drawW / worldW, drawH / worldH);
-  const offX = PAD + (drawW - worldW * scale) / 2;
-  const offY = PAD + (drawH - worldH * scale) / 2;
-  return (px, py) => ({
-    x: (px - offX) / scale + min_x,
-    z: (py - offY) / scale + min_z,
-  });
-}
 
 /** Create an SVG element with given attributes. */
 export function svgEl(tag, attrs = {}, children = []) {
@@ -132,33 +101,4 @@ export function moveAnchorBlockEl(toSvg, el, bx, bz) {
   el.setAttribute("y",      Math.min(p1.y, p2.y));
   el.setAttribute("width",  Math.abs(p2.x - p1.x));
   el.setAttribute("height", Math.abs(p2.y - p1.y));
-}
-
-/**
- * Sutherland-Hodgman half-plane clip.
- * Clips polygon `poly` ([[x,z],...]) against the half-plane defined by
- * point (ox, oz) and inward normal (nx, nz).
- * A vertex is inside when (v.x - ox)*nx + (v.z - oz)*nz >= 0.
- */
-export function clipHalfPlane(poly, ox, oz, nx, nz) {
-  if (!poly.length) return [];
-  const dot = ([x, z]) => (x - ox) * nx + (z - oz) * nz;
-  const output = [];
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[(i + poly.length - 1) % poly.length];
-    const b = poly[i];
-    const da = dot(a);
-    const db = dot(b);
-    if (db >= 0) {
-      if (da < 0) {
-        const t = da / (da - db);
-        output.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]);
-      }
-      output.push(b);
-    } else if (da >= 0) {
-      const t = da / (da - db);
-      output.push([a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])]);
-    }
-  }
-  return output;
 }

@@ -1,7 +1,8 @@
 /**
- * Shared spatial converters.
- * Each function has exactly one implementation here — no caller applies +1 or
- * rotation arithmetic directly. See docs/contracts/geometry.md §6 (required converters) for contracts.
+ * PGM-contract conversions between region/shape descriptors and 2D display bounds.
+ * These encode contract semantics (the +1 rule, region type → footprint) and are kept
+ * separate from the generic shape geometry. No DOM.
+ * Each conversion has exactly one implementation here.
  */
 
 // ── Block position → extent bounds ───────────────────────────────────────────
@@ -71,72 +72,6 @@ export function regionToBounds2d(region) {
     default:
       return null;
   }
-}
-
-// ── Symmetry transform on a point ─────────────────────────────────────────────
-
-export function applySymmetry(x, z, axis, cx, cz) {
-  switch (axis) {
-    case "mirror_x": return [2 * cx - x, z];
-    case "mirror_z": return [x, 2 * cz - z];
-    case "rot_180":  return [2 * cx - x, 2 * cz - z];
-    case "rot_90":   return [cx - (z - cz), cz + (x - cx)];
-    default: throw new Error(`Unknown symmetry axis: ${axis}`);
-  }
-}
-
-// ── Symmetry transform on extent bounds ──────────────────────────────────────
-
-export function applySymmetryToBounds(bounds, axis, cx, cz) {
-  const { min_x, max_x, min_z, max_z } = bounds;
-  const corners = [
-    [min_x, min_z],
-    [max_x, min_z],
-    [max_x, max_z],
-    [min_x, max_z],
-  ].map(([x, z]) => applySymmetry(x, z, axis, cx, cz));
-  const xs = corners.map(([x]) => x);
-  const zs = corners.map(([, z]) => z);
-  return {
-    min_x: Math.min(...xs),
-    max_x: Math.max(...xs),
-    min_z: Math.min(...zs),
-    max_z: Math.max(...zs),
-  };
-}
-
-// ── Rasterise polygon → block list ───────────────────────────────────────────
-
-function _pointInRing(px, pz, ring) {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const [xi, zi] = ring[i];
-    const [xj, zj] = ring[j];
-    if ((zi > pz) !== (zj > pz) && px < (xj - xi) * (pz - zi) / (zj - zi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
-
-export function rasterisePolygon(exterior, holes = []) {
-  if (!exterior.length) return [];
-  const xs = exterior.map(([x]) => x);
-  const zs = exterior.map(([, z]) => z);
-  const minX = Math.floor(Math.min(...xs));
-  const maxX = Math.ceil(Math.max(...xs));
-  const minZ = Math.floor(Math.min(...zs));
-  const maxZ = Math.ceil(Math.max(...zs));
-  const result = [];
-  for (let x = minX; x < maxX; x++) {
-    for (let z = minZ; z < maxZ; z++) {
-      const cx = x + 0.5, cz = z + 0.5;
-      if (!_pointInRing(cx, cz, exterior)) continue;
-      if (holes.some(h => _pointInRing(cx, cz, h))) continue;
-      result.push([x, z]);
-    }
-  }
-  return result;
 }
 
 // ── Sketch shape → PGM region ─────────────────────────────────────────────────
