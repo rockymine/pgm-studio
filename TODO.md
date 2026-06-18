@@ -112,10 +112,6 @@ and the Configure wizard `/maps/{id}/configure`). Goal: wire up built-but-dead i
 (resize, move), collapse render duplication, and formalise the controller pattern — **without
 degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **CV4 — Extract `EditorEditController` (resize + move).** Pure refactor: move the inline resize
-  machinery (`#renderHandles`/`#handleFields`/`#screenBounds`/`#doResize`/`#resizeState` + the
-  `_onResize*` bodies) plus the §4 translate into a controller mirroring `EditorDrawController`. Do
-  after CV1/CV3 so it's a behaviour-preserving move. (Contract §5.2.)
 - [ ] **CV5 — Controller-ise the click modes.** Fold the `_onCanvasClick` branches (region-select /
   island-select / spawn-pick, each owning its `#hitTest*`) into the controller contract so adding a
   mode isn't another `if`. Establishes the abstraction the **S2** sketch port reuses. (Contract §5.3.)

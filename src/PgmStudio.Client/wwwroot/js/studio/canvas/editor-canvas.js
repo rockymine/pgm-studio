@@ -22,27 +22,15 @@
  * node shape: { id, type, label, color, bounds?: {min_x,min_z,max_x,max_z}, children?, polygon_2d? }
  */
 
-import { buildTransform, buildInverseTransform, svgEl, polyToPath, handleRectAttrs, anchorBlockEl } from "./transform.js";
+import { buildTransform, buildInverseTransform, svgEl, polyToPath, anchorBlockEl } from "./transform.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
 import { EditorDrawController } from "./editor-draw-controller.js";
+import { EditorEditController, RESIZABLE_TYPES } from "./editor-edit-controller.js";
 import { chatColorHex, dyeColorHex } from "../shared/game-colors.js";
 import { blockToExtentBounds } from "../shared/converters.js";
 import { renderShape } from "../shared/shape-render.js";
 
-const HANDLE_SIZE = 14;
-const HANDLE_DEFS = [
-  { key: "nw", pos: sb => [sb.left,  sb.top   ], cursor: "nw-resize" },
-  { key: "n",  pos: sb => [sb.midX,  sb.top   ], cursor: "n-resize"  },
-  { key: "ne", pos: sb => [sb.right, sb.top   ], cursor: "ne-resize" },
-  { key: "w",  pos: sb => [sb.left,  sb.midY  ], cursor: "w-resize"  },
-  { key: "e",  pos: sb => [sb.right, sb.midY  ], cursor: "e-resize"  },
-  { key: "sw", pos: sb => [sb.left,  sb.bottom], cursor: "sw-resize" },
-  { key: "s",  pos: sb => [sb.midX,  sb.bottom], cursor: "s-resize"  },
-  { key: "se", pos: sb => [sb.right, sb.bottom], cursor: "se-resize" },
-];
-
 const COMPOSITE_TYPES = new Set(["union", "intersect", "negative", "complement"]);
-const RESIZABLE_TYPES = new Set(["rectangle", "cuboid"]);
 
 function geojsonToSimplified(polygon) {
   if (!polygon?.coordinates?.length) return null;
@@ -80,10 +68,8 @@ export class EditorCanvas extends CanvasBase {
   // draw controller (instantiated in constructor)
   #drawCtrl = null;
 
-  // resize
-  #resizeState = null;
-  // arrow-key nudge: debounce timer so holding a key persists once, after movement stops
-  #nudgeSaveTimer = null;
+  // resize (8-handle drag) + arrow-key move, extracted into a controller
+  #editCtrl = null;
 
   // visibility/selection
   #visibilityMap      = new Map();
@@ -132,40 +118,23 @@ export class EditorCanvas extends CanvasBase {
       () => this.#toSvg,
       { onRegionDraw: (r) => this.#callbacks.onRegionDraw?.(r) },
     );
-    this.#setupKeyboardNudge();
-  }
-
-  // Arrow keys nudge the selected region by 1 block (Shift = 16). Lives on the canvas (shared by every
-  // host) and persists through the same onBoundsSave path as a resize, so Edit and Configure both get it.
-  #setupKeyboardNudge() {
-    document.addEventListener("keydown", (e) => {
-      if (!this.#selectedNode?.bounds) return;             // only a single resizable region is selected
-      if (this._wrap?.offsetParent === null) return;        // this canvas isn't the visible one
-      const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;   // typing in a field
-      const step = e.shiftKey ? 16 : 1;
-      let dx = 0, dz = 0;
-      switch (e.key) {
-        case "ArrowLeft":  dx = -step; break;
-        case "ArrowRight": dx =  step; break;
-        case "ArrowUp":    dz = -step; break;
-        case "ArrowDown":  dz =  step; break;
-        default: return;
-      }
-      e.preventDefault();
-      this.moveSelected(dx, dz);
-    });
-  }
-
-  // Translate the selected region by (dx, dz) blocks — live in JS; the final position is persisted via the
-  // host (debounced, so holding a key saves once after it stops), through the resize save path.
-  moveSelected(dx, dz) {
-    const node = this.#selectedNode;
-    if (!node?.bounds) return;
-    const b = node.bounds;
-    this.updateRegionBounds(node, { min_x: b.min_x + dx, min_z: b.min_z + dz, max_x: b.max_x + dx, max_z: b.max_z + dz });
-    clearTimeout(this.#nudgeSaveTimer);
-    this.#nudgeSaveTimer = setTimeout(() => this.#callbacks.onBoundsSave?.(node, { ...node.bounds }), 200);
+    this.#editCtrl  = new EditorEditController(
+      {
+        getSelected: () => this.#selectedNode,
+        getOverlay:  () => this.#overlayLayer,
+        getToWorld:  () => this.#toWorld,
+        getToSvg:    () => this.#toSvg,
+        getViewport: () => ({ scale: this._scale, panX: this._panX, panY: this._panY }),
+        clientToSvg: (x, y) => this._clientToSvg(x, y),
+        isVisible:   () => this._wrap?.offsetParent != null,
+      },
+      {
+        applyBounds: (node, nb) => this.updateRegionBounds(node, nb),
+        saveBounds:  (node, b)  => this.#callbacks.onBoundsSave?.(node, b),
+        setCursor:   (c) => { this._svg.style.cursor = c; },
+        afterResize: () => { this.#refreshCursor(); this.#updateOverlay(); },
+      },
+    );
   }
 
   // ── CanvasBase hook overrides ──────────────────────────────────────────────
@@ -223,20 +192,8 @@ export class EditorCanvas extends CanvasBase {
     this.#callbacks.onCoords?.(null, null);
   }
 
-  _onResizeMove(e) {
-    if (!this.#resizeState) return false;
-    this.#doResize(e.clientX, e.clientY);
-    return true;
-  }
-
-  _onResizeUp(e) {
-    if (!this.#resizeState || e.button !== 0) return false;
-    this.#callbacks.onBoundsSave?.(this.#resizeState.node, { ...this.#resizeState.node.bounds });
-    this.#resizeState = null;
-    this.#refreshCursor();
-    this.#updateOverlay();
-    return true;
-  }
+  _onResizeMove(e) { return this.#editCtrl?.onResizeMove(e) ?? false; }
+  _onResizeUp(e)   { return this.#editCtrl?.onResizeUp(e) ?? false; }
 
   // ── public API ─────────────────────────────────────────────────────────────
 
@@ -960,7 +917,7 @@ export class EditorCanvas extends CanvasBase {
     dimEl.textContent = dimText;
     this.#overlayLayer.appendChild(dimEl);
 
-    if (RESIZABLE_TYPES.has(node.type)) this.#renderHandles(node);
+    if (RESIZABLE_TYPES.has(node.type)) this.#editCtrl.renderHandles(node);
   }
 
   // ── anchors ────────────────────────────────────────────────────────────────
@@ -1048,68 +1005,6 @@ export class EditorCanvas extends CanvasBase {
       entry.shape.setAttribute("fill-opacity",   "0.20");
       entry.shape.setAttribute("stroke-dasharray", "4,2");
     }
-  }
-
-  // ── resize ────────────────────────────────────────────────────────────────
-
-  #screenBounds(node) {
-    if (!node?.bounds || !this.#toSvg) return null;
-    const { min_x, min_z, max_x, max_z } = node.bounds;
-    const toScr = (bx, by) => ({ x: bx * this._scale + this._panX, y: by * this._scale + this._panY });
-    const p1b = this.#toSvg(min_x, min_z), p2b = this.#toSvg(max_x, max_z);
-    const s1  = toScr(p1b.x, p1b.y), s2 = toScr(p2b.x, p2b.y);
-    return {
-      left: Math.min(s1.x, s2.x), right: Math.max(s1.x, s2.x),
-      top:  Math.min(s1.y, s2.y), bottom: Math.max(s1.y, s2.y),
-      midX: (s1.x + s2.x) / 2,   midY: (s1.y + s2.y) / 2,
-      leftIsMinX: p1b.x <= p2b.x, topIsMinZ: p1b.y <= p2b.y,
-    };
-  }
-
-  #handleFields(key, sb) {
-    const lF = sb.leftIsMinX ? "min_x" : "max_x", rF = sb.leftIsMinX ? "max_x" : "min_x";
-    const tF = sb.topIsMinZ  ? "min_z" : "max_z", bF = sb.topIsMinZ  ? "max_z" : "min_z";
-    return { nw:{xField:lF,zField:tF}, n:{xField:null,zField:tF}, ne:{xField:rF,zField:tF},
-              w:{xField:lF,zField:null}, e:{xField:rF,zField:null},
-             sw:{xField:lF,zField:bF}, s:{xField:null,zField:bF}, se:{xField:rF,zField:bF} }[key];
-  }
-
-  #renderHandles(node) {
-    const sb = this.#screenBounds(node);
-    if (!sb) return;
-    const hs = HANDLE_SIZE / 2;
-    for (const h of HANDLE_DEFS) {
-      const [cx, cy] = h.pos(sb);
-      const el = svgEl("rect", {
-        ...handleRectAttrs(cx, cy, hs), rx: 1,
-        fill: "var(--canvas-handle-fill)", stroke: "var(--canvas-handle-stroke)", "stroke-width": "1.5", cursor: h.cursor,
-      });
-      el.addEventListener("mousedown", (e) => {
-        if (e.button !== 0) return;
-        e.stopPropagation(); e.preventDefault();
-        const fields = this.#handleFields(h.key, this.#screenBounds(node));
-        this.#resizeState = { node, ...fields, cursor: h.cursor };
-        this._svg.style.cursor = h.cursor;
-      });
-      this.#overlayLayer.appendChild(el);
-    }
-  }
-
-  #doResize(clientX, clientY) {
-    if (!this.#resizeState || !this.#toWorld) return;
-    const { node, xField, zField } = this.#resizeState;
-    const svgPt = this._clientToSvg(clientX, clientY);
-    const world = this.#toWorld(svgPt.x, svgPt.y);
-    const nb    = { ...node.bounds };
-    if (xField) nb[xField] = Math.round(world.x);
-    if (zField) nb[zField] = Math.round(world.z);
-    if (xField && nb.max_x - nb.min_x < 1)
-      nb[xField] = xField === "max_x" ? nb.min_x + 1 : nb.max_x - 1;
-    if (zField && nb.max_z - nb.min_z < 1)
-      nb[zField] = zField === "max_z" ? nb.min_z + 1 : nb.max_z - 1;
-    // Live update in JS (hot path) — the shape, anchors and overlay follow the cursor without a
-    // round-trip; the final bounds are persisted to the host only on mouse-up (onBoundsSave).
-    this.updateRegionBounds(node, nb);
   }
 
   // ── draw tools ────────────────────────────────────────────────────────────
