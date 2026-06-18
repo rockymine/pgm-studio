@@ -167,10 +167,16 @@ Result: the draft map now has the exact geometry artifacts a scanned/imported ma
   `geometry/boolean.js` (`computeIslands`/`assignShapesToIslands`/`computeMirrorPreview`/
   `restoreIslandMeta`, +10 tests) over the vendored `polygon-clipping` bundle. Verified unit + in
   the browser. Resolves `canvas-interaction.md` §11.
-- **S2b — canvas + controllers**: `canvas/sketch-canvas.js`, `controllers/sketch-draw-controller.js`,
-  `controllers/sketch-edit-controller.js` (reuse `CanvasBase` + the controller contract + `render/`).
-- **S2c — bridge + Blazor pages**: `bridge/sketch-bridge.js`; `Sketch{Setup,Layout,Overview}Phase`
-  components (mirror Configure phases); the `/maps/new` Sketch entry.
+- **S2b — canvas + controllers** ✅ **landed**: `canvas/sketch-canvas.js` (lean — extends `CanvasBase`,
+  hit-tests via `shape.containsPoint`, delegates all SVG emit to the new `render/sketch-render.js`),
+  `controllers/sketch-draw-controller.js` (rect/circle/polygon/lasso), `controllers/sketch-edit-controller.js`
+  (resize/vertex/Bézier). Verified in-browser.
+- **S2c — bridge + Blazor pages** 🟡 **Layout landed**: `bridge/sketch-bridge.js` (the JS activity:
+  shape list + island recompute loop + arrow-nudge + `OnShapeSelected`/`OnDirty`/`OnToolChanged`),
+  `studio.mountSketch`, and `Pages/Sketch/SketchEditor.razor(.cs)` at `/maps/{slug}/sketch` — the
+  Layout step (toolbar → draw → live islands + rot_180 mirror). **Remaining:** the tree/inspector
+  panel (per-shape op/override, island rename/mirrors toggle), the Setup + Overview steps, and the
+  `/maps/new` Sketch entry. (Layout is in-memory until S2d wires load/save.)
 - **S2d — persistence**: `SketchLayoutJson` `ArtifactKind` + DTO; the §1 endpoints (create / get /
   setup / layout / overview).
 - **S2e — finish/rasterize**: `WorldFeatureWriter.WriteSketchAsync` + the rasterizer (§4) +

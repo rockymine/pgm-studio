@@ -54,6 +54,13 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, slug);
   },
 
+  // Mount the Sketch tool's Layout canvas (S2): draw 2-D shapes → live island computation + mirror
+  // preview. dotnetRef receives OnShapeSelected(id) / OnDirty(); the handle drives tool/operation/mode.
+  async mountSketch(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
+    const mod = await import("/js/studio/bridge/sketch-bridge.js");
+    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef);
+  },
+
   // R1a: a minimal editor keyboard layer — Ctrl/Cmd+G → dotnetRef.OnGroupKey() (group/ungroup the
   // current selection). One active listener at a time (the visible activity owns it). preventDefault
   // so the browser's "find next" doesn't fire. Ignored while typing in a field. (Seed of B6's command

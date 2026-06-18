@@ -165,12 +165,14 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   and **no** implementation-phase / task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). New code already
   follows this (CLAUDE.md). Sweep the existing comments across `src/` + `tests/` + `tools/` to match.
 
-- [ ] **S2 — Sketch tool.** Draw 2-D shapes → islands → world geometry, from nothing. Full plan +
+- [~] **S2 — Sketch tool.** Draw 2-D shapes → islands → world geometry, from nothing. Full plan +
   persistence design in `docs/contracts/sketch-authoring.md` (a sketch **is a draft map**; layout
   persists as a `SketchLayoutJson` map_artifact; finish rasterizes → the importer's geometry artifacts
-  → Configure). Sub-tasks **S2a** geometry (`geometry/shape.js` + `geometry/boolean.js`; resolves the
-  `canvas-interaction.md` §11 shape model) · **S2b** sketch canvas + draw/edit controllers · **S2c**
-  bridge + Blazor sketch pages · **S2d** `SketchLayoutJson` + the `/api/.../sketch/*` endpoints ·
+  → Configure). **Landed:** S2a geometry (`geometry/shape.js` + `geometry/boolean.js`, +20 tests),
+  S2b canvas + draw/edit controllers + `render/sketch-render.js`, S2c-Layout (`bridge/sketch-bridge.js`
+  + `Pages/Sketch/SketchEditor` at `/maps/{slug}/sketch` — draw → live islands + mirror, in-memory).
+  **Remaining:** S2c the tree/inspector panel + Setup/Overview steps + the `/maps/new` Sketch entry;
+  **S2d** `SketchLayoutJson` `ArtifactKind` + the `/api/.../sketch/*` endpoints (load/save) ·
   **S2e** server rasterize/finish (reuse `IslandDetector` + `Geometry2d` + a `WorldFeatureWriter`
   sibling). Completes M8. (`AuthorDisplay` from C12 is reused here.)
 - [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the

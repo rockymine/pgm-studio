@@ -1,0 +1,74 @@
+@page "/maps/{Slug}/sketch"
+@layout EditorLayout
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@* Sketch tool — Layout step. Blazor renders the topbar + toolbar + svg shell; the reused SketchCanvas
+   JS (via bridge/sketch-bridge.js) owns drawing, the live island computation, and the mirror preview.
+   Persistence (load/save) is wired in S2d; this step is the draw + live-islands experience. *@
+
+<div class="editor-page">
+  <div id="topbar" class="topbar">
+    <a href="/maps" class="topbar-breadcrumb-home" title="Back to dashboard">
+      <i data-lucide="house"></i>
+      <span>Maps</span>
+    </a>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-crumb">@Slug.Replace('_', ' ')</span>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-crumb topbar-crumb--dim">Sketch</span>
+    <div class="topbar-right">
+      <span class="topbar-crumb topbar-crumb--dim">@islandLabel</span>
+      <ThemeToggle />
+    </div>
+  </div>
+
+  <div id="main" class="app-body">
+    <div class="activity-viewport">
+      <div class="workspace">
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn @(tool == "move" ? "draw-tool-btn--active" : null)" title="Move / pan"
+                      @onclick='() => SetTool("move")'><i data-lucide="hand"></i></button>
+              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
+                      @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
+              <button class="draw-tool-btn @(tool == "rectangle" ? "draw-tool-btn--active" : null)" title="Rectangle"
+                      @onclick='() => SetTool("rectangle")'><i data-lucide="rectangle-horizontal"></i></button>
+              <button class="draw-tool-btn @(tool == "circle" ? "draw-tool-btn--active" : null)" title="Circle"
+                      @onclick='() => SetTool("circle")'><i data-lucide="circle"></i></button>
+              <button class="draw-tool-btn @(tool == "polygon" ? "draw-tool-btn--active" : null)" title="Polygon (click vertices, double-click to close)"
+                      @onclick='() => SetTool("polygon")'><i data-lucide="pen-tool"></i></button>
+              <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)" title="Lasso (hold and trace)"
+                      @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
+              <button class="draw-tool-btn @(op == "add" ? "draw-tool-btn--op-add" : null)" title="Add — shapes build land"
+                      @onclick='() => SetOperation("add")'><i data-lucide="plus"></i><span class="draw-tool-label">Add</span></button>
+              <button class="draw-tool-btn @(op == "subtract" ? "draw-tool-btn--op-sub" : null)" title="Subtract — shapes carve land away"
+                      @onclick='() => SetOperation("subtract")'><i data-lucide="minus"></i><span class="draw-tool-label">Sub</span></button>
+            </div>
+            <div @ref="coordsRef" class="canvas-cursor"></div>
+            <div class="canvas-subbar-right">
+              <select class="field-input" title="Symmetry mode for the mirror preview" value="@mode" @onchange="OnModeChange">
+                <option value="mirror_x">Mirror X</option>
+                <option value="mirror_z">Mirror Z</option>
+                <option value="rot_180">Rotate 180°</option>
+                <option value="rot_90">Rotate 90°</option>
+              </select>
+              <button class="filter-chip @(mirrorOn ? "filter-chip--active" : null)" title="Show the mirrored copies"
+                      @onclick="ToggleMirror">Mirror</button>
+              <button class="filter-chip @(shapesOn ? "filter-chip--active" : null)" title="Show the draw primitives over the islands"
+                      @onclick="ToggleShapes">Shapes</button>
+              <button class="filter-chip @(chunksOn ? "filter-chip--active" : null)" title="Show the 16-block chunk grid"
+                      @onclick="ToggleChunks">Chunks</button>
+              <button class="filter-chip" title="Fit the working bounds" @onclick="OnFit"><i data-lucide="scan"></i></button>
+              <span @ref="zoomRef" class="canvas-zoom">—</span>
+            </div>
+          </div>
+          <div @ref="wrapRef" class="svg-area">
+            <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
