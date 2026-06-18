@@ -67,26 +67,25 @@ to intercept an event before pan logic runs).
 
 ---
 
-## 2. Hit-testing — keep all three pickers
+## 2. Hit-testing — two pickers (spawn folded in)
 
-`EditorCanvas` has three pickers; they are **not** redundant because they pick over different data
-and return different things:
+`EditorCanvas` now has **two** pickers, one per genuine select mode (`EditorSelectController`, §5):
 
 | Picker | Reads | Returns | Geometry | Used by |
 |---|---|---|---|---|
-| `#hitTest` (`editor-canvas.js:563`) | `#nodeMap` (regions) | node | smallest-area **AABB** containment | region select (Edit; draw steps) |
-| `#hitTestIsland` (`:660`) | `#ctx.islands` | island id | true **point-in-polygon** (`#pointInRing`) | WorldIslands / Teams |
-| `#hitTestSpawn` (`:757`) | `#authorSpawns` (markers) | team id | nearest within ~2 blocks | Spawn |
+| `#hitTest` | `#nodeMap` (regions) | node | smallest-area **AABB** containment, else **nearest within a 2-block margin** | region select (Edit + all Configure draw/spawn steps) |
+| `#hitTestIsland` | `#ctx.islands` | island id | true **point-in-polygon** (`#pointInRing`) | WorldIslands / Teams |
 
-`#hitTestSpawn` cannot be folded into `#hitTest`: spawn markers live in the `#authorSpawns` array,
-not in `#nodeMap`, and have no `bounds`, so `#hitTest` would never see them. They differ in result
-type (team id vs node) too. **Decision: keep all three**, but under the controller model (§5) each
-picker belongs to the controller for its mode (region-select / island-select / spawn-pick) rather
-than living as three `if` branches in `_onCanvasClick`.
+**Spawn-pick was unified away.** Spawns used to be markers in a separate `#authorSpawns` array, picked
+by a proximity-only `#hitTestSpawn` returning a *team*. They are now **point dummy regions** in
+`#nodeMap` (`{team}-spawn`), picked by the normal `#hitTest`; the 2-block margin (added to `#hitTest`)
+gives the same forgiving click a 1-block point needs. So `#hitTestSpawn`, the `#authorSpawns` marker
+layer, and the `spawn` select mode are gone — the canvas has one representation of intent geometry
+(dummy regions) and one select rule. Islands stay separate (world polygons, not bounds primitives).
 
-Note the precision asymmetry to preserve: region picking is AABB-only (a click inside a circle's
-bbox but outside its radius still selects it); island picking is exact. That is existing behaviour —
-don't silently change it under this work.
+Precision notes: region picking is AABB + margin (a click inside a circle's bbox but outside its
+radius still selects it; a click within 2 blocks of a small region's bounds selects it when nothing
+contains the point); island picking is exact point-in-polygon.
 
 ---
 
@@ -299,3 +298,23 @@ release / save → onBoundsSave(id, bounds)   [JS→C#]   (mouse-up; nudge = deb
 - After §6.1: the `/maps/new` scan preview and Configure symmetry step render **diagonal** mirrors
   (the previously-missing `mirror_d1`/`mirror_d2` case) identically to the Edit canvas.
 - After §5.2: pure-refactor — behaviour identical to the inline version; no new persistence.
+
+---
+
+## 10. Primitive render styles (Edit vs Configure) — to unify (CV9)
+
+The *same* renderer draws primitives on both pages — `#regionGroup` → `renderShape` + `#regionAttrs`,
+or the `marker` branch — but the **inputs diverge**, so a point on Edit and a spawn on Configure look
+different even though both are now region nodes in `#nodeMap`. A known divergence, parked for **CV9**.
+
+| | Edit (real tree region) | Configure (intent dummy region) |
+|---|---|---|
+| **point shape** | `renderShape` → a **1×1 `<rect>`** — `renderShape` has no point case, so point *and* block fall through to the rect branch (a point looks like a block, scales with zoom → tiny) | the **`marker` branch** → a **fixed-`r` `<circle>`** (r 6/5 by `primary`), bypassing `renderShape` |
+| **rectangle shape** | `<rect>` (`renderShape`) | `<rect>` (`renderShape`) — identical |
+| **fill / stroke** | `#regionAttrs`: translucent fill (0.20) + **dashed** outline | rect → `#regionAttrs` (identical); spawn marker → **solid** fill, element-`opacity` by `primary`, solid stroke |
+| **colour** | `region.color ?? var(--canvas-region)` — drawn primitives get the **default** region colour | the dummy node carries an explicit **team** colour (`Hex(team)`) |
+| **sidebar / inspector icon** | `RegionNode.Icon(type)` — type-appropriate (point → `dot`, block → `square`, rect → `rectangle-horizontal`) | `SpawnPhase.razor` hardcodes `data-lucide="cylinder"` for spawns — **incongruous** with a point (a UI icon, not a canvas render) |
+
+So protection rects and Edit rects differ only by **colour**; points differ in **shape** (rect vs
+circle, a `renderShape` gap the `marker` flag works around), **style** (outline vs solid marker), and
+**icon**. None is wrong today, but "draw a primitive" isn't yet one parametrised thing.

@@ -126,6 +126,14 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   `WorldScanPhase`/`WorldSymmetryPhase`) + the suggested-team-count mapping
   (`WorldSymmetryPhase`/`TeamsPhase`/`SpawnPhase`) into one shared `SymmetryInfo`. The `SpawnPhase`
   geometry copies (`PointInRing`/`Orbit`/`Reflect`/`Rotate`) go through **A4**, not here. (Contract §6.3.)
+- [ ] **CV9 — Parametrise primitive drawing styles (shape + colour + style + icon).** Edit and Configure
+  draw the same primitives but diverge (canvas-interaction.md §10): `renderShape` has no point case so a
+  point renders as a 1×1 `<rect>` (block-like) on Edit while Configure uses an ad-hoc `marker`-flag
+  `<circle>`; colour is `var(--canvas-region)` default on Edit vs an explicit team colour on Configure;
+  marker = solid vs region = dashed/translucent. Make "draw a primitive" one data-driven thing: a real
+  `point` render (dot/circle) in `renderShape`, a parametrised colour + style (marker/outline) instead of
+  the `marker` branch, and fix `SpawnPhase`'s hardcoded `cylinder` sidebar/inspector icon → match
+  `RegionNode.Icon` (point → `dot`). Pairs with CV6. (Contract §10.)
 
 ## Backend, pipeline & internals
 
