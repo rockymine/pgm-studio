@@ -170,7 +170,11 @@ export class SketchCanvas extends CanvasBase {
 
   // ── private ────────────────────────────────────────────────────────────────────
 
-  #size() { return { w: this._wrap.clientWidth || 600, h: this._wrap.clientHeight || 600 }; }
+  // Subtract the .svg-area padding (12px each side) so the svg's viewBox equals its rendered size.
+  // Otherwise `.map-canvas-svg { max-width:100% }` shrinks the svg to fit while the viewBox stays
+  // larger, scaling the client→world mapping — the cursor would land off the drawn anchors/preview,
+  // worse toward the right/bottom. Matches EditorCanvas (clientWidth − 24).
+  #size() { return { w: (this._wrap.clientWidth || 600) - 24, h: (this._wrap.clientHeight || 600) - 24 }; }
 
   #build() {
     const { w, h } = this.#size();
