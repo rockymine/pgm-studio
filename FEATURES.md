@@ -57,6 +57,11 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   exact coords in the inspector; both persist (`PATCH /regions/{id}` bounds/coords) and stay in sync via
   the shared `Models/RegionEdits` (`EditorCanvas` raises `OnGeometrySaved`; the host persists). Wired in
   all four Edit activities. `docs/contracts/canvas-interaction.md` §3. (CV1)
+- **Arrow-key region nudge** — the selected rectangle/cuboid moves 1 block (Shift = 16) with the arrow
+  keys; a single `document` keydown handler on the shared `EditorCanvas` (guards: canvas not visible,
+  focus in a field, nothing selected) translates it live and persists through the same
+  `onBoundsSave`/`OnGeometrySaved` path (debounced) — so Edit (PATCH) and Configure (intent + re-orbit)
+  both get it. §4. (CV3)
 
 ## Backend / API (B)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)

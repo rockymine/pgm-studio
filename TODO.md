@@ -47,7 +47,8 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 **Steps — in page order, each persists its slice of intent**
 - [ ] **N03 — Build.** Build height (side-view, see `N08`) → buildable layer of over-void bridges +
   holes; the generator unions them + applies the void filter. **Live buildability overlay** (uses
-  `GET /buildability`, done). (`BuildSection`)
+  `GET /buildability`, done). The drawn bridge rects reuse N02's `RectDraw`/`setAuthorRegions`
+  dummy-region pattern → resize + arrow-nudge come for free (ex-CV2). (`BuildSection`)
 - [ ] **NVAL — Validation gate (buildability + traversability).** Not a separate phase — the
   Build⇄Traversability loop and the export condition. Surface connected/disconnected + isolated
   spawn/wool points; on failure send the author back to Build. Uses `GET /buildability` +
@@ -55,7 +56,8 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 - [ ] **N04 — Wools.** Colours → spawn → monuments → room. Monument count **derived** (N−1); the
   **Monument tool = the block tool** + the monument-suggester smart-detect (detector done; stateless
   serving = `F9`); the generator wires room defense / build-break / capture. Consumes the wool / monument
-  (`F9`) / resource endpoints under "Backend the steps need". (`WoolsSection`)
+  (`F9`) / resource endpoints under "Backend the steps need". The drawn wool-room rects reuse N02's
+  `RectDraw`/`setAuthorRegions` dummy-region pattern → resize + arrow-nudge for free (ex-CV2). (`WoolsSection`)
 - [ ] **N05 — Review & Export.** `ND1` settled this as **one phase, three flow-bar sub-steps:
   Pre-flight → Region tree (`N07`) → XML (`N06`)**; **Export = the flow-bar `Next` on the XML sub-step**,
   enabled only when the pre-flight gate is open (the **409**, enforced backend-side). This task = the
@@ -110,14 +112,6 @@ and the Configure wizard `/maps/{id}/configure`). Goal: wire up built-but-dead i
 (resize, move), collapse render duplication, and formalise the controller pattern — **without
 degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **CV2 — Resize + move in the Configure draw steps.** CV1 landed the shared mechanism (resize +
-  editable geometry on Edit; `EditorCanvas` raises `OnGeometrySaved`, the host persists). Wire that
-  event in the draw steps that mount `<EditorCanvas DrawCategory>` — **N02** (spawn protection),
-  **N03** (build), **N04** (wool rooms) — saving to the phase's intent slice (`Intent` + `MarkDirty`),
-  not the raw region PATCH. (Contract §3.5.)
-- [ ] **CV3 — Arrow-key nudge.** Move the selected region 1 block (Shift = 16) via a host keydown
-  handler (guards: canvas hidden, focus in INPUT/TEXTAREA, nothing selected); translate bounds and
-  reuse the CV1 save path. Edit + Configure. (Contract §4.)
 - [ ] **CV4 — Extract `EditorEditController` (resize + move).** Pure refactor: move the inline resize
   machinery (`#renderHandles`/`#handleFields`/`#screenBounds`/`#doResize`/`#resizeState` + the
   `_onResize*` bodies) plus the §4 translate into a controller mirroring `EditorDrawController`. Do

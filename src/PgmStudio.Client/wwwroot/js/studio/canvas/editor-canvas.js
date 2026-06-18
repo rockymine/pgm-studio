@@ -82,6 +82,8 @@ export class EditorCanvas extends CanvasBase {
 
   // resize
   #resizeState = null;
+  // arrow-key nudge: debounce timer so holding a key persists once, after movement stops
+  #nudgeSaveTimer = null;
 
   // visibility/selection
   #visibilityMap      = new Map();
@@ -130,6 +132,40 @@ export class EditorCanvas extends CanvasBase {
       () => this.#toSvg,
       { onRegionDraw: (r) => this.#callbacks.onRegionDraw?.(r) },
     );
+    this.#setupKeyboardNudge();
+  }
+
+  // Arrow keys nudge the selected region by 1 block (Shift = 16). Lives on the canvas (shared by every
+  // host) and persists through the same onBoundsSave path as a resize, so Edit and Configure both get it.
+  #setupKeyboardNudge() {
+    document.addEventListener("keydown", (e) => {
+      if (!this.#selectedNode?.bounds) return;             // only a single resizable region is selected
+      if (this._wrap?.offsetParent === null) return;        // this canvas isn't the visible one
+      const tag = document.activeElement?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;   // typing in a field
+      const step = e.shiftKey ? 16 : 1;
+      let dx = 0, dz = 0;
+      switch (e.key) {
+        case "ArrowLeft":  dx = -step; break;
+        case "ArrowRight": dx =  step; break;
+        case "ArrowUp":    dz = -step; break;
+        case "ArrowDown":  dz =  step; break;
+        default: return;
+      }
+      e.preventDefault();
+      this.moveSelected(dx, dz);
+    });
+  }
+
+  // Translate the selected region by (dx, dz) blocks — live in JS; the final position is persisted via the
+  // host (debounced, so holding a key saves once after it stops), through the resize save path.
+  moveSelected(dx, dz) {
+    const node = this.#selectedNode;
+    if (!node?.bounds) return;
+    const b = node.bounds;
+    this.updateRegionBounds(node, { min_x: b.min_x + dx, min_z: b.min_z + dz, max_x: b.max_x + dx, max_z: b.max_z + dz });
+    clearTimeout(this.#nudgeSaveTimer);
+    this.#nudgeSaveTimer = setTimeout(() => this.#callbacks.onBoundsSave?.(node, { ...node.bounds }), 200);
   }
 
   // ── CanvasBase hook overrides ──────────────────────────────────────────────
