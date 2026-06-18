@@ -20,7 +20,10 @@
           <span class="geo-indent">
             @if (isl.ShapeIds.Count > 0)
             {
-              <button class="collapse-btn" @onclick="() => Toggle(isl.Id)" @onclick:stopPropagation="true">
+              @* @key on the collapsed state forces Blazor to recreate the button (and a fresh
+                 <i data-lucide>) when it flips — lucide replaced the old <i> with an <svg>, so an
+                 in-place attribute swap wouldn't change the rendered icon. *@
+              <button class="collapse-btn" @key="@(collapsed.Contains(isl.Id))" @onclick="() => Toggle(isl.Id)" @onclick:stopPropagation="true">
                 <i data-lucide="@(collapsed.Contains(isl.Id) ? "chevron-right" : "chevron-down")"></i>
               </button>
             }
