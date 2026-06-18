@@ -1,6 +1,7 @@
 @page "/maps/{Slug}/sketch"
 @layout EditorLayout
 @inject IJSRuntime JS
+@inject HttpClient Http
 @implements IAsyncDisposable
 
 @* Sketch tool — Layout step. Blazor renders the topbar + toolbar + svg shell; the reused SketchCanvas

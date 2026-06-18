@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -35,6 +36,21 @@ public partial class SketchEditor
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSketch", svgRef, wrapRef, coordsRef, zoomRef, selfRef);
+        // Restore the saved layout (empty {} for a fresh sketch); the bridge handles an empty state.
+        try
+        {
+            var state = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/sketch");
+            await handle.InvokeVoidAsync("load", state);
+            // Sync the toolbar mode select with the loaded setup (the canvas already uses it).
+            if (state.ValueKind == JsonValueKind.Object && state.TryGetProperty("setup", out var su)
+                && su.ValueKind == JsonValueKind.Object && su.TryGetProperty("mirror_mode", out var mm)
+                && mm.ValueKind == JsonValueKind.String && mm.GetString() is { Length: > 0 } m)
+            {
+                mode = m;
+                StateHasChanged();
+            }
+        }
+        catch { /* no saved layout / map not found — start blank */ }
     }
 
     private async Task SetTool(string t)
@@ -117,16 +133,48 @@ public partial class SketchEditor
         StateHasChanged();
     }
 
-    /// <summary>The layout changed; the bridge reports the live island count. (Persistence = S2d.)</summary>
+    /// <summary>The layout changed; update the island-count label and schedule a debounced save.</summary>
     [JSInvokable]
     public void OnDirty(int islandCount)
     {
         islandLabel = islandCount == 1 ? "1 island" : $"{islandCount} islands";
         StateHasChanged();
+        ScheduleSave();
+    }
+
+    // ── Persistence: debounced PUT of the bridge's getState() ───────────────────
+
+    private CancellationTokenSource? saveCts;
+
+    private void ScheduleSave()
+    {
+        saveCts?.Cancel();
+        saveCts = new CancellationTokenSource();
+        _ = SaveDebouncedAsync(saveCts.Token);
+    }
+
+    private async Task SaveDebouncedAsync(CancellationToken token)
+    {
+        try { await Task.Delay(800, token); } catch (TaskCanceledException) { return; }
+        await SaveAsync(token);
+    }
+
+    private async Task SaveAsync(CancellationToken token)
+    {
+        if (handle is null) return;
+        try
+        {
+            var state = await handle.InvokeAsync<JsonElement>("getState", token);
+            await Http.PutAsJsonAsync($"api/map/{Slug}/sketch", state, token);
+        }
+        catch { /* save failed (or cancelled) — the next change retries */ }
     }
 
     public async ValueTask DisposeAsync()
     {
+        saveCts?.Cancel();
+        // Best-effort final flush of the last (<800 ms) change before tearing the handle down.
+        await SaveAsync(CancellationToken.None);
         if (handle is not null)
         {
             try { await handle.InvokeVoidAsync("dispose"); } catch { }

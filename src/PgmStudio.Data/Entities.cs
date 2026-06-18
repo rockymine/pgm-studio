@@ -327,4 +327,9 @@ public static class ArtifactKind
     // outside the entity-replace codec, so it survives MapWriter.SaveDocAsync and is never part of the
     // PGM document. Presence of this artifact is what makes a map "intent-authored".
     public const string MapIntentJson = "map_intent_json";
+    // Sketch tool authoring source (docs/contracts/sketch-authoring.md): the drawn layout (setup +
+    // shapes + island metadata, the browser's JS-origin blob) for a draft map. Like the intent/draft
+    // sidecars it lives outside the entity-replace codec. A draft map with this artifact but no
+    // layer_parquet is a sketch-in-progress; "finish" rasterizes it into the geometry artifacts (S2e).
+    public const string SketchLayoutJson = "sketch_layout_json";
 }

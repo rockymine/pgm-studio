@@ -171,8 +171,10 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   → Configure). **Landed:** S2a geometry (`geometry/shape.js` + `geometry/boolean.js`, +20 tests),
   S2b canvas + draw/edit controllers + `render/sketch-render.js`, S2c-Layout (`bridge/sketch-bridge.js`
   + `Pages/Sketch/SketchEditor` at `/maps/{slug}/sketch` + `SketchPanel`/`SketchInspector` tree+inspector
-  — draw → live islands + mirror, select/op/override/delete/rename/mirrors, in-memory).
-  **Remaining:** S2c the Setup/Overview steps + the `/maps/new` Sketch entry (bundle w/ S2d);
+  — draw → live islands + mirror, select/op/override/delete/rename/mirrors),
+  S2d persistence (`SketchLayoutJson` artifact + `POST /api/sketch` create + `GET`/`PUT
+  /api/map/{slug}/sketch`; debounced save + load-on-mount; 4 integration tests). A sketch is now a
+  resumable draft map. **Remaining:** the `/maps/new` Sketch create-entry + the Setup/Overview steps;
   **S2d** `SketchLayoutJson` `ArtifactKind` + the `/api/.../sketch/*` endpoints (load/save) ·
   **S2e** server rasterize/finish (reuse `IslandDetector` + `Geometry2d` + a `WorldFeatureWriter`
   sibling). Completes M8. (`AuthorDisplay` from C12 is reused here.)

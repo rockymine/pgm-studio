@@ -180,8 +180,15 @@ Result: the draft map now has the exact geometry artifacts a scanned/imported ma
   live islands + rot_180 mirror → edit via the panel, all verified in-browser. **Remaining:** the Setup
   + Overview steps and the `/maps/new` Sketch entry — bundled with S2d (they need persistence to be
   meaningful). (Layout is in-memory until S2d wires load/save.)
-- **S2d — persistence**: `SketchLayoutJson` `ArtifactKind` + DTO; the §1 endpoints (create / get /
-  setup / layout / overview).
+- **S2d — persistence** ✅ **landed**: `SketchLayoutJson` `ArtifactKind` (no migration) + a `SketchStore`
+  mirroring `IntentStore`. Endpoints: `POST /api/sketch` (create a draft map — slugified + deduped name,
+  seeds an empty layout) and `GET`/`PUT /api/map/{slug}/sketch`. **The per-step PATCH setup/layout/overview
+  split (§1) collapsed to one `PUT` of the whole layout blob** — the bridge's `getState()` already carries
+  the full {setup, layout}, so one round-trip is simpler than three. `SketchEditor` loads on mount and
+  saves debounced (800 ms) + flushes on dispose; the mode select syncs from the loaded setup. Verified
+  by 4 integration tests (`SketchEndpointTests`, 12/12 API tests green), curl, and an in-browser
+  draw→save→reload→restore round-trip. **Remaining:** the `/maps/new` Sketch create-entry + the Setup/Overview
+  wizard steps (UI on top of this).
 - **S2e — finish/rasterize**: `WorldFeatureWriter.WriteSketchAsync` + the rasterizer (§4) +
   `POST …/finish`; flow into Configure.
 
