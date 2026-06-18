@@ -112,9 +112,6 @@ and the Configure wizard `/maps/{id}/configure`). Goal: wire up built-but-dead i
 (resize, move), collapse render duplication, and formalise the controller pattern — **without
 degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **CV5 — Controller-ise the click modes.** Fold the `_onCanvasClick` branches (region-select /
-  island-select / spawn-pick, each owning its `#hitTest*`) into the controller contract so adding a
-  mode isn't another `if`. Establishes the abstraction the **S2** sketch port reuses. (Contract §5.3.)
 - [ ] **CV6 — Dedupe JS renderers.** Extract `renderSymmetryOverlay` + `renderIslandPaths` (next to
   `shape-render.js`) and make `EditorCanvas` use the shared `blockDataToDataUrl` — collapsing the
   3–4 copies across `EditorCanvas`/`ConfigureRenderer`/`OverviewRenderer`. **Fixes a latent bug:**

@@ -26,6 +26,7 @@ import { buildTransform, buildInverseTransform, svgEl, polyToPath, anchorBlockEl
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
 import { EditorDrawController } from "./editor-draw-controller.js";
 import { EditorEditController, RESIZABLE_TYPES } from "./editor-edit-controller.js";
+import { EditorSelectController } from "./editor-select-controller.js";
 import { chatColorHex, dyeColorHex } from "../shared/game-colors.js";
 import { blockToExtentBounds } from "../shared/converters.js";
 import { renderShape } from "../shared/shape-render.js";
@@ -70,6 +71,8 @@ export class EditorCanvas extends CanvasBase {
 
   // resize (8-handle drag) + arrow-key move, extracted into a controller
   #editCtrl = null;
+  // click-select modes (region / island / spawn), extracted into a controller
+  #selectCtrl = null;
 
   // visibility/selection
   #visibilityMap      = new Map();
@@ -82,7 +85,6 @@ export class EditorCanvas extends CanvasBase {
   #selectedIslandId  = null;
   #excludedIslandIds = new Set();
   #islandTeamColors  = new Map();   // island id → team colour hex (World · Teams island assignment)
-  #islandSelect      = false;
 
   // symmetry overlay (World · Symmetry step): a dashed axis line (or two, for rot_90) + a centre marker.
   #symmetryLayerEl   = null;
@@ -135,6 +137,11 @@ export class EditorCanvas extends CanvasBase {
         afterResize: () => { this.#refreshCursor(); this.#updateOverlay(); },
       },
     );
+    this.#selectCtrl = new EditorSelectController()
+      .register("region", (w) => this.#callbacks.onCanvasClick?.(this.#hitTest(w.x, w.z)))
+      .register("island", (w) => this.#callbacks.onIslandClick?.(this.#hitTestIsland(w.x, w.z)))
+      .register("spawn",  (w) => this.#callbacks.onSpawnPick?.(this.#hitTestSpawn(w.x, w.z)));
+    this.#selectCtrl.setMode("region");
   }
 
   // ── CanvasBase hook overrides ──────────────────────────────────────────────
@@ -178,14 +185,8 @@ export class EditorCanvas extends CanvasBase {
 
   _onCanvasClick(e, svgPt) {
     if (!this.#toWorld) return;
-    const world = this.#toWorld(svgPt.x, svgPt.y);
-    // Spawn-pick mode: the select tool (this click path) picks the spawn marker under the cursor.
-    if (this.#pointPick) { this.#callbacks.onSpawnPick?.(this.#hitTestSpawn(world.x, world.z)); return; }
-    if (this.#islandSelect) {
-      this.#callbacks.onIslandClick?.(this.#hitTestIsland(world.x, world.z));
-      return;
-    }
-    this.#callbacks.onCanvasClick?.(this.#hitTest(world.x, world.z));
+    // Region-select (default), island-select, or spawn-pick — the active mode owns its hit-test.
+    this.#selectCtrl.click(this.#toWorld(svgPt.x, svgPt.y));
   }
 
   _onMouseleave() {
@@ -690,7 +691,7 @@ export class EditorCanvas extends CanvasBase {
     return inside;
   }
 
-  setIslandSelect(on) { this.#islandSelect = !!on; }
+  setIslandSelect(on) { this.#selectCtrl.setMode(on ? "island" : "region"); }
 
   #buildSymmetryLayer() {
     const g = svgEl("g", { id: "layer-symmetry" });
@@ -776,7 +777,9 @@ export class EditorCanvas extends CanvasBase {
   }
 
   /** When on, a canvas click reports the raw world point via onPointPick (spawn-point placement). */
-  setPointPick(on) { this.#pointPick = !!on; }
+  // #pointPick still gates the point-tool spawn placement in _onToolMousedown; the click-pick of a placed
+  // marker is the select controller's "spawn" mode.
+  setPointPick(on) { this.#pointPick = !!on; this.#selectCtrl.setMode(on ? "spawn" : "region"); }
 
   setSelectedIsland(id) {
     this.#selectedIslandId = (id === null || id === undefined) ? null : id;

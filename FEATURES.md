@@ -62,10 +62,12 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   focus in a field, nothing selected) translates it live and persists through the same
   `onBoundsSave`/`OnGeometrySaved` path (debounced) — so Edit (PATCH) and Configure (intent + re-orbit)
   both get it. §4. (CV3)
-- **Canvas interaction controllers** — `EditorCanvas` delegates its interaction modes to plain
+- **Canvas interaction controllers** — `EditorCanvas` delegates every interaction mode to plain
   controllers (state-accessor closures + callbacks; the canvas forwards its `CanvasBase` hooks):
-  `EditorDrawController` (draw) and `EditorEditController` (8-handle resize + arrow-key move). The shared
-  abstraction the S2 sketch port reuses. §5. (CV4)
+  `EditorDrawController` (draw), `EditorEditController` (8-handle resize + arrow-key move), and
+  `EditorSelectController` (click-select modes: region / island / spawn-pick, each a registered picker —
+  so `_onCanvasClick` is one dispatch, not an `if`-chain). The shared abstraction the S2 sketch port
+  reuses. §5. (CV4, CV5)
 
 ## Backend / API (B)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)
