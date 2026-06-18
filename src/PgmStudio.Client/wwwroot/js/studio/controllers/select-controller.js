@@ -1,10 +1,11 @@
 /**
- * EditorSelectController — the canvas click-select modes (pick a region / island / spawn marker).
+ * SelectController — a generic click-select mode registry (pick a region / island / …).
  * Each mode is a picker the canvas registers (a hit-test + the host callback); the canvas forwards its
  * _onCanvasClick into the active mode. Mirrors the draw/edit controllers — the interaction wiring lives
- * here, so adding a mode is one register() call, not another branch in _onCanvasClick.
+ * here, so adding a mode is one register() call, not another branch in _onCanvasClick. Not editor-
+ * specific: any canvas (editor, sketch) can drive its select modes through this.
  */
-export class EditorSelectController {
+export class SelectController {
   #modes  = new Map();   // name → (world) => void
   #active = null;
 

@@ -4,7 +4,7 @@
  * _on* hooks below), and delegates every interaction mode to a plain controller:
  *   EditorDrawController    new-region drawing (the draw tools)
  *   EditorEditController    8-handle resize + arrow-key move of the selected region
- *   EditorSelectController  click-select modes (region / island) — one registered picker each
+ *   SelectController        click-select modes (region / island) — one registered picker each
  *
  * Public surface (grouped; the studio-canvas.js bridge forwards the subset Blazor drives):
  *   Render / lifecycle
@@ -44,9 +44,9 @@
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
 import { svgEl, polyToPath, anchorBlockEl } from "../render/svg.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
-import { EditorDrawController } from "./editor-draw-controller.js";
-import { EditorEditController, RESIZABLE_TYPES } from "./editor-edit-controller.js";
-import { EditorSelectController } from "./editor-select-controller.js";
+import { EditorDrawController } from "../controllers/editor-draw-controller.js";
+import { EditorEditController, RESIZABLE_TYPES } from "../controllers/editor-edit-controller.js";
+import { SelectController } from "../controllers/select-controller.js";
 import { chatColorHex, dyeColorHex } from "../render/palette.js";
 import { blockToExtentBounds } from "../geometry/region-convert.js";
 import { renderShape } from "../render/shape-render.js";
@@ -157,7 +157,7 @@ export class EditorCanvas extends CanvasBase {
         afterResize: () => { this.#refreshCursor(); this.#updateOverlay(); },
       },
     );
-    this.#selectCtrl = new EditorSelectController()
+    this.#selectCtrl = new SelectController()
       .register("region", (w) => this.#callbacks.onCanvasClick?.(this.#hitTest(w.x, w.z)))
       .register("island", (w) => this.#callbacks.onIslandClick?.(this.#hitTestIsland(w.x, w.z)));
     this.#selectCtrl.setMode("region");
