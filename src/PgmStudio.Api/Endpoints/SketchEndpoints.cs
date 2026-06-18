@@ -4,8 +4,10 @@ using System.Text.RegularExpressions;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
+using PgmStudio.Analysis;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
+using PgmStudio.Pgm.Editing;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -104,5 +106,33 @@ public sealed class SketchPutEndpoint(MapRepository repo, PgmDb db) : EndpointWi
 
         await SketchStore.SaveAsync(db, map.Id, bytes, ct);
         await Send.OkAsync(new { ok = true }, ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/finish — rasterize the stored layout into the world geometry
+/// artifacts (layer.parquet / islands.json / segments) so the draft flows into the Configure wizard.
+/// 422 if the layout yields fewer than 2 islands (a CTW needs both sides).</summary>
+public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeatureWriter writer) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/{slug}/sketch/finish"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+
+        var data = await SketchStore.LoadAsync(db, map.Id, ct);
+        if (data is null) { await Send.ResponseAsync(new { error = "No sketch layout to finish." }, 422, ct); return; }
+
+        var cells = SketchRasterizer.Rasterize(Encoding.UTF8.GetString(data));
+        var islands = IslandDetector.Detect(cells, minIslandSize: 1);
+        if (islands.Count < 2)
+        {
+            await Send.ResponseAsync(new { error = $"A map needs at least 2 islands; got {islands.Count}. Draw both sides, or enable mirroring." }, 422, ct);
+            return;
+        }
+
+        await writer.WriteSketchAsync(map.Id, cells, islands, ct);
+        await Send.OkAsync(new { slug = map.Slug, configureUrl = $"/maps/{map.Slug}/configure" }, ct);
     }
 }

@@ -189,8 +189,19 @@ Result: the draft map now has the exact geometry artifacts a scanned/imported ma
   by 4 integration tests (`SketchEndpointTests`, 12/12 API tests green), curl, and an in-browser
   draw→save→reload→restore round-trip. **Remaining:** the `/maps/new` Sketch create-entry + the Setup/Overview
   wizard steps (UI on top of this).
-- **S2e — finish/rasterize**: `WorldFeatureWriter.WriteSketchAsync` + the rasterizer (§4) +
-  `POST …/finish`; flow into Configure.
+- **S2e — finish/rasterize** ✅ **landed**: `SketchRasterizer` (pure, in `PgmStudio.Pgm.Editing`) turns
+  the stored layout into the world's solid (x,z) cells — shapes → rings (circle 64-gon, Bézier 16/edge),
+  the 4-step add/subtract/override **set algebra on each shape's rasterized cells**, and **per-island
+  mirror copies driven by the saved island `shapeIds`** (mirror the participating islands' shapes, then
+  rasterize — no server-side polygon boolean, and no meta-matching needed since islands.json carries no
+  names). `WorldFeatureWriter.WriteSketchAsync` writes the cells as a synthetic surface layer (stone,
+  Y=0) → `layer.parquet`, `IslandDetector.Detect(cells)` → `islands.json`, one `[0,0]` segment per
+  column, + the default map_config. `POST /api/map/{slug}/sketch/finish` rasterizes, guards `< 2`
+  islands (422), writes, and returns the Configure URL; a **Finish** button on `SketchEditor` flushes
+  the save then navigates to `/maps/{slug}/configure`. Verified: 6 `SketchRasterizer` unit tests
+  (rect/subtract/mirror/circle/polygon/empty; 37/37 Pgm tests), curl (finish 200 + islands/layer
+  written + 422 guard), and an in-browser Finish → Configure handoff (the sketched map opens in the
+  wizard with its geometry).
 
 ## 6. Decisions & trade-offs (settle before building)
 

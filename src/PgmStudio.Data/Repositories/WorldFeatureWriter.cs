@@ -67,6 +67,43 @@ public sealed class WorldFeatureWriter(PgmDb db)
         return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount);
     }
 
+    /// <summary>
+    /// Persist the geometry artifacts for a <b>finished sketch</b> (docs/contracts/sketch-authoring.md §4):
+    /// the rasterized cells become a synthetic surface layer (stone at Y=0) → layer.parquet, the supplied
+    /// islands → islands.json, one single-block segment per column → layer_segment, plus the default
+    /// map_config. The sketched map then has the same geometry shape an imported world does, so it flows
+    /// into the Configure wizard. Replaces any prior features for the map.
+    /// </summary>
+    public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<(int X, int Z)> cells, IReadOnlyList<IslandDetector.Island> islands, CancellationToken ct = default)
+    {
+        await DeleteAsync(mapId, ct);
+
+        var layerRows = cells.Select(c => new LayerRow { WorldX = c.X, WorldZ = c.Z, WorldY = 0, BlockId = 1, BlockData = 0 }).ToList();
+        byte[] layerBytes;
+        using (var ms = new MemoryStream())
+        {
+            if (layerRows.Count > 0) await ParquetSerializer.SerializeAsync(layerRows, ms, cancellationToken: ct);
+            layerBytes = ms.ToArray();
+        }
+
+        var segs = cells.Select(c => new LayerSegmentRow { MapId = mapId, WorldX = c.X, WorldZ = c.Z, WorldYStart = 0, WorldYEnd = 0 }).ToList();
+        if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
+
+        var config = new JsonObject
+        {
+            ["exclude_islands"] = new JsonArray(),
+            ["exclude_blocks"] = new JsonArray(),
+            ["scan_layer"] = "surface",
+            ["scan_layer_confirmed"] = true,
+        };
+
+        await StoreArtifactAsync(mapId, ArtifactKind.LayerParquet, layerBytes, ct);
+        await StoreArtifactAsync(mapId, ArtifactKind.IslandsJson,
+            System.Text.Encoding.UTF8.GetBytes(IslandDetector.SerializeJson(islands)), ct);
+        await StoreArtifactAsync(mapId, ArtifactKind.MapConfigJson,
+            System.Text.Encoding.UTF8.GetBytes(config.ToJsonString()), ct);
+    }
+
     /// <summary>The whole-world scan box for the monument gather (full chunk extent × full height).</summary>
     private static ScanBox WorldBox(IReadOnlyList<AnvilRegion.Chunk> chunks)
     {

@@ -173,8 +173,11 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   + `Pages/Sketch/SketchEditor` at `/maps/{slug}/sketch` + `SketchPanel`/`SketchInspector` tree+inspector
   — draw → live islands + mirror, select/op/override/delete/rename/mirrors),
   S2d persistence (`SketchLayoutJson` artifact + `POST /api/sketch` create + `GET`/`PUT
-  /api/map/{slug}/sketch`; debounced save + load-on-mount; 4 integration tests). A sketch is now a
-  resumable draft map. **Remaining:** the `/maps/new` Sketch create-entry + the Setup/Overview steps;
+  /api/map/{slug}/sketch`; debounced save + load-on-mount; 4 integration tests),
+  S2e finish/rasterize (`SketchRasterizer` + `WorldFeatureWriter.WriteSketchAsync` +
+  `POST .../sketch/finish` + the Finish button → the sketch rasterizes into the importer's geometry
+  artifacts and flows into Configure; 6 rasterizer tests). **The Sketch → Configure → Edit loop is
+  closed.** **Remaining:** the `/maps/new` Sketch create-entry + the Setup/Overview wizard steps (UI);
   **S2d** `SketchLayoutJson` `ArtifactKind` + the `/api/.../sketch/*` endpoints (load/save) ·
   **S2e** server rasterize/finish (reuse `IslandDetector` + `Geometry2d` + a `WorldFeatureWriter`
   sibling). Completes M8. (`AuthorDisplay` from C12 is reused here.)

@@ -170,6 +170,38 @@ public partial class SketchEditor
         catch { /* save failed (or cancelled) — the next change retries */ }
     }
 
+    // ── Finish: flush the layout, rasterize server-side, continue to Configure ──
+
+    private bool finishing;
+    private string? finishError;
+
+    private async Task Finish()
+    {
+        if (handle is null) return;
+        finishing = true;
+        finishError = null;
+        StateHasChanged();
+
+        saveCts?.Cancel();          // flush the latest layout before the server rasterizes it
+        await SaveAsync(CancellationToken.None);
+
+        try
+        {
+            var resp = await Http.PostAsync($"api/map/{Slug}/sketch/finish", null);
+            if (resp.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo($"/maps/{Slug}/configure");
+                return;
+            }
+            var err = await resp.Content.ReadFromJsonAsync<JsonElement>();
+            finishError = err.TryGetProperty("error", out var e) ? e.GetString() : "Finish failed.";
+        }
+        catch { finishError = "Finish failed."; }
+
+        finishing = false;
+        StateHasChanged();
+    }
+
     public async ValueTask DisposeAsync()
     {
         saveCts?.Cancel();
