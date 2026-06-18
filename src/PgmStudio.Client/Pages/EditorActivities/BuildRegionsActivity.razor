@@ -69,12 +69,12 @@
   }
   else
   {
-    <EditorCanvas @ref="canvas" Slug="@Slug" Category="build" DrawCategory="build" DraftStep="build" OnSelect="OnCanvasSelect" OnRegionCreated="ReloadBuild" />
+    <EditorCanvas @ref="canvas" Slug="@Slug" Category="build" DrawCategory="build" DraftStep="build" OnSelect="OnCanvasSelect" OnRegionCreated="ReloadBuild" OnGeometrySaved="OnGeometrySaved" />
     <div class="sidebar-handle"></div>
     <div class="workspace-inspector">
       <div class="workspace-scroll">
         <div class="panel-section">
-          <RegionInspector Node="RegionNodeSel" Slug="@Slug" OnSelectChild="Select" OnDelete="DeleteRegion" OnRename="RenameRegion" OnSetY="SetRegionY" />
+          <RegionInspector Node="RegionNodeSel" Slug="@Slug" OnSelectChild="Select" OnDelete="DeleteRegion" OnRename="RenameRegion" OnSetY="SetRegionY" OnSetCoord="OnSetCoord" />
         </div>
       </div>
     </div>

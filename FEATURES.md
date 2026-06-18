@@ -53,6 +53,10 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 - **`SmartSuggestion` component** + symmetry-derived intelligent team creation (reads `/symmetry`,
   suggests 2/4 palette teams). (C15)
 - **`Toast` error component** — shared across activities. (from C12)
+- **Region geometry editing** — drag the 8 resize handles (rectangle/cuboid) on the canvas *and* type
+  exact coords in the inspector; both persist (`PATCH /regions/{id}` bounds/coords) and stay in sync via
+  the shared `Models/RegionEdits` (`EditorCanvas` raises `OnGeometrySaved`; the host persists). Wired in
+  all four Edit activities. `docs/contracts/canvas-interaction.md` §3. (CV1)
 
 ## Backend / API (B)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)

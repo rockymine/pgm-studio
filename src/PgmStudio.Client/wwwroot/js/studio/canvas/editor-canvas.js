@@ -29,7 +29,7 @@ import { chatColorHex, dyeColorHex } from "../shared/game-colors.js";
 import { blockToExtentBounds } from "../shared/converters.js";
 import { renderShape } from "../shared/shape-render.js";
 
-const HANDLE_SIZE = 7;
+const HANDLE_SIZE = 14;
 const HANDLE_DEFS = [
   { key: "nw", pos: sb => [sb.left,  sb.top   ], cursor: "nw-resize" },
   { key: "n",  pos: sb => [sb.midX,  sb.top   ], cursor: "n-resize"  },
@@ -386,6 +386,13 @@ export class EditorCanvas extends CanvasBase {
   setSelectedRegions(ids) {
     this.#currentSelectedIds = new Set(ids);
     for (const id of this.#regionGroupMap.keys()) this.#refreshRegionDisplay(id);
+    // Show the resize overlay (dimension pill + drag handles) when the selection resolves to a single
+    // resizable region; clear it for empty, multi, or non-resizable selections.
+    const resizable = [...this.#currentSelectedIds]
+      .map(id => this.#nodeMap.get(id))
+      .filter(n => n?.bounds && RESIZABLE_TYPES.has(n.type));
+    if (resizable.length === 1) this.showAnchors(resizable[0]);
+    else                        this.clearAnchors();
   }
 
   setRegionVisible(id, visible) {
@@ -873,7 +880,8 @@ export class EditorCanvas extends CanvasBase {
     const mid  = (left + right) / 2;
 
     const maxChars = 36;
-    const labelText = node.label.length > maxChars ? node.label.slice(0, maxChars-1) + "…" : node.label;
+    const label = node.label ?? node.id ?? "";
+    const labelText = label.length > maxChars ? label.slice(0, maxChars-1) + "…" : label;
     const nameEl = svgEl("text", {
       x: left, y: top - 5,
       "text-anchor": "start", "dominant-baseline": "alphabetic",
@@ -1051,7 +1059,9 @@ export class EditorCanvas extends CanvasBase {
       nb[xField] = xField === "max_x" ? nb.min_x + 1 : nb.max_x - 1;
     if (zField && nb.max_z - nb.min_z < 1)
       nb[zField] = zField === "max_z" ? nb.min_z + 1 : nb.max_z - 1;
-    this.#callbacks.onBoundsChange?.(node, nb);
+    // Live update in JS (hot path) — the shape, anchors and overlay follow the cursor without a
+    // round-trip; the final bounds are persisted to the host only on mouse-up (onBoundsSave).
+    this.updateRegionBounds(node, nb);
   }
 
   // ── draw tools ────────────────────────────────────────────────────────────

@@ -35,7 +35,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <EditorCanvas @ref="canvas" Slug="@Slug" Category="wool" DrawCategory="wool" DraftStep="objective" OnSelect="OnCanvasSelect" OnRegionCreated="Reload" />
+  <EditorCanvas @ref="canvas" Slug="@Slug" Category="wool" DrawCategory="wool" DraftStep="objective" OnSelect="OnCanvasSelect" OnRegionCreated="Reload" OnGeometrySaved="OnGeometrySaved" />
 
   <div class="sidebar-handle"></div>
 
@@ -137,7 +137,7 @@
         }
         else if (selRegion is not null)
         {
-          <RegionInspector Node="RegionNodeSel" Slug="@Slug" OnSelectChild="Select" OnSetY="SetRegionY" />
+          <RegionInspector Node="RegionNodeSel" Slug="@Slug" OnSelectChild="Select" OnSetY="SetRegionY" OnSetCoord="OnSetCoord" />
         }
         else
         {

@@ -14,11 +14,21 @@ public partial class RegionInspector
     [Parameter] public EventCallback<string> OnDelete { get; set; }
     [Parameter] public EventCallback<string> OnRename { get; set; }  // passes the new id
     [Parameter] public EventCallback<int> OnSetY { get; set; }       // set a point/block region's Y (slice)
+    /// <summary>Edit a single geometry field (coord key + new value). When unset the coord inputs stay
+    /// read-only; when wired the host persists the change and syncs the canvas.</summary>
+    [Parameter] public EventCallback<(string Key, double Value)> OnSetCoord { get; set; }
 
     private async Task OnIdChanged(ChangeEventArgs e)
     {
         var newId = e.Value?.ToString()?.Trim() ?? "";
         if (newId.Length > 0 && Node is not null && newId != Node.Id) await OnRename.InvokeAsync(newId);
+    }
+
+    private async Task SetCoord(string key, ChangeEventArgs e)
+    {
+        if (key.Length > 0 && double.TryParse(e.Value?.ToString(),
+                System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v))
+            await OnSetCoord.InvokeAsync((key, v));
     }
 
     private object? C(string k) => Node!.Coords.GetValueOrDefault(k);

@@ -222,6 +222,24 @@ public partial class ObjectiveActivity
         if (await Patch($"regions/{selRegion}", new Dictionary<string, object?> { ["coords"] = new Dictionary<string, object?> { ["y"] = y } })) await Reload();
     }
 
+    // Geometry editing (canvas drag-resize + inspector coord fields) — persist + keep canvas/inspector in sync.
+    private async Task OnGeometrySaved((string Id, double MinX, double MinZ, double MaxX, double MaxZ) e)
+    {
+        if (!nodeMap.TryGetValue(e.Id, out var node)) return;
+        if (await RegionEdits.SetBoundsAsync(Http, Slug, node, e.MinX, e.MinZ, e.MaxX, e.MaxZ) is null && canvas is not null)
+            await canvas.ReloadAsync();
+        else StateHasChanged();
+    }
+
+    private async Task OnSetCoord((string Key, double Value) e)
+    {
+        if (RegionNodeSel is null) return;
+        var nb = await RegionEdits.SetCoordAsync(Http, Slug, RegionNodeSel, e.Key, e.Value);
+        if (nb is null) { error = "Edit rejected."; StateHasChanged(); return; }
+        if (canvas is not null && nb.Count == 4) await canvas.RefreshRegionBoundsAsync(RegionNodeSel.Id, nb);
+        StateHasChanged();
+    }
+
     // ── http ────────────────────────────────────────────────────────────────────
 
     private async Task<bool> Post(string path, object body) => await Send(Http.PostAsJsonAsync($"api/map/{Slug}/{path}", body));

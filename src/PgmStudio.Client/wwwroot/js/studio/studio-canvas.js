@@ -42,6 +42,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     onPointPick: (x, z) => dotnetRef.invokeMethodAsync("OnCanvasPointPick", x, z),
     // Spawn pick (Teams · Spawn step): the select tool picks a spawn marker → its team id → C#.
     onSpawnPick: (team) => dotnetRef.invokeMethodAsync("OnCanvasSpawnPick", team ?? null),
+    // Resize: the final footprint of a dragged region → C#, which persists it (the live drag stays in JS).
+    onBoundsSave: (node, bounds) => dotnetRef.invokeMethodAsync("OnBoundsSave", node.id, bounds),
   });
   canvas.setActiveTool("move");
   let blockData = null;   // cached top-surface layer (C6), fetched on first toggle-on
@@ -81,6 +83,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     },
     setTool(tool) { canvas.setActiveTool(tool === "select" ? null : tool); },
     setSelection(ids) { canvas.setSelectedRegions(ids ?? []); },
+    // Push a region's new footprint to the canvas after an inspector edit (re-renders just that shape).
+    refreshRegionBounds(id, bounds) { canvas.refreshRegionBounds(id, bounds); },
     // Block-colour overlay (C6): lazily fetch the top-surface layer (B4), then toggle visibility.
     // Returns false when no scan data is available, so the caller can leave the toggle off.
     async setBlocks(visible) {

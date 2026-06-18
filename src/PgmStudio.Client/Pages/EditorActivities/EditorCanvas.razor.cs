@@ -20,6 +20,9 @@ public partial class EditorCanvas
     /// <summary>Fired after a drawn region is created (and the canvas reloaded) so the host activity
     /// can refresh its sidebar tree/list.</summary>
     [Parameter] public EventCallback OnRegionCreated { get; set; }
+    /// <summary>Fired when a region's footprint is changed by a resize drag — the host persists it and
+    /// refreshes its inspector. Args: (region id, new min/max x/z).</summary>
+    [Parameter] public EventCallback<(string Id, double MinX, double MinZ, double MaxX, double MaxZ)> OnGeometrySaved { get; set; }
 
     /// <summary>World authoring: clicks pick an island (not a region), the Blocks layer toggle is hidden,
     /// and only the island base layer shows. Fires <see cref="OnIslandSelect"/> on a canvas click.</summary>
@@ -231,6 +234,23 @@ public partial class EditorCanvas
     public async Task SetAuthorSpawnsAsync(IEnumerable<object> spawns)
     {
         if (handle is not null) await handle.InvokeVoidAsync("setAuthorSpawns", (object)spawns.ToArray());
+    }
+
+    /// <summary>A region's footprint was changed by a resize drag (the canvas already shows it live).
+    /// The host persists it — PATCH region bounds on the Edit page, or patch the intent slice in the
+    /// Configure wizard — and refreshes its inspector. Args: region id + new {min,max}{x,z}.</summary>
+    [JSInvokable]
+    public Task OnBoundsSave(string id, JsonElement bounds)
+    {
+        double N(string k) => bounds.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
+        return OnGeometrySaved.InvokeAsync((id, N("min_x"), N("min_z"), N("max_x"), N("max_z")));
+    }
+
+    /// <summary>Push a region's new footprint to the canvas after an inspector edit (re-renders just
+    /// that shape; no zoom reset).</summary>
+    public async Task RefreshRegionBoundsAsync(string id, IReadOnlyDictionary<string, double> bounds)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("refreshRegionBounds", id, bounds);
     }
 
     /// <summary>C5: a draw tool completed a shape → create the region, fill its symmetry orbit (F3),

@@ -113,15 +113,11 @@ and the Configure wizard `/maps/{id}/configure`). Goal: wire up built-but-dead i
 (resize, move), collapse render duplication, and formalise the controller pattern — **without
 degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **CV1 — Wire region resize (Edit).** The 8-handle resize is fully built in `editor-canvas.js`
-  but unwired: nothing sets the selected node, and `onBoundsChange`/`onBoundsSave` aren't passed by
-  the bridge. Add the three links (select→`showAnchors`; the two bridge callbacks + `[JSInvokable]`
-  handlers; PATCH `regions/{id}` `{bounds}`) so rectangle/cuboid regions resize + persist on the Edit
-  page. (Contract §3.)
-- [ ] **CV2 — Resize + move in the Configure draw steps.** Make the CV1/CV3 mechanism reachable in
-  the draw steps that mount `<EditorCanvas DrawCategory>` — **N02** (spawn protection), **N03**
-  (build), **N04** (wool rooms) — saving to the phase's intent slice (`Intent` + `MarkDirty`), not
-  the raw region PATCH. (Contract §3.5.)
+- [ ] **CV2 — Resize + move in the Configure draw steps.** CV1 landed the shared mechanism (resize +
+  editable geometry on Edit; `EditorCanvas` raises `OnGeometrySaved`, the host persists). Wire that
+  event in the draw steps that mount `<EditorCanvas DrawCategory>` — **N02** (spawn protection),
+  **N03** (build), **N04** (wool rooms) — saving to the phase's intent slice (`Intent` + `MarkDirty`),
+  not the raw region PATCH. (Contract §3.5.)
 - [ ] **CV3 — Arrow-key nudge.** Move the selected region 1 block (Shift = 16) via a host keydown
   handler (guards: canvas hidden, focus in INPUT/TEXTAREA, nothing selected); translate bounds and
   reuse the CV1 save path. Edit + Configure. (Contract §4.)

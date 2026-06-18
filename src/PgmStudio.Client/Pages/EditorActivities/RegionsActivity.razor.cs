@@ -88,6 +88,26 @@ public partial class RegionsActivity
         StateHasChanged();
     }
 
+    // ── geometry editing (canvas drag-resize + inspector coord fields) ──────────────
+    // A canvas resize already updated the shape on screen; persist its footprint and refresh the inspector.
+    private async Task OnGeometrySaved((string Id, double MinX, double MinZ, double MaxX, double MaxZ) e)
+    {
+        if (!nodeMap.TryGetValue(e.Id, out var node)) return;
+        if (await RegionEdits.SetBoundsAsync(Http, Slug, node, e.MinX, e.MinZ, e.MaxX, e.MaxZ) is null && canvas is not null)
+            await canvas.ReloadAsync();   // server rejected the edit → reload to revert
+        else StateHasChanged();
+    }
+
+    // An inspector coord field changed: persist it, then push the recomputed footprint to the canvas.
+    private async Task OnSetCoord((string Key, double Value) e)
+    {
+        if (primaryNode is null) return;
+        var nb = await RegionEdits.SetCoordAsync(Http, Slug, primaryNode, e.Key, e.Value);
+        if (nb is null) { error = "Edit rejected."; StateHasChanged(); return; }
+        if (canvas is not null && nb.Count == 4) await canvas.RefreshRegionBoundsAsync(primaryNode.Id, nb);
+        StateHasChanged();
+    }
+
     // canvas highlights every selected region + its descendants (so a compound shows its footprint)
     private async Task SyncCanvas()
     {

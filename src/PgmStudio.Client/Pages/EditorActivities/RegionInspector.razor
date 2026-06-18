@@ -34,34 +34,34 @@ else
   @switch (Node.Type)
   {
     case "cuboid":
-      @Field("Min", ("X", C("min_x")), ("Y", C("min_y")), ("Z", C("min_z")))
-      @Field("Max", ("X", C("max_x")), ("Y", C("max_y")), ("Z", C("max_z")))
+      @Field("Min", ("X", "min_x", C("min_x")), ("Y", "min_y", C("min_y")), ("Z", "min_z", C("min_z")))
+      @Field("Max", ("X", "max_x", C("max_x")), ("Y", "max_y", C("max_y")), ("Z", "max_z", C("max_z")))
       break;
     case "rectangle":
-      @Field("Min", ("X", C("min_x")), ("Z", C("min_z")))
-      @Field("Max", ("X", C("max_x")), ("Z", C("max_z")))
+      @Field("Min", ("X", "min_x", C("min_x")), ("Z", "min_z", C("min_z")))
+      @Field("Max", ("X", "max_x", C("max_x")), ("Z", "max_z", C("max_z")))
       break;
     case "cylinder":
-      @Field("Base", ("X", C("base_x")), ("Y", C("base_y")), ("Z", C("base_z")))
-      @Field("Dimensions", ("R", C("radius")), ("H", C("height")))
+      @Field("Base", ("X", "base_x", C("base_x")), ("Y", "base_y", C("base_y")), ("Z", "base_z", C("base_z")))
+      @Field("Dimensions", ("R", "radius", C("radius")), ("H", "height", C("height")))
       break;
     case "circle":
-      @Field("Center", ("X", C("center_x")), ("Z", C("center_z")))
-      @Field("Radius", ("R", C("radius")))
+      @Field("Center", ("X", "center_x", C("center_x")), ("Z", "center_z", C("center_z")))
+      @Field("Radius", ("R", "radius", C("radius")))
       break;
     case "sphere":
-      @Field("Origin", ("X", C("origin_x")), ("Y", C("origin_y")), ("Z", C("origin_z")))
-      @Field("Radius", ("R", C("radius")))
+      @Field("Origin", ("X", "origin_x", C("origin_x")), ("Y", "origin_y", C("origin_y")), ("Z", "origin_z", C("origin_z")))
+      @Field("Radius", ("R", "radius", C("radius")))
       break;
     case "point":
     case "block":
-      @Field("Position", ("X", C("x")), ("Y", C("y")), ("Z", C("z")))
+      @Field("Position", ("X", "x", C("x")), ("Y", "y", C("y")), ("Z", "z", C("z")))
       break;
     default:
       @if (Node.Bounds is { } b)
       {
-        @Field("Min", ("X", b.GetValueOrDefault("min_x")), ("Z", b.GetValueOrDefault("min_z")))
-        @Field("Max", ("X", b.GetValueOrDefault("max_x")), ("Z", b.GetValueOrDefault("max_z")))
+        @Field("Min", ("X", "", b.GetValueOrDefault("min_x")), ("Z", "", b.GetValueOrDefault("min_z")))
+        @Field("Max", ("X", "", b.GetValueOrDefault("max_x")), ("Z", "", b.GetValueOrDefault("max_z")))
       }
       break;
   }
@@ -97,18 +97,27 @@ else
 @code {
     // Field stays here because it is a Razor markup template; the inspector logic lives in
     // RegionInspector.razor.cs.
-    private RenderFragment Field(string label, params (string prefix, object? val)[] cells) => __builder =>
+    private RenderFragment Field(string label, params (string prefix, string key, object? val)[] cells) => __builder =>
     {
         <div class="field">
             <label class="field-label">@label</label>
             <div class="ctrl-row">
-                @foreach (var (prefix, val) in cells)
+                @foreach (var (prefix, key, val) in cells)
                 {
                     <div class="coord-field">
                         <span class="coord-prefix">@prefix</span>
                         @* @key on the value so Blazor recreates the input when the coord changes — a plain
-                           value="@…" on an <input> only applies on first render (stale after a Y-slice edit). *@
-                        <input @key="@($"{prefix}:{val}")" class="coord-input" type="number" value="@RegionNode.Fmt(val)" readonly tabindex="-1" />
+                           value="@…" on an <input> only applies on first render (stale after a canvas edit). *@
+                        @if (OnSetCoord.HasDelegate && key.Length > 0)
+                        {
+                            <input @key="@($"{key}:{val}")" class="coord-input" type="number"
+                                   value="@RegionNode.Fmt(val)" @onchange="e => SetCoord(key, e)" />
+                        }
+                        else
+                        {
+                            <input @key="@($"{prefix}:{val}")" class="coord-input" type="number"
+                                   value="@RegionNode.Fmt(val)" readonly tabindex="-1" />
+                        }
                     </div>
                 }
             </div>

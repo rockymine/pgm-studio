@@ -121,18 +121,32 @@ object, and its `handle` exposes none of `showAnchors`/`clearAnchors`/`updateReg
 `regions/{id}` with `{coords:{y}}` and `{id:newId}` today (`BuildRegionsActivity.razor.cs:128-139`).
 Resize/move = the same call with `{bounds:{min_x,min_z,max_x,max_z}}`.
 
-### 3.4 What to add (the three missing links)
-1. **Bridge callbacks** in `studio-canvas.js mount()`:
-   - `onBoundsChange: (node, b) => dotnetRef.invokeMethodAsync("OnBoundsChange", node.id, b)` —
-     live drag; host echoes back via `updateRegionBounds` so the SVG follows the cursor.
-   - `onBoundsSave: (node, b) => dotnetRef.invokeMethodAsync("OnBoundsSave", node.id, b)` — on
-     mouse-up; host PATCHes.
-2. **Bridge handle methods**: `showAnchors(node)`, `clearAnchors()`, `updateRegionBounds(node, b)`
-   (forwarding to the canvas).
-3. **Host (`EditorCanvas.razor.cs`)**: on `OnCanvasSelect`, look up the node and call
-   `showAnchors`; add `[JSInvokable] OnBoundsChange` (optimistic local update + `updateRegionBounds`)
-   and `[JSInvokable] OnBoundsSave` (PATCH `regions/{id}` `{bounds}` + reload). Clear anchors when
-   selection is dropped.
+### 3.4 What landed in CV1
+The live drag stays **entirely in JS** (the hot path; "only selection calls C#"), so only the final
+footprint round-trips on mouse-up. Region geometry is now **editable from two surfaces that share one
+persistence path** — the canvas handles and the inspector fields — so neither goes stale.
+
+1. **Selection drives the overlay, in JS.** `setSelectedRegions(ids)` (already called on every
+   selection, canvas-click *and* sidebar) resolves the selection: a **single resizable** region calls
+   `showAnchors(node)` (dimension pill + 8 handles); otherwise `clearAnchors()`. No new bridge method,
+   no new C# selection wiring — it piggybacks on the existing `setSelection` round-trip.
+2. **Live update in JS.** `#doResize` calls `this.updateRegionBounds(node, nb)` (shape + anchors +
+   overlay follow the cursor) instead of round-tripping per mouse-move. `HANDLE_SIZE` is `14`
+   (screen px) for an easy grab target.
+3. **Persist via the host, through one event.** `_onResizeUp` fires `onBoundsSave`; the bridge
+   forwards it and `EditorCanvas` raises the **`OnGeometrySaved(id, min/max x/z)`** parameter — it does
+   **not** persist itself (so the Configure wizard can route the same event to its intent slice in CV2).
+   The Edit activity persists via `RegionEdits` and reloads only if the server **rejects** the edit.
+4. **Editable inspector.** `RegionInspector` coord fields become editable when the host wires
+   **`OnSetCoord(key, value)`**; footprint keys (`min_x/min_z/max_x/max_z`) route through the `bounds`
+   PATCH, all other keys (cuboid `min_y/max_y`, point `x/y/z`, cylinder `base/radius/height`, …) through
+   the `coords` PATCH (`ApplyCoordUpdate`). After persisting, the host pushes the new footprint back to
+   the canvas via **`RefreshRegionBoundsAsync`** so the shape follows a typed edit.
+5. **Shared helper.** `Models/RegionEdits` owns the bounds-vs-coords routing, the PATCH, and the
+   in-place node update (Coords + Bounds) so the inspector and canvas agree without a full reload. Both
+   the drag (`OnGeometrySaved`) and the typed edit (`OnSetCoord`) funnel through it. Wired in all four
+   Edit activities that pair the canvas with the inspector (Regions, Build, Objective, Teams).
+   `onBoundsChange` is intentionally **not** wired (no per-move interop).
 
 ### 3.5 Availability requirement
 The resize mechanism must be reachable on **Edit** (the proven page) **and** in the Configure draw
@@ -265,14 +279,14 @@ Pruning here means *fixing the wiring + the doc to tell the truth*, not removing
 ## 8. Data flow (resize + move, end to end)
 
 ```
-select region  → OnCanvasSelect(id)          [JS→C#]
-               → host: showAnchors(node)       [C#→JS]  → handles render (rect/cuboid)
-drag handle    → #doResize → onBoundsChange    [JS→C#]  → host: updateRegionBounds (optimistic echo)
-arrow key      → host keydown → moveSelected    (host)  → updateRegionBounds (optimistic echo)
-release / save → onBoundsSave  (or post-nudge debounce) [JS→C#]
+select region  → setSelection(ids)  (JS, via the existing select round-trip)
+               → setSelectedRegions → showAnchors (single resizable) → handles render
+drag handle    → #doResize → updateRegionBounds   (JS, live — no interop per move)
+arrow key      → host keydown → moveSelected → updateRegionBounds   (JS live; CV3)
+release / save → onBoundsSave(id, bounds)   [JS→C#]   (mouse-up; nudge = debounced)
                → host: PATCH /api/map/{slug}/regions/{id} {bounds}   (Edit)
-                 or:   patch Intent slice + MarkDirty                (Configure intent phases)
-               → reload regions
+                 or:   patch Intent slice + MarkDirty                (Configure intent phases; CV2)
+               → reload only on server reject (success keeps live geometry + zoom)
 ```
 
 ---
