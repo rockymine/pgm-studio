@@ -170,8 +170,9 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   persists as a `SketchLayoutJson` map_artifact; finish rasterizes → the importer's geometry artifacts
   → Configure). **Landed:** S2a geometry (`geometry/shape.js` + `geometry/boolean.js`, +20 tests),
   S2b canvas + draw/edit controllers + `render/sketch-render.js`, S2c-Layout (`bridge/sketch-bridge.js`
-  + `Pages/Sketch/SketchEditor` at `/maps/{slug}/sketch` — draw → live islands + mirror, in-memory).
-  **Remaining:** S2c the tree/inspector panel + Setup/Overview steps + the `/maps/new` Sketch entry;
+  + `Pages/Sketch/SketchEditor` at `/maps/{slug}/sketch` + `SketchPanel`/`SketchInspector` tree+inspector
+  — draw → live islands + mirror, select/op/override/delete/rename/mirrors, in-memory).
+  **Remaining:** S2c the Setup/Overview steps + the `/maps/new` Sketch entry (bundle w/ S2d);
   **S2d** `SketchLayoutJson` `ArtifactKind` + the `/api/.../sketch/*` endpoints (load/save) ·
   **S2e** server rasterize/finish (reuse `IslandDetector` + `Geometry2d` + a `WorldFeatureWriter`
   sibling). Completes M8. (`AuthorDisplay` from C12 is reused here.)

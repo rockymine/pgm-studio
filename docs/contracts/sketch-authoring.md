@@ -171,12 +171,15 @@ Result: the draft map now has the exact geometry artifacts a scanned/imported ma
   hit-tests via `shape.containsPoint`, delegates all SVG emit to the new `render/sketch-render.js`),
   `controllers/sketch-draw-controller.js` (rect/circle/polygon/lasso), `controllers/sketch-edit-controller.js`
   (resize/vertex/Bézier). Verified in-browser.
-- **S2c — bridge + Blazor pages** 🟡 **Layout landed**: `bridge/sketch-bridge.js` (the JS activity:
-  shape list + island recompute loop + arrow-nudge + `OnShapeSelected`/`OnDirty`/`OnToolChanged`),
-  `studio.mountSketch`, and `Pages/Sketch/SketchEditor.razor(.cs)` at `/maps/{slug}/sketch` — the
-  Layout step (toolbar → draw → live islands + rot_180 mirror). **Remaining:** the tree/inspector
-  panel (per-shape op/override, island rename/mirrors toggle), the Setup + Overview steps, and the
-  `/maps/new` Sketch entry. (Layout is in-memory until S2d wires load/save.)
+- **S2c — bridge + Blazor pages** 🟡 **Layout + panel landed**: `bridge/sketch-bridge.js` (the JS
+  activity: shape list + island recompute loop + arrow-nudge + the panel feed `OnLayout` +
+  `OnShapeSelected`/`OnIslandSelected`/`OnDirty`/`OnToolChanged` + the edit commands), `studio.mountSketch`,
+  `Pages/Sketch/SketchEditor.razor(.cs)` at `/maps/{slug}/sketch`, and the tree/inspector — `SketchPanel`
+  (island→shape tree, selection) + `SketchInspector` (shape op/override/delete, island rename/mirrors +
+  shape list), mirroring the Regions tree+inspector split (no context menus / invented CSS). Draw →
+  live islands + rot_180 mirror → edit via the panel, all verified in-browser. **Remaining:** the Setup
+  + Overview steps and the `/maps/new` Sketch entry — bundled with S2d (they need persistence to be
+  meaningful). (Layout is in-memory until S2d wires load/save.)
 - **S2d — persistence**: `SketchLayoutJson` `ArtifactKind` + DTO; the §1 endpoints (create / get /
   setup / layout / overview).
 - **S2e — finish/rasterize**: `WorldFeatureWriter.WriteSketchAsync` + the rasterizer (§4) +

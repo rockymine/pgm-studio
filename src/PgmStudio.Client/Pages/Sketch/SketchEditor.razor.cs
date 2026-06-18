@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -18,7 +19,15 @@ public partial class SketchEditor
     private bool shapesOn = false;
     private bool chunksOn = true;
     private string islandLabel = "";
-    private string? selectedId;
+
+    // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
+    private List<SketchIslandRow> islands = [];
+    private List<SketchShapeRow> shapes = [];
+    private string? selectedShapeId;
+    private string? selectedIslandId;
+
+    private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
+    private SketchIslandRow? SelectedIsland => islands.FirstOrDefault(i => i.Id == selectedIslandId);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -69,9 +78,35 @@ public partial class SketchEditor
         if (handle is not null) await handle.InvokeVoidAsync("fitToBbox");
     }
 
-    /// <summary>A shape was selected on the canvas (null = deselected). Backs a future inspector.</summary>
+    // ── Panel / inspector actions → the JS bridge ──────────────────────────────
+
+    private Task SelectShape(string id) => handle?.InvokeVoidAsync("selectShape", id).AsTask() ?? Task.CompletedTask;
+    private Task SelectIsland(string id) => handle?.InvokeVoidAsync("selectIsland", id).AsTask() ?? Task.CompletedTask;
+    private Task ToggleOp(string id) => handle?.InvokeVoidAsync("toggleOp", id).AsTask() ?? Task.CompletedTask;
+    private Task ToggleOverride(string id) => handle?.InvokeVoidAsync("toggleOverride", id).AsTask() ?? Task.CompletedTask;
+    private Task DeleteShape(string id) => handle?.InvokeVoidAsync("deleteShape", id).AsTask() ?? Task.CompletedTask;
+    private Task ToggleMirrors(string islandId) => handle?.InvokeVoidAsync("toggleMirrors", islandId).AsTask() ?? Task.CompletedTask;
+    private Task RenameIsland((string Id, string Name) e) => handle?.InvokeVoidAsync("renameIsland", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
+
+    // ── Bridge callbacks ───────────────────────────────────────────────────────
+
+    /// <summary>A shape was selected on the canvas/panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnShapeSelected(string? id) => selectedId = id;
+    public void OnShapeSelected(string? id) { selectedShapeId = id; StateHasChanged(); }
+
+    /// <summary>An island was selected in the panel (null = deselected).</summary>
+    [JSInvokable]
+    public void OnIslandSelected(string? id) { selectedIslandId = id; StateHasChanged(); }
+
+    /// <summary>The bridge pushed the current island→shape tree (on every layout change).</summary>
+    [JSInvokable]
+    public void OnLayout(string json)
+    {
+        var dto = JsonSerializer.Deserialize<SketchLayoutDto>(json);
+        islands = dto?.Islands ?? [];
+        shapes = dto?.Shapes ?? [];
+        StateHasChanged();
+    }
 
     /// <summary>The canvas changed the active tool itself (e.g. auto-switch to select after a draw);
     /// keep the toolbar highlight truthful.</summary>

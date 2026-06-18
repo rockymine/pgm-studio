@@ -1,0 +1,68 @@
+@namespace PgmStudio.Client.Pages.Sketch
+
+@* Sketch Layout inspector — actions for the selected shape (operation / override / delete) or island
+   (rename / mirror participation + its shape list). Edits round-trip to the JS bridge via the host. *@
+
+<div class="workspace-inspector">
+  <div class="workspace-scroll">
+    <div class="panel-section">
+      @if (Shape is not null)
+      {
+        <div class="detail-header">
+          <span class="geo-type-icon"><i data-lucide="@TypeIcon(Shape.Type)"></i></span>
+          <span class="detail-label">@Shape.Type</span>
+          <span class="detail-header-badges">
+            <span class="badge @(Shape.Operation == "subtract" ? "badge--error" : "badge--success")">@Shape.Operation</span>
+            @if (Shape.Override) { <span class="badge badge--warning">override</span> }
+            <span class="badge badge--neutral">@Shape.Dim</span>
+          </span>
+        </div>
+
+        <div class="section-header section-header--ruled"><h2 class="section-title">Actions</h2></div>
+        <button class="action-btn action-btn--full" @onclick="() => OnToggleOp.InvokeAsync(Shape.Id)">
+          @(Shape.Operation == "subtract" ? "Make add" : "Make subtract")
+        </button>
+        <button class="action-btn action-btn--full" @onclick="() => OnToggleOverride.InvokeAsync(Shape.Id)">
+          @(Shape.Override ? "Remove override" : "Set override")
+        </button>
+        <button class="action-btn action-btn--full action-btn--danger" @onclick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
+          <i data-lucide="trash-2"></i> Delete
+        </button>
+        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks</p>
+      }
+      else if (Island is not null)
+      {
+        <div class="detail-header">
+          <span class="geo-type-icon"><i data-lucide="layers"></i></span>
+          <span class="detail-label">@Island.Name</span>
+          <span class="detail-header-badges">
+            <span class="badge badge--neutral">@Island.ShapeIds.Count shape@(Island.ShapeIds.Count == 1 ? "" : "s")</span>
+          </span>
+        </div>
+
+        <div class="field">
+          <label class="field-label">Name</label>
+          <input class="field-input" value="@Island.Name" @onchange="RenameChanged" />
+        </div>
+        <button class="action-btn action-btn--full" @onclick="() => OnToggleMirrors.InvokeAsync(Island.Id)">
+          @(Island.Mirrors ? "Exclude from mirror" : "Include in mirror")
+        </button>
+
+        <div class="section-header section-header--ruled"><h2 class="section-title">Shapes</h2></div>
+        @foreach (var s in IslandShapes())
+        {
+          <div class="list-row list-row--compact">
+            <span class="geo-type-icon" style="@(s.Operation == "subtract" ? "color:var(--canvas-sub-fill)" : null)"><i data-lucide="@TypeIcon(s.Type)"></i></span>
+            <span class="list-label">@s.Type</span>
+            <span class="list-tag">@s.Dim</span>
+          </div>
+        }
+        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks</p>
+      }
+      else
+      {
+        <p class="section-desc">Select a shape or island to inspect.</p>
+      }
+    </div>
+  </div>
+</div>

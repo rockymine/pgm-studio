@@ -26,6 +26,9 @@
   <div id="main" class="app-body">
     <div class="activity-viewport">
       <div class="workspace">
+        <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
+                     OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+        <div class="sidebar-handle"></div>
         <div class="workspace-canvas">
           <div class="canvas-subbar">
             <div class="canvas-toolbar">
@@ -68,6 +71,10 @@
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>
         </div>
+        <div class="sidebar-handle"></div>
+        <SketchInspector Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"
+                         OnToggleOp="ToggleOp" OnToggleOverride="ToggleOverride" OnDeleteShape="DeleteShape"
+                         OnToggleMirrors="ToggleMirrors" OnRenameIsland="RenameIsland" />
       </div>
     </div>
   </div>

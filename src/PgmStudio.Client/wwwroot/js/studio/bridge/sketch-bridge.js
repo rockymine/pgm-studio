@@ -1,8 +1,9 @@
 // sketch-bridge.js — JS-interop bridge for the Sketch tool's Layout canvas. Plays the reference's
 // "layout activity" role on the JS side: owns the live shape list + the island recompute loop
-// (geometry/boolean.js, the hot path), drives SketchCanvas, and owns the arrow-key nudge. Blazor owns
-// the toolbar/wizard chrome + persistence; it calls the handle methods and receives OnShapeSelected /
-// OnDirty. getState() returns the layout for the host to PATCH (persistence wiring = S2d).
+// (geometry/boolean.js, the hot path), drives SketchCanvas, owns the arrow-key nudge, and pushes the
+// island→shape tree to the Blazor panel. Blazor owns the toolbar/panel chrome + persistence; it calls
+// the handle methods and receives OnShapeSelected / OnIslandSelected / OnLayout / OnDirty / OnToolChanged.
+// getState() returns the layout for the host to PATCH (persistence wiring = S2d).
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
@@ -12,13 +13,21 @@ const DEFAULT_SETUP = { bbox: { min_x: -256, max_x: 256, min_z: -256, max_z: 256
 let _seq = 0;
 const genId = () => `s${Date.now()}_${_seq++}`;
 
+function dimLabel(s) {
+  if (s.type === "rectangle") return `${s.max_x - s.min_x}×${s.max_z - s.min_z}`;
+  if (s.type === "circle")    return `r=${s.radius}`;
+  return `${s.vertices?.length ?? 0} v`;
+}
+
 export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
   let setup = { ...DEFAULT_SETUP };
-  let islands = [];           // latest computeIslands result (full, with metadata) — also prev for carry-over
-  let savedMetas = [];        // island metadata loaded from persistence (name/mirrors/shapeIds)
+  let islands = [];            // latest computeIslands result (full, with metadata) — also prev for carry-over
+  let savedMetas = [];         // island metadata loaded from persistence (name/mirrors/shapeIds)
   let mirrorVisible = true;
+  let selectedIslandId = null; // panel island selection (drives arrow-move of the whole island)
 
-  const markDirty = () => { try { dotnetRef?.invokeMethodAsync("OnDirty", islands.length); } catch { /* host may not wire it yet */ } };
+  const fire = (name, ...args) => { try { dotnetRef?.invokeMethodAsync(name, ...args); } catch { /* host may not wire it */ } };
+  const markDirty = () => fire("OnDirty", islands.length);
 
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl,
@@ -27,21 +36,30 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
       canvas.addShape(shape);
       recompute();
       canvas.setActiveTool("select");
-      try { dotnetRef?.invokeMethodAsync("OnToolChanged", "select"); } catch { /* host may not wire it */ }
-      select(shape.id);
+      fire("OnToolChanged", "select");
+      selectShape(shape.id);
       markDirty();
     },
     onShapeUpdated: () => { recompute(); markDirty(); },
-    onShapeSelected: (id) => select(id),
-    onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); select(null); markDirty(); },
+    onShapeSelected: (id) => selectShape(id),
+    onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
   });
 
-  function select(id) {
+  function selectShape(id) {
+    selectedIslandId = null;
     canvas.selectShape(id);
-    try { dotnetRef?.invokeMethodAsync("OnShapeSelected", id ?? null); } catch { /* host may not wire it */ }
+    fire("OnShapeSelected", id ?? null);
+    fire("OnIslandSelected", null);
   }
 
-  // Recompute islands from the canvas's current shapes and push results back to the canvas.
+  function selectIsland(id) {
+    selectedIslandId = id ?? null;
+    canvas.selectShape(null);
+    fire("OnShapeSelected", null);
+    fire("OnIslandSelected", selectedIslandId);
+  }
+
+  // Recompute islands from the canvas's current shapes and push results to the canvas + panel.
   // `restoreFromSaved` (load only) seeds metadata from persisted records; live edits carry metadata
   // over via the previous islands (centroid match inside computeIslands).
   function recompute(restoreFromSaved = false) {
@@ -53,6 +71,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
     islands = next;
     canvas.setIslands(next.map(i => ({ exterior: i.exterior, holes: i.holes })));
     refreshMirror();
+    pushLayout();
   }
 
   function refreshMirror() {
@@ -61,29 +80,41 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
     canvas.setMirrorPolygons(computeMirrorPreview(islands, setup.mirror_mode, cx, cz));
   }
 
+  // Push the island→shape tree to the Blazor panel (compact — render fields + a precomputed dim label).
+  function pushLayout() {
+    const shapes = canvas.getShapes().map(s => ({ id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s) }));
+    const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
+    fire("OnLayout", JSON.stringify({ islands: isl, shapes }));
+  }
+
   function translate(shape, dx, dz) {
     if (shape.type === "rectangle") { shape.min_x += dx; shape.max_x += dx; shape.min_z += dz; shape.max_z += dz; }
     else if (shape.type === "circle") { shape.center_x += dx; shape.center_z += dz; }
     else if (shape.vertices) shape.vertices = shape.vertices.map(([x, z]) => [x + dx, z + dz]);
   }
 
-  // Arrow-key nudge of the selected shape (Shift = 16). Activity-level, per the controller-pattern
-  // split — the canvas owns Escape/Delete/dblclick; the bridge owns move.
+  // Arrow-key nudge (Shift = 16) of the selected island (all its shapes) or the selected shape.
   const onKey = (e) => {
     if (wrapEl?.offsetParent == null) return;
     if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-    const id = canvas.selectedId;
-    if (!id) return;
     const step = e.shiftKey ? 16 : 1;
     let dx = 0, dz = 0;
     if (e.key === "ArrowLeft") dx = -step; else if (e.key === "ArrowRight") dx = step;
     else if (e.key === "ArrowUp") dz = -step; else if (e.key === "ArrowDown") dz = step;
     else return;
+    let moved = false;
+    if (selectedIslandId) {
+      const isl = islands.find(i => i.id === selectedIslandId);
+      for (const sid of (isl?.shapeIds ?? [])) {
+        const s = canvas.getShape(sid);
+        if (s) { translate(s, dx, dz); canvas.updateShape(s); moved = true; }
+      }
+    } else if (canvas.selectedId) {
+      const s = canvas.getShape(canvas.selectedId);
+      if (s) { translate(s, dx, dz); canvas.updateShape(s); moved = true; }
+    }
+    if (!moved) return;
     e.preventDefault();
-    const shape = canvas.getShape(id);
-    if (!shape) return;
-    translate(shape, dx, dz);
-    canvas.updateShape(shape);
     recompute();
     markDirty();
   };
@@ -96,6 +127,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
     if (s.mirror_mode !== undefined) canvas.setMode(setup.mirror_mode);
     refreshMirror();
   }
+
+  function islandById(id) { return islands.find(i => i.id === id); }
 
   // Seed the default working bounds so drawing + the mirror preview work immediately.
   applySetup(setup);
@@ -110,6 +143,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
+
+    // Panel-driven edits.
+    selectShape(id)    { selectShape(id ?? null); },
+    selectIsland(id)   { selectIsland(id ?? null); },
+    deleteShape(id)    { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
+    toggleOp(id)       { const s = canvas.getShape(id); if (!s) return; s.operation = s.operation === "subtract" ? "add" : "subtract"; canvas.updateShape(s); recompute(); markDirty(); },
+    toggleOverride(id) { const s = canvas.getShape(id); if (!s) return; s.override = !s.override; canvas.updateShape(s); recompute(); markDirty(); },
+    toggleMirrors(islandId) { const i = islandById(islandId); if (!i) return; i.mirrors = !i.mirrors; refreshMirror(); pushLayout(); markDirty(); },
+    renameIsland(islandId, name) { const i = islandById(islandId); if (!i) return; i.name = name; pushLayout(); markDirty(); },
+
     // Load a persisted layout (S2d): setup + shapes + island metadata → render + recompute.
     load(state) {
       const s = state ?? {};
