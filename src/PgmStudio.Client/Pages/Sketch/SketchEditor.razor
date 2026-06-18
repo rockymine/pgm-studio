@@ -74,7 +74,7 @@
               <button class="draw-tool-btn @(tool == "circle" ? "draw-tool-btn--active" : null)" title="Circle"
                       @onclick='() => SetTool("circle")'><i data-lucide="circle"></i></button>
               <button class="draw-tool-btn @(tool == "polygon" ? "draw-tool-btn--active" : null)" title="Polygon (click vertices, double-click to close)"
-                      @onclick='() => SetTool("polygon")'><i data-lucide="pen-tool"></i></button>
+                      @onclick='() => SetTool("polygon")'><i data-lucide="pentagon"></i></button>
               <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)" title="Lasso (hold and trace)"
                       @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
               <button class="draw-tool-btn @(op == "add" ? "draw-tool-btn--op-add" : null)" title="Add — shapes build land"
