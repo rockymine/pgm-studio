@@ -49,9 +49,10 @@ import { EditorEditController, RESIZABLE_TYPES } from "../controllers/editor-edi
 import { SelectController } from "../controllers/select-controller.js";
 import { chatColorHex, dyeColorHex } from "../render/palette.js";
 import { blockToExtentBounds } from "../geometry/region-convert.js";
+import { pointInRing } from "../geometry/polygon.js";
 import { renderShape } from "../render/shape-render.js";
 import { renderSymmetryOverlay } from "../render/symmetry-render.js";
-import { blockDataToDataUrl } from "../render/block-render.js";
+import { renderBlockImage } from "../render/block-render.js";
 
 const COMPOSITE_TYPES = new Set(["union", "intersect", "negative", "complement"]);
 
@@ -333,8 +334,7 @@ export class EditorCanvas extends CanvasBase {
   loadBlockLayer(data) {
     this.#blockData = data;
     if (this.#blockLayerEl && this.#toSvg) {
-      while (this.#blockLayerEl.firstChild) this.#blockLayerEl.removeChild(this.#blockLayerEl.firstChild);
-      this.#renderBlockImage(this.#blockLayerEl);
+      renderBlockImage(this.#blockLayerEl, data, this.#toSvg);
       if (this.#showBlocks) this.#blockLayerEl.style.display = "";
     }
   }
@@ -627,23 +627,8 @@ export class EditorCanvas extends CanvasBase {
     const g = svgEl("g", { id: "layer-blocks" });
     this.#blockLayerEl = g;
     if (!this.#showBlocks || !this.#blockData) g.style.display = "none";
-    if (this.#blockData && this.#toSvg) this.#renderBlockImage(g);
+    if (this.#blockData && this.#toSvg) renderBlockImage(g, this.#blockData, this.#toSvg);
     return g;
-  }
-
-  #renderBlockImage(g) {
-    const { min_x, min_z, max_x, max_z } = this.#blockData;
-    const p1 = this.#toSvg(min_x,     min_z);
-    const p2 = this.#toSvg(max_x + 1, max_z + 1);
-    const img = svgEl("image");
-    img.setAttribute("href",   blockDataToDataUrl(this.#blockData));
-    img.setAttribute("x",      Math.min(p1.x, p2.x));
-    img.setAttribute("y",      Math.min(p1.y, p2.y));
-    img.setAttribute("width",  Math.abs(p2.x - p1.x));
-    img.setAttribute("height", Math.abs(p2.y - p1.y));
-    img.setAttribute("pointer-events", "none");
-    img.style.imageRendering = "pixelated";
-    g.appendChild(img);
   }
 
   #buildIslands() {
@@ -687,19 +672,9 @@ export class EditorCanvas extends CanvasBase {
       const b = isl.bounds;   // [min_x, min_z, max_x, max_z] — quick reject before the polygon test
       if (b && (worldX < b[0] || worldX > b[2] + 1 || worldZ < b[1] || worldZ > b[3] + 1)) continue;
       const ring = (isl.simplified_polygon ?? geojsonToSimplified(isl.polygon))?.exterior;
-      if (ring?.length && EditorCanvas.#pointInRing(worldX, worldZ, ring)) return isl.id;
+      if (ring?.length && pointInRing(worldX, worldZ, ring)) return isl.id;
     }
     return null;
-  }
-
-  // Ray-cast point-in-polygon on a [[x,z], …] ring.
-  static #pointInRing(x, z, ring) {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
-      if (((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi) + xi)) inside = !inside;
-    }
-    return inside;
   }
 
   setIslandSelect(on) { this.#selectCtrl.setMode(on ? "island" : "region"); }

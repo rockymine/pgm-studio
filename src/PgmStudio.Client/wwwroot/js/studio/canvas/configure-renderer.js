@@ -13,7 +13,7 @@
 
 import { buildTransform } from "../geometry/transform.js";
 import { svgEl, polyToPath } from "../render/svg.js";
-import { blockDataToDataUrl } from "../render/block-render.js";
+import { renderBlockImage } from "../render/block-render.js";
 import { renderSymmetryOverlay } from "../render/symmetry-render.js";
 
 const ISLAND_INCLUDED_COLOR = "var(--canvas-result-fill)";   // indigo-500
@@ -143,18 +143,7 @@ export class ConfigureRenderer {
   }
 
   #renderBlocks() {
-    const d = this.#blockData;
-    const p1 = this.#toSvg(d.min_x,     d.min_z);
-    const p2 = this.#toSvg(d.max_x + 1, d.max_z + 1);
-    const img = svgEl("image");
-    img.setAttribute("href",   blockDataToDataUrl(d));
-    img.setAttribute("x",      Math.min(p1.x, p2.x));
-    img.setAttribute("y",      Math.min(p1.y, p2.y));
-    img.setAttribute("width",  Math.abs(p2.x - p1.x));
-    img.setAttribute("height", Math.abs(p2.y - p1.y));
-    img.setAttribute("pointer-events", "none");
-    img.style.imageRendering = "pixelated";
-    this.#blockLayerEl.appendChild(img);
+    renderBlockImage(this.#blockLayerEl, this.#blockData, this.#toSvg);
   }
 
   #renderIslands() {

@@ -1,6 +1,6 @@
 import { buildTransform } from "../geometry/transform.js";
 import { svgEl as makeEl } from "../render/svg.js";
-import { blockDataToDataUrl } from "../render/block-render.js";
+import { renderBlockImage } from "../render/block-render.js";
 import { renderSymmetryOverlay } from "../render/symmetry-render.js";
 
 const SYMMETRY_SKIPPED = 0.25;
@@ -77,20 +77,7 @@ export class OverviewRenderer {
   }
 
   #renderBlocks() {
-    const { min_x, min_z, max_x, max_z } = this.#blockData;
-    const p1  = this.#toSvg(min_x,     min_z);
-    const p2  = this.#toSvg(max_x + 1, max_z + 1);
-    const img = makeEl("image");
-    img.setAttribute("href",           blockDataToDataUrl(this.#blockData));
-    img.setAttribute("x",              Math.min(p1.x, p2.x));
-    img.setAttribute("y",              Math.min(p1.y, p2.y));
-    img.setAttribute("width",          Math.abs(p2.x - p1.x));
-    img.setAttribute("height",         Math.abs(p2.y - p1.y));
-    img.setAttribute("pointer-events", "none");
-    img.style.imageRendering = "pixelated";
-    while (this.#blockLayerEl.firstChild)
-      this.#blockLayerEl.removeChild(this.#blockLayerEl.firstChild);
-    this.#blockLayerEl.appendChild(img);
+    renderBlockImage(this.#blockLayerEl, this.#blockData, this.#toSvg);
   }
 
   #renderSymmetry() {
