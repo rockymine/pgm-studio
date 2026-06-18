@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Pages.Sketch;
 
 public partial class SketchPanel
 {
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
     [Parameter] public IReadOnlyList<SketchIslandRow> Islands { get; set; } = [];
     [Parameter] public IReadOnlyList<SketchShapeRow> Shapes { get; set; } = [];
     [Parameter] public string? SelectedShapeId { get; set; }
@@ -11,24 +14,20 @@ public partial class SketchPanel
     [Parameter] public EventCallback<string> OnSelectShape { get; set; }
     [Parameter] public EventCallback<string> OnSelectIsland { get; set; }
 
-    private sealed record Row(bool IsIsland, SketchIslandRow? Island, SketchShapeRow? Shape);
+    private readonly HashSet<string> collapsed = new();
 
-    // Flatten islands + their shapes (then any unassigned shapes) into one ordered render list, so the
-    // markup is a single loop — no duplicated row markup, no @code RenderFragment helper.
-    private IEnumerable<Row> Rows()
+    private void Toggle(string id)
     {
-        var byId = Shapes.ToDictionary(s => s.Id);
-        var seen = new HashSet<string>();
-        foreach (var isl in Islands)
-        {
-            yield return new Row(true, isl, null);
-            foreach (var sid in isl.ShapeIds)
-                if (byId.TryGetValue(sid, out var sh) && seen.Add(sid))
-                    yield return new Row(false, null, sh);
-        }
-        foreach (var sh in Shapes)
-            if (!seen.Contains(sh.Id))
-                yield return new Row(false, null, sh);
+        if (!collapsed.Remove(id)) collapsed.Add(id);
+    }
+
+    private SketchShapeRow? ShapeById(string id) => Shapes.FirstOrDefault(s => s.Id == id);
+
+    // Shapes not claimed by any island (defensive — shouldn't normally happen).
+    private IEnumerable<SketchShapeRow> Unassigned()
+    {
+        var assigned = Islands.SelectMany(i => i.ShapeIds).ToHashSet();
+        return Shapes.Where(s => !assigned.Contains(s.Id));
     }
 
     private static string TypeIcon(string t) => t switch
@@ -39,4 +38,7 @@ public partial class SketchPanel
         "lasso"     => "lasso",
         _           => "square",
     };
+
+    // Re-render the lucide icons (chevrons / type glyphs) after the tree changes.
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 }

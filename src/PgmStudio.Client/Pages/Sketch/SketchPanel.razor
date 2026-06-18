@@ -1,36 +1,60 @@
 @namespace PgmStudio.Client.Pages.Sketch
 
-@* Sketch Layout tree — islands with their contributing shapes. Selection only; per-item actions live
-   in SketchInspector (keeps the tree clean, mirrors the Regions tree + inspector split). Rendered inside
-   the editor's workspace-sidebar (alongside the Setup section). *@
+@* Sketch Layout tree — islands (collapsible parents) with their contributing shapes as indented
+   children. Same geo-tree format as the region tree (geo-indent pipes + collapse chevrons). Selection
+   only; per-item actions live in SketchInspector. Rendered inside the editor's workspace-sidebar. *@
 
 <section class="panel-section">
   <div class="section-header section-header--ruled"><h2 class="section-title">Islands</h2></div>
-  @if (!Islands.Any() && !Shapes.Any())
-  {
-    <div class="list-empty">Draw shapes to form islands.</div>
-  }
-  else
-  {
-    @foreach (var row in Rows())
+  <div class="region-tree">
+    @if (!Islands.Any() && !Shapes.Any())
     {
-      @if (row.IsIsland)
+      <div class="panel-empty-msg">Draw shapes to form islands.</div>
+    }
+    else
+    {
+      @foreach (var isl in Islands)
       {
-        var isl = row.Island!;
         <div class="geo-row @(isl.Id == SelectedIslandId ? "geo-row--selected" : null)"
              @onclick="() => OnSelectIsland.InvokeAsync(isl.Id)">
-          <span class="geo-indent"></span>
+          <span class="geo-indent">
+            @if (isl.ShapeIds.Count > 0)
+            {
+              <button class="collapse-btn" @onclick="() => Toggle(isl.Id)" @onclick:stopPropagation="true">
+                <i data-lucide="@(collapsed.Contains(isl.Id) ? "chevron-right" : "chevron-down")"></i>
+              </button>
+            }
+          </span>
           <span class="geo-type-icon" style="@(isl.Mirrors ? null : "color:var(--text-muted)")"><i data-lucide="layers"></i></span>
-          <span class="geo-label">@isl.Name</span>
+          <span class="geo-label" title="@isl.Name">@isl.Name</span>
           <span class="list-tag">@isl.ShapeIds.Count shape@(isl.ShapeIds.Count == 1 ? "" : "s")</span>
         </div>
+        @if (!collapsed.Contains(isl.Id))
+        {
+          @foreach (var sid in isl.ShapeIds)
+          {
+            var s = ShapeById(sid);
+            @if (s is not null)
+            {
+              <div class="geo-row @(s.Id == SelectedShapeId ? "geo-row--selected" : null)"
+                   @onclick="() => OnSelectShape.InvokeAsync(s.Id)">
+                <span class="geo-indent"><span class="indent-pipe"></span></span>
+                <span class="geo-type-icon" style="@(s.Operation == "subtract" ? "color:var(--canvas-sub-fill)" : null)"><i data-lucide="@TypeIcon(s.Type)"></i></span>
+                <span class="geo-label">@s.Type</span>
+                <span class="list-tag">@s.Dim</span>
+                @if (s.Override)
+                {
+                  <span class="geo-type-icon geo-type-icon--warning geo-type-icon--flush" title="Override"><i data-lucide="shield"></i></span>
+                }
+              </div>
+            }
+          }
+        }
       }
-      else
+      @foreach (var s in Unassigned())
       {
-        var s = row.Shape!;
         <div class="geo-row @(s.Id == SelectedShapeId ? "geo-row--selected" : null)"
              @onclick="() => OnSelectShape.InvokeAsync(s.Id)">
-          <span class="geo-indent"></span>
           <span class="geo-indent"></span>
           <span class="geo-type-icon" style="@(s.Operation == "subtract" ? "color:var(--canvas-sub-fill)" : null)"><i data-lucide="@TypeIcon(s.Type)"></i></span>
           <span class="geo-label">@s.Type</span>
@@ -42,5 +66,5 @@
         </div>
       }
     }
-  }
+  </div>
 </section>
