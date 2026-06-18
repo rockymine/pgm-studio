@@ -45,9 +45,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > (`/maps/{id}/edit`) keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Steps — in page order, each persists its slice of intent**
-- [~] **N02 — Teams & Spawns, Protection sub-step.** Teams + island assignment and the Spawn point
-  sub-step landed (`FEATURES.md`). Remaining (`new-map-authoring.md` §11): **Protection** — draw the
-  spawn-protection rect, auto-wire the enter filter, orbit. (`TeamsSection`)
 - [ ] **N03 — Build.** Build height (side-view, see `N08`) → buildable layer of over-void bridges +
   holes; the generator unions them + applies the void filter. **Live buildability overlay** (uses
   `GET /buildability`, done). (`BuildSection`)

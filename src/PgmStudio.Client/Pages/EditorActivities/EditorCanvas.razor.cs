@@ -40,6 +40,12 @@ public partial class EditorCanvas
     /// <summary>Fired when the select tool picks a spawn marker (point-pick mode); arg = its team id,
     /// or null when the click missed every marker.</summary>
     [Parameter] public EventCallback<string?> OnSpawnPick { get; set; }
+    /// <summary>Configure authoring: show a rectangle draw tool whose completed shape is reported via
+    /// <see cref="OnRectDrawn"/> as raw geometry (no region is created) — the host writes it to the
+    /// intent and renders it back as a dummy region via <see cref="SetAuthorRegionsAsync"/>.</summary>
+    [Parameter] public bool RectDraw { get; set; }
+    /// <summary>Fired with a drawn rectangle's footprint (RectDraw mode); the host persists it to intent.</summary>
+    [Parameter] public EventCallback<(double MinX, double MinZ, double MaxX, double MaxZ)> OnRectDrawn { get; set; }
     /// <summary>Fired once the canvas is mounted + the map is loaded, so a host can apply initial state
     /// (e.g. the excluded-island set) that only takes effect after the islands are rendered.</summary>
     [Parameter] public EventCallback OnReady { get; set; }
@@ -61,6 +67,7 @@ public partial class EditorCanvas
         // Either way, default off Move so the first clicks register instead of panning.
         if (IslandSelect) tool = "select";
         else if (PointPick) tool = "point";
+        else if (RectDraw) tool = "rectangle";   // lead with the rectangle tool so the first drag draws
 
         // Islands power the "fit island" zoom control (any activity, if the map has scan data).
         try
@@ -105,6 +112,8 @@ public partial class EditorCanvas
                 await handle.InvokeVoidAsync("setPointPick", true);
                 await handle.InvokeVoidAsync("setTool", "point");   // mount defaults to "move"; lead with the placement tool
             }
+            if (RectDraw)
+                await handle.InvokeVoidAsync("setTool", "rectangle");   // mount defaults to "move"; lead with the draw tool
             await OnReady.InvokeAsync();
         }
     }
@@ -236,6 +245,13 @@ public partial class EditorCanvas
         if (handle is not null) await handle.InvokeVoidAsync("setAuthorSpawns", (object)spawns.ToArray());
     }
 
+    /// <summary>Render intent-backed dummy regions (e.g. spawn-protection rects) — each
+    /// { id, type, label, color, bounds:{min_x,min_z,max_x,max_z} }. Selectable + resizable like real regions.</summary>
+    public async Task SetAuthorRegionsAsync(IEnumerable<object> nodes)
+    {
+        if (handle is not null) await handle.InvokeVoidAsync("setAuthorRegions", (object)nodes.ToArray());
+    }
+
     /// <summary>A region's footprint was changed by a resize drag (the canvas already shows it live).
     /// The host persists it — PATCH region bounds on the Edit page, or patch the intent slice in the
     /// Configure wizard — and refreshes its inspector. Args: region id + new {min,max}{x,z}.</summary>
@@ -258,6 +274,16 @@ public partial class EditorCanvas
     [JSInvokable]
     public async Task OnRegionDraw(JsonElement draw)
     {
+        // RectDraw mode (Configure authoring): report the rectangle's geometry to the host instead of
+        // creating a region — the host writes it to intent and renders it back as a dummy region.
+        if (RectDraw && OnRectDrawn.HasDelegate)
+        {
+            double N(string k) => draw.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
+            await OnRectDrawn.InvokeAsync((N("min_x"), N("min_z"), N("max_x"), N("max_z")));
+            await SetTool("select");   // switch to select so the drawn rect can be picked + resized
+            StateHasChanged();
+            return;
+        }
         if (DrawCategory is null || handle is null) return;
         var resp = await Http.PostAsJsonAsync($"api/map/{Slug}/regions", BuildPayload(draw, DrawCategory, DraftStep));
         if (!resp.IsSuccessStatusCode) return;

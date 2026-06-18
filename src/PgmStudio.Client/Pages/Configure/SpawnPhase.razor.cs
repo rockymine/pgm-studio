@@ -104,8 +104,9 @@ public partial class SpawnPhase
         await PaintSpawns();
     }
 
-    // Select tool → pick the spawn marker under the cursor (null = clicked empty space; keep the selection).
-    private void OnSpawnSelected(string? team) { if (team is not null) selectedTeamId = team; }
+    // Select tool → pick the spawn marker under the cursor; clicking empty space (null) deselects, matching
+    // the edit canvas.
+    private void OnSpawnSelected(string? team) => selectedTeamId = team;
 
     // Rebuild the spawn list from team0's authored point: drop it at (x,y,z) and orbit-fill the rest by the
     // confirmed symmetry, each orbit spawn reassigned by the island it lands in. The orbit sits on symmetric

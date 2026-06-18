@@ -75,6 +75,7 @@ export class EditorCanvas extends CanvasBase {
   #regionsLayerEl = null;
   #drawLayerEl    = null;
   #addedNodes     = [];
+  #authorRegionIds = [];   // ids of "dummy" authoring regions (e.g. intent-backed spawn-protection rects)
 
   // draw controller (instantiated in constructor)
   #drawCtrl = null;
@@ -458,6 +459,17 @@ export class EditorCanvas extends CanvasBase {
     this.#currentSelectedIds.delete(id);
     this.#addedNodes = this.#addedNodes.filter(n => n.id !== id);
     if (this.#selectedNode?.id === id) { this.#selectedNode = null; this.#updateOverlay(); }
+  }
+
+  // Render a set of authoring-only "dummy" regions — geometry that lives in the intent, not the loaded
+  // tree (e.g. spawn-protection rectangles). They go into the same maps as real regions, so they select,
+  // resize, and report edits via onBoundsSave exactly like tree regions (the host routes those to intent).
+  // Replaces the previous author-region set.
+  setAuthorRegions(nodes) {
+    for (const id of this.#authorRegionIds) this.removeRegion(id);
+    const list = nodes ?? [];
+    this.#authorRegionIds = list.map(n => n.id);
+    for (const node of list) this.addRegion(node);
   }
 
   renameNode(oldId, newId) {

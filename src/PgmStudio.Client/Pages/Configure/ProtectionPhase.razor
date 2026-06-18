@@ -1,0 +1,123 @@
+@namespace PgmStudio.Client.Pages.Configure
+@using PgmStudio.Client.Pages.EditorActivities
+
+@* Teams · protection step: draw a rectangle around the authored team's spawn; the confirmed symmetry
+   orbits it onto the other teams. Each zone is a dummy region on the reused canvas (selectable + resizable).
+   Writes each spawn's `protection` slice; the generator wires the enter/block filters onto the rectangle. *@
+
+<div class="workspace">
+
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Protection</h2></div>
+        <p class="section-desc">With the <strong>rectangle tool</strong>, drag a zone around a spawn — the
+          confirmed symmetry orbits it onto the other teams. The <strong>select tool</strong> picks a zone
+          to resize it (drag the handles) or fine-tune it. Draw team 0's; the rest derive.</p>
+        <div class="panel-list">
+          @if (teams.Count == 0) { <div class="list-empty">No teams yet — set them in the Teams step.</div> }
+          @foreach (var t in teams)
+          {
+            <div class="list-row list-row--compact @(selectedTeamId == t.Id ? "list-row--selected" : null)"
+                 @key="t.Id" @onclick="() => SelectTeam(t.Id)">
+              <span class="list-swatch" style="background:@Hex(t.Id)"></span>
+              <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
+              <span class="list-label list-label--mono">@t.Id-protect</span>
+              <span class="badge @StatusClass(t.Id)">@Status(t.Id)</span>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  @* Reused edit canvas in rectangle-draw mode — draws report to intent (no region is created); protection
+     zones render as dummy regions. Category set to a non-matching value so the generated tree stays hidden;
+     spawns show as reference markers and protection as the editable dummies. *@
+  <EditorCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__protection_authoring__"
+                OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-inspector">
+    <div class="workspace-scroll">
+      @if (selectedTeamId is { } team)
+      {
+        <div class="panel-stack" @key="team">
+        <section class="panel-section">
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
+            <span class="detail-label detail-label--mono">@team-protect</span>
+            <span class="badge @StatusClass(team)">@Status(team)</span>
+          </div>
+          @if (protection.TryGetValue(team, out var r))
+          {
+            <div class="section-body">
+              <div class="field">
+                <label class="field-label">Min</label>
+                <div class="ctrl-row">
+                  <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@r.MinX" readonly tabindex="-1" /></div>
+                  <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@r.MinZ" readonly tabindex="-1" /></div>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label">Max</label>
+                <div class="ctrl-row">
+                  <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@r.MaxX" readonly tabindex="-1" /></div>
+                  <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@r.MaxZ" readonly tabindex="-1" /></div>
+                </div>
+              </div>
+              <p class="section-desc">Owned by <strong>@TeamName(team)</strong>. Select the zone on the canvas
+                and drag the handles to resize. Editing the authored team's zone re-derives the orbit.</p>
+              <div class="section-footer section-footer--separated">
+                <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => ClearProtection(team)">Remove zone</button>
+              </div>
+            </div>
+          }
+          else
+          {
+            <p class="section-desc">No protection zone for <strong>@TeamName(team)</strong> yet. Draw a
+              rectangle around its spawn with the rectangle tool.</p>
+          }
+        </section>
+        @if (protection.ContainsKey(team))
+        {
+          <section class="panel-section">
+            <div class="section-header section-header--ruled">
+              <h2 class="section-title">Auto-wiring</h2>
+              <span class="badge badge--dim">derived</span>
+            </div>
+            <div class="panel-list">
+              <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = only-@team</span></div>
+              <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = never</span></div>
+            </div>
+            <p class="section-desc">The generator wires these onto the rectangle when it builds the map —
+              enemies can't enter (“You may not enter the enemy's spawn!”) and the zone can't be edited
+              (“You may not block/break spawns!”). Orbit replicates the wiring for the other teams.</p>
+          </section>
+        }
+        </div>
+      }
+      else
+      {
+        <section class="panel-section">
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
+            <span class="detail-label">Spawn protection</span>
+          </div>
+          <p class="section-desc">Draw a rectangle around a spawn; the symmetry orbits it onto the rest.</p>
+        </section>
+      }
+    </div>
+  </div>
+
+</div>
+
+@code {
+    private string Status(string team)
+        => !protection.ContainsKey(team) ? "none" : team == AuthoredTeam ? "authored" : "orbit";
+    private string StatusClass(string team)
+        => !protection.ContainsKey(team) ? "badge--dim" : team == AuthoredTeam ? "badge--success" : "badge--neutral";
+}

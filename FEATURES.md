@@ -139,6 +139,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   like the editor's). The inspector edits X/Y/Z/Yaw — editing the authored spawn's X/Z re-derives the
   orbit; the reused **side-view** (`SliceView`) sets the Y on the spawn's terrain, **shared across the
   orbit**. → `intent.spawns`. (`SpawnPhase`; N02)
+- **Teams · Spawn protection sub-step (N02)** — the **rectangle tool** draws a protection zone around a
+  spawn; the confirmed symmetry orbit-fills the rest. Zones render as resizable **dummy regions** on the
+  reused canvas (new `EditorCanvas` `RectDraw`/`OnRectDrawn` + `setAuthorRegions` — geometry goes to intent,
+  not a `POST /regions`), so draw/select/resize reuse the editor's region handles; edits route to
+  `intent.spawns[].protection`. The inspector surfaces the generator's wiring in an **Auto-wiring (derived)**
+  section (`enter=only-<team>` + `block=never`); the generator builds the `spawn/protection` rectangle +
+  filters on regenerate. (`ProtectionPhase`; N02)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,

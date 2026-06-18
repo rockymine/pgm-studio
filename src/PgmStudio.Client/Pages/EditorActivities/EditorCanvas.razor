@@ -34,6 +34,11 @@
         <button class="draw-tool-btn @(tool == "point" ? "draw-tool-btn--active" : null)" title="Point — place a spawn"
                 @onclick='() => SetTool("point")'><i data-lucide="dot"></i></button>
       }
+      else if (RectDraw)
+      {
+        <button class="draw-tool-btn @(tool == "rectangle" ? "draw-tool-btn--active" : null)" title="Rectangle — draw a protection zone"
+                @onclick='() => SetTool("rectangle")'><i data-lucide="rectangle-horizontal"></i></button>
+      }
     </div>
     <div @ref="coordsRef" class="canvas-cursor"></div>
     <div class="canvas-subbar-right">
@@ -43,7 +48,7 @@
                 title="Mirror drawn regions across the map's confirmed symmetry"
                 @onclick="ToggleOrbit">@OrbitLabel()</button>
       }
-      @if (!IslandSelect && !SymmetryMode && !PointPick)
+      @if (!IslandSelect && !SymmetryMode && !PointPick && !RectDraw)
       {
         <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)" title="Overlay the top-surface block colours"
                 @onclick="ToggleBlocks">Blocks</button>

@@ -105,6 +105,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     setSymmetry(type, cx, cz) { canvas.setSymmetry(type ?? null, cx, cz); },
     setPointPick(on) { canvas.setPointPick(on); },
     setAuthorSpawns(spawns) { canvas.setAuthorSpawns(spawns ?? []); },
+    // Render intent-backed "dummy" regions (e.g. spawn-protection rects) as selectable/resizable shapes.
+    setAuthorRegions(nodes) { canvas.setAuthorRegions(nodes ?? []); },
     fitIsland(id) { canvas.fitIsland(id); },
     fitBounds(minX, minZ, maxX, maxZ) { canvas.fitBounds({ min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ }); },
     resetView() { canvas.resetView(); },
