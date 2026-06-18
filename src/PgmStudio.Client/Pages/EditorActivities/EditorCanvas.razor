@@ -4,7 +4,7 @@
 @implements IAsyncDisposable
 
 @* Hybrid editor canvas: Blazor renders the toolbar/labels/svg shell, the reused EditorCanvas JS
-   (via studio-canvas.js interop) owns pan/zoom/render/selection. Cursor + zoom labels are written
+   (via bridge/editor-bridge.js interop) owns pan/zoom/render/selection. Cursor + zoom labels are written
    by JS directly (hot path); only selection round-trips to C# (OnSelect). *@
 
 <div class="workspace-canvas">

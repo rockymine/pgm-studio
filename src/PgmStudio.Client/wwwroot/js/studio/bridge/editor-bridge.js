@@ -1,9 +1,9 @@
-// studio-canvas.js — JS-interop bridge for the reused EditorCanvas (the hybrid editor canvas).
+// editor-bridge.js — JS-interop bridge for the reused EditorCanvas (the hybrid editor canvas).
 // Blazor owns the sidebar/inspector/state in C#; this drives the proven canvas JS:
 //   window.studioCanvas.mount(svgEl, wrapEl, dotnetRef, slug) → a handle Blazor calls
 //   (load / setTool / setSelection / resize). Selection + cursor + zoom call back into C#.
-import { EditorCanvas } from "./canvas/editor-canvas.js";
-import { fetchJson } from "./shared/fetch-json.js";
+import { EditorCanvas } from "../canvas/editor-canvas.js";
+import { fetchJson } from "./fetch-json.js";
 
 // Set-operation / transform region types — excluded from the category filter; their primitive children
 // carry the category and render on their own.

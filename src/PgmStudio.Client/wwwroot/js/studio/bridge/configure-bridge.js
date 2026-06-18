@@ -1,9 +1,9 @@
-// configure-canvas.js — JS-interop bridge for the Configure wizard's dedicated preview (E8).
+// configure-bridge.js — JS-interop bridge for the Configure wizard's dedicated preview (E8).
 // Drives the reused ConfigureRenderer (layer pixels / island outlines / symmetry overlay) — a
 // read-only preview, distinct from the editor canvas. The C# activity owns the wizard state and
 // calls these methods; the bridge fetches per-step data and forwards it to the renderer.
-import { ConfigureRenderer } from "./canvas/configure-renderer.js";
-import { fetchJson } from "./shared/fetch-json.js";
+import { ConfigureRenderer } from "../canvas/configure-renderer.js";
+import { fetchJson } from "./fetch-json.js";
 
 export async function mount(svgEl, wrapEl, slug) {
   const enc = encodeURIComponent(slug);

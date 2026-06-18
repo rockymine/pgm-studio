@@ -6,7 +6,7 @@
  *   EditorEditController    8-handle resize + arrow-key move of the selected region
  *   SelectController        click-select modes (region / island) — one registered picker each
  *
- * Public surface (grouped; the studio-canvas.js bridge forwards the subset Blazor drives):
+ * Public surface (grouped; the bridge (bridge/editor-bridge.js) forwards the subset Blazor drives):
  *   Render / lifecycle
  *     render(ctx, groups)              full repaint + zoom reset
  *     refreshRegions(groups)           swap the region layer without resetting zoom

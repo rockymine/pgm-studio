@@ -1,10 +1,10 @@
-// scan-canvas.js — JS-interop bridge for the new-map landing's "Found" preview (NS / ND3).
+// scan-bridge.js — JS-interop bridge for the new-map landing's "Found" preview (NS / ND3).
 // Reuses the existing editor ConfigureRenderer (island base + surface overlay) — no new canvas — but
 // feeds it the already-cached scan artifacts (top-surface / islands / symmetry) instead of the regions
 // tree, so it renders an xml-less world that has no regions yet. The bounding box is seeded from the
 // top-surface payload itself (loadBlockLayer self-seeds when none is set).
-import { ConfigureRenderer } from "./canvas/configure-renderer.js";
-import { fetchJson } from "./shared/fetch-json.js";
+import { ConfigureRenderer } from "../canvas/configure-renderer.js";
+import { fetchJson } from "./fetch-json.js";
 
 export async function mount(svgEl, wrapEl, slug) {
   const enc = encodeURIComponent(slug);

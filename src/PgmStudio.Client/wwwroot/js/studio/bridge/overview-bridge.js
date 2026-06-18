@@ -1,9 +1,9 @@
-// overview-canvas.js — JS-interop bridge for the Overview activity's static map render (E7).
+// overview-bridge.js — JS-interop bridge for the Overview activity's static map render (E7).
 // Blazor owns the identity/authors form in C#; this drives the reused OverviewRenderer: fetch the
 // map bbox + top-surface block layer (+ symmetry overlay) and paint the preview. Returns a handle
 // Blazor calls (resize / dispose). Imported on demand from studio.mountOverview (no global, no race).
-import { OverviewRenderer } from "./canvas/overview-renderer.js";
-import { fetchJson } from "./shared/fetch-json.js";
+import { OverviewRenderer } from "../canvas/overview-renderer.js";
+import { fetchJson } from "./fetch-json.js";
 
 export async function mount(svgEl, wrapEl, slug) {
   const renderer = new OverviewRenderer(svgEl, wrapEl);
