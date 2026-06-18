@@ -135,7 +135,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
   canvas.resize();
 
   return {
-    setTool(tool)      { canvas.setActiveTool(tool === "select" ? "select" : tool); },
+    setTool(tool)      {
+      canvas.setActiveTool(tool === "select" ? "select" : tool);
+      // Leaving select mode clears the selection — otherwise arrow-nudge keeps moving a shape that's no
+      // longer visibly selected (you've switched to panning/drawing). Arrow-move is a select-mode action.
+      if (tool !== "select") selectShape(null);
+    },
     setOperation(op)   { canvas.setOperation(op); },
     setMode(mode)      { applySetup({ mirror_mode: mode }); markDirty(); },
     setCenter(cx, cz)  { applySetup({ center: { cx, cz } }); markDirty(); },
