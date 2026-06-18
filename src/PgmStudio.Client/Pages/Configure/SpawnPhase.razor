@@ -35,9 +35,11 @@
 
   <div class="sidebar-handle"></div>
 
-  @* Reused edit canvas in point-pick mode — point tool places a spawn, select tool picks a marker. *@
-  <EditorCanvas @ref="canvas" Slug="@Slug" PointPick="true" OnPointPick="OnPointPick"
-                OnSpawnPick="OnSpawnSelected" OnReady="OnCanvasReady" />
+  @* Reused edit canvas — the point tool places a spawn; spawns render as point dummy regions (markers),
+     picked by the normal select hit-test. Category is a non-matching sentinel so the generated tree stays
+     hidden (only the island base + the spawn markers show). *@
+  <EditorCanvas @ref="canvas" Slug="@Slug" PointPick="true" Category="__spawn_authoring__"
+                OnPointPick="OnPointPick" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
 
   <div class="sidebar-handle"></div>
 

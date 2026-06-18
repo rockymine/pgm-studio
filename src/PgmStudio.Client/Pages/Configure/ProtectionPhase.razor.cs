@@ -94,7 +94,7 @@ public partial class ProtectionPhase
         catch { islands = new(); }
     }
 
-    private async Task OnCanvasReady() { await PaintSpawns(); await PaintProtection(); }
+    private Task OnCanvasReady() => PaintProtection();
 
     // Rectangle tool → the drawn zone belongs to the team whose spawn it wraps (else the selection); if that
     // team is the authored one, orbit-fill the rest. Drawing around an orbit team only hand-corrects that team.
@@ -214,12 +214,18 @@ public partial class ProtectionPhase
         => spawns.FirstOrDefault(s => s.X >= r.MinX && s.X <= r.MaxX && s.Z >= r.MinZ && s.Z <= r.MaxZ)?.Team;
 
     private static string RegionId(string team) => $"{team}-spawn-protect";
-    private string? TeamFromRegionId(string id)
+    // A click resolves to a team via the protection rect ("{team}-spawn-protect") or the spawn marker
+    // ("{team}-spawn"), which sits inside the zone — either selects that team's protection.
+    private string? TeamFromRegionId(string? id)
     {
-        const string suffix = "-spawn-protect";
-        if (!id.EndsWith(suffix)) return null;
-        var team = id[..^suffix.Length];
-        return teams.Any(t => t.Id == team) ? team : null;
+        if (id is null) return null;
+        foreach (var suffix in new[] { "-spawn-protect", "-spawn" })
+            if (id.EndsWith(suffix))
+            {
+                var team = id[..^suffix.Length];
+                if (teams.Any(t => t.Id == team)) return team;
+            }
+        return null;
     }
 
     private void WriteProtection()
@@ -245,23 +251,29 @@ public partial class ProtectionPhase
         return 0;
     }
 
-    private async Task PaintSpawns()
-    {
-        if (canvas is not null)
-            await canvas.SetAuthorSpawnsAsync(spawns.Select(s => (object)new { x = s.X, z = s.Z, color = Hex(s.Team), primary = s.Authored, team = s.Team }));
-    }
-
+    // One author-region set: each spawn as a point marker (reference) + each team's protection rectangle.
     private async Task PaintProtection()
     {
         if (canvas is null) return;
-        await canvas.SetAuthorRegionsAsync(protection.Select(kv => (object)new
+        var markers = spawns.Select(s => (object)new
+        {
+            id = $"{s.Team}-spawn",
+            type = "point",
+            marker = true,
+            primary = s.Authored,
+            color = Hex(s.Team),
+            label = $"{TeamName(s.Team)} spawn",
+            bounds = new { min_x = s.X - 0.5, min_z = s.Z - 0.5, max_x = s.X + 0.5, max_z = s.Z + 0.5 },
+        });
+        var zones = protection.Select(kv => (object)new
         {
             id = RegionId(kv.Key),
             type = "rectangle",
             label = $"{TeamName(kv.Key)} spawn protection",
             color = Hex(kv.Key),
             bounds = new { min_x = kv.Value.MinX, min_z = kv.Value.MinZ, max_x = kv.Value.MaxX, max_z = kv.Value.MaxZ },
-        }));
+        });
+        await canvas.SetAuthorRegionsAsync(markers.Concat(zones));
     }
 
     private static string S(JsonObject? o, string k) => o?[k]?.GetValue<string>() ?? "";

@@ -95,8 +95,6 @@ export class EditorCanvas extends CanvasBase {
   // spawn-point authoring (Teams · Spawn step): point-pick reports the clicked world point; author spawns
   // are rendered as team-coloured markers (the placed one bright, orbit ones faint).
   #pointPick         = false;
-  #authorSpawnLayer  = null;
-  #authorSpawns      = [];   // [{x, z, color, primary, team}]
 
   // layer state
   #showPois   = false;
@@ -139,8 +137,7 @@ export class EditorCanvas extends CanvasBase {
     );
     this.#selectCtrl = new EditorSelectController()
       .register("region", (w) => this.#callbacks.onCanvasClick?.(this.#hitTest(w.x, w.z)))
-      .register("island", (w) => this.#callbacks.onIslandClick?.(this.#hitTestIsland(w.x, w.z)))
-      .register("spawn",  (w) => this.#callbacks.onSpawnPick?.(this.#hitTestSpawn(w.x, w.z)));
+      .register("island", (w) => this.#callbacks.onIslandClick?.(this.#hitTestIsland(w.x, w.z)));
     this.#selectCtrl.setMode("region");
   }
 
@@ -548,7 +545,6 @@ export class EditorCanvas extends CanvasBase {
     viewport.appendChild(this.#buildBlockLayer());
     viewport.appendChild(this.#buildIslands());
     viewport.appendChild(this.#buildSymmetryLayer());
-    viewport.appendChild(this.#buildAuthorSpawnLayer());
     viewport.appendChild(this.#buildSpawnLayer());
     viewport.appendChild(this.#buildXmlRegions());
     viewport.appendChild(this.#buildWoolLayer());
@@ -573,9 +569,12 @@ export class EditorCanvas extends CanvasBase {
 
   // ── hit test ──────────────────────────────────────────────────────────────
 
+  // Smallest region whose bounds contain the click; if none does, the nearest region within a small
+  // margin — so 1-block primitives (points, spawns) are forgiving to click, the same select rule for all.
   #hitTest(worldX, worldZ) {
-    let best = null;
-    let bestArea = Infinity;
+    const MARGIN = 2;
+    let best = null, bestArea = Infinity;
+    let near = null, nearD = Infinity;
     for (const [id, node] of this.#nodeMap) {
       if (!node.bounds) continue;
       if (this.#visibilityMap.get(id) === false) continue;
@@ -583,9 +582,14 @@ export class EditorCanvas extends CanvasBase {
       if (worldX >= min_x && worldX <= max_x && worldZ >= min_z && worldZ <= max_z) {
         const area = (max_x - min_x) * (max_z - min_z);
         if (area < bestArea) { bestArea = area; best = node; }
+      } else {
+        const dx = Math.max(min_x - worldX, 0, worldX - max_x);   // distance from the point to the AABB
+        const dz = Math.max(min_z - worldZ, 0, worldZ - max_z);
+        const d = dx * dx + dz * dz;
+        if (d < nearD) { nearD = d; near = node; }
       }
     }
-    return best;
+    return best ?? (nearD <= MARGIN * MARGIN ? near : null);
   }
 
   // ── layers ────────────────────────────────────────────────────────────────
@@ -737,49 +741,9 @@ export class EditorCanvas extends CanvasBase {
     this.#renderSymmetry();
   }
 
-  #buildAuthorSpawnLayer() {
-    const g = svgEl("g", { id: "layer-author-spawns" });
-    this.#authorSpawnLayer = g;
-    this.#renderAuthorSpawns();
-    return g;
-  }
-
-  #renderAuthorSpawns() {
-    const g = this.#authorSpawnLayer;
-    if (!g) return;
-    while (g.firstChild) g.removeChild(g.firstChild);
-    if (!this.#toSvg) return;
-    for (const s of this.#authorSpawns) {
-      const p = this.#toSvg(s.x, s.z);
-      g.appendChild(svgEl("circle", {
-        cx: p.x, cy: p.y, r: s.primary ? 6 : 5,
-        fill: s.color || "var(--accent)", stroke: "var(--canvas-marker-stroke)",
-        "stroke-width": s.primary ? "2" : "1", opacity: s.primary ? 1 : 0.55,
-      }));
-    }
-  }
-
-  /** Render author spawn markers — list of { x, z, color, primary, team }. */
-  setAuthorSpawns(spawns) {
-    this.#authorSpawns = spawns || [];
-    this.#renderAuthorSpawns();
-  }
-
-  /** Nearest author spawn marker to a world point (within ~2 blocks) → its team id, else null. World-space,
-   *  like #hitTest: the click's #toWorld point vs each spawn's world position. */
-  #hitTestSpawn(worldX, worldZ) {
-    let best = null, bestD = 2 * 2;
-    for (const s of this.#authorSpawns) {
-      const dx = s.x - worldX, dz = s.z - worldZ, d = dx * dx + dz * dz;
-      if (d <= bestD) { bestD = d; best = s.team ?? null; }
-    }
-    return best;
-  }
-
-  /** When on, a canvas click reports the raw world point via onPointPick (spawn-point placement). */
-  // #pointPick still gates the point-tool spawn placement in _onToolMousedown; the click-pick of a placed
-  // marker is the select controller's "spawn" mode.
-  setPointPick(on) { this.#pointPick = !!on; this.#selectCtrl.setMode(on ? "spawn" : "region"); }
+  // Point-tool placement mode: the point tool drops a spawn via onPointPick (in _onToolMousedown) rather
+  // than drawing a region. The placed spawn is a point dummy region, picked by the normal select hit-test.
+  setPointPick(on) { this.#pointPick = !!on; }
 
   setSelectedIsland(id) {
     this.#selectedIslandId = (id === null || id === undefined) ? null : id;
@@ -974,6 +938,21 @@ export class EditorCanvas extends CanvasBase {
     const title = svgEl("title");
     title.textContent = `${id} (${type})`;
     g.appendChild(title);
+
+    // A point primitive can opt into a fixed-size marker render (e.g. a spawn) — team-coloured, the
+    // authored one brighter. Selection still goes through the normal bounds hit-test (+ margin).
+    if (region.marker && region.bounds && this.#toSvg) {
+      const { min_x, min_z, max_x, max_z } = region.bounds;
+      const p = this.#toSvg((min_x + max_x) / 2, (min_z + max_z) / 2);
+      const shape = svgEl("circle", {
+        cx: p.x, cy: p.y, r: region.primary ? 6 : 5,
+        fill: color, stroke: "var(--canvas-marker-stroke)",
+        "stroke-width": region.primary ? "2" : "1", opacity: region.primary ? 1 : 0.55,
+      });
+      g.appendChild(shape);
+      this.#shapeMap.set(id, { shape, type });
+      return g;
+    }
 
     const boundsOrPoly = region.polygon_2d ?? region.bounds;
     const shape = renderShape(type, boundsOrPoly, this.#toSvg, this.#regionAttrs(color));

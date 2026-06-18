@@ -40,8 +40,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     onIslandClick: (id) => dotnetRef.invokeMethodAsync("OnCanvasIslandSelect", id ?? null),
     // Point pick (Teams · Spawn step): the point tool drops a spawn at the raw world point → C#.
     onPointPick: (x, z) => dotnetRef.invokeMethodAsync("OnCanvasPointPick", x, z),
-    // Spawn pick (Teams · Spawn step): the select tool picks a spawn marker → its team id → C#.
-    onSpawnPick: (team) => dotnetRef.invokeMethodAsync("OnCanvasSpawnPick", team ?? null),
     // Resize: the final footprint of a dragged region → C#, which persists it (the live drag stays in JS).
     onBoundsSave: (node, bounds) => dotnetRef.invokeMethodAsync("OnBoundsSave", node.id, bounds),
   });
@@ -104,7 +102,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     setIslandTeams(map) { canvas.setIslandTeams(map ?? {}); },
     setSymmetry(type, cx, cz) { canvas.setSymmetry(type ?? null, cx, cz); },
     setPointPick(on) { canvas.setPointPick(on); },
-    setAuthorSpawns(spawns) { canvas.setAuthorSpawns(spawns ?? []); },
     // Render intent-backed "dummy" regions (e.g. spawn-protection rects) as selectable/resizable shapes.
     setAuthorRegions(nodes) { canvas.setAuthorRegions(nodes ?? []); },
     fitIsland(id) { canvas.fitIsland(id); },

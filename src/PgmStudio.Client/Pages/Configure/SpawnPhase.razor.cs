@@ -104,9 +104,16 @@ public partial class SpawnPhase
         await PaintSpawns();
     }
 
-    // Select tool → pick the spawn marker under the cursor; clicking empty space (null) deselects, matching
-    // the edit canvas.
-    private void OnSpawnSelected(string? team) => selectedTeamId = team;
+    // Select tool → pick the spawn point dummy region (id "{team}-spawn"); clicking empty (null) deselects.
+    private void OnCanvasSelect(string? id) => selectedTeamId = TeamFromSpawnId(id);
+
+    private string? TeamFromSpawnId(string? id)
+    {
+        const string suffix = "-spawn";
+        if (id is null || !id.EndsWith(suffix)) return null;
+        var team = id[..^suffix.Length];
+        return spawns.Any(s => s.Team == team) ? team : null;
+    }
 
     // Rebuild the spawn list from team0's authored point: drop it at (x,y,z) and orbit-fill the rest by the
     // confirmed symmetry, each orbit spawn reassigned by the island it lands in. The orbit sits on symmetric
@@ -209,10 +216,21 @@ public partial class SpawnPhase
         Wizard.MarkDirty();
     }
 
+    // Render the spawns as point dummy regions (a marker each — authored brighter), selectable by the
+    // normal canvas hit-test (id "{team}-spawn"); a 1-block footprint at the spawn point.
     private async Task PaintSpawns()
     {
-        if (canvas is not null)
-            await canvas.SetAuthorSpawnsAsync(spawns.Select(s => (object)new { x = s.X, z = s.Z, color = Hex(s.Team), primary = s.Authored, team = s.Team }));
+        if (canvas is null) return;
+        await canvas.SetAuthorRegionsAsync(spawns.Select(s => (object)new
+        {
+            id = $"{s.Team}-spawn",
+            type = "point",
+            marker = true,
+            primary = s.Authored,
+            color = Hex(s.Team),
+            label = $"{TeamName(s.Team)} spawn",
+            bounds = new { min_x = s.X - 0.5, min_z = s.Z - 0.5, max_x = s.X + 0.5, max_z = s.Z + 0.5 },
+        }));
     }
 
     private static string S(JsonObject? o, string k) => o?[k]?.GetValue<string>() ?? "";

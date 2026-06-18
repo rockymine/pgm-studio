@@ -32,14 +32,12 @@ public partial class EditorCanvas
     /// <summary>World · Symmetry: base layer only (Blocks toggle hidden); the host drives the axis/centre
     /// overlay via <see cref="SetSymmetryAsync"/>.</summary>
     [Parameter] public bool SymmetryMode { get; set; }
-    /// <summary>Teams · Spawn: base layer only; a canvas click reports the raw world point via
-    /// <see cref="OnPointPick"/> (spawn placement), and the host draws markers via <see cref="SetAuthorSpawnsAsync"/>.</summary>
+    /// <summary>Teams · Spawn: the point tool reports the clicked world point via <see cref="OnPointPick"/>
+    /// (spawn placement); the host renders the placed spawns as point dummy regions
+    /// (<see cref="SetAuthorRegionsAsync"/>), picked by the normal select hit-test (<see cref="OnSelect"/>).</summary>
     [Parameter] public bool PointPick { get; set; }
     /// <summary>Fired with the clicked world (x, z) when the point tool places a spawn (point-pick mode).</summary>
     [Parameter] public EventCallback<(double X, double Z)> OnPointPick { get; set; }
-    /// <summary>Fired when the select tool picks a spawn marker (point-pick mode); arg = its team id,
-    /// or null when the click missed every marker.</summary>
-    [Parameter] public EventCallback<string?> OnSpawnPick { get; set; }
     /// <summary>Configure authoring: show a rectangle draw tool whose completed shape is reported via
     /// <see cref="OnRectDrawn"/> as raw geometry (no region is created) — the host writes it to the
     /// intent and renders it back as a dummy region via <see cref="SetAuthorRegionsAsync"/>.</summary>
@@ -235,15 +233,6 @@ public partial class EditorCanvas
 
     /// <summary>Pick the raw clicked world point (point-pick mode, point tool) → host.</summary>
     [JSInvokable] public Task OnCanvasPointPick(double x, double z) => OnPointPick.InvokeAsync((x, z));
-
-    /// <summary>Pick the spawn marker under the cursor (point-pick mode, select tool) → host.</summary>
-    [JSInvokable] public Task OnCanvasSpawnPick(string? team) => OnSpawnPick.InvokeAsync(team);
-
-    /// <summary>Draw author spawn markers — each { x, z, color, primary }.</summary>
-    public async Task SetAuthorSpawnsAsync(IEnumerable<object> spawns)
-    {
-        if (handle is not null) await handle.InvokeVoidAsync("setAuthorSpawns", (object)spawns.ToArray());
-    }
 
     /// <summary>Render intent-backed dummy regions (e.g. spawn-protection rects) — each
     /// { id, type, label, color, bounds:{min_x,min_z,max_x,max_z} }. Selectable + resizable like real regions.</summary>

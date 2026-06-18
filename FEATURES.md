@@ -65,9 +65,15 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 - **Canvas interaction controllers** — `EditorCanvas` delegates every interaction mode to plain
   controllers (state-accessor closures + callbacks; the canvas forwards its `CanvasBase` hooks):
   `EditorDrawController` (draw), `EditorEditController` (8-handle resize + arrow-key move), and
-  `EditorSelectController` (click-select modes: region / island / spawn-pick, each a registered picker —
-  so `_onCanvasClick` is one dispatch, not an `if`-chain). The shared abstraction the S2 sketch port
+  `EditorSelectController` (click-select modes: region / island, each a registered picker — so
+  `_onCanvasClick` is one dispatch, not an `if`-chain). The shared abstraction the S2 sketch port
   reuses. §5. (CV4, CV5)
+- **Unified intent primitives + forgiving select** — Configure renders all intent geometry as one kind of
+  thing: dummy regions in `#nodeMap` (protection rectangles *and* spawn points), picked by the single
+  `#hitTest`. That picker gained a **2-block margin** (smallest containing region, else nearest within 2
+  blocks) so 1-block primitives (points/spawns) are forgiving to click everywhere. The bespoke spawn path
+  — `#hitTestSpawn`, the `#authorSpawns` marker layer, `setAuthorSpawns`, the `spawn` select mode,
+  `onSpawnPick` — is gone. §2.
 
 ## Backend / API (B)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)
