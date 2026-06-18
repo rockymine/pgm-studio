@@ -6,25 +6,21 @@
  *   "islands"  — block pixels + island polygon outlines (step 2)
  *   "symmetry" — island outlines + symmetry axis + center point (step 3)
  *
- * No pan/zoom in this canvas — the image fills the viewport and is scaled
- * via SVG viewBox to fit the bounding box. Keeps the wizard feeling like a
+ * A fixed-fit preview (extends StaticSvgRenderer): no pan/zoom — the image fills
+ * the viewport and is scaled via the bbox transform. Keeps the wizard feeling like a
  * read-only preview rather than an interactive editor.
  */
 
-import { buildTransform } from "../geometry/transform.js";
 import { svgEl, polyToPath } from "../render/svg.js";
 import { renderBlockImage } from "../render/block-render.js";
 import { renderSymmetryOverlay } from "../render/symmetry-render.js";
+import { StaticSvgRenderer } from "./static-renderer.js";
 
 const ISLAND_INCLUDED_COLOR = "var(--canvas-result-fill)";   // indigo-500
 const ISLAND_EXCLUDED_COLOR = "var(--canvas-island)";        // gray-500
 const ISLAND_STROKE_WIDTH   = 1.5;
 
-export class ConfigureRenderer {
-  #svg;
-  #wrap;
-  #bbox      = null;
-  #toSvg     = null;
+export class ConfigureRenderer extends StaticSvgRenderer {
   #mode      = "layer";   // "layer" | "islands" | "symmetry"
 
   #blockData    = null;
@@ -37,39 +33,34 @@ export class ConfigureRenderer {
   #islandLayerEl   = null;
   #symmetryLayerEl = null;
 
-  constructor(svgEl_, wrapEl) {
-    this.#svg  = svgEl_;
-    this.#wrap = wrapEl;
-  }
-
   /** @param {"layer"|"islands"|"symmetry"} mode */
   setMode(mode) {
     this.#mode = mode;
-    this.#rebuild();
+    this._build();
   }
 
   /** @param {{min_x,min_z,max_x,max_z}} bbox */
   setBounds(bbox) {
-    this.#bbox = bbox;
-    this.#rebuild();
+    this._bbox = bbox;
+    this._build();
   }
 
   /** Block pixel data from /api/map/<name>/layers/top-surface */
   loadBlockLayer(data) {
     this.#blockData = data;
-    if (!this.#bbox) {
-      this.#bbox = {
+    if (!this._bbox) {
+      this._bbox = {
         min_x: data.min_x, min_z: data.min_z,
         max_x: data.max_x, max_z: data.max_z,
       };
     }
-    this.#rebuild();
+    this._build();
   }
 
   /** Islands array from /api/map/<name>/islands */
   loadIslands(islands) {
     this.#islandsData = islands;
-    this.#rebuild();
+    this._build();
   }
 
   /** Set which island IDs are excluded (shown dimmed) */
@@ -103,33 +94,18 @@ export class ConfigureRenderer {
     this.#renderSymmetry();
   }
 
-  resize() {
-    if (this.#bbox) this.#rebuild();
-  }
-
   // ── private ──────────────────────────────────────────────────────────────
 
-  #rebuild() {
-    while (this.#svg.firstChild) this.#svg.removeChild(this.#svg.firstChild);
-    if (!this.#bbox) return;
+  _build() {
+    const viewport = this._resetViewport();
+    if (!viewport) return;
 
-    const W = this.#wrap.clientWidth  || 400;
-    const H = this.#wrap.clientHeight || 400;
-    this.#svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    this.#svg.setAttribute("width",   W);
-    this.#svg.setAttribute("height",  H);
-
-    this.#toSvg = buildTransform(this.#bbox, W, H);
-
-    const viewport = svgEl("g");
     this.#blockLayerEl    = svgEl("g");
     this.#islandLayerEl   = svgEl("g");
     this.#symmetryLayerEl = svgEl("g");
-
     viewport.appendChild(this.#blockLayerEl);
     viewport.appendChild(this.#islandLayerEl);
     viewport.appendChild(this.#symmetryLayerEl);
-    this.#svg.appendChild(viewport);
 
     if (this.#mode === "layer" || this.#mode === "islands") {
       if (this.#blockData) this.#renderBlocks();
@@ -143,11 +119,11 @@ export class ConfigureRenderer {
   }
 
   #renderBlocks() {
-    renderBlockImage(this.#blockLayerEl, this.#blockData, this.#toSvg);
+    renderBlockImage(this.#blockLayerEl, this.#blockData, this._toSvg);
   }
 
   #renderIslands() {
-    if (!this.#islandLayerEl || !this.#toSvg || !this.#islandsData) return;
+    if (!this.#islandLayerEl || !this._toSvg || !this.#islandsData) return;
     while (this.#islandLayerEl.firstChild)
       this.#islandLayerEl.removeChild(this.#islandLayerEl.firstChild);
 
@@ -158,7 +134,7 @@ export class ConfigureRenderer {
       const poly     = island.polygon;
       if (!poly?.coordinates?.length) continue;
 
-      const d = polyToPath({ exterior: poly.coordinates[0], holes: poly.coordinates.slice(1) }, this.#toSvg);
+      const d = polyToPath({ exterior: poly.coordinates[0], holes: poly.coordinates.slice(1) }, this._toSvg);
       const path = svgEl("path");
       path.setAttribute("d",             d);
       path.setAttribute("fill-rule",     "evenodd");
@@ -172,9 +148,9 @@ export class ConfigureRenderer {
   }
 
   #renderSymmetry() {
-    if (!this.#symmetryLayerEl || !this.#toSvg) return;
+    if (!this.#symmetryLayerEl || !this._toSvg) return;
     const sym  = this.#symmetryData;
     const type = sym ? (sym._override_type ?? sym.primary?.type ?? null) : null;
-    renderSymmetryOverlay(this.#symmetryLayerEl, type, sym?.center?.cx, sym?.center?.cz, this.#bbox, this.#toSvg);
+    renderSymmetryOverlay(this.#symmetryLayerEl, type, sym?.center?.cx, sym?.center?.cz, this._bbox, this._toSvg);
   }
 }
