@@ -63,6 +63,24 @@
 
         <section class="panel-section">
           <div class="section-header section-header--ruled">
+            <h2 class="section-title">Sketch from scratch</h2>
+            <span class="badge badge--success">no world needed</span>
+          </div>
+          <p class="section-desc">Draw the island layout in 2-D — shapes, symmetry, mirror — and the
+            studio builds the world geometry for you, then continues to Configure.</p>
+          <div class="field">
+            <label class="field-label">Map name</label>
+            <input class="field-input" @bind="sketchName" @bind:event="oninput" placeholder="My CTW Map" />
+          </div>
+          <div class="section-footer">
+            <button class="action-btn action-btn--primary" @onclick="CreateSketch" disabled="@creatingSketch">
+              <i data-lucide="pencil-ruler"></i> Start sketching
+            </button>
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-header section-header--ruled">
             <h2 class="section-title">From a download link</h2>
             <span class="badge badge--dim">Coming soon</span>
           </div>

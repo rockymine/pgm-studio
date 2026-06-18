@@ -16,6 +16,9 @@ public partial class SketchEditor
     private string tool = "move";
     private string op = "add";
     private string mode = "rot_180";
+    private double size = 512;      // working bounds = a `size`-square centred at the origin
+    private double centerX = 0;     // symmetry centre
+    private double centerZ = 0;
     private bool mirrorOn = true;
     private bool shapesOn = false;
     private bool chunksOn = true;
@@ -41,12 +44,19 @@ public partial class SketchEditor
         {
             var state = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/sketch");
             await handle.InvokeVoidAsync("load", state);
-            // Sync the toolbar mode select with the loaded setup (the canvas already uses it).
+            // Sync the Setup controls with the loaded setup (the canvas already uses it).
             if (state.ValueKind == JsonValueKind.Object && state.TryGetProperty("setup", out var su)
-                && su.ValueKind == JsonValueKind.Object && su.TryGetProperty("mirror_mode", out var mm)
-                && mm.ValueKind == JsonValueKind.String && mm.GetString() is { Length: > 0 } m)
+                && su.ValueKind == JsonValueKind.Object)
             {
-                mode = m;
+                if (su.TryGetProperty("mirror_mode", out var mm) && mm.GetString() is { Length: > 0 } m) mode = m;
+                if (su.TryGetProperty("bbox", out var bb) && bb.ValueKind == JsonValueKind.Object
+                    && bb.TryGetProperty("min_x", out var mnx) && bb.TryGetProperty("max_x", out var mxx))
+                    size = mxx.GetDouble() - mnx.GetDouble();
+                if (su.TryGetProperty("center", out var ce) && ce.ValueKind == JsonValueKind.Object)
+                {
+                    if (ce.TryGetProperty("cx", out var cxv)) centerX = cxv.GetDouble();
+                    if (ce.TryGetProperty("cz", out var czv)) centerZ = czv.GetDouble();
+                }
                 StateHasChanged();
             }
         }
@@ -69,6 +79,29 @@ public partial class SketchEditor
     {
         mode = e.Value?.ToString() ?? "rot_180";
         if (handle is not null) await handle.InvokeVoidAsync("setMode", mode);
+    }
+
+    private async Task OnSizeChange(ChangeEventArgs e)
+    {
+        if (!double.TryParse(e.Value?.ToString(), out var s) || s < 16) return;
+        size = s;
+        var half = s / 2;
+        if (handle is not null)
+            await handle.InvokeVoidAsync("setBbox", new { min_x = -half, max_x = half, min_z = -half, max_z = half });
+    }
+
+    private async Task OnCenterXChange(ChangeEventArgs e)
+    {
+        if (!double.TryParse(e.Value?.ToString(), out var v)) return;
+        centerX = v;
+        if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
+    }
+
+    private async Task OnCenterZChange(ChangeEventArgs e)
+    {
+        if (!double.TryParse(e.Value?.ToString(), out var v)) return;
+        centerZ = v;
+        if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
     }
 
     private async Task ToggleMirror()

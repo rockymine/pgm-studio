@@ -137,9 +137,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
   return {
     setTool(tool)      { canvas.setActiveTool(tool === "select" ? "select" : tool); },
     setOperation(op)   { canvas.setOperation(op); },
-    setMode(mode)      { applySetup({ mirror_mode: mode }); },
-    setCenter(cx, cz)  { applySetup({ center: { cx, cz } }); },
-    setBbox(b)         { applySetup({ bbox: b }); },
+    setMode(mode)      { applySetup({ mirror_mode: mode }); markDirty(); },
+    setCenter(cx, cz)  { applySetup({ center: { cx, cz } }); markDirty(); },
+    setBbox(b)         { applySetup({ bbox: b }); markDirty(); },
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },

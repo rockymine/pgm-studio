@@ -176,8 +176,11 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   /api/map/{slug}/sketch`; debounced save + load-on-mount; 4 integration tests),
   S2e finish/rasterize (`SketchRasterizer` + `WorldFeatureWriter.WriteSketchAsync` +
   `POST .../sketch/finish` + the Finish button → the sketch rasterizes into the importer's geometry
-  artifacts and flows into Configure; 6 rasterizer tests). **The Sketch → Configure → Edit loop is
-  closed.** **Remaining:** the `/maps/new` Sketch create-entry + the Setup/Overview wizard steps (UI);
+  artifacts and flows into Configure; 6 rasterizer tests), the `/maps/new` "Sketch from scratch" entry
+  + the in-editor Setup panel (size/symmetry/centre). The sketch tool itself is complete (originate →
+  Setup → draw → Finish). (Overview = Configure's Map Info, not a duplicated sketch step.) **Remaining:**
+  end-to-end verification of a sketched map *through* the Configure wizard → Edit (depends on the N-series
+  Configure flow);
   **S2d** `SketchLayoutJson` `ArtifactKind` + the `/api/.../sketch/*` endpoints (load/save) ·
   **S2e** server rasterize/finish (reuse `IslandDetector` + `Geometry2d` + a `WorldFeatureWriter`
   sibling). Completes M8. (`AuthorDisplay` from C12 is reused here.)

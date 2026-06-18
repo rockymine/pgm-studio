@@ -31,8 +31,36 @@
   <div id="main" class="app-body">
     <div class="activity-viewport">
       <div class="workspace">
-        <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
-                     OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Setup</h2></div>
+              <div class="field">
+                <label class="field-label">Working size (blocks)</label>
+                <input class="field-input" type="number" min="32" step="16" value="@size" @onchange="OnSizeChange" />
+              </div>
+              <div class="field">
+                <label class="field-label">Symmetry</label>
+                <select class="field-input" value="@mode" @onchange="OnModeChange">
+                  <option value="mirror_x">Mirror X</option>
+                  <option value="mirror_z">Mirror Z</option>
+                  <option value="rot_180">Rotate 180°</option>
+                  <option value="rot_90">Rotate 90°</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Symmetry centre X</label>
+                <input class="field-input" type="number" value="@centerX" @onchange="OnCenterXChange" />
+              </div>
+              <div class="field">
+                <label class="field-label">Symmetry centre Z</label>
+                <input class="field-input" type="number" value="@centerZ" @onchange="OnCenterZChange" />
+              </div>
+            </section>
+            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
+                         OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+          </div>
+        </div>
         <div class="sidebar-handle"></div>
         <div class="workspace-canvas">
           <div class="canvas-subbar">
@@ -56,12 +84,6 @@
             </div>
             <div @ref="coordsRef" class="canvas-cursor"></div>
             <div class="canvas-subbar-right">
-              <select class="field-input" title="Symmetry mode for the mirror preview" value="@mode" @onchange="OnModeChange">
-                <option value="mirror_x">Mirror X</option>
-                <option value="mirror_z">Mirror Z</option>
-                <option value="rot_180">Rotate 180°</option>
-                <option value="rot_90">Rotate 90°</option>
-              </select>
               <button class="filter-chip @(mirrorOn ? "filter-chip--active" : null)" title="Show the mirrored copies"
                       @onclick="ToggleMirror">Mirror</button>
               <button class="filter-chip @(shapesOn ? "filter-chip--active" : null)" title="Show the draw primitives over the islands"

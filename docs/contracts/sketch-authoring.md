@@ -202,6 +202,13 @@ Result: the draft map now has the exact geometry artifacts a scanned/imported ma
   (rect/subtract/mirror/circle/polygon/empty; 37/37 Pgm tests), curl (finish 200 + islands/layer
   written + 422 guard), and an in-browser Finish → Configure handoff (the sketched map opens in the
   wizard with its geometry).
+- **S2 origination + Setup** ✅ **landed**: a "Sketch from scratch" entry on `/maps/new` (name → `POST
+  /api/sketch` → `/maps/{slug}/sketch`), and a **Setup** section in the sketch sidebar (working size →
+  bbox, symmetry mode, symmetry centre X/Z — driving the canvas + persisted). **Overview is *not* a
+  separate sketch step**: identity (name/version/objective/authors) is owned by Configure's Map Info
+  (version/objective are auto-derived there), so the sketch only sets the **name** at creation —
+  duplicating Configure's Map Info was deliberately avoided. **S2 is feature-complete**: originate →
+  Setup → draw (live islands + mirror) → Finish → Configure → Edit.
 
 ## 6. Decisions & trade-offs (settle before building)
 

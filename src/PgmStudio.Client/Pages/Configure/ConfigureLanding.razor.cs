@@ -27,6 +27,31 @@ public partial class ConfigureLanding : IAsyncDisposable
     private bool importing;
     private string? error;
 
+    // Sketch-from-scratch origination: create a draft map, then enter the sketch editor.
+    private string sketchName = "";
+    private bool creatingSketch;
+
+    private async Task CreateSketch()
+    {
+        creatingSketch = true;
+        error = null;
+        try
+        {
+            var name = string.IsNullOrWhiteSpace(sketchName) ? "Untitled sketch" : sketchName.Trim();
+            var resp = await Http.PostAsJsonAsync("api/sketch", new { name });
+            var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
+            if (created.TryGetProperty("slug", out var s) && s.GetString() is { } slug)
+            {
+                Nav.NavigateTo($"/maps/{slug}/sketch");
+                return;
+            }
+            error = "Could not create the sketch.";
+        }
+        catch { error = "Could not create the sketch."; }
+        creatingSketch = false;
+        StateHasChanged();
+    }
+
     // Found brief — the scan (import-folder) returns the world-feature counts; symmetry is fetched after.
     private string? importedSlug;   // the map slug the scan created (canvas + endpoints + Start)
     private int woolBlocks, resourceBlocks, chestItems, spawnerBlocks, monumentCandidates, islandCount;
