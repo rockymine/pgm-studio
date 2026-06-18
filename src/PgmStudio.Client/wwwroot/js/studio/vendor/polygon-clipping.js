@@ -1,6 +1,6 @@
-// polygon-clipping v0.15 — VENDORED self-contained ESM bundle (Boolean ops on polygons:
+// polygon-clipping v0.15.7 (MIT) — VENDORED self-contained ESM bundle (Boolean ops on polygons:
 // union / intersection / difference / xor). Used by geometry/boolean.js for live sketch
-// island computation. Bundled with esbuild (deps splaytree + robust-predicates inlined) so it
+// island computation. Bundled with esbuild (deps splaytree 3.2.3 + robust-predicates 3.0.3 inlined) so it
 // loads as a plain ES module in the hosted-WASM app — no importmap, no bundler, no node_modules.
 // Regenerate: echo 'export { default } from "polygon-clipping";' > e.mjs &&
 //   esbuild e.mjs --bundle --format=esm --platform=browser --outfile=vendor/polygon-clipping.js
