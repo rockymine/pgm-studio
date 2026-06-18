@@ -53,16 +53,9 @@ import { pointInRing } from "../geometry/polygon.js";
 import { renderShape } from "../render/shape-render.js";
 import { renderSymmetryOverlay } from "../render/symmetry-render.js";
 import { renderBlockImage } from "../render/block-render.js";
+import { geojsonToSimplified } from "../geometry/islands.js";
 
 const COMPOSITE_TYPES = new Set(["union", "intersect", "negative", "complement"]);
-
-function geojsonToSimplified(polygon) {
-  if (!polygon?.coordinates?.length) return null;
-  return {
-    exterior: polygon.coordinates[0] || [],
-    holes:    polygon.coordinates.slice(1),
-  };
-}
 
 export class EditorCanvas extends CanvasBase {
   #ctx    = null;

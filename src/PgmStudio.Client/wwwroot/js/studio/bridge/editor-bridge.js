@@ -4,21 +4,11 @@
 //   (load / setTool / setSelection / resize). Selection + cursor + zoom call back into C#.
 import { EditorCanvas } from "../canvas/editor-canvas.js";
 import { fetchJson } from "./fetch-json.js";
+import { normalizeIslands } from "../geometry/islands.js";
 
 // Set-operation / transform region types — excluded from the category filter; their primitive children
 // carry the category and render on their own.
 const COMPOUND_TYPES = new Set(["union", "complement", "negative", "intersect", "mirror", "translate"]);
-
-function geojsonToSimplified(polygon) {
-  if (!polygon?.coordinates?.length) return null;
-  return { exterior: polygon.coordinates[0] || [], holes: polygon.coordinates.slice(1) };
-}
-function normalizeIslands(islands) {
-  return (islands ?? []).map(isl => ({
-    ...isl,
-    simplified_polygon: isl.simplified_polygon ?? geojsonToSimplified(isl.polygon),
-  }));
-}
 
 /** Create an EditorCanvas on the given elements, load the map, and return a handle.
  *  Cursor/zoom labels are updated in JS (per-mousemove, hot path); only selection calls C#.

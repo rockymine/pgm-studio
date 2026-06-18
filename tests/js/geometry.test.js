@@ -8,6 +8,8 @@ import { pointInRing, rasterisePolygon, clipHalfPlane } from "../../src/PgmStudi
 import { applySymmetry, applySymmetryToBounds } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/symmetry.js";
 import { blockToExtentBounds, drawnBoundsFromBlocks, regionToBounds2d, sketchShapeToPgmRegion }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/region-convert.js";
+import { geojsonToSimplified, normalizeIslands }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/islands.js";
 
 // ── transform.js ──────────────────────────────────────────────────────────────
 test("buildTransform maps corners and centre (PAD=20)", () => {
@@ -97,4 +99,25 @@ test("sketchShapeToPgmRegion", () => {
   assert.deepEqual(sketchShapeToPgmRegion({ type: "circle", center_x: 1, center_z: 1, radius: 3 }),
     { type: "circle", center_x: 1, center_z: 1, radius: 3 });
   assert.equal(sketchShapeToPgmRegion({ type: "polygon", vertices: [] }), null);
+});
+
+// ── islands.js ────────────────────────────────────────────────────────────────
+test("geojsonToSimplified splits exterior + holes", () => {
+  const poly = { coordinates: [[[0, 0], [4, 0], [4, 4]], [[1, 1], [2, 1], [2, 2]]] };
+  assert.deepEqual(geojsonToSimplified(poly), {
+    exterior: [[0, 0], [4, 0], [4, 4]],
+    holes:    [[[1, 1], [2, 1], [2, 2]]],
+  });
+  assert.equal(geojsonToSimplified(null), null);
+  assert.equal(geojsonToSimplified({ coordinates: [] }), null);
+});
+
+test("normalizeIslands derives simplified_polygon, preserving an existing one", () => {
+  const out = normalizeIslands([
+    { id: 1, polygon: { coordinates: [[[0, 0], [1, 0], [1, 1]]] } },
+    { id: 2, simplified_polygon: { exterior: [[9, 9]], holes: [] } },
+  ]);
+  assert.deepEqual(out[0].simplified_polygon, { exterior: [[0, 0], [1, 0], [1, 1]], holes: [] });
+  assert.deepEqual(out[1].simplified_polygon, { exterior: [[9, 9]], holes: [] });
+  assert.deepEqual(normalizeIslands(null), []);
 });
