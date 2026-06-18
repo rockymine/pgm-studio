@@ -1,21 +1,40 @@
 /**
- * EditorCanvas — SVG rendering engine for the editor activities.
- * Extends CanvasBase for shared pan/zoom/transform machinery.
+ * EditorCanvas — SVG rendering engine shared by the Edit page (/maps/{id}/edit) and the Configure
+ * wizard (/maps/{id}/configure). Extends CanvasBase for pan/zoom/transform + the drag FSM (via the
+ * _on* hooks below), and delegates every interaction mode to a plain controller:
+ *   EditorDrawController    new-region drawing (the draw tools)
+ *   EditorEditController    8-handle resize + arrow-key move of the selected region
+ *   EditorSelectController  click-select modes (region / island) — one registered picker each
  *
- * Public surface:
- *   render(ctx, groups)           full repaint + zoom reset
- *   refreshRegions(groups)        swap region layer without resetting zoom
- *   setSelectedRegions(ids)       highlight the given id set
- *   showAnchors(node)             highlight anchor blocks for focused region
- *   clearAnchors()                remove anchor highlights
- *   setBlocksVisible(v)           toggle block layer
- *   setPoisVisible(v)             toggle POI markers
- *   loadBlockLayer(data)          load top-surface block data
- *   addRegion(node)               add a region without repaint
- *   removeRegion(id)              remove a region
- *   setActiveTool(tool)           null | "move" | "rectangle" | "cylinder" | "circle" | "point" | "block"
- *   focusRegion(node)             pan+zoom to fit region in viewport
- *   resize()                      re-render at new dimensions (preserves zoom)
+ * Public surface (grouped; the studio-canvas.js bridge forwards the subset Blazor drives):
+ *   Render / lifecycle
+ *     render(ctx, groups)              full repaint + zoom reset
+ *     refreshRegions(groups)           swap the region layer without resetting zoom
+ *     refreshRegionBounds(id, bounds)  repaint one region after an inspector/move edit
+ *     resize()                         re-render at new dimensions (preserves zoom)
+ *   Selection / editing
+ *     setSelectedRegions(ids)          highlight the id set; shows resize anchors when exactly one
+ *                                      resizable region is selected
+ *     updateRegionBounds(node, bounds) live footprint update during a drag/resize (edit controller)
+ *     showAnchors(node) / clearAnchors()  8-handle resize anchors for the focused region
+ *     setActiveTool(tool)              null | "move" | "rectangle" | "cylinder" | "circle" | "point" | "block"
+ *     addRegion(node) / removeRegion(id) / renameNode(old,new)  mutate the region layer, no full repaint
+ *     setRegionVisible(id, v)          per-region show/hide
+ *     setAuthorRegions(nodes)          render intent-backed "dummy" regions (Configure spawns / protection)
+ *   Overlays / visibility
+ *     setBlocksVisible(v) / loadBlockLayer(data)               top-surface block overlay
+ *     connectBlocksToggle(cb,label,fetch) / autoLoadBlocks() / reloadBlocks()  block-toggle wiring
+ *     setPoisVisible(v) / setBuildVisible(v) / setResolvedMode(v)  layer toggles
+ *     setSymmetry(type, cx, cz)        symmetry axis/centre overlay
+ *   Islands
+ *     setIslandSelect(on)              switch the select controller to island mode
+ *     setSelectedIsland(id) / setExcludedIslands(ids) / setIslandTeams(map)  highlight / exclude / team-tint
+ *     fitIsland(id)                    pan+zoom to an island
+ *   Point pick
+ *     setPointPick(on)                 arm the point-drop tool (Configure spawn step)
+ *   View
+ *     focusRegion(node)                pan+zoom to fit a region
+ *     fitBounds(bbox) / resetView()    frame a box / reset to the full extent
  *
  * ctx shape: { bounding_box: {min_x,min_z,max_x,max_z}, islands: [...] }
  * groups shape: [{name, label, color, regions: [node, ...]}]
@@ -184,7 +203,7 @@ export class EditorCanvas extends CanvasBase {
 
   _onCanvasClick(e, svgPt) {
     if (!this.#toWorld) return;
-    // Region-select (default), island-select, or spawn-pick — the active mode owns its hit-test.
+    // Region-select (default) or island-select — the active mode owns its hit-test.
     this.#selectCtrl.click(this.#toWorld(svgPt.x, svgPt.y));
   }
 

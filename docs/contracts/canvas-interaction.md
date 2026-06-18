@@ -219,11 +219,12 @@ hooks.
 > on Edit (`CV1`), then extract the controller (`CV4`) so the extraction is a pure move with no
 > behaviour change to verify against.
 
-### 5.3 Mode controllers (select / island / symmetry / point)
-The three `_onCanvasClick` branches (`editor-canvas.js:173-183`) and the `_onToolMousedown`
-point-pick branch are mode logic. Fold each into a small controller (region-select owns `#hitTest`;
-island-select owns `#hitTestIsland`; spawn-pick owns `#hitTestSpawn`) so adding a mode no longer
-means adding an `if`. This is the broader "controller pattern" investigation — lower urgency than
+### 5.3 Mode controllers (select / island)
+The `_onCanvasClick` branches were mode logic. Each is now a registered picker on
+`EditorSelectController` (region-select owns `#hitTest`; island-select owns `#hitTestIsland`) so
+adding a mode no longer means adding an `if`. The former spawn-pick mode (and `#hitTestSpawn`) is
+gone — §2's unification turned spawns into point dummy regions picked by the one `#hitTest`. This is
+the broader "controller pattern" investigation — lower urgency than
 resize, but it is the abstraction the **S2 sketch port** needs anyway: `SketchDrawController` and
 `SketchEditController` slot into the same contract, so establishing it now means S2 plugs in instead
 of bolting on.
@@ -259,17 +260,20 @@ helper — small, low-risk, do alongside A4.
 ## 7. Pruning / realignment
 
 `EditorCanvas` exposes a large public surface the bridge never forwards — but per the resize/move
-work above, much of it is **essential-UX-not-yet-wired**, not dead. Triage:
+work above, much of it is **essential-UX-not-yet-wired**, not dead. Triage (status as landed):
 
-- **Wire (the resize/move/selection chain):** `showAnchors`, `clearAnchors`, `updateRegionBounds`,
-  `refreshRegionBounds` — needed by §3/§4. Add a `moveSelected` helper (§4).
+- **Wired (the resize/move/selection chain) — done:** `updateRegionBounds` is the edit
+  controller's live-drag `applyBounds`; `showAnchors`/`clearAnchors` fire from `setSelectedRegions`
+  when exactly one resizable region is selected; `refreshRegionBounds` is forwarded by the bridge
+  for inspector/move edits; `moveSelected` lives on `EditorEditController` and backs arrow-move.
 - **Keep, evaluate per feature as its UI lands:** `addRegion`, `removeRegion`, `renameNode`,
   `setRegionVisible`, `setBuildVisible`, `setResolvedMode`, `setPoisVisible`, `focusRegion`,
   `refreshRegions` — these back inspector edit / visibility / focus features that are still on the
   board (e.g. `C11`). Don't delete; wire when their feature is built.
-- **Realign the stale doc header** (`editor-canvas.js:5-18`) to match the actual exposed surface
-  once §3/§7 land.
-- **`#hitTestSpawn` decision:** keep (§2); move into the spawn-pick controller under §5.3.
+- **Doc header realigned — done:** the `editor-canvas.js` header now lists the full grouped surface
+  and the `CanvasBase` + three-controller delegation.
+- **`#hitTestSpawn`:** removed entirely by the §2 unification (spawns became point dummy regions);
+  the select controller now registers only `region` + `island`. No spawn-pick mode remains.
 
 Pruning here means *fixing the wiring + the doc to tell the truth*, not removing capability.
 

@@ -112,11 +112,6 @@ and the Configure wizard `/maps/{id}/configure`). Goal: wire up built-but-dead i
 (resize, move), collapse render duplication, and formalise the controller pattern — **without
 degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **CV7 — Prune / realign the public surface.** Wire the selection/bounds methods the resize+move
-  features need through the bridge; **keep** the not-yet-wired feature methods (`addRegion`,
-  `renameNode`, `focusRegion`, …) — they back unbuilt UI, don't delete. Update the stale
-  `editor-canvas.js` doc header to match the real exposed surface. Keep `#hitTestSpawn` (it picks
-  markers, not regions). (Contract §7.)
 - [ ] **CV8 — C# symmetry label/count helper.** Collapse `SymLabel` (identical in
   `WorldScanPhase`/`WorldSymmetryPhase`) + the suggested-team-count mapping
   (`WorldSymmetryPhase`/`TeamsPhase`/`SpawnPhase`) into one shared `SymmetryInfo`. The `SpawnPhase`
