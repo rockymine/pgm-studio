@@ -1,8 +1,86 @@
 @page "/"
-@inject Microsoft.AspNetCore.Components.NavigationManager Nav
+@layout EditorLayout
+@inject HttpClient Http
+@inject IJSRuntime JS
 
-@* Root redirect → /maps (the dashboard's canonical route; see docs/contracts/routing-and-ia.md). *@
+<PageTitle>PGM Studio</PageTitle>
 
-@code {
-    protected override void OnInitialized() => Nav.NavigateTo("maps", replace: true);
-}
+@* Landing — the studio entry. Three lifecycle cards (Sketch · Configure · Edit) over the staged map
+   collection: each opens the matching /maps?stage=… overview where a map can be started or resumed. *@
+
+<div class="editor-page">
+  <div class="topbar">
+    <span class="topbar-crumb">Map Studio</span>
+    <div class="topbar-right">
+      <ThemeToggle />
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="activity-viewport">
+      <div class="workspace">
+        <div class="workspace-scroll landing">
+          <header class="landing-hero">
+            <div class="activity-logo-box landing-logo">
+              <span class="activity-logo-pgm">pgm</span>
+              <span class="activity-logo-sub">STUDIO</span>
+            </div>
+            <h1 class="landing-title">Make a Capture-the-Wool map, end to end</h1>
+            <p class="landing-lead">Three stages, one map: <strong>sketch</strong> the islands,
+              <strong>configure</strong> the <code>map.xml</code>, then <strong>edit</strong> to refine.
+              Pick where to start — or pick up where you left off.</p>
+          </header>
+
+          <div class="card-grid landing-cards">
+            <a class="card card--action" href="maps?stage=sketch">
+              <div class="card-head">
+                <span class="card-icon"><i data-lucide="pencil-ruler"></i></span>
+                <span class="card-title">Sketch</span>
+              </div>
+              <p class="card-desc">Draw a new map's islands from nothing — shapes, symmetry and mirror —
+                and the studio builds the world.</p>
+              <span class="card-foot">
+                <span class="card-foot-count">@CountLabel(counts?.Sketch, "draft", "drafts")</span>
+                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
+              </span>
+            </a>
+
+            <a class="card card--action" href="maps?stage=configure">
+              <div class="card-head">
+                <span class="card-icon"><i data-lucide="settings-2"></i></span>
+                <span class="card-title">Configure</span>
+              </div>
+              <p class="card-desc">Turn a world that has terrain but no <code>map.xml</code> — sketched or
+                imported — into a playable map with the guided wizard.</p>
+              <span class="card-foot">
+                <span class="card-foot-count">@CountLabel(counts?.Configure, "in progress", "in progress")</span>
+                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
+              </span>
+            </a>
+
+            <a class="card card--action" href="maps">
+              <div class="card-head">
+                <span class="card-icon"><i data-lucide="map"></i></span>
+                <span class="card-title">Edit</span>
+              </div>
+              <p class="card-desc">Open a map that already has a <code>map.xml</code> and refine its regions,
+                teams, wools and objectives.</p>
+              <span class="card-foot">
+                <span class="card-foot-count">@CountLabel(counts?.Edit, "map", "maps")</span>
+                <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    <span class="app-footer-brand">PGM Map Studio</span>
+    <nav class="app-footer-links">
+      <a class="app-footer-link" href="concepts"><i data-lucide="sparkle"></i><span>Concepts</span></a>
+      <a class="app-footer-link" href="design"><i data-lucide="palette"></i><span>Design</span></a>
+    </nav>
+  </footer>
+</div>

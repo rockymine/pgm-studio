@@ -2,14 +2,21 @@
 @layout EditorLayout
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
-<PageTitle>PGM Studio — Maps</PageTitle>
+<PageTitle>PGM Studio — @StageTitle</PageTitle>
 
-@* Dashboard — studio-styled map list (no Bootstrap). Each row opens the editor at /maps/{slug}/edit. *@
+@* Staged map collection — one overview, scoped by ?stage=sketch|configure|edit (default edit). The
+   activity rail switches stage; each stage lists its maps with the matching resume target and a
+   stage-appropriate "start" action. Reached from the landing cards. *@
 
 <div class="editor-page">
   <div class="topbar">
-    <span class="topbar-crumb">Map Studio</span>
+    <a href="/" class="topbar-breadcrumb-home" title="Studio home">
+      <i data-lucide="house"></i><span>Studio</span>
+    </a>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-crumb topbar-crumb--dim">@StageTitle</span>
     <div class="topbar-right">
       <ThemeToggle />
     </div>
@@ -17,39 +24,87 @@
 
   <div class="app-body">
     <nav class="activity-rail">
-      <div class="activity-logo">
+      <a class="activity-logo" href="/" title="Studio home">
         <div class="activity-logo-box">
           <span class="activity-logo-pgm">pgm</span>
           <span class="activity-logo-sub">STUDIO</span>
         </div>
-      </div>
-      <button class="activity-btn active" title="Maps"><i data-lucide="map"></i></button>
+      </a>
+      <a class="activity-btn @(CurrentStage == MapStage.Sketch ? "active" : null)" href="maps?stage=sketch" title="Sketches"><i data-lucide="pencil-ruler"></i></a>
+      <a class="activity-btn @(CurrentStage == MapStage.Configure ? "active" : null)" href="maps?stage=configure" title="Configuring"><i data-lucide="settings-2"></i></a>
+      <a class="activity-btn @(CurrentStage == MapStage.Edit ? "active" : null)" href="maps" title="Maps"><i data-lucide="map"></i></a>
     </nav>
 
     <div class="activity-viewport">
       <div class="workspace">
         <div class="workspace-scroll" style="max-width: 960px;">
-          <section class="panel-section">
-            <div class="section-header section-header--ruled">
-              <h2 class="section-title">Maps</h2>
-              <span class="badge badge--dim">@(maps?.Count ?? 0)</span>
-              <a class="action-btn action-btn--primary" href="maps/new" style="margin-left: auto;">
-                <i data-lucide="plus"></i><span>New map</span>
+
+          @if (Just is not null && JustMap is not null)
+          {
+            <div class="callout">
+              <span class="callout-icon"><i data-lucide="check-circle-2"></i></span>
+              <p><strong>@JustMap.Name</strong> is rasterized and saved — ready to configure into a
+                playable <code>map.xml</code> whenever you are.</p>
+              <a class="action-btn action-btn--primary" href="@($"maps/{Just}/configure")" style="margin-left:auto;">
+                <i data-lucide="settings-2"></i><span>Continue to Configure</span>
               </a>
             </div>
-            <input class="field-input" placeholder="Search maps…" @bind="filter" @bind:event="oninput" />
+          }
+
+          <section class="panel-section">
+            <div class="section-header section-header--ruled">
+              <h2 class="section-title">@StageTitle</h2>
+              <span class="badge badge--dim">@(maps?.Count ?? 0)</span>
+
+              @if (CurrentStage == MapStage.Sketch)
+              {
+                <button class="action-btn action-btn--primary" style="margin-left:auto;" @onclick="ToggleNewSketch">
+                  <i data-lucide="plus"></i><span>New sketch</span>
+                </button>
+              }
+              else if (CurrentStage == MapStage.Configure)
+              {
+                <a class="action-btn action-btn--primary" href="maps/new" style="margin-left:auto;">
+                  <i data-lucide="import"></i><span>Import a world</span>
+                </a>
+              }
+            </div>
+
+            <p class="section-desc">@StageBlurb</p>
+
+            @if (CurrentStage == MapStage.Sketch && creatingSketch)
+            {
+              <div class="field">
+                <label class="field-label">Map name</label>
+                <div class="ctrl-row">
+                  <input class="field-input" @bind="sketchName" @bind:event="oninput" placeholder="My CTW Map"
+                         @onkeydown="@(e => { if (e.Key == "Enter") _ = CreateSketch(); })" />
+                  <button class="action-btn action-btn--primary" @onclick="CreateSketch" disabled="@busy">
+                    <i data-lucide="pencil-ruler"></i><span>Start sketching</span>
+                  </button>
+                </div>
+                @if (createError is not null) { <p class="field-error">@createError</p> }
+              </div>
+            }
+
+            <input class="field-input" placeholder="Search…" @bind="filter" @bind:event="oninput" style="margin-top: var(--space-3);" />
+
             <div class="panel-list" style="margin-top: var(--space-3);">
               @if (maps is null) { <div class="list-empty">Loading…</div> }
-              else if (!Filtered.Any()) { <div class="list-empty">No maps match.</div> }
+              else if (!Filtered.Any()) { <div class="list-empty">@EmptyMessage</div> }
               else
               {
                 @foreach (var m in Filtered)
                 {
-                  <a class="list-row" href="@($"maps/{m.Slug}/edit")">
+                  <a class="list-row @(m.Slug == Just ? "list-row--selected" : null)" href="@($"maps/{m.Slug}/{RowMode}")">
                     <span class="list-label list-label--mono">@m.Slug</span>
                     <span class="list-label">@m.Name</span>
-                    <span class="list-tag">@m.Gamemode</span>
-                    @if (!string.IsNullOrEmpty(m.Version)) { <span class="list-tag">@($"v{m.Version}")</span> }
+                    @if (CurrentStage == MapStage.Edit)
+                    {
+                      <span class="list-tag">@m.Gamemode</span>
+                      @if (!string.IsNullOrEmpty(m.Version)) { <span class="list-tag">@($"v{m.Version}")</span> }
+                    }
+                    <span class="list-go"><i data-lucide="arrow-right"></i></span>
                   </a>
                 }
               }
@@ -63,14 +118,9 @@
   <footer class="app-footer">
     <span class="app-footer-brand">PGM Map Studio</span>
     <nav class="app-footer-links">
-      <a class="app-footer-link" href="concepts">
-        <i data-lucide="sparkle"></i><span>Concepts</span>
-      </a>
-      <a class="app-footer-link" href="design">
-        <i data-lucide="palette"></i><span>Design</span>
-      </a>
+      <a class="app-footer-link" href="concepts"><i data-lucide="sparkle"></i><span>Concepts</span></a>
+      <a class="app-footer-link" href="design"><i data-lucide="palette"></i><span>Design</span></a>
       <a class="app-footer-link" href="https://github.com/rockymine/pgm-studio" target="_blank" rel="noopener noreferrer">
-        @* lucide dropped its brand icons, so inline the GitHub mark (currentColor = themed) *@
         <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
           <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 012-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"></path>
         </svg><span>GitHub</span>

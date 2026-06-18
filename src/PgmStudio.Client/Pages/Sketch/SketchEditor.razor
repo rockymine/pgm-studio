@@ -11,9 +11,9 @@
 
 <div class="editor-page">
   <div id="topbar" class="topbar">
-    <a href="/maps" class="topbar-breadcrumb-home" title="Back to dashboard">
+    <a href="maps?stage=sketch" class="topbar-breadcrumb-home" title="Back to sketches">
       <i data-lucide="house"></i>
-      <span>Maps</span>
+      <span>Sketches</span>
     </a>
     <span class="topbar-sep">›</span>
     <span class="topbar-crumb">@Slug.Replace('_', ' ')</span>
@@ -23,7 +23,7 @@
       @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
       <span class="topbar-crumb topbar-crumb--dim">@islandLabel</span>
       <button class="action-btn action-btn--primary" @onclick="Finish" disabled="@finishing"
-              title="Rasterize the sketch into a world and continue to Configure">Finish</button>
+              title="Rasterize the sketch into a world and save it, ready to configure">Finish</button>
       <ThemeToggle />
     </div>
   </div>

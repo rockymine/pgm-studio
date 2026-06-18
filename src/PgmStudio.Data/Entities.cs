@@ -15,6 +15,8 @@ public sealed class MapRow
     [Column("gamemode")] public string? Gamemode { get; set; }
     [Column("objective")] public string? Objective { get; set; }
     [Column("max_build_height")] public double? MaxBuildHeight { get; set; }
+    // Lifecycle stage: sketch | configure | edit (see Contracts.MapStage). Drives the staged dashboard.
+    [Column("stage"), NotNull] public string Stage { get; set; } = "edit";
     [Column("created_at")] public DateTime CreatedAt { get; set; }
     [Column("updated_at")] public DateTime UpdatedAt { get; set; }
 }

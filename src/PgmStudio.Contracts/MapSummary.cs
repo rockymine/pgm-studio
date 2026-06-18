@@ -6,4 +6,8 @@ public sealed record MapSummary(
     string Name,
     string? Gamemode,
     string? Version,
-    string? Objective);
+    string? Objective,
+    string Stage);
+
+/// <summary>Per-stage map counts for the dashboard landing cards (GET /api/maps/stage-counts).</summary>
+public sealed record MapStageCounts(int Sketch, int Configure, int Edit);

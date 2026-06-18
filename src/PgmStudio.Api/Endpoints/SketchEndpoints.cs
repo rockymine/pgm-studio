@@ -5,6 +5,7 @@ using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis;
+using PgmStudio.Contracts;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
 using PgmStudio.Pgm.Editing;
@@ -52,7 +53,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : Endpoin
 
         var slug = await UniqueSlugAsync(Slugify(name), ct);
         var now = DateTime.UtcNow;
-        var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", CreatedAt = now, UpdatedAt = now });
+        var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
         await SketchStore.SaveAsync(db, mapId, "{}"u8.ToArray(), ct);   // seed so GET works immediately
         await Send.OkAsync(new { slug }, ct);
     }
@@ -133,6 +134,7 @@ public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeat
         }
 
         await writer.WriteSketchAsync(map.Id, cells, islands, ct);
+        await repo.SetStageAsync(map.Id, MapStage.Configure, ct);   // the draft now has geometry → ready to configure
         await Send.OkAsync(new { slug = map.Slug, configureUrl = $"/maps/{map.Slug}/configure" }, ct);
     }
 }

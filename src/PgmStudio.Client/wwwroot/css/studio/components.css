@@ -965,3 +965,51 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 }
 .callout-icon { flex: none; margin-top: 1px; color: var(--accent-light); }
 .callout strong { color: var(--text-bright); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LANDING  (the studio entry — a hero over the three lifecycle cards)
+   ══════════════════════════════════════════════════════════════════════════ */
+.landing { max-width: 920px; margin: 0 auto; padding-top: var(--space-6); }
+
+.landing-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
+}
+.landing-logo { transform: scale(1.4); margin-bottom: var(--space-3); }
+.landing-title {
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-bright);
+}
+.landing-lead {
+  max-width: 56ch;
+  font-size: var(--font-lg);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.landing-cards { margin-top: var(--space-4); }
+
+/* A card that is itself a link to an editor surface — fills its grid cell, no underline. */
+.card--action { text-decoration: none; cursor: pointer; height: 100%; }
+.card-foot {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-sm);
+}
+.card-foot-count { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.card-foot-go { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-light); }
+.card-foot-go svg { width: 14px; height: 14px; transition: transform 0.12s ease; }
+.card--action:hover .card-foot-go svg { transform: translateX(3px); }
+
+/* Trailing arrow on a navigable list row — muted, brightens with the row. */
+.list-go { flex: none; display: inline-flex; color: var(--text-muted); opacity: 0; transition: opacity 0.12s ease; }
+.list-go svg { width: 16px; height: 16px; }
+.list-row:hover .list-go { opacity: 1; color: var(--accent-light); }

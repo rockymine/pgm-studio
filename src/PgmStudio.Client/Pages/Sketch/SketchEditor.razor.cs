@@ -223,7 +223,9 @@ public partial class SketchEditor
             var resp = await Http.PostAsync($"api/map/{Slug}/sketch/finish", null);
             if (resp.IsSuccessStatusCode)
             {
-                Nav.NavigateTo($"/maps/{Slug}/configure");
+                // Land back on the Configure overview (the draft is now a configure-stage map) and offer to
+                // continue into the wizard there — rather than force-marching straight into it.
+                Nav.NavigateTo($"maps?stage=configure&just={Slug}");
                 return;
             }
             var err = await resp.Content.ReadFromJsonAsync<JsonElement>();

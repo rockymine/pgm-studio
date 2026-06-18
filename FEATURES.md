@@ -20,10 +20,17 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 
 ## App shell & routing
 - **Map-centric URL structure** — the map is the path resource, the mode a trailing segment. Live:
-  dashboard `/maps` (`/` redirects there), **Edit** `/maps/{id}/edit`, concept showcase `/concepts`,
-  design system `/design`. Reserved for the authoring / sketch work: **Configure** `/maps/{id}/configure`
-  + `/maps/new` (TODO `NS` / `S2`). Slugs are the on-disk map dir; query params hold view state only.
-  Contract: `docs/contracts/routing-and-ia.md`.
+  dashboard `/maps`, **Edit** `/maps/{id}/edit`, **Configure** `/maps/{id}/configure`, **Sketch**
+  `/maps/{id}/sketch`, origination `/maps/new`, concept showcase `/concepts`, design system `/design`.
+  Slugs are the on-disk map dir; query params hold view state only. Contract:
+  `docs/contracts/routing-and-ia.md`.
+- **Landing + staged dashboard** — `/` is a landing of three lifecycle cards (Sketch · Configure ·
+  Edit) with live `stage-counts`; `/maps?stage=sketch|configure|edit` (default edit) is one staged
+  overview (`Home.razor`) whose activity rail switches stage and whose primary action + resume target
+  follow the stage. Backed by `map.stage` (`MapStage`, migration `M0004` + backfill), `GET
+  /api/maps?stage=`, `GET /api/maps/stage-counts`; stage seeded/advanced at sketch-create, import, and
+  sketch-finish. Editor home breadcrumbs return to the matching overview; sketch-finish lands on the
+  Configure overview with a *Continue* offer rather than force-navigating into the wizard.
 
 ## Editor shell & activities (M6)
 - **Editor shell** — topbar + activity rail + activity-switch state machine. (E1)

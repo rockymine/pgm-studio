@@ -21,6 +21,20 @@ public sealed class MapRepository(PgmDb db)
     public Task<List<MapRow>> ListAsync(CancellationToken ct = default)
         => db.Maps.OrderBy(m => m.Slug).ToListAsync(ct);
 
+    /// <summary>Maps in one lifecycle stage (sketch | configure | edit), most recently touched first.</summary>
+    public Task<List<MapRow>> ListByStageAsync(string stage, CancellationToken ct = default)
+        => db.Maps.Where(m => m.Stage == stage).OrderByDescending(m => m.UpdatedAt).ThenBy(m => m.Slug).ToListAsync(ct);
+
+    /// <summary>Map count per lifecycle stage (for the dashboard landing cards).</summary>
+    public async Task<Dictionary<string, int>> StageCountsAsync(CancellationToken ct = default)
+        => (await db.Maps.GroupBy(m => m.Stage).Select(g => new { Stage = g.Key, Count = g.Count() }).ToListAsync(ct))
+            .ToDictionary(x => x.Stage, x => x.Count);
+
+    /// <summary>Advance (or set) a map's lifecycle stage.</summary>
+    public Task<int> SetStageAsync(long mapId, string stage, CancellationToken ct = default)
+        => db.Maps.Where(m => m.Id == mapId)
+            .Set(m => m.Stage, stage).Set(m => m.UpdatedAt, DateTime.UtcNow).UpdateAsync(ct);
+
     public Task<List<TeamRow>> TeamsForMapAsync(long mapId, CancellationToken ct = default)
         => db.Teams.Where(t => t.MapId == mapId).OrderBy(t => t.Id).ToListAsync(ct);
 

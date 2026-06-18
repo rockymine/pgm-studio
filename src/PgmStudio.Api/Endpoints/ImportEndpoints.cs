@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using FastEndpoints;
 using PgmStudio.Api.Services;
+using PgmStudio.Contracts;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
 
@@ -71,7 +72,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
             if (mca == 0) { TryDeleteDir(slugDir); await Fail(422, "archive has no region/*.mca", ct); return; }
 
             // ── 6. create record + scan into MariaDB ──
-            mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw" });
+            mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw", Stage = MapStage.Configure });
             var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
 
             await Send.OkAsync(new Dict
@@ -235,7 +236,7 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
         long? mapId = null;
         try
         {
-            mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw" });
+            mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw", Stage = MapStage.Configure });
             var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
             await Send.OkAsync(new Dict
             {
