@@ -30,6 +30,8 @@ import { EditorSelectController } from "./editor-select-controller.js";
 import { chatColorHex, dyeColorHex } from "../shared/game-colors.js";
 import { blockToExtentBounds } from "../shared/converters.js";
 import { renderShape } from "../shared/shape-render.js";
+import { renderSymmetryOverlay } from "../shared/symmetry-render.js";
+import { blockDataToDataUrl } from "../shared/block-render.js";
 
 const COMPOSITE_TYPES = new Set(["union", "intersect", "negative", "complement"]);
 
@@ -610,26 +612,11 @@ export class EditorCanvas extends CanvasBase {
   }
 
   #renderBlockImage(g) {
-    const { xs, zs, colors, min_x, min_z, max_x, max_z } = this.#blockData;
-    const imgW = max_x - min_x + 1;
-    const imgH = max_z - min_z + 1;
-    const offscreen = document.createElement("canvas");
-    offscreen.width  = imgW;
-    offscreen.height = imgH;
-    const ctx2d  = offscreen.getContext("2d");
-    const pixels = ctx2d.createImageData(imgW, imgH);
-    const data   = pixels.data;
-    for (let i = 0; i < xs.length; i++) {
-      const rgb = parseInt(colors[i].slice(1), 16);
-      const idx = ((zs[i] - min_z) * imgW + (xs[i] - min_x)) * 4;
-      data[idx] = (rgb >> 16) & 0xff; data[idx+1] = (rgb >> 8) & 0xff;
-      data[idx+2] = rgb & 0xff;       data[idx+3] = 255;
-    }
-    ctx2d.putImageData(pixels, 0, 0);
+    const { min_x, min_z, max_x, max_z } = this.#blockData;
     const p1 = this.#toSvg(min_x,     min_z);
     const p2 = this.#toSvg(max_x + 1, max_z + 1);
     const img = svgEl("image");
-    img.setAttribute("href",   offscreen.toDataURL("image/png"));
+    img.setAttribute("href",   blockDataToDataUrl(this.#blockData));
     img.setAttribute("x",      Math.min(p1.x, p2.x));
     img.setAttribute("y",      Math.min(p1.y, p2.y));
     img.setAttribute("width",  Math.abs(p2.x - p1.x));
@@ -708,29 +695,8 @@ export class EditorCanvas extends CanvasBase {
   // mirror_x / rot_90 → vertical axis at cx; mirror_z / rot_90 / rot_180 → horizontal axis at cz;
   // mirror_d1 / mirror_d2 → a diagonal through the centre. Always a centre dot.
   #renderSymmetry() {
-    const g = this.#symmetryLayerEl;
-    if (!g) return;
-    while (g.firstChild) g.removeChild(g.firstChild);
-    const bbox = this.#ctx?.bounding_box;
-    if (!this.#symType || !bbox || !this.#toSvg) return;
-    const cx = this.#symCx, cz = this.#symCz, t = this.#symType;
-    const axis = (x1, z1, x2, z2) => {
-      const a = this.#toSvg(x1, z1), b = this.#toSvg(x2, z2);
-      g.appendChild(svgEl("line", {
-        x1: a.x, y1: a.y, x2: b.x, y2: b.y,
-        stroke: "var(--canvas-symmetry)", "stroke-width": "1.5", "stroke-dasharray": "6 3", opacity: 0.8,
-      }));
-    };
-    const span = Math.max(bbox.max_x - bbox.min_x, bbox.max_z - bbox.min_z) + 20;
-    if (t === "mirror_x" || t === "rot_90") axis(cx, bbox.min_z - 10, cx, bbox.max_z + 10);
-    if (t === "mirror_z" || t === "rot_90" || t === "rot_180") axis(bbox.min_x - 10, cz, bbox.max_x + 10, cz);
-    if (t === "mirror_d1") axis(cx - span, cz - span, cx + span, cz + span);
-    if (t === "mirror_d2") axis(cx - span, cz + span, cx + span, cz - span);
-    const p = this.#toSvg(cx, cz);
-    g.appendChild(svgEl("circle", {
-      cx: p.x, cy: p.y, r: 5,
-      fill: "var(--canvas-symmetry)", stroke: "var(--canvas-marker-stroke)", "stroke-width": "1.5", opacity: 0.9,
-    }));
+    renderSymmetryOverlay(this.#symmetryLayerEl, this.#symType, this.#symCx, this.#symCz,
+      this.#ctx?.bounding_box, this.#toSvg);
   }
 
   /** Show the symmetry overlay for the given type + centre (type null clears it). */

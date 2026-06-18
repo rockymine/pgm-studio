@@ -3,6 +3,7 @@
 //   window.studioCanvas.mount(svgEl, wrapEl, dotnetRef, slug) → a handle Blazor calls
 //   (load / setTool / setSelection / resize). Selection + cursor + zoom call back into C#.
 import { EditorCanvas } from "./canvas/editor-canvas.js";
+import { fetchJson } from "./shared/fetch-json.js";
 
 // Set-operation / transform region types — excluded from the category filter; their primitive children
 // carry the category and render on their own.
@@ -17,13 +18,6 @@ function normalizeIslands(islands) {
     ...isl,
     simplified_polygon: isl.simplified_polygon ?? geojsonToSimplified(isl.polygon),
   }));
-}
-
-async function fetchJson(url) {
-  const r = await fetch(url, { cache: "no-store" });
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error(`${url} → ${r.status}`);
-  return r.json();
 }
 
 /** Create an EditorCanvas on the given elements, load the map, and return a handle.

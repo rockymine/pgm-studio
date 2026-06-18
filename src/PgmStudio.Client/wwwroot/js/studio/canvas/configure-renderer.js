@@ -11,14 +11,13 @@
  * read-only preview rather than an interactive editor.
  */
 
-import { buildTransform, svgEl } from "./transform.js";
+import { buildTransform, svgEl, polyToPath } from "./transform.js";
 import { blockDataToDataUrl } from "../shared/block-render.js";
+import { renderSymmetryOverlay } from "../shared/symmetry-render.js";
 
 const ISLAND_INCLUDED_COLOR = "var(--canvas-result-fill)";   // indigo-500
 const ISLAND_EXCLUDED_COLOR = "var(--canvas-island)";        // gray-500
 const ISLAND_STROKE_WIDTH   = 1.5;
-const SYMMETRY_COLOR        = "var(--canvas-symmetry)";      // purple-500
-const CENTER_RADIUS         = 5;
 
 export class ConfigureRenderer {
   #svg;
@@ -169,13 +168,7 @@ export class ConfigureRenderer {
       const poly     = island.polygon;
       if (!poly?.coordinates?.length) continue;
 
-      const d = poly.coordinates.map(ring => {
-        const pts = ring.map(([x, z]) => {
-          const p = this.#toSvg(x, z);
-          return `${p.x},${p.y}`;
-        });
-        return `M ${pts.join(" L ")} Z`;
-      }).join(" ");
+      const d = polyToPath({ exterior: poly.coordinates[0], holes: poly.coordinates.slice(1) }, this.#toSvg);
       const path = svgEl("path");
       path.setAttribute("d",             d);
       path.setAttribute("fill-rule",     "evenodd");
@@ -189,49 +182,9 @@ export class ConfigureRenderer {
   }
 
   #renderSymmetry() {
-    if (!this.#symmetryLayerEl || !this.#toSvg || !this.#symmetryData) return;
-    while (this.#symmetryLayerEl.firstChild)
-      this.#symmetryLayerEl.removeChild(this.#symmetryLayerEl.firstChild);
-
-    const sym     = this.#symmetryData;
-    const center  = sym.center;
-    const bbox    = this.#bbox;
-    if (!center || !bbox) return;
-
-    const cx = center.cx;
-    const cz = center.cz;
-
-    // Determine which type to draw axis for
-    const type = sym._override_type
-      ?? sym.primary?.type
-      ?? null;
-
-    if (type === "mirror_x" || type === "rot_90") {
-      // vertical axis at cx
-      const s = this.#toSvg(cx, bbox.min_z - 10);
-      const e = this.#toSvg(cx, bbox.max_z + 10);
-      this.#symmetryLayerEl.appendChild(svgEl("line", {
-        x1: s.x, y1: s.y, x2: e.x, y2: e.y,
-        stroke: SYMMETRY_COLOR, "stroke-width": "1.5",
-        "stroke-dasharray": "6 3", opacity: 0.8,
-      }));
-    }
-    if (type === "mirror_z" || type === "rot_90" || type === "rot_180") {
-      // horizontal axis at cz
-      const s = this.#toSvg(bbox.min_x - 10, cz);
-      const e = this.#toSvg(bbox.max_x + 10, cz);
-      this.#symmetryLayerEl.appendChild(svgEl("line", {
-        x1: s.x, y1: s.y, x2: e.x, y2: e.y,
-        stroke: SYMMETRY_COLOR, "stroke-width": "1.5",
-        "stroke-dasharray": "6 3", opacity: 0.8,
-      }));
-    }
-
-    // Center point
-    const pt = this.#toSvg(cx, cz);
-    this.#symmetryLayerEl.appendChild(svgEl("circle", {
-      cx: pt.x, cy: pt.y, r: CENTER_RADIUS,
-      fill: SYMMETRY_COLOR, stroke: "var(--canvas-marker-stroke)", "stroke-width": "1.5", opacity: 0.9,
-    }));
+    if (!this.#symmetryLayerEl || !this.#toSvg) return;
+    const sym  = this.#symmetryData;
+    const type = sym ? (sym._override_type ?? sym.primary?.type ?? null) : null;
+    renderSymmetryOverlay(this.#symmetryLayerEl, type, sym?.center?.cx, sym?.center?.cz, this.#bbox, this.#toSvg);
   }
 }

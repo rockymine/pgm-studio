@@ -68,6 +68,12 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   `EditorSelectController` (click-select modes: region / island, each a registered picker — so
   `_onCanvasClick` is one dispatch, not an `if`-chain). The shared abstraction the S2 sketch port
   reuses. §5. (CV4, CV5)
+- **Shared renderers** — one `renderSymmetryOverlay` (`shared/symmetry-render.js`, all 6 symmetry
+  types) replaces the three drifted copies in `EditorCanvas`/`ConfigureRenderer`/`OverviewRenderer`,
+  **fixing** the latent bug where `ConfigureRenderer` couldn't draw diagonal mirrors and
+  `OverviewRenderer` couldn't draw rotations or diagonals. `EditorCanvas` block + island rendering now
+  go through the shared `blockDataToDataUrl` / `polyToPath`, and all four interop bridges share one
+  `fetchJson` (`shared/fetch-json.js`). §6.1. (CV6)
 - **Unified intent primitives + forgiving select** — Configure renders all intent geometry as one kind of
   thing: dummy regions in `#nodeMap` (protection rectangles *and* spawn points), picked by the single
   `#hitTest`. That picker gained a **2-block margin** (smallest containing region, else nearest within 2

@@ -3,12 +3,7 @@
 // map bbox + top-surface block layer (+ symmetry overlay) and paint the preview. Returns a handle
 // Blazor calls (resize / dispose). Imported on demand from studio.mountOverview (no global, no race).
 import { OverviewRenderer } from "./canvas/overview-renderer.js";
-
-async function fetchJson(url) {
-  const r = await fetch(url, { cache: "no-store" });
-  if (!r.ok) return null;
-  return r.json();
-}
+import { fetchJson } from "./shared/fetch-json.js";
 
 export async function mount(svgEl, wrapEl, slug) {
   const renderer = new OverviewRenderer(svgEl, wrapEl);

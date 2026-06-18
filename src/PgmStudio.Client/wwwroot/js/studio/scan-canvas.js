@@ -4,11 +4,7 @@
 // tree, so it renders an xml-less world that has no regions yet. The bounding box is seeded from the
 // top-surface payload itself (loadBlockLayer self-seeds when none is set).
 import { ConfigureRenderer } from "./canvas/configure-renderer.js";
-
-async function fetchJson(url) {
-  const r = await fetch(url, { cache: "no-store" });
-  return r.ok ? r.json() : null;
-}
+import { fetchJson } from "./shared/fetch-json.js";
 
 export async function mount(svgEl, wrapEl, slug) {
   const enc = encodeURIComponent(slug);

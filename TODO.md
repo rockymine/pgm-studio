@@ -112,11 +112,6 @@ and the Configure wizard `/maps/{id}/configure`). Goal: wire up built-but-dead i
 (resize, move), collapse render duplication, and formalise the controller pattern — **without
 degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **CV6 — Dedupe JS renderers.** Extract `renderSymmetryOverlay` + `renderIslandPaths` (next to
-  `shape-render.js`) and make `EditorCanvas` use the shared `blockDataToDataUrl` — collapsing the
-  3–4 copies across `EditorCanvas`/`ConfigureRenderer`/`OverviewRenderer`. **Fixes a latent bug:**
-  `ConfigureRenderer` can't draw diagonal mirrors (`mirror_d1`/`mirror_d2`). Also fold the bridge
-  boilerplate (`fetchJson` + mount/dispose handle) into one shared module. (Contract §6.1–6.2.)
 - [ ] **CV7 — Prune / realign the public surface.** Wire the selection/bounds methods the resize+move
   features need through the bridge; **keep** the not-yet-wired feature methods (`addRegion`,
   `renameNode`, `focusRegion`, …) — they back unbuilt UI, don't delete. Update the stale

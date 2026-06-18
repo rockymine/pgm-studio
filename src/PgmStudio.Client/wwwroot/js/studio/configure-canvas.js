@@ -3,11 +3,7 @@
 // read-only preview, distinct from the editor canvas. The C# activity owns the wizard state and
 // calls these methods; the bridge fetches per-step data and forwards it to the renderer.
 import { ConfigureRenderer } from "./canvas/configure-renderer.js";
-
-async function fetchJson(url) {
-  const r = await fetch(url, { cache: "no-store" });
-  return r.ok ? r.json() : null;
-}
+import { fetchJson } from "./shared/fetch-json.js";
 
 export async function mount(svgEl, wrapEl, slug) {
   const enc = encodeURIComponent(slug);

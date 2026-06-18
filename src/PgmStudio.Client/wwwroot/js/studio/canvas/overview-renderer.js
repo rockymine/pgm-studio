@@ -1,7 +1,7 @@
 import { buildTransform, svgEl as makeEl } from "./transform.js";
 import { blockDataToDataUrl } from "../shared/block-render.js";
+import { renderSymmetryOverlay } from "../shared/symmetry-render.js";
 
-const SYMMETRY_COLOR   = "var(--canvas-symmetry)";
 const SYMMETRY_SKIPPED = 0.25;
 
 export class OverviewRenderer {
@@ -93,43 +93,12 @@ export class OverviewRenderer {
   }
 
   #renderSymmetry() {
-    while (this.#symmetryLayerEl.firstChild)
-      this.#symmetryLayerEl.removeChild(this.#symmetryLayerEl.firstChild);
-
     const { center, modes, global_symmetry } = this.#symmetryData;
-    if (!center) return;
-
+    const primary = center
+      ? [...(modes ?? global_symmetry ?? [])].filter(e => e.detected).sort((a, b) => b.confidence - a.confidence)[0]
+      : null;
     const opacity = this.#symmetryStatus === "skipped" ? SYMMETRY_SKIPPED : 1.0;
-    const { min_x, max_x, min_z, max_z } = this.#bbox;
-
-    const primary = [...(modes ?? global_symmetry ?? [])]
-      .filter(e => e.detected)
-      .sort((a, b) => b.confidence - a.confidence)[0];
-
-    if (primary) {
-      const cx = center.cx, cz = center.cz;
-      let lineStart, lineEnd;
-      if (primary.type === "mirror_x") {
-        lineStart = this.#toSvg(cx, min_z);
-        lineEnd   = this.#toSvg(cx, max_z);
-      } else if (primary.type === "mirror_z") {
-        lineStart = this.#toSvg(min_x, cz);
-        lineEnd   = this.#toSvg(max_x, cz);
-      }
-      if (lineStart && lineEnd) {
-        this.#symmetryLayerEl.appendChild(makeEl("line", {
-          x1: lineStart.x, y1: lineStart.y,
-          x2: lineEnd.x,   y2: lineEnd.y,
-          stroke: SYMMETRY_COLOR, "stroke-width": "1.5",
-          "stroke-dasharray": "6 3", opacity,
-        }));
-      }
-    }
-
-    const pt = this.#toSvg(center.cx, center.cz);
-    this.#symmetryLayerEl.appendChild(makeEl("circle", {
-      cx: pt.x, cy: pt.y, r: 5,
-      fill: SYMMETRY_COLOR, stroke: "var(--canvas-marker-stroke)", "stroke-width": "1.5", opacity,
-    }));
+    renderSymmetryOverlay(this.#symmetryLayerEl, primary?.type, center?.cx, center?.cz, this.#bbox, this.#toSvg,
+      { lineOpacity: opacity, dotOpacity: opacity });
   }
 }
