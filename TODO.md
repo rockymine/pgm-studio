@@ -165,8 +165,14 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   and **no** implementation-phase / task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). New code already
   follows this (CLAUDE.md). Sweep the existing comments across `src/` + `tests/` + `tools/` to match.
 
-- [ ] **S2 — Sketch tool.** `sketch_api` (get / setup / layout / overview / export) + the sketch pages.
-  Completes M8. (`AuthorDisplay` from C12 is reused here.)
+- [ ] **S2 — Sketch tool.** Draw 2-D shapes → islands → world geometry, from nothing. Full plan +
+  persistence design in `docs/contracts/sketch-authoring.md` (a sketch **is a draft map**; layout
+  persists as a `SketchLayoutJson` map_artifact; finish rasterizes → the importer's geometry artifacts
+  → Configure). Sub-tasks **S2a** geometry (`geometry/shape.js` + `geometry/boolean.js`; resolves the
+  `canvas-interaction.md` §11 shape model) · **S2b** sketch canvas + draw/edit controllers · **S2c**
+  bridge + Blazor sketch pages · **S2d** `SketchLayoutJson` + the `/api/.../sketch/*` endpoints ·
+  **S2e** server rasterize/finish (reuse `IslandDetector` + `Geometry2d` + a `WorldFeatureWriter`
+  sibling). Completes M8. (`AuthorDisplay` from C12 is reused here.)
 - [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
   "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
   roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,

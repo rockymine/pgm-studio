@@ -345,6 +345,10 @@ circle, a `renderShape` gap the `marker` flag works around), **style** (outline 
 
 ## 11. The sketch port & the unified shape model (planned, not built)
 
+> The concrete S2 plan — JS port mapping, the MariaDB persistence model, and the finish/rasterise
+> step — now lives in **`docs/contracts/sketch-authoring.md`**. This section is the architectural
+> rationale it builds on.
+
 The reorg (§1) put the geometry the sketch tool needs into one importable `geometry/` layer instead
 of scattering it through `editor-canvas.js`. The remaining design step for porting the reference's
 lasso/polygon tools is a **unified shape model** — deliberately **not built yet** (no consumer would
