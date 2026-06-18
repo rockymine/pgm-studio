@@ -116,7 +116,7 @@ build it here. Reference file → new module:
 | Reference | New module (layer) | Notes |
 |---|---|---|
 | `sketch/geometry.js` (low half: `shapeToRing`, `circleToRing`, `sampleBezierEdge`, `pointInRing`, `ringCentroid`) | **`geometry/shape.js`** (NEW) | the unified primitive model: `toRing/toBounds/containsPoint/circleToRing/sampleBezier/centroid`. Pure, unit-tested. `pointInRing` already in `geometry/polygon.js`. |
-| `sketch/geometry.js` (high half: `computeIslands`, `assignShapesToIslands`, `computeMirrorPreview`, `restoreIslandMeta`) | **`geometry/boolean.js`** (NEW) | the only genuinely sketch-domain layer; needs `polygon-clipping` (browser importmap; tests need the `/root` node_modules runner — see §6). |
+| `sketch/geometry.js` (high half: `computeIslands`, `assignShapesToIslands`, `computeMirrorPreview`, `restoreIslandMeta`) | **`geometry/boolean.js`** (NEW, **landed S2a**) | the only genuinely sketch-domain layer; uses `polygon-clipping` vendored as a self-contained ESM bundle at `vendor/polygon-clipping.js` (esbuild), imported relatively — loads in the browser with no importmap/bundler and its tests run in the standard no-`node_modules` harness. |
 | `canvas/sketch-layout-canvas.js` | **`canvas/sketch-canvas.js`** | extends `CanvasBase`; **world coords ARE svg base coords** (identity transform, no `buildTransform`) — keep that distinction from EditorCanvas. |
 | `canvas/sketch-draw-controller.js` | **`controllers/sketch-draw-controller.js`** | rect (drag) / circle (2-click) / polygon (click+close) / **lasso** (drag-trace). Same controller contract as `editor-draw-controller` (`onMouseDown→bool`, …). |
 | `canvas/sketch-edit-controller.js` | **`controllers/sketch-edit-controller.js`** | 8-handle rect resize + vertex drag + **Bézier tangent handles** (ctrl-drag to extrude, alt for asymmetric) + midpoint-insert. |
@@ -163,9 +163,10 @@ Result: the draft map now has the exact geometry artifacts a scanned/imported ma
 
 ## 5. Tasks (S2 breakdown)
 
-- **S2a — geometry**: `geometry/shape.js` (+ unit tests) and `geometry/boolean.js` (port
-  `computeIslands`/`assignShapesToIslands`/`computeMirrorPreview`/`restoreIslandMeta`; add
-  `polygon-clipping`). Resolves `canvas-interaction.md` §11.
+- **S2a — geometry** ✅ **landed**: `geometry/shape.js` (unified model, +10 tests) and
+  `geometry/boolean.js` (`computeIslands`/`assignShapesToIslands`/`computeMirrorPreview`/
+  `restoreIslandMeta`, +10 tests) over the vendored `polygon-clipping` bundle. Verified unit + in
+  the browser. Resolves `canvas-interaction.md` §11.
 - **S2b — canvas + controllers**: `canvas/sketch-canvas.js`, `controllers/sketch-draw-controller.js`,
   `controllers/sketch-edit-controller.js` (reuse `CanvasBase` + the controller contract + `render/`).
 - **S2c — bridge + Blazor pages**: `bridge/sketch-bridge.js`; `Sketch{Setup,Layout,Overview}Phase`
@@ -184,9 +185,11 @@ Result: the draft map now has the exact geometry artifacts a scanned/imported ma
   `shapes` for the persisted geometry and re-detects islands with the existing `IslandDetector`. This
   avoids a C# polygon-boolean dependency entirely. (Alternative: send client island polygons to the
   server and skip re-detection — simpler but trusts client geometry; rejected for authority.)
-- **JS tests for `boolean.js`** need `polygon-clipping` from `node_modules`, which the VirtualBox shared
-  folder can't host — so those tests use the reference's out-of-tree runner pattern (`/root/...`), while
-  the pure `geometry/shape.js` tests stay in the no-deps `node --test` harness (`tools/js-test.sh`).
+- **`polygon-clipping` is vendored** as a self-contained ESM bundle (`vendor/polygon-clipping.js`,
+  esbuild — `splaytree` + `robust-predicates` inlined), imported relatively. This loads in the
+  hosted-WASM app with no importmap/bundler **and** keeps `boolean.js` tests in the standard
+  no-`node_modules` `node --test` harness (`tools/js-test.sh`). *(Landed in S2a; the earlier
+  out-of-tree-runner concern is moot.)*
 - **Parity constants are load-bearing**: circle=64 pts, Bézier=16 samples, the 4-step add/sub/override
   order, the stringified-index control dict, `rot_270 = (Δx,Δz)→(Δz,−Δx)`. Keep JS rasterizer ⇄ C#
   rasterizer ⇄ `render/svg.js` in lock-step (the reference keeps three copies aligned; we keep two).
