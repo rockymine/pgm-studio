@@ -38,25 +38,43 @@ configuration, not duplication** — leave them.
 
 ## 1. Current architecture (what exists, verified)
 
+> **`wwwroot/js/studio/` is now organised into five layers** (reorg landed; one folder per
+> archetype, strict downward dependency `bridge → canvas → controllers → render → geometry`).
+> The line/path references later in this doc predate the reorg — treat them as historical CV-task
+> notes; the layout below is the current map. Pure layers are unit-tested (`tools/js-test.sh`,
+> `tests/js/`, Node's built-in runner — no node_modules).
+
 ```
-CanvasBase (canvas-base.js)          pan/zoom/drag FSM + Template-Method hooks (_on*)
-   ▲ extends
-EditorCanvas (editor-canvas.js)      SVG render engine: layers, hit-tests, overlay, resize,
-   │ composes                        island/symmetry/spawn modes, Blazor callbacks
-   └─ EditorDrawController (editor-draw-controller.js)   rect/cuboid drag + cyl/circle 2-click
+geometry/      pure math, NO DOM — point arrays & numbers only
+  transform.js     buildTransform / buildInverseTransform (world↔svg)
+  polygon.js       pointInRing, rasterisePolygon, clipHalfPlane
+  symmetry.js      applySymmetry, applySymmetryToBounds
+  region-convert.js  region/shape → 2D bounds (the +1-rule conversions)
+  islands.js       geojsonToSimplified, normalizeIslands
 
-transform.js        pure world↔SVG math + SVG-element + path helpers (no state)
-shared/shape-render.js   renderShape(type, boundsOrPoly, toSvg, attrs)
-shared/converters.js     bounds/symmetry/raster math (incl. _pointInRing, applySymmetry)
-shared/game-colors.js    palettes;  shared/block-render.js  blockDataToDataUrl
+render/        stateless SVG emit — imports geometry + a toSvg, nothing else
+  svg.js           svgEl, handleRectAttrs, ringToPath/polyToPath/boundsToRingPath, anchorBlockEl
+  shape-render.js  renderShape(type, boundsOrPoly, toSvg, attrs)
+  symmetry-render.js  renderSymmetryOverlay   block-render.js  blockDataToDataUrl + renderBlockImage
+  palette.js       game colours (chat / dye / team)
 
-studio-canvas.js    the bridge: mount() → new EditorCanvas + a `handle` object C# calls
+canvas/        stateful engines
+  canvas-base.js       interactive pan/zoom/drag FSM (base)  → extended by editor-canvas.js
+  static-renderer.js   fixed-fit preview base (svg sizing + transform + viewport + resize)
+                       → extended by configure-renderer.js, overview-renderer.js
+  sideview-canvas.js   standalone Canvas2D depth cross-section
+
+controllers/   interaction strategies plugged into a canvas (onMouseDown→bool, onMouseMove, …)
+  editor-draw-controller.js   rect/cuboid drag + cyl/circle 2-click
+  editor-edit-controller.js   8-handle resize + arrow-key nudge
+  select-controller.js        generic click-mode registry (region / island)
+
+bridge/        C#-interop: mount() → a `handle` object Blazor calls; one *-bridge.js per surface
+  editor-bridge.js  configure-bridge.js  overview-bridge.js  scan-bridge.js  sideview-bridge.js
+  fetch-json.js     (no-store fetch helper, bridge-only)
+
 EditorCanvas.razor(.cs)   the Blazor host: parameters, [JSInvokable] callbacks, toolbar UI
-
-# Fixed-fit preview renderers — standalone by design, do NOT extend CanvasBase, no pan/zoom:
-ConfigureRenderer (configure-renderer.js)   legacy in-editor Configure + /maps/new scan preview
-OverviewRenderer  (overview-renderer.js)     the overview activity
-# (S2, not yet ported: SketchLayoutCanvas [extends CanvasBase] + SketchSetupCanvas [standalone])
+# (S2, not yet ported: a sketch canvas [extends canvas-base] + its sketch-*-controllers; see §11)
 ```
 
 `CanvasBase` provides `_scale/_panX/_panY/_viewportG/_activeTool`, wheel zoom, middle/left-drag pan,
@@ -322,3 +340,36 @@ different even though both are now region nodes in `#nodeMap`. A known divergenc
 So protection rects and Edit rects differ only by **colour**; points differ in **shape** (rect vs
 circle, a `renderShape` gap the `marker` flag works around), **style** (outline vs solid marker), and
 **icon**. None is wrong today, but "draw a primitive" isn't yet one parametrised thing.
+
+---
+
+## 11. The sketch port & the unified shape model (planned, not built)
+
+The reorg (§1) put the geometry the sketch tool needs into one importable `geometry/` layer instead
+of scattering it through `editor-canvas.js`. The remaining design step for porting the reference's
+lasso/polygon tools is a **unified shape model** — deliberately **not built yet** (no consumer would
+exist, and speculative dead code is exactly what this repo avoids; build it *with* the port).
+
+**The idea.** A *region* (Edit) and a *sketch shape* (Lasso/Polygon/Rect/Circle) are the same
+primitive wearing different metadata: a region carries `category`/`color`; a sketch shape carries
+`operation` (add/subtract) / `override` / `vertices` / `controls` (Bézier tangents). The reference
+forked these into a parallel world (`sketch/geometry.js`, `sketch-layout-canvas.js`,
+`sketch-*-controller.js`). Don't fork — unify on one shape vocabulary:
+
+- `geometry/shape.js` (new, when the port lands): `toRing(shape)`, `toBounds(shape)`,
+  `containsPoint(shape, x, z)`, `centroid`, `circleToRing`, `sampleBezierEdge`. This subsumes the
+  reference's `shapeToRing`/`circleToRing`/`pointInIsland` and unifies the editor's bounds hit-test
+  with the sketch tool's per-type containment.
+- `geometry/boolean.js` (when the port lands): the island boolean ops (`computeIslands`,
+  `assignShapesToIslands`, `computeMirrorPreview`) over `polygon-clipping` — the only genuinely
+  sketch-domain layer, sitting *above* generic shape geometry.
+- `canvas/sketch-canvas.js` extends `CanvasBase`; `controllers/sketch-draw-controller.js` +
+  `sketch-edit-controller.js` slot into the existing controller contract (§5) — the editor draw/edit
+  controllers are the template, so they bolt on rather than re-implementing pan/zoom or hit-testing.
+
+**Why the editor hit-test stays AABB.** §2's `#hitTest` is intentionally bounds+margin (forgiving
+region select); the shape model's `containsPoint` is for the *sketch* side (true per-type, incl.
+point-in-polygon for lasso/polygon). They are different needs over the same shapes — keep both.
+
+Net: the structure already *supports* the port (clean geometry/render/canvas/controllers layers +
+unit-test harness); finishing it is additive, not another refactor.
