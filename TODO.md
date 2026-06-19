@@ -149,16 +149,15 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   and **every** C# affine site now routes through it (`SymmetryExpander` `Step` removed, both `ModeNormals`
   dicts → `Symmetry.Normal`, `RegionParser`/`RegionBoundsDeriver` `MirrorBounds` → `Symmetry.ReflectPoint`,
   `SketchRasterizer.MirrorAxes` → `Symmetry.OrbitAxes`, `SymmetryDetector` de-forced, `PointInRing` collapsed).
-  **Remaining (not affine-fold):** canonical map-bbox — the surface-layer extent is now computed at scan +
-  stored in `map_config.json` (`bounding_box`), read via `MapBounds`/`FeatureData.MapBboxAsync`, and used by
-  the canvas + `Buildability`; still to do: thread it into `WoolSources`/`ResourceSources` (their `MapBbox`/
-  `RegionBbox` become the no-scan fallback). Then family-2 — a shared NTS contains/IoU + fix
-  `Traversability.RegionCentre` (AABB-midpoint → NTS centroid); decide editor AABB-vs-`containsPoint`
-  (+ correct `shape.js`'s header). (Orbit rounding resolved by coordinate kind:
-  rectangle bounds snap to the integer 1×1 grid, points reflect exactly — block-centre `.5` or block-anchor
-  `.0` both preserved per PGM + corpus; sketch shape mirroring stays lenient.)
-  Constraint: keep `OrbitAssignment` intact; new shape support stays within
-  `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
+  **Canonical map-bbox done:** the surface-layer extent is computed at scan + stored in `map_config.json`
+  (`bounding_box`), read via `MapBounds`/`FeatureData.MapBboxAsync`, and used by **every** clipper — the
+  canvas, `Buildability`, `WoolSources`, and `ResourceSources` (their `MapBbox`/`RegionBbox` is the no-scan
+  fallback); the 16-vs-8 per-pass margins are gone. **Remaining:** family-2 — a shared NTS contains/IoU +
+  fix `Traversability.RegionCentre` (AABB-midpoint → NTS centroid); decide editor AABB-vs-`containsPoint`
+  (+ correct `shape.js`'s header). (Orbit rounding resolved by coordinate kind: rectangle bounds snap to the
+  integer 1×1 grid, points reflect exactly — block-centre `.5` or block-anchor `.0` both preserved per PGM +
+  corpus; sketch shape mirroring stays lenient.) Constraint: keep `OrbitAssignment` intact; new shape support
+  stays within `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
 - [ ] **B10 — Build & test hygiene.** Two standing annoyances to clear:
   - **Flaky test build (TUnit `[Test]` not found).** The first `dotnet run/build` of a test project after
     a code/reference change can fail with `CS0246: 'Test'/'TestAttribute' could not be found` (seen in

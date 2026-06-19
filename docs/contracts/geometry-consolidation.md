@@ -175,18 +175,19 @@ cylinders land, its rect `Covers` test generalises to a cylinder containment, no
    scalar form — left as-is; it's family-2 NTS, not a scalar-math dup.)
 6. `MirrorBounds`/`UnionBounds`/`TranslateBounds` duplicated verbatim between `RegionParser` and
    `RegionBoundsDeriver`, plus a third dict-form in `Geometry2d.ReflectBounds2d`.
-7. ~~**No canonical map-bbox**~~ **RESOLVED (in progress) — the real bbox is the surface-layer extent.**
+7. ~~**No canonical map-bbox**~~ **RESOLVED — the real bbox is the surface-layer extent.**
    `RegionGeometry2d.ToGeometry`'s `bounds` (the finite box `half`/`negative` clip against) was each pass's
    own region-AABB + magic margin (`Buildability.RegionBbox` pad 16, `WoolSources.MapBbox`/`ResourceSources`
    pad 8) → a `half` region clipped differently per pass. **Now:** the canonical box is the **surface layer**
    extent — `WorldFeatureWriter` computes min/max over the scanned surface cells **once at scan** and stores
    it in `map_config.json` `bounding_box` (the `layer.parquet` surface, not the cleaned-base islands).
    `MapBounds.ResolveAsync` reads it back (islands-AABB fallback for pre-existing/xml-only maps);
-   `FeatureData.MapBboxAsync` exposes it to analysis. **Wired:** the canvas frame (region-tree/authoring
-   `bounding_box` — verified it now equals the top-surface render extent, fixing surface-beyond-islands
-   clipping) and **`Buildability`**. **Remaining:** thread it into `WoolSources` (`CheckAvailability`,
-   `SuggestWools`, `RenewableGeoms`, `PgmSpawnerSources`) and `ResourceSources.RenewableRegions` via an
-   optional `mapBbox` param (their `MapBbox`/`RegionBbox` become the no-scan fallback).
+   `FeatureData.MapBboxAsync` exposes it to analysis. **Wired into every clipper:** the canvas frame
+   (region-tree/authoring `bounding_box` — verified it now equals the top-surface render extent, fixing
+   surface-beyond-islands clipping), **`Buildability`**, **`WoolSources`** (`CheckAvailability`,
+   `SuggestWools`, `RenewableGeoms`, `PgmSpawnerSources`), and **`ResourceSources.RenewableRegions`** — all
+   via an optional `mapBbox` param whose `MapBbox`/`RegionBbox` is the no-scan fallback. The 16-vs-8
+   per-pass margins are gone; every pass clips `half`/`negative` against the one surface box.
 
 ### Revised order
 **Done:** `SketchRasterizer` diagonal-mirror gap (#1) · `containsPoint` hit-vs-render (Bézier) · the
@@ -199,13 +200,11 @@ single source the `Apply`/`Point` mirror branches now also use), and the `Region
 (mirror of JS `orbitAxes`; `SketchRasterizer.MirrorAxes` removed). Every C# affine transform now routes
 through `Geom.Symmetry`.
 
-Remaining:
-1. Finish the canonical map-bbox (#7): thread the surface bbox into `WoolSources`/`ResourceSources` (canvas
-   + `Buildability` already use it). (Orbit rounding #3 — resolved, see above.)
-2. Family (2): shared NTS contains/IoU; drop hand-rolled server ray-casts. Fix `RegionCentre` (#2).
-3. Decide the editor-AABB-vs-`containsPoint` story (and correct `shape.js`'s header either way).
-4. Leave the JS `geometry/*` layer as the documented preview twin (not merged).
-5. Future residents of the leaf: a C# shape model (`Rect ∪ Cylinder`) when intent goes beyond rectangles;
+Remaining (canonical map-bbox #7 + orbit rounding #3 are resolved — see above):
+1. Family (2): a shared NTS contains/IoU; drop hand-rolled server ray-casts. Fix `RegionCentre` (#2).
+2. Decide the editor-AABB-vs-`containsPoint` story (and correct `shape.js`'s header either way).
+3. Leave the JS `geometry/*` layer as the documented preview twin (not merged).
+4. Future residents of the leaf: a C# shape model (`Rect ∪ Cylinder`) when intent goes beyond rectangles;
    the generative layout algorithms (TSP/annealing, random-point polygon seeding).
 
 > Note: `Geometry2d.ReflectBounds2d`/`RotateBounds2d` (dict-`bounds_2d` rebound) already delegate their

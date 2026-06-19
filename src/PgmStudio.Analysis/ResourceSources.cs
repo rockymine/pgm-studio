@@ -20,15 +20,17 @@ public static class ResourceSources
     /// with how many a &lt;renewable&gt; already covers. The POST /resources query for renewable auto-config;
     /// computes the renewable regions from the doc so the caller only supplies the optional bounds.</summary>
     public static List<TypeSummary> ResourcesInRegion(
-        Dict data, IEnumerable<Block> blocks, (double minX, double minZ, double maxX, double maxZ)? bounds) =>
+        Dict data, IEnumerable<Block> blocks, (double minX, double minZ, double maxX, double maxZ)? bounds,
+        (double, double, double, double)? mapBbox = null) =>
         Summarize(blocks, bounds is { } b ? Gf.ToGeometry(new Envelope(b.minX, b.maxX, b.minZ, b.maxZ)) : null,
-            RenewableRegions(data));
+            RenewableRegions(data, mapBbox));
 
-    public static List<(Geometry geom, string renewFilter)> RenewableRegions(Dict data)
+    public static List<(Geometry geom, string renewFilter)> RenewableRegions(Dict data, (double, double, double, double)? mapBbox = null)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));
-        var b = Buildability.RegionBbox(data, 8);
-        var bbox = ((double)b.minX, (double)b.minZ, (double)b.maxX, (double)b.maxZ);
+        (double, double, double, double) bbox;
+        if (mapBbox is { } mb) bbox = mb;
+        else { var b = Buildability.RegionBbox(data, 8); bbox = (b.minX, b.minZ, b.maxX, b.maxZ); }
         var outp = new List<(Geometry, string)>();
         foreach (var rn in AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
             if (rn.GetValueOrDefault("region_id") is string rid && regions.GetValueOrDefault(rid) is Dict reg

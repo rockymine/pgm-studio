@@ -99,7 +99,7 @@ public sealed class WoolAvailabilityEndpoint(MapRepository repo, MapReader reade
 
         var have = await feature.HasScanAsync(map.Id, ct);
         var sources = await feature.WoolSourcesAsync(map.Id, doc, ct);
-        var wools = WoolSources.CheckAvailability(doc, sources)
+        var wools = WoolSources.CheckAvailability(doc, sources, (await feature.MapBboxAsync(map.Id, ct))?.bounds)
             .Select(e => new WoolAvailabilityDto(e.WoolId, e.Color, e.Obtainable, e.Repeatable, e.OneTime, e.Severity, e.SourceTypes, e.Message)).ToList();
         await Send.OkAsync(new WoolAvailabilityResponseDto(wools, have), ct);
     }
@@ -147,7 +147,8 @@ public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader re
         var have = await feature.HasScanAsync(map.Id, ct);
         var sources = await feature.WoolSourcesAsync(map.Id, doc, ct);
         var colors = WoolSources.SourcesInRegion(doc, sources,
-                b["minX"]!.GetValue<double>(), b["minZ"]!.GetValue<double>(), b["maxX"]!.GetValue<double>(), b["maxZ"]!.GetValue<double>())
+                b["minX"]!.GetValue<double>(), b["minZ"]!.GetValue<double>(), b["maxX"]!.GetValue<double>(), b["maxZ"]!.GetValue<double>(),
+                (await feature.MapBboxAsync(map.Id, ct))?.bounds)
             .Select(c => new WoolColorSummaryDto(c.Color, c.Total, c.SourceTypes, c.Repeatable, c.OneTime,
                 c.Sources.Select(s => new WoolSourceDto(s.Type, s.Color, s.X, s.Y, s.Z, s.Count)).ToList())).ToList();
         await Send.OkAsync(new WoolSourcesResponseDto(colors, have), ct);
@@ -167,7 +168,7 @@ public sealed class WoolSuggestionsEndpoint(MapRepository repo, MapReader reader
 
         var have = await feature.HasScanAsync(map.Id, ct);
         var sources = await feature.WoolSourcesAsync(map.Id, doc, ct);
-        var suggestions = WoolSources.SuggestWools(doc, sources)
+        var suggestions = WoolSources.SuggestWools(doc, sources, (await feature.MapBboxAsync(map.Id, ct))?.bounds)
             .Select(s => new WoolSuggestionDto(s.Color, s.Total, s.SourceTypes)).ToList();
         await Send.OkAsync(new WoolSuggestionsResponseDto(suggestions, have), ct);
     }
@@ -199,7 +200,7 @@ public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader read
 
         var have = await feature.HasScanAsync(map.Id, ct);
         var blocks = await feature.ResourceBlocksAsync(map.Id, ct);
-        var resources = ResourceSources.ResourcesInRegion(doc, blocks, bounds)
+        var resources = ResourceSources.ResourcesInRegion(doc, blocks, bounds, (await feature.MapBboxAsync(map.Id, ct))?.bounds)
             .Select(r => new ResourceTypeSummaryDto(r.Type, r.Total, r.Renewable, r.AllRenewable,
                 r.Sources.Select(s => new ResourceBlockDto(s.Type, s.X, s.Y, s.Z)).ToList())).ToList();
         await Send.OkAsync(new ResourceSourcesResponseDto(resources, have), ct);

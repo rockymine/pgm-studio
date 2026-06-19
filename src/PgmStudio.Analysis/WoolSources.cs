@@ -26,8 +26,9 @@ public static class WoolSources
     /// <summary>Wool colours inside a drawn rectangle (world X/Z bounds) — the POST /wool-sources query.
     /// Computes the renewable geoms from the doc, so the caller only supplies the bounds + sources.</summary>
     public static List<ColorSummary> SourcesInRegion(
-        Dict data, IEnumerable<Source> sources, double minX, double minZ, double maxX, double maxZ) =>
-        SummarizeSources(sources, Gf.ToGeometry(new Envelope(minX, maxX, minZ, maxZ)), RenewableGeoms(data));
+        Dict data, IEnumerable<Source> sources, double minX, double minZ, double maxX, double maxZ,
+        (double, double, double, double)? mapBbox = null) =>
+        SummarizeSources(sources, Gf.ToGeometry(new Envelope(minX, maxX, minZ, maxZ)), RenewableGeoms(data, mapBbox));
 
     public static List<ColorSummary> SummarizeSources(IEnumerable<Source> sources, Geometry? regionGeom, List<Geometry> renewableGeoms)
     {
@@ -48,11 +49,11 @@ public static class WoolSources
             .OrderBy(e => e.Color, StringComparer.Ordinal).ToList();
     }
 
-    public static List<AvailabilityEntry> CheckAvailability(Dict data, List<Source> sources)
+    public static List<AvailabilityEntry> CheckAvailability(Dict data, List<Source> sources, (double, double, double, double)? mapBbox = null)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));
-        var bbox = MapBbox(regions);
-        var renewable = RenewableGeoms(data);
+        var bbox = mapBbox ?? MapBbox(regions);
+        var renewable = RenewableGeoms(data, mapBbox);
         var physical = sources.Where(s => s.Type != "pgm_spawner").ToList();
         var pgmColors = sources.Where(s => s.Type == "pgm_spawner").Select(s => s.Color).ToHashSet();
         var dyeColors = IndirectDyeColors(data);
@@ -91,11 +92,11 @@ public static class WoolSources
         return outp;
     }
 
-    public static List<Suggestion> SuggestWools(Dict data, List<Source> sources)
+    public static List<Suggestion> SuggestWools(Dict data, List<Source> sources, (double, double, double, double)? mapBbox = null)
     {
         var declared = AsList(data.GetValueOrDefault("wools")).OfType<Dict>()
             .Select(w => WoolColors.Normalize(w.GetValueOrDefault("color") as string ?? "")).ToHashSet();
-        var renewable = RenewableGeoms(data);
+        var renewable = RenewableGeoms(data, mapBbox);
         return SummarizeSources(sources, null, renewable)
             .Where(e => !declared.Contains(e.Color))
             .Select(e => new Suggestion(e.Color, e.Total, e.SourceTypes)).ToList();
@@ -124,10 +125,10 @@ public static class WoolSources
         return outp;
     }
 
-    public static List<Source> PgmSpawnerSources(Dict data)
+    public static List<Source> PgmSpawnerSources(Dict data, (double, double, double, double)? mapBbox = null)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));
-        var bbox = MapBbox(regions);
+        var bbox = mapBbox ?? MapBbox(regions);
         var outp = new List<Source>();
         foreach (var sp in AsList(data.GetValueOrDefault("spawners")).OfType<Dict>())
         {
@@ -182,10 +183,10 @@ public static class WoolSources
         return (xs.Min() - 8, zs.Min() - 8, xs.Max() + 8, zs.Max() + 8);
     }
 
-    internal static List<Geometry> RenewableGeoms(Dict data)
+    internal static List<Geometry> RenewableGeoms(Dict data, (double, double, double, double)? mapBbox = null)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));
-        var bbox = MapBbox(regions);
+        var bbox = mapBbox ?? MapBbox(regions);
         var geoms = new List<Geometry>();
         foreach (var rn in AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
             if (rn.GetValueOrDefault("region_id") is string rid && regions.GetValueOrDefault(rid) is Dict reg

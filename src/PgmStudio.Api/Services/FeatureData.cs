@@ -38,7 +38,7 @@ public sealed class FeatureData(PgmDb db)
             if (r.SpawnsWool == true && r.SpawnItemDamage is { } dmg
                 && WoolColors.WoolDamageToColor.TryGetValue(dmg, out var c))
                 sources.Add(new("spawner", c, r.WorldX, r.WorldY, r.WorldZ, (r.SpawnCount ?? 1) == 0 ? 1 : r.SpawnCount ?? 1));
-        sources.AddRange(WoolSources.PgmSpawnerSources(doc));   // PGM <spawner> modules (from the map XML)
+        sources.AddRange(WoolSources.PgmSpawnerSources(doc, (await MapBboxAsync(mapId, ct))?.bounds));   // PGM <spawner> modules (from the map XML)
         return sources;
     }
 
