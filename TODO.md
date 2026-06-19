@@ -158,18 +158,6 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   integer 1×1 grid, points reflect exactly — block-centre `.5` or block-anchor `.0` both preserved per PGM +
   corpus; sketch shape mirroring stays lenient.) Constraint: keep `OrbitAssignment` intact; new shape support
   stays within `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
-- [ ] **B10 — Build & test hygiene.** Two standing annoyances to clear:
-  - **Flaky test build (TUnit `[Test]` not found).** The first `dotnet run/build` of a test project after
-    a code/reference change can fail with `CS0246: 'Test'/'TestAttribute' could not be found` (seen in
-    `PgmStudio.Pgm.Tests` + `PgmStudio.Analysis.Tests`); a second build succeeds and the tests pass
-    (64/64, 37/37). The test files rely on TUnit's source-generated global usings, which the incremental
-    build doesn't regenerate reliably on the first pass. Fix: add an explicit `global using TUnit;` (a
-    `GlobalUsings.cs`) per test project — or whatever makes `[Test]` resolution independent of the
-    generator's incremental state — so a clean `dotnet run --project tests/<X>` is reliable first-try.
-  - **Two recurring build warnings** (pre-existing, surface on every clean build): `CS0105` duplicate
-    `using Microsoft.JSInterop` in `OverviewActivity.razor.cs:5`, and `CS0414` unused field
-    `ConfigureLanding.haveCounts` (`ConfigureLanding.razor.cs:33`). Delete the duplicate using + the dead
-    field so the build is warning-clean.
 
 ## Lower priority / parked
 

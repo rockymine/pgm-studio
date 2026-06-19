@@ -30,7 +30,6 @@ public partial class ConfigureLanding : IAsyncDisposable
     // Found brief — the scan (import-folder) returns the world-feature counts; symmetry is fetched after.
     private string? importedSlug;   // the map slug the scan created (canvas + endpoints + Start)
     private int woolBlocks, resourceBlocks, chestItems, spawnerBlocks, monumentCandidates, islandCount;
-    private bool haveCounts;
     private string? symType;   // symmetry + suggested teams are shown as inline facts, not selectable findings
 
     // Found detail brief — the currently-selected finding (left list) drives the right detail panel.
@@ -184,7 +183,7 @@ public partial class ConfigureLanding : IAsyncDisposable
     private void ResetScan()
     {
         if (canvasHandle is not null) _ = DisposeCanvas();
-        importedSlug = null; haveCounts = false;
+        importedSlug = null;
         woolBlocks = resourceBlocks = chestItems = spawnerBlocks = monumentCandidates = islandCount = 0;
         symType = null; selectedFinding = "islands";
         islands = new(); woolColors = new(); resourceTypes = new(); chestCount = 0;
@@ -209,11 +208,10 @@ public partial class ConfigureLanding : IAsyncDisposable
                 woolBlocks = Int(r, "wool_blocks"); resourceBlocks = Int(r, "resource_blocks");
                 chestItems = Int(r, "chest_items"); spawnerBlocks = Int(r, "spawner_blocks");
                 monumentCandidates = Int(r, "monument_candidates"); islandCount = Int(r, "islands");
-                haveCounts = true;
             }
             else if (resp.StatusCode == HttpStatusCode.Conflict)
             {
-                importedSlug = selected.Slug; haveCounts = false;   // already a map — show what we can
+                importedSlug = selected.Slug;   // already a map — show what we can
             }
             else { error = $"Scan failed ({(int)resp.StatusCode})."; return false; }
 

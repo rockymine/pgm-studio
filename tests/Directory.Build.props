@@ -1,0 +1,18 @@
+<Project>
+
+  <!-- TUnit normally injects its global usings (TUnit.Core, TUnit.Assertions, etc.) through a late-running
+       .targets file. The incremental build does not fold those into GlobalUsings.g.cs reliably on the
+       first pass, so a clean first build of a test project can fail with CS0246 (the [Test] attribute
+       "could not be found"); a second build then succeeds. Turn that injection off and declare the same
+       usings as a real compiled source file (TUnitUsings.cs), so [Test] and Assert resolve deterministically
+       on every build. -->
+  <PropertyGroup>
+    <TUnitImplicitUsings>false</TUnitImplicitUsings>
+    <TUnitAssertionsImplicitUsings>false</TUnitAssertionsImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)TUnitUsings.cs" />
+  </ItemGroup>
+
+</Project>

@@ -2,7 +2,6 @@ using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Pages.EditorActivities;
 
