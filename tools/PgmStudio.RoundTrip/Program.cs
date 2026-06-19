@@ -169,7 +169,7 @@ static int RunCategorizeParity(string pyfreshDir, string pyfacetsDir, bool verbo
         try
         {
             var doc = (Dictionary<string, object?>)JsonTree.FromJsonLenient(File.ReadAllText(Path.Combine(dir, "xml_data.json")))!;
-            var mine = PgmStudio.Analysis.RegionCategorizer.DeriveFacets(doc);
+            var mine = PgmStudio.Pgm.Authoring.RegionCategorizer.DeriveFacets(doc);
             var theirs = (Dictionary<string, object?>)JsonTree.FromJson(File.ReadAllText(oraclePath))!;
 
             var diffs = new List<string>();
@@ -729,7 +729,7 @@ static int RunAuthoringParity(string oracleRoot, string[] corpusRoots, bool verb
         var doc = Serializer.ToDict(MapParser.Parse(mapXml));
         var regions = doc.GetValueOrDefault("regions") as Dictionary<string, object?> ?? [];
         var applyRules = doc.GetValueOrDefault("apply_rules") as List<object?>;
-        var cats = PgmStudio.Analysis.RegionCategorizer.Categorize(doc);
+        var cats = PgmStudio.Pgm.Authoring.RegionCategorizer.Categorize(doc);
         var bbox = ReadIslandsBbox(Path.Combine(dir, "islands.json"));
 
         var mine = PgmStudio.Analysis.RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, bbox);
@@ -785,8 +785,8 @@ static int RunAuthoringFixture(string[] args, string[] corpusRoots)
         var doc = Serializer.ToDict(MapParser.Parse(mapXml));
         var regions = doc.GetValueOrDefault("regions") as Dictionary<string, object?> ?? [];
         var applyRules = doc.GetValueOrDefault("apply_rules") as List<object?>;
-        var cats = PgmStudio.Analysis.RegionCategorizer.Categorize(doc);
-        var facets = PgmStudio.Analysis.RegionCategorizer.DeriveFacets(doc);
+        var cats = PgmStudio.Pgm.Authoring.RegionCategorizer.Categorize(doc);
+        var facets = PgmStudio.Pgm.Authoring.RegionCategorizer.DeriveFacets(doc);
 
         var split = PgmStudio.Analysis.RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, null);
         var primitives = (split["primitives"] as List<object?> ?? []).OfType<Dictionary<string, object?>>().ToList();
@@ -813,7 +813,7 @@ static int RunAuthoringFixture(string[] args, string[] corpusRoots)
 
 static Dictionary<string, object?> TrimAuthoringNode(
     Dictionary<string, object?> n, bool composed,
-    IReadOnlyDictionary<string, PgmStudio.Analysis.RegionFacet> facets)
+    IReadOnlyDictionary<string, PgmStudio.Domain.RegionFacet> facets)
 {
     var id = n.GetValueOrDefault("id") as string ?? "";
     var node = new Dictionary<string, object?>

@@ -6,6 +6,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
 using PgmStudio.Pgm;
+using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Endpoints;
 

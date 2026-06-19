@@ -1,7 +1,6 @@
-using PgmStudio.Analysis;
 using PgmStudio.Pgm.Authoring;
 
-namespace PgmStudio.Analysis.Tests;
+namespace PgmStudio.Pgm.Tests;
 
 using Dict = Dictionary<string, object?>;
 

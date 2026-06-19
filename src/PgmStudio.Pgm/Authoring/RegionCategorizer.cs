@@ -1,14 +1,9 @@
 using System.Text.RegularExpressions;
+using PgmStudio.Domain;
 
-namespace PgmStudio.Analysis;
+namespace PgmStudio.Pgm.Authoring;
 
 using Dict = Dictionary<string, object?>;
-
-/// <summary>
-/// One region's derived categorisation: a gameplay <see cref="Category"/>, usage <see cref="Roles"/>,
-/// and an optional <see cref="Subtype"/> refining the category (spec §2 — e.g. spawn → point|protection).
-/// </summary>
-public sealed record RegionFacet(string Category, List<string> Roles, string? Subtype = null);
 
 /// <summary>
 /// Two-facet region categorisation (port of studio/services/region_categorizer.py, contract

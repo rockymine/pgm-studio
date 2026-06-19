@@ -1,7 +1,7 @@
-using PgmStudio.Analysis;
 using PgmStudio.Pgm;
+using PgmStudio.Pgm.Authoring;
 
-namespace PgmStudio.Analysis.Tests;
+namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
 /// Synthetic categorizer tests (the 350-map exact-parity-vs-Python harness lives in
