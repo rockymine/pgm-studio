@@ -158,6 +158,15 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   integer 1×1 grid, points reflect exactly — block-centre `.5` or block-anchor `.0` both preserved per PGM +
   corpus; sketch shape mirroring stays lenient.) Constraint: keep `OrbitAssignment` intact; new shape support
   stays within `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
+- [~] **A5 — Project-structure reorg (folders + the `RegionCategorizer` relocation).** Clean-session,
+  behaviour-preserving; plans in `docs/contracts/project-structure.md` (whole-board inventory + per-project
+  verdict) and `pgm-codec-foldering.md` (the Pgm fold). Remaining, independent shippable slices; run
+  `RoundTrip --parity` between:
+  - **`Pgm/Editing` (20 files) → `Editing/`/`Authoring/`/`Sketch/`** sub-namespaces (codec stays at the
+    root). Churn: 2 `Api` `using` lines (`SketchEndpoints`, `AuthoringIntentEndpoints`).
+  - **`Analysis` → `Region/`/`Layer/`/`Playability/`/`Footprint/`** (project-structure.md §5.2).
+  - **`RegionCategorizer` → `Pgm`** (+ `RegionFacet` → `Domain`) so the categorizer sits with its generator
+    inverse — closes the hand-sync gotcha, round-trip tests move to `Pgm.Tests`.
 - [ ] **B10 — Build & test hygiene.** Two standing annoyances to clear:
   - **Flaky test build (TUnit `[Test]` not found).** The first `dotnet run/build` of a test project after
     a code/reference change can fail with `CS0246: 'Test'/'TestAttribute' could not be found` (seen in
@@ -209,7 +218,7 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   end-to-end verification of a sketched map *through* the Configure wizard → Edit (depends on the N-series
   Configure flow);
   **S2d** `SketchLayoutJson` `ArtifactKind` + the `/api/.../sketch/*` endpoints (load/save) ·
-  **S2e** server rasterize/finish (reuse `IslandDetector` + `Geometry2d` + a `WorldFeatureWriter`
+  **S2e** server rasterize/finish (reuse `IslandDetector` + `Geom.Symmetry` + a `WorldFeatureWriter`
   sibling). Completes M8. (`AuthorDisplay` from C12 is reused here.)
 - [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
   "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct

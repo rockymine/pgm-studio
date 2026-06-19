@@ -342,14 +342,14 @@ static async Task<List<PgmStudio.Analysis.WoolSources.Source>> LoadWoolSources(s
     var wp = Path.Combine(dir, "wools.parquet");
     if (File.Exists(wp))
         foreach (var r in await ReadParquet(wp))
-            sources.Add(new("block", PgmStudio.Analysis.WoolColors.Normalize(r["color"]?.ToString() ?? ""),
+            sources.Add(new("block", PgmStudio.Domain.WoolColors.Normalize(r["color"]?.ToString() ?? ""),
                 Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_y"]), Convert.ToInt32(r["world_z"]), 1));
     var cp = Path.Combine(dir, "chests.parquet");
     if (File.Exists(cp))
         foreach (var r in await ReadParquet(cp))
         {
             if (!(r["item_id"]?.ToString() ?? "").Contains("wool", StringComparison.OrdinalIgnoreCase)) continue;
-            if (!PgmStudio.Analysis.WoolColors.WoolDamageToColor.TryGetValue(Convert.ToInt32(r["item_damage"]), out var color)) continue;
+            if (!PgmStudio.Domain.WoolColors.WoolDamageToColor.TryGetValue(Convert.ToInt32(r["item_damage"]), out var color)) continue;
             sources.Add(new("chest", color, Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_y"]), Convert.ToInt32(r["world_z"]), Convert.ToInt32(r["count"])));
         }
     var sp = Path.Combine(dir, "spawners.parquet");
@@ -357,7 +357,7 @@ static async Task<List<PgmStudio.Analysis.WoolSources.Source>> LoadWoolSources(s
         foreach (var r in await ReadParquet(sp))
         {
             if (r.GetValueOrDefault("spawns_wool") is not true) continue;
-            if (r.GetValueOrDefault("spawn_item_damage") is null || !PgmStudio.Analysis.WoolColors.WoolDamageToColor.TryGetValue(Convert.ToInt32(r["spawn_item_damage"]), out var color)) continue;
+            if (r.GetValueOrDefault("spawn_item_damage") is null || !PgmStudio.Domain.WoolColors.WoolDamageToColor.TryGetValue(Convert.ToInt32(r["spawn_item_damage"]), out var color)) continue;
             var count = r.GetValueOrDefault("spawn_count") is { } sc ? Convert.ToInt32(sc) : 1;
             sources.Add(new("spawner", color, Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_y"]), Convert.ToInt32(r["world_z"]), count == 0 ? 1 : count));
         }
@@ -533,7 +533,7 @@ static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, s
                     if (h.ValueKind == System.Text.Json.JsonValueKind.Object && h.TryGetProperty("id", out var hid))
                     {
                         var dmg = h.TryGetProperty("Damage", out var dd) ? dd.GetInt32() : 0;
-                        var color = hid.GetString()?.EndsWith("wool") == true ? $" → {PgmStudio.Minecraft.WoolData.WoolColor(dmg)}" : "";
+                        var color = hid.GetString()?.EndsWith("wool") == true ? $" → {PgmStudio.Domain.WoolColors.WoolColor(dmg)}" : "";
                         head = $" head={hid.GetString()}:{dmg}{color}";
                     }
                 }

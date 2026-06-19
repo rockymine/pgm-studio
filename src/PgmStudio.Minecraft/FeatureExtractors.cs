@@ -47,7 +47,7 @@ public static class FeatureExtractors
         foreach (var chunk in chunks)
             foreach (var b in AnvilRegion.Blocks(chunk))
                 if (b.Id == WoolId)
-                    yield return new WoolFeature(b.X, b.Z, b.Y, WoolData.WoolColor(b.Data));
+                    yield return new WoolFeature(b.X, b.Z, b.Y, PgmStudio.Domain.WoolColors.WoolColor(b.Data));
     }
 
     /// <summary>Iron/gold/diamond blocks with resource label (→ resources.parquet).</summary>

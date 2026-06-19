@@ -2,6 +2,7 @@ using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis;
 using PgmStudio.Data;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Api.Services;
 

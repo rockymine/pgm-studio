@@ -1,4 +1,5 @@
 using NetTopologySuite.Geometries;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Analysis;
 

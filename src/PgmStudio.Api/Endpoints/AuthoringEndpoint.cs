@@ -6,6 +6,7 @@ using PgmStudio.Analysis;
 using PgmStudio.Api.Services;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Api.Endpoints;
 

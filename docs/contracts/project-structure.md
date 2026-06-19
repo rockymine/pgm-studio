@@ -138,23 +138,39 @@ Notes that resolve braindump questions:
   chain you described is **orchestrated by `Api/SketchEndpoints`**, which feeds the rasterizer's cell
   output into `Analysis.IslandDetector`. That's why `Pgm` stays NTS-free — good, keep it that way.
 
-### 5.2 `Analysis` — sub-folder; it straddles two charters
+### 5.2 `Analysis` — fold into four concerns; relocate two misfits
 
-12 flat files, two distinct jobs (this is the one project that genuinely spans two of your buckets):
+12 files. Two don't belong in `Analysis` at all (they aren't NTS-backed derivations — the charter); the
+other ten fold into four concerns, verified against the internal dependency graph:
 
-| New sub-folder | Files | Job |
+| Sub-folder | Files | Concern |
 |---|---|---|
-| `Analysis/Region/` | RegionCategorizer, RegionAuthoringEncoder, RegionGeometry2d, SegmentIndex | **PGM-semantic**: derive a region's category/role from usage |
-| `Analysis/Playability/` | Buildability, Traversability, WoolSources, WoolColors, ResourceSources | **world-feature**: the analysis-backed checks → the `F`-series UIs |
-| `Analysis/Geometry/` | IslandDetector, SideView | flood-fill / projection over world cells |
-| `Analysis/Symmetry/` | SymmetryDetector | detect a map's symmetry (read side) |
+| `Analysis/Region/` | RegionAuthoringEncoder, RegionGeometry2d | region shape/encoding (NTS). `RegionGeometry2d` is the shared dict→geometry adapter `Playability` also leans on |
+| `Analysis/Layer/` | SegmentIndex, SideView | structure the raw block layer: the vertical-segment index (feeds the checks) + the side-view depth projection (feeds the canvas). `SideView` takes raw `(x,z,ys,ye)` segments → depth grid — a view-feed, not a verdict |
+| `Analysis/Playability/` | Buildability, Traversability, WoolSources, ResourceSources | gameplay verdicts (NTS). `Buildability` is the hub (← `Traversability`, `ResourceSources`) |
+| `Analysis/Footprint/` | IslandDetector, SymmetryDetector | landmass geometry (NTS). `SymmetryDetector` consumes `IslandDetector`'s islands |
 
-**Coupling to flag (not a bug, but watch it):** the `Generators` (in `Pgm/Authoring/`) are documented as
-"mirror of `RegionCategorizer`" (in `Analysis/Region/`). They are *inverse functions of the same
-region-authoring contract* (intent→xml vs xml→facets) living in **different projects with different
-deps** (generators need the codec; the categorizer needs NTS). There is **no code edge** between them
-(verified) — they're kept in sync **by hand**. That hand-sync is the single most fragile seam in the
-codebase; `region-authoring.md` / `region-categorization.md` are its contract. Don't let it drift.
+**Two files leave `Analysis`:**
+- **`RegionCategorizer` → `Pgm`** (+ its `RegionFacet` record → `Domain`). It's pure (`Dict`+regex, **no
+  NTS**) and PGM-semantic — it derives what a region *means* from `map.xml` usage, the literal inverse of
+  the `Pgm/Authoring` generators. No `Analysis` source calls it (only `Api`+tests do); `RegionAuthoringEncoder`
+  needs only the `RegionFacet` *type* (passed in by `Api`), which `Domain` lets both projects see.
+- **`WoolColors` → `Domain`, merged with `Minecraft/WoolData`** — they are **duplicates** (same wool+dye
+  damage→slug tables, both "port of minecraft/wool.py"). One canonical copy in the lowest leaf every consumer
+  (`Minecraft`, `Analysis`, `Api`) reaches = `Domain`; fold in `WoolColors.Normalize`/`Aliases` +
+  `WoolData.WoolColor(fallback)`.
+
+**The gotcha — categorizer ↔ generators (the `RegionCategorizer` move resolves it).** The `Pgm/Authoring`
+generators are documented "mirror of `RegionCategorizer`": inverse functions of one region-authoring
+contract (intent→xml vs xml→facets). There is **no code edge** (Pgm⊥Analysis; the mentions are comments) —
+yet the contract *is* enforced, by round-trip tests in `Analysis.Tests` (the one test project that sees both
+sides): generate from intent → `DeriveFacets` → assert the emitted regions categorize back (e.g.
+`WoolGeneratorTests` → `wool/room` + `wool/spawner`). The fragility is that this guard is **invisible** — it
+works only because of where the tests happen to be filed. Moving `RegionCategorizer` into `Pgm` puts the
+inverse pair in one project: the mirror becomes a real in-project relationship and the round-trip suite moves
+to `Pgm.Tests` where it's findable. (Same shape as the `Geometry2d` fix — a file misfiled against its
+project's charter, whose move also dissolves a coupling.) Contract spec: `region-authoring.md` /
+`region-categorization.md`.
 
 ### 5.3 `Data` — the real mixed bag (5 concerns, your "tables + file mgmt" intuition under-counts)
 

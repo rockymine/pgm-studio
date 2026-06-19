@@ -431,7 +431,7 @@ public static class MonumentSuggester
     }
 
     private static string? ColorFromStain((int Id, int Data) b) =>
-        b.Id is 35 or 95 or 159 && b.Data is >= 0 and < 16 ? WoolData.WoolColor(b.Data) : null;
+        b.Id is 35 or 95 or 159 && b.Data is >= 0 and < 16 ? PgmStudio.Domain.WoolColors.WoolColor(b.Data) : null;
 
     /// <summary>An item frame entity holding a wool item → the (support block it's mounted on, wool colour),
     /// or null when it isn't a wool-bearing item frame. The monument sits directly above/below the support.</summary>
@@ -443,7 +443,7 @@ public static class MonumentSuggester
         if (Int(frame.Get("TileX")) is not { } tx || Int(frame.Get("TileY")) is not { } ty
             || Int(frame.Get("TileZ")) is not { } tz || Int(frame.Get("Facing")) is not { } fac
             || !FrameSupport.TryGetValue(fac, out var s)) return null;
-        return (tx + s.dx, ty, tz + s.dz, WoolData.WoolColor(Int(item.Get("Damage")) ?? 0));
+        return (tx + s.dx, ty, tz + s.dz, PgmStudio.Domain.WoolColors.WoolColor(Int(item.Get("Damage")) ?? 0));
     }
 
     private static string? HeadWool(NbtCompound stand)
@@ -454,7 +454,7 @@ public static class MonumentSuggester
             {
                 var id = Str(item.Get("id"));
                 if (id is not null && id.ToLowerInvariant().EndsWith("wool"))
-                    return WoolData.WoolColor(Int(item.Get("Damage")) ?? 0);
+                    return PgmStudio.Domain.WoolColors.WoolColor(Int(item.Get("Damage")) ?? 0);
             }
         return null;
     }
