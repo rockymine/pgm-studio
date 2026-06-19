@@ -1,7 +1,8 @@
 using System.Text.Json;
 using LinqToDB.Data;
-using PgmStudio.Data;
-using PgmStudio.Data.Repositories;
+using PgmStudio.Data.Features;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Data.Tests;

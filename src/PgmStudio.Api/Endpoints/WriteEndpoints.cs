@@ -1,7 +1,7 @@
 using FastEndpoints;
 using LinqToDB;
-using PgmStudio.Data;
-using PgmStudio.Data.Repositories;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Editing;
 

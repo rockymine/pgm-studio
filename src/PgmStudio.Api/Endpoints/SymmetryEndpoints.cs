@@ -5,8 +5,8 @@ using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Footprint;
-using PgmStudio.Data;
-using PgmStudio.Data.Repositories;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 
 namespace PgmStudio.Api.Endpoints;
 

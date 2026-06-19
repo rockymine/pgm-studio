@@ -1,4 +1,5 @@
 using MySqlConnector;
+using PgmStudio.Data.Schema;
 using PgmStudio.Migrations;
 
 namespace PgmStudio.Data.Tests;

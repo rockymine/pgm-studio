@@ -1,9 +1,10 @@
 using LinqToDB;
 using LinqToDB.Async;
+using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Pgm;
 
-namespace PgmStudio.Data.Repositories;
+namespace PgmStudio.Data.Map;
 
 using Dict = Dictionary<string, object?>;
 

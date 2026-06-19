@@ -2,7 +2,7 @@ using LinqToDB;
 using LinqToDB.Data;
 using LinqToDB.DataProvider.MySql;
 
-namespace PgmStudio.Data;
+namespace PgmStudio.Data.Schema;
 
 /// <summary>The linq2db data connection over the MariaDB schema (MySqlConnector provider).</summary>
 public sealed class PgmDb : DataConnection

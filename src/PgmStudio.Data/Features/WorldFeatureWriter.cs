@@ -3,9 +3,10 @@ using LinqToDB;
 using LinqToDB.Data;
 using Parquet.Serialization;
 using PgmStudio.Analysis.Footprint;
+using PgmStudio.Data.Schema;
 using PgmStudio.Minecraft;
 
-namespace PgmStudio.Data.Repositories;
+namespace PgmStudio.Data.Features;
 
 /// <summary>
 /// Scans a Minecraft Anvil world (<c>region/*.mca</c>) with <see cref="FeatureExtractors"/> and

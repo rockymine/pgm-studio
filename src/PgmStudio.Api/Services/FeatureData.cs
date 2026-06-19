@@ -2,7 +2,7 @@ using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Layer;
 using PgmStudio.Analysis.Playability;
-using PgmStudio.Data;
+using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 
 namespace PgmStudio.Api.Services;

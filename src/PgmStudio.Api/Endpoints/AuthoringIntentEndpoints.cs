@@ -3,8 +3,8 @@ using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Api.Services;
-using PgmStudio.Data;
-using PgmStudio.Data.Repositories;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Endpoints;

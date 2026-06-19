@@ -1,6 +1,6 @@
 using LinqToDB.Mapping;
 
-namespace PgmStudio.Data;
+namespace PgmStudio.Data.Schema;
 
 // linq2db row mappings for the hybrid schema (see PgmStudio.Migrations M0001_InitialSchema).
 // `*Json` columns hold serialized JSON strings; `*Key` columns hold PGM string ids (unique per map).

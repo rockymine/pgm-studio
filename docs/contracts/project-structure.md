@@ -12,8 +12,9 @@
 >
 > **A5 landed the internal folds for `Pgm` and `Analysis`** (behaviour-preserving — build clean · all
 > tests green · `RoundTrip --parity` 350/350), and relocated `RegionCategorizer` → `Pgm/Authoring/`
-> (beside its generator inverse) + `RegionFacet` → `Domain`. **`Data` (§5.3) is the one fold still open,
-> tracked as `A6`.**
+> (beside its generator inverse) + `RegionFacet` → `Domain`. **`A6` then folded `Data` into
+> `Schema/`/`Map/`/`Features/` (§5.3) — the structure reorg is complete; every project now has a clean
+> internal shape.**
 
 ## 1. The verified dependency graph
 
@@ -131,37 +132,34 @@ parity harness); its `FromJson` is the production codec.
 | `Import` | 3 / 265 | **Clean but identity-blurred** | clarify: it is parquet→relational, **not** world-scan (§5.3) |
 | `Pgm` | 30 / 4951 | **Right internal shape now** | ✅ **folded `Editing/`/`Authoring/`/`Sketch/`; `RegionCategorizer` joined `Authoring/` (A5)** |
 | `Analysis` | 10 / 1731 | **Right internal shape now** | ✅ **folded `Region/`/`Layer/`/`Playability/`/`Footprint/` (A5)** |
-| `Data` | 8 / 1084 | **Mixed bag — 5 concerns** | **sub-folder; reconsider `WorldFeatureWriter` (§5.3)** |
+| `Data` | 8 / 1084 | **Right internal shape now** | ✅ **folded `Schema/`/`Map/`/`Features/`; `WorldFeatureWriter` stays in `Features/` (A6, §5.3)** |
 | `Api` | 27 / — | **Acceptable for a composition root** | optional: group 20 endpoint files into feature folders |
 | `Client` | ~60 / — | **Well-organized** | none (already foldered by tool; JS is 5-layer) |
 
 ## 5. Remaining internal reorganization
 
-> §5.1 (`Pgm`) and §5.2 (`Analysis`) **landed in A5** — see the §4 verdict table and the codec map (§3a).
-> `Data` below is the one fold still open (`A6`).
+> §5.1 (`Pgm`) and §5.2 (`Analysis`) **landed in A5**; §5.3 (`Data`) **landed in A6** — see the §4
+> verdict table and the codec map (§3a). All three folds are done.
 
-### 5.3 `Data` — the real mixed bag (5 concerns; "tables + file mgmt" under-counts it)
+### 5.3 `Data` — folded into Schema / Map / Features (A6)
 
-`Data` conflates five things; this is the project most worth untangling:
+`Data` conflated five concerns. **`A6` sub-foldered it behaviour-preservingly** (folders-only — build
+clean · `RoundTrip --parity` 350/350 · `Data`/`Import`/`Api` tests green) into three namespaces that
+match their folders (the A5 convention):
 
-| Concern | Files | Really is… |
+| Folder / namespace | Files | The concern |
 |---|---|---|
-| **Schema / POCOs** | Entities.cs (23 `*Row`), PgmDb.cs | the relational *model* + linq2db context |
-| **Map codec** | MapReader, MapWriter, MapRepository | Dict doc ⇄ entity rows (entity-replace; see `region-data-flow.md`) |
-| **World-feature ingest** | **WorldFeatureWriter** (refs `Minecraft`+`Analysis`) | a **pipeline stage**, not persistence — it *scans the Anvil world* |
-| **Artifact decode** | SurfaceLayer (reads `layer.parquet` blob) | parquet → cells |
-| **Candidate store** | MonumentCandidateStore | the monument-suggestion query store |
+| `Schema/` → `PgmStudio.Data.Schema` | Entities.cs (23 `*Row` + `ArtifactKind`), PgmDb.cs | the relational *model* + linq2db context |
+| `Map/` → `PgmStudio.Data.Map` | MapReader, MapWriter, MapRepository | Dict doc ⇄ entity rows (the map codec; see `region-data-flow.md`) |
+| `Features/` → `PgmStudio.Data.Features` | WorldFeatureWriter, SurfaceLayer, MonumentCandidateStore | world-feature ingest · artifact decode (`layer.parquet` blob) · monument-suggestion query store |
 
-Two recommendations:
-- **Sub-folder it** — e.g. `Data/Schema/`, `Data/Map/` (codec), `Data/Features/` (WorldFeatureWriter +
-  SurfaceLayer + MonumentCandidateStore). Cheap, immediately clarifying.
-- **Reconsider `WorldFeatureWriter`'s home.** It is the live-world-scan half of ingest (it pulls in
-  `Minecraft` *and* `Analysis` to turn a world into feature rows). `Import` is the *other* half of ingest
-  (parquet→relational) but **doesn't ref `Minecraft`**. So the ingest story is split: replay lives in
-  `Import`, live-scan lives in `Data`. That's the "is Minecraft the import project?" confusion —
-  **answer: no.** `Minecraft` = reading; `Import` = parquet replay CLI; the live world→DB scan is
-  `Data/WorldFeatureWriter` driven by `Api` endpoints. Consider unifying the two ingest pathways (both
-  into `Import`, or a thin `Pipeline` seam) so "how a world becomes rows" has one home.
+**`WorldFeatureWriter`'s home — decided: stays in `Data` (`Features/`).** It reads as a pipeline stage
+(it pulls `Minecraft` *and* `Analysis` to turn a world into feature rows), but its body is fundamentally
+a **DB writer** — `PgmDb` `BulkCopyAsync`/`InsertAsync`/`DeleteAsync` over the `*Row` POCOs plus
+`MonumentCandidateStore`. Moving it to `Import` would drag `Minecraft` + `Analysis` into the
+parquet-replay CLI (which today refs neither) for no boundary gain, and exceeds a folders-only fold, so it
+sits beside the rows it writes. The broader "is the ingest story split, and should it be unified?"
+question is parked as an open decision (§6.4).
 
 ## 6. Open decisions (genuinely your call — recommendations given, not executed)
 
@@ -179,3 +177,11 @@ Two recommendations:
    convention. This is *why* `MapIntent` can sit in `Pgm` without breaking `Client`'s leaf set — but the
    contract between the wizard and `MapIntent` is **unchecked**. If it bites, the fix is a `Contracts`
    intent-DTO shared by both sides; until then it's a known, deliberate trade (decoupling over safety).
+4. **Unify the two ingest pathways?** Ingest is split across two homes: `Import` replays
+   parquet→rows (a CLI; refs neither `Minecraft` nor `Analysis`), while `Data/Features/WorldFeatureWriter`
+   live-scans the Anvil world→rows (pulls `Minecraft` + `Analysis`), driven by `Api` endpoints. So "how a
+   world becomes rows" has two implementations. A thin `Pipeline` seam — or merging the live-scan into
+   `Import` — would unify them. **Recommendation: leave it split** until the import story is revisited:
+   `WorldFeatureWriter` is DB-write-shaped and sits fine beside the rows it writes, and unifying is a
+   project-boundary refactor with new transitive deps, not a fold. (This resolves the `WorldFeatureWriter`
+   half of `A6`'s "decide its home" as *keep* — see §5.3.)

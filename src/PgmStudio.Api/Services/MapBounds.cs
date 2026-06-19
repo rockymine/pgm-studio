@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 using PgmStudio.Api.Endpoints;
-using PgmStudio.Data;
+using PgmStudio.Data.Schema;
 
 namespace PgmStudio.Api.Services;
 

@@ -4,8 +4,8 @@ using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Region;
 using PgmStudio.Api.Services;
-using PgmStudio.Data;
-using PgmStudio.Data.Repositories;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
 

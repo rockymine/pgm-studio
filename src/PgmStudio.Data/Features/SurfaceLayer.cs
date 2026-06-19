@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using Parquet.Serialization;
 
-namespace PgmStudio.Data;
+namespace PgmStudio.Data.Features;
 
 /// <summary>One surface-scan cell read from the cached <c>layer.parquet</c> artifact blob.</summary>
 public readonly record struct SurfaceCell(int X, int Z, int BlockId, int BlockData);

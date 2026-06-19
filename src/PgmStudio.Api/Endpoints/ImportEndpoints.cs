@@ -5,8 +5,9 @@ using System.Text.RegularExpressions;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
-using PgmStudio.Data;
-using PgmStudio.Data.Repositories;
+using PgmStudio.Data.Features;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 
 namespace PgmStudio.Api.Endpoints;
 

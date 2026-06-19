@@ -1,6 +1,7 @@
 using FastEndpoints;
-using PgmStudio.Data;
-using PgmStudio.Data.Repositories;
+using PgmStudio.Data.Features;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 
 var builder = WebApplication.CreateBuilder(args);
 

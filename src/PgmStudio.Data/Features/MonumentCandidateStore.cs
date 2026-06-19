@@ -1,9 +1,10 @@
 using LinqToDB;
 using LinqToDB.Async;
 using LinqToDB.Data;
+using PgmStudio.Data.Schema;
 using PgmStudio.Minecraft;
 
-namespace PgmStudio.Data.Repositories;
+namespace PgmStudio.Data.Features;
 
 /// <summary>
 /// Persists / loads the gathered monument candidates (F9, <c>docs/contracts/monument-candidate-store.md</c>).

@@ -1,7 +1,8 @@
 using LinqToDB;
 using LinqToDB.Async;
+using PgmStudio.Data.Schema;
 
-namespace PgmStudio.Data.Repositories;
+namespace PgmStudio.Data.Map;
 
 /// <summary>
 /// Data access for maps and their child rows. Thin over linq2db — the domain/codec layer

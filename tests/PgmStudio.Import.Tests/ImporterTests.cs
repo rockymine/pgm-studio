@@ -2,7 +2,7 @@ using System.Text.Json;
 using LinqToDB;
 using LinqToDB.Async;
 using MySqlConnector;
-using PgmStudio.Data;
+using PgmStudio.Data.Schema;
 using PgmStudio.Import;
 using PgmStudio.Migrations;
 using PgmStudio.Pgm;
