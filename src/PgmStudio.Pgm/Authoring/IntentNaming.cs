@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace PgmStudio.Pgm.Editing;
+namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>Shared naming for the declarative generators: the stable id slug derived from a team id
 /// (e.g. <c>red-team</c> → <c>red</c>), used for region/filter ids (<c>only-red</c>, <c>red-spawn</c>,

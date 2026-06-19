@@ -1,4 +1,4 @@
-namespace PgmStudio.Pgm.Editing;
+namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
 /// Canonical team-colour ordering for synthesizing teams from a symmetry (declarative authoring §4).

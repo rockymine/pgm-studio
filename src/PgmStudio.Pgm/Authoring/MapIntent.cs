@@ -1,4 +1,4 @@
-namespace PgmStudio.Pgm.Editing;
+namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
 /// Declarative authoring intent — the source of truth for a <b>new</b> map

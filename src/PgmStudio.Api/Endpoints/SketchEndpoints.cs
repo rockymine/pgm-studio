@@ -8,7 +8,7 @@ using PgmStudio.Analysis;
 using PgmStudio.Contracts;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
-using PgmStudio.Pgm.Editing;
+using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Api.Endpoints;
 

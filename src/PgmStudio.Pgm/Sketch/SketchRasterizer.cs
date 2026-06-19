@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using PgmStudio.Geom;
 
-namespace PgmStudio.Pgm.Editing;
+namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>
 /// Rasterizes a sketch layout (the <c>sketch_layout_json</c> blob) into the set of solid (x,z) block

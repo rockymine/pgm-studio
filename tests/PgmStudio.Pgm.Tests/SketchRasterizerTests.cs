@@ -1,4 +1,4 @@
-using PgmStudio.Pgm.Editing;
+using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Pgm.Tests;
 

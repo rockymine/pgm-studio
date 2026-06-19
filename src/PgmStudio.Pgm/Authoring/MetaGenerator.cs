@@ -1,4 +1,4 @@
-namespace PgmStudio.Pgm.Editing;
+namespace PgmStudio.Pgm.Authoring;
 
 using Dict = Dictionary<string, object?>;
 

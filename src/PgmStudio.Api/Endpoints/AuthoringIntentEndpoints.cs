@@ -5,7 +5,7 @@ using LinqToDB.Async;
 using PgmStudio.Api.Services;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
-using PgmStudio.Pgm.Editing;
+using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Endpoints;
 

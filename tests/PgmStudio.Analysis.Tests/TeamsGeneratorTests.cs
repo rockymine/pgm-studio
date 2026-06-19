@@ -1,5 +1,5 @@
 using PgmStudio.Analysis;
-using PgmStudio.Pgm.Editing;
+using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Analysis.Tests;
 
