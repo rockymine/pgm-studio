@@ -149,10 +149,12 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   and **every** C# affine site now routes through it (`SymmetryExpander` `Step` removed, both `ModeNormals`
   dicts → `Symmetry.Normal`, `RegionParser`/`RegionBoundsDeriver` `MirrorBounds` → `Symmetry.ReflectPoint`,
   `SketchRasterizer.MirrorAxes` → `Symmetry.OrbitAxes`, `SymmetryDetector` de-forced, `PointInRing` collapsed).
-  **Remaining (not affine-fold):** pick the orbit rounding convention (int vs 1dp) before the Wools wizard;
-  define one canonical map-bbox (used to clip `half`/`negative`); family-2 — a shared NTS contains/IoU +
-  fix `Traversability.RegionCentre` (AABB-midpoint → NTS centroid); decide editor AABB-vs-`containsPoint`
-  (+ correct `shape.js`'s header). Constraint: keep `OrbitAssignment` intact; new shape support stays within
+  **Remaining (not affine-fold):** define one canonical map-bbox (used to clip `half`/`negative`); family-2 —
+  a shared NTS contains/IoU + fix `Traversability.RegionCentre` (AABB-midpoint → NTS centroid); decide editor
+  AABB-vs-`containsPoint` (+ correct `shape.js`'s header). (Orbit rounding resolved by coordinate kind:
+  rectangle bounds snap to the integer 1×1 grid, points reflect exactly — block-centre `.5` or block-anchor
+  `.0` both preserved per PGM + corpus; sketch shape mirroring stays lenient.)
+  Constraint: keep `OrbitAssignment` intact; new shape support stays within
   `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
 - [ ] **B10 — Build & test hygiene.** Two standing annoyances to clear:
   - **Flaky test build (TUnit `[Test]` not found).** The first `dotnet run/build` of a test project after

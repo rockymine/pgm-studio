@@ -80,6 +80,30 @@ public sealed class SymmetryExpanderTests
     }
 
     [Test]
+    public async Task Region_orbit_keeps_block_centre_points_and_integer_grid_rects()
+    {
+        // Corpus convention (verified against PGM RectangleRegion/PointRegion + the 350-map corpus):
+        // rectangle bounds live on the 1×1 block grid (integers); a spawn POINT sits at the block centre
+        // (x.5). The orbit must keep each — the point keeps its half (rounding it to an integer would shift
+        // it off its block), and the rectangle stays integer and covers the same 20×50 extent, mirrored.
+        var intent = new MapIntent
+        {
+            Teams = TwoTeams(),
+            Symmetry = new SymmetryIntent { Mode = "mirror_x", CenterX = 0, CenterZ = 0 },
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10.5, 8, 4.5), Protection = new(2, 5, 22, 55) }],
+        };
+        var outp = SymmetryExpander.Expand(intent);
+
+        var blue = outp.Spawns.First(s => s.Team == "blue-team");
+        await Assert.That(blue.Point.X).IsEqualTo(-10.5); await Assert.That(blue.Point.Z).IsEqualTo(4.5);
+        var p = blue.Protection!.Value;
+        await Assert.That(p.MinX).IsEqualTo(-22.0); await Assert.That(p.MaxX).IsEqualTo(-2.0);   // mirrored, integer
+        await Assert.That(p.MinZ).IsEqualTo(5.0); await Assert.That(p.MaxZ).IsEqualTo(55.0);
+        await Assert.That(p.MaxX - p.MinX).IsEqualTo(20.0);                                        // 20×50 preserved
+        await Assert.That(p.MaxZ - p.MinZ).IsEqualTo(50.0);
+    }
+
+    [Test]
     public async Task Author_override_is_not_overwritten()
     {
         var intent = new MapIntent

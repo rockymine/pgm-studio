@@ -150,27 +150,33 @@ public static class SymmetryExpander
         return result;
     }
 
-    // ── geometry (the one canonical Symmetry transform) ───────────────────────────────────
+    // ── geometry (exact reflect/rotate, matching PGM MirroredRegion) ──────────────────────────────────
+    // The reflection itself is exact float arithmetic for every mode (n² ∈ {1,2} ⇒ the 2/n² cancels;
+    // rotations are coordinate swaps). Each kind keeps its corpus grid: a spawn/point sits at a block
+    // CENTRE (x.5) or a block anchor (integer) — TransformPt preserves whichever exactly (snapping to a
+    // single grid would corrupt the other); a rectangle's bounds live on the 1×1 block grid, so
+    // TransformRect snaps corners to whole blocks — a drawn 20×50 box stays exactly 20×50 through the orbit.
     private static Pt TransformPt(Pt p, SymmetryIntent sym, int k)
     {
         var (x, z) = Symmetry.Point(p.X, p.Z, sym.Mode, sym.CenterX, sym.CenterZ, k);
-        return new Pt(Round(x), p.Y, Round(z));
+        return new Pt(x, p.Y, z);
     }
 
     private static Rect TransformRect(Rect r, SymmetryIntent sym, int k)
     {
         var (nx, nz, xx, xz) = Symmetry.Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ, sym.Mode, sym.CenterX, sym.CenterZ, k);
-        return new Rect(Round(nx), Round(nz), Round(xx), Round(xz));
+        return new Rect(Math.Round(nx), Math.Round(nz), Math.Round(xx), Math.Round(xz));
     }
 
     // Transform a Minecraft yaw by running its facing vector through the linear part of the symmetry op
-    // (origin 0). Yaw 0 faces +Z (south); facing = (-sin, cos), inverse yaw = atan2(-x, z).
+    // (origin 0). Yaw 0 faces +Z (south); facing = (-sin, cos), inverse yaw = atan2(-x, z). Unlike the
+    // coordinate transforms this goes through atan2, so round away the float noise (90.00000001 → 90).
     private static double TransformYaw(double yaw, SymmetryIntent sym, int k)
     {
         var rad = yaw * Math.PI / 180.0;
         var (tx, tz) = Symmetry.Point(-Math.Sin(rad), Math.Cos(rad), sym.Mode, 0, 0, k);
         var deg = Math.Atan2(-tx, tz) * 180.0 / Math.PI;
-        return Round(((deg % 360) + 360) % 360);
+        return Math.Round(((deg % 360) + 360) % 360, 1);
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────
@@ -190,6 +196,4 @@ public static class SymmetryExpander
         var i = IndexOfTeam(teams, id);
         return i < 0 ? id : teams[(i + k) % teams.Count].Id;
     }
-
-    private static double Round(double v) => Math.Round(v, 1);
 }

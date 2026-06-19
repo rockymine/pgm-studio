@@ -153,9 +153,19 @@ cylinders land, its rect `Covers` test generalises to a cylinder containment, no
    (one duplicate removed). Regression: `SketchRasterizerTests.Mirror_d1_adds_a_diagonally_reflected_copy`.
 2. **`Traversability.RegionCentre` (`:87`)** uses the AABB midpoint, not the polygon centroid → nav-point
    can land in void for circle/half/compound spawn footprints. Use NTS `Centroid`.
-3. **Rounding split:** `OrbitAssignment` rounds orbit corners to **integers**; `SymmetryExpander.TransformRect`
-   to **1 dp**. No bug now (server no-ops), but lands the day the **Wools wizard** client-orbits rooms.
-   Decide the convention and write it into `new-map-authoring.md`.
+3. ~~**Rounding split** (`OrbitAssignment` int vs `SymmetryExpander.TransformRect` 1 dp)~~ **RESOLVED — by
+   coordinate kind, grounded in PGM + the corpus.** Two situations: (a) **sketch shape mirroring**
+   (`SketchRasterizer`) rasterizes to block cells, so leniency is fine; (b) **bounded-region mirroring**
+   (Configure orbit-fill + canvas) reproduces PGM `<mirror>`, whose `transform` is an *exact* reflection
+   (`MirroredRegion`; algebraically identical to our `Symmetry.ReflectPoint`). The grids, from the 350-map
+   corpus: **rectangle bounds are integer** (all 4123 corpus rects on the 1×1 grid) and **points are block-
+   centre `.5` or block-anchor `.0`** (1574 vs 513). So: `SymmetryExpander.TransformRect` **snaps corners to
+   the integer block grid** (`Math.Round` — a drawn 20×50 box stays exactly 20×50), and `TransformPt`
+   reflects **exactly** (no snap — `.5` *and* `.0` both occur, so forcing either grid would corrupt the
+   other; the old `Math.Round(v,1)` happened to preserve both but was opaque). Yaw keeps its rounding
+   (`atan2` float noise). The parser path (`RegionParser`/`RegionBoundsDeriver` `MirrorBounds`) was already
+   exact. `OrbitAssignment` keeps integer rounding — it only orbits block-aligned protection **rects**.
+   Regression: `SymmetryExpanderTests.Region_orbit_keeps_block_centre_points_and_integer_grid_rects`.
 
 **Duplication:**
 4. ~~`PointInRing` ×3~~ **DONE:** the two C# copies (`SpawnPhase`, `SketchRasterizer`) now call
@@ -181,7 +191,7 @@ single source the `Apply`/`Point` mirror branches now also use), and the `Region
 through `Geom.Symmetry`.
 
 Remaining:
-1. Fix the orbit rounding convention (#3) + define one canonical map-bbox (#7).
+1. Define one canonical map-bbox (#7). (Orbit rounding #3 — resolved, see above.)
 2. Family (2): shared NTS contains/IoU; drop hand-rolled server ray-casts. Fix `RegionCentre` (#2).
 3. Decide the editor-AABB-vs-`containsPoint` story (and correct `shape.js`'s header either way).
 4. Leave the JS `geometry/*` layer as the documented preview twin (not merged).
