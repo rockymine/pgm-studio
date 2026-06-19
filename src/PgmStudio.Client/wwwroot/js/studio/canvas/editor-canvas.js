@@ -50,6 +50,7 @@ import { SelectController } from "../controllers/select-controller.js";
 import { chatColorHex, dyeColorHex } from "../render/palette.js";
 import { blockToExtentBounds } from "../geometry/region-convert.js";
 import { pointInRing } from "../geometry/polygon.js";
+import { applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
 import { renderShape } from "../render/shape-render.js";
 import { renderSymmetryOverlay } from "../render/symmetry-render.js";
 import { renderBlockImage } from "../render/block-render.js";
@@ -81,6 +82,8 @@ export class EditorCanvas extends CanvasBase {
   #drawLayerEl    = null;
   #addedNodes     = [];
   #authorRegionIds = [];   // ids of "dummy" authoring regions (e.g. intent-backed spawn-protection rects)
+  #authorRegionNodes = []; // the authored nodes themselves, kept so the mirror preview can re-derive
+  #authorMirror = null;    // {type, cx, cz} — when set, authored rects get symmetry-orbited ghost copies
 
   // draw controller (instantiated in constructor)
   #drawCtrl = null;
@@ -397,7 +400,7 @@ export class EditorCanvas extends CanvasBase {
     // resizable region; clear it for empty, multi, or non-resizable selections.
     const resizable = [...this.#currentSelectedIds]
       .map(id => this.#nodeMap.get(id))
-      .filter(n => n?.bounds && RESIZABLE_TYPES.has(n.type));
+      .filter(n => n?.bounds && RESIZABLE_TYPES.has(n.type) && !n.ghost);
     if (resizable.length === 1) this.showAnchors(resizable[0]);
     else                        this.clearAnchors();
   }
@@ -472,10 +475,38 @@ export class EditorCanvas extends CanvasBase {
   // resize, and report edits via onBoundsSave exactly like tree regions (the host routes those to intent).
   // Replaces the previous author-region set.
   setAuthorRegions(nodes) {
+    this.#authorRegionNodes = nodes ?? [];
+    this.#renderAuthorRegions();
+  }
+
+  // When set, every authored rectangle gets its symmetry-orbited copies rendered as non-editable ghosts
+  // (reusing the shared geometry/symmetry.js — the same math the sketch tool's mirror preview uses).
+  setAuthorMirror(type, cx, cz) {
+    this.#authorMirror = type ? { type, cx, cz } : null;
+    this.#renderAuthorRegions();
+  }
+
+  #renderAuthorRegions() {
     for (const id of this.#authorRegionIds) this.removeRegion(id);
-    const list = nodes ?? [];
-    this.#authorRegionIds = list.map(n => n.id);
-    for (const node of list) this.addRegion(node);
+    const all = [...this.#authorRegionNodes, ...this.#mirrorGhosts(this.#authorRegionNodes)];
+    this.#authorRegionIds = all.map(n => n.id);
+    for (const node of all) this.addRegion(node);
+  }
+
+  #mirrorGhosts(nodes) {
+    if (!this.#authorMirror) return [];
+    const { type, cx, cz } = this.#authorMirror;
+    const axes = orbitAxes(type);
+    const out = [];
+    for (const n of nodes) {
+      if (!n.bounds || n.marker || n.ghost) continue;   // mirror real rectangles only (not markers/ghosts)
+      axes.forEach((ax, j) => out.push({
+        id: `${n.id}~m${j}`, type: "rectangle", ghost: true,
+        color: n.color, label: `${n.label ?? n.id} (mirror)`,
+        bounds: applySymmetryToBounds(n.bounds, ax, cx, cz),
+      }));
+    }
+    return out;
   }
 
   renameNode(oldId, newId) {
@@ -592,6 +623,7 @@ export class EditorCanvas extends CanvasBase {
     let near = null, nearD = Infinity;
     for (const [id, node] of this.#nodeMap) {
       if (!node.bounds) continue;
+      if (node.ghost) continue;   // derived previews (orbit copies) aren't selectable
       if (this.#visibilityMap.get(id) === false) continue;
       const { min_x, min_z, max_x, max_z } = node.bounds;
       if (worldX >= min_x && worldX <= max_x && worldZ >= min_z && worldZ <= max_z) {
@@ -909,13 +941,19 @@ export class EditorCanvas extends CanvasBase {
     }
 
     const boundsOrPoly = region.polygon_2d ?? region.bounds;
-    const shape = renderShape(type, boundsOrPoly, this.#toSvg, this.#regionAttrs(color));
+    const shape = renderShape(type, boundsOrPoly, this.#toSvg, this.#regionAttrs(color, region.ghost));
     if (shape) { g.appendChild(shape); this.#shapeMap.set(id, { shape, type }); }
     return g;
   }
 
-  #regionAttrs(color) {
-    return {
+  // `ghost` = a non-interactive derived preview (e.g. the symmetry-orbited copy of an authored region):
+  // fainter + finer dashes, and excluded from the hit-test so it can't be selected or resized.
+  #regionAttrs(color, ghost = false) {
+    return ghost ? {
+      fill: color, "fill-opacity": "0.06",
+      stroke: color, "stroke-opacity": "0.30", "stroke-width": "1.5", "stroke-dasharray": "2,3",
+      "vector-effect": "non-scaling-stroke",
+    } : {
       fill: color, "fill-opacity": "0.20",
       stroke: color, "stroke-opacity": "0.55", "stroke-width": "1.5", "stroke-dasharray": "4,2",
       "vector-effect": "non-scaling-stroke",
@@ -925,11 +963,19 @@ export class EditorCanvas extends CanvasBase {
   #refreshRegionDisplay(id) {
     const g = this.#regionGroupMap.get(id);
     if (!g) return;
+    const node = this.#nodeMap.get(id);
     const isSelected = this.#currentSelectedIds.has(id);
     const isVisible  = this.#visibilityMap.get(id) !== false;
     g.style.display  = (isVisible || isSelected) ? "" : "none";
     const entry = this.#shapeMap.get(id);
     if (!entry) return;
+    if (node?.ghost) {   // derived preview keeps its faint style regardless of selection
+      entry.shape.setAttribute("stroke-width",   "1.5");
+      entry.shape.setAttribute("stroke-opacity", "0.30");
+      entry.shape.setAttribute("fill-opacity",   "0.06");
+      entry.shape.setAttribute("stroke-dasharray", "2,3");
+      return;
+    }
     if (isSelected) {
       entry.shape.setAttribute("stroke-width",   "2.5");
       entry.shape.setAttribute("stroke-opacity", "0.85");

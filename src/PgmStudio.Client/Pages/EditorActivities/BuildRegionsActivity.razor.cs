@@ -6,21 +6,17 @@ using PgmStudio.Client.Models;
 
 namespace PgmStudio.Client.Pages.EditorActivities;
 
-public partial class BuildRegionsActivity : IAsyncDisposable
+public partial class BuildRegionsActivity
 {
     [Parameter] public string Slug { get; set; } = "";
 
     private EditorCanvas? canvas;
     private int step = 1;
 
-    // step 1
+    // step 1 — the side-view is the shared BuildHeightSideview component (owns its own JS lifecycle).
     private string? maxHeight;
     private bool heightDirty;
     private string? heightStatus;
-    private string axis = "nz";   // side-view direction: nz/pz/nx/px (camera on −/+ side of Z/X)
-    private ElementReference sideviewRef;
-    private IJSObjectReference? sideviewHandle;
-    private DotNetObjectReference<BuildRegionsActivity>? selfRef;
 
     // step 2
     private List<RegionGroup>? groups;
@@ -168,61 +164,22 @@ public partial class BuildRegionsActivity : IAsyncDisposable
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await JS.InvokeVoidAsync("studio.icons");
+        => await JS.InvokeVoidAsync("studio.icons");
 
-        // The side-view canvas exists only while Step 1 is shown — mount when it appears, dispose
-        // when leaving (re-mounted on return). Step 2 uses EditorCanvas, which owns its own lifecycle.
-        if (step == 1 && sideviewHandle is null)
-        {
-            selfRef ??= DotNetObjectReference.Create(this);
-            sideviewHandle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSideview", sideviewRef, selfRef, Slug, axis);
-            if (ParseHeight(maxHeight) is { } y) await sideviewHandle.InvokeVoidAsync("setBuildHeight", y);
-        }
-        else if (step != 1 && sideviewHandle is not null)
-        {
-            await DisposeSideviewAsync();
-        }
-    }
-
-    private async Task OnHeightInput(ChangeEventArgs e)
+    // Typed into the number input — the side-view picks up the new Height on re-render.
+    private void OnHeightInput(ChangeEventArgs e)
     {
         maxHeight = e.Value?.ToString();
         heightDirty = true; heightStatus = null;
-        if (sideviewHandle is not null) await sideviewHandle.InvokeVoidAsync("setBuildHeight", ParseHeight(maxHeight));
     }
 
-    private async Task SetAxis(string a)
+    // Dragged the side-view line.
+    private void OnSideviewHeight(double? y)
     {
-        if (axis == a) return;
-        axis = a;
-        if (sideviewHandle is not null) await sideviewHandle.InvokeVoidAsync("loadAxis", a);
-    }
-
-    /// <summary>Invoked from the side-view canvas when the user drags the build-height line.</summary>
-    [JSInvokable]
-    public void OnHeightChanged(double y)
-    {
-        maxHeight = ((int)Math.Round(y)).ToString();
+        maxHeight = y is { } v ? ((int)Math.Round(v)).ToString() : null;
         heightDirty = true; heightStatus = null;
         StateHasChanged();
     }
 
     private static double? ParseHeight(string? s) => double.TryParse(s, out var v) ? v : null;
-
-    private async Task DisposeSideviewAsync()
-    {
-        if (sideviewHandle is not null)
-        {
-            try { await sideviewHandle.InvokeVoidAsync("dispose"); } catch { }
-            try { await sideviewHandle.DisposeAsync(); } catch { }
-            sideviewHandle = null;
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await DisposeSideviewAsync();
-        selfRef?.Dispose();
-    }
 }

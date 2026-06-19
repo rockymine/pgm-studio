@@ -50,22 +50,7 @@
 
   @if (step == 1)
   {
-    <div class="workspace-canvas">
-      <div class="canvas-subbar">
-        <div class="canvas-toolbar">
-          <button class="draw-tool-btn @(axis == "nz" ? "draw-tool-btn--active" : null)" title="Inspect from −Z"
-                  @onclick='() => SetAxis("nz")'>Z−</button>
-          <button class="draw-tool-btn @(axis == "pz" ? "draw-tool-btn--active" : null)" title="Inspect from +Z"
-                  @onclick='() => SetAxis("pz")'>Z+</button>
-          <button class="draw-tool-btn @(axis == "nx" ? "draw-tool-btn--active" : null)" title="Inspect from −X"
-                  @onclick='() => SetAxis("nx")'>X−</button>
-          <button class="draw-tool-btn @(axis == "px" ? "draw-tool-btn--active" : null)" title="Inspect from +X"
-                  @onclick='() => SetAxis("px")'>X+</button>
-        </div>
-        <div class="canvas-subbar-right"><span class="canvas-hint">Drag the line to set the build height</span></div>
-      </div>
-      <div class="svg-area"><canvas @ref="sideviewRef" class="sideview-canvas"></canvas></div>
-    </div>
+    <BuildHeightSideview Slug="@Slug" Height="@ParseHeight(maxHeight)" HeightChanged="OnSideviewHeight" />
   }
   else
   {

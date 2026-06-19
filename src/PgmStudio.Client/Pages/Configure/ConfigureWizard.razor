@@ -52,6 +52,14 @@
   {
     <ProtectionPhase @key="@("teams-protect")" />
   }
+  else if (Phase.Id == "build" && subStep == 0)
+  {
+    <BuildHeightPhase @key="@("build-height")" />
+  }
+  else if (Phase.Id == "build" && subStep == 1)
+  {
+    <BuildLayerPhase @key="@("build-layer")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">

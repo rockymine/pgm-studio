@@ -2,15 +2,26 @@
  * Pure symmetry transforms on points and extent bounds — no DOM.
  */
 
-/** Reflect/rotate a single point about a centre. */
+/** Reflect/rotate a single point about a centre. Mirrors the server's Geometry2d (all six modes). */
 export function applySymmetry(x, z, axis, cx, cz) {
   switch (axis) {
-    case "mirror_x": return [2 * cx - x, z];
-    case "mirror_z": return [x, 2 * cz - z];
-    case "rot_180":  return [2 * cx - x, 2 * cz - z];
-    case "rot_90":   return [cx - (z - cz), cz + (x - cx)];
+    case "mirror_x":  return [2 * cx - x, z];
+    case "mirror_z":  return [x, 2 * cz - z];
+    case "mirror_d1": return [cx + (z - cz), cz + (x - cx)];   // reflect across the main diagonal (normal 1,-1)
+    case "mirror_d2": return [cx - (z - cz), cz - (x - cx)];   // reflect across the anti-diagonal (normal 1,1)
+    case "rot_180":   return [2 * cx - x, 2 * cz - z];
+    case "rot_90":    return [cx - (z - cz), cz + (x - cx)];
+    case "rot_270":   return [cx + (z - cz), cz - (x - cx)];   // internal: the 3rd image of a rot_90 orbit
     default: throw new Error(`Unknown symmetry axis: ${axis}`);
   }
+}
+
+/**
+ * The orbit images (other than the source) a symmetry produces: `rot_90` fills three quarter-turns,
+ * every other mode is a single reflection/half-turn. Used to fan one authored shape across all sides.
+ */
+export function orbitAxes(type) {
+  return type === "rot_90" ? ["rot_90", "rot_180", "rot_270"] : [type];
 }
 
 /** Apply a symmetry to an extent bounds, returning the transformed AABB. */
