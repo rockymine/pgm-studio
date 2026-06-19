@@ -44,7 +44,7 @@ public static class ResourceSources
         => string.IsNullOrEmpty(renewFilter) || renewFilter.ToLowerInvariant().Contains(resourceType.Replace("_block", ""));
 
     private static bool Covered(Block block, List<(Geometry geom, string renewFilter)> renewables)
-        => renewables.Any(r => RenewMatches(block.Type, r.renewFilter) && r.geom.Contains(new Point(block.X + 0.5, block.Z + 0.5)));
+        => renewables.Any(r => RenewMatches(block.Type, r.renewFilter) && r.geom.CoversCell(block.X, block.Z));
 
     public static List<TypeSummary> Summarize(IEnumerable<Block> blocks, Geometry? regionGeom, List<(Geometry, string)>? renewables = null)
     {
@@ -53,7 +53,7 @@ public static class ResourceSources
         var byType = new Dictionary<string, (int total, int renewable, List<BlockOut> srcs)>();
         foreach (var b in blocks)
         {
-            if (regionGeom is not null && !regionGeom.Contains(new Point(b.X + 0.5, b.Z + 0.5))) continue;
+            if (regionGeom is not null && !regionGeom.CoversCell(b.X, b.Z)) continue;
             if (!byType.TryGetValue(b.Type, out var e)) { e = (0, 0, []); order.Add(b.Type); }
             e.total++;
             if (Covered(b, renewables)) e.renewable++;

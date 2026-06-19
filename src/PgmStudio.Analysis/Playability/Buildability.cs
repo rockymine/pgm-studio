@@ -105,7 +105,7 @@ public static class Buildability
             var mask = new bool[n];
             for (var iz = 0; iz < nz; iz++)
             for (var ix = 0; ix < nx; ix++)
-                mask[iz * nx + ix] = prep.Contains(new Point(minX + ix + 0.5, minZ + iz + 0.5));
+                mask[iz * nx + ix] = prep.CoversCell(minX + ix, minZ + iz);
             return mask;
         }
 

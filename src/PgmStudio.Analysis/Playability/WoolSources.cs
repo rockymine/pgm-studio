@@ -201,7 +201,7 @@ public static class WoolSources
     {
         if (geom is null) return true;
         if (s.Geom is not null) return s.Geom.Intersects(geom);          // pgm spawner covers a region
-        return geom.Contains(new Point(s.X + 0.5, s.Z + 0.5));            // physical point
+        return geom.CoversCell(s.X, s.Z);                                // physical point
     }
 
     private static bool IsRenewable(Source s, List<Geometry> renewableGeoms)

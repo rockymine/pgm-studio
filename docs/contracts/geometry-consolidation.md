@@ -1,8 +1,10 @@
-# Geometry consolidation (TODO A4)
+# Geometry consolidation (A4 — DONE)
 
-> The plan + full audit for collapsing the scattered 2-D geometry code. Captured while the symmetry
-> context was fresh (the N03 / orbit-unification work). The actual refactor is a **clean-session** job —
-> it's cross-cutting and has design calls; don't bolt it onto feature work.
+> **Status: complete.** Both families consolidated, the editor hit-test decision made (keep AABB), parity
+> unchanged. This doc is now the rationale record + the earmark for the one *future* resident (a
+> `Rect ∪ Cylinder` C# shape model, only if intent ever goes beyond rectangles). The plan + full audit for
+> collapsing the scattered 2-D geometry code, captured while the symmetry context was fresh (the N03 /
+> orbit-unification work).
 
 ## The two families (do **not** force them into one type)
 
@@ -24,10 +26,16 @@ client (WASM), server, and `Analysis` all reach it.
 The Analysis project uses **NetTopologySuite (NTS)** — 7 files: `RegionGeometry2d`, `SymmetryDetector`,
 `IslandDetector`, `Buildability`, `ResourceSources`, `WoolSources`, `RegionAuthoringEncoder`.
 
-- **Hand-rolled point-in-polygon dup'd outside NTS:** `Pgm/SketchRasterizer` (ray cast) + client
-  `Client/Pages/Configure/SpawnPhase.PointInRing` + JS `geometry/polygon.js` `pointInRing`.
-- **Consolidation:** a thin shared `contains` / IoU helper (wrap NTS server-side) and drop the hand-rolled
-  ray-casts where NTS is already available.
+- **Status: COMPLETE (family 2 helper).** `PgmStudio.Analysis.Region.Geometry2dOps` is the single
+  NTS footprint helper: `CoversCell` (block-cell point-in-polygon, the `(x+0.5, z+0.5)` sampling
+  convention — `Geometry` + prepared-geometry overloads) and `IoU`. The repeated
+  `geom.Contains(new Point(x+0.5, z+0.5))` ray-casts (`Buildability`, `ResourceSources` ×2,
+  `WoolSources`) and the inline IoU (`SymmetryDetector`) now route through it; parity unchanged
+  (buildability/wool/traversability 10/10). `WoolSources`' `Centroid` (banker's-rounded representative
+  point) is **not** folded in — it's a single site with its own rounding, not a duplicate.
+- **Hand-rolled point-in-polygon outside NTS (intentional twins, not folded):** `Pgm/SketchRasterizer`
+  and client `SpawnPhase` use `Geom.Polygon.PointInRing` (scalar leaf — those projects have no NTS);
+  JS `geometry/polygon.js` `pointInRing` is the documented preview twin.
 
 ### Bounds rebound (cross-cutting)
 
@@ -119,18 +127,19 @@ generative layout algorithms (TSP/annealing, random-point polygon seeding).
 - The client **never** receives an NTS object: islands = GeoJSON rings, regions = untyped `polygon_2d`
   dicts + AABBs (`RegionAuthoringEncoder`), analysis = scalars (`BuildabilityDto` = digit-grid + bounds).
 - **Soft spot:** the Configure wizard holds **client-computed orbit geometry** in `Wizard.Intent` until
-  PUT. `SpawnPhase`/`ProtectionPhase` orbit-fill in WASM C# via `Contracts.Symmetry` + `OrbitAssignment`;
+  PUT. `SpawnPhase`/`ProtectionPhase` orbit-fill in WASM C# via `Geom.Symmetry` + `OrbitAssignment`;
   the server's `SymmetryExpander.FillSpawns` then **no-ops** (teams already filled). So spawns/protection
   are *client*-authored, build areas are *server*-authored (client sends one side). Two orbit paths that
-  agree **only because both call `Contracts.Symmetry`** — keep that the single source.
+  agree **only because both call `Geom.Symmetry`** — keep that the single source.
 
 ### Shapes (`shape.js`) — two models, not one
 - JS `shape.js` is the rich vocabulary (`rectangle|circle|polygon|lasso`, Bézier `toRing`, `containsPoint`).
   C# has **no general shape model** — the intent is **rectangle/point only** and `SketchRasterizer`'s shape
   model is **sketch-private**. Rectangles are the contract; `OrbitAssignment` rect-only is correct, not a gap.
-- `shape.js`'s header ("shared by editor + sketch") is **drift**: only the sketch path imports it. The
-  **editor hit-tests regions by AABB** (`editor-canvas.js #hitTest` over `node.bounds`), islands by
-  `pointInRing`. A consolidation must decide: editor adopts `containsPoint`, or correct the header.
+- ~~`shape.js`'s header ("shared by editor + sketch") is **drift**~~ **RESOLVED:** header corrected to
+  sketch-only. The **editor hit-tests regions by AABB** (`editor-canvas.js #hitTest` over `node.bounds`),
+  islands by `pointInRing` — and that AABB choice is the **decided** behaviour (coheres with the AABB
+  resize/move model; see the Remaining/`DECIDED` note above).
 - ~~`containsPoint` ignores Bézier bulge → rendered curve ≠ hit shape.~~ **FIXED:** `containsPoint`
   now ray-casts over `toRing(shape)` (the same closed ring that is rendered), so the hit shape matches
   the drawn outline incl. the curve bulge (`shape.test.js` bulge case).
@@ -143,17 +152,24 @@ currently missing** from the intent model and the generators (and from `region-c
 `sketchShapeToPgmRegion`, which returns null for polygon/lasso). So the eventual shape model is bounded:
 `Rect ∪ Cylinder` unions, not the full `shape.js` polygon/lasso vocabulary (those stay sketch-terrain only).
 **`OrbitAssignment` is a keystone** (point-aware orbit→team assignment via covered-anchor containment) —
-any consolidation/relocation must keep its behaviour and `Contracts.Symmetry`-backed API intact; when
+any consolidation/relocation must keep its behaviour and `Geom.Symmetry`-backed API intact; when
 cylinders land, its rect `Covers` test generalises to a cylinder containment, not a rewrite.
 
 ### Ranked findings
 **Correctness / latent:**
 1. ~~**`SketchRasterizer.MirrorPoint` silently drops `mirror_d1`/`mirror_d2`**~~ **FIXED:** `MirrorPoint`
-   now delegates to `Contracts.Symmetry.Point` (rot_270 = k=3 of rot_90), so every axis — incl. the
+   now delegates to `Geom.Symmetry.Point` (rot_270 = k=3 of rot_90), so every axis — incl. the
    diagonals — is covered and consistent with the generator + JS, and the hand-rolled switch is gone
    (one duplicate removed). Regression: `SketchRasterizerTests.Mirror_d1_adds_a_diagonally_reflected_copy`.
-2. **`Traversability.RegionCentre` (`:87`)** uses the AABB midpoint, not the polygon centroid → nav-point
-   can land in void for circle/half/compound spawn footprints. Use NTS `Centroid`.
+2. ~~**`Traversability.RegionCentre`** uses the AABB midpoint, not the polygon centroid → nav-point
+   can land in void for half/compound spawn footprints.~~ **FIXED:** it resolves the region to its NTS
+   footprint (`RegionGeometry2d.ToGeometry`) and uses the **area centroid when that centroid is inside
+   the shape**, falling back to a guaranteed-interior `InteriorPoint` for non-convex/disjoint footprints,
+   and to the AABB midpoint when no geometry resolves. (A plain `Centroid` is **not** enough — a symmetric
+   disjoint union's centroid is the gap between the parts; e.g. annealing_iv's `woolrooms` centroid is the
+   map centre `(0,0)`, ~95 blocks from any room.) Centroid-if-inside keeps the convex rect/disc nav-points
+   on the bounds midpoint, so `--traversability` parity stays **10/10**. Regression:
+   `TraversabilityTests.Spawn_navpoint_lands_inside_a_disjoint_union_not_the_bounds_gap`.
 3. ~~**Rounding split** (`OrbitAssignment` int vs `SymmetryExpander.TransformRect` 1 dp)~~ **RESOLVED — by
    coordinate kind, grounded in PGM + the corpus.** Two situations: (a) **sketch shape mirroring**
    (`SketchRasterizer`) rasterizes to block cells, so leniency is fine; (b) **bounded-region mirroring**
@@ -202,12 +218,24 @@ single source the `Apply`/`Point` mirror branches now also use), and the `Region
 (mirror of JS `orbitAxes`; `SketchRasterizer.MirrorAxes` removed). Every C# affine transform now routes
 through `Geom.Symmetry`.
 
-Remaining (canonical map-bbox #7 + orbit rounding #3 are resolved — see above):
-1. Family (2): a shared NTS contains/IoU; drop hand-rolled server ray-casts. Fix `RegionCentre` (#2).
-2. Decide the editor-AABB-vs-`containsPoint` story (and correct `shape.js`'s header either way).
-3. Leave the JS `geometry/*` layer as the documented preview twin (not merged).
-4. Future residents of the leaf: a C# shape model (`Rect ∪ Cylinder`) when intent goes beyond rectangles;
-   the generative layout algorithms (TSP/annealing, random-point polygon seeding).
+All consolidation work is resolved — map-bbox #7, orbit rounding #3, `RegionCentre` #2, the family-2
+`Geometry2dOps` helper, and the editor hit-test decision; `shape.js`'s header is corrected to sketch-only.
+
+1. **DECIDED — editor region hit-test stays AABB.** `editor-canvas.js #hitTest` selects by `node.bounds`
+   (AABB; smallest-area tiebreak + `MARGIN=2` near-miss). Kept over polygon-precise (`pointInRing` over
+   `node.polygon_2d`) because it **coheres with the AABB resize/move model** (the 8 handles operate on
+   `node.bounds`, so select = what you can manipulate) and keeps "forgiving" select; the polygon route would
+   make select *stricter* than manipulation and pull in hole/multipolygon handling
+   (`polygon_2d.polygons[].holes`, which `#hitTestIsland` ignores), a polygon-area tiebreak, and near-miss
+   re-tuning — complexity for a marginal gain. NB: a polygon route would reuse `pointInRing` over
+   `polygon_2d`, **not** `shape.js`'s `containsPoint` (the sketch *shape* model) — so `shape.js` is
+   sketch-only either way (header corrected).
+2. Leave the JS `geometry/*` layer as the documented preview twin (not merged) — unchanged by design.
+
+**Future (earmarked, not part of A4):** a C# `Rect ∪ Cylinder` shape model in the `Geom` leaf when intent
+goes beyond rectangles (mirrors `shape.js`; needs no boolean ops — see "Home for the shared module"); the
+generative layout algorithms (TSP/annealing, random-point polygon seeding). Build only when a consumer
+needs it.
 
 > Note: the dict-`bounds_2d` rebound (`SymmetryAuthoring.OrbitBounds2d`) delegates the whole transform to
 > `Symmetry.Rect`; only the dict (un)pack stays in `Pgm` (the leaf is dict-free).

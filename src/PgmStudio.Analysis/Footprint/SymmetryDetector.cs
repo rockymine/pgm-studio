@@ -1,5 +1,6 @@
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
+using PgmStudio.Analysis.Region;
 
 namespace PgmStudio.Analysis.Footprint;
 
@@ -182,9 +183,7 @@ public static class SymmetryDetector
 
         var origUnion = Gf.BuildGeometry(original).Union();
         var transUnion = Gf.BuildGeometry(transformed).Union();
-        var unionArea = origUnion.Union(transUnion).Area;
-        if (unionArea < 1e-6) return 0.0;
-        return origUnion.Intersection(transUnion).Area / unionArea;
+        return Geometry2dOps.IoU(origUnion, transUnion);
     }
 
     private static Polygon? MakePolygon(IReadOnlyList<(double x, double z)> ext)

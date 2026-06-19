@@ -1,5 +1,7 @@
 namespace PgmStudio.Analysis.Playability;
 
+using PgmStudio.Analysis.Region;
+
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
@@ -31,7 +33,7 @@ public static class Traversability
         var haveLayers = surfaceColumns is { Count: > 0 };
 
         var labels = LabelComponents(navigable, nx, nz);
-        var points = NavigationPoints(data);
+        var points = NavigationPoints(data, (b.MinX, b.MinZ, b.MaxX, b.MaxZ));
 
         var placed = new List<NavPoint>();
         foreach (var p in points)
@@ -62,7 +64,7 @@ public static class Traversability
     }
 
     // ── navigation points: spawn region centres + wool locations ──────────────────────
-    private static List<NavPoint> NavigationPoints(Dict data)
+    private static List<NavPoint> NavigationPoints(Dict data, (double, double, double, double) bounds)
     {
         var regions = AsDict(data.GetValueOrDefault("regions"));
         var pts = new List<NavPoint>();
@@ -70,7 +72,7 @@ public static class Traversability
         {
             var r = sp.GetValueOrDefault("region");
             var region = r is string s ? regions.GetValueOrDefault(s) as Dict : r as Dict;
-            if (RegionCentre(region) is { } c) pts.Add(new NavPoint("spawn", sp.GetValueOrDefault("team") as string ?? "", c.x, c.z, 0));
+            if (RegionCentre(region, regions, bounds) is { } c) pts.Add(new NavPoint("spawn", sp.GetValueOrDefault("team") as string ?? "", c.x, c.z, 0));
         }
         foreach (var w in AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
         {
@@ -78,15 +80,31 @@ public static class Traversability
             var loc = AsDict(w.GetValueOrDefault("location"));
             if (Num(loc.GetValueOrDefault("x")) is { } lx && Num(loc.GetValueOrDefault("z")) is { } lz)
                 pts.Add(new NavPoint("wool", color, (int)lx, (int)lz, 0));
-            else if (RegionCentre(regions.GetValueOrDefault(w.GetValueOrDefault("wool_room_region") as string ?? "") as Dict) is { } c)
+            else if (RegionCentre(regions.GetValueOrDefault(w.GetValueOrDefault("wool_room_region") as string ?? "") as Dict, regions, bounds) is { } c)
                 pts.Add(new NavPoint("wool", color, c.x, c.z, 0));
         }
         return pts;
     }
 
-    private static (int x, int z)? RegionCentre(Dict? region)
+    // A point that lies inside the region footprint. The area centroid is the natural centre and
+    // equals the bounding-box midpoint for the convex rect/disc footprints; only when it falls
+    // outside a non-convex or disjoint shape (union/complement/half — where the box midpoint can
+    // land in an uncovered gap) do we use a guaranteed-interior representative point. Falls back to
+    // the AABB midpoint when no footprint geometry resolves.
+    private static (int x, int z)? RegionCentre(Dict? region, Dict registry, (double, double, double, double) bounds)
     {
         if (region is null) return null;
+        if (RegionGeometry2d.ToGeometry(region, bounds, registry) is { IsEmpty: false } geom)
+        {
+            var centroid = geom.Centroid;
+            var p = geom.Contains(centroid) ? centroid : geom.InteriorPoint;
+            return ((int)p.X, (int)p.Y);
+        }
+        return BoundsMidpoint(region);
+    }
+
+    private static (int x, int z)? BoundsMidpoint(Dict region)
+    {
         var b = AsDict(region.GetValueOrDefault("bounds_2d"));
         if (b.Count == 0) return null;
         var mn = AsDict(b.GetValueOrDefault("min"));

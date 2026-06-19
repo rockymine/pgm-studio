@@ -185,13 +185,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and the **canvas**
   renders the symmetry mirror as ghost previews in JS (`setAuthorMirror`); `BuildGenerator` orbits + unions
   them, complements the holes, and wraps the void-enforcement negative. (`BuildLayerPhase`; N03)
-- **One symmetry math, by runtime** — `Contracts.Symmetry` (`Order`/`Point`/`Rect` + reflect/rotate) is the
-  single canonical C# transform, shared by the WASM client (orbit assignment) **and** the server (`Pgm/
-  Geometry2d` delegates to it) — the per-phase client copies are gone (down-payment on `A4`). Live canvas
-  previews use the JS twin `geometry/symmetry.js` (`applySymmetry`/`applySymmetryToBounds`/`orbitAxes`, all
-  six modes) via the editor canvas's `setAuthorMirror` + a non-selectable `ghost` flag — the same machinery
-  the sketch tool's mirror uses. Identity assignment is the shared `OrbitAssignment` (point-aware) for
-  Protection/Wools and island-aware in Spawn. (N02/N03)
+- **Geometry consolidation — two families, one home each (`A4`).** *Scalar* math lives in the
+  dependency-free `PgmStudio.Geom` leaf (reachable by WASM client + server, no transitive deps):
+  `Symmetry` (`Order`/`Point`/`Rect`/`Apply`/`Normal`/`OrbitAxes` + reflect/rotate) is the single canonical
+  C# transform — every affine site routes through it (the per-phase client copies, `SymmetryExpander.Step`,
+  both `ModeNormals`, and `RegionParser`/`RegionBoundsDeriver` `MirrorBounds` are gone), plus
+  `Polygon.PointInRing` for the NTS-free projects (`SketchRasterizer`, client `SpawnPhase`). *Area* geometry
+  stays on NetTopologySuite in `Analysis`: `RegionGeometry2d` (region dict → footprint) builds, and
+  `Geometry2dOps` (`CoversCell` + `IoU`) is the one home for the cell-sampling and IoU idioms
+  (Buildability/ResourceSources/WoolSources/SymmetryDetector route through it). `Traversability.RegionCentre`
+  places nav-points via footprint centroid-if-inside (else interior point), so they can't land in a
+  union/complement gap; the canonical map-bbox is the surface-layer extent (one clip box for every pass).
+  Editor region hit-test stays AABB (coheres with the AABB resize/move model); `shape.js` is sketch-only.
+  Parity unchanged (buildability/wool/traversability 10/10). (`A4`)
+- **One symmetry math, by runtime** — the canonical `PgmStudio.Geom.Symmetry` is shared by the WASM client
+  (orbit assignment) **and** the server. Live canvas previews use the JS twin `geometry/symmetry.js`
+  (`applySymmetry`/`applySymmetryToBounds`/`orbitAxes`, all six modes) via the editor canvas's
+  `setAuthorMirror` + a non-selectable `ghost` flag — the same machinery the sketch tool's mirror uses.
+  Identity assignment is the shared `OrbitAssignment` (point-aware) for Protection/Wools and island-aware
+  in Spawn. (N02/N03)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,

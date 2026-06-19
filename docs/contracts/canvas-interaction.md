@@ -263,15 +263,13 @@ of bolting on.
 `configure-canvas.js`, `scan-canvas.js`, `overview-canvas.js`. Extract one `fetchJson` + a small
 handle helper into a shared bridge module.
 
-### 6.3 C# geometry (tracked under A4, not here)
-`SpawnPhase` `PointInRing` (`SpawnPhase.razor.cs:136`) and `Orbit/Rotate/Reflect` (`:148-167`)
-duplicate existing backend helpers (`Geom.Symmetry.ReflectPoint`/`RotatePoint`,
-`Editing/SymmetryExpander`) and the JS `converters.applySymmetry`. This belongs to the **A4**
-geometry-consolidation task (which already audits 5 C# sites) — route `SpawnPhase` through the one
-geometry module and move `PointInRing` into it. The symmetry **label** (`SymLabel`, byte-identical in
+### 6.3 C# geometry — DONE in A4
+`SpawnPhase` now routes through the canonical `PgmStudio.Geom` leaf: `Symmetry.Order`/`Symmetry.Point`
+for orbit-fill and `Polygon.PointInRing` for island hit-testing — no hand-rolled transforms or ray-cast
+remain. What's still open here is **not** geometry: the symmetry **label** (`SymLabel`, byte-identical in
 `WorldScanPhase`/`WorldSymmetryPhase`) and **team-count** mapping (repeated in
 `WorldSymmetryPhase`/`TeamsPhase`/`SpawnPhase`) should collapse into one shared C# `SymmetryInfo`
-helper — small, low-risk, do alongside A4.
+helper — small, low-risk (= **CV8**).
 
 ---
 
