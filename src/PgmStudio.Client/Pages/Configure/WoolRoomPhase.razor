@@ -1,0 +1,110 @@
+@namespace PgmStudio.Client.Pages.Configure
+@using PgmStudio.Client.Pages.EditorActivities
+@using W = PgmStudio.Client.Pages.Configure.WoolAuthoring
+
+@* Wools · room: draw the rectangle each wool lives in. The room is owned by the wool whose spawn it covers;
+   the symmetry orbits it to the partner wools (ghost = orbit copy). The generator wires defense + build/break. *@
+
+<div class="workspace">
+
+  <div class="workspace-sidebar">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">Wool rooms</h2>
+          <span class="badge @(WithRoom == wools.Count && wools.Count > 0 ? "badge--success" : "badge--dim")">@WithRoom / @wools.Count</span>
+        </div>
+        <p class="section-desc">With the <strong>rectangle tool</strong>, draw the room around a wool's
+          source — it's owned by the wool it covers, and the symmetry fills the partner wools. Draw one per
+          authored wool; the rest orbit (dashed = orbit copy).</p>
+        <div class="panel-list">
+          @if (wools.Count == 0) { <div class="list-empty">No wools — confirm objectives first.</div> }
+          @foreach (var w in wools)
+          {
+            <div class="list-row list-row--compact @(selectedColor == w.Color ? "list-row--selected" : null)"
+                 @key="w.Color" @onclick="() => SelectWool(w.Color)">
+              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><i data-lucide="rectangle-horizontal"></i></span>
+              <span class="list-label list-label--mono">@w.Color</span>
+              @if (w.HasRoom) { <span class="badge @(IsAuthored(w) ? "badge--success" : "badge--dim")">@(IsAuthored(w) ? "authored" : "orbit")</span> }
+              else { <span class="badge badge--warning">draw</span> }
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  <EditorCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__wool_room__"
+                OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-inspector">
+    <div class="workspace-scroll">
+      @if (Selected is { } sel)
+      {
+        <div class="panel-stack">
+          <section class="panel-section" @key="sel.Color">
+            <div class="detail-header">
+              <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="rectangle-horizontal"></i></span>
+              <span class="detail-label detail-label--mono">@sel.Color room</span>
+              @if (sel.HasRoom) { <span class="badge @(IsAuthored(sel) ? "badge--success" : "badge--dim")">@(IsAuthored(sel) ? "authored" : "orbit")</span> }
+            </div>
+            <div class="section-body">
+              @if (sel.HasRoom)
+              {
+                <div class="field">
+                  <label class="field-label">Min</label>
+                  <div class="ctrl-row">
+                    <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.RoomMinX" readonly /></div>
+                    <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.RoomMinZ" readonly /></div>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="field-label">Max</label>
+                  <div class="ctrl-row">
+                    <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.RoomMaxX" readonly /></div>
+                    <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.RoomMaxZ" readonly /></div>
+                  </div>
+                </div>
+                <p class="section-desc">Owned by <strong>@(string.IsNullOrEmpty(sel.Owner) ? "—" : TeamName(sel.Owner))</strong>.
+                  @(IsAuthored(sel) ? "Resize on the canvas to re-derive the orbit." : "Derived by orbit — edit its authored partner.")</p>
+                @if (IsAuthored(sel)) { <button class="action-btn action-btn--full action-btn--separated" @onclick="() => ClearRoom(sel)"><i data-lucide="trash-2"></i> Clear room</button> }
+              }
+              else
+              {
+                <p class="section-desc">No room yet — draw a rectangle over the @sel.Color source on the canvas.</p>
+              }
+            </div>
+          </section>
+
+          <section class="panel-section">
+            <div class="section-header section-header--ruled">
+              <h2 class="section-title">Auto-wiring</h2>
+              <span class="badge badge--dim">derived</span>
+            </div>
+            <div class="panel-list">
+              <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = not-@OwnerSlug(sel)</span><span class="list-tag">room defense</span></div>
+              <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = not-@OwnerSlug(sel)</span><span class="list-tag">build/break</span></div>
+              <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">capture ×@sel.Monuments.Count</span><span class="list-tag">monuments</span></div>
+            </div>
+            <p class="section-desc">The generator wires defense + build/break on the room and capture on the monuments — derived at save.</p>
+          </section>
+        </div>
+      }
+      else
+      {
+        <section class="panel-section">
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
+            <span class="detail-label">Wool room</span>
+          </div>
+          <p class="section-desc">Draw a room over a wool's source, or select a wool to inspect its room.</p>
+        </section>
+      }
+    </div>
+  </div>
+
+</div>

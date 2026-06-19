@@ -14,7 +14,7 @@ public static class ConfigurePhases
         new("world",  "settings-2",     "World",           ["Scan", "Islands", "Symmetry"],                   "N01"),
         new("teams",  "users",          "Teams",           ["Teams & islands", "Spawn point", "Protection"],  "N02"),
         new("build",  "pickaxe",        "Build",           ["Build height", "Buildable layer"],               "N03"),
-        new("wools",  "goal",           "Wools",           ["Colours", "Spawn", "Monuments", "Room"],         "N04"),
+        new("wools",  "goal",           "Wools",           ["Objectives", "Spawn", "Monuments", "Room"],      "N04"),
         new("review", "badge-check",    "Review & Export", ["Pre-flight", "Region tree", "XML"],              "N05"),
     ];
 

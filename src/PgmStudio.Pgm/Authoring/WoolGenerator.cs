@@ -40,32 +40,36 @@ public static class WoolGenerator
             var roomId = $"{colorSlug}-wool";
             var spawnId = $"{colorSlug}-wool-spawn";
 
-            // regions: the wool room + the wool spawn point
-            RegionEditor.CreateRegion(doc, new Dict
-            {
-                ["type"] = "rectangle", ["id"] = roomId, ["category"] = "wool",
-                ["min_x"] = w.Room.MinX, ["min_z"] = w.Room.MinZ, ["max_x"] = w.Room.MaxX, ["max_z"] = w.Room.MaxZ,
-            });
-            RegionEditor.CreateRegion(doc, new Dict
-            {
-                ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",
-                ["x"] = w.Spawn.X, ["y"] = w.Spawn.Y, ["z"] = w.Spawn.Z,
-            });
-
-            // wool element + monuments (one per capturing team)
+            // wool element + monuments (one per capturing team) — emitted even before the room is drawn,
+            // so a partly-authored map still generates its objectives (new-map-authoring.md §11).
             WoolEditor.AddWool(doc, new Dict { ["color"] = colorSlug });
-            WoolEditor.UpdateWool(doc, colorSlug, new Dict
+            var update = new Dict
             {
                 ["team"] = w.Owner,
                 ["location"] = new Dict { ["x"] = Floor(w.Spawn.X), ["y"] = Floor(w.Spawn.Y), ["z"] = Floor(w.Spawn.Z) },
-                ["wool_room_region"] = roomId,
-            });
+            };
+            if (w.Room is not null) update["wool_room_region"] = roomId;
+            WoolEditor.UpdateWool(doc, colorSlug, update);
             foreach (var m in w.Monuments)
                 WoolEditor.AddMonument(doc, colorSlug, new Dict
                 {
                     ["team"] = m.Team,
                     ["location"] = new Dict { ["x"] = m.Location.X, ["y"] = m.Location.Y, ["z"] = m.Location.Z },
                 });
+
+            if (w.Room is not { } room) continue;   // no room yet → skip the source side (region/spawner/wiring)
+
+            // regions: the wool room + the wool spawn point
+            RegionEditor.CreateRegion(doc, new Dict
+            {
+                ["type"] = "rectangle", ["id"] = roomId, ["category"] = "wool",
+                ["min_x"] = room.MinX, ["min_z"] = room.MinZ, ["max_x"] = room.MaxX, ["max_z"] = room.MaxZ,
+            });
+            RegionEditor.CreateRegion(doc, new Dict
+            {
+                ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",
+                ["x"] = w.Spawn.X, ["y"] = w.Spawn.Y, ["z"] = w.Spawn.Z,
+            });
 
             // spawner: dispense the dyed wool in the room, dropping at the spawn point
             DocAccess.EnsureList(doc, "spawners").Add(new Dict
@@ -74,14 +78,18 @@ public static class WoolGenerator
                 ["items"] = new List<object?> { new Dict { ["material"] = "wool", ["damage"] = DyeDamage.GetValueOrDefault(colorSlug, 0) } },
             });
 
-            // room wiring: only-<owner> (reused from spawn protection if present) → not-<owner>
+            // room wiring: only-<owner> (reused from spawn protection if present) → not-<owner>. Both
+            // filters are per-team, not per-wool, so a team that defends several wools shares them — guard
+            // both creations (a second same-owner wool would otherwise collide on the filter id).
             var only = $"only-{ownerSlug}";
+            var notOwner = $"not-{ownerSlug}";
             if (!DocAccess.Filters(doc).ContainsKey(only))
                 FilterEditor.CreateFilter(doc, new Dict { ["id"] = only, ["type"] = "team", ["team"] = w.Owner });
-            FilterEditor.CreateFilter(doc, new Dict { ["id"] = $"not-{ownerSlug}", ["type"] = "not", ["child"] = only });
+            if (!DocAccess.Filters(doc).ContainsKey(notOwner))
+                FilterEditor.CreateFilter(doc, new Dict { ["id"] = notOwner, ["type"] = "not", ["child"] = only });
 
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["enter"] = $"not-{ownerSlug}", ["region"] = roomId, ["message"] = EnterMessage });
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["block"] = $"not-{ownerSlug}", ["region"] = roomId, ["message"] = EditMessage });
+            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["enter"] = notOwner, ["region"] = roomId, ["message"] = EnterMessage });
+            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["block"] = notOwner, ["region"] = roomId, ["message"] = EditMessage });
         }
     }
 

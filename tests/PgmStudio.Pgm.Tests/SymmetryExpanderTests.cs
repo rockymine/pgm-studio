@@ -144,7 +144,7 @@ public sealed class SymmetryExpanderTests
         await Assert.That(outp.Wools!.Count).IsEqualTo(2);
         var blueWool = outp.Wools!.First(w => w.Owner == "blue-team");
         // room reflected across the X-normal: x→-x
-        await Assert.That(blueWool.Room.MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Room.MaxX).IsEqualTo(0.0);
+        await Assert.That(blueWool.Room!.Value.MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Room!.Value.MaxX).IsEqualTo(0.0);
         await Assert.That(blueWool.Spawn.X).IsEqualTo(-5.0);
         // the capturer shifts by the same orbit step: blue captured red's wool, so red captures blue's
         await Assert.That(blueWool.Monuments.Count).IsEqualTo(1);

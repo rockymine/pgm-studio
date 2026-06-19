@@ -23,6 +23,7 @@ export class SideviewCanvas {
   #ctx;
   #data       = null;   // server response object
   #buildHeight = null;  // world Y, or null
+  #marker     = null;   // { p: worldPrimary, y: worldY } — the point/block cell dot, or null
   #dragging   = false;
   #scale      = 4;
   #offsetX    = 0;
@@ -49,6 +50,12 @@ export class SideviewCanvas {
 
   setBuildHeight(y) {
     this.#buildHeight = (y == null) ? null : Math.round(y);
+    this._render();
+  }
+
+  /** The point/block being inspected, so its cell is visible (not just the Y line). null = no marker. */
+  setMarker(m) {
+    this.#marker = (m && m.p != null && m.y != null) ? { p: Math.round(m.p), y: Math.round(m.y) } : null;
     this._render();
   }
 
@@ -169,6 +176,28 @@ export class SideviewCanvas {
         ctx.textAlign  = "right";
         ctx.textBaseline = "bottom";
         ctx.fillText(`Y ${this.#buildHeight}`, x1 - 4, lineY - 2);
+      }
+    }
+
+    // Point/block marker — the actual region cell, so you can see WHAT you're setting the Y of (not just
+    // the level). It sits on the draggable line when editable (tracks buildHeight), else at its own Y.
+    if (this.#marker) {
+      const { primary_min, y_min } = this.#data;
+      const pIdx = this.#marker.p - primary_min;
+      const my   = (this.#buildHeight !== null) ? this.#buildHeight : this.#marker.y;
+      const yi   = my - y_min;
+      if (pIdx >= 0 && pIdx < primary_count && yi >= 0 && yi < y_count) {
+        const cx = ox + (pIdx + 0.5) * s;
+        const cy = oy + (y_count - 1 - yi) * s + s / 2;
+        const r  = Math.max(4, s * 0.55);
+        const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#5b9cff";
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+        ctx.fillStyle   = accent;
+        ctx.fill();
+        ctx.lineWidth   = 1.5;
+        ctx.strokeStyle = "#fff";
+        ctx.stroke();
       }
     }
   }

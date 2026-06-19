@@ -142,3 +142,32 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         }, ct);
     }
 }
+
+/// <summary>
+/// GET /api/map/{slug}/column-floor?x=&amp;z=&amp;y= — the terrain floor Y at a single column from the
+/// vertical segments: the top of the highest solid segment at or below the reference <c>y</c> (the floor a
+/// thing at <c>y</c> rests on), falling back to the segment top nearest <c>y</c>. Returns <c>{y:null}</c>
+/// when the column has no segment data. Used to seed a wool spawn's Y onto solid ground.
+/// </summary>
+public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/map/{slug}/column-floor"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (!int.TryParse(HttpContext.Request.Query["x"], out var x) || !int.TryParse(HttpContext.Request.Query["z"], out var z))
+        { await Send.ResponseAsync(new Dict { ["error"] = "x and z are required" }, 400, ct); return; }
+        var refY = int.TryParse(HttpContext.Request.Query["y"], out var ry) ? ry : int.MaxValue;
+
+        var tops = await db.LayerSegments
+            .Where(s => s.MapId == map.Id && s.WorldX == x && s.WorldZ == z)
+            .Select(s => s.WorldYEnd).ToListAsync(ct);
+        if (tops.Count == 0) { await Send.OkAsync(new Dict { ["y"] = (int?)null }, ct); return; }
+
+        var below = tops.Where(t => t <= refY).ToList();
+        int floor = below.Count > 0 ? below.Max() : tops.OrderBy(t => Math.Abs(t - refY)).First();
+        await Send.OkAsync(new Dict { ["y"] = floor }, ct);
+    }
+}

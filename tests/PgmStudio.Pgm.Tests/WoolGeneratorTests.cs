@@ -112,4 +112,58 @@ public sealed class WoolGeneratorTests
         await Assert.That(Rules(doc).Count).IsEqualTo(2);
         await Assert.That(Regions(doc).Keys.Count(k => k.StartsWith("red-wool"))).IsEqualTo(2);
     }
+
+    [Test]
+    public async Task Multiple_wools_per_team_share_room_filters()   // intra-team symmetry (≥2 wools/team)
+    {
+        // red defends two differently-coloured wools. The not-/only- room filters are per-TEAM, so they
+        // must be shared — a second same-owner wool previously collided on the 'not-red' filter id.
+        var doc = Map();
+        WoolGenerator.Apply(doc, new MapIntent
+        {
+            Wools =
+            [
+                new WoolIntent { Owner = "red-team", Color = "red", Room = new Rect(0, 0, 10, 10), Spawn = new Pt(5, 10, 5),
+                    Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }] },
+                new WoolIntent { Owner = "red-team", Color = "orange", Room = new Rect(20, 0, 30, 10), Spawn = new Pt(25, 10, 5),
+                    Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-70, 8, -50) }] },
+            ],
+        });
+
+        await Assert.That(Wools(doc).Count).IsEqualTo(2);
+        await Assert.That(Regions(doc).ContainsKey("red-wool")).IsTrue();
+        await Assert.That(Regions(doc).ContainsKey("orange-wool")).IsTrue();
+        await Assert.That(Filters(doc).Keys.Count(k => k == "not-red")).IsEqualTo(1);
+        await Assert.That(Filters(doc).Keys.Count(k => k == "only-red")).IsEqualTo(1);
+        foreach (var room in new[] { "red-wool", "orange-wool" })
+        {
+            var on = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == room).ToList();
+            await Assert.That(on.Any(r => r.GetValueOrDefault("enter") as string == "not-red")).IsTrue();
+            await Assert.That(on.Any(r => r.GetValueOrDefault("block") as string == "not-red")).IsTrue();
+        }
+    }
+
+    [Test]
+    public async Task Roomless_wool_emits_objective_without_room_or_spawner()   // partial intent (no room yet)
+    {
+        var doc = Map();
+        WoolGenerator.Apply(doc, new MapIntent
+        {
+            Wools =
+            [
+                new WoolIntent { Owner = "red-team", Color = "red", Room = null, Spawn = new Pt(5, 10, 5),
+                    Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }] },
+            ],
+        });
+
+        var wool = Wools(doc).OfType<Dict>().Single();          // the objective + monuments still generate
+        await Assert.That(wool["color"]).IsEqualTo("red");
+        await Assert.That(((List<object?>)wool["monuments"]!).Count).IsEqualTo(1);
+        await Assert.That(wool.GetValueOrDefault("wool_room_region")).IsNull();
+        // the source side waits for the room: no room region / spawn point / spawner / wiring
+        await Assert.That(Regions(doc).ContainsKey("red-wool")).IsFalse();
+        await Assert.That(Regions(doc).ContainsKey("red-wool-spawn")).IsFalse();
+        await Assert.That(Spawners(doc).Count).IsEqualTo(0);
+        await Assert.That(Rules(doc).Count).IsEqualTo(0);
+    }
 }

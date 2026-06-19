@@ -48,7 +48,7 @@ export async function mountSlice(canvasEl, dotnetRef, slug) {
       commitTimer = setTimeout(() => dotnetRef?.invokeMethodAsync("OnSliceY", y), 150);
     },
   });
-  let cur = { axis: "z", xmin: null, xmax: null, zmin: null, zmax: null, markerY: null };
+  let cur = { axis: "z", xmin: null, xmax: null, zmin: null, zmax: null, markerY: null, markerP: null, markerMy: null };
 
   async function load(opts) {
     cur = { ...cur, ...opts };
@@ -59,6 +59,7 @@ export async function mountSlice(canvasEl, dotnetRef, slug) {
       canvas.setData(r.ok ? await r.json() : null);
     } catch { canvas.setData(null); }
     canvas.setBuildHeight(cur.markerY);   // null = no draggable line (rectangle = display only)
+    canvas.setMarker(cur.markerP != null && cur.markerMy != null ? { p: cur.markerP, y: cur.markerMy } : null);
     canvas.resize();
   }
 

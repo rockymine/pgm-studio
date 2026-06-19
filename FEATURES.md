@@ -185,6 +185,41 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and the **canvas**
   renders the symmetry mirror as ghost previews in JS (`setAuthorMirror`); `BuildGenerator` orbits + unions
   them, complements the holes, and wraps the void-enforcement negative. (`BuildLayerPhase`; N03)
+- **Wools · Objectives sub-step (N04)** — a **detect-and-confirm** objectives list, not a colour-picker.
+  On entry the world is scanned (`GET /monument-suggestions` map-wide + `POST /wool-sources`): signed
+  monuments ("Place the X Wool here!") name each objective colour and give the capturing team (the island
+  the monument sits on → owner = the complement); physical wool clusters give the source location; physical
+  wool **no monument names** (or sitting in a team's own spawn) is flagged **decorative and excluded by
+  default** (re-includable). The author confirms/rejects, fixes an owner, recolours, or hand-adds a missing
+  wool (the ~7% detection can't find). Owner inference is **client-side** (`Polygon.PointInRing` + the
+  `islandTeams` assignment). Writes `intent.wools` (owner + colour + a floor-snapped seed spawn + the
+  detected monuments) — the seed Y is snapped onto the terrain floor at the wool's column via the new
+  `GET /map/{slug}/column-floor` (segment top at/below the wool's base), not the floating pile centroid.
+  (`WoolObjectivesPhase`; `WoolAuthoring` shared helper; `ColumnFloorEndpoint`; N04)
+- **Wools · Spawn sub-step (N04)** — confirm/adjust each wool's source point (seeded by the detected
+  cluster centroid) + set its Y on the reused side-view; positions **orbit** like the team-spawn step
+  (editing an anchor-team wool re-derives its mirror partners by mirrored position — colour/owner untouched,
+  so green's mirror stays the real yellow). (`WoolSpawnPhase`; N04)
+- **Wools · Monuments sub-step (N04)** — each wool needs **N−1** monuments (one per enemy team), modelled
+  as the expected capturers; the scan pre-fills the signed pedestals. **Box** a cluster → `monument-suggestions`
+  routes each hit to its colour's wool (capturing team = its island); an empty box drops a manual monument;
+  one-click whole-map **Detect**. Capturing team editable per row. (`WoolMonumentsPhase`; N04)
+- **Wools · Room sub-step (N04)** — the **rectangle tool** draws a wool room, owned by the wool whose spawn
+  it covers; the symmetry orbits it to the partner wools via the shared **`OrbitAssignment.ByCoveredAnchor`**
+  (anchors = the wool spawns), accumulating across wools so a team that defends several wools gets each room
+  (authored editable, orbit copies ghost). Shows the generator's **Auto-wiring (derived)** preview
+  (`enter`/`block`=`not-<owner>` + `capture ×N`). (`WoolRoomPhase`; N04)
+- **WoolGenerator multi-wool-per-team + partial-intent fixes (N04)** — (1) `not-<owner>` / `only-<owner>`
+  room filters are per-team, not per-wool, so a team defending several wools now **shares** them (both
+  creations guarded); a second same-owner wool previously collided on the filter id (HTTP 409). (2)
+  `WoolIntent.Room` is now **nullable** — a roomless wool (the author hasn't drawn its room yet) still
+  generates its objective + monuments and skips the room region / spawner / wiring, instead of failing
+  intent deserialization (a `null`→non-nullable-`Rect` 500). Verified end-to-end on n00_demo (2-team
+  `mirror_x`, 2 wools/team): 4 wools + 4 monuments, valid CTW XML (`<wool team>` = the monument-derived
+  capturer, as PGM requires). (N04)
+- **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
+  inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
+  editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)
 - **Geometry consolidation — two families, one home each (`A4`).** *Scalar* math lives in the
   dependency-free `PgmStudio.Geom` leaf (reachable by WASM client + server, no transitive deps):
   `Symmetry` (`Order`/`Point`/`Rect`/`Apply`/`Normal`/`OrbitAxes` + reflect/rotate) is the single canonical

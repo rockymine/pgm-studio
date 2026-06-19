@@ -60,6 +60,22 @@
   {
     <BuildLayerPhase @key="@("build-layer")" />
   }
+  else if (Phase.Id == "wools" && subStep == 0)
+  {
+    <WoolObjectivesPhase @key="@("wools-objectives")" />
+  }
+  else if (Phase.Id == "wools" && subStep == 1)
+  {
+    <WoolSpawnPhase @key="@("wools-spawn")" />
+  }
+  else if (Phase.Id == "wools" && subStep == 2)
+  {
+    <WoolMonumentsPhase @key="@("wools-monuments")" />
+  }
+  else if (Phase.Id == "wools" && subStep == 3)
+  {
+    <WoolRoomPhase @key="@("wools-room")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">

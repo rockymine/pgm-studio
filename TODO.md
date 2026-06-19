@@ -53,14 +53,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   Build⇄Traversability loop and the export condition. Surface connected/disconnected + isolated
   spawn/wool points; on failure send the author back to Build. Uses `GET /buildability` +
   `GET /traversability` (both done). (`ValidateSection`)
-- [ ] **N04 — Wools.** Colours → spawn → monuments → room. Monument count **derived** (N−1); the
-  **Monument tool = the block tool** + the monument-suggester smart-detect (detector done; stateless
-  serving = `F9`); the generator wires room defense / build-break / capture. Consumes the wool / monument
-  (`F9`) / resource endpoints under "Backend the steps need". The drawn wool-room rects reuse N02's
-  `RectDraw`/`setAuthorRegions` dummy-region pattern → resize + arrow-nudge for free (ex-CV2). **Orbit
-  the room with the shared `OrbitAssignment.ByCoveredAnchor`** (anchors = the wool spawns) so each room is
-  owned by the wool whose spawn it covers — same point-aware pattern as N02 protection (see the orbit
-  convention memory). (`WoolsSection`)
 - [ ] **N05 — Review & Export.** `ND1` settled this as **one phase, three flow-bar sub-steps:
   Pre-flight → Region tree (`N07`) → XML (`N06`)**; **Export = the flow-bar `Next` on the XML sub-step**,
   enabled only when the pre-flight gate is open (the **409**, enforced backend-side). This task = the
@@ -77,9 +69,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   `FEATURES.md`) — integrate it into the authoring inspector to set Y on point/block regions (lift
   spawn / monument / wool-spawn off y=0). **Fit-island** exists in parts (canvas toolbar) — refine the
   concept for per-side authoring (frame one team's quadrant while working its unit). (`FocusSection`)
-
-> The `N04`-feeding analysis backends (`F2`/`F6`/`F7`) are **done** (`FEATURES.md`); only the
-> consuming authoring UI (`N04`) remains.
 
 ## Existing editor — canvas & shared infrastructure (C)
 

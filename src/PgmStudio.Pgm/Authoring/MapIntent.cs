@@ -122,7 +122,10 @@ public sealed class WoolIntent
     public string Owner { get; init; } = "";
     /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
     public string Color { get; init; } = "";
-    public Rect Room { get; init; }
+    /// <summary>The wool-room footprint. Null until the author draws it (partial intent is tolerated,
+    /// new-map-authoring.md §11): a roomless wool still generates its objective + monuments, just not the
+    /// room region / spawner / room wiring.</summary>
+    public Rect? Room { get; init; }
     public Pt Spawn { get; init; }
     public List<MonumentIntent> Monuments { get; init; } = new();
 }

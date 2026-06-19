@@ -136,7 +136,7 @@ public static class SymmetryExpander
                 {
                     Owner = owner.Id,
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
-                    Room = TransformRect(src.Room, sym, k),
+                    Room = src.Room is { } r ? TransformRect(r, sym, k) : null,
                     Spawn = TransformPt(src.Spawn, sym, k),
                     Monuments = src.Monuments.Select(m => new MonumentIntent
                     {

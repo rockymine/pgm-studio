@@ -78,17 +78,19 @@ public partial class SliceView : IAsyncDisposable
         {
             if (D("x") is not { } x || D("z") is not { } z) return null;
             int ix = (int)Math.Floor(x), iz = (int)Math.Floor(z);
-            int? markerY = editable && D("y") is { } y ? (int)Math.Floor(y) : null;
+            int? pointY = D("y") is { } y ? (int)Math.Floor(y) : null;
+            int? markerY = editable ? pointY : null;          // the draggable line (editable only)
+            int markerP = zLook ? ix : iz;                    // the point's primary-axis column (always shown)
             return zLook
-                ? new() { ["axis"] = axis, ["xmin"] = ix - HalfWidth, ["xmax"] = ix + HalfWidth, ["zmin"] = iz, ["zmax"] = iz, ["markerY"] = markerY }
-                : new() { ["axis"] = axis, ["xmin"] = ix, ["xmax"] = ix, ["zmin"] = iz - HalfWidth, ["zmax"] = iz + HalfWidth, ["markerY"] = markerY };
+                ? new() { ["axis"] = axis, ["xmin"] = ix - HalfWidth, ["xmax"] = ix + HalfWidth, ["zmin"] = iz, ["zmax"] = iz, ["markerY"] = markerY, ["markerP"] = markerP, ["markerMy"] = pointY }
+                : new() { ["axis"] = axis, ["xmin"] = ix, ["xmax"] = ix, ["zmin"] = iz - HalfWidth, ["zmax"] = iz + HalfWidth, ["markerY"] = markerY, ["markerP"] = markerP, ["markerMy"] = pointY };
         }
 
         if (D("min_x") is not { } mnx || D("max_x") is not { } mxx || D("min_z") is not { } mnz || D("max_z") is not { } mxz)
             return null;
         int x0 = (int)Math.Floor(Math.Min(mnx, mxx)), x1 = (int)Math.Floor(Math.Max(mnx, mxx));
         int z0 = (int)Math.Floor(Math.Min(mnz, mxz)), z1 = (int)Math.Floor(Math.Max(mnz, mxz));
-        return new() { ["axis"] = axis, ["xmin"] = x0, ["xmax"] = x1, ["zmin"] = z0, ["zmax"] = z1, ["markerY"] = (int?)null };
+        return new() { ["axis"] = axis, ["xmin"] = x0, ["xmax"] = x1, ["zmin"] = z0, ["zmax"] = z1, ["markerY"] = (int?)null, ["markerP"] = (int?)null, ["markerMy"] = (int?)null };
     }
 
     private async Task DisposeHandleAsync()
