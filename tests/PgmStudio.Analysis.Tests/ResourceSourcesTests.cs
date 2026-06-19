@@ -1,4 +1,4 @@
-using PgmStudio.Analysis;
+using PgmStudio.Analysis.Playability;
 using PgmStudio.Pgm;
 
 namespace PgmStudio.Analysis.Tests;

@@ -1,6 +1,7 @@
 using LinqToDB;
 using LinqToDB.Async;
-using PgmStudio.Analysis;
+using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Playability;
 using PgmStudio.Data;
 using PgmStudio.Domain;
 

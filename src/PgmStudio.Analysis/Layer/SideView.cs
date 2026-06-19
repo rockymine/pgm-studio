@@ -1,4 +1,4 @@
-namespace PgmStudio.Analysis;
+namespace PgmStudio.Analysis.Layer;
 
 /// <summary>
 /// Side-view depth projection (B5, port of <c>_build_depth_map</c> in routes/build_regions.py).

@@ -158,15 +158,13 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   integer 1×1 grid, points reflect exactly — block-centre `.5` or block-anchor `.0` both preserved per PGM +
   corpus; sketch shape mirroring stays lenient.) Constraint: keep `OrbitAssignment` intact; new shape support
   stays within `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
-- [~] **A5 — Project-structure reorg (folders + the `RegionCategorizer` relocation).** Clean-session,
-  behaviour-preserving; plans in `docs/contracts/project-structure.md` (whole-board inventory + per-project
-  verdict) and `pgm-codec-foldering.md` (the Pgm fold). Remaining, independent shippable slices; run
-  `RoundTrip --parity` between:
-  - **`Pgm/Editing` (20 files) → `Editing/`/`Authoring/`/`Sketch/`** sub-namespaces (codec stays at the
-    root). Churn: 2 `Api` `using` lines (`SketchEndpoints`, `AuthoringIntentEndpoints`).
-  - **`Analysis` → `Region/`/`Layer/`/`Playability/`/`Footprint/`** (project-structure.md §5.2).
-  - **`RegionCategorizer` → `Pgm`** (+ `RegionFacet` → `Domain`) so the categorizer sits with its generator
-    inverse — closes the hand-sync gotcha, round-trip tests move to `Pgm.Tests`.
+- [ ] **A6 — `Data` internal fold (project-structure.md §5.3).** The last leg of the structure reorg
+  (`A5` landed the `Pgm` fold, the `Analysis` fold, and the `RegionCategorizer`→`Pgm/Authoring` +
+  `RegionFacet`→`Domain` move). `Data` still conflates five concerns; sub-folder it behaviour-preservingly
+  (`Schema/`, `Map/` codec, `Features/` = `WorldFeatureWriter`+`SurfaceLayer`+`MonumentCandidateStore`) and
+  decide `WorldFeatureWriter`'s home — it is the live-world-scan half of ingest (pulls `Minecraft`+`Analysis`)
+  while `Import` is the parquet-replay half; consider unifying the two ingest pathways so "how a world becomes
+  rows" has one home. Folders-only, `RoundTrip --parity` between (like `A5`).
 - [ ] **B10 — Build & test hygiene.** Two standing annoyances to clear:
   - **Flaky test build (TUnit `[Test]` not found).** The first `dotnet run/build` of a test project after
     a code/reference change can fail with `CS0246: 'Test'/'TestAttribute' could not be found` (seen in

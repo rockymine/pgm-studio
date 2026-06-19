@@ -213,8 +213,8 @@ static async Task<int> RunBuildabilityParity(string pyfreshDir, string featureRo
         try
         {
             var doc = (Dictionary<string, object?>)JsonTree.FromJsonLenient(File.ReadAllText(xmlData))!;
-            var y0 = new PgmStudio.Analysis.SegmentIndex(await ReadSegments(segPath)).Y0Columns();
-            var res = PgmStudio.Analysis.Buildability.Compute(doc, y0);
+            var y0 = new PgmStudio.Analysis.Layer.SegmentIndex(await ReadSegments(segPath)).Y0Columns();
+            var res = PgmStudio.Analysis.Playability.Buildability.Compute(doc, y0);
             var oracle = (Dictionary<string, object?>)JsonTree.FromJson(File.ReadAllText(oraclePath))!;
 
             var diffs = new List<string>();
@@ -222,7 +222,7 @@ static async Task<int> RunBuildabilityParity(string pyfreshDir, string featureRo
             if (res.MinX != ob[0] || res.MinZ != ob[1] || res.MaxX != ob[2] || res.MaxZ != ob[3])
                 diffs.Add($"bbox [{res.MinX},{res.MinZ},{res.MaxX},{res.MaxZ}]≠[{string.Join(",", ob)}]");
             var oc = (Dictionary<string, object?>)oracle["counts"]!;
-            foreach (var c in PgmStudio.Analysis.Buildability.Classes)
+            foreach (var c in PgmStudio.Analysis.Playability.Buildability.Classes)
                 if (res.Counts[c] != Convert.ToInt32(oc[c])) diffs.Add($"{c} {res.Counts[c]}≠{oc[c]}");
             var orows = ((List<object?>)oracle["rows"]!).Select(x => (string)x!).ToList();
             var myRows = Enumerable.Range(0, res.Height)
@@ -256,8 +256,8 @@ static async Task<int> RunTraversabilityParity(string pyfreshDir, string feature
         try
         {
             var doc = (Dictionary<string, object?>)JsonTree.FromJsonLenient(File.ReadAllText(xmlData))!;
-            var si = new PgmStudio.Analysis.SegmentIndex(await ReadSegments(segPath));
-            var res = PgmStudio.Analysis.Traversability.Check(doc, si.SurfaceColumns(), si.Y0Columns());
+            var si = new PgmStudio.Analysis.Layer.SegmentIndex(await ReadSegments(segPath));
+            var res = PgmStudio.Analysis.Playability.Traversability.Check(doc, si.SurfaceColumns(), si.Y0Columns());
             var oracle = (Dictionary<string, object?>)JsonTree.FromJson(File.ReadAllText(oraclePath))!;
 
             var diffs = new List<string>();
@@ -298,10 +298,10 @@ static async Task<int> RunWoolParity(string pyfreshDir, string featureRoot, stri
         {
             var doc = (Dictionary<string, object?>)JsonTree.FromJsonLenient(File.ReadAllText(xmlData))!;
             var sources = await LoadWoolSources(dir);
-            sources.AddRange(PgmStudio.Analysis.WoolSources.PgmSpawnerSources(doc));
-            var avail = PgmStudio.Analysis.WoolSources.CheckAvailability(doc, sources);
+            sources.AddRange(PgmStudio.Analysis.Playability.WoolSources.PgmSpawnerSources(doc));
+            var avail = PgmStudio.Analysis.Playability.WoolSources.CheckAvailability(doc, sources);
             var resBlocks = await LoadResourceBlocks(dir);
-            var res = PgmStudio.Analysis.ResourceSources.Summarize(resBlocks, null, PgmStudio.Analysis.ResourceSources.RenewableRegions(doc));
+            var res = PgmStudio.Analysis.Playability.ResourceSources.Summarize(resBlocks, null, PgmStudio.Analysis.Playability.ResourceSources.RenewableRegions(doc));
 
             var oracle = (Dictionary<string, object?>)JsonTree.FromJson(File.ReadAllText(oraclePath))!;
             var diffs = new List<string>();
@@ -336,9 +336,9 @@ static async Task<int> RunWoolParity(string pyfreshDir, string featureRoot, stri
     return failed == 0 ? 0 : 1;
 }
 
-static async Task<List<PgmStudio.Analysis.WoolSources.Source>> LoadWoolSources(string dir)
+static async Task<List<PgmStudio.Analysis.Playability.WoolSources.Source>> LoadWoolSources(string dir)
 {
-    var sources = new List<PgmStudio.Analysis.WoolSources.Source>();
+    var sources = new List<PgmStudio.Analysis.Playability.WoolSources.Source>();
     var wp = Path.Combine(dir, "wools.parquet");
     if (File.Exists(wp))
         foreach (var r in await ReadParquet(wp))
@@ -364,11 +364,11 @@ static async Task<List<PgmStudio.Analysis.WoolSources.Source>> LoadWoolSources(s
     return sources;
 }
 
-static async Task<List<PgmStudio.Analysis.ResourceSources.Block>> LoadResourceBlocks(string dir)
+static async Task<List<PgmStudio.Analysis.Playability.ResourceSources.Block>> LoadResourceBlocks(string dir)
 {
     var path = Path.Combine(dir, "resources.parquet");
     if (!File.Exists(path)) return [];
-    return (await ReadParquet(path)).Select(r => new PgmStudio.Analysis.ResourceSources.Block(
+    return (await ReadParquet(path)).Select(r => new PgmStudio.Analysis.Playability.ResourceSources.Block(
         r["resource_type"]?.ToString() ?? "", Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_y"]), Convert.ToInt32(r["world_z"]))).ToList();
 }
 
@@ -732,7 +732,7 @@ static int RunAuthoringParity(string oracleRoot, string[] corpusRoots, bool verb
         var cats = PgmStudio.Pgm.Authoring.RegionCategorizer.Categorize(doc);
         var bbox = ReadIslandsBbox(Path.Combine(dir, "islands.json"));
 
-        var mine = PgmStudio.Analysis.RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, bbox);
+        var mine = PgmStudio.Analysis.Region.RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, bbox);
         // PGM oo/-oo coords/bounds (e.g. an all-XZ cuboid) are ±Infinity on both sides; normalise
         // ±Infinity → a finite sentinel and NaN → null so JsonDocument can read both identically.
         var mineStr = System.Text.Json.JsonSerializer.Serialize(mine,
@@ -788,7 +788,7 @@ static int RunAuthoringFixture(string[] args, string[] corpusRoots)
         var cats = PgmStudio.Pgm.Authoring.RegionCategorizer.Categorize(doc);
         var facets = PgmStudio.Pgm.Authoring.RegionCategorizer.DeriveFacets(doc);
 
-        var split = PgmStudio.Analysis.RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, null);
+        var split = PgmStudio.Analysis.Region.RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, null);
         var primitives = (split["primitives"] as List<object?> ?? []).OfType<Dictionary<string, object?>>().ToList();
         var composed = (split["composed"] as List<object?> ?? []).OfType<Dictionary<string, object?>>().ToList();
 
@@ -936,7 +936,7 @@ static async Task<int> RunIslandParity(string regionDir, string oracleDir)
     Console.WriteLine($"  {(surfOk ? "OK  " : "FAIL")} surface        mine={surface.Count} oracle={layerOra.Count}");
 
     // Islands: compare count + the multiset of (block_count, bounds) + total polygon area.
-    var mineIslands = PgmStudio.Analysis.IslandDetector.Detect(surface.Select(s => (s.WorldX, s.WorldZ)));
+    var mineIslands = PgmStudio.Analysis.Footprint.IslandDetector.Detect(surface.Select(s => (s.WorldX, s.WorldZ)));
     var oraPath = Path.Combine(oracleDir, "islands.json");
     var oraIslands = File.Exists(oraPath)
         ? System.Text.Json.JsonDocument.Parse(File.ReadAllText(oraPath)).RootElement
@@ -978,7 +978,7 @@ static int RunCleanBaseRender(string regionDir, string outSvg)
         PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
         PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
     };
-    var islands = PgmStudio.Analysis.IslandDetector.DetectCleaned(baseCells, fallbacks);
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
     var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
     Console.WriteLine($"clean-base-render {name}: {baseCells.Count} cleaned-base cells → {islands.Count} islands " +

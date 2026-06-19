@@ -1,7 +1,7 @@
 using NetTopologySuite.Geometries;
 using PgmStudio.Domain;
 
-namespace PgmStudio.Analysis;
+namespace PgmStudio.Analysis.Region;
 
 using Dict = Dictionary<string, object?>;
 

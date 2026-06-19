@@ -2,7 +2,7 @@ using System.Text.Json.Nodes;
 using LinqToDB;
 using LinqToDB.Data;
 using Parquet.Serialization;
-using PgmStudio.Analysis;
+using PgmStudio.Analysis.Footprint;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Data.Repositories;

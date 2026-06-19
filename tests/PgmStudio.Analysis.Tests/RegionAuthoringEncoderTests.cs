@@ -1,4 +1,4 @@
-using PgmStudio.Analysis;
+using PgmStudio.Analysis.Region;
 
 namespace PgmStudio.Analysis.Tests;
 

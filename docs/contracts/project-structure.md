@@ -12,6 +12,17 @@
 > `Analysis` = 12 flat files) and **(b) legibility of the data-model layering** (six representations of
 > "a map", spread across four projects). Both are fixable without moving project boundaries.
 
+> **Status (A5 landed).** Two of the three internal folds in §5 are done, behaviour-preserving
+> (build clean · all unit tests green · `RoundTrip --parity` 350/350 · endpoints serve 200):
+> - **`Pgm`** folded into `Editing/` (edit), `Authoring/` (configure), `Sketch/` (sketch); the codec stays
+>   flat at the root (§5.1). **`RegionCategorizer` moved `Analysis` → `Pgm/Authoring/`** (next to its
+>   generator inverse) and its **`RegionFacet` record moved to `Domain`**; the generator↔categorizer
+>   round-trip guard tests moved `Analysis.Tests` → `Pgm.Tests` (§5.2).
+> - **`Analysis`** folded into `Region/` · `Layer/` · `Playability/` · `Footprint/` (§5.2); `WoolColors`
+>   was already merged into `Domain.WoolColors`.
+>
+> **Remaining: `Data` (§5.3)** — tracked as `A6` in `TODO.md`.
+
 ## 1. The verified dependency graph
 
 ```
@@ -101,15 +112,15 @@ all three converge on the **Dict doc → codec → Rows** spine. That is the spi
 | `Migrations` | 5 / 460 | **Clean** | none |
 | `Minecraft` | 8 / 1381 | **Clean** | none — your "cleanest project" read is right |
 | `Import` | 3 / 265 | **Clean but identity-blurred** | clarify: it is parquet→relational, **not** world-scan (§5) |
-| `Pgm` | 30 / 4583 | **Right project, wrong internal shape** | **fold `Editing/` into 4 sub-folders (§5.1)** |
-| `Analysis` | 12 / 2159 | **Right project, flat** | **sub-folder by concern (§5.2)** |
+| `Pgm` | 30 / 4583 | **Right project, wrong internal shape** | ✅ **folded `Editing/`/`Authoring/`/`Sketch/` (A5)** |
+| `Analysis` | 12 / 2159 | **Right project, flat** | ✅ **folded `Region/`/`Layer/`/`Playability/`/`Footprint/` (A5)** |
 | `Data` | 8 / 1084 | **Mixed bag — 5 concerns** | **sub-folder; reconsider `WorldFeatureWriter` (§5.3)** |
 | `Api` | 27 / — | **Acceptable for a composition root** | optional: group 20 endpoint files into feature folders |
 | `Client` | ~60 / — | **Well-organized** | none (already foldered by tool; JS is 5-layer) |
 
 ## 5. The three projects that need internal reorganization
 
-### 5.1 `Pgm` — fold the 20-file `Editing/` into four concerns
+### 5.1 `Pgm` — fold the 20-file `Editing/` into four concerns — ✅ landed (A5)
 
 > **Concrete, file-by-file plan with the verified roundtrip + migration steps:
 > `pgm-codec-foldering.md`.** (Churn is 2 `Api` `using` lines; the codec doesn't move.)
@@ -138,7 +149,7 @@ Notes that resolve braindump questions:
   chain you described is **orchestrated by `Api/SketchEndpoints`**, which feeds the rasterizer's cell
   output into `Analysis.IslandDetector`. That's why `Pgm` stays NTS-free — good, keep it that way.
 
-### 5.2 `Analysis` — fold into four concerns; relocate two misfits
+### 5.2 `Analysis` — fold into four concerns; relocate two misfits — ✅ landed (A5)
 
 12 files. Two don't belong in `Analysis` at all (they aren't NTS-backed derivations — the charter); the
 other ten fold into four concerns, verified against the internal dependency graph:
@@ -214,8 +225,9 @@ Two recommendations:
 
 ## 7. Cheap, correct fixes (independent of the bigger reorg)
 
-- **`CLAUDE.md` is stale:** the `Contracts` bullet still lists `(Symmetry)`, but the geometry move
-  relocated `Symmetry` to `Geom`. Update that line so the placement rule matches reality.
+- **`CLAUDE.md` placement rule** — ✅ the `Contracts` bullet no longer lists `(Symmetry)` (the geometry
+  move relocated it to `Geom`); the placement rule matches reality.
 - The bigger reorg (§5) is a **clean-session, cross-cutting job** — per `geometry-consolidation.md`'s own
-  warning about reshuffles, don't bolt it onto feature work. Land it as folder moves with no logic
-  changes, one project at a time (`Pgm/Editing` first — highest pain, lowest risk).
+  warning about reshuffles, don't bolt it onto feature work; land it as folder moves with no logic changes,
+  one project at a time, parity between each. **`Pgm` + `Analysis` done (A5)** (lowest-risk first);
+  **`Data` (§5.3) remains — `A6`.**

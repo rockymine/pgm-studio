@@ -1,6 +1,6 @@
 using FastEndpoints;
 using Microsoft.AspNetCore.Http;
-using PgmStudio.Analysis;
+using PgmStudio.Analysis.Playability;
 using PgmStudio.Api.Services;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;

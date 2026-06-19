@@ -1,7 +1,7 @@
 using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 
-namespace PgmStudio.Analysis;
+namespace PgmStudio.Analysis.Footprint;
 
 /// <summary>
 /// Global symmetry detection over island polygons.

@@ -1,5 +1,11 @@
 # `PgmStudio.Pgm` foldering plan: the codec roundtrip, verified file-by-file
 
+> **✅ Landed (A5).** Executed as planned: `Editing/` (edit) · `Authoring/` (configure) · `Sketch/` (sketch)
+> folders + namespaces, the codec flat at the root. `RegionCategorizer` also landed in `Pgm/Authoring/`
+> (next to its generator inverse) with `RegionFacet` → `Domain`, and the generator↔categorizer round-trip
+> guard tests moved to `Pgm.Tests`. Build clean · 103 tests green · `RoundTrip --parity` 350/350. The plan
+> below is kept as the record.
+
 > The concrete, actionable plan for the §5.1 reorg in `project-structure.md`. Captured from a
 > file-by-file read of all 30 `Pgm` files. The refactor is a **clean-session, folders-only job** (no
 > logic changes) — like `geometry-consolidation.md`, don't bolt it onto feature work. Verified churn is

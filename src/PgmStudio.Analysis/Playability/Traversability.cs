@@ -1,4 +1,4 @@
-namespace PgmStudio.Analysis;
+namespace PgmStudio.Analysis.Playability;
 
 using Dict = Dictionary<string, object?>;
 

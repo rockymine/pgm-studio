@@ -1,6 +1,6 @@
 using System.Text.Json.Nodes;
 using FastEndpoints;
-using PgmStudio.Analysis;
+using PgmStudio.Analysis.Playability;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data;

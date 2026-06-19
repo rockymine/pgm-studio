@@ -1,4 +1,4 @@
-namespace PgmStudio.Analysis;
+namespace PgmStudio.Analysis.Layer;
 
 /// <summary>
 /// Vertical-segment terrain index (port of studio/services/segments.py): solid Y-ranges per

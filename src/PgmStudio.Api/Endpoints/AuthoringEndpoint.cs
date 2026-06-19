@@ -2,7 +2,7 @@ using System.Text.Json;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
-using PgmStudio.Analysis;
+using PgmStudio.Analysis.Region;
 using PgmStudio.Api.Services;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;

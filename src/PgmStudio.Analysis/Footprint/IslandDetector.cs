@@ -4,7 +4,7 @@ using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 using NetTopologySuite.Operation.Union;
 
-namespace PgmStudio.Analysis;
+namespace PgmStudio.Analysis.Footprint;
 
 /// <summary>
 /// Detects "islands" — connected landmasses — from a layer scan's (x,z) footprint, with an exact

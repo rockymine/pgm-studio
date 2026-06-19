@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
-using PgmStudio.Analysis;
+using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
 
