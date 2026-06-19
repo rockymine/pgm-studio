@@ -16,7 +16,8 @@ public partial class ConfigureWizard
     private int subStep;
     private int furthest;            // highest phase reached — gates the rail (later = locked)
     private string? mapName;
-    private bool loaded;
+    private bool loaded;             // re-entry guard: the one-time load has been kicked off
+    private bool ready;              // the load has COMPLETED — phase bodies read the intent, so gate them on this
 
     // The stored authoring intent (GET /map/{slug}/intent) is the source of truth for both gating and
     // persistence. Held as a mutable JsonObject so a phase body can patch its own slice and mark dirty;
@@ -90,7 +91,20 @@ public partial class ConfigureWizard
         if (loaded) return;   // Slug is a fixed route param — load identity + intent once
         loaded = true;
         await Task.WhenAll(LoadNameAsync(), LoadIntentAsync());
+        SeedMetaNameFromMap();   // a sketched/imported map's name lives on the row, not (yet) in the intent
         furthest = Math.Max(furthest, SliceFurthest());
+        ready = true;            // only now may the phase bodies mount and read the loaded intent
+    }
+
+    // Prefill the meta name from the map's existing name (set at sketch-create / import) when the intent
+    // has none yet, so a draft's name shows in Map Info instead of a blank field. Not marked dirty: it's a
+    // display prefill that persists on the first phase-advance like any other meta edit.
+    private void SeedMetaNameFromMap()
+    {
+        if (string.IsNullOrWhiteSpace(mapName)) return;
+        var meta = intent!["meta"] as JsonObject;
+        if (meta is null) { meta = new JsonObject(); intent["meta"] = meta; }
+        if (string.IsNullOrWhiteSpace(Str(meta, "name"))) meta["name"] = mapName;
     }
 
     private async Task LoadNameAsync()
