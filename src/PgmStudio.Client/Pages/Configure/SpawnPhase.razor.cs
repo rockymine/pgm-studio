@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Models;
 using PgmStudio.Client.Pages.EditorActivities;
+using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Pages.Configure;
 
@@ -123,16 +124,14 @@ public partial class SpawnPhase
         spawns.Clear();
         spawns.Add(new Spawn { Team = team0, X = x, Y = y, Z = z, Authored = true });
         var i0 = teams.FindIndex(t => t.Id == team0);
-        for (var k = 1; k < OrbitOrder() && i0 >= 0; k++)
+        for (var k = 1; k < Symmetry.Order(symMode) && i0 >= 0; k++)
         {
-            var (ox, oz) = Orbit(x, z, k);
+            var (ox, oz) = Symmetry.Point(x, z, symMode, symCx, symCz, k);
             ox = Snap(ox); oz = Snap(oz);
             var tk = IslandTeamAt(ox, oz) ?? teams[(i0 + k) % teams.Count].Id;
             if (spawns.All(s => s.Team != tk)) spawns.Add(new Spawn { Team = tk, X = ox, Y = y, Z = oz });
         }
     }
-
-    private int OrbitOrder() => symMode is null ? 1 : symMode == "rot_90" ? 4 : 2;
 
     private string? IslandTeamAt(double x, double z)
     {
@@ -152,27 +151,6 @@ public partial class SpawnPhase
         return inside;
     }
 
-    // Orbit one point by the confirmed symmetry (mirrors SymmetryExpander.Step).
-    private (double x, double z) Orbit(double x, double z, int k) => symMode switch
-    {
-        "rot_90" => Rotate(x, z, 90 * k),
-        "rot_180" => Rotate(x, z, 180),
-        "mirror_x" => Reflect(x, z, 1, 0),
-        "mirror_z" => Reflect(x, z, 0, 1),
-        "mirror_d1" => Reflect(x, z, 1, -1),
-        "mirror_d2" => Reflect(x, z, 1, 1),
-        _ => (x, z),
-    };
-    private (double, double) Rotate(double x, double z, double deg)
-    {
-        var r = deg * Math.PI / 180; double dx = x - symCx, dz = z - symCz;
-        return (symCx + dx * Math.Cos(r) - dz * Math.Sin(r), symCz + dx * Math.Sin(r) + dz * Math.Cos(r));
-    }
-    private (double, double) Reflect(double x, double z, double nx, double nz)
-    {
-        double dx = x - symCx, dz = z - symCz, d = (dx * nx + dz * nz) / (nx * nx + nz * nz);
-        return (x - 2 * d * nx, z - 2 * d * nz);
-    }
     private static double Snap(double v) => Math.Floor(v) + 0.5;
 
     private void SelectTeam(string id) => selectedTeamId = id;

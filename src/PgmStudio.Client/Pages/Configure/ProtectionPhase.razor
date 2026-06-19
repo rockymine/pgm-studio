@@ -69,17 +69,33 @@
                   <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@r.MaxZ" readonly tabindex="-1" /></div>
                 </div>
               </div>
-              <p class="section-desc">Owned by <strong>@TeamName(team)</strong>. Select the zone on the canvas
-                and drag the handles to resize. Editing the authored team's zone re-derives the orbit.</p>
-              <div class="section-footer section-footer--separated">
-                <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => ClearProtection(team)">Remove zone</button>
-              </div>
+              @if (team == AuthoredTeam)
+              {
+                <p class="section-desc">Owned by <strong>@TeamName(team)</strong>. Drag the handles on the
+                  canvas to resize it — the orbit re-derives from this zone.</p>
+                <div class="section-footer section-footer--separated">
+                  <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => ClearProtection(team)">Remove zone</button>
+                </div>
+              }
+              else
+              {
+                <p class="section-desc">Derived from <strong>@TeamName(AuthoredTeam ?? "")</strong> by symmetry
+                  — edit the authored zone to change it.</p>
+              }
             </div>
           }
           else
           {
-            <p class="section-desc">No protection zone for <strong>@TeamName(team)</strong> yet. Draw a
-              rectangle around its spawn with the rectangle tool.</p>
+            @if (team == AuthoredTeam)
+            {
+              <p class="section-desc">No protection zone yet. Draw a rectangle around
+                <strong>@TeamName(team)</strong>'s spawn with the rectangle tool.</p>
+            }
+            else
+            {
+              <p class="section-desc">Appears once you draw the authored zone
+                (<strong>@TeamName(AuthoredTeam ?? "")</strong>).</p>
+            }
           }
         </section>
         @if (protection.ContainsKey(team))

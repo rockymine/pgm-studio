@@ -169,13 +169,29 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   like the editor's). The inspector edits X/Y/Z/Yaw — editing the authored spawn's X/Z re-derives the
   orbit; the reused **side-view** (`SliceView`) sets the Y on the spawn's terrain, **shared across the
   orbit**. → `intent.spawns`. (`SpawnPhase`; N02)
-- **Teams · Spawn protection sub-step (N02)** — the **rectangle tool** draws a protection zone around a
-  spawn; the confirmed symmetry orbit-fills the rest. Zones render as resizable **dummy regions** on the
-  reused canvas (new `EditorCanvas` `RectDraw`/`OnRectDrawn` + `setAuthorRegions` — geometry goes to intent,
-  not a `POST /regions`), so draw/select/resize reuse the editor's region handles; edits route to
-  `intent.spawns[].protection`. The inspector surfaces the generator's wiring in an **Auto-wiring (derived)**
-  section (`enter=only-<team>` + `block=never`); the generator builds the `spawn/protection` rectangle +
-  filters on regenerate. (`ProtectionPhase`; N02)
+- **Teams · Spawn protection sub-step (N02)** — the **rectangle tool** draws a protection zone over a
+  spawn; it's **owned by the team whose spawn it covers** and the confirmed symmetry orbits it onto the
+  rest, each copy **owned by the team whose spawn IT covers** (shared `OrbitAssignment.ByCoveredAnchor`
+  — spatial containment, never orbit order, so no spawn lands in an enemy's zone). Zones are **dummy
+  regions** on the reused canvas; the authored zone is editable, the **orbit copies are non-editable ghost
+  previews** (one-way derivation). Edits route to `intent.spawns[].protection`; the inspector shows the
+  generator's **Auto-wiring (derived)** (`enter=only-<team>` + `block=never`). (`ProtectionPhase`; N02)
+- **Build · Build-height sub-step (N03)** — the max-build-height cap, set with the **shared
+  `BuildHeightSideview`** — the Edit Build Regions step-1 side-view (`studio.mountSideview` / `SliceView`,
+  axis toggle + draggable line) **extracted into one component used by both surfaces**, so they're
+  identical. Number input ↔ canvas line stay in sync; → `intent.build.maxHeight`. (`BuildHeightPhase`; N03)
+- **Build · Buildable-layer sub-step (N03)** — the **rectangle tool** draws over-void bridges (areas) and
+  no-build holes (the negative-rectangle / complement case); a Bridge/Hole toggle picks which. Build areas
+  have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and the **canvas**
+  renders the symmetry mirror as ghost previews in JS (`setAuthorMirror`); `BuildGenerator` orbits + unions
+  them, complements the holes, and wraps the void-enforcement negative. (`BuildLayerPhase`; N03)
+- **One symmetry math, by runtime** — `Contracts.Symmetry` (`Order`/`Point`/`Rect` + reflect/rotate) is the
+  single canonical C# transform, shared by the WASM client (orbit assignment) **and** the server (`Pgm/
+  Geometry2d` delegates to it) — the per-phase client copies are gone (down-payment on `A4`). Live canvas
+  previews use the JS twin `geometry/symmetry.js` (`applySymmetry`/`applySymmetryToBounds`/`orbitAxes`, all
+  six modes) via the editor canvas's `setAuthorMirror` + a non-selectable `ghost` flag — the same machinery
+  the sketch tool's mirror uses. Identity assignment is the shared `OrbitAssignment` (point-aware) for
+  Protection/Wools and island-aware in Spawn. (N02/N03)
 - **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
   chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,

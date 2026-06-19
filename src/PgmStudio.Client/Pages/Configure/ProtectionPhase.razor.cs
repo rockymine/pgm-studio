@@ -1,6 +1,3 @@
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -9,27 +6,25 @@ using PgmStudio.Client.Pages.EditorActivities;
 
 namespace PgmStudio.Client.Pages.Configure;
 
-// Teams · protection step: draw a rectangle around the authored team's spawn with the rectangle tool; the
-// confirmed symmetry orbits it onto the other teams. Each protection zone is a dummy region on the reused
-// canvas (selectable + resizable). Writes each spawn's `protection` slice of the intent; the generator
-// turns it into a spawn-protection rectangle region and wires the enter/block filters onto that rectangle.
+// Teams · protection step: draw a rectangle over a spawn — it's owned by that spawn's team, and the
+// confirmed symmetry orbits it onto the other teams, each copy owned by the team whose spawn IT covers
+// (shared point-aware OrbitAssignment, never default orbit order — so no spawn lands in an enemy's zone).
+// The authored zone is editable; the orbit copies are non-editable ghost previews. Writes each spawn's
+// `protection` slice; the generator builds the rectangle + wires the enter/block filters on it.
 public partial class ProtectionPhase
 {
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
-    [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
-    private sealed class Spawn { public string Team = ""; public double X, Y, Z; public bool Authored; }
-    private sealed record Island(int Id, double[][] Ring);
+    private sealed class Spawn { public string Team = ""; public double X, Y, Z; }
     private record struct Rect(double MinX, double MinZ, double MaxX, double MaxZ);
 
     private readonly List<Team> teams = new();
-    private readonly Dictionary<string, string> islandTeams = new();   // island id → team id
     private string? symMode; private double symCx, symCz;
-    private List<Island> islands = new();
     private readonly List<Spawn> spawns = new();
-    private readonly Dictionary<string, Rect> protection = new();       // team id → protection rect
+    private readonly Dictionary<string, Rect> protection = new();   // team id → protection rect
+    private string? authoredTeam;   // the team whose spawn the editable (parent) zone covers; the orbit derives from it
     private string? selectedTeamId;
     private EditorCanvas? canvas;
 
@@ -37,14 +32,9 @@ public partial class ProtectionPhase
     private Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string Hex(string teamId) => GameColors.ChatHex(TeamOf(teamId)?.Color ?? "");
     private string TeamName(string id) => TeamOf(id)?.Name ?? id;
-    private Spawn? Authored => spawns.FirstOrDefault(s => s.Authored) ?? spawns.FirstOrDefault();
-    private string? AuthoredTeam => Authored?.Team;
+    private string? AuthoredTeam => authoredTeam;   // read-only alias the inspector/markup reads
 
-    protected override async Task OnInitializedAsync()
-    {
-        LoadFromIntent();
-        await LoadIslands();
-    }
+    protected override void OnInitialized() => LoadFromIntent();
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
@@ -54,9 +44,6 @@ public partial class ProtectionPhase
         if (Wizard.Intent["teams"] is JsonArray arr)
             foreach (var t in arr.OfType<JsonObject>())
                 teams.Add(new Team { Id = S(t, "id"), Name = S(t, "name"), Color = S(t, "color") });
-        islandTeams.Clear();
-        if (Wizard.Intent["islandTeams"] is JsonObject it)
-            foreach (var kv in it) if (kv.Value?.GetValue<string>() is { Length: > 0 } v) islandTeams[kv.Key] = v;
         if (Wizard.Intent["symmetry"] is JsonObject sym)
         {
             symMode = sym["mode"]?.GetValue<string>();
@@ -72,47 +59,51 @@ public partial class ProtectionPhase
                 if (s["protection"] is JsonObject pr)
                     protection[team] = new Rect(D(pr, "minX"), D(pr, "minZ"), D(pr, "maxX"), D(pr, "maxZ"));
             }
-        if (spawns.Count > 0) spawns[0].Authored = true;   // the placed one (heuristic on reload)
-        selectedTeamId = AuthoredTeam ?? teams.FirstOrDefault()?.Id;
-    }
-
-    private async Task LoadIslands()
-    {
-        try
-        {
-            var arr = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/islands");
-            islands = new();
-            if (arr.ValueKind == JsonValueKind.Array)
-                foreach (var e in arr.EnumerateArray())
-                {
-                    var id = e.GetProperty("id").GetInt32();
-                    if (e.TryGetProperty("polygon", out var poly) && poly.TryGetProperty("coordinates", out var co)
-                        && co.ValueKind == JsonValueKind.Array && co.GetArrayLength() > 0)
-                        islands.Add(new Island(id, co[0].EnumerateArray().Select(p => new[] { p[0].GetDouble(), p[1].GetDouble() }).ToArray()));
-                }
-        }
-        catch { islands = new(); }
+        // On reload the editable parent is the first spawn that has a zone — any one re-derives the same
+        // symmetric set, so the choice is cosmetic; null when nothing is drawn yet.
+        authoredTeam = spawns.FirstOrDefault(s => protection.ContainsKey(s.Team))?.Team;
+        selectedTeamId = authoredTeam ?? spawns.FirstOrDefault()?.Team ?? teams.FirstOrDefault()?.Id;
     }
 
     private Task OnCanvasReady() => PaintProtection();
 
-    // Rectangle tool → the drawn zone belongs to the team whose spawn it wraps (else the selection); if that
-    // team is the authored one, orbit-fill the rest. Drawing around an orbit team only hand-corrects that team.
+    // The drawn rectangle is owned by the team whose spawn it covers; the symmetry fills the rest.
     private async Task OnRectDrawn((double MinX, double MinZ, double MaxX, double MaxZ) r)
     {
-        var rect = new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ);
-        var team = TeamForRect(rect) ?? selectedTeamId ?? AuthoredTeam;
-        if (team is null) return;
-        protection[team] = rect;
-        if (team == AuthoredTeam) OrbitProtection();
-        selectedTeamId = team;
-        WriteProtection();
+        if (!ApplyAuthoredZone((r.MinX, r.MinZ, r.MaxX, r.MaxZ))) return;
         await PaintProtection();
-        await SelectOnCanvas(team);   // show the drawn zone's resize handles right away
+        if (authoredTeam is not null) await SelectOnCanvas(authoredTeam);
     }
 
-    // Canvas click → select the picked zone (echo selection back so its handles render), or deselect when
-    // the click misses every zone (empty space), matching the edit canvas.
+    // Resizing the authored zone re-derives the orbit; orbit copies are ghosts and never fire this.
+    private async Task OnGeometrySaved((string Id, double MinX, double MinZ, double MaxX, double MaxZ) e)
+    {
+        if (TeamFromRegionId(e.Id) != authoredTeam) return;
+        if (!ApplyAuthoredZone((e.MinX, e.MinZ, e.MaxX, e.MaxZ))) return;
+        await PaintProtection();
+        if (authoredTeam is not null) await SelectOnCanvas(authoredTeam);
+    }
+
+    // Shared point-aware assignment: orbit the drawn rect and key each copy by the spawn it covers. Leaves
+    // state untouched (returns false) when the rect wraps no spawn — a protection zone must enclose one.
+    private bool ApplyAuthoredZone((double MinX, double MinZ, double MaxX, double MaxZ) rect)
+    {
+        var parent = spawns.FirstOrDefault(s => Covers(rect, s.X, s.Z))?.Team;
+        if (parent is null) return false;
+        var anchors = spawns.Select(s => new OrbitAssignment.Anchor(s.Team, s.X, s.Z)).ToList();
+        var zones = OrbitAssignment.ByCoveredAnchor(rect, symMode, symCx, symCz, anchors);
+        protection.Clear();
+        foreach (var z in zones) protection[z.Id] = new Rect(z.MinX, z.MinZ, z.MaxX, z.MaxZ);
+        authoredTeam = parent;
+        selectedTeamId = parent;
+        WriteProtection();
+        return true;
+    }
+
+    private static bool Covers((double MinX, double MinZ, double MaxX, double MaxZ) r, double x, double z)
+        => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ;
+
+    // Canvas click → select the picked zone (echo selection back so its handles render), or deselect on a miss.
     private async Task OnCanvasSelect(string? id)
     {
         var team = id is null ? null : TeamFromRegionId(id);
@@ -121,7 +112,7 @@ public partial class ProtectionPhase
         else { if (canvas is not null) await canvas.SetSelectionAsync(Array.Empty<string>()); StateHasChanged(); }
     }
 
-    // Highlight a team's zone on the canvas (and so render its resize handles), syncing the sidebar.
+    // Only the authored zone shows handles; orbit copies are ghosts (the canvas ignores them for anchors).
     private async Task SelectOnCanvas(string team)
     {
         if (canvas is not null)
@@ -129,93 +120,19 @@ public partial class ProtectionPhase
         StateHasChanged();
     }
 
-    // A protection rect was resized on the canvas → update that team; re-orbit if it's the authored team.
-    private async Task OnGeometrySaved((string Id, double MinX, double MinZ, double MaxX, double MaxZ) e)
-    {
-        var team = TeamFromRegionId(e.Id);
-        if (team is null) return;
-        protection[team] = new Rect(e.MinX, e.MinZ, e.MaxX, e.MaxZ);
-        if (team == AuthoredTeam) OrbitProtection();
-        WriteProtection();
-        await PaintProtection();
-        await SelectOnCanvas(team);   // keep handles on the edited zone
-    }
-
     private async Task SelectTeam(string id) { selectedTeamId = id; await SelectOnCanvas(id); }
 
     private async Task ClearProtection(string team)
     {
-        protection.Remove(team);
-        if (team == AuthoredTeam) protection.Clear();   // the orbit derives from the authored zone
+        protection.Clear();   // the whole set derives from the authored zone — clearing it removes all
+        authoredTeam = null;
         WriteProtection();
         await PaintProtection();
     }
 
-    // Orbit the authored team's protection rect onto every other team, matched to each team's existing spawn
-    // (the symmetry step k that maps the authored spawn closest to that team's spawn).
-    private void OrbitProtection()
-    {
-        if (AuthoredTeam is not { } a0 || !protection.TryGetValue(a0, out var baseRect) || Authored is not { } a) return;
-        var order = OrbitOrder();
-        foreach (var s in spawns)
-        {
-            if (s.Team == a0) continue;
-            var bestK = 1; var bestD = double.MaxValue;
-            for (var k = 1; k < order; k++)
-            {
-                var (ox, oz) = Orbit(a.X, a.Z, k);
-                var d = (ox - s.X) * (ox - s.X) + (oz - s.Z) * (oz - s.Z);
-                if (d < bestD) { bestD = d; bestK = k; }
-            }
-            protection[s.Team] = OrbitRect(baseRect, bestK);
-        }
-    }
-
-    private Rect OrbitRect(Rect r, int k)
-    {
-        ReadOnlySpan<(double x, double z)> corners =
-            [(r.MinX, r.MinZ), (r.MaxX, r.MinZ), (r.MaxX, r.MaxZ), (r.MinX, r.MaxZ)];
-        double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
-        foreach (var (cx, cz) in corners)
-        {
-            var (ox, oz) = Orbit(cx, cz, k);
-            minX = Math.Min(minX, ox); minZ = Math.Min(minZ, oz);
-            maxX = Math.Max(maxX, ox); maxZ = Math.Max(maxZ, oz);
-        }
-        // Round away the rotation's float noise — protection zones are block-aligned like the drawn rect.
-        return new Rect(Math.Round(minX), Math.Round(minZ), Math.Round(maxX), Math.Round(maxZ));
-    }
-
-    private int OrbitOrder() => symMode is null ? 1 : symMode == "rot_90" ? 4 : 2;
-
-    // Orbit one point by the confirmed symmetry (mirrors the spawn step's orbit).
-    private (double x, double z) Orbit(double x, double z, int k) => symMode switch
-    {
-        "rot_90" => Rotate(x, z, 90 * k),
-        "rot_180" => Rotate(x, z, 180),
-        "mirror_x" => Reflect(x, z, 1, 0),
-        "mirror_z" => Reflect(x, z, 0, 1),
-        "mirror_d1" => Reflect(x, z, 1, -1),
-        "mirror_d2" => Reflect(x, z, 1, 1),
-        _ => (x, z),
-    };
-    private (double, double) Rotate(double x, double z, double deg)
-    {
-        var rad = deg * Math.PI / 180; double dx = x - symCx, dz = z - symCz;
-        return (symCx + dx * Math.Cos(rad) - dz * Math.Sin(rad), symCz + dx * Math.Sin(rad) + dz * Math.Cos(rad));
-    }
-    private (double, double) Reflect(double x, double z, double nx, double nz)
-    {
-        double dx = x - symCx, dz = z - symCz, d = (dx * nx + dz * nz) / (nx * nx + nz * nz);
-        return (x - 2 * d * nx, z - 2 * d * nz);
-    }
-
-    private string? TeamForRect(Rect r)
-        => spawns.FirstOrDefault(s => s.X >= r.MinX && s.X <= r.MaxX && s.Z >= r.MinZ && s.Z <= r.MaxZ)?.Team;
-
     private static string RegionId(string team) => $"{team}-spawn-protect";
     // A click resolves to a team via the protection rect ("{team}-spawn-protect") or the spawn marker
-    // ("{team}-spawn"), which sits inside the zone — either selects that team's protection.
+    // ("{team}-spawn") sitting inside it — either selects that team's protection.
     private string? TeamFromRegionId(string? id)
     {
         if (id is null) return null;
@@ -251,7 +168,8 @@ public partial class ProtectionPhase
         return 0;
     }
 
-    // One author-region set: each spawn as a point marker (reference) + each team's protection rectangle.
+    // One author-region set: each spawn as a point marker (the authored team's brighter) + each team's zone
+    // (authored editable, orbit copies non-editable ghosts).
     private async Task PaintProtection()
     {
         if (canvas is null) return;
@@ -260,7 +178,7 @@ public partial class ProtectionPhase
             id = $"{s.Team}-spawn",
             type = "point",
             marker = true,
-            primary = s.Authored,
+            primary = s.Team == authoredTeam,
             color = Hex(s.Team),
             label = $"{TeamName(s.Team)} spawn",
             bounds = new { min_x = s.X - 0.5, min_z = s.Z - 0.5, max_x = s.X + 0.5, max_z = s.Z + 0.5 },
@@ -271,6 +189,7 @@ public partial class ProtectionPhase
             type = "rectangle",
             label = $"{TeamName(kv.Key)} spawn protection",
             color = Hex(kv.Key),
+            ghost = kv.Key != authoredTeam,   // orbit copies are derived previews — non-editable
             bounds = new { min_x = kv.Value.MinX, min_z = kv.Value.MinZ, max_x = kv.Value.MaxX, max_z = kv.Value.MaxZ },
         });
         await canvas.SetAuthorRegionsAsync(markers.Concat(zones));

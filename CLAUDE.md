@@ -116,6 +116,14 @@ cross-cutting editor/canvas infra (`C`). See `TODO.md` "Current focus".
   (`(object)ids.ToArray()`) to pass a whole array. Razor markup lambdas can't contain `"` literals
   — use `string.Empty` / method-group handlers. `.control-input--hidden` checkboxes are `display:none`
   — click the wrapping label.
+- **Symmetry / orbit math lives in three deliberate places — do NOT add a fourth.** Persisted geometry
+  is the **server**'s (`Pgm/Geometry2d` + `SymmetryExpander`, the single source of truth for `map.xml`;
+  consolidation tracked as `A4`). Live **canvas previews** are **JS** (`js/studio/geometry/symmetry.js`
+  `applySymmetry`/`applySymmetryToBounds` + `orbitAxes`; the editor canvas's `setAuthorMirror` and the
+  sketch tool's mirror layer both use it) — "the hot path stays in JS". When a Configure phase needs a
+  non-editable orbit *preview*, render it on the canvas via `setAuthorMirror`, **not** by computing
+  orbit rects in Blazor C#. (Spawn/Protection still compute orbit in C# because they *store* it with
+  island/point-aware team assignment — see `docs/contracts/new-map-authoring.md` §4 / the orbit memory.)
 - Don't make the format fit: reject malformed maps (e.g. kytriak_te) rather than weakening the schema.
 - **Wool-location flooring asymmetry is intentional (PGM-grounded).** The intent generator floors the
   wool `<location>` but passes the monument block coords through raw — *because PGM treats them

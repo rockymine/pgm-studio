@@ -45,10 +45,10 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > (`/maps/{id}/edit`) keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Steps — in page order, each persists its slice of intent**
-- [ ] **N03 — Build.** Build height (side-view, see `N08`) → buildable layer of over-void bridges +
-  holes; the generator unions them + applies the void filter. **Live buildability overlay** (uses
-  `GET /buildability`, done). The drawn bridge rects reuse N02's `RectDraw`/`setAuthorRegions`
-  dummy-region pattern → resize + arrow-nudge come for free (ex-CV2). (`BuildSection`)
+- [ ] **N03 — Build · live buildability overlay.** The Build phase shipped (height side-view +
+  bridges/holes → generator; `FEATURES.md`). What remains is the **live buildability overlay** on the
+  buildable-layer canvas (a per-column verdict heatmap as you draw, `GET /buildability`, done) — no
+  reusable canvas-overlay renderer exists yet, so it's net-new. (becomes user-visible with `A3` perf)
 - [ ] **NVAL — Validation gate (buildability + traversability).** Not a separate phase — the
   Build⇄Traversability loop and the export condition. Surface connected/disconnected + isolated
   spawn/wool points; on failure send the author back to Build. Uses `GET /buildability` +
@@ -57,7 +57,10 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
   **Monument tool = the block tool** + the monument-suggester smart-detect (detector done; stateless
   serving = `F9`); the generator wires room defense / build-break / capture. Consumes the wool / monument
   (`F9`) / resource endpoints under "Backend the steps need". The drawn wool-room rects reuse N02's
-  `RectDraw`/`setAuthorRegions` dummy-region pattern → resize + arrow-nudge for free (ex-CV2). (`WoolsSection`)
+  `RectDraw`/`setAuthorRegions` dummy-region pattern → resize + arrow-nudge for free (ex-CV2). **Orbit
+  the room with the shared `OrbitAssignment.ByCoveredAnchor`** (anchors = the wool spawns) so each room is
+  owned by the wool whose spawn it covers — same point-aware pattern as N02 protection (see the orbit
+  convention memory). (`WoolsSection`)
 - [ ] **N05 — Review & Export.** `ND1` settled this as **one phase, three flow-bar sub-steps:
   Pre-flight → Region tree (`N07`) → XML (`N06`)**; **Export = the flow-bar `Next` on the XML sub-step**,
   enabled only when the pre-flight gate is open (the **409**, enforced backend-side). This task = the
@@ -144,6 +147,23 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   (`SymmetryDetector`, `RegionGeometry2d`, `RegionBoundsDeriver`, `RegionParser`,
   `Pgm/Editing/Geometry2d`). Establish one geometry module (point/bounds transforms + IoU) and route
   every call site through it; mind the Pgm↔Analysis package boundary. Pairs with P7.
+  **Started:** the symmetry point/rect transforms now live in `Contracts.Symmetry`, shared by the WASM
+  client and the server (`Pgm/Geometry2d` delegates to it; the client `SymmetryOrbit` copy is gone). The
+  remaining sites above still need folding in — consider whether `Contracts` stays the home or a dedicated
+  geometry leaf project is cleaner.
+- [ ] **B10 — Build & test hygiene.** Two standing annoyances to clear:
+  - **Flaky test build (TUnit `[Test]` not found).** The first `dotnet run/build` of a test project after
+    a code/reference change can fail with `CS0246: 'Test'/'TestAttribute' could not be found` (seen in
+    `PgmStudio.Pgm.Tests` + `PgmStudio.Analysis.Tests`); a second build succeeds and the tests pass
+    (64/64, 37/37). The test files rely on TUnit's source-generated global usings, which the incremental
+    build doesn't regenerate reliably on the first pass. Fix: add an explicit `global using TUnit;` (a
+    `GlobalUsings.cs`) per test project — or whatever makes `[Test]` resolution independent of the
+    generator's incremental state — so a clean `dotnet run --project tests/<X>` is reliable first-try.
+  - **Two recurring build warnings** (pre-existing, surface on every clean build): `CS0105` duplicate
+    `using Microsoft.JSInterop` in `OverviewActivity.razor.cs:5`, and `CS0414` unused field
+    `ConfigureLanding.haveCounts` (`ConfigureLanding.razor.cs:33`). Delete the duplicate using + the dead
+    field so the build is warning-clean.
+
 ## Lower priority / parked
 
 Existing-Edit (`/maps/{id}/edit`) authoring features — **not** used by the intent generator (which
