@@ -14,6 +14,11 @@ public sealed class FeatureData(PgmDb db)
     public Task<bool> HasScanAsync(long mapId, CancellationToken ct = default)
         => db.Artifacts.AnyAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.LayerParquet, ct);
 
+    /// <summary>The canonical map bounding box (surface-layer extent saved at scan, islands-AABB fallback) —
+    /// the finite clip box for unbounded <c>half</c>/<c>negative</c> regions. Null when neither is available.</summary>
+    public Task<((double, double, double, double) bounds, Dict dict)?> MapBboxAsync(long mapId, CancellationToken ct = default)
+        => MapBounds.ResolveAsync(db, mapId, ct);
+
     public async Task<SegmentIndex?> SegmentsAsync(long mapId, CancellationToken ct = default)
     {
         var rows = await db.LayerSegments.Where(s => s.MapId == mapId).ToListAsync(ct);

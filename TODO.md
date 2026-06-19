@@ -149,9 +149,12 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   and **every** C# affine site now routes through it (`SymmetryExpander` `Step` removed, both `ModeNormals`
   dicts → `Symmetry.Normal`, `RegionParser`/`RegionBoundsDeriver` `MirrorBounds` → `Symmetry.ReflectPoint`,
   `SketchRasterizer.MirrorAxes` → `Symmetry.OrbitAxes`, `SymmetryDetector` de-forced, `PointInRing` collapsed).
-  **Remaining (not affine-fold):** define one canonical map-bbox (used to clip `half`/`negative`); family-2 —
-  a shared NTS contains/IoU + fix `Traversability.RegionCentre` (AABB-midpoint → NTS centroid); decide editor
-  AABB-vs-`containsPoint` (+ correct `shape.js`'s header). (Orbit rounding resolved by coordinate kind:
+  **Remaining (not affine-fold):** canonical map-bbox — the surface-layer extent is now computed at scan +
+  stored in `map_config.json` (`bounding_box`), read via `MapBounds`/`FeatureData.MapBboxAsync`, and used by
+  the canvas + `Buildability`; still to do: thread it into `WoolSources`/`ResourceSources` (their `MapBbox`/
+  `RegionBbox` become the no-scan fallback). Then family-2 — a shared NTS contains/IoU + fix
+  `Traversability.RegionCentre` (AABB-midpoint → NTS centroid); decide editor AABB-vs-`containsPoint`
+  (+ correct `shape.js`'s header). (Orbit rounding resolved by coordinate kind:
   rectangle bounds snap to the integer 1×1 grid, points reflect exactly — block-centre `.5` or block-anchor
   `.0` both preserved per PGM + corpus; sketch shape mirroring stays lenient.)
   Constraint: keep `OrbitAssignment` intact; new shape support stays within

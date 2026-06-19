@@ -53,7 +53,11 @@ public sealed class BuildabilityEndpoint(MapRepository repo, MapReader reader, F
         var (map, doc) = loaded.Value;
 
         var y0 = (await feature.SegmentsAsync(map.Id, ct))?.Y0Columns();
-        var res = Buildability.Compute(doc, y0);
+        // Clip the void/buildable geometry against the canonical map box (the surface-layer extent saved at
+        // scan), not a per-pass region-AABB-plus-margin; falls back to that margin box when there's no scan.
+        var bb = (await feature.MapBboxAsync(map.Id, ct))?.bounds;
+        var res = Buildability.Compute(doc, y0,
+            bb is { } v ? ((int)v.Item1, (int)v.Item2, (int)v.Item3, (int)v.Item4) : null);
         var rows = Enumerable.Range(0, res.Height)
             .Select(iz => string.Concat(Enumerable.Range(0, res.Width).Select(ix => (char)('0' + res.Verdict[iz * res.Width + ix])))).ToList();
         await Send.OkAsync(new BuildabilityDto(

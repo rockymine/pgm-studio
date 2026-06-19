@@ -3,6 +3,7 @@ using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis;
+using PgmStudio.Api.Services;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
 
@@ -29,7 +30,7 @@ public sealed class RegionsAuthoringEndpoint(MapRepository repo, MapReader reade
         var regions = doc.GetValueOrDefault("regions") as Dict ?? new();
         var applyRules = doc.GetValueOrDefault("apply_rules") as List<object?>;
         var cats = RegionCategorizer.Categorize(doc);
-        var bbox = await IslandsBboxAsync(map.Id, ct);
+        var bbox = await MapBounds.ResolveAsync(db, map.Id, ct);
 
         var split = RegionAuthoringEncoder.EncodeAuthoring(regions, cats, applyRules, bbox?.bounds);
         split["bounding_box"] = bbox?.dict;
@@ -55,9 +56,6 @@ public sealed class RegionsAuthoringEndpoint(MapRepository repo, MapReader reade
         var dict = new Dict { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ };
         return ((minX, minZ, maxX, maxZ), dict);
     }
-
-    private async Task<((double, double, double, double) bounds, Dict dict)?> IslandsBboxAsync(long mapId, CancellationToken ct)
-        => await IslandsBboxAsync(db, mapId, ct);
 }
 
 /// <summary>GET /api/map/{slug}/regions/tree — category-grouped nested region tree (canvas render input).</summary>
@@ -74,7 +72,7 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Pg
         var regions = doc.GetValueOrDefault("regions") as Dict ?? new();
         var cats = RegionCategorizer.Categorize(doc);
         var facets = RegionCategorizer.DeriveFacets(doc);
-        var bbox = await RegionsAuthoringEndpoint.IslandsBboxAsync(db, map.Id, ct);
+        var bbox = await MapBounds.ResolveAsync(db, map.Id, ct);
 
         // editor drafts (E10), pruned to regions that still exist (entity-replace keeps keys stable).
         var allDrafts = await RegionDraftStore.LoadAsync(db, map.Id, ct);

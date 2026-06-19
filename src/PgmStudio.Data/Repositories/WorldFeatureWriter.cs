@@ -95,6 +95,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
             ["exclude_blocks"] = new JsonArray(),
             ["scan_layer"] = "surface",
             ["scan_layer_confirmed"] = true,
+            ["bounding_box"] = SurfaceBbox(cells.Select(c => (c.X, c.Z))),
         };
 
         await StoreArtifactAsync(mapId, ArtifactKind.LayerParquet, layerBytes, ct);
@@ -144,6 +145,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
             ["exclude_blocks"] = new JsonArray(),
             ["scan_layer"] = "cleanbase",
             ["scan_layer_confirmed"] = false,
+            ["bounding_box"] = SurfaceBbox(surface.Select(s => (s.WorldX, s.WorldZ))),
         };
 
         await StoreArtifactAsync(mapId, ArtifactKind.LayerParquet, layerBytes, ct);
@@ -159,6 +161,21 @@ public sealed class WorldFeatureWriter(PgmDb db)
         await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == kind).DeleteAsync(ct);
         if (data.Length > 0)
             await db.InsertAsync(new MapArtifactRow { MapId = mapId, Kind = kind, Data = data }, token: ct);
+    }
+
+    // The surface-layer extent (min/max of the scanned surface cells) — the canonical map bounding box,
+    // saved at scan and read back as the canvas frame + the analysis clip box. Null when there are no cells.
+    private static JsonObject? SurfaceBbox(IEnumerable<(int X, int Z)> cells)
+    {
+        int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+        var any = false;
+        foreach (var (x, z) in cells)
+        {
+            if (x < minX) minX = x; if (x > maxX) maxX = x;
+            if (z < minZ) minZ = z; if (z > maxZ) maxZ = z;
+            any = true;
+        }
+        return any ? new JsonObject { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ } : null;
     }
 
     private async Task DeleteAsync(long mapId, CancellationToken ct)
