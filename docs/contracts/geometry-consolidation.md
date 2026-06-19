@@ -12,8 +12,9 @@ Canonical: **`PgmStudio.Geom.Symmetry`** (`Order` · `Point` · `Rect` · `Apply
 `ReflectPoint` · `RotatePoint`) — a dependency-free leaf (`PgmStudio.Geom`, moved out of `Contracts`), so
 client (WASM), server, and `Analysis` all reach it.
 
-- **Status: COMPLETE (family 1).** Every C# affine site routes through `Geom.Symmetry`: `Pgm/Geometry2d`,
-  `SymmetryAuthoring`, `SymmetryExpander` (its `Step` removed), `MonumentEndpoints`, `Analysis/SymmetryDetector`,
+- **Status: COMPLETE (family 1).** Every C# affine site routes through `Geom.Symmetry`:
+  `SymmetryAuthoring` (the dict-`bounds_2d` baker, via `Symmetry.Rect`), `SymmetryExpander`,
+  `MonumentEndpoints`, `Analysis/SymmetryDetector`,
   `RegionParser`/`RegionBoundsDeriver` (`MirrorBounds`), `SketchRasterizer`, and client `OrbitAssignment`.
   The two `ModeNormals` dicts collapsed onto `Symmetry.Normal`; `SketchRasterizer.MirrorAxes` onto
   `Symmetry.OrbitAxes`. See **Deep audit › Revised order** below for the verified breakdown.
@@ -30,8 +31,8 @@ The Analysis project uses **NetTopologySuite (NTS)** — 7 files: `RegionGeometr
 
 ### Bounds rebound (cross-cutting)
 
-Scattered AABB re-bound after a transform: `Geometry2d.CornersToBounds`, `Symmetry.Rect`, `RegionParser`,
-`RegionBuilder`, `AuthoringEndpoint`, `WorldFeatureWriter`. Converge the **affine** ones on `Symmetry.Rect`.
+Scattered AABB re-bound after a transform: `Symmetry.Rect` (canonical), `RegionParser`, `RegionBuilder`,
+`AuthoringEndpoint`, `WorldFeatureWriter`. Converge the **affine** ones on `Symmetry.Rect`.
 
 ## Shape model (`shape.js`) — and why `OrbitAssignment` is rectangle-only
 
@@ -174,7 +175,8 @@ cylinders land, its rect `Covers` test generalises to a cylinder containment, no
    (`RegionGeometry2d.Reflect` uses an NTS `AffineTransformation` matrix on a whole `Geometry`, not the
    scalar form — left as-is; it's family-2 NTS, not a scalar-math dup.)
 6. `MirrorBounds`/`UnionBounds`/`TranslateBounds` duplicated verbatim between `RegionParser` and
-   `RegionBoundsDeriver`, plus a third dict-form in `Geometry2d.ReflectBounds2d`.
+   `RegionBoundsDeriver`. (The dict-`bounds_2d` rebound is `SymmetryAuthoring.OrbitBounds2d`, a thin
+   (un)pack over `Symmetry.Rect`.)
 7. ~~**No canonical map-bbox**~~ **RESOLVED — the real bbox is the surface-layer extent.**
    `RegionGeometry2d.ToGeometry`'s `bounds` (the finite box `half`/`negative` clip against) was each pass's
    own region-AABB + magic margin (`Buildability.RegionBbox` pad 16, `WoolSources.MapBbox`/`ResourceSources`
@@ -207,8 +209,8 @@ Remaining (canonical map-bbox #7 + orbit rounding #3 are resolved — see above)
 4. Future residents of the leaf: a C# shape model (`Rect ∪ Cylinder`) when intent goes beyond rectangles;
    the generative layout algorithms (TSP/annealing, random-point polygon seeding).
 
-> Note: `Geometry2d.ReflectBounds2d`/`RotateBounds2d` (dict-`bounds_2d` rebound) already delegate their
-> *points* to `Geom.Symmetry`; the rebound loop is dict-shaped and stays in `Pgm` (the leaf is dict-free).
+> Note: the dict-`bounds_2d` rebound (`SymmetryAuthoring.OrbitBounds2d`) delegates the whole transform to
+> `Symmetry.Rect`; only the dict (un)pack stays in `Pgm` (the leaf is dict-free).
 > The `UnionBounds`/`TranslateBounds` copies shared between `RegionParser`/`RegionBoundsDeriver` are
 > non-affine (min/max merge, offset) — a separate Pgm-internal dedup, not a leaf fold.
 

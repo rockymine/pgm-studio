@@ -259,7 +259,7 @@ monument configuration.
 - **Input:** the confirmed monument cell(s) `(x, y, z)` (+ colour) from the box step.
 - **DB read (the second request):** the map's confirmed symmetry (`symmetry_json` artifact — mode +
   centre), the same source `POST /regions/{id}/orbit` (F3) and `SymmetryExpander` already read.
-- **Transform:** the existing 2D `Geometry2d` reflect/rotate on **XZ only** (Y is preserved — symmetry is
+- **Transform:** the canonical `Geom.Symmetry` reflect/rotate on **XZ only** (Y is preserved — symmetry is
   horizontal). `rot_90` yields 3 counterparts (→ 4 total), `mirror_*` / `rot_180` yield 1 (→ 2 total). Each
   counterpart's **capturing team shifts by the orbit step `k`**, per `new-map-authoring.md` §2.
 - **No candidate-table read here.** Orbit operates on the *confirmed* positions, not the gathered

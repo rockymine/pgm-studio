@@ -24,7 +24,7 @@ The rule: **a unit of code lives in the lowest (most-depended-upon) project that
 dependencies it needs and (b) every consumer can already reach** — push it down for reuse, never up.
 That plus a separation of concerns by *kind*:
 - **`Domain`** = the entities/value types (pure, zero deps). What things *are*.
-- **`Contracts`** = the wire DTOs + cross-runtime leaf shared by client and server (`Symmetry`). How
+- **`Contracts`** = the wire DTOs shared by client and server (`MapStage`, the analysis DTOs). How
   things *cross the API*. It is **not** a dumping ground for algorithms — it is reachable by `Client`/`Pgm`/
   `Api` but **not** by `Analysis`, so anything `Analysis` also needs must **not** live here.
 - **`Pgm`** = `map.xml` parse/edit/generate. **`Analysis`** = NTS-backed derivations (refs `Domain` only).
@@ -138,7 +138,7 @@ cross-cutting editor/canvas infra (`C`). See `TODO.md` "Current focus".
   — click the wrapping label.
 - **Symmetry / orbit math = ONE canonical C# leaf + the JS preview twin — do NOT add a third C# copy.**
   The canonical is **`PgmStudio.Geom.Symmetry`** (`Apply` concrete-axis · `Point`/`Rect` orbit ·
-  `ReflectPoint`/`RotatePoint`/`Order`). Every C# site routes through it: `Pgm/Geometry2d` +
+  `ReflectPoint`/`RotatePoint`/`Order`). Every C# site routes through it: `Pgm/SymmetryAuthoring` +
   `SymmetryExpander` (the `map.xml` source of truth), `SketchRasterizer`, `Analysis/SymmetryDetector`,
   and client `OrbitAssignment`. Live **canvas previews** are **JS** (`js/studio/geometry/symmetry.js`
   `applySymmetry`/`applySymmetryToBounds` + `orbitAxes`; editor `setAuthorMirror` + the sketch mirror

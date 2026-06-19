@@ -145,7 +145,7 @@ The C# analog of `sketch_export.py`, but it writes **DB artifacts**, not files, 
 2. **Detect islands**: `IslandDetector.DetectCleaned(cells)` (already exists — connected components +
    cleanup) → island polygons + bounds. **No polygon-boolean lib.**
 3. **Mirror copies**: for each island whose meta `mirrors=true`, transform via
-   `Geometry2d.RotatePoint`/`ReflectPoint` (`rot_90` → 3 copies 90/180/270; others → 1) and re-rasterise
+   `Geom.Symmetry.RotatePoint`/`ReflectPoint` (`rot_90` → 3 copies 90/180/270; others → 1) and re-rasterise
    into the cell set.
 4. **Re-attach metadata**: match detected islands → saved `islands[]` metas by shape-block overlap
    (server-side `restoreIslandMeta`), defaulting `name="Island N"`, `mirrors=true`.

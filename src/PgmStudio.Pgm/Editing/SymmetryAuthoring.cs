@@ -83,7 +83,7 @@ public static class SymmetryAuthoring
             ["origin"] = new Dict { ["x"] = cx, ["y"] = 0.0, ["z"] = cz },
             ["normal"] = new Dict { ["x"] = nx, ["y"] = 0.0, ["z"] = nz },
         };
-        if (src.GetValueOrDefault("bounds_2d") is Dict b) region["bounds_2d"] = Geometry2d.ReflectBounds2d(b, nx, nz, cx, cz);
+        if (src.GetValueOrDefault("bounds_2d") is Dict b) region["bounds_2d"] = OrbitBounds2d(b, mode, cx, cz);
         regions[newId] = region;
         Track(data, newId, category);
         return newId;
@@ -102,7 +102,7 @@ public static class SymmetryAuthoring
 
         Dict Rot(Dict pt)
         {
-            var (rx, rz) = Geometry2d.RotatePoint(Num(pt.GetValueOrDefault("x")), Num(pt.GetValueOrDefault("z")), 90, cx, cz);
+            var (rx, rz) = Symmetry.RotatePoint(Num(pt.GetValueOrDefault("x")), Num(pt.GetValueOrDefault("z")), 90, cx, cz);
             var o = new Dict { ["x"] = rx, ["z"] = rz };
             if (pt.ContainsKey("y")) o["y"] = pt["y"];
             return o;
@@ -114,11 +114,10 @@ public static class SymmetryAuthoring
             case "cuboid":
             {
                 var mn = (Dict)src["min"]!; var mx = (Dict)src["max"]!;
-                var rb = Geometry2d.RotateBounds2d(
-                    Geometry2d.Bounds(Num(mn["x"]), Num(mn["z"]), Num(mx["x"]), Num(mx["z"])), 90, cx, cz);
-                var rmn = (Dict)rb["min"]!; var rmx = (Dict)rb["max"]!;
-                region["min"] = new Dict { ["x"] = rmn["x"], ["y"] = mn.GetValueOrDefault("y"), ["z"] = rmn["z"] };
-                region["max"] = new Dict { ["x"] = rmx["x"], ["y"] = mx.GetValueOrDefault("y"), ["z"] = rmx["z"] };
+                var (rMinX, rMinZ, rMaxX, rMaxZ) = Symmetry.Rect(
+                    Num(mn["x"]), Num(mn["z"]), Num(mx["x"]), Num(mx["z"]), "rot_90", cx, cz, 1);
+                region["min"] = new Dict { ["x"] = rMinX, ["y"] = mn.GetValueOrDefault("y"), ["z"] = rMinZ };
+                region["max"] = new Dict { ["x"] = rMaxX, ["y"] = mx.GetValueOrDefault("y"), ["z"] = rMaxZ };
                 break;
             }
             case "cylinder":
@@ -136,10 +135,27 @@ public static class SymmetryAuthoring
                 break;
         }
 
-        if (src.GetValueOrDefault("bounds_2d") is Dict b) region["bounds_2d"] = Geometry2d.RotateBounds2d(b, 90, cx, cz);
+        if (src.GetValueOrDefault("bounds_2d") is Dict b) region["bounds_2d"] = OrbitBounds2d(b, "rot_90", cx, cz);
         regions[newId] = region;
         Track(data, newId, category);
         return newId;
+    }
+
+    /// <summary>The orbit image of a <c>bounds_2d</c> doc dict (<c>{min:{x,z},max:{x,z}}</c>) under a
+    /// symmetry mode about the centre. The transform is the canonical <see cref="Symmetry.Rect"/> (pure
+    /// geometry in the <c>Geom</c> leaf); this only (un)packs the doc-tree shape around it.</summary>
+    private static Dict OrbitBounds2d(Dict bounds, string mode, double cx, double cz)
+    {
+        var mn = bounds["min"] as Dict ?? new Dict();
+        var mx = bounds["max"] as Dict ?? new Dict();
+        var (minX, minZ, maxX, maxZ) = Symmetry.Rect(
+            Num(mn.GetValueOrDefault("x")), Num(mn.GetValueOrDefault("z")),
+            Num(mx.GetValueOrDefault("x")), Num(mx.GetValueOrDefault("z")), mode, cx, cz, 1);
+        return new Dict
+        {
+            ["min"] = new Dict { ["x"] = minX, ["z"] = minZ },
+            ["max"] = new Dict { ["x"] = maxX, ["z"] = maxZ },
+        };
     }
 
     private static Dict Result(string counterpart, params string[] created)

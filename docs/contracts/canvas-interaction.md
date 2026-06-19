@@ -265,7 +265,7 @@ handle helper into a shared bridge module.
 
 ### 6.3 C# geometry (tracked under A4, not here)
 `SpawnPhase` `PointInRing` (`SpawnPhase.razor.cs:136`) and `Orbit/Rotate/Reflect` (`:148-167`)
-duplicate existing backend helpers (`Pgm/Editing/Geometry2d.ReflectPoint`/`RotatePoint`,
+duplicate existing backend helpers (`Geom.Symmetry.ReflectPoint`/`RotatePoint`,
 `Editing/SymmetryExpander`) and the JS `converters.applySymmetry`. This belongs to the **A4**
 geometry-consolidation task (which already audits 5 C# sites) — route `SpawnPhase` through the one
 geometry module and move `PointInRing` into it. The symmetry **label** (`SymLabel`, byte-identical in
