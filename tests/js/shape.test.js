@@ -77,3 +77,15 @@ test("containsPoint per type", () => {
   assert.equal(containsPoint(poly, 5, 5), true);
   assert.equal(containsPoint(poly, 15, 5), false);
 });
+
+test("containsPoint includes the Bézier curve bulge (hit shape matches the drawn outline)", () => {
+  // Bottom edge v0→v1 bows outward to negative z (the cubic reaches ≈ z=-3 at its midpoint).
+  const curved = {
+    type: "polygon",
+    vertices: [[0, 0], [10, 0], [10, 10], [0, 10]],
+    controls: { "0": { out: [3, -4] }, "1": { in: [7, -4] } },
+  };
+  assert.equal(containsPoint(curved, 5, 5), true);    // main body
+  assert.equal(containsPoint(curved, 5, -2), true);   // inside the bulge — outside the raw vertex hull
+  assert.equal(containsPoint(curved, 5, -5), false);  // beyond the bulge
+});

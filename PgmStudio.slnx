@@ -6,6 +6,7 @@
     <Project Path="src/PgmStudio.Contracts/PgmStudio.Contracts.csproj" />
     <Project Path="src/PgmStudio.Data/PgmStudio.Data.csproj" />
     <Project Path="src/PgmStudio.Domain/PgmStudio.Domain.csproj" />
+    <Project Path="src/PgmStudio.Geom/PgmStudio.Geom.csproj" />
     <Project Path="src/PgmStudio.Import/PgmStudio.Import.csproj" />
     <Project Path="src/PgmStudio.Migrations/PgmStudio.Migrations.csproj" />
     <Project Path="src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj" />

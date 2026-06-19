@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Models;
 using PgmStudio.Client.Pages.EditorActivities;
-using PgmStudio.Contracts;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;
 
@@ -136,19 +136,8 @@ public partial class SpawnPhase
     private string? IslandTeamAt(double x, double z)
     {
         foreach (var isl in islands)
-            if (PointInRing(x, z, isl.Ring) && islandTeams.TryGetValue(isl.Id.ToString(), out var t)) return t;
+            if (Polygon.PointInRing(x, z, isl.Ring) && islandTeams.TryGetValue(isl.Id.ToString(), out var t)) return t;
         return null;
-    }
-
-    private static bool PointInRing(double x, double z, double[][] ring)
-    {
-        var inside = false;
-        for (int i = 0, j = ring.Length - 1; i < ring.Length; j = i++)
-        {
-            double xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
-            if (((zi > z) != (zj > z)) && (x < (xj - xi) * (z - zi) / (zj - zi) + xi)) inside = !inside;
-        }
-        return inside;
     }
 
     private static double Snap(double v) => Math.Floor(v) + 0.5;

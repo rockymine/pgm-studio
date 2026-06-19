@@ -19,6 +19,26 @@ ASP.NET Core · FastEndpoints (`/api`) · Blazor WebAssembly hosted by the backe
 MariaDB · FluentMigrator · linq2db (MySqlConnector) · TUnit · Parquet.Net.
 Target framework **net10.0** (SDK 10.0.109; pinned in `global.json`).
 
+## Code placement (which project a piece of code belongs in)
+The rule: **a unit of code lives in the lowest (most-depended-upon) project that (a) already has the
+dependencies it needs and (b) every consumer can already reach** — push it down for reuse, never up.
+That plus a separation of concerns by *kind*:
+- **`Domain`** = the entities/value types (pure, zero deps). What things *are*.
+- **`Contracts`** = the wire DTOs + cross-runtime leaf shared by client and server (`Symmetry`). How
+  things *cross the API*. It is **not** a dumping ground for algorithms — it is reachable by `Client`/`Pgm`/
+  `Api` but **not** by `Analysis`, so anything `Analysis` also needs must **not** live here.
+- **`Pgm`** = `map.xml` parse/edit/generate. **`Analysis`** = NTS-backed derivations (refs `Domain` only).
+  **`Minecraft`** = world/Anvil. **`Data`/`Import`** = persistence/ingest. **`Client`** = Blazor (refs
+  `Contracts` only). **`Api`** = composition root (refs everything).
+- **Pure algorithms shared by many projects** (geometry scalar math, shapes, generative layout algos)
+  belong in a **dependency-free leaf below them all** — this is **`PgmStudio.Geom`** (`Symmetry`,
+  `Polygon`; future: shape model, TSP/annealing layout). It references **nothing** (not even `Domain`),
+  so every consumer can take it without dragging in a transitive dep. `Pgm`/`Analysis`/`Client` reference
+  it directly; `Api` transitively. (Named `Geom`, not `Geometry`, because `Analysis` uses
+  NetTopologySuite's `Geometry` type everywhere and a sibling `PgmStudio.Geometry` namespace would shadow
+  it.) Do **not** put algorithms in `Contracts` (the DTO leaf) — `Analysis` can't reference it, which is
+  what forced the old duplicate reflect/rotate copy. See `docs/contracts/geometry-consolidation.md`.
+
 ## Key data decisions
 - **Map contract persistence = hybrid.** Real tables + FKs for entities we list/query/edit
   (map, team, region, filter, wool, monument, spawn, apply_rule, kit…); JSON columns for the
@@ -116,14 +136,18 @@ cross-cutting editor/canvas infra (`C`). See `TODO.md` "Current focus".
   (`(object)ids.ToArray()`) to pass a whole array. Razor markup lambdas can't contain `"` literals
   — use `string.Empty` / method-group handlers. `.control-input--hidden` checkboxes are `display:none`
   — click the wrapping label.
-- **Symmetry / orbit math lives in three deliberate places — do NOT add a fourth.** Persisted geometry
-  is the **server**'s (`Pgm/Geometry2d` + `SymmetryExpander`, the single source of truth for `map.xml`;
-  consolidation tracked as `A4`). Live **canvas previews** are **JS** (`js/studio/geometry/symmetry.js`
-  `applySymmetry`/`applySymmetryToBounds` + `orbitAxes`; the editor canvas's `setAuthorMirror` and the
-  sketch tool's mirror layer both use it) — "the hot path stays in JS". When a Configure phase needs a
-  non-editable orbit *preview*, render it on the canvas via `setAuthorMirror`, **not** by computing
-  orbit rects in Blazor C#. (Spawn/Protection still compute orbit in C# because they *store* it with
-  island/point-aware team assignment — see `docs/contracts/new-map-authoring.md` §4 / the orbit memory.)
+- **Symmetry / orbit math = ONE canonical C# leaf + the JS preview twin — do NOT add a third C# copy.**
+  The canonical is **`PgmStudio.Geom.Symmetry`** (`Apply` concrete-axis · `Point`/`Rect` orbit ·
+  `ReflectPoint`/`RotatePoint`/`Order`). Every C# site routes through it: `Pgm/Geometry2d` +
+  `SymmetryExpander` (the `map.xml` source of truth), `SketchRasterizer`, `Analysis/SymmetryDetector`,
+  and client `OrbitAssignment`. Live **canvas previews** are **JS** (`js/studio/geometry/symmetry.js`
+  `applySymmetry`/`applySymmetryToBounds` + `orbitAxes`; editor `setAuthorMirror` + the sketch mirror
+  layer) — "the hot path stays in JS", the documented twin of `Geom.Symmetry`. When a Configure phase
+  needs a non-editable orbit *preview*, render it on the canvas via `setAuthorMirror`, **not** by computing
+  orbit rects in Blazor C#. (Spawn/Protection still compute orbit in C# via `OrbitAssignment` because they
+  *store* it with island/point-aware team assignment — see `docs/contracts/new-map-authoring.md` §4 / the
+  orbit memory. Remaining server collapses — `SymmetryExpander.TransformRect`, the `ModeNormals` dicts —
+  tracked as `A4`.)
 - Don't make the format fit: reject malformed maps (e.g. kytriak_te) rather than weakening the schema.
 - **Wool-location flooring asymmetry is intentional (PGM-grounded).** The intent generator floors the
   wool `<location>` but passes the monument block coords through raw — *because PGM treats them

@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PgmStudio.Domain\PgmStudio.Domain.csproj" />
+    <!-- Dependency-free spatial leaf: shared affine transforms (de-forces the local reflect/rotate copy). -->
+    <ProjectReference Include="..\PgmStudio.Geom\PgmStudio.Geom.csproj" />
   </ItemGroup>
 
   <ItemGroup>

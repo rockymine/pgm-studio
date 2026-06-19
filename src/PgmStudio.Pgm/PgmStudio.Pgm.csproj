@@ -2,8 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PgmStudio.Domain\PgmStudio.Domain.csproj" />
-    <!-- Contracts is a dependency-free leaf; referenced here only for the canonical Symmetry transforms. -->
-    <ProjectReference Include="..\PgmStudio.Contracts\PgmStudio.Contracts.csproj" />
+    <!-- Dependency-free spatial leaf: the canonical Symmetry transforms + polygon primitives. -->
+    <ProjectReference Include="..\PgmStudio.Geom\PgmStudio.Geom.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

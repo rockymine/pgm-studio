@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PgmStudio.Contracts\PgmStudio.Contracts.csproj" />
+    <!-- Dependency-free spatial leaf: the canonical Symmetry transforms (orbit previews + assignment). -->
+    <ProjectReference Include="..\PgmStudio.Geom\PgmStudio.Geom.csproj" />
   </ItemGroup>
 
 </Project>

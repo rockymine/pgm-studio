@@ -1,12 +1,11 @@
-namespace PgmStudio.Contracts;
+namespace PgmStudio.Geom;
 
 /// <summary>
 /// The one canonical 2-D symmetry transform — reflect/rotate a point or an axis-aligned rectangle about a
-/// centre, plus the mode→orbit helpers the authoring phases use. Lives in <c>Contracts</c> (a dependency
-/// free leaf) so the <b>same</b> formulas serve the WASM client (orbit previews + island/point-aware
-/// assignment) and the server generator — no per-runtime C# copies. The server <c>Pgm/Geometry2d</c> and
-/// the JS <c>geometry/symmetry.js</c> mirror these exactly; consolidating the remaining server geometry
-/// sites onto this is tracked as <c>TODO A4</c>.
+/// centre, plus the mode→orbit helpers the authoring phases use. Lives in the dependency-free
+/// <c>PgmStudio.Geom</c> leaf so the <b>same</b> formulas serve the WASM client (orbit previews +
+/// island/point-aware assignment), the server generator, and the analysis symmetry detector — no
+/// per-runtime C# copies. The JS <c>geometry/symmetry.js</c> mirrors these exactly (the live-canvas twin).
 /// </summary>
 public static class Symmetry
 {
@@ -35,6 +34,21 @@ public static class Symmetry
         };
         return (ox + rx, oz + rz);
     }
+
+    /// <summary>Transform a point by a single <b>concrete axis</b> about (cx,cz): the four mirrors and the
+    /// three rotations (incl. <c>rot_270</c>, the third image of a <c>rot_90</c> orbit). This is the C#
+    /// twin of JS <c>applySymmetry</c>; unknown axis ⇒ identity.</summary>
+    public static (double X, double Z) Apply(double x, double z, string axis, double cx, double cz) => axis switch
+    {
+        "rot_90"    => RotatePoint(x, z, 90, cx, cz),
+        "rot_180"   => RotatePoint(x, z, 180, cx, cz),
+        "rot_270"   => RotatePoint(x, z, 270, cx, cz),
+        "mirror_x"  => ReflectPoint(x, z, 1, 0, cx, cz),
+        "mirror_z"  => ReflectPoint(x, z, 0, 1, cx, cz),
+        "mirror_d1" => ReflectPoint(x, z, 1, -1, cx, cz),
+        "mirror_d2" => ReflectPoint(x, z, 1, 1, cx, cz),
+        _ => (x, z),
+    };
 
     /// <summary>The <c>k</c>-th orbit image of a point under a named symmetry mode about (cx,cz).</summary>
     public static (double X, double Z) Point(double x, double z, string? mode, double cx, double cz, int k) => mode switch

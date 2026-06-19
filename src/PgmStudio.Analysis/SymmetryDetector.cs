@@ -4,7 +4,7 @@ using NetTopologySuite.Geometries.Utilities;
 namespace PgmStudio.Analysis;
 
 /// <summary>
-/// Global symmetry detection over island polygons (B7, port of <c>symmetry/detection.py</c>).
+/// Global symmetry detection over island polygons.
 /// Pairs equal-area islands and checks which transforms (about the map centre) map them onto each
 /// other, then verifies each candidate with a polygon IoU (NetTopologySuite). Confidence blends
 /// geometric pair-support (0.4) and IoU (0.6); a mode is "detected" at confidence ≥ 0.60.
@@ -19,11 +19,6 @@ public static class SymmetryDetector
 
     private static readonly string[] Candidates = ["mirror_x", "mirror_z", "mirror_d1", "mirror_d2", "rot_180", "rot_90"];
     private static readonly string[] PairTransforms = ["mirror_x", "mirror_z", "mirror_d1", "mirror_d2", "rot_180", "rot_90", "rot_270"];
-    private static readonly Dictionary<string, (double nx, double nz)> ReflectionNormals = new()
-    {
-        ["mirror_x"] = (1.0, 0.0), ["mirror_z"] = (0.0, 1.0), ["mirror_d1"] = (1.0, -1.0), ["mirror_d2"] = (1.0, 1.0),
-    };
-    private static readonly Dictionary<string, int> RotationDeg = new() { ["rot_180"] = 180, ["rot_90"] = 90, ["rot_270"] = 270 };
     private const double GroupIouThreshold = 0.85;
 
     private static readonly GeometryFactory Gf = new();
@@ -208,33 +203,8 @@ public static class SymmetryDetector
         catch { return null; }
     }
 
-    // ── geometry transforms (port of geometry.reflect_point_2d / rotate_point_2d) ───
+    // The canonical concrete-axis transform (the shared geometry leaf). Detection's transform names are
+    // exactly its axes (mirror_x/z/d1/d2, rot_90/180/270), so no local normal/degree table is needed.
     private static (double x, double z) ApplyTransform(double x, double z, string transform, double cx, double cz)
-    {
-        if (ReflectionNormals.TryGetValue(transform, out var n)) return Reflect(x, z, n.nx, n.nz, cx, cz);
-        if (RotationDeg.TryGetValue(transform, out var deg)) return Rotate(x, z, deg, cx, cz);
-        return (x, z);
-    }
-
-    private static (double, double) Reflect(double px, double pz, double nx, double nz, double ox, double oz)
-    {
-        var n2 = nx * nx + nz * nz;
-        if (n2 == 0) return (px, pz);
-        var d = 2.0 * ((px - ox) * nx + (pz - oz) * nz) / n2;
-        return (px - nx * d, pz - nz * d);
-    }
-
-    private static (double, double) Rotate(double px, double pz, int degrees, double ox, double oz)
-    {
-        double dx = px - ox, dz = pz - oz;
-        var norm = (((degrees % 360) + 360) % 360);
-        (double rx, double rz) = norm switch
-        {
-            90 => (-dz, dx),
-            180 => (-dx, -dz),
-            270 => (dz, -dx),
-            _ => (dx, dz),
-        };
-        return (ox + rx, oz + rz);
-    }
+        => PgmStudio.Geom.Symmetry.Apply(x, z, transform, cx, cz);
 }

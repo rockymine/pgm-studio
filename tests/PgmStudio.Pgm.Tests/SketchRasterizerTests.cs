@@ -56,6 +56,21 @@ public sealed class SketchRasterizerTests
     }
 
     [Test]
+    public async Task Mirror_d1_adds_a_diagonally_reflected_copy()
+    {
+        // mirror_d1 across (0,0) maps (x,z) → (z,x): the rect at x∈[20,24],z∈[0,4] reflects to x∈[0,4],z∈[20,24].
+        // Guards against the diagonal axes silently falling through to an identity transform.
+        var cells = Raster("""
+        {"setup":{"mirror_mode":"mirror_d1","center":{"cx":0,"cz":0}},
+         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","override":false,"min_x":20,"max_x":24,"min_z":0,"max_z":4}],
+                   "islands":[{"id":"i1","name":"A","mirrors":true,"shapeIds":["a"]}]}}
+        """);
+        await Assert.That(cells.Count).IsEqualTo(32);            // 16 primary + 16 reflected (disjoint)
+        await Assert.That(cells.Contains((20, 0))).IsTrue();     // primary
+        await Assert.That(cells.Contains((0, 20))).IsTrue();     // mirror_d1 of (20,0)
+    }
+
+    [Test]
     public async Task Circle_rasterizes_a_disc()
     {
         var cells = Raster("""

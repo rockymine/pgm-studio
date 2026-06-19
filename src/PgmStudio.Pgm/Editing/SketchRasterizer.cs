@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Editing;
 
@@ -95,8 +96,8 @@ public static class SketchRasterizer
                 var islandShapes = meta.ShapeIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
                 foreach (var axis in axes)
                 {
-                    // Mirror the shapes' geometry, then rasterize — matches the reference (transform the
-                    // polygon, not the rasterized blocks).
+                    // Mirror each shape's geometry, then rasterize (transform the polygon, not the
+                    // rasterized cells — a per-cell mirror leaves gaps on rotations).
                     var mirrored = islandShapes.Select(s => MirrorShape(s, axis, cx, cz));
                     cells.UnionWith(RasterGroup(mirrored));
                 }
@@ -193,18 +194,7 @@ public static class SketchRasterizer
         }
         for (var x = (int)Math.Floor(minX); x < (int)Math.Ceiling(maxX); x++)
             for (var z = (int)Math.Floor(minZ); z < (int)Math.Ceiling(maxZ); z++)
-                if (PointInRing(x + 0.5, z + 0.5, ring)) yield return (x, z);
-    }
-
-    private static bool PointInRing(double px, double pz, List<double[]> ring)
-    {
-        var inside = false;
-        for (int i = 0, j = ring.Count - 1; i < ring.Count; j = i++)
-        {
-            double xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
-            if (zi > pz != zj > pz && px < (xj - xi) * (pz - zi) / (zj - zi) + xi) inside = !inside;
-        }
-        return inside;
+                if (Polygon.PointInRing(x + 0.5, z + 0.5, ring)) yield return (x, z);
     }
 
     // ── symmetry ──────────────────────────────────────────────────────────────────────────────────
@@ -225,13 +215,8 @@ public static class SketchRasterizer
         return new Shape { Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override, Vertices = ring };
     }
 
-    private static (double, double) MirrorPoint(double x, double z, string axis, double cx, double cz) => axis switch
-    {
-        "mirror_x" => (2 * cx - x, z),
-        "mirror_z" => (x, 2 * cz - z),
-        "rot_180"  => (2 * cx - x, 2 * cz - z),
-        "rot_90"   => (cx - (z - cz), cz + (x - cx)),
-        "rot_270"  => (cx + (z - cz), cz - (x - cx)),
-        _ => (x, z),
-    };
+    // The one canonical concrete-axis transform — every orbit axis (incl. the diagonals mirror_d1/d2 and
+    // the rot_270 image that MirrorAxes fans rot_90 out to) stays consistent with the generator + JS canvas.
+    private static (double, double) MirrorPoint(double x, double z, string axis, double cx, double cz)
+        => Symmetry.Apply(x, z, axis, cx, cz);
 }

@@ -143,14 +143,15 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   works, B7.)
 - [ ] **A3 — Buildability endpoint perf.** Per-cell NTS over the grid is slow; optimise (spatial
   index / batch). Becomes user-visible once `N03`'s buildability overlay lands.
-- [ ] **A4 — Consolidate geometry into one module.** Duplication **audited** — 5 sites
-  (`SymmetryDetector`, `RegionGeometry2d`, `RegionBoundsDeriver`, `RegionParser`,
-  `Pgm/Editing/Geometry2d`). Establish one geometry module (point/bounds transforms + IoU) and route
-  every call site through it; mind the Pgm↔Analysis package boundary. Pairs with P7.
-  **Started:** the symmetry point/rect transforms now live in `Contracts.Symmetry`, shared by the WASM
-  client and the server (`Pgm/Geometry2d` delegates to it; the client `SymmetryOrbit` copy is gone). The
-  remaining sites above still need folding in — consider whether `Contracts` stays the home or a dedicated
-  geometry leaf project is cleaner.
+- [ ] **A4 — Finish folding the remaining geometry sites onto `PgmStudio.Geom`.** Full audit +
+  data-flow grilling in `docs/contracts/geometry-consolidation.md`. **The home is decided + built:** the
+  dependency-free `PgmStudio.Geom` leaf holds the canonical `Symmetry` (+ `Polygon.PointInRing`);
+  `SymmetryDetector` is de-forced and the C# `PointInRing` copies are collapsed. **Remaining:** fold
+  `SymmetryExpander.TransformRect` (→ `Symmetry.Rect`), the two `ModeNormals` dicts (`SymmetryAuthoring` +
+  `MonumentEndpoints`), and the `Geometry2d.ReflectBounds2d`/`RegionParser`/`RegionBoundsDeriver` bounds
+  copies onto the leaf; add a C# `OrbitAxes`; pick the orbit rounding convention before the Wools wizard;
+  one canonical map-bbox; decide editor AABB-vs-`containsPoint`. Constraint: keep `OrbitAssignment` intact;
+  new shape support stays within `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
 - [ ] **B10 — Build & test hygiene.** Two standing annoyances to clear:
   - **Flaky test build (TUnit `[Test]` not found).** The first `dotnet run/build` of a test project after
     a code/reference change can fail with `CS0246: 'Test'/'TestAttribute' could not be found` (seen in

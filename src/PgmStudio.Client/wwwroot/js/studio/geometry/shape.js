@@ -131,8 +131,8 @@ export function toBounds(shape) {
 
 /**
  * True if `(x,z)` is inside the shape. Per-type: rectangle = bounds, circle = radius, polygon/lasso =
- * ray-cast over the **raw vertices** (the polygon hull — curve bulge from Bézier handles is ignored,
- * matching the sketch tool's hit-test).
+ * ray-cast over the **same closed ring that is rendered** (`toRing`, so Bézier curve bulge is included —
+ * the hit shape matches the drawn outline). A degenerate polygon/lasso (< 3 vertices) contains nothing.
  */
 export function containsPoint(shape, x, z) {
   switch (shape.type) {
@@ -141,8 +141,10 @@ export function containsPoint(shape, x, z) {
     case "circle":
       return Math.hypot(x - shape.center_x, z - shape.center_z) <= shape.radius;
     case "polygon":
-    case "lasso":
-      return (shape.vertices?.length ?? 0) >= 3 && pointInRing(x, z, shape.vertices);
+    case "lasso": {
+      const ring = toRing(shape);
+      return ring.length >= 4 && pointInRing(x, z, ring);
+    }
     default:
       return false;
   }

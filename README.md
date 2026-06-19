@@ -14,6 +14,7 @@ An ASP.NET Core rewrite of `pgm-map-studio` — an authoring/analysis studio for
 ## Layout
 ```
 src/
+  PgmStudio.Geom        dependency-free 2-D geometry leaf (symmetry transforms, polygon primitives)
   PgmStudio.Domain      domain POCOs + value types (the PGM map contract)
   PgmStudio.Pgm         map.xml ⇄ domain ⇄ persisted-JSON codec
   PgmStudio.Minecraft   NBT/Anvil world reading + feature extractors
