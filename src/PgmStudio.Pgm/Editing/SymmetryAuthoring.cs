@@ -1,10 +1,11 @@
 namespace PgmStudio.Pgm.Editing;
 
+using PgmStudio.Geom;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Symmetry-aware authoring (F3, port of studio/services/symmetry_authoring.py): create the
-/// counterpart(s) of a source region for a symmetry mode about the centre.
+/// Symmetry-aware authoring: create the counterpart(s) of a source region for a symmetry mode about the
+/// centre.
 /// - reflections (mirror_x/z/d1/d2) persist as a native PGM <c>mirror</c> region chained by source_id;
 /// - rot_180 = two perpendicular mirrors (so it emits two chained mirror regions);
 /// - rot_90 has no PGM rotation type, so it <b>bakes</b> a concrete primitive with rotated geometry.
@@ -12,10 +13,6 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class SymmetryAuthoring
 {
-    private static readonly Dictionary<string, (double nx, double nz)> ModeNormals = new()
-    {
-        ["mirror_x"] = (1.0, 0.0), ["mirror_z"] = (0.0, 1.0), ["mirror_d1"] = (1.0, -1.0), ["mirror_d2"] = (1.0, 1.0),
-    };
     private static readonly HashSet<string> Bakeable = ["rectangle", "cuboid", "cylinder", "circle", "sphere", "point", "block"];
 
     /// <summary>Create the counterpart(s) of <paramref name="sourceId"/>; returns {counterpart, created:[ids]}.</summary>
@@ -24,7 +21,7 @@ public static class SymmetryAuthoring
         var regions = Regions(data);
         if (!regions.ContainsKey(sourceId)) throw EditException.BadRequest($"source region '{sourceId}' not found");
 
-        if (ModeNormals.ContainsKey(mode))
+        if (Symmetry.Normal(mode) is not null)
         {
             var rid = MakeMirror(data, sourceId, mode, cx, cz, category);
             return Result(rid, rid);
@@ -45,7 +42,7 @@ public static class SymmetryAuthoring
     }
 
     /// <summary>
-    /// Fill the symmetry orbit of <paramref name="sourceId"/> (F3): create every counterpart implied by
+    /// Fill the symmetry orbit of <paramref name="sourceId"/>: create every counterpart implied by
     /// the symmetry mode so an authored region appears in all symmetric positions at once. rot_90 chains
     /// 3 quarter turns (1→4); mirrors and rot_180 add a single counterpart (1→2). Counterparts inherit
     /// <paramref name="category"/> so they show in the step that drew the source. Returns {created:[ids]}.
@@ -77,7 +74,7 @@ public static class SymmetryAuthoring
     private static string MakeMirror(Dict data, string sourceId, string mode, double cx, double cz, string category = "other")
     {
         var regions = Regions(data);
-        var (nx, nz) = ModeNormals[mode];
+        var (nx, nz) = Symmetry.Normal(mode)!.Value;
         var src = (Dict)regions[sourceId]!;
         var newId = FreshId(regions, "mirror");
         var region = new Dict

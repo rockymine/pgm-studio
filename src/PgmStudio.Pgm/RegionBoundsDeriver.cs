@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm;
 
@@ -54,15 +55,14 @@ public static class RegionBoundsDeriver
     {
         if (m.SourceId is not { } sid || registry.GetValueOrDefault(sid)?.Bounds2d is not { } b) return null;
         double nx = m.NormalX ?? 0, nz = m.NormalZ ?? 0, ox = m.OriginX ?? 0, oz = m.OriginZ ?? 0;
-        var n2 = nx * nx + nz * nz;
-        (double x, double z) Reflect(double px, double pz)
+        var c = new[]
         {
-            if (n2 == 0) return (px, pz);
-            var d = 2.0 * ((px - ox) * nx + (pz - oz) * nz) / n2;
-            return (px - nx * d, pz - nz * d);
-        }
-        var c = new[] { Reflect(b.MinX, b.MinZ), Reflect(b.MinX, b.MaxZ), Reflect(b.MaxX, b.MinZ), Reflect(b.MaxX, b.MaxZ) };
-        return Bounds2d.Of(c.Min(p => p.x), c.Min(p => p.z), c.Max(p => p.x), c.Max(p => p.z));
+            Symmetry.ReflectPoint(b.MinX, b.MinZ, nx, nz, ox, oz),
+            Symmetry.ReflectPoint(b.MinX, b.MaxZ, nx, nz, ox, oz),
+            Symmetry.ReflectPoint(b.MaxX, b.MinZ, nx, nz, ox, oz),
+            Symmetry.ReflectPoint(b.MaxX, b.MaxZ, nx, nz, ox, oz),
+        };
+        return Bounds2d.Of(c.Min(p => p.X), c.Min(p => p.Z), c.Max(p => p.X), c.Max(p => p.Z));
     }
 
     private static Bounds2d? TranslateBounds(Region t, IReadOnlyDictionary<string, Region> registry)

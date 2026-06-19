@@ -79,7 +79,7 @@ public static class SketchRasterizer
         var cells = RasterGroup(shapes);                 // primary
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
-        var axes = MirrorAxes(state?.Setup?.MirrorMode ?? "rot_180");
+        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
         var metas = state?.Layout?.Islands ?? [];
 
         if (metas.Count == 0)
@@ -198,8 +198,6 @@ public static class SketchRasterizer
     }
 
     // ── symmetry ──────────────────────────────────────────────────────────────────────────────────
-    private static string[] MirrorAxes(string mode) => mode == "rot_90" ? ["rot_90", "rot_180", "rot_270"] : [mode];
-
     // Mirror a block cell's centre, then floor back to a cell (used only for the no-metadata fallback).
     private static (int, int) MirrorCell((int X, int Z) c, string axis, double cx, double cz)
     {
@@ -216,7 +214,7 @@ public static class SketchRasterizer
     }
 
     // The one canonical concrete-axis transform — every orbit axis (incl. the diagonals mirror_d1/d2 and
-    // the rot_270 image that MirrorAxes fans rot_90 out to) stays consistent with the generator + JS canvas.
+    // the rot_270 image that Symmetry.OrbitAxes fans rot_90 out to) stays consistent with the generator + JS.
     private static (double, double) MirrorPoint(double x, double z, string axis, double cx, double cz)
         => Symmetry.Apply(x, z, axis, cx, cz);
 }

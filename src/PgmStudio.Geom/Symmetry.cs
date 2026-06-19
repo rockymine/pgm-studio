@@ -12,6 +12,22 @@ public static class Symmetry
     /// <summary>Orbit order: <c>rot_90</c> ⇒ 4, any other known mode ⇒ 2, none/unknown ⇒ 1.</summary>
     public static int Order(string? mode) => string.IsNullOrEmpty(mode) ? 1 : mode == "rot_90" ? 4 : 2;
 
+    /// <summary>The reflection normal (nx,nz) for a mirror mode, or <c>null</c> for non-mirror modes
+    /// (rotations / unknown). The single source for the mirror axes: mirror_x=(1,0), mirror_z=(0,1),
+    /// mirror_d1=(1,-1), mirror_d2=(1,1).</summary>
+    public static (double Nx, double Nz)? Normal(string? mode) => mode switch
+    {
+        "mirror_x"  => (1.0, 0.0),
+        "mirror_z"  => (0.0, 1.0),
+        "mirror_d1" => (1.0, -1.0),
+        "mirror_d2" => (1.0, 1.0),
+        _ => null,
+    };
+
+    /// <summary>The concrete axes that make up a mode's orbit (the C# twin of JS <c>orbitAxes</c>):
+    /// <c>rot_90</c> fans out to rot_90/rot_180/rot_270; every other mode is its own single axis.</summary>
+    public static string[] OrbitAxes(string mode) => mode == "rot_90" ? ["rot_90", "rot_180", "rot_270"] : [mode];
+
     /// <summary>Reflect a point across the plane through (ox,oz) with horizontal normal (nx,nz).</summary>
     public static (double X, double Z) ReflectPoint(double px, double pz, double nx, double nz, double ox, double oz)
     {
@@ -40,14 +56,10 @@ public static class Symmetry
     /// twin of JS <c>applySymmetry</c>; unknown axis ⇒ identity.</summary>
     public static (double X, double Z) Apply(double x, double z, string axis, double cx, double cz) => axis switch
     {
-        "rot_90"    => RotatePoint(x, z, 90, cx, cz),
-        "rot_180"   => RotatePoint(x, z, 180, cx, cz),
-        "rot_270"   => RotatePoint(x, z, 270, cx, cz),
-        "mirror_x"  => ReflectPoint(x, z, 1, 0, cx, cz),
-        "mirror_z"  => ReflectPoint(x, z, 0, 1, cx, cz),
-        "mirror_d1" => ReflectPoint(x, z, 1, -1, cx, cz),
-        "mirror_d2" => ReflectPoint(x, z, 1, 1, cx, cz),
-        _ => (x, z),
+        "rot_90"  => RotatePoint(x, z, 90, cx, cz),
+        "rot_180" => RotatePoint(x, z, 180, cx, cz),
+        "rot_270" => RotatePoint(x, z, 270, cx, cz),
+        _ => Normal(axis) is { } n ? ReflectPoint(x, z, n.Nx, n.Nz, cx, cz) : (x, z),
     };
 
     /// <summary>The <c>k</c>-th orbit image of a point under a named symmetry mode about (cx,cz).</summary>
@@ -55,11 +67,7 @@ public static class Symmetry
     {
         "rot_90" => RotatePoint(x, z, 90 * k, cx, cz),
         "rot_180" => RotatePoint(x, z, 180, cx, cz),
-        "mirror_x" => ReflectPoint(x, z, 1, 0, cx, cz),
-        "mirror_z" => ReflectPoint(x, z, 0, 1, cx, cz),
-        "mirror_d1" => ReflectPoint(x, z, 1, -1, cx, cz),
-        "mirror_d2" => ReflectPoint(x, z, 1, 1, cx, cz),
-        _ => (x, z),
+        _ => Normal(mode) is { } n ? ReflectPoint(x, z, n.Nx, n.Nz, cx, cz) : (x, z),
     };
 
     /// <summary>The <c>k</c>-th orbit image of an axis-aligned rectangle: transform the four corners and

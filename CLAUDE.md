@@ -146,8 +146,7 @@ cross-cutting editor/canvas infra (`C`). See `TODO.md` "Current focus".
   needs a non-editable orbit *preview*, render it on the canvas via `setAuthorMirror`, **not** by computing
   orbit rects in Blazor C#. (Spawn/Protection still compute orbit in C# via `OrbitAssignment` because they
   *store* it with island/point-aware team assignment — see `docs/contracts/new-map-authoring.md` §4 / the
-  orbit memory. Remaining server collapses — `SymmetryExpander.TransformRect`, the `ModeNormals` dicts —
-  tracked as `A4`.)
+  orbit memory.)
 - Don't make the format fit: reject malformed maps (e.g. kytriak_te) rather than weakening the schema.
 - **Wool-location flooring asymmetry is intentional (PGM-grounded).** The intent generator floors the
   wool `<location>` but passes the monument block coords through raw — *because PGM treats them

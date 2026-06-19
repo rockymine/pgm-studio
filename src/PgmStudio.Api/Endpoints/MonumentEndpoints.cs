@@ -4,6 +4,7 @@ using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Data;
 using PgmStudio.Data.Repositories;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm;
 
@@ -74,11 +75,6 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db) : 
 /// </summary>
 public sealed class MonumentOrbitEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
-    private static readonly Dictionary<string, (double nx, double nz)> ModeNormals = new()
-    {
-        ["mirror_x"] = (1.0, 0.0), ["mirror_z"] = (0.0, 1.0), ["mirror_d1"] = (1.0, -1.0), ["mirror_d2"] = (1.0, 1.0),
-    };
-
     public override void Configure() { Post("/map/{slug}/monument-orbit"); AllowAnonymous(); }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -113,9 +109,9 @@ public sealed class MonumentOrbitEndpoint(MapRepository repo, PgmDb db) : Endpoi
     {
         yield return (x, z, 0);
         if (mode == "rot_90")
-            for (var k = 1; k < 4; k++) { var (rx, rz) = Geometry2d.RotatePoint(x, z, 90 * k, cx, cz); yield return (R(rx), R(rz), k); }
-        else if (mode == "rot_180") { var (rx, rz) = Geometry2d.RotatePoint(x, z, 180, cx, cz); yield return (R(rx), R(rz), 1); }
-        else if (mode is not null && ModeNormals.TryGetValue(mode, out var n)) { var (rx, rz) = Geometry2d.ReflectPoint(x, z, n.nx, n.nz, cx, cz); yield return (R(rx), R(rz), 1); }
+            for (var k = 1; k < 4; k++) { var (rx, rz) = Symmetry.Point(x, z, mode, cx, cz, k); yield return (R(rx), R(rz), k); }
+        else if (mode == "rot_180" || Symmetry.Normal(mode) is not null)
+        { var (rx, rz) = Symmetry.Point(x, z, mode, cx, cz, 1); yield return (R(rx), R(rz), 1); }
     }
 
     private static int R(double v) => (int)Math.Round(v);

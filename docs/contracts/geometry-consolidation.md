@@ -8,21 +8,15 @@
 
 ### (1) Affine symmetry transforms — reflect/rotate a point or AABB about a centre
 
-Canonical: **`PgmStudio.Contracts.Symmetry`** (`Order` · `Point` · `Rect` · `ReflectPoint` · `RotatePoint`)
-— a dependency-free leaf, so client (WASM) and server both reach it.
+Canonical: **`PgmStudio.Geom.Symmetry`** (`Order` · `Point` · `Rect` · `Apply` · `Normal` · `OrbitAxes` ·
+`ReflectPoint` · `RotatePoint`) — a dependency-free leaf (`PgmStudio.Geom`, moved out of `Contracts`), so
+client (WASM), server, and `Analysis` all reach it.
 
-- **Already routed through it:** `Pgm/Geometry2d` (delegates the point primitives), `Pgm/Editing/SymmetryAuthoring`,
-  `Pgm/Editing/SymmetryExpander` (points, via its `Step`), `Api/Endpoints/MonumentEndpoints`, and the client
-  `Client/Models/OrbitAssignment`.
-- **Still hand-rolling — fold in:**
-  - `SymmetryExpander.TransformRect` — its own corner-rebound → use `Symmetry.Rect`.
-  - `MonumentEndpoints.ModeNormals` — a mode→reflect-normal map duplicated by `Symmetry.Point`'s switch.
-  - **`Pgm/Editing/SketchRasterizer`** — its own `MirrorShape` / `MirrorAxes` (rot_90 ⇒ 90/180/270). This is
-    the **sketch** symmetry subsystem, the server twin of JS `geometry/boolean.js` `computeMirrorPreview`.
-    Mirror each shape vertex via `Symmetry.Point`; add a C# `OrbitAxes` to `Symmetry` (mirrors JS `orbitAxes`).
-- **Status:** ~70–75% done — `Contracts.Symmetry` exists and the critical paths route through it, but four
-  sites still hand-roll (`SymmetryExpander.TransformRect`, the two `ModeNormals` dicts, `SketchRasterizer.MirrorPoint`,
-  the structurally-forced `Analysis/SymmetryDetector` copy). See **Deep audit** below for the verified breakdown.
+- **Status: COMPLETE (family 1).** Every C# affine site routes through `Geom.Symmetry`: `Pgm/Geometry2d`,
+  `SymmetryAuthoring`, `SymmetryExpander` (its `Step` removed), `MonumentEndpoints`, `Analysis/SymmetryDetector`,
+  `RegionParser`/`RegionBoundsDeriver` (`MirrorBounds`), `SketchRasterizer`, and client `OrbitAssignment`.
+  The two `ModeNormals` dicts collapsed onto `Symmetry.Normal`; `SketchRasterizer.MirrorAxes` onto
+  `Symmetry.OrbitAxes`. See **Deep audit › Revised order** below for the verified breakdown.
 
 ### (2) Polygon set-ops + point-in-polygon + IoU / centroid
 
@@ -177,20 +171,27 @@ cylinders land, its rect `Covers` test generalises to a cylinder containment, no
 
 ### Revised order
 **Done:** `SketchRasterizer` diagonal-mirror gap (#1) · `containsPoint` hit-vs-render (Bézier) · the
-**home decision** — the `PgmStudio.Geom` leaf now holds the canonical `Symmetry` + `Polygon`, with
-`SymmetryDetector` de-forced and the C# `PointInRing` copies collapsed (#4, #5).
+**home decision** — the `PgmStudio.Geom` leaf holds the canonical `Symmetry` + `Polygon`, with
+`SymmetryDetector` de-forced and the C# `PointInRing` copies collapsed (#4, #5). **The affine fold-in is now
+complete:** `SymmetryExpander` (its `Step` is gone — `TransformPt`/`Rect`/`Yaw` call `Symmetry.Point`/`Rect`
+directly), both `ModeNormals` dicts (`SymmetryAuthoring` + `MonumentEndpoints` → `Symmetry.Normal`, the
+single source the `Apply`/`Point` mirror branches now also use), and the `RegionParser` /
+`RegionBoundsDeriver` `MirrorBounds` reflects (→ `Symmetry.ReflectPoint`). Added `Symmetry.OrbitAxes`
+(mirror of JS `orbitAxes`; `SketchRasterizer.MirrorAxes` removed). Every C# affine transform now routes
+through `Geom.Symmetry`.
 
 Remaining:
-1. Collapse the rest onto `Geom.Symmetry`: `SymmetryExpander.TransformRect` (→ `Symmetry.Rect` + its
-   own rounding), the two `ModeNormals` dicts (`SymmetryAuthoring` + `MonumentEndpoints`), and the
-   `Geometry2d.ReflectBounds2d` / `RegionParser` / `RegionBoundsDeriver` bounds-rebound copies; add a C#
-   `OrbitAxes` (mirror of JS `orbitAxes`). All now trivially unblocked.
-2. Fix the orbit rounding convention (#3) + define one canonical map-bbox (#7).
-3. Family (2): shared NTS contains/IoU; drop hand-rolled server ray-casts. Fix `RegionCentre` (#2).
-4. Decide the editor-AABB-vs-`containsPoint` story (and correct `shape.js`'s header either way).
-5. Leave the JS `geometry/*` layer as the documented preview twin (not merged).
-6. Future residents of the leaf: a C# shape model (`Rect ∪ Cylinder`) when intent goes beyond rectangles;
+1. Fix the orbit rounding convention (#3) + define one canonical map-bbox (#7).
+2. Family (2): shared NTS contains/IoU; drop hand-rolled server ray-casts. Fix `RegionCentre` (#2).
+3. Decide the editor-AABB-vs-`containsPoint` story (and correct `shape.js`'s header either way).
+4. Leave the JS `geometry/*` layer as the documented preview twin (not merged).
+5. Future residents of the leaf: a C# shape model (`Rect ∪ Cylinder`) when intent goes beyond rectangles;
    the generative layout algorithms (TSP/annealing, random-point polygon seeding).
+
+> Note: `Geometry2d.ReflectBounds2d`/`RotateBounds2d` (dict-`bounds_2d` rebound) already delegate their
+> *points* to `Geom.Symmetry`; the rebound loop is dict-shaped and stays in `Pgm` (the leaf is dict-free).
+> The `UnionBounds`/`TranslateBounds` copies shared between `RegionParser`/`RegionBoundsDeriver` are
+> non-affine (min/max merge, offset) — a separate Pgm-internal dedup, not a leaf fold.
 
 > Constraint through all of the above: **keep `OrbitAssignment` intact** (the point-aware orbit→team
 > keystone); and any new shape support stays within **`Rect ∪ Cylinder`** (PGM-expressible) — see the

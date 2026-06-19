@@ -1,5 +1,7 @@
 namespace PgmStudio.Pgm.Editing;
 
+using PgmStudio.Geom;
+
 /// <summary>
 /// Orbit-fill for the declarative intent (docs/contracts/new-map-authoring.md §4). Given an intent whose
 /// <see cref="MapIntent.Symmetry"/> is set, the author only authors <b>one orbit unit</b> — team 0's
@@ -13,9 +15,9 @@ namespace PgmStudio.Pgm.Editing;
 /// so each team is filled exactly once.</para>
 /// <para><b>Author overrides win.</b> A team that already has an authored spawn/wool is never overwritten —
 /// only missing teams are filled. So the author can hand-correct any orbit member after the fill.</para>
-/// <para>Geometry reuses <see cref="Geometry2d"/> (the same reflect/rotate the F3 region orbit baker uses).
-/// Build areas are <i>not</i> orbited — they're a flat union seeded from the symmetric islands (§6), with
-/// no per-team identity to map.</para>
+/// <para>Geometry uses the canonical <see cref="Symmetry"/> transforms (the same reflect/rotate the region
+/// orbit baker uses). Build areas are <i>not</i> orbited — they're a flat union seeded from the symmetric
+/// islands (§6), with no per-team identity to map.</para>
 /// </summary>
 public static class SymmetryExpander
 {
@@ -148,25 +150,17 @@ public static class SymmetryExpander
         return result;
     }
 
-    // ── geometry ────────────────────────────────────────────────────────────────────────
+    // ── geometry (the one canonical Symmetry transform) ───────────────────────────────────
     private static Pt TransformPt(Pt p, SymmetryIntent sym, int k)
     {
-        var (x, z) = Step(sym.Mode, k, p.X, p.Z, sym.CenterX, sym.CenterZ);
+        var (x, z) = Symmetry.Point(p.X, p.Z, sym.Mode, sym.CenterX, sym.CenterZ, k);
         return new Pt(Round(x), p.Y, Round(z));
     }
 
     private static Rect TransformRect(Rect r, SymmetryIntent sym, int k)
     {
-        var corners = new (double x, double z)[]
-        {
-            Step(sym.Mode, k, r.MinX, r.MinZ, sym.CenterX, sym.CenterZ),
-            Step(sym.Mode, k, r.MinX, r.MaxZ, sym.CenterX, sym.CenterZ),
-            Step(sym.Mode, k, r.MaxX, r.MinZ, sym.CenterX, sym.CenterZ),
-            Step(sym.Mode, k, r.MaxX, r.MaxZ, sym.CenterX, sym.CenterZ),
-        };
-        return new Rect(
-            Round(corners.Min(c => c.x)), Round(corners.Min(c => c.z)),
-            Round(corners.Max(c => c.x)), Round(corners.Max(c => c.z)));
+        var (nx, nz, xx, xz) = Symmetry.Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ, sym.Mode, sym.CenterX, sym.CenterZ, k);
+        return new Rect(Round(nx), Round(nz), Round(xx), Round(xz));
     }
 
     // Transform a Minecraft yaw by running its facing vector through the linear part of the symmetry op
@@ -174,22 +168,10 @@ public static class SymmetryExpander
     private static double TransformYaw(double yaw, SymmetryIntent sym, int k)
     {
         var rad = yaw * Math.PI / 180.0;
-        var (tx, tz) = Step(sym.Mode, k, -Math.Sin(rad), Math.Cos(rad), 0, 0);
+        var (tx, tz) = Symmetry.Point(-Math.Sin(rad), Math.Cos(rad), sym.Mode, 0, 0, k);
         var deg = Math.Atan2(-tx, tz) * 180.0 / Math.PI;
         return Round(((deg % 360) + 360) % 360);
     }
-
-    // One orbit step about (cx,cz): rotation for rot_*, reflection across the named normal for mirror_*.
-    private static (double x, double z) Step(string mode, int k, double x, double z, double cx, double cz) => mode switch
-    {
-        "rot_90" => Geometry2d.RotatePoint(x, z, 90 * k, cx, cz),
-        "rot_180" => Geometry2d.RotatePoint(x, z, 180, cx, cz),
-        "mirror_x" => Geometry2d.ReflectPoint(x, z, 1, 0, cx, cz),
-        "mirror_z" => Geometry2d.ReflectPoint(x, z, 0, 1, cx, cz),
-        "mirror_d1" => Geometry2d.ReflectPoint(x, z, 1, -1, cx, cz),
-        "mirror_d2" => Geometry2d.ReflectPoint(x, z, 1, 1, cx, cz),
-        _ => (x, z),
-    };
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────
     private static int Order(string mode) => mode == "rot_90" ? 4 : 2;

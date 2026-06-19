@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Xml.Linq;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm;
 
@@ -349,24 +350,19 @@ internal sealed class RegionParser
         return Bounds2d.Of(b.MinX + dx, b.MinZ + dz, b.MaxX + dx, b.MaxZ + dz);
     }
 
-    // Reflect the source AABB across the mirror plane (PGM <mirror>): reflect all four corners,
-    // then re-bound — exact for axis-aligned and 45° normals (port of geometry.reflect_bounds_2d).
+    // Reflect the source AABB across the mirror plane (PGM <mirror>): reflect all four corners via the
+    // canonical Symmetry transform, then re-bound — exact for axis-aligned and 45° normals.
     private Bounds2d? MirrorBounds(string sourceId, double nx, double nz, double ox, double oz)
     {
         if (_registry.GetValueOrDefault(sourceId)?.Bounds2d is not { } b) return null;
-        var n2 = nx * nx + nz * nz;
-        (double x, double z) Reflect(double px, double pz)
+        var c = new[]
         {
-            if (n2 == 0) return (px, pz);
-            var d = 2.0 * ((px - ox) * nx + (pz - oz) * nz) / n2;
-            return (px - nx * d, pz - nz * d);
-        }
-        var corners = new[]
-        {
-            Reflect(b.MinX, b.MinZ), Reflect(b.MinX, b.MaxZ),
-            Reflect(b.MaxX, b.MinZ), Reflect(b.MaxX, b.MaxZ),
+            Symmetry.ReflectPoint(b.MinX, b.MinZ, nx, nz, ox, oz),
+            Symmetry.ReflectPoint(b.MinX, b.MaxZ, nx, nz, ox, oz),
+            Symmetry.ReflectPoint(b.MaxX, b.MinZ, nx, nz, ox, oz),
+            Symmetry.ReflectPoint(b.MaxX, b.MaxZ, nx, nz, ox, oz),
         };
-        return Bounds2d.Of(corners.Min(c => c.x), corners.Min(c => c.z), corners.Max(c => c.x), corners.Max(c => c.z));
+        return Bounds2d.Of(c.Min(p => p.X), c.Min(p => p.Z), c.Max(p => p.X), c.Max(p => p.Z));
     }
 
     private static string NonEmpty(string s, string def) => string.IsNullOrEmpty(s) ? def : s;

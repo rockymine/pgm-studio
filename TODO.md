@@ -143,15 +143,17 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   works, B7.)
 - [ ] **A3 — Buildability endpoint perf.** Per-cell NTS over the grid is slow; optimise (spatial
   index / batch). Becomes user-visible once `N03`'s buildability overlay lands.
-- [ ] **A4 — Finish folding the remaining geometry sites onto `PgmStudio.Geom`.** Full audit +
-  data-flow grilling in `docs/contracts/geometry-consolidation.md`. **The home is decided + built:** the
-  dependency-free `PgmStudio.Geom` leaf holds the canonical `Symmetry` (+ `Polygon.PointInRing`);
-  `SymmetryDetector` is de-forced and the C# `PointInRing` copies are collapsed. **Remaining:** fold
-  `SymmetryExpander.TransformRect` (→ `Symmetry.Rect`), the two `ModeNormals` dicts (`SymmetryAuthoring` +
-  `MonumentEndpoints`), and the `Geometry2d.ReflectBounds2d`/`RegionParser`/`RegionBoundsDeriver` bounds
-  copies onto the leaf; add a C# `OrbitAxes`; pick the orbit rounding convention before the Wools wizard;
-  one canonical map-bbox; decide editor AABB-vs-`containsPoint`. Constraint: keep `OrbitAssignment` intact;
-  new shape support stays within `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
+- [ ] **A4 — Remaining geometry-consolidation tails.** Full audit + data-flow grilling in
+  `docs/contracts/geometry-consolidation.md`. **Affine family done:** the dependency-free `PgmStudio.Geom`
+  leaf holds the canonical `Symmetry` (`Point`/`Rect`/`Apply`/`Normal`/`OrbitAxes`) + `Polygon.PointInRing`,
+  and **every** C# affine site now routes through it (`SymmetryExpander` `Step` removed, both `ModeNormals`
+  dicts → `Symmetry.Normal`, `RegionParser`/`RegionBoundsDeriver` `MirrorBounds` → `Symmetry.ReflectPoint`,
+  `SketchRasterizer.MirrorAxes` → `Symmetry.OrbitAxes`, `SymmetryDetector` de-forced, `PointInRing` collapsed).
+  **Remaining (not affine-fold):** pick the orbit rounding convention (int vs 1dp) before the Wools wizard;
+  define one canonical map-bbox (used to clip `half`/`negative`); family-2 — a shared NTS contains/IoU +
+  fix `Traversability.RegionCentre` (AABB-midpoint → NTS centroid); decide editor AABB-vs-`containsPoint`
+  (+ correct `shape.js`'s header). Constraint: keep `OrbitAssignment` intact; new shape support stays within
+  `Rect ∪ Cylinder` (cylinder still missing). Pairs with P7.
 - [ ] **B10 — Build & test hygiene.** Two standing annoyances to clear:
   - **Flaky test build (TUnit `[Test]` not found).** The first `dotnet run/build` of a test project after
     a code/reference change can fail with `CS0246: 'Test'/'TestAttribute' could not be found` (seen in
