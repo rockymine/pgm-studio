@@ -62,6 +62,27 @@ public sealed class PolygonSimplifyTests
     }
 
     [Test]
+    public async Task An_open_L_path_straightens_to_three_vertices()
+    {
+        // a staircase up then right (an L): simplify keeps the two ends + the corner
+        List<double[]> path = [];
+        for (var z = 0; z <= 10; z++) path.Add(P(0, z));
+        for (var x = 1; x <= 10; x++) path.Add(P(x, 10));
+        var s = PolygonSimplify.Polyline(path, 1.0);
+        await Assert.That(s.Count).IsEqualTo(3);
+        await Assert.That(s[1][0]).IsEqualTo(0d);   // the corner at (0,10)
+        await Assert.That(s[1][1]).IsEqualTo(10d);
+    }
+
+    [Test]
+    public async Task A_straight_open_path_keeps_only_its_endpoints()
+    {
+        List<double[]> path = [P(0, 0), P(3, 0), P(6, 0), P(9, 0)];
+        var s = PolygonSimplify.Polyline(path, 0.5);
+        await Assert.That(s.Count).IsEqualTo(2);
+    }
+
+    [Test]
     public async Task Noise_holes_below_min_area_are_dropped()
     {
         List<double[]> exterior = [P(0, 0), P(20, 0), P(20, 20), P(0, 20)];

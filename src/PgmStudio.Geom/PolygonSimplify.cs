@@ -69,6 +69,17 @@ public static class PolygonSimplify
         return RemoveCollinear(outp, tolerance * tolerance + 1e-9);
     }
 
+    /// <summary>Straighten an OPEN polyline (a lane centerline from a skeleton): Douglas–Peucker keeps the
+    /// endpoints and the vertices whose perpendicular deviation exceeds <paramref name="tolerance"/>, so a
+    /// staircased thinned path becomes clean segments with vertices only at real bends.</summary>
+    public static List<double[]> Polyline(IReadOnlyList<double[]> points, double tolerance)
+    {
+        var pts = new List<double[]>();
+        foreach (var p in points)
+            if (pts.Count == 0 || pts[^1][0] != p[0] || pts[^1][1] != p[1]) pts.Add([p[0], p[1]]);
+        return SimplifyOpen(pts, tolerance);
+    }
+
     // ── Douglas–Peucker on an open polyline ──────────────────────────────────────────────────────
     private static List<double[]> SimplifyOpen(List<double[]> pts, double tol)
     {

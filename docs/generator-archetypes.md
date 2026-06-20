@@ -89,3 +89,25 @@ Median distance from each objective to the nearest **lane tip**, across 13 maps:
 Note: where wool→tip is large (annealing's curved blades, fall_of_babylon, dragons_hearth) the wool sits in
 a wool-*room* set back from the lane tip, or the island is large enough that the room reads as its own small
 structure — still a dead-end pocket off the lane, just not the skeleton's extreme endpoint.
+
+## Lane primitives (the building blocks)
+
+Each lane's thinned pixel path is straightened shape-preservingly with open-polyline Douglas–Peucker
+(`PolygonSimplify.Polyline`) — staircases collapse to clean segments, vertices remain only at real bends —
+and each bend is measured (the turn angle from straight). Over the 13-map sample (467 lanes, 287 bends):
+
+**Bend angles** (deviation from straight, nearest octant): 45° **42%**, 67.5° 21%, 22.5° 20%, 90° 12%,
+135° (hairpin) 5%. → the **45° family dominates**; right-angles are the minority. These are diagonal maps,
+not grid maps.
+
+**Lane shapes**: straight **59%**, single 45°-bend 10%, double-bend 7%, wiggle 6%, shallow-bend 6%,
+right-angle (L) 5%, single 67.5°-bend 4%, hairpin 2%. → most lanes are **straight runs** (median length 10,
+~4–28 blocks) joined by a single 45°-family bend.
+
+**Diamonds**: 101 independent cycles across the 13 maps — lanes split and **loop around an interior hole**
+(the diamond primitive). Holes are a first-class feature, not noise.
+
+So the generator's alphabet is: **straight segment** (stretchable), **45°/octant bend**, **right-angle bend**
+(rarer), and **diamond** (a lane loop around a hole). A team island is these primitives composed into a
+hub-with-branches — straight runs out to wool tips, bends to route around the terrain, diamonds where a
+hole is wanted — then mirrored/rotated by the board symmetry.
