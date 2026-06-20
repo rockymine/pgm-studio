@@ -52,9 +52,21 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --gen-preview Organic <seed> <
    smoothed. The offset is kept gentle: a sharper fold pinches the lane's inner edge to a thin sliver.
    *Tune:* waypoint count (`rng.Int(1,3)`), offset scale.
 
-4. **Variable-width ribbon (the hull).** The lane body is `Lane.Ribbon`: each centerline point is offset by a
-   per-side half-width = base (tapering ~25% toward the tip) + independent noise jitter (`±0.3·laneWidth`),
-   so the outline undulates instead of being a clean rectangle. *Tune:* taper, jitter scale.
+   *Catmull-Rom's role (`Geom.Lane.Smooth`):* a lane is authored from only a few meaningful **control points**
+   — the submerged hub node, the hub-edge entry, the bend waypoints, and the tip (the wool). Catmull-Rom
+   **resamples that sparse spine into a dense smooth polyline** (~16 samples/segment) that the bends read as
+   rounded arcs instead of kinks. It shapes the **spine**; step 4's ribbon offset turns the spine into the
+   **area**. It's **interpolating** — the curve passes *through* the control points (so the tip lands exactly
+   on the wool, the entry exactly on the hub) — which is why it's Catmull-Rom and not Bézier (whose handles are
+   only approached, not hit). The **centripetal** variant is used (knot spacing = chord-length^½): uniform
+   Catmull-Rom overshoots and forms cusps/loops when one control segment is much shorter than the next, and
+   once that spine is offset into a strip it self-intersects. The same `Smooth` shapes the H crossbar, Pinwheel
+   blades, and Trident arms.
+
+4. **Variable-width ribbon (the hull).** The smooth centerline becomes the lane *body* via `Lane.Ribbon`: each
+   centerline point is offset to both sides by a per-side half-width = base (tapering ~25% toward the tip) +
+   independent noise jitter (`±0.3·laneWidth`), so the outline undulates instead of being a clean rectangle.
+   This is the **spine → area** step. *Tune:* taper, jitter scale.
 
 5. **Organic holes.** With probability `HoleChance`, a lane carries an **organic 4–6-gon** (jittered radii,
    `HolePolygon`) **subtracted** as a hole (the Green-Gem reading) — not strictly a diamond. Its bounding
