@@ -1,5 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Sketch;
@@ -18,61 +16,11 @@ public static class SketchRasterizer
     private const int CirclePoints  = 64;   // matches JS geometry/shape.js CIRCLE_POINTS
     private const int BezierSamples  = 16;   // matches JS geometry/shape.js BEZIER_SAMPLES
 
-    // ── wire model (the JS-origin blob; camelCase + the `in`/`override` keywords aliased) ──────────
-    private sealed class State
-    {
-        [JsonPropertyName("setup")]  public Setup? Setup { get; set; }
-        [JsonPropertyName("layout")] public Layout? Layout { get; set; }
-    }
-    private sealed class Setup
-    {
-        [JsonPropertyName("mirror_mode")] public string MirrorMode { get; set; } = "rot_180";
-        [JsonPropertyName("center")]      public Center? Center { get; set; }
-    }
-    private sealed class Center
-    {
-        [JsonPropertyName("cx")] public double Cx { get; set; }
-        [JsonPropertyName("cz")] public double Cz { get; set; }
-    }
-    private sealed class Layout
-    {
-        [JsonPropertyName("shapes")]  public List<Shape> Shapes { get; set; } = [];
-        [JsonPropertyName("islands")] public List<IslandMeta> Islands { get; set; } = [];
-    }
-    private sealed class IslandMeta
-    {
-        [JsonPropertyName("mirrors")]  public bool Mirrors { get; set; } = true;
-        [JsonPropertyName("shapeIds")] public List<string> ShapeIds { get; set; } = [];
-    }
-    private sealed class Ctrl
-    {
-        [JsonPropertyName("in")]  public double[]? In { get; set; }
-        [JsonPropertyName("out")] public double[]? Out { get; set; }
-    }
-    private sealed class Shape
-    {
-        [JsonPropertyName("id")]        public string Id { get; set; } = "";
-        [JsonPropertyName("type")]      public string Type { get; set; } = "";
-        [JsonPropertyName("operation")] public string Operation { get; set; } = "add";
-        [JsonPropertyName("override")]  public bool Override { get; set; }
-        [JsonPropertyName("min_x")] public double? MinX { get; set; }
-        [JsonPropertyName("min_z")] public double? MinZ { get; set; }
-        [JsonPropertyName("max_x")] public double? MaxX { get; set; }
-        [JsonPropertyName("max_z")] public double? MaxZ { get; set; }
-        [JsonPropertyName("center_x")] public double? CenterX { get; set; }
-        [JsonPropertyName("center_z")] public double? CenterZ { get; set; }
-        [JsonPropertyName("radius")]   public double? Radius { get; set; }
-        [JsonPropertyName("vertices")] public double[][]? Vertices { get; set; }
-        [JsonPropertyName("controls")] public Dictionary<string, Ctrl>? Controls { get; set; }
-    }
-
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
     /// <summary>Rasterize the stored layout JSON to the finished world's solid (x,z) cells (primary +
     /// the mirror copies of the islands that opt in). Empty when the layout has no add shapes.</summary>
     public static List<(int X, int Z)> Rasterize(string layoutJson)
     {
-        var state = JsonSerializer.Deserialize<State>(layoutJson, Json);
+        var state = SketchLayout.Parse(layoutJson);
         var shapes = state?.Layout?.Shapes ?? [];
         if (shapes.Count == 0) return [];
 
@@ -107,7 +55,7 @@ public static class SketchRasterizer
     }
 
     // ── 4-step set algebra over a shape group ─────────────────────────────────────────────────────
-    private static HashSet<(int, int)> RasterGroup(IEnumerable<Shape> shapes)
+    private static HashSet<(int, int)> RasterGroup(IEnumerable<SketchShape> shapes)
     {
         HashSet<(int, int)> add = [], sub = [], oadd = [], osub = [];
         foreach (var s in shapes)
@@ -130,9 +78,9 @@ public static class SketchRasterizer
     }
 
     // ── single shape → cells (rasterize its ring by block-centre sampling) ─────────────────────────
-    private static IEnumerable<(int, int)> RasterShape(Shape s) => RasterRing(RingOf(s));
+    private static IEnumerable<(int, int)> RasterShape(SketchShape s) => RasterRing(RingOf(s));
 
-    private static List<double[]> RingOf(Shape s) => s.Type switch
+    private static List<double[]> RingOf(SketchShape s) => s.Type switch
     {
         "rectangle" => [[s.MinX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MaxZ ?? 0], [s.MinX ?? 0, s.MaxZ ?? 0]],
         "circle"    => CircleRing(s.CenterX ?? 0, s.CenterZ ?? 0, s.Radius ?? 0),
@@ -151,7 +99,7 @@ public static class SketchRasterizer
         return pts;
     }
 
-    private static List<double[]> PolygonRing(double[][]? verts, Dictionary<string, Ctrl>? controls)
+    private static List<double[]> PolygonRing(double[][]? verts, Dictionary<string, SketchControl>? controls)
     {
         if (verts is null || verts.Length < 3) return [];
         if (controls is null || controls.Count == 0) return [.. verts.Select(v => new[] { v[0], v[1] })];
@@ -205,12 +153,12 @@ public static class SketchRasterizer
         return ((int)Math.Floor(x), (int)Math.Floor(z));
     }
 
-    private static Shape MirrorShape(Shape s, string axis, double cx, double cz)
+    private static SketchShape MirrorShape(SketchShape s, string axis, double cx, double cz)
     {
         // Transform the shape's ring points into a polygon shape carrying the same operation/override,
         // so the 4-step still composes the mirror copy correctly.
         var ring = RingOf(s).Select(p => { var (x, z) = MirrorPoint(p[0], p[1], axis, cx, cz); return new[] { x, z }; }).ToArray();
-        return new Shape { Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override, Vertices = ring };
+        return new SketchShape { Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override, Vertices = ring };
     }
 
     // The one canonical concrete-axis transform — every orbit axis (incl. the diagonals mirror_d1/d2 and
