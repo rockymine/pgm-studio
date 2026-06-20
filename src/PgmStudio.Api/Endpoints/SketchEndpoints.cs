@@ -52,20 +52,24 @@ public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : Endpoin
         }
         catch { /* empty / invalid body → default name */ }
 
-        var slug = await UniqueSlugAsync(Slugify(name), ct);
+        var slug = await SketchSlug.UniqueAsync(repo, SketchSlug.Slugify(name), ct);
         var now = DateTime.UtcNow;
         var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
         await SketchStore.SaveAsync(db, mapId, "{}"u8.ToArray(), ct);   // seed so GET works immediately
         await Send.OkAsync(new { slug }, ct);
     }
+}
 
-    private static string Slugify(string s)
+/// <summary>Slug derivation shared by the sketch-origination endpoints (create blank / generate).</summary>
+internal static class SketchSlug
+{
+    public static string Slugify(string s)
     {
         var slug = Regex.Replace(s.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
         return slug.Length > 0 ? slug : "sketch";
     }
 
-    private async Task<string> UniqueSlugAsync(string baseSlug, CancellationToken ct)
+    public static async Task<string> UniqueAsync(MapRepository repo, string baseSlug, CancellationToken ct)
     {
         if (await repo.GetBySlugAsync(baseSlug, ct) is null) return baseSlug;
         for (var i = 2; ; i++)
@@ -73,6 +77,42 @@ public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : Endpoin
             var s = $"{baseSlug}-{i}";
             if (await repo.GetBySlugAsync(s, ct) is null) return s;
         }
+    }
+}
+
+/// <summary>POST /api/sketch/generate — originate a sketch from a generated starter layout. Runs the lane
+/// generator for the requested archetype/seed, simplifies + frames it for the editor, creates a draft map,
+/// and stores the layout as its <c>sketch_layout_json</c> artifact. Body: optional {name, archetype, seed}.
+/// Returns the slug; the client navigates to <c>/maps/{slug}/sketch</c> to reshape it.</summary>
+public sealed class SketchGenerateEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/sketch/generate"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var name = "Generated sketch";
+        var archetype = LaneArchetype.H;
+        var seed = 1;
+        try
+        {
+            using var doc = await JsonDocument.ParseAsync(HttpContext.Request.Body, cancellationToken: ct);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
+                && n.GetString() is { } s && !string.IsNullOrWhiteSpace(s)) name = s.Trim();
+            if (root.TryGetProperty("archetype", out var a) && a.ValueKind == JsonValueKind.String
+                && Enum.TryParse<LaneArchetype>(a.GetString(), ignoreCase: true, out var arch)) archetype = arch;
+            if (root.TryGetProperty("seed", out var sd) && sd.ValueKind == JsonValueKind.Number) seed = sd.GetInt32();
+        }
+        catch { /* empty / invalid body → defaults */ }
+
+        var result = LaneSketchGenerator.Build(new LaneLayoutOptions { Archetype = archetype, Seed = seed });
+        var layout = SketchLayoutPrep.ForEditor(result.Layout);
+
+        var slug = await SketchSlug.UniqueAsync(repo, SketchSlug.Slugify(name), ct);
+        var now = DateTime.UtcNow;
+        var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
+        await SketchStore.SaveAsync(db, mapId, Encoding.UTF8.GetBytes(layout.ToJson()), ct);
+        await Send.OkAsync(new { slug }, ct);
     }
 }
 

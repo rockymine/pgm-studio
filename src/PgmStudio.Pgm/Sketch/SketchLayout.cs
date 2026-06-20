@@ -20,17 +20,29 @@ public sealed class SketchLayout
     public static SketchLayout? Parse(string json) => JsonSerializer.Deserialize<SketchLayout>(json, Json);
 }
 
-/// <summary>The mirror mode + centre that fan a mirroring island's shapes onto their orbit images.</summary>
+/// <summary>The mirror mode + centre that fan a mirroring island's shapes onto their orbit images, plus the
+/// optional working bounds the editor frames the canvas to (hand-drawn sketches carry it; the rasterizer
+/// ignores it and reads only the centre + mode).</summary>
 public sealed class SketchSetup
 {
     [JsonPropertyName("mirror_mode")] public string MirrorMode { get; set; } = "rot_180";
     [JsonPropertyName("center")]      public SketchCenter? Center { get; set; }
+    [JsonPropertyName("bbox")]        public SketchBbox? Bbox { get; set; }
 }
 
 public sealed class SketchCenter
 {
     [JsonPropertyName("cx")] public double Cx { get; set; }
     [JsonPropertyName("cz")] public double Cz { get; set; }
+}
+
+/// <summary>The editor's working bounds — the square the canvas fits to on open.</summary>
+public sealed class SketchBbox
+{
+    [JsonPropertyName("min_x")] public double MinX { get; set; }
+    [JsonPropertyName("max_x")] public double MaxX { get; set; }
+    [JsonPropertyName("min_z")] public double MinZ { get; set; }
+    [JsonPropertyName("max_z")] public double MaxZ { get; set; }
 }
 
 public sealed class SketchShapes

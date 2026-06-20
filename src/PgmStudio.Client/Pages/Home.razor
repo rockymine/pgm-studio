@@ -79,12 +79,29 @@
                 <div class="ctrl-row">
                   <input class="field-input" @bind="sketchName" @bind:event="oninput" placeholder="My CTW Map"
                          @onkeydown="@(e => { if (e.Key == "Enter") _ = CreateSketch(); })" />
-                  <button class="action-btn action-btn--primary" @onclick="CreateSketch" disabled="@busy">
-                    <i data-lucide="pencil-ruler"></i><span>Start sketching</span>
+                  <button class="action-btn" @onclick="CreateSketch" disabled="@busy">
+                    <i data-lucide="pencil-ruler"></i><span>Start blank</span>
                   </button>
                 </div>
-                @if (createError is not null) { <p class="field-error">@createError</p> }
               </div>
+              <div class="field">
+                <label class="field-label">Or generate a starter layout</label>
+                <div class="ctrl-row">
+                  <select class="field-input" @bind="genArchetype">
+                    <option value="H">H — 2 teams, 1 wool each</option>
+                    <option value="Trident">Trident — 2 teams, 3 wools each</option>
+                    <option value="Pinwheel">Pinwheel — 4 teams</option>
+                    <option value="Organic">Organic — grown lanes</option>
+                  </select>
+                  <input class="field-input" type="number" style="max-width: 7rem;" title="Seed (re-roll the layout)" @bind="genSeed" />
+                  <button class="action-btn action-btn--primary" @onclick="CreateGenerated" disabled="@busy">
+                    <i data-lucide="sparkles"></i><span>Generate</span>
+                  </button>
+                </div>
+                <p class="section-desc" style="margin-top: var(--space-2);">A mirrored lane layout you can
+                  reshape on the canvas, then Finish into a configurable map.</p>
+              </div>
+              @if (createError is not null) { <p class="field-error">@createError</p> }
             }
 
             <input class="field-input" placeholder="Search…" @bind="filter" @bind:event="oninput" style="margin-top: var(--space-3);" />

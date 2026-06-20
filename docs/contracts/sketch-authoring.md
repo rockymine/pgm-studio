@@ -56,6 +56,7 @@ Endpoints (FastEndpoints, map-scoped to fit the IA — the reference's flat `/ap
 | Method · route | Body | Action |
 |---|---|---|
 | `POST /api/sketch` | `{name?, gamemode?}` | create a draft `map` row (+ empty `SketchLayoutJson`); return `{slug}` |
+| `POST /api/sketch/generate` | `{name?, archetype?, seed?}` | create a draft seeded with a **generated** starter layout (lane generator → simplified + framed for the editor); return `{slug}` |
 | `GET  /api/map/{slug}/sketch` | — | map identity + the `SketchLayoutJson` (the `SketchProject` shape) |
 | `PATCH /api/map/{slug}/sketch/setup` | `{bbox, center, mirror_mode}` | merge into the layout artifact's `setup` |
 | `PATCH /api/map/{slug}/sketch/layout` | `{shapes, islands}` | replace the artifact's `layout` |

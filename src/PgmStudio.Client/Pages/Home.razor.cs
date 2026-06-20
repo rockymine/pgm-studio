@@ -16,6 +16,8 @@ public partial class Home
 
     private bool creatingSketch;   // the inline new-sketch row is open
     private string sketchName = "";
+    private string genArchetype = "H";   // generator starter-layout archetype
+    private int genSeed = 1;             // generator seed (re-roll)
     private bool busy;
     private string? createError;
 
@@ -81,6 +83,27 @@ public partial class Home
             createError = "Could not create the sketch.";
         }
         catch { createError = "Could not create the sketch."; }
+        busy = false;
+    }
+
+    private async Task CreateGenerated()
+    {
+        if (busy) return;
+        busy = true;
+        createError = null;
+        try
+        {
+            var name = string.IsNullOrWhiteSpace(sketchName) ? $"{genArchetype} sketch" : sketchName.Trim();
+            var resp = await Http.PostAsJsonAsync("api/sketch/generate", new { name, archetype = genArchetype, seed = genSeed });
+            var created = await resp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+            if (created.TryGetProperty("slug", out var s) && s.GetString() is { } slug)
+            {
+                Nav.NavigateTo($"maps/{slug}/sketch");
+                return;
+            }
+            createError = "Could not generate the sketch.";
+        }
+        catch { createError = "Could not generate the sketch."; }
         busy = false;
     }
 }

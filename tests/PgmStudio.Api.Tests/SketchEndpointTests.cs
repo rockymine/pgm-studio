@@ -82,6 +82,27 @@ public sealed class SketchEndpointTests
     }
 
     [Test]
+    public async Task Generate_creates_a_draft_with_a_framed_origin_centred_layout()
+    {
+        await ResetSchemaAsync();
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        var resp = await client.PostAsJsonAsync("/api/sketch/generate", new { name = "Gen H", archetype = "H", seed = 1 });
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue();
+        var slug = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+        await Assert.That(slug).IsEqualTo("gen-h");
+
+        // GET returns a real generated layout: framed, origin-centred, with shapes + islands.
+        var layout = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/sketch");
+        var setup = layout.GetProperty("setup");
+        await Assert.That(setup.GetProperty("center").GetProperty("cx").GetDouble()).IsEqualTo(0);
+        await Assert.That(setup.TryGetProperty("bbox", out _)).IsTrue();
+        await Assert.That(layout.GetProperty("layout").GetProperty("shapes").GetArrayLength()).IsGreaterThan(0);
+        await Assert.That(layout.GetProperty("layout").GetProperty("islands").GetArrayLength()).IsGreaterThan(0);
+    }
+
+    [Test]
     public async Task Put_rejects_non_json()
     {
         await ResetSchemaAsync();
