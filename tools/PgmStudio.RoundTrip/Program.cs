@@ -80,6 +80,13 @@ var cbrIdx = Array.IndexOf(args, "--clean-base-render");
 if (cbrIdx >= 0 && cbrIdx + 2 < args.Length)
     return RunCleanBaseRender(args[cbrIdx + 1], args[cbrIdx + 2]);
 
+// --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
+// holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
+var islandStudyIdx = Array.IndexOf(args, "--island-study");
+if (islandStudyIdx >= 0 && islandStudyIdx + 2 < args.Length)
+    return RunIslandStudy(args[islandStudyIdx + 1], args[islandStudyIdx + 2],
+        islandStudyIdx + 3 < args.Length && double.TryParse(args[islandStudyIdx + 3], out var studyTol) ? studyTol : 2.0);
+
 // --monument-slices <regionDir> <xml_data.json> <outParquet>: sample the 3×3×5 block volume around
 // every wool monument (MonumentSliceExtractor), write monument_slices.parquet, read it back and print
 // a validation summary. The monument centres come from xml_data.json (wools[].monuments[].location).
@@ -1021,6 +1028,62 @@ static int RunCleanBaseRender(string regionDir, string outSvg)
     if (holeTotal > 0) Console.WriteLine($"  ({holeTotal} hole ring(s) cut out)");
     File.WriteAllText(outSvg, sb.ToString());
     Console.WriteLine($"  wrote {outSvg}");
+    return 0;
+}
+
+static int RunIslandStudy(string regionDir, string outJson, double tolerance)
+{
+    var chunks = Directory.GetFiles(regionDir, "*.mca")
+        .SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var fallbacks = new[]
+    {
+        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
+    };
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+
+    static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) =>
+        r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
+
+    var outIslands = new List<object>();
+    foreach (var isl in islands)
+    {
+        if (isl.Polygon is not NetTopologySuite.Geometries.Polygon poly) continue;
+        var ext = Ring(poly.ExteriorRing);
+        var holes = poly.InteriorRings.Select(Ring).ToList();
+        var simp = PgmStudio.Geom.PolygonSimplify.Simplify(ext, holes, tolerance, minHoleArea: 8);
+        outIslands.Add(new
+        {
+            id = isl.Id,
+            blockCount = isl.BlockCount,
+            bounds = new[] { isl.Bounds.MinX, isl.Bounds.MinZ, isl.Bounds.MaxX, isl.Bounds.MaxZ },
+            rawVerts = ext.Count + holes.Sum(h => h.Count),
+            simpVerts = simp.VertexCount,
+            rawExterior = ext, rawHoles = holes,
+            exterior = simp.Exterior, holes = simp.Holes,
+        });
+    }
+
+    var allX = islands.SelectMany(i => new[] { i.Bounds.MinX, i.Bounds.MaxX });
+    var allZ = islands.SelectMany(i => new[] { i.Bounds.MinZ, i.Bounds.MaxZ });
+    var doc = new
+    {
+        name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir),
+        tolerance,
+        bbox = new { minX = allX.Min(), minZ = allZ.Min(), maxX = allX.Max(), maxZ = allZ.Max() },
+        islandCount = islands.Count,
+        islands = outIslands,
+    };
+    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(doc));
+    Console.WriteLine($"island-study {doc.name}: {islands.Count} islands, tol={tolerance}");
+    foreach (var isl in islands)
+        Console.WriteLine($"  island {isl.Id}: {isl.BlockCount} blocks, bounds {isl.Bounds}");
+    var raw = outIslands.Sum(o => (int)o.GetType().GetProperty("rawVerts")!.GetValue(o)!);
+    var simp2 = outIslands.Sum(o => (int)o.GetType().GetProperty("simpVerts")!.GetValue(o)!);
+    Console.WriteLine($"  vertices: {raw} raw → {simp2} simplified ({(raw > 0 ? 100 * simp2 / raw : 0)}%)");
+    Console.WriteLine($"  wrote {outJson}");
     return 0;
 }
 
