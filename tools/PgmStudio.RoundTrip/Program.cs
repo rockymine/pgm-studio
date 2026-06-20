@@ -87,6 +87,12 @@ if (islandStudyIdx >= 0 && islandStudyIdx + 2 < args.Length)
     return RunIslandStudy(args[islandStudyIdx + 1], args[islandStudyIdx + 2],
         islandStudyIdx + 3 < args.Length && double.TryParse(args[islandStudyIdx + 3], out var studyTol) ? studyTol : 2.0);
 
+// --gen-preview <archetype> <seed> <outJson>: run the sketch generator and rasterize it (no DB), writing
+// the island polygons + objective hints for a local render of a generated layout.
+var gpIdx = Array.IndexOf(args, "--gen-preview");
+if (gpIdx >= 0 && gpIdx + 3 < args.Length)
+    return RunGenPreview(args[gpIdx + 1], int.TryParse(args[gpIdx + 2], out var gseed) ? gseed : 1, args[gpIdx + 3]);
+
 // --skeleton-study <regionDir> <map.xml> <outJson> [tolerance]: each island's simplified polygon plus its
 // centerline graph (thinning → merge junction blobs → anchor-aware prune using the map.xml objectives as
 // fixed nodes) for studying lane structure and where objectives sit.
@@ -1092,6 +1098,36 @@ static int RunIslandStudy(string regionDir, string outJson, double tolerance)
     var simp2 = outIslands.Sum(o => (int)o.GetType().GetProperty("simpVerts")!.GetValue(o)!);
     Console.WriteLine($"  vertices: {raw} raw → {simp2} simplified ({(raw > 0 ? 100 * simp2 / raw : 0)}%)");
     Console.WriteLine($"  wrote {outJson}");
+    return 0;
+}
+
+static int RunGenPreview(string archetype, int seed, string outJson)
+{
+    var arch = Enum.Parse<PgmStudio.Pgm.Sketch.LaneArchetype>(archetype, ignoreCase: true);
+    var opts = new PgmStudio.Pgm.Sketch.LaneLayoutOptions { Archetype = arch, Seed = seed };
+    var result = PgmStudio.Pgm.Sketch.LaneSketchGenerator.Build(opts);
+    var cells = PgmStudio.Pgm.Sketch.SketchRasterizer.Rasterize(result.Layout.ToJson());
+    if (cells.Count == 0) { Console.Error.WriteLine("no cells produced"); return 1; }
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.Detect(cells, minIslandSize: 1);
+    var polys = islands.Select(i =>
+    {
+        var p = i.Polygon as NetTopologySuite.Geometries.Polygon;
+        return new
+        {
+            id = i.Id,
+            blockCount = i.BlockCount,
+            exterior = p!.ExteriorRing.Coordinates.Select(c => new[] { c.X, c.Y }).ToList(),
+            holes = p.InteriorRings.Select(r => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList()).ToList(),
+        };
+    }).ToList();
+    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(new
+    {
+        archetype, seed,
+        bbox = new { minX = cells.Min(c => c.X), minZ = cells.Min(c => c.Z), maxX = cells.Max(c => c.X), maxZ = cells.Max(c => c.Z) },
+        objectives = result.Objectives.Select(o => new { kind = o.Kind, team = o.Team, x = o.X, z = o.Z }).ToList(),
+        islands = polys,
+    }));
+    Console.WriteLine($"gen-preview {archetype} seed={seed}: {cells.Count} cells, {islands.Count} islands [{string.Join(",", islands.Take(8).Select(i => i.BlockCount))}]");
     return 0;
 }
 

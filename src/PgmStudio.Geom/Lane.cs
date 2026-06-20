@@ -20,17 +20,7 @@ public static class Lane
         var right = new List<double[]>(n);
         for (var i = 0; i < n; i++)
         {
-            double nx, nz;
-            if (i == 0) (nx, nz) = Normal(centerline[0], centerline[1]);
-            else if (i == n - 1) (nx, nz) = Normal(centerline[i - 1], centerline[i]);
-            else
-            {
-                var (ax, az) = Normal(centerline[i - 1], centerline[i]);
-                var (bx, bz) = Normal(centerline[i], centerline[i + 1]);
-                double mx = ax + bx, mz = az + bz;
-                var len = Math.Sqrt(mx * mx + mz * mz);
-                (nx, nz) = len < 1e-9 ? (ax, az) : (mx / len, mz / len);
-            }
+            var (nx, nz) = VertexNormal(centerline, i);
             var p = centerline[i];
             left.Add([p[0] + nx * half, p[1] + nz * half]);
             right.Add([p[0] - nx * half, p[1] - nz * half]);
@@ -38,6 +28,41 @@ public static class Lane
         right.Reverse();
         left.AddRange(right);
         return left;
+    }
+
+    /// <summary>A variable-width, possibly asymmetric strip: each centerline point is offset outward by
+    /// <paramref name="leftOffset"/>[i] along its left normal and <paramref name="rightOffset"/>[i] along
+    /// its right normal. Lets a lane taper and its outline jitter (an organic hull, not a clean rectangle).
+    /// The offset lists must match the centerline length; needs ≥2 points.</summary>
+    public static List<double[]> Ribbon(IReadOnlyList<double[]> centerline, IReadOnlyList<double> leftOffset, IReadOnlyList<double> rightOffset)
+    {
+        var n = centerline.Count;
+        if (n < 2 || leftOffset.Count != n || rightOffset.Count != n) return [];
+        var left = new List<double[]>(n);
+        var right = new List<double[]>(n);
+        for (var i = 0; i < n; i++)
+        {
+            var (nx, nz) = VertexNormal(centerline, i);
+            var p = centerline[i];
+            left.Add([p[0] + nx * leftOffset[i], p[1] + nz * leftOffset[i]]);
+            right.Add([p[0] - nx * rightOffset[i], p[1] - nz * rightOffset[i]]);
+        }
+        right.Reverse();
+        left.AddRange(right);
+        return left;
+    }
+
+    // Averaged left-hand unit normal at centerline vertex i.
+    private static (double Nx, double Nz) VertexNormal(IReadOnlyList<double[]> c, int i)
+    {
+        var n = c.Count;
+        if (i == 0) return Normal(c[0], c[1]);
+        if (i == n - 1) return Normal(c[i - 1], c[i]);
+        var (ax, az) = Normal(c[i - 1], c[i]);
+        var (bx, bz) = Normal(c[i], c[i + 1]);
+        double mx = ax + bx, mz = az + bz;
+        var len = Math.Sqrt(mx * mx + mz * mz);
+        return len < 1e-9 ? (ax, az) : (mx / len, mz / len);
     }
 
     /// <summary>Catmull-Rom through <paramref name="points"/> → a dense polyline (<paramref

@@ -11,6 +11,9 @@ public enum LaneArchetype
     Pinwheel,
     /// <summary>Two teams, a 'Y'/trident of diagonal arms (three wools per team) with chevron mid islands.</summary>
     Trident,
+    /// <summary>Two teams, an organically grown island — lanes grown from the spawn hub out to noise-spread
+    /// wool tips, with variable-width jittered polygon hulls and optional diamond holes (seeded).</summary>
+    Organic,
 }
 
 /// <summary>Knobs for the lane-layout sketch generator. Defaults give a 60×90 two-team board with
@@ -30,6 +33,12 @@ public sealed record LaneLayoutOptions
     public bool MidIsland { get; init; } = true;
     /// <summary>Symmetry override; empty → the archetype's natural mode (H/Trident mirror_z, Pinwheel rot_90).</summary>
     public string MirrorMode { get; init; } = "";
+    /// <summary>Seed for the Organic archetype — same seed → same island.</summary>
+    public int Seed { get; init; } = 1;
+    /// <summary>Wools per team for the Organic archetype (one dead-end lane each).</summary>
+    public int Wools { get; init; } = 2;
+    /// <summary>Probability a grown lane carries a diamond hole (Organic archetype).</summary>
+    public double HoleChance { get; init; } = 0.45;
 }
 
 /// <summary>Where an objective belongs on the generated board, for the Configure step to consume.</summary>
@@ -51,8 +60,18 @@ public static class LaneSketchGenerator
     {
         LaneArchetype.Pinwheel => Pinwheel(options ?? new()),
         LaneArchetype.Trident => Trident(options ?? new()),
+        LaneArchetype.Organic => Organic(options ?? new()),
         _ => HLayout(options ?? new()),
     };
+
+    // ── Organic: lanes grown from the hub out to noise-spread wool tips (docs/contracts/organic-lane-generation.md) ──
+    private static LaneLayoutResult Organic(LaneLayoutOptions o)
+    {
+        // organic islands want room for the lanes to read as distinct corridors → a larger default board
+        if (o is { Width: 60, Height: 90 }) o = o with { Width = 120, Height = 150 };
+        var unit = OrganicLane.Grow(o);
+        return Assemble(o, Mode(o, "mirror_z"), unit.Shapes, unit.Hub, unit.Tips, mids: []);
+    }
 
     // ── H: two teams, straight legs + crossbar, one wool each ─────────────────────────────────────
     public static LaneLayoutResult HLayout(LaneLayoutOptions? options = null)
