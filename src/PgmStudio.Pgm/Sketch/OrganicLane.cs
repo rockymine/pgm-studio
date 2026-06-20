@@ -191,12 +191,11 @@ public static class OrganicLane
         var len = Math.Sqrt(dx * dx + dz * dz);
         double px = -dz / Math.Max(1e-6, len), pz = dx / Math.Max(1e-6, len);   // perpendicular to entry→tip
 
-        // centerline: submerged node (inside the hub), hub-edge entry, 1–2 noise-offset waypoints (bends), tip
-        var ctrl = new List<double[]>
-        {
-            new[] { hub.X + ux * inner, hub.Z + uz * inner },
-            new[] { entry.X, entry.Z },
-        };
+        // centerline: smooth the hub-edge entry → 1–2 noise-offset waypoints (bends) → tip, then prepend the deep
+        // submerged node as a STRAIGHT stub into the hub. Keeping that node out of the Catmull-Rom avoids a short
+        // stub-segment next to a long one, which makes uniform Catmull-Rom overshoot and fold the ribbon at the
+        // attach. Both nodes still sit inside the hub (≥2 submerged), so the lane unions cleanly with the plaza.
+        var ctrl = new List<double[]> { new[] { entry.X, entry.Z } };
         var waypoints = allowHole ? rng.Int(1, 3) : 1;
         for (var k = 1; k <= waypoints; k++)
         {
@@ -206,7 +205,8 @@ public static class OrganicLane
             ctrl.Add([bx + px * off, bz + pz * off]);                            // — sharper folds pinch the inner edge)
         }
         ctrl.Add([tip.X, tip.Z]);
-        var center = Lane.Smooth(ctrl, 16);
+        var center = new List<double[]> { new[] { hub.X + ux * inner, hub.Z + uz * inner } };
+        center.AddRange(Lane.Smooth(ctrl, 16));
         var n = center.Count;
 
         // base half-width with a slight taper toward the dead-end tip
