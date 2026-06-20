@@ -152,19 +152,21 @@ feature).
   DTO, and **port protection-aware reachability** from `scripts/generator/validate_play.py` to C#
   `Analysis/Playability`: today's `Traversability.Check` only tests connectivity, NOT spawn-protection-as-
   wall, so it passes maps the generator's Python validator would fail. Feeds the `NVAL` export gate.
-- [ ] **G3 — Contested-middle shape language + refinement loop (memory stage S5).** The corpus gap, now
-  measured (`scripts/island_corpus.py`, N=347, written up in `docs/generator-archetypes.md`): the Organic
-  archetype emits the 2 team islands and **0 neutral mid pieces** (`LaneSketchGenerator.Organic` passes
-  `mids: []`), but **88%** of real maps carry a contested middle — median **2 gameplay-sized neutral islands**
-  (total-island median 5 vs the generator's 2). Add a **symmetric neutral mid-set** to the generator:
-  ~2 pieces (a `MidPieces` knob), **small/medium** (64–1023 blocks ≈ 3.6% of the team island — *not* a big
-  central blob; only 10% of real neutrals are >25% of a team island), placed ~40% central / ~60% flanking
-  between lanes, fanned by the board symmetry through `Assemble`'s existing mid-island slot (66% of real
-  neutrals have a mirror twin). Reuse the noise field for placement + the circle/polygon shape vocabulary.
-  Also **rework holes** — corpus has holes on only **18%** of islands, so move `HoleChance` from per-lane
-  0.45 toward a per-island ~18% rate (and allow holes on the neutral pieces). Plus a **refine-on-feedback
-  loop** and **seed-variation for the deterministic archetypes** (today only Organic varies by seed;
-  H/Trident/Pinwheel are fixed). Re-run `scripts/island_corpus.py` to re-validate. Needs UI. `G4` feeds this.
+- [ ] **G3 — Contested-middle shape language + refinement loop (memory stage S5).** The corpus gap, measured
+  against the **studio's own detection** (`scripts/island_corpus.py`, N=347, over the studio-scanned corpus —
+  `IslandDetector.DetectCleaned`, the generator's own pipeline; written up in `docs/generator-archetypes.md`):
+  the Organic archetype emits the 2 team islands and **0 neutral mid pieces** (`LaneSketchGenerator.Organic`
+  passes `mids: []`), but **91%** of real maps carry a contested middle — median **4 gameplay-sized neutral
+  islands** (total-island median **9** vs the generator's 2; validated: annealing_iv 12 / green_gem 4 / kanto 2).
+  Add a **symmetric neutral mid-set** to the generator: ~4 pieces (a `MidPieces` knob), **small/medium**
+  (64–1023 blocks ≈ 4% of the team island — *not* a big central blob; only 13% of real neutrals are >25% of a
+  team island), placed ~40% central / ~60% flanking between lanes, fanned by the board symmetry through
+  `Assemble`'s existing mid-island slot (66% of real neutrals have a mirror twin). Reuse the noise field for
+  placement + the circle/polygon shape vocabulary. Also **rework holes** — the studio detection finds holes on
+  only **10%** of islands, so move `HoleChance` from per-lane 0.45 toward a per-island ~10% rate (and allow
+  holes on the neutral pieces). Plus a **refine-on-feedback loop** and **seed-variation for the deterministic
+  archetypes** (today only Organic varies by seed; H/Trident/Pinwheel are fixed). Re-run `scripts/island_corpus.py`
+  (against the studio-scanned corpus) to re-validate. Needs UI. `G4` feeds this.
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding

@@ -50,32 +50,44 @@ with `scripts/island_corpus.py`, which reads the populated MariaDB and classifie
 **objective-bearing** (hosts a wool/monument — what the generator emits) or **neutral** (the contested
 middle the generator omits).
 
-**Island count.** Median **5** islands/map (mean 7.9, p25 3, p75 9, max 231 = a decorative outlier). **45%**
-of maps have ≤4 islands — but that splits into **24% with just 1–2** (the two team bodies are compact or
-bridged into one landmass) and **21% with the clean 3–4** archetype. The other **55%** carry 5+.
+**The count depends on the detection policy.** The numbers below are from **pgm-studio's own
+`IslandDetector.DetectCleaned`** (CleanBase noise-exclude + height-aware connectivity + y0→bedrock fallback,
+min island size 10) — the generator's *own* pipeline, so the right ground truth for what the generator must
+match. (The earlier reference-pipeline import, with per-map hand-tuned bedrock/y0 layers, glued complex
+middles together and read a softer median 5 / 45% ≤4 — both are correct for their layer.) The studio figures
+are **validated against hand-checked ground truth**: annealing_iv 12, green_gem_ctw 4, kanto 2 — exact. On
+clean maps the two policies agree; they diverge only on complex maps, so the higher count is real structure,
+not over-fragmentation.
 
-**Objective vs neutral.** Objective islands/map median **2**: 53% of maps are two separate team islands (the
-`mirror_z` case), **30% put both teams on one connected landmass**, 10% are four-team. Then the middle:
+**Island count.** Median **9** islands/map (mean 12.5, p25 5, p75 15). Only **21%** of maps have ≤4 islands —
+**9% with just 1–2** (the team bodies compact or bridged into one landmass) and **12% with the clean 3–4**
+archetype. The other **79%** carry 5+ (26% 5–8, 29% 9–15, 24% 16+).
 
-- **88% of maps have ≥1 neutral island**; median **3** (median **2** once decoration is filtered, i.e.
-  ≥64 blocks); **81%** have ≥1 gameplay-sized neutral island.
-- **The pieces are small.** Median neutral island = **3.6%** of the team island. 46% are stepping-stones
-  (<3%), 44% satellites (3–25%), only 10% substantial (>25%). By absolute block-count: 32% <64
-  (decoration), 39% 64–255, 22% 256–1023, 6% ≥1024. → add *several small/medium* pieces, **not a big
+**Objective vs neutral.** Objective islands/map median **2** (stable across detection policies): 53% of maps
+are two separate team islands (the `mirror_z` case), **30% put both teams on one connected landmass**, 10%
+are four-team. Then the middle:
+
+- **91% of maps have ≥1 neutral island**; median **6** (median **4** once decoration is filtered, i.e.
+  ≥64 blocks); **84%** have ≥1 gameplay-sized neutral island.
+- **The pieces are small.** Median neutral island = **4.1%** of the team island. 43% are stepping-stones
+  (<3%), 44% satellites (3–25%), only 13% substantial (>25%). By absolute block-count: 39% <64
+  (decoration), 35% 64–255, 20% 256–1023, 6% ≥1024. → add *several small/medium* pieces, **not a big
   central blob**.
 - **They're symmetric.** **66%** of gameplay neutral islands have a `mirror_z` twin → generate them as a
   symmetric set (the rest are on-axis singles + rot maps the mirror_z check misses).
-- **Mixed position.** 39% sit near the centre (a contested centre); 61% are scattered (flanking satellites
+- **Mixed position.** 38% sit near the centre (a contested centre); 62% are scattered (flanking satellites
   between the lanes).
 
-**Holes (the diamond primitive).** Only **18%** of islands carry ≥1 hole — real, but a minority feature.
+**Holes (the diamond primitive).** Only **10%** of islands carry ≥1 hole — real, but a minority feature (the
+cleaned base drops the spurious foliage/noise interior rings the reference layer kept, so this is lower than
+a raw-layer read).
 
 **The generator gap → G3.** The Organic archetype emits the 2 objective islands and **zero** neutral pieces
-(`LaneSketchGenerator.Organic` passes `mids: []`). The clean-archetype assumption nails the simple ~45% tail
-but misses the symmetric 2–3-piece middle that 88% of maps have. The `G3` targets that follow directly:
-add a symmetric **neutral mid-set** (~2 pieces, 64–1023 blocks ≈ 3.6% of the team island, ~40% central /
-~60% flanking) via `Assemble`'s mid-island slot, and rework holes from the per-lane `HoleChance=0.45` toward
-a per-island ~18% rate. Re-run `scripts/island_corpus.py` to re-validate after.
+(`LaneSketchGenerator.Organic` passes `mids: []`). The clean-archetype assumption nails the simple ~21% tail
+but misses the symmetric middle that 91% of maps have. The `G3` targets that follow directly: add a symmetric
+**neutral mid-set** (~4 pieces, 64–1023 blocks ≈ 4% of the team island, ~40% central / ~60% flanking) via
+`Assemble`'s mid-island slot, and rework holes from the per-lane `HoleChance=0.45` toward a per-island ~10%
+rate. Re-run `scripts/island_corpus.py` (against the studio-scanned corpus) to re-validate after.
 
 ## How the sketch shape system builds them
 The lane/shape primitives already cover these:
