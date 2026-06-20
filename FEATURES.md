@@ -119,10 +119,12 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   (`scripts/render_clean_base.sh`). (A5)
 - **Headless scan-to-files (`--scan-out` / `--scan-out-all`)** — the RoundTrip tool runs the studio's own
   extractors with no database and writes an importer-ready per-map directory (`wools/resources/chests/
-  spawners/layer_segments.parquet`, `layer.parquet`, `islands.json` from the cleaned base + y0→bedrock
-  fallback, `map_config.json`, and `xml_data.json` from the studio's parser). The heavy world scan runs on a
-  fast host; `dotnet run --project src/PgmStudio.Import <outRoot>` ingests the cheap files into MariaDB
-  unchanged (output shape matches the reference pipeline). Verified end-to-end (row-counts + doc round-trip).
+  spawners/layer_segments.parquet`, `monument_candidates.parquet` from the F9 `MonumentSuggester` gather,
+  `layer.parquet`, `islands.json` from the cleaned base + y0→bedrock fallback, `map_config.json`, and
+  `xml_data.json` from the studio's parser). The heavy world scan runs on a fast host;
+  `dotnet run --project src/PgmStudio.Import <outRoot>` ingests the cheap files into MariaDB (including
+  monument candidates), or `… <outRoot> --monuments-only` re-ingests just the monument-candidate gather for
+  maps already in the DB. Verified end-to-end (row-counts + doc round-trip).
 
 ## New-map authoring — intent model (backend) ★ headline direction
 The forward path (**meaning → structure**): the author states intent and the generator emits the

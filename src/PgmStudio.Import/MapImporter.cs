@@ -1,5 +1,6 @@
 using System.Text.Json;
 using LinqToDB;
+using LinqToDB.Async;
 using LinqToDB.Data;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -20,7 +21,8 @@ public sealed class MapImporter(PgmDb db)
     private static readonly JsonSerializerOptions JsonOpts = new() { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never };
 
     public sealed record Counts(int Regions, int Filters, int Wools, int Monuments, int Spawns,
-        int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Artifacts);
+        int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Artifacts,
+        int MonumentCandidates);
 
     public async Task<Counts> ImportDirAsync(string slug, string dir)
     {
@@ -43,11 +45,39 @@ public sealed class MapImporter(PgmDb db)
         await mw.WriteWoolsFromDocAsync(mapId, docDict);     // wools from the grouped doc
         var (wb, rb, ci, sb, ls) = await ImportFeaturesAsync(mapId, dir);
         var artifacts = await ImportArtifactsAsync(mapId, dir);
+        var mc = await ImportMonumentCandidatesAsync(mapId, dir);
 
         var woolGroups = (docDict.GetValueOrDefault("wools") as List<object?> ?? []).OfType<Dict>().ToList();
         var monuments = woolGroups.Sum(g => (g.GetValueOrDefault("monuments") as List<object?>)?.Count ?? 0);
         return new Counts(m.Regions.Count, m.Filters.Count, woolGroups.Count,
-            monuments, m.Spawns.Count + (m.ObserverSpawn is null ? 0 : 1), wb, rb, ci, sb, ls, artifacts);
+            monuments, m.Spawns.Count + (m.ObserverSpawn is null ? 0 : 1), wb, rb, ci, sb, ls, artifacts, mc);
+    }
+
+    /// <summary>Import the F9 monument-candidate gather (<c>monument_candidates.parquet</c>) → the
+    /// <c>monument_candidate</c> table. Delete-then-insert, so it is safe both inside a full import (the map
+    /// was just (re)created) and on its own (the <c>--monuments-only</c> re-ingest). Missing file → cleared.</summary>
+    public async Task<int> ImportMonumentCandidatesAsync(long mapId, string dir)
+    {
+        await db.MonumentCandidates.Where(x => x.MapId == mapId).DeleteAsync();
+        var path = Path.Combine(dir, "monument_candidates.parquet");
+        if (!File.Exists(path)) return 0;
+        var rows = (await ParquetIo.ReadRowsAsync(path)).Select(r => new MonumentCandidateRow
+        {
+            MapId = mapId,
+            CandX = ParquetIo.I(r["cand_x"]), CandY = ParquetIo.I(r["cand_y"]), CandZ = ParquetIo.I(r["cand_z"]),
+            Source = ParquetIo.S(r["source"]),
+            PedestalId = ParquetIo.I(r["pedestal_id"]), PedestalData = ParquetIo.I(r["pedestal_data"]),
+            CapId = ParquetIo.I(r["cap_id"]), CapData = ParquetIo.I(r["cap_data"]),
+            ColorHint = r.GetValueOrDefault("color_hint") as string,
+            SignX = ParquetIo.IN(r.GetValueOrDefault("sign_x")), SignY = ParquetIo.IN(r.GetValueOrDefault("sign_y")),
+            SignZ = ParquetIo.IN(r.GetValueOrDefault("sign_z")), SignFacing = ParquetIo.IN(r.GetValueOrDefault("sign_facing")),
+            SignText = r.GetValueOrDefault("sign_text") as string,
+            StandHeadColor = r.GetValueOrDefault("stand_head_color") as string,
+            StandName = r.GetValueOrDefault("stand_name") as string,
+            Evidence = r.GetValueOrDefault("evidence") as string,
+        }).ToList();
+        if (rows.Count > 0) await db.BulkCopyAsync(rows);
+        return rows.Count;
     }
 
     private async Task<(int, int, int, int, int)> ImportFeaturesAsync(long mapId, string dir)

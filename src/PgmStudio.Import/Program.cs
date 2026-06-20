@@ -59,6 +59,28 @@ if (args.Contains("--refresh-xml"))
     return 0;
 }
 
+// --monuments-only: ingest just the F9 monument-candidate gather (monument_candidates.parquet) for maps
+// already in the DB — for a re-scan that only added monuments, without a full re-import.
+if (args.Contains("--monuments-only"))
+{
+    if (string.IsNullOrWhiteSpace(outputRoot)) { Console.Error.WriteLine("--monuments-only needs the output root (arg or PGM_STUDIO_OUTPUT_ROOT)."); return 1; }
+    var mdirs = Directory.GetDirectories(outputRoot)
+        .Where(d => File.Exists(Path.Combine(d, "monument_candidates.parquet")))
+        .OrderBy(d => d, StringComparer.Ordinal).ToList();
+    Console.WriteLine($"Ingesting monument candidates for {mdirs.Count} map(s) with a monument file …");
+    int mok = 0, mskip = 0, mtot = 0;
+    foreach (var dir in mdirs)
+    {
+        var slug = Path.GetFileName(dir)!;
+        var map = await db.Maps.FirstOrDefaultAsync(mm => mm.Slug == slug);
+        if (map is null) { mskip++; continue; }
+        mtot += await importer.ImportMonumentCandidatesAsync(map.Id, dir);
+        mok++;
+    }
+    Console.WriteLine($"monument candidates: {mtot} rows across {mok} map(s); {mskip} dir(s) not in DB (full-import them first)");
+    return 0;
+}
+
 // Known-malformed maps, excluded by design (do NOT relax the schema to accommodate them).
 var exclusions = new Dictionary<string, string>
 {
@@ -88,7 +110,7 @@ foreach (var dir in dirs)
         var c = await importer.ImportDirAsync(slug, dir);
         ok++;
         Console.WriteLine($"  {slug,-22} regions={c.Regions,-4} filters={c.Filters,-4} wools={c.Wools}/{c.Monuments,-5} " +
-                          $"spawns={c.Spawns,-3} blocks(w/r/c/s/seg)={c.WoolBlocks}/{c.ResourceBlocks}/{c.ChestItems}/{c.SpawnerBlocks}/{c.LayerSegments} artifacts={c.Artifacts}");
+                          $"spawns={c.Spawns,-3} blocks(w/r/c/s/seg)={c.WoolBlocks}/{c.ResourceBlocks}/{c.ChestItems}/{c.SpawnerBlocks}/{c.LayerSegments} mon_cand={c.MonumentCandidates,-4} artifacts={c.Artifacts}");
     }
     catch (Exception ex) { failed++; Console.WriteLine($"  {slug,-22} FAILED: {ex.GetType().Name}: {ex.Message}"); }
 }

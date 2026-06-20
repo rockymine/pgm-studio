@@ -555,6 +555,21 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
     await File.WriteAllTextAsync(Path.Combine(outDir, "islands.json"), PgmStudio.Analysis.Footprint.IslandDetector.SerializeJson(islands));
 
+    // Monument-candidate gather (F9 suggester) over the whole world → monument_candidates.parquet (the one
+    // world-derived dataset the live scan-world writes that the reference file set never had).
+    var worldBox = chunks.Count == 0
+        ? new PgmStudio.Minecraft.ScanBox(0, 0, 0, 0, 0, 0)
+        : new PgmStudio.Minecraft.ScanBox(chunks.Min(c => c.ChunkX) * 16, 0, chunks.Min(c => c.ChunkZ) * 16,
+            chunks.Max(c => c.ChunkX) * 16 + 15, 255, chunks.Max(c => c.ChunkZ) * 16 + 15);
+    var monuments = PgmStudio.Minecraft.MonumentSuggester.Gather(chunks, worldBox);
+    await WriteParquet(Path.Combine(outDir, "monument_candidates.parquet"), monuments.Select(c => new ScanMonumentRow
+    {
+        CandX = c.X, CandY = c.Y, CandZ = c.Z, Source = c.Source,
+        PedestalId = c.PedestalId, PedestalData = c.PedestalData, CapId = c.CapId, CapData = c.CapData,
+        ColorHint = c.ColorHint, SignX = c.SignX, SignY = c.SignY, SignZ = c.SignZ, SignFacing = c.SignFacing,
+        SignText = c.SignText, StandHeadColor = c.StandHeadColor, StandName = c.StandName, Evidence = c.Evidence,
+    }).ToList());
+
     // map_config.json — the initial scan config (matches WorldFeatureWriter's SurfaceBbox + defaults)
     int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
     foreach (var s in surface) { if (s.WorldX < minX) minX = s.WorldX; if (s.WorldX > maxX) maxX = s.WorldX; if (s.WorldZ < minZ) minZ = s.WorldZ; if (s.WorldZ > maxZ) maxZ = s.WorldZ; }
@@ -580,7 +595,7 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
         Console.Error.WriteLine($"  {slug}: WARNING no map.xml — xml_data.json not written; the importer will skip this dir");
 
     sw.Stop();
-    Console.WriteLine($"  {slug,-28} chunks={chunks.Count,-5} islands={islands.Count,-3} surface={surface.Count,-8} -> {outDir}  ({sw.ElapsedMilliseconds} ms)");
+    Console.WriteLine($"  {slug,-28} chunks={chunks.Count,-5} islands={islands.Count,-3} mon={monuments.Count,-4} surface={surface.Count,-8} -> {outDir}  ({sw.ElapsedMilliseconds} ms)");
     return 0;
 }
 
@@ -1581,6 +1596,27 @@ sealed class ScanLayerRow
     [JP("world_y")] public int WorldY { get; set; }
     [JP("block_id")] public int BlockId { get; set; }
     [JP("block_data")] public int BlockData { get; set; }
+}
+
+sealed class ScanMonumentRow
+{
+    [JP("cand_x")] public int CandX { get; set; }
+    [JP("cand_y")] public int CandY { get; set; }
+    [JP("cand_z")] public int CandZ { get; set; }
+    [JP("source")] public string Source { get; set; } = "";
+    [JP("pedestal_id")] public int PedestalId { get; set; }
+    [JP("pedestal_data")] public int PedestalData { get; set; }
+    [JP("cap_id")] public int CapId { get; set; }
+    [JP("cap_data")] public int CapData { get; set; }
+    [JP("color_hint")] public string? ColorHint { get; set; }
+    [JP("sign_x")] public int? SignX { get; set; }
+    [JP("sign_y")] public int? SignY { get; set; }
+    [JP("sign_z")] public int? SignZ { get; set; }
+    [JP("sign_facing")] public int? SignFacing { get; set; }
+    [JP("sign_text")] public string? SignText { get; set; }
+    [JP("stand_head_color")] public string? StandHeadColor { get; set; }
+    [JP("stand_name")] public string? StandName { get; set; }
+    [JP("evidence")] public string? Evidence { get; set; }
 }
 
 sealed class MonumentSliceRow
