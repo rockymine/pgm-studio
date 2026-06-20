@@ -129,7 +129,50 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   works, B7.)
 - [ ] **A3 — Buildability endpoint perf.** Per-cell NTS over the grid is slow; optimise (spatial
   index / batch). Becomes user-visible once `N03`'s buildability overlay lands.
-- [ ] **A7 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
+
+## Layout generation (G) — auto map generation (lane sketch generators)
+
+The "meaning → structure" engine: seed a draft map from lane primitives, then hand an editable
+`SketchLayout` to the Sketch tool / Configure wizard. **The full staged plan, design decisions, and what
+has already shipped are in the `project_sketch_generators` working memory**
+(`/root/.claude/projects/-media-sf-repos/memory/project_sketch_generators.md`). Landed so far: the Geom
+algorithm split + lane archetypes (`3d7879b`, `77b4747`), the generate UI + editor-ready prep (`fc45eb8`),
+and Bézier lane-rounding recovery + random seed (`07f70ff`). Builds on the Sketch tool (`S2`, parked) and
+the intent model (`N`). The memory labels the remaining stages `S3`/`S4`/`S5`; the board ids here are
+`G1`–`G4` because the memory's `S`-stages would collide with the parked `S2 — Sketch tool` (a different
+feature).
+
+- [ ] **G1 — Auto-placement straight into Configure (memory stage S3).** `POST /map/generate`: run
+  `LaneMapGenerator` for a chosen archetype/seed → a full `MapIntent` (teams, spawns, wools, bridges) that
+  seeds the Configure wizard for an imported/blank map (the generate-into-a-new-*sketch* half already
+  shipped). The generator's `ObjectiveHint`s surface as **editable suggestions** the author confirms or
+  moves — not baked placements.
+- [ ] **G2 — Pre-flight validation + protection-aware reachability (memory stage S4).** Wire the
+  `MapValidity` export-gate (every wool needs a monument — already a class) + a `GET /map/{slug}/validity`
+  DTO, and **port protection-aware reachability** from `scripts/generator/validate_play.py` to C#
+  `Analysis/Playability`: today's `Traversability.Check` only tests connectivity, NOT spawn-protection-as-
+  wall, so it passes maps the generator's Python validator would fail. Feeds the `NVAL` export gate.
+- [ ] **G3 — Shape-language extension + refinement loop (memory stage S5).** The corpus gap (memory): real
+  CTW maps have a rich contested middle (median ~9 islands; only ~20% are the clean 2–4-island archetypes),
+  but the generator emits 0–2 mid pieces. Add satellites / stepping-stones / a contested centre to the shape
+  language + a refine-on-feedback loop. Also where **seed-variation for the deterministic archetypes**
+  belongs (today only Organic varies by seed; H/Trident/Pinwheel are fixed). Needs UI; the
+  `docs/generator-archetypes.md` island-count caveat is still pending (memory). `G4` feeds this.
+- [ ] **G4 — Organic-generation demonstration page.** A `/concepts`-style page that visualises the **whole
+  Organic seeding pipeline on one page**, each stage in its own panel with static explanatory text (the
+  stages are fixed; only the geometry changes with the seed), drawn from
+  `docs/contracts/organic-lane-generation.md`. Stages, in `OrganicLane.Grow` order: (1) the **value-noise
+  field** (`NoiseField`, seed → coherent [0,1] grid); (2) **anchor sampling** — hub + far-spread wool tips
+  (farthest-point sampling weighted by the noise, kept ≥ `MinHubAngle` apart) + mid-trunk tips; (3) **lane
+  spines** — `LaneCenterline` → Catmull-Rom splines (hub-submerged attach nodes → noise-bent waypoints →
+  tip); (4) **ribbon shapes** — `Lane.Ribbon` variable-width jittered hulls + hub plaza + optional diamond
+  holes; (5) the **assembled island + symmetry mirror**. A **seed control re-runs the real generator** and
+  re-renders every stage live (real island seeding, not a mock). Needs `OrganicLane` to expose its per-stage
+  intermediates (noise samples, tips, centerlines, ribbons) — e.g. a debug emitter behind a
+  `POST /sketch/generate/stages` — plus new JS stage renderers (reuse `render/` where possible; the
+  `StyleCatalog` / `--gen-catalog` + `scripts/generator/render_catalog.py` path is prior art). Purpose:
+  see each step to find improvements (feeds `G3`). Longer task; good clean-slate pickup.
+- [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding
   (`SketchLayoutPrep` via `RingRounding.Smooth` correctly *declines* to round a self-overlapping polygon, so
