@@ -104,7 +104,7 @@ public sealed class SketchGenerateEndpoint(MapRepository repo, PgmDb db) : Endpo
         }
         catch { /* empty / invalid body → defaults */ }
 
-        var result = LaneSketchGenerator.HLayout(opts);
+        var result = LaneSketchGenerator.Build(opts);
         var slug = await SketchNaming.UniqueSlugAsync(repo, SketchNaming.Slugify(name), ct);
         var now = DateTime.UtcNow;
         var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
@@ -120,8 +120,10 @@ public sealed class SketchGenerateEndpoint(MapRepository repo, PgmDb db) : Endpo
             root.TryGetProperty(k, out var v) && (v.ValueKind == JsonValueKind.True || v.ValueKind == JsonValueKind.False) ? v.GetBoolean() : fallback;
         string Str(string k, string fallback) =>
             root.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String && v.GetString() is { Length: > 0 } s ? s : fallback;
+        var archetype = Str("archetype", d.Archetype.ToString());
         return d with
         {
+            Archetype = Enum.TryParse<LaneArchetype>(archetype, ignoreCase: true, out var arch) ? arch : d.Archetype,
             Width = Num("width", d.Width),
             Height = Num("height", d.Height),
             LaneWidth = Num("laneWidth", d.LaneWidth),

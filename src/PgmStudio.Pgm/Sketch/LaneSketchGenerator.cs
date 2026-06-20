@@ -2,23 +2,34 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Sketch;
 
+/// <summary>The board shape a generated sketch follows.</summary>
+public enum LaneArchetype
+{
+    /// <summary>Two teams, an 'H' of straight lanes mirrored across the mid (one wool per team).</summary>
+    H,
+    /// <summary>Four teams, curved blade lanes pinwheeling around the centre under rot_90 (one wool per team).</summary>
+    Pinwheel,
+    /// <summary>Two teams, a 'Y'/trident of diagonal arms (three wools per team) with chevron mid islands.</summary>
+    Trident,
+}
+
 /// <summary>Knobs for the lane-layout sketch generator. Defaults give a 60×90 two-team board with
-/// 12-wide lanes.</summary>
+/// 12-wide lanes; the <see cref="Archetype"/> picks the board shape (Pinwheel forces a square board).</summary>
 public sealed record LaneLayoutOptions
 {
+    public LaneArchetype Archetype { get; init; } = LaneArchetype.H;
     public double Width { get; init; } = 60;
     public double Height { get; init; } = 90;
-    /// <summary>Target lane width in blocks (legs and crossbar).</summary>
+    /// <summary>Target lane width in blocks (legs, arms, blades).</summary>
     public double LaneWidth { get; init; } = 12;
     /// <summary>Empty border kept clear of the map edge.</summary>
     public double Margin { get; init; } = 6;
-    /// <summary>Bow the crossbar into a curve (a smoothed centerline) instead of a straight strip.</summary>
+    /// <summary>Bow the 'H' crossbar into a curve instead of a straight strip.</summary>
     public bool CurvedCrossbar { get; init; }
-    /// <summary>Drop a neutral island in the mid gap (the contested centre).</summary>
+    /// <summary>Drop neutral island(s) in the mid gap (the contested centre).</summary>
     public bool MidIsland { get; init; } = true;
-    /// <summary>Symmetry that reflects the authored team onto its opponent. <c>mirror_z</c> reflects across
-    /// the horizontal mid line (both teams keep the wool on the same side); <c>rot_180</c> is point-symmetric.</summary>
-    public string MirrorMode { get; init; } = "mirror_z";
+    /// <summary>Symmetry override; empty → the archetype's natural mode (H/Trident mirror_z, Pinwheel rot_90).</summary>
+    public string MirrorMode { get; init; } = "";
 }
 
 /// <summary>Where an objective belongs on the generated board, for the Configure step to consume.</summary>
@@ -28,65 +39,145 @@ public sealed record ObjectiveHint(string Kind, int Team, double X, double Z);
 public sealed record LaneLayoutResult(SketchLayout Layout, IReadOnlyList<ObjectiveHint> Objectives);
 
 /// <summary>
-/// Builds a starter Capture-the-Wool sketch from lane primitives. The board is a per-team "H" — a wool
-/// leg (a dead-end toward the far side), a spawn leg, and a crossbar that is their only link (so the spawn
-/// branches off rather than sharing the wool lane) — authored once and mirrored across the map mid, with
-/// an optional neutral island in the gap. Leg ends stop short of the mid so the two teams land on separate
-/// islands; the gaps are what the Configure build regions bridge into one navigable plane. The output is a
-/// <see cref="SketchLayout"/> ready to store on a draft map or feed straight to <see cref="SketchRasterizer"/>.
+/// Builds a starter Capture-the-Wool sketch from lane primitives. One team's unit — lanes that dead-end at
+/// the far side (wool tips) plus a spawn hub — is authored once and fanned to every team by the board's
+/// symmetry, with optional neutral mid islands in the contested centre. Wools sit at the lane tips and
+/// spawns at the hub, matching how real maps place objectives (docs/generator-archetypes.md). The output is
+/// a <see cref="SketchLayout"/> ready to store on a draft map or feed straight to <see cref="SketchRasterizer"/>.
 /// </summary>
 public static class LaneSketchGenerator
 {
+    public static LaneLayoutResult Build(LaneLayoutOptions? options = null) => (options ?? new()).Archetype switch
+    {
+        LaneArchetype.Pinwheel => Pinwheel(options ?? new()),
+        LaneArchetype.Trident => Trident(options ?? new()),
+        _ => HLayout(options ?? new()),
+    };
+
+    // ── H: two teams, straight legs + crossbar, one wool each ─────────────────────────────────────
     public static LaneLayoutResult HLayout(LaneLayoutOptions? options = null)
     {
-        var o = options ?? new LaneLayoutOptions();
-        double cx = o.Width / 2, cz = o.Height / 2;
-        double lx = o.Margin + o.LaneWidth / 2;            // wool leg centerline x (left)
-        double rx = o.Width - o.Margin - o.LaneWidth / 2;  // spawn leg centerline x (right)
+        var o = options ?? new();
+        double lx = o.Margin + o.LaneWidth / 2;            // wool leg (left)
+        double rx = o.Width - o.Margin - o.LaneWidth / 2;  // spawn leg (right)
         double top = o.Margin + 2;                         // dead-end (far) side
-        double bot = cz - 5;                               // stop short of mid → a gap to bridge
-        double crossZ = top + 16;                          // crossbar height (upper third)
+        double bot = o.Height / 2 - 5;                     // stop short of mid → a gap to bridge
+        double crossZ = top + 16;
 
-        var woolLeg = Lane.Strip([[lx, top], [lx, bot]], o.LaneWidth);
-        var spawnLeg = Lane.Strip([[rx, top], [rx, bot]], o.LaneWidth);
-        var cross = o.CurvedCrossbar
-            ? Lane.Strip(Lane.Smooth([[o.Margin, crossZ], [cx, crossZ - 6], [o.Width - o.Margin, crossZ]]), o.LaneWidth)
-            : Lane.Strip([[o.Margin, crossZ], [o.Width - o.Margin, crossZ]], o.LaneWidth);
+        var unit = new List<SketchShape>
+        {
+            Poly("wool_leg", Lane.Strip([[lx, top], [lx, bot]], o.LaneWidth)),
+            Poly("spawn_leg", Lane.Strip([[rx, top], [rx, bot]], o.LaneWidth)),
+            Poly("cross", o.CurvedCrossbar
+                ? Lane.Strip(Lane.Smooth([[o.Margin, crossZ], [o.Width / 2, crossZ - 6], [o.Width - o.Margin, crossZ]]), o.LaneWidth)
+                : Lane.Strip([[o.Margin, crossZ], [o.Width - o.Margin, crossZ]], o.LaneWidth)),
+        };
+        var mids = o.MidIsland ? new List<SketchShape> { Poly("mid", Regular(o.Width / 2, o.Height / 2, o.LaneWidth * 0.7, 8)) } : [];
+        return Assemble(o, Mode(o, "mirror_z"), unit, (rx, top + 1), [(lx, top + 1)], mids);
+    }
 
-        var shapes = new List<SketchShape> { Poly("wool_leg", woolLeg), Poly("spawn_leg", spawnLeg), Poly("cross", cross) };
+    // ── Pinwheel: four teams, a curved blade per team rotating about the centre (rot_90) ───────────
+    private static LaneLayoutResult Pinwheel(LaneLayoutOptions options)
+    {
+        var s = Math.Min(options.Width, options.Height);          // rot_90 wants a square board
+        var o = options with { Width = s, Height = s };
+        double c = s / 2, m = o.Margin, w = o.LaneWidth;
+
+        // team 0's blade points "north": it starts at a safe inner radius (so the four rot_90 copies stay
+        // separate around a hollow centre) and curls out to a tip near the top-left corner — the swirl.
+        double rin = w * 1.6;                                       // inner radius keeps blades apart
+        double rout = c - m - w * 0.5;                             // reach toward the corner
+        var hub = (c, c - rin);                                     // inner end (spawn), straight up
+        var tip = (c - rout * 0.5, c - rout * 0.87);               // outer end (wool), up-left (~120°)
+        var ctrl = (c + w * 0.4, c - rin - (rout - rin) * 0.5);    // bow right → the comma curl
+        var blade = Lane.Strip(Lane.Smooth([
+            [hub.Item1, hub.Item2], [ctrl.Item1, ctrl.Item2], [tip.Item1, tip.Item2],
+        ]), w);
+
+        var unit = new List<SketchShape> { Poly("blade", blade) };
+        var mids = o.MidIsland ? new List<SketchShape> { Poly("mid", Regular(c, c, w * 0.55, 6)) } : [];
+        // one wool per team at the blade tip; spawn at the hub
+        return Assemble(o, Mode(o, "rot_90"), unit, hub, [tip], mids);
+    }
+
+    // ── Trident: two teams, diagonal arms + central stem, three wools each ─────────────────────────
+    private static LaneLayoutResult Trident(LaneLayoutOptions options)
+    {
+        var o = options;
+        double cx = o.Width / 2, m = o.Margin, w = o.LaneWidth;
+        double top = m + 2, hub = o.Height / 2 - w;     // hub sits below the arms, near the mid
+        double armTipZ = top + 4;
+
+        var leftTip = (m + w * 0.6, armTipZ);
+        var rightTip = (o.Width - m - w * 0.6, armTipZ);
+        var stemTip = (cx, hub - w * 1.4);
+        var hubPt = (cx, hub);
+
+        var unit = new List<SketchShape>
+        {
+            Poly("arm_l", Lane.Strip([[leftTip.Item1, leftTip.Item2], [hubPt.Item1, hubPt.Item2]], w)),
+            Poly("arm_r", Lane.Strip([[rightTip.Item1, rightTip.Item2], [hubPt.Item1, hubPt.Item2]], w)),
+            Poly("stem", Lane.Strip([[stemTip.Item1, stemTip.Item2], [hubPt.Item1, hubPt.Item2]], w)),
+        };
+        // chevron mid islands (two angled lanes) on the mid line, not mirrored (self-contested centre)
+        var mids = o.MidIsland
+            ? new List<SketchShape>
+            {
+                Poly("mid_l", Lane.Strip([[cx - w * 1.8, o.Height / 2 - w], [cx - w * 0.4, o.Height / 2], [cx - w * 1.8, o.Height / 2 + w]], w * 0.7)),
+                Poly("mid_r", Lane.Strip([[cx + w * 1.8, o.Height / 2 - w], [cx + w * 0.4, o.Height / 2], [cx + w * 1.8, o.Height / 2 + w]], w * 0.7)),
+            }
+            : [];
+        return Assemble(o, Mode(o, "mirror_z"), unit, hubPt, [leftTip, rightTip, stemTip], mids);
+    }
+
+    // ── assembly: fan one team's unit + objectives to every team by the board symmetry ────────────
+    private static LaneLayoutResult Assemble(
+        LaneLayoutOptions o, string mirrorMode, List<SketchShape> unit,
+        (double X, double Z) spawn, List<(double X, double Z)> wools, List<SketchShape> mids)
+    {
+        double cx = o.Width / 2, cz = o.Height / 2;
+        var shapes = new List<SketchShape>(unit);
         var islands = new List<SketchIsland>
         {
-            new() { Id = "team", Name = "Team", Mirrors = true, ShapeIds = ["wool_leg", "spawn_leg", "cross"] },
+            new() { Id = "team", Name = "Team", Mirrors = true, ShapeIds = [.. unit.Select(s => s.Id)] },
         };
-        if (o.MidIsland)
+        if (mids.Count > 0)
         {
-            shapes.Add(Poly("mid", RegularPolygon(cx, cz, o.LaneWidth * 0.7, 8)));
-            islands.Add(new() { Id = "mid", Name = "Mid", Mirrors = false, ShapeIds = ["mid"] });
+            shapes.AddRange(mids);
+            islands.Add(new() { Id = "mid", Name = "Mid", Mirrors = false, ShapeIds = [.. mids.Select(s => s.Id)] });
         }
-
         var layout = new SketchLayout
         {
-            Setup = new SketchSetup { MirrorMode = o.MirrorMode, Center = new SketchCenter { Cx = cx, Cz = cz } },
+            Setup = new SketchSetup { MirrorMode = mirrorMode, Center = new SketchCenter { Cx = cx, Cz = cz } },
             Layout = new SketchShapes { Shapes = shapes, Islands = islands },
         };
 
-        // Team 0 owns the authored H; team 1 is its mirror image. Objectives sit at the leg tops.
-        var (woolX, woolZ) = (lx, top + 1);
-        var (spawnX, spawnZ) = (rx, top + 1);
-        var (mWoolX, mWoolZ) = Symmetry.Apply(woolX, woolZ, o.MirrorMode, cx, cz);
-        var (mSpawnX, mSpawnZ) = Symmetry.Apply(spawnX, spawnZ, o.MirrorMode, cx, cz);
-        var objectives = new List<ObjectiveHint>
+        var teams = Symmetry.Order(mirrorMode);
+        var hints = new List<ObjectiveHint>();
+        for (var k = 0; k < teams; k++)
         {
-            new("wool", 0, woolX, woolZ),   new("spawn", 0, spawnX, spawnZ),
-            new("wool", 1, mWoolX, mWoolZ), new("spawn", 1, mSpawnX, mSpawnZ),
-        };
-        return new LaneLayoutResult(layout, objectives);
+            var (sx, sz) = Image(spawn, mirrorMode, cx, cz, k);
+            hints.Add(new("spawn", k, sx, sz));
+            foreach (var w in wools)
+            {
+                var (wx, wz) = Image(w, mirrorMode, cx, cz, k);
+                hints.Add(new("wool", k, wx, wz));
+            }
+        }
+        return new LaneLayoutResult(layout, hints);
     }
+
+    // team 0 stays put; teams 1..n are the orbit images (rot_90 fans to 90/180/270, mirrors reflect).
+    private static (double X, double Z) Image((double X, double Z) p, string mode, double cx, double cz, int k) =>
+        k == 0 ? p : Symmetry.Point(p.X, p.Z, mode, cx, cz, k);
+
+    private static string Mode(LaneLayoutOptions o, string fallback) =>
+        string.IsNullOrEmpty(o.MirrorMode) ? fallback : o.MirrorMode;
 
     private static SketchShape Poly(string id, List<double[]> ring) =>
         new() { Id = id, Type = "polygon", Operation = "add", Vertices = [.. ring] };
 
-    private static List<double[]> RegularPolygon(double cx, double cz, double r, int n)
+    private static List<double[]> Regular(double cx, double cz, double r, int n)
     {
         var ring = new List<double[]>(n);
         for (var i = 0; i < n; i++)

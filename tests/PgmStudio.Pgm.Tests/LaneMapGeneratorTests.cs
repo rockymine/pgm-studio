@@ -42,9 +42,10 @@ public sealed class LaneMapGeneratorTests
         {
             var captor = wool.Monuments[0].Team;
             var captorSpawn = intent.Spawns.Single(s => s.Team == captor);
-            // same lane (x) as the captor's spawn, and within a few blocks of it
-            await Assert.That(wool.Monuments[0].Location.X).IsEqualTo(captorSpawn.Point.X);
-            await Assert.That(Math.Abs(wool.Monuments[0].Location.Z - captorSpawn.Point.Z) <= 6).IsTrue();
+            var m = wool.Monuments[0].Location;
+            var s = captorSpawn.Point;
+            var dist = Math.Sqrt((m.X - s.X) * (m.X - s.X) + (m.Z - s.Z) * (m.Z - s.Z));
+            await Assert.That(dist <= 6).IsTrue();   // monument sits a few blocks from the captor's spawn
         }
     }
 
@@ -63,5 +64,32 @@ public sealed class LaneMapGeneratorTests
         IntentGenerator.Apply(doc, intent);
         var validity = MapValidity.Check(doc);
         await Assert.That(validity.Valid).IsTrue();
+    }
+
+    [Test]
+    public async Task Pinwheel_generates_four_teams_one_wool_each_all_valid()
+    {
+        var (_, intent) = LaneMapGenerator.Generate(new LaneLayoutOptions { Archetype = LaneArchetype.Pinwheel });
+        await Assert.That(intent.Teams!.Count).IsEqualTo(4);
+        await Assert.That(intent.Spawns.Count).IsEqualTo(4);
+        await Assert.That(intent.Wools!.Count).IsEqualTo(4);
+        foreach (var w in intent.Wools!) await Assert.That(w.Monuments.Count).IsEqualTo(1);
+
+        var doc = new Dict();
+        IntentGenerator.Apply(doc, intent);
+        await Assert.That(MapValidity.Check(doc).Valid).IsTrue();
+    }
+
+    [Test]
+    public async Task Trident_generates_two_teams_three_wools_each_all_valid()
+    {
+        var (_, intent) = LaneMapGenerator.Generate(new LaneLayoutOptions { Archetype = LaneArchetype.Trident });
+        await Assert.That(intent.Teams!.Count).IsEqualTo(2);
+        await Assert.That(intent.Wools!.Count).IsEqualTo(6);   // 3 per team
+        foreach (var w in intent.Wools!) await Assert.That(w.Monuments.Count).IsEqualTo(1);
+
+        var doc = new Dict();
+        IntentGenerator.Apply(doc, intent);
+        await Assert.That(MapValidity.Check(doc).Valid).IsTrue();
     }
 }
