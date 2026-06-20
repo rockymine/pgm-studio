@@ -1,0 +1,152 @@
+# Organic lane generation
+
+The `Organic` sketch archetype grows a team's island **outward from a spawn hub** into a few **wool lanes**,
+using a noise grid to place and bend them, and variable-width polygon hulls (with optional diamond holes) for
+an organic, reusable-but-varied look. It is the lane-graph reading of real maps
+(`docs/generator-archetypes.md`) turned into a generator: **a lane is one hub→tip branch — it can bend and
+carry holes — ending in a dead-end wool tip; the spawn sits on its own short spur off the hub** (see
+*Playability* below for why the spawn is off the junction, not on it).
+
+**The shape recipe in one line:** drop a **hub plaza** (a round blob, a rotated square, or an organic jittered
+polygon — optionally a *ring* with its own hole), **submerge** a set of **angle-constrained, variable-width
+ribbon polygons** into it (mid trunks → bridges, wool lanes → dead-end tips, one spawn spur) rather than
+colliding them at its centre — a wool lane may also **fork** into a child branch — **subtract** organic 4–6-gon
+holes, **union** the lot into one team's island, then **`mirror_z`** it to the opponent.
+
+The catalogue of primitives (every hub style + lane behaviour) renders from `--gen-catalog <out.json>`. Everything below is how each of those pieces is sized and placed — and it
+all comes out as a normal `SketchLayout` (the same polygon model a hand-drawn sketch produces); the rasterizer
+turns the set-algebra into terrain. Dump the raw polygons with `--gen-sketch Organic <seed> <out.json>`.
+
+Code: `PgmStudio.Pgm.Sketch.OrganicLane` (the engine) + `LaneSketchGenerator.Organic` (wiring) +
+`Geom.Algorithms.Rng` (seeded RNG) + `Geom.Lane.Ribbon` (variable-width strip). Preview it with no database:
+
+```
+dotnet run --project tools/PgmStudio.RoundTrip -- --gen-preview Organic <seed> <out.json>
+```
+
+## The process (and where to tune it)
+
+1. **Spawn hub + plaza.** Placed above the mid line, facing the foe (`hubZ = mid − 2·laneWidth`). All branches
+   meet here, so the hub is a small **plaza** (radius `~1.1–1.9·laneWidth`) — branches fan out of an *area*, not a
+   point (a point hub pinches thin land wedges and leaves no room). Its outline **varies**: a round-ish 12-gon, a
+   rotated square, or an organic noise-jittered polygon (`HubPolygon`), and ~45% of the time it carries its own
+   **hole** → a *ring plaza* (the corpus centre, e.g. Annealing). Lanes **attach by submerging two control nodes
+   inside the hub** (`GrowLane`) — kept within the hub's *inradius* (a square's is the tightest) and outside any
+   ring hole — so they union cleanly with the plaza instead of all piling at the centre; with no hole the deep
+   node nearly reaches the middle so adjacent lanes overlap and fill the wedges between them. *Tune:* hub
+   radius/style/hole odds in `OrganicLane.Grow`, the attach `inner`/`outer` in `GrowLane`.
+
+1b. **Mid trunks → bridges.** `MidBranches` short trunks reach from the hub toward mid, stopping `VoidDistance/2`
+   short of it. Two well-separated trunks (the default) give **two crossings** of the void — two angles of
+   attack — instead of one chokepoint. Each trunk tip becomes a `"bridge"` hint that `LaneMapGenerator` spans
+   across the mid line to its mirror (so AutoBridge's single-edge MST isn't relied on). *Tune:* `MidBranches`,
+   `VoidDistance`, the trunk x-spread (`±1.2·laneWidth`).
+
+2. **Far-spread wool tips (the noise grid).** Sample a grid over the far band (top ~24% of the team half),
+   keep the cells whose value-noise (`NoiseField`, seeded) exceeds a threshold, then **farthest-point
+   sample** `Wools` of them — each new tip maximises its min distance to the hub and the already-chosen tips,
+   weighted by the noise, **and is kept ≥ `MinHubAngle` from every other tip and the trunks** (the *hub-fan
+   minimum*: no two branches fan out tightly enough to leave a thin land sliver between them; the constraint
+   relaxes only if no candidate qualifies). *Tune:* `FarthestTips` band/step/threshold, `MinHubAngle`.
+
+3. **Grow each lane (the bends).** For each tip, a centerline runs hub→tip through 1–2 **waypoints** offset
+   perpendicular by the noise field (`±0.55·laneWidth`) — these are the organic bends — then Catmull-Rom
+   smoothed. The offset is kept gentle: a sharper fold pinches the lane's inner edge to a thin sliver.
+   *Tune:* waypoint count (`rng.Int(1,3)`), offset scale.
+
+   *Catmull-Rom's role (`Geom.Algorithms.CatmullRom.Spline`):* a lane is authored from only a few meaningful **control points**
+   — the submerged hub node, the hub-edge entry, the bend waypoints, and the tip (the wool). Catmull-Rom
+   **resamples that sparse spine into a dense smooth polyline** (~16 samples/segment) that the bends read as
+   rounded arcs instead of kinks. It shapes the **spine**; step 4's ribbon offset turns the spine into the
+   **area**. It's **interpolating** — the curve passes *through* the control points (so the tip lands exactly
+   on the wool, the entry exactly on the hub) — which is why it's Catmull-Rom and not Bézier (whose handles are
+   only approached, not hit). The **centripetal** variant is used (knot spacing = chord-length^½): uniform
+   Catmull-Rom overshoots and forms cusps/loops when one control segment is much shorter than the next, and
+   once that spine is offset into a strip it self-intersects. The same `Smooth` shapes the H crossbar, Pinwheel
+   blades, and Trident arms.
+
+4. **Variable-width ribbon (the hull).** The smooth centerline becomes the lane *body* via `Lane.Ribbon`: each
+   centerline point is offset to both sides by a per-side half-width = base (tapering ~25% toward the tip) +
+   independent noise jitter (`±0.3·laneWidth`), so the outline undulates instead of being a clean rectangle.
+   This is the **spine → area** step. *Tune:* taper, jitter scale.
+
+4b. **Forking lanes (`GrowForkedLane`).** With probability `BranchChance`, a long-enough wool lane **splits**: a
+   primary hub→tip strip plus a **child branch** grown off a point partway along it (a `_/-` with its own
+   offspring). The child reuses the submerge idea — it anchors back along the parent so the two ribbons overlap
+   and the junction unions cleanly — and heads off by ≥ `MinHubAngle`. The code is built from reusable pieces
+   (`LaneCenterline` = the spine, `RibbonFromCenterline` = spine→polygon), so a fork is just a second spine off
+   the first. **Wool placement on a fork's leaves is a deliberate TBD**: today the wool stays on the *primary*
+   tip and the child is terrain. *Tune:* `BranchChance`, fork position (`0.45–0.62` along the spine), child
+   angle/length.
+
+5. **Organic holes.** With probability `HoleChance`, a lane carries an **organic 4–6-gon** (jittered radii,
+   `HolePolygon`) **subtracted** as a hole (the Green-Gem reading) — not strictly a diamond. Its bounding
+   radius is `0.35–0.55·laneWidth`, and the ribbon is **bulged so that a path of at least 0.7·laneWidth remains
+   on each side** of the hole (the corpus keeps holes inside wide lanes, never as thin necks). The same
+   `HolePolygon` cuts the optional ring-plaza hub hole. *Tune:* `HoleChance`, hole-size range, the `0.7·lw` margin.
+
+6. **Spawn spur (playability).** The spawn does **not** sit on the hub junction. `SpawnSpur` finds the widest
+   angular gap among the trunk + wool directions and, preferring a gap that points **away from the mid line**
+   (not toward the bridge), places the spawn out along it on its own spur (length `laneWidth·2.3`). Its
+   protection then sits in a side/back pocket well off the crossing, so an attacker reaching the hub fans out
+   to the wools with room rather than squeezing one corridor past the spawn. *Tune:* spur length (`laneWidth·2.3`),
+   spur width (`laneWidth·0.9`).
+
+7. **Inset objectives (cover).** The wool and spawn objective points are **not** the geometric lane/spur tips
+   (which sit on the boundary with ~1 block of clearance). Each is inset ≈ `0.5·laneWidth` back along the
+   centerline into the lane body, so it carries ~half a lane width of cover; the lane still caps beyond it as a
+   backing wall. *Tune:* the `0.5·lw` inset in `InsetAlong`.
+
+8. **Mirror + assemble.** The grown unit is fanned to the opponent by `mirror_z` (`Assemble`), with no mid
+   island (the contested centre is the bridged gap). Objective hints: **wool near each tip, spawn on the spur.**
+
+## Playability (spawn protection vs. the bridge)
+
+Each spawn carries a **spawn-protection** region (`<apply enter="deny(enemy)" …>`) the enemy cannot path
+through. If the spawn sat on the hub — the single junction where the bridge/trunk meets the wool lanes — its
+protection would wall the only way across, so an attacker crossing the bridge could never reach the wool
+without entering the enemy spawn: **unplayable.** Putting the spawn on a spur in the widest gap moves the
+protection *off* the junction, leaving the hub→wool-lane flow open: an attacker crosses the bridge, reaches
+the hub, and fans out to the dead-end wools **around** the spawn — the corpus pattern (Kanto, Annealing IV).
+Validate with the `--gen-map-preview` tool (emits spawns+protection, wools+rooms, bridges) and a
+protection-aware BFS from each captor's spawn to the enemy wool with the defender's protection removed.
+
+## Guarantees
+- **Deterministic:** same `Seed` → identical layout (so a good seed is keepable and iterable).
+- **Wools at dead-end tips:** lanes only join at the hub, so every tip is a leaf; hints put a wool near each.
+- **Spawn on a spur off the hub** (widest angular gap), so its protection never walls the hub→wool flow.
+- **Objectives carry cover:** wools/spawn are inset ≈ half a lane width off the tips (clearance ~½·laneWidth,
+  not the boundary), and hole-side paths stay ≥ 0.7·laneWidth — everything scales off `LaneWidth`.
+- **Two separate, congruent team islands** (mirror), ready for `finish` (≥2 islands) → the existing pipeline
+  (`LaneMapGenerator` adds monuments near the captor's spawn, `AutoBridge` connects the islands, the export
+  gate checks the monument + traversability rules).
+
+## Knobs (`LaneLayoutOptions`)
+| field | default | effect |
+|---|---|---|
+| `Seed` | 1 | the noise/RNG seed — the whole layout |
+| `Wools` | 2 | wool lanes per team (one dead-end tip each) |
+| `LaneWidth` | 12 | base lane width; **everything scales off it** (inset = ½·lw, hole-side path ≥ 0.7·lw, spur = 2.3·lw, hub plaza = 1.1·lw) |
+| `HoleChance` | 0.45 | per-lane probability of an organic hole (held inside a wide section) |
+| `BranchChance` | 0.35 | per-wool-lane probability of forking into a child branch (wool stays on the primary tip) |
+| `MidBranches` | 2 | near-mid trunk branches → bridges (two = two crossings / angles of attack) |
+| `VoidDistance` | 16 | the void gap between the two team islands at mid — the span each bridge crosses |
+| `MinHubAngle` | 35 | min degrees between branches at the hub (no thin land slivers between lanes) |
+| `Width`/`Height` | auto → 120×150 | board size; Organic upsizes the 60×90 default so lanes read as distinct corridors |
+
+## How to iterate
+- Sweep seeds and eyeball them with the analysis harness in `scripts/generator/` (see its README): a typical
+  loop is `--gen-map-preview Organic <seed> m.json` → `viz_void.py` (clearance + pinches) → `validate_play.py`
+  (PLAYABLE check) → `measure.py` (the numbers); `render_sketch.py`/`--gen-catalog` show the raw polygons.
+- The geometry knobs above are all local to `OrganicLane`; start with hub/tip placement and the jitter/offset
+  scales. Lower jitter + offset → cleaner, straighter lanes; higher → more organic (and more blob risk).
+
+## Known limitations / next ideas
+- Lanes can fork **once** (`GrowForkedLane`); deeper branch trees (a child that itself forks) and a **wool
+  placement policy for leaves** (every leaf? the longest? weighted?) are the open follow-ups — wools currently
+  stay on the primary tip.
+- Bends are free-angle; snapping waypoints to the 45°/octant family (from the primitive study) would match
+  the corpus aesthetic more tightly.
+- Holes are single diamonds; multi-hole "rotated rectangle with two holes" lanes (Green Gem) could chain
+  bulges.
+- Only `mirror_z` (two teams) so far; a rot_90 organic board would reuse the same growth per quadrant.

@@ -80,6 +80,58 @@ var cbrIdx = Array.IndexOf(args, "--clean-base-render");
 if (cbrIdx >= 0 && cbrIdx + 2 < args.Length)
     return RunCleanBaseRender(args[cbrIdx + 1], args[cbrIdx + 2]);
 
+// --island-study <regionDir> <outJson> [tolerance]: cleaned-base islands with their polygons (exterior +
+// holes) both raw and Douglas-Peucker-simplified, emitted as JSON for studying real-map shapes.
+var islandStudyIdx = Array.IndexOf(args, "--island-study");
+if (islandStudyIdx >= 0 && islandStudyIdx + 2 < args.Length)
+    return RunIslandStudy(args[islandStudyIdx + 1], args[islandStudyIdx + 2],
+        islandStudyIdx + 3 < args.Length && double.TryParse(args[islandStudyIdx + 3], out var studyTol) ? studyTol : 2.0);
+
+// --gen-preview <archetype> <seed> <outJson>: run the sketch generator and rasterize it (no DB), writing
+// the island polygons + objective hints for a local render of a generated layout.
+var gpIdx = Array.IndexOf(args, "--gen-preview");
+if (gpIdx >= 0 && gpIdx + 3 < args.Length)
+    return RunGenPreview(args[gpIdx + 1], int.TryParse(args[gpIdx + 2], out var gseed) ? gseed : 1, args[gpIdx + 3]);
+
+// --gen-sketch <archetype> <seed> <outJson>: dump the RAW sketch layout (the polygon shapes + mirror setup,
+// before rasterization) so the base sketch model can be rendered as outlines rather than the rasterized cells.
+var gsIdx = Array.IndexOf(args, "--gen-sketch");
+if (gsIdx >= 0 && gsIdx + 3 < args.Length)
+{
+    var arch = Enum.Parse<PgmStudio.Pgm.Sketch.LaneArchetype>(args[gsIdx + 1], ignoreCase: true);
+    var opts = new PgmStudio.Pgm.Sketch.LaneLayoutOptions { Archetype = arch, Seed = int.TryParse(args[gsIdx + 2], out var sseed) ? sseed : 1 };
+    var res = PgmStudio.Pgm.Sketch.LaneSketchGenerator.Build(opts);
+    File.WriteAllText(args[gsIdx + 3], res.Layout.ToJson());
+    Console.WriteLine($"gen-sketch {arch} seed={opts.Seed}: {res.Layout.Layout!.Shapes.Count} shapes, {res.Layout.Layout.Islands.Count} islands, mirror={res.Layout.Setup!.MirrorMode}");
+    return 0;
+}
+
+// --gen-catalog <outJson>: dump the non-mirrored style catalogue (every hub style + lane behaviour) as a raw
+// sketch layout, for rendering an overview of the generator's shape primitives.
+var gcatIdx = Array.IndexOf(args, "--gen-catalog");
+if (gcatIdx >= 0 && gcatIdx + 1 < args.Length)
+{
+    var layout = PgmStudio.Pgm.Sketch.OrganicLane.StyleCatalog();
+    File.WriteAllText(args[gcatIdx + 1], layout.ToJson());
+    Console.WriteLine($"gen-catalog: {layout.Layout!.Shapes.Count} shapes → {args[gcatIdx + 1]}");
+    return 0;
+}
+
+// --gen-map-preview <archetype> <seed> <outJson>: run the full map generator (LaneMapGenerator) and emit the
+// island polygons together with the intent — spawns+protection, wools+rooms+monuments, build bridges — so
+// playability (reachability around spawn protection) can be validated without a database.
+var gmpIdx = Array.IndexOf(args, "--gen-map-preview");
+if (gmpIdx >= 0 && gmpIdx + 3 < args.Length)
+    return RunGenMapPreview(args[gmpIdx + 1], int.TryParse(args[gmpIdx + 2], out var mseed) ? mseed : 1, args[gmpIdx + 3]);
+
+// --skeleton-study <regionDir> <map.xml> <outJson> [tolerance]: each island's simplified polygon plus its
+// centerline graph (thinning → merge junction blobs → anchor-aware prune using the map.xml objectives as
+// fixed nodes) for studying lane structure and where objectives sit.
+var skelStudyIdx = Array.IndexOf(args, "--skeleton-study");
+if (skelStudyIdx >= 0 && skelStudyIdx + 3 < args.Length)
+    return RunSkeletonStudy(args[skelStudyIdx + 1], args[skelStudyIdx + 2], args[skelStudyIdx + 3],
+        skelStudyIdx + 4 < args.Length && double.TryParse(args[skelStudyIdx + 4], out var skTol) ? skTol : 2.5);
+
 // --monument-slices <regionDir> <xml_data.json> <outParquet>: sample the 3×3×5 block volume around
 // every wool monument (MonumentSliceExtractor), write monument_slices.parquet, read it back and print
 // a validation summary. The monument centres come from xml_data.json (wools[].monuments[].location).
@@ -1022,6 +1074,246 @@ static int RunCleanBaseRender(string regionDir, string outSvg)
     File.WriteAllText(outSvg, sb.ToString());
     Console.WriteLine($"  wrote {outSvg}");
     return 0;
+}
+
+static int RunIslandStudy(string regionDir, string outJson, double tolerance)
+{
+    var chunks = Directory.GetFiles(regionDir, "*.mca")
+        .SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var fallbacks = new[]
+    {
+        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
+    };
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+
+    static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) =>
+        r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
+
+    var outIslands = new List<object>();
+    foreach (var isl in islands)
+    {
+        if (isl.Polygon is not NetTopologySuite.Geometries.Polygon poly) continue;
+        var ext = Ring(poly.ExteriorRing);
+        var holes = poly.InteriorRings.Select(Ring).ToList();
+        var simp = PgmStudio.Geom.PolygonSimplify.Simplify(ext, holes, tolerance, minHoleArea: 8);
+        outIslands.Add(new
+        {
+            id = isl.Id,
+            blockCount = isl.BlockCount,
+            bounds = new[] { isl.Bounds.MinX, isl.Bounds.MinZ, isl.Bounds.MaxX, isl.Bounds.MaxZ },
+            rawVerts = ext.Count + holes.Sum(h => h.Count),
+            simpVerts = simp.VertexCount,
+            rawExterior = ext, rawHoles = holes,
+            exterior = simp.Exterior, holes = simp.Holes,
+        });
+    }
+
+    var allX = islands.SelectMany(i => new[] { i.Bounds.MinX, i.Bounds.MaxX });
+    var allZ = islands.SelectMany(i => new[] { i.Bounds.MinZ, i.Bounds.MaxZ });
+    var doc = new
+    {
+        name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir),
+        tolerance,
+        bbox = new { minX = allX.Min(), minZ = allZ.Min(), maxX = allX.Max(), maxZ = allZ.Max() },
+        islandCount = islands.Count,
+        islands = outIslands,
+    };
+    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(doc));
+    Console.WriteLine($"island-study {doc.name}: {islands.Count} islands, tol={tolerance}");
+    foreach (var isl in islands)
+        Console.WriteLine($"  island {isl.Id}: {isl.BlockCount} blocks, bounds {isl.Bounds}");
+    var raw = outIslands.Sum(o => (int)o.GetType().GetProperty("rawVerts")!.GetValue(o)!);
+    var simp2 = outIslands.Sum(o => (int)o.GetType().GetProperty("simpVerts")!.GetValue(o)!);
+    Console.WriteLine($"  vertices: {raw} raw → {simp2} simplified ({(raw > 0 ? 100 * simp2 / raw : 0)}%)");
+    Console.WriteLine($"  wrote {outJson}");
+    return 0;
+}
+
+static int RunGenPreview(string archetype, int seed, string outJson)
+{
+    var arch = Enum.Parse<PgmStudio.Pgm.Sketch.LaneArchetype>(archetype, ignoreCase: true);
+    var opts = new PgmStudio.Pgm.Sketch.LaneLayoutOptions { Archetype = arch, Seed = seed };
+    var result = PgmStudio.Pgm.Sketch.LaneSketchGenerator.Build(opts);
+    var cells = PgmStudio.Pgm.Sketch.SketchRasterizer.Rasterize(result.Layout.ToJson());
+    if (cells.Count == 0) { Console.Error.WriteLine("no cells produced"); return 1; }
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.Detect(cells, minIslandSize: 1);
+    var polys = islands.Select(i =>
+    {
+        var p = i.Polygon as NetTopologySuite.Geometries.Polygon;
+        return new
+        {
+            id = i.Id,
+            blockCount = i.BlockCount,
+            exterior = p!.ExteriorRing.Coordinates.Select(c => new[] { c.X, c.Y }).ToList(),
+            holes = p.InteriorRings.Select(r => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList()).ToList(),
+        };
+    }).ToList();
+    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(new
+    {
+        archetype, seed,
+        bbox = new { minX = cells.Min(c => c.X), minZ = cells.Min(c => c.Z), maxX = cells.Max(c => c.X), maxZ = cells.Max(c => c.Z) },
+        objectives = result.Objectives.Select(o => new { kind = o.Kind, team = o.Team, x = o.X, z = o.Z }).ToList(),
+        islands = polys,
+    }));
+    Console.WriteLine($"gen-preview {archetype} seed={seed}: {cells.Count} cells, {islands.Count} islands [{string.Join(",", islands.Take(8).Select(i => i.BlockCount))}]");
+    return 0;
+}
+
+static int RunGenMapPreview(string archetype, int seed, string outJson)
+{
+    var arch = Enum.Parse<PgmStudio.Pgm.Sketch.LaneArchetype>(archetype, ignoreCase: true);
+    var (layout, intent) = PgmStudio.Pgm.Sketch.LaneMapGenerator.Generate(
+        new PgmStudio.Pgm.Sketch.LaneLayoutOptions { Archetype = arch, Seed = seed }, "preview");
+    var cells = PgmStudio.Pgm.Sketch.SketchRasterizer.Rasterize(layout.ToJson());
+    if (cells.Count == 0) { Console.Error.WriteLine("no cells"); return 1; }
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.Detect(cells, minIslandSize: 1);
+    object? Rect(PgmStudio.Pgm.Authoring.Rect? r) => r is { } v ? new { minX = v.MinX, minZ = v.MinZ, maxX = v.MaxX, maxZ = v.MaxZ } : null;
+    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(new
+    {
+        archetype, seed,
+        bbox = new { minX = cells.Min(c => c.X), minZ = cells.Min(c => c.Z), maxX = cells.Max(c => c.X), maxZ = cells.Max(c => c.Z) },
+        islands = islands.Select(i =>
+        {
+            var p = (NetTopologySuite.Geometries.Polygon)i.Polygon;
+            return new
+            {
+                exterior = p.ExteriorRing.Coordinates.Select(c => new[] { c.X, c.Y }).ToList(),
+                holes = p.InteriorRings.Select(r => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList()).ToList(),
+            };
+        }).ToList(),
+        spawns = intent.Spawns.Select(s => new { team = s.Team, x = s.Point.X, z = s.Point.Z, protection = Rect(s.Protection) }).ToList(),
+        wools = intent.Wools!.Select(w => new
+        {
+            owner = w.Owner, x = w.Spawn.X, z = w.Spawn.Z, room = Rect(w.Room),
+            monuments = w.Monuments.Select(mm => new { team = mm.Team, x = mm.Location.X, z = mm.Location.Z }).ToList(),
+        }).ToList(),
+        build = new { areas = intent.Build!.Areas.Select(r => new { minX = r.MinX, minZ = r.MinZ, maxX = r.MaxX, maxZ = r.MaxZ }).ToList() },
+    }));
+    Console.WriteLine($"gen-map-preview {archetype} seed={seed}: {islands.Count} islands, {intent.Spawns.Count} spawns, {intent.Wools!.Count} wools, {intent.Build!.Areas.Count} bridges");
+    return 0;
+}
+
+static int RunSkeletonStudy(string regionDir, string mapXml, string outJson, double tolerance)
+{
+    var chunks = Directory.GetFiles(regionDir, "*.mca")
+        .SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var fallbacks = new[]
+    {
+        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
+    };
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+
+    var allX = islands.SelectMany(i => new[] { i.Bounds.MinX, i.Bounds.MaxX }).ToList();
+    var allZ = islands.SelectMany(i => new[] { i.Bounds.MinZ, i.Bounds.MaxZ }).ToList();
+    int bMinX = allX.Min() - 16, bMinZ = allZ.Min() - 16, bMaxX = allX.Max() + 16, bMaxZ = allZ.Max() + 16;
+
+    // map.xml → doc, categories, build regions, objectives (the fixed anchor points)
+    var doc = PgmStudio.Pgm.Serializer.ToDict(PgmStudio.Pgm.MapParser.Parse(mapXml));
+    var regionRegistry = doc.GetValueOrDefault("regions") as Dictionary<string, object?> ?? [];
+    var cats = PgmStudio.Pgm.Authoring.RegionCategorizer.Categorize(doc);
+    var bounds = ((double)bMinX, (double)bMinZ, (double)bMaxX, (double)bMaxZ);
+
+    // build-region cells — the island↔bridge contact that pruning must preserve. Rasterize only the OUTERMOST
+    // build regions: the categorizer marks every nested sub-component "build" too, so a complement's base/hole
+    // rectangles are also flagged — rasterizing those on their own would re-fill a hole the parent complement
+    // (or union) correctly excludes. A region that is a child of another build region is covered by its parent.
+    var buildIds = cats.Where(kv => kv.Value == "build").Select(kv => kv.Key).ToHashSet();
+    var nestedInBuild = new HashSet<string>();
+    foreach (var id in buildIds)
+        if (regionRegistry.GetValueOrDefault(id) is Dictionary<string, object?> r && r.GetValueOrDefault("children") is IEnumerable<object?> ch)
+            foreach (var c in ch) if (c is string cs) nestedInBuild.Add(cs);
+
+    var buildCells = new HashSet<(int, int)>();
+    foreach (var id in buildIds)
+        if (!nestedInBuild.Contains(id) && regionRegistry.GetValueOrDefault(id) is Dictionary<string, object?> reg
+            && PgmStudio.Analysis.Region.RegionGeometry2d.ToGeometry(reg, bounds, regionRegistry) is { IsEmpty: false } geom)
+        {
+            var env = geom.EnvelopeInternal;
+            for (var x = (int)Math.Floor(env.MinX); x <= (int)Math.Ceiling(env.MaxX); x++)
+                for (var z = (int)Math.Floor(env.MinY); z <= (int)Math.Ceiling(env.MaxY); z++)
+                    if (geom.Intersects(new NetTopologySuite.Geometries.Point(x + 0.5, z + 0.5))) buildCells.Add((x, z));
+        }
+
+    var objectives = ReadObjectives(doc, regionRegistry, bounds);
+    var anchorCells = new HashSet<(int, int)>(buildCells);
+    foreach (var (_, ox, oz) in objectives) anchorCells.Add(((int)Math.Floor(ox), (int)Math.Floor(oz)));
+
+    static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) =>
+        r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
+
+    var outIslands = new List<object>();
+    foreach (var isl in islands)
+    {
+        if (isl.Polygon is not NetTopologySuite.Geometries.Polygon poly) continue;
+        var ext = Ring(poly.ExteriorRing);
+        var holes = poly.InteriorRings.Select(Ring).ToList();
+        var simp = PgmStudio.Geom.PolygonSimplify.Simplify(ext, holes, tolerance, minHoleArea: 8);
+        outIslands.Add(new
+        {
+            id = isl.Id,
+            blockCount = isl.BlockCount,
+            bounds = new[] { isl.Bounds.MinX, isl.Bounds.MinZ, isl.Bounds.MaxX, isl.Bounds.MaxZ },
+            exterior = simp.Exterior,
+            holes = simp.Holes,
+            rawExterior = ext,
+            rawHoles = holes,
+        });
+    }
+
+    var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
+    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(new
+    {
+        name,
+        bbox = new { minX = allX.Min(), minZ = allZ.Min(), maxX = allX.Max(), maxZ = allZ.Max() },
+        islandCount = islands.Count,
+        objectives = objectives.Select(o => new { kind = o.Kind, x = o.X, z = o.Z }).ToList(),
+        buildCells = buildCells.Select(c => new[] { c.Item1, c.Item2 }).ToList(),
+        islands = outIslands,
+    }));
+    Console.WriteLine($"skeleton-study {name}: {islands.Count} islands, {objectives.Count} objectives, {buildCells.Count} build cells");
+    Console.WriteLine($"  wrote {outJson}");
+    return 0;
+}
+
+// Objective positions from the parsed doc: wool locations, monument blocks, and spawn-region centres.
+static List<(string Kind, double X, double Z)> ReadObjectives(
+    Dictionary<string, object?> doc, Dictionary<string, object?> regions, (double, double, double, double) bounds)
+{
+    static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, _ => null };
+    static Dictionary<string, object?> AsDict(object? o) => o as Dictionary<string, object?> ?? [];
+    static List<object?> AsList(object? o) => o as List<object?> ?? [];
+
+    var outp = new List<(string, double, double)>();
+    foreach (var w in AsList(doc.GetValueOrDefault("wools")).OfType<Dictionary<string, object?>>())
+    {
+        var loc = AsDict(w.GetValueOrDefault("location"));
+        if (Num(loc.GetValueOrDefault("x")) is { } wx && Num(loc.GetValueOrDefault("z")) is { } wz)
+            outp.Add(("wool", wx, wz));
+        foreach (var m in AsList(w.GetValueOrDefault("monuments")).OfType<Dictionary<string, object?>>())
+        {
+            var ml = AsDict(m.GetValueOrDefault("location"));
+            if (Num(ml.GetValueOrDefault("x")) is { } mx && Num(ml.GetValueOrDefault("z")) is { } mz)
+                outp.Add(("monument", mx, mz));
+        }
+    }
+    foreach (var sp in AsList(doc.GetValueOrDefault("spawns")).OfType<Dictionary<string, object?>>())
+    {
+        var r = sp.GetValueOrDefault("region");
+        var region = r is string s ? regions.GetValueOrDefault(s) as Dictionary<string, object?> : r as Dictionary<string, object?>;
+        if (region is not null
+            && PgmStudio.Analysis.Region.RegionGeometry2d.ToGeometry(region, bounds, regions) is { IsEmpty: false } geom)
+        {
+            var c = geom.Centroid;
+            outp.Add(("spawn", c.X, c.Y));
+        }
+    }
+    return outp;
 }
 
 static async Task<List<(int, int, int, int)>> ReadSegments(string path)
