@@ -65,9 +65,11 @@ public static class Lane
         return len < 1e-9 ? (ax, az) : (mx / len, mz / len);
     }
 
-    /// <summary>Catmull-Rom through <paramref name="points"/> → a dense polyline (<paramref
-    /// name="samplesPerEdge"/> samples per segment, endpoints duplicated so the curve passes through the
-    /// first and last). Fewer than 3 points pass through unchanged.</summary>
+    /// <summary><b>Centripetal</b> Catmull-Rom through <paramref name="points"/> → a dense polyline (<paramref
+    /// name="samplesPerEdge"/> samples per segment, endpoints duplicated so the curve passes through the first
+    /// and last). Centripetal parameterisation (knot spacing = chord-length^½) is used rather than uniform
+    /// because uniform Catmull-Rom overshoots and forms cusps/loops when one segment is much shorter than the
+    /// next — which, once offset into a strip, self-intersects. Fewer than 3 points pass through unchanged.</summary>
     public static List<double[]> Smooth(IReadOnlyList<double[]> points, int samplesPerEdge = 12)
     {
         if (points.Count < 3) return [.. points.Select(p => new[] { p[0], p[1] })];
@@ -78,18 +80,32 @@ public static class Lane
         for (var i = 1; i < p.Count - 2; i++)
         {
             double[] p0 = p[i - 1], p1 = p[i], p2 = p[i + 1], p3 = p[i + 2];
+            double t0 = 0, t1 = t0 + Knot(p0, p1), t2 = t1 + Knot(p1, p2), t3 = t2 + Knot(p2, p3);
             for (var s = 0; s < samplesPerEdge; s++)
             {
-                double t = (double)s / samplesPerEdge, t2 = t * t, t3 = t2 * t;
-                outp.Add([
-                    0.5 * (2*p1[0] + (-p0[0]+p2[0])*t + (2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2 + (-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
-                    0.5 * (2*p1[1] + (-p0[1]+p2[1])*t + (2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2 + (-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3),
-                ]);
+                var t = t1 + (t2 - t1) * s / samplesPerEdge;
+                var a1 = Mix(p0, p1, (t1 - t) / (t1 - t0), (t - t0) / (t1 - t0));
+                var a2 = Mix(p1, p2, (t2 - t) / (t2 - t1), (t - t1) / (t2 - t1));
+                var a3 = Mix(p2, p3, (t3 - t) / (t3 - t2), (t - t2) / (t3 - t2));
+                var b1 = Mix(a1, a2, (t2 - t) / (t2 - t0), (t - t0) / (t2 - t0));
+                var b2 = Mix(a2, a3, (t3 - t) / (t3 - t1), (t - t1) / (t3 - t1));
+                outp.Add(Mix(b1, b2, (t2 - t) / (t2 - t1), (t - t1) / (t2 - t1)));
             }
         }
         outp.Add([points[^1][0], points[^1][1]]);
         return outp;
     }
+
+    // centripetal knot delta = |b−a|^½ (floored so coincident/duplicated control points don't divide by zero)
+    private static double Knot(double[] a, double[] b)
+    {
+        double dx = b[0] - a[0], dz = b[1] - a[1];
+        var d = Math.Sqrt(Math.Sqrt(dx * dx + dz * dz));
+        return d < 1e-6 ? 1e-6 : d;
+    }
+
+    private static double[] Mix(double[] a, double[] b, double wa, double wb) =>
+        [a[0] * wa + b[0] * wb, a[1] * wa + b[1] * wb];
 
     // Left-hand unit normal of the tangent a→b.
     private static (double Nx, double Nz) Normal(double[] a, double[] b)

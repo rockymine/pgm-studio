@@ -191,22 +191,26 @@ public static class OrganicLane
         var len = Math.Sqrt(dx * dx + dz * dz);
         double px = -dz / Math.Max(1e-6, len), pz = dx / Math.Max(1e-6, len);   // perpendicular to entry→tip
 
-        // centerline: smooth the hub-edge entry → 1–2 noise-offset waypoints (bends) → tip, then prepend the deep
-        // submerged node as a STRAIGHT stub into the hub. Keeping that node out of the Catmull-Rom avoids a short
-        // stub-segment next to a long one, which makes uniform Catmull-Rom overshoot and fold the ribbon at the
-        // attach. Both nodes still sit inside the hub (≥2 submerged), so the lane unions cleanly with the plaza.
-        var ctrl = new List<double[]> { new[] { entry.X, entry.Z } };
+        // centerline control points: submerged node (deep in the hub), hub-edge entry, 1–2 noise-offset
+        // waypoints (the bends), tip. Centripetal Lane.Smooth handles the short submerged→entry segment without
+        // overshoot, so both attach nodes can live in the spline (≥2 submerged, no hard corner). Connector lanes
+        // (trunks, spawn spur — no hole) run STRAIGHT: a short bent strip would self-intersect when offset.
+        var bend = allowHole ? lw * 0.55 : 0.0;
+        var ctrl = new List<double[]>
+        {
+            new[] { hub.X + ux * inner, hub.Z + uz * inner },
+            new[] { entry.X, entry.Z },
+        };
         var waypoints = allowHole ? rng.Int(1, 3) : 1;
         for (var k = 1; k <= waypoints; k++)
         {
             var t = k / (double)(waypoints + 1);
             double bx = entry.X + dx * t, bz = entry.Z + dz * t;
-            var off = (noise.At(bx, bz) - 0.5) * 2 * lw * 0.55;                  // ± ~0.55 lane widths (gentle bends
-            ctrl.Add([bx + px * off, bz + pz * off]);                            // — sharper folds pinch the inner edge)
+            var off = (noise.At(bx, bz) - 0.5) * 2 * bend;                       // gentle bends; 0 for connectors
+            ctrl.Add([bx + px * off, bz + pz * off]);
         }
         ctrl.Add([tip.X, tip.Z]);
-        var center = new List<double[]> { new[] { hub.X + ux * inner, hub.Z + uz * inner } };
-        center.AddRange(Lane.Smooth(ctrl, 16));
+        var center = Lane.Smooth(ctrl, 16);
         var n = center.Count;
 
         // base half-width with a slight taper toward the dead-end tip
