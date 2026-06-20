@@ -46,20 +46,30 @@ public static class OrganicLane
         var shapes = new List<SketchShape>();
         var id = 0;
 
-        // hub plaza: a small open blob where all the branches meet, so they fan out of an area instead of a
-        // single point (a point hub pinches thin land wedges between adjacent branches, and gives no room).
-        shapes.Add(Poly("hub", Regular(hub.Item1, hub.Item2, lw * 1.1, 12), "add"));
+        // hub plaza: a small open area where the branches meet, so they fan out of an AREA not a point (a point
+        // hub pinches thin land wedges and gives no room). Its shape varies — round-ish blob, rotated square, or
+        // an organic jittered polygon — and a big-enough hub may carry its own hole, making a ring plaza (the
+        // corpus centre). Lanes attach by submerging two nodes inside it rather than colliding at its centre.
+        var hubStyle = rng.Int(0, 3);                          // 0 round · 1 square · 2 organic blob
+        var wantHole = rng.Chance(0.45);                       // a ring-plaza centre
+        // size the hub off its style; grow it when it must hold a ring (squares/blobs have a tighter inradius)
+        var baseR = wantHole ? rng.Range(1.5, 1.9) : rng.Range(1.1, 1.5);
+        var hubR = lw * (hubStyle == 1 ? baseR * 1.15 : baseR);
+        shapes.Add(Poly("hub", HubPolygon(hub, hubR, hubStyle, rng, noise), "add"));
+        // radius guaranteed inside the hub for ANY direction (a square is the tightest) — lanes attach within it
+        var hubInr = hubR * (hubStyle == 1 ? 0.68 : hubStyle == 2 ? 0.72 : 0.9);
+        // hole sized to leave a ring the lanes can attach to (outside it); skip if the hub came out too small
+        var holeR = wantHole && hubInr >= lw * 1.0 ? Math.Min(hubInr - lw * 0.55, hubInr * 0.6) : 0.0;
 
         foreach (var tt in trunkTips)
-            shapes.Add(Poly($"trunk{id++}", GrowLane(rng, noise, hub, tt, lw, o, allowHole: false).Ribbon, "add"));
+            shapes.Add(Poly($"trunk{id++}", GrowLane(rng, noise, hub, hubInr, holeR, tt, lw, o, allowHole: false).Ribbon, "add"));
 
-        // one lane per wool tip: hub → tip, bent + varied, optional diamond hole inside. The wool objective is
-        // inset off the dead-end tip into the lane body (≈ half a lane width) so it carries cover instead of
-        // sitting on the boundary; the lane geometry still caps beyond it.
+        // one lane per wool tip: hub → tip, bent + varied, optional hole inside. The wool objective is inset off
+        // the dead-end tip into the lane body (≈ half a lane width) so it carries cover; the lane caps beyond it.
         var woolObjs = new List<(double X, double Z)>();
         foreach (var tip in tips)
         {
-            var lane = GrowLane(rng, noise, hub, tip, lw, o, allowHole: true);
+            var lane = GrowLane(rng, noise, hub, hubInr, holeR, tip, lw, o, allowHole: true);
             shapes.Add(Poly($"lane{id}", lane.Ribbon, "add"));
             if (lane.Hole is { } hole) shapes.Add(Poly($"hole{id}", hole, "subtract"));
             woolObjs.Add(lane.Obj);
@@ -69,12 +79,15 @@ public static class OrganicLane
         // Spawn goes on its OWN spur off the hub, tucked into a pocket pointing AWAY from the mid line (not
         // toward the bridge) so its protection sits well off the crossing — an attacker reaching the hub fans
         // out to the wools with room, not squeezing a single corridor past the spawn. See the contract doc.
-        var spawn = SpawnSpur(rng, noise, hub, trunkDirs, tips, lw, o, minAngle, shapes);
+        var spawn = SpawnSpur(rng, noise, hub, hubInr, holeR, trunkDirs, tips, lw, o, minAngle, shapes);
+
+        // cut the hub's own hole last, so it stays open regardless of the lanes that submerge into the ring
+        if (holeR > 0) shapes.Add(Poly("hubhole", HolePolygon(hub.Item1, hub.Item2, holeR, rng), "subtract"));
         return new Unit(shapes, spawn, woolObjs, trunkTips);
     }
 
     private static (double X, double Z) SpawnSpur(
-        Rng rng, NoiseField noise, (double X, double Z) hub, List<double> trunkDirs,
+        Rng rng, NoiseField noise, (double X, double Z) hub, double hubInr, double holeR, List<double> trunkDirs,
         List<(double X, double Z)> tips, double lw, LaneLayoutOptions o, double minAngle, List<SketchShape> shapes)
     {
         var dirs = new List<double>(trunkDirs);
@@ -93,7 +106,7 @@ public static class OrganicLane
         var chosen = away.Width >= 2 * minAngle ? away.Angle : widest.Angle;     // prefer a roomy away-from-mid pocket
         var len = lw * 2.3;                                                       // deeper spur → spawn off the hub mouth
         var spawnTip = (hub.X + Math.Cos(chosen) * len, hub.Z + Math.Sin(chosen) * len);
-        var spur = GrowLane(rng, noise, hub, spawnTip, lw * 0.9, o, allowHole: false);
+        var spur = GrowLane(rng, noise, hub, hubInr, holeR, spawnTip, lw * 0.9, o, allowHole: false);
         shapes.Add(Poly("spawnspur", spur.Ribbon, "add"));
         return spur.Obj;   // inset off the spur tip, like the wools
     }
@@ -156,21 +169,39 @@ public static class OrganicLane
         return d;
     }
 
-    // ── one lane: bent centerline → variable-width ribbon (+ optional diamond hole), plus the inset objective ─
+    // ── one lane: bent centerline → variable-width ribbon (+ optional hole), plus the inset objective ─────────
+    // The lane does NOT start at the hub centre; it attaches by submerging two nodes inside the hub (kept in the
+    // ring if the hub has a hole), so lanes union cleanly with the plaza instead of all colliding at one point.
     private static (List<double[]> Ribbon, List<double[]>? Hole, (double X, double Z) Obj) GrowLane(
-        Rng rng, NoiseField noise, (double X, double Z) hub, (double X, double Z) tip, double lw, LaneLayoutOptions o, bool allowHole)
+        Rng rng, NoiseField noise, (double X, double Z) hub, double hubInr, double holeR,
+        (double X, double Z) tip, double lw, LaneLayoutOptions o, bool allowHole)
     {
-        double dx = tip.X - hub.X, dz = tip.Z - hub.Z;
-        var len = Math.Sqrt(dx * dx + dz * dz);
-        double px = -dz / Math.Max(1e-6, len), pz = dx / Math.Max(1e-6, len);   // perpendicular
+        double ax = tip.X - hub.X, az = tip.Z - hub.Z;
+        var adist = Math.Sqrt(ax * ax + az * az);
+        double ux = ax / Math.Max(1e-6, adist), uz = az / Math.Max(1e-6, adist);   // unit hub→tip
+        // two attach nodes, both inside the hub's inradius (so they're submerged for any direction / hub shape).
+        // Without a hole the deep node nearly reaches the centre so adjacent lanes overlap and FILL the wedges
+        // between them (no thin slivers); with a hole it stays just outside the ring.
+        var outer = hubInr * 0.9;                                                   // hub-edge entry node
+        var inner = holeR > 0 ? Math.Max(holeR + lw * 0.35, outer * 0.55) : outer * 0.2;
+        if (inner >= outer) inner = outer * 0.6;
+        var entry = (X: hub.X + ux * outer, Z: hub.Z + uz * outer);
 
-        // centerline control points: hub, 1–2 noise-offset waypoints (the bends), tip
-        var ctrl = new List<double[]> { new[] { hub.X, hub.Z } };
+        double dx = tip.X - entry.X, dz = tip.Z - entry.Z;
+        var len = Math.Sqrt(dx * dx + dz * dz);
+        double px = -dz / Math.Max(1e-6, len), pz = dx / Math.Max(1e-6, len);   // perpendicular to entry→tip
+
+        // centerline: submerged node (inside the hub), hub-edge entry, 1–2 noise-offset waypoints (bends), tip
+        var ctrl = new List<double[]>
+        {
+            new[] { hub.X + ux * inner, hub.Z + uz * inner },
+            new[] { entry.X, entry.Z },
+        };
         var waypoints = allowHole ? rng.Int(1, 3) : 1;
         for (var k = 1; k <= waypoints; k++)
         {
             var t = k / (double)(waypoints + 1);
-            double bx = hub.X + dx * t, bz = hub.Z + dz * t;
+            double bx = entry.X + dx * t, bz = entry.Z + dz * t;
             var off = (noise.At(bx, bz) - 0.5) * 2 * lw * 0.55;                  // ± ~0.55 lane widths (gentle bends
             ctrl.Add([bx + px * off, bz + pz * off]);                            // — sharper folds pinch the inner edge)
         }
@@ -182,21 +213,21 @@ public static class OrganicLane
         var half = new double[n];
         for (var i = 0; i < n; i++) half[i] = lw * 0.5 * (1 - 0.25 * (i / (double)(n - 1)));
 
-        // optional diamond hole: bulge the ribbon so a path of at least 0.7·laneWidth remains on EACH side of
-        // the hole (the corpus keeps holes inside wide lanes, never as thin necks), then cut a rotated square.
+        // optional hole: bulge the ribbon so a path of at least 0.7·laneWidth remains on EACH side of the hole
+        // (the corpus keeps holes inside wide lanes, never as thin necks), then cut an organic 4–6-gon.
         List<double[]>? hole = null;
         if (allowHole && rng.Chance(o.HoleChance) && len > lw * 4)
         {
             var hi = Math.Clamp(n / 2 + rng.Int(-n / 6, n / 6 + 1), 3, n - 4);
             var window = Math.Max(2, n / 6);
-            var hr = lw * rng.Range(0.35, 0.55);          // diamond half-diagonal
+            var hr = lw * rng.Range(0.35, 0.55);          // hole bounding radius
             var needHalf = hr + lw * 0.85;                // half-width leaving ≥0.7·lw each side after jitter (±0.15·lw)
             for (var i = Math.Max(0, hi - window); i <= Math.Min(n - 1, hi + window); i++)
             {
                 var falloff = 1 - Math.Abs(i - hi) / (double)window;
                 half[i] = Math.Max(half[i], lw * 0.5 + (needHalf - lw * 0.5) * falloff);
             }
-            hole = Diamond(center[hi][0], center[hi][1], hr, rng.Range(0, Math.PI / 2));
+            hole = HolePolygon(center[hi][0], center[hi][1], hr, rng);
         }
 
         // jitter the two sides independently for an organic outline
@@ -228,17 +259,42 @@ public static class OrganicLane
         return (center[0][0], center[0][1]);
     }
 
-    private static List<double[]> Regular(double cx, double cz, double r, int n)
+    // hub plaza outline: a rotated square (style 1), a round-ish 12-gon (0), or an organic noise-jittered blob (2)
+    private static List<double[]> HubPolygon((double X, double Z) c, double r, int style, Rng rng, NoiseField noise)
     {
+        if (style == 1)
+        {
+            var rot = rng.Range(0, Math.PI / 2);
+            var sq = new List<double[]>(4);
+            for (var i = 0; i < 4; i++) { var a = rot + i * Math.PI / 2; sq.Add([c.X + r * Math.Cos(a), c.Z + r * Math.Sin(a)]); }
+            return sq;
+        }
+        var n = style == 0 ? 12 : rng.Int(7, 11);
+        var rotO = rng.Range(0, 2 * Math.PI / n);
         var ring = new List<double[]>(n);
-        for (var i = 0; i < n; i++) { var a = 2 * Math.PI * i / n; ring.Add([cx + r * Math.Cos(a), cz + r * Math.Sin(a)]); }
+        for (var i = 0; i < n; i++)
+        {
+            var a = rotO + i * 2 * Math.PI / n;
+            var rr = style == 2
+                ? r * (0.78 + 0.4 * noise.At(c.X + Math.Cos(a) * r, c.Z + Math.Sin(a) * r))   // organic, noise-driven
+                : r * (0.95 + 0.1 * rng.NextDouble());                                          // round, a little life
+            ring.Add([c.X + rr * Math.Cos(a), c.Z + rr * Math.Sin(a)]);
+        }
         return ring;
     }
 
-    private static List<double[]> Diamond(double cx, double cz, double r, double rot)
+    // an organic hole: a 4–6-gon with jittered radii (≤ r, so the lane's 0.7·lw side-path guarantee still holds)
+    private static List<double[]> HolePolygon(double cx, double cz, double r, Rng rng)
     {
-        var ring = new List<double[]>(4);
-        for (var i = 0; i < 4; i++) { var a = rot + i * Math.PI / 2; ring.Add([cx + r * Math.Cos(a), cz + r * Math.Sin(a)]); }
+        var n = rng.Int(4, 7);
+        var rot = rng.Range(0, 2 * Math.PI / n);
+        var ring = new List<double[]>(n);
+        for (var i = 0; i < n; i++)
+        {
+            var a = rot + i * 2 * Math.PI / n;
+            var rr = r * rng.Range(0.75, 1.0);
+            ring.Add([cx + rr * Math.Cos(a), cz + rr * Math.Sin(a)]);
+        }
         return ring;
     }
 

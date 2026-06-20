@@ -7,9 +7,10 @@ an organic, reusable-but-varied look. It is the lane-graph reading of real maps
 carry holes — ending in a dead-end wool tip; the spawn sits on its own short spur off the hub** (see
 *Playability* below for why the spawn is off the junction, not on it).
 
-**The shape recipe in one line:** drop a near-circular **hub blob** (a 12-gon plaza), radiate a set of
-**angle-constrained, variable-width ribbon polygons** out of its centre (mid trunks → bridges, wool lanes →
-dead-end tips, one spawn spur), **subtract** diamond holes, **union** the lot into one team's island, then
+**The shape recipe in one line:** drop a **hub plaza** (a round blob, a rotated square, or an organic jittered
+polygon — optionally a *ring* with its own hole), **submerge** a set of **angle-constrained, variable-width
+ribbon polygons** into it (mid trunks → bridges, wool lanes → dead-end tips, one spawn spur) rather than
+colliding them at its centre, **subtract** organic 4–6-gon holes, **union** the lot into one team's island, then
 **`mirror_z`** it to the opponent. Everything below is how each of those pieces is sized and placed — and it
 all comes out as a normal `SketchLayout` (the same polygon model a hand-drawn sketch produces); the rasterizer
 turns the set-algebra into terrain. Dump the raw polygons with `--gen-sketch Organic <seed> <out.json>`.
@@ -24,9 +25,14 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --gen-preview Organic <seed> <
 ## The process (and where to tune it)
 
 1. **Spawn hub + plaza.** Placed above the mid line, facing the foe (`hubZ = mid − 2·laneWidth`). All branches
-   meet here, so the hub is widened into a small **plaza** blob (radius `1.1·laneWidth`): branches fan out of an
-   *area*, not a point — a point hub pinches thin land wedges between adjacent branches and leaves no room.
-   *Tune:* `hub`, the plaza radius in `OrganicLane.Grow`.
+   meet here, so the hub is a small **plaza** (radius `~1.1–1.9·laneWidth`) — branches fan out of an *area*, not a
+   point (a point hub pinches thin land wedges and leaves no room). Its outline **varies**: a round-ish 12-gon, a
+   rotated square, or an organic noise-jittered polygon (`HubPolygon`), and ~45% of the time it carries its own
+   **hole** → a *ring plaza* (the corpus centre, e.g. Annealing). Lanes **attach by submerging two control nodes
+   inside the hub** (`GrowLane`) — kept within the hub's *inradius* (a square's is the tightest) and outside any
+   ring hole — so they union cleanly with the plaza instead of all piling at the centre; with no hole the deep
+   node nearly reaches the middle so adjacent lanes overlap and fill the wedges between them. *Tune:* hub
+   radius/style/hole odds in `OrganicLane.Grow`, the attach `inner`/`outer` in `GrowLane`.
 
 1b. **Mid trunks → bridges.** `MidBranches` short trunks reach from the hub toward mid, stopping `VoidDistance/2`
    short of it. Two well-separated trunks (the default) give **two crossings** of the void — two angles of
@@ -50,10 +56,11 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --gen-preview Organic <seed> <
    per-side half-width = base (tapering ~25% toward the tip) + independent noise jitter (`±0.3·laneWidth`),
    so the outline undulates instead of being a clean rectangle. *Tune:* taper, jitter scale.
 
-5. **Diamond holes.** With probability `HoleChance`, a lane carries a rotated square **subtracted** as a
-   diamond hole (the Green-Gem reading). The hole half-diagonal is `0.35–0.55·laneWidth`, and the ribbon is
-   **bulged so that a path of at least 0.7·laneWidth remains on each side** of the hole (the corpus keeps
-   holes inside wide lanes, never as thin necks). *Tune:* `HoleChance`, hole-size range, the `0.7·lw` margin.
+5. **Organic holes.** With probability `HoleChance`, a lane carries an **organic 4–6-gon** (jittered radii,
+   `HolePolygon`) **subtracted** as a hole (the Green-Gem reading) — not strictly a diamond. Its bounding
+   radius is `0.35–0.55·laneWidth`, and the ribbon is **bulged so that a path of at least 0.7·laneWidth remains
+   on each side** of the hole (the corpus keeps holes inside wide lanes, never as thin necks). The same
+   `HolePolygon` cuts the optional ring-plaza hub hole. *Tune:* `HoleChance`, hole-size range, the `0.7·lw` margin.
 
 6. **Spawn spur (playability).** The spawn does **not** sit on the hub junction. `SpawnSpur` finds the widest
    angular gap among the trunk + wool directions and, preferring a gap that points **away from the mid line**
