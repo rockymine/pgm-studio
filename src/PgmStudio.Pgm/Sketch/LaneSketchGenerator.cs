@@ -78,11 +78,16 @@ public static class LaneSketchGenerator
         _ => HLayout(options ?? new()),
     };
 
+    /// <summary>The board options the Organic archetype actually grows on: organic islands want room for the
+    /// lanes to read as distinct corridors, so the small 60×90 default is upsized to 120×150 (a non-default
+    /// board is left as the author set it). Shared so the demonstration page grows on the same board.</summary>
+    public static LaneLayoutOptions OrganicOptions(LaneLayoutOptions o) =>
+        o is { Width: 60, Height: 90 } ? o with { Width = 120, Height = 150 } : o;
+
     // ── Organic: lanes grown from the hub out to noise-spread wool tips (docs/contracts/organic-lane-generation.md) ──
     private static LaneLayoutResult Organic(LaneLayoutOptions o)
     {
-        // organic islands want room for the lanes to read as distinct corridors → a larger default board
-        if (o is { Width: 60, Height: 90 }) o = o with { Width = 120, Height = 150 };
+        o = OrganicOptions(o);
         var unit = OrganicLane.Grow(o);
         return Assemble(o, Mode(o, "mirror_z"), unit.Shapes, unit.Spawn, unit.Tips, mids: [], bridges: unit.TrunkTips);
     }

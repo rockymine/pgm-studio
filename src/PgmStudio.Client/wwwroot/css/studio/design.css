@@ -201,3 +201,32 @@
 
 /* Smart-suggestion design-page sample: pin to sidebar width so density reads true. */
 .ds-sug-sample { max-width: 280px; }
+
+/* /concepts/organic — the Organic-generation pipeline demo (each stage = a panel with a live svg). */
+.gen-controls {
+  display: flex;
+  align-items: end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.gen-field { margin: 0; }
+.gen-field .field-input { max-width: 7rem; }
+.gen-status { color: var(--text-muted); font-size: var(--font-sm); padding-bottom: 6px; }
+.gen-status--error { color: var(--color-error); }
+
+.gen-panel {
+  overflow: hidden;
+  background: var(--bg-canvas);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.gen-canvas { display: block; width: 100%; height: 460px; background: var(--bg-canvas); }
+
+.gen-legend { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
+.gen-legend-item { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--font-base); }
+.gen-swatch { width: 14px; height: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.gen-swatch--mirror { background: var(--canvas-mirror-fill); border-color: var(--canvas-mirror-stroke); }

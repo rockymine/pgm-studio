@@ -116,6 +116,54 @@ public sealed class SketchGenerateEndpoint(MapRepository repo, PgmDb db) : Endpo
     }
 }
 
+/// <summary>POST /api/sketch/generate/stages — run the Organic generator and emit its per-stage intermediates
+/// (value-noise field, sampled anchors, lane spines, ribbon shapes, placed objectives + mirror settings) for
+/// the demonstration page at <c>/concepts/organic</c>. Pure compute — no map is created or stored. Body:
+/// optional {seed, wools}.</summary>
+public sealed class SketchGenerateStagesEndpoint : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/sketch/generate/stages"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var seed = 1;
+        var wools = 2;
+        try
+        {
+            using var doc = await JsonDocument.ParseAsync(HttpContext.Request.Body, cancellationToken: ct);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("seed", out var sd) && sd.ValueKind == JsonValueKind.Number) seed = sd.GetInt32();
+            if (root.TryGetProperty("wools", out var wl) && wl.ValueKind == JsonValueKind.Number) wools = Math.Clamp(wl.GetInt32(), 1, 6);
+        }
+        catch { /* empty / invalid body → defaults */ }
+
+        var o = LaneSketchGenerator.OrganicOptions(new LaneLayoutOptions { Archetype = LaneArchetype.Organic, Seed = seed, Wools = wools });
+        var s = OrganicLane.GrowStages(o);
+        static double[] P((double X, double Z) p) => [p.X, p.Z];
+
+        await Send.OkAsync(new
+        {
+            seed = o.Seed,
+            wools = o.Wools,
+            width = s.Width,
+            height = s.Height,
+            laneWidth = s.LaneWidth,
+            margin = s.Margin,
+            mirrorMode = s.MirrorMode,
+            cx = s.Cx,
+            cz = s.Cz,
+            noise = s.Noise,
+            hub = s.Hub,
+            trunkTips = s.TrunkTips.Select(P),
+            woolTips = s.WoolTips.Select(P),
+            spawn = P(s.Spawn),
+            woolObjs = s.WoolObjs.Select(P),
+            spines = s.Spines.Select(sp => new { kind = sp.Kind, points = sp.Points }),
+            shapes = s.Shapes,
+        }, ct);
+    }
+}
+
 /// <summary>GET /api/map/{slug}/sketch — the stored sketch layout (the JS-origin blob), or {} if none.</summary>
 public sealed class SketchGetEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {

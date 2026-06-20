@@ -62,6 +62,29 @@ public sealed class OrganicLaneTests
         }
     }
 
+    [Test]
+    public async Task GrowStages_matches_Grow_and_populates_every_stage()
+    {
+        var o = LaneSketchGenerator.OrganicOptions(new LaneLayoutOptions { Archetype = LaneArchetype.Organic, Seed = 9, Wools = 3 });
+        var plain = OrganicLane.Grow(o);
+        var s = OrganicLane.GrowStages(o);
+
+        // attaching a trace must not perturb the RNG — the captured shapes equal the untraced run's
+        static string Json(List<SketchShape> shapes) => new SketchLayout { Layout = new SketchShapes { Shapes = shapes } }.ToJson();
+        await Assert.That(Json(s.Shapes)).IsEqualTo(Json(plain.Shapes));
+
+        await Assert.That(s.Noise.Values.Length).IsEqualTo(s.Noise.Cols * s.Noise.Rows);
+        await Assert.That(s.Noise.Values.Any(v => v > 0)).IsTrue();
+        await Assert.That(s.Hub.R).IsGreaterThan(0);
+        await Assert.That(s.WoolTips.Count).IsEqualTo(3);
+        await Assert.That(s.WoolObjs.Count).IsEqualTo(3);
+        // trunks + one spine per wool lane (a fork adds a child spine) + the spawn spur
+        await Assert.That(s.Spines.Count).IsGreaterThanOrEqualTo(s.TrunkTips.Count + s.WoolTips.Count + 1);
+        await Assert.That(s.Spines.Any(sp => sp.Kind == "spawn")).IsTrue();
+        await Assert.That(s.Shapes.Count).IsGreaterThan(0);
+        await Assert.That(s.MirrorMode).IsEqualTo("mirror_z");
+    }
+
     private static List<int> ComponentSizes(HashSet<(int, int)> cells)
     {
         var seen = new HashSet<(int, int)>();

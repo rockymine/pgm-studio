@@ -17,11 +17,67 @@ public static class OrganicLane
     public sealed record Unit(List<SketchShape> Shapes, (double X, double Z) Spawn,
         List<(double X, double Z)> Tips, List<(double X, double Z)> TrunkTips);
 
-    public static Unit Grow(LaneLayoutOptions o)
+    /// <summary>A coherent value-noise field sampled on a regular grid, for the demonstration page. Row-major:
+    /// the value at column c (x = X0 + c·Step) row r (z = Z0 + r·Step) is Values[r·Cols + c], each in [0,1].</summary>
+    public sealed record NoiseGrid(double X0, double Z0, double Step, int Cols, int Rows, double[] Values);
+
+    /// <summary>The spawn-hub plaza: centre, outer radius, style (0 round · 1 square · 2 organic blob) and the
+    /// ring-hole radius (0 = no hole).</summary>
+    public sealed record HubInfo(double X, double Z, double R, int Style, double HoleR);
+
+    /// <summary>One lane spine — a Catmull-Rom centerline — tagged with the role it plays
+    /// (<c>trunk</c> · <c>lane</c> · <c>spawn</c> · <c>fork-primary</c> · <c>fork-child</c>).</summary>
+    public sealed record Spine(string Kind, List<double[]> Points);
+
+    /// <summary>The Organic generator's per-stage intermediates, captured from a single real <see cref="Grow"/>
+    /// run for the demonstration page: the value-noise field, the sampled anchors (hub + trunk + wool tips),
+    /// the lane spines, the assembled ribbon shapes and the placed objectives. The board size + mirror settings
+    /// let a viewer reproduce the symmetry mirror.</summary>
+    public sealed record Stages(
+        double Width, double Height, double LaneWidth, double Margin,
+        NoiseGrid Noise, HubInfo Hub,
+        List<(double X, double Z)> TrunkTips, List<(double X, double Z)> WoolTips,
+        (double X, double Z) Spawn, List<(double X, double Z)> WoolObjs,
+        List<Spine> Spines, List<SketchShape> Shapes,
+        string MirrorMode, double Cx, double Cz);
+
+    /// <summary>Mutable collector for the per-stage geometry; populated by <see cref="Grow"/> only when a
+    /// trace is attached, so the normal generate path stays allocation-free. Sampling the noise + recording
+    /// spines never touches the RNG, so a traced run produces an identical unit to an untraced one.</summary>
+    internal sealed class StageTrace
+    {
+        public NoiseGrid? Noise;
+        public HubInfo? Hub;
+        public List<(double X, double Z)> WoolTips = [];
+        public readonly List<Spine> Spines = [];
+        public void AddSpine(string kind, List<double[]> pts) =>
+            Spines.Add(new Spine(kind, pts.Select(p => new[] { p[0], p[1] }).ToList()));
+    }
+
+    /// <summary>Grow a unit AND capture every stage's geometry for the demonstration page. Runs the exact same
+    /// <see cref="Grow"/> pipeline (deterministic for the seed) with a trace attached.</summary>
+    public static Stages GrowStages(LaneLayoutOptions o)
+    {
+        var trace = new StageTrace();
+        var unit = Grow(o, trace);
+        var mode = string.IsNullOrEmpty(o.MirrorMode) ? "mirror_z" : o.MirrorMode;
+        return new Stages(
+            o.Width, o.Height, o.LaneWidth, o.Margin,
+            trace.Noise!, trace.Hub!,
+            unit.TrunkTips, trace.WoolTips,
+            unit.Spawn, unit.Tips,
+            trace.Spines, unit.Shapes,
+            mode, o.Width / 2, o.Height / 2);
+    }
+
+    public static Unit Grow(LaneLayoutOptions o) => Grow(o, null);
+
+    private static Unit Grow(LaneLayoutOptions o, StageTrace? trace)
     {
         var rng = new Rng(o.Seed);
         double W = o.Width, H = o.Height, m = o.Margin, lw = o.LaneWidth, midZ = H / 2;
         var noise = new NoiseField(o.Seed, Math.Max(6.0, lw));
+        if (trace is not null) trace.Noise = SampleNoise(noise, o);
         var minAngle = o.MinHubAngle * Math.PI / 180.0;
 
         // hub junction: above the mid line, facing the foe — the trunks and wool lanes meet here
@@ -43,6 +99,7 @@ public static class OrganicLane
         // wool tips: far-spread on the noise grid, but kept ≥ minAngle apart from each other AND the trunks —
         // the hub-fan minimum, so no two branches fan out tightly enough to pinch a sliver of land between them.
         var tips = FarthestTips(o, rng, noise, hub, Math.Max(1, o.Wools), minAngle, trunkDirs);
+        if (trace is not null) trace.WoolTips = tips;
 
         var shapes = new List<SketchShape>();
         var id = 0;
@@ -61,9 +118,10 @@ public static class OrganicLane
         var hubInr = hubR * (hubStyle == 1 ? 0.68 : hubStyle == 2 ? 0.72 : 0.9);
         // hole sized to leave a ring the lanes can attach to (outside it); skip if the hub came out too small
         var holeR = wantHole && hubInr >= lw * 1.0 ? Math.Min(hubInr - lw * 0.55, hubInr * 0.6) : 0.0;
+        if (trace is not null) trace.Hub = new HubInfo(hub.Item1, hub.Item2, hubR, hubStyle, holeR);
 
         foreach (var tt in trunkTips)
-            shapes.Add(Poly($"trunk{id++}", GrowLane(rng, noise, hub, hubInr, holeR, tt, lw, o, allowHole: false).Ribbon, "add"));
+            shapes.Add(Poly($"trunk{id++}", GrowLane(rng, noise, hub, hubInr, holeR, tt, lw, o, allowHole: false, trace: trace, spineKind: "trunk").Ribbon, "add"));
 
         // one lane per wool tip: hub → tip, bent + varied, optional hole inside. The wool objective is inset off
         // the dead-end tip into the lane body (≈ half a lane width) so it carries cover; the lane caps beyond it.
@@ -73,13 +131,13 @@ public static class OrganicLane
             // a long enough wool lane may FORK into a child branch (the wool stays on the primary tip)
             if (o.BranchChance > 0 && Dist(hub, tip) > lw * 3.5 && rng.Chance(o.BranchChance))
             {
-                var fork = GrowForkedLane(rng, noise, hub, hubInr, holeR, tip, lw, o, minAngle, id);
+                var fork = GrowForkedLane(rng, noise, hub, hubInr, holeR, tip, lw, o, minAngle, id, trace);
                 shapes.AddRange(fork.Shapes);
                 woolObjs.Add(fork.WoolTip);
             }
             else
             {
-                var lane = GrowLane(rng, noise, hub, hubInr, holeR, tip, lw, o, allowHole: true);
+                var lane = GrowLane(rng, noise, hub, hubInr, holeR, tip, lw, o, allowHole: true, trace: trace, spineKind: "lane");
                 shapes.Add(Poly($"lane{id}", lane.Ribbon, "add"));
                 if (lane.Hole is { } hole) shapes.Add(Poly($"hole{id}", hole, "subtract"));
                 woolObjs.Add(lane.Obj);
@@ -90,7 +148,7 @@ public static class OrganicLane
         // Spawn goes on its OWN spur off the hub, tucked into a pocket pointing AWAY from the mid line (not
         // toward the bridge) so its protection sits well off the crossing — an attacker reaching the hub fans
         // out to the wools with room, not squeezing a single corridor past the spawn. See the contract doc.
-        var spawn = SpawnSpur(rng, noise, hub, hubInr, holeR, trunkDirs, tips, lw, o, minAngle, shapes);
+        var spawn = SpawnSpur(rng, noise, hub, hubInr, holeR, trunkDirs, tips, lw, o, minAngle, shapes, trace);
 
         // cut the hub's own hole last, so it stays open regardless of the lanes that submerge into the ring
         if (holeR > 0) shapes.Add(Poly("hubhole", HolePolygon(hub.Item1, hub.Item2, holeR, rng), "subtract"));
@@ -99,7 +157,8 @@ public static class OrganicLane
 
     private static (double X, double Z) SpawnSpur(
         Rng rng, NoiseField noise, (double X, double Z) hub, double hubInr, double holeR, List<double> trunkDirs,
-        List<(double X, double Z)> tips, double lw, LaneLayoutOptions o, double minAngle, List<SketchShape> shapes)
+        List<(double X, double Z)> tips, double lw, LaneLayoutOptions o, double minAngle, List<SketchShape> shapes,
+        StageTrace? trace = null)
     {
         var dirs = new List<double>(trunkDirs);
         dirs.AddRange(tips.Select(t => Math.Atan2(t.Z - hub.Z, t.X - hub.X)));
@@ -117,7 +176,7 @@ public static class OrganicLane
         var chosen = away.Width >= 2 * minAngle ? away.Angle : widest.Angle;     // prefer a roomy away-from-mid pocket
         var len = lw * 2.3;                                                       // deeper spur → spawn off the hub mouth
         var spawnTip = (hub.X + Math.Cos(chosen) * len, hub.Z + Math.Sin(chosen) * len);
-        var spur = GrowLane(rng, noise, hub, hubInr, holeR, spawnTip, lw * 0.9, o, allowHole: false);
+        var spur = GrowLane(rng, noise, hub, hubInr, holeR, spawnTip, lw * 0.9, o, allowHole: false, trace: trace, spineKind: "spawn");
         shapes.Add(Poly("spawnspur", spur.Ribbon, "add"));
         return spur.Obj;   // inset off the spur tip, like the wools
     }
@@ -261,11 +320,17 @@ public static class OrganicLane
         return (Lane.Ribbon(center, left, right), hole, InsetAlong(center, lw * 0.5));
     }
 
-    // one straightforward lane = spine + ribbon (the inset tip objective is the wool)
+    // one straightforward lane = spine + ribbon (the inset tip objective is the wool). The optional trace
+    // records the spine under spineKind, for the demonstration page.
     private static (List<double[]> Ribbon, List<double[]>? Hole, (double X, double Z) Obj) GrowLane(
         Rng rng, NoiseField noise, (double X, double Z) hub, double hubInr, double holeR,
-        (double X, double Z) tip, double lw, LaneLayoutOptions o, bool allowHole) =>
-        RibbonFromCenterline(LaneCenterline(rng, noise, hub, hubInr, holeR, tip, lw, allowBend: allowHole), lw, o, rng, noise, allowHole);
+        (double X, double Z) tip, double lw, LaneLayoutOptions o, bool allowHole,
+        StageTrace? trace = null, string? spineKind = null)
+    {
+        var center = LaneCenterline(rng, noise, hub, hubInr, holeR, tip, lw, allowBend: allowHole);
+        if (trace is not null && spineKind is not null) trace.AddSpine(spineKind, center);
+        return RibbonFromCenterline(center, lw, o, rng, noise, allowHole);
+    }
 
     // ── a FORKED lane: a wool lane that splits. A primary hub→tip strip, then a CHILD branch grows off a point
     // partway along it — the child anchors back along the parent so the two ribbons overlap and the junction
@@ -273,10 +338,12 @@ public static class OrganicLane
     // leaves carry wools is policy left to the caller — today the wool stays on the primary tip, child = terrain.
     private static (List<SketchShape> Shapes, (double X, double Z) WoolTip) GrowForkedLane(
         Rng rng, NoiseField noise, (double X, double Z) hub, double hubInr, double holeR,
-        (double X, double Z) primaryTip, double lw, LaneLayoutOptions o, double minAngle, int id)
+        (double X, double Z) primaryTip, double lw, LaneLayoutOptions o, double minAngle, int id,
+        StageTrace? trace = null)
     {
         var shapes = new List<SketchShape>();
         var pc = LaneCenterline(rng, noise, hub, hubInr, holeR, primaryTip, lw, allowBend: true);
+        if (trace is not null) trace.AddSpine("fork-primary", pc);
         var prim = RibbonFromCenterline(pc, lw, o, rng, noise, allowHole: true);
         shapes.Add(Poly($"lane{id}", prim.Ribbon, "add"));
         if (prim.Hole is { } h) shapes.Add(Poly($"hole{id}", h, "subtract"));
@@ -295,6 +362,7 @@ public static class OrganicLane
         // child spine: an anchor back along the parent (overlap at the junction), the fork point, the child tip
         (double X, double Z) anchor = (fp.X - pd.X * lw * 0.8, fp.Z - pd.Z * lw * 0.8);
         var cc = CatmullRom.Spline([[anchor.X, anchor.Z], [fp.X, fp.Z], [childTip.X, childTip.Z]], 16);
+        if (trace is not null) trace.AddSpine("fork-child", cc);
         shapes.Add(Poly($"branch{id}", RibbonFromCenterline(cc, lw, o, rng, noise, allowHole: false).Ribbon, "add"));
         return (shapes, prim.Obj);
     }
@@ -412,6 +480,20 @@ public static class OrganicLane
 
     private static double Dist((double X, double Z) a, (double X, double Z) b) =>
         Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Z - b.Z) * (a.Z - b.Z));
+
+    // Sample the noise field over the whole board on a regular grid (rounded for a compact wire payload), so
+    // the demonstration page can paint the field the tip-spread + bends read from.
+    private static NoiseGrid SampleNoise(NoiseField noise, LaneLayoutOptions o)
+    {
+        var step = Math.Max(2.0, o.LaneWidth / 4);
+        var cols = (int)(o.Width / step) + 1;
+        var rows = (int)(o.Height / step) + 1;
+        var values = new double[cols * rows];
+        for (var r = 0; r < rows; r++)
+            for (var c = 0; c < cols; c++)
+                values[r * cols + c] = Math.Round(noise.At(c * step, r * step), 3);
+        return new NoiseGrid(0, 0, step, cols, rows, values);
+    }
 
     private static SketchShape Poly(string id, List<double[]> ring, string op) =>
         new() { Id = id, Type = "polygon", Operation = op, Vertices = [.. ring] };

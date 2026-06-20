@@ -280,6 +280,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **`/authoring` concept page** — UI mock (no backend calls), the design reference for the real
   wizard. (`9f645dc` → `45209a1`)
 
+## Layout generation (G) — auto map generation (lane sketch generators)
+- **Lane sketch generators** — `LaneSketchGenerator` grows a starter Capture-the-Wool sketch from lane
+  primitives for four archetypes (H · Pinwheel · Trident · Organic); `OrganicLane` grows a team's island
+  from a spawn hub out to noise-spread wool tips (variable-width `Lane.Ribbon` hulls, optional organic
+  holes, forked lanes, spawn-on-a-spur). `POST /api/sketch/generate` originates a draft sketch from a
+  chosen archetype/seed (`SketchLayoutPrep` simplifies + Bézier-rounds lanes for the editor). Pure +
+  seeded — same seed → same layout. (`docs/contracts/organic-lane-generation.md`)
+- **Organic-generation demo page** — `/concepts/organic` visualises the whole Organic pipeline on one
+  page, one panel per stage (value-noise field → anchor sampling → lane spines → ribbon hulls →
+  assembled + mirror) with static explanatory text; a seed / wools control re-runs the **real** generator
+  live. `OrganicLane.GrowStages` captures the per-stage intermediates from a single traced `Grow` run
+  (no second code path); `POST /api/sketch/generate/stages` emits them; `render/gen-stages.js` paints each
+  stage (reuses the geometry / render layers). (G4)
+
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
   `GET /wool-availability`, `GET /monument-obstruction` (each wool monument's block must be air; flags a

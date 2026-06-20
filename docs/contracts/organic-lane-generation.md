@@ -135,6 +135,12 @@ protection-aware BFS from each captor's spawn to the enemy wool with the defende
 | `Width`/`Height` | auto → 120×150 | board size; Organic upsizes the 60×90 default so lanes read as distinct corridors |
 
 ## How to iterate
+- **The demonstration page (`/concepts/organic`)** lays the whole pipeline out on one page — a panel per
+  stage (value-noise field → anchor sampling → lane spines → ribbon hulls → assembled + mirror) with a live
+  seed / wools control that re-runs the real generator. It reads the per-stage intermediates from
+  `OrganicLane.GrowStages` (a single traced `Grow` run) via `POST /api/sketch/generate/stages`, rendered by
+  `js/studio/render/gen-stages.js`. Use it to see each step and find improvements (it feeds the G3
+  shape-language work).
 - Sweep seeds and eyeball them with the analysis harness in `scripts/generator/` (see its README): a typical
   loop is `--gen-map-preview Organic <seed> m.json` → `viz_void.py` (clearance + pinches) → `validate_play.py`
   (PLAYABLE check) → `measure.py` (the numbers); `render_sketch.py`/`--gen-catalog` show the raw polygons.

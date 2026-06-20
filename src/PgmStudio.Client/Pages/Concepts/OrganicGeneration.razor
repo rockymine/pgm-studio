@@ -1,0 +1,139 @@
+@page "/concepts/organic"
+@layout PgmStudio.Client.Layout.EditorLayout
+@inject IJSRuntime JS
+@inject HttpClient Http
+
+@* Organic-generation demonstration page — the whole OrganicLane seeding pipeline on one page, each stage in
+   its own panel with static explanatory text (the stages are fixed; only the geometry changes with the seed).
+   The seed control re-runs the REAL generator (POST /api/sketch/generate/stages → OrganicLane.GrowStages) and
+   re-renders every stage live via render/gen-stages.js. /concepts-style; see
+   docs/contracts/organic-lane-generation.md. *@
+
+<div class="editor-page">
+
+<div id="topbar" class="topbar">
+  <a href="/maps" class="topbar-breadcrumb-home" title="Back to dashboard">
+    <i data-lucide="house"></i>
+    <span>Studio</span>
+  </a>
+  <span class="topbar-sep">›</span>
+  <span class="topbar-crumb">Organic Generation</span>
+  <span class="topbar-crumb topbar-crumb--dim">pipeline</span>
+  <div class="topbar-right">
+    <span class="ds-file-list">OrganicLane.Grow · seed @seed</span>
+    <ThemeToggle />
+  </div>
+</div>
+
+<div id="ds-layout">
+  <nav id="ds-nav" aria-label="Organic pipeline stages">
+    <div class="ds-nav-group">Overview</div>
+    <a href="#overview" @onclick:preventDefault="true" @onclick='() => Scroll("overview")'>Pipeline</a>
+    <div class="ds-nav-group">Stages</div>
+    <a href="#noise" @onclick:preventDefault="true" @onclick='() => Scroll("noise")'>1 · Noise field</a>
+    <a href="#anchors" @onclick:preventDefault="true" @onclick='() => Scroll("anchors")'>2 · Anchor sampling</a>
+    <a href="#spines" @onclick:preventDefault="true" @onclick='() => Scroll("spines")'>3 · Lane spines</a>
+    <a href="#ribbons" @onclick:preventDefault="true" @onclick='() => Scroll("ribbons")'>4 · Ribbon hulls</a>
+    <a href="#assembled" @onclick:preventDefault="true" @onclick='() => Scroll("assembled")'>5 · Assemble &amp; mirror</a>
+    <div class="ds-nav-group">Reference</div>
+    <a href="#legend" @onclick:preventDefault="true" @onclick='() => Scroll("legend")'>Legend &amp; knobs</a>
+  </nav>
+
+  <main id="ds-main">
+    <header class="ds-intro" id="overview">
+      <p class="ds-kicker">Lane generation · live</p>
+      <h1>Organic seeding pipeline</h1>
+      <p>
+        The <code>Organic</code> archetype grows a team's island <strong>outward from a spawn hub</strong>
+        into a few wool lanes, using a seeded noise field to place and bend them. This page lays out every
+        stage of that growth as the <em>real</em> generator runs it — change the seed and every panel
+        re-renders from a fresh <code>OrganicLane.GrowStages</code> run (no mock). Stages are fixed; only the
+        geometry moves. The full design lives in <code>docs/contracts/organic-lane-generation.md</code>.
+      </p>
+
+      <div class="gen-controls">
+        <div class="field gen-field">
+          <label class="field-label">Seed</label>
+          <input class="field-input" type="number" min="1" value="@seed" @onchange="OnSeedChange" />
+        </div>
+        <button class="action-btn action-btn--icon" @onclick="Reroll" title="Random seed" disabled="@loading">
+          <i data-lucide="dices"></i>
+        </button>
+        <div class="field gen-field">
+          <label class="field-label">Wools / team</label>
+          <input class="field-input" type="number" min="1" max="6" value="@wools" @onchange="OnWoolsChange" />
+        </div>
+        @if (loading) { <span class="gen-status">generating…</span> }
+        else if (error is not null) { <span class="gen-status gen-status--error">@error</span> }
+      </div>
+    </header>
+
+    <section class="ds-section" id="noise">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">Stage 1</p><h2>The value-noise field</h2></div>
+        <p>A seeded <code>NoiseField</code> — a coherent [0,1] grid. Brighter = higher. Every later stage
+          reads from it: where the wool tips spread, how the lanes bend, how the hull jitters.</p>
+      </div>
+      <div class="gen-panel"><svg id="gen-stage-noise" class="gen-canvas"></svg></div>
+    </section>
+
+    <section class="ds-section" id="anchors">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">Stage 2</p><h2>Anchor sampling</h2></div>
+        <p>The hub sits above the mid line; short <strong>trunks</strong> reach toward it (future bridges).
+          The <strong>wool tips</strong> are farthest-point sampled from the bright far band, each kept
+          ≥ <code>MinHubAngle</code> from the others and the trunks so no thin slivers form.</p>
+      </div>
+      <div class="gen-panel"><svg id="gen-stage-anchors" class="gen-canvas"></svg></div>
+    </section>
+
+    <section class="ds-section" id="spines">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">Stage 3</p><h2>Lane spines</h2></div>
+        <p>Each branch is a <strong>Catmull-Rom</strong> centerline: submerged hub nodes → noise-bent
+          waypoints → tip. It is interpolating + centripetal, so the curve passes <em>through</em> the wool
+          exactly and a short attach segment can't overshoot into a cusp.</p>
+      </div>
+      <div class="gen-panel"><svg id="gen-stage-spines" class="gen-canvas"></svg></div>
+    </section>
+
+    <section class="ds-section" id="ribbons">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">Stage 4</p><h2>Ribbon hulls</h2></div>
+        <p><code>Lane.Ribbon</code> offsets each spine to a <strong>variable, jittered width</strong>
+          (tapering toward the tip) → an organic hull, not a rectangle. Plus the hub <strong>plaza</strong>
+          and any subtracted organic <strong>holes</strong>. This is the spine → area step.</p>
+      </div>
+      <div class="gen-panel"><svg id="gen-stage-ribbons" class="gen-canvas"></svg></div>
+    </section>
+
+    <section class="ds-section" id="assembled">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">Stage 5</p><h2>Assemble &amp; mirror</h2></div>
+        <p>Union the hulls into one team island, then <code>mirror_z</code> it to the opponent across the mid
+          line. Wools sit inset at the tips, the spawn on its spur; each trunk tip <strong>bridges</strong>
+          the void to its mirror — two crossings, not one chokepoint.</p>
+      </div>
+      <div class="gen-panel"><svg id="gen-stage-assembled" class="gen-canvas"></svg></div>
+    </section>
+
+    <section class="ds-section" id="legend">
+      <div class="ds-section-heading">
+        <div><p class="ds-kicker">Reference</p><h2>Legend &amp; knobs</h2></div>
+        <p>Markers are consistent across the panels. The growth knobs (<code>LaneLayoutOptions</code>) are in
+          the contract; seed + wools are exposed here.</p>
+      </div>
+      <div class="gen-legend">
+        <span class="gen-legend-item"><span class="gen-swatch" style="background:var(--accent)"></span>noise value · wool objective</span>
+        <span class="gen-legend-item"><span class="gen-swatch" style="background:var(--canvas-mirror-stroke)"></span>wool tip (anchor)</span>
+        <span class="gen-legend-item"><span class="gen-swatch" style="background:var(--canvas-result-stroke)"></span>trunk / bridge anchor</span>
+        <span class="gen-legend-item"><span class="gen-swatch" style="background:var(--color-error)"></span>spawn</span>
+        <span class="gen-legend-item"><span class="gen-swatch" style="background:var(--text-muted)"></span>hub plaza</span>
+        <span class="gen-legend-item"><span class="gen-swatch gen-swatch--mirror"></span>mirrored opponent island</span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+</div>

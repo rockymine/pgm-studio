@@ -61,6 +61,13 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef);
   },
 
+  // Paint the Organic-generation demo stages (/concepts/organic) into the #gen-stage-* svgs. Stateless —
+  // the page POSTs a seed to /api/sketch/generate/stages and hands the payload here on load + each re-roll.
+  async renderGenStages(stages) {
+    const mod = await import("/js/studio/render/gen-stages.js");
+    mod.renderStages(stages);
+  },
+
   // R1a: a minimal editor keyboard layer — Ctrl/Cmd+G → dotnetRef.OnGroupKey() (group/ungroup the
   // current selection). One active listener at a time (the visible activity owns it). preventDefault
   // so the browser's "find next" doesn't fire. Ignored while typing in a field. (Seed of B6's command

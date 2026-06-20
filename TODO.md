@@ -152,26 +152,19 @@ feature).
   DTO, and **port protection-aware reachability** from `scripts/generator/validate_play.py` to C#
   `Analysis/Playability`: today's `Traversability.Check` only tests connectivity, NOT spawn-protection-as-
   wall, so it passes maps the generator's Python validator would fail. Feeds the `NVAL` export gate.
-- [ ] **G3 — Shape-language extension + refinement loop (memory stage S5).** The corpus gap (memory): real
-  CTW maps have a rich contested middle (median ~9 islands; only ~20% are the clean 2–4-island archetypes),
-  but the generator emits 0–2 mid pieces. Add satellites / stepping-stones / a contested centre to the shape
-  language + a refine-on-feedback loop. Also where **seed-variation for the deterministic archetypes**
-  belongs (today only Organic varies by seed; H/Trident/Pinwheel are fixed). Needs UI; the
-  `docs/generator-archetypes.md` island-count caveat is still pending (memory). `G4` feeds this.
-- [ ] **G4 — Organic-generation demonstration page.** A `/concepts`-style page that visualises the **whole
-  Organic seeding pipeline on one page**, each stage in its own panel with static explanatory text (the
-  stages are fixed; only the geometry changes with the seed), drawn from
-  `docs/contracts/organic-lane-generation.md`. Stages, in `OrganicLane.Grow` order: (1) the **value-noise
-  field** (`NoiseField`, seed → coherent [0,1] grid); (2) **anchor sampling** — hub + far-spread wool tips
-  (farthest-point sampling weighted by the noise, kept ≥ `MinHubAngle` apart) + mid-trunk tips; (3) **lane
-  spines** — `LaneCenterline` → Catmull-Rom splines (hub-submerged attach nodes → noise-bent waypoints →
-  tip); (4) **ribbon shapes** — `Lane.Ribbon` variable-width jittered hulls + hub plaza + optional diamond
-  holes; (5) the **assembled island + symmetry mirror**. A **seed control re-runs the real generator** and
-  re-renders every stage live (real island seeding, not a mock). Needs `OrganicLane` to expose its per-stage
-  intermediates (noise samples, tips, centerlines, ribbons) — e.g. a debug emitter behind a
-  `POST /sketch/generate/stages` — plus new JS stage renderers (reuse `render/` where possible; the
-  `StyleCatalog` / `--gen-catalog` + `scripts/generator/render_catalog.py` path is prior art). Purpose:
-  see each step to find improvements (feeds `G3`). Longer task; good clean-slate pickup.
+- [ ] **G3 — Contested-middle shape language + refinement loop (memory stage S5).** The corpus gap, now
+  measured (`scripts/island_corpus.py`, N=347, written up in `docs/generator-archetypes.md`): the Organic
+  archetype emits the 2 team islands and **0 neutral mid pieces** (`LaneSketchGenerator.Organic` passes
+  `mids: []`), but **88%** of real maps carry a contested middle — median **2 gameplay-sized neutral islands**
+  (total-island median 5 vs the generator's 2). Add a **symmetric neutral mid-set** to the generator:
+  ~2 pieces (a `MidPieces` knob), **small/medium** (64–1023 blocks ≈ 3.6% of the team island — *not* a big
+  central blob; only 10% of real neutrals are >25% of a team island), placed ~40% central / ~60% flanking
+  between lanes, fanned by the board symmetry through `Assemble`'s existing mid-island slot (66% of real
+  neutrals have a mirror twin). Reuse the noise field for placement + the circle/polygon shape vocabulary.
+  Also **rework holes** — corpus has holes on only **18%** of islands, so move `HoleChance` from per-lane
+  0.45 toward a per-island ~18% rate (and allow holes on the neutral pieces). Plus a **refine-on-feedback
+  loop** and **seed-variation for the deterministic archetypes** (today only Organic varies by seed;
+  H/Trident/Pinwheel are fixed). Re-run `scripts/island_corpus.py` to re-validate. Needs UI. `G4` feeds this.
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding

@@ -36,8 +36,46 @@ counts: annealing_iv 2832 → 173 (6%), kanto 1346 → 64 (4%), green_gem 2622 �
 - **Wools** sit at the far/outer **tips** of lanes/arms/prongs — dead-ends toward the map edge.
 - **Monuments** cluster at the team's **hub** (near the spawn / where the arms meet), often paired.
 - **Multiple wools per team** are common (Kanto 2, Green Gem 3, Annealing 1).
-- **Mid islands** are separate contested pieces (satellites / chevrons), bridged in Configure.
+- **Mid islands** are separate contested pieces (satellites / chevrons), bridged in Configure — the
+  *norm*, not the exception (see the corpus island-count section below).
 - Symmetry is `rot_90` (Annealing) or `mirror_z` (Kanto, Green Gem).
+
+> These three maps are a qualitative deep-dive; the recipes were validated against the **full ingested
+> corpus** (below). Everything holds except the *island count* — these three are simpler than the median map.
+
+## Corpus island-count — the contested middle (N = 347)
+
+Measured across the full ingested CTW corpus (`gamemode=ctw` maps with island geometry + a wool objective)
+with `scripts/island_corpus.py`, which reads the populated MariaDB and classifies each island as
+**objective-bearing** (hosts a wool/monument — what the generator emits) or **neutral** (the contested
+middle the generator omits).
+
+**Island count.** Median **5** islands/map (mean 7.9, p25 3, p75 9, max 231 = a decorative outlier). **45%**
+of maps have ≤4 islands — but that splits into **24% with just 1–2** (the two team bodies are compact or
+bridged into one landmass) and **21% with the clean 3–4** archetype. The other **55%** carry 5+.
+
+**Objective vs neutral.** Objective islands/map median **2**: 53% of maps are two separate team islands (the
+`mirror_z` case), **30% put both teams on one connected landmass**, 10% are four-team. Then the middle:
+
+- **88% of maps have ≥1 neutral island**; median **3** (median **2** once decoration is filtered, i.e.
+  ≥64 blocks); **81%** have ≥1 gameplay-sized neutral island.
+- **The pieces are small.** Median neutral island = **3.6%** of the team island. 46% are stepping-stones
+  (<3%), 44% satellites (3–25%), only 10% substantial (>25%). By absolute block-count: 32% <64
+  (decoration), 39% 64–255, 22% 256–1023, 6% ≥1024. → add *several small/medium* pieces, **not a big
+  central blob**.
+- **They're symmetric.** **66%** of gameplay neutral islands have a `mirror_z` twin → generate them as a
+  symmetric set (the rest are on-axis singles + rot maps the mirror_z check misses).
+- **Mixed position.** 39% sit near the centre (a contested centre); 61% are scattered (flanking satellites
+  between the lanes).
+
+**Holes (the diamond primitive).** Only **18%** of islands carry ≥1 hole — real, but a minority feature.
+
+**The generator gap → G3.** The Organic archetype emits the 2 objective islands and **zero** neutral pieces
+(`LaneSketchGenerator.Organic` passes `mids: []`). The clean-archetype assumption nails the simple ~45% tail
+but misses the symmetric 2–3-piece middle that 88% of maps have. The `G3` targets that follow directly:
+add a symmetric **neutral mid-set** (~2 pieces, 64–1023 blocks ≈ 3.6% of the team island, ~40% central /
+~60% flanking) via `Assemble`'s mid-island slot, and rework holes from the per-lane `HoleChance=0.45` toward
+a per-island ~18% rate. Re-run `scripts/island_corpus.py` to re-validate after.
 
 ## How the sketch shape system builds them
 The lane/shape primitives already cover these:
