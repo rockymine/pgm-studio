@@ -1,4 +1,5 @@
 using PgmStudio.Pgm;
+using JP = System.Text.Json.Serialization.JsonPropertyNameAttribute;
 
 // Corpus round-trip fidelity harness (C# port of tools/roundtrip_check.py).
 //
@@ -67,6 +68,19 @@ if (rwIdx >= 0 && rwIdx + 1 < args.Length)
 var exIdx = Array.IndexOf(args, "--extract");
 if (exIdx >= 0 && exIdx + 2 < args.Length)
     return await RunExtractParity(args[exIdx + 1], args[exIdx + 2]);
+
+// --scan-out <mapDir> <outRoot>: scan ONE map's world (mapDir/region) + parse mapDir/map.xml and write the
+// full importer-ready output dir <outRoot>/<slug>/ (xml_data.json + feature parquets + layer.parquet +
+// islands.json + map_config.json) WITHOUT a database. Run the heavy world scan on a fast host, then ingest
+// the cheap files with `dotnet run --project src/PgmStudio.Import <outRoot>`.
+var soIdx = Array.IndexOf(args, "--scan-out");
+if (soIdx >= 0 && soIdx + 2 < args.Length)
+    return await RunScanOut(args[soIdx + 1], args[soIdx + 2]);
+
+// --scan-out-all <mapsRoot> <outRoot>: --scan-out for every map folder under mapsRoot (one that has region/).
+var soaIdx = Array.IndexOf(args, "--scan-out-all");
+if (soaIdx >= 0 && soaIdx + 2 < args.Length)
+    return await RunScanOutAll(args[soaIdx + 1], args[soaIdx + 2]);
 
 // --islands <regionDir> <oracleDir>: surface scan + island detection vs layer.parquet/islands.json.
 var isIdx = Array.IndexOf(args, "--islands");
@@ -497,6 +511,102 @@ static async Task<int> RunExtractParity(string regionDir, string oracleDir)
     return fails == 0 ? 0 : 1;
 
     static string Fmt(int? v) => v is null ? "~" : v.Value.ToString();
+}
+
+// ── --scan-out: write a map's importer-ready file set (no database), so the heavy world scan can run on a
+// fast host and the cheap files be ingested later with `dotnet run --project src/PgmStudio.Import <outRoot>`.
+static async Task<int> RunScanOut(string mapDir, string outRoot)
+{
+    if (string.IsNullOrWhiteSpace(mapDir) || !Directory.Exists(mapDir)) { Console.Error.WriteLine($"  scan-out: map directory not found: '{mapDir}'"); return 1; }
+    mapDir = Path.GetFullPath(mapDir.TrimEnd(Path.DirectorySeparatorChar, '/'));
+    var slug = Path.GetFileName(mapDir);
+    var regionDir = Path.Combine(mapDir, "region");
+    var mapXml = Path.Combine(mapDir, "map.xml");
+    if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  {slug}: SKIP — no region/ directory"); return 1; }
+
+    var outDir = Path.Combine(outRoot, slug);
+    Directory.CreateDirectory(outDir);
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+
+    // Materialise the world's chunks once — every extractor re-enumerates them (matches WorldFeatureWriter).
+    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+
+    // feature rows → parquet (column names match the importer + the reference output)
+    await WriteParquet(Path.Combine(outDir, "wools.parquet"), PgmStudio.Minecraft.FeatureExtractors.Wools(chunks)
+        .Select(w => new ScanWoolRow { WorldX = w.WorldX, WorldZ = w.WorldZ, WorldY = w.WorldY, Color = w.Color }).ToList());
+    await WriteParquet(Path.Combine(outDir, "resources.parquet"), PgmStudio.Minecraft.FeatureExtractors.Resources(chunks)
+        .Select(r => new ScanResourceRow { WorldX = r.WorldX, WorldZ = r.WorldZ, WorldY = r.WorldY, ResourceType = r.ResourceType }).ToList());
+    await WriteParquet(Path.Combine(outDir, "chests.parquet"), PgmStudio.Minecraft.FeatureExtractors.Chests(chunks)
+        .Select(c => new ScanChestRow { WorldX = c.WorldX, WorldZ = c.WorldZ, WorldY = c.WorldY, ChestType = c.ChestType, Slot = c.Slot, ItemId = c.ItemId, ItemDamage = c.ItemDamage, Count = c.Count }).ToList());
+    await WriteParquet(Path.Combine(outDir, "spawners.parquet"), PgmStudio.Minecraft.FeatureExtractors.Spawners(chunks)
+        .Select(s => new ScanSpawnerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, EntityId = s.EntityId, SpawnsWool = s.SpawnsWool, SpawnItemId = s.SpawnItemId, SpawnItemDamage = s.SpawnItemDamage, SpawnCount = s.SpawnCount, SpawnRange = s.SpawnRange, MinSpawnDelay = s.MinSpawnDelay, MaxSpawnDelay = s.MaxSpawnDelay, RequiredPlayerRange = s.RequiredPlayerRange, MaxNearbyEntities = s.MaxNearbyEntities }).ToList());
+    await WriteParquet(Path.Combine(outDir, "layer_segments.parquet"), PgmStudio.Minecraft.FeatureExtractors.Segments(chunks)
+        .Select(s => new ScanSegmentRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList());
+
+    // Surface layer → layer.parquet (the cached artifact + the bounding-box source)
+    var surface = PgmStudio.Minecraft.LayerExtractors.Surface(chunks).ToList();
+    await WriteParquet(Path.Combine(outDir, "layer.parquet"), surface
+        .Select(s => new ScanLayerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, BlockId = s.BlockId, BlockData = s.BlockData }).ToList());
+
+    // Islands on the cleaned base, with the lazy y0 → bedrock fallback (matches WorldFeatureWriter) → islands.json
+    static (int X, int Z, int Y) Cell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(Cell).ToList();
+    var fallbacks = new[] { PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(Cell), PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(Cell) };
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+    await File.WriteAllTextAsync(Path.Combine(outDir, "islands.json"), PgmStudio.Analysis.Footprint.IslandDetector.SerializeJson(islands));
+
+    // map_config.json — the initial scan config (matches WorldFeatureWriter's SurfaceBbox + defaults)
+    int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
+    foreach (var s in surface) { if (s.WorldX < minX) minX = s.WorldX; if (s.WorldX > maxX) maxX = s.WorldX; if (s.WorldZ < minZ) minZ = s.WorldZ; if (s.WorldZ > maxZ) maxZ = s.WorldZ; }
+    var config = new System.Text.Json.Nodes.JsonObject
+    {
+        ["exclude_islands"] = new System.Text.Json.Nodes.JsonArray(),
+        ["exclude_blocks"] = new System.Text.Json.Nodes.JsonArray(),
+        ["scan_layer"] = "cleanbase",
+        ["scan_layer_confirmed"] = false,
+        ["bounding_box"] = surface.Count > 0
+            ? new System.Text.Json.Nodes.JsonObject { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ }
+            : null,
+    };
+    await File.WriteAllTextAsync(Path.Combine(outDir, "map_config.json"), config.ToJsonString());
+
+    // xml_data.json — the codec source the importer deserializes (parse map.xml with the studio's own parser)
+    if (File.Exists(mapXml))
+    {
+        var doc = PgmStudio.Pgm.Serializer.ToDict(PgmStudio.Pgm.MapParser.Parse(mapXml));
+        await File.WriteAllTextAsync(Path.Combine(outDir, "xml_data.json"), System.Text.Json.JsonSerializer.Serialize(doc));
+    }
+    else
+        Console.Error.WriteLine($"  {slug}: WARNING no map.xml — xml_data.json not written; the importer will skip this dir");
+
+    sw.Stop();
+    Console.WriteLine($"  {slug,-28} chunks={chunks.Count,-5} islands={islands.Count,-3} surface={surface.Count,-8} -> {outDir}  ({sw.ElapsedMilliseconds} ms)");
+    return 0;
+}
+
+// ── --scan-out-all: --scan-out for every map folder (one with a region/ dir) under mapsRoot ───────────────
+static async Task<int> RunScanOutAll(string mapsRoot, string outRoot)
+{
+    var dirs = Directory.GetDirectories(mapsRoot)
+        .Where(d => Directory.Exists(Path.Combine(d, "region")))
+        .OrderBy(d => d, StringComparer.Ordinal).ToList();
+    Console.WriteLine($"Scanning {dirs.Count} map(s) from {mapsRoot} -> {outRoot}\n");
+    var fail = 0;
+    foreach (var d in dirs)
+    {
+        try { if (await RunScanOut(d, outRoot) != 0) fail++; }
+        catch (Exception ex) { fail++; Console.Error.WriteLine($"  {Path.GetFileName(d)}: FAILED {ex.GetType().Name}: {ex.Message}"); }
+    }
+    Console.WriteLine($"\nscan-out: {dirs.Count - fail} ok, {fail} failed");
+    return fail == 0 ? 0 : 1;
+}
+
+// Write rows to a parquet file; an empty set writes NO file (so the importer's File.Exists check skips it).
+static async Task WriteParquet<T>(string path, IReadOnlyList<T> rows) where T : class
+{
+    if (rows.Count == 0) { if (File.Exists(path)) File.Delete(path); return; }
+    await using var os = File.Create(path);
+    await Parquet.Serialization.ParquetSerializer.SerializeAsync(rows, os);
 }
 
 static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, string outParquet)
@@ -1410,6 +1520,69 @@ readonly record struct SuggestEval(
     List<PgmStudio.Minecraft.MonumentSuggestion> Sites);
 
 // Parquet shape for monument_slices.parquet (snake_case columns, one row per cell).
+// ── --scan-out parquet rows (column names match the importer + the reference pipeline output) ────────────
+sealed class ScanWoolRow
+{
+    [JP("world_x")] public int WorldX { get; set; }
+    [JP("world_z")] public int WorldZ { get; set; }
+    [JP("world_y")] public int WorldY { get; set; }
+    [JP("color")] public string Color { get; set; } = "";
+}
+
+sealed class ScanResourceRow
+{
+    [JP("world_x")] public int WorldX { get; set; }
+    [JP("world_z")] public int WorldZ { get; set; }
+    [JP("world_y")] public int WorldY { get; set; }
+    [JP("resource_type")] public string ResourceType { get; set; } = "";
+}
+
+sealed class ScanChestRow
+{
+    [JP("world_x")] public int WorldX { get; set; }
+    [JP("world_z")] public int WorldZ { get; set; }
+    [JP("world_y")] public int WorldY { get; set; }
+    [JP("chest_type")] public string ChestType { get; set; } = "";
+    [JP("slot")] public int Slot { get; set; }
+    [JP("item_id")] public string ItemId { get; set; } = "";
+    [JP("item_damage")] public int ItemDamage { get; set; }
+    [JP("count")] public int Count { get; set; }
+}
+
+sealed class ScanSpawnerRow
+{
+    [JP("world_x")] public int WorldX { get; set; }
+    [JP("world_z")] public int WorldZ { get; set; }
+    [JP("world_y")] public int WorldY { get; set; }
+    [JP("entity_id")] public string? EntityId { get; set; }
+    [JP("spawns_wool")] public bool SpawnsWool { get; set; }
+    [JP("spawn_item_id")] public string? SpawnItemId { get; set; }
+    [JP("spawn_item_damage")] public int? SpawnItemDamage { get; set; }
+    [JP("spawn_count")] public int? SpawnCount { get; set; }
+    [JP("spawn_range")] public int? SpawnRange { get; set; }
+    [JP("min_spawn_delay")] public int? MinSpawnDelay { get; set; }
+    [JP("max_spawn_delay")] public int? MaxSpawnDelay { get; set; }
+    [JP("required_player_range")] public int? RequiredPlayerRange { get; set; }
+    [JP("max_nearby_entities")] public int? MaxNearbyEntities { get; set; }
+}
+
+sealed class ScanSegmentRow
+{
+    [JP("world_x")] public int WorldX { get; set; }
+    [JP("world_z")] public int WorldZ { get; set; }
+    [JP("world_y_start")] public int WorldYStart { get; set; }
+    [JP("world_y_end")] public int WorldYEnd { get; set; }
+}
+
+sealed class ScanLayerRow
+{
+    [JP("world_x")] public int WorldX { get; set; }
+    [JP("world_z")] public int WorldZ { get; set; }
+    [JP("world_y")] public int WorldY { get; set; }
+    [JP("block_id")] public int BlockId { get; set; }
+    [JP("block_data")] public int BlockData { get; set; }
+}
+
 sealed class MonumentSliceRow
 {
     [System.Text.Json.Serialization.JsonPropertyName("map")] public string Map { get; set; } = "";
