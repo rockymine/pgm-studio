@@ -13,7 +13,7 @@ namespace PgmStudio.Pgm.Sketch;
 /// </summary>
 public static class OrganicLane
 {
-    public sealed record Unit(List<SketchShape> Shapes, (double X, double Z) Hub, List<(double X, double Z)> Tips);
+    public sealed record Unit(List<SketchShape> Shapes, (double X, double Z) Spawn, List<(double X, double Z)> Tips);
 
     public static Unit Grow(LaneLayoutOptions o)
     {
@@ -21,7 +21,7 @@ public static class OrganicLane
         double W = o.Width, H = o.Height, m = o.Margin, lw = o.LaneWidth, midZ = H / 2;
         var noise = new NoiseField(o.Seed, Math.Max(6.0, lw));
 
-        // spawn hub: near the mid line, facing the foe — lanes grow up/out to the far edge from here
+        // hub junction: near the mid line, facing the foe — the trunk and wool lanes meet here
         var hub = (W / 2 + rng.Range(-W * 0.06, W * 0.06), midZ - lw * 2.0);
         var tips = FarthestTips(o, rng, noise, hub, Math.Max(1, o.Wools));
 
@@ -40,7 +40,33 @@ public static class OrganicLane
             if (lane.Hole is { } hole) shapes.Add(Poly($"hole{id}", hole, "subtract"));
             id++;
         }
-        return new Unit(shapes, hub, tips);
+
+        // Spawn goes on its OWN short spur off the hub, pointed into the widest angular gap (away from the
+        // trunk and every wool lane). Its protection then sits off the junction, so an attacker crossing the
+        // bridge reaches the hub and the wool lanes without ever entering the spawn — the corpus pattern
+        // (e.g. Kanto: central spawn, wools on offset side lanes). See docs/contracts/organic-lane-generation.md.
+        var spawn = SpawnSpur(rng, noise, hub, trunkTip, tips, lw, o, shapes);
+        return new Unit(shapes, spawn, tips);
+    }
+
+    private static (double X, double Z) SpawnSpur(
+        Rng rng, NoiseField noise, (double X, double Z) hub, (double X, double Z) trunkTip,
+        List<(double X, double Z)> tips, double lw, LaneLayoutOptions o, List<SketchShape> shapes)
+    {
+        var dirs = new List<double> { Math.Atan2(trunkTip.Z - hub.Z, trunkTip.X - hub.X) };
+        dirs.AddRange(tips.Select(t => Math.Atan2(t.Z - hub.Z, t.X - hub.X)));
+        dirs.Sort();
+        double bestGap = -1, angle = 0;
+        for (var i = 0; i < dirs.Count; i++)
+        {
+            var a = dirs[i];
+            var b = dirs[(i + 1) % dirs.Count] + (i + 1 == dirs.Count ? 2 * Math.PI : 0);
+            if (b - a > bestGap) { bestGap = b - a; angle = a + (b - a) / 2; }
+        }
+        var len = lw * 1.7;
+        var spawn = (hub.X + Math.Cos(angle) * len, hub.Z + Math.Sin(angle) * len);
+        shapes.Add(Poly("spawnspur", GrowLane(rng, noise, hub, spawn, lw * 0.9, o, allowHole: false).Ribbon, "add"));
+        return spawn;
     }
 
     // ── far-spread wool tips from the noise grid (toward the far edge) ────────────────────────────

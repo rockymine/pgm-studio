@@ -70,7 +70,7 @@ public static class LaneSketchGenerator
         // organic islands want room for the lanes to read as distinct corridors → a larger default board
         if (o is { Width: 60, Height: 90 }) o = o with { Width = 120, Height = 150 };
         var unit = OrganicLane.Grow(o);
-        return Assemble(o, Mode(o, "mirror_z"), unit.Shapes, unit.Hub, unit.Tips, mids: []);
+        return Assemble(o, Mode(o, "mirror_z"), unit.Shapes, unit.Spawn, unit.Tips, mids: []);
     }
 
     // ── H: two teams, straight legs + crossbar, one wool each ─────────────────────────────────────

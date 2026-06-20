@@ -4,7 +4,8 @@ The `Organic` sketch archetype grows a team's island **outward from a spawn hub*
 using a noise grid to place and bend them, and variable-width polygon hulls (with optional diamond holes) for
 an organic, reusable-but-varied look. It is the lane-graph reading of real maps
 (`docs/generator-archetypes.md`) turned into a generator: **a lane is one hub→tip branch — it can bend and
-carry holes — ending in a dead-end wool tip; the spawn sits at the hub where the lanes meet.**
+carry holes — ending in a dead-end wool tip; the spawn sits on its own short spur off the hub** (see
+*Playability* below for why the spawn is off the junction, not on it).
 
 Code: `PgmStudio.Pgm.Sketch.OrganicLane` (the engine) + `LaneSketchGenerator.Organic` (wiring) +
 `Geom.Rng` (seeded RNG) + `Geom.Lane.Ribbon` (variable-width strip). Preview it with no database:
@@ -38,13 +39,29 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --gen-preview Organic <seed> <
    a fraction of the bulged half-width so the lane stays connected around it. *Tune:* `HoleChance`, the bulge
    window/size, hole radius `0.55`.
 
-6. **Mirror + assemble.** The grown unit is fanned to the opponent by `mirror_z` (`Assemble`), with no mid
-   island (the contested centre is the bridged gap). Objective hints: **wool at each tip, spawn at the hub.**
+6. **Spawn spur (playability).** The spawn does **not** sit on the hub junction. `SpawnSpur` collects the
+   directions from the hub to the trunk tip and every wool tip, finds the **widest angular gap** between them,
+   and places the spawn out along that gap on its own short spur ribbon. *Tune:* spur length (`laneWidth·1.7`),
+   spur width (`laneWidth·0.9`).
+
+7. **Mirror + assemble.** The grown unit is fanned to the opponent by `mirror_z` (`Assemble`), with no mid
+   island (the contested centre is the bridged gap). Objective hints: **wool at each tip, spawn at the spur.**
+
+## Playability (spawn protection vs. the bridge)
+
+Each spawn carries a **spawn-protection** region (`<apply enter="deny(enemy)" …>`) the enemy cannot path
+through. If the spawn sat on the hub — the single junction where the bridge/trunk meets the wool lanes — its
+protection would wall the only way across, so an attacker crossing the bridge could never reach the wool
+without entering the enemy spawn: **unplayable.** Putting the spawn on a spur in the widest gap moves the
+protection *off* the junction, leaving the hub→wool-lane flow open: an attacker crosses the bridge, reaches
+the hub, and fans out to the dead-end wools **around** the spawn — the corpus pattern (Kanto, Annealing IV).
+Validate with the `--gen-map-preview` tool (emits spawns+protection, wools+rooms, bridges) and a
+protection-aware BFS from each captor's spawn to the enemy wool with the defender's protection removed.
 
 ## Guarantees
 - **Deterministic:** same `Seed` → identical layout (so a good seed is keepable and iterable).
 - **Wools at dead-end tips:** lanes only join at the hub, so every tip is a leaf; hints put a wool at each.
-- **Spawn at the hub.**
+- **Spawn on a spur off the hub** (widest angular gap), so its protection never walls the hub→wool flow.
 - **Two separate, congruent team islands** (mirror), ready for `finish` (≥2 islands) → the existing pipeline
   (`LaneMapGenerator` adds monuments near the captor's spawn, `AutoBridge` connects the islands, the export
   gate checks the monument + traversability rules).
