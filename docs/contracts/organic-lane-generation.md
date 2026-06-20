@@ -7,6 +7,13 @@ an organic, reusable-but-varied look. It is the lane-graph reading of real maps
 carry holes — ending in a dead-end wool tip; the spawn sits on its own short spur off the hub** (see
 *Playability* below for why the spawn is off the junction, not on it).
 
+**The shape recipe in one line:** drop a near-circular **hub blob** (a 12-gon plaza), radiate a set of
+**angle-constrained, variable-width ribbon polygons** out of its centre (mid trunks → bridges, wool lanes →
+dead-end tips, one spawn spur), **subtract** diamond holes, **union** the lot into one team's island, then
+**`mirror_z`** it to the opponent. Everything below is how each of those pieces is sized and placed — and it
+all comes out as a normal `SketchLayout` (the same polygon model a hand-drawn sketch produces); the rasterizer
+turns the set-algebra into terrain. Dump the raw polygons with `--gen-sketch Organic <seed> <out.json>`.
+
 Code: `PgmStudio.Pgm.Sketch.OrganicLane` (the engine) + `LaneSketchGenerator.Organic` (wiring) +
 `Geom.Rng` (seeded RNG) + `Geom.Lane.Ribbon` (variable-width strip). Preview it with no database:
 
