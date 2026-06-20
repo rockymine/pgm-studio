@@ -93,6 +93,19 @@ var gpIdx = Array.IndexOf(args, "--gen-preview");
 if (gpIdx >= 0 && gpIdx + 3 < args.Length)
     return RunGenPreview(args[gpIdx + 1], int.TryParse(args[gpIdx + 2], out var gseed) ? gseed : 1, args[gpIdx + 3]);
 
+// --gen-sketch <archetype> <seed> <outJson>: dump the RAW sketch layout (the polygon shapes + mirror setup,
+// before rasterization) so the base sketch model can be rendered as outlines rather than the rasterized cells.
+var gsIdx = Array.IndexOf(args, "--gen-sketch");
+if (gsIdx >= 0 && gsIdx + 3 < args.Length)
+{
+    var arch = Enum.Parse<PgmStudio.Pgm.Sketch.LaneArchetype>(args[gsIdx + 1], ignoreCase: true);
+    var opts = new PgmStudio.Pgm.Sketch.LaneLayoutOptions { Archetype = arch, Seed = int.TryParse(args[gsIdx + 2], out var sseed) ? sseed : 1 };
+    var res = PgmStudio.Pgm.Sketch.LaneSketchGenerator.Build(opts);
+    File.WriteAllText(args[gsIdx + 3], res.Layout.ToJson());
+    Console.WriteLine($"gen-sketch {arch} seed={opts.Seed}: {res.Layout.Layout!.Shapes.Count} shapes, {res.Layout.Layout.Islands.Count} islands, mirror={res.Layout.Setup!.MirrorMode}");
+    return 0;
+}
+
 // --gen-map-preview <archetype> <seed> <outJson>: run the full map generator (LaneMapGenerator) and emit the
 // island polygons together with the intent — spawns+protection, wools+rooms+monuments, build bridges — so
 // playability (reachability around spawn protection) can be validated without a database.
