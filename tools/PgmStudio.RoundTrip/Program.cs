@@ -1195,10 +1195,19 @@ static int RunSkeletonStudy(string regionDir, string mapXml, string outJson, dou
     var cats = PgmStudio.Pgm.Authoring.RegionCategorizer.Categorize(doc);
     var bounds = ((double)bMinX, (double)bMinZ, (double)bMaxX, (double)bMaxZ);
 
-    // build-region cells — the island↔bridge contact that pruning must preserve
+    // build-region cells — the island↔bridge contact that pruning must preserve. Rasterize only the OUTERMOST
+    // build regions: the categorizer marks every nested sub-component "build" too, so a complement's base/hole
+    // rectangles are also flagged — rasterizing those on their own would re-fill a hole the parent complement
+    // (or union) correctly excludes. A region that is a child of another build region is covered by its parent.
+    var buildIds = cats.Where(kv => kv.Value == "build").Select(kv => kv.Key).ToHashSet();
+    var nestedInBuild = new HashSet<string>();
+    foreach (var id in buildIds)
+        if (regionRegistry.GetValueOrDefault(id) is Dictionary<string, object?> r && r.GetValueOrDefault("children") is IEnumerable<object?> ch)
+            foreach (var c in ch) if (c is string cs) nestedInBuild.Add(cs);
+
     var buildCells = new HashSet<(int, int)>();
-    foreach (var (id, cat) in cats)
-        if (cat == "build" && regionRegistry.GetValueOrDefault(id) is Dictionary<string, object?> reg
+    foreach (var id in buildIds)
+        if (!nestedInBuild.Contains(id) && regionRegistry.GetValueOrDefault(id) is Dictionary<string, object?> reg
             && PgmStudio.Analysis.Region.RegionGeometry2d.ToGeometry(reg, bounds, regionRegistry) is { IsEmpty: false } geom)
         {
             var env = geom.EnvelopeInternal;
