@@ -135,7 +135,9 @@ protection-aware BFS from each captor's spawn to the enemy wool with the defende
 | `Width`/`Height` | auto → 120×150 | board size; Organic upsizes the 60×90 default so lanes read as distinct corridors |
 
 ## How to iterate
-- Sweep seeds with `--gen-preview Organic <seed> out.json` + `gen_render.py` to eyeball variety.
+- Sweep seeds and eyeball them with the analysis harness in `scripts/generator/` (see its README): a typical
+  loop is `--gen-map-preview Organic <seed> m.json` → `viz_void.py` (clearance + pinches) → `validate_play.py`
+  (PLAYABLE check) → `measure.py` (the numbers); `render_sketch.py`/`--gen-catalog` show the raw polygons.
 - The geometry knobs above are all local to `OrganicLane`; start with hub/tip placement and the jitter/offset
   scales. Lower jitter + offset → cleaner, straighter lanes; higher → more organic (and more blob risk).
 
