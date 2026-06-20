@@ -52,20 +52,24 @@ public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : Endpoin
         }
         catch { /* empty / invalid body → default name */ }
 
-        var slug = await UniqueSlugAsync(Slugify(name), ct);
+        var slug = await SketchNaming.UniqueSlugAsync(repo, SketchNaming.Slugify(name), ct);
         var now = DateTime.UtcNow;
         var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
         await SketchStore.SaveAsync(db, mapId, "{}"u8.ToArray(), ct);   // seed so GET works immediately
         await Send.OkAsync(new { slug }, ct);
     }
+}
 
-    private static string Slugify(string s)
+/// <summary>Slug derivation + uniqueness for new draft maps, shared by the sketch originators.</summary>
+internal static class SketchNaming
+{
+    public static string Slugify(string s)
     {
         var slug = Regex.Replace(s.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
         return slug.Length > 0 ? slug : "sketch";
     }
 
-    private async Task<string> UniqueSlugAsync(string baseSlug, CancellationToken ct)
+    public static async Task<string> UniqueSlugAsync(MapRepository repo, string baseSlug, CancellationToken ct)
     {
         if (await repo.GetBySlugAsync(baseSlug, ct) is null) return baseSlug;
         for (var i = 2; ; i++)
@@ -73,6 +77,58 @@ public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : Endpoin
             var s = $"{baseSlug}-{i}";
             if (await repo.GetBySlugAsync(s, ct) is null) return s;
         }
+    }
+}
+
+/// <summary>POST /api/sketch/generate — originate a draft map pre-filled with a generated lane layout
+/// (a two-team 'H' of lanes mirrored across the mid, plus a neutral mid island). Body (all optional):
+/// {name, width, height, laneWidth, margin, curvedCrossbar, midIsland, mirrorMode}. Returns the slug and
+/// the suggested objective placements; the layout is stored so <c>GET .../sketch</c> and finish work
+/// immediately.</summary>
+public sealed class SketchGenerateEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/sketch/generate"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var name = "Generated sketch";
+        var opts = new LaneLayoutOptions();
+        try
+        {
+            using var doc = await JsonDocument.ParseAsync(HttpContext.Request.Body, cancellationToken: ct);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
+                && n.GetString() is { } s && !string.IsNullOrWhiteSpace(s)) name = s.Trim();
+            opts = ReadOptions(root, opts);
+        }
+        catch { /* empty / invalid body → defaults */ }
+
+        var result = LaneSketchGenerator.HLayout(opts);
+        var slug = await SketchNaming.UniqueSlugAsync(repo, SketchNaming.Slugify(name), ct);
+        var now = DateTime.UtcNow;
+        var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
+        await SketchStore.SaveAsync(db, mapId, Encoding.UTF8.GetBytes(result.Layout.ToJson()), ct);
+        await Send.OkAsync(new { slug, objectives = result.Objectives }, ct);
+    }
+
+    private static LaneLayoutOptions ReadOptions(JsonElement root, LaneLayoutOptions d)
+    {
+        double Num(string k, double fallback) =>
+            root.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : fallback;
+        bool Flag(string k, bool fallback) =>
+            root.TryGetProperty(k, out var v) && (v.ValueKind == JsonValueKind.True || v.ValueKind == JsonValueKind.False) ? v.GetBoolean() : fallback;
+        string Str(string k, string fallback) =>
+            root.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String && v.GetString() is { Length: > 0 } s ? s : fallback;
+        return d with
+        {
+            Width = Num("width", d.Width),
+            Height = Num("height", d.Height),
+            LaneWidth = Num("laneWidth", d.LaneWidth),
+            Margin = Num("margin", d.Margin),
+            CurvedCrossbar = Flag("curvedCrossbar", d.CurvedCrossbar),
+            MidIsland = Flag("midIsland", d.MidIsland),
+            MirrorMode = Str("mirrorMode", d.MirrorMode),
+        };
     }
 }
 
