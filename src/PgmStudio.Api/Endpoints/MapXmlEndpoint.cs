@@ -33,9 +33,27 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
 
         var doc = await reader.ReadDocAsync(map, ct);
 
-        // Playability gate: intent-authored maps must be traversable before they can export (§9).
+        // Validity + playability gate: intent-authored maps must be structurally valid and traversable
+        // before they can export (§9). Corpus maps have no intent and export unconditionally (unchanged).
         if (await IntentStore.HasAsync(db, map.Id, ct))
         {
+            // Structural validity PGM enforces at load (e.g. every wool needs a monument): refuse to
+            // emit a map.xml PGM would reject with "Missing required region 'monument'".
+            var validity = MapValidity.Check(doc);
+            if (!validity.Valid)
+            {
+                await Send.ResponseAsync(new Dict
+                {
+                    ["error"] = "invalid map",
+                    ["message"] = string.Join(" ", validity.Errors.Select(e => e.Message)),
+                    ["issues"] = validity.Issues.Select(i => new Dict
+                    {
+                        ["kind"] = i.Kind, ["subject"] = i.Subject, ["severity"] = i.Severity, ["message"] = i.Message,
+                    }).ToList(),
+                }, 409, ct);
+                return;
+            }
+
             var segs = await feature.SegmentsAsync(map.Id, ct);
             var trav = Traversability.Check(doc, segs?.SurfaceColumns(), segs?.Y0Columns());
             if (!trav.Connected)
