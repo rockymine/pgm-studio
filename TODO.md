@@ -129,6 +129,14 @@ degrading behaviour**. Full technical spec: `docs/contracts/canvas-interaction.m
   works, B7.)
 - [ ] **A3 — Buildability endpoint perf.** Per-cell NTS over the grid is slow; optimise (spatial
   index / batch). Becomes user-visible once `N03`'s buildability overlay lands.
+- [ ] **A7 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
+  is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
+  ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding
+  (`SketchLayoutPrep` via `RingRounding.Smooth` correctly *declines* to round a self-overlapping polygon, so
+  rounding doesn't cause or hide it). Fix at the source — either clamp the blade curl radius against the lane
+  width in `LaneSketchGenerator.Pinwheel`, or clip the inner offset in `Geom.Lane.Strip` so a tight
+  centerline can't produce a self-crossing strip. Surfaced by the `SketchLayoutPrepTests` self-intersection
+  regression (which tests a clean curved crossbar precisely because the Pinwheel blade doesn't yet satisfy it).
 
 ## Lower priority / parked
 
