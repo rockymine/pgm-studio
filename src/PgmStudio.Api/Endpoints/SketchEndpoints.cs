@@ -9,6 +9,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Api.Endpoints;
@@ -111,7 +112,7 @@ public sealed class SketchGenerateEndpoint(MapRepository repo, PgmDb db) : Endpo
         await Send.OkAsync(new { slug, objectives = result.Objectives }, ct);
     }
 
-    private static LaneLayoutOptions ReadOptions(JsonElement root, LaneLayoutOptions d)
+    internal static LaneLayoutOptions ReadOptions(JsonElement root, LaneLayoutOptions d)
     {
         double Num(string k, double fallback) =>
             root.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : fallback;
@@ -193,5 +194,51 @@ public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeat
         await writer.WriteSketchAsync(map.Id, cells, islands, ct);
         await repo.SetStageAsync(map.Id, MapStage.Configure, ct);   // the draft now has geometry → ready to configure
         await Send.OkAsync(new { slug = map.Slug, configureUrl = $"/maps/{map.Slug}/configure" }, ct);
+    }
+}
+
+/// <summary>POST /api/map/generate — generate a complete, valid map in one step: a lane-layout sketch is
+/// finished into geometry, then teams / spawns / wools / monuments and auto-inferred build bridges are
+/// applied, so the result clears the monument-presence and traversability gates on its own. Body: the same
+/// options as <c>/sketch/generate</c>. Returns the slug, the configure URL, and the bridge/wool counts.</summary>
+public sealed class MapGenerateEndpoint(MapRepository repo, PgmDb db, WorldFeatureWriter writer, MapReader reader, MapWriter mapWriter) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/map/generate"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var name = "Generated map";
+        var opts = new LaneLayoutOptions();
+        try
+        {
+            using var body = await JsonDocument.ParseAsync(HttpContext.Request.Body, cancellationToken: ct);
+            var root = body.RootElement;
+            if (root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
+                && n.GetString() is { } s && !string.IsNullOrWhiteSpace(s)) name = s.Trim();
+            opts = SketchGenerateEndpoint.ReadOptions(root, opts);
+        }
+        catch { /* empty / invalid body → defaults */ }
+
+        var (layout, intent) = LaneMapGenerator.Generate(opts, name);
+
+        var slug = await SketchNaming.UniqueSlugAsync(repo, SketchNaming.Slugify(name), ct);
+        var now = DateTime.UtcNow;
+        var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
+        await SketchStore.SaveAsync(db, mapId, Encoding.UTF8.GetBytes(layout.ToJson()), ct);
+
+        // finish: rasterize the layout into world geometry so the map reaches the configure stage
+        var cells = SketchRasterizer.Rasterize(layout.ToJson());
+        var islands = IslandDetector.Detect(cells, minIslandSize: 1);
+        if (islands.Count < 2) { await Send.ResponseAsync(new { error = "layout yields fewer than 2 islands" }, 422, ct); return; }
+        await writer.WriteSketchAsync(mapId, cells, islands, ct);
+        await repo.SetStageAsync(mapId, MapStage.Configure, ct);
+
+        // intent: store + project into the document (teams / spawns / wools / monuments / build)
+        await IntentStore.SaveAsync(db, mapId, intent, ct);
+        var (status, resp) = await WriteSupport.RunEditAsync(repo, reader, mapWriter, slug,
+            doc => { IntentGenerator.Apply(doc, intent); return new Dictionary<string, object?>(); }, ct);
+        if (status >= 400) { await Send.ResponseAsync(resp!, status, ct); return; }
+
+        await Send.OkAsync(new { slug, configureUrl = $"/maps/{slug}/configure", bridges = intent.Build!.Areas.Count, wools = intent.Wools!.Count }, ct);
     }
 }
