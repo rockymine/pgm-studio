@@ -69,10 +69,20 @@ public static class OrganicLane
         var woolObjs = new List<(double X, double Z)>();
         foreach (var tip in tips)
         {
-            var lane = GrowLane(rng, noise, hub, hubInr, holeR, tip, lw, o, allowHole: true);
-            shapes.Add(Poly($"lane{id}", lane.Ribbon, "add"));
-            if (lane.Hole is { } hole) shapes.Add(Poly($"hole{id}", hole, "subtract"));
-            woolObjs.Add(lane.Obj);
+            // a long enough wool lane may FORK into a child branch (the wool stays on the primary tip)
+            if (o.BranchChance > 0 && Dist(hub, tip) > lw * 3.5 && rng.Chance(o.BranchChance))
+            {
+                var fork = GrowForkedLane(rng, noise, hub, hubInr, holeR, tip, lw, o, minAngle, id);
+                shapes.AddRange(fork.Shapes);
+                woolObjs.Add(fork.WoolTip);
+            }
+            else
+            {
+                var lane = GrowLane(rng, noise, hub, hubInr, holeR, tip, lw, o, allowHole: true);
+                shapes.Add(Poly($"lane{id}", lane.Ribbon, "add"));
+                if (lane.Hole is { } hole) shapes.Add(Poly($"hole{id}", hole, "subtract"));
+                woolObjs.Add(lane.Obj);
+            }
             id++;
         }
 
@@ -169,12 +179,12 @@ public static class OrganicLane
         return d;
     }
 
-    // ── one lane: bent centerline → variable-width ribbon (+ optional hole), plus the inset objective ─────────
-    // The lane does NOT start at the hub centre; it attaches by submerging two nodes inside the hub (kept in the
-    // ring if the hub has a hole), so lanes union cleanly with the plaza instead of all colliding at one point.
-    private static (List<double[]> Ribbon, List<double[]>? Hole, (double X, double Z) Obj) GrowLane(
+    // ── a lane's SPINE: attach into the hub (two submerged nodes, kept in the ring if it has a hole) → 1–2
+    // noise-offset bend waypoints → tip. Centripetal smoothing means the short attach segment doesn't overshoot;
+    // connectors (allowBend false) run straight, as a short bent strip self-intersects when offset. ───────────
+    private static List<double[]> LaneCenterline(
         Rng rng, NoiseField noise, (double X, double Z) hub, double hubInr, double holeR,
-        (double X, double Z) tip, double lw, LaneLayoutOptions o, bool allowHole)
+        (double X, double Z) tip, double lw, bool allowBend)
     {
         double ax = tip.X - hub.X, az = tip.Z - hub.Z;
         var adist = Math.Sqrt(ax * ax + az * az);
@@ -182,7 +192,7 @@ public static class OrganicLane
         // two attach nodes, both inside the hub's inradius (so they're submerged for any direction / hub shape).
         // Without a hole the deep node nearly reaches the centre so adjacent lanes overlap and FILL the wedges
         // between them (no thin slivers); with a hole it stays just outside the ring.
-        var outer = hubInr * 0.9;                                                   // hub-edge entry node
+        var outer = hubInr * 0.9;
         var inner = holeR > 0 ? Math.Max(holeR + lw * 0.35, outer * 0.55) : outer * 0.2;
         if (inner >= outer) inner = outer * 0.6;
         var entry = (X: hub.X + ux * outer, Z: hub.Z + uz * outer);
@@ -190,18 +200,14 @@ public static class OrganicLane
         double dx = tip.X - entry.X, dz = tip.Z - entry.Z;
         var len = Math.Sqrt(dx * dx + dz * dz);
         double px = -dz / Math.Max(1e-6, len), pz = dx / Math.Max(1e-6, len);   // perpendicular to entry→tip
+        var bend = allowBend ? lw * 0.55 : 0.0;
 
-        // centerline control points: submerged node (deep in the hub), hub-edge entry, 1–2 noise-offset
-        // waypoints (the bends), tip. Centripetal Lane.Smooth handles the short submerged→entry segment without
-        // overshoot, so both attach nodes can live in the spline (≥2 submerged, no hard corner). Connector lanes
-        // (trunks, spawn spur — no hole) run STRAIGHT: a short bent strip would self-intersect when offset.
-        var bend = allowHole ? lw * 0.55 : 0.0;
         var ctrl = new List<double[]>
         {
             new[] { hub.X + ux * inner, hub.Z + uz * inner },
             new[] { entry.X, entry.Z },
         };
-        var waypoints = allowHole ? rng.Int(1, 3) : 1;
+        var waypoints = allowBend ? rng.Int(1, 3) : 1;
         for (var k = 1; k <= waypoints; k++)
         {
             var t = k / (double)(waypoints + 1);
@@ -210,22 +216,28 @@ public static class OrganicLane
             ctrl.Add([bx + px * off, bz + pz * off]);
         }
         ctrl.Add([tip.X, tip.Z]);
-        var center = Lane.Smooth(ctrl, 16);
-        var n = center.Count;
+        return Lane.Smooth(ctrl, 16);
+    }
 
-        // base half-width with a slight taper toward the dead-end tip
-        var half = new double[n];
+    // ── a SPINE → variable-width ribbon polygon (+ optional organic hole), plus the inset tip objective ───────
+    private static (List<double[]> Ribbon, List<double[]>? Hole, (double X, double Z) Obj) RibbonFromCenterline(
+        List<double[]> center, double lw, LaneLayoutOptions o, Rng rng, NoiseField noise, bool allowHole)
+    {
+        var n = center.Count;
+        var half = new double[n];                                                // base half-width, tapering to the tip
         for (var i = 0; i < n; i++) half[i] = lw * 0.5 * (1 - 0.25 * (i / (double)(n - 1)));
+        double total = 0;
+        for (var i = 1; i < n; i++) total += Dist((center[i][0], center[i][1]), (center[i - 1][0], center[i - 1][1]));
 
         // optional hole: bulge the ribbon so a path of at least 0.7·laneWidth remains on EACH side of the hole
         // (the corpus keeps holes inside wide lanes, never as thin necks), then cut an organic 4–6-gon.
         List<double[]>? hole = null;
-        if (allowHole && rng.Chance(o.HoleChance) && len > lw * 4)
+        if (allowHole && rng.Chance(o.HoleChance) && total > lw * 4)
         {
             var hi = Math.Clamp(n / 2 + rng.Int(-n / 6, n / 6 + 1), 3, n - 4);
             var window = Math.Max(2, n / 6);
-            var hr = lw * rng.Range(0.35, 0.55);          // hole bounding radius
-            var needHalf = hr + lw * 0.85;                // half-width leaving ≥0.7·lw each side after jitter (±0.15·lw)
+            var hr = lw * rng.Range(0.35, 0.55);
+            var needHalf = hr + lw * 0.85;
             for (var i = Math.Max(0, hi - window); i <= Math.Min(n - 1, hi + window); i++)
             {
                 var falloff = 1 - Math.Abs(i - hi) / (double)window;
@@ -245,8 +257,103 @@ public static class OrganicLane
             left.Add(Math.Max(2, half[i] + jl));
             right.Add(Math.Max(2, half[i] + jr));
         }
-        // objective sits inset off the dead-end tip, ≈ half a lane width back along the centerline (into cover)
         return (Lane.Ribbon(center, left, right), hole, InsetAlong(center, lw * 0.5));
+    }
+
+    // one straightforward lane = spine + ribbon (the inset tip objective is the wool)
+    private static (List<double[]> Ribbon, List<double[]>? Hole, (double X, double Z) Obj) GrowLane(
+        Rng rng, NoiseField noise, (double X, double Z) hub, double hubInr, double holeR,
+        (double X, double Z) tip, double lw, LaneLayoutOptions o, bool allowHole) =>
+        RibbonFromCenterline(LaneCenterline(rng, noise, hub, hubInr, holeR, tip, lw, allowBend: allowHole), lw, o, rng, noise, allowHole);
+
+    // ── a FORKED lane: a wool lane that splits. A primary hub→tip strip, then a CHILD branch grows off a point
+    // partway along it — the child anchors back along the parent so the two ribbons overlap and the junction
+    // unions cleanly (the same submerge-attach idea as the hub). Returns every shape plus the wool tip; which
+    // leaves carry wools is policy left to the caller — today the wool stays on the primary tip, child = terrain.
+    private static (List<SketchShape> Shapes, (double X, double Z) WoolTip) GrowForkedLane(
+        Rng rng, NoiseField noise, (double X, double Z) hub, double hubInr, double holeR,
+        (double X, double Z) primaryTip, double lw, LaneLayoutOptions o, double minAngle, int id)
+    {
+        var shapes = new List<SketchShape>();
+        var pc = LaneCenterline(rng, noise, hub, hubInr, holeR, primaryTip, lw, allowBend: true);
+        var prim = RibbonFromCenterline(pc, lw, o, rng, noise, allowHole: true);
+        shapes.Add(Poly($"lane{id}", prim.Ribbon, "add"));
+        if (prim.Hole is { } h) shapes.Add(Poly($"hole{id}", h, "subtract"));
+
+        // fork point partway along the primary spine; child heads off by ≥ minAngle to one side
+        var fi = Math.Clamp((int)(pc.Count * rng.Range(0.45, 0.62)), 3, pc.Count - 4);
+        (double X, double Z) fp = (pc[fi][0], pc[fi][1]);
+        double tdx = pc[fi + 1][0] - pc[fi - 1][0], tdz = pc[fi + 1][1] - pc[fi - 1][1];
+        var tl = Math.Sqrt(tdx * tdx + tdz * tdz);
+        (double X, double Z) pd = (tdx / Math.Max(1e-6, tl), tdz / Math.Max(1e-6, tl));   // parent direction at the fork
+        var sign = rng.Chance(0.5) ? 1.0 : -1.0;
+        var cang = Math.Atan2(pd.Z, pd.X) + sign * (minAngle + rng.Range(0.2, 0.6));
+        var clen = lw * rng.Range(2.2, 3.6);
+        (double X, double Z) childTip = (fp.X + Math.Cos(cang) * clen, fp.Z + Math.Sin(cang) * clen);
+
+        // child spine: an anchor back along the parent (overlap at the junction), the fork point, the child tip
+        (double X, double Z) anchor = (fp.X - pd.X * lw * 0.8, fp.Z - pd.Z * lw * 0.8);
+        var cc = Lane.Smooth([[anchor.X, anchor.Z], [fp.X, fp.Z], [childTip.X, childTip.Z]], 16);
+        shapes.Add(Poly($"branch{id}", RibbonFromCenterline(cc, lw, o, rng, noise, allowHole: false).Ribbon, "add"));
+        return (shapes, prim.Obj);
+    }
+
+    /// <summary>A non-mirrored catalogue layout for documenting the primitives: the top row is one example of
+    /// every hub-plaza style (round · square · organic blob · round+hole · blob+hole); the bottom row is every
+    /// lane behaviour (straight connector · bend · hole · fork) attached to a small hub. Deterministic.</summary>
+    public static SketchLayout StyleCatalog()
+    {
+        var rng = new Rng(7);
+        var noise = new NoiseField(7, 12);
+        double lw = 12, cell = 110, hubR = lw * 1.7;
+        var minAngle = 35 * Math.PI / 180.0;
+        var noHole = new LaneLayoutOptions { HoleChance = 0 };
+        var allHole = new LaneLayoutOptions { HoleChance = 1 };
+        var shapes = new List<SketchShape>();
+
+        var hubs = new (string Label, int Style, bool Hole)[]
+            { ("round", 0, false), ("square", 1, false), ("blob", 2, false), ("round+hole", 0, true), ("blob+hole", 2, true) };
+        for (var c = 0; c < hubs.Length; c++)
+        {
+            var (label, style, hole) = hubs[c];
+            (double X, double Z) ctr = (c * cell + cell / 2, cell / 2);
+            shapes.Add(Poly($"hub:{label}", HubPolygon(ctr, hubR, style, rng, noise), "add"));
+            if (hole) shapes.Add(Poly($"hubhole:{label}", HolePolygon(ctr.X, ctr.Z, hubR * 0.42, rng), "subtract"));
+        }
+
+        for (var c = 0; c < 4; c++)
+        {
+            (double X, double Z) hub = (c * cell + cell / 2, cell + cell * 0.95);
+            var hr = lw * 1.1;
+            var hubInr = hr * 0.9;
+            shapes.Add(Poly($"lhub:{c}", HubPolygon(hub, hr, 0, rng, noise), "add"));
+            (double X, double Z) tip = (hub.X, hub.Z - cell * 0.82);
+            switch (c)
+            {
+                case 0:  // straight connector
+                    shapes.Add(Poly("lane:straight", RibbonFromCenterline(LaneCenterline(rng, noise, hub, hubInr, 0, tip, lw, allowBend: false), lw, noHole, rng, noise, allowHole: false).Ribbon, "add"));
+                    break;
+                case 1:  // bend, no hole
+                    shapes.Add(Poly("lane:bent", RibbonFromCenterline(LaneCenterline(rng, noise, hub, hubInr, 0, tip, lw, allowBend: true), lw, noHole, rng, noise, allowHole: false).Ribbon, "add"));
+                    break;
+                case 2:  // hole
+                {
+                    var l = RibbonFromCenterline(LaneCenterline(rng, noise, hub, hubInr, 0, tip, lw, allowBend: true), lw, allHole, rng, noise, allowHole: true);
+                    shapes.Add(Poly("lane:hole", l.Ribbon, "add"));
+                    if (l.Hole is { } hh) shapes.Add(Poly("lanehole:hole", hh, "subtract"));
+                    break;
+                }
+                default:  // fork (the new style)
+                    shapes.AddRange(GrowForkedLane(rng, noise, hub, hubInr, 0, tip, lw, noHole, minAngle, 0).Shapes);
+                    break;
+            }
+        }
+
+        return new SketchLayout
+        {
+            Setup = new SketchSetup { MirrorMode = "none", Center = new SketchCenter { Cx = 0, Cz = 0 } },
+            Layout = new SketchShapes { Shapes = shapes, Islands = [] },
+        };
     }
 
     /// <summary>Walk back from a centerline's tip (last point) by <paramref name="d"/> blocks and return that

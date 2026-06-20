@@ -10,8 +10,10 @@ carry holes — ending in a dead-end wool tip; the spawn sits on its own short s
 **The shape recipe in one line:** drop a **hub plaza** (a round blob, a rotated square, or an organic jittered
 polygon — optionally a *ring* with its own hole), **submerge** a set of **angle-constrained, variable-width
 ribbon polygons** into it (mid trunks → bridges, wool lanes → dead-end tips, one spawn spur) rather than
-colliding them at its centre, **subtract** organic 4–6-gon holes, **union** the lot into one team's island, then
-**`mirror_z`** it to the opponent. Everything below is how each of those pieces is sized and placed — and it
+colliding them at its centre — a wool lane may also **fork** into a child branch — **subtract** organic 4–6-gon
+holes, **union** the lot into one team's island, then **`mirror_z`** it to the opponent.
+
+The catalogue of primitives (every hub style + lane behaviour) renders from `--gen-catalog <out.json>`. Everything below is how each of those pieces is sized and placed — and it
 all comes out as a normal `SketchLayout` (the same polygon model a hand-drawn sketch produces); the rasterizer
 turns the set-algebra into terrain. Dump the raw polygons with `--gen-sketch Organic <seed> <out.json>`.
 
@@ -68,6 +70,15 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --gen-preview Organic <seed> <
    independent noise jitter (`±0.3·laneWidth`), so the outline undulates instead of being a clean rectangle.
    This is the **spine → area** step. *Tune:* taper, jitter scale.
 
+4b. **Forking lanes (`GrowForkedLane`).** With probability `BranchChance`, a long-enough wool lane **splits**: a
+   primary hub→tip strip plus a **child branch** grown off a point partway along it (a `_/-` with its own
+   offspring). The child reuses the submerge idea — it anchors back along the parent so the two ribbons overlap
+   and the junction unions cleanly — and heads off by ≥ `MinHubAngle`. The code is built from reusable pieces
+   (`LaneCenterline` = the spine, `RibbonFromCenterline` = spine→polygon), so a fork is just a second spine off
+   the first. **Wool placement on a fork's leaves is a deliberate TBD**: today the wool stays on the *primary*
+   tip and the child is terrain. *Tune:* `BranchChance`, fork position (`0.45–0.62` along the spine), child
+   angle/length.
+
 5. **Organic holes.** With probability `HoleChance`, a lane carries an **organic 4–6-gon** (jittered radii,
    `HolePolygon`) **subtracted** as a hole (the Green-Gem reading) — not strictly a diamond. Its bounding
    radius is `0.35–0.55·laneWidth`, and the ribbon is **bulged so that a path of at least 0.7·laneWidth remains
@@ -116,7 +127,8 @@ protection-aware BFS from each captor's spawn to the enemy wool with the defende
 | `Seed` | 1 | the noise/RNG seed — the whole layout |
 | `Wools` | 2 | wool lanes per team (one dead-end tip each) |
 | `LaneWidth` | 12 | base lane width; **everything scales off it** (inset = ½·lw, hole-side path ≥ 0.7·lw, spur = 2.3·lw, hub plaza = 1.1·lw) |
-| `HoleChance` | 0.45 | per-lane probability of a diamond hole (held inside a wide section) |
+| `HoleChance` | 0.45 | per-lane probability of an organic hole (held inside a wide section) |
+| `BranchChance` | 0.35 | per-wool-lane probability of forking into a child branch (wool stays on the primary tip) |
 | `MidBranches` | 2 | near-mid trunk branches → bridges (two = two crossings / angles of attack) |
 | `VoidDistance` | 16 | the void gap between the two team islands at mid — the span each bridge crosses |
 | `MinHubAngle` | 35 | min degrees between branches at the hub (no thin land slivers between lanes) |
@@ -128,8 +140,9 @@ protection-aware BFS from each captor's spawn to the enemy wool with the defende
   scales. Lower jitter + offset → cleaner, straighter lanes; higher → more organic (and more blob risk).
 
 ## Known limitations / next ideas
-- Lanes are a **star from one hub** (no sub-branching); a lane that itself forks (a wool off a mid-lane
-  junction) isn't modelled yet.
+- Lanes can fork **once** (`GrowForkedLane`); deeper branch trees (a child that itself forks) and a **wool
+  placement policy for leaves** (every leaf? the longest? weighted?) are the open follow-ups — wools currently
+  stay on the primary tip.
 - Bends are free-angle; snapping waypoints to the 45°/octant family (from the primitive study) would match
   the corpus aesthetic more tightly.
 - Holes are single diamonds; multi-hole "rotated rectangle with two holes" lanes (Green Gem) could chain

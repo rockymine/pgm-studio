@@ -106,6 +106,17 @@ if (gsIdx >= 0 && gsIdx + 3 < args.Length)
     return 0;
 }
 
+// --gen-catalog <outJson>: dump the non-mirrored style catalogue (every hub style + lane behaviour) as a raw
+// sketch layout, for rendering an overview of the generator's shape primitives.
+var gcatIdx = Array.IndexOf(args, "--gen-catalog");
+if (gcatIdx >= 0 && gcatIdx + 1 < args.Length)
+{
+    var layout = PgmStudio.Pgm.Sketch.OrganicLane.StyleCatalog();
+    File.WriteAllText(args[gcatIdx + 1], layout.ToJson());
+    Console.WriteLine($"gen-catalog: {layout.Layout!.Shapes.Count} shapes → {args[gcatIdx + 1]}");
+    return 0;
+}
+
 // --gen-map-preview <archetype> <seed> <outJson>: run the full map generator (LaneMapGenerator) and emit the
 // island polygons together with the intent — spawns+protection, wools+rooms+monuments, build bridges — so
 // playability (reachability around spawn protection) can be validated without a database.

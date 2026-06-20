@@ -48,6 +48,10 @@ public sealed record LaneLayoutOptions
     /// <summary>Organic: minimum angular separation (degrees) between branches meeting at the spawn hub, so no
     /// two lanes fan out tightly enough to leave a thin sliver of land between them.</summary>
     public double MinHubAngle { get; init; } = 35;
+    /// <summary>Organic: probability a (long enough) wool lane <b>forks</b> — grows a child branch off a point
+    /// partway along it (a <c>_/-</c> shape with its own offspring). The wool stays on the primary tip for now;
+    /// where wools go on a fork's leaves is a deliberate TBD.</summary>
+    public double BranchChance { get; init; } = 0.35;
 }
 
 /// <summary>Where an objective belongs on the generated board, for the Configure step to consume.</summary>
