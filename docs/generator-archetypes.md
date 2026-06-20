@@ -49,3 +49,43 @@ The lane/shape primitives already cover these:
 
 The generator archetypes (`LaneSketchGenerator`) mirror these recipes: the `H` board, plus the
 pinwheel (rot_90, one wool per team), the pronged body (Kanto-like), and the trident (Green Gem-like).
+
+## Lane-graph decomposition (13-map study)
+
+To understand *where* objectives sit, each island is reduced to its **lane graph** (the "twig with
+branches"): clean-base mask → `skimage` skeletonize → component-based graph (endpoints = lane tips,
+degree-≥3 = junctions, edges = lanes) → **anchor-aware prune**. The anchors — fixed nodes the prune never
+removes — are the map's objective positions (spawn/wool/monument, from the xml) **and the island↔build-region
+contact cells** (build regions come from `RegionCategorizer`; the export tool emits them). Anchoring stops
+pruning from eating the lanes that lead to an objective or a bridge connector. (`--skeleton-study` exports the
+geometry + objectives + build cells; the skeleton itself is computed in the Python study harness.)
+
+Median distance from each objective to the nearest **lane tip**, across 13 maps:
+
+| map | islands | wool→tip | monument→tip | spawn→tip |
+|---|---|---|---|---|
+| kanto | 2 | 1.1 | 3.1 | 4.6 |
+| green_gem_ctw | 4 | 1.8 | 61.6 | 66.5 |
+| geometric_domination | 9 | 2.5 | 7.6 | 2.5 |
+| constellation | 6 | 5.4 | 2.1 | 1.1 |
+| duality | 16 | 4.5 | 7.6 | 1.1 |
+| aether | 14 | 1.2 | 7.4 | 4.6 |
+| amphitheater | 4 | 1.5 | 4.8 | 2.5 |
+| expedition | 7 | 0.7 | 6.1 | 1.9 |
+| colorado | 4 | 2.5 | 5.0 | 1.1 |
+| celestial_islands | 10 | 4.5 | 51.9 | 55.7 |
+| annealing_iv / fall_of_babylon / dragons_hearth | 12–23 | (deep-room wools, see note) | | |
+
+**What it confirms (the rules the generator should follow):**
+- **Wools sit at lane tips** — dead-ends at the far end of a lane (≤ ~5 blocks for 10 of 13 maps). A team's
+  several wools are at *distinct* lane tips, not the same place.
+- **Spawns and monuments sit at the hub** — where the lanes meet — either dead-centre (green_gem, celestial:
+  spawn/monument 50–66 from any tip) or on their own short spawn-lane (duality, colorado, constellation:
+  spawn→tip ~1). Never in a wool's lane.
+- So a team island is a **hub with branches**: spawn/monuments at the hub, one branch per wool ending in a
+  tip. This is the structure the generator must emit — the earlier "blade blob with everything clustered"
+  is exactly what to avoid.
+
+Note: where wool→tip is large (annealing's curved blades, fall_of_babylon, dragons_hearth) the wool sits in
+a wool-*room* set back from the lane tip, or the island is large enough that the room reads as its own small
+structure — still a dead-end pocket off the lane, just not the skeleton's extreme endpoint.

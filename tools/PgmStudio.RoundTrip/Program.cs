@@ -87,6 +87,14 @@ if (islandStudyIdx >= 0 && islandStudyIdx + 2 < args.Length)
     return RunIslandStudy(args[islandStudyIdx + 1], args[islandStudyIdx + 2],
         islandStudyIdx + 3 < args.Length && double.TryParse(args[islandStudyIdx + 3], out var studyTol) ? studyTol : 2.0);
 
+// --skeleton-study <regionDir> <map.xml> <outJson> [tolerance]: each island's simplified polygon plus its
+// centerline graph (thinning → merge junction blobs → anchor-aware prune using the map.xml objectives as
+// fixed nodes) for studying lane structure and where objectives sit.
+var skelStudyIdx = Array.IndexOf(args, "--skeleton-study");
+if (skelStudyIdx >= 0 && skelStudyIdx + 3 < args.Length)
+    return RunSkeletonStudy(args[skelStudyIdx + 1], args[skelStudyIdx + 2], args[skelStudyIdx + 3],
+        skelStudyIdx + 4 < args.Length && double.TryParse(args[skelStudyIdx + 4], out var skTol) ? skTol : 2.5);
+
 // --monument-slices <regionDir> <xml_data.json> <outParquet>: sample the 3×3×5 block volume around
 // every wool monument (MonumentSliceExtractor), write monument_slices.parquet, read it back and print
 // a validation summary. The monument centres come from xml_data.json (wools[].monuments[].location).
@@ -1085,6 +1093,117 @@ static int RunIslandStudy(string regionDir, string outJson, double tolerance)
     Console.WriteLine($"  vertices: {raw} raw → {simp2} simplified ({(raw > 0 ? 100 * simp2 / raw : 0)}%)");
     Console.WriteLine($"  wrote {outJson}");
     return 0;
+}
+
+static int RunSkeletonStudy(string regionDir, string mapXml, string outJson, double tolerance)
+{
+    var chunks = Directory.GetFiles(regionDir, "*.mca")
+        .SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var fallbacks = new[]
+    {
+        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell),
+    };
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+
+    var allX = islands.SelectMany(i => new[] { i.Bounds.MinX, i.Bounds.MaxX }).ToList();
+    var allZ = islands.SelectMany(i => new[] { i.Bounds.MinZ, i.Bounds.MaxZ }).ToList();
+    int bMinX = allX.Min() - 16, bMinZ = allZ.Min() - 16, bMaxX = allX.Max() + 16, bMaxZ = allZ.Max() + 16;
+
+    // map.xml → doc, categories, build regions, objectives (the fixed anchor points)
+    var doc = PgmStudio.Pgm.Serializer.ToDict(PgmStudio.Pgm.MapParser.Parse(mapXml));
+    var regionRegistry = doc.GetValueOrDefault("regions") as Dictionary<string, object?> ?? [];
+    var cats = PgmStudio.Pgm.Authoring.RegionCategorizer.Categorize(doc);
+    var bounds = ((double)bMinX, (double)bMinZ, (double)bMaxX, (double)bMaxZ);
+
+    // build-region cells — the island↔bridge contact that pruning must preserve
+    var buildCells = new HashSet<(int, int)>();
+    foreach (var (id, cat) in cats)
+        if (cat == "build" && regionRegistry.GetValueOrDefault(id) is Dictionary<string, object?> reg
+            && PgmStudio.Analysis.Region.RegionGeometry2d.ToGeometry(reg, bounds, regionRegistry) is { IsEmpty: false } geom)
+        {
+            var env = geom.EnvelopeInternal;
+            for (var x = (int)Math.Floor(env.MinX); x <= (int)Math.Ceiling(env.MaxX); x++)
+                for (var z = (int)Math.Floor(env.MinY); z <= (int)Math.Ceiling(env.MaxY); z++)
+                    if (geom.Intersects(new NetTopologySuite.Geometries.Point(x + 0.5, z + 0.5))) buildCells.Add((x, z));
+        }
+
+    var objectives = ReadObjectives(doc, regionRegistry, bounds);
+    var anchorCells = new HashSet<(int, int)>(buildCells);
+    foreach (var (_, ox, oz) in objectives) anchorCells.Add(((int)Math.Floor(ox), (int)Math.Floor(oz)));
+
+    static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) =>
+        r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
+
+    var outIslands = new List<object>();
+    foreach (var isl in islands)
+    {
+        if (isl.Polygon is not NetTopologySuite.Geometries.Polygon poly) continue;
+        var ext = Ring(poly.ExteriorRing);
+        var holes = poly.InteriorRings.Select(Ring).ToList();
+        var simp = PgmStudio.Geom.PolygonSimplify.Simplify(ext, holes, tolerance, minHoleArea: 8);
+        outIslands.Add(new
+        {
+            id = isl.Id,
+            blockCount = isl.BlockCount,
+            bounds = new[] { isl.Bounds.MinX, isl.Bounds.MinZ, isl.Bounds.MaxX, isl.Bounds.MaxZ },
+            exterior = simp.Exterior,
+            holes = simp.Holes,
+            rawExterior = ext,
+            rawHoles = holes,
+        });
+    }
+
+    var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
+    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(new
+    {
+        name,
+        bbox = new { minX = allX.Min(), minZ = allZ.Min(), maxX = allX.Max(), maxZ = allZ.Max() },
+        islandCount = islands.Count,
+        objectives = objectives.Select(o => new { kind = o.Kind, x = o.X, z = o.Z }).ToList(),
+        buildCells = buildCells.Select(c => new[] { c.Item1, c.Item2 }).ToList(),
+        islands = outIslands,
+    }));
+    Console.WriteLine($"skeleton-study {name}: {islands.Count} islands, {objectives.Count} objectives, {buildCells.Count} build cells");
+    Console.WriteLine($"  wrote {outJson}");
+    return 0;
+}
+
+// Objective positions from the parsed doc: wool locations, monument blocks, and spawn-region centres.
+static List<(string Kind, double X, double Z)> ReadObjectives(
+    Dictionary<string, object?> doc, Dictionary<string, object?> regions, (double, double, double, double) bounds)
+{
+    static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, _ => null };
+    static Dictionary<string, object?> AsDict(object? o) => o as Dictionary<string, object?> ?? [];
+    static List<object?> AsList(object? o) => o as List<object?> ?? [];
+
+    var outp = new List<(string, double, double)>();
+    foreach (var w in AsList(doc.GetValueOrDefault("wools")).OfType<Dictionary<string, object?>>())
+    {
+        var loc = AsDict(w.GetValueOrDefault("location"));
+        if (Num(loc.GetValueOrDefault("x")) is { } wx && Num(loc.GetValueOrDefault("z")) is { } wz)
+            outp.Add(("wool", wx, wz));
+        foreach (var m in AsList(w.GetValueOrDefault("monuments")).OfType<Dictionary<string, object?>>())
+        {
+            var ml = AsDict(m.GetValueOrDefault("location"));
+            if (Num(ml.GetValueOrDefault("x")) is { } mx && Num(ml.GetValueOrDefault("z")) is { } mz)
+                outp.Add(("monument", mx, mz));
+        }
+    }
+    foreach (var sp in AsList(doc.GetValueOrDefault("spawns")).OfType<Dictionary<string, object?>>())
+    {
+        var r = sp.GetValueOrDefault("region");
+        var region = r is string s ? regions.GetValueOrDefault(s) as Dictionary<string, object?> : r as Dictionary<string, object?>;
+        if (region is not null
+            && PgmStudio.Analysis.Region.RegionGeometry2d.ToGeometry(region, bounds, regions) is { IsEmpty: false } geom)
+        {
+            var c = geom.Centroid;
+            outp.Add(("spawn", c.X, c.Y));
+        }
+    }
+    return outp;
 }
 
 static async Task<List<(int, int, int, int)>> ReadSegments(string path)
