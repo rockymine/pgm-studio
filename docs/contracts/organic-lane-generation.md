@@ -16,15 +16,23 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --gen-preview Organic <seed> <
 
 ## The process (and where to tune it)
 
-1. **Spawn hub.** Placed near the mid line, facing the foe (`hubZ = mid − 2·laneWidth`). Lanes grow *up/out*
-   from here toward the far edge; a short **trunk** reaches toward the mid so the island is close enough for
-   short Configure bridges. *Tune:* `hub`/`trunkTip` in `OrganicLane.Grow`.
+1. **Spawn hub + plaza.** Placed above the mid line, facing the foe (`hubZ = mid − 2·laneWidth`). All branches
+   meet here, so the hub is widened into a small **plaza** blob (radius `1.1·laneWidth`): branches fan out of an
+   *area*, not a point — a point hub pinches thin land wedges between adjacent branches and leaves no room.
+   *Tune:* `hub`, the plaza radius in `OrganicLane.Grow`.
+
+1b. **Mid trunks → bridges.** `MidBranches` short trunks reach from the hub toward mid, stopping `VoidDistance/2`
+   short of it. Two well-separated trunks (the default) give **two crossings** of the void — two angles of
+   attack — instead of one chokepoint. Each trunk tip becomes a `"bridge"` hint that `LaneMapGenerator` spans
+   across the mid line to its mirror (so AutoBridge's single-edge MST isn't relied on). *Tune:* `MidBranches`,
+   `VoidDistance`, the trunk x-spread (`±1.2·laneWidth`).
 
 2. **Far-spread wool tips (the noise grid).** Sample a grid over the far band (top ~24% of the team half),
    keep the cells whose value-noise (`NoiseField`, seeded) exceeds a threshold, then **farthest-point
    sample** `Wools` of them — each new tip maximises its min distance to the hub and the already-chosen tips,
-   weighted by the noise. This spreads the wool dead-ends across the far edge. *Tune:* `FarthestTips` (band
-   height `H*0.24`, `step`, threshold, the noise weight `0.5 + N`).
+   weighted by the noise, **and is kept ≥ `MinHubAngle` from every other tip and the trunks** (the *hub-fan
+   minimum*: no two branches fan out tightly enough to leave a thin land sliver between them; the constraint
+   relaxes only if no candidate qualifies). *Tune:* `FarthestTips` band/step/threshold, `MinHubAngle`.
 
 3. **Grow each lane (the bends).** For each tip, a centerline runs hub→tip through 1–2 **waypoints** offset
    perpendicular by the noise field (`±0.55·laneWidth`) — these are the organic bends — then Catmull-Rom
@@ -40,9 +48,11 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --gen-preview Organic <seed> <
    **bulged so that a path of at least 0.7·laneWidth remains on each side** of the hole (the corpus keeps
    holes inside wide lanes, never as thin necks). *Tune:* `HoleChance`, hole-size range, the `0.7·lw` margin.
 
-6. **Spawn spur (playability).** The spawn does **not** sit on the hub junction. `SpawnSpur` collects the
-   directions from the hub to the trunk tip and every wool tip, finds the **widest angular gap** between them,
-   and places the spawn out along that gap on its own short spur ribbon. *Tune:* spur length (`laneWidth·1.7`),
+6. **Spawn spur (playability).** The spawn does **not** sit on the hub junction. `SpawnSpur` finds the widest
+   angular gap among the trunk + wool directions and, preferring a gap that points **away from the mid line**
+   (not toward the bridge), places the spawn out along it on its own spur (length `laneWidth·2.3`). Its
+   protection then sits in a side/back pocket well off the crossing, so an attacker reaching the hub fans out
+   to the wools with room rather than squeezing one corridor past the spawn. *Tune:* spur length (`laneWidth·2.3`),
    spur width (`laneWidth·0.9`).
 
 7. **Inset objectives (cover).** The wool and spawn objective points are **not** the geometric lane/spur tips
@@ -79,8 +89,11 @@ protection-aware BFS from each captor's spawn to the enemy wool with the defende
 |---|---|---|
 | `Seed` | 1 | the noise/RNG seed — the whole layout |
 | `Wools` | 2 | wool lanes per team (one dead-end tip each) |
-| `LaneWidth` | 12 | base lane width; **everything scales off it** (inset = ½·lw, hole-side path ≥ 0.7·lw, spur = 1.7·lw) |
+| `LaneWidth` | 12 | base lane width; **everything scales off it** (inset = ½·lw, hole-side path ≥ 0.7·lw, spur = 2.3·lw, hub plaza = 1.1·lw) |
 | `HoleChance` | 0.45 | per-lane probability of a diamond hole (held inside a wide section) |
+| `MidBranches` | 2 | near-mid trunk branches → bridges (two = two crossings / angles of attack) |
+| `VoidDistance` | 16 | the void gap between the two team islands at mid — the span each bridge crosses |
+| `MinHubAngle` | 35 | min degrees between branches at the hub (no thin land slivers between lanes) |
 | `Width`/`Height` | auto → 120×150 | board size; Organic upsizes the 60×90 default so lanes read as distinct corridors |
 
 ## How to iterate

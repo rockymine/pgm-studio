@@ -39,6 +39,15 @@ public sealed record LaneLayoutOptions
     public int Wools { get; init; } = 2;
     /// <summary>Probability a grown lane carries a diamond hole (Organic archetype).</summary>
     public double HoleChance { get; init; } = 0.45;
+    /// <summary>Organic: number of near-mid trunk branches the island reaches the centre with — each becomes a
+    /// bridge across the void, so 2 gives two crossing points (two angles of attack) instead of one chokepoint.</summary>
+    public int MidBranches { get; init; } = 2;
+    /// <summary>Organic: the void gap (blocks) between the two team islands at the mid line — the span each
+    /// bridge crosses. Smaller → the islands almost touch; larger → a longer, more exposed crossing.</summary>
+    public double VoidDistance { get; init; } = 16;
+    /// <summary>Organic: minimum angular separation (degrees) between branches meeting at the spawn hub, so no
+    /// two lanes fan out tightly enough to leave a thin sliver of land between them.</summary>
+    public double MinHubAngle { get; init; } = 35;
 }
 
 /// <summary>Where an objective belongs on the generated board, for the Configure step to consume.</summary>
@@ -70,7 +79,7 @@ public static class LaneSketchGenerator
         // organic islands want room for the lanes to read as distinct corridors → a larger default board
         if (o is { Width: 60, Height: 90 }) o = o with { Width = 120, Height = 150 };
         var unit = OrganicLane.Grow(o);
-        return Assemble(o, Mode(o, "mirror_z"), unit.Shapes, unit.Spawn, unit.Tips, mids: []);
+        return Assemble(o, Mode(o, "mirror_z"), unit.Shapes, unit.Spawn, unit.Tips, mids: [], bridges: unit.TrunkTips);
     }
 
     // ── H: two teams, straight legs + crossbar, one wool each ─────────────────────────────────────
@@ -152,7 +161,8 @@ public static class LaneSketchGenerator
     // ── assembly: fan one team's unit + objectives to every team by the board symmetry ────────────
     private static LaneLayoutResult Assemble(
         LaneLayoutOptions o, string mirrorMode, List<SketchShape> unit,
-        (double X, double Z) spawn, List<(double X, double Z)> wools, List<SketchShape> mids)
+        (double X, double Z) spawn, List<(double X, double Z)> wools, List<SketchShape> mids,
+        List<(double X, double Z)>? bridges = null)
     {
         double cx = o.Width / 2, cz = o.Height / 2;
         var shapes = new List<SketchShape>(unit);
@@ -183,6 +193,10 @@ public static class LaneSketchGenerator
                 hints.Add(new("wool", k, wx, wz));
             }
         }
+        // bridge anchors: one per mid trunk-tip of team 0 (NOT fanned). Each names a point the island reaches
+        // near mid; the map generator spans it across to its mirror so every trunk gets its own crossing.
+        if (bridges is not null)
+            foreach (var (bx, bz) in bridges) hints.Add(new("bridge", 0, bx, bz));
         return new LaneLayoutResult(layout, hints);
     }
 

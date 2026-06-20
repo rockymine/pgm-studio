@@ -13,24 +13,45 @@ namespace PgmStudio.Pgm.Sketch;
 /// </summary>
 public static class OrganicLane
 {
-    public sealed record Unit(List<SketchShape> Shapes, (double X, double Z) Spawn, List<(double X, double Z)> Tips);
+    public sealed record Unit(List<SketchShape> Shapes, (double X, double Z) Spawn,
+        List<(double X, double Z)> Tips, List<(double X, double Z)> TrunkTips);
 
     public static Unit Grow(LaneLayoutOptions o)
     {
         var rng = new Rng(o.Seed);
         double W = o.Width, H = o.Height, m = o.Margin, lw = o.LaneWidth, midZ = H / 2;
         var noise = new NoiseField(o.Seed, Math.Max(6.0, lw));
+        var minAngle = o.MinHubAngle * Math.PI / 180.0;
 
-        // hub junction: near the mid line, facing the foe — the trunk and wool lanes meet here
+        // hub junction: above the mid line, facing the foe — the trunks and wool lanes meet here
         var hub = (W / 2 + rng.Range(-W * 0.06, W * 0.06), midZ - lw * 2.0);
-        var tips = FarthestTips(o, rng, noise, hub, Math.Max(1, o.Wools));
+
+        // mid trunks: 1–2 short branches reaching toward the mid line so the island connects across the void.
+        // The island stops VoidDistance/2 short of mid; two well-separated branches → two bridges → two angles
+        // of attack across the centre instead of a single chokepoint.
+        var reachZ = midZ - o.VoidDistance / 2;
+        var branches = Math.Max(1, o.MidBranches);
+        var trunkTips = new List<(double X, double Z)>();
+        for (var k = 0; k < branches; k++)
+        {
+            var fx = branches == 1 ? 0.0 : k / (double)(branches - 1) - 0.5;     // −0.5 … 0.5
+            trunkTips.Add((hub.Item1 + fx * lw * 2.4 + rng.Range(-lw * 0.2, lw * 0.2), reachZ));
+        }
+        var trunkDirs = trunkTips.Select(t => Math.Atan2(t.Z - hub.Item2, t.X - hub.Item1)).ToList();
+
+        // wool tips: far-spread on the noise grid, but kept ≥ minAngle apart from each other AND the trunks —
+        // the hub-fan minimum, so no two branches fan out tightly enough to pinch a sliver of land between them.
+        var tips = FarthestTips(o, rng, noise, hub, Math.Max(1, o.Wools), minAngle, trunkDirs);
 
         var shapes = new List<SketchShape>();
         var id = 0;
 
-        // a short trunk from the hub toward the mid line so the island reaches the mid (short bridges)
-        var trunkTip = (hub.Item1 + rng.Range(-lw * 0.5, lw * 0.5), midZ - lw * 0.6);
-        shapes.Add(Poly($"trunk{id++}", GrowLane(rng, noise, hub, trunkTip, lw, o, allowHole: false).Ribbon, "add"));
+        // hub plaza: a small open blob where all the branches meet, so they fan out of an area instead of a
+        // single point (a point hub pinches thin land wedges between adjacent branches, and gives no room).
+        shapes.Add(Poly("hub", Regular(hub.Item1, hub.Item2, lw * 1.1, 12), "add"));
+
+        foreach (var tt in trunkTips)
+            shapes.Add(Poly($"trunk{id++}", GrowLane(rng, noise, hub, tt, lw, o, allowHole: false).Ribbon, "add"));
 
         // one lane per wool tip: hub → tip, bent + varied, optional diamond hole inside. The wool objective is
         // inset off the dead-end tip into the lane body (≈ half a lane width) so it carries cover instead of
@@ -45,37 +66,41 @@ public static class OrganicLane
             id++;
         }
 
-        // Spawn goes on its OWN short spur off the hub, pointed into the widest angular gap (away from the
-        // trunk and every wool lane). Its protection then sits off the junction, so an attacker crossing the
-        // bridge reaches the hub and the wool lanes without ever entering the spawn — the corpus pattern
-        // (e.g. Kanto: central spawn, wools on offset side lanes). See docs/contracts/organic-lane-generation.md.
-        var spawn = SpawnSpur(rng, noise, hub, trunkTip, tips, lw, o, shapes);
-        return new Unit(shapes, spawn, woolObjs);
+        // Spawn goes on its OWN spur off the hub, tucked into a pocket pointing AWAY from the mid line (not
+        // toward the bridge) so its protection sits well off the crossing — an attacker reaching the hub fans
+        // out to the wools with room, not squeezing a single corridor past the spawn. See the contract doc.
+        var spawn = SpawnSpur(rng, noise, hub, trunkDirs, tips, lw, o, minAngle, shapes);
+        return new Unit(shapes, spawn, woolObjs, trunkTips);
     }
 
     private static (double X, double Z) SpawnSpur(
-        Rng rng, NoiseField noise, (double X, double Z) hub, (double X, double Z) trunkTip,
-        List<(double X, double Z)> tips, double lw, LaneLayoutOptions o, List<SketchShape> shapes)
+        Rng rng, NoiseField noise, (double X, double Z) hub, List<double> trunkDirs,
+        List<(double X, double Z)> tips, double lw, LaneLayoutOptions o, double minAngle, List<SketchShape> shapes)
     {
-        var dirs = new List<double> { Math.Atan2(trunkTip.Z - hub.Z, trunkTip.X - hub.X) };
+        var dirs = new List<double>(trunkDirs);
         dirs.AddRange(tips.Select(t => Math.Atan2(t.Z - hub.Z, t.X - hub.X)));
         dirs.Sort();
-        double bestGap = -1, angle = 0;
+        (double Angle, double Width) widest = (0, -1), away = (0, -1);
         for (var i = 0; i < dirs.Count; i++)
         {
             var a = dirs[i];
             var b = dirs[(i + 1) % dirs.Count] + (i + 1 == dirs.Count ? 2 * Math.PI : 0);
-            if (b - a > bestGap) { bestGap = b - a; angle = a + (b - a) / 2; }
+            var mid = a + (b - a) / 2; var width = b - a;
+            if (width > widest.Width) widest = (mid, width);
+            // "away from the bridge": the spur should not point toward the mid line (+z). Prefer an upward gap.
+            if (Math.Sin(mid) < 0 && width > away.Width) away = (mid, width);
         }
-        var len = lw * 1.7;
-        var spawnTip = (hub.X + Math.Cos(angle) * len, hub.Z + Math.Sin(angle) * len);
+        var chosen = away.Width >= 2 * minAngle ? away.Angle : widest.Angle;     // prefer a roomy away-from-mid pocket
+        var len = lw * 2.3;                                                       // deeper spur → spawn off the hub mouth
+        var spawnTip = (hub.X + Math.Cos(chosen) * len, hub.Z + Math.Sin(chosen) * len);
         var spur = GrowLane(rng, noise, hub, spawnTip, lw * 0.9, o, allowHole: false);
         shapes.Add(Poly("spawnspur", spur.Ribbon, "add"));
         return spur.Obj;   // inset off the spur tip, like the wools
     }
 
-    // ── far-spread wool tips from the noise grid (toward the far edge) ────────────────────────────
-    private static List<(double X, double Z)> FarthestTips(LaneLayoutOptions o, Rng rng, NoiseField noise, (double X, double Z) hub, int count)
+    // ── far-spread wool tips from the noise grid (toward the far edge), kept ≥ minAngle apart at the hub ──
+    private static List<(double X, double Z)> FarthestTips(LaneLayoutOptions o, Rng rng, NoiseField noise,
+        (double X, double Z) hub, int count, double minAngle, List<double> reserved)
     {
         double W = o.Width, H = o.Height, m = o.Margin, lw = o.LaneWidth;
         var step = Math.Max(4.0, lw * 0.5);
@@ -95,21 +120,40 @@ public static class OrganicLane
         if (cands.Count == 0)
             for (var i = 0; i < count; i++) cands.Add((m + lw + (W - 2 * (m + lw)) * (i + 0.5) / count, m + lw, 1));
 
+        double Ang((double X, double Z) p) => Math.Atan2(p.Z - hub.Z, p.X - hub.X);
         var first = cands.OrderByDescending(c => c.N).First();
         var chosen = new List<(double X, double Z)> { (first.X, first.Z) };
         while (chosen.Count < count)
         {
             (double X, double Z) best = default;
             var bestScore = -1.0;
-            foreach (var c in cands)
-            {
-                var d = Math.Min(Dist((c.X, c.Z), hub), chosen.Min(ch => Dist((c.X, c.Z), ch)));
-                var score = d * (0.5 + c.N);                 // far-spread, weighted by the noise grid
-                if (score > bestScore) { bestScore = score; best = (c.X, c.Z); }
-            }
+            // first pass requires ≥ minAngle from every chosen tip and the trunk dirs (the hub-fan minimum);
+            // relax only if no candidate qualifies so a tip is always produced.
+            for (var pass = 0; pass < 2 && bestScore < 0; pass++)
+                foreach (var c in cands)
+                {
+                    if (pass == 0)
+                    {
+                        var ca = Ang((c.X, c.Z));
+                        if (chosen.Any(ch => Math.Abs(AngleDiff(ca, Ang(ch))) < minAngle)
+                            || reserved.Any(rd => Math.Abs(AngleDiff(ca, rd)) < minAngle)) continue;
+                    }
+                    var d = Math.Min(Dist((c.X, c.Z), hub), chosen.Min(ch => Dist((c.X, c.Z), ch)));
+                    var score = d * (0.5 + c.N);             // far-spread, weighted by the noise grid
+                    if (score > bestScore) { bestScore = score; best = (c.X, c.Z); }
+                }
             chosen.Add(best);
         }
         return chosen;
+    }
+
+    // signed smallest angle a→b in (−π, π]
+    private static double AngleDiff(double a, double b)
+    {
+        var d = (a - b) % (2 * Math.PI);
+        if (d > Math.PI) d -= 2 * Math.PI;
+        if (d < -Math.PI) d += 2 * Math.PI;
+        return d;
     }
 
     // ── one lane: bent centerline → variable-width ribbon (+ optional diamond hole), plus the inset objective ─
@@ -182,6 +226,13 @@ public static class OrganicLane
             d -= seg;
         }
         return (center[0][0], center[0][1]);
+    }
+
+    private static List<double[]> Regular(double cx, double cz, double r, int n)
+    {
+        var ring = new List<double[]>(n);
+        for (var i = 0; i < n; i++) { var a = 2 * Math.PI * i / n; ring.Add([cx + r * Math.Cos(a), cz + r * Math.Sin(a)]); }
+        return ring;
     }
 
     private static List<double[]> Diamond(double cx, double cz, double r, double rot)

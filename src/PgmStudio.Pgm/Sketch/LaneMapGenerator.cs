@@ -24,7 +24,6 @@ public static class LaneMapGenerator
         var (layout, hints) = LaneSketchGenerator.Build(o);
 
         var cells = SketchRasterizer.Rasterize(layout.ToJson());
-        var bridges = AutoBridge.Infer(cells, o.LaneWidth);
 
         var teamCount = hints.Count == 0 ? 0 : hints.Max(h => h.Team) + 1;
         var slots = Palette.Take(Math.Max(1, teamCount)).ToArray();
@@ -32,6 +31,13 @@ public static class LaneMapGenerator
         // board centre from the footprint (square pinwheel or rectangular H alike)
         double cx = cells.Count > 0 ? (cells.Min(c => c.X) + cells.Max(c => c.X)) / 2.0 : o.Width / 2;
         double cz = cells.Count > 0 ? (cells.Min(c => c.Z) + cells.Max(c => c.Z)) / 2.0 : o.Height / 2;
+
+        // bridges: if the layout supplied bridge anchors (Organic's mid trunk-tips), span each across the mid
+        // line to its mirror so every trunk gets its own crossing; otherwise infer them (MST over the islands).
+        var bridgeHints = hints.Where(h => h.Kind == "bridge").ToList();
+        var bridges = bridgeHints.Count > 0
+            ? bridgeHints.Select(h => AcrossBridge(h.X, h.Z, cz, o.LaneWidth)).ToList()
+            : AutoBridge.Infer(cells, o.LaneWidth);
 
         var spawnOf = hints.Where(h => h.Kind == "spawn").ToDictionary(h => h.Team);
         var woolsOf = hints.Where(h => h.Kind == "wool").GroupBy(h => h.Team).ToDictionary(g => g.Key, g => g.ToList());
@@ -83,6 +89,13 @@ public static class LaneMapGenerator
 
     private static Rect Box(double x, double z, double size) =>
         new(x - size / 2, z - size / 2, x + size / 2, z + size / 2);
+
+    // A bridge spanning a team-0 trunk tip (x,z) across the mid line (cz) to its mirror, `width` across.
+    private static Rect AcrossBridge(double x, double z, double cz, double width)
+    {
+        double z2 = 2 * cz - z;
+        return new Rect(x - width / 2, Math.Min(z, z2), x + width / 2, Math.Max(z, z2));
+    }
 
     // Move (x,z) toward (cx,cz) by `d` blocks.
     private static (double X, double Z) Toward(double x, double z, double cx, double cz, double d)
