@@ -81,6 +81,43 @@ if (args.Contains("--monuments-only"))
     return 0;
 }
 
+// --store-island-sketch: store each map's Douglas-Peucker simplified island outlines (+ holes) in the sketch
+// layout format, under the island_sketch_json artifact. Derived from the stored islands_json — no re-scan.
+if (args.Contains("--store-island-sketch"))
+{
+    var maps2 = await db.Maps.OrderBy(m => m.Slug).ToListAsync();
+    int sok = 0, sskip = 0;
+    foreach (var map in maps2)
+    {
+        var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson);
+        if (art?.Data is null) { sskip++; continue; }
+        var islands = new List<(string, IReadOnlyList<double[]>, IReadOnlyList<IReadOnlyList<double[]>>)>();
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(art.Data);
+            foreach (var el in doc.RootElement.EnumerateArray())
+            {
+                var rings = el.GetProperty("polygon").GetProperty("coordinates").EnumerateArray()
+                    .Select(r => r.EnumerateArray().Select(p => new[] { p[0].GetDouble(), p[1].GetDouble() }).ToList())
+                    .ToList();
+                if (rings.Count == 0 || rings[0].Count < 3) continue;
+                islands.Add((el.GetProperty("id").GetInt32().ToString(),
+                    rings[0], rings.Skip(1).Cast<IReadOnlyList<double[]>>().ToList()));
+            }
+        }
+        catch { sskip++; continue; }
+        if (islands.Count == 0) { sskip++; continue; }
+
+        var layout = PgmStudio.Pgm.Sketch.IslandSimplifier.SimplifyMap(islands);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(layout.ToJson());
+        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandSketchJson).DeleteAsync();
+        await db.InsertAsync(new MapArtifactRow { MapId = map.Id, Kind = ArtifactKind.IslandSketchJson, Data = bytes });
+        sok++;
+    }
+    Console.WriteLine($"island-sketch: stored for {sok} map(s); {sskip} skipped (no islands)");
+    return 0;
+}
+
 // Known-malformed maps, excluded by design (do NOT relax the schema to accommodate them).
 var exclusions = new Dictionary<string, string>
 {

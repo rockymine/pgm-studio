@@ -334,4 +334,8 @@ public static class ArtifactKind
     // sidecars it lives outside the entity-replace codec. A draft map with this artifact but no
     // layer_parquet is a sketch-in-progress; "finish" rasterizes it into the geometry artifacts (S2e).
     public const string SketchLayoutJson = "sketch_layout_json";
+    // The Douglas-Peucker simplified island outlines of an EXISTING map, in the sketch layout format
+    // (one "add" polygon per island + a "subtract" per hole). Derived from islands_json — distinct from the
+    // authored SketchLayoutJson so it neither re-stages the map to Sketch nor clobbers a real draft sketch.
+    public const string IslandSketchJson = "island_sketch_json";
 }

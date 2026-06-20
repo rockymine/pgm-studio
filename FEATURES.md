@@ -301,6 +301,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   live. `OrganicLane.GrowStages` captures the per-stage intermediates from a single traced `Grow` run
   (no second code path); `POST /api/sketch/generate/stages` emits them; `render/gen-stages.js` paints each
   stage (reuses the geometry / render layers). (G4)
+- **Island-outline simplification → sketch format** — `IslandSimplifier` turns a real island's detected
+  outline into the editable sketch layout (Douglas-Peucker simplified exterior `add` polygon +
+  a `subtract` per hole, via `PolygonSimplify`); `RoundTrip --island-sketch` previews one map's layout,
+  and `PgmStudio.Import --store-island-sketch` stores it for every map as the `island_sketch_json` artifact
+  (derived from `islands_json`, distinct from the authored `sketch_layout_json` so it neither re-stages the
+  map nor clobbers a draft). Simplification only — the faithful outline; cutting it into lanes is `G6`.
+  `scripts/island_shapes.py` is the shape-feature analyzer behind it. (G6 base)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

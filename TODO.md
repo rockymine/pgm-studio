@@ -175,6 +175,14 @@ feature).
   width in `LaneSketchGenerator.Pinwheel`, or clip the inner offset in `Geom.Lane.Strip` so a tight
   centerline can't produce a self-crossing strip. Surfaced by the `SketchLayoutPrepTests` self-intersection
   regression (which tests a clean curved crossbar precisely because the Pinwheel blade doesn't yet satisfy it).
+- [ ] **G6 — Decompose a simplified island into lanes.** The base is done (`IslandSimplifier` →
+  `island_sketch_json` per map: the Douglas-Peucker simplified outline + holes, in the sketch format).
+  Build forward from that *simplified shape*: cut the single `add` outline polygon into the generator's lane
+  pieces — e.g. split at the concave "neck" vertices between prongs / along the medial axis — so the lanes
+  are guaranteed to **tile the real outline** (not approximate it, the failed skeleton-ribbon attempt). Each
+  lane stays an editable polygon; holes carry through. Turns any real map into editable generator primitives
+  (the inverse of `OrganicLane`) and gives rigorous per-lane width/length measurement to feed `G3`. Verify
+  with `--island-sketch` + `scripts/generator/render_sketch.py` on kanto / green_gem / annealing_iv.
 
 ## Lower priority / parked
 

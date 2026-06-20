@@ -82,6 +82,12 @@ var soaIdx = Array.IndexOf(args, "--scan-out-all");
 if (soaIdx >= 0 && soaIdx + 2 < args.Length)
     return await RunScanOutAll(args[soaIdx + 1], args[soaIdx + 2]);
 
+// --island-sketch <mapDir> <outJson>: scan a map and simplify each island outline (+ holes) into one
+// editable SketchLayout (IslandSimplifier) — for previewing what gets stored as the island_sketch_json artifact.
+var isIdx2 = Array.IndexOf(args, "--island-sketch");
+if (isIdx2 >= 0 && isIdx2 + 2 < args.Length)
+    return RunIslandSketch(args[isIdx2 + 1], args[isIdx2 + 2]);
+
 // --islands <regionDir> <oracleDir>: surface scan + island detection vs layer.parquet/islands.json.
 var isIdx = Array.IndexOf(args, "--islands");
 if (isIdx >= 0 && isIdx + 2 < args.Length)
@@ -614,6 +620,50 @@ static async Task<int> RunScanOutAll(string mapsRoot, string outRoot)
     }
     Console.WriteLine($"\nscan-out: {dirs.Count - fail} ok, {fail} failed");
     return fail == 0 ? 0 : 1;
+}
+
+// ── --island-sketch: real island outlines → simplified exterior + holes, as one editable SketchLayout ────
+static int RunIslandSketch(string mapDir, string outJson)
+{
+    var regionDir = Path.Combine(mapDir, "region");
+    if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  no region/ at {regionDir}"); return 1; }
+    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
+    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var fallbacks = new[] { PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell), PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell) };
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+
+    static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
+    var shapes = new List<PgmStudio.Pgm.Sketch.SketchShape>();
+    var islandGroups = new List<PgmStudio.Pgm.Sketch.SketchIsland>();
+    double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
+    int imported = 0;
+
+    Console.WriteLine($"{Path.GetFileName(Path.TrimEndingDirectorySeparator(mapDir))}: {islands.Count} islands");
+    foreach (var isl in islands)
+    {
+        if (isl.Polygon is not NetTopologySuite.Geometries.Polygon poly) continue;
+        var res = PgmStudio.Pgm.Sketch.IslandSimplifier.Simplify(Ring(poly.ExteriorRing), poly.InteriorRings.Select(Ring).ToList());
+        if (res.Layout.Layout!.Shapes.Count == 0) continue;
+        imported++;
+        Console.WriteLine($"  island {isl.Id,-3} blocks={isl.BlockCount,-6} outline={res.ExteriorVertices,-3}v holes={res.Holes}");
+        foreach (var s in res.Layout.Layout.Shapes)
+        {
+            s.Id = $"i{isl.Id}_{s.Id}";
+            shapes.Add(s);
+            foreach (var v in s.Vertices ?? []) { minX = Math.Min(minX, v[0]); maxX = Math.Max(maxX, v[0]); minZ = Math.Min(minZ, v[1]); maxZ = Math.Max(maxZ, v[1]); }
+        }
+        islandGroups.Add(new PgmStudio.Pgm.Sketch.SketchIsland { Id = $"i{isl.Id}", Name = $"Island {isl.Id}", Mirrors = false, ShapeIds = [.. res.Layout.Layout.Shapes.Select(s => s.Id)] });
+    }
+
+    var layout = new PgmStudio.Pgm.Sketch.SketchLayout
+    {
+        Setup = new PgmStudio.Pgm.Sketch.SketchSetup { MirrorMode = "none", Center = new PgmStudio.Pgm.Sketch.SketchCenter { Cx = shapes.Count > 0 ? (minX + maxX) / 2 : 0, Cz = shapes.Count > 0 ? (minZ + maxZ) / 2 : 0 } },
+        Layout = new PgmStudio.Pgm.Sketch.SketchShapes { Shapes = shapes, Islands = islandGroups },
+    };
+    File.WriteAllText(outJson, layout.ToJson());
+    Console.WriteLine($"island-sketch: {imported}/{islands.Count} islands simplified (outline + holes) → {outJson}");
+    return 0;
 }
 
 // Write rows to a parquet file; an empty set writes NO file (so the importer's File.Exists check skips it).
