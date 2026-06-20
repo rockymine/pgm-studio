@@ -308,6 +308,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (derived from `islands_json`, distinct from the authored `sketch_layout_json` so it neither re-stages the
   map nor clobbers a draft). Simplification only — the faithful outline; cutting it into lanes is `G6`.
   `scripts/island_shapes.py` is the shape-feature analyzer behind it. (G6 base)
+- **Lane-decomposition surface (manual cut tool)** — `/maps/{slug}/decompose` (dashboard footer →
+  `/decompose`, a queue of two-team CTW maps): loads a map's `island_sketch` outline and the author
+  **lassos** a region → picks **two seam points** (existing corners or lasso∩edge markers) → the piece
+  **splits** into a lane + remainder (iterative peeling), with a role tag per piece (spawn/wool/frontline/
+  hub/other), undo, and Confirm→Next that saves `lane_decomposition_json` (its presence marks the map done +
+  drops it from the queue, keeping the original outline as the diff). Canvas `bridge/decompose-bridge.js` +
+  pure `geometry/decompose-cut.js` (node-tested); `DecomposeEndpoints.cs` (queue / load / save). The
+  ground-truth-gathering precursor to the `G6` auto-cutter. (G6)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

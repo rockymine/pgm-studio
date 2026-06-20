@@ -338,4 +338,7 @@ public static class ArtifactKind
     // (one "add" polygon per island + a "subtract" per hole). Derived from islands_json — distinct from the
     // authored SketchLayoutJson so it neither re-stages the map to Sketch nor clobbers a real draft sketch.
     public const string IslandSketchJson = "island_sketch_json";
+    // The human-authored lane decomposition of a map (the island_sketch outlines cut into lane polygons,
+    // each optionally role-tagged), in the sketch layout format. Its presence marks a map "decomposed".
+    public const string LaneDecompositionJson = "lane_decomposition_json";
 }

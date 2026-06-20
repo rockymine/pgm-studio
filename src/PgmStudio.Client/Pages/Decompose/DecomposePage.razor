@@ -1,0 +1,75 @@
+@page "/maps/{Slug}/decompose"
+@layout EditorLayout
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject NavigationManager Nav
+@implements IAsyncDisposable
+
+@* Lane-decomposition surface — the human cuts a map's simplified island outline into lanes (lasso → pick
+   two seam points → split), tags each piece's role, and confirms to the next map. The original outline is
+   kept; the cut lanes save to lane_decomposition_json. Canvas = bridge/decompose-bridge.js. *@
+
+<div class="editor-page">
+  <div id="topbar" class="topbar">
+    <a href="maps" class="topbar-breadcrumb-home" title="Back to dashboard">
+      <i data-lucide="house"></i><span>Studio</span>
+    </a>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-crumb">@Slug.Replace('_', ' ')</span>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-crumb topbar-crumb--dim">Decompose</span>
+    <div class="topbar-right">
+      <span class="topbar-crumb topbar-crumb--dim">@progressLabel</span>
+      <button class="action-btn" title="Undo last cut" @onclick="Undo"><i data-lucide="undo-2"></i></button>
+      <button class="action-btn action-btn--primary" @onclick="ConfirmNext" disabled="@saving"
+              title="Save these lanes and move to the next map">Confirm &amp; Next</button>
+      <ThemeToggle />
+    </div>
+  </div>
+
+  <div id="main" class="app-body">
+    <div class="activity-viewport">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Tools</h2></div>
+              <div class="canvas-toolbar">
+                <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)"
+                        title="Lasso a lane, then click two seam points" @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
+                <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)"
+                        title="Pan (or middle-drag)" @onclick='() => SetTool("pan")'><i data-lucide="hand"></i></button>
+                <button class="draw-tool-btn" title="Fit to content" @onclick="Fit"><i data-lucide="scan"></i></button>
+              </div>
+              <p class="field-help">Lasso a lane region, then click <strong>two</strong> seam points (existing
+                corners or lasso-edge markers). The piece splits into the lane + the remainder; keep peeling.</p>
+            </section>
+
+            <section class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Pieces (@pieces.Count)</h2></div>
+              @if (pieces.Count == 0) { <p class="field-help">Loading the island outline…</p> }
+              @foreach (var p in pieces)
+              {
+                <div class="field">
+                  <label class="field-label">@p.Id · @p.Vertices v@(p.Holes > 0 ? $" · {p.Holes} hole(s)" : "")</label>
+                  <select class="field-input" @onchange="@(e => SetRole(p.Id, e.Value?.ToString()))" @onfocus="@(() => SelectPiece(p.Id))">
+                    @foreach (var r in Roles)
+                    {
+                      <option value="@r" selected="@(p.Role == r)">@r</option>
+                    }
+                  </select>
+                </div>
+              }
+            </section>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-canvas">
+          <div @ref="wrapRef" class="svg-area">
+            <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

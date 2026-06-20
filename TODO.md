@@ -175,14 +175,17 @@ feature).
   width in `LaneSketchGenerator.Pinwheel`, or clip the inner offset in `Geom.Lane.Strip` so a tight
   centerline can't produce a self-crossing strip. Surfaced by the `SketchLayoutPrepTests` self-intersection
   regression (which tests a clean curved crossbar precisely because the Pinwheel blade doesn't yet satisfy it).
-- [ ] **G6 — Decompose a simplified island into lanes.** The base is done (`IslandSimplifier` →
-  `island_sketch_json` per map: the Douglas-Peucker simplified outline + holes, in the sketch format).
-  Build forward from that *simplified shape*: cut the single `add` outline polygon into the generator's lane
-  pieces — e.g. split at the concave "neck" vertices between prongs / along the medial axis — so the lanes
-  are guaranteed to **tile the real outline** (not approximate it, the failed skeleton-ribbon attempt). Each
-  lane stays an editable polygon; holes carry through. Turns any real map into editable generator primitives
-  (the inverse of `OrganicLane`) and gives rigorous per-lane width/length measurement to feed `G3`. Verify
-  with `--island-sketch` + `scripts/generator/render_sketch.py` on kanto / green_gem / annealing_iv.
+- [ ] **G6 — Lane decomposition (manual cut tool → ground truth → auto-cutter).** The **manual cut surface
+  landed** (`/maps/{slug}/decompose`: lasso → pick two seam points → split the outline into lane + remainder,
+  iterative peeling, role tag, save `lane_decomposition_json`; `FEATURES.md`). Remaining, in order:
+  (a) **marker dragging** — drag a lasso∩edge marker along its edge to set a non-corner seam (kanto's prong
+  *bases* need a marker on the body edge, not just existing corners — so this is needed even for 90° maps);
+  (b) **show one side only** — dedup mirrored/rotated islands via the map's symmetry so the author cuts a
+  single team's island set, not both identical copies (kanto = one island per team);
+  (c) **reuse the standard editor canvas + toolbar** (the shared `EditorCanvas` shell with the familiar
+  toolbar, **focus-islands** buttons and **zoom controls**) instead of the bespoke decompose shell;
+  (d) once enough maps are hand-cut, build the **auto-cutter** trained/validated on the gathered ground truth
+  (cut at concave necks / medial axis so lanes **tile** the outline) — feeds `G3` per-lane width/length.
 
 ## Lower priority / parked
 
