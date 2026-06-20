@@ -6,8 +6,10 @@
 @implements IAsyncDisposable
 
 @* Lane-decomposition surface — the human cuts a map's simplified island outline into lanes (lasso → pick
-   two seam points → split), tags each piece's role, and confirms to the next map. The original outline is
-   kept; the cut lanes save to lane_decomposition_json. Canvas = bridge/decompose-bridge.js. *@
+   two seam points → split), tags each piece's role, and confirms to the next map. Only one side of a
+   symmetric map is shown (the rest is the mirror). Canvas = bridge/decompose-bridge.js, with the shared
+   editor canvas chrome (toolbar · focus · zoom). The original outline is kept; cuts save to
+   lane_decomposition_json. *@
 
 <div class="editor-page">
   <div id="topbar" class="topbar">
@@ -33,18 +35,11 @@
         <div class="workspace-sidebar">
           <div class="workspace-scroll">
             <section class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Tools</h2></div>
-              <div class="canvas-toolbar">
-                <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)"
-                        title="Lasso a lane, then click two seam points" @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
-                <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)"
-                        title="Pan (or middle-drag)" @onclick='() => SetTool("pan")'><i data-lucide="hand"></i></button>
-                <button class="draw-tool-btn" title="Fit to content" @onclick="Fit"><i data-lucide="scan"></i></button>
-              </div>
+              <div class="section-header section-header--ruled"><h2 class="section-title">How to cut</h2></div>
               <p class="field-help">Lasso a lane region, then click <strong>two</strong> seam points (existing
-                corners or lasso-edge markers). The piece splits into the lane + the remainder; keep peeling.</p>
+                corners or lasso-edge markers). The piece splits into the lane + the remainder; keep peeling.
+                Only one team's island set is shown — the rest is its mirror.</p>
             </section>
-
             <section class="panel-section">
               <div class="section-header section-header--ruled"><h2 class="section-title">Pieces (@pieces.Count)</h2></div>
               @if (pieces.Count == 0) { <p class="field-help">Loading the island outline…</p> }
@@ -65,6 +60,28 @@
         </div>
         <div class="sidebar-handle"></div>
         <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)"
+                      title="Lasso a lane, then click two seam points" @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
+              <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)"
+                      title="Move / pan" @onclick='() => SetTool("pan")'><i data-lucide="hand"></i></button>
+            </div>
+            <div @ref="coordsRef" class="canvas-cursor"></div>
+            <div class="canvas-subbar-right">
+              <select class="field-input canvas-island-select" title="Zoom to fit a piece" value="@focusSel" @onchange="OnFocusPiece">
+                <option value="">Focus piece…</option>
+                @foreach (var p in pieces)
+                {
+                  <option value="@p.Id">@p.Id (@p.Role)</option>
+                }
+              </select>
+              <button class="filter-chip" title="Zoom out" @onclick="ZoomOut"><i data-lucide="minus"></i></button>
+              <button class="filter-chip" title="Zoom in" @onclick="ZoomIn"><i data-lucide="plus"></i></button>
+              <button class="filter-chip" title="Fit the island set" @onclick="Fit"><i data-lucide="scan"></i></button>
+              <span @ref="zoomRef" class="canvas-zoom">—</span>
+            </div>
+          </div>
           <div @ref="wrapRef" class="svg-area">
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
           </div>

@@ -177,14 +177,11 @@ feature).
   regression (which tests a clean curved crossbar precisely because the Pinwheel blade doesn't yet satisfy it).
 - [ ] **G6 — Lane decomposition (manual cut tool → ground truth → auto-cutter).** The **manual cut surface
   landed** (`/maps/{slug}/decompose`: lasso → pick two seam points → split the outline into lane + remainder,
-  iterative peeling, role tag, save `lane_decomposition_json`; `FEATURES.md`). Remaining, in order:
+  iterative peeling, role tag, save `lane_decomposition_json`; **one side only** via symmetry dedup; the shared
+  editor canvas chrome — toolbar · focus · zoom; `FEATURES.md`). Remaining, in order:
   (a) **marker dragging** — drag a lasso∩edge marker along its edge to set a non-corner seam (kanto's prong
   *bases* need a marker on the body edge, not just existing corners — so this is needed even for 90° maps);
-  (b) **show one side only** — dedup mirrored/rotated islands via the map's symmetry so the author cuts a
-  single team's island set, not both identical copies (kanto = one island per team);
-  (c) **reuse the standard editor canvas + toolbar** (the shared `EditorCanvas` shell with the familiar
-  toolbar, **focus-islands** buttons and **zoom controls**) instead of the bespoke decompose shell;
-  (d) once enough maps are hand-cut, build the **auto-cutter** trained/validated on the gathered ground truth
+  (b) once enough maps are hand-cut, build the **auto-cutter** trained/validated on the gathered ground truth
   (cut at concave necks / medial axis so lanes **tile** the outline) — feeds `G3` per-lane width/length.
 
 ## Lower priority / parked

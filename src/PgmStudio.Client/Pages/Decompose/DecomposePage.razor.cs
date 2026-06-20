@@ -17,11 +17,12 @@ public partial class DecomposePage
 
     private static readonly string[] Roles = ["spawn", "wool", "frontline", "hub", "other"];
 
-    private ElementReference svgRef, wrapRef;
+    private ElementReference svgRef, wrapRef, coordsRef, zoomRef;
     private IJSObjectReference? handle;
     private DotNetObjectReference<DecomposePage>? selfRef;
 
     private string tool = "lasso";
+    private string focusSel = "";
     private string? loadedSlug;
     private bool saving;
     private string progressLabel = "";
@@ -41,7 +42,7 @@ public partial class DecomposePage
         await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
-        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountDecompose", svgRef, wrapRef, selfRef);
+        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountDecompose", svgRef, wrapRef, coordsRef, zoomRef, selfRef);
         loadedSlug = Slug;
         await LoadMapAsync();
         await RefreshQueueAsync();
@@ -62,14 +63,38 @@ public partial class DecomposePage
     private async Task LoadMapAsync()
     {
         if (handle is null) return;
+        focusSel = "";
         try
         {
-            // resume a saved decomposition if present, else start from the simplified outline
+            // resume a saved decomposition (already one-side) if present, else start from the simplified
+            // outline and dedup to one side via the map symmetry.
             var saved = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/lane-decomposition");
-            var state = HasShapes(saved) ? saved : await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/island-sketch");
-            await handle.InvokeVoidAsync("load", state);
+            if (HasShapes(saved)) { await handle.InvokeVoidAsync("load", saved, (object?)null); return; }
+            var island = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/island-sketch");
+            var sym = await FetchSymmetryAsync();
+            await handle.InvokeVoidAsync("load", island, sym);
         }
         catch { /* no geometry — leave the canvas empty */ }
+    }
+
+    // The map's primary symmetry + centre, so the canvas keeps one island per orbit. Null → show all.
+    private async Task<object?> FetchSymmetryAsync()
+    {
+        try
+        {
+            var s = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/symmetry");
+            if (s.ValueKind == JsonValueKind.Object
+                && s.TryGetProperty("primary", out var pr) && pr.ValueKind == JsonValueKind.Object
+                && pr.TryGetProperty("type", out var ty) && ty.GetString() is { Length: > 0 } mode
+                && s.TryGetProperty("center", out var ce) && ce.ValueKind == JsonValueKind.Object)
+            {
+                var cx = ce.TryGetProperty("cx", out var cxv) ? cxv.GetDouble() : 0;
+                var cz = ce.TryGetProperty("cz", out var czv) ? czv.GetDouble() : 0;
+                return new { mode, cx, cz };
+            }
+        }
+        catch { /* no symmetry — show all islands */ }
+        return null;
     }
 
     private static bool HasShapes(JsonElement e) =>
@@ -92,7 +117,14 @@ public partial class DecomposePage
     }
 
     private Task SetTool(string t) { tool = t; return handle?.InvokeVoidAsync("setTool", t).AsTask() ?? Task.CompletedTask; }
-    private Task Fit() => handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask;
+    private Task Fit() { focusSel = ""; return handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask; }
+    private Task ZoomIn() => handle?.InvokeVoidAsync("zoomIn").AsTask() ?? Task.CompletedTask;
+    private Task ZoomOut() => handle?.InvokeVoidAsync("zoomOut").AsTask() ?? Task.CompletedTask;
+    private async Task OnFocusPiece(ChangeEventArgs e)
+    {
+        focusSel = e.Value?.ToString() ?? "";
+        if (handle is not null && focusSel.Length > 0) await handle.InvokeVoidAsync("fitPiece", focusSel);
+    }
     private Task Undo() => handle?.InvokeVoidAsync("undo").AsTask() ?? Task.CompletedTask;
     private Task SelectPiece(string id) => handle?.InvokeVoidAsync("selectPiece", id).AsTask() ?? Task.CompletedTask;
     private Task SetRole(string id, string? role) =>

@@ -6,13 +6,14 @@
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
 import { svgEl, ringToPath } from "../render/svg.js";
 import { enclosedVertices, edgeMarkers, splitPiece, centroid, pointInRing } from "../geometry/decompose-cut.js";
+import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 
 const ROLE_COLORS = {
   spawn: "var(--color-error)", wool: "var(--accent)", frontline: "var(--canvas-result-stroke)",
   hub: "var(--text-muted)", other: "var(--canvas-add-stroke)",
 };
 
-export async function mount(svgEl_, wrapEl, dotnetRef) {
+export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   let pieces = [];          // [{id, exterior:[[x,z]], holes:[[[x,z]]], role}]
   let tool = "lasso";       // "lasso" | "pan"
   let view = null;          // {min_x,min_z,max_x,max_z}
@@ -22,6 +23,8 @@ export async function mount(svgEl_, wrapEl, dotnetRef) {
   let seam = [];            // up to 2 picked seam points
   let laneRep = null;       // lasso centroid (the lane side)
   let selectedId = null;    // panel-selected piece
+  let sym = null;           // {mode, cx, cz} of the map (for one-side dedup + getState mirror)
+  let baseScale = 0;        // px-per-block at the first fit (zoom % baseline)
   const undo = [];          // snapshots of `pieces`
   let seq = 0;
 
@@ -41,6 +44,14 @@ export async function mount(svgEl_, wrapEl, dotnetRef) {
 
   function pushUndo() { undo.push(clone(pieces)); if (undo.length > 50) undo.shift(); }
 
+  function zoomBy(f) {
+    if (!view) return;
+    const cx = (view.min_x + view.max_x) / 2, cz = (view.min_z + view.max_z) / 2;
+    const hw = (view.max_x - view.min_x) / 2 / f, hh = (view.max_z - view.min_z) / 2 / f;
+    view = { min_x: cx - hw, max_x: cx + hw, min_z: cz - hh, max_z: cz + hh };
+    render();
+  }
+
   // ── render ──────────────────────────────────────────────────────────────
   function clear() { while (svgEl_.firstChild) svgEl_.removeChild(svgEl_.firstChild); }
   function render() {
@@ -49,6 +60,9 @@ export async function mount(svgEl_, wrapEl, dotnetRef) {
     svgEl_.setAttribute("height", H());
     clear();
     const T = toSvg();
+    const scale = T(1, 0).x - T(0, 0).x;
+    if (!baseScale) baseScale = scale;
+    if (zoomEl) zoomEl.textContent = `${Math.round((scale / baseScale) * 100)}%`;
     const polyPath = (p) => ringToPath(p.exterior, T) + (p.holes || []).map(h => " " + ringToPath(h, T)).join("");
     for (const p of pieces) {
       const sel = p.id === selectedId || (target && p.id === target.id);
@@ -165,6 +179,7 @@ export async function mount(svgEl_, wrapEl, dotnetRef) {
     lasso = [[w.x, w.z]];
   });
   svgEl_.addEventListener("pointermove", (e) => {
+    if (coordsEl && view) { const w = evWorld(e); coordsEl.textContent = `${Math.round(w.x)}, ${Math.round(w.z)}`; }
     if (!down) return;
     if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 3) moved = true;
     if (panStart) {
@@ -195,9 +210,30 @@ export async function mount(svgEl_, wrapEl, dotnetRef) {
   const ro = new ResizeObserver(() => { if (view) render(); });
   ro.observe(wrapEl);
 
+  // Keep one island per symmetry orbit so the author cuts a single team's set (not both mirrored copies).
+  // Greedy over a deterministic order: keep a piece, drop any other piece whose centroid matches one of this
+  // piece's symmetry images. A self-mapping piece (a centred mid island) keeps itself; an unpaired piece stays.
+  function dedupBySymmetry(ps, mode, cx, cz) {
+    const axes = orbitAxes(mode);
+    const items = ps.map(p => ({ p, c: centroid(p.exterior) })).sort((a, b) => a.c[1] - b.c[1] || a.c[0] - b.c[0]);
+    const tol = 12, removed = new Set(), kept = [];
+    for (const it of items) {
+      if (removed.has(it.p.id)) continue;
+      kept.push(it.p);
+      for (const ax of axes) {
+        const [ix, iz] = applySymmetry(it.c[0], it.c[1], ax, cx, cz);
+        for (const other of items)
+          if (other.p.id !== it.p.id && !removed.has(other.p.id)
+            && Math.hypot(other.c[0] - ix, other.c[1] - iz) < tol) removed.add(other.p.id);
+      }
+    }
+    return kept;
+  }
+
   // ── seed + handle ─────────────────────────────────────────────────────────
-  function loadLayout(state) {
+  function loadLayout(state, symmetry) {
     pieces = []; seq = 0; undo.length = 0; lasso = null; target = null; markers = []; seam = [];
+    sym = symmetry && symmetry.mode && symmetry.mode !== "none" ? symmetry : null;
     const layout = state?.layout;
     if (layout?.islands?.length) {
       for (const isl of layout.islands) {
@@ -208,16 +244,27 @@ export async function mount(svgEl_, wrapEl, dotnetRef) {
           holes: shapes.filter(s => s.operation === "subtract" && s.vertices?.length).map(s => s.vertices.map(v => [v[0], v[1]])) });
       }
     }
-    view = null; render(); pushPanel();
+    if (sym && pieces.length > 1) pieces = dedupBySymmetry(pieces, sym.mode, sym.cx, sym.cz);
+    view = null; baseScale = 0; render(); pushPanel();
   }
 
   return {
-    load(state) { loadLayout(state); },
+    load(state, symmetry) { loadLayout(state, symmetry); },
     setTool(t) { tool = t === "pan" ? "pan" : "lasso"; if (t !== "lasso") { lasso = null; } render(); },
     selectPiece(id) { selectedId = id ?? null; render(); },
     setRole(id, role) { const p = pieces.find(x => x.id === id); if (p) { p.role = role; render(); pushPanel(); fire("OnDirty"); } },
     undo() { if (undo.length) { pieces = undo.pop(); target = null; seam = []; markers = []; lasso = null; render(); pushPanel(); fire("OnDirty"); } },
     fit() { view = null; render(); },
+    fitPiece(id) {
+      const p = pieces.find(x => x.id === id); if (!p) return;
+      let mnx = 1e9, mnz = 1e9, mxx = -1e9, mxz = -1e9;
+      for (const v of p.exterior) { mnx = Math.min(mnx, v[0]); mxx = Math.max(mxx, v[0]); mnz = Math.min(mnz, v[1]); mxz = Math.max(mxz, v[1]); }
+      const pad = Math.max(6, (mxx - mnx) * 0.12);
+      view = { min_x: mnx - pad, min_z: mnz - pad, max_x: mxx + pad, max_z: mxz + pad };
+      selectedId = id; render();
+    },
+    zoomIn() { zoomBy(1.25); },
+    zoomOut() { zoomBy(1 / 1.25); },
     resize() { render(); },
     dispose() { try { ro.disconnect(); } catch { /* already gone */ } },
     getState() {
@@ -229,7 +276,9 @@ export async function mount(svgEl_, wrapEl, dotnetRef) {
         p.holes.forEach((h, k) => { const hid = `${p.id}_h${k}`; shapes.push({ id: hid, type: "polygon", operation: "subtract", vertices: h }); ids.push(hid); });
         islands.push({ id: p.id, name: p.role, role: p.role, mirrors: false, shapeIds: ids });
       }
-      return { setup: { mirror_mode: "none", center: { cx: 0, cz: 0 } }, layout: { shapes, islands } };
+      // one-side decomposition: record the map symmetry so the full board = these lanes mirrored
+      const setup = { mirror_mode: sym?.mode ?? "none", center: { cx: sym?.cx ?? 0, cz: sym?.cz ?? 0 } };
+      return { setup, layout: { shapes, islands } };
     },
     pieceCount() { return pieces.length; },
   };

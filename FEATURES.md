@@ -313,9 +313,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **lassos** a region → picks **two seam points** (existing corners or lasso∩edge markers) → the piece
   **splits** into a lane + remainder (iterative peeling), with a role tag per piece (spawn/wool/frontline/
   hub/other), undo, and Confirm→Next that saves `lane_decomposition_json` (its presence marks the map done +
-  drops it from the queue, keeping the original outline as the diff). Canvas `bridge/decompose-bridge.js` +
-  pure `geometry/decompose-cut.js` (node-tested); `DecomposeEndpoints.cs` (queue / load / save). The
-  ground-truth-gathering precursor to the `G6` auto-cutter. (G6)
+  drops it from the queue, keeping the original outline as the diff). **One side only** — islands are deduped
+  by the map's primary symmetry (`GET /symmetry`) so the author cuts a single team's set; `getState` records
+  the `mirror_mode`. Uses the shared editor canvas chrome (toolbar · Focus-piece · zoom · cursor). Canvas
+  `bridge/decompose-bridge.js` + pure `geometry/decompose-cut.js` (node-tested); `DecomposeEndpoints.cs`
+  (queue / load / save). The ground-truth-gathering precursor to the `G6` auto-cutter. (G6)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
