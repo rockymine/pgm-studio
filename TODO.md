@@ -45,10 +45,6 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > (`/maps/{id}/edit`) keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
 **Steps — in page order, each persists its slice of intent**
-- [ ] **N03 — Build · live buildability overlay.** The Build phase shipped (height side-view +
-  bridges/holes → generator; `FEATURES.md`). What remains is the **live buildability overlay** on the
-  buildable-layer canvas (a per-column verdict heatmap as you draw, `GET /buildability`, done) — no
-  reusable canvas-overlay renderer exists yet, so it's net-new. (becomes user-visible with `A3` perf)
 - [ ] **NVAL — Validation gate (buildability + traversability).** Not a separate phase — the
   Build⇄Traversability loop and the export condition. Surface connected/disconnected + isolated
   spawn/wool points; on failure send the author back to Build. Uses `GET /buildability` +

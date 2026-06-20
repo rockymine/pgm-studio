@@ -48,6 +48,13 @@ public partial class EditorCanvas
     /// (e.g. the excluded-island set) that only takes effect after the islands are rendered.</summary>
     [Parameter] public EventCallback OnReady { get; set; }
 
+    /// <summary>N03: show the <b>Buildable</b> sub-bar chip — a toggleable per-column buildability verdict
+    /// heatmap (the Build · buildable-layer step; it stays available even in RectDraw mode).</summary>
+    [Parameter] public bool ShowBuildable { get; set; }
+    /// <summary>Fired with the new on/off state when the Buildable overlay is toggled (so the host can,
+    /// e.g., show the legend only while it's on).</summary>
+    [Parameter] public EventCallback<bool> OnBuildableToggled { get; set; }
+
     private ElementReference svgRef, wrapRef, coordsRef, zoomRef;
     private IJSObjectReference? handle;
     private DotNetObjectReference<EditorCanvas>? selfRef;
@@ -146,6 +153,17 @@ public partial class EditorCanvas
         if (handle is null) return;
         var ok = await handle.InvokeAsync<bool>("setBlocks", !blocksOn);
         if (ok) blocksOn = !blocksOn;
+    }
+
+    private bool buildableOn;
+
+    /// <summary>N03: toggle the buildability verdict heatmap. Re-fetches each toggle-on so it reflects the
+    /// current saved build slice; stays off when there's no grid (no scan data).</summary>
+    private async Task ToggleBuildability()
+    {
+        if (handle is null) return;
+        var ok = await handle.InvokeAsync<bool>("setBuildability", !buildableOn);
+        if (ok) { buildableOn = !buildableOn; await OnBuildableToggled.InvokeAsync(buildableOn); }
     }
 
     /// <summary>Highlight the given region ids on the canvas (called by the activity when the sidebar selects).</summary>

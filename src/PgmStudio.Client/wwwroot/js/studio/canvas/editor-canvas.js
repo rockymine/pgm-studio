@@ -74,6 +74,7 @@ export class EditorCanvas extends CanvasBase {
   #anchorLayer    = null;
   #buildLayerEl   = null;
   #blockLayerEl   = null;
+  #buildabilityLayerEl = null;   // N03: per-column buildability verdict heatmap (Build · buildable-layer)
   #islandLayerEl  = null;
   #spawnLayerEl   = null;
   #woolLayerEl    = null;
@@ -120,6 +121,8 @@ export class EditorCanvas extends CanvasBase {
   #showBuild  = false;
   #showBlocks = false;
   #blockData  = null;
+  #showBuildability = false;   // N03 buildability overlay visibility
+  #buildabilityData = null;    // cached block-image payload so a render() reset re-paints it
   #selectedNode = null;
 
   // blocks toggle wiring (set by connectBlocksToggle)
@@ -332,6 +335,21 @@ export class EditorCanvas extends CanvasBase {
     if (this.#blockLayerEl && this.#toSvg) {
       renderBlockImage(this.#blockLayerEl, data, this.#toSvg);
       if (this.#showBlocks) this.#blockLayerEl.style.display = "";
+    }
+  }
+
+  // N03 buildability heatmap — same pixelated <image> machinery as the block overlay (`data` is the
+  // block-image payload {xs,zs,colors,min_x,min_z,max_x,max_z} the bridge builds from /buildability).
+  setBuildabilityVisible(v) {
+    this.#showBuildability = v;
+    if (this.#buildabilityLayerEl) this.#buildabilityLayerEl.style.display = v ? "" : "none";
+  }
+
+  loadBuildabilityLayer(data) {
+    this.#buildabilityData = data;
+    if (this.#buildabilityLayerEl && this.#toSvg) {
+      renderBlockImage(this.#buildabilityLayerEl, data, this.#toSvg);
+      if (this.#showBuildability) this.#buildabilityLayerEl.style.display = "";
     }
   }
 
@@ -590,6 +608,7 @@ export class EditorCanvas extends CanvasBase {
     viewport.appendChild(this.#buildBuildRegion());
     viewport.appendChild(this.#buildBlockLayer());
     viewport.appendChild(this.#buildIslands());
+    viewport.appendChild(this.#buildBuildabilityLayer());
     viewport.appendChild(this.#buildSymmetryLayer());
     viewport.appendChild(this.#buildSpawnLayer());
     viewport.appendChild(this.#buildXmlRegions());
@@ -653,6 +672,16 @@ export class EditorCanvas extends CanvasBase {
     this.#blockLayerEl = g;
     if (!this.#showBlocks || !this.#blockData) g.style.display = "none";
     if (this.#blockData && this.#toSvg) renderBlockImage(g, this.#blockData, this.#toSvg);
+    return g;
+  }
+
+  // N03: the buildability heatmap layer — translucent so terrain reads through, below the author's
+  // bridges/regions; re-paints from the cached payload after a render() reset.
+  #buildBuildabilityLayer() {
+    const g = svgEl("g", { id: "layer-buildability", opacity: "0.5", "pointer-events": "none" });
+    this.#buildabilityLayerEl = g;
+    if (!this.#showBuildability || !this.#buildabilityData) g.style.display = "none";
+    if (this.#buildabilityData && this.#toSvg) renderBlockImage(g, this.#buildabilityData, this.#toSvg);
     return g;
   }
 

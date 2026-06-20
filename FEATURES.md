@@ -185,6 +185,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and the **canvas**
   renders the symmetry mirror as ghost previews in JS (`setAuthorMirror`); `BuildGenerator` orbits + unions
   them, complements the holes, and wraps the void-enforcement negative. (`BuildLayerPhase`; N03)
+- **Build · live buildability overlay (N03)** — a **Buildable** chip on the canvas sub-bar toggles a
+  translucent per-column **verdict heatmap** (`GET /buildability`): green buildable · orange void-denied ·
+  red never · yellow restricted. Reuses the block-overlay's pixelated `<image>` renderer (the grid → one
+  PNG), sits below the authored bridges, and re-fetches on each toggle-on so it reflects the saved build
+  slice. A sidebar **legend** (colour → plain-language meaning + what to do) shows while the overlay is on
+  (`OnBuildableToggled`). (`EditorCanvas` `ShowBuildable` + `setBuildability`; `BuildLayerPhase`; N03)
 - **Wools · Objectives sub-step (N04)** — a **detect-and-confirm** objectives list, not a colour-picker.
   On entry the world is scanned (`GET /monument-suggestions` map-wide + `POST /wool-sources`): signed
   monuments ("Place the X Wool here!") name each objective colour and give the capturing team (the island

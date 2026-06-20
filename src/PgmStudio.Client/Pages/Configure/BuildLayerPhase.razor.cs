@@ -22,6 +22,7 @@ public partial class BuildLayerPhase
     private int nextId = 1;
     private string drawMode = "area";   // area | hole
     private int? selectedId;
+    private bool overlayOn;   // the Buildable heatmap toggle — gates the legend (shown only when on)
     private EditorCanvas? canvas;
     private string? symMode; private double symCx, symCz;
 
@@ -30,6 +31,9 @@ public partial class BuildLayerPhase
     private string Label(Box b) => $"{(b.Hole ? "hole" : "bridge")}-{boxes.Where(x => x.Hole == b.Hole).ToList().IndexOf(b) + 1}";
 
     protected override void OnInitialized() => LoadFromIntent();
+
+    // The canvas raises this when the Buildable chip flips; the legend is shown only while the overlay is on.
+    private void OnBuildableToggled(bool on) => overlayOn = on;
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 

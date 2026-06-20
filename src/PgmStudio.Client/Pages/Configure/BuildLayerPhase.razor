@@ -44,6 +44,24 @@
           <p class="section-desc">A hole only carves out a bridge — add a bridge for it to apply.</p>
         }
       </section>
+
+      @if (overlayOn)
+      {
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Buildability</h2></div>
+        <p class="section-desc"><strong>Buildable</strong> shades every column by whether players can build
+          there:</p>
+        <div class="panel-list">
+          <div class="list-row list-row--compact"><span class="list-swatch" style="background:#4caf50"></span><span class="list-label">Buildable</span><span class="badge badge--dim">solid ground / bridge</span></div>
+          <div class="list-row list-row--compact"><span class="list-swatch" style="background:#f57c00"></span><span class="list-label">Void-denied</span><span class="badge badge--dim">draw a bridge</span></div>
+          <div class="list-row list-row--compact"><span class="list-swatch" style="background:#c62828"></span><span class="list-label">Never</span><span class="badge badge--dim">always blocked</span></div>
+          <div class="list-row list-row--compact"><span class="list-swatch" style="background:#fbc02d"></span><span class="list-label">Restricted</span><span class="badge badge--dim">limited by a rule</span></div>
+        </div>
+        <p class="section-desc"><strong>Orange</strong> is open void where building is denied — draw a bridge
+          across it to link your islands. <strong>Green</strong> already lets players build (terrain or a
+          bridge you drew). It refreshes when you save the step.</p>
+      </section>
+      }
     </div>
   </div>
 
@@ -51,7 +69,8 @@
 
   @* Reused edit canvas in rectangle-draw mode — draws report to the intent (no region is created); the
      bridges/holes render as dummy regions. Category is non-matching so the generated tree stays hidden. *@
-  <EditorCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__build_authoring__"
+  <EditorCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__build_authoring__" ShowBuildable="true"
+                OnBuildableToggled="OnBuildableToggled"
                 OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
 
   <div class="sidebar-handle"></div>
