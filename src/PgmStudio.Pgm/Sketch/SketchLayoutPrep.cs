@@ -9,7 +9,9 @@ namespace PgmStudio.Pgm.Sketch;
 /// per shape, around the symmetry origin, with the canvas framed to the board. This:
 /// <list type="bullet">
 /// <item>recentres every shape on the symmetry origin (the editor's convention — mirror centre at 0,0),</item>
-/// <item>simplifies each polygon ring to its real bends (Douglas–Peucker), so a vertex is a handle, and</item>
+/// <item>simplifies each polygon ring to its real bends (Douglas–Peucker), so a vertex is a handle,</item>
+/// <item>recovers the rounding the simplification flattened as Bézier <c>controls</c> (Catmull–Rom tangents
+///   at gentle bends, sharp corners left crisp), so a curved lane reads as a smooth strip, and</item>
 /// <item>sets a square framing <c>bbox</c> so the canvas opens fitted to the board.</item>
 /// </list>
 /// The generator output is left untouched (headless rasterize/preview keep using it); this is the
@@ -17,25 +19,43 @@ namespace PgmStudio.Pgm.Sketch;
 /// </summary>
 public static class SketchLayoutPrep
 {
-    /// <summary>Recentre + simplify + frame, in place (and returned for chaining). <paramref name="tolerance"/>
-    /// is the Douglas–Peucker deviation (blocks) used to thin each polygon ring; <paramref name="pad"/> is the
-    /// empty margin kept around the board in the framing bbox.</summary>
-    public static SketchLayout ForEditor(SketchLayout layout, double tolerance = 1.0, double pad = 8)
+    /// <summary>Recentre + simplify + round + frame, in place (and returned for chaining).
+    /// <paramref name="tolerance"/> is the Douglas–Peucker deviation (blocks) used to thin each polygon ring;
+    /// <paramref name="cornerAngleDeg"/> is the turn at/above which a vertex stays a hard corner instead of
+    /// rounding; <paramref name="pad"/> is the empty margin kept around the board in the framing bbox.</summary>
+    public static SketchLayout ForEditor(SketchLayout layout, double tolerance = 1.0, double cornerAngleDeg = 75, double pad = 8)
     {
         var setup = layout.Setup ??= new SketchSetup();
         double cx = setup.Center?.Cx ?? 0, cz = setup.Center?.Cz ?? 0;
+
+        // Round the lane shapes (the mirrored team unit) only; neutral centre pieces — regular-polygon /
+        // chevron mid islands — stay exactly as drawn rather than softening into blobs.
+        var laneShapeIds = (layout.Layout?.Islands ?? [])
+            .Where(i => i.Mirrors).SelectMany(i => i.ShapeIds).ToHashSet();
 
         foreach (var s in layout.Layout?.Shapes ?? [])
         {
             Translate(s, -cx, -cz);
             if (s.Vertices is { Length: > 3 })
+            {
                 s.Vertices = [.. PolygonSimplify.Ring(s.Vertices, tolerance)];
+                s.Controls = laneShapeIds.Contains(s.Id) ? Round(s.Vertices, cornerAngleDeg) : null;
+            }
         }
         setup.Center = new SketchCenter { Cx = 0, Cz = 0 };
 
         var half = FrameHalf(layout, pad);
         setup.Bbox = new SketchBbox { MinX = -half, MaxX = half, MinZ = -half, MaxZ = half };
         return layout;
+    }
+
+    // Recover the rounding simplification flattened: Bézier handles at gentle bends, sharp corners crisp.
+    // null when nothing rounds (a rectangle / regular polygon) so the shape stays a plain polygon.
+    private static Dictionary<string, SketchControl>? Round(double[][] ring, double cornerAngleDeg)
+    {
+        var tangents = RingRounding.Smooth(ring, cornerAngleDeg);
+        return tangents.Count == 0 ? null
+            : tangents.ToDictionary(kv => kv.Key.ToString(), kv => new SketchControl { In = kv.Value.In, Out = kv.Value.Out });
     }
 
     private static void Translate(SketchShape s, double dx, double dz)

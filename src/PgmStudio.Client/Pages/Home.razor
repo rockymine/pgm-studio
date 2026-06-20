@@ -93,7 +93,8 @@
                     <option value="Pinwheel">Pinwheel — 4 teams</option>
                     <option value="Organic">Organic — grown lanes</option>
                   </select>
-                  <input class="field-input" type="number" style="max-width: 7rem;" title="Seed (re-roll the layout)" @bind="genSeed" />
+                  <input class="field-input" type="number" style="max-width: 6rem;" title="Seed — re-roll for a different layout" @bind="genSeed" />
+                  <button class="action-btn action-btn--icon" @onclick="RerollSeed" title="Random seed"><i data-lucide="dices"></i></button>
                   <button class="action-btn action-btn--primary" @onclick="CreateGenerated" disabled="@busy">
                     <i data-lucide="sparkles"></i><span>Generate</span>
                   </button>

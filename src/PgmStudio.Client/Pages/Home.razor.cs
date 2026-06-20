@@ -16,8 +16,8 @@ public partial class Home
 
     private bool creatingSketch;   // the inline new-sketch row is open
     private string sketchName = "";
-    private string genArchetype = "H";   // generator starter-layout archetype
-    private int genSeed = 1;             // generator seed (re-roll)
+    private string genArchetype = "H";                 // generator starter-layout archetype
+    private int genSeed = Random.Shared.Next(1, 100000); // generator seed — random by default, re-rollable
     private bool busy;
     private string? createError;
 
@@ -63,7 +63,13 @@ public partial class Home
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    private void ToggleNewSketch() => creatingSketch = !creatingSketch;
+    private void ToggleNewSketch()
+    {
+        creatingSketch = !creatingSketch;
+        if (creatingSketch) genSeed = Random.Shared.Next(1, 100000);   // a fresh layout each time the row opens
+    }
+
+    private void RerollSeed() => genSeed = Random.Shared.Next(1, 100000);
 
     private async Task CreateSketch()
     {
