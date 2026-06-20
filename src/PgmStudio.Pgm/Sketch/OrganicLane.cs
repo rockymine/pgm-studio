@@ -32,12 +32,16 @@ public static class OrganicLane
         var trunkTip = (hub.Item1 + rng.Range(-lw * 0.5, lw * 0.5), midZ - lw * 0.6);
         shapes.Add(Poly($"trunk{id++}", GrowLane(rng, noise, hub, trunkTip, lw, o, allowHole: false).Ribbon, "add"));
 
-        // one lane per wool tip: hub → tip, bent + varied, optional diamond hole inside
+        // one lane per wool tip: hub → tip, bent + varied, optional diamond hole inside. The wool objective is
+        // inset off the dead-end tip into the lane body (≈ half a lane width) so it carries cover instead of
+        // sitting on the boundary; the lane geometry still caps beyond it.
+        var woolObjs = new List<(double X, double Z)>();
         foreach (var tip in tips)
         {
             var lane = GrowLane(rng, noise, hub, tip, lw, o, allowHole: true);
             shapes.Add(Poly($"lane{id}", lane.Ribbon, "add"));
             if (lane.Hole is { } hole) shapes.Add(Poly($"hole{id}", hole, "subtract"));
+            woolObjs.Add(lane.Obj);
             id++;
         }
 
@@ -46,7 +50,7 @@ public static class OrganicLane
         // bridge reaches the hub and the wool lanes without ever entering the spawn — the corpus pattern
         // (e.g. Kanto: central spawn, wools on offset side lanes). See docs/contracts/organic-lane-generation.md.
         var spawn = SpawnSpur(rng, noise, hub, trunkTip, tips, lw, o, shapes);
-        return new Unit(shapes, spawn, tips);
+        return new Unit(shapes, spawn, woolObjs);
     }
 
     private static (double X, double Z) SpawnSpur(
@@ -64,9 +68,10 @@ public static class OrganicLane
             if (b - a > bestGap) { bestGap = b - a; angle = a + (b - a) / 2; }
         }
         var len = lw * 1.7;
-        var spawn = (hub.X + Math.Cos(angle) * len, hub.Z + Math.Sin(angle) * len);
-        shapes.Add(Poly("spawnspur", GrowLane(rng, noise, hub, spawn, lw * 0.9, o, allowHole: false).Ribbon, "add"));
-        return spawn;
+        var spawnTip = (hub.X + Math.Cos(angle) * len, hub.Z + Math.Sin(angle) * len);
+        var spur = GrowLane(rng, noise, hub, spawnTip, lw * 0.9, o, allowHole: false);
+        shapes.Add(Poly("spawnspur", spur.Ribbon, "add"));
+        return spur.Obj;   // inset off the spur tip, like the wools
     }
 
     // ── far-spread wool tips from the noise grid (toward the far edge) ────────────────────────────
@@ -107,8 +112,8 @@ public static class OrganicLane
         return chosen;
     }
 
-    // ── one lane: bent centerline → variable-width ribbon (+ optional diamond hole) ───────────────
-    private static (List<double[]> Ribbon, List<double[]>? Hole) GrowLane(
+    // ── one lane: bent centerline → variable-width ribbon (+ optional diamond hole), plus the inset objective ─
+    private static (List<double[]> Ribbon, List<double[]>? Hole, (double X, double Z) Obj) GrowLane(
         Rng rng, NoiseField noise, (double X, double Z) hub, (double X, double Z) tip, double lw, LaneLayoutOptions o, bool allowHole)
     {
         double dx = tip.X - hub.X, dz = tip.Z - hub.Z;
@@ -122,27 +127,32 @@ public static class OrganicLane
         {
             var t = k / (double)(waypoints + 1);
             double bx = hub.X + dx * t, bz = hub.Z + dz * t;
-            var off = (noise.At(bx, bz) - 0.5) * 2 * lw * 0.8;                   // ± ~0.8 lane widths
-            ctrl.Add([bx + px * off, bz + pz * off]);
+            var off = (noise.At(bx, bz) - 0.5) * 2 * lw * 0.55;                  // ± ~0.55 lane widths (gentle bends
+            ctrl.Add([bx + px * off, bz + pz * off]);                            // — sharper folds pinch the inner edge)
         }
         ctrl.Add([tip.X, tip.Z]);
-        var center = Lane.Smooth(ctrl, 10);
+        var center = Lane.Smooth(ctrl, 16);
         var n = center.Count;
 
         // base half-width with a slight taper toward the dead-end tip
         var half = new double[n];
         for (var i = 0; i < n; i++) half[i] = lw * 0.5 * (1 - 0.25 * (i / (double)(n - 1)));
 
-        // optional diamond hole: widen the ribbon there and cut a rotated square inside it
+        // optional diamond hole: bulge the ribbon so a path of at least 0.7·laneWidth remains on EACH side of
+        // the hole (the corpus keeps holes inside wide lanes, never as thin necks), then cut a rotated square.
         List<double[]>? hole = null;
-        if (allowHole && rng.Chance(o.HoleChance) && len > lw * 3)
+        if (allowHole && rng.Chance(o.HoleChance) && len > lw * 4)
         {
-            var hi = Math.Clamp(n / 2 + rng.Int(-n / 6, n / 6 + 1), 2, n - 3);
+            var hi = Math.Clamp(n / 2 + rng.Int(-n / 6, n / 6 + 1), 3, n - 4);
             var window = Math.Max(2, n / 6);
+            var hr = lw * rng.Range(0.35, 0.55);          // diamond half-diagonal
+            var needHalf = hr + lw * 0.85;                // half-width leaving ≥0.7·lw each side after jitter (±0.15·lw)
             for (var i = Math.Max(0, hi - window); i <= Math.Min(n - 1, hi + window); i++)
-                half[i] += lw * 0.5 * (1 - Math.Abs(i - hi) / (double)window);   // bulge around the hole
-            var hr = half[hi] * 0.55;
-            if (hr >= 2.5) hole = Diamond(center[hi][0], center[hi][1], hr, rng.Range(0, Math.PI / 2));
+            {
+                var falloff = 1 - Math.Abs(i - hi) / (double)window;
+                half[i] = Math.Max(half[i], lw * 0.5 + (needHalf - lw * 0.5) * falloff);
+            }
+            hole = Diamond(center[hi][0], center[hi][1], hr, rng.Range(0, Math.PI / 2));
         }
 
         // jitter the two sides independently for an organic outline
@@ -156,7 +166,22 @@ public static class OrganicLane
             left.Add(Math.Max(2, half[i] + jl));
             right.Add(Math.Max(2, half[i] + jr));
         }
-        return (Lane.Ribbon(center, left, right), hole);
+        // objective sits inset off the dead-end tip, ≈ half a lane width back along the centerline (into cover)
+        return (Lane.Ribbon(center, left, right), hole, InsetAlong(center, lw * 0.5));
+    }
+
+    /// <summary>Walk back from a centerline's tip (last point) by <paramref name="d"/> blocks and return that
+    /// point — used to inset an objective off the dead-end into the lane body.</summary>
+    private static (double X, double Z) InsetAlong(List<double[]> center, double d)
+    {
+        for (var i = center.Count - 1; i > 0; i--)
+        {
+            double dx = center[i][0] - center[i - 1][0], dz = center[i][1] - center[i - 1][1];
+            var seg = Math.Sqrt(dx * dx + dz * dz);
+            if (seg >= d) return (center[i][0] - dx / seg * d, center[i][1] - dz / seg * d);
+            d -= seg;
+        }
+        return (center[0][0], center[0][1]);
     }
 
     private static List<double[]> Diamond(double cx, double cz, double r, double rot)
