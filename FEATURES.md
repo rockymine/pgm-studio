@@ -267,6 +267,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the final sub-step is the export gate, `Next()` runs the download. **This completes the Configure wizard
   spine** — a new map now flows intent → Map Info → World → Teams → Build → Wools → Review & Export → a
   validated, downloaded `map.xml`. (`ReviewXmlPhase`, `ConfigureWizard` export wiring; new-map-authoring.md §9/§12)
+- **CTW standards in generated exports + PGM-faithful formatting** — generated (intent) maps now export the
+  standard CTW boilerplate ~every corpus map carries: `<itemkeep>` (all non-armor kit items), `<toolrepair>`
+  (the kit's tools/weapons), `<itemremove>` (the kit's team-coloured armor) — all **derived from the spawn
+  kit** (`CtwStandards`, corpus-grounded over N=199) — plus the server-defined `<include id="gapple-kill-reward"/>`
+  and `<hunger><depletion>off</depletion></hunger>`. Applied **at export, gated to intent maps** (the export
+  endpoint enriches the `MapXml` before `ToXml`); corpus-map exports are untouched (not round-tripped). The
+  `XmlWriter` also now matches the corpus's formatting: self-close as `/>` (no space before the slash), a
+  trailing newline, and a uuid → username **comment** under each `<author>`/`<contributor>` (`<!-- name -->`
+  on its own line at the same indent, from the resolved `Author.Name`; skipped when unresolved).
+  (`CtwStandards`, `XmlWriter`, `MapXmlEndpoint`)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
   inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
   editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)

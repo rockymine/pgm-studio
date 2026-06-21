@@ -5,6 +5,7 @@ using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Pgm;
+using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -32,9 +33,10 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
         var doc = await reader.ReadDocAsync(map, ct);
+        var isIntent = await IntentStore.HasAsync(db, map.Id, ct);
 
         // Playability gate: intent-authored maps must be traversable before they can export (§9).
-        if (await IntentStore.HasAsync(db, map.Id, ct))
+        if (isIntent)
         {
             var segs = await feature.SegmentsAsync(map.Id, ct);
             var trav = Traversability.Check(doc, segs?.SurfaceColumns(), segs?.Y0Columns());
@@ -51,7 +53,14 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
         }
 
         string xml;
-        try { xml = XmlWriter.ToXml(Deserializer.FromDict(doc)); }
+        try
+        {
+            var mx = Deserializer.FromDict(doc);
+            // Generated maps get the standard CTW boilerplate (itemkeep/itemremove/toolrepair from the kit +
+            // the kill-reward include + hunger off); corpus maps export exactly as parsed.
+            if (isIntent) CtwStandards.Apply(mx);
+            xml = XmlWriter.ToXml(mx);
+        }
         catch (Exception ex) { await Send.ResponseAsync(new Dict { ["error"] = ex.Message }, 500, ct); return; }
 
         HttpContext.Response.ContentType = "application/xml; charset=utf-8";

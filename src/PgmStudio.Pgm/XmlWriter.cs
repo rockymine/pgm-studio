@@ -1,19 +1,28 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using PgmStudio.Domain;
 
 namespace PgmStudio.Pgm;
 
 /// <summary>MapXml → PGM map.xml string (port of xml_writer.py).</summary>
-public static class XmlWriter
+public static partial class XmlWriter
 {
     private static readonly HashSet<string> BuiltinFilterIds = new() { "never", "always" };
 
     public static string ToXml(MapXml m)
     {
         var root = BuildMapElem(m);
-        return "<?xml version=\"1.0\"?>\n" + root.ToString();
+        // PGM convention (matches the corpus): self-close as `/>` with no leading space, and end the file
+        // with a trailing newline. .NET's XML serializer emits empty elements as `<tag … />` (a space
+        // before the slash); strip it only at element closes — always at line end, so a `" />"` inside an
+        // attribute value is left alone.
+        var body = SelfCloseSpace().Replace(root.ToString(), "/>$1");
+        return "<?xml version=\"1.0\"?>\n" + body + "\n";
     }
+
+    [GeneratedRegex(@" />(\r?\n|$)")]
+    private static partial Regex SelfCloseSpace();
 
     // ── synthetic-id detection ──────────────────────────────────────────────────────
     private static bool IsSynthetic(string id) => id.Contains("__anon_") || id.StartsWith("__");
@@ -81,6 +90,8 @@ public static class XmlWriter
         if (m.Gamemode.Length > 0 && m.Gamemode != "ctw") root.Add(new XElement("gamemode", m.Gamemode));
         root.Add(new XElement("objective", m.Objective));
 
+        foreach (var inc in m.Includes) root.Add(new XElement("include", new XAttribute("id", inc)));
+
         WriteAuthors(root, m.Authors);
         WriteTeams(root, m.Teams);
         WriteKits(root, m.Kits);
@@ -95,24 +106,43 @@ public static class XmlWriter
         if (m.Renewables.Count > 0) WriteRenewables(root, m.Renewables);
         if (m.BlockDropRules.Count > 0) WriteBlockDrops(root, m.BlockDropRules);
 
+        WriteMaterialList(root, "itemkeep", "item", m.ItemKeep);
+        WriteMaterialList(root, "itemremove", "item", m.ItemRemove);
+        WriteMaterialList(root, "toolrepair", "tool", m.ToolRepair);
+        if (m.HungerDepletion is { Length: > 0 } hd)
+            root.Add(new XElement("hunger", new XElement("depletion", hd)));
+
         if (m.MaxBuildHeight is not null) root.Add(new XElement("maxbuildheight", m.MaxBuildHeight.Value.ToString(CultureInfo.InvariantCulture)));
         return root;
     }
 
+    // <itemkeep>/<itemremove> hold <item> children; <toolrepair> holds <tool> children — each a plain material.
+    private static void WriteMaterialList(XElement parent, string blockTag, string itemTag, List<string> materials)
+    {
+        if (materials.Count == 0) return;
+        var block = new XElement(blockTag);
+        foreach (var mat in materials) block.Add(new XElement(itemTag, mat));
+        parent.Add(block);
+    }
+
     private static void WriteAuthors(XElement parent, List<Author> authors)
     {
-        var auth = authors.Where(a => a.Role == "author").ToList();
-        var contrib = authors.Where(a => a.Role == "contributor").ToList();
-        if (auth.Count > 0)
+        void Block(string blockTag, string itemTag, List<Author> people)
         {
-            var block = new XElement("authors"); parent.Add(block);
-            foreach (var a in auth) { var e = new XElement("author"); Set(e, "uuid", a.Uuid); if (a.Contribution.Length > 0) Set(e, "contribution", a.Contribution); block.Add(e); }
+            if (people.Count == 0) return;
+            var block = new XElement(blockTag); parent.Add(block);
+            foreach (var a in people)
+            {
+                var e = new XElement(itemTag); Set(e, "uuid", a.Uuid);
+                if (a.Contribution.Length > 0) Set(e, "contribution", a.Contribution);
+                block.Add(e);
+                // Resolve uuid → username as a sibling comment (its own line at the same indent, the corpus
+                // convention) so the human name is visible next to the uuid. Skipped when unresolved.
+                if (a.Name.Length > 0) block.Add(new XComment($" {a.Name} "));
+            }
         }
-        if (contrib.Count > 0)
-        {
-            var block = new XElement("contributors"); parent.Add(block);
-            foreach (var a in contrib) { var e = new XElement("contributor"); Set(e, "uuid", a.Uuid); if (a.Contribution.Length > 0) Set(e, "contribution", a.Contribution); block.Add(e); }
-        }
+        Block("authors", "author", authors.Where(a => a.Role == "author").ToList());
+        Block("contributors", "contributor", authors.Where(a => a.Role == "contributor").ToList());
     }
 
     private static void WriteTeams(XElement parent, List<Team> teams)

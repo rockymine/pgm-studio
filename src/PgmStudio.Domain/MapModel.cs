@@ -146,4 +146,12 @@ public sealed class MapXml
     public Dictionary<string, Filter> Filters = new();
     public Dictionary<string, Region> Regions = new();
     public List<ApplyRule> ApplyRules = [];
+
+    // Standard CTW boilerplate (added to generated maps at export; see CtwStandards). Not round-tripped
+    // from corpus maps, so these stay empty for parsed maps.
+    public List<string> Includes = [];        // <include id="…"/> — shared server-defined snippets
+    public List<string> ItemKeep = [];        // materials kept on death
+    public List<string> ItemRemove = [];      // materials removed on death (team-coloured armor)
+    public List<string> ToolRepair = [];      // tool/weapon materials auto-repaired
+    public string? HungerDepletion;           // null = no <hunger>; "off"/"on" → <hunger><depletion>…</depletion></hunger>
 }
