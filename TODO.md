@@ -183,6 +183,28 @@ feature).
   *bases* need a marker on the body edge, not just existing corners — so this is needed even for 90° maps);
   (b) once enough maps are hand-cut, build the **auto-cutter** trained/validated on the gathered ground truth
   (cut at concave necks / medial axis so lanes **tile** the outline) — feeds `G3` per-lane width/length.
+- [ ] **G7 — Decompose: select tool + inspector categorization.** Add a **select** tool (click a piece on
+  the canvas to select it — today selection is only via the left list / Focus-piece). With a selection, assign
+  its category from a **right inspector panel using buttons** (the per-piece `<select>` dropdown is too slow
+  for the fast swipe-through). Expand the category set beyond spawn/wool/frontline/hub/other with
+  **stepping-stone**, **mid**, and **decorative / outside-playable** (whole-island tags — `decorative` lets us
+  exclude the ~⅓ non-gameplay neutral islands; `stepping-stone`/`mid` feed the contested-middle model in
+  `G3`). Categories persist per shape in `lane_decomposition_json`.
+- [ ] **G8 — Decompose: reference overlays on the canvas.** Toggle overlays to guide cutting: (a) the
+  **block-colour overlay** (top-surface palette — the `blocks` chip from Configure/Edit, `render/block-render.js`
+  + `palette.js`) for maps where the bare hull is ambiguous; (b) **wool + spawn locations** (from the map's
+  `wool.location_json` + `spawn` regions) as markers, so a lane's wool tip / spawn spur is visible while
+  cutting; (c) the **XML-defined buildable areas** — the `RegionCategorizer` build regions' geometry as polygons
+  (the *declared* build space only at this step, NOT the computed buildability overlay). Each needs the data on
+  the decompose page (a small objectives / build-regions read, or reuse the existing endpoints).
+- [ ] **G9 — Decompose: flag a visually-wrong simplified hull.** A per-map status the author can set to mark
+  that a map's `island_sketch` outline looks wrong (over-/under-simplified, a missing or merged island) so
+  those maps can be reviewed + re-simplified (tune DP tolerance / detection). Store as a small flag (a
+  `map_artifact` or column) and surface it in the decompose queue.
+- [ ] **G10 — Frontline model from buildable adjacency (later).** Beyond per-island lanes: detect which island
+  **edges touch buildable regions** and which islands a player can **step between** (adjacency across the
+  buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on `G8`'s
+  build-area data + `G6`'s lanes. Research; needs design.
 
 ## Lower priority / parked
 
