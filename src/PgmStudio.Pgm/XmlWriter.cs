@@ -358,12 +358,24 @@ public static partial class XmlWriter
         }
 
         var block = new XElement("regions"); parent.Add(block);
-        foreach (var rid in regions.Keys)
-            if (topLevel.Contains(rid) && RegionElem(rid, regions, counts, topLevel, withId: true) is { } e)
+        // Order to match the corpus convention: regions grouped by type (primitives, then compounds),
+        // then the <apply> rules last. OrderBy is stable, so ids of the same type keep their relative order.
+        var ordered = regions.Keys.Where(topLevel.Contains).OrderBy(rid => TypeRank(regions[rid].Type));
+        foreach (var rid in ordered)
+            if (RegionElem(rid, regions, counts, topLevel, withId: true) is { } e)
                 block.Add(e);
         for (var i = 0; i < applyRules.Count; i++)
             block.Add(ApplyElem(applyRules[i], regions));
     }
+
+    // Region type ordering inside <regions>: primitives first (by shape), then compounds. Applicators
+    // (<apply>) are emitted after all regions regardless.
+    private static int TypeRank(string type) => type switch
+    {
+        "point" => 0, "circle" => 1, "cylinder" => 2, "sphere" => 3, "block" => 4, "rectangle" => 5, "cuboid" => 6,
+        "union" => 7, "negative" => 8, "complement" => 9, "intersect" => 10, "mirror" => 11, "translate" => 12,
+        _ => 20,
+    };
 
     private static XElement RegionChildElem(string childId, Dictionary<string, Region> regions, Dictionary<string, int> counts, HashSet<string> topLevel)
     {
@@ -418,7 +430,15 @@ public static partial class XmlWriter
             default:
                 return null;  // reference / unknown — not written
         }
-        if (idAttr is not null) e.SetAttributeValue("id", idAttr);
+        // id is the first attribute (matches the corpus: <rectangle id="…" min="…" max="…"/>). The geometry
+        // attributes are set above, so rebuild the order with id in front.
+        if (idAttr is not null)
+        {
+            var attrs = e.Attributes().Select(a => new XAttribute(a.Name, a.Value)).ToList();
+            e.RemoveAttributes();
+            e.Add(new XAttribute("id", idAttr));
+            foreach (var a in attrs) e.Add(a);
+        }
         return e;
     }
 

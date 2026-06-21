@@ -15,9 +15,10 @@ using PgmStudio.Geom;
 /// so each team is filled exactly once.</para>
 /// <para><b>Author overrides win.</b> A team that already has an authored spawn/wool is never overwritten —
 /// only missing teams are filled. So the author can hand-correct any orbit member after the fill.</para>
-/// <para>Geometry uses the canonical <see cref="Symmetry"/> transforms (the same reflect/rotate the region
-/// orbit baker uses). Build areas are <i>not</i> orbited — they're a flat union seeded from the symmetric
-/// islands (§6), with no per-team identity to map.</para>
+/// <para>Geometry uses the canonical <see cref="Symmetry"/> transforms. Build areas <i>are</i> orbited too
+/// (the author draws the bridges on one side; <see cref="OrbitBuild"/> mirrors each onto the other sides and
+/// dedups any centre/axis piece) — but, unlike spawns/wools, they carry no per-team identity, so they orbit
+/// as a flat set of rects rather than a team-indexed fill.</para>
 /// </summary>
 public static class SymmetryExpander
 {

@@ -274,9 +274,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   and `<hunger><depletion>off</depletion></hunger>`. Applied **at export, gated to intent maps** (the export
   endpoint enriches the `MapXml` before `ToXml`); corpus-map exports are untouched (not round-tripped). The
   `XmlWriter` also now matches the corpus's formatting: self-close as `/>` (no space before the slash), a
-  trailing newline, and a uuid → username **comment** under each `<author>`/`<contributor>` (`<!-- name -->`
-  on its own line at the same indent, from the resolved `Author.Name`; skipped when unresolved).
-  (`CtwStandards`, `XmlWriter`, `MapXmlEndpoint`)
+  trailing newline, region elements carry `id` as the **first** attribute (`<rectangle id="…" min="…"
+  max="…"/>`), `<regions>` ordered by type (primitives → compounds → `<apply>` applicators last), and a
+  uuid → username **comment** under each `<author>`/`<contributor>` (`<!-- name -->` on its own line at the
+  same indent, from the resolved `Author.Name`; skipped when unresolved). (`CtwStandards`, `XmlWriter`, `MapXmlEndpoint`)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
   inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
   editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)
