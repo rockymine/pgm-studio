@@ -198,9 +198,20 @@ feature).
   (the *declared* build space only at this step, NOT the computed buildability overlay). Each needs the data on
   the decompose page (a small objectives / build-regions read, or reuse the existing endpoints).
 - [ ] **G9 — Decompose: flag a visually-wrong simplified hull.** A per-map status the author can set to mark
-  that a map's `island_sketch` outline looks wrong (over-/under-simplified, a missing or merged island) so
-  those maps can be reviewed + re-simplified (tune DP tolerance / detection). Store as a small flag (a
-  `map_artifact` or column) and surface it in the decompose queue.
+  that a map's `island_sketch` looks wrong, for review. Store as a small flag (a `map_artifact` or column) and
+  surface it in the decompose queue. **Known case: `a_new_day` / `a_new_day_ii`** — the one connected main
+  island shows small detached polygons in places (a_new_day: ~13 tiny ≈37-block bits, 7+ *inside* the main
+  bbox, in a regular grid). Root cause is **detection, not simplification**: `IslandDetector.DetectCleaned`'s
+  height-aware connectivity (heightTolerance 3 / outlierMargin 12) carves **raised features**
+  (platforms/structures above the surrounding terrain) off a horizontally-connected landmass; the per-island
+  simplify then faithfully draws each fragment. The two detection failure modes to catch:
+  (i) **over-split** (a_new_day) — raised features carved off a connected island;
+  (ii) **merged / under-split** (`abstract` / `abstract_remix`) — both teams read as one map-spanning island
+  (one ≈4937-block island covering ~87% of the extent + two ≈49-block bits). Likely a **block-36 floor**:
+  `CleanBase` excludes id 36 → the cleaned base reads degenerately → `DetectCleaned` falls back to y0/bedrock,
+  whose raw floor slab is one connected mass across both teams. The flag's review path is to re-detect (looser
+  height params, or a smarter base that keeps a 36-floor distinct from a bridged void) and re-run
+  `--store-island-sketch`.
 - [ ] **G10 — Frontline model from buildable adjacency (later).** Beyond per-island lanes: detect which island
   **edges touch buildable regions** and which islands a player can **step between** (adjacency across the
   buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on `G8`'s
