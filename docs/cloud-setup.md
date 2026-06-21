@@ -52,9 +52,11 @@ Much of the generator work needs **no database**. `tools/PgmStudio.RoundTrip` ru
 The Python analysis/visualization lives in **`scripts/generator/`** (see its README); deps
 (`numpy` / `scikit-image` / `scipy`) are usually already installed.
 
-## Corpus maps (optional)
-Corpus analysis needs the map worlds, which aren't in the container. Clone them locally and point the tool /
-`MapsRoots` at the clone (e.g. `OvercastCommunity/CommunityMaps`, the `ctw/` subset).
+## Data (corpus maps + real output)
+- **Real output data** lives in its own repo: **`rockymine/pgm-studio-output`** — clone it when you need the
+  actual generated/derived output rather than synthetic fixtures.
+- Corpus analysis also needs the source map worlds, which aren't in the container. Clone them locally and
+  point the tool / `MapsRoots` at the clone (e.g. `OvercastCommunity/CommunityMaps`, the `ctw/` subset).
 
 ## Orientation
 `CLAUDE.md` (rules) · `TODO.md` (open work) · `FEATURES.md` (shipped) ·

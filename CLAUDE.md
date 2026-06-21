@@ -57,7 +57,7 @@ That plus a separation of concerns by *kind*:
   string, and a firewalled network** — follow `docs/cloud-setup.md` (apt-not-CDN for .NET, `apt-get update`
   first, `service mariadb start` not systemd, the `pgm_studio`/`pgm_studio_test` + `pgm`/`pgm_dev_pw` setup,
   and the `ConnectionStrings__PgmStudio` env var). That doc is the cloud-specific runbook; the notes below
-  describe the local VM.
+  describe the local VM. **Real output data** is in a separate repo: `rockymine/pgm-studio-output`.
 - **.NET 10** installed via apt; **MariaDB 10.11** running (systemd, enabled). DB `pgm_studio`,
   user `pgm`/`pgm_dev_pw` on localhost.
 - The VirtualBox shared folder hosts the solution fine, but `dotnet run` cold-start is slow and
