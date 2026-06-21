@@ -1,6 +1,7 @@
 using FastEndpoints;
 using Microsoft.AspNetCore.Http;
 using PgmStudio.Analysis.Playability;
+using PgmStudio.Api.Http;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -77,7 +78,7 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
         catch (Exception ex) { await Send.ResponseAsync(new Dict { ["error"] = ex.Message }, 500, ct); return; }
 
         HttpContext.Response.ContentType = "application/xml; charset=utf-8";
-        HttpContext.Response.Headers.ContentDisposition = $"attachment; filename=\"{slug}.xml\"";
+        HttpContext.Response.Headers.ContentDisposition = ContentDispositionHeader.Attachment($"{slug}.xml");
         await HttpContext.Response.WriteAsync(xml, ct);
     }
 }
