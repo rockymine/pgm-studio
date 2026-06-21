@@ -7,18 +7,27 @@ using Dict = Dictionary<string, object?>;
 /// Wool/objective slice of the declarative generator (new-map-authoring.md; filter-region-wiring.md
 /// templates 3 + 4). Per wool it emits: the wool-room region, the wool element (with monuments), a wool
 /// spawn point fed by a <c>&lt;spawner&gt;</c> (player-region = room, spawn-region = the point, item =
-/// the dyed wool), and the room wiring — <c>enter=not-&lt;owner&gt;</c> (defenders kept out of their own
-/// room) plus <c>block=not-&lt;owner&gt;</c> (only attackers may edit the room; simplified template 4,
-/// no material whitelist).
-/// <para>The wool's <c>location</c> is the int-floored <see cref="WoolIntent.Spawn"/> point.</para>
-/// <para>Mirror of <c>RegionCategorizer</c>: the room reads back as <c>wool/room</c> and the spawn point
-/// as <c>wool/spawner</c>. Idempotent clear-then-build.</para>
+/// the dyed wool). The room wiring follows the validated template (docs/template.xml): the rooms are grouped
+/// per defending team into a <c>&lt;team&gt;s-woolrooms</c> union (all under a top <c>woolrooms</c> union),
+/// with <c>enter=not-&lt;owner&gt;</c> (defenders kept out) and a <c>block</c> rule whose filter
+/// <c>&lt;owner&gt;s-woolrooms-filter = all(not-&lt;owner&gt;, woolrooms-filter)</c> lets attackers edit only
+/// the shared <c>woolrooms-filter</c> materials — placing spawn-kit blocks + water and breaking the
+/// entrance decoration (cobweb, stained glass + panes) — rather than forbidding everything.
+/// <para>The wool's <c>location</c> is the int-floored <see cref="WoolIntent.Spawn"/> point. Mirror of
+/// <c>RegionCategorizer</c>: the room reads back as <c>wool/room</c>, the spawn point as <c>wool/spawner</c>.
+/// Idempotent clear-then-build.</para>
 /// </summary>
 public static class WoolGenerator
 {
     private const string EnterMessage = "You may not enter your own wool room!";
-    private const string EditMessage = "You may not modify the wool room!";
+    private const string EditMessage = "You may not edit the wool room!";
     private const string SpawnDelay = "1.5s";
+    private const string WoolroomsFilter = "woolrooms-filter";
+
+    // The synthetic leaf/compound filters that make up the shared woolrooms-filter (all start with "__" so
+    // the serializer inlines them).
+    private static readonly string[] WoolroomsSynthetics =
+        ["__wr-web", "__wr-glass", "__wr-pane", "__wr-wood", "__wr-clay", "__wr-water", "__wr-swater", "__wr-water-any", "__wr-cause-player", "__wr-water-all"];
 
     // wool block damage = dye id (1.8 metadata), keyed by the WoolEditor colour slug.
     private static readonly Dictionary<string, int> DyeDamage = new()
@@ -31,7 +40,10 @@ public static class WoolGenerator
     public static void Apply(Dict doc, MapIntent intent)
     {
         if (intent.Wools is null) return;
-        foreach (var w in intent.Wools) Remove(doc, ColorSlug(doc, w), IntentNaming.Slug(w.Owner));
+        ClearWoolrooms(doc, intent.Wools);
+
+        var roomsByOwner = new Dictionary<string, List<string>>();
+        var ownerOrder = new List<string>();
 
         foreach (var w in intent.Wools)
         {
@@ -59,7 +71,6 @@ public static class WoolGenerator
 
             if (w.Room is not { } room) continue;   // no room yet → skip the source side (region/spawner/wiring)
 
-            // regions: the wool room + the wool spawn point
             RegionEditor.CreateRegion(doc, new Dict
             {
                 ["type"] = "rectangle", ["id"] = roomId, ["category"] = "wool",
@@ -70,42 +81,113 @@ public static class WoolGenerator
                 ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",
                 ["x"] = w.Spawn.X, ["y"] = w.Spawn.Y, ["z"] = w.Spawn.Z,
             });
-
-            // spawner: dispense the dyed wool in the room, dropping at the spawn point
             DocAccess.EnsureList(doc, "spawners").Add(new Dict
             {
                 ["spawn_region"] = spawnId, ["player_region"] = roomId, ["delay"] = SpawnDelay,
                 ["items"] = new List<object?> { new Dict { ["material"] = "wool", ["damage"] = DyeDamage.GetValueOrDefault(colorSlug, 0) } },
             });
 
-            // room wiring: only-<owner> (reused from spawn protection if present) → not-<owner>. Both
-            // filters are per-team, not per-wool, so a team that defends several wools shares them — guard
-            // both creations (a second same-owner wool would otherwise collide on the filter id).
-            var only = $"only-{ownerSlug}";
-            var notOwner = $"not-{ownerSlug}";
-            if (!DocAccess.Filters(doc).ContainsKey(only))
-                FilterEditor.CreateFilter(doc, new Dict { ["id"] = only, ["type"] = "team", ["team"] = w.Owner });
-            if (!DocAccess.Filters(doc).ContainsKey(notOwner))
-                FilterEditor.CreateFilter(doc, new Dict { ["id"] = notOwner, ["type"] = "not", ["child"] = only });
+            if (!roomsByOwner.ContainsKey(ownerSlug)) { roomsByOwner[ownerSlug] = []; ownerOrder.Add(ownerSlug); }
+            roomsByOwner[ownerSlug].Add(roomId);
 
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["enter"] = notOwner, ["region"] = roomId, ["message"] = EnterMessage });
-            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["block"] = notOwner, ["region"] = roomId, ["message"] = EditMessage });
+            // only-<owner> team filter (reused from spawn protection if present) — the child of not-<owner>.
+            EnsureFilter(doc, $"only-{ownerSlug}", new Dict { ["type"] = "team", ["team"] = w.Owner });
         }
+
+        if (roomsByOwner.Count == 0) return;
+        EnsureWoolroomsFilter(doc);
+
+        var ownerUnions = new List<string>();
+        foreach (var ownerSlug in ownerOrder)
+        {
+            var not = $"not-{ownerSlug}";
+            EnsureFilter(doc, not, new Dict { ["type"] = "not", ["child"] = $"only-{ownerSlug}" });
+            // <owner>s-woolrooms-filter = all(not-<owner>, woolrooms-filter)
+            var roomFilter = $"{ownerSlug}s-woolrooms-filter";
+            EnsureFilter(doc, roomFilter, new Dict { ["type"] = "all", ["children"] = new List<object?> { not, WoolroomsFilter } });
+
+            var union = $"{ownerSlug}s-woolrooms";
+            AddUnion(doc, union, roomsByOwner[ownerSlug]);
+            ownerUnions.Add(union);
+
+            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["enter"] = not, ["region"] = union, ["message"] = EnterMessage });
+            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["block"] = roomFilter, ["region"] = union, ["message"] = EditMessage });
+        }
+        // top-level union of all the per-team room unions
+        AddUnion(doc, "woolrooms", ownerUnions);
     }
 
-    private static void Remove(Dict doc, string colorSlug, string ownerSlug)
+    // A union region from its children (allows a single child, unlike the editor's GroupRegions); bounds are
+    // the derived footprint so the canvas can still frame it.
+    private static void AddUnion(Dict doc, string id, List<string> childIds)
     {
-        var roomId = $"{colorSlug}-wool";
-        var spawnId = $"{colorSlug}-wool-spawn";
-        DocAccess.Regions(doc).Remove(roomId);
-        DocAccess.Regions(doc).Remove(spawnId);
-        DocAccess.Filters(doc).Remove($"not-{ownerSlug}");   // NOT only-<owner> — the spawn-protection slice may own it
-        if (doc.GetValueOrDefault("wools") is List<object?> wools)
-            wools.RemoveAll(x => x is Dict d && d.GetValueOrDefault("id") as string == colorSlug);
-        if (doc.GetValueOrDefault("spawners") is List<object?> spawners)
-            spawners.RemoveAll(x => x is Dict d && d.GetValueOrDefault("spawn_region") as string == spawnId);
+        var regions = DocAccess.Regions(doc);
+        var (bounds, _, _, _, _) = RegionBuilder.BuildUnionBounds(childIds.Select(c => (Dict)regions[c]!));
+        var union = new Dict { ["id"] = id, ["type"] = "union", ["children"] = childIds.Cast<object?>().ToList() };
+        if (bounds is not null) union["bounds_2d"] = bounds;
+        regions[id] = union;
+    }
+
+    // The shared whitelist of materials editable in any wool room: place the spawn-kit blocks (wood, the
+    // team-coloured clay) + water (player-caused), break the entrance decoration (cobweb, stained glass +
+    // panes). One <any> of synthetic leaves so the serializer inlines it.
+    private static void EnsureWoolroomsFilter(Dict doc)
+    {
+        if (DocAccess.Filters(doc).ContainsKey(WoolroomsFilter)) return;
+        void Mat(string id, string material) => EnsureFilter(doc, id, new Dict { ["type"] = "material", ["material"] = material });
+        Mat("__wr-web", "web");
+        Mat("__wr-glass", "stained glass");
+        Mat("__wr-pane", "stained glass pane");
+        Mat("__wr-wood", "wood");
+        Mat("__wr-clay", "stained clay");
+        Mat("__wr-water", "water");
+        Mat("__wr-swater", "stationary water");
+        EnsureFilter(doc, "__wr-water-any", new Dict { ["type"] = "any", ["children"] = new List<object?> { "__wr-water", "__wr-swater" } });
+        EnsureFilter(doc, "__wr-cause-player", new Dict { ["type"] = "cause", ["cause"] = "player" });
+        EnsureFilter(doc, "__wr-water-all", new Dict { ["type"] = "all", ["children"] = new List<object?> { "__wr-cause-player", "__wr-water-any" } });
+        EnsureFilter(doc, WoolroomsFilter, new Dict
+        {
+            ["type"] = "any", ["children"] = new List<object?> { "__wr-web", "__wr-glass", "__wr-pane", "__wr-wood", "__wr-clay", "__wr-water-all" },
+        });
+    }
+
+    private static void EnsureFilter(Dict doc, string id, Dict payload)
+    {
+        if (DocAccess.Filters(doc).ContainsKey(id)) return;
+        FilterEditor.CreateFilter(doc, new Dict(payload) { ["id"] = id });
+    }
+
+    private static void ClearWoolrooms(Dict doc, List<WoolIntent> wools)
+    {
+        var regions = DocAccess.Regions(doc);
+        var filters = DocAccess.Filters(doc);
+        var owners = new HashSet<string>();
+
+        foreach (var w in wools)
+        {
+            var colorSlug = ColorSlug(doc, w);
+            var ownerSlug = IntentNaming.Slug(w.Owner);
+            owners.Add(ownerSlug);
+            regions.Remove($"{colorSlug}-wool");
+            regions.Remove($"{colorSlug}-wool-spawn");
+            if (doc.GetValueOrDefault("wools") is List<object?> ws)
+                ws.RemoveAll(x => x is Dict d && d.GetValueOrDefault("id") as string == colorSlug);
+            if (doc.GetValueOrDefault("spawners") is List<object?> sp)
+                sp.RemoveAll(x => x is Dict d && d.GetValueOrDefault("spawn_region") as string == $"{colorSlug}-wool-spawn");
+        }
+
+        regions.Remove("woolrooms");
+        filters.Remove(WoolroomsFilter);
+        foreach (var syn in WoolroomsSynthetics) filters.Remove(syn);
+        foreach (var o in owners)
+        {
+            regions.Remove($"{o}s-woolrooms");
+            filters.Remove($"{o}s-woolrooms-filter");
+            filters.Remove($"not-{o}");   // not only-<owner> — the spawn-protection slice may own it
+        }
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
-            rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string == roomId);
+            rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") is string reg
+                && (reg == "woolrooms" || reg.EndsWith("s-woolrooms") || reg.EndsWith("-wool")));
     }
 
     // Wool colour slug (underscore form, matching WoolEditor's ValidColors); defaults to the owner team's colour.

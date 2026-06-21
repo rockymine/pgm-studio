@@ -70,6 +70,21 @@ public static partial class XmlWriter
         return counts;
     }
 
+    // Filter ids referenced from outside the filter tree (apply rules, renewables) must stay top-level so
+    // the reference resolves — even when a parent filter also nests them (which would otherwise inline them).
+    private static HashSet<string> ExternalFilterRefs(MapXml m)
+    {
+        var refs = new HashSet<string>();
+        void Add(string? id) { if (!string.IsNullOrEmpty(id) && !BuiltinFilterIds.Contains(id)) refs.Add(id!); }
+        foreach (var r in m.ApplyRules)
+        {
+            Add(r.EnterFilter); Add(r.LeaveFilter); Add(r.BlockFilter); Add(r.BlockPlaceFilter);
+            Add(r.BlockBreakFilter); Add(r.BlockPhysicsFilter); Add(r.BlockPlaceAgainstFilter); Add(r.UseFilter); Add(r.FilterId);
+        }
+        foreach (var r in m.Renewables) { Add(r.RenewFilter); Add(r.ReplaceFilter); }
+        return refs;
+    }
+
     private static HashSet<string> ExternalRegionRefs(MapXml m)
     {
         var refs = new HashSet<string>();
@@ -98,7 +113,7 @@ public static partial class XmlWriter
         WriteSpawns(root, m.Spawns, m.ObserverSpawn);
         WriteWools(root, m.Wools);
 
-        if (m.Filters.Count > 0) WriteFiltersBlock(root, m.Filters);
+        if (m.Filters.Count > 0) WriteFiltersBlock(root, m.Filters, ExternalFilterRefs(m));
         if (m.Regions.Count > 0 || m.ApplyRules.Count > 0)
             WriteRegionsBlock(root, m.Regions, m.ApplyRules, ExternalRegionRefs(m));
 
@@ -258,7 +273,7 @@ public static partial class XmlWriter
     }
 
     // ── filters block ───────────────────────────────────────────────────────────────
-    private static void WriteFiltersBlock(XElement parent, Dictionary<string, Filter> filters)
+    private static void WriteFiltersBlock(XElement parent, Dictionary<string, Filter> filters, HashSet<string> external)
     {
         var counts = CountFilterParents(filters);
         var topLevel = new HashSet<string>();
@@ -266,7 +281,7 @@ public static partial class XmlWriter
         {
             if (BuiltinFilterIds.Contains(fid) || IsSynthetic(fid)) continue;
             var c = counts.GetValueOrDefault(fid);
-            if (c == 0 || c >= 2) topLevel.Add(fid);
+            if (c == 0 || c >= 2 || external.Contains(fid)) topLevel.Add(fid);
         }
         if (topLevel.Count == 0) return;
         var block = new XElement("filters"); parent.Add(block);
@@ -478,12 +493,14 @@ public static partial class XmlWriter
         A("block-place", rule.BlockPlaceFilter); A("block-break", rule.BlockBreakFilter);
         A("block-physics", rule.BlockPhysicsFilter); A("block-place-against", rule.BlockPlaceAgainstFilter);
         A("use", rule.UseFilter); A("filter", rule.FilterId);
-        A("kit", rule.Kit); A("lend-kit", rule.LendKit); A("velocity", rule.Velocity); A("message", rule.Message);
+        A("kit", rule.Kit); A("lend-kit", rule.LendKit); A("velocity", rule.Velocity);
 
         if (rule.RegionId.Length > 0 && !IsSynthetic(rule.RegionId))
             Set(e, "region", rule.RegionId);
         else if (rule.RegionId.Length > 0 && regions.TryGetValue(rule.RegionId, out var region))
             e.Add(new XElement("region", RegionElemInline(region)));
+
+        A("message", rule.Message);   // message is always the last attribute
         return e;
     }
 

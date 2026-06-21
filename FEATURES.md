@@ -231,6 +231,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   intent deserialization (a `null`→non-nullable-`Rect` 500). Verified end-to-end on n00_demo (2-team
   `mirror_x`, 2 wools/team): 4 wools + 4 monuments, valid CTW XML (`<wool team>` = the monument-derived
   capturer, as PGM requires). (N04)
+- **Wool-room wiring — the validated template structure (`docs/template.xml`)** — `WoolGenerator` now groups
+  the rooms per defending team into a `<team>s-woolrooms` union (all under a top `woolrooms` union) instead
+  of per-wool rules, and replaces the blanket `block=not-<owner>` ("forbid everything") with a shared
+  **`woolrooms-filter`** whitelist: a single `<any>` allowing the spawn-kit blocks (`wood`, `stained clay`) +
+  player-placed `water`/`stationary water`, and breaking the entrance decoration (`web` cobweb, `stained
+  glass` + `stained glass pane`). The room edit rule is `block = all(not-<owner>, woolrooms-filter)` (per
+  team, `<team>s-woolrooms-filter`), with `enter=not-<owner>` — so attackers may edit only the whitelisted
+  materials, not grief everything. Enabled by a serializer fix: `XmlWriter` now keeps a filter top-level when
+  an **apply rule / renewable references it** (`ExternalFilterRefs`), so `not-<owner>` resolves from both its
+  enter rule and the `all`. Verified on n00_demo (regenerated). (N04)
 - **Review & Export · Pre-flight sub-step (N05; folds in the NVAL validation gate)** — the export gate.
   `GET /map/{slug}/preflight` runs the four generated-map checks server-side and returns the export verdict:
   **round-trip** (the document survives the export codec — `FromDict → XmlWriter → re-parse`, codec-idempotent,
@@ -289,7 +299,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   endpoint enriches the `MapXml` before `ToXml`); corpus-map exports are untouched (not round-tripped). The
   `XmlWriter` also now matches the corpus's formatting: self-close as `/>` (no space before the slash), a
   trailing newline, region elements carry `id` as the **first** attribute (`<rectangle id="…" min="…"
-  max="…"/>`), `<regions>` ordered by type (primitives → compounds → `<apply>` applicators last), and a
+  max="…"/>`), `<apply>` carries `message` as the **last** attribute, `<regions>` ordered by type
+  (primitives → compounds → `<apply>` applicators last), and a
   uuid → username **comment** under each `<author>`/`<contributor>` (`<!-- name -->` on its own line at the
   same indent, from the resolved `Author.Name`; skipped when unresolved). (`CtwStandards`, `XmlWriter`, `MapXmlEndpoint`)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the

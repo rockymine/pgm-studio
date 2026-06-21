@@ -70,9 +70,32 @@ public sealed class WoolGeneratorTests
         await Assert.That(item["damage"]).IsEqualTo(14);   // red dye id
 
         await Assert.That(((Dict)Filters(doc)["not-red"]!)["child"]).IsEqualTo("only-red");
-        var onRoom = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "red-wool").ToList();
-        await Assert.That(onRoom.Any(r => r.GetValueOrDefault("enter") as string == "not-red")).IsTrue();
-        await Assert.That(onRoom.Any(r => r.GetValueOrDefault("block") as string == "not-red")).IsTrue();
+        // the room is grouped into the per-team union (under the top woolrooms union); the wiring lives on it
+        await Assert.That(Regions(doc).ContainsKey("reds-woolrooms")).IsTrue();
+        await Assert.That(((List<object?>)((Dict)Regions(doc)["woolrooms"]!)["children"]!).Cast<string>()).Contains("reds-woolrooms");
+        var onUnion = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "reds-woolrooms").ToList();
+        await Assert.That(onUnion.Any(r => r.GetValueOrDefault("enter") as string == "not-red")).IsTrue();
+        await Assert.That(onUnion.Any(r => r.GetValueOrDefault("block") as string == "reds-woolrooms-filter")).IsTrue();
+        // the room filter = all(not-<owner>, woolrooms-filter)
+        var roomFilter = (Dict)Filters(doc)["reds-woolrooms-filter"]!;
+        await Assert.That(roomFilter["type"]).IsEqualTo("all");
+        await Assert.That(((List<object?>)roomFilter["children"]!).Cast<string>()).IsEquivalentTo(new[] { "not-red", "woolrooms-filter" });
+    }
+
+    [Test]
+    public async Task Woolrooms_filter_whitelists_the_kit_blocks_water_and_breakable_decor()
+    {
+        var doc = Map();
+        WoolGenerator.Apply(doc, Intent());
+        var f = Filters(doc);
+        await Assert.That(((Dict)f["woolrooms-filter"]!)["type"]).IsEqualTo("any");
+        // the leaves: cobweb / stained glass + panes (break) and wood / clay (place)
+        var mats = f.Values.OfType<Dict>().Where(x => x.GetValueOrDefault("type") as string == "material")
+            .Select(x => x["material"] as string).ToList();
+        foreach (var m in new[] { "web", "stained glass", "stained glass pane", "wood", "stained clay", "water", "stationary water" })
+            await Assert.That(mats).Contains(m);
+        // water is player-caused (an <all> of cause=player + the water materials)
+        await Assert.That(f.Values.OfType<Dict>().Any(x => x.GetValueOrDefault("type") as string == "cause" && x.GetValueOrDefault("cause") as string == "player")).IsTrue();
     }
 
     [Test]
@@ -135,12 +158,12 @@ public sealed class WoolGeneratorTests
         await Assert.That(Regions(doc).ContainsKey("orange-wool")).IsTrue();
         await Assert.That(Filters(doc).Keys.Count(k => k == "not-red")).IsEqualTo(1);
         await Assert.That(Filters(doc).Keys.Count(k => k == "only-red")).IsEqualTo(1);
-        foreach (var room in new[] { "red-wool", "orange-wool" })
-        {
-            var on = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == room).ToList();
-            await Assert.That(on.Any(r => r.GetValueOrDefault("enter") as string == "not-red")).IsTrue();
-            await Assert.That(on.Any(r => r.GetValueOrDefault("block") as string == "not-red")).IsTrue();
-        }
+        // both rooms grouped into one per-team union, with one enter + one block rule on it
+        var union = (Dict)Regions(doc)["reds-woolrooms"]!;
+        await Assert.That(((List<object?>)union["children"]!).Cast<string>()).IsEquivalentTo(new[] { "red-wool", "orange-wool" });
+        var on = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "reds-woolrooms").ToList();
+        await Assert.That(on.Count(r => r.GetValueOrDefault("enter") as string == "not-red")).IsEqualTo(1);
+        await Assert.That(on.Count(r => r.GetValueOrDefault("block") as string == "reds-woolrooms-filter")).IsEqualTo(1);
     }
 
     [Test]
