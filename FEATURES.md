@@ -268,12 +268,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   spine** — a new map now flows intent → Map Info → World → Teams → Build → Wools → Review & Export → a
   validated, downloaded `map.xml`. (`ReviewXmlPhase`, `ConfigureWizard` export wiring; new-map-authoring.md §9/§12)
 - **CTW standards in generated exports + PGM-faithful formatting** — generated (intent) maps now export the
-  standard CTW boilerplate ~every corpus map carries: `<itemkeep>` (all non-armor kit items), `<toolrepair>`
-  (the kit's tools/weapons), `<itemremove>` (the kit's team-coloured armor **plus the terrain drops of the
-  blocks on the top surface** — seeds/long grass from grass, sapling/apple from leaves, string from cobweb,
-  flint from gravel, … via a block-id→drop table fed by the surface palette; generous, since removing an
-  absent item is a no-op) — all **derived from the spawn kit + surface** (`CtwStandards`, corpus-grounded
-  over N=199 incl. the surface-palette↔itemremove correlation) — plus the server-defined
+  standard CTW boilerplate ~every corpus map carries: `<itemkeep>` (the non-armor, **non-block** kit items —
+  tools/weapons/consumables), `<toolrepair>` (the kit's tools/weapons), `<itemremove>` (the kit's
+  team-coloured armor **+ the kit's build blocks** (the stacked items, dropped not kept) **+ the terrain drops
+  of the blocks on the top surface** — seeds/long grass from grass, sapling/apple from leaves, string from
+  cobweb, flint from gravel, … via a block-id→drop table fed by the surface palette; generous, since removing
+  an absent item is a no-op), a `<block-drops>` rule that **suppresses the kit blocks' place-and-break
+  drop** (`chance="0"`) so they can't be farmed, and a default `<kill-rewards>` granting a stack of building
+  blocks per kill (the kit's blocks — wood ×16 + the team-coloured block ×8, the corpus norm of ~24 blocks
+  across ~2 items, on top of the gapple include) — all **derived from the spawn kit + surface** (`CtwStandards`,
+  corpus-grounded over N=199 incl. the surface-palette↔itemremove correlation) — plus the server-defined
   `<include id="gapple-kill-reward"/>` and `<hunger><depletion>off</depletion></hunger>`. Applied **at export, gated to intent maps** (the export
   endpoint enriches the `MapXml` before `ToXml`); corpus-map exports are untouched (not round-tripped). The
   `XmlWriter` also now matches the corpus's formatting: self-close as `/>` (no space before the slash), a

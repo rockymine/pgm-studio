@@ -66,10 +66,33 @@ public static class CtwStandards
     {
         if (m.Kits.FirstOrDefault() is { } kit)
         {
-            var items = kit.Items.Select(i => i.Material).Where(s => s.Length > 0).ToList();
-            m.ItemKeep = items.Distinct().ToList();
-            m.ToolRepair = items.Where(IsTool).Distinct().ToList();
-            m.ItemRemove = kit.Armor.Select(a => a.Material).Where(s => s.Length > 0).Distinct().ToList();
+            // The spawn kit's build blocks are the stacked items (wood, the team-coloured accent block);
+            // tools/weapons/consumables come as a single item. Keep the single items on death, repair the
+            // tools, and drop the build blocks (so they can't be hoarded — removed when dropped + their
+            // place-and-break drop is suppressed below).
+            var keep = kit.Items.Where(i => i.Amount <= 1).Select(i => i.Material).Where(s => s.Length > 0).ToList();
+            var blocks = kit.Items.Where(i => i.Amount > 1).Select(i => i.Material).Where(s => s.Length > 0).Distinct().ToList();
+            m.ItemKeep = keep.Distinct().ToList();
+            m.ToolRepair = keep.Where(IsTool).Distinct().ToList();
+            m.ItemRemove = kit.Armor.Select(a => a.Material).Where(s => s.Length > 0).Concat(blocks).Distinct().ToList();
+
+            // The place-and-break trick: a kit block breaks into nothing (a single drop at chance 0 replaces
+            // its natural drop), so players can't mine fresh building material off what they place.
+            if (blocks.Count > 0)
+                m.BlockDropRules.Add(new BlockDropRule
+                {
+                    FilterMaterials = blocks,
+                    Items = [new BlockDropItem { Material = blocks[0], Chance = 0.0 }],
+                });
+
+            // Default kill-reward: a stack of building blocks per kill (the kit's blocks — wood + the
+            // team-coloured block) on top of the golden-apple include. Amounts match the corpus norm
+            // (~24 blocks across ~2 items: a neutral block at 16, a team-coloured one at 8).
+            var rewardItems = kit.Items
+                .Where(i => i.Amount > 1 && i.Material.Length > 0)
+                .Select(i => new KillRewardItem { Material = i.Material, TeamColor = i.TeamColor, Amount = i.TeamColor ? 8 : 16 })
+                .ToList();
+            if (rewardItems.Count > 0) m.KillRewards = [new KillReward { Items = rewardItems }];
         }
         if (surfaceBlockIds is { Count: > 0 })
         {

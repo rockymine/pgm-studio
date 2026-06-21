@@ -109,6 +109,7 @@ public static partial class XmlWriter
         WriteMaterialList(root, "itemkeep", "item", m.ItemKeep);
         WriteMaterialList(root, "itemremove", "item", m.ItemRemove);
         WriteMaterialList(root, "toolrepair", "tool", m.ToolRepair);
+        WriteKillRewards(root, m.KillRewards);
         if (m.HungerDepletion is { Length: > 0 } hd)
             root.Add(new XElement("hunger", new XElement("depletion", hd)));
 
@@ -122,6 +123,26 @@ public static partial class XmlWriter
         if (materials.Count == 0) return;
         var block = new XElement(blockTag);
         foreach (var mat in materials) block.Add(new XElement(itemTag, mat));
+        parent.Add(block);
+    }
+
+    private static void WriteKillRewards(XElement parent, List<KillReward> rewards)
+    {
+        if (rewards.Count == 0) return;
+        var block = new XElement("kill-rewards");
+        foreach (var r in rewards)
+        {
+            var re = new XElement("kill-reward");
+            foreach (var item in r.Items)
+            {
+                var ie = new XElement("item"); Set(ie, "material", item.Material);
+                if (item.Damage != 0) Set(ie, "damage", item.Damage.ToString());
+                if (item.Amount != 1) Set(ie, "amount", item.Amount.ToString());
+                if (item.TeamColor) Set(ie, "team-color", "true");
+                re.Add(ie);
+            }
+            block.Add(re);
+        }
         parent.Add(block);
     }
 
@@ -506,7 +527,20 @@ public static partial class XmlWriter
         {
             var re = new XElement("rule");
             if (rule.RegionId.Length > 0) Set(re, "region", rule.RegionId);
-            if (rule.FilterId.Length > 0) Set(re, "filter", rule.FilterId);
+            if (rule.FilterMaterials.Count > 0)
+            {
+                var filter = new XElement("filter");
+                if (rule.FilterMaterials.Count == 1)
+                    filter.Add(new XElement("material", rule.FilterMaterials[0]));
+                else
+                {
+                    var any = new XElement("any");
+                    foreach (var mat in rule.FilterMaterials) any.Add(new XElement("material", mat));
+                    filter.Add(any);
+                }
+                re.Add(filter);
+            }
+            else if (rule.FilterId.Length > 0) Set(re, "filter", rule.FilterId);
             if (rule.WrongTool) Set(re, "wrong-tool", "true");
             if (rule.Replacement.Length > 0) re.Add(new XElement("replacement", rule.Replacement));
             if (rule.Items.Count > 0)

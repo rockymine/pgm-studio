@@ -121,9 +121,26 @@ public sealed class BlockDropRule
 {
     public string RegionId = "";
     public string FilterId = "";
+    /// <summary>Inline <c>&lt;filter&gt;</c> as an any-of-materials match (e.g. the spawn-kit blocks). When
+    /// non-empty it's emitted inline instead of the <see cref="FilterId"/> reference.</summary>
+    public List<string> FilterMaterials = [];
     public string Replacement = "";
     public bool WrongTool;
     public List<BlockDropItem> Items = [];
+}
+
+/// <summary>A <c>&lt;kill-reward&gt;</c> — items granted to a player for a kill.</summary>
+public sealed class KillReward
+{
+    public List<KillRewardItem> Items = [];
+}
+
+public sealed class KillRewardItem
+{
+    public string Material = "";
+    public int Amount = 1;
+    public int Damage;
+    public bool TeamColor;
 }
 
 /// <summary>The parsed PGM map — the flat parser domain (mirrors datatypes.MapXml).</summary>
@@ -153,5 +170,6 @@ public sealed class MapXml
     public List<string> ItemKeep = [];        // materials kept on death
     public List<string> ItemRemove = [];      // materials removed on death (team-coloured armor)
     public List<string> ToolRepair = [];      // tool/weapon materials auto-repaired
+    public List<KillReward> KillRewards = []; // items granted per kill
     public string? HungerDepletion;           // null = no <hunger>; "off"/"on" → <hunger><depletion>…</depletion></hunger>
 }

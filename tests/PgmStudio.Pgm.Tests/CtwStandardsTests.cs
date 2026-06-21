@@ -30,6 +30,7 @@ public sealed class CtwStandardsTests
                     new KitItem { Slot = 6, Material = "golden apple" },
                     new KitItem { Slot = 7, Material = "wood", Amount = 64 },
                     new KitItem { Slot = 8, Material = "arrow" },
+                    new KitItem { Slot = 9, Material = "stained clay", Amount = 32, TeamColor = true },
                 ],
                 Armor =
                 [
@@ -43,15 +44,43 @@ public sealed class CtwStandardsTests
     };
 
     [Test]
-    public async Task ItemKeep_is_every_non_armor_kit_item()
+    public async Task ItemKeep_is_the_non_armor_non_block_items()
     {
         var m = MapWithKit();
         CtwStandards.Apply(m);
         await Assert.That(m.ItemKeep).Contains("iron sword");
         await Assert.That(m.ItemKeep).Contains("golden apple");
-        await Assert.That(m.ItemKeep).Contains("wood");
         await Assert.That(m.ItemKeep).Contains("arrow");
         await Assert.That(m.ItemKeep).DoesNotContain("leather helmet");   // armor is removed, not kept
+        await Assert.That(m.ItemKeep).DoesNotContain("wood");             // build blocks are dropped, not kept
+        await Assert.That(m.ItemKeep).DoesNotContain("stained clay");
+    }
+
+    [Test]
+    public async Task Build_blocks_are_removed_and_their_drops_suppressed()
+    {
+        var m = MapWithKit();
+        CtwStandards.Apply(m);
+
+        // the stacked build blocks are dropped (itemremove), alongside the armor
+        await Assert.That(m.ItemRemove).Contains("wood");
+        await Assert.That(m.ItemRemove).Contains("stained clay");
+        await Assert.That(m.ItemRemove).Contains("leather helmet");
+
+        // a block-drops rule suppresses their place-and-break drop (chance 0)
+        await Assert.That(m.BlockDropRules.Count).IsEqualTo(1);
+        var rule = m.BlockDropRules[0];
+        await Assert.That(rule.FilterMaterials).Contains("wood");
+        await Assert.That(rule.FilterMaterials).Contains("stained clay");
+        await Assert.That(rule.Items.Count).IsEqualTo(1);
+        await Assert.That(rule.Items[0].Chance).IsEqualTo(0.0);
+
+        // and it serializes to the expected block-drops xml
+        var xml = XmlWriter.ToXml(m);
+        await Assert.That(xml).Contains("<block-drops>");
+        await Assert.That(xml).Contains("<material>wood</material>");
+        await Assert.That(xml).Contains("<material>stained clay</material>");
+        await Assert.That(xml).Contains("chance=\"0\"");
     }
 
     [Test]
@@ -102,6 +131,27 @@ public sealed class CtwStandardsTests
         CtwStandards.Apply(m);
         await Assert.That(m.Includes).Contains("gapple-kill-reward");
         await Assert.That(m.HungerDepletion).IsEqualTo("off");
+    }
+
+    [Test]
+    public async Task Adds_a_block_kill_reward_from_the_kit_blocks()
+    {
+        var m = MapWithKit();
+        CtwStandards.Apply(m);
+
+        await Assert.That(m.KillRewards.Count).IsEqualTo(1);
+        var items = m.KillRewards[0].Items;
+        var wood = items.Single(i => i.Material == "wood");
+        var clay = items.Single(i => i.Material == "stained clay");
+        await Assert.That(wood.Amount).IsEqualTo(16);        // neutral block
+        await Assert.That(wood.TeamColor).IsFalse();
+        await Assert.That(clay.Amount).IsEqualTo(8);         // team-coloured block
+        await Assert.That(clay.TeamColor).IsTrue();
+
+        var xml = XmlWriter.ToXml(m);
+        await Assert.That(xml).Contains("<kill-rewards>");
+        await Assert.That(xml).Contains("<item material=\"wood\" amount=\"16\"/>");
+        await Assert.That(xml).Contains("<item material=\"stained clay\" amount=\"8\" team-color=\"true\"/>");
     }
 
     [Test]
