@@ -1,0 +1,161 @@
+@namespace PgmStudio.Client.Pages.Configure
+@using PgmStudio.Contracts
+
+@* Review & Export · Pre-flight sub-step (N05): the validation gate — a read-only overview, not a 3-column
+   editing workspace. The four generated-map checks run on GET /preflight; a single static top-down map
+   (real islands + buildable bridges + spawn↔wool connectivity) is the picture of the validated map.
+   Export (the XML sub-step's Next) stays blocked until every gating check passes. *@
+
+<div class="workspace">
+  <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
+
+    <section class="panel-section">
+      <div class="section-header section-header--ruled">
+        <h2 class="section-title">Pre-flight checks</h2>
+        @if (running) { <span class="badge badge--neutral">Running…</span> }
+        else if (data is { IntentMap: false }) { <span class="badge badge--dim">n/a</span> }
+        else if (data is { ExportReady: true }) { <span class="badge badge--success">Ready</span> }
+        else { <span class="badge badge--error">Blocked</span> }
+      </div>
+      <p class="section-desc">A generated map can be structurally valid yet <strong>unplayable</strong>, so
+        these four checks run before export. <strong>Traversability</strong> is the closing gate — a
+        disconnected spawn–wool chain blocks export with HTTP&nbsp;409.</p>
+
+      @if (error is not null)
+      {
+        <div class="panel-warning"><strong>Couldn't run pre-flight.</strong> @error</div>
+      }
+      else if (data is { IntentMap: false })
+      {
+        <p class="panel-empty-msg" style="text-align:left">This map wasn't authored from intent, so there's
+          nothing to pre-flight. Export is unconditional for imported corpus maps.</p>
+      }
+      else
+      {
+        <div class="section-body">
+          @foreach (var c in Checks)
+          {
+            <div class="step-row">
+              <span class="@DotClass(c.Status)"></span>
+              <span class="step-label">@c.Label</span>
+              <span class="step-detail">@c.Detail</span>
+            </div>
+          }
+
+          @* The validated map — one static top-down image (islands · bridges · spawn↔wool connectivity). *@
+          @if (view is { } v)
+          {
+            <div class="canvas-surface canvas-surface--svg" style="margin-top:var(--space-3);min-height:240px;max-height:380px;border-radius:var(--radius-sm);overflow:hidden">
+              <svg viewBox="@F(v.MinX) @F(v.MinZ) @F(v.W) @F(v.H)" preserveAspectRatio="xMidYMid meet"
+                   style="width:100%;height:100%;display:block">
+                @foreach (var b in v.Bridges)
+                {
+                  <rect x="@F(b.X)" y="@F(b.Z)" width="@F(b.W)" height="@F(b.H)"
+                        fill="color-mix(in oklch, var(--canvas-add-fill) 40%, transparent)"
+                        stroke="var(--canvas-add-stroke)" stroke-width="@Sw" />
+                }
+                @foreach (var poly in v.Islands)
+                {
+                  <polygon points="@poly"
+                           fill="color-mix(in oklch, var(--canvas-island) 55%, transparent)"
+                           stroke="var(--canvas-island-stroke)" stroke-width="@Sw" />
+                }
+                @foreach (var z in v.Protections)
+                {
+                  <rect x="@F(z.X)" y="@F(z.Z)" width="@F(z.W)" height="@F(z.H)" fill="@z.Color" fill-opacity="0.1"
+                        stroke="@z.Color" stroke-opacity="0.55" stroke-width="@Sw" stroke-dasharray="@ProtDash"><title>@z.Name</title></rect>
+                }
+                @foreach (var z in v.Rooms)
+                {
+                  <rect x="@F(z.X)" y="@F(z.Z)" width="@F(z.W)" height="@F(z.H)" fill="@z.Color" fill-opacity="0.18"
+                        stroke="@z.Color" stroke-opacity="0.75" stroke-width="@Sw"><title>@z.Name</title></rect>
+                }
+                @foreach (var d in v.Points)
+                {
+                  @if (d.Spawn)
+                  {
+                    <circle cx="@F(d.X)" cy="@F(d.Z)" r="@F(MarkerR)" fill="@d.Color"
+                            stroke="@(d.Isolated ? "#e5534b" : "white")" stroke-width="@(d.Isolated ? IsoSw : Sw)"><title>@d.Name spawn@(d.Isolated ? " — cut off" : "")</title></circle>
+                  }
+                  else
+                  {
+                    <rect x="@F(d.X - MarkerR)" y="@F(d.Z - MarkerR)" width="@F(MarkerR * 2)" height="@F(MarkerR * 2)" fill="@d.Color"
+                          stroke="@(d.Isolated ? "#e5534b" : "white")" stroke-width="@(d.Isolated ? IsoSw : Sw)"><title>@d.Name wool@(d.Isolated ? " — cut off" : "")</title></rect>
+                  }
+                }
+                @foreach (var mo in v.Monuments)
+                {
+                  <polygon points="@Diamond(mo.X, mo.Z)" fill="@mo.Color" stroke="white" stroke-width="@Sw"><title>@mo.Name</title></polygon>
+                }
+              </svg>
+            </div>
+            <p class="section-desc">
+              <span class="badge @(data?.Traversability is { Connected: true } ? "badge--success" : "badge--error")">
+                @(data?.Traversability is { Connected: true } ? "connected" : $"{data?.Traversability?.ComponentCount} components")
+              </span>
+              Top-down view — islands · <span style="color:var(--canvas-add-stroke)">buildable bridges</span> ·
+              <strong>dashed box</strong> = spawn protection · <strong>filled box</strong> = wool room ·
+              <strong>●</strong> spawn (team colour), <strong>■</strong> wool &amp; <strong>◆</strong> its monument
+              (dye colour). A <span style="color:#e5534b">red ring</span> marks a node cut off from the
+              spawn↔wool chain.
+            </p>
+          }
+
+          @if (Blocked && Failed("traversability") is { } tf)
+          {
+            <div class="panel-warning">
+              <strong>Export blocked.</strong> @tf.Detail. Return to the <strong>Build</strong> step and bridge
+              the gap — traversability re-runs when you come back.
+            </div>
+          }
+          else if (Blocked && Failed("buildability") is { } bf)
+          {
+            <div class="panel-warning"><strong>Placement over void.</strong> @bf.Detail.</div>
+          }
+          else if (Blocked && Failed("round-trip") is { } rf)
+          {
+            <div class="panel-warning">
+              <strong>Generator/codec bug.</strong> @rf.Detail — the map can't serialize to valid XML.
+            </div>
+          }
+
+          <div class="console-wrap" style="margin-top:var(--space-3)">
+            <div class="console-header">
+              <span class="console-title">Generate &amp; validate log</span>
+            </div>
+            <div class="console-output">
+              @if (running)
+              {
+                <div class="console-line console-line--info">running pre-flight…</div>
+              }
+              else
+              {
+                @foreach (var line in data?.Log ?? [])
+                {
+                  <div class="@LineClass(line)">@line</div>
+                }
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="section-footer section-footer--separated">
+          @if (data is { ExportReady: true })
+          {
+            <span class="badge badge--success">Export gate open</span>
+            <span class="panel-save-status">advance to the XML sub-step to export</span>
+          }
+          else
+          {
+            <span class="badge badge--error">Export gate blocked</span>
+            <span class="panel-save-status">fix the failing check, then re-run</span>
+          }
+          <button class="action-btn" @onclick="RunAsync" disabled="@running">
+            <i data-lucide="refresh-cw"></i> Re-run checks
+          </button>
+        </div>
+      }
+    </section>
+
+  </div>
+</div>

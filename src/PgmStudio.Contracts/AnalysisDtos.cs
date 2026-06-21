@@ -16,6 +16,20 @@ public sealed record TraversabilityDto(
     bool Connected, int ComponentCount, string Severity, string Message, bool HaveLayers,
     IReadOnlyList<NavPointDto> Points, IReadOnlyList<IsolatedPointDto> Isolated);
 
+/// <summary>One Review pre-flight finding. <c>Status</c> ∈ <c>"pass"</c> | <c>"fail"</c> | <c>"skip"</c>.</summary>
+public sealed record PreflightCheckDto(string Key, string Label, string Status, string Detail);
+
+/// <summary>GET /api/map/{slug}/preflight — the Review phase's pre-flight gate: the four generated-map
+/// checks (round-trip · mirror-consistency · buildability · traversability), the validate log, and the
+/// export verdict. <c>ExportReady</c> mirrors what <c>GET /xml</c> enforces (round-trip must not throw and
+/// the spawn↔wool chain must be connected); mirror + buildability are advisory. Scoped to intent-authored
+/// maps (<c>IntentMap</c> false ⇒ a corpus map with nothing to pre-flight). Carries the traversability
+/// result for the connectivity mini-map.</summary>
+public sealed record PreflightDto(
+    bool IntentMap, bool ExportReady,
+    IReadOnlyList<PreflightCheckDto> Checks, IReadOnlyList<string> Log,
+    TraversabilityDto? Traversability);
+
 public sealed record RegionFacetDto(string Category, IReadOnlyList<string> Roles, string? Subtype = null);
 
 /// <summary>GET /api/map/{slug}/regions — derived region facets + a category count summary.</summary>

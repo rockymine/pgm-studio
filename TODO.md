@@ -18,9 +18,11 @@ authoring **backend** is done. The open headline is the **new Configure wizard**
 1. **Design questions are settled** — `ND1` (nav/flow, §12), `ND2` (stripped World, §6a), `ND3` (landing,
    §12) and `ND4` (save model, §12) are **done**; the wizard shell, the `/maps/new` import landing, and the
    intent-gated/save-on-advance wiring (`NS`) are **landed** (`FEATURES.md`).
-2. **Build the steps in page order** (`N00`→`N05` + `NVAL`), starting with **Teams & Spawns** (`N02`)
-   — the recommended first real slice. Each plugs its slice into the wizard's save seam (patch `Intent`,
-   call `MarkDirty`; the wizard persists on phase-advance).
+2. **The steps are built in page order** — `N00` Map Info → `N01` World → `N02` Teams → `N03` Build →
+   `N04` Wools → `N05` Review & Export · **Pre-flight** (the `NVAL` validation gate) are **landed**
+   (`FEATURES.md`). The **remaining wizard work is the other two Review sub-steps** — `N07` Region tree and
+   `N06` XML + export (the flow-bar `Next` on XML, gated on the Pre-flight 409) — plus `N08` focus
+   integration. Each plugs its slice into the wizard's save seam (patch `Intent`, call `MarkDirty`).
 
 Shared editor/canvas infra (C) serves both editors; the existing **Edit** (`/maps/{id}/edit`) feature UIs
 (wiring, counterparts) are **parked** until that path resumes.
@@ -44,16 +46,9 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 > (`new-map-authoring.md` §7: shaping activities use intent forms; the Regions activity in Edit
 > (`/maps/{id}/edit`) keeps the full tree). The hand-wiring path (group→wire) is **parked** — the generator auto-wires.
 
-**Steps — in page order, each persists its slice of intent**
-- [ ] **NVAL — Validation gate (buildability + traversability).** Not a separate phase — the
-  Build⇄Traversability loop and the export condition. Surface connected/disconnected + isolated
-  spawn/wool points; on failure send the author back to Build. Uses `GET /buildability` +
-  `GET /traversability` (both done). (`ValidateSection`)
-- [ ] **N05 — Review & Export.** `ND1` settled this as **one phase, three flow-bar sub-steps:
-  Pre-flight → Region tree (`N07`) → XML (`N06`)**; **Export = the flow-bar `Next` on the XML sub-step**,
-  enabled only when the pre-flight gate is open (the **409**, enforced backend-side). This task = the
-  **Pre-flight sub-step**: the four checks (round-trip · mirror-consistency · buildability ·
-  traversability) + the buildability/traversability maps. (`ReviewSection`; `new-map-authoring.md` §12.)
+**Steps — in page order, each persists its slice of intent.** The **Pre-flight sub-step** (`N05`, which
+also delivers the `NVAL` validation gate) is **landed** (`FEATURES.md`); the remaining Review & Export
+sub-steps are below.
 
 **Surfaces & integration** — `N06`/`N07` are the other two sub-steps of the Review & Export phase (`N05`).
 - [ ] **N06 — XML sub-step (preview + export).** The generated XML, segmented (teams / spawns / wools /

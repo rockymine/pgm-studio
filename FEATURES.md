@@ -231,6 +231,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   intent deserialization (a `null`→non-nullable-`Rect` 500). Verified end-to-end on n00_demo (2-team
   `mirror_x`, 2 wools/team): 4 wools + 4 monuments, valid CTW XML (`<wool team>` = the monument-derived
   capturer, as PGM requires). (N04)
+- **Review & Export · Pre-flight sub-step (N05; folds in the NVAL validation gate)** — the export gate.
+  `GET /map/{slug}/preflight` runs the four generated-map checks server-side and returns the export verdict:
+  **round-trip** (the document survives the export codec — `FromDict → XmlWriter → re-parse`, codec-idempotent,
+  no field lost) and **mirror** (`RegionCategorizer.DeriveFacets` recovers every declared classification —
+  spawn/protection · wool/room · build · wool/monument, monuments structurally via `MapValidity`) are pure
+  (`Pgm/Authoring/Preflight`); **buildability** (every spawn/wool/monument placement over solid ground, not
+  open void) and **traversability** (spawn↔wool chain connected) reuse the analysis layer. `ExportReady`
+  mirrors what `GET /xml` enforces (round-trip must not throw + connectivity), so the XML sub-step's Export
+  stays gated; mirror + buildability are advisory. The phase body is a **read-only overview** (a single
+  centred column, **not** the 3-column editing workspace): the four check rows, a validate log, and **one
+  static top-down map of everything authored** — real island polygons (from `/islands`, collinear-simplified)
+  + the **orbit-filled** buildable bridges (`intent.build.areas` mirrored by the confirmed symmetry via the
+  canonical `Geom.Symmetry`, like the generator) + the spawn-protection zones (dashed) and wool rooms (filled)
+  + the spawn (circle, team chat colour) / wool (square, dye colour) / monument (diamond, dye colour) nodes,
+  all in their **real colours** (`GameColors` chat/dye palettes), a node cut off from the chain ringed red —
+  the playability picture in one image, no live canvas. A failed traversability/buildability/round-trip links the author back
+  to **Build**, and a
+  **Re-run checks** button (+ re-run on re-entry) closes the Build⇄Traversability loop.
+  (`PreflightEndpoint`, `PreflightDto`, `Preflight`, `ReviewPreflightPhase`; new-map-authoring.md §9/§12)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
   inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
   editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)

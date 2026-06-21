@@ -76,6 +76,10 @@
   {
     <WoolRoomPhase @key="@("wools-room")" />
   }
+  else if (Phase.Id == "review" && subStep == 0)
+  {
+    <ReviewPreflightPhase @key="@("review-preflight")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">
