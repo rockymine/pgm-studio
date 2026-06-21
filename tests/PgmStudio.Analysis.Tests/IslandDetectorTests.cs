@@ -76,6 +76,22 @@ public class IslandDetectorTests
     }
 
     [Test]
+    public async Task CleanedBaseFootprint_KeepsGroundCells_DropsFloatingOverVoid()
+    {
+        var cells = new List<(int, int, int)>();
+        // Terrain floor: 10×10 at y=0.
+        for (var x = 0; x < 10; x++) for (var z = 0; z < 10; z++) cells.Add((x, z, 0));
+        // Floating mass over void (no ground below): 5×5 at y=70, 8-adjacent to the floor.
+        for (var x = 10; x < 15; x++) for (var z = 0; z < 5; z++) cells.Add((x, z, 70));
+
+        var footprint = IslandDetector.CleanedBaseFootprint(cells);
+
+        await Assert.That(footprint.Count).IsEqualTo(100);     // only the floor; no min-size filter
+        await Assert.That(footprint.Contains((5, 5))).IsTrue();
+        await Assert.That(footprint.Contains((12, 2))).IsFalse();   // floating-over-void can't pose as ground
+    }
+
+    [Test]
     public async Task SerializeJson_EmitsGeoJsonPolygons()
     {
         var coords = new List<(int, int)>();

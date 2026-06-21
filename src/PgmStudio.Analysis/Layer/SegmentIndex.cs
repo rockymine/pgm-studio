@@ -25,6 +25,12 @@ public sealed class SegmentIndex
     /// <summary>Columns with any solid block — a walkable surface (≡ layer_surface).</summary>
     public HashSet<(int, int)> SurfaceColumns() => _byCol.Keys.ToHashSet();
 
+    /// <summary>Lowest solid block per column (x, z, y) — the bottom-up base scan that feeds
+    /// floating-mass pruning (a build floating over void reads at its own high Y, the ground below it
+    /// at the terrain Y).</summary>
+    public IEnumerable<(int x, int z, int y)> BaseColumns()
+        => _byCol.Select(kv => (kv.Key.x, kv.Key.z, kv.Value.Min(s => s.ys)));
+
     public bool IsSolid(int x, int y, int z)
         => _byCol.TryGetValue((x, z), out var segs) && segs.Any(s => s.ys <= y && y <= s.ye);
 

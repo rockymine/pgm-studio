@@ -400,6 +400,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /resources` (iron/gold/diamond blocks, optionally in a drawn rect, + how many a `<renewable>`
   already covers — renewable auto-config). The authoring overlays/panels that consume them are TODO
   `N03` / `NVAL` / `N04`. (F6, F2, F7)
+- **Kit-reach (budget-aware traversability)** — `GET /kit-reach`: can a fresh spawn bridge to each wool
+  with only the placeable blocks its spawn kit grants? Reuses the `Traversability` grid but runs a 0-1 BFS
+  (walkable 0, bridgeable 1 = one placed block) for the cheapest bridge cost per spawn→wool, vs. the kit's
+  placeable-block budget (`KitBlocks`) → ok/warning/error. Walkable ground = the floating-mass-pruned
+  **cleaned base** (`SegmentIndex.BaseColumns` + `IslandDetector.CleanedBaseFootprint`), so a build floating
+  over void can't pose as free standing-ground in the Y-agnostic 2D grid. Per-life lower bound (kits refill
+  on respawn). n00_demo: 96-block kit, own wools 6, far wools 24 (one 12×6 + the 18×20 middle).
 - **Filter↔region wiring templates** — 4 v1 appliers + `POST /wiring/apply` (the suggestion engine
   was deliberately removed). The generator uses these to auto-wire; the hand-wiring UI is parked.
 - **Symmetry-aware authoring** — counterpart creation + orbit-fill on draw

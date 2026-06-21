@@ -87,6 +87,27 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
     }
 }
 
+/// <summary>GET /api/map/{slug}/kit-reach — can a fresh spawn bridge to each wool with only the
+/// placeable blocks its spawn kit grants? (budget-aware traversability).</summary>
+public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/map/{slug}/kit-reach"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
+        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        var (map, doc) = loaded.Value;
+
+        var segs = await feature.SegmentsAsync(map.Id, ct);
+        // Walkable ground = the cleaned-base footprint (floating masses pruned), so a build floating over
+        // void can't serve as a free shortcut up to the wool-room level in the Y-agnostic 2D grid.
+        var walkable = segs is null ? null : PgmStudio.Analysis.Footprint.IslandDetector.CleanedBaseFootprint(segs.BaseColumns());
+        var res = KitReach.Check(doc, walkable, segs?.Y0Columns());
+        await Send.OkAsync(res, ct);
+    }
+}
+
 /// <summary>GET /api/map/{slug}/wool-availability — per declared wool, is it obtainable?</summary>
 public sealed class WoolAvailabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<WoolAvailabilityResponseDto>
 {

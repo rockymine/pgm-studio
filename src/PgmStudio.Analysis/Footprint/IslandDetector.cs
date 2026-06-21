@@ -94,6 +94,34 @@ public static class IslandDetector
         return best;
     }
 
+    /// <summary>
+    /// The walkable footprint of the cleaned base: the height-aware base components with floating masses
+    /// (median Y a clear <paramref name="heightOutlierMargin"/> above the terrain band) removed, returned
+    /// as the kept (x,z) cells. Unlike <see cref="DetectHeightAware"/> this keeps every grounded component
+    /// (no min-size filter) — navigation cares about small stepping stones — and yields cells, not polygons.
+    /// A column under a build floating over void reads at the ground Y and stays; the floating mass itself
+    /// reads high and is pruned, so it no longer poses as walkable ground 20 blocks up.
+    /// </summary>
+    public static HashSet<(int, int)> CleanedBaseFootprint(
+        IEnumerable<(int X, int Z, int Y)> baseCells, int heightTolerance = 3, int heightOutlierMargin = 12)
+    {
+        var yByCell = new Dictionary<(int, int), int>();
+        foreach (var (x, z, y) in baseCells) yByCell[(x, z)] = y;
+        if (yByCell.Count == 0) return [];
+
+        var allYs = yByCell.Values.OrderBy(v => v).ToList();
+        var terrainY = allYs[allYs.Count / 2];
+
+        var kept = new HashSet<(int, int)>();
+        foreach (var comp in HeightAwareComponents(yByCell, 8, heightTolerance))
+        {
+            var ys = comp.Select(c => yByCell[c]).OrderBy(v => v).ToList();
+            if (ys[ys.Count / 2] > terrainY + heightOutlierMargin) continue;   // floating build over void
+            foreach (var c in comp) kept.Add(c);
+        }
+        return kept;
+    }
+
     private static List<List<(int X, int Z)>> HeightAwareComponents(
         Dictionary<(int, int), int> yByCell, int connectivity, int heightTolerance)
     {
