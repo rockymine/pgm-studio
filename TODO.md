@@ -50,12 +50,11 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 also delivers the `NVAL` validation gate) is **landed** (`FEATURES.md`); the remaining Review & Export
 sub-steps are below.
 
-**Surfaces & integration** — `N06`/`N07` are the other two sub-steps of the Review & Export phase (`N05`).
+**Surfaces & integration** — `N06` is the last remaining sub-step of the Review & Export phase (`N05`);
+the `N07` Region-tree sub-step is **landed** (`FEATURES.md`).
 - [ ] **N06 — XML sub-step (preview + export).** The generated XML, segmented (teams / spawns / wools /
   regions / filters / apply-rules); the flow-bar `Next` here **is Export** (gated on `N05`'s 409).
   (`XmlSection`)
-- [ ] **N07 — Region-tree sub-step (read-only).** The full generated tree as the inspect/debug view of
-  what the generator produced — the second sub-step, between Pre-flight and XML. (`TreeSection`)
 - [ ] **N08 — Side-view + per-side focus integration.** The side-view slice is **done** (`SliceView`,
   `FEATURES.md`) — integrate it into the authoring inspector to set Y on point/block regions (lift
   spawn / monument / wool-spawn off y=0). **Fit-island** exists in parts (canvas toolbar) — refine the

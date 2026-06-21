@@ -250,6 +250,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   to **Build**, and a
   **Re-run checks** button (+ re-run on re-entry) closes the Build⇄Traversability loop.
   (`PreflightEndpoint`, `PreflightDto`, `Preflight`, `ReviewPreflightPhase`; new-map-authoring.md §9/§12)
+- **Review & Export · Region tree sub-step (N07)** — the read-only inspect/debug view of the full generated
+  region tree (between Pre-flight and XML). Intent maps drop the tree from the shaping steps (structure is a
+  generated artifact), so it surfaces here: fetches `GET /map/{slug}/regions/tree` and renders it through the
+  **reused editor `RegionTree` component** (category groups · collapse · type icons · synthetic-`__anon_N`
+  styling · first-event tags), in the same single-column overview as Pre-flight, with a `read-only · N regions`
+  badge and a note that the tree regenerates from the shaping steps. Writes nothing. (`ReviewTreePhase`;
+  new-map-authoring.md §7/§12)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
   inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
   editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)

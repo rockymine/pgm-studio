@@ -80,6 +80,10 @@
   {
     <ReviewPreflightPhase @key="@("review-preflight")" />
   }
+  else if (Phase.Id == "review" && subStep == 1)
+  {
+    <ReviewTreePhase @key="@("review-tree")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">
