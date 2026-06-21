@@ -16,6 +16,20 @@ window.studio = {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   },
 
+  // Download a string as a file (the Configure wizard's XML export). Creates a Blob + a temporary
+  // anchor and clicks it, so the bytes shown in the preview are exactly what lands on disk.
+  downloadText(filename, text, mime) {
+    const blob = new Blob([text], { type: mime || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
+
   // Mount the hybrid editor canvas. Uses a native dynamic import (absolute URL) so it bypasses
   // Blazor's fingerprinting import map (which 404s for arbitrary wwwroot modules under the dev host).
   async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {

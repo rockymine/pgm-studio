@@ -1,0 +1,71 @@
+@namespace PgmStudio.Client.Pages.Configure
+
+@* Review & Export · XML sub-step (N06): the generated map.xml, segmented into containers picked on the
+   left (incl. a Full document view). The flow-bar Next is Export (download), gated on the open export gate
+   (GET /xml's 409). A two-pane navigator — sidebar list + the selected block's serialized XML. *@
+
+<div class="workspace">
+
+  <div class="workspace-sidebar" style="width:200px;flex:0 0 200px">
+    <div class="workspace-scroll">
+      <section class="panel-section">
+        <div class="section-header section-header--ruled"><h2 class="section-title">Containers</h2></div>
+        @if (loading)
+        {
+          <p class="panel-empty-msg">Loading…</p>
+        }
+        else if (xml is null)
+        {
+          <p class="section-desc">No document — export is blocked until the map validates.</p>
+        }
+        else
+        {
+          <div class="panel-list">
+            @foreach (var c in containers)
+            {
+              <div class="list-row list-row--compact @(selected == c.Key ? "list-row--selected" : null)" @onclick="() => Select(c.Key)">
+                <span class="geo-type-icon"><i data-lucide="@c.Icon"></i></span>
+                <span class="list-label">@c.Label</span>
+                @if (c.Count > 0) { <span class="list-tag">@c.Count</span> }
+              </div>
+            }
+          </div>
+          <p class="section-desc">The flow-bar <strong>Export</strong> downloads the full document
+            (<code>@(Wizard.Slug).xml</code>).</p>
+        }
+      </section>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-canvas" style="background:var(--bg-base)">
+    <div class="workspace-scroll">
+      @if (loading)
+      {
+        <p class="panel-empty-msg">Generating XML…</p>
+      }
+      else if (blocked is not null)
+      {
+        <section class="panel-section">
+          <div class="panel-warning">
+            <strong>Export blocked — HTTP&nbsp;409.</strong> @blocked. A map must be traversable before it can
+            export: go back to <strong>Pre-flight</strong> to see the gap, then <strong>Build</strong> to bridge
+            it. Export re-checks when you return.
+          </div>
+        </section>
+      }
+      else if (error is not null)
+      {
+        <section class="panel-section">
+          <div class="panel-warning"><strong>Couldn't generate the XML.</strong> @error</div>
+        </section>
+      }
+      else
+      {
+        <pre class="detail-xml-pre">@SelectedXml</pre>
+      }
+    </div>
+  </div>
+
+</div>

@@ -84,6 +84,10 @@
   {
     <ReviewTreePhase @key="@("review-tree")" />
   }
+  else if (Phase.Id == "review" && subStep == 2)
+  {
+    <ReviewXmlPhase @key="@("review-xml")" />
+  }
   else
   {
   <div class="workspace" @key="@Phase.Id">

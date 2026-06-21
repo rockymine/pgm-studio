@@ -257,6 +257,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   styling · first-event tags), in the same single-column overview as Pre-flight, with a `read-only · N regions`
   badge and a note that the tree regenerates from the shaping steps. Writes nothing. (`ReviewTreePhase`;
   new-map-authoring.md §7/§12)
+- **Review & Export · XML sub-step + gated Export (N06)** — the final sub-step: the generated PGM
+  `map.xml`, segmented into containers picked on the left (**Full document** + Teams · Spawns · Wools ·
+  Filters · Regions · Apply rules — the latter pulled from inside `<regions>`), each with a count, the
+  selected block shown in `detail-xml-pre`. The flow-bar **Next becomes Export** (`ReviewXmlPhase` fetches
+  `GET /map/{slug}/xml`; on **409** the preview is replaced by the blocked message and Export is disabled;
+  on 200 it registers the open gate + a download action with the wizard via `RegisterExport`). Export
+  downloads exactly the previewed bytes through a new `studio.downloadText` Blob helper — `NextEnabled` at
+  the final sub-step is the export gate, `Next()` runs the download. **This completes the Configure wizard
+  spine** — a new map now flows intent → Map Info → World → Teams → Build → Wools → Review & Export → a
+  validated, downloaded `map.xml`. (`ReviewXmlPhase`, `ConfigureWizard` export wiring; new-map-authoring.md §9/§12)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
   inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
   editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)

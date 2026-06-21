@@ -18,11 +18,10 @@ authoring **backend** is done. The open headline is the **new Configure wizard**
 1. **Design questions are settled** — `ND1` (nav/flow, §12), `ND2` (stripped World, §6a), `ND3` (landing,
    §12) and `ND4` (save model, §12) are **done**; the wizard shell, the `/maps/new` import landing, and the
    intent-gated/save-on-advance wiring (`NS`) are **landed** (`FEATURES.md`).
-2. **The steps are built in page order** — `N00` Map Info → `N01` World → `N02` Teams → `N03` Build →
-   `N04` Wools → `N05` Review & Export · **Pre-flight** (the `NVAL` validation gate) are **landed**
-   (`FEATURES.md`). The **remaining wizard work is the other two Review sub-steps** — `N07` Region tree and
-   `N06` XML + export (the flow-bar `Next` on XML, gated on the Pre-flight 409) — plus `N08` focus
-   integration. Each plugs its slice into the wizard's save seam (patch `Intent`, call `MarkDirty`).
+2. **Every page-order step is built** — `N00` Map Info → `N01` World → `N02` Teams → `N03` Build →
+   `N04` Wools → `N05` Review & Export (all three sub-steps: **Pre-flight**/`NVAL` · **Region tree**/`N07` ·
+   **XML + Export**/`N06`) are **landed** (`FEATURES.md`). The Configure wizard now runs end-to-end, intent →
+   gated export. The only remaining authoring polish is `N08` (side-view / per-side focus integration).
 
 Shared editor/canvas infra (C) serves both editors; the existing **Edit** (`/maps/{id}/edit`) feature UIs
 (wiring, counterparts) are **parked** until that path resumes.
@@ -50,11 +49,8 @@ persists a slice of intent via `GET`/`PUT /map/{slug}/intent`, gated on a `map_i
 also delivers the `NVAL` validation gate) is **landed** (`FEATURES.md`); the remaining Review & Export
 sub-steps are below.
 
-**Surfaces & integration** — `N06` is the last remaining sub-step of the Review & Export phase (`N05`);
-the `N07` Region-tree sub-step is **landed** (`FEATURES.md`).
-- [ ] **N06 — XML sub-step (preview + export).** The generated XML, segmented (teams / spawns / wools /
-  regions / filters / apply-rules); the flow-bar `Next` here **is Export** (gated on `N05`'s 409).
-  (`XmlSection`)
+**Surfaces & integration** — the Review & Export phase (`N05` Pre-flight · `N07` Region tree · `N06` XML +
+Export) is **fully landed** (`FEATURES.md`); only the focus-integration polish remains.
 - [ ] **N08 — Side-view + per-side focus integration.** The side-view slice is **done** (`SliceView`,
   `FEATURES.md`) — integrate it into the authoring inspector to set Y on point/block regions (lift
   spawn / monument / wool-spawn off y=0). **Fit-island** exists in parts (canvas toolbar) — refine the

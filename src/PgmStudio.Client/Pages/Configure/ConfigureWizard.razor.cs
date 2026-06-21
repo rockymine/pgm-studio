@@ -45,7 +45,30 @@ public partial class ConfigureWizard
         "info" => MetaValid(),   // Map Info: needs a name + at least one author
         _ => true,
     };
-    private bool NextEnabled => subStep < LastStep || CanAdvance;
+    // At the very end (Review · XML sub-step) Next is "Export", gated on the pre-flight export gate the
+    // XML phase reports (the 409 from GET /xml); every other boundary is the per-phase completeness gate.
+    private bool NextEnabled => subStep < LastStep || (AtEnd ? exportReady : CanAdvance);
+
+    // Export wiring (Review · XML sub-step, N06). The XML phase fetches GET /xml and registers whether the
+    // export gate is open + the download action; the flow-bar Export (Next at AtEnd) invokes it.
+    private bool exportReady;
+    private Func<Task>? exportAction;
+
+    /// <summary>The XML sub-step reports its export gate state + download action so the flow-bar Export
+    /// (Next at the final sub-step) can enable/run it.</summary>
+    public void RegisterExport(bool ready, Func<Task>? download)
+    {
+        exportReady = ready;
+        exportAction = download;
+        StateHasChanged();
+    }
+
+    /// <summary>Clear the export registration when the XML sub-step is left, so a stale action can't fire.</summary>
+    public void ClearExport()
+    {
+        exportReady = false;
+        exportAction = null;
+    }
 
     // Topbar indicator — Saved · Saving… · Unsaved (no icons); blank until the intent has loaded.
     private string? SaveStatus => !loaded ? null : save switch
@@ -207,8 +230,11 @@ public partial class ConfigureWizard
             await SaveIfDirtyAsync();   // crossing a phase boundary persists the slice; that unlocks the next phase
             phaseIndex++;
             subStep = 0;
+            return;
         }
-        // AtEnd: "Export" is a no-op stub here — the gated export lands with N05/N06.
+        // AtEnd — the Review · XML sub-step: Next is Export. NextEnabled already gated it on the open
+        // export gate, so reaching here means the XML phase registered a download action; run it.
+        if (exportAction is not null) await exportAction();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
