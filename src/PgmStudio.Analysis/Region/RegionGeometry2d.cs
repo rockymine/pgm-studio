@@ -164,8 +164,13 @@ public static class RegionGeometry2d
         return at.Transform(geom);
     }
 
-    private static Polygon Box(double minX, double minZ, double maxX, double maxZ)
-        => (Polygon)Gf.ToGeometry(new Envelope(minX, maxX, minZ, maxZ));
+    // A zero- or negative-area envelope (min ≥ max on either axis) collapses to a point/line in NTS —
+    // not a Polygon — so guard it and return an empty footprint. The cell-centre sampling convention
+    // means such a degenerate rectangle covers no block cells anyway.
+    private static Geometry Box(double minX, double minZ, double maxX, double maxZ)
+        => maxX <= minX || maxZ <= minZ
+            ? Gf.CreatePolygon()
+            : (Polygon)Gf.ToGeometry(new Envelope(minX, maxX, minZ, maxZ));
 
     private static Geometry? UnaryUnion(IReadOnlyCollection<Geometry?> geoms)
         => geoms.Count == 0 ? null : Gf.BuildGeometry(geoms.Where(g => g is not null).Cast<Geometry>().ToList()).Union();

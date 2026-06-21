@@ -596,6 +596,20 @@ export class EditorCanvas extends CanvasBase {
     this._svg.setAttribute("width",   w);
     this._svg.setAttribute("height",  h);
     this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+
+    // An xml-only / not-fully-pipelined map has no bounding_box yet: there is nothing to fit a
+    // transform to, so degrade gracefully with an empty-canvas hint instead of rendering garbage.
+    if (!this.#ctx.bounding_box) {
+      while (this._svg.firstChild) this._svg.removeChild(this._svg.firstChild);
+      const hint = svgEl("text", {
+        x: w / 2, y: h / 2, "text-anchor": "middle", "dominant-baseline": "middle",
+        "font-size": "13", fill: "#888",
+      });
+      hint.textContent = "No map bounds yet — run the pipeline to view this map.";
+      this._svg.appendChild(hint);
+      return;
+    }
+
     this.#toSvg   = buildTransform(this.#ctx.bounding_box, w, h);
     this.#toWorld = buildInverseTransform(this.#ctx.bounding_box, w, h);
 

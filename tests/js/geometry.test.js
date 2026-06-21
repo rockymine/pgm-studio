@@ -31,6 +31,24 @@ test("buildInverseTransform round-trips buildTransform", () => {
   }
 });
 
+test("buildTransform tolerates a null bbox (xml-only map) without throwing", () => {
+  const f = buildTransform(null, 240, 240);
+  const g = buildInverseTransform(null, 240, 240);
+  const p = f(0, 0);
+  assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y), `finite ${JSON.stringify(p)}`);
+  const w = g(p.x, p.y);
+  assert.ok(Number.isFinite(w.x) && Number.isFinite(w.z), `finite ${JSON.stringify(w)}`);
+});
+
+test("buildTransform stays finite for a degenerate (zero-extent) bbox", () => {
+  // A single-region map can have min == max on an axis: worldW/worldH = 0 ⇒ raw scale would be
+  // Infinity. The transform must fall back to a finite scale rather than emit NaN/Infinity coords.
+  const bbox = { min_x: 5, min_z: 5, max_x: 5, max_z: 5 };
+  const f = buildTransform(bbox, 200, 200);
+  const p = f(5, 5);
+  assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y), `finite ${JSON.stringify(p)}`);
+});
+
 // ── polygon.js ──────────────────────────────────────────────────────────────
 test("pointInRing inside/outside", () => {
   const sq = [[0, 0], [10, 0], [10, 10], [0, 10]];
