@@ -107,6 +107,7 @@ public sealed class Renewable
     public string RenewFilter = "";
     public string ReplaceFilter = "";
     public bool Grow;
+    public int? AvoidPlayers;
 }
 
 public sealed class BlockDropItem

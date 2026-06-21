@@ -278,7 +278,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   blocks per kill (the kit's blocks — wood ×16 + the team-coloured block ×8, the corpus norm of ~24 blocks
   across ~2 items, on top of the gapple include) — all **derived from the spawn kit + surface** (`CtwStandards`,
   corpus-grounded over N=199 incl. the surface-palette↔itemremove correlation) — plus the server-defined
-  `<include id="gapple-kill-reward"/>` and `<hunger><depletion>off</depletion></hunger>`. Applied **at export, gated to intent maps** (the export
+  `<include id="gapple-kill-reward"/>` and `<hunger><depletion>off</depletion></hunger>`, and `<renewables>`
+  for the world-scanned **resource blocks (iron / gold / diamond)** so mined ore regrows (`ResourceRenewables`,
+  fed by the `resource_block` feature data): one renewable per ore type with a **tight** region for
+  performance — if all of an ore's blocks sit in the team spawns, the spawn rects are unioned (`spawns`) and
+  the `block=never` protection is relaxed once to `block-break` the in-spawn ores + `block-place` them only by
+  the renewable's `cause=world` (the corpus pattern); otherwise a rectangle per spatial cluster, unioned when
+  there's more than one (`only-iron`/`only-gold`/`only-diamond` + `only-air` filters, `avoid-players=2`).
+  Applied **at export, gated to intent maps** (the export
   endpoint enriches the `MapXml` before `ToXml`); corpus-map exports are untouched (not round-tripped). The
   `XmlWriter` also now matches the corpus's formatting: self-close as `/>` (no space before the slash), a
   trailing newline, region elements carry `id` as the **first** attribute (`<rectangle id="…" min="…"

@@ -66,6 +66,11 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
                 // scan from an export request — fall back to armor-only itemremove when it isn't cached.
                 var surface = await ConfigureLayers.CellsAsync(db, roots, slug, map.Id, "surface", ct, cacheOnly: true);
                 CtwStandards.Apply(mx, surface?.Select(c => c.BlockId).ToHashSet());
+
+                // Renewables for the world-scanned resource blocks (iron/gold/diamond); tight region each.
+                var resources = (await feature.ResourceBlocksAsync(map.Id, ct))
+                    .Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
+                ResourceRenewables.Apply(mx, resources);
             }
             xml = XmlWriter.ToXml(mx);
         }

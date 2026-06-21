@@ -515,6 +515,7 @@ public static partial class XmlWriter
             if (r.Rate != 1.0) Set(e, "rate", r.Rate.ToString(CultureInfo.InvariantCulture));
             if (r.RenewFilter.Length > 0) Set(e, "renew-filter", r.RenewFilter);
             if (r.ReplaceFilter.Length > 0) Set(e, "replace-filter", r.ReplaceFilter);
+            if (r.AvoidPlayers is { } ap) Set(e, "avoid-players", ap.ToString());
             if (r.Grow) Set(e, "grow", "true");
             block.Add(e);
         }
