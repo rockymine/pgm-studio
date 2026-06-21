@@ -135,7 +135,7 @@ internal static class ConfigureLayers
     /// <c>layer.parquet</c> artifact; other layers are served from a per-type cache, generating one (raw,
     /// default extractor args — exclusion is applied client-side) by scanning the world on first request.</summary>
     public static async Task<List<SurfaceCell>?> CellsAsync(
-        PgmDb db, MapsRoots roots, string slug, long mapId, string layerType, CancellationToken ct)
+        PgmDb db, MapsRoots roots, string slug, long mapId, string layerType, CancellationToken ct, bool cacheOnly = false)
     {
         var cfg = await ConfigureStore.LoadAsync(db, mapId, ct);
         var scanLayer = cfg["scan_layer"]?.GetValue<string>() ?? "surface";
@@ -149,6 +149,10 @@ internal static class ConfigureLayers
         var cacheKind = $"layer_{layerType}_parquet";
         var cached = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == mapId && a.Kind == cacheKind, ct);
         if (cached is not null) return await SurfaceLayer.ReadAsync(cached.Data);
+
+        // cacheOnly callers (the XML export) never trigger a world scan — they use only already-cached
+        // layers, returning null so the caller can fall back gracefully.
+        if (cacheOnly) return null;
 
         var regionDir = roots.RegionDir(slug);
         if (regionDir is null) return null;

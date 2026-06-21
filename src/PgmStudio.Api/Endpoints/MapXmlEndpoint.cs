@@ -22,7 +22,7 @@ using Dict = Dictionary<string, object?>;
 /// bridged), and this is the only check that catches it. Corpus maps have no intent and export
 /// unconditionally (unchanged).</para>
 /// </summary>
-public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db) : EndpointWithoutRequest
+public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db, MapsRoots roots) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/xml"); AllowAnonymous(); }
 
@@ -57,8 +57,16 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
         {
             var mx = Deserializer.FromDict(doc);
             // Generated maps get the standard CTW boilerplate (itemkeep/itemremove/toolrepair from the kit +
-            // the kill-reward include + hunger off); corpus maps export exactly as parsed.
-            if (isIntent) CtwStandards.Apply(mx);
+            // the kill-reward include + hunger off); corpus maps export exactly as parsed. itemremove is also
+            // extended with the terrain drops of the blocks present on the top surface (seeds, saplings,
+            // string, …) — best-effort: skipped when the surface palette isn't available (no world folder).
+            if (isIntent)
+            {
+                // cache-only: use an already-scanned surface palette if present, but never trigger a world
+                // scan from an export request — fall back to armor-only itemremove when it isn't cached.
+                var surface = await ConfigureLayers.CellsAsync(db, roots, slug, map.Id, "surface", ct, cacheOnly: true);
+                CtwStandards.Apply(mx, surface?.Select(c => c.BlockId).ToHashSet());
+            }
             xml = XmlWriter.ToXml(mx);
         }
         catch (Exception ex) { await Send.ResponseAsync(new Dict { ["error"] = ex.Message }, 500, ct); return; }

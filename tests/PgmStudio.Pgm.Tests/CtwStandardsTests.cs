@@ -74,6 +74,25 @@ public sealed class CtwStandardsTests
         await Assert.That(m.ItemRemove).Contains("leather helmet");
         await Assert.That(m.ItemRemove).Contains("chainmail leggings");
         await Assert.That(m.ItemRemove).DoesNotContain("iron sword");
+        await Assert.That(m.ItemRemove).DoesNotContain("string");   // no surface ids → armor only
+    }
+
+    [Test]
+    public async Task ItemRemove_extends_with_surface_terrain_drops()
+    {
+        var m = MapWithKit();
+        // surface palette: cobweb (30), tall grass (31), leaves (18), gravel (13), quartz (155, no drop)
+        CtwStandards.Apply(m, new HashSet<int> { 30, 31, 18, 13, 155 });
+
+        await Assert.That(m.ItemRemove).Contains("leather helmet");   // armor still there
+        await Assert.That(m.ItemRemove).Contains("string");           // cobweb
+        await Assert.That(m.ItemRemove).Contains("seeds");            // tall grass
+        await Assert.That(m.ItemRemove).Contains("long grass");      // tall grass block item
+        await Assert.That(m.ItemRemove).Contains("sapling");         // leaves
+        await Assert.That(m.ItemRemove).Contains("apple");           // oak leaves
+        await Assert.That(m.ItemRemove).Contains("flint");           // gravel
+        // de-duped, and a block with no mapped drop adds nothing
+        await Assert.That(m.ItemRemove.Distinct().Count()).IsEqualTo(m.ItemRemove.Count);
     }
 
     [Test]

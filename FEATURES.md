@@ -269,9 +269,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   validated, downloaded `map.xml`. (`ReviewXmlPhase`, `ConfigureWizard` export wiring; new-map-authoring.md §9/§12)
 - **CTW standards in generated exports + PGM-faithful formatting** — generated (intent) maps now export the
   standard CTW boilerplate ~every corpus map carries: `<itemkeep>` (all non-armor kit items), `<toolrepair>`
-  (the kit's tools/weapons), `<itemremove>` (the kit's team-coloured armor) — all **derived from the spawn
-  kit** (`CtwStandards`, corpus-grounded over N=199) — plus the server-defined `<include id="gapple-kill-reward"/>`
-  and `<hunger><depletion>off</depletion></hunger>`. Applied **at export, gated to intent maps** (the export
+  (the kit's tools/weapons), `<itemremove>` (the kit's team-coloured armor **plus the terrain drops of the
+  blocks on the top surface** — seeds/long grass from grass, sapling/apple from leaves, string from cobweb,
+  flint from gravel, … via a block-id→drop table fed by the surface palette; generous, since removing an
+  absent item is a no-op) — all **derived from the spawn kit + surface** (`CtwStandards`, corpus-grounded
+  over N=199 incl. the surface-palette↔itemremove correlation) — plus the server-defined
+  `<include id="gapple-kill-reward"/>` and `<hunger><depletion>off</depletion></hunger>`. Applied **at export, gated to intent maps** (the export
   endpoint enriches the `MapXml` before `ToXml`); corpus-map exports are untouched (not round-tripped). The
   `XmlWriter` also now matches the corpus's formatting: self-close as `/>` (no space before the slash), a
   trailing newline, region elements carry `id` as the **first** attribute (`<rectangle id="…" min="…"
