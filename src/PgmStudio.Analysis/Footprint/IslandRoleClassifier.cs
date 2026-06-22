@@ -34,20 +34,35 @@ public static class IslandRoleClassifier
     /// <summary>An objective anchor footprint, tagged spawn-type (home) vs wool-type (objective).</summary>
     public readonly record struct Anchor(bool IsSpawn, Geometry Geom);
 
-    public static IReadOnlyList<IslandGameplayRole> Classify(
+    /// <summary>An island's role plus the objective anchors that fall on it — the lane targets the auto-cutter
+    /// seeds from (a wool anchor is a wool-lane tip, a spawn anchor the spawn spur).</summary>
+    public readonly record struct IslandAssessment(IslandGameplayRole Role, IReadOnlyList<Anchor> Anchors);
+
+    /// <summary>Classify each island <em>and</em> report the anchors it carries, in one pass. The role follows
+    /// the rubric (spawn → team, else wool → objective, else build-region → neutral, else decorative); the
+    /// carried anchors are every spawn/wool anchor whose footprint intersects the island.</summary>
+    public static IReadOnlyList<IslandAssessment> Assess(
         IReadOnlyList<Geometry> islands, IReadOnlyList<Anchor> anchors, Geometry? buildRegion)
     {
         var spawn = anchors.Where(a => a.IsSpawn).Select(a => a.Geom).ToList();
         var wool = anchors.Where(a => !a.IsSpawn).Select(a => a.Geom).ToList();
         return islands.Select(isl =>
         {
-            if (spawn.Any(a => Hits(isl, a))) return IslandGameplayRole.Team;
-            if (wool.Any(a => Hits(isl, a))) return IslandGameplayRole.Objective;
-            if (buildRegion is { IsEmpty: false } && Hits(isl, buildRegion)) return IslandGameplayRole.Neutral;
-            // No build region known → can't tell a stepping-stone from decor, so stay Neutral.
-            return buildRegion is { IsEmpty: false } ? IslandGameplayRole.Decorative : IslandGameplayRole.Neutral;
+            var carried = anchors.Where(a => Hits(isl, a.Geom)).ToList();
+            var role =
+                spawn.Any(a => Hits(isl, a)) ? IslandGameplayRole.Team
+                : wool.Any(a => Hits(isl, a)) ? IslandGameplayRole.Objective
+                // No build region known → can't tell a stepping-stone from decor, so stay Neutral.
+                : buildRegion is { IsEmpty: false } && Hits(isl, buildRegion) ? IslandGameplayRole.Neutral
+                : buildRegion is { IsEmpty: false } ? IslandGameplayRole.Decorative
+                : IslandGameplayRole.Neutral;
+            return new IslandAssessment(role, carried);
         }).ToList();
     }
+
+    public static IReadOnlyList<IslandGameplayRole> Classify(
+        IReadOnlyList<Geometry> islands, IReadOnlyList<Anchor> anchors, Geometry? buildRegion)
+        => Assess(islands, anchors, buildRegion).Select(a => a.Role).ToList();
 
     private static bool Hits(Geometry island, Geometry? anchor)
         => anchor is { IsEmpty: false } && island.Intersects(anchor);

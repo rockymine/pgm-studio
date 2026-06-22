@@ -149,6 +149,13 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   Surfaced via `GET /map/{slug}/island-health` (roles + counts + `underSplit`) and the human review flag
   `GET`/`PUT /map/{slug}/island-review` (`{status,note}`; echoed per map in `GET /decompose/queue` as
   `reviewStatus`). Root-cause analysis of the over-split mode in `docs/contracts/lane-decomposition.md`. (G9)
+- **Island-roles hook (`GET /map/{slug}/island-roles`, G11)** — the decompose-workflow integration hook the
+  G6/G7/G8 UI tasks consume. Per detected island in island-sketch order: `{ index, role, blockCount,
+  anchors:[{kind:"spawn"|"wool", x, z}] }` plus the `buildRegion` outline as GeoJSON. `IslandRoleClassifier.Assess`
+  reports each island's role + the anchors it carries in one pass (`Classify` delegates to it); the endpoint
+  distance-clusters a wool's several footprints (location + room + spawner) into one lane target, so a symmetric
+  map yields symmetric anchors. Shared `IslandRoleData` plumbing with `island-health`. Reflects the new detection
+  on re-scanned maps. (G11)
 - **Headless scan-to-files (`--scan-out` / `--scan-out-all`)** — the RoundTrip tool runs the studio's own
   extractors with no database and writes an importer-ready per-map directory (`wools/resources/chests/
   spawners/layer_segments.parquet`, `monument_candidates.parquet` from the F9 `MonumentSuggester` gather,

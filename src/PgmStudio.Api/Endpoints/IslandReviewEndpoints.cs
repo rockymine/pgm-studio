@@ -4,9 +4,9 @@ using LinqToDB;
 using LinqToDB.Async;
 using NetTopologySuite.Geometries;
 using PgmStudio.Analysis.Footprint;
+using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
-using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -91,7 +91,7 @@ public sealed class IslandHealthEndpoint(MapRepository repo, MapReader reader, P
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
         var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson, ct);
-        var islands = ParseIslands(art?.Data);
+        var islands = IslandRoleData.ParseIslands(art?.Data);
         var teams = await db.Teams.CountAsync(t => t.MapId == map.Id, ct);
 
         // Size buckets (always available) + the under-split signal.
@@ -119,47 +119,11 @@ public sealed class IslandHealthEndpoint(MapRepository repo, MapReader reader, P
     private async Task<List<string>?> GameplayRolesAsync(string slug, IReadOnlyList<Geometry> islands, CancellationToken ct)
     {
         if (islands.Count == 0) return null;
-        var doc = await reader.ReadDocAsync(slug);
+        var doc = await reader.ReadDocAsync(slug, ct);
         if (doc is null) return null;
 
-        // Bounds = the islands' combined extent (enough for the concrete spawn/wool regions and the
-        // void-spanning build complement).
-        var env = new Envelope();
-        foreach (var g in islands) env.ExpandToInclude(g.EnvelopeInternal);
-        var bounds = (env.MinX, env.MinY, env.MaxX, env.MaxY);
-
-        var buildIds = RegionCategorizer.Categorize(doc).Where(kv => kv.Value == "build").Select(kv => kv.Key);
-        var buildRegion = IslandRoleClassifier.BuildRegion(doc, buildIds, bounds);
-        var anchors = IslandRoleClassifier.ExtractAnchors(doc, bounds);
+        var (anchors, buildRegion) = IslandRoleData.Context(doc, islands);
         return IslandRoleClassifier.Classify(islands, anchors, buildRegion)
             .Select(r => r.ToString().ToLowerInvariant()).ToList();
     }
-
-    private static readonly GeometryFactory Gf = new();
-
-    // islands_json is the SerializeJson output: [{block_count, polygon:{coordinates:[[[x,z],...],...]}}].
-    private static List<(int Blocks, Geometry Geom)> ParseIslands(byte[]? data)
-    {
-        var result = new List<(int, Geometry)>();
-        if (data is null || data.Length == 0) return result;
-        try
-        {
-            using var doc = JsonDocument.Parse(data);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array) return result;
-            foreach (var e in doc.RootElement.EnumerateArray())
-            {
-                if (!e.TryGetProperty("block_count", out var bc)) continue;
-                var rings = e.GetProperty("polygon").GetProperty("coordinates");
-                if (rings.GetArrayLength() == 0) continue;
-                var shell = Ring(rings[0]);
-                var holes = Enumerable.Range(1, rings.GetArrayLength() - 1).Select(i => Ring(rings[i])).ToArray();
-                result.Add((bc.GetInt32(), Gf.CreatePolygon(Gf.CreateLinearRing(shell), holes.Select(Gf.CreateLinearRing).ToArray())));
-            }
-        }
-        catch { /* malformed islands_json → no geometry */ }
-        return result;
-    }
-
-    private static Coordinate[] Ring(JsonElement ring) =>
-        ring.EnumerateArray().Select(p => new Coordinate(p[0].GetDouble(), p[1].GetDouble())).ToArray();
 }

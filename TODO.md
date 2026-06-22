@@ -191,8 +191,8 @@ feature).
   (b) **wool + spawn locations** as markers, so a lane's wool tip / spawn spur is visible while cutting; (c) the
   **XML-defined buildable areas** — the `RegionCategorizer` build regions' geometry as polygons (the *declared*
   build space only at this step, NOT the computed buildability overlay). The wool/spawn markers (b) and the
-  build-region outline (c) are **already carried by `G11`** (the classifier's anchors + build geometry) — consume
-  that rather than a separate read; both wait on `G11`.
+  build-region outline (c) are **carried by the `G11` hook** (`GET /map/{slug}/island-roles`, shipped) — consume
+  its `anchors` + `buildRegion` rather than a separate read.
 - [ ] **G9 — Re-scan the corpus with stair-aware detection + decompose-queue UI (remaining slice).** The
   over-split **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`, wired into
   `WorldFeatureWriter`/`--scan-out`/`--island-sketch`; validated on the cloned worlds with team structure
@@ -210,15 +210,6 @@ feature).
   **edges touch buildable regions** and which islands a player can **step between** (adjacency across the
   buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on `G8`'s
   build-area data + `G6`'s lanes. Research; needs design.
-- [ ] **G11 — `GET /map/{slug}/island-roles` — the decompose integration hook (do first).** The backend hook the
-  `G6`/`G7`/`G8` decompose-UI tasks consume (design + rationale in `docs/contracts/lane-decomposition.md` §"Wiring
-  the role classifier into the decompose workflow"). Per detected island, **aligned to the `island-sketch` shape
-  order** (1:1 with the islands): `{ index, role, block_count, anchors: [{ kind: "spawn"|"wool", x, z }] }`, plus
-  the **build-region outline** (the `RegionCategorizer` build geometry as a polygon). Pure backend, reuses
-  `IslandRoleClassifier.ExtractAnchors`/`Classify`/`BuildRegion` (already shipped, `FEATURES.md`) + the island
-  polygons from `island_sketch_json`/`islands_json`; testable headless. Also surface a per-map role breakdown on
-  `GET /decompose/queue` (`{ team, objective, neutral, decorative }`; 0-team maps sort to the top as likely
-  detection failures). Lights up fully only on maps re-scanned through the new detection (`G9`).
 
 ## Lower priority / parked
 

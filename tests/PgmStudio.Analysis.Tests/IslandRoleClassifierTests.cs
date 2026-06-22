@@ -39,6 +39,35 @@ public sealed class IslandRoleClassifierTests
     }
 
     [Test]
+    public async Task Assess_reportsRoleAndTheAnchorsEachIslandCarries()
+    {
+        var teamIsland = Box(0, 0, 10, 10);     // holds a spawn AND a wool (a home island with its own wool)
+        var woolIsland = Box(100, 0, 110, 10);  // holds a wool only
+        var midIsland = Box(50, 0, 56, 6);      // anchorless, in the build region
+        var islands = new List<Geometry> { teamIsland, woolIsland, midIsland };
+
+        var anchors = new List<IslandRoleClassifier.Anchor>
+        {
+            new(IsSpawn: true, Pt(5, 5)),       // spawn on teamIsland
+            new(IsSpawn: false, Pt(8, 8)),      // wool on teamIsland
+            new(IsSpawn: false, Pt(105, 5)),    // wool on woolIsland
+        };
+        var assessed = IslandRoleClassifier.Assess(islands, anchors, buildRegion: Box(40, -5, 70, 60));
+
+        // roles agree with Classify
+        await Assert.That(assessed[0].Role).IsEqualTo(IslandGameplayRole.Team);
+        await Assert.That(assessed[1].Role).IsEqualTo(IslandGameplayRole.Objective);
+        await Assert.That(assessed[2].Role).IsEqualTo(IslandGameplayRole.Neutral);
+
+        // a team island carries every anchor on it (spawn + its wool); the wool island just its wool; mid none
+        await Assert.That(assessed[0].Anchors.Count).IsEqualTo(2);
+        await Assert.That(assessed[0].Anchors.Count(a => a.IsSpawn)).IsEqualTo(1);
+        await Assert.That(assessed[1].Anchors.Count).IsEqualTo(1);
+        await Assert.That(assessed[1].Anchors[0].IsSpawn).IsFalse();
+        await Assert.That(assessed[2].Anchors).IsEmpty();
+    }
+
+    [Test]
     public async Task Classify_anchorlessIsNeutralWhenNoBuildRegionKnown()
     {
         var roles = IslandRoleClassifier.Classify([Box(0, 0, 5, 5)], [], buildRegion: null);
