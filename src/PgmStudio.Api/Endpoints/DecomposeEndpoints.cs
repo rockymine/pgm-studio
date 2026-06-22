@@ -113,3 +113,18 @@ public sealed class LaneDecompositionPutEndpoint(MapRepository repo, PgmDb db) :
         await Send.OkAsync(new { ok = true }, ct);
     }
 }
+
+/// <summary>DELETE /api/map/{slug}/lane-decomposition — discard the saved cut lanes, returning the map to the
+/// queue (the original island sketch is untouched, so the author can re-cut from scratch).</summary>
+public sealed class LaneDecompositionDeleteEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Delete("/map/{slug}/lane-decomposition"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.LaneDecompositionJson).DeleteAsync(ct);
+        await Send.OkAsync(new { ok = true }, ct);
+    }
+}

@@ -25,6 +25,14 @@
       <span class="topbar-crumb topbar-crumb--dim">@progressLabel</span>
       <button class="action-btn" title="Skip to the next map (without saving)" @onclick="GoNext" disabled="@(!CanNext)"><i data-lucide="chevron-right"></i></button>
       <button class="action-btn" title="Undo last cut" @onclick="Undo"><i data-lucide="undo-2"></i></button>
+      @if (resetArmed)
+      {
+        <button class="action-btn action-btn--danger" title="Discard all cuts and start this map over" @onclick="Reset">Confirm reset</button>
+      }
+      else
+      {
+        <button class="action-btn" title="Discard this map's decomposition and re-cut from scratch" @onclick="() => resetArmed = true"><i data-lucide="rotate-ccw"></i></button>
+      }
       <button class="action-btn action-btn--primary" @onclick="ConfirmNext" disabled="@saving"
               title="Save these lanes and move to the next map">Confirm &amp; Next</button>
       <ThemeToggle />

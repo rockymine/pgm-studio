@@ -6,7 +6,7 @@
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
 import { svgEl, ringToPath } from "../render/svg.js";
 import { renderBlockImage } from "../render/block-render.js";
-import { enclosedVertices, edgeMarkers, splitPiece, centroid, pointInRing } from "../geometry/decompose-cut.js";
+import { enclosedVertices, edgeMarkers, splitPiece, centroid, pointInRing, labelCut, geoPolys } from "../geometry/decompose-cut.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 
 const ROLE_COLORS = {
@@ -35,6 +35,7 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   let anchors = [];         // [{kind:"spawn"|"wool", x, z}] objective markers (from /island-roles)
   let showAnchors = false;
   let buildRegion = null;   // GeoJSON {type, coordinates} of the declared build space
+  let buildPolys = [];      // build region as rings, for the frontline auto-label adjacency test
   let showBuild = false;
   let baseScale = 0;        // px-per-block at the first fit (zoom % baseline)
   const undo = [];          // snapshots of `pieces`
@@ -197,9 +198,12 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
     pushUndo();
     const i = pieces.findIndex(p => p.id === target.id);
     const [lane, rem] = res;
+    // Auto-label: the piece holding an objective marker is the lane (markers win, even when it's the bigger
+    // bit); the residual is the hub. The human can still re-tag either via the inspector.
+    const [roleLane, roleRem] = labelCut(lane, rem, anchors, buildPolys);
     pieces.splice(i, 1,
-      { id: `p${seq++}`, role: lane.role, exterior: lane.exterior, holes: lane.holes },
-      { id: `p${seq++}`, role: rem.role, exterior: rem.exterior, holes: rem.holes });
+      { id: `p${seq++}`, role: roleLane, exterior: lane.exterior, holes: lane.holes },
+      { id: `p${seq++}`, role: roleRem, exterior: rem.exterior, holes: rem.holes });
     target = null;
     render(); pushPanel(); fire("OnDirty");
   }
@@ -292,7 +296,7 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   function loadLayout(state, symmetry, roles) {
     pieces = []; seq = 0; undo.length = 0; lasso = null; target = null; markers = []; seam = [];
     blockData = null; showBlocks = false;   // new map: drop the previous map's overlays; the host re-applies
-    anchors = []; showAnchors = false; buildRegion = null; showBuild = false;
+    anchors = []; showAnchors = false; buildRegion = null; buildPolys = []; showBuild = false;
     selectedId = null;
     sym = symmetry && symmetry.mode && symmetry.mode !== "none" ? symmetry : null;
     const layout = state?.layout;
@@ -317,7 +321,7 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
     setBlocks(data, visible) { if (data) blockData = data; showBlocks = !!visible && !!blockData; render(); },
     // Objective anchors (G8b) + declared build region (G8c) — both from /island-roles, fed + toggled per map.
     setAnchors(data, visible) { if (data) anchors = data; showAnchors = !!visible && anchors.length > 0; render(); },
-    setBuild(data, visible) { if (data) buildRegion = data; showBuild = !!visible && !!buildRegion; render(); },
+    setBuild(data, visible) { if (data) { buildRegion = data; buildPolys = geoPolys(data); } showBuild = !!visible && !!buildRegion; render(); },
     setTool(t) { tool = (t === "pan" || t === "select") ? t : "lasso"; if (t !== "lasso") { lasso = null; } render(); },
     selectPiece(id) { selectedId = id ?? null; render(); },
     setRole(id, role) { const p = pieces.find(x => x.id === id); if (p) { p.role = role; render(); pushPanel(); fire("OnDirty"); } },

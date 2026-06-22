@@ -34,6 +34,7 @@ public partial class DecomposePage
     private string progressLabel = "";
     private List<PieceRow> pieces = [];
     private List<string> queue = [];
+    private bool resetArmed;        // two-click guard on the destructive Reset (clears the saved decomposition)
     private string? selectedId;     // the piece selected on the canvas / list → shown in the right inspector
     private PieceRow? Selected => pieces.FirstOrDefault(p => p.Id == selectedId);
 
@@ -72,6 +73,7 @@ public partial class DecomposePage
     {
         if (handle is null) return;
         focusSel = "";
+        resetArmed = false;
         rolesCache = null;   // new map → re-fetch the island-roles overlays on demand
         selectedId = null;
         try
@@ -118,7 +120,9 @@ public partial class DecomposePage
     private async Task ApplyRoleOverlaysAsync()
     {
         if (handle is null) return;
-        var roles = anchorsOn || buildOn ? await RolesAsync() : null;
+        // Always feed the data (cached): besides the toggleable overlays, the anchors + build region drive the
+        // auto-labeling of pieces on cut. The bool only controls overlay visibility.
+        var roles = await RolesAsync();
         object? anchorList = null, build = null;
         if (roles is { } r)
         {
@@ -128,8 +132,8 @@ public partial class DecomposePage
                 .ToList();
             if (r.TryGetProperty("buildRegion", out var b) && b.ValueKind != JsonValueKind.Null) build = b;
         }
-        await handle.InvokeVoidAsync("setAnchors", anchorsOn ? anchorList : null, anchorsOn);
-        await handle.InvokeVoidAsync("setBuild", buildOn ? build : null, buildOn);
+        await handle.InvokeVoidAsync("setAnchors", anchorList, anchorsOn);
+        await handle.InvokeVoidAsync("setBuild", build, buildOn);
     }
 
     private async Task ToggleAnchors() { anchorsOn = !anchorsOn; await ApplyRoleOverlaysAsync(); }
@@ -232,6 +236,18 @@ public partial class DecomposePage
     {
         if (pieces.FirstOrDefault(p => p.Id == id) is { } p) p.Role = role;   // immediate inspector feedback
         if (handle is not null) await handle.InvokeVoidAsync("setRole", id, role);
+    }
+
+    // Discard this map's saved decomposition (and any in-session cuts) and reload the fresh island sketch — the
+    // map drops back to the queue. Two-click armed via `resetArmed`; the original outline is never touched.
+    private async Task Reset()
+    {
+        resetArmed = false;
+        try { await Http.DeleteAsync($"api/map/{Slug}/lane-decomposition"); }
+        catch { return; }
+        selectedId = null;
+        await LoadMapAsync();
+        await RefreshQueueAsync();
     }
 
     private async Task ConfirmNext()
