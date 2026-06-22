@@ -201,14 +201,39 @@ feature).
   terrain band** (the old float-prune did this on `DetectHeightAware`; the stair surfaces now leak past it).
   **`max_build_height`** is a natural cut/prune ceiling — anything whose mass is above it is non-playable decor.
   Re-validate the over-split fixes (a_new_day/thunder) still hold after re-adding the ceiling.
-- [ ] **G13 — Decompose: split the shown set along the symmetry axis, not the orbit dedup.** The current
-  one-side view (`dedupBySymmetry`, centroid-orbit matching) sometimes shows a **mix of teams** — e.g. team A's
-  spawn island next to team B's wool island — so the author decomposes an incoherent half. A **half-plane cut
-  through the symmetry centre** (keep the side on one signed half of the mirror axis) would give a coherent
-  team set. **Danger:** maps detected as **mirror-x *and* mirror-z** (4-fold / dihedral) have two axes — a naive
-  half-plane can split across the wrong one and still mix teams; need to pick the axis that separates teams (or
-  fall back to orbit dedup). Most-annoying live issue; the corpus is mostly `rot_180` (51/66 labeled) with a few
-  single-axis mirrors, so the simple signed-half works for the common case — handle the dual-mirror case explicitly.
+- [ ] **G13 — Decompose: team-coherent one-side view (the orbit dedup mixes teams).** The current view
+  (`dedupBySymmetry` in `decompose-bridge.js`) is **orbit-based, not team-based**: it sorts island pieces by
+  centroid (z, then x), keeps the first per symmetry orbit, and removes the centroid-matched mirror twin
+  (`tol=12`). It only stays team-coherent when each team's islands sit cleanly on one side of the sort axis.
+  **Diagnosis of the "team A spawn + team B wool" mix:** a team's wool lane reaches *forward* past the symmetry
+  centre (and in CTW you often capture the *enemy's* wool, on their side), so the z-sort **interleaves** the two
+  teams — keep-first then takes A's spawn but reaches B's wool before A's wool, keeps B's, and drops A's as B's
+  mirror. Only bites when a team's home is detected as **multiple separate islands** (spawn split from wools),
+  which is why one-home-island maps labeled fine. Compounded by: brittle `tol=12` centroid match (imperfect
+  mirrors / a G12 float on one side → twin missed → both shown), a **single primary `mode`** (if the team split
+  runs along a different axis than the detected one — the dual-mirror x-AND-z case — it mirrors wrong), and
+  near-axis pieces matching the wrong twin.
+  **Fix: group islands by team via the `/island-roles` spawn anchors** — assign each island to the team whose
+  spawn it holds / is nearest-to / connects to, then show that one team's group. This is robust to forward-
+  reaching wools and needs no axis pick (so it handles dual-mirror naturally). A **signed half-plane through the
+  symmetry centre** is the cheap fallback for cleanly-separated single-axis maps, but note it does **not** fix
+  the crossing-wool case on its own (the forward wool still falls on the wrong signed half). Depends on the
+  marker reliability fixed in `G14`.
+- [ ] **G14 — island-roles: spawn/wool markers are absent on some maps, duplicated on others.** Marker
+  placement is inconsistent because the anchor sources aren't uniformly present and the points don't always land
+  on a detected island. Measured over 109 decomposed maps: **no spawn anchor** on 2 (banana_split, checkmate),
+  **no wool anchor** on 4 (columbia_ctw, down_side_up, ender_hill, enderiumctw), **>1 spawn on one island** on 7,
+  **>2 wool on one island** on 8. Causes: (a) `wools[].location` is the goal/proximity reference (often at the
+  monument or in a wool room, **off** the walkable island) → the point anchor intersects nothing and is dropped
+  (columbia_ctw/3084 have `location` but no `wool_room_region`, no spawners); (b) **not all maps have the
+  spawners module** (wool-dispensing spawner anchors absent) — those maps stock wool via **chests**; (c) we
+  dropped the `only-red`/`only-blue` spawn-protection rules in `G11` follow-up, so a spawn region that doesn't
+  intersect its island leaves the team with no spawn anchor; (d) the several sources double-mark one objective.
+  **Fix direction:** the XML already says *which* wools are objectives (`wools[]`); resolve each to a reliable
+  on-island position from the **scanned data** rather than XML heuristics — query the actual wool **blocks** in
+  the wool-room region (`GET /wool-availability` / `POST /wool-sources`, the `WoolBlockRow` table) or trust the
+  **chest** holding the objective wool. One de-duplicated anchor per objective, on the island. `G13` depends on
+  reliable spawn anchors from this.
 
 ## Lower priority / parked
 
