@@ -172,21 +172,28 @@ feature).
   (a) **marker dragging** — drag a lasso∩edge marker along its edge to set a non-corner seam (kanto's prong
   *bases* need a marker on the body edge, not just existing corners — so this is needed even for 90° maps);
   (b) once enough maps are hand-cut, build the **auto-cutter** trained/validated on the gathered ground truth
-  (cut at concave necks / medial axis so lanes **tile** the outline) — feeds `G3` per-lane width/length.
+  (cut at concave necks / medial axis so lanes **tile** the outline) — feeds `G3` per-lane width/length. The
+  `G11` anchors **seed** it: a cut runs hub→wool tip and hub→spawn, and each resulting piece **auto-labels**
+  (wool at a wool anchor · spawn at the spawn anchor · frontline where the edge meets the build region · hub =
+  residual).
 - [ ] **G7 — Decompose: select tool + inspector categorization.** Add a **select** tool (click a piece on
   the canvas to select it — today selection is only via the left list / Focus-piece). With a selection, assign
   its category from a **right inspector panel using buttons** (the per-piece `<select>` dropdown is too slow
   for the fast swipe-through). Expand the category set beyond spawn/wool/frontline/hub/other with
   **stepping-stone**, **mid**, and **decorative / outside-playable** (whole-island tags — `decorative` lets us
   exclude the ~⅓ non-gameplay neutral islands; `stepping-stone`/`mid` feed the contested-middle model in
-  `G3`). Categories persist per shape in `lane_decomposition_json`.
+  `G3`). Categories persist per shape in `lane_decomposition_json`. **Pre-filled from `G11`:** the classifier's
+  role gives the whole-island tag for free (`decorative`→decorative, `neutral`→stepping-stone/mid,
+  `team`/`objective`→flagged for dissection); the human confirms + cuts only the team islands instead of tagging
+  all N from scratch (optionally pre-seed the tags into `lane_decomposition_json` on open).
 - [ ] **G8 — Decompose: reference overlays on the canvas.** Toggle overlays to guide cutting: (a) the
   **block-colour overlay** (top-surface palette — the `blocks` chip from Configure/Edit, `render/block-render.js`
   + `palette.js`) for maps where the bare hull is ambiguous; (b) **wool + spawn locations** (from the map's
   `wool.location_json` + `spawn` regions) as markers, so a lane's wool tip / spawn spur is visible while
   cutting; (c) the **XML-defined buildable areas** — the `RegionCategorizer` build regions' geometry as polygons
-  (the *declared* build space only at this step, NOT the computed buildability overlay). Each needs the data on
-  the decompose page (a small objectives / build-regions read, or reuse the existing endpoints).
+  (the *declared* build space only at this step, NOT the computed buildability overlay). The wool/spawn markers
+  (b) and the build-region outline (c) are **already carried by `G11`** (the classifier's anchors + build
+  geometry) — consume that rather than a separate read; only the block-colour overlay (a) needs its own data.
 - [ ] **G9 — Re-scan the corpus with stair-aware detection + decompose-queue UI (remaining slice).** The
   over-split **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`, wired into
   `WorldFeatureWriter`/`--scan-out`/`--island-sketch`; validated on the cloned worlds with team structure
@@ -204,6 +211,15 @@ feature).
   **edges touch buildable regions** and which islands a player can **step between** (adjacency across the
   buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on `G8`'s
   build-area data + `G6`'s lanes. Research; needs design.
+- [ ] **G11 — `GET /map/{slug}/island-roles` — the decompose integration hook (do first).** The backend hook the
+  `G6`/`G7`/`G8` decompose-UI tasks consume (design + rationale in `docs/contracts/lane-decomposition.md` §"Wiring
+  the role classifier into the decompose workflow"). Per detected island, **aligned to the `island-sketch` shape
+  order** (1:1 with the islands): `{ index, role, block_count, anchors: [{ kind: "spawn"|"wool", x, z }] }`, plus
+  the **build-region outline** (the `RegionCategorizer` build geometry as a polygon). Pure backend, reuses
+  `IslandRoleClassifier.ExtractAnchors`/`Classify`/`BuildRegion` (already shipped, `FEATURES.md`) + the island
+  polygons from `island_sketch_json`/`islands_json`; testable headless. Also surface a per-map role breakdown on
+  `GET /decompose/queue` (`{ team, objective, neutral, decorative }`; 0-team maps sort to the top as likely
+  detection failures). Lights up fully only on maps re-scanned through the new detection (`G9`).
 
 ## Lower priority / parked
 

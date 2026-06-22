@@ -103,3 +103,34 @@ other merged read.
 (the human's `{status, note}` flag — `status:"ok"` clears it), and the flag is echoed per map in
 `GET /decompose/queue` (`reviewStatus`) so a reviewer can triage before cutting. The review path for a flagged
 map is to re-detect (a smarter base / looser height params) and re-run `--store-island-sketch`.
+
+## Wiring the role classifier into the decompose workflow
+The classifier (`IslandRoleClassifier`) works one tier **above** the lane cuts — it decides *which* islands get
+dissected vs. labeled whole — so it feeds the decompose tasks directly. The integration is built on **one
+backend hook** the UI tasks consume.
+
+**The hook — `GET /map/{slug}/island-roles`.** Per detected island (aligned to the `island-sketch` shape order,
+which is 1:1 with the islands), returns `{ index, role, block_count, anchors: [{ kind: "spawn"|"wool", x, z }] }`
+plus the **build-region outline** (the `RegionCategorizer` build geometry as a polygon). Pure backend, reuses
+`IslandRoleClassifier.ExtractAnchors`/`Classify`/`BuildRegion`; testable without the browser. This is the
+prerequisite for the three UI tasks below.
+
+1. **Auto-fill the whole-island tags (`G7`).** The role *is* the whole-island category: `decorative` → tag
+   `decorative` (excluded, no cut); `neutral` → tag `stepping-stone`/`mid` (no cut); `team`/`objective` → flag
+   **for dissection** (the only islands the human peels). So the surface pre-tags the non-team islands and the
+   human confirms + cuts only the 1–2 team islands per side, instead of tagging all N from scratch. Optionally
+   pre-seed those whole-island tags into `lane_decomposition_json` on first open.
+2. **Anchors + build region become the cut overlays (`G8`).** `G8`'s "wool tip / spawn spur" and "declared build
+   areas" overlays *are* the classifier's anchor footprints + build-region outline — already computed, just
+   surfaced as overlay layers. No separate objective/build read needed; the hook carries them.
+3. **Anchors seed the auto-cutter + auto-label its pieces (`G6`).** Within a team island the anchors are the lane
+   *targets*: a piece dead-ending at a wool anchor is `wool`, a piece containing the spawn anchor is `spawn`, a
+   piece whose edge meets the build region is `frontline`, the residual is `hub`. So the anchors both seed where
+   the medial-axis cutter places seams (hub→wool tip, hub→spawn) and label each resulting piece without asking.
+4. **Queue triage.** `GET /decompose/queue` can carry each map's role breakdown (`{ team, objective, neutral,
+   decorative }`); a map with **0 team islands** sorts to the top next to the review flag (a likely detection
+   failure to fix before cutting).
+
+Caveats inherited from the workflow: the roles only reflect the new detection on **re-scanned** maps (the stored
+corpus is still old islands — `G9`), and decompose marks **one symmetric side**, so the surface uses that half of
+the per-island roles.
