@@ -91,6 +91,68 @@ public class IslandDetectorTests
         await Assert.That(footprint.Contains((12, 2))).IsFalse();   // floating-over-void can't pose as ground
     }
 
+    // ── stair-aware detection ─────────────────────────────────────────────────────────────────────
+    private static (int, int, int, IReadOnlyList<int>) Col(int x, int z, int baseY, params int[] surfaces)
+        => (x, z, baseY, surfaces.Length > 0 ? surfaces : [baseY]);
+
+    [Test]
+    public async Task DetectStairAware_BridgesARaisedStructureToItsTerraceViaStairSurfaces()
+    {
+        // A terrace at base 6 (one row), then a staircase climbing 6→9→12→15→18 (each column carries the
+        // terrace's base 6 plus its stair surface), then a structure floor at base 18. Height-aware on the
+        // base alone would split the structure (Δbase 6→18); stair-aware follows the stair surfaces up.
+        var cols = new List<(int, int, int, IReadOnlyList<int>)>();
+        for (var x = 0; x < 12; x++) cols.Add(Col(x, 0, 6));                 // terrace
+        cols.Add(Col(12, 0, 6, 6, 9)); cols.Add(Col(13, 0, 6, 6, 12));
+        cols.Add(Col(14, 0, 6, 6, 15)); cols.Add(Col(15, 0, 6, 6, 18));      // staircase
+        for (var x = 16; x < 28; x++) cols.Add(Col(x, 0, 18, 18));           // structure floor
+
+        var islands = IslandDetector.DetectStairAware(cols);
+        await Assert.That(islands.Count).IsEqualTo(1);                       // one connected landmass
+    }
+
+    [Test]
+    public async Task DetectStairAware_KeepsAWallColumnConnectedToItsBaseNeighbour()
+    {
+        // A wall column solid base..base+6 (only standable top is 6) sitting next to ground at base 0 must
+        // stay attached — connection is on the shared base level, not only the standable top (the green_gem
+        // regression guard).
+        var cols = new List<(int, int, int, IReadOnlyList<int>)>();
+        for (var z = 0; z < 12; z++) cols.Add(Col(0, z, 0));                 // ground strip
+        for (var z = 0; z < 12; z++) cols.Add(Col(1, z, 0, 6));              // wall on its edge (top at 6)
+
+        var islands = IslandDetector.DetectStairAware(cols);
+        await Assert.That(islands.Count).IsEqualTo(1);
+        await Assert.That(islands[0].BlockCount).IsEqualTo(24);
+    }
+
+    [Test]
+    public async Task DetectStairAware_StillSplitsAndPrunesADetachedFloat()
+    {
+        // Terrain at base 0; a float 8-adjacent in (x,z) whose surfaces sit far above with no stair between
+        // → no surface within a step of the terrain → split off, then pruned as floating over void.
+        var cols = new List<(int, int, int, IReadOnlyList<int>)>();
+        for (var x = 0; x < 10; x++) for (var z = 0; z < 10; z++) cols.Add(Col(x, z, 0));
+        for (var x = 10; x < 15; x++) for (var z = 0; z < 5; z++) cols.Add(Col(x, z, 70, 70));
+
+        var islands = IslandDetector.DetectStairAware(cols);
+        await Assert.That(islands.Count).IsEqualTo(1);
+        await Assert.That(islands[0].BlockCount).IsEqualTo(100);            // only the terrain remains
+    }
+
+    [Test]
+    public async Task DetectCleanedStairAware_FallsBackToY0WhenColumnsReadDegenerate()
+    {
+        var cols = new List<(int, int, int, IReadOnlyList<int>)>();
+        for (var x = 0; x < 20; x++) for (var z = 0; z < 20; z++) cols.Add(Col(x, z, 0));  // one blob
+        var y0 = new List<(int, int, int)>();
+        for (var x = 0; x < 10; x++) for (var z = 0; z < 10; z++) y0.Add((x, z, 0));
+        for (var x = 100; x < 110; x++) for (var z = 0; z < 10; z++) y0.Add((x, z, 0));
+
+        await Assert.That(IslandDetector.DetectCleanedStairAware(cols).Count).IsEqualTo(1);
+        await Assert.That(IslandDetector.DetectCleanedStairAware(cols, [y0]).Count).IsEqualTo(2);
+    }
+
     [Test]
     public async Task SerializeJson_EmitsGeoJsonPolygons()
     {

@@ -41,6 +41,46 @@ public static class LayerExtractors
     public static IEnumerable<SurfaceBlock> CleanBase(IEnumerable<AnvilRegion.Chunk> chunks) =>
         Base(chunks, (ISet<int>)CleanBaseExclude);
 
+    /// <summary>A column of the cleaned world: its lowest cleaned-solid Y (<see cref="BaseY"/>, the footprint
+    /// anchor + terrain reference) and every <see cref="Surfaces"/> Y a player can stand on (a cleaned-solid
+    /// block with no cleaned-solid block directly above). The surfaces let island detection follow a walkable
+    /// staircase up onto a raised structure instead of reading a cliff at the structure's high base.</summary>
+    public readonly record struct CleanColumn(int WorldX, int WorldZ, int BaseY, IReadOnlyList<int> Surfaces);
+
+    /// <summary>
+    /// Per-column cleaned profile (<see cref="CleanColumn"/>) over the same noise exclusion as
+    /// <see cref="CleanBase"/>: the lowest cleaned-solid block plus the set of standable surface heights.
+    /// Where <see cref="CleanBase"/> keeps only the lowest cleaned block (so a structure over excluded
+    /// foliage/water reads at its high floor and detaches from the terrace), this also reports the
+    /// intermediate stair/ledge surfaces, so stair-aware detection can keep a walkable structure attached.
+    /// </summary>
+    public static IEnumerable<CleanColumn> CleanColumns(IEnumerable<AnvilRegion.Chunk> chunks)
+    {
+        foreach (var chunk in chunks)
+        {
+            var (ids, _) = BuildVolume(chunk);
+            var baseX = chunk.ChunkX * 16;
+            var baseZ = chunk.ChunkZ * 16;
+            for (var lz = 0; lz < 16; lz++)
+                for (var lx = 0; lx < 16; lx++)
+                {
+                    var col = (lz << 4) | lx;
+                    int baseY = -1;
+                    var surfaces = new List<int>();
+                    for (var y = 0; y <= 255; y++)
+                    {
+                        int id = ids[(y << 8) | col];
+                        if (id == 0 || CleanBaseExclude.Contains(id)) continue;   // air / cleaned-out noise
+                        if (baseY < 0) baseY = y;
+                        int above = y < 255 ? ids[((y + 1) << 8) | col] : 0;
+                        if (above == 0 || CleanBaseExclude.Contains(above)) surfaces.Add(y);   // standable top
+                    }
+                    if (baseY >= 0) yield return new CleanColumn(baseX + lx, baseZ + lz, baseY, surfaces);
+                }
+        }
+    }
+
+
     /// <summary>Full 256-high id + data volumes for a chunk; index (y&lt;&lt;8)|(z&lt;&lt;4)|x. Absent sections stay air (0).</summary>
     private static (ushort[] ids, byte[] data) BuildVolume(AnvilRegion.Chunk chunk)
     {

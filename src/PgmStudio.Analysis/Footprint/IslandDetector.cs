@@ -72,6 +72,124 @@ public static class IslandDetector
     }
 
     /// <summary>
+    /// Stair-aware island detection. Like <see cref="DetectHeightAware"/>, but each column carries every
+    /// <em>standable surface</em> (not just its lowest cleaned-solid Y), and two adjacent columns join when
+    /// any pair of their surfaces is within <paramref name="stepTolerance"/> — so a walkable staircase
+    /// (surfaces one block apart per column) keeps a raised structure attached to the terrace it climbs from,
+    /// instead of the cleaned base reading the structure's high floor as a cliff and carving it off. A truly
+    /// detached float shares no surface within a step of the terrain, so it still splits off and prunes.
+    /// </summary>
+    public static List<Island> DetectStairAware(
+        IEnumerable<(int X, int Z, int BaseY, IReadOnlyList<int> Surfaces)> columns,
+        int minIslandSize = 10, int connectivity = 8, int stepTolerance = 3, int heightOutlierMargin = 12)
+    {
+        var baseByCell = new Dictionary<(int, int), int>();
+        var surfacesByCell = new Dictionary<(int, int), int[]>();
+        foreach (var (x, z, baseY, surf) in columns)
+        {
+            baseByCell[(x, z)] = baseY;
+            // Connect on the base level too, not only standable tops: a column solid up past its base
+            // (a wall) has no surface at the base, but a neighbour at that base level is still adjacent
+            // ground. Including baseY makes this strictly additive to the height-aware base connectivity
+            // (it can only merge more, never split more) while the stair surfaces add the climb.
+            var set = new SortedSet<int>(surf ?? []) { baseY };
+            surfacesByCell[(x, z)] = [.. set];
+        }
+        if (baseByCell.Count == 0) return [];
+
+        var allYs = baseByCell.Values.OrderBy(v => v).ToList();
+        var terrainY = allYs[allYs.Count / 2];
+
+        var islands = new List<Island>();
+        foreach (var comp in StairAwareComponents(baseByCell, surfacesByCell, connectivity, stepTolerance))
+        {
+            if (comp.Count < minIslandSize) continue;
+            var ys = comp.Select(c => baseByCell[c]).OrderBy(v => v).ToList();
+            if (ys[ys.Count / 2] > terrainY + heightOutlierMargin) continue;   // floating build over void
+            islands.Add(new Island(0, comp.Count, BoundsOf(comp), BlocksToPolygon(comp)));
+        }
+        var ordered = islands.OrderByDescending(i => i.BlockCount).ToList();
+        for (var i = 0; i < ordered.Count; i++) ordered[i] = ordered[i] with { Id = i + 1 };
+        return ordered;
+    }
+
+    /// <summary>
+    /// Stair-aware detection with the same degenerate-read fallback as <see cref="DetectCleaned"/>: runs
+    /// <see cref="DetectStairAware"/> on the cleaned columns, and if that reads degenerately (≤ 1 island)
+    /// retries on the single-surface fallback layers (y0 then bedrock) — each a flat layer with no stair
+    /// structure, so a column is its own only surface.
+    /// </summary>
+    public static List<Island> DetectCleanedStairAware(
+        IReadOnlyList<(int X, int Z, int BaseY, IReadOnlyList<int> Surfaces)> columns,
+        IEnumerable<IEnumerable<(int X, int Z, int Y)>>? fallbackLayers = null,
+        int minIslandSize = 10, int stepTolerance = 3, int heightOutlierMargin = 12)
+    {
+        var best = DetectStairAware(columns, minIslandSize, 8, stepTolerance, heightOutlierMargin);
+        if (best.Count >= 2 || fallbackLayers is null) return best;
+        foreach (var layer in fallbackLayers)
+        {
+            var cols = layer.Select(c => (c.X, c.Z, c.Y, (IReadOnlyList<int>)[c.Y])).ToList();
+            var alt = DetectStairAware(cols, minIslandSize, 8, stepTolerance, heightOutlierMargin);
+            if (alt.Count > best.Count) best = alt;
+            if (best.Count >= 2) break;
+        }
+        return best;
+    }
+
+    private static List<List<(int X, int Z)>> StairAwareComponents(
+        Dictionary<(int, int), int> baseByCell, Dictionary<(int, int), int[]> surfacesByCell,
+        int connectivity, int stepTolerance)
+    {
+        (int, int)[] deltas = connectivity == 8
+            ? [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+            : [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
+        var remaining = new HashSet<(int, int)>(baseByCell.Keys);
+        var seeds = baseByCell.Keys.OrderBy(c => c.Item1).ThenBy(c => c.Item2);
+        var components = new List<List<(int X, int Z)>>();
+
+        foreach (var seed in seeds)
+        {
+            if (!remaining.Remove(seed)) continue;
+            var comp = new List<(int, int)>();
+            var queue = new Queue<(int, int)>();
+            queue.Enqueue(seed);
+            while (queue.Count > 0)
+            {
+                var (x, z) = queue.Dequeue();
+                comp.Add((x, z));
+                var sHere = surfacesByCell[(x, z)];
+                foreach (var (dx, dz) in deltas)
+                {
+                    var nb = (x + dx, z + dz);
+                    // Join across a walkable surface (a step ≤ tol between any standable heights).
+                    if (remaining.Contains(nb) && SurfacesWithin(sHere, surfacesByCell[nb], stepTolerance))
+                    {
+                        remaining.Remove(nb);
+                        queue.Enqueue(nb);
+                    }
+                }
+            }
+            components.Add(comp);
+        }
+        return components;
+    }
+
+    /// <summary>True when sorted surface lists <paramref name="a"/>/<paramref name="b"/> have a pair within
+    /// <paramref name="tol"/> (a walkable step) — a two-pointer min-gap scan.</summary>
+    private static bool SurfacesWithin(int[] a, int[] b, int tol)
+    {
+        int i = 0, j = 0;
+        while (i < a.Length && j < b.Length)
+        {
+            var d = a[i] - b[j];
+            if (Math.Abs(d) <= tol) return true;
+            if (d < 0) i++; else j++;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Cleaned-base island detection with a degenerate-read fallback (ND2 §6a / A5). Runs
     /// <see cref="DetectHeightAware"/> on the cleaned-base cells; if that reads degenerately (≤ 1 island —
     /// e.g. a base that bridges everything at one level even after the noise exclude), retries on the

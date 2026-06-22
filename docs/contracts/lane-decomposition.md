@@ -50,16 +50,28 @@ sketch from the real layout:
 - **Under-split / merged** (e.g. `abstract` / `abstract_remix`) — both teams read as one map-spanning island
   (the cleaned base degenerates and the y0/bedrock fallback's floor slab bridges the teams).
 
-**Why segments-vs-cleaned-base alone can't auto-flag the over-split case.** The raw `layer_segments` *include*
-the water/foliage the cleaned base drops, so "is there solid beneath this cell" is fooled by water at y0 and by
-hollow-shell builds (a solid team island and a floating eagle can both show a large air gap under their surface
-cell). Across the corpus, every simple signal either fires on ~137 healthy maps (bbox-nesting) or misses the
-target (`a_new_day` fragments overlap the main island's bbox rather than nest inside it). So **over-split is left
-to the manual review flag**; a robust auto-fix needs **3D stair-aware connectivity over a *cleaned* segment stack**
-(runs of non-air, non-CleanBaseExclude blocks) so a structure reachable by walkable steps stays attached — a
-world-rescan-and-redetect change that must be re-validated against the `--islands` parity set.
+**The over-split fix: stair-aware connectivity.** A per-cell signal can't *flag* the over-split reliably (the raw
+`layer_segments` include the water/foliage the cleaned base drops, so "is there solid beneath this cell" is fooled
+by water at y0 and by hollow-shell builds; every corpus signal either fires on ~137 healthy maps or misses
+`a_new_day`). The detection itself is fixed instead: `LayerExtractors.CleanColumns` reports, per column, the
+lowest cleaned-solid Y **plus every standable surface** (a cleaned-solid block with no cleaned-solid above), and
+`IslandDetector.DetectStairAware` joins two adjacent columns when **any** pair of their surfaces is within a step
+(`stepTolerance`, default 3) — so a walkable staircase (surfaces one block apart per column) carries a raised
+structure back onto the terrace it climbs from. Including each column's base level in the surface set makes this
+**strictly additive** to the old height-aware base connectivity (it can only *merge* over-split fragments, never
+split a team island or change the float prune), so it is safe to wire as the default detection
+(`WorldFeatureWriter`, `--scan-out`, `--island-sketch`). A genuinely detached float shares no surface within a step
+of the terrain, so it still splits off and prunes.
 
-**What ships instead (reliable, in `Analysis/Footprint/IslandClassifier`):**
+Validated by re-scanning the real worlds (`--island-stairaware`): targets improve — `a_new_day` 17→14,
+`a_new_day_ii` 9→5, `thunder` 33→17 — by absorbing stair-connected structures, while **team-island count and
+symmetry are preserved on every map** (kanto 2→2, green_gem 4→4, two-quarter 8→8, vegas 3→3, mame 2+2 majors). The
+legacy `DetectCleaned` stays for the `--islands` Python-parity harness; the stored corpus `islands.json` reflects
+stair-aware only after a re-scan. The **under-split / merged** mode (`abstract`) is a different root cause (the
+y0/bedrock fallback floor slab) and is unchanged — still surfaced by the `LooksUnderSplit` heuristic + the review
+flag below.
+
+**Role buckets + under-split triage (in `Analysis/Footprint/IslandClassifier`):**
 - **Role buckets by size** — `major` (≥25% of the largest landmass: the team islands that hold spawn/wools and
   need dissection), `neutral` (≥64 blocks but smaller: contested-middle stepping-stones / mids), `small`
   (sub-gameplay specks — where over-split fragments land, so they fall out of the gameplay model on their own).

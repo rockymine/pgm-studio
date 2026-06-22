@@ -124,11 +124,13 @@ public sealed class WorldFeatureWriter(PgmDb db)
         var surface = LayerExtractors.Surface(chunks).ToList();
 
         // Detection runs on the cleaned base, not the surface (decorated terrain makes the surface noisy).
-        // Fallback layers are lazy — only scanned if the cleaned base reads degenerately (DetectCleaned).
+        // Stair-aware: each column carries every standable surface, so a walkable structure stays attached
+        // to the terrace it climbs from. Fallback layers are lazy — only scanned on a degenerate read.
         static (int X, int Z, int Y) Cell(SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-        var baseCells = LayerExtractors.CleanBase(chunks).Select(Cell).ToList();
+        var columns = LayerExtractors.CleanColumns(chunks)
+            .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
         var fallbacks = new[] { LayerExtractors.Y0(chunks).Select(Cell), LayerExtractors.Bedrock(chunks).Select(Cell) };
-        var islands = IslandDetector.DetectCleaned(baseCells, fallbacks);
+        var islands = IslandDetector.DetectCleanedStairAware(columns, fallbacks);
 
         var layerRows = surface
             .Select(s => new LayerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, BlockId = s.BlockId, BlockData = s.BlockData })

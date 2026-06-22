@@ -117,6 +117,15 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   (height-aware connectivity prunes floating builds over void; y0/bedrock fallback). The new-map
   detection layer (ND2 §6a); validated on real worlds via `--clean-base-render`
   (`scripts/render_clean_base.sh`). (A5)
+- **Stair-aware island detection** — `LayerExtractors.CleanColumns` reports each column's lowest cleaned-solid Y
+  **plus every standable surface**, and `IslandDetector.DetectStairAware`/`DetectCleanedStairAware` join adjacent
+  columns when any surface pair is within a step — so a walkable staircase keeps a raised structure attached to
+  its terrace instead of the cleaned base reading the high floor as a cliff and carving it off. Including the base
+  level makes it strictly additive to the height-aware base connectivity (only merges over-split fragments; never
+  splits a team island or changes the float prune), so it is the default detection in `WorldFeatureWriter` /
+  `--scan-out` / `--island-sketch`. Validated on re-scanned worlds via `--island-stairaware`: a_new_day 17→14,
+  a_new_day_ii 9→5, thunder 33→17, with team-island count + symmetry preserved on every map (kanto/green_gem/
+  two-quarter/vegas/mame). The legacy `DetectCleaned` remains for the `--islands` Python-parity harness. (G9)
 - **Island role classifier + detection-health triage** — `IslandClassifier` buckets detected islands by size
   into `major` (team islands, ≥25% of the largest), `neutral` (gameplay-sized mids/stepping-stones, ≥64 blocks),
   and `small` (sub-gameplay specks / over-split fragments); corpus-validated (kanto 2 majors, green_gem 2+2,

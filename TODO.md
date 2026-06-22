@@ -187,18 +187,17 @@ feature).
   cutting; (c) the **XML-defined buildable areas** — the `RegionCategorizer` build regions' geometry as polygons
   (the *declared* build space only at this step, NOT the computed buildability overlay). Each needs the data on
   the decompose page (a small objectives / build-regions read, or reuse the existing endpoints).
-- [ ] **G9 — Smarter island base: fix the over-split detection (remaining slice).** The review flag +
-  auto-triage landed (`FEATURES.md`: island role classifier / health / review flag); what remains is the
-  actual **detection fix** for the **over-split** mode (`a_new_day` / `a_new_day_ii`), where `IslandDetector`'s
-  height-aware connectivity carves **grounded** raised features (buildings/stairs over a terrace) off one
-  walkable landmass — because the cleaned base excludes the foliage/water under them and so reads them at a high
-  Y (a cross-section confirms the carved cells are spruce/cobble **stairs** over a continuous terrace; root-cause
-  + evidence in `docs/contracts/lane-decomposition.md`). Fix direction: **3D stair-aware connectivity over a
-  *cleaned* segment stack** (runs of non-air, non-`CleanBaseExclude` blocks) so a structure reachable by walkable
-  steps stays attached. Needs a world re-scan of the affected maps (clone from `OvercastCommunity/CommunityMaps`
-  or `PublicMaps` `ctw/`) + re-validation against the `--islands` parity set. (The merged/under-split case —
-  `abstract` — is already caught by `IslandClassifier.LooksUnderSplit`.) Then a **decompose-queue UI** to
-  show/set the review flag + island-health read (browser; deferred).
+- [ ] **G9 — Re-scan the corpus with stair-aware detection + decompose-queue UI (remaining slice).** The
+  over-split **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`, wired into
+  `WorldFeatureWriter`/`--scan-out`/`--island-sketch`; validated on the cloned worlds with team structure
+  preserved), as did the review flag + role classifier. What remains: (a) **re-scan the corpus** so the stored
+  `islands.json` / `island_sketch_json` reflect stair-aware (the live DB + `pgm-studio-output` were generated with
+  the legacy detection — needs the source worlds, `OvercastCommunity/CommunityMaps`+`PublicMaps` `ctw/`), and
+  decide whether to refresh the `--islands` Python-parity oracle to match; (b) the residual `a_new_day` **isolated
+  raised-decor specks** (≈37-block grid bits with no walkable connection — correctly `small` via
+  `IslandClassifier`, but a per-island prune could drop them); (c) the **under-split / merged** mode (`abstract`):
+  the y0/bedrock fallback floor slab bridges teams — a separate base fix (flagged by `LooksUnderSplit`); (d) a
+  **decompose-queue UI** to show/set the review flag + island-health read (browser; deferred).
 - [ ] **G10 — Frontline model from buildable adjacency (later).** Beyond per-island lanes: detect which island
   **edges touch buildable regions** and which islands a player can **step between** (adjacency across the
   buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on `G8`'s

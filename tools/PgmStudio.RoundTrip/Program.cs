@@ -88,6 +88,12 @@ var isIdx2 = Array.IndexOf(args, "--island-sketch");
 if (isIdx2 >= 0 && isIdx2 + 2 < args.Length)
     return RunIslandSketch(args[isIdx2 + 1], args[isIdx2 + 2]);
 
+// --island-stairaware <mapDir>: scan a map and compare the cleaned-base height-aware detection against the
+// stair-aware detection (CleanColumns → DetectStairAware) — island counts + sizes side by side.
+var saIdx = Array.IndexOf(args, "--island-stairaware");
+if (saIdx >= 0 && saIdx + 1 < args.Length)
+    return RunIslandStairAware(args[saIdx + 1]);
+
 // --islands <regionDir> <oracleDir>: surface scan + island detection vs layer.parquet/islands.json.
 var isIdx = Array.IndexOf(args, "--islands");
 if (isIdx >= 0 && isIdx + 2 < args.Length)
@@ -554,11 +560,13 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     await WriteParquet(Path.Combine(outDir, "layer.parquet"), surface
         .Select(s => new ScanLayerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, BlockId = s.BlockId, BlockData = s.BlockData }).ToList());
 
-    // Islands on the cleaned base, with the lazy y0 → bedrock fallback (matches WorldFeatureWriter) → islands.json
+    // Stair-aware islands on the cleaned columns, with the lazy y0 → bedrock fallback (matches
+    // WorldFeatureWriter) → islands.json
     static (int X, int Z, int Y) Cell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(Cell).ToList();
+    var columns = PgmStudio.Minecraft.LayerExtractors.CleanColumns(chunks)
+        .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
     var fallbacks = new[] { PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(Cell), PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(Cell) };
-    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleanedStairAware(columns, fallbacks);
     await File.WriteAllTextAsync(Path.Combine(outDir, "islands.json"), PgmStudio.Analysis.Footprint.IslandDetector.SerializeJson(islands));
 
     // Monument-candidate gather (F9 suggester) over the whole world → monument_candidates.parquet (the one
@@ -629,9 +637,10 @@ static int RunIslandSketch(string mapDir, string outJson)
     if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  no region/ at {regionDir}"); return 1; }
     var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
     static (int, int, int) ToCell(PgmStudio.Minecraft.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var columns = PgmStudio.Minecraft.LayerExtractors.CleanColumns(chunks)
+        .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
     var fallbacks = new[] { PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(ToCell), PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(ToCell) };
-    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+    var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleanedStairAware(columns, fallbacks);
 
     static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
     var shapes = new List<PgmStudio.Pgm.Sketch.SketchShape>();
@@ -663,6 +672,33 @@ static int RunIslandSketch(string mapDir, string outJson)
     };
     File.WriteAllText(outJson, layout.ToJson());
     Console.WriteLine($"island-sketch: {imported}/{islands.Count} islands simplified (outline + holes) → {outJson}");
+    return 0;
+}
+
+// ── --island-stairaware: cleaned-base height-aware vs stair-aware island detection, side by side ──────────
+static int RunIslandStairAware(string mapDir)
+{
+    var regionDir = Path.Combine(mapDir, "region");
+    if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  no region/ at {regionDir}"); return 1; }
+    var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+
+    var baseCells = PgmStudio.Minecraft.LayerExtractors.CleanBase(chunks)
+        .Select(b => (b.WorldX, b.WorldZ, b.WorldY)).ToList();
+    var fallbacks = new[]
+    {
+        PgmStudio.Minecraft.LayerExtractors.Y0(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
+        PgmStudio.Minecraft.LayerExtractors.Bedrock(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
+    };
+    var old = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
+
+    var columns = PgmStudio.Minecraft.LayerExtractors.CleanColumns(chunks)
+        .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
+    var neu = PgmStudio.Analysis.Footprint.IslandDetector.DetectStairAware(columns);
+
+    static string Sizes(IReadOnlyList<PgmStudio.Analysis.Footprint.IslandDetector.Island> isls) =>
+        string.Join(",", isls.Take(8).Select(i => i.BlockCount)) + (isls.Count > 8 ? ",…" : "");
+    Console.WriteLine($"  {Path.GetFileName(Path.TrimEndingDirectorySeparator(mapDir)),-26} " +
+                      $"height-aware: {old.Count,3} [{Sizes(old)}]   stair-aware: {neu.Count,3} [{Sizes(neu)}]");
     return 0;
 }
 
