@@ -94,6 +94,20 @@ var saIdx = Array.IndexOf(args, "--island-stairaware");
 if (saIdx >= 0 && saIdx + 1 < args.Length)
     return RunIslandStairAware(args[saIdx + 1]);
 
+// --dump-cleanbase <mapDir> <outCsv>: dump the cleaned-base column profile (x,z,baseY,surfaces) for analysis.
+var dcbIdx = Array.IndexOf(args, "--dump-cleanbase");
+if (dcbIdx >= 0 && dcbIdx + 2 < args.Length)
+{
+    var rd = Path.Combine(args[dcbIdx + 1], "region");
+    var ch = Directory.GetFiles(rd, "*.mca").SelectMany(PgmStudio.Minecraft.AnvilRegion.ReadChunks).ToList();
+    using var w = new StreamWriter(args[dcbIdx + 2]);
+    w.WriteLine("x,z,baseY,blockId");
+    foreach (var c in PgmStudio.Minecraft.LayerExtractors.CleanBase(ch))
+        w.WriteLine($"{c.WorldX},{c.WorldZ},{c.WorldY},{c.BlockId}");
+    Console.WriteLine($"dumped clean-base columns → {args[dcbIdx + 2]}");
+    return 0;
+}
+
 // --islands <regionDir> <oracleDir>: surface scan + island detection vs layer.parquet/islands.json.
 var isIdx = Array.IndexOf(args, "--islands");
 if (isIdx >= 0 && isIdx + 2 < args.Length)

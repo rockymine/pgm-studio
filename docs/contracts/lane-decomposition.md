@@ -47,8 +47,21 @@ sketch from the real layout:
   then snaps it off the lower terrain even though you walk up onto it. A cleaned-base-vs-segment cross-section of
   `a_new_day` shows the tell: the carved cells are spruce/cobble **stairs** (block 67/134) over a terrace whose
   raw segments are continuous — i.e. one walkable mass, not a float.
-- **Under-split / merged** (e.g. `abstract` / `abstract_remix`) — both teams read as one map-spanning island
-  (the cleaned base degenerates and the y0/bedrock fallback's floor slab bridges the teams).
+- **Under-split / merged** (e.g. `abstract` / `abstract_remix`) — both teams read as one map-spanning island.
+  Root cause (confirmed on the world + map.xml, *not* the old block-36/degenerate-fallback guess): the map sits
+  on a **stained-glass build-floor at Y=0**. PGM auto-detects a low glass slab as buildable just like the
+  invisible block-36 marker; abstract's `map.xml` makes this explicit — a `<destroyables materials="stained
+  glass" mode-changes="true">` over the centre paired with `<modes><mode after="0s" material="air"/></modes>`
+  **turns the glass floor to air at game start**, and the build region is defined explicitly as a
+  `<complement id="build-region">` guarded by a `deny(void)` filter. The bottom-up cleaned base read that
+  continuous glass slab as terrain and bridged the teams into one ~4937-cell mass (the base was *not* degenerate,
+  so the y0/bedrock fallback never fired). **Fix: stained glass (95) joins the cleaned-base exclude, beside the
+  {36} marker** (`LayerExtractors.CleanBaseExclude`). Because the base read is bottom-up-lowest, this only
+  affects columns where glass is the *lowest* solid (a glass floor) — decorative glass walls/windows above other
+  blocks are untouched. abstract then separates into symmetric team pairs (no longer flagged by
+  `LooksUnderSplit`), with no change to the tested healthy maps (kanto/green_gem/two-quarter/vegas/thunder) or
+  the over-split maps. (abstract's Y=0 floor is multi-material — bedrock/nether-brick also bound the extent — but
+  those are scattered; the glass was the *continuous* bridge, so excluding it alone suffices.)
 
 **The over-split fix: stair-aware connectivity.** A per-cell signal can't *flag* the over-split reliably (the raw
 `layer_segments` include the water/foliage the cleaned base drops, so "is there solid beneath this cell" is fooled
@@ -67,9 +80,9 @@ Validated by re-scanning the real worlds (`--island-stairaware`): targets improv
 `a_new_day_ii` 9→5, `thunder` 33→17 — by absorbing stair-connected structures, while **team-island count and
 symmetry are preserved on every map** (kanto 2→2, green_gem 4→4, two-quarter 8→8, vegas 3→3, mame 2+2 majors). The
 legacy `DetectCleaned` stays for the `--islands` Python-parity harness; the stored corpus `islands.json` reflects
-stair-aware only after a re-scan. The **under-split / merged** mode (`abstract`) is a different root cause (the
-y0/bedrock fallback floor slab) and is unchanged — still surfaced by the `LooksUnderSplit` heuristic + the review
-flag below.
+stair-aware only after a re-scan. The **under-split / merged** mode (`abstract`) is fixed separately by the
+stained-glass build-floor exclude above; `LooksUnderSplit` + the review flag remain the catch-all for any
+other merged read.
 
 **Role buckets + under-split triage (in `Analysis/Footprint/IslandClassifier`):**
 - **Role buckets by size** — `major` (≥25% of the largest landmass: the team islands that hold spawn/wools and

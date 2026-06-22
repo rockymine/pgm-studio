@@ -195,8 +195,10 @@ feature).
   the legacy detection — needs the source worlds, `OvercastCommunity/CommunityMaps`+`PublicMaps` `ctw/`), and
   decide whether to refresh the `--islands` Python-parity oracle to match; (b) the residual `a_new_day` **isolated
   raised-decor specks** (≈37-block grid bits with no walkable connection — correctly `small` via
-  `IslandClassifier`, but a per-island prune could drop them); (c) the **under-split / merged** mode (`abstract`):
-  the y0/bedrock fallback floor slab bridges teams — a separate base fix (flagged by `LooksUnderSplit`); (d) a
+  `IslandClassifier`, but a per-island prune could drop them); (c) any **under-split / merged**
+  read beyond `abstract` (whose stained-glass build-floor is now excluded from the cleaned base — see
+  `FEATURES.md`): `LooksUnderSplit` is the catch-all flag; the residual lever if one is found is to fall through
+  to surface-based detection when a cleaned-base component is a map-spanning low-Y slab. (d) a
   **decompose-queue UI** to show/set the review flag + island-health read (browser; deferred).
 - [ ] **G10 — Frontline model from buildable adjacency (later).** Beyond per-island lanes: detect which island
   **edges touch buildable regions** and which islands a player can **step between** (adjacency across the

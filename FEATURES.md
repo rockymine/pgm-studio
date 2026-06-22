@@ -117,6 +117,13 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   (height-aware connectivity prunes floating builds over void; y0/bedrock fallback). The new-map
   detection layer (ND2 §6a); validated on real worlds via `--clean-base-render`
   (`scripts/render_clean_base.sh`). (A5)
+- **Stained-glass build-floor exclude** — a low stained-glass slab is a build-region floor (PGM auto-detects it
+  like the invisible block-36 marker; such maps remove it pre-game via a `destroyables` mode-change and define
+  their build region with a void filter — confirmed in `abstract`'s map.xml). `LayerExtractors.CleanBaseExclude`
+  now drops stained glass (95) beside {36}; since the base read is bottom-up-lowest, only glass *floors* are
+  affected (decorative glass walls/windows above other blocks are untouched). Un-merges the under-split teams on
+  abstract/abstract_remix (one ~4937 blob → symmetric team pairs) with no change to the tested healthy or
+  over-split maps. (G9)
 - **Stair-aware island detection** — `LayerExtractors.CleanColumns` reports each column's lowest cleaned-solid Y
   **plus every standable surface**, and `IslandDetector.DetectStairAware`/`DetectCleanedStairAware` join adjacent
   columns when any surface pair is within a step — so a walkable staircase keeps a raised structure attached to

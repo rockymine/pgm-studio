@@ -22,13 +22,20 @@ public static class LayerExtractors
     /// scan "looks up" into anything over the terrain, so on decorated worlds it catches connected masses
     /// that destabilise the island picture. This set is the corpus-derived noise the reference project's
     /// per-map `map_layouts.json` hand-excluded — water/lava (the usual island *bridge*), foliage
-    /// (overlapping leaves/logs/canopy), redstone lines, and cobweb — unioned with the {36} marker.
-    /// (Specks like a lone cobweb never form an island anyway; <see cref="IslandDetector"/>'s min-size
-    /// prune drops them. This set targets the *connected* masses.)
+    /// (overlapping leaves/logs/canopy), redstone lines, and cobweb — unioned with the {36} marker and the
+    /// stained-glass build-floor marker. (Specks like a lone cobweb never form an island anyway;
+    /// <see cref="IslandDetector"/>'s min-size prune drops them. This set targets the *connected* masses.)
+    /// <para>Stained glass (95) joins {36}: a low stained-glass slab is a build-region floor — PGM
+    /// auto-detects it as buildable like the invisible block-36 marker, and such maps remove it pre-game via
+    /// a <c>destroyables</c> mode-change while defining their build region explicitly with a void filter.
+    /// Excluding it only affects columns where glass is the *lowest* solid (a glass floor), so decorative
+    /// glass walls/windows above other blocks are untouched; it un-merges floors that bridge the teams
+    /// (e.g. abstract) without regressing the tested corpus.</para>
     /// </summary>
     public static readonly IReadOnlySet<int> CleanBaseExclude = new HashSet<int>
     {
         36,                                 // piston_moving_piece (the existing Base default)
+        95,                                 // stained glass — low build-floor marker (removed pre-game)
         8, 9, 10, 11,                       // water (flow/still), lava (flow/still) — the bridge
         6, 17, 18, 31, 32, 106, 111, 161, 162, // sapling, log, leaves, tallgrass, deadbush, vine, lily_pad, leaves2, log2
         55, 75, 76, 131, 132,               // redstone wire, redstone torch (off/on), tripwire hook, tripwire (string)
