@@ -176,16 +176,6 @@ feature).
   `G11` anchors **seed** it: a cut runs hub→wool tip and hub→spawn, and each resulting piece **auto-labels**
   (wool at a wool anchor · spawn at the spawn anchor · frontline where the edge meets the build region · hub =
   residual).
-- [ ] **G7 — Decompose: select tool + inspector categorization.** Add a **select** tool (click a piece on
-  the canvas to select it — today selection is only via the left list / Focus-piece). With a selection, assign
-  its category from a **right inspector panel using buttons** (the per-piece `<select>` dropdown is too slow
-  for the fast swipe-through). Expand the category set beyond spawn/wool/frontline/hub/other with
-  **stepping-stone**, **mid**, and **decorative / outside-playable** (whole-island tags — `decorative` lets us
-  exclude the ~⅓ non-gameplay neutral islands; `stepping-stone`/`mid` feed the contested-middle model in
-  `G3`). Categories persist per shape in `lane_decomposition_json`. **Pre-filled from `G11`:** the classifier's
-  role gives the whole-island tag for free (`decorative`→decorative, `neutral`→stepping-stone/mid,
-  `team`/`objective`→flagged for dissection); the human confirms + cuts only the team islands instead of tagging
-  all N from scratch (optionally pre-seed the tags into `lane_decomposition_json` on open).
 - [ ] **G9 — Re-scan the corpus with stair-aware detection + decompose-queue UI (remaining slice).** The
   over-split **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`, wired into
   `WorldFeatureWriter`/`--scan-out`/`--island-sketch`; validated on the cloned worlds with team structure

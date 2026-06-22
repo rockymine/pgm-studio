@@ -12,7 +12,12 @@ import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 const ROLE_COLORS = {
   spawn: "var(--color-error)", wool: "var(--accent)", frontline: "var(--canvas-result-stroke)",
   hub: "var(--text-muted)", other: "var(--canvas-add-stroke)",
+  "stepping-stone": "var(--color-success)", mid: "var(--color-warning)", decorative: "var(--canvas-mirror-stroke)",
 };
+
+// island role (from /island-roles) → pre-filled whole-island category: decorative islands and neutral
+// stepping-stones get tagged for free; team/objective islands are left "other" for the human to cut into lanes.
+const ROLE_PREFILL = { decorative: "decorative", neutral: "stepping-stone" };
 
 export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   let pieces = [];          // [{id, exterior:[[x,z]], holes:[[[x,z]]], role}]
@@ -152,6 +157,16 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   const evWorld = (e) => { const r = svgEl_.getBoundingClientRect(); return toWorld()(e.clientX - r.left, e.clientY - r.top); };
   let down = null, moved = false, panStart = null;
 
+  // Topmost piece whose exterior contains the point and none of whose holes do (for the select tool).
+  function pieceAt(world) {
+    for (let i = pieces.length - 1; i >= 0; i--) {
+      const p = pieces[i];
+      if (pointInRing(world.x, world.z, p.exterior) && !(p.holes || []).some(h => pointInRing(world.x, world.z, h)))
+        return p;
+    }
+    return null;
+  }
+
   function hitCandidate(world) {
     const T = toSvg(), s = T(world.x, world.z), R = 9;
     for (const m of markers) { const p = T(m.point[0], m.point[1]); if (Math.hypot(p.x - s.x, p.y - s.y) < R) return { kind: "marker", key: m.key, point: m.point }; }
@@ -208,6 +223,7 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
     try { svgEl_.setPointerCapture(e.pointerId); } catch { /* not a captureable pointer */ }
     down = { x: e.clientX, y: e.clientY }; moved = false;
     if (tool === "pan" || e.button === 1) { panStart = { ...view, sx: e.clientX, sy: e.clientY }; return; }
+    if (tool === "select") return;   // select picks a piece on pointerup; nothing to start here
     // lasso mode: a click on a candidate picks a seam; a drag starts a lasso
     const w = evWorld(e);
     const c = hitCandidate(w);
@@ -231,6 +247,10 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
     if (!down) return;
     const wasPick = down._pick, wasLasso = lasso && !wasPick;
     const didMove = moved; down = null; panStart = null;
+    if (tool === "select") {   // click a piece to select it (no drag); empty space clears the selection
+      if (!didMove) { const p = pieceAt(evWorld(e)); selectedId = p?.id ?? null; render(); fire("OnSelect", selectedId); }
+      return;
+    }
     if (wasPick && !didMove) { pickSeam(wasPick); return; }
     if (wasLasso) { if (didMove) finishLasso(); else lasso = null; render(); }
   });
@@ -267,34 +287,38 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   }
 
   // ── seed + handle ─────────────────────────────────────────────────────────
-  function loadLayout(state, symmetry) {
+  // `roles` (optional) is the per-island gameplay role from /island-roles, index-aligned to the sketch
+  // islands — used to pre-fill whole-island categories when seeding from the bare outline (no saved cuts).
+  function loadLayout(state, symmetry, roles) {
     pieces = []; seq = 0; undo.length = 0; lasso = null; target = null; markers = []; seam = [];
     blockData = null; showBlocks = false;   // new map: drop the previous map's overlays; the host re-applies
     anchors = []; showAnchors = false; buildRegion = null; showBuild = false;
+    selectedId = null;
     sym = symmetry && symmetry.mode && symmetry.mode !== "none" ? symmetry : null;
     const layout = state?.layout;
     if (layout?.islands?.length) {
-      for (const isl of layout.islands) {
+      layout.islands.forEach((isl, idx) => {
         const shapes = (isl.shapeIds || []).map(id => layout.shapes.find(s => s.id === id)).filter(Boolean);
         const ext = shapes.find(s => s.operation !== "subtract");
-        if (!ext?.vertices?.length) continue;
-        pieces.push({ id: `p${seq++}`, role: ext.role || "other", exterior: ext.vertices.map(v => [v[0], v[1]]),
+        if (!ext?.vertices?.length) return;
+        const prefill = roles ? ROLE_PREFILL[roles[idx]] : null;
+        pieces.push({ id: `p${seq++}`, role: ext.role || prefill || "other", exterior: ext.vertices.map(v => [v[0], v[1]]),
           holes: shapes.filter(s => s.operation === "subtract" && s.vertices?.length).map(s => s.vertices.map(v => [v[0], v[1]])) });
-      }
+      });
     }
     if (sym && pieces.length > 1) pieces = dedupBySymmetry(pieces, sym.mode, sym.cx, sym.cz);
     view = null; baseScale = 0; render(); pushPanel();
   }
 
   return {
-    load(state, symmetry) { loadLayout(state, symmetry); },
+    load(state, symmetry, roles) { loadLayout(state, symmetry, roles); },
     // Reference top-surface block overlay: the host passes the payload on enable (cached after), null to toggle
     // an already-loaded layer; visibility is independent so it persists as the host re-feeds it per map.
     setBlocks(data, visible) { if (data) blockData = data; showBlocks = !!visible && !!blockData; render(); },
     // Objective anchors (G8b) + declared build region (G8c) — both from /island-roles, fed + toggled per map.
     setAnchors(data, visible) { if (data) anchors = data; showAnchors = !!visible && anchors.length > 0; render(); },
     setBuild(data, visible) { if (data) buildRegion = data; showBuild = !!visible && !!buildRegion; render(); },
-    setTool(t) { tool = t === "pan" ? "pan" : "lasso"; if (t !== "lasso") { lasso = null; } render(); },
+    setTool(t) { tool = (t === "pan" || t === "select") ? t : "lasso"; if (t !== "lasso") { lasso = null; } render(); },
     selectPiece(id) { selectedId = id ?? null; render(); },
     setRole(id, role) { const p = pieces.find(x => x.id === id); if (p) { p.role = role; render(); pushPanel(); fire("OnDirty"); } },
     undo() { if (undo.length) { pieces = undo.pop(); target = null; seam = []; markers = []; lasso = null; render(); pushPanel(); fire("OnDirty"); } },

@@ -454,6 +454,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     **objective anchors** — wool tips + spawn spurs as ringed markers on top; (c) the **declared build region**
     as a dashed outline under the pieces. (b)/(c) consume the `GET /map/{slug}/island-roles` hook's `anchors`
     + `buildRegion`. (G8)
+  - **Select tool + inspector categorization (G7)** — a **select** tool picks a piece on the canvas (or a row
+    in the redesigned colour-coded left list); a **right inspector** sets its category from button groups —
+    **Lane role** (spawn/wool/frontline/hub/other) + **Whole island** (stepping-stone/mid/decorative) — instead
+    of the slow per-piece dropdown. Whole-island tags are **pre-filled from `/island-roles`** (neutral →
+    stepping-stone, decorative → decorative; team/objective left to cut), so the human confirms the auto-tags and
+    cuts only the team islands. Persists per shape in `lane_decomposition_json`. (G7)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

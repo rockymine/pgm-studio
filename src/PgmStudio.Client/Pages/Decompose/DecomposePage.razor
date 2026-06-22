@@ -47,14 +47,11 @@
               @if (pieces.Count == 0) { <p class="field-help">Loading the island outline…</p> }
               @foreach (var p in pieces)
               {
-                <div class="field">
-                  <label class="field-label">@p.Id · @p.Vertices v@(p.Holes > 0 ? $" · {p.Holes} hole(s)" : "")</label>
-                  <select class="field-input" @onchange="@(e => SetRole(p.Id, e.Value?.ToString()))" @onfocus="@(() => SelectPiece(p.Id))">
-                    @foreach (var r in Roles)
-                    {
-                      <option value="@r" selected="@(p.Role == r)">@r</option>
-                    }
-                  </select>
+                <div class="list-row list-row--compact @(selectedId == p.Id ? "list-row--selected" : null)"
+                     @key="p.Id" @onclick="() => SelectPiece(p.Id)">
+                  <span class="list-swatch" style="background:@RoleColor(p.Role)"></span>
+                  <span class="list-label list-label--mono">@p.Id</span>
+                  <span class="badge badge--dim">@p.Role</span>
                 </div>
               }
             </section>
@@ -66,6 +63,8 @@
             <div class="canvas-toolbar">
               <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)"
                       title="Lasso a lane, then click two seam points" @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
+              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)"
+                      title="Select a piece to categorize it" @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
               <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)"
                       title="Move / pan" @onclick='() => SetTool("pan")'><i data-lucide="hand"></i></button>
             </div>
@@ -92,6 +91,52 @@
           </div>
           <div @ref="wrapRef" class="svg-area">
             <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            @if (Selected is { } sel)
+            {
+              <section class="panel-section">
+                <div class="detail-header">
+                  <span class="list-swatch" style="background:@RoleColor(sel.Role)"></span>
+                  <span class="detail-label detail-label--mono">@sel.Id</span>
+                  <span class="badge badge--dim">@sel.Vertices v@(sel.Holes > 0 ? $" · {sel.Holes} hole(s)" : "")</span>
+                </div>
+                <div class="section-body">
+                  <div class="field">
+                    <label class="field-label">Lane role</label>
+                    <div class="filter-group-options filter-group-options--fill">
+                      @foreach (var r in LaneRoles)
+                      {
+                        <button class="filter-chip @(sel.Role == r ? "filter-chip--active" : null)" @onclick="() => SetRole(sel.Id, r)">@r</button>
+                      }
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Whole island</label>
+                    <div class="filter-group-options filter-group-options--fill">
+                      @foreach (var r in IslandRoles)
+                      {
+                        <button class="filter-chip @(sel.Role == r ? "filter-chip--active" : null)" @onclick="() => SetRole(sel.Id, r)">@r</button>
+                      }
+                    </div>
+                  </div>
+                  <p class="section-desc">Tag a cut lane (spawn / wool / frontline / hub) or a whole island
+                    (stepping-stone / mid for a neutral mid, decorative to exclude it). Non-team islands are
+                    pre-tagged from detection — just confirm.</p>
+                </div>
+              </section>
+            }
+            else
+            {
+              <section class="panel-section">
+                <div class="section-header section-header--ruled"><h2 class="section-title">Categorize</h2></div>
+                <p class="field-help">Pick the <strong>select</strong> tool and click a piece (or a row on the
+                  left) to set its category from here.</p>
+              </section>
+            }
           </div>
         </div>
       </div>

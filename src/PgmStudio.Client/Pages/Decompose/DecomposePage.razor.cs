@@ -15,7 +15,10 @@ public partial class DecomposePage
 {
     [Parameter] public string Slug { get; set; } = "";
 
-    private static readonly string[] Roles = ["spawn", "wool", "frontline", "hub", "other"];
+    // Lane-piece roles (cut from a team island) + whole-island tags (stepping-stone/mid neutral islands,
+    // decorative = excluded non-gameplay). Pre-filled per island from the /island-roles classifier.
+    private static readonly string[] LaneRoles = ["spawn", "wool", "frontline", "hub", "other"];
+    private static readonly string[] IslandRoles = ["stepping-stone", "mid", "decorative"];
 
     private ElementReference svgRef, wrapRef, coordsRef, zoomRef;
     private IJSObjectReference? handle;
@@ -31,6 +34,8 @@ public partial class DecomposePage
     private string progressLabel = "";
     private List<PieceRow> pieces = [];
     private List<string> queue = [];
+    private string? selectedId;     // the piece selected on the canvas / list → shown in the right inspector
+    private PieceRow? Selected => pieces.FirstOrDefault(p => p.Id == selectedId);
 
     private sealed class PieceRow
     {
@@ -68,15 +73,21 @@ public partial class DecomposePage
         if (handle is null) return;
         focusSel = "";
         rolesCache = null;   // new map → re-fetch the island-roles overlays on demand
+        selectedId = null;
         try
         {
             // resume a saved decomposition (already one-side) if present, else start from the simplified
-            // outline and dedup to one side via the map symmetry.
+            // outline, dedup to one side via the map symmetry, and pre-fill whole-island categories from the
+            // /island-roles classifier (decorative + neutral islands get tagged; team/objective left to cut).
             var saved = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/lane-decomposition");
-            if (HasShapes(saved)) { await handle.InvokeVoidAsync("load", saved, (object?)null); return; }
-            var island = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/island-sketch");
-            var sym = await FetchSymmetryAsync();
-            await handle.InvokeVoidAsync("load", island, sym);
+            if (HasShapes(saved))
+                await handle.InvokeVoidAsync("load", saved, (object?)null, (object?)null);
+            else
+            {
+                var island = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/island-sketch");
+                var sym = await FetchSymmetryAsync();
+                await handle.InvokeVoidAsync("load", island, sym, await IslandRoleListAsync());
+            }
         }
         catch { /* no geometry — leave the canvas empty */ }
         await ApplyBlocksAsync();        // re-apply the block-overlay toggle for this map (load reset the bridge)
@@ -85,6 +96,15 @@ public partial class DecomposePage
 
     // Objective anchors (G8b) + declared build region (G8c) — both from GET /island-roles, fetched once per map
     // (cached) and re-applied so the toggles persist as the user browses the queue.
+    // Per-island gameplay role (island-sketch order) for the pre-fill — reuses the cached island-roles fetch.
+    private async Task<List<string?>?> IslandRoleListAsync()
+    {
+        var r = await RolesAsync();
+        if (r is not { } roles) return null;
+        return roles.GetProperty("islands").EnumerateArray()
+            .Select(i => i.TryGetProperty("role", out var rr) ? rr.GetString() : null).ToList();
+    }
+
     private async Task<JsonElement?> RolesAsync()
     {
         if (rolesCache is null)
@@ -187,10 +207,32 @@ public partial class DecomposePage
     private void GoPrev() { var i = queue.IndexOf(Slug); if (i > 0) Nav.NavigateTo($"maps/{queue[i - 1]}/decompose"); }
     private void GoNext() { var i = queue.IndexOf(Slug); if (i >= 0 && i < queue.Count - 1) Nav.NavigateTo($"maps/{queue[i + 1]}/decompose"); }
 
+    // Category swatch colour — mirrors ROLE_COLORS in decompose-bridge.js so the list/inspector match the canvas.
+    private static string RoleColor(string role) => role switch
+    {
+        "spawn" => "var(--color-error)",
+        "wool" => "var(--accent)",
+        "frontline" => "var(--canvas-result-stroke)",
+        "hub" => "var(--text-muted)",
+        "stepping-stone" => "var(--color-success)",
+        "mid" => "var(--color-warning)",
+        "decorative" => "var(--canvas-mirror-stroke)",
+        _ => "var(--canvas-add-stroke)",
+    };
+
     private Task Undo() => handle?.InvokeVoidAsync("undo").AsTask() ?? Task.CompletedTask;
-    private Task SelectPiece(string id) => handle?.InvokeVoidAsync("selectPiece", id).AsTask() ?? Task.CompletedTask;
-    private Task SetRole(string id, string? role) =>
-        role is null ? Task.CompletedTask : (handle?.InvokeVoidAsync("setRole", id, role).AsTask() ?? Task.CompletedTask);
+
+    private async Task SelectPiece(string id)
+    {
+        selectedId = id;
+        if (handle is not null) await handle.InvokeVoidAsync("selectPiece", id);
+    }
+
+    private async Task SetRole(string id, string role)
+    {
+        if (pieces.FirstOrDefault(p => p.Id == id) is { } p) p.Role = role;   // immediate inspector feedback
+        if (handle is not null) await handle.InvokeVoidAsync("setRole", id, role);
+    }
 
     private async Task ConfirmNext()
     {
@@ -211,11 +253,16 @@ public partial class DecomposePage
         else Nav.NavigateTo("maps");   // queue drained
     }
 
+    /// <summary>The canvas select tool picked a piece (or empty space → null).</summary>
+    [JSInvokable]
+    public void OnSelect(string? id) { selectedId = id; StateHasChanged(); }
+
     /// <summary>The bridge pushed the current piece list (after each cut / role change).</summary>
     [JSInvokable]
     public void OnPieces(string json)
     {
         pieces = JsonSerializer.Deserialize<List<PieceRow>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+        if (selectedId is not null && pieces.All(p => p.Id != selectedId)) selectedId = null;   // selection split/removed by a cut
         StateHasChanged();
     }
 
