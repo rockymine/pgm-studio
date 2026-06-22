@@ -84,14 +84,20 @@ stair-aware only after a re-scan. The **under-split / merged** mode (`abstract`)
 stained-glass build-floor exclude above; `LooksUnderSplit` + the review flag remain the catch-all for any
 other merged read.
 
-**Role buckets + under-split triage (in `Analysis/Footprint/IslandClassifier`):**
-- **Role buckets by size** — `major` (≥25% of the largest landmass: the team islands that hold spawn/wools and
-  need dissection), `neutral` (≥64 blocks but smaller: contested-middle stepping-stones / mids), `small`
-  (sub-gameplay specks — where over-split fragments land, so they fall out of the gameplay model on their own).
-  Corpus-validated: kanto 2 majors, green_gem 2+2, annealing_iv 4+8, two-quarter 4+4.
-- **Under-split detector** — a symmetric N-team map should resolve into N comparable majors, so `majors < teams`
-  flags the merged case (`abstract` → 1 major on a 2-team map). Clean: only ~22 corpus maps trip it, vs the 137
-  false positives of the bbox heuristic.
+**Classification (in `Analysis/Footprint/`):**
+- **Semantic role by anchor** (`IslandRoleClassifier`) — the rubric above, computed: an island is **team** when
+  it holds a spawn (point or `only-<team>` protection region), **objective** when it holds a wool but no spawn
+  (`wools[].location`, wool-room region, or a wool-*dispensing* spawner region — economy spawners like mame's
+  gold nuggets are skipped, and the capture **monument** is never an anchor — it sits on the enemy side),
+  **neutral** when anchorless but intersecting a build region (a stepping-stone / mid), and **decorative** when
+  anchorless and outside the build region (e.g. an observer island above max-build-height). Anchors resolve to
+  footprints via `RegionGeometry2d` and test by intersection (robust to concavities — what missed mame's spawn
+  before the stair-aware fix); build regions come from `RegionCategorizer`. Validated against the ground truth
+  (kanto/thunder/annealing_iv/a_new_day/mame/green_gem).
+- **Size buckets** (`IslandClassifier`, the anchorless fallback) — `major` (≥25% of the largest), `neutral`
+  (≥64 blocks), `small` (specks). Plus the **under-split detector**: a symmetric N-team map should resolve into
+  N comparable majors, so `majors < teams` flags the merged case (only ~22 corpus maps trip it, vs 137 false
+  positives for the bbox heuristic).
 
 **Surfaces:** `GET /map/{slug}/island-health` (roles + counts + `underSplit`), `GET`/`PUT /map/{slug}/island-review`
 (the human's `{status, note}` flag — `status:"ok"` clears it), and the flag is echoed per map in

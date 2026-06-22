@@ -133,7 +133,16 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   `--scan-out` / `--island-sketch`. Validated on re-scanned worlds via `--island-stairaware`: a_new_day 17→14,
   a_new_day_ii 9→5, thunder 33→17, with team-island count + symmetry preserved on every map (kanto/green_gem/
   two-quarter/vegas/mame). The legacy `DetectCleaned` remains for the `--islands` Python-parity harness. (G9)
-- **Island role classifier + detection-health triage** — `IslandClassifier` buckets detected islands by size
+- **Semantic island role classifier** — `IslandRoleClassifier` tags each island by gameplay role from its
+  objective anchors (not size): **team** (holds a spawn — point or `only-<team>` protection region),
+  **objective** (holds a wool — `wools[].location`, wool-room region, or a wool-*dispensing* spawner region;
+  economy spawners like gold nuggets are skipped, and the capture **monument** is never an anchor),
+  **neutral** (no anchor but intersects the build region — a stepping-stone/mid), **decorative** (no anchor,
+  outside the build region — e.g. an observer island). Anchors are resolved to footprints via
+  `RegionGeometry2d` and tested by intersection (robust to concavities); build regions come from
+  `RegionCategorizer`. Surfaced on `GET /map/{slug}/island-health` as `roles`. Validated against the corpus
+  ground truth (kanto/thunder/annealing_iv/a_new_day/mame/green_gem). (G9)
+- **Island size classifier + detection-health triage** — `IslandClassifier` buckets detected islands by size
   into `major` (team islands, ≥25% of the largest), `neutral` (gameplay-sized mids/stepping-stones, ≥64 blocks),
   and `small` (sub-gameplay specks / over-split fragments); corpus-validated (kanto 2 majors, green_gem 2+2,
   annealing_iv 4+8). `LooksUnderSplit` flags the merged-teams failure mode (majors < teams, e.g. `abstract`).

@@ -2,9 +2,11 @@ using System.Text.Json;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
+using NetTopologySuite.Geometries;
 using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -72,53 +74,92 @@ public sealed class IslandReviewPutEndpoint(MapRepository repo, PgmDb db) : Endp
 }
 
 /// <summary>
-/// GET /api/map/{slug}/island-health — an automatic read of the detected islands: each island's gameplay
-/// role (major / neutral / small) by size, and whether the map looks <b>under-split</b> (a symmetric
-/// N-team map that resolved into fewer than N major landmasses → likely merged teams). Reliable for the
-/// merged case; the over-split case (raised features carved off a connected island) is not reliably
-/// auto-detectable, so it is left to the manual review flag.
+/// GET /api/map/{slug}/island-health — an automatic read of the detected islands. Reports each island's
+/// <b>gameplay role</b> (team / objective / neutral / decorative) from the objective anchors it carries
+/// (spawn + wool, never the monument) and the buildable region, with a size bucket (major/neutral/small) as
+/// the fallback for anchorless maps, and whether the map looks <b>under-split</b> (a symmetric N-team map
+/// that resolved into fewer than N major landmasses → likely merged teams).
 /// </summary>
-public sealed class IslandHealthEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class IslandHealthEndpoint(MapRepository repo, MapReader reader, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/island-health"); AllowAnonymous(); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        var slug = Route<string>("slug")!;
+        var map = await repo.GetBySlugAsync(slug, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
         var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson, ct);
-        var counts = ParseBlockCounts(art?.Data);
+        var islands = ParseIslands(art?.Data);
         var teams = await db.Teams.CountAsync(t => t.MapId == map.Id, ct);
 
-        var largest = counts.Count > 0 ? counts.Max() : 0;
-        var roles = counts.Select(c => IslandClassifier.Classify(c, largest).ToString().ToLowerInvariant()).ToList();
-        var majors = roles.Count(r => r == "major");
+        // Size buckets (always available) + the under-split signal.
+        var largest = islands.Count > 0 ? islands.Max(i => i.Blocks) : 0;
+        var sizeRoles = islands.Select(i => IslandClassifier.Classify(i.Blocks, largest).ToString().ToLowerInvariant()).ToList();
+        var majors = sizeRoles.Count(r => r == "major");
+
+        // Gameplay roles from the map's objective anchors + build regions (best-effort: needs the doc).
+        var gameplayRoles = await GameplayRolesAsync(slug, islands.Select(i => i.Geom).ToList(), ct);
+
         await Send.OkAsync(new
         {
-            islands = counts.Count,
+            islands = islands.Count,
             teams,
             majors,
-            neutrals = roles.Count(r => r == "neutral"),
-            small = roles.Count(r => r == "small"),
-            roles,
+            neutrals = sizeRoles.Count(r => r == "neutral"),
+            small = sizeRoles.Count(r => r == "small"),
+            sizeRoles,
+            roles = gameplayRoles,   // team / objective / neutral / decorative (null when the doc is unavailable)
+            team = gameplayRoles?.Count(r => r == "team"),
             underSplit = IslandClassifier.LooksUnderSplit(majors, teams),
         }, ct);
     }
 
-    // The islands_json artifact is the SerializeJson output: an array of {block_count, ...}.
-    private static List<int> ParseBlockCounts(byte[]? data)
+    private async Task<List<string>?> GameplayRolesAsync(string slug, IReadOnlyList<Geometry> islands, CancellationToken ct)
     {
-        if (data is null || data.Length == 0) return [];
+        if (islands.Count == 0) return null;
+        var doc = await reader.ReadDocAsync(slug);
+        if (doc is null) return null;
+
+        // Bounds = the islands' combined extent (enough for the concrete spawn/wool regions and the
+        // void-spanning build complement).
+        var env = new Envelope();
+        foreach (var g in islands) env.ExpandToInclude(g.EnvelopeInternal);
+        var bounds = (env.MinX, env.MinY, env.MaxX, env.MaxY);
+
+        var buildIds = RegionCategorizer.Categorize(doc).Where(kv => kv.Value == "build").Select(kv => kv.Key);
+        var buildRegion = IslandRoleClassifier.BuildRegion(doc, buildIds, bounds);
+        var anchors = IslandRoleClassifier.ExtractAnchors(doc, bounds);
+        return IslandRoleClassifier.Classify(islands, anchors, buildRegion)
+            .Select(r => r.ToString().ToLowerInvariant()).ToList();
+    }
+
+    private static readonly GeometryFactory Gf = new();
+
+    // islands_json is the SerializeJson output: [{block_count, polygon:{coordinates:[[[x,z],...],...]}}].
+    private static List<(int Blocks, Geometry Geom)> ParseIslands(byte[]? data)
+    {
+        var result = new List<(int, Geometry)>();
+        if (data is null || data.Length == 0) return result;
         try
         {
             using var doc = JsonDocument.Parse(data);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array) return [];
-            return doc.RootElement.EnumerateArray()
-                .Where(e => e.TryGetProperty("block_count", out _))
-                .Select(e => e.GetProperty("block_count").GetInt32())
-                .ToList();
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return result;
+            foreach (var e in doc.RootElement.EnumerateArray())
+            {
+                if (!e.TryGetProperty("block_count", out var bc)) continue;
+                var rings = e.GetProperty("polygon").GetProperty("coordinates");
+                if (rings.GetArrayLength() == 0) continue;
+                var shell = Ring(rings[0]);
+                var holes = Enumerable.Range(1, rings.GetArrayLength() - 1).Select(i => Ring(rings[i])).ToArray();
+                result.Add((bc.GetInt32(), Gf.CreatePolygon(Gf.CreateLinearRing(shell), holes.Select(Gf.CreateLinearRing).ToArray())));
+            }
         }
-        catch { return []; }
+        catch { /* malformed islands_json → no geometry */ }
+        return result;
     }
+
+    private static Coordinate[] Ring(JsonElement ring) =>
+        ring.EnumerateArray().Select(p => new Coordinate(p[0].GetDouble(), p[1].GetDouble())).ToArray();
 }
