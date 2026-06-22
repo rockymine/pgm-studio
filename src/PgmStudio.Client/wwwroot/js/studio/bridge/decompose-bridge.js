@@ -5,6 +5,7 @@
 
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
 import { svgEl, ringToPath } from "../render/svg.js";
+import { renderBlockImage } from "../render/block-render.js";
 import { enclosedVertices, edgeMarkers, splitPiece, centroid, pointInRing } from "../geometry/decompose-cut.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 
@@ -24,6 +25,8 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   let laneRep = null;       // lasso centroid (the lane side)
   let selectedId = null;    // panel-selected piece
   let sym = null;           // {mode, cx, cz} of the map (for one-side dedup + getState mirror)
+  let blockData = null;     // top-surface block-colour overlay payload (reference, below the pieces)
+  let showBlocks = false;
   let baseScale = 0;        // px-per-block at the first fit (zoom % baseline)
   const undo = [];          // snapshots of `pieces`
   let seq = 0;
@@ -63,6 +66,11 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
     const scale = T(1, 0).x - T(0, 0).x;
     if (!baseScale) baseScale = scale;
     if (zoomEl) zoomEl.textContent = `${Math.round((scale / baseScale) * 100)}%`;
+    // reference block-colour overlay, painted first so the lane pieces draw on top of it
+    if (showBlocks && blockData) {
+      const bg = svgEl_.appendChild(svgEl("g", { "data-layer": "blocks", opacity: "0.6" }));
+      renderBlockImage(bg, blockData, T);
+    }
     const polyPath = (p) => ringToPath(p.exterior, T) + (p.holes || []).map(h => " " + ringToPath(h, T)).join("");
     for (const p of pieces) {
       const sel = p.id === selectedId || (target && p.id === target.id);
@@ -233,6 +241,7 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   // ── seed + handle ─────────────────────────────────────────────────────────
   function loadLayout(state, symmetry) {
     pieces = []; seq = 0; undo.length = 0; lasso = null; target = null; markers = []; seam = [];
+    blockData = null; showBlocks = false;   // new map: drop the previous map's overlay; the host re-applies
     sym = symmetry && symmetry.mode && symmetry.mode !== "none" ? symmetry : null;
     const layout = state?.layout;
     if (layout?.islands?.length) {
@@ -250,6 +259,9 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
 
   return {
     load(state, symmetry) { loadLayout(state, symmetry); },
+    // Reference top-surface block overlay: the host passes the payload on enable (cached after), null to toggle
+    // an already-loaded layer; visibility is independent so it persists as the host re-feeds it per map.
+    setBlocks(data, visible) { if (data) blockData = data; showBlocks = !!visible && !!blockData; render(); },
     setTool(t) { tool = t === "pan" ? "pan" : "lasso"; if (t !== "lasso") { lasso = null; } render(); },
     selectPiece(id) { selectedId = id ?? null; render(); },
     setRole(id, role) { const p = pieces.find(x => x.id === id); if (p) { p.role = role; render(); pushPanel(); fire("OnDirty"); } },

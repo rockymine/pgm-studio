@@ -23,6 +23,7 @@ public partial class DecomposePage
 
     private string tool = "lasso";
     private string focusSel = "";
+    private bool blocksOn;          // top-surface block overlay toggle — persists as you browse the queue
     private string? loadedSlug;
     private bool saving;
     private string progressLabel = "";
@@ -75,7 +76,24 @@ public partial class DecomposePage
             await handle.InvokeVoidAsync("load", island, sym);
         }
         catch { /* no geometry — leave the canvas empty */ }
+        await ApplyBlocksAsync();   // re-apply the block-overlay toggle for this map (load reset the bridge)
     }
+
+    // The block-colour overlay: lazily fetch this map's top-surface layer when on, else hide. Called on every
+    // map load so the toggle preference persists as the user browses the queue.
+    private async Task ApplyBlocksAsync()
+    {
+        if (handle is null) return;
+        if (!blocksOn) { await handle.InvokeVoidAsync("setBlocks", (object?)null, false); return; }
+        try
+        {
+            var blocks = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/layers/top-surface");
+            await handle.InvokeVoidAsync("setBlocks", blocks, true);
+        }
+        catch { await handle.InvokeVoidAsync("setBlocks", (object?)null, false); }   // no layer for this map
+    }
+
+    private async Task ToggleBlocks() { blocksOn = !blocksOn; await ApplyBlocksAsync(); }
 
     // The map's primary symmetry + centre, so the canvas keeps one island per orbit. Null → show all.
     private async Task<object?> FetchSymmetryAsync()
