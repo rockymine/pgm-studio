@@ -187,21 +187,18 @@ feature).
   cutting; (c) the **XML-defined buildable areas** — the `RegionCategorizer` build regions' geometry as polygons
   (the *declared* build space only at this step, NOT the computed buildability overlay). Each needs the data on
   the decompose page (a small objectives / build-regions read, or reuse the existing endpoints).
-- [ ] **G9 — Decompose: flag a visually-wrong simplified hull.** A per-map status the author can set to mark
-  that a map's `island_sketch` looks wrong, for review. Store as a small flag (a `map_artifact` or column) and
-  surface it in the decompose queue. **Known case: `a_new_day` / `a_new_day_ii`** — the one connected main
-  island shows small detached polygons in places (a_new_day: ~13 tiny ≈37-block bits, 7+ *inside* the main
-  bbox, in a regular grid). Root cause is **detection, not simplification**: `IslandDetector.DetectCleaned`'s
-  height-aware connectivity (heightTolerance 3 / outlierMargin 12) carves **raised features**
-  (platforms/structures above the surrounding terrain) off a horizontally-connected landmass; the per-island
-  simplify then faithfully draws each fragment. The two detection failure modes to catch:
-  (i) **over-split** (a_new_day) — raised features carved off a connected island;
-  (ii) **merged / under-split** (`abstract` / `abstract_remix`) — both teams read as one map-spanning island
-  (one ≈4937-block island covering ~87% of the extent + two ≈49-block bits). Likely a **block-36 floor**:
-  `CleanBase` excludes id 36 → the cleaned base reads degenerately → `DetectCleaned` falls back to y0/bedrock,
-  whose raw floor slab is one connected mass across both teams. The flag's review path is to re-detect (looser
-  height params, or a smarter base that keeps a 36-floor distinct from a bridged void) and re-run
-  `--store-island-sketch`.
+- [ ] **G9 — Smarter island base: fix the over-split detection (remaining slice).** The review flag +
+  auto-triage landed (`FEATURES.md`: island role classifier / health / review flag); what remains is the
+  actual **detection fix** for the **over-split** mode (`a_new_day` / `a_new_day_ii`), where `IslandDetector`'s
+  height-aware connectivity carves **grounded** raised features (buildings/stairs over a terrace) off one
+  walkable landmass — because the cleaned base excludes the foliage/water under them and so reads them at a high
+  Y (a cross-section confirms the carved cells are spruce/cobble **stairs** over a continuous terrace; root-cause
+  + evidence in `docs/contracts/lane-decomposition.md`). Fix direction: **3D stair-aware connectivity over a
+  *cleaned* segment stack** (runs of non-air, non-`CleanBaseExclude` blocks) so a structure reachable by walkable
+  steps stays attached. Needs a world re-scan of the affected maps (clone from `OvercastCommunity/CommunityMaps`
+  or `PublicMaps` `ctw/`) + re-validation against the `--islands` parity set. (The merged/under-split case —
+  `abstract` — is already caught by `IslandClassifier.LooksUnderSplit`.) Then a **decompose-queue UI** to
+  show/set the review flag + island-health read (browser; deferred).
 - [ ] **G10 — Frontline model from buildable adjacency (later).** Beyond per-island lanes: detect which island
   **edges touch buildable regions** and which islands a player can **step between** (adjacency across the
   buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on `G8`'s

@@ -117,6 +117,13 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   (height-aware connectivity prunes floating builds over void; y0/bedrock fallback). The new-map
   detection layer (ND2 §6a); validated on real worlds via `--clean-base-render`
   (`scripts/render_clean_base.sh`). (A5)
+- **Island role classifier + detection-health triage** — `IslandClassifier` buckets detected islands by size
+  into `major` (team islands, ≥25% of the largest), `neutral` (gameplay-sized mids/stepping-stones, ≥64 blocks),
+  and `small` (sub-gameplay specks / over-split fragments); corpus-validated (kanto 2 majors, green_gem 2+2,
+  annealing_iv 4+8). `LooksUnderSplit` flags the merged-teams failure mode (majors < teams, e.g. `abstract`).
+  Surfaced via `GET /map/{slug}/island-health` (roles + counts + `underSplit`) and the human review flag
+  `GET`/`PUT /map/{slug}/island-review` (`{status,note}`; echoed per map in `GET /decompose/queue` as
+  `reviewStatus`). Root-cause analysis of the over-split mode in `docs/contracts/lane-decomposition.md`. (G9)
 - **Headless scan-to-files (`--scan-out` / `--scan-out-all`)** — the RoundTrip tool runs the studio's own
   extractors with no database and writes an importer-ready per-map directory (`wools/resources/chests/
   spawners/layer_segments.parquet`, `monument_candidates.parquet` from the F9 `MonumentSuggester` gather,

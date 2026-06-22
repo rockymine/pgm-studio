@@ -30,11 +30,35 @@ public sealed class DecomposeQueueEndpoint(PgmDb db) : EndpointWithoutRequest
         var todo = await eligible
             .Where(m => !db.Artifacts.Any(a => a.MapId == m.Id && a.Kind == ArtifactKind.LaneDecompositionJson))
             .OrderBy(m => m.Slug)
-            .Select(m => new { slug = m.Slug, name = m.Name })
+            // surface the island-sketch review flag (G9) alongside each queued map, so a reviewer can
+            // triage the ones whose detected outline looks wrong before cutting lanes from it.
+            .Select(m => new
+            {
+                slug = m.Slug,
+                name = m.Name,
+                review = db.Artifacts.Where(a => a.MapId == m.Id && a.Kind == ArtifactKind.IslandReviewJson)
+                    .Select(a => a.Data).FirstOrDefault(),
+            })
             .ToListAsync(ct);
         var done = await eligible.CountAsync(
             m => db.Artifacts.Any(a => a.MapId == m.Id && a.Kind == ArtifactKind.LaneDecompositionJson), ct);
-        await Send.OkAsync(new { todo, remaining = todo.Count, done }, ct);
+        var items = todo.Select(t => new
+        {
+            t.slug, t.name,
+            reviewStatus = ReviewStatus(t.review),
+        }).ToList();
+        await Send.OkAsync(new { todo = items, remaining = items.Count, done, flagged = items.Count(i => i.reviewStatus is not null) }, ct);
+    }
+
+    private static string? ReviewStatus(byte[]? data)
+    {
+        if (data is null || data.Length == 0) return null;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(data);
+            return doc.RootElement.TryGetProperty("status", out var s) ? s.GetString() : null;
+        }
+        catch { return null; }
     }
 }
 
