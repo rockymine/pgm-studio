@@ -21,7 +21,9 @@
     <span class="topbar-sep">›</span>
     <span class="topbar-crumb topbar-crumb--dim">Decompose</span>
     <div class="topbar-right">
+      <button class="action-btn" title="Previous map in the queue" @onclick="GoPrev" disabled="@(!CanPrev)"><i data-lucide="chevron-left"></i></button>
       <span class="topbar-crumb topbar-crumb--dim">@progressLabel</span>
+      <button class="action-btn" title="Skip to the next map (without saving)" @onclick="GoNext" disabled="@(!CanNext)"><i data-lucide="chevron-right"></i></button>
       <button class="action-btn" title="Undo last cut" @onclick="Undo"><i data-lucide="undo-2"></i></button>
       <button class="action-btn action-btn--primary" @onclick="ConfirmNext" disabled="@saving"
               title="Save these lanes and move to the next map">Confirm &amp; Next</button>

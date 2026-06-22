@@ -110,7 +110,8 @@ public partial class DecomposePage
             queue = q.GetProperty("todo").EnumerateArray().Select(m => m.GetProperty("slug").GetString()!).ToList();
             var done = q.GetProperty("done").GetInt32();
             var remaining = q.GetProperty("remaining").GetInt32();
-            progressLabel = $"{done} done · {remaining} left";
+            var i = queue.IndexOf(Slug);
+            progressLabel = i >= 0 ? $"{i + 1} of {remaining} to do · {done} done" : $"{remaining} to do · {done} done";
             StateHasChanged();
         }
         catch { /* queue unavailable */ }
@@ -125,6 +126,13 @@ public partial class DecomposePage
         focusSel = e.Value?.ToString() ?? "";
         if (handle is not null && focusSel.Length > 0) await handle.InvokeVoidAsync("fitPiece", focusSel);
     }
+    // Browse the to-do queue without decomposing: step to the adjacent queued map (unsaved cuts are dropped —
+    // these are for checking maps, not committing them; Confirm & Next is the save path).
+    private bool CanPrev => queue.IndexOf(Slug) > 0;
+    private bool CanNext { get { var i = queue.IndexOf(Slug); return i >= 0 && i < queue.Count - 1; } }
+    private void GoPrev() { var i = queue.IndexOf(Slug); if (i > 0) Nav.NavigateTo($"maps/{queue[i - 1]}/decompose"); }
+    private void GoNext() { var i = queue.IndexOf(Slug); if (i >= 0 && i < queue.Count - 1) Nav.NavigateTo($"maps/{queue[i + 1]}/decompose"); }
+
     private Task Undo() => handle?.InvokeVoidAsync("undo").AsTask() ?? Task.CompletedTask;
     private Task SelectPiece(string id) => handle?.InvokeVoidAsync("selectPiece", id).AsTask() ?? Task.CompletedTask;
     private Task SetRole(string id, string? role) =>

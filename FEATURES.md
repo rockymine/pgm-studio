@@ -438,6 +438,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the `mirror_mode`. Uses the shared editor canvas chrome (toolbar · Focus-piece · zoom · cursor). Canvas
   `bridge/decompose-bridge.js` + pure `geometry/decompose-cut.js` (node-tested); `DecomposeEndpoints.cs`
   (queue / load / save). The ground-truth-gathering precursor to the `G6` auto-cutter. (G6)
+  - **Queue browsing** — `‹` / `›` step through the to-do queue without decomposing (unsaved cuts dropped;
+    Confirm & Next stays the save path), boundary-aware disabled state, and the progress label shows position
+    (`{i} of {N} to do · {done} done`) — so a reviewer can check maps ahead/behind before cutting.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
