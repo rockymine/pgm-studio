@@ -60,6 +60,13 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 - **`SmartSuggestion` component** + symmetry-derived intelligent team creation (reads `/symmetry`,
   suggests 2/4 palette teams). (C15)
 - **`Toast` error component** — shared across activities. (from C12)
+- **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
+  facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
+  spawn-filtered Teams canvas, not just point spawns. (C18)
+- **Graceful canvas degrade on missing/degenerate bounds** — `transform.js` `fit()`/`buildTransform`
+  tolerate a null `bounding_box` or a zero/non-finite world extent (xml-only / not-fully-pipelined maps,
+  single-region maps where min == max), falling back to unit scale so the transform stays finite instead
+  of throwing `JSException` "unhandled error". (C13, `5dda68f`)
 - **Region geometry editing** — drag the 8 resize handles (rectangle/cuboid) on the canvas *and* type
   exact coords in the inspector; both persist (`PATCH /regions/{id}` bounds/coords) and stay in sync via
   the shared `Models/RegionEdits` (`EditorCanvas` raises `OnGeometrySaved`; the host persists). Wired in
@@ -460,6 +467,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     of the slow per-piece dropdown. Whole-island tags are **pre-filled from `/island-roles`** (neutral →
     stepping-stone, decorative → decorative; team/objective left to cut), so the human confirms the auto-tags and
     cuts only the team islands. Persists per shape in `lane_decomposition_json`. (G7)
+
+## Sketch tool (M8) — draw shapes → islands → world geometry
+- **Sketch editor** — `/maps/{slug}/sketch` (`SketchEditor` + `SketchPanel`/`SketchInspector`): draw 2-D
+  shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
+  `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;
+  `bridge/sketch-bridge.js`. A sketch **is a draft map**. (S2a, S2b, S2c)
+- **Sketch persistence** — the layout persists as a `SketchLayoutJson` map_artifact (outside the codec,
+  like the draft bucket): `POST /api/sketch` create + `GET`/`PUT /api/map/{slug}/sketch` (debounced save +
+  load-on-mount; 4 integration tests). (S2d)
+- **Sketch finish / rasterize** — `SketchRasterizer` + `WorldFeatureWriter.WriteSketchAsync` +
+  `POST .../sketch/finish` + the Finish button: the sketch rasterizes into the importer's geometry
+  artifacts and flows into Configure (`MapStage.Configure` + a `configureUrl`; 6 rasterizer tests). The
+  `/maps/new` "Sketch from scratch" entry + the in-editor Setup panel (size/symmetry/centre) originate one.
+  (S2e) — the tool is complete (originate → Setup → draw → Finish); only an end-to-end pass through
+  Configure → Edit remains (TODO `S2`). Plan: `docs/contracts/sketch-authoring.md`.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
