@@ -26,8 +26,33 @@ public sealed partial class MapParser
         return new MapParser(doc.Root!).ParseInternal();
     }
 
+    // The studio targets PGM's id-based regions/filters/kits, introduced in proto 1.4.0, and reads
+    // pre-"flattening" (pre-1.13) numeric-block worlds.
+    private static readonly Version MinProto = new(1, 4, 0);
+    private static readonly Version FirstModernServer = new(1, 13, 0);   // the 1.13 block-id "flattening"
+
+    // Reject maps outside the supported range up front rather than silently mis-parsing them: the old
+    // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), and modern worlds
+    // whose 1.13+ palette chunks the Anvil reader cannot decode.
+    private void EnsureSupported()
+    {
+        var protoText = _root.Attribute("proto")?.Value;
+        if (protoText is null || !Version.TryParse(protoText, out var proto))
+            throw new UnsupportedMapException(
+                $"map.xml declares no parseable proto; the studio supports proto >= {MinProto} (id-based regions/filters/kits).");
+        if (proto < MinProto)
+            throw new UnsupportedMapException(
+                $"map proto {protoText} is below the supported floor {MinProto} (pre id-based regions/filters/kits).");
+
+        var serverText = _root.Attribute("min-server-version")?.Value;
+        if (serverText is not null && Version.TryParse(serverText, out var server) && server >= FirstModernServer)
+            throw new UnsupportedMapException(
+                $"map requires server {serverText}: modern (>= {FirstModernServer}) worlds use the palette block format the Anvil reader does not support yet.");
+    }
+
     private MapXml ParseInternal()
     {
+        EnsureSupported();
         ResolveVariants(_root);
         ResolveConstants(_root);
 

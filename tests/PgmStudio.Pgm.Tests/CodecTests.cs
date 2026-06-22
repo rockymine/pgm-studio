@@ -125,7 +125,7 @@ public sealed class CodecTests
     {
         var m = MapParser.ParseXmlString("""
             <?xml version="1.0"?>
-            <map><name>c</name><version>1</version><objective>o</objective>
+            <map proto="1.4.0"><name>c</name><version>1</version><objective>o</objective>
             <regions>
               <cuboid id="inf-box" min="-oo,${y},0" max="oo,10,10"/>
             </regions></map>

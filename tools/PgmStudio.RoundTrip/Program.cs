@@ -550,6 +550,15 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     var mapXml = Path.Combine(mapDir, "map.xml");
     if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  {slug}: SKIP — no region/ directory"); return 1; }
 
+    // Parse + validate map.xml up front so an unsupported map (proto below the id-based floor, or a modern
+    // world) throws here — before any output dir is created or the world is scanned, leaving no partial
+    // output behind. The parsed map is reused for xml_data.json below.
+    PgmStudio.Domain.MapXml? parsedXml = null;
+    if (File.Exists(mapXml))
+        parsedXml = PgmStudio.Pgm.MapParser.Parse(mapXml);
+    else
+        Console.Error.WriteLine($"  {slug}: WARNING no map.xml — xml_data.json not written; the importer will skip this dir");
+
     var outDir = Path.Combine(outRoot, slug);
     Directory.CreateDirectory(outDir);
     var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -613,14 +622,10 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     };
     await File.WriteAllTextAsync(Path.Combine(outDir, "map_config.json"), config.ToJsonString());
 
-    // xml_data.json — the codec source the importer deserializes (parse map.xml with the studio's own parser)
-    if (File.Exists(mapXml))
-    {
-        var doc = PgmStudio.Pgm.Serializer.ToDict(PgmStudio.Pgm.MapParser.Parse(mapXml));
-        await File.WriteAllTextAsync(Path.Combine(outDir, "xml_data.json"), System.Text.Json.JsonSerializer.Serialize(doc));
-    }
-    else
-        Console.Error.WriteLine($"  {slug}: WARNING no map.xml — xml_data.json not written; the importer will skip this dir");
+    // xml_data.json — the codec source the importer deserializes (from the map parsed + validated up front)
+    if (parsedXml is not null)
+        await File.WriteAllTextAsync(Path.Combine(outDir, "xml_data.json"),
+            System.Text.Json.JsonSerializer.Serialize(PgmStudio.Pgm.Serializer.ToDict(parsedXml)));
 
     sw.Stop();
     Console.WriteLine($"  {slug,-28} chunks={chunks.Count,-5} islands={islands.Count,-3} mon={monuments.Count,-4} surface={surface.Count,-8} -> {outDir}  ({sw.ElapsedMilliseconds} ms)");

@@ -157,6 +157,12 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   `dotnet run --project src/PgmStudio.Import <outRoot>` ingests the cheap files into MariaDB (including
   monument candidates), or `… <outRoot> --monuments-only` re-ingests just the monument-candidate gather for
   maps already in the DB. Verified end-to-end (row-counts + doc round-trip).
+- **Supported map range (enforced in `MapParser`)** — the parser accepts **proto >= 1.4.0** only (PGM's
+  id-based regions/filters/kits floor) and rejects **modern worlds** (`min-server-version >= 1.13.0`, whose
+  post-"flattening" palette chunks the Anvil reader can't decode), throwing `UnsupportedMapException` with a
+  clear reason. `--scan-out` parses + validates `map.xml` up front (before the world scan), so a rejected map
+  leaves no partial output; `--scan-out-all` skips-and-logs it and continues. Over the 350-map CTW corpus only
+  `kytriak_te` (proto 1.3.0) and `allure` (1.21.10 world) are excluded. Stated in CLAUDE.md.
 
 ## New-map authoring — intent model (backend) ★ headline direction
 The forward path (**meaning → structure**): the author states intent and the generator emits the
