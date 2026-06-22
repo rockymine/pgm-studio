@@ -163,6 +163,12 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   clear reason. `--scan-out` parses + validates `map.xml` up front (before the world scan), so a rejected map
   leaves no partial output; `--scan-out-all` skips-and-logs it and continues. Over the 350-map CTW corpus only
   `kytriak_te` (proto 1.3.0) and `allure` (1.21.10 world) are excluded. Stated in CLAUDE.md.
+- **Surgical islands re-ingest (`--islands-only`)** — replaces each map's `islands_json` artifact from the
+  re-scanned `islands.json` files and refreshes the derived `island_sketch_json`, **without** the full
+  re-import that drops the map row and FK-cascades away its human authoring artifacts (intent / decomposition /
+  review / sketch). Only `islands.json` changes between re-scans of the same world, so this is the minimal
+  update; skips dirs not yet in the DB. Shares the Douglas-Peucker sketch derivation with `--store-island-sketch`
+  (`IslandSketchArtifact`). Used to land the stair-aware re-detect across the corpus (348 maps updated).
 
 ## New-map authoring — intent model (backend) ★ headline direction
 The forward path (**meaning → structure**): the author states intent and the generator emits the

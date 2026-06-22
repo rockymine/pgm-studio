@@ -81,6 +81,42 @@ if (args.Contains("--monuments-only"))
     return 0;
 }
 
+// --islands-only: replace each map's islands_json artifact from the re-scanned islands.json files (e.g. a
+// stair-aware re-detect) and refresh the derived island_sketch_json — without the full re-import, which drops
+// the map row and FK-cascades away its human authoring artifacts (intent / decomposition / review / sketch).
+// Only islands_json changes between re-scans of the same world, so this is the surgical update. Skips dirs
+// not yet in the DB (full-import them first).
+if (args.Contains("--islands-only"))
+{
+    if (string.IsNullOrWhiteSpace(outputRoot)) { Console.Error.WriteLine("--islands-only needs the output root (arg or PGM_STUDIO_OUTPUT_ROOT)."); return 1; }
+    var idirs = Directory.GetDirectories(outputRoot)
+        .Where(d => File.Exists(Path.Combine(d, "islands.json")))
+        .OrderBy(d => d, StringComparer.Ordinal).ToList();
+    Console.WriteLine($"Updating islands_json (+ derived island_sketch_json) for {idirs.Count} map dir(s) …");
+    int iok = 0, iskip = 0, isketch = 0;
+    foreach (var dir in idirs)
+    {
+        var slug = Path.GetFileName(dir)!;
+        var map = await db.Maps.FirstOrDefaultAsync(mm => mm.Slug == slug);
+        if (map is null) { iskip++; continue; }
+
+        var data = await File.ReadAllBytesAsync(Path.Combine(dir, "islands.json"));
+        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson).DeleteAsync();
+        await db.InsertAsync(new MapArtifactRow { MapId = map.Id, Kind = ArtifactKind.IslandsJson, Data = data });
+
+        // refresh the derived sketch so the decompose surface reflects the new outlines (drop a now-stale one)
+        await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandSketchJson).DeleteAsync();
+        if (IslandSketchArtifact.FromIslandsJson(data) is { } sketch)
+        {
+            await db.InsertAsync(new MapArtifactRow { MapId = map.Id, Kind = ArtifactKind.IslandSketchJson, Data = sketch });
+            isketch++;
+        }
+        iok++;
+    }
+    Console.WriteLine($"islands-only: updated {iok} map(s) ({isketch} with a sketch); {iskip} dir(s) not in DB");
+    return 0;
+}
+
 // --store-island-sketch: store each map's Douglas-Peucker simplified island outlines (+ holes) in the sketch
 // layout format, under the island_sketch_json artifact. Derived from the stored islands_json — no re-scan.
 if (args.Contains("--store-island-sketch"))
@@ -91,25 +127,8 @@ if (args.Contains("--store-island-sketch"))
     {
         var art = await db.Artifacts.FirstOrDefaultAsync(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson);
         if (art?.Data is null) { sskip++; continue; }
-        var islands = new List<(string, IReadOnlyList<double[]>, IReadOnlyList<IReadOnlyList<double[]>>)>();
-        try
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(art.Data);
-            foreach (var el in doc.RootElement.EnumerateArray())
-            {
-                var rings = el.GetProperty("polygon").GetProperty("coordinates").EnumerateArray()
-                    .Select(r => r.EnumerateArray().Select(p => new[] { p[0].GetDouble(), p[1].GetDouble() }).ToList())
-                    .ToList();
-                if (rings.Count == 0 || rings[0].Count < 3) continue;
-                islands.Add((el.GetProperty("id").GetInt32().ToString(),
-                    rings[0], rings.Skip(1).Cast<IReadOnlyList<double[]>>().ToList()));
-            }
-        }
-        catch { sskip++; continue; }
-        if (islands.Count == 0) { sskip++; continue; }
-
-        var layout = PgmStudio.Pgm.Sketch.IslandSimplifier.SimplifyMap(islands);
-        var bytes = System.Text.Encoding.UTF8.GetBytes(layout.ToJson());
+        var bytes = IslandSketchArtifact.FromIslandsJson(art.Data);
+        if (bytes is null) { sskip++; continue; }
         await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandSketchJson).DeleteAsync();
         await db.InsertAsync(new MapArtifactRow { MapId = map.Id, Kind = ArtifactKind.IslandSketchJson, Data = bytes });
         sok++;
