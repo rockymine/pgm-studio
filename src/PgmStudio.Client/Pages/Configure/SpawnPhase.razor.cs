@@ -30,19 +30,26 @@ public partial class SpawnPhase
     private string? symMode; private double symCx, symCz;
     private List<Island> islands = new();
     private readonly List<Spawn> spawns = new();
+    private Spawn? observer;        // the <default> (observer/spectator) spawn — always present, editable like a team spawn
     private string? selectedTeamId;
     private EditorCanvas? canvas;
 
+    // Sentinel "team" id for the observer so it reuses the team-spawn selection/marker/inspector path.
+    private const string ObserverId = "__observer__";
+    private const string ObserverHex = "#e2e8f0";   // neutral (spectator) marker colour
+
     private string Slug => Wizard.Slug;
-    private Spawn? Selected => spawns.FirstOrDefault(s => s.Team == selectedTeamId);
+    private Spawn? Selected => selectedTeamId == ObserverId ? observer : spawns.FirstOrDefault(s => s.Team == selectedTeamId);
+    private static bool IsObserver(Spawn s) => s.Team == ObserverId;
     private Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
-    private string Hex(string teamId) => GameColors.ChatHex(TeamOf(teamId)?.Color ?? "");
-    private string TeamName(string id) => TeamOf(id)?.Name ?? id;
+    private string Hex(string teamId) => teamId == ObserverId ? ObserverHex : GameColors.ChatHex(TeamOf(teamId)?.Color ?? "");
+    private string TeamName(string id) => id == ObserverId ? "Observer" : TeamOf(id)?.Name ?? id;
 
     protected override async Task OnInitializedAsync()
     {
         LoadFromIntent();
         await LoadIslands();
+        EnsureObserverDefault();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -70,7 +77,20 @@ public partial class SpawnPhase
                 spawns.Add(new Spawn { Team = S(s, "team"), X = D(pt, "x"), Y = D(pt, "y"), Z = D(pt, "z"), Yaw = D(s, "yaw") });
             }
         if (spawns.Count > 0) spawns[0].Authored = true;   // the placed one (heuristic on reload)
+        observer = null;
+        if (Wizard.Intent["observer"] is JsonObject ob && ob["point"] is JsonObject opt)
+            observer = new Spawn { Team = ObserverId, X = D(opt, "x"), Y = D(opt, "y"), Z = D(opt, "z"), Yaw = D(ob, "yaw") };
         selectedTeamId = spawns.FirstOrDefault()?.Team ?? teams.FirstOrDefault()?.Id;
+    }
+
+    // Every PGM map needs a <default> spawn; show one immediately (defaulting to the map middle) so the
+    // author can edit it like a team spawn instead of leaving observers to fall in at 0,0,0.
+    private void EnsureObserverDefault()
+    {
+        if (observer is not null) return;
+        var (mx, mz) = MapMiddle();
+        observer = new Spawn { Team = ObserverId, X = Snap(mx), Y = spawns.FirstOrDefault()?.Y ?? 0, Z = Snap(mz) };
+        RecomputeObserverYaw();
     }
 
     private async Task LoadIslands()
@@ -97,11 +117,17 @@ public partial class SpawnPhase
     private async Task OnPointPick((double X, double Z) p)
     {
         double x = Snap(p.X), z = Snap(p.Z);
+        // With the observer selected, the point tool relocates it (it has no orbit) rather than placing a team.
+        if (selectedTeamId == ObserverId && observer is not null)
+        {
+            observer.X = x; observer.Z = z; RecomputeObserverYaw();
+            WriteIntent(); await PaintSpawns(); return;
+        }
         var team0 = IslandTeamAt(x, z) ?? selectedTeamId ?? teams.FirstOrDefault()?.Id;
         if (team0 is null) return;
         PlaceAndOrbit(team0, x, z);
         selectedTeamId = team0;
-        WriteSpawns();
+        WriteIntent();
         await PaintSpawns();
     }
 
@@ -113,6 +139,7 @@ public partial class SpawnPhase
         const string suffix = "-spawn";
         if (id is null || !id.EndsWith(suffix)) return null;
         var team = id[..^suffix.Length];
+        if (team == ObserverId && observer is not null) return ObserverId;
         return spawns.Any(s => s.Team == team) ? team : null;
     }
 
@@ -131,6 +158,36 @@ public partial class SpawnPhase
             var tk = IslandTeamAt(ox, oz) ?? teams[(i0 + k) % teams.Count].Id;
             if (spawns.All(s => s.Team != tk)) spawns.Add(new Spawn { Team = tk, X = ox, Y = y, Z = oz });
         }
+        RecomputeTeamYaws();       // each team looks at the map middle
+        RecomputeObserverYaw();    // the observer re-aims at the (new) team-0 spawn
+    }
+
+    // The map middle a team spawn faces: the confirmed symmetry centre, else the islands' bounding-box
+    // centre, else the spawn centroid, else the origin.
+    private (double X, double Z) MapMiddle()
+    {
+        if (symMode is not null) return (symCx, symCz);
+        double minX = double.PositiveInfinity, minZ = double.PositiveInfinity, maxX = double.NegativeInfinity, maxZ = double.NegativeInfinity;
+        foreach (var isl in islands)
+            foreach (var p in isl.Ring)
+            { minX = Math.Min(minX, p[0]); maxX = Math.Max(maxX, p[0]); minZ = Math.Min(minZ, p[1]); maxZ = Math.Max(maxZ, p[1]); }
+        if (!double.IsInfinity(minX)) return ((minX + maxX) / 2, (minZ + maxZ) / 2);
+        if (spawns.Count > 0) return (spawns.Average(s => s.X), spawns.Average(s => s.Z));
+        return (0, 0);
+    }
+
+    // Auto-aim: team spawns look at the map middle; the observer looks at the authored (else first) team spawn.
+    private void RecomputeTeamYaws()
+    {
+        var (mx, mz) = MapMiddle();
+        foreach (var s in spawns) s.Yaw = Math.Round(Heading.YawTo(s.X, s.Z, mx, mz), 1);
+    }
+
+    private void RecomputeObserverYaw()
+    {
+        if (observer is null) return;
+        var target = spawns.FirstOrDefault(s => s.Authored) ?? spawns.FirstOrDefault();
+        observer.Yaw = target is null ? 0 : Math.Round(Heading.YawTo(observer.X, observer.Z, target.X, target.Z), 1);
     }
 
     private string? IslandTeamAt(double x, double z)
@@ -152,13 +209,26 @@ public partial class SpawnPhase
         Coords = new() { ["x"] = s.X, ["y"] = s.Y, ["z"] = s.Z },
     };
 
-    // Drag on the side-view → set the spawn's Y. The orbit partners sit on symmetric terrain, so they
-    // share the same height — propagate it across the whole orbit group.
-    private void SetY(Spawn s, int y) { foreach (var sp in spawns) sp.Y = y; WriteSpawns(); }
+    // Drag on the side-view → set the spawn's Y. Team spawns' orbit partners sit on symmetric terrain, so
+    // they share the same height (propagate across the group); the observer owns its own Y.
+    private void SetY(Spawn s, int y)
+    {
+        if (IsObserver(s)) s.Y = y;
+        else foreach (var sp in spawns) sp.Y = y;
+        WriteIntent();
+    }
 
     private void SetCoord(Spawn s, string axis, ChangeEventArgs e)
     {
         if (!double.TryParse(e.Value?.ToString(), out var v)) return;
+        if (IsObserver(s))
+        {
+            switch (axis) { case "x": s.X = v; break; case "z": s.Z = v; break; case "y": s.Y = v; break; case "yaw": s.Yaw = v; break; }
+            if (axis is "x" or "z") RecomputeObserverYaw();   // moving it re-aims at the team spawn (manual yaw edits stick)
+            WriteIntent();
+            _ = PaintSpawns();
+            return;
+        }
         switch (axis)
         {
             case "x": s.X = v; break;
@@ -166,13 +236,20 @@ public partial class SpawnPhase
             case "yaw": s.Yaw = v; break;
             case "y": foreach (var sp in spawns) sp.Y = v; break;   // orbit partners share terrain height
         }
-        // Moving the authored spawn re-derives the symmetric orbit; orbit spawns are nudged on their own.
+        // Moving the authored spawn re-derives the symmetric orbit (and all yaws); an orbit spawn nudged on
+        // its own just re-aims itself + the observer. A manual yaw edit is left untouched.
         if (s.Authored && axis is "x" or "z") PlaceAndOrbit(s.Team, s.X, s.Z, s.Y);
-        WriteSpawns();
+        else if (axis is "x" or "z")
+        {
+            var (mx, mz) = MapMiddle();
+            s.Yaw = Math.Round(Heading.YawTo(s.X, s.Z, mx, mz), 1);
+            RecomputeObserverYaw();
+        }
+        WriteIntent();
         _ = PaintSpawns();
     }
 
-    private void WriteSpawns()
+    private void WriteIntent()
     {
         Wizard.Intent["spawns"] = new JsonArray(spawns.Select(s => (JsonNode)new JsonObject
         {
@@ -180,6 +257,12 @@ public partial class SpawnPhase
             ["point"] = new JsonObject { ["x"] = s.X, ["y"] = s.Y, ["z"] = s.Z },
             ["yaw"] = s.Yaw,
         }).ToArray());
+        if (observer is { } o)
+            Wizard.Intent["observer"] = new JsonObject
+            {
+                ["point"] = new JsonObject { ["x"] = o.X, ["y"] = o.Y, ["z"] = o.Z },
+                ["yaw"] = o.Yaw,
+            };
         Wizard.MarkDirty();
     }
 
@@ -188,17 +271,21 @@ public partial class SpawnPhase
     private async Task PaintSpawns()
     {
         if (canvas is null) return;
-        await canvas.SetAuthorRegionsAsync(spawns.Select(s => (object)new
-        {
-            id = $"{s.Team}-spawn",
-            type = "point",
-            marker = true,
-            primary = s.Authored,
-            color = Hex(s.Team),
-            label = $"{TeamName(s.Team)} spawn",
-            bounds = new { min_x = s.X - 0.5, min_z = s.Z - 0.5, max_x = s.X + 0.5, max_z = s.Z + 0.5 },
-        }));
+        var markers = spawns.Select(s => Marker(s, s.Authored)).ToList();
+        if (observer is { } o) markers.Add(Marker(o, primary: true));   // the observer always shows bright
+        await canvas.SetAuthorRegionsAsync(markers);
     }
+
+    private object Marker(Spawn s, bool primary) => new
+    {
+        id = $"{s.Team}-spawn",
+        type = "point",
+        marker = true,
+        primary,
+        color = Hex(s.Team),
+        label = IsObserver(s) ? "Observer spawn" : $"{TeamName(s.Team)} spawn",
+        bounds = new { min_x = s.X - 0.5, min_z = s.Z - 0.5, max_x = s.X + 0.5, max_z = s.Z + 0.5 },
+    };
 
     private static string S(JsonObject? o, string k) => o?[k]?.GetValue<string>() ?? "";
     private static double D(JsonObject? o, string k)

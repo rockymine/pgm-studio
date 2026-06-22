@@ -164,6 +164,28 @@ public sealed class TeamsGeneratorTests
     }
 
     [Test]
+    public async Task Propagates_yaw_and_observer_point_into_the_doc()
+    {
+        var doc = Map();
+        TeamsGenerator.Apply(doc, new MapIntent
+        {
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10), Yaw = -45 }],
+            Observer = new ObserverIntent { Point = new(3, 9, -7), Yaw = 135 },
+        });
+
+        // team-spawn yaw lands on the spawn link
+        var redSpawn = Spawns(doc).OfType<Dict>().First(s => s.GetValueOrDefault("region") as string == "red-spawn-point");
+        await Assert.That(redSpawn["yaw"]).IsEqualTo(-45.0);
+
+        // observer point lands on the region (point regions store coords under "position"), yaw on the link
+        var pos = (Dict)((Dict)Regions(doc)["observer-spawn"]!)["position"]!;
+        await Assert.That(pos["x"]).IsEqualTo(3.0);
+        await Assert.That(pos["y"]).IsEqualTo(9.0);
+        await Assert.That(pos["z"]).IsEqualTo(-7.0);
+        await Assert.That(((Dict)doc["observer_spawn"]!)["yaw"]).IsEqualTo(135.0);
+    }
+
+    [Test]
     public async Task Always_emits_a_default_spawn_even_without_observer_intent()   // PGM requires one
     {
         var doc = Map();

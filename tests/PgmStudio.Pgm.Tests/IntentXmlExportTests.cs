@@ -50,6 +50,9 @@ public sealed class IntentXmlExportTests
         var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
         await Assert.That(xml).Contains("proto=\"1.5.0\"");
         await Assert.That(xml).Contains("<kits>");
+        // the observer (<default>) spawn is emitted with its yaw (team spawns here have yaw 0 → omitted)
+        await Assert.That(xml).Contains("<default");
+        await Assert.That(xml).Contains("yaw=\"180\"");
 
         // re-parse the generated XML — proves it's well-formed and PGM-parseable
         var reparsed = Serializer.ToDict(MapParser.ParseXmlString(xml));

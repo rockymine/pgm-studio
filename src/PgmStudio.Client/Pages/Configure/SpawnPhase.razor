@@ -28,6 +28,16 @@
               <span class="badge @(s.Authored ? "badge--success" : "badge--dim")">@(s.Authored ? "authored" : "orbit")</span>
             </div>
           }
+          @if (observer is not null)
+          {
+            <div class="list-row list-row--compact @(selectedTeamId == ObserverId ? "list-row--selected" : null)"
+                 @key="ObserverId" @onclick="() => SelectTeam(ObserverId)">
+              <span class="list-swatch" style="background:@ObserverHex"></span>
+              <span class="geo-type-icon"><i data-lucide="cylinder"></i></span>
+              <span class="list-label list-label--mono">observer-spawn</span>
+              <span class="badge badge--dim">default</span>
+            </div>
+          }
         </div>
       </section>
     </div>
@@ -50,8 +60,15 @@
         <section class="panel-section" @key="sel.Team">
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="cylinder"></i></span>
-            <span class="detail-label detail-label--mono">@sel.Team-spawn</span>
-            <span class="badge @(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</span>
+            <span class="detail-label detail-label--mono">@(IsObserver(sel) ? "observer-spawn" : $"{sel.Team}-spawn")</span>
+            @if (IsObserver(sel))
+            {
+              <span class="badge badge--dim">default</span>
+            }
+            else
+            {
+              <span class="badge @(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</span>
+            }
           </div>
           <div class="section-body">
             <div class="field">
@@ -69,8 +86,18 @@
               </div>
             </div>
             <SliceView Slug="@Slug" Node="@SpawnNode(sel)" OnYChanged="@(y => SetY(sel, y))" />
-            <p class="section-desc">Owned by <strong>@TeamName(sel.Team)</strong>. Drag the side-view line to
-              set the Y — shared across the orbit. Editing the authored spawn's X/Z re-derives the orbit.</p>
+            @if (IsObserver(sel))
+            {
+              <p class="section-desc">The <strong>observer</strong> (<code>&lt;default&gt;</code>) spawn — where
+                players wait pre-game and spectate. Drag the side-view line to set its Y onto solid ground.
+                The yaw auto-aims at a team spawn when you move it (edit it to override).</p>
+            }
+            else
+            {
+              <p class="section-desc">Owned by <strong>@TeamName(sel.Team)</strong>. Drag the side-view line to
+                set the Y — shared across the orbit. Editing the authored spawn's X/Z re-derives the orbit.
+                The yaw auto-aims at the map middle when you move it (edit it to override).</p>
+            }
           </div>
         </section>
       }

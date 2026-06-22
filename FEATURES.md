@@ -176,7 +176,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   reassigned by the island it lands in; the **select tool** picks a placed marker (world-space hit-test,
   like the editor's). The inspector edits X/Y/Z/Yaw — editing the authored spawn's X/Z re-derives the
   orbit; the reused **side-view** (`SliceView`) sets the Y on the spawn's terrain, **shared across the
-  orbit**. → `intent.spawns`. (`SpawnPhase`; N02)
+  orbit**. The **observer (`<default>`) spawn** is shown + editable with the same treatment (a neutral
+  marker, the select tool, the inspector X/Y/Z/Yaw, and the side-view Y-snap) — defaulted to the map
+  middle so observers don't fall in at 0,0,0; with it selected the point tool relocates it (no orbit).
+  **Yaw auto-aims**: team spawns look at the map middle, the observer at a team spawn (`Geom.Heading`),
+  recomputed on any move, manual edits stick. → `intent.spawns` + `intent.observer`. (`SpawnPhase`; N02)
 - **Teams · Spawn protection sub-step (N02)** — the **rectangle tool** draws a protection zone over a
   spawn; it's **owned by the team whose spawn it covers** and the confirmed symmetry orbits it onto the
   rest, each copy **owned by the team whose spawn IT covers** (shared `OrbitAssignment.ByCoveredAnchor`
