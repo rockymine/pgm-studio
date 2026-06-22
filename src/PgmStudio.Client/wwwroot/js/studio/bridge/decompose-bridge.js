@@ -27,6 +27,10 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   let sym = null;           // {mode, cx, cz} of the map (for one-side dedup + getState mirror)
   let blockData = null;     // top-surface block-colour overlay payload (reference, below the pieces)
   let showBlocks = false;
+  let anchors = [];         // [{kind:"spawn"|"wool", x, z}] objective markers (from /island-roles)
+  let showAnchors = false;
+  let buildRegion = null;   // GeoJSON {type, coordinates} of the declared build space
+  let showBuild = false;
   let baseScale = 0;        // px-per-block at the first fit (zoom % baseline)
   const undo = [];          // snapshots of `pieces`
   let seq = 0;
@@ -71,6 +75,15 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
       const bg = svgEl_.appendChild(svgEl("g", { "data-layer": "blocks", opacity: "0.6" }));
       renderBlockImage(bg, blockData, T);
     }
+    // declared build space (G8c): a dashed outline + faint fill under the pieces — the contested middle
+    if (showBuild && buildRegion) {
+      const d = geoToPath(buildRegion, T);
+      if (d) svgEl_.appendChild(svgEl("path", {
+        d, "fill-rule": "evenodd", fill: "var(--color-success)", "fill-opacity": "0.07",
+        stroke: "var(--color-success)", "stroke-opacity": "0.75", "stroke-dasharray": "5 4",
+        "stroke-width": "1.5", "vector-effect": "non-scaling-stroke", "data-layer": "build",
+      }));
+    }
     const polyPath = (p) => ringToPath(p.exterior, T) + (p.holes || []).map(h => " " + ringToPath(h, T)).join("");
     for (const p of pieces) {
       const sel = p.id === selectedId || (target && p.id === target.id);
@@ -108,6 +121,21 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
       const sa = T(a[0], a[1]), sb = T(b[0], b[1]);
       svgEl_.appendChild(svgEl("line", { x1: sa.x, y1: sa.y, x2: sb.x, y2: sb.y, stroke: "var(--accent)", "stroke-width": "2", "vector-effect": "non-scaling-stroke" }));
     }
+    // objective anchors (G8b): spawn spurs (red) + wool tips (accent) as ringed target markers, drawn last
+    if (showAnchors)
+      for (const a of anchors) {
+        const s = T(a.x, a.z);
+        const color = a.kind === "spawn" ? "var(--color-error)" : "var(--accent)";
+        svgEl_.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 7, fill: "none", stroke: color, "stroke-width": "2", "vector-effect": "non-scaling-stroke" }));
+        svgEl_.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 3, fill: color, stroke: "var(--bg-canvas)", "stroke-width": "1", "vector-effect": "non-scaling-stroke" }));
+      }
+  }
+
+  // GeoJSON Polygon / MultiPolygon → an SVG path string (evenodd handles holes) in the current transform.
+  function geoToPath(geo, T) {
+    if (!geo) return "";
+    const polys = geo.type === "MultiPolygon" ? geo.coordinates : geo.type === "Polygon" ? [geo.coordinates] : [];
+    return polys.map(rings => rings.map(r => ringToPath(r, T)).join(" ")).join(" ");
   }
 
   function seamPoint(k) {
@@ -241,7 +269,8 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
   // ── seed + handle ─────────────────────────────────────────────────────────
   function loadLayout(state, symmetry) {
     pieces = []; seq = 0; undo.length = 0; lasso = null; target = null; markers = []; seam = [];
-    blockData = null; showBlocks = false;   // new map: drop the previous map's overlay; the host re-applies
+    blockData = null; showBlocks = false;   // new map: drop the previous map's overlays; the host re-applies
+    anchors = []; showAnchors = false; buildRegion = null; showBuild = false;
     sym = symmetry && symmetry.mode && symmetry.mode !== "none" ? symmetry : null;
     const layout = state?.layout;
     if (layout?.islands?.length) {
@@ -262,6 +291,9 @@ export async function mount(svgEl_, wrapEl, coordsEl, zoomEl, dotnetRef) {
     // Reference top-surface block overlay: the host passes the payload on enable (cached after), null to toggle
     // an already-loaded layer; visibility is independent so it persists as the host re-feeds it per map.
     setBlocks(data, visible) { if (data) blockData = data; showBlocks = !!visible && !!blockData; render(); },
+    // Objective anchors (G8b) + declared build region (G8c) — both from /island-roles, fed + toggled per map.
+    setAnchors(data, visible) { if (data) anchors = data; showAnchors = !!visible && anchors.length > 0; render(); },
+    setBuild(data, visible) { if (data) buildRegion = data; showBuild = !!visible && !!buildRegion; render(); },
     setTool(t) { tool = t === "pan" ? "pan" : "lasso"; if (t !== "lasso") { lasso = null; } render(); },
     selectPiece(id) { selectedId = id ?? null; render(); },
     setRole(id, role) { const p = pieces.find(x => x.id === id); if (p) { p.role = role; render(); pushPanel(); fire("OnDirty"); } },

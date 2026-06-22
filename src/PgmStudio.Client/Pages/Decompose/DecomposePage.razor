@@ -73,6 +73,10 @@
             <div class="canvas-subbar-right">
               <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)"
                       title="Overlay the top-surface block colours" @onclick="ToggleBlocks">Blocks</button>
+              <button class="filter-chip @(anchorsOn ? "filter-chip--active" : null)"
+                      title="Mark the wool tips + spawn spurs (objective anchors)" @onclick="ToggleAnchors">Anchors</button>
+              <button class="filter-chip @(buildOn ? "filter-chip--active" : null)"
+                      title="Outline the declared buildable area" @onclick="ToggleBuild">Build</button>
               <select class="field-input canvas-island-select" title="Zoom to fit a piece" value="@focusSel" @onchange="OnFocusPiece">
                 <option value="">Focus piece…</option>
                 @foreach (var p in pieces)

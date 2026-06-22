@@ -186,13 +186,6 @@ feature).
   role gives the whole-island tag for free (`decorative`→decorative, `neutral`→stepping-stone/mid,
   `team`/`objective`→flagged for dissection); the human confirms + cuts only the team islands instead of tagging
   all N from scratch (optionally pre-seed the tags into `lane_decomposition_json` on open).
-- [~] **G8 — Decompose: reference overlays on the canvas.** (a) the **block-colour overlay** landed (the
-  `Blocks` chip → `GET /layers/top-surface`, painted below the lane pieces, persists across the queue). Remaining:
-  (b) **wool + spawn locations** as markers, so a lane's wool tip / spawn spur is visible while cutting; (c) the
-  **XML-defined buildable areas** — the `RegionCategorizer` build regions' geometry as polygons (the *declared*
-  build space only at this step, NOT the computed buildability overlay). The wool/spawn markers (b) and the
-  build-region outline (c) are **carried by the `G11` hook** (`GET /map/{slug}/island-roles`, shipped) — consume
-  its `anchors` + `buildRegion` rather than a separate read.
 - [ ] **G9 — Re-scan the corpus with stair-aware detection + decompose-queue UI (remaining slice).** The
   over-split **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`, wired into
   `WorldFeatureWriter`/`--scan-out`/`--island-sketch`; validated on the cloned worlds with team structure

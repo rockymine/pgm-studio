@@ -24,6 +24,8 @@ public partial class DecomposePage
     private string tool = "lasso";
     private string focusSel = "";
     private bool blocksOn;          // top-surface block overlay toggle — persists as you browse the queue
+    private bool anchorsOn, buildOn;   // /island-roles overlays: objective anchors (G8b) + build region (G8c)
+    private JsonElement? rolesCache;   // the map's island-roles response, fetched once per map
     private string? loadedSlug;
     private bool saving;
     private string progressLabel = "";
@@ -65,6 +67,7 @@ public partial class DecomposePage
     {
         if (handle is null) return;
         focusSel = "";
+        rolesCache = null;   // new map → re-fetch the island-roles overlays on demand
         try
         {
             // resume a saved decomposition (already one-side) if present, else start from the simplified
@@ -76,8 +79,41 @@ public partial class DecomposePage
             await handle.InvokeVoidAsync("load", island, sym);
         }
         catch { /* no geometry — leave the canvas empty */ }
-        await ApplyBlocksAsync();   // re-apply the block-overlay toggle for this map (load reset the bridge)
+        await ApplyBlocksAsync();        // re-apply the block-overlay toggle for this map (load reset the bridge)
+        await ApplyRoleOverlaysAsync();  // re-apply the anchor + build-region toggles
     }
+
+    // Objective anchors (G8b) + declared build region (G8c) — both from GET /island-roles, fetched once per map
+    // (cached) and re-applied so the toggles persist as the user browses the queue.
+    private async Task<JsonElement?> RolesAsync()
+    {
+        if (rolesCache is null)
+        {
+            try { rolesCache = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/island-roles"); }
+            catch { rolesCache = null; }
+        }
+        return rolesCache;
+    }
+
+    private async Task ApplyRoleOverlaysAsync()
+    {
+        if (handle is null) return;
+        var roles = anchorsOn || buildOn ? await RolesAsync() : null;
+        object? anchorList = null, build = null;
+        if (roles is { } r)
+        {
+            anchorList = r.GetProperty("islands").EnumerateArray()
+                .SelectMany(i => i.GetProperty("anchors").EnumerateArray())
+                .Select(a => new { kind = a.GetProperty("kind").GetString(), x = a.GetProperty("x").GetDouble(), z = a.GetProperty("z").GetDouble() })
+                .ToList();
+            if (r.TryGetProperty("buildRegion", out var b) && b.ValueKind != JsonValueKind.Null) build = b;
+        }
+        await handle.InvokeVoidAsync("setAnchors", anchorsOn ? anchorList : null, anchorsOn);
+        await handle.InvokeVoidAsync("setBuild", buildOn ? build : null, buildOn);
+    }
+
+    private async Task ToggleAnchors() { anchorsOn = !anchorsOn; await ApplyRoleOverlaysAsync(); }
+    private async Task ToggleBuild() { buildOn = !buildOn; await ApplyRoleOverlaysAsync(); }
 
     // The block-colour overlay: lazily fetch this map's top-surface layer when on, else hide. Called on every
     // map load so the toggle preference persists as the user browses the queue.
