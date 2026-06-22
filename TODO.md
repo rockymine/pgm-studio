@@ -193,6 +193,22 @@ feature).
   **edges touch buildable regions** and which islands a player can **step between** (adjacency across the
   buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on `G8`'s
   build-area data + `G6`'s lanes. Research; needs design.
+- [ ] **G12 — Detection: re-prune flying blobs above terrain (stair-aware regression).** Stair-aware
+  connectivity fixed the over-split (disconnected islands) but **re-introduced** the stark-y-jump / flying-island
+  problem: decorative masses floating above the map (dragons/birds) now merge back into the islands when a
+  near-vertical surface chain bridges them (e.g. **Duality**, **mame_i_shrunk_the_pvpers**). Re-add a guard:
+  stop joining across a **really big y-increase**, and/or identify & **prune blobs whose base sits well above the
+  terrain band** (the old float-prune did this on `DetectHeightAware`; the stair surfaces now leak past it).
+  **`max_build_height`** is a natural cut/prune ceiling — anything whose mass is above it is non-playable decor.
+  Re-validate the over-split fixes (a_new_day/thunder) still hold after re-adding the ceiling.
+- [ ] **G13 — Decompose: split the shown set along the symmetry axis, not the orbit dedup.** The current
+  one-side view (`dedupBySymmetry`, centroid-orbit matching) sometimes shows a **mix of teams** — e.g. team A's
+  spawn island next to team B's wool island — so the author decomposes an incoherent half. A **half-plane cut
+  through the symmetry centre** (keep the side on one signed half of the mirror axis) would give a coherent
+  team set. **Danger:** maps detected as **mirror-x *and* mirror-z** (4-fold / dihedral) have two axes — a naive
+  half-plane can split across the wrong one and still mix teams; need to pick the axis that separates teams (or
+  fall back to orbit dedup). Most-annoying live issue; the corpus is mostly `rot_180` (51/66 labeled) with a few
+  single-axis mirrors, so the simple signed-half works for the common case — handle the dual-mirror case explicitly.
 
 ## Lower priority / parked
 
