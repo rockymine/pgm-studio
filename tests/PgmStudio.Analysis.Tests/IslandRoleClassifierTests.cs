@@ -82,15 +82,16 @@ public sealed class IslandRoleClassifierTests
             ["regions"] = new Dict
             {
                 ["red-spawn-point"] = Rect(0, 0, 2, 2),
-                ["red-spawn"] = Rect(-2, -2, 4, 4),         // spawn protection
                 ["red-room"] = Rect(20, 0, 24, 4),          // wool room
                 ["wool-disp"] = Rect(20, 0, 21, 1),         // wool spawner region
             },
             ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "red-spawn-point" } },
             ["apply_rules"] = new List<object?>
             {
-                new Dict { ["enter"] = "only-red", ["region"] = "red-spawn" },     // spawn protection
-                new Dict { ["enter"] = "not-red", ["region"] = "red-room" },       // own-room rule (NOT a spawn anchor)
+                // an only-<team> enter filter guards both spawns AND wool rooms — neither is a spawn anchor now;
+                // the spawn comes from spawns[], not from protection rules (which dropped markers onto wool rooms).
+                new Dict { ["enter"] = "only-red", ["region"] = "red-spawn-point" },
+                new Dict { ["enter"] = "only-red", ["region"] = "red-room" },       // wool-room protection
             },
             ["wools"] = new List<object?>
             {
@@ -110,12 +111,35 @@ public sealed class IslandRoleClassifierTests
 
         var anchors = IslandRoleClassifier.ExtractAnchors(doc, (-50, -50, 50, 50));
 
-        // spawn-type: spawn point + spawn protection (not the not-red own-room rule)
-        await Assert.That(anchors.Count(a => a.IsSpawn)).IsEqualTo(2);
+        // spawn-type: only the spawns[] region — the only-<team> protection rules (incl. the wool room) are not anchors
+        await Assert.That(anchors.Count(a => a.IsSpawn)).IsEqualTo(1);
+        await Assert.That(anchors.Where(a => a.IsSpawn).All(a => a.Geom.Intersects(Pt(1, 1)))).IsTrue();   // at the spawn
+        await Assert.That(anchors.Any(a => a.IsSpawn && a.Geom.Intersects(Pt(22, 2)))).IsFalse();          // not the wool room
         // wool-type: location + wool room + the wool-dispensing spawner (NOT the gold-nugget spawner)
         await Assert.That(anchors.Count(a => !a.IsSpawn)).IsEqualTo(3);
         // the monument at (500,500) is far outside any anchor footprint
         await Assert.That(anchors.All(a => !a.Geom.Intersects(Pt(500, 500)))).IsTrue();
+    }
+
+    [Test]
+    public async Task ExtractAnchors_anchorsADegenerateSpawnRegionAtItsCentre()   // 803: radius-0 cylinder spawn points
+    {
+        var doc = new Dict
+        {
+            ["regions"] = new Dict
+            {
+                ["sp"] = new Dict
+                {
+                    ["type"] = "cylinder",
+                    ["bounds_2d"] = new Dict { ["min"] = new Dict { ["x"] = 10.0, ["z"] = 20.0 }, ["max"] = new Dict { ["x"] = 10.0, ["z"] = 20.0 } },
+                },
+            },
+            ["spawns"] = new List<object?> { new Dict { ["region"] = "sp" } },
+        };
+
+        var anchors = IslandRoleClassifier.ExtractAnchors(doc, (-50, -50, 50, 50));
+        await Assert.That(anchors.Count(a => a.IsSpawn)).IsEqualTo(1);
+        await Assert.That(anchors.Single(a => a.IsSpawn).Geom.Intersects(Pt(10, 20))).IsTrue();
     }
 
     [Test]

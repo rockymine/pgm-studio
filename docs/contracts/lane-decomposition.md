@@ -86,7 +86,8 @@ other merged read.
 
 **Classification (in `Analysis/Footprint/`):**
 - **Semantic role by anchor** (`IslandRoleClassifier`) — the rubric above, computed: an island is **team** when
-  it holds a spawn (point or `only-<team>` protection region), **objective** when it holds a wool but no spawn
+  it holds a spawn (the team `spawns[].region` — *not* `only-<team>` protection rules, which also guard wool
+  rooms and so dropped spawn markers onto them), **objective** when it holds a wool but no spawn
   (`wools[].location`, wool-room region, or a wool-*dispensing* spawner region — economy spawners like mame's
   gold nuggets are skipped, and the capture **monument** is never an anchor — it sits on the enemy side),
   **neutral** when anchorless but intersecting a build region (a stepping-stone / mid), and **decorative** when

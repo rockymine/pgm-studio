@@ -18,8 +18,8 @@ using Dict = Dictionary<string, object?>;
 public enum IslandGameplayRole { Team, Objective, Neutral, Decorative }
 
 /// <summary>
-/// Classifies detected islands by gameplay role from the map's objective anchors — spawn point,
-/// spawn-protection region, wool location, wool-room region, and wool-dispensing spawner regions — and the
+/// Classifies detected islands by gameplay role from the map's objective anchors — the team spawn region,
+/// wool location, wool-room region, and wool-dispensing spawner regions — and the
 /// buildable region. A spawn anchor makes an island a <see cref="IslandGameplayRole.Team"/> island; a wool
 /// anchor without a spawn makes it <see cref="IslandGameplayRole.Objective"/>; an anchorless island is
 /// <see cref="IslandGameplayRole.Neutral"/> when it touches the build region and
@@ -68,9 +68,11 @@ public static class IslandRoleClassifier
         => anchor is { IsEmpty: false } && island.Intersects(anchor);
 
     /// <summary>
-    /// Extract the objective anchors from a map doc (xml_data shape): spawn point + spawn-protection (the
-    /// apply-rules whose <c>enter</c> filter is an <c>only-&lt;team&gt;</c> team filter) as spawn-type; wool
-    /// location + wool-room region + wool-dispensing spawner regions as wool-type.
+    /// Extract the objective anchors from a map doc (xml_data shape): the team <c>spawns[].region</c> as
+    /// spawn-type; wool location + wool-room region + wool-dispensing spawner regions as wool-type. Spawn
+    /// protection is deliberately <b>not</b> a source — an <c>only-&lt;team&gt;</c> <c>enter</c> filter also
+    /// guards wool rooms (and other team-restricted areas), so it dropped spawn markers onto the wool rooms;
+    /// the spawn region itself is the ground truth and sits on the island, so the point anchor suffices.
     /// </summary>
     public static List<Anchor> ExtractAnchors(Dict doc, (double minX, double minZ, double maxX, double maxZ) bounds)
     {
@@ -83,11 +85,15 @@ public static class IslandRoleClassifier
         void Add(bool spawn, Geometry? g) { if (g is { IsEmpty: false }) anchors.Add(new Anchor(spawn, g)); }
 
         foreach (var s in List(doc, "spawns"))
-            if (s is Dict sd) Add(true, Region(sd.GetValueOrDefault("region")));
-
-        foreach (var a in List(doc, "apply_rules"))
-            if (a is Dict ar && ar.GetValueOrDefault("enter") is string en && en.StartsWith("only-", StringComparison.Ordinal))
-                Add(true, Region(ar.GetValueOrDefault("region")));
+        {
+            if (s is not Dict sd) continue;
+            var rid = sd.GetValueOrDefault("region");
+            if (Region(rid) is { IsEmpty: false } g) { Add(true, g); continue; }
+            // A spawn region whose footprint is degenerate (e.g. 803's radius-0 cylinder spawn points) → anchor
+            // a point at its centre, so the team island is still detected (the spawn sits on it).
+            if (rid is string sid && registry.GetValueOrDefault(sid) is Dict sr && RegionCenter(sr) is ({ } cx, { } cz))
+                anchors.Add(new Anchor(true, Gf.CreatePoint(new Coordinate(cx, cz))));
+        }
 
         foreach (var w in List(doc, "wools"))
         {
@@ -122,6 +128,19 @@ public static class IslandRoleClassifier
             .Select(id => registry.GetValueOrDefault(id) is Dict r ? RegionGeometry2d.ToGeometry(r, bounds, registry) : null)
             .Where(g => g is { IsEmpty: false }).Cast<Geometry>().ToList();
         return geoms.Count == 0 ? null : UnaryUnionOp.Union(geoms);
+    }
+
+    // A representative (x,z) for a region whose footprint came back degenerate — its 2D AABB centre, else a
+    // declared centre coordinate (cylinder base, point/block position, …).
+    private static (double? X, double? Z) RegionCenter(Dict r)
+    {
+        if (r.GetValueOrDefault("bounds_2d") is Dict b && b.GetValueOrDefault("min") is Dict mn && b.GetValueOrDefault("max") is Dict mx
+            && Num(mn, "x") is { } x0 && Num(mx, "x") is { } x1 && Num(mn, "z") is { } z0 && Num(mx, "z") is { } z1)
+            return ((x0 + x1) / 2, (z0 + z1) / 2);
+        foreach (var k in (string[])["base", "position", "center", "origin"])
+            if (r.GetValueOrDefault(k) is Dict p && Num(p, "x") is { } px && Num(p, "z") is { } pz)
+                return (px, pz);
+        return (null, null);
     }
 
     private static List<object?> List(Dict d, string k) => d.GetValueOrDefault(k) as List<object?> ?? [];

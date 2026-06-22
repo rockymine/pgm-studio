@@ -134,7 +134,7 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   a_new_day_ii 9→5, thunder 33→17, with team-island count + symmetry preserved on every map (kanto/green_gem/
   two-quarter/vegas/mame). The legacy `DetectCleaned` remains for the `--islands` Python-parity harness. (G9)
 - **Semantic island role classifier** — `IslandRoleClassifier` tags each island by gameplay role from its
-  objective anchors (not size): **team** (holds a spawn — point or `only-<team>` protection region),
+  objective anchors (not size): **team** (holds a spawn — the team `spawns[].region`),
   **objective** (holds a wool — `wools[].location`, wool-room region, or a wool-*dispensing* spawner region;
   economy spawners like gold nuggets are skipped, and the capture **monument** is never an anchor),
   **neutral** (no anchor but intersects the build region — a stepping-stone/mid), **decorative** (no anchor,
