@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using MySqlConnector;
+using PgmStudio.Contracts;
 using PgmStudio.Migrations;
 
 namespace PgmStudio.Api.Tests;
@@ -139,6 +140,83 @@ public sealed class SketchEndpointTests
 
         var resp = await client.PutAsync($"/api/map/{slug}/sketch", new StringContent("not json", Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task Finish_rasterizes_the_layout_and_advances_the_map_to_configure()
+    {
+        await ResetSchemaAsync();
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Finish Me" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        // Two disjoint rectangles (x-gap from -20 to 20) → two islands, the CTW minimum. mirrors:false so
+        // the layout stands on its own without a mirror copy.
+        var put = await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
+        {
+            setup = new { mirror_mode = "mirror_x", center = new { cx = 1000, cz = 0 } },
+            layout = new
+            {
+                shapes = new object[]
+                {
+                    new { id = "a", type = "rectangle", operation = "add", @override = false, min_x = -40, max_x = -20, min_z = -10, max_z = 10 },
+                    new { id = "b", type = "rectangle", operation = "add", @override = false, min_x = 20, max_x = 40, min_z = -10, max_z = 10 },
+                },
+                islands = new object[]
+                {
+                    new { id = "i1", name = "West", mirrors = false, shapeIds = new[] { "a" } },
+                    new { id = "i2", name = "East", mirrors = false, shapeIds = new[] { "b" } },
+                },
+            },
+        });
+        await Assert.That(put.IsSuccessStatusCode).IsTrue();
+
+        // Before finishing the map sits in the Sketch stage.
+        var sketchStaged = await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=sketch");
+        await Assert.That(sketchStaged!.Any(m => m.Slug == slug)).IsTrue();
+
+        var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
+        await Assert.That(finish.IsSuccessStatusCode).IsTrue();
+        var body = await finish.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(body.GetProperty("slug").GetString()).IsEqualTo(slug);
+        await Assert.That(body.GetProperty("configureUrl").GetString()).IsEqualTo($"/maps/{slug}/configure");
+
+        // Rasterize → geometry written → the draft has advanced into the Configure wizard.
+        var configureStaged = await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=configure");
+        await Assert.That(configureStaged!.Any(m => m.Slug == slug)).IsTrue();
+        var stillSketch = await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=sketch");
+        await Assert.That(stillSketch!.Any(m => m.Slug == slug)).IsFalse();
+    }
+
+    [Test]
+    public async Task Finish_rejects_a_layout_with_fewer_than_two_islands()
+    {
+        await ResetSchemaAsync();
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "One Island" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        // A single rectangle → one island; a CTW needs both sides, so finish must refuse.
+        await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
+        {
+            setup = new { mirror_mode = "mirror_x", center = new { cx = 1000, cz = 0 } },
+            layout = new
+            {
+                shapes = new object[] { new { id = "a", type = "rectangle", operation = "add", @override = false, min_x = 0, max_x = 20, min_z = 0, max_z = 20 } },
+                islands = new object[] { new { id = "i1", name = "Solo", mirrors = false, shapeIds = new[] { "a" } } },
+            },
+        });
+
+        var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
+        await Assert.That((int)finish.StatusCode).IsEqualTo(422);
+
+        // It stays in Sketch — a rejected finish must not advance the stage.
+        var sketchStaged = await client.GetFromJsonAsync<List<MapSummary>>("/api/maps?stage=sketch");
+        await Assert.That(sketchStaged!.Any(m => m.Slug == slug)).IsTrue();
     }
 
     // ── harness (self-contained, mirrors MetadataEndpointTests) ─────────────────────
