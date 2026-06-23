@@ -42,12 +42,15 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 - **Build Regions activity** — Step 1 max-build-height (side-view + draggable line), Step 2 build tree
   + canvas + inspector delete/rename. (E5)
 - **Setup activity** (rail label; renamed from "Configure" to free that word for the top-level
-  Configure mode) — a 2-step confirm flow (**island-exclude → symmetry confirm**) over the
-  island/symmetry preview; finish → Overview. Detection runs on the studio-chosen **cleaned base** —
-  no per-map scan-layer or custom block-exclusion choice and **no world re-scan** (aligned to the
-  Configure World phase; the world-scanning scan-layer/block-exclusion endpoints were dropped so the
-  surface is hosted-safe). Excluding an island recomputes symmetry from the already-detected islands.
-  (E6, E8)
+  Configure mode) — a 2-step confirm flow (**island-exclude → symmetry confirm**) over the **reused
+  `EditorCanvas`** (island-select then symmetry overlay — the same canvas the Configure World phase
+  uses); finish → Overview. Detection runs on the studio-chosen **cleaned base** — no per-map scan-layer
+  or custom block-exclusion choice and **no world re-scan** (aligned to the Configure World phase; the
+  world-scanning scan-layer/block-exclusion endpoints were dropped so the surface is hosted-safe).
+  Excluding an island recomputes symmetry from the already-detected islands. The bespoke
+  `studio.mountConfigure` + `configure-bridge.js` path retired (the shared `ConfigureRenderer` stays for
+  the `/maps/new` scan preview); excluded islands share the one `map_config` store across both surfaces.
+  (E6, E8, C19)
 - **Overview activity** — static pixel surface render + symmetry axis/centre overlay. (E7)
 - **Draft bucket** — a freshly drawn region shows in the activity step that drew it, via an editor-only
   `region_drafts_json` sidecar kept **outside** the codec; it graduates out the moment wiring derives its

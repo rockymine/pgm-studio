@@ -61,17 +61,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-- [ ] **C19 — Finish the Edit Setup ↔ Configure World convergence.** The Edit **Setup** activity
-  (`ConfigureActivity`) was reduced to the standardized **Islands → Symmetry** confirm flow (no
-  scan-layer / block-exclusion / world re-scan — `FEATURES.md`), matching the Configure **World** phase.
-  Two divergences remain: (a) Setup still renders on the legacy `studio.mountConfigure` + `ConfigureRenderer`
-  canvas while World reuses `EditorCanvas` — re-host Setup on `EditorCanvas` (island + symmetry modes) so
-  the bespoke `configure-bridge`/`ConfigureRenderer` path can retire (`scan-bridge` for `/maps/new` still
-  uses `ConfigureRenderer`, so move it too or keep the renderer for that one caller); (b) excluded islands
-  live in `map_config_json.exclude_islands` for Edit but the `symmetry` table's `excluded_islands_json` for
-  Configure — unify on the symmetry table so the same concept has one home. End state: the two surfaces
-  share the Islands/Symmetry sub-step components, differing only in the commit target (Edit: symmetry
-  table; Configure: also copies mode+centre into `intent.symmetry`).
 - [ ] **CV8 — C# symmetry label/count helper.** Collapse `SymLabel` (identical in
   `WorldScanPhase`/`WorldSymmetryPhase`) + the suggested-team-count mapping
   (`WorldSymmetryPhase`/`TeamsPhase`/`SpawnPhase`) into one shared `SymmetryInfo`. The `SpawnPhase`

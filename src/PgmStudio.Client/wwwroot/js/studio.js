@@ -55,12 +55,6 @@ window.studio = {
     return mod.mountSlice(canvasEl, dotnetRef, slug);
   },
 
-  // Mount the Configure wizard preview (E8): layer / islands / symmetry modes.
-  async mountConfigure(svgEl, wrapEl, slug) {
-    const mod = await import("/js/studio/bridge/configure-bridge.js");
-    return mod.mount(svgEl, wrapEl, slug);
-  },
-
   // Mount the new-map landing's "Found" preview (NS): reuses the editor ConfigureRenderer over the
   // cached scan artifacts (works for an xml-less world with no regions tree).
   async mountScan(svgEl, wrapEl, slug) {

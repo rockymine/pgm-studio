@@ -5,11 +5,12 @@ using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Pages.EditorActivities;
 
-// 2-step Setup flow (Islands → Symmetry) over the island/symmetry preview canvas (mounted via
-// studio.mountConfigure). Detection runs on the studio-chosen cleaned-base layer — no scan-layer or
-// block-exclusion choice and no world re-scan. Excluding an island recomputes symmetry on the backend
-// from the already-detected islands (the exclude-island endpoint invalidates the symmetry cache).
-public partial class ConfigureActivity : IAsyncDisposable
+// 2-step Setup flow (Islands → Symmetry) over the reused EditorCanvas — island-select then symmetry
+// overlay, the same canvas the Configure World phase uses. Detection runs on the studio-chosen cleaned
+// base: no scan-layer or block-exclusion choice and no world re-scan. Excluding an island recomputes
+// symmetry on the backend from the already-detected islands (the exclude-island endpoint invalidates
+// the symmetry cache).
+public partial class ConfigureActivity
 {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public EventCallback OnComplete { get; set; }
@@ -20,13 +21,13 @@ public partial class ConfigureActivity : IAsyncDisposable
     private int step = 1;
     private readonly HashSet<int> excludedIslands = new();
     private List<Island> islands = new();
+    private int? selectedId;
     private List<SymMode> symModes = new();
     private double centerX, centerZ, detCenterX, detCenterZ;
     private string? symChoice;
     private string? error;
 
-    private ElementReference svgRef, wrapRef;
-    private IJSObjectReference? canvasHandle;
+    private EditorCanvas? islandCanvas, symCanvas;
 
     // ── derived views for the markup ──────────────────────────────────────────────
     private List<Island> IncludedIslands => islands.Where(i => !excludedIslands.Contains(i.Id)).ToList();
@@ -42,19 +43,24 @@ public partial class ConfigureActivity : IAsyncDisposable
 
     protected override async Task OnParametersSetAsync()
     {
-        step = 1; symChoice = null; error = null;
+        step = 1; symChoice = null; selectedId = null; error = null;
         await LoadState();
         await Task.WhenAll(LoadIslands(), LoadSymmetry());
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+
+    // ── canvas readiness (each step mounts its own EditorCanvas) ──────────────────
+    private async Task OnIslandCanvasReady()
     {
-        await JS.InvokeVoidAsync("studio.icons");
-        if (firstRender)
-        {
-            canvasHandle = await JS.InvokeAsync<IJSObjectReference>("studio.mountConfigure", svgRef, wrapRef, Slug);
-            await SyncCanvas();
-        }
+        if (islandCanvas is null) return;
+        await islandCanvas.SetExcludedIslandsAsync(excludedIslands.ToList());
+        await islandCanvas.SetSelectedIslandAsync(selectedId);
+    }
+
+    private async Task OnSymCanvasReady()
+    {
+        if (symCanvas is not null) await symCanvas.SetSymmetryAsync(symChoice == "none" ? null : symChoice, centerX, centerZ);
     }
 
     // ── data loading ────────────────────────────────────────────────────────────
@@ -107,45 +113,46 @@ public partial class ConfigureActivity : IAsyncDisposable
     }
 
     // ── step 1: island exclusion ────────────────────────────────────────────────
+    private async Task Select(int? id)
+    {
+        selectedId = id;
+        if (islandCanvas is not null) await islandCanvas.SetSelectedIslandAsync(id);
+    }
+
     private async Task ToggleIsland(int id, bool excluded)
     {
         await Http.PatchAsJsonAsync($"api/configure/{Slug}/exclude-island",
             new Dictionary<string, object?> { ["island_id"] = id, ["excluded"] = excluded });
         if (excluded) excludedIslands.Add(id); else excludedIslands.Remove(id);
-        if (canvasHandle is not null) await canvasHandle.InvokeVoidAsync("setExcludedIds", (object)excludedIslands.ToArray());
+        if (islandCanvas is not null) await islandCanvas.SetExcludedIslandsAsync(excludedIslands.ToList());
     }
 
     // ── step 2: symmetry ────────────────────────────────────────────────────────
     private async Task SelectSym(string type)
     {
         symChoice = type;
-        if (canvasHandle is not null)
-        {
-            await canvasHandle.InvokeVoidAsync("setSymmetryType", type == "none" ? null : type);
-            await canvasHandle.InvokeVoidAsync("setCenter", centerX, centerZ);
-        }
+        if (symCanvas is not null) await symCanvas.SetSymmetryAsync(type == "none" ? null : type, centerX, centerZ);
     }
 
     private async Task OnCenter(ChangeEventArgs e, bool isX)
     {
         if (double.TryParse(e.Value?.ToString(), out var v)) { if (isX) centerX = v; else centerZ = v; }
-        if (canvasHandle is not null) await canvasHandle.InvokeVoidAsync("setCenter", centerX, centerZ);
+        if (symCanvas is not null) await symCanvas.SetSymmetryAsync(symChoice == "none" ? null : symChoice, centerX, centerZ);
     }
 
     private async Task ResetCenter()
     {
         centerX = detCenterX; centerZ = detCenterZ;
-        if (canvasHandle is not null) await canvasHandle.InvokeVoidAsync("setCenter", centerX, centerZ);
+        if (symCanvas is not null) await symCanvas.SetSymmetryAsync(symChoice == "none" ? null : symChoice, centerX, centerZ);
     }
 
     // ── navigation ──────────────────────────────────────────────────────────────
     private async Task Next()
     {
         if (step == 1) { await LoadSymmetry(); step = 2; }   // re-detect symmetry minus the excluded islands
-        await SyncCanvas();
     }
 
-    private async Task Prev() { if (step > 1) { step--; await SyncCanvas(); } }
+    private void Prev() { if (step > 1) step--; }
 
     /// <summary>Jump straight to a step from the step-bar tabs (e.g. Symmetry) without walking Next.</summary>
     private async Task JumpToStep(int n)
@@ -153,7 +160,6 @@ public partial class ConfigureActivity : IAsyncDisposable
         if (n == step) return;
         if (n == 2) await LoadSymmetry();   // ensure the symmetry panel/canvas are fresh
         step = n;
-        await SyncCanvas();
     }
 
     private async Task Finish()
@@ -166,26 +172,6 @@ public partial class ConfigureActivity : IAsyncDisposable
         else error = $"Failed to save symmetry ({(int)resp.StatusCode}).";
     }
 
-    /// <summary>Drive the preview canvas to match the current step.</summary>
-    private async Task SyncCanvas()
-    {
-        if (canvasHandle is null) return;
-        if (step == 1)
-        {
-            await canvasHandle.InvokeVoidAsync("setMode", "islands");
-            await canvasHandle.InvokeVoidAsync("showIslands");
-            await canvasHandle.InvokeVoidAsync("setExcludedIds", (object)excludedIslands.ToArray());
-        }
-        else
-        {
-            await canvasHandle.InvokeVoidAsync("setMode", "symmetry");
-            await canvasHandle.InvokeVoidAsync("showIslands");   // island context (also when jumping straight here)
-            await canvasHandle.InvokeVoidAsync("showSymmetry");
-            await canvasHandle.InvokeVoidAsync("setSymmetryType", symChoice == "none" ? null : symChoice);
-            await canvasHandle.InvokeVoidAsync("setCenter", centerX, centerZ);
-        }
-    }
-
     private static string Str(JsonElement e, string key, string def = "")
         => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? def : def;
 
@@ -193,13 +179,4 @@ public partial class ConfigureActivity : IAsyncDisposable
         => e.TryGetProperty(key, out var a) && a.ValueKind == JsonValueKind.Array
             ? a.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number).Select(x => x.GetInt32())
             : Enumerable.Empty<int>();
-
-    public async ValueTask DisposeAsync()
-    {
-        if (canvasHandle is not null)
-        {
-            try { await canvasHandle.InvokeVoidAsync("dispose"); } catch { }
-            try { await canvasHandle.DisposeAsync(); } catch { }
-        }
-    }
 }

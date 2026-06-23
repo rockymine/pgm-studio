@@ -2,14 +2,21 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Setup activity — a 2-step confirm flow (Islands → Symmetry) over the island/symmetry preview
-   canvas. Detection runs on the studio-chosen cleaned-base layer; there is no scan-layer or
-   block-exclusion choice and no world re-scan. Excluding an island recomputes symmetry from the
-   already-detected islands. *@
+@* Setup activity — a 2-step confirm flow (Islands → Symmetry) over the reused EditorCanvas (island-select
+   then symmetry overlay — the same canvas the Configure World phase uses). Detection runs on the
+   studio-chosen cleaned base; there is no scan-layer or block-exclusion choice and no world re-scan.
+   Excluding an island recomputes symmetry from the already-detected islands. *@
 
 <div class="workspace">
   <div class="workspace-sidebar">
     <div class="workspace-scroll">
+      @* Step tabs — jump straight to a step (e.g. Symmetry) without walking Next. *@
+      <div class="cfg-step-bar">
+        <button class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)" @onclick="() => JumpToStep(1)"><span class="step-number">1</span><span class="step-item-label">Islands</span></button>
+        <div class="step-sep"></div>
+        <button class="step-item @(step == 2 ? "active" : null)" @onclick="() => JumpToStep(2)"><span class="step-number">2</span><span class="step-item-label">Symmetry</span></button>
+      </div>
+
       @if (step == 1)
       {
         <section class="panel-section">
@@ -17,7 +24,8 @@
             <h2 class="section-title">Islands</h2>
             <span class="badge badge--dim">Step 1</span>
           </div>
-          <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer towers).</p>
+          <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer
+            towers). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
         </section>
 
         <section class="panel-section">
@@ -26,12 +34,13 @@
             @if (IncludedIslands.Count == 0) { <div class="list-empty">No islands detected.</div> }
             @foreach (var isl in IncludedIslands)
             {
-              <div class="list-row list-row--compact">
+              <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
+                   @key="isl.Id" @onclick="() => Select(isl.Id)">
                 <span class="list-swatch" style="background:#6366f1"></span>
                 <span class="list-label">Island @isl.Id</span>
                 <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
                 <button class="btn-remove btn-remove--hover-only" title="Exclude island"
-                        disabled="@(IncludedIslands.Count <= 1)" @onclick="() => ToggleIsland(isl.Id, true)"><i data-lucide="x"></i></button>
+                        disabled="@(IncludedIslands.Count <= 1)" @onclick:stopPropagation="true" @onclick="() => ToggleIsland(isl.Id, true)"><i data-lucide="x"></i></button>
               </div>
             }
           </div>
@@ -43,12 +52,13 @@
             @if (ExcludedIslandsList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
             @foreach (var isl in ExcludedIslandsList)
             {
-              <div class="list-row list-row--compact">
+              <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
+                   @key="isl.Id" @onclick="() => Select(isl.Id)">
                 <span class="list-swatch" style="background:#6b7280"></span>
                 <span class="list-label">Island @isl.Id</span>
                 <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
                 <button class="btn-remove btn-remove--hover-only" title="Re-include island"
-                        @onclick="() => ToggleIsland(isl.Id, false)"><i data-lucide="rotate-ccw"></i></button>
+                        @onclick:stopPropagation="true" @onclick="() => ToggleIsland(isl.Id, false)"><i data-lucide="rotate-ccw"></i></button>
               </div>
             }
           </div>
@@ -106,19 +116,16 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-canvas">
-    <div class="canvas-subbar">
-      @* Step tabs are clickable — jump straight to a step (e.g. Symmetry) without walking Next. *@
-      <div class="cfg-step-bar">
-        <button class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)" @onclick="() => JumpToStep(1)"><span class="step-number">1</span><span class="step-item-label">Islands</span></button>
-        <div class="step-sep"></div>
-        <button class="step-item @(step == 2 ? "active" : null)" @onclick="() => JumpToStep(2)"><span class="step-number">2</span><span class="step-item-label">Symmetry</span></button>
-      </div>
-    </div>
-    <div @ref="wrapRef" class="svg-area">
-      <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
-    </div>
-  </div>
+  @* Reused edit canvas — island-select (step 1) then symmetry overlay (step 2), base layer only. *@
+  @if (step == 1)
+  {
+    <EditorCanvas @ref="islandCanvas" Slug="@Slug" IslandSelect="true"
+                  OnIslandSelect="Select" OnReady="OnIslandCanvasReady" />
+  }
+  else
+  {
+    <EditorCanvas @ref="symCanvas" Slug="@Slug" SymmetryMode="true" OnReady="OnSymCanvasReady" />
+  }
 </div>
 
 <Toast Message="@error" />
