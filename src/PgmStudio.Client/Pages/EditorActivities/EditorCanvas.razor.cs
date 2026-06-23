@@ -24,13 +24,13 @@ public partial class EditorCanvas
     /// refreshes its inspector. Args: (region id, new min/max x/z).</summary>
     [Parameter] public EventCallback<(string Id, double MinX, double MinZ, double MaxX, double MaxZ)> OnGeometrySaved { get; set; }
 
-    /// <summary>World authoring: clicks pick an island (not a region), the Blocks layer toggle is hidden,
-    /// and only the island base layer shows. Fires <see cref="OnIslandSelect"/> on a canvas click.</summary>
+    /// <summary>World authoring: clicks pick an island (not a region) over the island base layer. Fires
+    /// <see cref="OnIslandSelect"/> on a canvas click.</summary>
     [Parameter] public bool IslandSelect { get; set; }
     /// <summary>Fired when a canvas click selects an island (null = clicked empty space).</summary>
     [Parameter] public EventCallback<int?> OnIslandSelect { get; set; }
-    /// <summary>World · Symmetry: base layer only (Blocks toggle hidden); the host drives the axis/centre
-    /// overlay via <see cref="SetSymmetryAsync"/>.</summary>
+    /// <summary>World · Symmetry: the host drives the axis/centre overlay via <see cref="SetSymmetryAsync"/>
+    /// over the island base layer.</summary>
     [Parameter] public bool SymmetryMode { get; set; }
     /// <summary>Teams · Spawn: the point tool reports the clicked world point via <see cref="OnPointPick"/>
     /// (spawn placement); the host renders the placed spawns as point dummy regions

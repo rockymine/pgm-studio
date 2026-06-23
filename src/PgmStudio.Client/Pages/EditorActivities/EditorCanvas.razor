@@ -48,11 +48,10 @@
                 title="Mirror drawn regions across the map's confirmed symmetry"
                 @onclick="ToggleOrbit">@OrbitLabel()</button>
       }
-      @if (!IslandSelect && !SymmetryMode && !PointPick && !RectDraw)
-      {
-        <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)" title="Overlay the top-surface block colours"
-                @onclick="ToggleBlocks">Blocks</button>
-      }
+      @* Blocks overlay is a mode-independent visual aid (renders below the regions/markers); offered on every
+         canvas so placement can be lined up against the real terrain. No-op when the map has no scan data. *@
+      <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)" title="Overlay the top-surface block colours"
+              @onclick="ToggleBlocks">Blocks</button>
       @if (ShowBuildable)
       {
         <button class="filter-chip @(buildableOn ? "filter-chip--active" : null)"
