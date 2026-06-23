@@ -64,13 +64,22 @@
         <section class="panel-section">
           <div class="section-header section-header--ruled">
             <h2 class="section-title">From a download link</h2>
-            <span class="badge badge--dim">Coming soon</span>
+            <span class="badge badge--dim">Overcast / S3 zip</span>
           </div>
-          <p class="section-desc">Paste a link to a world download (e.g. an Overcast map zip) and the studio
-            will fetch and import it.</p>
+          <p class="section-desc">Paste a link to a world download (an Overcast / S3 <code>…/download</code>
+            zip) and the studio fetches and imports it server-side — no local files needed. Only
+            allow-listed hosts can be fetched.</p>
           <div class="field">
             <label class="field-label">Download URL</label>
-            <input class="field-input" type="text" placeholder="https://…/maps/&lt;world&gt;/download" disabled />
+            <div class="ctrl-row">
+              <input class="field-input" type="text" @bind="urlInput" @bind:event="oninput"
+                     placeholder="https://…/maps/your-world/download" disabled="@importingUrl"
+                     @onkeydown="@(e => { if (e.Key == "Enter") _ = ImportFromUrl(); })" />
+              <button class="action-btn action-btn--primary" @onclick="ImportFromUrl"
+                      disabled="@(importingUrl || string.IsNullOrWhiteSpace(urlInput))">
+                <i data-lucide="download"></i><span>@(importingUrl ? "Fetching…" : "Fetch & scan")</span>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -90,11 +99,11 @@
             <div class="panel-list">
               <div class="list-row list-row--compact list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="folder-open"></i></span>
-                <span class="list-label list-label--mono">@(selected?.Folder)/</span>
+                <span class="list-label list-label--mono">@SourceFolder/</span>
               </div>
               <div class="list-row list-row--compact list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="box"></i></span>
-                <span class="list-label list-label--mono">region/ · @(selected?.RegionFiles) .mca</span>
+                <span class="list-label list-label--mono">region/ · @SourceRegionFiles .mca</span>
               </div>
               <div class="list-row list-row--compact list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="file-x"></i></span>

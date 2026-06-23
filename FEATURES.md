@@ -394,12 +394,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `setAuthorMirror` + a non-selectable `ghost` flag — the same machinery the sketch tool's mirror uses.
   Identity assignment is the shared `OrbitAssignment` (point-aware) for Protection/Wools and island-aware
   in Spawn. (N02/N03)
-- **New-map landing (Import flow)** — `/maps/new`: **Source** lists importable world folders and scans the
-  chosen one (`POST /map/import-folder`); **Found** shows the detection brief over the reused editor canvas
+- **New-map landing (Import flow)** — `/maps/new`: **Source** either lists importable local world folders
+  and scans the chosen one (`POST /map/import-folder`), or fetches + scans a world from a download link
+  (`POST /map/import-url` — allow-listed host, auto-uniquified slug so repeat imports of the same world
+  coexist as `name-2`/`name-3`); **Found** shows the detection brief over the reused editor canvas
   (island base + surface overlay), with each finding selectable for a detail explanation — island sizes,
   wool colours + resource types (`GET /map/{slug}/scan-summary`), chest count — and symmetry / suggested
   teams as inline facts; **Plan** presents the six phases as cards, then Start → the wizard at Map Info.
-  Reuses `ConfigureRenderer` via `scan-canvas.js` and a generic `.card` / `.card-grid` / `.callout`. (NS)
+  Reuses `ConfigureRenderer` via `scan-canvas.js` and a generic `.card` / `.card-grid` / `.callout`. (NS, B8)
 - **Typed intent model** `MapIntent` (+ `SymmetryIntent`), persisted as the `map_intent_json` sidecar
   (outside the codec, like the draft bucket). (`ea76f13`)
 - **Generator** `IntentGenerator.Apply` — meta / teams / build / wool slices → PGM document via the

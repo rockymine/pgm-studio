@@ -27,6 +27,13 @@ public partial class ConfigureLanding : IAsyncDisposable
     private bool importing;
     private string? error;
 
+    // URL-import source (the parallel "From a download link" path) — its own input + spinner, separate
+    // from the folder scan. A successful fetch lands on Found with no folder `selected`, so the brief's
+    // source label/count come from the slug + mca count the endpoint returned (SourceFolder/RegionFiles).
+    private string urlInput = "";
+    private bool importingUrl;
+    private int mcaFiles;
+
     // Found brief — the scan (import-folder) returns the world-feature counts; symmetry is fetched after.
     private string? importedSlug;   // the map slug the scan created (canvas + endpoints + Start)
     private int woolBlocks, resourceBlocks, chestItems, spawnerBlocks, monumentCandidates, islandCount;
@@ -60,6 +67,11 @@ public partial class ConfigureLanding : IAsyncDisposable
     private bool OnSource => step == 0;
     private bool OnFound => step == 1;
     private bool OnPlan => step == 2;
+
+    // The scanned world's source label + region-file count for the Found brief — a folder candidate when
+    // one was picked, else the URL import's slug + extracted .mca count.
+    private string SourceFolder => selected?.Folder ?? importedSlug ?? "";
+    private int SourceRegionFiles => selected?.RegionFiles ?? mcaFiles;
 
     // The scan is what unlocks Found + Plan: before it only Source is reachable; after it the user can
     // move freely across all three (a processed world has its whole brief ready). Re-picking a different
@@ -166,9 +178,54 @@ public partial class ConfigureLanding : IAsyncDisposable
 
     private async Task Next()
     {
-        if (OnSource) { if (await EnsureScan()) SetStep(1); }
+        // Scanned already (a folder re-visit or a completed URL import) just advances; otherwise scan first.
+        if (OnSource) { if (Scanned || await EnsureScan()) SetStep(1); }
         else if (OnFound) SetStep(2);
         else if (importedSlug is not null) Nav.NavigateTo($"maps/{importedSlug}/configure");
+    }
+
+    /// <summary>Fetch + import a world from a download link (allow-listed host, server-side) and load its
+    /// brief — the URL twin of <see cref="EnsureScan"/>. On success there is no folder <c>selected</c>, so
+    /// the brief's source label comes from the returned slug + .mca count; advances to Found.</summary>
+    private async Task ImportFromUrl()
+    {
+        var url = urlInput.Trim();
+        if (url.Length == 0 || importingUrl) return;
+
+        importingUrl = true; error = null; StateHasChanged();
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("api/map/import-url",
+                new Dictionary<string, object?> { ["url"] = url });
+            if (!resp.IsSuccessStatusCode) { error = await ErrorMessage(resp, "Import failed"); return; }
+
+            var r = await resp.Content.ReadFromJsonAsync<JsonElement>();
+            selected = null;   // a URL world is not a local folder candidate — drop any prior pick
+            selectedFinding = "islands";
+            importedSlug = Str(r, "slug"); mcaFiles = Int(r, "mca_files");
+            woolBlocks = Int(r, "wool_blocks"); resourceBlocks = Int(r, "resource_blocks");
+            chestItems = Int(r, "chest_items"); spawnerBlocks = Int(r, "spawner_blocks");
+            monumentCandidates = Int(r, "monument_candidates"); islandCount = Int(r, "islands");
+
+            await LoadBrief();
+            SetStep(1);
+        }
+        catch { error = "Import failed."; }
+        finally { importingUrl = false; StateHasChanged(); }
+    }
+
+    // Surface the endpoint's own message (host not allowed / https required / already exists …) when it
+    // sends one, so the allow-list and validation failures read clearly; else fall back to the status code.
+    private static async Task<string> ErrorMessage(HttpResponseMessage resp, string fallback)
+    {
+        try
+        {
+            var e = await resp.Content.ReadFromJsonAsync<JsonElement>();
+            var msg = Str(e, "error");
+            if (msg.Length > 0) return char.ToUpperInvariant(msg[0]) + msg[1..] + ".";
+        }
+        catch { /* non-JSON body — fall through to the status code */ }
+        return $"{fallback} ({(int)resp.StatusCode}).";
     }
 
     // Single funnel for every step change: tear the canvas down the moment we leave Found so the next
@@ -184,7 +241,7 @@ public partial class ConfigureLanding : IAsyncDisposable
     {
         if (canvasHandle is not null) _ = DisposeCanvas();
         importedSlug = null;
-        woolBlocks = resourceBlocks = chestItems = spawnerBlocks = monumentCandidates = islandCount = 0;
+        woolBlocks = resourceBlocks = chestItems = spawnerBlocks = monumentCandidates = islandCount = mcaFiles = 0;
         symType = null; selectedFinding = "islands";
         islands = new(); woolColors = new(); resourceTypes = new(); chestCount = 0;
         if (step != 0) step = 0;

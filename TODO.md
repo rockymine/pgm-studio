@@ -76,11 +76,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B8 — Import from URL (UI enablement).** The backend is **done** — `POST /api/map/import-url`
-  fetches + imports an Overcast / S3 `//download` zip (with SSRF safeguards) — but the landing screen's
-  download field is still **`disabled`** (`ConfigureLanding.razor`). Enable + wire the field to the
-  endpoint. (The "open a local world folder" half shipped — `import-folder` + `import-candidates` +
-  `/maps/new`, `FEATURES.md`.)
 - [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
   parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
   **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI

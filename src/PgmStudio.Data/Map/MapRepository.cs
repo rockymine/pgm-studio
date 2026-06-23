@@ -16,6 +16,17 @@ public sealed class MapRepository(PgmDb db)
     public Task<MapRow?> GetBySlugAsync(string slug, CancellationToken ct = default)
         => db.Maps.FirstOrDefaultAsync(m => m.Slug == slug, ct);
 
+    /// <summary>A slug not already taken: <paramref name="baseSlug"/> if free, else the first free
+    /// <c>baseSlug-2</c>, <c>baseSlug-3</c>, …. A download URL carries the world's own name, so two
+    /// imports collide on it — suffix to the next free slug instead of failing.</summary>
+    public async Task<string> UniqueSlugAsync(string baseSlug, CancellationToken ct = default)
+    {
+        var taken = (await db.Maps.Select(m => m.Slug).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!taken.Contains(baseSlug)) return baseSlug;
+        for (var i = 2; ; i++)
+            if (!taken.Contains($"{baseSlug}-{i}")) return $"{baseSlug}-{i}";
+    }
+
     public Task<MapRow?> GetByIdAsync(long id, CancellationToken ct = default)
         => db.Maps.FirstOrDefaultAsync(m => m.Id == id, ct);
 

@@ -45,10 +45,12 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
         if (uri.Scheme != Uri.UriSchemeHttps) { await Fail(400, "https url required", ct); return; }
         if (!policy.HostAllowed(uri.Host)) { await Fail(403, $"host not allowed: {uri.Host}", ct); return; }
 
-        // ── 2. slug (sanitised + unique) ──
-        var slug = Sanitize(body["slug"]?.GetValue<string>() ?? LastSegment(uri));
-        if (slug.Length == 0) { await Fail(400, "could not derive a valid slug", ct); return; }
-        if (await repo.GetBySlugAsync(slug, ct) is not null) { await Fail(409, $"map '{slug}' already exists", ct); return; }
+        // ── 2. slug (sanitised, auto-uniquified) ──
+        // The URL's last segment is the world's own name, so independent imports of the same map collide;
+        // suffix to the next free slug (rockymine → rockymine-2) rather than rejecting the import.
+        var baseSlug = Sanitize(body["slug"]?.GetValue<string>() ?? LastSegment(uri));
+        if (baseSlug.Length == 0) { await Fail(400, "could not derive a valid slug", ct); return; }
+        var slug = await repo.UniqueSlugAsync(baseSlug, ct);
 
         var slugDir = Path.Combine(policy.Root, slug);
         var regionDir = Path.Combine(slugDir, "region");
