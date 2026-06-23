@@ -15,7 +15,7 @@ using Dict = Dictionary<string, object?>;
 /// <summary>Shared helpers for the symmetry endpoints (B7).</summary>
 internal static class SymmetrySupport
 {
-    public static readonly HashSet<string> ValidTypes = ["rot_90", "rot_180", "mirror_x", "mirror_z"];
+    public static readonly HashSet<string> ValidTypes = ["rot_90", "rot_180", "mirror_x", "mirror_z", "mirror_d1", "mirror_d2"];
 
     // Display-strength rank for primary tie-breaks (port of _SYMMETRY_ORDER).
     private static readonly Dictionary<string, int> Order = new()
