@@ -23,7 +23,7 @@ using Dict = Dictionary<string, object?>;
 /// bridged), and this is the only check that catches it. Corpus maps have no intent and export
 /// unconditionally (unchanged).</para>
 /// </summary>
-public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db, MapsRoots roots) : EndpointWithoutRequest
+public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Get("/map/{slug}/xml"); AllowAnonymous(); }
 
@@ -65,7 +65,7 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
             {
                 // cache-only: use an already-scanned surface palette if present, but never trigger a world
                 // scan from an export request — fall back to armor-only itemremove when it isn't cached.
-                var surface = await ConfigureLayers.CellsAsync(db, roots, slug, map.Id, "surface", ct, cacheOnly: true);
+                var surface = await ConfigureLayers.CellsAsync(db, map.Id, "surface", ct);
                 CtwStandards.Apply(mx, surface?.Select(c => c.BlockId).ToHashSet());
 
                 // Renewables for the world-scanned resource blocks (iron/gold/diamond); tight region each.

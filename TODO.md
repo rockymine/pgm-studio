@@ -61,6 +61,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
+- [ ] **C19 — Finish the Edit Setup ↔ Configure World convergence.** The Edit **Setup** activity
+  (`ConfigureActivity`) was reduced to the standardized **Islands → Symmetry** confirm flow (no
+  scan-layer / block-exclusion / world re-scan — `FEATURES.md`), matching the Configure **World** phase.
+  Two divergences remain: (a) Setup still renders on the legacy `studio.mountConfigure` + `ConfigureRenderer`
+  canvas while World reuses `EditorCanvas` — re-host Setup on `EditorCanvas` (island + symmetry modes) so
+  the bespoke `configure-bridge`/`ConfigureRenderer` path can retire (`scan-bridge` for `/maps/new` still
+  uses `ConfigureRenderer`, so move it too or keep the renderer for that one caller); (b) excluded islands
+  live in `map_config_json.exclude_islands` for Edit but the `symmetry` table's `excluded_islands_json` for
+  Configure — unify on the symmetry table so the same concept has one home. End state: the two surfaces
+  share the Islands/Symmetry sub-step components, differing only in the commit target (Edit: symmetry
+  table; Configure: also copies mode+centre into `intent.symmetry`).
 - [ ] **CV8 — C# symmetry label/count helper.** Collapse `SymLabel` (identical in
   `WorldScanPhase`/`WorldSymmetryPhase`) + the suggested-team-count mapping
   (`WorldSymmetryPhase`/`TeamsPhase`/`SpawnPhase`) into one shared `SymmetryInfo`. The `SpawnPhase`
@@ -81,11 +92,13 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   download field is still **`disabled`** (`ConfigureLanding.razor`). Enable + wire the field to the
   endpoint. (The "open a local world folder" half shipped — `import-folder` + `import-candidates` +
   `/maps/new`, `FEATURES.md`.)
-- [ ] **P8 — Pipeline re-run on config change.** A parameterized re-scan honouring
-  `scan_layer`/`exclude_blocks` → re-detect islands → rewrite **layer-tagged** `layer.parquet` /
-  `islands.json` (so B9 stops mis-serving a stale canonical). Today `PATCH /configure/{slug}/scan-layer`
-  persists the change + updates the preview but does **not** re-detect islands (noted deferred in
-  `ConfigureActivity`). (Island-exclusion → symmetry re-run already works, B7.)
+- [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
+  parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
+  **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
+  has been **removed** from both editors (detection is the fixed cleaned base; the world-scanning
+  endpoints are gone), so there is no longer a config-change to honour from the UI — this remains only as
+  a rare, local-only override path outside the hosted flow (new-map-authoring.md §6a). (Island-exclusion →
+  symmetry re-run already works without a re-scan, B7.)
 - [ ] **A3 — Buildability endpoint perf (verify, then optimise if needed).** Per-cell NTS over the grid
   was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
   **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's

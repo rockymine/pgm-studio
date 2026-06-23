@@ -2,10 +2,10 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Configure activity — 3-step scan-configuration wizard with a dedicated preview canvas
-   (layer pixels → island outlines → symmetry overlay), port of configure-activity.js +
-   configure-renderer.js. Island exclusion re-runs symmetry on the backend (cache invalidation);
-   pipeline re-run on scan-layer/block change (island re-detection) is deferred — see TODO. *@
+@* Setup activity — a 2-step confirm flow (Islands → Symmetry) over the island/symmetry preview
+   canvas. Detection runs on the studio-chosen cleaned-base layer; there is no scan-layer or
+   block-exclusion choice and no world re-scan. Excluding an island recomputes symmetry from the
+   already-detected islands. *@
 
 <div class="workspace">
   <div class="workspace-sidebar">
@@ -14,57 +14,8 @@
       {
         <section class="panel-section">
           <div class="section-header section-header--ruled">
-            <h2 class="section-title">Scan Layer</h2>
-            <span class="badge badge--dim">Step 1</span>
-          </div>
-          <p class="section-desc">Choose which extractor produced the map's surface layer; the preview updates live.</p>
-          <div class="layer-grid">
-            @foreach (var (id, label, title) in Layers)
-            {
-              <button class="filter-chip @(scanLayer == id ? "filter-chip--active" : null)" title="@title" @onclick="() => OnLayerChip(id)">@label</button>
-            }
-          </div>
-        </section>
-
-        <section class="panel-section">
-          <div class="section-header section-header--ruled"><h2 class="section-title">Included Blocks</h2></div>
-          <div class="panel-list">
-            @if (Included.Count == 0) { <div class="list-empty">No blocks in layer.</div> }
-            @foreach (var b in Included)
-            {
-              <div class="list-row list-row--compact">
-                <span class="list-swatch" style="background:@b.Color"></span>
-                <span class="list-label">@b.Name</span>
-                <span class="list-tag">@b.Count.ToString("N0")</span>
-                <button class="btn-remove btn-remove--hover-only" title="Exclude this block type"
-                        disabled="@(!CanExcludeBlocks)" @onclick="() => ExcludeBlock(b.BlockId)"><i data-lucide="x"></i></button>
-              </div>
-            }
-          </div>
-        </section>
-
-        <section class="panel-section">
-          <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Blocks</h2></div>
-          <div class="panel-list">
-            @if (ExcludedBlocks.Count == 0) { <div class="list-empty">No blocks excluded.</div> }
-            @foreach (var b in ExcludedBlocks)
-            {
-              <div class="list-row list-row--compact">
-                <span class="list-swatch" style="background:@b.Color"></span>
-                <span class="list-label">@b.Name</span>
-                <button class="btn-remove btn-remove--hover-only" title="Re-include this block type"
-                        @onclick="() => IncludeBlock(b.BlockId)"><i data-lucide="rotate-ccw"></i></button>
-              </div>
-            }
-          </div>
-        </section>
-      }
-      else if (step == 2)
-      {
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
             <h2 class="section-title">Islands</h2>
-            <span class="badge badge--dim">Step 2</span>
+            <span class="badge badge--dim">Step 1</span>
           </div>
           <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer towers).</p>
         </section>
@@ -108,7 +59,7 @@
         <section class="panel-section">
           <div class="section-header section-header--ruled">
             <h2 class="section-title">Symmetry</h2>
-            <span class="badge badge--dim">Step 3</span>
+            <span class="badge badge--dim">Step 2</span>
           </div>
           <p class="section-desc">Confirm the detected symmetry, choose a different one, or reject it.</p>
           <div class="panel-list">
@@ -148,7 +99,7 @@
 
     <div class="cfg-sidebar-nav">
       @if (step > 1) { <button class="action-btn" @onclick="Prev"><i data-lucide="arrow-left"></i></button> }
-      @if (step < 3) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Next">Next <i data-lucide="arrow-right"></i></button> }
+      @if (step < 2) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Next">Next <i data-lucide="arrow-right"></i></button> }
       else { <button class="action-btn action-btn--primary action-btn--push-end" disabled="@(symChoice is null)" @onclick="Finish"><i data-lucide="check"></i> @(symChoice == "none" ? "Confirm: no symmetry" : "Confirm symmetry")</button> }
     </div>
   </div>
@@ -159,11 +110,9 @@
     <div class="canvas-subbar">
       @* Step tabs are clickable — jump straight to a step (e.g. Symmetry) without walking Next. *@
       <div class="cfg-step-bar">
-        <button class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)" @onclick="() => JumpToStep(1)"><span class="step-number">1</span><span class="step-item-label">Scan Layer</span></button>
+        <button class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)" @onclick="() => JumpToStep(1)"><span class="step-number">1</span><span class="step-item-label">Islands</span></button>
         <div class="step-sep"></div>
-        <button class="step-item @(step == 2 ? "active" : step > 2 ? "done" : null)" @onclick="() => JumpToStep(2)"><span class="step-number">2</span><span class="step-item-label">Islands</span></button>
-        <div class="step-sep"></div>
-        <button class="step-item @(step == 3 ? "active" : null)" @onclick="() => JumpToStep(3)"><span class="step-number">3</span><span class="step-item-label">Symmetry</span></button>
+        <button class="step-item @(step == 2 ? "active" : null)" @onclick="() => JumpToStep(2)"><span class="step-number">2</span><span class="step-item-label">Symmetry</span></button>
       </div>
     </div>
     <div @ref="wrapRef" class="svg-area">

@@ -5,32 +5,19 @@ using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Pages.EditorActivities;
 
-// 3-step Configure wizard (Scan Layer → Islands → Symmetry) over a dedicated ConfigureRenderer
-// preview (mounted via studio.mountConfigure). Port of configure-activity.js. Island exclusion
-// re-runs symmetry on the backend (the exclude-island endpoint invalidates the symmetry cache);
-// re-detecting islands on a scan-layer/block change needs a pipeline re-run the port lacks (deferred).
+// 2-step Setup flow (Islands → Symmetry) over the island/symmetry preview canvas (mounted via
+// studio.mountConfigure). Detection runs on the studio-chosen cleaned-base layer — no scan-layer or
+// block-exclusion choice and no world re-scan. Excluding an island recomputes symmetry on the backend
+// from the already-detected islands (the exclude-island endpoint invalidates the symmetry cache).
 public partial class ConfigureActivity : IAsyncDisposable
 {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public EventCallback OnComplete { get; set; }
 
-    private static readonly (string id, string label, string title)[] Layers =
-    [
-        ("surface", "Surface", "Highest solid block per column"),
-        ("y0", "Y=0", "Non-air blocks at world y=0"),
-        ("bedrock", "Bedrock", "Lowest bedrock block per column"),
-        ("base", "Base", "Lowest non-air block per column"),
-    ];
-
-    private sealed record BlockType(int BlockId, string Name, string Color, int Count);
     private sealed record Island(int Id, int BlockCount);
     private sealed record SymMode(string Type, bool Detected, double Confidence);
 
     private int step = 1;
-    private string scanLayer = "surface", origLayer = "surface";
-    private readonly List<int> excludeBlocks = new();
-    private List<int> origExcludeBlocks = new();
-    private List<BlockType> blockTypes = new();
     private readonly HashSet<int> excludedIslands = new();
     private List<Island> islands = new();
     private List<SymMode> symModes = new();
@@ -42,9 +29,6 @@ public partial class ConfigureActivity : IAsyncDisposable
     private IJSObjectReference? canvasHandle;
 
     // ── derived views for the markup ──────────────────────────────────────────────
-    private List<BlockType> Included => blockTypes.Where(b => !excludeBlocks.Contains(b.BlockId)).ToList();
-    private List<BlockType> ExcludedBlocks => blockTypes.Where(b => excludeBlocks.Contains(b.BlockId)).ToList();
-    private bool CanExcludeBlocks => scanLayer != "bedrock" && Included.Count > 1;
     private List<Island> IncludedIslands => islands.Where(i => !excludedIslands.Contains(i.Id)).ToList();
     private List<Island> ExcludedIslandsList => islands.Where(i => excludedIslands.Contains(i.Id)).ToList();
 
@@ -60,7 +44,7 @@ public partial class ConfigureActivity : IAsyncDisposable
     {
         step = 1; symChoice = null; error = null;
         await LoadState();
-        await Task.WhenAll(LoadBlockTypes(origLayer), LoadIslands(), LoadSymmetry());
+        await Task.WhenAll(LoadIslands(), LoadSymmetry());
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -79,27 +63,10 @@ public partial class ConfigureActivity : IAsyncDisposable
         try
         {
             var s = await Http.GetFromJsonAsync<JsonElement>($"api/configure/{Slug}/state");
-            scanLayer = origLayer = Str(s, "scan_layer", "surface");
-            excludeBlocks.Clear();
-            excludeBlocks.AddRange(IntList(s, "exclude_blocks"));
-            origExcludeBlocks = excludeBlocks.ToList();
             excludedIslands.Clear();
             foreach (var i in IntList(s, "exclude_islands")) excludedIslands.Add(i);
         }
         catch (Exception ex) { error = ex.Message; }
-    }
-
-    private async Task LoadBlockTypes(string layer)
-    {
-        try
-        {
-            var arr = await Http.GetFromJsonAsync<JsonElement>($"api/configure/{Slug}/layers/{layer}/block-types");
-            blockTypes = arr.ValueKind == JsonValueKind.Array
-                ? arr.EnumerateArray().Select(b => new BlockType(
-                    b.GetProperty("block_id").GetInt32(), Str(b, "name"), Str(b, "color"), b.GetProperty("count").GetInt32())).ToList()
-                : new();
-        }
-        catch { blockTypes = new(); }
     }
 
     private async Task LoadIslands()
@@ -139,28 +106,7 @@ public partial class ConfigureActivity : IAsyncDisposable
         catch { symModes = new(); }
     }
 
-    // ── step 1: scan layer + block exclusion ────────────────────────────────────
-    private async Task OnLayerChip(string layer)
-    {
-        scanLayer = layer;
-        excludeBlocks.Clear();                 // exclusions are per-layer
-        await LoadBlockTypes(layer);
-        if (canvasHandle is not null) await canvasHandle.InvokeVoidAsync("showLayer", layer);
-    }
-
-    private void ExcludeBlock(int id) { if (!excludeBlocks.Contains(id)) excludeBlocks.Add(id); }
-    private void IncludeBlock(int id) => excludeBlocks.Remove(id);
-
-    private async Task ConfirmLayer()
-    {
-        var payload = new Dictionary<string, object?> { ["confirmed"] = true, ["exclude_blocks"] = excludeBlocks.ToList() };
-        if (scanLayer != origLayer) payload["scan_layer"] = scanLayer;
-        await Http.PatchAsJsonAsync($"api/configure/{Slug}/scan-layer", payload);
-        origLayer = scanLayer;
-        origExcludeBlocks = excludeBlocks.ToList();
-    }
-
-    // ── step 2: island exclusion ────────────────────────────────────────────────
+    // ── step 1: island exclusion ────────────────────────────────────────────────
     private async Task ToggleIsland(int id, bool excluded)
     {
         await Http.PatchAsJsonAsync($"api/configure/{Slug}/exclude-island",
@@ -169,7 +115,7 @@ public partial class ConfigureActivity : IAsyncDisposable
         if (canvasHandle is not null) await canvasHandle.InvokeVoidAsync("setExcludedIds", (object)excludedIslands.ToArray());
     }
 
-    // ── step 3: symmetry ────────────────────────────────────────────────────────
+    // ── step 2: symmetry ────────────────────────────────────────────────────────
     private async Task SelectSym(string type)
     {
         symChoice = type;
@@ -195,8 +141,7 @@ public partial class ConfigureActivity : IAsyncDisposable
     // ── navigation ──────────────────────────────────────────────────────────────
     private async Task Next()
     {
-        if (step == 1) { await ConfirmLayer(); step = 2; }
-        else if (step == 2) { await LoadSymmetry(); step = 3; }
+        if (step == 1) { await LoadSymmetry(); step = 2; }   // re-detect symmetry minus the excluded islands
         await SyncCanvas();
     }
 
@@ -206,7 +151,7 @@ public partial class ConfigureActivity : IAsyncDisposable
     private async Task JumpToStep(int n)
     {
         if (n == step) return;
-        if (n == 3) await LoadSymmetry();   // ensure the symmetry panel/canvas are fresh
+        if (n == 2) await LoadSymmetry();   // ensure the symmetry panel/canvas are fresh
         step = n;
         await SyncCanvas();
     }
@@ -225,8 +170,7 @@ public partial class ConfigureActivity : IAsyncDisposable
     private async Task SyncCanvas()
     {
         if (canvasHandle is null) return;
-        if (step == 1) { await canvasHandle.InvokeVoidAsync("setMode", "layer"); await canvasHandle.InvokeVoidAsync("showLayer", scanLayer); }
-        else if (step == 2)
+        if (step == 1)
         {
             await canvasHandle.InvokeVoidAsync("setMode", "islands");
             await canvasHandle.InvokeVoidAsync("showIslands");
