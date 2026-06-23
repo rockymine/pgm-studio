@@ -68,10 +68,22 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
                 var surface = await ConfigureLayers.CellsAsync(db, map.Id, "surface", ct);
                 CtwStandards.Apply(mx, surface?.Select(c => c.BlockId).ToHashSet());
 
-                // Renewables for the world-scanned resource blocks (iron/gold/diamond); tight region each.
+                // Renewables for the world-scanned resource blocks (iron/gold/diamond) that sit in a spawn —
+                // the safe, intended case (the spawn ore economy). Off-spawn ore is left as-is.
                 var resources = (await feature.ResourceBlocksAsync(map.Id, ct))
                     .Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
                 ResourceRenewables.Apply(mx, resources);
+
+                // The not-build-area "no-void" rule ALLOWs editing any solid block, and PGM stops at the
+                // first deciding applicator — so it must be LAST, after every spawn/wool-room protection
+                // (which can sit outside the build area), or it short-circuits them. ResourceRenewables can
+                // append a spawn rule after generation, so enforce the order here, at the end. (template.xml)
+                var voidRules = mx.ApplyRules.Where(r => r.RegionId == "not-build-area").ToList();
+                if (voidRules.Count > 0)
+                {
+                    mx.ApplyRules.RemoveAll(r => r.RegionId == "not-build-area");
+                    mx.ApplyRules.AddRange(voidRules);
+                }
             }
             xml = XmlWriter.ToXml(mx);
         }

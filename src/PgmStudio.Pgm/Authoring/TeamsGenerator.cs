@@ -109,7 +109,13 @@ public static class TeamsGenerator
     private static void GenerateSpawns(Dict doc, MapIntent intent)
     {
         foreach (var sp in intent.Spawns) RemoveSpawn(doc, IntentNaming.Slug(sp.Team));   // clear-then-build (idempotent)
+        // The shared spawn-protection region + its block rule are rebuilt below; drop any prior copy.
+        DocAccess.Regions(doc).Remove("spawns");
+        DocAccess.Regions(doc).Remove("spawn-areas");
+        if (doc.GetValueOrDefault("apply_rules") is List<object?> priorRules)
+            priorRules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string == "spawns");
 
+        var protIds = new List<string>();
         foreach (var sp in intent.Spawns)
         {
             var slug = IntentNaming.Slug(sp.Team);
@@ -134,18 +140,36 @@ public static class TeamsGenerator
                 });
                 var fid = $"only-{slug}";
                 FilterEditor.CreateFilter(doc, new Dict { ["id"] = fid, ["type"] = "team", ["team"] = sp.Team });
-                // spawn-protection wiring (template 2): keep enemies out (enter=only-<team>) AND stop
-                // grief (block=never — the built-in deny filter, no new filter needed).
+                // keep enemies out, per team (enter=only-<team>); the block protection is shared, on the spawns union.
                 ApplyRuleEditor.CreateApplyRule(doc, new Dict
                 {
                     ["enter"] = fid, ["region"] = protId, ["message"] = ProtectionMessage,
                 });
-                ApplyRuleEditor.CreateApplyRule(doc, new Dict
-                {
-                    ["block"] = "never", ["region"] = protId, ["message"] = BlockProtectionMessage,
-                });
+                protIds.Add(protId);
             }
         }
+
+        // One shared spawns union carries the block protection (template structure). WoolGenerator folds the
+        // wool monuments out of it (→ a complement) so capturing a wool doesn't trip this rule, and
+        // ResourceRenewables relaxes block=never to "only the spawn ore is breakable" when ore lives here.
+        if (protIds.Count > 0)
+        {
+            AddUnion(doc, "spawns", protIds);
+            ApplyRuleEditor.CreateApplyRule(doc, new Dict
+            {
+                ["block"] = "never", ["region"] = "spawns", ["message"] = BlockProtectionMessage,
+            });
+        }
+    }
+
+    // A union region from its child ids, with derived bounds (allows a single child, unlike GroupRegions).
+    private static void AddUnion(Dict doc, string id, List<string> childIds)
+    {
+        var regions = DocAccess.Regions(doc);
+        var (bounds, _, _, _, _) = RegionBuilder.BuildUnionBounds(childIds.Select(c => (Dict)regions[c]!));
+        var union = new Dict { ["id"] = id, ["type"] = "union", ["children"] = childIds.Cast<object?>().ToList() };
+        if (bounds is not null) union["bounds_2d"] = bounds;
+        regions[id] = union;
     }
 
     // ── observer (<default>) spawn ─────────────────────────────────────────────────────

@@ -35,8 +35,11 @@ public static class RegionBuilder
             }
             case "point" or "block":
             {
-                double px = RInt(body["x"]), pz = RInt(body["z"]), py = RInt(body.GetValueOrDefault("y") ?? 64L);
-                var bounds = type == "block" ? Bounds(px, pz, px + 1, pz + 1) : Bounds(px - 0.5, pz - 0.5, px + 0.5, pz + 0.5);
+                // A <block> is an integer block coordinate; a <point> is a free vector (PGM parses it raw),
+                // so a player spawn keeps its block-centre .5 — only blocks are rounded.
+                bool isBlock = type == "block";
+                double px = Coord(body["x"], isBlock), pz = Coord(body["z"], isBlock), py = Coord(body.GetValueOrDefault("y") ?? 64L, isBlock);
+                var bounds = isBlock ? Bounds(px, pz, px + 1, pz + 1) : Bounds(px - 0.5, pz - 0.5, px + 0.5, pz + 0.5);
                 return new Dict { ["id"] = regionId, ["type"] = type, ["position"] = new Dict { ["x"] = px, ["y"] = py, ["z"] = pz }, ["bounds_2d"] = bounds };
             }
             case "cylinder":
@@ -125,4 +128,6 @@ public static class RegionBuilder
     private static Dict Ensure(Dict d, string k) { if (d.GetValueOrDefault(k) is not Dict sub) { sub = new Dict(); d[k] = sub; } return sub; }
     private static double F(object? v) => v switch { double d => d, long l => l, int i => i, float f => f, string s when double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var p) => p, _ => 0 };
     private static double RInt(object? v) => Math.Round(F(v), MidpointRounding.ToEven);
+    // Block coords round to whole blocks; point coords stay as authored (keep the .5 block-centre).
+    private static double Coord(object? v, bool isBlock) => isBlock ? RInt(v) : F(v);
 }

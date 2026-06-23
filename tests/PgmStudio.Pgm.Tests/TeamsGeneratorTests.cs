@@ -61,15 +61,19 @@ public sealed class TeamsGeneratorTests
     }
 
     [Test]
-    public async Task Protection_zone_gets_both_enter_and_block_protection()
+    public async Task Enter_is_per_team_and_block_protection_is_on_the_shared_spawns_union()
     {
         var doc = Map();
         TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = new(0, 0, 10, 10) }] });
 
+        // enter stays on the team's own rect; the block rule moves to the shared spawns union (template structure)
         var onRed = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "red-spawn").ToList();
-        await Assert.That(onRed.Count).IsEqualTo(2);
-        await Assert.That(onRed.Any(r => r.GetValueOrDefault("enter") as string == "only-red")).IsTrue();
-        await Assert.That(onRed.Any(r => r.GetValueOrDefault("block") as string == "never")).IsTrue();
+        await Assert.That(onRed.Count).IsEqualTo(1);
+        await Assert.That(onRed.Single().GetValueOrDefault("enter")).IsEqualTo("only-red");
+
+        var onSpawns = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "spawns").ToList();
+        await Assert.That(onSpawns.Single().GetValueOrDefault("block")).IsEqualTo("never");
+        await Assert.That(((Dict)Regions(doc)["spawns"]!).GetValueOrDefault("type")).IsEqualTo("union");
     }
 
     [Test]
@@ -95,8 +99,9 @@ public sealed class TeamsGeneratorTests
 
         await Assert.That(Spawns(doc).Count).IsEqualTo(2);
         await Assert.That(Regions(doc).Keys.Count(k => k.EndsWith("-spawn-point"))).IsEqualTo(2);
-        await Assert.That(Rules(doc).Count).IsEqualTo(4);   // enter + block per protected team
+        await Assert.That(Rules(doc).Count).IsEqualTo(3);   // an enter per team + one shared block-on-spawns
         await Assert.That(Filters(doc).Count).IsEqualTo(2);
+        await Assert.That(Regions(doc).ContainsKey("spawns")).IsTrue();
     }
 
     [Test]

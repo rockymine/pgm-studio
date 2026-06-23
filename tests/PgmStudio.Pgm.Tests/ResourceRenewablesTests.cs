@@ -3,9 +3,9 @@ using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Pgm.Tests;
 
-/// <summary>Resource-block renewables (<see cref="ResourceRenewables"/>) for iron/gold/diamond: a tight
-/// renewable region per type, reusing the spawns when the ore lives there (with the relaxed spawn
-/// protection) or a new per-cluster region otherwise.</summary>
+/// <summary>Resource-block renewables (<see cref="ResourceRenewables"/>): only ore that sits inside a team
+/// spawn earns a renewable — the spawns region is reused with relaxed protection (only that ore breakable,
+/// only the world replaces it). Ore scanned elsewhere is left as-is (ambiguous intent).</summary>
 public sealed class ResourceRenewablesTests
 {
     private static Region Rect(string id, int minX, int minZ, int maxX, int maxZ) => new()
@@ -26,38 +26,27 @@ public sealed class ResourceRenewablesTests
         return m;
     }
 
-    // ── branch B: ore elsewhere → per-cluster rects + union ──
+    // ── ore outside every spawn → no renewable, spawn protection untouched ──
     [Test]
-    public async Task Iron_outside_spawns_builds_tight_clustered_region()
+    public async Task Ore_outside_spawns_gets_no_renewable()
     {
-        var m = new MapXml();
-        var iron = new List<(string, int, int, int)>
-        {
-            ("iron_block", -59, 8, 7), ("iron_block", -59, 9, 7),
-            ("iron_block", 51, 10, 6), ("iron_block", 52, 10, 6), ("iron_block", 53, 10, 7),
-        };
-        ResourceRenewables.Apply(m, iron);
-
-        await Assert.That(m.Regions["iron-renewable"].Type).IsEqualTo("union");
-        await Assert.That(m.Regions["iron-renewable"].Children!.Count).IsEqualTo(2);   // two clusters
-        await Assert.That((m.Regions["iron-renewable-1"].MinX, m.Regions["iron-renewable-1"].MaxX)).IsEqualTo(((double?)-59, (double?)-59));
-        await Assert.That(m.Filters.ContainsKey("only-iron")).IsTrue();
-        await Assert.That(m.Filters.ContainsKey("only-air")).IsTrue();
-        await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("iron-renewable");
-        await Assert.That(m.Renewables.Single().AvoidPlayers).IsEqualTo(2);
-        await Assert.That(m.Filters.ContainsKey("only-iron-cause-world")).IsFalse();   // no spawn relax
+        var m = WithSpawns();
+        ResourceRenewables.Apply(m, [("iron_block", 100, 8, 100), ("iron_block", 101, 8, 100)]);
+        await Assert.That(m.Renewables.Count).IsEqualTo(0);
+        await Assert.That(m.Filters.ContainsKey("only-iron")).IsFalse();
+        await Assert.That(m.ApplyRules.Count(r => r.BlockFilter == "never")).IsEqualTo(2);   // spawn protection intact
     }
 
+    // ── no spawns in the map → nothing to anchor a renewable to ──
     [Test]
-    public async Task Single_cluster_is_a_plain_rectangle_no_union()
+    public async Task No_spawns_means_no_renewables()
     {
         var m = new MapXml();
-        ResourceRenewables.Apply(m, [("iron_block", 10, 8, 10), ("iron_block", 11, 8, 10), ("iron_block", 12, 8, 11)]);
-        await Assert.That(m.Regions["iron-renewable"].Type).IsEqualTo("rectangle");
-        await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("iron-renewable");
+        ResourceRenewables.Apply(m, [("iron_block", 0, 8, 0), ("iron_block", 1, 8, 0)]);
+        await Assert.That(m.Renewables.Count).IsEqualTo(0);
     }
 
-    // ── branch A: ore in spawns → reuse spawns + relax protection ──
+    // ── ore in spawns → reuse spawns + relax protection ──
     [Test]
     public async Task Iron_in_spawns_reuses_spawns_and_relaxes_protection()
     {
@@ -74,33 +63,42 @@ public sealed class ResourceRenewablesTests
         await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("spawns");
     }
 
-    // ── generalized: iron in spawns, gold + diamond in the middle ──
+    // ── ore straddles spawn + elsewhere → only the in-spawn part renews (on spawns); the loose part is ignored ──
     [Test]
-    public async Task Mixed_resources_get_a_renewable_each_with_the_right_region()
+    public async Task Iron_partly_in_spawn_renews_only_the_spawn_part()
+    {
+        var m = WithSpawns();
+        ResourceRenewables.Apply(m, [("iron_block", 0, 8, 0), ("iron_block", 100, 8, 100)]);   // one in red-spawn, one out
+
+        await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("spawns");
+        await Assert.That(m.Regions.ContainsKey("iron-renewable")).IsFalse();   // no cluster region for the loose block
+        await Assert.That(m.ApplyRules.Any(r => r.BlockFilter == "never")).IsFalse();
+        await Assert.That(m.ApplyRules.Single(r => r.RegionId == "spawns").BlockBreakFilter).IsEqualTo("only-iron");
+    }
+
+    // ── multiple types: only the in-spawn ones renew; off-spawn types are ignored ──
+    [Test]
+    public async Task Only_in_spawn_resources_get_a_renewable_each()
     {
         var m = WithSpawns();
         ResourceRenewables.Apply(m,
         [
             ("iron_block", 0, 8, 0), ("iron_block", 30, 8, 0),         // both in spawns
-            ("gold_block", 100, 8, 100), ("gold_block", 101, 8, 100),  // middle
-            ("diamond_block", -100, 8, -100),                          // middle
+            ("gold_block", 100, 8, 100),                               // middle → ignored
+            ("diamond_block", -100, 8, -100),                          // middle → ignored
         ]);
 
-        // one renewable per ore type, in iron/gold/diamond order
-        var byFilter = m.Renewables.ToDictionary(r => r.RenewFilter, r => r.RegionId);
-        await Assert.That(byFilter["only-iron"]).IsEqualTo("spawns");      // iron reuses the spawns
-        await Assert.That(byFilter["only-gold"]).IsEqualTo("gold-renewable");
-        await Assert.That(byFilter["only-diamond"]).IsEqualTo("diamond-renewable");
-        await Assert.That(m.Regions["gold-renewable"].Type).IsEqualTo("rectangle");
-        await Assert.That(m.Regions["diamond-renewable"].Type).IsEqualTo("rectangle");
+        await Assert.That(m.Renewables.Count).IsEqualTo(1);
+        await Assert.That(m.Renewables.Single().RenewFilter).IsEqualTo("only-iron");
+        await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("spawns");
+        await Assert.That(m.Filters.ContainsKey("only-gold")).IsFalse();
+        await Assert.That(m.Filters.ContainsKey("only-diamond")).IsFalse();
+        // the relax mentions only the in-spawn ore (iron)
+        await Assert.That(m.ApplyRules.Single(r => r.RegionId == "spawns").BlockBreakFilter).IsEqualTo("only-iron");
 
-        // spawn relaxation only mentions the in-spawn ore (iron)
-        var relaxed = m.ApplyRules.Single(r => r.RegionId == "spawns");
-        await Assert.That(relaxed.BlockBreakFilter).IsEqualTo("only-iron");
-
-        // serializes + re-parses with all three renewables
+        // serializes + re-parses with the single renewable intact
         m.Name = "T"; m.Version = "1.0.0";
         var reparsed = PgmStudio.Pgm.Serializer.ToDict(PgmStudio.Pgm.MapParser.ParseXmlString(PgmStudio.Pgm.XmlWriter.ToXml(m)));
-        await Assert.That(((List<object?>)reparsed["renewables"]!).Count).IsEqualTo(3);
+        await Assert.That(((List<object?>)reparsed["renewables"]!).Count).IsEqualTo(1);
     }
 }

@@ -44,6 +44,7 @@ public static class WoolGenerator
 
         var roomsByOwner = new Dictionary<string, List<string>>();
         var ownerOrder = new List<string>();
+        var monumentBlockIds = new List<string>();
 
         foreach (var w in intent.Wools)
         {
@@ -63,11 +64,23 @@ public static class WoolGenerator
             if (w.Room is not null) update["wool_room_region"] = roomId;
             WoolEditor.UpdateWool(doc, colorSlug, update);
             foreach (var m in w.Monuments)
+            {
+                // The monument is a named <block> region the wool references (monument="…") rather than an
+                // inline block, so it can also be subtracted from the spawns protection (SubtractMonuments…).
+                var monBlockId = MonumentBlockId(colorSlug, IntentNaming.Slug(m.Team));
+                RegionEditor.CreateRegion(doc, new Dict
+                {
+                    ["type"] = "block", ["id"] = monBlockId, ["category"] = "wool",
+                    ["x"] = m.Location.X, ["y"] = m.Location.Y, ["z"] = m.Location.Z,
+                });
+                monumentBlockIds.Add(monBlockId);
                 WoolEditor.AddMonument(doc, colorSlug, new Dict
                 {
                     ["team"] = m.Team,
                     ["location"] = new Dict { ["x"] = m.Location.X, ["y"] = m.Location.Y, ["z"] = m.Location.Z },
+                    ["monument_region"] = monBlockId,
                 });
+            }
 
             if (w.Room is not { } room) continue;   // no room yet → skip the source side (region/spawner/wiring)
 
@@ -93,6 +106,8 @@ public static class WoolGenerator
             // only-<owner> team filter (reused from spawn protection if present) — the child of not-<owner>.
             EnsureFilter(doc, $"only-{ownerSlug}", new Dict { ["type"] = "team", ["team"] = w.Owner });
         }
+
+        SubtractMonumentsFromSpawns(doc, monumentBlockIds);   // independent of rooms — monuments exist either way
 
         if (roomsByOwner.Count == 0) return;
         EnsureWoolroomsFilter(doc);
@@ -126,6 +141,28 @@ public static class WoolGenerator
         var union = new Dict { ["id"] = id, ["type"] = "union", ["children"] = childIds.Cast<object?>().ToList() };
         if (bounds is not null) union["bounds_2d"] = bounds;
         regions[id] = union;
+    }
+
+    private static string MonumentBlockId(string colorSlug, string teamSlug) => $"{colorSlug}-{teamSlug}-monument";
+
+    // Fold the wool monuments out of the spawns protection so placing a captured wool on its monument (which
+    // sits inside a spawn) doesn't trip the spawn block rule — PGM allows the placement, we just suppress the
+    // spurious deny. Mirrors template.xml: spawns becomes complement(spawn-areas, monument blocks). No-op when
+    // there's no spawn protection (TeamsGenerator only builds the spawns union when spawns are protected).
+    private static void SubtractMonumentsFromSpawns(Dict doc, List<string> monumentBlockIds)
+    {
+        var regions = DocAccess.Regions(doc);
+        if (monumentBlockIds.Count == 0 || regions.GetValueOrDefault("spawns") is not Dict spawns
+            || spawns.GetValueOrDefault("type") as string != "union") return;
+
+        // move the spawn rectangles into spawn-areas, then make spawns the complement that subtracts the monuments
+        var rects = (spawns.GetValueOrDefault("children") as List<object?>) ?? new();
+        regions["spawn-areas"] = new Dict
+        {
+            ["id"] = "spawn-areas", ["type"] = "union", ["children"] = rects, ["bounds_2d"] = spawns.GetValueOrDefault("bounds_2d"),
+        };
+        spawns["type"] = "complement";
+        spawns["children"] = new List<object?> { "spawn-areas" }.Concat(monumentBlockIds.Cast<object?>()).ToList();
     }
 
     // The shared whitelist of materials editable in any wool room: place the spawn-kit blocks (wood, the
@@ -170,6 +207,7 @@ public static class WoolGenerator
             owners.Add(ownerSlug);
             regions.Remove($"{colorSlug}-wool");
             regions.Remove($"{colorSlug}-wool-spawn");
+            foreach (var m in w.Monuments) regions.Remove(MonumentBlockId(colorSlug, IntentNaming.Slug(m.Team)));
             if (doc.GetValueOrDefault("wools") is List<object?> ws)
                 ws.RemoveAll(x => x is Dict d && d.GetValueOrDefault("id") as string == colorSlug);
             if (doc.GetValueOrDefault("spawners") is List<object?> sp)
