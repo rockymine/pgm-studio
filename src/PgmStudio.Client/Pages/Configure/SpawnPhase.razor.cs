@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -220,7 +221,7 @@ public partial class SpawnPhase
 
     private void SetCoord(Spawn s, string axis, ChangeEventArgs e)
     {
-        if (!double.TryParse(e.Value?.ToString(), out var v)) return;
+        if (!double.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) return;
         if (IsObserver(s))
         {
             switch (axis) { case "x": s.X = v; break; case "z": s.Z = v; break; case "y": s.Y = v; break; case "yaw": s.Yaw = v; break; }
@@ -251,11 +252,24 @@ public partial class SpawnPhase
 
     private void WriteIntent()
     {
-        Wizard.Intent["spawns"] = new JsonArray(spawns.Select(s => (JsonNode)new JsonObject
+        // The Protection step owns each spawn's protection rect; this phase doesn't model it, so carry the
+        // existing rect through by team — otherwise re-saving spawns here silently drops it (→ protection: null).
+        var keptProtection = new Dictionary<string, JsonNode>();
+        if (Wizard.Intent["spawns"] is JsonArray prior)
+            foreach (var s in prior.OfType<JsonObject>())
+                if (s["team"]?.GetValue<string>() is { } t && s["protection"] is JsonObject pr)
+                    keptProtection[t] = pr.DeepClone();
+
+        Wizard.Intent["spawns"] = new JsonArray(spawns.Select(s =>
         {
-            ["team"] = s.Team,
-            ["point"] = new JsonObject { ["x"] = s.X, ["y"] = s.Y, ["z"] = s.Z },
-            ["yaw"] = s.Yaw,
+            var o = new JsonObject
+            {
+                ["team"] = s.Team,
+                ["point"] = new JsonObject { ["x"] = s.X, ["y"] = s.Y, ["z"] = s.Z },
+                ["yaw"] = s.Yaw,
+            };
+            if (keptProtection.TryGetValue(s.Team, out var pr)) o["protection"] = pr;
+            return (JsonNode)o;
         }).ToArray());
         if (observer is { } o)
             Wizard.Intent["observer"] = new JsonObject

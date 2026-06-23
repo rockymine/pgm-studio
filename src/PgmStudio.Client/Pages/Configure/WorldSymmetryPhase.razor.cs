@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -108,7 +109,7 @@ public partial class WorldSymmetryPhase
 
     private async Task OnCenter(ChangeEventArgs e, bool isX)
     {
-        if (double.TryParse(e.Value?.ToString(), out var v)) { if (isX) centerX = v; else centerZ = v; }
+        if (double.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) { if (isX) centerX = v; else centerZ = v; }
         WriteIntent();
         if (canvas is not null) await canvas.SetSymmetryAsync(selectedType, centerX, centerZ);
     }
