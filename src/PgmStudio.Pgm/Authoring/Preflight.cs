@@ -67,8 +67,8 @@ public static class Preflight
         // (intent declares it) ⇒ (the generated structure must read back). Skip what the intent doesn't author.
         void Expect(bool want, string label, Func<bool> ok) { if (want) (ok() ? recovered : missing).Add(label); }
 
-        Expect(intent.Spawns.Any(s => s.Protection is not null), "spawn/protection", () => HasFacet("spawn", "protection"));
-        Expect((intent.Wools ?? []).Any(w => w.Room is not null), "wool/room",        () => HasFacet("wool", "room"));
+        Expect(intent.Spawns.Any(s => s.Protection.Count > 0), "spawn/protection", () => HasFacet("spawn", "protection"));
+        Expect((intent.Wools ?? []).Any(w => w.Room.Count > 0),  "wool/room",        () => HasFacet("wool", "room"));
         Expect(intent.Build is { Areas.Count: > 0 },              "build",            () => HasFacet("build", null));
         // Monuments are inline <monument location> on each wool (not regions, so no facet) — they read back
         // structurally: every declared wool must resolve a monument (PGM's load-time requirement).

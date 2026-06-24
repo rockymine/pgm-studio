@@ -111,7 +111,7 @@ public static class SymmetryExpander
                 {
                     Team = target,
                     Point = TransformPt(src.Point, sym, k),
-                    Protection = src.Protection is { } r ? TransformRect(r, sym, k) : null,
+                    Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
                     Yaw = TransformYaw(src.Yaw, sym, k),
                 });
             }
@@ -137,7 +137,7 @@ public static class SymmetryExpander
                 {
                     Owner = owner.Id,
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
-                    Room = src.Room is { } r ? TransformRect(r, sym, k) : null,
+                    Room = src.Room.Select(r => TransformRect(r, sym, k)).ToList(),
                     Spawn = TransformPt(src.Spawn, sym, k),
                     Monuments = src.Monuments.Select(m => new MonumentIntent
                     {

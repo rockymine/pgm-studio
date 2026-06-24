@@ -132,7 +132,7 @@ public partial class ReviewPreflightPhase
             foreach (var s in spawns.OfType<JsonObject>())
             {
                 var team = s["team"]?.GetValue<string>() ?? "";
-                if (RectOf(s["protection"]) is { } r)
+                foreach (var r in RectsOf(s["protection"]))
                     protections.Add(new Zone(r.X, r.Z, r.W, r.H, GameColors.ChatHex(teamColors.GetValueOrDefault(team, team)), $"{team} protection"));
             }
 
@@ -144,7 +144,7 @@ public partial class ReviewPreflightPhase
                     ? GameColors.DyeHex(color)
                     : GameColors.ChatHex(teamColors.GetValueOrDefault(w["owner"]?.GetValue<string>() ?? "", ""));
                 var label = string.IsNullOrEmpty(color) ? "wool" : color;
-                if (RectOf(w["room"]) is { } rr) rooms.Add(new Zone(rr.X, rr.Z, rr.W, rr.H, dye, $"{label} room"));
+                foreach (var rr in RectsOf(w["room"])) rooms.Add(new Zone(rr.X, rr.Z, rr.W, rr.H, dye, $"{label} room"));
                 if (w["monuments"] is JsonArray ms)
                     foreach (var mo in ms.OfType<JsonObject>())
                         if (mo["location"] is JsonObject loc)
@@ -156,9 +156,16 @@ public partial class ReviewPreflightPhase
 
     private static double Num(JsonObject o, string k) => o[k] is JsonValue v && v.TryGetValue(out double d) ? d : 0;
 
-    private static (double X, double Z, double W, double H)? RectOf(JsonNode? n)
+    // A protection/room footprint is a JSON array of rects; tolerate a legacy single object too.
+    private static IEnumerable<(double X, double Z, double W, double H)> RectsOf(JsonNode? n) => n switch
     {
-        if (n is not JsonObject r) return null;
+        JsonArray arr => arr.OfType<JsonObject>().Select(RectOf),
+        JsonObject obj => new[] { RectOf(obj) },
+        _ => Enumerable.Empty<(double, double, double, double)>(),
+    };
+
+    private static (double X, double Z, double W, double H) RectOf(JsonObject r)
+    {
         double x0 = Num(r, "minX"), z0 = Num(r, "minZ"), x1 = Num(r, "maxX"), z1 = Num(r, "maxZ");
         return (Math.Min(x0, x1), Math.Min(z0, z1), Math.Abs(x1 - x0), Math.Abs(z1 - z0));
     }

@@ -89,18 +89,33 @@ public static class ResourceRenewables
 
     private static bool Covers(Box b, int x, int z) => x >= b.MinX && x <= b.MaxX && z >= b.MinZ && z <= b.MaxZ;
 
-    // Spawn-protection regions = rectangles referenced by an apply rule whose enter filter is only-<team>
-    // (the spawn enter rule; wool rooms use not-<team>).
+    // Spawn-protection regions = a rectangle (or a union of rectangles, for a multi-rect footprint)
+    // referenced by an apply rule whose enter filter is only-<team> (the spawn enter rule; wool rooms use
+    // not-<team>). The region id is the union (the renewable's region reference); each rect contributes a box.
     private static List<(string Id, Box Box)> SpawnProtections(MapXml m)
     {
         var seen = new HashSet<string>();
         var result = new List<(string, Box)>();
         foreach (var rule in m.ApplyRules)
             if (rule.EnterFilter.StartsWith("only-") && seen.Add(rule.RegionId)
-                && m.Regions.TryGetValue(rule.RegionId, out var r) && r.Type == "rectangle"
-                && r.MinX is { } mnx && r.MinZ is { } mnz && r.MaxX is { } mxx && r.MaxZ is { } mxz)
-                result.Add((rule.RegionId, new Box(mnx, mnz, mxx, mxz)));
+                && m.Regions.TryGetValue(rule.RegionId, out var r))
+                foreach (var box in RectBoxes(m, r))
+                    result.Add((rule.RegionId, box));
         return result;
+    }
+
+    // The block-footprint boxes of a protection region: a rectangle's own box, or a union's rectangle children.
+    private static IEnumerable<Box> RectBoxes(MapXml m, Region r)
+    {
+        if (r.Type == "rectangle")
+        {
+            if (r.MinX is { } a && r.MinZ is { } b && r.MaxX is { } c && r.MaxZ is { } d) yield return new Box(a, b, c, d);
+        }
+        else if (r.Type == "union" && r.Children is { } children)
+            foreach (var cid in children)
+                if (m.Regions.TryGetValue(cid, out var cr) && cr.Type == "rectangle"
+                    && cr.MinX is { } a && cr.MinZ is { } b && cr.MaxX is { } c && cr.MaxZ is { } d)
+                    yield return new Box(a, b, c, d);
     }
 
     private static void AddMaterialFilter(MapXml m, string id, string material)

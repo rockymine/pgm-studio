@@ -42,7 +42,7 @@ public sealed class SymmetryExpanderTests
         {
             Teams = FourTeams(),
             Symmetry = new SymmetryIntent { Mode = "rot_90", CenterX = 0, CenterZ = 0 },
-            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10), Protection = new(0, 0, 20, 20), Yaw = 0 }],
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10), Protection = [new(0, 0, 20, 20)], Yaw = 0 }],
         };
         var outp = SymmetryExpander.Expand(intent);
 
@@ -57,7 +57,7 @@ public sealed class SymmetryExpanderTests
         // yaw rotates with the unit (0 → 90 at the first quarter turn)
         await Assert.That(outp.Spawns.First(s => s.Team == "blue-team").Yaw).IsEqualTo(90.0);
         // protection rect is carried + transformed
-        await Assert.That(outp.Spawns.First(s => s.Team == "blue-team").Protection).IsNotNull();
+        await Assert.That(outp.Spawns.First(s => s.Team == "blue-team").Protection.Count).IsEqualTo(1);
     }
 
     [Test]
@@ -89,17 +89,57 @@ public sealed class SymmetryExpanderTests
         {
             Teams = TwoTeams(),
             Symmetry = new SymmetryIntent { Mode = "mirror_x", CenterX = 0, CenterZ = 0 },
-            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10.5, 8, 4.5), Protection = new(2, 5, 22, 55) }],
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10.5, 8, 4.5), Protection = [new(2, 5, 22, 55)] }],
         };
         var outp = SymmetryExpander.Expand(intent);
 
         var blue = outp.Spawns.First(s => s.Team == "blue-team");
         await Assert.That(blue.Point.X).IsEqualTo(-10.5); await Assert.That(blue.Point.Z).IsEqualTo(4.5);
-        var p = blue.Protection!.Value;
+        var p = blue.Protection[0];
         await Assert.That(p.MinX).IsEqualTo(-22.0); await Assert.That(p.MaxX).IsEqualTo(-2.0);   // mirrored, integer
         await Assert.That(p.MinZ).IsEqualTo(5.0); await Assert.That(p.MaxZ).IsEqualTo(55.0);
         await Assert.That(p.MaxX - p.MinX).IsEqualTo(20.0);                                        // 20×50 preserved
         await Assert.That(p.MaxZ - p.MinZ).IsEqualTo(50.0);
+    }
+
+    [Test]
+    public async Task Multi_rect_protection_orbits_every_rect()
+    {
+        // a two-rect protection footprint under mirror_x: both rects must reflect onto the partner team
+        var intent = new MapIntent
+        {
+            Teams = TwoTeams(),
+            Symmetry = new SymmetryIntent { Mode = "mirror_x", CenterX = 0, CenterZ = 0 },
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 8, 4), Protection = [new(2, 0, 12, 10), new(12, 0, 18, 6)] }],
+        };
+        var outp = SymmetryExpander.Expand(intent);
+
+        var blue = outp.Spawns.First(s => s.Team == "blue-team");
+        await Assert.That(blue.Protection.Count).IsEqualTo(2);
+        // each rect reflected across the X-normal (x→-x), order preserved, extent kept
+        await Assert.That(blue.Protection[0].MinX).IsEqualTo(-12.0); await Assert.That(blue.Protection[0].MaxX).IsEqualTo(-2.0);
+        await Assert.That(blue.Protection[1].MinX).IsEqualTo(-18.0); await Assert.That(blue.Protection[1].MaxX).IsEqualTo(-12.0);
+    }
+
+    [Test]
+    public async Task Multi_rect_room_orbits_every_rect()
+    {
+        var intent = new MapIntent
+        {
+            Teams = TwoTeams(),
+            Symmetry = new SymmetryIntent { Mode = "mirror_x", CenterX = 0, CenterZ = 0 },
+            Wools =
+            [
+                new WoolIntent { Owner = "red-team", Color = "red", Room = [new(0, 0, 10, 10), new(10, 0, 16, 6)], Spawn = new(5, 5, 5),
+                    Monuments = [new MonumentIntent { Team = "blue-team", Location = new(5, 1, 5) }] },
+            ],
+        };
+        var outp = SymmetryExpander.Expand(intent);
+
+        var blueWool = outp.Wools!.First(w => w.Owner == "blue-team");
+        await Assert.That(blueWool.Room.Count).IsEqualTo(2);
+        await Assert.That(blueWool.Room[0].MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Room[0].MaxX).IsEqualTo(0.0);
+        await Assert.That(blueWool.Room[1].MinX).IsEqualTo(-16.0); await Assert.That(blueWool.Room[1].MaxX).IsEqualTo(-10.0);
     }
 
     [Test]
@@ -134,7 +174,7 @@ public sealed class SymmetryExpanderTests
                 new WoolIntent
                 {
                     Owner = "red-team", Color = "red",
-                    Room = new(0, 0, 10, 10), Spawn = new(5, 5, 5),
+                    Room = [new(0, 0, 10, 10)], Spawn = new(5, 5, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new(5, 1, 5) }],
                 },
             ],
@@ -144,7 +184,7 @@ public sealed class SymmetryExpanderTests
         await Assert.That(outp.Wools!.Count).IsEqualTo(2);
         var blueWool = outp.Wools!.First(w => w.Owner == "blue-team");
         // room reflected across the X-normal: x→-x
-        await Assert.That(blueWool.Room!.Value.MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Room!.Value.MaxX).IsEqualTo(0.0);
+        await Assert.That(blueWool.Room[0].MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Room[0].MaxX).IsEqualTo(0.0);
         await Assert.That(blueWool.Spawn.X).IsEqualTo(-5.0);
         // the capturer shifts by the same orbit step: blue captured red's wool, so red captures blue's
         await Assert.That(blueWool.Monuments.Count).IsEqualTo(1);
@@ -166,7 +206,7 @@ public sealed class SymmetryExpanderTests
         {
             Teams = FourTeams(), MaxPlayers = 12,
             Symmetry = new SymmetryIntent { Mode = "rot_90", CenterX = 0, CenterZ = 0 },
-            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10), Protection = new(0, 0, 20, 20) }],
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(10, 12, 10), Protection = [new(0, 0, 20, 20)] }],
         };
         IntentGenerator.Apply(doc, intent);
 

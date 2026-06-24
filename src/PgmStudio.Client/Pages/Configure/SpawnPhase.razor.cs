@@ -252,12 +252,12 @@ public partial class SpawnPhase
 
     private void WriteIntent()
     {
-        // The Protection step owns each spawn's protection rect; this phase doesn't model it, so carry the
-        // existing rect through by team — otherwise re-saving spawns here silently drops it (→ protection: null).
+        // The Protection step owns each spawn's protection rects; this phase doesn't model them, so carry the
+        // existing union through by team — otherwise re-saving spawns here silently drops it (→ protection: null).
         var keptProtection = new Dictionary<string, JsonNode>();
         if (Wizard.Intent["spawns"] is JsonArray prior)
             foreach (var s in prior.OfType<JsonObject>())
-                if (s["team"]?.GetValue<string>() is { } t && s["protection"] is JsonObject pr)
+                if (s["team"]?.GetValue<string>() is { } t && s["protection"] is JsonArray pr)
                     keptProtection[t] = pr.DeepClone();
 
         Wizard.Intent["spawns"] = new JsonArray(spawns.Select(s =>

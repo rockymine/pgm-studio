@@ -18,14 +18,20 @@ public static class WoolAuthoring
 
     public sealed class Monument { public string Team = ""; public double X, Y, Z; }
 
+    /// <summary>A footprint rectangle in world XZ (one piece of a multi-rect room).</summary>
+    public readonly record struct Rect(double MinX, double MinZ, double MaxX, double MaxZ);
+
     public sealed class Wool
     {
         public string Owner = "";
         public string Color = "";
         public double SpawnX, SpawnY, SpawnZ;
-        public bool HasRoom;
-        public double RoomMinX, RoomMinZ, RoomMaxX, RoomMaxZ;
+        // The room footprint as a union of rectangles (empty = no room yet). For an authored wool these are
+        // the drawn pieces; for an orbit copy they're derived from its authored partner.
+        public List<Rect> Rooms = new();
         public List<Monument> Monuments = new();
+
+        public bool HasRoom => Rooms.Count > 0;
     }
 
     // ── context (identical shape to the Teams/Spawn steps) ──────────────────────────────
@@ -100,12 +106,7 @@ public static class WoolAuthoring
                 Color = S(w, "color"),
                 SpawnX = D(sp, "x"), SpawnY = D(sp, "y"), SpawnZ = D(sp, "z"),
             };
-            if (w["room"] is JsonObject r)
-            {
-                wool.HasRoom = true;
-                wool.RoomMinX = D(r, "minX"); wool.RoomMinZ = D(r, "minZ");
-                wool.RoomMaxX = D(r, "maxX"); wool.RoomMaxZ = D(r, "maxZ");
-            }
+            wool.Rooms.AddRange(ParseRects(w["room"]));
             if (w["monuments"] is JsonArray ms)
                 foreach (var m in ms.OfType<JsonObject>())
                 {
@@ -132,12 +133,21 @@ public static class WoolAuthoring
                     ["location"] = new JsonObject { ["x"] = m.X, ["y"] = m.Y, ["z"] = m.Z },
                 }).ToArray()),
             };
-            o["room"] = w.HasRoom
-                ? new JsonObject { ["minX"] = w.RoomMinX, ["minZ"] = w.RoomMinZ, ["maxX"] = w.RoomMaxX, ["maxZ"] = w.RoomMaxZ }
-                : null;
+            o["room"] = new JsonArray(w.Rooms.Select(RectNode).ToArray());
             return (JsonNode)o;
         }).ToArray());
     }
+
+    // The room is a JSON array of {minX,minZ,maxX,maxZ}; tolerate a legacy single object too.
+    public static IEnumerable<Rect> ParseRects(JsonNode? node) => node switch
+    {
+        JsonArray arr => arr.OfType<JsonObject>().Select(RectOf),
+        JsonObject obj => new[] { RectOf(obj) },
+        _ => Enumerable.Empty<Rect>(),
+    };
+
+    private static Rect RectOf(JsonObject r) => new(D(r, "minX"), D(r, "minZ"), D(r, "maxX"), D(r, "maxZ"));
+    private static JsonNode RectNode(Rect r) => new JsonObject { ["minX"] = r.MinX, ["minZ"] = r.MinZ, ["maxX"] = r.MaxX, ["maxZ"] = r.MaxZ };
 
     // ── colour / owner / orbit helpers ────────────────────────────────────────────────
     public static string Hex(string color) => GameColors.DyeHex(color);

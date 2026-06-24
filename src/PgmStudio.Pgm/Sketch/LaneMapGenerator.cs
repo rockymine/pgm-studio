@@ -55,7 +55,7 @@ public static class LaneMapGenerator
             {
                 Team = slots[t].Id,
                 Point = new Pt(sp.X, 1, sp.Z),
-                Protection = Box(sp.X, sp.Z, o.LaneWidth),
+                Protection = [Box(sp.X, sp.Z, o.LaneWidth)],
                 Yaw = FaceYaw(sp.X, sp.Z, cx, cz),
             });
 
@@ -70,7 +70,7 @@ public static class LaneMapGenerator
                     // single wool → the team's own colour; several → distinct dye colours (unique ids)
                     Color = teamWools.Count == 1 ? slots[t].Color : WoolDyes[dye++ % WoolDyes.Length],
                     Spawn = new Pt(wl.X, 1, wl.Z),
-                    Room = Box(wl.X, wl.Z, o.LaneWidth),
+                    Room = [Box(wl.X, wl.Z, o.LaneWidth)],
                     Monuments = [new MonumentIntent { Team = slots[rival].Id, Location = new Pt(monX, 1, monZ) }],
                 });
         }

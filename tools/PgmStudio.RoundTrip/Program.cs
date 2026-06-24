@@ -1400,7 +1400,8 @@ static int RunGenMapPreview(string archetype, int seed, string outJson)
     var cells = PgmStudio.Pgm.Sketch.SketchRasterizer.Rasterize(layout.ToJson());
     if (cells.Count == 0) { Console.Error.WriteLine("no cells"); return 1; }
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.Detect(cells, minIslandSize: 1);
-    object? Rect(PgmStudio.Pgm.Authoring.Rect? r) => r is { } v ? new { minX = v.MinX, minZ = v.MinZ, maxX = v.MaxX, maxZ = v.MaxZ } : null;
+    object Rects(List<PgmStudio.Pgm.Authoring.Rect> rs) =>
+        rs.Select(v => new { minX = v.MinX, minZ = v.MinZ, maxX = v.MaxX, maxZ = v.MaxZ }).ToList();
     File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(new
     {
         archetype, seed,
@@ -1414,10 +1415,10 @@ static int RunGenMapPreview(string archetype, int seed, string outJson)
                 holes = p.InteriorRings.Select(r => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList()).ToList(),
             };
         }).ToList(),
-        spawns = intent.Spawns.Select(s => new { team = s.Team, x = s.Point.X, z = s.Point.Z, protection = Rect(s.Protection) }).ToList(),
+        spawns = intent.Spawns.Select(s => new { team = s.Team, x = s.Point.X, z = s.Point.Z, protection = Rects(s.Protection) }).ToList(),
         wools = intent.Wools!.Select(w => new
         {
-            owner = w.Owner, x = w.Spawn.X, z = w.Spawn.Z, room = Rect(w.Room),
+            owner = w.Owner, x = w.Spawn.X, z = w.Spawn.Z, room = Rects(w.Room),
             monuments = w.Monuments.Select(mm => new { team = mm.Team, x = mm.Location.X, z = mm.Location.Z }).ToList(),
         }).ToList(),
         build = new { areas = intent.Build!.Areas.Select(r => new { minX = r.MinX, minZ = r.MinZ, maxX = r.MaxX, maxZ = r.MaxZ }).ToList() },

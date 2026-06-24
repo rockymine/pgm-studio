@@ -46,16 +46,6 @@ the focus-integration polish remains.
   Re-derive the id on colour change and **cascade the rename** across the intent — `teams`, `islandTeams`,
   and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip the rename (just
   recolour) when the new colour-derived id would collide with another team's.
-- [ ] **N10 — Multi-rectangle wool rooms + spawn protection (union).** Today a room/protection is one
-  `Rect`; complex shapes need several. Make `WoolIntent.Room` and `SpawnIntent.Protection` `List<Rect>`,
-  emit a **union** of rects (the `BuildIntent.Areas` pattern is the template — `OrbitRects`, `AddUnion`,
-  union-region emission all already exist), and reference the union from the wool/spawner/enter wiring.
-  The plumbing is mostly mechanical (model · `SymmetryExpander` `.Select(TransformRect…)` · generators ·
-  intent-JSON array · `Preflight` `.Any()` · the client room/spawn models). **UI = decided: selected-wool
-  accumulation (C)** — the first rect over a spawn selects the wool (today's `OrbitAssignment` keying),
-  further rects while it's selected **add** to that room, select-a-rect + delete removes one; nothing is
-  discarded and there's no touch-detection/resize edge case. Extra rects (not over a spawn) orbit by
-  **orbit-order** (like build areas), not coverage. Applies to `WoolRoomPhase` **and** `ProtectionPhase`.
 
 ## Editor & canvas infrastructure (C / CV)
 
@@ -78,10 +68,14 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-- [ ] **CV8 — C# symmetry label/count helper.** Collapse `SymLabel` (identical in
-  `WorldScanPhase`/`WorldSymmetryPhase`) + the suggested-team-count mapping
-  (`WorldSymmetryPhase`/`TeamsPhase`/`SpawnPhase`) into one shared `SymmetryInfo`. The `SpawnPhase`
-  geometry copies already route through `PgmStudio.Geom` (A4, done), not here. (Contract §6.3.)
+- [ ] **CV8 — C# symmetry label/count helper.** Collapse `SymLabel` (identical in **4** files:
+  `WorldScanPhase`/`WorldSymmetryPhase`/`ConfigureLanding`/`ConfigureActivity`) into one shared
+  `SymmetryInfo` — that helper need only own the **label string**. For the **count**, do *not* add a new
+  mapping: `Geom.Symmetry.Order(mode)` already returns it (`rot_90`→4 else→2) and is already called by
+  `OrbitAssignment`/`SpawnPhase`/`WoolAuthoring`; point the 4 re-derivers
+  (`BuildLayerPhase`/`ConfigureLanding`/`TeamsPhase`/`WorldSymmetryPhase`) at the leaf instead. The
+  `SpawnPhase` geometry copies already route through `PgmStudio.Geom` (A4, done), not here.
+  (Contract §6.3; reuse-and-synergy.md "issues".)
 - [ ] **CV9 — Parametrise primitive drawing styles (shape + colour + style + icon).** Edit and Configure
   draw the same primitives but diverge (canvas-interaction.md §10): `renderShape` (`render/shape-render.js`)
   has no point case so a point renders as a 1×1 `<rect>` (block-like) on Edit while Configure uses an

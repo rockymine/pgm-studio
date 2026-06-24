@@ -130,14 +130,11 @@ public static class TeamsGenerator
                 ["region_id"] = pointId, ["team"] = sp.Team, ["kit"] = SpawnKitId, ["yaw"] = sp.Yaw,
             });
 
-            if (sp.Protection is { } r)
+            if (sp.Protection.Count > 0)
             {
+                // One protection rect is the region itself; several union into it (the buildable-area pattern).
                 var protId = $"{slug}-spawn";
-                RegionEditor.CreateRegion(doc, new Dict
-                {
-                    ["type"] = "rectangle", ["id"] = protId, ["category"] = "spawn",
-                    ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ,
-                });
+                EmitRectUnion(doc, protId, "spawn", sp.Protection);
                 var fid = $"only-{slug}";
                 FilterEditor.CreateFilter(doc, new Dict { ["id"] = fid, ["type"] = "team", ["team"] = sp.Team });
                 // keep enemies out, per team (enter=only-<team>); the block protection is shared, on the spawns union.
@@ -170,6 +167,26 @@ public static class TeamsGenerator
         var union = new Dict { ["id"] = id, ["type"] = "union", ["children"] = childIds.Cast<object?>().ToList() };
         if (bounds is not null) union["bounds_2d"] = bounds;
         regions[id] = union;
+    }
+
+    // Emit a multi-rect footprint as the region <paramref name="id"/>: a single rect becomes <c>id</c>
+    // itself; several become <c>id-1…id-n</c> rectangles unioned into <c>id</c>. Callers reference <c>id</c>.
+    private static void EmitRectUnion(Dict doc, string id, string category, List<Rect> rects)
+    {
+        Dict RectDict(string rid, Rect r) => new()
+        {
+            ["type"] = "rectangle", ["id"] = rid, ["category"] = category,
+            ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ,
+        };
+        if (rects.Count == 1) { RegionEditor.CreateRegion(doc, RectDict(id, rects[0])); return; }
+        var rectIds = new List<string>();
+        for (var i = 0; i < rects.Count; i++)
+        {
+            var rid = $"{id}-{i + 1}";
+            RegionEditor.CreateRegion(doc, RectDict(rid, rects[i]));
+            rectIds.Add(rid);
+        }
+        AddUnion(doc, id, rectIds);
     }
 
     // ── observer (<default>) spawn ─────────────────────────────────────────────────────
@@ -207,12 +224,23 @@ public static class TeamsGenerator
     {
         var pointId = $"{slug}-spawn-point";
         var protId = $"{slug}-spawn";
-        DocAccess.Regions(doc).Remove(pointId);
-        DocAccess.Regions(doc).Remove(protId);
+        var regions = DocAccess.Regions(doc);
+        regions.Remove(pointId);
+        regions.Remove(protId);
+        // multi-rect protection lives in numbered children ({slug}-spawn-1…) under the union
+        foreach (var k in regions.Keys.Where(k => IsNumberedChild(protId, k)).ToList()) regions.Remove(k);
         DocAccess.Filters(doc).Remove($"only-{slug}");
         if (doc.GetValueOrDefault("spawns") is List<object?> spawns)
             spawns.RemoveAll(s => s is Dict d && d.GetValueOrDefault("region") as string == pointId);
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
             rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string == protId);
+    }
+
+    // True for a union member id "{prefix}-N" (N all digits) — the numbered rect children of a multi-rect region.
+    private static bool IsNumberedChild(string prefix, string id)
+    {
+        if (!id.StartsWith($"{prefix}-")) return false;
+        var tail = id[(prefix.Length + 1)..];
+        return tail.Length > 0 && tail.All(char.IsDigit);
     }
 }

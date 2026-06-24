@@ -103,7 +103,10 @@ public sealed class SpawnIntent
 {
     public string Team { get; init; } = "";
     public Pt Point { get; init; }
-    public Rect? Protection { get; init; }
+    /// <summary>The anti-grief zone around the spawn, as a union of rectangles (empty = unprotected). A
+    /// simple spawn is one rect; a complex footprint needs several. The generator unions them into the
+    /// team's spawn-protection region.</summary>
+    public List<Rect> Protection { get; init; } = new();
     public double Yaw { get; init; }
 }
 
@@ -122,10 +125,11 @@ public sealed class WoolIntent
     public string Owner { get; init; } = "";
     /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
     public string Color { get; init; } = "";
-    /// <summary>The wool-room footprint. Null until the author draws it (partial intent is tolerated,
-    /// new-map-authoring.md §11): a roomless wool still generates its objective + monuments, just not the
-    /// room region / spawner / room wiring.</summary>
-    public Rect? Room { get; init; }
+    /// <summary>The wool-room footprint, as a union of rectangles. Empty until the author draws it (partial
+    /// intent is tolerated, new-map-authoring.md §11): a roomless wool still generates its objective +
+    /// monuments, just not the room region / spawner / room wiring. A simple room is one rect; a complex
+    /// footprint needs several, which the generator unions into the room region.</summary>
+    public List<Rect> Room { get; init; } = new();
     public Pt Spawn { get; init; }
     public List<MonumentIntent> Monuments { get; init; } = new();
 }

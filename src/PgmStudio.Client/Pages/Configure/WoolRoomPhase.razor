@@ -56,21 +56,24 @@
               @if (sel.HasRoom)
               {
                 <div class="field">
-                  <label class="field-label">Min</label>
-                  <div class="ctrl-row">
-                    <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.RoomMinX" readonly /></div>
-                    <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.RoomMinZ" readonly /></div>
-                  </div>
-                </div>
-                <div class="field">
-                  <label class="field-label">Max</label>
-                  <div class="ctrl-row">
-                    <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.RoomMaxX" readonly /></div>
-                    <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.RoomMaxZ" readonly /></div>
+                  <label class="field-label">Rectangles (@sel.Rooms.Count)</label>
+                  <div class="panel-list">
+                    @for (var i = 0; i < sel.Rooms.Count; i++)
+                    {
+                      var idx = i; var r = sel.Rooms[i];
+                      <div class="list-row list-row--compact">
+                        <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="rectangle-horizontal"></i></span>
+                        <span class="list-label list-label--mono">@($"{r.MinX},{r.MinZ} → {r.MaxX},{r.MaxZ}")</span>
+                        @if (IsAuthored(sel))
+                        {
+                          <button class="icon-btn" title="Remove rectangle" @onclick="() => DeleteRect(sel, idx)"><i data-lucide="x"></i></button>
+                        }
+                      </div>
+                    }
                   </div>
                 </div>
                 <p class="section-desc">Owned by <strong>@(string.IsNullOrEmpty(sel.Owner) ? "—" : TeamName(sel.Owner))</strong>.
-                  @(IsAuthored(sel) ? "Resize on the canvas to re-derive the orbit." : "Derived by orbit — edit its authored partner.")</p>
+                  @(IsAuthored(sel) ? "Draw more rectangles to add to this room; resize on the canvas. Each is a union piece." : "Derived by orbit — edit its authored partner.")</p>
                 @if (IsAuthored(sel)) { <button class="action-btn action-btn--full action-btn--separated" @onclick="() => ClearRoom(sel)"><i data-lucide="trash-2"></i> Clear room</button> }
               }
               else

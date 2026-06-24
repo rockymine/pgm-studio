@@ -61,7 +61,7 @@ public static class WoolGenerator
                 ["team"] = w.Owner,
                 ["location"] = new Dict { ["x"] = Floor(w.Spawn.X), ["y"] = Floor(w.Spawn.Y), ["z"] = Floor(w.Spawn.Z) },
             };
-            if (w.Room is not null) update["wool_room_region"] = roomId;
+            if (w.Room.Count > 0) update["wool_room_region"] = roomId;
             WoolEditor.UpdateWool(doc, colorSlug, update);
             foreach (var m in w.Monuments)
             {
@@ -82,13 +82,10 @@ public static class WoolGenerator
                 });
             }
 
-            if (w.Room is not { } room) continue;   // no room yet → skip the source side (region/spawner/wiring)
+            if (w.Room.Count == 0) continue;   // no room yet → skip the source side (region/spawner/wiring)
 
-            RegionEditor.CreateRegion(doc, new Dict
-            {
-                ["type"] = "rectangle", ["id"] = roomId, ["category"] = "wool",
-                ["min_x"] = room.MinX, ["min_z"] = room.MinZ, ["max_x"] = room.MaxX, ["max_z"] = room.MaxZ,
-            });
+            // One room rect is the region itself; several union into it (the buildable-area pattern).
+            EmitRectUnion(doc, roomId, "wool", w.Room);
             RegionEditor.CreateRegion(doc, new Dict
             {
                 ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",
@@ -143,7 +140,35 @@ public static class WoolGenerator
         regions[id] = union;
     }
 
+    // Emit a multi-rect footprint as the region <paramref name="id"/>: a single rect becomes <c>id</c>
+    // itself; several become <c>id-1…id-n</c> rectangles unioned into <c>id</c>. Callers reference <c>id</c>.
+    private static void EmitRectUnion(Dict doc, string id, string category, List<Rect> rects)
+    {
+        Dict RectDict(string rid, Rect r) => new()
+        {
+            ["type"] = "rectangle", ["id"] = rid, ["category"] = category,
+            ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ,
+        };
+        if (rects.Count == 1) { RegionEditor.CreateRegion(doc, RectDict(id, rects[0])); return; }
+        var rectIds = new List<string>();
+        for (var i = 0; i < rects.Count; i++)
+        {
+            var rid = $"{id}-{i + 1}";
+            RegionEditor.CreateRegion(doc, RectDict(rid, rects[i]));
+            rectIds.Add(rid);
+        }
+        AddUnion(doc, id, rectIds);
+    }
+
     private static string MonumentBlockId(string colorSlug, string teamSlug) => $"{colorSlug}-{teamSlug}-monument";
+
+    // True for a union member id "{prefix}-N" (N all digits) — the numbered rect children of a multi-rect room.
+    private static bool IsNumberedChild(string prefix, string id)
+    {
+        if (!id.StartsWith($"{prefix}-")) return false;
+        var tail = id[(prefix.Length + 1)..];
+        return tail.Length > 0 && tail.All(char.IsDigit);
+    }
 
     // Fold the wool monuments out of the spawns protection so placing a captured wool on its monument (which
     // sits inside a spawn) doesn't trip the spawn block rule — PGM allows the placement, we just suppress the
@@ -205,8 +230,11 @@ public static class WoolGenerator
             var colorSlug = ColorSlug(doc, w);
             var ownerSlug = IntentNaming.Slug(w.Owner);
             owners.Add(ownerSlug);
-            regions.Remove($"{colorSlug}-wool");
+            var roomId = $"{colorSlug}-wool";
+            regions.Remove(roomId);
             regions.Remove($"{colorSlug}-wool-spawn");
+            // multi-rect rooms live in numbered children ({color}-wool-1…) under the union
+            foreach (var k in regions.Keys.Where(k => IsNumberedChild(roomId, k)).ToList()) regions.Remove(k);
             foreach (var m in w.Monuments) regions.Remove(MonumentBlockId(colorSlug, IntentNaming.Slug(m.Team)));
             if (doc.GetValueOrDefault("wools") is List<object?> ws)
                 ws.RemoveAll(x => x is Dict d && d.GetValueOrDefault("id") as string == colorSlug);

@@ -31,7 +31,7 @@ public sealed class WoolGeneratorTests
             new WoolIntent
             {
                 Owner = "red-team",
-                Room = new Rect(0, 0, 10, 10),
+                Room = [new Rect(0, 0, 10, 10)],
                 Spawn = new Pt(5.5, 10.2, 5.5),
                 Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }],
             },
@@ -146,9 +146,9 @@ public sealed class WoolGeneratorTests
         {
             Wools =
             [
-                new WoolIntent { Owner = "red-team", Color = "red", Room = new Rect(0, 0, 10, 10), Spawn = new Pt(5, 10, 5),
+                new WoolIntent { Owner = "red-team", Color = "red", Room = [new Rect(0, 0, 10, 10)], Spawn = new Pt(5, 10, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }] },
-                new WoolIntent { Owner = "red-team", Color = "orange", Room = new Rect(20, 0, 30, 10), Spawn = new Pt(25, 10, 5),
+                new WoolIntent { Owner = "red-team", Color = "orange", Room = [new Rect(20, 0, 30, 10)], Spawn = new Pt(25, 10, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-70, 8, -50) }] },
             ],
         });
@@ -167,6 +167,40 @@ public sealed class WoolGeneratorTests
     }
 
     [Test]
+    public async Task Multi_rect_room_unions_the_rects_and_the_spawner_references_the_union()
+    {
+        var doc = Map();
+        WoolGenerator.Apply(doc, new MapIntent
+        {
+            Wools =
+            [
+                new WoolIntent { Owner = "red-team", Color = "red", Room = [new Rect(0, 0, 10, 10), new Rect(10, 0, 16, 6)], Spawn = new Pt(5, 10, 5),
+                    Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }] },
+            ],
+        });
+
+        // the two rects union into the room region the wool / spawner / per-team union all reference
+        await Assert.That(Regions(doc).ContainsKey("red-wool-1")).IsTrue();
+        await Assert.That(Regions(doc).ContainsKey("red-wool-2")).IsTrue();
+        var union = (Dict)Regions(doc)["red-wool"]!;
+        await Assert.That(union["type"]).IsEqualTo("union");
+        await Assert.That(((List<object?>)union["children"]!).Cast<string>()).IsEquivalentTo(new[] { "red-wool-1", "red-wool-2" });
+
+        var wool = Wools(doc).OfType<Dict>().Single();
+        await Assert.That(wool["wool_room_region"]).IsEqualTo("red-wool");
+        await Assert.That(Spawners(doc).OfType<Dict>().Single()["player_region"]).IsEqualTo("red-wool");
+        await Assert.That(((List<object?>)((Dict)Regions(doc)["reds-woolrooms"]!)["children"]!).Cast<string>()).Contains("red-wool");
+
+        // union + rect children all read back as wool/room (the mirror property)
+        var facets = RegionCategorizer.DeriveFacets(doc);
+        foreach (var id in new[] { "red-wool", "red-wool-1", "red-wool-2" })
+        {
+            await Assert.That(facets[id].Category).IsEqualTo("wool");
+            await Assert.That(facets[id].Subtype).IsEqualTo("room");
+        }
+    }
+
+    [Test]
     public async Task Roomless_wool_emits_objective_without_room_or_spawner()   // partial intent (no room yet)
     {
         var doc = Map();
@@ -174,7 +208,7 @@ public sealed class WoolGeneratorTests
         {
             Wools =
             [
-                new WoolIntent { Owner = "red-team", Color = "red", Room = null, Spawn = new Pt(5, 10, 5),
+                new WoolIntent { Owner = "red-team", Color = "red", Room = [], Spawn = new Pt(5, 10, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }] },
             ],
         });

@@ -27,16 +27,16 @@ public sealed class IntentXmlExportTests
         MaxPlayers = 12,
         Spawns =
         [
-            new SpawnIntent { Team = "red-team", Point = new(100, 12, 50), Protection = new(90, 40, 110, 60) },
-            new SpawnIntent { Team = "blue-team", Point = new(-100, 12, -50), Protection = new(-110, -60, -90, -40) },
+            new SpawnIntent { Team = "red-team", Point = new(100, 12, 50), Protection = [new(90, 40, 110, 60)] },
+            new SpawnIntent { Team = "blue-team", Point = new(-100, 12, -50), Protection = [new(-110, -60, -90, -40)] },
         ],
         Observer = new ObserverIntent { Point = new(0, 60, 0), Yaw = 180 },
         Build = new BuildIntent { MaxHeight = 30, Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)] },
         Wools =
         [
-            new WoolIntent { Owner = "red-team", Room = new(95, 45, 105, 55), Spawn = new(100.5, 13, 50.5),
+            new WoolIntent { Owner = "red-team", Room = [new(95, 45, 105, 55)], Spawn = new(100.5, 13, 50.5),
                 Monuments = [new MonumentIntent { Team = "blue-team", Location = new(-100, 13, -50) }] },
-            new WoolIntent { Owner = "blue-team", Room = new(-105, -55, -95, -45), Spawn = new(-100.5, 13, -50.5),
+            new WoolIntent { Owner = "blue-team", Room = [new(-105, -55, -95, -45)], Spawn = new(-100.5, 13, -50.5),
                 Monuments = [new MonumentIntent { Team = "red-team", Location = new(100, 13, 50) }] },
         ],
     };
@@ -63,6 +63,40 @@ public sealed class IntentXmlExportTests
         await Assert.That(reparsed["objective"]).IsEqualTo("Capture the enemies' wools!");
         // build void enforcement survived
         await Assert.That(((Dict)reparsed["regions"]!).ContainsKey("not-build-area")).IsTrue();
+    }
+
+    [Test]
+    public async Task Multi_rect_protection_and_room_survive_the_xml_round_trip_as_unions()
+    {
+        var doc = BaseDoc();
+        var intent = new MapIntent
+        {
+            Meta = new MetaIntent { Name = "Multi" },
+            Teams = [new TeamDef { Id = "red-team", Name = "Red", Color = "red" }, new TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" }],
+            Spawns =
+            [
+                new SpawnIntent { Team = "red-team", Point = new(100, 12, 50), Protection = [new(90, 40, 110, 60), new(110, 45, 120, 55)] },
+                new SpawnIntent { Team = "blue-team", Point = new(-100, 12, -50), Protection = [new(-110, -60, -90, -40), new(-120, -55, -110, -45)] },
+            ],
+            Wools =
+            [
+                new WoolIntent { Owner = "red-team", Color = "red", Room = [new(95, 45, 105, 55), new(105, 47, 112, 53)], Spawn = new(100.5, 13, 50.5),
+                    Monuments = [new MonumentIntent { Team = "blue-team", Location = new(-100, 13, -50) }] },
+            ],
+        };
+        IntentGenerator.Apply(doc, intent);
+
+        var xml = XmlWriter.ToXml(Deserializer.FromDict(doc));
+        var regions = (Dict)Serializer.ToDict(MapParser.ParseXmlString(xml))["regions"]!;
+
+        var prot = (Dict)regions["red-spawn"]!;
+        await Assert.That(prot["type"]).IsEqualTo("union");
+        await Assert.That(((List<object?>)prot["children"]!).Cast<string>()).IsEquivalentTo(new[] { "red-spawn-1", "red-spawn-2" });
+
+        var room = (Dict)regions["red-wool"]!;
+        await Assert.That(room["type"]).IsEqualTo("union");
+        await Assert.That(((List<object?>)room["children"]!).Cast<string>()).IsEquivalentTo(new[] { "red-wool-1", "red-wool-2" });
+        await Assert.That(regions.ContainsKey("blue-spawn-2")).IsTrue();   // orbit-filled partner's second rect
     }
 
     [Test]

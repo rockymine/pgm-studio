@@ -295,11 +295,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **WoolGenerator multi-wool-per-team + partial-intent fixes (N04)** — (1) `not-<owner>` / `only-<owner>`
   room filters are per-team, not per-wool, so a team defending several wools now **shares** them (both
   creations guarded); a second same-owner wool previously collided on the filter id (HTTP 409). (2)
-  `WoolIntent.Room` is now **nullable** — a roomless wool (the author hasn't drawn its room yet) still
-  generates its objective + monuments and skips the room region / spawner / wiring, instead of failing
-  intent deserialization (a `null`→non-nullable-`Rect` 500). Verified end-to-end on n00_demo (2-team
+  `WoolIntent.Room` is **optional** (then nullable; now an empty `List<Rect>` — see N10) — a roomless wool
+  (the author hasn't drawn its room yet) still generates its objective + monuments and skips the room region /
+  spawner / wiring, instead of failing intent deserialization. Verified end-to-end on n00_demo (2-team
   `mirror_x`, 2 wools/team): 4 wools + 4 monuments, valid CTW XML (`<wool team>` = the monument-derived
   capturer, as PGM requires). (N04)
+- **Multi-rectangle wool rooms + spawn protection — union footprints (N10)** — a room/protection is now a
+  **union of rectangles**, not one: `WoolIntent.Room` and `SpawnIntent.Protection` are `List<Rect>`. The
+  generators emit the buildable-area pattern — a lone rect is the region itself (`{slug}-spawn` / `{color}-wool`),
+  several become numbered children (`-1…-n`) unioned into it — and the wool/spawner/enter/block wiring
+  references the union. `SymmetryExpander` orbits **every** rect (`.Select(TransformRect…)`), `Preflight`
+  checks `.Count > 0`, and `ResourceRenewables` expands a union to its child boxes for in-spawn ore detection.
+  In Configure the **Protection** and **Wool Room** phases accumulate: the first rect over a spawn selects the
+  unit, further rects while it's selected **add** to it (extras orbit by the primary's step via the new
+  `OrbitAssignment.ByCoveredAnchorSet`), and the inspector lists each rect with a per-rect delete (× / Clear).
+  Verified live (thunder_blank, `mirror_x`): a 2-rect spawn + 2-rect room orbit-fill into valid unioned XML on
+  both teams. (`MapIntent`, `TeamsGenerator`, `WoolGenerator`, `SymmetryExpander`, `ProtectionPhase`,
+  `WoolRoomPhase`, `OrbitAssignment`; N10)
 - **Wool-room wiring — the validated template structure (`docs/template.xml`)** — `WoolGenerator` now groups
   the rooms per defending team into a `<team>s-woolrooms` union (all under a top `woolrooms` union) instead
   of per-wool rules, and replaces the blanket `block=not-<owner>` ("forbid everything") with a shared

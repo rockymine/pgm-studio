@@ -28,8 +28,8 @@ public sealed class TeamsGeneratorTests
     {
         Spawns =
         [
-            new SpawnIntent { Team = "red-team",  Point = new(10, 12, 10),   Protection = new(0, 0, 20, 20) },
-            new SpawnIntent { Team = "blue-team", Point = new(-10, 12, -10), Protection = new(-20, -20, 0, 0) },
+            new SpawnIntent { Team = "red-team",  Point = new(10, 12, 10),   Protection = [new(0, 0, 20, 20)] },
+            new SpawnIntent { Team = "blue-team", Point = new(-10, 12, -10), Protection = [new(-20, -20, 0, 0)] },
         ],
     };
 
@@ -64,7 +64,7 @@ public sealed class TeamsGeneratorTests
     public async Task Enter_is_per_team_and_block_protection_is_on_the_shared_spawns_union()
     {
         var doc = Map();
-        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = new(0, 0, 10, 10) }] });
+        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = [new(0, 0, 10, 10)] }] });
 
         // enter stays on the team's own rect; the block rule moves to the shared spawns union (template structure)
         var onRed = Rules(doc).OfType<Dict>().Where(r => r.GetValueOrDefault("region") as string == "red-spawn").ToList();
@@ -102,6 +102,52 @@ public sealed class TeamsGeneratorTests
         await Assert.That(Rules(doc).Count).IsEqualTo(3);   // an enter per team + one shared block-on-spawns
         await Assert.That(Filters(doc).Count).IsEqualTo(2);
         await Assert.That(Regions(doc).ContainsKey("spawns")).IsTrue();
+    }
+
+    [Test]
+    public async Task Multi_rect_protection_unions_the_rects_into_the_spawn_region()
+    {
+        var doc = Map();
+        TeamsGenerator.Apply(doc, new MapIntent
+        {
+            Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = [new(0, 0, 10, 10), new(10, 0, 20, 5)] }],
+        });
+
+        // the two rects are numbered children unioned into the team's spawn region
+        await Assert.That(Regions(doc).ContainsKey("red-spawn-1")).IsTrue();
+        await Assert.That(Regions(doc).ContainsKey("red-spawn-2")).IsTrue();
+        var union = (Dict)Regions(doc)["red-spawn"]!;
+        await Assert.That(union["type"]).IsEqualTo("union");
+        await Assert.That(((List<object?>)union["children"]!).Cast<string>()).IsEquivalentTo(new[] { "red-spawn-1", "red-spawn-2" });
+
+        // the enter rule + the shared spawns union both reference the per-team union
+        var enter = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "red-spawn");
+        await Assert.That(enter["enter"]).IsEqualTo("only-red");
+        await Assert.That(((List<object?>)((Dict)Regions(doc)["spawns"]!)["children"]!).Cast<string>()).Contains("red-spawn");
+
+        // the union + its rect children all read back as spawn/protection (the mirror property)
+        var facets = RegionCategorizer.DeriveFacets(doc);
+        foreach (var id in new[] { "red-spawn", "red-spawn-1", "red-spawn-2" })
+        {
+            await Assert.That(facets[id].Category).IsEqualTo("spawn");
+            await Assert.That(facets[id].Subtype).IsEqualTo("protection");
+        }
+    }
+
+    [Test]
+    public async Task Multi_rect_protection_is_idempotent_and_drops_stale_children_on_reshape()
+    {
+        var doc = Map();
+        var intent = new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = [new(0, 0, 10, 10), new(10, 0, 20, 5)] }] };
+        TeamsGenerator.Apply(doc, intent);
+        TeamsGenerator.Apply(doc, intent);
+
+        await Assert.That(Regions(doc).Keys.Count(k => k is "red-spawn-1" or "red-spawn-2")).IsEqualTo(2);
+
+        // re-applying with a single-rect protection drops the now-stale numbered children
+        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = [new(0, 0, 10, 10)] }] });
+        await Assert.That(Regions(doc).Keys.Any(k => k is "red-spawn-1" or "red-spawn-2")).IsFalse();
+        await Assert.That(((Dict)Regions(doc)["red-spawn"]!)["type"]).IsEqualTo("rectangle");
     }
 
     [Test]
@@ -230,7 +276,7 @@ public sealed class TeamsGeneratorTests
             ["teams"] = new List<object?> { new Dict { ["id"] = "red-team", ["color"] = "dark red", ["name"] = "Red" } },
             ["regions"] = new Dict(), ["filters"] = new Dict(), ["spawns"] = new List<object?>(), ["apply_rules"] = new List<object?>(),
         };
-        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = new(0, 0, 10, 10) }] });
+        TeamsGenerator.Apply(doc, new MapIntent { Spawns = [new SpawnIntent { Team = "red-team", Point = new(0, 8, 0), Protection = [new(0, 0, 10, 10)] }] });
 
         await Assert.That(Regions(doc).ContainsKey("red-spawn-point")).IsTrue();
         await Assert.That(Filters(doc).ContainsKey("only-red")).IsTrue();

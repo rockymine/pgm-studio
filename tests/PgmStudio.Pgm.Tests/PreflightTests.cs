@@ -26,16 +26,16 @@ public sealed class PreflightTests
         Teams = [new TeamDef { Id = "red-team", Name = "Red", Color = "red" }, new TeamDef { Id = "blue-team", Name = "Blue", Color = "blue" }],
         Spawns =
         [
-            new SpawnIntent { Team = "red-team", Point = new(100, 12, 50), Protection = new(90, 40, 110, 60) },
-            new SpawnIntent { Team = "blue-team", Point = new(-100, 12, -50), Protection = new(-110, -60, -90, -40) },
+            new SpawnIntent { Team = "red-team", Point = new(100, 12, 50), Protection = [new(90, 40, 110, 60)] },
+            new SpawnIntent { Team = "blue-team", Point = new(-100, 12, -50), Protection = [new(-110, -60, -90, -40)] },
         ],
         Observer = new ObserverIntent { Point = new(0, 60, 0) },
         Build = new BuildIntent { MaxHeight = 30, Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)] },
         Wools =
         [
-            new WoolIntent { Owner = "red-team", Room = new(95, 45, 105, 55), Spawn = new(100.5, 13, 50.5),
+            new WoolIntent { Owner = "red-team", Room = [new(95, 45, 105, 55)], Spawn = new(100.5, 13, 50.5),
                 Monuments = [new MonumentIntent { Team = "blue-team", Location = new(-100, 13, -50) }] },
-            new WoolIntent { Owner = "blue-team", Room = new(-105, -55, -95, -45), Spawn = new(-100.5, 13, -50.5),
+            new WoolIntent { Owner = "blue-team", Room = [new(-105, -55, -95, -45)], Spawn = new(-100.5, 13, -50.5),
                 Monuments = [new MonumentIntent { Team = "red-team", Location = new(100, 13, 50) }] },
         ],
     };

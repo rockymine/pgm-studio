@@ -52,27 +52,30 @@
             <span class="detail-label detail-label--mono">@team-protect</span>
             <span class="badge @StatusClass(team)">@Status(team)</span>
           </div>
-          @if (protection.TryGetValue(team, out var r))
+          @if (protection.TryGetValue(team, out var rects) && rects.Count > 0)
           {
             <div class="section-body">
               <div class="field">
-                <label class="field-label">Min</label>
-                <div class="ctrl-row">
-                  <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@r.MinX" readonly tabindex="-1" /></div>
-                  <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@r.MinZ" readonly tabindex="-1" /></div>
-                </div>
-              </div>
-              <div class="field">
-                <label class="field-label">Max</label>
-                <div class="ctrl-row">
-                  <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@r.MaxX" readonly tabindex="-1" /></div>
-                  <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@r.MaxZ" readonly tabindex="-1" /></div>
+                <label class="field-label">Rectangles (@rects.Count)</label>
+                <div class="panel-list">
+                  @for (var i = 0; i < rects.Count; i++)
+                  {
+                    var idx = i; var r = rects[i];
+                    <div class="list-row list-row--compact">
+                      <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
+                      <span class="list-label list-label--mono">@($"{r.MinX},{r.MinZ} → {r.MaxX},{r.MaxZ}")</span>
+                      @if (team == AuthoredTeam)
+                      {
+                        <button class="icon-btn" title="Remove rectangle" @onclick="() => DeleteRect(team, idx)"><i data-lucide="x"></i></button>
+                      }
+                    </div>
+                  }
                 </div>
               </div>
               @if (team == AuthoredTeam)
               {
-                <p class="section-desc">Owned by <strong>@TeamName(team)</strong>. Drag the handles on the
-                  canvas to resize it — the orbit re-derives from this zone.</p>
+                <p class="section-desc">Owned by <strong>@TeamName(team)</strong>. Draw more rectangles to add to
+                  this zone, or drag the handles on the canvas to resize one — the orbit re-derives from it.</p>
                 <div class="section-footer section-footer--separated">
                   <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => ClearProtection(team)">Remove zone</button>
                 </div>
