@@ -39,6 +39,23 @@ the focus-integration polish remains.
   (lift it off y=0 onto terrain); (b) **per-side focus** — `FocusSection` is still a `/concepts` mockup;
   the canvas **fit-island** exists but not per-team quadrant framing — refine the concept so the author
   can frame one team's quadrant while working its unit. (`FocusSection`)
+- [ ] **N09 — Team id should track the team's colour.** The team id is seeded from the colour first picked
+  (`Id = colour.Replace(' ','-')`), but `TeamsPhase.SetColor` only updates the colour — so recolouring a
+  team (e.g. red → purple) leaves `id="red"` and every id derived from it (`only-red`, `red-spawn-point`,
+  the `…-red-monument` blocks, `reds-woolrooms`). Functionally fine (PGM resolves the id) but reads wrong.
+  Re-derive the id on colour change and **cascade the rename** across the intent — `teams`, `islandTeams`,
+  and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip the rename (just
+  recolour) when the new colour-derived id would collide with another team's.
+- [ ] **N10 — Multi-rectangle wool rooms + spawn protection (union).** Today a room/protection is one
+  `Rect`; complex shapes need several. Make `WoolIntent.Room` and `SpawnIntent.Protection` `List<Rect>`,
+  emit a **union** of rects (the `BuildIntent.Areas` pattern is the template — `OrbitRects`, `AddUnion`,
+  union-region emission all already exist), and reference the union from the wool/spawner/enter wiring.
+  The plumbing is mostly mechanical (model · `SymmetryExpander` `.Select(TransformRect…)` · generators ·
+  intent-JSON array · `Preflight` `.Any()` · the client room/spawn models). **UI = decided: selected-wool
+  accumulation (C)** — the first rect over a spawn selects the wool (today's `OrbitAssignment` keying),
+  further rects while it's selected **add** to that room, select-a-rect + delete removes one; nothing is
+  discarded and there's no touch-detection/resize edge case. Extra rects (not over a spawn) orbit by
+  **orbit-order** (like build areas), not coverage. Applies to `WoolRoomPhase` **and** `ProtectionPhase`.
 
 ## Editor & canvas infrastructure (C / CV)
 
@@ -87,6 +104,15 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
   **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
   actually slow in use; otherwise close.
+- [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
+  terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
+  updated world as a *new* map and hand-copy the intent across. Add a "re-import / update world" action on
+  an intent-authored map that re-scans a chosen folder/zip in place — refreshing only the world-derived
+  data (`islands_json`, `resource_block`, surface/layer parquets, monument candidates) and **preserving the
+  `map_intent_json`**, then regenerating. Safe while island detection stays stable (the intent references
+  islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
+  stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
+  artifact + re-scan, then `PUT /map/{slug}/intent`.)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
 
