@@ -56,6 +56,32 @@ public sealed class MapIntentJsonTests
     }
 
     [Test]
+    public async Task Tolerates_legacy_single_object_protection_and_room()
+    {
+        // Intents authored before rooms/protection became unions stored a single {minX,…} object (or null).
+        // These must still deserialize (a one-element list / empty list), not throw.
+        const string json = """
+        {
+          "spawns": [
+            { "team": "red-team", "point": { "x": 0, "y": 8, "z": 0 }, "protection": { "minX": -89, "minZ": -8, "maxX": -61, "maxZ": 8 } },
+            { "team": "blue-team", "point": { "x": 0, "y": 8, "z": 0 }, "protection": null }
+          ],
+          "wools": [
+            { "owner": "red-team", "color": "red", "spawn": { "x": 5, "y": 10, "z": 5 },
+              "room": { "minX": -112, "minZ": -36, "maxX": -100, "maxZ": -24 } }
+          ]
+        }
+        """;
+        var intent = JsonSerializer.Deserialize<MapIntent>(json, Web)!;
+
+        await Assert.That(intent.Spawns[0].Protection.Count).IsEqualTo(1);
+        await Assert.That(intent.Spawns[0].Protection[0]).IsEqualTo(new Rect(-89, -8, -61, 8));
+        await Assert.That(intent.Spawns[1].Protection.Count).IsEqualTo(0);   // legacy null → empty list
+        await Assert.That(intent.Wools!.Single().Room.Count).IsEqualTo(1);
+        await Assert.That(intent.Wools!.Single().Room[0]).IsEqualTo(new Rect(-112, -36, -100, -24));
+    }
+
+    [Test]
     public async Task Roundtrips_through_the_web_serializer_as_camelcase_arrays()
     {
         var intent = new MapIntent

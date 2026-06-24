@@ -105,7 +105,8 @@ public sealed class SpawnIntent
     public Pt Point { get; init; }
     /// <summary>The anti-grief zone around the spawn, as a union of rectangles (empty = unprotected). A
     /// simple spawn is one rect; a complex footprint needs several. The generator unions them into the
-    /// team's spawn-protection region.</summary>
+    /// team's spawn-protection region. Tolerates a legacy single-object blob on read (see the converter).</summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(RectListJsonConverter))]
     public List<Rect> Protection { get; init; } = new();
     public double Yaw { get; init; }
 }
@@ -128,7 +129,9 @@ public sealed class WoolIntent
     /// <summary>The wool-room footprint, as a union of rectangles. Empty until the author draws it (partial
     /// intent is tolerated, new-map-authoring.md §11): a roomless wool still generates its objective +
     /// monuments, just not the room region / spawner / room wiring. A simple room is one rect; a complex
-    /// footprint needs several, which the generator unions into the room region.</summary>
+    /// footprint needs several, which the generator unions into the room region. Tolerates a legacy
+    /// single-object blob on read (see the converter).</summary>
+    [System.Text.Json.Serialization.JsonConverter(typeof(RectListJsonConverter))]
     public List<Rect> Room { get; init; } = new();
     public Pt Spawn { get; init; }
     public List<MonumentIntent> Monuments { get; init; } = new();
