@@ -7,6 +7,7 @@
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
+import { rectToPolygon } from "../geometry/shape.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -45,7 +46,19 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     onShapeUpdated: () => { recompute(); markDirty(); },
     onShapeSelected: (id) => selectShape(id),
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
+    onShapePromote:  (id) => promoteShape(id),
   });
+
+  // Promote a rectangle to a polygon (keeps id, so its island membership + selection survive); a no-op
+  // for any other type. After promotion the shape edits as a polygon (vertex/midpoint/Bézier).
+  function promoteShape(id) {
+    const s = canvas.getShape(id);
+    if (!s || s.type !== "rectangle") return;
+    canvas.updateShape(rectToPolygon(s));
+    recompute();
+    selectShape(id);
+    markDirty();
+  }
 
   function selectShape(id) {
     selectedIslandId = null;
@@ -155,6 +168,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     selectShape(id)    { selectShape(id ?? null); },
     selectIsland(id)   { selectIsland(id ?? null); },
     deleteShape(id)    { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
+    promoteShape(id)   { promoteShape(id ?? canvas.selectedId); },
     toggleOp(id)       { const s = canvas.getShape(id); if (!s) return; s.operation = s.operation === "subtract" ? "add" : "subtract"; canvas.updateShape(s); recompute(); markDirty(); },
     toggleOverride(id) { const s = canvas.getShape(id); if (!s) return; s.override = !s.override; canvas.updateShape(s); recompute(); markDirty(); },
     toggleMirrors(islandId) { const i = islandById(islandId); if (!i) return; i.mirrors = !i.mirrors; refreshMirror(); pushLayout(); markDirty(); },

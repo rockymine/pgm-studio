@@ -10,6 +10,7 @@ public partial class SketchInspector
     [Parameter] public EventCallback<string> OnToggleOp { get; set; }
     [Parameter] public EventCallback<string> OnToggleOverride { get; set; }
     [Parameter] public EventCallback<string> OnDeleteShape { get; set; }
+    [Parameter] public EventCallback<string> OnPromoteShape { get; set; }
     [Parameter] public EventCallback<string> OnToggleMirrors { get; set; }
     [Parameter] public EventCallback<(string Id, string Name)> OnRenameIsland { get; set; }
 
