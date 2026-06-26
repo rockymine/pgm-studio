@@ -64,9 +64,9 @@ window.studio = {
 
   // Mount the Sketch tool's Layout canvas (S2): draw 2-D shapes → live island computation + mirror
   // preview. dotnetRef receives OnShapeSelected(id) / OnDirty(); the handle drives tool/operation/mode.
-  async mountSketch(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
+  async mountSketch(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     const mod = await import("/js/studio/bridge/sketch-bridge.js");
-    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef);
+    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef);
   },
 
   // Paint the Organic-generation demo stages (/concepts/organic) into the #gen-stage-* svgs. Stateless —

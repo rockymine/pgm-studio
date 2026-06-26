@@ -54,11 +54,6 @@ The next depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): make siz
 design — data-model diffs, rasterizer/artifact changes, open decisions — in
 `docs/contracts/sketch-tool-improvements.md`. Build in id order (each builds on the last).
 
-- [ ] **S3 — Footprint & scale legibility.** Replace the single-`size` 512×512 square with a **non-square,
-  preset-driven** working bbox: 2-team landscape `120×80` (default), portrait `80×120`, **square `120×120`
-  (4-team / D2 — keep it)**, custom. Plus a **live dimension readout** (`18 × 90` at the cursor / on the
-  selected shape) and a **void-gap measure** (shortest distance between two island bodies → dimension line).
-  No artifact wire change — bbox derivation + Setup UI + JS readout only. Scale bar parked.
 - [ ] **S4 — Rectangles are polygons.** Keep `rectangle` as a create-preset + axis-aligned fast-path, but
   add **convert-to-polygon** (and auto-promote on any edit a rectangle can't hold — off-axis corner,
   midpoint insert, Bézier handle, non-uniform per-anchor height). Promotion is `type→"polygon"` with the 4

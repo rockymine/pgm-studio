@@ -36,8 +36,21 @@
             <section class="panel-section">
               <div class="section-header section-header--ruled"><h2 class="section-title">Setup</h2></div>
               <div class="field">
-                <label class="field-label">Working size (blocks)</label>
-                <input class="field-input" type="number" min="32" step="16" value="@size" @onchange="OnSizeChange" />
+                <label class="field-label">Footprint</label>
+                <select class="field-input" value="@preset" @onchange="OnPresetChange">
+                  <option value="landscape">2-team landscape (120×80)</option>
+                  <option value="portrait">2-team portrait (80×120)</option>
+                  <option value="square">Square — 4-team / D2 (120×120)</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Width X (blocks)</label>
+                <input class="field-input" type="number" min="16" step="8" value="@width" @onchange="OnWidthChange" />
+              </div>
+              <div class="field">
+                <label class="field-label">Depth Z (blocks)</label>
+                <input class="field-input" type="number" min="16" step="8" value="@depth" @onchange="OnDepthChange" />
               </div>
               <div class="field">
                 <label class="field-label">Symmetry</label>
@@ -77,12 +90,15 @@
                       @onclick='() => SetTool("polygon")'><i data-lucide="pentagon"></i></button>
               <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)" title="Lasso (hold and trace)"
                       @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
+              <button class="draw-tool-btn @(tool == "measure" ? "draw-tool-btn--active" : null)" title="Measure (drag across a void gap to read its length in blocks)"
+                      @onclick='() => SetTool("measure")'><i data-lucide="ruler"></i></button>
               <button class="draw-tool-btn @(op == "add" ? "draw-tool-btn--op-add" : null)" title="Add — shapes build land"
                       @onclick='() => SetOperation("add")'><i data-lucide="plus"></i><span class="draw-tool-label">Add</span></button>
               <button class="draw-tool-btn @(op == "subtract" ? "draw-tool-btn--op-sub" : null)" title="Subtract — shapes carve land away"
                       @onclick='() => SetOperation("subtract")'><i data-lucide="minus"></i><span class="draw-tool-label">Sub</span></button>
             </div>
             <div @ref="coordsRef" class="canvas-cursor"></div>
+            <div @ref="dimRef" class="canvas-dim"></div>
             <div class="canvas-subbar-right">
               <button class="filter-chip @(mirrorOn ? "filter-chip--active" : null)" title="Show the mirrored copies"
                       @onclick="ToggleMirror">Mirror</button>
