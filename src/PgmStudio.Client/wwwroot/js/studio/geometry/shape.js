@@ -81,6 +81,12 @@ export function rectToPolygon(shape) {
   };
 }
 
+/** Translate an AABB `{min_x,min_z,max_x,max_z}` by (dx,dz), returning a new bounds (the editor's region
+ *  model — the shared translate for body-drag/nudge, so no canvas keeps an inline copy). */
+export function translateBounds(b, dx, dz) {
+  return { min_x: b.min_x + dx, min_z: b.min_z + dz, max_x: b.max_x + dx, max_z: b.max_z + dz };
+}
+
 /** Translate a shape by (dx,dz), returning a new shape (pure — used for ghost preview + drop placement). */
 export function translateShape(shape, dx, dz) {
   if (shape.type === "rectangle")

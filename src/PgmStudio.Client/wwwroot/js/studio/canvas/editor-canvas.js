@@ -42,6 +42,7 @@
  */
 
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
+import { translateBounds } from "../geometry/shape.js";
 import { svgEl, polyToPath, anchorBlockEl } from "../render/svg.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
 import { EditorDrawController } from "../controllers/editor-draw-controller.js";
@@ -214,6 +215,18 @@ export class EditorCanvas extends CanvasBase {
 
   _onResizeMove(e) { return this.#editCtrl?.onResizeMove(e) ?? false; }
   _onResizeUp(e)   { return this.#editCtrl?.onResizeUp(e) ?? false; }
+
+  // Body-drag (CV10): drag the selected region's body to move it. The editor fits through a transform,
+  // so map SVG→world with the inverse; only resizable, non-ghost AABB regions are movable.
+  _toWorld(svgPt) { return this.#toWorld ? this.#toWorld(svgPt.x, svgPt.y) : null; }
+  _hitMovable(world) {
+    const n = this.#selectedNode;
+    if (!n?.bounds || !RESIZABLE_TYPES.has(n.type) || n.ghost) return null;
+    const { min_x, min_z, max_x, max_z } = n.bounds;
+    return (world.x >= min_x && world.x <= max_x && world.z >= min_z && world.z <= max_z) ? n : null;
+  }
+  _moveBy(node, dx, dz) { this.updateRegionBounds(node, translateBounds(node.bounds, dx, dz)); }
+  _commitMove(node)     { this.#callbacks.onBoundsSave?.(node, { ...node.bounds }); }
 
   // ── public API ─────────────────────────────────────────────────────────────
 

@@ -195,6 +195,21 @@ export class SketchCanvas extends CanvasBase {
   }
   _onResizeUp(e) { return e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false; }
 
+  // Body-drag (CV10): drag the selected shape's body to move it. World == svg base coords here, so the
+  // default _toWorld (identity) is correct — no override.
+  _hitMovable(world) {
+    if (!this.#selectedId) return null;
+    const s = this.#shapes.get(this.#selectedId);
+    return (s && containsPoint(s, world.x, world.z)) ? this.#selectedId : null;
+  }
+  _moveBy(id, dx, dz) {
+    const s = this.#shapes.get(id);
+    if (!s) return;
+    const moved = translateShape(s, dx, dz);
+    this.updateShape(moved);
+    this.#callbacks.onShapeUpdated?.(moved);   // bridge recomputes islands + marks dirty each step
+  }
+
   // ── private ────────────────────────────────────────────────────────────────────
 
   // Subtract the .svg-area padding (12px each side) so the svg's viewBox equals its rendered size.

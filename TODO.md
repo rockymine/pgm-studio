@@ -112,22 +112,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   data-driven thing: a real `point` render (dot/circle) in `renderShape`, a parametrised colour + style
   (marker/outline) instead of the `marker` branch, and fix `SpawnPhase`'s hardcoded `cylinder`
   sidebar/inspector icon → match `RegionNode.Icon` (point → `dot`). (Contract §10.)
-- [ ] **CV10 — Shared mouse body-drag move (all canvases).** Today you can only *move* a selected
-  shape/region by **arrow-nudge** — no canvas lets you grab its body and drag it. **Audit (current state):**
-  *Sketch* (`sketch-canvas` + bridge `translate()`) = arrow-nudge + 8-handle resize, no body-drag; *Edit*
-  (`editor-canvas` + `editor-edit-controller.moveSelected`) = arrow-nudge + 8-handle resize, no body-drag;
-  *Configure* (`configure-renderer`) = select/display only, no editable region geometry on the top-down view
-  (nothing to drag yet); *SideView* (`sideview-canvas`) = a 1-D draggable Y line (out of scope). Translate
-  logic is **duplicated** (sketch `translateShape` over shape geometry vs editor `applyBounds` over AABB
-  `bounds`). **Design — one seam in `CanvasBase`**, which already owns the drag lifecycle (`#isDragging`/
-  `#didDrag`/`dragAnchor` + screen→world delta) but only pans with it: on **select-tool** mousedown, if a
-  new hook `_hitMovable(world)` returns a target, enter a move-drag (instead of pan); mousemove computes the
-  block delta and calls `_moveBy(handle, dx, dz)`; mouseup calls `_commitMove(handle)` (persist). Each canvas
-  implements the three hooks against its own data model — Sketch via `containsPoint` + `translateShape` +
-  recompute/markDirty; Edit via its region hit-test + `applyBounds` + debounced `saveBounds`. Keeps
-  arrow-nudge as the fine adjust; threshold the drag (reuse `#didDrag` > 4px) so a click still selects.
-  Replaces the old sketch-only S8b.
-
 ## Backend, pipeline & internals (B / P / A)
 
 - [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A

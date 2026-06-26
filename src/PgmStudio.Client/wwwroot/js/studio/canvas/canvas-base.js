@@ -25,6 +25,7 @@ export class CanvasBase {
   #dragAnchor   = null;
   #didDrag      = false;
   #clickWasDrag = false;
+  #moveState    = null;   // body-drag: { handle, lastBx, lastBz, moved } while dragging a shape/region
 
   constructor(svgEl, wrapEl) {
     this._svg  = svgEl;
@@ -70,6 +71,20 @@ export class CanvasBase {
    * Return true to consume the event.
    */
   _onResizeUp(e) { return false; }
+
+  // ── body-drag move (shared affordance; see CV10) ─────────────────────────────
+  // Map an SVG point to world coords {x,z}. Default = identity (sketch: world == svg base coords);
+  // canvases that fit through a transform (editor) override with their inverse.
+  _toWorld(svgPt) { return { x: svgPt.x, z: svgPt.y }; }
+
+  /** With the select tool, return a movable handle (shape id / region node) at world {x,z}, or null. */
+  _hitMovable(world) { return null; }
+
+  /** Translate the grabbed handle by (dx,dz) blocks — live (no persist). */
+  _moveBy(handle, dx, dz) {}
+
+  /** The drag ended — persist the grabbed handle's final position. */
+  _commitMove(handle) {}
 
   // ── shared API ─────────────────────────────────────────────────────────────
 
@@ -124,6 +139,13 @@ export class CanvasBase {
       this.#isDragging = true;
       this.#didDrag    = false;
       this.#dragAnchor = { x: e.clientX, y: e.clientY, panX: this._panX, panY: this._panY };
+      // Body-drag: with the select tool, grabbing a movable shape/region drags it instead of panning.
+      this.#moveState = null;
+      if (this._activeTool === "select") {
+        const world  = this._toWorld(svgPt);
+        const handle = world ? this._hitMovable(world) : null;
+        if (handle != null) this.#moveState = { handle, lastBx: Math.floor(world.x), lastBz: Math.floor(world.z), moved: false };
+      }
       this._onToolMousedown(e, svgPt);
     });
 
@@ -140,7 +162,18 @@ export class CanvasBase {
         const dx = e.clientX - this.#dragAnchor.x;
         const dy = e.clientY - this.#dragAnchor.y;
         if (!this.#didDrag && Math.sqrt(dx * dx + dy * dy) > 4) this.#didDrag = true;
-        if (this.#didDrag && this._activeTool === "move") {
+        if (this.#didDrag && this.#moveState) {
+          const world = this._toWorld(this._clientToSvg(e.clientX, e.clientY));
+          if (world) {
+            const bx = Math.floor(world.x), bz = Math.floor(world.z);
+            const mdx = bx - this.#moveState.lastBx, mdz = bz - this.#moveState.lastBz;
+            if (mdx || mdz) {
+              this._moveBy(this.#moveState.handle, mdx, mdz);
+              this.#moveState.lastBx = bx; this.#moveState.lastBz = bz; this.#moveState.moved = true;
+              this._svg.style.cursor = "grabbing";
+            }
+          }
+        } else if (this.#didDrag && this._activeTool === "move") {
           this._panX = this.#dragAnchor.panX + dx;
           this._panY = this.#dragAnchor.panY + dy;
           this._applyViewportTransform();
@@ -160,6 +193,10 @@ export class CanvasBase {
         this.#isDragging   = false;
         this.#didDrag      = false;
         this.#dragAnchor   = null;
+      }
+      if (this.#moveState) {
+        if (this.#moveState.moved) { this._commitMove(this.#moveState.handle); this._svg.style.cursor = ""; }
+        this.#moveState = null;
       }
       this._onToolMouseup(e, this._clientToSvg(e.clientX, e.clientY));
     });

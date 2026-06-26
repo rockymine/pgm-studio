@@ -19,6 +19,7 @@
  */
 
 import { svgEl, handleRectAttrs } from "../render/svg.js";
+import { translateBounds } from "../geometry/shape.js";
 
 const HANDLE_SIZE = 14;
 const HANDLE_DEFS = [
@@ -89,8 +90,7 @@ export class EditorEditController {
   moveSelected(dx, dz) {
     const node = this.#acc.getSelected();
     if (!node?.bounds) return;
-    const b = node.bounds;
-    this.#cb.applyBounds?.(node, { min_x: b.min_x + dx, min_z: b.min_z + dz, max_x: b.max_x + dx, max_z: b.max_z + dz });
+    this.#cb.applyBounds?.(node, translateBounds(node.bounds, dx, dz));
     clearTimeout(this.#nudgeSaveTimer);
     this.#nudgeSaveTimer = setTimeout(() => this.#cb.saveBounds?.(node, { ...node.bounds }), 200);
   }
