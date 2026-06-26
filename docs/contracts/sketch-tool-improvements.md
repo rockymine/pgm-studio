@@ -305,14 +305,13 @@ Static, client-side content (a JS module / static JSON — **no DB** for built-i
   ids, push into the active island (or create one for a multi-shape entry). From then on: an ordinary
   selected shape/island.
 
-### 8e. Companion — whole-shape body-drag move (bundled with S8)
+### 8e. Companion — whole-shape body-drag move → promoted to **CV10** (cross-canvas)
 
-Dropping a primitive needs **mouse positioning**, but today the sketch editor only **moves** a shape via
-**arrow-key nudge** (`sketch-bridge.js` `translate(shape, dx, dz)`, 1 block / Shift = 16, on the selected
-shape or whole island); mouse drag only manipulates **vertices/handles** (`sketch-edit-controller.js`). Add
-**mouse body-drag**: a body hit-test (`shape.containsPoint`, already used for selection) + a drag state in
-the edit controller that calls the existing `translate()`. Small, and independently useful — ship it with
-S8 so drag-in placement feels complete.
+S8 shipped the palette with **click-to-arm → click-to-place** (a placed shape is repositioned by
+arrow-nudge for now). Mouse **body-drag** to move a whole shape was bundled here originally, but it's a
+**general canvas affordance** — Edit and Sketch both only move via arrow-nudge, with duplicated translate
+logic — so it's been promoted to **`CV10`** (`TODO.md`): one seam in `CanvasBase` (which already owns the
+drag lifecycle) + per-canvas `_hitMovable`/`_moveBy`/`_commitMove` hooks. Not a sketch-only change anymore.
 
 ### 8f. Parked — orientation / snap-alignment guides (separate, later)
 
