@@ -14,11 +14,11 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
-import { containsPoint, toBounds } from "../geometry/shape.js";
+import { containsPoint, toBounds, translateShape } from "../geometry/shape.js";
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis,
+  renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis, renderPlaceGhost,
 } from "../render/sketch-render.js";
 
 const FIT_MARGIN = 0.85;
@@ -45,10 +45,11 @@ export class SketchCanvas extends CanvasBase {
   #zoomEl    = null;
   #dimEl     = null;
   #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
+  #placeSpecs = null;  // library item being placed: shape specs centred at origin, awaiting a drop point
 
   // viewport layers
   #bboxLayer = null; #chunkLayer = null; #axisLayer = null;
-  #mirrorLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null;
+  #mirrorLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null;
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
 
@@ -94,10 +95,16 @@ export class SketchCanvas extends CanvasBase {
   setActiveTool(tool) {
     this.#draw?.cancel();
     if (this._activeTool === "measure" && tool !== "measure") this.#clearMeasure();
+    if (this._activeTool === "place" && tool !== "place") this.disarmPlace();
     this._activeTool = tool;
     const isDraw = tool !== null && tool !== "move" && tool !== "select";
     this._svg.style.cursor = isDraw ? "crosshair" : (tool === "select" ? "default" : "");
   }
+
+  // Arm placement of a library item (shape specs centred at origin) — enters "place" mode; the next
+  // canvas click drops them (translated to the click) via onPlace. Esc / a tool change disarms.
+  armPlace(specs) { this.#placeSpecs = specs ?? null; this.setActiveTool("place"); }
+  disarmPlace()   { this.#placeSpecs = null; renderPlaceGhost(this.#placeLayer, null, identityTransform); }
 
   addShape(shape) {
     this.#shapes.set(shape.id, shape);
@@ -151,6 +158,7 @@ export class SketchCanvas extends CanvasBase {
 
   _onToolMousedown(e, svgPt) {
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
+    if (this._activeTool === "place") { if (this.#placeSpecs) this.#callbacks.onPlace?.(bx, bz); return; }
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
     this.#draw?.onMouseDown(bx, bz, this._activeTool);
   }
@@ -158,7 +166,9 @@ export class SketchCanvas extends CanvasBase {
   _onPointerMove(e, svgPt) {
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this.#cursorEl) this.#cursorEl.textContent = `X ${bx}  Z ${bz}`;
-    if (this._activeTool === "measure") {
+    if (this._activeTool === "place") {
+      if (this.#placeSpecs) renderPlaceGhost(this.#placeLayer, this.#placeSpecs.map(s => translateShape(s, bx, bz)), identityTransform);
+    } else if (this._activeTool === "measure") {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
     } else {
       this.#draw?.onMouseMove(bx, bz);
@@ -208,8 +218,9 @@ export class SketchCanvas extends CanvasBase {
     this.#shapesLayer = svgEl("g");
     this.#drawLayer   = svgEl("g", { "pointer-events": "none" });
     this.#measureLayer = svgEl("g", { "pointer-events": "none" });
+    this.#placeLayer   = svgEl("g", { "pointer-events": "none" });
     for (const g of [this.#bboxLayer, this.#chunkLayer, this.#axisLayer, this.#mirrorLayer,
-                     this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer]) this._viewportG.appendChild(g);
+                     this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
     this.#handlesLayer     = svgEl("g");

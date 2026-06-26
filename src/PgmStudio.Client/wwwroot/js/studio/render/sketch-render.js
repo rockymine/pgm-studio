@@ -55,6 +55,18 @@ export function renderSketchShape(shape, toSvg) {
   return g;
 }
 
+/** Ghost preview of a library item being placed — the (already world-positioned) shape specs at
+ *  reduced opacity. Cleared first; `specs` null/empty clears the layer. */
+export function renderPlaceGhost(layer, specs, toSvg) {
+  clear(layer);
+  if (!specs?.length) return;
+  for (const spec of specs) {
+    const g = renderSketchShape({ ...spec, id: "ghost" }, toSvg);
+    g.setAttribute("opacity", "0.55");
+    layer.appendChild(g);
+  }
+}
+
 /** Paint the computed island result polygons (exterior + holes) into `layer` (cleared first). */
 export function renderIslands(layer, islands, toSvg) {
   clear(layer);

@@ -501,6 +501,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   turns the selected rectangle into a 4-corner polygon (id / operation / override preserved), opening
   vertex-drag · midpoint-insert · Bézier editing. Pure `rectToPolygon` (`geometry/shape.js`); `promoteShape`
   in the bridge; the 8-handle rectangle resize is unchanged until you promote. (S4) §2.
+- **Shape library (drag-in primitives)** — a left-sidebar palette (above the island tree) of pure-geometry
+  primitives: n-gons {3,5,6,8}, polyominoes (L · U · T · I-bar · scythe · cross · line-with-branch), and a
+  hole-square add+sub composite. Click a thumbnail → a ghost follows the cursor → click the canvas to place
+  (Esc cancels); each entry instantiates ordinary `SketchShape`s, centred + block-snapped at a default cell
+  size — so islands/mirror/rasterizer need no new code. Catalog + `instantiate`/`libraryMeta` in
+  `geometry/shape-library.js`; `armPlace` + canvas place-mode/ghost; the `SketchLibrary` component. (S8) §8.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

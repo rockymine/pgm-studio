@@ -81,6 +81,17 @@ export function rectToPolygon(shape) {
   };
 }
 
+/** Translate a shape by (dx,dz), returning a new shape (pure — used for ghost preview + drop placement). */
+export function translateShape(shape, dx, dz) {
+  if (shape.type === "rectangle")
+    return { ...shape, min_x: shape.min_x + dx, max_x: shape.max_x + dx, min_z: shape.min_z + dz, max_z: shape.max_z + dz };
+  if (shape.type === "circle")
+    return { ...shape, center_x: shape.center_x + dx, center_z: shape.center_z + dz };
+  if (shape.vertices)
+    return { ...shape, vertices: shape.vertices.map(([x, z]) => [x + dx, z + dz]) };
+  return { ...shape };
+}
+
 /** Approximate a circle as a closed polygon ring, vertices rounded to the nearest block. */
 export function circleToRing(cx, cz, radius, nPoints = CIRCLE_POINTS) {
   const pts = [];

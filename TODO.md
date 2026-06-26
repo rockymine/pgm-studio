@@ -76,17 +76,11 @@ design — data-model diffs, rasterizer/artifact changes, open decisions — in
   layout }]` (old single-layout loads as one layer at `base_y=0`). Each layer reuses the whole 2-D editor;
   lower layers render ghosted. Column at `(x,z)` in layer L spans `[L.baseY+floor, L.baseY+YTop]` —
   `base_y` stacks slabs, per-shape/anchor height varies within one. Layer list in the Setup sidebar.
-- [ ] **S8 — Shape library (drag-in primitives) + body-drag move.** A sidebar palette of **pure-geometry**
-  primitives dragged onto the canvas (no gameplay presets, **no corpus shapes** — deferred). A library entry
-  is a **source of plain `SketchShape`s, not a new type** — on drop it instantiates ordinary polygons
-  (+ one add+sub composite), so rasterizer/islands/height/mirror/layers all just work. Catalog (§8 of the
-  plan doc, templates locked): **n-gons {3,5,6,8}**; **polyomino** L, U, T, I-bar, **scythe** (10-vert),
-  **+/cross**, **line-with-branch** (8-vert); **hole-square** (add+sub). Single drop-time scale knob
-  (`defaultCell` blocks/cell for polyominoes → clean block coords; `defaultSize` for n-gons); then edit
-  vertices freely. Drag-thumbnail → ghost preview → drop → ordinary selected shape, symmetry-aware.
-  **Companion (bundled):** mouse **body-drag move** — today a shape only *moves* via arrow-nudge
+- [ ] **S8b — Whole-shape mouse body-drag move.** Today a shape only *moves* via arrow-nudge
   (`sketch-bridge.js translate()`); mouse drag only touches vertices/handles. Add a body hit-test
-  (`shape.containsPoint`) + drag state in `sketch-edit-controller.js` calling the existing `translate()`.
+  (`shape.containsPoint`) + a drag state in `sketch-edit-controller.js` calling the existing `translate()`,
+  so placed library shapes (and any shape) can be repositioned by dragging their body. (Was bundled with S8;
+  split out — the palette landed first.)
 - [ ] **S9 — Orientation / snap-alignment guides (parked — after S8).** Drop an orientation line that shapes
   **snap** to (anchors as snap points) — e.g. to hold two parallel lanes truly parallel. A natural extension
   of S8's body-drag (snapping happens during the move) but its own work; do **not** fold into S8.

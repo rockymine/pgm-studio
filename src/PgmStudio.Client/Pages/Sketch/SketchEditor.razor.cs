@@ -38,6 +38,7 @@ public partial class SketchEditor
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
     private List<SketchIslandRow> islands = [];
     private List<SketchShapeRow> shapes = [];
+    private List<LibraryItem> libraryItems = [];
     private string? selectedShapeId;
     private string? selectedIslandId;
 
@@ -50,6 +51,7 @@ public partial class SketchEditor
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSketch", svgRef, wrapRef, coordsRef, zoomRef, dimRef, selfRef);
+        try { libraryItems = await handle.InvokeAsync<List<LibraryItem>>("getLibrary"); StateHasChanged(); } catch { /* palette stays empty */ }
         // Restore the saved layout (empty {} for a fresh sketch); the bridge handles an empty state.
         try
         {
@@ -172,6 +174,7 @@ public partial class SketchEditor
     private Task ToggleOverride(string id) => handle?.InvokeVoidAsync("toggleOverride", id).AsTask() ?? Task.CompletedTask;
     private Task DeleteShape(string id) => handle?.InvokeVoidAsync("deleteShape", id).AsTask() ?? Task.CompletedTask;
     private Task PromoteShape(string id) => handle?.InvokeVoidAsync("promoteShape", id).AsTask() ?? Task.CompletedTask;
+    private Task ArmPlace(string itemId) => handle?.InvokeVoidAsync("armPlace", itemId).AsTask() ?? Task.CompletedTask;
     private Task ToggleMirrors(string islandId) => handle?.InvokeVoidAsync("toggleMirrors", islandId).AsTask() ?? Task.CompletedTask;
     private Task RenameIsland((string Id, string Name) e) => handle?.InvokeVoidAsync("renameIsland", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
 

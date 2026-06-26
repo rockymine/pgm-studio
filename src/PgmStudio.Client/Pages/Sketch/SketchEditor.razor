@@ -70,6 +70,7 @@
                 <input class="field-input" type="number" value="@centerZ" @onchange="OnCenterZChange" />
               </div>
             </section>
+            <SketchLibrary Items="libraryItems" OnArm="ArmPlace" />
             <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
           </div>
