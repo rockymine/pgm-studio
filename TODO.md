@@ -57,6 +57,35 @@ the focus-integration polish remains.
   discarded and there's no touch-detection/resize edge case. Extra rects (not over a spawn) orbit by
   **orbit-order** (like build areas), not coverage. Applies to `WoolRoomPhase` **and** `ProtectionPhase`.
 
+## Sketch tool (S) — footprint, height, 3-D depth pass
+
+The next depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): make size **legible** and add
+**verticality**, all additive to `SketchShape`/`SketchLayout`/`SketchRasterizer` and their JS twins. Full
+design — data-model diffs, rasterizer/artifact changes, open decisions — in
+`docs/contracts/sketch-tool-improvements.md`. Build in id order (each builds on the last).
+
+- [ ] **S3 — Footprint & scale legibility.** Replace the single-`size` 512×512 square with a **non-square,
+  preset-driven** working bbox: 2-team landscape `120×80` (default), portrait `80×120`, **square `120×120`
+  (4-team / D2 — keep it)**, custom. Plus a **live dimension readout** (`18 × 90` at the cursor / on the
+  selected shape) and a **void-gap measure** (shortest distance between two island bodies → dimension line).
+  No artifact wire change — bbox derivation + Setup UI + JS readout only. Scale bar parked.
+- [ ] **S4 — Rectangles are polygons.** Keep `rectangle` as a create-preset + axis-aligned fast-path, but
+  add **convert-to-polygon** (and auto-promote on any edit a rectangle can't hold — off-axis corner,
+  midpoint insert, Bézier handle, non-uniform per-anchor height). Promotion is `type→"polygon"` with the 4
+  corners as `vertices`; rasterizer needs no special case.
+- [ ] **S5 — Height per shape + per anchor.** Add `base_height` (uniform surface Y) and `anchor_heights`
+  (per-vertex Y, index-aligned to `vertices`) + `floor` to `SketchShape`; ship `base_height` first, then
+  per-anchor with TIN/IDW interior fill (in `Geom`, JS parity). Rasterizer emits `(x,z,YTop,YFloor)`
+  columns; `layer_segment` becomes `[YFloor,YTop]` (the `SliceView` side-view reads it for free). Heights
+  are reflection/rotation-invariant — the mirror/orbit path carries them through unchanged.
+- [ ] **S6 — 3-D preview.** Read-only three.js orbit view over the extruded columns (greedy-merged boxes,
+  per-layer colour), driven off the same JS rasterizer as the live preview. Camera only; editing stays 2-D.
+  Land alongside S5 so extrusion is visible the moment height exists.
+- [ ] **S7 — Stacked layers.** Wrap `SketchLayout.Layout` in an ordered `layers:[{ id, name, base_y,
+  layout }]` (old single-layout loads as one layer at `base_y=0`). Each layer reuses the whole 2-D editor;
+  lower layers render ghosted. Column at `(x,z)` in layer L spans `[L.baseY+floor, L.baseY+YTop]` —
+  `base_y` stacks slabs, per-shape/anchor height varies within one. Layer list in the Setup sidebar.
+
 ## Editor & canvas infrastructure (C / CV)
 
 Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit editor
