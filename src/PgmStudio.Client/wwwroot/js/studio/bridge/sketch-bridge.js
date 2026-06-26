@@ -7,7 +7,8 @@
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
-import { rectToPolygon } from "../geometry/shape.js";
+import { rectToPolygon, translateShape } from "../geometry/shape.js";
+import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -47,7 +48,45 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     onShapeSelected: (id) => selectShape(id),
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     onShapePromote:  (id) => promoteShape(id),
+    onPlace:         (bx, bz) => placeAt(bx, bz),
   });
+
+  let placeSpecs = null;   // the armed library item's shapes (centred at origin), awaiting a drop point
+
+  // Arm a library item for placement: instantiate it centred at origin, hand the ghost to the canvas.
+  function armPlace(itemId) {
+    const item = LIBRARY.find(i => i.id === itemId);
+    if (!item) return;
+    placeSpecs = instantiate(item, 0, 0);
+    canvas.armPlace(placeSpecs);
+  }
+
+  // Drop the armed item at (bx,bz): translate each spec there, add as a real shape, then return to select.
+  function placeAt(bx, bz) {
+    if (!placeSpecs) return;
+    const created = [];
+    for (const spec of placeSpecs) {
+      const shape = { ...translateShape(spec, bx, bz), id: genId(), override: spec.override ?? false };
+      canvas.addShape(shape);
+      created.push(shape.id);
+    }
+    placeSpecs = null;
+    canvas.disarmPlace();
+    recompute();
+    canvas.setActiveTool("select");
+    fire("OnToolChanged", "select");
+    if (created.length) selectShape(created[created.length - 1]);
+    markDirty();
+  }
+
+  function cancelPlace() {
+    if (!placeSpecs) return false;
+    placeSpecs = null;
+    canvas.disarmPlace();
+    canvas.setActiveTool("select");
+    fire("OnToolChanged", "select");
+    return true;
+  }
 
   // Promote a rectangle to a polygon (keeps id, so its island membership + selection survive); a no-op
   // for any other type. After promotion the shape edits as a polygon (vertex/midpoint/Bézier).
@@ -112,6 +151,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   const onKey = (e) => {
     if (wrapEl?.offsetParent == null) return;
     if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+    if (e.key === "Escape" && cancelPlace()) { e.preventDefault(); return; }
     const step = e.shiftKey ? 16 : 1;
     let dx = 0, dz = 0;
     if (e.key === "ArrowLeft") dx = -step; else if (e.key === "ArrowRight") dx = step;
@@ -169,6 +209,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     selectIsland(id)   { selectIsland(id ?? null); },
     deleteShape(id)    { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     promoteShape(id)   { promoteShape(id ?? canvas.selectedId); },
+    getLibrary()       { return libraryMeta(); },
+    armPlace(itemId)   { armPlace(itemId); },
     toggleOp(id)       { const s = canvas.getShape(id); if (!s) return; s.operation = s.operation === "subtract" ? "add" : "subtract"; canvas.updateShape(s); recompute(); markDirty(); },
     toggleOverride(id) { const s = canvas.getShape(id); if (!s) return; s.override = !s.override; canvas.updateShape(s); recompute(); markDirty(); },
     toggleMirrors(islandId) { const i = islandById(islandId); if (!i) return; i.mirrors = !i.mirrors; refreshMirror(); pushLayout(); markDirty(); },

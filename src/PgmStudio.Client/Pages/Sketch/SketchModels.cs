@@ -21,3 +21,12 @@ public sealed record SketchIslandRow(
 public sealed record SketchLayoutDto(
     [property: JsonPropertyName("islands")] List<SketchIslandRow> Islands,
     [property: JsonPropertyName("shapes")] List<SketchShapeRow> Shapes);
+
+// A shape-library palette entry (from the JS catalog via the bridge's getLibrary): identity + a
+// thumbnail (SVG path `d` + viewBox in cell units) the palette renders.
+public sealed record LibraryItem(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("category")] string Category,
+    [property: JsonPropertyName("thumbD")] string ThumbD,
+    [property: JsonPropertyName("thumbVB")] string ThumbVB);
