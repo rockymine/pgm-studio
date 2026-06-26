@@ -1,4 +1,4 @@
-# Sketch tool improvements — footprint, height, 3D (S3–S7)
+# Sketch tool improvements — footprint, height, 3D, library (S3–S8)
 
 Status: **plan**. Builds on the shipped Sketch tool (`sketch-authoring.md`, S2 — draw 2-D shapes →
 islands → rasterize → world geometry). This doc is the design for the next depth pass: make size
@@ -207,6 +207,8 @@ public sealed class SketchLayer
 3. **S5 — per-shape `BaseHeight`** → then **per-anchor `AnchorHeights`** (TIN/IDW fill). Rasterizer +
    `layer_segment`/`LayerParquet` carry Y. Land **S6 (3-D preview)** alongside so height is visible.
 4. **S7 — stacked layers**: wrap `layout` in `layers[]`, ghost lower layers, compose `baseY` with height.
+5. **S8 — shape library** (§8): drag-in geometric primitives + whole-shape body-drag move. Best after S4
+   (everything-is-polygon) and gains depth from S5 (height) / S7 (drop onto a layer).
 
 Each step builds on the last; none forces a rewrite of the 2-D editor.
 
@@ -226,3 +228,101 @@ Each step builds on the last; none forces a rewrite of the 2-D editor.
   shapes. Put it in `Geom` with shared JS parity either way.
 - **Height parity constant.** Rounding of interpolated Y (floor vs. round) must match JS ⇄ C# exactly,
   like the existing circle=64 / Bézier=16 constants (`SketchRasterizer` ⇄ `shape.js`).
+
+---
+
+## 8. Shape library — drag-in primitives (S8)
+
+A palette of **pre-defined geometric primitives** you drag onto the canvas. **Pure geometry, no semantics**:
+no gameplay presets (spawn/lane/etc.) and **no corpus-derived shapes** — corpus shapes are deliberately
+**deferred** (too much variation, and they bias toward "another map like X", the opposite of a from-scratch
+tool; decomposition isn't worth the effort for this). The library exists to hand you **clean vertex
+topology** — the right vertices in the right axis-aligned configuration — that's tedious to place by hand.
+
+### 8a. The one principle (why it's cheap)
+
+A library entry is **a source of ordinary `SketchShape`s, not a new shape type.** On drop it instantiates
+plain polygons (and one add+sub group), so the rasterizer, island detection, height (§3), mirror/orbit, and
+layers (§5) all just work — zero downstream code. Same principle as the rectangle→polygon promotion (§2)
+and the generator→editable path.
+
+### 8b. Catalog
+
+**Regular primitives (n-gons)** — limited to **{3, 5, 6, 8}** (triangle, pentagon, hexagon, octagon). No 4
+(that's the rectangle), no 7. Generated parametrically at drop time, then instantiated to plain `vertices`.
+
+**Polyomino primitives** ("tetris +") — rectilinear, axis-aligned, defined on a small integer **cell grid**;
+each is a single polygon ring (one add shape). Vertex rings below are in **cell units** (x→right, z→down,
+origin = bounding-box top-left), scaled by the drop-time cell size:
+
+| Shape | Cells (grid) | Vertices | Ring (cell units) |
+|---|---|---|---|
+| **L** | — | 6 | standard L |
+| **U** | — | 8 | standard U |
+| **T** | — | 8 | standard T |
+| **I** (bar) | 1×n | 4 | the rectangle at a bar aspect — quick-access "I" |
+| **Scythe** | `oxoo` / `ooox` | 10 | `(0,0)(1,0)(1,1)(2,1)(2,0)(4,0)(4,1)(3,1)(3,2)(0,2)` |
+| **+ / cross** | plus | 12 | standard cross |
+| **Line-with-branch** | `xoxx` / `oooo` | 8 | `(0,1)(1,1)(1,0)(2,0)(2,1)(4,1)(4,2)(0,2)` |
+
+*(Scythe/branch cell grids: `o` = block, `x` = air, top row first. Both rings verified by boundary trace
+and locked — they are the exact templates.)*
+
+**Composite (the only multi-shape entry)** — **hole-square**: an `add` rectangle + a centred `subtract`
+rectangle (a frame/ring). Demonstrates the add+sub group; with §3 height it becomes a raised frame / sunken
+centre (wall, moat). The 7 simply-connected shapes are single polygons; only this one needs the subtract.
+
+**Off the agenda** (decided): rounded rectangles (trivial from primitives), gameplay presets, corpus shapes.
+
+### 8c. Data model — the library catalog
+
+Static, client-side content (a JS module / static JSON — **no DB** for built-ins). One entry:
+
+```jsonc
+{
+  "id": "scythe", "name": "Scythe", "category": "polyomino",
+  "kind": "template",                // "template" (vertex ring) | "parametric" (n-gon generator)
+  "vertices": [[0,0],[1,0],[1,1],[2,1],[2,0],[4,0],[4,1],[3,1],[3,2],[0,2]],  // unit = grid cell
+  "defaultCell": 12,                 // blocks per cell at drop (≈ lane width); single scale knob
+  "operation": "add"                 // hole-square ships a second {operation:"subtract"} shape
+}
+// n-gons: { kind:"parametric", generator:"ngon", sides:6, defaultSize:… } → emits vertices at drop.
+```
+
+- **Single scale knob**: a polyomino lands on clean block coords at `defaultCell` blocks/cell (right angles
+  preserved); n-gons take a `defaultSize`. No per-arm sliders — after drop it's an ordinary polygon, edit
+  vertices freely. Parametric entries also resolve to plain `vertices` on drop (no live parametric model).
+- Multi-shape entries (hole-square) carry a `shapes:[…]` array instead of a single `vertices`.
+
+### 8d. Drop interaction & instantiation
+
+- A collapsible **palette panel** in the sidebar, categorized (Regular · Polyomino · Composite), each entry
+  a small SVG thumbnail.
+- **Drag a thumbnail onto the canvas** (or click-to-arm → click-to-place, like the circle tool's 2-click).
+  A **ghost preview** follows the cursor; commit on drop. With S3's tight footprint + live `W × D` readout
+  the size is legible immediately. Symmetry-aware: orbit copies preview if the target island mirrors.
+- **Instantiate**: scale unit/grid → `defaultCell`/`defaultSize`, translate to the drop point, mint fresh
+  ids, push into the active island (or create one for a multi-shape entry). From then on: an ordinary
+  selected shape/island.
+
+### 8e. Companion — whole-shape body-drag move (bundled with S8)
+
+Dropping a primitive needs **mouse positioning**, but today the sketch editor only **moves** a shape via
+**arrow-key nudge** (`sketch-bridge.js` `translate(shape, dx, dz)`, 1 block / Shift = 16, on the selected
+shape or whole island); mouse drag only manipulates **vertices/handles** (`sketch-edit-controller.js`). Add
+**mouse body-drag**: a body hit-test (`shape.containsPoint`, already used for selection) + a drag state in
+the edit controller that calls the existing `translate()`. Small, and independently useful — ship it with
+S8 so drag-in placement feels complete.
+
+### 8f. Parked — orientation / snap-alignment guides (separate, later)
+
+Drop an **orientation line** that shapes **snap** to (anchors as snap points) — e.g. to hold two parallel
+lanes truly parallel. A natural extension of body-drag (snapping happens during the move) but its own piece
+of work; filed as a parked task, **not** part of S8.
+
+### 8g. Open decisions (library)
+
+- **User-saved templates** ("save selection as a template"). Out of scope for S8 (built-ins only); would
+  add the one piece of new persistence (a user/instance-scoped store). Revisit only if wanted.
+- **Polyomino edit-time block-snapping.** Should vertex drags on a freshly-dropped polyomino snap to the
+  block grid (preserving right angles) until the author opts out? Decide alongside S8's edit UX.
