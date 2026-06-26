@@ -64,6 +64,13 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   → `POST /regions`). (C5)
 - **Block-colour overlay** — the "Blocks" toggle paints the top surface under region outlines. (C6)
 - **Side-view canvas** — Build step-1 depth view + draggable max-build-height line. (C7)
+- **Mouse body-drag move (shared)** — a `CanvasBase` seam (`_toWorld` / `_hitMovable` / `_moveBy` /
+  `_commitMove`) lets you drag a **selected** shape/region's body to reposition it, alongside arrow-nudge;
+  block-snapped, threshold so a plain click still selects. Sketch drags the selected shape (→ `translateShape`
+  + live island recompute); Edit drags the selected region (→ `translateBounds` + debounced save);
+  non-overriding canvases (Configure/SideView/…) are unaffected by construction. The duplicated translate
+  logic is consolidated into the geometry leaf — `geometry/shape.js` `translateShape` (shape model) +
+  `translateBounds` (AABB) — so no canvas keeps an inline copy. (CV10)
 - **`SmartSuggestion` component** + symmetry-derived intelligent team creation (reads `/symmetry`,
   suggests 2/4 palette teams). (C15)
 - **`Toast` error component** — shared across activities. (from C12)

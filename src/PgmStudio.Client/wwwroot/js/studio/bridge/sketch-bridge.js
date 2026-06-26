@@ -141,12 +141,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     fire("OnLayout", JSON.stringify({ islands: isl, shapes }));
   }
 
-  function translate(shape, dx, dz) {
-    if (shape.type === "rectangle") { shape.min_x += dx; shape.max_x += dx; shape.min_z += dz; shape.max_z += dz; }
-    else if (shape.type === "circle") { shape.center_x += dx; shape.center_z += dz; }
-    else if (shape.vertices) shape.vertices = shape.vertices.map(([x, z]) => [x + dx, z + dz]);
-  }
-
   // Arrow-key nudge (Shift = 16) of the selected island (all its shapes) or the selected shape.
   const onKey = (e) => {
     if (wrapEl?.offsetParent == null) return;
@@ -162,11 +156,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       const isl = islands.find(i => i.id === selectedIslandId);
       for (const sid of (isl?.shapeIds ?? [])) {
         const s = canvas.getShape(sid);
-        if (s) { translate(s, dx, dz); canvas.updateShape(s); moved = true; }
+        if (s) { canvas.updateShape(translateShape(s, dx, dz)); moved = true; }
       }
     } else if (canvas.selectedId) {
       const s = canvas.getShape(canvas.selectedId);
-      if (s) { translate(s, dx, dz); canvas.updateShape(s); moved = true; }
+      if (s) { canvas.updateShape(translateShape(s, dx, dz)); moved = true; }
     }
     if (!moved) return;
     e.preventDefault();
