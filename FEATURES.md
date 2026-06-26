@@ -491,6 +491,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `/maps/new` "Sketch from scratch" entry + the in-editor Setup panel (size/symmetry/centre) originate one.
   (S2e) — the tool is complete (originate → Setup → draw → Finish); only an end-to-end pass through
   Configure → Edit remains (TODO `S2`). Plan: `docs/contracts/sketch-authoring.md`.
+- **Footprint presets + size legibility** — the Setup panel frames a **non-square** working area
+  (width X × depth Z) from presets: 2-team landscape `120×80` (default), portrait `80×120`, square
+  `120×120` (4-team / D2), or custom — replacing the old 512-square that made 10–15-block lanes
+  undrawable. A live **on-canvas size readout** (`canvas-dim`) shows the active draw's `W × D`, the
+  selected shape's extent, or the **ruler** tool's block distance (drag across a void gap). (S3)
+  Plan: `docs/contracts/sketch-tool-improvements.md` §1.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

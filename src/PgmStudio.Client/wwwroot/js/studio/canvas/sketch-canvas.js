@@ -14,7 +14,7 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
-import { containsPoint } from "../geometry/shape.js";
+import { containsPoint, toBounds } from "../geometry/shape.js";
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
@@ -43,18 +43,21 @@ export class SketchCanvas extends CanvasBase {
   #callbacks = {};
   #cursorEl  = null;
   #zoomEl    = null;
+  #dimEl     = null;
+  #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
 
   // viewport layers
   #bboxLayer = null; #chunkLayer = null; #axisLayer = null;
-  #mirrorLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null;
+  #mirrorLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null;
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
 
-  constructor(svgEl_, wrapEl, { cursorEl, zoomEl, ...callbacks } = {}) {
+  constructor(svgEl_, wrapEl, { cursorEl, zoomEl, dimEl, ...callbacks } = {}) {
     super(svgEl_, wrapEl);
     this.#callbacks = callbacks;
     this.#cursorEl  = cursorEl ?? null;
     this.#zoomEl    = zoomEl ?? null;
+    this.#dimEl     = dimEl ?? null;
     this.#build();
   }
 
@@ -90,6 +93,7 @@ export class SketchCanvas extends CanvasBase {
 
   setActiveTool(tool) {
     this.#draw?.cancel();
+    if (this._activeTool === "measure" && tool !== "measure") this.#clearMeasure();
     this._activeTool = tool;
     const isDraw = tool !== null && tool !== "move" && tool !== "select";
     this._svg.style.cursor = isDraw ? "crosshair" : (tool === "select" ? "default" : "");
@@ -127,6 +131,7 @@ export class SketchCanvas extends CanvasBase {
     this.#applySelection();
     this.#edit?.setSelected(id);
     this.#edit?.refresh();
+    this.#updateDim();
   }
 
   getShape(id)  { return this.#shapes.get(id); }
@@ -144,22 +149,34 @@ export class SketchCanvas extends CanvasBase {
   _onViewportChanged() { this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
-  _onToolMousedown(e, svgPt) { this.#draw?.onMouseDown(Math.floor(svgPt.x), Math.floor(svgPt.y), this._activeTool); }
+  _onToolMousedown(e, svgPt) {
+    const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
+    if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
+    this.#draw?.onMouseDown(bx, bz, this._activeTool);
+  }
 
   _onPointerMove(e, svgPt) {
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
-    this.#draw?.onMouseMove(bx, bz);
     if (this.#cursorEl) this.#cursorEl.textContent = `X ${bx}  Z ${bz}`;
+    if (this._activeTool === "measure") {
+      if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
+    } else {
+      this.#draw?.onMouseMove(bx, bz);
+    }
+    this.#updateDim();
     this.#edit?.onPointerMove(svgPt.x, svgPt.y, this._activeTool);
   }
 
-  _onToolMouseup(e, svgPt) { this.#draw?.onMouseUp(); }
+  _onToolMouseup(e, svgPt) {
+    if (this._activeTool === "measure") { if (this.#measure) this.#measure.live = false; return; }
+    this.#draw?.onMouseUp();
+  }
 
   _onCanvasClick(e, svgPt) {
     this.#callbacks.onShapeSelected?.(this.#hitTest(svgPt.x, svgPt.y));
   }
 
-  _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; }
+  _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
 
   _onResizeMove(e) {
     if (!this.#edit) return false;
@@ -190,8 +207,9 @@ export class SketchCanvas extends CanvasBase {
     this.#islandLayer = svgEl("g", { "pointer-events": "none" });
     this.#shapesLayer = svgEl("g");
     this.#drawLayer   = svgEl("g", { "pointer-events": "none" });
+    this.#measureLayer = svgEl("g", { "pointer-events": "none" });
     for (const g of [this.#bboxLayer, this.#chunkLayer, this.#axisLayer, this.#mirrorLayer,
-                     this.#islandLayer, this.#shapesLayer, this.#drawLayer]) this._viewportG.appendChild(g);
+                     this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
     this.#handlesLayer     = svgEl("g");
@@ -216,7 +234,7 @@ export class SketchCanvas extends CanvasBase {
     document.addEventListener("keydown", (e) => {
       if (this._wrap?.offsetParent == null) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-      if (e.key === "Escape") this.#draw.cancel();
+      if (e.key === "Escape") { this.#draw.cancel(); this.#clearMeasure(); }
       if ((e.key === "Delete" || e.key === "Backspace") && this.#selectedId) {
         this.#callbacks.onShapeDeleted?.(this.#selectedId);
       }
@@ -270,6 +288,39 @@ export class SketchCanvas extends CanvasBase {
     layer.appendChild(svgEl("line", { x1: sx - arm, y1: sy, x2: sx + arm, y2: sy, stroke: col, "stroke-width": "1" }));
     layer.appendChild(svgEl("line", { x1: sx, y1: sy - arm, x2: sx, y2: sy + arm, stroke: col, "stroke-width": "1" }));
     layer.appendChild(svgEl("circle", { cx: sx, cy: sy, r: 4, fill: "none", stroke: col, "stroke-width": "1.5" }));
+  }
+
+  // The ruler line (world coords, so it pans/zooms with the map); the block distance shows in #dimEl.
+  #renderMeasure() {
+    const layer = this.#measureLayer;
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    const m = this.#measure;
+    if (!m) return;
+    layer.appendChild(svgEl("line", {
+      x1: m.ax, y1: m.az, x2: m.bx, y2: m.bz,
+      stroke: "var(--canvas-axis)", "stroke-width": "1.5", "stroke-dasharray": "4 3", "vector-effect": "non-scaling-stroke",
+    }));
+  }
+
+  #clearMeasure() { this.#measure = null; this.#renderMeasure(); this.#updateDim(); }
+
+  // On-canvas size readout: ruler distance while measuring, else the active draw's W×D, else the
+  // selected shape's extent — so the author can aim for a target block size while drawing.
+  #updateDim() {
+    if (!this.#dimEl) return;
+    let label = "";
+    if (this._activeTool === "measure" && this.#measure) {
+      const m = this.#measure;
+      label = `${Math.round(Math.hypot(m.bx - m.ax, m.bz - m.az))} blocks`;
+    } else {
+      label = this.#draw?.activeDimLabel?.() || "";
+      if (!label && this.#selectedId) {
+        const b = toBounds(this.#shapes.get(this.#selectedId));
+        if (b) label = `${Math.round(b.max_x - b.min_x)} × ${Math.round(b.max_z - b.min_z)}`;
+      }
+    }
+    this.#dimEl.textContent = label;
   }
 
   #hitTest(wx, wz) {

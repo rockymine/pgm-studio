@@ -8,7 +8,9 @@
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
 
-const DEFAULT_SETUP = { bbox: { min_x: -256, max_x: 256, min_z: -256, max_z: 256 }, center: { cx: 0, cz: 0 }, mirror_mode: "rot_180" };
+// Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
+// axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
+const DEFAULT_SETUP = { bbox: { min_x: -60, max_x: 60, min_z: -40, max_z: 40 }, center: { cx: 0, cz: 0 }, mirror_mode: "rot_180" };
 
 let _seq = 0;
 const genId = () => `s${Date.now()}_${_seq++}`;
@@ -19,7 +21,7 @@ function dimLabel(s) {
   return `${s.vertices?.length ?? 0} v`;
 }
 
-export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
+export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   let setup = { ...DEFAULT_SETUP };
   let islands = [];            // latest computeIslands result (full, with metadata) — also prev for carry-over
   let savedMetas = [];         // island metadata loaded from persistence (name/mirrors/shapeIds)
@@ -30,7 +32,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
   const markDirty = () => fire("OnDirty", islands.length);
 
   const canvas = new SketchCanvas(svgEl, wrapEl, {
-    cursorEl: coordsEl, zoomEl,
+    cursorEl: coordsEl, zoomEl, dimEl,
     onShapeCreated: (partial) => {
       const shape = { ...partial, id: genId(), override: partial.override ?? false };
       canvas.addShape(shape);

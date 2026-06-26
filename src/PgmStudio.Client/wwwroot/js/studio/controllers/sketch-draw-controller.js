@@ -43,6 +43,23 @@ export class SketchDrawController {
   setOperation(op)      { this.#activeOperation = op; }
   get activeOperation() { return this.#activeOperation; }
 
+  /** Live dimensions of the in-progress draw as a compact block label (`W × D`, or `⌀ d` for a
+   *  circle), or "" when nothing is being drawn — fed to the canvas's on-canvas size readout. */
+  activeDimLabel() {
+    const ds = this.#drawState;
+    if (!ds) return "";
+    if (ds.type === "rectangle") {
+      const { min_x, max_x, min_z, max_z } = drawnBoundsFromBlocks(ds.startBx, ds.startBz, ds.currentBx, ds.currentBz);
+      return `${max_x - min_x} × ${max_z - min_z}`;
+    }
+    if (ds.type === "circle") return `⌀ ${ds.currentRadius * 2}`;
+    if (ds.vertices?.length >= 2) {
+      const xs = ds.vertices.map(v => v[0]), zs = ds.vertices.map(v => v[1]);
+      return `${Math.max(...xs) - Math.min(...xs)} × ${Math.max(...zs) - Math.min(...zs)}`;
+    }
+    return "";
+  }
+
   /** Dispatch mousedown by tool. Returns true if consumed. */
   onMouseDown(bx, bz, activeTool) {
     if (activeTool === "rectangle") { this.#startRect(bx, bz); return true; }
