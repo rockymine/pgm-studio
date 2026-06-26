@@ -54,10 +54,6 @@ The next depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): make siz
 design — data-model diffs, rasterizer/artifact changes, open decisions — in
 `docs/contracts/sketch-tool-improvements.md`. Build in id order (each builds on the last).
 
-- [ ] **S4 — Rectangles are polygons.** Keep `rectangle` as a create-preset + axis-aligned fast-path, but
-  add **convert-to-polygon** (and auto-promote on any edit a rectangle can't hold — off-axis corner,
-  midpoint insert, Bézier handle, non-uniform per-anchor height). Promotion is `type→"polygon"` with the 4
-  corners as `vertices`; rasterizer needs no special case.
 - [ ] **S5 — Height per shape + per anchor.** Add `base_height` (uniform surface Y) and `anchor_heights`
   (per-vertex Y, index-aligned to `vertices`) + `floor` to `SketchShape`; ship `base_height` first, then
   per-anchor with TIN/IDW interior fill (in `Geom`, JS parity). Rasterizer emits `(x,z,YTop,YFloor)`
@@ -84,6 +80,11 @@ design — data-model diffs, rasterizer/artifact changes, open decisions — in
 - [ ] **S9 — Orientation / snap-alignment guides (parked — after S8).** Drop an orientation line that shapes
   **snap** to (anchors as snap points) — e.g. to hold two parallel lanes truly parallel. A natural extension
   of S8's body-drag (snapping happens during the move) but its own work; do **not** fold into S8.
+- [ ] **S10 — Auto-promote rectangles on Bézier (parked, optional).** Today S4 promotes via the inspector
+  button / `P`; a rectangle keeps its 8-handle resize and has no Bézier affordance. If we ever want a
+  rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
+  vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
+  Low priority — explicit promotion already covers the need.
 
 ## Editor & canvas infrastructure (C / CV)
 

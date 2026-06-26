@@ -25,10 +25,17 @@
         <button class="action-btn action-btn--full" @onclick="() => OnToggleOverride.InvokeAsync(Shape.Id)">
           @(Shape.Override ? "Remove override" : "Set override")
         </button>
+        @if (Shape.Type == "rectangle")
+        {
+          <button class="action-btn action-btn--full" @onclick="() => OnPromoteShape.InvokeAsync(Shape.Id)"
+                  title="Turn this rectangle into a polygon — then drag corners, insert vertices, or curve edges (P)">
+            <i data-lucide="pentagon"></i> Convert to polygon
+          </button>
+        }
         <button class="action-btn action-btn--full action-btn--danger" @onclick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
           <i data-lucide="trash-2"></i> Delete
         </button>
-        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks</p>
+        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = to polygon" : "")</p>
       }
       else if (Island is not null)
       {

@@ -238,6 +238,7 @@ export class SketchCanvas extends CanvasBase {
       if ((e.key === "Delete" || e.key === "Backspace") && this.#selectedId) {
         this.#callbacks.onShapeDeleted?.(this.#selectedId);
       }
+      if ((e.key === "p" || e.key === "P") && this.#selectedId) this.#callbacks.onShapePromote?.(this.#selectedId);
     });
     // Double-click closes a polygon (duplicate trailing vertex trimmed inside the controller).
     this._svg.addEventListener("dblclick", (e) => {

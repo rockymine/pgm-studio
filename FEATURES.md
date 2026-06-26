@@ -509,6 +509,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   undrawable. A live **on-canvas size readout** (`canvas-dim`) shows the active draw's `W × D`, the
   selected shape's extent, or the **ruler** tool's block distance (drag across a void gap). (S3)
   Plan: `docs/contracts/sketch-tool-improvements.md` §1.
+- **Rectangle → polygon promotion** — an inspector **Convert to polygon** button (and the `P` shortcut)
+  turns the selected rectangle into a 4-corner polygon (id / operation / override preserved), opening
+  vertex-drag · midpoint-insert · Bézier editing. Pure `rectToPolygon` (`geometry/shape.js`); `promoteShape`
+  in the bridge; the 8-handle rectangle resize is unchanged until you promote. (S4) §2.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

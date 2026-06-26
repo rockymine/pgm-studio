@@ -67,6 +67,20 @@ export function toRing(shape) {
   }
 }
 
+/**
+ * Promote a rectangle shape to an equivalent **polygon** — its 4 corners as open vertices
+ * (clockwise from min,min), keeping id/operation/override. Lets the author then drag corners
+ * off-axis, insert midpoints, or curve edges (none of which a rectangle can represent). Identity
+ * geometry, so the footprint is unchanged; only the editing affordances open up.
+ */
+export function rectToPolygon(shape) {
+  const { min_x, min_z, max_x, max_z } = shape;
+  return {
+    id: shape.id, type: "polygon", operation: shape.operation, override: !!shape.override,
+    vertices: [[min_x, min_z], [max_x, min_z], [max_x, max_z], [min_x, max_z]],
+  };
+}
+
 /** Approximate a circle as a closed polygon ring, vertices rounded to the nearest block. */
 export function circleToRing(cx, cz, radius, nPoints = CIRCLE_POINTS) {
   const pts = [];
