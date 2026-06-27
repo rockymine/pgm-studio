@@ -11,6 +11,7 @@ public partial class SketchInspector
     [Parameter] public EventCallback<string> OnToggleOverride { get; set; }
     [Parameter] public EventCallback<string> OnDeleteShape { get; set; }
     [Parameter] public EventCallback<string> OnPromoteShape { get; set; }
+    [Parameter] public EventCallback<(string Id, double Base, double Floor)> OnSetHeight { get; set; }
     [Parameter] public EventCallback<string> OnToggleMirrors { get; set; }
     [Parameter] public EventCallback<(string Id, string Name)> OnRenameIsland { get; set; }
 
@@ -22,6 +23,14 @@ public partial class SketchInspector
         "lasso"     => "lasso",
         _           => "square",
     };
+
+    private Task HeightChanged(ChangeEventArgs e)
+        => Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
+            ? OnSetHeight.InvokeAsync((Shape.Id, v, Shape.Floor)) : Task.CompletedTask;
+
+    private Task FloorChanged(ChangeEventArgs e)
+        => Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
+            ? OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v)) : Task.CompletedTask;
 
     private Task RenameChanged(ChangeEventArgs e)
         => Island is null ? Task.CompletedTask

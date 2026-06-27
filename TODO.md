@@ -54,15 +54,11 @@ The next depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): make siz
 design — data-model diffs, rasterizer/artifact changes, open decisions — in
 `docs/contracts/sketch-tool-improvements.md`. Build in id order (each builds on the last).
 
-- [ ] **S5b — Height editing UI.** The rasterization + data model are landed (`FEATURES.md`): `SketchShape`
-  has `base_height`/`anchor_heights`/`floor`, `RasterizeColumns` does the TIN, `layer_segment` carries the
-  span. **Open = the authoring affordances:** (a) a `base_height` (+ `floor`) field in the sketch inspector;
-  (b) a **per-anchor vertex height** editor (UX TBD — select a vertex → set its Y; possibly via the side-view).
-  Until this lands, heights are only settable through the saved layout / API. (The JS rasterizer twin that
-  height-aware previews need is **S6**.)
-- [ ] **S6 — 3-D preview.** Read-only three.js orbit view over the extruded columns (greedy-merged boxes,
-  per-layer colour), driven off the same JS rasterizer as the live preview. Camera only; editing stays 2-D.
-  Land alongside S5 so extrusion is visible the moment height exists.
+- [ ] **S5b — Per-anchor vertex height editing.** `base_height`/`floor` are now editable in the inspector
+  (shipped with S6), and the rasterizer TIN-interpolates `anchor_heights` (S5). **Open = the per-vertex
+  affordance:** select a polygon vertex → set its Y, so a shape can ramp/undulate (TIN already renders it on
+  finish). UX TBD — e.g. a vertex-height handle on the canvas, or a per-vertex list in the inspector; the iso
+  preview currently shows a flat top per island, so it'd want a draped TIN top to visualize per-anchor terrain.
 - [ ] **S7 — Stacked layers.** Wrap `SketchLayout.Layout` in an ordered `layers:[{ id, name, base_y,
   layout }]` (old single-layout loads as one layer at `base_y=0`). Each layer reuses the whole 2-D editor;
   lower layers render ghosted. Column at `(x,z)` in layer L spans `[L.baseY+floor, L.baseY+YTop]` —

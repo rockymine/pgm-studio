@@ -534,7 +534,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   for polygons whose anchor heights match their vertices; mirror copies preserve the column + vertex/anchor
   alignment. `WriteSketchAsync` writes the real span to `layer_segment` (the SliceView reads it) and the
   surface block at `YTop`. Verified by Geom + rasterizer unit tests and a DB-level finish (uniform + ramp).
-  (S5 — rasterization; editing UI is S5b) §3.
+  (S5 — rasterization; per-anchor editing UI is S5b) §3.
+- **Height editing field + isometric 3-D preview** — the sketch inspector gains **Height** (`base_height`) +
+  **Floor** fields on the selected shape; a **3D** toggle swaps the top-down canvas for a read-only
+  **isometric** view (`render/iso-render.js`) that extrudes the composed `boolean.js` islands (+ mirror copies)
+  to their height as shaded SVG prisms, with a 90°-rotate button. Pure SVG (no three.js — fits the firewalled
+  hosted-WASM stack); per-island height = its tallest shape; per-anchor TIN tops and true orbit are upgrades.
+  (S6) §4.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

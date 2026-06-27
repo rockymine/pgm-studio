@@ -32,6 +32,14 @@
             <i data-lucide="pentagon"></i> Convert to polygon
           </button>
         }
+        <div class="field">
+          <label class="field-label">Height (blocks)</label>
+          <input class="field-input" type="number" step="1" value="@Shape.BaseHeight" @onchange="HeightChanged" />
+        </div>
+        <div class="field">
+          <label class="field-label">Floor (blocks)</label>
+          <input class="field-input" type="number" step="1" value="@Shape.Floor" @onchange="FloorChanged" />
+        </div>
         <button class="action-btn action-btn--full action-btn--danger" @onclick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
           <i data-lucide="trash-2"></i> Delete
         </button>
