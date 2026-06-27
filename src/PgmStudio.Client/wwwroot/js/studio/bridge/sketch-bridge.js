@@ -9,6 +9,7 @@ import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
 import { rectToPolygon, translateShape } from "../geometry/shape.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
+import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -156,36 +157,48 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     refreshIso();
   }
 
-  // Every layer's islands extruded for the iso preview, each column shifted by the layer's base_y. Top =
-  // base_y + the island's tallest shape; floor = base_y + its lowest. Mirror copies reuse the source column.
-  function islandsForIso() {
+  // Build the iso "solids" for every layer: flat island prisms + sloped terrain (per-anchor shapes), each
+  // shifted by the layer's base_y, plus mirror copies. An island made entirely of per-anchor shapes is drawn
+  // as sloped terrain instead of a flat prism (S5c).
+  function solidsForIso() {
     syncActive();
     const { cx = 0, cz = 0 } = setup.center ?? {};
+    const axes = (mirrorVisible && setup.mirror_mode) ? orbitAxes(setup.mirror_mode) : [];
     const out = [];
+    const hasAnchors = s => Array.isArray(s.anchor_heights) && s.vertices && s.anchor_heights.length === s.vertices.length;
+
     for (const L of layers) {
       const byId = new Map(L.shapes.map(s => [s.id, s]));
+      const anchorIds = new Set(L.shapes.filter(hasAnchors).map(s => s.id));
       const columnOf = (isl) => {
         let top = 0, floor = 0, any = false;
-        for (const sid of (isl.shapeIds ?? [])) {
-          const s = byId.get(sid); if (!s) continue;
-          any = true;
-          top = Math.max(top, s.base_height ?? 0);
-          floor = Math.min(floor, s.floor ?? 0);
-        }
+        for (const sid of (isl.shapeIds ?? [])) { const s = byId.get(sid); if (!s) continue; any = true; top = Math.max(top, s.base_height ?? 0); floor = Math.min(floor, s.floor ?? 0); }
         return { top: L.baseY + (any ? top : 0), floor: L.baseY + floor };
       };
-      for (const isl of L.islands) out.push({ exterior: isl.exterior, holes: isl.holes, ...columnOf(isl), mirror: false });
-      if (mirrorVisible && setup.mirror_mode) {
-        for (const m of computeMirrorPreview(L.islands, setup.mirror_mode, cx, cz)) {
-          const src = L.islands.find(i => i.id === m.sourceId);
-          out.push({ exterior: m.exterior, holes: m.holes, ...(src ? columnOf(src) : { top: L.baseY, floor: L.baseY }), mirror: true });
+      const isAllAnchor = isl => (isl.shapeIds?.length ?? 0) > 0 && isl.shapeIds.every(id => anchorIds.has(id));
+      const terrainOf = (s, verts, mirror) => ({ vertices: verts, heights: s.anchor_heights.map(hh => L.baseY + hh), floor: L.baseY + (s.floor ?? 0), mirror });
+
+      // Primary
+      for (const isl of L.islands) if (!isAllAnchor(isl)) out.push({ exterior: isl.exterior, holes: isl.holes, ...columnOf(isl), mirror: false });
+      for (const s of L.shapes) if (hasAnchors(s)) out.push(terrainOf(s, s.vertices.map(v => [v[0], v[1]]), false));
+
+      // Mirror copies (transform the outline / vertices point-by-point; heights are invariant).
+      for (const axis of axes) {
+        for (const isl of L.islands) {
+          if (isAllAnchor(isl)) continue;
+          out.push({
+            exterior: isl.exterior.map(([x, z]) => applySymmetry(x, z, axis, cx, cz)),
+            holes: (isl.holes ?? []).map(h => h.map(([x, z]) => applySymmetry(x, z, axis, cx, cz))),
+            ...columnOf(isl), mirror: true,
+          });
         }
+        for (const s of L.shapes) if (hasAnchors(s)) out.push(terrainOf(s, s.vertices.map(([x, z]) => applySymmetry(x, z, axis, cx, cz)), true));
       }
     }
     return out;
   }
 
-  function refreshIso() { if (view === "iso") canvas.showIso(islandsForIso(), isoYaw, setup.bbox); }
+  function refreshIso() { if (view === "iso") canvas.showIso(solidsForIso(), isoYaw, setup.bbox); }
 
   function refreshMirror() {
     if (!mirrorVisible || !setup.mirror_mode) { canvas.setMirrorPolygons([]); return; }
@@ -302,7 +315,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
-    setView(v)         { view = v === "iso" ? "iso" : "2d"; if (view === "iso") canvas.showIso(islandsForIso(), isoYaw, setup.bbox); else canvas.hideIso(); },
+    setView(v)         { view = v === "iso" ? "iso" : "2d"; if (view === "iso") canvas.showIso(solidsForIso(), isoYaw, setup.bbox); else canvas.hideIso(); },
     rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
     setHeight(id, base, floor) {
       const s = canvas.getShape(id); if (!s) return;

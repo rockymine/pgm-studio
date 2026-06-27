@@ -534,8 +534,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **isometric** view (`render/iso-render.js`) that extrudes the composed `boolean.js` islands (+ mirror copies)
   to their height as **opaque** prisms on a **ground-plane reference** (the working bbox at y=0), bright tops
   over two-tone side walls (lit-from-above, painter-ordered back→front), with a 90°-rotate button. Pure SVG
-  (no three.js — fits the firewalled hosted-WASM stack); per-island height = its tallest shape; per-anchor
-  TIN tops and true orbit are upgrades. (S6) §4.
+  (no three.js — fits the firewalled hosted-WASM stack); per-island height = its tallest shape; true orbit is
+  a later upgrade. (S6) §4.
+- **Iso draped-TIN slope** — per-anchor shapes (S5b) render in the iso as **sloped solids**: a
+  TIN-triangulated top (JS `geometry/triangulation.earClip`, the twin of `Geom.Triangulation`) shaded
+  lit-from-above by facet flatness, with walls whose top edge follows the vertex heights; their flat island
+  prism is skipped. Mirror copies slope too (`applySymmetry` on the vertices). So a ramp/terrace is visible
+  in 3-D while authoring, not only on finish. (S5c) §4.
 - **Stacked layers (rasterization)** — `SketchLayout` gains an ordered `layers:[{ id, name, base_y, layout }]`
   (a legacy single `layout` loads as one layer at `base_y=0`). `SketchRasterizer.RasterizeColumns` rasterizes
   each layer in its own Y (primary + per-layer island mirror), shifts its columns by `base_y`, and concatenates
