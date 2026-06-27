@@ -3,22 +3,26 @@ using PgmStudio.Geom;
 namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>
-/// Rasterizes a sketch layout (the <c>sketch_layout_json</c> blob) into the set of solid (x,z) block
-/// cells of the finished world — the server half of "finish a sketch" (docs/contracts/sketch-authoring.md
-/// §4). Pure: no DOM, no DB. Mirrors the JS geometry it must agree with — shapes → closed rings
-/// (circle = 64-gon, Bézier = 16 samples/edge), the 4-step add/subtract/override set algebra applied to
-/// each shape's rasterized cell set, and per-island mirror copies via the saved island <c>shapeIds</c>
-/// (so no server-side boolean is needed — the JS already assigned shapes to islands). Cells are then fed
-/// to <c>IslandDetector.Detect</c> + the artifact writers.
+/// Rasterizes a sketch layout (the <c>sketch_layout_json</c> blob) into the solid block cells of the
+/// finished world (docs/contracts/sketch-tool-improvements.md §3). Pure: no DOM, no DB. <see cref="Rasterize"/>
+/// yields the (x,z) footprint; <see cref="RasterizeColumns"/> also carries each cell's vertical span
+/// <c>[YFloor, YTop]</c> — a uniform <c>base_height</c>, or, for a polygon/lasso whose <c>anchor_heights</c>
+/// line up with its vertices, a per-vertex surface TIN-interpolated across the footprint
+/// (<see cref="Triangulation"/>). Mirrors the JS geometry it must agree with (circle = 64-gon,
+/// Bézier = 16 samples/edge); per-island mirror copies follow the saved island <c>shapeIds</c>.
 /// </summary>
 public static class SketchRasterizer
 {
     private const int CirclePoints  = 64;   // matches JS geometry/shape.js CIRCLE_POINTS
     private const int BezierSamples  = 16;   // matches JS geometry/shape.js BEZIER_SAMPLES
 
-    /// <summary>Rasterize the stored layout JSON to the finished world's solid (x,z) cells (primary +
-    /// the mirror copies of the islands that opt in). Empty when the layout has no add shapes.</summary>
+    /// <summary>The finished world's solid (x,z) footprint (primary + opted-in island mirror copies).</summary>
     public static List<(int X, int Z)> Rasterize(string layoutJson)
+        => RasterizeColumns(layoutJson).Select(c => (c.X, c.Z)).ToList();
+
+    /// <summary>As <see cref="Rasterize"/>, but each cell also carries its column span <c>[YFloor, YTop]</c>.
+    /// Height never affects membership — the footprint is identical to <see cref="Rasterize"/>.</summary>
+    public static List<(int X, int Z, int YFloor, int YTop)> RasterizeColumns(string layoutJson)
     {
         var state = SketchLayout.Parse(layoutJson);
         var shapes = state?.Layout?.Shapes ?? [];
@@ -32,9 +36,15 @@ public static class SketchRasterizer
 
         if (metas.Count == 0)
         {
-            // No island metadata (e.g. a hand-authored layout): mirror the whole primary footprint.
+            // No island metadata (e.g. a hand-authored layout): mirror the whole primary footprint. Height is
+            // reflection/rotation-invariant, so each mirrored cell keeps its column.
+            var primary = new Dictionary<(int, int), (int Top, int Floor)>(cells);
             foreach (var axis in axes)
-                cells.UnionWith(RasterGroup(shapes).Select(c => MirrorCell(c, axis, cx, cz)));
+            {
+                var mirrored = new Dictionary<(int, int), (int Top, int Floor)>();
+                foreach (var (k, v) in primary) mirrored[MirrorCell(k, axis, cx, cz)] = v;
+                Merge(cells, mirrored);
+            }
         }
         else
         {
@@ -44,41 +54,79 @@ public static class SketchRasterizer
                 var islandShapes = meta.ShapeIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
                 foreach (var axis in axes)
                 {
-                    // Mirror each shape's geometry, then rasterize (transform the polygon, not the
-                    // rasterized cells — a per-cell mirror leaves gaps on rotations).
+                    // Mirror each shape (transform geometry + carry heights), then rasterize.
                     var mirrored = islandShapes.Select(s => MirrorShape(s, axis, cx, cz));
-                    cells.UnionWith(RasterGroup(mirrored));
+                    Merge(cells, RasterGroup(mirrored));
                 }
             }
         }
-        return [.. cells];
+        return cells.Select(kv => (kv.Key.Item1, kv.Key.Item2, kv.Value.Floor, kv.Value.Top)).ToList();
     }
 
-    // ── 4-step set algebra over a shape group ─────────────────────────────────────────────────────
-    private static HashSet<(int, int)> RasterGroup(IEnumerable<SketchShape> shapes)
+    // ── 4-step set algebra over a shape group, carrying each cell's column ─────────────────────────
+    private static Dictionary<(int, int), (int Top, int Floor)> RasterGroup(IEnumerable<SketchShape> shapes)
     {
-        HashSet<(int, int)> add = [], sub = [], oadd = [], osub = [];
+        Dictionary<(int, int), (int Top, int Floor)> add = [], oadd = [];
+        HashSet<(int, int)> sub = [], osub = [];
         foreach (var s in shapes)
         {
-            var target = (s.Operation == "subtract", s.Override) switch
+            if (s.Operation == "subtract")
             {
-                (false, false) => add,
-                (true,  false) => sub,
-                (false, true)  => oadd,
-                (true,  true)  => osub,
-            };
-            target.UnionWith(RasterShape(s));
+                var set = s.Override ? osub : sub;
+                foreach (var c in RasterShape(s)) set.Add((c.X, c.Z));
+            }
+            else
+            {
+                var dict = s.Override ? oadd : add;
+                foreach (var c in RasterShape(s)) MergeCell(dict, (c.X, c.Z), (c.Top, c.Floor));
+            }
         }
-        // ((adds − subs) ∪ override-adds) − override-subs
-        var result = new HashSet<(int, int)>(add);
-        result.ExceptWith(sub);
-        result.UnionWith(oadd);
-        result.ExceptWith(osub);
+        // ((adds − subs) ∪ override-adds) − override-subs; height = the tallest add on each cell.
+        var result = new Dictionary<(int, int), (int Top, int Floor)>(add);
+        foreach (var k in sub) result.Remove(k);
+        foreach (var (k, v) in oadd) result[k] = v;        // override-add overwrites the column
+        foreach (var k in osub) result.Remove(k);
         return result;
     }
 
-    // ── single shape → cells (rasterize its ring by block-centre sampling) ─────────────────────────
-    private static IEnumerable<(int, int)> RasterShape(SketchShape s) => RasterRing(RingOf(s));
+    // Taller surface wins where add shapes overlap (carrying that surface's floor).
+    private static void MergeCell(Dictionary<(int, int), (int Top, int Floor)> d, (int, int) k, (int Top, int Floor) v)
+    {
+        if (d.TryGetValue(k, out var ex)) { if (v.Top > ex.Top) d[k] = v; }
+        else d[k] = v;
+    }
+
+    private static void Merge(Dictionary<(int, int), (int Top, int Floor)> dst, Dictionary<(int, int), (int Top, int Floor)> src)
+    {
+        foreach (var (k, v) in src) MergeCell(dst, k, v);
+    }
+
+    // ── single shape → cells with column (rasterize its ring by block-centre sampling) ────────────
+    private static IEnumerable<(int X, int Z, int Top, int Floor)> RasterShape(SketchShape s)
+    {
+        var ring = RingOf(s);
+        if (ring.Count < 3) yield break;
+        int floor = (int)Math.Round(s.Floor ?? 0);
+        var height = HeightFn(s);
+        foreach (var (x, z) in RasterRing(ring))
+            yield return (x, z, (int)Math.Round(height(x + 0.5, z + 0.5)), floor);
+    }
+
+    // The surface-height sampler for a shape: a per-vertex TIN (polygon/lasso with matching anchor_heights),
+    // else the uniform base_height (or 0). The TIN is over the straight vertex polygon — points in a Bézier
+    // fringe fall back to the nearest vertex inside Interpolate.
+    private static Func<double, double, double> HeightFn(SketchShape s)
+    {
+        if ((s.Type == "polygon" || s.Type == "lasso") && s.Vertices is { Length: >= 3 } verts
+            && s.AnchorHeights is { } ah && ah.Length == verts.Length)
+        {
+            var poly = verts.Select(v => new[] { v[0], v[1] }).ToList();
+            var tris = Triangulation.EarClip(poly);
+            return (x, z) => Triangulation.Interpolate(poly, ah, tris, x, z);
+        }
+        double bh = s.BaseHeight ?? 0;
+        return (_, _) => bh;
+    }
 
     private static List<double[]> RingOf(SketchShape s) => s.Type switch
     {
@@ -155,14 +203,39 @@ public static class SketchRasterizer
 
     private static SketchShape MirrorShape(SketchShape s, string axis, double cx, double cz)
     {
-        // Transform the shape's ring points into a polygon shape carrying the same operation/override,
-        // so the 4-step still composes the mirror copy correctly.
+        // Polygon/lasso: transform vertices + Bézier handles in place, keeping anchor_heights index-aligned
+        // (height is invariant) so a per-vertex surface mirrors correctly.
+        if ((s.Type == "polygon" || s.Type == "lasso") && s.Vertices is { } verts)
+        {
+            var nv = verts.Select(v => { var (x, z) = MirrorPoint(v[0], v[1], axis, cx, cz); return new[] { x, z }; }).ToArray();
+            Dictionary<string, SketchControl>? nc = null;
+            if (s.Controls is { } ctrls)
+            {
+                nc = [];
+                foreach (var (k, c) in ctrls)
+                {
+                    var nco = new SketchControl();
+                    if (c.In  is { } i) { var (x, z) = MirrorPoint(i[0], i[1], axis, cx, cz); nco.In  = [x, z]; }
+                    if (c.Out is { } o) { var (x, z) = MirrorPoint(o[0], o[1], axis, cx, cz); nco.Out = [x, z]; }
+                    nc[k] = nco;
+                }
+            }
+            return new SketchShape
+            {
+                Id = s.Id, Type = s.Type, Operation = s.Operation, Override = s.Override,
+                Vertices = nv, Controls = nc, AnchorHeights = s.AnchorHeights, BaseHeight = s.BaseHeight, Floor = s.Floor,
+            };
+        }
+        // Rectangle/circle: flatten the transformed footprint to a polygon (uniform height carried).
         var ring = RingOf(s).Select(p => { var (x, z) = MirrorPoint(p[0], p[1], axis, cx, cz); return new[] { x, z }; }).ToArray();
-        return new SketchShape { Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override, Vertices = ring };
+        return new SketchShape
+        {
+            Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override,
+            Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor,
+        };
     }
 
-    // The one canonical concrete-axis transform — every orbit axis (incl. the diagonals mirror_d1/d2 and
-    // the rot_270 image that Symmetry.OrbitAxes fans rot_90 out to) stays consistent with the generator + JS.
+    // The one canonical concrete-axis transform — every orbit axis stays consistent with the generator + JS.
     private static (double, double) MirrorPoint(double x, double z, string axis, double cx, double cz)
         => Symmetry.Apply(x, z, axis, cx, cz);
 }

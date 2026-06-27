@@ -54,11 +54,12 @@ The next depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): make siz
 design — data-model diffs, rasterizer/artifact changes, open decisions — in
 `docs/contracts/sketch-tool-improvements.md`. Build in id order (each builds on the last).
 
-- [ ] **S5 — Height per shape + per anchor.** Add `base_height` (uniform surface Y) and `anchor_heights`
-  (per-vertex Y, index-aligned to `vertices`) + `floor` to `SketchShape`; ship `base_height` first, then
-  per-anchor with TIN/IDW interior fill (in `Geom`, JS parity). Rasterizer emits `(x,z,YTop,YFloor)`
-  columns; `layer_segment` becomes `[YFloor,YTop]` (the `SliceView` side-view reads it for free). Heights
-  are reflection/rotation-invariant — the mirror/orbit path carries them through unchanged.
+- [ ] **S5b — Height editing UI.** The rasterization + data model are landed (`FEATURES.md`): `SketchShape`
+  has `base_height`/`anchor_heights`/`floor`, `RasterizeColumns` does the TIN, `layer_segment` carries the
+  span. **Open = the authoring affordances:** (a) a `base_height` (+ `floor`) field in the sketch inspector;
+  (b) a **per-anchor vertex height** editor (UX TBD — select a vertex → set its Y; possibly via the side-view).
+  Until this lands, heights are only settable through the saved layout / API. (The JS rasterizer twin that
+  height-aware previews need is **S6**.)
 - [ ] **S6 — 3-D preview.** Read-only three.js orbit view over the extruded columns (greedy-merged boxes,
   per-layer colour), driven off the same JS rasterizer as the live preview. Camera only; editing stays 2-D.
   Land alongside S5 so extrusion is visible the moment height exists.
