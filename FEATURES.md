@@ -130,6 +130,8 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
 - **`POST /scan-world`** — world → DB feature rows. (P3)
 - **Surface scan + island detection** — `layer.parquet` / `islands.json` / `map_config` artifacts. (P4)
+  `IslandDetector.BlocksToPolygon` unions one rectangle per maximal horizontal run (not one square per
+  cell) — identical output, ~50× fewer GEOS inputs; cut sketch-finish from ~700ms to ~150–200ms (warm).
 - **Block colours** — `BlockColors`, 197/197 known-table parity. (P5)
 - **Layer extractors** — `Y0` / `Bedrock` / `Base` (+ shared `BuildVolume`), generated on demand and
   cached. (P6)
