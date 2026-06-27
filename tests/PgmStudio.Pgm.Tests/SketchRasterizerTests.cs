@@ -133,6 +133,35 @@ public sealed class SketchRasterizerTests
     }
 
     [Test]
+    public async Task Stacked_layers_keep_separate_columns_offset_by_base_y()
+    {
+        // Two layers over the same footprint: ground (base 0, height 5) + a sky bridge (base 20, height 4).
+        // The shared column carries both segments — [0,5] and [20,24] — not one merged span.
+        var cells = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layers":[
+           {"base_y":0,"layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":5}],"islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}},
+           {"base_y":20,"layout":{"shapes":[{"id":"b","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":4}],"islands":[{"id":"i2","mirrors":false,"shapeIds":["b"]}]}}
+         ]}
+        """);
+        var col = cells.Where(c => c.X == 1 && c.Z == 1).OrderBy(c => c.YFloor).ToList();
+        await Assert.That(col.Count).IsEqualTo(2);
+        await Assert.That(col[0]).IsEqualTo((1, 1, 0, 5));
+        await Assert.That(col[1]).IsEqualTo((1, 1, 20, 24));
+    }
+
+    [Test]
+    public async Task Legacy_single_layout_still_rasterizes_as_one_layer()
+    {
+        // Back-compat: a pre-S7 {layout:{…}} with no `layers` is treated as one layer at base_y 0.
+        var cells = SketchRasterizer.Rasterize("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}],"islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+        """).ToHashSet();
+        await Assert.That(cells.Count).IsEqualTo(16);
+    }
+
+    [Test]
     public async Task Mirror_copy_keeps_the_column_height()
     {
         // rot_180 of a height-12 rect about the origin: both the primary and its mirror are at YTop 12.

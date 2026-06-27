@@ -12,12 +12,23 @@ namespace PgmStudio.Pgm.Sketch;
 public sealed class SketchLayout
 {
     [JsonPropertyName("setup")]  public SketchSetup? Setup { get; set; }
-    [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }
+    [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }   // legacy single-layer (pre-S7)
+    [JsonPropertyName("layers")] public List<SketchLayer>? Layers { get; set; }
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
     public static SketchLayout? Parse(string json) => JsonSerializer.Deserialize<SketchLayout>(json, Json);
+}
+
+/// <summary>A stacked slab (S7): its shapes/islands at a Y offset. The whole 2-D editor authors one layer;
+/// the rasterizer stacks them — a cell's column is the layer's <c>[floor, top]</c> shifted by <c>base_y</c>.</summary>
+public sealed class SketchLayer
+{
+    [JsonPropertyName("id")]     public string? Id { get; set; }
+    [JsonPropertyName("name")]   public string? Name { get; set; }
+    [JsonPropertyName("base_y")] public double BaseY { get; set; }
+    [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }
 }
 
 /// <summary>The mirror mode + centre that fan a mirroring island's shapes onto their orbit images, plus the

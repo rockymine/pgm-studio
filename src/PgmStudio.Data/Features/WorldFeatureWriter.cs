@@ -79,8 +79,10 @@ public sealed class WorldFeatureWriter(PgmDb db)
     {
         await DeleteAsync(mapId, ct);
 
-        // Surface layer at each column's top (one row per cell); the full span lives in layer_segment below.
-        var layerRows = cells.Select(c => new LayerRow { WorldX = c.X, WorldZ = c.Z, WorldY = c.YTop, BlockId = 1, BlockData = 0 }).ToList();
+        // Surface layer = one row per (x,z) at its highest top (stacked layers can repeat a column); the
+        // per-segment spans (possibly several per column, e.g. ground + a sky bridge) live in layer_segment.
+        var layerRows = cells.GroupBy(c => (c.X, c.Z))
+            .Select(g => new LayerRow { WorldX = g.Key.X, WorldZ = g.Key.Z, WorldY = g.Max(c => c.YTop), BlockId = 1, BlockData = 0 }).ToList();
         byte[] layerBytes;
         using (var ms = new MemoryStream())
         {
