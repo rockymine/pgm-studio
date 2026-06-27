@@ -156,13 +156,13 @@ export class SketchCanvas extends CanvasBase {
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
   // Swap the top-down viewport for a read-only iso render of the extruded islands.
-  showIso(islands, yawDeg) {
+  showIso(islands, yawDeg, bbox) {
     this.#isoOn = true;
     this.#draw?.cancel();
     const { w, h } = this.#size();
     for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) g.style.display = "none";
     this.#isoLayer.style.display = "";
-    renderIso(this.#isoLayer, islands, w, h, yawDeg);
+    renderIso(this.#isoLayer, islands, w, h, yawDeg, bbox);
   }
   hideIso() {
     this.#isoOn = false;

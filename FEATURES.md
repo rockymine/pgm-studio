@@ -526,9 +526,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Height editing field + isometric 3-D preview** — the sketch inspector gains **Height** (`base_height`) +
   **Floor** fields on the selected shape; a **3D** toggle swaps the top-down canvas for a read-only
   **isometric** view (`render/iso-render.js`) that extrudes the composed `boolean.js` islands (+ mirror copies)
-  to their height as shaded SVG prisms, with a 90°-rotate button. Pure SVG (no three.js — fits the firewalled
-  hosted-WASM stack); per-island height = its tallest shape; per-anchor TIN tops and true orbit are upgrades.
-  (S6) §4.
+  to their height as **opaque** prisms on a **ground-plane reference** (the working bbox at y=0), bright tops
+  over two-tone side walls (lit-from-above, painter-ordered back→front), with a 90°-rotate button. Pure SVG
+  (no three.js — fits the firewalled hosted-WASM stack); per-island height = its tallest shape; per-anchor
+  TIN tops and true orbit are upgrades. (S6) §4.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

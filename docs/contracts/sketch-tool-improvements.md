@@ -150,10 +150,12 @@ Read-only, no new authoring model — it just makes §3/§5 legible while drawin
 
 **What shipped** (revised from the original three.js/voxel plan): a **read-only isometric SVG view**
 (`render/iso-render.js`) that extrudes the composed `boolean.js` **island polygons** (+ mirror copies) to
-their height as shaded prisms — walls painter-sorted back→front, top faces with holes via evenodd. A **3D**
-toggle swaps the top-down canvas for the iso layer (the canvas hides its viewport + ignores tool input while
-active); a button rotates the ground-plane yaw 90°. Per-island height = its tallest shape's `base_height`,
-floor = its lowest. The inspector gained **Height**/**Floor** fields (the editable half of S5b).
+their height as prisms. Reads as "looking down" via three cues: a **ground-plane reference** (the working
+bbox at y=0), **opaque** faces (nearer masses occlude farther — no see-through nesting), and **bright tops
+over two-tone side walls** (lit from above); everything painter-ordered back→front, top faces with holes via
+evenodd. A **3D** toggle swaps the top-down canvas for the iso layer (the canvas hides its viewport + ignores
+tool input while active); a button rotates the ground-plane yaw 90°. Per-island height = its tallest shape's
+`base_height`, floor = its lowest. The inspector gained **Height**/**Floor** fields (the editable half of S5b).
 
 **Why not three.js / voxels.** Two findings drove this. (1) A perf probe showed sketch-finish slowness was
 **island polygon-union, not rasterization** (raster ~10 ms; `BlocksToPolygon` ~600 ms — since fixed), so the
