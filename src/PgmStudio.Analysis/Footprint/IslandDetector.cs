@@ -342,9 +342,23 @@ public static class IslandDetector
 
     private static Geometry BlocksToPolygon(List<(int X, int Z)> comp)
     {
-        var squares = comp.Select(c =>
-            (Geometry)Gf.ToGeometry(new Envelope(c.X, c.X + 1, c.Z, c.Z + 1))).ToList();
-        var poly = UnaryUnionOp.Union((IEnumerable<Geometry>)squares);
+        // Union one rectangle per maximal horizontal run rather than one square per cell: the covered area
+        // (and therefore the union polygon) is identical, but GEOS gets ~rows-many inputs instead of cells-many
+        // — the unit-square union was the finish-step hotspot.
+        var rects = new List<Geometry>();
+        foreach (var row in comp.GroupBy(c => c.Z))
+        {
+            var xs = row.Select(c => c.X).OrderBy(x => x).ToList();
+            int start = xs[0], prev = xs[0];
+            for (var i = 1; i < xs.Count; i++)
+            {
+                if (xs[i] == prev + 1) { prev = xs[i]; continue; }
+                rects.Add(Gf.ToGeometry(new Envelope(start, prev + 1, row.Key, row.Key + 1)));
+                start = prev = xs[i];
+            }
+            rects.Add(Gf.ToGeometry(new Envelope(start, prev + 1, row.Key, row.Key + 1)));
+        }
+        var poly = UnaryUnionOp.Union((IEnumerable<Geometry>)rects);
         if (!poly.IsValid) poly = GeometryFixer.Fix(poly);
         // Diagonal-only touches can split into a MultiPolygon — keep the largest part (matches Python).
         if (poly is MultiPolygon mp && mp.NumGeometries > 0)
