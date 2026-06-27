@@ -20,6 +20,7 @@ import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis, renderPlaceGhost,
 } from "../render/sketch-render.js";
+import { renderIso } from "../render/iso-render.js";
 
 const FIT_MARGIN = 0.85;
 const identityTransform = (x, z) => ({ x, y: z });
@@ -52,6 +53,8 @@ export class SketchCanvas extends CanvasBase {
   #mirrorLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null;
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
+  #isoLayer = null;   // read-only isometric preview (S6) — replaces the viewport when active
+  #isoOn    = false;
 
   constructor(svgEl_, wrapEl, { cursorEl, zoomEl, dimEl, ...callbacks } = {}) {
     super(svgEl_, wrapEl);
@@ -151,12 +154,31 @@ export class SketchCanvas extends CanvasBase {
   setMirrorVisible(v) { this.#mirrorVisible = v; if (this.#mirrorLayer) this.#mirrorLayer.style.display = v ? "" : "none"; }
   setChunkVisible(v)  { if (this.#chunkLayer) this.#chunkLayer.style.display = v ? "" : "none"; }
 
+  // ── isometric preview (S6) ─────────────────────────────────────────────────────
+  // Swap the top-down viewport for a read-only iso render of the extruded islands.
+  showIso(islands, yawDeg) {
+    this.#isoOn = true;
+    this.#draw?.cancel();
+    const { w, h } = this.#size();
+    for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) g.style.display = "none";
+    this.#isoLayer.style.display = "";
+    renderIso(this.#isoLayer, islands, w, h, yawDeg);
+  }
+  hideIso() {
+    this.#isoOn = false;
+    while (this.#isoLayer.firstChild) this.#isoLayer.removeChild(this.#isoLayer.firstChild);
+    this.#isoLayer.style.display = "none";
+    this._viewportG.style.display = "";
+    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) g.style.display = "";
+  }
+
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
   _onViewportChanged() { this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
+    if (this.#isoOn) return;   // iso preview is read-only
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this._activeTool === "place") { if (this.#placeSpecs) this.#callbacks.onPlace?.(bx, bz); return; }
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
@@ -183,6 +205,7 @@ export class SketchCanvas extends CanvasBase {
   }
 
   _onCanvasClick(e, svgPt) {
+    if (this.#isoOn) return;
     this.#callbacks.onShapeSelected?.(this.#hitTest(svgPt.x, svgPt.y));
   }
 
@@ -198,7 +221,7 @@ export class SketchCanvas extends CanvasBase {
   // Body-drag (CV10): drag the selected shape's body to move it. World == svg base coords here, so the
   // default _toWorld (identity) is correct — no override.
   _hitMovable(world) {
-    if (!this.#selectedId) return null;
+    if (this.#isoOn || !this.#selectedId) return null;
     const s = this.#shapes.get(this.#selectedId);
     return (s && containsPoint(s, world.x, world.z)) ? this.#selectedId : null;
   }
@@ -241,7 +264,9 @@ export class SketchCanvas extends CanvasBase {
     this.#handlesLayer     = svgEl("g");
     this.#centerLayer      = svgEl("g", { "pointer-events": "none" });
     this.#drawHandlesLayer = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) this._svg.appendChild(g);
+    this.#isoLayer         = svgEl("g", { "pointer-events": "none" });
+    this.#isoLayer.style.display = "none";
+    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#isoLayer]) this._svg.appendChild(g);
 
     if (!this.#shapesVisible) this.#shapesLayer.style.display = "none";
     if (!this.#mirrorVisible) this.#mirrorLayer.style.display = "none";

@@ -10,7 +10,9 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("type")] string Type,
     [property: JsonPropertyName("operation")] string Operation,
     [property: JsonPropertyName("override")] bool Override,
-    [property: JsonPropertyName("dim")] string Dim);
+    [property: JsonPropertyName("dim")] string Dim,
+    [property: JsonPropertyName("baseHeight")] double BaseHeight = 0,
+    [property: JsonPropertyName("floor")] double Floor = 0);
 
 public sealed record SketchIslandRow(
     [property: JsonPropertyName("id")] string Id,

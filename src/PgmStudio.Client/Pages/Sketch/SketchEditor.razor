@@ -108,6 +108,12 @@
               <button class="filter-chip @(chunksOn ? "filter-chip--active" : null)" title="Show the 16-block chunk grid"
                       @onclick="ToggleChunks">Chunks</button>
               <button class="filter-chip" title="Fit the working bounds" @onclick="OnFit"><i data-lucide="scan"></i></button>
+              <button class="filter-chip @(threeD ? "filter-chip--active" : null)" title="Isometric height preview (read-only)"
+                      @onclick="Toggle3D">3D</button>
+              @if (threeD)
+              {
+                <button class="filter-chip" title="Rotate the preview 90°" @onclick="RotateIso"><i data-lucide="rotate-cw"></i></button>
+              }
               <span @ref="zoomRef" class="canvas-zoom">—</span>
             </div>
           </div>
@@ -118,7 +124,7 @@
         <div class="sidebar-handle"></div>
         <SketchInspector Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"
                          OnToggleOp="ToggleOp" OnToggleOverride="ToggleOverride" OnDeleteShape="DeleteShape"
-                         OnPromoteShape="PromoteShape" OnToggleMirrors="ToggleMirrors" OnRenameIsland="RenameIsland" />
+                         OnPromoteShape="PromoteShape" OnSetHeight="SetHeight" OnToggleMirrors="ToggleMirrors" OnRenameIsland="RenameIsland" />
       </div>
     </div>
   </div>

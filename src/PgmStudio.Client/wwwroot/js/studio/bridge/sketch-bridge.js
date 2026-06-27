@@ -29,6 +29,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   let savedMetas = [];         // island metadata loaded from persistence (name/mirrors/shapeIds)
   let mirrorVisible = true;
   let selectedIslandId = null; // panel island selection (drives arrow-move of the whole island)
+  let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
+  let isoYaw = 30;
 
   const fire = (name, ...args) => { try { dotnetRef?.invokeMethodAsync(name, ...args); } catch { /* host may not wire it */ } };
   const markDirty = () => fire("OnDirty", islands.length);
@@ -126,7 +128,35 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     canvas.setIslands(next.map(i => ({ exterior: i.exterior, holes: i.holes })));
     refreshMirror();
     pushLayout();
+    refreshIso();
   }
+
+  // Per-island extrusion column for the iso preview: top = the tallest shape in the island, floor = the
+  // lowest. Mirror copies (when shown) reuse their source island's column.
+  function islandsForIso() {
+    const byId = new Map(canvas.getShapes().map(s => [s.id, s]));
+    const columnOf = (isl) => {
+      let top = 0, floor = 0, any = false;
+      for (const sid of (isl.shapeIds ?? [])) {
+        const s = byId.get(sid); if (!s) continue;
+        any = true;
+        top = Math.max(top, s.base_height ?? 0);
+        floor = Math.min(floor, s.floor ?? 0);
+      }
+      return { top: any ? top : 0, floor };
+    };
+    const out = islands.map(i => ({ exterior: i.exterior, holes: i.holes, ...columnOf(i), mirror: false }));
+    if (mirrorVisible && setup.mirror_mode) {
+      const { cx = 0, cz = 0 } = setup.center ?? {};
+      for (const m of computeMirrorPreview(islands, setup.mirror_mode, cx, cz)) {
+        const src = islands.find(i => i.id === m.sourceId);
+        out.push({ exterior: m.exterior, holes: m.holes, ...(src ? columnOf(src) : { top: 0, floor: 0 }), mirror: true });
+      }
+    }
+    return out;
+  }
+
+  function refreshIso() { if (view === "iso") canvas.showIso(islandsForIso(), isoYaw); }
 
   function refreshMirror() {
     if (!mirrorVisible || !setup.mirror_mode) { canvas.setMirrorPolygons([]); return; }
@@ -136,7 +166,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
 
   // Push the island→shape tree to the Blazor panel (compact — render fields + a precomputed dim label).
   function pushLayout() {
-    const shapes = canvas.getShapes().map(s => ({ id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s) }));
+    const shapes = canvas.getShapes().map(s => ({ id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s), baseHeight: s.base_height ?? 0, floor: s.floor ?? 0 }));
     const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
     fire("OnLayout", JSON.stringify({ islands: isl, shapes }));
   }
@@ -197,6 +227,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
+    setView(v)         { view = v === "iso" ? "iso" : "2d"; if (view === "iso") canvas.showIso(islandsForIso(), isoYaw); else canvas.hideIso(); },
+    rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
+    setHeight(id, base, floor) {
+      const s = canvas.getShape(id); if (!s) return;
+      if (base  !== null && base  !== undefined) s.base_height = base;
+      if (floor !== null && floor !== undefined) s.floor = floor;
+      pushLayout(); refreshIso(); markDirty();
+    },
 
     // Panel-driven edits.
     selectShape(id)    { selectShape(id ?? null); },

@@ -144,16 +144,26 @@ The finish writers currently emit a single surface layer at Y=0 (`WriteSketchAsy
 
 ---
 
-## 4. 3-D preview (S6)
+## 4. 3-D preview (S6) — **shipped: isometric SVG extrusion**
 
 Read-only, no new authoring model — it just makes §3/§5 legible while drawing.
 
-- A **three.js orbit view** over the rasterized/extruded result: box-render the `(x,z,YTop,YFloor)`
-  columns (greedy-merge runs of equal-height cells into boxes to keep it cheap). Per-layer colour for §5.
-- Drives off the **same JS rasterizer** that backs the live preview (parity with C# `SketchRasterizer`),
-  so the 3-D view and the finished world agree. Update on edit-settle (debounced), not per-mousemove.
-- Lives beside the 2-D canvas (toggle/split). No interaction beyond camera — editing stays 2-D.
-- Build **right after per-shape `BaseHeight`** (§3a) so extrusion is visible the moment it exists.
+**What shipped** (revised from the original three.js/voxel plan): a **read-only isometric SVG view**
+(`render/iso-render.js`) that extrudes the composed `boolean.js` **island polygons** (+ mirror copies) to
+their height as shaded prisms — walls painter-sorted back→front, top faces with holes via evenodd. A **3D**
+toggle swaps the top-down canvas for the iso layer (the canvas hides its viewport + ignores tool input while
+active); a button rotates the ground-plane yaw 90°. Per-island height = its tallest shape's `base_height`,
+floor = its lowest. The inspector gained **Height**/**Floor** fields (the editable half of S5b).
+
+**Why not three.js / voxels.** Two findings drove this. (1) A perf probe showed sketch-finish slowness was
+**island polygon-union, not rasterization** (raster ~10 ms; `BlocksToPolygon` ~600 ms — since fixed), so the
+voxel-*compute* worry was unfounded — but a voxel view still needs a JS `RasterizeColumns`+TIN twin
+(parity burden) and box meshing. (2) The env is a **firewalled, no-bundler hosted-WASM** app where vendoring
+three.js fights the asset pipeline. Extruding the islands we already compute, in the SVG stack we already use,
+delivers the goal (see the height/massing) with zero new dependency.
+
+**Upgrades (not built):** per-anchor **TIN-draped tops** (the iso shows a flat top per island today; per-vertex
+terrain would mesh the triangulated surface) and **true orbit** (three.js) if free rotation is wanted later.
 
 ---
 

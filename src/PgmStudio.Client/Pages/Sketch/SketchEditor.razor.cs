@@ -33,6 +33,7 @@ public partial class SketchEditor
     private bool mirrorOn = true;
     private bool shapesOn = false;
     private bool chunksOn = true;
+    private bool threeD = false;
     private string islandLabel = "";
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
@@ -165,6 +166,17 @@ public partial class SketchEditor
     {
         if (handle is not null) await handle.InvokeVoidAsync("fitToBbox");
     }
+
+    private async Task Toggle3D()
+    {
+        threeD = !threeD;
+        if (handle is not null) await handle.InvokeVoidAsync("setView", threeD ? "iso" : "2d");
+    }
+
+    private Task RotateIso() => handle?.InvokeVoidAsync("rotateIso").AsTask() ?? Task.CompletedTask;
+
+    private Task SetHeight((string Id, double Base, double Floor) e)
+        => handle?.InvokeVoidAsync("setHeight", e.Id, e.Base, e.Floor).AsTask() ?? Task.CompletedTask;
 
     // ── Panel / inspector actions → the JS bridge ──────────────────────────────
 
