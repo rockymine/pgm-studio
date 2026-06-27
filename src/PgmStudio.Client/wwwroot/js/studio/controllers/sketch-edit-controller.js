@@ -46,20 +46,21 @@ export class SketchEditController {
   #callbacks;
 
   #selectedId      = null;
+  #selectedVertex  = -1;     // index of the click-selected vertex (for per-anchor height editing, S5b)
   #rectResizeState = null;
   #vertexDragState = null;
   #bezierDragState = null;
   #ghostEl         = null;
   #hoveredEdgeIdx  = -1;
 
-  constructor(handlesLayer, getViewport, getShape, { onShapeUpdated } = {}) {
+  constructor(handlesLayer, getViewport, getShape, { onShapeUpdated, onVertexSelected } = {}) {
     this.#handlesLayer = handlesLayer;
     this.#getViewport  = getViewport;
     this.#getShape     = getShape;
-    this.#callbacks    = { onShapeUpdated };
+    this.#callbacks    = { onShapeUpdated, onVertexSelected };
   }
 
-  setSelected(id) { this.#selectedId = id; }
+  setSelected(id) { if (id !== this.#selectedId) this.#selectedVertex = -1; this.#selectedId = id; }
 
   /** Redraw handles for the selected shape (call after viewport changes too). */
   refresh() {
@@ -101,7 +102,10 @@ export class SketchEditController {
       return true;
     }
     if (this.#vertexDragState) {
-      const { shapeId, vertexIdx } = this.#vertexDragState;
+      const st = this.#vertexDragState;
+      if (!st.moved && Math.hypot(wx - st.sx, wz - st.sz) < 0.5) return true;   // jitter — keep it a click
+      st.moved = true;
+      const { shapeId, vertexIdx } = st;
       const shape = this.#getShape(shapeId);
       if (shape?.type === "polygon" || shape?.type === "lasso") {
         const [oldX, oldZ] = shape.vertices[vertexIdx];
@@ -175,11 +179,11 @@ export class SketchEditController {
     }
     if (this.#rectResizeState) { this.#rectResizeState = null; this.refresh(); return true; }
     if (this.#vertexDragState) {
-      const { shapeId } = this.#vertexDragState;
+      const { shapeId, vertexIdx, moved } = this.#vertexDragState;
       this.#vertexDragState = null;
+      if (!moved) { this.#selectedVertex = vertexIdx; this.#callbacks.onVertexSelected?.(shapeId, vertexIdx); }
       this.refresh();
-      const shape = this.#getShape(shapeId);
-      if (shape) this.#callbacks.onShapeUpdated?.(shape);
+      if (moved) { const shape = this.#getShape(shapeId); if (shape) this.#callbacks.onShapeUpdated?.(shape); }
       return true;
     }
     return false;
@@ -293,12 +297,27 @@ export class SketchEditController {
       }
     }
 
+    // Per-vertex height labels (the shape's height profile — anchor height, else its base height).
+    const base = shape.base_height ?? 0;
+    shape.vertices.forEach(([wx, wz], idx) => {
+      const sp = this.#toScreen(wx, wz);
+      const hh = shape.anchor_heights?.[idx] ?? base;
+      const label = svgEl("text", {
+        x: sp.x + 7, y: sp.y - 5, "font-size": "9", "font-weight": "600",
+        fill: idx === this.#selectedVertex ? "var(--accent)" : "var(--text-muted)", "pointer-events": "none",
+      });
+      label.textContent = `${Math.round(hh)}`;
+      this.#handlesLayer.appendChild(label);
+    });
+
     // Vertex handles on top.
     shape.vertices.forEach(([wx, wz], idx) => {
       const sp = this.#toScreen(wx, wz);
+      const selected = idx === this.#selectedVertex;
       const h = svgEl("rect", {
         ...handleRectAttrs(sp.x, sp.y, VERTEX_HALF),
-        fill: "var(--bg-deep)", stroke: "var(--text-muted)", "stroke-width": "1", style: "cursor:move",
+        fill: selected ? "var(--accent)" : "var(--bg-deep)", stroke: selected ? "var(--accent)" : "var(--text-muted)",
+        "stroke-width": "1", style: "cursor:move",
       });
       h.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
@@ -307,7 +326,8 @@ export class SketchEditController {
           if (!shape.controls) shape.controls = {};
           this.#bezierDragState = { shapeId: shape.id, vertexIdx: idx, handle: "out" };
         } else {
-          this.#vertexDragState = { shapeId: shape.id, vertexIdx: idx };
+          // Track start + a movement flag so a click (no drag) selects the vertex for height editing.
+          this.#vertexDragState = { shapeId: shape.id, vertexIdx: idx, sx: wx, sz: wz, moved: false };
         }
       });
       h.addEventListener("click", (e) => e.stopPropagation());

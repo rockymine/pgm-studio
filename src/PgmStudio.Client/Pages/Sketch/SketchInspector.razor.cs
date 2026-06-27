@@ -12,6 +12,9 @@ public partial class SketchInspector
     [Parameter] public EventCallback<string> OnDeleteShape { get; set; }
     [Parameter] public EventCallback<string> OnPromoteShape { get; set; }
     [Parameter] public EventCallback<(string Id, double Base, double Floor)> OnSetHeight { get; set; }
+    [Parameter] public int SelectedVertexIdx { get; set; } = -1;
+    [Parameter] public double SelectedVertexHeight { get; set; }
+    [Parameter] public EventCallback<(string Id, int Idx, double Height)> OnSetVertexHeight { get; set; }
     [Parameter] public EventCallback<string> OnToggleMirrors { get; set; }
     [Parameter] public EventCallback<(string Id, string Name)> OnRenameIsland { get; set; }
 
@@ -31,6 +34,10 @@ public partial class SketchInspector
     private Task FloorChanged(ChangeEventArgs e)
         => Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
             ? OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v)) : Task.CompletedTask;
+
+    private Task VertexHeightChanged(ChangeEventArgs e)
+        => Shape is not null && SelectedVertexIdx >= 0 && double.TryParse(e.Value?.ToString(), out var v)
+            ? OnSetVertexHeight.InvokeAsync((Shape.Id, SelectedVertexIdx, v)) : Task.CompletedTask;
 
     private Task RenameChanged(ChangeEventArgs e)
         => Island is null ? Task.CompletedTask
