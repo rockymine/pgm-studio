@@ -40,6 +40,8 @@ public partial class SketchEditor
     private List<SketchIslandRow> islands = [];
     private List<SketchShapeRow> shapes = [];
     private List<LibraryItem> libraryItems = [];
+    private List<SketchLayerRow> layerRows = [];
+    private string? activeLayerId;
     private string? selectedShapeId;
     private string? selectedIslandId;
 
@@ -187,6 +189,13 @@ public partial class SketchEditor
     private Task DeleteShape(string id) => handle?.InvokeVoidAsync("deleteShape", id).AsTask() ?? Task.CompletedTask;
     private Task PromoteShape(string id) => handle?.InvokeVoidAsync("promoteShape", id).AsTask() ?? Task.CompletedTask;
     private Task ArmPlace(string itemId) => handle?.InvokeVoidAsync("armPlace", itemId).AsTask() ?? Task.CompletedTask;
+
+    // ── Layer panel actions (S7b) ──────────────────────────────────────────────
+    private Task SelectLayer(string id) => handle?.InvokeVoidAsync("switchLayer", id).AsTask() ?? Task.CompletedTask;
+    private Task AddLayer() => handle?.InvokeVoidAsync("addLayer").AsTask() ?? Task.CompletedTask;
+    private Task DeleteLayer(string id) => handle?.InvokeVoidAsync("deleteLayer", id).AsTask() ?? Task.CompletedTask;
+    private Task RenameLayer((string Id, string Name) e) => handle?.InvokeVoidAsync("renameLayer", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
+    private Task SetLayerBaseY((string Id, double BaseY) e) => handle?.InvokeVoidAsync("setLayerBaseY", e.Id, e.BaseY).AsTask() ?? Task.CompletedTask;
     private Task ToggleMirrors(string islandId) => handle?.InvokeVoidAsync("toggleMirrors", islandId).AsTask() ?? Task.CompletedTask;
     private Task RenameIsland((string Id, string Name) e) => handle?.InvokeVoidAsync("renameIsland", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
 
@@ -207,6 +216,16 @@ public partial class SketchEditor
         var dto = JsonSerializer.Deserialize<SketchLayoutDto>(json);
         islands = dto?.Islands ?? [];
         shapes = dto?.Shapes ?? [];
+        StateHasChanged();
+    }
+
+    /// <summary>The bridge pushed the layer list + active id (on layer add/switch/delete/edit).</summary>
+    [JSInvokable]
+    public void OnLayers(string json)
+    {
+        var dto = JsonSerializer.Deserialize<SketchLayersDto>(json);
+        layerRows = dto?.Layers ?? [];
+        activeLayerId = dto?.Active;
         StateHasChanged();
     }
 

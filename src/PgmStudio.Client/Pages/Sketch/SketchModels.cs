@@ -24,6 +24,16 @@ public sealed record SketchLayoutDto(
     [property: JsonPropertyName("islands")] List<SketchIslandRow> Islands,
     [property: JsonPropertyName("shapes")] List<SketchShapeRow> Shapes);
 
+// A stacked layer row (from the bridge's OnLayers): identity + Y offset, for the Layers panel (S7b).
+public sealed record SketchLayerRow(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("baseY")] double BaseY);
+
+public sealed record SketchLayersDto(
+    [property: JsonPropertyName("active")] string Active,
+    [property: JsonPropertyName("layers")] List<SketchLayerRow> Layers);
+
 // A shape-library palette entry (from the JS catalog via the bridge's getLibrary): identity + a
 // thumbnail (SVG path `d` + viewBox in cell units) the palette renders.
 public sealed record LibraryItem(

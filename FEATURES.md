@@ -537,6 +537,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   preserved). `WriteSketchAsync` writes every segment to `layer_segment` and the surface row at each column's
   max top. Verified by unit tests + a DB-level finish (two Y bands, shared column carries both). (S7 —
   rasterization; editor UI is S7b) §5.
+- **Stacked-layers editor** — a **Layers** panel in the sketch sidebar: add / select (active) / delete layers
+  and set each layer's **name** + **Base Y**. The canvas edits the active layer with the **other layers
+  ghosted** (faint dashed outlines, `renderGhostIslands`); the iso 3-D preview **stacks** every layer by
+  `base_y` (a block floating 30 above the ground reads as a sky platform). The bridge holds multi-layer state
+  (active index + per-layer shapes/islands) and persists the `layers[]` array (round-trips on reload). The
+  `SketchLayers` component. (S7b) §5.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
