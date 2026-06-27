@@ -1,0 +1,39 @@
+@namespace PgmStudio.Client.Pages.Sketch
+
+@* Stacked-layers panel (S7b) — pick the active layer (edited on the canvas), add/delete, and set the
+   active layer's name + base Y. Lower/other layers render ghosted on the canvas; the iso preview stacks
+   them. State comes from the JS bridge (OnLayers); edits round-trip via the host. *@
+
+<section class="panel-section">
+  <div class="section-header section-header--ruled"><h2 class="section-title">Layers</h2></div>
+
+  @foreach (var L in Layers)
+  {
+    <div class="list-row list-row--compact @(L.Id == ActiveId ? "list-row--active" : null)"
+         @onclick="() => OnSelect.InvokeAsync(L.Id)">
+      <span class="geo-type-icon"><i data-lucide="layers"></i></span>
+      <span class="list-label">@L.Name</span>
+      <span class="list-tag">y @L.BaseY</span>
+      @if (Layers.Count > 1)
+      {
+        <button class="list-row-btn" title="Delete layer" @onclick="() => OnDelete.InvokeAsync(L.Id)" @onclick:stopPropagation="true">
+          <i data-lucide="x"></i>
+        </button>
+      }
+    </div>
+  }
+
+  <button class="action-btn action-btn--full" @onclick="OnAdd"><i data-lucide="plus"></i> Add layer</button>
+
+  @if (ActiveLayer is not null)
+  {
+    <div class="field">
+      <label class="field-label">Layer name</label>
+      <input class="field-input" value="@ActiveLayer.Name" @onchange="RenameActive" />
+    </div>
+    <div class="field">
+      <label class="field-label">Base Y (blocks)</label>
+      <input class="field-input" type="number" step="1" value="@ActiveLayer.BaseY" @onchange="BaseYActive" />
+    </div>
+  }
+</section>

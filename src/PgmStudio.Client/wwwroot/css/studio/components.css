@@ -374,6 +374,12 @@
 /* Compact select sized to sit among the subbar chips (overrides .field-input's panel sizing). */
 .canvas-island-select { width: auto; min-width: 0; padding: 2px 8px; font-size: var(--font-sm); }
 
+/* Layers panel (S7b) — active row highlight + inline delete. */
+.list-row--active { background: var(--accent-light); border-left: 2px solid var(--accent); }
+.list-row-btn { margin-left: auto; display: inline-flex; align-items: center; background: none; border: none;
+  color: var(--text-muted); cursor: pointer; padding: 2px; border-radius: 3px; }
+.list-row-btn:hover { color: var(--error, var(--text)); background: var(--surface-2, transparent); }
+
 /* Shape-library palette (left sidebar) — thumbnail grid grouped by category. */
 .lib-group-label { font-size: var(--font-sm); color: var(--text-muted); text-transform: uppercase;
   letter-spacing: 0.04em; margin: 8px 0 4px; }

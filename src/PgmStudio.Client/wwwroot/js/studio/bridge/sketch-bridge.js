@@ -25,8 +25,11 @@ function dimLabel(s) {
 
 export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   let setup = { ...DEFAULT_SETUP };
-  let islands = [];            // latest computeIslands result (full, with metadata) — also prev for carry-over
-  let savedMetas = [];         // island metadata loaded from persistence (name/mirrors/shapeIds)
+  // Stacked layers (S7b): each holds its own shapes/islands at a base_y. The canvas always edits the
+  // ACTIVE layer's shapes; other layers keep cached shapes+islands for ghosting (2-D) and stacking (iso).
+  let layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], islands: [], savedMetas: [] }];
+  let active = 0;
+  let islands = [];            // alias of layers[active].islands — kept current by recompute()
   let mirrorVisible = true;
   let selectedIslandId = null; // panel island selection (drives arrow-move of the whole island)
   let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
@@ -34,6 +37,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
 
   const fire = (name, ...args) => { try { dotnetRef?.invokeMethodAsync(name, ...args); } catch { /* host may not wire it */ } };
   const markDirty = () => fire("OnDirty", islands.length);
+  const syncActive = () => { if (layers[active]) layers[active].shapes = canvas.getShapes(); };
+
+  // Compute a layer's islands from its shapes (used for non-active layers at load + on switch).
+  function computeLayerIslands(shapes, savedMetas) {
+    const { islands: next, addUnion, afterSub, overrideAddUnion } = computeIslands(shapes, []);
+    assignShapesToIslands(shapes, next, addUnion, overrideAddUnion, afterSub);
+    if (savedMetas?.length) restoreIslandMeta(next, savedMetas, ["id", "name", "mirrors"]);
+    return next;
+  }
+
+  // The other layers' island outlines (for the 2-D ghost render).
+  const ghostPolys = () => layers.flatMap((L, i) => i === active ? [] : L.islands.map(o => ({ exterior: o.exterior, holes: o.holes })));
 
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
@@ -123,34 +138,43 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     const prev = restoreFromSaved ? [] : islands;
     const { islands: next, addUnion, afterSub, overrideAddUnion } = computeIslands(shapes, prev);
     assignShapesToIslands(shapes, next, addUnion, overrideAddUnion, afterSub);
-    if (restoreFromSaved && savedMetas.length) restoreIslandMeta(next, savedMetas, ["id", "name", "mirrors"]);
+    const sm = layers[active].savedMetas;
+    if (restoreFromSaved && sm?.length) restoreIslandMeta(next, sm, ["id", "name", "mirrors"]);
     islands = next;
+    layers[active].islands = next;
+    layers[active].shapes = shapes;
     canvas.setIslands(next.map(i => ({ exterior: i.exterior, holes: i.holes })));
+    canvas.setGhostIslands(ghostPolys());
     refreshMirror();
     pushLayout();
+    pushLayers();
     refreshIso();
   }
 
-  // Per-island extrusion column for the iso preview: top = the tallest shape in the island, floor = the
-  // lowest. Mirror copies (when shown) reuse their source island's column.
+  // Every layer's islands extruded for the iso preview, each column shifted by the layer's base_y. Top =
+  // base_y + the island's tallest shape; floor = base_y + its lowest. Mirror copies reuse the source column.
   function islandsForIso() {
-    const byId = new Map(canvas.getShapes().map(s => [s.id, s]));
-    const columnOf = (isl) => {
-      let top = 0, floor = 0, any = false;
-      for (const sid of (isl.shapeIds ?? [])) {
-        const s = byId.get(sid); if (!s) continue;
-        any = true;
-        top = Math.max(top, s.base_height ?? 0);
-        floor = Math.min(floor, s.floor ?? 0);
-      }
-      return { top: any ? top : 0, floor };
-    };
-    const out = islands.map(i => ({ exterior: i.exterior, holes: i.holes, ...columnOf(i), mirror: false }));
-    if (mirrorVisible && setup.mirror_mode) {
-      const { cx = 0, cz = 0 } = setup.center ?? {};
-      for (const m of computeMirrorPreview(islands, setup.mirror_mode, cx, cz)) {
-        const src = islands.find(i => i.id === m.sourceId);
-        out.push({ exterior: m.exterior, holes: m.holes, ...(src ? columnOf(src) : { top: 0, floor: 0 }), mirror: true });
+    syncActive();
+    const { cx = 0, cz = 0 } = setup.center ?? {};
+    const out = [];
+    for (const L of layers) {
+      const byId = new Map(L.shapes.map(s => [s.id, s]));
+      const columnOf = (isl) => {
+        let top = 0, floor = 0, any = false;
+        for (const sid of (isl.shapeIds ?? [])) {
+          const s = byId.get(sid); if (!s) continue;
+          any = true;
+          top = Math.max(top, s.base_height ?? 0);
+          floor = Math.min(floor, s.floor ?? 0);
+        }
+        return { top: L.baseY + (any ? top : 0), floor: L.baseY + floor };
+      };
+      for (const isl of L.islands) out.push({ exterior: isl.exterior, holes: isl.holes, ...columnOf(isl), mirror: false });
+      if (mirrorVisible && setup.mirror_mode) {
+        for (const m of computeMirrorPreview(L.islands, setup.mirror_mode, cx, cz)) {
+          const src = L.islands.find(i => i.id === m.sourceId);
+          out.push({ exterior: m.exterior, holes: m.holes, ...(src ? columnOf(src) : { top: L.baseY, floor: L.baseY }), mirror: true });
+        }
       }
     }
     return out;
@@ -170,6 +194,52 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
     fire("OnLayout", JSON.stringify({ islands: isl, shapes }));
   }
+
+  // Push the layer list (id/name/base_y + active) to the Blazor layer panel.
+  function pushLayers() {
+    fire("OnLayers", JSON.stringify({ active: layers[active].id, layers: layers.map(L => ({ id: L.id, name: L.name, baseY: L.baseY })) }));
+  }
+
+  // Load the active layer's shapes onto the canvas (after a switch/delete) and recompute.
+  function loadActiveToCanvas() {
+    canvas.clearShapes();
+    for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
+    selectShape(null);
+    recompute();
+  }
+
+  function switchLayer(id) {
+    const i = layers.findIndex(L => L.id === id);
+    if (i < 0 || i === active) return;
+    syncActive();
+    active = i;
+    loadActiveToCanvas();
+    markDirty();
+  }
+
+  function addLayer() {
+    syncActive();
+    const baseY = Math.max(0, ...layers.map(L => L.baseY)) + 10;   // stack the new slab above by default
+    layers.push({ id: genId(), name: `Layer ${layers.length + 1}`, baseY, shapes: [], islands: [], savedMetas: [] });
+    active = layers.length - 1;
+    loadActiveToCanvas();
+    markDirty();
+  }
+
+  function deleteLayer(id) {
+    if (layers.length <= 1) return;             // always keep one layer
+    const i = layers.findIndex(L => L.id === id);
+    if (i < 0) return;
+    syncActive();
+    layers.splice(i, 1);
+    if (active > i) active--;
+    if (active >= layers.length) active = layers.length - 1;
+    loadActiveToCanvas();
+    markDirty();
+  }
+
+  function renameLayer(id, name) { const L = layers.find(l => l.id === id); if (!L) return; L.name = name; pushLayers(); markDirty(); }
+  function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); refreshIso(); markDirty(); }
 
   // Arrow-key nudge (Shift = 16) of the selected island (all its shapes) or the selected shape.
   const onKey = (e) => {
@@ -248,23 +318,46 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     toggleMirrors(islandId) { const i = islandById(islandId); if (!i) return; i.mirrors = !i.mirrors; refreshMirror(); pushLayout(); markDirty(); },
     renameIsland(islandId, name) { const i = islandById(islandId); if (!i) return; i.name = name; pushLayout(); markDirty(); },
 
-    // Load a persisted layout (S2d): setup + shapes + island metadata → render + recompute.
+    // Layer ops (S7b).
+    addLayer()              { addLayer(); },
+    switchLayer(id)         { switchLayer(id); },
+    deleteLayer(id)         { deleteLayer(id); },
+    renameLayer(id, name)   { renameLayer(id, name); },
+    setLayerBaseY(id, y)    { setLayerBaseY(id, y); },
+
+    // Load a persisted layout: setup + the layers[] array (or a legacy single layout → one layer at base_y 0).
     load(state) {
       const s = state ?? {};
       if (s.setup) applySetup(s.setup);
-      savedMetas = s.layout?.islands ?? [];
+      const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
+      layers = raw.map((L, i) => ({
+        id: L.id || genId(),
+        name: L.name || (i === 0 ? "Ground" : `Layer ${i + 1}`),
+        baseY: L.base_y ?? 0,
+        shapes: (L.layout?.shapes ?? []).map(sh => ({ ...sh })),
+        islands: [],
+        savedMetas: L.layout?.islands ?? [],
+      }));
+      if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], islands: [], savedMetas: [] }];
+      active = 0;
+      // Cache the non-active layers' islands (for ghosts/iso); the active one is computed by recompute(true).
+      for (let i = 0; i < layers.length; i++) if (i !== active) layers[i].islands = computeLayerIslands(layers[i].shapes, layers[i].savedMetas);
       canvas.clearShapes();
-      for (const shape of (s.layout?.shapes ?? [])) canvas.addShape({ ...shape });
+      for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
       recompute(true);
     },
-    // The layout for the host to persist (the SketchLayoutJson shape).
+    // The layout for the host to persist (the SketchLayoutJson shape — now layers[]).
     getState() {
+      syncActive();
       return {
         setup,
-        layout: {
-          shapes: canvas.getShapes(),
-          islands: islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds })),
-        },
+        layers: layers.map(L => ({
+          id: L.id, name: L.name, base_y: L.baseY,
+          layout: {
+            shapes: L.shapes,
+            islands: (L.islands ?? []).map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds })),
+          },
+        })),
       };
     },
     islandCount() { return islands.length; },

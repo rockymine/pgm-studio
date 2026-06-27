@@ -81,6 +81,20 @@ export function renderIslands(layer, islands, toSvg) {
   }
 }
 
+/** Paint the *other* layers' island outlines faintly (S7) — context for aligning the active layer. */
+export function renderGhostIslands(layer, polys, toSvg) {
+  clear(layer);
+  for (const p of polys) {
+    if (!p?.exterior?.length) continue;
+    layer.appendChild(svgEl("path", {
+      d: polyToPath({ exterior: p.exterior, holes: p.holes ?? [] }, toSvg),
+      fill: "var(--canvas-island)", "fill-opacity": "0.07",
+      stroke: "var(--canvas-island)", "stroke-width": "1", "stroke-dasharray": "2 4",
+      "fill-rule": "evenodd", "vector-effect": "non-scaling-stroke",
+    }));
+  }
+}
+
 /** Paint the live mirror-preview polygons into `layer` (cleared first). */
 export function renderMirror(layer, polys, toSvg) {
   clear(layer);

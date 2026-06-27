@@ -18,7 +18,7 @@ import { containsPoint, toBounds, translateShape } from "../geometry/shape.js";
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis, renderPlaceGhost,
+  renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis, renderPlaceGhost, renderGhostIslands,
 } from "../render/sketch-render.js";
 import { renderIso } from "../render/iso-render.js";
 
@@ -50,7 +50,7 @@ export class SketchCanvas extends CanvasBase {
 
   // viewport layers
   #bboxLayer = null; #chunkLayer = null; #axisLayer = null;
-  #mirrorLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null;
+  #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null;
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
   #isoLayer = null;   // read-only isometric preview (S6) — replaces the viewport when active
@@ -149,6 +149,7 @@ export class SketchCanvas extends CanvasBase {
   get selectedId() { return this.#selectedId; }
 
   setIslands(islands)        { this.#islands = islands ?? []; renderIslands(this.#islandLayer, this.#islands, identityTransform); }
+  setGhostIslands(polys)     { renderGhostIslands(this.#ghostLayer, polys ?? [], identityTransform); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; renderMirror(this.#mirrorLayer, this.#mirrorPolys, identityTransform); }
   setShapesVisible(v) { this.#shapesVisible = v; if (this.#shapesLayer) this.#shapesLayer.style.display = v ? "" : "none"; }
   setMirrorVisible(v) { this.#mirrorVisible = v; if (this.#mirrorLayer) this.#mirrorLayer.style.display = v ? "" : "none"; }
@@ -252,12 +253,13 @@ export class SketchCanvas extends CanvasBase {
     this.#chunkLayer  = svgEl("g", { "pointer-events": "none" });
     this.#axisLayer   = svgEl("g", { "pointer-events": "none" });
     this.#mirrorLayer = svgEl("g", { "pointer-events": "none" });
+    this.#ghostLayer  = svgEl("g", { id: "sk-ghost", "pointer-events": "none" });
     this.#islandLayer = svgEl("g", { "pointer-events": "none" });
     this.#shapesLayer = svgEl("g");
     this.#drawLayer   = svgEl("g", { "pointer-events": "none" });
     this.#measureLayer = svgEl("g", { "pointer-events": "none" });
     this.#placeLayer   = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#bboxLayer, this.#chunkLayer, this.#axisLayer, this.#mirrorLayer,
+    for (const g of [this.#bboxLayer, this.#chunkLayer, this.#axisLayer, this.#mirrorLayer, this.#ghostLayer,
                      this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
