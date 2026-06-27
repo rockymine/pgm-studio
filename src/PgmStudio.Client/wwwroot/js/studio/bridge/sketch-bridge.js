@@ -315,6 +315,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
+    setSnap(v)         { canvas.setSnapEnabled(v); },
     setView(v)         { view = v === "iso" ? "iso" : "2d"; if (view === "iso") canvas.showIso(solidsForIso(), isoYaw, setup.bbox); else canvas.hideIso(); },
     rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
     setHeight(id, base, floor) {

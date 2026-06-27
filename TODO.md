@@ -54,9 +54,11 @@ The next depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): make siz
 design — data-model diffs, rasterizer/artifact changes, open decisions — in
 `docs/contracts/sketch-tool-improvements.md`. Build in id order (each builds on the last).
 
-- [ ] **S9 — Orientation / snap-alignment guides (parked — after S8).** Drop an orientation line that shapes
-  **snap** to (anchors as snap points) — e.g. to hold two parallel lanes truly parallel. A natural extension
-  of S8's body-drag (snapping happens during the move) but its own work; do **not** fold into S8.
+- [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
+  (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
+  **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
+  parallel"), and **manually droppable** guide lines shapes snap to (vs the current auto-from-shapes). Both
+  are their own work; park until needed.
 - [ ] **S10 — Auto-promote rectangles on Bézier (parked, optional).** Today S4 promotes via the inspector
   button / `P`; a rectangle keeps its 8-handle resize and has no Bézier affordance. If we ever want a
   rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect

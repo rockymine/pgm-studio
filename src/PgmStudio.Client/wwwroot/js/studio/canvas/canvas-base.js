@@ -80,7 +80,14 @@ export class CanvasBase {
   /** With the select tool, return a movable handle (shape id / region node) at world {x,z}, or null. */
   _hitMovable(world) { return null; }
 
-  /** Translate the grabbed handle by (dx,dz) blocks — live (no persist). */
+  /** Called once when a body-drag begins, with the grabbed handle + the world point grabbed. */
+  _moveStart(handle, world) {}
+
+  /** Absolute move (snap-aware, S9): place the handle at start + (dx,dz) world units from the grab point.
+   *  Return true if handled (skips the incremental path); default false → fall back to _moveBy. */
+  _moveTo(handle, dx, dz) { return false; }
+
+  /** Translate the grabbed handle by (dx,dz) blocks — live (no persist). The incremental fallback. */
   _moveBy(handle, dx, dz) {}
 
   /** The drag ended — persist the grabbed handle's final position. */
@@ -144,7 +151,10 @@ export class CanvasBase {
       if (this._activeTool === "select") {
         const world  = this._toWorld(svgPt);
         const handle = world ? this._hitMovable(world) : null;
-        if (handle != null) this.#moveState = { handle, lastBx: Math.floor(world.x), lastBz: Math.floor(world.z), moved: false };
+        if (handle != null) {
+          this.#moveState = { handle, grab: world, lastBx: Math.floor(world.x), lastBz: Math.floor(world.z), moved: false };
+          this._moveStart(handle, world);
+        }
       }
       this._onToolMousedown(e, svgPt);
     });
@@ -165,12 +175,14 @@ export class CanvasBase {
         if (this.#didDrag && this.#moveState) {
           const world = this._toWorld(this._clientToSvg(e.clientX, e.clientY));
           if (world) {
-            const bx = Math.floor(world.x), bz = Math.floor(world.z);
-            const mdx = bx - this.#moveState.lastBx, mdz = bz - this.#moveState.lastBz;
-            if (mdx || mdz) {
-              this._moveBy(this.#moveState.handle, mdx, mdz);
-              this.#moveState.lastBx = bx; this.#moveState.lastBz = bz; this.#moveState.moved = true;
-              this._svg.style.cursor = "grabbing";
+            const ms = this.#moveState;
+            // Absolute, snap-aware path (S9) if the subclass handles it; else incremental block deltas.
+            if (this._moveTo(ms.handle, world.x - ms.grab.x, world.z - ms.grab.z, e.altKey)) {
+              ms.moved = true; this._svg.style.cursor = "grabbing";
+            } else {
+              const bx = Math.floor(world.x), bz = Math.floor(world.z);
+              const mdx = bx - ms.lastBx, mdz = bz - ms.lastBz;
+              if (mdx || mdz) { this._moveBy(ms.handle, mdx, mdz); ms.lastBx = bx; ms.lastBz = bz; ms.moved = true; this._svg.style.cursor = "grabbing"; }
             }
           }
         } else if (this.#didDrag && this._activeTool === "move") {
