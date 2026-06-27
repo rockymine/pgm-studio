@@ -109,6 +109,8 @@
                       @onclick="ToggleShapes">Shapes</button>
               <button class="filter-chip @(chunksOn ? "filter-chip--active" : null)" title="Show the 16-block chunk grid"
                       @onclick="ToggleChunks">Chunks</button>
+              <button class="filter-chip @(snapOn ? "filter-chip--active" : null)" title="Snap shapes to other shapes' edges while dragging (Alt bypasses)"
+                      @onclick="ToggleSnap">Snap</button>
               <button class="filter-chip" title="Fit the working bounds" @onclick="OnFit"><i data-lucide="scan"></i></button>
               <button class="filter-chip @(threeD ? "filter-chip--active" : null)" title="Isometric height preview (read-only)"
                       @onclick="Toggle3D">3D</button>

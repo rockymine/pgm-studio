@@ -33,6 +33,7 @@ public partial class SketchEditor
     private bool mirrorOn = true;
     private bool shapesOn = false;
     private bool chunksOn = true;
+    private bool snapOn = true;
     private bool threeD = false;
     private string islandLabel = "";
 
@@ -164,6 +165,12 @@ public partial class SketchEditor
     {
         chunksOn = !chunksOn;
         if (handle is not null) await handle.InvokeVoidAsync("setChunkVisible", chunksOn);
+    }
+
+    private async Task ToggleSnap()
+    {
+        snapOn = !snapOn;
+        if (handle is not null) await handle.InvokeVoidAsync("setSnap", snapOn);
     }
 
     private async Task OnFit()

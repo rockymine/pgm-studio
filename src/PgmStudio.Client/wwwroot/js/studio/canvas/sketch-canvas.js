@@ -25,6 +25,16 @@ import { renderIso } from "../render/iso-render.js";
 const FIT_MARGIN = 0.85;
 const identityTransform = (x, z) => ({ x, y: z });
 
+// Nearest snap target to any of `edges` within `tol`; returns { adjust, line } so edge+adjust == line.
+function bestSnap(edges, targets, tol) {
+  let best = null;
+  for (const e of edges) for (const t of targets) {
+    const d = Math.abs(e - t);
+    if (d <= tol && (!best || d < best.d)) best = { d, adjust: t - e, line: t };
+  }
+  return best;
+}
+
 export class SketchCanvas extends CanvasBase {
   #bbox    = null;
   #center  = { cx: 0, cz: 0 };
@@ -47,10 +57,12 @@ export class SketchCanvas extends CanvasBase {
   #dimEl     = null;
   #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
   #placeSpecs = null;  // library item being placed: shape specs centred at origin, awaiting a drop point
+  #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
+  #snapEnabled = true;
 
   // viewport layers
   #bboxLayer = null; #chunkLayer = null; #axisLayer = null;
-  #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null;
+  #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null; #guideLayer = null;
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
   #isoLayer = null;   // read-only isometric preview (S6) — replaces the viewport when active
@@ -234,6 +246,57 @@ export class SketchCanvas extends CanvasBase {
     this.#callbacks.onShapeUpdated?.(moved);   // bridge recomputes islands + marks dirty each step
   }
 
+  setSnapEnabled(v) { this.#snapEnabled = !!v; }
+
+  _moveStart(id) { const s = this.#shapes.get(id); this.#dragStartShape = s ? structuredClone(s) : null; }
+
+  // Absolute, snap-aware move (S9): place the shape at start + (dx,dz), snapping its bbox edges/centre to
+  // other shapes' edges/centres + the symmetry centre; draws alignment guides. Alt bypasses snapping.
+  _moveTo(id, dx, dz, alt) {
+    const start = this.#dragStartShape;
+    if (!start || start.id !== id) return false;
+    const sb = toBounds(start);
+    let sdx = dx, sdz = dz, gx = null, gz = null;
+    if (sb && this.#snapEnabled && !alt) {
+      const tol = 6 / (this._scale || 1);
+      const { xs, zs } = this.#snapTargets(id);
+      const sx = bestSnap([sb.min_x + dx, (sb.min_x + sb.max_x) / 2 + dx, sb.max_x + dx], xs, tol);
+      const sz = bestSnap([sb.min_z + dz, (sb.min_z + sb.max_z) / 2 + dz, sb.max_z + dz], zs, tol);
+      if (sx) { sdx = dx + sx.adjust; gx = sx.line; }
+      if (sz) { sdz = dz + sz.adjust; gz = sz.line; }
+    }
+    this.#renderGuides(gx, gz);
+    const moved = translateShape(start, Math.round(sdx), Math.round(sdz));
+    this.updateShape(moved);
+    this.#callbacks.onShapeUpdated?.(moved);
+    return true;
+  }
+
+  _commitMove() { this.#dragStartShape = null; this.#renderGuides(null, null); }
+
+  // Candidate snap coordinates: every OTHER shape's bbox min/centre/max + the symmetry centre.
+  #snapTargets(excludeId) {
+    const xs = new Set([this.#center.cx]), zs = new Set([this.#center.cz]);
+    for (const [id, s] of this.#shapes) {
+      if (id === excludeId) continue;
+      const b = toBounds(s); if (!b) continue;
+      xs.add(b.min_x); xs.add((b.min_x + b.max_x) / 2); xs.add(b.max_x);
+      zs.add(b.min_z); zs.add((b.min_z + b.max_z) / 2); zs.add(b.max_z);
+    }
+    return { xs: [...xs], zs: [...zs] };
+  }
+
+  #renderGuides(gx, gz) {
+    const layer = this.#guideLayer;
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    if (!this.#bbox) return;
+    const { min_x, max_x, min_z, max_z } = this.#bbox;
+    const attrs = { stroke: "var(--accent)", "stroke-width": "1", "stroke-dasharray": "4 3", "vector-effect": "non-scaling-stroke" };
+    if (gx !== null) layer.appendChild(svgEl("line", { x1: gx, y1: min_z, x2: gx, y2: max_z, ...attrs }));
+    if (gz !== null) layer.appendChild(svgEl("line", { x1: min_x, y1: gz, x2: max_x, y2: gz, ...attrs }));
+  }
+
   // ── private ────────────────────────────────────────────────────────────────────
 
   // Subtract the .svg-area padding (12px each side) so the svg's viewBox equals its rendered size.
@@ -259,8 +322,9 @@ export class SketchCanvas extends CanvasBase {
     this.#drawLayer   = svgEl("g", { "pointer-events": "none" });
     this.#measureLayer = svgEl("g", { "pointer-events": "none" });
     this.#placeLayer   = svgEl("g", { "pointer-events": "none" });
+    this.#guideLayer   = svgEl("g", { "pointer-events": "none" });
     for (const g of [this.#bboxLayer, this.#chunkLayer, this.#axisLayer, this.#mirrorLayer, this.#ghostLayer,
-                     this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer]) this._viewportG.appendChild(g);
+                     this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer, this.#guideLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
     this.#handlesLayer     = svgEl("g");

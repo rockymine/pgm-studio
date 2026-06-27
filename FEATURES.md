@@ -71,6 +71,12 @@ capability, grouped by area, with the task id(s) that delivered it (for git trac
   non-overriding canvases (Configure/SideView/…) are unaffected by construction. The duplicated translate
   logic is consolidated into the geometry leaf — `geometry/shape.js` `translateShape` (shape model) +
   `translateBounds` (AABB) — so no canvas keeps an inline copy. (CV10)
+- **Alignment snapping (smart guides)** — while body-dragging a sketch shape, its bbox edges + centre snap to
+  other shapes' edges/centres and the **symmetry centre**, with dashed **guide lines** at each match (picture-
+  editor style — aligns lanes). A **Snap** toggle disables it; **Alt** bypasses per-drag. Adds an absolute,
+  snap-aware move path to `CanvasBase` (`_moveStart` / `_moveTo`, alongside CV10's incremental `_moveBy`);
+  the sketch canvas does the snap + guide render. Position alignment only — angle/parallel + droppable guide
+  lines are parked (S9b). (S9)
 - **`SmartSuggestion` component** + symmetry-derived intelligent team creation (reads `/symmetry`,
   suggests 2/4 palette teams). (C15)
 - **`Toast` error component** — shared across activities. (from C12)
