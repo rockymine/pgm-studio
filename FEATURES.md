@@ -530,6 +530,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   over two-tone side walls (lit-from-above, painter-ordered back→front), with a 90°-rotate button. Pure SVG
   (no three.js — fits the firewalled hosted-WASM stack); per-island height = its tallest shape; per-anchor
   TIN tops and true orbit are upgrades. (S6) §4.
+- **Stacked layers (rasterization)** — `SketchLayout` gains an ordered `layers:[{ id, name, base_y, layout }]`
+  (a legacy single `layout` loads as one layer at `base_y=0`). `SketchRasterizer.RasterizeColumns` rasterizes
+  each layer in its own Y (primary + per-layer island mirror), shifts its columns by `base_y`, and concatenates
+  — a column spanning multiple layers keeps **separate segments** (e.g. ground + a sky bridge, the gap
+  preserved). `WriteSketchAsync` writes every segment to `layer_segment` and the surface row at each column's
+  max top. Verified by unit tests + a DB-level finish (two Y bands, shared column carries both). (S7 —
+  rasterization; editor UI is S7b) §5.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

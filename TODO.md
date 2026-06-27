@@ -69,10 +69,12 @@ design — data-model diffs, rasterizer/artifact changes, open decisions — in
   affordance:** select a polygon vertex → set its Y, so a shape can ramp/undulate (TIN already renders it on
   finish). UX TBD — e.g. a vertex-height handle on the canvas, or a per-vertex list in the inspector; the iso
   preview currently shows a flat top per island, so it'd want a draped TIN top to visualize per-anchor terrain.
-- [ ] **S7 — Stacked layers.** Wrap `SketchLayout.Layout` in an ordered `layers:[{ id, name, base_y,
-  layout }]` (old single-layout loads as one layer at `base_y=0`). Each layer reuses the whole 2-D editor;
-  lower layers render ghosted. Column at `(x,z)` in layer L spans `[L.baseY+floor, L.baseY+YTop]` —
-  `base_y` stacks slabs, per-shape/anchor height varies within one. Layer list in the Setup sidebar.
+- [ ] **S7b — Stacked-layers editor UI.** The data model + rasterizer are landed (`FEATURES.md`):
+  `SketchLayout.layers[]` stacks by `base_y`, finish writes per-column segments, back-compat holds. **Open =
+  the authoring side** (currently layers are only reachable via the saved layout / API): a **layer list** in
+  the Setup sidebar (add / rename / delete / select active + `base_y`); the canvas edits the **active** layer
+  with lower layers **ghosted**; the iso preview **stacks** all layers by `base_y`. Needs the JS bridge to
+  hold multi-layer state (active index, per-layer shapes/islands) + persist the `layers` array.
 - [ ] **S9 — Orientation / snap-alignment guides (parked — after S8).** Drop an orientation line that shapes
   **snap** to (anchors as snap points) — e.g. to hold two parallel lanes truly parallel. A natural extension
   of S8's body-drag (snapping happens during the move) but its own work; do **not** fold into S8.

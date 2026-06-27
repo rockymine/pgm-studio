@@ -18,26 +18,49 @@ public static class SketchRasterizer
 
     /// <summary>The finished world's solid (x,z) footprint (primary + opted-in island mirror copies).</summary>
     public static List<(int X, int Z)> Rasterize(string layoutJson)
-        => RasterizeColumns(layoutJson).Select(c => (c.X, c.Z)).ToList();
+        => RasterizeColumns(layoutJson).Select(c => (c.X, c.Z)).Distinct().ToList();
 
     /// <summary>As <see cref="Rasterize"/>, but each cell also carries its column span <c>[YFloor, YTop]</c>.
     /// Height never affects membership — the footprint is identical to <see cref="Rasterize"/>.</summary>
     public static List<(int X, int Z, int YFloor, int YTop)> RasterizeColumns(string layoutJson)
     {
         var state = SketchLayout.Parse(layoutJson);
-        var shapes = state?.Layout?.Shapes ?? [];
-        if (shapes.Count == 0) return [];
-
-        var cells = RasterGroup(shapes);                 // primary
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
         var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
-        var metas = state?.Layout?.Islands ?? [];
 
+        // Stack every layer: each is rasterized in its own Y, then shifted by base_y. (x,z) may repeat
+        // across layers — a column with a gap (e.g. ground + a sky bridge) keeps both segments.
+        var output = new List<(int X, int Z, int YFloor, int YTop)>();
+        foreach (var (layout, baseY) in ResolveLayers(state))
+        {
+            int by = (int)Math.Round(baseY);
+            foreach (var kv in RasterizeLayout(layout, cx, cz, axes))
+                output.Add((kv.Key.Item1, kv.Key.Item2, kv.Value.Floor + by, kv.Value.Top + by));
+        }
+        return output;
+    }
+
+    // Layers to rasterize: the S7 `layers` array, else the legacy single `layout` at base_y 0.
+    private static List<(SketchShapes Layout, double BaseY)> ResolveLayers(SketchLayout? state)
+    {
+        if (state?.Layers is { Count: > 0 } layers)
+            return layers.Select(l => (l.Layout ?? new SketchShapes(), l.BaseY)).ToList();
+        if (state?.Layout is { } single) return [(single, 0.0)];
+        return [];
+    }
+
+    // One layer → its solid (x,z) cells with layer-local columns (primary + opted-in island mirror copies).
+    private static Dictionary<(int, int), (int Top, int Floor)> RasterizeLayout(SketchShapes layout, double cx, double cz, IReadOnlyList<string> axes)
+    {
+        var shapes = layout?.Shapes ?? [];
+        if (shapes.Count == 0) return [];
+
+        var cells = RasterGroup(shapes);                 // primary
+        var metas = layout?.Islands ?? [];
         if (metas.Count == 0)
         {
-            // No island metadata (e.g. a hand-authored layout): mirror the whole primary footprint. Height is
-            // reflection/rotation-invariant, so each mirrored cell keeps its column.
+            // No island metadata (hand-authored): mirror the whole primary footprint (height is invariant).
             var primary = new Dictionary<(int, int), (int Top, int Floor)>(cells);
             foreach (var axis in axes)
             {
@@ -54,13 +77,12 @@ public static class SketchRasterizer
                 var islandShapes = meta.ShapeIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
                 foreach (var axis in axes)
                 {
-                    // Mirror each shape (transform geometry + carry heights), then rasterize.
                     var mirrored = islandShapes.Select(s => MirrorShape(s, axis, cx, cz));
                     Merge(cells, RasterGroup(mirrored));
                 }
             }
         }
-        return cells.Select(kv => (kv.Key.Item1, kv.Key.Item2, kv.Value.Floor, kv.Value.Top)).ToList();
+        return cells;
     }
 
     // ── 4-step set algebra over a shape group, carrying each cell's column ─────────────────────────
