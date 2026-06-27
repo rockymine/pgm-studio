@@ -7,7 +7,7 @@
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
-import { rectToPolygon, translateShape } from "../geometry/shape.js";
+import { rectToPolygon, translateShape, toRing } from "../geometry/shape.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 
@@ -157,9 +157,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     refreshIso();
   }
 
-  // Build the iso "solids" for every layer: flat island prisms + sloped terrain (per-anchor shapes), each
-  // shifted by the layer's base_y, plus mirror copies. An island made entirely of per-anchor shapes is drawn
-  // as sloped terrain instead of a flat prism (S5c).
+  // Build the iso "solids" for every layer: one solid PER SHAPE so per-shape heights are visible (a
+  // per-island prism would collapse to the island's tallest shape and hide the rest). Each add shape
+  // becomes a flat prism at its own base_height, or — if it carries per-vertex anchor_heights — sloped
+  // terrain (S5c); subtract shapes carve and aren't solids. All shifted by the layer's base_y, with a
+  // mirror copy per orbit axis for shapes whose island opts in (default: mirror). The painter's-algorithm
+  // renderer draws them opaque back→front, so where shapes overlap the taller one occludes — matching the
+  // rasterizer's taller-surface-wins rule.
   function solidsForIso() {
     syncActive();
     const { cx = 0, cz = 0 } = setup.center ?? {};
@@ -168,31 +172,25 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     const hasAnchors = s => Array.isArray(s.anchor_heights) && s.vertices && s.anchor_heights.length === s.vertices.length;
 
     for (const L of layers) {
-      const byId = new Map(L.shapes.map(s => [s.id, s]));
-      const anchorIds = new Set(L.shapes.filter(hasAnchors).map(s => s.id));
-      const columnOf = (isl) => {
-        let top = 0, floor = 0, any = false;
-        for (const sid of (isl.shapeIds ?? [])) { const s = byId.get(sid); if (!s) continue; any = true; top = Math.max(top, s.base_height ?? 0); floor = Math.min(floor, s.floor ?? 0); }
-        return { top: L.baseY + (any ? top : 0), floor: L.baseY + floor };
-      };
-      const isAllAnchor = isl => (isl.shapeIds?.length ?? 0) > 0 && isl.shapeIds.every(id => anchorIds.has(id));
+      // A shape mirrors unless its island says otherwise; ungrouped shapes default to mirroring.
+      const mirrorOf = new Map();
+      for (const isl of (L.islands ?? [])) for (const sid of (isl.shapeIds ?? [])) mirrorOf.set(sid, isl.mirrors !== false);
+
+      const prismOf  = (s, ring, mirror) => ({ exterior: ring, holes: [], top: L.baseY + (s.base_height ?? 0), floor: L.baseY + (s.floor ?? 0), mirror });
       const terrainOf = (s, verts, mirror) => ({ vertices: verts, heights: s.anchor_heights.map(hh => L.baseY + hh), floor: L.baseY + (s.floor ?? 0), mirror });
 
-      // Primary
-      for (const isl of L.islands) if (!isAllAnchor(isl)) out.push({ exterior: isl.exterior, holes: isl.holes, ...columnOf(isl), mirror: false });
-      for (const s of L.shapes) if (hasAnchors(s)) out.push(terrainOf(s, s.vertices.map(v => [v[0], v[1]]), false));
-
-      // Mirror copies (transform the outline / vertices point-by-point; heights are invariant).
-      for (const axis of axes) {
-        for (const isl of L.islands) {
-          if (isAllAnchor(isl)) continue;
-          out.push({
-            exterior: isl.exterior.map(([x, z]) => applySymmetry(x, z, axis, cx, cz)),
-            holes: (isl.holes ?? []).map(h => h.map(([x, z]) => applySymmetry(x, z, axis, cx, cz))),
-            ...columnOf(isl), mirror: true,
-          });
+      for (const s of L.shapes) {
+        if (s.operation === "subtract") continue;            // carves land; not a solid
+        const doMirror = mirrorOf.get(s.id) !== false;
+        if (hasAnchors(s)) {
+          out.push(terrainOf(s, s.vertices.map(v => [v[0], v[1]]), false));
+          if (doMirror) for (const axis of axes) out.push(terrainOf(s, s.vertices.map(([x, z]) => applySymmetry(x, z, axis, cx, cz)), true));
+        } else {
+          const ring = toRing(s);
+          if (ring.length < 4) continue;
+          out.push(prismOf(s, ring, false));
+          if (doMirror) for (const axis of axes) out.push(prismOf(s, ring.map(([x, z]) => applySymmetry(x, z, axis, cx, cz)), true));
         }
-        for (const s of L.shapes) if (hasAnchors(s)) out.push(terrainOf(s, s.vertices.map(([x, z]) => applySymmetry(x, z, axis, cx, cz)), true));
       }
     }
     return out;
