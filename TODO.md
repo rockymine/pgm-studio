@@ -122,6 +122,15 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   endpoints are gone), so there is no longer a config-change to honour from the UI — this remains only as
   a rare, local-only override path outside the hosted flow (new-map-authoring.md §6a). (Island-exclusion →
   symmetry re-run already works without a re-scan, B7.)
+- [ ] **A4 — [Consider, not perf] Vector-boolean island outlines (drop the rasterize→polygon round-trip).**
+  Today island outlines come from a pixel round-trip: vector shapes → rasterize to cells → BFS → `BlocksToPolygon`
+  (cells back to a polygon), done only to **avoid a C# polygon-boolean lib** (sketch-authoring.md §6). We
+  already depend on NTS, so the sketch-finish island polygons *could* be computed by NTS vector boolean
+  directly off the shapes (union adds, difference subs), dropping `BlocksToPolygon` + the BFS for the
+  *polygon*. **Not a perf task** — the row-run fix already removed the hotspot, and the cell rasterize must
+  still run for `layer_segment`/`layer.parquet` (Configure height side-view + analysis). Payoff is cleanliness
+  + exact (smooth) outlines; cost is NTS boolean on the authoring path and a **staircase→smooth** outline
+  divergence from scanned maps. Weigh before doing.
 - [ ] **A3 — Buildability endpoint perf (verify, then optimise if needed).** Per-cell NTS over the grid
   was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
   **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
