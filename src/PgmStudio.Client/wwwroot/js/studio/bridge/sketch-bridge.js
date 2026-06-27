@@ -66,6 +66,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     onShapePromote:  (id) => promoteShape(id),
     onPlace:         (bx, bz) => placeAt(bx, bz),
+    onVertexSelected: (shapeId, idx) => {
+      const s = canvas.getShape(shapeId);
+      const h = s ? (s.anchor_heights?.[idx] ?? s.base_height ?? 0) : 0;
+      fire("OnVertexSelected", shapeId ?? null, idx, h);
+    },
   });
 
   let placeSpecs = null;   // the armed library item's shapes (centred at origin), awaiting a drop point
@@ -303,6 +308,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       const s = canvas.getShape(id); if (!s) return;
       if (base  !== null && base  !== undefined) s.base_height = base;
       if (floor !== null && floor !== undefined) s.floor = floor;
+      canvas.updateShape(s);   // refresh vertex labels (default = base height)
+      pushLayout(); refreshIso(); markDirty();
+    },
+    // Set one vertex's height (S5b). Materialises anchor_heights (length = vertices, default = base) on first use.
+    setVertexHeight(id, idx, h) {
+      const s = canvas.getShape(id);
+      if (!s?.vertices || idx < 0 || idx >= s.vertices.length) return;
+      const base = s.base_height ?? 0;
+      if (!Array.isArray(s.anchor_heights) || s.anchor_heights.length !== s.vertices.length)
+        s.anchor_heights = s.vertices.map((_, i) => s.anchor_heights?.[i] ?? base);
+      s.anchor_heights[idx] = h;
+      canvas.updateShape(s);   // re-render the vertex labels
       pushLayout(); refreshIso(); markDirty();
     },
 

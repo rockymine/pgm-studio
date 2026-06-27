@@ -64,11 +64,11 @@ The next depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): make siz
 design — data-model diffs, rasterizer/artifact changes, open decisions — in
 `docs/contracts/sketch-tool-improvements.md`. Build in id order (each builds on the last).
 
-- [ ] **S5b — Per-anchor vertex height editing.** `base_height`/`floor` are now editable in the inspector
-  (shipped with S6), and the rasterizer TIN-interpolates `anchor_heights` (S5). **Open = the per-vertex
-  affordance:** select a polygon vertex → set its Y, so a shape can ramp/undulate (TIN already renders it on
-  finish). UX TBD — e.g. a vertex-height handle on the canvas, or a per-vertex list in the inspector; the iso
-  preview currently shows a flat top per island, so it'd want a draped TIN top to visualize per-anchor terrain.
+- [ ] **S5c — Iso draped-TIN slope preview (parked).** Per-vertex heights (S5b) render as a **flat** island
+  top in the iso — the slope only shows on finish (Configure side-view) + via the 2-D vertex labels. A true
+  in-editor slope would drape each per-anchor shape's **triangulated top** (a JS ear-clip twin of
+  `Geom.Triangulation`) over the extrusion. Awkward in the island-extrusion model (heights are per-shape,
+  the iso renders composed islands) — park until per-anchor terrain is used enough to warrant it.
 - [ ] **S9 — Orientation / snap-alignment guides (parked — after S8).** Drop an orientation line that shapes
   **snap** to (anchors as snap points) — e.g. to hold two parallel lanes truly parallel. A natural extension
   of S8's body-drag (snapping happens during the move) but its own work; do **not** fold into S8.

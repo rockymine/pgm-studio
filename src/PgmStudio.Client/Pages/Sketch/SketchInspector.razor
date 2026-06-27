@@ -40,6 +40,20 @@
           <label class="field-label">Floor (blocks)</label>
           <input class="field-input" type="number" step="1" value="@Shape.Floor" @onchange="FloorChanged" />
         </div>
+        @if (Shape.Type == "polygon" || Shape.Type == "lasso")
+        {
+          @if (SelectedVertexIdx >= 0)
+          {
+            <div class="field">
+              <label class="field-label">Vertex @(SelectedVertexIdx + 1) height</label>
+              <input class="field-input" type="number" step="1" value="@SelectedVertexHeight" @onchange="VertexHeightChanged" />
+            </div>
+          }
+          else
+          {
+            <p class="section-desc">Click a vertex to set its height (ramp/undulate).</p>
+          }
+        }
         <button class="action-btn action-btn--full action-btn--danger" @onclick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
           <i data-lucide="trash-2"></i> Delete
         </button>

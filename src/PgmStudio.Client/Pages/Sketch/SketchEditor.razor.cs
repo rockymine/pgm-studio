@@ -44,6 +44,8 @@ public partial class SketchEditor
     private string? activeLayerId;
     private string? selectedShapeId;
     private string? selectedIslandId;
+    private int selectedVertexIdx = -1;
+    private double selectedVertexHeight;
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
     private SketchIslandRow? SelectedIsland => islands.FirstOrDefault(i => i.Id == selectedIslandId);
@@ -180,6 +182,9 @@ public partial class SketchEditor
     private Task SetHeight((string Id, double Base, double Floor) e)
         => handle?.InvokeVoidAsync("setHeight", e.Id, e.Base, e.Floor).AsTask() ?? Task.CompletedTask;
 
+    private Task SetVertexHeight((string Id, int Idx, double Height) e)
+        => handle?.InvokeVoidAsync("setVertexHeight", e.Id, e.Idx, e.Height).AsTask() ?? Task.CompletedTask;
+
     // ── Panel / inspector actions → the JS bridge ──────────────────────────────
 
     private Task SelectShape(string id) => handle?.InvokeVoidAsync("selectShape", id).AsTask() ?? Task.CompletedTask;
@@ -203,7 +208,16 @@ public partial class SketchEditor
 
     /// <summary>A shape was selected on the canvas/panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnShapeSelected(string? id) { selectedShapeId = id; StateHasChanged(); }
+    public void OnShapeSelected(string? id) { selectedShapeId = id; selectedVertexIdx = -1; StateHasChanged(); }
+
+    /// <summary>A polygon vertex was click-selected on the canvas (null shapeId = cleared).</summary>
+    [JSInvokable]
+    public void OnVertexSelected(string? shapeId, int idx, double height)
+    {
+        selectedVertexIdx = shapeId is null ? -1 : idx;
+        selectedVertexHeight = height;
+        StateHasChanged();
+    }
 
     /// <summary>An island was selected in the panel (null = deselected).</summary>
     [JSInvokable]

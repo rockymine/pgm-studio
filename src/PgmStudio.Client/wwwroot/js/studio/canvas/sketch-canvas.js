@@ -280,6 +280,7 @@ export class SketchCanvas extends CanvasBase {
     });
     this.#edit = new SketchEditController(this.#handlesLayer, getViewport, (id) => this.#shapes.get(id), {
       onShapeUpdated: (shape) => { this.updateShape(shape); this.#callbacks.onShapeUpdated?.(shape); },
+      onVertexSelected: (shapeId, idx) => this.#callbacks.onVertexSelected?.(shapeId, idx),
     });
 
     // Escape cancels an in-progress draw; Delete/Backspace removes the selected shape. (Arrow-nudge is

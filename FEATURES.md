@@ -523,6 +523,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   alignment. `WriteSketchAsync` writes the real span to `layer_segment` (the SliceView reads it) and the
   surface block at `YTop`. Verified by Geom + rasterizer unit tests and a DB-level finish (uniform + ramp).
   (S5 — rasterization; per-anchor editing UI is S5b) §3.
+- **Per-vertex height editing** — with a polygon selected, **click a vertex** to set its height (inspector
+  *Vertex N height* field); every vertex shows its height as a **label** on the canvas (the shape's height
+  profile), the selected one highlighted. Writes `anchor_heights[]`; on finish the rasterizer TIN-interpolates
+  the slope (a raised corner ramps down across the footprint — verified `0→14` gradient in `layer_segment`),
+  visible in Configure's height side-view. Click-vs-drag split by a movement threshold
+  (`sketch-edit-controller`). (S5b) §3.
 - **Height editing field + isometric 3-D preview** — the sketch inspector gains **Height** (`base_height`) +
   **Floor** fields on the selected shape; a **3D** toggle swaps the top-down canvas for a read-only
   **isometric** view (`render/iso-render.js`) that extrudes the composed `boolean.js` islands (+ mirror copies)
