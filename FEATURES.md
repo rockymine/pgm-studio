@@ -514,6 +514,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (Esc cancels); each entry instantiates ordinary `SketchShape`s, centred + block-snapped at a default cell
   size — so islands/mirror/rasterizer need no new code. Catalog + `instantiate`/`libraryMeta` in
   `geometry/shape-library.js`; `armPlace` + canvas place-mode/ghost; the `SketchLibrary` component. (S8) §8.
+- **Per-shape & per-anchor height (rasterization)** — `SketchShape` gains `base_height` / `anchor_heights` /
+  `floor`; `SketchRasterizer.RasterizeColumns` carries each cell's `[YFloor, YTop]` through the 4-step algebra
+  (taller add wins on overlap), with a per-vertex **TIN** surface (`Geom.Triangulation` ear-clip + barycentric)
+  for polygons whose anchor heights match their vertices; mirror copies preserve the column + vertex/anchor
+  alignment. `WriteSketchAsync` writes the real span to `layer_segment` (the SliceView reads it) and the
+  surface block at `YTop`. Verified by Geom + rasterizer unit tests and a DB-level finish (uniform + ramp).
+  (S5 — rasterization; editing UI is S5b) §3.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

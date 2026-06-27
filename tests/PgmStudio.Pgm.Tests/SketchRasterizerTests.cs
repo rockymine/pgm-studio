@@ -102,4 +102,46 @@ public sealed class SketchRasterizerTests
         await Assert.That(SketchRasterizer.Rasterize("{}").Count).IsEqualTo(0);
         await Assert.That(SketchRasterizer.Rasterize("""{"layout":{"shapes":[]}}""").Count).IsEqualTo(0);
     }
+
+    // ── height (S5) ────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Base_height_and_floor_give_a_uniform_column()
+    {
+        var cells = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":12,"floor":-3}],
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+        """);
+        await Assert.That(cells.Count).IsEqualTo(16);
+        await Assert.That(cells.All(c => c.YTop == 12 && c.YFloor == -3)).IsTrue();
+    }
+
+    [Test]
+    public async Task Anchor_heights_ramp_north_to_south()
+    {
+        // A 10×10 polygon: north edge (z=0) at 0, south edge (z=10) at 20 → YTop rises with z.
+        var cells = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layout":{"shapes":[{"id":"a","type":"polygon","operation":"add",
+            "vertices":[[0,0],[10,0],[10,10],[0,10]],"anchor_heights":[0,0,20,20]}],
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+        """);
+        int Top(int x, int z) => cells.First(c => c.X == x && c.Z == z).YTop;
+        await Assert.That(Top(5, 0)).IsLessThan(Top(5, 9));      // rises toward the south edge
+        await Assert.That(Top(5, 0)).IsEqualTo(1);               // z=0 row centre (z+0.5=0.5 → ~1)
+    }
+
+    [Test]
+    public async Task Mirror_copy_keeps_the_column_height()
+    {
+        // rot_180 of a height-12 rect about the origin: both the primary and its mirror are at YTop 12.
+        var cells = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":4,"max_x":8,"min_z":4,"max_z":8,"base_height":12}],
+                   "islands":[{"id":"i1","mirrors":true,"shapeIds":["a"]}]}}
+        """);
+        await Assert.That(cells.Any(c => c.X >= 4 && c.YTop == 12)).IsTrue();   // primary
+        await Assert.That(cells.Any(c => c.X < 0  && c.YTop == 12)).IsTrue();   // mirror, same height
+    }
 }

@@ -83,4 +83,11 @@ public sealed class SketchShape
     [JsonPropertyName("radius")]   public double? Radius { get; set; }
     [JsonPropertyName("vertices")] public double[][]? Vertices { get; set; }
     [JsonPropertyName("controls")] public Dictionary<string, SketchControl>? Controls { get; set; }
+
+    // Height (S5). The column spans [Floor, surface]: a uniform BaseHeight, or — for a polygon/lasso whose
+    // AnchorHeights line up with its Vertices — a per-vertex surface TIN-interpolated across the footprint.
+    // All optional; absent = the flat Y=0 behaviour.
+    [JsonPropertyName("base_height")]    public double? BaseHeight { get; set; }
+    [JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; }
+    [JsonPropertyName("floor")]          public double? Floor { get; set; }
 }

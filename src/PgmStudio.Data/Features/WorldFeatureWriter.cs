@@ -75,11 +75,12 @@ public sealed class WorldFeatureWriter(PgmDb db)
     /// map_config. The sketched map then has the same geometry shape an imported world does, so it flows
     /// into the Configure wizard. Replaces any prior features for the map.
     /// </summary>
-    public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<(int X, int Z)> cells, IReadOnlyList<IslandDetector.Island> islands, CancellationToken ct = default)
+    public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<(int X, int Z, int YFloor, int YTop)> cells, IReadOnlyList<IslandDetector.Island> islands, CancellationToken ct = default)
     {
         await DeleteAsync(mapId, ct);
 
-        var layerRows = cells.Select(c => new LayerRow { WorldX = c.X, WorldZ = c.Z, WorldY = 0, BlockId = 1, BlockData = 0 }).ToList();
+        // Surface layer at each column's top (one row per cell); the full span lives in layer_segment below.
+        var layerRows = cells.Select(c => new LayerRow { WorldX = c.X, WorldZ = c.Z, WorldY = c.YTop, BlockId = 1, BlockData = 0 }).ToList();
         byte[] layerBytes;
         using (var ms = new MemoryStream())
         {
@@ -87,7 +88,7 @@ public sealed class WorldFeatureWriter(PgmDb db)
             layerBytes = ms.ToArray();
         }
 
-        var segs = cells.Select(c => new LayerSegmentRow { MapId = mapId, WorldX = c.X, WorldZ = c.Z, WorldYStart = 0, WorldYEnd = 0 }).ToList();
+        var segs = cells.Select(c => new LayerSegmentRow { MapId = mapId, WorldX = c.X, WorldZ = c.Z, WorldYStart = c.YFloor, WorldYEnd = c.YTop }).ToList();
         if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
 
         var config = new JsonObject
