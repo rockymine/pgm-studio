@@ -156,7 +156,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     return out;
   }
 
-  function refreshIso() { if (view === "iso") canvas.showIso(islandsForIso(), isoYaw); }
+  function refreshIso() { if (view === "iso") canvas.showIso(islandsForIso(), isoYaw, setup.bbox); }
 
   function refreshMirror() {
     if (!mirrorVisible || !setup.mirror_mode) { canvas.setMirrorPolygons([]); return; }
@@ -227,7 +227,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
-    setView(v)         { view = v === "iso" ? "iso" : "2d"; if (view === "iso") canvas.showIso(islandsForIso(), isoYaw); else canvas.hideIso(); },
+    setView(v)         { view = v === "iso" ? "iso" : "2d"; if (view === "iso") canvas.showIso(islandsForIso(), isoYaw, setup.bbox); else canvas.hideIso(); },
     rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
     setHeight(id, base, floor) {
       const s = canvas.getShape(id); if (!s) return;
