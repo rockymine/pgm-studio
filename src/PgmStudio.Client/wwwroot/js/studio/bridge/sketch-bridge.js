@@ -6,10 +6,11 @@
 // getState() returns the layout for the host to PATCH (persistence wiring = S2d).
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
-import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
-import { rectToPolygon, translateShape, toRing } from "../geometry/shape.js";
+import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta, shapeToMultiPoly } from "../geometry/boolean.js";
+import { rectToPolygon, translateShape } from "../geometry/shape.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
+import polygonClipping from "../vendor/polygon-clipping.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -159,24 +160,31 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
 
   // Build the iso "solids" for every layer: one solid PER SHAPE so per-shape heights are visible (a
   // per-island prism would collapse to the island's tallest shape and hide the rest). Each add shape
-  // becomes a flat prism at its own base_height, or — if it carries per-vertex anchor_heights — sloped
-  // terrain (S5c); subtract shapes carve and aren't solids. All shifted by the layer's base_y, with a
-  // mirror copy per orbit axis for shapes whose island opts in (default: mirror). The renderer
-  // depth-buffers them on the GPU, so where shapes overlap the taller one occludes — matching the
-  // rasterizer's taller-surface-wins rule.
+  // becomes a flat prism at its own base_height — carved by the layer's subtract shapes so holes/moats
+  // show (subtracts are not solids themselves) — or, if it carries per-vertex anchor_heights, sloped
+  // terrain (S5c). Carving follows the rasterizer's order: a normal subtract cuts normal adds, an
+  // override subtract cuts everything. All shifted by the layer's base_y, with a mirror copy per orbit
+  // axis for shapes whose island opts in (default: mirror). The renderer depth-buffers them on the GPU,
+  // so where shapes overlap the taller one occludes — matching the rasterizer's taller-surface-wins rule.
+  // (Per-anchor terrain shapes aren't carved — a TIN-with-holes top isn't modelled in the preview yet.)
   function solidsForIso() {
     syncActive();
     const { cx = 0, cz = 0 } = setup.center ?? {};
     const axes = (mirrorVisible && setup.mirror_mode) ? orbitAxes(setup.mirror_mode) : [];
     const out = [];
     const hasAnchors = s => Array.isArray(s.anchor_heights) && s.vertices && s.anchor_heights.length === s.vertices.length;
+    const mirrorRing = (ring, axis) => ring.map(([x, z]) => applySymmetry(x, z, axis, cx, cz));
 
     for (const L of layers) {
       // A shape mirrors unless its island says otherwise; ungrouped shapes default to mirroring.
       const mirrorOf = new Map();
       for (const isl of (L.islands ?? [])) for (const sid of (isl.shapeIds ?? [])) mirrorOf.set(sid, isl.mirrors !== false);
 
-      const prismOf  = (s, ring, mirror) => ({ exterior: ring, holes: [], top: L.baseY + (s.base_height ?? 0), floor: L.baseY + (s.floor ?? 0), mirror });
+      // Subtract footprints, split by override (normal subs spare override adds; override subs cut all).
+      const subs = L.shapes.filter(s => s.operation === "subtract");
+      const normalSubMP   = subs.filter(s => !s.override).map(shapeToMultiPoly).filter(p => p.length);
+      const overrideSubMP = subs.filter(s =>  s.override).map(shapeToMultiPoly).filter(p => p.length);
+
       const terrainOf = (s, verts, mirror) => ({ vertices: verts, heights: s.anchor_heights.map(hh => L.baseY + hh), floor: L.baseY + (s.floor ?? 0), mirror });
 
       for (const s of L.shapes) {
@@ -184,16 +192,29 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
         const doMirror = mirrorOf.get(s.id) !== false;
         if (hasAnchors(s)) {
           out.push(terrainOf(s, s.vertices.map(v => [v[0], v[1]]), false));
-          if (doMirror) for (const axis of axes) out.push(terrainOf(s, s.vertices.map(([x, z]) => applySymmetry(x, z, axis, cx, cz)), true));
-        } else {
-          const ring = toRing(s);
-          if (ring.length < 4) continue;
-          out.push(prismOf(s, ring, false));
-          if (doMirror) for (const axis of axes) out.push(prismOf(s, ring.map(([x, z]) => applySymmetry(x, z, axis, cx, cz)), true));
+          if (doMirror) for (const axis of axes) out.push(terrainOf(s, mirrorRing(s.vertices, axis), true));
+          continue;
+        }
+        const top = L.baseY + (s.base_height ?? 0), floor = L.baseY + (s.floor ?? 0);
+        const clippers = s.override ? overrideSubMP : normalSubMP.concat(overrideSubMP);
+        for (const { exterior, holes } of carveFootprint(s, clippers)) {     // add − subs → exterior + holes
+          out.push({ exterior, holes, top, floor, mirror: false });
+          if (doMirror) for (const axis of axes)
+            out.push({ exterior: mirrorRing(exterior, axis), holes: holes.map(h => mirrorRing(h, axis)), top, floor, mirror: true });
         }
       }
     }
     return out;
+  }
+
+  // Carve an add shape's footprint with the given subtract MultiPolygons (reusing the same boolean the
+  // 2-D islands use). Returns one {exterior, holes} per resulting polygon (a subtract can split or hole it).
+  function carveFootprint(shape, clippers) {
+    const mp = shapeToMultiPoly(shape);
+    if (!mp.length) return [];
+    let result = mp;
+    if (clippers.length) { try { result = polygonClipping.difference(mp, ...clippers); } catch { result = mp; } }
+    return result.map(poly => ({ exterior: poly[0], holes: poly.slice(1) }));
   }
 
   function refreshIso() { if (view === "iso") canvas.showIso(solidsForIso(), isoYaw, setup.bbox); }

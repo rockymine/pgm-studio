@@ -13,7 +13,7 @@
  * one shader program, and two vertex buffers are reused across renders.
  */
 
-import { earClip } from "../geometry/triangulation.js";
+import { earClip, earClipWithHoles } from "../geometry/triangulation.js";
 
 const ELEV = Math.atan(1 / Math.SQRT2);   // true-isometric elevation (~35.26°)
 const COL = {
@@ -204,21 +204,27 @@ export class IsoScene {
 // ── geometry builders (world x→x, z→z, height→y) — flat triangle soup ─────────────
 
 function prismPositions(s) {
-  const ring = openRing(s.exterior);
-  if (ring.length < 3) return null;
+  const ext = openRing(s.exterior);
+  if (ext.length < 3) return null;
+  const holes = (s.holes ?? []).map(openRing).filter(h => h.length >= 3);
   const top = s.top ?? 0, floor = s.floor ?? 0;
   const pos = [];
-  const tris = earClip(ring);
-  for (const [a, b, c] of tris) {
-    pos.push(ring[a][0], top, ring[a][1], ring[b][0], top, ring[b][1], ring[c][0], top, ring[c][1]);
-    pos.push(ring[a][0], floor, ring[a][1], ring[c][0], floor, ring[c][1], ring[b][0], floor, ring[b][1]);
+  // Caps: triangulate the footprint MINUS its holes (a subtract carved into this shape), top + floor.
+  const cap = holes.length
+    ? earClipWithHoles(ext, holes)
+    : earClip(ext).map(([a, b, c]) => [ext[a], ext[b], ext[c]]);
+  for (const [a, b, c] of cap) {
+    pos.push(a[0], top, a[1], b[0], top, b[1], c[0], top, c[1]);
+    pos.push(a[0], floor, a[1], c[0], floor, c[1], b[0], floor, b[1]);
   }
-  // Walls: each footprint edge as a quad from top down to the floor (two triangles).
-  for (let i = 0, n = ring.length; i < n; i++) {
-    const j = (i + 1) % n;
-    const xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
-    pos.push(xi, top, zi, xj, top, zj, xj, floor, zj);
-    pos.push(xi, top, zi, xj, floor, zj, xi, floor, zi);
+  // Walls: a top→floor quad per edge of the outer ring and of every hole (the inner walls of the well).
+  for (const ring of [ext, ...holes]) {
+    for (let i = 0, n = ring.length; i < n; i++) {
+      const j = (i + 1) % n;
+      const xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
+      pos.push(xi, top, zi, xj, top, zj, xj, floor, zj);
+      pos.push(xi, top, zi, xj, floor, zj, xi, floor, zi);
+    }
   }
   return pos;
 }
