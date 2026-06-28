@@ -10,6 +10,7 @@
 
 import { svgEl } from "./svg.js";
 import { earClip } from "../geometry/triangulation.js";
+import polygonClipping from "../vendor/polygon-clipping.js";
 
 const COS30 = Math.cos(Math.PI / 6);
 const SIN30 = Math.sin(Math.PI / 6);
@@ -23,9 +24,35 @@ const PAL = {
 const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const lerp = (a, b, t) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(",")})`; };
 
+// Where two prism footprints overlap, the rasterizer keeps only the taller surface. The painter's
+// algorithm can't honour that with raw overlapping prisms — a single depth key picks the "front"
+// shape, and a 180° mirror flips that choice, so the same overlap occludes oppositely on the two
+// sides. Resolve it by clipping each prism's footprint by every taller shape, leaving the drawn
+// footprints disjoint (taller shape intact; shorter shape carved). Then depth ordering is unambiguous
+// and symmetric. Terrain (per-anchor) shapes are left whole (they can't be re-triangulated post-clip).
+function resolveOverlaps(solids) {
+  const closeRing = r => (r.length && (r[0][0] !== r[r.length - 1][0] || r[0][1] !== r[r.length - 1][1])) ? [...r, r[0]] : r;
+  const openRing  = r => (r.length > 1 && r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1]) ? r.slice(0, -1) : r;
+  const topOf  = s => s.vertices ? Math.max(...s.heights) : s.top;
+  const footOf = s => s.vertices || s.exterior;
+  const out = [];
+  for (const s of solids) {
+    if (s.vertices) { out.push(s); continue; }                       // terrain: render whole
+    const tallers = solids.filter(o => o !== s && topOf(o) > s.top).map(o => [closeRing(footOf(o))]);
+    if (!tallers.length) { out.push(s); continue; }
+    try {
+      const diff = polygonClipping.difference([closeRing(s.exterior)], ...tallers);
+      for (const poly of diff) out.push({ ...s, exterior: openRing(poly[0]), holes: poly.slice(1).map(openRing) });
+    } catch { out.push(s); }                                          // degenerate clip → fall back to whole
+  }
+  return out;
+}
+
 export function renderIso(layer, solids, w, h, yawDeg, bbox) {
   while (layer.firstChild) layer.removeChild(layer.firstChild);
   if (!solids?.length) { if (bbox) drawGround(layer, bbox, w, h, yawDeg); return; }
+  solids = resolveOverlaps(solids);
+  if (!solids.length) { if (bbox) drawGround(layer, bbox, w, h, yawDeg); return; }
 
   const yaw = (yawDeg * Math.PI) / 180, cy = Math.cos(yaw), sy = Math.sin(yaw);
   const uv = (x, z, hh) => { const rx = x * cy - z * sy, rz = x * sy + z * cy; return [(rx - rz) * COS30, (rx + rz) * SIN30 - hh]; };
