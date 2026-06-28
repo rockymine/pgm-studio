@@ -27,17 +27,31 @@ public partial class SketchInspector
         _           => "square",
     };
 
+    // Bumped on every height/floor edit so the @key'd inputs re-read the clamped model value (see razor).
+    private int _rev;
+
+    // Height is at least 1 (a shape is never zero-height); floor is at least 0. Clamp here so the value
+    // pushed to the bridge is already valid; the bridge clamps again as the source-of-truth backstop.
     private Task HeightChanged(ChangeEventArgs e)
-        => Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
-            ? OnSetHeight.InvokeAsync((Shape.Id, v, Shape.Floor)) : Task.CompletedTask;
+    {
+        _rev++;
+        return Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
+            ? OnSetHeight.InvokeAsync((Shape.Id, Math.Max(1, v), Shape.Floor)) : Task.CompletedTask;
+    }
 
     private Task FloorChanged(ChangeEventArgs e)
-        => Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
-            ? OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v)) : Task.CompletedTask;
+    {
+        _rev++;
+        return Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
+            ? OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, Math.Max(0, v))) : Task.CompletedTask;
+    }
 
     private Task VertexHeightChanged(ChangeEventArgs e)
-        => Shape is not null && SelectedVertexIdx >= 0 && double.TryParse(e.Value?.ToString(), out var v)
-            ? OnSetVertexHeight.InvokeAsync((Shape.Id, SelectedVertexIdx, v)) : Task.CompletedTask;
+    {
+        _rev++;
+        return Shape is not null && SelectedVertexIdx >= 0 && double.TryParse(e.Value?.ToString(), out var v)
+            ? OnSetVertexHeight.InvokeAsync((Shape.Id, SelectedVertexIdx, Math.Max(1, v))) : Task.CompletedTask;
+    }
 
     private Task RenameChanged(ChangeEventArgs e)
         => Island is null ? Task.CompletedTask

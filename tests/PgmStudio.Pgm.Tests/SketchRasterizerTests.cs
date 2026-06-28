@@ -110,11 +110,35 @@ public sealed class SketchRasterizerTests
     {
         var cells = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":12,"floor":-3}],
+         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":12,"floor":3}],
                    "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
         """);
         await Assert.That(cells.Count).IsEqualTo(16);
-        await Assert.That(cells.All(c => c.YTop == 12 && c.YFloor == -3)).IsTrue();
+        await Assert.That(cells.All(c => c.YTop == 12 && c.YFloor == 3)).IsTrue();
+    }
+
+    [Test]
+    public async Task Unset_height_defaults_to_one()
+    {
+        // A shape with no base_height is one block tall (top 1, floor 0) — never zero-height.
+        var cells = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}],
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+        """);
+        await Assert.That(cells.All(c => c.YTop == 1 && c.YFloor == 0)).IsTrue();
+    }
+
+    [Test]
+    public async Task Negative_floor_and_height_clamp_to_the_minimums()
+    {
+        // Legacy/out-of-range stored values are clamped on finish: floor >= 0, top >= 1.
+        var cells = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":-5,"floor":-2}],
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+        """);
+        await Assert.That(cells.All(c => c.YTop == 1 && c.YFloor == 0)).IsTrue();
     }
 
     [Test]

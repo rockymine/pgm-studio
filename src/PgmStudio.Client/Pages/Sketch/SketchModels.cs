@@ -11,7 +11,7 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("operation")] string Operation,
     [property: JsonPropertyName("override")] bool Override,
     [property: JsonPropertyName("dim")] string Dim,
-    [property: JsonPropertyName("baseHeight")] double BaseHeight = 0,
+    [property: JsonPropertyName("baseHeight")] double BaseHeight = 1,   // a shape is never zero-height
     [property: JsonPropertyName("floor")] double Floor = 0);
 
 public sealed record SketchIslandRow(

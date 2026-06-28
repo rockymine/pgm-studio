@@ -124,19 +124,21 @@ public static class SketchRasterizer
     }
 
     // ── single shape → cells with column (rasterize its ring by block-centre sampling) ────────────
+    // Invariants (enforced here so finish output is valid even for legacy stored data): a column's floor
+    // is >= 0 and its top is >= 1 (a shape is never zero-height).
     private static IEnumerable<(int X, int Z, int Top, int Floor)> RasterShape(SketchShape s)
     {
         var ring = RingOf(s);
         if (ring.Count < 3) yield break;
-        int floor = (int)Math.Round(s.Floor ?? 0);
+        int floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));
         var height = HeightFn(s);
         foreach (var (x, z) in RasterRing(ring))
-            yield return (x, z, (int)Math.Round(height(x + 0.5, z + 0.5)), floor);
+            yield return (x, z, Math.Max(1, (int)Math.Round(height(x + 0.5, z + 0.5))), floor);
     }
 
     // The surface-height sampler for a shape: a per-vertex TIN (polygon/lasso with matching anchor_heights),
-    // else the uniform base_height (or 0). The TIN is over the straight vertex polygon — points in a Bézier
-    // fringe fall back to the nearest vertex inside Interpolate.
+    // else the uniform base_height (default 1). The TIN is over the straight vertex polygon — points in a
+    // Bézier fringe fall back to the nearest vertex inside Interpolate.
     private static Func<double, double, double> HeightFn(SketchShape s)
     {
         if ((s.Type == "polygon" || s.Type == "lasso") && s.Vertices is { Length: >= 3 } verts
@@ -146,7 +148,7 @@ public static class SketchRasterizer
             var tris = Triangulation.EarClip(poly);
             return (x, z) => Triangulation.Interpolate(poly, ah, tris, x, z);
         }
-        double bh = s.BaseHeight ?? 0;
+        double bh = s.BaseHeight ?? 1;
         return (_, _) => bh;
     }
 

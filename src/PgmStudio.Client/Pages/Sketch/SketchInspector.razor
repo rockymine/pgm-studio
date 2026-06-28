@@ -34,11 +34,13 @@
         }
         <div class="field">
           <label class="field-label">Height (blocks)</label>
-          <input class="field-input" type="number" step="1" value="@Shape.BaseHeight" @onchange="HeightChanged" />
+          @* @key bumps on every edit so the input re-reads the (clamped) model value even when an
+             out-of-range entry clamps back to the same number — otherwise the DOM keeps the typed text. *@
+          <input @key="_rev" class="field-input" type="number" step="1" min="1" value="@Shape.BaseHeight" @onchange="HeightChanged" />
         </div>
         <div class="field">
           <label class="field-label">Floor (blocks)</label>
-          <input class="field-input" type="number" step="1" value="@Shape.Floor" @onchange="FloorChanged" />
+          <input @key="_rev" class="field-input" type="number" step="1" min="0" value="@Shape.Floor" @onchange="FloorChanged" />
         </div>
         @if (Shape.Type == "polygon" || Shape.Type == "lasso")
         {
@@ -46,7 +48,7 @@
           {
             <div class="field">
               <label class="field-label">Vertex @(SelectedVertexIdx + 1) height</label>
-              <input class="field-input" type="number" step="1" value="@SelectedVertexHeight" @onchange="VertexHeightChanged" />
+              <input @key="_rev" class="field-input" type="number" step="1" min="1" value="@SelectedVertexHeight" @onchange="VertexHeightChanged" />
             </div>
           }
           else

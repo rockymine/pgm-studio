@@ -19,6 +19,12 @@ const DEFAULT_SETUP = { bbox: { min_x: -60, max_x: 60, min_z: -40, max_z: 40 }, 
 let _seq = 0;
 const genId = () => `s${Date.now()}_${_seq++}`;
 
+// Height invariants: every shape is at least one block tall (height >= 1, default 1) and its floor never
+// dips below 0. clampHeight/clampFloor coerce an unset or out-of-range value to the nearest valid one.
+const MIN_HEIGHT = 1;
+const clampHeight = (h) => Math.max(MIN_HEIGHT, h ?? MIN_HEIGHT);
+const clampFloor  = (f) => Math.max(0, f ?? 0);
+
 function dimLabel(s) {
   if (s.type === "rectangle") return `${s.max_x - s.min_x}×${s.max_z - s.min_z}`;
   if (s.type === "circle")    return `r=${s.radius}`;
@@ -55,7 +61,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
     onShapeCreated: (partial) => {
-      const shape = { ...partial, id: genId(), override: partial.override ?? false };
+      const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height), floor: clampFloor(partial.floor) };
       canvas.addShape(shape);
       recompute();
       canvas.setActiveTool("select");
@@ -70,7 +76,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     onPlace:         (bx, bz) => placeAt(bx, bz),
     onVertexSelected: (shapeId, idx) => {
       const s = canvas.getShape(shapeId);
-      const h = s ? (s.anchor_heights?.[idx] ?? s.base_height ?? 0) : 0;
+      const h = s ? clampHeight(s.anchor_heights?.[idx] ?? s.base_height) : MIN_HEIGHT;
       fire("OnVertexSelected", shapeId ?? null, idx, h);
     },
   });
@@ -90,7 +96,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     if (!placeSpecs) return;
     const created = [];
     for (const spec of placeSpecs) {
-      const shape = { ...translateShape(spec, bx, bz), id: genId(), override: spec.override ?? false };
+      const shape = { ...translateShape(spec, bx, bz), id: genId(), override: spec.override ?? false, base_height: clampHeight(spec.base_height), floor: clampFloor(spec.floor) };
       canvas.addShape(shape);
       created.push(shape.id);
     }
@@ -195,7 +201,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
           if (doMirror) for (const axis of axes) out.push(terrainOf(s, mirrorRing(s.vertices, axis), true));
           continue;
         }
-        const top = L.baseY + (s.base_height ?? 0), floor = L.baseY + (s.floor ?? 0);
+        const top = L.baseY + clampHeight(s.base_height), floor = L.baseY + clampFloor(s.floor);
         const clippers = s.override ? overrideSubMP : normalSubMP.concat(overrideSubMP);
         for (const { exterior, holes } of carveFootprint(s, clippers)) {     // add − subs → exterior + holes
           out.push({ exterior, holes, top, floor, mirror: false });
@@ -227,7 +233,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
 
   // Push the island→shape tree to the Blazor panel (compact — render fields + a precomputed dim label).
   function pushLayout() {
-    const shapes = canvas.getShapes().map(s => ({ id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s), baseHeight: s.base_height ?? 0, floor: s.floor ?? 0 }));
+    const shapes = canvas.getShapes().map(s => ({ id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s), baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor) }));
     const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
     fire("OnLayout", JSON.stringify({ islands: isl, shapes }));
   }
@@ -347,8 +353,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
     setHeight(id, base, floor) {
       const s = canvas.getShape(id); if (!s) return;
-      if (base  !== null && base  !== undefined) s.base_height = base;
-      if (floor !== null && floor !== undefined) s.floor = floor;
+      if (base  !== null && base  !== undefined) s.base_height = clampHeight(base);   // >= 1
+      if (floor !== null && floor !== undefined) s.floor = clampFloor(floor);         // >= 0
       canvas.updateShape(s);   // refresh vertex labels (default = base height)
       pushLayout(); refreshIso(); markDirty();
     },
@@ -356,10 +362,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     setVertexHeight(id, idx, h) {
       const s = canvas.getShape(id);
       if (!s?.vertices || idx < 0 || idx >= s.vertices.length) return;
-      const base = s.base_height ?? 0;
+      const base = clampHeight(s.base_height);
       if (!Array.isArray(s.anchor_heights) || s.anchor_heights.length !== s.vertices.length)
-        s.anchor_heights = s.vertices.map((_, i) => s.anchor_heights?.[i] ?? base);
-      s.anchor_heights[idx] = h;
+        s.anchor_heights = s.vertices.map((_, i) => clampHeight(s.anchor_heights?.[i] ?? base));
+      s.anchor_heights[idx] = clampHeight(h);   // a vertex is a height too — never below 1
       canvas.updateShape(s);   // re-render the vertex labels
       pushLayout(); refreshIso(); markDirty();
     },
