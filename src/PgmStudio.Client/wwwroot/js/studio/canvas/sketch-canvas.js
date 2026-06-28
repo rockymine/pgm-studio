@@ -20,7 +20,7 @@ import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis, renderPlaceGhost, renderGhostIslands,
 } from "../render/sketch-render.js";
-import { renderIso } from "../render/iso-render.js";
+import { IsoScene } from "../render/three-iso.js";
 
 const FIT_MARGIN = 0.85;
 const identityTransform = (x, z) => ({ x, y: z });
@@ -66,6 +66,7 @@ export class SketchCanvas extends CanvasBase {
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
   #isoLayer = null;   // read-only isometric preview (S6) — replaces the viewport when active
+  #iso      = null;   // WebGL iso renderer (three.js), lazily created
   #isoOn    = false;
 
   constructor(svgEl_, wrapEl, { cursorEl, zoomEl, dimEl, ...callbacks } = {}) {
@@ -174,13 +175,13 @@ export class SketchCanvas extends CanvasBase {
     this.#draw?.cancel();
     const { w, h } = this.#size();
     for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) g.style.display = "none";
-    this.#isoLayer.style.display = "";
-    renderIso(this.#isoLayer, islands, w, h, yawDeg, bbox);
+    this.#iso ??= new IsoScene(this._wrap);
+    this.#iso.show();
+    this.#iso.render(islands, w, h, yawDeg, bbox);
   }
   hideIso() {
     this.#isoOn = false;
-    while (this.#isoLayer.firstChild) this.#isoLayer.removeChild(this.#isoLayer.firstChild);
-    this.#isoLayer.style.display = "none";
+    this.#iso?.hide();
     this._viewportG.style.display = "";
     for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) g.style.display = "";
   }
