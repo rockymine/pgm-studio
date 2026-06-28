@@ -4,3 +4,8 @@
 * text=auto eol=lf
 
 *.png binary
+
+# Vendored third-party JS libraries (committed in-tree because the hosted-WASM stack
+# has no bundler/CDN to resolve them at build or runtime). Exclude from language stats,
+# collapse in diffs/PRs, and don't try to merge them — treat as opaque blobs.
+src/PgmStudio.Client/wwwroot/js/studio/vendor/** linguist-vendored linguist-generated -diff -merge
