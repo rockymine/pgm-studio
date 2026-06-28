@@ -51,18 +51,15 @@ public partial class OrganicGeneration
         await Reload();
     }
 
-    private async Task OnSeedChange(ChangeEventArgs e)
+    private async Task OnSeedChange(double v)
     {
-        if (int.TryParse(e.Value?.ToString(), out var v) && v != seed) { seed = v; await Reload(); }
+        if ((int)v != seed) { seed = (int)v; await Reload(); }
     }
 
-    private async Task OnWoolsChange(ChangeEventArgs e)
+    private async Task OnWoolsChange(double v)
     {
-        if (int.TryParse(e.Value?.ToString(), out var v))
-        {
-            var w = Math.Clamp(v, 1, 6);
-            if (w != wools) { wools = w; await Reload(); }
-        }
+        var w = (int)v;     // already clamped to [1, 6] by NumberField
+        if (w != wools) { wools = w; await Reload(); }
     }
 
     private async Task Scroll(string id) => await JS.InvokeVoidAsync("studio.scrollToId", id);

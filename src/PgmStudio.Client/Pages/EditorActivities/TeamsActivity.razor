@@ -137,11 +137,11 @@
           <div class="field-row">
             <div class="field">
               <label class="field-label">Max Players</label>
-              <input class="field-input" type="number" min="1" max="500" value="@team.MaxPlayers" @onchange="async e => { team.MaxPlayers = ToInt(e.Value, 20); await SaveTeam(team); }" />
+              <NumberField Value="team.MaxPlayers" ValueChanged="async v => { team.MaxPlayers = (int)v; await SaveTeam(team); }" Min="1" Max="500" />
             </div>
             <div class="field">
               <label class="field-label">Min Players</label>
-              <input class="field-input" type="number" min="0" max="500" value="@team.MinPlayers" @onchange="async e => { team.MinPlayers = ToInt(e.Value, 0); await SaveTeam(team); }" />
+              <NumberField Value="team.MinPlayers" ValueChanged="async v => { team.MinPlayers = (int)v; await SaveTeam(team); }" Min="0" Max="500" />
             </div>
           </div>
           <div class="panel-actions">
@@ -163,7 +163,7 @@
             </div>
             <div class="field">
               <label class="field-label">Yaw (°)</label>
-              <input class="field-input" type="number" step="1" min="-180" max="180" value="@spawnYaw" @onchange="async e => { spawnYaw = ToDouble(e.Value); await SaveSpawn(); }" />
+              <NumberField Value="spawnYaw" ValueChanged="async v => { spawnYaw = v; await SaveSpawn(); }" Min="-180" Max="180" />
             </div>
             <div class="field">
               <label class="field-label">Kit</label>

@@ -297,8 +297,6 @@ public partial class TeamsActivity
         if (!s.TryGetProperty("region", out var r)) return "";
         return r.ValueKind == JsonValueKind.String ? r.GetString() ?? "" : r.ValueKind == JsonValueKind.Object && r.TryGetProperty("id", out var id) ? id.GetString() ?? "" : "";
     }
-    private static int ToInt(object? v, int def) => int.TryParse(v?.ToString(), out var n) ? n : def;
-    private static double ToDouble(object? v) => double.TryParse(v?.ToString(), out var n) ? n : 0;
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 }

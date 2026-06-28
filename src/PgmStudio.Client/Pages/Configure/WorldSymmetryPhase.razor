@@ -35,13 +35,11 @@
         <div class="field-row">
           <div class="field">
             <label class="field-label">X</label>
-            <input class="field-input" type="number" step="0.5" value="@centerX"
-                   disabled="@(selectedType is null)" @onchange="@(e => OnCenter(e, true))" />
+            <NumberField Value="centerX" ValueChanged="@(v => OnCenter(v, true))" Step="0.5" disabled="@(selectedType is null)" />
           </div>
           <div class="field">
             <label class="field-label">Z</label>
-            <input class="field-input" type="number" step="0.5" value="@centerZ"
-                   disabled="@(selectedType is null)" @onchange="@(e => OnCenter(e, false))" />
+            <NumberField Value="centerZ" ValueChanged="@(v => OnCenter(v, false))" Step="0.5" disabled="@(selectedType is null)" />
           </div>
         </div>
         <p class="section-desc">The point the layout mirrors / rotates about — defaults to the detected

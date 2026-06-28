@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -219,9 +218,8 @@ public partial class SpawnPhase
         WriteIntent();
     }
 
-    private void SetCoord(Spawn s, string axis, ChangeEventArgs e)
+    private void SetCoord(Spawn s, string axis, double v)
     {
-        if (!double.TryParse(e.Value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) return;
         if (IsObserver(s))
         {
             switch (axis) { case "x": s.X = v; break; case "z": s.Z = v; break; case "y": s.Y = v; break; case "yaw": s.Yaw = v; break; }

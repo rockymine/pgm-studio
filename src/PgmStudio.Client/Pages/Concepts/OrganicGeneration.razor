@@ -54,14 +54,14 @@
       <div class="gen-controls">
         <div class="field gen-field">
           <label class="field-label">Seed</label>
-          <input class="field-input" type="number" min="1" value="@seed" @onchange="OnSeedChange" />
+          <NumberField Value="seed" ValueChanged="OnSeedChange" Min="1" />
         </div>
         <button class="action-btn action-btn--icon" @onclick="Reroll" title="Random seed" disabled="@loading">
           <i data-lucide="dices"></i>
         </button>
         <div class="field gen-field">
           <label class="field-label">Wools / team</label>
-          <input class="field-input" type="number" min="1" max="6" value="@wools" @onchange="OnWoolsChange" />
+          <NumberField Value="wools" ValueChanged="OnWoolsChange" Min="1" Max="6" />
         </div>
         @if (loading) { <span class="gen-status">generating…</span> }
         else if (error is not null) { <span class="gen-status gen-status--error">@error</span> }

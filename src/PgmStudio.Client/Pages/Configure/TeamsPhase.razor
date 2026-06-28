@@ -79,7 +79,7 @@
         <div class="section-body">
           <div class="field">
             <label class="field-label">Max Players <span class="list-tag">all teams</span></label>
-            <input class="field-input" type="number" min="1" value="@maxPlayers" @onchange="SetMaxPlayers" />
+            <NumberField Value="maxPlayers" ValueChanged="SetMaxPlayers" Min="1" />
           </div>
           <div class="field">
             <label class="field-label">Spawn Kit</label>

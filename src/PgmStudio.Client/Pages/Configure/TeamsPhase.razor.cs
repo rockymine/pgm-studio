@@ -131,10 +131,7 @@ public partial class TeamsPhase
         if (Selected is { } t) { t.Color = e.Value?.ToString() ?? t.Color; WriteTeams(); await PaintIslands(); }
     }
 
-    private void SetMaxPlayers(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var v) && v > 0) { maxPlayers = v; WriteMaxPlayers(); }
-    }
+    private void SetMaxPlayers(double v) { maxPlayers = (int)v; WriteMaxPlayers(); }
 
     // ── island assignment ──────────────────────────────────────────────────────
     // Click an island with a team selected → toggle it onto that team (tinting it); clicking its own team
