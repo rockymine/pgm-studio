@@ -66,8 +66,7 @@ export class SketchCanvas extends CanvasBase {
   #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null; #guideLayer = null;
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
-  #isoLayer = null;   // read-only isometric preview (S6) — replaces the viewport when active
-  #iso      = null;   // WebGL iso renderer, lazily created
+  #iso      = null;   // WebGL iso renderer (S6), lazily created on first 3-D toggle
   #isoOn    = false;
 
   constructor(svgEl_, wrapEl, { cursorEl, zoomEl, dimEl, ...callbacks } = {}) {
@@ -343,9 +342,7 @@ export class SketchCanvas extends CanvasBase {
     this.#handlesLayer     = svgEl("g");
     this.#centerLayer      = svgEl("g", { "pointer-events": "none" });
     this.#drawHandlesLayer = svgEl("g", { "pointer-events": "none" });
-    this.#isoLayer         = svgEl("g", { "pointer-events": "none" });
-    this.#isoLayer.style.display = "none";
-    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#isoLayer]) this._svg.appendChild(g);
+    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) this._svg.appendChild(g);
 
     if (!this.#shapesVisible) this.#shapesLayer.style.display = "none";
     if (!this.#mirrorVisible) this.#mirrorLayer.style.display = "none";
