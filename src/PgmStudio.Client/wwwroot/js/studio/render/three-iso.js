@@ -65,8 +65,11 @@ export class IsoScene {
     this.#renderer.setSize(w, h, false);
     this.#disposeMeshes();
 
-    const matIsland = new THREE.MeshLambertMaterial({ color: COL.island });
-    const matMirror = new THREE.MeshLambertMaterial({ color: COL.mirror });
+    // DoubleSide so a terrain (TIN) top whose triangle winding faces away from the camera still renders
+    // (its sloped top would otherwise be back-face culled); three.js flips the normal per viewed side, so
+    // lighting stays correct. Prism interiors are hidden by the depth buffer, so the extra side is free.
+    const matIsland = new THREE.MeshLambertMaterial({ color: COL.island, side: THREE.DoubleSide });
+    const matMirror = new THREE.MeshLambertMaterial({ color: COL.mirror, side: THREE.DoubleSide });
 
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, maxY = 0;
     const grow = (x, z, y) => { if (x < minX) minX = x; if (x > maxX) maxX = x; if (z < minZ) minZ = z; if (z > maxZ) maxZ = z; if (y > maxY) maxY = y; };
