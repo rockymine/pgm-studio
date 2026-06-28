@@ -112,8 +112,13 @@
               <button class="filter-chip @(snapOn ? "filter-chip--active" : null)" title="Snap shapes to other shapes' edges while dragging (Alt bypasses)"
                       @onclick="ToggleSnap">Snap</button>
               <button class="filter-chip" title="Fit the working bounds" @onclick="OnFit"><i data-lucide="scan"></i></button>
-              <button class="filter-chip @(threeD ? "filter-chip--active" : null)" title="Isometric height preview (read-only)"
+              <button class="filter-chip @(threeD ? "filter-chip--active" : null)" disabled="@isoUnavailable"
+                      title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
                       @onclick="Toggle3D">3D</button>
+              @if (isoUnavailable)
+              {
+                <span class="canvas-zoom" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
+              }
               @if (threeD)
               {
                 <button class="filter-chip" title="Rotate the preview 90°" @onclick="RotateIso"><i data-lucide="rotate-cw"></i></button>

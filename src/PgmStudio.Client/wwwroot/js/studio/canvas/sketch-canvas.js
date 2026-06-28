@@ -20,7 +20,8 @@ import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis, renderPlaceGhost, renderGhostIslands,
 } from "../render/sketch-render.js";
-import { IsoScene } from "../render/iso-webgl.js";
+// iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
+// to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
 
 const FIT_MARGIN = 0.85;
 const identityTransform = (x, z) => ({ x, y: z });
@@ -169,15 +170,26 @@ export class SketchCanvas extends CanvasBase {
   setChunkVisible(v)  { if (this.#chunkLayer) this.#chunkLayer.style.display = v ? "" : "none"; }
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
-  // Swap the top-down viewport for a read-only iso render of the extruded islands.
-  showIso(islands, yawDeg, bbox) {
+  // Swap the top-down viewport for a read-only iso render of the extruded islands. Lazily loads and
+  // creates the WebGL renderer on first use; returns false (leaving the 2-D viewport untouched) if the
+  // preview module can't load or WebGL is unavailable, so the caller can fall back gracefully.
+  async showIso(islands, yawDeg, bbox) {
+    if (!this.#iso) {
+      try {
+        const { IsoScene } = await import("../render/iso-webgl.js");
+        this.#iso = new IsoScene(this._wrap);
+      } catch (e) {
+        console.warn("[sketch] 3-D preview unavailable:", e?.message ?? e);
+        return false;
+      }
+    }
     this.#isoOn = true;
     this.#draw?.cancel();
     const { w, h } = this.#size();
     for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) g.style.display = "none";
-    this.#iso ??= new IsoScene(this._wrap);
     this.#iso.show();
     this.#iso.render(islands, w, h, yawDeg, bbox);
+    return true;
   }
   hideIso() {
     this.#isoOn = false;

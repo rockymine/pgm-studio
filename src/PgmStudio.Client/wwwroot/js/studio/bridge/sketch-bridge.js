@@ -314,7 +314,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
     setSnap(v)         { canvas.setSnapEnabled(v); },
-    setView(v)         { view = v === "iso" ? "iso" : "2d"; if (view === "iso") canvas.showIso(solidsForIso(), isoYaw, setup.bbox); else canvas.hideIso(); },
+    setView(v)         {
+      if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
+      // showIso resolves false if the WebGL preview can't initialise — stay in 2-D and tell the host
+      // so it can disable the toggle (this also keeps recompute()'s refreshIso from retrying).
+      canvas.showIso(solidsForIso(), isoYaw, setup.bbox).then(ok => {
+        view = ok === false ? "2d" : "iso";
+        if (ok === false) fire("OnIsoUnavailable");
+      });
+    },
     rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
     setHeight(id, base, floor) {
       const s = canvas.getShape(id); if (!s) return;

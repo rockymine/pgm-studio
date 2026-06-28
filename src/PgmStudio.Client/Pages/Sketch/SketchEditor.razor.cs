@@ -35,6 +35,7 @@ public partial class SketchEditor
     private bool chunksOn = true;
     private bool snapOn = true;
     private bool threeD = false;
+    private bool isoUnavailable = false;   // 3-D preview couldn't initialise (no WebGL / module load failed)
     private string islandLabel = "";
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
@@ -180,8 +181,13 @@ public partial class SketchEditor
 
     private async Task Toggle3D()
     {
+        if (isoUnavailable) return;
         threeD = !threeD;
-        if (handle is not null) await handle.InvokeVoidAsync("setView", threeD ? "iso" : "2d");
+        if (handle is null) return;
+        // The bridge reports an unavailable preview asynchronously via OnIsoUnavailable; this catch only
+        // guards a hard interop failure so the toggle can never trip Blazor's unhandled-error boundary.
+        try { await handle.InvokeVoidAsync("setView", threeD ? "iso" : "2d"); }
+        catch { threeD = false; isoUnavailable = true; StateHasChanged(); }
     }
 
     private Task RotateIso() => handle?.InvokeVoidAsync("rotateIso").AsTask() ?? Task.CompletedTask;
@@ -229,6 +235,16 @@ public partial class SketchEditor
     /// <summary>An island was selected in the panel (null = deselected).</summary>
     [JSInvokable]
     public void OnIslandSelected(string? id) { selectedIslandId = id; StateHasChanged(); }
+
+    /// <summary>The bridge couldn't initialise the read-only 3-D preview (WebGL unavailable, or the
+    /// preview module failed to load); fall back to 2-D and disable the toggle.</summary>
+    [JSInvokable]
+    public void OnIsoUnavailable()
+    {
+        threeD = false;
+        isoUnavailable = true;
+        StateHasChanged();
+    }
 
     /// <summary>The bridge pushed the current island→shape tree (on every layout change).</summary>
     [JSInvokable]
