@@ -83,16 +83,49 @@ export function renderIso(layer, solids, w, h, yawDeg, bbox) {
     fill: PAL.ground.fill, "fill-opacity": "0.45", stroke: PAL.ground.stroke, "stroke-width": "1", "stroke-dasharray": "4 3",
   }));
 
-  const footprint = s => s.vertices || s.exterior;
-  const ordered = solids
-    .map(s => ({ s, d: Math.max(...footprint(s).map(([x, z]) => depth(x, z))) }))
-    .sort((a, b) => a.d - b.d);
+  // A single per-OBJECT painter's sort cannot resolve mutual occlusion between neighbouring solids,
+  // and any single-scalar footprint key (max/mean corner depth) orders the two halves of a 180°
+  // mirror inconsistently — the same cluster occludes differently on each side. Instead decompose
+  // every solid into individual FACES (each wall quad + the flat/TIN top), give each a depth key =
+  // mean screen-depth of its corners, and sort ALL faces together back→front. Because the rot_180
+  // depth reflection maps a primary face's key d to its mirror's K−d, a centroid-depth sort commutes
+  // with the mirror: the mirror set draws in exactly the reversed order, so the two halves are
+  // provably consistent. Back walls are culled (they never show through an opaque front), which also
+  // removes the seams a full-wall redraw left behind.
+  const grad = [cy + sy, cy - sy];   // ∂depth/∂x, ∂depth/∂z — for back-wall culling
+  const faces = [];
+  for (const s of solids) collectFaces(s, faces, S, depth, pts, grad);
+  faces.sort((a, b) => a.key - b.key);
+  for (const f of faces) layer.appendChild(f.el());
+}
 
-  for (const { s } of ordered) {
-    const pal = s.mirror ? PAL.mirror : PAL.island;
-    if (s.vertices) drawTerrain(layer, s, S, depth, pts, pal);
-    else            drawPrism(layer, s, S, depth, pts, ringPath, pal);
-  }
+// Mean screen-depth of a set of world (x,z) corners — the per-face painter's key.
+const faceDepth = (depth, corners) => corners.reduce((s, [x, z]) => s + depth(x, z), 0) / corners.length;
+
+// A vertical wall on edge a→b faces the viewer when stepping OUTWARD from the footprint RAISES the
+// screen-depth (nearer = larger depth = drawn in front). Depth gradient along (dx,dz) is
+// dx·(cos+sin)+dz·(cos−sin); outward ≈ edge-mid minus the footprint centroid. Winding-independent, so
+// it works identically for primary and mirror.
+function wallFrontFacing(a, b, cx, cz, gx, gz) {
+  const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+  return (mx - cx) * gx + (mz - cz) * gz > 0;
+}
+
+// Two-tone wall shading from a FIXED screen-space light (lit from the upper-right): a wall is the
+// brighter wallR when its outward normal points screen-right. screen-u of a world direction (dx,dz) is
+// proportional to dx·(cos−sin) − dz·(cos+sin) = dx·gz − dz·gx. Using the outward normal (not the ring
+// winding) keeps the light consistent across the whole scene, so both mirror halves are lit identically
+// for the single camera — no per-face flip.
+function wallLitRight(a, b, cx, cz, gx, gz) {
+  const mx = (a[0] + b[0]) / 2, mz = (a[1] + b[1]) / 2;
+  return (mx - cx) * gz - (mz - cz) * gx >= 0;
+}
+
+// Emit a solid's faces into `faces` (each = { key, el() }). Shared by prism + terrain.
+function collectFaces(s, faces, S, depth, pts, grad) {
+  const pal = s.mirror ? PAL.mirror : PAL.island;
+  if (s.vertices) collectTerrainFaces(s, faces, S, depth, pts, pal, grad);
+  else            collectPrismFaces(s, faces, S, depth, pts, pal, grad);
 }
 
 function drawGround(layer, bbox, w, h, yawDeg) {
@@ -108,38 +141,51 @@ function drawGround(layer, bbox, w, h, yawDeg) {
   }));
 }
 
-function drawPrism(layer, isl, S, depth, pts, ringPath, pal) {
-  const ext = isl.exterior;
-  if (isl.top !== isl.floor) {
-    const topPts = ext.map(([x, z]) => S(x, z, isl.top));
-    const cu = topPts.reduce((s, p) => s + p[0], 0) / topPts.length;
-    const edges = ext.map((a, i) => ({ a, b: ext[(i + 1) % ext.length] }))
-      .map(e => ({ ...e, md: (depth(e.a[0], e.a[1]) + depth(e.b[0], e.b[1])) / 2 }))
-      .sort((e1, e2) => e1.md - e2.md);
-    for (const { a, b } of edges) {
-      const quad = [S(a[0], a[1], isl.top), S(b[0], b[1], isl.top), S(b[0], b[1], isl.floor), S(a[0], a[1], isl.floor)];
-      const midU = (quad[0][0] + quad[1][0]) / 2;
-      layer.appendChild(svgEl("polygon", { points: pts(quad), fill: midU >= cu ? pal.wallR : pal.wallL, stroke: pal.wallL, "stroke-width": "0.5" }));
-    }
-  }
-  let d = ringPath(ext, isl.top);
-  for (const hole of (isl.holes || [])) d += " " + ringPath(hole, isl.top);
-  layer.appendChild(svgEl("path", { d, "fill-rule": "evenodd", fill: pal.top, stroke: pal.wallL, "stroke-width": "1.25" }));
+// Footprint centroid of a closed/open ring (ignores a closing repeat).
+function ringCentroid(ring) {
+  const n = (ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]) ? ring.length - 1 : ring.length;
+  let sx = 0, sz = 0;
+  for (let i = 0; i < n; i++) { sx += ring[i][0]; sz += ring[i][1]; }
+  return [sx / n, sz / n];
 }
 
-function drawTerrain(layer, s, S, depth, pts, pal) {
-  const V = s.vertices, H = s.heights, n = V.length;
-  const cu = V.map(([x, z], i) => S(x, z, H[i])[0]).reduce((a, b) => a + b, 0) / n;
-  // Sloped walls (top edge follows vertex heights), back→front.
-  const edges = V.map((a, i) => ({ ai: i, bi: (i + 1) % n }))
-    .map(e => ({ ...e, md: (depth(V[e.ai][0], V[e.ai][1]) + depth(V[e.bi][0], V[e.bi][1])) / 2 }))
-    .sort((e1, e2) => e1.md - e2.md);
-  for (const { ai, bi } of edges) {
-    const quad = [S(V[ai][0], V[ai][1], H[ai]), S(V[bi][0], V[bi][1], H[bi]), S(V[bi][0], V[bi][1], s.floor), S(V[ai][0], V[ai][1], s.floor)];
-    const midU = (quad[0][0] + quad[1][0]) / 2;
-    layer.appendChild(svgEl("polygon", { points: pts(quad), fill: midU >= cu ? pal.wallR : pal.wallL, stroke: pal.wallL, "stroke-width": "0.5" }));
+function collectPrismFaces(isl, faces, S, depth, pts, pal, grad) {
+  const ext = isl.exterior;
+  const [gx, gz] = grad;
+  const [cx, cz] = ringCentroid(ext);
+  if (isl.top !== isl.floor) {
+    const n = ext.length;
+    for (let i = 0; i < n; i++) {
+      const a = ext[i], b = ext[(i + 1) % n];
+      if (a[0] === b[0] && a[1] === b[1]) continue;                 // skip the closing repeat
+      if (!wallFrontFacing(a, b, cx, cz, gx, gz)) continue;         // cull back walls
+      const quad = [S(a[0], a[1], isl.top), S(b[0], b[1], isl.top), S(b[0], b[1], isl.floor), S(a[0], a[1], isl.floor)];
+      const fill = wallLitRight(a, b, cx, cz, gx, gz) ? pal.wallR : pal.wallL;
+      faces.push({ key: faceDepth(depth, [a, b]), el: () => svgEl("polygon", { points: pts(quad), fill, stroke: pal.wallL, "stroke-width": "0.5" }) });
+    }
   }
-  // Triangulated top, each facet shaded by how flat it is (lit from above).
+  // Flat top — one face, keyed at the footprint centroid depth.
+  const ringPath = (ring) => "M " + ring.map(([x, z], i) => { const [sx, sz] = S(x, z, isl.top); return (i ? "L" : "") + `${sx.toFixed(1)} ${sz.toFixed(1)}`; }).join(" ") + " Z";
+  let d = ringPath(ext);
+  for (const hole of (isl.holes || [])) d += " " + ringPath(hole);
+  faces.push({ key: depth(cx, cz), el: () => svgEl("path", { d, "fill-rule": "evenodd", fill: pal.top, stroke: pal.wallL, "stroke-width": "1.25" }) });
+}
+
+function collectTerrainFaces(s, faces, S, depth, pts, pal, grad) {
+  const V = s.vertices, H = s.heights, n = V.length;
+  const [gx, gz] = grad;
+  const [cx, cz] = ringCentroid(V);
+  // Sloped walls (top edge follows vertex heights) — one face each, back walls culled.
+  for (let i = 0; i < n; i++) {
+    const ai = i, bi = (i + 1) % n;
+    const a = V[ai], b = V[bi];
+    if (a[0] === b[0] && a[1] === b[1]) continue;
+    if (!wallFrontFacing(a, b, cx, cz, gx, gz)) continue;
+    const quad = [S(a[0], a[1], H[ai]), S(b[0], b[1], H[bi]), S(b[0], b[1], s.floor), S(a[0], a[1], s.floor)];
+    const fill = wallLitRight(a, b, cx, cz, gx, gz) ? pal.wallR : pal.wallL;
+    faces.push({ key: faceDepth(depth, [a, b]), el: () => svgEl("polygon", { points: pts(quad), fill, stroke: pal.wallL, "stroke-width": "0.5" }) });
+  }
+  // Triangulated top — each facet its own face (shaded by how flat it is, lit from above).
   for (const [a, b, c] of earClip(V)) {
     const e1 = [V[b][0] - V[a][0], V[b][1] - V[a][1], H[b] - H[a]];
     const e2 = [V[c][0] - V[a][0], V[c][1] - V[a][1], H[c] - H[a]];
@@ -147,6 +193,8 @@ function drawTerrain(layer, s, S, depth, pts, pal) {
     const nl = Math.hypot(e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], nh) || 1;
     const flat = Math.min(1, Math.abs(nh) / nl);              // 1 = level, →0 = steep
     const tri = [S(V[a][0], V[a][1], H[a]), S(V[b][0], V[b][1], H[b]), S(V[c][0], V[c][1], H[c])];
-    layer.appendChild(svgEl("polygon", { points: pts(tri), fill: lerp(pal.topDark, pal.top, flat), stroke: "none" }));
+    const key = (depth(V[a][0], V[a][1]) + depth(V[b][0], V[b][1]) + depth(V[c][0], V[c][1])) / 3;
+    const fill = lerp(pal.topDark, pal.top, flat);
+    faces.push({ key, el: () => svgEl("polygon", { points: pts(tri), fill, stroke: "none" }) });
   }
 }
