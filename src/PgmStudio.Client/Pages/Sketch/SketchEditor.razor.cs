@@ -112,17 +112,9 @@ public partial class SketchEditor
         if (Presets.TryGetValue(preset, out var p)) { width = p.W; depth = p.D; await PushBbox(); }
     }
 
-    private async Task OnWidthChange(ChangeEventArgs e)
-    {
-        if (!double.TryParse(e.Value?.ToString(), out var v) || v < 16) return;
-        width = v; preset = InferPreset(width, depth); await PushBbox();
-    }
+    private async Task OnWidth(double v) { width = v; preset = InferPreset(width, depth); await PushBbox(); }
 
-    private async Task OnDepthChange(ChangeEventArgs e)
-    {
-        if (!double.TryParse(e.Value?.ToString(), out var v) || v < 16) return;
-        depth = v; preset = InferPreset(width, depth); await PushBbox();
-    }
+    private async Task OnDepth(double v) { depth = v; preset = InferPreset(width, depth); await PushBbox(); }
 
     // The working frame is centred at the origin (the symmetry centre defaults there); the symmetry
     // centre is set separately and does not move the frame.
@@ -136,16 +128,14 @@ public partial class SketchEditor
     private static string InferPreset(double w, double d) =>
         Presets.FirstOrDefault(kv => kv.Value.W == w && kv.Value.D == d).Key ?? "custom";
 
-    private async Task OnCenterXChange(ChangeEventArgs e)
+    private async Task OnCenterX(double v)
     {
-        if (!double.TryParse(e.Value?.ToString(), out var v)) return;
         centerX = v;
         if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
     }
 
-    private async Task OnCenterZChange(ChangeEventArgs e)
+    private async Task OnCenterZ(double v)
     {
-        if (!double.TryParse(e.Value?.ToString(), out var v)) return;
         centerZ = v;
         if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
     }
@@ -196,7 +186,12 @@ public partial class SketchEditor
         => handle?.InvokeVoidAsync("setHeight", e.Id, e.Base, e.Floor).AsTask() ?? Task.CompletedTask;
 
     private Task SetVertexHeight((string Id, int Idx, double Height) e)
-        => handle?.InvokeVoidAsync("setVertexHeight", e.Id, e.Idx, e.Height).AsTask() ?? Task.CompletedTask;
+    {
+        // Keep the inspector's bound value in sync (the bridge doesn't echo it back) so the field shows
+        // the committed height rather than reverting to the value from when the vertex was selected.
+        selectedVertexHeight = e.Height;
+        return handle?.InvokeVoidAsync("setVertexHeight", e.Id, e.Idx, e.Height).AsTask() ?? Task.CompletedTask;
+    }
 
     // ── Panel / inspector actions → the JS bridge ──────────────────────────────
 

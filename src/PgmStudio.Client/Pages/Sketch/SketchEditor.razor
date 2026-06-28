@@ -46,11 +46,11 @@
               </div>
               <div class="field">
                 <label class="field-label">Width X (blocks)</label>
-                <input class="field-input" type="number" min="16" step="8" value="@width" @onchange="OnWidthChange" />
+                <NumberField Value="width" ValueChanged="OnWidth" Min="16" Step="8" />
               </div>
               <div class="field">
                 <label class="field-label">Depth Z (blocks)</label>
-                <input class="field-input" type="number" min="16" step="8" value="@depth" @onchange="OnDepthChange" />
+                <NumberField Value="depth" ValueChanged="OnDepth" Min="16" Step="8" />
               </div>
               <div class="field">
                 <label class="field-label">Symmetry</label>
@@ -63,11 +63,11 @@
               </div>
               <div class="field">
                 <label class="field-label">Symmetry centre X</label>
-                <input class="field-input" type="number" value="@centerX" @onchange="OnCenterXChange" />
+                <NumberField Value="centerX" ValueChanged="OnCenterX" />
               </div>
               <div class="field">
                 <label class="field-label">Symmetry centre Z</label>
-                <input class="field-input" type="number" value="@centerZ" @onchange="OnCenterZChange" />
+                <NumberField Value="centerZ" ValueChanged="OnCenterZ" />
               </div>
             </section>
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer" OnAdd="AddLayer"

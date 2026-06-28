@@ -18,7 +18,6 @@ public partial class SketchLayers
         => ActiveLayer is { } L && e.Value?.ToString()?.Trim() is { Length: > 0 } n
             ? OnRename.InvokeAsync((L.Id, n)) : Task.CompletedTask;
 
-    private Task BaseYActive(ChangeEventArgs e)
-        => ActiveLayer is { } L && double.TryParse(e.Value?.ToString(), out var v)
-            ? OnSetBaseY.InvokeAsync((L.Id, v)) : Task.CompletedTask;
+    private Task BaseYActive(double v)
+        => ActiveLayer is { } L ? OnSetBaseY.InvokeAsync((L.Id, v)) : Task.CompletedTask;
 }

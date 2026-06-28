@@ -34,13 +34,11 @@
         }
         <div class="field">
           <label class="field-label">Height (blocks)</label>
-          @* @key bumps on every edit so the input re-reads the (clamped) model value even when an
-             out-of-range entry clamps back to the same number — otherwise the DOM keeps the typed text. *@
-          <input @key="_rev" class="field-input" type="number" step="1" min="1" value="@Shape.BaseHeight" @onchange="HeightChanged" />
+          <NumberField Value="Shape.BaseHeight" ValueChanged="HeightChanged" Min="1" />
         </div>
         <div class="field">
           <label class="field-label">Floor (blocks)</label>
-          <input @key="_rev" class="field-input" type="number" step="1" min="0" value="@Shape.Floor" @onchange="FloorChanged" />
+          <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" />
         </div>
         @if (Shape.Type == "polygon" || Shape.Type == "lasso")
         {
@@ -48,7 +46,7 @@
           {
             <div class="field">
               <label class="field-label">Vertex @(SelectedVertexIdx + 1) height</label>
-              <input @key="_rev" class="field-input" type="number" step="1" min="1" value="@SelectedVertexHeight" @onchange="VertexHeightChanged" />
+              <NumberField Value="SelectedVertexHeight" ValueChanged="VertexHeightChanged" Min="1" />
             </div>
           }
           else

@@ -298,7 +298,7 @@ export class SketchEditController {
     }
 
     // Per-vertex height labels (the shape's height profile — anchor height, else its base height).
-    const base = shape.base_height ?? 0;
+    const base = shape.base_height ?? 1;   // a shape is never zero-height (default 1)
     shape.vertices.forEach(([wx, wz], idx) => {
       const sp = this.#toScreen(wx, wz);
       const hh = shape.anchor_heights?.[idx] ?? base;

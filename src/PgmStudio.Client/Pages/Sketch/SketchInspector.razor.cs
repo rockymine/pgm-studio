@@ -27,31 +27,17 @@ public partial class SketchInspector
         _           => "square",
     };
 
-    // Bumped on every height/floor edit so the @key'd inputs re-read the clamped model value (see razor).
-    private int _rev;
+    // NumberField clamps to its Min (height >= 1, floor >= 0) and snaps the display back, so these just
+    // forward the already-valid value to the bridge.
+    private Task HeightChanged(double v)
+        => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, v, Shape.Floor));
 
-    // Height is at least 1 (a shape is never zero-height); floor is at least 0. Clamp here so the value
-    // pushed to the bridge is already valid; the bridge clamps again as the source-of-truth backstop.
-    private Task HeightChanged(ChangeEventArgs e)
-    {
-        _rev++;
-        return Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
-            ? OnSetHeight.InvokeAsync((Shape.Id, Math.Max(1, v), Shape.Floor)) : Task.CompletedTask;
-    }
+    private Task FloorChanged(double v)
+        => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v));
 
-    private Task FloorChanged(ChangeEventArgs e)
-    {
-        _rev++;
-        return Shape is not null && double.TryParse(e.Value?.ToString(), out var v)
-            ? OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, Math.Max(0, v))) : Task.CompletedTask;
-    }
-
-    private Task VertexHeightChanged(ChangeEventArgs e)
-    {
-        _rev++;
-        return Shape is not null && SelectedVertexIdx >= 0 && double.TryParse(e.Value?.ToString(), out var v)
-            ? OnSetVertexHeight.InvokeAsync((Shape.Id, SelectedVertexIdx, Math.Max(1, v))) : Task.CompletedTask;
-    }
+    private Task VertexHeightChanged(double v)
+        => Shape is null || SelectedVertexIdx < 0 ? Task.CompletedTask
+            : OnSetVertexHeight.InvokeAsync((Shape.Id, SelectedVertexIdx, v));
 
     private Task RenameChanged(ChangeEventArgs e)
         => Island is null ? Task.CompletedTask

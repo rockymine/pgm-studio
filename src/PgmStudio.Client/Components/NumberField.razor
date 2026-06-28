@@ -1,0 +1,35 @@
+@namespace PgmStudio.Client.Components
+
+@* Numeric input that actually enforces its bounds. A raw <input type="number" min=…> only validates the
+   spinner/form — a typed out-of-range value sticks and reaches the model. NumberField clamps every
+   committed value to [Min, Max] (Min/Max optional) and snaps the displayed text back to the clamped
+   value, even when the clamp lands on the number already shown (the @key bump forces the input to
+   re-read it; a plain controlled input would skip the DOM update). Emits the clamped value via
+   ValueChanged. Pass extra attributes (title, style, placeholder, id…) straight through. *@
+
+<input @key="_rev" class="@CssClass" type="number" step="@Fmt(Step)" min="@FmtN(Min)" max="@FmtN(Max)"
+       value="@Value" @onchange="OnChange" @attributes="Extra" />
+
+@code {
+    [Parameter] public double Value { get; set; }
+    [Parameter] public EventCallback<double> ValueChanged { get; set; }
+    [Parameter] public double? Min { get; set; }
+    [Parameter] public double? Max { get; set; }
+    [Parameter] public double Step { get; set; } = 1;
+    [Parameter] public string CssClass { get; set; } = "field-input";
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private int _rev;
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        _rev++;   // re-render the input even if the clamp lands on the current Value (else the typed text sticks)
+        if (!double.TryParse(e.Value?.ToString(), out var v)) return;   // non-numeric → revert to Value
+        if (Min is { } mn && v < mn) v = mn;
+        if (Max is { } mx && v > mx) v = mx;
+        if (v != Value) await ValueChanged.InvokeAsync(v);
+    }
+
+    private static string Fmt(double v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    private static string? FmtN(double? v) => v?.ToString(System.Globalization.CultureInfo.InvariantCulture);
+}
