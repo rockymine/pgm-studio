@@ -549,13 +549,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`sketch-edit-controller`). (S5b) §3.
 - **Height editing field + isometric 3-D preview** — the sketch inspector gains **Height** (`base_height`) +
   **Floor** fields on the selected shape; a **3D** toggle swaps the top-down canvas for a read-only **WebGL
-  isometric** view (`render/three-iso.js`, three.js vendored at `vendor/three.module.js`). Each shape becomes
+  isometric** view (`render/iso-webgl.js`). Each shape becomes
   a prism (footprint extruded floor→top) or, for per-anchor shapes, a TIN-draped sloped solid; an
   orthographic camera at the true-iso elevation (yaw-rotatable) with key/fill/ambient lighting renders them
   on a ground-plane reference. Occlusion is resolved by the GPU **depth buffer** — correct and
   mirror-symmetric by construction (it replaced a bespoke SVG painter's-algorithm renderer whose single
-  depth key occluded the two mirror halves inconsistently). three.js is vendored from the npm registry like
-  `polygon-clipping`, so it fits the firewalled no-bundler hosted-WASM stack. (S6) §4.
+  depth key occluded the two mirror halves inconsistently). The renderer is hand-written directly on the
+  WebGL API (one Lambert shader + a small mat4 helper, reusing the in-repo `earClip` triangulator) — no
+  scene-graph library, so it adds no vendored dependency. (S6) §4.
 - **Iso draped-TIN slope** — per-anchor shapes (S5b) render in the iso as **sloped solids**: a
   TIN-triangulated top (JS `geometry/triangulation.earClip`, the twin of `Geom.Triangulation`) lit by the
   GPU from the scene lights, with walls whose top edge follows the vertex heights; their flat island

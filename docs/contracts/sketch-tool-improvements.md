@@ -144,15 +144,14 @@ The finish writers currently emit a single surface layer at Y=0 (`WriteSketchAsy
 
 ---
 
-## 4. 3-D preview (S6) — **shipped: WebGL (three.js) renderer**
+## 4. 3-D preview (S6) — **shipped: bespoke WebGL renderer**
 
 Read-only, no new authoring model — it just makes §3/§5 legible while drawing.
 
-**What shipped:** a **read-only WebGL isometric view** (`render/three-iso.js`, three.js vendored at
-`vendor/three.module.js`). It consumes the per-shape "solids" the bridge builds (`solidsForIso`: one
-prism/terrain per shape + rot/mirror copies) and renders them with a GPU **depth buffer**, an
-**orthographic** camera at the true-iso elevation (yaw user-rotatable), and real lighting (key + fill +
-ambient). Prisms = footprint extruded floor→top (holes carve the top, e.g. hole-square); per-anchor shapes
+**What shipped:** a **read-only WebGL isometric view** (`render/iso-webgl.js`). It consumes the per-shape
+"solids" the bridge builds (`solidsForIso`: one prism/terrain per shape + rot/mirror copies) and renders
+them with a GPU **depth buffer**, an **orthographic** camera at the true-iso elevation (yaw user-rotatable),
+and flat-Lambert lighting (key + fill + ambient). Prisms = footprint extruded floor→top; per-anchor shapes
 = a TIN-draped sloped top with walls following the vertex heights. A ground-plane reference sits at y=0. A
 **3D** toggle swaps the top-down canvas for the WebGL canvas overlay (the SVG hides its viewport + ignores
 tool input while active); a button rotates yaw. The inspector's **Height**/**Floor** fields (the editable
@@ -163,9 +162,15 @@ solids (later faces) sorted by a single screen-depth key and drawn opaque. It co
 occlusion between overlapping/neighbouring masses, and the key didn't commute with the rot_180 mirror, so
 the two halves occluded inconsistently — a class of bug that recurred through several fixes (per-shape
 heights, overlap clipping, per-face sort). A real depth buffer resolves occlusion per-fragment, correctly
-and symmetrically, by construction. The original "no three.js" call was made on **firewall** grounds;
-those are resolved by **vendoring** the ESM build from the npm registry (allowlisted through the proxy)
-into `vendor/`, exactly as `polygon-clipping` is vendored — no bundler, no CDN, no asset-pipeline fight.
+and symmetrically, by construction.
+
+**Why hand-written, not a 3-D library.** The render need is narrow — a fixed orthographic camera, flat
+Lambert shading, and a depth buffer over a few dozen prisms. The actual fix the preview needed was the GPU
+depth buffer (one `gl.enable(DEPTH_TEST)`), not a scene graph. The renderer is therefore written directly
+on the WebGL API: one shader program, a small column-major mat4 helper, and triangle-soup geometry built
+from the in-repo `earClip` triangulator (the JS twin of `Geom.Triangulation`). It adds no vendored
+dependency — fitting the firewalled no-bundler hosted-WASM stack without shipping a megabyte-plus library
+for a read-only preview.
 
 **Upgrades (not built):** free orbit / elevation control (the camera already supports it; only yaw is
 wired) and textured/coloured materials per team.

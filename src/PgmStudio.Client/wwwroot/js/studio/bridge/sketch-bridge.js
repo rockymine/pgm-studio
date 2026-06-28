@@ -161,8 +161,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   // per-island prism would collapse to the island's tallest shape and hide the rest). Each add shape
   // becomes a flat prism at its own base_height, or — if it carries per-vertex anchor_heights — sloped
   // terrain (S5c); subtract shapes carve and aren't solids. All shifted by the layer's base_y, with a
-  // mirror copy per orbit axis for shapes whose island opts in (default: mirror). The painter's-algorithm
-  // renderer draws them opaque back→front, so where shapes overlap the taller one occludes — matching the
+  // mirror copy per orbit axis for shapes whose island opts in (default: mirror). The renderer
+  // depth-buffers them on the GPU, so where shapes overlap the taller one occludes — matching the
   // rasterizer's taller-surface-wins rule.
   function solidsForIso() {
     syncActive();

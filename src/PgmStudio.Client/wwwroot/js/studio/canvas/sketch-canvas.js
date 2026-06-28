@@ -20,7 +20,7 @@ import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis, renderPlaceGhost, renderGhostIslands,
 } from "../render/sketch-render.js";
-import { IsoScene } from "../render/three-iso.js";
+import { IsoScene } from "../render/iso-webgl.js";
 
 const FIT_MARGIN = 0.85;
 const identityTransform = (x, z) => ({ x, y: z });
@@ -66,7 +66,7 @@ export class SketchCanvas extends CanvasBase {
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
   #isoLayer = null;   // read-only isometric preview (S6) — replaces the viewport when active
-  #iso      = null;   // WebGL iso renderer (three.js), lazily created
+  #iso      = null;   // WebGL iso renderer, lazily created
   #isoOn    = false;
 
   constructor(svgEl_, wrapEl, { cursorEl, zoomEl, dimEl, ...callbacks } = {}) {
