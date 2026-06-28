@@ -144,28 +144,31 @@ The finish writers currently emit a single surface layer at Y=0 (`WriteSketchAsy
 
 ---
 
-## 4. 3-D preview (S6) — **shipped: isometric SVG extrusion**
+## 4. 3-D preview (S6) — **shipped: WebGL (three.js) renderer**
 
 Read-only, no new authoring model — it just makes §3/§5 legible while drawing.
 
-**What shipped** (revised from the original three.js/voxel plan): a **read-only isometric SVG view**
-(`render/iso-render.js`) that extrudes the composed `boolean.js` **island polygons** (+ mirror copies) to
-their height as prisms. Reads as "looking down" via three cues: a **ground-plane reference** (the working
-bbox at y=0), **opaque** faces (nearer masses occlude farther — no see-through nesting), and **bright tops
-over two-tone side walls** (lit from above); everything painter-ordered back→front, top faces with holes via
-evenodd. A **3D** toggle swaps the top-down canvas for the iso layer (the canvas hides its viewport + ignores
-tool input while active); a button rotates the ground-plane yaw 90°. Per-island height = its tallest shape's
-`base_height`, floor = its lowest. The inspector gained **Height**/**Floor** fields (the editable half of S5b).
+**What shipped:** a **read-only WebGL isometric view** (`render/three-iso.js`, three.js vendored at
+`vendor/three.module.js`). It consumes the per-shape "solids" the bridge builds (`solidsForIso`: one
+prism/terrain per shape + rot/mirror copies) and renders them with a GPU **depth buffer**, an
+**orthographic** camera at the true-iso elevation (yaw user-rotatable), and real lighting (key + fill +
+ambient). Prisms = footprint extruded floor→top (holes carve the top, e.g. hole-square); per-anchor shapes
+= a TIN-draped sloped top with walls following the vertex heights. A ground-plane reference sits at y=0. A
+**3D** toggle swaps the top-down canvas for the WebGL canvas overlay (the SVG hides its viewport + ignores
+tool input while active); a button rotates yaw. The inspector's **Height**/**Floor** fields (the editable
+half of S5b) drive per-shape `base_height`/`floor`.
 
-**Why not three.js / voxels.** Two findings drove this. (1) A perf probe showed sketch-finish slowness was
-**island polygon-union, not rasterization** (raster ~10 ms; `BlocksToPolygon` ~600 ms — since fixed), so the
-voxel-*compute* worry was unfounded — but a voxel view still needs a JS `RasterizeColumns`+TIN twin
-(parity burden) and box meshing. (2) The env is a **firewalled, no-bundler hosted-WASM** app where vendoring
-three.js fights the asset pipeline. Extruding the islands we already compute, in the SVG stack we already use,
-delivers the goal (see the height/massing) with zero new dependency.
+**Why WebGL, replacing the earlier SVG extrusion.** The bespoke SVG renderer used a painter's algorithm:
+solids (later faces) sorted by a single screen-depth key and drawn opaque. It could not resolve mutual
+occlusion between overlapping/neighbouring masses, and the key didn't commute with the rot_180 mirror, so
+the two halves occluded inconsistently — a class of bug that recurred through several fixes (per-shape
+heights, overlap clipping, per-face sort). A real depth buffer resolves occlusion per-fragment, correctly
+and symmetrically, by construction. The original "no three.js" call was made on **firewall** grounds;
+those are resolved by **vendoring** the ESM build from the npm registry (allowlisted through the proxy)
+into `vendor/`, exactly as `polygon-clipping` is vendored — no bundler, no CDN, no asset-pipeline fight.
 
-**Upgrades (not built):** per-anchor **TIN-draped tops** (the iso shows a flat top per island today; per-vertex
-terrain would mesh the triangulated surface) and **true orbit** (three.js) if free rotation is wanted later.
+**Upgrades (not built):** free orbit / elevation control (the camera already supports it; only yaw is
+wired) and textured/coloured materials per team.
 
 ---
 
