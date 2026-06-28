@@ -22,11 +22,15 @@ public static class BuildGenerator
 {
     private const string VoidMessage = "You may not edit the void!";
 
+    /// <summary>Upper bound on the authored build-height cap (blocks). Keeps a stored/out-of-range value
+    /// from generating a map with an unreasonable ceiling.</summary>
+    public const int MaxBuildHeight = 100;
+
     public static void Apply(Dict doc, MapIntent intent)
     {
         Clear(doc);
         if (intent.Build is not { } b) return;
-        if (b.MaxHeight is { } h) doc["max_build_height"] = h;
+        if (b.MaxHeight is { } h) doc["max_build_height"] = Math.Min(h, MaxBuildHeight);
 
         if (b.Areas.Count == 0) return;
 

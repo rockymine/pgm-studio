@@ -53,6 +53,18 @@ public sealed class BuildGeneratorTests
     }
 
     [Test]
+    public async Task Caps_the_build_height_at_the_max()
+    {
+        var doc = Map();
+        BuildGenerator.Apply(doc, Intent(maxHeight: 150));   // over-range → capped
+        await Assert.That(doc["max_build_height"]).IsEqualTo(BuildGenerator.MaxBuildHeight);
+
+        var doc2 = Map();
+        BuildGenerator.Apply(doc2, Intent(maxHeight: 64));   // in-range → kept
+        await Assert.That(doc2["max_build_height"]).IsEqualTo(64);
+    }
+
+    [Test]
     public async Task Generated_rectangles_read_back_as_build()   // mirror property
     {
         var doc = Map();
