@@ -7,31 +7,74 @@ namespace PgmStudio.Client.Pages.Configure;
 
 using W = WoolAuthoring;
 
-// Wools · room step: draw the rectangle(s) a wool lives in. A room is a union of rectangles — the first
-// rect over a wool's source selects that wool; further rects while it's selected ADD to its room; selecting
-// a rect + deleting removes one (nothing is touch-merged or auto-resized). The confirmed symmetry orbits
-// the authored room onto the partner wools (ghost = orbit copy): the primary rect keys each copy by the
-// wool spawn IT covers, and the extra rects ride the same orbit step. The generator wires room defense
-// (enter=not-owner) + build/break on the union; the summary previews that wiring.
+// Wools · room step: draw the rectangle(s) a wool lives in. A room is a union of rectangles, listed flat
+// (one row per rectangle, with the generated region name + an authored/orbit badge, like the Spawn-points
+// step) and edited one at a time (the Build · Buildable-layer pattern). Drawing over a wool's source
+// starts/targets that wool; further rects add to the selected rect's wool. Authored rects carry a stable id
+// and resize on the canvas; the confirmed symmetry orbits them onto the partner wools as non-editable copies,
+// which are also listed (read-only, "orbit" badge). The right panel shows coordinates.
 public partial class WoolRoomPhase
 {
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
+    private sealed class RoomRect { public int Id; public string Color = ""; public double MinX, MinZ, MaxX, MaxZ; }
+    // A list row: a rectangle (authored or orbit), its canvas region id, owning wool colour, and generated name.
+    private sealed record Row(string RegionId, string Color, bool Authored, double MinX, double MinZ, double MaxX, double MaxZ, string Name);
+
     private readonly List<W.Team> teams = new();
     private List<W.Wool> wools = new();
     private string? symMode; private double symCx, symCz;
     private string anchorTeam = "";
-    private string? selectedColor;
+    private readonly List<RoomRect> authored = new();                 // authored wools' rects (stable ids, editable)
+    private readonly Dictionary<string, List<W.Rect>> ghosts = new(); // orbit copies per partner wool colour
+    private int nextId = 1;
+    private string? selectedRegionId;
     private EditorCanvas? canvas;
 
     private string Slug => Wizard.Slug;
-    private W.Wool? Selected => wools.FirstOrDefault(w => w.Color == selectedColor);
     private W.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string TeamName(string id) => TeamOf(id)?.Name ?? id;
     private bool IsAuthored(W.Wool w) => w.Owner == anchorTeam;
-    private int WithRoom => wools.Count(w => w.HasRoom);
-    private string OwnerSlug(W.Wool w) => string.IsNullOrEmpty(w.Owner) ? "owner" : w.Owner;
+    private W.Wool? WoolOf(string color) => wools.FirstOrDefault(w => w.Color == color);
+    private string OwnerSlug(string color) => WoolOf(color) is { Owner: { Length: > 0 } o } ? o : "owner";
+
+    // The flat list: the authored wools' rects (editable) then each partner wool's orbit copies (read-only).
+    private List<Row> Rows()
+    {
+        var rows = new List<Row>();
+        foreach (var grp in authored.GroupBy(r => r.Color))
+        {
+            var list = grp.ToList();
+            for (var i = 0; i < list.Count; i++)
+            {
+                var r = list[i];
+                rows.Add(new Row(RegionId(r.Id), r.Color, true, r.MinX, r.MinZ, r.MaxX, r.MaxZ, RoomName(r.Color, i, list.Count)));
+            }
+        }
+        foreach (var kv in ghosts)
+            for (var i = 0; i < kv.Value.Count; i++)
+            {
+                var r = kv.Value[i];
+                rows.Add(new Row(GhostId(kv.Key, i), kv.Key, false, r.MinX, r.MinZ, r.MaxX, r.MaxZ, RoomName(kv.Key, i, kv.Value.Count)));
+            }
+        return rows;
+    }
+
+    private Row? Selected => selectedRegionId is { } id ? Rows().FirstOrDefault(r => r.RegionId == id) : null;
+
+    // The generated region name a rect becomes (single → {colour}-wool, several → {colour}-wool-N).
+    private static string RoomName(string color, int i, int count) => count <= 1 ? $"{ColorSlug(color)}-wool" : $"{ColorSlug(color)}-wool-{i + 1}";
+    private static string ColorSlug(string color) => color.Trim().ToLowerInvariant().Replace(' ', '_');
+
+    // The id-slug a team id reduces to in the wiring (red-team → red), matching the generator's filter ids.
+    private static string TeamSlug(string teamId)
+    {
+        var s = teamId.Trim().ToLowerInvariant();
+        if (s.EndsWith("-team")) s = s[..^5];
+        s = System.Text.RegularExpressions.Regex.Replace(s, "[^a-z0-9]+", "-").Trim('-');
+        return s.Length > 0 ? s : teamId;
+    }
 
     protected override void OnInitialized()
     {
@@ -39,7 +82,12 @@ public partial class WoolRoomPhase
         (symMode, symCx, symCz) = W.Sym(Wizard.Intent);
         anchorTeam = teams.FirstOrDefault()?.Id ?? "";
         wools = W.ParseWools(Wizard.Intent);
-        selectedColor = (wools.FirstOrDefault(IsAuthored) ?? wools.FirstOrDefault())?.Color;
+        authored.Clear(); ghosts.Clear(); nextId = 1; selectedRegionId = null;
+        foreach (var w in wools)
+            if (IsAuthored(w))   // the authored side's rooms are the editable rects
+                foreach (var r in w.Rooms) authored.Add(new RoomRect { Id = nextId++, Color = w.Color, MinX = r.MinX, MinZ = r.MinZ, MaxX = r.MaxX, MaxZ = r.MaxZ });
+            else if (w.Rooms.Count > 0)   // partner rooms are orbit copies
+                ghosts[w.Color] = w.Rooms.ToList();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -49,148 +97,125 @@ public partial class WoolRoomPhase
 
     private async Task OnRectDrawn((double MinX, double MinZ, double MaxX, double MaxZ) r)
     {
-        if (AddRect(r)) { await Paint(); if (selectedColor is not null) await SelectOnCanvas(selectedColor); }
+        // drawing over an authored wool's source starts/targets that wool; otherwise it joins the selected rect's wool
+        var color = wools.FirstOrDefault(w => IsAuthored(w) && Covers(r, w.SpawnX, w.SpawnZ))?.Color
+                    ?? (AuthoredFromRegion(selectedRegionId)?.Color);
+        if (color is null) return;
+        var b = new RoomRect { Id = nextId++, Color = color, MinX = Math.Round(r.MinX), MinZ = Math.Round(r.MinZ), MaxX = Math.Round(r.MaxX), MaxZ = Math.Round(r.MaxZ) };
+        authored.Add(b);
+        selectedRegionId = RegionId(b.Id);
+        DeriveAndWrite();
+        await Paint();
+        await SelectOnCanvas(selectedRegionId);
     }
 
     private async Task OnGeometrySaved((string Id, double MinX, double MinZ, double MaxX, double MaxZ) e)
     {
-        var (color, idx) = ParseRectId(e.Id);
-        if (color is null || wools.FirstOrDefault(w => w.Color == color) is not { } w || !IsAuthored(w)
-            || idx < 0 || idx >= w.Rooms.Count) return;   // ghosts don't resize
-        w.Rooms[idx] = new W.Rect(e.MinX, e.MinZ, e.MaxX, e.MaxZ);
+        if (AuthoredFromRegion(e.Id) is not { } b) return;   // only authored rects resize
+        b.MinX = Math.Round(e.MinX); b.MinZ = Math.Round(e.MinZ); b.MaxX = Math.Round(e.MaxX); b.MaxZ = Math.Round(e.MaxZ);
         DeriveAndWrite();
-        await Paint(); await SelectOnCanvas(color);
+        await Paint();
+        await SelectOnCanvas(e.Id);
     }
 
-    // Accumulate the drawn rect onto an authored room: the selected authored wool, else the authored wool
-    // whose spawn the rect covers (the "first rect over a spawn selects" rule). Ignored when neither holds.
-    private bool AddRect((double MinX, double MinZ, double MaxX, double MaxZ) rect)
+    private async Task OnCanvasSelect(string? id)
     {
-        var target = (Selected is { } s && IsAuthored(s)) ? s
-            : wools.FirstOrDefault(w => IsAuthored(w) && Covers(rect, w.SpawnX, w.SpawnZ));
-        if (target is null) return false;
-        target.Rooms.Add(new W.Rect(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ));
-        selectedColor = target.Color;
-        DeriveAndWrite();
-        return true;
+        if (AuthoredFromRegion(id) is { } b) { selectedRegionId = RegionId(b.Id); await SelectOnCanvas(selectedRegionId); }
+        else { selectedRegionId = null; if (canvas is not null) await canvas.SetSelectionAsync(Array.Empty<string>()); StateHasChanged(); }
     }
 
-    // Rebuild every wool's room from the authored wools' rect-sets: orbit each authored set, keying each
-    // image-set by the wool spawn its primary rect covers. Block-rounds via OrbitAssignment.
+    private async Task SelectRow(string regionId) { selectedRegionId = regionId; await SelectOnCanvas(regionId); }
+
+    private async Task SelectOnCanvas(string regionId)
+    {
+        if (canvas is not null) await canvas.SetSelectionAsync(new[] { regionId });
+        StateHasChanged();
+    }
+
+    private async Task Remove(string regionId)
+    {
+        if (AuthoredFromRegion(regionId) is not { } b) return;   // only authored rects are removable
+        authored.Remove(b);
+        if (selectedRegionId == regionId) selectedRegionId = null;
+        DeriveAndWrite();
+        await Paint();
+    }
+
+    // Recompute the orbit copies from the authored rects (grouped by wool, point-aware) and persist every
+    // wool's room slice (authored wools = their authored rects; partner wools = the orbit copies).
     private void DeriveAndWrite()
     {
-        var sources = wools.Where(w => IsAuthored(w) && w.Rooms.Count > 0).Select(PrimaryFirst).ToList();
-        foreach (var w in wools) w.Rooms = new();
+        ghosts.Clear();
         var anchors = wools.Select(w => new OrbitAssignment.Anchor(w.Color, w.SpawnX, w.SpawnZ)).ToList();
-        foreach (var rects in sources)
-            foreach (var set in OrbitAssignment.ByCoveredAnchorSet(rects, symMode, symCx, symCz, anchors))
-                if (wools.FirstOrDefault(w => w.Color == set.Id) is { } w)
-                    w.Rooms = set.Rects.Select(z => new W.Rect(z.MinX, z.MinZ, z.MaxX, z.MaxZ)).ToList();
+        foreach (var grp in authored.GroupBy(r => r.Color))
+        {
+            var wool = wools.FirstOrDefault(w => w.Color == grp.Key);
+            if (wool is null) continue;
+            var primary = CoveringFirst(grp.ToList(), wool.SpawnX, wool.SpawnZ);
+            foreach (var set in OrbitAssignment.ByCoveredAnchorSet(primary, symMode, symCx, symCz, anchors))
+                if (set.Id != grp.Key)
+                    ghosts[set.Id] = set.Rects.Select(z => new W.Rect(z.MinX, z.MinZ, z.MaxX, z.MaxZ)).ToList();
+        }
         Write();
     }
 
-    // Order an authored wool's rects so a spawn-covering one is the primary (orbit owner key); extras follow.
-    private List<(double MinX, double MinZ, double MaxX, double MaxZ)> PrimaryFirst(W.Wool w)
+    // A wool's authored rects as bound tuples, with one covering its source first (the orbit key).
+    private List<(double MinX, double MinZ, double MaxX, double MaxZ)> CoveringFirst(List<RoomRect> rects, double sx, double sz)
     {
-        var rects = w.Rooms.Select(r => (r.MinX, r.MinZ, r.MaxX, r.MaxZ)).ToList();
-        var i = rects.FindIndex(r => Covers((r.MinX, r.MinZ, r.MaxX, r.MaxZ), w.SpawnX, w.SpawnZ));
-        if (i > 0) { var primary = rects[i]; rects.RemoveAt(i); rects.Insert(0, primary); }
-        return rects;
+        var list = rects.Select(r => (r.MinX, r.MinZ, r.MaxX, r.MaxZ)).ToList();
+        var i = list.FindIndex(r => Covers((r.MinX, r.MinZ, r.MaxX, r.MaxZ), sx, sz));
+        if (i > 0) { var p = list[i]; list.RemoveAt(i); list.Insert(0, p); }
+        return list;
     }
 
     private static bool Covers((double MinX, double MinZ, double MaxX, double MaxZ) r, double x, double z)
         => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ;
 
-    private async Task OnCanvasSelect(string? id)
+    private void Write()
     {
-        var color = ColorFromRegionId(id);
-        selectedColor = color;
-        if (color is not null) await SelectOnCanvas(color);
-        else if (canvas is not null) { await canvas.SetSelectionAsync(Array.Empty<string>()); StateHasChanged(); }
+        foreach (var w in wools)
+            w.Rooms = IsAuthored(w)
+                ? authored.Where(r => r.Color == w.Color).Select(r => new W.Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ)).ToList()
+                : ghosts.TryGetValue(w.Color, out var g) ? g.ToList() : new();
+        W.WriteWools(Wizard.Intent, wools);
+        Wizard.MarkDirty();
     }
 
-    private async Task SelectWool(string color) { selectedColor = color; await SelectOnCanvas(color); }
-
-    // Only an authored room's rects show resize handles; orbit copies are ghosts.
-    private async Task SelectOnCanvas(string color)
-    {
-        if (canvas is not null)
-        {
-            var w = wools.FirstOrDefault(x => x.Color == color);
-            var ids = w is { HasRoom: true } && IsAuthored(w)
-                ? Enumerable.Range(0, w.Rooms.Count).Select(i => RectId(color, i)).ToArray()
-                : Array.Empty<string>();
-            await canvas.SetSelectionAsync(ids);
-        }
-        StateHasChanged();
-    }
-
-    private async Task ClearRoom(W.Wool w)
-    {
-        if (!IsAuthored(w)) return;
-        w.Rooms.Clear();
-        DeriveAndWrite();
-        await Paint();
-    }
-
-    private async Task DeleteRect(W.Wool w, int index)
-    {
-        if (!IsAuthored(w) || index < 0 || index >= w.Rooms.Count) return;
-        w.Rooms.RemoveAt(index);
-        DeriveAndWrite();
-        await Paint();
-        await SelectOnCanvas(w.Color);
-    }
-
-    private static string RectId(string color, int i) => $"{color}-wool-room-{i + 1}";
-
-    private (string? Color, int Index) ParseRectId(string? id)
-    {
-        const string mid = "-wool-room-";
-        if (id is not null && id.LastIndexOf(mid, StringComparison.Ordinal) is var at and >= 0
-            && int.TryParse(id[(at + mid.Length)..], out var n))
-        {
-            var color = id[..at];
-            if (wools.Any(w => w.Color == color)) return (color, n - 1);
-        }
-        return (null, -1);
-    }
-
-    private string? ColorFromRegionId(string? id)
-    {
-        if (id is null) return null;
-        var (color, _) = ParseRectId(id);
-        if (color is not null) return color;
-        const string sfx = "wool-src-";   // the source marker id
-        if (id.StartsWith(sfx) && wools.Any(w => w.Color == id[sfx.Length..])) return id[sfx.Length..];
-        return null;
-    }
-
-    private void Write() { W.WriteWools(Wizard.Intent, wools); Wizard.MarkDirty(); }
-
+    // Wool source markers + the authored rects (editable, tinted per wool) + the orbit copies (ghosts).
     private async Task Paint()
     {
         if (canvas is null) return;
         var nodes = new List<object>();
         foreach (var w in wools)
-        {
-            nodes.Add(new   // the wool source marker, for orientation
+            nodes.Add(new
             {
                 id = $"wool-src-{w.Color}", type = "point", marker = true, primary = false, color = W.Hex(w.Color),
                 label = $"{w.Color} wool",
                 bounds = new { min_x = w.SpawnX - 0.5, min_z = w.SpawnZ - 0.5, max_x = w.SpawnX + 0.5, max_z = w.SpawnZ + 0.5 },
             });
-            for (var i = 0; i < w.Rooms.Count; i++)
+        foreach (var r in authored)
+            nodes.Add(new
             {
-                var r = w.Rooms[i];
+                id = RegionId(r.Id), type = "rectangle", label = $"{r.Color} wool room", color = W.Hex(r.Color),
+                bounds = new { min_x = r.MinX, min_z = r.MinZ, max_x = r.MaxX, max_z = r.MaxZ },
+            });
+        foreach (var kv in ghosts)
+            for (var i = 0; i < kv.Value.Count; i++)
+            {
+                var r = kv.Value[i];
                 nodes.Add(new
                 {
-                    id = RectId(w.Color, i), type = "rectangle", label = $"{w.Color} wool room", color = W.Hex(w.Color),
-                    ghost = !IsAuthored(w),   // orbit copies are derived previews
+                    id = GhostId(kv.Key, i), type = "rectangle", ghost = true,
+                    label = $"{kv.Key} wool room", color = W.Hex(kv.Key),
                     bounds = new { min_x = r.MinX, min_z = r.MinZ, max_x = r.MaxX, max_z = r.MaxZ },
                 });
             }
-        }
         await canvas.SetAuthorRegionsAsync(nodes);
     }
+
+    private static string RegionId(int id) => $"room-{id}";
+    private static string GhostId(string color, int i) => $"room-ghost-{color}-{i}";
+    private RoomRect? AuthoredFromRegion(string? regionId)
+        => regionId is { } s && s.StartsWith("room-") && !s.StartsWith("room-ghost-") && int.TryParse(s[5..], out var id)
+            ? authored.FirstOrDefault(r => r.Id == id) : null;
 }
