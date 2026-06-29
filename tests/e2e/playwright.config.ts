@@ -31,7 +31,17 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        // Use a specific Chromium binary when set (e.g. a sandbox with browsers pre-staged); otherwise
+        // Playwright's own managed browser (installed via `playwright install chromium`).
+        ...(process.env.PGM_E2E_CHROMIUM
+          ? { launchOptions: { executablePath: process.env.PGM_E2E_CHROMIUM } }
+          : {}),
+      },
+    },
   ],
 
   webServer: manageServer

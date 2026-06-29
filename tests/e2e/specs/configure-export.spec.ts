@@ -4,20 +4,22 @@ import { test, expect, type Page } from '@playwright/test';
  * The Configure wizard golden path: a configure-stage map walks the flow bar through to Export and
  * downloads a `map.xml`.
  *
- * This needs a seeded, configure-stage map in the database (origination is an Import of a real world
- * folder, too heavy to fixture inline). Point it at one via env:
+ * This needs a seeded, **export-ready** configure-stage map: one whose intent is fully authored (teams,
+ * spawns, wools, monuments) and passes the export gate. A freshly-rasterized sketch reaches the wizard
+ * but has geometry only — its Next is gated at the first phase, so it is NOT export-ready. Point at a
+ * complete map via env:
  *
- *   PGM_E2E_SEED_MAP=<slug> npm test            # a configure-stage map that is complete enough to export
+ *   PGM_E2E_SEED_MAP=<slug> npm test
  *
  * Without the env it skips — so the suite stays green on a fresh DB while this remains the scaffold the
- * full happy-path grows into.
+ * full happy-path grows into (see D6: a deterministic export-ready fixture).
  */
 const seedSlug = process.env.PGM_E2E_SEED_MAP;
 
 const primaryButton = (page: Page) => page.locator('.flow-bar-actions .action-btn--primary');
 
 test.describe('Configure → Export', () => {
-  test.skip(!seedSlug, 'Set PGM_E2E_SEED_MAP to a configure-stage map slug to run this flow.');
+  test.skip(!seedSlug, 'Set PGM_E2E_SEED_MAP to an export-ready configure-stage map slug to run this flow.');
 
   test('the wizard loads for a configure-stage map', async ({ page }) => {
     await page.goto(`/maps/${seedSlug}/configure`);

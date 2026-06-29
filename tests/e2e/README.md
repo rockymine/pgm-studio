@@ -42,7 +42,8 @@ PGM_E2E_NO_WEBSERVER=1 ./tools/e2e.sh
 | `PGM_STUDIO_PORT`      | `7894`                  | App port (mirrors `tools/dev.sh`).                   |
 | `PGM_E2E_BASE_URL`     | `http://localhost:7894` | Override the base URL wholesale.                     |
 | `PGM_E2E_NO_WEBSERVER` | unset                   | `1` = don't let Playwright start/stop the app.       |
-| `PGM_E2E_SEED_MAP`     | unset                   | Slug of a configure-stage map → enables the export flow. |
+| `PGM_E2E_SEED_MAP`     | unset                   | Slug of an **export-ready** configure-stage map → enables the export flow. |
+| `PGM_E2E_CHROMIUM`     | unset                   | Path to a specific Chromium binary (e.g. a sandbox with browsers pre-staged); else Playwright's managed browser. |
 | `PLAYWRIGHT_BROWSERS_PATH` | unset               | If set (pre-staged browsers), the runner skips `playwright install`. |
 
 ## Layout
@@ -57,8 +58,9 @@ tests/e2e/
 - `specs/landing.spec.ts` — the landing boots past the WASM load and shows the three lifecycle cards.
 - `specs/navigation.spec.ts` — each landing card lands on its stage overview with the right start action.
 - `specs/configure-export.spec.ts` — the Configure wizard golden path (walk the flow bar → download
-  `map.xml`). **Seed-gated:** skips unless `PGM_E2E_SEED_MAP` points at a complete configure-stage map,
-  since origination is an Import of a real world folder (too heavy to fixture inline).
+  `map.xml`). **Seed-gated:** skips unless `PGM_E2E_SEED_MAP` points at an **export-ready** configure-stage
+  map (fully-authored intent that passes the export gate). A freshly-rasterized sketch reaches the wizard
+  but is geometry-only, so its Next is gated — not export-ready. A deterministic fixture for this is D6.
 
 The landing + navigation specs run against an **empty database** (an empty stage just lists no maps), so
 they're the always-on smoke. The export flow grows as seed fixtures are added.
