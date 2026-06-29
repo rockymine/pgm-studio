@@ -1,0 +1,16 @@
+{
+  "name": "pgm-studio-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Playwright end-to-end tests for the hosted Blazor WASM app. Isolated from the repo's zero-dependency JS unit tests (tests/js, run via `node --test`): this is the ONLY place node_modules lives, and it is gitignored. Nothing here is on the `npm test` / tools/js-test.sh path.",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report",
+    "install:browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

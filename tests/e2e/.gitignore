@@ -1,0 +1,11 @@
+# Playwright e2e is the one place node_modules is allowed — keep it out of git.
+node_modules/
+package-lock.json
+
+# Playwright outputs
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+*.webm
+*.zip

@@ -537,3 +537,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   former stale-DB symptom. (D1, closed C10)
 - **Dropped Bootstrap** — dashboard migrated to the studio shell; default `EditorLayout`;
   `/design` reachable from the dashboard footer link. (D4, satisfies D2)
+- **Browser e2e harness (Playwright)** — `tests/e2e/` drives the hosted Blazor WASM app in a real
+  browser: landing-boot + lifecycle-card smoke and card→stage navigation (run against an empty DB),
+  plus a seed-gated Configure→Export golden path (`PGM_E2E_SEED_MAP`). Isolated from the zero-dep JS
+  unit suite (own `package.json`, gitignored `node_modules`, off the `node --test` path); `tools/e2e.sh`
+  runner boots the app via `dev.sh`. Page-object structured so a `playwright-bdd` layer can be added
+  later. (D5)

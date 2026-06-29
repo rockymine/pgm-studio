@@ -240,6 +240,15 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
 - [ ] **3D / side-depth selection view** (ex-`F8` 3D half). The flat side-view slice is done (→ `N08`);
   a true 3D selection view (monument point/block + cuboid Y) needs design. Later.
 
+- [ ] **D6 — Broaden e2e coverage + CI.** The Playwright harness is landed (`FEATURES.md`: landing
+  smoke, card→stage navigation, seed-gated Configure→Export). Remaining: (a) a **deterministic seed
+  fixture** so the Configure→Export golden path runs unconditionally (a small imported world or a DB
+  seed for one configure-stage map) instead of gating on `PGM_E2E_SEED_MAP`; (b) **more flows** — Sketch
+  originate→draw→Finish, the Edit editor open/inspect, the `/maps` list filter; (c) a **GitHub Actions
+  workflow** (none exists yet — `.github/` is empty) that provisions MariaDB + the .NET 10 SDK and runs
+  `tools/e2e.sh` on push. Add `data-testid` hooks in the Razor where specs currently lean on structural
+  CSS classes.
+
 - [ ] **Comment hygiene sweep — purely functional comments.** Code comments must describe behaviour
   only: **no** references to the Python reference app ("port of", "mirrors the reference", parity/oracle)
   and **no** implementation-phase / task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). New code already
