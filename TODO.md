@@ -240,16 +240,11 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
 - [ ] **3D / side-depth selection view** (ex-`F8` 3D half). The flat side-view slice is done (→ `N08`);
   a true 3D selection view (monument point/block + cuboid Y) needs design. Later.
 
-- [ ] **D6 — Broaden e2e coverage + CI.** The Playwright harness is landed (`FEATURES.md`: landing
-  smoke, card→stage navigation, seed-gated Configure→Export). Remaining: (a) a **deterministic
-  export-ready fixture** so the Configure→Export golden path runs unconditionally instead of gating on
-  `PGM_E2E_SEED_MAP` — a *generated sketch advanced to configure is not enough* (geometry only, so the
-  wizard's Next is gated at phase 1); the fixture needs a fully-authored intent that passes the export
-  gate (a small imported CTW world + authored intent, or a stored intent-JSON seed); (b) **more flows** — Sketch
-  originate→draw→Finish, the Edit editor open/inspect, the `/maps` list filter; (c) a **GitHub Actions
-  workflow** (none exists yet — `.github/` is empty) that provisions MariaDB + the .NET 10 SDK and runs
-  `tools/e2e.sh` on push. Add `data-testid` hooks in the Razor where specs currently lean on structural
-  CSS classes.
+- [ ] **D6 — Broaden e2e coverage.** The Playwright harness, the self-seeding Configure→Export golden
+  path, and the CI workflow are landed (`FEATURES.md`). Remaining: **more flows** — Sketch
+  originate→draw→Finish, the Edit editor open/inspect, the `/maps` list filter; and add `data-testid`
+  hooks in the Razor where specs currently lean on structural CSS classes (`.flow-bar-actions
+  .action-btn--primary`, `.list-row`, `.card-title`).
 
 - [ ] **Comment hygiene sweep — purely functional comments.** Code comments must describe behaviour
   only: **no** references to the Python reference app ("port of", "mirrors the reference", parity/oracle)

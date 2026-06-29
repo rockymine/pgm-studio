@@ -24,9 +24,10 @@ From the repo root:
 ./tools/e2e.sh --ui         # Playwright's interactive UI mode
 ```
 
-The Playwright `webServer` block boots the app for you via `tools/dev.sh start` (which builds once,
-runs the binary, and waits on `/api/health`) and **reuses** an already-running local server. So this
-needs the same prerequisites as the app: the **.NET 10 SDK** and **MariaDB** (the `pgm_studio` DB).
+The Playwright `webServer` block **reuses** an already-running dev server (e.g. `./tools/dev.sh`) via
+the `/api/health` URL; if none is up it starts one in the foreground with `dotnet run` and tears it down
+after. So this needs the same prerequisites as the app: the **.NET 10 SDK** and **MariaDB** (the
+`pgm_studio` DB, schema migrated — `dotnet run --project src/PgmStudio.Import -- --migrate-only`).
 
 Manage the server yourself instead:
 
@@ -42,7 +43,7 @@ PGM_E2E_NO_WEBSERVER=1 ./tools/e2e.sh
 | `PGM_STUDIO_PORT`      | `7894`                  | App port (mirrors `tools/dev.sh`).                   |
 | `PGM_E2E_BASE_URL`     | `http://localhost:7894` | Override the base URL wholesale.                     |
 | `PGM_E2E_NO_WEBSERVER` | unset                   | `1` = don't let Playwright start/stop the app.       |
-| `PGM_E2E_SEED_MAP`     | unset                   | Slug of an **export-ready** configure-stage map → enables the export flow. |
+| `PGM_E2E_SEED_MAP`     | unset                   | Override: slug of an **export-ready** configure-stage map for the export flow (else it self-seeds one). |
 | `PGM_E2E_CHROMIUM`     | unset                   | Path to a specific Chromium binary (e.g. a sandbox with browsers pre-staged); else Playwright's managed browser. |
 | `PLAYWRIGHT_BROWSERS_PATH` | unset               | If set (pre-staged browsers), the runner skips `playwright install`. |
 
@@ -50,7 +51,8 @@ PGM_E2E_NO_WEBSERVER=1 ./tools/e2e.sh
 
 ```
 tests/e2e/
-  playwright.config.ts   # baseURL, webServer (dev.sh), reporters
+  playwright.config.ts   # baseURL, webServer, reporters
+  fixtures/seed.ts       # idempotent export-ready map seeding (API calls + the intent)
   pages/                 # page objects — one method per meaningful interaction
   specs/                 # the tests
 ```
@@ -58,12 +60,20 @@ tests/e2e/
 - `specs/landing.spec.ts` — the landing boots past the WASM load and shows the three lifecycle cards.
 - `specs/navigation.spec.ts` — each landing card lands on its stage overview with the right start action.
 - `specs/configure-export.spec.ts` — the Configure wizard golden path (walk the flow bar → download
-  `map.xml`). **Seed-gated:** skips unless `PGM_E2E_SEED_MAP` points at an **export-ready** configure-stage
-  map (fully-authored intent that passes the export gate). A freshly-rasterized sketch reaches the wizard
-  but is geometry-only, so its Next is gated — not export-ready. A deterministic fixture for this is D6.
+  `map.xml`). **Self-seeding:** `beforeAll` ensures an **export-ready** configure-stage map (a generated
+  sketch for the geometry + a fully-authored intent PUT over it, see `fixtures/seed.ts`) and is idempotent
+  (reused across runs — there is no delete-map API). `PGM_E2E_SEED_MAP` overrides it with a hand-made map.
 
-The landing + navigation specs run against an **empty database** (an empty stage just lists no maps), so
-they're the always-on smoke. The export flow grows as seed fixtures are added.
+The landing + navigation specs run against an empty database (an empty stage lists no maps); the export
+spec seeds its own fixture. All run unconditionally against a writable `pgm_studio` DB.
+
+### How the fixture stays terrain-independent
+
+The export gate needs traversability — every spawn/wool/monument must be reachable. Rather than depend on
+real world terrain, the fixture intent puts all those points inside one large **build area** (which the
+traversability check treats as navigable), so the spawn↔wool chain connects with no real blocks. Symmetry
+is set with a single orbit unit so the generator mirrors team 0 onto team 1, and all five phase slices are
+present so the wizard unlocks the rail through Review.
 
 ## Selectors
 

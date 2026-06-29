@@ -1,0 +1,91 @@
+name: e2e
+
+# Browser end-to-end tests (Playwright) for the hosted Blazor WASM app. Provisions MariaDB + the .NET 10
+# SDK, migrates the schema, then runs tests/e2e — whose Playwright webServer boots the app via tools/dev.sh.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: pgm_studio
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    env:
+      # The app connects over TCP to the service container; force TCP with 127.0.0.1 (not "localhost",
+      # which MySqlConnector may resolve to a unix socket). dev.sh and the migrator both read this.
+      ConnectionStrings__PgmStudio: "Server=127.0.0.1;Port=3306;Database=pgm_studio;Uid=pgm;Pwd=pgm_dev_pw;"
+      PGM_STUDIO_DB: "Server=127.0.0.1;Port=3306;Database=pgm_studio;Uid=pgm;Pwd=pgm_dev_pw;"
+      PGM_STUDIO_PORT: "7894"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create database + user
+        # The service container's connection comes from the Docker network, so the app user is '%', not
+        # 'localhost'. Also adds the test DB the Api test project expects.
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -uroot -proot <<'SQL'
+          CREATE DATABASE IF NOT EXISTS pgm_studio;
+          CREATE DATABASE IF NOT EXISTS pgm_studio_test;
+          CREATE USER IF NOT EXISTS 'pgm'@'%' IDENTIFIED BY 'pgm_dev_pw';
+          GRANT ALL ON pgm_studio.*      TO 'pgm'@'%';
+          GRANT ALL ON pgm_studio_test.* TO 'pgm'@'%';
+          FLUSH PRIVILEGES;
+          SQL
+
+      - name: Build
+        run: dotnet build -v q
+
+      - name: Apply schema migrations
+        run: dotnet run --project src/PgmStudio.Import -- --migrate-only
+
+      - name: Install e2e dependencies
+        working-directory: tests/e2e
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Run e2e
+        working-directory: tests/e2e
+        run: npx playwright test
+        # CI is set by GitHub → the Playwright config starts a fresh app via dev.sh (no reuse) and the
+        # configure-export spec self-seeds an export-ready fixture over the DB.
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/e2e/playwright-report
+          retention-days: 7

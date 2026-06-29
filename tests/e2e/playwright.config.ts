@@ -46,13 +46,15 @@ export default defineConfig({
 
   webServer: manageServer
     ? {
-        // dev.sh `start` is idempotent: builds once, launches the binary, waits for /api/health,
-        // and returns. reuseExistingServer means a warm local server is left alone.
-        command: '../../tools/dev.sh start',
-        cwd: __dirname,
+        // Run the API host in the foreground so Playwright owns its lifecycle (dev.sh daemonizes, which
+        // Playwright reads as "exited early"). Locally, reuseExistingServer means an already-running dev
+        // server (e.g. ./tools/dev.sh) is reused via the health URL and this command never runs. The
+        // command runs from the config dir (Playwright's webServer.cwd default), so the path resolves.
+        command: `dotnet run --project ../../src/PgmStudio.Api -- --urls http://0.0.0.0:${port}`,
         url: `${baseURL}/api/health`,
         timeout: 180_000,
         reuseExistingServer: !process.env.CI,
+        env: { ASPNETCORE_ENVIRONMENT: 'Development' },
         stdout: 'pipe',
         stderr: 'pipe',
       }

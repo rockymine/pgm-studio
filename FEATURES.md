@@ -538,8 +538,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Dropped Bootstrap** — dashboard migrated to the studio shell; default `EditorLayout`;
   `/design` reachable from the dashboard footer link. (D4, satisfies D2)
 - **Browser e2e harness (Playwright)** — `tests/e2e/` drives the hosted Blazor WASM app in a real
-  browser: landing-boot + lifecycle-card smoke and card→stage navigation (run against an empty DB),
-  plus a seed-gated Configure→Export golden path (`PGM_E2E_SEED_MAP`). Isolated from the zero-dep JS
-  unit suite (own `package.json`, gitignored `node_modules`, off the `node --test` path); `tools/e2e.sh`
-  runner boots the app via `dev.sh`. Page-object structured so a `playwright-bdd` layer can be added
-  later. (D5)
+  browser: landing-boot + lifecycle-card smoke, card→stage navigation, and the **Configure→Export golden
+  path** (walk the wizard flow bar → download `map.xml`). The export spec **self-seeds** an idempotent,
+  terrain-independent export-ready fixture (generated sketch + an authored intent whose nav points sit in
+  one build area, so traversability passes without real blocks — `fixtures/seed.ts`); `PGM_E2E_SEED_MAP`
+  overrides it. Isolated from the zero-dep JS unit suite (own `package.json`, gitignored `node_modules`,
+  off the `node --test` path). Playwright `webServer` reuses a running `dev.sh` or boots one with
+  `dotnet run`; `tools/e2e.sh` runner. **CI:** `.github/workflows/e2e.yml` provisions MariaDB + .NET 10,
+  migrates, and runs the suite. Page-object structured so a `playwright-bdd` layer can be added later.
+  (D5, D6)

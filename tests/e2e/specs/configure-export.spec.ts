@@ -1,47 +1,47 @@
 import { test, expect, type Page } from '@playwright/test';
+import { ensureExportReadyMap } from '../fixtures/seed';
 
 /**
- * The Configure wizard golden path: a configure-stage map walks the flow bar through to Export and
- * downloads a `map.xml`.
+ * The Configure wizard golden path: an export-ready configure-stage map walks the flow bar through to
+ * Export and downloads a `map.xml`.
  *
- * This needs a seeded, **export-ready** configure-stage map: one whose intent is fully authored (teams,
- * spawns, wools, monuments) and passes the export gate. A freshly-rasterized sketch reaches the wizard
- * but has geometry only — its Next is gated at the first phase, so it is NOT export-ready. Point at a
- * complete map via env:
+ * Self-seeding: `beforeAll` ensures an export-ready fixture exists (idempotent — reused across runs) and
+ * captures its slug, so this runs unconditionally against a writable DB. Set `PGM_E2E_SEED_MAP=<slug>` to
+ * point at a hand-made map instead.
  *
- *   PGM_E2E_SEED_MAP=<slug> npm test
- *
- * Without the env it skips — so the suite stays green on a fresh DB while this remains the scaffold the
- * full happy-path grows into (see D6: a deterministic export-ready fixture).
+ * "Export-ready" means a fully-authored intent that passes the export gate (round-trip + traversability).
+ * A freshly-rasterized sketch reaches the wizard but is geometry-only — its Next is gated at phase 1 —
+ * which is why the fixture PUTs a complete intent over the geometry (see fixtures/seed.ts).
  */
-const seedSlug = process.env.PGM_E2E_SEED_MAP;
+let slug: string;
+
+test.beforeAll(async () => {
+  slug = await ensureExportReadyMap();
+});
 
 const primaryButton = (page: Page) => page.locator('.flow-bar-actions .action-btn--primary');
 
 test.describe('Configure → Export', () => {
-  test.skip(!seedSlug, 'Set PGM_E2E_SEED_MAP to an export-ready configure-stage map slug to run this flow.');
-
   test('the wizard loads for a configure-stage map', async ({ page }) => {
-    await page.goto(`/maps/${seedSlug}/configure`);
+    await page.goto(`/maps/${slug}/configure`);
     // The flow bar's primary action is the steady signal the wizard shell mounted past the WASM boot.
     await expect(primaryButton(page)).toBeVisible();
     await expect(page.locator('.configure-flow-bar')).toBeVisible();
   });
 
   test('walking the flow bar reaches Export and downloads map.xml', async ({ page }) => {
-    await page.goto(`/maps/${seedSlug}/configure`);
+    await page.goto(`/maps/${slug}/configure`);
 
     const next = primaryButton(page);
     await expect(next).toBeVisible();
 
-    // Advance phase-by-phase until the primary action becomes "Export" (the final XML sub-step). Bounded
-    // so a stuck gate fails loudly instead of looping forever.
+    // Advance phase-by-phase until the primary action becomes "Export" (the final XML sub-step). Each
+    // step waits for Next to be enabled — riding out the WASM-load gate and the brief save between phases
+    // — so a genuinely stuck gate surfaces as a clear toBeEnabled timeout. Bounded against an infinite loop.
     for (let i = 0; i < 20; i++) {
+      await expect(next, `flow stalled at step ${i} — Next never enabled`).toBeEnabled();
       const label = (await next.textContent())?.trim() ?? '';
       if (/export/i.test(label)) break;
-      if (await next.isDisabled()) {
-        throw new Error(`Flow stalled at step ${i}: "${label}" is disabled — the seed map cannot advance.`);
-      }
       await next.click();
     }
 

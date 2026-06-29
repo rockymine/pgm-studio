@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Playwright e2e runner. Ensures the dev server is up (tools/dev.sh) and the Chromium browser is
-# installed, then runs the Playwright suite under tests/e2e.
+# Playwright e2e runner. Installs the e2e deps + the Chromium browser, then runs the suite under
+# tests/e2e. The app is handled by Playwright's webServer block: a running dev server (./tools/dev.sh)
+# is reused via /api/health, else one is started in the foreground with `dotnet run`.
 #
 # The e2e harness is deliberately isolated: it is the ONLY place node_modules lives, and it is
 # gitignored. It does NOT touch the zero-dependency JS unit tests (tools/js-test.sh / `node --test`).
