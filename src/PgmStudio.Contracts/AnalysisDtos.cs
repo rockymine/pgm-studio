@@ -8,13 +8,16 @@ public sealed record BuildabilityDto(
     IReadOnlyList<string> Classes, IReadOnlyDictionary<string, string> Colors,
     IReadOnlyDictionary<string, int> Counts, IReadOnlyList<string> Rows, bool HasY0);
 
-public sealed record NavPointDto(string Kind, string Name, int X, int Z, int Component);
+public sealed record NavPointDto(string Kind, string Name, int X, int Z, int Component, bool Grounded = true);
 public sealed record IsolatedPointDto(string Kind, string Name);
 
-/// <summary>GET /api/map/{slug}/traversability — spawn↔wool connectivity over the navigability map.</summary>
+/// <summary>GET /api/map/{slug}/traversability — spawn↔wool connectivity over the navigability map.
+/// <c>Grounded</c> is a distinct check from <c>Connected</c>: every spawn/wool point must sit on terrain
+/// (not float over a build area with no ground); <c>Ungrounded</c> lists those that don't.</summary>
 public sealed record TraversabilityDto(
     bool Connected, int ComponentCount, string Severity, string Message, bool HaveLayers,
-    IReadOnlyList<NavPointDto> Points, IReadOnlyList<IsolatedPointDto> Isolated);
+    IReadOnlyList<NavPointDto> Points, IReadOnlyList<IsolatedPointDto> Isolated,
+    bool Grounded = true, IReadOnlyList<IsolatedPointDto>? Ungrounded = null);
 
 /// <summary>One Review pre-flight finding. <c>Status</c> ∈ <c>"pass"</c> | <c>"fail"</c> | <c>"skip"</c>.</summary>
 public sealed record PreflightCheckDto(string Key, string Label, string Status, string Detail);

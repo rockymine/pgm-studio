@@ -59,6 +59,52 @@ public sealed class TraversabilityTests
         await Assert.That(p.Component).IsGreaterThan(0);    // landed on a navigable component
     }
 
+    // A spawn region + its wool, with a build area but NO terrain under either point. The cells are
+    // "buildable" (so connectivity sees them) yet have no ground — a player would spawn into the void.
+    private static Dict VoidPlacementDoc() => new()
+    {
+        ["regions"] = new Dict { ["red-spawn"] = Rect(0, 0, 4, 4), ["red-wool"] = Rect(0, 0, 4, 4) },
+        ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "red-spawn" } },
+        ["wools"] = new List<object?> { new Dict { ["color"] = "red", ["location"] = Xz(2, 2) } },
+    };
+
+    [Test]
+    public async Task Ungrounded_points_over_a_build_area_fail_when_terrain_is_known()
+    {
+        // Terrain exists somewhere (so grounding is judged) but NOT under the placements.
+        var surface = new HashSet<(int, int)> { (200, 200) };
+        var res = Traversability.Check(VoidPlacementDoc(), surface, null, bbox: (-4, -4, 210, 210));
+
+        await Assert.That(res.Grounded).IsFalse();
+        await Assert.That(res.Ungrounded.Count).IsEqualTo(2);   // spawn + wool both float over void
+        await Assert.That(res.Ungrounded.Any(u => u.Kind == "spawn")).IsTrue();
+        await Assert.That(res.Ungrounded.Any(u => u.Kind == "wool")).IsTrue();
+    }
+
+    [Test]
+    public async Task Grounded_points_pass()
+    {
+        // Same placements, but now terrain covers them — a valid, playable arrangement.
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 4; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+        var res = Traversability.Check(VoidPlacementDoc(), surface, null, bbox: (-4, -4, 10, 10));
+
+        await Assert.That(res.Grounded).IsTrue();
+        await Assert.That(res.Ungrounded.Count).IsEqualTo(0);
+        await Assert.That(res.Points.All(p => p.Grounded)).IsTrue();
+    }
+
+    [Test]
+    public async Task Grounding_is_skipped_when_no_terrain_layer_is_known()
+    {
+        // xml-only / un-scanned map: surface and y0 both absent → grounding can't be judged, so it must
+        // not block (preserves corpus / layerless behaviour).
+        var res = Traversability.Check(VoidPlacementDoc(), null, null, bbox: (-4, -4, 10, 10));
+
+        await Assert.That(res.Grounded).IsTrue();
+        await Assert.That(res.Ungrounded.Count).IsEqualTo(0);
+    }
+
     [Test]
     public async Task Rectangle_navpoint_matches_the_centre()
     {

@@ -419,12 +419,22 @@ Three checks, all reusing what exists:
   `wool/room`, the build union as `build`, monuments as `wool/monument`). Generator and categorizer are
   inverses; this is the strongest test that generation produced *correct* structure, not just *valid*
   structure.
-- **Playability gate (export gate) — implemented.** `GET /map/{slug}/xml` now runs `Traversability.Check`
+- **Playability gate (export gate) — implemented.** `GET /map/{slug}/xml` runs `Traversability.Check`
   before rendering, and for **intent-authored maps** (those with a `map_intent_json` blob) returns **HTTP
-  409** with the failure message + the isolated spawn/wool points when the chain isn't `connected`. A
-  valid, mirror-correct document can still be *unplayable* (islands not bridged); this is the only check
-  that catches it. The gate is scoped to intent maps on purpose: corpus maps have no intent (and may have
-  no scan layers) and keep exporting unconditionally, unchanged.
+  409** when the map fails either of two playability requirements. A valid, mirror-correct document can
+  still be *unplayable*, and these are the only checks that catch it:
+  - **Grounded** — every spawn and wool-objective point must sit on **actual terrain**, not merely inside a
+    build area. A build area is *buildable* (you may place blocks there) but has no ground until someone
+    bridges it, so a spawn/objective floated over one would drop the player into the void, forever
+    unreachable. Grounding is checked against the walkable surface (else the Y=0 base layer) with a
+    1-block snap; it is a **distinct** requirement from connectivity (which legitimately routes a path
+    *across* bridgeable build space). 409 `error: "not grounded"` lists the floating points.
+  - **Connected** — the spawn↔wool chain must be connected over *walkable surface ∪ bridgeable buildable*
+    (islands bridged). 409 `error: "not traversable"` lists the isolated points.
+
+  Both are skipped when no scan layers exist (terrain unknown ⇒ can't judge). The gate is scoped to intent
+  maps on purpose: corpus maps have no intent (and may have no scan layers) and keep exporting
+  unconditionally, unchanged.
 
 ---
 

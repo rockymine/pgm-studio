@@ -13,6 +13,10 @@ import { ensureExportReadyMap } from '../fixtures/seed';
  * A freshly-rasterized sketch reaches the wizard but is geometry-only — its Next is gated at phase 1 —
  * which is why the fixture PUTs a complete intent over the geometry (see fixtures/seed.ts).
  */
+// Serial so the fixture is seeded exactly once: in parallel mode each worker runs beforeAll, and on a
+// cold DB two workers would race to create the fixture (name-collision on the second). One worker, one seed.
+test.describe.configure({ mode: 'serial' });
+
 let slug: string;
 
 test.beforeAll(async () => {

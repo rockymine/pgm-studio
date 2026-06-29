@@ -67,13 +67,16 @@ tests/e2e/
 The landing + navigation specs run against an empty database (an empty stage lists no maps); the export
 spec seeds its own fixture. All run unconditionally against a writable `pgm_studio` DB.
 
-### How the fixture stays terrain-independent
+### How the fixture passes the export gate
 
-The export gate needs traversability — every spawn/wool/monument must be reachable. Rather than depend on
-real world terrain, the fixture intent puts all those points inside one large **build area** (which the
-traversability check treats as navigable), so the spawn↔wool chain connects with no real blocks. Symmetry
-is set with a single orbit unit so the generator mirrors team 0 onto team 1, and all five phase slices are
-present so the wizard unlocks the rail through Review.
+The gate has two playability requirements: every spawn/wool point must be **grounded** (on real terrain,
+not floating over a build area) and the spawn↔wool chain must be **connected**. The fixture rides on the
+generated H-sketch's geometry: its two islands are large slabs (≈ x[-24,23], split along z), so the
+authored spawn/wool coordinates (red near z=-20, blue near z=+20) land on actual terrain. The build area
+bridges the middle for connectivity. Both teams are authored explicitly, and all five phase slices (meta ·
+symmetry · teams · build · wools) are present so the wizard unlocks the rail through Review.
+`ensureExportReadyMap` asserts export-readiness, so a generator change that moved the islands off these
+coords would fail seeding loudly rather than produce a silently-unplayable map.
 
 ## Selectors
 

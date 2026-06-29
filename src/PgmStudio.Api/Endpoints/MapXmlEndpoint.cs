@@ -18,8 +18,9 @@ using Dict = Dictionary<string, object?>;
 /// path the round-trip harness (check #2) exercises across the corpus. For intent-authored maps this is
 /// what proves the generated document is a real, loadable PGM map.
 /// <para><b>Playability gate (new-map-authoring.md §9).</b> For intent-authored maps (those with a stored
-/// intent blob), export is <b>blocked</b> (HTTP 409) unless <see cref="Traversability"/> reports the
-/// spawn↔wool chain connected — a valid, mirror-correct document can still be unplayable (islands not
+/// intent blob), export is <b>blocked</b> (HTTP 409) unless <see cref="Traversability"/> reports every
+/// spawn/wool point grounded on terrain <i>and</i> the spawn↔wool chain connected — a valid, mirror-correct
+/// document can still be unplayable (a spawn floating over a build area with no ground, or islands not
 /// bridged), and this is the only check that catches it. Corpus maps have no intent and export
 /// unconditionally (unchanged).</para>
 /// </summary>
@@ -41,13 +42,16 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
         {
             var segs = await feature.SegmentsAsync(map.Id, ct);
             var trav = Traversability.Check(doc, segs?.SurfaceColumns(), segs?.Y0Columns());
-            if (!trav.Connected)
+            // Two playability requirements: every spawn/wool point must sit on terrain (not float over a
+            // build area with no ground), and the spawn↔wool chain must be connected. Either failing blocks.
+            if (!trav.Grounded || !trav.Connected)
             {
+                var offenders = !trav.Grounded ? trav.Ungrounded : trav.Isolated;
                 await Send.ResponseAsync(new Dict
                 {
-                    ["error"] = "not traversable",
+                    ["error"] = !trav.Grounded ? "not grounded" : "not traversable",
                     ["message"] = trav.Message,
-                    ["isolated"] = trav.Isolated.Select(i => new Dict { ["kind"] = i.Kind, ["name"] = i.Name }).ToList(),
+                    ["isolated"] = offenders.Select(i => new Dict { ["kind"] = i.Kind, ["name"] = i.Name }).ToList(),
                 }, 409, ct);
                 return;
             }

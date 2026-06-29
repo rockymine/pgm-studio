@@ -63,15 +63,16 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
         foreach (var c in new[] { roundTrip, mirror, build, travCheck })
             log.Add($"{c.Label.ToLowerInvariant()}: {c.Detail}");
 
-        var exportReady = roundTrip.Status == "pass" && trav.Connected;
+        var exportReady = roundTrip.Status == "pass" && trav.Grounded && trav.Connected;
         log.Add(exportReady
             ? $"export gate OPEN — GET /map/{slug}/xml → 200"
-            : $"export gate BLOCKED — GET /map/{slug}/xml → {(roundTrip.Status != "pass" ? "HTTP 500 (codec)" : "HTTP 409 (traversability)")}");
+            : $"export gate BLOCKED — GET /map/{slug}/xml → {(roundTrip.Status != "pass" ? "HTTP 500 (codec)" : "HTTP 409 (" + (!trav.Grounded ? "grounding" : "traversability") + ")")}");
 
         var travDto = new TraversabilityDto(
             trav.Connected, trav.ComponentCount, trav.Severity, trav.Message, trav.HaveLayers,
-            trav.Points.Select(p => new NavPointDto(p.Kind, p.Name, p.X, p.Z, p.Component)).ToList(),
-            trav.Isolated.Select(i => new IsolatedPointDto(i.Kind, i.Name)).ToList());
+            trav.Points.Select(p => new NavPointDto(p.Kind, p.Name, p.X, p.Z, p.Component, p.Grounded)).ToList(),
+            trav.Isolated.Select(i => new IsolatedPointDto(i.Kind, i.Name)).ToList(),
+            trav.Grounded, trav.Ungrounded.Select(i => new IsolatedPointDto(i.Kind, i.Name)).ToList());
 
         await Send.OkAsync(new PreflightDto(
             true, exportReady,
@@ -119,6 +120,13 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
 
     private static Preflight.Check TraversabilityCheck(Traversability.Result trav)
     {
+        // Grounding first: a point over void with no terrain isn't a connectivity problem a bridge fixes.
+        if (!trav.Grounded)
+        {
+            var floating = string.Join(" · ", trav.Ungrounded.Select(i => i.Name).Take(6));
+            return new("traversability", "Traversability", "fail",
+                $"not grounded — {floating} float over a build area with no terrain. Place them on solid ground");
+        }
         if (trav.Connected)
             return new("traversability", "Traversability", "pass",
                 trav.HaveLayers ? "spawn ↔ wool chain connected across the build geometry" : "spawn ↔ wool chain connected (region centres)");

@@ -328,9 +328,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   no field lost) and **mirror** (`RegionCategorizer.DeriveFacets` recovers every declared classification —
   spawn/protection · wool/room · build · wool/monument, monuments structurally via `MapValidity`) are pure
   (`Pgm/Authoring/Preflight`); **buildability** (every spawn/wool/monument placement over solid ground, not
-  open void) and **traversability** (spawn↔wool chain connected) reuse the analysis layer. `ExportReady`
-  mirrors what `GET /xml` enforces (round-trip must not throw + connectivity), so the XML sub-step's Export
-  stays gated; mirror + buildability are advisory. The phase body is a **read-only overview** (a single
+  open void) and **traversability** reuse the analysis layer. Traversability enforces **two** requirements:
+  **grounded** (every spawn/wool point sits on real terrain, not floating over a build area — a build area
+  is buildable but has no ground, so a spawn over one drops the player into the void) and **connected**
+  (spawn↔wool chain bridged). `ExportReady` mirrors what `GET /xml` enforces (round-trip must not throw +
+  grounded + connected), so the XML sub-step's Export stays gated; mirror + buildability are advisory.
+  (Both grounding/connectivity are skipped when no scan layers exist — terrain unknown.) The phase body is a **read-only overview** (a single
   centred column, **not** the 3-column editing workspace): the four check rows, a validate log, and **one
   static top-down map of everything authored** — real island polygons (from `/islands`, collinear-simplified)
   + the **orbit-filled** buildable bridges (`intent.build.areas` mirrored by the confirmed symmetry via the

@@ -11,10 +11,17 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class Traversability
 {
-    public sealed record NavPoint(string Kind, string Name, int X, int Z, int Component);
+    public sealed record NavPoint(string Kind, string Name, int X, int Z, int Component, bool Grounded = true);
     public sealed record IsolatedPoint(string Kind, string Name);
     public sealed record Result(bool Connected, int ComponentCount, string Severity, string Message,
-        bool HaveLayers, List<NavPoint> Points, List<IsolatedPoint> Isolated);
+        bool HaveLayers, List<NavPoint> Points, List<IsolatedPoint> Isolated,
+        bool Grounded, List<IsolatedPoint> Ungrounded);
+
+    // Spawn/objective points must sit on actual terrain, not merely inside a build area. A build area is
+    // "buildable" (you may place blocks there) but has no ground until someone bridges it — a spawn or wool
+    // floated over one would drop the player into the void, unreachable. Grounding is therefore a distinct
+    // requirement from connectivity (which legitimately routes a PATH across bridgeable build space).
+    private const int GroundSnap = 1;   // tolerate region-centre rounding, not genuine void
 
     public static Result Check(Dict data, HashSet<(int, int)>? surfaceColumns, HashSet<(int, int)>? y0Columns,
         (int, int, int, int)? bbox = null, int margin = 16)
@@ -35,12 +42,26 @@ public static class Traversability
         var labels = LabelComponents(navigable, nx, nz);
         var points = NavigationPoints(data, (b.MinX, b.MinZ, b.MaxX, b.MaxZ));
 
+        // Terrain a player can stand on: the walkable surface, else the Y=0 base layer. When neither is
+        // available (xml-only / un-scanned map) terrain is unknown and grounding cannot be judged.
+        var ground = surfaceColumns is { Count: > 0 } ? surfaceColumns : y0Columns;
+        var terrainKnown = ground is { Count: > 0 };
+        bool Grounded(NavPoint p)
+        {
+            if (!terrainKnown) return true;   // can't disprove without terrain data
+            for (var dz = -GroundSnap; dz <= GroundSnap; dz++)
+            for (var dx = -GroundSnap; dx <= GroundSnap; dx++)
+                if (ground!.Contains((p.X + dx, p.Z + dz))) return true;
+            return false;
+        }
+
         var placed = new List<NavPoint>();
         foreach (var p in points)
         {
             int ix = p.X - minX, iz = p.Z - minZ;
             var comp = (ix >= 0 && ix < nx && iz >= 0 && iz < nz) ? LabelAt(labels, navigable, nx, nz, ix, iz) : 0;
-            placed.Add(p with { Component = comp });
+            var point = p with { Component = comp };
+            placed.Add(point with { Grounded = Grounded(point) });
         }
 
         var comps = placed.Where(p => p.Component > 0).Select(p => p.Component).ToList();
@@ -56,11 +77,16 @@ public static class Traversability
         var isolated = placed.Where(p => p.Component != main).Select(p => new IsolatedPoint(p.Kind, p.Name)).ToList();
         var connected = distinct.Count <= 1 && !placed.Any(p => p.Component == 0);
 
-        var severity = connected ? "ok" : "warning";
-        var message = connected
-            ? "spawn ↔ wool objective chain is traversable"
-            : $"{isolated.Count} spawn/wool point(s) are not reachable from the rest — check build regions / bridgeable gaps";
-        return new Result(connected, distinct.Count, severity, message, haveLayers, placed, isolated);
+        var ungrounded = placed.Where(p => !p.Grounded).Select(p => new IsolatedPoint(p.Kind, p.Name)).ToList();
+        var grounded = ungrounded.Count == 0;
+
+        var severity = connected && grounded ? "ok" : "warning";
+        var message = !grounded
+            ? $"{ungrounded.Count} spawn/wool point(s) float over a build area with no terrain — place them on solid ground"
+            : connected
+                ? "spawn ↔ wool objective chain is traversable"
+                : $"{isolated.Count} spawn/wool point(s) are not reachable from the rest — check build regions / bridgeable gaps";
+        return new Result(connected, distinct.Count, severity, message, haveLayers, placed, isolated, grounded, ungrounded);
     }
 
     // ── navigation points: spawn region centres + wool locations ──────────────────────

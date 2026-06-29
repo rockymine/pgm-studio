@@ -7,11 +7,14 @@ const baseURL = process.env.PGM_E2E_BASE_URL ?? `http://localhost:${port}`;
 export const EXPORT_FIXTURE_NAME = 'E2E Export Fixture';
 
 /**
- * A complete, **export-ready** authoring intent. The trick that makes it terrain-independent: every
- * spawn/wool/monument nav point sits inside one big build area, so traversability (which treats a build
- * area as navigable) connects them without any real world terrain. Symmetry is set with a single orbit
- * unit (red team) — the generator mirrors it onto blue — and all five phase slices (meta · symmetry ·
- * teams · build · wools) are present, so the wizard unlocks the rail through Review.
+ * A complete, **export-ready** authoring intent over the generated H-sketch (seed 7). Its two islands are
+ * large slabs spanning roughly x[-24,23] split along z (one per team), so the spawn/wool points below
+ * (red near z=-20, blue mirrored near z=+20) land on real terrain — which the export gate now requires
+ * (spawns/objectives must be grounded, not merely inside a build area). Both teams are authored explicitly
+ * (orbit-fill leaves authored teams untouched); the build area bridges the middle. All five phase slices
+ * (meta · symmetry · teams · build · wools) are present, so the wizard unlocks the rail through Review.
+ * `ensureExportReadyMap` asserts the result is export-ready, so if the generator geometry ever shifts and
+ * these coords leave the islands, seeding fails loudly rather than silently producing an unplayable map.
  */
 export const EXPORT_FIXTURE_INTENT = {
   meta: { name: EXPORT_FIXTURE_NAME, authors: ['e2e'] },
@@ -22,9 +25,10 @@ export const EXPORT_FIXTURE_INTENT = {
   ],
   maxPlayers: 12,
   observer: { point: { x: 0, y: 60, z: 0 }, yaw: 180 },
-  build: { maxHeight: 30, areas: [{ minX: -100, minZ: -100, maxX: 100, maxZ: 100 }], holes: [] },
+  build: { maxHeight: 30, areas: [{ minX: -60, minZ: -60, maxX: 60, maxZ: 60 }], holes: [] },
   spawns: [
     { team: 'red-team', point: { x: -20, y: 12, z: -20 }, protection: [{ minX: -30, minZ: -30, maxX: -10, maxZ: -10 }], yaw: 0 },
+    { team: 'blue-team', point: { x: 20, y: 12, z: 20 }, protection: [{ minX: 10, minZ: 10, maxX: 30, maxZ: 30 }], yaw: 0 },
   ],
   wools: [
     {
@@ -32,6 +36,12 @@ export const EXPORT_FIXTURE_INTENT = {
       room: [{ minX: -35, minZ: -35, maxX: -15, maxZ: -15 }],
       spawn: { x: -20.5, y: 13, z: -18.5 },
       monuments: [{ team: 'blue-team', location: { x: 20, y: 13, z: 20 } }],
+    },
+    {
+      owner: 'blue-team', color: 'blue',
+      room: [{ minX: 15, minZ: 15, maxX: 35, maxZ: 35 }],
+      spawn: { x: 20.5, y: 13, z: 18.5 },
+      monuments: [{ team: 'red-team', location: { x: -20, y: 13, z: -20 } }],
     },
   ],
   islandTeams: {},
