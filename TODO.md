@@ -46,6 +46,13 @@ the focus-integration polish remains.
   Re-derive the id on colour change and **cascade the rename** across the intent — `teams`, `islandTeams`,
   and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip the rename (just
   recolour) when the new colour-derived id would collide with another team's.
+- [ ] **N11 — Spawn / wool-spawn / monument / observer Y must seat on terrain, not default to 0.**
+  `WoolObjectivesPhase` snaps its seed Y to the column floor (`ColumnFloorAsync` → `GET /map/{slug}/column-floor`),
+  but `SpawnPhase` defaults a new spawn/observer to **`Y=0`** (`SpawnPhase.razor.cs:92`; `PlaceAndOrbit(..., y=0)`
+  :149) and `WoolSpawnPhase` never snaps — so a placed spawn sits at world-bottom and the player falls out of the
+  world. On point/rect placement (**and the orbit copies**) snap Y to the terrain floor at that column via the same
+  `ColumnFloorEndpoint`, for team spawns, the observer, wool spawns, and monuments. Reuse the `WoolObjectivesPhase`
+  snap helper. Pairs with `N08` (monument Y editing) and `CV11` (the side-view clamp side of the same problem).
 
 ## Sketch tool (S) — footprint, height, 3-D depth pass
 
@@ -59,6 +66,45 @@ design — data-model diffs, rasterizer/artifact changes, open decisions — in
   Collapse both behind `<details>` accordions (Library default-collapsed once the map has shapes), or move
   the Library to a toolbar popover (it's a "reach for a primitive" action, not persistent state). Depends on
   `S11`. (`docs/sketch-tool-ux-review.md` P0#1; `docs/contracts/sketch-creation-flow.md` follow-on.)
+- [ ] **S13 — Rotate an island on the canvas.** Sketch has mirror/symmetry but no rotation. Add a rotate
+  affordance (rotation handle or numeric angle) that rotates a whole island — every member shape about a shared
+  pivot. Polygons/lassos rotate by their vertices; an axis-aligned rectangle can't hold a non-90° angle, so a
+  free-angle rotate must promote it to a polygon first (reuse `rectToPolygon`, see `S15`). Islands / mirror /
+  rasterizer recompute from the rotated shapes (`geometry/shape.js` + the bridge).
+- [ ] **S14 — Split-polygon tool.** A tool to cut one polygon shape into two along a drawn line / two points —
+  the sketch-side analogue of the decompose cutter (`geometry/decompose-cut.js`) but producing two `SketchShape`s
+  in place. Each half keeps the source's operation / override / height fields; islands recompute. Pure geometry in
+  `geometry/shape.js`, wired through the bridge.
+- [ ] **S15 — Rectangle→polygon promotion drops the height fields (resets to 1).** `rectToPolygon`
+  (`geometry/shape.js:76`) copies only id/type/operation/override — **not** `base_height` / `floor` /
+  `anchor_heights` — so a promoted rectangle's height resets to the `1` default (`SketchModels.cs` `BaseHeight = 1`;
+  `clampHeight`). Carry the three height fields through `rectToPolygon` (and `promoteShape`, `sketch-bridge.js:121`).
+  Small fix.
+- [ ] **S16 — Resize library primitives on placement.** Library primitives (n-gons, polyominoes, composites)
+  instantiate at a fixed default cell size (`geometry/shape-library.js` `instantiate`) and can't be resized — and
+  since they come in as polygons they lack the rectangle's 8-handle resize. Add a scale affordance: drag-to-size
+  during placement and/or a uniform resize handle on a placed polyomino group. Relates to `S10` (the parked
+  polygon resize-handles decision) and `S8` (the library). Needed for the polyomino-based generation (`G15`).
+- [ ] **S17 — Redefine Floor = elevation (y-offset) and Height = thickness.** Today `floor` is the column's
+  bottom-Y and `base_height` its top-Y (both relative to the layer `base_y`), so the inspector's "Floor" reads
+  like a second height. Redefine to the intuitive model: **Floor = where the shape's base sits** (y-offset within
+  the layer) and **Height = how tall it is** (thickness), with `top = base_y + floor + height`. Update
+  `SketchRasterizer` (`RasterShape` / `HeightFn` / `RasterizeColumns`), the iso preview (`sketch-bridge.js`
+  `terrainOf` + the `top`/`floor` calc), the inspector fields + labels (`SketchInspector.razor`), and the
+  rasterizer tests. Stored sketches re-rasterize under the new meaning (intentional — no backward-compat).
+- [ ] **S18 — Ruler distance should read along the ruler line, not in the toolbar.** The measure tool draws its
+  line in `#measureLayer` (world coords, `sketch-canvas.js` `#renderMeasure`) but shows the block distance in the
+  `.canvas-dim` sub-bar readout (`#updateDim`, `sketch-canvas.js:442`). Render the distance as a **live label on /
+  beside the ruler line** instead (screen-space text at the line midpoint so it stays legible across zoom;
+  re-render on viewport change), and drop the ruler branch from `#updateDim` so the sub-bar readout keeps only the
+  draw W×D / selected-extent. Relates to `S3` (the `canvas-dim` readout).
+- [ ] **S19 — Snap/alignment guides should also fire when resizing a rectangle.** `S9`'s smart guides only run on
+  the **move** path (`SketchCanvas._moveTo`, `sketch-canvas.js:267` — `#snapTargets` / `bestSnap` / `#renderGuides`);
+  the 8-handle **resize** path (`SketchEditController.onResizeMove` rect branch, `sketch-edit-controller.js:123`)
+  doesn't snap or draw a guide. Extend snapping to resize: snap the dragged edge(s) to other shapes' edges/centres
+  + the symmetry centre and draw the guide, honouring the **Snap** toggle and **Alt** bypass (already plumbed via
+  `altKey`). The canvas owns the targets/guides, so feed the controller a `snapEdges` hook (the resize counterpart
+  of `_moveTo`). Follows `S9`; distinct from the parked `S9b` (angle/parallel snapping).
 - [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
   (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
   **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
@@ -107,8 +153,39 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   data-driven thing: a real `point` render (dot/circle) in `renderShape`, a parametrised colour + style
   (marker/outline) instead of the `marker` branch, and fix `SpawnPhase`'s hardcoded `cylinder`
   sidebar/inspector icon → match `RegionNode.Icon` (point → `dot`). (Contract §10.)
+- [ ] **C20 — Centre the staged map-overview list.** `/maps`, `/maps?stage=sketch`, `/maps?stage=configure`
+  (one component, `Home.razor`) render the result list **left-aligned**: the `.workspace-scroll` wrapper has
+  `max-width: 960px` but no `margin: 0 auto` (`Home.razor:39`), unlike `/maps/new` (`ConfigureLanding.razor`) and
+  `/maps/new-sketch` (`SketchCreate.razor`) which centre. Add `margin: 0 auto`. One-line fix.
+- [ ] **CV11 — Side-view max-Y clamp is one block short.** The draggable Y line can't reach the topmost surface
+  block: `_applyHeight` clamps to `y_min + y_count - 1` (`sideview-canvas.js:281`) while the coordinate maths
+  allows up to `y_min + y_count`, so you can't drag onto the highest block / match the surface. Raise the max
+  bound by one. Pairs with `N11` (the placement-snap side of the same side-view problems).
 ## Backend, pipeline & internals (B / P / A)
 
+- [ ] **B10 — Generated team ids need the `-team` suffix.** Team ids are emitted **bare** (`red`, `blue`) from
+  the colour (`TeamsPhase.razor.cs:101,109` and `SymmetryExpander.cs:67`, both `color.Replace(' ','-')`), but the
+  corpus/template convention (`docs/template.xml`) is `red-team` / `blue-team`. The plumbing already supports it —
+  `IntentNaming.Slug()` strips `-team`, so the derived ids stay colour-based (`only-red`, `red-spawn-point`,
+  `reds-woolrooms`, `…-red-monument`). So just append `-team` at the two derivation sites. Coordinate with `N09`
+  (its colour-change re-derivation must produce the suffixed id too) and reuse the same collision guard.
+- [ ] **B11 — XML indent should be 4 spaces.** `XmlWriter.ToXml` relies on `XElement.ToString()`'s default
+  2-space indent (`XmlWriter.cs:14`). Emit **4-space** indentation (explicit `XmlWriterSettings.IndentChars`, or
+  post-process), preserving the existing self-close-space fixup + trailing newline. Update the dependent consumer:
+  `ReviewXmlPhase.razor.cs:67` segments the document by a `^  </tag>` (two-space) match — retune it to the new indent.
+- [ ] **B12 — README setup guide for users.** The repo README has no user-facing setup description. Write one:
+  prerequisites (.NET 10 SDK pinned by `global.json`, MariaDB 10.11), DB/user provisioning (`pgm_studio`,
+  `pgm`/`pgm_dev_pw`), running via `./tools/dev.sh` (:7894), and tests (`dotnet run --project tests/<Project>`, not
+  `dotnet test`). Source the facts from CLAUDE.md's Environment / Tests sections.
+- [ ] **P9 — Sketch world-folder export (`.mca` + `level.dat`) — sketch-originated maps only.** Add an Anvil /
+  `level.dat` **writer** (`AnvilRegion` is read-only today; `fNbt` can write NBT, but the region header + chunk /
+  section / palette encoding + zlib + `level.dat` are net-new) that exports a map **folder** for sketch-exported
+  maps, alongside the XML. Contents: (a) the rasterized **terrain** from `SketchRasterizer` columns (`[YFloor,YTop]`
+  per cell + the surface block); (b) **structures at the authored positions** — spawn and wool-room **cages**, and
+  monument **pedestals** matching the detected pattern (bedrock block · air block for the monument cell · stained-
+  glass cap · a sign placed against the bedrock — the `MonumentSliceExtractor` geometry); (c) a `level.dat` with
+  the world spawn. **Normal Configure-imported maps export XML only** (they already ship a real world). Define the
+  cage / pedestal block templates once and place them at the intent's spawn / wool / monument coords.
 - [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
   parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
   **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
@@ -185,6 +262,13 @@ The open work sorts into three domains:
   which island **edges touch buildable regions** and which islands a player can **step between** (adjacency
   across the buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on the
   build-area data + `G6`'s lanes. Needs design.
+- [ ] **G15 — WFC + polyomino layout exploration (alternative generator, alongside the lane archetypes).** Refine
+  the layout-generation concept with a **wave-function-collapse** approach over **polyomino** tiles as a *second*
+  generator, kept parallel to the lane archetypes (`G1`/`G3`, not replaced). Prototype: a polyomino tile-set +
+  adjacency / constraint rules → WFC solve → a symmetric `SketchLayout` the Sketch tool / Configure can edit (same
+  hand-off as `G1`). Reuses the polyomino vocabulary from the sketch library (`S8`/`S16`). Capture the refined
+  concept + the tile / constraint design in a new contract/design doc and note it in the `project_sketch_generators`
+  working memory. Needs design before build.
 
 **Island detection**
 - [ ] **G9 — Re-scan the corpus with stair-aware detection + decompose-queue UI (remaining slice).** The
