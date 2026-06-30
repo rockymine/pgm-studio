@@ -73,37 +73,50 @@ task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). Existing non-conforming comments
 (see `TODO.md`).
 
 ## Git
-Commit **only when the user explicitly asks**; branch first; end commit messages with
-`Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+Commit **only when the user explicitly asks**; **commit directly to `main`** (no feature branch — keep
+history linear; if a branch already exists, fast-forward `main` to it). **Don't push** unless asked. End
+commit messages with `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
 
 ## Status & task board
-Two files, two jobs — keep them current, don't duplicate either here:
-- **`TODO.md`** — **open work only** (`[ ]` to-do, `[~]` in progress). The live board.
+Three files, three Kanban columns — keep them current, **never duplicate a task across them**:
+- **`BACKLOG.md`** — the **long tail**: open work not in the current focus (`[ ]` to-do, `[~]`
+  started-but-parked). The *Later* column.
+- **`TODO.md`** — the **current focus only** (`[ ]` to-do, `[~]` in progress). The *Now & Next* board —
+  kept small.
 - **`FEATURES.md`** — the catalog of **shipped** capabilities (the "done" half), by area, with the
-  task id(s) that delivered each (for git traceability).
+  task id(s) that delivered each (for git traceability). The *Done* column.
+
+Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
 
 **Task-board rules** (the board kept exploding; these keep it honest):
-1. **`TODO.md` never holds `[x]`.** When a task is done a commit lands (its message references the id),
+1. **A task lives in exactly ONE file.** Never duplicate it across `BACKLOG`/`TODO`/`FEATURES` (two stale
+   copies is the failure mode). Neither `BACKLOG.md` nor `TODO.md` ever holds `[x]`.
+2. **Done = a line in `FEATURES.md`.** When a task ships a commit lands (its message references the id),
    the task **leaves `TODO.md`**, and — if it's a shipped capability — one line is added to `FEATURES.md`.
-2. **No trailing "Next:/Remaining:/Deferred:" notes inside a task.** Future work is its **own** `[ ]`
-   task in the right section, not a footnote on a (near-)done one.
-3. **`[~]` describes only what REMAINS.** When a task is partly landed, reword it down to the open
+3. **`TODO.md` is the current focus, kept small.** Only the active theme's now/next tasks (soft cap
+   ~6–12). Pull the next theme **up from `BACKLOG.md`** when it drains; if `TODO.md` bloats, push items
+   back down. New tasks land in `BACKLOG.md` (or `TODO.md` if they ARE the focus).
+4. **Ids are section-letter+number, GLOBALLY unique + stable across all three files.** Moving a task
+   between files **never** changes its id; never renumber or reuse (`grep <id> TODO.md BACKLOG.md` must
+   hit exactly once — commits + memory reference ids).
+5. **Same sections, same order in `TODO.md` and `BACKLOG.md`** so a task slots into the matching section
+   wherever it lives. Sections (few + stable — don't spin up a new category for one task): Authoring
+   (`N`), Sketch tool (`S`), Editor/canvas infra (`C`/`CV`), Backend/pipeline/internals (`B`/`P`/`A`),
+   Layout generation (`G`), Lower-priority/parked.
+6. **No trailing "Next:/Remaining:/Deferred:" notes inside a task.** Future work is its **own** `[ ]`
+   task in the right section (in `BACKLOG.md` if not immediate), not a footnote on a (near-)done one.
+7. **`[~]` describes only what REMAINS.** When a task is partly landed, reword it down to the open
    slice; the landed part moves to `FEATURES.md`.
-4. **File a task where its REMAINING work lives.** Backend done + only UI left ⇒ it belongs in the
+8. **File a task where its REMAINING work lives.** Backend done + only UI left ⇒ it belongs in the
    feature/UI section, not the backend section.
-5. **Sections are few and stable; ids never get renumbered.** Add the next number under an existing
-   section — commits + memory reference ids — don't spin up a new category for one task. Sections:
-   Authoring (`N`, the new Configure wizard at `/maps/{id}/configure` — mirrors the concept page's 00…07 + Validation steps),
-   Existing-editor canvas/infra (`C`), Backend/pipeline/internals, Lower-priority/parked.
-6. **Deferred *decisions* are parked**, clearly marked with the blocking question — not interleaved
-   with actionable tasks.
+9. **Deferred *decisions* are parked** in `BACKLOG.md`, clearly marked with the blocking question — not
+   interleaved with actionable tasks.
 
-**Where it stands:** M0–M5 + the M6 editor shells + the M7 pipeline are landed (`FEATURES.md`). The
-forward direction is **new-map authoring** — the intent-model *backend* is done; the open work is the
-authoring **UI**, the Configure wizard at `/maps/{id}/configure` (the concept mock now lives at
-`/concepts`; routes/labels in `docs/contracts/routing-and-ia.md`; `docs/contracts/new-map-authoring.md`
-is the contract). Then editor depth: the analysis-backed feature UIs (`F`) over their done services, and the
-cross-cutting editor/canvas infra (`C`). See `TODO.md` "Current focus".
+**Where it stands:** M0–M7 + the intent-model backend + the **Configure wizard** (`N00`–`N07` + `NVAL`)
+are landed (`FEATURES.md`) — a new map flows intent → World → Teams → Build → Wools → Review & Export → a
+validated `map.xml`. The **current focus is the Sketch-tool depth pass** (`TODO.md`, `S` tasks). Everything
+else — Configure/authoring polish (`N`), layout generation (`G`), shared editor/canvas infra (`C`/`CV`),
+backend/pipeline (`B`/`P`/`A`), and the frozen Edit editor's parked feature UIs — is in `BACKLOG.md`.
 
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts

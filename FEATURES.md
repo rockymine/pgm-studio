@@ -1,10 +1,10 @@
 # pgm-studio — Shipped features
 
-What the app does today. The live task board for **open** work is **`TODO.md`**; this file is the
-catalog of **landed** capabilities — the "done" half that used to clutter the board. One line per
-capability, grouped by area, with the task id(s) that delivered it (for git traceability). This is
-**not** a changelog: describe the capability, not the diff. Add an entry here the moment a task leaves
-`TODO.md` as done.
+What the app does today. Open work lives in **`TODO.md`** (the current focus) and **`BACKLOG.md`** (the
+long tail); this file is the **Done** column — the catalog of **landed** capabilities, the "done" half
+that used to clutter the board. One line per capability, grouped by area, with the task id(s) that
+delivered it (for git traceability). This is **not** a changelog: describe the capability, not the diff.
+Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `CLAUDE.md` § "Status & task board".
 
 > Detailed history lives in git + the auto-memory. Parity figures (350/350 codec, categorizer 350/350,
 > buildability/traversability/wool 10/10, colours 197/197) are verified by the harnesses in `tools/`.
