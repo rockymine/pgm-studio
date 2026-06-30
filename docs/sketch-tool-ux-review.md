@@ -141,10 +141,31 @@ are filed in `TODO.md` (current focus) / `BACKLOG.md` (polish tail).
    (radio) · **Build / Carve** 2-state pill (the op toggle, lifted out of the tool strip) · **2D / 3D**
    segmented view control (3D promoted out of the overlay chips so its modality reads) · **Overlays**
    popover folding mirror/shapes/chunks/snap. (P0#2 + P1#3.)
-4. **Height editing = inspector elevation mini-view (`S23`).** Keep editing in the inspector but replace
-   bare number boxes with a draggable side-elevation scrubber / stepper (like Configure's `SliceView`)
-   with live feedback; add a hover affordance so the per-vertex height target is discoverable. (P1 /
-   theme 3; pairs with `S17`'s Floor/Height redefinition.)
+4. **Height editing = a self-contained inspector *height gauge* (`S23`).** Configure's `SliceView` can't
+   be reused — it draws a cross-section against **real terrain**, which a sketch doesn't have (every shape
+   starts at a flat height of 1). Instead the inspector grows a **vertical block gauge** that is its own
+   reference: a track from `0` to an auto-growing **ceiling**, gridlines + labels every **5 blocks**, the
+   grid itself being the thing you measure against. Locked sub-decisions:
+   - **Two handles on one bar (Floor + Height).** The bottom handle is **Floor** (the column's elevation),
+     the top handle is the **top surface**, and the lit bar between them is the column — dissolving the
+     "Floor reads like a second height" confusion. Bottom handle moves the whole column (preserves
+     thickness); top handle sets thickness. **Minimum thickness 1** (a shape is never zero-height). Pairs
+     with `S17` (Floor = elevation / Height = thickness).
+   - **Drag = 1-block precision; 5-block gridlines; Shift snaps to 5.** The ceiling starts ~10 and
+     auto-grows `+5` when the handle reaches the top edge, shrinking back when the tallest used height
+     drops well below it — so the gauge never boxes you in nor wastes space.
+   - **Global Height is a clamped *master shift*.** When per-vertex heights exist (a ramp), dragging the
+     global top handle raises/lowers **all** vertices together, **preserving relief**, with every vertex
+     clamped to a floor of **1**. Dragging down therefore **converges** the profile toward all-1 (low
+     vertices bottom out first); the global value can't go below 1 either. (`BaseHeight` tracks the master
+     level; `AnchorHeights[i] = max(1, AnchorHeights[i] + delta)`.)
+   - **Per-vertex stays a number field.** The gauge edits the whole shape (Floor + global Height); an
+     individually-selected vertex keeps its existing numeric field ("Vertex N height", min 1). Other
+     vertices + the global level may render as faint **reference ticks** in the gauge so you sculpt against
+     the shape, not into a void — but they are not draggable.
+   - **Discoverability:** add a hover affordance on vertex handles ("click to set height") so the
+     per-vertex path is findable on the canvas, since it stays form-driven.
+   (P1 / theme 3.)
 5. **Library moves to a toolbar popover/flyout (`S12`).** Out of the sidebar entirely — it's a "reach for
    a primitive" action, not persistent state. Finishes P0#1: the sidebar's only persistent panels become
    Layers + Islands (tree pinned to top).

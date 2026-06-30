@@ -48,12 +48,20 @@ parked sketch slices (`S2`, `S9b`, `S10`) and the sketch world-export (`P9`) liv
   **2D / 3D** segmented control (promote `3D` out of the overlay chips so its modal view-swap reads) ·
   **Overlays** popover folding mirror/shapes/chunks/snap. Dim Build/Carve when no draw tool is active.
   (`docs/sketch-tool-ux-review.md` P0#2 + P1#3 + Resolutions #3.)
-- [ ] **S23 — Inspector elevation mini-view for height editing.** Replace the bare `step="1"` Height/Floor
-  number boxes (`SketchInspector.razor`) with a **draggable side-elevation scrubber + stepper** (model it on the
-  Configure `SliceView`) giving live feedback as you drag, for per-shape `base_height`/`floor` and the selected
-  vertex height. Add a hover affordance on vertex handles so the per-vertex height target is discoverable on the
-  canvas ("click to set height"). Pairs with `S17` (Floor=elevation / Height=thickness redefinition — land the
-  relabel first so the scrubber axes read right). (`docs/sketch-tool-ux-review.md` P1 height + Resolutions #4.)
+- [ ] **S23 — Inspector height gauge (self-contained, no terrain backdrop).** Replace the bare `step="1"`
+  Height/Floor number boxes (`SketchInspector.razor`) with a **vertical block gauge** — its own reference, since
+  Configure's `SliceView` can't be reused (it draws against real terrain a sketch lacks; shapes start flat at
+  height 1). The gauge: a track `0`→an **auto-growing ceiling** (start ~10, grow `+5` when the handle hits the
+  top, shrink when the tallest used height drops well below), gridlines + labels every **5 blocks**. **Two
+  handles on one bar:** bottom = **Floor** (moves the whole column, preserving thickness), top = **top surface**
+  (sets thickness), lit column between, **min thickness 1**. Drag = **1-block** precision, **Shift snaps to 5**.
+  The global top handle is a **clamped master shift**: with per-vertex heights present it raises/lowers **all**
+  vertices together preserving relief, each clamped to a floor of **1**, so dragging down **converges** toward
+  all-1 (`BaseHeight` tracks the master; `AnchorHeights[i]=max(1, AnchorHeights[i]+delta)`). **Per-vertex stays a
+  number field** ("Vertex N height", min 1); render the other vertices + global as faint non-draggable
+  **reference ticks** in the gauge. Add a hover affordance on vertex handles ("click to set height") for
+  discoverability. Pairs with `S17` (Floor=elevation / Height=thickness — land the relabel first so the bar axes
+  read right). (`docs/sketch-tool-ux-review.md` P1 height + Resolutions #4.)
 - [ ] **S13 — Rotate an island on the canvas.** Sketch has mirror/symmetry but no rotation. Add a rotate
   affordance (rotation handle or numeric angle) that rotates a whole island — every member shape about a shared
   pivot. Polygons/lassos rotate by their vertices; an axis-aligned rectangle can't hold a non-90° angle, so a
