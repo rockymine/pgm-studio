@@ -20,11 +20,40 @@ ruler feedback, the Floor/Height redefinition, and the sidebar tidy — all addi
 rasterizer/artifact changes, open decisions — in `docs/contracts/sketch-tool-improvements.md`. The
 parked sketch slices (`S2`, `S9b`, `S10`) and the sketch world-export (`P9`) live in `BACKLOG.md`.
 
-- [ ] **S12 — Finish P0#1: pin the Islands tree to the top of the sketch sidebar.** After `S11` removes
-  Setup, the residual weight above **Islands** is the **Layers** panel + the 12-tile **Library** palette.
-  Collapse both behind `<details>` accordions (Library default-collapsed once the map has shapes), or move
-  the Library to a toolbar popover (it's a "reach for a primitive" action, not persistent state). Depends on
-  `S11`. (`docs/sketch-tool-ux-review.md` P0#1; `docs/contracts/sketch-creation-flow.md` follow-on.)
+- [ ] **S12 — Finish P0#1: pin the Islands tree to the top; move the Library to a toolbar popover.** With
+  Setup gone (`S11`) and the Frame accordion removed (`S20`/`S21`), the residual weight above **Islands** is
+  the **Layers** panel + the 12-tile **Library** palette. **Decided:** lift the **Library** out of the sidebar
+  into a **toolbar popover/flyout** (`SketchLibrary` opened from a subbar button — a "reach for a primitive"
+  action, not persistent state), leaving the sidebar as **Layers → Islands** with the tree pinned to the top.
+  Carry the place-mode arming through to the popover (see `S26`). (`docs/sketch-tool-ux-review.md` P0#1 +
+  Resolutions #5; `docs/contracts/sketch-creation-flow.md` follow-on.)
+- [ ] **S20 — Lock symmetry: remove it from the editor.** Symmetry mode + centre are creation-only
+  (`/maps/new-sketch`) and final once a sketch starts. Remove the **Symmetry** select and the **centre X/Z**
+  fields from the Frame accordion (`SketchEditor.razor:59-75`) and their handlers (`OnModeChange`/`OnCenterX`/
+  `OnCenterZ`, `SketchEditor.razor.cs`); the bridge still consumes the seeded `setup.mirror_mode`/`center` and
+  the mirror preview still renders — only the *editing* affordance goes. (`docs/sketch-tool-ux-review.md`
+  Resolutions #1; supersedes `sketch-creation-flow.md` Decisions #1's symmetry escape-hatch.)
+- [ ] **S21 — Auto-derive the footprint (grow-only) from the shape bbox + a chunk margin.** Drop the manual
+  **Width/Depth** + **Footprint preset** fields from the Frame accordion (`SketchEditor.razor:42-58`). Instead,
+  the editor expands `setup.bbox` to fit any shape drawn or moved past the current edge, plus a one-chunk
+  (16-block) margin, and **never shrinks** (high-water mark, centred on the locked symmetry centre) — the
+  background grid updates live as you draw/move outward (we already enforce no in-bounds restriction). The
+  creation-page footprint seeds the initial bbox. With `S20`, the Frame accordion is now empty ⇒ **remove the
+  `<details>` block entirely** (`SketchEditor.razor:39-77`). Recompute on shape add/move/finish via the bridge;
+  push the grown bbox back through `PushBbox`. (`docs/sketch-tool-ux-review.md` Resolutions #2.)
+- [ ] **S22 — Toolbar full restructure: separate the three state axes.** The subbar flattens tool (radio),
+  operation (radio), and view toggles into one look-alike strip (`SketchEditor.razor:88-132`). Split into
+  divider-separated clusters: **Tools** (move/select/rect/circle/polygon/lasso/measure radio) · **Build / Carve**
+  2-state pill (the `op` toggle lifted out of the tool group + a distinct pill shape, `editor.css:234-243`) ·
+  **2D / 3D** segmented control (promote `3D` out of the overlay chips so its modal view-swap reads) ·
+  **Overlays** popover folding mirror/shapes/chunks/snap. Dim Build/Carve when no draw tool is active.
+  (`docs/sketch-tool-ux-review.md` P0#2 + P1#3 + Resolutions #3.)
+- [ ] **S23 — Inspector elevation mini-view for height editing.** Replace the bare `step="1"` Height/Floor
+  number boxes (`SketchInspector.razor`) with a **draggable side-elevation scrubber + stepper** (model it on the
+  Configure `SliceView`) giving live feedback as you drag, for per-shape `base_height`/`floor` and the selected
+  vertex height. Add a hover affordance on vertex handles so the per-vertex height target is discoverable on the
+  canvas ("click to set height"). Pairs with `S17` (Floor=elevation / Height=thickness redefinition — land the
+  relabel first so the scrubber axes read right). (`docs/sketch-tool-ux-review.md` P1 height + Resolutions #4.)
 - [ ] **S13 — Rotate an island on the canvas.** Sketch has mirror/symmetry but no rotation. Add a rotate
   affordance (rotation handle or numeric angle) that rotates a whole island — every member shape about a shared
   pivot. Polygons/lassos rotate by their vertices; an axis-aligned rectangle can't hold a non-90° angle, so a

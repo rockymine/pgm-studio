@@ -42,8 +42,34 @@ the focus-integration polish remains.
 
 ## Sketch tool (S) — parked slices
 
-The active Sketch depth pass is in `TODO.md` (`S12`–`S19`). These are the parked / dormant slices.
+The active Sketch depth pass + UX-review declutter is in `TODO.md` (`S12`–`S23`). These are the parked /
+dormant slices and the lower-priority UX-review polish (`S24`–`S29`, from `docs/sketch-tool-ux-review.md`).
 
+- [ ] **S24 — Flash a "Converted to polygon" confirmation on auto-promote.** A rectangle that an edit can't
+  represent silently becomes a polygon (`sketch-bridge.js` `promoteShape`), so its 8-handle resize vanishes
+  with no explanation. Flash a brief affordance/toast so the handle-set change reads as intentional.
+  (`docs/sketch-tool-ux-review.md` P2 convert-to-polygon.)
+- [ ] **S25 — Keyboard-shortcuts popover.** Shortcuts are real but scattered/hidden (`Esc` cancel,
+  `Del`/`Backspace` remove, `P` promote, arrows/`Shift`-arrows nudge, `Ctrl`-drag = Bézier, `Alt` = bypass
+  snap, double-click = close polygon). Surface them in one **"?" popover** in the subbar, plus tool-contextual
+  cursor hints when a draw tool is active. (`docs/sketch-tool-ux-review.md` P2 shortcuts.)
+- [ ] **S26 — Place-mode armed indicator for the Library popover.** When a primitive is armed (click-to-place),
+  no toolbar button reflects it. Show the armed state — highlight the armed item + a subbar hint "Placing:
+  Scythe — click to drop, Esc cancels". Lands with `S12` (Library → popover). (`docs/sketch-tool-ux-review.md`
+  P2 library.)
+- [ ] **S27 — Grab cursor on hover over a movable shape body (select mode).** `select` supports body-drag of a
+  shape (`sketch-canvas.js`) but it's unadvertised — two hand-like concepts (`move` pans, `select` body-drags),
+  one hidden. Add a `grab`/`grabbing` cursor on hover over a selected shape's body so the affordance is visible.
+  (`docs/sketch-tool-ux-review.md` P2 move-vs-select.)
+- [ ] **S28 — Island-context breadcrumb + explicit nudge target in the inspector.** Selecting a shape silently
+  clears the island selection and flips the nudge target (`sketch-bridge.js` `selectShape`/`selectIsland`).
+  Add a breadcrumb in the shape inspector ("Island: North Base › rectangle") and label the nudge footnote with
+  *what* moves ("Arrows move this shape"). (`docs/sketch-tool-ux-review.md` P2 selection.)
+- [ ] **S29 — Label layer Base Y / Floor units and relate the Y concepts.** Per-shape `Floor`, per-layer
+  `Base Y`, and the iso stack are an unexplained "Y soup" — the layer list shows "y 10" with no units and no
+  relation to Floor. Label consistently ("Base Y +10 blocks") and add a one-line caption relating the stack
+  ("this layer sits 10 blocks above Ground"). Complements `S17` (Floor/Height redefinition).
+  (`docs/sketch-tool-ux-review.md` P2 coordinate soup.)
 - [~] **S2 — Sketch tool: end-to-end verification.** The tool itself is **complete and shipped**
   (`FEATURES.md`): originate → Setup → draw → live islands + mirror → Finish/rasterize, with persistence
   (`SketchLayoutJson` artifact + `POST /api/sketch` + `GET`/`PUT /api/map/{slug}/sketch`, 4 integration

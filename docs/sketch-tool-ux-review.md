@@ -119,3 +119,38 @@ Fix: clarify the nudge target ("Arrows move this island" / "this shape"), and co
 8. **Make per-vertex height labels look interactive** (hover state / pill background) so the headline feature is discoverable on the canvas instead of via a conditional inspector sentence.
 
 **Relevant files:** `SketchEditor.razor` (sidebar order + toolbar grouping), `SketchInspector.razor` (height/vertex discoverability), `SketchLibrary.razor` + `components.css:384-395` (palette density), `sketch-canvas.js:412-443` (measure semantics), `sketch-bridge.js:80-112` (place-mode feedback), `editor.css:234-243` (op-button styling), `tokens.css:116-117` (panel widths).
+
+---
+
+## Resolutions (decided 2026-06-30 — drive the `S20`+ tasks)
+
+The review above is the critique; these are the locked design decisions that turn it into work. Tasks
+are filed in `TODO.md` (current focus) / `BACKLOG.md` (polish tail).
+
+1. **Symmetry is creation-only and immutable in the editor (`S20`).** Symmetry mode + centre are chosen
+   on `/maps/new-sketch` and become final; the Frame accordion's symmetry select + centre fields are
+   removed. The mirror preview still renders — you just can't change the axis mid-draw. (P0#1 / theme 1;
+   **supersedes** `sketch-creation-flow.md` "Decisions locked" #1's *symmetry* escape-hatch.)
+2. **Footprint auto-derives from the shape bounding box, grow-only (`S21`).** The manual Width/Depth
+   fields go away; the working frame expands to fit any shape drawn or moved past its edge, plus a
+   one-chunk (16-block) margin, and **never shrinks** (high-water mark — the background can't jump under
+   you). The creation-page footprint seeds the initial high-water mark; the frame stays centred on the
+   locked symmetry centre. With symmetry (1) and size (2) both gone, the **Frame accordion is removed
+   entirely** — the sidebar becomes Layers → Islands.
+3. **Toolbar full restructure (`S22`).** Three visually distinct clusters with dividers: **Tools**
+   (radio) · **Build / Carve** 2-state pill (the op toggle, lifted out of the tool strip) · **2D / 3D**
+   segmented view control (3D promoted out of the overlay chips so its modality reads) · **Overlays**
+   popover folding mirror/shapes/chunks/snap. (P0#2 + P1#3.)
+4. **Height editing = inspector elevation mini-view (`S23`).** Keep editing in the inspector but replace
+   bare number boxes with a draggable side-elevation scrubber / stepper (like Configure's `SliceView`)
+   with live feedback; add a hover affordance so the per-vertex height target is discoverable. (P1 /
+   theme 3; pairs with `S17`'s Floor/Height redefinition.)
+5. **Library moves to a toolbar popover/flyout (`S12`).** Out of the sidebar entirely — it's a "reach for
+   a primitive" action, not persistent state. Finishes P0#1: the sidebar's only persistent panels become
+   Layers + Islands (tree pinned to top).
+6. **Measure stays a free cursor ruler.** No void-gap / edge-snapping behaviour change; only `S18`'s
+   readout-on-the-line move proceeds. (P1#4 closed as won't-do — the manual ruler is acceptable.)
+
+**Remaining P2 polish** (filed in `BACKLOG.md` `S24`–`S29`): auto-promote confirmation flash, a shortcuts
+popover, the place-mode armed indicator, grab-cursor on movable bodies, the island-context breadcrumb,
+and the Base-Y/Floor unit labelling.

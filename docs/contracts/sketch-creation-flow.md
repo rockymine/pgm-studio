@@ -42,6 +42,11 @@ the editor's load-sync already consume a pre-seeded `setup` — neither needs a 
 
 ## Decisions (locked)
 
+> **Superseded (2026-06-30, `S20`/`S21`):** decision #1's *collapsed Frame accordion* is being removed
+> entirely. Symmetry is now creation-only and immutable in the editor (`S20`), and the footprint
+> auto-derives grow-only from the shape bbox + a chunk margin rather than via manual Width/Depth (`S21`) —
+> so the accordion has nothing left to hold. See `docs/sketch-tool-ux-review.md` Resolutions #1–#2.
+
 1. **Move primary frame authoring to creation; keep a *collapsed* "Frame" accordion in the editor** as an
    escape hatch (reframe mid-draw), not the always-open 6-field block.
 2. **Generate mode does not expose footprint/symmetry** — the archetype owns the frame. Blank mode exposes
