@@ -28,8 +28,12 @@ public partial class RegionInspector
     {
         if (key.Length > 0 && double.TryParse(e.Value?.ToString(),
                 System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var v))
-            await OnSetCoord.InvokeAsync((key, v));
+            await OnSetCoord.InvokeAsync((key, Math.Max(v, MinFor(key) ?? double.NegativeInfinity)));
     }
+
+    // PGM rejects a negative radius (CylindricalRegion/SphereRegion assert radius >= 0) and a negative
+    // height yields a degenerate empty cylinder; floor both at 0. Other coords are world positions — no floor.
+    private static double? MinFor(string key) => key is "radius" or "height" ? 0 : null;
 
     private object? C(string k) => Node!.Coords.GetValueOrDefault(k);
     private static string Cap(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];

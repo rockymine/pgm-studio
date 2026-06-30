@@ -106,10 +106,16 @@ else
                 {
                     <div class="coord-field">
                         <span class="coord-prefix">@prefix</span>
-                        @* @key on the value so Blazor recreates the input when the coord changes — a plain
-                           value="@…" on an <input> only applies on first render (stale after a canvas edit). *@
-                        @if (OnSetCoord.HasDelegate && key.Length > 0)
+                        @if (OnSetCoord.HasDelegate && key.Length > 0 && val is double dv && !double.IsInfinity(dv))
                         {
+                            @* Finite, editable: NumberField enforces the per-key floor (radius/height >= 0). *@
+                            <NumberField Value="dv" ValueChanged="@(v => OnSetCoord.InvokeAsync((key, v)))"
+                                         Min="@MinFor(key)" CssClass="coord-input" />
+                        }
+                        else if (OnSetCoord.HasDelegate && key.Length > 0)
+                        {
+                            @* Non-finite (e.g. "oo" = unbounded radius / full-height column) — keep the plain input
+                               so the infinity stays intact; @key recreates it after a canvas edit. *@
                             <input @key="@($"{key}:{val}")" class="coord-input" type="number"
                                    value="@RegionNode.Fmt(val)" @onchange="e => SetCoord(key, e)" />
                         }
