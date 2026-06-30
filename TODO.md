@@ -54,6 +54,11 @@ The next depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): make siz
 design — data-model diffs, rasterizer/artifact changes, open decisions — in
 `docs/contracts/sketch-tool-improvements.md`. Build in id order (each builds on the last).
 
+- [ ] **S12 — Finish P0#1: pin the Islands tree to the top of the sketch sidebar.** After `S11` removes
+  Setup, the residual weight above **Islands** is the **Layers** panel + the 12-tile **Library** palette.
+  Collapse both behind `<details>` accordions (Library default-collapsed once the map has shapes), or move
+  the Library to a toolbar popover (it's a "reach for a primitive" action, not persistent state). Depends on
+  `S11`. (`docs/sketch-tool-ux-review.md` P0#1; `docs/contracts/sketch-creation-flow.md` follow-on.)
 - [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
   (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
   **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes

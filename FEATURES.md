@@ -515,15 +515,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Sketch finish / rasterize** — `SketchRasterizer` + `WorldFeatureWriter.WriteSketchAsync` +
   `POST .../sketch/finish` + the Finish button: the sketch rasterizes into the importer's geometry
   artifacts and flows into Configure (`MapStage.Configure` + a `configureUrl`; 6 rasterizer tests). The
-  `/maps/new` "Sketch from scratch" entry + the in-editor Setup panel (size/symmetry/centre) originate one.
-  (S2e) — the tool is complete (originate → Setup → draw → Finish); only an end-to-end pass through
-  Configure → Edit remains (TODO `S2`). Plan: `docs/contracts/sketch-authoring.md`.
-- **Footprint presets + size legibility** — the Setup panel frames a **non-square** working area
+  `/maps/new-sketch` page (`SketchCreate`, S11) originates one. (S2e) — the tool is complete (originate →
+  frame → draw → Finish); only an end-to-end pass through Configure → Edit remains (TODO `S2`). Plan:
+  `docs/contracts/sketch-authoring.md`.
+- **Footprint presets + size legibility** — the footprint frame sets a **non-square** working area
   (width X × depth Z) from presets: 2-team landscape `120×80` (default), portrait `80×120`, square
   `120×120` (4-team / D2), or custom — replacing the old 512-square that made 10–15-block lanes
   undrawable. A live **on-canvas size readout** (`canvas-dim`) shows the active draw's `W × D`, the
   selected shape's extent, or the **ruler** tool's block distance (drag across a void gap). (S3)
   Plan: `docs/contracts/sketch-tool-improvements.md` §1.
+- **New-sketch creation page** — `/maps/new-sketch` (`SketchCreate`): the full-screen origination entry
+  (mirrors Configure's `/maps/new`), reached from the Sketch overview's New-sketch link. An **Identity**
+  section (map name) + a `filter-chip` **Start from** picker → **Blank** (SVG-preview footprint + symmetry
+  `choice-tile`s with W/D + centre `coord-field` rows) or **Generate** (archetype/seed); a single
+  **Continue** creates the draft via `POST /api/sketch` (now carrying the working frame → a seeded `setup`)
+  or `POST /api/sketch/generate`. The editor's footprint/symmetry **Setup** block moved off the always-open
+  sidebar into a collapsed **Frame** accordion, lifting the Islands tree toward the top. Reusable `.choice-*`
+  tile CSS shared with the primitive palette. (S11) Plan: `docs/contracts/sketch-creation-flow.md`.
 - **Rectangle → polygon promotion** — an inspector **Convert to polygon** button (and the `P` shortcut)
   turns the selected rectangle into a 4-corner polygon (id / operation / override preserved), opening
   vertex-drag · midpoint-insert · Bézier editing. Pure `rectToPolygon` (`geometry/shape.js`); `promoteShape`

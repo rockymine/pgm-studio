@@ -35,28 +35,65 @@ internal static class SketchStore
     }
 }
 
-/// <summary>POST /api/sketch — originate a sketch: create a draft (geometry-less) map + an empty layout
-/// artifact. Returns the slug; the client navigates to <c>/maps/{slug}/sketch</c>. Body: optional {name}.</summary>
+/// <summary>POST /api/sketch — originate a sketch: create a draft (geometry-less) map + its layout artifact.
+/// Returns the slug; the client navigates to <c>/maps/{slug}/sketch</c>. Body: optional {name} and an
+/// optional working frame {width, depth, mode, centerX, centerZ}. When a frame is given the layout is seeded
+/// with a <c>setup</c> (origin-centred bbox + symmetry centre + mode) so the editor frames the canvas on
+/// open; without one the layout is empty {} and the editor falls back to its landscape default on load.</summary>
 public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Post("/sketch"); AllowAnonymous(); }
 
+    // The default footprint: 2-team landscape (120×80), origin-centred, rotational symmetry — the same
+    // default the editor/bridge use, applied to any frame field the body leaves out.
+    private const double DefaultWidth = 120, DefaultDepth = 80;
+    private const string DefaultMode = "rot_180";
+    private static readonly HashSet<string> Modes = ["mirror_x", "mirror_z", "rot_180", "rot_90"];
+
     public override async Task HandleAsync(CancellationToken ct)
     {
         var name = "Untitled sketch";
+        var hasFrame = false;
+        double width = DefaultWidth, depth = DefaultDepth, centerX = 0, centerZ = 0;
+        var mode = DefaultMode;
         try
         {
             using var doc = await JsonDocument.ParseAsync(HttpContext.Request.Body, cancellationToken: ct);
-            if (doc.RootElement.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
+            var root = doc.RootElement;
+            if (root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
                 && n.GetString() is { } s && !string.IsNullOrWhiteSpace(s)) name = s.Trim();
+            if (root.TryGetProperty("width", out var w) && w.ValueKind == JsonValueKind.Number) { width = w.GetDouble(); hasFrame = true; }
+            if (root.TryGetProperty("depth", out var d) && d.ValueKind == JsonValueKind.Number) { depth = d.GetDouble(); hasFrame = true; }
+            if (root.TryGetProperty("mode", out var m) && m.ValueKind == JsonValueKind.String
+                && m.GetString() is { } mm && Modes.Contains(mm)) { mode = mm; hasFrame = true; }
+            if (root.TryGetProperty("centerX", out var cx) && cx.ValueKind == JsonValueKind.Number) { centerX = cx.GetDouble(); hasFrame = true; }
+            if (root.TryGetProperty("centerZ", out var cz) && cz.ValueKind == JsonValueKind.Number) { centerZ = cz.GetDouble(); hasFrame = true; }
         }
-        catch { /* empty / invalid body → default name */ }
+        catch { /* empty / invalid body → default name, no frame */ }
 
         var slug = await SketchSlug.UniqueAsync(repo, SketchSlug.Slugify(name), ct);
         var now = DateTime.UtcNow;
         var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
-        await SketchStore.SaveAsync(db, mapId, "{}"u8.ToArray(), ct);   // seed so GET works immediately
+        // Seed so GET works immediately: a framed create writes its setup; a frameless one stays empty {}.
+        var seed = hasFrame ? SeedSetup(Math.Max(16, width), Math.Max(16, depth), mode, centerX, centerZ) : "{}"u8.ToArray();
+        await SketchStore.SaveAsync(db, mapId, seed, ct);
         await Send.OkAsync(new { slug }, ct);
+    }
+
+    // The browser layout blob's `setup` object — an origin-centred width×depth bbox, the symmetry centre, and
+    // the mirror mode. Keys match what the JS bridge's load() / the editor's setup-sync read back.
+    private static byte[] SeedSetup(double width, double depth, string mode, double centerX, double centerZ)
+    {
+        double hx = width / 2, hz = depth / 2;
+        return JsonSerializer.SerializeToUtf8Bytes(new
+        {
+            setup = new
+            {
+                bbox = new { min_x = -hx, max_x = hx, min_z = -hz, max_z = hz },
+                center = new { cx = centerX, cz = centerZ },
+                mirror_mode = mode,
+            },
+        });
     }
 }
 

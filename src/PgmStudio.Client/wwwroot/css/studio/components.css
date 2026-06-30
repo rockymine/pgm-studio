@@ -43,6 +43,13 @@
 
 .panel-divider { height: 1px; flex-shrink: 0; background: var(--border); }
 
+/* Collapsible left-sidebar section — a <details> whose <summary> reads as a ruled section header, with a
+   caret that rotates when open. (No JS: native disclosure; Blazor doesn't render/touch the `open` attr.) */
+.panel-accordion > summary { cursor: pointer; list-style: none; }
+.panel-accordion > summary::-webkit-details-marker { display: none; }
+.panel-accordion > summary::after { content: "›"; color: var(--text-muted); transition: transform .15s ease; }
+.panel-accordion[open] > summary::after { transform: rotate(90deg); }
+
 
 /* ══════════════════════════════════════════════════════════════════════════
    FORM FIELDS
@@ -51,6 +58,28 @@
 .field { display: flex; flex-direction: column; gap: var(--space-1); }
 .field-row { display: flex; gap: var(--space-3); }
 .field-row > .field { flex: 1; }
+
+/* Icon-tile chooser — a row of clickable tiles replacing a select (footprint, symmetry mode). The
+   thumbnails mirror the sketch primitive palette (.lib-thumb): SVG geometry in the canvas-add colours. */
+.choice-row { display: flex; gap: var(--space-2); }
+.choice-tile {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+  padding: var(--space-2) var(--space-1);
+  background: var(--surface-2, var(--surface)); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted); font-size: var(--font-xs);
+}
+.choice-tile:hover { border-color: var(--accent); color: var(--text); }
+.choice-tile--active {
+  border-color: var(--accent); color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+}
+.choice-thumb { width: 100%; height: 30px; }
+.choice-fill    { fill: var(--canvas-add-fill); stroke: var(--canvas-add-stroke); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.choice-outline { fill: none; stroke: var(--canvas-add-stroke); stroke-width: 1.2; stroke-dasharray: 3 2; vector-effect: non-scaling-stroke; }
+.choice-axis    { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+.choice-dot     { fill: var(--text-muted); }
+.choice-name { line-height: 1; white-space: nowrap; }
 .field--compact { flex: 0 0 64px !important; }
 
 .field-label { font-size: var(--font-sm); color: var(--text-secondary); user-select: none; }

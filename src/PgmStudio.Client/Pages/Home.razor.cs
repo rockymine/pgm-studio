@@ -14,13 +14,6 @@ public partial class Home
     private string filter = "";
     private string? loadedStage;   // guards against refetching the same stage on every parameter set
 
-    private bool creatingSketch;   // the inline new-sketch row is open
-    private string sketchName = "";
-    private string genArchetype = "H";                 // generator starter-layout archetype
-    private int genSeed = Random.Shared.Next(1, 100000); // generator seed — random by default, re-rollable
-    private bool busy;
-    private string? createError;
-
     private string CurrentStage => MapStage.IsValid(Stage) ? Stage! : MapStage.Edit;
     private string RowMode => CurrentStage;   // /maps/{slug}/{sketch|configure|edit}
     private MapSummary? JustMap => Just is null ? null : maps?.FirstOrDefault(m => m.Slug == Just);
@@ -56,60 +49,9 @@ public partial class Home
     {
         if (loadedStage == CurrentStage) return;   // stage unchanged → keep the loaded list
         loadedStage = CurrentStage;
-        creatingSketch = false;
         maps = null;
         maps = await Http.GetFromJsonAsync<List<MapSummary>>($"api/maps?stage={CurrentStage}");
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
-    private void ToggleNewSketch()
-    {
-        creatingSketch = !creatingSketch;
-        if (creatingSketch) genSeed = Random.Shared.Next(1, 100000);   // a fresh layout each time the row opens
-    }
-
-    private void RerollSeed() => genSeed = Random.Shared.Next(1, 100000);
-
-    private async Task CreateSketch()
-    {
-        if (busy) return;
-        busy = true;
-        createError = null;
-        try
-        {
-            var name = string.IsNullOrWhiteSpace(sketchName) ? "Untitled sketch" : sketchName.Trim();
-            var resp = await Http.PostAsJsonAsync("api/sketch", new { name });
-            var created = await resp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-            if (created.TryGetProperty("slug", out var s) && s.GetString() is { } slug)
-            {
-                Nav.NavigateTo($"maps/{slug}/sketch");
-                return;
-            }
-            createError = "Could not create the sketch.";
-        }
-        catch { createError = "Could not create the sketch."; }
-        busy = false;
-    }
-
-    private async Task CreateGenerated()
-    {
-        if (busy) return;
-        busy = true;
-        createError = null;
-        try
-        {
-            var name = string.IsNullOrWhiteSpace(sketchName) ? $"{genArchetype} sketch" : sketchName.Trim();
-            var resp = await Http.PostAsJsonAsync("api/sketch/generate", new { name, archetype = genArchetype, seed = genSeed });
-            var created = await resp.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
-            if (created.TryGetProperty("slug", out var s) && s.GetString() is { } slug)
-            {
-                Nav.NavigateTo($"maps/{slug}/sketch");
-                return;
-            }
-            createError = "Could not generate the sketch.";
-        }
-        catch { createError = "Could not generate the sketch."; }
-        busy = false;
-    }
 }

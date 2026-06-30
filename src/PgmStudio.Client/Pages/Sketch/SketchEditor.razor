@@ -33,43 +33,48 @@
       <div class="workspace">
         <div class="workspace-sidebar">
           <div class="workspace-scroll">
-            <section class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Setup</h2></div>
-              <div class="field">
-                <label class="field-label">Footprint</label>
-                <select class="field-input" value="@preset" @onchange="OnPresetChange">
-                  <option value="landscape">2-team landscape (120×80)</option>
-                  <option value="portrait">2-team portrait (80×120)</option>
-                  <option value="square">Square — 4-team / D2 (120×120)</option>
-                  <option value="custom">Custom</option>
-                </select>
+            @* Working frame — footprint + symmetry, chosen at creation (/maps/new-sketch) and seeded into
+               the layout. Collapsed by default here so the Islands tree stays near the top; open it to
+               reframe mid-draw. *@
+            <details class="panel-accordion">
+              <summary class="section-header section-header--ruled"><h2 class="section-title">Frame</h2></summary>
+              <div class="panel-section" style="margin-top: var(--space-3);">
+                <div class="field">
+                  <label class="field-label">Footprint</label>
+                  <select class="field-input" value="@preset" @onchange="OnPresetChange">
+                    <option value="landscape">2-team landscape (120×80)</option>
+                    <option value="portrait">2-team portrait (80×120)</option>
+                    <option value="square">Square — 4-team / D2 (120×120)</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label">Width X (blocks)</label>
+                  <NumberField Value="width" ValueChanged="OnWidth" Min="16" Step="8" />
+                </div>
+                <div class="field">
+                  <label class="field-label">Depth Z (blocks)</label>
+                  <NumberField Value="depth" ValueChanged="OnDepth" Min="16" Step="8" />
+                </div>
+                <div class="field">
+                  <label class="field-label">Symmetry</label>
+                  <select class="field-input" value="@mode" @onchange="OnModeChange">
+                    <option value="mirror_x">Mirror X</option>
+                    <option value="mirror_z">Mirror Z</option>
+                    <option value="rot_180">Rotate 180°</option>
+                    <option value="rot_90">Rotate 90°</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label">Symmetry centre X</label>
+                  <NumberField Value="centerX" ValueChanged="OnCenterX" />
+                </div>
+                <div class="field">
+                  <label class="field-label">Symmetry centre Z</label>
+                  <NumberField Value="centerZ" ValueChanged="OnCenterZ" />
+                </div>
               </div>
-              <div class="field">
-                <label class="field-label">Width X (blocks)</label>
-                <NumberField Value="width" ValueChanged="OnWidth" Min="16" Step="8" />
-              </div>
-              <div class="field">
-                <label class="field-label">Depth Z (blocks)</label>
-                <NumberField Value="depth" ValueChanged="OnDepth" Min="16" Step="8" />
-              </div>
-              <div class="field">
-                <label class="field-label">Symmetry</label>
-                <select class="field-input" value="@mode" @onchange="OnModeChange">
-                  <option value="mirror_x">Mirror X</option>
-                  <option value="mirror_z">Mirror Z</option>
-                  <option value="rot_180">Rotate 180°</option>
-                  <option value="rot_90">Rotate 90°</option>
-                </select>
-              </div>
-              <div class="field">
-                <label class="field-label">Symmetry centre X</label>
-                <NumberField Value="centerX" ValueChanged="OnCenterX" />
-              </div>
-              <div class="field">
-                <label class="field-label">Symmetry centre Z</label>
-                <NumberField Value="centerZ" ValueChanged="OnCenterZ" />
-              </div>
-            </section>
+            </details>
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer" OnAdd="AddLayer"
                           OnDelete="DeleteLayer" OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" />
             <SketchLibrary Items="libraryItems" OnArm="ArmPlace" />

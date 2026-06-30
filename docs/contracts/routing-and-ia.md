@@ -72,19 +72,20 @@ The **map is the resource → it lives in the path**; the **mode is a trailing s
 | ------------------------ | ----------- | ------------------------------------------------- | ------------------ | ------ |
 | `/`                      | *Studio*    | **landing** — three lifecycle cards + live counts | `Index.razor`      | live   |
 | `/maps`                  | **Edit**    | staged dashboard, default stage = `edit`          | `Home.razor`       | live   |
-| `/maps?stage=sketch`     | **Sketch**  | sketch-draft overview + New-sketch                | `Home.razor`       | live   |
+| `/maps?stage=sketch`     | **Sketch**  | sketch-draft overview + New-sketch (→ `/maps/new-sketch`) | `Home.razor` | live   |
 | `/maps?stage=configure`  | **Configure** | configure-stage overview + Import                | `Home.razor`       | live   |
 | `/maps/{id}/edit`        | **Edit**    | existing-map region editor (activities)           | `Editor.razor`     | live†  |
 | `/maps/{id}/configure`   | **Configure** | new-map intent wizard — the six phases          | `ConfigureWizard`  | live   |
 | `/maps/{id}/sketch`      | **Sketch**  | sketch tool — draw geometry                       | `SketchEditor`     | live   |
-| `/maps/new`              | *(entry)*   | originate a map: **Import** a world folder (Sketch now originates from the Sketch overview) | `ConfigureLanding` | live‡  |
+| `/maps/new-sketch`       | *(entry)*   | originate a sketch: blank frame or generated layout | `SketchCreate`   | live   |
+| `/maps/new`              | *(entry)*   | originate a map: **Import** a world folder        | `ConfigureLanding` | live‡  |
 | `/concepts`              | —           | the authoring concept mock (`Authoring.razor`)    | `Authoring.razor`  | live   |
 | `/design`                | **Design**  | design-system showcase                            | `Design.razor`     | live   |
 | `/not-found`             | —           | 404                                               | `NotFound.razor`   | live   |
 
 † `Edit` is the **route-renamed** `/editor/{slug}` (the editor internals stay frozen) — a rename, not a refit.
-‡ `/maps/new` is now **Import-only** — the "Sketch from scratch" origination moved to the Sketch
-overview's New-sketch action; the download-link source stays parked there.
+‡ `/maps/new` is **Import-only** — "Sketch from scratch" origination lives at its own `/maps/new-sketch`
+page (`SketchCreate`); the download-link source stays parked there.
 
 Supporting API: `GET /api/maps[?stage=…]` (the staged list; an invalid/absent stage returns all) and
 `GET /api/maps/stage-counts` (the landing-card tallies).
@@ -105,9 +106,11 @@ sharing one page:
   reached from the **Configure overview**'s *Import a world* action. Picking an xml-less world folder
   creates the map record at stage `configure` (a slug); **Start authoring** enters
   `/maps/{slug}/configure`.
-- **Sketch** — originates from the **Sketch overview**'s *New-sketch* action: `POST /api/sketch`
-  creates a stage-`sketch` draft (a slug) → `/maps/{slug}/sketch`. Drawing, then **Finish**, rasterizes
-  the geometry, advances the map to stage `configure`, and returns to the Configure overview.
+- **Sketch** — the **New-sketch page** (`/maps/new-sketch`, `SketchCreate`), reached from the **Sketch
+  overview**'s *New-sketch* action. Pick a blank frame (footprint + symmetry) or a generated starter;
+  `POST /api/sketch` (carrying the frame) / `POST /api/sketch/generate` creates a stage-`sketch` draft
+  (a slug) → `/maps/{slug}/sketch`. Drawing, then **Finish**, rasterizes the geometry, advances the map
+  to stage `configure`, and returns to the Configure overview.
 
 So origination is reached from the stage overviews (themselves reached from the landing cards), and
 `/maps/{id}/configure` is the per-map wizard both paths feed.
@@ -118,7 +121,7 @@ So origination is reached from the stage overviews (themselves reached from the 
 | ----------- | -------------------------- | ------------------------------------------------------------- |
 | **Configure** | **authoring** — `N` series, `new-map-authoring.md`, intent model | the wizard at `/maps/{id}/configure` |
 | **Edit**    | the existing editor        | `Editor.razor` + `EditorActivities/*` at `/maps/{id}/edit`     |
-| **Sketch**  | `sketch_api` / sketch pages | `S2`, at `/maps/new`                                          |
+| **Sketch**  | `sketch_api` / sketch pages | `SketchCreate` at `/maps/new-sketch` + `SketchEditor` at `/maps/{id}/sketch` |
 
 > **Collision to resolve (not blocking):** the **Edit** editor already has an internal **"Configure"
 > activity** (`ConfigureActivity`, the scan/setup pass — `settings-2` icon). With **Configure** now a
@@ -150,7 +153,7 @@ the whole pass — IA rename, the Configure wizard + Sketch routes, and the stag
 4. **`Authoring.razor`** (the concept mock) → `/concepts`; breadcrumb home → `/maps`.
 5. **Stage** — `map.stage` column (`M0004`) + `MapStage`; `GET /api/maps?stage=` and
    `/api/maps/stage-counts`; stage seeded/advanced at sketch-create, import, and sketch-finish.
-6. **Sketch origination** moved off `/maps/new` (now Import-only) to the Sketch overview's New-sketch.
+6. **Sketch origination** moved off `/maps/new` (now Import-only) to its own `/maps/new-sketch` page.
 7. **Exits** — editor home breadcrumbs point at their stage overview; sketch-finish lands on the
    Configure overview with a *Continue* offer instead of force-navigating into the wizard.
 8. **Docs** — route strings reworded in `new-map-authoring.md` §12, `CLAUDE.md`, `TODO.md`,

@@ -2,7 +2,6 @@
 @layout EditorLayout
 @inject HttpClient Http
 @inject IJSRuntime JS
-@inject NavigationManager Nav
 
 <PageTitle>PGM Studio — @StageTitle</PageTitle>
 
@@ -58,9 +57,9 @@
 
               @if (CurrentStage == MapStage.Sketch)
               {
-                <button class="action-btn action-btn--primary" style="margin-left:auto;" @onclick="ToggleNewSketch">
+                <a class="action-btn action-btn--primary" href="maps/new-sketch" style="margin-left:auto;">
                   <i data-lucide="plus"></i><span>New sketch</span>
-                </button>
+                </a>
               }
               else if (CurrentStage == MapStage.Configure)
               {
@@ -71,39 +70,6 @@
             </div>
 
             <p class="section-desc">@StageBlurb</p>
-
-            @if (CurrentStage == MapStage.Sketch && creatingSketch)
-            {
-              <div class="field">
-                <label class="field-label">Map name</label>
-                <div class="ctrl-row">
-                  <input class="field-input" @bind="sketchName" @bind:event="oninput" placeholder="My CTW Map"
-                         @onkeydown="@(e => { if (e.Key == "Enter") _ = CreateSketch(); })" />
-                  <button class="action-btn" @onclick="CreateSketch" disabled="@busy">
-                    <i data-lucide="pencil-ruler"></i><span>Start blank</span>
-                  </button>
-                </div>
-              </div>
-              <div class="field">
-                <label class="field-label">Or generate a starter layout</label>
-                <div class="ctrl-row">
-                  <select class="field-input" @bind="genArchetype">
-                    <option value="H">H — 2 teams, 1 wool each</option>
-                    <option value="Trident">Trident — 2 teams, 3 wools each</option>
-                    <option value="Pinwheel">Pinwheel — 4 teams</option>
-                    <option value="Organic">Organic — grown lanes</option>
-                  </select>
-                  <NumberField Value="genSeed" ValueChanged="@(v => genSeed = (int)v)" Min="1" style="max-width: 6rem;" title="Seed — re-roll for a different layout" />
-                  <button class="action-btn action-btn--icon" @onclick="RerollSeed" title="Random seed"><i data-lucide="dices"></i></button>
-                  <button class="action-btn action-btn--primary" @onclick="CreateGenerated" disabled="@busy">
-                    <i data-lucide="sparkles"></i><span>Generate</span>
-                  </button>
-                </div>
-                <p class="section-desc" style="margin-top: var(--space-2);">A mirrored lane layout you can
-                  reshape on the canvas, then Finish into a configurable map.</p>
-              </div>
-              @if (createError is not null) { <p class="field-error">@createError</p> }
-            }
 
             <input class="field-input" placeholder="Search…" @bind="filter" @bind:event="oninput" style="margin-top: var(--space-3);" />
 

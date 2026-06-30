@@ -11,8 +11,9 @@ using PgmStudio.Migrations;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// S2d: the sketch persistence endpoints. POST /api/sketch creates a draft map (slugified, deduped) +
-/// an empty layout artifact; PUT/GET /api/map/{slug}/sketch round-trips the JS-origin layout blob.
+/// S2d: the sketch persistence endpoints. POST /api/sketch creates a draft map (slugified, deduped) + its
+/// layout artifact — empty {} for a frameless body, or seeded with a working frame's setup when one is
+/// posted; PUT/GET /api/map/{slug}/sketch round-trips the JS-origin layout blob.
 /// Runs against the <c>pgm_studio_test</c> schema (override with <c>PGM_STUDIO_TEST_DB</c>); each test
 /// resets the schema, so they run serially.
 /// </summary>
@@ -31,10 +32,36 @@ public sealed class SketchEndpointTests
         var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(created.GetProperty("slug").GetString()).IsEqualTo("my-sketch");
 
-        // Freshly created → the layout artifact is an empty object.
+        // Freshly created with no frame → the layout artifact is an empty object (the editor falls back to
+        // its landscape default on load).
         var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/my-sketch/sketch");
         await Assert.That(layout.ValueKind).IsEqualTo(JsonValueKind.Object);
         await Assert.That(layout.EnumerateObject().Any()).IsFalse();
+    }
+
+    [Test]
+    public async Task Create_with_a_frame_seeds_the_working_setup()
+    {
+        await ResetSchemaAsync();
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        // A portrait footprint (80×120) off-centre, mirror-Z — the new-sketch page's blank-create body.
+        var resp = await client.PostAsJsonAsync("/api/sketch",
+            new { name = "Framed", width = 80, depth = 120, mode = "mirror_z", centerX = 4, centerZ = -2 });
+        var slug = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        // GET returns a setup whose origin-centred bbox is width×depth and whose centre/mode round-trip.
+        var setup = (await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/sketch")).GetProperty("setup");
+        await Assert.That(setup.GetProperty("mirror_mode").GetString()).IsEqualTo("mirror_z");
+        var bbox = setup.GetProperty("bbox");
+        await Assert.That(bbox.GetProperty("min_x").GetDouble()).IsEqualTo(-40);
+        await Assert.That(bbox.GetProperty("max_x").GetDouble()).IsEqualTo(40);
+        await Assert.That(bbox.GetProperty("min_z").GetDouble()).IsEqualTo(-60);
+        await Assert.That(bbox.GetProperty("max_z").GetDouble()).IsEqualTo(60);
+        var center = setup.GetProperty("center");
+        await Assert.That(center.GetProperty("cx").GetDouble()).IsEqualTo(4);
+        await Assert.That(center.GetProperty("cz").GetDouble()).IsEqualTo(-2);
     }
 
     [Test]
