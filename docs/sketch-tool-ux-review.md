@@ -137,10 +137,16 @@ are filed in `TODO.md` (current focus) / `BACKLOG.md` (polish tail).
    you). The creation-page footprint seeds the initial high-water mark; the frame stays centred on the
    locked symmetry centre. With symmetry (1) and size (2) both gone, the **Frame accordion is removed
    entirely** — the sidebar becomes Layers → Islands.
-3. **Toolbar full restructure (`S22`).** Three visually distinct clusters with dividers: **Tools**
-   (radio) · **Build / Carve** 2-state pill (the op toggle, lifted out of the tool strip) · **2D / 3D**
-   segmented view control (3D promoted out of the overlay chips so its modality reads) · **Overlays**
-   popover folding mirror/shapes/chunks/snap. (P0#2 + P1#3.)
+3. **Controls restructure — subbar = actions, floating canvas corner = view (`S22`).** The flattened subbar
+   splits along the three state axes, and the *view* axis moves off the subbar onto a **floating top-right
+   canvas cluster** (Maps-like — docked to the surface it transforms; `3D` is a modal view-swap, not a toggle).
+   A thumbnail-preview switcher (Google Maps) is overkill for two modes — a compact segmented pill is the form.
+   - **Subbar (actions):** **Tools** radio · **Build / Carve** 2-state pill (op lifted out of the tool strip,
+     dimmed when no draw tool is active). Cursor + W×D dim readouts stay (draw feedback).
+   - **Canvas corner (view):** a compact **2D | 3D** segmented pill (3D promoted out of the overlay chips so
+     its modality reads) + the **iso-rotate** button (3D only) + a **layers** button opening the **Overlays**
+     popover (mirror/shapes/chunks/snap) + **Fit** + the zoom readout. Net: subbar = "what you do", corner =
+     "what you see". (P0#2 + P1#3.)
 4. **Height editing = a self-contained inspector *height gauge* (`S23`).** Configure's `SliceView` can't
    be reused — it draws a cross-section against **real terrain**, which a sketch doesn't have (every shape
    starts at a flat height of 1). Instead the inspector grows a **vertical block gauge** that is its own

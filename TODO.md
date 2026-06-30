@@ -41,13 +41,19 @@ parked sketch slices (`S2`, `S9b`, `S10`) and the sketch world-export (`P9`) liv
   creation-page footprint seeds the initial bbox. With `S20`, the Frame accordion is now empty ⇒ **remove the
   `<details>` block entirely** (`SketchEditor.razor:39-77`). Recompute on shape add/move/finish via the bridge;
   push the grown bbox back through `PushBbox`. (`docs/sketch-tool-ux-review.md` Resolutions #2.)
-- [ ] **S22 — Toolbar full restructure: separate the three state axes.** The subbar flattens tool (radio),
-  operation (radio), and view toggles into one look-alike strip (`SketchEditor.razor:88-132`). Split into
-  divider-separated clusters: **Tools** (move/select/rect/circle/polygon/lasso/measure radio) · **Build / Carve**
-  2-state pill (the `op` toggle lifted out of the tool group + a distinct pill shape, `editor.css:234-243`) ·
-  **2D / 3D** segmented control (promote `3D` out of the overlay chips so its modal view-swap reads) ·
-  **Overlays** popover folding mirror/shapes/chunks/snap. Dim Build/Carve when no draw tool is active.
-  (`docs/sketch-tool-ux-review.md` P0#2 + P1#3 + Resolutions #3.)
+- [ ] **S22 — Restructure the controls: subbar = actions, floating canvas corner = view.** The subbar
+  flattens tool (radio), operation (radio), and view toggles into one look-alike strip
+  (`SketchEditor.razor:88-132`). Split along the three axes, and move the **view** axis off the subbar onto a
+  floating cluster in the **canvas top-right corner** (Maps-like — docked to the surface it transforms, and `3D`
+  is a *modal view-swap*, not a toggle):
+  - **Subbar (actions):** **Tools** radio (move/select/rect/circle/polygon/lasso/measure) · **Build / Carve**
+    2-state pill (the `op` toggle lifted out of the tool group + a distinct pill shape, `editor.css:234-243`),
+    dimmed when no draw tool is active. The cursor + W×D dim readouts stay (draw feedback).
+  - **Canvas corner (view) cluster:** a compact **2D | 3D** segmented pill (promote `3D` out of the overlay
+    chips so its modality reads); the **iso-rotate** button joins it only in 3D; a **layers** button opening the
+    **Overlays** popover (mirror/shapes/chunks/snap); the **Fit** button; the zoom % readout. Top-right of the
+    SVG area is free today (cursor/dim/zoom live in the subbar). (`docs/sketch-tool-ux-review.md` P0#2 + P1#3 +
+    Resolutions #3.)
 - [ ] **S17 — Redefine Floor = elevation (y-offset) and Height = thickness.** Today `floor` is the column's
   bottom-Y and `base_height` its top-Y (both relative to the layer `base_y`), so the inspector's "Floor" reads
   like a second height. Redefine to the intuitive model: **Floor = where the shape's base sits** (y-offset within
