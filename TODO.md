@@ -48,6 +48,14 @@ parked sketch slices (`S2`, `S9b`, `S10`) and the sketch world-export (`P9`) liv
   **2D / 3D** segmented control (promote `3D` out of the overlay chips so its modal view-swap reads) ·
   **Overlays** popover folding mirror/shapes/chunks/snap. Dim Build/Carve when no draw tool is active.
   (`docs/sketch-tool-ux-review.md` P0#2 + P1#3 + Resolutions #3.)
+- [ ] **S17 — Redefine Floor = elevation (y-offset) and Height = thickness.** Today `floor` is the column's
+  bottom-Y and `base_height` its top-Y (both relative to the layer `base_y`), so the inspector's "Floor" reads
+  like a second height. Redefine to the intuitive model: **Floor = where the shape's base sits** (y-offset within
+  the layer) and **Height = how tall it is** (thickness), with `top = base_y + floor + height`. Update
+  `SketchRasterizer` (`RasterShape` / `HeightFn` / `RasterizeColumns`), the iso preview (`sketch-bridge.js`
+  `terrainOf` + the `top`/`floor` calc), the inspector fields + labels (`SketchInspector.razor`), and the
+  rasterizer tests. Stored sketches re-rasterize under the new meaning (intentional — no backward-compat).
+  **Land before `S23`** (the height gauge's bottom=elevation / top=thickness bar reads correctly only post-relabel).
 - [ ] **S23 — Inspector height gauge (self-contained, no terrain backdrop).** Replace the bare `step="1"`
   Height/Floor number boxes (`SketchInspector.razor`) with a **vertical block gauge** — its own reference, since
   Configure's `SliceView` can't be reused (it draws against real terrain a sketch lacks; shapes start flat at
@@ -81,13 +89,6 @@ parked sketch slices (`S2`, `S9b`, `S10`) and the sketch world-export (`P9`) liv
   since they come in as polygons they lack the rectangle's 8-handle resize. Add a scale affordance: drag-to-size
   during placement and/or a uniform resize handle on a placed polyomino group. Relates to `S10` (the parked
   polygon resize-handles decision) and `S8` (the library). Needed for the polyomino-based generation (`G15`).
-- [ ] **S17 — Redefine Floor = elevation (y-offset) and Height = thickness.** Today `floor` is the column's
-  bottom-Y and `base_height` its top-Y (both relative to the layer `base_y`), so the inspector's "Floor" reads
-  like a second height. Redefine to the intuitive model: **Floor = where the shape's base sits** (y-offset within
-  the layer) and **Height = how tall it is** (thickness), with `top = base_y + floor + height`. Update
-  `SketchRasterizer` (`RasterShape` / `HeightFn` / `RasterizeColumns`), the iso preview (`sketch-bridge.js`
-  `terrainOf` + the `top`/`floor` calc), the inspector fields + labels (`SketchInspector.razor`), and the
-  rasterizer tests. Stored sketches re-rasterize under the new meaning (intentional — no backward-compat).
 - [ ] **S18 — Ruler distance should read along the ruler line, not in the toolbar.** The measure tool draws its
   line in `#measureLayer` (world coords, `sketch-canvas.js` `#renderMeasure`) but shows the block distance in the
   `.canvas-dim` sub-bar readout (`#updateDim`, `sketch-canvas.js:442`). Render the distance as a **live label on /
