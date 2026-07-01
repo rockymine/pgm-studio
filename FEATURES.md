@@ -603,6 +603,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `base_y` (a block floating 30 above the ground reads as a sky platform). The bridge holds multi-layer state
   (active index + per-layer shapes/islands) and persists the `layers[]` array (round-trips on reload). The
   `SketchLayers` component. (S7b) §5.
+- **Canvas island selection + whole-island body-drag** — the Figma group model on the sketch canvas:
+  **single-click selects the containing island** (drawing its axis-aligned **bounding box + corner
+  anchors**), **double-click drills into the member shape** under the cursor (its resize/vertex handles),
+  and **Esc** pops back out to the island / deselects. A **single-primitive island** shows the shape's own
+  handles at the island level too, so single-click still resizes a lone rectangle (double-click is a no-op
+  there). The whole island **body-drags** — all members translate together, snap-aware — via the shared
+  `CanvasBase` move seam (`_hitMovable`/`_moveStart`/`_moveTo`/`_commitMove`) extended to a multi-shape
+  handle; the bridge hands the canvas each island's id + member shapeIds + geometry (`setIslands`). Pure
+  `boundsOfShapes` computes the island bbox (node-tested). The foundation for island rotate (`S13`, at the
+  corner anchors) and the parked squash/scale (`S21`). (`sketch-canvas.js` + `sketch-bridge.js`; S20)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

@@ -9,12 +9,14 @@
  * fitToBbox() sets scale/pan to frame the working bounds. (Distinct from EditorCanvas, which maps
  * through buildTransform — do not collapse the two.)
  *
- * Callbacks: onShapeCreated(partial) · onShapeUpdated(shape) · onShapeSelected(id|null) · onShapeDeleted(id)
+ * Callbacks: onShapeCreated(partial) · onShapeUpdated(shape) · onShapeSelected(id|null) [drill] ·
+ * onIslandSelected(id|null) [single-click] · onShapeDeleted(id)
  */
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
-import { containsPoint, toBounds, translateShape } from "../geometry/shape.js";
+import { containsPoint, toBounds, translateShape, boundsOfShapes } from "../geometry/shape.js";
+import { pointInRing } from "../geometry/polygon.js";
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
@@ -43,8 +45,9 @@ export class SketchCanvas extends CanvasBase {
 
   #shapes      = new Map();   // id → shape (source for render / hit-test / edit)
   #shapeElMap  = new Map();   // id → <g>
-  #selectedId  = null;
-  #islands     = [];
+  #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
+  #selectedIslandId = null;   // selected island (drives the island bbox chrome + whole-island drag)
+  #islands     = [];          // [{ id, shapeIds, exterior, holes }] from the bridge
   #mirrorPolys = [];
 
   #shapesVisible = false;
@@ -59,13 +62,14 @@ export class SketchCanvas extends CanvasBase {
   #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
   #placeSpecs = null;  // library item being placed: shape specs centred at origin, awaiting a drop point
   #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
+  #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole island (S20)
   #snapEnabled = true;
 
   // viewport layers
   #bboxLayer = null; #chunkLayer = null; #axisLayer = null;
   #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null; #guideLayer = null;
   // screen-space layers (outside the viewport transform)
-  #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null; #measureLabelLayer = null;
+  #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null; #measureLabelLayer = null; #islandChromeLayer = null;
   #iso      = null;   // WebGL iso renderer (S6), lazily created on first 3-D toggle
   #isoOn    = false;
 
@@ -149,19 +153,36 @@ export class SketchCanvas extends CanvasBase {
 
   clearShapes() { for (const id of [...this.#shapes.keys()]) this.removeShape(id); }
 
+  // Select a shape (the drill / panel-shape path): shows its edit handles, clears any island bbox chrome.
   selectShape(id) {
+    this.#selectedIslandId = null;
     this.#selectedId = id;
     this.#applySelection();
     this.#edit?.setSelected(id);
     this.#edit?.refresh();
+    this.#renderIslandChrome();
+    this.#updateDim();
+  }
+
+  // Select an island (single-click / panel-island): draws its bbox chrome; a single-member island also
+  // shows that member's edit handles (nothing to drill into). Setter only — the click path fires the callback.
+  selectIsland(id) {
+    this.#selectedIslandId = id ?? null;
+    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
+    this.#selectedId = (isl && isl.shapeIds?.length === 1) ? isl.shapeIds[0] : null;
+    this.#applySelection();
+    this.#edit?.setSelected(this.#selectedId);
+    this.#edit?.refresh();
+    this.#renderIslandChrome();
     this.#updateDim();
   }
 
   getShape(id)  { return this.#shapes.get(id); }
   getShapes()   { return [...this.#shapes.values()]; }
   get selectedId() { return this.#selectedId; }
+  #islandOfShape(shapeId) { return this.#islands.find(i => i.shapeIds?.includes(shapeId)) ?? null; }
 
-  setIslands(islands)        { this.#islands = islands ?? []; renderIslands(this.#islandLayer, this.#islands, identityTransform); }
+  setIslands(islands)        { this.#islands = islands ?? []; renderIslands(this.#islandLayer, this.#islands, identityTransform); this.#renderIslandChrome(); }
   setGhostIslands(polys)     { renderGhostIslands(this.#ghostLayer, polys ?? [], identityTransform); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; renderMirror(this.#mirrorLayer, this.#mirrorPolys, identityTransform); }
   setShapesVisible(v) { this.#shapesVisible = v; if (this.#shapesLayer) this.#shapesLayer.style.display = v ? "" : "none"; }
@@ -185,7 +206,7 @@ export class SketchCanvas extends CanvasBase {
     this.#isoOn = true;
     this.#draw?.cancel();
     const { w, h } = this.#size();
-    for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer]) g.style.display = "none";
+    for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer, this.#islandChromeLayer]) g.style.display = "none";
     this.#iso.show();
     this.#iso.render(islands, w, h, yawDeg, bbox);
     return true;
@@ -194,12 +215,12 @@ export class SketchCanvas extends CanvasBase {
     this.#isoOn = false;
     this.#iso?.hide();
     this._viewportG.style.display = "";
-    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer]) g.style.display = "";
+    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer, this.#islandChromeLayer]) g.style.display = "";
   }
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); }
+  _onViewportChanged() { this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderIslandChrome(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
@@ -229,9 +250,10 @@ export class SketchCanvas extends CanvasBase {
     this.#draw?.onMouseUp();
   }
 
+  // Single-click selects the containing ISLAND (null = deselect); double-click drills to the shape (below).
   _onCanvasClick(e, svgPt) {
     if (this.#isoOn) return;
-    this.#callbacks.onShapeSelected?.(this.#hitTest(svgPt.x, svgPt.y));
+    this.#callbacks.onIslandSelected?.(this.#hitIsland(svgPt.x, svgPt.y));
   }
 
   _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
@@ -247,15 +269,35 @@ export class SketchCanvas extends CanvasBase {
     return consumed;
   }
 
-  // Body-drag (CV10): drag the selected shape's body to move it. World == svg base coords here, so the
-  // default _toWorld (identity) is correct — no override.
+  // Body-drag (CV10 shape / S20 island): drag a selected shape's body — or a whole selected island — to
+  // move it. World == svg base coords here, so the default _toWorld (identity) is correct — no override.
+  // A shape handle is its id (string); an island handle is `{ islandId }`.
+  #isIslandHandle(h) { return !!(h && typeof h === "object" && h.islandId); }
+
   _hitMovable(world) {
-    if (this.#isoOn || !this.#selectedId) return null;
-    const s = this.#shapes.get(this.#selectedId);
-    return (s && containsPoint(s, world.x, world.z)) ? this.#selectedId : null;
+    if (this.#isoOn) return null;
+    // Island selected → drag the whole island when the point is inside its footprint.
+    if (this.#selectedIslandId) {
+      const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
+      if (isl && isl.exterior?.length >= 4 && pointInRing(world.x, world.z, isl.exterior) &&
+          !(isl.holes ?? []).some(h => pointInRing(world.x, world.z, h))) return { islandId: this.#selectedIslandId };
+    }
+    // Else a drilled/selected shape → drag that shape.
+    if (this.#selectedId) {
+      const s = this.#shapes.get(this.#selectedId);
+      if (s && containsPoint(s, world.x, world.z)) return this.#selectedId;
+    }
+    return null;
   }
-  _moveBy(id, dx, dz) {
-    const s = this.#shapes.get(id);
+  _moveBy(handle, dx, dz) {
+    if (this.#isIslandHandle(handle)) {
+      const isl = this.#islands.find(i => i.id === handle.islandId);
+      for (const id of (isl?.shapeIds ?? [])) { const s = this.#shapes.get(id); if (s) this.updateShape(translateShape(s, dx, dz)); }
+      this.#renderIslandChrome();
+      this.#callbacks.onShapeUpdated?.();
+      return;
+    }
+    const s = this.#shapes.get(handle);
     if (!s) return;
     const moved = translateShape(s, dx, dz);
     this.updateShape(moved);
@@ -264,18 +306,30 @@ export class SketchCanvas extends CanvasBase {
 
   setSnapEnabled(v) { this.#snapEnabled = !!v; }
 
-  _moveStart(id) { const s = this.#shapes.get(id); this.#dragStartShape = s ? structuredClone(s) : null; }
+  _moveStart(handle) {
+    if (this.#isIslandHandle(handle)) {
+      const isl = this.#islands.find(i => i.id === handle.islandId);
+      const entries = (isl?.shapeIds ?? []).map(id => [id, this.#shapes.get(id)]).filter(([, s]) => s);
+      this.#dragStartShapes = new Map(entries.map(([id, s]) => [id, structuredClone(s)]));
+      this.#dragStartShape = null;
+    } else {
+      const s = this.#shapes.get(handle);
+      this.#dragStartShape = s ? structuredClone(s) : null;
+      this.#dragStartShapes = null;
+    }
+  }
 
   // Absolute, snap-aware move (S9): place the shape at start + (dx,dz), snapping its bbox edges/centre to
   // other shapes' edges/centres + the symmetry centre; draws alignment guides. Alt bypasses snapping.
-  _moveTo(id, dx, dz, alt) {
+  _moveTo(handle, dx, dz, alt) {
+    if (this.#isIslandHandle(handle)) return this.#moveIslandTo(dx, dz, alt);
     const start = this.#dragStartShape;
-    if (!start || start.id !== id) return false;
+    if (!start || start.id !== handle) return false;
     const sb = toBounds(start);
     let sdx = dx, sdz = dz, gx = null, gz = null;
     if (sb && this.#snapEnabled && !alt) {
       const tol = 6 / (this._scale || 1);
-      const { xs, zs } = this.#snapTargets(id);
+      const { xs, zs } = this.#snapTargets(handle);
       const sx = bestSnap([sb.min_x + dx, (sb.min_x + sb.max_x) / 2 + dx, sb.max_x + dx], xs, tol);
       const sz = bestSnap([sb.min_z + dz, (sb.min_z + sb.max_z) / 2 + dz, sb.max_z + dz], zs, tol);
       if (sx) { sdx = dx + sx.adjust; gx = sx.line; }
@@ -288,7 +342,30 @@ export class SketchCanvas extends CanvasBase {
     return true;
   }
 
-  _commitMove() { this.#dragStartShape = null; this.#renderGuides(null, null); }
+  // Whole-island absolute move: snap the island's bbox edges/centre to other shapes + the symmetry centre
+  // (excluding every island member), draw the guide, and translate all members from their snapshots.
+  #moveIslandTo(dx, dz, alt) {
+    const starts = this.#dragStartShapes;
+    if (!starts || !starts.size) return false;
+    const sb = boundsOfShapes([...starts.values()]);
+    let sdx = dx, sdz = dz, gx = null, gz = null;
+    if (sb && this.#snapEnabled && !alt) {
+      const tol = 6 / (this._scale || 1);
+      const { xs, zs } = this.#snapTargets([...starts.keys()]);
+      const sx = bestSnap([sb.min_x + dx, (sb.min_x + sb.max_x) / 2 + dx, sb.max_x + dx], xs, tol);
+      const sz = bestSnap([sb.min_z + dz, (sb.min_z + sb.max_z) / 2 + dz, sb.max_z + dz], zs, tol);
+      if (sx) { sdx = dx + sx.adjust; gx = sx.line; }
+      if (sz) { sdz = dz + sz.adjust; gz = sz.line; }
+    }
+    this.#renderGuides(gx, gz);
+    const rdx = Math.round(sdx), rdz = Math.round(sdz);
+    for (const [, start] of starts) this.updateShape(translateShape(start, rdx, rdz));
+    this.#renderIslandChrome();
+    this.#callbacks.onShapeUpdated?.();   // one island recompute for the whole move
+    return true;
+  }
+
+  _commitMove() { this.#dragStartShape = null; this.#dragStartShapes = null; this.#renderGuides(null, null); }
 
   // Snap-aware rectangle resize: snap the dragged edge coord(s) to other shapes' edges/centres + the
   // symmetry centre, draw the alignment guide, and return the (possibly) adjusted coords. The resize
@@ -308,10 +385,12 @@ export class SketchCanvas extends CanvasBase {
   }
 
   // Candidate snap coordinates: every OTHER shape's bbox min/centre/max + the symmetry centre.
-  #snapTargets(excludeId) {
+  // `exclude` is a shape id or a list of ids (all members of a dragged island).
+  #snapTargets(exclude) {
+    const ex = Array.isArray(exclude) ? new Set(exclude) : new Set([exclude]);
     const xs = new Set([this.#center.cx]), zs = new Set([this.#center.cz]);
     for (const [id, s] of this.#shapes) {
-      if (id === excludeId) continue;
+      if (ex.has(id)) continue;
       const b = toBounds(s); if (!b) continue;
       xs.add(b.min_x); xs.add((b.min_x + b.max_x) / 2); xs.add(b.max_x);
       zs.add(b.min_z); zs.add((b.min_z + b.max_z) / 2); zs.add(b.max_z);
@@ -328,6 +407,35 @@ export class SketchCanvas extends CanvasBase {
     const attrs = { stroke: "var(--accent)", "stroke-width": "1", "stroke-dasharray": "4 3", "vector-effect": "non-scaling-stroke" };
     if (gx !== null) layer.appendChild(svgEl("line", { x1: gx, y1: min_z, x2: gx, y2: max_z, ...attrs }));
     if (gz !== null) layer.appendChild(svgEl("line", { x1: min_x, y1: gz, x2: max_x, y2: gz, ...attrs }));
+  }
+
+  // Draw the selected island's bounding box + corner anchors (screen-space, so legible at any zoom).
+  // Inert in S20 — the corners get rotate zones in S13, the edges get scale in S21. Re-rendered on
+  // selection changes and every viewport change.
+  #renderIslandChrome() {
+    const layer = this.#islandChromeLayer;
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    if (!this.#selectedIslandId) return;
+    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
+    if (!isl) return;
+    const members = (isl.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
+    const b = boundsOfShapes(members);
+    if (!b) return;
+    const x0 = b.min_x * this._scale + this._panX, y0 = b.min_z * this._scale + this._panY;
+    const x1 = b.max_x * this._scale + this._panX, y1 = b.max_z * this._scale + this._panY;
+    const l = Math.min(x0, x1), r = Math.max(x0, x1), t = Math.min(y0, y1), bot = Math.max(y0, y1);
+    layer.appendChild(svgEl("rect", {
+      x: l, y: t, width: r - l, height: bot - t,
+      fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none",
+    }));
+    const HALF = 4;
+    for (const [ax, ay] of [[l, t], [r, t], [r, bot], [l, bot]]) {
+      layer.appendChild(svgEl("rect", {
+        x: ax - HALF, y: ay - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
+        fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", "pointer-events": "none",
+      }));
+    }
   }
 
   // ── private ────────────────────────────────────────────────────────────────────
@@ -360,11 +468,12 @@ export class SketchCanvas extends CanvasBase {
                      this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer, this.#guideLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
+    this.#islandChromeLayer = svgEl("g", { "pointer-events": "none" });   // island bbox, below the handles
     this.#handlesLayer      = svgEl("g");
     this.#centerLayer       = svgEl("g", { "pointer-events": "none" });
     this.#drawHandlesLayer  = svgEl("g", { "pointer-events": "none" });
     this.#measureLabelLayer = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer]) this._svg.appendChild(g);
+    for (const g of [this.#islandChromeLayer, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer]) this._svg.appendChild(g);
 
     if (!this.#shapesVisible) this.#shapesLayer.style.display = "none";
     if (!this.#mirrorVisible) this.#mirrorLayer.style.display = "none";
@@ -385,17 +494,28 @@ export class SketchCanvas extends CanvasBase {
     document.addEventListener("keydown", (e) => {
       if (this._wrap?.offsetParent == null) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-      if (e.key === "Escape") { this.#draw.cancel(); this.#clearMeasure(); }
+      if (e.key === "Escape") {
+        this.#draw.cancel(); this.#clearMeasure();
+        // Drilled into a member → pop back out to its island; otherwise clear the selection.
+        if (this.#selectedId && !this.#selectedIslandId) {
+          const parent = this.#islandOfShape(this.#selectedId);
+          if (parent) { this.#callbacks.onIslandSelected?.(parent.id); return; }
+        }
+        if (this.#selectedIslandId || this.#selectedId) this.#callbacks.onIslandSelected?.(null);
+      }
       if ((e.key === "Delete" || e.key === "Backspace") && this.#selectedId) {
         this.#callbacks.onShapeDeleted?.(this.#selectedId);
       }
       if ((e.key === "p" || e.key === "P") && this.#selectedId) this.#callbacks.onShapePromote?.(this.#selectedId);
     });
-    // Double-click closes a polygon (duplicate trailing vertex trimmed inside the controller).
+    // Double-click closes a polygon while drawing; in select mode it drills into the member shape under
+    // the cursor (Figma group model — single-click picks the island, double-click enters a member).
     this._svg.addEventListener("dblclick", (e) => {
-      if (this._activeTool !== "polygon") return;
-      e.stopPropagation();
-      this.#draw.onDblClick();
+      if (this._activeTool === "polygon") { e.stopPropagation(); this.#draw.onDblClick(); return; }
+      if (this.#isoOn || (this._activeTool !== null && this._activeTool !== "select")) return;
+      const p = this._clientToSvg(e.clientX, e.clientY);
+      const shapeId = this.#hitTest(p.x, p.y);
+      if (shapeId) this.#callbacks.onShapeSelected?.(shapeId);   // drill
     });
   }
 
@@ -405,15 +525,12 @@ export class SketchCanvas extends CanvasBase {
     renderAxis(this.#axisLayer, this.#bbox, this.#center, this.#mode, identityTransform);
   }
 
-  // Build the shape group (render layer) + attach the select click handler (interaction stays here).
+  // Build the shape group (render layer). Selection is handled canvas-wide (single-click = island,
+  // double-click = drill to shape) via the svg-level click/dblclick + hit-testing, so no per-shape
+  // click listener — a click bubbles to the svg handler.
   #shapeEl(shape) {
     const g = renderSketchShape(shape, identityTransform);
     g.style.cursor = "pointer";
-    g.addEventListener("click", (e) => {
-      if (this._activeTool !== null && this._activeTool !== "move" && this._activeTool !== "select") return;
-      e.stopPropagation();
-      this.#callbacks.onShapeSelected?.(shape.id);
-    });
     if (shape.id === this.#selectedId) this.#markSelected(g, true);
     return g;
   }
@@ -505,6 +622,16 @@ export class SketchCanvas extends CanvasBase {
     for (let i = ids.length - 1; i >= 0; i--) {
       const shape = this.#shapes.get(ids[i]);
       if (containsPoint(shape, wx, wz)) return shape.id;
+    }
+    return null;
+  }
+
+  // The island whose footprint (exterior minus holes) contains (wx,wz), topmost first; null if none.
+  #hitIsland(wx, wz) {
+    for (let i = this.#islands.length - 1; i >= 0; i--) {
+      const isl = this.#islands[i];
+      if (isl.exterior?.length >= 4 && pointInRing(wx, wz, isl.exterior) &&
+          !(isl.holes ?? []).some(h => pointInRing(wx, wz, h))) return isl.id;
     }
     return null;
   }

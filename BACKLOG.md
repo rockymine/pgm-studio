@@ -42,7 +42,7 @@ the focus-integration polish remains.
 
 ## Sketch tool (S) — parked slices
 
-The active Sketch depth pass is in `TODO.md` (`S12`–`S16`). These are the parked / dormant slices.
+The active Sketch depth pass is in `TODO.md` (`S12`–`S14`, `S16`). These are the parked / dormant slices.
 
 - [~] **S2 — Sketch tool: end-to-end verification.** The tool itself is **complete and shipped**
   (`FEATURES.md`): originate → Setup → draw → live islands + mirror → Finish/rasterize, with persistence
@@ -61,6 +61,12 @@ The active Sketch depth pass is in `TODO.md` (`S12`–`S16`). These are the park
   rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
   vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
   Low priority — explicit promotion already covers the need.
+- [ ] **S21 — Squash / scale an island via the bbox anchors (parked).** Depends on `S20`. Wire the island
+  bounding-box anchors from `S20` to a non-uniform **scale**: an edge anchor stretches/squashes along one axis, a
+  corner scales both (Shift = uniform, Alt = about the centre), anchored on the opposite edge/corner. Polygon/lasso
+  scale their vertices + Bézier controls; a rectangle promotes via `rectToPolygon` for a non-integer scale; a
+  circle stays uniform-only (no ellipse type). New `scaleShape` in `geometry/shape.js`; islands / mirror /
+  rasterizer recompute. Park until `S13`/`S20` land.
 
 ## Editor & canvas infrastructure (C / CV)
 

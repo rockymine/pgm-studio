@@ -99,9 +99,26 @@ export function translateShape(shape, dx, dz) {
     return { ...shape, min_x: shape.min_x + dx, max_x: shape.max_x + dx, min_z: shape.min_z + dz, max_z: shape.max_z + dz };
   if (shape.type === "circle")
     return { ...shape, center_x: shape.center_x + dx, center_z: shape.center_z + dz };
-  if (shape.vertices)
-    return { ...shape, vertices: shape.vertices.map(([x, z]) => [x + dx, z + dz]) };
+  if (shape.vertices) {
+    const moved = { ...shape, vertices: shape.vertices.map(([x, z]) => [x + dx, z + dz]) };
+    // Bézier handles are absolute coords — move them with the vertices, else the curve distorts and the
+    // handles stay behind (freshly built so translate stays pure — no mutating the source's controls).
+    if (shape.controls) moved.controls = translateControls(shape.controls, dx, dz);
+    return moved;
+  }
   return { ...shape };
+}
+
+/** Translate a Bézier `controls` dict (`{ "i": { in?, out? } }`, absolute coords) by (dx,dz) — new object. */
+function translateControls(controls, dx, dz) {
+  const out = {};
+  for (const [k, c] of Object.entries(controls)) {
+    const nc = {};
+    if (c.in)  nc.in  = [c.in[0]  + dx, c.in[1]  + dz];
+    if (c.out) nc.out = [c.out[0] + dx, c.out[1] + dz];
+    out[k] = nc;
+  }
+  return out;
 }
 
 /** Approximate a circle as a closed polygon ring, vertices rounded to the nearest block. */
@@ -165,6 +182,20 @@ export function toBounds(shape) {
     default:
       return null;
   }
+}
+
+/** Union AABB `{min_x,min_z,max_x,max_z}` of several shapes' bounds (the island bbox); null if none has
+ *  bounds. Degenerate polygons/lassos (no vertices) are skipped. */
+export function boundsOfShapes(shapes) {
+  let b = null;
+  for (const s of shapes) {
+    const sb = toBounds(s);
+    if (!sb) continue;
+    b = b ? { min_x: Math.min(b.min_x, sb.min_x), min_z: Math.min(b.min_z, sb.min_z),
+              max_x: Math.max(b.max_x, sb.max_x), max_z: Math.max(b.max_z, sb.max_z) }
+          : { ...sb };
+  }
+  return b;
 }
 
 /**

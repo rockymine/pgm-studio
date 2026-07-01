@@ -71,6 +71,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     },
     onShapeUpdated: () => { recompute(); markDirty(); },
     onShapeSelected: (id) => selectShape(id),
+    onIslandSelected: (id) => selectIsland(id),
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     onShapePromote:  (id) => promoteShape(id),
     onPlace:         (bx, bz) => placeAt(bx, bz),
@@ -138,9 +139,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
 
   function selectIsland(id) {
     selectedIslandId = id ?? null;
-    canvas.selectShape(null);
-    fire("OnShapeSelected", null);
-    fire("OnIslandSelected", selectedIslandId);
+    canvas.selectIsland(selectedIslandId);
+    // A single-member island shows the shape inspector (its member) — set height / convert / op without
+    // drilling; a multi-shape island shows the island inspector. Either way selectedIslandId stays set, so
+    // arrow-nudge (and later rotate) act on the whole island.
+    const isl = selectedIslandId ? islands.find(i => i.id === selectedIslandId) : null;
+    const single = isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
+    fire("OnShapeSelected", single);
+    fire("OnIslandSelected", single ? null : selectedIslandId);
   }
 
   // Recompute islands from the canvas's current shapes and push results to the canvas + panel.
@@ -156,7 +162,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     islands = next;
     layers[active].islands = next;
     layers[active].shapes = shapes;
-    canvas.setIslands(next.map(i => ({ exterior: i.exterior, holes: i.holes })));
+    canvas.setIslands(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes })));
     canvas.setGhostIslands(ghostPolys());
     refreshMirror();
     pushLayout();
@@ -326,6 +332,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
   }
 
   function islandById(id) { return islands.find(i => i.id === id); }
+
+  // Start in the default "move" (pan) tool — matches the Blazor toolbar default. Without this the canvas
+  // sits at CanvasBase's null tool, which the base treats as click-to-select, so a click on first load
+  // would select a shape/island even though the move tool is shown (only the select tool should select).
+  canvas.setActiveTool("move");
 
   // Seed the default working bounds so drawing + the mirror preview work immediately.
   applySetup(setup);
