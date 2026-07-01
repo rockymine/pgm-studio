@@ -613,6 +613,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   handle; the bridge hands the canvas each island's id + member shapeIds + geometry (`setIslands`). Pure
   `boundsOfShapes` computes the island bbox (node-tested). The foundation for island rotate (`S13`, at the
   corner anchors) and the parked squash/scale (`S21`). (`sketch-canvas.js` + `sketch-bridge.js`; S20)
+- **Rotate an island (Figma model)** — with an island selected, four **rotate zones** sit just outside the
+  bbox corners (custom rotate cursor); dragging one turns the whole island about its **bbox centre**. The
+  angle is the cursor's swept angle around the pivot — **distance-independent**, relative to grab, and
+  **unwrapped** so you can spin past 360°; **Shift snaps to 15°**. A numeric **Rotate (°)** field in the
+  inspector applies a rotate-by about the same centre (clears after each apply). Pure `rotateShape(shape,
+  angleRad, pivot)` **bakes** the rotation into geometry — polygon/lasso rotate vertices + Bézier controls,
+  a circle's centre orbits (radius kept), a rectangle promotes via `rectToPolygon` first (carrying its height
+  fields); islands / mirror / rasterizer / iso recompute from the moved coords. (`geometry/shape.js`
+  `rotateShape` + `sketch-canvas.js` rotate handle + `sketch-bridge.js` `rotateSelected`; node-tested; S13)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

@@ -7,7 +7,7 @@
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta, shapeToMultiPoly } from "../geometry/boolean.js";
-import { rectToPolygon, translateShape } from "../geometry/shape.js";
+import { rectToPolygon, translateShape, rotateShape, boundsOfShapes } from "../geometry/shape.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
@@ -147,6 +147,24 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     const single = isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
     fire("OnShapeSelected", single);
     fire("OnIslandSelected", single ? null : selectedIslandId);
+  }
+
+  // Rotate the current selection by `deg` degrees about its bbox centre (the inspector's numeric field; the
+  // canvas owns the drag-handle path). Island selected → all its members; a drilled shape → just that shape.
+  function rotateSelected(deg) {
+    const rad = (deg || 0) * Math.PI / 180;
+    if (!rad) return;
+    let ids;
+    if (selectedIslandId) { const isl = islands.find(i => i.id === selectedIslandId); ids = isl?.shapeIds ?? []; }
+    else if (canvas.selectedId) ids = [canvas.selectedId];
+    else return;
+    const shapes = ids.map(id => canvas.getShape(id)).filter(Boolean);
+    if (!shapes.length) return;
+    const b = boundsOfShapes(shapes);
+    const pivot = [(b.min_x + b.max_x) / 2, (b.min_z + b.max_z) / 2];
+    for (const s of shapes) canvas.updateShape(rotateShape(s, rad, pivot));
+    recompute();
+    markDirty();
   }
 
   // Recompute islands from the canvas's current shapes and push results to the canvas + panel.
@@ -389,6 +407,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     // Panel-driven edits.
     selectShape(id)    { selectShape(id ?? null); },
     selectIsland(id)   { selectIsland(id ?? null); },
+    rotateSelected(deg){ rotateSelected(deg); },
     deleteShape(id)    { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     promoteShape(id)   { promoteShape(id ?? canvas.selectedId); },
     getLibrary()       { return libraryMeta(); },

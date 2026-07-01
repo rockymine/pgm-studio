@@ -25,15 +25,6 @@ parked sketch slices (`S2`, `S9b`, `S10`) and the sketch world-export (`P9`) liv
   Collapse both behind `<details>` accordions (Library default-collapsed once the map has shapes), or move
   the Library to a toolbar popover (it's a "reach for a primitive" action, not persistent state). Depends on
   `S11`. (`docs/sketch-tool-ux-review.md` P0#1; `docs/contracts/sketch-creation-flow.md` follow-on.)
-- [ ] **S13 — Rotate a selected island on the canvas** (depends on `S20`). A Figma-style rotate affordance at the
-  island bbox's **corner anchors** (from `S20`): hovering just outside a corner shows the rotate cursor; drag sets
-  the angle from the **bbox centre** to the cursor — **distance-independent**, relative to grab, and **unwrapped**
-  so you can spin past 360° (Shift-snap to 15°) — plus a numeric angle field in the inspector. A new
-  `rotateShape(shape, angleRad, pivot)` in `geometry/shape.js` **bakes** the rotation into geometry: polygon/lasso
-  rotate vertices + Bézier controls, circle rotates its centre, a rectangle promotes via `rectToPolygon` first
-  (carrying its height fields). The bridge snapshots the island's members at grab and re-applies the absolute angle
-  about the frozen bbox centre each move; islands / mirror / rasterizer / iso recompute. (`geometry/shape.js` +
-  the bridge; node-tested.)
 - [ ] **S14 — Split-polygon tool.** A tool to cut one polygon shape into two along a drawn line / two points —
   the sketch-side analogue of the decompose cutter (`geometry/decompose-cut.js`) but producing two `SketchShape`s
   in place. Each half keeps the source's operation / override / height fields; islands recompute. Pure geometry in

@@ -15,8 +15,12 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
-import { containsPoint, toBounds, translateShape, boundsOfShapes } from "../geometry/shape.js";
+import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
+
+// A rotate cursor (circular arrow, white halo so it reads on both themes) for the island corner zones (S13).
+const ROTATE_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g><g stroke='black' stroke-width='2'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g></svg>";
+const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ROTATE_ICON)}") 13 13, crosshair`;
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
@@ -63,6 +67,7 @@ export class SketchCanvas extends CanvasBase {
   #placeSpecs = null;  // library item being placed: shape specs centred at origin, awaiting a drop point
   #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
   #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole island (S20)
+  #rotateState = null;     // { snapshots, pivot, lastAngle, total } while rotating a selected island (S13)
   #snapEnabled = true;
 
   // viewport layers
@@ -259,11 +264,13 @@ export class SketchCanvas extends CanvasBase {
   _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
 
   _onResizeMove(e) {
+    if (this.#rotateState) { const p = this._clientToSvg(e.clientX, e.clientY); this.#rotateMove(p.x, p.y, e.shiftKey); return true; }
     if (!this.#edit) return false;
     const p = this._clientToSvg(e.clientX, e.clientY);
     return this.#edit.onResizeMove(p.x, p.y, e.altKey);
   }
   _onResizeUp(e) {
+    if (this.#rotateState) { if (e.button !== 0) return false; this.#rotateState = null; return true; }
     const consumed = e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false;
     this.#renderGuides(null, null);   // drop any resize alignment guide
     return consumed;
@@ -409,9 +416,9 @@ export class SketchCanvas extends CanvasBase {
     if (gz !== null) layer.appendChild(svgEl("line", { x1: min_x, y1: gz, x2: max_x, y2: gz, ...attrs }));
   }
 
-  // Draw the selected island's bounding box + corner anchors (screen-space, so legible at any zoom).
-  // Inert in S20 — the corners get rotate zones in S13, the edges get scale in S21. Re-rendered on
-  // selection changes and every viewport change.
+  // Draw the selected island's bounding box + corner anchors (screen-space, so legible at any zoom), plus
+  // the four rotate zones just OUTSIDE the corners (S13 — hover shows the rotate cursor, drag rotates the
+  // island). The edges are reserved for scale (S21). Re-rendered on selection + every viewport change.
   #renderIslandChrome() {
     const layer = this.#islandChromeLayer;
     if (!layer) return;
@@ -429,13 +436,57 @@ export class SketchCanvas extends CanvasBase {
       x: l, y: t, width: r - l, height: bot - t,
       fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none",
     }));
-    const HALF = 4;
-    for (const [ax, ay] of [[l, t], [r, t], [r, bot], [l, bot]]) {
+    const HALF = 4, OUT = 9, ZONE = 9;   // anchor half-size · rotate-zone offset outward · rotate-zone half
+    const corners = [[l, t, -1, -1], [r, t, 1, -1], [r, bot, 1, 1], [l, bot, -1, 1]];
+    for (const [ax, ay, sx, sy] of corners) {
+      // rotate zone just outside the corner (transparent fill so it still hit-tests)
+      const zone = svgEl("rect", {
+        x: ax + sx * OUT - ZONE, y: ay + sy * OUT - ZONE, width: ZONE * 2, height: ZONE * 2, fill: "transparent",
+      });
+      zone.style.cursor = ROTATE_CURSOR;
+      zone.addEventListener("mousedown", (e) => this.#startRotate(e));
+      layer.appendChild(zone);
+      // corner anchor marker on top (inert)
       layer.appendChild(svgEl("rect", {
         x: ax - HALF, y: ay - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
         fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", "pointer-events": "none",
       }));
     }
+  }
+
+  // Begin rotating the selected island (Figma model): freeze the pivot = its bbox centre + snapshot every
+  // member, then #rotateMove re-applies the accumulated angle from those snapshots each drag step.
+  #startRotate(e) {
+    if (e.button !== 0 || !this.#selectedIslandId) return;
+    e.stopPropagation();
+    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
+    const members = (isl?.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
+    const b = boundsOfShapes(members);
+    if (!b) return;
+    const pivot = [(b.min_x + b.max_x) / 2, (b.min_z + b.max_z) / 2];
+    const w = this._clientToSvg(e.clientX, e.clientY);
+    this.#rotateState = {
+      snapshots: new Map(members.map(s => [s.id, structuredClone(s)])),
+      pivot, lastAngle: Math.atan2(w.y - pivot[1], w.x - pivot[0]), total: 0,
+    };
+  }
+
+  // Rotate the island to the accumulated angle from the cursor's swept angle about the pivot (distance-
+  // independent, unwrapped across ±π so you can spin past 360°). Shift snaps the total to 15°.
+  #rotateMove(wx, wz, shift) {
+    const st = this.#rotateState;
+    if (!st) return;
+    const cur = Math.atan2(wz - st.pivot[1], wx - st.pivot[0]);
+    let d = cur - st.lastAngle;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    st.total += d;
+    st.lastAngle = cur;
+    let angle = st.total;
+    if (shift) { const step = Math.PI / 12; angle = Math.round(angle / step) * step; }   // 15°
+    for (const [, snap] of st.snapshots) this.updateShape(rotateShape(snap, angle, st.pivot));
+    this.#renderIslandChrome();
+    this.#callbacks.onShapeUpdated?.();
   }
 
   // ── private ────────────────────────────────────────────────────────────────────
@@ -468,7 +519,7 @@ export class SketchCanvas extends CanvasBase {
                      this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer, this.#guideLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
-    this.#islandChromeLayer = svgEl("g", { "pointer-events": "none" });   // island bbox, below the handles
+    this.#islandChromeLayer = svgEl("g");   // island bbox (inert) + interactive rotate zones, below the handles
     this.#handlesLayer      = svgEl("g");
     this.#centerLayer       = svgEl("g", { "pointer-events": "none" });
     this.#drawHandlesLayer  = svgEl("g", { "pointer-events": "none" });

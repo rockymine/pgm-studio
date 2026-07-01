@@ -41,6 +41,10 @@
           <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" />
         </div>
         <p class="section-desc">Floor lifts the base; the top sits at floor + height.</p>
+        <div class="field">
+          <label class="field-label">Rotate (°)</label>
+          <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
+        </div>
         @if (Shape.Type == "polygon" || Shape.Type == "lasso")
         {
           @if (SelectedVertexIdx >= 0)
@@ -77,6 +81,10 @@
         <button class="action-btn action-btn--full" @onclick="() => OnToggleMirrors.InvokeAsync(Island.Id)">
           @(Island.Mirrors ? "Exclude from mirror" : "Include in mirror")
         </button>
+        <div class="field">
+          <label class="field-label">Rotate (°)</label>
+          <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
+        </div>
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Shapes</h2></div>
         @foreach (var s in IslandShapes())

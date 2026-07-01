@@ -2,8 +2,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, boundsOfShapes, translateShape, BEZIER_SAMPLES }
+import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, boundsOfShapes, translateShape, rotateShape, BEZIER_SAMPLES }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/shape.js";
+
+const r6 = (v) => Math.round(v * 1e6) / 1e6;   // tame float noise from cos/sin
+const roundPts = (pts) => pts.map(([x, z]) => [r6(x), r6(z)]);
 
 // ── toRing ────────────────────────────────────────────────────────────────────
 test("toRing rectangle is a closed CW ring", () => {
@@ -105,6 +108,37 @@ test("translateShape carries Bézier control points with the vertices (curve doe
   assert.deepEqual(moved.controls, { "0": { out: [8, -2] }, "1": { in: [12, -6], out: [17, 0] } });
   // pure — the source's controls are untouched
   assert.deepEqual(shape.controls, { "0": { out: [3, 0] }, "1": { in: [7, -4], out: [12, 2] } });
+});
+
+// ── rotateShape ───────────────────────────────────────────────────────────────
+test("rotateShape rotates polygon vertices + Bézier controls 90° CW about a pivot", () => {
+  // 90° CW in (x, z-down): rot(x,z) = (-z, x) about origin.
+  const shape = { type: "polygon", operation: "add", vertices: [[0, 0], [2, 0], [0, 2]], controls: { "1": { out: [3, 0] } } };
+  const out = rotateShape(shape, Math.PI / 2, [0, 0]);
+  assert.deepEqual(roundPts(out.vertices), [[0, 0], [0, 2], [-2, 0]]);
+  assert.deepEqual([r6(out.controls["1"].out[0]), r6(out.controls["1"].out[1])], [0, 3]);
+  assert.equal(out.operation, "add");
+});
+
+test("rotateShape orbits a circle's centre and keeps its radius", () => {
+  const out = rotateShape({ type: "circle", center_x: 2, center_z: 0, radius: 5 }, Math.PI / 2, [0, 0]);
+  assert.deepEqual([r6(out.center_x), r6(out.center_z)], [0, 2]);
+  assert.equal(out.radius, 5);
+});
+
+test("rotateShape promotes a rectangle to a polygon, carrying its height fields", () => {
+  const out = rotateShape({ type: "rectangle", id: "r", operation: "add", min_x: 0, min_z: 0, max_x: 4, max_z: 2, base_height: 12, floor: 3 }, Math.PI / 2, [0, 0]);
+  assert.equal(out.type, "polygon");
+  assert.equal(out.base_height, 12);
+  assert.equal(out.floor, 3);
+  assert.equal(out.vertices.length, 4);
+});
+
+test("rotateShape is pure (source vertices/controls untouched)", () => {
+  const shape = { type: "polygon", vertices: [[1, 1]], controls: { "0": { out: [2, 2] } } };
+  rotateShape(shape, Math.PI / 3, [0, 0]);
+  assert.deepEqual(shape.vertices, [[1, 1]]);
+  assert.deepEqual(shape.controls, { "0": { out: [2, 2] } });
 });
 
 // ── boundsOfShapes ────────────────────────────────────────────────────────────

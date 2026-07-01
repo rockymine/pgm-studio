@@ -121,6 +121,42 @@ function translateControls(controls, dx, dz) {
   return out;
 }
 
+/**
+ * Rotate a shape by `angleRad` about `pivot` `[px,pz]`, **baking** the rotation into the geometry (there is
+ * no stored angle — islands/mirror/rasterizer just see the moved coords). Positive angle turns clockwise on
+ * the canvas (x right, z down). A **rectangle** can't hold a non-axis angle, so it's promoted via
+ * `rectToPolygon` first (which carries its height fields); a **circle** keeps its radius and only its centre
+ * orbits; **polygon/lasso** rotate their vertices + Bézier control handles. Pure — id / operation / override /
+ * base_height / floor / anchor_heights ride through untouched (height is X/Z-invariant).
+ */
+export function rotateShape(shape, angleRad, pivot) {
+  const [px, pz] = pivot;
+  const cos = Math.cos(angleRad), sin = Math.sin(angleRad);
+  const rot = (x, z) => [px + (x - px) * cos - (z - pz) * sin, pz + (x - px) * sin + (z - pz) * cos];
+  if (shape.type === "circle") {
+    const [cx, cz] = rot(shape.center_x, shape.center_z);
+    return { ...shape, center_x: cx, center_z: cz };
+  }
+  let s = shape;
+  if (s.type === "rectangle") s = rectToPolygon(s);   // one-way promote (an AABB can't hold a free angle)
+  if (!s.vertices) return { ...s };
+  const moved = { ...s, vertices: s.vertices.map(([x, z]) => rot(x, z)) };
+  if (s.controls) moved.controls = rotateControls(s.controls, rot);
+  return moved;
+}
+
+/** Rotate a Bézier `controls` dict's absolute in/out points with `rot` (a `(x,z) => [x,z]` transform). */
+function rotateControls(controls, rot) {
+  const out = {};
+  for (const [k, c] of Object.entries(controls)) {
+    const nc = {};
+    if (c.in)  nc.in  = rot(c.in[0],  c.in[1]);
+    if (c.out) nc.out = rot(c.out[0], c.out[1]);
+    out[k] = nc;
+  }
+  return out;
+}
+
 /** Approximate a circle as a closed polygon ring, vertices rounded to the nearest block. */
 export function circleToRing(cx, cz, radius, nPoints = CIRCLE_POINTS) {
   const pts = [];
