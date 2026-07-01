@@ -157,6 +157,43 @@ function rotateControls(controls, rot) {
   return out;
 }
 
+/**
+ * Scale a shape by (sx, sz) about `anchor` `[ax,az]`, **baking** into geometry. Axis-aligned, so a
+ * **rectangle stays a rectangle** (min/max scaled + normalised — no promotion needed, unlike rotation);
+ * a **circle** keeps its round shape (centre scaled about the anchor, radius by the geometric mean of
+ * |sx|·|sz| — there is no ellipse type); **polygon/lasso** scale their vertices + Bézier controls. Pure —
+ * id / operation / override / base_height / floor / anchor_heights ride through untouched.
+ */
+export function scaleShape(shape, sx, sz, anchor) {
+  const [ax, az] = anchor;
+  const sc = (x, z) => [ax + (x - ax) * sx, az + (z - az) * sz];
+  if (shape.type === "rectangle") {
+    const [x0, z0] = sc(shape.min_x, shape.min_z);
+    const [x1, z1] = sc(shape.max_x, shape.max_z);
+    return { ...shape, min_x: Math.min(x0, x1), max_x: Math.max(x0, x1), min_z: Math.min(z0, z1), max_z: Math.max(z0, z1) };
+  }
+  if (shape.type === "circle") {
+    const [cx, cz] = sc(shape.center_x, shape.center_z);
+    return { ...shape, center_x: cx, center_z: cz, radius: shape.radius * Math.sqrt(Math.abs(sx * sz)) };
+  }
+  if (!shape.vertices) return { ...shape };
+  const moved = { ...shape, vertices: shape.vertices.map(([x, z]) => sc(x, z)) };
+  if (shape.controls) moved.controls = scaleControls(shape.controls, sc);
+  return moved;
+}
+
+/** Scale a Bézier `controls` dict's absolute in/out points with `sc` (a `(x,z) => [x,z]` transform). */
+function scaleControls(controls, sc) {
+  const out = {};
+  for (const [k, c] of Object.entries(controls)) {
+    const nc = {};
+    if (c.in)  nc.in  = sc(c.in[0],  c.in[1]);
+    if (c.out) nc.out = sc(c.out[0], c.out[1]);
+    out[k] = nc;
+  }
+  return out;
+}
+
 /** Approximate a circle as a closed polygon ring, vertices rounded to the nearest block. */
 export function circleToRing(cx, cz, radius, nPoints = CIRCLE_POINTS) {
   const pts = [];

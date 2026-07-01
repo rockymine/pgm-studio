@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, boundsOfShapes, translateShape, rotateShape, BEZIER_SAMPLES }
+import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, boundsOfShapes, translateShape, rotateShape, scaleShape, BEZIER_SAMPLES }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/shape.js";
 
 const r6 = (v) => Math.round(v * 1e6) / 1e6;   // tame float noise from cos/sin
@@ -139,6 +139,33 @@ test("rotateShape is pure (source vertices/controls untouched)", () => {
   rotateShape(shape, Math.PI / 3, [0, 0]);
   assert.deepEqual(shape.vertices, [[1, 1]]);
   assert.deepEqual(shape.controls, { "0": { out: [2, 2] } });
+});
+
+// ── scaleShape ────────────────────────────────────────────────────────────────
+test("scaleShape scales polygon vertices + Bézier controls about an anchor", () => {
+  const shape = { type: "polygon", operation: "add", vertices: [[0, 0], [2, 0], [0, 2]], controls: { "1": { out: [3, 0] } } };
+  const out = scaleShape(shape, 2, 3, [0, 0]);
+  assert.deepEqual(out.vertices, [[0, 0], [4, 0], [0, 6]]);
+  assert.deepEqual(out.controls["1"].out, [6, 0]);
+});
+
+test("scaleShape keeps a rectangle axis-aligned (min/max scaled + normalised)", () => {
+  const out = scaleShape({ type: "rectangle", min_x: 0, min_z: 0, max_x: 4, max_z: 2 }, 2, 1, [0, 0]);
+  assert.deepEqual([out.min_x, out.min_z, out.max_x, out.max_z], [0, 0, 8, 2]);
+  assert.equal(out.type, "rectangle");
+});
+
+test("scaleShape keeps a circle round — centre moves, radius by the geometric mean", () => {
+  const out = scaleShape({ type: "circle", center_x: 2, center_z: 0, radius: 5 }, 2, 2, [0, 0]);
+  assert.deepEqual([out.center_x, out.center_z], [4, 0]);
+  assert.equal(out.radius, 10);   // 5 · sqrt(2·2)
+});
+
+test("scaleShape is pure (source untouched)", () => {
+  const shape = { type: "polygon", vertices: [[1, 1]], controls: { "0": { in: [2, 2] } } };
+  scaleShape(shape, 2, 2, [0, 0]);
+  assert.deepEqual(shape.vertices, [[1, 1]]);
+  assert.deepEqual(shape.controls, { "0": { in: [2, 2] } });
 });
 
 // ── boundsOfShapes ────────────────────────────────────────────────────────────

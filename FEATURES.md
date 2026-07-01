@@ -622,6 +622,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a circle's centre orbits (radius kept), a rectangle promotes via `rectToPolygon` first (carrying its height
   fields); islands / mirror / rasterizer / iso recompute from the moved coords. (`geometry/shape.js`
   `rotateShape` + `sketch-canvas.js` rotate handle + `sketch-bridge.js` `rotateSelected`; node-tested; S13)
+- **Squash / scale an island via the bbox anchors** — a selected island's bbox gets **8 scale handles**
+  (4 corners + 4 edge midpoints): an **edge** stretches/squashes along one axis, a **corner** scales both,
+  anchored on the opposite edge/corner — **Shift** locks a corner to a uniform scale, **Alt** scales about
+  the centre; clamped so an island can't collapse or flip. Shown for multi-shape islands **and** a single
+  polygon/lasso/circle (a lone rectangle already squashes via its own 8-handle resize). Pure `scaleShape`
+  bakes it in: a rectangle stays axis-aligned (min/max scaled), a circle stays round (centre scaled, radius
+  by the geometric mean — no ellipse type), polygon/lasso scale vertices + Bézier controls; islands / mirror
+  / rasterizer recompute. (`geometry/shape.js` `scaleShape` + `sketch-canvas.js` scale handles; node-tested; S21)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

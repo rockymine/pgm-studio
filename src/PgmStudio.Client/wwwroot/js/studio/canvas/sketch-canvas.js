@@ -15,8 +15,22 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
-import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape } from "../geometry/shape.js";
+import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape, scaleShape } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
+
+// Island scale handles (S21): normalized bbox position (0=min · 0.5=mid · 1=max) + which axes each drives +
+// its cursor. Corners scale both axes, edge midpoints one. Anchored on the opposite corner/edge (or the
+// centre with Alt); Shift locks a corner to a uniform (aspect-preserving) scale.
+const SCALE_HANDLES = [
+  { nx: 0,   nz: 0,   axX: 1, axZ: 1, cur: "nwse-resize" },
+  { nx: 1,   nz: 0,   axX: 1, axZ: 1, cur: "nesw-resize" },
+  { nx: 1,   nz: 1,   axX: 1, axZ: 1, cur: "nwse-resize" },
+  { nx: 0,   nz: 1,   axX: 1, axZ: 1, cur: "nesw-resize" },
+  { nx: 0.5, nz: 0,   axX: 0, axZ: 1, cur: "ns-resize" },
+  { nx: 1,   nz: 0.5, axX: 1, axZ: 0, cur: "ew-resize" },
+  { nx: 0.5, nz: 1,   axX: 0, axZ: 1, cur: "ns-resize" },
+  { nx: 0,   nz: 0.5, axX: 1, axZ: 0, cur: "ew-resize" },
+];
 
 // A rotate cursor (circular arrow, white halo so it reads on both themes) for the island corner zones (S13).
 const ROTATE_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g><g stroke='black' stroke-width='2'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g></svg>";
@@ -68,6 +82,7 @@ export class SketchCanvas extends CanvasBase {
   #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
   #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole island (S20)
   #rotateState = null;     // { snapshots, pivot, lastAngle, total } while rotating a selected island (S13)
+  #scaleState = null;      // { snapshots, orig, h } while scaling a selected island via a bbox handle (S21)
   #snapEnabled = true;
 
   // viewport layers
@@ -265,12 +280,14 @@ export class SketchCanvas extends CanvasBase {
 
   _onResizeMove(e) {
     if (this.#rotateState) { const p = this._clientToSvg(e.clientX, e.clientY); this.#rotateMove(p.x, p.y, e.shiftKey); return true; }
+    if (this.#scaleState)  { const p = this._clientToSvg(e.clientX, e.clientY); this.#scaleMove(p.x, p.y, e.shiftKey, e.altKey); return true; }
     if (!this.#edit) return false;
     const p = this._clientToSvg(e.clientX, e.clientY);
     return this.#edit.onResizeMove(p.x, p.y, e.altKey);
   }
   _onResizeUp(e) {
     if (this.#rotateState) { if (e.button !== 0) return false; this.#rotateState = null; return true; }
+    if (this.#scaleState)  { if (e.button !== 0) return false; this.#scaleState = null; return true; }
     const consumed = e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false;
     this.#renderGuides(null, null);   // drop any resize alignment guide
     return consumed;
@@ -437,21 +454,69 @@ export class SketchCanvas extends CanvasBase {
       fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none",
     }));
     const HALF = 4, OUT = 9, ZONE = 9;   // anchor half-size · rotate-zone offset outward · rotate-zone half
-    const corners = [[l, t, -1, -1], [r, t, 1, -1], [r, bot, 1, 1], [l, bot, -1, 1]];
-    for (const [ax, ay, sx, sy] of corners) {
-      // rotate zone just outside the corner (transparent fill so it still hit-tests)
-      const zone = svgEl("rect", {
-        x: ax + sx * OUT - ZONE, y: ay + sy * OUT - ZONE, width: ZONE * 2, height: ZONE * 2, fill: "transparent",
-      });
+    // Rotate zones just outside the four corners (all islands; transparent fill so they still hit-test).
+    for (const [ax, ay, sx, sy] of [[l, t, -1, -1], [r, t, 1, -1], [r, bot, 1, 1], [l, bot, -1, 1]]) {
+      const zone = svgEl("rect", { x: ax + sx * OUT - ZONE, y: ay + sy * OUT - ZONE, width: ZONE * 2, height: ZONE * 2, fill: "transparent" });
       zone.style.cursor = ROTATE_CURSOR;
       zone.addEventListener("mousedown", (e) => this.#startRotate(e));
       layer.appendChild(zone);
-      // corner anchor marker on top (inert)
-      layer.appendChild(svgEl("rect", {
-        x: ax - HALF, y: ay - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
-        fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", "pointer-events": "none",
-      }));
     }
+    // Scale handles (corner + edge, S21) show for a multi-shape island and for a single non-rectangle
+    // member (a lone rectangle already squashes via its own 8-handle resize, so it just gets inert corner
+    // markers). A single polygon/lasso keeps its vertex handles on top for point editing.
+    const soleRect = members.length === 1 && members[0]?.type === "rectangle";
+    if (!soleRect) {
+      for (const hd of SCALE_HANDLES) {
+        const hx = l + hd.nx * (r - l), hy = t + hd.nz * (bot - t);
+        const h = svgEl("rect", {
+          x: hx - HALF, y: hy - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
+          fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5",
+        });
+        h.style.cursor = hd.cur;
+        h.addEventListener("mousedown", (e) => this.#startScale(e, hd));
+        layer.appendChild(h);
+      }
+    } else {
+      for (const [ax, ay] of [[l, t], [r, t], [r, bot], [l, bot]]) {
+        layer.appendChild(svgEl("rect", {
+          x: ax - HALF, y: ay - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
+          fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", "pointer-events": "none",
+        }));
+      }
+    }
+  }
+
+  // Begin scaling the selected island via a bbox handle: freeze its original bbox + snapshot every member;
+  // #scaleMove then derives the per-axis factors from the cursor and re-applies from those snapshots.
+  #startScale(e, hd) {
+    if (e.button !== 0 || !this.#selectedIslandId) return;
+    e.stopPropagation();
+    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
+    const members = (isl?.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
+    const b = boundsOfShapes(members);
+    if (!b) return;
+    this.#scaleState = { snapshots: new Map(members.map(s => [s.id, structuredClone(s)])), orig: b, h: hd };
+  }
+
+  // Scale the island: per axis, factor = (cursor − anchor) / (originalHandle − anchor), anchored on the
+  // opposite corner/edge (or the centre with Alt). Shift locks a corner to a uniform scale. Clamped so the
+  // island can't collapse or flip (each axis stays >= 1 block).
+  #scaleMove(wx, wz, shift, alt) {
+    const st = this.#scaleState; if (!st) return;
+    const o = st.orig, h = st.h;
+    const cx = (o.min_x + o.max_x) / 2, cz = (o.min_z + o.max_z) / 2;
+    const anchorX = alt ? cx : (h.nx === 1 ? o.min_x : o.max_x);
+    const anchorZ = alt ? cz : (h.nz === 1 ? o.min_z : o.max_z);
+    const handleX = h.nx === 1 ? o.max_x : o.min_x, handleZ = h.nz === 1 ? o.max_z : o.min_z;
+    const div = (a, b) => Math.abs(b) < 1e-9 ? 1 : a / b;
+    let sx = h.axX ? div(wx - anchorX, handleX - anchorX) : 1;
+    let sz = h.axZ ? div(wz - anchorZ, handleZ - anchorZ) : 1;
+    if (shift && h.axX && h.axZ) { const s = Math.abs(sx - 1) >= Math.abs(sz - 1) ? sx : sz; sx = s; sz = s; }
+    sx = Math.max(sx, 1 / Math.max(o.max_x - o.min_x, 1));   // no collapse / flip (extent stays >= 1 block)
+    sz = Math.max(sz, 1 / Math.max(o.max_z - o.min_z, 1));
+    for (const [, snap] of st.snapshots) this.updateShape(scaleShape(snap, sx, sz, [anchorX, anchorZ]));
+    this.#renderIslandChrome();
+    this.#callbacks.onShapeUpdated?.();
   }
 
   // Begin rotating the selected island (Figma model): freeze the pivot = its bbox centre + snapshot every
