@@ -114,9 +114,11 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
 
 **Where it stands:** M0–M7 + the intent-model backend + the **Configure wizard** (`N00`–`N07` + `NVAL`)
 are landed (`FEATURES.md`) — a new map flows intent → World → Teams → Build → Wools → Review & Export → a
-validated `map.xml`. The **current focus is the Sketch-tool depth pass** (`TODO.md`, `S` tasks). Everything
-else — Configure/authoring polish (`N`), layout generation (`G`), shared editor/canvas infra (`C`/`CV`),
-backend/pipeline (`B`/`P`/`A`), and the frozen Edit editor's parked feature UIs — is in `BACKLOG.md`.
+validated `map.xml`. The **Sketch-tool depth pass has shipped** (`FEATURES.md` — island select/drag, rotate,
+scale/squash, split, selection highlight); the **current focus is generated-XML conventions** (`TODO.md`,
+`B10`/`B11`). Everything else — Configure/authoring polish (`N`), layout generation (`G`), shared editor/canvas
+infra (`C`/`CV`), the rest of backend/pipeline (`B`/`P`/`A`), parked Sketch polish (`S12`/`S16`), and the frozen
+Edit editor's parked feature UIs — is in `BACKLOG.md`.
 
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts

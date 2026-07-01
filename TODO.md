@@ -12,21 +12,44 @@ When this board drains, pull the next theme up from `BACKLOG.md`. Board rules li
 Task ids are a section letter + number (`S13`, `B10`, `G15`) — **globally unique and stable** across all
 three files. Moving a task between files never changes its id; never renumber or reuse.
 
-## Current focus — Sketch tool (S)
+## Current focus — Generated XML conventions (B)
 
-The depth pass on the shipped Sketch tool (`/maps/{slug}/sketch`): rotation, polygon split, snapping +
-ruler feedback, the Floor/Height redefinition, and the sidebar tidy — all additive to
-`SketchShape`/`SketchLayout`/`SketchRasterizer` and their JS twins. Full design — data-model diffs,
-rasterizer/artifact changes, open decisions — in `docs/contracts/sketch-tool-improvements.md`. The
-parked sketch slices (`S2`, `S9b`, `S10`) and the sketch world-export (`P9`) live in `BACKLOG.md`.
+Bring the generated `map.xml` in line with the corpus / `docs/template.xml` conventions — team-id naming
+and indentation — so exported maps read like real PGM maps. Both are small, well-scoped backend changes
+with one dependent consumer to retune. The Sketch-tool depth pass has shipped (`FEATURES.md`); its parked
+polish (`S12`, `S16`) and the long backend/authoring/generation tail live in `BACKLOG.md`.
 
-- [ ] **S12 — Finish P0#1: pin the Islands tree to the top of the sketch sidebar.** After `S11` removes
-  Setup, the residual weight above **Islands** is the **Layers** panel + the 12-tile **Library** palette.
-  Collapse both behind `<details>` accordions (Library default-collapsed once the map has shapes), or move
-  the Library to a toolbar popover (it's a "reach for a primitive" action, not persistent state). Depends on
-  `S11`. (`docs/sketch-tool-ux-review.md` P0#1; `docs/contracts/sketch-creation-flow.md` follow-on.)
-- [ ] **S16 — Resize library primitives on placement.** Library primitives (n-gons, polyominoes, composites)
-  instantiate at a fixed default cell size (`geometry/shape-library.js` `instantiate`) and can't be resized — and
-  since they come in as polygons they lack the rectangle's 8-handle resize. Add a scale affordance: drag-to-size
-  during placement and/or a uniform resize handle on a placed polyomino group. Relates to `S10` (the parked
-  polygon resize-handles decision) and `S8` (the library). Needed for the polyomino-based generation (`G15`).
+- [ ] **B10 — Generated team ids need the `-team` suffix.** Team ids are emitted **bare** (`red`, `blue`) from
+  the colour (`TeamsPhase.razor.cs:101,109` and `SymmetryExpander.cs:67`, both `color.Replace(' ','-')`), but the
+  corpus/template convention (`docs/template.xml`) is `red-team` / `blue-team`. The plumbing already supports it —
+  `IntentNaming.Slug()` strips `-team`, so the derived ids stay colour-based (`only-red`, `red-spawn-point`,
+  `reds-woolrooms`, `…-red-monument`). So just append `-team` at the two derivation sites. Coordinate with `N09`
+  (its colour-change re-derivation must produce the suffixed id too) and reuse the same collision guard.
+- [ ] **B11 — XML indent should be 4 spaces (not tabs / not 2-space).** `XmlWriter.ToXml`'s `root.ToString()`
+  (`XmlWriter.cs:20`) emits `XElement`'s default 2-space indent; `docs/template.xml` is **4-space**. Emit 4-space
+  indentation (explicit `XmlWriterSettings.IndentChars = "    "`, or post-process), preserving the existing
+  self-close-space fixup + trailing newline. Update the dependent consumer: `ReviewXmlPhase.razor.cs:67` segments
+  the document by a `^  </tag>` (two-space) match — retune it to the new indent.
+- [ ] **B13 — Drop the `<?xml?>` declaration.** `XmlWriter.ToXml` prepends `<?xml version="1.0"?>\n`
+  (`XmlWriter.cs:21`); `docs/template.xml` (and real PGM maps) start straight at `<map proto="…">` with no
+  prolog. Remove the declaration (keep the trailing newline + the self-close fixup).
+- [ ] **B14 — Spawn protection: apply a protection kit in-spawn + reset it on leave.** The generated spawn
+  wiring has the enter block (`enter=only-<enemy>`) + edit protection, but not the kit apply/reset the template
+  uses — a resistance/protection kit while in the spawn, and a `reset-resistance-kit` (a `force` kit) applied on
+  **leave** via `<apply kit="reset-resistance-kit" region="not-spawns"/>` (`docs/template.xml` L66 + L176). Emit
+  the reset kit + the `not-spawns` apply (and the in-spawn protection kit) in the generator (`TeamsGenerator`).
+- [ ] **B15 — Emit `<void/>` inline without an id.** The generator gives the void filter an id even when it's
+  used inline; `docs/template.xml` uses a bare `<void/>` (L88/91). Drop the id where the void filter isn't
+  referenced by id (inline inside a build-region `<all>` / negative).
+- [ ] **B16 — Sort region ids by role, not just geometry type.** `<regions>` is ordered by type (primitives →
+  compounds → `<apply>` last), but within a type the semantic roles interleave — `*-point` (spawn points) mix
+  with `*-spawn` (spawn regions). Add a secondary sort by role/id so spawn points, spawn regions, wool spawns,
+  monuments, and rooms group together. (`XmlWriter` region ordering.)
+- [ ] **B17 — `wood` + `stained clay` belong in `<itemkeep>`, not `<itemremove>`.** `CtwStandards` puts the
+  kit's build blocks in `ItemRemove` (`CtwStandards.cs:77`, `armor + blocks`), but `docs/template.xml` keeps them
+  in `<itemkeep>` (L210–211) — otherwise the `<block-drops>` `chance="0"` rule doesn't suppress farming as
+  intended. Move the build blocks to `ItemKeep`; keep armor (+ the terrain drops) in `ItemRemove`.
+- [ ] **B18 — Fix kit item slot placement.** The generated `spawn-kit` puts blocks / tools / water bucket /
+  golden apple in the wrong slots. Match `docs/template.xml` (L41–57): tools in slots 0–3 (sword / bow / pickaxe
+  / axe), blocks in 4–6 (wood / stained clay / vine), golden apple slot 8, utility (arrow / shears / spade) in
+  28–30. Fix the slot assignment where the spawn kit is assembled (`TeamsGenerator`, `SpawnKitId`).

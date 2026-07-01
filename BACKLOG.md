@@ -42,7 +42,8 @@ the focus-integration polish remains.
 
 ## Sketch tool (S) — parked slices
 
-The active Sketch depth pass is in `TODO.md` (`S12`–`S14`, `S16`). These are the parked / dormant slices.
+The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
+highlight); these are the parked / dormant / deferred slices.
 
 - [~] **S2 — Sketch tool: end-to-end verification.** The tool itself is **complete and shipped**
   (`FEATURES.md`): originate → Setup → draw → live islands + mirror → Finish/rasterize, with persistence
@@ -61,6 +62,16 @@ The active Sketch depth pass is in `TODO.md` (`S12`–`S14`, `S16`). These are t
   rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
   vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
   Low priority — explicit promotion already covers the need.
+- [ ] **S12 — Pin the Islands tree to the top of the sketch sidebar (UI polish, parked).** The residual weight
+  above **Islands** is the **Layers** panel + the 12-tile **Library** palette. Collapse both behind `<details>`
+  accordions (Library default-collapsed once the map has shapes), or move the Library to a toolbar popover (it's a
+  "reach for a primitive" action, not persistent state). (`docs/sketch-tool-ux-review.md` P0#1;
+  `docs/contracts/sketch-creation-flow.md` follow-on.)
+- [ ] **S16 — Resize library primitives after placement (mostly resolved; deferred).** `S21`'s island scale
+  handles now resize a **placed** polyomino / n-gon — a single non-rectangle member gets the 8 bbox scale handles —
+  so the after-placement resize is **covered**. The only remaining slice is optional **drag-to-size during
+  placement** (`geometry/shape-library.js` `instantiate` drops at a fixed `defaultCell`). Low priority. Relates to
+  the polyomino-based generation (`G15`).
 
 ## Editor & canvas infrastructure (C / CV)
 
@@ -110,16 +121,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B10 — Generated team ids need the `-team` suffix.** Team ids are emitted **bare** (`red`, `blue`) from
-  the colour (`TeamsPhase.razor.cs:101,109` and `SymmetryExpander.cs:67`, both `color.Replace(' ','-')`), but the
-  corpus/template convention (`docs/template.xml`) is `red-team` / `blue-team`. The plumbing already supports it —
-  `IntentNaming.Slug()` strips `-team`, so the derived ids stay colour-based (`only-red`, `red-spawn-point`,
-  `reds-woolrooms`, `…-red-monument`). So just append `-team` at the two derivation sites. Coordinate with `N09`
-  (its colour-change re-derivation must produce the suffixed id too) and reuse the same collision guard.
-- [ ] **B11 — XML indent should be 4 spaces.** `XmlWriter.ToXml` relies on `XElement.ToString()`'s default
-  2-space indent (`XmlWriter.cs:14`). Emit **4-space** indentation (explicit `XmlWriterSettings.IndentChars`, or
-  post-process), preserving the existing self-close-space fixup + trailing newline. Update the dependent consumer:
-  `ReviewXmlPhase.razor.cs:67` segments the document by a `^  </tag>` (two-space) match — retune it to the new indent.
 - [ ] **B12 — README setup guide for users.** The repo README has no user-facing setup description. Write one:
   prerequisites (.NET 10 SDK pinned by `global.json`, MariaDB 10.11), DB/user provisioning (`pgm_studio`,
   `pgm`/`pgm_dev_pw`), running via `./tools/dev.sh` (:7894), and tests (`dotnet run --project tests/<Project>`, not
