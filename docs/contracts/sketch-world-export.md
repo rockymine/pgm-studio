@@ -42,26 +42,29 @@ footprint, never embedded in or floating above it.
 ## 2. Cube template (shared 8×8×8 shell)
 
 Both the **wool cage** and the **spawn cube** are a hollow **8×8×8 bedrock** shell. Layers are numbered **from
-the top** (roof = layer 1, floor = layer 8):
+the floor** (floor = layer 0, roof = layer 8). The two variants differ **only** in door count/size and
+contents (chests vs monuments) — the colour-strip size is identical:
 
-| Layer (from top) | Wool cage | Spawn cube |
+| Layer (from floor) | Wool cage | Spawn cube |
 |---|---|---|
-| 1 (roof) | bedrock, **4×4 centre hole** | bedrock, **4×4 centre hole** |
-| 2 | bedrock | bedrock |
-| 3 | **missing** (light slit around all four walls) | **missing** (light slit) |
-| 4 | bedrock | bedrock |
-| 5 | **wool** (room colour) | **stained clay** (team colour) |
-| 6 | bedrock | **stained clay** (team colour) |
+| 8 (roof) | bedrock, **4×4 centre hole** | bedrock, **4×4 centre hole** |
 | 7 | bedrock | bedrock |
-| 8 (floor) | bedrock, **2×2 centre = wool** (room colour) — wool spawn point | bedrock, **2×2 centre = wool** (team colour) |
+| 6 | **missing** (light slit around all four walls) | **missing** (light slit) |
+| 5 | bedrock | bedrock |
+| 4 (colour strip) | **wool** (room colour) | **stained clay** (team colour) |
+| 3 | bedrock | bedrock |
+| 2 | bedrock | bedrock |
+| 1 (doors begin) | bedrock + door opening | bedrock + door opening |
+| 0 (floor) | bedrock, **2×2 centre = wool** (room colour) — wool spawn point | bedrock, **2×2 centre = wool** (team colour) — player spawn |
 
-**Doors** (at floor level, made of **stained glass**):
-- **Wool cage:** four doors, one centred per wall, each **2 wide × 3 tall**, so players can enter from all sides.
-- **Spawn cube:** a **single 4×4 door** on one wall.
+**Doors** (begin at layer 1):
+- **Wool cage:** four doors, one centred per wall, each **2 wide × 3 tall** (layers 1–3), made of **stained
+  glass in the room's wool colour**, so players can enter from all sides.
+- **Spawn cube:** a **single 4×4 door** (layers 1–4) on one wall, **open (air)** — no glass.
 
-Colour: wool + stained clay follow the **room colour** (wool cage) / **team colour** (spawn cube); the
-`WoolIntent.Color` / spawn team dye slug → data nibble (0–15) via `BlockColors` (wool 35, clay 159, glass 95 all
-key off the same data value).
+Colour: the layer-4 strip + the 2×2 floor wool follow the **room colour** (wool cage: wool, **no stained clay**)
+/ **team colour** (spawn cube: clay strip, wool floor). Dye slug → data nibble (0–15) via `BlockColors`
+(wool 35, clay 159, glass 95 all key off the same data value).
 
 ### 2a. Wool-cage chests
 
@@ -76,9 +79,10 @@ Each of the **4 interior corners** holds **2 chests stacked** (bottom + top). A 
 
 ## 3. Wool monuments (inside the spawn cube)
 
-Monuments are **part of the spawn cube**, placed in its **corners**. The pedestal is **elevated one block** off
-the cube floor (it is *not* the floor) so a **sign** can be mounted against the pedestal side. The wool is placed
-in the air cell above the pedestal.
+Monuments are **part of the spawn cube**, placed in its **corners**. Geometry (bottom-up): a **bedrock
+pedestal elevated one block** off the cube floor (it is *not* the floor) → an **air placement cell** above it
+(the wool goes here) → a **stained-glass cap in that monument's wool colour** above that. A **sign** is mounted
+against the pedestal side.
 
 **Placement by wool count** (the capturing team's monuments, `MonumentIntent.Team`):
 
@@ -107,15 +111,13 @@ world's date field). Crib the exact tag set from a real 1.8-era CTW `level.dat` 
 
 ---
 
-## 5. Open questions (to resolve before/while building)
+## 5. Resolved decisions
 
-- **Stained clay in the wool cage.** The spec says "wool and stained clay in the room colour," but the wool-cage
-  layer table only places wool (layer 5 + floor). Does the wool cage use stained clay anywhere, or is clay
-  spawn-cube-only?
-- **Monument pedestal block.** What is the elevated pedestal made of (bedrock / team-colour clay / wool)? Is
-  there still a stained-glass **cap** (as in the earlier canonical template), or does the in-cube monument drop
-  the cap since the wool sits in open air below the roof?
-- **Door / light-slit colour.** Are the stained-glass doors coloured (team/room) or plain? Same for whether the
-  layer-3 slit is a true gap (air) or glass.
-- **Layer-index mapping.** The "Nth from top" → y-offset mapping in §2 is derived; confirm the door height
-  (y 1–3 for the 2×3 wool door) doesn't clash with the layer-5 coloured ring.
+- **No stained clay in the wool cage** — clay is spawn-cube-only (layer-4 strip). Wool cage uses wool only.
+- **Monument** — bedrock pedestal (elevated one block) · air placement cell · **stained-glass cap in that
+  monument's wool colour** · sign against the pedestal.
+- **Doors** — wool-cage doors are **stained glass in that wool's colour**; the spawn-cube door is **open air**.
+- **Slit** — the layer-6 course is a true gap (air), not glass.
+- **Layers numbered from the floor** — floor 0 (spawn + 2×2 wool marker), doors from layer 1, colour strip at
+  layer 4, light slit at layer 6, roof hole at layer 8. Colour-strip size is identical across both variants; the
+  only differences are door count/size and chests (wool cage) vs monuments (spawn cube).

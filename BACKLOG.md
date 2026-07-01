@@ -172,8 +172,8 @@ questions) — resolve before the stamping tasks.
   floor wool, single 4×4 glass door), team-coloured, on the terrain surface at each `SpawnIntent.Point`. Stamp the
   **in-cube monuments** (§3): pedestal elevated one block in the corners, air placement cell above, sign mounted
   against the pedestal; positions derived from wool count (1–2 → door wall · 3–4 → back wall · 5+ → fill back
-  wall), **not** from a freely-authored `MonumentIntent.Location`. Sign label per §3 (`Place the` / bold colour /
-  coloured `Wool` / `here!`). **Blocked on §5 open questions** (pedestal block, cap-or-not).
+  wall), **not** from a freely-authored `MonumentIntent.Location`. Monument = bedrock pedestal · air cell ·
+  wool-colour glass cap · sign; label per §3 (`Place the` / bold colour / coloured `Wool` / `here!`).
 - [ ] **P9i — Wool-cage chest loadout.** Two stacked chests in each of the 4 interior corners (§2a), each a
   27-slot chest tile-entity: chest A = planks×16 · Speed I (3:00) potions · golden apples×16; chest B = diamond
   leggings · Power I + Infinity bows · planks×16. One 9-slot row per item type.
