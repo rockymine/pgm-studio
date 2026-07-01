@@ -13,12 +13,16 @@ public static partial class XmlWriter
     public static string ToXml(MapXml m)
     {
         var root = BuildMapElem(m);
-        // PGM convention (matches the corpus): self-close as `/>` with no leading space, and end the file
-        // with a trailing newline. .NET's XML serializer emits empty elements as `<tag … />` (a space
-        // before the slash); strip it only at element closes — always at line end, so a `" />"` inside an
-        // attribute value is left alone.
-        var body = SelfCloseSpace().Replace(root.ToString(), "/>$1");
-        return "<?xml version=\"1.0\"?>\n" + body + "\n";
+        // Serialize with the corpus/`docs/template.xml` conventions: 4-space indentation and no `<?xml?>`
+        // declaration (real PGM maps start straight at `<map>`).
+        var settings = new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, Indent = true, IndentChars = "    " };
+        var sb = new System.Text.StringBuilder();
+        using (var xw = System.Xml.XmlWriter.Create(sb, settings)) root.Save(xw);
+        // PGM convention: self-close as `/>` with no leading space, and end the file with a trailing newline.
+        // The serializer emits empty elements as `<tag … />` (a space before the slash); strip it only at
+        // element closes — always at line end, so a `" />"` inside an attribute value is left alone.
+        var body = SelfCloseSpace().Replace(sb.ToString(), "/>$1");
+        return body + "\n";
     }
 
     [GeneratedRegex(@" />(\r?\n|$)")]
@@ -303,7 +307,8 @@ public static partial class XmlWriter
         XElement? Child(string cid) => FilterChildElem(cid, filters, counts, topLevel);
 
         var e = new XElement(MapTag(f.Type));
-        if (withId && fid.Length > 0 && !IsSynthetic(fid)) e.SetAttributeValue("id", fid);
+        // A `void` filter is trivial and always inlined — `<void/>` is enough, it never needs an id (B15).
+        if (withId && fid.Length > 0 && !IsSynthetic(fid) && f.Type != "void") e.SetAttributeValue("id", fid);
 
         switch (f.Type)
         {
@@ -394,9 +399,12 @@ public static partial class XmlWriter
         }
 
         var block = new XElement("regions"); parent.Add(block);
-        // Order to match the corpus convention: regions grouped by type (primitives, then compounds),
-        // then the <apply> rules last. OrderBy is stable, so ids of the same type keep their relative order.
-        var ordered = regions.Keys.Where(topLevel.Contains).OrderBy(rid => TypeRank(regions[rid].Type));
+        // Order to match the corpus convention: regions grouped by type (primitives, then compounds), then
+        // by semantic role within a type (spawn points · spawn regions · wool spawns/rooms · monuments · build),
+        // then the <apply> rules last. OrderBy/ThenBy are stable, so same type+role keeps its relative order.
+        var ordered = regions.Keys.Where(topLevel.Contains)
+            .OrderBy(rid => TypeRank(regions[rid].Type))
+            .ThenBy(rid => RoleRank(rid));
         foreach (var rid in ordered)
             if (RegionElem(rid, regions, counts, topLevel, withId: true) is { } e)
                 block.Add(e);
@@ -412,6 +420,18 @@ public static partial class XmlWriter
         "union" => 7, "negative" => 8, "complement" => 9, "intersect" => 10, "mirror" => 11, "translate" => 12,
         _ => 20,
     };
+
+    // Secondary ordering inside <regions> (B16): group same-type regions by semantic role (from the id
+    // pattern — `red-spawn-point`, `red-spawn`, `red-wool-spawn`, `red-wool`, `red-blue-team-monument`, …) so
+    // the roles cluster instead of interleaving. Most-specific patterns first.
+    private static int RoleRank(string id) =>
+        id.Contains("spawn-point") ? 0 :
+        id.Contains("wool-spawn")  ? 1 :
+        id.Contains("spawn")       ? 2 :   // spawn regions / protection (incl observer-spawn, *-spawn-N)
+        id.Contains("monument")    ? 3 :
+        id.Contains("wool")        ? 4 :   // wool rooms / unions
+        (id.Contains("build") || id.Contains("bridge") || id.Contains("area") || id.Contains("hole")) ? 5 :
+        6;
 
     private static XElement RegionChildElem(string childId, Dictionary<string, Region> regions, Dictionary<string, int> counts, HashSet<string> topLevel)
     {

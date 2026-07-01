@@ -65,7 +65,7 @@ public partial class ReviewXmlPhase : IDisposable
 
     // ── segmentation ──
     // Slice the pretty-printed document into its top-level containers by tag (the writer indents top-level
-    // children two spaces, so a `^  </tag>` uniquely closes the block). Apply rules live inside <regions>,
+    // children four spaces, so a `^    </tag>` uniquely closes the block). Apply rules live inside <regions>,
     // so they're pulled out on their own.
     private static List<Container> BuildContainers(string doc)
     {
@@ -78,9 +78,9 @@ public partial class ReviewXmlPhase : IDisposable
         Add("teams", "Teams", "users", "teams", @"<team\b");
         Add("spawns", "Spawns", "dot", "spawns", @"<spawn\b|<default\b");
         Add("wools", "Wools", "square", "wools", @"<wool\b");
-        Add("filters", "Filters", "filter", "filters", @"(?m)^    <[a-zA-Z]");   // direct children
-        Add("regions", "Regions", "shapes", "regions", "id=\"");                  // total regions
-        var applies = Regex.Matches(doc, @"(?m)^    <apply\b[^>]*?/>").Select(m => m.Value).ToList();
+        Add("filters", "Filters", "filter", "filters", @"(?m)^        <[a-zA-Z]");   // direct children (8-space)
+        Add("regions", "Regions", "shapes", "regions", "id=\"");                    // total regions
+        var applies = Regex.Matches(doc, @"(?m)^        <apply\b[^>]*?/>").Select(m => m.Value).ToList();
         if (applies.Count > 0)
             list.Add(new("apply", "Apply rules", "zap", string.Join("\n", applies), applies.Count));
         return list;
@@ -88,7 +88,7 @@ public partial class ReviewXmlPhase : IDisposable
 
     private static string? Block(string doc, string tag)
     {
-        var m = Regex.Match(doc, $@"(?ms)^  <{tag}\b(?:[^>]*/>|.*?^  </{tag}>)");
+        var m = Regex.Match(doc, $@"(?ms)^    <{tag}\b(?:[^>]*/>|.*?^    </{tag}>)");
         return m.Success ? m.Value : null;
     }
 

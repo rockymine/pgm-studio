@@ -404,6 +404,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (primitives → compounds → `<apply>` applicators last), and a
   uuid → username **comment** under each `<author>`/`<contributor>` (`<!-- name -->` on its own line at the
   same indent, from the resolved `Author.Name`; skipped when unresolved). (`CtwStandards`, `XmlWriter`, `MapXmlEndpoint`)
+- **XML serializer conventions (`docs/template.xml`-faithful).** `XmlWriter.ToXml` serializes with **4-space
+  indentation** (`XmlWriterSettings.IndentChars`, not the 2-space default / tabs) and **no `<?xml?>`
+  declaration** (`OmitXmlDeclaration` — real PGM maps start at `<map>`); the `<void/>` filter is emitted
+  **bare, without an id** (trivial + always inlined); and `<regions>` are now sub-ordered **by semantic role
+  within each geometry type** (spawn points · wool spawns · spawn regions · monuments · build), so `*-point`
+  and `*-spawn` ids no longer interleave. The `ReviewXmlPhase` container segmenter was retuned to the 4-space
+  indent. (`XmlWriter` + `ReviewXmlPhase`; B11/B13/B15/B16)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
   inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
   editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)

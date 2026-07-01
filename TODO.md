@@ -25,26 +25,11 @@ polish (`S12`, `S16`) and the long backend/authoring/generation tail live in `BA
   `IntentNaming.Slug()` strips `-team`, so the derived ids stay colour-based (`only-red`, `red-spawn-point`,
   `reds-woolrooms`, `…-red-monument`). So just append `-team` at the two derivation sites. Coordinate with `N09`
   (its colour-change re-derivation must produce the suffixed id too) and reuse the same collision guard.
-- [ ] **B11 — XML indent should be 4 spaces (not tabs / not 2-space).** `XmlWriter.ToXml`'s `root.ToString()`
-  (`XmlWriter.cs:20`) emits `XElement`'s default 2-space indent; `docs/template.xml` is **4-space**. Emit 4-space
-  indentation (explicit `XmlWriterSettings.IndentChars = "    "`, or post-process), preserving the existing
-  self-close-space fixup + trailing newline. Update the dependent consumer: `ReviewXmlPhase.razor.cs:67` segments
-  the document by a `^  </tag>` (two-space) match — retune it to the new indent.
-- [ ] **B13 — Drop the `<?xml?>` declaration.** `XmlWriter.ToXml` prepends `<?xml version="1.0"?>\n`
-  (`XmlWriter.cs:21`); `docs/template.xml` (and real PGM maps) start straight at `<map proto="…">` with no
-  prolog. Remove the declaration (keep the trailing newline + the self-close fixup).
 - [ ] **B14 — Spawn protection: apply a protection kit in-spawn + reset it on leave.** The generated spawn
   wiring has the enter block (`enter=only-<enemy>`) + edit protection, but not the kit apply/reset the template
   uses — a resistance/protection kit while in the spawn, and a `reset-resistance-kit` (a `force` kit) applied on
   **leave** via `<apply kit="reset-resistance-kit" region="not-spawns"/>` (`docs/template.xml` L66 + L176). Emit
   the reset kit + the `not-spawns` apply (and the in-spawn protection kit) in the generator (`TeamsGenerator`).
-- [ ] **B15 — Emit `<void/>` inline without an id.** The generator gives the void filter an id even when it's
-  used inline; `docs/template.xml` uses a bare `<void/>` (L88/91). Drop the id where the void filter isn't
-  referenced by id (inline inside a build-region `<all>` / negative).
-- [ ] **B16 — Sort region ids by role, not just geometry type.** `<regions>` is ordered by type (primitives →
-  compounds → `<apply>` last), but within a type the semantic roles interleave — `*-point` (spawn points) mix
-  with `*-spawn` (spawn regions). Add a secondary sort by role/id so spawn points, spawn regions, wool spawns,
-  monuments, and rooms group together. (`XmlWriter` region ordering.)
 - [ ] **B17 — `wood` + `stained clay` belong in `<itemkeep>`, not `<itemremove>`.** `CtwStandards` puts the
   kit's build blocks in `ItemRemove` (`CtwStandards.cs:77`, `armor + blocks`), but `docs/template.xml` keeps them
   in `<itemkeep>` (L210–211) — otherwise the `<block-drops>` `chance="0"` rule doesn't suppress farming as

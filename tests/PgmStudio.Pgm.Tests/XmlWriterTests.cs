@@ -21,9 +21,10 @@ public sealed class XmlWriterTests
         };
         var xml = XmlWriter.ToXml(m);
 
-        // the comment sits on its own line under the element at the same indentation (the corpus convention)
-        await Assert.That(xml).Contains("<author uuid=\"fe3608b7-d105-4029-8800-34b3147065b6\"/>\n    <!-- rockymine -->");
-        await Assert.That(xml).Contains("<contributor uuid=\"00000000-0000-0000-0000-000000000001\"/>\n    <!-- Helper -->");
+        // the comment sits on its own line under the element at the same indentation (the corpus convention);
+        // authors/contributors nest two levels deep, so 4-space indentation puts them at 8 spaces.
+        await Assert.That(xml).Contains("<author uuid=\"fe3608b7-d105-4029-8800-34b3147065b6\"/>\n        <!-- rockymine -->");
+        await Assert.That(xml).Contains("<contributor uuid=\"00000000-0000-0000-0000-000000000001\"/>\n        <!-- Helper -->");
 
         // comments don't break the re-parse
         var reparsed = Serializer.ToDict(MapParser.ParseXmlString(xml));
