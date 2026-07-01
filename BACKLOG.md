@@ -125,15 +125,46 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   prerequisites (.NET 10 SDK pinned by `global.json`, MariaDB 10.11), DB/user provisioning (`pgm_studio`,
   `pgm`/`pgm_dev_pw`), running via `./tools/dev.sh` (:7894), and tests (`dotnet run --project tests/<Project>`, not
   `dotnet test`). Source the facts from CLAUDE.md's Environment / Tests sections.
-- [ ] **P9 — Sketch world-folder export (`.mca` + `level.dat`) — sketch-originated maps only.** Add an Anvil /
-  `level.dat` **writer** (`AnvilRegion` is read-only today; `fNbt` can write NBT, but the region header + chunk /
-  section / palette encoding + zlib + `level.dat` are net-new) that exports a map **folder** for sketch-exported
-  maps, alongside the XML. Contents: (a) the rasterized **terrain** from `SketchRasterizer` columns (`[YFloor,YTop]`
-  per cell + the surface block); (b) **structures at the authored positions** — spawn and wool-room **cages**, and
-  monument **pedestals** matching the detected pattern (bedrock block · air block for the monument cell · stained-
-  glass cap · a sign placed against the bedrock — the `MonumentSliceExtractor` geometry); (c) a `level.dat` with
-  the world spawn. **Normal Configure-imported maps export XML only** (they already ship a real world). Define the
-  cage / pedestal block templates once and place them at the intent's spawn / wool / monument coords.
+### P9 — Sketch world-folder export (`.mca` + `level.dat` bundled with the XML)
+
+Sketch-originated maps have no real voxel world (the "world" is a synthetic `layer.parquet`), so they can't
+ship a playable PGM map today. P9 synthesises a real Anvil world from the sketch columns + authored intent and
+bundles it with `map.xml`. **Delivered at the Configure export point as one ZIP: a `{slug}/` folder containing
+`map.xml`, `level.dat`, and `region/*.mca`.** **Normal Configure-imported maps export XML only** (they already
+ship a real world). Anvil format = the **1.8–1.12 numeric block format** the `AnvilRegion` reader already
+understands (matches the studio's supported range, proto ≥1.4.0 / pre-1.13). Decisions locked: **y=0 layer =
+bedrock, everything above = stone** (materials revisited later); **monuments use one fixed canonical template**;
+**cages TBD (P9g).**
+
+- [ ] **P9a — `AnvilRegionWriter` (invert `AnvilRegion`).** New writer in `PgmStudio.Minecraft` emitting the
+  numeric format `AnvilRegion.cs` reads: 1024-entry sector/location table (3-byte big-endian offset + 1-byte
+  sector count), per-chunk 4-byte length + compression byte (2=zlib) + payload, `Level.Sections` with
+  nibble-packed `Blocks`/`Data`/`Add` (index `(y<<8)|(z<<4)|x`) + `Y` tag, `Level.xPos/zPos`,
+  `TerrainPopulated`. Input = an id+data voxel volume. `fNbt` handles the NBT save. **Round-trip test:** write →
+  read back via `AnvilRegion` → assert block-equal (mirror of the reader is the spec).
+- [ ] **P9b — `level.dat` writer (greenfield).** New NBT writer (no code today) → gzipped `Data` compound:
+  `SpawnX/Y/Z` (world spawn from the observer/default spawn point), `generatorName=flat`, `LevelName={slug}`,
+  version/`DataVersion` fields matching a 1.8–1.12 world, `GameType`, `MapFeatures=0`. Source the exact tag set
+  from a 1.8-era `level.dat` sample.
+- [ ] **P9c — Terrain synthesis from sketch columns.** `SketchRasterizer.RasterizeColumns` `(X,Z,YFloor,YTop)` →
+  id+data voxel volume for P9a: **y=0 = bedrock (id 7)**, the solid `[YFloor,YTop]` span above = **stone (id 1)**.
+  Handle stacked disjoint segments per `(x,z)` column; chunk the world into 16×16 region grids. (Fill materials
+  are deliberately flat for now — a later task can add a surface palette.)
+- [ ] **P9d — Block-template library + monument stamping.** Define block templates once (bedrock 7, stone 1,
+  air 0, stained-glass 95:data, wool 35:data, sign tile-entity). Stamp the **fixed canonical monument template**
+  at each `MonumentIntent.Location`: bedrock pedestal below · air placement cell · stained-glass cap coloured
+  per wool · a label sign against the pedestal (the `MonumentSliceExtractor` geometry). Cap/sign colour from the
+  wool `Color` dye slug → glass/`data` nibble via `BlockColors`. (Sign text = TBD; cage stamping = P9g.)
+- [ ] **P9e — Full-map ZIP export at the Configure export point.** At `MapXmlEndpoint` (`GET /api/map/{slug}/xml`),
+  for **sketch-origin maps** return a ZIP of `{slug}/map.xml` + `{slug}/level.dat` + `{slug}/region/r.<x>.<z>.mca`
+  (wiring together P9a–P9d after the existing playability/traversability gate). Configure-imported maps keep the
+  plain-XML response. Wire the download UI to request the bundle for sketch maps.
+- [ ] **P9f — Sketch-origin gate + export UX.** Branch zip-vs-xml on sketch origin (presence of the
+  `sketch_layout_json` artifact — the durable "was a sketch" signal, since `MapStage.Sketch` advances to
+  `configure` on finish); surface build/export errors; keep the branch downstream of the traversability 409.
+- [ ] **P9g — Spawn / wool-room cage design + stamping (pending author input).** Cage block, dimensions, height,
+  and whether spawns (single points) get cages vs wool `Room` rects — **design TBD, author to specify.** Once
+  decided, stamp at `SpawnIntent.Point` / wool `Room` rects using the P9d template library.
 - [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
   parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
   **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
