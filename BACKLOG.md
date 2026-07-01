@@ -132,9 +132,12 @@ ship a playable PGM map today. P9 synthesises a real Anvil world from the sketch
 bundles it with `map.xml`. **Delivered at the Configure export point as one ZIP: a `{slug}/` folder containing
 `map.xml`, `level.dat`, and `region/*.mca`.** **Normal Configure-imported maps export XML only** (they already
 ship a real world). Anvil format = the **1.8–1.12 numeric block format** the `AnvilRegion` reader already
-understands (matches the studio's supported range, proto ≥1.4.0 / pre-1.13). Decisions locked: **y=0 layer =
-bedrock, everything above = stone** (materials revisited later); **monuments use one fixed canonical template**;
-**cages TBD (P9g).**
+understands (matches the studio's supported range, proto ≥1.4.0 / pre-1.13).
+
+**Full spec: `docs/contracts/sketch-world-export.md`** — terrain (bedrock floor / stone fill), the shared
+8×8×8 bedrock cube shell (light slit, roof hole, coloured layers, glass doors), wool-cage chest loadout,
+in-cube monument placement + sign text, and `level.dat`. A few gaps are flagged in that doc's §5 (open
+questions) — resolve before the stamping tasks.
 
 - [ ] **P9a — `AnvilRegionWriter` (invert `AnvilRegion`).** New writer in `PgmStudio.Minecraft` emitting the
   numeric format `AnvilRegion.cs` reads: 1024-entry sector/location table (3-byte big-endian offset + 1-byte
@@ -150,21 +153,30 @@ bedrock, everything above = stone** (materials revisited later); **monuments use
   id+data voxel volume for P9a: **y=0 = bedrock (id 7)**, the solid `[YFloor,YTop]` span above = **stone (id 1)**.
   Handle stacked disjoint segments per `(x,z)` column; chunk the world into 16×16 region grids. (Fill materials
   are deliberately flat for now — a later task can add a surface palette.)
-- [ ] **P9d — Block-template library + monument stamping.** Define block templates once (bedrock 7, stone 1,
-  air 0, stained-glass 95:data, wool 35:data, sign tile-entity). Stamp the **fixed canonical monument template**
-  at each `MonumentIntent.Location`: bedrock pedestal below · air placement cell · stained-glass cap coloured
-  per wool · a label sign against the pedestal (the `MonumentSliceExtractor` geometry). Cap/sign colour from the
-  wool `Color` dye slug → glass/`data` nibble via `BlockColors`. (Sign text = TBD; cage stamping = P9g.)
+- [ ] **P9d — Block-template + cube-shell library.** Define block templates once (bedrock 7, stone 1, air 0,
+  stained-glass 95:data, wool 35:data, stained-clay 159:data, sign + chest tile-entities). Build the shared
+  **8×8×8 hollow-bedrock cube emitter** parametrised by colour + variant (roof 4×4 hole, layer-3 light slit,
+  coloured layer(s), 2×2 floor wool, glass doors) per `docs/contracts/sketch-world-export.md` §2. Colours from a
+  dye slug → data nibble (0–15) via `BlockColors`. Consumed by P9g (wool cage) and P9h (spawn cube).
 - [ ] **P9e — Full-map ZIP export at the Configure export point.** At `MapXmlEndpoint` (`GET /api/map/{slug}/xml`),
   for **sketch-origin maps** return a ZIP of `{slug}/map.xml` + `{slug}/level.dat` + `{slug}/region/r.<x>.<z>.mca`
-  (wiring together P9a–P9d after the existing playability/traversability gate). Configure-imported maps keep the
-  plain-XML response. Wire the download UI to request the bundle for sketch maps.
+  (wiring together P9a–P9d/g/h/i after the existing playability/traversability gate). Configure-imported maps keep
+  the plain-XML response. Wire the download UI to request the bundle for sketch maps.
 - [ ] **P9f — Sketch-origin gate + export UX.** Branch zip-vs-xml on sketch origin (presence of the
   `sketch_layout_json` artifact — the durable "was a sketch" signal, since `MapStage.Sketch` advances to
   `configure` on finish); surface build/export errors; keep the branch downstream of the traversability 409.
-- [ ] **P9g — Spawn / wool-room cage design + stamping (pending author input).** Cage block, dimensions, height,
-  and whether spawns (single points) get cages vs wool `Room` rects — **design TBD, author to specify.** Once
-  decided, stamp at `SpawnIntent.Point` / wool `Room` rects using the P9d template library.
+- [ ] **P9g — Wool-cage stamping.** Emit the wool-cage variant (§2: layer-5 wool ring, 2×2 floor-wool spawn
+  point, four 2×3 glass doors) via the P9d emitter, coloured per `WoolIntent.Color`, resting on the terrain
+  surface at each wool `Room`. See P9i for chests.
+- [ ] **P9h — Spawn-cube + monument stamping.** Emit the spawn-cube variant (§2: layers 5–6 stained clay, 2×2
+  floor wool, single 4×4 glass door), team-coloured, on the terrain surface at each `SpawnIntent.Point`. Stamp the
+  **in-cube monuments** (§3): pedestal elevated one block in the corners, air placement cell above, sign mounted
+  against the pedestal; positions derived from wool count (1–2 → door wall · 3–4 → back wall · 5+ → fill back
+  wall), **not** from a freely-authored `MonumentIntent.Location`. Sign label per §3 (`Place the` / bold colour /
+  coloured `Wool` / `here!`). **Blocked on §5 open questions** (pedestal block, cap-or-not).
+- [ ] **P9i — Wool-cage chest loadout.** Two stacked chests in each of the 4 interior corners (§2a), each a
+  27-slot chest tile-entity: chest A = planks×16 · Speed I (3:00) potions · golden apples×16; chest B = diamond
+  leggings · Power I + Infinity bows · planks×16. One 9-slot row per item type.
 - [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
   parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
   **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
