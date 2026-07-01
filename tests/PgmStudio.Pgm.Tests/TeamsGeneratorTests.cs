@@ -99,9 +99,11 @@ public sealed class TeamsGeneratorTests
 
         await Assert.That(Spawns(doc).Count).IsEqualTo(2);
         await Assert.That(Regions(doc).Keys.Count(k => k.EndsWith("-spawn-point"))).IsEqualTo(2);
-        await Assert.That(Rules(doc).Count).IsEqualTo(3);   // an enter per team + one shared block-on-spawns
+        await Assert.That(Rules(doc).Count).IsEqualTo(4);   // an enter per team + block-on-spawns + reset-kit-on-not-spawns
         await Assert.That(Filters(doc).Count).IsEqualTo(2);
         await Assert.That(Regions(doc).ContainsKey("spawns")).IsTrue();
+        await Assert.That(Regions(doc).ContainsKey("not-spawns")).IsTrue();
+        await Assert.That(((List<object?>)doc["kits"]!).Count).IsEqualTo(2);   // spawn kit + reset kit, not duplicated
     }
 
     [Test]
@@ -171,7 +173,7 @@ public sealed class TeamsGeneratorTests
         var kits = (List<object?>)doc["kits"]!;
         var kit = kits.OfType<Dict>().FirstOrDefault(k => k.GetValueOrDefault("id") as string == "spawn-kit");
         await Assert.That(kit).IsNotNull();
-        await Assert.That(kits.Count).IsEqualTo(1);
+        await Assert.That(kits.Count).IsEqualTo(2);   // spawn kit + the reset-resistance kit
 
         var items = ((List<object?>)kit!["items"]!).OfType<Dict>().ToList();
         var armor = ((List<object?>)kit["armor"]!).OfType<Dict>().ToList();
@@ -186,6 +188,18 @@ public sealed class TeamsGeneratorTests
         await Assert.That(Mat(items, "water bucket")).IsEqualTo("water bucket");
         await Assert.That(armor.Count).IsEqualTo(4);
         await Assert.That(Mat(armor, "chainmail leggings")).IsEqualTo("chainmail leggings");
+
+        // in-spawn damage-immunity: infinite (oo) damage-resistance effect, high amplifier
+        var effects = ((List<object?>)kit["effects"]!).OfType<Dict>().ToList();
+        var resist = effects.First(e => e["type"] as string == "damage resistance");
+        await Assert.That(resist["duration"]).IsEqualTo("oo");
+
+        // the reset kit force-strips that resistance (duration 0) once out of spawn
+        var reset = kits.OfType<Dict>().Single(k => k.GetValueOrDefault("id") as string == "reset-resistance-kit");
+        await Assert.That(reset["force"]).IsEqualTo(true);
+        var resetEff = ((List<object?>)reset["effects"]!).OfType<Dict>().Single();
+        await Assert.That(resetEff["type"]).IsEqualTo("damage resistance");
+        await Assert.That(resetEff["duration"]).IsEqualTo("0");
     }
 
     [Test]

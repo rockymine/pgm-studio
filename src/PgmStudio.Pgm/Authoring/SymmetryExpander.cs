@@ -64,7 +64,9 @@ public static class SymmetryExpander
         for (var i = 0; i < colors.Count; i++)
         {
             var color = colors[i];
-            var id = i == 0 && !string.IsNullOrWhiteSpace(anchorId) ? anchorId! : color.Replace(' ', '-');
+            // Non-anchor palette teams take the corpus/template `<colour>-team` id (the anchor keeps the
+            // intent's id, which the UI already suffixes); IntentNaming.Slug strips `-team` for derived ids.
+            var id = i == 0 && !string.IsNullOrWhiteSpace(anchorId) ? anchorId! : color.Replace(' ', '-') + "-team";
             teams.Add(new TeamDef { Id = id, Name = TeamPalette.Label(color), Color = color });
         }
         return teams;

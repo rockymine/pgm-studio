@@ -112,8 +112,15 @@ public static class Serializer
     private static Dict EncodeKit(Kit k) => new()
     {
         ["id"] = k.Id,
+        ["force"] = k.Force,
         ["items"] = k.Items.Select(EncodeKitItem).ToList<object?>(),
         ["armor"] = k.Armor.Select(EncodeKitArmor).ToList<object?>(),
+        ["effects"] = k.Effects.Select(EncodeKitEffect).ToList<object?>(),
+    };
+
+    private static Dict EncodeKitEffect(KitEffect e) => new()
+    {
+        ["type"] = e.Type, ["duration"] = e.Duration, ["amplifier"] = e.Amplifier,
     };
 
     private static Dict EncodeKitItem(KitItem i)

@@ -232,7 +232,16 @@ public sealed partial class MapParser
                 });
             }
 
-            if (items.Count > 0 || armor.Count > 0) kits.Add(new Kit { Id = kitId, Items = items, Armor = armor });
+            var effects = new List<KitEffect>();
+            foreach (var effElem in kitElem.Elements("effect"))
+            {
+                var type = effElem.Value.Trim();
+                if (type.Length == 0) continue;
+                effects.Add(new KitEffect { Type = type, Duration = Xml.Get(effElem, "duration", ""), Amplifier = Xml.IntAttr(effElem, "amplifier", 0) });
+            }
+
+            if (items.Count > 0 || armor.Count > 0 || effects.Count > 0)
+                kits.Add(new Kit { Id = kitId, Force = Xml.BoolAttr(kitElem, "force"), Items = items, Armor = armor, Effects = effects });
         }
         return kits;
     }

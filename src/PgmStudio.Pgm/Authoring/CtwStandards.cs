@@ -67,14 +67,16 @@ public static class CtwStandards
         if (m.Kits.FirstOrDefault() is { } kit)
         {
             // The spawn kit's build blocks are the stacked items (wood, the team-coloured accent block);
-            // tools/weapons/consumables come as a single item. Keep the single items on death, repair the
-            // tools, and drop the build blocks (so they can't be hoarded — removed when dropped + their
-            // place-and-break drop is suppressed below).
+            // tools/weapons/consumables come as a single item. Keep the WHOLE loadout on death — single items
+            // AND blocks (docs/template.xml keeps `wood` + `stained clay` in <itemkeep>); farming *placed*
+            // blocks is prevented by the block-drops chance=0 rule below, not by removing them on death (which
+            // would leave players without building material). Only the team armour is dropped — the kit
+            // re-applies it — so <itemremove> is just the armour (+ the terrain drops added later).
             var keep = kit.Items.Where(i => i.Amount <= 1).Select(i => i.Material).Where(s => s.Length > 0).ToList();
             var blocks = kit.Items.Where(i => i.Amount > 1).Select(i => i.Material).Where(s => s.Length > 0).Distinct().ToList();
-            m.ItemKeep = keep.Distinct().ToList();
+            m.ItemKeep = keep.Concat(blocks).Distinct().ToList();
             m.ToolRepair = keep.Where(IsTool).Distinct().ToList();
-            m.ItemRemove = kit.Armor.Select(a => a.Material).Where(s => s.Length > 0).Concat(blocks).Distinct().ToList();
+            m.ItemRemove = kit.Armor.Select(a => a.Material).Where(s => s.Length > 0).Distinct().ToList();
 
             // The place-and-break trick: a kit block breaks into nothing (a single drop at chance 0 replaces
             // its natural drop), so players can't mine fresh building material off what they place.

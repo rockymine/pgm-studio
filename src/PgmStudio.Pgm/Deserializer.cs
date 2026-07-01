@@ -189,8 +189,15 @@ public static class Deserializer
     private static Kit DecodeKit(Dict d) => new()
     {
         Id = Str(d, "id"),
+        Force = AsBool(Val(d, "force"), false),
         Items = ListOf(d, "items").Select(i => DecodeKitItem(AsDict(i))).ToList(),
         Armor = ListOf(d, "armor").Select(a => DecodeKitArmor(AsDict(a))).ToList(),
+        Effects = ListOf(d, "effects").Select(e => DecodeKitEffect(AsDict(e))).ToList(),
+    };
+
+    private static KitEffect DecodeKitEffect(Dict d) => new()
+    {
+        Type = Str(d, "type"), Duration = Str(d, "duration"), Amplifier = AsInt(Val(d, "amplifier"), 0),
     };
 
     private static KitItem DecodeKitItem(Dict d) => new()

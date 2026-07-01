@@ -42,4 +42,44 @@ public sealed class XmlWriterTests
         var xml = XmlWriter.ToXml(m);
         await Assert.That(xml).DoesNotContain("<!--");
     }
+
+    [Test]
+    public async Task Kit_force_and_potion_effects_round_trip()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Kits =
+            [
+                new Kit
+                {
+                    Id = "spawn-kit",
+                    Items = [new KitItem { Slot = 0, Material = "iron sword" }],
+                    Effects = [new KitEffect { Type = "damage resistance", Duration = "oo", Amplifier = 100 }],
+                },
+                new Kit
+                {
+                    Id = "reset-resistance-kit",
+                    Force = true,
+                    Effects = [new KitEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
+                },
+            ],
+        };
+        var xml = XmlWriter.ToXml(m);
+
+        // force is emitted; the effect carries its duration/amplifier with the type as element text
+        await Assert.That(xml).Contains("<kit id=\"reset-resistance-kit\" force=\"true\">");
+        await Assert.That(xml).Contains("<effect duration=\"oo\" amplifier=\"100\">damage resistance</effect>");
+        await Assert.That(xml).Contains("<effect duration=\"0\" amplifier=\"0\">damage resistance</effect>");
+
+        // and it survives a parse back through the domain model (force + effect-only reset kit both kept)
+        var back = MapParser.ParseXmlString(xml);
+        var reset = back.Kits.Single(k => k.Id == "reset-resistance-kit");
+        await Assert.That(reset.Force).IsTrue();
+        await Assert.That(reset.Effects.Single().Type).IsEqualTo("damage resistance");
+        await Assert.That(reset.Effects.Single().Duration).IsEqualTo("0");
+        var spawn = back.Kits.Single(k => k.Id == "spawn-kit");
+        await Assert.That(spawn.Force).IsFalse();
+        await Assert.That(spawn.Effects.Single().Amplifier).IsEqualTo(100);
+    }
 }

@@ -44,8 +44,17 @@ public sealed class KitArmor
 public sealed class Kit
 {
     public string Id = "";
+    public bool Force;                        // <kit force="true"> — re-applied every tick (reset kits)
     public List<KitItem> Items = [];
     public List<KitArmor> Armor = [];
+    public List<KitEffect> Effects = [];      // <effect duration=… amplifier=…>type</effect>
+}
+
+public sealed class KitEffect
+{
+    public string Type = "";        // potion effect, e.g. "damage resistance"
+    public string Duration = "";    // "oo" (infinite), "0", or a number of ticks/seconds
+    public int Amplifier;
 }
 
 public sealed class Spawn

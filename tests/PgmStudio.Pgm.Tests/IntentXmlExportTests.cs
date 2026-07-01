@@ -54,6 +54,11 @@ public sealed class IntentXmlExportTests
         await Assert.That(xml).Contains("<default");
         await Assert.That(xml).Contains("yaw=\"180\"");
 
+        // spawn protection: infinite damage-resistance in spawn + a force reset kit applied outside it
+        await Assert.That(xml).Contains("<effect duration=\"oo\" amplifier=\"100\">damage resistance</effect>");
+        await Assert.That(xml).Contains("<kit id=\"reset-resistance-kit\" force=\"true\">");
+        await Assert.That(xml).Contains("<apply kit=\"reset-resistance-kit\" region=\"not-spawns\"/>");
+
         // re-parse the generated XML — proves it's well-formed and PGM-parseable
         var reparsed = Serializer.ToDict(MapParser.ParseXmlString(xml));
         await Assert.That(((List<object?>)reparsed["teams"]!).Count).IsEqualTo(2);
@@ -61,8 +66,9 @@ public sealed class IntentXmlExportTests
         await Assert.That(((List<object?>)reparsed["wools"]!).Count).IsEqualTo(2);
         await Assert.That(((List<object?>)reparsed["spawners"]!).Count).IsEqualTo(2);
         await Assert.That(reparsed["objective"]).IsEqualTo("Capture the enemies' wools!");
-        // build void enforcement survived
+        // build void enforcement + the spawn-leave reset complement survived
         await Assert.That(((Dict)reparsed["regions"]!).ContainsKey("not-build-area")).IsTrue();
+        await Assert.That(((Dict)reparsed["regions"]!).ContainsKey("not-spawns")).IsTrue();
     }
 
     [Test]

@@ -56,7 +56,7 @@ public static class TeamsGenerator
     {
         var kits = DocAccess.EnsureList(doc, "kits");
         kits.Clear();
-        if (intent.Spawns.Count > 0) kits.Add(StandardSpawnKit(SpawnKitId));
+        if (intent.Spawns.Count > 0) { kits.Add(StandardSpawnKit(SpawnKitId)); kits.Add(ResetResistanceKit()); }
     }
 
     private static Dict StandardSpawnKit(string id) => new()
@@ -64,19 +64,20 @@ public static class TeamsGenerator
         ["id"] = id,
         ["items"] = new List<object?>
         {
-            // hotbar: tools/weapons, then the two staple items, then a stack of build blocks
+            // Slot layout follows docs/template.xml: hotbar 0–3 = tools/weapons, 4–5 = build blocks,
+            // 7–8 = water bucket + golden apple; the utility items sit in the inventory row (28–30).
             Item(0, "iron sword", unbreakable: true),
             Item(1, "bow", unbreakable: true, enchantments: "infinity:1"),
             Item(2, "iron pickaxe", unbreakable: true, enchantments: "efficiency:1"),
             Item(3, "iron axe", unbreakable: true, enchantments: "efficiency:1"),
-            Item(4, "iron spade", unbreakable: true),
-            Item(5, "shears", unbreakable: true),
-            Item(6, "golden apple"),
+            Item(4, "wood", amount: 64),
+            Item(5, "stained clay", amount: 32, teamColor: true),
             Item(7, "water bucket"),
-            Item(8, "wood", amount: 64),
-            // inventory: one arrow (the infinity bow makes it endless) + the team-coloured accent block
-            Item(9, "arrow"),
-            Item(10, "stained clay", amount: 32, teamColor: true),
+            Item(8, "golden apple"),
+            // inventory row: one arrow (the infinity bow makes it endless) + the secondary tools
+            Item(28, "arrow"),
+            Item(29, "shears", unbreakable: true),
+            Item(30, "iron spade", unbreakable: true),
         },
         ["armor"] = new List<object?>
         {
@@ -85,7 +86,21 @@ public static class TeamsGenerator
             Armor("leggings", "chainmail leggings", enchantments: "projectile_protection:1"),
             Armor("boots", "leather boots", teamColor: true, enchantments: "projectile_protection:1"),
         },
+        // Full damage-immunity while in spawn; the reset kit strips it on leave (docs/template.xml).
+        ["effects"] = new List<object?> { Effect("damage resistance", "oo", 100) },
     };
+
+    // The force reset kit that removes the in-spawn resistance the moment a player leaves the spawn.
+    private const string ResetKitId = "reset-resistance-kit";
+    private static Dict ResetResistanceKit() => new()
+    {
+        ["id"] = ResetKitId,
+        ["force"] = true,
+        ["effects"] = new List<object?> { Effect("damage resistance", "0", 0) },
+    };
+
+    private static Dict Effect(string type, string duration, int amplifier) =>
+        new() { ["type"] = type, ["duration"] = duration, ["amplifier"] = amplifier };
 
     private static Dict Item(int slot, string material, int amount = 1, bool unbreakable = false, bool teamColor = false, string? enchantments = null)
     {
@@ -112,8 +127,9 @@ public static class TeamsGenerator
         // The shared spawn-protection region + its block rule are rebuilt below; drop any prior copy.
         DocAccess.Regions(doc).Remove("spawns");
         DocAccess.Regions(doc).Remove("spawn-areas");
+        DocAccess.Regions(doc).Remove("not-spawns");
         if (doc.GetValueOrDefault("apply_rules") is List<object?> priorRules)
-            priorRules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string == "spawns");
+            priorRules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string is "spawns" or "not-spawns");
 
         var protIds = new List<string>();
         foreach (var sp in intent.Spawns)
@@ -156,6 +172,10 @@ public static class TeamsGenerator
             {
                 ["block"] = "never", ["region"] = "spawns", ["message"] = BlockProtectionMessage,
             });
+            // The spawn kit grants infinite damage-resistance in spawn; strip it the moment a player
+            // steps out by force-applying the reset kit everywhere outside the spawns (template structure).
+            RegionEditor.GroupRegions(doc, new Dict { ["type"] = "negative", ["id"] = "not-spawns", ["child_ids"] = new List<object?> { "spawns" } });
+            ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["kit"] = ResetKitId, ["region"] = "not-spawns" });
         }
     }
 

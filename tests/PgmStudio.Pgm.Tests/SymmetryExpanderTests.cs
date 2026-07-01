@@ -232,9 +232,9 @@ public sealed class SymmetryExpanderTests
 
         await Assert.That(outp.Teams!.Count).IsEqualTo(4);
         await Assert.That(outp.Teams!.Select(t => t.Color)).IsEquivalentTo(new[] { "red", "blue", "green", "yellow" });
-        await Assert.That(outp.Teams![0].Id).IsEqualTo("red");          // anchored to the authored spawn
+        await Assert.That(outp.Teams![0].Id).IsEqualTo("red");          // anchored to the authored spawn's id
         await Assert.That(outp.Spawns.Count).IsEqualTo(4);               // orbit-filled onto the synthesized teams
-        await Assert.That(outp.Spawns.Select(s => s.Team)).Contains("blue");
+        await Assert.That(outp.Spawns.Select(s => s.Team)).Contains("blue-team");   // synthesized teams get the -team suffix (B10)
     }
 
     [Test]

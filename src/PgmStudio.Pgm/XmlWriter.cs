@@ -206,7 +206,7 @@ public static partial class XmlWriter
         var block = new XElement("kits"); parent.Add(block);
         foreach (var kit in kits)
         {
-            var ke = new XElement("kit"); Set(ke, "id", kit.Id); block.Add(ke);
+            var ke = new XElement("kit"); Set(ke, "id", kit.Id); if (kit.Force) Set(ke, "force", "true"); block.Add(ke);
             foreach (var item in kit.Items)
             {
                 var e = new XElement("item"); Set(e, "slot", item.Slot.ToString()); Set(e, "material", item.Material);
@@ -222,6 +222,13 @@ public static partial class XmlWriter
                 if (armor.Unbreakable) Set(e, "unbreakable", "true");
                 if (armor.TeamColor) Set(e, "team-color", "true");
                 WriteEnchantments(e, armor.Enchantments); ke.Add(e);
+            }
+            foreach (var eff in kit.Effects)
+            {
+                var e = new XElement("effect", eff.Type);
+                if (eff.Duration.Length > 0) Set(e, "duration", eff.Duration);
+                Set(e, "amplifier", eff.Amplifier.ToString());
+                ke.Add(e);
             }
         }
     }

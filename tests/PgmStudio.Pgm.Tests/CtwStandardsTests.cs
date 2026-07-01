@@ -44,30 +44,32 @@ public sealed class CtwStandardsTests
     };
 
     [Test]
-    public async Task ItemKeep_is_the_non_armor_non_block_items()
+    public async Task ItemKeep_is_the_non_armor_items_including_blocks()
     {
         var m = MapWithKit();
         CtwStandards.Apply(m);
         await Assert.That(m.ItemKeep).Contains("iron sword");
         await Assert.That(m.ItemKeep).Contains("golden apple");
         await Assert.That(m.ItemKeep).Contains("arrow");
-        await Assert.That(m.ItemKeep).DoesNotContain("leather helmet");   // armor is removed, not kept
-        await Assert.That(m.ItemKeep).DoesNotContain("wood");             // build blocks are dropped, not kept
-        await Assert.That(m.ItemKeep).DoesNotContain("stained clay");
+        await Assert.That(m.ItemKeep).Contains("wood");                  // build blocks are kept (template)
+        await Assert.That(m.ItemKeep).Contains("stained clay");
+        await Assert.That(m.ItemKeep).DoesNotContain("leather helmet");  // armor is removed, not kept
     }
 
     [Test]
-    public async Task Build_blocks_are_removed_and_their_drops_suppressed()
+    public async Task Build_blocks_are_kept_and_their_place_drops_suppressed()
     {
         var m = MapWithKit();
         CtwStandards.Apply(m);
 
-        // the stacked build blocks are dropped (itemremove), alongside the armor
-        await Assert.That(m.ItemRemove).Contains("wood");
-        await Assert.That(m.ItemRemove).Contains("stained clay");
+        // build blocks are kept on death (template), not dropped — only the armour is removed
+        await Assert.That(m.ItemKeep).Contains("wood");
+        await Assert.That(m.ItemKeep).Contains("stained clay");
+        await Assert.That(m.ItemRemove).DoesNotContain("wood");
+        await Assert.That(m.ItemRemove).DoesNotContain("stained clay");
         await Assert.That(m.ItemRemove).Contains("leather helmet");
 
-        // a block-drops rule suppresses their place-and-break drop (chance 0)
+        // a block-drops rule still suppresses their place-and-break drop (chance 0) — placed blocks can't be farmed
         await Assert.That(m.BlockDropRules.Count).IsEqualTo(1);
         var rule = m.BlockDropRules[0];
         await Assert.That(rule.FilterMaterials).Contains("wood");

@@ -95,7 +95,12 @@ public sealed class MapWriter(PgmDb db)
 
         foreach (var kit in m.Kits)
         {
-            var kitId = await db.InsertWithInt64IdentityAsync(new KitRow { MapId = mapId, KitKey = kit.Id });
+            var kitId = await db.InsertWithInt64IdentityAsync(new KitRow
+            {
+                MapId = mapId, KitKey = kit.Id, Force = kit.Force,
+                EffectsJson = kit.Effects.Count == 0 ? null
+                    : Json(kit.Effects.Select(e => (object?)new Dict { ["type"] = e.Type, ["duration"] = e.Duration, ["amplifier"] = e.Amplifier }).ToList()),
+            });
             foreach (var it in kit.Items)
                 await db.InsertAsync(new KitItemRow { KitId = kitId, Slot = it.Slot, Material = it.Material, Amount = it.Amount, Damage = it.ItemDamage, Unbreakable = it.Unbreakable, TeamColor = it.TeamColor, Enchantments = NullIfEmpty(it.Enchantments) }, token: ct);
             foreach (var ar in kit.Armor)

@@ -411,6 +411,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   within each geometry type** (spawn points · wool spawns · spawn regions · monuments · build), so `*-point`
   and `*-spawn` ids no longer interleave. The `ReviewXmlPhase` container segmenter was retuned to the 4-space
   indent. (`XmlWriter` + `ReviewXmlPhase`; B11/B13/B15/B16)
+- **Generated CTW-standards conventions (`docs/template.xml`-faithful).** Four corpus-alignment fixes to the
+  generated `map.xml`: team ids now carry the `-team` suffix (`red-team`/`blue-team`) at the derivation sites
+  while `IntentNaming.Slug` keeps derived ids colour-based (`only-red`, `red-spawn-point`); the spawn kit's
+  **build blocks** (`wood`, `stained clay`) go to `<itemkeep>` (not `<itemremove>`), so the `chance="0"`
+  `<block-drops>` rule suppresses farming as intended (armour stays in `<itemremove>`); the spawn-**kit item
+  slots** match the template (tools 0–3, wood 4, stained clay 5, water bucket 7, golden apple 8, arrow 28,
+  shears 29, iron spade 30); and **spawn protection** grants an infinite `damage resistance` effect in-spawn
+  and force-strips it on leave — a `reset-resistance-kit` (`force="true"`, duration 0) applied over a
+  `not-spawns` complement (`<apply kit="reset-resistance-kit" region="not-spawns"/>`). Potion effects + the kit
+  `force` flag round-trip end-to-end (domain ↔ Dict ↔ XML ↔ DB): `KitEffect`, `MapParser`/`XmlWriter`,
+  `Serializer`/`Deserializer`, and a new `force`/`effects_json` on the `kit` table (migration `M0006`).
+  (`TeamsGenerator`, `CtwStandards`, `SymmetryExpander`, `TeamsPhase`; B10/B14/B17/B18)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
   inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
   editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)

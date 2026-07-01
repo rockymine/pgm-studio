@@ -154,4 +154,50 @@ public sealed class SchemaRoundTripTests
         await repo.DeleteMapAsync(mapId);
         await Assert.That((await MonumentCandidateStore.ReadAsync(db, mapId)).Count).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task Kit_force_and_effects_survive_the_db_round_trip()
+    {
+        await TestDb.ResetSchemaAsync();
+        await using var db = TestDb.Connect();
+        var repo = new MapRepository(db);
+
+        var mapId = await repo.InsertAsync(new MapRow
+        {
+            Slug = "kit-map", Name = "Kit", Version = "1.0.0", Gamemode = "ctw",
+            Objective = "ctw", MaxBuildHeight = 128, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+        });
+
+        await new MapWriter(db).WriteEntitiesAsync(mapId, new PgmStudio.Domain.MapXml
+        {
+            Name = "Kit", Version = "1.0.0",
+            Kits =
+            [
+                new PgmStudio.Domain.Kit
+                {
+                    Id = "spawn-kit",
+                    Items = [new PgmStudio.Domain.KitItem { Slot = 0, Material = "iron sword" }],
+                    Effects = [new PgmStudio.Domain.KitEffect { Type = "damage resistance", Duration = "oo", Amplifier = 100 }],
+                },
+                new PgmStudio.Domain.Kit
+                {
+                    Id = "reset-resistance-kit",
+                    Force = true,
+                    Effects = [new PgmStudio.Domain.KitEffect { Type = "damage resistance", Duration = "0", Amplifier = 0 }],
+                },
+            ],
+        });
+
+        var m = await new MapReader(db).ReadAsync("kit-map");
+        await Assert.That(m).IsNotNull();
+        var spawn = m!.Kits.Single(k => k.Id == "spawn-kit");
+        await Assert.That(spawn.Force).IsFalse();
+        await Assert.That(spawn.Effects.Single().Duration).IsEqualTo("oo");
+        await Assert.That(spawn.Effects.Single().Amplifier).IsEqualTo(100);
+
+        var reset = m.Kits.Single(k => k.Id == "reset-resistance-kit");
+        await Assert.That(reset.Force).IsTrue();
+        await Assert.That(reset.Effects.Single().Type).IsEqualTo("damage resistance");
+        await Assert.That(reset.Effects.Single().Duration).IsEqualTo("0");
+    }
 }

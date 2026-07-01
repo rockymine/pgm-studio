@@ -98,7 +98,7 @@ public partial class TeamsPhase
     {
         teams.Clear();
         foreach (var c in SuggestedColors)
-            teams.Add(new Team { Id = c.Value.Replace(' ', '-'), Name = c.Label, Color = c.Value });
+            teams.Add(new Team { Id = c.Value.Replace(' ', '-') + "-team", Name = c.Label, Color = c.Value });
         selectedTeamId = teams.FirstOrDefault()?.Id;
         WriteTeams();
     }
@@ -106,7 +106,7 @@ public partial class TeamsPhase
     private void AddTeam()
     {
         if (GameColors.NextTeamColor(teams.Select(t => t.Color)) is not { } c) return;
-        var team = new Team { Id = c.Value.Replace(' ', '-'), Name = c.Label, Color = c.Value };
+        var team = new Team { Id = c.Value.Replace(' ', '-') + "-team", Name = c.Label, Color = c.Value };
         teams.Add(team);
         selectedTeamId = team.Id;
         WriteTeams();
