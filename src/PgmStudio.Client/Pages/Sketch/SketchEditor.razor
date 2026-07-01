@@ -100,6 +100,8 @@
                       @onclick='() => SetTool("lasso")'><i data-lucide="lasso"></i></button>
               <button class="draw-tool-btn @(tool == "measure" ? "draw-tool-btn--active" : null)" title="Measure (drag across a void gap to read its length in blocks)"
                       @onclick='() => SetTool("measure")'><i data-lucide="ruler"></i></button>
+              <button class="draw-tool-btn @(tool == "split" ? "draw-tool-btn--active" : null)" title="Split (click two points to slice a shape in two along the line)"
+                      @onclick='() => SetTool("split")'><i data-lucide="scissors"></i></button>
               <button class="draw-tool-btn @(op == "add" ? "draw-tool-btn--op-add" : null)" title="Add — shapes build land"
                       @onclick='() => SetOperation("add")'><i data-lucide="plus"></i><span class="draw-tool-label">Add</span></button>
               <button class="draw-tool-btn @(op == "subtract" ? "draw-tool-btn--op-sub" : null)" title="Subtract — shapes carve land away"

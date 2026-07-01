@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, boundsOfShapes, translateShape, rotateShape, scaleShape, BEZIER_SAMPLES }
+import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, boundsOfShapes, translateShape, rotateShape, scaleShape, splitShape, BEZIER_SAMPLES }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/shape.js";
 
 const r6 = (v) => Math.round(v * 1e6) / 1e6;   // tame float noise from cos/sin
@@ -166,6 +166,37 @@ test("scaleShape is pure (source untouched)", () => {
   scaleShape(shape, 2, 2, [0, 0]);
   assert.deepEqual(shape.vertices, [[1, 1]]);
   assert.deepEqual(shape.controls, { "0": { in: [2, 2] } });
+});
+
+// ── splitShape ────────────────────────────────────────────────────────────────
+const SQUARE = () => ({ type: "polygon", operation: "add", vertices: [[0, 0], [10, 0], [10, 10], [0, 10]] });
+const hasPt = (h, x, z) => h.vertices.some(v => v[0] === x && v[1] === z);
+
+test("splitShape cuts a polygon in two along a slice line (both halves share the two cut points)", () => {
+  const halves = splitShape(SQUARE(), [-1, 5], [11, 5]);   // horizontal slice through the middle
+  assert.equal(halves.length, 2);
+  assert.ok(halves.every(h => h.type === "polygon" && h.vertices.length === 4));
+  assert.ok(halves.every(h => hasPt(h, 0, 5) && hasPt(h, 10, 5)));   // both carry the cut nodes
+  assert.equal(halves.filter(h => hasPt(h, 0, 0)).length, 1);        // one half has the bottom
+  assert.equal(halves.filter(h => hasPt(h, 0, 10)).length, 1);       // the other the top
+});
+
+test("splitShape carries operation / override / height to both halves (controls dropped)", () => {
+  const src = { ...SQUARE(), operation: "subtract", override: true, base_height: 12, floor: 3, controls: { "0": { out: [3, 0] } } };
+  const halves = splitShape(src, [-1, 5], [11, 5]);
+  assert.ok(halves.every(h => h.operation === "subtract" && h.override === true && h.base_height === 12 && h.floor === 3));
+  assert.ok(halves.every(h => h.controls === undefined));
+});
+
+test("splitShape promotes a rectangle then cuts it", () => {
+  const halves = splitShape({ type: "rectangle", operation: "add", min_x: 0, min_z: 0, max_x: 10, max_z: 10 }, [5, -1], [5, 11]);
+  assert.equal(halves.length, 2);
+  assert.ok(halves.every(h => h.type === "polygon"));
+});
+
+test("splitShape returns null when the line doesn't cross twice, or for a circle", () => {
+  assert.equal(splitShape(SQUARE(), [20, 20], [30, 30]), null);           // misses the shape
+  assert.equal(splitShape({ type: "circle", center_x: 0, center_z: 0, radius: 5 }, [-9, 0], [9, 0]), null);
 });
 
 // ── boundsOfShapes ────────────────────────────────────────────────────────────

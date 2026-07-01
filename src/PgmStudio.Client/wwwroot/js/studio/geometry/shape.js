@@ -14,6 +14,7 @@
  */
 
 import { pointInRing } from "./polygon.js";
+import { splitPiece } from "./decompose-cut.js";
 
 // Parity constants — must match the C# rasterizer / export (docs/contracts/sketch-authoring.md §6).
 export const CIRCLE_POINTS  = 64;   // vertices approximating a circle
@@ -192,6 +193,50 @@ function scaleControls(controls, sc) {
     out[k] = nc;
   }
   return out;
+}
+
+/** Intersection of segment a→b with edge p→q, or null. Returns the crossing `point`, `tAB` (param along
+ *  a→b, for ordering the crossings) and `tPQ` (param along the edge, for the ring-split seam). */
+function segCross(a, b, p, q) {
+  const rx = b[0] - a[0], rz = b[1] - a[1], sx = q[0] - p[0], sz = q[1] - p[1];
+  const den = rx * sz - rz * sx;
+  if (Math.abs(den) < 1e-12) return null;                    // parallel
+  const tAB = ((p[0] - a[0]) * sz - (p[1] - a[1]) * sx) / den;
+  const tPQ = ((p[0] - a[0]) * rz - (p[1] - a[1]) * rx) / den;
+  if (tAB < 0 || tAB > 1 || tPQ < 0 || tPQ > 1) return null; // outside either segment
+  return { point: [p[0] + tPQ * sx, p[1] + tPQ * sz], tAB, tPQ };
+}
+
+/**
+ * Split a shape into **two** polygons along the slice segment a→b (the S14 cut tool). The segment must
+ * cross the shape's outline at least twice; the cut runs between the first and last crossing along a→b
+ * (for a concave >2-crossing shape this takes the outermost pair). A rectangle is promoted via
+ * {@link rectToPolygon} first; circles are unsupported. Returns `[shapeA, shapeB]` (plain polygons that
+ * keep the source's operation / override / base_height / floor — Bézier controls and per-vertex
+ * anchor_heights are dropped on a cut), or `null` if the segment doesn't make a clean two-way cut. Pure.
+ */
+export function splitShape(shape, a, b) {
+  let s = shape;
+  if (s.type === "rectangle") s = rectToPolygon(s);
+  if ((s.type !== "polygon" && s.type !== "lasso") || !s.vertices || s.vertices.length < 3) return null;
+  const ring = s.vertices;
+  const crossings = [];
+  for (let i = 0; i < ring.length; i++) {
+    const hit = segCross(a, b, ring[i], ring[(i + 1) % ring.length]);
+    if (hit) crossings.push({ edge: i, t: hit.tPQ, point: hit.point, tAB: hit.tAB });
+  }
+  if (crossings.length < 2) return null;
+  crossings.sort((x, y) => x.tAB - y.tAB);
+  const c0 = crossings[0], c1 = crossings[crossings.length - 1];
+  if (c0.edge === c1.edge) return null;   // grazes a single edge — no two-way cut
+  const seamA = { kind: "marker", edge: c0.edge, t: c0.t, point: c0.point, key: "s0" };
+  const seamB = { kind: "marker", edge: c1.edge, t: c1.t, point: c1.point, key: "s1" };
+  const res = splitPiece({ exterior: ring, holes: [] }, seamA, seamB, c0.point);
+  if (!res) return null;
+  const carry = { operation: shape.operation ?? "add", override: !!shape.override };
+  if (shape.base_height !== undefined) carry.base_height = shape.base_height;
+  if (shape.floor !== undefined) carry.floor = shape.floor;
+  return res.map(p => ({ type: "polygon", ...carry, vertices: p.exterior }));
 }
 
 /** Approximate a circle as a closed polygon ring, vertices rounded to the nearest block. */

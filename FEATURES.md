@@ -630,6 +630,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   bakes it in: a rectangle stays axis-aligned (min/max scaled), a circle stays round (centre scaled, radius
   by the geometric mean — no ellipse type), polygon/lasso scale vertices + Bézier controls; islands / mirror
   / rasterizer recompute. (`geometry/shape.js` `scaleShape` + `sketch-canvas.js` scale handles; node-tested; S21)
+- **Split tool — slice a shape in two** — a toolbar tool (scissors) whose **two clicks draw a slice line**;
+  the shape the segment crosses is cut into two polygons in place (rubber-band preview, Esc cancels; a
+  completed cut drops back to Select, a missed slice stays armed). Pure `splitShape(shape, a, b)` finds the
+  segment's outline crossings and reuses the decompose cutter's `splitPiece` to arc-split the ring (first &
+  last crossing for a concave >2-crossing shape); a rectangle promotes via `rectToPolygon` first, circles
+  are unsupported. Both halves keep operation / override / base_height / floor (Bézier controls +
+  per-vertex anchor_heights are dropped on a cut); the bridge replaces the shape with its two halves and
+  recomputes islands. (`geometry/shape.js` `splitShape` + `sketch-canvas.js` split tool + `sketch-bridge.js`
+  `splitAt`; node-tested; S14)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

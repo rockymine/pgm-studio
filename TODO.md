@@ -25,10 +25,6 @@ parked sketch slices (`S2`, `S9b`, `S10`) and the sketch world-export (`P9`) liv
   Collapse both behind `<details>` accordions (Library default-collapsed once the map has shapes), or move
   the Library to a toolbar popover (it's a "reach for a primitive" action, not persistent state). Depends on
   `S11`. (`docs/sketch-tool-ux-review.md` P0#1; `docs/contracts/sketch-creation-flow.md` follow-on.)
-- [ ] **S14 — Split-polygon tool.** A tool to cut one polygon shape into two along a drawn line / two points —
-  the sketch-side analogue of the decompose cutter (`geometry/decompose-cut.js`) but producing two `SketchShape`s
-  in place. Each half keeps the source's operation / override / height fields; islands recompute. Pure geometry in
-  `geometry/shape.js`, wired through the bridge.
 - [ ] **S16 — Resize library primitives on placement.** Library primitives (n-gons, polyominoes, composites)
   instantiate at a fixed default cell size (`geometry/shape-library.js` `instantiate`) and can't be resized — and
   since they come in as polygons they lack the rectangle's 8-handle resize. Add a scale affordance: drag-to-size

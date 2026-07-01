@@ -10,7 +10,7 @@
  * through buildTransform — do not collapse the two.)
  *
  * Callbacks: onShapeCreated(partial) · onShapeUpdated(shape) · onShapeSelected(id|null) [drill] ·
- * onIslandSelected(id|null) [single-click] · onShapeDeleted(id)
+ * onIslandSelected(id|null) [single-click] · onShapeDeleted(id) · onSplit(a, b) [slice a shape in two]
  */
 
 import { CanvasBase } from "./canvas-base.js";
@@ -78,6 +78,8 @@ export class SketchCanvas extends CanvasBase {
   #zoomEl    = null;
   #dimEl     = null;
   #measure   = null;   // { ax, az, bx, bz, live } — the ruler measurement (drag across a void gap)
+  #split     = null;   // { ax, az } — the first cut point (S14), awaiting the second click
+  #splitLine = null;   // the slice preview line element
   #placeSpecs = null;  // library item being placed: shape specs centred at origin, awaiting a drop point
   #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
   #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole island (S20)
@@ -135,6 +137,7 @@ export class SketchCanvas extends CanvasBase {
   setActiveTool(tool) {
     this.#draw?.cancel();
     if (this._activeTool === "measure" && tool !== "measure") this.#clearMeasure();
+    if (this._activeTool === "split" && tool !== "split") this.#clearSplit();
     if (this._activeTool === "place" && tool !== "place") this.disarmPlace();
     this._activeTool = tool;
     const isDraw = tool !== null && tool !== "move" && tool !== "select";
@@ -248,6 +251,7 @@ export class SketchCanvas extends CanvasBase {
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this._activeTool === "place") { if (this.#placeSpecs) this.#callbacks.onPlace?.(bx, bz); return; }
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
+    if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
     this.#draw?.onMouseDown(bx, bz, this._activeTool);
   }
 
@@ -258,6 +262,8 @@ export class SketchCanvas extends CanvasBase {
       if (this.#placeSpecs) renderPlaceGhost(this.#placeLayer, this.#placeSpecs.map(s => translateShape(s, bx, bz)), identityTransform);
     } else if (this._activeTool === "measure") {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
+    } else if (this._activeTool === "split") {
+      if (this.#splitLine) { this.#splitLine.setAttribute("x2", bx); this.#splitLine.setAttribute("y2", bz); }
     } else {
       this.#draw?.onMouseMove(bx, bz);
     }
@@ -611,7 +617,7 @@ export class SketchCanvas extends CanvasBase {
       if (this._wrap?.offsetParent == null) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
       if (e.key === "Escape") {
-        this.#draw.cancel(); this.#clearMeasure();
+        this.#draw.cancel(); this.#clearMeasure(); this.#clearSplit();
         // Drilled into a member → pop back out to its island; otherwise clear the selection.
         if (this.#selectedId && !this.#selectedIslandId) {
           const parent = this.#islandOfShape(this.#selectedId);
@@ -719,6 +725,27 @@ export class SketchCanvas extends CanvasBase {
   }
 
   #clearMeasure() { this.#measure = null; this.#renderMeasure(); this.#updateDim(); }
+
+  // Split tool (S14): first click sets the cut's start + a preview line; the second click fires onSplit
+  // (the host cuts the crossed shape into two). The slice line lives in the viewport draw layer.
+  #onSplitClick(bx, bz) {
+    if (!this.#split) {
+      this.#split = { ax: bx, az: bz };
+      this.#splitLine = svgEl("line", {
+        x1: bx, y1: bz, x2: bx, y2: bz, stroke: "var(--canvas-sub-stroke)", "stroke-width": "1.5",
+        "stroke-dasharray": "5 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
+      });
+      this.#drawLayer.appendChild(this.#splitLine);
+    } else {
+      this.#callbacks.onSplit?.([this.#split.ax, this.#split.az], [bx, bz]);
+      this.#clearSplit();
+    }
+  }
+  #clearSplit() {
+    this.#split = null;
+    if (this.#splitLine?.parentNode) this.#splitLine.parentNode.removeChild(this.#splitLine);
+    this.#splitLine = null;
+  }
 
   // On-canvas size readout (sub-bar): the active draw's W×D, else the selected shape's extent — so the
   // author can aim for a target block size while drawing. (The ruler distance reads on the ruler line

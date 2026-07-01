@@ -7,7 +7,7 @@
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
 import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta, shapeToMultiPoly } from "../geometry/boolean.js";
-import { rectToPolygon, translateShape, rotateShape, boundsOfShapes } from "../geometry/shape.js";
+import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
 import { LIBRARY, instantiate, libraryMeta } from "../geometry/shape-library.js";
 import { applySymmetry, orbitAxes } from "../geometry/symmetry.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
@@ -74,6 +74,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     onIslandSelected: (id) => selectIsland(id),
     onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     onShapePromote:  (id) => promoteShape(id),
+    onSplit:         (a, b) => splitAt(a, b),
     onPlace:         (bx, bz) => placeAt(bx, bz),
     onVertexSelected: (shapeId, idx) => {
       const s = canvas.getShape(shapeId);
@@ -128,6 +129,24 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     recompute();
     selectShape(id);
     markDirty();
+  }
+
+  // Split tool (S14): the slice a→b cuts the topmost shape it crosses into two, in place. Try shapes
+  // top-first; the first that yields a clean two-way cut is replaced by its two halves.
+  function splitAt(a, b) {
+    for (const s of [...canvas.getShapes()].reverse()) {
+      const halves = splitShape(s, a, b);
+      if (!halves) continue;
+      canvas.removeShape(s.id);
+      for (const h of halves)
+        canvas.addShape({ ...h, id: genId(), override: h.override ?? false, base_height: clampHeight(h.base_height), floor: clampFloor(h.floor) });
+      recompute();
+      canvas.setActiveTool("select");        // a completed cut drops back to select (like the draw tools)
+      fire("OnToolChanged", "select");
+      selectShape(null);
+      markDirty();
+      return;
+    }
   }
 
   function selectShape(id) {
