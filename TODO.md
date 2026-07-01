@@ -81,3 +81,7 @@ P9d cube library, then the stamping tasks (P9g/h/i), then wiring (P9e/f) and aut
   from wool count + spawn-cube geometry (§3), so the Configure wizard's manual monument step is dead for
   sketch-origin maps — drop it from the flow (and stop persisting `MonumentIntent` for these maps). Touches the
   Configure wizard (authoring UI), not the exporter.
+- [ ] **P9l — Observer-platform stamping.** Emit the observer template (§2b) at the (integer-snapped)
+  `ObserverIntent.Point`: a **6×6 bedrock platform** with a **1-tall × 2-wide bedrock wall + signs** at each edge
+  centre (grid in §2b). Left signs = `=== / [CTW] / {map name} (bold) / ===`; right sign = `made by (italic) /
+  {authors}` from the map meta. **Blocked on §7** (top/bottom sign content, per-pair text, facing, platform Y).

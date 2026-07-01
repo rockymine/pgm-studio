@@ -73,6 +73,42 @@ Each of the **4 interior corners** holds **2 chests stacked** (bottom + top). A 
 - **Chest A** — row of **planks ×16**; row of **Speed I potions (3:00)**; row of **golden apples ×16**.
 - **Chest B** — row of **diamond leggings**; row of **Power I + Infinity bows**; row of **planks ×16**.
 
+### 2b. Observer platform (standalone — not a cube)
+
+The observer/default spawn (`ObserverIntent.Point`) gets its own template: a **6×6 bedrock platform**
+(integer-snapped X/Z/Y, §5). At the centre of each edge sits a **1-tall × 2-wide bedrock wall piece**, with
+**signs mounted on its inner face**. Top-down layout (`b` = raised bedrock, `s` = sign, `o` = platform floor):
+
+```
+oobboo
+oossoo
+bsoosb
+bsoosb
+oossoo
+oobboo
+```
+
+Sign text (map name + authors from the map meta):
+
+- **Left signs** (reading clockwise):
+  ```
+  ===
+  [CTW]
+  {map name}   (bold)
+  ===
+  ```
+- **Right sign**:
+  ```
+  made by   (italic)
+  {author 1}
+  {author 2}
+  {author 3}
+  ```
+
+**Open (see §7):** the grid shows bedrock+signs on **all four** edges, but text is given only for the left and
+right walls — the top/bottom walls' sign content, the sign facing (inward assumed), whether the two signs in a
+pair share text, and the platform's Y (terrain surface vs the observer's floating height) are unresolved.
+
 (Spawn cube has **no chests**.)
 
 ---
@@ -145,3 +181,14 @@ export XML only — none of the structure synthesis or the constraints below tou
 - **Layers numbered from the floor** — floor 0 (spawn + 2×2 wool marker), doors from layer 1, colour strip at
   layer 4, light slit at layer 6, roof hole at layer 8. Colour-strip size is identical across both variants; the
   only differences are door count/size and chests (wool cage) vs monuments (spawn cube).
+
+## 7. Open questions — observer platform (§2b)
+
+- **Top/bottom sign content.** The grid puts bedrock+signs on all four edges; only the left and right walls have
+  specified text. Do the top/bottom walls carry signs too (blank / mirror of left+right / other text), or no
+  signs?
+- **Two signs per wall.** Each wall has a 2-wide sign pair — do both signs show the same 4-line text, or is it
+  split across the pair?
+- **Sign facing.** Assumed to face **inward** (readable by an observer standing on the platform) — confirm.
+- **Platform Y.** Snap to the terrain surface (`ymax`, like the cubes) or place at the observer's authored
+  (floating) height? Observers typically spectate from above.
