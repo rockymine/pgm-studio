@@ -154,7 +154,8 @@ questions) — resolve before the stamping tasks.
   Handle stacked disjoint segments per `(x,z)` column; chunk the world into 16×16 region grids. (Fill materials
   are deliberately flat for now — a later task can add a surface palette.)
 - [ ] **P9d — Block-template + cube-shell library.** Define block templates once (bedrock 7, stone 1, air 0,
-  stained-glass 95:data, wool 35:data, stained-clay 159:data, sign + chest tile-entities). Build the shared
+  stained-glass 95:data, stained-glass-panes 160:data, wool 35:data, stained-clay 159:data, sign + chest
+  tile-entities). Build the shared
   **8×8×8 hollow-bedrock cube emitter** parametrised by colour + variant (floor-indexed: roof 4×4 hole at
   layer 8, air light-slit at layer 6, colour strip at layer 4, 2×2 floor wool at layer 0, doors from layer 1) per
   `docs/contracts/sketch-world-export.md` §2. Colours from a dye slug → data nibble (0–15) via `BlockColors`.
@@ -167,7 +168,7 @@ questions) — resolve before the stamping tasks.
   `sketch_layout_json` artifact — the durable "was a sketch" signal, since `MapStage.Sketch` advances to
   `configure` on finish); surface build/export errors; keep the branch downstream of the traversability 409.
 - [ ] **P9g — Wool-cage stamping.** Emit the wool-cage variant (§2: layer-4 wool strip, 2×2 floor-wool spawn
-  point, four 2×3 doors in **wool-colour stained glass**) via the P9d emitter, coloured per `WoolIntent.Color`,
+  point, four 2×3 doors in **wool-colour stained-glass panes** (id 160)) via the P9d emitter, coloured per `WoolIntent.Color`,
   anchored on the (integer-snapped, §5) wool spawn point and resting on the terrain surface (`ymax`). See P9i for
   chests.
 - [ ] **P9h — Spawn-cube + monument stamping.** Emit the spawn-cube variant (§2: layer-4 stained-clay strip, 2×2

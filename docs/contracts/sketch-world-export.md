@@ -58,8 +58,8 @@ contents (chests vs monuments) — the colour-strip size is identical:
 | 0 (floor) | bedrock, **2×2 centre = wool** (room colour) — wool spawn point | bedrock, **2×2 centre = wool** (team colour) — player spawn |
 
 **Doors** (begin at layer 1):
-- **Wool cage:** four doors, one centred per wall, each **2 wide × 3 tall** (layers 1–3), made of **stained
-  glass in the room's wool colour**, so players can enter from all sides.
+- **Wool cage:** four doors, one centred per wall, each **2 wide × 3 tall** (layers 1–3), made of **stained-glass
+  panes (id 160) in the room's wool colour**, so players can enter from all sides.
 - **Spawn cube:** a **single 4×4 door** (layers 1–4) on one wall, **open (air)** — no glass.
 
 Colour: the layer-4 strip + the 2×2 floor wool follow the **room colour** (wool cage: wool, **no stained clay**)
@@ -139,7 +139,8 @@ export XML only — none of the structure synthesis or the constraints below tou
 - **No stained clay in the wool cage** — clay is spawn-cube-only (layer-4 strip). Wool cage uses wool only.
 - **Monument** — bedrock pedestal (elevated one block) · air placement cell · **stained-glass cap in that
   monument's wool colour** · sign against the pedestal.
-- **Doors** — wool-cage doors are **stained glass in that wool's colour**; the spawn-cube door is **open air**.
+- **Doors** — wool-cage doors are **stained-glass panes (id 160) in that wool's colour**; the spawn-cube door is
+  **open air**.
 - **Slit** — the layer-6 course is a true gap (air), not glass.
 - **Layers numbered from the floor** — floor 0 (spawn + 2×2 wool marker), doors from layer 1, colour strip at
   layer 4, light slit at layer 6, roof hole at layer 8. Colour-strip size is identical across both variants; the
