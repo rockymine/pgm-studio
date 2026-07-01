@@ -14,8 +14,8 @@
  */
 
 import { CanvasBase } from "./canvas-base.js";
-import { svgEl } from "../render/svg.js";
-import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape, scaleShape } from "../geometry/shape.js";
+import { svgEl, ringToPath } from "../render/svg.js";
+import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape, scaleShape, toRing } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
 
 // Island scale handles (S21): normalized bbox position (0=min · 0.5=mid · 1=max) + which axes each drives +
@@ -89,7 +89,7 @@ export class SketchCanvas extends CanvasBase {
 
   // viewport layers
   #bboxLayer = null; #chunkLayer = null; #axisLayer = null;
-  #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null; #guideLayer = null;
+  #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #selectionLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null; #guideLayer = null;
   // screen-space layers (outside the viewport transform)
   #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null; #measureLabelLayer = null; #islandChromeLayer = null;
   #iso      = null;   // WebGL iso renderer (S6), lazily created on first 3-D toggle
@@ -163,7 +163,7 @@ export class SketchCanvas extends CanvasBase {
     const g = this.#shapeEl(shape);
     this.#shapeElMap.set(shape.id, g);
     this.#shapesLayer.appendChild(g);
-    if (this.#selectedId === shape.id) { this.#applySelection(); this.#edit?.refresh(); }
+    if (this.#selectedId === shape.id) { this.#applySelection(); this.#edit?.refresh(); this.#renderSelectionHighlight(); }
   }
 
   removeShape(id) {
@@ -184,6 +184,7 @@ export class SketchCanvas extends CanvasBase {
     this.#edit?.setSelected(id);
     this.#edit?.refresh();
     this.#renderIslandChrome();
+    this.#renderSelectionHighlight();
     this.#updateDim();
   }
 
@@ -197,6 +198,7 @@ export class SketchCanvas extends CanvasBase {
     this.#edit?.setSelected(this.#selectedId);
     this.#edit?.refresh();
     this.#renderIslandChrome();
+    this.#renderSelectionHighlight();
     this.#updateDim();
   }
 
@@ -205,7 +207,7 @@ export class SketchCanvas extends CanvasBase {
   get selectedId() { return this.#selectedId; }
   #islandOfShape(shapeId) { return this.#islands.find(i => i.shapeIds?.includes(shapeId)) ?? null; }
 
-  setIslands(islands)        { this.#islands = islands ?? []; renderIslands(this.#islandLayer, this.#islands, identityTransform); this.#renderIslandChrome(); }
+  setIslands(islands)        { this.#islands = islands ?? []; renderIslands(this.#islandLayer, this.#islands, identityTransform); this.#renderIslandChrome(); this.#renderSelectionHighlight(); }
   setGhostIslands(polys)     { renderGhostIslands(this.#ghostLayer, polys ?? [], identityTransform); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; renderMirror(this.#mirrorLayer, this.#mirrorPolys, identityTransform); }
   setShapesVisible(v) { this.#shapesVisible = v; if (this.#shapesLayer) this.#shapesLayer.style.display = v ? "" : "none"; }
@@ -439,6 +441,39 @@ export class SketchCanvas extends CanvasBase {
     if (gz !== null) layer.appendChild(svgEl("line", { x1: min_x, y1: gz, x2: max_x, y2: gz, ...attrs }));
   }
 
+  // Accent-outline the current selection (S22) so it's findable even when the Shapes layer is hidden: the
+  // selected shape's own outline (its Bézier curve) when a shape is selected/drilled, else the selected
+  // island's outline (exterior + holes). Viewport-space (pans/zooms with the map); re-rendered on selection
+  // change and whenever the geometry recomputes (setIslands), so it follows move / rotate / scale / resize.
+  #renderSelectionHighlight() {
+    const layer = this.#selectionLayer;
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    let d = null;
+    if (this.#selectedId) {
+      const s = this.#shapes.get(this.#selectedId);
+      if (s) {
+        if ((s.type === "polygon" || s.type === "lasso") && s.vertices?.length >= 3) {
+          d = ringToPath(s.vertices, identityTransform, s.controls || {});
+        } else {
+          const ring = toRing(s);                       // rectangle / circle → closed ring
+          if (ring.length >= 4) d = ringToPath(ring.slice(0, -1), identityTransform);
+        }
+      }
+    } else if (this.#selectedIslandId) {
+      const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
+      if (isl?.exterior?.length >= 3) {
+        d = ringToPath(isl.exterior, identityTransform);
+        for (const h of (isl.holes ?? [])) d += " " + ringToPath(h, identityTransform);
+      }
+    }
+    if (!d) return;
+    layer.appendChild(svgEl("path", {
+      d, fill: "var(--accent)", "fill-opacity": "0.12", "fill-rule": "evenodd",
+      stroke: "var(--accent)", "stroke-width": "2.5", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
+    }));
+  }
+
   // Draw the selected island's bounding box + corner anchors (screen-space, so legible at any zoom), plus
   // the four rotate zones just OUTSIDE the corners (S13 — hover shows the rotate cursor, drag rotates the
   // island). The edges are reserved for scale (S21). Re-rendered on selection + every viewport change.
@@ -582,12 +617,13 @@ export class SketchCanvas extends CanvasBase {
     this.#ghostLayer  = svgEl("g", { id: "sk-ghost", "pointer-events": "none" });
     this.#islandLayer = svgEl("g", { "pointer-events": "none" });
     this.#shapesLayer = svgEl("g");
+    this.#selectionLayer = svgEl("g", { "pointer-events": "none" });   // accent outline of the selection (S22)
     this.#drawLayer   = svgEl("g", { "pointer-events": "none" });
     this.#measureLayer = svgEl("g", { "pointer-events": "none" });
     this.#placeLayer   = svgEl("g", { "pointer-events": "none" });
     this.#guideLayer   = svgEl("g", { "pointer-events": "none" });
     for (const g of [this.#bboxLayer, this.#chunkLayer, this.#axisLayer, this.#mirrorLayer, this.#ghostLayer,
-                     this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer, this.#guideLayer]) this._viewportG.appendChild(g);
+                     this.#islandLayer, this.#shapesLayer, this.#selectionLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer, this.#guideLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
     this.#islandChromeLayer = svgEl("g");   // island bbox (inert) + interactive rotate zones, below the handles

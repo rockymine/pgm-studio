@@ -639,6 +639,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   per-vertex anchor_heights are dropped on a cut); the bridge replaces the shape with its two halves and
   recomputes islands. (`geometry/shape.js` `splitShape` + `sketch-canvas.js` split tool + `sketch-bridge.js`
   `splitAt`; node-tested; S14)
+- **Selection outline highlight** — selecting on the sketch canvas now changes the **outline**, not just the
+  anchors: the selected **shape's** outline (its Bézier curve) — or, for a multi-shape island, the **island's**
+  outline (exterior + holes) — glows in **accent** (stroke + faint fill) in an always-visible overlay layer,
+  independent of the **Shapes** toggle. So a drilled member is findable within a busy island instead of showing
+  only its handles + a sliver of the shared outline. Follows move / rotate / scale / resize / vertex edits via
+  the recompute path. (`sketch-canvas.js` `#renderSelectionHighlight` + `#selectionLayer`; S22)
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,
