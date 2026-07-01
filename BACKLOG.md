@@ -155,9 +155,10 @@ questions) — resolve before the stamping tasks.
   are deliberately flat for now — a later task can add a surface palette.)
 - [ ] **P9d — Block-template + cube-shell library.** Define block templates once (bedrock 7, stone 1, air 0,
   stained-glass 95:data, wool 35:data, stained-clay 159:data, sign + chest tile-entities). Build the shared
-  **8×8×8 hollow-bedrock cube emitter** parametrised by colour + variant (roof 4×4 hole, layer-3 light slit,
-  coloured layer(s), 2×2 floor wool, glass doors) per `docs/contracts/sketch-world-export.md` §2. Colours from a
-  dye slug → data nibble (0–15) via `BlockColors`. Consumed by P9g (wool cage) and P9h (spawn cube).
+  **8×8×8 hollow-bedrock cube emitter** parametrised by colour + variant (floor-indexed: roof 4×4 hole at
+  layer 8, air light-slit at layer 6, colour strip at layer 4, 2×2 floor wool at layer 0, doors from layer 1) per
+  `docs/contracts/sketch-world-export.md` §2. Colours from a dye slug → data nibble (0–15) via `BlockColors`.
+  Consumed by P9g (wool cage) and P9h (spawn cube).
 - [ ] **P9e — Full-map ZIP export at the Configure export point.** At `MapXmlEndpoint` (`GET /api/map/{slug}/xml`),
   for **sketch-origin maps** return a ZIP of `{slug}/map.xml` + `{slug}/level.dat` + `{slug}/region/r.<x>.<z>.mca`
   (wiring together P9a–P9d/g/h/i after the existing playability/traversability gate). Configure-imported maps keep
@@ -165,18 +166,30 @@ questions) — resolve before the stamping tasks.
 - [ ] **P9f — Sketch-origin gate + export UX.** Branch zip-vs-xml on sketch origin (presence of the
   `sketch_layout_json` artifact — the durable "was a sketch" signal, since `MapStage.Sketch` advances to
   `configure` on finish); surface build/export errors; keep the branch downstream of the traversability 409.
-- [ ] **P9g — Wool-cage stamping.** Emit the wool-cage variant (§2: layer-5 wool ring, 2×2 floor-wool spawn
-  point, four 2×3 glass doors) via the P9d emitter, coloured per `WoolIntent.Color`, resting on the terrain
-  surface at each wool `Room`. See P9i for chests.
-- [ ] **P9h — Spawn-cube + monument stamping.** Emit the spawn-cube variant (§2: layers 5–6 stained clay, 2×2
-  floor wool, single 4×4 glass door), team-coloured, on the terrain surface at each `SpawnIntent.Point`. Stamp the
-  **in-cube monuments** (§3): pedestal elevated one block in the corners, air placement cell above, sign mounted
-  against the pedestal; positions derived from wool count (1–2 → door wall · 3–4 → back wall · 5+ → fill back
-  wall), **not** from a freely-authored `MonumentIntent.Location`. Monument = bedrock pedestal · air cell ·
-  wool-colour glass cap · sign; label per §3 (`Place the` / bold colour / coloured `Wool` / `here!`).
+- [ ] **P9g — Wool-cage stamping.** Emit the wool-cage variant (§2: layer-4 wool strip, 2×2 floor-wool spawn
+  point, four 2×3 doors in **wool-colour stained glass**) via the P9d emitter, coloured per `WoolIntent.Color`,
+  anchored on the (integer-snapped, §5) wool spawn point and resting on the terrain surface (`ymax`). See P9i for
+  chests.
+- [ ] **P9h — Spawn-cube + monument stamping.** Emit the spawn-cube variant (§2: layer-4 stained-clay strip, 2×2
+  floor wool, single 4×4 **open-air** door), team-coloured, anchored on the (integer-snapped) `SpawnIntent.Point`
+  at the terrain surface. **Door wall derived from the spawn `Yaw`** (player spawns facing out; §5). Stamp the
+  **in-cube monuments** (§3, fully auto-wired — no `MonumentIntent`): bedrock pedestal elevated one block in the
+  corners · air placement cell · wool-colour glass cap · sign against the pedestal; positions by wool count
+  (1–2 → door wall · 3–4 → back wall · 5+ → fill back wall); label per §3 (`Place the` / bold colour / coloured
+  `Wool` / `here!`).
 - [ ] **P9i — Wool-cage chest loadout.** Two stacked chests in each of the 4 interior corners (§2a), each a
   27-slot chest tile-entity: chest A = planks×16 · Speed I (3:00) potions · golden apples×16; chest B = diamond
   leggings · Power I + Infinity bows · planks×16. One 9-slot row per item type.
+- [ ] **P9j — Position snapping + spawn orientation (sketch-origin authoring).** The authored spawn/wool
+  positions anchor the structures (§5), so on sketch-origin maps they must be constrained: **X/Z snapped to full
+  integers** (the 2×2 cube centre needs a whole-integer midpoint — MC block centres are `.5`), **Y snapped to the
+  column top (`ymax`)** so the cube floor rests on terrain, and the **spawn `Yaw` captured/derived to orient the
+  door** (player faces out). Enforce where positions are set for sketch maps (`/sketch/finish` land + the
+  Configure position editors); store the snapped coords + yaw.
+- [ ] **P9k — Remove the monument authoring step (sketch-origin Configure).** Monuments are fully auto-wired
+  from wool count + spawn-cube geometry (§3), so the Configure wizard's manual monument step is dead for
+  sketch-origin maps — drop it from the flow (and stop persisting `MonumentIntent` for these maps). Touches the
+  Configure wizard (authoring UI), not the exporter.
 - [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
   parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
   **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI

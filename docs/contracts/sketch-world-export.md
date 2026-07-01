@@ -84,7 +84,11 @@ pedestal elevated one block** off the cube floor (it is *not* the floor) → an 
 (the wool goes here) → a **stained-glass cap in that monument's wool colour** above that. A **sign** is mounted
 against the pedestal side.
 
-**Placement by wool count** (the capturing team's monuments, `MonumentIntent.Team`):
+Monuments are **fully auto-wired** — the exporter derives every monument from the wool set + spawn-cube geometry.
+There is **no manual monument authoring step** (it is removed from the Configure wizard for sketch-origin maps);
+positions are *not* read from a freely-authored `MonumentIntent.Location`.
+
+**Placement by wool count** (per capturing team):
 
 - **1–2 wools:** corners **against the wall that has the door**; sign parallel to the door wall.
 - **3–4 wools:** the **other** corners, mirroring the sign position — parallel to the **back wall**.
@@ -111,7 +115,26 @@ world's date field). Crib the exact tag set from a real 1.8-era CTW `level.dat` 
 
 ---
 
-## 5. Resolved decisions
+## 5. Placement anchoring & coordinate constraints
+
+**Scope: this whole document applies only to maps that land from the sketch endpoint
+(`POST /api/map/{slug}/sketch/finish`) into Configure.** Normal Configure-imported maps ship a real world and
+export XML only — none of the structure synthesis or the constraints below touch them.
+
+- **The authored spawn / wool positions anchor the structures.** The spawn cube is centred on the player
+  `SpawnIntent.Point`; each wool cage is centred on its wool spawn point (the 2×2 floor-wool marker). Move the
+  point → move the cube. Setting these positions *is* how the author places the structures.
+- **X / Z must snap to full integers.** The cube has a 2×2 centre, and Minecraft block centres sit at `.5`, so
+  the de-facto midpoint is a whole integer. Spawn/wool X,Z must be stored as integers (not `.5`), or the 2×2
+  centre — and thus the whole cube — won't align to blocks.
+- **Y snaps to the column top (`ymax`).** Player and wool spawns are forced to the **topmost layer** — the
+  layer-segment `ymax` at that column (the DB blob is `ymin, ymax`) — so the cube floor rests on the terrain
+  surface (structures sit *on top of* terrain, never embedded / floating).
+- **Spawn yaw → door orientation.** The spawn cube's single 4×4 door must face the intended entry direction: the
+  player spawns facing out through the door. The spawn `Yaw` and the door wall are derived together so the entry
+  faces the right way; monuments then sit against that door wall / the back wall per §3.
+
+## 6. Resolved decisions
 
 - **No stained clay in the wool cage** — clay is spawn-cube-only (layer-4 strip). Wool cage uses wool only.
 - **Monument** — bedrock pedestal (elevated one block) · air placement cell · **stained-glass cap in that
