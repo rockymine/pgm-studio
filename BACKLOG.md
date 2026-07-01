@@ -42,7 +42,7 @@ the focus-integration polish remains.
 
 ## Sketch tool (S) — parked slices
 
-The active Sketch depth pass is in `TODO.md` (`S12`–`S19`). These are the parked / dormant slices.
+The active Sketch depth pass is in `TODO.md` (`S12`–`S16`). These are the parked / dormant slices.
 
 - [~] **S2 — Sketch tool: end-to-end verification.** The tool itself is **complete and shipped**
   (`FEATURES.md`): originate → Setup → draw → live islands + mirror → Finish/rasterize, with persistence

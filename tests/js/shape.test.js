@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, BEZIER_SAMPLES }
+import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, BEZIER_SAMPLES }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/shape.js";
 
 // ── toRing ────────────────────────────────────────────────────────────────────
@@ -61,6 +61,32 @@ test("toBounds per type", () => {
   assert.deepEqual(toBounds({ type: "polygon", vertices: [[0, 0], [4, 0], [2, 5]] }),
     { min_x: 0, min_z: 0, max_x: 4, max_z: 5 });
   assert.equal(toBounds({ type: "lasso", vertices: [] }), null);
+});
+
+// ── rectToPolygon ─────────────────────────────────────────────────────────────
+test("rectToPolygon keeps id/operation/override and the 4 corners CW", () => {
+  const poly = rectToPolygon({ id: "r1", type: "rectangle", operation: "subtract", override: true, min_x: 0, min_z: 0, max_x: 4, max_z: 2 });
+  assert.equal(poly.id, "r1");
+  assert.equal(poly.type, "polygon");
+  assert.equal(poly.operation, "subtract");
+  assert.equal(poly.override, true);
+  assert.deepEqual(poly.vertices, [[0, 0], [4, 0], [4, 2], [0, 2]]);
+});
+
+test("rectToPolygon carries the height fields (S15 — no reset to the default)", () => {
+  const poly = rectToPolygon({
+    id: "r1", type: "rectangle", operation: "add", override: false,
+    min_x: 0, min_z: 0, max_x: 4, max_z: 4, base_height: 12, floor: 3,
+  });
+  assert.equal(poly.base_height, 12);
+  assert.equal(poly.floor, 3);
+});
+
+test("rectToPolygon omits height fields that were never set", () => {
+  const poly = rectToPolygon({ id: "r1", type: "rectangle", operation: "add", min_x: 0, min_z: 0, max_x: 4, max_z: 4 });
+  assert.equal("base_height" in poly, false);
+  assert.equal("floor" in poly, false);
+  assert.equal("anchor_heights" in poly, false);
 });
 
 // ── containsPoint ─────────────────────────────────────────────────────────────

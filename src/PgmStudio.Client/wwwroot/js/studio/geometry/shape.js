@@ -69,16 +69,22 @@ export function toRing(shape) {
 
 /**
  * Promote a rectangle shape to an equivalent **polygon** — its 4 corners as open vertices
- * (clockwise from min,min), keeping id/operation/override. Lets the author then drag corners
- * off-axis, insert midpoints, or curve edges (none of which a rectangle can represent). Identity
- * geometry, so the footprint is unchanged; only the editing affordances open up.
+ * (clockwise from min,min), keeping id/operation/override **and the height fields**
+ * (base_height/floor/anchor_heights). Lets the author then drag corners off-axis, insert midpoints,
+ * or curve edges (none of which a rectangle can represent). Identity geometry, so the footprint and
+ * column are unchanged; only the editing affordances open up.
  */
 export function rectToPolygon(shape) {
   const { min_x, min_z, max_x, max_z } = shape;
-  return {
+  const poly = {
     id: shape.id, type: "polygon", operation: shape.operation, override: !!shape.override,
     vertices: [[min_x, min_z], [max_x, min_z], [max_x, max_z], [min_x, max_z]],
   };
+  // Carry the column through — a promoted rectangle must keep its height, not reset to the default.
+  if (shape.base_height    !== undefined) poly.base_height    = shape.base_height;
+  if (shape.floor          !== undefined) poly.floor          = shape.floor;
+  if (shape.anchor_heights !== undefined) poly.anchor_heights = shape.anchor_heights;
+  return poly;
 }
 
 /** Translate an AABB `{min_x,min_z,max_x,max_z}` by (dx,dz), returning a new bounds (the editor's region

@@ -166,7 +166,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
 
   // Build the iso "solids" for every layer: one solid PER SHAPE so per-shape heights are visible (a
   // per-island prism would collapse to the island's tallest shape and hide the rest). Each add shape
-  // becomes a flat prism at its own base_height — carved by the layer's subtract shapes so holes/moats
+  // becomes a flat prism spanning [floor, floor + height] (floor = elevation, height = thickness) —
+  // carved by the layer's subtract shapes so holes/moats
   // show (subtracts are not solids themselves) — or, if it carries per-vertex anchor_heights, sloped
   // terrain (S5c). Carving follows the rasterizer's order: a normal subtract cuts normal adds, an
   // override subtract cuts everything. All shifted by the layer's base_y, with a mirror copy per orbit
@@ -191,7 +192,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       const normalSubMP   = subs.filter(s => !s.override).map(shapeToMultiPoly).filter(p => p.length);
       const overrideSubMP = subs.filter(s =>  s.override).map(shapeToMultiPoly).filter(p => p.length);
 
-      const terrainOf = (s, verts, mirror) => ({ vertices: verts, heights: s.anchor_heights.map(hh => L.baseY + hh), floor: L.baseY + (s.floor ?? 0), mirror });
+      // floor = elevation (base_y + shape floor); a vertex's top = floor + its thickness (anchor_heights).
+      const terrainOf = (s, verts, mirror) => {
+        const fl = L.baseY + clampFloor(s.floor);
+        return { vertices: verts, heights: s.anchor_heights.map(hh => fl + hh), floor: fl, mirror };
+      };
 
       for (const s of L.shapes) {
         if (s.operation === "subtract") continue;            // carves land; not a solid
@@ -201,7 +206,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
           if (doMirror) for (const axis of axes) out.push(terrainOf(s, mirrorRing(s.vertices, axis), true));
           continue;
         }
-        const top = L.baseY + clampHeight(s.base_height), floor = L.baseY + clampFloor(s.floor);
+        const floor = L.baseY + clampFloor(s.floor), top = floor + clampHeight(s.base_height);
         const clippers = s.override ? overrideSubMP : normalSubMP.concat(overrideSubMP);
         for (const { exterior, holes } of carveFootprint(s, clippers)) {     // add − subs → exterior + holes
           out.push({ exterior, holes, top, floor, mirror: false });

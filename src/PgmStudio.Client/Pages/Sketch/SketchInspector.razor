@@ -33,13 +33,14 @@
           </button>
         }
         <div class="field">
-          <label class="field-label">Height (blocks)</label>
+          <label class="field-label">Height (thickness)</label>
           <NumberField Value="Shape.BaseHeight" ValueChanged="HeightChanged" Min="1" />
         </div>
         <div class="field">
-          <label class="field-label">Floor (blocks)</label>
+          <label class="field-label">Floor (elevation)</label>
           <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" />
         </div>
+        <p class="section-desc">Floor lifts the base; the top sits at floor + height.</p>
         @if (Shape.Type == "polygon" || Shape.Type == "lasso")
         {
           @if (SelectedVertexIdx >= 0)

@@ -8,7 +8,9 @@
  *   handlesLayer  SVGGElement              — screen-space handle layer
  *   getViewport   () => { scale, panX, panY }
  *   getShape      (id) => shape | undefined
- *   callbacks     { onShapeUpdated }
+ *   callbacks     { onShapeUpdated, onVertexSelected, snapEdges }
+ *     snapEdges(id, {x,z}, alt) → {x,z}    — snap the dragged resize edge(s) to canvas targets + draw a
+ *                                            guide (the resize counterpart of the canvas's move snapping)
  */
 
 import { svgEl, handleRectAttrs } from "../render/svg.js";
@@ -53,11 +55,11 @@ export class SketchEditController {
   #ghostEl         = null;
   #hoveredEdgeIdx  = -1;
 
-  constructor(handlesLayer, getViewport, getShape, { onShapeUpdated, onVertexSelected } = {}) {
+  constructor(handlesLayer, getViewport, getShape, { onShapeUpdated, onVertexSelected, snapEdges } = {}) {
     this.#handlesLayer = handlesLayer;
     this.#getViewport  = getViewport;
     this.#getShape     = getShape;
-    this.#callbacks    = { onShapeUpdated, onVertexSelected };
+    this.#callbacks    = { onShapeUpdated, onVertexSelected, snapEdges };
   }
 
   setSelected(id) { if (id !== this.#selectedId) this.#selectedVertex = -1; this.#selectedId = id; }
@@ -125,8 +127,14 @@ export class SketchEditController {
       const shape = this.#getShape(shapeId);
       if (shape?.type === "rectangle") {
         const bx = Math.floor(wx), bz = Math.floor(wz);
-        if (xf) shape[xf] = xf === "max_x" ? bx + 1 : bx;
-        if (zf) shape[zf] = zf === "max_z" ? bz + 1 : bz;
+        // Proposed dragged-edge coords, then snap them to the canvas's targets (edges/centres + symmetry
+        // centre) — same snapping the move path gets. Alt / the Snap toggle are honoured inside the hook.
+        let ex = xf ? (xf === "max_x" ? bx + 1 : bx) : null;
+        let ez = zf ? (zf === "max_z" ? bz + 1 : bz) : null;
+        const snapped = this.#callbacks.snapEdges?.(shapeId, { x: ex, z: ez }, altKey);
+        if (snapped) { ex = snapped.x; ez = snapped.z; }
+        if (xf) shape[xf] = Math.round(ex);
+        if (zf) shape[zf] = Math.round(ez);
         if (shape.min_x >= shape.max_x) {
           if (xf === "min_x") shape.min_x = shape.max_x - 1; else shape.max_x = shape.min_x + 1;
         }

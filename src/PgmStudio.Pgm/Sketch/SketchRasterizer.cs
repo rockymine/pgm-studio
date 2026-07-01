@@ -6,10 +6,11 @@ namespace PgmStudio.Pgm.Sketch;
 /// Rasterizes a sketch layout (the <c>sketch_layout_json</c> blob) into the solid block cells of the
 /// finished world (docs/contracts/sketch-tool-improvements.md §3). Pure: no DOM, no DB. <see cref="Rasterize"/>
 /// yields the (x,z) footprint; <see cref="RasterizeColumns"/> also carries each cell's vertical span
-/// <c>[YFloor, YTop]</c> — a uniform <c>base_height</c>, or, for a polygon/lasso whose <c>anchor_heights</c>
-/// line up with its vertices, a per-vertex surface TIN-interpolated across the footprint
-/// (<see cref="Triangulation"/>). Mirrors the JS geometry it must agree with (circle = 64-gon,
-/// Bézier = 16 samples/edge); per-island mirror copies follow the saved island <c>shapeIds</c>.
+/// <c>[YFloor, YTop]</c>, where <c>Floor</c> is the shape's elevation and <c>Height</c> its thickness:
+/// <c>YTop = base_y + floor + height</c>. Height is a uniform <c>base_height</c>, or, for a polygon/lasso
+/// whose <c>anchor_heights</c> line up with its vertices, a per-vertex thickness TIN-interpolated across
+/// the footprint (<see cref="Triangulation"/>). Mirrors the JS geometry it must agree with (circle =
+/// 64-gon, Bézier = 16 samples/edge); per-island mirror copies follow the saved island <c>shapeIds</c>.
 /// </summary>
 public static class SketchRasterizer
 {
@@ -124,8 +125,9 @@ public static class SketchRasterizer
     }
 
     // ── single shape → cells with column (rasterize its ring by block-centre sampling) ────────────
-    // Invariants (enforced here so finish output is valid even for legacy stored data): a column's floor
-    // is >= 0 and its top is >= 1 (a shape is never zero-height).
+    // Floor = where the shape's base sits (elevation), Height = thickness: a column spans
+    // [floor, floor + height]. Invariants (enforced here so finish output is valid even for legacy
+    // stored data): floor >= 0 and thickness >= 1 (a shape is never zero-height).
     private static IEnumerable<(int X, int Z, int Top, int Floor)> RasterShape(SketchShape s)
     {
         var ring = RingOf(s);
@@ -133,12 +135,16 @@ public static class SketchRasterizer
         int floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));
         var height = HeightFn(s);
         foreach (var (x, z) in RasterRing(ring))
-            yield return (x, z, Math.Max(1, (int)Math.Round(height(x + 0.5, z + 0.5))), floor);
+        {
+            int thickness = Math.Max(1, (int)Math.Round(height(x + 0.5, z + 0.5)));
+            yield return (x, z, floor + thickness, floor);
+        }
     }
 
-    // The surface-height sampler for a shape: a per-vertex TIN (polygon/lasso with matching anchor_heights),
-    // else the uniform base_height (default 1). The TIN is over the straight vertex polygon — points in a
-    // Bézier fringe fall back to the nearest vertex inside Interpolate.
+    // The thickness sampler for a shape: a per-vertex TIN (polygon/lasso with matching anchor_heights),
+    // else the uniform base_height (default 1). The result is a thickness above the floor, not an absolute
+    // top. The TIN is over the straight vertex polygon — points in a Bézier fringe fall back to the nearest
+    // vertex inside Interpolate.
     private static Func<double, double, double> HeightFn(SketchShape s)
     {
         if ((s.Type == "polygon" || s.Type == "lasso") && s.Vertices is { Length: >= 3 } verts

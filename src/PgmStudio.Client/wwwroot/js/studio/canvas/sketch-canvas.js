@@ -65,7 +65,7 @@ export class SketchCanvas extends CanvasBase {
   #bboxLayer = null; #chunkLayer = null; #axisLayer = null;
   #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null; #guideLayer = null;
   // screen-space layers (outside the viewport transform)
-  #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null;
+  #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null; #measureLabelLayer = null;
   #iso      = null;   // WebGL iso renderer (S6), lazily created on first 3-D toggle
   #isoOn    = false;
 
@@ -185,7 +185,7 @@ export class SketchCanvas extends CanvasBase {
     this.#isoOn = true;
     this.#draw?.cancel();
     const { w, h } = this.#size();
-    for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) g.style.display = "none";
+    for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer]) g.style.display = "none";
     this.#iso.show();
     this.#iso.render(islands, w, h, yawDeg, bbox);
     return true;
@@ -194,12 +194,12 @@ export class SketchCanvas extends CanvasBase {
     this.#isoOn = false;
     this.#iso?.hide();
     this._viewportG.style.display = "";
-    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) g.style.display = "";
+    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer]) g.style.display = "";
   }
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); }
+  _onViewportChanged() { this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
@@ -241,7 +241,11 @@ export class SketchCanvas extends CanvasBase {
     const p = this._clientToSvg(e.clientX, e.clientY);
     return this.#edit.onResizeMove(p.x, p.y, e.altKey);
   }
-  _onResizeUp(e) { return e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false; }
+  _onResizeUp(e) {
+    const consumed = e.button === 0 ? (this.#edit?.onResizeUp() ?? false) : false;
+    this.#renderGuides(null, null);   // drop any resize alignment guide
+    return consumed;
+  }
 
   // Body-drag (CV10): drag the selected shape's body to move it. World == svg base coords here, so the
   // default _toWorld (identity) is correct — no override.
@@ -285,6 +289,23 @@ export class SketchCanvas extends CanvasBase {
   }
 
   _commitMove() { this.#dragStartShape = null; this.#renderGuides(null, null); }
+
+  // Snap-aware rectangle resize: snap the dragged edge coord(s) to other shapes' edges/centres + the
+  // symmetry centre, draw the alignment guide, and return the (possibly) adjusted coords. The resize
+  // counterpart of _moveTo's snapping; fed to the edit controller as its `snapEdges` hook. `edges` = the
+  // proposed dragged-edge values `{ x, z }` (either may be null when that axis isn't dragged). Alt or the
+  // Snap toggle off → pass through unchanged and clear the guide.
+  #snapResize(excludeId, edges, alt) {
+    if (!this.#snapEnabled || alt) { this.#renderGuides(null, null); return edges; }
+    const tol = 6 / (this._scale || 1);
+    const { xs, zs } = this.#snapTargets(excludeId);
+    let gx = null, gz = null;
+    const out = { x: edges.x, z: edges.z };
+    if (edges.x != null) { const s = bestSnap([edges.x], xs, tol); if (s) { out.x = s.line; gx = s.line; } }
+    if (edges.z != null) { const s = bestSnap([edges.z], zs, tol); if (s) { out.z = s.line; gz = s.line; } }
+    this.#renderGuides(gx, gz);
+    return out;
+  }
 
   // Candidate snap coordinates: every OTHER shape's bbox min/centre/max + the symmetry centre.
   #snapTargets(excludeId) {
@@ -339,10 +360,11 @@ export class SketchCanvas extends CanvasBase {
                      this.#islandLayer, this.#shapesLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer, this.#guideLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
-    this.#handlesLayer     = svgEl("g");
-    this.#centerLayer      = svgEl("g", { "pointer-events": "none" });
-    this.#drawHandlesLayer = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer]) this._svg.appendChild(g);
+    this.#handlesLayer      = svgEl("g");
+    this.#centerLayer       = svgEl("g", { "pointer-events": "none" });
+    this.#drawHandlesLayer  = svgEl("g", { "pointer-events": "none" });
+    this.#measureLabelLayer = svgEl("g", { "pointer-events": "none" });
+    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer]) this._svg.appendChild(g);
 
     if (!this.#shapesVisible) this.#shapesLayer.style.display = "none";
     if (!this.#mirrorVisible) this.#mirrorLayer.style.display = "none";
@@ -355,6 +377,7 @@ export class SketchCanvas extends CanvasBase {
     this.#edit = new SketchEditController(this.#handlesLayer, getViewport, (id) => this.#shapes.get(id), {
       onShapeUpdated: (shape) => { this.updateShape(shape); this.#callbacks.onShapeUpdated?.(shape); },
       onVertexSelected: (shapeId, idx) => this.#callbacks.onVertexSelected?.(shapeId, idx),
+      snapEdges: (id, edges, alt) => this.#snapResize(id, edges, alt),
     });
 
     // Escape cancels an in-progress draw; Delete/Backspace removes the selected shape. (Arrow-nudge is
@@ -419,35 +442,60 @@ export class SketchCanvas extends CanvasBase {
     layer.appendChild(svgEl("circle", { cx: sx, cy: sy, r: 4, fill: "none", stroke: col, "stroke-width": "1.5" }));
   }
 
-  // The ruler line (world coords, so it pans/zooms with the map); the block distance shows in #dimEl.
+  // The ruler: a line in world coords (so it pans/zooms with the map) plus a live distance label on the
+  // line itself (#renderMeasureLabel) — the reading rides the ruler, not the sub-bar.
   #renderMeasure() {
     const layer = this.#measureLayer;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     const m = this.#measure;
-    if (!m) return;
-    layer.appendChild(svgEl("line", {
+    if (m) layer.appendChild(svgEl("line", {
       x1: m.ax, y1: m.az, x2: m.bx, y2: m.bz,
       stroke: "var(--canvas-axis)", "stroke-width": "1.5", "stroke-dasharray": "4 3", "vector-effect": "non-scaling-stroke",
     }));
+    this.#renderMeasureLabel();
+  }
+
+  // The ruler distance as pure screen-space text running ALONG the ruler line — legible at any zoom (a
+  // world-space label would scale with the map), so it's repositioned on every viewport change too. A
+  // thin halo (paint-order stroke in the canvas bg) keeps it readable over shapes without a box/pill.
+  #renderMeasureLabel() {
+    const layer = this.#measureLabelLayer;
+    if (!layer) return;
+    while (layer.firstChild) layer.removeChild(layer.firstChild);
+    const m = this.#measure;
+    if (!m) return;
+    const text = `${Math.round(Math.hypot(m.bx - m.ax, m.bz - m.az))} blocks`;
+    // Endpoints + midpoint in screen space (identity world→svg, then the viewport pan/scale).
+    const ax = m.ax * this._scale + this._panX, ay = m.az * this._scale + this._panY;
+    const bx = m.bx * this._scale + this._panX, by = m.bz * this._scale + this._panY;
+    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+    let deg = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
+    if (deg > 90 || deg < -90) deg += 180;                 // keep the text upright, never mirrored
+    const rad = deg * Math.PI / 180, OFF = 7;              // float just off the line, on its upper side
+    const tx = mx + Math.sin(rad) * OFF, ty = my - Math.cos(rad) * OFF;
+    const t = svgEl("text", {
+      x: tx, y: ty, transform: `rotate(${deg.toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)})`,
+      "text-anchor": "middle", "dominant-baseline": "middle",
+      "font-size": "11", "font-family": "ui-monospace, monospace", "font-weight": "600",
+      fill: "var(--canvas-axis)", "pointer-events": "none",
+      "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
+    });
+    t.textContent = text;
+    layer.appendChild(t);
   }
 
   #clearMeasure() { this.#measure = null; this.#renderMeasure(); this.#updateDim(); }
 
-  // On-canvas size readout: ruler distance while measuring, else the active draw's W×D, else the
-  // selected shape's extent — so the author can aim for a target block size while drawing.
+  // On-canvas size readout (sub-bar): the active draw's W×D, else the selected shape's extent — so the
+  // author can aim for a target block size while drawing. (The ruler distance reads on the ruler line
+  // itself via #renderMeasureLabel, not here.)
   #updateDim() {
     if (!this.#dimEl) return;
-    let label = "";
-    if (this._activeTool === "measure" && this.#measure) {
-      const m = this.#measure;
-      label = `${Math.round(Math.hypot(m.bx - m.ax, m.bz - m.az))} blocks`;
-    } else {
-      label = this.#draw?.activeDimLabel?.() || "";
-      if (!label && this.#selectedId) {
-        const b = toBounds(this.#shapes.get(this.#selectedId));
-        if (b) label = `${Math.round(b.max_x - b.min_x)} × ${Math.round(b.max_z - b.min_z)}`;
-      }
+    let label = this.#draw?.activeDimLabel?.() || "";
+    if (!label && this.#selectedId) {
+      const b = toBounds(this.#shapes.get(this.#selectedId));
+      if (b) label = `${Math.round(b.max_x - b.min_x)} × ${Math.round(b.max_z - b.min_z)}`;
     }
     this.#dimEl.textContent = label;
   }

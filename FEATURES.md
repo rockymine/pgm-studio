@@ -77,6 +77,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   snap-aware move path to `CanvasBase` (`_moveStart` / `_moveTo`, alongside CV10's incremental `_moveBy`);
   the sketch canvas does the snap + guide render. Position alignment only — angle/parallel + droppable guide
   lines are parked (S9b). (S9)
+- **Alignment snapping on rectangle resize** — the smart guides now also fire on the sketch **8-handle
+  resize** path, not just move: the dragged edge(s) snap to other shapes' edges/centres + the symmetry centre
+  with a dashed guide, honouring the **Snap** toggle and **Alt** bypass. `SketchEditController.onResizeMove`
+  feeds the proposed edge(s) through a `snapEdges` hook; the canvas owns the targets/guides (`#snapResize`,
+  the resize counterpart of `_moveTo`) and clears the guide on release. (S19)
 - **`SmartSuggestion` component** + symmetry-derived intelligent team creation (reads `/symmetry`,
   suggests 2/4 palette teams). (C15)
 - **`Toast` error component** — shared across activities. (from C12)
@@ -521,9 +526,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Footprint presets + size legibility** — the footprint frame sets a **non-square** working area
   (width X × depth Z) from presets: 2-team landscape `120×80` (default), portrait `80×120`, square
   `120×120` (4-team / D2), or custom — replacing the old 512-square that made 10–15-block lanes
-  undrawable. A live **on-canvas size readout** (`canvas-dim`) shows the active draw's `W × D`, the
-  selected shape's extent, or the **ruler** tool's block distance (drag across a void gap). (S3)
+  undrawable. A live **on-canvas size readout** (`canvas-dim`) shows the active draw's `W × D` or the
+  selected shape's extent. (S3)
   Plan: `docs/contracts/sketch-tool-improvements.md` §1.
+- **Ruler distance reads on the ruler line** — the measure tool renders its block distance as **pure
+  screen-space text running along the ruler line** (at the midpoint, kept upright, with a thin halo so it
+  stays legible over shapes at any zoom, re-drawn on every pan/zoom) instead of in the `canvas-dim` sub-bar,
+  which now keeps only the draw `W × D` / selected-extent. A canvas-wide **`user-select: none`** on the shared
+  drawing surface (`.map-canvas-svg`) stops a drag from selecting the on-canvas SVG labels. (S18)
 - **New-sketch creation page** — `/maps/new-sketch` (`SketchCreate`): the full-screen origination entry
   (mirrors Configure's `/maps/new`), reached from the Sketch overview's New-sketch link. An **Identity**
   section (map name) + a `filter-chip` **Start from** picker → **Blank** (SVG-preview footprint + symmetry
@@ -533,9 +543,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   sidebar into a collapsed **Frame** accordion, lifting the Islands tree toward the top. Reusable `.choice-*`
   tile CSS shared with the primitive palette. (S11) Plan: `docs/contracts/sketch-creation-flow.md`.
 - **Rectangle → polygon promotion** — an inspector **Convert to polygon** button (and the `P` shortcut)
-  turns the selected rectangle into a 4-corner polygon (id / operation / override preserved), opening
-  vertex-drag · midpoint-insert · Bézier editing. Pure `rectToPolygon` (`geometry/shape.js`); `promoteShape`
-  in the bridge; the 8-handle rectangle resize is unchanged until you promote. (S4) §2.
+  turns the selected rectangle into a 4-corner polygon (id / operation / override **and the height fields**
+  `base_height`/`floor`/`anchor_heights` preserved — a promoted box keeps its column instead of resetting to
+  the 1-block default), opening vertex-drag · midpoint-insert · Bézier editing. Pure `rectToPolygon`
+  (`geometry/shape.js`); `promoteShape` in the bridge; the 8-handle rectangle resize is unchanged until you
+  promote. (S4, S15) §2.
 - **Shape library (drag-in primitives)** — a left-sidebar palette (above the island tree) of pure-geometry
   primitives: n-gons {3,5,6,8}, polyominoes (L · U · T · I-bar · scythe · cross · line-with-branch), and a
   hole-square add+sub composite. Click a thumbnail → a ghost follows the cursor → click the canvas to place
@@ -549,14 +561,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   alignment. `WriteSketchAsync` writes the real span to `layer_segment` (the SliceView reads it) and the
   surface block at `YTop`. Verified by Geom + rasterizer unit tests and a DB-level finish (uniform + ramp).
   (S5 — rasterization; per-anchor editing UI is S5b) §3.
+- **Floor = elevation, Height = thickness** — the column model is the intuitive one: **Floor** is where a
+  shape's base sits and **Height** is how tall it is, so `YTop = base_y + floor + height` (previously `floor`
+  was the bottom-Y and `base_height` an absolute top-Y, which read like a second height in the inspector).
+  Applied in `SketchRasterizer.RasterShape` (`top = floor + thickness`), the iso preview's prism/terrain calc
+  (`sketch-bridge.js`), and the inspector labels/hint (`SketchInspector.razor`); stored sketches re-rasterize
+  under the new meaning (no backward-compat). Rasterizer unit tests cover the floor-lifted column + per-vertex
+  thickness. (S17) §3.
 - **Per-vertex height editing** — with a polygon selected, **click a vertex** to set its height (inspector
   *Vertex N height* field); every vertex shows its height as a **label** on the canvas (the shape's height
   profile), the selected one highlighted. Writes `anchor_heights[]`; on finish the rasterizer TIN-interpolates
   the slope (a raised corner ramps down across the footprint — verified `0→14` gradient in `layer_segment`),
   visible in Configure's height side-view. Click-vs-drag split by a movement threshold
   (`sketch-edit-controller`). (S5b) §3.
-- **Height editing field + isometric 3-D preview** — the sketch inspector gains **Height** (`base_height`) +
-  **Floor** fields on the selected shape; a **3D** toggle swaps the top-down canvas for a read-only **WebGL
+- **Height editing field + isometric 3-D preview** — the sketch inspector gains **Height (thickness)**
+  (`base_height`) + **Floor (elevation)** fields on the selected shape; a **3D** toggle swaps the top-down
+  canvas for a read-only **WebGL
   isometric** view (`render/iso-webgl.js`). Each shape becomes
   a prism (footprint extruded floor→top) or, for per-anchor shapes, a TIN-draped sloped solid; an
   orthographic camera at the true-iso elevation (yaw-rotatable) with key/fill/ambient lighting renders them

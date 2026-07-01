@@ -100,15 +100,21 @@ The core win. A shape gains a **surface height**; the rasterizer emits a **colum
 
 ```csharp
 // SketchShape — new fields, all optional, default = today's flat Y=0 behaviour
-[JsonPropertyName("base_height")] public double? BaseHeight { get; set; }   // uniform surface Y for the shape
-[JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; } // per-vertex Y, index-aligned to Vertices (polygon/lasso)
-[JsonPropertyName("floor")]       public double? Floor { get; set; }        // bottom Y of the column (default 0)
+[JsonPropertyName("base_height")] public double? BaseHeight { get; set; }   // thickness of the shape (default 1)
+[JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; } // per-vertex thickness, index-aligned to Vertices (polygon/lasso)
+[JsonPropertyName("floor")]       public double? Floor { get; set; }        // elevation — where the base sits (default 0)
 ```
 
-- **Per-shape height** = `BaseHeight` only → a flat slab from `Floor` (default 0) up to `BaseHeight`.
+> **Redefined (S17).** `Floor` is the shape's **elevation** (where its base sits) and `BaseHeight`/
+> `AnchorHeights` are **thickness**, so a column spans `[floor, floor + height]`. (Originally `floor`
+> was the bottom Y and `base_height` the absolute top Y — which read like a second height in the
+> inspector.) The `top = base_y + floor + height` form below reflects the current meaning.
+
+- **Per-shape height** = `BaseHeight` only → a flat slab from `Floor` (default 0) up `BaseHeight` blocks.
   Trivial; ship first.
-- **Per-anchor height** = `AnchorHeights[i]` paired with `Vertices[i]` → a **sloped/varied top surface**.
-  Rectangle uses its 4 corners (bilinear); polygon/lasso use their vertices.
+- **Per-anchor height** = `AnchorHeights[i]` paired with `Vertices[i]` → a **sloped/varied top surface**
+  (each anchor is the thickness at that vertex). Rectangle uses its 4 corners (bilinear); polygon/lasso
+  use their vertices.
 - Heights are **invariant under reflection/rotation**, so the mirror/orbit path (`MirrorShape`) carries
   `BaseHeight`/`AnchorHeights`/`Floor` through **unchanged** — only X/Z transform. (When promoting a
   rectangle's per-corner heights into a polygon, copy them index-aligned to the 4 corner vertices.)
@@ -121,12 +127,13 @@ The core win. A shape gains a **surface height**; the rasterizer emits a **colum
 (int X, int Z)  ──▶  (int X, int Z, int YTop, int YFloor)
 ```
 
-- For a cell passing `PointInRing`, compute its surface Y:
-  - no heights → `YTop = 0` (unchanged behaviour),
-  - `BaseHeight` only → `YTop = round(BaseHeight)`,
-  - `AnchorHeights` → **interpolate** at `(x+0.5, z+0.5)`: bilinear for a rectangle's 4 corners;
-    for a polygon, **triangulate the ring (TIN) and barycentric-interpolate**, or IDW from vertices as the
-    cheap first cut. Put this in `Geom` (pure, testable) so JS parity is a direct port.
+- For a cell passing `PointInRing`, compute its column `[YFloor, YTop]` with `YFloor = round(Floor)` and
+  `YTop = YFloor + thickness` (thickness clamped `>= 1`):
+  - no heights → `thickness = 1` (a one-block slab at `Floor`),
+  - `BaseHeight` only → `thickness = round(BaseHeight)`,
+  - `AnchorHeights` → **interpolate the thickness** at `(x+0.5, z+0.5)`: bilinear for a rectangle's 4
+    corners; for a polygon, **triangulate the ring (TIN) and barycentric-interpolate**, or IDW from
+    vertices as the cheap first cut. Put this in `Geom` (pure, testable) so JS parity is a direct port.
 - The 4-step set algebra (`RasterGroup`) keys cells by `(x,z)`; height rides along on the winning add.
   `subtract`/`override` still operate on `(x,z)` membership — height is a property of the surviving cell.
 

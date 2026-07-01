@@ -108,13 +108,14 @@ public sealed class SketchRasterizerTests
     [Test]
     public async Task Base_height_and_floor_give_a_uniform_column()
     {
+        // Floor = elevation, Height = thickness: floor 3 + height 12 → the column spans [3, 15].
         var cells = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
          "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":12,"floor":3}],
                    "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
         """);
         await Assert.That(cells.Count).IsEqualTo(16);
-        await Assert.That(cells.All(c => c.YTop == 12 && c.YFloor == 3)).IsTrue();
+        await Assert.That(cells.All(c => c.YTop == 15 && c.YFloor == 3)).IsTrue();
     }
 
     [Test]
@@ -154,6 +155,22 @@ public sealed class SketchRasterizerTests
         int Top(int x, int z) => cells.First(c => c.X == x && c.Z == z).YTop;
         await Assert.That(Top(5, 0)).IsLessThan(Top(5, 9));      // rises toward the south edge
         await Assert.That(Top(5, 0)).IsEqualTo(1);               // z=0 row centre (z+0.5=0.5 → ~1)
+    }
+
+    [Test]
+    public async Task Anchor_heights_are_thickness_lifted_by_the_floor()
+    {
+        // Same ramp but elevated: floor 10 lifts every column, so YFloor is 10 and each top is
+        // 10 + the per-vertex thickness (thickness = anchor_heights, not an absolute top).
+        var cells = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layout":{"shapes":[{"id":"a","type":"polygon","operation":"add",
+            "vertices":[[0,0],[10,0],[10,10],[0,10]],"anchor_heights":[4,4,20,20],"floor":10}],
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+        """);
+        var south = cells.First(c => c.X == 5 && c.Z == 9);
+        await Assert.That(south.YFloor).IsEqualTo(10);            // floor lifts the base
+        await Assert.That(south.YTop).IsEqualTo(10 + 19);         // 10 + interpolated thickness at z=9.5
     }
 
     [Test]
