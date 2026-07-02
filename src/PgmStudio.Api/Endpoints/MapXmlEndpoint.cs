@@ -53,40 +53,20 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
             }
         }
 
-        string xml;
-        try
+        // Generated maps get the standard CTW boilerplate + spawn-ore renewables (corpus maps export as
+        // parsed). Surface palette / resource blocks are cache-only — never trigger a world scan from an
+        // export request (fall back to armor-only itemremove / no renewables when not cached).
+        IReadOnlySet<int>? surfacePalette = null;
+        IReadOnlyList<(string Type, int X, int Y, int Z)> resources = [];
+        if (isIntent)
         {
-            var mx = Deserializer.FromDict(doc);
-            // Generated maps get the standard CTW boilerplate (itemkeep/itemremove/toolrepair from the kit +
-            // the kill-reward include + hunger off); corpus maps export exactly as parsed. itemremove is also
-            // extended with the terrain drops of the blocks present on the top surface (seeds, saplings,
-            // string, …) — best-effort: skipped when the surface palette isn't available (no world folder).
-            if (isIntent)
-            {
-                // cache-only: use an already-scanned surface palette if present, but never trigger a world
-                // scan from an export request — fall back to armor-only itemremove when it isn't cached.
-                var surface = await ConfigureLayers.CellsAsync(db, map.Id, "surface", ct);
-                CtwStandards.Apply(mx, surface?.Select(c => c.BlockId).ToHashSet());
-
-                // Renewables for the world-scanned resource blocks (iron/gold/diamond) that sit in a spawn —
-                // the safe, intended case (the spawn ore economy). Off-spawn ore is left as-is.
-                var resources = (await feature.ResourceBlocksAsync(map.Id, ct))
-                    .Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
-                ResourceRenewables.Apply(mx, resources);
-
-                // The not-build-area "no-void" rule ALLOWs editing any solid block, and PGM stops at the
-                // first deciding applicator — so it must be LAST, after every spawn/wool-room protection
-                // (which can sit outside the build area), or it short-circuits them. ResourceRenewables can
-                // append a spawn rule after generation, so enforce the order here, at the end. (template.xml)
-                var voidRules = mx.ApplyRules.Where(r => r.RegionId == "not-build-area").ToList();
-                if (voidRules.Count > 0)
-                {
-                    mx.ApplyRules.RemoveAll(r => r.RegionId == "not-build-area");
-                    mx.ApplyRules.AddRange(voidRules);
-                }
-            }
-            xml = XmlWriter.ToXml(mx);
+            var surface = await ConfigureLayers.CellsAsync(db, map.Id, "surface", ct);
+            surfacePalette = surface?.Select(c => c.BlockId).ToHashSet();
+            resources = (await feature.ResourceBlocksAsync(map.Id, ct)).Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
         }
+
+        string xml;
+        try { xml = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources); }
         catch (Exception ex) { await Send.ResponseAsync(new Dict { ["error"] = ex.Message }, 500, ct); return; }
 
         HttpContext.Response.ContentType = "application/xml; charset=utf-8";
