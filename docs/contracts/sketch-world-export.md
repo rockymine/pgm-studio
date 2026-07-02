@@ -75,9 +75,11 @@ Each of the **4 interior corners** holds **2 chests stacked** (bottom + top). A 
 
 ### 2b. Observer platform (standalone — not a cube)
 
-The observer/default spawn (`ObserverIntent.Point`) gets its own template: a **6×6 bedrock platform**
-(integer-snapped X/Z/Y, §5). At the centre of each edge sits a **1-tall × 2-wide bedrock wall piece**, with
-**signs mounted on its inner face**. Top-down layout (`b` = raised bedrock, `s` = sign, `o` = platform floor):
+The observer/default spawn (`ObserverIntent.Point`) gets its own template: a **solid 6×6 bedrock platform**
+(integer-snapped X/Z; placed at the observer's **authored, floating Y** — *not* terrain-snapped, §5). At the
+centre of **each of the four edges** sits an identical **"info board"**: a **1-tall × 2-wide bedrock wall** with a
+**2-sign pair mounted on its inner face, facing the platform centre**. Top-down layout (`b` = raised bedrock,
+`s` = sign, `o` = solid bedrock floor):
 
 ```
 oobboo
@@ -88,16 +90,17 @@ oossoo
 oobboo
 ```
 
-Sign text (map name + authors from the map meta):
+Each board's two signs are **split by role** — viewed from the centre, the **left sign = map name**, the
+**right sign = author info** (map name + authors from the map meta):
 
-- **Left signs** (reading clockwise):
+- **Left sign:**
   ```
   ===
   [CTW]
   {map name}   (bold)
   ===
   ```
-- **Right sign**:
+- **Right sign:**
   ```
   made by   (italic)
   {author 1}
@@ -105,9 +108,8 @@ Sign text (map name + authors from the map meta):
   {author 3}
   ```
 
-**Open (see §7):** the grid shows bedrock+signs on **all four** edges, but text is given only for the left and
-right walls — the top/bottom walls' sign content, the sign facing (inward assumed), whether the two signs in a
-pair share text, and the platform's Y (terrain surface vs the observer's floating height) are unresolved.
+All four boards are identical; the stamper computes each board's left/right sign placement + facing from which
+edge it sits on.
 
 (Spawn cube has **no chests**.)
 
@@ -182,13 +184,6 @@ export XML only — none of the structure synthesis or the constraints below tou
   layer 4, light slit at layer 6, roof hole at layer 8. Colour-strip size is identical across both variants; the
   only differences are door count/size and chests (wool cage) vs monuments (spawn cube).
 
-## 7. Open questions — observer platform (§2b)
-
-- **Top/bottom sign content.** The grid puts bedrock+signs on all four edges; only the left and right walls have
-  specified text. Do the top/bottom walls carry signs too (blank / mirror of left+right / other text), or no
-  signs?
-- **Two signs per wall.** Each wall has a 2-wide sign pair — do both signs show the same 4-line text, or is it
-  split across the pair?
-- **Sign facing.** Assumed to face **inward** (readable by an observer standing on the platform) — confirm.
-- **Platform Y.** Snap to the terrain surface (`ymax`, like the cubes) or place at the observer's authored
-  (floating) height? Observers typically spectate from above.
+- **Observer platform (§2b)** — solid 6×6 bedrock; four identical inward-facing info boards (1×2 bedrock +
+  2-sign pair each); per board the **left sign = map name**, **right sign = authors**; placed at the observer's
+  **floating authored Y** (not terrain-snapped).
