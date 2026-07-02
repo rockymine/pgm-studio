@@ -210,9 +210,16 @@ Viable scope, tiered:
 
 ## 8. Phasing
 
-1. **Plan schema + validator**; re-express the three seeds as plans; a plan→rect realizer that
-   reproduces today's seeds exactly (the regression anchor).
-2. **Rule capture** (the §6.2 checklist) → attachment rules + invariants encoded.
+1. **Seed studio** — the plan schema + the plan→(layout, intent) compiler, with the three existing
+   seeds re-expressed as plans whose compiled output reproduces today's files exactly (the
+   regression anchor); then a **minimal plan editor** over the existing canvas infra: 5-block-grid
+   rect drawing, role palette, per-piece plateau heights, a bridge tool (gap interfaces — `land`
+   interfaces are inferred from grid abutment), spawn/wool markers, symmetry pick with mirror
+   ghost, compile button. Plan JSON imports/exports as files so seeds live in `tools/seeds/`.
+   Purpose: the author hand-builds the **boring-seed corpus** (~10–15 layouts spanning wools ×
+   isolation variants × flow axis × team count × elevation) — each authored seed is
+   simultaneously plan-library content and a compiler regression case.
+2. **Rule capture** (`docs/contracts/layout-rules.md`) → attachment rules + invariants encoded.
 3. **Composer** — rule-based unit growth + neutral middle + isolation moves; every output passes
    the validator and the existing export gates.
 4. **Roughen pass** operators + invariant checks, iterated visually in the sketch editor.
