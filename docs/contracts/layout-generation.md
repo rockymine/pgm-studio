@@ -1,184 +1,152 @@
-# Layout generation — plan-then-realize design
+# Layout generation — piece-and-interface plans, rule-based composition
 
 Direction doc for the `G`-series: how full map-layout generation becomes possible. Grounded in the
-three test seeds (`tools/seeds/`), the corpus studies (`docs/generator-archetypes.md`,
-`docs/contracts/lane-decomposition.md`), the Organic generator
-(`docs/contracts/organic-lane-generation.md`), and the sketch/authoring tool vocabulary. The core
-claim: **separate the map's topology (the plan) from its geometry (the realization)** — generation,
-mutation, corpus mining, and validation all become tractable at the plan layer, and the "boring
-seeds" problem is revealed to be a realization problem, not a topology problem.
+three test seeds (`tools/seeds/`), the sketch/authoring tool vocabulary, and the author's design
+experience — which is the source of the rules. The core claim: **separate the map's topology (the
+plan) from its geometry (the realization)**, with the plan expressed as **areal pieces joined by
+edge-interval interfaces** — never as a thinned skeleton — and grow generation rule-based from the
+deliberately boring rectilinear base the seeds establish.
 
-## 1. What the seeds get right — and what they miss
+## 1. Ground rules (decided)
 
-The three seeds (`base-2island`, `base-2wool`, `base-4team`) encode the *relational* skeleton of a
-normal CTW map correctly:
+- **The corpus is not an oracle.** The extraction pipeline flattens maps to 2D and loses exactly
+  what made them read (spawn structures, wool rooms, terrain, decoration); the decompose tool only
+  ever worked on the rectilinear cases; and map quality across the ~350 maps is too mixed to treat
+  the distribution as a target. Corpus material is reference imagery at most. The rule set is
+  **expert-authored** — encoded from the author's map-making experience, not mined.
+- **No skeletons.** A medial-axis / thinned-line representation fails twice. Representationally: a
+  build region touching the long side of a wide rectangle projects onto *no* node and no labelable
+  skeleton edge — side contact is an interval property that a 1D spine cannot carry. Generatively:
+  a system that thinks in spines-with-ribbons is structurally biased toward thin maps, because
+  width is only ever a decoration on a line. The plan below is areal by construction.
+- **Start from the boring case.** The seeds — rectilinear, grid-aligned, minimal — are the real
+  starting point. They already encode the load-bearing relations (spawn/wool lane separation,
+  contested raised centre, isolation via a bridge-only connection, symmetry fanning one authored
+  unit). Generation grows outward from that base by rules; the organic look is a later,
+  separate pass.
 
-- **Spawn/wool lane separation.** Spawn sits on one bar of the distorted H, the wool on the other;
-  an attacker entering from the frontline crosses the crossbar and never squeezes past spawn
-  protection. This is the corpus rule (wools at lane tips, spawn on its own spur/hub — 10 of 13
-  maps ≤ ~5 blocks wool→tip; spawn never in a wool's lane).
-- **The contested middle.** Raised neutral squares + a build band spanning the void = the
-  **open-mid** pole of the documented build-region topology axis. The `base-2wool` bridge rect that
-  is the *only* connection to the L-shaped wool island = the **directed-flow** pole. Both poles are
-  present across the seed set.
-- **Isolation via buildable space.** The L island reachable only through a bridge region is the
-  general motif: *a typed gap on the path to an objective*. The same device relocates freely — an
-  isolated spawn, two bridges feeding one isolated frontline piece, a mid island reachable from
-  both sides.
-- **Symmetry as the team fan.** One authored unit, `rot_180`/`rot_90` images for the other teams;
-  spawn/wool/build coords are orbit images. Exactly how the studio (and real maps) work.
-- **Elevation as plateaus.** Flat per-shape heights (H at 9, squares at 13) — the raised contested
-  centre is already a flow statement.
+## 2. The plan: pieces and interfaces
 
-What they miss, corpus-quantified:
+A small, explicit, persisted artifact. Globals + one per-team unit + the neutral middle:
 
-| dimension | seeds | corpus (N = 347 / 13-map lane study) |
-|---|---|---|
-| islands per map | 2–3 pieces per side | median **9**; 91% have ≥1 neutral island, median 4–6 gameplay-sized |
-| neutral mid-set | 1 square per side | several small/medium pieces (median piece ≈ 4% of team island), 66% mirror-paired, 38% central / 62% flanking |
-| bend vocabulary | 100% right angles | **45°-family dominates (42%+21%+20%)**; right angles only 12% |
-| outline | grid-aligned polyomino | variable width, jittered edges, straight runs median ~10 blocks between bends |
-| holes | none | ~10% of islands carry a hole (diamond lane-loop) |
-| elevation | flat plateaus only | raised spawns, ramped wool approaches, within-island cuts |
+- **Globals:** symmetry mode, team count, board bbox, coarse grid cell (the seeds' 5-block raster
+  cell), base corridor width.
+- **Piece** — a rectangle on the coarse grid (polygons later), with:
+  - a **role**: `spawn`, `hub`, `lane`, `wool-room`, `mid`, `frontline`;
+  - a **plateau height** (its floor level);
+  - optional **placements**: objective anchors (spawn point, wool, monuments) as piece-local
+    offsets — content is pinned to its piece, so later geometry warps around it.
+- **Interface** — a shared **edge interval** between two pieces (or between a piece and a build
+  zone). Not a point, not a node: it has a position *and a width*. Kinds:
+  - `land` — the pieces merge into one walkable landmass;
+  - `gap` — void between the pieces; a build region spans it, with a span distance (the bridge
+    length). A piece whose interface set contains **no** `land` entries is *isolated* — reachable
+    only by building. That single rule expresses every isolation motif: isolated wool room,
+    isolated spawn, an isolated frontline piece fed by two bridges.
+  - an elevation transition rides on any interface: `step` (walk up), `ramp` (gradual), `cliff`
+    (one-way drop — a deliberate flow device).
+- **Build zones** are pieces of a special kind (`buildable void`): the open-mid band is one wide
+  zone touching many pieces along long intervals; a directed bridge is a narrow zone touching two.
 
-**Verdict: the seeds are a good indication of how a normal CTW map is *wired*, and a poor
-indication of how one *looks*.** That factoring is not a defect — it is the architecture. The seeds
-are hand-instantiated examples of the plan layer described next.
+**Why interfaces carry the design.** The width of an interface is the width of the corridor or
+front it creates: a 40-block `gap` interface along a rectangle's whole side is an open front; a
+5-block one is a chokepoint. *Player-flow control is the distribution of interface widths along
+the attack paths.* The old "directed-flow vs open-mid" axis stops being a category and becomes
+geometry.
 
-## 2. The four layers
+**Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
+team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`
+on every inter-team path; interface widths ≥ the corridor minimum; spawn depth ≥ some distance
+from the nearest frontline interface. The export pipeline's traversability/monument gates stay as
+the backstop, but bad topology is rejected at the plan in milliseconds.
 
-### Layer A — the plan (topology graph)
+**The seeds are already plans.** `base-2island`'s H = three rect pieces (two bars + crossbar) with
+two `land` interfaces; the raised square = a `mid` piece whose every interface is a `gap`;
+`base-2wool`'s L-island = a `wool-room` piece with exactly one interface, a narrow `gap` (the
+bridge). Re-expressing the three seeds as plans is the schema's first test.
 
-A small, explicit, persisted artifact. Globals + one per-team unit graph:
+## 3. Generation: rule-based composition on the coarse grid
 
-- **Globals:** symmetry mode, team count, flow axis (`directed` | `open-mid` — the
-  lane-decomposition axis), board scale, base lane width, void distance.
-- **Unit graph nodes** (roles from the decompose rubric): `hub`, `spawn`, `wool-tip` × k,
-  `trunk-tip` (frontline contact) × m, plus the neutral mid-set (standalone `stepping-stone`/`mid`
-  nodes with size-class, central/flanking position, mirrored-pair flag).
-- **Edges, typed:** `lane` (land — a walkable corridor) or `gap` (void — crossable only through a
-  build region). Every "reachable only via build" fact is a `gap` edge on that path. Bridging count
-  per team = number of `gap` edges reaching the frontline = angles of attack.
-- **Elevation attributes** live on nodes/edges (plateau level per piece, `ramp` flag per lane edge,
-  optional `cliff` = one-way drop), not in the geometry.
+1. **Globals** — symmetry, teams, board, grid cell.
+2. **Grow the team unit** by attachment rules: place the `spawn` piece; attach the `hub`; grow k
+   `lane` pieces, each dead-ending in a `wool-room`; attach `frontline` pieces toward the middle.
+   Each rule states which roles may attach to which, on which sides, with what interface width and
+   what depth ordering (wool behind hub, spawn off the wool paths, frontline nearest mid).
+3. **Optional isolation moves** — convert a `land` interface to a `gap` (+ its bridge zone), or
+   attach a new piece by `gap` only.
+4. **Neutral middle** — place `mid` pieces and build zones between the frontlines.
+5. **Validate** the plan invariants; reject/repair.
+6. **Heights** — per-role plateau defaults (spawn raised for overview, wool approach stepping up
+   toward the room, frontline lowest so the interior overlooks the crossing), transitions chosen
+   per interface.
+7. **Fan by symmetry, emit** `SketchLayout` + `MapIntent` — the existing seed pipeline
+   (rasterizer, auto-wired monuments, spawn cubes, wool cages, export) unchanged.
+8. **Roughen pass** (separate, last) — see §4.
 
-Plan invariants are checkable *before any geometry exists*: every wool reachable from every
-capturing team's spawn; no wool path through a spawn node; ≥1 `gap` on every inter-team path; the
-mid-set respects the flow axis. This is where the traversability/monument gates the export
-pipeline already enforces move upstream — reject bad topology in milliseconds, not after
-rasterization.
+Mutation operators fall out of the same vocabulary, at two levels: *plan operators* change what
+the map is (add a wool branch, isolate a piece, widen/narrow an interface, re-side the spawn,
+raise a plateau); *distortion operators* change how it reads. Each is small, rule-checked, and
+leaves a valid plan — so "mutating default seeds" is the generator's inner loop, not a rival
+approach.
 
-The three seeds re-expressed as plans become the first three entries of the **plan library**.
+**Why not WFC.** WFC solves local-adjacency plausibility on a grid; CTW quality is global and
+relational (symmetry, spawn/wool separation, isolation, interface-width flow control), which WFC
+can only enforce by post-hoc rejection — and its native output is exactly the tile-grid look the
+roughen pass exists to escape. Possible later niche: intra-piece block-level detailing once a
+layout exists. Not the skeleton of the system.
 
-### Layer B — geometric realization
+## 4. The roughen pass: rectilinear plan → organic read
 
-Turning the graph into `SketchLayout` polygons. Two realizers, both half-existing:
+Applied to the realized polygons of the authored unit only (symmetry re-fans the images); plan
+meaning is frozen, objective placements are pinned. Operators:
 
-1. **Skeleton realizer** — place nodes (hub placement + farthest-tip spreading, as `OrganicLane`
-   does today), route edges as spines using the corpus alphabet (straight runs ~4–28 blocks, 45°
-   family bends, rare right angles), ribbon them with variable width (`Geom.Lane.Ribbon`), stamp
-   hub plazas and ~10%-rate holes. This is `OrganicLane` refactored to *consume a plan* instead of
-   implying one — its ribbon/hub/hole primitives are the realization vocabulary; its current
-   weakness ("interesting but lacking context") is precisely that its topology is implicit,
-   single-island, and uncontrollable.
-2. **Seed-distortion realizer** — realize the plan rectilinearly (what the seeds are today), then
-   apply a **roughen pass** of distortion operators:
-   - *anchor jitter* — displace existing vertices by bounded noise;
-   - *edge subdivision + displacement* — insert mid-edge anchors, push them along the edge normal
-     (1–2 fractal levels) — organic outlines with zero topology change;
-   - *pull-to-polygon* — one strong anchor displacement that breaks a rectangle into a believable
-     quad (the "twist");
-   - *width profile* — per-station width multiplier along a lane spine (thin necks, wide rooms);
-   - *45° chamfer* — convert right-angle corners into 45° pairs, driving the bend histogram toward
-     the corpus distribution;
-   - *piece shear/rotate* — a few degrees around the centroid.
+- **anchor jitter** — displace existing vertices by bounded noise;
+- **edge subdivision + displacement** — insert mid-edge anchors, push along the edge normal (1–2
+  fractal levels): organic outlines, zero topology change;
+- **pull-to-polygon** — one strong anchor displacement that breaks a rectangle into a believable
+  quad (the "twist");
+- **width profile** — vary a lane piece's width along its length (thin necks, wide rooms);
+- **45° chamfer** — soften right-angle corners into diagonal pairs;
+- **piece shear/rotate** — a few degrees around the centroid.
 
-   Every operator carries invariants: minimum corridor width preserved (offset test), no
-   self-intersection, objective anchors stay interior with margin, `gap` widths stay within the
-   bridgeable range, and operators touch only the authored unit (symmetry re-fans the images).
+Invariants per operator: minimum corridor width preserved (offset test), no self-intersection,
+placements stay interior with margin, `gap` interface spans stay within the bridgeable range,
+interfaces stay covered (distorted neighbours still overlap their shared interval). Output is
+ordinary `SketchShape`s — every intermediate stays hand-editable in the sketch editor.
 
-Both realizers emit ordinary `SketchShape`s, so every generated intermediate is hand-editable in
-the sketch editor — the generator is a collaborator, not a black box.
+## 5. Elevation
 
-### Layer C — elevation
+Vocabulary from tools that already ship: per-shape `floor`/`base_height` (plateaus), splitting a
+shape along a seam and offsetting the piece (**cut + raise** — at plan level this is refining one
+piece into two joined by a `land` interface with a height delta), `anchor_heights` gradients
+(ramps), stacked layers. Rules attach elevation to roles and interfaces, not to geometry: raised
+spawn (overview), stepped approach toward a wool room (harder push), low frontline (bridges launch
+low, defenders hold high ground), `cliff` interfaces where one-way flow is wanted. Constraint:
+walkable steps along any `land` path unless the plan says `cliff`.
 
-Vocabulary drawn from tools that already ship:
+## 6. Open questions
 
-- **plateau** — per-shape `floor`/`base_height` (rasterizes today);
-- **cut + raise** — split a piece along a seam (the decompose-cut seam machinery) and offset the
-  cut piece's floor — "sections of an island raised";
-- **ramp** — `anchor_heights` gradient along a lane (TIN-interpolated) — "elevation changes toward
-  the wool";
-- **layer** — `base_y`-stacked slabs for genuinely overlapping structure.
+1. **Plan resolution.** Is the coarse grid cell the seeds' 5-block raster cell, and are all piece
+   bounds + interface intervals authored at that resolution?
+2. **The rule set itself.** The attachment rules, minimum widths, depth orderings, and elevation
+   defaults must come from the author's experience. Fastest capture: a working session that turns
+   "years of making these" into an explicit checklist (per role: what it may touch, how wide, how
+   deep, how high) — that checklist *is* the generator's content. When?
+3. **Build zones as pieces** — confirm modeling build regions as first-class plan pieces (vs
+   attributes on `gap` interfaces). Pieces make the open-mid band and multi-piece contact natural;
+   it's the current lean.
+4. **Interaction model.** One-shot generate-then-edit, or staged: approve/edit the plan (a small
+   form/canvas over rects), then re-roll roughening and elevation independently? Lean: staged —
+   every layer stays editable and re-rollable.
+5. **v1 scope.** Plateaus + steps only, or ramps and cliffs too?
 
-Grammar defaults driven by node roles: spawn +2..+4 (overview), wool approach ramps up toward the
-tip (harder approach) *or* a raised attacker shelf beside it (high ground for the push — both are
-corpus-real, choose per plan), trunk tips lowest (bridges launch low, the raised interior
-overlooks the crossing), mid pieces at varied levels. Constraint: along any `lane` edge the
-walkable step stays ≤1 block per cell unless the plan marks a `cliff` — an intentional one-way
-drop is a *flow-control device*, not an error.
+## 7. Phasing
 
-### Layer D — intent wiring
-
-Exists. `LaneMapGenerator` + the export pipeline (auto-wired monuments, spawn cubes, wool cages,
-observer platform) already turn objective positions into a valid, gated `map.xml` + world. Plan
-nodes map 1:1 onto intent objects; `gap` edges become bridge build rects (`AcrossBridge` /
-`AutoBridge` today).
-
-## 3. Why plan-then-realize beats WFC and beats pure seed mutation
-
-- **WFC** solves local-adjacency plausibility on a grid. CTW quality is *global and relational* —
-  symmetry, spawn/wool separation, typed gaps on objective paths, angles of attack. WFC output
-  would need all of those enforced by rejection afterwards, and its native output is exactly the
-  tile-grid look we are trying to escape. Verdict: wrong tool for the skeleton. Possible later
-  niche: intra-piece block-level detailing/theming once a layout exists.
-- **Pure seed mutation** is tractable and editor-friendly but never leaves the seeds'
-  neighbourhood, and it needs the operator + invariant machinery anyway.
-- **Plan-then-realize subsumes both.** Seeds = hand-authored plans. Mutation = operators at either
-  layer — *plan operators* (add a wool branch, re-type a lane→gap to isolate a piece, add a
-  mirrored mid pair, flip the flow axis, move the spawn onto an isolated piece) change what the
-  map *is*; *realization operators* (the distortions) change how it *reads*. Generation = sample
-  plan → realize → elevate → wire. One re-rolls each layer independently: same plan, new geometry;
-  same geometry, new elevation.
-
-**The corpus flywheel.** The decompose surface (manual cut tool + role rubric) extracts exactly
-this plan graph from real maps — lane pieces, roles, build-region contacts. Finishing that
-labeling turns ~348 corpus maps into a mined plan library plus empirical parameter distributions
-(lane widths, branch counts, mid-set sizes, elevation deltas). And validation closes the loop the
-same way the intent model does (generator = mirror of the categorizer): **generate → rasterize →
-island detection + skeleton decomposition → recover a plan → compare with the input plan**, plus
-distribution scoring against the corpus stats (island count, bend histogram, wool→tip distance,
-neutral-piece size mix). A layout that round-trips and scores in-distribution *reads as a map* by
-construction.
-
-## 4. Open questions (decide before building)
-
-1. **Interaction model.** One-shot generate-then-edit, or staged — approve/edit the *plan* first,
-   then re-roll realization/elevation independently? Staged needs a small plan UI but matches the
-   wizard philosophy and makes iteration cheap. Lean: staged.
-2. **Fitness.** When two candidate layouts exist, what ranks them? Corpus-likeness
-   (distribution match) vs playability proxies (attacker path length vs defender response
-   distance, choke width, bridge exposure length, high-ground coverage of crossings). Which 2–3
-   metrics does the author actually trust? This decides whether sampling suffices or search
-   (annealing over plan/realization operators) sits on top.
-3. **Persist the plan?** Third artifact beside layout + intent JSON, shared by generated and
-   corpus-mined plans. Lean: yes — it is also the mutation substrate and the round-trip oracle.
-4. **Elevation scope for v1.** Plateaus + cut&raise only, or ramps too? Are intentional cliffs
-   (one-way drops) v1 flow devices?
-5. **Distortion authority.** Are objective anchors pinned (geometry warps around them) or may a
-   warp re-inset a wool/spawn afterwards? Pinning is simpler and keeps plan↔geometry agreement.
-6. **Plan-library bootstrap.** Hand-write ~8–12 archetype plans now from the corpus studies
-   (fast, curated), or finish decompose labeling first and mine them (slow, empirical)? Lean:
-   hand-write now, mine to enrich later.
-
-## 5. Phasing sketch
-
-1. **Plan schema + validator**; re-express the three seeds as plans; a plan→rectilinear realizer
-   that reproduces today's seeds exactly (the regression anchor).
-2. **Distortion operators + invariants**; roughen the seed realizations into organic-reading
-   variants; iterate visually in the sketch editor.
-3. **Elevation grammar** (plateaus, cut&raise, role defaults; ramps if in scope).
-4. **Plan-driven skeleton realizer** (fold `OrganicLane` into it) + the neutral mid-set the
-   corpus demands.
-5. **Round-trip validation harness** + corpus-stat scoring; then sampling/mutation surfaced in
-   the UI.
+1. **Plan schema + validator**; re-express the three seeds as plans; a plan→rect realizer that
+   reproduces today's seeds exactly (the regression anchor).
+2. **Rule capture** (the §6.2 checklist) → attachment rules + invariants encoded.
+3. **Composer** — rule-based unit growth + neutral middle + isolation moves; every output passes
+   the validator and the existing export gates.
+4. **Roughen pass** operators + invariant checks, iterated visually in the sketch editor.
+5. **Elevation rules** (plateaus, cut&raise, role defaults; ramps/cliffs if in scope).
+6. **Mutation surfaced in the UI** — plan ops + re-roll buttons per layer.
