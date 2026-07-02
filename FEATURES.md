@@ -564,6 +564,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   content ∪ ghost extents). Plan JSON import/export in the `PlanModel` wire shape (seed round-trip tested) +
   debounced localStorage autosave; pure geometry in `plan/plan-doc.js` (node-tested, 16 tests); mounted via
   `studio.js` native import; dashboard footer "Plan" link. (G18)
+- **Plan-editor overlays + live lint** — `POST /api/plan/inspect` (the single canonical C# validator/derived
+  structure serving the editor; plan JSON in → findings with subject ids + ready-to-draw block-space overlay
+  geometry out; malformed body → 400): derived **land interfaces** (cased-green seams; sliver/corner red),
+  **gap links** with hop-distance labels (suppressed between pieces of the same land component — a walkable
+  pair is no void crossing, which also de-noises the G5 lint), and computed **frontline** edges — three
+  persisted overlay toggles drawn in a dedicated canvas layer. The bridge re-inspects debounced (~300ms,
+  stale-response guarded); a lint panel lists errors-then-lint with rule chips, click pulsing the subject
+  pieces. `PlanFinding` carries subject ids. Pgm 219 / Api 40 / JS 102 tests green. (G19)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12

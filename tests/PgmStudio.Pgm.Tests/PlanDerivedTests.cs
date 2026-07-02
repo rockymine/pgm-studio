@@ -77,6 +77,25 @@ public sealed class PlanDerivedTests
     }
 
     [Test]
+    public async Task A_zone_never_gap_links_pieces_of_the_same_land_component()
+    {
+        // a and b abut (land, border 10) and BOTH touch the zone below them; walkably-connected pieces
+        // need no void crossing, so the zone yields no a–b gap link. c is a separate island the same zone
+        // also touches → the cross-component links to it remain.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
+                     {"id":"b","role":"lane","rect":[10,0,10,10]},
+                     {"id":"c","role":"mid","rect":[0,25,10,10]} ],
+          "zones":[ {"id":"z","rect":[0,10,20,15]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.GapLinks.Any(g => g.A is "a" or "b" && g.B is "a" or "b")).IsFalse();
+        await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "c") or ("c", "a"))).IsTrue();
+        await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("b", "c") or ("c", "b"))).IsTrue();
+    }
+
+    [Test]
     public async Task Frontline_is_the_pieces_abutting_a_zone()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;

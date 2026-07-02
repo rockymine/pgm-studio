@@ -76,8 +76,8 @@ public sealed class PlanDerived
         Contacts = ClassifyContacts(Pieces);
         LandInterfaces = Contacts.Where(c => c.Kind == ContactKind.Land).ToList();
         Frontline = ComputeFrontline(plan, Cell, Pieces);
-        GapLinks = ComputeGapLinks(plan, Cell, Pieces);
         Components = ComputeComponents(Pieces, Contacts);
+        GapLinks = ComputeGapLinks(plan, Cell, Pieces, Components);
         InterfaceSegments = BuildInterfaceSegments(_byId, Contacts);
         FrontlineEdges = ComputeFrontlineEdges(plan, Cell, Pieces);
     }
@@ -134,8 +134,15 @@ public sealed class PlanDerived
         return front;
     }
 
-    private static List<GapLink> ComputeGapLinks(PlanModel plan, int cell, IReadOnlyList<DerivedPiece> pieces)
+    // A zone gap-links only pieces from DIFFERENT land components: walkably-connected pieces need no void
+    // crossing, so a shared zone between them is not a hop (and must not trip the hop-distance lint).
+    private static List<GapLink> ComputeGapLinks(
+        PlanModel plan, int cell, IReadOnlyList<DerivedPiece> pieces, IReadOnlyList<IReadOnlyList<string>> components)
     {
+        var component = new Dictionary<string, int>();
+        for (var c = 0; c < components.Count; c++)
+            foreach (var id in components[c]) component[id] = c;
+
         var links = new List<GapLink>();
         foreach (var z in plan.Zones)
         {
@@ -144,6 +151,7 @@ public sealed class PlanDerived
             for (var i = 0; i < touching.Count; i++)
                 for (var j = i + 1; j < touching.Count; j++)
                 {
+                    if (component[touching[i].Id] == component[touching[j].Id]) continue;
                     var hop = VoidSpan(touching[i].Rect, touching[j].Rect);
                     links.Add(new GapLink(touching[i].Id, touching[j].Id, z.Id, hop));
                 }

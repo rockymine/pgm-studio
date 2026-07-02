@@ -256,14 +256,19 @@ export class PlanCanvas extends CanvasBase {
 
     if (this.#overlayOn.interfaces)
       for (const it of this.#inspect.interfaces) {
-        const col = it.kind === "land" ? "#3fae74" : "#d9534f";
-        if (it.x1 === it.x2 && it.z1 === it.z2)
-          layer.appendChild(svgEl("circle", { cx: it.x1, cy: it.z1, r: this.#doc.globals.cell * 0.22, fill: "none", stroke: col, "stroke-width": "2.5", "vector-effect": "non-scaling-stroke" }));
-        else
-          layer.appendChild(svgEl("line", {
-            x1: it.x1, y1: it.z1, x2: it.x2, y2: it.z2, stroke: col, "stroke-width": it.kind === "land" ? "4" : "3",
-            "stroke-linecap": "round", "vector-effect": "non-scaling-stroke", "stroke-dasharray": it.kind === "land" ? null : "3 3",
-          }));
+        if (it.x1 === it.x2 && it.z1 === it.z2) {
+          layer.appendChild(svgEl("circle", { cx: it.x1, cy: it.z1, r: this.#doc.globals.cell * 0.22, fill: "none", stroke: "#d9534f", "stroke-width": "2.5", "vector-effect": "non-scaling-stroke" }));
+          continue;
+        }
+        // A land segment sits exactly on a piece seam, where the piece strokes (or a same-green wool-room
+        // fill) would swallow a plain green line — a dark casing under a bright core reads on any fill.
+        const seg = { x1: it.x1, y1: it.z1, x2: it.x2, y2: it.z2, "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" };
+        if (it.kind === "land") {
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#123d26", "stroke-width": "7" }));
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#4ade80", "stroke-width": "3.5" }));
+        } else {
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#d9534f", "stroke-width": "3", "stroke-dasharray": "3 3" }));
+        }
       }
   }
 

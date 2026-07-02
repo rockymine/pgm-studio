@@ -20,9 +20,6 @@ uses to build the boring-seed corpus. Design: `docs/contracts/layout-generation.
 `docs/contracts/layout-rules.md` (the expert rule checklist, provisional), `docs/contracts/plan-editor.md`
 (schema · compiler · editor · milestones).
 
-- [ ] **G19 — Derived-structure overlays + live lint.** Toggleable canvas overlays — derived land interfaces
-  (red where sliver/narrow), gap links through zones with hop distances, computed frontline edges, spawn→wool
-  path trace — plus the live lint panel (click a finding → highlight the offender). (`plan-editor.md` §2/§4/§5)
 - [ ] **G20 — Compile preview + walk-test loop.** In-editor tabs previewing the compiled `layout.json` /
   `intent.json`; a **Create draft** button driving the existing chain (`POST /api/sketch` → `PUT sketch` →
   `finish` → `PUT intent`) and surfacing the `GET /map/{slug}/export` world-ZIP link — draw → compile → walk
