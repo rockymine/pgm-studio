@@ -165,13 +165,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 ## Layout generation (G) — auto map generation (lane sketch generators)
 
 The "meaning → structure" engine: seed a draft map from lane primitives, then hand an editable
-`SketchLayout` to the Sketch tool / Configure wizard. **The full staged plan, design decisions, and what
-has already shipped are in the `project_sketch_generators` working memory**
+`SketchLayout` to the Sketch tool / Configure wizard. **The current headline direction is the
+plan-then-realize model** — piece/interface plans compiled one-way into sketch + intent, rule-based
+composition from expert-authored rules (`docs/contracts/layout-generation.md` + `layout-rules.md` +
+`plan-editor.md`); its Phase 1 build-out (`G16`–`G21`, the plan editor / seed studio) is the current focus
+in `TODO.md`. The lane-archetype tasks below are the earlier, parallel track. **The staged plan and design
+decisions of that track are in the `project_sketch_generators` working memory**
 (`/root/.claude/projects/-media-sf-repos/memory/project_sketch_generators.md`). Landed so far (`FEATURES.md`):
 the lane archetypes + Geom split, the generate UI + editor prep, Bézier rounding, the Organic demo page
 (`G4`), island-outline simplification (`G6` base), the lane-decompose surface + queue + overlays + select/
-categorize (`G6`/`G7`/`G8`), and the `island-roles` hook (`G11`). Builds on the Sketch tool (`S2`, parked)
-and the intent model (`N`).
+categorize (`G6`/`G7`/`G8`), the `island-roles` hook (`G11`), and the layout-generation design that resolved
+the `G15` exploration. Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
 
 The open work sorts into three domains:
 
@@ -208,13 +212,6 @@ The open work sorts into three domains:
   which island **edges touch buildable regions** and which islands a player can **step between** (adjacency
   across the buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on the
   build-area data + `G6`'s lanes. Needs design.
-- [ ] **G15 — WFC + polyomino layout exploration (alternative generator, alongside the lane archetypes).** Refine
-  the layout-generation concept with a **wave-function-collapse** approach over **polyomino** tiles as a *second*
-  generator, kept parallel to the lane archetypes (`G1`/`G3`, not replaced). Prototype: a polyomino tile-set +
-  adjacency / constraint rules → WFC solve → a symmetric `SketchLayout` the Sketch tool / Configure can edit (same
-  hand-off as `G1`). Reuses the polyomino vocabulary from the sketch library (`S8`/`S16`). Capture the refined
-  concept + the tile / constraint design in a new contract/design doc and note it in the `project_sketch_generators`
-  working memory. Needs design before build.
 
 **Island detection**
 - [ ] **G9 — Re-scan the corpus with stair-aware detection + decompose-queue UI (remaining slice).** The
