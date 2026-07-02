@@ -15,8 +15,9 @@ The most basic CTW design: two team islands + a contested centre.
   - A small **square island** (X[5,15]·Z[5,15]), terrain height **13** (raised).
 - **Intent** (`base-2island.intent.json`) — 2 teams (`red`/`blue`); red spawns at `(10, 50)` facing the
   enemy (−Z) and defends its wool at `(-10, 60)`, blue is the `rot_180` image. Observer floats dead-centre at
-  **y = 24** (no sketch island — created purely from the intent). Max build height **20**; a full-bbox build
-  area (so the void gaps between islands are bridgeable and the map is traversable). Monuments are left empty
+  **y = 24** (no sketch island — created purely from the intent). Max build height **20**; a central build
+  area (X[-15,15]·Z[-25,25]) that spans the mid void + both squares and overlaps each H's inner end, so the
+  spawn↔wool chain is bridgeable/traversable. Monuments are left empty
   — they're **auto-wired at export** (every non-owner team captures each wool).
 
 ### Run

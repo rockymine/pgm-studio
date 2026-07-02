@@ -11,7 +11,7 @@
   "observer": { "point": { "x": 0, "y": 24, "z": 0 }, "yaw": 0 },
   "build": {
     "maxHeight": 20,
-    "areas": [ { "minX": -20, "minZ": -70, "maxX": 20, "maxZ": 70 } ],
+    "areas": [ { "minX": -15, "minZ": -25, "maxX": 15, "maxZ": 25 } ],
     "holes": []
   },
   "wools": [
