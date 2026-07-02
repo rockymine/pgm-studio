@@ -1,0 +1,22 @@
+{
+  "teams": [
+    { "id": "red",  "name": "Red",  "color": "red" },
+    { "id": "blue", "name": "Blue", "color": "blue" }
+  ],
+  "maxPlayers": 12,
+  "spawns": [
+    { "team": "red",  "point": { "x": -60, "y": 9, "z": 10 },  "yaw": 270, "protection": [] },
+    { "team": "blue", "point": { "x": 60,  "y": 9, "z": -10 }, "yaw": 90,  "protection": [] }
+  ],
+  "observer": { "point": { "x": 0, "y": 24, "z": 0 }, "yaw": 0 },
+  "build": {
+    "maxHeight": 20,
+    "areas": [ { "minX": -70, "minZ": -15, "maxX": 70, "maxZ": 15 } ],
+    "holes": []
+  },
+  "wools": [
+    { "owner": "red",  "color": "red",  "spawn": { "x": -60, "y": 9, "z": -10 }, "room": [], "monuments": [] },
+    { "owner": "blue", "color": "blue", "spawn": { "x": 60,  "y": 9, "z": 10 },  "room": [], "monuments": [] }
+  ],
+  "meta": { "name": "Base 2-Island", "authors": [] }
+}
