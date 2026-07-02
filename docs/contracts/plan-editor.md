@@ -6,8 +6,8 @@ boring-seed corpus (`docs/contracts/layout-rules.md`, seed shopping list). File-
 repo files in `tools/seeds/` (like the existing seed pairs); the studio is the editor, git is the
 store.
 
-**Dependency:** builds on the `P9` branch (`tools/seeds/`, `PUT /map/{slug}/intent`,
-`GET /map/{slug}/export`) — that branch lands first; plan work stacks on it.
+Builds on the landed `P9` export pipeline (`tools/seeds/`, `PUT /map/{slug}/intent`,
+`GET /map/{slug}/export`).
 
 ## 1. The plan schema (`*.plan.json`)
 
