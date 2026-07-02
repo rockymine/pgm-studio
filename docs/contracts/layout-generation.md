@@ -65,6 +65,44 @@ two `land` interfaces; the raised square = a `mid` piece whose every interface i
 `base-2wool`'s L-island = a `wool-room` piece with exactly one interface, a narrow `gap` (the
 bridge). Re-expressing the three seeds as plans is the schema's first test.
 
+### Coexistence with the sketch and intent models
+
+The plan is **not** a merge of sketch and intent — it sits upstream and **compiles into both**,
+the same meaning→structure move the intent model makes for `map.xml`, applied one level up:
+
+```
+plan.json ──compile──► layout.json (SketchLayout) ──rasterize──► world
+        └──compile──► intent.json (MapIntent)    ──generate───► map.xml
+```
+
+The three artifacts hold disjoint information, each with exactly one consumer:
+
+- **Sketch** (read by the rasterizer) — realized geometry: exact polygon vertices, bézier
+  controls, per-anchor heights, layers. After the roughen pass the plan's clean rects and the
+  sketch's distorted polygons *deliberately disagree*; the sketch is the truth about shape.
+- **Intent** (read by the XML generator) — concrete objectives: block coordinates, yaws, wool
+  colours, monument wiring, build rects, meta.
+- **Plan** (read by the composer/validator) — the meaning neither holds today: roles, interfaces,
+  isolation, elevation transitions. Nothing in a `layout.json`+`intent.json` pair records that a
+  wool island connects *only* via its bridge — the correlation is implicit in coordinates. The
+  plan states it.
+
+The compile is deterministic: pieces → `SketchShape`s with `floor`/`base_height` (land-connected
+components → `SketchIsland`s, mirrors from the symmetry globals); placements → intent spawns/wools
+(piece origin + offset, y from the plateau); `gap` interfaces + build zones → `build.areas`;
+`ramp` transitions → `anchor_heights`. The seeds' `*.layout.json` + `*.intent.json` pairs become
+derived outputs of a `*.plan.json` — compiling the seed plans must reproduce today's files (the
+regression anchor).
+
+**Sync is one-way, with a detach point.** While the staged loop runs (edit plan → re-compile →
+re-roll roughen/elevation), the plan is authoritative and sketch/intent are regenerated outputs.
+Once the author takes the sketch into the editor for hand work, the plan freezes as provenance and
+sketch+intent become the working artifacts — the existing flow from there on. Bidirectional sync
+(recovering plan meaning from edited geometry) is the abandoned extraction problem in disguise and
+is explicitly out of scope; at most, individual plan-aware edit ops (cut+raise ⇒ refine-piece) may
+keep the link later. Persistence: a third `map_artifact` blob beside `SketchLayoutJson` and the
+intent.
+
 ## 3. Generation: rule-based composition on the coarse grid
 
 1. **Globals** — symmetry, teams, board, grid cell.
