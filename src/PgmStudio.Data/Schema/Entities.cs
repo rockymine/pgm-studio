@@ -340,11 +340,11 @@ public static class ArtifactKind
     // (one "add" polygon per island + a "subtract" per hole). Derived from islands_json — distinct from the
     // authored SketchLayoutJson so it neither re-stages the map to Sketch nor clobbers a real draft sketch.
     public const string IslandSketchJson = "island_sketch_json";
-    // The human-authored lane decomposition of a map (the island_sketch outlines cut into lane polygons,
-    // each optionally role-tagged), in the sketch layout format. Its presence marks a map "decomposed".
+    // Hand-cut lane decompositions gathered with the retired decompose surface (island_sketch outlines
+    // cut into role-tagged lane polygons, sketch layout format). Stored data kept; no writer remains.
     public const string LaneDecompositionJson = "lane_decomposition_json";
     // Reviewer flag for a map whose detected island sketch looks wrong (over-split raised features, or
-    // merged teams) — {status, note, at}. Surfaced in the decompose queue so a human can mark sketches
-    // for re-detection. Lives outside the entity-replace codec; never part of the PGM document.
+    // merged teams) — {status, note, at}, so a human can mark sketches for re-detection. Lives outside
+    // the entity-replace codec; never part of the PGM document.
     public const string IslandReviewJson = "island_review_json";
 }

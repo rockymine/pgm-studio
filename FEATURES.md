@@ -502,7 +502,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (derived from `islands_json`, distinct from the authored `sketch_layout_json` so it neither re-stages the
   map nor clobbers a draft). Simplification only — the faithful outline; cutting it into lanes is `G6`.
   `scripts/island_shapes.py` is the shape-feature analyzer behind it. (G6 base)
-- **Lane-decomposition surface (manual cut tool)** — `/maps/{slug}/decompose` (dashboard footer →
+- **Lane-decomposition surface (manual cut tool) — RETIRED** with the corpus-mining flywheel (the
+  plan-then-realize direction, `docs/contracts/layout-generation.md` §1): the page, its canvas bridge and
+  the queue/load/save endpoints are removed; the pure seam-split geometry (`geometry/decompose-cut.js`)
+  lives on under the sketch tool's split feature, and saved `lane_decomposition_json` artifacts remain as
+  data. As shipped: `/maps/{slug}/decompose` (dashboard footer →
   `/decompose`, a queue of two-team CTW maps): loads a map's `island_sketch` outline and the author
   **lassos** a region → picks **two seam points** (existing corners or lasso∩edge markers) → the piece
   **splits** into a lane + remainder (iterative peeling), with a role tag per piece (spawn/wool/frontline/

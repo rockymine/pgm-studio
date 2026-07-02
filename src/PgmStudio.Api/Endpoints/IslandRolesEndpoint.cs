@@ -10,14 +10,12 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// GET /api/map/{slug}/island-roles — the decompose-workflow integration hook. Per detected island, in the
-/// stored <c>islands_json</c> / island-sketch order (1:1 with the sketch shapes): its semantic
-/// <c>role</c> (team / objective / neutral / decorative), <c>blockCount</c>, and the objective
-/// <c>anchors</c> it carries (<c>{ kind: "spawn"|"wool", x, z }</c> — the lane targets). Plus the
-/// <c>buildRegion</c> outline (the <c>RegionCategorizer</c> build geometry as GeoJSON). The decompose UI
-/// consumes this to pre-tag whole islands (G7), draw the anchor + build overlays (G8 b/c), and seed +
-/// auto-label the auto-cutter (G6). Reuses <see cref="IslandRoleClassifier"/>; reflects the new detection
-/// only on maps re-scanned through it.
+/// GET /api/map/{slug}/island-roles — per detected island, in the stored <c>islands_json</c> /
+/// island-sketch order (1:1 with the sketch shapes): its semantic <c>role</c> (team / objective /
+/// neutral / decorative), <c>blockCount</c>, and the objective <c>anchors</c> it carries
+/// (<c>{ kind: "spawn"|"wool", x, z }</c>). Plus the <c>buildRegion</c> outline (the
+/// <c>RegionCategorizer</c> build geometry as GeoJSON). Reuses <see cref="IslandRoleClassifier"/>;
+/// reflects the new detection only on maps re-scanned through it.
 /// </summary>
 public sealed class IslandRolesEndpoint(MapRepository repo, MapReader reader, PgmDb db) : EndpointWithoutRequest
 {
