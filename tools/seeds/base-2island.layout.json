@@ -2,18 +2,30 @@
   "setup": {
     "mirror_mode": "rot_180",
     "center": { "cx": 0, "cz": 0 },
-    "bbox": { "min_x": -70, "max_x": 70, "min_z": -15, "max_z": 15 }
+    "bbox": { "min_x": -20, "max_x": 20, "min_z": -70, "max_z": 70 }
   },
   "layout": {
     "shapes": [
-      { "id": "top_arm",    "type": "rectangle", "operation": "add", "min_x": -70, "min_z": 5,   "max_x": -30, "max_z": 15, "base_height": 9 },
-      { "id": "bottom_arm", "type": "rectangle", "operation": "add", "min_x": -70, "min_z": -15, "max_x": -45, "max_z": -5, "base_height": 9 },
-      { "id": "spine",      "type": "rectangle", "operation": "add", "min_x": -45, "min_z": -5,  "max_x": -30, "max_z": 5,  "base_height": 9 },
-      { "id": "center",     "type": "rectangle", "operation": "add", "min_x": -10, "min_z": -10, "max_x": 10,  "max_z": 10, "base_height": 13 }
+      {
+        "id": "h",
+        "type": "polygon",
+        "operation": "add",
+        "base_height": 9,
+        "vertices": [
+          [5, 25], [15, 25], [15, 55], [5, 55], [5, 45], [-5, 45],
+          [-5, 65], [-15, 65], [-15, 20], [-5, 20], [-5, 35], [5, 35]
+        ]
+      },
+      {
+        "id": "square",
+        "type": "polygon",
+        "operation": "add",
+        "base_height": 13,
+        "vertices": [ [5, 5], [5, 15], [15, 15], [15, 5] ]
+      }
     ],
     "islands": [
-      { "id": "team",   "name": "Team island", "mirrors": true,  "shapeIds": ["top_arm", "bottom_arm", "spine"] },
-      { "id": "middle", "name": "Center",      "mirrors": false, "shapeIds": ["center"] }
+      { "id": "team", "name": "Team island", "mirrors": true, "shapeIds": ["h", "square"] }
     ]
   }
 }
