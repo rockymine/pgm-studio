@@ -70,8 +70,7 @@ highlight); these are the parked / dormant / deferred slices.
 - [ ] **S16 — Resize library primitives after placement (mostly resolved; deferred).** `S21`'s island scale
   handles now resize a **placed** polyomino / n-gon — a single non-rectangle member gets the 8 bbox scale handles —
   so the after-placement resize is **covered**. The only remaining slice is optional **drag-to-size during
-  placement** (`geometry/shape-library.js` `instantiate` drops at a fixed `defaultCell`). Low priority. Relates to
-  the polyomino-based generation (`G15`).
+  placement** (`geometry/shape-library.js` `instantiate` drops at a fixed `defaultCell`). Low priority.
 
 ## Editor & canvas infrastructure (C / CV)
 
@@ -180,26 +179,7 @@ the `G15` exploration. Builds on the Sketch tool (`S2`, parked) and the intent m
 The open work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
-- [ ] **G1 — Auto-placement straight into Configure (memory stage S3).** `POST /map/generate`: run
-  `LaneMapGenerator` for a chosen archetype/seed → a full `MapIntent` (teams, spawns, wools, bridges) that
-  seeds the Configure wizard for an imported/blank map (the generate-into-a-new-*sketch* half already
-  shipped — `POST /api/sketch/generate`; no `→ MapIntent` bridge yet). The generator's `ObjectiveHint`s
-  surface as **editable suggestions** the author confirms or moves — not baked placements.
-- [ ] **G3 — Contested-middle shape language + refinement loop (memory stage S5).** The corpus gap, measured
-  against the **studio's own detection** (`scripts/island_corpus.py`, N=347, over the studio-scanned corpus —
-  `IslandDetector.DetectCleaned`, the generator's own pipeline; written up in `docs/generator-archetypes.md`):
-  `LaneSketchGenerator.Organic` emits the 2 team islands and **0 neutral mid pieces** (passes `mids: []`),
-  but **91%** of real maps carry a contested middle — median **4 gameplay-sized neutral islands** (total-island
-  median **9** vs the generator's 2; validated: annealing_iv 12 / green_gem 4 / kanto 2). Add a **symmetric
-  neutral mid-set**: ~4 pieces (a `MidPieces` knob — none exists in `LaneLayoutOptions`), **small/medium**
-  (64–1023 blocks ≈ 4% of the team island — *not* a big central blob; only 13% of real neutrals are >25% of a
-  team island), placed ~40% central / ~60% flanking between lanes, fanned by the board symmetry through
-  `Assemble`'s existing mid-island slot (66% of real neutrals have a mirror twin). Reuse the noise field for
-  placement + the circle/polygon shape vocabulary. Also **rework holes** — the studio detection finds holes on
-  only **10%** of islands, so move `HoleChance` from per-lane 0.45 toward a per-island ~10% rate (and allow
-  holes on the neutral pieces). Plus a **refine-on-feedback loop** and **seed-variation for the deterministic
-  archetypes** (today only Organic varies by seed; H/Trident/Pinwheel are fixed). Re-run `scripts/island_corpus.py`
-  to re-validate. Needs UI.
+
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding
@@ -208,14 +188,10 @@ The open work sorts into three domains:
   width in `LaneSketchGenerator.Pinwheel`, or clip the inner offset in `Geom.Lane.Strip` so a tight
   centerline can't produce a self-crossing strip. Surfaced by the `SketchLayoutPrepTests` self-intersection
   regression.
-- [ ] **G10 — Frontline model from buildable adjacency (research; later).** Beyond per-island lanes: detect
-  which island **edges touch buildable regions** and which islands a player can **step between** (adjacency
-  across the buildable / bridge space) → a better **frontline** model than per-island role tags. Builds on the
-  build-area data + `G6`'s lanes. Needs design.
 
 **Island detection**
-- [ ] **G9 — Re-scan the corpus with stair-aware detection + decompose-queue UI (remaining slice).** The
-  over-split **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`), as did the review
+- [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split
+  **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`), as did the review
   flag + role classifier. What remains: (a) **re-scan the corpus** so the stored `islands.json` /
   `island_sketch_json` reflect stair-aware (the live DB + `pgm-studio-output` were generated with the legacy
   detection — needs the source worlds, `OvercastCommunity/CommunityMaps`+`PublicMaps` `ctw/`), and decide
@@ -224,8 +200,8 @@ The open work sorts into three domains:
   `IslandClassifier`, but a per-island prune could drop them); (c) any **under-split / merged** read beyond
   `abstract` (whose stained-glass build-floor is now excluded — `FEATURES.md`): `LooksUnderSplit` is the
   catch-all flag; the residual lever if one is found is to fall through to surface-based detection when a
-  cleaned-base component is a map-spanning low-Y slab; (d) a **decompose-queue UI** to show/set the review
-  flag + island-health read (the collection endpoint exists; browser UI deferred).
+  cleaned-base component is a map-spanning low-Y slab. Serves the shipped island-health / analysis
+  features; the decompose-queue UI slice was dropped with the corpus-mining flywheel.
 - [ ] **G12 — Re-prune flying blobs above terrain (stair-aware regression).** Stair-aware connectivity fixed
   the over-split (disconnected islands) but **re-introduced** the stark-y-jump / flying-island problem:
   decorative masses floating above the map (dragons/birds) now merge back into the islands when a near-vertical
@@ -234,46 +210,6 @@ The open work sorts into three domains:
   band** (the old float-prune did this on `DetectHeightAware`; the stair surfaces now leak past it).
   **`max_build_height`** is a natural cut/prune ceiling — anything whose mass is above it is non-playable
   decor. Re-validate the over-split fixes (a_new_day/thunder) still hold after re-adding the ceiling.
-- [ ] **G14 — island-roles: spawn/wool markers absent on some maps, duplicated on others.** Marker placement
-  is inconsistent because the anchor sources aren't uniformly present and the points don't always land on a
-  detected island. Measured over 109 decomposed maps: **no spawn anchor** on 2 (banana_split, checkmate),
-  **no wool anchor** on 4 (columbia_ctw, down_side_up, ender_hill, enderiumctw), **>1 spawn on one island** on
-  7, **>2 wool on one island** on 8. Causes: (a) `wools[].location` is the goal/proximity reference (often at
-  the monument or in a wool room, **off** the walkable island) → the point anchor intersects nothing and is
-  dropped (columbia_ctw/3084 have `location` but no `wool_room_region`, no spawners); (b) **not all maps have
-  the spawners module** — those maps stock wool via **chests**; (c) we dropped the `only-red`/`only-blue`
-  spawn-protection rules, so a spawn region that doesn't intersect its island leaves the team with no spawn
-  anchor; (d) the several sources double-mark one objective. **Fix direction:** the XML already says *which*
-  wools are objectives (`wools[]`); resolve each to a reliable on-island position from the **scanned data**
-  rather than XML heuristics — query the actual wool **blocks** in the wool-room region
-  (`GET /wool-availability` / `POST /wool-sources`, the `WoolBlockRow` table) or trust the **chest** holding
-  the objective wool. One de-duplicated anchor per objective, on the island. `G13` depends on reliable spawn
-  anchors from this.
-
-**Decompose tool (ground truth → auto-cutter)**
-- [ ] **G6 — Lane decomposition (marker dragging → auto-cutter).** The **manual cut surface landed**
-  (`/maps/{slug}/decompose`: lasso → pick two seam points → split, iterative peeling, role tag, save
-  `lane_decomposition_json`; one side only via symmetry dedup; shared editor chrome — `FEATURES.md`).
-  Remaining, in order: (a) **marker dragging** — drag a lasso∩edge marker along its edge to set a non-corner
-  seam (kanto's prong *bases* need a marker on the body edge, not just existing corners — needed even for 90°
-  maps); (b) once enough maps are hand-cut, build the **auto-cutter** trained/validated on the gathered ground
-  truth (cut at concave necks / medial axis so lanes **tile** the outline) — feeds `G3` per-lane width/length.
-  The `G11` anchors **seed** it: a cut runs hub→wool tip and hub→spawn, and each resulting piece **auto-labels**
-  (wool at a wool anchor · spawn at the spawn anchor · frontline where the edge meets the build region · hub =
-  residual).
-- [ ] **G13 — Decompose: team-coherent one-side view (the orbit dedup mixes teams).** The current view
-  (`dedupBySymmetry` in `decompose-bridge.js`) is **orbit-based, not team-based**: it sorts island pieces by
-  centroid (z, then x), keeps the first per symmetry orbit, removes the centroid-matched mirror twin
-  (`tol=12`). It only stays team-coherent when each team's islands sit cleanly on one side of the sort axis.
-  **Diagnosis of the "team A spawn + team B wool" mix:** a team's wool lane reaches *forward* past the symmetry
-  centre (and in CTW you often capture the *enemy's* wool, on their side), so the z-sort **interleaves** the two
-  teams. Only bites when a team's home is detected as **multiple separate islands** (spawn split from wools).
-  Compounded by brittle `tol=12` centroid match, a single primary `mode` (the dual-mirror x-AND-z case), and
-  near-axis pieces matching the wrong twin. **Fix: group islands by team via the `/island-roles` spawn
-  anchors** — assign each island to the team whose spawn it holds / is nearest-to / connects to, then show that
-  one team's group. Robust to forward-reaching wools, no axis pick (handles dual-mirror naturally). A signed
-  half-plane through the symmetry centre is the cheap fallback for cleanly-separated single-axis maps. Depends
-  on the marker reliability fixed in `G14`.
 
 **Validation / playability**
 - [ ] **G2 — Protection-aware reachability port (memory stage S4).** `MapValidity` (every-wool-needs-a-monument)
