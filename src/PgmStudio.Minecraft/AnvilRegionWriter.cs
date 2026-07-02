@@ -6,7 +6,9 @@ namespace PgmStudio.Minecraft;
 /// Writes a <see cref="VoxelWorld"/> to old-format (1.8–1.12) Minecraft Anvil region files
 /// (<c>r.X.Z.mca</c>): the mirror of <see cref="AnvilRegion"/>. Per region — an 8 KiB header
 /// (1024-entry location table + timestamp table) followed by sector-aligned chunks, each a zlib
-/// NBT payload with numeric <c>Blocks</c>/<c>Data</c>/<c>Add</c> sections.
+/// NBT payload with numeric <c>Blocks</c>/<c>Data</c>/<c>Add</c> sections. Each section also carries the
+/// <c>BlockLight</c>/<c>SkyLight</c> nibble arrays and each chunk a <c>HeightMap</c> + <c>Biomes</c> — the
+/// loader rejects a chunk missing any of them.
 /// </summary>
 public static class AnvilRegionWriter
 {
@@ -76,22 +78,37 @@ public static class AnvilRegionWriter
                 if (id > 0xFF) SetNibble(add ??= new byte[2048], idx, (id >> 8) & 0xF);
             }
 
+            var sky = new byte[2048];
+            Array.Fill(sky, (byte)0xFF);   // full skylight (nibble 15) — a lit arena; no relight needed
+
             var section = new NbtCompound
             {
                 new NbtByte("Y", (byte)sy),
                 new NbtByteArray("Blocks", blocks),
                 new NbtByteArray("Data", PackNibbles(data)),
+                // The loader requires both nibble arrays per section (2048 bytes each) — omitting them
+                // aborts the chunk read ("ChunkNibbleArrays should be 2048 bytes not: 0").
+                new NbtByteArray("BlockLight", new byte[2048]),
+                new NbtByteArray("SkyLight", sky),
             };
             if (add is not null) section.Add(new NbtByteArray("Add", add));
             sections.Add(section);
         }
+
+        var biomes = new byte[256];
+        Array.Fill(biomes, (byte)1);   // plains everywhere
 
         var level = new NbtCompound("Level")
         {
             new NbtInt("xPos", cx),
             new NbtInt("zPos", cz),
             new NbtByte("TerrainPopulated", 1),
+            new NbtByte("LightPopulated", 1),   // light is authored above; the server trusts it
             new NbtLong("LastUpdate", 0),
+            new NbtLong("InhabitedTime", 0),
+            new NbtByteArray("Biomes", biomes),
+            // The loader requires a 256-int column heightmap ("heightmap array length is 0 instead of 256").
+            new NbtIntArray("HeightMap", HeightMap(chunk)),
             sections,
         };
 
@@ -104,6 +121,27 @@ public static class AnvilRegionWriter
         level.Add(entities);
 
         return new NbtCompound("") { level };
+    }
+
+    /// <summary>The per-column heightmap: 256 ints (indexed <c>z*16 + x</c>), each the Y just above the
+    /// highest non-air block in that column (0 for an empty column).</summary>
+    private static int[] HeightMap(VoxelWorld.ChunkData chunk)
+    {
+        var height = new int[256];
+        for (var lx = 0; lx < 16; lx++)
+        for (var lz = 0; lz < 16; lz++)
+        {
+            var h = 0;
+            for (var sy = 15; sy >= 0 && h == 0; sy--)
+            {
+                var ids = chunk.Ids[sy];
+                if (ids is null) continue;
+                for (var y = 15; y >= 0; y--)
+                    if (ids[(y << 8) | (lz << 4) | lx] != 0) { h = sy * 16 + y + 1; break; }
+            }
+            height[lz * 16 + lx] = h;
+        }
+        return height;
     }
 
     /// <summary>Pack one nibble per cell into 2048 bytes (inverse of <see cref="AnvilRegion"/>'s reader).</summary>

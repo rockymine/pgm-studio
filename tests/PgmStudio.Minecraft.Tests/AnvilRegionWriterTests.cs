@@ -1,3 +1,4 @@
+using fNbt;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Minecraft.Tests;
@@ -40,6 +41,39 @@ public sealed class AnvilRegionWriterTests
 
             await Assert.That(read.Count).IsEqualTo(expected.Count);
             await Assert.That(Sorted(read).SequenceEqual(Sorted(expected))).IsTrue();
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Test]
+    public async Task Chunks_carry_the_loader_required_light_and_heightmap_tags()
+    {
+        // The 1.8 chunk loader aborts without a 256-int HeightMap and per-section 2048-byte BlockLight +
+        // SkyLight nibble arrays; a Biomes array is expected too. This guards against silently dropping them.
+        var world = new VoxelWorld();
+        world.SetBlock(0, 0, 0, Blocks.Bedrock);
+        world.SetBlock(0, 64, 0, Blocks.Stone);   // highest solid in column (0,0) → heightmap 65
+
+        var dir = Path.Combine(Path.GetTempPath(), "anvillight_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AnvilRegionWriter.Write(world, dir);
+            var chunk = AnvilRegion.ReadChunks(Directory.GetFiles(dir, "*.mca").Single()).Single();
+
+            var heightMap = chunk.Level.Get<NbtIntArray>("HeightMap");
+            await Assert.That(heightMap!.Value.Length).IsEqualTo(256);
+            await Assert.That(heightMap.Value[0]).IsEqualTo(65);                       // column (0,0), z*16+x = 0
+            await Assert.That(chunk.Level.Get<NbtByteArray>("Biomes")!.Value.Length).IsEqualTo(256);
+            await Assert.That(chunk.Level.Get<NbtByte>("LightPopulated")!.Value).IsEqualTo((byte)1);
+
+            foreach (var s in chunk.Level.Get<NbtList>("Sections")!.Cast<NbtCompound>())
+            {
+                await Assert.That(s.Get<NbtByteArray>("BlockLight")!.Value.Length).IsEqualTo(2048);
+                await Assert.That(s.Get<NbtByteArray>("SkyLight")!.Value.Length).IsEqualTo(2048);
+            }
         }
         finally
         {
