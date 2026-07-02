@@ -9,7 +9,7 @@ import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, nextFacing,
   rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
   pieceAtCell, zoneAtCell, markerCell, attachMarker, allMarkers,
-  contentBounds, pieceMirrorImages, markerMirrorImages, ROLES,
+  contentBounds, viewBounds, pieceMirrorImages, markerMirrorImages, ROLES,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -96,6 +96,33 @@ test("markerMirrorImages mirrors marker centres about the origin", () => {
   });
   const [img] = markerMirrorImages(doc);
   assert.deepEqual([img.x, img.z], [-7.5, -7.5]);   // centre (7.5,7.5) rotated 180° about origin
+});
+
+
+test("pieceMirrorImages ghosts a piece with an inherited (unset) surface", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
+    pieces: [{ id: "bar", role: "lane", rect: [1, 5, 2, 6] }],   // no explicit surface
+  });
+  const imgs = pieceMirrorImages(doc);
+  assert.equal(imgs.length, 1);                    // the inherited surface never drops the ghost
+  assert.equal(imgs[0].surface, 9);                // resolved from globals
+  assert.deepEqual(imgs[0].bounds, { min_x: -15, min_z: -55, max_x: -5, max_z: -25 });
+});
+
+test("viewBounds spans content plus its ghost images (never cut off)", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
+    pieces: [{ id: "bar", role: "lane", rect: [1, 5, 2, 6] }],
+    placements: { spawns: [{ piece: "bar", at: [0, 0], facing: "front" }] },
+  });
+  assert.deepEqual(contentBounds(doc), { min_x: 5, min_z: 25, max_x: 15, max_z: 55 });
+  assert.deepEqual(viewBounds(doc), { min_x: -15, min_z: -55, max_x: 15, max_z: 55 });
+  assert.equal(viewBounds(emptyDoc()), null);
+
+  const doc4 = normalizeDoc({ plan: 1, globals: { cell: 5, symmetry: "rot_90" }, pieces: [{ id: "a", role: "lane", rect: [4, 4, 1, 1] }] });
+  // Three quarter-turn images fan the single cell into all four quadrants.
+  assert.deepEqual(viewBounds(doc4), { min_x: -25, min_z: -25, max_x: 25, max_z: 25 });
 });
 
 test("contentBounds encloses pieces, zones and markers", () => {

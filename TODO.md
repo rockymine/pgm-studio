@@ -20,10 +20,6 @@ uses to build the boring-seed corpus. Design: `docs/contracts/layout-generation.
 `docs/contracts/layout-rules.md` (the expert rule checklist, provisional), `docs/contracts/plan-editor.md`
 (schema · compiler · editor · milestones).
 
-- [ ] **G18 — Plan editor page (canvas).** `Pages/Plan/PlanEditor.razor` + `js/studio/plan/` on the studio
-  canvas stack: cell grid, draw/move/resize role-coded rect pieces, zone tool, spawn/wool/iron markers
-  (drag-to-set facing), per-piece surface stepper (±2) + `mirrors` toggle, live symmetry ghost
-  (`geometry/symmetry.js`), plan JSON file import/export + localStorage autosave. (`plan-editor.md` §5)
 - [ ] **G19 — Derived-structure overlays + live lint.** Toggleable canvas overlays — derived land interfaces
   (red where sliver/narrow), gap links through zones with hop distances, computed frontline edges, spawn→wool
   path trace — plus the live lint panel (click a finding → highlight the offender). (`plan-editor.md` §2/§4/§5)

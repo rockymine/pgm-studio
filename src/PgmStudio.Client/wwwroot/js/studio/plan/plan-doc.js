@@ -150,6 +150,19 @@ export function contentBounds(doc) {
   return b;
 }
 
+/**
+ * Block AABB enclosing the authored content AND its symmetry ghost images — what fit-to-view and the
+ * grid must span so the mirrored half of the board is never cut off. Null for an empty document.
+ */
+export function viewBounds(doc) {
+  let b = contentBounds(doc);
+  if (!b) return null;
+  const add = (bb) => { b = { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) }; };
+  for (const img of pieceMirrorImages(doc)) add(img.bounds);
+  for (const m of markerMirrorImages(doc)) add({ min_x: m.x, min_z: m.z, max_x: m.x, max_z: m.z });
+  return b;
+}
+
 /** Flatten the placements into `{ kind, index, marker }` records (spawn/wool/iron), for iteration. */
 export function allMarkers(doc) {
   const out = [];

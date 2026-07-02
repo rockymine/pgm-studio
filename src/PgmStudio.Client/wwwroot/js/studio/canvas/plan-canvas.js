@@ -14,7 +14,7 @@ import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
 import {
   ROLE_COLORS, FACING_DIR, rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
-  pieceAtCell, zoneAtCell, markerCell, attachMarker, markerAt, allMarkers, contentBounds,
+  pieceAtCell, zoneAtCell, markerCell, attachMarker, markerAt, allMarkers, viewBounds,
   pieceMirrorImages, markerMirrorImages,
 } from "../plan/plan-doc.js";
 
@@ -79,7 +79,7 @@ export class PlanCanvas extends CanvasBase {
   clearSelection() { this.#sel = null; this.#refreshOverlay(); this.#fireSelect(); }
 
   fit() {
-    const b = this.#doc ? contentBounds(this.#doc) : null;
+    const b = this.#doc ? viewBounds(this.#doc) : null;
     const box = b ?? { min_x: -40, min_z: -40, max_x: 40, max_z: 40 };
     const { w, h } = this.#size();
     const bw = Math.max(box.max_x - box.min_x, 1), bh = Math.max(box.max_z - box.min_z, 1);
@@ -117,9 +117,9 @@ export class PlanCanvas extends CanvasBase {
     const layer = this.#gridLayer;
     this.#clear(layer);
     const cell = this.#doc.globals.cell;
-    const b = contentBounds(this.#doc);
-    // Cell-index extent: content bounds padded by 3 cells, with a sensible minimum span so a blank
-    // (or tiny) plan still shows a workable grid.
+    const b = viewBounds(this.#doc);
+    // Cell-index extent: the view bounds (content + its symmetry ghost images) padded by 3 cells,
+    // with a sensible minimum span so a blank (or tiny) plan still shows a workable grid.
     let cx0 = -8, cz0 = -8, cx1 = 8, cz1 = 8;
     if (b) {
       cx0 = Math.floor(b.min_x / cell) - 3; cz0 = Math.floor(b.min_z / cell) - 3;

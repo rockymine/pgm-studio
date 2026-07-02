@@ -555,6 +555,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   golden tests against the checked-in layout/intent pairs (base-2island/base-4team exact; base-2wool exact
   except two documented hand-authored values). Step terraces deferred (no seed exercises raised land seams).
   (G17)
+- **Plan editor page (seed studio canvas)** — `/plan-editor` (`Pages/Plan/PlanEditor` + `js/studio/plan/`):
+  an SVG cell-grid canvas (heavy line per 5 cells) with draw/move/resize role-coloured rect pieces (fill
+  tinted by surface), translucent dashed zones, spawn/wool/iron markers (spawn facing cycles on click;
+  markers re-parent to the piece under them, keeping piece-relative offsets), a per-piece inspector (id,
+  role, surface ±2, mirrors toggle), a globals form (symmetry / cell / surface / headroom / maxPlayers), and
+  a live dimmed **mirror ghost** of every orbit image (via `geometry/symmetry.js`; view + grid fit to
+  content ∪ ghost extents). Plan JSON import/export in the `PlanModel` wire shape (seed round-trip tested) +
+  debounced localStorage autosave; pure geometry in `plan/plan-doc.js` (node-tested, 16 tests); mounted via
+  `studio.js` native import; dashboard footer "Plan" link. (G18)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
