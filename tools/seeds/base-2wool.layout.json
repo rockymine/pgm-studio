@@ -22,10 +22,17 @@
         "operation": "add",
         "base_height": 13,
         "vertices": [ [25, 45], [45, 45], [45, 25], [35, 25], [35, 35], [25, 35] ]
+      },
+      {
+        "id": "square",
+        "type": "polygon",
+        "operation": "add",
+        "base_height": 13,
+        "vertices": [ [5, 5], [5, 15], [15, 15], [15, 5] ]
       }
     ],
     "islands": [
-      { "id": "team", "name": "Team island", "mirrors": true, "shapeIds": ["h", "wool2"] }
+      { "id": "team", "name": "Team island", "mirrors": true, "shapeIds": ["h", "wool2", "square"] }
     ]
   }
 }

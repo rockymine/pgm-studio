@@ -49,4 +49,5 @@ rotated per arm) that overlap at the centre, so all four teams are connected (ve
 defending **2 wools**. Red defends `red` (on the H) + `orange` (on the L island at `(40,30)`); blue is the
 `rot_180` image (`blue` + `light_blue`). Bridge `X[15,25]·Z[35,45]` connects the H's right bar to the L island;
 build regions = the central band + the two bridges. Each team captures the other's two wools, so every spawn
-cube holds **2 monuments**. Observer y=24, y=20 build cap.
+cube holds **2 monuments**. The two central **square islands** (from the base) are kept as contested terrain.
+Observer y=24, y=20 build cap.
