@@ -5,20 +5,24 @@
   ],
   "maxPlayers": 12,
   "spawns": [
-    { "team": "red",  "point": { "x": 0, "y": 9, "z": 40 },  "yaw": 180, "protection": [] },
-    { "team": "blue", "point": { "x": 0, "y": 9, "z": -40 }, "yaw": 0,   "protection": [] }
+    { "team": "red",  "point": { "x": 10,  "y": 9, "z": 50 },  "yaw": 180, "protection": [] },
+    { "team": "blue", "point": { "x": -10, "y": 9, "z": -50 }, "yaw": 0,   "protection": [] }
   ],
   "observer": { "point": { "x": 0, "y": 24, "z": 0 }, "yaw": 0 },
   "build": {
     "maxHeight": 20,
-    "areas": [ { "minX": -15, "minZ": -25, "maxX": 15, "maxZ": 25 } ],
+    "areas": [
+      { "minX": -15, "minZ": -25, "maxX": 15, "maxZ": 25 },
+      { "minX": 15,  "minZ": 35,  "maxX": 25, "maxZ": 45 },
+      { "minX": -25, "minZ": -45, "maxX": -15, "maxZ": -35 }
+    ],
     "holes": []
   },
   "wools": [
-    { "owner": "red",  "color": "red",        "spawn": { "x": 10,  "y": 9, "z": 52 },  "room": [], "monuments": [] },
-    { "owner": "red",  "color": "orange",     "spawn": { "x": -10, "y": 9, "z": 52 },  "room": [], "monuments": [] },
-    { "owner": "blue", "color": "blue",       "spawn": { "x": -10, "y": 9, "z": -52 }, "room": [], "monuments": [] },
-    { "owner": "blue", "color": "light_blue", "spawn": { "x": 10,  "y": 9, "z": -52 }, "room": [], "monuments": [] }
+    { "owner": "red",  "color": "red",        "spawn": { "x": -10, "y": 9, "z": 60 }, "room": [], "monuments": [] },
+    { "owner": "red",  "color": "orange",     "spawn": { "x": 40,  "y": 9, "z": 30 }, "room": [], "monuments": [] },
+    { "owner": "blue", "color": "blue",       "spawn": { "x": 10,  "y": 9, "z": -60 }, "room": [], "monuments": [] },
+    { "owner": "blue", "color": "light_blue", "spawn": { "x": -40, "y": 9, "z": -30 }, "room": [], "monuments": [] }
   ],
   "meta": { "name": "Base 2-Wool", "authors": [] }
 }

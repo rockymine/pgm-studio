@@ -44,8 +44,9 @@ rotated per arm) that overlap at the centre, so all four teams are connected (ve
 
 ## 2 teams × 2 wools (`base-2wool.*`)
 
-`SEED=base-2wool ./tools/seeds/seed.sh`. An **H with the spawn on the centre spine** (crossbar) and a wool on
-each arm, `rot_180`-mirrored → 2 teams, each defending **2 wools**. Red's wools are `red` (right arm) + `orange`
-(left arm); blue's are the `rot_180` images (`blue` + `light_blue`). Each team captures the other's two wools,
-so every spawn cube holds **2 monuments** (the 2-wool door-wall placement). Central build band + observer +
-y=20 cap as in the base.
+`SEED=base-2wool ./tools/seeds/seed.sh`. Reuses the base distorted-**H** (spawn + wool1) and adds a small
+**L-shaped wool island** for wool2, linked by a **bridge** build region — `rot_180`-mirrored → 2 teams each
+defending **2 wools**. Red defends `red` (on the H) + `orange` (on the L island at `(40,30)`); blue is the
+`rot_180` image (`blue` + `light_blue`). Bridge `X[15,25]·Z[35,45]` connects the H's right bar to the L island;
+build regions = the central band + the two bridges. Each team captures the other's two wools, so every spawn
+cube holds **2 monuments**. Observer y=24, y=20 build cap.
