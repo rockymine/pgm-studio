@@ -869,3 +869,54 @@ body.dashboard-page { overflow: hidden; }
 /* Slice header: "Side view" label + the X/Z look-axis toggle on one row. */
 .slice-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-2); }
 .slice-axis { display: flex; gap: 2px; flex-shrink: 0; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PLAN EDITOR (the seed studio)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Left-toolbar palette — role / zone / marker tool buttons, one per row. */
+.plan-palette { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.plan-role-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--font-base);
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+.plan-role-btn:hover { color: var(--text-bright); background: var(--border); }
+.plan-role-btn--active { color: var(--text-bright); border-color: var(--accent); background: var(--bg-selected); }
+
+/* Role colour swatch — the piece fill colour, passed in via the --role-color custom property. */
+.plan-role-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  background: var(--role-color, var(--text-muted));
+}
+
+/* Inspector stepper / readout value. */
+.plan-stepper-value {
+  flex: 1;
+  align-self: center;
+  text-align: center;
+  font-size: var(--font-base);
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+}
+.plan-readout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-base);
+  color: var(--text-bright);
+}

@@ -1,0 +1,209 @@
+@page "/plan-editor"
+@layout EditorLayout
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@* Plan editor (the seed studio) — a coarse cell-grid layout tool. Blazor renders the topbar, the left
+   globals + palette toolbar, the canvas shell and the right inspector; the PlanCanvas JS (via
+   bridge/plan-bridge.js) owns the plan document, the pointer tools and the live symmetry mirror ghost.
+   Plans import/export as *.plan.json; edits autosave to localStorage. *@
+
+<div class="editor-page">
+  <div id="topbar" class="topbar">
+    <a href="/" class="topbar-breadcrumb-home" title="Studio home">
+      <i data-lucide="house"></i><span>Studio</span>
+    </a>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-crumb topbar-crumb--dim">Plan editor</span>
+    <div class="topbar-right">
+      @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
+      <button class="action-btn" @onclick="NewPlan" title="Start a blank plan">New</button>
+      <label class="action-btn" title="Import a *.plan.json file">
+        Import
+        <InputFile OnChange="OnImport" accept=".json" style="display:none" />
+      </label>
+      <button class="action-btn action-btn--primary" @onclick="ExportPlan" title="Download this plan as *.plan.json">Export</button>
+      <ThemeToggle />
+    </div>
+  </div>
+
+  <div id="main" class="app-body">
+    <div class="activity-viewport">
+      <div class="workspace">
+        <div class="workspace-sidebar">
+          <div class="workspace-scroll">
+            <div class="panel-section">
+              <div class="field">
+                <label class="field-label">Plan name</label>
+                <input class="field-input" value="@planName" @onchange="OnName" placeholder="Untitled plan" />
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Symmetry &amp; globals</h2></div>
+              <div class="field">
+                <label class="field-label">Symmetry</label>
+                <select class="field-input" value="@symmetry" @onchange="OnSymmetry">
+                  <option value="rot_180">Rotate 180°</option>
+                  <option value="rot_90">Rotate 90°</option>
+                  <option value="mirror_x">Mirror X</option>
+                  <option value="mirror_z">Mirror Z</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="field-label">Cell size (blocks)</label>
+                <NumberField Value="cell" ValueChanged="OnCell" Min="1" />
+              </div>
+              <div class="field">
+                <label class="field-label">Base surface (y)</label>
+                <NumberField Value="surface" ValueChanged="OnSurface" Min="0" />
+              </div>
+              <div class="field">
+                <label class="field-label">Headroom</label>
+                <NumberField Value="headroom" ValueChanged="OnHeadroom" Min="1" />
+              </div>
+              <div class="field">
+                <label class="field-label">Max players</label>
+                <NumberField Value="maxPlayers" ValueChanged="OnMaxPlayers" Min="2" Step="2" />
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Pieces</h2></div>
+              <div class="plan-palette">
+                @foreach (var r in Roles)
+                {
+                  <button class="plan-role-btn @(tool == "piece" && role == r.Id ? "plan-role-btn--active" : null)"
+                          style="--role-color:@r.Color" title="Draw a @r.Label piece" @onclick="() => PickRole(r.Id)">
+                    <span class="plan-role-swatch"></span>@r.Label
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Zones &amp; markers</h2></div>
+              <div class="plan-palette">
+                <button class="plan-role-btn @(tool == "zone" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("zone")'>
+                  <i data-lucide="square-dashed"></i> Zone
+                </button>
+                <button class="plan-role-btn @(tool == "spawn" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("spawn")'>
+                  <i data-lucide="flag"></i> Spawn
+                </button>
+                <button class="plan-role-btn @(tool == "wool" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("wool")'>
+                  <i data-lucide="square"></i> Wool
+                </button>
+                <button class="plan-role-btn @(tool == "iron" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("iron")'>
+                  <i data-lucide="pickaxe"></i> Iron
+                </button>
+              </div>
+              <p class="section-desc">Markers ride the piece under them. Click a placed spawn to cycle its facing.</p>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="canvas-toolbar">
+              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
+                      @onclick='() => PickTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
+              <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)" title="Pan"
+                      @onclick='() => PickTool("pan")'><i data-lucide="hand"></i></button>
+            </div>
+            <div @ref="cursorRef" class="canvas-cursor"></div>
+            <div class="canvas-subbar-right">
+              <button class="filter-chip" title="Fit the plan to view" @onclick="Fit"><i data-lucide="scan"></i></button>
+              <span class="canvas-zoom">@zoomLabel</span>
+            </div>
+          </div>
+          <div @ref="wrapRef" class="svg-area">
+            <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+
+        <div class="workspace-inspector">
+          <div class="workspace-scroll">
+            <div class="panel-section">
+              @if (sel is null)
+              {
+                <p class="section-desc">Select a piece, zone or marker to inspect. Draw a piece from the palette, then drop spawns / wools onto it.</p>
+              }
+              else if (sel.Kind == "piece")
+              {
+                <div class="detail-header">
+                  <span class="geo-type-icon"><i data-lucide="box"></i></span>
+                  <span class="detail-label">Piece</span>
+                  <span class="detail-header-badges"><span class="badge badge--neutral">@sel.Role</span></span>
+                </div>
+                <div class="field">
+                  <label class="field-label">Id</label>
+                  <input class="field-input" value="@sel.Id" @onchange="OnPieceId" />
+                </div>
+                <div class="field">
+                  <label class="field-label">Role</label>
+                  <select class="field-input" value="@sel.Role" @onchange="OnPieceRole">
+                    @foreach (var r in Roles) { <option value="@r.Id">@r.Label</option> }
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label">Surface (y)</label>
+                  <div class="ctrl-row">
+                    <button class="action-btn action-btn--icon" @onclick="() => StepSurface(-2)">−</button>
+                    <span class="plan-stepper-value">@sel.Surface@(sel.SurfaceSet ? "" : " (base)")</span>
+                    <button class="action-btn action-btn--icon" @onclick="() => StepSurface(2)">+</button>
+                  </div>
+                </div>
+                <button class="action-btn action-btn--full" @onclick="ToggleMirrors">
+                  @(sel.Mirrors ? "Exclude from mirror" : "Include in mirror")
+                </button>
+                <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
+                  <i data-lucide="trash-2"></i> Delete piece
+                </button>
+              }
+              else if (sel.Kind == "zone")
+              {
+                <div class="detail-header">
+                  <span class="geo-type-icon"><i data-lucide="square-dashed"></i></span>
+                  <span class="detail-label">Zone</span>
+                </div>
+                <div class="field">
+                  <label class="field-label">Id</label>
+                  <input class="field-input" value="@sel.Id" @onchange="OnZoneId" />
+                </div>
+                <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
+                  <i data-lucide="trash-2"></i> Delete zone
+                </button>
+              }
+              else
+              {
+                <div class="detail-header">
+                  <span class="geo-type-icon"><i data-lucide="flag"></i></span>
+                  <span class="detail-label">@sel.MarkerKind</span>
+                </div>
+                <div class="field">
+                  <label class="field-label">On piece</label>
+                  <div class="plan-readout">@sel.Piece &nbsp; <span class="list-tag">at @OffsetLabel</span></div>
+                </div>
+                @if (sel.MarkerKind == "spawn")
+                {
+                  <div class="field">
+                    <label class="field-label">Facing</label>
+                    <div class="ctrl-row">
+                      <span class="plan-stepper-value">@sel.Facing</span>
+                      <button class="action-btn action-btn--icon" @onclick="CycleFacing" title="Cycle facing"><i data-lucide="rotate-cw"></i></button>
+                    </div>
+                  </div>
+                }
+                <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
+                  <i data-lucide="trash-2"></i> Delete marker
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

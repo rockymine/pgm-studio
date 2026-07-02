@@ -85,6 +85,14 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef);
   },
 
+  // Mount the plan editor's canvas (the seed studio): a cell grid with rect pieces/zones + markers and a
+  // live symmetry mirror ghost. dotnetRef receives OnSelect / OnTool / OnZoom / OnMeta; the handle drives
+  // the tools, globals, inspector edits and plan import/export.
+  async mountPlan(svgEl, wrapEl, cursorEl, dotnetRef) {
+    const mod = await import("/js/studio/bridge/plan-bridge.js");
+    return mod.mount(svgEl, wrapEl, cursorEl, dotnetRef);
+  },
+
   // Paint the Organic-generation demo stages (/concepts/organic) into the #gen-stage-* svgs. Stateless —
   // the page POSTs a seed to /api/sketch/generate/stages and hands the payload here on load + each re-roll.
   async renderGenStages(stages) {
