@@ -162,7 +162,37 @@ spawn (overview), stepped approach toward a wool room (harder push), low frontli
 low, defenders hold high ground), `cliff` interfaces where one-way flow is wanted. Constraint:
 walkable steps along any `land` path unless the plan says `cliff`.
 
-## 6. Open questions
+## 6. Scope and division of labour
+
+"Making a boring layout interesting" is a **generator stage, not user work**: the roughen pass and
+the elevation rules run before the author ever sees an output (and re-roll cheaply), so what the
+staged loop presents already reads organic. The author's share is three smaller things:
+
+1. **Rule authorship** (mostly one-time) — the per-role checklist: attachment rules, widths,
+   depths, height defaults. On the order of 20–40 rules.
+2. **Curation** — reject outputs *and say why*; each articulated rejection becomes a new invariant
+   or rule tweak, permanently shrinking the bad-output space. This is why expert-in-the-loop works
+   where corpus mining didn't: judgment enters as checkable constraints, not training data.
+3. **Post-detach polish** — the character pass in the editor (set pieces, themed builds, terrain
+   detail). Always manual; the system generates layout, not the world's art.
+
+Viable scope, tiered:
+
+- **Tier 1 (high confidence).** Parameterized seed families end-to-end: schema + compiler +
+  validator, the rule checklist, a composer sampling valid plans across the archetype space
+  (2/4 teams, 1–3 wools, isolation variants, open-mid vs directed, elevation profiles), roughen +
+  elevation, into the existing export pipeline. Deliverable: a "new map" button producing a valid,
+  walkable map that reads as *competent but plain* — the first ~60–70% of layout work.
+- **Tier 2 (viable via the curation loop).** Re-roll workflow (same plan, new geometry; same
+  geometry, new elevation), plan-level mutation ops in the UI, rules converging from feedback
+  rounds. Ceiling: maps the author tweaks for an hour instead of building for days, with
+  tactical (not decorative) elevation.
+- **Tier 3 (not promised).** Signature interestingness — novel set pieces, new motifs, themed
+  identity. Rule systems recombine encoded motifs; they don't coin new ones. "Boring" splits in
+  two: **boring-looking** is solved by the generator (roughen + elevation); **boring-conceptually**
+  is bounded by the motif library, which grows only when the author adds to it.
+
+## 7. Open questions
 
 1. **Plan resolution.** Is the coarse grid cell the seeds' 5-block raster cell, and are all piece
    bounds + interface intervals authored at that resolution?
@@ -178,7 +208,7 @@ walkable steps along any `land` path unless the plan says `cliff`.
    every layer stays editable and re-rollable.
 5. **v1 scope.** Plateaus + steps only, or ramps and cliffs too?
 
-## 7. Phasing
+## 8. Phasing
 
 1. **Plan schema + validator**; re-express the three seeds as plans; a plan→rect realizer that
    reproduces today's seeds exactly (the regression anchor).
