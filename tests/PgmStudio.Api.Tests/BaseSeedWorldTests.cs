@@ -70,6 +70,20 @@ public sealed class BaseSeedWorldTests
         // Resolved intent: spawns snapped to integers, monuments auto-wired (every wool gets capturers).
         await Assert.That(built.ResolvedIntent.Spawns.All(s => s.Point.X == Math.Round(s.Point.X))).IsTrue();
         await Assert.That(built.ResolvedIntent.Wools!.All(x => x.Monuments.Count > 0)).IsTrue();
+
+        // Auto-derived regions encase the 8×8 cubes: protection / room cover the anchor ± 4 footprint.
+        foreach (var s in built.ResolvedIntent.Spawns)
+        {
+            int ax = Snap(s.Point.X), az = Snap(s.Point.Z);
+            var r = s.Protection.Single();
+            await Assert.That(r.MinX <= ax - 4 && r.MaxX >= ax + 4 && r.MinZ <= az - 4 && r.MaxZ >= az + 4).IsTrue();
+        }
+        foreach (var wl in built.ResolvedIntent.Wools!)
+        {
+            int wx = Snap(wl.Spawn.X), wz = Snap(wl.Spawn.Z);
+            var r = wl.Room.Single();
+            await Assert.That(r.MinX <= wx - 4 && r.MaxX >= wx + 4 && r.MinZ <= wz - 4 && r.MaxZ >= wz + 4).IsTrue();
+        }
     }
 
     [Test]

@@ -66,7 +66,8 @@ public static class SketchWorldBuilder
             {
                 Team = s.Team,
                 Point = new Pt(sx, fy + 1, sz),   // player stands on the cube floor
-                Protection = s.Protection,
+                // Encase the auto-placed spawn cube (unless the author drew their own protection).
+                Protection = s.Protection.Count > 0 ? s.Protection : [CubeRect(sx, sz)],
                 Yaw = s.Yaw,
             });
         }
@@ -79,7 +80,8 @@ public static class SketchWorldBuilder
             {
                 Owner = w.Owner,
                 Color = w.Color,
-                Room = w.Room,
+                // Encase the auto-placed wool cage (unless the author drew their own room).
+                Room = w.Room.Count > 0 ? w.Room : [CubeRect(woolCell[i].X, woolCell[i].Z)],
                 Spawn = new Pt(woolCell[i].X, woolFloor[i], woolCell[i].Z),
                 Monuments = [.. Capturers(w, teams).Select(team => new MonumentIntent
                 {
@@ -119,6 +121,14 @@ public static class SketchWorldBuilder
         };
 
         return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved);
+    }
+
+    /// <summary>The XZ footprint of the 8-wide cube anchored on <paramref name="cx"/>/<paramref name="cz"/>
+    /// (the integer 2×2 centre) — its blocks span <c>[anchor-4, anchor+3]</c>, so the rect is anchor ± 4.</summary>
+    private static Rect CubeRect(int cx, int cz)
+    {
+        const int half = CubeStamper.Size / 2;   // 4
+        return new Rect(cx - half, cz - half, cx + half, cz + half);
     }
 
     /// <summary>The teams that capture a wool: its authored monument teams, or — when none were authored
