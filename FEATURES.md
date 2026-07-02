@@ -528,6 +528,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     stepping-stone, decorative → decorative; team/objective left to cut), so the human confirms the auto-tags and
     cuts only the team islands. Persists per shape in `lane_decomposition_json`. (G7)
 
+## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
+  numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`
+  sections; gzipped `level.dat` with world spawn + a real creation timestamp), the mirror of the read-only
+  `AnvilRegion`. Write→read round-trip tested. (P9a, P9b)
+- **World synthesis + stampers** — `SketchTerrainBuilder` (bedrock floor at y=0 + stone fill from the sketch
+  columns, reporting each column's surface top), the shared `CubeStamper` 8×8 hollow-bedrock shell (roof
+  hole, layer-6 light slit, layer-4 colour strip, 2×2 floor wool, glass-pane / open doors), `WoolCageStamper`
+  + `WoolCageChests` (two-chest corner loadout), `SpawnCubeStamper` (spawn cube + auto-wired monuments:
+  bedrock pedestal · air cell · wool-colour glass cap · label sign, placed by captured-wool count),
+  `ObserverPlatformStamper` (solid 6×6 platform + four inward info boards), plus `SignBuilder`/`ChestBuilder`
+  and `PositionSnap` (integer X/Z, `ymax` Y, yaw→door facing). (P9c, P9d, P9g, P9h, P9i, P9j, P9l)
+- **Export endpoint** — `SketchWorldBuilder` assembles the world from a map's sketch layout + intent and
+  returns a resolved intent (integer-snapped spawns + monument locations derived from the world air cells,
+  capturers defaulted to every non-owner team) so the XML agrees with the world. `GET /api/map/{slug}/export`
+  returns a `{slug}/` ZIP (`map.xml` + `level.dat` + `region/*.mca`) for sketch-origin maps and plain
+  `map.xml` otherwise, behind the traversability gate (shared `MapXmlComposer`). The Configure Export button
+  downloads it (`studio.downloadUrl`), and the wizard's manual Monuments sub-step is dropped for sketch maps
+  (`GET /map/{slug}/origin`). Spec: `docs/contracts/sketch-world-export.md`. (P9e, P9f, P9k)
+
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **Sketch editor** — `/maps/{slug}/sketch` (`SketchEditor` + `SketchPanel`/`SketchInspector`): draw 2-D
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in

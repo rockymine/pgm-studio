@@ -115,11 +115,12 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
 **Where it stands:** M0–M7 + the intent-model backend + the **Configure wizard** (`N00`–`N07` + `NVAL`)
 are landed (`FEATURES.md`) — a new map flows intent → World → Teams → Build → Wools → Review & Export → a
 validated `map.xml`. The **Sketch-tool depth pass** and the **generated-XML conventions** batch (`B10`/`B11`)
-have shipped (`FEATURES.md`); the **current focus is the sketch world-folder export** (`TODO.md`, `P9a`–`P9k` —
-synthesise a real `.mca` + `level.dat` for sketch-originated maps and bundle it with `map.xml` in a `{slug}/`
-ZIP; spec in `docs/contracts/sketch-world-export.md`). Everything else — Configure/authoring polish (`N`),
-layout generation (`G`), shared editor/canvas infra (`C`/`CV`), the rest of backend/pipeline (`B`/`P`/`A`),
-parked Sketch polish (`S12`/`S16`), and the frozen Edit editor's parked feature UIs — is in `BACKLOG.md`.
+have shipped (`FEATURES.md`), and so has the **sketch world-folder export** (`P9a`–`P9l`, `FEATURES.md` —
+sketch-originated maps now export a playable `{slug}/` world ZIP: `map.xml` + `level.dat` + `region/*.mca`
+synthesised from the sketch columns + intent; spec in `docs/contracts/sketch-world-export.md`). The board is
+**drained** (`TODO.md`) — pull the next theme up from `BACKLOG.md`: Configure/authoring polish (`N`), layout
+generation (`G`), shared editor/canvas infra (`C`/`CV`), the rest of backend/pipeline (`B`/`P`/`A`), parked
+Sketch polish (`S12`/`S16`), and the frozen Edit editor's parked feature UIs.
 
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts
