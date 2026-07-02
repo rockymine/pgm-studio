@@ -527,6 +527,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     of the slow per-piece dropdown. Whole-island tags are **pre-filled from `/island-roles`** (neutral →
     stepping-stone, decorative → decorative; team/objective left to cut), so the human confirms the auto-tags and
     cuts only the team islands. Persists per shape in `lane_decomposition_json`. (G7)
+- **Layout-generation design (plan-then-realize) + expert rule capture** — the direction docs for full map
+  generation: `docs/contracts/layout-generation.md` (the **piece/interface plan model** — areal pieces +
+  edge-interval interfaces, no skeletons; proxy-cell mini-layout semantics; one-way compile into sketch +
+  intent with a detach point; rule-based composition, fragmentation moves, roughen + elevation passes; scope
+  tiers), `docs/contracts/layout-rules.md` (the author-corrected per-role rule checklist + the seed shopping
+  list), and `docs/contracts/plan-editor.md` (plan schema · compiler · seed-studio editor — built as
+  `G16`–`G21`). Resolves the `G15` exploration: **WFC evaluated and rejected** for the layout skeleton (CTW
+  quality is global/relational — symmetry, spawn/wool separation, typed gaps — not local-adjacency texture);
+  the polyomino vocabulary survives as the plan's proxy-cell grid. (G15)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
