@@ -30,16 +30,20 @@ window.studio = {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
-  // Trigger a browser download of a server URL (the Configure export: a ZIP for sketch-originated maps,
-  // or map.xml otherwise). The server sets Content-Disposition; the anchor resolves the URL against the
-  // page's <base href>.
-  downloadUrl(url) {
+  // Save an already-fetched response body (a .NET stream reference) as a file. The caller checks the HTTP
+  // status first, so a 409/500 error body is never written to disk — only a real 2xx export (a ZIP for
+  // sketch maps, or map.xml otherwise) reaches here.
+  async downloadStream(filename, streamRef, mime) {
+    const buffer = await streamRef.arrayBuffer();
+    const blob = new Blob([buffer], { type: mime || "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "";
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
   // Mount the hybrid editor canvas. Uses a native dynamic import (absolute URL) so it bypasses

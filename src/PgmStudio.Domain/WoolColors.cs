@@ -24,9 +24,15 @@ public static class WoolColors
         [12] = "light_blue", [13] = "magenta", [14] = "orange", [15] = "white",
     };
 
+    // Keyed on the separator-normalized slug (spaces/dashes already collapsed to '_'). Two kinds:
+    // modern/display spellings of a real wool colour, and chat colours (the team palette) that have no wool
+    // of their own and coerce to the nearest one.
     private static readonly Dictionary<string, string> Aliases = new()
     {
-        ["light_gray"] = "silver", ["light gray"] = "silver", ["light blue"] = "light_blue",
+        ["light_gray"] = "silver",                       // modern name for damage 8
+        ["gold"] = "orange", ["aqua"] = "cyan",          // chat colours → nearest wool
+        ["dark_aqua"] = "cyan", ["light_purple"] = "purple", ["dark_purple"] = "purple",
+        ["dark_red"] = "red", ["dark_green"] = "green", ["dark_blue"] = "blue", ["dark_gray"] = "gray",
     };
 
     private static readonly Dictionary<string, int> ColorToWoolDamage =
@@ -39,10 +45,11 @@ public static class WoolColors
     /// The same 0–15 scale applies to wool (35), stained clay (159), and stained glass + panes (95/160).</summary>
     public static int WoolDamage(string color) => ColorToWoolDamage.GetValueOrDefault(Normalize(color), 0);
 
-    /// <summary>Normalize a wool colour name to its canonical slug.</summary>
+    /// <summary>Normalize a wool colour name to its canonical slug: lowercased, spaces/dashes to <c>_</c>,
+    /// then display-name and chat-colour aliases mapped to their wool equivalent (e.g. "Dark Aqua" → cyan).</summary>
     public static string Normalize(string color)
     {
-        var key = color.Trim().ToLowerInvariant();
-        return Aliases.TryGetValue(key, out var a) ? a : key.Replace(' ', '_').Replace('-', '_');
+        var key = color.Trim().ToLowerInvariant().Replace(' ', '_').Replace('-', '_');
+        return Aliases.GetValueOrDefault(key, key);
     }
 }

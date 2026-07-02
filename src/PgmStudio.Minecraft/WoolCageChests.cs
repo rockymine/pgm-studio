@@ -17,11 +17,12 @@ public static class WoolCageChests
 
     public static void Stamp(VoxelWorld world, int anchorX, int anchorZ, int floorY)
     {
-        var x0 = anchorX - 4;
-        var z0 = anchorZ - 4;
+        var x0 = anchorX - CubeStamper.Half;
+        var z0 = anchorZ - CubeStamper.Half;
 
-        // Interior corners (local 1..6 is the hollow; its corners are (1,1),(1,6),(6,1),(6,6)).
-        foreach (var (lx, lz) in (ReadOnlySpan<(int, int)>)[(1, 1), (1, 6), (6, 1), (6, 6)])
+        // Interior corners (the hollow spans Interior..InteriorMax; its corners are the four combinations).
+        const int lo = CubeStamper.Interior, hi = CubeStamper.InteriorMax;
+        foreach (var (lx, lz) in (ReadOnlySpan<(int, int)>)[(lo, lo), (lo, hi), (hi, lo), (hi, hi)])
         {
             var wx = x0 + lx;
             var wz = z0 + lz;

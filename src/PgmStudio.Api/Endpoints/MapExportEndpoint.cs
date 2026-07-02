@@ -8,7 +8,6 @@ using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Minecraft;
-using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -19,8 +18,8 @@ using Dict = Dictionary<string, object?>;
 /// stored sketch layout) it returns a ZIP of a <c>{slug}/</c> folder containing <c>map.xml</c>,
 /// <c>level.dat</c>, and <c>region/*.mca</c> — a real, playable world synthesised from the sketch columns +
 /// intent (docs/contracts/sketch-world-export.md). For any other map it returns the plain <c>map.xml</c>
-/// (those already ship a world). Intent maps must pass the traversability gate first (§9), same as
-/// <see cref="MapXmlEndpoint"/>.
+/// (those already ship a world). Shares the gate + compose pipeline with <see cref="MapXmlEndpoint"/> via
+/// <see cref="MapExportComposer"/>, diverging only to bundle the region files for a sketch map.
 /// </summary>
 public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db) : EndpointWithoutRequest
 {
@@ -33,60 +32,25 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
         var doc = await reader.ReadDocAsync(map, ct);
-        var isIntent = await IntentStore.HasAsync(db, map.Id, ct);
         var layoutBytes = await SketchStore.LoadAsync(db, map.Id, ct);
-
-        // Playability gate: intent-authored maps must be traversable before export (§9).
-        if (isIntent)
-        {
-            var segs = await feature.SegmentsAsync(map.Id, ct);
-            var trav = Traversability.Check(doc, segs?.SurfaceColumns(), segs?.Y0Columns());
-            if (!trav.Connected)
-            {
-                await Send.ResponseAsync(new Dict
-                {
-                    ["error"] = "not traversable",
-                    ["message"] = trav.Message,
-                    ["isolated"] = trav.Isolated.Select(i => new Dict { ["kind"] = i.Kind, ["name"] = i.Name }).ToList(),
-                }, 409, ct);
-                return;
-            }
-        }
+        var result = await MapExportComposer.ComposeAsync(map.Id, doc, layoutBytes, feature, db, ct);
+        if (result.IsError) { await Send.ResponseAsync(result.ErrorBody!, result.ErrorStatus!.Value, ct); return; }
 
         // Non-sketch maps: XML only (they already ship a real world).
-        if (layoutBytes is null)
+        if (result.World is null)
         {
-            IReadOnlySet<int>? surfacePalette = null;
-            IReadOnlyList<(string Type, int X, int Y, int Z)> resources = [];
-            if (isIntent)
-            {
-                var surface = await ConfigureLayers.CellsAsync(db, map.Id, "surface", ct);
-                surfacePalette = surface?.Select(c => c.BlockId).ToHashSet();
-                resources = (await feature.ResourceBlocksAsync(map.Id, ct)).Select(b => (b.Type, b.X, b.Y, b.Z)).ToList();
-            }
-
-            string xmlOnly;
-            try { xmlOnly = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources); }
-            catch (Exception ex) { await Send.ResponseAsync(new Dict { ["error"] = ex.Message }, 500, ct); return; }
-
             HttpContext.Response.ContentType = "application/xml; charset=utf-8";
             HttpContext.Response.Headers.ContentDisposition = ContentDispositionHeader.Attachment($"{slug}.xml");
-            await HttpContext.Response.WriteAsync(xmlOnly, ct);
+            await HttpContext.Response.WriteAsync(result.Xml!, ct);
             return;
         }
 
-        // Sketch-originated: synthesise the world and bundle it with the XML.
-        var intent = await IntentStore.LoadAsync(db, map.Id, ct);
-        var built = SketchWorldBuilder.Build(Encoding.UTF8.GetString(layoutBytes), intent);
-
-        // Re-project the resolved intent (snapped spawns + auto-derived monument locations) so the XML
-        // agrees with the world, then compose (no scanned surface/resources for a sketch map).
-        IntentGenerator.Apply(doc, built.ResolvedIntent);
-        string xml;
-        try { xml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: []); }
+        // Sketch-originated: bundle the synthesised world with the XML. Guard the write/zip so an IO or
+        // region-encoding failure surfaces as a structured error rather than an unhandled 500.
+        byte[] zip;
+        try { zip = BuildWorldZip(slug, result.Xml!, result.World); }
         catch (Exception ex) { await Send.ResponseAsync(new Dict { ["error"] = ex.Message }, 500, ct); return; }
 
-        var zip = BuildWorldZip(slug, xml, built);
         HttpContext.Response.ContentType = "application/zip";
         HttpContext.Response.Headers.ContentDisposition = ContentDispositionHeader.Attachment($"{slug}.zip");
         await HttpContext.Response.Body.WriteAsync(zip, ct);
@@ -118,7 +82,7 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
         }
         finally
         {
-            Directory.Delete(tmp, recursive: true);
+            if (Directory.Exists(tmp)) Directory.Delete(tmp, recursive: true);
         }
     }
 

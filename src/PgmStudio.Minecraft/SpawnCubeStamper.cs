@@ -24,8 +24,8 @@ public static class SpawnCubeStamper
     {
         CubeStamper.Stamp(world, anchorX, anchorZ, floorY, teamColor, CubeKind.SpawnCube, doorFacing);
 
-        var x0 = anchorX - 4;
-        var z0 = anchorZ - 4;
+        var x0 = anchorX - CubeStamper.Half;
+        var z0 = anchorZ - CubeStamper.Half;
         var placed = new List<PlacedMonument>();
 
         var placements = Placements(doorFacing, capturedWools.Count);
@@ -67,15 +67,16 @@ public static class SpawnCubeStamper
     // Ordered monument positions for a captured-wool count, given the door facing.
     private static List<Placement> Placements(Facing doorFacing, int count)
     {
+        const int lo = CubeStamper.Interior, hi = CubeStamper.InteriorMax;   // interior corner coords (1, 6)
         var axisIsZ = doorFacing is Facing.NegZ or Facing.PosZ;
         // The near-axis local coord of the door-wall corners vs the back-wall corners.
-        var (doorNear, backNear) = doorFacing is Facing.NegZ or Facing.NegX ? (1, 6) : (6, 1);
+        var (doorNear, backNear) = doorFacing is Facing.NegZ or Facing.NegX ? (lo, hi) : (hi, lo);
 
         var result = new List<Placement>();
         if (count <= 4)
         {
             foreach (var near in (int[])[doorNear, backNear])
-                foreach (var perp in (int[])[1, 6])
+                foreach (var perp in (int[])[lo, hi])
                     result.Add(Make(near, perp, axisIsZ));
             // Order: door corners first, then back corners.
             result = [.. result.OrderBy(p => Near(p, axisIsZ) == doorNear ? 0 : 1)];
@@ -83,7 +84,7 @@ public static class SpawnCubeStamper
         else
         {
             foreach (var near in (int[])[backNear, doorNear])          // fill back wall, then overflow to door wall
-                for (var perp = 1; perp <= 6; perp++)
+                for (var perp = lo; perp <= hi; perp++)
                     result.Add(Make(near, perp, axisIsZ));
         }
         return [.. result.Take(count)];
@@ -94,8 +95,8 @@ public static class SpawnCubeStamper
     private static Placement Make(int near, int perp, bool axisIsZ)
     {
         var (lx, lz) = axisIsZ ? (perp, near) : (near, perp);
-        // Sign faces the cube centre (perpendicular walls sit at local 0/7; centre is 3.5).
-        var toward = near < 4 ? 1 : -1;
+        // Sign faces the cube centre (perpendicular walls sit at local 0/Max; centre straddles Half).
+        var toward = near < CubeStamper.Half ? 1 : -1;
         var facing = axisIsZ
             ? (toward > 0 ? Facing.PosZ : Facing.NegZ)
             : (toward > 0 ? Facing.PosX : Facing.NegX);

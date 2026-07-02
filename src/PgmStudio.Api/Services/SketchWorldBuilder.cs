@@ -37,7 +37,7 @@ public static class SketchWorldBuilder
             var w = wools[i];
             var slug = ColorSlug(w, teams);
             var (sx, sz) = PositionSnap.SnapXZ(w.Spawn.X, w.Spawn.Z);
-            var fy = Surface(sx, sz);
+            var fy = SafeFloor(Surface(sx, sz));
             WoolCageStamper.Stamp(world, sx, sz, fy, WoolColors.WoolDamage(slug));
             woolFloor[i] = fy;
             woolCell[i] = (sx, sz);
@@ -51,7 +51,7 @@ public static class SketchWorldBuilder
         foreach (var s in intent.Spawns)
         {
             var (sx, sz) = PositionSnap.SnapXZ(s.Point.X, s.Point.Z);
-            var fy = Surface(sx, sz);
+            var fy = SafeFloor(Surface(sx, sz));
             var facing = PositionSnap.FacingFromYaw(s.Yaw);
 
             var captured = wools.Select((w, i) => (w, i))
@@ -83,11 +83,11 @@ public static class SketchWorldBuilder
                 // Encase the auto-placed wool cage (unless the author drew their own room).
                 Room = w.Room.Count > 0 ? w.Room : [CubeRect(woolCell[i].X, woolCell[i].Z)],
                 Spawn = new Pt(woolCell[i].X, woolFloor[i], woolCell[i].Z),
-                Monuments = [.. Capturers(w, teams).Select(team => new MonumentIntent
-                {
-                    Team = team,
-                    Location = monLoc.GetValueOrDefault((i, team), default),
-                })],
+                // Only teams that actually got a spawn cube have a placement cell; a capturer without a
+                // spawn has no world location, so skip it rather than emit a phantom monument at (0,0,0).
+                Monuments = [.. Capturers(w, teams)
+                    .Where(team => monLoc.ContainsKey((i, team)))
+                    .Select(team => new MonumentIntent { Team = team, Location = monLoc[(i, team)] })],
             };
         }
 
@@ -97,14 +97,19 @@ public static class SketchWorldBuilder
         if (intent.Observer is { } obs)
         {
             var (ox, oz) = PositionSnap.SnapXZ(obs.Point.X, obs.Point.Z);
-            var platformFloor = Math.Max(1, (int)Math.Round(obs.Point.Y, MidpointRounding.AwayFromZero));
+            var platformFloor = SafeFloor((int)Math.Round(obs.Point.Y, MidpointRounding.AwayFromZero));
             ObserverPlatformStamper.Stamp(world, ox, oz, platformFloor, intent.Meta?.Name ?? "", intent.Meta?.Authors ?? []);
             (spawnX, spawnY, spawnZ) = (ox, platformFloor + 1, oz);
             resolvedObserver = new ObserverIntent { Point = new Pt(ox, platformFloor + 1, oz), Yaw = obs.Yaw };
         }
         else
         {
-            (spawnX, spawnY, spawnZ) = (0, Surface(0, 0) + 1, 0);
+            // No observer authored: stand the world spawn on a real terrain column (the one nearest origin)
+            // rather than at (0, fallback, 0), which would float over the void when nothing is drawn there.
+            var (gx, gz) = terrain.SurfaceTop.Count > 0
+                ? terrain.SurfaceTop.Keys.OrderBy(k => (long)k.X * k.X + (long)k.Z * k.Z).ThenBy(k => k.X).ThenBy(k => k.Z).First()
+                : (0, 0);
+            (spawnX, spawnY, spawnZ) = (gx, Surface(gx, gz) + 1, gz);
         }
 
         var resolved = new MapIntent
@@ -123,11 +128,17 @@ public static class SketchWorldBuilder
         return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved);
     }
 
-    /// <summary>The XZ footprint of the 8-wide cube anchored on <paramref name="cx"/>/<paramref name="cz"/>
-    /// (the integer 2×2 centre) — its blocks span <c>[anchor-4, anchor+3]</c>, so the rect is anchor ± 4.</summary>
+    // A cube's roof sits at floorY + RoofLayer, so the floor must leave that much headroom below the world
+    // ceiling — clamp every structure floor here so an author-elevated island can't push a stamp past 255.
+    private const int MaxCubeFloor = VoxelWorld.MaxHeight - CubeStamper.RoofLayer - 1;
+    private static int SafeFloor(int y) => Math.Clamp(y, 1, MaxCubeFloor);
+
+    /// <summary>The XZ footprint of the cube anchored on <paramref name="cx"/>/<paramref name="cz"/>
+    /// (the integer 2×2 centre) — its blocks span <c>[anchor-Half, anchor+Half-1]</c>, so the rect is
+    /// anchor ± Half.</summary>
     private static Rect CubeRect(int cx, int cz)
     {
-        const int half = CubeStamper.Size / 2;   // 4
+        const int half = CubeStamper.Half;
         return new Rect(cx - half, cz - half, cx + half, cz + half);
     }
 
@@ -147,15 +158,8 @@ public static class SketchWorldBuilder
         return WoolColors.Normalize(raw);
     }
 
-    /// <summary>The wool/clay data value for a team's display colour, tolerating <c>dark </c>/<c>light </c>
-    /// prefixes that aren't wool slugs (e.g. "dark red" → red).</summary>
+    /// <summary>The wool/clay data value for a team's display colour. <see cref="WoolColors.WoolDamage"/>
+    /// resolves chat-colour team palettes (gold, aqua, dark aqua, …) to their nearest wool.</summary>
     private static int WoolDataForTeam(string teamId, IReadOnlyList<TeamDef> teams)
-    {
-        var norm = WoolColors.Normalize(teams.FirstOrDefault(t => t.Id == teamId)?.Color ?? "white");
-        if (WoolColors.WoolDamageToColor.Values.Contains(norm)) return WoolColors.WoolDamage(norm);
-        foreach (var p in (string[])["dark_", "light_"])
-            if (norm.StartsWith(p) && WoolColors.WoolDamageToColor.Values.Contains(norm[p.Length..]))
-                return WoolColors.WoolDamage(norm[p.Length..]);
-        return WoolColors.WoolDamage(norm);
-    }
+        => WoolColors.WoolDamage(teams.FirstOrDefault(t => t.Id == teamId)?.Color ?? "white");
 }

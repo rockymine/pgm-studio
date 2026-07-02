@@ -16,6 +16,7 @@
     <Project Path="tests/PgmStudio.Analysis.Tests/PgmStudio.Analysis.Tests.csproj" />
     <Project Path="tests/PgmStudio.Api.Tests/PgmStudio.Api.Tests.csproj" />
     <Project Path="tests/PgmStudio.Data.Tests/PgmStudio.Data.Tests.csproj" />
+    <Project Path="tests/PgmStudio.Domain.Tests/PgmStudio.Domain.Tests.csproj" />
     <Project Path="tests/PgmStudio.Geom.Tests/PgmStudio.Geom.Tests.csproj" />
     <Project Path="tests/PgmStudio.Import.Tests/PgmStudio.Import.Tests.csproj" />
     <Project Path="tests/PgmStudio.Minecraft.Tests/PgmStudio.Minecraft.Tests.csproj" />

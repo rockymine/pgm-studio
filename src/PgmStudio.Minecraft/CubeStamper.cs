@@ -20,15 +20,19 @@ public enum Facing { NegZ, PosZ, NegX, PosX }
 /// </summary>
 public static class CubeStamper
 {
-    public const int Size = 8;         // footprint width/depth
-    public const int RoofLayer = 8;    // top course (bedrock + 4×4 hole)
-    public const int SlitLayer = 6;    // missing course — the light slit
-    public const int StripLayer = 4;   // coloured strip (wool / stained clay)
+    public const int Size = 8;             // footprint width/depth
+    public const int Half = Size / 2;      // anchor→corner offset (= low coord of the 2×2 centre)
+    public const int Max = Size - 1;       // far perimeter index (near perimeter = 0)
+    public const int Interior = 1;         // first interior (hollow) index
+    public const int InteriorMax = Size - 2; // last interior (hollow) index
+    public const int RoofLayer = 8;        // top course (bedrock + 4×4 hole) — also the highest layer written
+    public const int SlitLayer = 6;        // missing course — the light slit
+    public const int StripLayer = 4;       // coloured strip (wool / stained clay)
 
     public static void Stamp(VoxelWorld world, int anchorX, int anchorZ, int floorY, int color, CubeKind kind, Facing doorFacing = Facing.NegZ)
     {
-        var x0 = anchorX - 4;
-        var z0 = anchorZ - 4;
+        var x0 = anchorX - Half;
+        var z0 = anchorZ - Half;
 
         void Set(int lx, int layer, int lz, int id, int data = 0)
             => world.SetBlock(x0 + lx, floorY + layer, z0 + lz, id, data);
@@ -36,16 +40,16 @@ public static class CubeStamper
         for (var lx = 0; lx < Size; lx++)
         for (var lz = 0; lz < Size; lz++)
         {
-            // Floor (layer 0): bedrock, 2×2 wool centre.
-            var center = lx is 3 or 4 && lz is 3 or 4;
+            // Floor (layer 0): bedrock, 2×2 wool centre (the two coords straddling the mid-line).
+            var center = lx is Half - 1 or Half && lz is Half - 1 or Half;
             Set(lx, 0, lz, center ? Blocks.Wool : Blocks.Bedrock, center ? color : 0);
 
-            // Roof (top layer): bedrock with a 4×4 centre hole (left as air).
-            var roofHole = lx is >= 2 and <= 5 && lz is >= 2 and <= 5;
+            // Roof (top layer): bedrock with a centred 4×4 hole (left as air).
+            var roofHole = lx is >= Half - 2 and <= Half + 1 && lz is >= Half - 2 and <= Half + 1;
             if (!roofHole) Set(lx, RoofLayer, lz, Blocks.Bedrock);
 
             // Walls: perimeter cells only, layers 1..RoofLayer-1.
-            if (lx is not (0 or 7) && lz is not (0 or 7)) continue;
+            if (lx is not (0 or Max) && lz is not (0 or Max)) continue;
             for (var layer = 1; layer < RoofLayer; layer++)
             {
                 if (layer == SlitLayer) continue;   // light slit — no block
@@ -76,9 +80,9 @@ public static class CubeStamper
             var (lx, lz) = facing switch
             {
                 Facing.NegZ => (t, 0),
-                Facing.PosZ => (t, Size - 1),
+                Facing.PosZ => (t, Max),
                 Facing.NegX => (0, t),
-                Facing.PosX => (Size - 1, t),
+                Facing.PosX => (Max, t),
                 _ => (t, 0),
             };
             set(lx, layer, lz, id, data);

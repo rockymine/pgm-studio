@@ -21,6 +21,7 @@ public partial class ReviewXmlPhase : IDisposable
     private string? xml;          // the full generated document (null when blocked / errored)
     private string? blocked;      // the 409 traversability message (export gate closed)
     private string? error;        // any other failure (e.g. a 500 codec error)
+    private string? downloadError; // a failure of the Export download itself (preview stays visible)
     private List<Container> containers = new();
     private string selected = "full";
 
@@ -55,9 +56,32 @@ public partial class ReviewXmlPhase : IDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    // The flow-bar Export action — download from the server export endpoint: a {slug}/ ZIP (map.xml +
-    // level.dat + region/) for sketch-originated maps, or plain map.xml for imported maps.
-    private Task DownloadAsync() => JS.InvokeVoidAsync("studio.downloadUrl", $"api/map/{Wizard.Slug}/export").AsTask();
+    // The flow-bar Export action — fetch the server export (a {slug}/ ZIP with map.xml + level.dat +
+    // region/ for sketch maps, or plain map.xml otherwise) and save it. Fetching (rather than a blind
+    // anchor click) lets a non-2xx response surface as an in-app error instead of writing the JSON error
+    // body to disk as a bogus "export" file.
+    private async Task DownloadAsync()
+    {
+        downloadError = null;
+        HttpResponseMessage resp;
+        try { resp = await Http.GetAsync($"api/map/{Wizard.Slug}/export"); }
+        catch (Exception ex) { downloadError = ex.Message; StateHasChanged(); return; }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            downloadError = $"export failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+            StateHasChanged();
+            return;
+        }
+
+        var filename = resp.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+            ?? (resp.Content.Headers.ContentType?.MediaType == "application/zip" ? $"{Wizard.Slug}.zip" : $"{Wizard.Slug}.xml");
+        var mime = resp.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var bytes = await resp.Content.ReadAsByteArrayAsync();
+        using var stream = new MemoryStream(bytes);
+        using var streamRef = new DotNetStreamReference(stream);
+        await JS.InvokeVoidAsync("studio.downloadStream", filename, streamRef, mime);
+    }
 
     private string SelectedXml => containers.FirstOrDefault(c => c.Key == selected)?.Xml ?? xml ?? "";
     private void Select(string key) => selected = key;

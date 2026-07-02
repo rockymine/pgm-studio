@@ -63,6 +63,12 @@
       }
       else
       {
+        @if (downloadError is not null)
+        {
+          <div class="panel-warning" style="margin-bottom:12px">
+            <strong>Export download failed.</strong> @downloadError
+          </div>
+        }
         <pre class="detail-xml-pre">@SelectedXml</pre>
       }
     </div>
