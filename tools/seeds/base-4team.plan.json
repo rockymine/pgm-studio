@@ -1,0 +1,24 @@
+{
+  "plan": 1,
+  "meta": { "name": "Base 4-Team" },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_90",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    { "id": "bar-e", "role": "lane", "rect": [1, 5, 2, 6] },
+    { "id": "cross", "role": "hub",  "rect": [-1, 7, 2, 2] },
+    { "id": "bar-w", "role": "lane", "rect": [-3, 4, 2, 9] },
+    { "id": "stone", "role": "mid",  "rect": [1, 1, 2, 2], "surface": 13 }
+  ],
+  "zones": [
+    { "id": "arm", "rect": [-3, 0, 6, 5] }
+  ],
+  "placements": {
+    "spawns": [ { "piece": "bar-e", "at": [1, 5], "facing": "front" } ],
+    "wools":  [ { "piece": "bar-w", "at": [1, 8] } ]
+  }
+}

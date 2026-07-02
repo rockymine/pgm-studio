@@ -1,0 +1,27 @@
+{
+  "plan": 1,
+  "meta": { "name": "Base 2-Wool" },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    { "id": "bar-e", "role": "lane",      "rect": [1, 5, 2, 6] },
+    { "id": "cross", "role": "hub",       "rect": [-1, 7, 2, 2] },
+    { "id": "bar-w", "role": "lane",      "rect": [-3, 4, 2, 9] },
+    { "id": "wl2-a", "role": "wool-room", "rect": [5, 7, 4, 2], "surface": 13 },
+    { "id": "wl2-b", "role": "wool-room", "rect": [7, 5, 2, 2], "surface": 13 },
+    { "id": "stone", "role": "mid",       "rect": [1, 1, 2, 2], "surface": 13 }
+  ],
+  "zones": [
+    { "id": "mid-band", "rect": [-3, -5, 6, 10] },
+    { "id": "bridge-e", "rect": [3, 7, 2, 2] }
+  ],
+  "placements": {
+    "spawns": [ { "piece": "bar-e", "at": [1, 5], "facing": "front" } ],
+    "wools":  [ { "piece": "bar-w", "at": [1, 8] }, { "piece": "wl2-b", "at": [1, 1] } ]
+  }
+}

@@ -20,17 +20,6 @@ uses to build the boring-seed corpus. Design: `docs/contracts/layout-generation.
 `docs/contracts/layout-rules.md` (the expert rule checklist, provisional), `docs/contracts/plan-editor.md`
 (schema · compiler · editor · milestones).
 
-- [ ] **G16 — Plan schema + validator.** `PgmStudio.Pgm/Plan`: `PlanModel` (proxy-cell pieces / zones /
-  placements / cliffs; one team's unit, symmetry fans the rest) + parser + `PlanValidator` with two tiers —
-  structural **errors** (wool unreachable, frontline→wool path through a spawn piece, sliver/corner contacts,
-  wool missing its flat stamp plateau) and **rule lint** citing `layout-rules.md` ids ("G2: corridor 8 < 10"),
-  which never blocks. Pure + unit-tested per rule id. (`plan-editor.md` §1/§2/§4)
-- [ ] **G17 — Plan compiler + seed plans (golden regression).** `PlanCompiler.Compile(plan) → (SketchLayout,
-  MapIntent)`: cells→blocks, islands from derived land interfaces, team-0 placements fanned via
-  `Geom.Symmetry`, zones → `build.areas`, observer + `maxHeight` derived, walkable **step terraces** stamped
-  on raised land seams (unless marked cliff). Re-express the three `tools/seeds/` pairs as `*.plan.json`;
-  compiled output must reproduce the existing `*.layout.json` + `*.intent.json` (golden-file tests).
-  (`plan-editor.md` §3)
 - [ ] **G18 — Plan editor page (canvas).** `Pages/Plan/PlanEditor.razor` + `js/studio/plan/` on the studio
   canvas stack: cell grid, draw/move/resize role-coded rect pieces, zone tool, spawn/wool/iron markers
   (drag-to-set facing), per-piece surface stepper (±2) + `mirrors` toggle, live symmetry ghost

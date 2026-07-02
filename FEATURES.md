@@ -540,6 +540,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `G16`–`G21`). Resolves the `G15` exploration: **WFC evaluated and rejected** for the layout skeleton (CTW
   quality is global/relational — symmetry, spawn/wool separation, typed gaps — not local-adjacency texture);
   the polyomino vocabulary survives as the plan's proxy-cell grid. (G15)
+- **Plan schema + validator** — `PgmStudio.Pgm/Plan`: `PlanModel` (the `*.plan.json` wire model — proxy-cell
+  pieces/zones/placements/cliffs, one team's unit, symmetry fans the rest), `PlanDerived` (land interfaces
+  from rect abutment, gap links through zones, islands, frontline, orbit fanning via `Geom.Symmetry`), and
+  `PlanValidator` — structural errors (sliver/corner contacts, different-surface overlaps, unreachable wool
+  over the fanned land+gap graph, wool path through a spawn piece) plus a non-blocking extensible **rule-lint
+  table** citing `docs/contracts/layout-rules.md` ids (G2/G5/SP2/WL2/BZ5/EL1/EL3). 43 TUnit tests. (G16)
+- **Plan compiler + seed plans (golden regression)** — `PlanCompiler.Compile(plan) → (SketchLayout,
+  MapIntent)`, pure/deterministic: cells→blocks, land-connected pieces united into one polygon per component
+  (`Geom.RectilinearUnion` — exact integer rect union reproducing the seeds' 12-vertex H / 6-vertex L),
+  islands grouped by mirror flag, team-0 placements fanned per orbit (cardinal-quantized `facing` yaw),
+  zones → `build.areas`, observer/maxHeight derived (surface+15 / surface+headroom), first wool = team colour
+  + deterministic dye palette. The three seeds re-expressed as `tools/seeds/*.plan.json` with structural
+  golden tests against the checked-in layout/intent pairs (base-2island/base-4team exact; base-2wool exact
+  except two documented hand-authored values). Step terraces deferred (no seed exercises raised land seams).
+  (G17)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
