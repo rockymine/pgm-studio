@@ -1,0 +1,18 @@
+{
+  "setup": {
+    "mirror_mode": "rot_180",
+    "center": { "cx": 0, "cz": 0 },
+    "bbox": { "min_x": -25, "max_x": 25, "min_z": -65, "max_z": 65 }
+  },
+  "layout": {
+    "shapes": [
+      { "id": "right_bar", "type": "rectangle", "operation": "add", "min_x": 5,   "min_z": 20, "max_x": 15,  "max_z": 60, "base_height": 9 },
+      { "id": "left_bar",  "type": "rectangle", "operation": "add", "min_x": -15, "min_z": 20, "max_x": -5,  "max_z": 60, "base_height": 9 },
+      { "id": "crossbar",  "type": "rectangle", "operation": "add", "min_x": -5,  "min_z": 35, "max_x": 5,   "max_z": 45, "base_height": 9 },
+      { "id": "square",    "type": "rectangle", "operation": "add", "min_x": 5,   "min_z": 5,  "max_x": 15,  "max_z": 15, "base_height": 13 }
+    ],
+    "islands": [
+      { "id": "team", "name": "Team island", "mirrors": true, "shapeIds": ["right_bar", "left_bar", "crossbar", "square"] }
+    ]
+  }
+}

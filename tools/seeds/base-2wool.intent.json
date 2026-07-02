@@ -1,0 +1,24 @@
+{
+  "teams": [
+    { "id": "red",  "name": "Red",  "color": "red" },
+    { "id": "blue", "name": "Blue", "color": "blue" }
+  ],
+  "maxPlayers": 12,
+  "spawns": [
+    { "team": "red",  "point": { "x": 0, "y": 9, "z": 40 },  "yaw": 180, "protection": [] },
+    { "team": "blue", "point": { "x": 0, "y": 9, "z": -40 }, "yaw": 0,   "protection": [] }
+  ],
+  "observer": { "point": { "x": 0, "y": 24, "z": 0 }, "yaw": 0 },
+  "build": {
+    "maxHeight": 20,
+    "areas": [ { "minX": -15, "minZ": -25, "maxX": 15, "maxZ": 25 } ],
+    "holes": []
+  },
+  "wools": [
+    { "owner": "red",  "color": "red",        "spawn": { "x": 10,  "y": 9, "z": 52 },  "room": [], "monuments": [] },
+    { "owner": "red",  "color": "orange",     "spawn": { "x": -10, "y": 9, "z": 52 },  "room": [], "monuments": [] },
+    { "owner": "blue", "color": "blue",       "spawn": { "x": -10, "y": 9, "z": -52 }, "room": [], "monuments": [] },
+    { "owner": "blue", "color": "light_blue", "spawn": { "x": 10,  "y": 9, "z": -52 }, "room": [], "monuments": [] }
+  ],
+  "meta": { "name": "Base 2-Wool", "authors": [] }
+}

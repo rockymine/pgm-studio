@@ -34,6 +34,7 @@ public sealed class BaseSeedWorldTests
     [Test]
     [Arguments("base-2island")]
     [Arguments("base-4team")]
+    [Arguments("base-2wool")]
     public async Task Seed_builds_a_world_with_the_expected_structure_invariants(string seed)
     {
         var (layout, intent) = LoadSeed(seed);
@@ -91,6 +92,7 @@ public sealed class BaseSeedWorldTests
     [Test]
     [Arguments("base-2island")]
     [Arguments("base-4team")]
+    [Arguments("base-2wool")]
     public async Task Seed_world_round_trips_through_anvil(string seed)
     {
         var (layout, intent) = LoadSeed(seed);
