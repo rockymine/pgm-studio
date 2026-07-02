@@ -29,8 +29,15 @@ public static class WoolColors
         ["light_gray"] = "silver", ["light gray"] = "silver", ["light blue"] = "light_blue",
     };
 
+    private static readonly Dictionary<string, int> ColorToWoolDamage =
+        WoolDamageToColor.ToDictionary(kv => kv.Value, kv => kv.Key);
+
     /// <summary>Wool colour for a damage nibble; unknown damage falls back to <c>white</c>.</summary>
     public static string WoolColor(int damage) => WoolDamageToColor.GetValueOrDefault(damage, "white");
+
+    /// <summary>Wool/stained-block damage nibble for a colour slug; unknown falls back to <c>0</c> (white).
+    /// The same 0–15 scale applies to wool (35), stained clay (159), and stained glass + panes (95/160).</summary>
+    public static int WoolDamage(string color) => ColorToWoolDamage.GetValueOrDefault(Normalize(color), 0);
 
     /// <summary>Normalize a wool colour name to its canonical slug.</summary>
     public static string Normalize(string color)
