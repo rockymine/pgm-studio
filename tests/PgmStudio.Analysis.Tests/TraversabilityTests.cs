@@ -60,6 +60,32 @@ public sealed class TraversabilityTests
     }
 
     [Test]
+    public async Task Objective_on_terrain_beyond_the_region_aabb_is_not_clipped_to_isolated()
+    {
+        // A wool sits 100 blocks out on terrain that reaches it, but the only region (the spawn) is near
+        // the origin — so the region AABB + margin stops well short of the wool. With no explicit bbox the
+        // grid must still be sized to the terrain, or the far wool falls outside it and reads as isolated
+        // however well the surface connects it.
+        var data = new Dict
+        {
+            ["regions"] = new Dict { ["spawn"] = Rect(0, 0, 4, 4) },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+            ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["location"] = Xz(100, 2) } },
+        };
+
+        // Continuous walkable surface from the spawn out to the wool.
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x <= 100; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var res = Traversability.Check(data, surface, null);   // no bbox — the export/gate path
+
+        await Assert.That(res.Connected).IsTrue();
+        await Assert.That(res.Isolated.Count).IsEqualTo(0);
+        var wool = res.Points.Single(p => p.Kind == "wool");
+        await Assert.That(wool.Component).IsGreaterThan(0);   // in-grid, on the connected component
+    }
+
+    [Test]
     public async Task Rectangle_navpoint_matches_the_centre()
     {
         // Convex case: interior point of a rectangle coincides with its midpoint (parity-preserving

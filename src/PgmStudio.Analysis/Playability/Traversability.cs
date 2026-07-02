@@ -19,7 +19,11 @@ public static class Traversability
     public static Result Check(Dict data, HashSet<(int, int)>? surfaceColumns, HashSet<(int, int)>? y0Columns,
         (int, int, int, int)? bbox = null, int margin = 16)
     {
-        var b = Buildability.Compute(data, y0Columns, bbox, margin);
+        // Size the grid to the walkable terrain, not just the region AABB. Objectives on terrain that
+        // extends past the build regions (a wool far out on an island) would otherwise fall outside the
+        // grid and read as isolated regardless of how the terrain/build layer actually connects them.
+        var grid = bbox ?? TerrainInclusiveBbox(data, surfaceColumns, y0Columns, margin);
+        var b = Buildability.Compute(data, y0Columns, grid, margin);
         int nx = b.Width, nz = b.Height, minX = b.MinX, minZ = b.MinZ, n = nx * nz;
 
         var navigable = new bool[n];
@@ -61,6 +65,23 @@ public static class Traversability
             ? "spawn ↔ wool objective chain is traversable"
             : $"{isolated.Count} spawn/wool point(s) are not reachable from the rest — check build regions / bridgeable gaps";
         return new Result(connected, distinct.Count, severity, message, haveLayers, placed, isolated);
+    }
+
+    // The buildability/navigability grid must span every walkable column, not just the region AABB — union
+    // the region box with the surface + Y=0 terrain extents so objectives out on that terrain stay in-grid.
+    private static (int, int, int, int) TerrainInclusiveBbox(Dict data, HashSet<(int, int)>? surfaceColumns,
+        HashSet<(int, int)>? y0Columns, int margin)
+    {
+        var (minX, minZ, maxX, maxZ) = Buildability.RegionBbox(data, margin);
+        foreach (var cols in (ReadOnlySpan<HashSet<(int, int)>?>)[surfaceColumns, y0Columns])
+            if (cols is { Count: > 0 })
+            {
+                minX = Math.Min(minX, cols.Min(c => c.Item1) - margin);
+                minZ = Math.Min(minZ, cols.Min(c => c.Item2) - margin);
+                maxX = Math.Max(maxX, cols.Max(c => c.Item1) + margin);
+                maxZ = Math.Max(maxZ, cols.Max(c => c.Item2) + margin);
+            }
+        return (minX, minZ, maxX, maxZ);
     }
 
     // ── navigation points: spawn region centres + wool locations ──────────────────────
