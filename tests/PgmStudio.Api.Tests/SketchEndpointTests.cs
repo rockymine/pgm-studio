@@ -246,6 +246,53 @@ public sealed class SketchEndpointTests
         await Assert.That(sketchStaged!.Any(m => m.Slug == slug)).IsTrue();
     }
 
+    [Test]
+    public async Task Compiled_plan_drives_the_full_create_layout_finish_intent_loop()
+    {
+        await ResetSchemaAsync();
+        await using var factory = new TestApiFactory();
+        using var client = factory.CreateClient();
+
+        // Compile a seed plan into the pair the pipeline consumes (the editor's Compile step).
+        var compile = await client.PostAsync("/api/plan/compile",
+            new StringContent(ReadSeed("base-2wool.plan.json"), Encoding.UTF8, "application/json"));
+        await Assert.That(compile.IsSuccessStatusCode).IsTrue();
+        var compiled = await compile.Content.ReadFromJsonAsync<JsonElement>();
+        var layoutJson = compiled.GetProperty("layout").GetRawText();
+        var intentJson = compiled.GetProperty("intent").GetRawText();
+
+        // Drive the walk-test chain the client runs, asserting 2xx at each step.
+        var create = await client.PostAsJsonAsync("/api/sketch", new { name = "Compiled Loop" });
+        await Assert.That(create.IsSuccessStatusCode).IsTrue();
+        var slug = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        var layout = await client.PutAsync($"/api/map/{slug}/sketch", new StringContent(layoutJson, Encoding.UTF8, "application/json"));
+        await Assert.That(layout.IsSuccessStatusCode).IsTrue();
+
+        var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
+        await Assert.That(finish.IsSuccessStatusCode).IsTrue();
+
+        var intent = await client.PutAsync($"/api/map/{slug}/intent", new StringContent(intentJson, Encoding.UTF8, "application/json"));
+        await Assert.That(intent.IsSuccessStatusCode).IsTrue();
+
+        // The draft now exports a sketch-origin world ZIP.
+        var export = await client.GetAsync($"/api/map/{slug}/export");
+        await Assert.That(export.IsSuccessStatusCode).IsTrue();
+        await Assert.That(export.Content.Headers.ContentType?.MediaType).IsEqualTo("application/zip");
+    }
+
+    private static string ReadSeed(string file)
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir, "tools", "seeds", file);
+            if (File.Exists(candidate)) return File.ReadAllText(candidate);
+            dir = Directory.GetParent(dir)?.FullName;
+        }
+        throw new FileNotFoundException($"seed {file} not found above the test binary");
+    }
+
     // ── harness (self-contained, mirrors MetadataEndpointTests) ─────────────────────
 
     private static string TestConnectionString =>

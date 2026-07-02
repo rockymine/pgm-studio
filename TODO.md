@@ -20,10 +20,6 @@ uses to build the boring-seed corpus. Design: `docs/contracts/layout-generation.
 `docs/contracts/layout-rules.md` (the expert rule checklist, provisional), `docs/contracts/plan-editor.md`
 (schema · compiler · editor · milestones).
 
-- [ ] **G20 — Compile preview + walk-test loop.** In-editor tabs previewing the compiled `layout.json` /
-  `intent.json`; a **Create draft** button driving the existing chain (`POST /api/sketch` → `PUT sketch` →
-  `finish` → `PUT intent`) and surfacing the `GET /map/{slug}/export` world-ZIP link — draw → compile → walk
-  the world, no new endpoints. (`plan-editor.md` §5)
 - [ ] **G21 — Author the boring-seed corpus.** Burn down the seed shopping list (`layout-rules.md`):
   raised-spawn, isolated-spawn, wool-two-sided, multi-wool-spread, fragmented-island, frontline-tower,
   elevation-rich, big-board, four-team-hole, mirror-mode. Each lands as `tools/seeds/*.plan.json` (compiled

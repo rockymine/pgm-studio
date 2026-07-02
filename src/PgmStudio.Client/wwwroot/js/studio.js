@@ -46,6 +46,25 @@ window.studio = {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
+  // Copy a string to the clipboard; returns true on success. Falls back to a hidden textarea +
+  // execCommand where the async Clipboard API is unavailable (older / insecure contexts).
+  async copyText(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+    } catch { /* fall through to the legacy path */ }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch { return false; }
+  },
+
   // Mount the hybrid editor canvas. Uses a native dynamic import (absolute URL) so it bypasses
   // Blazor's fingerprinting import map (which 404s for arbitrary wwwroot modules under the dev host).
   async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {

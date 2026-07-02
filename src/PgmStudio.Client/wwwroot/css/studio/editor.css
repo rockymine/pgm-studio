@@ -947,3 +947,44 @@ body.dashboard-page { overflow: hidden; }
   border-radius: var(--radius-sm); padding: 0 5px; line-height: 1.5;
 }
 .plan-lint-msg { line-height: 1.35; }
+.plan-lint-row--static { cursor: default; }
+.plan-lint-row--static:hover { background: transparent; color: var(--text-secondary); border-color: transparent; }
+
+/* Compile & test drawer — the walk-test loop: compiled layout/intent preview + create-draft/export. */
+.plan-compile-backdrop {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(0, 0, 0, 0.45);
+}
+.plan-compile-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 41;
+  width: min(560px, 92vw);
+  display: flex; flex-direction: column;
+  background: var(--bg-panel, var(--bg)); border-left: 1px solid var(--border);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.3);
+}
+.plan-compile-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-3); border-bottom: 1px solid var(--border);
+}
+.plan-compile-body {
+  flex: 1; min-height: 0; overflow: auto;
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3);
+}
+.plan-compile-tabs {
+  display: flex; align-items: center; gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.plan-compile-tab-actions { display: inline-flex; gap: var(--space-2); margin-left: auto; }
+.plan-compile-json {
+  flex: 1; min-height: 0; overflow: auto; margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-code, var(--bg-selected)); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-family: ui-monospace, monospace; font-size: var(--font-xs); line-height: 1.45;
+  color: var(--text-bright); white-space: pre; tab-size: 2;
+}
+.plan-compile-errors { display: flex; flex-direction: column; gap: 3px; }
+.plan-compile-foot { padding: var(--space-3); border-top: 1px solid var(--border); }
+.plan-compile-draft { display: flex; flex-direction: column; gap: var(--space-2); }
+.plan-compile-draft a.action-btn { text-decoration: none; justify-content: center; }
+.plan-compile-draft-error { color: var(--color-error); }

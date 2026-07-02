@@ -1,3 +1,6 @@
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components;
@@ -8,9 +11,27 @@ namespace PgmStudio.Client.Pages.Plan;
 
 public partial class PlanEditor
 {
+    [Inject] private HttpClient Http { get; set; } = default!;
+
     private ElementReference svgRef, wrapRef, cursorRef;
     private IJSObjectReference? handle;
     private DotNetObjectReference<PlanEditor>? selfRef;
+
+    // Compile & test drawer: the compiled pair (pretty-printed for preview, raw for the draft chain),
+    // structural errors when the compile is blocked, and the walk-test loop's per-step draft state.
+    private bool showCompile;
+    private bool compiling;
+    private string compileTab = "layout";
+    private bool copied;
+    private string? compiledLayout, compiledIntent;   // pretty-printed for the preview panes
+    private string? compiledLayoutRaw, compiledIntentRaw;   // verbatim, posted to the draft pipeline
+    private string? compileError;                     // a malformed / transport failure message
+    private List<InspectFinding> compileErrors = [];  // 422 structural findings (compile blocked)
+
+    private string? draftSlug;
+    private bool draftBusy;
+    private string draftStep = "";
+    private string? draftError;
 
     private string tool = "select";
     private string role = "lane";
@@ -185,6 +206,146 @@ public partial class PlanEditor
         headroom = m.Globals.Headroom;
         maxPlayers = m.Globals.MaxPlayers;
     }
+
+    // ── compile & test (the walk-test loop) ──────────────────────────────────────
+
+    private static readonly JsonSerializerOptions Pretty = new() { WriteIndented = true };
+
+    private async Task OpenCompile()
+    {
+        showCompile = true;
+        await Compile();
+    }
+
+    private void CloseCompile() => showCompile = false;
+
+    // Post the current plan to /api/plan/compile. A 422 renders its structural findings in place of the JSON;
+    // a 400 (malformed) / transport failure shows a message. A 200 stores the compiled pair for preview + the
+    // draft chain. Compiling resets any prior draft so a fresh compile starts the loop over.
+    private async Task Compile()
+    {
+        if (handle is null) return;
+        compiling = true;
+        compileError = null;
+        compileErrors = [];
+        compiledLayout = compiledIntent = compiledLayoutRaw = compiledIntentRaw = null;
+        draftSlug = null; draftError = null; draftBusy = false;
+        StateHasChanged();
+
+        try
+        {
+            var planJson = await handle.InvokeAsync<string>("exportJson");
+            using var resp = await Http.PostAsync("api/plan/compile", new StringContent(planJson, Encoding.UTF8, "application/json"));
+            if (resp.IsSuccessStatusCode)
+            {
+                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
+                var layout = doc.GetProperty("layout");
+                var intent = doc.GetProperty("intent");
+                compiledLayoutRaw = layout.GetRawText();
+                compiledIntentRaw = intent.GetRawText();
+                compiledLayout = JsonSerializer.Serialize(layout, Pretty);
+                compiledIntent = JsonSerializer.Serialize(intent, Pretty);
+            }
+            else if ((int)resp.StatusCode == 422)
+            {
+                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
+                compileErrors = doc.TryGetProperty("findings", out var f)
+                    ? JsonSerializer.Deserialize<List<InspectFinding>>(f.GetRawText()) ?? []
+                    : [];
+            }
+            else
+            {
+                compileError = $"compile failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+            }
+        }
+        catch (Exception ex) { compileError = ex.Message; }
+        compiling = false;
+        StateHasChanged();
+    }
+
+    private async Task CopyTab()
+    {
+        var text = compileTab == "layout" ? compiledLayout : compiledIntent;
+        if (text is null) return;
+        copied = await JS.InvokeAsync<bool>("studio.copyText", text);
+        StateHasChanged();
+    }
+
+    private async Task DownloadTab()
+    {
+        var text = compileTab == "layout" ? compiledLayout : compiledIntent;
+        if (text is null) return;
+        var slug = string.IsNullOrWhiteSpace(planName) ? "plan" : planName.Trim().ToLowerInvariant().Replace(' ', '-');
+        await JS.InvokeVoidAsync("studio.downloadText", $"{slug}.{compileTab}.json", text, "application/json");
+    }
+
+    // Drive the existing draft pipeline from a successful compile: create a draft, push the compiled layout,
+    // rasterize it, then push the compiled intent. Any non-2xx step aborts with a message naming that step.
+    private async Task CreateDraft()
+    {
+        if (compiledLayoutRaw is null || compiledIntentRaw is null) return;
+        draftBusy = true; draftError = null; draftSlug = null;
+
+        try
+        {
+            draftStep = "Creating draft"; StateHasChanged();
+            using var createResp = await Http.PostAsJsonAsync("api/sketch", new { name = planName });
+            if (!await Ok(createResp, "create draft")) return;
+            var slug = (await createResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();
+            if (string.IsNullOrEmpty(slug)) { draftError = "create draft: no slug returned"; return; }
+
+            draftStep = "Saving layout"; StateHasChanged();
+            using var layoutResp = await Http.PutAsync($"api/map/{slug}/sketch", new StringContent(compiledLayoutRaw, Encoding.UTF8, "application/json"));
+            if (!await Ok(layoutResp, "save layout")) return;
+
+            draftStep = "Rasterizing"; StateHasChanged();
+            using var finishResp = await Http.PostAsync($"api/map/{slug}/sketch/finish", null);
+            if (!await Ok(finishResp, "finish (rasterize)")) return;
+
+            draftStep = "Applying intent"; StateHasChanged();
+            using var intentResp = await Http.PutAsync($"api/map/{slug}/intent", new StringContent(compiledIntentRaw, Encoding.UTF8, "application/json"));
+            if (!await Ok(intentResp, "apply intent")) return;
+
+            draftSlug = slug;
+        }
+        catch (Exception ex) { draftError = ex.Message; }
+        finally { draftBusy = false; StateHasChanged(); }
+    }
+
+    private async Task<bool> Ok(HttpResponseMessage resp, string step)
+    {
+        if (resp.IsSuccessStatusCode) return true;
+        draftError = $"{step} failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+        return false;
+    }
+
+    // Fetch the draft's world export (a {slug}/ ZIP) and save it — checking the status first so a non-2xx
+    // error body never lands on disk as a bogus export.
+    private async Task DownloadWorld()
+    {
+        if (draftSlug is null) return;
+        draftError = null;
+        HttpResponseMessage resp;
+        try { resp = await Http.GetAsync($"api/map/{draftSlug}/export"); }
+        catch (Exception ex) { draftError = ex.Message; StateHasChanged(); return; }
+
+        if (!resp.IsSuccessStatusCode)
+        {
+            draftError = $"export failed (HTTP {(int)resp.StatusCode}). {Trunc(await resp.Content.ReadAsStringAsync())}";
+            StateHasChanged();
+            return;
+        }
+
+        var filename = resp.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+            ?? (resp.Content.Headers.ContentType?.MediaType == "application/zip" ? $"{draftSlug}.zip" : $"{draftSlug}.xml");
+        var mime = resp.Content.Headers.ContentType?.ToString() ?? "application/octet-stream";
+        var bytes = await resp.Content.ReadAsByteArrayAsync();
+        using var stream = new MemoryStream(bytes);
+        using var streamRef = new DotNetStreamReference(stream);
+        await JS.InvokeVoidAsync("studio.downloadStream", filename, streamRef, mime);
+    }
+
+    private static string Trunc(string s) => s.Length > 200 ? s[..200] + "…" : s;
 
     // ── bridge callbacks ─────────────────────────────────────────────────────────
 

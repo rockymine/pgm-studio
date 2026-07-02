@@ -572,6 +572,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   persisted overlay toggles drawn in a dedicated canvas layer. The bridge re-inspects debounced (~300ms,
   stale-response guarded); a lint panel lists errors-then-lint with rule chips, click pulsing the subject
   pieces. `PlanFinding` carries subject ids. Pgm 219 / Api 40 / JS 102 tests green. (G19)
+- **Plan compile preview + walk-test loop** — `POST /api/plan/compile` (malformed → 400; structural errors →
+  422 with the error findings, lint never blocks; else `{layout, intent}` serialized with each consumer's own
+  JSON options for byte-exact downstream compatibility) + the editor's **Compile** drawer (Layout/Intent tabs
+  with Copy/Download, 422 findings rendered in place) and **Create draft** flow — the sequenced
+  create → PUT sketch → finish → PUT intent chain with per-step failure naming, then a sketch-editor link and
+  a status-checked **Download world ZIP** (`GET /map/{slug}/export`). Proven live end-to-end: a compiled seed
+  plan produced a playable `{slug}/` world ZIP (map.xml + level.dat + region/*.mca). Full-loop integration
+  test in Api.Tests (45 green). (G20)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
