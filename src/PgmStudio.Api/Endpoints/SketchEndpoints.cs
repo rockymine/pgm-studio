@@ -28,6 +28,11 @@ internal static class SketchStore
         return art?.Data;
     }
 
+    /// <summary>Whether the map has a sketch layout — the durable "was a sketch" signal (the stage advances
+    /// to <c>configure</c> on finish, so it can't distinguish origin).</summary>
+    public static Task<bool> HasAsync(PgmDb db, long mapId, CancellationToken ct) =>
+        db.Artifacts.AnyAsync(a => a.MapId == mapId && a.Kind == ArtifactKind.SketchLayoutJson, ct);
+
     public static async Task SaveAsync(PgmDb db, long mapId, byte[] data, CancellationToken ct)
     {
         await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == ArtifactKind.SketchLayoutJson).DeleteAsync(ct);

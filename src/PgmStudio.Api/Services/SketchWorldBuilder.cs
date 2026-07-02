@@ -55,7 +55,7 @@ public static class SketchWorldBuilder
             var facing = PositionSnap.FacingFromYaw(s.Yaw);
 
             var captured = wools.Select((w, i) => (w, i))
-                .Where(x => x.w.Monuments.Any(m => m.Team == s.Team)).ToList();
+                .Where(x => Capturers(x.w, teams).Contains(s.Team)).ToList();
             var placed = SpawnCubeStamper.Stamp(world, sx, sz, fy, WoolDataForTeam(s.Team, teams), facing,
                 [.. captured.Select(x => ColorSlug(x.w, teams))]);
 
@@ -81,10 +81,10 @@ public static class SketchWorldBuilder
                 Color = w.Color,
                 Room = w.Room,
                 Spawn = new Pt(woolCell[i].X, woolFloor[i], woolCell[i].Z),
-                Monuments = [.. w.Monuments.Select(m => new MonumentIntent
+                Monuments = [.. Capturers(w, teams).Select(team => new MonumentIntent
                 {
-                    Team = m.Team,
-                    Location = monLoc.GetValueOrDefault((i, m.Team), m.Location),
+                    Team = team,
+                    Location = monLoc.GetValueOrDefault((i, team), default),
                 })],
             };
         }
@@ -120,6 +120,13 @@ public static class SketchWorldBuilder
 
         return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved);
     }
+
+    /// <summary>The teams that capture a wool: its authored monument teams, or — when none were authored
+    /// (the monument step is auto-wired away for sketch maps) — every team except the owner.</summary>
+    private static IReadOnlyList<string> Capturers(WoolIntent w, IReadOnlyList<TeamDef> teams)
+        => w.Monuments.Count > 0
+            ? [.. w.Monuments.Select(m => m.Team)]
+            : [.. teams.Where(t => t.Id != w.Owner).Select(t => t.Id)];
 
     /// <summary>The wool colour slug: the wool's own colour, else its owner team's colour, else white.</summary>
     private static string ColorSlug(WoolIntent w, IReadOnlyList<TeamDef> teams)

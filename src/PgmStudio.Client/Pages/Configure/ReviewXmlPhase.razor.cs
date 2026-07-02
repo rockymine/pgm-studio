@@ -55,8 +55,9 @@ public partial class ReviewXmlPhase : IDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    // The flow-bar Export action — download exactly the previewed bytes (no second fetch).
-    private Task DownloadAsync() => JS.InvokeVoidAsync("studio.downloadText", $"{Wizard.Slug}.xml", xml, "application/xml").AsTask();
+    // The flow-bar Export action — download from the server export endpoint: a {slug}/ ZIP (map.xml +
+    // level.dat + region/) for sketch-originated maps, or plain map.xml for imported maps.
+    private Task DownloadAsync() => JS.InvokeVoidAsync("studio.downloadUrl", $"api/map/{Wizard.Slug}/export").AsTask();
 
     private string SelectedXml => containers.FirstOrDefault(c => c.Key == selected)?.Xml ?? xml ?? "";
     private void Select(string key) => selected = key;

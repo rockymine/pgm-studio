@@ -30,6 +30,18 @@ window.studio = {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
+  // Trigger a browser download of a server URL (the Configure export: a ZIP for sketch-originated maps,
+  // or map.xml otherwise). The server sets Content-Disposition; the anchor resolves the URL against the
+  // page's <base href>.
+  downloadUrl(url) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  },
+
   // Mount the hybrid editor canvas. Uses a native dynamic import (absolute URL) so it bypasses
   // Blazor's fingerprinting import map (which 404s for arbitrary wwwroot modules under the dev host).
   async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {

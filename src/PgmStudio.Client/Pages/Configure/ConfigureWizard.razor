@@ -60,19 +60,21 @@
   {
     <BuildLayerPhase @key="@("build-layer")" />
   }
-  else if (Phase.Id == "wools" && subStep == 0)
+  @* Keyed on the sub-step label, not its index: sketch-origin maps drop the Monuments sub-step, which
+     shifts Room's index down (ConfigureWizard.razor.cs LoadOriginAsync). *@
+  else if (Phase.Id == "wools" && SubLabel == "Objectives")
   {
     <WoolObjectivesPhase @key="@("wools-objectives")" />
   }
-  else if (Phase.Id == "wools" && subStep == 1)
+  else if (Phase.Id == "wools" && SubLabel == "Spawn")
   {
     <WoolSpawnPhase @key="@("wools-spawn")" />
   }
-  else if (Phase.Id == "wools" && subStep == 2)
+  else if (Phase.Id == "wools" && SubLabel == "Monuments")
   {
     <WoolMonumentsPhase @key="@("wools-monuments")" />
   }
-  else if (Phase.Id == "wools" && subStep == 3)
+  else if (Phase.Id == "wools" && SubLabel == "Room")
   {
     <WoolRoomPhase @key="@("wools-room")" />
   }

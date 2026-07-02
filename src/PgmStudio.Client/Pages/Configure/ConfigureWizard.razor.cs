@@ -27,10 +27,14 @@ public partial class ConfigureWizard
     private SaveState save = SaveState.Saved;
     private enum SaveState { Saved, Saving, Unsaved }
 
-    private ConfigurePhase Phase => ConfigurePhases.All[phaseIndex];
+    // The wizard phases for this map. Sketch-origin maps drop the Wools · Monuments sub-step (monuments are
+    // derived at export, not authored) — see LoadOriginAsync.
+    private ConfigurePhase[] phases = ConfigurePhases.All;
+
+    private ConfigurePhase Phase => phases[phaseIndex];
     private int LastStep => Math.Max(0, Phase.SubSteps.Length - 1);
     private bool AtStart => phaseIndex == 0 && subStep == 0;
-    private bool AtEnd => phaseIndex == ConfigurePhases.All.Length - 1 && subStep == LastStep;
+    private bool AtEnd => phaseIndex == phases.Length - 1 && subStep == LastStep;
 
     private bool BackEnabled => !AtStart;
     private string NextLabel => AtEnd ? "Export" : "Next";
@@ -113,7 +117,7 @@ public partial class ConfigureWizard
     {
         if (loaded) return;   // Slug is a fixed route param — load identity + intent once
         loaded = true;
-        await Task.WhenAll(LoadNameAsync(), LoadIntentAsync());
+        await Task.WhenAll(LoadNameAsync(), LoadIntentAsync(), LoadOriginAsync());
         SeedMetaNameFromMap();   // a sketched/imported map's name lives on the row, not (yet) in the intent
         furthest = Math.Max(furthest, SliceFurthest());
         ready = true;            // only now may the phase bodies mount and read the loaded intent
@@ -128,6 +132,25 @@ public partial class ConfigureWizard
         var meta = intent!["meta"] as JsonObject;
         if (meta is null) { meta = new JsonObject(); intent["meta"] = meta; }
         if (string.IsNullOrWhiteSpace(Str(meta, "name"))) meta["name"] = mapName;
+    }
+
+    // Sketch-origin maps auto-wire their monuments at export, so the manual Wools · Monuments sub-step is
+    // dropped from the flow (best-effort: a non-sketch / unreachable map keeps the full set).
+    private async Task LoadOriginAsync()
+    {
+        try
+        {
+            var resp = await Http.GetAsync($"api/map/{Slug}/origin");
+            if (resp.IsSuccessStatusCode)
+            {
+                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
+                if (doc.TryGetProperty("sketch", out var s) && s.GetBoolean())
+                    phases = [.. ConfigurePhases.All.Select(p => p.Id == "wools"
+                        ? p with { SubSteps = [.. p.SubSteps.Where(step => step != "Monuments")] }
+                        : p)];
+            }
+        }
+        catch { /* keep the default phases */ }
     }
 
     private async Task LoadNameAsync()
