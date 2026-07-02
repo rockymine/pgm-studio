@@ -60,6 +60,16 @@ on every inter-team path; interface widths ≥ the corridor minimum; spawn depth
 from the nearest frontline interface. The export pipeline's traversability/monument gates stay as
 the backstop, but bad topology is rejected at the plan in milliseconds.
 
+**The plan is a mini layout (a scale proxy).** Map authors already draw exactly this artifact by
+hand: a checkered-paper (or one-block-per-cell in-game) miniature whose scale lives in the
+author's head and gets adjusted when the real map is built. The plan adopts that semantics:
+coordinates are **proxy cells, not block-true dimensions**. Realization applies scale — and the
+grid's inherent smell (some distances inexpressible, everything reading "artificial") is resolved
+downstream, by the scale pass together with roughen. Open design point: scaling cannot be one
+uniform factor (that preserves the grid smell) — it likely needs per-part stretch (lengthening a
+specific lane, widening a specific mid) applied to targeted pieces, which makes it a sibling of
+the roughen operators rather than a global multiply. See §7.
+
 **The seeds are already plans.** `base-2island`'s H = three rect pieces (two bars + crossbar) with
 two `land` interfaces; the raised square = a `mid` piece whose every interface is a `gap`;
 `base-2wool`'s L-island = a `wool-room` piece with exactly one interface, a narrow `gap` (the
@@ -110,8 +120,12 @@ intent.
    `lane` pieces, each dead-ending in a `wool-room`; attach `frontline` pieces toward the middle.
    Each rule states which roles may attach to which, on which sides, with what interface width and
    what depth ordering (wool behind hub, spawn off the wool paths, frontline nearest mid).
-3. **Optional isolation moves** — convert a `land` interface to a `gap` (+ its bridge zone), or
-   attach a new piece by `gap` only.
+3. **Fragmentation moves** — the expert's mental model: a team's side reads as a once-connected
+   island the author *cut apart*. The operator: pick a `land` interface (or cut a piece in two),
+   convert it to a `gap`, displace the far piece across the void, add the bridge zone. Purpose is
+   gameplay, not looks — harder/riskier objective access, defenders slowed between spawn and
+   wool, retreat over fragile player-made bridges instead of solid terrain. Isolated wool,
+   isolated spawn, and displaced mid pieces are all this one move applied to different pieces.
 4. **Neutral middle** — place `mid` pieces and build zones between the frontlines.
 5. **Validate** the plan invariants; reject/repair.
 6. **Heights** — per-role plateau defaults (spawn raised for overview, wool approach stepping up
@@ -194,8 +208,12 @@ Viable scope, tiered:
 
 ## 7. Open questions
 
-1. **Plan resolution.** Is the coarse grid cell the seeds' 5-block raster cell, and are all piece
-   bounds + interface intervals authored at that resolution?
+1. **The scale pass.** Answered in part: the grid cell is a parameter (5 default, 4 viable) and
+   the plan is a scale *proxy* (§2, "mini layout"). Open: the design of the de-proxying scale
+   pass — a uniform factor preserves the grid smell, so it likely means targeted per-part
+   stretches (lengthen this lane, widen that mid) sitting beside the roughen operators. Where
+   does it run (before roughen? interleaved?), and what pins the parts that must *not* stretch
+   (wool-room stamp plateaus, corridor minimums)?
 2. **The rule set itself.** The attachment rules, minimum widths, depth orderings, and elevation
    defaults must come from the author's experience. Fastest capture: a working session that turns
    "years of making these" into an explicit checklist (per role: what it may touch, how wide, how
