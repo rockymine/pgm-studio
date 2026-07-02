@@ -8,8 +8,10 @@ import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, ROLES,
 } from "../plan/plan-doc.js";
+import { parseOverlays, sortFindings } from "../plan/plan-inspect.js";
 
 const STORAGE_KEY = "pgm-plan-editor";
+const OVERLAY_KEY = "pgm-plan-overlays";
 
 export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let doc = emptyDoc();
@@ -73,6 +75,36 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   function scheduleSave() {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { try { localStorage.setItem(STORAGE_KEY, toJson(doc)); } catch { /* private mode */ } }, 600);
+    scheduleInspect();
+  }
+
+  // ── live inspect (debounced POST to /api/plan/inspect; stale responses ignored) ──
+
+  let overlays = { interfaces: true, gaps: true, frontline: true };
+  try { overlays = parseOverlays(localStorage.getItem(OVERLAY_KEY)); } catch { /* default */ }
+
+  let inspectTimer = null, inspectSeq = 0;
+  function scheduleInspect() {
+    if (inspectTimer) clearTimeout(inspectTimer);
+    inspectTimer = setTimeout(runInspect, 300);
+  }
+  async function runInspect() {
+    const seq = ++inspectSeq;
+    let res;
+    try {
+      res = await fetch("/api/plan/inspect", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
+    } catch { return; }                       // offline / transient — keep the last good overlay
+    if (seq !== inspectSeq) return;            // a newer edit already fired
+    if (!res.ok) {                             // malformed plan (400) — clear the derived layer + panel
+      canvas.setInspect({ interfaces: [], gapLinks: [], frontline: [] });
+      fire("OnFindings", "[]");
+      return;
+    }
+    let data;
+    try { data = await res.json(); } catch { return; }
+    if (seq !== inspectSeq) return;            // re-check after the awaited body
+    canvas.setInspect({ interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] });
+    fire("OnFindings", JSON.stringify(sortFindings(data.findings || [])));
   }
 
   function load(next, { fit = true } = {}) {
@@ -84,11 +116,15 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     scheduleSave();
   }
 
+  function persistOverlays() { try { localStorage.setItem(OVERLAY_KEY, JSON.stringify(overlays)); } catch { /* private mode */ } }
+
   // Restore the last autosaved plan on open; fall back to a blank document.
   try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) doc = fromJson(saved); } catch { doc = emptyDoc(); }
+  for (const k of Object.keys(overlays)) canvas.setOverlayVisible(k, overlays[k]);
   canvas.setDoc(doc);
   canvas.fit();
   canvas.resize();
+  scheduleInspect();
 
   return {
     setTool(tool) { canvas.setTool(tool); },
@@ -136,6 +172,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     cycleFacing(index) { const m = doc.placements.spawns[index]; if (!m) return; const o = ["front", "right", "back", "left"]; m.facing = o[(o.indexOf(m.facing) + 1) % 4]; canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); scheduleSave(); },
     deleteSelected() { deleteSelection(canvas.getSelection()); },
 
-    dispose() { if (saveTimer) clearTimeout(saveTimer); canvas.dispose(); },
+    // Derived-structure overlays: toggle a layer (persisted) and pulse a finding's subjects on click.
+    getOverlays() { return JSON.stringify(overlays); },
+    setOverlay(key, on) { if (!(key in overlays)) return; overlays[key] = !!on; persistOverlays(); canvas.setOverlayVisible(key, overlays[key]); },
+    highlightSubjects(idsJson) { try { canvas.pulseSubjects(JSON.parse(idsJson) || []); } catch { /* ignore */ } },
+
+    dispose() { if (saveTimer) clearTimeout(saveTimer); if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },
   };
 }

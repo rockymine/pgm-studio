@@ -2,9 +2,14 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Plan;
 
-/// <summary>A single validation finding: its <see cref="Severity"/>, a message, and (for lint) the rule id it
-/// cites from the layout-rules checklist.</summary>
-public sealed record PlanFinding(PlanSeverity Severity, string Message, string? Rule = null);
+/// <summary>A single validation finding: its <see cref="Severity"/>, a message, (for lint) the rule id it
+/// cites from the layout-rules checklist, and the ids of the pieces/zones it implicates (for the editor to
+/// highlight on click).</summary>
+public sealed record PlanFinding(PlanSeverity Severity, string Message, string? Rule = null, IReadOnlyList<string>? Subjects = null)
+{
+    /// <summary>The implicated piece/zone ids, never null.</summary>
+    public IReadOnlyList<string> SubjectIds => Subjects ?? [];
+}
 
 public enum PlanSeverity { Error, Lint }
 
@@ -35,17 +40,18 @@ public static class PlanValidator
     private static IEnumerable<PlanFinding> Errors(PlanModel plan, PlanDerived d)
     {
         var findings = new List<PlanFinding>();
-        void Error(string m) => findings.Add(new PlanFinding(PlanSeverity.Error, m));
+        void Error(string m, params string[] subjects) =>
+            findings.Add(new PlanFinding(PlanSeverity.Error, m, null, subjects.Length > 0 ? subjects : null));
 
         // sliver / corner contacts, and different-surface overlaps
         foreach (var c in d.Contacts)
         {
             if (c.Kind == ContactKind.Sliver)
-                Error($"sliver contact: pieces '{c.A}' and '{c.B}' share only {c.BorderLength} < {PlanDerived.CorridorMin} blocks");
+                Error($"sliver contact: pieces '{c.A}' and '{c.B}' share only {c.BorderLength} < {PlanDerived.CorridorMin} blocks", c.A, c.B);
             else if (c.Kind == ContactKind.Corner)
-                Error($"corner contact: pieces '{c.A}' and '{c.B}' touch at a point, not a corridor");
+                Error($"corner contact: pieces '{c.A}' and '{c.B}' touch at a point, not a corridor", c.A, c.B);
             else if (c.Kind == ContactKind.Overlap && c.SurfaceDelta != 0)
-                Error($"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})");
+                Error($"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})", c.A, c.B);
         }
 
         // placements must reference a real piece and sit inside it (a wool's flat area is its piece footprint)
@@ -62,10 +68,10 @@ public static class PlanValidator
     private static void CheckInside(PlanDerived d, string kind, string pieceId, int[] at, List<PlanFinding> findings)
     {
         var piece = d.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
-        if (piece is null) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references unknown piece '{pieceId}'")); return; }
+        if (piece is null) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references unknown piece '{pieceId}'", null, [pieceId])); return; }
         int x = at[0], z = at[1], w = piece.Rect[2], h = piece.Rect[3];
         if (x < 0 || z < 0 || x > w || z > h)
-            findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h})"));
+            findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h})", null, [pieceId]));
     }
 
     // Build the fanned piece graph (land + gap edges), then check each wool node is reachable from a capturing
@@ -93,14 +99,14 @@ public static class PlanValidator
                     var from = graph.Nodes.Where(n => n.Team == captor && spawnPieces.Contains(n.PieceId)).Select(n => n.Key);
                     if (!graph.Reachable(from, woolNode))
                         findings.Add(new PlanFinding(PlanSeverity.Error,
-                            $"wool on '{wp}' (team {owner}) is unreachable from team {captor}'s spawn"));
+                            $"wool on '{wp}' (team {owner}) is unreachable from team {captor}'s spawn", null, [wp]));
                 }
 
                 // SP1: the wool must be reachable from a frontline piece without crossing a spawn piece
                 var frontStarts = graph.Nodes.Where(n => graph.Frontline.Contains(n.Key) && !spawnNodes.Contains(n.Key)).Select(n => n.Key);
                 if (!graph.ReachableAvoiding(frontStarts, woolNode, spawnNodes))
                     findings.Add(new PlanFinding(PlanSeverity.Error,
-                        $"wool on '{wp}' (team {owner}) is only reachable through a spawn piece (SP1)"));
+                        $"wool on '{wp}' (team {owner}) is only reachable through a spawn piece (SP1)", null, [wp]));
             }
         return findings;
     }
@@ -113,7 +119,8 @@ public static class PlanValidator
         LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3,
     ];
 
-    private static PlanFinding Lint(string rule, string msg) => new(PlanSeverity.Lint, msg, rule);
+    private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
+        new(PlanSeverity.Lint, msg, rule, subjects.Length > 0 ? subjects : null);
 
     // G2 — minimum corridor width 10: a build zone narrower than the corridor minimum in either dimension.
     private static IEnumerable<PlanFinding> LintG2(PlanModel plan, PlanDerived d)
@@ -123,7 +130,7 @@ public static class PlanValidator
             var r = PlanDerived.ToBlock(z.Rect, d.Cell);
             var min = Math.Min(r.Width, r.Depth);
             if (min < PlanDerived.CorridorMin)
-                yield return Lint("G2", $"zone '{z.Id}' corridor width {min} < {PlanDerived.CorridorMin}");
+                yield return Lint("G2", $"zone '{z.Id}' corridor width {min} < {PlanDerived.CorridorMin}", z.Id);
         }
     }
 
@@ -133,8 +140,8 @@ public static class PlanValidator
         foreach (var g in d.GapLinks)
         {
             if (g.Hop == 0) continue;   // abutting inside the zone — not a hop
-            if (g.Hop < 10) yield return Lint("G5", $"gap hop {g.Hop} < 10 between '{g.A}' and '{g.B}'");
-            else if (g.Hop > 20) yield return Lint("G5", $"gap hop {g.Hop} > 20 between '{g.A}' and '{g.B}'");
+            if (g.Hop < 10) yield return Lint("G5", $"gap hop {g.Hop} < 10 between '{g.A}' and '{g.B}'", g.A, g.B);
+            else if (g.Hop > 20) yield return Lint("G5", $"gap hop {g.Hop} > 20 between '{g.A}' and '{g.B}'", g.A, g.B);
         }
     }
 
@@ -151,7 +158,7 @@ public static class PlanValidator
             bool zAxis = r.Depth >= r.Width;
             double pos = zAxis ? bz : bx, mid = zAxis ? r.CenterZ : r.CenterX, center = 0;
             bool inBack = Math.Abs(pos - center) >= Math.Abs(mid - center);
-            if (!inBack) yield return Lint("SP2", $"spawn on '{s.Piece}' not near the back of its lane");
+            if (!inBack) yield return Lint("SP2", $"spawn on '{s.Piece}' not near the back of its lane", s.Piece);
         }
     }
 
@@ -169,7 +176,7 @@ public static class PlanValidator
                 if (wp is null) continue;
                 var (wx, wz) = ResolveBlock(wp.Value.Rect, w.At, d.Cell);
                 var dist = Math.Sqrt((wx - sx) * (wx - sx) + (wz - sz) * (wz - sz));
-                if (dist < 20) yield return Lint("WL2", $"wool on '{w.Piece}' is {dist:0} < 20 blocks from spawn on '{s.Piece}'");
+                if (dist < 20) yield return Lint("WL2", $"wool on '{w.Piece}' is {dist:0} < 20 blocks from spawn on '{s.Piece}'", w.Piece, s.Piece);
             }
         }
     }
@@ -183,7 +190,7 @@ public static class PlanValidator
             var zr = PlanDerived.ToBlock(z.Rect, d.Cell);
             foreach (var p in d.Pieces)
                 if (spawnPieces.Contains(p.Id) && Touches(p.Rect, zr))
-                    yield return Lint("BZ5", $"build zone '{z.Id}' touches spawn piece '{p.Id}'");
+                    yield return Lint("BZ5", $"build zone '{z.Id}' touches spawn piece '{p.Id}'", z.Id, p.Id);
         }
     }
 
@@ -193,7 +200,7 @@ public static class PlanValidator
         foreach (var p in plan.Pieces)
         {
             var delta = (p.Surface ?? plan.Globals.Surface) - plan.Globals.Surface;
-            if (delta % 2 != 0) yield return Lint("EL1", $"piece '{p.Id}' surface delta {delta} is not a multiple of 2");
+            if (delta % 2 != 0) yield return Lint("EL1", $"piece '{p.Id}' surface delta {delta} is not a multiple of 2", p.Id);
         }
     }
 
@@ -205,7 +212,7 @@ public static class PlanValidator
         {
             if (Math.Abs(c.SurfaceDelta) < 4) continue;
             if (cliffs.Contains((c.A, c.B)) || cliffs.Contains((c.B, c.A))) continue;
-            yield return Lint("EL3", $"land interface '{c.A}'–'{c.B}' delta {c.SurfaceDelta} ≥ 4 requires a cliff");
+            yield return Lint("EL3", $"land interface '{c.A}'–'{c.B}' delta {c.SurfaceDelta} ≥ 4 requires a cliff", c.A, c.B);
         }
     }
 

@@ -24,6 +24,10 @@ public partial class PlanEditor
 
     private PlanSelection? sel;
 
+    // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs) + the live lint feed.
+    private bool overlayInterfaces = true, overlayGaps = true, overlayFrontline = true;
+    private List<InspectFinding> findings = [];
+
     private record RolePalette(string Id, string Label, string Color);
     private static readonly RolePalette[] Roles =
     [
@@ -42,7 +46,9 @@ public partial class PlanEditor
         selfRef = DotNetObjectReference.Create(this);
         handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountPlan", svgRef, wrapRef, cursorRef, selfRef);
         await handle.InvokeVoidAsync("setRole", role);
-        try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); StateHasChanged(); } catch { /* start with defaults */ }
+        try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
+        try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
+        StateHasChanged();
     }
 
     // ── toolbar ────────────────────────────────────────────────────────────────
@@ -61,6 +67,32 @@ public partial class PlanEditor
     }
 
     private Task Fit() => handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask;
+
+    // ── derived-structure overlays + lint ────────────────────────────────────────
+
+    private async Task ToggleOverlay(string key)
+    {
+        var on = key switch
+        {
+            "interfaces" => overlayInterfaces = !overlayInterfaces,
+            "gaps" => overlayGaps = !overlayGaps,
+            "frontline" => overlayFrontline = !overlayFrontline,
+            _ => true,
+        };
+        if (handle is not null) await handle.InvokeVoidAsync("setOverlay", key, on);
+    }
+
+    private Task HighlightFinding(InspectFinding f)
+        => handle is not null ? handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(f.Subjects ?? [])).AsTask() : Task.CompletedTask;
+
+    private void SyncOverlays(string json)
+    {
+        var o = JsonSerializer.Deserialize<OverlayDto>(json);
+        if (o is null) return;
+        overlayInterfaces = o.Interfaces;
+        overlayGaps = o.Gaps;
+        overlayFrontline = o.Frontline;
+    }
 
     // ── globals form ─────────────────────────────────────────────────────────────
 
@@ -172,6 +204,13 @@ public partial class PlanEditor
     [JSInvokable]
     public void OnMeta(string json) { SyncMeta(json); StateHasChanged(); }
 
+    [JSInvokable]
+    public void OnFindings(string json)
+    {
+        findings = JsonSerializer.Deserialize<List<InspectFinding>>(json) ?? [];
+        StateHasChanged();
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (handle is not null)
@@ -211,5 +250,21 @@ public partial class PlanEditor
         [JsonPropertyName("maxPlayers")] public int MaxPlayers { get; set; } = 12;
         [JsonPropertyName("surface")] public int Surface { get; set; } = 9;
         [JsonPropertyName("headroom")] public int Headroom { get; set; } = 11;
+    }
+
+    private sealed class OverlayDto
+    {
+        [JsonPropertyName("interfaces")] public bool Interfaces { get; set; } = true;
+        [JsonPropertyName("gaps")] public bool Gaps { get; set; } = true;
+        [JsonPropertyName("frontline")] public bool Frontline { get; set; } = true;
+    }
+
+    // A validation finding pushed from the bridge (already error-first ordered) for the lint panel.
+    private sealed class InspectFinding
+    {
+        [JsonPropertyName("severity")] public string Severity { get; set; } = "";
+        [JsonPropertyName("rule")] public string? Rule { get; set; }
+        [JsonPropertyName("message")] public string Message { get; set; } = "";
+        [JsonPropertyName("subjects")] public string[]? Subjects { get; set; }
     }
 }

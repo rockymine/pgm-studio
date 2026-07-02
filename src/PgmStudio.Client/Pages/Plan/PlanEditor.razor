@@ -113,6 +113,14 @@
             </div>
             <div @ref="cursorRef" class="canvas-cursor"></div>
             <div class="canvas-subbar-right">
+              <span class="canvas-overlay-toggles">
+                <button class="filter-chip @(overlayInterfaces ? "filter-chip--active" : null)" title="Land interfaces (green) · sliver/corner (red)"
+                        @onclick='() => ToggleOverlay("interfaces")'>Interfaces</button>
+                <button class="filter-chip @(overlayGaps ? "filter-chip--active" : null)" title="Zone gap links with hop distance"
+                        @onclick='() => ToggleOverlay("gaps")'>Gaps</button>
+                <button class="filter-chip @(overlayFrontline ? "filter-chip--active" : null)" title="Piece edges facing a build zone"
+                        @onclick='() => ToggleOverlay("frontline")'>Frontline</button>
+              </span>
               <button class="filter-chip" title="Fit the plan to view" @onclick="Fit"><i data-lucide="scan"></i></button>
               <span class="canvas-zoom">@zoomLabel</span>
             </div>
@@ -199,6 +207,30 @@
                 <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete marker
                 </button>
+              }
+            </div>
+
+            <div class="panel-section">
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Lint</h2>
+                @if (findings.Count > 0) { <span class="badge badge--neutral">@findings.Count</span> }
+              </div>
+              @if (findings.Count == 0)
+              {
+                <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> Plan OK</div>
+              }
+              else
+              {
+                <div class="plan-lint-list">
+                  @foreach (var f in findings)
+                  {
+                    <button class="plan-lint-row" @onclick="() => HighlightFinding(f)" title="Highlight on canvas">
+                      <span class="plan-lint-dot @(f.Severity == "error" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
+                      @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
+                      <span class="plan-lint-msg">@f.Message</span>
+                    </button>
+                  }
+                </div>
               }
             </div>
           </div>

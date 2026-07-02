@@ -108,6 +108,25 @@ public sealed class PlanValidatorTests
         }
     }
 
+    [Test]
+    public async Task Findings_carry_the_ids_of_the_pieces_they_implicate()
+    {
+        // a sliver contact (error) between a/b and a narrow zone (G2 lint) each name their subjects
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]}, {"id":"b","role":"lane","rect":[10,0,10,10]} ],
+          "zones":[ {"id":"z","rect":[0,20,8,20]} ] }
+        """);
+        var all = PlanValidator.Validate(p);
+
+        var sliver = all.First(f => f.Severity == PlanSeverity.Error && f.Message.Contains("sliver"));
+        await Assert.That(sliver.SubjectIds).Contains("a");
+        await Assert.That(sliver.SubjectIds).Contains("b");
+
+        var g2 = all.First(f => f.Rule == "G2");
+        await Assert.That(g2.SubjectIds).Contains("z");
+    }
+
     // ── lint ────────────────────────────────────────────────────────────────────────────────────────────
 
     [Test]

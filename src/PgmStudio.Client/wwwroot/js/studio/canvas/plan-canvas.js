@@ -52,8 +52,13 @@ export class PlanCanvas extends CanvasBase {
   #cb = {};
   #cursorEl = null;
 
+  // Derived-structure overlay (block coords from /api/plan/inspect) + which layers are visible.
+  #inspect = { interfaces: [], gapLinks: [], frontline: [] };
+  #overlayOn = { interfaces: true, gaps: true, frontline: true };
+  #pulseTimer = null;
+
   // viewport layers (world space)
-  #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #markerLayer; #previewLayer; #centerLayer;
+  #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
   // screen-space overlay (labels + selection box + resize handles)
   #overlay;
 
@@ -74,6 +79,20 @@ export class PlanCanvas extends CanvasBase {
     this._svg.style.cursor = draws ? "crosshair" : (tool === "select" ? "default" : "");
   }
   setPieceRole(role) { this.#pieceRole = role; }
+
+  // Derived-structure feed (block coords, already fanned-out excluded — authored unit only). Redraw the layer.
+  setInspect(data) {
+    this.#inspect = { interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] };
+    this.#renderInspect();
+    this.#refreshOverlay();
+  }
+  setOverlayVisible(key, on) {
+    if (!(key in this.#overlayOn)) return;
+    this.#overlayOn[key] = !!on;
+    this.#renderInspect();
+    this.#refreshOverlay();
+  }
+
   getSelection() { return this.#sel; }
   select(sel) { this.#sel = sel; this.#refreshOverlay(); this.#fireSelect(); }
   clearSelection() { this.#sel = null; this.#refreshOverlay(); this.#fireSelect(); }
@@ -210,6 +229,70 @@ export class PlanCanvas extends CanvasBase {
     }
   }
 
+  // Derived-structure overlay (world space, non-interactive): land interfaces (solid green) vs sliver/corner
+  // (red warning), zone gap connectors (gold dashed), and frontline edges (accent-tinted highlight). Drawn
+  // above pieces, below markers; the gold hop labels ride the screen-space overlay so they stay legible.
+  #renderInspect() {
+    const layer = this.#inspectLayer; if (!layer) return;
+    this.#clear(layer);
+    if (!this.#doc) return;
+
+    if (this.#overlayOn.frontline)
+      for (const f of this.#inspect.frontline)
+        layer.appendChild(svgEl("line", {
+          x1: f.x1, y1: f.z1, x2: f.x2, y2: f.z2, stroke: "var(--accent)", "stroke-width": "6",
+          "stroke-opacity": "0.4", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke",
+        }));
+
+    if (this.#overlayOn.gaps)
+      for (const g of this.#inspect.gapLinks) {
+        layer.appendChild(svgEl("line", {
+          x1: g.x1, y1: g.z1, x2: g.x2, y2: g.z2, stroke: "#e0b13c", "stroke-width": "2.5",
+          "stroke-dasharray": "4 3", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke",
+        }));
+        for (const [px, pz] of [[g.x1, g.z1], [g.x2, g.z2]])
+          layer.appendChild(svgEl("circle", { cx: px, cy: pz, r: this.#doc.globals.cell * 0.12, fill: "#e0b13c" }));
+      }
+
+    if (this.#overlayOn.interfaces)
+      for (const it of this.#inspect.interfaces) {
+        const col = it.kind === "land" ? "#3fae74" : "#d9534f";
+        if (it.x1 === it.x2 && it.z1 === it.z2)
+          layer.appendChild(svgEl("circle", { cx: it.x1, cy: it.z1, r: this.#doc.globals.cell * 0.22, fill: "none", stroke: col, "stroke-width": "2.5", "vector-effect": "non-scaling-stroke" }));
+        else
+          layer.appendChild(svgEl("line", {
+            x1: it.x1, y1: it.z1, x2: it.x2, y2: it.z2, stroke: col, "stroke-width": it.kind === "land" ? "4" : "3",
+            "stroke-linecap": "round", "vector-effect": "non-scaling-stroke", "stroke-dasharray": it.kind === "land" ? null : "3 3",
+          }));
+      }
+  }
+
+  // A transient highlight pulse on the pieces/zones a clicked lint finding implicates (self-clearing).
+  pulseSubjects(ids) {
+    const layer = this.#pulseLayer; if (!layer || !this.#doc) return;
+    this.#clear(layer);
+    const cell = this.#doc.globals.cell;
+    for (const id of ids || []) {
+      const item = this.#doc.pieces.find(p => p.id === id) || this.#doc.zones.find(z => z.id === id);
+      if (!item) continue;
+      const b = rectCellsToBlocks(item.rect, cell);
+      const rect = svgEl("rect", {
+        x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill: "none",
+        stroke: "var(--accent)", "stroke-width": "3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
+      });
+      const anim = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+      anim.setAttribute("attributeName", "opacity");
+      anim.setAttribute("values", "1;0.2;1;0.2;0");
+      anim.setAttribute("dur", "1.6s");
+      anim.setAttribute("repeatCount", "1");
+      anim.setAttribute("fill", "freeze");
+      rect.appendChild(anim);
+      layer.appendChild(rect);
+    }
+    if (this.#pulseTimer) clearTimeout(this.#pulseTimer);
+    this.#pulseTimer = setTimeout(() => this.#clear(layer), 1700);
+  }
+
   // Screen-space overlay: piece/zone id labels, the selection box, and the resize handles. Recomputed on
   // every viewport change so labels/handles stay a fixed pixel size and legible at any zoom.
   #refreshOverlay() {
@@ -231,6 +314,11 @@ export class PlanCanvas extends CanvasBase {
     };
     for (const p of this.#doc.pieces) { const b = rectCellsToBlocks(p.rect, cell); label(p.id, (b.min_x + b.max_x) / 2, (b.min_z + b.max_z) / 2, "#fff"); }
     for (const z of this.#doc.zones) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
+
+    // Gap-link hop distances ride the screen-space overlay so they stay a fixed pixel size at any zoom.
+    if (this.#overlayOn.gaps)
+      for (const g of this.#inspect.gapLinks)
+        label(String(g.hop), (g.x1 + g.x2) / 2, (g.z1 + g.z2) / 2, "#e0b13c");
 
     // Selection box + resize handles for a piece/zone (markers show just a ring).
     if (!this.#sel) return;
@@ -451,9 +539,11 @@ export class PlanCanvas extends CanvasBase {
     this.#ghostLayer = svgEl("g", { "pointer-events": "none" });
     this.#zoneLayer = svgEl("g");
     this.#pieceLayer = svgEl("g");
+    this.#inspectLayer = svgEl("g", { "pointer-events": "none" });
     this.#markerLayer = svgEl("g");
     this.#previewLayer = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#markerLayer, this.#previewLayer]) this._viewportG.appendChild(g);
+    this.#pulseLayer = svgEl("g", { "pointer-events": "none" });
+    for (const g of [this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#inspectLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
     this.#overlay = svgEl("g");
@@ -471,5 +561,5 @@ export class PlanCanvas extends CanvasBase {
     if ((e.key === "Delete" || e.key === "Backspace") && this.#sel) { e.preventDefault(); this.#cb.onDelete?.(this.#sel); }
   };
 
-  dispose() { document.removeEventListener("keydown", this.#onKey); }
+  dispose() { if (this.#pulseTimer) clearTimeout(this.#pulseTimer); document.removeEventListener("keydown", this.#onKey); }
 }

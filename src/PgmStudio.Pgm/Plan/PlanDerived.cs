@@ -24,6 +24,14 @@ public sealed record Contact(string A, string B, ContactKind Kind, int BorderLen
 /// <summary>Two pieces linked across a build zone's void, with the hop span (blocks) between their footprints.</summary>
 public sealed record GapLink(string A, string B, string Zone, int Hop);
 
+/// <summary>An edge/point contact between two pieces resolved to a block-space segment: the shared border for a
+/// land/sliver contact (a line), or the touch point for a corner (a degenerate segment). <see cref="Length"/>
+/// is the border length in blocks (0 for a corner).</summary>
+public sealed record InterfaceSegment(string A, string B, ContactKind Kind, int X1, int Z1, int X2, int Z2, int Length);
+
+/// <summary>A piece edge facing a build zone, as a block-space segment (the computed frontline geometry).</summary>
+public sealed record FrontlineEdge(string Piece, string Zone, int X1, int Z1, int X2, int Z2);
+
 /// <summary>
 /// The structure a plan implies but never stores: pieces in block coordinates, the pairwise land/gap
 /// connectivity, connected components (islands), the frontline (pieces facing a zone), and the fanned board
@@ -44,6 +52,11 @@ public sealed class PlanDerived
     public IReadOnlyList<GapLink> GapLinks { get; }
     /// <summary>Piece ids that abut or overlap any build zone (the computed frontline).</summary>
     public IReadOnlySet<string> Frontline { get; }
+    /// <summary>Edge/point contacts (land, sliver, corner) resolved to block-space segments — the overlay draws
+    /// land as a solid connector and sliver/corner as a warning marker.</summary>
+    public IReadOnlyList<InterfaceSegment> InterfaceSegments { get; }
+    /// <summary>Per-piece-per-zone frontline edges as block-space segments (the piece sides facing a zone).</summary>
+    public IReadOnlyList<FrontlineEdge> FrontlineEdges { get; }
     /// <summary>Connected components over land interfaces and same-surface overlaps — each a set of piece ids,
     /// in first-appearance order.</summary>
     public IReadOnlyList<IReadOnlyList<string>> Components { get; }
@@ -65,6 +78,8 @@ public sealed class PlanDerived
         Frontline = ComputeFrontline(plan, Cell, Pieces);
         GapLinks = ComputeGapLinks(plan, Cell, Pieces);
         Components = ComputeComponents(Pieces, Contacts);
+        InterfaceSegments = BuildInterfaceSegments(_byId, Contacts);
+        FrontlineEdges = ComputeFrontlineEdges(plan, Cell, Pieces);
     }
 
     public static PlanDerived Build(PlanModel plan) => new(plan);
@@ -153,6 +168,84 @@ public sealed class PlanDerived
         if (gx == 0) return gz;
         if (gz == 0) return gx;
         return (int)Math.Round(Math.Sqrt((double)gx * gx + (double)gz * gz));
+    }
+
+    // ── overlay geometry (block-space segments the editor draws) ────────────────────────────────────────
+
+    private static List<InterfaceSegment> BuildInterfaceSegments(
+        Dictionary<string, DerivedPiece> byId, IReadOnlyList<Contact> contacts)
+    {
+        var list = new List<InterfaceSegment>();
+        foreach (var c in contacts)
+        {
+            if (c.Kind is not (ContactKind.Land or ContactKind.Sliver or ContactKind.Corner)) continue;
+            var (x1, z1, x2, z2) = BorderSegment(byId[c.A].Rect, byId[c.B].Rect);
+            list.Add(new InterfaceSegment(c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength));
+        }
+        return list;
+    }
+
+    /// <summary>The shared-border segment of two edge/corner-touching rects: a vertical or horizontal line for a
+    /// land/sliver contact, or the single touch point (a degenerate segment) for a corner.</summary>
+    public static (int X1, int Z1, int X2, int Z2) BorderSegment(BlockRect a, BlockRect b)
+    {
+        int loX = Math.Max(a.MinX, b.MinX), hiX = Math.Min(a.MaxX, b.MaxX);
+        int loZ = Math.Max(a.MinZ, b.MinZ), hiZ = Math.Min(a.MaxZ, b.MaxZ);
+        if (hiX == loX && hiZ == loZ) return (loX, loZ, loX, loZ);   // corner touch point
+        if (hiX == loX) return (loX, loZ, loX, hiZ);                 // vertical shared border (touch on X)
+        return (loX, loZ, hiX, loZ);                                 // horizontal shared border (touch on Z)
+    }
+
+    /// <summary>The shortest connecting segment between two rects: the point of each nearest the other (a
+    /// coordinate in the overlap on axes they share, the confronting edges on axes they don't).</summary>
+    public static (int X1, int Z1, int X2, int Z2) NearestSegment(BlockRect a, BlockRect b)
+    {
+        var (ax, bx) = Nearest1D(a.MinX, a.MaxX, b.MinX, b.MaxX);
+        var (az, bz) = Nearest1D(a.MinZ, a.MaxZ, b.MinZ, b.MaxZ);
+        return (ax, az, bx, bz);
+    }
+
+    private static (int, int) Nearest1D(int aMin, int aMax, int bMin, int bMax)
+    {
+        if (aMax < bMin) return (aMax, bMin);
+        if (bMax < aMin) return (aMin, bMax);
+        int lo = Math.Max(aMin, bMin), hi = Math.Min(aMax, bMax), mid = (lo + hi) / 2;
+        return (mid, mid);
+    }
+
+    private static List<FrontlineEdge> ComputeFrontlineEdges(PlanModel plan, int cell, IReadOnlyList<DerivedPiece> pieces)
+    {
+        var list = new List<FrontlineEdge>();
+        foreach (var z in plan.Zones)
+        {
+            var zr = ToBlock(z.Rect, cell);
+            foreach (var p in pieces)
+            {
+                if (!TouchesOrOverlaps(p.Rect, zr)) continue;
+                foreach (var (x1, z1, x2, z2) in FacingEdges(p.Rect, zr))
+                    list.Add(new FrontlineEdge(p.Id, z.Id, x1, z1, x2, z2));
+            }
+        }
+        return list;
+    }
+
+    // The piece sides facing a zone: an edge faces the zone when its fixed coordinate lies within the zone's
+    // span on that axis and its running range overlaps the zone (positive) on the other. An abutting piece
+    // yields its one confronting side; a piece overlapping the zone yields every side inside it.
+    private static IEnumerable<(int X1, int Z1, int X2, int Z2)> FacingEdges(BlockRect p, BlockRect z)
+    {
+        int zLo = Math.Max(p.MinZ, z.MinZ), zHi = Math.Min(p.MaxZ, z.MaxZ);
+        if (zHi > zLo)
+        {
+            if (p.MinX >= z.MinX && p.MinX <= z.MaxX) yield return (p.MinX, zLo, p.MinX, zHi);
+            if (p.MaxX >= z.MinX && p.MaxX <= z.MaxX) yield return (p.MaxX, zLo, p.MaxX, zHi);
+        }
+        int xLo = Math.Max(p.MinX, z.MinX), xHi = Math.Min(p.MaxX, z.MaxX);
+        if (xHi > xLo)
+        {
+            if (p.MinZ >= z.MinZ && p.MinZ <= z.MaxZ) yield return (xLo, p.MinZ, xHi, p.MinZ);
+            if (p.MaxZ >= z.MinZ && p.MaxZ <= z.MaxZ) yield return (xLo, p.MaxZ, xHi, p.MaxZ);
+        }
     }
 
     // ── connected components (land + same-surface overlap) ──────────────────────────────────────────────

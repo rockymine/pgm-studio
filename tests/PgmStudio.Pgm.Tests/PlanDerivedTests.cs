@@ -84,4 +84,55 @@ public sealed class PlanDerivedTests
         await Assert.That(d.Frontline).Contains("bar-e");              // spawn lane abuts the mid band
         await Assert.That(d.Frontline).Contains("bar-w");              // wool lane overlaps the mid band
     }
+
+    // ── overlay geometry (block-space segments) ─────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Border_segment_of_an_x_abutting_pair_runs_along_the_shared_edge()
+    {
+        // a: [0,0]-[10,10], b: [10,0]-[20,10] touch on the vertical line x=10 over z∈[0,10].
+        var seg = PlanDerived.BorderSegment(new BlockRect(0, 0, 10, 10), new BlockRect(10, 0, 20, 10));
+        await Assert.That(seg).IsEqualTo((10, 0, 10, 10));
+    }
+
+    [Test]
+    public async Task Border_segment_of_a_corner_touch_is_the_single_point()
+    {
+        var seg = PlanDerived.BorderSegment(new BlockRect(0, 0, 10, 10), new BlockRect(10, 10, 20, 20));
+        await Assert.That(seg).IsEqualTo((10, 10, 10, 10));
+    }
+
+    [Test]
+    public async Task Interface_segments_expose_land_and_sliver_contacts()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;
+        var d = PlanDerived.Build(plan);
+        // the H-bars connect via land interfaces → at least one land segment carrying the border length
+        var land = d.InterfaceSegments.Where(s => s.Kind == ContactKind.Land).ToList();
+        await Assert.That(land).IsNotEmpty();
+        await Assert.That(land.All(s => s.Length >= PlanDerived.CorridorMin)).IsTrue();
+    }
+
+    [Test]
+    public async Task Nearest_segment_connects_the_confronting_edges_across_a_gap()
+    {
+        // a right edge at x=10, b left edge at x=20; they share z∈[0,10] → mid z = 5 on both ends.
+        var seg = PlanDerived.NearestSegment(new BlockRect(0, 0, 10, 10), new BlockRect(20, 0, 30, 10));
+        await Assert.That(seg).IsEqualTo((10, 5, 20, 5));
+    }
+
+    [Test]
+    public async Task Frontline_edges_face_the_zone_they_abut()
+    {
+        // lane sits above a zone, abutting on z=10; its facing edge is the bottom edge z=10.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"lane","role":"lane","rect":[0,0,20,10]} ],
+          "zones":[ {"id":"z","rect":[0,10,20,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        var edges = d.FrontlineEdges.Where(e => e.Piece == "lane").ToList();
+        await Assert.That(edges).IsNotEmpty();
+        await Assert.That(edges.Any(e => e.Z1 == 10 && e.Z2 == 10)).IsTrue();
+    }
 }
