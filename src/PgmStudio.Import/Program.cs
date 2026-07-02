@@ -104,7 +104,7 @@ if (args.Contains("--islands-only"))
         await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandsJson).DeleteAsync();
         await db.InsertAsync(new MapArtifactRow { MapId = map.Id, Kind = ArtifactKind.IslandsJson, Data = data });
 
-        // refresh the derived sketch so the decompose surface reflects the new outlines (drop a now-stale one)
+        // refresh the derived sketch so island-sketch readers see the new outlines (drop a now-stale one)
         await db.Artifacts.Where(a => a.MapId == map.Id && a.Kind == ArtifactKind.IslandSketchJson).DeleteAsync();
         if (IslandSketchArtifact.FromIslandsJson(data) is { } sketch)
         {

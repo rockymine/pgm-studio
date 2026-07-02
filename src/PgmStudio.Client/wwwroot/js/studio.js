@@ -92,13 +92,6 @@ window.studio = {
     mod.renderStages(stages);
   },
 
-  // Mount the lane-decomposition canvas (/maps/{slug}/decompose): lasso → pick 2 seam points → cut an island
-  // outline into lanes. dotnetRef receives OnPieces(json)/OnDirty(); the handle drives tool/role/undo/save.
-  async mountDecompose(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef) {
-    const mod = await import("/js/studio/bridge/decompose-bridge.js");
-    return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef);
-  },
-
   // R1a: a minimal editor keyboard layer — Ctrl/Cmd+G → dotnetRef.OnGroupKey() (group/ungroup the
   // current selection). One active listener at a time (the visible activity owns it). preventDefault
   // so the browser's "find next" doesn't fire. Ignored while typing in a field. (Seed of B6's command

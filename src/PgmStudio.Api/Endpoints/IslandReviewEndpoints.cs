@@ -11,9 +11,9 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// Review flag for a map whose auto-detected island sketch looks wrong (the decompose-queue triage from
-/// G9). The flag is human-set; <see cref="IslandHealthEndpoint"/> offers an automatic second opinion for
-/// the reliably-detectable failure mode (merged teams), so a reviewer can prioritise the queue.
+/// Review flag for a map whose auto-detected island sketch looks wrong. The flag is human-set;
+/// <see cref="IslandHealthEndpoint"/> offers an automatic second opinion for the reliably-detectable
+/// failure mode (merged teams), so a reviewer can prioritise what to re-check.
 /// </summary>
 public static class IslandReview
 {
