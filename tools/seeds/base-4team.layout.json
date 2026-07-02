@@ -1,0 +1,31 @@
+{
+  "setup": {
+    "mirror_mode": "rot_90",
+    "center": { "cx": 0, "cz": 0 },
+    "bbox": { "min_x": -70, "max_x": 70, "min_z": -70, "max_z": 70 }
+  },
+  "layout": {
+    "shapes": [
+      {
+        "id": "h",
+        "type": "polygon",
+        "operation": "add",
+        "base_height": 9,
+        "vertices": [
+          [5, 25], [15, 25], [15, 55], [5, 55], [5, 45], [-5, 45],
+          [-5, 65], [-15, 65], [-15, 20], [-5, 20], [-5, 35], [5, 35]
+        ]
+      },
+      {
+        "id": "square",
+        "type": "polygon",
+        "operation": "add",
+        "base_height": 13,
+        "vertices": [ [5, 5], [5, 15], [15, 15], [15, 5] ]
+      }
+    ],
+    "islands": [
+      { "id": "team", "name": "Team island", "mirrors": true, "shapeIds": ["h", "square"] }
+    ]
+  }
+}

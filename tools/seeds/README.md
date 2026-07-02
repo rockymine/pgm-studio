@@ -27,14 +27,22 @@ Against a running studio (`./tools/dev.sh` on :7894, DB migrated):
 # → prints the slug + GET .../export URL; download it for the {slug}/ world ZIP.
 ```
 
-## Variants (same base, different symmetry)
+Run a different variant with `SEED`:
+```bash
+SEED=base-4team ./tools/seeds/seed.sh
+```
 
-The base is deliberately a single orbit unit + a centre-symmetric square, so it doubles as the seed for:
+## 4-team map (`base-4team.*`)
 
-- **4-team (`rot_90`)** — reframe to a square bbox and set the layout `mirror_mode` to `rot_90`: the team
-  island fans to 4 sides around the central square → each team captures **3 wool monuments** (exercises the
-  3–4-wool back-wall monument placement).
-- **2 wools each (mirror along the spawn axis)** — mirror the layout to the right to form an **H with a
-  centre spine**, giving the common **2 teams × 2 wools** setup.
+The same team unit (H + square), fanned by **`rot_90`** into a four-arm pinwheel around the centre. bbox
+≈ **140 × 140** (square). Four teams (`red`/`blue`/`yellow`/`green`), one arm each; spawn/wool/build coords
+are the base rotated 90° CCW per team (`(x,z) → (-z,x)`, matching `Geom.Symmetry`). Because each wool is
+captured by the other three teams (auto-wired), every spawn cube holds **3 monuments** — the 3-monument
+back-wall placement case. The build region is done "cheap" as **four explicit rects** (base `(-15,0)‥(15,25)`
+rotated per arm) that overlap at the centre, so all four teams are connected (verified: 1 component). Observer
++ y=20 build cap unchanged.
 
-Both need a matching intent (more teams / wools); the base files are the starting point.
+## Still to come
+
+- **2 wools each** — mirror the layout to the right to form an **H with a centre spine**, giving the common
+  **2 teams × 2 wools** setup. (Not yet seeded.)

@@ -1,0 +1,33 @@
+{
+  "teams": [
+    { "id": "red",    "name": "Red",    "color": "red" },
+    { "id": "blue",   "name": "Blue",   "color": "blue" },
+    { "id": "yellow", "name": "Yellow", "color": "yellow" },
+    { "id": "green",  "name": "Green",  "color": "green" }
+  ],
+  "maxPlayers": 12,
+  "spawns": [
+    { "team": "red",    "point": { "x": 10,  "y": 9, "z": 50 },  "yaw": 180, "protection": [] },
+    { "team": "blue",   "point": { "x": -50, "y": 9, "z": 10 },  "yaw": 270, "protection": [] },
+    { "team": "yellow", "point": { "x": -10, "y": 9, "z": -50 }, "yaw": 0,   "protection": [] },
+    { "team": "green",  "point": { "x": 50,  "y": 9, "z": -10 }, "yaw": 90,  "protection": [] }
+  ],
+  "observer": { "point": { "x": 0, "y": 24, "z": 0 }, "yaw": 0 },
+  "build": {
+    "maxHeight": 20,
+    "areas": [
+      { "minX": -15, "minZ": 0,   "maxX": 15, "maxZ": 25 },
+      { "minX": -25, "minZ": -15, "maxX": 0,  "maxZ": 15 },
+      { "minX": -15, "minZ": -25, "maxX": 15, "maxZ": 0 },
+      { "minX": 0,   "minZ": -15, "maxX": 25, "maxZ": 15 }
+    ],
+    "holes": []
+  },
+  "wools": [
+    { "owner": "red",    "color": "red",    "spawn": { "x": -10, "y": 9, "z": 60 },  "room": [], "monuments": [] },
+    { "owner": "blue",   "color": "blue",   "spawn": { "x": -60, "y": 9, "z": -10 }, "room": [], "monuments": [] },
+    { "owner": "yellow", "color": "yellow", "spawn": { "x": 10,  "y": 9, "z": -60 }, "room": [], "monuments": [] },
+    { "owner": "green",  "color": "green",  "spawn": { "x": 60,  "y": 9, "z": 10 },  "room": [], "monuments": [] }
+  ],
+  "meta": { "name": "Base 4-Team", "authors": [] }
+}

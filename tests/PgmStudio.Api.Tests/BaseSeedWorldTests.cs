@@ -17,24 +17,26 @@ public sealed class BaseSeedWorldTests
 {
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
-    private static (string Layout, MapIntent Intent) LoadSeed()
+    private static (string Layout, MapIntent Intent) LoadSeed(string name)
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "tools", "seeds", "base-2island.layout.json")))
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "tools", "seeds", $"{name}.layout.json")))
             dir = dir.Parent;
-        if (dir is null) throw new FileNotFoundException("base-2island seed files not found above " + AppContext.BaseDirectory);
+        if (dir is null) throw new FileNotFoundException($"{name} seed files not found above " + AppContext.BaseDirectory);
         var seeds = Path.Combine(dir.FullName, "tools", "seeds");
-        var layout = File.ReadAllText(Path.Combine(seeds, "base-2island.layout.json"));
-        var intent = JsonSerializer.Deserialize<MapIntent>(File.ReadAllText(Path.Combine(seeds, "base-2island.intent.json")), Web)!;
+        var layout = File.ReadAllText(Path.Combine(seeds, $"{name}.layout.json"));
+        var intent = JsonSerializer.Deserialize<MapIntent>(File.ReadAllText(Path.Combine(seeds, $"{name}.intent.json")), Web)!;
         return (layout, intent);
     }
 
     private static int Snap(double v) => (int)Math.Round(v, MidpointRounding.AwayFromZero);
 
     [Test]
-    public async Task Seed_builds_a_world_with_the_expected_structure_invariants()
+    [Arguments("base-2island")]
+    [Arguments("base-4team")]
+    public async Task Seed_builds_a_world_with_the_expected_structure_invariants(string seed)
     {
-        var (layout, intent) = LoadSeed();
+        var (layout, intent) = LoadSeed(seed);
         var built = SketchWorldBuilder.Build(layout, intent);
         var w = built.World;
 
@@ -87,9 +89,11 @@ public sealed class BaseSeedWorldTests
     }
 
     [Test]
-    public async Task Seed_world_round_trips_through_anvil()
+    [Arguments("base-2island")]
+    [Arguments("base-4team")]
+    public async Task Seed_world_round_trips_through_anvil(string seed)
     {
-        var (layout, intent) = LoadSeed();
+        var (layout, intent) = LoadSeed(seed);
         var built = SketchWorldBuilder.Build(layout, intent);
 
         var dir = Path.Combine(Path.GetTempPath(), "seedworld_" + Guid.NewGuid().ToString("N"));
