@@ -1,15 +1,14 @@
-# Layout rules — the expert checklist (v2, first correction round)
+# Layout rules — the expert checklist (v3, corpus-measured)
 
 The generator's actual content: per-role attachment rules, dimensions, and elevation defaults for
-the plan composer (`docs/contracts/layout-generation.md` §3). v2 folds in the author's first
-review pass — **provisional**: `[expert]` answers stand until the author declares them final or a
-seed contradicts them. Tags:
+the plan composer (`docs/contracts/layout-generation.md` §3). v3 measures every rule against the
+**nine-seed corpus** (`tools/seeds/*.plan.json`, sweep script `seed_stats`); this is the **freeze
+candidate** — three open questions at the end block the freeze. Tags:
 
-- **[expert]** — author-corrected (provisional).
-- **[seed]** — measured from the seeds, not yet contradicted.
-- **[seed-needed]** — the author will pin this with a dedicated authored seed (see the shopping
-  list at the end).
-- **[guess]** / **[?]** — still mine / still open.
+- **[corpus]** — confirmed by measured seed evidence (seeds cited).
+- **[expert]** — author-stated, not yet exercised by a seed.
+- **[open]** — awaiting the author's call (see *Open questions*).
+- **[guess]** — still mine.
 
 Rules are numbered for correction by id. Distances in blocks unless marked *cells*. "Front" =
 toward the map centre / the enemy; "back" = toward the map edge.
@@ -35,12 +34,19 @@ toward the map centre / the enemy; "back" = toward the map edge.
   already draw, not block-true dimensions. Grid-born "artificial" distances are expected and are
   resolved downstream by the scale + roughen passes (design doc §2, "the plan is a mini layout").
 - **G2 [expert]** Minimum corridor width **10**; larger maps trend toward **15**.
-- **G3 [expert]** 2-team boards: width normally **40–60** (up to 100 exists; wide/thin centres
-  both real), length up to **~200** on large maps. 4-team square, up to **~240**. See G8.
-- **G4 [expert]** `rot_180` (2 teams) / `rot_90` (4 teams) are the defaults; `mirror_x`/`mirror_z`
-  are valid, less common in the wild, and the model supports them.
-- **G5 [expert]** Void gaps between *individual* landmasses: **10–20**. The **total crossing**
-  (all hops summed, one team's terrain to the enemy's half): **40–60**.
+- **G3 [corpus, revised]** The v2 width band (40–60) fit almost none of the authored corpus:
+  measured 2-team fanned boards run **30–130 wide × 100–280 long** (elaborated seeds typically
+  80–130 wide; `mirror-big-board` 280×130), 4-team squares **130–180**. Wide-frontline designs
+  legitimately exceed the old cap. Numbers remain **decoupled from player count** — every seed
+  still carries the stale `maxPlayers: 12` — so the envelope↔G8 coupling is re-derived in the
+  parked maxPlayers pass before the composer treats these as sampling bounds.
+- **G4 [corpus]** `rot_180` (2 teams) / `rot_90` (4 teams) are the defaults; `mirror_x`/`mirror_z`
+  are valid and exercised end-to-end (`mirror-big-board` compiles and exports through the
+  reflection fan).
+- **G5 [expert, open]** Void gaps between *individual* landmasses: **10–20**; total crossing
+  40–60. The corpus contains two deliberate over-limit hops (**25** in `four-team-towers-big`,
+  **30** in `odd-facing-three-wool`) — whether the band loosens (e.g. ≤30 for secondary bridges)
+  or those stay lint-nagged exceptions is *Open question 3*.
 - **G6 [expert]** Build headroom above the island surface: **≥20, up to ~40**. Island terrain
   height **5–20**. **The sky-layer smell:** low, flat terrain under a tall build cap casts a
   second play layer into the sky — players dig the base to bedrock, defend from above, and the
@@ -57,42 +63,55 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **SP1 [expert]** The frontline→wool path never passes **through** the spawn (protection regions
   enforce this anyway); it **may pass around it** on a wide or split lane.
 - **SP2 [expert]** Near the **back** of its lane — otherwise the space behind spawn is dead space
-  with no purpose.
-- **SP3 [expert]** Faces the enemy. Rare exceptions exist. **[seed-needed]**
-- **SP4 [seed-needed]** Raised-spawn variant (overview) — the current seeds are deliberately flat;
-  a dedicated seed will pin height + extent.
+  with no purpose. (The current lint approximates "back" per-piece and misreads spawns placed
+  mid-chain; honest measurement needs lane chains — `G24`.)
+- **SP3 [corpus]** Faces the enemy by default; deliberate side-facing exceptions exist
+  (`odd-facing-three-wool`, `four-team-wool-two-sided`, `mirror-big-board` all face left/right
+  along their lane rather than dead at mid).
+- **SP4 [corpus]** Raised spawns measured across the corpus: **+0 to +10** over base (the three
+  base seeds flat; elaborated seeds +2/+4/+4/+4/+8/+8/**+10** — `mirror-big-board` spawns on the
+  highest plateau). Common band **+4..+8**.
 - **SP5 [expert]** Spawn structure (cube, protection) is stamped at export; the stamp style may
   evolve. The plan reserves the area and floor level only.
-- **SP6 [expert]** Spawn **can** be `gap`-only (an isolated spawn island). **[seed-needed]**
-- **SP7 [expert, new]** Resource placement (iron): **beside or ahead** of the spawn — players face
-  mid and must see it. Iron *behind* the spawn is a bad smell (unseen, dead space).
+- **SP6 [corpus]** Spawn **can** be `gap`-only (an isolated spawn island) — `isolated-spawn` and
+  `isolated-spawn-approaches` both build it.
+- **SP7 [expert]** Resource placement (iron): **beside or ahead** of the spawn — players face
+  mid and must see it. Iron *behind* the spawn is a bad smell (unseen, dead space). Corpus: 3
+  beside, 1 ahead, and **one violation** — `four-team-wool-two-sided` has iron 10 blocks directly
+  behind its left-facing spawn (suspected authoring slip; author to confirm or fix the seed).
 
 ## WL — Wool room
 
-- **WL1 [expert]** At the far/back end of a dead-end lane, inset ~**5**. Wools approachable from
-  **two sides** also exist in real maps. **[seed-needed]**
-- **WL2 [expert]** On a different lane than the spawn; wool↔spawn ≥ **20**.
+- **WL1 [corpus]** At the far/back end of a dead-end lane, inset ~**5**. Two-sided wools are
+  authored twice (`four-team-wool-two-sided`: two stepped land seams into the room;
+  `mirror-big-board`).
+- **WL2 [corpus]** On a different lane than the spawn; wool↔spawn ≥ **20** — all 17 corpus pairs
+  pass, tightest 22.4 (the base seeds), typical 36–58, up to 101 on the big board.
 - **WL3 [expert, clarified]** The plan records only the wool's position and floor level; the
   physical room (cage, pedestal — the 8×8 stamp today) is stamped at export. Requirement on the
   plan: the wool sits on a **flat plateau covering at least the stamp footprint and extending to
   the lane edges** (even in a 15-wide lane, the room area is flat edge-to-edge).
 - **WL4 [expert]** Isolated-wool variant: the connecting `gap` is commonly **10–20**; the height
   delta varies in size *and sign* (see EL2).
-- **WL5 [expert]** Wool-approach elevation: the room plateau itself is flat (WL3); the approach
-  raises by up to **+6** total, as **steps 1–5 blocks deep** (varied step sizes, not a smooth
-  ramp by default).
+- **WL5 [expert, re-anchored]** Wool-approach elevation: the room plateau itself is flat (WL3);
+  the approach climbs in **steps 1–5 blocks deep**. The v2 cap (+6 total) measured room height
+  *vs base*, which the corpus exceeds routinely (+8 three times, +10 once) — but a high room
+  beside an equally high spawn is no climb at all. The meaningful metric is the **approach climb
+  along the attacker's path**, measurable once climbs land (`G29`); until then the cap is
+  provisional and the lint should not fire on room-vs-base height.
 - **WL6 [expert]** 1–3 wools per team, each on a **distinct** lane.
-- **WL7 [seed-needed]** Minimum separation between a team's wools — to be pinned by multi-wool
-  seeds.
+- **WL7 [corpus]** Separation between a team's wools, measured over 8 multi-wool pairs:
+  **46–143** blocks (46.1 / 58.3 / 64 / 70 / 75 / 85.6 / 95.5 / 143). Working minimum ≈**45**.
 - **WL8 [expert, new]** Wool approach routes: the default is a **single chokepoint route**;
   real maps sometimes add **alternative routes** to the wool (and then a build zone may touch the
   wool room — see BZ5). **[seed-needed]**
 
 ## LN — Lane
 
-- **LN1 [expert]** Width **10** base (15 on larger maps); may exceed **20** mid-map or near
-  spawn. The stretch **in front of a wool stays ≤ ~16** — wider than that stops reading as the
-  wool's lane.
+- **LN1 [corpus]** Width **10** base — piece min-dims across 150 corpus pieces: 5-wide ×54 (the
+  step/ledge idiom, **not** corridors), 10 ×81, 15 ×15, 20+ ×0 (the ">20 near mid/spawn" case is
+  authored via assembled footprints, not single pieces). The stretch **in front of a wool stays
+  ≤ ~16**.
 - **LN2 [expert]** Length **20–50** before a junction or dead end; a lane may include a
   turn/twist (the L-shape case).
 - **LN3 [expert]** Wool lanes dead-end at the back; the front end stops at the void edge
@@ -117,11 +136,12 @@ toward the map centre / the enemy; "back" = toward the map edge.
   rects; **overlapping terrain is allowed and harmless** — the alternative is carving with
   negative regions or region unions, needless complexity. What matters is the buildable span
   over the void; the plan editor authors zones precisely.
-- **FR3 [expert]** Defenders-hold-high-ground-behind-the-frontline is **common, never strict** —
-  frontline **tower** structures are a valid, interesting motif.
+- **FR3 [corpus]** Defenders-hold-high-ground-behind-the-frontline is **common, never strict** —
+  frontline towers are authored (`four-team-towers-big`, surfaces to 17 at the front;
+  `rotate-wide-frontline`'s raised mid-facing steps).
 - **FR4 [expert, split]** Two distinct "angles of attack":
-  - **Team approaches** — ways to reach the enemy's side: **1–3**; 1 is acceptable only if it is
-    wide.
+  - **Team approaches** — ways to reach the enemy's side: **1–3** (corpus: 1 on six seeds, 3 on
+    three); 1 is acceptable only if it is wide.
   - **Wool approaches** — ways to reach a wool room: WL8.
 
 ## MD — Mid / stepping stones
@@ -145,15 +165,20 @@ toward the map centre / the enemy; "back" = toward the map edge.
   zones *intentionally restrict and guide* the player — their function ensures gameplay and flow;
   a map is not an open greenfield playground. (The "narrower than the island" phrasing is
   dropped; the outside-ness is the rule.)
-- **BZ3 [expert]** Directed bridge: **10** wide, spanning one gap.
+- **BZ3 [corpus]** Directed bridge: **10** wide dominates (26 of 43 corpus zones); 5-wide tight
+  chokes exist (×5, lint-flagged, intentional); 15+ for open bands (×12).
 - **BZ4 [expert]** 4-team: zones connect all teams; often with a **hole at the centre** so
   players must walk/bridge around it rather than straight across.
-- **BZ5 [expert]** Build zones never touch a **spawn** piece. They **may touch a wool room** in
-  alternative-approach variants (WL8).
+- **BZ5 [open]** Granularity undecided (*Open question 1*): "never touch the spawn's **piece**"
+  keeps flagging purpose-built seeds whose spawn piece extends to the front; "never within N
+  blocks of the spawn **marker**" is likely the intended meaning. Wool rooms **may** be touched
+  in alternative-approach variants (WL8).
 
 ## EL — Elevation
 
-- **EL1 [expert]** Plateau step unit: **2** (not 4).
+- **EL1 [corpus]** Plateau step unit: **2**. The corpus surface palette is base 9 + even steps
+  (9/11/13/15/17/19 — all odd values), so every one of the 137 measured land-interface deltas is
+  even by construction: histogram Δ0 ×47, Δ2 ×73, Δ4 ×10, Δ6 ×4, Δ8+ ×3.
 - **EL2 [expert]** Height deltas across `gap`s work **both ways**: attacker builds up and arrives
   low (defensive device), or the defended wool sits low and the defender holds height advantage
   *inside* the room.
@@ -161,7 +186,10 @@ toward the map centre / the enemy; "back" = toward the map edge.
   feature; ≥4 only as a `cliff` or via building.
 - **EL4 [expert]** Per island: base + up to **2** raised sections (not 1). Roughen never changes
   levels, only outlines.
-- **EL5 [expert]** Cliffs (one-way drops): **in v1**.
+- **EL5 [expert, open]** Cliffs (one-way drops): **in v1** — but the `cliffs` field is still
+  unused while the corpus carries **17 unmarked Δ≥4 seams** (mirror-big-board ×8,
+  rotate-wide-frontline ×6, odd-facing-three-wool ×3, incl. one Δ8). Marking them is *Open
+  question 2*.
 
 ## PC — Pieces are anonymous
 
@@ -195,32 +223,33 @@ toward the map centre / the enemy; "back" = toward the map edge.
   **auto-renewed** in the generated XML (load-bearing for gameplay); lint: when a spawn piece
   exists, iron markers belong inside it. Spawns have no redstone line.
 - **ST3 [expert]** *Iron structure*: an iron marker stamps a **4×4×4 iron-block cube**.
-- **ST4 [expert]** *Pre-built wall*: an interface on a wool-approach lane may be marked `wall` — a
-  bedrock wall **2 blocks thick**, spanning the **full lane width**, its top **3–4 blocks above the
-  terrain on the approach side** (the side an attacker comes from, toward the wool), reaching down
-  to **y=0**. Typically placed at elevation-step interfaces to slow the push.
+- **ST4 [corpus]** *Pre-built wall*: 2 blocks thick, full seam width, top = approach side +4,
+  down to y=0. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every
+  marked interface has Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are
+  legal wall carriers.
 
-## Seed shopping list
+## Remaining seed work
 
-The `[seed-needed]` roster — each authored seed pins one open rule; names are suggestions:
+The nine-seed corpus covers the original shopping list except:
 
-1. **raised-spawn** — spawn plateau above its lane (SP4): how high, how far it extends.
-2. **isolated-spawn** — spawn piece connected by `gap` only (SP6).
-3. **wool-two-sided** — a wool approachable from two directions (WL1/WL8), incl. whether a build
-   zone touches the room (BZ5).
-4. **multi-wool-spread** — 2–3 wools pinning the separation rule (WL7).
-5. **fragmented-island** — the MD3 cut-apart team side: a mid piece of the *team's own* landmass
-   displaced across a void and bridged.
-6. **frontline-tower** — a raised structure *at* the frontline (FR3 counter-example).
-7. **elevation-rich** — step unit 2, two raised sections, a stepped wool approach (+6, 1–5-deep
-   steps), a cliff (EL1/EL4/EL5/WL5).
-8. **big-board** — 15-wide lanes, longer body, player-count-scaled (G2/G3/G8).
-9. **four-team-hole** — rot_90 with a central hole in the build zone (BZ4).
-10. **mirror-mode** — a `mirror_x`/`mirror_z` layout (G4).
-11. *(optional)* **odd-spawn-facing** — the SP3 exception, if a real motif is worth keeping.
+1. **cliff-marked seed** — the `cliffs` field's first real use; cheapest path: mark the intended
+   one-way drops in `odd-facing-three-wool` (Open question 2).
+2. **fragmented-island** — the MD3 pure form: a piece of the team's *own* middle (neither spawn
+   nor wool) displaced across a void and bridged.
+3. **maxPlayers pass** — honest player counts on all nine seeds, re-deriving the G3↔G8 envelope
+   coupling (parked by the author).
+4. *(fix)* `four-team-wool-two-sided`'s behind-spawn iron (SP7) — confirm slip or intent.
+
+## Open questions (freeze blockers)
+
+1. **BZ5 granularity** — spawn *piece* untouchable, or *marker* proximity (N blocks)? The
+   composer needs one to place zones.
+2. **Cliff marks** — the 17 unmarked Δ≥4 seams (incl. `odd-facing-three-wool`'s +8): mark as
+   `cliffs`, add intermediate steps, or raise EL3's threshold?
+3. **G5 band** — keep 10–20 (the corpus's 25/30 hops stay lint-nagged exceptions) or widen for
+   secondary bridges (≤30)?
 
 ## Correction protocol
 
-Reply by rule id: a number ("SP2: 10, not 5"), a veto ("HB3: no, roughen's job"), or a missing
-rule ("new WL9: …"). When the author declares the `[expert]` answers final and the
-`[seed-needed]` seeds exist, this document is the composer's v1 rule set.
+Reply by rule id. When the three open questions are answered and the two remaining seeds exist,
+this document **freezes as the composer's v1 rule set**.
