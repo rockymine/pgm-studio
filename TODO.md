@@ -20,6 +20,15 @@ uses to build the boring-seed corpus. Design: `docs/contracts/layout-generation.
 `docs/contracts/layout-rules.md` (the expert rule checklist, provisional), `docs/contracts/plan-editor.md`
 (schema · compiler · editor · milestones).
 
+- [ ] **G25 — Plan editor visibility & interaction pass.** (a) **Marker hit-priority** — markers are
+  currently almost unselectable (the piece under them always wins); picking must prefer markers within
+  their radius. (b) **Height-map toggle** — a canvas mode tinting pieces by surface height with in-piece
+  height labels, so elevation reads at a glance. (c) **Zone mirror ghosts** — build areas fan in the ghost
+  like pieces/markers do (a rot_90 pinwheel's centre tiling is invisible without them).
+- [ ] **G26 — Zone-union connectivity + contact downgrades.** Union overlapping/adjacent build zones into
+  buildable regions before deriving gap links and reachability (chained bridging across adjoining zones
+  never lands on terrain — the four-team pinwheel centre depends on it); downgrade sliver/corner contacts
+  from error to lint (deliberate thin ledge pieces and harmless corner touches are author judgment).
 - [ ] **G21 — Author the boring-seed corpus.** Burn down the seed shopping list (`layout-rules.md`):
   raised-spawn, isolated-spawn, wool-two-sided, multi-wool-spread, fragmented-island, frontline-tower,
   elevation-rich, big-board, four-team-hole, mirror-mode. Each lands as `tools/seeds/*.plan.json` (compiled
