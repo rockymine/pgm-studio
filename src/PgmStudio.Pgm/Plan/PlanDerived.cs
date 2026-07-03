@@ -135,7 +135,10 @@ public sealed class PlanDerived
     }
 
     // A zone gap-links only pieces from DIFFERENT land components: walkably-connected pieces need no void
-    // crossing, so a shared zone between them is not a hop (and must not trip the hop-distance lint).
+    // crossing, so a shared zone between them is not a hop (and must not trip the hop-distance lint). Beyond
+    // that, the zone must actually *bridge* the two — the connecting span (their nearest-edge segment) has to
+    // lie inside the zone rect minus its holes and not cross a third piece's interior. A zone that merely abuts
+    // several piece fronts at one edge (its span running outside the zone, or over intervening land) links none.
     private static List<GapLink> ComputeGapLinks(
         PlanModel plan, int cell, IReadOnlyList<DerivedPiece> pieces, IReadOnlyList<IReadOnlyList<string>> components)
     {
@@ -147,16 +150,50 @@ public sealed class PlanDerived
         foreach (var z in plan.Zones)
         {
             var zr = ToBlock(z.Rect, cell);
+            var holes = z.Holes.Select(h => ToBlock(h, cell)).ToList();
             var touching = pieces.Where(p => TouchesOrOverlaps(p.Rect, zr)).ToList();
             for (var i = 0; i < touching.Count; i++)
                 for (var j = i + 1; j < touching.Count; j++)
                 {
-                    if (component[touching[i].Id] == component[touching[j].Id]) continue;
-                    var hop = VoidSpan(touching[i].Rect, touching[j].Rect);
-                    links.Add(new GapLink(touching[i].Id, touching[j].Id, z.Id, hop));
+                    var a = touching[i];
+                    var b = touching[j];
+                    if (component[a.Id] == component[b.Id]) continue;
+                    var (sx1, sz1, sx2, sz2) = NearestSegment(a.Rect, b.Rect);
+                    if (!SpanInsideZone(sx1, sz1, sx2, sz2, zr, holes)) continue;
+                    if (pieces.Any(p => p.Id != a.Id && p.Id != b.Id && SegmentCrossesInterior(sx1, sz1, sx2, sz2, p.Rect))) continue;
+                    links.Add(new GapLink(a.Id, b.Id, z.Id, VoidSpan(a.Rect, b.Rect)));
                 }
         }
         return links;
+    }
+
+    // The connecting span lies inside the zone when both endpoints sit within the zone rect (inclusive — the
+    // piece edges that anchor the span ride the zone's border) and the span never enters a no-build hole. A
+    // convex rect makes endpoint containment sufficient for the whole (straight) segment.
+    private static bool SpanInsideZone(int x1, int z1, int x2, int z2, BlockRect zone, IReadOnlyList<BlockRect> holes)
+    {
+        static bool In(int x, int z, BlockRect r) => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ;
+        if (!In(x1, z1, zone) || !In(x2, z2, zone)) return false;
+        return !holes.Any(h => SegmentCrossesInterior(x1, z1, x2, z2, h));
+    }
+
+    // True when the segment passes through the open interior of a rect (Liang–Barsky clip against the rect
+    // deflated by ε, so a span that only rides an edge or clips a corner does not count as crossing it).
+    private static bool SegmentCrossesInterior(double x1, double z1, double x2, double z2, BlockRect r)
+    {
+        const double eps = 1e-6;
+        double minX = r.MinX + eps, maxX = r.MaxX - eps, minZ = r.MinZ + eps, maxZ = r.MaxZ - eps;
+        if (minX >= maxX || minZ >= maxZ) return false;                    // degenerate (zero-area) rect
+        double dx = x2 - x1, dz = z2 - z1;
+        double t0 = 0.0, t1 = 1.0;
+        foreach (var (p, q) in new[] { (-dx, x1 - minX), (dx, maxX - x1), (-dz, z1 - minZ), (dz, maxZ - z1) })
+        {
+            if (Math.Abs(p) < 1e-12) { if (q < 0) return false; continue; } // parallel to this edge, outside it
+            var t = q / p;
+            if (p < 0) { if (t > t1) return false; if (t > t0) t0 = t; }
+            else       { if (t < t0) return false; if (t < t1) t1 = t; }
+        }
+        return t1 - t0 > eps;                                              // a sub-span lies strictly inside
     }
 
     // A piece touches a zone if their rects share a border or interior (contact within the zone's extent).

@@ -91,6 +91,20 @@ public sealed class PlanCompilerTests
     }
 
     [Test]
+    public async Task A_half_cell_marker_offset_resolves_to_a_2_5_block_coordinate()
+    {
+        // a .5 offset on the half-cell lattice lands the marker on a 2.5-block half-cell: piece origin block
+        // (0,0) + 0.5·5. The raw fractional coordinate flows through un-rounded (downstream floors it).
+        var p = Plan("""
+        { "plan":1, "globals":{"symmetry":"rot_180","cell":5},
+          "pieces":[ {"id":"lane","role":"lane","rect":[0,0,2,2]} ],
+          "placements":{ "wools":[ {"piece":"lane","at":[0.5,0.5]} ] } }
+        """);
+        var (_, intent) = PlanCompiler.Compile(p);
+        await Assert.That(intent.Wools!.Any(w => w.Spawn.X == 2.5 && w.Spawn.Z == 2.5)).IsTrue();
+    }
+
+    [Test]
     public async Task Land_connected_pieces_union_into_one_shape()
     {
         // two abutting same-surface bars → one unioned shape, one island

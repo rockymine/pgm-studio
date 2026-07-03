@@ -126,7 +126,7 @@ public static class PlanCompiler
                 spawns.Add(new SpawnIntent
                 {
                     Team = teams[k].Id,
-                    Point = new Pt(Math.Round(px), piece.Value.Surface, Math.Round(pz)),
+                    Point = new Pt(px, piece.Value.Surface, pz),
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
                 });
             }
@@ -149,7 +149,7 @@ public static class PlanCompiler
                 {
                     Owner = teams[k].Id,
                     Color = color,
-                    Spawn = new Pt(Math.Round(px), piece.Value.Surface, Math.Round(pz)),
+                    Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
             }
 
@@ -193,13 +193,15 @@ public static class PlanCompiler
         return areas;
     }
 
-    private static (int X, int Z) Resolve(BlockRect piece, int[] at, int cell) =>
+    // Piece-relative half-cell offset → block coordinate (piece origin + offset·cell). A .5 offset lands on a
+    // 2.5-block half-cell; downstream flooring/snapping is the export pipeline's job, so the raw value flows on.
+    private static (double X, double Z) Resolve(BlockRect piece, double[] at, int cell) =>
         (piece.MinX + at[0] * cell, piece.MinZ + at[1] * cell);
 
     // The facing unit direction: "front" = the cardinal quantized toward the centre; back/left/right rotate it.
-    private static (int Dx, int Dz) FacingDir(int x, int z, string facing)
+    private static (int Dx, int Dz) FacingDir(double x, double z, string facing)
     {
-        int dx = -x, dz = -z;                                              // toward centre (0,0)
+        double dx = -x, dz = -z;                                           // toward centre (0,0)
         (int cx, int cz) = Math.Abs(dx) >= Math.Abs(dz)
             ? (Math.Sign(dx), 0)
             : (0, Math.Sign(dz));
@@ -214,7 +216,7 @@ public static class PlanCompiler
     }
 
     // The k-th orbit image's yaw: fan the facing as a direction (image of point+dir minus image of point).
-    private static double FanYaw(PlanDerived d, int x, int z, int dx, int dz, int k)
+    private static double FanYaw(PlanDerived d, double x, double z, int dx, int dz, int k)
     {
         var p = d.FanPoint(x, z, k);
         var q = d.FanPoint(x + dx, z + dz, k);

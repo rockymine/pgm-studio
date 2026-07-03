@@ -96,6 +96,69 @@ public sealed class PlanDerivedTests
     }
 
     [Test]
+    public async Task A_zone_that_only_abuts_piece_fronts_bridges_nothing()
+    {
+        // a and b are disjoint (a 10-block void between them); the zone sits BELOW, abutting the bottom edge of
+        // each. Their nearest connecting span runs above the zone (outside it), so the zone links neither.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
+                     {"id":"b","role":"lane","rect":[20,0,10,10]} ],
+          "zones":[ {"id":"z","rect":[0,10,30,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.GapLinks).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_zone_spanning_the_void_between_two_pieces_still_links_them()
+    {
+        // the zone fills the 10-block void between a and b; their nearest span runs THROUGH it → one 10-hop link.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
+                     {"id":"b","role":"lane","rect":[20,0,10,10]} ],
+          "zones":[ {"id":"z","rect":[10,0,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.GapLinks.Count).IsEqualTo(1);
+        await Assert.That(d.GapLinks[0].Hop).IsEqualTo(10);
+    }
+
+    [Test]
+    public async Task A_gap_link_whose_span_crosses_a_third_pieces_interior_is_suppressed()
+    {
+        // a and c face each other across a wide zone, but b sits in the middle of that void — the a–c span runs
+        // over b's interior, so a and c are not linked (a–b and b–c, each spanning their own clear void, are).
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
+                     {"id":"b","role":"mid","rect":[20,0,10,10]},
+                     {"id":"c","role":"lane","rect":[40,0,10,10]} ],
+          "zones":[ {"id":"z","rect":[10,0,30,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "c") or ("c", "a"))).IsFalse();
+        await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "b") or ("b", "a"))).IsTrue();
+        await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("b", "c") or ("c", "b"))).IsTrue();
+    }
+
+    [Test]
+    public async Task Isolated_spawn_seed_keeps_only_the_two_bridge_gap_links()
+    {
+        // the author's case: a spawn island abutting several lane fronts. Only the two zones that truly span the
+        // void from the central island out to lane-4 / lane-5 (10 blocks each) survive; the abutting mid band's
+        // out-of-zone spans (the two 15s) and the cross-map 40 are dropped.
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("isolated-spawn.plan.json"))!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.GapLinks.Count).IsEqualTo(2);
+        await Assert.That(d.GapLinks.All(g => g.Hop == 10)).IsTrue();
+        var partners = d.GapLinks.SelectMany(g => new[] { g.A, g.B }).ToHashSet();
+        await Assert.That(partners).Contains("lane-4");
+        await Assert.That(partners).Contains("lane-5");
+    }
+
+    [Test]
     public async Task Frontline_is_the_pieces_abutting_a_zone()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;

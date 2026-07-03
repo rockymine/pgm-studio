@@ -65,11 +65,12 @@ public static class PlanValidator
         return findings;
     }
 
-    private static void CheckInside(PlanDerived d, string kind, string pieceId, int[] at, List<PlanFinding> findings)
+    private static void CheckInside(PlanDerived d, string kind, string pieceId, double[] at, List<PlanFinding> findings)
     {
         var piece = d.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references unknown piece '{pieceId}'", null, [pieceId])); return; }
-        int x = at[0], z = at[1], w = piece.Rect[2], h = piece.Rect[3];
+        double x = at[0], z = at[1];
+        int w = piece.Rect[2], h = piece.Rect[3];
         if (x < 0 || z < 0 || x > w || z > h)
             findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h})", null, [pieceId]));
     }
@@ -218,7 +219,7 @@ public static class PlanValidator
 
     // ── shared helpers ──────────────────────────────────────────────────────────────────────────────────
 
-    private static (int X, int Z) ResolveBlock(BlockRect piece, int[] at, int cell) =>
+    private static (double X, double Z) ResolveBlock(BlockRect piece, double[] at, int cell) =>
         (piece.MinX + at[0] * cell, piece.MinZ + at[1] * cell);
 
     private static bool Touches(BlockRect a, BlockRect b)

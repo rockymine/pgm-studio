@@ -8,7 +8,7 @@ import { dirname, resolve } from "node:path";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, nextFacing,
   rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
-  pieceAtCell, zoneAtCell, markerCell, attachMarker, allMarkers,
+  pieceAtCell, zoneAtCell, markerCell, attachMarker, snapHalf, allMarkers,
   contentBounds, viewBounds, pieceMirrorImages, markerMirrorImages, ROLES,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
@@ -61,6 +61,19 @@ test("markerCell / attachMarker resolve piece-relative offsets", () => {
   // Dropping a marker at absolute cell (2,7) re-derives the same offset on the piece under it.
   assert.deepEqual(attachMarker(doc, 2, 7), { piece: "bar", at: [1, 2] });
   assert.equal(attachMarker(doc, 40, 40), null);   // no piece under → cannot attach
+});
+
+test("attachMarker snaps a fractional drop to the half-cell lattice", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    pieces: [{ id: "bar", role: "lane", rect: [1, 5, 2, 6] }],
+  });
+  assert.equal(snapHalf(1.4), 1.5);
+  assert.equal(snapHalf(1.1), 1);
+  // dropping at fractional cell (2.4, 6.6) on piece origin (1,5) → offset (1.4,1.6) snaps to (1.5,1.5)
+  assert.deepEqual(attachMarker(doc, 2.4, 6.6), { piece: "bar", at: [1.5, 1.5] });
+  // an integer drop still yields an integer offset (back-compat)
+  assert.deepEqual(attachMarker(doc, 2, 7), { piece: "bar", at: [1, 2] });
 });
 
 test("uniqueId suffixes on collision", () => {

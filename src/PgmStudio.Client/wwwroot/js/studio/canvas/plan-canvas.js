@@ -144,17 +144,29 @@ export class PlanCanvas extends CanvasBase {
       cx0 = Math.floor(b.min_x / cell) - 3; cz0 = Math.floor(b.min_z / cell) - 3;
       cx1 = Math.ceil(b.max_x / cell) + 3; cz1 = Math.ceil(b.max_z / cell) + 3;
     }
-    const line = (x1, y1, x2, y2, heavy) => layer.appendChild(svgEl("line", {
-      x1, y1, x2, y2, stroke: heavy ? "var(--canvas-sub-stroke)" : "var(--border)",
-      "stroke-width": heavy ? "1.2" : "0.6", "vector-effect": "non-scaling-stroke",
+    // Cell grid — the sketch tool's purple chunk-grid look: one faint dashed line per cell (no heavier
+    // interval; the only emphasis is the origin axes below).
+    const cellLine = (x1, y1, x2, y2) => layer.appendChild(svgEl("line", {
+      x1, y1, x2, y2, stroke: "var(--canvas-chunk)", "stroke-width": "1",
+      "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke",
     }));
-    for (let c = cx0; c <= cx1; c++) line(c * cell, cz0 * cell, c * cell, cz1 * cell, c % 5 === 0);
-    for (let c = cz0; c <= cz1; c++) line(cx0 * cell, c * cell, cx1 * cell, c * cell, c % 5 === 0);
+    for (let c = cx0; c <= cx1; c++) cellLine(c * cell, cz0 * cell, c * cell, cz1 * cell);
+    for (let c = cz0; c <= cz1; c++) cellLine(cx0 * cell, c * cell, cx1 * cell, c * cell);
 
-    // Symmetry centre (origin) crosshair.
+    // Heavier gridlines along the origin axes (x=0 and z=0), drawn atop the cell grid.
+    const axis = (x1, y1, x2, y2) => layer.appendChild(svgEl("line", {
+      x1, y1, x2, y2, stroke: "var(--canvas-axis)", "stroke-width": "2", "vector-effect": "non-scaling-stroke",
+    }));
+    if (0 >= cx0 && 0 <= cx1) axis(0, cz0 * cell, 0, cz1 * cell);
+    if (0 >= cz0 && 0 <= cz1) axis(cx0 * cell, 0, cx1 * cell, 0);
+
+    // Origin marker — the sketch tool's centre crosshair + ring, in the axis colour.
     const cl = this.#centerLayer; this.#clear(cl);
-    cl.appendChild(svgEl("line", { x1: -cell, y1: 0, x2: cell, y2: 0, stroke: "var(--accent)", "stroke-width": "1", "vector-effect": "non-scaling-stroke" }));
-    cl.appendChild(svgEl("line", { x1: 0, y1: -cell, x2: 0, y2: cell, stroke: "var(--accent)", "stroke-width": "1", "vector-effect": "non-scaling-stroke" }));
+    const arm = cell * 0.6, mr = cell * 0.32;
+    const mark = (a) => cl.appendChild(svgEl("line", { stroke: "var(--canvas-axis)", "stroke-width": "1.5", "vector-effect": "non-scaling-stroke", ...a }));
+    mark({ x1: -arm, y1: 0, x2: arm, y2: 0 });
+    mark({ x1: 0, y1: -arm, x2: 0, y2: arm });
+    cl.appendChild(svgEl("circle", { cx: 0, cy: 0, r: mr, fill: "none", stroke: "var(--canvas-axis)", "stroke-width": "1.5", "vector-effect": "non-scaling-stroke" }));
   }
 
   #renderGhost() {
@@ -180,7 +192,7 @@ export class PlanCanvas extends CanvasBase {
       const b = rectCellsToBlocks(z.rect, cell);
       layer.appendChild(svgEl("rect", {
         x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-        fill: "var(--accent)", "fill-opacity": "0.10", stroke: "var(--accent)", "stroke-width": "1.4",
+        fill: "var(--accent)", "fill-opacity": "0.22", stroke: "var(--accent)", "stroke-width": "1.4",
         "stroke-dasharray": "7 4", "vector-effect": "non-scaling-stroke", "data-zone": z.id, style: "cursor:pointer",
       }));
       for (const h of z.holes) {
@@ -230,8 +242,8 @@ export class PlanCanvas extends CanvasBase {
   }
 
   // Derived-structure overlay (world space, non-interactive): land interfaces (solid green) vs sliver/corner
-  // (red warning), zone gap connectors (gold dashed), and frontline edges (accent-tinted highlight). Drawn
-  // above pieces, below markers; the gold hop labels ride the screen-space overlay so they stay legible.
+  // (red warning), zone gap connectors (purple ruler dashes), and frontline edges (accent-tinted highlight).
+  // Drawn above pieces, below markers; the hop labels ride the screen-space overlay so they stay legible.
   #renderInspect() {
     const layer = this.#inspectLayer; if (!layer) return;
     this.#clear(layer);
@@ -247,11 +259,11 @@ export class PlanCanvas extends CanvasBase {
     if (this.#overlayOn.gaps)
       for (const g of this.#inspect.gapLinks) {
         layer.appendChild(svgEl("line", {
-          x1: g.x1, y1: g.z1, x2: g.x2, y2: g.z2, stroke: "#e0b13c", "stroke-width": "2.5",
+          x1: g.x1, y1: g.z1, x2: g.x2, y2: g.z2, stroke: "var(--canvas-axis)", "stroke-width": "2.5",
           "stroke-dasharray": "4 3", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke",
         }));
         for (const [px, pz] of [[g.x1, g.z1], [g.x2, g.z2]])
-          layer.appendChild(svgEl("circle", { cx: px, cy: pz, r: this.#doc.globals.cell * 0.12, fill: "#e0b13c" }));
+          layer.appendChild(svgEl("circle", { cx: px, cy: pz, r: this.#doc.globals.cell * 0.12, fill: "var(--canvas-axis)" }));
       }
 
     if (this.#overlayOn.interfaces)
@@ -317,13 +329,13 @@ export class PlanCanvas extends CanvasBase {
       t.textContent = text;
       layer.appendChild(t);
     };
-    for (const p of this.#doc.pieces) { const b = rectCellsToBlocks(p.rect, cell); label(p.id, (b.min_x + b.max_x) / 2, (b.min_z + b.max_z) / 2, "#fff"); }
+    for (const p of this.#doc.pieces) { const b = rectCellsToBlocks(p.rect, cell); label(p.id, (b.min_x + b.max_x) / 2, (b.min_z + b.max_z) / 2, "var(--canvas-ink)"); }
     for (const z of this.#doc.zones) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
 
     // Gap-link hop distances ride the screen-space overlay so they stay a fixed pixel size at any zoom.
     if (this.#overlayOn.gaps)
       for (const g of this.#inspect.gapLinks)
-        label(String(g.hop), (g.x1 + g.x2) / 2, (g.z1 + g.z2) / 2, "#e0b13c");
+        label(String(g.hop), (g.x1 + g.x2) / 2, (g.z1 + g.z2) / 2, "var(--canvas-axis)");
 
     // Selection box + resize handles for a piece/zone (markers show just a ring).
     if (!this.#sel) return;
@@ -378,10 +390,12 @@ export class PlanCanvas extends CanvasBase {
   _onZoom(scale) { this.#cb.onZoom?.(Math.round(scale * 100)); }
 
   _onToolMousedown(e, svgPt) {
-    const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, this.#doc.globals.cell);
+    const cell = this.#doc.globals.cell;
+    const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(cx, cz);
     if (this.#tool === "piece" || this.#tool === "zone") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#renderPreview(); return; }
-    if (this.#tool === "spawn" || this.#tool === "wool" || this.#tool === "iron") this.#placeMarker(this.#tool, cx, cz);
+    // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
+    if (this.#tool === "spawn" || this.#tool === "wool" || this.#tool === "iron") this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
   }
 
   _onPointerMove(e, svgPt) {
@@ -389,7 +403,7 @@ export class PlanCanvas extends CanvasBase {
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#cursorEl) this.#cursorEl.textContent = `cell ${cx}, ${cz}`;
     if (this.#drag?.mode === "draw") { this.#drag.b = [cx, cz]; this.#renderPreview(); return; }
-    if (this.#drag?.mode === "move") this.#moveTo(cx, cz);
+    if (this.#drag?.mode === "move") this.#moveTo(cx, cz, svgPt.x / cell, svgPt.y / cell);
   }
 
   _onToolMouseup(e, svgPt) {
@@ -445,20 +459,23 @@ export class PlanCanvas extends CanvasBase {
     return null;
   }
 
-  #moveTo(cx, cz) {
+  #moveTo(cx, cz, fcx, fcz) {
     const d = this.#drag; if (!d?.sel) return;
+    // Markers track the cursor on the half-cell lattice (absolute, snap-aware) and re-parent to the piece
+    // under it; only a real position change marks the drag moved (so a plain click still cycles facing).
+    if (d.sel.kind === "marker") {
+      const m = markerAt(this.#doc, d.sel.markerKind, d.sel.index);
+      const at = attachMarker(this.#doc, fcx, fcz);
+      if (at && (at.piece !== m.piece || at.at[0] !== m.at[0] || at.at[1] !== m.at[1])) {
+        m.piece = at.piece; m.at = at.at; d.moved = true; this.render();
+      }
+      return;
+    }
     const ddx = cx - d.grab[0], ddz = cz - d.grab[1];
     if (!ddx && !ddz) return;
     d.grab = [cx, cz];
-    if (d.sel.kind === "marker") {
-      const m = markerAt(this.#doc, d.sel.markerKind, d.sel.index);
-      const c = markerCell(this.#doc, m);
-      const at = attachMarker(this.#doc, c[0] + ddx, c[1] + ddz);   // re-parent to the piece under the new cell
-      if (at) { m.piece = at.piece; m.at = at.at; d.moved = true; }
-    } else {
-      const item = this.#selItem();
-      if (item) { item.rect[0] += ddx; item.rect[1] += ddz; d.moved = true; }
-    }
+    const item = this.#selItem();
+    if (item) { item.rect[0] += ddx; item.rect[1] += ddz; d.moved = true; }
     this.render();
   }
 

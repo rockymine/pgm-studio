@@ -85,10 +85,10 @@
             </div>
 
             <div class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Zones &amp; markers</h2></div>
+              <div class="section-header section-header--ruled"><h2 class="section-title">Build &amp; markers</h2></div>
               <div class="plan-palette">
-                <button class="plan-role-btn @(tool == "zone" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("zone")'>
-                  <i data-lucide="square-dashed"></i> Zone
+                <button class="plan-role-btn @(tool == "zone" ? "plan-role-btn--active" : null)" title="Draw a build area" @onclick='() => PickTool("zone")'>
+                  <i data-lucide="square-dashed"></i> Build
                 </button>
                 <button class="plan-role-btn @(tool == "spawn" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("spawn")'>
                   <i data-lucide="flag"></i> Spawn
@@ -119,9 +119,9 @@
               <span class="canvas-overlay-toggles">
                 <button class="filter-chip @(overlayInterfaces ? "filter-chip--active" : null)" title="Land interfaces (green) · sliver/corner (red)"
                         @onclick='() => ToggleOverlay("interfaces")'>Interfaces</button>
-                <button class="filter-chip @(overlayGaps ? "filter-chip--active" : null)" title="Zone gap links with hop distance"
+                <button class="filter-chip @(overlayGaps ? "filter-chip--active" : null)" title="Build-area gap links with hop distance"
                         @onclick='() => ToggleOverlay("gaps")'>Gaps</button>
-                <button class="filter-chip @(overlayFrontline ? "filter-chip--active" : null)" title="Piece edges facing a build zone"
+                <button class="filter-chip @(overlayFrontline ? "filter-chip--active" : null)" title="Piece edges facing a build area"
                         @onclick='() => ToggleOverlay("frontline")'>Frontline</button>
               </span>
               <button class="filter-chip" title="Fit the plan to view" @onclick="Fit"><i data-lucide="scan"></i></button>
@@ -139,7 +139,7 @@
             <div class="panel-section">
               @if (sel is null)
               {
-                <p class="section-desc">Select a piece, zone or marker to inspect. Draw a piece from the palette, then drop spawns / wools onto it.</p>
+                <p class="section-desc">Select a piece, build area or marker to inspect. Draw a piece from the palette, then drop spawns / wools onto it.</p>
               }
               else if (sel.Kind == "piece")
               {
@@ -177,14 +177,14 @@
               {
                 <div class="detail-header">
                   <span class="geo-type-icon"><i data-lucide="square-dashed"></i></span>
-                  <span class="detail-label">Zone</span>
+                  <span class="detail-label">Build area</span>
                 </div>
                 <div class="field">
                   <label class="field-label">Id</label>
                   <input class="field-input" value="@sel.Id" @onchange="OnZoneId" />
                 </div>
                 <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
-                  <i data-lucide="trash-2"></i> Delete zone
+                  <i data-lucide="trash-2"></i> Delete build area
                 </button>
               }
               else

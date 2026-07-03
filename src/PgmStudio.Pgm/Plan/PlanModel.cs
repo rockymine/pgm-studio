@@ -82,28 +82,30 @@ public sealed class PlanPlacements
 }
 
 /// <summary>A spawn on <see cref="Piece"/> at piece-relative cell offset <see cref="At"/>, facing
-/// <see cref="Facing"/> (<c>front</c>=toward the centre, plus <c>back</c>/<c>left</c>/<c>right</c>).</summary>
+/// <see cref="Facing"/> (<c>front</c>=toward the centre, plus <c>back</c>/<c>left</c>/<c>right</c>). The offset
+/// is in cells on a half-cell lattice (0.5 steps) so a marker can sit at the middle of a 2×2-cell block; whole
+/// integers (the common case) round-trip verbatim.</summary>
 public sealed class SpawnPlacement
 {
     [JsonPropertyName("piece")]  public string Piece { get; set; } = "";
-    [JsonPropertyName("at")]     public int[] At { get; set; } = [0, 0];
+    [JsonPropertyName("at")]     public double[] At { get; set; } = [0, 0];
     [JsonPropertyName("facing")] public string Facing { get; set; } = "front";
 }
 
-/// <summary>A wool on <see cref="Piece"/> at cell offset <see cref="At"/>. <see cref="Color"/> is optional;
+/// <summary>A wool on <see cref="Piece"/> at half-cell offset <see cref="At"/>. <see cref="Color"/> is optional;
 /// empty = auto (the team's first wool takes the team colour, later wools take distinct dyes).</summary>
 public sealed class WoolPlacement
 {
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
-    [JsonPropertyName("at")]    public int[] At { get; set; } = [0, 0];
+    [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
     [JsonPropertyName("color")] public string? Color { get; set; }
 }
 
-/// <summary>An iron (resource) marker on <see cref="Piece"/> at cell offset <see cref="At"/>.</summary>
+/// <summary>An iron (resource) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/>.</summary>
 public sealed class IronPlacement
 {
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
-    [JsonPropertyName("at")]    public int[] At { get; set; } = [0, 0];
+    [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
 }
 
 /// <summary>A land interface between pieces <see cref="A"/> and <see cref="B"/> forced to a one-way drop

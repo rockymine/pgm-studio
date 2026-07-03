@@ -115,6 +115,9 @@ export function zoneAtCell(doc, cx, cz) {
   return null;
 }
 
+/** Snap a value to the nearest half-cell step (0.5 in cell units) — the marker lattice. */
+export function snapHalf(v) { return Math.round(v * 2) / 2; }
+
 /** The absolute cell of a marker (its piece's origin + the piece-relative offset), or null if orphaned. */
 export function markerCell(doc, marker) {
   const p = pieceById(doc, marker.piece);
@@ -122,12 +125,14 @@ export function markerCell(doc, marker) {
 }
 
 /**
- * Attach a marker dropped at absolute cell `(cx, cz)`: the piece under it + the piece-relative offset,
- * or null when no piece sits under the cell (markers must ride a piece).
+ * Attach a marker dropped at absolute cell `(cx, cz)` (fractional allowed): the piece under it + the
+ * piece-relative offset snapped to the half-cell lattice, or null when no piece sits under the cell
+ * (markers must ride a piece). A marker centres on a whole cell (integer offset) or a 2×2-cell block
+ * boundary (half offset), so its stamped room lands on a 2.5-block half-cell.
  */
 export function attachMarker(doc, cx, cz) {
-  const p = pieceAtCell(doc, cx, cz);
-  return p ? { piece: p.id, at: [cx - p.rect[0], cz - p.rect[1]] } : null;
+  const p = pieceAtCell(doc, Math.floor(cx), Math.floor(cz));
+  return p ? { piece: p.id, at: [snapHalf(cx - p.rect[0]), snapHalf(cz - p.rect[1])] } : null;
 }
 
 /** An id unique among `existing`, derived from `base` with a numeric suffix when needed. */

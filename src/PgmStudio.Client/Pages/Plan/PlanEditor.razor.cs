@@ -394,7 +394,7 @@ public partial class PlanEditor
         [JsonPropertyName("markerKind")] public string MarkerKind { get; set; } = "";
         [JsonPropertyName("index")] public int Index { get; set; }
         [JsonPropertyName("piece")] public string Piece { get; set; } = "";
-        [JsonPropertyName("at")] public int[]? At { get; set; }
+        [JsonPropertyName("at")] public double[]? At { get; set; }
         [JsonPropertyName("facing")] public string Facing { get; set; } = "";
     }
 
