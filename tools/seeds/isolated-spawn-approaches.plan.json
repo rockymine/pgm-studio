@@ -1,0 +1,198 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "isolated-spawn-multiple-team-approaches-multi-steps"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -2,
+        0,
+        4,
+        1
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -6,
+        -1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -6,
+        3,
+        2,
+        1
+      ],
+      "surface": 11
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "surface": 11
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -1,
+        4,
+        7,
+        2
+      ],
+      "surface": 11
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -7,
+        4,
+        4,
+        2
+      ],
+      "surface": 11
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        0,
+        6,
+        2,
+        4
+      ],
+      "surface": 13
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        0,
+        10,
+        2,
+        2
+      ],
+      "surface": 15
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -9,
+        4,
+        2,
+        2
+      ],
+      "surface": 13
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -6,
+        1,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        4,
+        1,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        -1,
+        1,
+        2,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-4",
+      "rect": [
+        -4,
+        0,
+        2,
+        1
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-5",
+      "rect": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-6",
+      "rect": [
+        -3,
+        4,
+        2,
+        2
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          0.5,
+          0.5
+        ],
+        "facing": "right"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          0.5,
+          0.5
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}
