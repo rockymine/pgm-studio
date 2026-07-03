@@ -28,12 +28,26 @@ test("sortFindings does not mutate its input", () => {
   assert.deepEqual(input.map((f) => f.message), ["a", "b"]);
 });
 
-test("parseOverlays defaults every missing key to on", () => {
-  assert.deepEqual(parseOverlays(null), DEFAULT_OVERLAYS);
-  assert.deepEqual(parseOverlays("{}"), { interfaces: true, gaps: true, frontline: true });
-  assert.deepEqual(parseOverlays('{"gaps":false}'), { interfaces: true, gaps: false, frontline: true });
+test("DEFAULT_OVERLAYS keeps labels off, interfaces and frontline on", () => {
+  assert.deepEqual(DEFAULT_OVERLAYS, { interfaces: true, labels: false, frontline: true });
 });
 
-test("parseOverlays falls back to all-on on garbage", () => {
+test("parseOverlays defaults interfaces/frontline on and labels off", () => {
+  assert.deepEqual(parseOverlays(null), DEFAULT_OVERLAYS);
+  assert.deepEqual(parseOverlays("{}"), { interfaces: true, labels: false, frontline: true });
+  assert.deepEqual(parseOverlays('{"interfaces":false}'), { interfaces: false, labels: false, frontline: true });
+});
+
+test("parseOverlays turns labels on only when explicitly true, and persists it", () => {
+  assert.deepEqual(parseOverlays('{"labels":true}'), { interfaces: true, labels: true, frontline: true });
+  assert.deepEqual(parseOverlays('{"labels":false}'), { interfaces: true, labels: false, frontline: true });
+});
+
+test("parseOverlays ignores a legacy gaps key and defaults labels off", () => {
+  assert.deepEqual(parseOverlays('{"interfaces":true,"gaps":true,"frontline":true}'), { interfaces: true, labels: false, frontline: true });
+  assert.deepEqual(parseOverlays('{"interfaces":true,"gaps":false,"frontline":false}'), { interfaces: true, labels: false, frontline: false });
+});
+
+test("parseOverlays falls back to defaults on garbage", () => {
   assert.deepEqual(parseOverlays("not json"), DEFAULT_OVERLAYS);
 });

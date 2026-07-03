@@ -594,6 +594,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   validating the four-team pinwheel centre (24 cross-team errors → 0). Sliver/corner contacts downgraded
   from structural errors to lint **PC-S**/**PC-C** (deliberate thin ledges and corner touches are author
   judgment); different-surface overlap stays an error. Pgm 244 tests. (G26)
+- **Quiet plan canvas (Labels toggle)** — piece/build-area id labels and the gap connectors + hop numbers
+  are hidden by default behind one persisted **Labels** chip (replaces the Gaps chip; legacy pref key
+  ignored). Height-mode surface numbers stay (data, not ids); the selected piece/zone still shows its lone
+  id for orientation. JS 118 tests. (G28)
 - **Plan schema v2 — anonymous pieces + intent roles + wall marks** — pieces are anonymous by default
   (`role: "piece"`); legacy `lane`/`hub`/`mid` (and any unknown value) map to `piece` on parse in both the C#
   `PlanModel` and the JS `normalizeDoc`, so old plans/seeds load clean. Two optional intent-bearing roles kept:

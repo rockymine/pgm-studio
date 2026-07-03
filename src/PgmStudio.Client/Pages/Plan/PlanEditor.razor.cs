@@ -46,7 +46,7 @@ public partial class PlanEditor
     private PlanSelection? sel;
 
     // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs) + the live lint feed.
-    private bool overlayInterfaces = true, overlayGaps = true, overlayFrontline = true;
+    private bool overlayInterfaces = true, overlayFrontline = true, overlayLabels;
     private bool heightMap;
     private List<InspectFinding> findings = [];
 
@@ -97,7 +97,7 @@ public partial class PlanEditor
         var on = key switch
         {
             "interfaces" => overlayInterfaces = !overlayInterfaces,
-            "gaps" => overlayGaps = !overlayGaps,
+            "labels" => overlayLabels = !overlayLabels,
             "frontline" => overlayFrontline = !overlayFrontline,
             _ => true,
         };
@@ -118,7 +118,7 @@ public partial class PlanEditor
         var o = JsonSerializer.Deserialize<OverlayDto>(json);
         if (o is null) return;
         overlayInterfaces = o.Interfaces;
-        overlayGaps = o.Gaps;
+        overlayLabels = o.Labels;
         overlayFrontline = o.Frontline;
     }
 
@@ -423,7 +423,7 @@ public partial class PlanEditor
     private sealed class OverlayDto
     {
         [JsonPropertyName("interfaces")] public bool Interfaces { get; set; } = true;
-        [JsonPropertyName("gaps")] public bool Gaps { get; set; } = true;
+        [JsonPropertyName("labels")] public bool Labels { get; set; }
         [JsonPropertyName("frontline")] public bool Frontline { get; set; } = true;
     }
 

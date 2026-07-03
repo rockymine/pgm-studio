@@ -94,7 +94,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   // ── live inspect (debounced POST to /api/plan/inspect; stale responses ignored) ──
 
-  let overlays = { interfaces: true, gaps: true, frontline: true };
+  let overlays = { interfaces: true, labels: false, frontline: true };
   try { overlays = parseOverlays(localStorage.getItem(OVERLAY_KEY)); } catch { /* default */ }
 
   // Height-map fill mode (off by default) — persisted like the overlay chips, under its own key.

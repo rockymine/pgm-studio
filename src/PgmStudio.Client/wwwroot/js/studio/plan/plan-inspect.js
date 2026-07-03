@@ -5,8 +5,12 @@
  * reading/writing the overlay-toggle preferences. Node-tested alongside plan-doc.js.
  */
 
-/** The three overlay layers, all on by default. */
-export const DEFAULT_OVERLAYS = { interfaces: true, gaps: true, frontline: true };
+/**
+ * The overlay layers and their default visibility. Interfaces and frontline show by default; labels
+ * (piece/build-area ids + gap connectors and their hop distances) stay off by default to keep the canvas
+ * quiet — id text and distance lines are opt-in via one toggle.
+ */
+export const DEFAULT_OVERLAYS = { interfaces: true, labels: false, frontline: true };
 
 /**
  * Order findings for the lint panel: structural errors first, then rule lint, stable within each group so a
@@ -21,13 +25,15 @@ export function sortFindings(findings) {
 }
 
 /**
- * Parse persisted overlay toggles, defaulting any missing key to on (so a first-run or partially-written
- * blob still shows every overlay). A garbage value falls back to all-on.
+ * Parse persisted overlay toggles. Interfaces and frontline default on (a missing key stays visible);
+ * labels default off (only an explicit `true` turns them on). A blob from the earlier layout that carried a
+ * `gaps` key is read cleanly — that key is ignored, its content now lives under `labels`. Garbage falls back
+ * to the defaults.
  */
 export function parseOverlays(raw) {
   try {
     const o = (raw && JSON.parse(raw)) || {};
-    return { interfaces: o.interfaces !== false, gaps: o.gaps !== false, frontline: o.frontline !== false };
+    return { interfaces: o.interfaces !== false, labels: o.labels === true, frontline: o.frontline !== false };
   } catch {
     return { ...DEFAULT_OVERLAYS };
   }

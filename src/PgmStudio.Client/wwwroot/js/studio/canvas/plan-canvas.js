@@ -67,7 +67,8 @@ export class PlanCanvas extends CanvasBase {
 
   // Derived-structure overlay (block coords from /api/plan/inspect) + which layers are visible.
   #inspect = { interfaces: [], gapLinks: [], frontline: [] };
-  #overlayOn = { interfaces: true, gaps: true, frontline: true };
+  // Labels off by default keeps the canvas quiet: no piece/zone id text, no gap connectors or hop numbers.
+  #overlayOn = { interfaces: true, labels: false, frontline: true };
   #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
   #pulseTimer = null;
 
@@ -303,7 +304,7 @@ export class PlanCanvas extends CanvasBase {
           "stroke-opacity": "0.4", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke",
         }));
 
-    if (this.#overlayOn.gaps)
+    if (this.#overlayOn.labels)
       for (const g of this.#inspect.gapLinks) {
         layer.appendChild(svgEl("line", {
           x1: g.x1, y1: g.z1, x2: g.x2, y2: g.z2, stroke: "var(--canvas-axis)", "stroke-width": "2.5",
@@ -383,22 +384,27 @@ export class PlanCanvas extends CanvasBase {
       t.textContent = text;
       layer.appendChild(t);
     };
-    // In height-map mode the piece's surface height reads big at the centre and the id rides its top edge; in
-    // normal mode the id sits at the centre.
+    // Id labels (piece/zone) and gap hop distances follow the Labels toggle. With labels off the currently
+    // selected piece/zone still shows its own id for orientation. In height-map mode the piece's surface
+    // height reads big at the centre (it is data, always shown); the id rides the top edge and follows Labels.
+    const showLabels = this.#overlayOn.labels;
+    const selId = this.#sel && (this.#sel.kind === "piece" || this.#sel.kind === "zone") ? this.#sel.id : null;
     for (const p of this.#doc.pieces) {
       const b = rectCellsToBlocks(p.rect, cell);
       const mx = (b.min_x + b.max_x) / 2, mz = (b.min_z + b.max_z) / 2;
+      const showId = showLabels || p.id === selId;
       if (this.#heightMap) {
         label(String(pieceSurface(this.#doc, p)), mx, mz, "var(--canvas-ink)", "13");
-        label(p.id, mx, b.min_z, "var(--canvas-ink)", "9");
-      } else {
+        if (showId) label(p.id, mx, b.min_z, "var(--canvas-ink)", "9");
+      } else if (showId) {
         label(p.id, mx, mz, "var(--canvas-ink)");
       }
     }
-    for (const z of this.#doc.zones) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
+    for (const z of this.#doc.zones)
+      if (showLabels || z.id === selId) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
 
     // Gap-link hop distances ride the screen-space overlay so they stay a fixed pixel size at any zoom.
-    if (this.#overlayOn.gaps)
+    if (showLabels)
       for (const g of this.#inspect.gapLinks)
         label(String(g.hop), (g.x1 + g.x2) / 2, (g.z1 + g.z2) / 2, "var(--canvas-axis)");
 

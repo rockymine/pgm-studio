@@ -122,10 +122,10 @@
               <span class="canvas-overlay-toggles">
                 <button class="filter-chip @(overlayInterfaces ? "filter-chip--active" : null)" title="Land interfaces (green) · sliver/corner (red)"
                         @onclick='() => ToggleOverlay("interfaces")'>Interfaces</button>
-                <button class="filter-chip @(overlayGaps ? "filter-chip--active" : null)" title="Build-area gap links with hop distance"
-                        @onclick='() => ToggleOverlay("gaps")'>Gaps</button>
                 <button class="filter-chip @(overlayFrontline ? "filter-chip--active" : null)" title="Piece edges facing a build area"
                         @onclick='() => ToggleOverlay("frontline")'>Frontline</button>
+                <button class="filter-chip @(overlayLabels ? "filter-chip--active" : null)" title="Piece / build-area id labels and build-area gap links with hop distance"
+                        @onclick='() => ToggleOverlay("labels")'>Labels</button>
                 <button class="filter-chip @(heightMap ? "filter-chip--active" : null)" title="Colour pieces by island height (surface y)"
                         @onclick="ToggleHeightMap">Heights</button>
               </span>
