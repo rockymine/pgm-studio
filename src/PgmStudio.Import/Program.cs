@@ -1,6 +1,7 @@
 using LinqToDB;
 using LinqToDB.Async;
 using LinqToDB.Data;
+using Microsoft.Extensions.Configuration;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Import;
@@ -9,21 +10,40 @@ using PgmStudio.Pgm;
 
 // Importer: processed map output dirs → MariaDB.
 //   dotnet run --project src/PgmStudio.Import [outputRoot]
-// Connection string from PGM_STUDIO_DB, else the local dev database.
+// The connection string is resolved exactly as the API resolves it (see ResolveConnection), so a
+// migration applied here lands on the same database the API reads.
 
-var connectionString = Environment.GetEnvironmentVariable("PGM_STUDIO_DB");
+var (connectionString, source) = ResolveConnection();
 if (string.IsNullOrWhiteSpace(connectionString))
 {
-    Console.Error.WriteLine("Set the PGM_STUDIO_DB environment variable (the database connection string).");
+    Console.Error.WriteLine(
+        "No database connection. Set it via the PGM_STUDIO_DB environment variable, or (matching the API) " +
+        "User Secrets (dotnet user-secrets set \"ConnectionStrings:PgmStudio\" ... --project src/PgmStudio.Api) " +
+        "or the ConnectionStrings__PgmStudio environment variable.");
     return 1;
 }
 var outputRoot = args.FirstOrDefault(a => !a.StartsWith("--")) ?? Environment.GetEnvironmentVariable("PGM_STUDIO_OUTPUT_ROOT");
 
-Console.WriteLine($"Ensuring schema on {Mask(connectionString)} …");
+Console.WriteLine($"Database: {Mask(connectionString)}  (source: {source})");
+
+// Read the schema state before applying so pending migrations can be summarised (MigrateUp itself
+// only logs each migration as it runs; the summary line below makes "did nothing" unambiguous).
+var stateBefore = SchemaMigrator.GetSchemaState(connectionString);
+Console.WriteLine($"Ensuring schema (applied version {stateBefore.AppliedVersion}, " +
+                  $"{stateBefore.Pending.Count} pending) …");
 SchemaMigrator.MigrateUp(connectionString);
 
 // --migrate-only: apply pending migrations and exit (no import) — e.g. to add a new table to a live DB.
-if (args.Contains("--migrate-only")) { Console.WriteLine("schema is up to date."); return 0; }
+if (args.Contains("--migrate-only"))
+{
+    if (stateBefore.Pending.Count == 0)
+        Console.WriteLine($"no pending migrations - schema is up to date at version {stateBefore.AppliedVersion}.");
+    else
+        Console.WriteLine($"applied {stateBefore.Pending.Count} migration(s): " +
+                          $"{SchemaMigrator.FormatVersion(stateBefore.Pending[0])}.." +
+                          $"{SchemaMigrator.FormatVersion(stateBefore.Pending[^1])}");
+    return 0;
+}
 
 await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connectionString));
 var importer = new MapImporter(db);
@@ -216,3 +236,36 @@ Console.WriteLine($"\nimport: {ok} ok, {failed} failed; row-count verification: 
 return failed == 0 && mismatches == 0 && rtBad == 0 ? 0 : 1;
 
 static string Mask(string cs) => System.Text.RegularExpressions.Regex.Replace(cs, "(?i)password=[^;]*", "password=***");
+
+// Resolve the connection string the same way the API does, so a migration applied here lands on the
+// database the API reads. Precedence:
+//   1. PGM_STUDIO_DB env var — the explicit override, highest precedence.
+//   2. ConnectionStrings:PgmStudio from configuration: appsettings next to the binary, then the API
+//      project's User Secrets (its UserSecretsId, so `dotnet user-secrets` set for the API is found),
+//      then environment variables (the ConnectionStrings__PgmStudio form) which override file config.
+// Returns the resolved string (null if nothing resolves) and a human-readable source label.
+static (string? ConnectionString, string Source) ResolveConnection()
+{
+    var overrideEnv = Environment.GetEnvironmentVariable("PGM_STUDIO_DB");
+    if (!string.IsNullOrWhiteSpace(overrideEnv))
+        return (overrideEnv, "PGM_STUDIO_DB env var (override)");
+
+    // The API project's UserSecretsId (src/PgmStudio.Api/PgmStudio.Api.csproj).
+    const string apiUserSecretsId = "4249fc15-7c58-46ac-82a7-128f030a6a0f";
+    var config = new ConfigurationBuilder()
+        .AddJsonFile(Path.Combine(AppContext.BaseDirectory, "appsettings.json"), optional: true, reloadOnChange: false)
+        .AddUserSecrets(apiUserSecretsId)
+        .AddEnvironmentVariables()
+        .Build();
+
+    var cs = config.GetConnectionString("PgmStudio");
+    if (string.IsNullOrWhiteSpace(cs)) return (null, "");
+
+    // Env vars are applied last (they override file config), so if the env form is set and matches,
+    // that is the effective source; otherwise it came from user secrets / appsettings.
+    var envForm = Environment.GetEnvironmentVariable("ConnectionStrings__PgmStudio");
+    var src = !string.IsNullOrWhiteSpace(envForm) && envForm == cs
+        ? "ConnectionStrings__PgmStudio env var"
+        : "user secrets / appsettings";
+    return (cs, src);
+}

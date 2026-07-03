@@ -42,11 +42,31 @@ SQL
 ```
 
 ## Telling the app about the DB
-The API reads `ConnectionStrings:PgmStudio` — it is **not in appsettings**; supply it via env var (simplest)
-or user-secrets. Set one before running the API:
+Both the API and the `PgmStudio.Import` migrator resolve the **same** connection string, in this order:
+1. **`PGM_STUDIO_DB`** env var — the explicit override, highest precedence.
+2. **`ConnectionStrings:PgmStudio`** from configuration — appsettings (not committed), the API project's
+   **User Secrets** (`dotnet user-secrets ... --project src/PgmStudio.Api`), or the
+   **`ConnectionStrings__PgmStudio`** env var (which overrides file config).
+
+The connection string is **not in appsettings**; supply it via env var (simplest) or user-secrets. Set one
+before running the API or the importer:
 ```bash
 export ConnectionStrings__PgmStudio="Server=localhost;Database=pgm_studio;Uid=pgm;Pwd=pgm_dev_pw;"
 ```
+The importer prints which source it used, so a mismatch is visible up front.
+
+## Migrations & the schema guard (avoid "Unknown column …")
+The API **does not auto-apply migrations** — the DB lifecycle stays explicit. At startup it **fails fast**
+if the database is behind the migrations this build needs, naming the pending versions:
+```
+SchemaOutOfDateException: Database schema is out of date: applied version 5, latest known M0006.
+Pending migration(s): M0006. Apply them before starting the API:
+  dotnet run --project src/PgmStudio.Import -- --migrate-only
+```
+Run that command (it resolves the same connection string as the API, so it lands on the same DB) to bring
+the schema up to date. `--migrate-only` prints an explicit summary — either
+`applied N migration(s): M000x..M000y` or `no pending migrations - schema is up to date at version X` — so a
+no-op can't be mistaken for success.
 
 ## Build / run / test
 ```bash

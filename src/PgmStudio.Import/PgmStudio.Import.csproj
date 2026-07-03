@@ -9,6 +9,9 @@
 
   <ItemGroup>
     <PackageReference Include="Parquet.Net" Version="6.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.9" />
   </ItemGroup>
 
   <PropertyGroup>

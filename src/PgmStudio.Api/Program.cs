@@ -23,6 +23,11 @@ var connectionString = builder.Configuration.GetConnectionString("PgmStudio")
     ?? throw new InvalidOperationException(
         "No database connection. Set it via User Secrets (dotnet user-secrets set \"ConnectionStrings:PgmStudio\" ...) " +
         "in development, or the ConnectionStrings__PgmStudio / PGM_STUDIO_DB environment variable in production.");
+// Schema-drift guard: refuse to serve against a database behind the migrations this build needs,
+// so requests fail loudly at startup with the fix instead of throwing "Unknown column" mid-request.
+// The database lifecycle stays explicit — this never auto-applies migrations.
+PgmStudio.Migrations.SchemaMigrator.AssertUpToDate(connectionString);
+
 builder.Services.AddSingleton(PgmDataOptions.ForConnectionString(connectionString));
 builder.Services.AddScoped<PgmDb>();
 builder.Services.AddScoped<MapRepository>();

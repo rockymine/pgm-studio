@@ -136,6 +136,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   blob. Has the authoring World-step inputs (`excluded_islands_json`, `detection_layer`) ready for `N01`.
   Settles `D3` (new-map-authoring.md §6b). (NS)
 
+- **Schema-drift guards** — the API asserts the FluentMigrator `VersionInfo` is at the newest known
+  migration at startup and fails fast naming the pending versions + the exact fix command (never
+  auto-applies); `PgmStudio.Import` resolves its connection string the same way the API does
+  (`PGM_STUDIO_DB` override → `ConnectionStrings:PgmStudio` via appsettings / the API's User Secrets /
+  env) and echoes the source; `--migrate-only` prints an explicit applied/up-to-date summary so a silent
+  no-op is impossible to misread. `docs/cloud-setup.md` updated. (B19)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
