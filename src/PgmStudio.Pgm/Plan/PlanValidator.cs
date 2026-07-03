@@ -15,10 +15,10 @@ public enum PlanSeverity { Error, Lint }
 
 /// <summary>
 /// The plan validator: structural <b>errors</b> that block a compile (unreachable wool, a wool path only
-/// through a spawn piece, sliver/corner contacts, a placement outside its piece, different-surface piece
-/// overlaps) and non-blocking <b>lint</b> that cites a provisional layout rule by id. Pure — a plan validates
-/// the same on the server and in the editor. Lint rules are a small extensible table (see
-/// <see cref="LintRules"/>).
+/// through a spawn piece, a placement outside its piece, different-surface piece overlaps) and non-blocking
+/// <b>lint</b> that cites a provisional layout rule by id — including sliver/corner contacts (PC-S/PC-C), which
+/// never form a land interface but are author judgment, not blockers. Pure — a plan validates the same on the
+/// server and in the editor. Lint rules are a small extensible table (see <see cref="LintRules"/>).
 /// </summary>
 public static class PlanValidator
 {
@@ -43,16 +43,12 @@ public static class PlanValidator
         void Error(string m, params string[] subjects) =>
             findings.Add(new PlanFinding(PlanSeverity.Error, m, null, subjects.Length > 0 ? subjects : null));
 
-        // sliver / corner contacts, and different-surface overlaps
+        // different-surface overlaps: two pieces claim the same ground at incompatible heights — no coherent
+        // surface, a genuine structural error. (Sliver and corner contacts are author judgment and lint, not
+        // errors — see PC-S / PC-C.)
         foreach (var c in d.Contacts)
-        {
-            if (c.Kind == ContactKind.Sliver)
-                Error($"sliver contact: pieces '{c.A}' and '{c.B}' share only {c.BorderLength} < {PlanDerived.CorridorMin} blocks", c.A, c.B);
-            else if (c.Kind == ContactKind.Corner)
-                Error($"corner contact: pieces '{c.A}' and '{c.B}' touch at a point, not a corridor", c.A, c.B);
-            else if (c.Kind == ContactKind.Overlap && c.SurfaceDelta != 0)
+            if (c.Kind == ContactKind.Overlap && c.SurfaceDelta != 0)
                 Error($"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})", c.A, c.B);
-        }
 
         // placements must reference a real piece and sit inside it (a wool's flat area is its piece footprint)
         foreach (var s in plan.Placements.Spawns) CheckInside(d, "spawn", s.Piece, s.At, findings);
@@ -124,11 +120,31 @@ public static class PlanValidator
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
     public static readonly IReadOnlyList<Func<PlanModel, PlanDerived, IEnumerable<PlanFinding>>> LintRules =
     [
-        LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3, LintSt2,
+        LintPcS, LintPcC, LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3, LintSt2,
     ];
 
     private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
         new(PlanSeverity.Lint, msg, rule, subjects.Length > 0 ? subjects : null);
+
+    // PC-S — a sliver contact: two pieces share a border shorter than the corridor minimum. Per the
+    // Definitions in the layout rules a connection is a straight border ≥ one corridor width, so a sliver is
+    // never a land interface — but a deliberate thin ledge (lane-thickness variation) is author judgment, so
+    // this lints rather than blocks.
+    private static IEnumerable<PlanFinding> LintPcS(PlanModel plan, PlanDerived d)
+    {
+        foreach (var c in d.Contacts)
+            if (c.Kind == ContactKind.Sliver)
+                yield return Lint("PC-S", $"sliver contact: '{c.A}' and '{c.B}' share only {c.BorderLength} < {PlanDerived.CorridorMin} blocks (no land interface)", c.A, c.B);
+    }
+
+    // PC-C — a corner contact: two pieces meet at a single point. Per the Definitions a corner touch is never a
+    // connection (no walkable corridor mouth); it is harmless and often deliberate, so this lints, not blocks.
+    private static IEnumerable<PlanFinding> LintPcC(PlanModel plan, PlanDerived d)
+    {
+        foreach (var c in d.Contacts)
+            if (c.Kind == ContactKind.Corner)
+                yield return Lint("PC-C", $"corner contact: '{c.A}' and '{c.B}' touch at a point, not a corridor (no land interface)", c.A, c.B);
+    }
 
     // G2 — minimum corridor width 10: a build zone narrower than the corridor minimum in either dimension.
     private static IEnumerable<PlanFinding> LintG2(PlanModel plan, PlanDerived d)

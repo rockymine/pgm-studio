@@ -167,6 +167,89 @@ public sealed class PlanDerivedTests
         await Assert.That(d.Frontline).Contains("bar-w");              // wool lane overlaps the mid band
     }
 
+    // ── buildable regions (zone-union connectivity) ────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Overlapping_zones_merge_into_one_region()
+    {
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[5,5,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.BuildRegions.Count).IsEqualTo(1);
+        await Assert.That(d.BuildRegions[0].ZoneIds).Contains("z1");
+        await Assert.That(d.BuildRegions[0].ZoneIds).Contains("z2");
+    }
+
+    [Test]
+    public async Task Edge_adjacent_zones_merge_into_one_region()
+    {
+        // z1 and z2 share the border x=10 over z∈[0,10] — a positive-length edge → one continuous region.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[10,0,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.BuildRegions.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Corner_touching_zones_do_not_merge()
+    {
+        // z1 and z2 meet only at the point (10,10): a lone diagonal is not a continuous buildable surface, so
+        // they stay two regions (the same rule as a piece corner contact).
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[10,10,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.BuildRegions.Count).IsEqualTo(2);
+        await Assert.That(PlanDerived.RegionsMerge(new BlockRect(0, 0, 10, 10), new BlockRect(10, 10, 20, 20))).IsFalse();
+    }
+
+    [Test]
+    public async Task Disjoint_zones_do_not_merge()
+    {
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[20,0,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.BuildRegions.Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task A_chain_of_adjacent_zones_carries_a_gap_link_across_a_wide_void()
+    {
+        // a and b straddle a 30-block void; three edge-adjacent zones tile it into one region. The straight
+        // nearest span is covered by the merged rects seam-to-seam → a and b gap-link across the chain.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[40,0,10,10]} ],
+          "zones":[ {"id":"z1","rect":[10,0,10,10]}, {"id":"z2","rect":[20,0,10,10]}, {"id":"z3","rect":[30,0,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.BuildRegions.Count).IsEqualTo(1);
+        await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "b") or ("b", "a"))).IsTrue();
+        await Assert.That(d.GapLinks.First(g => g.A is "a" or "b" && g.B is "a" or "b").Hop).IsEqualTo(30);
+    }
+
+    [Test]
+    public async Task A_broken_chain_carries_no_gap_link_across_the_void()
+    {
+        // the middle zone is missing, so the void is not tiled: the two surviving zones each touch only one
+        // piece and form separate regions → no a–b link.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[40,0,10,10]} ],
+          "zones":[ {"id":"z1","rect":[10,0,10,10]}, {"id":"z3","rect":[30,0,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.BuildRegions.Count).IsEqualTo(2);
+        await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "b") or ("b", "a"))).IsFalse();
+    }
+
     // ── overlay geometry (block-space segments) ─────────────────────────────────────────────────────────
 
     [Test]

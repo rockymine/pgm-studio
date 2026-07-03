@@ -19,23 +19,27 @@ public sealed class PlanValidatorTests
     // ── errors ──────────────────────────────────────────────────────────────────────────────────────────
 
     [Test]
-    public async Task Sliver_contact_is_an_error()
+    public async Task Sliver_contact_is_lint_not_an_error()
     {
+        // a thin (< corridor) shared border is a deliberate ledge, not a blocker → PC-S lint, no error.
         var p = Plan("""
         { "plan":1, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]}, {"id":"b","role":"lane","rect":[10,0,10,10]} ] }
         """);
-        await Assert.That(Err(p, "sliver")).IsTrue();
+        await Assert.That(Lint(p, "PC-S")).IsTrue();
+        await Assert.That(Err(p, "sliver")).IsFalse();
     }
 
     [Test]
-    public async Task Corner_contact_is_an_error()
+    public async Task Corner_contact_is_lint_not_an_error()
     {
+        // a bare corner touch is harmless → PC-C lint, no error.
         var p = Plan("""
         { "plan":1, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[10,10,10,10]} ] }
         """);
-        await Assert.That(Err(p, "corner")).IsTrue();
+        await Assert.That(Lint(p, "PC-C")).IsTrue();
+        await Assert.That(Err(p, "corner")).IsFalse();
     }
 
     [Test]
@@ -127,19 +131,32 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task The_pinwheel_tower_seed_is_error_free_and_lints_its_thin_contacts()
+    {
+        // Zone-union connectivity clears the pinwheel's cross-team reachability, and the sliver/corner
+        // downgrade turns its deliberate thin/corner contacts into lint — so the seed carries no errors,
+        // only lint (PC-S / PC-C among them).
+        var plan = Plan(PlanTestSupport.ReadSeed("four-team-towers-big.plan.json"));
+        var findings = PlanValidator.Validate(plan);
+        await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error)).IsFalse();
+        await Assert.That(findings.Any(f => f.Rule == "PC-S")).IsTrue();
+        await Assert.That(findings.Any(f => f.Rule == "PC-C")).IsTrue();
+    }
+
+    [Test]
     public async Task Findings_carry_the_ids_of_the_pieces_they_implicate()
     {
-        // a sliver contact (error) between a/b and a narrow zone (G2 lint) each name their subjects
+        // a different-surface overlap (error) between a/b and a narrow zone (G2 lint) each name their subjects
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]}, {"id":"b","role":"lane","rect":[10,0,10,10]} ],
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"mid","rect":[5,5,10,10],"surface":13} ],
           "zones":[ {"id":"z","rect":[0,20,8,20]} ] }
         """);
         var all = PlanValidator.Validate(p);
 
-        var sliver = all.First(f => f.Severity == PlanSeverity.Error && f.Message.Contains("sliver"));
-        await Assert.That(sliver.SubjectIds).Contains("a");
-        await Assert.That(sliver.SubjectIds).Contains("b");
+        var overlap = all.First(f => f.Severity == PlanSeverity.Error && f.Message.Contains("different surfaces"));
+        await Assert.That(overlap.SubjectIds).Contains("a");
+        await Assert.That(overlap.SubjectIds).Contains("b");
 
         var g2 = all.First(f => f.Rule == "G2");
         await Assert.That(g2.SubjectIds).Contains("z");

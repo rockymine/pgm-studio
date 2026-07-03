@@ -21,8 +21,17 @@ public enum ContactKind { None, Land, Sliver, Corner, Overlap }
 /// and, for <see cref="ContactKind.Land"/>/<see cref="ContactKind.Overlap"/>, the surface delta between them.</summary>
 public sealed record Contact(string A, string B, ContactKind Kind, int BorderLength, int SurfaceDelta);
 
-/// <summary>Two pieces linked across a build zone's void, with the hop span (blocks) between their footprints.</summary>
+/// <summary>Two pieces linked across a build zone's void, with the hop span (blocks) between their footprints.
+/// <see cref="Zone"/> names the region zone the connecting span rides (a representative when the buildable
+/// region spans several merged zones).</summary>
 public sealed record GapLink(string A, string B, string Zone, int Hop);
+
+/// <summary>A buildable region: a connected group of build zones treated as one continuous surface a builder
+/// can traverse without landing on terrain. <see cref="ZoneIds"/> are the merged zones' ids; <see cref="Rects"/>
+/// their block rects; <see cref="Holes"/> the union of their no-build cutouts. Two zones join a region when
+/// they overlap or share a border segment of positive length (a bare corner touch does not merge — see
+/// <see cref="PlanDerived.RegionsMerge"/>).</summary>
+public sealed record BuildRegion(IReadOnlyList<string> ZoneIds, IReadOnlyList<BlockRect> Rects, IReadOnlyList<BlockRect> Holes);
 
 /// <summary>An edge/point contact between two pieces resolved to a block-space segment: the shared border for a
 /// land/sliver contact (a line), or the touch point for a corner (a degenerate segment). <see cref="Length"/>
@@ -56,6 +65,10 @@ public sealed class PlanDerived
     /// real land seam). A wall pair that shares no land interface is dropped here and flagged as an error.</summary>
     public IReadOnlyList<Contact> WallInterfaces { get; }
     public IReadOnlyList<GapLink> GapLinks { get; }
+    /// <summary>Connected groups of build zones on the authored (team-0) board — each a continuous buildable
+    /// surface (zones merged by overlap or shared edge). Gap links derive from these, not single zones, so a
+    /// span may be carried across a chain of adjacent zones.</summary>
+    public IReadOnlyList<BuildRegion> BuildRegions { get; }
     /// <summary>Piece ids that abut or overlap any build zone (the computed frontline).</summary>
     public IReadOnlySet<string> Frontline { get; }
     /// <summary>Edge/point contacts (land, sliver, corner) resolved to block-space segments — the overlay draws
@@ -85,7 +98,8 @@ public sealed class PlanDerived
         WallInterfaces = LandInterfaces.Where(c => wallPairs.Contains((c.A, c.B)) || wallPairs.Contains((c.B, c.A))).ToList();
         Frontline = ComputeFrontline(plan, Cell, Pieces);
         Components = ComputeComponents(Pieces, Contacts);
-        GapLinks = ComputeGapLinks(plan, Cell, Pieces, Components);
+        BuildRegions = ComputeBuildRegions(plan, Cell);
+        GapLinks = ComputeGapLinks(BuildRegions, Pieces, Components);
         InterfaceSegments = BuildInterfaceSegments(_byId, Contacts, wallPairs);
         FrontlineEdges = ComputeFrontlineEdges(plan, Cell, Pieces);
     }
@@ -142,24 +156,25 @@ public sealed class PlanDerived
         return front;
     }
 
-    // A zone gap-links only pieces from DIFFERENT land components: walkably-connected pieces need no void
-    // crossing, so a shared zone between them is not a hop (and must not trip the hop-distance lint). Beyond
-    // that, the zone must actually *bridge* the two — the connecting span (their nearest-edge segment) has to
-    // lie inside the zone rect minus its holes and not cross a third piece's interior. A zone that merely abuts
-    // several piece fronts at one edge (its span running outside the zone, or over intervening land) links none.
+    // Gap links (the team-0 overlay + the G5 hop lint) derive from buildable REGIONS, not single zones: a
+    // player can build through one zone and continue into an overlapping/adjacent one, so a span may be carried
+    // across a chain of merged zones. Two pieces gap-link only across DIFFERENT land components (walkably
+    // connected pieces need no void crossing) and only when a STRAIGHT nearest-edge span between them lies
+    // inside the region's rectilinear area (union of the merged rects, minus holes) and crosses no third
+    // piece's interior. The straight-span rule keeps hop distance well-defined and the overlay drawable; the
+    // FannedGraph reachability split off of this (FannedGraph.Build) is looser — it connects any two pieces the
+    // region touches without a straight-span test, since a player routes through the region interior freely.
     private static List<GapLink> ComputeGapLinks(
-        PlanModel plan, int cell, IReadOnlyList<DerivedPiece> pieces, IReadOnlyList<IReadOnlyList<string>> components)
+        IReadOnlyList<BuildRegion> regions, IReadOnlyList<DerivedPiece> pieces, IReadOnlyList<IReadOnlyList<string>> components)
     {
         var component = new Dictionary<string, int>();
         for (var c = 0; c < components.Count; c++)
             foreach (var id in components[c]) component[id] = c;
 
         var links = new List<GapLink>();
-        foreach (var z in plan.Zones)
+        foreach (var region in regions)
         {
-            var zr = ToBlock(z.Rect, cell);
-            var holes = z.Holes.Select(h => ToBlock(h, cell)).ToList();
-            var touching = pieces.Where(p => TouchesOrOverlaps(p.Rect, zr)).ToList();
+            var touching = pieces.Where(p => region.Rects.Any(zr => TouchesOrOverlaps(p.Rect, zr))).ToList();
             for (var i = 0; i < touching.Count; i++)
                 for (var j = i + 1; j < touching.Count; j++)
                 {
@@ -167,22 +182,71 @@ public sealed class PlanDerived
                     var b = touching[j];
                     if (component[a.Id] == component[b.Id]) continue;
                     var (sx1, sz1, sx2, sz2) = NearestSegment(a.Rect, b.Rect);
-                    if (!SpanInsideZone(sx1, sz1, sx2, sz2, zr, holes)) continue;
+                    if (!SpanInsideRegion(sx1, sz1, sx2, sz2, region.Rects, region.Holes)) continue;
                     if (pieces.Any(p => p.Id != a.Id && p.Id != b.Id && SegmentCrossesInterior(sx1, sz1, sx2, sz2, p.Rect))) continue;
-                    links.Add(new GapLink(a.Id, b.Id, z.Id, VoidSpan(a.Rect, b.Rect)));
+                    links.Add(new GapLink(a.Id, b.Id, RegionZoneFor(region, sx1, sz1, sx2, sz2), VoidSpan(a.Rect, b.Rect)));
                 }
         }
         return links;
     }
 
-    // The connecting span lies inside the zone when both endpoints sit within the zone rect (inclusive — the
-    // piece edges that anchor the span ride the zone's border) and the span never enters a no-build hole. A
-    // convex rect makes endpoint containment sufficient for the whole (straight) segment.
-    private static bool SpanInsideZone(int x1, int z1, int x2, int z2, BlockRect zone, IReadOnlyList<BlockRect> holes)
+    // The zone id to label a gap link with: the region zone whose rect contains the span's midpoint (the span
+    // rides that zone), falling back to the region's first zone.
+    private static string RegionZoneFor(BuildRegion region, int x1, int z1, int x2, int z2)
     {
-        static bool In(int x, int z, BlockRect r) => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ;
-        if (!In(x1, z1, zone) || !In(x2, z2, zone)) return false;
+        double mx = (x1 + x2) / 2.0, mz = (z1 + z2) / 2.0;
+        for (var i = 0; i < region.Rects.Count; i++)
+        {
+            var r = region.Rects[i];
+            if (mx >= r.MinX && mx <= r.MaxX && mz >= r.MinZ && mz <= r.MaxZ) return region.ZoneIds[i];
+        }
+        return region.ZoneIds[0];
+    }
+
+    // The connecting span lies inside a buildable region when the (closed) region rects together cover the
+    // whole straight segment and it enters no no-build hole. Generalizes single-rect containment to a
+    // rectilinear region: each rect clips a sub-interval [t] off the segment; their union must cover [0,1]
+    // (a convex single rect makes endpoint containment sufficient, but a span that crosses a seam between two
+    // merged rects needs the interval cover).
+    private static bool SpanInsideRegion(int x1, int z1, int x2, int z2, IReadOnlyList<BlockRect> rects, IReadOnlyList<BlockRect> holes)
+    {
+        var covered = new List<(double Lo, double Hi)>();
+        foreach (var r in rects)
+            if (ClipClosed(x1, z1, x2, z2, r, out var t0, out var t1)) covered.Add((t0, t1));
+        if (!CoversUnit(covered)) return false;
         return !holes.Any(h => SegmentCrossesInterior(x1, z1, x2, z2, h));
+    }
+
+    // Liang–Barsky clip of a segment against a CLOSED rect (boundary counts as inside): the [t0,t1] sub-range
+    // of the segment lying in the rect, or false if it misses. A segment riding an edge clips to its overlap.
+    private static bool ClipClosed(double x1, double z1, double x2, double z2, BlockRect r, out double t0, out double t1)
+    {
+        t0 = 0.0; t1 = 1.0;
+        double dx = x2 - x1, dz = z2 - z1;
+        foreach (var (p, q) in new[] { (-dx, x1 - r.MinX), (dx, r.MaxX - x1), (-dz, z1 - r.MinZ), (dz, r.MaxZ - z1) })
+        {
+            if (Math.Abs(p) < 1e-12) { if (q < 0) return false; continue; }   // parallel to this edge, outside it
+            var t = q / p;
+            if (p < 0) { if (t > t1) return false; if (t > t0) t0 = t; }
+            else       { if (t < t0) return false; if (t < t1) t1 = t; }
+        }
+        return t1 >= t0;
+    }
+
+    // True when a set of parameter sub-intervals together covers the whole [0,1] segment with no gap.
+    private static bool CoversUnit(List<(double Lo, double Hi)> ivals)
+    {
+        if (ivals.Count == 0) return false;
+        ivals.Sort((a, b) => a.Lo.CompareTo(b.Lo));
+        const double eps = 1e-9;
+        if (ivals[0].Lo > eps) return false;
+        double reach = 0.0;
+        foreach (var (lo, hi) in ivals)
+        {
+            if (lo > reach + eps) return false;   // an uncovered gap opens before this interval
+            if (hi > reach) reach = hi;
+        }
+        return reach >= 1 - eps;
     }
 
     // True when the segment passes through the open interior of a rect (Liang–Barsky clip against the rect
@@ -221,6 +285,57 @@ public sealed class PlanDerived
         if (gx == 0) return gz;
         if (gz == 0) return gx;
         return (int)Math.Round(Math.Sqrt((double)gx * gx + (double)gz * gz));
+    }
+
+    // ── buildable regions (connected groups of build zones) ─────────────────────────────────────────────
+
+    private static List<BuildRegion> ComputeBuildRegions(PlanModel plan, int cell)
+    {
+        var rects = plan.Zones.Select(z => ToBlock(z.Rect, cell)).ToList();
+        var regions = new List<BuildRegion>();
+        foreach (var group in MergeGroups(rects))
+        {
+            var ids = group.Select(i => plan.Zones[i].Id).ToList();
+            var groupRects = group.Select(i => rects[i]).ToList();
+            var holes = group.SelectMany(i => plan.Zones[i].Holes.Select(h => ToBlock(h, cell))).ToList();
+            regions.Add(new BuildRegion(ids, groupRects, holes));
+        }
+        return regions;
+    }
+
+    /// <summary>Group rect indices into connected components where two rects join iff they
+    /// <see cref="RegionsMerge"/> (overlap or share a border segment of positive length). Groups list in
+    /// first-appearance order; used for both the authored gap-link regions and the fanned reachability board.</summary>
+    public static List<List<int>> MergeGroups(IReadOnlyList<BlockRect> rects)
+    {
+        var parent = Enumerable.Range(0, rects.Count).ToArray();
+        int Find(int x) { while (parent[x] != x) x = parent[x] = parent[parent[x]]; return x; }
+        void Union(int a, int b) { parent[Find(a)] = Find(b); }
+
+        for (var i = 0; i < rects.Count; i++)
+            for (var j = i + 1; j < rects.Count; j++)
+                if (RegionsMerge(rects[i], rects[j])) Union(i, j);
+
+        var order = new List<int>();
+        var groups = new Dictionary<int, List<int>>();
+        for (var i = 0; i < rects.Count; i++)
+        {
+            var root = Find(i);
+            if (!groups.TryGetValue(root, out var g)) { groups[root] = g = []; order.Add(root); }
+            g.Add(i);
+        }
+        return order.Select(r => groups[r]).ToList();
+    }
+
+    /// <summary>Two build zones belong to the same buildable region when they overlap or share a border segment
+    /// of positive length. A bare corner touch (they meet at a single point) does NOT merge: a lone diagonal
+    /// block is not a continuous surface a builder can carry a bridge across, so corner-touching zones stay
+    /// distinct regions — the same one-block-diagonal rule that makes a piece corner contact not a connection.</summary>
+    public static bool RegionsMerge(BlockRect a, BlockRect b)
+    {
+        int ix = Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX);
+        int iz = Math.Min(a.MaxZ, b.MaxZ) - Math.Max(a.MinZ, b.MinZ);
+        return ix >= 0 && iz >= 0 && !(ix == 0 && iz == 0);
     }
 
     // ── overlay geometry (block-space segments the editor draws) ────────────────────────────────────────

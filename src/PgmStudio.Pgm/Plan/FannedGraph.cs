@@ -47,10 +47,16 @@ public sealed class FannedGraph
             for (var j = i + 1; j < nodes.Count; j++)
                 if (LandAdjacent(nodes[i].Rect, nodes[j].Rect)) Link(nodes[i], nodes[j]);
 
-        // gap links: two nodes both touching the same fanned zone
-        foreach (var zr in zones)
+        // Gap links over buildable REGIONS, not single zones. A player builds through one zone and continues
+        // into an overlapping/adjacent one without landing on terrain, so the fanned zones first merge into
+        // regions (overlap or shared edge), then every pair of nodes the region touches is linked. This is the
+        // chained-bridging fix: a piece touching one end of a region reaches a piece at the other end even
+        // when no single zone spans both. Unlike the team-0 overlay gap links, reachability requires no
+        // straight span — routing through the region interior is free.
+        foreach (var group in PlanDerived.MergeGroups(zones))
         {
-            var touch = nodes.Where(n => Touches(n.Rect, zr)).ToList();
+            var regionRects = group.Select(i => zones[i]).ToList();
+            var touch = nodes.Where(n => regionRects.Any(zr => Touches(n.Rect, zr))).ToList();
             for (var i = 0; i < touch.Count; i++)
                 for (var j = i + 1; j < touch.Count; j++)
                     Link(touch[i], touch[j]);
