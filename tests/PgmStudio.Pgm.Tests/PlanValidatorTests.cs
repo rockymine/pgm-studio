@@ -43,6 +43,49 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task A_sliver_between_already_connected_pieces_is_suppressed()
+    {
+        // a and b share a thin (9 < 10) seam, but both join c through full-width land interfaces, so the pair
+        // is already one land component — the sliver is a cosmetic ledge, not a pinch → no PC-S. c below spans
+        // both a and b along z=9 with a 10-block border each.
+        var connected = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]},
+                     {"id":"b","role":"lane","rect":[10,0,10,9]},
+                     {"id":"c","role":"lane","rect":[0,9,20,10]} ] }
+        """);
+        // the same a/b sliver alone (no connecting piece) stays a finding — the pinch between separate areas.
+        var alone = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]},
+                     {"id":"b","role":"lane","rect":[10,0,10,9]} ] }
+        """);
+        await Assert.That(Lint(connected, "PC-S")).IsFalse();
+        await Assert.That(Lint(alone, "PC-S")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_corner_between_already_connected_pieces_is_suppressed()
+    {
+        // a and b touch only at the point (10,10), but c lands with both (border on x=10 with a, on z=10 with
+        // b), so all three are one land component — the corner is harmless → no PC-C.
+        var connected = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
+                     {"id":"b","role":"lane","rect":[10,10,10,10]},
+                     {"id":"c","role":"lane","rect":[10,0,10,10]} ] }
+        """);
+        // the bare corner alone (no connecting land) stays a finding — the sneaky diagonal between separate areas.
+        var alone = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
+                     {"id":"b","role":"lane","rect":[10,10,10,10]} ] }
+        """);
+        await Assert.That(Lint(connected, "PC-C")).IsFalse();
+        await Assert.That(Lint(alone, "PC-C")).IsTrue();
+    }
+
+    [Test]
     public async Task Different_surface_overlap_is_an_error()
     {
         var p = Plan("""

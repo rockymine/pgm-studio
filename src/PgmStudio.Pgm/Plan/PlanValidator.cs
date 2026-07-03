@@ -128,23 +128,41 @@ public static class PlanValidator
 
     // PC-S — a sliver contact: two pieces share a border shorter than the corridor minimum. Per the
     // Definitions in the layout rules a connection is a straight border ≥ one corridor width, so a sliver is
-    // never a land interface — but a deliberate thin ledge (lane-thickness variation) is author judgment, so
-    // this lints rather than blocks.
+    // never a land interface — a genuine sliver as the pair's only relationship is a suspicious thin pinch
+    // between otherwise-separate areas. But when the two pieces already join the same land component through
+    // real full-width interfaces, the sliver seam is cosmetic (a lane-thickness ledge), so it is suppressed.
     private static IEnumerable<PlanFinding> LintPcS(PlanModel plan, PlanDerived d)
     {
+        var comp = ComponentIndex(d);
         foreach (var c in d.Contacts)
-            if (c.Kind == ContactKind.Sliver)
-                yield return Lint("PC-S", $"sliver contact: '{c.A}' and '{c.B}' share only {c.BorderLength} < {PlanDerived.CorridorMin} blocks (no land interface)", c.A, c.B);
+            if (c.Kind == ContactKind.Sliver && !SameComponent(comp, c.A, c.B))
+                yield return Lint("PC-S", $"sliver contact between separate areas: '{c.A}' and '{c.B}' share only {c.BorderLength} < {PlanDerived.CorridorMin} blocks (no land interface)", c.A, c.B);
     }
 
     // PC-C — a corner contact: two pieces meet at a single point. Per the Definitions a corner touch is never a
-    // connection (no walkable corridor mouth); it is harmless and often deliberate, so this lints, not blocks.
+    // connection (no walkable corridor mouth). A corner as the pair's only relationship is a sneaky diagonal
+    // between otherwise-separate areas; when the pieces already join the same land component through real
+    // interfaces the corner is harmless, so it is suppressed.
     private static IEnumerable<PlanFinding> LintPcC(PlanModel plan, PlanDerived d)
     {
+        var comp = ComponentIndex(d);
         foreach (var c in d.Contacts)
-            if (c.Kind == ContactKind.Corner)
-                yield return Lint("PC-C", $"corner contact: '{c.A}' and '{c.B}' touch at a point, not a corridor (no land interface)", c.A, c.B);
+            if (c.Kind == ContactKind.Corner && !SameComponent(comp, c.A, c.B))
+                yield return Lint("PC-C", $"corner contact between separate areas: '{c.A}' and '{c.B}' touch at a point, not a corridor (no land interface)", c.A, c.B);
     }
+
+    // Map each piece id to its land component index (components join pieces via real land interfaces and
+    // same-surface overlaps). Two pieces in the same component are already walkably connected.
+    private static Dictionary<string, int> ComponentIndex(PlanDerived d)
+    {
+        var comp = new Dictionary<string, int>();
+        for (var i = 0; i < d.Components.Count; i++)
+            foreach (var id in d.Components[i]) comp[id] = i;
+        return comp;
+    }
+
+    private static bool SameComponent(Dictionary<string, int> comp, string a, string b) =>
+        comp.TryGetValue(a, out var ca) && comp.TryGetValue(b, out var cb) && ca == cb;
 
     // G2 — minimum corridor width 10: a build zone narrower than the corridor minimum in either dimension.
     private static IEnumerable<PlanFinding> LintG2(PlanModel plan, PlanDerived d)
