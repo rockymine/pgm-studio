@@ -580,6 +580,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a status-checked **Download world ZIP** (`GET /map/{slug}/export`). Proven live end-to-end: a compiled seed
   plan produced a playable `{slug}/` world ZIP (map.xml + level.dat + region/*.mca). Full-loop integration
   test in Api.Tests (45 green). (G20)
+- **Plan editor visibility & interaction pass** — world-coordinate **marker-first picking** (nearest marker
+  within 0.42 cell wins over the piece under it — the old integer-cell hit test made half-cell markers
+  unselectable; re-click on a selected spawn cycles facing, selection never silently rotates; drag /
+  inspector-delete / Delete key on the selected marker), a persisted **Heights** toggle (monotonic
+  navy→teal→gold ramp over the plan's surface range + in-piece height labels), and **zone mirror ghosts**
+  (build areas + holes fan through the same orbit images as pieces; view bounds include them) — a rot_90
+  pinwheel's centre tiling is finally visible while authoring. JS 115 tests. (G25)
+- **Zone-union connectivity + contact lint** — buildable **regions** = union-find components of zone rects
+  (merged on overlap or positive-length shared border; corner-point touch does not merge); straight-span
+  gap-link overlays test containment against the merged region, while fanned **reachability** links every
+  piece a region touches with no straight-span requirement — chained bridging across adjoining zones works,
+  validating the four-team pinwheel centre (24 cross-team errors → 0). Sliver/corner contacts downgraded
+  from structural errors to lint **PC-S**/**PC-C** (deliberate thin ledges and corner touches are author
+  judgment); different-surface overlap stays an error. Pgm 244 tests. (G26)
 - **Plan schema v2 — anonymous pieces + intent roles + wall marks** — pieces are anonymous by default
   (`role: "piece"`); legacy `lane`/`hub`/`mid` (and any unknown value) map to `piece` on parse in both the C#
   `PlanModel` and the JS `normalizeDoc`, so old plans/seeds load clean. Two optional intent-bearing roles kept:
