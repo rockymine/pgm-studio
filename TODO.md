@@ -20,6 +20,10 @@ uses to build the boring-seed corpus. Design: `docs/contracts/layout-generation.
 `docs/contracts/layout-rules.md` (the expert rule checklist, provisional), `docs/contracts/plan-editor.md`
 (schema · compiler · editor · milestones).
 
+- [ ] **G28 — Plan canvas: quiet by default (Labels toggle).** Piece/build-area id labels and the gap
+  distance connectors + hop numbers are hidden by default; one persisted **Labels** chip (default off)
+  shows them together, replacing the separate Gaps chip. Interfaces / Frontline / Heights unchanged;
+  height-mode surface numbers stay (they are data, not ids).
 - [ ] **G21 — Author the boring-seed corpus.** Burn down the seed shopping list (`layout-rules.md`):
   raised-spawn, isolated-spawn, wool-two-sided, multi-wool-spread, fragmented-island, frontline-tower,
   elevation-rich, big-board, four-team-hole, mirror-mode. Each lands as `tools/seeds/*.plan.json` (compiled
