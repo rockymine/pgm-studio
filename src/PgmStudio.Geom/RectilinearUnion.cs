@@ -1,19 +1,21 @@
 namespace PgmStudio.Geom;
 
 /// <summary>
-/// Exact union of axis-aligned integer rectangles into a single boundary ring. Coordinate-compresses the
+/// Exact union of axis-aligned integer rectangles into its boundary rings. Coordinate-compresses the
 /// rectangle edges into a cell grid, marks the cells covered by any rectangle, walks the covered region's
 /// boundary as directed unit edges (interior edges cancel against their reverse), then merges collinear runs
-/// into the minimal corner ring. Pure integer geometry: a set of grid-aligned rectangles that share
-/// full-length borders unions with no rounding. Returns the outer ring (largest by area); holes are not
-/// carried (the callers union simply-connected piece groups).
+/// into minimal corner rings. Pure integer geometry: a set of grid-aligned rectangles that share full-length
+/// borders unions with no rounding. Returns EVERY disjoint outer ring — a set of rectangles that falls into
+/// several connected patches yields one ring per patch, so no patch is silently dropped. Holes (enclosed
+/// voids) are not carried; a patch with a hole yields only its outer ring.
 /// </summary>
 public static class RectilinearUnion
 {
     /// <summary>Union the <paramref name="rects"/> (each <c>[minX, minZ, maxX, maxZ]</c>, integer, min &lt;
-    /// max) into the outer boundary ring — an open list of <c>[x, z]</c> corner vertices (no repeated close).
-    /// Returns an empty list if no rectangle has area.</summary>
-    public static List<double[]> Outline(IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> rects)
+    /// max) into its disjoint outer boundary rings — one per connected covered patch, each an open list of
+    /// <c>[x, z]</c> corner vertices (no repeated close), wound CCW, ordered largest patch first. Returns an
+    /// empty list if no rectangle has area.</summary>
+    public static List<List<double[]>> Outlines(IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> rects)
     {
         var real = rects.Where(r => r.MaxX > r.MinX && r.MaxZ > r.MinZ).ToList();
         if (real.Count == 0) return [];
@@ -38,8 +40,12 @@ public static class RectilinearUnion
                 Add(x0, z0, x1, z0); Add(x1, z0, x1, z1); Add(x1, z1, x0, z1); Add(x0, z1, x0, z0);
             }
 
-        var rings = ChainRings(edges);
-        return rings.Count == 0 ? [] : rings.MaxBy(SignedArea)!;
+        // Outer boundaries wind CCW (positive signed area); hole rings wind CW — keep only the outer patches,
+        // largest first.
+        return ChainRings(edges)
+            .Where(r => SignedArea(r) > 0)
+            .OrderByDescending(SignedArea)
+            .ToList();
     }
 
     // Stitch the surviving directed edges head→tail into closed rings, merging collinear corners.
@@ -85,6 +91,7 @@ public static class RectilinearUnion
         return outp;
     }
 
+    // Shoelace signed area: positive for a CCW (outer) ring, negative for a CW (hole) ring.
     private static double SignedArea(List<double[]> ring)
     {
         double a = 0;
@@ -94,6 +101,6 @@ public static class RectilinearUnion
             var q = ring[(i + 1) % n];
             a += p[0] * q[1] - q[0] * p[1];
         }
-        return Math.Abs(a) / 2.0;
+        return a / 2.0;
     }
 }

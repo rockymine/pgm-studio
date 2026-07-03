@@ -42,21 +42,25 @@ public static class PlanCompiler
             var pieces = component.Select(id => d.Piece(id)!.Value).ToList();
             if (pieces.Select(p => p.Mirrors).Distinct().Count() > 1)
                 throw new InvalidOperationException($"component [{string.Join(", ", component)}] mixes mirrored and non-mirrored pieces");
-            // one shape per distinct surface within the component (a stepped island → stacked plateaus)
+            // one shape per distinct surface within the component (a stepped island → stacked plateaus); a
+            // surface whose pieces fall into several disjoint patches (connected only through pieces of a
+            // different surface) emits one shape per patch, so no patch is dropped.
             foreach (var group in pieces.GroupBy(p => p.Surface).OrderBy(g => g.Key))
             {
                 var rects = group.Select(p => (p.Rect.MinX, p.Rect.MinZ, p.Rect.MaxX, p.Rect.MaxZ)).ToList();
-                var ring = RectilinearUnion.Outline(rects);
-                var id = $"s{shapeIndex++}";
-                shapes.Add(new SketchShape
+                foreach (var ring in RectilinearUnion.Outlines(rects))
                 {
-                    Id = id,
-                    Type = "polygon",
-                    Operation = "add",
-                    BaseHeight = group.Key,
-                    Vertices = [.. ring],
-                });
-                islandShapes.Add((group.First().Mirrors, id));
+                    var id = $"s{shapeIndex++}";
+                    shapes.Add(new SketchShape
+                    {
+                        Id = id,
+                        Type = "polygon",
+                        Operation = "add",
+                        BaseHeight = group.Key,
+                        Vertices = [.. ring],
+                    });
+                    islandShapes.Add((group.First().Mirrors, id));
+                }
             }
         }
 

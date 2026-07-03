@@ -119,6 +119,32 @@ public sealed class PlanCompilerTests
     }
 
     [Test]
+    public async Task Disjoint_same_surface_patches_bridged_by_another_surface_each_get_a_shape()
+    {
+        // one component: a surface-9 bridge shares a land border with two surface-11 patches that do not touch
+        // each other (a gap between them). The surface-11 group is disjoint yet both patches must surface — the
+        // union must not drop the smaller one.
+        var p = Plan("""
+        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+          "pieces":[ {"id":"bridge","role":"piece","rect":[0,0,6,2]},
+                     {"id":"a","role":"piece","rect":[0,2,2,2],"surface":11},
+                     {"id":"b","role":"piece","rect":[4,2,2,2],"surface":11} ] }
+        """);
+        var (layout, _) = PlanCompiler.Compile(p);
+        // one island (all three pieces one component), one surface-9 shape, two surface-11 shapes
+        await Assert.That(layout.Layout!.Islands.Count).IsEqualTo(1);
+        var surface11 = layout.Layout!.Shapes.Where(s => s.BaseHeight == 11).ToList();
+        await Assert.That(surface11.Count).IsEqualTo(2);
+        // the two patches are A's block box x[0,10]z[10,20] and B's x[20,30]z[10,20]
+        var boxes = surface11.Select(s => Bbox(s.Vertices!)).ToHashSet();
+        await Assert.That(boxes.SetEquals(new[] { (0, 10, 10, 20), (20, 10, 30, 20) })).IsTrue();
+    }
+
+    // The integer bounding box (minX, minZ, maxX, maxZ) of a ring's vertices.
+    private static (int, int, int, int) Bbox(IReadOnlyList<double[]> ring) =>
+        ((int)ring.Min(v => v[0]), (int)ring.Min(v => v[1]), (int)ring.Max(v => v[0]), (int)ring.Max(v => v[1]));
+
+    [Test]
     public async Task A_staircase_of_narrow_steps_compiles_to_one_island_with_a_shape_per_plateau()
     {
         // the author's idiom: a 1x3 bar plus three stepped 1x1 pieces (distinct surfaces), each meeting the
