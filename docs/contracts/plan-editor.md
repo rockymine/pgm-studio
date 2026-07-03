@@ -81,6 +81,15 @@ Author feedback after building the first real seed reshapes the role model:
   footprints inside the zone (lints G5/G7).
 - **Frontline** — computed, not authored: the piece edges facing a zone (FR-series semantics).
 - **Islands** — connected components over `land` interfaces; each becomes one `SketchIsland`.
+- **Junction regions (hubs)** — computed on the *unioned* island footprint, so piece-cutting style
+  cannot change the result. Every access **mouth** (a land interface or a bridge mouth on the
+  boundary) is an interval with an inward direction; extrude each mouth's span perpendicular into
+  the land; a junction region is the intersection of corridors from **≥3 mouths** (a 4-way "plus"
+  yields the crossing rect; a 3-way T likewise; a 2-mouth corner yields nothing — corners are not
+  hubs). Areal by construction — interval mouths, region output, no thinning. Exposed as an editor
+  overlay ("Hubs") and the anchor for **lane chains**: a lane = the corridor between junction
+  regions / dead ends, which is what width- and length-lint measure along (a lane cut into pieces
+  for elevation or cornering is still one lane).
 - **Elevation transitions** — from surface deltas across `land` interfaces: 0 walk, ≤ jumpable →
   ledge, else the compiler stamps a step terrace (§3), or a `cliffs` entry forces one-way (EL3/EL5).
 

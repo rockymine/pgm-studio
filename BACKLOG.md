@@ -180,6 +180,12 @@ The open work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
 
+- [ ] **G24 — Junction-region derivation + Hubs overlay + lane chains.** Derive hubs as *internal* computed
+  structure on the unioned island footprint (mouth-extrusion intersections of ≥3 access mouths — see
+  `docs/contracts/plan-editor.md` §2 "Junction regions"; corners yield nothing), expose them through
+  `/api/plan/inspect` and a "Hubs" editor overlay, and build **lane chains** on top (corridors between
+  junctions/dead-ends) so width/length lint and depth checks measure along a whole lane rather than per
+  piece. The anchor for composer-side junction placement/verification later. (layout-rules.md PC1)
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding
