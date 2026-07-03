@@ -120,7 +120,7 @@
             <div @ref="cursorRef" class="canvas-cursor"></div>
             <div class="canvas-subbar-right">
               <span class="canvas-overlay-toggles">
-                <button class="filter-chip @(overlayInterfaces ? "filter-chip--active" : null)" title="Land interfaces (green) · sliver/corner (red)"
+                <button class="filter-chip @(overlayInterfaces ? "filter-chip--active" : null)" title="Land interfaces (green, slimmer core if narrow) · corner contacts (red)"
                         @onclick='() => ToggleOverlay("interfaces")'>Interfaces</button>
                 <button class="filter-chip @(overlayFrontline ? "filter-chip--active" : null)" title="Piece edges facing a build area"
                         @onclick='() => ToggleOverlay("frontline")'>Frontline</button>

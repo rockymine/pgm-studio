@@ -3,9 +3,10 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// Derived structure: how two pieces meet (land / sliver / corner / overlap), connected components over land
-/// interfaces, gap links across build zones, and the computed frontline. Edge cases centre on the corridor
-/// minimum: an exact-10 border connects, a 9-block border slivers, a bare corner touch is neither.
+/// Derived structure: how two pieces meet (land / narrow / corner / overlap), connected components over land
+/// interfaces (full-width or narrow), gap links across build zones, and the computed frontline. Edge cases
+/// centre on the corridor minimum: an exact-10 border is full land, a shorter positive border is a narrow land
+/// interface (still connects), a bare corner touch connects neither.
 /// </summary>
 public sealed class PlanDerivedTests
 {
@@ -21,11 +22,13 @@ public sealed class PlanDerivedTests
     }
 
     [Test]
-    public async Task A_nine_block_border_is_a_sliver()
+    public async Task A_nine_block_border_is_a_narrow_land_interface()
     {
+        // a positive border below the corridor minimum still connects — it is a narrow land interface.
         var c = PlanDerived.Classify(P("a", 0, 0, 10, 9), P("b", 10, 0, 20, 10));
-        await Assert.That(c.Kind).IsEqualTo(ContactKind.Sliver);
+        await Assert.That(c.Kind).IsEqualTo(ContactKind.Narrow);
         await Assert.That(c.BorderLength).IsEqualTo(9);
+        await Assert.That(PlanDerived.IsLandInterface(c.Kind)).IsTrue();
     }
 
     [Test]
@@ -268,7 +271,7 @@ public sealed class PlanDerivedTests
     }
 
     [Test]
-    public async Task Interface_segments_expose_land_and_sliver_contacts()
+    public async Task Interface_segments_expose_land_and_narrow_contacts()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;
         var d = PlanDerived.Build(plan);
@@ -276,6 +279,63 @@ public sealed class PlanDerivedTests
         var land = d.InterfaceSegments.Where(s => s.Kind == ContactKind.Land).ToList();
         await Assert.That(land).IsNotEmpty();
         await Assert.That(land.All(s => s.Length >= PlanDerived.CorridorMin)).IsTrue();
+
+        // a sub-corridor seam surfaces as a narrow segment (still a positive-length connector, not a corner)
+        var narrowPlan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,5]}, {"id":"b","role":"piece","rect":[10,0,10,5]} ] }
+        """)!;
+        var nd = PlanDerived.Build(narrowPlan);
+        var narrow = nd.InterfaceSegments.Single(s => s.Kind == ContactKind.Narrow);
+        await Assert.That(narrow.Length).IsEqualTo(5);
+        await Assert.That(narrow.X1 == narrow.X2 || narrow.Z1 == narrow.Z2).IsTrue();   // a real line, not a point
+    }
+
+    // ── connectivity across narrow seams (the staircase idiom) ──────────────────────────────────────────
+
+    [Test]
+    public async Task A_narrow_seam_joins_two_pieces_into_one_component()
+    {
+        // a 5-block shared border is walkable terrain — the pair reads as one island, not two.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,5]}, {"id":"b","role":"piece","rect":[10,0,10,5]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.Components.Count).IsEqualTo(1);
+        await Assert.That(d.Components[0].Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task A_staircase_of_narrow_steps_is_one_island()
+    {
+        // a 1x3 bar plus three stepped 1x1 pieces (distinct surfaces), each abutting over a 5-block border →
+        // all four join through narrow land interfaces into a single component (the author's 2x3 staircase).
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":5,"surface":9},
+          "pieces":[ {"id":"bar","role":"piece","rect":[0,0,1,3]},
+                     {"id":"step1","role":"piece","rect":[1,0,1,1]},
+                     {"id":"step2","role":"piece","rect":[1,1,1,1],"surface":11},
+                     {"id":"step3","role":"piece","rect":[1,2,1,1],"surface":13} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.Components.Count).IsEqualTo(1);
+        await Assert.That(d.Components[0].Count).IsEqualTo(4);
+    }
+
+    [Test]
+    public async Task A_bare_corner_leaves_two_diagonal_pieces_in_separate_components()
+    {
+        // two pieces diagonally across the point (10,10): a corner contact never connects, so they stay two
+        // components even though a walkable seam would (a positive shared border is required, a point is not).
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
+                     {"id":"b","role":"piece","rect":[10,10,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.Contacts.Single(x => (x.A, x.B) is ("a", "b") or ("b", "a")).Kind).IsEqualTo(ContactKind.Corner);
+        await Assert.That(d.Components.Count).IsEqualTo(2);
     }
 
     [Test]

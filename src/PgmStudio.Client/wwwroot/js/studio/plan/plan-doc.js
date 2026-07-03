@@ -239,14 +239,15 @@ function pointSegDist(px, pz, x1, z1, x2, z2) {
 }
 
 /**
- * The land-interface segment nearest a world/block point, within `maxDist` blocks, or null. Only land seams
- * (kind "land", a non-degenerate segment) can carry a wall, so slivers/corners are skipped. The segments come
- * from the /api/plan/inspect feed (each already resolved to block coordinates, carrying its `a`/`b` pair).
+ * The land-interface segment nearest a world/block point, within `maxDist` blocks, or null. Any land interface
+ * — full-width "land" or a "narrow" seam — can carry a wall (a wall across a narrow step is legal), so those
+ * are eligible; corner point contacts (degenerate segments) are skipped. The segments come from the
+ * /api/plan/inspect feed (each already resolved to block coordinates, carrying its `a`/`b` pair).
  */
 export function nearestInterface(interfaces, wx, wz, maxDist) {
   let best = null, bestD = maxDist == null ? Infinity : maxDist;
   for (const it of interfaces || []) {
-    if (it.kind !== "land") continue;
+    if (it.kind !== "land" && it.kind !== "narrow") continue;
     if (it.x1 === it.x2 && it.z1 === it.z2) continue;   // degenerate (corner point)
     const d = pointSegDist(wx, wz, it.x1, it.z1, it.x2, it.z2);
     if (d <= bestD) { bestD = d; best = it; }

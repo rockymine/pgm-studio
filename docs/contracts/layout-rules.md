@@ -19,9 +19,14 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **Lane** — an elongated transit piece: length noticeably exceeds width, it carries flow between
   a dead end / objective and a junction. Not the hub (the junction residual the lanes originate
   from), not a stepping stone (standalone).
-- **Connection (a `land` interface)** — two pieces connect only where they share a **straight
-  border segment at least one corridor width long** (≥ G2). No corner-touching, no sliver
-  doorways: every place two pieces meet must itself be a walkable corridor mouth.
+- **Connection (a `land` interface) [expert]** — two pieces connect wherever they share **any
+  positive-length straight border** — that shared terrain is walkable. A border **narrower than the
+  corridor minimum** (< G2) is a **narrow seam**: still a connection, legal and common in staircases
+  and ledges (a 5-block shared step is one island, not two). Connectivity is therefore **split from
+  corridor quality**: whether an assembled route is wide enough to fight through is judged on the
+  **assembled footprint** by lane-chain analysis, **not per seam**. **Corner / point contact never
+  connects** — two pieces diagonally across a point stay separate, even when other shapes share that
+  same point (a point is not a walkable border).
 
 ## G — Globals
 
@@ -92,8 +97,9 @@ toward the map centre / the enemy; "back" = toward the map edge.
   turn/twist (the L-shape case).
 - **LN3 [expert]** Wool lanes dead-end at the back; the front end stops at the void edge
   (frontline) or at the hub. (Lane defined above.)
-- **LN4 [expert, clarified]** Restated plainly in *Definitions*: pieces join only along a shared
-  straight border ≥ one corridor width — never at corners, never through slivers.
+- **LN4 [expert, clarified]** Restated plainly in *Definitions*: pieces join along **any** shared
+  positive-length border (a sub-corridor border is a legal *narrow seam*, not a break) — never at a
+  bare corner/point.
 
 ## HB — Hub / connector
 
@@ -158,6 +164,12 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **EL5 [expert]** Cliffs (one-way drops): **in v1**.
 
 ## PC — Pieces are anonymous
+
+- **PC-S retired [expert]** The old per-seam *sliver* lint (PC-S — a shared border below the corridor
+  minimum flagged as suspect) is **gone**: a narrow seam is legal connecting geometry per *Definitions*,
+  so there is no per-seam width lint. Corridor quality of an assembled footprint is measured by
+  lane-chain analysis, not seam by seam. **PC-C stays** — a bare corner between pieces not already in the
+  same land component is still linted (a point never connects).
 
 - **PC1 [expert]** Pieces carry no semantic role by default — a piece is a modeling unit (cut for
   elevation, cornering, or interface-driving), and one *lane* is typically several pieces. Meaning

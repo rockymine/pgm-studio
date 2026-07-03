@@ -14,11 +14,15 @@ public readonly record struct BlockRect(int MinX, int MinZ, int MaxX, int MaxZ)
 /// <summary>A piece resolved to block coordinates, with its plateau surface and mirror flag.</summary>
 public readonly record struct DerivedPiece(string Id, string Role, BlockRect Rect, int Surface, bool Mirrors);
 
-/// <summary>How two piece rects meet along a shared straight border (or fail to).</summary>
-public enum ContactKind { None, Land, Sliver, Corner, Overlap }
+/// <summary>How two piece rects meet along a shared straight border (or fail to). Any positive shared border
+/// connects (a walkable land interface): <see cref="Land"/> is at least a corridor wide, <see cref="Narrow"/>
+/// is a narrower seam (still walkable, still connecting — the staircase/ledge idiom). <see cref="Corner"/> is a
+/// bare point touch that never connects; <see cref="Overlap"/> is area overlap; <see cref="None"/> is disjoint.</summary>
+public enum ContactKind { None, Land, Narrow, Corner, Overlap }
 
 /// <summary>A classified pairwise contact between two pieces: the border length (blocks) for edge contacts,
-/// and, for <see cref="ContactKind.Land"/>/<see cref="ContactKind.Overlap"/>, the surface delta between them.</summary>
+/// and, for the connecting kinds (<see cref="ContactKind.Land"/>/<see cref="ContactKind.Narrow"/>/
+/// <see cref="ContactKind.Overlap"/>), the surface delta between them.</summary>
 public sealed record Contact(string A, string B, ContactKind Kind, int BorderLength, int SurfaceDelta);
 
 /// <summary>Two pieces linked across a build zone's void, with the hop span (blocks) between their footprints.
@@ -34,7 +38,7 @@ public sealed record GapLink(string A, string B, string Zone, int Hop);
 public sealed record BuildRegion(IReadOnlyList<string> ZoneIds, IReadOnlyList<BlockRect> Rects, IReadOnlyList<BlockRect> Holes);
 
 /// <summary>An edge/point contact between two pieces resolved to a block-space segment: the shared border for a
-/// land/sliver contact (a line), or the touch point for a corner (a degenerate segment). <see cref="Length"/>
+/// land/narrow contact (a line), or the touch point for a corner (a degenerate segment). <see cref="Length"/>
 /// is the border length in blocks (0 for a corner). <see cref="WoolRoom"/> flags a terrain↔wool-room land seam
 /// (rendered red); <see cref="Wall"/> flags a land interface marked as a pre-built approach wall.</summary>
 public sealed record InterfaceSegment(
@@ -51,9 +55,15 @@ public sealed record FrontlineEdge(string Piece, string Zone, int X1, int Z1, in
 /// </summary>
 public sealed class PlanDerived
 {
-    /// <summary>Minimum corridor width (blocks): a shared border shorter than this is a sliver, not a
-    /// connection.</summary>
+    /// <summary>Minimum corridor width (blocks): a shared border at least this long is a full-width
+    /// <see cref="ContactKind.Land"/> interface; a shorter positive border is a <see cref="ContactKind.Narrow"/>
+    /// seam — still a walkable connection, just too thin to fight through (corridor quality, not connectivity,
+    /// is judged later on the assembled footprint).</summary>
     public const int CorridorMin = 10;
+
+    /// <summary>A contact whose kind forms a walkable land interface (any positive shared border): full-width
+    /// land or a narrow seam. Corner (point) and disjoint contacts do not connect.</summary>
+    public static bool IsLandInterface(ContactKind kind) => kind is ContactKind.Land or ContactKind.Narrow;
 
     public PlanModel Plan { get; }
     public int Cell { get; }
@@ -71,13 +81,13 @@ public sealed class PlanDerived
     public IReadOnlyList<BuildRegion> BuildRegions { get; }
     /// <summary>Piece ids that abut or overlap any build zone (the computed frontline).</summary>
     public IReadOnlySet<string> Frontline { get; }
-    /// <summary>Edge/point contacts (land, sliver, corner) resolved to block-space segments — the overlay draws
-    /// land as a solid connector and sliver/corner as a warning marker.</summary>
+    /// <summary>Edge/point contacts (land, narrow, corner) resolved to block-space segments — the overlay draws
+    /// land and narrow as connectors (narrow slimmer) and corner as a non-connecting warning marker.</summary>
     public IReadOnlyList<InterfaceSegment> InterfaceSegments { get; }
     /// <summary>Per-piece-per-zone frontline edges as block-space segments (the piece sides facing a zone).</summary>
     public IReadOnlyList<FrontlineEdge> FrontlineEdges { get; }
-    /// <summary>Connected components over land interfaces and same-surface overlaps — each a set of piece ids,
-    /// in first-appearance order.</summary>
+    /// <summary>Connected components over land interfaces (full-width or narrow) and same-surface overlaps — each
+    /// a set of piece ids, in first-appearance order.</summary>
     public IReadOnlyList<IReadOnlyList<string>> Components { get; }
 
     private readonly Dictionary<string, DerivedPiece> _byId;
@@ -93,7 +103,7 @@ public sealed class PlanDerived
         _byId = Pieces.ToDictionary(p => p.Id);
 
         Contacts = ClassifyContacts(Pieces);
-        LandInterfaces = Contacts.Where(c => c.Kind == ContactKind.Land).ToList();
+        LandInterfaces = Contacts.Where(c => IsLandInterface(c.Kind)).ToList();
         var wallPairs = plan.Walls.Select(w => (w.A, w.B)).ToList();
         WallInterfaces = LandInterfaces.Where(c => wallPairs.Contains((c.A, c.B)) || wallPairs.Contains((c.B, c.A))).ToList();
         Frontline = ComputeFrontline(plan, Cell, Pieces);
@@ -138,7 +148,7 @@ public sealed class PlanDerived
         if (ix < 0 || iz < 0)       return new Contact(a.Id, b.Id, ContactKind.None, 0, 0);   // disjoint (a gap)
         if (ix == 0 && iz == 0)     return new Contact(a.Id, b.Id, ContactKind.Corner, 0, delta);
         int border = ix == 0 ? iz : ix;                                    // touch along one axis
-        var kind = border >= CorridorMin ? ContactKind.Land : ContactKind.Sliver;
+        var kind = border >= CorridorMin ? ContactKind.Land : ContactKind.Narrow;   // any positive border connects
         return new Contact(a.Id, b.Id, kind, border, delta);
     }
 
@@ -346,13 +356,14 @@ public sealed class PlanDerived
         var list = new List<InterfaceSegment>();
         foreach (var c in contacts)
         {
-            if (c.Kind is not (ContactKind.Land or ContactKind.Sliver or ContactKind.Corner)) continue;
+            if (c.Kind is not (ContactKind.Land or ContactKind.Narrow or ContactKind.Corner)) continue;
             var (x1, z1, x2, z2) = BorderSegment(byId[c.A].Rect, byId[c.B].Rect);
-            // Flags apply to land seams only: terrain↔wool-room (exactly one side is a room) renders red; a
-            // marked wall pair renders as a heavy bar.
-            bool woolRoom = c.Kind == ContactKind.Land
+            // Flags apply to land interfaces (full-width or narrow), never a bare corner: terrain↔wool-room
+            // (exactly one side is a room) renders red; a marked wall pair renders as a heavy bar — a wall
+            // across a narrow step is legal.
+            bool woolRoom = IsLandInterface(c.Kind)
                 && (byId[c.A].Role == PlanRoles.WoolRoom) != (byId[c.B].Role == PlanRoles.WoolRoom);
-            bool wall = c.Kind == ContactKind.Land
+            bool wall = IsLandInterface(c.Kind)
                 && (wallPairs.Contains((c.A, c.B)) || wallPairs.Contains((c.B, c.A)));
             list.Add(new InterfaceSegment(c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength, woolRoom, wall));
         }
@@ -360,7 +371,7 @@ public sealed class PlanDerived
     }
 
     /// <summary>The shared-border segment of two edge/corner-touching rects: a vertical or horizontal line for a
-    /// land/sliver contact, or the single touch point (a degenerate segment) for a corner.</summary>
+    /// land/narrow contact, or the single touch point (a degenerate segment) for a corner.</summary>
     public static (int X1, int Z1, int X2, int Z2) BorderSegment(BlockRect a, BlockRect b)
     {
         int loX = Math.Max(a.MinX, b.MinX), hiX = Math.Min(a.MaxX, b.MaxX);
@@ -432,7 +443,7 @@ public sealed class PlanDerived
         void Union(string a, string b) { parent[Find(a)] = Find(b); }
 
         foreach (var c in contacts)
-            if (c.Kind == ContactKind.Land || (c.Kind == ContactKind.Overlap && c.SurfaceDelta == 0))
+            if (IsLandInterface(c.Kind) || (c.Kind == ContactKind.Overlap && c.SurfaceDelta == 0))
                 Union(c.A, c.B);
 
         var order = new List<string>();

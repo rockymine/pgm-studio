@@ -117,4 +117,25 @@ public sealed class PlanCompilerTests
         await Assert.That(layout.Layout!.Islands.Count).IsEqualTo(1);
         await Assert.That(layout.Layout!.Islands[0].Mirrors).IsTrue();
     }
+
+    [Test]
+    public async Task A_staircase_of_narrow_steps_compiles_to_one_island_with_a_shape_per_plateau()
+    {
+        // the author's idiom: a 1x3 bar plus three stepped 1x1 pieces (distinct surfaces), each meeting the
+        // others over a 5-block (narrow) border. Narrow seams connect, so all four join one component and union
+        // into a single island; the union splits into one shape per distinct surface (a stacked plateau).
+        var p = Plan("""
+        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+          "pieces":[ {"id":"bar","role":"piece","rect":[0,0,1,3]},
+                     {"id":"step1","role":"piece","rect":[1,0,1,1]},
+                     {"id":"step2","role":"piece","rect":[1,1,1,1],"surface":11},
+                     {"id":"step3","role":"piece","rect":[1,2,1,1],"surface":13} ] }
+        """);
+        var (layout, _) = PlanCompiler.Compile(p);
+        await Assert.That(layout.Layout!.Islands.Count).IsEqualTo(1);
+        // one shape per plateau: base 9 (bar + step1 unioned), 11, 13.
+        await Assert.That(layout.Layout!.Shapes.Count).IsEqualTo(3);
+        await Assert.That(layout.Layout!.Shapes.Select(s => s.BaseHeight!.Value).OrderBy(h => h).ToList())
+            .IsEquivalentTo(new[] { 9d, 11d, 13d });
+    }
 }

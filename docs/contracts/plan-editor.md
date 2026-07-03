@@ -73,9 +73,10 @@ Author feedback after building the first real seed reshapes the role model:
 
 ## 2. Derived structure (computed, never stored)
 
-- **Land interfaces** — two pieces connect iff they share a straight border segment of length
-  ≥ G2's corridor minimum (in cells: ≥ ⌈10/cell⌉). Corner-touching and sliver contact are *lint
-  errors*, not connections (Definitions, layout-rules.md).
+- **Land interfaces** — two pieces connect iff they share **any positive-length** straight border.
+  A border ≥ G2's corridor minimum is a full-width `land` interface; a shorter one is a `narrow`
+  seam (still a connection — a walkable step/ledge). Corner/point contact never connects and lints
+  PC-C; a narrow seam is legal geometry, not a lint (Definitions, layout-rules.md).
 - **Gap connectivity** — a zone connects every piece its rect (minus holes) overlaps or abuts;
   pieces sharing a zone are `gap`-linked with hop distance = the void span between their
   footprints inside the zone (lints G5/G7).
@@ -127,9 +128,10 @@ Author feedback after building the first real seed reshapes the role model:
 Two severities, both live in the editor and enforced by the compiler CLI:
 
 - **Errors (structural):** unreachable wool from a capturing spawn (over land+gap); a
-  frontline→wool path through a spawn piece (SP1); sliver/corner contacts; a wool without its
-  flat stamp plateau (WL3: the stamp footprint at one surface, to the lane edges); overlapping
-  same-surface pieces are fine (they union), overlapping different-surface pieces are an error.
+  frontline→wool path through a spawn piece (SP1); a wall mark off any land interface; a wool
+  without its flat stamp plateau (WL3: the stamp footprint at one surface, to the lane edges);
+  overlapping same-surface pieces are fine (they union), overlapping different-surface pieces are an
+  error. (Narrow seams connect and are legal; a bare corner between separate areas is PC-C lint.)
 - **Lint (the rules doc as a linter):** every violated `[expert]` rule cites its id — "G2:
   corridor 8 < 10", "SP2: spawn 15 from lane back, expected near back", "G5: hop 25 > 20",
   "BZ5: zone touches spawn piece". Lint never blocks compile (rules are provisional; seeds may
@@ -149,8 +151,9 @@ New page `Pages/Plan/PlanEditor.razor` (+ `js/studio/plan/`), reusing the studio
 - **Palette:** piece roles (lane · hub · wool-room · mid) + zone tool + markers (spawn with a
   drag-to-set facing arrow, wool, iron).
 - **Inspector (selected piece):** role, surface stepper (±2, EL1), `mirrors` toggle, id.
-- **Overlays (toggleable):** derived land interfaces (green intervals; red where sliver/narrow),
-  gap links through zones with hop distances, computed frontline edges, spawn→wool path trace.
+- **Overlays (toggleable):** derived land interfaces (green intervals; a slimmer green core where
+  narrow; red only at a bare corner point), gap links through zones with hop distances, computed
+  frontline edges, spawn→wool path trace.
 - **Panels:** lint list (click → highlight the offender); plan JSON import/export (file
   download/upload — seeds live in git); autosave to localStorage.
 - **Compile & test:** tabs previewing the compiled `layout.json` / `intent.json`; a **Create

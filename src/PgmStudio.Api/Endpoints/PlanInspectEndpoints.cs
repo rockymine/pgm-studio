@@ -10,7 +10,7 @@ namespace PgmStudio.Api.Endpoints;
 /// POST /api/plan/inspect — the live derived-structure + lint feed for the plan editor. The request body is a
 /// plan wire document (<c>*.plan.json</c>); the response carries everything already resolved to block
 /// coordinates so the canvas draws it directly: <c>findings</c> (errors then rule lint, each with the
-/// implicated subject ids), <c>interfaces</c> (land/sliver/corner contacts as segments), <c>gapLinks</c>
+/// implicated subject ids), <c>interfaces</c> (land/narrow/corner contacts as segments), <c>gapLinks</c>
 /// (zone-spanning connectors with the hop distance) and <c>frontline</c> (piece edges facing a zone). The
 /// canonical validator/derivation runs server-side because the Blazor client can't reference the plan library.
 /// A malformed body is answered 400, never 500.

@@ -276,14 +276,15 @@ test("toggleWall adds then removes a wall mark, order-insensitive", () => {
   assert.deepEqual(doc.walls, []);
 });
 
-test("nearestInterface picks the closest land seam within range, skipping slivers/corners", () => {
+test("nearestInterface picks the closest land or narrow seam within range, skipping corner points", () => {
   const interfaces = [
-    { a: "a", b: "b", kind: "land", x1: 0, z1: 0, x2: 0, z2: 20 },     // vertical seam at x=0
-    { a: "c", b: "d", kind: "land", x1: 40, z1: 0, x2: 40, z2: 20 },   // far seam
-    { a: "e", b: "f", kind: "sliver", x1: 2, z1: 0, x2: 2, z2: 5 },    // not a land seam
+    { a: "a", b: "b", kind: "land", x1: 0, z1: 0, x2: 0, z2: 20 },       // vertical seam at x=0
+    { a: "c", b: "d", kind: "narrow", x1: 6, z1: 0, x2: 6, z2: 5 },      // narrow seam — a wall across it is legal
+    { a: "e", b: "f", kind: "corner", x1: 30, z1: 30, x2: 30, z2: 30 },  // bare corner point — never wall-capable
   ];
-  assert.equal(nearestInterface(interfaces, 1, 10, 5).a, "a");         // 1 block from the x=0 seam
-  assert.equal(nearestInterface(interfaces, 20, 10, 5), null);         // nothing within 5 blocks
+  assert.equal(nearestInterface(interfaces, 1, 10, 5).a, "a");          // 1 block from the x=0 land seam
+  assert.equal(nearestInterface(interfaces, 6, 2, 5).a, "c");           // on a narrow seam → now eligible, picked
+  assert.equal(nearestInterface(interfaces, 30, 30, 5), null);          // only a corner point nearby → skipped
 });
 
 // ── round-trip a real seed plan ──────────────────────────────────────────────

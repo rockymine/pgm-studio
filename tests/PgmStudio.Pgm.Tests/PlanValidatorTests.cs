@@ -3,10 +3,11 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// The two-tier validator. Structural errors (sliver/corner contacts, different-surface overlaps, placements
-/// outside a piece, unreachable wool, a wool reachable only through a spawn) block a compile; rule lint cites
-/// a provisional layout-rule id and never blocks. Each rule is exercised firing and not firing on synthetic
-/// fixtures; the three seed plans must be error-free.
+/// The two-tier validator. Structural errors (different-surface overlaps, placements outside a piece,
+/// unreachable wool, a wool reachable only through a spawn, a wall off any land interface) block a compile;
+/// rule lint cites a provisional layout-rule id and never blocks. Narrow seams are legal connecting geometry
+/// (no per-seam width lint); a bare corner between separate areas lints PC-C. Each rule is exercised firing and
+/// not firing on synthetic fixtures; the three seed plans must be error-free.
 /// </summary>
 public sealed class PlanValidatorTests
 {
@@ -19,15 +20,16 @@ public sealed class PlanValidatorTests
     // ── errors ──────────────────────────────────────────────────────────────────────────────────────────
 
     [Test]
-    public async Task Sliver_contact_is_lint_not_an_error()
+    public async Task A_narrow_seam_is_legal_geometry_no_error_no_lint()
     {
-        // a thin (< corridor) shared border is a deliberate ledge, not a blocker → PC-S lint, no error.
+        // a thin (< corridor) shared border is walkable terrain — it connects, and it is not linted (PC-S is
+        // retired; narrow seams are legal, corridor quality is judged later on the assembled footprint).
         var p = Plan("""
         { "plan":1, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]}, {"id":"b","role":"lane","rect":[10,0,10,10]} ] }
         """);
-        await Assert.That(Lint(p, "PC-S")).IsTrue();
-        await Assert.That(Err(p, "sliver")).IsFalse();
+        await Assert.That(PlanValidator.Validate(p).Any(f => f.Severity == PlanSeverity.Error)).IsFalse();
+        await Assert.That(Lint(p, "PC-S")).IsFalse();
     }
 
     [Test]
@@ -40,28 +42,6 @@ public sealed class PlanValidatorTests
         """);
         await Assert.That(Lint(p, "PC-C")).IsTrue();
         await Assert.That(Err(p, "corner")).IsFalse();
-    }
-
-    [Test]
-    public async Task A_sliver_between_already_connected_pieces_is_suppressed()
-    {
-        // a and b share a thin (9 < 10) seam, but both join c through full-width land interfaces, so the pair
-        // is already one land component — the sliver is a cosmetic ledge, not a pinch → no PC-S. c below spans
-        // both a and b along z=9 with a 10-block border each.
-        var connected = Plan("""
-        { "plan":1, "globals":{"cell":1},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]},
-                     {"id":"b","role":"lane","rect":[10,0,10,9]},
-                     {"id":"c","role":"lane","rect":[0,9,20,10]} ] }
-        """);
-        // the same a/b sliver alone (no connecting piece) stays a finding — the pinch between separate areas.
-        var alone = Plan("""
-        { "plan":1, "globals":{"cell":1},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]},
-                     {"id":"b","role":"lane","rect":[10,0,10,9]} ] }
-        """);
-        await Assert.That(Lint(connected, "PC-S")).IsFalse();
-        await Assert.That(Lint(alone, "PC-S")).IsTrue();
     }
 
     [Test]
@@ -174,16 +154,17 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task The_pinwheel_tower_seed_is_error_free_and_lints_its_thin_contacts()
+    public async Task The_pinwheel_tower_seed_is_error_free_and_its_thin_contacts_now_connect()
     {
-        // Zone-union connectivity clears the pinwheel's cross-team reachability, and the sliver/corner
-        // downgrade turns its deliberate thin/corner contacts into lint — so the seed carries no errors,
-        // only lint (PC-S / PC-C among them).
+        // Zone-union connectivity clears the pinwheel's cross-team reachability, and the narrow-seam model
+        // makes its deliberate thin contacts walkable land interfaces — so its previously-linted thin/corner
+        // contacts fold into components: no errors, no PC-S (retired), and no PC-C (the corners now sit inside
+        // one land component and are suppressed).
         var plan = Plan(PlanTestSupport.ReadSeed("four-team-towers-big.plan.json"));
         var findings = PlanValidator.Validate(plan);
         await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error)).IsFalse();
-        await Assert.That(findings.Any(f => f.Rule == "PC-S")).IsTrue();
-        await Assert.That(findings.Any(f => f.Rule == "PC-C")).IsTrue();
+        await Assert.That(findings.Any(f => f.Rule == "PC-S")).IsFalse();
+        await Assert.That(findings.Any(f => f.Rule == "PC-C")).IsFalse();
     }
 
     [Test]
@@ -331,6 +312,24 @@ public sealed class PlanValidatorTests
         var cliff = Plan("""
         { "plan":1, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[10,0,10,10],"surface":13} ],
+          "cliffs":[ {"a":"a","b":"b"} ] }
+        """);
+        await Assert.That(Lint(step, "EL3")).IsTrue();
+        await Assert.That(Lint(cliff, "EL3")).IsFalse();
+    }
+
+    [Test]
+    public async Task EL3_fires_across_a_narrow_land_interface_too()
+    {
+        // a narrow (5 < 10) seam is still a land interface, so a ≥4 surface delta across it lints EL3 unless a
+        // cliff is declared — connectivity split from corridor width does not exempt the elevation rule.
+        var step = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,5]}, {"id":"b","role":"lane","rect":[10,0,10,5],"surface":13} ] }
+        """);
+        var cliff = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,5]}, {"id":"b","role":"lane","rect":[10,0,10,5],"surface":13} ],
           "cliffs":[ {"a":"a","b":"b"} ] }
         """);
         await Assert.That(Lint(step, "EL3")).IsTrue();

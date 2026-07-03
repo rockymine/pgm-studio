@@ -48,17 +48,17 @@ public sealed class PlanInspectEndpointTests
         await using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
 
-        // a sliver contact → a PC-S lint finding naming both pieces
+        // a corner contact between separate areas → a PC-C lint finding naming both pieces
         const string plan = """
         { "plan":1, "globals":{"cell":1},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]}, {"id":"b","role":"lane","rect":[10,0,10,10]} ] }
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[10,10,10,10]} ] }
         """;
         var resp = await client.PostAsync("/api/plan/inspect", new StringContent(plan, Encoding.UTF8, "application/json"));
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var findings = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings");
-        var sliver = findings.EnumerateArray().First(f => f.GetProperty("rule").GetString() == "PC-S");
-        var subjects = sliver.GetProperty("subjects").EnumerateArray().Select(s => s.GetString()).ToList();
+        var corner = findings.EnumerateArray().First(f => f.GetProperty("rule").GetString() == "PC-C");
+        var subjects = corner.GetProperty("subjects").EnumerateArray().Select(s => s.GetString()).ToList();
         await Assert.That(subjects).Contains("a");
         await Assert.That(subjects).Contains("b");
     }

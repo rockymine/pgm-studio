@@ -289,9 +289,10 @@ export class PlanCanvas extends CanvasBase {
     }
   }
 
-  // Derived-structure overlay (world space, non-interactive): land interfaces (solid green) vs sliver/corner
-  // (red warning), zone gap connectors (purple ruler dashes), and frontline edges (accent-tinted highlight).
-  // Drawn above pieces, below markers; the hop labels ride the screen-space overlay so they stay legible.
+  // Derived-structure overlay (world space, non-interactive): land interfaces (solid green — narrow seams a
+  // slimmer green core, still connected) vs corner point contacts (red warning), zone gap connectors (purple
+  // ruler dashes), and frontline edges (accent-tinted highlight). Drawn above pieces, below markers; the hop
+  // labels ride the screen-space overlay so they stay legible.
   #renderInspect() {
     const layer = this.#inspectLayer; if (!layer) return;
     this.#clear(layer);
@@ -320,21 +321,22 @@ export class PlanCanvas extends CanvasBase {
           layer.appendChild(svgEl("circle", { cx: it.x1, cy: it.z1, r: this.#doc.globals.cell * 0.22, fill: "none", stroke: "#d9534f", "stroke-width": "2.5", "vector-effect": "non-scaling-stroke" }));
           continue;
         }
-        // A land segment sits exactly on a piece seam, where the piece strokes (or a same-green wool-room
-        // fill) would swallow a plain line — a dark casing under a bright core reads on any fill. A wall mark
-        // renders as a heavy near-black bar; a terrain↔wool-room seam renders red (ST1); other land is green.
+        // A land/narrow segment sits exactly on a piece seam, where the piece strokes (or a same-green
+        // wool-room fill) would swallow a plain line — a dark casing under a bright core reads on any fill. A
+        // wall mark renders as a heavy near-black bar; a terrain↔wool-room seam renders red (ST1); other land
+        // is green. A narrow seam connects too, drawn with a slimmer core so it reads as "connected but thin".
         const seg = { x1: it.x1, y1: it.z1, x2: it.x2, y2: it.z2, "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" };
+        const narrow = it.kind === "narrow";
+        const casing = narrow ? "5" : "7", core = narrow ? "2" : "3.5";
         if (it.wall) {
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#000000", "stroke-width": "11" }));
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#3b3b44", "stroke-width": "6" }));
-        } else if (it.kind === "land" && it.woolRoom) {
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#4a1211", "stroke-width": "7" }));
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#e5534b", "stroke-width": "3.5" }));
-        } else if (it.kind === "land") {
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#123d26", "stroke-width": "7" }));
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#4ade80", "stroke-width": "3.5" }));
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#000000", "stroke-width": narrow ? "8" : "11" }));
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#3b3b44", "stroke-width": core }));
+        } else if (it.woolRoom) {
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#4a1211", "stroke-width": casing }));
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#e5534b", "stroke-width": core }));
         } else {
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#d9534f", "stroke-width": "3", "stroke-dasharray": "3 3" }));
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#123d26", "stroke-width": casing }));
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#4ade80", "stroke-width": core }));
         }
       }
   }

@@ -16,9 +16,11 @@ public enum PlanSeverity { Error, Lint }
 /// <summary>
 /// The plan validator: structural <b>errors</b> that block a compile (unreachable wool, a wool path only
 /// through a spawn piece, a placement outside its piece, different-surface piece overlaps) and non-blocking
-/// <b>lint</b> that cites a provisional layout rule by id — including sliver/corner contacts (PC-S/PC-C), which
-/// never form a land interface but are author judgment, not blockers. Pure — a plan validates the same on the
-/// server and in the editor. Lint rules are a small extensible table (see <see cref="LintRules"/>).
+/// <b>lint</b> that cites a provisional layout rule by id — including corner contacts (PC-C), which never form a
+/// land interface but are author judgment, not blockers. (Narrow seams are legal connecting geometry, so there
+/// is no per-seam width lint — corridor quality of the assembled footprint is a later concern.) Pure — a plan
+/// validates the same on the server and in the editor. Lint rules are a small extensible table (see
+/// <see cref="LintRules"/>).
 /// </summary>
 public static class PlanValidator
 {
@@ -44,8 +46,8 @@ public static class PlanValidator
             findings.Add(new PlanFinding(PlanSeverity.Error, m, null, subjects.Length > 0 ? subjects : null));
 
         // different-surface overlaps: two pieces claim the same ground at incompatible heights — no coherent
-        // surface, a genuine structural error. (Sliver and corner contacts are author judgment and lint, not
-        // errors — see PC-S / PC-C.)
+        // surface, a genuine structural error. (Narrow seams connect and are legal; corner contacts are author
+        // judgment and lint, not errors — see PC-C.)
         foreach (var c in d.Contacts)
             if (c.Kind == ContactKind.Overlap && c.SurfaceDelta != 0)
                 Error($"overlapping pieces '{c.A}' and '{c.B}' have different surfaces (delta {c.SurfaceDelta})", c.A, c.B);
@@ -120,24 +122,11 @@ public static class PlanValidator
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
     public static readonly IReadOnlyList<Func<PlanModel, PlanDerived, IEnumerable<PlanFinding>>> LintRules =
     [
-        LintPcS, LintPcC, LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3, LintSt2,
+        LintPcC, LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3, LintSt2,
     ];
 
     private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
         new(PlanSeverity.Lint, msg, rule, subjects.Length > 0 ? subjects : null);
-
-    // PC-S — a sliver contact: two pieces share a border shorter than the corridor minimum. Per the
-    // Definitions in the layout rules a connection is a straight border ≥ one corridor width, so a sliver is
-    // never a land interface — a genuine sliver as the pair's only relationship is a suspicious thin pinch
-    // between otherwise-separate areas. But when the two pieces already join the same land component through
-    // real full-width interfaces, the sliver seam is cosmetic (a lane-thickness ledge), so it is suppressed.
-    private static IEnumerable<PlanFinding> LintPcS(PlanModel plan, PlanDerived d)
-    {
-        var comp = ComponentIndex(d);
-        foreach (var c in d.Contacts)
-            if (c.Kind == ContactKind.Sliver && !SameComponent(comp, c.A, c.B))
-                yield return Lint("PC-S", $"sliver contact between separate areas: '{c.A}' and '{c.B}' share only {c.BorderLength} < {PlanDerived.CorridorMin} blocks (no land interface)", c.A, c.B);
-    }
 
     // PC-C — a corner contact: two pieces meet at a single point. Per the Definitions a corner touch is never a
     // connection (no walkable corridor mouth). A corner as the pair's only relationship is a sneaky diagonal
