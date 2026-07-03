@@ -161,6 +161,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
   `exclude_blocks`). Pairs with A4.
 
+- [ ] **B19 — Schema-drift guards: unified connection resolution + startup migration check.** Two footguns
+  from a stale-schema incident that bit two environments in one day: (a) `PgmStudio.Import` resolves its
+  connection string ONLY from `PGM_STUDIO_DB` and error-exits when unset, while the API reads
+  `ConnectionStrings:PgmStudio` (User Secrets / env) — `--migrate-only` should resolve the same way the API
+  does (config → user-secrets → env, `PGM_STUDIO_DB` kept as an override) so "run migrations" can't silently
+  target nothing/the wrong DB; (b) the API should check the FluentMigrator `VersionInfo` against the newest
+  known migration at startup and **fail fast** with "pending migrations — run `PgmStudio.Import
+  --migrate-only`" instead of surfacing `Unknown column` from inside a request. Update
+  `docs/cloud-setup.md` accordingly.
+
 ## Layout generation (G) — auto map generation (lane sketch generators)
 
 The "meaning → structure" engine: seed a draft map from lane primitives, then hand an editable
