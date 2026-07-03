@@ -163,6 +163,8 @@ public static class PlanCompiler
 
         var observerY = plan.Globals.ObserverY ?? plan.Globals.Surface + 15;
 
+        var structures = BuildStructures(plan, d);
+
         return new MapIntent
         {
             Teams = teams,
@@ -172,7 +174,147 @@ public static class PlanCompiler
             Observer = new ObserverIntent { Point = new Pt(0, observerY, 0), Yaw = 0 },
             Build = build,
             Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },
+            Structures = structures.IsEmpty ? null : structures,
         };
+    }
+
+    // ── structures: bedrock room floors, entrance redstone, iron cubes, approach walls (ST1–ST4) ─────────
+    //
+    // Directives are computed once on the authored team-0 unit, then fanned to every orbit image in absolute
+    // block coordinates (the world-export path stamps them verbatim). Fanning is deduplicated so a
+    // self-symmetric directive lands once.
+    private static StructureIntent BuildStructures(PlanModel plan, PlanDerived d)
+    {
+        var s = new StructureIntent();
+
+        // ST1 room floors — one bedrock column footprint per wool-room piece.
+        var floorSeen = new HashSet<(int, int, int, int)>();
+        foreach (var piece in d.Pieces.Where(p => p.Role == PlanRoles.WoolRoom))
+            for (var k = 0; k < d.Order; k++)
+            {
+                var r = d.FanRect(piece.Rect, k);
+                if (floorSeen.Add((r.MinX, r.MinZ, r.MaxX, r.MaxZ)))
+                    s.RoomFloors.Add(new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ));
+            }
+
+        // ST1 entrance redstone — the last block row inside the room along each terrain↔wool-room seam.
+        var lineSeen = new HashSet<(int, int, int, int)>();
+        foreach (var seg in d.InterfaceSegments.Where(g => g is { WoolRoom: true, Kind: ContactKind.Land }))
+        {
+            var (ex1, ez1, ex2, ez2) = EntranceRow(d, seg);
+            for (var k = 0; k < d.Order; k++)
+            {
+                var (px1, pz1) = d.FanPoint(ex1, ez1, k);
+                var (px2, pz2) = d.FanPoint(ex2, ez2, k);
+                int x1 = (int)Math.Round(px1), z1 = (int)Math.Round(pz1);
+                int x2 = (int)Math.Round(px2), z2 = (int)Math.Round(pz2);
+                if (lineSeen.Add((x1, z1, x2, z2)) && lineSeen.Add((x2, z2, x1, z1)))
+                    s.RedstoneLines.Add(new RedstoneLine(x1, z1, x2, z2));
+            }
+        }
+
+        // ST2/ST3 iron cubes — one per iron marker; renew when the marker's piece is a spawn.
+        var ironSeen = new HashSet<(int, int)>();
+        foreach (var ir in plan.Placements.Iron)
+        {
+            var piece = d.Piece(ir.Piece);
+            if (piece is null) continue;
+            var (bx, bz) = Resolve(piece.Value.Rect, ir.At, d.Cell);
+            var renew = piece.Value.Role == PlanRoles.Spawn;
+            for (var k = 0; k < d.Order; k++)
+            {
+                var (px, pz) = d.FanPoint(bx, bz, k);
+                int ax = (int)Math.Round(px, MidpointRounding.AwayFromZero);
+                int az = (int)Math.Round(pz, MidpointRounding.AwayFromZero);
+                if (ironSeen.Add((ax, az))) s.IronCubes.Add(new IronCube(ax, az, renew));
+            }
+        }
+
+        // ST4 approach walls — a bedrock barrier over each marked wool-lane interface, on the attack side.
+        var wallSeen = new HashSet<(int, int, int, int)>();
+        var dist = WoolWalkDistances(plan, d);
+        foreach (var c in d.WallInterfaces)
+        {
+            var (approach, _) = ApproachSide(d, dist, c);
+            var (minX, minZ, maxX, maxZ) = WallFootprint(d.Piece(c.A)!.Value, d.Piece(c.B)!.Value);
+            var topY = approach.Surface + 4;
+            for (var k = 0; k < d.Order; k++)
+            {
+                var r = d.FanRect(new BlockRect(minX, minZ, maxX, maxZ), k);
+                if (wallSeen.Add((r.MinX, r.MinZ, r.MaxX, r.MaxZ)))
+                    s.Walls.Add(new WallStructure(r.MinX, r.MinZ, r.MaxX, r.MaxZ, topY));
+            }
+        }
+
+        return s;
+    }
+
+    // The redstone row: one block inside the wool room, running the shared-interface width, with the two
+    // endpoints (where the torches sit). Uses the border segment and the room piece's side of the seam.
+    private static (double X1, double Z1, double X2, double Z2) EntranceRow(PlanDerived d, InterfaceSegment seg)
+    {
+        var a = d.Piece(seg.A)!.Value;
+        var b = d.Piece(seg.B)!.Value;
+        var room = a.Role == PlanRoles.WoolRoom ? a : b;
+
+        if (seg.X1 == seg.X2)   // vertical seam at x = seam; room lies to one side
+        {
+            int seamX = seg.X1;
+            int col = room.Rect.MinX == seamX ? seamX : seamX - 1;   // first room block column
+            int loZ = Math.Min(seg.Z1, seg.Z2), hiZ = Math.Max(seg.Z1, seg.Z2);
+            return (col, loZ, col, hiZ - 1);
+        }
+        else                    // horizontal seam at z = seam
+        {
+            int seamZ = seg.Z1;
+            int row = room.Rect.MinZ == seamZ ? seamZ : seamZ - 1;
+            int loX = Math.Min(seg.X1, seg.X2), hiX = Math.Max(seg.X1, seg.X2);
+            return (loX, row, hiX - 1, row);
+        }
+    }
+
+    // A wall footprint: two blocks thick across the shared seam, the full interface width along it.
+    private static (int MinX, int MinZ, int MaxX, int MaxZ) WallFootprint(DerivedPiece a, DerivedPiece b)
+    {
+        var (x1, z1, x2, z2) = PlanDerived.BorderSegment(a.Rect, b.Rect);
+        if (x1 == x2)   // vertical seam
+            return (x1 - 1, Math.Min(z1, z2), x1 + 1, Math.Max(z1, z2));
+        return (Math.Min(x1, x2), z1 - 1, Math.Max(x1, x2), z1 + 1);   // horizontal seam
+    }
+
+    // The attack side of a wall pair: the piece with the larger walk-graph distance to the nearest same-unit
+    // wool marker (attackers approach from farther out); a tie breaks to the lower-surface side.
+    private static (DerivedPiece Approach, DerivedPiece Defence) ApproachSide(
+        PlanDerived d, IReadOnlyDictionary<string, int> dist, Contact c)
+    {
+        var a = d.Piece(c.A)!.Value;
+        var b = d.Piece(c.B)!.Value;
+        int da = dist.GetValueOrDefault(a.Id, int.MaxValue);
+        int db = dist.GetValueOrDefault(b.Id, int.MaxValue);
+        if (da != db) return da > db ? (a, b) : (b, a);
+        return a.Surface <= b.Surface ? (a, b) : (b, a);   // tie → lower surface is the approach
+    }
+
+    // Hop distance from each piece to the nearest wool-marker piece over the walk graph (land interfaces +
+    // gap links). Unreached pieces are absent (treated as infinite by callers).
+    private static Dictionary<string, int> WoolWalkDistances(PlanModel plan, PlanDerived d)
+    {
+        var adj = d.Pieces.ToDictionary(p => p.Id, _ => new List<string>());
+        void Link(string x, string y) { if (adj.ContainsKey(x) && adj.ContainsKey(y)) { adj[x].Add(y); adj[y].Add(x); } }
+        foreach (var c in d.LandInterfaces) Link(c.A, c.B);
+        foreach (var g in d.GapLinks) Link(g.A, g.B);
+
+        var dist = new Dictionary<string, int>();
+        var q = new Queue<string>();
+        foreach (var wp in plan.Placements.Wools.Select(w => w.Piece).Distinct())
+            if (adj.ContainsKey(wp) && dist.TryAdd(wp, 0)) q.Enqueue(wp);
+        while (q.Count > 0)
+        {
+            var cur = q.Dequeue();
+            foreach (var nb in adj[cur])
+                if (dist.TryAdd(nb, dist[cur] + 1)) q.Enqueue(nb);
+        }
+        return dist;
     }
 
     // Fan a set of cell rects to every orbit image, de-duplicating exact repeats (self-symmetric rects).

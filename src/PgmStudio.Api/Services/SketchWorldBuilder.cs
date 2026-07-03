@@ -91,6 +91,11 @@ public static class SketchWorldBuilder
             };
         }
 
+        // ── Plan-derived structures (bedrock room floors, entrance redstone, iron cubes, approach walls) ──
+        // Stamped after the cubes so an authoritative layout feature (an iron cube beside a spawn) wins any
+        // footprint overlap; room floors sit below the cage floor and the rest are clear of the cubes.
+        StampStructures(world, terrain.SurfaceTop, intent.Structures);
+
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
         ObserverIntent? resolvedObserver = null;
@@ -123,10 +128,32 @@ public static class SketchWorldBuilder
             Meta = intent.Meta,
             Symmetry = intent.Symmetry,
             IslandTeams = intent.IslandTeams,
+            Structures = intent.Structures,
         };
 
         return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved);
     }
+
+    // Stamp the plan-compiled layout structures (already resolved + fanned to block coords) onto the world.
+    private static void StampStructures(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
+    {
+        if (s is null) return;
+        foreach (var f in s.RoomFloors)
+            StructureStamper.StampRoomFloor(world, surface, (int)f.MinX, (int)f.MinZ, (int)f.MaxX, (int)f.MaxZ);
+        foreach (var w in s.Walls)
+            StructureStamper.StampWall(world, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
+        foreach (var ic in s.IronCubes)
+            StructureStamper.StampIronCube(world, surface, ic.X, ic.Z);
+        foreach (var line in s.RedstoneLines)
+            StructureStamper.StampRedstoneLine(world, surface, line.X1, line.Z1, line.X2, line.Z2);
+    }
+
+    /// <summary>The XZ footprints of the renewable iron cubes (<see cref="IronCube.Renew"/>) — the regions the
+    /// map.xml renewables wiring covers so the mined ore regrows (ST2). Empty when there are none.</summary>
+    public static IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> RenewableCubeFootprints(MapIntent intent)
+        => intent.Structures is { } s
+            ? [.. s.IronCubes.Where(c => c.Renew).Select(c => StructureStamper.IronCubeFootprint(c.X, c.Z))]
+            : [];
 
     // A cube's roof sits at floorY + RoofLayer, so the floor must leave that much headroom below the world
     // ceiling — clamp every structure floor here so an author-elevated island can't push a stamp past 255.

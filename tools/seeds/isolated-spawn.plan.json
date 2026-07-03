@@ -14,129 +14,69 @@
     {
       "id": "lane",
       "role": "lane",
-      "rect": [
-        -1,
-        2,
-        2,
-        3
-      ]
+      "rect": [-1, 2, 2, 3]
     },
     {
       "id": "lane-2",
       "role": "lane",
-      "rect": [
-        -2,
-        5,
-        4,
-        2
-      ],
+      "rect": [-2, 5, 4, 2],
       "surface": 11
     },
     {
       "id": "lane-3",
-      "role": "lane",
-      "rect": [
-        -1,
-        7,
-        2,
-        2
-      ],
+      "role": "spawn",
+      "rect": [-1, 7, 2, 2],
       "surface": 13
     },
     {
       "id": "lane-4",
       "role": "lane",
-      "rect": [
-        -6,
-        2,
-        2,
-        6
-      ]
+      "rect": [-6, 2, 2, 6]
     },
     {
       "id": "lane-5",
       "role": "lane",
-      "rect": [
-        4,
-        2,
-        2,
-        6
-      ]
+      "rect": [4, 2, 2, 6]
     },
     {
       "id": "lane-6",
-      "role": "lane",
-      "rect": [
-        -8,
-        9,
-        2,
-        2
-      ],
+      "role": "wool-room",
+      "rect": [-8, 9, 2, 2],
       "surface": 13
     },
     {
       "id": "lane-7",
-      "role": "lane",
-      "rect": [
-        6,
-        9,
-        2,
-        2
-      ],
+      "role": "wool-room",
+      "rect": [6, 9, 2, 2],
       "surface": 13
     },
     {
       "id": "lane-8",
       "role": "lane",
-      "rect": [
-        -6,
-        8,
-        2,
-        3
-      ],
+      "rect": [-6, 8, 2, 3],
       "surface": 11
     },
     {
       "id": "lane-9",
       "role": "lane",
-      "rect": [
-        4,
-        8,
-        2,
-        3
-      ],
+      "rect": [4, 8, 2, 3],
       "surface": 11
     }
   ],
   "zones": [
     {
       "id": "zone",
-      "rect": [
-        -4,
-        5,
-        2,
-        2
-      ],
+      "rect": [-4, 5, 2, 2],
       "holes": []
     },
     {
       "id": "zone-2",
-      "rect": [
-        2,
-        5,
-        2,
-        2
-      ],
+      "rect": [2, 5, 2, 2],
       "holes": []
     },
     {
       "id": "zone-3",
-      "rect": [
-        -6,
-        -2,
-        12,
-        4
-      ],
+      "rect": [-6, -2, 12, 4],
       "holes": []
     }
   ],
@@ -144,30 +84,30 @@
     "spawns": [
       {
         "piece": "lane-3",
-        "at": [
-          1,
-          1
-        ],
+        "at": [1, 1],
         "facing": "front"
       }
     ],
     "wools": [
       {
         "piece": "lane-6",
-        "at": [
-          0,
-          1
-        ]
+        "at": [0, 1]
       },
       {
         "piece": "lane-7",
-        "at": [
-          1,
-          1
-        ]
+        "at": [1, 1]
       }
     ],
-    "iron": []
+    "iron": [
+      {
+        "piece": "lane-3",
+        "at": [1.5, 1]
+      }
+    ]
   },
-  "cliffs": []
+  "cliffs": [],
+  "walls": [
+    { "a": "lane-4", "b": "lane-8" },
+    { "a": "lane-5", "b": "lane-9" }
+  ]
 }

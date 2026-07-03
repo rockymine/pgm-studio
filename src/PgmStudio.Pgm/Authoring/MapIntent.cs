@@ -47,7 +47,47 @@ public sealed class MapIntent
     /// making team inference + the orbit more accurate. Untagged islands stay neutral (e.g. a contested
     /// centre). Persisted with the intent.</summary>
     public Dictionary<string, string> IslandTeams { get; init; } = new();
+
+    /// <summary>Block-coordinate structure directives the world-export path stamps into the synthesised world
+    /// (docs/contracts/layout-rules.md ST1–ST4): wool-room floors, entrance redstone lines, iron cubes, and
+    /// pre-built approach walls. Filled only by the plan compiler (all coordinates already resolved and fanned
+    /// across the symmetry orbit); null on hand-authored / imported intents, which behave exactly as before.</summary>
+    public StructureIntent? Structures { get; init; }
 }
+
+/// <summary>The plan-compiled layout structures, in absolute world block coordinates already fanned across the
+/// symmetry orbit (docs/contracts/layout-rules.md ST1–ST4). Consumed by the sketch world-export path.</summary>
+public sealed class StructureIntent
+{
+    /// <summary>Wool-room footprints stamped as solid bedrock from y=0 to the surface (ST1).</summary>
+    public List<Rect> RoomFloors { get; init; } = new();
+
+    /// <summary>Wool-room entrance redstone lines: a wire row with an end torch each side (ST1).</summary>
+    public List<RedstoneLine> RedstoneLines { get; init; } = new();
+
+    /// <summary>4×4×4 iron cubes resting on the surface, centred on each iron marker (ST2/ST3).</summary>
+    public List<IronCube> IronCubes { get; init; } = new();
+
+    /// <summary>Pre-built bedrock approach walls over a wool-lane interface seam (ST4).</summary>
+    public List<WallStructure> Walls { get; init; } = new();
+
+    /// <summary>True when every directive list is empty (no structures to stamp).</summary>
+    public bool IsEmpty => RoomFloors.Count == 0 && RedstoneLines.Count == 0
+        && IronCubes.Count == 0 && Walls.Count == 0;
+}
+
+/// <summary>An entrance redstone line: a straight wire row between the two block ends (inclusive), a torch at
+/// each end, laid on top of the surface.</summary>
+public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2);
+
+/// <summary>An iron cube anchored on a (whole-block) marker; a 4×4×4 iron structure resting on the surface.
+/// <see cref="Renew"/> flags a marker inside a spawn-role piece — its cube regrows via the map.xml renewables
+/// wiring (ST2).</summary>
+public readonly record struct IronCube(int X, int Z, bool Renew);
+
+/// <summary>A pre-built bedrock approach wall: a min-inclusive/max-exclusive footprint (two thick across the
+/// seam, full interface width along it) rising from y=0 up to <see cref="TopY"/> inclusive (ST4).</summary>
+public readonly record struct WallStructure(int MinX, int MinZ, int MaxX, int MaxZ, int TopY);
 
 /// <summary>The confirmed map symmetry: a <see cref="Mode"/> (<c>mirror_x</c>/<c>mirror_z</c>/
 /// <c>mirror_d1</c>/<c>mirror_d2</c>/<c>rot_180</c>/<c>rot_90</c>) about the centre (<see cref="CenterX"/>,

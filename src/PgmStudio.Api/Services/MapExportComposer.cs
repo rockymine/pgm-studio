@@ -53,7 +53,8 @@ public static class MapExportComposer
                 var intent = await IntentStore.LoadAsync(db, mapId, ct);
                 var built = SketchWorldBuilder.Build(Encoding.UTF8.GetString(layoutBytes), intent);
                 IntentGenerator.Apply(doc, built.ResolvedIntent);
-                var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: []);
+                var renewCubes = SketchWorldBuilder.RenewableCubeFootprints(built.ResolvedIntent);
+                var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
                 return new(null, null, sketchXml, built);
             }
 

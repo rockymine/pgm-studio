@@ -591,6 +591,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   nearest land interface clicked, and `/api/plan/inspect` interface segments carry `woolRoom`/`wall` flags so
   the canvas renders red seams / heavy dark wall bars from data. Compiler passes `walls` through untouched
   (stamping is a later task). Pgm 230 / JS 107 tests green (Api plan inspect/compile endpoints green). (G22)
+- **Export structures — room floors, entrance redstone, iron cubes, approach walls (ST1–ST4)** — the plan
+  compiler derives a `MapIntent.Structures` section (block-coordinate directives, fanned across the symmetry
+  orbit) that the sketch world-export path stamps via `StructureStamper` (`PgmStudio.Minecraft`): each
+  `wool-room` piece's footprint becomes solid bedrock y=0→surface; each terrain↔room entrance seam gets a
+  redstone-wire row one block inside the room with a redstone torch at each end; each iron marker becomes a
+  4×4×4 iron cube resting on the surface (footprint centred on the snapped marker); each `wall`-marked
+  interface becomes a 2-thick full-width bedrock wall rising y=0→approach-side surface +4. The **approach
+  side** is the wall-pair member with the larger walk-graph (land + gap) distance to the nearest same-unit
+  wool marker (ties → the lower-surface side). Iron cubes inside a `spawn` piece carry `renew=true` and get a
+  per-cube renewable region in the generated `map.xml` (`StructureRenewables`: `iron-cubes` union +
+  `<renewable renew-filter="only-iron" replace-filter="only-air" avoid-players="2">`). The `isolated-spawn`
+  seed carries the authored intent (spawn/wool-room roles, an in-spawn iron marker, wall marks on the two
+  elevation seams). Pgm 234 / Minecraft 49 tests green; end-to-end world round-trip in Api.Tests reads the
+  stamped block ids back. (G23)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12

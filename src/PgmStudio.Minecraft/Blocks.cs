@@ -10,9 +10,12 @@ public static class Blocks
     public const int Stone = 1;
     public const int Bedrock = 7;
     public const int Wool = 35;
+    public const int IronBlock = 42;
     public const int Chest = 54;
+    public const int RedstoneWire = 55;
     public const int StandingSign = 63;
     public const int WallSign = 68;
+    public const int RedstoneTorch = 76;
     public const int StainedGlass = 95;
     public const int StainedClay = 159;
     public const int StainedGlassPane = 160;

@@ -14,13 +14,15 @@ using Dict = Dictionary<string, object?>;
 public static class MapXmlComposer
 {
     public static string Compose(Dict doc, bool isIntent, IReadOnlySet<int>? surfaceBlockIds,
-        IReadOnlyList<(string Type, int X, int Y, int Z)> resources)
+        IReadOnlyList<(string Type, int X, int Y, int Z)> resources,
+        IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)>? renewableCubes = null)
     {
         var mx = Deserializer.FromDict(doc);
         if (isIntent)
         {
             CtwStandards.Apply(mx, surfaceBlockIds);
             ResourceRenewables.Apply(mx, resources);
+            if (renewableCubes is { Count: > 0 }) StructureRenewables.Apply(mx, renewableCubes);
 
             // The not-build-area "no-void" rule must decide last (PGM stops at the first applicator).
             var voidRules = mx.ApplyRules.Where(r => r.RegionId == "not-build-area").ToList();
