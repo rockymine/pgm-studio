@@ -194,6 +194,12 @@ The open work sorts into three domains:
   elevation spatially while planning; the sketch tool's iso preview (prism/terrain calc in
   `sketch-bridge.js`) should be reusable over the compiled plan's pieces/surfaces. Follows the G25
   height-map toggle as the richer visualization.
+- [ ] **G29 — Climb profiling on lane chains (straight ramps vs switchbacks, approach labeling).** On the
+  seam graph, detect *climbs* (maximal monotone-elevation traversal runs), classify straight ramp vs
+  switchback/hairpin (direction reversal while climbing; displacement ≪ path length) and landings, and label
+  each climb by its top-end anchor (wool approach / mid ascent / interior) and per-team use (attacker climb
+  vs defender rotation). Spec: `docs/contracts/plan-editor.md` §2 "Climbs". Composer vocabulary for WL5/FR3
+  (straight approach vs space-packing switchback vs defensible landing). Depends on `G24`'s chains.
 - [ ] **G24 — Junction-region derivation + Hubs overlay + lane chains.** Derive hubs as *internal* computed
   structure on the unioned island footprint (mouth-extrusion intersections of ≥3 access mouths — see
   `docs/contracts/plan-editor.md` §2 "Junction regions"; corners yield nothing), expose them through

@@ -90,6 +90,15 @@ Author feedback after building the first real seed reshapes the role model:
   overlay ("Hubs") and the anchor for **lane chains**: a lane = the corridor between junction
   regions / dead ends, which is what width- and length-lint measure along (a lane cut into pieces
   for elevation or cornering is still one lane).
+- **Climbs (elevation profile on chains)** — a *climb* is a maximal run of land-interface traversals
+  with monotone elevation change. Each traversal carries a horizontal direction (interface midpoint
+  to midpoint) and a delta; a climb whose direction reverses (>~120°) while still monotone is a
+  **switchback/hairpin** (net displacement ≪ path length — height packed into a small footprint),
+  vs a **straight ramp** (displacement ≈ length); a flat piece between climbing segments is a
+  **landing**. Climbs are labeled by their top-end anchor (nearest wool room → wool approach; a
+  junction/mid piece → mid ascent; else interior), and by use per team (on enemy-spawn→wool paths =
+  attacker climb; on own-spawn→wool paths = defender rotation). Feeds composer vocabulary: straight
+  approach vs space-packing switchback vs defensible landing.
 - **Elevation transitions** — from surface deltas across `land` interfaces: 0 walk, ≤ jumpable →
   ledge, else the compiler stamps a step terrace (§3), or a `cliffs` entry forces one-way (EL3/EL5).
 
