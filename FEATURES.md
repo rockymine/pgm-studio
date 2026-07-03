@@ -580,6 +580,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a status-checked **Download world ZIP** (`GET /map/{slug}/export`). Proven live end-to-end: a compiled seed
   plan produced a playable `{slug}/` world ZIP (map.xml + level.dat + region/*.mca). Full-loop integration
   test in Api.Tests (45 green). (G20)
+- **Plan schema v2 — anonymous pieces + intent roles + wall marks** — pieces are anonymous by default
+  (`role: "piece"`); legacy `lane`/`hub`/`mid` (and any unknown value) map to `piece` on parse in both the C#
+  `PlanModel` and the JS `normalizeDoc`, so old plans/seeds load clean. Two optional intent-bearing roles kept:
+  `wool-room` (terrain↔room land seams render **red**, per ST1) and `spawn` (new **ST2** lint keeps iron
+  markers inside the spawn piece when one exists). A `walls` list beside `cliffs` marks pre-built approach
+  walls (piece-id pairs); `PlanDerived` exposes the wall-marked land interfaces and a structural **error** when
+  a wall pair shares no land seam. The editor palette collapses to one **Piece** draw tool plus the two area
+  roles (neutral piece tint; distinct wool-room/spawn tints), a **Wall** tool toggles a wall mark on the
+  nearest land interface clicked, and `/api/plan/inspect` interface segments carry `woolRoom`/`wall` flags so
+  the canvas renders red seams / heavy dark wall bars from data. Compiler passes `walls` through untouched
+  (stamping is a later task). Pgm 230 / JS 107 tests green (Api plan inspect/compile endpoints green). (G22)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12

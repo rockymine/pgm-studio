@@ -6,7 +6,7 @@
 
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
-  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, ROLES,
+  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, ROLES,
 } from "../plan/plan-doc.js";
 import { parseOverlays, sortFindings } from "../plan/plan-inspect.js";
 
@@ -25,6 +25,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     onChange: () => scheduleSave(),
     onCreate: (kind, rect) => createRect(kind, rect),
     onDelete: (sel) => deleteSelection(sel),
+    onToggleWall: (a, b) => toggleWallMark(a, b),
   });
 
   // ── document mutations (canvas + inspector edits funnel here) ───────────────
@@ -37,7 +38,8 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       canvas.select({ kind: "zone", id });
     } else {
       const role = canvasRole;
-      const id = uniqueId(doc.pieces.map(p => p.id), role === "wool-room" ? "wool" : role);
+      const base = role === "wool-room" ? "wool" : role === "spawn" ? "spawn" : "piece";
+      const id = uniqueId(doc.pieces.map(p => p.id), base);
       doc.pieces.push({ id, role, rect });
       canvas.setDoc(doc);
       canvas.select({ kind: "piece", id });
@@ -45,15 +47,26 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     scheduleSave();
   }
 
+  // Toggle a wall mark on a land-interface piece pair, then re-inspect immediately so the heavy bar (and the
+  // "not an interface" error, if the pair stops sharing a seam) refreshes without waiting on the debounce.
+  function toggleWallMark(a, b) {
+    toggleWall(doc, a, b);
+    canvas.setDoc(doc);
+    scheduleSave();
+    runInspect();
+  }
+
   function deleteSelection(sel) {
     if (!sel) return;
     if (sel.kind === "piece") {
       const p = doc.pieces.find(x => x.id === sel.id);
       doc.pieces = doc.pieces.filter(x => x.id !== sel.id);
-      if (p) {   // drop any markers that rode the removed piece
+      if (p) {   // drop any markers that rode the removed piece + any cliff/wall marks referencing it
         doc.placements.spawns = doc.placements.spawns.filter(m => m.piece !== sel.id);
         doc.placements.wools = doc.placements.wools.filter(m => m.piece !== sel.id);
         doc.placements.iron = doc.placements.iron.filter(m => m.piece !== sel.id);
+        doc.cliffs = (doc.cliffs || []).filter(c => c.a !== sel.id && c.b !== sel.id);
+        doc.walls = (doc.walls || []).filter(w => w.a !== sel.id && w.b !== sel.id);
       }
     } else if (sel.kind === "zone") {
       doc.zones = doc.zones.filter(x => x.id !== sel.id);
@@ -67,7 +80,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   }
 
   // Role armed for the next drawn piece (mirrored in the canvas so its preview colour matches).
-  let canvasRole = "lane";
+  let canvasRole = "piece";
 
   // ── autosave (debounced localStorage) ───────────────────────────────────────
 
@@ -128,7 +141,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   return {
     setTool(tool) { canvas.setTool(tool); },
-    setRole(role) { canvasRole = ROLES.includes(role) ? role : "lane"; canvas.setPieceRole(canvasRole); },
+    setRole(role) { canvasRole = ROLES.includes(role) ? role : "piece"; canvas.setPieceRole(canvasRole); },
     fit() { canvas.fit(); },
     resize() { canvas.resize(); },
 
@@ -152,7 +165,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       const p = doc.pieces.find(x => x.id === oldId); if (!p || !newId || newId === oldId) return;
       const id = uniqueId(doc.pieces.filter(x => x !== p).map(x => x.id), newId);
       for (const m of [...doc.placements.spawns, ...doc.placements.wools, ...doc.placements.iron]) if (m.piece === oldId) m.piece = id;
-      for (const c of doc.cliffs) { if (c.a === oldId) c.a = id; if (c.b === oldId) c.b = id; }
+      for (const c of [...(doc.cliffs || []), ...(doc.walls || [])]) { if (c.a === oldId) c.a = id; if (c.b === oldId) c.b = id; }
       p.id = id;
       canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave();
     },

@@ -98,6 +98,24 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task A_wall_on_a_non_interface_pair_is_an_error()
+    {
+        // a and b abut over a 10-block border (a real land interface) → wall ok; a and c are disjoint → error.
+        var ok = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"b","role":"piece","rect":[10,0,10,10]} ],
+          "walls":[ {"a":"a","b":"b"} ] }
+        """);
+        var bad = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"c","role":"piece","rect":[40,0,10,10]} ],
+          "walls":[ {"a":"a","b":"c"} ] }
+        """);
+        await Assert.That(Err(ok, "not a shared land interface")).IsFalse();
+        await Assert.That(Err(bad, "not a shared land interface")).IsTrue();
+    }
+
+    [Test]
     public async Task The_seed_plans_have_no_errors()
     {
         foreach (var name in new[] { "base-2island", "base-2wool", "base-4team" })
@@ -215,6 +233,32 @@ public sealed class PlanValidatorTests
         var even = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"a","role":"mid","rect":[0,0,10,10],"surface":13} ] }""");
         await Assert.That(Lint(odd, "EL1")).IsTrue();
         await Assert.That(Lint(even, "EL1")).IsFalse();
+    }
+
+    [Test]
+    public async Task ST2_fires_on_iron_outside_the_spawn_piece_only_when_a_spawn_role_exists()
+    {
+        // a spawn-role piece exists; iron on a separate (non-spawn) piece → ST2 fires.
+        var outside = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,10,10]}, {"id":"ln","role":"piece","rect":[0,20,10,10]} ],
+          "placements":{ "iron":[ {"piece":"ln","at":[5,5]} ] } }
+        """);
+        // iron sits inside the spawn piece → no ST2.
+        var inside = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,10,10]}, {"id":"ln","role":"piece","rect":[0,20,10,10]} ],
+          "placements":{ "iron":[ {"piece":"sp","at":[5,5]} ] } }
+        """);
+        // no spawn-role piece at all → ST2 dormant even with stray iron.
+        var noSpawnRole = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"ln","role":"piece","rect":[0,20,10,10]} ],
+          "placements":{ "iron":[ {"piece":"ln","at":[5,5]} ] } }
+        """);
+        await Assert.That(Lint(outside, "ST2")).IsTrue();
+        await Assert.That(Lint(inside, "ST2")).IsFalse();
+        await Assert.That(Lint(noSpawnRole, "ST2")).IsFalse();
     }
 
     [Test]

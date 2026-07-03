@@ -26,8 +26,11 @@ public sealed record GapLink(string A, string B, string Zone, int Hop);
 
 /// <summary>An edge/point contact between two pieces resolved to a block-space segment: the shared border for a
 /// land/sliver contact (a line), or the touch point for a corner (a degenerate segment). <see cref="Length"/>
-/// is the border length in blocks (0 for a corner).</summary>
-public sealed record InterfaceSegment(string A, string B, ContactKind Kind, int X1, int Z1, int X2, int Z2, int Length);
+/// is the border length in blocks (0 for a corner). <see cref="WoolRoom"/> flags a terrain↔wool-room land seam
+/// (rendered red); <see cref="Wall"/> flags a land interface marked as a pre-built approach wall.</summary>
+public sealed record InterfaceSegment(
+    string A, string B, ContactKind Kind, int X1, int Z1, int X2, int Z2, int Length,
+    bool WoolRoom = false, bool Wall = false);
 
 /// <summary>A piece edge facing a build zone, as a block-space segment (the computed frontline geometry).</summary>
 public sealed record FrontlineEdge(string Piece, string Zone, int X1, int Z1, int X2, int Z2);
@@ -49,6 +52,9 @@ public sealed class PlanDerived
     public IReadOnlyList<DerivedPiece> Pieces { get; }
     public IReadOnlyList<Contact> Contacts { get; }
     public IReadOnlyList<Contact> LandInterfaces { get; }
+    /// <summary>The land interfaces marked as pre-built approach walls (a <c>walls</c> pair that resolves to a
+    /// real land seam). A wall pair that shares no land interface is dropped here and flagged as an error.</summary>
+    public IReadOnlyList<Contact> WallInterfaces { get; }
     public IReadOnlyList<GapLink> GapLinks { get; }
     /// <summary>Piece ids that abut or overlap any build zone (the computed frontline).</summary>
     public IReadOnlySet<string> Frontline { get; }
@@ -75,10 +81,12 @@ public sealed class PlanDerived
 
         Contacts = ClassifyContacts(Pieces);
         LandInterfaces = Contacts.Where(c => c.Kind == ContactKind.Land).ToList();
+        var wallPairs = plan.Walls.Select(w => (w.A, w.B)).ToList();
+        WallInterfaces = LandInterfaces.Where(c => wallPairs.Contains((c.A, c.B)) || wallPairs.Contains((c.B, c.A))).ToList();
         Frontline = ComputeFrontline(plan, Cell, Pieces);
         Components = ComputeComponents(Pieces, Contacts);
         GapLinks = ComputeGapLinks(plan, Cell, Pieces, Components);
-        InterfaceSegments = BuildInterfaceSegments(_byId, Contacts);
+        InterfaceSegments = BuildInterfaceSegments(_byId, Contacts, wallPairs);
         FrontlineEdges = ComputeFrontlineEdges(plan, Cell, Pieces);
     }
 
@@ -218,14 +226,20 @@ public sealed class PlanDerived
     // ── overlay geometry (block-space segments the editor draws) ────────────────────────────────────────
 
     private static List<InterfaceSegment> BuildInterfaceSegments(
-        Dictionary<string, DerivedPiece> byId, IReadOnlyList<Contact> contacts)
+        Dictionary<string, DerivedPiece> byId, IReadOnlyList<Contact> contacts, IReadOnlyList<(string A, string B)> wallPairs)
     {
         var list = new List<InterfaceSegment>();
         foreach (var c in contacts)
         {
             if (c.Kind is not (ContactKind.Land or ContactKind.Sliver or ContactKind.Corner)) continue;
             var (x1, z1, x2, z2) = BorderSegment(byId[c.A].Rect, byId[c.B].Rect);
-            list.Add(new InterfaceSegment(c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength));
+            // Flags apply to land seams only: terrain↔wool-room (exactly one side is a room) renders red; a
+            // marked wall pair renders as a heavy bar.
+            bool woolRoom = c.Kind == ContactKind.Land
+                && (byId[c.A].Role == PlanRoles.WoolRoom) != (byId[c.B].Role == PlanRoles.WoolRoom);
+            bool wall = c.Kind == ContactKind.Land
+                && (wallPairs.Contains((c.A, c.B)) || wallPairs.Contains((c.B, c.A)));
+            list.Add(new InterfaceSegment(c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength, woolRoom, wall));
         }
         return list;
     }

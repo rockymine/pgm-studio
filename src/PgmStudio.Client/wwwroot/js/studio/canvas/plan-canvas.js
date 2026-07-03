@@ -15,7 +15,7 @@ import { svgEl } from "../render/svg.js";
 import {
   ROLE_COLORS, FACING_DIR, rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
   pieceAtCell, zoneAtCell, markerCell, attachMarker, markerAt, allMarkers, viewBounds,
-  pieceMirrorImages, markerMirrorImages,
+  pieceMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
 
 const FIT_MARGIN = 0.82;
@@ -44,8 +44,8 @@ function tint(hex, t) {
 
 export class PlanCanvas extends CanvasBase {
   #doc = null;
-  #tool = "select";                 // select | pan | piece | zone | spawn | wool | iron
-  #pieceRole = "lane";              // role armed for the piece tool
+  #tool = "select";                 // select | pan | piece | zone | spawn | wool | iron | wall
+  #pieceRole = "piece";             // role armed for the piece tool
   #sel = null;                      // { kind:'piece'|'zone', id } | { kind:'marker', markerKind, index }
   #drag = null;                     // { mode:'move'|'draw', ... } live pointer op
   #resize = null;                   // { handle, id, kind } while dragging a resize handle
@@ -75,7 +75,7 @@ export class PlanCanvas extends CanvasBase {
   setTool(tool) {
     this.#tool = tool;
     this._activeTool = tool === "pan" ? "move" : tool;
-    const draws = tool === "piece" || tool === "zone" || tool === "spawn" || tool === "wool" || tool === "iron";
+    const draws = tool === "piece" || tool === "zone" || tool === "spawn" || tool === "wool" || tool === "iron" || tool === "wall";
     this._svg.style.cursor = draws ? "crosshair" : (tool === "select" ? "default" : "");
   }
   setPieceRole(role) { this.#pieceRole = role; }
@@ -273,9 +273,16 @@ export class PlanCanvas extends CanvasBase {
           continue;
         }
         // A land segment sits exactly on a piece seam, where the piece strokes (or a same-green wool-room
-        // fill) would swallow a plain green line — a dark casing under a bright core reads on any fill.
+        // fill) would swallow a plain line — a dark casing under a bright core reads on any fill. A wall mark
+        // renders as a heavy near-black bar; a terrain↔wool-room seam renders red (ST1); other land is green.
         const seg = { x1: it.x1, y1: it.z1, x2: it.x2, y2: it.z2, "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" };
-        if (it.kind === "land") {
+        if (it.wall) {
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#000000", "stroke-width": "11" }));
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#3b3b44", "stroke-width": "6" }));
+        } else if (it.kind === "land" && it.woolRoom) {
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#4a1211", "stroke-width": "7" }));
+          layer.appendChild(svgEl("line", { ...seg, stroke: "#e5534b", "stroke-width": "3.5" }));
+        } else if (it.kind === "land") {
           layer.appendChild(svgEl("line", { ...seg, stroke: "#123d26", "stroke-width": "7" }));
           layer.appendChild(svgEl("line", { ...seg, stroke: "#4ade80", "stroke-width": "3.5" }));
         } else {
@@ -393,6 +400,7 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(cx, cz);
+    if (this.#tool === "wall") return this.#toggleWallAt(svgPt.x, svgPt.y);
     if (this.#tool === "piece" || this.#tool === "zone") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#renderPreview(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
     if (this.#tool === "spawn" || this.#tool === "wool" || this.#tool === "iron") this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
@@ -499,6 +507,15 @@ export class PlanCanvas extends CanvasBase {
     this.#sel = { kind: "marker", markerKind: kind, index: list.length - 1 };
     this.setTool("select"); this.#cb.onTool?.("select");
     this.render(); this.#cb.onChange?.(); this.#fireSelect();
+  }
+
+  // Wall tool: toggle a wall mark on the land interface nearest the click (within one cell). The mark rides
+  // the piece pair; the bridge mutates doc.walls and re-inspects so the heavy bar renders from the feed. The
+  // wall tool stays armed for repeated toggling.
+  #toggleWallAt(wx, wz) {
+    const cell = this.#doc.globals.cell;
+    const it = nearestInterface(this.#inspect.interfaces, wx, wz, cell);
+    if (it) this.#cb.onToggleWall?.(it.a, it.b);
   }
 
   #renderPreview() {

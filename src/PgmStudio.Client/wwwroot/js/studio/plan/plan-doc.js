@@ -11,11 +11,16 @@
 
 import { applySymmetry, applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
 
-// Piece roles — the left-toolbar palette, in display order. Colours are theme-independent so a piece
-// reads the same on the dark canvas in either theme; the fill is tinted lighter for a higher surface.
-export const ROLES = ["lane", "hub", "wool-room", "mid"];
-export const ROLE_COLORS = { lane: "#4a90d9", hub: "#9b6bd0", "wool-room": "#3fae74", mid: "#d9a441" };
-export const ROLE_LABELS = { lane: "Lane", hub: "Hub", "wool-room": "Wool room", mid: "Mid" };
+// Piece roles — the left-toolbar palette, in display order. Pieces are anonymous by default (one neutral
+// tint); the two intent-bearing roles (wool-room / spawn) keep distinct tints. Colours are theme-independent
+// so a piece reads the same on the dark canvas in either theme; the fill is tinted lighter for a higher
+// surface. Legacy role names (lane/hub/mid) map to "piece" on load.
+export const ROLES = ["piece", "wool-room", "spawn"];
+export const ROLE_COLORS = { piece: "#7c8899", "wool-room": "#3fae74", spawn: "#8f7bd6" };
+export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn" };
+
+/** Fold a raw (possibly legacy or unknown) role down to a canonical one: only wool-room / spawn survive. */
+export function canonicalRole(role) { return role === "wool-room" || role === "spawn" ? role : "piece"; }
 
 // Marker facing cycles front → right → back → left on repeated clicks; the arrow points along a fixed
 // screen direction per enum (front = up / −Z, matching "toward the centre" for a piece on the +Z side).
@@ -33,6 +38,7 @@ export function emptyDoc() {
     zones: [],
     placements: { spawns: [], wools: [], iron: [] },
     cliffs: [],
+    walls: [],
   };
 }
 
@@ -53,7 +59,7 @@ export function normalizeDoc(d) {
     meta,
     globals,
     pieces: (src.pieces || []).map(p => {
-      const o = { id: p.id ?? "", role: p.role ?? "lane", rect: [...(p.rect || [0, 0, 1, 1])] };
+      const o = { id: p.id ?? "", role: canonicalRole(p.role), rect: [...(p.rect || [0, 0, 1, 1])] };
       if (p.surface != null) o.surface = p.surface;
       if (p.mirrors != null) o.mirrors = p.mirrors;
       return o;
@@ -65,6 +71,7 @@ export function normalizeDoc(d) {
       iron: (src.placements?.iron || []).map(i => ({ piece: i.piece ?? "", at: [...(i.at || [0, 0])] })),
     },
     cliffs: (src.cliffs || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
+    walls: (src.walls || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
   };
 }
 
@@ -133,6 +140,49 @@ export function markerCell(doc, marker) {
 export function attachMarker(doc, cx, cz) {
   const p = pieceAtCell(doc, Math.floor(cx), Math.floor(cz));
   return p ? { piece: p.id, at: [snapHalf(cx - p.rect[0]), snapHalf(cz - p.rect[1])] } : null;
+}
+
+// ── wall marks (land-interface annotations) ─────────────────────────────────
+
+/** True if wall pair `w` marks the (unordered) piece pair `a`/`b`. */
+export function wallMatches(w, a, b) { return (w.a === a && w.b === b) || (w.a === b && w.b === a); }
+
+/**
+ * Toggle a wall mark on the (unordered) piece pair `a`/`b` in the document's `walls` list; returns true when
+ * the mark was added, false when an existing mark was removed. Mutates `doc.walls` in place.
+ */
+export function toggleWall(doc, a, b) {
+  if (!doc.walls) doc.walls = [];
+  const i = doc.walls.findIndex(w => wallMatches(w, a, b));
+  if (i >= 0) { doc.walls.splice(i, 1); return false; }
+  doc.walls.push({ a, b });
+  return true;
+}
+
+/** Distance (blocks) from point `(px, pz)` to the segment `(x1,z1)-(x2,z2)`. */
+function pointSegDist(px, pz, x1, z1, x2, z2) {
+  const dx = x2 - x1, dz = z2 - z1;
+  const len2 = dx * dx + dz * dz;
+  let t = len2 === 0 ? 0 : ((px - x1) * dx + (pz - z1) * dz) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const cx = x1 + t * dx, cz = z1 + t * dz;
+  return Math.hypot(px - cx, pz - cz);
+}
+
+/**
+ * The land-interface segment nearest a world/block point, within `maxDist` blocks, or null. Only land seams
+ * (kind "land", a non-degenerate segment) can carry a wall, so slivers/corners are skipped. The segments come
+ * from the /api/plan/inspect feed (each already resolved to block coordinates, carrying its `a`/`b` pair).
+ */
+export function nearestInterface(interfaces, wx, wz, maxDist) {
+  let best = null, bestD = maxDist == null ? Infinity : maxDist;
+  for (const it of interfaces || []) {
+    if (it.kind !== "land") continue;
+    if (it.x1 === it.x2 && it.z1 === it.z2) continue;   // degenerate (corner point)
+    const d = pointSegDist(wx, wz, it.x1, it.z1, it.x2, it.z2);
+    if (d <= bestD) { bestD = d; best = it; }
+  }
+  return best;
 }
 
 /** An id unique among `existing`, derived from `base` with a numeric suffix when needed. */

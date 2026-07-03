@@ -10,6 +10,7 @@ import {
   rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
   pieceAtCell, zoneAtCell, markerCell, attachMarker, snapHalf, allMarkers,
   contentBounds, viewBounds, pieceMirrorImages, markerMirrorImages, ROLES,
+  canonicalRole, toggleWall, nearestInterface,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -154,7 +155,46 @@ test("allMarkers flattens spawns/wools/iron with kind + index", () => {
 });
 
 test("ROLES palette order is stable", () => {
-  assert.deepEqual(ROLES, ["lane", "hub", "wool-room", "mid"]);
+  assert.deepEqual(ROLES, ["piece", "wool-room", "spawn"]);
+});
+
+// ── schema v2: anonymous roles + wall marks ──────────────────────────────────
+test("canonicalRole folds legacy/unknown roles to piece, keeps intent roles", () => {
+  assert.equal(canonicalRole("lane"), "piece");
+  assert.equal(canonicalRole("hub"), "piece");
+  assert.equal(canonicalRole("mid"), "piece");
+  assert.equal(canonicalRole(undefined), "piece");
+  assert.equal(canonicalRole("nonsense"), "piece");
+  assert.equal(canonicalRole("wool-room"), "wool-room");
+  assert.equal(canonicalRole("spawn"), "spawn");
+});
+
+test("normalizeDoc maps legacy piece roles on load", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    pieces: [{ id: "a", role: "lane", rect: [0, 0, 2, 2] }, { id: "b", role: "wool-room", rect: [2, 0, 2, 2] }],
+  });
+  assert.equal(doc.pieces[0].role, "piece");
+  assert.equal(doc.pieces[1].role, "wool-room");
+  assert.deepEqual(doc.walls, []);   // walls default to an empty list
+});
+
+test("toggleWall adds then removes a wall mark, order-insensitive", () => {
+  const doc = normalizeDoc({ plan: 1 });
+  assert.equal(toggleWall(doc, "a", "b"), true);
+  assert.deepEqual(doc.walls, [{ a: "a", b: "b" }]);
+  assert.equal(toggleWall(doc, "b", "a"), false);   // same pair, reversed → removes it
+  assert.deepEqual(doc.walls, []);
+});
+
+test("nearestInterface picks the closest land seam within range, skipping slivers/corners", () => {
+  const interfaces = [
+    { a: "a", b: "b", kind: "land", x1: 0, z1: 0, x2: 0, z2: 20 },     // vertical seam at x=0
+    { a: "c", b: "d", kind: "land", x1: 40, z1: 0, x2: 40, z2: 20 },   // far seam
+    { a: "e", b: "f", kind: "sliver", x1: 2, z1: 0, x2: 2, z2: 5 },    // not a land seam
+  ];
+  assert.equal(nearestInterface(interfaces, 1, 10, 5).a, "a");         // 1 block from the x=0 seam
+  assert.equal(nearestInterface(interfaces, 20, 10, 5), null);         // nothing within 5 blocks
 });
 
 // ── round-trip a real seed plan ──────────────────────────────────────────────

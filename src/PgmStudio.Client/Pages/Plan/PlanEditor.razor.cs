@@ -34,7 +34,7 @@ public partial class PlanEditor
     private string? draftError;
 
     private string tool = "select";
-    private string role = "lane";
+    private string role = "piece";
     private string zoomLabel = "—";
     private string? importError;
 
@@ -52,10 +52,9 @@ public partial class PlanEditor
     private record RolePalette(string Id, string Label, string Color);
     private static readonly RolePalette[] Roles =
     [
-        new("lane", "Lane", "#4a90d9"),
-        new("hub", "Hub", "#9b6bd0"),
+        new("piece", "Piece", "#7c8899"),
         new("wool-room", "Wool room", "#3fae74"),
-        new("mid", "Mid", "#d9a441"),
+        new("spawn", "Spawn", "#8f7bd6"),
     ];
 
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
@@ -143,7 +142,7 @@ public partial class PlanEditor
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
 
     private Task OnPieceRole(ChangeEventArgs e)
-        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceRole", sel.Id, e.Value?.ToString() ?? "lane").AsTask() : Task.CompletedTask;
+        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setPieceRole", sel.Id, e.Value?.ToString() ?? "piece").AsTask() : Task.CompletedTask;
 
     private Task StepSurface(int delta)
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("stepPieceSurface", sel.Id, delta).AsTask() : Task.CompletedTask;

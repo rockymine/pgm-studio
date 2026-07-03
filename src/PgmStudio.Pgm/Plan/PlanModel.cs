@@ -3,6 +3,27 @@ using System.Text.Json.Serialization;
 
 namespace PgmStudio.Pgm.Plan;
 
+/// <summary>The authorable piece roles. A piece is anonymous by default (<see cref="Piece"/>); meaning is
+/// derived from the assembled graph. Two roles carry intent and are kept: <see cref="WoolRoom"/> (the room
+/// region — red terrain seams, bedrock floor at export) and <see cref="Spawn"/> (the spawn region — iron
+/// inside it auto-renews). Retired role names (<c>lane</c>/<c>hub</c>/<c>mid</c>) and any unknown value map
+/// to <see cref="Piece"/>.</summary>
+public static class PlanRoles
+{
+    public const string Piece = "piece";
+    public const string WoolRoom = "wool-room";
+    public const string Spawn = "spawn";
+
+    /// <summary>The canonical role for a raw (possibly legacy or empty) value: only <c>wool-room</c> and
+    /// <c>spawn</c> survive; everything else — including <c>lane</c>/<c>hub</c>/<c>mid</c> — is a plain piece.</summary>
+    public static string Canonical(string? role) => role switch
+    {
+        WoolRoom => WoolRoom,
+        Spawn => Spawn,
+        _ => Piece,
+    };
+}
+
 /// <summary>
 /// The plan wire model (<c>*.plan.json</c>) — a mini-layout scale proxy: globals + a single team unit
 /// (pieces, zones, placements) authored once, with symmetry fanning the rest. All footprint coordinates are
@@ -19,6 +40,7 @@ public sealed class PlanModel
     [JsonPropertyName("zones")]      public List<PlanZone> Zones { get; set; } = [];
     [JsonPropertyName("placements")] public PlanPlacements Placements { get; set; } = new();
     [JsonPropertyName("cliffs")]     public List<PlanCliff> Cliffs { get; set; } = [];
+    [JsonPropertyName("walls")]      public List<PlanWall> Walls { get; set; } = [];
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -27,7 +49,20 @@ public sealed class PlanModel
     };
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
-    public static PlanModel? Parse(string json) => JsonSerializer.Deserialize<PlanModel>(json, Json);
+
+    public static PlanModel? Parse(string json)
+    {
+        var model = JsonSerializer.Deserialize<PlanModel>(json, Json);
+        model?.Normalize();
+        return model;
+    }
+
+    /// <summary>Fold legacy/unknown piece roles down to their canonical value, so plans authored under the
+    /// earlier role model (<c>lane</c>/<c>hub</c>/<c>mid</c>) load cleanly as anonymous pieces.</summary>
+    private void Normalize()
+    {
+        foreach (var p in Pieces) p.Role = PlanRoles.Canonical(p.Role);
+    }
 }
 
 public sealed class PlanMeta
@@ -55,7 +90,7 @@ public sealed class PlanGlobals
 public sealed class PlanPiece
 {
     [JsonPropertyName("id")]      public string Id { get; set; } = "";
-    [JsonPropertyName("role")]    public string Role { get; set; } = "";
+    [JsonPropertyName("role")]    public string Role { get; set; } = PlanRoles.Piece;
     [JsonPropertyName("rect")]    public int[] Rect { get; set; } = [0, 0, 0, 0];
     [JsonPropertyName("surface")] public int? Surface { get; set; }
     [JsonPropertyName("mirrors")] public bool? Mirrors { get; set; }
@@ -111,6 +146,15 @@ public sealed class IronPlacement
 /// <summary>A land interface between pieces <see cref="A"/> and <see cref="B"/> forced to a one-way drop
 /// (a cliff), suppressing the step-terrace an elevation delta would otherwise require.</summary>
 public sealed class PlanCliff
+{
+    [JsonPropertyName("a")] public string A { get; set; } = "";
+    [JsonPropertyName("b")] public string B { get; set; } = "";
+}
+
+/// <summary>A land interface between pieces <see cref="A"/> and <see cref="B"/> marked as a pre-built approach
+/// wall (stamped as a full-lane-width bedrock barrier at export). The pair must actually share a land
+/// interface — a wall on a non-interface pair is a validation error.</summary>
+public sealed class PlanWall
 {
     [JsonPropertyName("a")] public string A { get; set; } = "";
     [JsonPropertyName("b")] public string B { get; set; } = "";

@@ -54,6 +54,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
         {
             a = s.A, b = s.B, kind = s.Kind.ToString().ToLowerInvariant(),
             x1 = s.X1, z1 = s.Z1, x2 = s.X2, z2 = s.Z2, length = s.Length,
+            woolRoom = s.WoolRoom, wall = s.Wall,
         });
 
         var gapLinks = d.GapLinks.Select(g =>

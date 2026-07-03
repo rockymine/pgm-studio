@@ -59,6 +59,13 @@ public static class PlanValidator
         foreach (var w in plan.Placements.Wools) CheckInside(d, "wool", w.Piece, w.At, findings);
         foreach (var ir in plan.Placements.Iron) CheckInside(d, "iron", ir.Piece, ir.At, findings);
 
+        // a wall mark must land on a real shared land interface (else there is no lane seam to build across)
+        var landPairs = new HashSet<(string, string)>();
+        foreach (var c in d.LandInterfaces) { landPairs.Add((c.A, c.B)); landPairs.Add((c.B, c.A)); }
+        foreach (var w in plan.Walls)
+            if (!landPairs.Contains((w.A, w.B)))
+                Error($"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
+
         // reachability over the fanned board: every wool reachable from each capturing team's spawn, and not
         // only via a spawn piece
         findings.AddRange(ReachabilityErrors(plan, d));
@@ -117,7 +124,7 @@ public static class PlanValidator
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
     public static readonly IReadOnlyList<Func<PlanModel, PlanDerived, IEnumerable<PlanFinding>>> LintRules =
     [
-        LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3,
+        LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3, LintSt2,
     ];
 
     private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
@@ -214,6 +221,23 @@ public static class PlanValidator
             if (Math.Abs(c.SurfaceDelta) < 4) continue;
             if (cliffs.Contains((c.A, c.B)) || cliffs.Contains((c.B, c.A))) continue;
             yield return Lint("EL3", $"land interface '{c.A}'–'{c.B}' delta {c.SurfaceDelta} ≥ 4 requires a cliff", c.A, c.B);
+        }
+    }
+
+    // ST2 — when a spawn-role piece exists, every iron marker belongs inside a spawn piece (iron inside the
+    // spawn region auto-renews in the export; iron elsewhere is dead resource).
+    private static IEnumerable<PlanFinding> LintSt2(PlanModel plan, PlanDerived d)
+    {
+        var spawnPieces = d.Pieces.Where(p => p.Role == PlanRoles.Spawn).ToList();
+        if (spawnPieces.Count == 0) yield break;
+        foreach (var ir in plan.Placements.Iron)
+        {
+            var piece = d.Piece(ir.Piece);
+            if (piece is null) continue;                       // unknown-piece handled as a structural error
+            var (bx, bz) = ResolveBlock(piece.Value.Rect, ir.At, d.Cell);
+            bool inside = spawnPieces.Any(sp =>
+                bx >= sp.Rect.MinX && bx <= sp.Rect.MaxX && bz >= sp.Rect.MinZ && bz <= sp.Rect.MaxZ);
+            if (!inside) yield return Lint("ST2", $"iron at ({bx:0},{bz:0}) outside the spawn piece", ir.Piece);
         }
     }
 

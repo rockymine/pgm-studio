@@ -44,6 +44,43 @@ public sealed class PlanModelTests
     }
 
     [Test]
+    public async Task Legacy_piece_roles_map_to_piece_and_intent_roles_survive()
+    {
+        var plan = PlanModel.Parse("""
+        { "plan":1,
+          "pieces":[ {"id":"a","role":"lane","rect":[0,0,2,2]},
+                     {"id":"b","role":"hub","rect":[2,0,2,2]},
+                     {"id":"c","role":"mid","rect":[4,0,2,2]},
+                     {"id":"d","role":"wool-room","rect":[6,0,2,2]},
+                     {"id":"e","role":"spawn","rect":[8,0,2,2]},
+                     {"id":"f","rect":[10,0,2,2]} ] }
+        """)!;
+        await Assert.That(plan.Pieces[0].Role).IsEqualTo(PlanRoles.Piece);   // lane
+        await Assert.That(plan.Pieces[1].Role).IsEqualTo(PlanRoles.Piece);   // hub
+        await Assert.That(plan.Pieces[2].Role).IsEqualTo(PlanRoles.Piece);   // mid
+        await Assert.That(plan.Pieces[3].Role).IsEqualTo(PlanRoles.WoolRoom);
+        await Assert.That(plan.Pieces[4].Role).IsEqualTo(PlanRoles.Spawn);
+        await Assert.That(plan.Pieces[5].Role).IsEqualTo(PlanRoles.Piece);   // absent → default
+    }
+
+    [Test]
+    public async Task Walls_parse_and_round_trip()
+    {
+        var plan = PlanModel.Parse("""
+        { "plan":1,
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,2,2]}, {"id":"b","role":"piece","rect":[2,0,2,2]} ],
+          "walls":[ {"a":"a","b":"b"} ] }
+        """)!;
+        await Assert.That(plan.Walls.Count).IsEqualTo(1);
+        await Assert.That(plan.Walls[0].A).IsEqualTo("a");
+        await Assert.That(plan.Walls[0].B).IsEqualTo("b");
+
+        var reparsed = PlanModel.Parse(plan.ToJson())!;
+        await Assert.That(reparsed.Walls.Count).IsEqualTo(1);
+        await Assert.That(reparsed.Walls[0].B).IsEqualTo("b");
+    }
+
+    [Test]
     public async Task Absent_optional_color_is_null_and_defaults_apply()
     {
         var plan = PlanModel.Parse("""{ "plan": 1, "placements": { "wools": [ { "piece": "a", "at": [0, 0] } ] } }""")!;

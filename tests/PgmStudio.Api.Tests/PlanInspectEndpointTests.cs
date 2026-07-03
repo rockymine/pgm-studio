@@ -64,6 +64,33 @@ public sealed class PlanInspectEndpointTests
     }
 
     [Test]
+    public async Task Interfaces_carry_wool_room_and_wall_flags()
+    {
+        await using var factory = new WebApplicationFactory<Program>();
+        using var client = factory.CreateClient();
+
+        // a (piece) — b (wool-room) is a terrain↔room seam; a — c abut and carry a wall mark.
+        const string plan = """
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,20]},
+                     {"id":"b","role":"wool-room","rect":[10,0,10,10]},
+                     {"id":"c","role":"piece","rect":[10,10,10,10]} ],
+          "walls":[ {"a":"a","b":"c"} ] }
+        """;
+        var resp = await client.PostAsync("/api/plan/inspect", new StringContent(plan, Encoding.UTF8, "application/json"));
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var interfaces = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("interfaces");
+        var ab = interfaces.EnumerateArray().First(s =>
+            new[] { s.GetProperty("a").GetString(), s.GetProperty("b").GetString() }.Order().SequenceEqual(new[] { "a", "b" }));
+        var ac = interfaces.EnumerateArray().First(s =>
+            new[] { s.GetProperty("a").GetString(), s.GetProperty("b").GetString() }.Order().SequenceEqual(new[] { "a", "c" }));
+        await Assert.That(ab.GetProperty("woolRoom").GetBoolean()).IsTrue();
+        await Assert.That(ab.GetProperty("wall").GetBoolean()).IsFalse();
+        await Assert.That(ac.GetProperty("wall").GetBoolean()).IsTrue();
+    }
+
+    [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {
         await using var factory = new WebApplicationFactory<Program>();

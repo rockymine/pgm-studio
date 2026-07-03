@@ -99,8 +99,11 @@
                 <button class="plan-role-btn @(tool == "iron" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("iron")'>
                   <i data-lucide="pickaxe"></i> Iron
                 </button>
+                <button class="plan-role-btn @(tool == "wall" ? "plan-role-btn--active" : null)" title="Mark a land interface as a pre-built wall" @onclick='() => PickTool("wall")'>
+                  <i data-lucide="brick-wall"></i> Wall
+                </button>
               </div>
-              <p class="section-desc">Markers ride the piece under them. Click a placed spawn to cycle its facing.</p>
+              <p class="section-desc">Markers ride the piece under them. Click a placed spawn to cycle its facing. The Wall tool toggles a wall mark on the land interface you click.</p>
             </div>
           </div>
         </div>

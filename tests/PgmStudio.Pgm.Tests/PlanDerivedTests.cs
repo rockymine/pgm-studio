@@ -196,6 +196,39 @@ public sealed class PlanDerivedTests
     }
 
     [Test]
+    public async Task A_wall_mark_resolves_to_its_land_interface_and_flags_the_segment()
+    {
+        // a and b abut over a 10-block land border; a wall mark on the pair → one wall interface + a flagged segment.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"b","role":"piece","rect":[10,0,10,10]} ],
+          "walls":[ {"a":"b","b":"a"} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        await Assert.That(d.WallInterfaces.Count).IsEqualTo(1);
+        var seg = d.InterfaceSegments.Single(s => s.Kind == ContactKind.Land);
+        await Assert.That(seg.Wall).IsTrue();
+        await Assert.That(seg.WoolRoom).IsFalse();
+    }
+
+    [Test]
+    public async Task A_terrain_to_wool_room_land_seam_is_flagged_wool_room()
+    {
+        // a (piece) abuts b (wool-room) → the seam flags woolRoom; a wool-room↔wool-room seam does not.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
+                     {"id":"b","role":"wool-room","rect":[10,0,10,10]},
+                     {"id":"c","role":"wool-room","rect":[20,0,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+        var ab = d.InterfaceSegments.Single(s => (s.A, s.B) is ("a", "b") or ("b", "a"));
+        var bc = d.InterfaceSegments.Single(s => (s.A, s.B) is ("b", "c") or ("c", "b"));
+        await Assert.That(ab.WoolRoom).IsTrue();
+        await Assert.That(bc.WoolRoom).IsFalse();   // both sides are rooms → not a terrain seam
+    }
+
+    [Test]
     public async Task Nearest_segment_connects_the_confronting_edges_across_a_gap()
     {
         // a right edge at x=10, b left edge at x=20; they share z∈[0,10] → mid z = 5 on both ends.
