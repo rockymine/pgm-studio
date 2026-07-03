@@ -161,6 +161,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
   `exclude_blocks`). Pairs with A4.
 
+- [ ] **B20 — Api.Tests: shared-schema parallel contamination (flaky counts).** The suite runs against one
+  shared `pgm_studio_test` schema with parallel test classes and no per-test isolation, so row-count and
+  slug assertions race and accumulate across runs — observed tonight as 8, 12, and 18 failures on different
+  runs ("Expected 1 but found 92", slug dedup returning `my-sketch-3`, author-patch 404s), each time
+  baseline-verified as pre-existing via stash-compare; the old note documented it as a milder 1/5/8 flake.
+  Investigate + fix with real isolation: per-class database/schema (create+migrate+drop), or
+  transaction-per-test rollback, or unique-prefixed fixtures with scoped assertions — pick the cheapest that
+  makes counts deterministic; serializing the collection is the fallback. Update the cloud-setup.md note
+  once the flake is gone.
+
 ## Layout generation (G) — auto map generation (lane sketch generators)
 
 The "meaning → structure" engine: seed a draft map from lane primitives, then hand an editable
