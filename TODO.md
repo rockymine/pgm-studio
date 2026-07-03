@@ -20,6 +20,17 @@ uses to build the boring-seed corpus. Design: `docs/contracts/layout-generation.
 `docs/contracts/layout-rules.md` (the expert rule checklist, provisional), `docs/contracts/plan-editor.md`
 (schema · compiler · editor · milestones).
 
+- [ ] **G22 — Plan schema v2: anonymous pieces + intent-bearing area roles + wall marks.** Palette collapses
+  to one **Piece** tool (`lane`/`hub`/`mid` roles retired; existing plans load with legacy roles mapped to
+  `piece`); optional **Wool room** and **Spawn** area roles kept (they carry intent — layout-rules.md
+  PC1–PC3/ST1–ST2), with terrain↔wool-room interfaces rendered **red**; a `walls` interface-mark list beside
+  `cliffs` (ST4) editable on the canvas; new lint: iron markers inside the spawn piece when one exists.
+  (`plan-editor.md` §1 "Schema v2")
+- [ ] **G23 — Export structures: room floor, redstone line, iron cube, approach walls.** The compile/export
+  pipeline stamps: the wool-room piece's footprint as solid bedrock y=0→floor; the redstone entrance line
+  (torch at either end) on the room's last row at its entrance interface; iron markers as 4×4×4 iron cubes
+  (auto-renewed in the XML when inside the spawn piece); `wall` interfaces as 2-thick full-lane-width bedrock
+  walls, top = approach-side terrain +3..4, down to y=0. (layout-rules.md ST1–ST4)
 - [ ] **G21 — Author the boring-seed corpus.** Burn down the seed shopping list (`layout-rules.md`):
   raised-spawn, isolated-spawn, wool-two-sided, multi-wool-spread, fragmented-island, frontline-tower,
   elevation-rich, big-board, four-team-hole, mirror-mode. Each lands as `tools/seeds/*.plan.json` (compiled

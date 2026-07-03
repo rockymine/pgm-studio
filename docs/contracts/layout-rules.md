@@ -157,6 +157,37 @@ toward the map centre / the enemy; "back" = toward the map edge.
   levels, only outlines.
 - **EL5 [expert]** Cliffs (one-way drops): **in v1**.
 
+## PC — Pieces are anonymous
+
+- **PC1 [expert]** Pieces carry no semantic role by default — a piece is a modeling unit (cut for
+  elevation, cornering, or interface-driving), and one *lane* is typically several pieces. Meaning
+  is **derived from the assembled graph**: a lane = a maximal chain of pieces joined by full-width
+  land interfaces with no branching (elevation steps and corners do not break it); a hub = a
+  junction **region** (degree ≥3 in the walk graph, e.g. the "plus" in front of a spawn), which may
+  sit mid-piece and is never reliably a whole piece; a degree-2 corner is not a hub; a mid /
+  stepping-stone = a markerless standalone piece inside a build area.
+- **PC2 [expert]** Route *purposes* are contextual, never authored: the same piece can be defender
+  egress, an attack route, and the shortest wool-to-wool rotation, depending on which team's spawn,
+  wools, and bridges you measure from (the isolated-spawn seed's centre plate is all three).
+- **PC3 [expert]** Two roles remain explicitly authorable because they carry intent, and both are
+  **optional**: `wool-room` and `spawn` (see ST1/ST2). Everything else is `piece`.
+
+## ST — Stamped structures (export)
+
+- **ST1 [expert]** *Wool room piece* (optional): defines the full room **region**; its footprint is
+  stamped **solid bedrock from y=0 to its floor** (no tunnelling in from below); a **redstone line
+  with a torch at either end** lies on the last block row at the room's entrance interface — the
+  conventional marker for where entrance protection begins. The editor renders terrain↔wool-room
+  interfaces **red**.
+- **ST2 [expert]** *Spawn piece* (optional): defines the spawn **region**. Iron placed inside it is
+  **auto-renewed** in the generated XML (load-bearing for gameplay); lint: when a spawn piece
+  exists, iron markers belong inside it. Spawns have no redstone line.
+- **ST3 [expert]** *Iron structure*: an iron marker stamps a **4×4×4 iron-block cube**.
+- **ST4 [expert]** *Pre-built wall*: an interface on a wool-approach lane may be marked `wall` — a
+  bedrock wall **2 blocks thick**, spanning the **full lane width**, its top **3–4 blocks above the
+  terrain on the approach side** (the side an attacker comes from, toward the wool), reaching down
+  to **y=0**. Typically placed at elevation-step interfaces to slow the push.
+
 ## Seed shopping list
 
 The `[seed-needed]` roster — each authored seed pins one open rule; names are suggestions:

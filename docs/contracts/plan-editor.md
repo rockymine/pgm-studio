@@ -56,6 +56,21 @@ Notes:
 - Wool colours are not authored: one wool → the team colour, several → distinct dyes (the
   existing `LaneMapGenerator` convention). Team palette from the shared slot list.
 
+### Schema v2 (first-use corrections)
+
+Author feedback after building the first real seed reshapes the role model:
+
+- **Pieces are anonymous** (`role: "piece"`, the default and the only palette draw tool). `lane`,
+  `hub`, and `mid` are retired as authored roles — a lane is usually *several* pieces (cut for
+  elevation/corners), a hub is a junction *region* that may sit mid-piece, and both are derived
+  from the assembled graph (layout-rules.md PC1–PC2). Lint that referenced authored roles moves to
+  derived lane-chains and junction regions.
+- **Two optional intent-bearing roles remain**: `wool-room` (the full room region → bedrock column
+  floor, redstone entrance line, red terrain↔room interfaces in the editor) and `spawn` (the spawn
+  region → iron inside it auto-renews in the XML; lint keeps iron markers inside it). ST1–ST3.
+- **Interface marks**: beside `cliffs`, a `walls` list (piece-id pairs) marks pre-built approach
+  walls (ST4). Marker `at` offsets are half-cell doubles (markers are stamp centres).
+
 ## 2. Derived structure (computed, never stored)
 
 - **Land interfaces** — two pieces connect iff they share a straight border segment of length
