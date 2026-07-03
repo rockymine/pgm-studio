@@ -47,6 +47,7 @@ public partial class PlanEditor
 
     // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs) + the live lint feed.
     private bool overlayInterfaces = true, overlayGaps = true, overlayFrontline = true;
+    private bool heightMap;
     private List<InspectFinding> findings = [];
 
     private record RolePalette(string Id, string Label, string Color);
@@ -68,6 +69,7 @@ public partial class PlanEditor
         await handle.InvokeVoidAsync("setRole", role);
         try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
         try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
+        try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
         StateHasChanged();
     }
 
@@ -100,6 +102,12 @@ public partial class PlanEditor
             _ => true,
         };
         if (handle is not null) await handle.InvokeVoidAsync("setOverlay", key, on);
+    }
+
+    private async Task ToggleHeightMap()
+    {
+        heightMap = !heightMap;
+        if (handle is not null) await handle.InvokeVoidAsync("setHeightMap", heightMap);
     }
 
     private Task HighlightFinding(InspectFinding f)

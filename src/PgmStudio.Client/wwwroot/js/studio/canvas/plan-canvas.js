@@ -13,9 +13,10 @@
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
 import {
-  ROLE_COLORS, FACING_DIR, rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
-  pieceAtCell, zoneAtCell, markerCell, attachMarker, markerAt, allMarkers, viewBounds,
-  pieceMirrorImages, markerMirrorImages, nearestInterface,
+  ROLE_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
+  markerCell, attachMarker, markerAt, allMarkers, viewBounds, pickAtWorld, sameSelection,
+  pieceSurface, surfaceRange, surfaceFraction,
+  pieceMirrorImages, zoneMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
 
 const FIT_MARGIN = 0.82;
@@ -42,6 +43,18 @@ function tint(hex, t) {
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 
+// Height-map ramp: monotonically-lightening deep-blue → teal → pale-gold stops. Lowest surface → darkest,
+// highest → lightest, so island heights read at a glance on the dark canvas in either theme.
+const HEIGHT_STOPS = [[0, [26, 44, 74]], [0.5, [46, 128, 130]], [1, [232, 214, 128]]];
+function heightColor(t) {
+  const v = Math.max(0, Math.min(1, t));
+  let lo = HEIGHT_STOPS[0], hi = HEIGHT_STOPS[HEIGHT_STOPS.length - 1];
+  for (let i = 1; i < HEIGHT_STOPS.length; i++) { if (v <= HEIGHT_STOPS[i][0]) { lo = HEIGHT_STOPS[i - 1]; hi = HEIGHT_STOPS[i]; break; } }
+  const span = hi[0] - lo[0] || 1, f = (v - lo[0]) / span;
+  const m = (i) => Math.round(lo[1][i] + (hi[1][i] - lo[1][i]) * f);
+  return `rgb(${m(0)},${m(1)},${m(2)})`;
+}
+
 export class PlanCanvas extends CanvasBase {
   #doc = null;
   #tool = "select";                 // select | pan | piece | zone | spawn | wool | iron | wall
@@ -55,6 +68,7 @@ export class PlanCanvas extends CanvasBase {
   // Derived-structure overlay (block coords from /api/plan/inspect) + which layers are visible.
   #inspect = { interfaces: [], gapLinks: [], frontline: [] };
   #overlayOn = { interfaces: true, gaps: true, frontline: true };
+  #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
   #pulseTimer = null;
 
   // viewport layers (world space)
@@ -90,6 +104,14 @@ export class PlanCanvas extends CanvasBase {
     if (!(key in this.#overlayOn)) return;
     this.#overlayOn[key] = !!on;
     this.#renderInspect();
+    this.#refreshOverlay();
+  }
+  // Height-map mode: pieces fill by a min..max surface ramp and carry their height number. Re-render the
+  // pieces (fill) and the screen-space overlay (labels).
+  setHeightMap(on) {
+    this.#heightMap = !!on;
+    if (!this.#doc) return;
+    this.#renderPieces();
     this.#refreshOverlay();
   }
 
@@ -180,6 +202,22 @@ export class PlanCanvas extends CanvasBase {
         "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke",
       }));
     }
+    // Zones fan into the ghost like pieces — dimmed, dashed, non-editable — so a pinwheel's centre tiling is
+    // visible while authoring. Holes ghost too (a faint cut-out over their zone image).
+    for (const img of zoneMirrorImages(this.#doc)) {
+      const { min_x, min_z, max_x, max_z } = img.bounds;
+      layer.appendChild(svgEl("rect", {
+        x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
+        fill: "var(--accent)", "fill-opacity": "0.07", stroke: "var(--accent)", "stroke-opacity": "0.5",
+        "stroke-width": "1.2", "stroke-dasharray": "7 4", "vector-effect": "non-scaling-stroke",
+      }));
+      for (const h of img.holes)
+        layer.appendChild(svgEl("rect", {
+          x: h.min_x, y: h.min_z, width: h.max_x - h.min_x, height: h.max_z - h.min_z,
+          fill: "var(--bg-canvas)", "fill-opacity": "0.5", stroke: "var(--accent)", "stroke-opacity": "0.4",
+          "stroke-width": "0.8", "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke",
+        }));
+    }
     const cell = this.#doc.globals.cell;
     for (const m of markerMirrorImages(this.#doc))
       layer.appendChild(svgEl("circle", { cx: m.x, cy: m.z, r: cell * 0.28, fill: MARKER_COLORS[m.kind] || "#888", "fill-opacity": "0.3" }));
@@ -209,14 +247,23 @@ export class PlanCanvas extends CanvasBase {
   #renderPieces() {
     const layer = this.#pieceLayer; this.#clear(layer);
     const cell = this.#doc.globals.cell, base = this.#doc.globals.surface;
+    const range = this.#heightMap ? surfaceRange(this.#doc) : null;   // ramp domain for height-map mode
     for (const p of this.#doc.pieces) {
       const b = rectCellsToBlocks(p.rect, cell);
-      const surf = p.surface ?? base;
-      const t = Math.max(0, Math.min(0.6, (surf - base) / 16));   // higher surface → lighter fill
+      const surf = pieceSurface(this.#doc, p);
+      let fill, stroke;
+      if (this.#heightMap) {
+        fill = heightColor(surfaceFraction(surf, range));
+        stroke = fill;
+      } else {
+        const t = Math.max(0, Math.min(0.6, (surf - base) / 16));   // higher surface → lighter fill
+        fill = tint(ROLE_COLORS[p.role] || "#888", t);
+        stroke = ROLE_COLORS[p.role] || "#888";
+      }
       layer.appendChild(svgEl("rect", {
         x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-        fill: tint(ROLE_COLORS[p.role] || "#888", t), "fill-opacity": "0.7",
-        stroke: ROLE_COLORS[p.role] || "#888", "stroke-width": "1.5", "vector-effect": "non-scaling-stroke",
+        fill, "fill-opacity": this.#heightMap ? "0.85" : "0.7",
+        stroke, "stroke-width": "1.5", "vector-effect": "non-scaling-stroke",
         "data-piece": p.id, style: "cursor:pointer",
       }));
     }
@@ -325,18 +372,29 @@ export class PlanCanvas extends CanvasBase {
     const toS = (x, z) => ({ x: x * this._scale + this._panX, y: z * this._scale + this._panY });
     const cell = this.#doc.globals.cell;
 
-    const label = (text, bx, bz, color) => {
+    const label = (text, bx, bz, color, size = "11") => {
       const c = toS(bx, bz);
       const t = svgEl("text", {
         x: c.x, y: c.y, "text-anchor": "middle", "dominant-baseline": "middle",
-        "font-size": "11", "font-family": "ui-monospace, monospace", "font-weight": "600", fill: color,
+        "font-size": size, "font-family": "ui-monospace, monospace", "font-weight": "600", fill: color,
         "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round",
         "pointer-events": "none",
       });
       t.textContent = text;
       layer.appendChild(t);
     };
-    for (const p of this.#doc.pieces) { const b = rectCellsToBlocks(p.rect, cell); label(p.id, (b.min_x + b.max_x) / 2, (b.min_z + b.max_z) / 2, "var(--canvas-ink)"); }
+    // In height-map mode the piece's surface height reads big at the centre and the id rides its top edge; in
+    // normal mode the id sits at the centre.
+    for (const p of this.#doc.pieces) {
+      const b = rectCellsToBlocks(p.rect, cell);
+      const mx = (b.min_x + b.max_x) / 2, mz = (b.min_z + b.max_z) / 2;
+      if (this.#heightMap) {
+        label(String(pieceSurface(this.#doc, p)), mx, mz, "var(--canvas-ink)", "13");
+        label(p.id, mx, b.min_z, "var(--canvas-ink)", "9");
+      } else {
+        label(p.id, mx, mz, "var(--canvas-ink)");
+      }
+    }
     for (const z of this.#doc.zones) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
 
     // Gap-link hop distances ride the screen-space overlay so they stay a fixed pixel size at any zoom.
@@ -351,7 +409,10 @@ export class PlanCanvas extends CanvasBase {
       const c = m && markerCell(this.#doc, m);
       if (!c) return;
       const s = toS((c[0] + 0.5) * cell, (c[1] + 0.5) * cell);
-      layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 12, fill: "none", stroke: "var(--accent)", "stroke-width": "2", "pointer-events": "none" }));
+      // Selected marker: a bright accent ring over a dark casing (reads on any marker colour) plus a faint halo.
+      layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 15, fill: "var(--accent)", "fill-opacity": "0.14", stroke: "none", "pointer-events": "none" }));
+      layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 13, fill: "none", stroke: "var(--bg-canvas)", "stroke-width": "4", "pointer-events": "none" }));
+      layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 13, fill: "none", stroke: "var(--accent)", "stroke-width": "2.5", "pointer-events": "none" }));
       return;
     }
     const item = this.#selItem();
@@ -399,7 +460,7 @@ export class PlanCanvas extends CanvasBase {
   _onToolMousedown(e, svgPt) {
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
-    if (this.#tool === "select") return this.#selectDown(cx, cz);
+    if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz);
     if (this.#tool === "wall") return this.#toggleWallAt(svgPt.x, svgPt.y);
     if (this.#tool === "piece" || this.#tool === "zone") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#renderPreview(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
@@ -417,10 +478,10 @@ export class PlanCanvas extends CanvasBase {
   _onToolMouseup(e, svgPt) {
     if (this.#drag?.mode === "draw") { this.#commitDraw(); return; }
     if (this.#drag?.mode === "move") {
-      const moved = this.#drag.moved;
+      const { moved, reselect } = this.#drag;
       this.#drag = null;
       if (moved) { this.render(); this.#cb.onChange?.(); this.#fireSelect(); }
-      else this.#clickSelect();   // a press without a drag = a plain click (select / cycle facing)
+      else this.#clickSelect(reselect);   // a press without a drag = a plain click (select / cycle facing)
     }
   }
 
@@ -443,28 +504,16 @@ export class PlanCanvas extends CanvasBase {
 
   // ── interaction ───────────────────────────────────────────────────────────────
 
-  // Press with the select tool: pick the topmost item under the cell and begin a move drag from it.
-  #selectDown(cx, cz) {
-    const hit = this.#hit(cx, cz);
+  // Press with the select tool: pick the item under the click (marker-first, by paint order) and begin a
+  // move drag from it. Records whether the click re-hit the already-selected item, so a plain re-click on a
+  // selected spawn cycles its facing (the first click only selects).
+  #selectDown(svgPt, cx, cz) {
+    const prev = this.#sel;
+    const hit = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
     this.#sel = hit;
     this.#refreshOverlay();
     this.#fireSelect();
-    if (hit) this.#drag = { mode: "move", sel: hit, grab: [cx, cz], moved: false };
-    else this.#drag = { mode: "move", sel: null, grab: [cx, cz], moved: false };
-  }
-
-  // Topmost item under a cell: markers, then pieces, then zones.
-  #hit(cx, cz) {
-    const cell = this.#doc.globals.cell;
-    for (const { kind, index, marker } of [...allMarkers(this.#doc)].reverse()) {
-      const c = markerCell(this.#doc, marker);
-      if (c && c[0] === cx && c[1] === cz) return { kind: "marker", markerKind: kind, index };
-    }
-    const p = pieceAtCell(this.#doc, cx, cz);
-    if (p) return { kind: "piece", id: p.id };
-    const z = zoneAtCell(this.#doc, cx, cz);
-    if (z) return { kind: "zone", id: z.id };
-    return null;
+    this.#drag = { mode: "move", sel: hit, grab: [cx, cz], moved: false, reselect: sameSelection(prev, hit) };
   }
 
   #moveTo(cx, cz, fcx, fcz) {
@@ -487,12 +536,13 @@ export class PlanCanvas extends CanvasBase {
     this.render();
   }
 
-  // A press-release with no drag: if it landed on the already-selected spawn, cycle its facing; a press
-  // on empty space clears the selection. (Selection itself already happened on mousedown.)
-  #clickSelect() {
-    if (this.#sel?.kind === "marker" && this.#sel.markerKind === "spawn") {
+  // A press-release with no drag. The first click on a spawn only selects it; a re-click on the
+  // already-selected spawn (reselect) cycles its facing — so placing/selecting never surprises with a
+  // facing change. (Selection itself already happened on mousedown.)
+  #clickSelect(reselect) {
+    if (reselect && this.#sel?.kind === "marker" && this.#sel.markerKind === "spawn") {
       const m = markerAt(this.#doc, "spawn", this.#sel.index);
-      if (m) { const order = ["front", "right", "back", "left"]; m.facing = order[(order.indexOf(m.facing) + 1) % 4]; this.render(); this.#cb.onChange?.(); this.#fireSelect(); }
+      if (m) { m.facing = nextFacing(m.facing); this.render(); this.#cb.onChange?.(); this.#fireSelect(); }
     } else if (!this.#sel) {
       this.#refreshOverlay();
     }

@@ -12,6 +12,7 @@ import { parseOverlays, sortFindings } from "../plan/plan-inspect.js";
 
 const STORAGE_KEY = "pgm-plan-editor";
 const OVERLAY_KEY = "pgm-plan-overlays";
+const HEIGHTMAP_KEY = "pgm-plan-heightmap";
 
 export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let doc = emptyDoc();
@@ -96,6 +97,10 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let overlays = { interfaces: true, gaps: true, frontline: true };
   try { overlays = parseOverlays(localStorage.getItem(OVERLAY_KEY)); } catch { /* default */ }
 
+  // Height-map fill mode (off by default) — persisted like the overlay chips, under its own key.
+  let heightMap = false;
+  try { heightMap = localStorage.getItem(HEIGHTMAP_KEY) === "1"; } catch { /* default off */ }
+
   let inspectTimer = null, inspectSeq = 0;
   function scheduleInspect() {
     if (inspectTimer) clearTimeout(inspectTimer);
@@ -134,6 +139,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   // Restore the last autosaved plan on open; fall back to a blank document.
   try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) doc = fromJson(saved); } catch { doc = emptyDoc(); }
   for (const k of Object.keys(overlays)) canvas.setOverlayVisible(k, overlays[k]);
+  canvas.setHeightMap(heightMap);
   canvas.setDoc(doc);
   canvas.fit();
   canvas.resize();
@@ -188,6 +194,8 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     // Derived-structure overlays: toggle a layer (persisted) and pulse a finding's subjects on click.
     getOverlays() { return JSON.stringify(overlays); },
     setOverlay(key, on) { if (!(key in overlays)) return; overlays[key] = !!on; persistOverlays(); canvas.setOverlayVisible(key, overlays[key]); },
+    getHeightMap() { return heightMap; },
+    setHeightMap(on) { heightMap = !!on; try { localStorage.setItem(HEIGHTMAP_KEY, heightMap ? "1" : "0"); } catch { /* private mode */ } canvas.setHeightMap(heightMap); },
     highlightSubjects(idsJson) { try { canvas.pulseSubjects(JSON.parse(idsJson) || []); } catch { /* ignore */ } },
 
     dispose() { if (saveTimer) clearTimeout(saveTimer); if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },

@@ -126,6 +126,8 @@
                         @onclick='() => ToggleOverlay("gaps")'>Gaps</button>
                 <button class="filter-chip @(overlayFrontline ? "filter-chip--active" : null)" title="Piece edges facing a build area"
                         @onclick='() => ToggleOverlay("frontline")'>Frontline</button>
+                <button class="filter-chip @(heightMap ? "filter-chip--active" : null)" title="Colour pieces by island height (surface y)"
+                        @onclick="ToggleHeightMap">Heights</button>
               </span>
               <button class="filter-chip" title="Fit the plan to view" @onclick="Fit"><i data-lucide="scan"></i></button>
               <span class="canvas-zoom">@zoomLabel</span>

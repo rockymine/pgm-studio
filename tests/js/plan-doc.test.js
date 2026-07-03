@@ -9,8 +9,10 @@ import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, nextFacing,
   rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
   pieceAtCell, zoneAtCell, markerCell, attachMarker, snapHalf, allMarkers,
-  contentBounds, viewBounds, pieceMirrorImages, markerMirrorImages, ROLES,
+  contentBounds, viewBounds, pieceMirrorImages, zoneMirrorImages, markerMirrorImages, ROLES,
   canonicalRole, toggleWall, nearestInterface,
+  markerAtWorld, pickAtWorld, sameSelection, MARKER_HIT_CELLS,
+  pieceSurface, surfaceRange, surfaceFraction,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -88,6 +90,69 @@ test("nextFacing cycles front → right → back → left → front", () => {
   assert.equal(nextFacing("left"), "front");
 });
 
+// ── pick priority (markers paint above pieces) ────────────────────────────────
+test("markerAtWorld picks a marker within its radius; pickAtWorld prefers it over the piece under it", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }],
+    placements: { spawns: [{ piece: "p", at: [1, 1], facing: "front" }] },
+  });
+  // marker at cell (1,1) → centre block (7.5, 7.5)
+  assert.deepEqual(markerAtWorld(doc, 7.5, 7.5), { kind: "marker", markerKind: "spawn", index: 0 });
+  // a click on the marker selects it even though a piece covers that cell (paint order: markers on top)
+  assert.deepEqual(pickAtWorld(doc, 7.5, 7.5), { kind: "marker", markerKind: "spawn", index: 0 });
+  // a click on the piece but clear of every marker radius selects the piece
+  assert.deepEqual(pickAtWorld(doc, 0.5, 0.5), { kind: "piece", id: "p" });
+  // just past the pick radius → no marker
+  const r = MARKER_HIT_CELLS * 5;
+  assert.equal(markerAtWorld(doc, 7.5 + r + 0.01, 7.5), null);
+});
+
+test("markerAtWorld breaks ties to the later-painted (topmost) marker", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }],
+    placements: { spawns: [{ piece: "p", at: [1, 1], facing: "front" }], wools: [{ piece: "p", at: [1, 1] }] },
+  });
+  // both markers share the same cell; allMarkers paints spawns before wools, so the wool wins the tie
+  assert.deepEqual(markerAtWorld(doc, 7.5, 7.5), { kind: "marker", markerKind: "wool", index: 0 });
+});
+
+test("pickAtWorld falls to a zone only when no marker or piece is hit", () => {
+  const doc = normalizeDoc({ plan: 1, globals: { cell: 5, symmetry: "rot_180" }, zones: [{ id: "z", rect: [0, 0, 2, 2] }] });
+  assert.deepEqual(pickAtWorld(doc, 2, 2), { kind: "zone", id: "z" });
+  assert.equal(pickAtWorld(doc, 99, 99), null);
+});
+
+test("sameSelection compares piece/zone ids and marker kind+index", () => {
+  assert.equal(sameSelection({ kind: "piece", id: "a" }, { kind: "piece", id: "a" }), true);
+  assert.equal(sameSelection({ kind: "piece", id: "a" }, { kind: "piece", id: "b" }), false);
+  assert.equal(sameSelection({ kind: "marker", markerKind: "spawn", index: 2 }, { kind: "marker", markerKind: "spawn", index: 2 }), true);
+  assert.equal(sameSelection({ kind: "marker", markerKind: "spawn", index: 2 }, { kind: "marker", markerKind: "wool", index: 2 }), false);
+  assert.equal(sameSelection(null, { kind: "piece", id: "a" }), false);
+  assert.equal(sameSelection({ kind: "piece", id: "a" }, { kind: "zone", id: "a" }), false);
+});
+
+// ── height-map ────────────────────────────────────────────────────────────────
+test("surfaceRange / pieceSurface resolve inherited surfaces across pieces", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
+    pieces: [{ id: "a", role: "piece", rect: [0, 0, 1, 1] }, { id: "b", role: "piece", rect: [1, 0, 1, 1], surface: 15 }],
+  });
+  assert.equal(pieceSurface(doc, doc.pieces[0]), 9);    // inherited from globals
+  assert.equal(pieceSurface(doc, doc.pieces[1]), 15);
+  assert.deepEqual(surfaceRange(doc), { min: 9, max: 15 });
+  assert.equal(surfaceRange(emptyDoc()), null);
+});
+
+test("surfaceFraction maps a surface onto 0..1; a flat plan pins to the top of the ramp", () => {
+  assert.equal(surfaceFraction(9, { min: 9, max: 15 }), 0);
+  assert.equal(surfaceFraction(15, { min: 9, max: 15 }), 1);
+  assert.equal(surfaceFraction(12, { min: 9, max: 15 }), 0.5);
+  assert.equal(surfaceFraction(9, { min: 9, max: 9 }), 1);   // flat → highest (lightest) tint
+  assert.equal(surfaceFraction(9, null), 1);
+});
+
 // ── mirror ghost ────────────────────────────────────────────────────────────
 test("pieceMirrorImages fans one image per orbit axis, honouring mirrors:false", () => {
   const doc = normalizeDoc({
@@ -100,6 +165,30 @@ test("pieceMirrorImages fans one image per orbit axis, honouring mirrors:false",
 
   const doc4 = normalizeDoc({ plan: 1, globals: { cell: 5, symmetry: "rot_90" }, pieces: [{ id: "a", role: "lane", rect: [1, 1, 2, 2] }] });
   assert.equal(pieceMirrorImages(doc4).length, 3);   // rot_90 fans three quarter-turn images
+});
+
+test("zoneMirrorImages fans zones (and holes) about the origin per orbit axis", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    zones: [{ id: "z", rect: [1, 1, 2, 2], holes: [[1, 1, 1, 1]] }],
+  });
+  const imgs = zoneMirrorImages(doc);
+  assert.equal(imgs.length, 1);                     // rot_180 → one image
+  assert.equal(imgs[0].id, "z");
+  assert.deepEqual(imgs[0].bounds, { min_x: -15, min_z: -15, max_x: -5, max_z: -5 });
+  assert.deepEqual(imgs[0].holes, [{ min_x: -10, min_z: -10, max_x: -5, max_z: -5 }]);
+
+  const doc4 = normalizeDoc({ plan: 1, globals: { cell: 5, symmetry: "rot_90" }, zones: [{ id: "z", rect: [1, 1, 1, 1], holes: [] }] });
+  assert.equal(zoneMirrorImages(doc4).length, 3);   // rot_90 fans three quarter-turn images
+});
+
+test("viewBounds includes zone mirror ghosts (never cut off)", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    zones: [{ id: "z", rect: [1, 1, 2, 2], holes: [] }],
+  });
+  // content (5,5)-(15,15) unioned with its ghost (-15,-15)-(-5,-5)
+  assert.deepEqual(viewBounds(doc), { min_x: -15, min_z: -15, max_x: 15, max_z: 15 });
 });
 
 test("markerMirrorImages mirrors marker centres about the origin", () => {

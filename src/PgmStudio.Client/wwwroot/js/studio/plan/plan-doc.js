@@ -122,6 +122,75 @@ export function zoneAtCell(doc, cx, cz) {
   return null;
 }
 
+// ── pick priority (markers paint above pieces, so they pick first) ───────────
+
+/** Pick radius, in cell units, of a marker's visual disc/box — a click this close to a centre hits it. */
+export const MARKER_HIT_CELLS = 0.42;
+
+/**
+ * The marker whose visual disc/box is nearest a world/block point within its pick radius, or null. Markers
+ * render on top of pieces, so this must be consulted before `pieceAtCell` — a click inside a marker's radius
+ * selects the marker even when a piece lies under it. Ties break to the later-painted (topmost) marker.
+ */
+export function markerAtWorld(doc, wx, wz) {
+  const cell = doc.globals.cell;
+  const r = MARKER_HIT_CELLS * cell;
+  let best = null, bestD = r;
+  for (const { kind, index, marker } of allMarkers(doc)) {
+    const c = markerCell(doc, marker);
+    if (!c) continue;
+    const mx = (c[0] + 0.5) * cell, mz = (c[1] + 0.5) * cell;
+    const d = Math.hypot(wx - mx, wz - mz);
+    if (d <= bestD) { bestD = d; best = { kind: "marker", markerKind: kind, index }; }
+  }
+  return best;
+}
+
+/**
+ * The item a click at world/block point `(wx, wz)` selects, honouring paint order: a marker (topmost, within
+ * its pick radius) first, then the topmost containing piece, then a zone. Returns a selection ref or null.
+ */
+export function pickAtWorld(doc, wx, wz) {
+  const m = markerAtWorld(doc, wx, wz);
+  if (m) return m;
+  const [cx, cz] = cellOfWorld(wx, wz, doc.globals.cell);
+  const p = pieceAtCell(doc, cx, cz);
+  if (p) return { kind: "piece", id: p.id };
+  const z = zoneAtCell(doc, cx, cz);
+  if (z) return { kind: "zone", id: z.id };
+  return null;
+}
+
+/** True if two selection refs point at the same item (piece/zone id, or marker kind+index). */
+export function sameSelection(a, b) {
+  if (!a || !b || a.kind !== b.kind) return false;
+  if (a.kind === "marker") return a.markerKind === b.markerKind && a.index === b.index;
+  return a.id === b.id;
+}
+
+/** A piece's surface height, resolving the inherited base from globals when the piece has none set. */
+export function pieceSurface(doc, p) { return p.surface ?? doc.globals.surface; }
+
+/** The min/max resolved surface height across every piece, or null for a piece-less document. */
+export function surfaceRange(doc) {
+  let min = null, max = null;
+  for (const p of doc.pieces) {
+    const s = pieceSurface(doc, p);
+    if (min == null || s < min) min = s;
+    if (max == null || s > max) max = s;
+  }
+  return min == null ? null : { min, max };
+}
+
+/**
+ * A piece's fraction (0..1) along the plan's surface range — 0 = lowest, 1 = highest — for the height-map
+ * fill ramp. A flat plan (min == max, or a single piece) maps everything to the top of the ramp.
+ */
+export function surfaceFraction(surf, range) {
+  if (!range || range.max <= range.min) return 1;
+  return (surf - range.min) / (range.max - range.min);
+}
+
 /** Snap a value to the nearest half-cell step (0.5 in cell units) — the marker lattice. */
 export function snapHalf(v) { return Math.round(v * 2) / 2; }
 
@@ -214,6 +283,7 @@ export function viewBounds(doc) {
   if (!b) return null;
   const add = (bb) => { b = { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) }; };
   for (const img of pieceMirrorImages(doc)) add(img.bounds);
+  for (const img of zoneMirrorImages(doc)) add(img.bounds);
   for (const m of markerMirrorImages(doc)) add({ min_x: m.x, min_z: m.z, max_x: m.x, max_z: m.z });
   return b;
 }
@@ -244,6 +314,23 @@ export function pieceMirrorImages(doc) {
     if (p.mirrors === false) continue;
     const b = rectCellsToBlocks(p.rect, cell);
     for (const axis of orbitAxes(symmetry)) out.push({ role: p.role, surface: p.surface ?? doc.globals.surface, bounds: applySymmetryToBounds(b, axis, 0, 0) });
+  }
+  return out;
+}
+
+/**
+ * The symmetry mirror images of every zone — one `{ id, bounds, holes }` per orbit image (block AABBs, holes
+ * transformed alongside their zone), for the dimmed non-editable ghost. Zones always mirror (no opt-out).
+ */
+export function zoneMirrorImages(doc) {
+  const { cell, symmetry } = doc.globals;
+  const out = [];
+  for (const z of doc.zones) {
+    const b = rectCellsToBlocks(z.rect, cell);
+    for (const axis of orbitAxes(symmetry)) {
+      const holes = (z.holes || []).map(h => applySymmetryToBounds(rectCellsToBlocks(h, cell), axis, 0, 0));
+      out.push({ id: z.id, bounds: applySymmetryToBounds(b, axis, 0, 0), holes });
+    }
   }
   return out;
 }
