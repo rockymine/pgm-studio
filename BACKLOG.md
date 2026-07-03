@@ -180,6 +180,10 @@ The open work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
 
+- [ ] **G27 — Plan editor: 3-D isometric preview (reuse the sketch iso preview).** The author wants to see
+  elevation spatially while planning; the sketch tool's iso preview (prism/terrain calc in
+  `sketch-bridge.js`) should be reusable over the compiled plan's pieces/surfaces. Follows the G25
+  height-map toggle as the richer visualization.
 - [ ] **G24 — Junction-region derivation + Hubs overlay + lane chains.** Derive hubs as *internal* computed
   structure on the unioned island footprint (mouth-extrusion intersections of ≥3 access mouths — see
   `docs/contracts/plan-editor.md` §2 "Junction regions"; corners yield nothing), expose them through
