@@ -139,7 +139,7 @@ export function markerAtWorld(doc, wx, wz) {
   for (const { kind, index, marker } of allMarkers(doc)) {
     const c = markerCell(doc, marker);
     if (!c) continue;
-    const mx = (c[0] + 0.5) * cell, mz = (c[1] + 0.5) * cell;
+    const mx = c[0] * cell, mz = c[1] * cell;
     const d = Math.hypot(wx - mx, wz - mz);
     if (d <= bestD) { bestD = d; best = { kind: "marker", markerKind: kind, index }; }
   }
@@ -202,9 +202,9 @@ export function markerCell(doc, marker) {
 
 /**
  * Attach a marker dropped at absolute cell `(cx, cz)` (fractional allowed): the piece under it + the
- * piece-relative offset snapped to the half-cell lattice, or null when no piece sits under the cell
- * (markers must ride a piece). A marker centres on a whole cell (integer offset) or a 2×2-cell block
- * boundary (half offset), so its stamped room lands on a 2.5-block half-cell.
+ * piece-relative offset snapped to the nearest half-cell lattice point, or null when no piece sits under
+ * the cell (markers must ride a piece). The offset resolves to block `piece.min + at·cell`, so an integer
+ * offset lands on a cell corner (the centre of a 2×2-cell room) and a half offset on a cell centre.
  */
 export function attachMarker(doc, cx, cz) {
   const p = pieceAtCell(doc, Math.floor(cx), Math.floor(cz));
@@ -344,7 +344,7 @@ export function markerMirrorImages(doc) {
     const p = pieceById(doc, marker.piece);
     if (!p || p.mirrors === false) continue;
     const c = markerCell(doc, marker);
-    const cx = (c[0] + 0.5) * cell, cz = (c[1] + 0.5) * cell;
+    const cx = c[0] * cell, cz = c[1] * cell;
     for (const axis of orbitAxes(symmetry)) { const [x, z] = applySymmetry(cx, cz, axis, 0, 0); out.push({ kind, x, z }); }
   }
   return out;

@@ -79,6 +79,26 @@ test("attachMarker snaps a fractional drop to the half-cell lattice", () => {
   assert.deepEqual(attachMarker(doc, 2, 7), { piece: "bar", at: [1, 2] });
 });
 
+test("attachMarker snaps a 2×2-room click to the nearest half-cell lattice point (no per-cell bias)", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    pieces: [{ id: "room", role: "piece", rect: [3, 3, 2, 2] }],   // 2×2-cell room, cells x∈{3,4}, z∈{3,4}
+  });
+  // a click at the room's exact centre (absolute cell (4,4)) → the room-centre lattice point [1,1]
+  assert.deepEqual(attachMarker(doc, 4, 4), { piece: "room", at: [1, 1] });
+  // a click inside the first cell's interior → the cell-centre lattice point [0.5,0.5]
+  assert.deepEqual(attachMarker(doc, 3.5, 3.5), { piece: "room", at: [0.5, 0.5] });
+  // render position matches the compiler formula piece.min + at·cell — the room-centre marker sits
+  // on the shared cell corner (block (20,20) at cell 5), not offset into a cell.
+  const centred = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    pieces: [{ id: "room", role: "piece", rect: [3, 3, 2, 2] }],
+    placements: { wools: [{ piece: "room", at: [1, 1] }] },
+  });
+  assert.deepEqual(markerCell(centred, centred.placements.wools[0]), [4, 4]);
+  assert.deepEqual(markerAtWorld(centred, 20, 20), { kind: "marker", markerKind: "wool", index: 0 });
+});
+
 test("uniqueId suffixes on collision", () => {
   assert.equal(uniqueId(["lane", "hub"], "mid"), "mid");
   assert.equal(uniqueId(["lane", "lane-2"], "lane"), "lane-3");
@@ -97,15 +117,15 @@ test("markerAtWorld picks a marker within its radius; pickAtWorld prefers it ove
     pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }],
     placements: { spawns: [{ piece: "p", at: [1, 1], facing: "front" }] },
   });
-  // marker at cell (1,1) → centre block (7.5, 7.5)
-  assert.deepEqual(markerAtWorld(doc, 7.5, 7.5), { kind: "marker", markerKind: "spawn", index: 0 });
+  // marker at cell (1,1) → block point (5, 5) (piece.min + at·cell, no half-cell offset)
+  assert.deepEqual(markerAtWorld(doc, 5, 5), { kind: "marker", markerKind: "spawn", index: 0 });
   // a click on the marker selects it even though a piece covers that cell (paint order: markers on top)
-  assert.deepEqual(pickAtWorld(doc, 7.5, 7.5), { kind: "marker", markerKind: "spawn", index: 0 });
+  assert.deepEqual(pickAtWorld(doc, 5, 5), { kind: "marker", markerKind: "spawn", index: 0 });
   // a click on the piece but clear of every marker radius selects the piece
-  assert.deepEqual(pickAtWorld(doc, 0.5, 0.5), { kind: "piece", id: "p" });
+  assert.deepEqual(pickAtWorld(doc, 18, 18), { kind: "piece", id: "p" });
   // just past the pick radius → no marker
   const r = MARKER_HIT_CELLS * 5;
-  assert.equal(markerAtWorld(doc, 7.5 + r + 0.01, 7.5), null);
+  assert.equal(markerAtWorld(doc, 5 + r + 0.01, 5), null);
 });
 
 test("markerAtWorld breaks ties to the later-painted (topmost) marker", () => {
@@ -115,7 +135,7 @@ test("markerAtWorld breaks ties to the later-painted (topmost) marker", () => {
     placements: { spawns: [{ piece: "p", at: [1, 1], facing: "front" }], wools: [{ piece: "p", at: [1, 1] }] },
   });
   // both markers share the same cell; allMarkers paints spawns before wools, so the wool wins the tie
-  assert.deepEqual(markerAtWorld(doc, 7.5, 7.5), { kind: "marker", markerKind: "wool", index: 0 });
+  assert.deepEqual(markerAtWorld(doc, 5, 5), { kind: "marker", markerKind: "wool", index: 0 });
 });
 
 test("pickAtWorld falls to a zone only when no marker or piece is hit", () => {
@@ -198,7 +218,7 @@ test("markerMirrorImages mirrors marker centres about the origin", () => {
     placements: { spawns: [{ piece: "bar", at: [0, 0], facing: "front" }] },
   });
   const [img] = markerMirrorImages(doc);
-  assert.deepEqual([img.x, img.z], [-7.5, -7.5]);   // centre (7.5,7.5) rotated 180° about origin
+  assert.deepEqual([img.x, img.z], [-5, -5]);   // block point (5,5) (piece.min + at·cell) rotated 180° about origin
 });
 
 

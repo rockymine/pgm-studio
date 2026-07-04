@@ -276,7 +276,7 @@ export class PlanCanvas extends CanvasBase {
     for (const { kind, marker } of allMarkers(this.#doc)) {
       const c = markerCell(this.#doc, marker);
       if (!c) continue;
-      const cx = (c[0] + 0.5) * cell, cz = (c[1] + 0.5) * cell, r = cell * 0.34;
+      const cx = c[0] * cell, cz = c[1] * cell, r = cell * 0.34;
       const col = MARKER_COLORS[kind] || "#888";
       if (kind === "spawn") {
         layer.appendChild(svgEl("circle", { cx, cy: cz, r, fill: col, "fill-opacity": "0.85", stroke: "#222", "stroke-width": "1", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
@@ -416,7 +416,7 @@ export class PlanCanvas extends CanvasBase {
       const m = markerAt(this.#doc, this.#sel.markerKind, this.#sel.index);
       const c = m && markerCell(this.#doc, m);
       if (!c) return;
-      const s = toS((c[0] + 0.5) * cell, (c[1] + 0.5) * cell);
+      const s = toS(c[0] * cell, c[1] * cell);
       // Selected marker: a bright accent ring over a dark casing (reads on any marker colour) plus a faint halo.
       layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 15, fill: "var(--accent)", "fill-opacity": "0.14", stroke: "none", "pointer-events": "none" }));
       layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 13, fill: "none", stroke: "var(--bg-canvas)", "stroke-width": "4", "pointer-events": "none" }));
