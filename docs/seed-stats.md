@@ -269,3 +269,23 @@ Trace of a real map, `maxPlayers` **30 per team** — the corpus's first honest 
 - Islands: 2 (each team side one connected mass); **no stepping stones** — mid stones/team links
   unchanged (21 / 4 corpus-wide). Wool at +8 over its lane (17 vs base 9), spawn at base,
   wool↔spawn on separate lanes.
+
+## maxPlayers pass (six of eleven landed)
+
+Author counts, per team; stored `maxPlayers` = the **comfortable cap** (upper end). Land = fanned
+terrain block area. b/p = land per player at the cap (teams × cap):
+
+| seed | author count | stored | land | b/p @cap | class |
+|---|---|---|---|---|---|
+| base-2island | 8–10 | 10 | 1900 | 95 | compact |
+| base-2wool | 10–12 | 12 | 2500 | 104 | compact |
+| base-4team | 8–10 | 10 | 3800 | 95 | compact |
+| isolated-spawn-approaches | 10–12 (real-map model, XML 10) | 12 | 2500 | 104 | compact |
+| rotate-wide-frontline | 16–20 (real-map model, XML 16) | 20 | 7000 | 175 | elaborated |
+| big-board-…-parallel-mid | 30 (trace) | 30 | 10500 | 175 | elaborated |
+
+**Coupling (G8 v0):** compact seeds cluster at **95–105 b/p**, real-map-grade at **175 b/p**
+(rotate at its defined 16 gives 219 — defined counts sit below the comfort cap). Derived
+proposals for the remaining five (awaiting the author): isolated-spawn (3100 land, compact)
+**~14**; odd-facing-three-wool (5000) **~14–16**; four-team-wool-two-sided (6000, 4T) **~10–12**;
+four-team-towers-big (11500, 4T) **~16**; mirror-big-board (11750, 2T) **~30**.

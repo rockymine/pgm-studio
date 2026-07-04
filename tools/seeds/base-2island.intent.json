@@ -3,7 +3,7 @@
     { "id": "red",  "name": "Red",  "color": "red" },
     { "id": "blue", "name": "Blue", "color": "blue" }
   ],
-  "maxPlayers": 12,
+  "maxPlayers": 10,
   "spawns": [
     { "team": "red",  "point": { "x": 10,  "y": 9, "z": 50 },  "yaw": 180, "protection": [] },
     { "team": "blue", "point": { "x": -10, "y": 9, "z": -50 }, "yaw": 0,   "protection": [] }

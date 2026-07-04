@@ -39,11 +39,11 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **G3 [corpus, revised]** The v2 width band (40–60) fit almost none of the authored corpus:
   measured 2-team fanned boards run **30–130 wide × 100–280 long** (elaborated seeds typically
   80–130 wide; `mirror-big-board` 280×130), 4-team squares **130–180**. Wide-frontline designs
-  legitimately exceed the old cap. Numbers remain mostly **decoupled from player count** — the ten
-  authored seeds still carry the stale `maxPlayers: 12`; the traced `big-board-…-parallel-mid`
-  is the **first honest count** (30 per team, fanned board 150×260) — so the envelope↔G8
-  coupling is re-derived in the parked maxPlayers pass before the composer treats these as
-  sampling bounds.
+  legitimately exceed the old cap. Six seeds now carry **honest per-team counts** (base-2island 8–10,
+  base-2wool 10–12, base-4team 8–10, isolated-spawn-approaches 10–12, rotate-wide-frontline
+  16–20 — the latter two modeled on real maps — and the trace at 30); the stored `maxPlayers`
+  is the **comfortable cap** (upper end of the author's range). Five seeds remain stale at 12
+  pending the author; the G8 land-per-player coupling is derived from the six.
 - **G4 [corpus]** `rot_180` (2 teams) / `rot_90` (4 teams) are the defaults; `mirror_x`/`mirror_z`
   are valid and exercised end-to-end (`mirror-big-board` compiles and exports through the
   reflection fan).
@@ -62,8 +62,22 @@ toward the map centre / the enemy; "back" = toward the map edge.
   **~5 above the build cap**, or off to the side beyond any build zone.
 - **G7 [expert]** Follows G5: a single required-path hop stays ≤ **~20**; anything longer is a
   chain of hops (stones) summing to the 40–60 total crossing.
-- **G8 [expert, new]** Map size is driven by the intended player count — `maxPlayers` is an
-  *input* to the board envelope, not an afterthought.
+- **G8 [expert + corpus, first derivation]** Map size is driven by the intended player count —
+  `maxPlayers` is an *input* to the board envelope, not an afterthought. With the author's first
+  six honest counts the coupling measures as **land area per player at the comfortable cap**, and
+  it clusters in two classes:
+  - **compact seeds ≈ 95–105 b/p** — base-2island 1900 land / 20 players = 95; base-2wool
+    2500/24 = 104; base-4team 3800/40 = 95; isolated-spawn-approaches 2500/24 = 104.
+  - **real-map-grade ≈ 175 b/p** — rotate-wide-frontline at its comfortable 20/team: 7000/40 =
+    175; the traced big board at 30/team: 10500/60 = **175 exactly**. (At rotate's XML-defined
+    16 it's 219 — defined counts sit below the comfort cap.)
+
+  Reading: elaborated maps spend more land per player (elevation, longer crossings, rotation
+  space). Composer envelope v0: **players ≈ land / (100 compact ‥ 175 elaborated)**. Derived
+  proposals for the five unlabeled seeds (awaiting the author): isolated-spawn (3100 land,
+  compact) **~14/team**; odd-facing-three-wool (5000, elevation-rich) **~14–16**;
+  four-team-wool-two-sided (6000, 4T) **~10–12**; four-team-towers-big (11500, 4T) **~16**;
+  mirror-big-board (11750, 2T, trace-class) **~30**.
 
 ## SP — Spawn
 
@@ -349,9 +363,12 @@ palette, the plaza hub, and the 35 crossing at 30/team):
 2. ~~fragmented-island~~ — **resolved without a seed**: fragmentation is the closure reading
    (CT1–CT6); every seed is a fragmented closure and the interface statistics are already
    measured.
-3. **maxPlayers pass** — honest player counts on the ten authored seeds (the trace already
-   carries its 30/team), re-deriving the G3↔G8 envelope coupling. **The single remaining freeze
-   blocker.**
+3. **maxPlayers pass — six of eleven landed.** Honest counts stored for base-2island (10),
+   base-2wool (12), base-4team (10), isolated-spawn-approaches (12), rotate-wide-frontline (20 —
+   XML-defined 16), and the trace (30); the G8 land-per-player coupling is derived (95–105
+   compact, 175 elaborated). Remaining: the author confirms or corrects the five G8 proposals —
+   isolated-spawn ~14, odd-facing ~14–16, wool-two-sided ~10–12, towers ~16, mirror ~30. **The
+   single remaining freeze blocker.**
 4. ~~behind-spawn iron~~ — retracted (facing-semantics artifact; the iron is ahead).
 
 ## Resolved this round (was: freeze blockers)
