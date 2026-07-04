@@ -15,7 +15,7 @@ public static partial class XmlWriter
         var root = BuildMapElem(m);
         // Serialize with the corpus/`docs/template.xml` conventions: 4-space indentation and no `<?xml?>`
         // declaration (real PGM maps start straight at `<map>`).
-        var settings = new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, Indent = true, IndentChars = "    " };
+        var settings = new System.Xml.XmlWriterSettings { OmitXmlDeclaration = true, Indent = true, IndentChars = "    ", NewLineChars = "\n" };
         var sb = new System.Text.StringBuilder();
         using (var xw = System.Xml.XmlWriter.Create(sb, settings)) root.Save(xw);
         // PGM convention: self-close as `/>` with no leading space, and end the file with a trailing newline.
