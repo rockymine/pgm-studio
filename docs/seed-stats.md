@@ -186,3 +186,39 @@ All coords in blocks (cell coords × 5). Board centre = symmetry centre (0,0). L
 - G5 (hop 10..20): hops need the zone-union model; skipped here. Known prior outliers: **25** and **30**.
 - EL1 (Δ multiple of 2): all authored surfaces are odd (9,11,13,15,17,19) so every interface Δ is even — no odd Δ found.
 - G3 flag assumes width = smaller fanned dim, len = larger; the team-separation axis is NOT inferred. For 'wide-frontline' seeds the cross-board (frontline) span can exceed the current 40..60 width cap legitimately — see the fanned WxL column and judge against intent rather than treating every flag as a defect.
+## Island gradient sweep (CT4)
+
+Islands = connected components of the **fanned** terrain pieces (contact Land/Narrow/Overlap; corner
+never connects), via the production derivation code. Distance = island centroid → symmetry centre
+(0,0), blocks. Stepping stone = island fully submerged in the build-zone union, OR ≤100-block
+island with exactly two build-zone interfaces (threshold = the natural break in the size
+distribution; verdicts stable for thresholds 100–200). Distance bands = global thirds
+(cuts 28.1 / 49.6).
+
+| seed | sym | islands | ρ area↔dist | grow-outward (a) | stones mid/trans/team | falloff (b) |
+|---|---|---|---|---|---|---|
+| base-2island | rot_180 | 4 | +1.00 | ✓ | 2/0/0 | ✓ |
+| base-2wool | rot_180 | 6 | +0.50 | ✓ | 2/0/0 | ✓ |
+| base-4team | rot_90 | 8 | +1.00 | ✓ | 3/1/0 | ✓ |
+| four-team-towers-big | rot_90 | 12 | +1.00 | ✓ | 0 | n/a |
+| four-team-wool-two-sided | rot_90 | 12 | +1.00 | ✓ | 0 | n/a |
+| isolated-spawn-approaches | rot_180 | 7 | +0.58 | ✓ | 0 | n/a |
+| isolated-spawn | rot_180 | 6 | +1.00 | ✓ | 0 | n/a |
+| mirror-big-board | mirror_x | 10 | +0.70 | ✓ | 4/0/0 | ✓ |
+| odd-facing-three-wool | rot_180 | 8 | +0.00 | ✗ | 1/1/0 | ✓ |
+| rotate-wide-frontline | rot_180 | 17 | +0.15 | ✗ | 6/4/1 | ✓ |
+
+**Roll-up** (90 fanned islands): pooled Spearman(block-area, centroid-distance) = **+0.61**;
+grow-outward holds in **8/10** seeds (ρ > 0.2); stepping stones thin monotonically toward the team
+side — **17 / 4 / 4** over mid / transition / team bands (21 submerged + 4 two-interface-small);
+falloff holds in **6/6** seeds that contain stones (four have none).
+
+**Exceptions** (fail only grow-outward): `odd-facing-three-wool` (ρ 0.00) and
+`rotate-wide-frontline` (ρ 0.15) share one mechanism — the largest landmass is a **mid-band spine**
+(1650 blocks at dist 49.6 of max 84.4; 1750 at 56.8 of max 85) and the islands further out are
+350–450-block pads smaller than it. That flattens grow-outward — but those far pads are exactly the
+stepping stones, so the falloff holds even where the growth breaks.
+
+**Correction note:** the SP7 flag in the rule-number rollup above ("iron BEHIND spawn",
+four-team-wool-two-sided) was retracted — it was a facing-semantics measurement bug; the iron is
+ahead of the spawn (see layout-rules.md, *Resolved this round*).

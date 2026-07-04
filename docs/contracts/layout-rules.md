@@ -179,10 +179,17 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   hash case). The per-map question is how deep that regime reaches toward the team side.
   Individual hops keep G5's 10–20; longer total crossings are chains of hops with fragments
   between.
-- **CT4 — the island-size gradient [corpus hypothesis].** Across the corpus it should hold that
-  islands **grow** with distance from the centre, and **stepping stones** — islands fully
-  submerged in a build zone, or small islands with exactly two build-zone interfaces — **thin
-  out** toward the team side. (MD1/MD4 describe the stones themselves.)
+- **CT4 — the island-size gradient [corpus].** Measured over the 90 fanned islands of the
+  ten-seed corpus (`docs/seed-stats.md`, "Island gradient sweep"): islands **grow** with distance
+  from the centre — pooled Spearman(area, centroid-distance) **+0.61**, holds per-seed in
+  **8/10**; and **stepping stones** — islands fully submerged in a build zone, or small
+  (≤100-block) islands with exactly two build-zone interfaces — **thin out** toward the team
+  side: **17/4/4** over the mid/transition/team distance thirds, holding in **6/6** seeds that
+  contain stones. The two grow-outward exceptions (`odd-facing-three-wool` ρ 0.00,
+  `rotate-wide-frontline` ρ 0.15) share one mechanism: the largest landmass is a **mid-band
+  spine** with only 350–450-block pads beyond it — and those far pads are exactly the stepping
+  stones, so the falloff holds even where the growth breaks. (MD1/MD4 describe the stones
+  themselves.)
 - **CT5 — carve the mid, cut the team side.** "Cut" is the wrong picture for the middle — it can
   hold many islands; the mid operator is **carving**: shaping the interface's islands and zones
   directly into one of CT1's forms. Cutting belongs to the **team side**: severing a piece from
