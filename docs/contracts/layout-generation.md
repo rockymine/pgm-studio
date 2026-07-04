@@ -166,12 +166,15 @@ layout exists. Not the skeleton of the system.
 
 ## Ground truth: recorded player traffic (evaluation instrument)
 
-A month of server logging (the pgmlogger plugin → parquet; aggregated by the CTWAnalysis
-`match_analysis` suite over DuckDB) yields per-map **traffic graphs**: player positions every 2s
-across hundreds of matches, aggregated on a 3-block grid — nodes carry occupation, the terrain
-island under them, and POIs (spawns, wools); edges carry movement transitions
-(`traffic_graph.json`; e.g. ingwaz: 105 matches, 510 players, 17.7h, 199 nodes). Two readings
-matter for generation:
+A month of server logging (the pgmlogger plugin → parquet) yields per-map **traffic graphs**:
+player positions every 2s across hundreds of matches, aggregated on a 3-block grid — nodes carry
+occupation, the terrain island under them, and POIs (spawns, wools); edges carry movement
+transitions (e.g. ingwaz: 105 matches, 510 players, 17.7h, 199 nodes). **The input is just a zip
+of the raw log files per map** — the graph, including the land/void split and the island
+partition, derives from the logs alone (validated on ingwaz: islands 6/6, void recall 1.0; the
+fall-share method, both formats, and the event-code table are specified in
+`docs/contracts/traffic-ground-truth.md` — the original analysis project is not needed). Two
+readings matter for generation:
 
 - **The closure, photographed.** Nodes with **no island under them** but high occupation are
   players standing in the void — the map's build regions *emerging from behavior alone* (ingwaz:
@@ -184,10 +187,11 @@ matter for generation:
   mid/team thirds, approach usage shares, void-vs-land occupancy, the kill/death frontline band —
   to score composer candidates against how players actually flow.
 
-Boundary (deliberate): only `traffic_graph.json` files and derived priors ever enter this repo —
-no raw match data (private, the author's machine), no player identities, no per-match analytics.
-An instrument for map generation, not a match-analysis revival. Tracked as `G33`; the data deep
-dive (CTWAnalysis suite + private parquet) needs a **local session** on the author's machine.
+Boundary (deliberate): only per-map log zips, `traffic_graph.json` files, and derived priors
+ever enter this repo — no per-match analytics, no identities beyond the logs' anonymous ids. An
+instrument for map generation, not a match-analysis revival. Tracked as `G33`; the author
+supplies the zips (uploaded per map like ingwaz's, or batch-collected from his archive in a
+local session — the only remaining reason for one).
 
 **First test article (validated).** The author's cleaned ingwaz trace + its traffic graph live in
 `tools/traffic/` (see its README). Spawn-anchored alignment gives scale plan/real = **1.111**

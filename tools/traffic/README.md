@@ -1,5 +1,9 @@
 # Recovered footprints + traffic ground truth (G33)
 
+**Formats + derivation contract: `docs/contracts/traffic-ground-truth.md`** — the log parquet
+schema, event codes, the `traffic_graph.json` schema, and the validated logs-only pipeline.
+Input per map is one zip of raw pgmlogger parquet files; nothing else is needed.
+
 Pairs of a **recovered plan** (the author's cleaned trace of a real map's footprint — structure
 only: pieces/zones/markers, no elevation) and its **traffic graph** (player positions from real
 matches, aggregated on a 3-block grid by the CTWAnalysis `match_analysis` suite; nodes carry
