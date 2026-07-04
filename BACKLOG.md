@@ -200,6 +200,15 @@ The open work sorts into three domains:
   each climb by its top-end anchor (wool approach / mid ascent / interior) and per-team use (attacker climb
   vs defender rotation). Spec: `docs/contracts/plan-editor.md` §2 "Climbs". Composer vocabulary for WL5/FR3
   (straight approach vs space-packing switchback vs defensible landing). Depends on `G24`'s chains.
+- [ ] **G33 — Traffic ground truth: flow priors + recovered footprints.** Import `traffic_graph.json`
+  (3-block-grid nodes with occupation / terrain-island id / POIs, movement-transition edges; produced by
+  the pgmlogger plugin → CTWAnalysis `match_analysis`): (a) a plan-editor overlay rendering a real map's
+  traffic heat with the **emergent build regions** (hot island-null cells — the closure being re-bridged
+  by players); (b) flow priors to score composer candidates (mid/team occupancy split, approach usage,
+  void share, frontline band); (c) recovered footprints (land + emergent zones) as CT cut-placement test
+  articles. Only graph JSONs + derived priors enter this repo — raw match parquet is private on the
+  author's machine and the analysis suite lives in the separate CTWAnalysis repo, so the data work needs
+  a **local session**. Spec: `docs/contracts/layout-generation.md` "Ground truth".
 - [ ] **G31 — Scaled structure presets (stamps must fit tiny and huge maps).** The spawn cube / wool
   cage / iron cube stamps are fixed-size (8×8 footprints); on `mirror-tiny-map-cliff` (1-cell pieces,
   markers at block centres) the stamps overlap the piece bounds, and 30+/team boards could take larger

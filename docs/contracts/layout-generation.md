@@ -164,6 +164,31 @@ can only enforce by post-hoc rejection — and its native output is exactly the 
 roughen pass exists to escape. Possible later niche: intra-piece block-level detailing once a
 layout exists. Not the skeleton of the system.
 
+## Ground truth: recorded player traffic (evaluation instrument)
+
+A month of server logging (the pgmlogger plugin → parquet; aggregated by the CTWAnalysis
+`match_analysis` suite over DuckDB) yields per-map **traffic graphs**: player positions every 2s
+across hundreds of matches, aggregated on a 3-block grid — nodes carry occupation, the terrain
+island under them, and POIs (spawns, wools); edges carry movement transitions
+(`traffic_graph.json`; e.g. ingwaz: 105 matches, 510 players, 17.7h, 199 nodes). Two readings
+matter for generation:
+
+- **The closure, photographed.** Nodes with **no island under them** but high occupation are
+  players standing in the void — the map's build regions *emerging from behavior alone* (ingwaz:
+  23 hot void cells). A real map's traffic graph is its closure plus usage weights: the land and
+  the zones being re-bridged live, match after match, exactly where the author cut. Recovered
+  footprints (land + emergent zones) become CT test articles — real plans without hand-tracing
+  (their elevation data stays polluted by buildings/organics; the 2-D structure is exactly what
+  the plan model captures, and elevation stays expert-authored anyway).
+- **Flow priors for the composer.** A handful of per-map scalars — occupancy split across the
+  mid/team thirds, approach usage shares, void-vs-land occupancy, the kill/death frontline band —
+  to score composer candidates against how players actually flow.
+
+Boundary (deliberate): only `traffic_graph.json` files and derived priors ever enter this repo —
+no raw match data (private, the author's machine), no player identities, no per-match analytics.
+An instrument for map generation, not a match-analysis revival. Tracked as `G33`; the data deep
+dive (CTWAnalysis suite + private parquet) needs a **local session** on the author's machine.
+
 ## 4. The roughen pass: rectilinear plan → organic read
 
 Applied to the realized polygons of the authored unit only (symmetry re-fans the images); plan
