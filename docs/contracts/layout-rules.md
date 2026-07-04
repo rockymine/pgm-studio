@@ -1,11 +1,12 @@
-# Layout rules — the expert checklist (v3, corpus-measured)
+# Layout rules — the composer's v1 rule set (v3, frozen 2026-07-04)
 
 The generator's actual content: per-role attachment rules, dimensions, and elevation defaults for
 the plan composer (`docs/contracts/layout-generation.md` §3). v3 measures every rule against the
-**eleven-seed corpus** (`tools/seeds/*.plan.json`, sweep script `seed_stats`; the eleventh,
-`big-board-wool-two-sided-plaza-parallel-mid`, is a **trace of a real map** at 30 players/team);
-this is the **freeze candidate** — one item (the maxPlayers pass, see *Remaining seed work*)
-blocks the freeze. Tags:
+**twelve-seed corpus** (`tools/seeds/*.plan.json`; the eleventh, `big-board-…-parallel-mid`, is a
+**trace of a real map** at 30/team; the twelfth, `mirror-tiny-map-cliff`, the tiniest at 5/team).
+**FROZEN 2026-07-04**: the maxPlayers pass completed — every seed carries the author's per-team
+count — closing the last blocker. Changes from here are **amendments** via the correction
+protocol. Tags:
 
 - **[corpus]** — confirmed by measured seed evidence (seeds cited).
 - **[expert]** — author-stated, not yet exercised by a seed.
@@ -39,21 +40,21 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **G3 [corpus, revised]** The v2 width band (40–60) fit almost none of the authored corpus:
   measured 2-team fanned boards run **30–130 wide × 100–280 long** (elaborated seeds typically
   80–130 wide; `mirror-big-board` 280×130), 4-team squares **130–180**. Wide-frontline designs
-  legitimately exceed the old cap. Six seeds now carry **honest per-team counts** (base-2island 8–10,
-  base-2wool 10–12, base-4team 8–10, isolated-spawn-approaches 10–12, rotate-wide-frontline
-  16–20 — the latter two modeled on real maps — and the trace at 30); the stored `maxPlayers`
-  is the **comfortable cap** (upper end of the author's range). Five seeds remain stale at 12
-  pending the author; the G8 land-per-player coupling is derived from the six.
+  legitimately exceed the old cap. All twelve seeds carry **honest per-team counts** (stored =
+  the comfortable cap; the author notes maps play fine ± a few players): tiny 5 · base-2island
+  10 · base-4team 10 · base-2wool 12 · wool-two-sided 12 · approaches 12 · isolated-spawn 14 ·
+  odd-facing 16 · towers 18 · rotate 20 (XML-defined 16) · trace 30 · mirror-big-board 32. The
+  envelope↔player coupling is G8.
 - **G4 [corpus]** `rot_180` (2 teams) / `rot_90` (4 teams) are the defaults; `mirror_x`/`mirror_z`
-  are valid and exercised end-to-end (`mirror-big-board` compiles and exports through the
-  reflection fan).
+  are valid and exercised end-to-end (`mirror-big-board` runs `mirror_x` through compile +
+  export; `mirror-tiny-map-cliff` runs `mirror_z` through the same chain).
 - **G5 [expert, refined]** Void gaps between *individual* landmasses: **10–20** for the
   crossing a route *depends on* — but a longer hop is fine when the **same buildable region
   offers a shorter alternative** (`four-team-towers-big`'s 25 sits beside 15- and 20-hops in one
   region). Lint therefore judges a region's **minimal** crossing, not every pair. Total crossing
   40–60. At **30 players/team** the traced `big-board-…-parallel-mid` runs each parallel lane as
   a single stone-free **35** crossing (also the region's minimum) — the hop envelope scales with
-  player count; the maxPlayers pass formalizes the coupling.
+  player count (the G8 coupling).
 - **G6 [expert]** Build headroom above the island surface: **≥20, up to ~40**. Island terrain
   height **5–20**. **The sky-layer smell:** low, flat terrain under a tall build cap casts a
   second play layer into the sky — players dig the base to bedrock, defend from above, and the
@@ -62,22 +63,23 @@ toward the map centre / the enemy; "back" = toward the map edge.
   **~5 above the build cap**, or off to the side beyond any build zone.
 - **G7 [expert]** Follows G5: a single required-path hop stays ≤ **~20**; anything longer is a
   chain of hops (stones) summing to the 40–60 total crossing.
-- **G8 [expert + corpus, first derivation]** Map size is driven by the intended player count —
-  `maxPlayers` is an *input* to the board envelope, not an afterthought. With the author's first
-  six honest counts the coupling measures as **land area per player at the comfortable cap**, and
-  it clusters in two classes:
-  - **compact seeds ≈ 95–105 b/p** — base-2island 1900 land / 20 players = 95; base-2wool
-    2500/24 = 104; base-4team 3800/40 = 95; isolated-spawn-approaches 2500/24 = 104.
-  - **real-map-grade ≈ 175 b/p** — rotate-wide-frontline at its comfortable 20/team: 7000/40 =
-    175; the traced big board at 30/team: 10500/60 = **175 exactly**. (At rotate's XML-defined
-    16 it's 219 — defined counts sit below the comfort cap.)
+- **G8 [corpus, derived]** Map size is driven by the intended player count — `maxPlayers` is an
+  *input* to the board envelope, not an afterthought. With all twelve author counts the coupling
+  is: **land area per player rises with per-team land**, saturating around ~175–185 b/p:
 
-  Reading: elaborated maps spend more land per player (elevation, longer crossings, rotation
-  space). Composer envelope v0: **players ≈ land / (100 compact ‥ 175 elaborated)**. Derived
-  proposals for the five unlabeled seeds (awaiting the author): isolated-spawn (3100 land,
-  compact) **~14/team**; odd-facing-three-wool (5000, elevation-rich) **~14–16**;
-  four-team-wool-two-sided (6000, 4T) **~10–12**; four-team-towers-big (11500, 4T) **~16**;
-  mirror-big-board (11750, 2T, trace-class) **~30**.
+  | land/team | players/team | b/p | seeds |
+  |---|---|---|---|
+  | 325 | 5 | 65 | mirror-tiny-map-cliff |
+  | 950 | 10 | 95 | base-2island · base-4team |
+  | 1250 | 12 | 104 | base-2wool · isolated-spawn-approaches |
+  | 1500–1550 | 12–14 | 111–125 | four-team-wool-two-sided · isolated-spawn |
+  | 2500–2875 | 16–18 | 156–160 | odd-facing-three-wool · four-team-towers-big |
+  | 3500–5875 | 20–32 | 175–184 | rotate-wide-frontline · trace · mirror-big-board |
+
+  Reading: bigger maps spend more land per player (elevation, longer crossings, rotation space).
+  Composer: target players/team → read land/team off the table (interpolate) → land budget =
+  teams × land/team. Counts tolerate ± a few players (author). Rotate's XML-defined 16 gives
+  219 b/p — defined counts sit below the comfort cap.
 
 ## SP — Spawn
 
@@ -91,7 +93,8 @@ toward the map centre / the enemy; "back" = toward the map edge.
   along their lane rather than dead at mid).
 - **SP4 [corpus]** Raised spawns measured across the corpus: **+0 to +10** over base (the three
   base seeds flat; elaborated seeds +2/+4/+4/+4/+8/+8/**+10** — `mirror-big-board` spawns on the
-  highest plateau). Common band **+4..+8**.
+  highest plateau). Common band **+4..+8**. `mirror-tiny-map-cliff` adds the first **lowered** spawn (**−2**,
+  surface 7 vs base 9, wool at +2 above it) — at tiny scale the band extends to **−2..+10**.
 - **SP5 [expert]** Spawn structure (cube, protection) is stamped at export; the stamp style may
   evolve. The plan reserves the area and floor level only.
 - **SP6 [corpus]** Spawn **can** be `gap`-only (an isolated spawn island) — `isolated-spawn` and
@@ -196,10 +199,11 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   physical forms, author-labeled across the corpus:
   - **Clean** — one connected build region holding **0..n mid islands** (`isolated-spawn` 0 —
     team islands only; `base-2island`/`base-2wool` 2; `base-4team` 4; `rotate-wide-frontline` 7;
-    `mirror-big-board` and `odd-facing-three-wool` too). Several authored zones may still be
-    clean when they **connect into one big region** — the discriminator is that players travel
-    **freely** between the mid stepping stones. Mid islands may sit in a **grid** without making
-    it a hash — that takes a fractured region or a centre hole.
+    `mirror-big-board`, `odd-facing-three-wool`, and `mirror-tiny-map-cliff` too — the tiny one
+    with a single **axis-spanning mid island** carrying its Δ6 cliff). Several authored zones may
+    still be clean when they **connect into one big region** — the discriminator is that players
+    travel **freely** between the mid stepping stones. Mid islands may sit in a **grid** without
+    making it a hash — that takes a fractured region or a centre hole.
   - **Parallel** — two or more separate zone chains giving parallel team approaches. Corpus
     example: `big-board-wool-two-sided-plaza-parallel-mid` (a real-map trace, 30 players/team) —
     two lanes, each chain being **one authored zone + the other zone's symmetry image** joined
@@ -281,9 +285,9 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
 - **EL1 [corpus]** Plateau step unit: **2**. The authored surface palette was base 9 + even steps
   up (9/11/13/15/17/19 — all odd values), so every one of the 137 measured land-interface deltas
   is even by construction: histogram Δ0 ×47, Δ2 ×73, Δ4 ×10, Δ6 ×4, Δ8+ ×3. The traced
-  `big-board-…-parallel-mid` extends the palette **below base**: surfaces **7 and 5** on a
-  frontline that dips −2/−4 — terrain may dip below the base standard; still odd, deltas still
-  even.
+  `big-board-…-parallel-mid` extends the palette **below base** (frontline at 7 and 5), and
+  `mirror-tiny-map-cliff` reaches **3** (its mid-cliff floor) — palette now **3–19**; terrain may
+  dip below the base standard; still odd, deltas still even.
 - **EL2 [expert]** Height deltas across `gap`s work **both ways**: attacker builds up and arrives
   low (defensive device), or the defended wool sits low and the defender holds height advantage
   *inside* the room.
@@ -301,7 +305,9 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   staircase edge, however wide. Of the corpus's 17 Δ≥4 seams this reproduces the author's
   verdicts exactly: rotate-wide-frontline 0 (5-wide strips + one lone step-up), mirror-big-board
   2 (the spawn-plateau seam Δ8 and the east cliff face Δ6), odd-facing 3 (the Δ8 jump + both pit
-  walls).
+  walls). Scale note: the corpus's smallest qualifying cliff is `mirror-tiny-map-cliff`'s
+  **10-wide Δ6** on its axis-spanning mid island ("9 vs 3", marked) — exactly at (a)/(b)/(c)'s
+  lower bounds; the thresholds are absolute, and tiny maps sit right against them.
 - **EL7 [expert, new]** **The pit** — twin opposing cliffs flanking a wool approach
   (`odd-facing-three-wool`): slows attackers like a bridge-gap but more forgivingly (a fall is
   recoverable bridging, not void), lets defenders reach bedrock faster, and the air exposure
@@ -363,12 +369,10 @@ palette, the plaza hub, and the 35 crossing at 30/team):
 2. ~~fragmented-island~~ — **resolved without a seed**: fragmentation is the closure reading
    (CT1–CT6); every seed is a fragmented closure and the interface statistics are already
    measured.
-3. **maxPlayers pass — six of eleven landed.** Honest counts stored for base-2island (10),
-   base-2wool (12), base-4team (10), isolated-spawn-approaches (12), rotate-wide-frontline (20 —
-   XML-defined 16), and the trace (30); the G8 land-per-player coupling is derived (95–105
-   compact, 175 elaborated). Remaining: the author confirms or corrects the five G8 proposals —
-   isolated-spawn ~14, odd-facing ~14–16, wool-two-sided ~10–12, towers ~16, mirror ~30. **The
-   single remaining freeze blocker.**
+3. ~~maxPlayers pass~~ — **complete**: all twelve seeds carry the author's per-team counts
+   (the last five: isolated-spawn 14 ✓ proposal, towers 18, mirror 32, wool-two-sided 12,
+   odd-facing 16 ✓); the G8 coupling is derived from the full corpus. **No freeze blockers
+   remain — v3 is frozen.**
 4. ~~behind-spawn iron~~ — retracted (facing-semantics artifact; the iron is ahead).
 
 ## Resolved this round (was: freeze blockers)
@@ -393,5 +397,6 @@ palette, the plaza hub, and the 35 crossing at 30/team):
 
 ## Correction protocol
 
-Reply by rule id. Remaining before freeze: the maxPlayers pass — then this document **freezes as
-the composer's v1 rule set**.
+Reply by rule id. **Frozen 2026-07-04 as the composer's v1 rule set.** Further corrections are
+**amendments**: applied in place, logged under *Resolved* with their round, and the composer
+re-validated against them.

@@ -200,6 +200,11 @@ The open work sorts into three domains:
   each climb by its top-end anchor (wool approach / mid ascent / interior) and per-team use (attacker climb
   vs defender rotation). Spec: `docs/contracts/plan-editor.md` §2 "Climbs". Composer vocabulary for WL5/FR3
   (straight approach vs space-packing switchback vs defensible landing). Depends on `G24`'s chains.
+- [ ] **G31 — Scaled structure presets (stamps must fit tiny and huge maps).** The spawn cube / wool
+  cage / iron cube stamps are fixed-size (8×8 footprints); on `mirror-tiny-map-cliff` (1-cell pieces,
+  markers at block centres) the stamps overlap the piece bounds, and 30+/team boards could take larger
+  presets. Scale the stamp presets with map class (the G8 coupling) or the carrier piece size; author
+  request from the tiny seed.
 - [ ] **G30 — Unfold analysis: straighten L corners over the team-side tile mass.** Treat a team's side
   (terrain pieces + build zones as tiles) as one connected rectilinear piece and *unfold* it — straighten
   every L corner so only T/`+` intersections and holes `[]` remain; valid only when the result doesn't

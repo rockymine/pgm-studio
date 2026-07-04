@@ -289,3 +289,36 @@ terrain block area. b/p = land per player at the cap (teams × cap):
 proposals for the remaining five (awaiting the author): isolated-spawn (3100 land, compact)
 **~14**; odd-facing-three-wool (5000) **~14–16**; four-team-wool-two-sided (6000, 4T) **~10–12**;
 four-team-towers-big (11500, 4T) **~16**; mirror-big-board (11750, 2T) **~30**.
+
+## Twelfth seed: mirror-tiny-map-cliff · final maxPlayers table · FREEZE
+
+`mirror-tiny-map-cliff` — the tiniest map yet: **mirror_z** (first), **5 players/team**, fanned
+board **25×70**, 9 pieces (several 1-cell), 2 zones, 650 land blocks (**65 b/p**). Facts:
+- Surface palette **3–11**: sub-base 3/5/7 — including the first **lowered spawn** (−2, SP4
+  extended) — wool at +2.
+- **Axis-spanning mid island** (`piece-2` at 9 + `piece-6` at 3, self-mirrored across z=0) carrying
+  a **10-wide Δ6 cliff** ("9 vs 3") — the corpus's smallest EL6-qualifying cliff, `cliffs`-marked
+  (the EL6 lint demanded it; thresholds sit at their lower bounds at tiny scale). Mid form:
+  clean (all zones chain into one region) → tally **clean 8 · hash 3 · parallel 1**.
+- Markers at block centres of 1-cell pieces: the fixed 8×8 spawn/wool stamps overlap piece
+  bounds → **scaled structure presets** filed as `G31`.
+
+**Final maxPlayers (author, per team; stored = comfortable cap):**
+
+| seed | count | land | b/p |
+|---|---|---|---|
+| mirror-tiny-map-cliff | 5 | 650 | 65 |
+| base-2island | 10 (8–10) | 1900 | 95 |
+| base-4team | 10 (8–10) | 3800 | 95 |
+| base-2wool | 12 (10–12) | 2500 | 104 |
+| isolated-spawn-approaches | 12 (10–12, real-map XML 10) | 2500 | 104 |
+| four-team-wool-two-sided | 12 | 6000 | 125 |
+| isolated-spawn | 14 | 3100 | 111 |
+| odd-facing-three-wool | 16 | 5000 | 156 |
+| four-team-towers-big | 18 | 11500 | 160 |
+| rotate-wide-frontline | 20 (16–20, real-map XML 16) | 7000 | 175 |
+| big-board-…-parallel-mid | 30 (trace) | 10500 | 175 |
+| mirror-big-board | 32 | 11750 | 184 |
+
+**The maxPlayers pass is complete — `layout-rules.md` v3 is FROZEN (2026-07-04) as the composer's
+v1 rule set.** G8 carries the coupling table (b/p rising 65 → 184 with per-team land).

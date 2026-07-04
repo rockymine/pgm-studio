@@ -1,0 +1,168 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "mirror-tiny-map-cliff"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "mirror_z",
+    "maxPlayers": 5,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        1,
+        -4,
+        1,
+        1
+      ],
+      "surface": 5
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -2,
+        -5,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -2,
+        -7,
+        1,
+        1
+      ],
+      "surface": 11
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        2,
+        -5,
+        1,
+        1
+      ],
+      "surface": 7
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -1,
+        -1,
+        1,
+        2
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -2,
+        -3,
+        1,
+        1
+      ],
+      "surface": 5
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -2,
+        -6,
+        1,
+        1
+      ],
+      "surface": 11
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        0,
+        -1,
+        1,
+        2
+      ],
+      "surface": 3
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        0,
+        -5,
+        2,
+        1
+      ],
+      "surface": 7
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -2,
+        -4,
+        1,
+        1
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        -2,
+        -3,
+        4,
+        3
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          0.5,
+          0.5
+        ],
+        "facing": "left"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          0.5,
+          0.5
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [
+    {
+      "a": "piece-2",
+      "b": "piece-6"
+    }
+  ],
+  "walls": [
+    {
+      "a": "piece-4",
+      "b": "piece-5"
+    }
+  ]
+}

@@ -630,6 +630,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   elevation seams). Pgm 234 / Minecraft 49 tests green; end-to-end world round-trip in Api.Tests reads the
   stamped block ids back. (G23)
 
+- **The seed corpus — twelve author plans with honest player counts (rules v3 frozen)** — ten
+  authored seeds + the real-map trace (`big-board-…-parallel-mid`, parallel mid, 30/team) +
+  `mirror-tiny-map-cliff` (5/team, `mirror_z`, sub-base palette 3–7, the axis-spanning Δ6 mid
+  cliff). Every seed stores the author's per-team count (comfortable cap); the G8 land-per-player
+  coupling is derived (65 → 184 b/p rising with per-team land); all mid forms author-labeled
+  (clean 8 · hash 3 · parallel 1); `docs/contracts/layout-rules.md` **froze 2026-07-04 as the
+  composer's v1 rule set**. (G21)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

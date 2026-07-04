@@ -6,7 +6,7 @@
   "globals": {
     "cell": 5,
     "symmetry": "rot_180",
-    "maxPlayers": 12,
+    "maxPlayers": 14,
     "surface": 9,
     "headroom": 11
   },
