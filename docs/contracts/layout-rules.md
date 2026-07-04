@@ -167,10 +167,22 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
 - **CT1 — the mid is an interface, not a cut.** There is no team-separation cut — the symmetry
   axis already plays that part. What the author shapes as "the middle" is the **interface between
   the two team territories**, and that interface always connects through bridge zones. Its
-  physical forms in the corpus: a **single clean zone** (possibly holding islands); **two or more
-  parallel zones** (parallel team approaches); one **big connecting zone**; a **grid** — islands
-  placed in a grid with zones joining the opposite islands (not the AABB of all of them: with four
-  islands the centre stays free, bridges + islands forming a hash `#`).
+  physical forms, author-labeled across the corpus:
+  - **Clean** — one connected build region holding **0..n mid islands** (`isolated-spawn` 0 —
+    team islands only; `base-2island`/`base-2wool` 2; `base-4team` 4; `rotate-wide-frontline` 7).
+    Mid islands may sit in a **grid** without making it a hash — that takes a fractured region or
+    a centre hole.
+  - **Parallel** — two or more separate zones giving parallel team approaches. No pure corpus
+    example; `isolated-spawn` re-authored with three zones (spawn↔spawn + wool↔wool lanes) would
+    be one, at a gameplay cost: the only remaining rotation point for switching attack lanes is
+    passing the enemy spawn, where the clean mid lets players bridge from any interface to any
+    other (wool lane ↔ isolated-spawn interface, or the diagonal wool lane). **Form choice
+    controls rotation options.**
+  - **Hash `#`** — the build region is **fractured** (or holed at the centre) and the mid islands
+    **interconnect**: every route is directed through them; there is no big region to move freely
+    in. `four-team-towers-big` (the archetype: centre hole + four grid-aligned islands),
+    `four-team-wool-two-sided`, `isolated-spawn-approaches` (hash with parallel traits: three
+    interconnected mid islands, eight zones directing all flow through them).
 - **CT2 — team side vs mid: the true interface.** A team's side is *at least* the islands holding
   its spawn and wools plus the **minimum other islands** needed to connect them. Mid islands are
   what remains, claimed by closeness to the map's actual middle point. This assignment — not any
@@ -182,14 +194,27 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
 - **CT4 — the island-size gradient [corpus].** Measured over the 90 fanned islands of the
   ten-seed corpus (`docs/seed-stats.md`, "Island gradient sweep"): islands **grow** with distance
   from the centre — pooled Spearman(area, centroid-distance) **+0.61**, holds per-seed in
-  **8/10**; and **stepping stones** — islands fully submerged in a build zone, or small
-  (≤100-block) islands with exactly two build-zone interfaces — **thin out** toward the team
-  side: **17/4/4** over the mid/transition/team distance thirds, holding in **6/6** seeds that
-  contain stones. The two grow-outward exceptions (`odd-facing-three-wool` ρ 0.00,
-  `rotate-wide-frontline` ρ 0.15) share one mechanism: the largest landmass is a **mid-band
-  spine** with only 350–450-block pads beyond it — and those far pads are exactly the stepping
-  stones, so the falloff holds even where the growth breaks. (MD1/MD4 describe the stones
-  themselves.)
+  **8/10**. Stepping-stone candidates are islands fully submerged in a build zone, or small
+  (≤100-block) islands with exactly two build-zone interfaces — **minus two author exclusions**:
+  - an island holding a **wool or spawn marker is never a stone** — it carries intent, belongs to
+    a team, and the marker constrains who can cross it (a spawn or wool at the island's centre
+    means both teams can never share the transient link). Currently vacuous in the corpus (no
+    measured stone held a marker) but binding on the composer.
+  - a stone whose **every interfacing zone component touches only one team's islands** is a
+    **team transient-link**, not a mid stone — the encased pad between a team's own islands (the
+    WL4/SP6 bridge pads). Corpus examples: `rotate-wide-frontline`'s four 100-block corner pads,
+    each sitting exactly between the spawn mass and a wool platform with both zones coming from
+    them, none from mid — all four deep in the team third (63.6), as their function demands. (If
+    such a pad *also* bordered a team-connecting zone it could be tagged mid, but connecting two
+    marker islands stays its main function.)
+
+  With that split the gradient sharpens: **mid stones thin 17/4/0** over the mid/transition/team
+  distance thirds — a hard zero in the team third. Size is a measurement convenience, not the
+  definition: `odd-facing-three-wool`'s 400-block L-island is functionally a **large stepping
+  stone** — the long side borders the geographic mid, the short side feeds the team area. The two
+  grow-outward exceptions (`odd-facing-three-wool` ρ 0.00, `rotate-wide-frontline` ρ 0.15) share
+  one mechanism: the largest landmass is a **mid-band spine** with only 350–450-block pads beyond
+  it. (MD1/MD4 describe the stones themselves.)
 - **CT5 — carve the mid, cut the team side.** "Cut" is the wrong picture for the middle — it can
   hold many islands; the mid operator is **carving**: shaping the interface's islands and zones
   directly into one of CT1's forms. Cutting belongs to the **team side**: severing a piece from
@@ -197,6 +222,11 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   and, deliberate variants aside, each team side stays internally land-traversable after cutting.
 - **CT6 — the fragmented-island "seed" is the whole corpus.** No dedicated seed is needed: every
   seed *is* a fragmented closure, and the interface statistics are the measured zone/hop numbers.
+- **CT7 — stones align with the team islands [expert, corpus].** Stepping stones and mid islands
+  are **grid-aligned with the actual team islands** — they sit on the team islands' lines,
+  especially along the build-zone borders. Seen across essentially all the maps, and the standard
+  look of 4-team CTW (`base-4team`, `four-team-towers-big`). For the composer: stone placement is
+  not free scatter inside a zone; it extends the team islands' lines into the mid.
 
 ## BZ — Build zones
 
@@ -311,10 +341,16 @@ The ten-seed corpus covers the entire original shopping list:
 4. **SP7 "violation"** — retracted (facing-semantics measurement bug; iron is ahead).
 5. **CT1/CT4 revised per the author** — no team-separation cut exists (the symmetry axis plays
    that part); the mid is the *interface between team territories*, always connected through
-   bridge zones, in four physical forms (clean zone / parallel zones / big connector / grid-`#`).
-   Carving replaced cutting as the mid operator (CT5); team-side vs mid assignment is
-   spawn+wools+minimal-connectors vs centre-proximity (CT2); the island-size gradient and
-   stepping-stone falloff are pinned as CT4's corpus hypothesis.
+   bridge zones. Carving replaced cutting as the mid operator (CT5); team-side vs mid assignment
+   is spawn+wools+minimal-connectors vs centre-proximity (CT2); the island-size gradient and
+   stepping-stone falloff measured and confirmed (CT4).
+6. **CT1 forms author-labeled; stones corrected** — the mid-form taxonomy is now
+   clean / parallel / hash (grid = alignment property, not a form; a grid of islands in one
+   connected region is *clean*, not hash — `rotate-wide-frontline`, `base-4team`; hash requires a
+   fractured or holed build region with interconnected mid islands — `four-team-towers-big`,
+   `four-team-wool-two-sided`, `isolated-spawn-approaches`). Stone classification gained the
+   marker exclusion and the team transient-link split (CT4), which sharpened the falloff to
+   **17/4/0**; stone/team-island alignment became CT7.
 
 ## Correction protocol
 

@@ -222,3 +222,28 @@ stepping stones, so the falloff holds even where the growth breaks.
 **Correction note:** the SP7 flag in the rule-number rollup above ("iron BEHIND spawn",
 four-team-wool-two-sided) was retracted — it was a facing-semantics measurement bug; the iron is
 ahead of the spawn (see layout-rules.md, *Resolved this round*).
+
+### Corrected stone classification (author round: markers & encasement)
+
+Two exclusions applied to the stepping-stone candidates above: **marker islands are never stones**
+(no measured stone held one — vacuous here, binding on the composer), and stones whose every
+interfacing **zone component** touches only one team's islands are **team transient-links**, not
+mid stones (automated as: zone component reaches islands of <2 orbit images). Re-measured:
+
+| seed | mid stones [mid/trans/team] | team links | mid form (author) |
+|---|---|---|---|
+| base-2island | 2 [2/0/0] | 0 | clean, 2 mid islands |
+| base-2wool | 2 [2/0/0] | 0 | clean, 2 mid islands |
+| base-4team | 4 [4/0/0] | 0 | clean, 4 mid islands in a grid (no hole → not hash) |
+| four-team-towers-big | 0 | 0 | hash + grid: centre hole, four aligned islands |
+| four-team-wool-two-sided | 0 | 0 | hash |
+| isolated-spawn-approaches | 0 | 0 | hash + parallel: 3 interconnected mid islands, 8 zones |
+| isolated-spawn | 0 | 0 | clean, no mid islands (team islands only) |
+| mirror-big-board | 4 [4/0/0] | 0 | (not yet author-labeled) |
+| odd-facing-three-wool | 2 [2/0/0] | 0 | (not yet author-labeled; mid islands: tiny 2×2 + the 400-block L) |
+| rotate-wide-frontline | 7 [3/4/0] | 4 [0/0/4] | clean, 7 grid mid islands in one big region |
+
+**Corrected roll-up:** mid stones **21**, thinning **17 / 4 / 0** over the global distance thirds —
+a hard zero in the team third. Team transient-links **4** (all `rotate-wide-frontline`'s corner
+pads at 63.6, encased between the spawn mass and a wool platform — deep in the team third by
+function). Distance-third cuts unchanged (28.1 / 49.6).

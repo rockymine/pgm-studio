@@ -125,12 +125,14 @@ intent.
    compose the map as **one connected mass** (the closure), assign the team sides (the islands
    holding spawn + wools plus their minimal connectors; the rest is mid by centre-proximity —
    CT2), then fragment each regime with its own operator. The **mid is carved** into one of its
-   interface forms — a single clean zone, parallel team approaches, one big connector, or the
-   grid-`#` (CT1); the **team sides are cut** — secondary isolation cuts sever wool or spawn
-   behind a bridge (CT5) — keeping G5's hop numbers per crossing and leaving fragments standing
-   as stepping stones (CT4's gradient: islands grow outward from the centre, stones thin toward
-   the team side). The traversability gate is exactly the check that fragmentation never
-   disconnects the closure. Purpose is gameplay, not looks — harder/riskier objective access,
+   interface forms — clean (one connected region, 0..n mid islands), parallel approaches, or the
+   hash `#` (fractured/holed region with interconnected mid islands) per CT1; the **team sides
+   are cut** — secondary isolation cuts sever wool or spawn behind a bridge (CT5) — keeping G5's
+   hop numbers per crossing and leaving fragments standing as stepping stones (CT4's gradient:
+   islands grow outward, mid stones thin 17/4/0 toward the team side; stones grid-aligned with
+   the team islands per CT7; encased pads between a team's own islands are transient-links, not
+   mid). The traversability gate is exactly the check that fragmentation never disconnects the
+   closure. Purpose is gameplay, not looks — harder/riskier objective access,
    defenders slowed, retreat over fragile player-made bridges.
 4. **Neutral middle** — place `mid` pieces and build zones between the frontlines.
 5. **Validate** the plan invariants; reject/repair.
