@@ -171,6 +171,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   makes counts deterministic; serializing the collection is the fallback. Update the cloud-setup.md note
   once the flake is gone.
 
+- [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
+  C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
+  API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
+  small, semantic, and `PlanValidator` returns rule-id findings, giving the agent a compiler-style
+  submit→lint→fix loop. Tools: `plan_validate` · `plan_compile` (summary, not blobs) · `plan_render`
+  (image content — agents self-correct far better seeing the board) · `compose` (a G32 plan as starting
+  material to mutate) · `create_draft`/`export` (existing chain; return the export **link**, never the
+  world zip inline). MCP resources: the frozen `layout-rules.md` as the design brief + `tools/seeds/*.plan.json`
+  as few-shot examples — tool-description curation is the real work, not plumbing. Fast-follow after the
+  composer (G32) lands; its gates (validator, stat envelopes, renderer) are exactly the tools this exposes.
+
 ## Layout generation (G) — auto map generation (lane sketch generators)
 
 The "meaning → structure" engine: seed a draft map from lane primitives, then hand an editable
@@ -229,6 +240,17 @@ The open work sorts into three domains:
   `/api/plan/inspect` and a "Hubs" editor overlay, and build **lane chains** on top (corridors between
   junctions/dead-ends) so width/length lint and depth checks measure along a whole lane rather than per
   piece. The anchor for composer-side junction placement/verification later. (layout-rules.md PC1)
+- [ ] **G34 — Theming & styling rules: material palettes + prop stamps (trees etc.).** Generated maps are
+  100% playable and 100% bare stone — extend the meaning→structure move to the world's *read*. A rule-driven
+  theming pass at rasterize/export: **theme = material palette** (per role/stratum: surface cap, body,
+  cliff faces, wool-approach accents) + a **prop stamp library** (trees, rocks, lamps) with placement rules
+  (density per piece kind, never inside corridor-min footprints or the spawn/wool stamp plateaus, respect
+  build zones and G6 headroom, seeded-deterministic like the composer). The stamp machinery is precedent
+  (spawn cubes / wool cages / ST1–ST4; `G31` scales them); capture theming rules the same way
+  `layout-rules.md` was captured — expert-authored, correction-by-id, a `theming-rules.md` contract.
+  **Deliberately moves the §6 division-of-labour boundary** (layout-generation.md: art was "always manual"
+  post-detach polish): generator does layout + *baseline* theming; character/set pieces/themed identity stay
+  the author's (Tier 3 unchanged).
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding
