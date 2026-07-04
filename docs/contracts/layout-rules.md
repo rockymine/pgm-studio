@@ -2,8 +2,10 @@
 
 The generator's actual content: per-role attachment rules, dimensions, and elevation defaults for
 the plan composer (`docs/contracts/layout-generation.md` §3). v3 measures every rule against the
-**ten-seed corpus** (`tools/seeds/*.plan.json`, sweep script `seed_stats`); this is the **freeze
-candidate** — one item (the maxPlayers pass, see *Remaining seed work*) blocks the freeze. Tags:
+**eleven-seed corpus** (`tools/seeds/*.plan.json`, sweep script `seed_stats`; the eleventh,
+`big-board-wool-two-sided-plaza-parallel-mid`, is a **trace of a real map** at 30 players/team);
+this is the **freeze candidate** — one item (the maxPlayers pass, see *Remaining seed work*)
+blocks the freeze. Tags:
 
 - **[corpus]** — confirmed by measured seed evidence (seeds cited).
 - **[expert]** — author-stated, not yet exercised by a seed.
@@ -37,9 +39,11 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **G3 [corpus, revised]** The v2 width band (40–60) fit almost none of the authored corpus:
   measured 2-team fanned boards run **30–130 wide × 100–280 long** (elaborated seeds typically
   80–130 wide; `mirror-big-board` 280×130), 4-team squares **130–180**. Wide-frontline designs
-  legitimately exceed the old cap. Numbers remain **decoupled from player count** — every seed
-  still carries the stale `maxPlayers: 12` — so the envelope↔G8 coupling is re-derived in the
-  parked maxPlayers pass before the composer treats these as sampling bounds.
+  legitimately exceed the old cap. Numbers remain mostly **decoupled from player count** — the ten
+  authored seeds still carry the stale `maxPlayers: 12`; the traced `big-board-…-parallel-mid`
+  is the **first honest count** (30 per team, fanned board 150×260) — so the envelope↔G8
+  coupling is re-derived in the parked maxPlayers pass before the composer treats these as
+  sampling bounds.
 - **G4 [corpus]** `rot_180` (2 teams) / `rot_90` (4 teams) are the defaults; `mirror_x`/`mirror_z`
   are valid and exercised end-to-end (`mirror-big-board` compiles and exports through the
   reflection fan).
@@ -47,7 +51,9 @@ toward the map centre / the enemy; "back" = toward the map edge.
   crossing a route *depends on* — but a longer hop is fine when the **same buildable region
   offers a shorter alternative** (`four-team-towers-big`'s 25 sits beside 15- and 20-hops in one
   region). Lint therefore judges a region's **minimal** crossing, not every pair. Total crossing
-  40–60.
+  40–60. At **30 players/team** the traced `big-board-…-parallel-mid` runs each parallel lane as
+  a single stone-free **35** crossing (also the region's minimum) — the hop envelope scales with
+  player count; the maxPlayers pass formalizes the coupling.
 - **G6 [expert]** Build headroom above the island surface: **≥20, up to ~40**. Island terrain
   height **5–20**. **The sky-layer smell:** low, flat terrain under a tall build cap casts a
   second play layer into the sky — players dig the base to bedrock, defend from above, and the
@@ -124,7 +130,8 @@ toward the map centre / the enemy; "back" = toward the map edge.
 ## HB — Hub / connector
 
 - **HB1 [expert]** Connector/crossbar width: **10 is the floor** (smallest maps); **15 is the
-  widespread value**.
+  widespread value**. Hubs can also be authored as one big open **plaza** piece — the parallel
+  trace's 30×30 `piece-5` — rather than emerging as a junction residual.
 - **HB2 [seed]** Every frontline→wool path crosses ≥1 hub/connector piece. (Unchallenged;
   pending the new seeds.)
 - **HB3 [expert]** Hub-widens-into-plaza (1.5–2× lane width) is wanted **at plan level**, not
@@ -144,6 +151,11 @@ toward the map centre / the enemy; "back" = toward the map edge.
   - **Team approaches** — ways to reach the enemy's side: **1–3** (corpus: 1 on six seeds, 3 on
     three); 1 is acceptable only if it is wide.
   - **Wool approaches** — ways to reach a wool room: WL8.
+- **FR5 [expert, corpus]** Opposing frontlines may sit at **different heights per lane** — in the
+  parallel trace one lane ends on a **13** frontline facing the enemy's **5**, mirrored so each
+  team owns one high and one low end. The strategic telling: a team chooses the **high-ground
+  route** or the **incline** — and the high ground is the lane **farther from your own spawn**,
+  an intentional design choice (the stronger push costs the longer rotation).
 
 ## MD — Mid / stepping stones
 
@@ -174,12 +186,14 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
     clean when they **connect into one big region** — the discriminator is that players travel
     **freely** between the mid stepping stones. Mid islands may sit in a **grid** without making
     it a hash — that takes a fractured region or a centre hole.
-  - **Parallel** — two or more separate zones giving parallel team approaches. No pure corpus
-    example; `isolated-spawn` re-authored with three zones (spawn↔spawn + wool↔wool lanes) would
-    be one, at a gameplay cost: the only remaining rotation point for switching attack lanes is
-    passing the enemy spawn, where the clean mid lets players bridge from any interface to any
-    other (wool lane ↔ isolated-spawn interface, or the diagonal wool lane). **Form choice
-    controls rotation options.**
+  - **Parallel** — two or more separate zone chains giving parallel team approaches. Corpus
+    example: `big-board-wool-two-sided-plaza-parallel-mid` (a real-map trace, 30 players/team) —
+    two lanes, each chain being **one authored zone + the other zone's symmetry image** joined
+    across the axis, the chains never touching; each lane a single 35 crossing with asymmetric
+    frontline heights (FR5). The form has a rotation cost — `isolated-spawn` re-authored as three
+    parallel zones would leave passing the enemy spawn as the only lane-switch point, where its
+    clean mid lets players bridge from any interface to any other. **Form choice controls
+    rotation options.**
   - **Hash `#`** — the build region is **fractured** (or holed at the centre) and the mid islands
     **interconnect**: every route is directed through them; there is no big region to move freely
     in. `four-team-towers-big` (the archetype: centre hole + four grid-aligned islands),
@@ -250,9 +264,12 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
 
 ## EL — Elevation
 
-- **EL1 [corpus]** Plateau step unit: **2**. The corpus surface palette is base 9 + even steps
-  (9/11/13/15/17/19 — all odd values), so every one of the 137 measured land-interface deltas is
-  even by construction: histogram Δ0 ×47, Δ2 ×73, Δ4 ×10, Δ6 ×4, Δ8+ ×3.
+- **EL1 [corpus]** Plateau step unit: **2**. The authored surface palette was base 9 + even steps
+  up (9/11/13/15/17/19 — all odd values), so every one of the 137 measured land-interface deltas
+  is even by construction: histogram Δ0 ×47, Δ2 ×73, Δ4 ×10, Δ6 ×4, Δ8+ ×3. The traced
+  `big-board-…-parallel-mid` extends the palette **below base**: surfaces **7 and 5** on a
+  frontline that dips −2/−4 — terrain may dip below the base standard; still odd, deltas still
+  even.
 - **EL2 [expert]** Height deltas across `gap`s work **both ways**: attacker builds up and arrives
   low (defensive device), or the defended wool sits low and the defender holds height advantage
   *inside* the room.
@@ -323,15 +340,18 @@ both corrected.)
 
 ## Remaining seed work
 
-The ten-seed corpus covers the entire original shopping list:
+The eleven-seed corpus covers the entire original shopping list (the eleventh, the traced
+`big-board-…-parallel-mid`, additionally delivered the parallel-mid example, the below-base
+palette, the plaza hub, and the 35 crossing at 30/team):
 
 1. ~~cliff-marked seed~~ — **done**: five `cliffs` marks landed (mirror-big-board ×2,
    odd-facing ×3) under EL6.
 2. ~~fragmented-island~~ — **resolved without a seed**: fragmentation is the closure reading
    (CT1–CT6); every seed is a fragmented closure and the interface statistics are already
    measured.
-3. **maxPlayers pass** — honest player counts on all ten seeds, re-deriving the G3↔G8 envelope
-   coupling. **The single remaining freeze blocker.**
+3. **maxPlayers pass** — honest player counts on the ten authored seeds (the trace already
+   carries its 30/team), re-deriving the G3↔G8 envelope coupling. **The single remaining freeze
+   blocker.**
 4. ~~behind-spawn iron~~ — retracted (facing-semantics artifact; the iron is ahead).
 
 ## Resolved this round (was: freeze blockers)

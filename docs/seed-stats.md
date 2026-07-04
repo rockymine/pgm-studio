@@ -248,3 +248,24 @@ a hard zero in the team third. Team transient-links **4** (all `rotate-wide-fron
 pads at 63.6, encased between the spawn mass and a wool platform — deep in the team third by
 function). Distance-third cuts unchanged (28.1 / 49.6). Mid forms fully author-labeled:
 **clean 7 · hash 3 · parallel 0**.
+
+## Eleventh seed: big-board-wool-two-sided-plaza-parallel-mid (real-map trace)
+
+Trace of a real map, `maxPlayers` **30 per team** — the corpus's first honest player count.
+`rot_180`, fanned board **150×260**, 16 pieces, 2 zones. Key facts (all firsts for the corpus):
+
+- **Parallel mid** (first corpus example — tally now clean 7 · hash 3 · parallel 1). Two lane
+  chains, each = one authored zone + the *other* zone's rot_180 image joined across the axis
+  (left: `zone` + `zone-2`-image; right: `zone-2` + `zone`-image); the chains never touch.
+- **Crossings: 35 per lane**, stone-free, also the region minimum — above the 10–20 band, at
+  30/team (hop envelope scales with player count; maxPlayers pass).
+- **Surface palette below base**: frontline pieces at **7** (`piece-3`) and **5** (`piece-14`) —
+  first sub-base terrain; still odd, all interface deltas still even (EL1 extended 5–19).
+- **Asymmetric frontline heights** (FR5): the far lane ends on a 13 frontline (`piece-2`) facing
+  the enemy's 5; mirrored, so each team owns one high and one low lane end. High ground = the
+  lane farther from your spawn, by design.
+- **Plaza hub**: `piece-5` is a **30×30** open square at 13 (HB1 note) — first hub authored as
+  one big piece; the corpus piece-width histogram gains its first 30.
+- Islands: 2 (each team side one connected mass); **no stepping stones** — mid stones/team links
+  unchanged (21 / 4 corpus-wide). Wool at +8 over its lane (17 vs base 9), spawn at base,
+  wool↔spawn on separate lanes.
