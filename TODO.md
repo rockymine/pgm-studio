@@ -19,9 +19,9 @@ rule set (`docs/contracts/layout-rules.md`, v3) in the §3 order of `docs/contra
 — compose the closure, assign team sides, carve the mid (clean/parallel/hash), cut the team sides,
 validate, compile through the existing seed chain.
 
-- [ ] **G32 — Composer v1 skeleton.** Deterministic-seeded generator producing valid small plans:
-  globals from a target player count (teams/symmetry; land budget via the G8 coupling), grow the team
-  unit by attachment rules (spawn back-of-lane, wool on a separate lane, G2/G3 dims), carve a **clean**
-  mid (v1 form; hash/parallel later), apply CT5 isolation cuts where drawn, place markers/walls, gate on
-  `PlanValidator` + `FannedGraph` traversability, emit `plan.json` loadable in the plan editor. The
-  frozen rules are the acceptance oracle.
+- [~] **G32 — Composer v1 skeleton.** Landed so far: envelope + team-unit grower (`FEATURES.md`).
+  Remaining: carve the **clean** mid (one merged build region + CT7-aligned stones thinning per CT4;
+  G5/G7 hop arithmetic; CT8 closure holes as the default), CT5 isolation cuts (~40% motif), then
+  markers/heights/walls (SP4/EL1/WL5/SP7/ST4), gate on `PlanValidator` zero-errors + `FannedGraph`
+  traversability + the `seed-stats.md` envelopes, emit `plan.json` loadable in the plan editor with
+  fixed-seed goldens. The frozen rules are the acceptance oracle.

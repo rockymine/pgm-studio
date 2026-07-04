@@ -638,6 +638,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (clean 8 · hash 3 · parallel 1); `docs/contracts/layout-rules.md` **froze 2026-07-04 as the
   composer's v1 rule set**. (G21)
 
+- **Composer — envelope + team-unit grower (first slice)** — `PgmStudio.Pgm/Compose/`: a
+  deterministic-seeded generator (own PCG32 — golden-stable across runtimes) growing one team's
+  authored unit from a player count alone. `Envelope` interpolates the G8 coupling (players →
+  land budget) and samples board dims in the G3 bands; `TeamUnitGrower` grows hub / spawn lane /
+  1–3 wool lanes / frontline chains on a symmetry-generalized (u,v) frame (`Frame`), with hard
+  invariants enforced by bounded retry: full-corridor attachments only (no narrow seams/corners),
+  WL2/WL7 marker distances, LN2 lane-chain cap ≤50, ±20% land budget, ≥10-block clearance between
+  orbit images (team sides are separate islands — exactly `Teams` land components per fanned
+  board), footprint aspect inside the measured corpus band. Structural surplus spending (third
+  wool at p≥16, doglegs, plaza hubs, frontline chains) instead of lane stretch; silhouette variety
+  via sampled attachment hosts/depths and arm asymmetry. Zones/mid/heights are the remaining G32
+  slices. 300 Pgm tests green (43 new: known-answer RNG pins, envelope bands, invariant +
+  distribution sweeps ~1,080 composes). (G32 — first slice)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`
