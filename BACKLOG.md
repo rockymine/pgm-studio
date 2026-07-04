@@ -200,6 +200,13 @@ The open work sorts into three domains:
   each climb by its top-end anchor (wool approach / mid ascent / interior) and per-team use (attacker climb
   vs defender rotation). Spec: `docs/contracts/plan-editor.md` §2 "Climbs". Composer vocabulary for WL5/FR3
   (straight approach vs space-packing switchback vs defensible landing). Depends on `G24`'s chains.
+- [ ] **G30 — Unfold analysis: straighten L corners over the team-side tile mass.** Treat a team's side
+  (terrain pieces + build zones as tiles) as one connected rectilinear piece and *unfold* it — straighten
+  every L corner so only T/`+` intersections and holes `[]` remain; valid only when the result doesn't
+  self-overlap. Render it (overlay or side view) to compare lane twisting/nesting across the corpus and to
+  see where cuts sit on the straightened routes; run backwards it's a composer strategy (assemble unfolded
+  tiles → cut → re-fold/twist at chosen corners → add elevation). Exploratory — prototype the transform
+  before promising UI. Spec note: `docs/contracts/layout-generation.md` §3 "Unfolding".
 - [ ] **G24 — Junction-region derivation + Hubs overlay + lane chains.** Derive hubs as *internal* computed
   structure on the unioned island footprint (mouth-extrusion intersections of ≥3 access mouths — see
   `docs/contracts/plan-editor.md` §2 "Junction regions"; corners yield nothing), expose them through

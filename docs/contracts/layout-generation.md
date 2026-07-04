@@ -120,15 +120,18 @@ intent.
    `lane` pieces, each dead-ending in a `wool-room`; attach `frontline` pieces toward the middle.
    Each rule states which roles may attach to which, on which sides, with what interface width and
    what depth ordering (wool behind hub, spawn off the wool paths, frontline nearest mid).
-3. **Fragmentation moves — compose the closure, then cut** (layout-rules.md CT1–CT6). The
-   composer's natural order is the author's sketch-tool gesture run forward: compose the map as
-   **one connected mass** (the closure — team areas joined to the mid area), then **cut**: remove
-   10–20-deep land bands where build zones belong (the primal team-separation cut first, secondary
-   isolation cuts after), re-bridge every severed route with the replacing zone, and leave
-   fragments standing in the band as stepping stones. Isolated wool, isolated spawn, and displaced
-   mid pieces are all the same cut applied to different places; the traversability gate is exactly
-   the check that the cuts never disconnect the closure. Purpose is gameplay, not looks —
-   harder/riskier objective access, defenders slowed, retreat over fragile player-made bridges.
+3. **Fragmentation moves — compose the closure, carve the mid, cut the team sides**
+   (layout-rules.md CT1–CT6). The composer's natural order is the author's gesture run forward:
+   compose the map as **one connected mass** (the closure), assign the team sides (the islands
+   holding spawn + wools plus their minimal connectors; the rest is mid by centre-proximity —
+   CT2), then fragment each regime with its own operator. The **mid is carved** into one of its
+   interface forms — a single clean zone, parallel team approaches, one big connector, or the
+   grid-`#` (CT1); the **team sides are cut** — secondary isolation cuts sever wool or spawn
+   behind a bridge (CT5) — keeping G5's hop numbers per crossing and leaving fragments standing
+   as stepping stones (CT4's gradient: islands grow outward from the centre, stones thin toward
+   the team side). The traversability gate is exactly the check that fragmentation never
+   disconnects the closure. Purpose is gameplay, not looks — harder/riskier objective access,
+   defenders slowed, retreat over fragile player-made bridges.
 4. **Neutral middle** — place `mid` pieces and build zones between the frontlines.
 5. **Validate** the plan invariants; reject/repair.
 6. **Heights** — per-role plateau defaults (spawn raised for overview, wool approach stepping up
@@ -137,6 +140,15 @@ intent.
 7. **Fan by symmetry, emit** `SketchLayout` + `MapIntent` — the existing seed pipeline
    (rasterizer, auto-wired monuments, spawn cubes, wool cages, export) unchanged.
 8. **Roughen pass** (separate, last) — see §4.
+
+**Unfolding (exploratory).** Treat a team's side as one connected rectilinear piece — build zones
+count as tiles alongside terrain — then *unfold* it: straighten every L corner, so the unfolded
+picture keeps only T and `+` intersections and holes `[]`. Well-defined because plans are
+rectilinear; valid only when the unfold does not self-overlap. As analysis it exposes the
+twisting of lanes and where the cuts sit on the straightened routes, and lets maps be compared
+for how nested and connected they are; run backwards it is a composer strategy — assemble an
+unfolded shape from tiles, cut it, re-fold (twist) at chosen corners, add elevation. Prototype
+tracked as `G30`.
 
 Mutation operators fall out of the same vocabulary, at two levels: *plan operators* change what
 the map is (add a wool branch, isolate a piece, widen/narrow an interface, re-side the spawn,
