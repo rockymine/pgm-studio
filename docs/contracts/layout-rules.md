@@ -43,10 +43,11 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **G4 [corpus]** `rot_180` (2 teams) / `rot_90` (4 teams) are the defaults; `mirror_x`/`mirror_z`
   are valid and exercised end-to-end (`mirror-big-board` compiles and exports through the
   reflection fan).
-- **G5 [expert, open]** Void gaps between *individual* landmasses: **10–20**; total crossing
-  40–60. The corpus contains two deliberate over-limit hops (**25** in `four-team-towers-big`,
-  **30** in `odd-facing-three-wool`) — whether the band loosens (e.g. ≤30 for secondary bridges)
-  or those stay lint-nagged exceptions is *Open question 3*.
+- **G5 [expert, refined]** Void gaps between *individual* landmasses: **10–20** for the
+  crossing a route *depends on* — but a longer hop is fine when the **same buildable region
+  offers a shorter alternative** (`four-team-towers-big`'s 25 sits beside 15- and 20-hops in one
+  region). Lint therefore judges a region's **minimal** crossing, not every pair. Total crossing
+  40–60.
 - **G6 [expert]** Build headroom above the island surface: **≥20, up to ~40**. Island terrain
   height **5–20**. **The sky-layer smell:** low, flat terrain under a tall build cap casts a
   second play layer into the sky — players dig the base to bedrock, defend from above, and the
@@ -75,10 +76,10 @@ toward the map centre / the enemy; "back" = toward the map edge.
   evolve. The plan reserves the area and floor level only.
 - **SP6 [corpus]** Spawn **can** be `gap`-only (an isolated spawn island) — `isolated-spawn` and
   `isolated-spawn-approaches` both build it.
-- **SP7 [expert]** Resource placement (iron): **beside or ahead** of the spawn — players face
+- **SP7 [corpus]** Resource placement (iron): **beside or ahead** of the spawn — players face
   mid and must see it. Iron *behind* the spawn is a bad smell (unseen, dead space). Corpus: 3
-  beside, 1 ahead, and **one violation** — `four-team-wool-two-sided` has iron 10 blocks directly
-  behind its left-facing spawn (suspected authoring slip; author to confirm or fix the seed).
+  beside, 2 ahead, none behind. (An earlier "violation" on `four-team-wool-two-sided` was a
+  measurement artifact of the facing-semantics bug — the spawn points straight at its iron.)
 
 ## WL — Wool room
 
@@ -169,10 +170,11 @@ toward the map centre / the enemy; "back" = toward the map edge.
   chokes exist (×5, lint-flagged, intentional); 15+ for open bands (×12).
 - **BZ4 [expert]** 4-team: zones connect all teams; often with a **hole at the centre** so
   players must walk/bridge around it rather than straight across.
-- **BZ5 [open]** Granularity undecided (*Open question 1*): "never touch the spawn's **piece**"
-  keeps flagging purpose-built seeds whose spawn piece extends to the front; "never within N
-  blocks of the spawn **marker**" is likely the intended meaning. Wool rooms **may** be touched
-  in alternative-approach variants (WL8).
+- **BZ5 [expert, retired as a prohibition]** Build zones **may touch spawn pieces** — a zone at
+  the spawn is a real motif: the **defender-egress bridge** (`four-team-wool-two-sided`: the
+  spawn's second exit is a bridge mainly for defenders rotating to their wool; attackers push the
+  other crossings). No proximity rule; the old lint is dropped. Wool rooms may also be touched
+  (WL8 alternative-approach variants).
 
 ## EL — Elevation
 
@@ -183,13 +185,23 @@ toward the map centre / the enemy; "back" = toward the map edge.
   low (defensive device), or the defended wool sits low and the defender holds height advantage
   *inside* the room.
 - **EL3 [expert]** `land` interfaces: walkable step ≤1; 2–3 only as an explicit jump/ledge
-  feature; ≥4 only as a `cliff` or via building.
+  feature; ≥4 is either a **cliff** (per EL6, needing a `cliffs` mark) or a **stepped path edge**
+  (no mark — the seam borders a staircase route).
 - **EL4 [expert]** Per island: base + up to **2** raised sections (not 1). Roughen never changes
   levels, only outlines.
-- **EL5 [expert, open]** Cliffs (one-way drops): **in v1** — but the `cliffs` field is still
-  unused while the corpus carries **17 unmarked Δ≥4 seams** (mirror-big-board ×8,
-  rotate-wide-frontline ×6, odd-facing-three-wool ×3, incl. one Δ8). Marking them is *Open
-  question 2*.
+- **EL5 [corpus]** Cliffs (one-way drops): in v1 and now in use — `odd-facing-three-wool` marks
+  3 (incl. the pit pair), `mirror-big-board` 2 (the long spawn-side seam + the 15-long seam).
+- **EL6 [expert, new]** **Cliff qualification** — what separates a real cliff from a stepped path
+  edge (the seam beside a staircase/hairpin): a cliff (a) cuts the **full width of a lane**,
+  (b) is **wider than 10** blocks, and (c) where a stepped section runs alongside, carries a
+  height difference of **≥6** (with steps nearby, Δ4 is just the staircase's edge). Of the
+  corpus's 17 Δ≥4 seams, this classifies exactly the author's verdicts: rotate-wide-frontline 0
+  cliffs (all stepped edges on 5-wide strips), mirror-big-board 2, odd-facing 3.
+- **EL7 [expert, new]** **The pit** — twin opposing cliffs flanking a wool approach
+  (`odd-facing-three-wool`): slows attackers like a bridge-gap but more forgivingly (a fall is
+  recoverable bridging, not void), lets defenders reach bedrock faster, and the air exposure
+  prevents tunneling to the wool. A gentler alternative to placing a build-zone gap hard against
+  the room.
 
 ## PC — Pieces are anonymous
 
@@ -228,6 +240,13 @@ toward the map centre / the enemy; "back" = toward the map edge.
   marked interface has Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are
   legal wall carriers.
 
+## Facing semantics [expert]
+
+Marker `facing` is **absolute board directions** — front = −z, back = +z, left = −x, right = +x
+on the authored unit, fanned per orbit image. (The editor always meant this; the compiler briefly
+interpreted "front" as toward-the-centre, which mis-yawed four seeds and mis-measured one iron —
+both corrected.)
+
 ## Remaining seed work
 
 The nine-seed corpus covers the original shopping list except:
@@ -240,16 +259,15 @@ The nine-seed corpus covers the original shopping list except:
    coupling (parked by the author).
 4. *(fix)* `four-team-wool-two-sided`'s behind-spawn iron (SP7) — confirm slip or intent.
 
-## Open questions (freeze blockers)
+## Resolved this round (was: freeze blockers)
 
-1. **BZ5 granularity** — spawn *piece* untouchable, or *marker* proximity (N blocks)? The
-   composer needs one to place zones.
-2. **Cliff marks** — the 17 unmarked Δ≥4 seams (incl. `odd-facing-three-wool`'s +8): mark as
-   `cliffs`, add intermediate steps, or raise EL3's threshold?
-3. **G5 band** — keep 10–20 (the corpus's 25/30 hops stay lint-nagged exceptions) or widen for
-   secondary bridges (≤30)?
+1. **BZ5** — retired as a prohibition; the defender-egress bridge at spawn is a motif.
+2. **Cliffs** — EL6 qualification encodes the author's criteria; marks added to mirror-big-board
+   (2) and odd-facing (3); rotate-wide-frontline's seams are stepped edges, unmarked by design.
+3. **G5** — refined to the region's minimal crossing (long hops beside shorter ones are fine).
+4. **SP7 "violation"** — retracted (facing-semantics measurement bug; iron is ahead).
 
 ## Correction protocol
 
-Reply by rule id. When the three open questions are answered and the two remaining seeds exist,
-this document **freezes as the composer's v1 rule set**.
+Reply by rule id. Remaining before freeze: the fragmented-island seed and the maxPlayers pass —
+then this document **freezes as the composer's v1 rule set**.
