@@ -169,9 +169,11 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   the two team territories**, and that interface always connects through bridge zones. Its
   physical forms, author-labeled across the corpus:
   - **Clean** — one connected build region holding **0..n mid islands** (`isolated-spawn` 0 —
-    team islands only; `base-2island`/`base-2wool` 2; `base-4team` 4; `rotate-wide-frontline` 7).
-    Mid islands may sit in a **grid** without making it a hash — that takes a fractured region or
-    a centre hole.
+    team islands only; `base-2island`/`base-2wool` 2; `base-4team` 4; `rotate-wide-frontline` 7;
+    `mirror-big-board` and `odd-facing-three-wool` too). Several authored zones may still be
+    clean when they **connect into one big region** — the discriminator is that players travel
+    **freely** between the mid stepping stones. Mid islands may sit in a **grid** without making
+    it a hash — that takes a fractured region or a centre hole.
   - **Parallel** — two or more separate zones giving parallel team approaches. No pure corpus
     example; `isolated-spawn` re-authored with three zones (spawn↔spawn + wool↔wool lanes) would
     be one, at a gameplay cost: the only remaining rotation point for switching attack lanes is

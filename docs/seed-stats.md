@@ -239,11 +239,12 @@ mid stones (automated as: zone component reaches islands of <2 orbit images). Re
 | four-team-wool-two-sided | 0 | 0 | hash |
 | isolated-spawn-approaches | 0 | 0 | hash + parallel: 3 interconnected mid islands, 8 zones |
 | isolated-spawn | 0 | 0 | clean, no mid islands (team islands only) |
-| mirror-big-board | 4 [4/0/0] | 0 | (not yet author-labeled) |
-| odd-facing-three-wool | 2 [2/0/0] | 0 | (not yet author-labeled; mid islands: tiny 2×2 + the 400-block L) |
+| mirror-big-board | 4 [4/0/0] | 0 | clean: several zones connecting into one big region, free travel between mid stones |
+| odd-facing-three-wool | 2 [2/0/0] | 0 | clean, same properties; mid islands: tiny 2×2 + the 400-block L |
 | rotate-wide-frontline | 7 [3/4/0] | 4 [0/0/4] | clean, 7 grid mid islands in one big region |
 
 **Corrected roll-up:** mid stones **21**, thinning **17 / 4 / 0** over the global distance thirds —
 a hard zero in the team third. Team transient-links **4** (all `rotate-wide-frontline`'s corner
 pads at 63.6, encased between the spawn mass and a wool platform — deep in the team third by
-function). Distance-third cuts unchanged (28.1 / 49.6).
+function). Distance-third cuts unchanged (28.1 / 49.6). Mid forms fully author-labeled:
+**clean 7 · hash 3 · parallel 0**.
