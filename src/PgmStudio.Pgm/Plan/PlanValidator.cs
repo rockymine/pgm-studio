@@ -235,16 +235,91 @@ public static class PlanValidator
         }
     }
 
-    // EL3 — a land interface with |Δsurface| ≥ 4 must be an explicit cliff.
+    // EL3/EL6 — a land interface with |Δsurface| ≥ 4 must carry a `cliffs` mark only when it is a genuine
+    // cliff by the EL6 qualification, not merely the edge of a staircase. A tall seam qualifies as a cliff
+    // when (b) it cuts a full-lane width (seam length ≥ the corridor minimum) and (c) either has no gentler
+    // bypass, or — where a stepped bypass runs alongside — the drop is ≥ 6. Shorter seams and those relieved
+    // by a ≤ 4 bypass are stepped path edges and need no mark. The finding cites EL6, the qualification.
     private static IEnumerable<PlanFinding> LintEl3(PlanModel plan, PlanDerived d)
     {
         var cliffs = plan.Cliffs.Select(c => (c.A, c.B)).ToHashSet();
         foreach (var c in d.LandInterfaces)
         {
-            if (Math.Abs(c.SurfaceDelta) < 4) continue;
+            if (!QualifiesAsCliff(d, c)) continue;
             if (cliffs.Contains((c.A, c.B)) || cliffs.Contains((c.B, c.A))) continue;
-            yield return Lint("EL3", $"land interface '{c.A}'–'{c.B}' delta {c.SurfaceDelta} ≥ 4 requires a cliff", c.A, c.B);
+            yield return Lint("EL6", $"land interface '{c.A}'–'{c.B}' delta {c.SurfaceDelta} ≥ 4 is a cliff (EL6) and needs a `cliffs` mark", c.A, c.B);
         }
+    }
+
+    // EL6 cliff qualification: a Δ ≥ 4 land seam reads as a cliff (as opposed to a stepped path edge beside a
+    // staircase) only when it cuts a full-lane width — seam length ≥ the corridor minimum. Given the width,
+    // a big drop (Δ ≥ 6) is always a cliff; a shallow drop (Δ 4–5) is a cliff only where it walls a pit — a low
+    // floor pinched between opposing cliffs (EL7) with no gentler way out — and not where it is a lone step up
+    // onto a plateau or the edge of a staircase (a stepped bypass runs alongside).
+    private static bool QualifiesAsCliff(PlanDerived d, Contact c)
+    {
+        var delta = Math.Abs(c.SurfaceDelta);
+        if (delta < 4) return false;
+        if (c.BorderLength < PlanDerived.CorridorMin) return false;   // narrower than a lane → stepped edge
+        if (delta >= 6) return true;                                  // a full-width big drop is always a cliff
+        return WallsAPit(d, c) && !HasSteppedBypass(d, c);            // a shallow drop: only a sealed pit wall
+    }
+
+    // The seam walls a pit when its lower (floor) piece is pinched between opposing cliffs: it carries another
+    // Δ ≥ 4 land seam, to a higher piece, on the face opposite this one (west↔east or north↔south).
+    private static bool WallsAPit(PlanDerived d, Contact c)
+    {
+        var a = d.Piece(c.A)!.Value;
+        var b = d.Piece(c.B)!.Value;
+        var floor = a.Surface <= b.Surface ? a : b;
+        var faces = new HashSet<char>();
+        foreach (var e in d.LandInterfaces)
+        {
+            if (Math.Abs(e.SurfaceDelta) < 4) continue;
+            var other = e.A == floor.Id ? d.Piece(e.B) : e.B == floor.Id ? d.Piece(e.A) : null;
+            if (other is null || other.Value.Surface <= floor.Surface) continue;   // wall must be the higher side
+            faces.Add(FaceToward(floor.Rect, other.Value.Rect));
+        }
+        return (faces.Contains('W') && faces.Contains('E')) || (faces.Contains('N') && faces.Contains('S'));
+    }
+
+    // Which face of the floor rect the wall abuts (W/E on a vertical seam, N/S on a horizontal one).
+    private static char FaceToward(BlockRect floor, BlockRect wall)
+    {
+        var (x1, z1, x2, _) = PlanDerived.BorderSegment(floor, wall);
+        if (x1 == x2) return x1 == floor.MinX ? 'W' : 'E';
+        return z1 == floor.MinZ ? 'N' : 'S';
+    }
+
+    // A stepped bypass exists when pieces c.A and c.B are joined by an alternative land path — every hop a
+    // walkable (|Δ| ≤ 2) land seam — that does not use the seam c itself: a gentler way around the drop.
+    private static bool HasSteppedBypass(PlanDerived d, Contact c)
+    {
+        var adj = new Dictionary<string, List<string>>();
+        void Link(string x, string y)
+        {
+            if (!adj.TryGetValue(x, out var l)) adj[x] = l = [];
+            l.Add(y);
+        }
+        foreach (var e in d.LandInterfaces)
+        {
+            if ((e.A == c.A && e.B == c.B) || (e.A == c.B && e.B == c.A)) continue;   // the seam itself
+            if (Math.Abs(e.SurfaceDelta) > 2) continue;                               // not a gentle step
+            Link(e.A, e.B);
+            Link(e.B, e.A);
+        }
+        var seen = new HashSet<string> { c.A };
+        var q = new Queue<string>();
+        q.Enqueue(c.A);
+        while (q.Count > 0)
+        {
+            var cur = q.Dequeue();
+            if (cur == c.B) return true;
+            if (!adj.TryGetValue(cur, out var nbs)) continue;
+            foreach (var nb in nbs)
+                if (seen.Add(nb)) q.Enqueue(nb);
+        }
+        return false;
     }
 
     // ST2 — when a spawn-role piece exists, every iron marker belongs inside a spawn piece (iron inside the

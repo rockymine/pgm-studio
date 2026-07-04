@@ -303,36 +303,100 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task EL3_fires_on_a_tall_land_interface_unless_a_cliff_is_declared()
+    public async Task EL6_fires_on_a_full_width_big_drop_unless_a_cliff_is_declared()
     {
-        var step = Plan("""
+        // a full-lane-width (border ≥ 10) seam with Δ ≥ 6 is always a cliff (EL6) and needs a `cliffs` mark.
+        var drop = Plan("""
         { "plan":1, "globals":{"cell":1,"surface":9},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[10,0,10,10],"surface":13} ] }
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"b","role":"piece","rect":[10,0,10,10],"surface":15} ] }
         """);
-        var cliff = Plan("""
+        var marked = Plan("""
         { "plan":1, "globals":{"cell":1,"surface":9},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[10,0,10,10],"surface":13} ],
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"b","role":"piece","rect":[10,0,10,10],"surface":15} ],
           "cliffs":[ {"a":"a","b":"b"} ] }
         """);
-        await Assert.That(Lint(step, "EL3")).IsTrue();
-        await Assert.That(Lint(cliff, "EL3")).IsFalse();
+        await Assert.That(Lint(drop, "EL6")).IsTrue();
+        await Assert.That(Lint(marked, "EL6")).IsFalse();
     }
 
     [Test]
-    public async Task EL3_fires_across_a_narrow_land_interface_too()
+    public async Task EL6_ignores_a_narrow_big_drop()
     {
-        // a narrow (5 < 10) seam is still a land interface, so a ≥4 surface delta across it lints EL3 unless a
-        // cliff is declared — connectivity split from corridor width does not exempt the elevation rule.
+        // a narrow (5 < 10) seam does not cut a full lane width, so even a big drop across it is a stepped path
+        // edge, not a cliff — no EL6.
+        var narrow = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,5]}, {"id":"b","role":"piece","rect":[10,0,10,5],"surface":15} ] }
+        """);
+        await Assert.That(Lint(narrow, "EL6")).IsFalse();
+    }
+
+    [Test]
+    public async Task EL6_ignores_a_lone_shallow_step_up()
+    {
+        // a full-width Δ4 seam that is a lone step up onto a plateau (the higher piece is not a pit floor) is a
+        // stepped path edge, not a cliff — no EL6.
         var step = Plan("""
         { "plan":1, "globals":{"cell":1,"surface":9},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,5]}, {"id":"b","role":"lane","rect":[10,0,10,5],"surface":13} ] }
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"b","role":"piece","rect":[10,0,10,10],"surface":13} ] }
         """);
-        var cliff = Plan("""
+        await Assert.That(Lint(step, "EL6")).IsFalse();
+    }
+
+    [Test]
+    public async Task EL6_fires_on_a_shallow_pit_wall()
+    {
+        // a low floor pinched between opposing Δ4 walls is a pit (EL7): each shallow wall is a cliff and needs a
+        // mark. floor 'f' (surface 9) drops from 'w' on its west and 'e' on its east.
+        var pit = Plan("""
         { "plan":1, "globals":{"cell":1,"surface":9},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,5]}, {"id":"b","role":"lane","rect":[10,0,10,5],"surface":13} ],
-          "cliffs":[ {"a":"a","b":"b"} ] }
+          "pieces":[ {"id":"f","role":"piece","rect":[10,0,10,10]},
+                     {"id":"w","role":"piece","rect":[0,0,10,10],"surface":13},
+                     {"id":"e","role":"piece","rect":[20,0,10,10],"surface":13} ] }
         """);
-        await Assert.That(Lint(step, "EL3")).IsTrue();
-        await Assert.That(Lint(cliff, "EL3")).IsFalse();
+        // both pit walls lint until marked
+        var findings = PlanValidator.Validate(pit).Where(f => f.Rule == "EL6").ToList();
+        await Assert.That(findings.Count).IsEqualTo(2);
+
+        var marked = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"f","role":"piece","rect":[10,0,10,10]},
+                     {"id":"w","role":"piece","rect":[0,0,10,10],"surface":13},
+                     {"id":"e","role":"piece","rect":[20,0,10,10],"surface":13} ],
+          "cliffs":[ {"a":"f","b":"w"}, {"a":"f","b":"e"} ] }
+        """);
+        await Assert.That(Lint(marked, "EL6")).IsFalse();
+    }
+
+    [Test]
+    public async Task EL6_demotes_a_pit_wall_that_has_a_gentle_bypass()
+    {
+        // a pit whose floor also has a gentle (≤2 step) way out around one wall is not sealed there: that wall
+        // is a stepped edge (walk around gently), while the still-sealed opposite wall stays a cliff. Floor 'f'
+        // drops Δ4 from 'w' (west) and 'e' (east); a surface-11 apron 'g' bridges 'w'→'f' at ≤2 steps.
+        var pit = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"f","role":"piece","rect":[10,10,10,10]},
+                     {"id":"w","role":"piece","rect":[0,10,10,10],"surface":13},
+                     {"id":"e","role":"piece","rect":[20,10,10,10],"surface":13},
+                     {"id":"g","role":"piece","rect":[0,20,20,10],"surface":11} ] }
+        """);
+        var findings = PlanValidator.Validate(pit).Where(f => f.Rule == "EL6").Select(f => f.SubjectIds).ToList();
+        // only the east wall stays a cliff (the west wall is bypassed through 'g')
+        await Assert.That(findings.Count).IsEqualTo(1);
+        await Assert.That(findings[0].Contains("e")).IsTrue();
+    }
+
+    [Test]
+    public async Task Every_seed_plan_lints_clean_on_EL6()
+    {
+        // after the author's cliff marks, no seed carries an unmarked genuine cliff.
+        var seeds = Directory.EnumerateFiles(PlanTestSupport.SeedDir(), "*.plan.json");
+        foreach (var path in seeds)
+        {
+            var plan = PlanModel.Parse(File.ReadAllText(path))!;
+            var el6 = PlanValidator.Validate(plan).Where(f => f.Rule == "EL6").ToList();
+            await Assert.That(el6).IsEmpty();
+        }
     }
 }

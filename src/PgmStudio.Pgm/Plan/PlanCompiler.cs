@@ -125,7 +125,7 @@ public static class PlanCompiler
                 var piece = d.Piece(s.Piece);
                 if (piece is null) continue;
                 var (bx, bz) = Resolve(piece.Value.Rect, s.At, d.Cell);
-                var (fx, fz) = FacingDir(bx, bz, s.Facing);
+                var (fx, fz) = FacingDir(s.Facing);
                 var (px, pz) = d.FanPoint(bx, bz, k);
                 spawns.Add(new SpawnIntent
                 {
@@ -344,22 +344,15 @@ public static class PlanCompiler
     private static (double X, double Z) Resolve(BlockRect piece, double[] at, int cell) =>
         (piece.MinX + at[0] * cell, piece.MinZ + at[1] * cell);
 
-    // The facing unit direction: "front" = the cardinal quantized toward the centre; back/left/right rotate it.
-    private static (int Dx, int Dz) FacingDir(double x, double z, string facing)
+    // The facing unit direction on the authored unit: absolute board directions (front = −z, back = +z,
+    // left = −x, right = +x), the fixed reading the editor renders. Each orbit image fans this vector.
+    private static (int Dx, int Dz) FacingDir(string facing) => facing switch
     {
-        double dx = -x, dz = -z;                                           // toward centre (0,0)
-        (int cx, int cz) = Math.Abs(dx) >= Math.Abs(dz)
-            ? (Math.Sign(dx), 0)
-            : (0, Math.Sign(dz));
-        if (cx == 0 && cz == 0) cz = -1;                                   // spawn on the centre → face north
-        return facing switch
-        {
-            "back"  => (-cx, -cz),
-            "left"  => (-cz, cx),                                          // 90° CCW (matches Symmetry rot)
-            "right" => (cz, -cx),                                          // 90° CW
-            _ => (cx, cz),                                                 // "front"
-        };
-    }
+        "back"  => (0, 1),
+        "left"  => (-1, 0),
+        "right" => (1, 0),
+        _ => (0, -1),                                                     // "front"
+    };
 
     // The k-th orbit image's yaw: fan the facing as a direction (image of point+dir minus image of point).
     private static double FanYaw(PlanDerived d, double x, double z, int dx, int dz, int k)

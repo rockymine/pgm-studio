@@ -48,6 +48,25 @@ public sealed class PlanCompilerTests
     }
 
     [Test]
+    public async Task Right_facing_is_absolute_plus_x_on_the_authored_unit_and_rotates_on_the_orbit_image()
+    {
+        // facing is absolute (front=−z, back=+z, left=−x, right=+x): an authored `right` spawn faces +x (east,
+        // yaw 270) on team 0, independent of where the piece sits, and its rot_180 image faces −x (west, yaw 90).
+        var p = Plan("""
+        { "plan":1, "globals":{"symmetry":"rot_180","cell":5},
+          "pieces":[ {"id":"lane","role":"piece","rect":[1,5,2,6]} ],
+          "placements":{ "spawns":[ {"piece":"lane","at":[1,5],"facing":"right"} ] } }
+        """);
+        var (_, intent) = PlanCompiler.Compile(p);
+        var red = intent.Spawns.Single(s => s.Team == "red");
+        await Assert.That(red.Point.X).IsEqualTo(10);
+        await Assert.That(red.Point.Z).IsEqualTo(50);
+        await Assert.That(red.Yaw).IsEqualTo(270);      // +x faces east
+        var blue = intent.Spawns.Single(s => s.Team == "blue");
+        await Assert.That(blue.Yaw).IsEqualTo(90);      // rot_180 image faces −x (west)
+    }
+
+    [Test]
     public async Task First_wool_takes_the_team_colour()
     {
         var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));

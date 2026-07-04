@@ -193,10 +193,12 @@ toward the map centre / the enemy; "back" = toward the map edge.
   3 (incl. the pit pair), `mirror-big-board` 2 (the long spawn-side seam + the 15-long seam).
 - **EL6 [expert, new]** **Cliff qualification** — what separates a real cliff from a stepped path
   edge (the seam beside a staircase/hairpin): a cliff (a) cuts the **full width of a lane**,
-  (b) is **wider than 10** blocks, and (c) where a stepped section runs alongside, carries a
-  height difference of **≥6** (with steps nearby, Δ4 is just the staircase's edge). Of the
-  corpus's 17 Δ≥4 seams, this classifies exactly the author's verdicts: rotate-wide-frontline 0
-  cliffs (all stepped edges on 5-wide strips), mirror-big-board 2, odd-facing 3.
+  (b) is **≥10 blocks** wide, and (c) carries **Δ≥6**, *or* a shallow **Δ4 that walls a pit**
+  (EL7's opposing-cliff geometry) with no gentle bypass — a lone Δ4 dead-end step-up is just a
+  staircase edge, however wide. Of the corpus's 17 Δ≥4 seams this reproduces the author's
+  verdicts exactly: rotate-wide-frontline 0 (5-wide strips + one lone step-up), mirror-big-board
+  2 (the spawn-plateau seam Δ8 and the east cliff face Δ6), odd-facing 3 (the Δ8 jump + both pit
+  walls).
 - **EL7 [expert, new]** **The pit** — twin opposing cliffs flanking a wool approach
   (`odd-facing-three-wool`): slows attackers like a bridge-gap but more forgivingly (a fall is
   recoverable bridging, not void), lets defenders reach bedrock faster, and the air exposure

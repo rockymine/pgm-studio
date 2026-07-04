@@ -541,7 +541,16 @@
       }
     ]
   },
-  "cliffs": [],
+  "cliffs": [
+    {
+      "a": "piece-31",
+      "b": "piece-35"
+    },
+    {
+      "a": "piece-7",
+      "b": "piece-27"
+    }
+  ],
   "walls": [
     {
       "a": "piece-9",

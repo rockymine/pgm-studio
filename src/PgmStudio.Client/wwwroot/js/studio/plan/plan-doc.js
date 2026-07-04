@@ -22,8 +22,8 @@ export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "S
 /** Fold a raw (possibly legacy or unknown) role down to a canonical one: only wool-room / spawn survive. */
 export function canonicalRole(role) { return role === "wool-room" || role === "spawn" ? role : "piece"; }
 
-// Marker facing cycles front → right → back → left on repeated clicks; the arrow points along a fixed
-// screen direction per enum (front = up / −Z, matching "toward the centre" for a piece on the +Z side).
+// Marker facing cycles front → right → back → left on repeated clicks; the arrow points along an absolute
+// board direction per enum (front = −Z / up, back = +Z, left = −X, right = +X), fanned per orbit image.
 export const FACINGS = ["front", "right", "back", "left"];
 export const FACING_DIR = { front: [0, -1], right: [1, 0], back: [0, 1], left: [-1, 0] };
 export function nextFacing(f) { const i = FACINGS.indexOf(f); return FACINGS[(i + 1) % FACINGS.length]; }

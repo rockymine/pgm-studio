@@ -117,7 +117,8 @@ public sealed class PlanPlacements
 }
 
 /// <summary>A spawn on <see cref="Piece"/> at piece-relative cell offset <see cref="At"/>, facing
-/// <see cref="Facing"/> (<c>front</c>=toward the centre, plus <c>back</c>/<c>left</c>/<c>right</c>). The offset
+/// <see cref="Facing"/> — absolute board directions (<c>front</c>=−z, <c>back</c>=+z, <c>left</c>=−x,
+/// <c>right</c>=+x), fanned per orbit image. The offset
 /// is in cells on a half-cell lattice (0.5 steps) so a marker can sit at the middle of a 2×2-cell block; whole
 /// integers (the common case) round-trip verbatim.</summary>
 public sealed class SpawnPlacement

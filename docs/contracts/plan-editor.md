@@ -113,7 +113,9 @@ Author feedback after building the first real seed reshapes the role model:
   `SketchIsland` (mirrors flag through); setup from globals (symmetry, centre, bbox from extents).
 - **Intent:** team defs from the orbit order + palette; team-0 placements resolved to block
   coords (piece origin + offset, y = piece surface) and fanned via `Geom.Symmetry` (yaw from
-  `facing` per orbit image); wools with auto colours, empty `room`/`monuments` (auto-wired at
+  `facing` per orbit image). `facing` is **absolute** — front = −z, back = +z, left = −x, right = +x
+  on the authored unit, fanned through each orbit image (the editor and compiler agree by
+  definition); wools with auto colours, empty `room`/`monuments` (auto-wired at
   export, as the seeds do); `build.areas` from zones (holes as negative rects when present),
   `maxHeight` = surface + headroom; observer auto-placed per G6 — centre, y = build cap + 5.
 - **Step terraces:** a `land` interface with |Δsurface| ≥ 2 and no `cliffs` entry gets a walkable
