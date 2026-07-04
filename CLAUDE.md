@@ -117,11 +117,14 @@ are landed (`FEATURES.md`) — a new map flows intent → World → Teams → Bu
 validated `map.xml`. The **Sketch-tool depth pass** and the **generated-XML conventions** batch (`B10`/`B11`)
 have shipped (`FEATURES.md`), and so has the **sketch world-folder export** (`P9a`–`P9l`, `FEATURES.md` —
 sketch-originated maps now export a playable `{slug}/` world ZIP: `map.xml` + `level.dat` + `region/*.mca`
-synthesised from the sketch columns + intent; spec in `docs/contracts/sketch-world-export.md`). The
-**current focus is the layout-generation plan editor / seed studio** (`TODO.md`, `G16`–`G21`) — the
-plan-then-realize direction: piece/interface plans compiled one-way into sketch + intent, expert-authored
-rules, a 5-block-grid plan editor for the boring-seed corpus (`docs/contracts/layout-generation.md` ·
-`layout-rules.md` · `plan-editor.md`). Everything else — Configure/authoring polish (`N`), the lane-archetype
+synthesised from the sketch columns + intent; spec in `docs/contracts/sketch-world-export.md`). The **plan
+editor / seed studio has shipped end-to-end** (`G16`–`G21`, `FEATURES.md`): a **12-seed corpus** with honest
+player counts lives in `tools/seeds/`, and **`docs/contracts/layout-rules.md` is FROZEN (2026-07-04) as the
+composer's v1 rule set** (amendments only, via its correction protocol). **Current focus: the composer**
+(`TODO.md`, `G32`) — read `docs/handoff-composer.md` first (plan of attack + working conventions). Player-
+traffic ground truth (formats + logs-only pipeline) is specified in `docs/contracts/traffic-ground-truth.md`
+with the first validated pair in `tools/traffic/` (`G33`). Design docs for the whole direction:
+`docs/contracts/layout-generation.md` · `layout-rules.md` · `plan-editor.md`. Everything else — Configure/authoring polish (`N`), the lane-archetype
 generation track (`G`), shared editor/canvas infra (`C`/`CV`), the rest of backend/pipeline (`B`/`P`/`A`),
 parked Sketch polish (`S12`/`S16`), and the frozen Edit editor's parked feature UIs — is in `BACKLOG.md`.
 
