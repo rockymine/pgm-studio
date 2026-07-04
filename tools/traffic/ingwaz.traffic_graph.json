@@ -1,0 +1,5818 @@
+{
+  "map_slug": "ingwaz",
+  "grid_size": 3,
+  "log_interval": 2,
+  "match_count": 105,
+  "position_count": 19030,
+  "player_count": 510,
+  "total_playtime_min": 1060.0,
+  "nodes": [
+    {
+      "node_id": 0,
+      "cx": -60,
+      "cz": 54,
+      "coords": [
+        -58.5,
+        55.5
+      ],
+      "occupation": 11,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 1,
+      "cx": -57,
+      "cz": 54,
+      "coords": [
+        -55.5,
+        55.5
+      ],
+      "occupation": 224,
+      "island_id": 2,
+      "poi_type": "spawn",
+      "poi_color": "blue",
+      "team": "blue-team",
+      "fixed": true
+    },
+    {
+      "node_id": 2,
+      "cx": -54,
+      "cz": 51,
+      "coords": [
+        -52.5,
+        52.5
+      ],
+      "occupation": 27,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 3,
+      "cx": -54,
+      "cz": 54,
+      "coords": [
+        -52.5,
+        55.5
+      ],
+      "occupation": 269,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 4,
+      "cx": -54,
+      "cz": 57,
+      "coords": [
+        -52.5,
+        58.5
+      ],
+      "occupation": 20,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 5,
+      "cx": -51,
+      "cz": 54,
+      "coords": [
+        -49.5,
+        55.5
+      ],
+      "occupation": 211,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 6,
+      "cx": -48,
+      "cz": 51,
+      "coords": [
+        -46.5,
+        52.5
+      ],
+      "occupation": 22,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 7,
+      "cx": -48,
+      "cz": 54,
+      "coords": [
+        -46.5,
+        55.5
+      ],
+      "occupation": 211,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 8,
+      "cx": -48,
+      "cz": 57,
+      "coords": [
+        -46.5,
+        58.5
+      ],
+      "occupation": 16,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 9,
+      "cx": -45,
+      "cz": 51,
+      "coords": [
+        -43.5,
+        52.5
+      ],
+      "occupation": 22,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 10,
+      "cx": -45,
+      "cz": 54,
+      "coords": [
+        -43.5,
+        55.5
+      ],
+      "occupation": 158,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 11,
+      "cx": -45,
+      "cz": 57,
+      "coords": [
+        -43.5,
+        58.5
+      ],
+      "occupation": 17,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 12,
+      "cx": -42,
+      "cz": 51,
+      "coords": [
+        -40.5,
+        52.5
+      ],
+      "occupation": 41,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 13,
+      "cx": -42,
+      "cz": 54,
+      "coords": [
+        -40.5,
+        55.5
+      ],
+      "occupation": 148,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 14,
+      "cx": -42,
+      "cz": 57,
+      "coords": [
+        -40.5,
+        58.5
+      ],
+      "occupation": 20,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 15,
+      "cx": -39,
+      "cz": 51,
+      "coords": [
+        -37.5,
+        52.5
+      ],
+      "occupation": 62,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 16,
+      "cx": -39,
+      "cz": 54,
+      "coords": [
+        -37.5,
+        55.5
+      ],
+      "occupation": 162,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 17,
+      "cx": -39,
+      "cz": 57,
+      "coords": [
+        -37.5,
+        58.5
+      ],
+      "occupation": 36,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 18,
+      "cx": -36,
+      "cz": 51,
+      "coords": [
+        -34.5,
+        52.5
+      ],
+      "occupation": 99,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 19,
+      "cx": -36,
+      "cz": 54,
+      "coords": [
+        -34.5,
+        55.5
+      ],
+      "occupation": 199,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 20,
+      "cx": -36,
+      "cz": 57,
+      "coords": [
+        -34.5,
+        58.5
+      ],
+      "occupation": 65,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 21,
+      "cx": -33,
+      "cz": 51,
+      "coords": [
+        -31.5,
+        52.5
+      ],
+      "occupation": 66,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 22,
+      "cx": -33,
+      "cz": 54,
+      "coords": [
+        -31.5,
+        55.5
+      ],
+      "occupation": 198,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 23,
+      "cx": -33,
+      "cz": 57,
+      "coords": [
+        -31.5,
+        58.5
+      ],
+      "occupation": 47,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 24,
+      "cx": -30,
+      "cz": 51,
+      "coords": [
+        -28.5,
+        52.5
+      ],
+      "occupation": 67,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 25,
+      "cx": -30,
+      "cz": 54,
+      "coords": [
+        -28.5,
+        55.5
+      ],
+      "occupation": 153,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 26,
+      "cx": -30,
+      "cz": 57,
+      "coords": [
+        -28.5,
+        58.5
+      ],
+      "occupation": 48,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 27,
+      "cx": -27,
+      "cz": 48,
+      "coords": [
+        -25.5,
+        49.5
+      ],
+      "occupation": 9,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 28,
+      "cx": -27,
+      "cz": 51,
+      "coords": [
+        -25.5,
+        52.5
+      ],
+      "occupation": 128,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 29,
+      "cx": -27,
+      "cz": 54,
+      "coords": [
+        -25.5,
+        55.5
+      ],
+      "occupation": 120,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 30,
+      "cx": -27,
+      "cz": 57,
+      "coords": [
+        -25.5,
+        58.5
+      ],
+      "occupation": 73,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 31,
+      "cx": -24,
+      "cz": 33,
+      "coords": [
+        -22.5,
+        34.5
+      ],
+      "occupation": 7,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 32,
+      "cx": -24,
+      "cz": 36,
+      "coords": [
+        -22.5,
+        37.5
+      ],
+      "occupation": 47,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 33,
+      "cx": -24,
+      "cz": 39,
+      "coords": [
+        -22.5,
+        40.5
+      ],
+      "occupation": 103,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 34,
+      "cx": -24,
+      "cz": 42,
+      "coords": [
+        -22.5,
+        43.5
+      ],
+      "occupation": 70,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 35,
+      "cx": -24,
+      "cz": 45,
+      "coords": [
+        -22.5,
+        46.5
+      ],
+      "occupation": 90,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 36,
+      "cx": -24,
+      "cz": 48,
+      "coords": [
+        -22.5,
+        49.5
+      ],
+      "occupation": 134,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 37,
+      "cx": -24,
+      "cz": 51,
+      "coords": [
+        -22.5,
+        52.5
+      ],
+      "occupation": 228,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 38,
+      "cx": -24,
+      "cz": 54,
+      "coords": [
+        -22.5,
+        55.5
+      ],
+      "occupation": 119,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 39,
+      "cx": -24,
+      "cz": 57,
+      "coords": [
+        -22.5,
+        58.5
+      ],
+      "occupation": 123,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 40,
+      "cx": -24,
+      "cz": 60,
+      "coords": [
+        -22.5,
+        61.5
+      ],
+      "occupation": 65,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 41,
+      "cx": -24,
+      "cz": 63,
+      "coords": [
+        -22.5,
+        64.5
+      ],
+      "occupation": 45,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 42,
+      "cx": -24,
+      "cz": 66,
+      "coords": [
+        -22.5,
+        67.5
+      ],
+      "occupation": 46,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 43,
+      "cx": -24,
+      "cz": 69,
+      "coords": [
+        -22.5,
+        70.5
+      ],
+      "occupation": 30,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 44,
+      "cx": -24,
+      "cz": 72,
+      "coords": [
+        -22.5,
+        73.5
+      ],
+      "occupation": 12,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 45,
+      "cx": -24,
+      "cz": 75,
+      "coords": [
+        -22.5,
+        76.5
+      ],
+      "occupation": 20,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 46,
+      "cx": -24,
+      "cz": 78,
+      "coords": [
+        -22.5,
+        79.5
+      ],
+      "occupation": 31,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 47,
+      "cx": -24,
+      "cz": 81,
+      "coords": [
+        -22.5,
+        82.5
+      ],
+      "occupation": 26,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 48,
+      "cx": -24,
+      "cz": 87,
+      "coords": [
+        -22.5,
+        88.5
+      ],
+      "occupation": 10,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 49,
+      "cx": -24,
+      "cz": 90,
+      "coords": [
+        -22.5,
+        91.5
+      ],
+      "occupation": 14,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 50,
+      "cx": -21,
+      "cz": 33,
+      "coords": [
+        -19.5,
+        34.5
+      ],
+      "occupation": 68,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 51,
+      "cx": -21,
+      "cz": 36,
+      "coords": [
+        -19.5,
+        37.5
+      ],
+      "occupation": 196,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 52,
+      "cx": -21,
+      "cz": 39,
+      "coords": [
+        -19.5,
+        40.5
+      ],
+      "occupation": 133,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 53,
+      "cx": -21,
+      "cz": 42,
+      "coords": [
+        -19.5,
+        43.5
+      ],
+      "occupation": 64,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 54,
+      "cx": -21,
+      "cz": 45,
+      "coords": [
+        -19.5,
+        46.5
+      ],
+      "occupation": 87,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 55,
+      "cx": -21,
+      "cz": 48,
+      "coords": [
+        -19.5,
+        49.5
+      ],
+      "occupation": 91,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 56,
+      "cx": -21,
+      "cz": 51,
+      "coords": [
+        -19.5,
+        52.5
+      ],
+      "occupation": 228,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 57,
+      "cx": -21,
+      "cz": 54,
+      "coords": [
+        -19.5,
+        55.5
+      ],
+      "occupation": 79,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 58,
+      "cx": -21,
+      "cz": 57,
+      "coords": [
+        -19.5,
+        58.5
+      ],
+      "occupation": 153,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 59,
+      "cx": -21,
+      "cz": 60,
+      "coords": [
+        -19.5,
+        61.5
+      ],
+      "occupation": 128,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 60,
+      "cx": -21,
+      "cz": 63,
+      "coords": [
+        -19.5,
+        64.5
+      ],
+      "occupation": 133,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 61,
+      "cx": -21,
+      "cz": 66,
+      "coords": [
+        -19.5,
+        67.5
+      ],
+      "occupation": 198,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 62,
+      "cx": -21,
+      "cz": 69,
+      "coords": [
+        -19.5,
+        70.5
+      ],
+      "occupation": 173,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 63,
+      "cx": -21,
+      "cz": 72,
+      "coords": [
+        -19.5,
+        73.5
+      ],
+      "occupation": 94,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 64,
+      "cx": -21,
+      "cz": 75,
+      "coords": [
+        -19.5,
+        76.5
+      ],
+      "occupation": 91,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 65,
+      "cx": -21,
+      "cz": 78,
+      "coords": [
+        -19.5,
+        79.5
+      ],
+      "occupation": 107,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 66,
+      "cx": -21,
+      "cz": 81,
+      "coords": [
+        -19.5,
+        82.5
+      ],
+      "occupation": 97,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 67,
+      "cx": -21,
+      "cz": 84,
+      "coords": [
+        -19.5,
+        85.5
+      ],
+      "occupation": 122,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 68,
+      "cx": -21,
+      "cz": 87,
+      "coords": [
+        -19.5,
+        88.5
+      ],
+      "occupation": 112,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 69,
+      "cx": -21,
+      "cz": 90,
+      "coords": [
+        -19.5,
+        91.5
+      ],
+      "occupation": 135,
+      "island_id": 4,
+      "poi_type": "wool",
+      "poi_color": "purple",
+      "team": "red-team",
+      "fixed": true
+    },
+    {
+      "node_id": 70,
+      "cx": -21,
+      "cz": 93,
+      "coords": [
+        -19.5,
+        94.5
+      ],
+      "occupation": 6,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 71,
+      "cx": -18,
+      "cz": 33,
+      "coords": [
+        -16.5,
+        34.5
+      ],
+      "occupation": 135,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 72,
+      "cx": -18,
+      "cz": 36,
+      "coords": [
+        -16.5,
+        37.5
+      ],
+      "occupation": 138,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 73,
+      "cx": -18,
+      "cz": 39,
+      "coords": [
+        -16.5,
+        40.5
+      ],
+      "occupation": 154,
+      "island_id": 6,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 74,
+      "cx": -18,
+      "cz": 42,
+      "coords": [
+        -16.5,
+        43.5
+      ],
+      "occupation": 14,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 75,
+      "cx": -18,
+      "cz": 45,
+      "coords": [
+        -16.5,
+        46.5
+      ],
+      "occupation": 8,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 76,
+      "cx": -18,
+      "cz": 48,
+      "coords": [
+        -16.5,
+        49.5
+      ],
+      "occupation": 15,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 77,
+      "cx": -18,
+      "cz": 51,
+      "coords": [
+        -16.5,
+        52.5
+      ],
+      "occupation": 154,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 78,
+      "cx": -18,
+      "cz": 54,
+      "coords": [
+        -16.5,
+        55.5
+      ],
+      "occupation": 181,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 79,
+      "cx": -18,
+      "cz": 57,
+      "coords": [
+        -16.5,
+        58.5
+      ],
+      "occupation": 196,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 80,
+      "cx": -18,
+      "cz": 60,
+      "coords": [
+        -16.5,
+        61.5
+      ],
+      "occupation": 97,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 81,
+      "cx": -18,
+      "cz": 63,
+      "coords": [
+        -16.5,
+        64.5
+      ],
+      "occupation": 67,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 82,
+      "cx": -18,
+      "cz": 66,
+      "coords": [
+        -16.5,
+        67.5
+      ],
+      "occupation": 56,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 83,
+      "cx": -18,
+      "cz": 69,
+      "coords": [
+        -16.5,
+        70.5
+      ],
+      "occupation": 45,
+      "island_id": 2,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 84,
+      "cx": -18,
+      "cz": 72,
+      "coords": [
+        -16.5,
+        73.5
+      ],
+      "occupation": 33,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 85,
+      "cx": -18,
+      "cz": 75,
+      "coords": [
+        -16.5,
+        76.5
+      ],
+      "occupation": 43,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 86,
+      "cx": -18,
+      "cz": 78,
+      "coords": [
+        -16.5,
+        79.5
+      ],
+      "occupation": 43,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 87,
+      "cx": -18,
+      "cz": 81,
+      "coords": [
+        -16.5,
+        82.5
+      ],
+      "occupation": 26,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 88,
+      "cx": -18,
+      "cz": 84,
+      "coords": [
+        -16.5,
+        85.5
+      ],
+      "occupation": 6,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 89,
+      "cx": -18,
+      "cz": 87,
+      "coords": [
+        -16.5,
+        88.5
+      ],
+      "occupation": 7,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 90,
+      "cx": -18,
+      "cz": 90,
+      "coords": [
+        -16.5,
+        91.5
+      ],
+      "occupation": 14,
+      "island_id": 4,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 91,
+      "cx": -15,
+      "cz": 33,
+      "coords": [
+        -13.5,
+        34.5
+      ],
+      "occupation": 123,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 92,
+      "cx": -15,
+      "cz": 36,
+      "coords": [
+        -13.5,
+        37.5
+      ],
+      "occupation": 49,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 93,
+      "cx": -15,
+      "cz": 39,
+      "coords": [
+        -13.5,
+        40.5
+      ],
+      "occupation": 77,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 94,
+      "cx": -15,
+      "cz": 51,
+      "coords": [
+        -13.5,
+        52.5
+      ],
+      "occupation": 60,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 95,
+      "cx": -15,
+      "cz": 54,
+      "coords": [
+        -13.5,
+        55.5
+      ],
+      "occupation": 96,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 96,
+      "cx": -15,
+      "cz": 57,
+      "coords": [
+        -13.5,
+        58.5
+      ],
+      "occupation": 87,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 97,
+      "cx": -12,
+      "cz": 33,
+      "coords": [
+        -10.5,
+        34.5
+      ],
+      "occupation": 109,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 98,
+      "cx": -12,
+      "cz": 36,
+      "coords": [
+        -10.5,
+        37.5
+      ],
+      "occupation": 52,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 99,
+      "cx": -12,
+      "cz": 39,
+      "coords": [
+        -10.5,
+        40.5
+      ],
+      "occupation": 68,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 100,
+      "cx": -12,
+      "cz": 51,
+      "coords": [
+        -10.5,
+        52.5
+      ],
+      "occupation": 59,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 101,
+      "cx": -12,
+      "cz": 54,
+      "coords": [
+        -10.5,
+        55.5
+      ],
+      "occupation": 81,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 102,
+      "cx": -12,
+      "cz": 57,
+      "coords": [
+        -10.5,
+        58.5
+      ],
+      "occupation": 103,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 103,
+      "cx": -9,
+      "cz": 30,
+      "coords": [
+        -7.5,
+        31.5
+      ],
+      "occupation": 7,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 104,
+      "cx": -9,
+      "cz": 33,
+      "coords": [
+        -7.5,
+        34.5
+      ],
+      "occupation": 57,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 105,
+      "cx": -9,
+      "cz": 36,
+      "coords": [
+        -7.5,
+        37.5
+      ],
+      "occupation": 75,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 106,
+      "cx": -9,
+      "cz": 39,
+      "coords": [
+        -7.5,
+        40.5
+      ],
+      "occupation": 59,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 107,
+      "cx": -9,
+      "cz": 51,
+      "coords": [
+        -7.5,
+        52.5
+      ],
+      "occupation": 72,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 108,
+      "cx": -9,
+      "cz": 54,
+      "coords": [
+        -7.5,
+        55.5
+      ],
+      "occupation": 70,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 109,
+      "cx": -9,
+      "cz": 57,
+      "coords": [
+        -7.5,
+        58.5
+      ],
+      "occupation": 119,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 110,
+      "cx": -6,
+      "cz": 0,
+      "coords": [
+        -4.5,
+        1.5
+      ],
+      "occupation": 9,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 111,
+      "cx": -6,
+      "cz": 6,
+      "coords": [
+        -4.5,
+        7.5
+      ],
+      "occupation": 5,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 112,
+      "cx": -6,
+      "cz": 9,
+      "coords": [
+        -4.5,
+        10.5
+      ],
+      "occupation": 16,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 113,
+      "cx": -6,
+      "cz": 12,
+      "coords": [
+        -4.5,
+        13.5
+      ],
+      "occupation": 46,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 114,
+      "cx": -6,
+      "cz": 15,
+      "coords": [
+        -4.5,
+        16.5
+      ],
+      "occupation": 62,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 115,
+      "cx": -6,
+      "cz": 18,
+      "coords": [
+        -4.5,
+        19.5
+      ],
+      "occupation": 47,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 116,
+      "cx": -6,
+      "cz": 21,
+      "coords": [
+        -4.5,
+        22.5
+      ],
+      "occupation": 86,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 117,
+      "cx": -6,
+      "cz": 24,
+      "coords": [
+        -4.5,
+        25.5
+      ],
+      "occupation": 99,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 118,
+      "cx": -6,
+      "cz": 27,
+      "coords": [
+        -4.5,
+        28.5
+      ],
+      "occupation": 78,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 119,
+      "cx": -6,
+      "cz": 30,
+      "coords": [
+        -4.5,
+        31.5
+      ],
+      "occupation": 144,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 120,
+      "cx": -6,
+      "cz": 33,
+      "coords": [
+        -4.5,
+        34.5
+      ],
+      "occupation": 207,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 121,
+      "cx": -6,
+      "cz": 36,
+      "coords": [
+        -4.5,
+        37.5
+      ],
+      "occupation": 219,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 122,
+      "cx": -6,
+      "cz": 39,
+      "coords": [
+        -4.5,
+        40.5
+      ],
+      "occupation": 183,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 123,
+      "cx": -6,
+      "cz": 42,
+      "coords": [
+        -4.5,
+        43.5
+      ],
+      "occupation": 34,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 124,
+      "cx": -6,
+      "cz": 45,
+      "coords": [
+        -4.5,
+        46.5
+      ],
+      "occupation": 15,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 125,
+      "cx": -6,
+      "cz": 48,
+      "coords": [
+        -4.5,
+        49.5
+      ],
+      "occupation": 29,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 126,
+      "cx": -6,
+      "cz": 51,
+      "coords": [
+        -4.5,
+        52.5
+      ],
+      "occupation": 179,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 127,
+      "cx": -6,
+      "cz": 54,
+      "coords": [
+        -4.5,
+        55.5
+      ],
+      "occupation": 184,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 128,
+      "cx": -6,
+      "cz": 57,
+      "coords": [
+        -4.5,
+        58.5
+      ],
+      "occupation": 151,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 129,
+      "cx": -3,
+      "cz": 0,
+      "coords": [
+        -1.5,
+        1.5
+      ],
+      "occupation": 154,
+      "island_id": 3,
+      "poi_type": "wool",
+      "poi_color": "orange",
+      "team": "blue-team",
+      "fixed": true
+    },
+    {
+      "node_id": 130,
+      "cx": -3,
+      "cz": 3,
+      "coords": [
+        -1.5,
+        4.5
+      ],
+      "occupation": 116,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 131,
+      "cx": -3,
+      "cz": 6,
+      "coords": [
+        -1.5,
+        7.5
+      ],
+      "occupation": 110,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 132,
+      "cx": -3,
+      "cz": 9,
+      "coords": [
+        -1.5,
+        10.5
+      ],
+      "occupation": 93,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 133,
+      "cx": -3,
+      "cz": 12,
+      "coords": [
+        -1.5,
+        13.5
+      ],
+      "occupation": 80,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 134,
+      "cx": -3,
+      "cz": 15,
+      "coords": [
+        -1.5,
+        16.5
+      ],
+      "occupation": 104,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 135,
+      "cx": -3,
+      "cz": 18,
+      "coords": [
+        -1.5,
+        19.5
+      ],
+      "occupation": 102,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 136,
+      "cx": -3,
+      "cz": 21,
+      "coords": [
+        -1.5,
+        22.5
+      ],
+      "occupation": 161,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 137,
+      "cx": -3,
+      "cz": 24,
+      "coords": [
+        -1.5,
+        25.5
+      ],
+      "occupation": 245,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 138,
+      "cx": -3,
+      "cz": 27,
+      "coords": [
+        -1.5,
+        28.5
+      ],
+      "occupation": 150,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 139,
+      "cx": -3,
+      "cz": 30,
+      "coords": [
+        -1.5,
+        31.5
+      ],
+      "occupation": 168,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 140,
+      "cx": -3,
+      "cz": 33,
+      "coords": [
+        -1.5,
+        34.5
+      ],
+      "occupation": 149,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 141,
+      "cx": -3,
+      "cz": 36,
+      "coords": [
+        -1.5,
+        37.5
+      ],
+      "occupation": 91,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 142,
+      "cx": -3,
+      "cz": 39,
+      "coords": [
+        -1.5,
+        40.5
+      ],
+      "occupation": 219,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 143,
+      "cx": -3,
+      "cz": 42,
+      "coords": [
+        -1.5,
+        43.5
+      ],
+      "occupation": 154,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 144,
+      "cx": -3,
+      "cz": 45,
+      "coords": [
+        -1.5,
+        46.5
+      ],
+      "occupation": 102,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 145,
+      "cx": -3,
+      "cz": 48,
+      "coords": [
+        -1.5,
+        49.5
+      ],
+      "occupation": 109,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 146,
+      "cx": -3,
+      "cz": 51,
+      "coords": [
+        -1.5,
+        52.5
+      ],
+      "occupation": 173,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 147,
+      "cx": -3,
+      "cz": 54,
+      "coords": [
+        -1.5,
+        55.5
+      ],
+      "occupation": 200,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 148,
+      "cx": -3,
+      "cz": 57,
+      "coords": [
+        -1.5,
+        58.5
+      ],
+      "occupation": 76,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 149,
+      "cx": 0,
+      "cz": 0,
+      "coords": [
+        1.5,
+        1.5
+      ],
+      "occupation": 17,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 150,
+      "cx": 0,
+      "cz": 3,
+      "coords": [
+        1.5,
+        4.5
+      ],
+      "occupation": 7,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 151,
+      "cx": 0,
+      "cz": 9,
+      "coords": [
+        1.5,
+        10.5
+      ],
+      "occupation": 12,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 152,
+      "cx": 0,
+      "cz": 12,
+      "coords": [
+        1.5,
+        13.5
+      ],
+      "occupation": 23,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 153,
+      "cx": 0,
+      "cz": 15,
+      "coords": [
+        1.5,
+        16.5
+      ],
+      "occupation": 5,
+      "island_id": 3,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 154,
+      "cx": 0,
+      "cz": 21,
+      "coords": [
+        1.5,
+        22.5
+      ],
+      "occupation": 15,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 155,
+      "cx": 0,
+      "cz": 24,
+      "coords": [
+        1.5,
+        25.5
+      ],
+      "occupation": 49,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 156,
+      "cx": 0,
+      "cz": 27,
+      "coords": [
+        1.5,
+        28.5
+      ],
+      "occupation": 56,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 157,
+      "cx": 0,
+      "cz": 30,
+      "coords": [
+        1.5,
+        31.5
+      ],
+      "occupation": 103,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 158,
+      "cx": 0,
+      "cz": 33,
+      "coords": [
+        1.5,
+        34.5
+      ],
+      "occupation": 209,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 159,
+      "cx": 0,
+      "cz": 36,
+      "coords": [
+        1.5,
+        37.5
+      ],
+      "occupation": 201,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 160,
+      "cx": 0,
+      "cz": 39,
+      "coords": [
+        1.5,
+        40.5
+      ],
+      "occupation": 381,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 161,
+      "cx": 0,
+      "cz": 42,
+      "coords": [
+        1.5,
+        43.5
+      ],
+      "occupation": 169,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 162,
+      "cx": 0,
+      "cz": 45,
+      "coords": [
+        1.5,
+        46.5
+      ],
+      "occupation": 143,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 163,
+      "cx": 0,
+      "cz": 48,
+      "coords": [
+        1.5,
+        49.5
+      ],
+      "occupation": 102,
+      "island_id": null,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 164,
+      "cx": 0,
+      "cz": 51,
+      "coords": [
+        1.5,
+        52.5
+      ],
+      "occupation": 168,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 165,
+      "cx": 0,
+      "cz": 54,
+      "coords": [
+        1.5,
+        55.5
+      ],
+      "occupation": 81,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 166,
+      "cx": 0,
+      "cz": 57,
+      "coords": [
+        1.5,
+        58.5
+      ],
+      "occupation": 8,
+      "island_id": 5,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 167,
+      "cx": 3,
+      "cz": 33,
+      "coords": [
+        4.5,
+        34.5
+      ],
+      "occupation": 78,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 168,
+      "cx": 3,
+      "cz": 36,
+      "coords": [
+        4.5,
+        37.5
+      ],
+      "occupation": 195,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 169,
+      "cx": 3,
+      "cz": 39,
+      "coords": [
+        4.5,
+        40.5
+      ],
+      "occupation": 121,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 170,
+      "cx": 6,
+      "cz": 33,
+      "coords": [
+        7.5,
+        34.5
+      ],
+      "occupation": 40,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 171,
+      "cx": 6,
+      "cz": 36,
+      "coords": [
+        7.5,
+        37.5
+      ],
+      "occupation": 218,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 172,
+      "cx": 6,
+      "cz": 39,
+      "coords": [
+        7.5,
+        40.5
+      ],
+      "occupation": 61,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 173,
+      "cx": 9,
+      "cz": 33,
+      "coords": [
+        10.5,
+        34.5
+      ],
+      "occupation": 41,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 174,
+      "cx": 9,
+      "cz": 36,
+      "coords": [
+        10.5,
+        37.5
+      ],
+      "occupation": 220,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 175,
+      "cx": 9,
+      "cz": 39,
+      "coords": [
+        10.5,
+        40.5
+      ],
+      "occupation": 62,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 176,
+      "cx": 12,
+      "cz": 33,
+      "coords": [
+        13.5,
+        34.5
+      ],
+      "occupation": 37,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 177,
+      "cx": 12,
+      "cz": 36,
+      "coords": [
+        13.5,
+        37.5
+      ],
+      "occupation": 205,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 178,
+      "cx": 12,
+      "cz": 39,
+      "coords": [
+        13.5,
+        40.5
+      ],
+      "occupation": 113,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 179,
+      "cx": 15,
+      "cz": 33,
+      "coords": [
+        16.5,
+        34.5
+      ],
+      "occupation": 29,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 180,
+      "cx": 15,
+      "cz": 36,
+      "coords": [
+        16.5,
+        37.5
+      ],
+      "occupation": 121,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 181,
+      "cx": 15,
+      "cz": 39,
+      "coords": [
+        16.5,
+        40.5
+      ],
+      "occupation": 56,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 182,
+      "cx": 18,
+      "cz": 33,
+      "coords": [
+        19.5,
+        34.5
+      ],
+      "occupation": 22,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 183,
+      "cx": 18,
+      "cz": 36,
+      "coords": [
+        19.5,
+        37.5
+      ],
+      "occupation": 125,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 184,
+      "cx": 18,
+      "cz": 39,
+      "coords": [
+        19.5,
+        40.5
+      ],
+      "occupation": 22,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 185,
+      "cx": 21,
+      "cz": 33,
+      "coords": [
+        22.5,
+        34.5
+      ],
+      "occupation": 12,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 186,
+      "cx": 21,
+      "cz": 36,
+      "coords": [
+        22.5,
+        37.5
+      ],
+      "occupation": 171,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 187,
+      "cx": 21,
+      "cz": 39,
+      "coords": [
+        22.5,
+        40.5
+      ],
+      "occupation": 21,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 188,
+      "cx": 24,
+      "cz": 33,
+      "coords": [
+        25.5,
+        34.5
+      ],
+      "occupation": 9,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 189,
+      "cx": 24,
+      "cz": 36,
+      "coords": [
+        25.5,
+        37.5
+      ],
+      "occupation": 245,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 190,
+      "cx": 24,
+      "cz": 39,
+      "coords": [
+        25.5,
+        40.5
+      ],
+      "occupation": 7,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 191,
+      "cx": 27,
+      "cz": 33,
+      "coords": [
+        28.5,
+        34.5
+      ],
+      "occupation": 9,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 192,
+      "cx": 27,
+      "cz": 36,
+      "coords": [
+        28.5,
+        37.5
+      ],
+      "occupation": 239,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 193,
+      "cx": 27,
+      "cz": 39,
+      "coords": [
+        28.5,
+        40.5
+      ],
+      "occupation": 7,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 194,
+      "cx": 30,
+      "cz": 33,
+      "coords": [
+        31.5,
+        34.5
+      ],
+      "occupation": 13,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 195,
+      "cx": 30,
+      "cz": 36,
+      "coords": [
+        31.5,
+        37.5
+      ],
+      "occupation": 184,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 196,
+      "cx": 30,
+      "cz": 39,
+      "coords": [
+        31.5,
+        40.5
+      ],
+      "occupation": 5,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 197,
+      "cx": 33,
+      "cz": 33,
+      "coords": [
+        34.5,
+        34.5
+      ],
+      "occupation": 5,
+      "island_id": 1,
+      "poi_type": null,
+      "poi_color": null,
+      "team": null,
+      "fixed": false
+    },
+    {
+      "node_id": 198,
+      "cx": 33,
+      "cz": 36,
+      "coords": [
+        34.5,
+        37.5
+      ],
+      "occupation": 214,
+      "island_id": 1,
+      "poi_type": "spawn",
+      "poi_color": "dark red",
+      "team": "red-team",
+      "fixed": true
+    }
+  ],
+  "edges": [
+    {
+      "src": 0,
+      "dst": 1,
+      "transitions": 11
+    },
+    {
+      "src": 1,
+      "dst": 3,
+      "transitions": 223
+    },
+    {
+      "src": 2,
+      "dst": 3,
+      "transitions": 31
+    },
+    {
+      "src": 2,
+      "dst": 5,
+      "transitions": 2
+    },
+    {
+      "src": 3,
+      "dst": 4,
+      "transitions": 16
+    },
+    {
+      "src": 3,
+      "dst": 5,
+      "transitions": 395
+    },
+    {
+      "src": 4,
+      "dst": 5,
+      "transitions": 3
+    },
+    {
+      "src": 5,
+      "dst": 6,
+      "transitions": 20
+    },
+    {
+      "src": 5,
+      "dst": 7,
+      "transitions": 489
+    },
+    {
+      "src": 5,
+      "dst": 8,
+      "transitions": 8
+    },
+    {
+      "src": 6,
+      "dst": 7,
+      "transitions": 10
+    },
+    {
+      "src": 6,
+      "dst": 9,
+      "transitions": 27
+    },
+    {
+      "src": 6,
+      "dst": 10,
+      "transitions": 6
+    },
+    {
+      "src": 7,
+      "dst": 8,
+      "transitions": 5
+    },
+    {
+      "src": 7,
+      "dst": 9,
+      "transitions": 29
+    },
+    {
+      "src": 7,
+      "dst": 10,
+      "transitions": 579
+    },
+    {
+      "src": 7,
+      "dst": 11,
+      "transitions": 12
+    },
+    {
+      "src": 8,
+      "dst": 10,
+      "transitions": 3
+    },
+    {
+      "src": 8,
+      "dst": 11,
+      "transitions": 14
+    },
+    {
+      "src": 9,
+      "dst": 10,
+      "transitions": 3
+    },
+    {
+      "src": 9,
+      "dst": 12,
+      "transitions": 47
+    },
+    {
+      "src": 9,
+      "dst": 13,
+      "transitions": 6
+    },
+    {
+      "src": 10,
+      "dst": 11,
+      "transitions": 4
+    },
+    {
+      "src": 10,
+      "dst": 12,
+      "transitions": 44
+    },
+    {
+      "src": 10,
+      "dst": 13,
+      "transitions": 544
+    },
+    {
+      "src": 10,
+      "dst": 14,
+      "transitions": 11
+    },
+    {
+      "src": 11,
+      "dst": 13,
+      "transitions": 4
+    },
+    {
+      "src": 11,
+      "dst": 14,
+      "transitions": 23
+    },
+    {
+      "src": 12,
+      "dst": 13,
+      "transitions": 6
+    },
+    {
+      "src": 12,
+      "dst": 15,
+      "transitions": 94
+    },
+    {
+      "src": 12,
+      "dst": 16,
+      "transitions": 5
+    },
+    {
+      "src": 13,
+      "dst": 14,
+      "transitions": 5
+    },
+    {
+      "src": 13,
+      "dst": 15,
+      "transitions": 70
+    },
+    {
+      "src": 13,
+      "dst": 16,
+      "transitions": 464
+    },
+    {
+      "src": 13,
+      "dst": 17,
+      "transitions": 24
+    },
+    {
+      "src": 14,
+      "dst": 16,
+      "transitions": 8
+    },
+    {
+      "src": 14,
+      "dst": 17,
+      "transitions": 27
+    },
+    {
+      "src": 15,
+      "dst": 16,
+      "transitions": 8
+    },
+    {
+      "src": 15,
+      "dst": 18,
+      "transitions": 154
+    },
+    {
+      "src": 15,
+      "dst": 19,
+      "transitions": 10
+    },
+    {
+      "src": 16,
+      "dst": 17,
+      "transitions": 11
+    },
+    {
+      "src": 16,
+      "dst": 18,
+      "transitions": 35
+    },
+    {
+      "src": 16,
+      "dst": 19,
+      "transitions": 418
+    },
+    {
+      "src": 16,
+      "dst": 20,
+      "transitions": 19
+    },
+    {
+      "src": 17,
+      "dst": 19,
+      "transitions": 4
+    },
+    {
+      "src": 17,
+      "dst": 20,
+      "transitions": 41
+    },
+    {
+      "src": 18,
+      "dst": 19,
+      "transitions": 7
+    },
+    {
+      "src": 18,
+      "dst": 21,
+      "transitions": 170
+    },
+    {
+      "src": 18,
+      "dst": 22,
+      "transitions": 9
+    },
+    {
+      "src": 19,
+      "dst": 20,
+      "transitions": 13
+    },
+    {
+      "src": 19,
+      "dst": 21,
+      "transitions": 19
+    },
+    {
+      "src": 19,
+      "dst": 22,
+      "transitions": 383
+    },
+    {
+      "src": 19,
+      "dst": 23,
+      "transitions": 17
+    },
+    {
+      "src": 20,
+      "dst": 22,
+      "transitions": 5
+    },
+    {
+      "src": 20,
+      "dst": 23,
+      "transitions": 64
+    },
+    {
+      "src": 21,
+      "dst": 22,
+      "transitions": 6
+    },
+    {
+      "src": 21,
+      "dst": 24,
+      "transitions": 169
+    },
+    {
+      "src": 21,
+      "dst": 25,
+      "transitions": 16
+    },
+    {
+      "src": 22,
+      "dst": 23,
+      "transitions": 7
+    },
+    {
+      "src": 22,
+      "dst": 24,
+      "transitions": 59
+    },
+    {
+      "src": 22,
+      "dst": 25,
+      "transitions": 300
+    },
+    {
+      "src": 22,
+      "dst": 26,
+      "transitions": 45
+    },
+    {
+      "src": 23,
+      "dst": 25,
+      "transitions": 19
+    },
+    {
+      "src": 23,
+      "dst": 26,
+      "transitions": 62
+    },
+    {
+      "src": 24,
+      "dst": 25,
+      "transitions": 7
+    },
+    {
+      "src": 24,
+      "dst": 27,
+      "transitions": 45
+    },
+    {
+      "src": 24,
+      "dst": 28,
+      "transitions": 182
+    },
+    {
+      "src": 24,
+      "dst": 29,
+      "transitions": 10
+    },
+    {
+      "src": 25,
+      "dst": 26,
+      "transitions": 10
+    },
+    {
+      "src": 25,
+      "dst": 28,
+      "transitions": 106
+    },
+    {
+      "src": 25,
+      "dst": 29,
+      "transitions": 166
+    },
+    {
+      "src": 25,
+      "dst": 30,
+      "transitions": 70
+    },
+    {
+      "src": 26,
+      "dst": 29,
+      "transitions": 18
+    },
+    {
+      "src": 26,
+      "dst": 30,
+      "transitions": 87
+    },
+    {
+      "src": 27,
+      "dst": 28,
+      "transitions": 30
+    },
+    {
+      "src": 27,
+      "dst": 35,
+      "transitions": 43
+    },
+    {
+      "src": 27,
+      "dst": 36,
+      "transitions": 23
+    },
+    {
+      "src": 28,
+      "dst": 29,
+      "transitions": 28
+    },
+    {
+      "src": 28,
+      "dst": 36,
+      "transitions": 66
+    },
+    {
+      "src": 28,
+      "dst": 37,
+      "transitions": 194
+    },
+    {
+      "src": 28,
+      "dst": 38,
+      "transitions": 9
+    },
+    {
+      "src": 29,
+      "dst": 30,
+      "transitions": 16
+    },
+    {
+      "src": 29,
+      "dst": 37,
+      "transitions": 89
+    },
+    {
+      "src": 29,
+      "dst": 38,
+      "transitions": 81
+    },
+    {
+      "src": 29,
+      "dst": 39,
+      "transitions": 58
+    },
+    {
+      "src": 30,
+      "dst": 38,
+      "transitions": 5
+    },
+    {
+      "src": 30,
+      "dst": 39,
+      "transitions": 101
+    },
+    {
+      "src": 30,
+      "dst": 40,
+      "transitions": 50
+    },
+    {
+      "src": 31,
+      "dst": 32,
+      "transitions": 5
+    },
+    {
+      "src": 31,
+      "dst": 50,
+      "transitions": 5
+    },
+    {
+      "src": 31,
+      "dst": 51,
+      "transitions": 3
+    },
+    {
+      "src": 32,
+      "dst": 33,
+      "transitions": 39
+    },
+    {
+      "src": 32,
+      "dst": 50,
+      "transitions": 11
+    },
+    {
+      "src": 32,
+      "dst": 51,
+      "transitions": 33
+    },
+    {
+      "src": 32,
+      "dst": 52,
+      "transitions": 5
+    },
+    {
+      "src": 33,
+      "dst": 34,
+      "transitions": 110
+    },
+    {
+      "src": 33,
+      "dst": 51,
+      "transitions": 88
+    },
+    {
+      "src": 33,
+      "dst": 52,
+      "transitions": 31
+    },
+    {
+      "src": 33,
+      "dst": 53,
+      "transitions": 3
+    },
+    {
+      "src": 34,
+      "dst": 35,
+      "transitions": 140
+    },
+    {
+      "src": 34,
+      "dst": 52,
+      "transitions": 56
+    },
+    {
+      "src": 34,
+      "dst": 53,
+      "transitions": 2
+    },
+    {
+      "src": 34,
+      "dst": 54,
+      "transitions": 8
+    },
+    {
+      "src": 35,
+      "dst": 36,
+      "transitions": 135
+    },
+    {
+      "src": 35,
+      "dst": 53,
+      "transitions": 47
+    },
+    {
+      "src": 35,
+      "dst": 54,
+      "transitions": 3
+    },
+    {
+      "src": 35,
+      "dst": 55,
+      "transitions": 13
+    },
+    {
+      "src": 36,
+      "dst": 37,
+      "transitions": 124
+    },
+    {
+      "src": 36,
+      "dst": 54,
+      "transitions": 59
+    },
+    {
+      "src": 36,
+      "dst": 55,
+      "transitions": 14
+    },
+    {
+      "src": 36,
+      "dst": 56,
+      "transitions": 20
+    },
+    {
+      "src": 37,
+      "dst": 38,
+      "transitions": 64
+    },
+    {
+      "src": 37,
+      "dst": 55,
+      "transitions": 43
+    },
+    {
+      "src": 37,
+      "dst": 56,
+      "transitions": 182
+    },
+    {
+      "src": 37,
+      "dst": 57,
+      "transitions": 21
+    },
+    {
+      "src": 38,
+      "dst": 39,
+      "transitions": 60
+    },
+    {
+      "src": 38,
+      "dst": 56,
+      "transitions": 37
+    },
+    {
+      "src": 38,
+      "dst": 57,
+      "transitions": 38
+    },
+    {
+      "src": 38,
+      "dst": 58,
+      "transitions": 47
+    },
+    {
+      "src": 39,
+      "dst": 40,
+      "transitions": 51
+    },
+    {
+      "src": 39,
+      "dst": 57,
+      "transitions": 20
+    },
+    {
+      "src": 39,
+      "dst": 58,
+      "transitions": 88
+    },
+    {
+      "src": 39,
+      "dst": 59,
+      "transitions": 54
+    },
+    {
+      "src": 40,
+      "dst": 41,
+      "transitions": 38
+    },
+    {
+      "src": 40,
+      "dst": 58,
+      "transitions": 8
+    },
+    {
+      "src": 40,
+      "dst": 59,
+      "transitions": 33
+    },
+    {
+      "src": 40,
+      "dst": 60,
+      "transitions": 37
+    },
+    {
+      "src": 41,
+      "dst": 42,
+      "transitions": 27
+    },
+    {
+      "src": 41,
+      "dst": 59,
+      "transitions": 13
+    },
+    {
+      "src": 41,
+      "dst": 60,
+      "transitions": 9
+    },
+    {
+      "src": 41,
+      "dst": 61,
+      "transitions": 19
+    },
+    {
+      "src": 42,
+      "dst": 43,
+      "transitions": 16
+    },
+    {
+      "src": 42,
+      "dst": 60,
+      "transitions": 13
+    },
+    {
+      "src": 42,
+      "dst": 61,
+      "transitions": 27
+    },
+    {
+      "src": 42,
+      "dst": 62,
+      "transitions": 6
+    },
+    {
+      "src": 43,
+      "dst": 44,
+      "transitions": 12
+    },
+    {
+      "src": 43,
+      "dst": 61,
+      "transitions": 2
+    },
+    {
+      "src": 43,
+      "dst": 62,
+      "transitions": 17
+    },
+    {
+      "src": 44,
+      "dst": 45,
+      "transitions": 16
+    },
+    {
+      "src": 44,
+      "dst": 62,
+      "transitions": 3
+    },
+    {
+      "src": 45,
+      "dst": 46,
+      "transitions": 21
+    },
+    {
+      "src": 45,
+      "dst": 63,
+      "transitions": 6
+    },
+    {
+      "src": 45,
+      "dst": 64,
+      "transitions": 2
+    },
+    {
+      "src": 45,
+      "dst": 65,
+      "transitions": 11
+    },
+    {
+      "src": 46,
+      "dst": 47,
+      "transitions": 20
+    },
+    {
+      "src": 46,
+      "dst": 64,
+      "transitions": 7
+    },
+    {
+      "src": 46,
+      "dst": 65,
+      "transitions": 10
+    },
+    {
+      "src": 46,
+      "dst": 66,
+      "transitions": 15
+    },
+    {
+      "src": 47,
+      "dst": 65,
+      "transitions": 5
+    },
+    {
+      "src": 47,
+      "dst": 66,
+      "transitions": 12
+    },
+    {
+      "src": 47,
+      "dst": 67,
+      "transitions": 14
+    },
+    {
+      "src": 48,
+      "dst": 49,
+      "transitions": 3
+    },
+    {
+      "src": 48,
+      "dst": 67,
+      "transitions": 4
+    },
+    {
+      "src": 48,
+      "dst": 68,
+      "transitions": 9
+    },
+    {
+      "src": 48,
+      "dst": 69,
+      "transitions": 2
+    },
+    {
+      "src": 49,
+      "dst": 68,
+      "transitions": 4
+    },
+    {
+      "src": 49,
+      "dst": 69,
+      "transitions": 10
+    },
+    {
+      "src": 49,
+      "dst": 70,
+      "transitions": 4
+    },
+    {
+      "src": 50,
+      "dst": 51,
+      "transitions": 44
+    },
+    {
+      "src": 50,
+      "dst": 71,
+      "transitions": 55
+    },
+    {
+      "src": 50,
+      "dst": 72,
+      "transitions": 10
+    },
+    {
+      "src": 51,
+      "dst": 52,
+      "transitions": 100
+    },
+    {
+      "src": 51,
+      "dst": 71,
+      "transitions": 73
+    },
+    {
+      "src": 51,
+      "dst": 72,
+      "transitions": 86
+    },
+    {
+      "src": 51,
+      "dst": 73,
+      "transitions": 41
+    },
+    {
+      "src": 52,
+      "dst": 53,
+      "transitions": 79
+    },
+    {
+      "src": 52,
+      "dst": 72,
+      "transitions": 67
+    },
+    {
+      "src": 52,
+      "dst": 73,
+      "transitions": 57
+    },
+    {
+      "src": 53,
+      "dst": 54,
+      "transitions": 116
+    },
+    {
+      "src": 53,
+      "dst": 73,
+      "transitions": 59
+    },
+    {
+      "src": 53,
+      "dst": 74,
+      "transitions": 12
+    },
+    {
+      "src": 54,
+      "dst": 55,
+      "transitions": 105
+    },
+    {
+      "src": 54,
+      "dst": 74,
+      "transitions": 36
+    },
+    {
+      "src": 54,
+      "dst": 76,
+      "transitions": 8
+    },
+    {
+      "src": 55,
+      "dst": 56,
+      "transitions": 74
+    },
+    {
+      "src": 55,
+      "dst": 75,
+      "transitions": 8
+    },
+    {
+      "src": 55,
+      "dst": 76,
+      "transitions": 3
+    },
+    {
+      "src": 55,
+      "dst": 77,
+      "transitions": 12
+    },
+    {
+      "src": 56,
+      "dst": 57,
+      "transitions": 49
+    },
+    {
+      "src": 56,
+      "dst": 76,
+      "transitions": 12
+    },
+    {
+      "src": 56,
+      "dst": 77,
+      "transitions": 109
+    },
+    {
+      "src": 56,
+      "dst": 78,
+      "transitions": 51
+    },
+    {
+      "src": 57,
+      "dst": 58,
+      "transitions": 60
+    },
+    {
+      "src": 57,
+      "dst": 77,
+      "transitions": 22
+    },
+    {
+      "src": 57,
+      "dst": 78,
+      "transitions": 44
+    },
+    {
+      "src": 57,
+      "dst": 79,
+      "transitions": 19
+    },
+    {
+      "src": 58,
+      "dst": 59,
+      "transitions": 83
+    },
+    {
+      "src": 58,
+      "dst": 78,
+      "transitions": 39
+    },
+    {
+      "src": 58,
+      "dst": 79,
+      "transitions": 105
+    },
+    {
+      "src": 58,
+      "dst": 80,
+      "transitions": 18
+    },
+    {
+      "src": 59,
+      "dst": 60,
+      "transitions": 124
+    },
+    {
+      "src": 59,
+      "dst": 79,
+      "transitions": 59
+    },
+    {
+      "src": 59,
+      "dst": 80,
+      "transitions": 24
+    },
+    {
+      "src": 59,
+      "dst": 81,
+      "transitions": 24
+    },
+    {
+      "src": 60,
+      "dst": 61,
+      "transitions": 154
+    },
+    {
+      "src": 60,
+      "dst": 80,
+      "transitions": 49
+    },
+    {
+      "src": 60,
+      "dst": 81,
+      "transitions": 18
+    },
+    {
+      "src": 60,
+      "dst": 82,
+      "transitions": 17
+    },
+    {
+      "src": 61,
+      "dst": 62,
+      "transitions": 152
+    },
+    {
+      "src": 61,
+      "dst": 81,
+      "transitions": 41
+    },
+    {
+      "src": 61,
+      "dst": 82,
+      "transitions": 24
+    },
+    {
+      "src": 62,
+      "dst": 63,
+      "transitions": 133
+    },
+    {
+      "src": 62,
+      "dst": 82,
+      "transitions": 19
+    },
+    {
+      "src": 62,
+      "dst": 83,
+      "transitions": 13
+    },
+    {
+      "src": 62,
+      "dst": 84,
+      "transitions": 7
+    },
+    {
+      "src": 63,
+      "dst": 64,
+      "transitions": 133
+    },
+    {
+      "src": 63,
+      "dst": 83,
+      "transitions": 8
+    },
+    {
+      "src": 63,
+      "dst": 85,
+      "transitions": 9
+    },
+    {
+      "src": 64,
+      "dst": 65,
+      "transitions": 131
+    },
+    {
+      "src": 64,
+      "dst": 84,
+      "transitions": 7
+    },
+    {
+      "src": 64,
+      "dst": 85,
+      "transitions": 6
+    },
+    {
+      "src": 64,
+      "dst": 86,
+      "transitions": 12
+    },
+    {
+      "src": 65,
+      "dst": 66,
+      "transitions": 154
+    },
+    {
+      "src": 65,
+      "dst": 85,
+      "transitions": 15
+    },
+    {
+      "src": 65,
+      "dst": 86,
+      "transitions": 13
+    },
+    {
+      "src": 65,
+      "dst": 87,
+      "transitions": 7
+    },
+    {
+      "src": 66,
+      "dst": 67,
+      "transitions": 159
+    },
+    {
+      "src": 66,
+      "dst": 86,
+      "transitions": 31
+    },
+    {
+      "src": 66,
+      "dst": 87,
+      "transitions": 10
+    },
+    {
+      "src": 67,
+      "dst": 68,
+      "transitions": 188
+    },
+    {
+      "src": 67,
+      "dst": 87,
+      "transitions": 21
+    },
+    {
+      "src": 67,
+      "dst": 88,
+      "transitions": 7
+    },
+    {
+      "src": 67,
+      "dst": 89,
+      "transitions": 3
+    },
+    {
+      "src": 68,
+      "dst": 69,
+      "transitions": 160
+    },
+    {
+      "src": 68,
+      "dst": 88,
+      "transitions": 6
+    },
+    {
+      "src": 68,
+      "dst": 89,
+      "transitions": 5
+    },
+    {
+      "src": 68,
+      "dst": 90,
+      "transitions": 8
+    },
+    {
+      "src": 69,
+      "dst": 70,
+      "transitions": 6
+    },
+    {
+      "src": 69,
+      "dst": 89,
+      "transitions": 2
+    },
+    {
+      "src": 69,
+      "dst": 90,
+      "transitions": 13
+    },
+    {
+      "src": 71,
+      "dst": 72,
+      "transitions": 40
+    },
+    {
+      "src": 71,
+      "dst": 91,
+      "transitions": 128
+    },
+    {
+      "src": 71,
+      "dst": 92,
+      "transitions": 10
+    },
+    {
+      "src": 72,
+      "dst": 73,
+      "transitions": 67
+    },
+    {
+      "src": 72,
+      "dst": 91,
+      "transitions": 62
+    },
+    {
+      "src": 72,
+      "dst": 92,
+      "transitions": 63
+    },
+    {
+      "src": 72,
+      "dst": 93,
+      "transitions": 21
+    },
+    {
+      "src": 73,
+      "dst": 74,
+      "transitions": 46
+    },
+    {
+      "src": 73,
+      "dst": 92,
+      "transitions": 42
+    },
+    {
+      "src": 73,
+      "dst": 93,
+      "transitions": 87
+    },
+    {
+      "src": 74,
+      "dst": 75,
+      "transitions": 26
+    },
+    {
+      "src": 74,
+      "dst": 93,
+      "transitions": 24
+    },
+    {
+      "src": 75,
+      "dst": 76,
+      "transitions": 19
+    },
+    {
+      "src": 76,
+      "dst": 77,
+      "transitions": 17
+    },
+    {
+      "src": 77,
+      "dst": 78,
+      "transitions": 58
+    },
+    {
+      "src": 77,
+      "dst": 94,
+      "transitions": 70
+    },
+    {
+      "src": 77,
+      "dst": 95,
+      "transitions": 19
+    },
+    {
+      "src": 78,
+      "dst": 79,
+      "transitions": 86
+    },
+    {
+      "src": 78,
+      "dst": 94,
+      "transitions": 12
+    },
+    {
+      "src": 78,
+      "dst": 95,
+      "transitions": 79
+    },
+    {
+      "src": 78,
+      "dst": 96,
+      "transitions": 11
+    },
+    {
+      "src": 79,
+      "dst": 80,
+      "transitions": 97
+    },
+    {
+      "src": 79,
+      "dst": 95,
+      "transitions": 54
+    },
+    {
+      "src": 79,
+      "dst": 96,
+      "transitions": 102
+    },
+    {
+      "src": 80,
+      "dst": 81,
+      "transitions": 77
+    },
+    {
+      "src": 80,
+      "dst": 96,
+      "transitions": 47
+    },
+    {
+      "src": 81,
+      "dst": 82,
+      "transitions": 58
+    },
+    {
+      "src": 82,
+      "dst": 83,
+      "transitions": 35
+    },
+    {
+      "src": 83,
+      "dst": 84,
+      "transitions": 35
+    },
+    {
+      "src": 84,
+      "dst": 85,
+      "transitions": 48
+    },
+    {
+      "src": 85,
+      "dst": 86,
+      "transitions": 45
+    },
+    {
+      "src": 86,
+      "dst": 87,
+      "transitions": 30
+    },
+    {
+      "src": 87,
+      "dst": 88,
+      "transitions": 9
+    },
+    {
+      "src": 88,
+      "dst": 89,
+      "transitions": 3
+    },
+    {
+      "src": 91,
+      "dst": 92,
+      "transitions": 6
+    },
+    {
+      "src": 91,
+      "dst": 97,
+      "transitions": 134
+    },
+    {
+      "src": 91,
+      "dst": 98,
+      "transitions": 2
+    },
+    {
+      "src": 92,
+      "dst": 97,
+      "transitions": 31
+    },
+    {
+      "src": 92,
+      "dst": 98,
+      "transitions": 76
+    },
+    {
+      "src": 92,
+      "dst": 99,
+      "transitions": 6
+    },
+    {
+      "src": 93,
+      "dst": 98,
+      "transitions": 20
+    },
+    {
+      "src": 93,
+      "dst": 99,
+      "transitions": 95
+    },
+    {
+      "src": 94,
+      "dst": 95,
+      "transitions": 11
+    },
+    {
+      "src": 94,
+      "dst": 100,
+      "transitions": 81
+    },
+    {
+      "src": 94,
+      "dst": 101,
+      "transitions": 5
+    },
+    {
+      "src": 95,
+      "dst": 96,
+      "transitions": 15
+    },
+    {
+      "src": 95,
+      "dst": 100,
+      "transitions": 26
+    },
+    {
+      "src": 95,
+      "dst": 101,
+      "transitions": 108
+    },
+    {
+      "src": 95,
+      "dst": 102,
+      "transitions": 10
+    },
+    {
+      "src": 96,
+      "dst": 101,
+      "transitions": 31
+    },
+    {
+      "src": 96,
+      "dst": 102,
+      "transitions": 117
+    },
+    {
+      "src": 97,
+      "dst": 103,
+      "transitions": 39
+    },
+    {
+      "src": 97,
+      "dst": 104,
+      "transitions": 95
+    },
+    {
+      "src": 97,
+      "dst": 105,
+      "transitions": 9
+    },
+    {
+      "src": 98,
+      "dst": 99,
+      "transitions": 2
+    },
+    {
+      "src": 98,
+      "dst": 104,
+      "transitions": 20
+    },
+    {
+      "src": 98,
+      "dst": 105,
+      "transitions": 79
+    },
+    {
+      "src": 98,
+      "dst": 106,
+      "transitions": 5
+    },
+    {
+      "src": 99,
+      "dst": 105,
+      "transitions": 32
+    },
+    {
+      "src": 99,
+      "dst": 106,
+      "transitions": 64
+    },
+    {
+      "src": 100,
+      "dst": 101,
+      "transitions": 2
+    },
+    {
+      "src": 100,
+      "dst": 107,
+      "transitions": 94
+    },
+    {
+      "src": 100,
+      "dst": 108,
+      "transitions": 7
+    },
+    {
+      "src": 101,
+      "dst": 102,
+      "transitions": 4
+    },
+    {
+      "src": 101,
+      "dst": 107,
+      "transitions": 38
+    },
+    {
+      "src": 101,
+      "dst": 108,
+      "transitions": 91
+    },
+    {
+      "src": 101,
+      "dst": 109,
+      "transitions": 13
+    },
+    {
+      "src": 102,
+      "dst": 108,
+      "transitions": 30
+    },
+    {
+      "src": 102,
+      "dst": 109,
+      "transitions": 135
+    },
+    {
+      "src": 103,
+      "dst": 104,
+      "transitions": 10
+    },
+    {
+      "src": 103,
+      "dst": 118,
+      "transitions": 26
+    },
+    {
+      "src": 103,
+      "dst": 119,
+      "transitions": 28
+    },
+    {
+      "src": 104,
+      "dst": 105,
+      "transitions": 14
+    },
+    {
+      "src": 104,
+      "dst": 119,
+      "transitions": 40
+    },
+    {
+      "src": 104,
+      "dst": 120,
+      "transitions": 71
+    },
+    {
+      "src": 104,
+      "dst": 121,
+      "transitions": 10
+    },
+    {
+      "src": 105,
+      "dst": 106,
+      "transitions": 5
+    },
+    {
+      "src": 105,
+      "dst": 120,
+      "transitions": 46
+    },
+    {
+      "src": 105,
+      "dst": 121,
+      "transitions": 69
+    },
+    {
+      "src": 105,
+      "dst": 122,
+      "transitions": 15
+    },
+    {
+      "src": 106,
+      "dst": 121,
+      "transitions": 20
+    },
+    {
+      "src": 106,
+      "dst": 122,
+      "transitions": 45
+    },
+    {
+      "src": 106,
+      "dst": 123,
+      "transitions": 2
+    },
+    {
+      "src": 107,
+      "dst": 108,
+      "transitions": 4
+    },
+    {
+      "src": 107,
+      "dst": 125,
+      "transitions": 32
+    },
+    {
+      "src": 107,
+      "dst": 126,
+      "transitions": 107
+    },
+    {
+      "src": 107,
+      "dst": 127,
+      "transitions": 14
+    },
+    {
+      "src": 108,
+      "dst": 109,
+      "transitions": 13
+    },
+    {
+      "src": 108,
+      "dst": 126,
+      "transitions": 61
+    },
+    {
+      "src": 108,
+      "dst": 127,
+      "transitions": 65
+    },
+    {
+      "src": 108,
+      "dst": 128,
+      "transitions": 8
+    },
+    {
+      "src": 109,
+      "dst": 127,
+      "transitions": 54
+    },
+    {
+      "src": 109,
+      "dst": 128,
+      "transitions": 113
+    },
+    {
+      "src": 110,
+      "dst": 129,
+      "transitions": 8
+    },
+    {
+      "src": 110,
+      "dst": 130,
+      "transitions": 7
+    },
+    {
+      "src": 111,
+      "dst": 112,
+      "transitions": 3
+    },
+    {
+      "src": 111,
+      "dst": 130,
+      "transitions": 4
+    },
+    {
+      "src": 111,
+      "dst": 132,
+      "transitions": 9
+    },
+    {
+      "src": 112,
+      "dst": 113,
+      "transitions": 36
+    },
+    {
+      "src": 112,
+      "dst": 131,
+      "transitions": 32
+    },
+    {
+      "src": 112,
+      "dst": 132,
+      "transitions": 7
+    },
+    {
+      "src": 112,
+      "dst": 133,
+      "transitions": 3
+    },
+    {
+      "src": 113,
+      "dst": 114,
+      "transitions": 72
+    },
+    {
+      "src": 113,
+      "dst": 132,
+      "transitions": 30
+    },
+    {
+      "src": 113,
+      "dst": 133,
+      "transitions": 3
+    },
+    {
+      "src": 113,
+      "dst": 134,
+      "transitions": 7
+    },
+    {
+      "src": 114,
+      "dst": 115,
+      "transitions": 75
+    },
+    {
+      "src": 114,
+      "dst": 133,
+      "transitions": 18
+    },
+    {
+      "src": 114,
+      "dst": 134,
+      "transitions": 5
+    },
+    {
+      "src": 114,
+      "dst": 135,
+      "transitions": 6
+    },
+    {
+      "src": 115,
+      "dst": 116,
+      "transitions": 69
+    },
+    {
+      "src": 115,
+      "dst": 134,
+      "transitions": 9
+    },
+    {
+      "src": 115,
+      "dst": 136,
+      "transitions": 3
+    },
+    {
+      "src": 116,
+      "dst": 117,
+      "transitions": 72
+    },
+    {
+      "src": 116,
+      "dst": 135,
+      "transitions": 6
+    },
+    {
+      "src": 116,
+      "dst": 136,
+      "transitions": 14
+    },
+    {
+      "src": 116,
+      "dst": 137,
+      "transitions": 6
+    },
+    {
+      "src": 117,
+      "dst": 118,
+      "transitions": 90
+    },
+    {
+      "src": 117,
+      "dst": 136,
+      "transitions": 2
+    },
+    {
+      "src": 117,
+      "dst": 137,
+      "transitions": 21
+    },
+    {
+      "src": 117,
+      "dst": 138,
+      "transitions": 28
+    },
+    {
+      "src": 118,
+      "dst": 119,
+      "transitions": 109
+    },
+    {
+      "src": 118,
+      "dst": 137,
+      "transitions": 37
+    },
+    {
+      "src": 118,
+      "dst": 138,
+      "transitions": 17
+    },
+    {
+      "src": 118,
+      "dst": 139,
+      "transitions": 23
+    },
+    {
+      "src": 119,
+      "dst": 120,
+      "transitions": 121
+    },
+    {
+      "src": 119,
+      "dst": 138,
+      "transitions": 62
+    },
+    {
+      "src": 119,
+      "dst": 139,
+      "transitions": 57
+    },
+    {
+      "src": 119,
+      "dst": 140,
+      "transitions": 24
+    },
+    {
+      "src": 120,
+      "dst": 121,
+      "transitions": 124
+    },
+    {
+      "src": 120,
+      "dst": 139,
+      "transitions": 65
+    },
+    {
+      "src": 120,
+      "dst": 140,
+      "transitions": 83
+    },
+    {
+      "src": 120,
+      "dst": 141,
+      "transitions": 14
+    },
+    {
+      "src": 121,
+      "dst": 122,
+      "transitions": 72
+    },
+    {
+      "src": 121,
+      "dst": 140,
+      "transitions": 44
+    },
+    {
+      "src": 121,
+      "dst": 141,
+      "transitions": 57
+    },
+    {
+      "src": 121,
+      "dst": 142,
+      "transitions": 68
+    },
+    {
+      "src": 122,
+      "dst": 123,
+      "transitions": 29
+    },
+    {
+      "src": 122,
+      "dst": 141,
+      "transitions": 23
+    },
+    {
+      "src": 122,
+      "dst": 142,
+      "transitions": 99
+    },
+    {
+      "src": 122,
+      "dst": 143,
+      "transitions": 10
+    },
+    {
+      "src": 123,
+      "dst": 124,
+      "transitions": 25
+    },
+    {
+      "src": 123,
+      "dst": 142,
+      "transitions": 7
+    },
+    {
+      "src": 123,
+      "dst": 143,
+      "transitions": 9
+    },
+    {
+      "src": 123,
+      "dst": 144,
+      "transitions": 3
+    },
+    {
+      "src": 124,
+      "dst": 125,
+      "transitions": 36
+    },
+    {
+      "src": 124,
+      "dst": 143,
+      "transitions": 15
+    },
+    {
+      "src": 124,
+      "dst": 145,
+      "transitions": 3
+    },
+    {
+      "src": 125,
+      "dst": 126,
+      "transitions": 49
+    },
+    {
+      "src": 125,
+      "dst": 144,
+      "transitions": 34
+    },
+    {
+      "src": 125,
+      "dst": 145,
+      "transitions": 16
+    },
+    {
+      "src": 125,
+      "dst": 146,
+      "transitions": 3
+    },
+    {
+      "src": 126,
+      "dst": 127,
+      "transitions": 80
+    },
+    {
+      "src": 126,
+      "dst": 145,
+      "transitions": 78
+    },
+    {
+      "src": 126,
+      "dst": 146,
+      "transitions": 90
+    },
+    {
+      "src": 126,
+      "dst": 147,
+      "transitions": 30
+    },
+    {
+      "src": 127,
+      "dst": 128,
+      "transitions": 46
+    },
+    {
+      "src": 127,
+      "dst": 146,
+      "transitions": 66
+    },
+    {
+      "src": 127,
+      "dst": 147,
+      "transitions": 102
+    },
+    {
+      "src": 127,
+      "dst": 148,
+      "transitions": 13
+    },
+    {
+      "src": 128,
+      "dst": 147,
+      "transitions": 108
+    },
+    {
+      "src": 128,
+      "dst": 148,
+      "transitions": 47
+    },
+    {
+      "src": 129,
+      "dst": 130,
+      "transitions": 163
+    },
+    {
+      "src": 129,
+      "dst": 149,
+      "transitions": 12
+    },
+    {
+      "src": 130,
+      "dst": 131,
+      "transitions": 208
+    },
+    {
+      "src": 130,
+      "dst": 149,
+      "transitions": 7
+    },
+    {
+      "src": 130,
+      "dst": 150,
+      "transitions": 2
+    },
+    {
+      "src": 131,
+      "dst": 132,
+      "transitions": 179
+    },
+    {
+      "src": 131,
+      "dst": 150,
+      "transitions": 7
+    },
+    {
+      "src": 131,
+      "dst": 151,
+      "transitions": 8
+    },
+    {
+      "src": 132,
+      "dst": 133,
+      "transitions": 163
+    },
+    {
+      "src": 132,
+      "dst": 151,
+      "transitions": 10
+    },
+    {
+      "src": 132,
+      "dst": 152,
+      "transitions": 12
+    },
+    {
+      "src": 133,
+      "dst": 134,
+      "transitions": 147
+    },
+    {
+      "src": 133,
+      "dst": 152,
+      "transitions": 6
+    },
+    {
+      "src": 133,
+      "dst": 153,
+      "transitions": 3
+    },
+    {
+      "src": 134,
+      "dst": 135,
+      "transitions": 155
+    },
+    {
+      "src": 134,
+      "dst": 152,
+      "transitions": 6
+    },
+    {
+      "src": 134,
+      "dst": 153,
+      "transitions": 2
+    },
+    {
+      "src": 135,
+      "dst": 136,
+      "transitions": 155
+    },
+    {
+      "src": 135,
+      "dst": 153,
+      "transitions": 2
+    },
+    {
+      "src": 136,
+      "dst": 137,
+      "transitions": 164
+    },
+    {
+      "src": 136,
+      "dst": 154,
+      "transitions": 4
+    },
+    {
+      "src": 136,
+      "dst": 155,
+      "transitions": 6
+    },
+    {
+      "src": 137,
+      "dst": 138,
+      "transitions": 206
+    },
+    {
+      "src": 137,
+      "dst": 154,
+      "transitions": 2
+    },
+    {
+      "src": 137,
+      "dst": 155,
+      "transitions": 21
+    },
+    {
+      "src": 137,
+      "dst": 156,
+      "transitions": 36
+    },
+    {
+      "src": 138,
+      "dst": 139,
+      "transitions": 136
+    },
+    {
+      "src": 138,
+      "dst": 155,
+      "transitions": 9
+    },
+    {
+      "src": 138,
+      "dst": 156,
+      "transitions": 24
+    },
+    {
+      "src": 138,
+      "dst": 157,
+      "transitions": 65
+    },
+    {
+      "src": 139,
+      "dst": 140,
+      "transitions": 99
+    },
+    {
+      "src": 139,
+      "dst": 156,
+      "transitions": 14
+    },
+    {
+      "src": 139,
+      "dst": 157,
+      "transitions": 36
+    },
+    {
+      "src": 139,
+      "dst": 158,
+      "transitions": 72
+    },
+    {
+      "src": 140,
+      "dst": 141,
+      "transitions": 55
+    },
+    {
+      "src": 140,
+      "dst": 157,
+      "transitions": 16
+    },
+    {
+      "src": 140,
+      "dst": 158,
+      "transitions": 94
+    },
+    {
+      "src": 140,
+      "dst": 159,
+      "transitions": 59
+    },
+    {
+      "src": 141,
+      "dst": 142,
+      "transitions": 43
+    },
+    {
+      "src": 141,
+      "dst": 158,
+      "transitions": 31
+    },
+    {
+      "src": 141,
+      "dst": 159,
+      "transitions": 60
+    },
+    {
+      "src": 141,
+      "dst": 160,
+      "transitions": 31
+    },
+    {
+      "src": 142,
+      "dst": 143,
+      "transitions": 83
+    },
+    {
+      "src": 142,
+      "dst": 159,
+      "transitions": 54
+    },
+    {
+      "src": 142,
+      "dst": 160,
+      "transitions": 127
+    },
+    {
+      "src": 142,
+      "dst": 161,
+      "transitions": 25
+    },
+    {
+      "src": 143,
+      "dst": 144,
+      "transitions": 123
+    },
+    {
+      "src": 143,
+      "dst": 160,
+      "transitions": 91
+    },
+    {
+      "src": 143,
+      "dst": 161,
+      "transitions": 8
+    },
+    {
+      "src": 143,
+      "dst": 162,
+      "transitions": 13
+    },
+    {
+      "src": 144,
+      "dst": 145,
+      "transitions": 160
+    },
+    {
+      "src": 144,
+      "dst": 161,
+      "transitions": 91
+    },
+    {
+      "src": 144,
+      "dst": 162,
+      "transitions": 3
+    },
+    {
+      "src": 144,
+      "dst": 163,
+      "transitions": 6
+    },
+    {
+      "src": 145,
+      "dst": 146,
+      "transitions": 101
+    },
+    {
+      "src": 145,
+      "dst": 162,
+      "transitions": 73
+    },
+    {
+      "src": 145,
+      "dst": 163,
+      "transitions": 9
+    },
+    {
+      "src": 145,
+      "dst": 164,
+      "transitions": 6
+    },
+    {
+      "src": 146,
+      "dst": 147,
+      "transitions": 101
+    },
+    {
+      "src": 146,
+      "dst": 163,
+      "transitions": 63
+    },
+    {
+      "src": 146,
+      "dst": 164,
+      "transitions": 57
+    },
+    {
+      "src": 146,
+      "dst": 165,
+      "transitions": 15
+    },
+    {
+      "src": 147,
+      "dst": 148,
+      "transitions": 56
+    },
+    {
+      "src": 147,
+      "dst": 164,
+      "transitions": 100
+    },
+    {
+      "src": 147,
+      "dst": 165,
+      "transitions": 60
+    },
+    {
+      "src": 147,
+      "dst": 166,
+      "transitions": 6
+    },
+    {
+      "src": 148,
+      "dst": 165,
+      "transitions": 16
+    },
+    {
+      "src": 148,
+      "dst": 166,
+      "transitions": 5
+    },
+    {
+      "src": 149,
+      "dst": 150,
+      "transitions": 3
+    },
+    {
+      "src": 151,
+      "dst": 152,
+      "transitions": 10
+    },
+    {
+      "src": 152,
+      "dst": 153,
+      "transitions": 11
+    },
+    {
+      "src": 154,
+      "dst": 155,
+      "transitions": 14
+    },
+    {
+      "src": 155,
+      "dst": 156,
+      "transitions": 36
+    },
+    {
+      "src": 156,
+      "dst": 157,
+      "transitions": 61
+    },
+    {
+      "src": 157,
+      "dst": 158,
+      "transitions": 105
+    },
+    {
+      "src": 157,
+      "dst": 167,
+      "transitions": 49
+    },
+    {
+      "src": 158,
+      "dst": 159,
+      "transitions": 127
+    },
+    {
+      "src": 158,
+      "dst": 167,
+      "transitions": 96
+    },
+    {
+      "src": 158,
+      "dst": 168,
+      "transitions": 64
+    },
+    {
+      "src": 159,
+      "dst": 160,
+      "transitions": 129
+    },
+    {
+      "src": 159,
+      "dst": 167,
+      "transitions": 13
+    },
+    {
+      "src": 159,
+      "dst": 168,
+      "transitions": 107
+    },
+    {
+      "src": 159,
+      "dst": 169,
+      "transitions": 15
+    },
+    {
+      "src": 160,
+      "dst": 161,
+      "transitions": 269
+    },
+    {
+      "src": 160,
+      "dst": 168,
+      "transitions": 105
+    },
+    {
+      "src": 160,
+      "dst": 169,
+      "transitions": 234
+    },
+    {
+      "src": 161,
+      "dst": 162,
+      "transitions": 227
+    },
+    {
+      "src": 161,
+      "dst": 169,
+      "transitions": 56
+    },
+    {
+      "src": 162,
+      "dst": 163,
+      "transitions": 188
+    },
+    {
+      "src": 163,
+      "dst": 164,
+      "transitions": 139
+    },
+    {
+      "src": 164,
+      "dst": 165,
+      "transitions": 53
+    },
+    {
+      "src": 165,
+      "dst": 166,
+      "transitions": 4
+    },
+    {
+      "src": 167,
+      "dst": 168,
+      "transitions": 17
+    },
+    {
+      "src": 167,
+      "dst": 170,
+      "transitions": 77
+    },
+    {
+      "src": 167,
+      "dst": 171,
+      "transitions": 69
+    },
+    {
+      "src": 168,
+      "dst": 169,
+      "transitions": 35
+    },
+    {
+      "src": 168,
+      "dst": 170,
+      "transitions": 14
+    },
+    {
+      "src": 168,
+      "dst": 171,
+      "transitions": 231
+    },
+    {
+      "src": 168,
+      "dst": 172,
+      "transitions": 16
+    },
+    {
+      "src": 169,
+      "dst": 171,
+      "transitions": 156
+    },
+    {
+      "src": 169,
+      "dst": 172,
+      "transitions": 175
+    },
+    {
+      "src": 170,
+      "dst": 171,
+      "transitions": 4
+    },
+    {
+      "src": 170,
+      "dst": 173,
+      "transitions": 55
+    },
+    {
+      "src": 170,
+      "dst": 174,
+      "transitions": 38
+    },
+    {
+      "src": 171,
+      "dst": 172,
+      "transitions": 9
+    },
+    {
+      "src": 171,
+      "dst": 173,
+      "transitions": 11
+    },
+    {
+      "src": 171,
+      "dst": 174,
+      "transitions": 353
+    },
+    {
+      "src": 171,
+      "dst": 175,
+      "transitions": 18
+    },
+    {
+      "src": 172,
+      "dst": 174,
+      "transitions": 50
+    },
+    {
+      "src": 172,
+      "dst": 175,
+      "transitions": 158
+    },
+    {
+      "src": 173,
+      "dst": 174,
+      "transitions": 6
+    },
+    {
+      "src": 173,
+      "dst": 176,
+      "transitions": 49
+    },
+    {
+      "src": 173,
+      "dst": 177,
+      "transitions": 9
+    },
+    {
+      "src": 174,
+      "dst": 175,
+      "transitions": 3
+    },
+    {
+      "src": 174,
+      "dst": 176,
+      "transitions": 6
+    },
+    {
+      "src": 174,
+      "dst": 177,
+      "transitions": 391
+    },
+    {
+      "src": 174,
+      "dst": 178,
+      "transitions": 10
+    },
+    {
+      "src": 175,
+      "dst": 177,
+      "transitions": 17
+    },
+    {
+      "src": 175,
+      "dst": 178,
+      "transitions": 155
+    },
+    {
+      "src": 176,
+      "dst": 177,
+      "transitions": 4
+    },
+    {
+      "src": 176,
+      "dst": 179,
+      "transitions": 43
+    },
+    {
+      "src": 176,
+      "dst": 180,
+      "transitions": 23
+    },
+    {
+      "src": 177,
+      "dst": 178,
+      "transitions": 12
+    },
+    {
+      "src": 177,
+      "dst": 179,
+      "transitions": 10
+    },
+    {
+      "src": 177,
+      "dst": 180,
+      "transitions": 407
+    },
+    {
+      "src": 177,
+      "dst": 181,
+      "transitions": 6
+    },
+    {
+      "src": 178,
+      "dst": 180,
+      "transitions": 25
+    },
+    {
+      "src": 178,
+      "dst": 181,
+      "transitions": 145
+    },
+    {
+      "src": 179,
+      "dst": 180,
+      "transitions": 5
+    },
+    {
+      "src": 179,
+      "dst": 182,
+      "transitions": 28
+    },
+    {
+      "src": 179,
+      "dst": 183,
+      "transitions": 19
+    },
+    {
+      "src": 180,
+      "dst": 181,
+      "transitions": 10
+    },
+    {
+      "src": 180,
+      "dst": 182,
+      "transitions": 4
+    },
+    {
+      "src": 180,
+      "dst": 183,
+      "transitions": 444
+    },
+    {
+      "src": 180,
+      "dst": 184,
+      "transitions": 11
+    },
+    {
+      "src": 181,
+      "dst": 183,
+      "transitions": 81
+    },
+    {
+      "src": 181,
+      "dst": 184,
+      "transitions": 70
+    },
+    {
+      "src": 182,
+      "dst": 185,
+      "transitions": 19
+    },
+    {
+      "src": 182,
+      "dst": 186,
+      "transitions": 20
+    },
+    {
+      "src": 183,
+      "dst": 184,
+      "transitions": 5
+    },
+    {
+      "src": 183,
+      "dst": 185,
+      "transitions": 5
+    },
+    {
+      "src": 183,
+      "dst": 186,
+      "transitions": 532
+    },
+    {
+      "src": 183,
+      "dst": 187,
+      "transitions": 4
+    },
+    {
+      "src": 184,
+      "dst": 186,
+      "transitions": 45
+    },
+    {
+      "src": 184,
+      "dst": 187,
+      "transitions": 33
+    },
+    {
+      "src": 185,
+      "dst": 186,
+      "transitions": 4
+    },
+    {
+      "src": 185,
+      "dst": 188,
+      "transitions": 11
+    },
+    {
+      "src": 185,
+      "dst": 189,
+      "transitions": 14
+    },
+    {
+      "src": 186,
+      "dst": 187,
+      "transitions": 7
+    },
+    {
+      "src": 186,
+      "dst": 188,
+      "transitions": 6
+    },
+    {
+      "src": 186,
+      "dst": 189,
+      "transitions": 580
+    },
+    {
+      "src": 186,
+      "dst": 190,
+      "transitions": 3
+    },
+    {
+      "src": 187,
+      "dst": 189,
+      "transitions": 20
+    },
+    {
+      "src": 187,
+      "dst": 190,
+      "transitions": 13
+    },
+    {
+      "src": 188,
+      "dst": 192,
+      "transitions": 10
+    },
+    {
+      "src": 189,
+      "dst": 191,
+      "transitions": 4
+    },
+    {
+      "src": 189,
+      "dst": 192,
+      "transitions": 461
+    },
+    {
+      "src": 189,
+      "dst": 193,
+      "transitions": 3
+    },
+    {
+      "src": 190,
+      "dst": 192,
+      "transitions": 9
+    },
+    {
+      "src": 190,
+      "dst": 193,
+      "transitions": 3
+    },
+    {
+      "src": 191,
+      "dst": 192,
+      "transitions": 7
+    },
+    {
+      "src": 191,
+      "dst": 194,
+      "transitions": 2
+    },
+    {
+      "src": 192,
+      "dst": 193,
+      "transitions": 7
+    },
+    {
+      "src": 192,
+      "dst": 194,
+      "transitions": 9
+    },
+    {
+      "src": 192,
+      "dst": 195,
+      "transitions": 348
+    },
+    {
+      "src": 193,
+      "dst": 195,
+      "transitions": 3
+    },
+    {
+      "src": 193,
+      "dst": 196,
+      "transitions": 2
+    },
+    {
+      "src": 194,
+      "dst": 195,
+      "transitions": 8
+    },
+    {
+      "src": 194,
+      "dst": 197,
+      "transitions": 5
+    },
+    {
+      "src": 195,
+      "dst": 196,
+      "transitions": 3
+    },
+    {
+      "src": 195,
+      "dst": 197,
+      "transitions": 3
+    },
+    {
+      "src": 195,
+      "dst": 198,
+      "transitions": 203
+    }
+  ]
+}

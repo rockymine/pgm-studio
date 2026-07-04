@@ -189,6 +189,14 @@ no raw match data (private, the author's machine), no player identities, no per-
 An instrument for map generation, not a match-analysis revival. Tracked as `G33`; the data deep
 dive (CTWAnalysis suite + private parquet) needs a **local session** on the author's machine.
 
+**First test article (validated).** The author's cleaned ingwaz trace + its traffic graph live in
+`tools/traffic/` (see its README). Spawn-anchored alignment gives scale plan/real = **1.111**
+(cell-5 quantization of a non-gridded build), and the correspondence is essentially exact:
+**23/23** hot void cells inside the fanned build zones, **171/171** land nodes inside the fanned
+pieces, **6 = 6** islands, real wools at the plan wool-piece centres to the block, and G8
+predicting 10–12 players/team from its 950 land/team. The plan model, a real map, and real
+player behavior agree — the recovered-footprint pipeline is sound.
+
 ## 4. The roughen pass: rectilinear plan → organic read
 
 Applied to the realized polygons of the authored unit only (symmetry re-fans the images); plan
