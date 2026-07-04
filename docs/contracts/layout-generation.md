@@ -120,12 +120,15 @@ intent.
    `lane` pieces, each dead-ending in a `wool-room`; attach `frontline` pieces toward the middle.
    Each rule states which roles may attach to which, on which sides, with what interface width and
    what depth ordering (wool behind hub, spawn off the wool paths, frontline nearest mid).
-3. **Fragmentation moves** — the expert's mental model: a team's side reads as a once-connected
-   island the author *cut apart*. The operator: pick a `land` interface (or cut a piece in two),
-   convert it to a `gap`, displace the far piece across the void, add the bridge zone. Purpose is
-   gameplay, not looks — harder/riskier objective access, defenders slowed between spawn and
-   wool, retreat over fragile player-made bridges instead of solid terrain. Isolated wool,
-   isolated spawn, and displaced mid pieces are all this one move applied to different pieces.
+3. **Fragmentation moves — compose the closure, then cut** (layout-rules.md CT1–CT6). The
+   composer's natural order is the author's sketch-tool gesture run forward: compose the map as
+   **one connected mass** (the closure — team areas joined to the mid area), then **cut**: remove
+   10–20-deep land bands where build zones belong (the primal team-separation cut first, secondary
+   isolation cuts after), re-bridge every severed route with the replacing zone, and leave
+   fragments standing in the band as stepping stones. Isolated wool, isolated spawn, and displaced
+   mid pieces are all the same cut applied to different places; the traversability gate is exactly
+   the check that the cuts never disconnect the closure. Purpose is gameplay, not looks —
+   harder/riskier objective access, defenders slowed, retreat over fragile player-made bridges.
 4. **Neutral middle** — place `mid` pieces and build zones between the frontlines.
 5. **Validate** the plan invariants; reject/repair.
 6. **Heights** — per-role plateau defaults (spawn raised for overview, wool approach stepping up

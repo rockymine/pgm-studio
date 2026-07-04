@@ -150,13 +150,39 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **MD1 [expert]** Stones vary: 2×2 cells, 2×3, larger. Raised, level, or (rarely) **lowered**
   relative to base terrain.
 - **MD2 [expert]** Gap values per G5 (10–20 per hop).
-- **MD3 [expert, reframed]** The deeper model than "stone count": a team's side reads as a
-  **once-connected island the author cut apart** — cut a piece, displace it across a void, bridge
-  it with a build zone. Purpose: harder/riskier wool access, defenders slowed between spawn and
-  wool, retreat over fragile player-made bridges instead of solid terrain. Fragmentation is a
-  **composer operator** (design doc §3), not a mid-piece parameter.
+- **MD3 [expert → CT]** A team's side reads as a **once-connected island the author cut apart**.
+  Purpose: harder/riskier wool access, defenders slowed between spawn and wool, retreat over
+  fragile player-made bridges instead of solid terrain. Formalized as the **CT cut grammar**
+  (above) — the composer's fragmentation operator, derived by reading the corpus's closures
+  backwards.
 - **MD4 [expert]** Stones sit entirely inside the build zone.
 - **MD5 [expert]** Large neutral mid islands: rare; **not v1**.
+
+## CT — Cuts (fragmentation, read from the closure) [expert, corpus]
+
+Every plan has a **closure**: its terrain pieces ∪ its build zones treated as land. A playable map's
+closure is **one connected mass** — that is what the traversability gate proves, and all ten seeds
+pass it. A plan is therefore a **fragmentation of its closure**: the author composes (conceptually)
+a connected mass, then *cuts* — removes land bands and replaces them with buildable void. The seeds,
+read backwards, give the cut grammar (the sketch-tool gesture "draw big → notice it's big → cut
+where a build region belongs" is the composer's forward direction):
+
+- **CT1 — the primal cut.** Every map cuts the closure along the team-separation line(s): one mid
+  band under `rot_180`/mirror, a pinwheel ring under `rot_90` (with the BZ4 centre hole). This cut
+  *defines* mid area vs team areas — the conceptual split the composer composes with.
+- **CT2 — cut depth = the hop.** The removed band is **10–20** deep along the flow direction (G5);
+  longer total crossings (40–60) are chains of bands with fragments between.
+- **CT3 — cut breadth covers what it severs.** The replacing zone spans every route the cut breaks;
+  each severed route is re-bridged within that region (refined G5: the region's minimal hop counts).
+- **CT4 — stepping stones are fragments.** A stone is land *left standing* inside the cut band —
+  residue of the cut, not an addition (MD1's raised/level/lowered stones; MD4's inside-the-zone
+  placement follows automatically).
+- **CT5 — secondary cuts isolate.** Cutting between a piece and its parent isolates it behind a
+  bridge: the isolated wool (WL4), the isolated spawn (SP6), a displaced mid chunk — all one
+  operator. Deliberate variants aside, each team side stays internally land-traversable after
+  cutting.
+- **CT6 — the fragmented-island "seed" is the whole corpus.** No dedicated seed is needed: every
+  seed *is* a fragmented closure, and the cut statistics are the measured zone/hop numbers.
 
 ## BZ — Build zones
 
@@ -251,15 +277,15 @@ both corrected.)
 
 ## Remaining seed work
 
-The nine-seed corpus covers the original shopping list except:
+The ten-seed corpus covers the entire original shopping list:
 
-1. **cliff-marked seed** — the `cliffs` field's first real use; cheapest path: mark the intended
-   one-way drops in `odd-facing-three-wool` (Open question 2).
-2. **fragmented-island** — the MD3 pure form: a piece of the team's *own* middle (neither spawn
-   nor wool) displaced across a void and bridged.
-3. **maxPlayers pass** — honest player counts on all nine seeds, re-deriving the G3↔G8 envelope
-   coupling (parked by the author).
-4. *(fix)* `four-team-wool-two-sided`'s behind-spawn iron (SP7) — confirm slip or intent.
+1. ~~cliff-marked seed~~ — **done**: five `cliffs` marks landed (mirror-big-board ×2,
+   odd-facing ×3) under EL6.
+2. ~~fragmented-island~~ — **resolved without a seed**: fragmentation is the closure reading
+   (CT1–CT6); every seed is a fragmented closure and the cut statistics are already measured.
+3. **maxPlayers pass** — honest player counts on all ten seeds, re-deriving the G3↔G8 envelope
+   coupling. **The single remaining freeze blocker.**
+4. ~~behind-spawn iron~~ — retracted (facing-semantics artifact; the iron is ahead).
 
 ## Resolved this round (was: freeze blockers)
 
