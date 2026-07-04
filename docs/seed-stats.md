@@ -322,3 +322,62 @@ board **25×70**, 9 pieces (several 1-cell), 2 zones, 650 land blocks (**65 b/p*
 
 **The maxPlayers pass is complete — `layout-rules.md` v3 is FROZEN (2026-07-04) as the composer's
 v1 rule set.** G8 carries the coupling table (b/p rising 65 → 184 with per-team land).
+
+## Team-side allotment sweep (composer instrumentation, 2026-07-04)
+
+Author's framing: the team side should grow inside a **rectilinear allotment** — rectangles laid
+over the side *including its internal void gaps and build zones, but not the true outside void* —
+whose orbit images tile the board without touching; the allotment bound is what forces lanes to
+fold instead of stretch. Measured over the twelve seeds: **team footprint = the land components
+holding team-0's markers** (spawn + wools; gap-isolated stones carry no marker and drop out),
+bbox over those pieces, fills against that bbox, and whether the bbox's orbit images overlap.
+
+| seed | bbox WxH | aspect | land fill | land+zones fill | images overlap |
+|---|---|---|---|---|---|
+| mirror-tiny-map-cliff | 25x20 | 1.25 | 40% | 45% | 0% |
+| base-2island | 30x45 | 1.50 | 63% | 74% | 0% |
+| base-4team | 30x45 | 1.50 | 63% | 74% | 0% |
+| base-2wool | 60x45 | 1.33 | 43% | 52% | 0% |
+| four-team-wool-two-sided | 60x40 | 1.50 | 58% | 67% | 0% |
+| rotate-wide-frontline | 60x100 | 1.67 | 44% | 61% | 0% |
+| odd-facing-three-wool | 65x95 | 1.46 | 32% | 39% | 0% |
+| isolated-spawn-approaches | 75x45 | 1.67 | 31% | 36% | 0% |
+| isolated-spawn | 80x45 | 1.78 | 43% | 49% | 0% |
+| four-team-towers-big | 80x75 | 1.07 | 40% | 52% | 0% |
+| big-board-…-parallel-mid | 105x120 | 1.14 | 42% | 43% | 0% |
+| mirror-big-board | 105x130 | 1.24 | 40% | 50% | 0% |
+
+**Anchors for the composer:**
+- **Aspect 1.0–1.8** — the corpus team side is always a chunky box, never a sprawling cross;
+  a unit whose footprint bbox exceeds ~1.8 has stretched instead of folded.
+- **Land fill 31–63%** (median ≈42): allotment area ≈ land budget / fill with fill sampled
+  ~0.35–0.60. Low fill = internally folded (odd-facing, the approaches seed); high fill = compact
+  bars (the base seeds).
+- **No corpus seed interlocks** its team-side bboxes (max image-overlap 0%) — the "tetris"
+  interlock is a legal extension the corpus does not yet exercise ([seed-needed]); v1 allotments
+  are plain non-overlapping boxes with clearance, per symmetry (half split / quadrant).
+
+## Internal-hole sweep (CT8 evidence, 2026-07-04)
+
+Fanned closure rasterized on the cell grid; void flooded 4-connected from outside; enclosed void
+components = holes. Two passes: terrain only, and terrain ∪ zones (the closure). Sizes in cells.
+
+| seed | land holes | closure holes |
+|---|---|---|
+| base-2island | 0 | 2: [4,4] |
+| base-2wool | 0 | 2: [4,4] |
+| base-4team | 0 | 4: [4,4,4,4] |
+| big-board-…-parallel-mid | 2: [18,18] | 3: [72,18,18] |
+| four-team-towers-big | 0 | 5: [24,24,24,24,16] |
+| four-team-wool-two-sided | 4: [8,8,8,8] | 13: [8×4, 4×9] |
+| isolated-spawn-approaches | 0 | 4: [9,9,9,9] |
+| isolated-spawn | 0 | 4: [9,9,9,9] |
+| mirror-big-board | 2: [2,2] | 10: [20,20,15,15,12×4,2,2] |
+| mirror-tiny-map-cliff | 0 | 2: [2,2] |
+| odd-facing-three-wool | 0 | 4: [32,32,8,8] |
+| rotate-wide-frontline | 4: [2,2,2,2] | 8: [12,12,12,12,2,2,2,2] |
+
+**Roll-up:** closure holes in **12/12** seeds (land-only in 4); counts 2–13 per fanned board,
+always in orbit multiples; sizes 2–72 cells. The three formation mechanisms are in CT8
+(layout-rules.md). Author: the holes are the rotation device — loops around them give routes
+between lanes that don't retreat through a chokepoint.

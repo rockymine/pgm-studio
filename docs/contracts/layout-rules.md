@@ -262,6 +262,20 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   look of 4-team CTW (`base-4team`, `four-team-towers-big`). For the composer: stone placement is
   not free scatter inside a zone; it extends the team islands' lines into the mid.
 
+- **CT8 — internal holes are the rotation device [corpus, author; amendment 2026-07-04].** The
+  closure encloses internal void pockets — **holes** — in **12/12 seeds** (2–13 per fanned board,
+  4–72 cells... sizes in proxy cells; always in symmetric orbit multiples). "These holes are what
+  enables player rotation" (author): a loop around a hole gives alternative routes between lanes
+  without retreating through a single chokepoint. Three formation mechanisms, all corpus-exercised:
+  **authored land holes** (`[]` pockets in the terrain itself — the parallel-mid trace ×2,
+  `rotate-wide-frontline` ×4, `four-team-wool-two-sided`, `mirror-big-board`); **land+zone
+  enclosure** (the pocket closes only when build zones count — `odd-facing-three-wool`,
+  `four-team-towers-big`, `mirror-big-board`); **zone-touch enclosure** (mid build regions touching
+  team terrain seal the pocket — both `isolated-spawn` seeds). Not mandatory ("not every map has to
+  have one, but most do" — author) but measured universal at closure level: the composer treats
+  **≥1 closure hole per team side as the default** and holelessness as a sampled exception; a lint
+  flags a holeless plan, never blocks it.
+
 ## BZ — Build zones
 
 - **BZ1 [expert]** Superseded by FR1+FR2: zones are authored precisely in the plan editor;
@@ -394,6 +408,12 @@ palette, the plaza hub, and the 35 crossing at 30/team):
    `four-team-wool-two-sided`, `isolated-spawn-approaches`). Stone classification gained the
    marker exclusion and the team transient-link split (CT4), which sharpened the falloff to
    **17/4/0**; stone/team-island alignment became CT7.
+
+## Amendments (post-freeze)
+
+1. **CT8 added (2026-07-04, composer round 1).** Internal holes / rotation loops — author-stated
+   during the composer build-out, then measured universal (12/12 seeds at closure level; sweep in
+   `docs/seed-stats.md`, "Internal-hole sweep"). New rule, no existing rule changed.
 
 ## Correction protocol
 
