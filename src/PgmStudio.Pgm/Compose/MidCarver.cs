@@ -51,11 +51,11 @@ public static class MidCarver
         var hopMinC = (10 + cell - 1) / cell;              // G5's smallest hop, in cells
         var hopMaxC = Math.Max(hopMinC, 20 / cell);
 
-        // rot_90 units need the deeper hub-clearance margin, so the shallow stone-less crossings are
-        // 2-team-only; big teams may take the deep two-row crossing
+        // 2-team crossings stay shallow (0-1 landing rows) so the mid reads as a WIDE lateral grid (MD6),
+        // never a deep stacked chain (a two-row crossing fans to four stacked rows — the stretched-mid
+        // failure); 4-team wedges keep their stone (the rot_90 crossing needs it, and its fan is the plus)
         var rows = env.Teams == 4
             ? (env.PlayersPerTeam >= 20 ? rng.NextInt(1, 3) : 1)
-            : env.PlayersPerTeam >= 20 ? rng.NextInt(0, 3)
             : rng.NextInt(0, 2);
 
         if (rows == 0)
@@ -125,7 +125,12 @@ public static class MidCarver
                     $"stone-{(char)('a' + i)}{(columns.Count > 1 ? $"{j + 1}" : "")}",
                     frame.ToRect(r.UMin, r.Depth, c, sw), surfaces[i]))).ToList();
 
-            var cols = SelectStoneColumns(candidates, seedCol, sw, clearCells);
+            // MD6 column cap so the fanned island count stays ≤6 (author: two columns the norm, three the
+            // max): a quarter-turn fan (order 4) multiplies too fast for any lateral grid, and a two-row
+            // crossing already fans deep — both take a single column; a shallow 2-team crossing spreads to 3.
+            var order = Geom.Symmetry.Order(env.Symmetry);
+            var maxCols = order >= 4 || design.Rows.Count >= 2 ? 1 : 3;
+            var cols = SelectStoneColumns(candidates, seedCol, sw, clearCells, maxCols);
             stones = BuildGrid(cols);
             if (cols.Count > 1 && !ComposeGeometry.SeparationOk(
                     env, unit.Pieces.Select(p => p.Rect).ToList(), stones.Select(s => s.Rect).ToList()))
@@ -263,15 +268,14 @@ public static class MidCarver
     /// the crossing reads as a grid rather than one column. Greedy from the sampled <paramref name="seedCol"/>:
     /// repeatedly add the candidate whose nearest chosen neighbour is farthest away (the most spread-out
     /// placement) while keeping every neighbour a full <paramref name="stoneW"/> + one hop
-    /// (<paramref name="clearCells"/>) apart, capped at three columns. A hull with room for only the seed
-    /// returns just it — the pre-MD6 single-column placement. Deterministic (no draws): the caller has
-    /// already drawn the seed, so a grid never perturbs the golden RNG sequence.</summary>
+    /// (<paramref name="clearCells"/>) apart, capped at <paramref name="maxCols"/> columns. A hull with room
+    /// for only the seed returns just it — the pre-MD6 single-column placement. Deterministic (no draws): the
+    /// caller has already drawn the seed, so a grid never perturbs the golden RNG sequence.</summary>
     public static IReadOnlyList<int> SelectStoneColumns(
-        IReadOnlyList<int> candidates, int seedCol, int stoneW, int clearCells)
+        IReadOnlyList<int> candidates, int seedCol, int stoneW, int clearCells, int maxCols)
     {
         var chosen = new List<int> { seedCol };
         var pitch = stoneW + clearCells;                     // neighbour spacing floor: edge gap ≥ clearance
-        const int maxCols = 3;
         while (chosen.Count < maxCols)
         {
             var room = candidates.Where(v => chosen.All(c => Math.Abs(v - c) >= pitch)).ToList();

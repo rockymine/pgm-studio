@@ -1,5 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
+// build-cache bust: composer round 4 (wide frontline + capped shallow grid)
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;
@@ -33,6 +34,9 @@ AddFam("4-team · rot_90", "one wedge, fanned to four by 90° rotation",
 // mirror symmetries
 AddFam("Mirror symmetries", "reflected halves (mirror_x / mirror_z)",
     new[] { new Case(12, 2, "mirror_x", 2UL), new Case(10, 2, "mirror_z", 2UL) });
+// mirror_z at bigger budgets — where the wide frontline + MD6 stone grid form
+AddFam("Mirror · wide frontline + stone grid", "mirror_z — FR6 wide face the band docks to, MD6 2-col grid",
+    new ulong[] { 1, 2, 3, 5, 8, 11 }.Select(seed => new Case(20, 2, "mirror_z", seed)));
 
 int cardCount = 0;
 var failures = new List<(string Id, string Msg)>();

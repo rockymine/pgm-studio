@@ -209,6 +209,8 @@ toward the map centre / the enemy; "back" = toward the map edge.
   corners. Don't: the `gen-p30-t2-rot_180-s1` vertical stone-chain
   (`docs/composer-review-findings.md`). On a wide frontline the stone edges align with the
   build-zone border. Refines CT7 (stones extend the team islands' lines) for stones inside a band.
+  **Column count [author, 2026-07-05]: two lateral columns are the NORM, three the hard maximum**
+  (three appears in exactly one authored example) — never a wider grid; "wide, not too wide."
 
 ## CT — The mid interface & fragmentation (read from the closure) [expert]
 
@@ -543,6 +545,9 @@ palette, the plaza hub, and the 35 crossing at 30/team):
    correction**, not just an add: rot_90 team islands may sit along/atop the axes — the G32-A
    "≥10-block inter-image clearance" applies to team sides, not to mid pieces at the crossing; it
    refines CT2 and is the unblock for the p5/t4-rot_90 self-collision (G35).
+5. **MD6 column count (2026-07-05, composer round 4).** Author: the mid stone grid runs **two
+   lateral columns as the norm, three as the hard maximum** (three occurs in exactly one authored
+   example); never wider — "wide, not too wide."
 
 ## Correction protocol
 

@@ -63,7 +63,7 @@ public static class TeamUnitGrower
     // leaving the smallest maps enough wool↔spawn separation to clear WL2 within the area budget.
     private const double MarkerInsetCells = 0.5;
 
-    private enum FrontForm { None, Single, Twin }
+    private enum FrontForm { None, Single, Wide, Twin }
 
     public static GrownUnit Grow(ComposeEnvelope env, ComposeRng rng) =>
         TryGrowUnit(env, rng, null, MaxAttempts) ?? throw new ComposeException(
@@ -164,8 +164,10 @@ public static class TeamUnitGrower
         var spawnLStyle = rng.NextBool(0.5);
         var spawnLDirDraw = rng.NextBool(0.5) ? -1 : 1;
 
-        // frontline form: twin is the default (the recess is CT8's hole mechanism), a single chain and no
-        // frontline the sampled exceptions; twin degrades to single when the crossing design forbids it
+        // frontline form: WIDE — a solid face the band docks to fully (FR6) — is the default: it makes room
+        // for the MD6 stone grid and pairs with any crossing. Twin (its recess is CT8's hole mechanism) only
+        // fits a stone-less/short crossing, so it is the hole-forming exception (degrades to wide when the
+        // crossing forbids it); a lone single chain and no frontline are the narrow exceptions.
         var twinAllowed = design?.TwinFrontlineAllowed ?? false;
         var form = FrontForm.None;
         var frontSegCount = 0;
@@ -173,8 +175,8 @@ public static class TeamUnitGrower
         if (frontlinePossible)
         {
             var roll = rng.NextInt(0, 10);
-            form = roll < 2 ? FrontForm.None : roll < 4 ? FrontForm.Single : FrontForm.Twin;
-            if (form == FrontForm.Twin && !twinAllowed) form = FrontForm.Single;
+            form = roll < 1 ? FrontForm.None : roll < 3 ? FrontForm.Single : roll < 6 ? FrontForm.Twin : FrontForm.Wide;
+            if (form == FrontForm.Twin && !twinAllowed) form = FrontForm.Wide;
             if (form == FrontForm.Single)
             {
                 frontSegCount = rng.NextInt(1, 3);
@@ -190,7 +192,7 @@ public static class TeamUnitGrower
         // front corner — keeping the wool-carrying piece clear of the mid band (BZ6) without a frontline
         var hubUFloor = frontlinePossible ? w + 1 + woolInset : w + 2;
         int HubVFloor() => Math.Max(
-            form switch { FrontForm.Twin => 6, FrontForm.Single => w + 1, _ => Math.Max(2, w) },
+            form switch { FrontForm.Twin => 6, FrontForm.Single or FrontForm.Wide => w + 1, _ => Math.Max(2, w) },
             woolCount == 3 ? w + 3 : 0);                   // back edge: spawn lane (w) + 1 gap + wool-c lane (2)
         var hubU = rng.NextInt(hubUFloor, Math.Max(hubUFloor, hubCap) + 1);
         var hubV = rng.NextInt(HubVFloor(), Math.Max(HubVFloor(), hubCap) + 1);
@@ -204,6 +206,7 @@ public static class TeamUnitGrower
         double FrontCapCells() => form switch
         {
             FrontForm.Twin => 2.0 * chainCap * 2,
+            FrontForm.Wide => Math.Min(6, hubV + 2) * 4.0,       // FR6 wide face: width x depth cap
             FrontForm.Single => chainCap * w,
             _ => 0.0,
         };
@@ -220,8 +223,7 @@ public static class TeamUnitGrower
                 if (laneSegCounts[i] < 3) { laneSegCounts[i]++; bumped = true; }
             if (!bumped && frontlinePossible && form == FrontForm.None)
             {
-                form = twinAllowed ? FrontForm.Twin : FrontForm.Single;
-                frontSegCount = form == FrontForm.Single ? 2 : 0;
+                form = twinAllowed ? FrontForm.Twin : FrontForm.Wide;
                 hubV = Math.Max(hubV, HubVFloor());
                 bumped = true;
             }
@@ -246,7 +248,10 @@ public static class TeamUnitGrower
         double flexible = budgetCells - hubU * hubV;
         if (flexible <= 0) return null;
         const double spawnUnit = 2.0, woolUnit = 1.8, woolCUnit = 1.2;
-        var frontUnit = form switch { FrontForm.Twin => 1.0, FrontForm.Single => 0.5 * frontSegCount, _ => 0.0 };
+        var frontUnit = form switch
+        {
+            FrontForm.Twin => 1.0, FrontForm.Wide => 1.2, FrontForm.Single => 0.5 * frontSegCount, _ => 0.0,
+        };
         double totalUnits = spawnUnit + sideLanes * woolUnit + (woolCount == 3 ? woolCUnit : 0) + frontUnit;
 
         // when the hub is exactly lane-width and no frontline breaks the spine, hub + spawn's straight run
@@ -267,6 +272,8 @@ public static class TeamUnitGrower
         }
         else if (form == FrontForm.Twin)
             twinLen = Math.Clamp((int)Math.Round(flexible * (frontUnit / totalUnits) / 4), 2, chainCap);
+        else if (form == FrontForm.Wide)
+            twinLen = Math.Clamp((int)Math.Round(flexible * (frontUnit / totalUnits) / Math.Min(6, hubV + 2)), 2, 4);
         var frontVOff = (int)Math.Round(frontVFrac * (hubV - w));
 
         // arm totals: equal weighted shares skewed by the asymmetry draw, then clamped to the lane's caps
@@ -340,7 +347,7 @@ public static class TeamUnitGrower
         var w = sh.W;
         var frontReach = sh.Form switch
         {
-            FrontForm.Twin => sh.TwinLen,
+            FrontForm.Twin or FrontForm.Wide => sh.TwinLen,
             FrontForm.Single => sh.FrontSegs.Sum(),
             _ => 0,
         };
@@ -370,6 +377,14 @@ public static class TeamUnitGrower
         {
             Place("frontline", sh.AxisMargin, sh.TwinLen, hubVMin, 2);
             Place("frontline-2", sh.AxisMargin, sh.TwinLen, hubVMin + 4, 2);
+        }
+        else if (sh.Form == FrontForm.Wide)
+        {
+            // FR6: a solid wide frontline face the mid band docks to fully — centred on the hub front (it may
+            // overhang a narrow hub by a cell each side), reaching from the hub front toward the axis. Its
+            // width leaves room for the MD6 two-column stone grid.
+            var wideW = Math.Min(6, sh.HubV + 2);
+            Place("frontline", sh.AxisMargin, sh.TwinLen, hubVMin + (sh.HubV - wideW) / 2, wideW);
         }
 
         // spawn lane — straight back (1-2 collinear segments) or an L hook (a straight run, then a sideways

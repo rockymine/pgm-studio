@@ -265,7 +265,14 @@ The open work sorts into three domains:
   (3) hub is always one square — **vary hub shape** (multi-piece); (4) **cap spawn-lane growth** (p30-s13
   over-grown L); (5) a single frontline must be **wider** with the build zone docking fully + stepping
   stones on a **2×2 grid**, never a 1-D chain funnelling one gap (p30-s1); (6) all boards double-frontline
-  now — add variety. Author is producing a frontline teaching set (`SHOPPING-LIST.md`).
+  now — add variety. Author is producing a frontline teaching set (`SHOPPING-LIST.md`). **The mid-feel
+  slice (5) is in progress** (composer round 4: MD6 grid + a wide frontline); items (2)/(3) fold into G37.
+- [ ] **G37 — Lane-archetypes track (lane shapes · frontline connections · hub shaping).** "Lane-heavy is
+  bad" — the composer's long stub-ish lanes dominating a thin mid is a **defect**, not an archetype to
+  sample (author, 2026-07-05). The genuine lane grammar is its own track: real **lane archetypes**, **what
+  connects to the frontline** (which lanes/hubs dock it and how), and **how hubs shape** (absorbs G36 (2)/(3)).
+  Blocked on the author authoring more teaching maps; **not** a budget lane-heavy/wide split (see the
+  `composer-lane-archetypes-future` memory). Sequenced **after** the mid-feel slice — get mids right first.
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding

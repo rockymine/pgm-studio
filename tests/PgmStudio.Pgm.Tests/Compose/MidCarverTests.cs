@@ -69,16 +69,17 @@ public sealed class MidCarverTests
     }
 
     [Test]
-    public async Task Two_row_crossings_only_appear_at_20_players()
+    public async Task Two_row_crossings_are_four_team_only()
     {
-        for (ulong seed = 1; seed <= 60; seed++)
-        {
-            var d = MidCarver.SampleCrossing(Env(12), new ComposeRng(seed));
-            await Assert.That(d.Rows.Count <= 1).IsTrue();
-        }
+        // 2-team crossings stay shallow (≤1 landing row) at every size — the mid is a wide lateral grid,
+        // never a deep stacked chain
+        foreach (var players in new[] { 12, 20, 30 })
+            for (ulong seed = 1; seed <= 60; seed++)
+                await Assert.That(MidCarver.SampleCrossing(Env(players), new ComposeRng(seed)).Rows.Count <= 1).IsTrue();
+        // 4-team big-team wedges still take the deep two-row crossing
         var any2 = false;
         for (ulong seed = 1; seed <= 60; seed++)
-            any2 |= MidCarver.SampleCrossing(Env(20), new ComposeRng(seed)).Rows.Count == 2;
+            any2 |= MidCarver.SampleCrossing(Env(20, teams: 4), new ComposeRng(seed)).Rows.Count == 2;
         await Assert.That(any2).IsTrue();
     }
 

@@ -30,3 +30,13 @@ Writes `tools/compose/out/composer-review.html` (git-ignored) and prints the car
 count plus any unexpected compose failures.
 
 `out/` is ignored (see `.gitignore`); generated artifacts never land in a tracked path.
+
+## Build-cache gotcha (important)
+
+`dotnet run <script>.cs` caches the compiled app keyed on the **script's** content, not on
+the referenced `PgmStudio.Pgm` sources. So if you change only the composer and re-run an
+**unchanged** script, you get a **stale render against the old DLL** — silently. Symptom: the
+output bytes don't change after a composer edit. Fix: bust the script's cache by touching it
+(edit any line — e.g. the `build-cache bust:` comment at the top of `gallery-gen.cs`) or run a
+freshly-named throwaway script. `dotnet build src/PgmStudio.Pgm` alone does **not** invalidate
+the run-file cache.
