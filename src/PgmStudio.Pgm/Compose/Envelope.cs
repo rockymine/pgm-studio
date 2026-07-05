@@ -44,16 +44,17 @@ public static class Envelope
     public const int AxisMarginCells = 2;
 
     // G8: land per player rises with per-team land, interpolated piecewise-linearly over the corpus anchors
-    // (players/team → blocks/player), clamped outside the table's ends.
-    private static readonly (double Players, double Bp)[] BpAnchors =
+    // (players/team → land blocks²/player). Measured as PIECE area per player (build zones excluded — those
+    // carry a separate target); clamped outside the table's ends.
+    private static readonly (double Players, double LandPerPlayer)[] LandPerPlayerAnchors =
     [
         (5, 65), (10, 95), (12, 105), (14, 115), (16, 155), (18, 160), (20, 175), (32, 185),
     ];
 
     public static ComposeEnvelope Derive(ComposeRequest request, ComposeRng rng)
     {
-        var bp = InterpolateBp(request.PlayersPerTeam);
-        var landPerTeam = request.PlayersPerTeam * bp;
+        var landPerPlayer = InterpolateLandPerPlayer(request.PlayersPerTeam);
+        var landPerTeam = request.PlayersPerTeam * landPerPlayer;
 
         // (1) coverage ratio — the corpus's measured 21–49% land coverage of the fanned board, sampled 0.28..0.42
         var coverage = rng.NextDouble(0.28, 0.42);
@@ -95,18 +96,18 @@ public static class Envelope
             bounds[0], bounds[1], bounds[0] + bounds[2], bounds[1] + bounds[3]);
     }
 
-    private static double InterpolateBp(double players)
+    private static double InterpolateLandPerPlayer(double players)
     {
-        if (players <= BpAnchors[0].Players) return BpAnchors[0].Bp;
-        if (players >= BpAnchors[^1].Players) return BpAnchors[^1].Bp;
-        for (var i = 1; i < BpAnchors.Length; i++)
+        if (players <= LandPerPlayerAnchors[0].Players) return LandPerPlayerAnchors[0].LandPerPlayer;
+        if (players >= LandPerPlayerAnchors[^1].Players) return LandPerPlayerAnchors[^1].LandPerPlayer;
+        for (var i = 1; i < LandPerPlayerAnchors.Length; i++)
         {
-            var (p1, b1) = BpAnchors[i - 1];
-            var (p2, b2) = BpAnchors[i];
+            var (p1, b1) = LandPerPlayerAnchors[i - 1];
+            var (p2, b2) = LandPerPlayerAnchors[i];
             if (players > p2) continue;
             var t = (players - p1) / (p2 - p1);
             return b1 + t * (b2 - b1);
         }
-        return BpAnchors[^1].Bp;
+        return LandPerPlayerAnchors[^1].LandPerPlayer;
     }
 }

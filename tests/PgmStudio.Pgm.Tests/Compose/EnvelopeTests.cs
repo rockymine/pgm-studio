@@ -21,14 +21,14 @@ public sealed class EnvelopeTests
     [Arguments(18, 160)]
     [Arguments(20, 175)]
     [Arguments(32, 185)]
-    public async Task Bp_is_exact_at_each_corpus_anchor(int players, int bp)
+    public async Task Land_per_player_is_exact_at_each_corpus_anchor(int players, int landPerPlayer)
     {
         var env = Derive(players, seed: 1);
-        await Assert.That(env.LandPerTeam).IsEqualTo((double)players * bp);
+        await Assert.That(env.LandPerTeam).IsEqualTo((double)players * landPerPlayer);
     }
 
     [Test]
-    public async Task Bp_is_clamped_below_the_lowest_anchor()
+    public async Task Land_per_player_is_clamped_below_the_lowest_anchor()
     {
         // players is already clamped to >=5 by ComposeRequest, but Envelope's own interpolation is separately
         // exercised at the boundary: 5 players/team must read the 65 anchor exactly (covered above); this test
@@ -38,15 +38,15 @@ public sealed class EnvelopeTests
     }
 
     [Test]
-    public async Task Bp_is_monotone_between_anchors()
+    public async Task Land_per_player_is_monotone_between_anchors()
     {
         double last = 0;
         for (var p = 5; p <= 32; p++)
         {
             var env = Derive(p, seed: 1);
-            var bp = env.LandPerTeam / p;
-            await Assert.That(bp >= last - 1e-9).IsTrue();
-            last = bp;
+            var landPerPlayer = env.LandPerTeam / p;
+            await Assert.That(landPerPlayer >= last - 1e-9).IsTrue();
+            last = landPerPlayer;
         }
     }
 
