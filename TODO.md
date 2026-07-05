@@ -60,6 +60,14 @@ BZ6–BZ9 build-zone discipline. The layers below are what remains.
   neighbours; on some boards it is **fully engulfed** by the surrounding pieces (`gen-p20-t2-rot_180-s7` —
   which also surfaced the first accidental terrain hole). Enforce spawn-as-dock (SP): a spawn touches by a
   readable edge and is never interior to the merged land.
+- [ ] **G49 — Author real `spawn` + `wool-room` pieces (not just markers on plain pieces).** Confirmed gap:
+  the composer emits **every** piece as plain `piece` role (`Composer.cs:125`) and only drops spawn/wool/iron
+  **markers** on them — it never sets the `spawn` or `wool-room` role. So a generated wool isn't a wool-room
+  region (no red seams / bedrock floor at export) and a spawn isn't a spawn region (no auto-renew iron):
+  `PlanCompiler`'s role-specific paths never fire. Model the **wool room** and **spawn** as their own
+  role-bearing pieces the lanes **dock to** (a room at the lane's end, distinct from the lane), not a role on
+  the terminal lane piece. Also the anchor the lane-style work needs (G37 / G45): the spawn/wool-lane grammar
+  *is* how the plain pieces attach to the room/spawn piece. Supersedes the "set piece roles" note in G32-C.
 - [ ] **G44 — Budget→length decoupling (traced root cause of the lane bloat).** The grower's area gate
   rejects any unit under 80% of `LandPerTeam`, and its only real spend-vocabulary is **longer lanes** — so a
   big budget is absorbed by length, not structure, despite the docstring's "surplus spent structurally, never
@@ -88,8 +96,8 @@ BZ6–BZ9 build-zone discipline. The layers below are what remains.
 **Realize & gate (plan → loadable, validated seed)**
 - [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`). Remaining: **G32-C markers/
   heights/walls** — SP3/SP4 spawn (facing absolute, raised), SP7 iron, WL5 stepped approach climb, EL1
-  palette (base 9, step 2, all-odd), ST4 walls, EL6, and set piece roles (all pieces render neutral until
-  this lands). **G32-D gates + goldens + emit** — `PlanValidator` zero-errors with zones present,
+  palette (base 9, step 2, all-odd), ST4 walls, EL6 — while the `spawn` / `wool-room` **piece roles** are
+  their own modeling task (G49), so pieces render neutral until it lands. **G32-D gates + goldens + emit** — `PlanValidator` zero-errors with zones present,
   `FannedGraph` full traversability, stat envelopes vs `seed-stats.md`, `plan.json` loadable in `/plan`,
   fixed-RNG goldens under `tests/`. p5/rot_90 stays a known limitation until **G35**.
 - [ ] **G43 — Composer ↔ example-set conformance metrics.** Turn "does it match the examples?" into
@@ -109,3 +117,21 @@ BZ6–BZ9 build-zone discipline. The layers below are what remains.
   **(1)** confirm the rot_180 mid-band asymmetry (`p30-s7`/`s13`) is a real off-centre band vs a render
   artefact; **(4)** cap spawn-lane growth (`p30-s13` over-grown L); **(6)** frontline-**count** variety (not
   every board double-frontline).
+
+**Authoring tooling — the teaching-material lever (plan editor)**
+Several tasks above are blocked on more authored teaching maps (G37 / G41 / G45). These plan-editor primitives
+are what let the author design them — especially reusable lane / spawn **templates**.
+- [ ] **G46 — Plan tool: `mirror = none` symmetry mode.** Add a `none` symmetry (order 1, no orbit axes) so
+  the author can design a **single freeform unit** — a wool-lane / spawn-lane shape — without the mirror
+  fanning fighting the design. Touches `Geom.Symmetry` (order 1 / empty axes), the editor mirror preview
+  (`setAuthorMirror` draws nothing), and the plan globals / compose envelope accepting `none`.
+- [ ] **G47 — Connector technical piece (attachment-point annotation).** A new non-generating role
+  `connector` alongside `buffer` (extends `PlanRoles.Annotations`): marks "**other structure attaches / overrides
+  here**" — a hub, a frontline, the mid. Produces no terrain, no graph/export effect. With `buffer` (reserved
+  spacing / holes) it lets the author build reusable **templates**: a wool-lane template = the lane pieces + a
+  `connector` where it docks + `buffer`s for spacing.
+- [ ] **G48 — Piece / marker taxonomy restructure + UI resort.** Regroup the palette (today: pieces / build /
+  markers) into three labeled kinds — **true pieces** (`piece`, `spawn`, `wool-room`, `build`), **true markers**
+  (`wool`, `spawn`, `iron`, `wall`), **technical pieces** (`buffer`, `connector`) — and re-sort the plan editor
+  UI to match. Reconciles the model split (build is a `PlanZone`, wall a `PlanWall` list, buffer/connector are
+  annotation roles) with the author's conceptual grouping.
