@@ -17,11 +17,11 @@ do/don't findings become a rule amendment.)
 | Feature | Teaches | Status |
 |---|---|---|
 | **Build-zone interface** — dock vs overlap, connector readability, fit | BZ6–BZ9 | ✅ shipped — `build-interface-dos-and-donts.plan.json` |
-| **Frontlines** — wide vs double frontline; **grid** stepping stones (2×2) not a 1-D chain; stones aligned to / slightly inset from the build-zone border; single wide frontline the build zone docks to fully | new (CT/BZ) | ✅ authored — `frontline-dos-and-donts-rot-180-mirror` (rules pending) |
+| **Frontlines** — wide vs double frontline; **grid** stepping stones (2×2) not a 1-D chain; stones aligned to / slightly inset from the build-zone border; single wide frontline the build zone docks to fully | new (CT/BZ) | ✅ rules landed — FR6/FR7/CT9/MD6/BZ10/HB4 (`mirror-mid-examples`) |
 | **Buffer / intentional-gap** — the non-generating buffer tile; spacing between spawn↔wool & wool↔wool lanes; rot_90 **centre buffer** + ≥1-cell **border reservation** so the quarter-turn image can't self-collapse | new | 🧩 buffer piece shipped (FEATURES); teaching examples + rules pending |
 | **Wool-lane shaping** — fold long lanes into **Z/S** (the `gen-p30-s7` Z is the positive) instead of long L/I extrusions; a second bridge parallel to the first into a deep wool segment; **alternate attack routes via rings-with-holes** | CT8 / new | queued |
-| **Hub shaping** — multi-piece / varied hub, not one square | new | queued |
-| **Mid interface forms** — clean / parallel-approaches / hash `#` | CT1 | queued |
+| **Hub shaping** — multi-piece / varied hub, not one square (L/Z composition) | HB4 | ✅ rule landed (HB4); composer impl in G36 |
+| **Mid interface forms** — clean / parallel-approaches / hash `#`; **rot_90 archetypes** (grid / window-frame / plus / axis-sitting) | CT1 · CT10/CT11 | rot_90 rules landed (`rot-90-mid-example-*`); 2-team forms queued |
 | **Isolation cuts** — wool/spawn severed behind a fragile bridge | CT5, SP6 | queued |
 | **Closure holes / rings** — frontline-ringed (the device) vs forbidden wool-ringed WL8 | CT8 | queued |
 | **Stones gradient** — thinning toward the team side, grid-aligned | CT4, CT7 | queued |

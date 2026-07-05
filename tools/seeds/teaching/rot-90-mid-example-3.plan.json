@@ -1,0 +1,74 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "rot-90-mid-example-3"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_90",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "frontline-a",
+      "role": "piece",
+      "rect": [
+        -5,
+        -5,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "stone-1",
+      "role": "piece",
+      "rect": [
+        -1,
+        -1,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "frontline-b",
+      "role": "piece",
+      "rect": [
+        -5,
+        -3,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hole",
+      "role": "buffer",
+      "rect": [
+        -3,
+        -3,
+        2,
+        2
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -1,
+        -5,
+        2,
+        4
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [],
+    "wools": [],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}

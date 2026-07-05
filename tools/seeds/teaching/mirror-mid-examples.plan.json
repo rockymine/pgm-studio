@@ -1,7 +1,7 @@
 {
   "plan": 1,
   "meta": {
-    "name": "frontline-dos-and-donts-rot-180-mirror"
+    "name": "frontline-dos-and-donts-mirror"
   },
   "globals": {
     "cell": 5,
@@ -530,6 +530,146 @@
         6,
         2
       ]
+    },
+    {
+      "id": "hole-13",
+      "role": "buffer",
+      "rect": [
+        -20,
+        5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hole-5",
+      "role": "buffer",
+      "rect": [
+        35,
+        0,
+        2,
+        5
+      ]
+    },
+    {
+      "id": "hole-6",
+      "role": "buffer",
+      "rect": [
+        45,
+        4,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "hole-7",
+      "role": "buffer",
+      "rect": [
+        54,
+        0,
+        2,
+        8
+      ]
+    },
+    {
+      "id": "hole-8a",
+      "role": "buffer",
+      "rect": [
+        63,
+        4,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hole-8b",
+      "role": "buffer",
+      "rect": [
+        63,
+        0,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hole-9",
+      "role": "buffer",
+      "rect": [
+        72,
+        2,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "hole-10",
+      "role": "buffer",
+      "rect": [
+        81,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hole-11",
+      "role": "buffer",
+      "rect": [
+        91,
+        0,
+        2,
+        5
+      ]
+    },
+    {
+      "id": "hole-14a",
+      "role": "buffer",
+      "rect": [
+        100,
+        3,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "hole-14b",
+      "role": "buffer",
+      "rect": [
+        100,
+        0,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "hole-14c",
+      "role": "buffer",
+      "rect": [
+        104,
+        7,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hole-15a",
+      "role": "buffer",
+      "rect": [
+        113,
+        0,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "hole-15b",
+      "role": "buffer",
+      "rect": [
+        117,
+        4,
+        2,
+        2
+      ]
     }
   ],
   "zones": [
@@ -714,7 +854,7 @@
       "holes": []
     },
     {
-      "id": "band-11b",
+      "id": "band-11c",
       "rect": [
         93,
         0,

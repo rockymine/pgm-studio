@@ -153,6 +153,12 @@ toward the map centre / the enemy; "back" = toward the map edge.
   pending the new seeds.)
 - **HB3 [expert]** Hub-widens-into-plaza (1.5–2× lane width) is wanted **at plan level**, not
   left to roughen.
+- **HB4 [author]** **L and Z hub↔frontline composition.** The hub and frontline may fold into an
+  **L** (mirror-mid `ex-11`: `hub-11`+`frontline-11`, one band holds a step) or a **Z-tetris**
+  (`ex-14`/`ex-15`: `hub-14`+`frontline-14` offset, each with its own parallel non-touching band +
+  steps, the frontline connecting onward to a rotation piece `piece-14`). Bands stay parallel and
+  non-touching; the onward connection is the rotation point. The hub need not be one square — shape
+  it. Evidence: `tools/seeds/teaching/mirror-mid-examples.plan.json`.
 
 ## FR — Frontline
 
@@ -173,6 +179,17 @@ toward the map centre / the enemy; "back" = toward the map edge.
   team owns one high and one low end. The strategic telling: a team chooses the **high-ground
   route** or the **incline** — and the high ground is the lane **farther from your own spawn**,
   an intentional design choice (the stronger push costs the longer rotation).
+- **FR6 [author]** **Split vs wide frontline; the band docks flush.** A frontline is either
+  **split** — two tips with a gap, hung off a hub (the common form: mirror-mid `ex-6`
+  `frontline-6a`/`6b` off `hub-6`) — or **wide**, one broad face (`ex-2`/`3`/`4`, 6–8 cells). The
+  mid band docks **flush** against the front edge: across **both tips** of a split frontline
+  (`band-6` spans `frontline-6a`..`6b`), or aligned to the **corners** of a wide frontline (`band-3`
+  kept aligned to `frontline-3`'s ends). A specialization of BZ7/BZ8 at the frontline interface.
+- **FR7 [author]** **Variable-length parallel bands are a rot_180 device, not mirror.** Dual
+  frontlines with parallel bands may run **different lengths** (mirror-mid `ex-5`: `band-5a` z0–3 vs
+  `band-5b` z0–2). Under **rot_180** the images rotate so each team owns one short + one long
+  approach; under **mirror** it leaves one permanently-short approach players always pick — so use
+  it only for rot_180. Sibling to FR5 (asymmetric heights per lane).
 
 ## MD — Mid / stepping stones
 
@@ -185,6 +202,13 @@ toward the map centre / the enemy; "back" = toward the map edge.
   (below) — team-side cutting per CT5; the mid follows the interface/carving reading (CT1).
 - **MD4 [expert]** Stones sit entirely inside the build zone.
 - **MD5 [expert]** Large neutral mid islands: rare; **not v1**.
+- **MD6 [author]** **Band steps sit in a grid, aligned, never a 1-D chain.** Stepping stones inside
+  a band are placed in a **grid**, parallel, aligned to (or slightly inset from) the band border —
+  never a single chain funnelling all flow through one gap. Do: mirror-mid `ex-2`/`ex-4` parallel
+  `step-2a`/`2b`; `ex-3`'s one large `step-3` padded inside, the band kept aligned to the frontline
+  corners. Don't: the `gen-p30-t2-rot_180-s1` vertical stone-chain
+  (`docs/composer-review-findings.md`). On a wide frontline the stone edges align with the
+  build-zone border. Refines CT7 (stones extend the team islands' lines) for stones inside a band.
 
 ## CT — The mid interface & fragmentation (read from the closure) [expert]
 
@@ -220,7 +244,8 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
 - **CT2 — team side vs mid: the true interface.** A team's side is *at least* the islands holding
   its spawn and wools plus the **minimum other islands** needed to connect them. Mid islands are
   what remains, claimed by closeness to the map's actual middle point. This assignment — not any
-  cut line — is the boundary the rules are based on.
+  cut line — is the boundary the rules are based on. (For rot_90 the team side is **not** forced
+  into one quadrant — mid pieces at the crossing may sit on the axes; see CT11.)
 - **CT3 — fragmentation depth.** Fragmentation means **many hops between small islands** (the
   hash case). The per-map question is how deep that regime reaches toward the team side.
   Individual hops keep G5's 10–20; longer total crossings are chains of hops with fragments
@@ -293,6 +318,34 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   Composer: default holes are rotation holes (near/mid); a wool-ring hole is only produced when
   deliberately drawing the WL8 two-approach variant, never by accident.
 
+  **A hole is an enclosed buffer** [author, 2026-07-05]: "a hole is kind of a buffer between lanes …
+  if all four corners touch something, then it's a hole." Annotate holes with a `buffer` piece
+  (non-generating) — as the `hole-*` buffers do in `mirror-mid-examples.plan.json` and the `hole`
+  buffers in `rot-90-mid-example-*.plan.json`.
+
+- **CT9 [author]** **The frontline rotation hole.** A split frontline + hub + band **encloses a
+  rotation hole** in the tip-gap: the hub caps it above, the band (or a bridge) below, and a
+  **buffer gap between band/bridge and the hub** is the void (mirror-mid `ex-6` `hole-6` between the
+  tips under `hub-6`; `ex-8` `bridge-8b` splits the gap into `hole-8a`/`8b`; `ex-11` `hole-11`). A
+  bridge bordering the frontline (`ex-8`), a step between the parallel bands (`ex-9`), or steps
+  inside each band (`ex-10`) supplies the rotation link while preserving that buffer-to-hub hole.
+  The CT8 rotation device realized at the frontline.
+- **CT10 [author]** **rot_90 mid archetypes.** Fanned about the origin, 4-team mids recur as
+  (`tools/seeds/teaching/rot-90-mid-example-*.plan.json`): **grid + central hole** (`ex-1`: a 2×2
+  zone grid, one central hole from the fanned `hole` cell); **window-frame** (`ex-2`: 3×3 grid → 4
+  holes; `ex-3`: L-frontline frame + a central rotation `stone-1`); **full centre region** (`ex-4`);
+  **large central void** (`ex-5`: a 3×3 hole); **plus** (`ex-6`/`7`/`8`: four zones + a centre stone
+  or hole). These specialize CT1's clean/hash forms for rot_90.
+- **CT11 [author] — rot_90 islands may sit along/atop the axes [corrects the inter-image clearance
+  invariant; refines CT2].** A team's rot_90 islands are **not confined to one quadrant**: a
+  frontline may **straddle the x=0 / z=0 axis** — `rot-90 ex-6` `frontline` [-1,-5,2,2] and
+  `ex-7`/`8` [-3,-5,4,2] all straddle x=0 — and its four fanned images **abut cleanly at the axis**
+  to form the plus/cross mid. That is the move a near-axis-but-off-axis piece cannot make (its
+  quarter-turn image self-collides — the p5/t4-rot_90 infeasibility, G35). This **corrects** the
+  G32-A grower's blanket "≥10-block clearance between all orbit images": the clearance keeps the
+  **team sides** separate islands, but **mid pieces at the crossing (frontlines, mid stones) may
+  reach and sit on the axes.** The unblock for the rot_90 self-collision.
+
 ## BZ — Build zones
 
 - **BZ1 [expert]** Superseded by FR1+FR2: zones are authored precisely in the plan editor;
@@ -342,6 +395,12 @@ the stat corpus.
   than the gap, lapping pieces or spilling into void with nothing to connect to). Oversized mid
   regions spanning the whole board width "AND more" are the failure mode; the mid band is sized
   to the frontline interval it serves.
+- **BZ10 [author]** **Band depth — no long-thin band.** Beyond BZ9's width fit, the band must not
+  run **long and thin** into the frontline: a deep 2-wide band is the named smell (mirror-mid `ex-0`
+  `band-0` 4×9; `ex-1` `band-1` / `ex-12` `band-12` 2×tall — the negatives). Parallel individual
+  bands (`ex-7`) are acceptable only when **short**; a long frontline-band group degrades back into
+  `ex-0`/`1`/`12`. BZ9 governs the band's width across the gap; BZ10 governs its depth from mid to
+  frontline.
 
 ## EL — Elevation
 
@@ -475,6 +534,15 @@ palette, the plaza hub, and the 35 crossing at 30/team):
    teaching sketch `build-interface-dos-and-donts.plan.json`: mid never touches wool (BZ6), dock
    don't overlap with the plaza-encasement exception (BZ7), connector-extrusion readability (BZ8),
    zone fit (BZ9).
+4. **Frontline/mid rules added (2026-07-05, composer round 3).** From the author's frontline/mid
+   teaching sets (`tools/seeds/teaching/mirror-mid-examples.plan.json` + `rot-90-mid-example-*` +
+   remarks in `docs/composer-review-findings.md`): split-vs-wide frontline + flush dock (FR6),
+   rot_180-only variable-length parallel bands (FR7), the frontline rotation hole (CT9), rot_90 mid
+   archetypes (CT10), band-step grids not chains (MD6), band depth / no long-thin band (BZ10), L/Z
+   hub↔frontline composition (HB4), and the CT8 "hole = enclosed buffer" refinement. **CT11 is a
+   correction**, not just an add: rot_90 team islands may sit along/atop the axes — the G32-A
+   "≥10-block inter-image clearance" applies to team sides, not to mid pieces at the crossing; it
+   refines CT2 and is the unblock for the p5/t4-rot_90 self-collision (G35).
 
 ## Correction protocol
 

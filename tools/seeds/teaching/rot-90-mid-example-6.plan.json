@@ -1,0 +1,54 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "rot-90-mid-example-6"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_90",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "frontline",
+      "role": "piece",
+      "rect": [
+        -1,
+        -5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -1,
+        -1,
+        1,
+        1
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -1,
+        -3,
+        2,
+        2
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [],
+    "wools": [],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}

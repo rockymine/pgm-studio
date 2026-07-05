@@ -61,7 +61,7 @@ Author remarks (05/07/2026):
 
 I have created frontline / mid examples for you that are applicable to rot-180 and mirror-x and mirror-z modes. For the plan I deliberately chose Mirror Z as that let me lay out the samples neatly side by side. I modeled flush with the mirror line, only ever on one side of it. I labeled the pieces and build zones of each example with proper ids. I used <type>-<example-number><optional: letter> as the labeling system. For the types I used step, frontline, hub, band, and bridge: frontline-0 and step-0a. Hub connects to frontlines, frontlines connect to bands and bridges (build zones), and steps are inside bands or touch bridges. I am going to describe the examples by their number now:
 
-frontline-dos-and-donts-rot-180-mirror:
+# mirror-mid-examples.plan.json
 
 Examples 0, 1, and 12 are a NEGATIVE smell seen inside the generated seeds. It's the long thin band connecting to a often times thin frontline. 
 
@@ -80,6 +80,28 @@ Example 11 shows how the frontline and hub can form an L as well and only one ba
 I did also author some real interesting variations in Examples 14 that extend the L idea of Example 11 into a Z-tetris-piece. hub and frontline form the Z. hub and frontline have their own parallel running and non-touching bands with stepping stones. the frontline also connects to another piece forming a rotation point. Example 15 shows essentially the same concept but simplified a little bit with fewer stones and a bridge connection to a different part of the map.
 
 As you can see there are a lot of options.
+
+# rot90-mid-example-*
+
+NOTE: piece naming is not as standardized compared to the mirror examples.
+
+Example 1: basic 2x2 grid mid example with 1 central hole. 
+
+Example 2: basic 3x3 grid mid with 4 central holes. in total it reads as a "bordered window frame"
+
+Example 3: frontline-a and frontline-b form an L shape whose ends connect to a build zone each. the center has a single stone used for rotation. the mid contains 4 holes like example 2.  in total it reads as a "bordered window frame"
+
+Example 4: Example 3 with one full center build region.
+
+Example 5: L shape with build zones at the ends. forms one large void middle.
+
+Example 6: Plus shape formed from four build zones, a mid stone, and the frontlines.
+
+Example 7: example 6 with a wider frontline and a bridge zone encompassing the full middle. a central stepping stone.
+
+Example 8: example 7 without the middle stepping stone. frontlines still connect via the large building region with the hole.
+
+Additional pieces would connect to the frontline pieces, which can grow as well (it cannot grow into the build regions or other pieces more or cause overlaps). What these examples hint at is that for rot 90 maps one team's islands can also sit along / atop the x=0 and z=0 axis. They are not forced to be tight in "one quadrant". 
 
 
 
