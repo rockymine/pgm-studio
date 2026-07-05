@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// build-cache bust: composer round 4 (wide frontline + capped shallow grid)
+// build-cache bust: composer round 5d (centerline variety — 10x10 pairs now common)
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;
@@ -37,6 +37,19 @@ AddFam("Mirror symmetries", "reflected halves (mirror_x / mirror_z)",
 // mirror_z at bigger budgets — where the wide frontline + MD6 stone grid form
 AddFam("Mirror · wide frontline + stone grid", "mirror_z — FR6 wide face the band docks to, MD6 2-col grid",
     new ulong[] { 1, 2, 3, 5, 8, 11 }.Select(seed => new Case(20, 2, "mirror_z", seed)));
+// centerline islands — a stone (or pair) straddling the axis, its fan completing central island(s) (CT11).
+// Freshly classified after the pair-depth bias: lead with the 10x10 pair, then a deep pair, then each single form.
+AddFam("Centerline islands — variety", "axis-straddling stone(s): 10×10 pair / deep pair / square / horizontal / vertical (CT11)",
+    new[]
+    {
+        new Case(12, 2, "rot_180", 24UL),   // 10x10 PAIR — two small squares on the axis (the ex-10 form, now common)
+        new Case(12, 2, "mirror_z", 24UL),  // 10x10 pair (mirror)
+        new Case(12, 2, "rot_180", 33UL),   // deep pair (10x20 each) — the occasional form
+        new Case(12, 2, "rot_180", 15UL),   // single 10x10 (small square)
+        new Case(12, 2, "rot_180", 17UL),   // single horizontal (20x10, wide+flat)
+        new Case(16, 2, "rot_180", 53UL),   // single vertical (10x20, deep+narrow)
+        new Case(12, 2, "rot_180", 45UL),   // single 20x20 (large square)
+    });
 
 int cardCount = 0;
 var failures = new List<(string Id, string Msg)>();
@@ -446,12 +459,12 @@ string Page(string sections, string failuresPanel)
     string bodyInner = $"""
     <div class="wrap">
       <header class="top">
-        <p class="eyebrow">Composer · G32 · build-zone review round</p>
+        <p class="eyebrow">Composer · G32 · centerline-islands review round</p>
         <h1>Generated plans, fanned by symmetry</h1>
         <p class="lede">Each card is a full map: one authored team unit fanned into every orbit image by the
-        plan's symmetry, drawn in the <code>/plan</code> editor's visual language. <strong>BZ6–BZ9 build-zone
-        discipline</strong> is the thing under review — the dashed accent rects are the build zones.
-        Suite <span class="green">green (314/314)</span>; p5 is a documented known limitation (below).</p>
+        plan's symmetry, drawn in the <code>/plan</code> editor's visual language. <strong>Centerline islands</strong>
+        (axis-straddling mid stones, CT11) are the thing under review — see the variety family below.
+        Suite <span class="green">green (323/323)</span>; p5 is a documented known limitation (below).</p>
         {legend}
       </header>
 

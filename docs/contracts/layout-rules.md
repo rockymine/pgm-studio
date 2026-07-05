@@ -338,15 +338,20 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   holes; `ex-3`: L-frontline frame + a central rotation `stone-1`); **full centre region** (`ex-4`);
   **large central void** (`ex-5`: a 3×3 hole); **plus** (`ex-6`/`7`/`8`: four zones + a centre stone
   or hole). These specialize CT1's clean/hash forms for rot_90.
-- **CT11 [author] — rot_90 islands may sit along/atop the axes [corrects the inter-image clearance
-  invariant; refines CT2].** A team's rot_90 islands are **not confined to one quadrant**: a
+- **CT11 [author] — mid pieces at the crossing may sit along/atop the axes [corrects the inter-image
+  clearance invariant; refines CT2].** A team's rot_90 islands are **not confined to one quadrant**: a
   frontline may **straddle the x=0 / z=0 axis** — `rot-90 ex-6` `frontline` [-1,-5,2,2] and
   `ex-7`/`8` [-3,-5,4,2] all straddle x=0 — and its four fanned images **abut cleanly at the axis**
   to form the plus/cross mid. That is the move a near-axis-but-off-axis piece cannot make (its
   quarter-turn image self-collides — the p5/t4-rot_90 infeasibility, G35). This **corrects** the
   G32-A grower's blanket "≥10-block clearance between all orbit images": the clearance keeps the
   **team sides** separate islands, but **mid pieces at the crossing (frontlines, mid stones) may
-  reach and sit on the axes.** The unblock for the rot_90 self-collision.
+  reach and sit on the axes.** The unblock for the rot_90 self-collision. **Order-2 (rot_180/mirror)
+  centre islands are the same licence:** a mid stone whose near edge sits **on** the axis (u=0) has its
+  single fanned image **abut it across the axis** into one central island — a v-centred stone → one
+  island, a v-symmetric pair → two (the `ex-10` form). Images that merely **abut or coincide** at the
+  axis are one physical island, not a clearance breach; only **interior overlap** (a stone off *both*
+  axes under rot_90) stays forbidden.
 
 ## BZ — Build zones
 
@@ -548,6 +553,11 @@ palette, the plaza hub, and the 35 crossing at 30/team):
 5. **MD6 column count (2026-07-05, composer round 4).** Author: the mid stone grid runs **two
    lateral columns as the norm, three as the hard maximum** (three occurs in exactly one authored
    example); never wider — "wide, not too wide."
+6. **CT11 extended to order-2 centre islands (2026-07-06, composer round 5).** The axis-sitting licence
+   is not rot_90-only: under rot_180/mirror a mid stone straddling the axis (near edge at u=0) fans into
+   one central island (or a v-symmetric pair, the `ex-10` form). Abutting/coincident images at the axis
+   are one island; only interior overlap stays a clearance breach. Shipped as the composer's centre
+   crossing (G36), with the pair form biased shallow so two 10×10 squares are the common pair.
 
 ## Correction protocol
 

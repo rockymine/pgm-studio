@@ -29,6 +29,16 @@ public sealed class MidCarverTests
                     var cell = env.Cell;
                     await Assert.That(d.Rows.Count is >= 0 and <= 2).IsTrue();
 
+                    if (d.Center)
+                    {
+                        // a centre crossing: one hop each side, front → centre stone; the stone abuts its own
+                        // fan image (they are one island), so there is no innermost-image hop
+                        var hop = (d.HalfGapCells - d.Rows[0].Depth) * cell;
+                        await Assert.That(hop is >= 10 and <= 20).IsTrue();
+                        await Assert.That(teams).IsEqualTo(2);
+                        continue;
+                    }
+
                     if (d.Rows.Count == 0)
                     {
                         // a single hop: 20 blocks, or the sanctioned 30 for big teams (≤35 at 20+ players)
@@ -89,7 +99,7 @@ public sealed class MidCarverTests
         for (ulong seed = 1; seed <= 80; seed++)
         {
             var d = MidCarver.SampleCrossing(Env(16), new ComposeRng(seed));
-            if (d.Rows.Count != 1) continue;
+            if (d.Center || d.Rows.Count != 1) continue;   // centre crossings force twin off by construction
             var h1 = d.HalfGapCells - d.Rows[0].UMin - d.Rows[0].Depth;
             if (h1 > 3) await Assert.That(d.TwinFrontlineAllowed).IsFalse();
             else await Assert.That(d.TwinFrontlineAllowed).IsTrue();

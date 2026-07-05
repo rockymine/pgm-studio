@@ -273,6 +273,12 @@ The open work sorts into three domains:
   connects to the frontline** (which lanes/hubs dock it and how), and **how hubs shape** (absorbs G36 (2)/(3)).
   Blocked on the author authoring more teaching maps; **not** a budget lane-heavy/wide split (see the
   `composer-lane-archetypes-future` memory). Sequenced **after** the mid-feel slice — get mids right first.
+- [ ] **G38 — Multiple / parallel mid bands (FR7).** The composer only ships the **CT1 clean form** — one
+  band spanning the axis, its fan merged into a single build region. Maps also use **two (or more) parallel
+  mid bands** with their own variations (the `big-board-wool-two-sided-plaza-parallel-mid` seed; FR7's
+  variable-length parallel bands, rot_180-only). Not yet generated — an **unshipped feature**, not a bug.
+  Needs a multi-band crossing form (each band its own dock + hop arithmetic) and the fan/merge to keep them
+  distinct. Author flagged the gap during the centreline review (2026-07-05).
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding

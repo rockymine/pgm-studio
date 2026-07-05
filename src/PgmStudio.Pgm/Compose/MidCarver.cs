@@ -13,7 +13,15 @@ public readonly record struct StoneRow(int UMin, int Depth);
 /// recess (CT8's hole mechanism): a twin front's second chain reaches the nearest stone diagonally, which
 /// only stays a real ≤20-block hop when the front hop is short.
 /// </summary>
-public sealed record CrossingDesign(int HalfGapCells, IReadOnlyList<StoneRow> Rows, bool TwinFrontlineAllowed);
+/// <param name="Center">True for a centre crossing: the stone(s) straddle the axis (their fan completes
+/// them into central island(s)) instead of the team side clearing the axis — 2-team (order-2) only.</param>
+/// <param name="CenterPair">A centre crossing's form: false = one stone spanning the axis, true = a
+/// v-symmetric pair (the ex-10 two-island form). Set here, not at carve time, because a pair leans shallow
+/// (two 10-wide squares) — so it fixes the island depth, hence the half-gap, up front with the rest of the
+/// u-arithmetic.</param>
+public sealed record CrossingDesign(
+    int HalfGapCells, IReadOnlyList<StoneRow> Rows, bool TwinFrontlineAllowed,
+    bool Center = false, bool CenterPair = false);
 
 /// <summary>A mid stepping stone: an anonymous piece inside the band (MD1/MD4), fanned by symmetry.</summary>
 public sealed record MidStone(string Id, int[] Rect, int Surface);
@@ -50,6 +58,21 @@ public static class MidCarver
         var cell = env.Cell;
         var hopMinC = (10 + cell - 1) / cell;              // G5's smallest hop, in cells
         var hopMaxC = Math.Max(hopMinC, 20 / cell);
+
+        // (c0) a centre crossing (2-team / order-2 only): one stone straddling the axis, its fan completing it
+        // into a single central island, with the frontline a real hop back on each side (front → centre →
+        // enemy front). rot_90's central plus is CT10, deferred. Sampled first so its draw is fixed up front.
+        if (env.Teams == 2 && rng.NextBool(0.35))
+        {
+            // (c0a) form, then (c0b) depth: a pair reads as two small squares so it leans shallow (10x10
+            // islands, depth 1); a single spans the depth range unchanged (1 or 2). Depth sets the half-gap,
+            // so the form is fixed here with it, not at carve time.
+            var pair = rng.NextBool(0.35);
+            var cd = pair ? (rng.NextBool(0.7) ? 1 : 2) : rng.NextInt(1, 3);
+            var chop = rng.NextInt(hopMinC, hopMaxC + 1);
+            return new CrossingDesign(
+                cd + chop, [new StoneRow(0, cd)], TwinFrontlineAllowed: false, Center: true, CenterPair: pair);
+        }
 
         // 2-team crossings stay shallow (0-1 landing rows) so the mid reads as a WIDE lateral grid (MD6),
         // never a deep stacked chain (a two-row crossing fans to four stacked rows — the stretched-mid
@@ -99,7 +122,37 @@ public static class MidCarver
 
         var stones = new List<MidStone>();
         int stoneL = 0, stoneR = 0;
-        if (design.Rows.Count > 0)
+        if (design.Center)
+        {
+            // stone(s) straddling the axis (near edge at u=0) — their fan abuts into central island(s) (CT11).
+            // The form (single vs pair) and depth were fixed with the half-gap up front; here we draw only the
+            // remaining shape — a single's width (shallow+wide reads horizontal, deep+narrow vertical) and the
+            // surface. Even widths keep the rot_180 image symmetric and centre cleanly.
+            var depth = design.Rows[0].Depth;
+            var surface = rng.NextBool(0.5) ? env.Surface + 4 : env.Surface;     // (m1c) level or raised (EL1)
+            if (!design.CenterPair)
+            {
+                var sw = rng.NextBool(0.5) ? 4 : 2;                              // (m2c) single width: wide/narrow
+                var cVMin = -(sw / 2);
+                stones.Add(new MidStone("stone-c", frame.ToRect(0, depth, cVMin, sw), surface));
+                stoneL = cVMin;
+                stoneR = cVMin + sw;
+            }
+            else
+            {
+                // two width-2 stones one hop apart across the axis: +v and its mirror at -v (ex-10); shallow
+                // by design (depth leans to 1) so the pair reads as two 10x10 squares
+                const int pw = 2, off = 1;                                       // stone width; half the inter gap
+                stones.Add(new MidStone("stone-c1", frame.ToRect(0, depth, off, pw), surface));
+                stones.Add(new MidStone("stone-c2", frame.ToRect(0, depth, -off - pw, pw), surface));
+                stoneL = -off - pw;
+                stoneR = off + pw;
+            }
+            // the centre island must sit inside the frontline hull the band spans (MD4/BZ9) — a stone wider
+            // than the hull would fall outside the clamped band; resample when it doesn't fit
+            if (stoneL < hullL || stoneR > hullR) return null;
+        }
+        else if (design.Rows.Count > 0)
         {
             var sw = rng.NextBool(0.5) ? 3 : 2;                                   // (m1) MD1: 2x2 / 2x3 / 3x2
             var lines = frontPieces.SelectMany(f => new[] { f.UV.VMin, f.UV.VMin + f.UV.VSpan })
@@ -179,9 +232,13 @@ public static class MidCarver
         var band = frame.ToRect(-(h + lap), 2 * (h + lap), bandL, bandR - bandL);
 
         if (!BandContactsOk(env, unit, band, frontIds, stones)) return null;
+        // a centre crossing's stone abuts its own fan images at the axis (allowed); an ordinary stone stays
+        // an isolated island the full clearance from everything
+        var stoneRects = stones.Select(s => s.Rect).ToList();
         if (!ComposeGeometry.SeparationOk(env,
                 unit.Pieces.Select(p => p.Rect).ToList(),
-                stones.Select(s => s.Rect).ToList()))
+                design.Center ? [] : stoneRects,
+                design.Center ? stoneRects : null))
             return null;
 
         return new MidResult(band, stones);

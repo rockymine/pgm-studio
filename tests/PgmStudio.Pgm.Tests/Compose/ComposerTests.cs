@@ -88,7 +88,7 @@ public sealed class ComposerTests
             await Assert.That(chain <= TeamUnitGrower.LaneChainMaxBlocks).IsTrue();
 
             await AssertCleanFormBand(plan, derived);
-            await AssertFannedSeparation(derived);
+            await AssertFannedSeparation(plan, derived);
             await AssertClosureTraversable(plan, derived);
             await AssertMarkerDistances(plan, derived);
             await AssertAreaWithinBudget(request, plan);
@@ -115,13 +115,20 @@ public sealed class ComposerTests
     }
 
     // Fanned-board separation (CT1): pieces of DIFFERENT orbit images never overlap, touch, or come within
-    // 10 blocks on both axes — team territories stay separate islands the zones bridge.
-    private static async Task AssertFannedSeparation(PlanDerived derived)
+    // 10 blocks on both axes — team territories stay separate islands the zones bridge. Exception (CT11): a
+    // centre island (a stone touching the fanning axis) abuts its own fan images at the axis by design.
+    private static async Task AssertFannedSeparation(PlanModel plan, PlanDerived derived)
     {
+        var axisZ = plan.Globals.Symmetry != "mirror_x";
         var images = new List<(int K, BlockRect R)>();
         foreach (var p in derived.Pieces)
+        {
+            var isCentre = p.Id.StartsWith("stone")
+                && (axisZ ? p.Rect.MinZ <= 0 && p.Rect.MaxZ >= 0 : p.Rect.MinX <= 0 && p.Rect.MaxX >= 0);
+            if (isCentre) continue;
             for (var k = 0; k < derived.Order; k++)
                 images.Add((k, derived.FanRect(p.Rect, k)));
+        }
 
         for (var i = 0; i < images.Count; i++)
             for (var j = i + 1; j < images.Count; j++)
