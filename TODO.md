@@ -26,6 +26,23 @@ Shipped so far (`FEATURES.md`): closure/envelope + team-unit grower, the clean-f
 islands (CT11 order-2, incl. 10×10 pairs), the MD6 stone grid, the wide frontline (FR6), isolation cuts, and
 BZ6–BZ9 build-zone discipline. The layers below are what remains.
 
+> **▶ Priority within this focus — the three upstream tracks.** The author-facing payoff everyone wants to
+> reach (the lane / hub *styles* — G37 / G45) sits **downstream** of three tracks that must land first:
+>
+> 1. **Interface layer (G39 / G40 / G41)** — the frontline↔build-zone must **interlock** before the hub,
+>    spawn, or wool lanes can dock onto a settled frontline. G39 is the crux and the most code-grounded (the
+>    band just needs the CT7 corner-snap the stones already use); a shifted or too-thin dock poisons every
+>    layer above it.
+> 2. **Real spawn + wool-room pieces (G49)** — there is currently **nothing for a lane to dock to** (every
+>    piece is plain `piece`; the room/spawn is only a marker). The spawn/wool-lane style *is* how plain pieces
+>    attach to the room/spawn piece, so no lane grammar is definable until that piece exists.
+> 3. **Authoring lever (G46 / G47 / G48)** — `mirror = none` + the `connector` piece + the taxonomy resort are
+>    what let the author produce the **teaching templates** G37 / G41 / G45 are blocked on. Without them the
+>    lane-style work stalls on missing inputs.
+>
+> Two are foundational gaps (**G39**, **G49**), one unblocks the inputs (**G46–G48**) — all three are upstream
+> of the lane-style payoff, so they come before the lane track proper.
+
 **Mid — band & crossing (variations remain)**
 - [ ] **G38 — Multiple / parallel mid bands + their variations.** The composer ships only the CT1 clean
   form (one band spanning the axis). Add **two-or-more parallel bands** (FR7, rot_180-only, variable-length)
