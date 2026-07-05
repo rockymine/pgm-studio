@@ -98,7 +98,11 @@ public sealed class PlanDerived
         Cell = plan.Globals.Cell;
         Mode = plan.Globals.Symmetry;
 
-        Pieces = plan.Pieces.Select(p => new DerivedPiece(
+        // Annotation pieces (buffers) mark empty space — they produce no terrain and take no part in
+        // connectivity, so they never enter the derived structure. Filtering here is the single choke point
+        // that keeps them out of Contacts/LandInterfaces/Components/Frontline/GapLinks/InterfaceSegments/
+        // FrontlineEdges and everything downstream (the fanned graph and the compiler). d.Plan keeps them.
+        Pieces = plan.Pieces.Where(p => PlanRoles.IsGenerating(p.Role)).Select(p => new DerivedPiece(
             p.Id, p.Role, ToBlock(p.Rect, Cell), p.Surface ?? plan.Globals.Surface, p.MirrorsOrDefault)).ToList();
         _byId = Pieces.ToDictionary(p => p.Id);
 
@@ -116,7 +120,9 @@ public sealed class PlanDerived
 
     public static PlanDerived Build(PlanModel plan) => new(plan);
 
-    public DerivedPiece? Piece(string id) => _byId.GetValueOrDefault(id);
+    /// <summary>The derived piece for an id, or null when no generating piece carries it (a missing id or an
+    /// annotation piece such as a buffer, which never enters the derived structure).</summary>
+    public DerivedPiece? Piece(string id) => _byId.TryGetValue(id, out var p) ? p : null;
 
     /// <summary>Convert a <c>[x, z, w, h]</c> cell rect to block coordinates.</summary>
     public static BlockRect ToBlock(int[] rect, int cell) =>

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Tests;
@@ -10,6 +11,8 @@ namespace PgmStudio.Pgm.Tests;
 public sealed class PlanCompilerTests
 {
     private static PlanModel Plan(string json) => PlanModel.Parse(json)!;
+    private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
+    private static string Ser(object o) => JsonSerializer.Serialize(o, Web);
 
     private const string Unit = """
         "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]}, {"id":"wr","role":"wool-room","rect":[-3,5,2,2]} ],
@@ -121,6 +124,29 @@ public sealed class PlanCompilerTests
         """);
         var (_, intent) = PlanCompiler.Compile(p);
         await Assert.That(intent.Wools!.Any(w => w.Spawn.X == 2.5 && w.Spawn.Z == 2.5)).IsTrue();
+    }
+
+    [Test]
+    public async Task A_buffer_overlapping_terrain_compiles_identically_to_the_plan_without_it()
+    {
+        // A buffer is non-generating: even one overlapping a terrain piece must leave the compiled pair byte-
+        // identical — same layout shapes + fanned bbox, same intent (teams/spawns/wools/build/structures).
+        const string unit = """
+            "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]}, {"id":"wr","role":"wool-room","rect":[-3,5,2,2]} ],
+            "placements":{ "spawns":[ {"piece":"lane","at":[1,5],"facing":"front"} ],
+                           "wools":[ {"piece":"wr","at":[1,1]} ] }
+            """;
+        var (baseLayout, baseIntent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180","cell":5}, {{unit}} }"""));
+        var (bufLayout, bufIntent) = PlanCompiler.Compile(Plan($$"""
+            { "plan":1, "globals":{"symmetry":"rot_180","cell":5},
+              "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]}, {"id":"wr","role":"wool-room","rect":[-3,5,2,2]},
+                         {"id":"buffer","role":"buffer","rect":[1,5,2,2]} ],
+              "placements":{ "spawns":[ {"piece":"lane","at":[1,5],"facing":"front"} ],
+                             "wools":[ {"piece":"wr","at":[1,1]} ] } }
+            """));
+
+        await Assert.That(Ser(bufLayout)).IsEqualTo(Ser(baseLayout));
+        await Assert.That(Ser(bufIntent)).IsEqualTo(Ser(baseIntent));
     }
 
     [Test]

@@ -9,7 +9,7 @@ import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, nextFacing,
   rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
   pieceAtCell, zoneAtCell, markerCell, attachMarker, snapHalf, allMarkers,
-  contentBounds, viewBounds, pieceMirrorImages, zoneMirrorImages, markerMirrorImages, ROLES,
+  contentBounds, viewBounds, pieceMirrorImages, zoneMirrorImages, markerMirrorImages, ROLES, ROLE_COLORS,
   canonicalRole, toggleWall, nearestInterface,
   markerAtWorld, pickAtWorld, sameSelection, MARKER_HIT_CELLS,
   pieceSurface, surfaceRange, surfaceFraction,
@@ -263,12 +263,14 @@ test("allMarkers flattens spawns/wools/iron with kind + index", () => {
   assert.deepEqual(allMarkers(doc).map(m => [m.kind, m.index]), [["spawn", 0], ["wool", 0]]);
 });
 
-test("ROLES palette order is stable", () => {
-  assert.deepEqual(ROLES, ["piece", "wool-room", "spawn"]);
+test("ROLES palette order is stable and includes the buffer annotation", () => {
+  assert.deepEqual(ROLES, ["piece", "wool-room", "spawn", "buffer"]);
+  assert.ok(ROLES.includes("buffer"));
+  assert.equal(ROLE_COLORS.buffer, "#f2792b");
 });
 
-// ── schema v2: anonymous roles + wall marks ──────────────────────────────────
-test("canonicalRole folds legacy/unknown roles to piece, keeps intent roles", () => {
+// ── schema v2: anonymous roles + wall marks + the buffer annotation ──────────
+test("canonicalRole folds legacy/unknown roles to piece, keeps intent + annotation roles", () => {
   assert.equal(canonicalRole("lane"), "piece");
   assert.equal(canonicalRole("hub"), "piece");
   assert.equal(canonicalRole("mid"), "piece");
@@ -276,6 +278,7 @@ test("canonicalRole folds legacy/unknown roles to piece, keeps intent roles", ()
   assert.equal(canonicalRole("nonsense"), "piece");
   assert.equal(canonicalRole("wool-room"), "wool-room");
   assert.equal(canonicalRole("spawn"), "spawn");
+  assert.equal(canonicalRole("buffer"), "buffer");   // annotation role preserved, never folded
 });
 
 test("normalizeDoc maps legacy piece roles on load", () => {
@@ -286,6 +289,29 @@ test("normalizeDoc maps legacy piece roles on load", () => {
   assert.equal(doc.pieces[0].role, "piece");
   assert.equal(doc.pieces[1].role, "wool-room");
   assert.deepEqual(doc.walls, []);   // walls default to an empty list
+});
+
+test("normalizeDoc and toJson round-trip a buffer piece verbatim", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    pieces: [{ id: "buffer", role: "buffer", rect: [0, 0, 2, 2] },
+             { id: "buffer-2", role: "buffer", rect: [3, 0, 2, 2], mirrors: false }],
+  });
+  assert.equal(doc.pieces[0].role, "buffer");   // preserved, not folded to piece
+  assert.equal(doc.pieces[1].mirrors, false);
+  const back = fromJson(toJson(doc));
+  assert.deepEqual(back, doc);                   // stable under re-serialisation
+});
+
+test("pieceMirrorImages fans a buffer with mirrors unset and skips one with mirrors:false", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    pieces: [{ id: "buffer", role: "buffer", rect: [1, 1, 2, 2] },
+             { id: "buffer-2", role: "buffer", rect: [3, 3, 1, 1], mirrors: false }],
+  });
+  const imgs = pieceMirrorImages(doc);
+  assert.equal(imgs.length, 1);                  // the mirroring buffer fans one rot_180 image; the pinned one does not
+  assert.equal(imgs[0].role, "buffer");
 });
 
 test("toggleWall adds then removes a wall mark, order-insensitive", () => {

@@ -39,7 +39,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       canvas.select({ kind: "zone", id });
     } else {
       const role = canvasRole;
-      const base = role === "wool-room" ? "wool" : role === "spawn" ? "spawn" : "piece";
+      const base = role === "wool-room" ? "wool" : role === "spawn" ? "spawn" : role === "buffer" ? "buffer" : "piece";
       const id = uniqueId(doc.pieces.map(p => p.id), base);
       doc.pieces.push({ id, role, rect });
       canvas.setDoc(doc);

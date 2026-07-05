@@ -12,15 +12,16 @@
 import { applySymmetry, applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
 
 // Piece roles — the left-toolbar palette, in display order. Pieces are anonymous by default (one neutral
-// tint); the two intent-bearing roles (wool-room / spawn) keep distinct tints. Colours are theme-independent
-// so a piece reads the same on the dark canvas in either theme; the fill is tinted lighter for a higher
-// surface. Legacy role names (lane/hub/mid) map to "piece" on load.
-export const ROLES = ["piece", "wool-room", "spawn"];
-export const ROLE_COLORS = { piece: "#7c8899", "wool-room": "#3fae74", spawn: "#8f7bd6" };
-export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn" };
+// tint); the two intent-bearing roles (wool-room / spawn) keep distinct tints. `buffer` is a non-generating
+// annotation — reserved empty space (lane spacing / holes), drawn hatched, producing no terrain. Colours are
+// theme-independent so a piece reads the same on the dark canvas in either theme; the fill is tinted lighter
+// for a higher surface. Legacy role names (lane/hub/mid) map to "piece" on load.
+export const ROLES = ["piece", "wool-room", "spawn", "buffer"];
+export const ROLE_COLORS = { piece: "#7c8899", "wool-room": "#3fae74", spawn: "#8f7bd6", buffer: "#f2792b" };
+export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn", buffer: "Buffer" };
 
-/** Fold a raw (possibly legacy or unknown) role down to a canonical one: only wool-room / spawn survive. */
-export function canonicalRole(role) { return role === "wool-room" || role === "spawn" ? role : "piece"; }
+/** Fold a raw (possibly legacy or unknown) role down to a canonical one: wool-room / spawn / buffer survive. */
+export function canonicalRole(role) { return role === "wool-room" || role === "spawn" || role === "buffer" ? role : "piece"; }
 
 // Marker facing cycles front → right → back → left on repeated clicks; the arrow points along an absolute
 // board direction per enum (front = −Z / up, back = +Z, left = −X, right = +X), fanned per orbit image.

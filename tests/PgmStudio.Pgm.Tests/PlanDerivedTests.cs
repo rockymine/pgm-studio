@@ -379,6 +379,35 @@ public sealed class PlanDerivedTests
         await Assert.That(seg).IsEqualTo((10, 5, 20, 5));
     }
 
+    // ── annotation pieces (buffers) are absent from the derived structure ───────────────────────────────
+
+    [Test]
+    public async Task A_buffer_is_absent_from_the_derived_structure_and_bridges_nothing()
+    {
+        // a and b abut a buffer that sits between them (a–buffer and buffer–b would each be land seams if the
+        // buffer were terrain). Because a buffer is non-generating it never enters the derived structure: it is
+        // not a derived piece, appears in no relation, and does not merge a and b into one component.
+        var plan = PlanModel.Parse("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
+                     {"id":"buffer","role":"buffer","rect":[10,0,10,10]},
+                     {"id":"b","role":"piece","rect":[20,0,10,10]} ] }
+        """)!;
+        var d = PlanDerived.Build(plan);
+
+        await Assert.That(d.Piece("buffer")).IsNull();
+        await Assert.That(d.Pieces.Select(p => p.Id)).IsEquivalentTo(new[] { "a", "b" });
+
+        await Assert.That(d.Contacts.Any(c => c.A == "buffer" || c.B == "buffer")).IsFalse();
+        await Assert.That(d.LandInterfaces.Any(c => c.A == "buffer" || c.B == "buffer")).IsFalse();
+        await Assert.That(d.InterfaceSegments.Any(s => s.A == "buffer" || s.B == "buffer")).IsFalse();
+        await Assert.That(d.GapLinks.Any(g => g.A == "buffer" || g.B == "buffer")).IsFalse();
+        await Assert.That(d.Frontline.Contains("buffer")).IsFalse();
+
+        // a and b are two separate components — the buffer between them connects nothing
+        await Assert.That(d.Components.Count).IsEqualTo(2);
+    }
+
     [Test]
     public async Task Frontline_edges_face_the_zone_they_abut()
     {

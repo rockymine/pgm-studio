@@ -64,6 +64,29 @@ public sealed class PlanModelTests
     }
 
     [Test]
+    public async Task Buffer_role_round_trips_and_is_an_annotation()
+    {
+        // Canonical preserves the buffer annotation role (Normalize must not fold it to piece); an unknown role
+        // still folds to piece.
+        var plan = PlanModel.Parse("""
+        { "plan":1,
+          "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,2,2]},
+                     {"id":"x","role":"nonsense","rect":[2,0,2,2]} ] }
+        """)!;
+        await Assert.That(plan.Pieces[0].Role).IsEqualTo(PlanRoles.Buffer);   // survives Normalize
+        await Assert.That(plan.Pieces[1].Role).IsEqualTo(PlanRoles.Piece);    // unknown → piece
+
+        var reparsed = PlanModel.Parse(plan.ToJson())!;
+        await Assert.That(reparsed.Pieces[0].Role).IsEqualTo(PlanRoles.Buffer);
+
+        await Assert.That(PlanRoles.Canonical("buffer")).IsEqualTo(PlanRoles.Buffer);
+        await Assert.That(PlanRoles.IsAnnotation(PlanRoles.Buffer)).IsTrue();
+        await Assert.That(PlanRoles.IsGenerating(PlanRoles.Buffer)).IsFalse();
+        await Assert.That(PlanRoles.IsAnnotation(PlanRoles.Piece)).IsFalse();
+        await Assert.That(PlanRoles.IsGenerating(PlanRoles.Piece)).IsTrue();
+    }
+
+    [Test]
     public async Task Walls_parse_and_round_trip()
     {
         var plan = PlanModel.Parse("""

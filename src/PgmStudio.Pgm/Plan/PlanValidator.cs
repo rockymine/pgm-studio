@@ -74,6 +74,8 @@ public static class PlanValidator
     {
         var piece = d.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references unknown piece '{pieceId}'", null, [pieceId])); return; }
+        // A buffer is reserved empty space — it produces no terrain, so nothing may be placed on it.
+        if (PlanRoles.IsAnnotation(piece.Role)) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references non-generating buffer '{pieceId}'", null, [pieceId])); return; }
         double x = at[0], z = at[1];
         int w = piece.Rect[2], h = piece.Rect[3];
         if (x < 0 || z < 0 || x > w || z > h)
@@ -230,6 +232,7 @@ public static class PlanValidator
     {
         foreach (var p in plan.Pieces)
         {
+            if (PlanRoles.IsAnnotation(p.Role)) continue;   // buffers produce no terrain — no plateau step to check
             var delta = (p.Surface ?? plan.Globals.Surface) - plan.Globals.Surface;
             if (delta % 2 != 0) yield return Lint("EL1", $"piece '{p.Id}' surface delta {delta} is not a multiple of 2", p.Id);
         }

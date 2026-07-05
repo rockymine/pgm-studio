@@ -56,6 +56,7 @@ public partial class PlanEditor
         new("piece", "Piece", "#7c8899"),
         new("wool-room", "Wool room", "#3fae74"),
         new("spawn", "Spawn", "#8f7bd6"),
+        new("buffer", "Buffer", "#f2792b"),
     ];
 
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";

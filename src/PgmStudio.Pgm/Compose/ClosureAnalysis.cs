@@ -37,7 +37,13 @@ public static class ClosureAnalysis
                 solids.Add(((int)Math.Round(x1), (int)Math.Round(z1), (int)Math.Round(x2), (int)Math.Round(z2), ring));
             }
         }
-        foreach (var p in plan.Pieces) Add(p.Rect, ringIds?.Contains(p.Id) == true);
+        // A buffer marks EMPTY space — it must not rasterize as solid, or it would fill in (and erase) the very
+        // rotation hole it documents, dropping the hole from the measurement.
+        foreach (var p in plan.Pieces)
+        {
+            if (PlanRoles.IsAnnotation(p.Role)) continue;
+            Add(p.Rect, ringIds?.Contains(p.Id) == true);
+        }
         foreach (var z in plan.Zones) Add(z.Rect, false);
         if (solids.Count == 0) return ([], false);
 

@@ -76,6 +76,8 @@ export class PlanCanvas extends CanvasBase {
   #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
   // screen-space overlay (labels + selection box + resize handles)
   #overlay;
+  // svg <defs> holding the buffer (reserved-gap) hatch pattern
+  #defs;
 
   constructor(svgEl_, wrapEl, { cursorEl, ...cb } = {}) {
     super(svgEl_, wrapEl);
@@ -144,6 +146,7 @@ export class PlanCanvas extends CanvasBase {
 
   render() {
     if (!this.#doc) return;
+    this.#ensureHatch();
     this.#renderGrid();
     this.#renderGhost();
     this.#renderZones();
@@ -154,6 +157,21 @@ export class PlanCanvas extends CanvasBase {
   }
 
   #clear(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
+
+  // Rebuild the diagonal-hatch pattern used for buffer (reserved-gap) fills, sized to the current cell so the
+  // hatch stays proportional to pieces. Defined in world units (userSpaceOnUse) so it tiles across the board;
+  // referencing rects set their own fill-opacity (full for a live buffer, low for a ghost image).
+  #ensureHatch() {
+    if (!this.#defs) return;
+    this.#clear(this.#defs);
+    const cell = this.#doc?.globals.cell || 5;
+    const step = Math.max(2, cell * 0.7);
+    const col = ROLE_COLORS.buffer;
+    const pat = svgEl("pattern", { id: "buffer-hatch", patternUnits: "userSpaceOnUse", width: step, height: step, patternTransform: "rotate(45)" });
+    pat.appendChild(svgEl("rect", { x: 0, y: 0, width: step, height: step, fill: col, "fill-opacity": "0.12" }));
+    pat.appendChild(svgEl("line", { x1: 0, y1: 0, x2: 0, y2: step, stroke: col, "stroke-width": Math.max(0.6, cell * 0.14) }));
+    this.#defs.appendChild(pat);
+  }
 
   #renderGrid() {
     const layer = this.#gridLayer;
@@ -196,6 +214,16 @@ export class PlanCanvas extends CanvasBase {
     const layer = this.#ghostLayer; this.#clear(layer);
     for (const img of pieceMirrorImages(this.#doc)) {
       const { min_x, min_z, max_x, max_z } = img.bounds;
+      if (img.role === "buffer") {
+        // A buffer ghost keeps the reserved-gap hatch, dimmed to ghost opacity.
+        layer.appendChild(svgEl("rect", {
+          x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
+          fill: "url(#buffer-hatch)", "fill-opacity": "0.3",
+          stroke: ROLE_COLORS.buffer, "stroke-opacity": "0.4", "stroke-width": "1",
+          "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke",
+        }));
+        continue;
+      }
       layer.appendChild(svgEl("rect", {
         x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
         fill: ROLE_COLORS[img.role] || "#888", "fill-opacity": "0.08",
@@ -251,6 +279,18 @@ export class PlanCanvas extends CanvasBase {
     const range = this.#heightMap ? surfaceRange(this.#doc) : null;   // ramp domain for height-map mode
     for (const p of this.#doc.pieces) {
       const b = rectCellsToBlocks(p.rect, cell);
+      if (p.role === "buffer") {
+        // Reserved-gap annotation: a diagonal hatch + dashed same-colour stroke, no solid terrain fill — reads
+        // clearly as "not buildable ground" and distinct from the dashed build-zone accent.
+        layer.appendChild(svgEl("rect", {
+          x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
+          fill: "url(#buffer-hatch)", "fill-opacity": "0.9",
+          stroke: ROLE_COLORS.buffer, "stroke-opacity": "0.85", "stroke-width": "1.4",
+          "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke",
+          "data-piece": p.id, style: "cursor:pointer",
+        }));
+        continue;
+      }
       const surf = pieceSurface(this.#doc, p);
       let fill, stroke;
       if (this.#heightMap) {
@@ -582,11 +622,13 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
     const b = rectCellsToBlocks(rect, cell);
+    const isBuffer = this.#drag.kind === "piece" && this.#pieceRole === "buffer";
     const color = this.#drag.kind === "zone" ? "var(--accent)" : ROLE_COLORS[this.#pieceRole];
     layer.appendChild(svgEl("rect", {
       x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-      fill: color, "fill-opacity": "0.2", stroke: color, "stroke-width": "1.5",
-      "stroke-dasharray": "4 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
+      fill: isBuffer ? "url(#buffer-hatch)" : color, "fill-opacity": isBuffer ? "0.6" : "0.2",
+      stroke: color, "stroke-width": "1.5",
+      "stroke-dasharray": isBuffer ? "6 4" : "4 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
     }));
   }
 
@@ -645,6 +687,12 @@ export class PlanCanvas extends CanvasBase {
 
     this.#overlay = svgEl("g");
     this._svg.appendChild(this.#overlay);
+
+    // <defs> for the buffer (reserved-gap) hatch pattern, rebuilt per render sized to the cell.
+    this.#defs = svgEl("defs");
+    this._svg.appendChild(this.#defs);
+    this.#ensureHatch();
+
     this._applyViewportTransform();
 
     // Delete / Backspace removes the current selection (guarded by visibility + not typing in a field).

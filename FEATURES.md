@@ -666,6 +666,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **Known limitation:** p5 (t2 and t4/rot_90) is structurally infeasible under BZ6 + spawn ≥2×2 within the
   fixed budget — deferred to the buffer-tile fix (G35). (G32 — B track)
 
+- **Plan model — the `buffer` annotation piece (non-generating design tile)** — `PgmStudio.Pgm/Plan/` +
+  `Client/Pages/Plan/`: a new annotation-role class (`PlanRoles.IsAnnotation`/`IsGenerating`) whose first
+  member `buffer` marks reserved empty space (lane spacing, the rot_90 border, holes — a hole is an enclosed
+  buffer). Informational-only: filtered out of `PlanDerived` (absent from interfaces/components/frontline/
+  gap-links/`FannedGraph`/the compiler), skipped by `ClosureAnalysis` (a buffer marks empty space, never
+  counts as land, so it can't erase the rotation hole it documents), invisible to world export; a spawn/wool
+  on a buffer is a validation error. Authored + rendered as an orange diagonal hatch in the plan editor and
+  the compose render tools. 323 Pgm + 121 JS tests green. Enables the composer-side reservation (G35). (G35 slice)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

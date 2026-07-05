@@ -10,6 +10,7 @@ using PgmStudio.Pgm.Plan;
 const string CPiece = "#7c8899";      // ROLE_COLORS.piece
 const string CWoolRoom = "#3fae74";   // ROLE_COLORS["wool-room"]
 const string CSpawnRole = "#8f7bd6";  // ROLE_COLORS.spawn
+const string CBuffer = "#f2792b";     // ROLE_COLORS.buffer (reserved-gap annotation)
 const string MkSpawn = "#e0b13c";     // MARKER_COLORS.spawn
 const string MkWool = "#e6e6e6";      // MARKER_COLORS.wool
 const string MkIron = "#9aa7b4";      // MARKER_COLORS.iron
@@ -207,6 +208,10 @@ string BuildSvg(PlanModel plan)
 
     var svg = new StringBuilder();
     svg.Append($"<svg viewBox=\"0 0 {N(vbw)} {N(vbh)}\" xmlns=\"http://www.w3.org/2000/svg\" class=\"map\" role=\"img\">");
+    // buffer (reserved-gap) diagonal-hatch pattern, in device pixels
+    svg.Append($"<defs><pattern id=\"buffer-hatch\" patternUnits=\"userSpaceOnUse\" width=\"6\" height=\"6\" patternTransform=\"rotate(45)\">" +
+               $"<rect width=\"6\" height=\"6\" fill=\"{CBuffer}\" fill-opacity=\"0.12\"/>" +
+               $"<line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"6\" stroke=\"{CBuffer}\" stroke-width=\"1.2\"/></pattern></defs>");
     svg.Append($"<rect x=\"0\" y=\"0\" width=\"{N(vbw)}\" height=\"{N(vbh)}\" fill=\"{BgCanvas}\"/>");
 
     // faint cell grid + origin axes + centre ring
@@ -233,10 +238,16 @@ string BuildSvg(PlanModel plan)
                        $"fill=\"{BgCanvas}\" fill-opacity=\"0.6\" stroke=\"{Accent}\" stroke-width=\"0.8\" stroke-dasharray=\"3 3\"/>");
     }
 
-    // pieces — solid role colour, fill-opacity 0.7, same-colour stroke
+    // pieces — solid role colour, fill-opacity 0.7, same-colour stroke; buffers hatched + dashed (no terrain)
     foreach (var p in pieceImgs)
     {
         var col = RoleColor(p.Role);
+        if (p.Role == PlanRoles.Buffer)
+        {
+            svg.Append($"<rect x=\"{N(PX(p.X1))}\" y=\"{N(PY(p.Z1))}\" width=\"{N((p.X2 - p.X1) * s)}\" height=\"{N((p.Z2 - p.Z1) * s)}\" " +
+                       $"fill=\"url(#buffer-hatch)\" stroke=\"{col}\" stroke-width=\"1.4\" stroke-dasharray=\"5 4\" stroke-opacity=\"0.85\"/>");
+            continue;
+        }
         svg.Append($"<rect x=\"{N(PX(p.X1))}\" y=\"{N(PY(p.Z1))}\" width=\"{N((p.X2 - p.X1) * s)}\" height=\"{N((p.Z2 - p.Z1) * s)}\" " +
                    $"fill=\"{col}\" fill-opacity=\"0.7\" stroke=\"{col}\" stroke-width=\"1.5\"/>");
     }
@@ -267,7 +278,7 @@ string BuildSvg(PlanModel plan)
     svg.Append("</svg>");
     return svg.ToString();
 
-    string RoleColor(string role) => role switch { PlanRoles.WoolRoom => CWoolRoom, PlanRoles.Spawn => CSpawnRole, _ => CPiece };
+    string RoleColor(string role) => role switch { PlanRoles.WoolRoom => CWoolRoom, PlanRoles.Spawn => CSpawnRole, PlanRoles.Buffer => CBuffer, _ => CPiece };
 }
 
 // FanImage twin: identity at k=0, else transform 4 corners by the k-th orbit axis about origin + rebound AABB.
@@ -351,6 +362,8 @@ string Page(string sections, string failuresPanel)
     .lg{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); font-family:var(--mono); }
     .sw{ width:13px; height:13px; border-radius:2px; flex:none; }
     .sw--zone{ background:color-mix(in srgb, var(--accent) 30%, transparent); border:1.3px dashed var(--accent); }
+    .sw--buffer{ background:repeating-linear-gradient(45deg, #f2792b 0 1.4px, transparent 1.4px 4px),
+      color-mix(in srgb, #f2792b 12%, transparent); border:1.3px dashed #f2792b; }
     .sw--dot{ border-radius:50%; }
     .sw--woolmk{ background:var(--mk-wool); } .sw--ironmk{ background:var(--mk-iron); }
     .legend-sep{ width:1px; align-self:stretch; background:var(--border); }
@@ -399,6 +412,7 @@ string Page(string sections, string failuresPanel)
             <span class="lg"><span class="sw" style="background:{CPiece}"></span>piece</span>
             <span class="lg"><span class="sw" style="background:{CWoolRoom}"></span>wool-room</span>
             <span class="lg"><span class="sw" style="background:{CSpawnRole}"></span>spawn</span>
+            <span class="lg"><span class="sw sw--buffer"></span>buffer</span>
           </div>
           <span class="legend-sep"></span>
           <div class="legend-group">

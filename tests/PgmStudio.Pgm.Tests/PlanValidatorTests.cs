@@ -186,6 +186,52 @@ public sealed class PlanValidatorTests
         await Assert.That(g2.SubjectIds).Contains("z");
     }
 
+    // ── annotation pieces (buffers) ───────────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task A_buffer_overlapping_different_surface_terrain_raises_no_overlap_error()
+    {
+        // the buffer overlaps both 'a' (surface 9) and 'b' (surface 13); if it were terrain those overlaps would
+        // be different-surface errors. As a non-generating annotation it is absent from d.Contacts → no error.
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
+                     {"id":"b","role":"piece","rect":[0,20,10,10],"surface":13},
+                     {"id":"buffer","role":"buffer","rect":[0,0,10,30]} ] }
+        """);
+        await Assert.That(Err(p, "different surfaces")).IsFalse();
+        await Assert.That(PlanValidator.Validate(p).Any(f => f.Severity == PlanSeverity.Error)).IsFalse();
+    }
+
+    [Test]
+    public async Task EL1_stays_silent_on_a_buffer_but_still_fires_on_terrain()
+    {
+        // a buffer produces no terrain, so an odd surface delta on it never triggers the plateau-step lint; the
+        // same delta on a generating piece still does (the skip is buffer-specific).
+        var buffer = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10],"surface":12} ] }""");
+        var terrain = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10],"surface":12} ] }""");
+        await Assert.That(Lint(buffer, "EL1")).IsFalse();
+        await Assert.That(Lint(terrain, "EL1")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_spawn_or_wool_placed_on_a_buffer_is_an_error()
+    {
+        // nothing may be placed on a buffer — it produces no ground for a marker to sit on.
+        var spawn = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ],
+          "placements":{ "spawns":[ {"piece":"buffer","at":[5,5],"facing":"front"} ] } }
+        """);
+        var wool = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ],
+          "placements":{ "wools":[ {"piece":"buffer","at":[5,5]} ] } }
+        """);
+        await Assert.That(Err(spawn, "non-generating buffer")).IsTrue();
+        await Assert.That(Err(wool, "non-generating buffer")).IsTrue();
+    }
+
     // ── lint ────────────────────────────────────────────────────────────────────────────────────────────
 
     [Test]

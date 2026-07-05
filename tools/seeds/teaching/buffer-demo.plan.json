@@ -1,0 +1,21 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "Buffer demo — reserved-gap annotations",
+    "notes": "Non-generating buffer pieces: a rotation-hole gap (buffer-hole), an on-axis mirrors:false centre reservation (buffer-center), and a lane-spacing gap between two lanes (buffer-lane). Buffers produce no terrain and are informational only."
+  },
+  "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9, "headroom": 11 },
+  "pieces": [
+    { "id": "hub", "role": "piece", "rect": [-2, 1, 4, 2] },
+    { "id": "band", "role": "piece", "rect": [-4, 5, 8, 2] },
+    { "id": "lane-a", "role": "piece", "rect": [-4, 8, 3, 2] },
+    { "id": "lane-b", "role": "piece", "rect": [1, 8, 3, 2] },
+    { "id": "buffer-hole", "role": "buffer", "rect": [-1, 3, 2, 2] },
+    { "id": "buffer-center", "role": "buffer", "rect": [-1, -1, 2, 2], "mirrors": false },
+    { "id": "buffer-lane", "role": "buffer", "rect": [-1, 8, 2, 2] }
+  ],
+  "zones": [],
+  "placements": { "spawns": [], "wools": [], "iron": [] },
+  "cliffs": [],
+  "walls": []
+}

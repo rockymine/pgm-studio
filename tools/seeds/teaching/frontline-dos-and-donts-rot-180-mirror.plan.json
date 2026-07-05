@@ -1,0 +1,824 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "frontline-dos-and-donts-rot-180-mirror"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "mirror_z",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "step-1b",
+      "role": "piece",
+      "rect": [
+        -1,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-1a",
+      "role": "piece",
+      "rect": [
+        -1,
+        5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "frontline-1",
+      "role": "piece",
+      "rect": [
+        -1,
+        9,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-2a",
+      "role": "piece",
+      "rect": [
+        4,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-2b",
+      "role": "piece",
+      "rect": [
+        8,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "frontline-2",
+      "role": "piece",
+      "rect": [
+        4,
+        5,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "step-3",
+      "role": "piece",
+      "rect": [
+        14,
+        1,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "frontline-3",
+      "role": "piece",
+      "rect": [
+        13,
+        5,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "step-0b",
+      "role": "piece",
+      "rect": [
+        -7,
+        1,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "step-0a",
+      "role": "piece",
+      "rect": [
+        -8,
+        5,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "frontline-0",
+      "role": "piece",
+      "rect": [
+        -8,
+        9,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "frontline-4",
+      "role": "piece",
+      "rect": [
+        22,
+        5,
+        8,
+        2
+      ]
+    },
+    {
+      "id": "step-4a",
+      "role": "piece",
+      "rect": [
+        22,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-4b",
+      "role": "piece",
+      "rect": [
+        26,
+        1,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "frontline-5a",
+      "role": "piece",
+      "rect": [
+        33,
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hub-5",
+      "role": "piece",
+      "rect": [
+        33,
+        5,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "frontline-5b",
+      "role": "piece",
+      "rect": [
+        37,
+        2,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "hub-6",
+      "role": "piece",
+      "rect": [
+        43,
+        8,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "frontline-6a",
+      "role": "piece",
+      "rect": [
+        43,
+        4,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "frontline-6b",
+      "role": "piece",
+      "rect": [
+        47,
+        4,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "hub-7",
+      "role": "piece",
+      "rect": [
+        52,
+        8,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "frontline-7a",
+      "role": "piece",
+      "rect": [
+        52,
+        4,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "frontline-7b",
+      "role": "piece",
+      "rect": [
+        56,
+        4,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "hub-8",
+      "role": "piece",
+      "rect": [
+        61,
+        6,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "frontline-8a",
+      "role": "piece",
+      "rect": [
+        61,
+        2,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "frontline-8b",
+      "role": "piece",
+      "rect": [
+        65,
+        2,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "frontline-9a",
+      "role": "piece",
+      "rect": [
+        70,
+        4,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "frontline-9b",
+      "role": "piece",
+      "rect": [
+        74,
+        4,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hub-9",
+      "role": "piece",
+      "rect": [
+        70,
+        6,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "step-9",
+      "role": "piece",
+      "rect": [
+        72,
+        0,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "frontline-10",
+      "role": "piece",
+      "rect": [
+        79,
+        4,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "step-10a",
+      "role": "piece",
+      "rect": [
+        79,
+        0,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-10b",
+      "role": "piece",
+      "rect": [
+        83,
+        0,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "step-11",
+      "role": "piece",
+      "rect": [
+        89,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "frontline-11",
+      "role": "piece",
+      "rect": [
+        93,
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hub-11",
+      "role": "piece",
+      "rect": [
+        89,
+        5,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "step-12",
+      "role": "piece",
+      "rect": [
+        -13,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "frontline-12",
+      "role": "piece",
+      "rect": [
+        -13,
+        5,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "step-13b",
+      "role": "piece",
+      "rect": [
+        -18,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-13a",
+      "role": "piece",
+      "rect": [
+        -22,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "frontline-13a",
+      "role": "piece",
+      "rect": [
+        -22,
+        5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "frontline-13b",
+      "role": "piece",
+      "rect": [
+        -18,
+        5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hub-13",
+      "role": "piece",
+      "rect": [
+        -22,
+        7,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "hub-14",
+      "role": "piece",
+      "rect": [
+        98,
+        7,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "frontline-14",
+      "role": "piece",
+      "rect": [
+        102,
+        5,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "step-14a",
+      "role": "piece",
+      "rect": [
+        98,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-14b",
+      "role": "piece",
+      "rect": [
+        102,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-14c",
+      "role": "piece",
+      "rect": [
+        106,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        106,
+        7,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "step-15",
+      "role": "piece",
+      "rect": [
+        111,
+        0,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "hub-15",
+      "role": "piece",
+      "rect": [
+        111,
+        4,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "frontline-15",
+      "role": "piece",
+      "rect": [
+        115,
+        2,
+        6,
+        2
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "band-1",
+      "rect": [
+        -1,
+        0,
+        2,
+        9
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-2",
+      "rect": [
+        4,
+        0,
+        6,
+        5
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-3",
+      "rect": [
+        13,
+        0,
+        6,
+        5
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-0",
+      "rect": [
+        -8,
+        0,
+        4,
+        9
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-4",
+      "rect": [
+        22,
+        0,
+        8,
+        5
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-5a",
+      "rect": [
+        33,
+        0,
+        2,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-5b",
+      "rect": [
+        37,
+        0,
+        3,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-6",
+      "rect": [
+        43,
+        0,
+        6,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-7a",
+      "rect": [
+        52,
+        0,
+        2,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-7b",
+      "rect": [
+        56,
+        0,
+        2,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-8a",
+      "rect": [
+        61,
+        0,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-8b",
+      "rect": [
+        65,
+        0,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "bridge-8b",
+      "rect": [
+        63,
+        2,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-9a",
+      "rect": [
+        70,
+        0,
+        2,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-9b",
+      "rect": [
+        74,
+        0,
+        2,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-10a",
+      "rect": [
+        79,
+        0,
+        2,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-10b",
+      "rect": [
+        83,
+        0,
+        3,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-11a",
+      "rect": [
+        89,
+        0,
+        2,
+        5
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-11b",
+      "rect": [
+        93,
+        0,
+        2,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-12",
+      "rect": [
+        -13,
+        0,
+        2,
+        5
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-13",
+      "rect": [
+        -22,
+        0,
+        6,
+        5
+      ],
+      "holes": []
+    },
+    {
+      "id": "bridge-10-optional",
+      "rect": [
+        81,
+        0,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-14a",
+      "rect": [
+        98,
+        0,
+        2,
+        7
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-14b",
+      "rect": [
+        102,
+        0,
+        6,
+        5
+      ],
+      "holes": []
+    },
+    {
+      "id": "bridge-14b",
+      "rect": [
+        100,
+        1,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-15a",
+      "rect": [
+        111,
+        0,
+        2,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "band-15b",
+      "rect": [
+        115,
+        0,
+        6,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "bridge-15",
+      "rect": [
+        119,
+        4,
+        2,
+        2
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [],
+    "wools": [],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}

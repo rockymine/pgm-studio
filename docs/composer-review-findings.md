@@ -55,3 +55,31 @@ only after the teaching material lands (the CT8 / BZ6–BZ9 path).
 - **Buffer / intentional-gap** — from #2 + the rot_90 centre buffer / border-reservation.
 
 Home + running list: `tools/seeds/teaching/SHOPPING-LIST.md`.
+
+
+Author remarks (05/07/2026):
+
+I have created frontline / mid examples for you that are applicable to rot-180 and mirror-x and mirror-z modes. For the plan I deliberately chose Mirror Z as that let me lay out the samples neatly side by side. I modeled flush with the mirror line, only ever on one side of it. I labeled the pieces and build zones of each example with proper ids. I used <type>-<example-number><optional: letter> as the labeling system. For the types I used step, frontline, hub, band, and bridge: frontline-0 and step-0a. Hub connects to frontlines, frontlines connect to bands and bridges (build zones), and steps are inside bands or touch bridges. I am going to describe the examples by their number now:
+
+frontline-dos-and-donts-rot-180-mirror:
+
+Examples 0, 1, and 12 are a NEGATIVE smell seen inside the generated seeds. It's the long thin band connecting to a often times thin frontline. 
+
+Examples 2, 3, and 4 show examples of wide frontlines. example 2 and 4 show multiple stepping stones sitting in the zone, parallel to each other. example 3 shows a large stepping stone sitting inside the band, with slight padding, while still keeping the band aligned with the corners of the frontline piece.
+
+Thus far the examples described all have wide frontline with islands that enable rotation. The generated seeds display a widespread use of double frontlines.
+
+Example 6 is the most common example in the set: A split frontline connected to a hub where the band sits flush with the two tips of the frontline pieces. Example 13 is a variation where the band contains steps. There are multiple variations that would make more interesting and better playing frontlines.
+
+Example 7 showcases how the two frontlines can have their individual band that then aligns with the opposing team's frontlines. This needs to be used carefully and the frontline-band-groups cannot be too long as otherwise these would be the negative examples 0, 1, and 12 again.
+
+We can improve these parallel bands by adding in another bridge-region bordering the frontline as example 8 shows (and still leaving a gap / buffer to the hub creating a hole for rotation). Example 9 shows how adding a stepping stone between the parallel bands connects them to offer a rotation as well. Example 10 shows that we can also place stepping stones inside the middle of each band (and optionally connect these stepping stones with a bridge-region).
+
+Example 11 shows how the frontline and hub can form an L as well and only one band holds a stepping stone. 
+
+I did also author some real interesting variations in Examples 14 that extend the L idea of Example 11 into a Z-tetris-piece. hub and frontline form the Z. hub and frontline have their own parallel running and non-touching bands with stepping stones. the frontline also connects to another piece forming a rotation point. Example 15 shows essentially the same concept but simplified a little bit with fewer stones and a bridge connection to a different part of the map.
+
+As you can see there are a lot of options.
+
+
+
