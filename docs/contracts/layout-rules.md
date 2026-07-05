@@ -276,6 +276,23 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   **≥1 closure hole per team side as the default** and holelessness as a sampled exception; a lint
   flags a holeless plan, never blocks it.
 
+  **Function is read from the hole's ring** (the pieces/zones bordering the void)
+  [author, corpus-refined]: a hole whose ring **contains a wool** (a wool-carrying piece or a
+  `wool-room`) is the **hole-mediated two-approaches device** — attackers route around the void
+  into the room from two sides (the WL8 pattern realized by a hole); every other hole serves
+  **rotation**. Measured: strict wool-ring holes are the three base seeds (`bar-w` in each) and
+  `odd-facing-three-wool`'s `wool-3`, all sitting in the **far** distance third (deep team side,
+  where rooms live); rotation holes run **78% near/mid** (18 distinct hole types). The base-seed
+  hits are **author-confirmed** two-approach wools: an approach that crosses the sealing zone
+  (bridged, not walked) still counts as an approach. Two cautions
+  from the sweep: (1) WL1's *authored* two-sided rooms are a **sibling device** — seam-mediated
+  (two land seams into the room), not necessarily hole-mediated; `four-team-wool-two-sided`'s
+  land hole is one hop from its room's two seams, `mirror-big-board`'s land holes are unrelated
+  to its wool entirely. (2) A **fourth formation mechanism** exists: the all-zone ring
+  (`four-team-wool-two-sided`'s centre hole is bordered by zones only, no terrain piece).
+  Composer: default holes are rotation holes (near/mid); a wool-ring hole is only produced when
+  deliberately drawing the WL8 two-approach variant, never by accident.
+
 ## BZ — Build zones
 
 - **BZ1 [expert]** Superseded by FR1+FR2: zones are authored precisely in the plan editor;
@@ -293,6 +310,38 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   spawn's second exit is a bridge mainly for defenders rotating to their wool; attackers push the
   other crossings). No proximity rule; the old lint is dropped. Wool rooms may also be touched
   (WL8 alternative-approach variants).
+
+The four rules below are **author-curated (amendment 2026-07-04)**: evidence is the teaching
+sketch `tools/seeds/build-interface-dos-and-donts.plan.json` + the review
+`docs/build-zone-failure-modes.md` (per-example ids there). The sketch informs **build-zone rules
+only** — its islands are scaffolding (its `piece-9` dead-end is disclaimed), and it is not part of
+the stat corpus.
+
+- **BZ6 [author]** **The mid build region never interfaces a wool piece — and never contains a
+  wool position.** Otherwise players bridge freely through the mid straight into the point and
+  there is no gameplay direction. A zone touching a wool room exists only as the *deliberate*
+  WL8 two-approach variant (BZ5's wool note), never as mid-band spillover.
+- **BZ7 [author]** **Dock, don't overlap.** A connecting zone snaps **flush** against the pieces
+  it connects (shared border, zero area overlap) — designers extrude a lane into an L/T-section
+  for the zone to *visually dock against*, which is also what makes layouts readable. One
+  sanctioned overlap form: the **clean-mid plaza** (sketch `zone-11`) may fully encase mid stones
+  and partially lap the frontline pieces it connects — but stays in bounds, never overflows
+  outward into unconnectable void, and never laps pieces it does not connect (`zone-12` is the
+  negative: needless overlap + void overflow, "a prominent contamination in the generated seeds").
+  A zone may cut across an L-shaped assembly only **preserving the L's geometry** (flush with one
+  border, forming a straight line — sketch `piece-8`/`zone-4`/`piece-4`).
+- **BZ8 [author]** **A bridge region requires readability.** Docking into a **large island's long
+  straight face** needs a small **connector extrusion** (~2 cells wide, the "offspring" piece from
+  the island) carrying the interface; a 2-wide zone lapping an 8-cell straight edge with no
+  connector is the named failure. The good ends of the spectrum: a zone spanning the **full width
+  of a narrow lane end** (sketch `piece-10`↔`zone-5`), and a connector piece with "the perfect
+  width to bridge the gap and no overlap" (sketch `piece-6`↔`zone-2`↔`piece-3`). Zone width ≈
+  interface width ≈ connector width.
+- **BZ9 [author]** **Fit.** The zone spans exactly what it connects: not **underfit** (sketch
+  `zone-13`: a 1-wide interface between two 2-wide parallel faces), not **overfit** (wider/taller
+  than the gap, lapping pieces or spilling into void with nothing to connect to). Oversized mid
+  regions spanning the whole board width "AND more" are the failure mode; the mid band is sized
+  to the frontline interval it serves.
 
 ## EL — Elevation
 
@@ -414,6 +463,18 @@ palette, the plaza hub, and the 35 crossing at 30/team):
 1. **CT8 added (2026-07-04, composer round 1).** Internal holes / rotation loops — author-stated
    during the composer build-out, then measured universal (12/12 seeds at closure level; sweep in
    `docs/seed-stats.md`, "Internal-hole sweep"). New rule, no existing rule changed.
+2. **CT8 function split by ring (2026-07-04, composer round 1).** Author: wool in the hole's
+   ring ⇒ the two-approaches pattern, else rotation. Corpus-validated with two refinements: the
+   WL1 two-sided rooms are a seam-mediated sibling (not the same device), and the all-zone ring
+   is a fourth formation mechanism. The naive correlation "land-only-hole seeds = two-sided-wool
+   seeds" was tested and REJECTED (1 of 4, relaxed reading only) — the ring test, not the
+   land/closure distinction, carries the function. Author-confirmed: bridged approaches count
+   (the base-seed `bar-w` holes are two-approach wools).
+3. **BZ6–BZ9 added (2026-07-04, composer round 2).** Build-zone interface discipline from the
+   author's review of the first generated mids (`docs/build-zone-failure-modes.md`) + the curated
+   teaching sketch `build-interface-dos-and-donts.plan.json`: mid never touches wool (BZ6), dock
+   don't overlap with the plaza-encasement exception (BZ7), connector-extrusion readability (BZ8),
+   zone fit (BZ9).
 
 ## Correction protocol
 

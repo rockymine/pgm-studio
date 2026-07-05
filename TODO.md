@@ -19,9 +19,11 @@ rule set (`docs/contracts/layout-rules.md`, v3) in the §3 order of `docs/contra
 — compose the closure, assign team sides, carve the mid (clean/parallel/hash), cut the team sides,
 validate, compile through the existing seed chain.
 
-- [~] **G32 — Composer v1 skeleton.** Landed so far: envelope + team-unit grower (`FEATURES.md`).
-  Remaining: carve the **clean** mid (one merged build region + CT7-aligned stones thinning per CT4;
-  G5/G7 hop arithmetic; CT8 closure holes as the default), CT5 isolation cuts (~40% motif), then
-  markers/heights/walls (SP4/EL1/WL5/SP7/ST4), gate on `PlanValidator` zero-errors + `FannedGraph`
-  traversability + the `seed-stats.md` envelopes, emit `plan.json` loadable in the plan editor with
-  fixed-seed goldens. The frozen rules are the acceptance oracle.
+- [~] **G32 — Composer v1 skeleton.** Landed (both in `FEATURES.md`; suite 314 green): envelope +
+  team-unit grower (A) and mid carve + isolation cuts + build-zone discipline (B). Remaining:
+  **G32-C markers/heights/walls** — SP3/SP4 spawn (facing absolute, raised), SP7 iron, WL5 stepped
+  approach climb, EL1 palette (base 9, step 2, all-odd), ST4 walls, EL6, and set piece roles (all
+  pieces render neutral until this lands); consider a CT4 mid-band spine to relieve the p30 floor.
+  **G32-D gates + goldens + emit** — `PlanValidator` zero-errors with zones present, `FannedGraph`
+  full traversability, stat envelopes vs `seed-stats.md`, `plan.json` loadable in `/plan`, fixed-RNG
+  goldens under `tests/`. p5/rot_90 stays a known limitation until **G35**. Frozen rules are the oracle.

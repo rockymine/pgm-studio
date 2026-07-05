@@ -652,6 +652,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   slices. 300 Pgm tests green (43 new: known-answer RNG pins, envelope bands, invariant +
   distribution sweeps ~1,080 composes). (G32 — first slice)
 
+- **Composer — mid carve, isolation cuts + build-zone discipline (B track)** — `PgmStudio.Pgm/Compose/`:
+  `MidCarver` samples the crossing before growth (R0/R1/R2 hop designs, twin frontline chains as the CT8
+  hole mechanism, mid stones on CT7-snapped candidate columns) and carves the mid band sized between the
+  minimal connecting interval and the face hull (never board-width — BZ9), docking flush to the frontline
+  faces (BZ7/BZ8) and clearing every wool piece by ≥2 cells (BZ6). `IsolationCut` severs a marker piece
+  behind a bridge (CT5; spawn only at ≥10/team — SP6); `ClosureAnalysis` rasters the closure for holes
+  (`HoleSizes`/`AnyHoleRingedBy`); `ComposeGeometry` fans images. `Composer.ComposeStages` runs the full
+  order (envelope → crossing → grow → carve → cut → assemble) behind an acceptance gate (`PlanValidator`
+  zero-errors, every gap hop in 10..20, BZ6 clearance re-checked post-cut, no wool-ringed hole) with a
+  hole-hunt on both branches (holed by default, holeless the sampled exception). Rules amended: BZ6–BZ9
+  build-zone interface discipline + the CT8 hole-ring split (`layout-rules.md`). 314 Pgm tests green.
+  **Known limitation:** p5 (t2 and t4/rot_90) is structurally infeasible under BZ6 + spawn ≥2×2 within the
+  fixed budget — deferred to the buffer-tile fix (G35). (G32 — B track)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

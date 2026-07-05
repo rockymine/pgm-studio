@@ -44,4 +44,10 @@ internal readonly record struct Frame(char PrimaryAxis, int Sign)
         var (x, z) = ToPoint(u, v);
         return [x - rect[0], z - rect[1]];
     }
+
+    /// <summary>The inverse of <see cref="ToRect"/>: recover a cell rect's generalized
+    /// (uMin, uSpan, vMin, vSpan) interval pair.</summary>
+    public (int UMin, int USpan, int VMin, int VSpan) FromRect(int[] rect) => PrimaryAxis == 'z'
+        ? (Sign > 0 ? rect[1] : -(rect[1] + rect[3]), rect[3], rect[0], rect[2])
+        : (Sign > 0 ? rect[0] : -(rect[0] + rect[2]), rect[2], rect[1], rect[3]);
 }

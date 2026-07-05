@@ -251,6 +251,22 @@ The open work sorts into three domains:
   **Deliberately moves the §6 division-of-labour boundary** (layout-generation.md: art was "always manual"
   post-detach polish): generator does layout + *baseline* theming; character/set pieces/themed identity stay
   the author's (Tier 3 unchanged).
+- [ ] **G35 — Composer buffer tile + rot_90 border-reservation (unblocks p5 / small rot_90).** A new
+  non-generating **buffer** design-tile that doesn't rasterize but informs the model — it marks intentional
+  gaps and holes (spacing between spawn↔wool / wool↔wool lanes; the rot_90 **centre buffer**), plus a
+  **rectilinear quadrant allotment reserving a ≥1-cell border** on rot_90 boards so the quarter-turn image
+  can't self-collapse. Unblocks the two deferred composer infeasibilities: p5 (BZ6 + spawn ≥2×2 over-budget
+  at 325 blocks²) and p5/t4/rot_90 (axis-centred hub/stone welds with its own quarter-turn image — board-
+  size independent). Needs teaching material first (`tools/seeds/teaching/SHOPPING-LIST.md`), then a
+  `layout-rules.md` amendment. Never fix p5 by enlarging the board (re-triggers the LN2 arm stretch).
+- [ ] **G36 — Composer generation polish (from the B2 review).** All in `docs/composer-review-findings.md`:
+  (1) the mid-band renders **asymmetric under rot_180** on some seeds (p30-s7/s13 one-sided, p20-s7 both-
+  sided) — investigate a real off-centre band vs a render artefact **first**; (2) high-budget boards force
+  3 wool lanes into long L/I extrusions — **fold** lanes / add **ringed alternate attack routes** instead;
+  (3) hub is always one square — **vary hub shape** (multi-piece); (4) **cap spawn-lane growth** (p30-s13
+  over-grown L); (5) a single frontline must be **wider** with the build zone docking fully + stepping
+  stones on a **2×2 grid**, never a 1-D chain funnelling one gap (p30-s1); (6) all boards double-frontline
+  now — add variety. Author is producing a frontline teaching set (`SHOPPING-LIST.md`).
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding

@@ -1,0 +1,418 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "build-interface-dos-and-donts"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -3,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        1,
+        1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -4,
+        3,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -3,
+        5,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        1,
+        5,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -8,
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -10,
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        5,
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        7,
+        3,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        -7,
+        7,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        3,
+        7,
+        5,
+        2
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -9,
+        7,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        -3,
+        11,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        -3,
+        15,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        1,
+        15,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-13",
+      "role": "piece",
+      "rect": [
+        -7,
+        15,
+        2,
+        5
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        -5,
+        19,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "piece-15",
+      "role": "piece",
+      "rect": [
+        -3,
+        28,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-16",
+      "role": "piece",
+      "rect": [
+        -7,
+        27,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "piece-17",
+      "role": "piece",
+      "rect": [
+        -5,
+        23,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-18",
+      "role": "piece",
+      "rect": [
+        -7,
+        34,
+        9,
+        2
+      ]
+    },
+    {
+      "id": "wool-3",
+      "role": "wool-room",
+      "rect": [
+        2,
+        34,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-19",
+      "role": "piece",
+      "rect": [
+        -4,
+        36,
+        2,
+        6
+      ]
+    },
+    {
+      "id": "piece-20",
+      "role": "piece",
+      "rect": [
+        11,
+        7,
+        2,
+        2
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -3,
+        0,
+        6,
+        1
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        -6,
+        3,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        2,
+        3,
+        4,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-4",
+      "rect": [
+        -5,
+        7,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-5",
+      "rect": [
+        -3,
+        8,
+        6,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-6",
+      "rect": [
+        -3,
+        13,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-7",
+      "rect": [
+        1,
+        13,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-8",
+      "rect": [
+        -1,
+        15,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-9",
+      "rect": [
+        -5,
+        15,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-10",
+      "rect": [
+        -3,
+        17,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-11",
+      "rect": [
+        -7,
+        20,
+        6,
+        8
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-12",
+      "rect": [
+        -12,
+        28,
+        15,
+        7
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-13",
+      "rect": [
+        7,
+        8,
+        5,
+        1
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          1,
+          1
+        ],
+        "facing": "right"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          1,
+          1
+        ]
+      },
+      {
+        "piece": "wool-3",
+        "at": [
+          1,
+          1
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}
