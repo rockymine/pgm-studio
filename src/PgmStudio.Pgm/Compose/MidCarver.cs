@@ -111,16 +111,30 @@ public static class MidCarver
                 .Where(v => v >= hullL && v + sw <= hullR)                        // MD4/BZ9: inside the band's extent
                 .ToList();
             if (candidates.Count == 0) return null;
-            var vMin = rng.Pick(candidates);                                      // (m2) CT7 column
+            var seedCol = rng.Pick(candidates);                                  // (m2) CT7 seed column
+            var surfaces = design.Rows                                           // (m3) per row: level or raised (EL1)
+                .Select(_ => rng.NextBool(0.5) ? env.Surface + 4 : env.Surface).ToList();
 
-            for (var i = 0; i < design.Rows.Count; i++)
+            // (m2b) MD6: lay the stones as a lateral GRID of CT7 columns rather than a single-file chain — a
+            // crossing the player reads as a lattice with several routes, not one funnel. Columns spread from
+            // the seed keeping the isolation clearance between neighbours; a hull too narrow for a second
+            // column, or a grid that can't clear its own fanned images, collapses back to the seed column.
+            var clearCells = (TeamUnitGrower.ImageClearanceBlocks + env.Cell - 1) / env.Cell;
+            List<MidStone> BuildGrid(IReadOnlyList<int> columns) =>
+                design.Rows.SelectMany((r, i) => columns.Select((c, j) => new MidStone(
+                    $"stone-{(char)('a' + i)}{(columns.Count > 1 ? $"{j + 1}" : "")}",
+                    frame.ToRect(r.UMin, r.Depth, c, sw), surfaces[i]))).ToList();
+
+            var cols = SelectStoneColumns(candidates, seedCol, sw, clearCells);
+            stones = BuildGrid(cols);
+            if (cols.Count > 1 && !ComposeGeometry.SeparationOk(
+                    env, unit.Pieces.Select(p => p.Rect).ToList(), stones.Select(s => s.Rect).ToList()))
             {
-                var surface = rng.NextBool(0.5) ? env.Surface + 4 : env.Surface;  // (m3) level or raised (EL1)
-                stones.Add(new MidStone($"stone-{(char)('a' + i)}",
-                    frame.ToRect(design.Rows[i].UMin, design.Rows[i].Depth, vMin, sw), surface));
+                cols = [seedCol];
+                stones = BuildGrid(cols);
             }
-            stoneL = vMin;
-            stoneR = vMin + sw;
+            stoneL = cols.Min();
+            stoneR = cols.Max() + sw;
         }
 
         // ── band lateral (BZ9): sampled between the minimal connecting interval and the face hull. The
@@ -243,6 +257,30 @@ public static class MidCarver
                 if (!result.Contains(vMin)) result.Add(vMin);
             }
         return result;
+    }
+
+    /// <summary>MD6: choose a lateral spread of stone columns from the CT7 <paramref name="candidates"/>, so
+    /// the crossing reads as a grid rather than one column. Greedy from the sampled <paramref name="seedCol"/>:
+    /// repeatedly add the candidate whose nearest chosen neighbour is farthest away (the most spread-out
+    /// placement) while keeping every neighbour a full <paramref name="stoneW"/> + one hop
+    /// (<paramref name="clearCells"/>) apart, capped at three columns. A hull with room for only the seed
+    /// returns just it — the pre-MD6 single-column placement. Deterministic (no draws): the caller has
+    /// already drawn the seed, so a grid never perturbs the golden RNG sequence.</summary>
+    public static IReadOnlyList<int> SelectStoneColumns(
+        IReadOnlyList<int> candidates, int seedCol, int stoneW, int clearCells)
+    {
+        var chosen = new List<int> { seedCol };
+        var pitch = stoneW + clearCells;                     // neighbour spacing floor: edge gap ≥ clearance
+        const int maxCols = 3;
+        while (chosen.Count < maxCols)
+        {
+            var room = candidates.Where(v => chosen.All(c => Math.Abs(v - c) >= pitch)).ToList();
+            if (room.Count == 0) break;
+            var next = room.OrderByDescending(v => chosen.Min(c => Math.Abs(v - c))).ThenBy(v => v).First();
+            chosen.Add(next);
+        }
+        chosen.Sort();
+        return chosen;
     }
 
     /// <summary>Whether the symmetry's opposing image flips the cross axis (the rotations do; the mirrors
