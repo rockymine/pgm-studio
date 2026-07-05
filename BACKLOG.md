@@ -251,34 +251,6 @@ The open work sorts into three domains:
   **Deliberately moves the §6 division-of-labour boundary** (layout-generation.md: art was "always manual"
   post-detach polish): generator does layout + *baseline* theming; character/set pieces/themed identity stay
   the author's (Tier 3 unchanged).
-- [ ] **G35 — Composer-side buffer reservation (unblocks p5 / small rot_90).** The `buffer` annotation
-  primitive has **shipped** (`FEATURES.md`) — a non-generating design tile marking reserved empty space.
-  Remaining: have the **composer author buffers/allotments during generation** — reserve a ≥1-cell border on
-  rot_90 boards (so the quarter-turn image can't self-collapse) and hold spacing on small boards — to unblock
-  the two deferred infeasibilities: p5 (BZ6 + spawn ≥2×2 over-budget at 325 blocks²) and p5/t4/rot_90 (axis-
-  centred hub/stone welds with its own quarter-turn image, board-size independent). Teaching material +
-  a `layout-rules.md` amendment first. Never fix p5 by enlarging the board (re-triggers the LN2 arm stretch).
-- [ ] **G36 — Composer generation polish (from the B2 review).** All in `docs/composer-review-findings.md`:
-  (1) the mid-band renders **asymmetric under rot_180** on some seeds (p30-s7/s13 one-sided, p20-s7 both-
-  sided) — investigate a real off-centre band vs a render artefact **first**; (2) high-budget boards force
-  3 wool lanes into long L/I extrusions — **fold** lanes / add **ringed alternate attack routes** instead;
-  (3) hub is always one square — **vary hub shape** (multi-piece); (4) **cap spawn-lane growth** (p30-s13
-  over-grown L); (5) a single frontline must be **wider** with the build zone docking fully + stepping
-  stones on a **2×2 grid**, never a 1-D chain funnelling one gap (p30-s1); (6) all boards double-frontline
-  now — add variety. Author is producing a frontline teaching set (`SHOPPING-LIST.md`). **The mid-feel
-  slice (5) is in progress** (composer round 4: MD6 grid + a wide frontline); items (2)/(3) fold into G37.
-- [ ] **G37 — Lane-archetypes track (lane shapes · frontline connections · hub shaping).** "Lane-heavy is
-  bad" — the composer's long stub-ish lanes dominating a thin mid is a **defect**, not an archetype to
-  sample (author, 2026-07-05). The genuine lane grammar is its own track: real **lane archetypes**, **what
-  connects to the frontline** (which lanes/hubs dock it and how), and **how hubs shape** (absorbs G36 (2)/(3)).
-  Blocked on the author authoring more teaching maps; **not** a budget lane-heavy/wide split (see the
-  `composer-lane-archetypes-future` memory). Sequenced **after** the mid-feel slice — get mids right first.
-- [ ] **G38 — Multiple / parallel mid bands (FR7).** The composer only ships the **CT1 clean form** — one
-  band spanning the axis, its fan merged into a single build region. Maps also use **two (or more) parallel
-  mid bands** with their own variations (the `big-board-wool-two-sided-plaza-parallel-mid` seed; FR7's
-  variable-length parallel bands, rot_180-only). Not yet generated — an **unshipped feature**, not a bug.
-  Needs a multi-band crossing form (each band its own dock + hop arithmetic) and the fan/merge to keep them
-  distinct. Author flagged the gap during the centreline review (2026-07-05).
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
   is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
   ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding
