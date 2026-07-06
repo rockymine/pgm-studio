@@ -155,12 +155,20 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    measured count, not a role.)*
 5. **Axis position** — each piece's distance to / straddle of the symmetry axis, from cell coordinates.
 6. **Build interfaces** — per island/piece, the count and total width of edges touching a build region.
-6a. **Intra-team bridge** — a build region joining **exactly** a team's own spawn-holding and wool-holding
-   island (same orbit image, nothing else) is an *internal* spawn↔wool bridge, not a frontline (§5.2). Kept as
-   its **own signal**, not just an exclusion: it marks a deliberate **internal gap** — a piece chopped off the
-   main mass and bridged back across a slow-down void (the CT5 isolation cut) — so it teaches the builder where
-   intentional slow-the-attacker gaps and standalone lanes come from. The interface edges are rendered
-   distinctly (pink) and counted per plan.
+6a. **Intra-team bridge** — a build region that lies on a team's own internal spawn↔wool route. Two forms:
+   the **direct** bridge (a region joining a team's spawn-holding and wool-holding island); and the **chain**
+   spawn ↔ *stepping stone* ↔ wool, where the intervening island is **CAPTIVE** to the team — every build
+   region touching it stays single-team, so no enemy can reach it. A neutral island that any *second* team can
+   also reach (a contested middle island / tower) is **not** captive, so a region bridging out to it stays a
+   frontline. Formally: build the graph of a team's islands joined by single-team regions, keeping only route-
+   eligible nodes (captive islands, plus spawn/wool anchors which may also face the shared mid); a single-team
+   region touching ≥2 eligible islands whose component holds both a spawn and a wool is an intra bridge. This
+   subsumes the direct case (it is the zero-stepping-stone chain) and cleanly separates a **team stepping
+   stone** (on the spawn↔wool movement path, captive) from a **middle stepping stone** (contested, reachable by
+   more than one team — a frontline island, §5.2). Kept as its **own signal**, not just an exclusion: it marks
+   a deliberate **internal gap** — a piece chopped off the main mass and bridged back across a slow-down void
+   (the CT5 isolation cut) — so it teaches the builder where intentional slow-the-attacker gaps and standalone
+   lanes come from. The interface edges are rendered distinctly (pink) and counted per plan.
 7. **Void topology** — a hole is **true void** (empty, non-buildable) the border can't reach without crossing
    **terrain or a build region** (both are walls for the enclosure flood): enclosed → **hole**, border-reachable
    → **spacing**. Build must wall the flood, otherwise a rotation pocket ("rotary device") near the frontline —
@@ -190,11 +198,15 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   an objective (isolated-wool) island is void-dominant (`isolated-spawn`, 4 build / 22 void) and keeps its
   frontline. **Across the whole corpus, void-dominant ≡ anchored (holds a spawn or wool)** — the geometric test
   and ownership coincide, which is the validation that this is the right cut. **Intra-team interfaces are
-  excluded [decided]:** a build region (connected empty buildable cells) that connects **exactly** a spawn-
-  holding island and a wool-holding island *of the same team* — touching nothing else — is an internal
-  spawn↔wool bridge; the edges those two islands present to it are intra-team interfaces, not frontlines. (Same
-  team = same orbit image k. Validated to the block: `base-2wool` 18→10 (−8), `four-team-towers-big` 52→28
-  (−6×4), `base-4team` unaffected — it has no separate wool island, so no spawn↔wool bridge.)
+  excluded [decided]:** a build region on a team's own internal spawn↔wool route (direct, or a chain through a
+  **captive** stepping stone — §5.1 6a) is an intra-team interface, not a frontline; its edges are re-tagged
+  from the front set and drawn pink, and — because a captive stepping stone is itself build-dominant — its
+  *own* edges to that region are collected as intra even though the stepping stone would otherwise carry no
+  frontline. Validated to the block: `base-2wool` 18→10 front (−8, +8 intra), `four-team-towers-big` 52→28
+  front (−6×4, +24 intra), `base-4team` unaffected (no separate wool island → no bridge), and the chain case
+  `rotate-wide-frontline` 44→28 front (−16, +32 intra: 16 re-tagged former frontlines + 16 stepping-stone
+  edges that were previously unannotated). The captive-chain rule is byte-identical to the old direct-bridge
+  rule on every other seed — it only *adds* rotate-wide's stepping-stone regions.
 - **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
   peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
   a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
@@ -204,12 +216,13 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   as just "an island"; the term "stepping stone" is fine). **Geometrically [decided]: a build-dominant island
   (border more build than void — embedded in the crossing) or a pure-void (floating) island is a stepping stone**
   (it has no frontline; see the frontline bullet). On the corpus this is exactly the anchorless islands.
-  Two provisional sub-kinds, told apart by **axis
-  proximity + build-interface count** (neither alone — a middle stone can touch a build region on just two
-  edges): a **middle island** on/straddling the symmetry axis (position-derivable; the CT11 centre island
-  when it is a mid stone, any size), vs a **lane stepping stone** out along a marker branch's path (the
-  artifact of cutting a lane segment and swapping it for a build zone). Provisional — the evaluator keys off
-  axis-distance and interface-count, not the sub-kind name.
+  Two sub-kinds, now told apart **geometrically** by the *captive* test (§5.1 6a): a **team stepping stone**
+  is CAPTIVE — every region touching it stays single-team, so it sits on that team's own spawn↔wool route
+  (players move spawn ↔ stone ↔ wool) and its edges register as **intra-team**, not frontline; a **middle
+  stepping stone** is reachable by more than one team (a contested centre island / tower, typically on or near
+  the symmetry axis) and is *not* captive, so it keeps its frontline edges. This is a cleaner cut than the
+  earlier "axis proximity + interface count" heuristic — reachability decides it. (`rotate-wide-frontline`'s
+  isl11/isl13 are captive team stones; `four-team-towers-big`'s towers are contested middle stones.)
 
 The **mid** itself ranges from *one open build rectangle over the void* (players bridge freely) to
 *islands nested in / bordering the build regions* (channelled crossings); the residual may legitimately

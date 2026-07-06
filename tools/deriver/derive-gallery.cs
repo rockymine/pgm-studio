@@ -173,9 +173,14 @@ Derived Derive(PlanModel plan)
         }
     }
 
-    // intra-team bridges — a build region (connected empty buildable cells) that connects EXACTLY a spawn-holding
-    // island and a wool-holding island OF THE SAME TEAM, touching nothing else, is an internal spawn<->wool
-    // bridge. The edges those two islands present to it are intra-team interfaces, not frontlines.
+    // intra-team bridges — a build region (connected empty buildable cells) that is part of a team's own
+    // internal spawn<->wool route across a deliberate gap. Direct case: a region touching only that team's
+    // spawn island and wool island. Chain case: spawn <-> stepping stone <-> wool, where the stepping stone
+    // is CAPTIVE to the team (every region touching it stays single-team — no enemy can reach it). A neutral
+    // island that any second team can also reach (a contested middle island / tower) is NOT captive, so a
+    // region bridging out to it stays a frontline, not an intra interface. The edges these regions present
+    // are intra-team interfaces — the deliberate internal gap where a piece was chopped off and bridged back
+    // to slow attackers (the isolation cut), a learnable pattern for the builder.
     var regionOf = new Dictionary<(int, int), int>();
     var regionCount = 0;
     foreach (var b in build)
@@ -203,14 +208,50 @@ Derived Derive(PlanModel plan)
         hasSpawnI[i] = islands[i].Any(c => spawnKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.Spawn);
         hasWoolI[i] = islands[i].Any(c => woolKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.WoolRoom);
     }
+
+    // a region is single-team if every island it touches belongs to one team
+    var singleTeam = new bool[regionCount];
+    for (var r = 0; r < regionCount; r++)
+        singleTeam[r] = regionIslands[r].Count > 0 && regionIslands[r].Select(i => islandTeam[i]).Distinct().Count() == 1;
+
+    // an island is CAPTIVE if every build region touching it is single-team — no enemy team can reach it.
+    // A spawn/wool anchor is always a valid route endpoint even when it also faces a shared (multi-team)
+    // region (a spawn fronting the mid band). Only a captive island may be a pass-through stepping stone.
+    var islandRegions = Enumerable.Range(0, islands.Count).Select(_ => new List<int>()).ToArray();
+    for (var r = 0; r < regionCount; r++) foreach (var i in regionIslands[r]) islandRegions[i].Add(r);
+    var captive = new bool[islands.Count];
+    for (var i = 0; i < islands.Count; i++) captive[i] = islandRegions[i].All(r => singleTeam[r]);
+    var nodeIn = new bool[islands.Count];            // islands eligible to lie on an internal route
+    for (var i = 0; i < islands.Count; i++) nodeIn[i] = captive[i] || hasSpawnI[i] || hasWoolI[i];
+
+    // union-find over the route-eligible islands, joined by single-team regions — each component is one
+    // team's internal reachability. A region is an intra bridge iff it stays inside this subgraph (touches
+    // >=2 eligible islands) and its component holds both a spawn and a wool (it is ON a spawn<->wool route).
+    var uf = Enumerable.Range(0, islands.Count).ToArray();
+    int Find(int x) { while (uf[x] != x) { uf[x] = uf[uf[x]]; x = uf[x]; } return x; }
+    void Union(int a, int b) { uf[Find(a)] = Find(b); }
+    for (var r = 0; r < regionCount; r++)
+    {
+        if (!singleTeam[r]) continue;
+        var elig = regionIslands[r].Where(i => nodeIn[i]).ToList();
+        for (var t = 1; t < elig.Count; t++) Union(elig[0], elig[t]);
+    }
+    var compSpawn = new HashSet<int>();
+    var compWool = new HashSet<int>();
+    for (var i = 0; i < islands.Count; i++)
+    {
+        if (!nodeIn[i]) continue;
+        if (hasSpawnI[i]) compSpawn.Add(Find(i));
+        if (hasWoolI[i]) compWool.Add(Find(i));
+    }
     var intraTeam = new bool[regionCount];
     for (var r = 0; r < regionCount; r++)
     {
-        if (regionIslands[r].Count != 2) continue;                       // must connect exactly two islands
-        var arr = regionIslands[r].ToArray();
-        int i = arr[0], j = arr[1];
-        if (islandTeam[i] == islandTeam[j] && ((hasSpawnI[i] && hasWoolI[j]) || (hasSpawnI[j] && hasWoolI[i])))
-            intraTeam[r] = true;                                         // same-team spawn island + wool island
+        if (!singleTeam[r]) continue;
+        var elig = regionIslands[r].Where(i => nodeIn[i]).ToList();
+        if (elig.Count < 2) continue;                 // a bridge OUT to a non-captive island is not internal
+        int root = Find(elig[0]);
+        if (compSpawn.Contains(root) && compWool.Contains(root)) intraTeam[r] = true;
     }
 
     // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
@@ -221,12 +262,15 @@ Derived Derive(PlanModel plan)
     foreach (var c in filled.Keys)
     {
         int isl = islandOf[c];
-        if (islVoid[isl] <= islBuild[isl]) continue;   // build-dominant or pure void → stepping stone, no frontline
+        bool voidDom = islVoid[isl] > islBuild[isl];   // exposed territory (else a stepping stone)
         foreach (var (nb, seg) in N4Seg(c))
         {
             if (!(build.Contains(nb) && !filled.ContainsKey(nb))) continue;
-            if (regionOf.TryGetValue(nb, out var r) && intraTeam[r]) intraEdges.Add(seg);   // intra-team spawn<->wool bridge
-            else frontEdges.Add(seg);
+            // an intra-team bridge is marked wherever it appears — a build-dominant stepping stone that only
+            // connects a team's own pieces is part of that team's internal lane, not a frontline. Frontline
+            // edges are still gated to void-dominant islands (exposed territory facing a shared void).
+            if (regionOf.TryGetValue(nb, out var r) && intraTeam[r]) intraEdges.Add(seg);
+            else if (voidDom) frontEdges.Add(seg);
         }
     }
 
@@ -489,9 +533,11 @@ string Page(string cardsHtml)
         <b>n×</b> beside each wool is its approach count (green ≥2 = multi-access, red = lone dead-end); the
         <strong style="color:{CVoidUndecl}">red voids</strong> are enclosed empties nobody has declared yet —
         <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). A
-        <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region
-        joining only a team's own spawn + wool islands: it marks a deliberate internal gap where a piece was
-        chopped off and bridged back to slow attackers (the isolation cut), a learnable pattern for the builder.
+        <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region on
+        a team's own internal spawn↔wool route (direct, or a chain through a <b>captive</b> stepping stone only that
+        team can reach): it marks a deliberate internal gap where a piece was chopped off and bridged back to slow
+        attackers (the isolation cut), a learnable pattern for the builder. Captivity also separates a <b>team</b>
+        stepping stone (on the spawn↔wool path) from a <b>middle</b> one (a contested centre island).
         Disagreements are the cutoff test set. Per <code>docs/contracts/layout-evaluator.md</code> §5.</p>
         {legend}
       </header>
@@ -505,7 +551,8 @@ string Page(string cardsHtml)
       but only on a VOID-DOMINANT island (more void-border than build-border — exposed territory); a build-
       dominant island (embedded in the crossing) or a pure-void one is a stepping stone with no frontline
       (corpus-wide, void-dominant == holds a spawn/wool); an edge facing an intra-team spawn&lt;-&gt;wool bridge
-      (a build region joining only a team's own spawn + wool islands) is excluded too; voids = true void walled by
+      (a build region on a team's own internal route — direct, or through a captive stepping stone only that team
+      can reach) is re-tagged intra, not frontline; voids = true void walled by
       terrain OR build (the terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void
       reported, any size, the seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>
