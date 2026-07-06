@@ -188,7 +188,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   annealing_iv 4+8). `LooksUnderSplit` flags the merged-teams failure mode (majors < teams, e.g. `abstract`).
   Surfaced via `GET /map/{slug}/island-health` (roles + counts + `underSplit`) and the human review flag
   `GET`/`PUT /map/{slug}/island-review` (`{status,note}`; echoed per map in `GET /decompose/queue` as
-  `reviewStatus`). Root-cause analysis of the over-split mode in `docs/contracts/lane-decomposition.md`. (G9)
+  `reviewStatus`). (G9)
 - **Island-roles hook (`GET /map/{slug}/island-roles`, G11)** — the decompose-workflow integration hook the
   G6/G7/G8 UI tasks consume. Per detected island in island-sketch order: `{ index, role, blockCount,
   anchors:[{kind:"spawn"|"wool", x, z}] }` plus the `buildRegion` outline as GeoJSON. `IslandRoleClassifier.Assess`

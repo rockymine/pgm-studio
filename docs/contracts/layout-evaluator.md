@@ -4,10 +4,10 @@ Direction doc for the `G`-series composer track. It reframes layout generation a
 (a critic that scores a `plan.json`) instead of a generate-and-test sampler, and pins the model that
 makes the evaluator authorable: **author intent · derive structure · judge by property.** It sits
 above `docs/contracts/layout-rules.md` (the frozen rule content the evaluator scores against),
-`docs/contracts/layout-generation.md` (the plan/realize split), `docs/contracts/lane-decomposition.md`
-(the human labeling rubric the deriver automates), and `docs/seed-stats.md` (the measured envelopes the
-soft terms use). It **refines** layout-generation.md §2's role model: structural roles are *derived*,
-not authored.
+`docs/contracts/layout-generation.md` (the plan/realize split), and `docs/seed-stats.md` (the measured
+envelopes the soft terms use). It **refines** layout-generation.md §2's role model: structural roles are
+*derived*, not authored — and derived cautiously (§5): the evaluator keys off **measurable** quantities,
+not named roles the author is not ready to pin.
 
 Tags: **[decided]** settled, **[open]** an author call is pending, **[later]** deliberately deferred.
 
@@ -91,7 +91,7 @@ measure → score`. The tile field and every derived role are computed views, ne
 ### Height is orthogonal [decided]
 
 Footprint quantization does not touch height. Height is a **per-tile attribute** at full block resolution.
-A frontline **tower** is a frontline tile with a tall surface; a **raised wool** is a room tile above its
+A frontline **tower** is a tile on the frontline edge with a tall surface; a **raised wool** is a room tile above its
 approach; a **stepped approach** is a monotone run of surfaces. "Purposeful, not random" is an *evaluator*
 concern (§6) — height that correlates with a derived role is purposeful; height that does not is what
 "random" means. The heights already annotated in the seeds are **training data for the height envelopes**,
@@ -107,10 +107,12 @@ not a liability the tile model must swallow.
 - per-tile surface (height);
 - overrides — `cliffs`, `walls`, and (§5) any manual role correction.
 
-**Derived** (computed, never authored):
+**Derived** (computed, never authored) — split into locked *measurables* and provisional *labels* (§5):
 
-- the **team island(s)**, **lanes**, **hub**, **frontline**, **mid**, **stepping stones** (§5);
-- topology — enclosed voids (holes) vs open gaps (spacing), reachability, orbit images;
+- measurables — islands + their anchor role, marker branches (lane runs), junctions + per-objective
+  approach count, axis position, build-interface counts, void topology (hole vs spacing, declared vs not);
+- labels (provisional, over the measurables) — frontline (an *edge attribute*), the residual (unnamed),
+  middle islands / stepping stones;
 - height-roles — tower / raised-room / climb (§6).
 
 **Roles stay minimal [decided].** `plan.json` roles are: anonymous `piece`; the intent-bearing
@@ -119,55 +121,90 @@ not a liability the tile model must swallow.
 minimal role set is the correct expression of "derive structure," not a gap.
 
 The **`connector`** role is a *template-composition* concept, not an evaluator one: in a full layout the
-attachment point is derivable (where lane tiles meet hub tiles); a `connector` only earns its keep for a
-*fragment* (a reusable lane template with a dangling edge that has nothing to derive its plug-point from).
-It stays out of the full-layout labeling loop; it returns if a stamp-templates generator is built (§8).
+attachment point is derivable (where a marker branch meets the rest of the island); a `connector` only
+earns its keep for a *fragment* (a reusable lane template with a dangling edge that has nothing to derive
+its plug-point from). It stays out of the full-layout labeling loop; it returns if a stamp-templates
+generator is built (§8).
 
-## 5. The deriver — automating the lane-decomposition rubric
+## 5. The deriver — structure from markers + geometry
 
-The deriver is the machine version of the human rubric in `docs/contracts/lane-decomposition.md`
-("subtract the lanes, the hub is the residual"). Inputs: the tile field + the markers. Pipeline:
+The deriver computes structure from the tile field + the markers ("peel the marker branches; the rest is
+the residual"). Its output is **two tiers, and the split is the point:** a small set of **measurables** is
+locked (pure topology/position — the evaluator keys off these), and a set of **labels** are provisional
+names laid over the measurables for readability. The author can pin some structure crisply and rightly
+refuses to pin the rest, so the model leans on what is measurable and treats the names as soft.
 
-1. **Team island** — the land-connected component containing a team's spawn/wool markers (flood fill over
-   tile adjacency). Island is **connectivity**, not shortest-path — a land-connected back piece *is*
-   island; a piece across a void with its own marker is a *separate* island (the WL4/SP6 isolated
-   wool/spawn). Do not conflate island (containment) with route/spine (a shortest path — a different
-   derived thing, for traffic).
-2. **Lanes** — walk inward from each terminal marker (wool, spawn) until the **cutoff**. Wool lane and
-   spawn lane are the same operation.
-3. **Hub** — the island residual after subtracting lanes and the frontline strip: the thick core. It may
-   be several junctions and may carry interior holes — a complex hub is *expected*, not a defect (this is
-   what breaks the "hub is one square, every layout looks the same" degeneracy).
-4. **Frontline** — filled tiles adjacent to the **mid void specifically** (not any build zone; a
-   spawn-side zone does not make a frontline).
-5. **Mid** — the axis-straddling buildable region (the band) + its stones. Defined topologically (the
-   buildable region the symmetry axis passes through), not by distance-to-axis.
-6. **Stepping stone** — a small filled component *not* land-connected to a marker island, embedded in a
-   build zone (PC1).
-7. **Voids** — flood-fill the empties: enclosed → **hole**; open gap between regions → **spacing**. Cross
-   against the authored deliberate-void marks (a *deliberate* CT8 pocket vs an *accidental* enclosed void —
-   see §6).
+### 5.1 Locked measurables (pure functions, no naming judgement)
 
-### The cutoff — the one hard part [open on the threshold]
+1. **Island** — a land-connected component (flood fill). Connectivity, **not** shortest-path — a
+   land-connected back piece *is* island; a piece across a void with its own marker is a *separate* island
+   (the WL4/SP6 isolated wool/spawn). (Route/spine is a different derived thing, for traffic — don't
+   conflate.)
+2. **Island anchor role** — by the marker it contains: **team** (holds a spawn), **objective** (holds a
+   wool but no spawn — the isolated-wool island), **neutral** (anchorless, intersects a build region),
+   **decorative** (anchorless, outside any build region — excluded from scoring).
+3. **Marker branch** — the maximal ~1-room-wide path from each marker (wool, spawn) inward to the first
+   widening/branch (the cutoff, §5.3). One per wool, one per spawn. (The readable name for a branch is a
+   "lane"; the branch is the measurable.)
+4. **Junction + approach count** — a cell where ≥2 marker branches coincide (share an origin area). Its
+   value is a **count, not a name**: the number of distinct branches meeting on the way to an objective is
+   that objective's **approach count** — the multi-access measure the evaluator wants (WL8 / G45). *(You
+   were clear on "junction = where lanes coincide" while wary of locking the term — so it lives here as a
+   measured count, not a role.)*
+5. **Axis position** — each piece's distance to / straddle of the symmetry axis, from cell coordinates.
+6. **Build interfaces** — per island/piece, the count and total width of edges touching a build region.
+7. **Void topology** — flood-fill the empties: enclosed → **hole**, open → **spacing**; cross against the
+   authored deliberate-void marks (buffer / `zones[].holes`) to split **declared** from **undeclared** (a
+   deliberate CT8 pocket vs an accidental enclosed void — a top evaluator term, §6).
 
-The only non-trivial step is lane↔hub segmentation (the T-shape: wool at the long end → the stem is the
-lane, the crossbar is hub). The rule: **a lane is ~1 room-unit (2 tiles) wide; the hub is wider.**
-Equivalently, over the island's tile-adjacency graph, the lane is the maximal path of degree-≤2 tiles from
-the terminal until the first tile that **branches** (degree ≥3) or **thickens** (part of a ≥2×2 block) —
-classic skeleton + branch-pruning. On the coarse grid it is cheap; "width ≤2 = lane, wider = hub" is
-almost the whole rule. The exact width/branch threshold is the **one tunable knob**.
+### 5.2 Provisional labels (readability over the measurables — the evaluator prefers the measurable)
 
-### Derive-then-override [decided]
+- **Frontline — a boundary *attribute*, not a piece** [decided]. The **contested edge**: where a team
+  landmass meets the middle build zone, "where players mainly meet." It is fuzzy by nature (the author's own
+  caveat) and depends on the mid — if the middle is one open build area with no islands, the frontline is
+  simply whatever team land touches it; if the middle is islands-in-build, it is the team land facing the
+  crossing. Modelled as a per-edge flag (which team-land edges face the mid void), so it composes with any
+  piece: no "frontline piece" to segment, and no conflict when a wide face — or the residual's own bulk —
+  borders the void.
+- **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
+  peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
+  a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
+  properties* (§6) — it never requires a shape. *(Per the author: "I would not define hub at all yet — it's
+  literally the remainder.")*
+- **Middle island / stepping stone** — a standalone island sitting in / touching a build region (spoken of
+  as just "an island"; the term "stepping stone" is fine). Two provisional sub-kinds, told apart by **axis
+  proximity + build-interface count** (neither alone — a middle stone can touch a build region on just two
+  edges): a **middle island** on/straddling the symmetry axis (position-derivable; the CT11 centre island
+  when it is a mid stone, any size), vs a **lane stepping stone** out along a marker branch's path (the
+  artifact of cutting a lane segment and swapping it for a build zone). Provisional — the evaluator keys off
+  axis-distance and interface-count, not the sub-kind name.
 
-The deriver *proposes* every structural label; the author *corrects* only the few it gets wrong (a
-`labels` override channel — **[later]**, an optional map, not part of a normal plan). So an ambiguous
-frontline-vs-hub is never a decision the author must make up front. The corrections are the **test set for
+The **mid** itself ranges from *one open build rectangle over the void* (players bridge freely) to
+*islands nested in / bordering the build regions* (channelled crossings); the residual may legitimately
+border the build region in the open case, which is exactly why "frontline" is an edge attribute and the
+residual stays unnamed rather than being split at that border.
+
+### 5.3 The cutoff — the one hard knob [open on the threshold]
+
+The only non-trivial step is branch↔residual segmentation (the T-shape: wool at the long end → the stem is
+the branch, the crossbar is residual). The rule: **a branch is ~1 room-unit (2 tiles) wide; the residual is
+wider.** Equivalently, over the island's tile-adjacency graph, a branch is the maximal path of degree-≤2
+tiles from the marker until the first tile that **branches** (degree ≥3 — that tile is a junction, §5.1.4)
+or **thickens** (part of a ≥2×2 block) — classic skeleton + branch-pruning. On the coarse grid it is cheap;
+"width ≤2 = branch, wider = residual" is almost the whole rule. The exact width/branch threshold is the
+**one tunable knob**, settled against the hand-labeled T-shape cases (§5.4).
+
+### 5.4 Derive-then-override [decided]
+
+The deriver *proposes* every label; the author *corrects* only the few it gets wrong (a `labels` override
+channel — **[later]**, an optional side-fixture, not part of a normal plan). So an ambiguous
+branch-vs-residual is never a decision the author must make up front. The corrections are the **test set for
 the deriver itself** — the cutoff's ambiguous cases are the only labels ever produced by hand.
 
 **Payoff:** every existing seed and every future hand-drawing becomes a labeled example with *zero*
 annotation — draw geometry, drop two markers, mark deliberate holes, run the deriver. And the deriver is
-half the evaluator: most rules are "the *derived* hub has ≤N holes," "the *derived* lane is ≤L tiles" —
-once the structures are named, the property checks are one-liners.
+half the evaluator: most rules are "the residual has ≤N holes," "the branch is ≤L tiles," "the objective's
+approach count ≥2" — once the measurables are computed, the property checks are one-liners.
 
 ## 6. The evaluator — the cost function
 
@@ -177,7 +214,7 @@ range from `seed-stats.md`. "Feels right" = "lands in the authored distribution.
 score **and the list of violated terms** (each citing a `layout-rules.md` id) so a failure is legible and a
 generator can act on it.
 
-Starter property terms, grouped by derived structure (each ties to a frozen rule id):
+Starter property terms, grouped by the measurable they read (each ties to a frozen rule id):
 
 - **Global** — symmetry orbit exact; island count = orbit order (CT1); land budget within ±20% (G8); fill
   ratio in the corpus band (0.32–0.60); **every enclosed void either declared or penalized** (an
@@ -185,16 +222,19 @@ Starter property terms, grouped by derived structure (each ties to a frozen rule
 - **Mid** — clean band spans the axis (CT1); a hole per side is the default, holelessness the exception
   (CT8); stones inside the band (MD4), two-column grid on wide fronts (MD6); band clears every wool by ≥2
   cells (BZ6).
-- **Frontline** — split-vs-wide, band docks **flush** and **full-face** (FR6); edges snap to the frontline
-  corner lines and the shared interval coincides (**G39** — the interlock term); readable connector
-  extrusion on long-face docks (BZ8); no void overflow / underfit (BZ9).
-- **Hub** — shape variety: penalize the degenerate single square; hub hole-count and aspect in the authored
-  range; L/Z compositions allowed (HB4); plaza-widening scales with budget (HB1/HB3).
-- **Lane** — width 10 (15 on big maps, LN1); max collinear chain ≤50 blocks (LN2); wool at the far/back end
-  inset ~5 (WL1); **largest enclosed void a lane wraps ≤ ~10×10** (**G40**); **absolute length capped to the
-  authored norm and surplus routed to width/plaza/more routes, not length** (**G44**); terminal reachable
-  from ≥2 sides where multi-access is wanted (WL8 / **G45** / **G37**).
-- **Spawn** — wool reachable from a frontline piece *not through* the spawn (SP1); near the back of its lane
+- **Frontline (the void-facing edge)** — the team land's void-facing edge docks the band **flush** and
+  **full-face**, split-vs-wide (FR6); its edge snaps to the mid corner lines and the shared interval
+  coincides (**G39** — the interlock term); readable connector extrusion on a long-face dock (BZ8); no void
+  overflow / underfit (BZ9). All measured on the edge attribute, not a "frontline piece."
+- **Residual (unnamed)** — bound its shape *properties* only, never require a shape: hole count and aspect
+  in the authored range; L/Z compositions allowed (HB4); plaza-widening scales with budget (HB1/HB3).
+  Penalise nothing for *being* a plain square — only for landing outside the authored shape envelope.
+- **Branch / lane** — width 10 (15 on big maps, LN1); max collinear chain ≤50 blocks (LN2); wool at the
+  far/back end inset ~5 (WL1); **largest enclosed void a branch wraps ≤ ~10×10** (**G40**); **absolute
+  length capped to the authored norm, surplus routed to width/plaza/more routes, not length** (**G44**).
+- **Approach count (from junctions)** — each objective's branch-count on the way in ≥2 where multi-access is
+  wanted; a lone dead-end (count 1) is the defender-holds-the-mouth anti-pattern (WL8 / **G45** / **G37**).
+- **Spawn** — wool reachable from the frontline edge *not through* the spawn (SP1); near the back of its lane
   (SP2); faces the enemy by default (SP3); **docks by a readable edge, never interior to the merged land**
   (**G42**); iron beside/ahead, never behind (SP7); isolated-spawn allowed at ≥10/team (SP6).
 - **Objective / wool** — wool↔spawn ≥20 (WL2); wool↔wool ≥45 (WL7); flat plateau covering ≥ the 8×8 stamp,
@@ -202,7 +242,7 @@ Starter property terms, grouped by derived structure (each ties to a frozen rule
   crammed by the spawn (G45).
 - **Height (purposeful, not random)** — surface deltas are multiples of 2 (EL1); ≤2 raised sections per
   island (EL4); a Δ≥4 full-width seam is marked a cliff only when it qualifies (EL6); **wool room ≥ its
-  approach** (a real climb, WL5); a **tower** is a tall frontline tile that clears the void; and the
+  approach** (a real climb, WL5); a **tower** is a tall tile on the frontline edge that clears the void; and the
   cross-cutting term — **every raised tile must be explained by a derived height-role** (room / tower /
   step); unexplained elevation is the definition of "random" and is penalized. Match the authored
   raised-wool and tower-height distributions.
@@ -220,7 +260,7 @@ asset you keep growing:
   near-identical bad one differing in *exactly one* property (a band shifted one tile; a lane wrapping one
   too-big void). A minimal pair isolates the single term the cost function is missing or mis-weighting —
   worth more than ten unrelated positives.
-- **Coverage** — the gap the author already senses: examples per **sub-problem** (mid / frontline / hub /
+- **Coverage** — the gap the author already senses: examples per **sub-problem** (mid / frontline / residual /
   lane / spawn / objective) × per **rotation mode** (rot_180 / rot_90 / mirror_x / mirror_z / none). The
   authored frontline + bridge sets exist; the other cells are the shopping list.
 
@@ -262,7 +302,7 @@ produced. Do not encode a shape whitelist in the evaluator — that is the enume
 
 ## 10. Open questions
 
-- **[open]** The cutoff threshold (§5): width ≤2 = lane vs a branch/degree rule — settle against the T-shape
+- **[open]** The cutoff threshold (§5): width ≤2 = branch vs a branch/degree rule — settle against the T-shape
   test cases once a few are hand-labeled.
 - **[open]** Declared vs computed voids (§6): does the author *assert* every deliberate hole, or only the
   ones the topology would otherwise flag? Leaning: author asserts, evaluator flags undeclared enclosed
