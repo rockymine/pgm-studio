@@ -1,6 +1,8 @@
 {
   "plan": 1,
-  "meta": { "name": "Base 4-Team" },
+  "meta": {
+    "name": "Base 4-Team"
+  },
   "globals": {
     "cell": 5,
     "symmetry": "rot_90",
@@ -9,16 +11,102 @@
     "headroom": 11
   },
   "pieces": [
-    { "id": "bar-e", "role": "lane", "rect": [1, 5, 2, 6] },
-    { "id": "cross", "role": "hub",  "rect": [-1, 7, 2, 2] },
-    { "id": "bar-w", "role": "lane", "rect": [-3, 4, 2, 9] },
-    { "id": "stone", "role": "mid",  "rect": [1, 1, 2, 2], "surface": 13 }
+    {
+      "id": "cross",
+      "role": "piece",
+      "rect": [
+        -1,
+        7,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "stone",
+      "role": "piece",
+      "rect": [
+        1,
+        1,
+        2,
+        2
+      ],
+      "surface": 13
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -3,
+        11,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -3,
+        4,
+        2,
+        7
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        1,
+        5,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        1,
+        9,
+        2,
+        2
+      ]
+    }
   ],
   "zones": [
-    { "id": "arm", "rect": [-3, 0, 6, 5] }
+    {
+      "id": "arm",
+      "rect": [
+        -3,
+        0,
+        6,
+        5
+      ],
+      "holes": []
+    }
   ],
   "placements": {
-    "spawns": [ { "piece": "bar-e", "at": [1, 5], "facing": "front" } ],
-    "wools":  [ { "piece": "bar-w", "at": [1, 8] } ]
-  }
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          1,
+          1
+        ],
+        "facing": "front"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          1,
+          1
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
 }
