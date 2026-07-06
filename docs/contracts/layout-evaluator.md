@@ -165,7 +165,7 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    region **every** island of which is route-eligible (it never bridges out to a contested island) and whose
    component holds both a spawn and a wool qualifies. This admits the **direct** bridge (two anchors) and the
    **chain** (through a captive stepping stone) — both **two-piece gaps** that span *distinct* islands. It
-   cleanly separates a **team stepping stone** (on the spawn↔wool movement path, captive) from a **middle
+   cleanly separates a **team stepping stone** (on the spawn↔wool movement path, captive) from a **neutral
    stepping stone** (contested, reachable by more than one team — a frontline island, §5.2). Kept as its **own
    signal**, not just an exclusion: it marks a deliberate **internal gap** — a piece chopped off the main mass
    and bridged back across a slow-down void (the CT5 isolation cut) — so it teaches the builder where
@@ -230,11 +230,20 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   (it has no frontline; see the frontline bullet). On the corpus this is exactly the anchorless islands.
   Two sub-kinds, now told apart **geometrically** by the *captive* test (§5.1 6a): a **team stepping stone**
   is CAPTIVE — every region touching it stays single-team, so it sits on that team's own spawn↔wool route
-  (players move spawn ↔ stone ↔ wool) and its edges register as **intra-team**, not frontline; a **middle
+  (players move spawn ↔ stone ↔ wool) and its edges register as **intra-team**, not frontline; a **neutral
   stepping stone** is reachable by more than one team (a contested centre island / tower, typically on or near
   the symmetry axis) and is *not* captive, so it keeps its frontline edges. This is a cleaner cut than the
   earlier "axis proximity + interface count" heuristic — reachability decides it. (`rotate-wide-frontline`'s
-  isl11/isl13 are captive team stones; `four-team-towers-big`'s towers are contested middle stones.)
+  isl11/isl13 are captive team stones; `four-team-towers-big`'s towers are contested neutral stones.)
+  **A stepping stone is a whole island, so it is labelled as one — never split into branch/residual.** The
+  branch↔residual erosion (§5.3) applies **only inside anchored masses** (a team/objective island, where a
+  marker lane peels off a bulk); an anchorless island is coloured as an island by its kind (**stone-gray**
+  neutral, **fuchsia** team) and counted per plan. Validated to the count across the corpus:
+  `mirror-tiny-map-cliff` 3n/0t, `odd-facing-three-wool` 4n/0t, `rotate-wide-frontline` **7n/4t** (the four
+  spawn↔stone↔wool stones), `isolated-spawn-approaches` 3n/0t, `mirror-big-board` 4n/0t, `four-team-towers-big`
+  4n/0t, `four-team-wool-two-sided` 4n/0t, `base-2island` 2n/0t, `base-2wool` 2n/0t, `base-4team` 4n/0t. Every
+  team stone requires a **separate wool island** to route to, so a seed whose spawn and wool share one island
+  (or that has no wool island) yields 0 team stones.
 
 The **mid** itself ranges from *one open build rectangle over the void* (players bridge freely) to
 *islands nested in / bordering the build regions* (channelled crossings); the residual may legitimately

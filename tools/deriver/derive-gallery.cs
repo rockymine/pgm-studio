@@ -20,6 +20,8 @@ const string CWoolRoom = "#3fae74";   // AUTHORED wool-room piece (editor green)
 const string CSpawnRole = "#8f7bd6";  // AUTHORED spawn piece (editor purple) — intent, not derived
 const string CBranch = "#aab6c2";     // DERIVED branch / lane (light slate)
 const string CResidual = "#5b6b7a";   // DERIVED residual (dark slate)
+const string CStoneNeutral = "#78716c"; // DERIVED neutral stepping stone — a contested island (warm stone gray)
+const string CStoneTeam = "#d946ef";  // DERIVED team stepping stone — captive, on a spawn<->wool route (fuchsia)
 const string CBuild = "#3b82f6";      // build zone (accent)
 const string CFront = "#f59e0b";      // frontline edge (amber)
 const string CIntra = "#f472b6";      // intra-team spawn<->wool interface / isolation-cut bridge (pink)
@@ -48,7 +50,8 @@ foreach (var path in files)
         var roleCounts = string.Join(",", d.Roles.GroupBy(r => r).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         var apps = string.Join("/", d.Approaches.Select(a => a.Count).OrderByDescending(x => x));
         var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
-        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count} self={d.SelfEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
+        int nStone = d.SteppingKind.Count(k => k == "neutral"), tStone = d.SteppingKind.Count(k => k == "team");
+        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  stones={nStone}n/{tStone}t  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count} self={d.SelfEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -261,6 +264,18 @@ Derived Derive(PlanModel plan)
         if (regionIslands[r].Count == 1) selfBridge[r] = true;   // a notch within one island, not a two-piece gap
     }
 
+    // stepping stones — an anchorless island (no spawn, no wool). Split by reachability: a TEAM stepping stone
+    // is CAPTIVE (every region touching it is single-team) and sits on that team's own spawn<->wool route (its
+    // component holds both a spawn and a wool) — a movement stone the attackers can't flank; a NEUTRAL stepping
+    // stone is a contested middle island a second team can also reach. These are islands, not branch/residual.
+    var steppingKind = new string[islands.Count];
+    for (var i = 0; i < islands.Count; i++)
+    {
+        if (hasSpawnI[i] || hasWoolI[i]) { steppingKind[i] = ""; continue; }   // anchored — not a stepping stone
+        int root = Find(i);
+        steppingKind[i] = captive[i] && compSpawn.Contains(root) && compWool.Contains(root) ? "team" : "neutral";
+    }
+
     // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
     // built a deliberate internal gap — a piece chopped off the main mass and bridged back across a slow-down
     // void (the CT5 isolation cut). A learnable pattern for the builder, not just an exclusion.
@@ -315,7 +330,7 @@ Derived Derive(PlanModel plan)
             voids.Add((comp, declared));
         }
 
-    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, approaches, frontEdges, intraEdges, selfEdges, voids);
+    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, voids);
 }
 
 // ── geometry helpers ────────────────────────────────────────────────────────────────────────────────────────
@@ -400,12 +415,16 @@ string Card(string name, PlanModel plan, Derived d)
     // build zones (under terrain)
     foreach (var c in d.Build) CellRect(c.Item1, c.Item2, CBuild, 0.14, CBuild, 0.4);
     // terrain cells — AUTHORED wool-room (green) / spawn (purple) take their editor colour so the intent reads;
-    // everything else is coloured by the DERIVED branch (light slate) / residual (dark slate) split
+    // a STEPPING-STONE island is coloured as an island (neutral stone-gray / team fuchsia), NOT split into
+    // branch/residual (it is a whole island, not a lane peeled off a mass); everything else is the DERIVED
+    // branch (light slate) / residual (dark slate) split.
     var roleOf = plan.Pieces.ToDictionary(p => p.Id, p => p.Role);
     foreach (var c in d.Filled.Keys)
     {
         var role = roleOf[d.Filled[c].PieceId];
-        string fill = role == PlanRoles.WoolRoom ? CWoolRoom : role == PlanRoles.Spawn ? CSpawnRole
+        var kind = d.SteppingKind[d.IslandOf[c]];
+        string fill = kind == "team" ? CStoneTeam : kind == "neutral" ? CStoneNeutral
+            : role == PlanRoles.WoolRoom ? CWoolRoom : role == PlanRoles.Spawn ? CSpawnRole
             : d.Residual.Contains(c) ? CResidual : CBranch;
         CellRect(c.Item1, c.Item2, fill, 0.75, BgCanvas, 0.5);
     }
@@ -449,12 +468,16 @@ string Card(string name, PlanModel plan, Derived d)
     // stats
     var byRole = d.Roles.GroupBy(r => r).ToDictionary(g => g.Key, g => g.Count());
     int undecl = d.Voids.Count(v => !v.Declared), decl = d.Voids.Count(v => v.Declared);
-    string roleStr = string.Join(" ", new[] { "team", "objective", "neutral", "decorative" }.Where(byRole.ContainsKey).Select(r => $"{byRole[r]} {r}"));
+    int neutralStones = d.SteppingKind.Count(k => k == "neutral"), teamStones = d.SteppingKind.Count(k => k == "team");
+    // anchor roles only (the anchorless islands are reported as stepping stones, not a "neutral" anchor role)
+    string roleStr = string.Join(" ", new[] { "team", "objective" }.Where(byRole.ContainsKey).Select(r => $"{byRole[r]} {r}"));
     var appCounts = d.Approaches.Select(a => a.Count).ToList();
     string appStr = appCounts.Count == 0 ? "—" : string.Join("/", appCounts.OrderByDescending(x => x));
     string stat(string v, string l) => $"<span class=\"stat\"><span class=\"stat-v\">{v}</span> {l}</span>";
+    string stoneStr = teamStones > 0 ? $"{neutralStones} neutral / {teamStones} team" : $"{neutralStones}";
     var stats = string.Join("<span class=\"dot\">·</span>",
         stat(d.Islands.Count.ToString(), "islands"), stat(roleStr, ""),
+        stat(stoneStr, "stepping stones"),
         stat(appStr, "approaches"),
         stat(d.FrontEdges.Count.ToString(), "frontline")
             + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : "")
@@ -519,6 +542,8 @@ string Page(string cardsHtml)
           <span class="legend-lbl">Derived</span>
           <span class="lg"><span class="sw" style="background:{CBranch}"></span>branch / lane</span>
           <span class="lg"><span class="sw" style="background:{CResidual}"></span>residual</span>
+          <span class="lg"><span class="sw" style="background:{CStoneNeutral}"></span>neutral stepping stone</span>
+          <span class="lg"><span class="sw" style="background:{CStoneTeam}"></span>team stepping stone</span>
           <span class="lg"><span class="sw sw--edge" style="border-color:{CFront}"></span>frontline edge</span>
           <span class="lg"><span class="sw sw--edge" style="border-top-style:dashed;border-color:{CIntra}"></span>intra-team bridge</span>
           <span class="lg"><span class="sw sw--edge" style="border-top-style:dotted;border-color:{CSelf}"></span>self-bridge notch</span>
@@ -543,8 +568,12 @@ string Page(string cardsHtml)
         <h1>What the deriver reads in the authored seeds</h1>
         <p class="lede">Each card is a seed from <code>tools/seeds/</code>, fanned to the full board, with the
         <strong>derived</strong> structure drawn on — nothing here is authored beyond geometry + the wool/spawn
-        markers. Review target: does the deriver's reading match yours? The <b>branch/residual</b> split (green
-        vs slate) is the peel-the-lanes cutoff (§5.3) and the <b>v1 approximation</b> most worth eyeballing; the
+        markers. Review target: does the deriver's reading match yours? The <b>branch/residual</b> split (light
+        vs dark slate, inside anchored masses only) is the peel-the-lanes cutoff (§5.3) and the <b>v1
+        approximation</b> most worth eyeballing; a <strong style="color:{CStoneNeutral}">stone-gray</strong> or
+        <strong style="color:{CStoneTeam}">fuchsia</strong> island is a <b>stepping stone</b> — labelled as a
+        whole island, never branch/residual: <b>team</b> (fuchsia) if it is captive and sits on one team's
+        spawn↔wool route, else <b>neutral</b> (gray, a contested centre island); the
         <b>n×</b> beside each wool is its approach count (green ≥2 = multi-access, red = lone dead-end); the
         <strong style="color:{CVoidUndecl}">red voids</strong> are enclosed empties nobody has declared yet —
         <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). A
@@ -555,7 +584,7 @@ string Page(string cardsHtml)
         <b>self-bridge notch</b> — a build pocket carved into a <em>single</em> island (its two walls the same
         landmass); it is internal like the bridge but shapes one piece rather than gapping two, so it reads as its
         own signal. Captivity also separates a <b>team</b> stepping stone (on the spawn↔wool path) from a
-        <b>middle</b> one (a contested centre island).
+        <b>neutral</b> one (a contested centre island).
         Disagreements are the cutoff test set. Per <code>docs/contracts/layout-evaluator.md</code> §5.</p>
         {legend}
       </header>
@@ -564,11 +593,12 @@ string Page(string cardsHtml)
     {cardsHtml}  </div>
 
       <footer>Deriver v1 — first cut for visual review, not the final algorithm. Authored <b>wool-room</b> /
-      <b>spawn</b> pieces keep their editor colour (intent); other terrain is the DERIVED branch / residual split
-      (morphological erosion). approach count = arms at the room; frontline = OUTSIDE edge facing a build void,
-      but only on a VOID-DOMINANT island (more void-border than build-border — exposed territory); a build-
-      dominant island (embedded in the crossing) or a pure-void one is a stepping stone with no frontline
-      (corpus-wide, void-dominant == holds a spawn/wool); an edge facing an intra-team spawn&lt;-&gt;wool bridge
+      <b>spawn</b> pieces keep their editor colour (intent); terrain inside an anchored mass is the DERIVED branch /
+      residual split (morphological erosion). approach count = arms at the room; frontline = OUTSIDE edge facing a
+      build void, but only on a VOID-DOMINANT island (more void-border than build-border — exposed territory); a
+      build-dominant island (embedded in the crossing) or a pure-void one is a stepping stone with no frontline
+      (corpus-wide, void-dominant == holds a spawn/wool), labelled as a whole island (team = fuchsia if captive on
+      a spawn&lt;-&gt;wool route, else neutral = stone-gray) rather than branch/residual; an edge facing an intra-team spawn&lt;-&gt;wool bridge
       (a build region on a team's own internal route — direct, or through a captive stepping stone only that team
       can reach) is re-tagged intra, not frontline, and a build pocket carved into a SINGLE island is split off as
       a self-bridge notch (cyan dotted); voids = true void walled by
@@ -595,6 +625,7 @@ record Derived(
     List<HashSet<(int, int)>> Islands,
     Dictionary<(int, int), int> IslandOf,
     string[] Roles,
+    string[] SteppingKind,
     List<(int Island, double Bx, double Bz, int Count)> Approaches,
     List<(int X1, int Z1, int X2, int Z2)> FrontEdges,
     List<(int X1, int Z1, int X2, int Z2)> IntraEdges,
