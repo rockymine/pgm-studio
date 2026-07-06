@@ -43,7 +43,7 @@ foreach (var path in files)
         cards++;
         var roleCounts = string.Join(",", d.Roles.GroupBy(r => r).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         var apps = string.Join("/", d.Approaches.Select(a => a.Count).OrderByDescending(x => x));
-        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  branch={d.Branch.Count} residual={d.Residual.Count}  approaches={apps}  voids: {d.Voids.Count(v => !v.Declared)} undecl/{d.Voids.Count(v => v.Declared)} decl");
+        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  branch={d.Branch.Count} residual={d.Residual.Count}  frontEdges={d.FrontEdges.Count}  approaches={apps}  voids: {d.Voids.Count(v => !v.Declared)} undecl/{d.Voids.Count(v => v.Declared)} decl");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -148,12 +148,14 @@ Derived Derive(PlanModel plan)
             approaches.Add((isl, MarkerBlock(piece.Rect, w.At, k, axes).X, MarkerBlock(piece.Rect, w.At, k, axes).Z, ComponentCount(arm)));
         }
 
-    // frontline edges — the void-facing edge: a team-island cell side shared with a build cell
+    // frontline edges — the void-facing OUTSIDE edge only: a team-island cell side shared with a cell that is
+    // buildable AND empty (the crossing void). The neighbour must be unfilled — an interior seam between two
+    // pieces is never a frontline, even where a big build rectangle overlaps the terrain on both sides.
     var frontEdges = new List<(int X1, int Z1, int X2, int Z2)>();
     foreach (var c in filled.Keys)
     {
         if (roles[islandOf[c]] != "team") continue;
-        foreach (var (nb, seg) in N4Seg(c)) if (build.Contains(nb)) frontEdges.Add(seg);
+        foreach (var (nb, seg) in N4Seg(c)) if (build.Contains(nb) && !filled.ContainsKey(nb)) frontEdges.Add(seg);
     }
 
     // enclosed voids — flood non-filled cells from the bbox border; unreached = enclosed. Declared if it
