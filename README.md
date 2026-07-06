@@ -4,6 +4,11 @@ An ASP.NET Core rewrite of `pgm-map-studio` — an authoring/analysis studio for
 (PvP Game Manager) Capture-the-Wool Minecraft maps. Map data lives in **MariaDB**
 (relational), not files.
 
+Setting it up for the first time? Read [`docs/setup-guide.md`](docs/setup-guide.md) — a
+step-by-step guide for Windows, Linux, and macOS that covers the .NET 10 and MariaDB
+prerequisites, the connection string, migrations, running the app, and loading real maps,
+sketches, and plans. The rest of this README is a terse reference for people already set up.
+
 ## Stack
 - **Backend:** ASP.NET Core + [FastEndpoints](https://fast-endpoints.com/) (`/api/...`)
 - **Frontend:** Blazor WebAssembly, hosted by the backend
