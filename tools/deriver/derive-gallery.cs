@@ -247,11 +247,14 @@ Derived Derive(PlanModel plan)
     var intraTeam = new bool[regionCount];
     for (var r = 0; r < regionCount; r++)
     {
-        if (!singleTeam[r]) continue;
-        var elig = regionIslands[r].Where(i => nodeIn[i]).ToList();
-        if (elig.Count < 2) continue;                 // a bridge OUT to a non-captive island is not internal
-        int root = Find(elig[0]);
-        if (compSpawn.Contains(root) && compWool.Contains(root)) intraTeam[r] = true;
+        if (!singleTeam[r] || regionIslands[r].Count == 0) continue;
+        // it must stay INSIDE the team's own reachable subgraph — every island it touches is route-eligible.
+        // A region that also touches a non-eligible island bridges OUT to contested territory (a tower a second
+        // team reaches) and stays a frontline. What remains is either a two-piece bridge or a SELF-BRIDGE: a
+        // notch touching only the team's own island, its two walls the same landmass (mirror-big-board's spawn).
+        if (!regionIslands[r].All(i => nodeIn[i])) continue;
+        int root = Find(regionIslands[r].First());
+        if (compSpawn.Contains(root) && compWool.Contains(root)) intraTeam[r] = true;   // on the team's spawn<->wool route
     }
 
     // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
@@ -534,10 +537,11 @@ string Page(string cardsHtml)
         <strong style="color:{CVoidUndecl}">red voids</strong> are enclosed empties nobody has declared yet —
         <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). A
         <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region on
-        a team's own internal spawn↔wool route (direct, or a chain through a <b>captive</b> stepping stone only that
-        team can reach): it marks a deliberate internal gap where a piece was chopped off and bridged back to slow
-        attackers (the isolation cut), a learnable pattern for the builder. Captivity also separates a <b>team</b>
-        stepping stone (on the spawn↔wool path) from a <b>middle</b> one (a contested centre island).
+        a team's own internal spawn↔wool route (direct, a chain through a <b>captive</b> stepping stone only that
+        team can reach, or a <b>self-bridge</b> notch touching only that team's own island): it marks a deliberate
+        internal gap where a piece was chopped off and bridged back to slow attackers (the isolation cut), a
+        learnable pattern for the builder. Captivity also separates a <b>team</b> stepping stone (on the spawn↔wool
+        path) from a <b>middle</b> one (a contested centre island).
         Disagreements are the cutoff test set. Per <code>docs/contracts/layout-evaluator.md</code> §5.</p>
         {legend}
       </header>

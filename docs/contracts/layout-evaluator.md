@@ -162,8 +162,11 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    also reach (a contested middle island / tower) is **not** captive, so a region bridging out to it stays a
    frontline. Formally: build the graph of a team's islands joined by single-team regions, keeping only route-
    eligible nodes (captive islands, plus spawn/wool anchors which may also face the shared mid); a single-team
-   region touching ≥2 eligible islands whose component holds both a spawn and a wool is an intra bridge. This
-   subsumes the direct case (it is the zero-stepping-stone chain) and cleanly separates a **team stepping
+   region **every** island of which is route-eligible (it never bridges out to a contested island) and whose
+   component holds both a spawn and a wool is an intra bridge. This admits three shapes: the **direct** bridge
+   (two anchors); the **chain** (through a captive stepping stone); and the **self-bridge** — a region touching
+   only *one* island, a notch whose two walls are the same landmass (`mirror-big-board`'s spawn wraps a void
+   this way). It cleanly separates a **team stepping
    stone** (on the spawn↔wool movement path, captive) from a **middle stepping stone** (contested, reachable by
    more than one team — a frontline island, §5.2). Kept as its **own signal**, not just an exclusion: it marks
    a deliberate **internal gap** — a piece chopped off the main mass and bridged back across a slow-down void
@@ -198,15 +201,17 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   an objective (isolated-wool) island is void-dominant (`isolated-spawn`, 4 build / 22 void) and keeps its
   frontline. **Across the whole corpus, void-dominant ≡ anchored (holds a spawn or wool)** — the geometric test
   and ownership coincide, which is the validation that this is the right cut. **Intra-team interfaces are
-  excluded [decided]:** a build region on a team's own internal spawn↔wool route (direct, or a chain through a
-  **captive** stepping stone — §5.1 6a) is an intra-team interface, not a frontline; its edges are re-tagged
-  from the front set and drawn pink, and — because a captive stepping stone is itself build-dominant — its
-  *own* edges to that region are collected as intra even though the stepping stone would otherwise carry no
-  frontline. Validated to the block: `base-2wool` 18→10 front (−8, +8 intra), `four-team-towers-big` 52→28
-  front (−6×4, +24 intra), `base-4team` unaffected (no separate wool island → no bridge), and the chain case
-  `rotate-wide-frontline` 44→28 front (−16, +32 intra: 16 re-tagged former frontlines + 16 stepping-stone
-  edges that were previously unannotated). The captive-chain rule is byte-identical to the old direct-bridge
-  rule on every other seed — it only *adds* rotate-wide's stepping-stone regions.
+  excluded [decided]:** a build region on a team's own internal spawn↔wool route — direct, a chain through a
+  **captive** stepping stone, or a **self-bridge** notch touching only that team's own island (§5.1 6a) — is an
+  intra-team interface, not a frontline; its edges are re-tagged from the front set and drawn pink, and —
+  because a captive stepping stone is itself build-dominant — its *own* edges to that region are collected as
+  intra even though the stepping stone would otherwise carry no frontline. Validated to the block: `base-2wool`
+  18→10 front (−8, +8 intra), `four-team-towers-big` 52→28 front (−6×4, +24 intra), `base-4team` unaffected (no
+  separate wool island → no bridge), the chain case `rotate-wide-frontline` 44→28 front (−16, +32 intra: 16
+  re-tagged former frontlines + 16 formerly-unannotated stepping-stone edges), and the self-bridge case
+  `mirror-big-board` 24→12 front (−12, +12 intra: the spawn island's own wrap-around notch, 6 edges × 2 teams).
+  Each generalization is byte-identical to its predecessor on every *other* seed — the chain rule only adds
+  rotate-wide's stepping-stone regions, the self-bridge rule only adds mirror-big-board's spawn notches.
 - **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
   peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
   a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
