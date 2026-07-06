@@ -23,6 +23,7 @@ const string CResidual = "#5b6b7a";   // DERIVED residual (dark slate)
 const string CBuild = "#3b82f6";      // build zone (accent)
 const string CFront = "#f59e0b";      // frontline edge (amber)
 const string CIntra = "#f472b6";      // intra-team spawn<->wool interface / isolation-cut bridge (pink)
+const string CSelf = "#22d3ee";       // self-bridge — a notch within ONE island (cyan, dotted)
 const string CVoidUndecl = "#ef4444"; // undeclared enclosed void — the buffer worklist (red)
 const string CVoidDecl = "#60a5fa";   // declared void (blue)
 const string MkWool = "#e6e6e6";
@@ -47,7 +48,7 @@ foreach (var path in files)
         var roleCounts = string.Join(",", d.Roles.GroupBy(r => r).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         var apps = string.Join("/", d.Approaches.Select(a => a.Count).OrderByDescending(x => x));
         var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
-        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
+        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count} self={d.SelfEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -245,6 +246,7 @@ Derived Derive(PlanModel plan)
         if (hasWoolI[i]) compWool.Add(Find(i));
     }
     var intraTeam = new bool[regionCount];
+    var selfBridge = new bool[regionCount];
     for (var r = 0; r < regionCount; r++)
     {
         if (!singleTeam[r] || regionIslands[r].Count == 0) continue;
@@ -254,7 +256,9 @@ Derived Derive(PlanModel plan)
         // notch touching only the team's own island, its two walls the same landmass (mirror-big-board's spawn).
         if (!regionIslands[r].All(i => nodeIn[i])) continue;
         int root = Find(regionIslands[r].First());
-        if (compSpawn.Contains(root) && compWool.Contains(root)) intraTeam[r] = true;   // on the team's spawn<->wool route
+        if (!(compSpawn.Contains(root) && compWool.Contains(root))) continue;   // must be on the team's spawn<->wool route
+        intraTeam[r] = true;
+        if (regionIslands[r].Count == 1) selfBridge[r] = true;   // a notch within one island, not a two-piece gap
     }
 
     // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
@@ -262,6 +266,7 @@ Derived Derive(PlanModel plan)
     // void (the CT5 isolation cut). A learnable pattern for the builder, not just an exclusion.
     var frontEdges = new List<(int X1, int Z1, int X2, int Z2)>();
     var intraEdges = new List<(int X1, int Z1, int X2, int Z2)>();
+    var selfEdges = new List<(int X1, int Z1, int X2, int Z2)>();
     foreach (var c in filled.Keys)
     {
         int isl = islandOf[c];
@@ -271,8 +276,9 @@ Derived Derive(PlanModel plan)
             if (!(build.Contains(nb) && !filled.ContainsKey(nb))) continue;
             // an intra-team bridge is marked wherever it appears — a build-dominant stepping stone that only
             // connects a team's own pieces is part of that team's internal lane, not a frontline. Frontline
-            // edges are still gated to void-dominant islands (exposed territory facing a shared void).
-            if (regionOf.TryGetValue(nb, out var r) && intraTeam[r]) intraEdges.Add(seg);
+            // edges are still gated to void-dominant islands (exposed territory facing a shared void). A
+            // self-bridge (region touching only this island) is split off as its own signal: a notch, not a gap.
+            if (regionOf.TryGetValue(nb, out var r) && intraTeam[r]) (selfBridge[r] ? selfEdges : intraEdges).Add(seg);
             else if (voidDom) frontEdges.Add(seg);
         }
     }
@@ -309,7 +315,7 @@ Derived Derive(PlanModel plan)
             voids.Add((comp, declared));
         }
 
-    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, approaches, frontEdges, intraEdges, voids);
+    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, approaches, frontEdges, intraEdges, selfEdges, voids);
 }
 
 // ── geometry helpers ────────────────────────────────────────────────────────────────────────────────────────
@@ -411,6 +417,9 @@ string Card(string name, PlanModel plan, Derived d)
     // intra-team spawn<->wool interfaces (pink, dashed) — the deliberate internal gap / isolation-cut bridge
     foreach (var (x1, z1, x2, z2) in d.IntraEdges)
         svg.Append($"<line x1=\"{N(PX(x1 * cell))}\" y1=\"{N(PY(z1 * cell))}\" x2=\"{N(PX(x2 * cell))}\" y2=\"{N(PY(z2 * cell))}\" stroke=\"{CIntra}\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-dasharray=\"3 2\"/>");
+    // self-bridge notches (cyan, dotted) — a build pocket carved into ONE island, its two walls the same landmass
+    foreach (var (x1, z1, x2, z2) in d.SelfEdges)
+        svg.Append($"<line x1=\"{N(PX(x1 * cell))}\" y1=\"{N(PY(z1 * cell))}\" x2=\"{N(PX(x2 * cell))}\" y2=\"{N(PY(z2 * cell))}\" stroke=\"{CSelf}\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-dasharray=\"1 2.6\"/>");
     // frontline edges (amber, thick, solid)
     foreach (var (x1, z1, x2, z2) in d.FrontEdges)
         svg.Append($"<line x1=\"{N(PX(x1 * cell))}\" y1=\"{N(PY(z1 * cell))}\" x2=\"{N(PX(x2 * cell))}\" y2=\"{N(PY(z2 * cell))}\" stroke=\"{CFront}\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>");
@@ -447,7 +456,9 @@ string Card(string name, PlanModel plan, Derived d)
     var stats = string.Join("<span class=\"dot\">·</span>",
         stat(d.Islands.Count.ToString(), "islands"), stat(roleStr, ""),
         stat(appStr, "approaches"),
-        stat(d.FrontEdges.Count.ToString(), "frontline") + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : ""),
+        stat(d.FrontEdges.Count.ToString(), "frontline")
+            + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : "")
+            + (d.SelfEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.SelfEdges.Count.ToString(), "self-bridge")}" : ""),
         stat($"{undecl}", "undeclared voids") + (decl > 0 ? $" <span class=\"stat\">/ {decl} declared</span>" : ""));
 
     return $"""
@@ -510,6 +521,7 @@ string Page(string cardsHtml)
           <span class="lg"><span class="sw" style="background:{CResidual}"></span>residual</span>
           <span class="lg"><span class="sw sw--edge" style="border-color:{CFront}"></span>frontline edge</span>
           <span class="lg"><span class="sw sw--edge" style="border-top-style:dashed;border-color:{CIntra}"></span>intra-team bridge</span>
+          <span class="lg"><span class="sw sw--edge" style="border-top-style:dotted;border-color:{CSelf}"></span>self-bridge notch</span>
           <span class="sep"></span>
           <span class="legend-lbl">Voids</span>
           <span class="lg"><span class="sw" style="background:{CVoidUndecl}55;border:1.3px solid {CVoidUndecl}"></span>undeclared (buffer worklist)</span>
@@ -537,11 +549,13 @@ string Page(string cardsHtml)
         <strong style="color:{CVoidUndecl}">red voids</strong> are enclosed empties nobody has declared yet —
         <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). A
         <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region on
-        a team's own internal spawn↔wool route (direct, a chain through a <b>captive</b> stepping stone only that
-        team can reach, or a <b>self-bridge</b> notch touching only that team's own island): it marks a deliberate
-        internal gap where a piece was chopped off and bridged back to slow attackers (the isolation cut), a
-        learnable pattern for the builder. Captivity also separates a <b>team</b> stepping stone (on the spawn↔wool
-        path) from a <b>middle</b> one (a contested centre island).
+        a team's own internal spawn↔wool route (direct, or a chain through a <b>captive</b> stepping stone only that
+        team can reach): it marks a deliberate internal gap where a piece was chopped off and bridged back to slow
+        attackers (the isolation cut). A <strong style="color:{CSelf}">cyan dotted edge</strong> is a
+        <b>self-bridge notch</b> — a build pocket carved into a <em>single</em> island (its two walls the same
+        landmass); it is internal like the bridge but shapes one piece rather than gapping two, so it reads as its
+        own signal. Captivity also separates a <b>team</b> stepping stone (on the spawn↔wool path) from a
+        <b>middle</b> one (a contested centre island).
         Disagreements are the cutoff test set. Per <code>docs/contracts/layout-evaluator.md</code> §5.</p>
         {legend}
       </header>
@@ -556,7 +570,8 @@ string Page(string cardsHtml)
       dominant island (embedded in the crossing) or a pure-void one is a stepping stone with no frontline
       (corpus-wide, void-dominant == holds a spawn/wool); an edge facing an intra-team spawn&lt;-&gt;wool bridge
       (a build region on a team's own internal route — direct, or through a captive stepping stone only that team
-      can reach) is re-tagged intra, not frontline; voids = true void walled by
+      can reach) is re-tagged intra, not frontline, and a build pocket carved into a SINGLE island is split off as
+      a self-bridge notch (cyan dotted); voids = true void walled by
       terrain OR build (the terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void
       reported, any size, the seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>
@@ -583,4 +598,5 @@ record Derived(
     List<(int Island, double Bx, double Bz, int Count)> Approaches,
     List<(int X1, int Z1, int X2, int Z2)> FrontEdges,
     List<(int X1, int Z1, int X2, int Z2)> IntraEdges,
+    List<(int X1, int Z1, int X2, int Z2)> SelfEdges,
     List<(HashSet<(int, int)> Cells, bool Declared)> Voids);

@@ -163,15 +163,20 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    frontline. Formally: build the graph of a team's islands joined by single-team regions, keeping only route-
    eligible nodes (captive islands, plus spawn/wool anchors which may also face the shared mid); a single-team
    region **every** island of which is route-eligible (it never bridges out to a contested island) and whose
-   component holds both a spawn and a wool is an intra bridge. This admits three shapes: the **direct** bridge
-   (two anchors); the **chain** (through a captive stepping stone); and the **self-bridge** — a region touching
-   only *one* island, a notch whose two walls are the same landmass (`mirror-big-board`'s spawn wraps a void
-   this way). It cleanly separates a **team stepping
-   stone** (on the spawn↔wool movement path, captive) from a **middle stepping stone** (contested, reachable by
-   more than one team — a frontline island, §5.2). Kept as its **own signal**, not just an exclusion: it marks
-   a deliberate **internal gap** — a piece chopped off the main mass and bridged back across a slow-down void
-   (the CT5 isolation cut) — so it teaches the builder where intentional slow-the-attacker gaps and standalone
-   lanes come from. The interface edges are rendered distinctly (pink) and counted per plan.
+   component holds both a spawn and a wool qualifies. This admits the **direct** bridge (two anchors) and the
+   **chain** (through a captive stepping stone) — both **two-piece gaps** that span *distinct* islands. It
+   cleanly separates a **team stepping stone** (on the spawn↔wool movement path, captive) from a **middle
+   stepping stone** (contested, reachable by more than one team — a frontline island, §5.2). Kept as its **own
+   signal**, not just an exclusion: it marks a deliberate **internal gap** — a piece chopped off the main mass
+   and bridged back across a slow-down void (the CT5 isolation cut) — so it teaches the builder where
+   intentional slow-the-attacker gaps and standalone lanes come from. Rendered distinctly (**pink dashed**) and
+   counted per plan.
+6b. **Self-bridge notch** — the same route test, but the region touches only **one** island: a build pocket
+   carved *into* a single landmass, its two walls the same piece (`mirror-big-board`'s spawn wraps a void this
+   way). Structurally distinct from 6a — it does not *gap two pieces*, it *shapes one* — so it is reported as
+   its **own** signal (**cyan dotted**), separate from the intra-team count. Still an internal, non-frontline
+   feature (its walls face only the team's own land), and still a learnable authored move: a piece hollowed to
+   route players around a pocket rather than a lane cut between two pieces.
 7. **Void topology** — a hole is **true void** (empty, non-buildable) the border can't reach without crossing
    **terrain or a build region** (both are walls for the enclosure flood): enclosed → **hole**, border-reachable
    → **spacing**. Build must wall the flood, otherwise a rotation pocket ("rotary device") near the frontline —
@@ -202,16 +207,18 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   frontline. **Across the whole corpus, void-dominant ≡ anchored (holds a spawn or wool)** — the geometric test
   and ownership coincide, which is the validation that this is the right cut. **Intra-team interfaces are
   excluded [decided]:** a build region on a team's own internal spawn↔wool route — direct, a chain through a
-  **captive** stepping stone, or a **self-bridge** notch touching only that team's own island (§5.1 6a) — is an
-  intra-team interface, not a frontline; its edges are re-tagged from the front set and drawn pink, and —
-  because a captive stepping stone is itself build-dominant — its *own* edges to that region are collected as
-  intra even though the stepping stone would otherwise carry no frontline. Validated to the block: `base-2wool`
-  18→10 front (−8, +8 intra), `four-team-towers-big` 52→28 front (−6×4, +24 intra), `base-4team` unaffected (no
-  separate wool island → no bridge), the chain case `rotate-wide-frontline` 44→28 front (−16, +32 intra: 16
-  re-tagged former frontlines + 16 formerly-unannotated stepping-stone edges), and the self-bridge case
-  `mirror-big-board` 24→12 front (−12, +12 intra: the spawn island's own wrap-around notch, 6 edges × 2 teams).
-  Each generalization is byte-identical to its predecessor on every *other* seed — the chain rule only adds
-  rotate-wide's stepping-stone regions, the self-bridge rule only adds mirror-big-board's spawn notches.
+  **captive** stepping stone (§5.1 6a), or a **self-bridge** notch touching only that team's own island (§5.1
+  6b) — is *not* a frontline; its edges are re-tagged from the front set, and — because a captive stepping
+  stone is itself build-dominant — its *own* edges to that region are collected too even though the stepping
+  stone would otherwise carry no frontline. The two-piece bridges are drawn **pink dashed** (intra-team); the
+  single-island notch is drawn **cyan dotted** (self-bridge) and counted separately. Validated to the block:
+  `base-2wool` 18→10 front (−8, +8 intra), `four-team-towers-big` 52→28 front (−6×4, +24 intra), `base-4team`
+  unaffected (no separate wool island → no bridge), the chain case `rotate-wide-frontline` 44→28 front (−16,
+  +32 intra: 16 re-tagged former frontlines + 16 formerly-unannotated stepping-stone edges), and the
+  self-bridge case `mirror-big-board` 24→12 front (−12, +12 **self**: the spawn island's own wrap-around notch,
+  6 edges × 2 teams — kept out of the intra count, which stays 48). Each generalization is byte-identical to its
+  predecessor on every *other* seed — the chain rule only adds rotate-wide's stepping-stone regions, the
+  self-bridge rule only adds mirror-big-board's spawn notches.
 - **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
   peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
   a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
