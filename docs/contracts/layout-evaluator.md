@@ -175,18 +175,22 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   "frontline piece" to segment, and no conflict when a wide face — or the residual's own bulk — borders the void.
   It is strictly an **outside** edge: the neighbouring cell must be buildable **and empty** (the crossing void) —
   an interior seam between two pieces is never a frontline, even where an author draws a big build rectangle that
-  overlaps the terrain on both sides (a zone overlap must not manufacture a frontline). **Scope is deliberately
-  over-broad in v1:** it is *not* gated to spawn-bearing (team) islands — an objective (isolated-wool) island can
-  itself touch the mid band (`isolated-spawn`), so gating on the spawn drops real frontlines. The cost of the
-  relaxation is that neutral mid stones now contribute edges too; the precise "which void-facing edges are really
-  the frontline" test is **open** (the author's to settle).
+  overlaps the terrain on both sides (a zone overlap must not manufacture a frontline). **Scope [decided]: an
+  island has a frontline only if it touches BOTH a build region and true void.** It is *not* gated to
+  spawn-bearing (team) islands — an objective (isolated-wool) island can itself touch the mid band
+  (`isolated-spawn`), so gating on the spawn drops real frontlines. But an island surrounded by **only build**
+  (embedded in a plaza) or **only void** (floating) is a **stepping stone**, not a frontline — the build+void
+  requirement drops the mid stones sitting inside the band while keeping the mixed case (the wool island touching
+  band + void).
 - **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
   peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
   a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
   properties* (§6) — it never requires a shape. *(Per the author: "I would not define hub at all yet — it's
   literally the remainder.")*
 - **Middle island / stepping stone** — a standalone island sitting in / touching a build region (spoken of
-  as just "an island"; the term "stepping stone" is fine). Two provisional sub-kinds, told apart by **axis
+  as just "an island"; the term "stepping stone" is fine). **Geometrically [decided]: an island surrounded by
+  only build or only void — never both — is a stepping stone** (it has no frontline; see the frontline bullet).
+  Two provisional sub-kinds, told apart by **axis
   proximity + build-interface count** (neither alone — a middle stone can touch a build region on just two
   edges): a **middle island** on/straddling the symmetry axis (position-derivable; the CT11 centre island
   when it is a mid stone, any size), vs a **lane stepping stone** out along a marker branch's path (the

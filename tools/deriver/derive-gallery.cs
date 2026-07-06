@@ -153,15 +153,30 @@ Derived Derive(PlanModel plan)
             approaches.Add((isl, MarkerBlock(piece.Rect, w.At, k, axes).X, MarkerBlock(piece.Rect, w.At, k, axes).Z, ComponentCount(arm)));
         }
 
-    // frontline edges — a void-facing OUTSIDE edge: a land cell side shared with a cell that is buildable AND
-    // empty (the crossing void). The neighbour must be unfilled — an interior seam between two pieces is never a
-    // frontline, even where a big build rectangle overlaps the terrain on both sides. RELAXED from "team islands
-    // only": an objective (isolated-wool) island can itself touch the mid band (isolated-spawn), so gating on
-    // spawn-bearing islands drops real frontlines. This over-produces on purpose (mid stones / neutral islands
-    // now contribute too) — a known over-broad v1; the precise "which edges are really frontline" test is open.
+    // frontline edges — a void-facing OUTSIDE edge (buildable AND empty neighbour; never an interior seam). An
+    // island has a frontline only if it touches BOTH a build region and true void: an island surrounded by only
+    // build (embedded in a plaza) or only void (floating) is a STEPPING STONE, not a frontline. This keeps the
+    // mixed case — the isolated-wool island touching the mid band + void (isolated-spawn) — while dropping the
+    // mid stones embedded in the band.
+    var islBuild = new bool[islands.Count];
+    var islVoid = new bool[islands.Count];
+    foreach (var c in filled.Keys)
+    {
+        int isl = islandOf[c];
+        foreach (var nb in N4(c))
+        {
+            if (filled.ContainsKey(nb)) continue;
+            if (build.Contains(nb)) islBuild[isl] = true;
+            else islVoid[isl] = true;
+        }
+    }
     var frontEdges = new List<(int X1, int Z1, int X2, int Z2)>();
     foreach (var c in filled.Keys)
+    {
+        int isl = islandOf[c];
+        if (!(islBuild[isl] && islVoid[isl])) continue;   // stepping stone (pure build or pure void)
         foreach (var (nb, seg) in N4Seg(c)) if (build.Contains(nb) && !filled.ContainsKey(nb)) frontEdges.Add(seg);
+    }
 
     // enclosed voids — a hole is TRUE void (empty terrain, non-buildable) that the border can't reach without
     // crossing terrain OR a build region: both terrain and build are walls for this flood. That is what lets a
@@ -425,9 +440,9 @@ string Page(string cardsHtml)
 
       <footer>Deriver v1 — first cut for visual review, not the final algorithm. Authored <b>wool-room</b> /
       <b>spawn</b> pieces keep their editor colour (intent); other terrain is the DERIVED branch / residual split
-      (morphological erosion). approach count = arms at the room; frontline = ANY land's OUTSIDE edge facing a
-      build void (no interior seams; relaxed from spawn-islands-only — over-broad v1, definition still open);
-      voids = true void (empty, non-buildable) walled by terrain OR build (the
+      (morphological erosion). approach count = arms at the room; frontline = OUTSIDE edge facing a build void,
+      but only on an island that touches BOTH build AND void (an island surrounded by only build or only void is
+      a stepping stone — no frontline); voids = true void (empty, non-buildable) walled by terrain OR build (the
       terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void reported, any size, the
       seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>
