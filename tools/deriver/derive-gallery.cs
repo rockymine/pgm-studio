@@ -22,6 +22,7 @@ const string CBranch = "#aab6c2";     // DERIVED branch / lane (light slate)
 const string CResidual = "#5b6b7a";   // DERIVED residual (dark slate)
 const string CBuild = "#3b82f6";      // build zone (accent)
 const string CFront = "#f59e0b";      // frontline edge (amber)
+const string CIntra = "#f472b6";      // intra-team spawn<->wool interface / isolation-cut bridge (pink)
 const string CVoidUndecl = "#ef4444"; // undeclared enclosed void — the buffer worklist (red)
 const string CVoidDecl = "#60a5fa";   // declared void (blue)
 const string MkWool = "#e6e6e6";
@@ -46,7 +47,7 @@ foreach (var path in files)
         var roleCounts = string.Join(",", d.Roles.GroupBy(r => r).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         var apps = string.Join("/", d.Approaches.Select(a => a.Count).OrderByDescending(x => x));
         var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
-        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  branch={d.Branch.Count} residual={d.Residual.Count}  frontEdges={d.FrontEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
+        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -212,7 +213,11 @@ Derived Derive(PlanModel plan)
             intraTeam[r] = true;                                         // same-team spawn island + wool island
     }
 
+    // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
+    // built a deliberate internal gap — a piece chopped off the main mass and bridged back across a slow-down
+    // void (the CT5 isolation cut). A learnable pattern for the builder, not just an exclusion.
     var frontEdges = new List<(int X1, int Z1, int X2, int Z2)>();
+    var intraEdges = new List<(int X1, int Z1, int X2, int Z2)>();
     foreach (var c in filled.Keys)
     {
         int isl = islandOf[c];
@@ -220,8 +225,8 @@ Derived Derive(PlanModel plan)
         foreach (var (nb, seg) in N4Seg(c))
         {
             if (!(build.Contains(nb) && !filled.ContainsKey(nb))) continue;
-            if (regionOf.TryGetValue(nb, out var r) && intraTeam[r]) continue;   // intra-team interface, not a frontline
-            frontEdges.Add(seg);
+            if (regionOf.TryGetValue(nb, out var r) && intraTeam[r]) intraEdges.Add(seg);   // intra-team spawn<->wool bridge
+            else frontEdges.Add(seg);
         }
     }
 
@@ -257,7 +262,7 @@ Derived Derive(PlanModel plan)
             voids.Add((comp, declared));
         }
 
-    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, approaches, frontEdges, voids);
+    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, approaches, frontEdges, intraEdges, voids);
 }
 
 // ── geometry helpers ────────────────────────────────────────────────────────────────────────────────────────
@@ -356,7 +361,10 @@ string Card(string name, PlanModel plan, Derived d)
     // axis
     svg.Append($"<line x1=\"{N(PX(0))}\" y1=\"{N(PY(minZ))}\" x2=\"{N(PX(0))}\" y2=\"{N(PY(maxZ))}\" stroke=\"{AxisCol}\" stroke-opacity=\"0.4\" stroke-width=\"1\"/>");
     svg.Append($"<line x1=\"{N(PX(minX))}\" y1=\"{N(PY(0))}\" x2=\"{N(PX(maxX))}\" y2=\"{N(PY(0))}\" stroke=\"{AxisCol}\" stroke-opacity=\"0.4\" stroke-width=\"1\"/>");
-    // frontline edges (amber, thick)
+    // intra-team spawn<->wool interfaces (pink, dashed) — the deliberate internal gap / isolation-cut bridge
+    foreach (var (x1, z1, x2, z2) in d.IntraEdges)
+        svg.Append($"<line x1=\"{N(PX(x1 * cell))}\" y1=\"{N(PY(z1 * cell))}\" x2=\"{N(PX(x2 * cell))}\" y2=\"{N(PY(z2 * cell))}\" stroke=\"{CIntra}\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-dasharray=\"3 2\"/>");
+    // frontline edges (amber, thick, solid)
     foreach (var (x1, z1, x2, z2) in d.FrontEdges)
         svg.Append($"<line x1=\"{N(PX(x1 * cell))}\" y1=\"{N(PY(z1 * cell))}\" x2=\"{N(PX(x2 * cell))}\" y2=\"{N(PY(z2 * cell))}\" stroke=\"{CFront}\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>");
     // markers + per-wool approach count
@@ -391,7 +399,9 @@ string Card(string name, PlanModel plan, Derived d)
     string stat(string v, string l) => $"<span class=\"stat\"><span class=\"stat-v\">{v}</span> {l}</span>";
     var stats = string.Join("<span class=\"dot\">·</span>",
         stat(d.Islands.Count.ToString(), "islands"), stat(roleStr, ""),
-        stat(appStr, "approaches"), stat($"{undecl}", "undeclared voids") + (decl > 0 ? $" <span class=\"stat\">/ {decl} declared</span>" : ""));
+        stat(appStr, "approaches"),
+        stat(d.FrontEdges.Count.ToString(), "frontline") + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : ""),
+        stat($"{undecl}", "undeclared voids") + (decl > 0 ? $" <span class=\"stat\">/ {decl} declared</span>" : ""));
 
     return $"""
           <article class="card">
@@ -452,6 +462,7 @@ string Page(string cardsHtml)
           <span class="lg"><span class="sw" style="background:{CBranch}"></span>branch / lane</span>
           <span class="lg"><span class="sw" style="background:{CResidual}"></span>residual</span>
           <span class="lg"><span class="sw sw--edge" style="border-color:{CFront}"></span>frontline edge</span>
+          <span class="lg"><span class="sw sw--edge" style="border-top-style:dashed;border-color:{CIntra}"></span>intra-team bridge</span>
           <span class="sep"></span>
           <span class="legend-lbl">Voids</span>
           <span class="lg"><span class="sw" style="background:{CVoidUndecl}55;border:1.3px solid {CVoidUndecl}"></span>undeclared (buffer worklist)</span>
@@ -477,8 +488,11 @@ string Page(string cardsHtml)
         vs slate) is the peel-the-lanes cutoff (§5.3) and the <b>v1 approximation</b> most worth eyeballing; the
         <b>n×</b> beside each wool is its approach count (green ≥2 = multi-access, red = lone dead-end); the
         <strong style="color:{CVoidUndecl}">red voids</strong> are enclosed empties nobody has declared yet —
-        <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). Disagreements are the cutoff
-        test set. Per <code>docs/contracts/layout-evaluator.md</code> §5.</p>
+        <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). A
+        <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region
+        joining only a team's own spawn + wool islands: it marks a deliberate internal gap where a piece was
+        chopped off and bridged back to slow attackers (the isolation cut), a learnable pattern for the builder.
+        Disagreements are the cutoff test set. Per <code>docs/contracts/layout-evaluator.md</code> §5.</p>
         {legend}
       </header>
 
@@ -517,4 +531,5 @@ record Derived(
     string[] Roles,
     List<(int Island, double Bx, double Bz, int Count)> Approaches,
     List<(int X1, int Z1, int X2, int Z2)> FrontEdges,
+    List<(int X1, int Z1, int X2, int Z2)> IntraEdges,
     List<(HashSet<(int, int)> Cells, bool Declared)> Voids);

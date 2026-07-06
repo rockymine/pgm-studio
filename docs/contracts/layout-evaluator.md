@@ -155,6 +155,12 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    measured count, not a role.)*
 5. **Axis position** — each piece's distance to / straddle of the symmetry axis, from cell coordinates.
 6. **Build interfaces** — per island/piece, the count and total width of edges touching a build region.
+6a. **Intra-team bridge** — a build region joining **exactly** a team's own spawn-holding and wool-holding
+   island (same orbit image, nothing else) is an *internal* spawn↔wool bridge, not a frontline (§5.2). Kept as
+   its **own signal**, not just an exclusion: it marks a deliberate **internal gap** — a piece chopped off the
+   main mass and bridged back across a slow-down void (the CT5 isolation cut) — so it teaches the builder where
+   intentional slow-the-attacker gaps and standalone lanes come from. The interface edges are rendered
+   distinctly (pink) and counted per plan.
 7. **Void topology** — a hole is **true void** (empty, non-buildable) the border can't reach without crossing
    **terrain or a build region** (both are walls for the enclosure flood): enclosed → **hole**, border-reachable
    → **spacing**. Build must wall the flood, otherwise a rotation pocket ("rotary device") near the frontline —
