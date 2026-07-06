@@ -278,15 +278,36 @@ Derived Derive(PlanModel plan)
         steppingKind[i] = captive[i] && compSpawn.Contains(root) && compWool.Contains(root) ? "team" : "neutral";
     }
 
-    // wool lanes — project the wool room's terrain interface straight outward (the "redstone line" the
-    // generator stamps on that edge), cell by cell, until void or build: that stack IS the lane. A two-sided
-    // room projects both ways. Then absorb any dead-end SHOULDER — a non-lane terrain pocket that touches the
-    // lane and is bounded only by void and INTRA-team build (never a frontline / the contested mid, never
-    // another anchor room) — so a cut-off wool island reads as all-lane. ONLY wools project; spawns never do.
+    // wool lanes — the wool room's approach, read off the terrain shape. The room INTERFACES with terrain along
+    // an edge (where the generator stamps the objective's redstone line); STACK that interface straight outward,
+    // a fixed-width band, cell by cell, until void, build, or a T — a crossbar (terrain reaching beyond the band
+    // on BOTH sides; a one-sided jut is just a side branch and does not stop it). A two-sided room stacks both
+    // ways. If the forward stack immediately dead-ends into void (the room is docked against the SIDE of a lane,
+    // an L not an I), stack instead along that lane's own axis (perpendicular) until void/build/T — so the whole
+    // I the room docks against becomes the lane. ONLY wools stack a lane — never spawns.
     var laneCells = new HashSet<(int, int)>();
     var redstoneEdges = new List<(int X1, int Z1, int X2, int Z2)>();
-    bool IsAnchorRoom((int, int) c) => filled.TryGetValue(c, out var f)
-        && roleOf[f.PieceId] is PlanRoles.Spawn or PlanRoles.WoolRoom;
+    bool LaneTerr((int, int) c, HashSet<(int, int)> room) => filled.ContainsKey(c) && !room.Contains(c);
+    // stack a band (a line of cells perpendicular to dir) outward; return the terrain cells added, the stop
+    // reason, and how many rows advanced. Stops at void/build or a crossbar (terrain beyond both band ends).
+    (List<(int, int)> Cells, string Reason, int Len) StackBand(List<(int, int)> band, (int dx, int dz) dir, HashSet<(int, int)> room)
+    {
+        var added = new List<(int, int)>();
+        (int cx, int cz) cross = dir.dz != 0 ? (1, 0) : (0, 1);
+        string reason = "void"; int len = 0;
+        for (var step = 0; ; step++)
+        {
+            var row = band.Select(c => (c.Item1 + dir.dx * step, c.Item2 + dir.dz * step)).ToList();
+            var terr = row.Where(c => LaneTerr(c, room)).ToList();
+            if (terr.Count == 0) { reason = row.Any(build.Contains) ? "build" : "void"; break; }
+            double Key((int, int) c) => c.Item1 * cross.cx + c.Item2 * cross.cz;
+            var lo = row.OrderBy(Key).First(); var hi = row.OrderBy(Key).Last();
+            var bLo = (lo.Item1 - cross.cx, lo.Item2 - cross.cz); var bHi = (hi.Item1 + cross.cx, hi.Item2 + cross.cz);
+            if (LaneTerr(bLo, room) && LaneTerr(bHi, room)) { reason = "crossbar"; break; }   // a T-bar crosses → stop
+            added.AddRange(terr); len++;
+        }
+        return (added, reason, len);
+    }
     foreach (var w in plan.Placements.Wools)
     {
         var pc = plan.Pieces.FirstOrDefault(p => p.Id == w.Piece);
@@ -298,62 +319,39 @@ Derived Derive(PlanModel plan)
             int rminx = room.Min(c => c.Item1), rmaxx = room.Max(c => c.Item1);
             int rminz = room.Min(c => c.Item2), rmaxz = room.Max(c => c.Item2);
             var lane = new HashSet<(int, int)>();
-            // stack the interface out from each room side that faces terrain, per lane-column, until void/build
-            void Side(int dx, int dz)
+            foreach (var (dx, dz) in new[] { (0, 1), (0, -1), (1, 0), (-1, 0) })
             {
+                List<(int, int)> band; (int, int) edge;
                 if (dz != 0)
                 {
                     int z0 = dz > 0 ? rmaxz + 1 : rminz - 1, zEdge = dz > 0 ? rmaxz + 1 : rminz;
-                    for (var x = rminx; x <= rmaxx; x++)
-                        if (filled.ContainsKey((x, z0)) && !room.Contains((x, z0)))
-                        {
-                            redstoneEdges.Add((x, zEdge, x + 1, zEdge));
-                            for (var z = z0; filled.ContainsKey((x, z)) && !room.Contains((x, z)); z += dz) lane.Add((x, z));
-                        }
+                    band = Enumerable.Range(rminx, rmaxx - rminx + 1).Select(x => (x, z0)).ToList();
+                    edge = (0, zEdge);
                 }
                 else
                 {
                     int x0 = dx > 0 ? rmaxx + 1 : rminx - 1, xEdge = dx > 0 ? rmaxx + 1 : rminx;
-                    for (var z = rminz; z <= rmaxz; z++)
-                        if (filled.ContainsKey((x0, z)) && !room.Contains((x0, z)))
-                        {
-                            redstoneEdges.Add((xEdge, z, xEdge, z + 1));
-                            for (var x = x0; filled.ContainsKey((x, z)) && !room.Contains((x, z)); x += dx) lane.Add((x, z));
-                        }
+                    band = Enumerable.Range(rminz, rmaxz - rminz + 1).Select(z => (x0, z)).ToList();
+                    edge = (xEdge, 0);
+                }
+                if (!band.Any(c => LaneTerr(c, room))) continue;   // this side faces no terrain
+                foreach (var c in band.Where(c => LaneTerr(c, room)))
+                    redstoneEdges.Add(dz != 0 ? (c.Item1, edge.Item2, c.Item1 + 1, edge.Item2)
+                                              : (edge.Item1, c.Item2, edge.Item1, c.Item2 + 1));
+                var (fwd, reason, len) = StackBand(band, (dx, dz), room);
+                foreach (var c in fwd) lane.Add(c);
+                // side-dock (L): the forward stack dead-ended into void after ~a bar's thickness — the room is
+                // docked against the side of a lane running perpendicular. Stack that lane along its own axis.
+                if (reason == "void" && len <= 2 && fwd.Count > 0)
+                {
+                    (int cx, int cz) cross = dz != 0 ? (1, 0) : (0, 1);
+                    double Key((int, int) c) => c.Item1 * cross.cx + c.Item2 * cross.cz;
+                    var loFace = fwd.Where(c => Key(c) == fwd.Min(Key)).ToList();
+                    var hiFace = fwd.Where(c => Key(c) == fwd.Max(Key)).ToList();
+                    foreach (var c in StackBand(loFace, (-cross.cx, -cross.cz), room).Cells) lane.Add(c);
+                    foreach (var c in StackBand(hiFace, (cross.cx, cross.cz), room).Cells) lane.Add(c);
                 }
             }
-            Side(0, 1); Side(0, -1); Side(1, 0); Side(-1, 0);
-
-            // shoulder absorption: flood each non-lane terrain component touching the lane; absorb it only if
-            // bounded solely by void + intra-team build (touches no frontline build and no other anchor room).
-            var handled = new HashSet<(int, int)>(lane);
-            foreach (var lc in lane.ToList())
-                foreach (var seed in N4(lc))
-                {
-                    if (handled.Contains(seed) || room.Contains(seed)) continue;
-                    if (!filled.ContainsKey(seed) || IsAnchorRoom(seed)) continue;   // terrain, not a room
-                    var comp = new List<(int, int)>();
-                    var local = new HashSet<(int, int)> { seed };
-                    var q = new Queue<(int, int)>(); q.Enqueue(seed);
-                    bool bounded = true;
-                    while (q.Count > 0)
-                    {
-                        var cur = q.Dequeue(); comp.Add(cur);
-                        foreach (var nb in N4(cur))
-                        {
-                            if (lane.Contains(nb) || room.Contains(nb)) continue;      // lane/room = boundary
-                            if (filled.ContainsKey(nb))
-                            {
-                                if (IsAnchorRoom(nb)) { bounded = false; continue; }   // reaches another anchor
-                                if (local.Add(nb)) q.Enqueue(nb);
-                            }
-                            else if (build.Contains(nb) && !(regionOf.TryGetValue(nb, out var r) && intraTeam[r]))
-                                bounded = false;                                        // frontline build → not a shoulder
-                        }
-                    }
-                    if (bounded) lane.UnionWith(comp);
-                    handled.UnionWith(comp);
-                }
             laneCells.UnionWith(lane);
         }
     }
@@ -667,8 +665,9 @@ string Page(string cardsHtml)
         <b>n×</b> beside each wool is its approach count (green ≥2 = multi-access, red = lone dead-end); the
         <strong style="color:{CWoolLane}">orange wash</strong> is the <b>wool lane</b> — the terrain stacked out
         from the wool room's <strong style="color:{CRedstone}">redstone interface</strong> (bright red line) until
-        void or build, both directions for a two-sided room, plus any dead-end shoulder bounded only by void +
-        intra-team build (a cut-off wool island reads as all-lane). Spawns never stack a lane. The
+        void, build, or a <b>T</b> (a crossbar reaching beyond the band on both sides stops the stack; a one-sided
+        jut is just a side branch). A two-sided room stacks both ways; a room docked against the <em>side</em> of a
+        lane stacks along that lane's own axis instead. A lane may run to a frontline. Spawns never stack a lane. The
         <strong style="color:{CVoidUndecl}">red voids</strong> are enclosed empties nobody has declared yet —
         <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). A
         <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region on
@@ -696,8 +695,9 @@ string Page(string cardsHtml)
       (a build region on a team's own internal route — direct, or through a captive stepping stone only that team
       can reach) is re-tagged intra, not frontline, and a build pocket carved into a SINGLE island is split off as
       a self-bridge notch (cyan dotted); wool lane (orange) = terrain stacked from the wool room's redstone
-      interface (red line) out to void/build, both ways for two-sided rooms, plus dead-end shoulders bounded only
-      by void + intra-team build — wools only, never spawns; voids = true void walled by
+      interface (red line) out to void/build/T (a crossbar reaching beyond the band on both sides stops it; a
+      one-sided jut is a side branch), both ways for two-sided rooms, and along the docked lane's own axis for a
+      side-dock — wools only, never spawns, and a lane may reach a frontline; voids = true void walled by
       terrain OR build (the terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void
       reported, any size, the seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>

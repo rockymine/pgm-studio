@@ -177,18 +177,22 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    its **own** signal (**cyan dotted**), separate from the intra-team count. Still an internal, non-frontline
    feature (its walls face only the team's own land), and still a learnable authored move: a piece hollowed to
    route players around a pocket rather than a lane cut between two pieces.
-6c. **Wool lane** — the terrain a wool room owns as its approach. The room **interfaces** with the terrain
-   along an edge (where the generator stamps the objective's **redstone line**); **stack** that interface
-   straight outward, cell by cell per lane-column, until void or a build region — the swept column IS the lane.
-   A **two-sided** room (interface on two edges) stacks both ways, and the two stacks make its two approaches
-   visible (`four-team-wool-two-sided`: down 12 + right 8 = 20/team, **80** total). Then absorb any **dead-end
-   shoulder** — a non-lane terrain pocket touching the lane and bounded *only* by void and intra-team build,
-   never a frontline (the contested mid) nor another anchor room — so a **cut-off wool island** (one that holds
-   only the wool) reads as **all-lane** (`base-2wool`'s L-shape island: stack 4 + shoulder 4 = 8; its long-I
-   wool on the shared spawn island stacks 14 and its shoulder is *rejected* because the flood reaches the spawn
-   room / the frontline mid → **44** total). **Only wools stack a lane — never spawns** (a spawn's approach is
-   not an objective lane). Validated to the tile on both grounding seeds. The redstone interface line and the
-   lane wash are both rendered; the tile count is reported per plan.
+6c. **Wool lane** — the terrain a wool room owns as its approach, read off the terrain shape. The room
+   **interfaces** with terrain along an edge (where the generator stamps the objective's **redstone line**);
+   **stack** that interface straight outward as a fixed-width band, cell by cell, until void, a build region,
+   or a **T** — a crossbar, where terrain reaches beyond the band on **both** sides (a one-sided jut is only a
+   side branch and does *not* stop the stack; the long piece is the lane, the crossbar is crossing terrain that
+   stops the overflow). A **two-sided** room stacks both ways (`four-team-wool-two-sided`: down 12 + right 8 =
+   20/team, **80** total). If the forward stack immediately **dead-ends into void** (≤ a bar's thickness), the
+   room is docked against the **side** of a lane (an L, not an I) — stack that lane along its **own axis**
+   (perpendicular) instead, so the whole I the room docks against is the lane (`isolated-spawn`: the wool docks
+   the side of an 18-tile I, ×4 = 72; `base-2wool`'s L-shape room stacks its bar to 8). A stack stops at **any**
+   build (frontline or intra alike) — a wool lane *may* run to a frontline (`isolated-spawn`), so there is **no
+   "never-frontline" rule**. **Only wools stack a lane — never spawns.** Validated to the tile on both grounding
+   seeds (`base-2wool` **44** = long-I stack 14 + L-shape 8, ×2; `four-team-wool-two-sided` **80**); the
+   crossbar stop also drops the T-bar overflow on `odd-facing-three-wool` (100→40) and
+   `isolated-spawn-approaches` (24→16, keeping the 2×4 stem, dropping the crossing bar). The redstone interface
+   line and the lane wash are both rendered; the tile count is reported per plan.
 7. **Void topology** — a hole is **true void** (empty, non-buildable) the border can't reach without crossing
    **terrain or a build region** (both are walls for the enclosure flood): enclosed → **hole**, border-reachable
    → **spacing**. Build must wall the flood, otherwise a rotation pocket ("rotary device") near the frontline —
