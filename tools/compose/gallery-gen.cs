@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// build-cache bust: composer round 5d (centerline variety — 10x10 pairs now common)
+// build-cache bust: composer round 6 (G49 — real spawn + wool-room pieces)
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;
@@ -459,12 +459,15 @@ string Page(string sections, string failuresPanel)
     string bodyInner = $"""
     <div class="wrap">
       <header class="top">
-        <p class="eyebrow">Composer · G32 · centerline-islands review round</p>
+        <p class="eyebrow">Composer · G49 · spawn + wool-room rooms</p>
         <h1>Generated plans, fanned by symmetry</h1>
         <p class="lede">Each card is a full map: one authored team unit fanned into every orbit image by the
-        plan's symmetry, drawn in the <code>/plan</code> editor's visual language. <strong>Centerline islands</strong>
-        (axis-straddling mid stones, CT11) are the thing under review — see the variety family below.
-        Suite <span class="green">green (323/323)</span>; p5 is a documented known limitation (below).</p>
+        plan's symmetry, drawn in the <code>/plan</code> editor's visual language. New this round: the composer
+        emits real role-bearing pieces — a <strong style="color:{CSpawnRole}">spawn</strong> region and a
+        <strong style="color:{CWoolRoom}">wool-room</strong> per wool — carved as compact rooms at each lane's
+        dead-end, which the plain lane pieces dock to. So a generated wool now stamps a room floor + red
+        entrance seam and a spawn auto-renews its iron. Suite <span class="green">green (323/323)</span>;
+        p5 is a documented known limitation (below).</p>
         {legend}
       </header>
 

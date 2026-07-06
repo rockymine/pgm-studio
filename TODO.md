@@ -33,15 +33,14 @@ BZ6–BZ9 build-zone discipline. The layers below are what remains.
 >    spawn, or wool lanes can dock onto a settled frontline. G39 is the crux and the most code-grounded (the
 >    band just needs the CT7 corner-snap the stones already use); a shifted or too-thin dock poisons every
 >    layer above it.
-> 2. **Real spawn + wool-room pieces (G49)** — there is currently **nothing for a lane to dock to** (every
->    piece is plain `piece`; the room/spawn is only a marker). The spawn/wool-lane style *is* how plain pieces
->    attach to the room/spawn piece, so no lane grammar is definable until that piece exists.
-> 3. **Authoring lever (G46 / G47 / G48)** — `mirror = none` + the `connector` piece + the taxonomy resort are
+> 2. **Authoring lever (G46 / G47 / G48)** — `mirror = none` + the `connector` piece + the taxonomy resort are
 >    what let the author produce the **teaching templates** G37 / G41 / G45 are blocked on. Without them the
 >    lane-style work stalls on missing inputs.
 >
-> Two are foundational gaps (**G39**, **G49**), one unblocks the inputs (**G46–G48**) — all three are upstream
-> of the lane-style payoff, so they come before the lane track proper.
+> The **spawn + wool-room dock now exists** (G49, `FEATURES.md`): the composer carves each lane's terminal into
+> a real `spawn` / `wool-room` room the plain lanes dock to — the anchor the spawn/wool-lane grammar (G37 / G45)
+> attaches to. What remains upstream of the lane-style payoff: **G39** (the frontline↔build-zone interface, still
+> the crux) and **G46–G48** (the authoring lever for the inputs), so they come before the lane track proper.
 
 **Mid — band & crossing (variations remain)**
 - [ ] **G38 — Multiple / parallel mid bands + their variations.** The composer ships only the CT1 clean
@@ -77,14 +76,6 @@ BZ6–BZ9 build-zone discipline. The layers below are what remains.
   neighbours; on some boards it is **fully engulfed** by the surrounding pieces (`gen-p20-t2-rot_180-s7` —
   which also surfaced the first accidental terrain hole). Enforce spawn-as-dock (SP): a spawn touches by a
   readable edge and is never interior to the merged land.
-- [ ] **G49 — Author real `spawn` + `wool-room` pieces (not just markers on plain pieces).** Confirmed gap:
-  the composer emits **every** piece as plain `piece` role (`Composer.cs:125`) and only drops spawn/wool/iron
-  **markers** on them — it never sets the `spawn` or `wool-room` role. So a generated wool isn't a wool-room
-  region (no red seams / bedrock floor at export) and a spawn isn't a spawn region (no auto-renew iron):
-  `PlanCompiler`'s role-specific paths never fire. Model the **wool room** and **spawn** as their own
-  role-bearing pieces the lanes **dock to** (a room at the lane's end, distinct from the lane), not a role on
-  the terminal lane piece. Also the anchor the lane-style work needs (G37 / G45): the spawn/wool-lane grammar
-  *is* how the plain pieces attach to the room/spawn piece. Supersedes the "set piece roles" note in G32-C.
 - [ ] **G44 — Budget→length decoupling (traced root cause of the lane bloat).** The grower's area gate
   rejects any unit under 80% of `LandPerTeam`, and its only real spend-vocabulary is **longer lanes** — so a
   big budget is absorbed by length, not structure, despite the docstring's "surplus spent structurally, never
@@ -111,10 +102,10 @@ BZ6–BZ9 build-zone discipline. The layers below are what remains.
   interface layer (G39/G40).
 
 **Realize & gate (plan → loadable, validated seed)**
-- [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`). Remaining: **G32-C markers/
-  heights/walls** — SP3/SP4 spawn (facing absolute, raised), SP7 iron, WL5 stepped approach climb, EL1
-  palette (base 9, step 2, all-odd), ST4 walls, EL6 — while the `spawn` / `wool-room` **piece roles** are
-  their own modeling task (G49), so pieces render neutral until it lands. **G32-D gates + goldens + emit** — `PlanValidator` zero-errors with zones present,
+- [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`); the `spawn` / `wool-room` piece
+  roles now land too (G49, `FEATURES.md`). Remaining: **G32-C markers/heights/walls** — SP3/SP4 spawn
+  (facing absolute, raised), SP7 iron, WL5 stepped approach climb, EL1 palette (base 9, step 2, all-odd),
+  ST4 walls, EL6 (the rooms are flat at the base surface — the elevation pass raises them). **G32-D gates + goldens + emit** — `PlanValidator` zero-errors with zones present,
   `FannedGraph` full traversability, stat envelopes vs `seed-stats.md`, `plan.json` loadable in `/plan`,
   fixed-RNG goldens under `tests/`. p5/rot_90 stays a known limitation until **G35**.
 - [ ] **G43 — Composer ↔ example-set conformance metrics.** Turn "does it match the examples?" into

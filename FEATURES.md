@@ -666,6 +666,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **Known limitation:** p5 (t2 and t4/rot_90) is structurally infeasible under BZ6 + spawn ≥2×2 within the
   fixed budget — deferred to the buffer-tile fix (G35). (G32 — B track)
 
+- **Composer — real `spawn` + `wool-room` room pieces** — `PgmStudio.Pgm/Compose/SpawnWoolRooms.cs`: a
+  post-growth pass that carves each objective's terminal lane into a compact role-bearing ROOM (a
+  `wool-room` per wool, one `spawn`) the plain lane pieces dock to — instead of dropping a marker on an
+  anonymous piece, so `PlanCompiler`'s role paths fire: a generated wool now stamps a bedrock room floor +
+  red entrance seam (ST1) and a spawn auto-renews its iron (ST2). The room is a 2-cell-deep ≥10×10-block
+  plateau (WL3 stamp cover) split off the marker's dead-end (WL1), with the marker re-hosted at its unchanged
+  world position (WL2/WL7 preserved); a terminal too short to leave a ≥2-cell approach — or one isolated
+  behind a bridge (WL4/SP6) — becomes the room whole, and a split that would degrade a neighbour contact
+  falls back to whole. Geometrically neutral (room ∪ remnant = the terminal's cells), so every grown
+  invariant holds. Runs after the isolation cut so a severed marker piece is its own isolated room. The
+  compose review gallery (`tools/compose/gallery-gen.cs`) renders the rooms in the editor's role colours.
+  323 Pgm tests green. (G49)
+
 - **Plan model — the `buffer` annotation piece (non-generating design tile)** — `PgmStudio.Pgm/Plan/` +
   `Client/Pages/Plan/`: a new annotation-role class (`PlanRoles.IsAnnotation`/`IsGenerating`) whose first
   member `buffer` marks reserved empty space (lane spacing, the rot_90 border, holes — a hole is an enclosed

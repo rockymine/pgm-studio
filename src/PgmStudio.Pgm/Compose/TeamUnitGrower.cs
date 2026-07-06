@@ -2,10 +2,11 @@ using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>A grown piece: a plain <c>piece</c>-role rect in cell coordinates (<see cref="Plan.PlanPiece.Rect"/>
-/// convention). The grammar authors no <c>wool-room</c>/<c>spawn</c>-role pieces — only anonymous ones; the
-/// placements below carry all the meaning (PC1/PC3).</summary>
-public sealed record GrownPiece(string Id, int[] Rect);
+/// <summary>A grown piece: a rect in cell coordinates (<see cref="Plan.PlanPiece.Rect"/> convention) and its
+/// role. The grower authors only anonymous <c>piece</c>-role rects (the default); the role-bearing
+/// <c>wool-room</c>/<c>spawn</c> rooms are carved from the terminal lanes afterwards
+/// (<see cref="SpawnWoolRooms"/>).</summary>
+public sealed record GrownPiece(string Id, int[] Rect, string Role = PlanRoles.Piece);
 
 /// <summary>The grown unit's spawn: which piece it sits on, its piece-relative half-cell offset, and its
 /// absolute facing (SP3: toward the enemy by default).</summary>

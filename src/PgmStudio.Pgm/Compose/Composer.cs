@@ -46,6 +46,10 @@ public static class Composer
             var cut = IsolationCut.TryApply(envelope, rng, unit, mid);
             if (cut is not null) unit = new GrownUnit(cut.Pieces, unit.Spawn, unit.Wools);
 
+            // carve the terminal lanes into real spawn / wool-room pieces (the lane docks to the room) — after
+            // the cut so a severed marker piece becomes its own isolated room (WL4/SP6), not a split island
+            unit = SpawnWoolRooms.Carve(unit);
+
             var plan = Assemble(request, envelope, unit, mid, cut);
             if (!Acceptable(plan, unit)) continue;
 
@@ -122,7 +126,7 @@ public static class Composer
         };
 
         foreach (var piece in unit.Pieces)
-            plan.Pieces.Add(new PlanPiece { Id = piece.Id, Role = PlanRoles.Piece, Rect = piece.Rect });
+            plan.Pieces.Add(new PlanPiece { Id = piece.Id, Role = piece.Role, Rect = piece.Rect });
         foreach (var stone in mid.Stones)
             plan.Pieces.Add(new PlanPiece
             {
