@@ -140,9 +140,11 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    land-connected back piece *is* island; a piece across a void with its own marker is a *separate* island
    (the WL4/SP6 isolated wool/spawn). (Route/spine is a different derived thing, for traffic — don't
    conflate.)
-2. **Island anchor role** — by the marker it contains: **team** (holds a spawn), **objective** (holds a
-   wool but no spawn — the isolated-wool island), **neutral** (anchorless, intersects a build region),
-   **decorative** (anchorless, outside any build region — excluded from scoring).
+2. **Island anchor role** — by the intent it carries: **team** (holds a spawn), **objective** (holds a wool
+   but no spawn — the isolated-wool island), **neutral** (anchorless, intersects a build region),
+   **decorative** (anchorless, outside any build region — excluded from scoring). Read from the **authored
+   `spawn` / `wool-room` piece roles** (the strongest signal — the author explicitly marked the region) *and*
+   the spawn/wool markers, so a room piece is recognised even before its marker.
 3. **Marker branch** — the maximal ~1-room-wide path from each marker (wool, spawn) inward to the first
    widening/branch (the cutoff, §5.3). One per wool, one per spawn. (The readable name for a branch is a
    "lane"; the branch is the measurable.)
@@ -157,9 +159,11 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    **terrain or a build region** (both are walls for the enclosure flood): enclosed → **hole**, border-reachable
    → **spacing**. Build must wall the flood, otherwise a rotation pocket ("rotary device") near the frontline —
    encased by twin frontlines on some sides and the mid build band on the others — leaks to the border through
-   the band and is missed. Cross against the authored deliberate-void marks (buffer / `zones[].holes`) to split
-   **declared** from **undeclared** (a deliberate CT8 pocket vs an accidental enclosed void — a top evaluator
-   term, §6).
+   the band and is missed. **Every** enclosed void is reported, **at any size** — the seeds carry intended holes
+   as small as 1×2 cells (`mirror-tiny-map-cliff`, `rotate-wide-frontline`), so no size threshold may override
+   the corpus (`layout-rules.md`'s "~10×10" is a *generation* norm, never a *detection* filter). Cross against
+   the authored deliberate-void marks (buffer / `zones[].holes`) to split **declared** from **undeclared** (a
+   deliberate CT8 pocket vs an accidental enclosed void — a top evaluator term, §6).
 
 ### 5.2 Provisional labels (readability over the measurables — the evaluator prefers the measurable)
 

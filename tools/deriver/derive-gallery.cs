@@ -16,8 +16,10 @@ using PgmStudio.Pgm.Plan;
 
 const string BgCanvas = "#080f1a";
 const string AxisCol = "#a78bfa";
-const string CResidual = "#7c8899";   // the unnamed residual (slate)
-const string CBranch = "#3fae74";     // marker branch / lane (green)
+const string CWoolRoom = "#3fae74";   // AUTHORED wool-room piece (editor green) — intent, not derived
+const string CSpawnRole = "#8f7bd6";  // AUTHORED spawn piece (editor purple) — intent, not derived
+const string CBranch = "#aab6c2";     // DERIVED branch / lane (light slate)
+const string CResidual = "#5b6b7a";   // DERIVED residual (dark slate)
 const string CBuild = "#3b82f6";      // build zone (accent)
 const string CFront = "#f59e0b";      // frontline edge (amber)
 const string CVoidUndecl = "#ef4444"; // undeclared enclosed void — the buffer worklist (red)
@@ -63,6 +65,7 @@ Derived Derive(PlanModel plan)
 {
     int order = Symmetry.Order(plan.Globals.Symmetry);
     string[] axes = Symmetry.OrbitAxes(plan.Globals.Symmetry);
+    var roleOf = plan.Pieces.ToDictionary(p => p.Id, p => p.Role);        // authored piece role (wool-room/spawn carry intent)
 
     var filled = new Dictionary<(int, int), (string PieceId, int K)>();   // generating-piece cells → hosting piece image
     var build = new HashSet<(int, int)>();                                // buildable (zone) cells
@@ -118,8 +121,9 @@ Derived Derive(PlanModel plan)
     var roles = new string[islands.Count];
     for (var i = 0; i < islands.Count; i++)
     {
-        bool hasSpawn = islands[i].Any(c => spawnKeys.Contains(filled[c])),
-             hasWool = islands[i].Any(c => woolKeys.Contains(filled[c])),
+        // the authored wool-room / spawn ROLE is the strongest intent signal — use it alongside the markers
+        bool hasSpawn = islands[i].Any(c => spawnKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.Spawn),
+             hasWool = islands[i].Any(c => woolKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.WoolRoom),
              touchesBuild = islands[i].Any(c => N4(c).Any(build.Contains) || build.Contains(c));
         roles[i] = hasSpawn ? "team" : hasWool ? "objective" : touchesBuild ? "neutral" : "decorative";
     }
@@ -185,9 +189,9 @@ Derived Derive(PlanModel plan)
             var comp = new HashSet<(int, int)>(); var q = new Queue<(int, int)>(); q.Enqueue(s); seenVoid.Add(s);
             while (q.Count > 0) { var cur = q.Dequeue(); comp.Add(cur); foreach (var nb in N4(cur)) if (TrueVoid(nb) && !outside.Contains(nb) && seenVoid.Add(nb)) q.Enqueue(nb); }
             bool declared = comp.Any(declaredVoid.Contains);   // a buffer / zone-hole marks this pocket deliberate
-            // an undeclared pocket below a 2x2-cell (10x10-block) footprint is a rasterization sliver, not a
-            // hole (a real hole / rotary device is ~10x10 minimum) — drop it as noise; declared marks always show
-            if (!declared && comp.Count < 4) continue;
+            // report EVERY enclosed void, any size — the authored seeds are ground truth, and they carry
+            // intended holes as small as 1x2 cells (mirror-tiny-map-cliff, rotate-wide-frontline). Never let a
+            // size rule override the corpus.
             voids.Add((comp, declared));
         }
 
@@ -275,8 +279,16 @@ string Card(string name, PlanModel plan, Derived d)
 
     // build zones (under terrain)
     foreach (var c in d.Build) CellRect(c.Item1, c.Item2, CBuild, 0.14, CBuild, 0.4);
-    // terrain cells — green = branch, slate = residual
-    foreach (var c in d.Filled.Keys) CellRect(c.Item1, c.Item2, d.Residual.Contains(c) ? CResidual : CBranch, 0.72, BgCanvas, 0.5);
+    // terrain cells — AUTHORED wool-room (green) / spawn (purple) take their editor colour so the intent reads;
+    // everything else is coloured by the DERIVED branch (light slate) / residual (dark slate) split
+    var roleOf = plan.Pieces.ToDictionary(p => p.Id, p => p.Role);
+    foreach (var c in d.Filled.Keys)
+    {
+        var role = roleOf[d.Filled[c].PieceId];
+        string fill = role == PlanRoles.WoolRoom ? CWoolRoom : role == PlanRoles.Spawn ? CSpawnRole
+            : d.Residual.Contains(c) ? CResidual : CBranch;
+        CellRect(c.Item1, c.Item2, fill, 0.75, BgCanvas, 0.5);
+    }
     // enclosed voids — undeclared (red, the worklist) vs declared (blue)
     foreach (var (vc, isDecl) in d.Voids) foreach (var c in vc) CellRect(c.Item1, c.Item2, isDecl ? CVoidDecl : CVoidUndecl, isDecl ? 0.2 : 0.28, isDecl ? CVoidDecl : CVoidUndecl, 0.9);
     // axis
@@ -370,7 +382,11 @@ string Page(string cardsHtml)
 
     string legend = $"""
         <div class="legend">
-          <span class="legend-lbl">Terrain</span>
+          <span class="legend-lbl">Authored</span>
+          <span class="lg"><span class="sw" style="background:{CWoolRoom}"></span>wool-room piece</span>
+          <span class="lg"><span class="sw" style="background:{CSpawnRole}"></span>spawn piece</span>
+          <span class="sep"></span>
+          <span class="legend-lbl">Derived</span>
           <span class="lg"><span class="sw" style="background:{CBranch}"></span>branch / lane</span>
           <span class="lg"><span class="sw" style="background:{CResidual}"></span>residual</span>
           <span class="lg"><span class="sw sw--edge" style="border-color:{CFront}"></span>frontline edge</span>
@@ -407,11 +423,12 @@ string Page(string cardsHtml)
       <div class="grid">
     {cardsHtml}  </div>
 
-      <footer>Deriver v1 — first cut for visual review, not the final algorithm. branch/residual = morphological
-      erosion; approach count = arms at the room; frontline = team land's OUTSIDE edge facing a build void (no
-      interior seams); voids = true void (empty, non-buildable) walled by terrain OR build — the terrain+build
-      encasing catches the frontline rotary devices — dropping anything below a 10×10 footprint as raster noise.
-      Static SVG, self-contained, cell = 5 blocks.</footer>
+      <footer>Deriver v1 — first cut for visual review, not the final algorithm. Authored <b>wool-room</b> /
+      <b>spawn</b> pieces keep their editor colour (intent); other terrain is the DERIVED branch / residual split
+      (morphological erosion). approach count = arms at the room; frontline = team land's OUTSIDE edge facing a
+      build void (no interior seams); voids = true void (empty, non-buildable) walled by terrain OR build (the
+      terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void reported, any size, the
+      seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>
     """;
 
