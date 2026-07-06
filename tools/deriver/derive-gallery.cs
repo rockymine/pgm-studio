@@ -43,7 +43,8 @@ foreach (var path in files)
         cards++;
         var roleCounts = string.Join(",", d.Roles.GroupBy(r => r).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         var apps = string.Join("/", d.Approaches.Select(a => a.Count).OrderByDescending(x => x));
-        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  branch={d.Branch.Count} residual={d.Residual.Count}  frontEdges={d.FrontEdges.Count}  approaches={apps}  voids: {d.Voids.Count(v => !v.Declared)} undecl/{d.Voids.Count(v => v.Declared)} decl");
+        var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
+        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  branch={d.Branch.Count} residual={d.Residual.Count}  frontEdges={d.FrontEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -158,17 +159,21 @@ Derived Derive(PlanModel plan)
         foreach (var (nb, seg) in N4Seg(c)) if (build.Contains(nb) && !filled.ContainsKey(nb)) frontEdges.Add(seg);
     }
 
-    // enclosed voids — flood non-filled cells from the bbox border; unreached = enclosed. Declared if it
-    // overlaps a buffer / zone-hole (or is entirely build); else an undeclared void (the buffer worklist).
+    // enclosed voids — a hole is TRUE void (empty terrain, non-buildable) that the border can't reach without
+    // crossing terrain OR a build region: both terrain and build are walls for this flood. That is what lets a
+    // rotation pocket ("rotary device") near the frontline — walled by twin frontlines on some sides and the
+    // mid build band on the others — register as enclosed, instead of leaking to the border through the band.
+    // Declared when the pocket overlaps a buffer / zone-hole; else an undeclared void (the buffer worklist).
     var all = filled.Keys.Concat(build).Concat(declaredVoid).ToList();
     int minX = all.Min(c => c.Item1) - 1, maxX = all.Max(c => c.Item1) + 1;
     int minZ = all.Min(c => c.Item2) - 1, maxZ = all.Max(c => c.Item2) + 1;
-    bool Void((int, int) c) => !filled.ContainsKey(c) && c.Item1 >= minX && c.Item1 <= maxX && c.Item2 >= minZ && c.Item2 <= maxZ;
+    bool TrueVoid((int, int) c) => !filled.ContainsKey(c) && !build.Contains(c)
+        && c.Item1 >= minX && c.Item1 <= maxX && c.Item2 >= minZ && c.Item2 <= maxZ;
     var outside = new HashSet<(int, int)>();
     var oq = new Queue<(int, int)>();
-    for (var x = minX; x <= maxX; x++) foreach (var c in new[] { (x, minZ), (x, maxZ) }) if (Void(c) && outside.Add(c)) oq.Enqueue(c);
-    for (var z = minZ; z <= maxZ; z++) foreach (var c in new[] { (minX, z), (maxX, z) }) if (Void(c) && outside.Add(c)) oq.Enqueue(c);
-    while (oq.Count > 0) { var cur = oq.Dequeue(); foreach (var nb in N4(cur)) if (Void(nb) && outside.Add(nb)) oq.Enqueue(nb); }
+    for (var x = minX; x <= maxX; x++) foreach (var c in new[] { (x, minZ), (x, maxZ) }) if (TrueVoid(c) && outside.Add(c)) oq.Enqueue(c);
+    for (var z = minZ; z <= maxZ; z++) foreach (var c in new[] { (minX, z), (maxX, z) }) if (TrueVoid(c) && outside.Add(c)) oq.Enqueue(c);
+    while (oq.Count > 0) { var cur = oq.Dequeue(); foreach (var nb in N4(cur)) if (TrueVoid(nb) && outside.Add(nb)) oq.Enqueue(nb); }
 
     var voids = new List<(HashSet<(int, int)> Cells, bool Declared)>();
     var seenVoid = new HashSet<(int, int)>();
@@ -176,14 +181,14 @@ Derived Derive(PlanModel plan)
         for (var z = minZ; z <= maxZ; z++)
         {
             var s = (x, z);
-            if (!Void(s) || outside.Contains(s) || seenVoid.Contains(s)) continue;
+            if (!TrueVoid(s) || outside.Contains(s) || seenVoid.Contains(s)) continue;
             var comp = new HashSet<(int, int)>(); var q = new Queue<(int, int)>(); q.Enqueue(s); seenVoid.Add(s);
-            while (q.Count > 0) { var cur = q.Dequeue(); comp.Add(cur); foreach (var nb in N4(cur)) if (Void(nb) && !outside.Contains(nb) && seenVoid.Add(nb)) q.Enqueue(nb); }
-            // declared when every non-build cell is covered by a declaration; a pure build pocket is not a void worklist item
-            bool anyBare = comp.Any(c => !build.Contains(c) && !declaredVoid.Contains(c));
-            bool anyBuild = comp.Any(build.Contains);
-            if (anyBuild && !comp.Any(c => !build.Contains(c))) continue;   // pure enclosed build zone — not a void
-            voids.Add((comp, !anyBare));
+            while (q.Count > 0) { var cur = q.Dequeue(); comp.Add(cur); foreach (var nb in N4(cur)) if (TrueVoid(nb) && !outside.Contains(nb) && seenVoid.Add(nb)) q.Enqueue(nb); }
+            bool declared = comp.Any(declaredVoid.Contains);   // a buffer / zone-hole marks this pocket deliberate
+            // an undeclared pocket below a 2x2-cell (10x10-block) footprint is a rasterization sliver, not a
+            // hole (a real hole / rotary device is ~10x10 minimum) — drop it as noise; declared marks always show
+            if (!declared && comp.Count < 4) continue;
+            voids.Add((comp, declared));
         }
 
     return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, approaches, frontEdges, voids);
@@ -402,9 +407,11 @@ string Page(string cardsHtml)
       <div class="grid">
     {cardsHtml}  </div>
 
-      <footer>Deriver v1 (branch/residual = morphological erosion; approach count = arms at the room; frontline =
-      team land adjacent to a build zone) — first cut for visual review, not the final algorithm. Static SVG,
-      self-contained, cell = 5 blocks.</footer>
+      <footer>Deriver v1 — first cut for visual review, not the final algorithm. branch/residual = morphological
+      erosion; approach count = arms at the room; frontline = team land's OUTSIDE edge facing a build void (no
+      interior seams); voids = true void (empty, non-buildable) walled by terrain OR build — the terrain+build
+      encasing catches the frontline rotary devices — dropping anything below a 10×10 footprint as raster noise.
+      Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>
     """;
 

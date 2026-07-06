@@ -153,9 +153,13 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    measured count, not a role.)*
 5. **Axis position** — each piece's distance to / straddle of the symmetry axis, from cell coordinates.
 6. **Build interfaces** — per island/piece, the count and total width of edges touching a build region.
-7. **Void topology** — flood-fill the empties: enclosed → **hole**, open → **spacing**; cross against the
-   authored deliberate-void marks (buffer / `zones[].holes`) to split **declared** from **undeclared** (a
-   deliberate CT8 pocket vs an accidental enclosed void — a top evaluator term, §6).
+7. **Void topology** — a hole is **true void** (empty, non-buildable) the border can't reach without crossing
+   **terrain or a build region** (both are walls for the enclosure flood): enclosed → **hole**, border-reachable
+   → **spacing**. Build must wall the flood, otherwise a rotation pocket ("rotary device") near the frontline —
+   encased by twin frontlines on some sides and the mid build band on the others — leaks to the border through
+   the band and is missed. Cross against the authored deliberate-void marks (buffer / `zones[].holes`) to split
+   **declared** from **undeclared** (a deliberate CT8 pocket vs an accidental enclosed void — a top evaluator
+   term, §6).
 
 ### 5.2 Provisional labels (readability over the measurables — the evaluator prefers the measurable)
 
