@@ -293,7 +293,11 @@ produced. Do not encode a shape whitelist in the evaluator — that is the enume
 
 1. **Tile reading** — rasterize `plan.json` to the 5×5-cell field (occupancy + role + surface + buildable).
 2. **Deriver** — structures from markers + geometry, with the width/branch cutoff; a debug render of the
-   derived labels over a plan.
+   derived labels over a plan. *(Status: v1 landed as a review tool — `tools/deriver/derive-gallery.cs` fans
+   each seed to the full board and renders islands + anchor roles, the branch/residual erosion split, per-wool
+   approach counts, the frontline edge, and undeclared voids. Known-rough: the branch/residual cutoff
+   over-calls residual on big/wide boards — the §5.3 knob to settle first — and approaches are counted for
+   wools only. Promote into `Analysis` once the cutoff is tuned.)*
 3. **Property terms** — the §6 catalogue as pure functions over the derived structures, each citing a rule
    id and returning a distance + a violation record.
 4. **Evaluation set** — auto-label the seeds; add minimal-pair negatives per §7 coverage; assert the
