@@ -26,21 +26,18 @@ Shipped so far (`FEATURES.md`): closure/envelope + team-unit grower, the clean-f
 islands (CT11 order-2, incl. 10×10 pairs), the MD6 stone grid, the wide frontline (FR6), isolation cuts, and
 BZ6–BZ9 build-zone discipline. The layers below are what remains.
 
-> **▶ Priority within this focus — the three upstream tracks.** The author-facing payoff everyone wants to
-> reach (the lane / hub *styles* — G37 / G45) sits **downstream** of three tracks that must land first:
+> **▶ Priority within this focus.** The author-facing payoff everyone wants to reach (the lane / hub *styles* —
+> G37 / G45) sits **downstream** of the interface layer and the authored teaching inputs:
 >
-> 1. **Interface layer (G39 / G40 / G41)** — the frontline↔build-zone must **interlock** before the hub,
->    spawn, or wool lanes can dock onto a settled frontline. G39 is the crux and the most code-grounded (the
->    band just needs the CT7 corner-snap the stones already use); a shifted or too-thin dock poisons every
->    layer above it.
-> 2. **Authoring lever (G46 / G47 / G48)** — `mirror = none` + the `connector` piece + the taxonomy resort are
->    what let the author produce the **teaching templates** G37 / G41 / G45 are blocked on. Without them the
->    lane-style work stalls on missing inputs.
+> - **Interface layer (G39 / G40 / G41)** — the frontline↔build-zone must **interlock** before the hub, spawn,
+>   or wool lanes can dock onto a settled frontline. G39 is the crux and the most code-grounded (the band just
+>   needs the CT7 corner-snap the stones already use); a shifted or too-thin dock poisons every layer above it.
 >
-> The **spawn + wool-room dock now exists** (G49, `FEATURES.md`): the composer carves each lane's terminal into
-> a real `spawn` / `wool-room` room the plain lanes dock to — the anchor the spawn/wool-lane grammar (G37 / G45)
-> attaches to. What remains upstream of the lane-style payoff: **G39** (the frontline↔build-zone interface, still
-> the crux) and **G46–G48** (the authoring lever for the inputs), so they come before the lane track proper.
+> Two foundations have now **shipped** (`FEATURES.md`): the **spawn + wool-room dock** (G49 — the composer carves
+> each lane's terminal into a real `spawn` / `wool-room` room the plain lanes dock to, the anchor the spawn/wool-
+> lane grammar attaches to) and the **authoring lever** (G46–G48 — `none` symmetry + the `connector` piece + the
+> palette resort, letting the author design reusable lane / spawn templates). What remains upstream of the
+> lane-style payoff is **G39** and then authoring the teaching maps G37 / G41 / G45 need.
 
 **Mid — band & crossing (variations remain)**
 - [ ] **G38 — Multiple / parallel mid bands + their variations.** The composer ships only the CT1 clean
@@ -127,19 +124,6 @@ BZ6–BZ9 build-zone discipline. The layers below are what remains.
   every board double-frontline).
 
 **Authoring tooling — the teaching-material lever (plan editor)**
-Several tasks above are blocked on more authored teaching maps (G37 / G41 / G45). These plan-editor primitives
-are what let the author design them — especially reusable lane / spawn **templates**.
-- [ ] **G46 — Plan tool: `mirror = none` symmetry mode.** Add a `none` symmetry (order 1, no orbit axes) so
-  the author can design a **single freeform unit** — a wool-lane / spawn-lane shape — without the mirror
-  fanning fighting the design. Touches `Geom.Symmetry` (order 1 / empty axes), the editor mirror preview
-  (`setAuthorMirror` draws nothing), and the plan globals / compose envelope accepting `none`.
-- [ ] **G47 — Connector technical piece (attachment-point annotation).** A new non-generating role
-  `connector` alongside `buffer` (extends `PlanRoles.Annotations`): marks "**other structure attaches / overrides
-  here**" — a hub, a frontline, the mid. Produces no terrain, no graph/export effect. With `buffer` (reserved
-  spacing / holes) it lets the author build reusable **templates**: a wool-lane template = the lane pieces + a
-  `connector` where it docks + `buffer`s for spacing.
-- [ ] **G48 — Piece / marker taxonomy restructure + UI resort.** Regroup the palette (today: pieces / build /
-  markers) into three labeled kinds — **true pieces** (`piece`, `spawn`, `wool-room`, `build`), **true markers**
-  (`wool`, `spawn`, `iron`, `wall`), **technical pieces** (`buffer`, `connector`) — and re-sort the plan editor
-  UI to match. Reconciles the model split (build is a `PlanZone`, wall a `PlanWall` list, buffer/connector are
-  annotation roles) with the author's conceptual grouping.
+The `none` symmetry, the `connector` piece, and the palette resort (G46–G48) have **shipped** (`FEATURES.md`):
+the author can now design reusable single-unit lane / spawn **templates**. What remains here is authoring the
+teaching maps those primitives unblock (tracked with G37 / G41 / G45 above).

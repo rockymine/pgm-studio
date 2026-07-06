@@ -263,10 +263,12 @@ test("allMarkers flattens spawns/wools/iron with kind + index", () => {
   assert.deepEqual(allMarkers(doc).map(m => [m.kind, m.index]), [["spawn", 0], ["wool", 0]]);
 });
 
-test("ROLES palette order is stable and includes the buffer annotation", () => {
-  assert.deepEqual(ROLES, ["piece", "wool-room", "spawn", "buffer"]);
+test("ROLES palette order is stable and includes the buffer + connector annotations", () => {
+  assert.deepEqual(ROLES, ["piece", "wool-room", "spawn", "buffer", "connector"]);
   assert.ok(ROLES.includes("buffer"));
+  assert.ok(ROLES.includes("connector"));
   assert.equal(ROLE_COLORS.buffer, "#f2792b");
+  assert.equal(ROLE_COLORS.connector, "#2dd4bf");
 });
 
 // ── schema v2: anonymous roles + wall marks + the buffer annotation ──────────
@@ -278,7 +280,8 @@ test("canonicalRole folds legacy/unknown roles to piece, keeps intent + annotati
   assert.equal(canonicalRole("nonsense"), "piece");
   assert.equal(canonicalRole("wool-room"), "wool-room");
   assert.equal(canonicalRole("spawn"), "spawn");
-  assert.equal(canonicalRole("buffer"), "buffer");   // annotation role preserved, never folded
+  assert.equal(canonicalRole("buffer"), "buffer");        // annotation role preserved, never folded
+  assert.equal(canonicalRole("connector"), "connector");  // the second annotation role, likewise preserved
 });
 
 test("normalizeDoc maps legacy piece roles on load", () => {

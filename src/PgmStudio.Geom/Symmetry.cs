@@ -9,8 +9,9 @@ namespace PgmStudio.Geom;
 /// </summary>
 public static class Symmetry
 {
-    /// <summary>Orbit order: <c>rot_90</c> ⇒ 4, any other known mode ⇒ 2, none/unknown ⇒ 1.</summary>
-    public static int Order(string? mode) => string.IsNullOrEmpty(mode) ? 1 : mode == "rot_90" ? 4 : 2;
+    /// <summary>Orbit order: <c>rot_90</c> ⇒ 4, <c>none</c>/empty/unset ⇒ 1 (a single un-fanned unit — the
+    /// freeform authoring mode), any other known mode ⇒ 2.</summary>
+    public static int Order(string? mode) => string.IsNullOrEmpty(mode) || mode == "none" ? 1 : mode == "rot_90" ? 4 : 2;
 
     /// <summary>The reflection normal (nx,nz) for a mirror mode, or <c>null</c> for non-mirror modes
     /// (rotations / unknown). The single source for the mirror axes: mirror_x=(1,0), mirror_z=(0,1),
@@ -24,9 +25,13 @@ public static class Symmetry
         _ => null,
     };
 
-    /// <summary>The concrete axes that make up a mode's orbit (the C# twin of JS <c>orbitAxes</c>):
-    /// <c>rot_90</c> fans out to rot_90/rot_180/rot_270; every other mode is its own single axis.</summary>
-    public static string[] OrbitAxes(string mode) => mode == "rot_90" ? ["rot_90", "rot_180", "rot_270"] : [mode];
+    /// <summary>The concrete axes that make up a mode's orbit (the C# twin of JS <c>orbitAxes</c>), one per
+    /// image beyond the base (length = <see cref="Order"/> − 1): <c>rot_90</c> fans out to
+    /// rot_90/rot_180/rot_270; <c>none</c>/empty is order 1 so its orbit is empty (no fanning); every other
+    /// mode is its own single axis.</summary>
+    public static string[] OrbitAxes(string mode) => mode == "rot_90"
+        ? ["rot_90", "rot_180", "rot_270"]
+        : string.IsNullOrEmpty(mode) || mode == "none" ? [] : [mode];
 
     /// <summary>Reflect a point across the plane through (ox,oz) with horizontal normal (nx,nz).</summary>
     public static (double X, double Z) ReflectPoint(double px, double pz, double nx, double nz, double ox, double oz)

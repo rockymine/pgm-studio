@@ -679,6 +679,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   compose review gallery (`tools/compose/gallery-gen.cs`) renders the rooms in the editor's role colours.
   323 Pgm tests green. (G49)
 
+- **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
+  `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
+  primitives that let an author design reusable single-unit lane / spawn templates. **G46** adds a `none`
+  symmetry (order 1, empty orbit — `Symmetry.Order`/`OrbitAxes` + the JS twin `orbitAxes`) so a single freeform
+  unit authors with no mirror ghost fighting the shape; it compiles order-1 through `PlanCompiler` and inspects
+  clean. **G47** adds a second annotation role `connector` beside `buffer` (`PlanRoles.Annotations`) — an
+  attachment-point mark ("other structure docks / overrides here"), non-generating (filtered from the
+  graph/export like buffer), rendered as a teal crossed hatch in the editor and the compose tools. **G48**
+  resorts the palette into three labelled kinds — Pieces (piece/spawn/wool-room + build), Markers
+  (wool/spawn/iron/wall), Technical (buffer/connector). 53 Geom + 323 Pgm + 121 JS + 48 Api tests green. A
+  study of six hand-authored wool-lane templates (`tools/compose/wool-lane-study/` + `wool-lane-study.cs`)
+  showcases multi-access, buffer spacing, and land/build-zone attachment points. (G46 · G47 · G48)
+
 - **Plan model — the `buffer` annotation piece (non-generating design tile)** — `PgmStudio.Pgm/Plan/` +
   `Client/Pages/Plan/`: a new annotation-role class (`PlanRoles.IsAnnotation`/`IsGenerating`) whose first
   member `buffer` marks reserved empty space (lane spacing, the rot_90 border, holes — a hole is an enclosed

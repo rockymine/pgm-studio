@@ -51,6 +51,7 @@
                   <option value="rot_90">Rotate 90°</option>
                   <option value="mirror_x">Mirror X</option>
                   <option value="mirror_z">Mirror Z</option>
+                  <option value="none">None — single unit</option>
                 </select>
               </div>
               <div class="field">
@@ -74,28 +75,28 @@
             <div class="panel-section">
               <div class="section-header section-header--ruled"><h2 class="section-title">Pieces</h2></div>
               <div class="plan-palette">
-                @foreach (var r in Roles)
+                @foreach (var r in GeneratingRoles)
                 {
                   <button class="plan-role-btn @(tool == "piece" && role == r.Id ? "plan-role-btn--active" : null)"
                           style="--role-color:@r.Color" title="Draw a @r.Label piece" @onclick="() => PickRole(r.Id)">
                     <span class="plan-role-swatch"></span>@r.Label
                   </button>
                 }
-              </div>
-              <p class="section-desc">Buffer marks reserved empty space — informational only (no terrain, not buildable).</p>
-            </div>
-
-            <div class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Build &amp; markers</h2></div>
-              <div class="plan-palette">
                 <button class="plan-role-btn @(tool == "zone" ? "plan-role-btn--active" : null)" title="Draw a build area" @onclick='() => PickTool("zone")'>
                   <i data-lucide="square-dashed"></i> Build
                 </button>
-                <button class="plan-role-btn @(tool == "spawn" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("spawn")'>
-                  <i data-lucide="flag"></i> Spawn
-                </button>
+              </div>
+              <p class="section-desc">Terrain pieces. A <strong>spawn</strong> / <strong>wool-room</strong> piece is the region; a build area is where building is allowed.</p>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Markers</h2></div>
+              <div class="plan-palette">
                 <button class="plan-role-btn @(tool == "wool" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("wool")'>
                   <i data-lucide="square"></i> Wool
+                </button>
+                <button class="plan-role-btn @(tool == "spawn" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("spawn")'>
+                  <i data-lucide="flag"></i> Spawn
                 </button>
                 <button class="plan-role-btn @(tool == "iron" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("iron")'>
                   <i data-lucide="pickaxe"></i> Iron
@@ -105,6 +106,20 @@
                 </button>
               </div>
               <p class="section-desc">Markers ride the piece under them. Click a placed spawn to cycle its facing. The Wall tool toggles a wall mark on the land interface you click.</p>
+            </div>
+
+            <div class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Technical</h2></div>
+              <div class="plan-palette">
+                @foreach (var r in TechnicalRoles)
+                {
+                  <button class="plan-role-btn @(tool == "piece" && role == r.Id ? "plan-role-btn--active" : null)"
+                          style="--role-color:@r.Color" title="Draw a @r.Label annotation" @onclick="() => PickRole(r.Id)">
+                    <span class="plan-role-swatch"></span>@r.Label
+                  </button>
+                }
+              </div>
+              <p class="section-desc"><strong>Buffer</strong> marks reserved empty space (lane spacing / holes); <strong>connector</strong> marks an attachment point where other structure docks. Both are informational — no terrain, not buildable.</p>
             </div>
           </div>
         </div>

@@ -18,10 +18,13 @@ export function applySymmetry(x, z, axis, cx, cz) {
 
 /**
  * The orbit images (other than the source) a symmetry produces: `rot_90` fills three quarter-turns,
- * every other mode is a single reflection/half-turn. Used to fan one authored shape across all sides.
+ * `none` produces no image at all (a single un-fanned unit — the freeform authoring mode), every other
+ * mode is a single reflection/half-turn. Used to fan one authored shape across all sides.
  */
 export function orbitAxes(type) {
-  return type === "rot_90" ? ["rot_90", "rot_180", "rot_270"] : [type];
+  if (type === "rot_90") return ["rot_90", "rot_180", "rot_270"];
+  if (!type || type === "none") return [];
+  return [type];
 }
 
 /** Apply a symmetry to an extent bounds, returning the transformed AABB. */

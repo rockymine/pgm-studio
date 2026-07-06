@@ -12,9 +12,11 @@ namespace PgmStudio.Pgm.Plan;
 /// <para>Roles split into two kinds. <b>Generating</b> roles (<see cref="Piece"/>/<see cref="WoolRoom"/>/
 /// <see cref="Spawn"/>) produce terrain and participate in connectivity, gameplay, validation and export.
 /// <b>Annotation</b> roles (the <see cref="Annotations"/> set) are informational-only marks that produce no
-/// terrain and carry no graph or export effect — shown in authoring and render tools only. The one annotation
-/// role is <see cref="Buffer"/>: a reserved empty gap covering lane-to-lane spacing, the border reservation,
-/// and holes (a hole is an enclosed buffer). New non-generating roles are added by extending
+/// terrain and carry no graph or export effect — shown in authoring and render tools only. Two annotation
+/// roles exist: <see cref="Buffer"/> — a reserved empty gap covering lane-to-lane spacing, the border
+/// reservation, and holes (a hole is an enclosed buffer) — and <see cref="Connector"/>, an attachment-point
+/// mark ("other structure attaches / overrides here" — a hub, a frontline, the mid) that, with buffers, lets
+/// an author build reusable lane/spawn templates. New non-generating roles are added by extending
 /// <see cref="Annotations"/>.</para></summary>
 public static class PlanRoles
 {
@@ -22,10 +24,12 @@ public static class PlanRoles
     public const string WoolRoom = "wool-room";
     public const string Spawn = "spawn";
     public const string Buffer = "buffer";
+    public const string Connector = "connector";
 
-    /// <summary>The non-generating annotation roles — marks that document intent (spacing, reserved gaps,
-    /// holes) but produce no terrain and have no gameplay/graph/export effect. Extend this to add more.</summary>
-    public static readonly IReadOnlySet<string> Annotations = new HashSet<string> { Buffer };
+    /// <summary>The non-generating annotation roles — marks that document intent (spacing/reserved gaps and
+    /// holes via <see cref="Buffer"/>; attachment points via <see cref="Connector"/>) but produce no terrain
+    /// and have no gameplay/graph/export effect. Extend this to add more.</summary>
+    public static readonly IReadOnlySet<string> Annotations = new HashSet<string> { Buffer, Connector };
 
     /// <summary>True when the role is an informational-only annotation (never rasterized, never buildable).</summary>
     public static bool IsAnnotation(string? role) => role is not null && Annotations.Contains(role);
@@ -35,13 +39,14 @@ public static class PlanRoles
     public static bool IsGenerating(string? role) => !IsAnnotation(role);
 
     /// <summary>The canonical role for a raw (possibly legacy or empty) value: <c>wool-room</c>, <c>spawn</c>
-    /// and the annotation <c>buffer</c> survive; everything else — including <c>lane</c>/<c>hub</c>/<c>mid</c> —
-    /// is a plain piece.</summary>
+    /// and the annotations <c>buffer</c>/<c>connector</c> survive; everything else — including
+    /// <c>lane</c>/<c>hub</c>/<c>mid</c> — is a plain piece.</summary>
     public static string Canonical(string? role) => role switch
     {
         WoolRoom => WoolRoom,
         Spawn => Spawn,
         Buffer => Buffer,
+        Connector => Connector,
         _ => Piece,
     };
 }

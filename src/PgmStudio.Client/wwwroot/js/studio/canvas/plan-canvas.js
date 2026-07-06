@@ -15,9 +15,12 @@ import { svgEl } from "../render/svg.js";
 import {
   ROLE_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
   markerCell, attachMarker, markerAt, allMarkers, viewBounds, pickAtWorld, sameSelection,
-  pieceSurface, surfaceRange, surfaceFraction,
+  pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole,
   pieceMirrorImages, zoneMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
+
+// The hatch pattern id backing each annotation role's fill (buffer = single diagonal, connector = crossed).
+const HATCH = { buffer: "buffer-hatch", connector: "connector-hatch" };
 
 const FIT_MARGIN = 0.82;
 const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4" };
@@ -166,11 +169,19 @@ export class PlanCanvas extends CanvasBase {
     this.#clear(this.#defs);
     const cell = this.#doc?.globals.cell || 5;
     const step = Math.max(2, cell * 0.7);
-    const col = ROLE_COLORS.buffer;
-    const pat = svgEl("pattern", { id: "buffer-hatch", patternUnits: "userSpaceOnUse", width: step, height: step, patternTransform: "rotate(45)" });
-    pat.appendChild(svgEl("rect", { x: 0, y: 0, width: step, height: step, fill: col, "fill-opacity": "0.12" }));
-    pat.appendChild(svgEl("line", { x1: 0, y1: 0, x2: 0, y2: step, stroke: col, "stroke-width": Math.max(0.6, cell * 0.14) }));
-    this.#defs.appendChild(pat);
+    const sw = Math.max(0.6, cell * 0.14);
+    // Buffer: single diagonal hatch (reserved gap). Connector: crossed hatch (attachment point) — the two
+    // annotation fills read apart at a glance while both stay clearly "not terrain".
+    const buf = svgEl("pattern", { id: "buffer-hatch", patternUnits: "userSpaceOnUse", width: step, height: step, patternTransform: "rotate(45)" });
+    buf.appendChild(svgEl("rect", { x: 0, y: 0, width: step, height: step, fill: ROLE_COLORS.buffer, "fill-opacity": "0.12" }));
+    buf.appendChild(svgEl("line", { x1: 0, y1: 0, x2: 0, y2: step, stroke: ROLE_COLORS.buffer, "stroke-width": sw }));
+    this.#defs.appendChild(buf);
+
+    const con = svgEl("pattern", { id: "connector-hatch", patternUnits: "userSpaceOnUse", width: step, height: step, patternTransform: "rotate(45)" });
+    con.appendChild(svgEl("rect", { x: 0, y: 0, width: step, height: step, fill: ROLE_COLORS.connector, "fill-opacity": "0.14" }));
+    con.appendChild(svgEl("line", { x1: 0, y1: 0, x2: 0, y2: step, stroke: ROLE_COLORS.connector, "stroke-width": sw }));
+    con.appendChild(svgEl("line", { x1: 0, y1: 0, x2: step, y2: 0, stroke: ROLE_COLORS.connector, "stroke-width": sw }));
+    this.#defs.appendChild(con);
   }
 
   #renderGrid() {
@@ -214,12 +225,12 @@ export class PlanCanvas extends CanvasBase {
     const layer = this.#ghostLayer; this.#clear(layer);
     for (const img of pieceMirrorImages(this.#doc)) {
       const { min_x, min_z, max_x, max_z } = img.bounds;
-      if (img.role === "buffer") {
-        // A buffer ghost keeps the reserved-gap hatch, dimmed to ghost opacity.
+      if (isAnnotationRole(img.role)) {
+        // An annotation ghost keeps its hatch (buffer / connector), dimmed to ghost opacity.
         layer.appendChild(svgEl("rect", {
           x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
-          fill: "url(#buffer-hatch)", "fill-opacity": "0.3",
-          stroke: ROLE_COLORS.buffer, "stroke-opacity": "0.4", "stroke-width": "1",
+          fill: `url(#${HATCH[img.role]})`, "fill-opacity": "0.3",
+          stroke: ROLE_COLORS[img.role], "stroke-opacity": "0.4", "stroke-width": "1",
           "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke",
         }));
         continue;
@@ -279,13 +290,14 @@ export class PlanCanvas extends CanvasBase {
     const range = this.#heightMap ? surfaceRange(this.#doc) : null;   // ramp domain for height-map mode
     for (const p of this.#doc.pieces) {
       const b = rectCellsToBlocks(p.rect, cell);
-      if (p.role === "buffer") {
-        // Reserved-gap annotation: a diagonal hatch + dashed same-colour stroke, no solid terrain fill — reads
-        // clearly as "not buildable ground" and distinct from the dashed build-zone accent.
+      if (isAnnotationRole(p.role)) {
+        // Non-generating annotation: a hatched fill + dashed same-colour stroke, no solid terrain — reads as
+        // "not buildable ground" and distinct from the dashed build-zone accent. Buffer = reserved gap,
+        // connector = attachment point (crossed hatch).
         layer.appendChild(svgEl("rect", {
           x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-          fill: "url(#buffer-hatch)", "fill-opacity": "0.9",
-          stroke: ROLE_COLORS.buffer, "stroke-opacity": "0.85", "stroke-width": "1.4",
+          fill: `url(#${HATCH[p.role]})`, "fill-opacity": "0.9",
+          stroke: ROLE_COLORS[p.role], "stroke-opacity": "0.85", "stroke-width": "1.4",
           "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke",
           "data-piece": p.id, style: "cursor:pointer",
         }));
@@ -622,13 +634,13 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
     const b = rectCellsToBlocks(rect, cell);
-    const isBuffer = this.#drag.kind === "piece" && this.#pieceRole === "buffer";
+    const isAnno = this.#drag.kind === "piece" && isAnnotationRole(this.#pieceRole);
     const color = this.#drag.kind === "zone" ? "var(--accent)" : ROLE_COLORS[this.#pieceRole];
     layer.appendChild(svgEl("rect", {
       x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-      fill: isBuffer ? "url(#buffer-hatch)" : color, "fill-opacity": isBuffer ? "0.6" : "0.2",
+      fill: isAnno ? `url(#${HATCH[this.#pieceRole]})` : color, "fill-opacity": isAnno ? "0.6" : "0.2",
       stroke: color, "stroke-width": "1.5",
-      "stroke-dasharray": isBuffer ? "6 4" : "4 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
+      "stroke-dasharray": isAnno ? "6 4" : "4 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
     }));
   }
 

@@ -51,13 +51,22 @@ public partial class PlanEditor
     private List<InspectFinding> findings = [];
 
     private record RolePalette(string Id, string Label, string Color);
-    private static readonly RolePalette[] Roles =
+
+    // The G48 taxonomy: true pieces (terrain-producing roles) vs technical pieces (non-generating annotations).
+    // Both are drawn from the palette; markers (wool/spawn/iron/wall) and the build zone are separate tools.
+    private static readonly RolePalette[] GeneratingRoles =
     [
         new("piece", "Piece", "#7c8899"),
-        new("wool-room", "Wool room", "#3fae74"),
         new("spawn", "Spawn", "#8f7bd6"),
-        new("buffer", "Buffer", "#f2792b"),
+        new("wool-room", "Wool room", "#3fae74"),
     ];
+    private static readonly RolePalette[] TechnicalRoles =
+    [
+        new("buffer", "Buffer", "#f2792b"),
+        new("connector", "Connector", "#2dd4bf"),
+    ];
+    // Every assignable role, for the inspector's role dropdown (a piece can become any of them).
+    private static readonly RolePalette[] Roles = [.. GeneratingRoles, .. TechnicalRoles];
 
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
 

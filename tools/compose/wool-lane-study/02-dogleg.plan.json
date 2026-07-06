@@ -1,0 +1,20 @@
+{
+  "plan": 1,
+  "meta": { "name": "Dog-leg (hidden room)" },
+  "globals": { "cell": 5, "symmetry": "none", "maxPlayers": 12, "surface": 9, "headroom": 11 },
+  "pieces": [
+    { "id": "dock", "role": "connector", "rect": [0, 0, 2, 1] },
+    { "id": "lane", "role": "piece", "rect": [0, 1, 2, 4] },
+    { "id": "turn", "role": "piece", "rect": [2, 3, 3, 2] },
+    { "id": "room", "role": "wool-room", "rect": [5, 3, 2, 2], "surface": 11 },
+    { "id": "void", "role": "buffer", "rect": [2, 1, 3, 2] }
+  ],
+  "zones": [],
+  "placements": {
+    "spawns": [],
+    "wools": [ { "piece": "room", "at": [1, 1] } ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}

@@ -11,17 +11,25 @@
 
 import { applySymmetry, applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
 
-// Piece roles — the left-toolbar palette, in display order. Pieces are anonymous by default (one neutral
-// tint); the two intent-bearing roles (wool-room / spawn) keep distinct tints. `buffer` is a non-generating
-// annotation — reserved empty space (lane spacing / holes), drawn hatched, producing no terrain. Colours are
+// Piece roles — the drawable-role set. Pieces are anonymous by default (one neutral tint); the two
+// intent-bearing generating roles (wool-room / spawn) keep distinct tints. Two non-generating annotations
+// produce no terrain: `buffer` (reserved empty space — lane spacing / holes, drawn hatched) and `connector`
+// (an attachment point — where other structure docks / overrides, drawn cross-hatched). Colours are
 // theme-independent so a piece reads the same on the dark canvas in either theme; the fill is tinted lighter
 // for a higher surface. Legacy role names (lane/hub/mid) map to "piece" on load.
-export const ROLES = ["piece", "wool-room", "spawn", "buffer"];
-export const ROLE_COLORS = { piece: "#7c8899", "wool-room": "#3fae74", spawn: "#8f7bd6", buffer: "#f2792b" };
-export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn", buffer: "Buffer" };
+export const ROLES = ["piece", "wool-room", "spawn", "buffer", "connector"];
+export const ROLE_COLORS = { piece: "#7c8899", "wool-room": "#3fae74", spawn: "#8f7bd6", buffer: "#f2792b", connector: "#2dd4bf" };
+export const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn", buffer: "Buffer", connector: "Connector" };
 
-/** Fold a raw (possibly legacy or unknown) role down to a canonical one: wool-room / spawn / buffer survive. */
-export function canonicalRole(role) { return role === "wool-room" || role === "spawn" || role === "buffer" ? role : "piece"; }
+// The generating (terrain-producing) roles vs the non-generating annotation roles — the G48 palette grouping.
+export const GENERATING_ROLES = ["piece", "wool-room", "spawn"];
+export const TECHNICAL_ROLES = ["buffer", "connector"];
+
+/** Fold a raw (possibly legacy or unknown) role down to a canonical one: the known roles survive, everything else → piece. */
+export function canonicalRole(role) { return ROLES.includes(role) ? role : "piece"; }
+
+/** True for a non-generating annotation role (buffer / connector) — hatched, no terrain, not buildable. */
+export function isAnnotationRole(role) { return TECHNICAL_ROLES.includes(role); }
 
 // Marker facing cycles front → right → back → left on repeated clicks; the arrow points along an absolute
 // board direction per enum (front = −Z / up, back = +Z, left = −X, right = +X), fanned per orbit image.
