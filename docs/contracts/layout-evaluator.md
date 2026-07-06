@@ -167,16 +167,19 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
 
 ### 5.2 Provisional labels (readability over the measurables — the evaluator prefers the measurable)
 
-- **Frontline — a boundary *attribute*, not a piece** [decided]. The **contested edge**: where a team
-  landmass meets the middle build zone, "where players mainly meet." It is fuzzy by nature (the author's own
-  caveat) and depends on the mid — if the middle is one open build area with no islands, the frontline is
-  simply whatever team land touches it; if the middle is islands-in-build, it is the team land facing the
-  crossing. Modelled as a per-edge flag (which team-land edges face the mid void), so it composes with any
-  piece: no "frontline piece" to segment, and no conflict when a wide face — or the residual's own bulk —
-  borders the void. It is strictly an **outside** edge: the neighbouring cell must be buildable **and empty**
-  (the crossing void) — an interior seam between two pieces is never a frontline, even where an author draws a
-  big build rectangle that overlaps the terrain on both sides (a zone overlap must not manufacture a
-  frontline).
+- **Frontline — a boundary *attribute*, not a piece** [decided that it is an attribute; **scope [open]**]. The
+  **contested edge**: where a landmass meets the middle build zone, "where players mainly meet." It is fuzzy by
+  nature (the author's own caveat) and depends on the mid — if the middle is one open build area with no islands,
+  the frontline is simply whatever land touches it; if the middle is islands-in-build, it is the land facing the
+  crossing. Modelled as a per-edge flag (which land edges face the mid void), so it composes with any piece: no
+  "frontline piece" to segment, and no conflict when a wide face — or the residual's own bulk — borders the void.
+  It is strictly an **outside** edge: the neighbouring cell must be buildable **and empty** (the crossing void) —
+  an interior seam between two pieces is never a frontline, even where an author draws a big build rectangle that
+  overlaps the terrain on both sides (a zone overlap must not manufacture a frontline). **Scope is deliberately
+  over-broad in v1:** it is *not* gated to spawn-bearing (team) islands — an objective (isolated-wool) island can
+  itself touch the mid band (`isolated-spawn`), so gating on the spawn drops real frontlines. The cost of the
+  relaxation is that neutral mid stones now contribute edges too; the precise "which void-facing edges are really
+  the frontline" test is **open** (the author's to settle).
 - **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
   peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
   a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
