@@ -28,6 +28,8 @@ const string CIntra = "#f472b6";      // intra-team spawn<->wool interface / iso
 const string CSelf = "#22d3ee";       // self-bridge — a notch within ONE island (cyan, dotted)
 const string CVoidUndecl = "#ef4444"; // undeclared enclosed void — the buffer worklist (red)
 const string CVoidDecl = "#60a5fa";   // declared void (blue)
+const string CWoolLane = "#f97316";   // wool lane — the stack projected from the wool room (orange wash)
+const string CRedstone = "#ff2d2d";   // the wool-room interface (redstone line the generator stamps)
 const string MkWool = "#e6e6e6";
 const string MkSpawn = "#e0b13c";
 const string MkStroke = "#222222";
@@ -51,7 +53,7 @@ foreach (var path in files)
         var apps = string.Join("/", d.Approaches.Select(a => a.Count).OrderByDescending(x => x));
         var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
         int nStone = d.SteppingKind.Count(k => k == "neutral"), tStone = d.SteppingKind.Count(k => k == "team");
-        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  stones={nStone}n/{tStone}t  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count} self={d.SelfEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
+        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  stones={nStone}n/{tStone}t  woolLane={d.LaneCells.Count}  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count} self={d.SelfEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -276,6 +278,86 @@ Derived Derive(PlanModel plan)
         steppingKind[i] = captive[i] && compSpawn.Contains(root) && compWool.Contains(root) ? "team" : "neutral";
     }
 
+    // wool lanes — project the wool room's terrain interface straight outward (the "redstone line" the
+    // generator stamps on that edge), cell by cell, until void or build: that stack IS the lane. A two-sided
+    // room projects both ways. Then absorb any dead-end SHOULDER — a non-lane terrain pocket that touches the
+    // lane and is bounded only by void and INTRA-team build (never a frontline / the contested mid, never
+    // another anchor room) — so a cut-off wool island reads as all-lane. ONLY wools project; spawns never do.
+    var laneCells = new HashSet<(int, int)>();
+    var redstoneEdges = new List<(int X1, int Z1, int X2, int Z2)>();
+    bool IsAnchorRoom((int, int) c) => filled.TryGetValue(c, out var f)
+        && roleOf[f.PieceId] is PlanRoles.Spawn or PlanRoles.WoolRoom;
+    foreach (var w in plan.Placements.Wools)
+    {
+        var pc = plan.Pieces.FirstOrDefault(p => p.Id == w.Piece);
+        if (pc is null) continue;
+        for (var k = 0; k < order; k++)
+        {
+            var room = FanCellsK(pc.Rect, axes, k).ToHashSet();
+            if (room.Count == 0) continue;
+            int rminx = room.Min(c => c.Item1), rmaxx = room.Max(c => c.Item1);
+            int rminz = room.Min(c => c.Item2), rmaxz = room.Max(c => c.Item2);
+            var lane = new HashSet<(int, int)>();
+            // stack the interface out from each room side that faces terrain, per lane-column, until void/build
+            void Side(int dx, int dz)
+            {
+                if (dz != 0)
+                {
+                    int z0 = dz > 0 ? rmaxz + 1 : rminz - 1, zEdge = dz > 0 ? rmaxz + 1 : rminz;
+                    for (var x = rminx; x <= rmaxx; x++)
+                        if (filled.ContainsKey((x, z0)) && !room.Contains((x, z0)))
+                        {
+                            redstoneEdges.Add((x, zEdge, x + 1, zEdge));
+                            for (var z = z0; filled.ContainsKey((x, z)) && !room.Contains((x, z)); z += dz) lane.Add((x, z));
+                        }
+                }
+                else
+                {
+                    int x0 = dx > 0 ? rmaxx + 1 : rminx - 1, xEdge = dx > 0 ? rmaxx + 1 : rminx;
+                    for (var z = rminz; z <= rmaxz; z++)
+                        if (filled.ContainsKey((x0, z)) && !room.Contains((x0, z)))
+                        {
+                            redstoneEdges.Add((xEdge, z, xEdge, z + 1));
+                            for (var x = x0; filled.ContainsKey((x, z)) && !room.Contains((x, z)); x += dx) lane.Add((x, z));
+                        }
+                }
+            }
+            Side(0, 1); Side(0, -1); Side(1, 0); Side(-1, 0);
+
+            // shoulder absorption: flood each non-lane terrain component touching the lane; absorb it only if
+            // bounded solely by void + intra-team build (touches no frontline build and no other anchor room).
+            var handled = new HashSet<(int, int)>(lane);
+            foreach (var lc in lane.ToList())
+                foreach (var seed in N4(lc))
+                {
+                    if (handled.Contains(seed) || room.Contains(seed)) continue;
+                    if (!filled.ContainsKey(seed) || IsAnchorRoom(seed)) continue;   // terrain, not a room
+                    var comp = new List<(int, int)>();
+                    var local = new HashSet<(int, int)> { seed };
+                    var q = new Queue<(int, int)>(); q.Enqueue(seed);
+                    bool bounded = true;
+                    while (q.Count > 0)
+                    {
+                        var cur = q.Dequeue(); comp.Add(cur);
+                        foreach (var nb in N4(cur))
+                        {
+                            if (lane.Contains(nb) || room.Contains(nb)) continue;      // lane/room = boundary
+                            if (filled.ContainsKey(nb))
+                            {
+                                if (IsAnchorRoom(nb)) { bounded = false; continue; }   // reaches another anchor
+                                if (local.Add(nb)) q.Enqueue(nb);
+                            }
+                            else if (build.Contains(nb) && !(regionOf.TryGetValue(nb, out var r) && intraTeam[r]))
+                                bounded = false;                                        // frontline build → not a shoulder
+                        }
+                    }
+                    if (bounded) lane.UnionWith(comp);
+                    handled.UnionWith(comp);
+                }
+            laneCells.UnionWith(lane);
+        }
+    }
+
     // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
     // built a deliberate internal gap — a piece chopped off the main mass and bridged back across a slow-down
     // void (the CT5 isolation cut). A learnable pattern for the builder, not just an exclusion.
@@ -330,7 +412,7 @@ Derived Derive(PlanModel plan)
             voids.Add((comp, declared));
         }
 
-    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, voids);
+    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
 }
 
 // ── geometry helpers ────────────────────────────────────────────────────────────────────────────────────────
@@ -428,6 +510,8 @@ string Card(string name, PlanModel plan, Derived d)
             : d.Residual.Contains(c) ? CResidual : CBranch;
         CellRect(c.Item1, c.Item2, fill, 0.75, BgCanvas, 0.5);
     }
+    // wool lanes — the stack projected from the wool room (orange wash over the terrain it claims)
+    foreach (var c in d.LaneCells) CellRect(c.Item1, c.Item2, CWoolLane, 0.34, CWoolLane, 0.5);
     // enclosed voids — undeclared (red, the worklist) vs declared (blue)
     foreach (var (vc, isDecl) in d.Voids) foreach (var c in vc) CellRect(c.Item1, c.Item2, isDecl ? CVoidDecl : CVoidUndecl, isDecl ? 0.2 : 0.28, isDecl ? CVoidDecl : CVoidUndecl, 0.9);
     // axis
@@ -439,6 +523,9 @@ string Card(string name, PlanModel plan, Derived d)
     // self-bridge notches (cyan, dotted) — a build pocket carved into ONE island, its two walls the same landmass
     foreach (var (x1, z1, x2, z2) in d.SelfEdges)
         svg.Append($"<line x1=\"{N(PX(x1 * cell))}\" y1=\"{N(PY(z1 * cell))}\" x2=\"{N(PX(x2 * cell))}\" y2=\"{N(PY(z2 * cell))}\" stroke=\"{CSelf}\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-dasharray=\"1 2.6\"/>");
+    // redstone interface line — the wool-room edge the stack projects from (where the generator stamps redstone)
+    foreach (var (x1, z1, x2, z2) in d.RedstoneEdges)
+        svg.Append($"<line x1=\"{N(PX(x1 * cell))}\" y1=\"{N(PY(z1 * cell))}\" x2=\"{N(PX(x2 * cell))}\" y2=\"{N(PY(z2 * cell))}\" stroke=\"{CRedstone}\" stroke-width=\"3\" stroke-linecap=\"round\"/>");
     // frontline edges (amber, thick, solid)
     foreach (var (x1, z1, x2, z2) in d.FrontEdges)
         svg.Append($"<line x1=\"{N(PX(x1 * cell))}\" y1=\"{N(PY(z1 * cell))}\" x2=\"{N(PX(x2 * cell))}\" y2=\"{N(PY(z2 * cell))}\" stroke=\"{CFront}\" stroke-width=\"2.4\" stroke-linecap=\"round\"/>");
@@ -479,6 +566,7 @@ string Card(string name, PlanModel plan, Derived d)
         stat(d.Islands.Count.ToString(), "islands"), stat(roleStr, ""),
         stat(stoneStr, "stepping stones"),
         stat(appStr, "approaches"),
+        stat(d.LaneCells.Count.ToString(), "wool-lane tiles"),
         stat(d.FrontEdges.Count.ToString(), "frontline")
             + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : "")
             + (d.SelfEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.SelfEdges.Count.ToString(), "self-bridge")}" : ""),
@@ -547,6 +635,8 @@ string Page(string cardsHtml)
           <span class="lg"><span class="sw sw--edge" style="border-color:{CFront}"></span>frontline edge</span>
           <span class="lg"><span class="sw sw--edge" style="border-top-style:dashed;border-color:{CIntra}"></span>intra-team bridge</span>
           <span class="lg"><span class="sw sw--edge" style="border-top-style:dotted;border-color:{CSelf}"></span>self-bridge notch</span>
+          <span class="lg"><span class="sw" style="background:{CWoolLane}57;border:1.2px solid {CWoolLane}"></span>wool lane (stacked)</span>
+          <span class="lg"><span class="sw sw--edge" style="border-color:{CRedstone};border-top-width:3px"></span>redstone interface</span>
           <span class="sep"></span>
           <span class="legend-lbl">Voids</span>
           <span class="lg"><span class="sw" style="background:{CVoidUndecl}55;border:1.3px solid {CVoidUndecl}"></span>undeclared (buffer worklist)</span>
@@ -575,6 +665,10 @@ string Page(string cardsHtml)
         whole island, never branch/residual: <b>team</b> (fuchsia) if it is captive and sits on one team's
         spawn↔wool route, else <b>neutral</b> (gray, a contested centre island); the
         <b>n×</b> beside each wool is its approach count (green ≥2 = multi-access, red = lone dead-end); the
+        <strong style="color:{CWoolLane}">orange wash</strong> is the <b>wool lane</b> — the terrain stacked out
+        from the wool room's <strong style="color:{CRedstone}">redstone interface</strong> (bright red line) until
+        void or build, both directions for a two-sided room, plus any dead-end shoulder bounded only by void +
+        intra-team build (a cut-off wool island reads as all-lane). Spawns never stack a lane. The
         <strong style="color:{CVoidUndecl}">red voids</strong> are enclosed empties nobody has declared yet —
         <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). A
         <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region on
@@ -601,7 +695,9 @@ string Page(string cardsHtml)
       a spawn&lt;-&gt;wool route, else neutral = stone-gray) rather than branch/residual; an edge facing an intra-team spawn&lt;-&gt;wool bridge
       (a build region on a team's own internal route — direct, or through a captive stepping stone only that team
       can reach) is re-tagged intra, not frontline, and a build pocket carved into a SINGLE island is split off as
-      a self-bridge notch (cyan dotted); voids = true void walled by
+      a self-bridge notch (cyan dotted); wool lane (orange) = terrain stacked from the wool room's redstone
+      interface (red line) out to void/build, both ways for two-sided rooms, plus dead-end shoulders bounded only
+      by void + intra-team build — wools only, never spawns; voids = true void walled by
       terrain OR build (the terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void
       reported, any size, the seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>
@@ -630,4 +726,6 @@ record Derived(
     List<(int X1, int Z1, int X2, int Z2)> FrontEdges,
     List<(int X1, int Z1, int X2, int Z2)> IntraEdges,
     List<(int X1, int Z1, int X2, int Z2)> SelfEdges,
+    HashSet<(int, int)> LaneCells,
+    List<(int X1, int Z1, int X2, int Z2)> RedstoneEdges,
     List<(HashSet<(int, int)> Cells, bool Declared)> Voids);
