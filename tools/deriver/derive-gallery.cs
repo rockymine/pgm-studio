@@ -171,12 +171,58 @@ Derived Derive(PlanModel plan)
             else islVoid[isl]++;
         }
     }
+
+    // intra-team bridges — a build region (connected empty buildable cells) that connects EXACTLY a spawn-holding
+    // island and a wool-holding island OF THE SAME TEAM, touching nothing else, is an internal spawn<->wool
+    // bridge. The edges those two islands present to it are intra-team interfaces, not frontlines.
+    var regionOf = new Dictionary<(int, int), int>();
+    var regionCount = 0;
+    foreach (var b in build)
+    {
+        if (filled.ContainsKey(b) || regionOf.ContainsKey(b)) continue;   // buildVoid cells only
+        var q = new Queue<(int, int)>(); q.Enqueue(b); regionOf[b] = regionCount;
+        while (q.Count > 0)
+        {
+            var cur = q.Dequeue();
+            foreach (var nb in N4(cur))
+                if (build.Contains(nb) && !filled.ContainsKey(nb) && !regionOf.ContainsKey(nb)) { regionOf[nb] = regionCount; q.Enqueue(nb); }
+        }
+        regionCount++;
+    }
+    var regionIslands = Enumerable.Range(0, regionCount).Select(_ => new HashSet<int>()).ToArray();
+    foreach (var (cell, r) in regionOf)
+        foreach (var nb in N4(cell)) if (filled.ContainsKey(nb)) regionIslands[r].Add(islandOf[nb]);
+
+    var islandTeam = new int[islands.Count];       // orbit image k == team index
+    var hasSpawnI = new bool[islands.Count];
+    var hasWoolI = new bool[islands.Count];
+    for (var i = 0; i < islands.Count; i++)
+    {
+        islandTeam[i] = filled[islands[i].First()].K;
+        hasSpawnI[i] = islands[i].Any(c => spawnKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.Spawn);
+        hasWoolI[i] = islands[i].Any(c => woolKeys.Contains(filled[c]) || roleOf[filled[c].PieceId] == PlanRoles.WoolRoom);
+    }
+    var intraTeam = new bool[regionCount];
+    for (var r = 0; r < regionCount; r++)
+    {
+        if (regionIslands[r].Count != 2) continue;                       // must connect exactly two islands
+        var arr = regionIslands[r].ToArray();
+        int i = arr[0], j = arr[1];
+        if (islandTeam[i] == islandTeam[j] && ((hasSpawnI[i] && hasWoolI[j]) || (hasSpawnI[j] && hasWoolI[i])))
+            intraTeam[r] = true;                                         // same-team spawn island + wool island
+    }
+
     var frontEdges = new List<(int X1, int Z1, int X2, int Z2)>();
     foreach (var c in filled.Keys)
     {
         int isl = islandOf[c];
         if (islVoid[isl] <= islBuild[isl]) continue;   // build-dominant or pure void → stepping stone, no frontline
-        foreach (var (nb, seg) in N4Seg(c)) if (build.Contains(nb) && !filled.ContainsKey(nb)) frontEdges.Add(seg);
+        foreach (var (nb, seg) in N4Seg(c))
+        {
+            if (!(build.Contains(nb) && !filled.ContainsKey(nb))) continue;
+            if (regionOf.TryGetValue(nb, out var r) && intraTeam[r]) continue;   // intra-team interface, not a frontline
+            frontEdges.Add(seg);
+        }
     }
 
     // enclosed voids — a hole is TRUE void (empty terrain, non-buildable) that the border can't reach without
@@ -444,7 +490,8 @@ string Page(string cardsHtml)
       (morphological erosion). approach count = arms at the room; frontline = OUTSIDE edge facing a build void,
       but only on a VOID-DOMINANT island (more void-border than build-border — exposed territory); a build-
       dominant island (embedded in the crossing) or a pure-void one is a stepping stone with no frontline
-      (corpus-wide, void-dominant == holds a spawn/wool); voids = true void (empty, non-buildable) walled by
+      (corpus-wide, void-dominant == holds a spawn/wool); an edge facing an intra-team spawn&lt;-&gt;wool bridge
+      (a build region joining only a team's own spawn + wool islands) is excluded too; voids = true void walled by
       terrain OR build (the terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void
       reported, any size, the seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>

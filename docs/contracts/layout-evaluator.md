@@ -183,7 +183,12 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   enough (the embedded stones do) — the border must be *predominantly* void. Not gated to spawn-bearing islands:
   an objective (isolated-wool) island is void-dominant (`isolated-spawn`, 4 build / 22 void) and keeps its
   frontline. **Across the whole corpus, void-dominant ≡ anchored (holds a spawn or wool)** — the geometric test
-  and ownership coincide, which is the validation that this is the right cut.
+  and ownership coincide, which is the validation that this is the right cut. **Intra-team interfaces are
+  excluded [decided]:** a build region (connected empty buildable cells) that connects **exactly** a spawn-
+  holding island and a wool-holding island *of the same team* — touching nothing else — is an internal
+  spawn↔wool bridge; the edges those two islands present to it are intra-team interfaces, not frontlines. (Same
+  team = same orbit image k. Validated to the block: `base-2wool` 18→10 (−8), `four-team-towers-big` 52→28
+  (−6×4), `base-4team` unaffected — it has no separate wool island, so no spawn↔wool bridge.)
 - **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
   peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
   a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
