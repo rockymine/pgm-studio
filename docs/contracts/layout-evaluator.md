@@ -176,20 +176,23 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   It is strictly an **outside** edge: the neighbouring cell must be buildable **and empty** (the crossing void) —
   an interior seam between two pieces is never a frontline, even where an author draws a big build rectangle that
   overlaps the terrain on both sides (a zone overlap must not manufacture a frontline). **Scope [decided]: an
-  island has a frontline only if it touches BOTH a build region and true void.** It is *not* gated to
-  spawn-bearing (team) islands — an objective (isolated-wool) island can itself touch the mid band
-  (`isolated-spawn`), so gating on the spawn drops real frontlines. But an island surrounded by **only build**
-  (embedded in a plaza) or **only void** (floating) is a **stepping stone**, not a frontline — the build+void
-  requirement drops the mid stones sitting inside the band while keeping the mixed case (the wool island touching
-  band + void).
+  island has a frontline only if its border is VOID-DOMINANT** — more void-border than build-border. Such an
+  island is exposed territory whose build-facing edges are its frontline. A **build-dominant** island (mostly
+  surrounded by build — a mid stone embedded in the band, e.g. `base-2island`'s 2×2 stones at 6 build / 2 void)
+  and a **pure-void** island (floating) are **stepping stones** with no frontline. Touching *some* void is not
+  enough (the embedded stones do) — the border must be *predominantly* void. Not gated to spawn-bearing islands:
+  an objective (isolated-wool) island is void-dominant (`isolated-spawn`, 4 build / 22 void) and keeps its
+  frontline. **Across the whole corpus, void-dominant ≡ anchored (holds a spawn or wool)** — the geometric test
+  and ownership coincide, which is the validation that this is the right cut.
 - **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
   peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
   a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
   properties* (§6) — it never requires a shape. *(Per the author: "I would not define hub at all yet — it's
   literally the remainder.")*
 - **Middle island / stepping stone** — a standalone island sitting in / touching a build region (spoken of
-  as just "an island"; the term "stepping stone" is fine). **Geometrically [decided]: an island surrounded by
-  only build or only void — never both — is a stepping stone** (it has no frontline; see the frontline bullet).
+  as just "an island"; the term "stepping stone" is fine). **Geometrically [decided]: a build-dominant island
+  (border more build than void — embedded in the crossing) or a pure-void (floating) island is a stepping stone**
+  (it has no frontline; see the frontline bullet). On the corpus this is exactly the anchorless islands.
   Two provisional sub-kinds, told apart by **axis
   proximity + build-interface count** (neither alone — a middle stone can touch a build region on just two
   edges): a **middle island** on/straddling the symmetry axis (position-derivable; the CT11 centre island

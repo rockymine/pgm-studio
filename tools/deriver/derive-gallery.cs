@@ -154,27 +154,28 @@ Derived Derive(PlanModel plan)
         }
 
     // frontline edges — a void-facing OUTSIDE edge (buildable AND empty neighbour; never an interior seam). An
-    // island has a frontline only if it touches BOTH a build region and true void: an island surrounded by only
-    // build (embedded in a plaza) or only void (floating) is a STEPPING STONE, not a frontline. This keeps the
-    // mixed case — the isolated-wool island touching the mid band + void (isolated-spawn) — while dropping the
-    // mid stones embedded in the band.
-    var islBuild = new bool[islands.Count];
-    var islVoid = new bool[islands.Count];
+    // island has a frontline only if its border is VOID-DOMINANT (more void-border than build-border) — it is
+    // exposed territory whose build-facing edges are the frontline. A build-dominant island is embedded in the
+    // crossing (mostly surrounded by build, e.g. a mid stone sitting in the band) and a pure-void island is
+    // floating — both are STEPPING STONES with no frontline. This drops the base-2island 2x2 stones (6 build /
+    // 2 void) while keeping the isolated-wool island (4 build / 22 void) and the team territory.
+    var islBuild = new int[islands.Count];
+    var islVoid = new int[islands.Count];
     foreach (var c in filled.Keys)
     {
         int isl = islandOf[c];
         foreach (var nb in N4(c))
         {
             if (filled.ContainsKey(nb)) continue;
-            if (build.Contains(nb)) islBuild[isl] = true;
-            else islVoid[isl] = true;
+            if (build.Contains(nb)) islBuild[isl]++;
+            else islVoid[isl]++;
         }
     }
     var frontEdges = new List<(int X1, int Z1, int X2, int Z2)>();
     foreach (var c in filled.Keys)
     {
         int isl = islandOf[c];
-        if (!(islBuild[isl] && islVoid[isl])) continue;   // stepping stone (pure build or pure void)
+        if (islVoid[isl] <= islBuild[isl]) continue;   // build-dominant or pure void → stepping stone, no frontline
         foreach (var (nb, seg) in N4Seg(c)) if (build.Contains(nb) && !filled.ContainsKey(nb)) frontEdges.Add(seg);
     }
 
@@ -441,10 +442,11 @@ string Page(string cardsHtml)
       <footer>Deriver v1 — first cut for visual review, not the final algorithm. Authored <b>wool-room</b> /
       <b>spawn</b> pieces keep their editor colour (intent); other terrain is the DERIVED branch / residual split
       (morphological erosion). approach count = arms at the room; frontline = OUTSIDE edge facing a build void,
-      but only on an island that touches BOTH build AND void (an island surrounded by only build or only void is
-      a stepping stone — no frontline); voids = true void (empty, non-buildable) walled by terrain OR build (the
-      terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void reported, any size, the
-      seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
+      but only on a VOID-DOMINANT island (more void-border than build-border — exposed territory); a build-
+      dominant island (embedded in the crossing) or a pure-void one is a stepping stone with no frontline
+      (corpus-wide, void-dominant == holds a spawn/wool); voids = true void (empty, non-buildable) walled by
+      terrain OR build (the terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void
+      reported, any size, the seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>
     """;
 
