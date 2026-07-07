@@ -13,6 +13,7 @@
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;
+using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 
 const string BgCanvas = "#080f1a";
@@ -47,36 +48,53 @@ var RoleInk = new Dictionary<string, string> { ["team"] = "#93c5fd", ["objective
 var files = Directory.EnumerateFiles(Path.Combine("tools", "seeds"), "*.plan.json").OrderBy(p => p, StringComparer.Ordinal).ToList();
 int cards = 0;
 var sb = new StringBuilder();
+var sbGen = new StringBuilder();
 var failures = new List<string>();
+
+void Emit(string name, PlanModel plan, StringBuilder buf)
+{
+    var d = Derive(plan);
+    buf.Append(Card(name, plan, d));
+    cards++;
+    string ifaceRange(IEnumerable<(string Kind, int Neutrals, int Width, int IfaceMin, int IfaceMax)> g)
+    { int lo = g.Min(z => z.IfaceMin), hi = g.Max(z => z.IfaceMax); return lo == hi ? $"{lo}" : $"{lo}-{hi}"; }
+    var zoneStr = string.Join(", ", d.Zones.GroupBy(z => z.Kind).OrderBy(g => g.Key)
+        .Select(g => $"{g.Count()}{g.Key}(w{string.Join("/", g.Select(z => z.Width).Distinct().OrderBy(x => x))} if{ifaceRange(g)})"));
+    // BZ3 buckets: 1 cell = 5-block choke, 2 = 10-block bridge (dominant), >=3 = 15+ open band
+    var bz3 = string.Join("/", d.Zones.GroupBy(z => z.Width <= 1 ? "choke" : z.Width == 2 ? "bridge" : "band")
+        .OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key}"));
+    var pw = string.Join("/", d.Voids.Where(v => v.Class == "middle" && v.CrossRoutes > 0).Select(v => v.CrossRoutes).OrderByDescending(x => x));
+    Console.WriteLine($"  {name,-42} mid={d.MidForm,-10} bz3={bz3,-18} zones=[{zoneStr}]{(pw.Length > 0 ? $"  pWays={pw}" : "")}");
+}
 
 foreach (var path in files)
 {
     var name = Path.GetFileName(path)[..^".plan.json".Length];
-    try
-    {
-        var plan = PlanModel.Parse(File.ReadAllText(path))!;
-        var d = Derive(plan);
-        sb.Append(Card(name, plan, d));
-        cards++;
-        var roleCounts = string.Join(",", d.Roles.GroupBy(r => r).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
-        var apps = string.Join("/", d.Approaches.Select(a => a.Count).OrderByDescending(x => x));
-        var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
-        var holes = string.Join(",", d.Voids.GroupBy(v => v.Class).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
-        int nStone = d.SteppingKind.Count(k => k == "neutral"), tStone = d.SteppingKind.Count(k => k == "team");
-        string ifaceRange(IEnumerable<(string Kind, int Neutrals, int Width, int IfaceMin, int IfaceMax)> g)
-        { int lo = g.Min(z => z.IfaceMin), hi = g.Max(z => z.IfaceMax); return lo == hi ? $"{lo}" : $"{lo}-{hi}"; }
-        var zoneStr = string.Join(", ", d.Zones.GroupBy(z => z.Kind).OrderBy(g => g.Key)
-            .Select(g => $"{g.Count()}{g.Key}(w{string.Join("/", g.Select(z => z.Width).Distinct().OrderBy(x => x))} if{ifaceRange(g)})"));
-        // BZ3 buckets: 1 cell = 5-block choke, 2 = 10-block bridge (dominant), >=3 = 15+ open band
-        var bz3 = string.Join("/", d.Zones.GroupBy(z => z.Width <= 1 ? "choke" : z.Width == 2 ? "bridge" : "band")
-            .OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key}"));
-        var pw = string.Join("/", d.Voids.Where(v => v.Class == "middle" && v.CrossRoutes > 0).Select(v => v.CrossRoutes).OrderByDescending(x => x));
-        Console.WriteLine($"  {name,-42} mid={d.MidForm,-10} bz3={bz3,-18} zones=[{zoneStr}]{(pw.Length > 0 ? $"  pWays={pw}" : "")}");
-    }
+    try { Emit(name, PlanModel.Parse(File.ReadAllText(path))!, sb); }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
 
-var html = Page(sb.ToString());
+// candidates from the CURRENT composer — a spread of P/team/symmetry/seed. These are what the composer builds
+// today (the long-lane era): the ready-made NEGATIVE set the scoring rules will eventually be calibrated against.
+Console.WriteLine("-- generated (current composer) --");
+var genCases = new (string Label, int P, int T, string S, ulong Seed)[]
+{
+    ("gen p12 rot180 s1", 12, 2, "rot_180", 1),
+    ("gen p12 rot180 s15", 12, 2, "rot_180", 15),
+    ("gen p20 rot180 s7", 20, 2, "rot_180", 7),
+    ("gen p12 mirror-z s2", 12, 2, "mirror_z", 2),
+    ("gen p20 mirror-z s8", 20, 2, "mirror_z", 8),
+    ("gen p16 rot90 s5", 16, 4, "rot_90", 5),
+    ("gen p12 rot180 s45", 12, 2, "rot_180", 45),
+    ("gen p30 rot180 s3", 30, 2, "rot_180", 3),
+};
+foreach (var g in genCases)
+{
+    try { Emit(g.Label, Composer.Compose(new ComposeRequest(g.P, g.T, g.S, g.Seed, 5)), sbGen); }
+    catch (Exception ex) { failures.Add($"{g.Label}: {ex.GetType().Name}: {ex.Message}"); }
+}
+
+var html = Page(sb.ToString(), sbGen.ToString());
 var outPath = Path.Combine("tools", "deriver", "out", "derive-gallery.html");
 Directory.CreateDirectory(Path.GetDirectoryName(outPath)!);
 File.WriteAllText(outPath, html);
@@ -739,7 +757,7 @@ string Card(string name, PlanModel plan, Derived d)
 static string N(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
 static string Esc(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 
-string Page(string cardsHtml)
+string Page(string cardsHtml, string genHtml)
 {
     const string css = """
     :root{ --bg-base:#0f172a; --bg-panel:#1e293b; --bg-canvas:#080f1a; --border:#334155; --text-muted:#8397b0;
@@ -755,6 +773,9 @@ string Page(string cardsHtml)
     header.top{ border-bottom:1px solid var(--border); padding-bottom:20px; }
     .eyebrow{ font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-light); margin:0 0 6px; }
     h1{ font-size:24px; line-height:1.2; margin:0 0 10px; color:var(--text-strong); font-weight:660; text-wrap:balance; }
+    h2.section{ font-size:16px; margin:34px 0 4px; padding-top:20px; border-top:1px solid var(--border); color:var(--text-bright); font-weight:640; }
+    .section-sub{ font-family:var(--mono); font-size:12px; font-weight:400; color:var(--text-muted); }
+    .section-note{ margin:0 0 4px; max-width:80ch; color:var(--text-secondary); font-size:12.5px; }
     .lede{ margin:0; max-width:80ch; color:var(--text-secondary); font-size:13.5px; }
     .lede code,.lede b{ font-family:var(--mono); font-size:12px; } .lede b{ color:var(--text-bright); }
     .lede code{ color:var(--text-bright); background:var(--bg-panel); padding:1px 5px; border-radius:3px; }
@@ -856,8 +877,17 @@ string Page(string cardsHtml)
         {legend}
       </header>
 
+      <h2 class="section">Authored seeds <span class="section-sub">— ground truth</span></h2>
       <div class="grid">
     {cardsHtml}  </div>
+
+      <h2 class="section">Generated <span class="section-sub">— current composer, candidate negatives</span></h2>
+      <p class="section-note">What the composer builds <b>today</b> (the long-lane era), run through the same
+      deriver. Not ground truth — these are the <b>bad samples</b> the scoring rules will be calibrated against:
+      read the derived structure and note where it goes wrong (marathon wool lanes, missing multi-access, dead
+      residual, absent or malformed mid). The deriver stays neutral; the divergence is the signal.</p>
+      <div class="grid">
+    {genHtml}  </div>
 
       <footer>Deriver v1 — first cut for visual review, not the final algorithm. Every terrain tile gets ONE
       label by priority: authored <b>wool-room</b> / <b>spawn</b> pieces keep their editor colour (intent), then
