@@ -202,6 +202,23 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    the corpus (`layout-rules.md`'s "~10×10" is a *generation* norm, never a *detection* filter). Cross against
    the authored deliberate-void marks (buffer / `zones[].holes`) to split **declared** from **undeclared** (a
    deliberate CT8 pocket vs an accidental enclosed void — a top evaluator term, §6).
+7a. **Hole position class** — *where* a hole sits, read purely off **what its boundary touches** (never size).
+   Two derived discriminators, both already computed: how many **teams** the boundary reaches (terrain
+   ownership first), and — when it touches build — whether that build is a **frontline** (the contested
+   crossing) or **intra/self** (a team's own isolation-cut, §6a). This places every hole on one
+   interior→contested spectrum:
+   - **encased** — one team's terrain, **no build** boundary: a bubble deep inside a team's landmass
+     (`big-board` spawn bubbles, `four-team-wool-two-sided` wool bubbles, `rotate-wide` 2-cell pockets).
+   - **gap** — one team, build boundary **all intra/self**: a hole in that team's isolation-cut gap — it marks
+     where a lane was chopped, so it ties straight to the intra-team bridge (`rotate-wide` `[7 intra]`,
+     `mirror-big-board`, `odd-facing`).
+   - **frontline pocket** — one team's terrain but the boundary **touches frontline build**: the team's exposed
+     edge on the crossing (`four-team-towers-big`'s corner holes, `mirror-tiny-map-cliff`).
+   - **middle** — reaches **≥2 teams**, or floats in **pure build**: the contested crossing / arena (`big-board`'s
+     central 72-cell void, `four-team-towers-big`'s 4-team centre, `four-team-wool-two-sided`'s mid-band pockets).
+   Orthogonal to declared/undeclared (§7): a hole carries **both** a position class and a declared flag, so the
+   buffer worklist reads as e.g. "an *undeclared* **gap** hole" — far more actionable than a bare void. Validated
+   by boundary composition across the corpus; rendered in four colours per class.
 
 ### 5.2 Provisional labels (readability over the measurables — the evaluator prefers the measurable)
 

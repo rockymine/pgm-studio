@@ -26,8 +26,11 @@ const string CBuild = "#3b82f6";      // build zone (accent)
 const string CFront = "#f59e0b";      // frontline edge (amber)
 const string CIntra = "#f472b6";      // intra-team spawn<->wool interface / isolation-cut bridge (pink)
 const string CSelf = "#22d3ee";       // self-bridge — a notch within ONE island (cyan, dotted)
-const string CVoidUndecl = "#ef4444"; // undeclared enclosed void — the buffer worklist (red)
-const string CVoidDecl = "#60a5fa";   // declared void (blue)
+// enclosed-void (hole) classes, interior → contested spectrum
+const string CHoleEncased = "#818cf8";   // one team's terrain, no build — a bubble deep inside a landmass (indigo)
+const string CHoleGap = "#f472b6";       // one team, intra/self build — a team's isolation-cut gap (pink)
+const string CHoleFront = "#fbbf24";     // one team touching frontline build — the team's exposed edge (amber)
+const string CHoleMiddle = "#ef4444";    // >=2 teams / pure build — the contested crossing arena (red)
 const string CWoolLane = "#f97316";   // wool lane — the stack projected from the wool room (orange wash)
 const string CRedstone = "#ff2d2d";   // the wool-room interface (redstone line the generator stamps)
 const string MkWool = "#e6e6e6";
@@ -52,8 +55,9 @@ foreach (var path in files)
         var roleCounts = string.Join(",", d.Roles.GroupBy(r => r).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         var apps = string.Join("/", d.Approaches.Select(a => a.Count).OrderByDescending(x => x));
         var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
+        var holes = string.Join(",", d.Voids.GroupBy(v => v.Class).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         int nStone = d.SteppingKind.Count(k => k == "neutral"), tStone = d.SteppingKind.Count(k => k == "team");
-        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  stones={nStone}n/{tStone}t  woolLane={d.LaneCells.Count}  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count} self={d.SelfEdges.Count}  approaches={apps}  voids(cells): [{voidSizes}]");
+        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  stones={nStone}n/{tStone}t  woolLane={d.LaneCells.Count}  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count} self={d.SelfEdges.Count}  approaches={apps}  holes=[{holes}]  voidSizes:[{voidSizes}]");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -394,7 +398,15 @@ Derived Derive(PlanModel plan)
     for (var z = minZ; z <= maxZ; z++) foreach (var c in new[] { (minX, z), (maxX, z) }) if (TrueVoid(c) && outside.Add(c)) oq.Enqueue(c);
     while (oq.Count > 0) { var cur = oq.Dequeue(); foreach (var nb in N4(cur)) if (TrueVoid(nb) && outside.Add(nb)) oq.Enqueue(nb); }
 
-    var voids = new List<(HashSet<(int, int)> Cells, bool Declared)>();
+    // a hole is classified by WHAT its boundary touches (never by size — the corpus is ground truth). The
+    // discriminators are all already derived: how many teams the boundary reaches (terrain ownership first),
+    // and whether the build it touches is a frontline (the contested crossing) or intra/self (a team's own
+    // isolation-cut gap). This places a hole on the interior→contested spectrum:
+    //   encased   — one team's terrain, no build boundary: a bubble deep inside a team's landmass.
+    //   gap       — one team, build boundary all intra/self: a hole in the team's own isolation-cut gap.
+    //   frontline — one team's terrain but touching frontline build: the team's exposed edge on the crossing.
+    //   middle    — reaches >=2 teams, or floats in pure build: the contested crossing / arena.
+    var voids = new List<(HashSet<(int, int)> Cells, bool Declared, string Class)>();
     var seenVoid = new HashSet<(int, int)>();
     for (var x = minX; x <= maxX; x++)
         for (var z = minZ; z <= maxZ; z++)
@@ -407,7 +419,27 @@ Derived Derive(PlanModel plan)
             // report EVERY enclosed void, any size — the authored seeds are ground truth, and they carry
             // intended holes as small as 1x2 cells (mirror-tiny-map-cliff, rotate-wide-frontline). Never let a
             // size rule override the corpus.
-            voids.Add((comp, declared));
+            var terrTeams = new HashSet<int>(); var buildTeams = new HashSet<int>();
+            bool touchesBuild = false, touchesFrontline = false;
+            foreach (var c in comp)
+                foreach (var nb in N4(c))
+                {
+                    if (comp.Contains(nb)) continue;
+                    if (filled.ContainsKey(nb)) terrTeams.Add(islandTeam[islandOf[nb]]);
+                    else if (build.Contains(nb) && regionOf.TryGetValue(nb, out var r))
+                    {
+                        touchesBuild = true;
+                        if (!intraTeam[r]) touchesFrontline = true;   // a frontline (non-intra) build region
+                        foreach (var i in regionIslands[r]) buildTeams.Add(islandTeam[i]);
+                    }
+                }
+            bool contested = terrTeams.Count >= 2
+                || (terrTeams.Count == 0 && (touchesFrontline || buildTeams.Count >= 2));
+            string cls = contested ? "middle"
+                : !touchesBuild ? "encased"
+                : touchesFrontline ? "frontline"
+                : "gap";
+            voids.Add((comp, declared, cls));
         }
 
     return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
@@ -510,8 +542,12 @@ string Card(string name, PlanModel plan, Derived d)
     }
     // wool lanes — the stack projected from the wool room (orange wash over the terrain it claims)
     foreach (var c in d.LaneCells) CellRect(c.Item1, c.Item2, CWoolLane, 0.34, CWoolLane, 0.5);
-    // enclosed voids — undeclared (red, the worklist) vs declared (blue)
-    foreach (var (vc, isDecl) in d.Voids) foreach (var c in vc) CellRect(c.Item1, c.Item2, isDecl ? CVoidDecl : CVoidUndecl, isDecl ? 0.2 : 0.28, isDecl ? CVoidDecl : CVoidUndecl, 0.9);
+    // enclosed voids — coloured by position class; undeclared (the buffer worklist) pops, declared is muted
+    foreach (var (vc, isDecl, cls) in d.Voids)
+    {
+        string hc = cls == "encased" ? CHoleEncased : cls == "gap" ? CHoleGap : cls == "frontline" ? CHoleFront : CHoleMiddle;
+        foreach (var c in vc) CellRect(c.Item1, c.Item2, hc, isDecl ? 0.14 : 0.30, hc, isDecl ? 0.6 : 1.1);
+    }
     // axis
     svg.Append($"<line x1=\"{N(PX(0))}\" y1=\"{N(PY(minZ))}\" x2=\"{N(PX(0))}\" y2=\"{N(PY(maxZ))}\" stroke=\"{AxisCol}\" stroke-opacity=\"0.4\" stroke-width=\"1\"/>");
     svg.Append($"<line x1=\"{N(PX(minX))}\" y1=\"{N(PY(0))}\" x2=\"{N(PX(maxX))}\" y2=\"{N(PY(0))}\" stroke=\"{AxisCol}\" stroke-opacity=\"0.4\" stroke-width=\"1\"/>");
@@ -560,6 +596,10 @@ string Card(string name, PlanModel plan, Derived d)
     string appStr = appCounts.Count == 0 ? "—" : string.Join("/", appCounts.OrderByDescending(x => x));
     string stat(string v, string l) => $"<span class=\"stat\"><span class=\"stat-v\">{v}</span> {l}</span>";
     string stoneStr = teamStones > 0 ? $"{neutralStones} neutral / {teamStones} team" : $"{neutralStones}";
+    var holeOrder = new[] { "encased", "gap", "frontline", "middle" };
+    var holeByCls = d.Voids.GroupBy(v => v.Class).ToDictionary(g => g.Key, g => g.Count());
+    string holeStr = d.Voids.Count == 0 ? "0"
+        : string.Join(" ", holeOrder.Where(holeByCls.ContainsKey).Select(c => $"{holeByCls[c]} {c}"));
     var stats = string.Join("<span class=\"dot\">·</span>",
         stat(d.Islands.Count.ToString(), "islands"), stat(roleStr, ""),
         stat(stoneStr, "stepping stones"),
@@ -568,7 +608,7 @@ string Card(string name, PlanModel plan, Derived d)
         stat(d.FrontEdges.Count.ToString(), "frontline")
             + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : "")
             + (d.SelfEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.SelfEdges.Count.ToString(), "self-bridge")}" : ""),
-        stat($"{undecl}", "undeclared voids") + (decl > 0 ? $" <span class=\"stat\">/ {decl} declared</span>" : ""));
+        stat(holeStr, "holes") + (decl > 0 ? $"<span class=\"dot\">·</span>{stat($"{undecl} undeclared", "")}" : ""));
 
     return $"""
           <article class="card">
@@ -636,9 +676,11 @@ string Page(string cardsHtml)
           <span class="lg"><span class="sw" style="background:{CWoolLane}57;border:1.2px solid {CWoolLane}"></span>wool lane (stacked)</span>
           <span class="lg"><span class="sw sw--edge" style="border-color:{CRedstone};border-top-width:3px"></span>redstone interface</span>
           <span class="sep"></span>
-          <span class="legend-lbl">Voids</span>
-          <span class="lg"><span class="sw" style="background:{CVoidUndecl}55;border:1.3px solid {CVoidUndecl}"></span>undeclared (buffer worklist)</span>
-          <span class="lg"><span class="sw" style="background:{CVoidDecl}55;border:1.3px solid {CVoidDecl}"></span>declared</span>
+          <span class="legend-lbl">Holes</span>
+          <span class="lg"><span class="sw" style="background:{CHoleEncased}55;border:1.3px solid {CHoleEncased}"></span>encased (in one team)</span>
+          <span class="lg"><span class="sw" style="background:{CHoleGap}55;border:1.3px solid {CHoleGap}"></span>gap (isolation cut)</span>
+          <span class="lg"><span class="sw" style="background:{CHoleFront}55;border:1.3px solid {CHoleFront}"></span>frontline pocket</span>
+          <span class="lg"><span class="sw" style="background:{CHoleMiddle}55;border:1.3px solid {CHoleMiddle}"></span>middle (contested)</span>
           <span class="sep"></span>
           <span class="legend-lbl">Markers</span>
           <span class="lg"><span class="sw" style="background:{MkWool}"></span>wool (n× = approaches)</span>
@@ -668,8 +710,11 @@ string Page(string cardsHtml)
         void, build, or a <b>T</b> (a crossbar reaching beyond the band on both sides stops the stack; a one-sided
         jut is just a side branch). A two-sided room stacks both ways; a room docked against the <em>side</em> of a
         lane stacks along that lane's own axis instead. A lane may run to a frontline. Spawns never stack a lane. The
-        <strong style="color:{CVoidUndecl}">red voids</strong> are enclosed empties nobody has declared yet —
-        <b>the buffer worklist</b> (add a hole-mark/buffer to each deliberate one). A
+        <b>holes</b> (enclosed voids) are coloured by <b>what their boundary touches</b>, interior→contested:
+        <strong style="color:{CHoleEncased}">encased</strong> (deep in one team), <strong style="color:{CHoleGap}">gap</strong>
+        (a team's isolation-cut), <strong style="color:{CHoleFront}">frontline pocket</strong> (a team's exposed edge),
+        <strong style="color:{CHoleMiddle}">middle</strong> (contested crossing) — and any still <b>undeclared</b>
+        is the buffer worklist. A
         <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region on
         a team's own internal spawn↔wool route (direct, or a chain through a <b>captive</b> stepping stone only that
         team can reach): it marks a deliberate internal gap where a piece was chopped off and bridged back to slow
@@ -697,9 +742,11 @@ string Page(string cardsHtml)
       a self-bridge notch (cyan dotted); wool lane (orange) = terrain stacked from the wool room's redstone
       interface (red line) out to void/build/T (a crossbar reaching beyond the band on both sides stops it; a
       one-sided jut is a side branch), both ways for two-sided rooms, and along the docked lane's own axis for a
-      side-dock — wools only, never spawns, and a lane may reach a frontline; voids = true void walled by
-      terrain OR build (the terrain+build encasing catches the frontline rotary devices) — EVERY enclosed void
-      reported, any size, the seeds are ground truth. Static SVG, self-contained, cell = 5 blocks.</footer>
+      side-dock — wools only, never spawns, and a lane may reach a frontline; holes = true void walled by terrain
+      OR build (the terrain+build encasing catches the frontline rotary devices), EVERY one reported at any size
+      (the seeds are ground truth), classified by what the boundary touches — encased (one team, no build), gap
+      (one team + intra/self build, an isolation cut), frontline pocket (one team + frontline build), middle (>=2
+      teams / pure build); still-undeclared holes are the buffer worklist. Static SVG, self-contained, cell = 5 blocks.</footer>
     </div>
     """;
 
@@ -728,4 +775,4 @@ record Derived(
     List<(int X1, int Z1, int X2, int Z2)> SelfEdges,
     HashSet<(int, int)> LaneCells,
     List<(int X1, int Z1, int X2, int Z2)> RedstoneEdges,
-    List<(HashSet<(int, int)> Cells, bool Declared)> Voids);
+    List<(HashSet<(int, int)> Cells, bool Declared, string Class)> Voids);
