@@ -145,9 +145,10 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    **decorative** (anchorless, outside any build region — excluded from scoring). Read from the **authored
    `spawn` / `wool-room` piece roles** (the strongest signal — the author explicitly marked the region) *and*
    the spawn/wool markers, so a room piece is recognised even before its marker.
-3. **Marker branch** — the maximal ~1-room-wide path from each marker (wool, spawn) inward to the first
-   widening/branch (the cutoff, §5.3). One per wool, one per spawn. (The readable name for a branch is a
-   "lane"; the branch is the measurable.)
+3. **Marker branch (lane)** — the approach a marker owns. For a **wool** this is the **wool-lane stack**
+   (§5.1 6c / §5.3): the terrain stacked from the room's redstone interface out to void / build / a T. Spawns
+   do **not** stack an objective lane (their approach currently falls into residual — a **[later]** carve-out).
+   The readable name is a "lane"; the tile set is the measurable.
 4. **Junction + approach count** — a cell where ≥2 marker branches coincide (share an origin area). Its
    value is a **count, not a name**: the number of distinct branches meeting on the way to an objective is
    that objective's **approach count** — the multi-access measure the evaluator wants (WL8 / G45). *(You
@@ -252,11 +253,13 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   6 edges × 2 teams — kept out of the intra count, which stays 48). Each generalization is byte-identical to its
   predecessor on every *other* seed — the chain rule only adds rotate-wide's stepping-stone regions, the
   self-bridge rule only adds mirror-big-board's spawn notches.
-- **Residual — deliberately undefined** [decided]. Whatever land remains once the marker branches are
-  peeled. The model does **not** name it "hub" or fix its identity: it can be a plain square, a square with
-  a hole, a square with several holes (an "Eight"), or something else. The evaluator only *bounds its shape
-  properties* (§6) — it never requires a shape. *(Per the author: "I would not define hub at all yet — it's
-  literally the remainder.")*
+- **Residual — deliberately undefined, and now literally the remainder** [decided]. Every terrain tile gets
+  exactly **one** label, by priority: authored **wool-room** / **spawn** piece → **stepping-stone island** →
+  **wool lane** (§5.1 6c) → **residual**. Residual is simply the terrain no specific label claimed — there is
+  **no branch↔residual erosion** (retired; see §5.3). The model does **not** name residual "hub" or fix its
+  identity: it can be a plain square, a square with a hole, a square with several holes (an "Eight"), or
+  something else. The evaluator only *bounds its shape properties* (§6) — it never requires a shape. *(Per the
+  author: "I would not define hub at all yet — it's literally the remainder.")*
 - **Middle island / stepping stone** — a standalone island sitting in / touching a build region (spoken of
   as just "an island"; the term "stepping stone" is fine). **Geometrically [decided]: a build-dominant island
   (border more build than void — embedded in the crossing) or a pure-void (floating) island is a stepping stone**
@@ -268,10 +271,9 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
   the symmetry axis) and is *not* captive, so it keeps its frontline edges. This is a cleaner cut than the
   earlier "axis proximity + interface count" heuristic — reachability decides it. (`rotate-wide-frontline`'s
   isl11/isl13 are captive team stones; `four-team-towers-big`'s towers are contested neutral stones.)
-  **A stepping stone is a whole island, so it is labelled as one — never split into branch/residual.** The
-  branch↔residual erosion (§5.3) applies **only inside anchored masses** (a team/objective island, where a
-  marker lane peels off a bulk); an anchorless island is coloured as an island by its kind (**stone-gray**
-  neutral, **fuchsia** team) and counted per plan. Validated to the count across the corpus:
+  **A stepping stone is a whole island, so it is labelled as one — never split.** An anchorless island is
+  coloured as an island by its kind (**stone-gray** neutral, **fuchsia** team) and counted per plan. Validated
+  to the count across the corpus:
   `mirror-tiny-map-cliff` 3n/0t, `odd-facing-three-wool` 4n/0t, `rotate-wide-frontline` **7n/4t** (the four
   spawn↔stone↔wool stones), `isolated-spawn-approaches` 3n/0t, `mirror-big-board` 4n/0t, `four-team-towers-big`
   4n/0t, `four-team-wool-two-sided` 4n/0t, `base-2island` 2n/0t, `base-2wool` 2n/0t, `base-4team` 4n/0t. Every
@@ -283,26 +285,28 @@ The **mid** itself ranges from *one open build rectangle over the void* (players
 border the build region in the open case, which is exactly why "frontline" is an edge attribute and the
 residual stays unnamed rather than being split at that border.
 
-### 5.3 The cutoff — the one hard knob [open on the threshold]
+### 5.3 Lane vs residual — resolved by the wool-lane stack [decided; erosion retired]
 
-The only non-trivial step is branch↔residual segmentation (the T-shape: wool at the long end → the stem is
-the branch, the crossbar is residual). The rule: **a branch is ~1 room-unit (2 tiles) wide; the residual is
-wider.** Equivalently, over the island's tile-adjacency graph, a branch is the maximal path of degree-≤2
-tiles from the marker until the first tile that **branches** (degree ≥3 — that tile is a junction, §5.1.4)
-or **thickens** (part of a ≥2×2 block) — classic skeleton + branch-pruning. On the coarse grid it is cheap;
-"width ≤2 = branch, wider = residual" is almost the whole rule. The exact width/branch threshold is the
-**one tunable knob**, settled against the hand-labeled T-shape cases (§5.4).
+The old plan segmented lane↔residual by a morphological erosion (a branch is ~2 tiles wide, the residual is
+the eroded core, "the one hard knob"). It **did not work**: the residual grew from the centre of a mass while
+the "branch" nibbled the edges, so a big board like `big-board-…-parallel-mid` reported ~12 lane tiles — clearly
+wrong. It is **retired.** The lane a wool room owns is now derived directly and correctly by the **wool-lane
+stack** (§5.1 6c: stack the redstone interface out to void / build / a T, both ways for a two-sided room, along
+the docked axis for a side-dock). **Residual is then simply the terrain no specific label claimed** — not a
+room, not a stepping-stone island, not a wool lane. No threshold, no knob. (Spawn approaches are not yet a
+label, so for now they fall into residual; carving those out the same way a wool lane is stacked is a natural
+**[later]** step — but spawns deliberately do *not* stack an objective lane.)
 
 ### 5.4 Derive-then-override [decided]
 
 The deriver *proposes* every label; the author *corrects* only the few it gets wrong (a `labels` override
-channel — **[later]**, an optional side-fixture, not part of a normal plan). So an ambiguous
-branch-vs-residual is never a decision the author must make up front. The corrections are the **test set for
-the deriver itself** — the cutoff's ambiguous cases are the only labels ever produced by hand.
+channel — **[later]**, an optional side-fixture, not part of a normal plan). So an ambiguous label is never a
+decision the author must make up front. The corrections are the **test set for the deriver itself** — the
+disagreements are the only labels ever produced by hand.
 
 **Payoff:** every existing seed and every future hand-drawing becomes a labeled example with *zero*
 annotation — draw geometry, drop two markers, mark deliberate holes, run the deriver. And the deriver is
-half the evaluator: most rules are "the residual has ≤N holes," "the branch is ≤L tiles," "the objective's
+half the evaluator: most rules are "the residual has ≤N holes," "the wool lane is ≤L tiles," "the objective's
 approach count ≥2" — once the measurables are computed, the property checks are one-liners.
 
 ## 6. The evaluator — the cost function

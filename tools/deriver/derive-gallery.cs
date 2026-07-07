@@ -3,9 +3,10 @@
 // build-cache bust: deriver v1
 // The layout DERIVER, first cut (docs/contracts/layout-evaluator.md §5). Reads the authored seed corpus
 // (tools/seeds/*.plan.json), fans each to the full board in CELL space, and computes structure from geometry +
-// markers: islands + anchor role (team/objective/neutral/decorative), branch vs residual (morphological
-// erosion — the "peel the lanes, the rest is the residual" split), per-wool approach count (arms attached to
-// the room), the frontline EDGE (team land facing a build zone), and enclosed voids split declared/undeclared.
+// markers: islands + anchor role (team/objective/neutral/decorative), stepping stones (neutral/team), wool
+// lanes (the terrain stacked from a wool room's redstone interface), residual (whatever terrain remains), per-
+// wool approach count (arms at the room), the frontline EDGE (team land facing a build zone), the intra-team /
+// self bridges, and enclosed voids classified by position (encased/gap/frontline/middle) + declared/undeclared.
 // Renders one annotated card per seed to a self-contained gallery so the author can eyeball whether the
 // deriver's reading matches theirs — its disagreements are the cutoff test set (§5.4). The undeclared voids
 // are the buffer worklist. Writes tools/deriver/out/derive-gallery.html.
@@ -18,8 +19,7 @@ const string BgCanvas = "#080f1a";
 const string AxisCol = "#a78bfa";
 const string CWoolRoom = "#3fae74";   // AUTHORED wool-room piece (editor green) — intent, not derived
 const string CSpawnRole = "#8f7bd6";  // AUTHORED spawn piece (editor purple) — intent, not derived
-const string CBranch = "#aab6c2";     // DERIVED branch / lane (light slate)
-const string CResidual = "#5b6b7a";   // DERIVED residual (dark slate)
+const string CResidual = "#5b6b7a";   // DERIVED residual — terrain not claimed by any specific label (dark slate)
 const string CStoneNeutral = "#78716c"; // DERIVED neutral stepping stone — a contested island (warm stone gray)
 const string CStoneTeam = "#d946ef";  // DERIVED team stepping stone — captive, on a spawn<->wool route (fuchsia)
 const string CBuild = "#3b82f6";      // build zone (accent)
@@ -31,7 +31,7 @@ const string CHoleEncased = "#818cf8";   // one team's terrain, no build — a b
 const string CHoleGap = "#f472b6";       // one team, intra/self build — a team's isolation-cut gap (pink)
 const string CHoleFront = "#fbbf24";     // one team touching frontline build — the team's exposed edge (amber)
 const string CHoleMiddle = "#ef4444";    // >=2 teams / pure build — the contested crossing arena (red)
-const string CWoolLane = "#f97316";   // wool lane — the stack projected from the wool room (orange wash)
+const string CWoolLane = "#f97316";   // wool lane — the terrain the wool room stacks into (orange, a solid label)
 const string CRedstone = "#ff2d2d";   // the wool-room interface (redstone line the generator stamps)
 const string MkWool = "#e6e6e6";
 const string MkSpawn = "#e0b13c";
@@ -138,16 +138,6 @@ Derived Derive(PlanModel plan)
              touchesBuild = islands[i].Any(c => N4(c).Any(build.Contains) || build.Contains(c));
         roles[i] = hasSpawn ? "team" : hasWool ? "objective" : touchesBuild ? "neutral" : "decorative";
     }
-
-    // branch vs residual — erosion: a cell whose 4 neighbours are all same-island is a residual CORE; the
-    // residual is the cores dilated back by one (restoring the thick region's rim); everything else is branch.
-    var residual = new HashSet<(int, int)>();
-    foreach (var isl in islands)
-    {
-        var core = isl.Where(c => N4(c).All(isl.Contains)).ToHashSet();
-        foreach (var c in core) { residual.Add(c); foreach (var nb in N4(c)) if (isl.Contains(nb)) residual.Add(nb); }
-    }
-    var branch = new HashSet<(int, int)>(filled.Keys.Where(c => !residual.Contains(c)));
 
     // per-wool approach count — arms (connected filled clusters adjacent to the room) touching the wool's piece
     var approaches = new List<(int Island, double Bx, double Bz, int Count)>();
@@ -442,7 +432,7 @@ Derived Derive(PlanModel plan)
             voids.Add((comp, declared, cls));
         }
 
-    return new Derived(plan.Globals.Cell, filled, build, residual, branch, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
+    return new Derived(plan.Globals.Cell, filled, build, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
 }
 
 // ── geometry helpers ────────────────────────────────────────────────────────────────────────────────────────
@@ -526,22 +516,20 @@ string Card(string name, PlanModel plan, Derived d)
 
     // build zones (under terrain)
     foreach (var c in d.Build) CellRect(c.Item1, c.Item2, CBuild, 0.14, CBuild, 0.4);
-    // terrain cells — AUTHORED wool-room (green) / spawn (purple) take their editor colour so the intent reads;
-    // a STEPPING-STONE island is coloured as an island (neutral stone-gray / team fuchsia), NOT split into
-    // branch/residual (it is a whole island, not a lane peeled off a mass); everything else is the DERIVED
-    // branch (light slate) / residual (dark slate) split.
+    // terrain cells — every tile gets exactly ONE label, by priority: AUTHORED wool-room (green) / spawn
+    // (purple) keep their editor colour; a STEPPING-STONE island is coloured whole (neutral stone-gray / team
+    // fuchsia); a WOOL-LANE tile is the wool room's approach (orange, a solid label, not an overlay); everything
+    // that remains is RESIDUAL (dark slate) — no erosion split, residual is simply the unclaimed terrain.
     var roleOf = plan.Pieces.ToDictionary(p => p.Id, p => p.Role);
     foreach (var c in d.Filled.Keys)
     {
         var role = roleOf[d.Filled[c].PieceId];
         var kind = d.SteppingKind[d.IslandOf[c]];
-        string fill = kind == "team" ? CStoneTeam : kind == "neutral" ? CStoneNeutral
-            : role == PlanRoles.WoolRoom ? CWoolRoom : role == PlanRoles.Spawn ? CSpawnRole
-            : d.Residual.Contains(c) ? CResidual : CBranch;
+        string fill = role == PlanRoles.WoolRoom ? CWoolRoom : role == PlanRoles.Spawn ? CSpawnRole
+            : kind == "team" ? CStoneTeam : kind == "neutral" ? CStoneNeutral
+            : d.LaneCells.Contains(c) ? CWoolLane : CResidual;
         CellRect(c.Item1, c.Item2, fill, 0.75, BgCanvas, 0.5);
     }
-    // wool lanes — the stack projected from the wool room (orange wash over the terrain it claims)
-    foreach (var c in d.LaneCells) CellRect(c.Item1, c.Item2, CWoolLane, 0.34, CWoolLane, 0.5);
     // enclosed voids — coloured by position class; undeclared (the buffer worklist) pops, declared is muted
     foreach (var (vc, isDecl, cls) in d.Voids)
     {
@@ -666,14 +654,13 @@ string Page(string cardsHtml)
           <span class="lg"><span class="sw" style="background:{CSpawnRole}"></span>spawn piece</span>
           <span class="sep"></span>
           <span class="legend-lbl">Derived</span>
-          <span class="lg"><span class="sw" style="background:{CBranch}"></span>branch / lane</span>
-          <span class="lg"><span class="sw" style="background:{CResidual}"></span>residual</span>
+          <span class="lg"><span class="sw" style="background:{CWoolLane}"></span>wool lane</span>
           <span class="lg"><span class="sw" style="background:{CStoneNeutral}"></span>neutral stepping stone</span>
           <span class="lg"><span class="sw" style="background:{CStoneTeam}"></span>team stepping stone</span>
+          <span class="lg"><span class="sw" style="background:{CResidual}"></span>residual (what remains)</span>
           <span class="lg"><span class="sw sw--edge" style="border-color:{CFront}"></span>frontline edge</span>
           <span class="lg"><span class="sw sw--edge" style="border-top-style:dashed;border-color:{CIntra}"></span>intra-team bridge</span>
           <span class="lg"><span class="sw sw--edge" style="border-top-style:dotted;border-color:{CSelf}"></span>self-bridge notch</span>
-          <span class="lg"><span class="sw" style="background:{CWoolLane}57;border:1.2px solid {CWoolLane}"></span>wool lane (stacked)</span>
           <span class="lg"><span class="sw sw--edge" style="border-color:{CRedstone};border-top-width:3px"></span>redstone interface</span>
           <span class="sep"></span>
           <span class="legend-lbl">Holes</span>
@@ -698,18 +685,18 @@ string Page(string cardsHtml)
         <h1>What the deriver reads in the authored seeds</h1>
         <p class="lede">Each card is a seed from <code>tools/seeds/</code>, fanned to the full board, with the
         <strong>derived</strong> structure drawn on — nothing here is authored beyond geometry + the wool/spawn
-        markers. Review target: does the deriver's reading match yours? The <b>branch/residual</b> split (light
-        vs dark slate, inside anchored masses only) is the peel-the-lanes cutoff (§5.3) and the <b>v1
-        approximation</b> most worth eyeballing; a <strong style="color:{CStoneNeutral}">stone-gray</strong> or
-        <strong style="color:{CStoneTeam}">fuchsia</strong> island is a <b>stepping stone</b> — labelled as a
-        whole island, never branch/residual: <b>team</b> (fuchsia) if it is captive and sits on one team's
-        spawn↔wool route, else <b>neutral</b> (gray, a contested centre island); the
-        <b>n×</b> beside each wool is its approach count (green ≥2 = multi-access, red = lone dead-end); the
-        <strong style="color:{CWoolLane}">orange wash</strong> is the <b>wool lane</b> — the terrain stacked out
-        from the wool room's <strong style="color:{CRedstone}">redstone interface</strong> (bright red line) until
-        void, build, or a <b>T</b> (a crossbar reaching beyond the band on both sides stops the stack; a one-sided
-        jut is just a side branch). A two-sided room stacks both ways; a room docked against the <em>side</em> of a
-        lane stacks along that lane's own axis instead. A lane may run to a frontline. Spawns never stack a lane. The
+        markers. Review target: does the deriver's reading match yours? Every terrain tile gets exactly one label:
+        a <strong style="color:{CStoneNeutral}">stone-gray</strong> or <strong style="color:{CStoneTeam}">fuchsia</strong>
+        island is a <b>stepping stone</b> (whole island — <b>team</b> fuchsia if captive on one team's spawn↔wool
+        route, else <b>neutral</b> gray, a contested centre island); the <strong style="color:{CWoolLane}">orange</strong>
+        tiles are the <b>wool lane</b> — the terrain stacked out from the wool room's
+        <strong style="color:{CRedstone}">redstone interface</strong> (bright red line) until void, build, or a
+        <b>T</b> (a crossbar reaching beyond the band on both sides; a one-sided jut is just a side branch), a
+        two-sided room stacking both ways and a side-docked room stacking along the docked lane's axis (a lane may
+        run to a frontline; spawns never stack a lane); and everything that remains is
+        <strong style="color:{CResidual}">residual</strong> — unclaimed terrain (no erosion split; residual is
+        simply what is left). The <b>n×</b> beside each wool is its approach count (green ≥2 = multi-access, red =
+        lone dead-end). The
         <b>holes</b> (enclosed voids) are coloured by <b>what their boundary touches</b>, interior→contested:
         <strong style="color:{CHoleEncased}">encased</strong> (deep in one team), <strong style="color:{CHoleGap}">gap</strong>
         (a team's isolation-cut), <strong style="color:{CHoleFront}">frontline pocket</strong> (a team's exposed edge),
@@ -730,13 +717,14 @@ string Page(string cardsHtml)
       <div class="grid">
     {cardsHtml}  </div>
 
-      <footer>Deriver v1 — first cut for visual review, not the final algorithm. Authored <b>wool-room</b> /
-      <b>spawn</b> pieces keep their editor colour (intent); terrain inside an anchored mass is the DERIVED branch /
-      residual split (morphological erosion). approach count = arms at the room; frontline = OUTSIDE edge facing a
+      <footer>Deriver v1 — first cut for visual review, not the final algorithm. Every terrain tile gets ONE
+      label by priority: authored <b>wool-room</b> / <b>spawn</b> pieces keep their editor colour (intent), then
+      stepping-stone islands, then wool-lane tiles, then <b>residual</b> = whatever remains (no erosion split —
+      residual is simply unclaimed terrain). approach count = arms at the room; frontline = OUTSIDE edge facing a
       build void, but only on a VOID-DOMINANT island (more void-border than build-border — exposed territory); a
       build-dominant island (embedded in the crossing) or a pure-void one is a stepping stone with no frontline
       (corpus-wide, void-dominant == holds a spawn/wool), labelled as a whole island (team = fuchsia if captive on
-      a spawn&lt;-&gt;wool route, else neutral = stone-gray) rather than branch/residual; an edge facing an intra-team spawn&lt;-&gt;wool bridge
+      a spawn&lt;-&gt;wool route, else neutral = stone-gray); an edge facing an intra-team spawn&lt;-&gt;wool bridge
       (a build region on a team's own internal route — direct, or through a captive stepping stone only that team
       can reach) is re-tagged intra, not frontline, and a build pocket carved into a SINGLE island is split off as
       a self-bridge notch (cyan dotted); wool lane (orange) = terrain stacked from the wool room's redstone
@@ -763,8 +751,6 @@ record Derived(
     int Cell,
     Dictionary<(int, int), (string PieceId, int K)> Filled,
     HashSet<(int, int)> Build,
-    HashSet<(int, int)> Residual,
-    HashSet<(int, int)> Branch,
     List<HashSet<(int, int)>> Islands,
     Dictionary<(int, int), int> IslandOf,
     string[] Roles,
