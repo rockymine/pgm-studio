@@ -681,36 +681,50 @@ string Card(string name, PlanModel plan, Derived d)
     int undecl = d.Voids.Count(v => !v.Declared), decl = d.Voids.Count(v => v.Declared);
     int neutralStones = d.SteppingKind.Count(k => k == "neutral"), teamStones = d.SteppingKind.Count(k => k == "team");
     // anchor roles only (the anchorless islands are reported as stepping stones, not a "neutral" anchor role)
-    string roleStr = string.Join(" ", new[] { "team", "objective" }.Where(byRole.ContainsKey).Select(r => $"{byRole[r]} {r}"));
     var appCounts = d.Approaches.Select(a => a.Count).ToList();
     string appStr = appCounts.Count == 0 ? "—" : string.Join("/", appCounts.OrderByDescending(x => x));
-    string stat(string v, string l) => $"<span class=\"stat\"><span class=\"stat-v\">{v}</span> {l}</span>";
-    string stoneStr = teamStones > 0 ? $"{neutralStones} neutral / {teamStones} team" : $"{neutralStones}";
+    string stat(string v, string l) => l.Length == 0
+        ? $"<span class=\"stat\"><span class=\"stat-v\">{v}</span></span>"
+        : $"<span class=\"stat\"><span class=\"stat-v\">{v}</span> {l}</span>";
+    // one labelled row; empty items dropped, whole row dropped if nothing to show
+    string grp(string label, params string[] items)
+    {
+        var body = string.Concat(items.Where(s => !string.IsNullOrEmpty(s)));
+        return body.Length == 0 ? "" : $"<div class=\"sgroup\"><span class=\"sglabel\">{label}</span><span class=\"sgbody\">{body}</span></div>";
+    }
+
+    string stoneStr = teamStones + neutralStones == 0 ? "" : teamStones > 0
+        ? $"{neutralStones} neutral · {teamStones} team stones" : $"{neutralStones} neutral stones";
     var holeOrder = new[] { "encased", "gap", "frontline", "middle" };
     var holeByCls = d.Voids.GroupBy(v => v.Class).ToDictionary(g => g.Key, g => g.Count());
-    string holeStr = d.Voids.Count == 0 ? "0"
-        : string.Join(" ", holeOrder.Where(holeByCls.ContainsKey).Select(c => $"{holeByCls[c]} {c}"));
     var pw = d.Voids.Where(v => v.Class == "middle" && v.CrossRoutes > 1).Select(v => v.CrossRoutes).OrderByDescending(x => x).ToList();
     var zoneOrder = new[] { "front-front", "front-neutral", "neutral-neutral", "intra", "self" };
     var zoneBy = d.Zones.GroupBy(z => z.Kind).ToDictionary(g => g.Key, g => g.Count());
     int ffNeut = d.Zones.Where(z => z.Kind == "front-front").Sum(z => z.Neutrals);
-    string zoneStr = string.Join(" ", zoneOrder.Where(zoneBy.ContainsKey).Select(k =>
-        $"{zoneBy[k]} {k}" + (k == "front-front" && ffNeut > 0 ? $" (+{ffNeut} stones)" : "")));
     // BZ3 width buckets (cells → ×5 blocks): choke ≤1 (5), bridge 2 (10, dominant), band ≥3 (15+)
     var bzBy = d.Zones.GroupBy(z => z.Width <= 1 ? "choke" : z.Width == 2 ? "bridge" : "band").ToDictionary(g => g.Key, g => g.Count());
-    string bzStr = string.Join(" ", new[] { "choke", "bridge", "band" }.Where(bzBy.ContainsKey).Select(b => $"{bzBy[b]} {b}"));
-    var stats = string.Join("<span class=\"dot\">·</span>",
-        stat(d.Islands.Count.ToString(), "islands"), stat(roleStr, ""),
-        stat(stoneStr, "stepping stones"),
-        stat(appStr, "approaches"),
-        stat(d.LaneCells.Count.ToString(), "wool-lane tiles"),
-        stat(zoneStr, "zones"),
-        stat(bzStr, "zone width"),
-        stat(d.FrontEdges.Count.ToString(), "frontline")
-            + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : "")
-            + (d.SelfEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.SelfEdges.Count.ToString(), "self-bridge")}" : ""),
-        stat(holeStr, "holes") + (pw.Count > 0 ? $"<span class=\"dot\">·</span>{stat(string.Join("/", pw), "parallel ways")}" : "")
-            + (decl > 0 ? $"<span class=\"dot\">·</span>{stat($"{undecl} undeclared", "")}" : ""));
+
+    var stats = string.Concat(
+        grp("Islands",
+            stat(d.Islands.Count.ToString(), "islands"),
+            string.Concat(new[] { "team", "objective" }.Where(byRole.ContainsKey).Select(r => stat(byRole[r].ToString(), r))),
+            stat(stoneStr, "")),
+        grp("Wools",
+            stat(appStr, "approaches"),
+            stat(d.LaneCells.Count.ToString(), "lane tiles")),
+        grp("Zones",
+            string.Concat(zoneOrder.Where(zoneBy.ContainsKey).Select(k =>
+                stat(zoneBy[k].ToString(), k + (k == "front-front" && ffNeut > 0 ? $" +{ffNeut}◦" : "")))),
+            new[] { "choke", "bridge", "band" }.Any(bzBy.ContainsKey)
+                ? "<span class=\"dot\">·</span>" + string.Concat(new[] { "choke", "bridge", "band" }.Where(bzBy.ContainsKey).Select(b => stat(bzBy[b].ToString(), b))) : ""),
+        grp("Edges",
+            d.FrontEdges.Count > 0 ? stat(d.FrontEdges.Count.ToString(), "frontline") : "",
+            d.IntraEdges.Count > 0 ? stat(d.IntraEdges.Count.ToString(), "intra-team") : "",
+            d.SelfEdges.Count > 0 ? stat(d.SelfEdges.Count.ToString(), "self-bridge") : ""),
+        grp("Holes",
+            string.Concat(holeOrder.Where(holeByCls.ContainsKey).Select(c => stat(holeByCls[c].ToString(), c))),
+            pw.Count > 0 ? "<span class=\"dot\">·</span>" + stat(string.Join("/", pw), "parallel ways") : "",
+            decl > 0 ? "<span class=\"dot\">·</span>" + stat($"{undecl}/{d.Voids.Count}", "undeclared") : ""));
 
     return $"""
           <article class="card">
@@ -758,7 +772,10 @@ string Page(string cardsHtml)
     .midform--channelled{ background:#7dd3fc; } .midform--parallel{ background:#fca5a5; } .midform--hash{ background:#c4b5fd; }
     .svg-wrap{ background:var(--bg-canvas); border:1px solid var(--border); border-radius:6px; overflow:hidden; line-height:0; }
     .svg-wrap svg.map{ display:block; width:100%; height:auto; }
-    .card-stats{ display:flex; flex-wrap:wrap; align-items:center; gap:3px 6px; font-family:var(--mono); font-size:11px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px; }
+    .card-stats{ display:flex; flex-direction:column; gap:3px; font-family:var(--mono); font-size:11px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px; }
+    .sgroup{ display:grid; grid-template-columns:52px 1fr; gap:9px; align-items:baseline; }
+    .sglabel{ font-size:8.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--text-muted); opacity:.65; text-align:right; }
+    .sgbody{ display:flex; flex-wrap:wrap; gap:2px 10px; }
     .stat-v{ color:var(--text-bright); font-weight:600; } .dot{ color:var(--border); }
     footer{ margin-top:40px; padding-top:16px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--text-muted); max-width:90ch; }
     """;
