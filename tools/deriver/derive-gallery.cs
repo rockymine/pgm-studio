@@ -415,7 +415,14 @@ Derived Derive(PlanModel plan)
                 foreach (var nb in N4(c))
                 {
                     if (comp.Contains(nb)) continue;
-                    if (filled.ContainsKey(nb)) terrTeams.Add(islandTeam[islandOf[nb]]);
+                    if (filled.ContainsKey(nb))
+                    {
+                        // only ANCHORED terrain (spawn/wool) confers team ownership — a neutral stepping stone
+                        // has no real team (its orbit-image label is arbitrary, and a centre island shared by
+                        // both images carries a single fixed value), which would otherwise break mirror symmetry.
+                        int isl = islandOf[nb];
+                        if (hasSpawnI[isl] || hasWoolI[isl]) terrTeams.Add(islandTeam[isl]);
+                    }
                     else if (build.Contains(nb) && regionOf.TryGetValue(nb, out var r))
                     {
                         touchesBuild = true;

@@ -204,10 +204,14 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    the authored deliberate-void marks (buffer / `zones[].holes`) to split **declared** from **undeclared** (a
    deliberate CT8 pocket vs an accidental enclosed void — a top evaluator term, §6).
 7a. **Hole position class** — *where* a hole sits, read purely off **what its boundary touches** (never size).
-   Two derived discriminators, both already computed: how many **teams** the boundary reaches (terrain
-   ownership first), and — when it touches build — whether that build is a **frontline** (the contested
-   crossing) or **intra/self** (a team's own isolation-cut, §6a). This places every hole on one
-   interior→contested spectrum:
+   Two derived discriminators, both already computed: how many **teams** the boundary reaches (team ownership),
+   and — when it touches build — whether that build is a **frontline** (the contested crossing) or **intra/self**
+   (a team's own isolation-cut, §6a). **Only anchored terrain (spawn/wool) confers team ownership** — a *neutral*
+   stepping stone does not: it has no real team (its orbit-image label is arbitrary, and a centre island shared
+   by both images carries a single fixed value), so counting it would mis-read one image of a mirror pair as
+   contested — e.g. `isolated-spawn-approaches`'s four ring holes are all **frontline** pockets, but the shared
+   centre stone made one image of each pair look 2-team until neutral terrain was excluded. This places every
+   hole on one interior→contested spectrum:
    - **encased** — one team's terrain, **no build** boundary: a bubble deep inside a team's landmass
      (`big-board` spawn bubbles, `four-team-wool-two-sided` wool bubbles, `rotate-wide` 2-cell pockets).
    - **gap** — one team, build boundary **all intra/self**: a hole in that team's isolation-cut gap — it marks
