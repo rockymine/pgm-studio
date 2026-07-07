@@ -77,17 +77,24 @@ foreach (var path in files)
 // candidates from the CURRENT composer — a spread of P/team/symmetry/seed. These are what the composer builds
 // today (the long-lane era): the ready-made NEGATIVE set the scoring rules will eventually be calibrated against.
 Console.WriteLine("-- generated (current composer) --");
-var genCases = new (string Label, int P, int T, string S, ulong Seed)[]
+var genCases = new List<(string Label, int P, int T, string S, ulong Seed)>();
+void AddCases(int p, int t, string sym, string tag, params ulong[] seeds)
 {
-    ("gen p12 rot180 s1", 12, 2, "rot_180", 1),
-    ("gen p12 rot180 s15", 12, 2, "rot_180", 15),
-    ("gen p20 rot180 s7", 20, 2, "rot_180", 7),
-    ("gen p12 mirror-z s2", 12, 2, "mirror_z", 2),
-    ("gen p20 mirror-z s8", 20, 2, "mirror_z", 8),
-    ("gen p16 rot90 s5", 16, 4, "rot_90", 5),
-    ("gen p12 rot180 s45", 12, 2, "rot_180", 45),
-    ("gen p30 rot180 s3", 30, 2, "rot_180", 3),
-};
+    foreach (var s in seeds) genCases.Add(($"p{p} {tag} s{s}", p, t, sym, s));
+}
+// 2-team rot_180 — the workhorse family, swept across seeds + player counts
+AddCases(12, 2, "rot_180", "r180", 1, 3, 7, 13, 15, 17, 24, 33, 45);
+AddCases(16, 2, "rot_180", "r180", 2, 8, 19, 42);
+AddCases(20, 2, "rot_180", "r180", 1, 5, 7, 11, 53);
+AddCases(30, 2, "rot_180", "r180", 1, 3);
+// 2-team mirrors
+AddCases(12, 2, "mirror_z", "mrz", 1, 2, 3, 5, 8, 11, 24);
+AddCases(20, 2, "mirror_z", "mrz", 2, 8);
+AddCases(12, 2, "mirror_x", "mrx", 2, 5, 9);
+// 4-team rot_90
+AddCases(10, 4, "rot_90", "r90", 1, 5, 9);
+AddCases(16, 4, "rot_90", "r90", 1, 5, 13);
+AddCases(20, 4, "rot_90", "r90", 3, 9);
 foreach (var g in genCases)
 {
     try { Emit(g.Label, Composer.Compose(new ComposeRequest(g.P, g.T, g.S, g.Seed, 5)), sbGen); }
