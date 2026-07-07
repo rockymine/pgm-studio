@@ -214,6 +214,20 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    *middle* hole by front↔front / neutral↔neutral; and a middle hole's **parallel ways** = the crossings ringing
    it (`big-board`'s central hole is flanked by **2** front↔front lanes; `four-team-towers-big`'s centre is
    ringed by **4** neutral↔neutral links). Zones are tinted by kind and the mid-form badges each card.
+6e. **Zone width & interface width** — two width primitives per build zone, the missing key to the BZ *fit*
+   family. **Zone width (BZ3)** is the corridor's narrowest cross-section: per cell the shorter of its
+   horizontal/vertical run within the region, then the MIN over the region (a choke necks the whole zone). In
+   cells, ×5 = blocks, so BZ3's **10-wide dominant = a 2-cell bridge**; the corpus buckets **choke** ≤1 (5,
+   `base-4team`'s plus-arms, `mirror-tiny`), **bridge** 2 (10, the mode — nearly every intra/front↔neutral
+   zone), **band** ≥3 (15+, `big-board`'s parallel lanes, `four-team-towers`'s neutral↔neutral links).
+   **Interface / edge width (BZ8)** is the contact run where the zone docks each island — a nearly-free read of
+   the shared border we already compute. Together they are **BZ9 fit**: a corridor much wider than its
+   interfaces (`isolated-spawn` w4/if2) or an interface far wider than the corridor (`rotate-wide` w2/if6-24)
+   are the over/underfit signals — the *verdict* is left to the cost function, the deriver reports the raw
+   `width` / `ifaceMin` / `ifaceMax` per zone. Bonus: for a front↔front **band** the interface width **is the
+   frontline width** (`mirror-big-board` if6-10, `big-board` if3), seeding FR6 (split vs wide) for free. This
+   turns **BZ3, BZ8, BZ9, MD2** (gap-per-hop) from derivable-but-unwired to measurable, and the BZ3 bucket
+   shows per card.
 7. **Void topology** — a hole is **true void** (empty, non-buildable) the border can't reach without crossing
    **terrain or a build region** (both are walls for the enclosure flood): enclosed → **hole**, border-reachable
    → **spacing**. Build must wall the flood, otherwise a rotation pocket ("rotary device") near the frontline —

@@ -63,9 +63,15 @@ foreach (var path in files)
         var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
         var holes = string.Join(",", d.Voids.GroupBy(v => v.Class).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         int nStone = d.SteppingKind.Count(k => k == "neutral"), tStone = d.SteppingKind.Count(k => k == "team");
-        var zoneStr = string.Join(",", d.Zones.GroupBy(z => z.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key}"));
+        string ifaceRange(IEnumerable<(string Kind, int Neutrals, int Width, int IfaceMin, int IfaceMax)> g)
+        { int lo = g.Min(z => z.IfaceMin), hi = g.Max(z => z.IfaceMax); return lo == hi ? $"{lo}" : $"{lo}-{hi}"; }
+        var zoneStr = string.Join(", ", d.Zones.GroupBy(z => z.Kind).OrderBy(g => g.Key)
+            .Select(g => $"{g.Count()}{g.Key}(w{string.Join("/", g.Select(z => z.Width).Distinct().OrderBy(x => x))} if{ifaceRange(g)})"));
+        // BZ3 buckets: 1 cell = 5-block choke, 2 = 10-block bridge (dominant), >=3 = 15+ open band
+        var bz3 = string.Join("/", d.Zones.GroupBy(z => z.Width <= 1 ? "choke" : z.Width == 2 ? "bridge" : "band")
+            .OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key}"));
         var pw = string.Join("/", d.Voids.Where(v => v.Class == "middle" && v.CrossRoutes > 0).Select(v => v.CrossRoutes).OrderByDescending(x => x));
-        Console.WriteLine($"  {name,-42} mid={d.MidForm,-11} zones=[{zoneStr}]  stones={nStone}n/{tStone}t  woolLane={d.LaneCells.Count}  approaches={apps}  holes=[{holes}]{(pw.Length > 0 ? $" parallelWays={pw}" : "")}");
+        Console.WriteLine($"  {name,-42} mid={d.MidForm,-10} bz3={bz3,-18} zones=[{zoneStr}]{(pw.Length > 0 ? $"  pWays={pw}" : "")}");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -303,6 +309,41 @@ Derived Derive(PlanModel plan)
     var buildKindOf = new Dictionary<(int, int), string>();
     foreach (var (cell, r) in regionOf) buildKindOf[cell] = zoneKind[r];
 
+    // zone WIDTH (BZ3) — the corridor's narrowest cross-section: per cell take the shorter of its horizontal /
+    // vertical run within the same region, then the MIN over the region (a choke narrows the whole zone). And
+    // the INTERFACE / edge WIDTH (BZ8) — the contact run where the zone docks each island it connects. Together
+    // they are BZ9 fit: an interface much narrower than the corridor is underfit; a corridor wider than every
+    // interface is overfit. (Cells; ×5 = blocks — BZ3's 10-wide dominant is a 2-cell zone.)
+    var regionCells = Enumerable.Range(0, regionCount).Select(_ => new List<(int, int)>()).ToArray();
+    foreach (var (cell, r) in regionOf) regionCells[r].Add(cell);
+    var zoneWidth = new int[regionCount];
+    for (var r = 0; r < regionCount; r++)
+    {
+        int w = int.MaxValue;
+        foreach (var c in regionCells[r])
+        {
+            int hr = 1, vr = 1;
+            for (var x = c.Item1 - 1; regionOf.TryGetValue((x, c.Item2), out var rr) && rr == r; x--) hr++;
+            for (var x = c.Item1 + 1; regionOf.TryGetValue((x, c.Item2), out var rr) && rr == r; x++) hr++;
+            for (var z = c.Item2 - 1; regionOf.TryGetValue((c.Item1, z), out var rr) && rr == r; z--) vr++;
+            for (var z = c.Item2 + 1; regionOf.TryGetValue((c.Item1, z), out var rr) && rr == r; z++) vr++;
+            w = Math.Min(w, Math.Min(hr, vr));
+        }
+        zoneWidth[r] = regionCells[r].Count == 0 ? 0 : w;
+    }
+    var contact = new Dictionary<(int r, int i), int>();   // shared cell-edges between a zone and an island
+    foreach (var (cell, r) in regionOf)
+        foreach (var nb in N4(cell))
+            if (filled.ContainsKey(nb)) { var key = (r, islandOf[nb]); contact[key] = contact.GetValueOrDefault(key) + 1; }
+    var zoneIfaceMin = new int[regionCount];
+    var zoneIfaceMax = new int[regionCount];
+    for (var r = 0; r < regionCount; r++)
+    {
+        var widths = regionIslands[r].Select(i => contact.GetValueOrDefault((r, i))).Where(v => v > 0).ToList();
+        zoneIfaceMin[r] = widths.Count == 0 ? 0 : widths.Min();
+        zoneIfaceMax[r] = widths.Count == 0 ? 0 : widths.Max();
+    }
+
     // CT mid-form (derived, not authored) — from the zone grammar: any neutral↔neutral zone means the mid is
     // fractured into interlinked islands → HASH; else >=2 separate crossings → PARALLEL; a single crossing →
     // CHANNELLED. (layout-rules.md CT, read off the closure.)
@@ -483,7 +524,9 @@ Derived Derive(PlanModel plan)
             voids.Add((comp, declared, cls, crossRoutes));
         }
 
-    var zones = Enumerable.Range(0, regionCount).Select(r => (Kind: zoneKind[r], Neutrals: zoneNeutral[r])).ToList();
+    var zones = Enumerable.Range(0, regionCount)
+        .Select(r => (Kind: zoneKind[r], Neutrals: zoneNeutral[r], Width: zoneWidth[r], IfaceMin: zoneIfaceMin[r], IfaceMax: zoneIfaceMax[r]))
+        .ToList();
     return new Derived(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
 }
 
@@ -653,12 +696,16 @@ string Card(string name, PlanModel plan, Derived d)
     int ffNeut = d.Zones.Where(z => z.Kind == "front-front").Sum(z => z.Neutrals);
     string zoneStr = string.Join(" ", zoneOrder.Where(zoneBy.ContainsKey).Select(k =>
         $"{zoneBy[k]} {k}" + (k == "front-front" && ffNeut > 0 ? $" (+{ffNeut} stones)" : "")));
+    // BZ3 width buckets (cells → ×5 blocks): choke ≤1 (5), bridge 2 (10, dominant), band ≥3 (15+)
+    var bzBy = d.Zones.GroupBy(z => z.Width <= 1 ? "choke" : z.Width == 2 ? "bridge" : "band").ToDictionary(g => g.Key, g => g.Count());
+    string bzStr = string.Join(" ", new[] { "choke", "bridge", "band" }.Where(bzBy.ContainsKey).Select(b => $"{bzBy[b]} {b}"));
     var stats = string.Join("<span class=\"dot\">·</span>",
         stat(d.Islands.Count.ToString(), "islands"), stat(roleStr, ""),
         stat(stoneStr, "stepping stones"),
         stat(appStr, "approaches"),
         stat(d.LaneCells.Count.ToString(), "wool-lane tiles"),
         stat(zoneStr, "zones"),
+        stat(bzStr, "zone width"),
         stat(d.FrontEdges.Count.ToString(), "frontline")
             + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : "")
             + (d.SelfEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.SelfEdges.Count.ToString(), "self-bridge")}" : ""),
@@ -833,7 +880,7 @@ record Derived(
     Dictionary<(int, int), (string PieceId, int K)> Filled,
     HashSet<(int, int)> Build,
     Dictionary<(int, int), string> BuildKindOf,
-    List<(string Kind, int Neutrals)> Zones,
+    List<(string Kind, int Neutrals, int Width, int IfaceMin, int IfaceMax)> Zones,
     string MidForm,
     List<HashSet<(int, int)>> Islands,
     Dictionary<(int, int), int> IslandOf,
