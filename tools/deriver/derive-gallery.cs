@@ -22,7 +22,13 @@ const string CSpawnRole = "#8f7bd6";  // AUTHORED spawn piece (editor purple) �
 const string CResidual = "#5b6b7a";   // DERIVED residual — terrain not claimed by any specific label (dark slate)
 const string CStoneNeutral = "#78716c"; // DERIVED neutral stepping stone — a contested island (warm stone gray)
 const string CStoneTeam = "#d946ef";  // DERIVED team stepping stone — captive, on a spawn<->wool route (fuchsia)
-const string CBuild = "#3b82f6";      // build zone (accent)
+const string CBuild = "#3b82f6";      // build zone (fallback accent)
+// build-zone kinds — typed by what the zone links
+const string CZFrontFront = "#3b82f6";   // front<->front — the crossing / direct team link (blue)
+const string CZFrontNeut = "#14b8a6";    // front<->neutral — a team's bridge toward the mid (teal)
+const string CZNeutNeut = "#a855f7";     // neutral<->neutral — mid-internal link between neutral islands (violet)
+const string CZIntra = "#f472b6";        // intra — a team's own isolation cut (pink, matches the bridge edge)
+const string CZSelf = "#22d3ee";         // self — a one-island notch (cyan, matches the self edge)
 const string CFront = "#f59e0b";      // frontline edge (amber)
 const string CIntra = "#f472b6";      // intra-team spawn<->wool interface / isolation-cut bridge (pink)
 const string CSelf = "#22d3ee";       // self-bridge — a notch within ONE island (cyan, dotted)
@@ -57,7 +63,9 @@ foreach (var path in files)
         var voidSizes = string.Join(",", d.Voids.Where(v => !v.Declared).Select(v => v.Cells.Count).OrderByDescending(x => x));
         var holes = string.Join(",", d.Voids.GroupBy(v => v.Class).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key[..1]}"));
         int nStone = d.SteppingKind.Count(k => k == "neutral"), tStone = d.SteppingKind.Count(k => k == "team");
-        Console.WriteLine($"  {name,-42} islands={d.Islands.Count} [{roleCounts}]  stones={nStone}n/{tStone}t  woolLane={d.LaneCells.Count}  frontEdges={d.FrontEdges.Count} intra={d.IntraEdges.Count} self={d.SelfEdges.Count}  approaches={apps}  holes=[{holes}]  voidSizes:[{voidSizes}]");
+        var zoneStr = string.Join(",", d.Zones.GroupBy(z => z.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key}"));
+        var pw = string.Join("/", d.Voids.Where(v => v.Class == "middle" && v.CrossRoutes > 0).Select(v => v.CrossRoutes).OrderByDescending(x => x));
+        Console.WriteLine($"  {name,-42} mid={d.MidForm,-11} zones=[{zoneStr}]  stones={nStone}n/{tStone}t  woolLane={d.LaneCells.Count}  approaches={apps}  holes=[{holes}]{(pw.Length > 0 ? $" parallelWays={pw}" : "")}");
     }
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -272,6 +280,36 @@ Derived Derive(PlanModel plan)
         steppingKind[i] = captive[i] && compSpawn.Contains(root) && compWool.Contains(root) ? "team" : "neutral";
     }
 
+    // build-ZONE kinds — a build region typed by WHAT it links (read straight off the island incidence). A
+    // team-owned island (anchored spawn/wool, or a captive team stone) contributes a team "frontline" endpoint;
+    // a neutral stepping stone contributes a neutral endpoint. self / intra are the same-team internal cuts
+    // (already found); the rest split by how many teams and whether a neutral sits at an endpoint:
+    //   front-front     — >=2 teams: the crossing / direct team link (may carry neutral stones sitting between).
+    //   front-neutral   — one team + a neutral: a team's bridge toward the mid.
+    //   neutral-neutral — only neutrals: a mid-internal link between neutral islands (often crosses the axis).
+    bool TeamOwned(int i) => hasSpawnI[i] || hasWoolI[i] || steppingKind[i] == "team";
+    var zoneKind = new string[regionCount];
+    var zoneNeutral = new int[regionCount];   // neutral stones sitting inside the zone (CT5 fragmentation, per zone)
+    for (var r = 0; r < regionCount; r++)
+    {
+        zoneNeutral[r] = regionIslands[r].Count(i => steppingKind[i] == "neutral");
+        var teams = regionIslands[r].Where(TeamOwned).Select(i => islandTeam[i]).Distinct().Count();
+        bool hasNeutral = zoneNeutral[r] > 0;
+        zoneKind[r] = selfBridge[r] ? "self" : intraTeam[r] ? "intra"
+            : teams >= 2 ? "front-front"
+            : teams == 1 ? (hasNeutral ? "front-neutral" : "front-solo")
+            : hasNeutral ? "neutral-neutral" : "empty";
+    }
+    var buildKindOf = new Dictionary<(int, int), string>();
+    foreach (var (cell, r) in regionOf) buildKindOf[cell] = zoneKind[r];
+
+    // CT mid-form (derived, not authored) — from the zone grammar: any neutral↔neutral zone means the mid is
+    // fractured into interlinked islands → HASH; else >=2 separate crossings → PARALLEL; a single crossing →
+    // CHANNELLED. (layout-rules.md CT, read off the closure.)
+    int nnZones = zoneKind.Count(k => k == "neutral-neutral");
+    int ffZones = zoneKind.Count(k => k == "front-front");
+    string midForm = nnZones > 0 ? "hash" : ffZones >= 2 ? "parallel" : ffZones == 1 ? "channelled" : "—";
+
     // wool lanes — the wool room's approach, read off the terrain shape. The room INTERFACES with terrain along
     // an edge (where the generator stamps the objective's redstone line); STACK that interface straight outward,
     // a fixed-width band, cell by cell, until void, build, or a T — a crossbar (terrain reaching beyond the band
@@ -396,7 +434,7 @@ Derived Derive(PlanModel plan)
     //   gap       — one team, build boundary all intra/self: a hole in the team's own isolation-cut gap.
     //   frontline — one team's terrain but touching frontline build: the team's exposed edge on the crossing.
     //   middle    — reaches >=2 teams, or floats in pure build: the contested crossing / arena.
-    var voids = new List<(HashSet<(int, int)> Cells, bool Declared, string Class)>();
+    var voids = new List<(HashSet<(int, int)> Cells, bool Declared, string Class, int CrossRoutes)>();
     var seenVoid = new HashSet<(int, int)>();
     for (var x = minX; x <= maxX; x++)
         for (var z = minZ; z <= maxZ; z++)
@@ -411,6 +449,7 @@ Derived Derive(PlanModel plan)
             // size rule override the corpus.
             var terrTeams = new HashSet<int>(); var buildTeams = new HashSet<int>();
             bool touchesBuild = false, touchesFrontline = false;
+            var borderRegions = new HashSet<int>();   // distinct build zones ringing the hole
             foreach (var c in comp)
                 foreach (var nb in N4(c))
                 {
@@ -426,6 +465,7 @@ Derived Derive(PlanModel plan)
                     else if (build.Contains(nb) && regionOf.TryGetValue(nb, out var r))
                     {
                         touchesBuild = true;
+                        borderRegions.Add(r);
                         if (!intraTeam[r]) touchesFrontline = true;   // a frontline (non-intra) build region
                         foreach (var i in regionIslands[r]) buildTeams.Add(islandTeam[i]);
                     }
@@ -436,10 +476,15 @@ Derived Derive(PlanModel plan)
                 : !touchesBuild ? "encased"
                 : touchesFrontline ? "frontline"
                 : "gap";
-            voids.Add((comp, declared, cls));
+            // routes around the hole — distinct CROSSING zones (front-front / neutral-neutral) ringing it. On a
+            // middle hole this is the "parallel ways": big-board's central hole has two front-front crossings
+            // flanking it (2 parallel routes), four-team-towers' centre is ringed by four neutral-neutral links.
+            int crossRoutes = borderRegions.Count(r => zoneKind[r] is "front-front" or "neutral-neutral");
+            voids.Add((comp, declared, cls, crossRoutes));
         }
 
-    return new Derived(plan.Globals.Cell, filled, build, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
+    var zones = Enumerable.Range(0, regionCount).Select(r => (Kind: zoneKind[r], Neutrals: zoneNeutral[r])).ToList();
+    return new Derived(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
 }
 
 // ── geometry helpers ────────────────────────────────────────────────────────────────────────────────────────
@@ -521,8 +566,15 @@ string Card(string name, PlanModel plan, Derived d)
     void CellRect(int cx, int cz, string fill, double fo, string stroke, double sw) =>
         svg.Append($"<rect x=\"{N(PX(cx * cell))}\" y=\"{N(PY(cz * cell))}\" width=\"{N(cell * s)}\" height=\"{N(cell * s)}\" fill=\"{fill}\" fill-opacity=\"{N(fo)}\" stroke=\"{stroke}\" stroke-width=\"{N(sw)}\"/>");
 
-    // build zones (under terrain)
-    foreach (var c in d.Build) CellRect(c.Item1, c.Item2, CBuild, 0.14, CBuild, 0.4);
+    // build zones (under terrain) — tinted by ZONE KIND (what the zone links)
+    string ZoneCol(string k) => k switch {
+        "front-front" => CZFrontFront, "front-neutral" => CZFrontNeut, "neutral-neutral" => CZNeutNeut,
+        "intra" => CZIntra, "self" => CZSelf, _ => CBuild };
+    foreach (var c in d.Build)
+    {
+        var zc = d.BuildKindOf.TryGetValue(c, out var k) ? ZoneCol(k) : CBuild;
+        CellRect(c.Item1, c.Item2, zc, 0.18, zc, 0.5);
+    }
     // terrain cells — every tile gets exactly ONE label, by priority: AUTHORED wool-room (green) / spawn
     // (purple) keep their editor colour; a STEPPING-STONE island is coloured whole (neutral stone-gray / team
     // fuchsia); a WOOL-LANE tile is the wool room's approach (orange, a solid label, not an overlay); everything
@@ -538,7 +590,7 @@ string Card(string name, PlanModel plan, Derived d)
         CellRect(c.Item1, c.Item2, fill, 0.75, BgCanvas, 0.5);
     }
     // enclosed voids — coloured by position class; undeclared (the buffer worklist) pops, declared is muted
-    foreach (var (vc, isDecl, cls) in d.Voids)
+    foreach (var (vc, isDecl, cls, _) in d.Voids)
     {
         string hc = cls == "encased" ? CHoleEncased : cls == "gap" ? CHoleGap : cls == "frontline" ? CHoleFront : CHoleMiddle;
         foreach (var c in vc) CellRect(c.Item1, c.Item2, hc, isDecl ? 0.14 : 0.30, hc, isDecl ? 0.6 : 1.1);
@@ -595,19 +647,27 @@ string Card(string name, PlanModel plan, Derived d)
     var holeByCls = d.Voids.GroupBy(v => v.Class).ToDictionary(g => g.Key, g => g.Count());
     string holeStr = d.Voids.Count == 0 ? "0"
         : string.Join(" ", holeOrder.Where(holeByCls.ContainsKey).Select(c => $"{holeByCls[c]} {c}"));
+    var pw = d.Voids.Where(v => v.Class == "middle" && v.CrossRoutes > 1).Select(v => v.CrossRoutes).OrderByDescending(x => x).ToList();
+    var zoneOrder = new[] { "front-front", "front-neutral", "neutral-neutral", "intra", "self" };
+    var zoneBy = d.Zones.GroupBy(z => z.Kind).ToDictionary(g => g.Key, g => g.Count());
+    int ffNeut = d.Zones.Where(z => z.Kind == "front-front").Sum(z => z.Neutrals);
+    string zoneStr = string.Join(" ", zoneOrder.Where(zoneBy.ContainsKey).Select(k =>
+        $"{zoneBy[k]} {k}" + (k == "front-front" && ffNeut > 0 ? $" (+{ffNeut} stones)" : "")));
     var stats = string.Join("<span class=\"dot\">·</span>",
         stat(d.Islands.Count.ToString(), "islands"), stat(roleStr, ""),
         stat(stoneStr, "stepping stones"),
         stat(appStr, "approaches"),
         stat(d.LaneCells.Count.ToString(), "wool-lane tiles"),
+        stat(zoneStr, "zones"),
         stat(d.FrontEdges.Count.ToString(), "frontline")
             + (d.IntraEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.IntraEdges.Count.ToString(), "intra-team")}" : "")
             + (d.SelfEdges.Count > 0 ? $"<span class=\"dot\">·</span>{stat(d.SelfEdges.Count.ToString(), "self-bridge")}" : ""),
-        stat(holeStr, "holes") + (decl > 0 ? $"<span class=\"dot\">·</span>{stat($"{undecl} undeclared", "")}" : ""));
+        stat(holeStr, "holes") + (pw.Count > 0 ? $"<span class=\"dot\">·</span>{stat(string.Join("/", pw), "parallel ways")}" : "")
+            + (decl > 0 ? $"<span class=\"dot\">·</span>{stat($"{undecl} undeclared", "")}" : ""));
 
     return $"""
           <article class="card">
-            <div class="card-head"><span class="card-id">{Esc(name)}</span><span class="card-sub">{Esc(plan.Globals.Symmetry)}</span></div>
+            <div class="card-head"><span class="card-id">{Esc(name)}</span><span class="card-sub"><span class="midform midform--{d.MidForm}">{Esc(d.MidForm)}</span> · {Esc(plan.Globals.Symmetry)}</span></div>
             <div class="svg-wrap">{svg}</div>
             <div class="card-stats">{stats}</div>
           </article>
@@ -647,6 +707,8 @@ string Page(string cardsHtml)
     .card-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
     .card-id{ font-family:var(--mono); font-size:12.5px; color:var(--text-bright); font-weight:600; }
     .card-sub{ font-family:var(--mono); font-size:11px; color:var(--text-muted); }
+    .midform{ font-weight:700; text-transform:uppercase; letter-spacing:.06em; padding:1px 5px; border-radius:3px; color:#0f172a; }
+    .midform--channelled{ background:#7dd3fc; } .midform--parallel{ background:#fca5a5; } .midform--hash{ background:#c4b5fd; }
     .svg-wrap{ background:var(--bg-canvas); border:1px solid var(--border); border-radius:6px; overflow:hidden; line-height:0; }
     .svg-wrap svg.map{ display:block; width:100%; height:auto; }
     .card-stats{ display:flex; flex-wrap:wrap; align-items:center; gap:3px 6px; font-family:var(--mono); font-size:11px; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px; }
@@ -680,8 +742,11 @@ string Page(string cardsHtml)
           <span class="lg"><span class="sw" style="background:{MkWool}"></span>wool (n× = approaches)</span>
           <span class="lg"><span class="sw" style="background:{MkSpawn};border-radius:50%"></span>spawn</span>
           <span class="sep"></span>
-          <span class="legend-lbl">Build</span>
-          <span class="lg"><span class="sw" style="background:{CBuild}33;border:1.2px solid {CBuild}"></span>zone</span>
+          <span class="legend-lbl">Build zones</span>
+          <span class="lg"><span class="sw" style="background:{CZFrontFront}55;border:1.2px solid {CZFrontFront}"></span>front↔front (crossing)</span>
+          <span class="lg"><span class="sw" style="background:{CZFrontNeut}55;border:1.2px solid {CZFrontNeut}"></span>front↔neutral (bridge to mid)</span>
+          <span class="lg"><span class="sw" style="background:{CZNeutNeut}55;border:1.2px solid {CZNeutNeut}"></span>neutral↔neutral (mid-internal)</span>
+          <span class="lg"><span class="sw" style="background:{CZIntra}55;border:1.2px solid {CZIntra}"></span>intra / self (isolation cut)</span>
         </div>
     """;
 
@@ -708,7 +773,13 @@ string Page(string cardsHtml)
         <strong style="color:{CHoleEncased}">encased</strong> (deep in one team), <strong style="color:{CHoleGap}">gap</strong>
         (a team's isolation-cut), <strong style="color:{CHoleFront}">frontline pocket</strong> (a team's exposed edge),
         <strong style="color:{CHoleMiddle}">middle</strong> (contested crossing) — and any still <b>undeclared</b>
-        is the buffer worklist. A
+        is the buffer worklist. The <b>build zones</b> are tinted by what they link:
+        <strong style="color:{CZFrontFront}">front↔front</strong> (the crossing, may carry stepping stones between it),
+        <strong style="color:{CZFrontNeut}">front↔neutral</strong> (a team's bridge to the mid),
+        <strong style="color:{CZNeutNeut}">neutral↔neutral</strong> (a mid-internal link, often across the axis), and
+        <strong style="color:{CZIntra}">intra/self</strong> (a team's isolation cut) — from which the
+        <b>CT mid-form</b> in the card header (<b>channelled</b> / <b>parallel</b> / <b>hash</b>) is derived, and a
+        middle hole's <b>parallel ways</b> = the crossings ringing it (big-board's two front↔front lanes). A
         <strong style="color:{CIntra}">pink dashed edge</strong> is an <b>intra-team bridge</b> — a build region on
         a team's own internal spawn↔wool route (direct, or a chain through a <b>captive</b> stepping stone only that
         team can reach): it marks a deliberate internal gap where a piece was chopped off and bridged back to slow
@@ -741,7 +812,10 @@ string Page(string cardsHtml)
       OR build (the terrain+build encasing catches the frontline rotary devices), EVERY one reported at any size
       (the seeds are ground truth), classified by what the boundary touches — encased (one team, no build), gap
       (one team + intra/self build, an isolation cut), frontline pocket (one team + frontline build), middle (>=2
-      teams / pure build); still-undeclared holes are the buffer worklist. Static SVG, self-contained, cell = 5 blocks.</footer>
+      teams / pure build); still-undeclared holes are the buffer worklist. Build zones are typed by what they link
+      (front↔front / front↔neutral / neutral↔neutral / intra / self), read off the island incidence — from which
+      the CT mid-form (channelled / parallel / hash) and a middle hole's parallel-ways are derived. Static SVG,
+      self-contained, cell = 5 blocks.</footer>
     </div>
     """;
 
@@ -758,6 +832,9 @@ record Derived(
     int Cell,
     Dictionary<(int, int), (string PieceId, int K)> Filled,
     HashSet<(int, int)> Build,
+    Dictionary<(int, int), string> BuildKindOf,
+    List<(string Kind, int Neutrals)> Zones,
+    string MidForm,
     List<HashSet<(int, int)>> Islands,
     Dictionary<(int, int), int> IslandOf,
     string[] Roles,
@@ -768,4 +845,4 @@ record Derived(
     List<(int X1, int Z1, int X2, int Z2)> SelfEdges,
     HashSet<(int, int)> LaneCells,
     List<(int X1, int Z1, int X2, int Z2)> RedstoneEdges,
-    List<(HashSet<(int, int)> Cells, bool Declared, string Class)> Voids);
+    List<(HashSet<(int, int)> Cells, bool Declared, string Class, int CrossRoutes)> Voids);

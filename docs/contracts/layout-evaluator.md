@@ -194,6 +194,26 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    crossbar stop also drops the T-bar overflow on `odd-facing-three-wool` (100→40) and
    `isolated-spawn-approaches` (24→16, keeping the 2×4 stem, dropping the crossing bar). The redstone interface
    line and the lane wash are both rendered; the tile count is reported per plan.
+6d. **Build-zone kind** — a build region typed by **what it links**, read straight off the island incidence we
+   already have (nearly free). A **team-owned** island (anchored spawn/wool, or a captive *team* stone)
+   contributes a team "frontline" endpoint; a **neutral** stepping stone contributes a neutral endpoint. Then:
+   - **intra** / **self** — the same-team internal cuts (§6a/§6b), found already.
+   - **front↔front** — ≥2 teams: the crossing / direct team link. It may **carry neutral stones sitting inside
+     it** (the CT5 fragmentation count, now attached to the specific zone — `rotate-wide-frontline`'s wide
+     crossing holds **7**; `mirror-big-board`'s holds 4).
+   - **front↔neutral** — one team + a neutral: a team's **bridge toward the mid**.
+   - **neutral↔neutral** — only neutrals: a **mid-internal** link between neutral islands (usually crosses the
+     symmetry axis — the one edge type that legitimately spans it).
+   Every region in the corpus falls into exactly these; no leftover. From the zone grammar the **CT mid-form**
+   (§, layout-rules.md CT) **derives for free**: any *neutral↔neutral* zone ⇒ the mid is fractured into
+   interlinked islands ⇒ **hash**; else ≥2 *front↔front* crossings ⇒ **parallel**; a single crossing ⇒
+   **channelled**. Validated against the frozen CT labels — `big-board-…-parallel-mid` → **parallel**,
+   `four-team-towers-big` → **hash** (CT's stated archetype), `isolated-spawn-approaches` → **hash** ("hash with
+   parallel traits"), the single-crossing seeds → **channelled**. Cross-checked against the **zone↔hole
+   adjacency** (§7): a hole's bordering zone-kinds explain its class — a *gap* hole is ringed by intra/self, a
+   *middle* hole by front↔front / neutral↔neutral; and a middle hole's **parallel ways** = the crossings ringing
+   it (`big-board`'s central hole is flanked by **2** front↔front lanes; `four-team-towers-big`'s centre is
+   ringed by **4** neutral↔neutral links). Zones are tinted by kind and the mid-form badges each card.
 7. **Void topology** — a hole is **true void** (empty, non-buildable) the border can't reach without crossing
    **terrain or a build region** (both are walls for the enclosure flood): enclosed → **hole**, border-reachable
    → **spacing**. Build must wall the flood, otherwise a rotation pocket ("rotary device") near the frontline —
