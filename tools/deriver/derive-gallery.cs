@@ -472,7 +472,7 @@ Derived Derive(PlanModel plan)
     foreach (var w in plan.Placements.Wools)
     {
         var pc = plan.Pieces.FirstOrDefault(p => p.Id == w.Piece);
-        if (pc is not null) woolShapes.Add(LaneShape(filledK0, FanCellsK(pc.Rect, axes, 0).ToHashSet()));
+        if (pc is not null) woolShapes.Add(WoolLaneShape.Classify(filledK0.Keys.ToHashSet(), FanCellsK(pc.Rect, axes, 0).ToHashSet()));
     }
 
     // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
@@ -580,36 +580,6 @@ Derived Derive(PlanModel plan)
 
 IEnumerable<(int, int)> N4((int, int) c) { yield return (c.Item1 + 1, c.Item2); yield return (c.Item1 - 1, c.Item2); yield return (c.Item1, c.Item2 + 1); yield return (c.Item1, c.Item2 - 1); }
 
-// classify a wool room's lane by the corridor topology it caps. Seed at the room's terrain neighbours; the
-// lane width W is that first cross-section; a cell is a JUNCTION if it sits in a filled (W+2)×(W+2) block (a
-// plaza wider than the corridor). Flood the non-junction terrain from the room = the corridor; its reflex
-// (concave) corners are the bends. 0 = I, 1 = L, 2 = Z, ≥3 = complex; "plaza" = a chunk right at the room,
-// "none" = no terrain corridor (the room docks a build zone directly).
-(string Shape, int Width) LaneShape(Dictionary<(int, int), (string PieceId, int K)> filled, HashSet<(int, int)> room)
-{
-    int Hrun((int, int) c) { int n = 1; for (var x = c.Item1 - 1; filled.ContainsKey((x, c.Item2)); x--) n++; for (var x = c.Item1 + 1; filled.ContainsKey((x, c.Item2)); x++) n++; return n; }
-    int Vrun((int, int) c) { int n = 1; for (var z = c.Item2 - 1; filled.ContainsKey((c.Item1, z)); z--) n++; for (var z = c.Item2 + 1; filled.ContainsKey((c.Item1, z)); z++) n++; return n; }
-    var seeds = new List<(int, int)>();
-    foreach (var r in room) foreach (var nb in N4(r)) if (filled.ContainsKey(nb) && !room.Contains(nb)) seeds.Add(nb);
-    if (seeds.Count == 0) return ("none", 0);
-    int w = Math.Clamp(seeds.Min(c => Math.Min(Hrun(c), Vrun(c))), 2, 6), k = w + 1;
-    bool Blk((int, int) o) { for (var dx = 0; dx < k; dx++) for (var dz = 0; dz < k; dz++) if (!filled.ContainsKey((o.Item1 + dx, o.Item2 + dz))) return false; return true; }
-    bool Thick((int, int) c) { for (var x = c.Item1 - k + 1; x <= c.Item1; x++) for (var z = c.Item2 - k + 1; z <= c.Item2; z++) if (Blk((x, z))) return true; return false; }
-    bool Narrow((int, int) c) => filled.ContainsKey(c) && !room.Contains(c) && !Thick(c);
-    var lane = new HashSet<(int, int)>(); var q = new Queue<(int, int)>();
-    foreach (var s in seeds) if (Narrow(s) && lane.Add(s)) q.Enqueue(s);
-    while (q.Count > 0) { var cur = q.Dequeue(); foreach (var nb in N4(cur)) if (Narrow(nb) && lane.Add(nb)) q.Enqueue(nb); }
-    if (lane.Count == 0) return ("plaza", w);
-    int reflex = 0, mnx = lane.Min(c => c.Item1), mxx = lane.Max(c => c.Item1) + 1, mnz = lane.Min(c => c.Item2), mxz = lane.Max(c => c.Item2) + 1;
-    for (var x = mnx; x <= mxx; x++) for (var z = mnz; z <= mxz; z++)
-    {
-        int cnt = 0;
-        if (lane.Contains((x, z))) cnt++; if (lane.Contains((x - 1, z))) cnt++;
-        if (lane.Contains((x, z - 1))) cnt++; if (lane.Contains((x - 1, z - 1))) cnt++;
-        if (cnt == 3) reflex++;
-    }
-    return (reflex == 0 ? "I" : reflex == 1 ? "L" : reflex == 2 ? "Z" : "complex", w);
-}
 
 // neighbour + the shared cell-edge segment (in CELL units) between c and that neighbour
 IEnumerable<((int, int) Nb, (int, int, int, int) Seg)> N4Seg((int, int) c)

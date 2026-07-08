@@ -1,0 +1,6 @@
+{
+  "_comment": "Author's intended lane label per example file (name without .plan.json). Free-form string — write whatever taxonomy you want (I / L / Z, or L-cut / U / approach, …). The audit harness (tools/deriver/lane-audit.cs) runs the deriver's WoolLaneShape classifier on each and flags every author↔deriver disagreement. Disagreements are the fix list.",
+  "i-straight": "I",
+  "l-back-corner": "L",
+  "z-double-bend": "Z"
+}
