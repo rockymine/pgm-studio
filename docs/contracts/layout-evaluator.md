@@ -194,6 +194,19 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    crossbar stop also drops the T-bar overflow on `odd-facing-three-wool` (100→40) and
    `isolated-spawn-approaches` (24→16, keeping the 2×4 stem, dropping the crossing bar). The redstone interface
    line and the lane wash are both rendered; the tile count is reported per plan.
+6c-shape. **Wool-lane shape** — the corridor's *topology*, read team-locally (k=0 unit only — a fanned mirror
+   image would merge into the corridor near the centre). Seed at the room's terrain neighbours; the corridor
+   width **W** is that first cross-section; a cell is a **junction** if it sits in a filled **(W+1)×(W+1)**
+   block — a region wider than the corridor (this survives corners, where two W-wide arms overlap in only a
+   W×W square, and stops at any wider hub). Flood the non-junction terrain from the room = the corridor; its
+   **reflex (concave) corners are the bends**: 0 = **I**, 1 = **L**, 2 = **Z**, ≥3 = **complex** (the wool sits
+   on a chunky island, not a clean lane — `odd-facing`'s 400-block L-island). `plaza` = a chunk right at the
+   room; `none` = no terrain corridor (the isolated whole-island room — the SpawnWoolRooms bug). Validated on
+   ground truth: `p16 s19` **Z**, `p16 s42` **I/L**, `rotate-wide-frontline` **Z** (authored Z lanes the
+   objective-stack in 6c cannot trace), `isolated-spawn` **I**. This is the deriver's first **shape** vocabulary
+   term — the label the intent→realize mirror needs to say "make an L-cut lane." **v1 caveat:** on small maps
+   with no distinct hub (all-2-wide) the flood has nothing to stop at and over-reports `complex`; the robust
+   fix is a medial-axis (thinning) trace, deferred. Per-wool shape+width is reported per card.
 6d. **Build-zone kind** — a build region typed by **what it links**, read straight off the island incidence we
    already have (nearly free). A **team-owned** island (anchored spawn/wool, or a captive *team* stone)
    contributes a team "frontline" endpoint; a **neutral** stepping stone contributes a neutral endpoint. Then:

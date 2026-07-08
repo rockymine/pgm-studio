@@ -64,7 +64,8 @@ void Emit(string name, PlanModel plan, StringBuilder buf)
     var bz3 = string.Join("/", d.Zones.GroupBy(z => z.Width <= 1 ? "choke" : z.Width == 2 ? "bridge" : "band")
         .OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key}"));
     var pw = string.Join("/", d.Voids.Where(v => v.Class == "middle" && v.CrossRoutes > 0).Select(v => v.CrossRoutes).OrderByDescending(x => x));
-    Console.WriteLine($"  {name,-42} mid={d.MidForm,-10} bz3={bz3,-18} zones=[{zoneStr}]{(pw.Length > 0 ? $"  pWays={pw}" : "")}");
+    var shapes = string.Join(",", d.WoolShapes.GroupBy(s => s.Shape).OrderBy(g => g.Key).Select(g => $"{g.Count()}{g.Key}"));
+    Console.WriteLine($"  {name,-42} mid={d.MidForm,-10} lanes=[{shapes,-12}] bz3={bz3,-16} zones=[{zoneStr}]{(pw.Length > 0 ? $"  pWays={pw}" : "")}");
 }
 
 foreach (var path in files)
@@ -454,6 +455,26 @@ Derived Derive(PlanModel plan)
         }
     }
 
+    // per-wool LANE SHAPE — the corridor's topology, read independent of the objective-lane tiles above. A
+    // width-adaptive flood traces the thin path from the room to the first junction (a plaza is a block WIDER
+    // than the corridor, so a 3-wide lane still reads as a lane, not a junction); bends = reflex corners of
+    // that path. I (straight) / L (one bend) / Z (two) / complex (more — the wool sits on a chunky island);
+    // "none" = no corridor at all (the room docks a build zone directly — the isolated whole-island room).
+    // shape is a TEAM-LOCAL property — read it on the k=0 unit terrain only, never the fanned board (a fanned
+    // mirror image merges into the corridor near the centre and corrupts the trace).
+    var filledK0 = new Dictionary<(int, int), (string PieceId, int K)>();
+    foreach (var p in plan.Pieces)
+    {
+        if (p.Role is PlanRoles.Buffer or PlanRoles.Connector) continue;
+        foreach (var c in FanCellsK(p.Rect, axes, 0)) filledK0[c] = (p.Id, 0);
+    }
+    var woolShapes = new List<(string Shape, int Width)>();
+    foreach (var w in plan.Placements.Wools)
+    {
+        var pc = plan.Pieces.FirstOrDefault(p => p.Id == w.Piece);
+        if (pc is not null) woolShapes.Add(LaneShape(filledK0, FanCellsK(pc.Rect, axes, 0).ToHashSet()));
+    }
+
     // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
     // built a deliberate internal gap — a piece chopped off the main mass and bridged back across a slow-down
     // void (the CT5 isolation cut). A learnable pattern for the builder, not just an exclusion.
@@ -552,12 +573,43 @@ Derived Derive(PlanModel plan)
     var zones = Enumerable.Range(0, regionCount)
         .Select(r => (Kind: zoneKind[r], Neutrals: zoneNeutral[r], Width: zoneWidth[r], IfaceMin: zoneIfaceMin[r], IfaceMax: zoneIfaceMax[r]))
         .ToList();
-    return new Derived(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
+    return new Derived(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, woolShapes, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
 }
 
 // ── geometry helpers ────────────────────────────────────────────────────────────────────────────────────────
 
 IEnumerable<(int, int)> N4((int, int) c) { yield return (c.Item1 + 1, c.Item2); yield return (c.Item1 - 1, c.Item2); yield return (c.Item1, c.Item2 + 1); yield return (c.Item1, c.Item2 - 1); }
+
+// classify a wool room's lane by the corridor topology it caps. Seed at the room's terrain neighbours; the
+// lane width W is that first cross-section; a cell is a JUNCTION if it sits in a filled (W+2)×(W+2) block (a
+// plaza wider than the corridor). Flood the non-junction terrain from the room = the corridor; its reflex
+// (concave) corners are the bends. 0 = I, 1 = L, 2 = Z, ≥3 = complex; "plaza" = a chunk right at the room,
+// "none" = no terrain corridor (the room docks a build zone directly).
+(string Shape, int Width) LaneShape(Dictionary<(int, int), (string PieceId, int K)> filled, HashSet<(int, int)> room)
+{
+    int Hrun((int, int) c) { int n = 1; for (var x = c.Item1 - 1; filled.ContainsKey((x, c.Item2)); x--) n++; for (var x = c.Item1 + 1; filled.ContainsKey((x, c.Item2)); x++) n++; return n; }
+    int Vrun((int, int) c) { int n = 1; for (var z = c.Item2 - 1; filled.ContainsKey((c.Item1, z)); z--) n++; for (var z = c.Item2 + 1; filled.ContainsKey((c.Item1, z)); z++) n++; return n; }
+    var seeds = new List<(int, int)>();
+    foreach (var r in room) foreach (var nb in N4(r)) if (filled.ContainsKey(nb) && !room.Contains(nb)) seeds.Add(nb);
+    if (seeds.Count == 0) return ("none", 0);
+    int w = Math.Clamp(seeds.Min(c => Math.Min(Hrun(c), Vrun(c))), 2, 6), k = w + 1;
+    bool Blk((int, int) o) { for (var dx = 0; dx < k; dx++) for (var dz = 0; dz < k; dz++) if (!filled.ContainsKey((o.Item1 + dx, o.Item2 + dz))) return false; return true; }
+    bool Thick((int, int) c) { for (var x = c.Item1 - k + 1; x <= c.Item1; x++) for (var z = c.Item2 - k + 1; z <= c.Item2; z++) if (Blk((x, z))) return true; return false; }
+    bool Narrow((int, int) c) => filled.ContainsKey(c) && !room.Contains(c) && !Thick(c);
+    var lane = new HashSet<(int, int)>(); var q = new Queue<(int, int)>();
+    foreach (var s in seeds) if (Narrow(s) && lane.Add(s)) q.Enqueue(s);
+    while (q.Count > 0) { var cur = q.Dequeue(); foreach (var nb in N4(cur)) if (Narrow(nb) && lane.Add(nb)) q.Enqueue(nb); }
+    if (lane.Count == 0) return ("plaza", w);
+    int reflex = 0, mnx = lane.Min(c => c.Item1), mxx = lane.Max(c => c.Item1) + 1, mnz = lane.Min(c => c.Item2), mxz = lane.Max(c => c.Item2) + 1;
+    for (var x = mnx; x <= mxx; x++) for (var z = mnz; z <= mxz; z++)
+    {
+        int cnt = 0;
+        if (lane.Contains((x, z))) cnt++; if (lane.Contains((x - 1, z))) cnt++;
+        if (lane.Contains((x, z - 1))) cnt++; if (lane.Contains((x - 1, z - 1))) cnt++;
+        if (cnt == 3) reflex++;
+    }
+    return (reflex == 0 ? "I" : reflex == 1 ? "L" : reflex == 2 ? "Z" : "complex", w);
+}
 
 // neighbour + the shared cell-edge segment (in CELL units) between c and that neighbour
 IEnumerable<((int, int) Nb, (int, int, int, int) Seg)> N4Seg((int, int) c)
@@ -736,6 +788,9 @@ string Card(string name, PlanModel plan, Derived d)
             stat(stoneStr, "")),
         grp("Wools",
             stat(appStr, "approaches"),
+            d.WoolShapes.Count > 0 ? stat(string.Join(" ", d.WoolShapes
+                .GroupBy(s => s.Width > 0 ? $"{s.Shape}·w{s.Width}" : s.Shape).OrderBy(g => g.Key)
+                .Select(g => $"{g.Count()}×{g.Key}")), "lanes") : "",
             stat(d.LaneCells.Count.ToString(), "lane tiles")),
         grp("Zones",
             string.Concat(zoneOrder.Where(zoneBy.ContainsKey).Select(k =>
@@ -941,6 +996,7 @@ record Derived(
     string[] Roles,
     string[] SteppingKind,
     List<(int Island, double Bx, double Bz, int Count)> Approaches,
+    List<(string Shape, int Width)> WoolShapes,
     List<(int X1, int Z1, int X2, int Z2)> FrontEdges,
     List<(int X1, int Z1, int X2, int Z2)> IntraEdges,
     List<(int X1, int Z1, int X2, int Z2)> SelfEdges,
