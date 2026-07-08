@@ -8,14 +8,32 @@ either the classifier is wrong, or the vocabulary needs a new term.
 
 ## Format
 
-- **One example per file**, `*.plan.json`, `symmetry: "none"` — a single team unit with **one wool
-  lane**: a `hub` piece (the junction the lane docks into, ≥3 cells each side so the corridor stops
-  there), the lane pieces, and the `wool-room` at the dead end. Nothing else needed — no spawn, no
-  symmetry, no zones. Author it however you like (the `/plan` editor, or by hand).
-- **`labels.json`** — `"<file-name-without-.plan.json>": "<your label>"`. The label is a **free-form
-  string**: use `I` / `L` / `Z` to match the current vocabulary, or write your own (`L-cut`, `U`,
-  `approach`, …). Anything the classifier doesn't emit is guaranteed to show as a MISMATCH, which is
-  exactly what you want when the vocabulary is missing a term.
+Two ways to author, both `symmetry: "none"`:
+
+**Many examples per file (preferred)** — pack independent lanes into one file and let the *piece id*
+carry the intent, via the convention `<group>-<role>[-<ord>]`:
+
+- **`group`** = `<shape><variant>` — leading **letters** are the intended shape, trailing **digits**
+  the instance (`i1`, `l1`, `z1`, `z2`, `plaza1`). Everything before the first `-` is the **join key**;
+  strip its trailing digits to get the intended label. The id *is* the ground truth, so `labels.json`
+  is optional here.
+- **`role`** — a closed token set: `wool` (the `wool-room`, one per group; the wool placement points
+  at it) · `lane` (a corridor `piece`) · `room` (a wide plaza `piece`) · `dock` (a terrain hub `piece`,
+  make it **≥ corridorWidth+1 wide** so the flood stops there) · `end` (a terminus `piece`). Split/cut
+  marks live in `zones[]` (`entry` / `cut`) and are **orthogonal to the shape** — a cut Z is still shape
+  `Z`, so name it `z2-cut`, not a new shape prefix.
+- **`ord`** = `a`,`b`,`c`… when several pieces share group+role (`z1-lane-a`, `z1-lane-b`).
+- Offset each group in `x` so their terrain never touches — every group is classified in isolation from
+  its own wool room.
+
+`_reference.plan.json` is the worked demo (I / L / Z / Z-with-cut / plaza), each group verified to
+classify as its prefix.
+
+**One example per file (starter form)** — a single lane per `*.plan.json` with a `hub` piece, the lane
+pieces, and the `wool-room` at the dead end, labelled in **`labels.json`**
+(`"<file-name-without-.plan.json>": "<your label>"`, a free-form string). The starter files
+(`i-straight`, `l-back-corner`, `z-double-bend`) use this form. Anything the classifier doesn't emit
+shows as a MISMATCH — exactly what you want when the vocabulary is missing a term.
 
 ## Check
 

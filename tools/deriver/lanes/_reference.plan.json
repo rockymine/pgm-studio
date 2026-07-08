@@ -1,0 +1,49 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "_reference",
+    "notes": "Piece-label convention demo. Many examples in one symmetry:none file. Piece id = '<group>-<role>[-<ord>]'. group = <shape><variant> (leading letters = intended shape, trailing digits = instance); everything before the first '-' is the join key; strip trailing digits for the intended label. role: wool=wool-room | lane=corridor piece | room=wide plaza piece | dock=terrain hub (make it >= corridorWidth+1 wide so the flood stops there) | end=terminus piece. entry/cut live in zones[] and are orthogonal to the shape prefix (a cut Z is still shape Z). ord = a,b,c... disambiguator. Groups are offset in x so their terrain never touches; each group is classified in isolation from its own wool room."
+  },
+  "globals": { "cell": 5, "symmetry": "none", "maxPlayers": 12, "surface": 9, "headroom": 11 },
+  "pieces": [
+    { "id": "i1-dock", "role": "piece",     "rect": [0, 0, 4, 4] },
+    { "id": "i1-lane", "role": "piece",     "rect": [1, 4, 2, 6] },
+    { "id": "i1-wool", "role": "wool-room", "rect": [1, 10, 2, 2] },
+
+    { "id": "l1-dock",   "role": "piece",     "rect": [20, 0, 4, 4] },
+    { "id": "l1-lane-a", "role": "piece",     "rect": [24, 1, 4, 2] },
+    { "id": "l1-lane-b", "role": "piece",     "rect": [26, 3, 2, 4] },
+    { "id": "l1-wool",   "role": "wool-room", "rect": [26, 7, 2, 2] },
+
+    { "id": "z1-dock",   "role": "piece",     "rect": [40, 0, 4, 4] },
+    { "id": "z1-lane-a", "role": "piece",     "rect": [41, 4, 2, 3] },
+    { "id": "z1-lane-b", "role": "piece",     "rect": [41, 7, 4, 2] },
+    { "id": "z1-lane-c", "role": "piece",     "rect": [43, 9, 2, 3] },
+    { "id": "z1-wool",   "role": "wool-room", "rect": [43, 12, 2, 2] },
+
+    { "id": "z2-dock",   "role": "piece",     "rect": [60, 0, 4, 4] },
+    { "id": "z2-lane-a", "role": "piece",     "rect": [61, 4, 2, 3] },
+    { "id": "z2-lane-b", "role": "piece",     "rect": [61, 7, 4, 2] },
+    { "id": "z2-lane-c", "role": "piece",     "rect": [63, 9, 2, 3] },
+    { "id": "z2-wool",   "role": "wool-room", "rect": [63, 12, 2, 2] },
+
+    { "id": "plaza1-dock", "role": "piece",     "rect": [80, 0, 8, 8] },
+    { "id": "plaza1-wool", "role": "wool-room", "rect": [83, 8, 2, 2] }
+  ],
+  "zones": [
+    { "id": "z2-cut", "rect": [61, 7, 4, 2] }
+  ],
+  "placements": {
+    "spawns": [],
+    "wools": [
+      { "piece": "i1-wool",     "at": [1, 1] },
+      { "piece": "l1-wool",     "at": [1, 1] },
+      { "piece": "z1-wool",     "at": [1, 1] },
+      { "piece": "z2-wool",     "at": [1, 1] },
+      { "piece": "plaza1-wool", "at": [4, 1] }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}
