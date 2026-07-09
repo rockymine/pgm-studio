@@ -14,7 +14,9 @@
     src/PgmStudio.Client/wwwroot/js/studio/canvas/plan-canvas.js
   Chrome + document controller replace src/.../bridge/plan-bridge.js + the Blazor page.
   Plans autosave to localStorage and import/export as *.plan.json (same wire format as
-  tools/seeds/*.plan.json). Added here: touch + pinch-zoom, absent from the mouse-only source.
+  tools/seeds/*.plan.json). Added here for phones: touch drag + pinch-zoom (absent from the
+  mouse-only source), a floating tool dock, fat resize handles, and a non-blocking selection
+  bar (select never covers the canvas; full property editing is opt-in via Edit).
   Omitted (require the server): live lint, the interface/frontline overlays, the Wall tool,
   and Compile/draft/world-export — author here, compile in the full studio.
 -->
@@ -173,7 +175,7 @@
   .swatch--ring { background: var(--role, #888); border-radius: 50%; }
 
   /* ── canvas column ──────────────────────────────────────────────────── */
-  .canvas-col { display: flex; flex-direction: column; min-width: 0; background: var(--bg-deep); }
+  .canvas-col { display: flex; flex-direction: column; min-width: 0; background: var(--bg-deep); position: relative; }
   .subbar {
     display: flex; align-items: center; gap: 8px;
     padding: 7px 10px; background: var(--bg-panel);
@@ -204,6 +206,46 @@
   .readout { font-family: var(--mono); font-size: 12px; color: var(--text-primary); padding: 8px 10px; background: var(--bg-base); border: 1px solid var(--border); border-radius: 6px; }
   .stack { display: flex; flex-direction: column; gap: 8px; }
 
+  /* ── floating tool dock (mobile) ────────────────────────────────────── */
+  .tooldock {
+    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    display: none; align-items: center; gap: 3px; z-index: 20;
+    max-width: calc(100% - 16px); overflow-x: auto; -webkit-overflow-scrolling: touch;
+    padding: 5px; background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 999px; box-shadow: var(--shadow-float); scrollbar-width: none;
+  }
+  .tooldock::-webkit-scrollbar { display: none; }
+  .dock-btn {
+    flex: none; display: inline-flex; align-items: center; gap: 6px;
+    font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap;
+    padding: 8px 12px; min-height: 42px;
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid transparent; border-radius: 999px; cursor: pointer; user-select: none;
+  }
+  .dock-btn--active { background: var(--bg-selected); color: var(--text-bright); border-color: var(--accent); }
+  .dock-sep { width: 1px; align-self: stretch; background: var(--border); margin: 5px 3px; flex: none; }
+  .dock-piece { display: inline-flex; align-items: center; flex: none; }
+  .dock-piece .dock-btn { border-radius: 999px 0 0 999px; padding-right: 8px; }
+  .dock-caret { border-radius: 0 999px 999px 0; padding: 8px 12px 8px 8px; }
+
+  .role-pop {
+    position: absolute; left: 50%; bottom: 66px; transform: translateX(-50%);
+    z-index: 30; display: none; flex-direction: column; gap: 3px; min-width: 168px;
+    padding: 6px; background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: var(--shadow-float);
+  }
+  .role-pop.open { display: flex; }
+
+  /* Selection bar — in-flow under the subbar (never overlaps the canvas), so a
+     selected piece stays fully draggable/resizable. Full editing is opt-in via Edit. */
+  .selbar {
+    display: none; align-items: center; gap: 8px;
+    padding: 7px 10px; background: var(--bg-panel); border-bottom: 1px solid var(--border); flex: none;
+  }
+  .selbar-kind { font-size: 12px; font-weight: 700; color: var(--text-bright); text-transform: capitalize; white-space: nowrap; }
+  .selbar-id { font-family: var(--mono); font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .selbar-spacer { flex: 1; }
+
   /* ── mobile ─────────────────────────────────────────────────────────── */
   .drawer-toggle, .sheet-close { display: none; }
   .scrim { display: none; }
@@ -233,6 +275,10 @@
     .brand small { display: none; }
     .cursor-readout { display: none; }
     .hide-mobile { display: none !important; }
+
+    .tooldock { display: flex; }        /* tools float over the canvas */
+    .palette-section { display: none; } /* …so the drawer keeps only globals */
+    .selbar.show { display: flex; }
   }
   @media (prefers-reduced-motion: reduce) {
     .panel--left, .panel--right { transition: none; }
@@ -291,13 +337,13 @@
           </div>
         </section>
 
-        <section>
+        <section class="palette-section">
           <h2 class="section-title">Pieces</h2>
           <div class="palette" id="rolePalette"></div>
           <p class="section-desc">Buffer marks reserved empty space — informational only (no terrain, not buildable).</p>
         </section>
 
-        <section>
+        <section class="palette-section">
           <h2 class="section-title">Build &amp; markers</h2>
           <div class="palette" id="toolPalette"></div>
           <p class="section-desc">Markers ride the piece under them. Click a placed spawn again to cycle its facing.</p>
@@ -307,17 +353,30 @@
 
     <div class="canvas-col">
       <div class="subbar">
-        <button class="chip" id="tSelect" data-tool="select">Select</button>
-        <button class="chip" id="tPan" data-tool="pan">Pan</button>
+        <button class="chip hide-mobile" id="tSelect" data-tool="select">Select</button>
+        <button class="chip hide-mobile" id="tPan" data-tool="pan">Pan</button>
         <span class="cursor-readout" id="cursorReadout"></span>
         <div class="subbar-spacer"></div>
         <button class="chip" id="cHeights" title="Colour pieces by island height">Heights</button>
         <button class="chip" id="cFit" title="Fit the plan to view">Fit</button>
         <span class="zoom-readout" id="zoomLabel">—</span>
       </div>
+
+      <div class="selbar" id="selBar">
+        <span class="selbar-kind" id="selKind"></span>
+        <span class="selbar-id" id="selId"></span>
+        <div class="selbar-spacer"></div>
+        <button class="btn" id="selEdit">Edit</button>
+        <button class="btn btn--danger btn--icon" id="selDel" aria-label="Delete selection">🗑</button>
+        <button class="btn btn--icon" id="selDeselect" aria-label="Deselect">✕</button>
+      </div>
+
       <div class="svg-area" id="planWrap">
         <svg class="plan-svg" id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
+
+      <div class="tooldock" id="toolDock"></div>
+      <div class="role-pop" id="rolePop"></div>
     </div>
 
     <aside class="panel panel--right" id="rightPanel">
@@ -695,6 +754,8 @@
    * ==================================================================== */
   const FIT_MARGIN = 0.82;
   const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4" };
+  // Resize-handle half-size: fat targets on touch, precise on mouse.
+  const HANDLE_HALF = window.matchMedia("(pointer: coarse)").matches ? 11 : 5;
   const HANDLES = [
     { ex: -1, ez: -1, nx: 0, nz: 0, cur: "nwse-resize" },
     { ex: 1, ez: -1, nx: 1, nz: 0, cur: "nesw-resize" },
@@ -966,7 +1027,7 @@
       const p0 = toS(b.min_x, b.min_z), p1 = toS(b.max_x, b.max_z);
       const l = Math.min(p0.x, p1.x), r = Math.max(p0.x, p1.x), t = Math.min(p0.y, p1.y), bot = Math.max(p0.y, p1.y);
       layer.appendChild(svgEl("rect", { x: l, y: t, width: r - l, height: bot - t, fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none" }));
-      const HALF = 5;
+      const HALF = HANDLE_HALF;
       for (const hd of HANDLES) {
         const hx = l + hd.nx * (r - l), hy = t + hd.nz * (bot - t);
         const el = svgEl("rect", { x: hx - HALF, y: hy - HALF, width: HALF * 2, height: HALF * 2, rx: 1, fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5" });
@@ -1166,6 +1227,7 @@
   function installTouch(svg) {
     let panId = null;        // identifier of the finger driving a 1-finger gesture
     let pinchD = null;       // last two-finger distance, for stepwise zoom
+    let lastX = 0, lastY = 0; // last touch point, a fallback for touchend coords
     const dispatch = (target, type, x, y, buttons) =>
       target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons }));
     const dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
@@ -1173,8 +1235,11 @@
 
     svg.addEventListener("touchstart", (e) => {
       if (e.touches.length === 1) {
-        const t = e.touches[0]; panId = t.identifier;
-        dispatch(svg, "mousedown", t.clientX, t.clientY, 1);
+        const t = e.touches[0]; panId = t.identifier; lastX = t.clientX; lastY = t.clientY;
+        // Aim the synthetic press at the element under the finger — a resize handle (which
+        // has its own mousedown listener) must receive it, not just the SVG root.
+        const target = document.elementFromPoint(t.clientX, t.clientY) || svg;
+        dispatch(target, "mousedown", t.clientX, t.clientY, 1);
       } else if (e.touches.length === 2) {
         if (panId != null) { const t = e.touches[0]; dispatch(document, "mouseup", t.clientX, t.clientY, 0); panId = null; }
         pinchD = dist(e.touches[0], e.touches[1]);
@@ -1192,7 +1257,7 @@
         }
       } else if (panId != null) {
         const t = [...e.touches].find(x => x.identifier === panId) || e.touches[0];
-        if (t) dispatch(document, "mousemove", t.clientX, t.clientY, 1);
+        if (t) { lastX = t.clientX; lastY = t.clientY; dispatch(document, "mousemove", t.clientX, t.clientY, 1); }
       }
       e.preventDefault();
     }, { passive: false });
@@ -1200,7 +1265,7 @@
     const endTouch = (e) => {
       if (e.touches.length === 0) {
         pinchD = null;
-        if (panId != null) { const t = e.changedTouches[0]; dispatch(document, "mouseup", t.clientX, t.clientY, 0); panId = null; }
+        if (panId != null) { const t = e.changedTouches[0] || { clientX: lastX, clientY: lastY }; dispatch(document, "mouseup", t.clientX, t.clientY, 0); panId = null; }
       } else if (e.touches.length === 1 && pinchD != null) {
         pinchD = null;   // pinch released to a single finger — drop it, don't start a drag mid-gesture
       }
@@ -1325,6 +1390,35 @@
     }
   }
 
+  // Floating tool dock (mobile) — Select / Pan and the draw tools, over the canvas. The Piece
+  // control is a split button: the body arms the current role, the caret opens the role popover.
+  function buildDock() {
+    const dock = $("toolDock"); dock.innerHTML = "";
+    const simple = (label, t) => { const b = document.createElement("button"); b.className = "dock-btn"; b.dataset.tool = t; b.textContent = label; b.addEventListener("click", () => pickTool(t)); return b; };
+    dock.append(simple("Select", "select"), simple("Pan", "pan"));
+    const sep = document.createElement("div"); sep.className = "dock-sep"; dock.append(sep);
+
+    const group = document.createElement("div"); group.className = "dock-piece";
+    const main = document.createElement("button"); main.className = "dock-btn"; main.id = "dockPiece"; main.dataset.tool = "piece";
+    main.innerHTML = `<span class="swatch" id="dockPieceSw"></span><span id="dockPieceLbl">Piece</span>`;
+    main.addEventListener("click", () => { closeRolePop(); pickRole(canvasRole); });
+    const caret = document.createElement("button"); caret.className = "dock-btn dock-caret"; caret.textContent = "▾"; caret.setAttribute("aria-label", "Choose piece role");
+    caret.addEventListener("click", (e) => { e.stopPropagation(); $("rolePop").classList.toggle("open"); });
+    group.append(main, caret); dock.append(group);
+
+    dock.append(simple("Zone", "zone"), simple("Spawn", "spawn"), simple("Wool", "wool"), simple("Iron", "iron"));
+
+    const pop = $("rolePop"); pop.innerHTML = "";
+    for (const r of ROLE_META) {
+      const b = document.createElement("button"); b.className = "tool-btn";
+      b.innerHTML = `<span class="swatch" style="--role:${r.color}"></span>${r.label}`;
+      b.addEventListener("click", () => { closeRolePop(); pickRole(r.id); });
+      pop.append(b);
+    }
+  }
+  function closeRolePop() { $("rolePop").classList.remove("open"); }
+  document.addEventListener("click", (e) => { const pop = $("rolePop"); if (pop.classList.contains("open") && !pop.contains(e.target)) closeRolePop(); });
+
   function pickTool(t) {
     tool = t;
     canvas.setTool(t);
@@ -1349,6 +1443,11 @@
       btn.classList.toggle("tool-btn--active", t === "piece" && btn.dataset.role === canvasRole);
     for (const btn of document.querySelectorAll("#toolPalette .tool-btn"))
       btn.classList.toggle("tool-btn--active", btn.dataset.tool === t);
+    for (const btn of document.querySelectorAll("#toolDock .dock-btn"))
+      if (btn.dataset.tool) btn.classList.toggle("dock-btn--active", btn.dataset.tool === t);
+    const sw = $("dockPieceSw"), lbl = $("dockPieceLbl");
+    if (sw) sw.style.setProperty("--role", ROLE_COLORS[canvasRole]);
+    if (lbl) lbl.textContent = ROLE_LABELS[canvasRole];
   }
 
   // ── globals form ────────────────────────────────────────────────────
@@ -1379,14 +1478,32 @@
   // ── inspector ───────────────────────────────────────────────────────
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+  const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
+  let currentSel = null;
+
+  // The slim mobile selection bar: names the selection and offers Edit / Delete / Deselect,
+  // WITHOUT covering the canvas — so a selected piece stays draggable and resizable.
+  function updateSelBar(sel) {
+    currentSel = sel;
+    const bar = $("selBar");
+    if (!isMobile() || !sel) { bar.classList.remove("show"); return; }
+    let kind, id;
+    if (sel.kind === "piece") { kind = "Piece"; id = sel.id; }
+    else if (sel.kind === "zone") { kind = "Build area"; id = sel.id; }
+    else { kind = sel.markerKind; id = "on " + (sel.piece || ""); }
+    $("selKind").textContent = kind;
+    $("selId").textContent = id;
+    bar.classList.add("show");
+  }
+
   function renderInspector(sel) {
     const body = $("inspBody"), title = $("inspTitle");
-    const rightOpen = () => { if (window.matchMedia("(max-width: 900px)").matches) openRight(); };
 
     if (!sel) {
       title.textContent = "Inspector";
-      body.innerHTML = `<p class="section-desc">Select a piece, build area or marker to inspect. Draw a piece from the palette, then drop spawns / wools onto it.</p>`;
-      if (window.matchMedia("(max-width: 900px)").matches) closeRight();
+      body.innerHTML = `<p class="section-desc">Select a piece, build area or marker to inspect. Draw a piece from the toolbar, then drop spawns / wools onto it.</p>`;
+      updateSelBar(null);
+      if (isMobile()) closeRight();
       return;
     }
 
@@ -1411,8 +1528,7 @@
       $("ins_sdown").addEventListener("click", () => stepPieceSurface(sel.id, -2));
       $("ins_sup").addEventListener("click", () => stepPieceSurface(sel.id, 2));
       $("ins_mirror").addEventListener("click", () => togglePieceMirrors(sel.id));
-      $("ins_del").addEventListener("click", () => canvas.clearSelection() || deleteSelection(sel));
-      rightOpen();
+      $("ins_del").addEventListener("click", () => deleteSelection(sel));
     } else if (sel.kind === "zone") {
       title.textContent = "Build area";
       body.innerHTML = `
@@ -1420,7 +1536,6 @@
         <button class="btn btn--full btn--danger" id="ins_del" style="margin-top:12px">Delete build area</button>`;
       $("ins_id").addEventListener("change", (e) => setZoneId(sel.id, e.target.value.trim()));
       $("ins_del").addEventListener("click", () => deleteSelection(sel));
-      rightOpen();
     } else {
       title.textContent = sel.markerKind;
       const at = Array.isArray(sel.at) ? `${sel.at[0]}, ${sel.at[1]}` : "";
@@ -1435,8 +1550,8 @@
         <button class="btn btn--full btn--danger" id="ins_del" style="margin-top:12px">Delete marker</button>`;
       if (sel.markerKind === "spawn") $("ins_cycle").addEventListener("click", () => cycleFacing(sel.index));
       $("ins_del").addEventListener("click", () => deleteSelection(sel));
-      rightOpen();
     }
+    updateSelBar(sel);
   }
 
   // Inspector edit operations (mirror the source bridge's setters).
@@ -1513,11 +1628,17 @@
   function openRight() { $("rightPanel").classList.add("open"); scrim.classList.add("show"); }
   function closeRight() { $("rightPanel").classList.remove("open"); if (!$("leftPanel").classList.contains("open")) scrim.classList.remove("show"); }
   $("tglLeft").addEventListener("click", () => $("leftPanel").classList.contains("open") ? closeLeft() : openLeft());
-  $("sheetClose").addEventListener("click", () => { canvas.clearSelection(); closeRight(); });
+  $("sheetClose").addEventListener("click", () => closeRight());   // keep the selection; collapse to the bar
   scrim.addEventListener("click", () => { closeLeft(); closeRight(); });
+
+  // Selection bar: full editor on demand, delete, or deselect — none of which cover the canvas.
+  $("selEdit").addEventListener("click", () => openRight());
+  $("selDel").addEventListener("click", () => { if (currentSel) deleteSelection(currentSel); });
+  $("selDeselect").addEventListener("click", () => canvas.clearSelection());
 
   // ── boot ────────────────────────────────────────────────────────────
   buildPalettes();
+  buildDock();
   try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) doc = fromJson(saved); } catch { doc = emptyDoc(); }
   canvas.setHeightMap(heightMap);
   $("cHeights").classList.toggle("chip--active", heightMap);
