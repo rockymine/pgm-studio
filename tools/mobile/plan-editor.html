@@ -1,0 +1,1533 @@
+<title>PGM Plan Editor — portable</title>
+<meta name="description" content="Offline, touch-ready plan editor for authoring PGM layout seeds on the go." />
+
+<!--
+  Portable plan editor — a self-contained, offline build of the pgm-studio plan editor
+  (the seed studio). Bundles the browser-side editor modules into one file so a plan can
+  be authored on a phone or in a chat artifact with no server.
+
+  Sources bundled verbatim (imports inlined, server-only paths dropped):
+    src/PgmStudio.Client/wwwroot/js/studio/geometry/symmetry.js
+    src/PgmStudio.Client/wwwroot/js/studio/render/svg.js         (svgEl only)
+    src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js
+    src/PgmStudio.Client/wwwroot/js/studio/canvas/canvas-base.js
+    src/PgmStudio.Client/wwwroot/js/studio/canvas/plan-canvas.js
+  Chrome + document controller replace src/.../bridge/plan-bridge.js + the Blazor page.
+  Plans autosave to localStorage and import/export as *.plan.json (same wire format as
+  tools/seeds/*.plan.json). Added here: touch + pinch-zoom, absent from the mouse-only source.
+  Omitted (require the server): live lint, the interface/frontline overlays, the Wall tool,
+  and Compile/draft/world-export — author here, compile in the full studio.
+-->
+
+<style>
+  :root {
+    color-scheme: dark;
+    --bg-canvas: #080f1a;
+    --bg-deep: #080f1a;
+    --bg-base: #0f172a;
+    --bg-panel: #1e293b;
+    --bg-selected: #1e3a5f;
+    --border: #334155;
+    --text-muted: #8397b0;
+    --text-secondary: #94a3b8;
+    --text-primary: #cbd5e1;
+    --text-bright: #e2e8f0;
+    --text-strong: #ffffff;
+    --accent: #3b82f6;
+    --accent-light: #60a5fa;
+    --accent-bg-hover: #2f6fe0;
+    --danger: #f87171;
+    --danger-bg: color-mix(in srgb, #7f1d1d 30%, var(--bg-panel));
+    --canvas-axis: #a78bfa;
+    --canvas-ink: #ffffff;
+    --canvas-chunk: color-mix(in oklab, var(--canvas-axis) 38%, transparent);
+    --shadow-float: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+    --radius: 8px;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --bg-canvas: #e2e8f0;
+      --bg-deep: #e2e8f0;
+      --bg-base: #f1f5f9;
+      --bg-panel: #ffffff;
+      --bg-selected: #dbeafe;
+      --border: #cbd5e1;
+      --text-muted: #64748b;
+      --text-secondary: #475569;
+      --text-primary: #334155;
+      --text-bright: #0f172a;
+      --text-strong: #0f172a;
+      --accent: #2563eb;
+      --accent-light: #3b82f6;
+      --accent-bg-hover: #1d4ed8;
+      --danger: #dc2626;
+      --danger-bg: color-mix(in srgb, #fecaca 60%, var(--bg-panel));
+      --canvas-axis: #7c3aed;
+      --canvas-ink: #0f172a;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg-canvas: #080f1a; --bg-deep: #080f1a; --bg-base: #0f172a; --bg-panel: #1e293b;
+    --bg-selected: #1e3a5f; --border: #334155; --text-muted: #8397b0; --text-secondary: #94a3b8;
+    --text-primary: #cbd5e1; --text-bright: #e2e8f0; --text-strong: #fff; --accent: #3b82f6;
+    --accent-light: #60a5fa; --accent-bg-hover: #2f6fe0; --danger: #f87171;
+    --danger-bg: color-mix(in srgb, #7f1d1d 30%, var(--bg-panel)); --canvas-axis: #a78bfa;
+    --canvas-ink: #fff; --canvas-chunk: color-mix(in oklab, var(--canvas-axis) 38%, transparent);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg-canvas: #e2e8f0; --bg-deep: #e2e8f0; --bg-base: #f1f5f9; --bg-panel: #fff;
+    --bg-selected: #dbeafe; --border: #cbd5e1; --text-muted: #64748b; --text-secondary: #475569;
+    --text-primary: #334155; --text-bright: #0f172a; --text-strong: #0f172a; --accent: #2563eb;
+    --accent-light: #3b82f6; --accent-bg-hover: #1d4ed8; --danger: #dc2626;
+    --danger-bg: color-mix(in srgb, #fecaca 60%, var(--bg-panel)); --canvas-axis: #7c3aed;
+    --canvas-ink: #0f172a; --canvas-chunk: color-mix(in oklab, var(--canvas-axis) 38%, transparent);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg-base);
+    color: var(--text-primary);
+    overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .app { display: flex; flex-direction: column; height: 100dvh; }
+
+  /* ── topbar ─────────────────────────────────────────────────────────── */
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; background: var(--bg-panel);
+    border-bottom: 1px solid var(--border); flex: none;
+  }
+  .brand { font-weight: 700; color: var(--text-strong); font-size: 15px; letter-spacing: -0.01em; margin-right: 6px; white-space: nowrap; }
+  .brand small { font-weight: 500; color: var(--text-muted); font-size: 12px; margin-left: 6px; }
+  .topbar-spacer { flex: 1; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font: inherit; font-size: 13px; font-weight: 600;
+    padding: 7px 12px; min-height: 38px;
+    background: var(--bg-base); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; white-space: nowrap; user-select: none;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--text-bright); }
+  .btn:active { transform: translateY(1px); }
+  .btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn--primary:hover { background: var(--accent-bg-hover); border-color: var(--accent-bg-hover); color: #fff; }
+  .btn--danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+  .btn--danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+  .btn--full { width: 100%; }
+  .btn--icon { padding: 7px; width: 38px; }
+  .btn:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+
+  /* ── body layout ────────────────────────────────────────────────────── */
+  .body { flex: 1; display: grid; grid-template-columns: 264px 1fr 288px; min-height: 0; }
+  .panel {
+    background: var(--bg-panel); overflow-y: auto; min-height: 0;
+    display: flex; flex-direction: column;
+  }
+  .panel--left { border-right: 1px solid var(--border); }
+  .panel--right { border-left: 1px solid var(--border); }
+  .panel-inner { padding: 14px; display: flex; flex-direction: column; gap: 18px; }
+
+  .section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); margin: 0 0 10px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-desc { font-size: 12px; line-height: 1.5; color: var(--text-secondary); margin: 8px 0 0; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+  .field-input {
+    font: inherit; font-size: 13px; padding: 8px 10px; min-height: 38px;
+    background: var(--bg-base); color: var(--text-bright);
+    border: 1px solid var(--border); border-radius: 6px; width: 100%;
+  }
+  .field-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+  .palette { display: flex; flex-direction: column; gap: 6px; }
+  .tool-btn {
+    display: flex; align-items: center; gap: 9px; text-align: left;
+    font: inherit; font-size: 13px; font-weight: 600;
+    padding: 9px 11px; min-height: 40px;
+    background: var(--bg-base); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 6px; cursor: pointer; user-select: none;
+  }
+  .tool-btn:hover { border-color: var(--accent); }
+  .tool-btn--active { border-color: var(--accent); background: var(--bg-selected); color: var(--text-bright); }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; flex: none; background: var(--role, #888); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18); }
+  .swatch--dash { background: transparent; border: 1.5px dashed var(--accent); }
+  .swatch--ring { background: var(--role, #888); border-radius: 50%; }
+
+  /* ── canvas column ──────────────────────────────────────────────────── */
+  .canvas-col { display: flex; flex-direction: column; min-width: 0; background: var(--bg-deep); }
+  .subbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; background: var(--bg-panel);
+    border-bottom: 1px solid var(--border); flex: none;
+  }
+  .subbar-spacer { flex: 1; }
+  .chip {
+    font: inherit; font-size: 12px; font-weight: 600; padding: 6px 10px; min-height: 34px;
+    background: var(--bg-base); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 6px; cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .chip--active { border-color: var(--accent); background: var(--bg-selected); color: var(--text-bright); }
+  .cursor-readout { font-family: var(--mono); font-size: 12px; color: var(--text-muted); min-width: 92px; }
+  .zoom-readout { font-family: var(--mono); font-size: 12px; color: var(--text-muted); min-width: 44px; text-align: right; }
+
+  /* The canvas sizes the SVG itself (to clientWidth/Height − 24) and maps pointer→world 1:1
+     against that size, so the SVG must NOT be CSS-stretched. The 12px padding recenters it. */
+  .svg-area { flex: 1; position: relative; min-height: 0; overflow: hidden; padding: 12px; }
+  .plan-svg { display: block; touch-action: none; user-select: none; }
+
+  /* ── inspector states ───────────────────────────────────────────────── */
+  .detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .detail-kind { font-size: 13px; font-weight: 700; color: var(--text-bright); text-transform: capitalize; }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--bg-base); color: var(--text-secondary); border: 1px solid var(--border); }
+  .ctrl-row { display: flex; align-items: center; gap: 8px; }
+  .stepper-value { flex: 1; text-align: center; font-family: var(--mono); font-size: 13px; color: var(--text-bright); }
+  .readout { font-family: var(--mono); font-size: 12px; color: var(--text-primary); padding: 8px 10px; background: var(--bg-base); border: 1px solid var(--border); border-radius: 6px; }
+  .stack { display: flex; flex-direction: column; gap: 8px; }
+
+  /* ── mobile ─────────────────────────────────────────────────────────── */
+  .drawer-toggle, .sheet-close { display: none; }
+  .scrim { display: none; }
+
+  @media (max-width: 900px) {
+    .body { grid-template-columns: 1fr; }
+    .drawer-toggle { display: inline-flex; }
+
+    .panel--left {
+      position: fixed; top: 0; bottom: 0; left: 0; width: min(84vw, 320px);
+      z-index: 40; transform: translateX(-100%); transition: transform 0.22s ease;
+      box-shadow: var(--shadow-float); border-right: 1px solid var(--border);
+    }
+    .panel--left.open { transform: translateX(0); }
+
+    .panel--right {
+      position: fixed; left: 0; right: 0; bottom: 0; max-height: 62dvh;
+      z-index: 40; transform: translateY(100%); transition: transform 0.22s ease;
+      border-top: 1px solid var(--border); border-left: none;
+      border-radius: 14px 14px 0 0; box-shadow: var(--shadow-float);
+    }
+    .panel--right.open { transform: translateY(0); }
+    .sheet-close { display: inline-flex; }
+
+    .scrim.show { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,0.45); }
+
+    .brand small { display: none; }
+    .cursor-readout { display: none; }
+    .hide-mobile { display: none !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .panel--left, .panel--right { transition: none; }
+  }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <span class="brand">Plan Editor<small>portable · offline</small></span>
+    <button class="btn btn--icon drawer-toggle" id="tglLeft" title="Globals &amp; tools" aria-label="Open tools">☰</button>
+    <div class="topbar-spacer"></div>
+    <button class="btn" id="btnNew" title="Start a blank plan">New</button>
+    <button class="btn" id="btnImport" title="Import a .plan.json file">Import</button>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden />
+    <button class="btn btn--primary" id="btnExport" title="Download this plan as .plan.json">Export</button>
+    <button class="btn btn--icon" id="btnTheme" title="Toggle light / dark">◐</button>
+  </header>
+
+  <div class="body">
+    <aside class="panel panel--left" id="leftPanel">
+      <div class="panel-inner">
+        <section>
+          <h2 class="section-title">Plan</h2>
+          <div class="field">
+            <label class="field-label" for="planName">Name</label>
+            <input class="field-input" id="planName" placeholder="Untitled plan" />
+          </div>
+        </section>
+
+        <section>
+          <h2 class="section-title">Symmetry &amp; globals</h2>
+          <div class="field">
+            <label class="field-label" for="gSym">Symmetry</label>
+            <select class="field-input" id="gSym">
+              <option value="rot_180">Rotate 180°</option>
+              <option value="rot_90">Rotate 90°</option>
+              <option value="mirror_x">Mirror X</option>
+              <option value="mirror_z">Mirror Z</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="gCell">Cell size (blocks)</label>
+            <input class="field-input" id="gCell" type="number" min="1" step="1" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="gSurface">Base surface (y)</label>
+            <input class="field-input" id="gSurface" type="number" min="0" step="1" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="gHeadroom">Headroom</label>
+            <input class="field-input" id="gHeadroom" type="number" min="1" step="1" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="gPlayers">Max players</label>
+            <input class="field-input" id="gPlayers" type="number" min="2" step="2" inputmode="numeric" />
+          </div>
+        </section>
+
+        <section>
+          <h2 class="section-title">Pieces</h2>
+          <div class="palette" id="rolePalette"></div>
+          <p class="section-desc">Buffer marks reserved empty space — informational only (no terrain, not buildable).</p>
+        </section>
+
+        <section>
+          <h2 class="section-title">Build &amp; markers</h2>
+          <div class="palette" id="toolPalette"></div>
+          <p class="section-desc">Markers ride the piece under them. Click a placed spawn again to cycle its facing.</p>
+        </section>
+      </div>
+    </aside>
+
+    <div class="canvas-col">
+      <div class="subbar">
+        <button class="chip" id="tSelect" data-tool="select">Select</button>
+        <button class="chip" id="tPan" data-tool="pan">Pan</button>
+        <span class="cursor-readout" id="cursorReadout"></span>
+        <div class="subbar-spacer"></div>
+        <button class="chip" id="cHeights" title="Colour pieces by island height">Heights</button>
+        <button class="chip" id="cFit" title="Fit the plan to view">Fit</button>
+        <span class="zoom-readout" id="zoomLabel">—</span>
+      </div>
+      <div class="svg-area" id="planWrap">
+        <svg class="plan-svg" id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+
+    <aside class="panel panel--right" id="rightPanel">
+      <div class="panel-inner">
+        <div class="detail-head hide-mobile-flex">
+          <span class="detail-kind" id="inspTitle">Inspector</span>
+          <div class="topbar-spacer"></div>
+          <button class="btn btn--icon sheet-close" id="sheetClose" aria-label="Close">✕</button>
+        </div>
+        <div id="inspBody"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<script type="module">
+  /* ==================================================================== *
+   *  geometry/symmetry.js                                                 *
+   * ==================================================================== */
+  function applySymmetry(x, z, axis, cx, cz) {
+    switch (axis) {
+      case "mirror_x":  return [2 * cx - x, z];
+      case "mirror_z":  return [x, 2 * cz - z];
+      case "mirror_d1": return [cx + (z - cz), cz + (x - cx)];
+      case "mirror_d2": return [cx - (z - cz), cz - (x - cx)];
+      case "rot_180":   return [2 * cx - x, 2 * cz - z];
+      case "rot_90":    return [cx - (z - cz), cz + (x - cx)];
+      case "rot_270":   return [cx + (z - cz), cz - (x - cx)];
+      default: throw new Error(`Unknown symmetry axis: ${axis}`);
+    }
+  }
+  function orbitAxes(type) {
+    return type === "rot_90" ? ["rot_90", "rot_180", "rot_270"] : [type];
+  }
+  function applySymmetryToBounds(bounds, axis, cx, cz) {
+    const { min_x, max_x, min_z, max_z } = bounds;
+    const corners = [[min_x, min_z], [max_x, min_z], [max_x, max_z], [min_x, max_z]]
+      .map(([x, z]) => applySymmetry(x, z, axis, cx, cz));
+    const xs = corners.map(([x]) => x);
+    const zs = corners.map(([, z]) => z);
+    return { min_x: Math.min(...xs), max_x: Math.max(...xs), min_z: Math.min(...zs), max_z: Math.max(...zs) };
+  }
+
+  /* ==================================================================== *
+   *  render/svg.js (svgEl)                                                *
+   * ==================================================================== */
+  function svgEl(tag, attrs = {}, children = []) {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    for (const ch of children) el.appendChild(ch);
+    return el;
+  }
+
+  /* ==================================================================== *
+   *  plan/plan-doc.js                                                     *
+   * ==================================================================== */
+  const ROLES = ["piece", "wool-room", "spawn", "buffer"];
+  const ROLE_COLORS = { piece: "#7c8899", "wool-room": "#3fae74", spawn: "#8f7bd6", buffer: "#f2792b" };
+  const ROLE_LABELS = { piece: "Piece", "wool-room": "Wool room", spawn: "Spawn", buffer: "Buffer" };
+  function canonicalRole(role) { return role === "wool-room" || role === "spawn" || role === "buffer" ? role : "piece"; }
+
+  const FACINGS = ["front", "right", "back", "left"];
+  const FACING_DIR = { front: [0, -1], right: [1, 0], back: [0, 1], left: [-1, 0] };
+  function nextFacing(f) { const i = FACINGS.indexOf(f); return FACINGS[(i + 1) % FACINGS.length]; }
+
+  function emptyDoc() {
+    return {
+      plan: 1,
+      meta: { name: "Untitled plan" },
+      globals: { cell: 5, symmetry: "rot_180", maxPlayers: 12, surface: 9, headroom: 11 },
+      pieces: [], zones: [],
+      placements: { spawns: [], wools: [], iron: [] },
+      cliffs: [], walls: [],
+    };
+  }
+
+  function normalizeDoc(d) {
+    const src = d || {};
+    const g = src.globals || {};
+    const globals = { cell: g.cell ?? 5, symmetry: g.symmetry ?? "rot_180", maxPlayers: g.maxPlayers ?? 12, surface: g.surface ?? 9, headroom: g.headroom ?? 11 };
+    if (g.observerY != null) globals.observerY = g.observerY;
+    const meta = { name: src.meta?.name ?? "Untitled plan" };
+    if (src.meta?.notes != null) meta.notes = src.meta.notes;
+    return {
+      plan: src.plan ?? 1,
+      meta, globals,
+      pieces: (src.pieces || []).map(p => {
+        const o = { id: p.id ?? "", role: canonicalRole(p.role), rect: [...(p.rect || [0, 0, 1, 1])] };
+        if (p.surface != null) o.surface = p.surface;
+        if (p.mirrors != null) o.mirrors = p.mirrors;
+        return o;
+      }),
+      zones: (src.zones || []).map(z => ({ id: z.id ?? "", rect: [...(z.rect || [0, 0, 1, 1])], holes: (z.holes || []).map(h => [...h]) })),
+      placements: {
+        spawns: (src.placements?.spawns || []).map(s => ({ piece: s.piece ?? "", at: [...(s.at || [0, 0])], facing: s.facing ?? "front" })),
+        wools: (src.placements?.wools || []).map(w => { const o = { piece: w.piece ?? "", at: [...(w.at || [0, 0])] }; if (w.color) o.color = w.color; return o; }),
+        iron: (src.placements?.iron || []).map(i => ({ piece: i.piece ?? "", at: [...(i.at || [0, 0])] })),
+      },
+      cliffs: (src.cliffs || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
+      walls: (src.walls || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
+    };
+  }
+
+  function fromJson(text) {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object" || !("plan" in parsed)) throw new Error("Not a plan document");
+    return normalizeDoc(parsed);
+  }
+  function toJson(doc) { return JSON.stringify(normalizeDoc(doc), null, 2); }
+
+  function rectCellsToBlocks(rect, cell) {
+    const [x, z, w, h] = rect;
+    return { min_x: x * cell, min_z: z * cell, max_x: (x + w) * cell, max_z: (z + h) * cell };
+  }
+  function cellOfWorld(wx, wz, cell) { return [Math.floor(wx / cell), Math.floor(wz / cell)]; }
+  function rectFromCells(ax, az, bx, bz) {
+    const x = Math.min(ax, bx), z = Math.min(az, bz);
+    return [x, z, Math.abs(bx - ax) + 1, Math.abs(bz - az) + 1];
+  }
+  function rectContainsCell(rect, cx, cz) {
+    const [x, z, w, h] = rect;
+    return cx >= x && cx < x + w && cz >= z && cz < z + h;
+  }
+  function pieceById(doc, id) { return doc.pieces.find(p => p.id === id) || null; }
+  function pieceAtCell(doc, cx, cz) {
+    for (let i = doc.pieces.length - 1; i >= 0; i--) if (rectContainsCell(doc.pieces[i].rect, cx, cz)) return doc.pieces[i];
+    return null;
+  }
+  function zoneAtCell(doc, cx, cz) {
+    for (let i = doc.zones.length - 1; i >= 0; i--) if (rectContainsCell(doc.zones[i].rect, cx, cz)) return doc.zones[i];
+    return null;
+  }
+
+  const MARKER_HIT_CELLS = 0.42;
+  function markerAtWorld(doc, wx, wz) {
+    const cell = doc.globals.cell;
+    const r = MARKER_HIT_CELLS * cell;
+    let best = null, bestD = r;
+    for (const { kind, index, marker } of allMarkers(doc)) {
+      const c = markerCell(doc, marker);
+      if (!c) continue;
+      const mx = c[0] * cell, mz = c[1] * cell;
+      const d = Math.hypot(wx - mx, wz - mz);
+      if (d <= bestD) { bestD = d; best = { kind: "marker", markerKind: kind, index }; }
+    }
+    return best;
+  }
+  function pickAtWorld(doc, wx, wz) {
+    const m = markerAtWorld(doc, wx, wz);
+    if (m) return m;
+    const [cx, cz] = cellOfWorld(wx, wz, doc.globals.cell);
+    const p = pieceAtCell(doc, cx, cz);
+    if (p) return { kind: "piece", id: p.id };
+    const z = zoneAtCell(doc, cx, cz);
+    if (z) return { kind: "zone", id: z.id };
+    return null;
+  }
+  function sameSelection(a, b) {
+    if (!a || !b || a.kind !== b.kind) return false;
+    if (a.kind === "marker") return a.markerKind === b.markerKind && a.index === b.index;
+    return a.id === b.id;
+  }
+  function pieceSurface(doc, p) { return p.surface ?? doc.globals.surface; }
+  function surfaceRange(doc) {
+    let min = null, max = null;
+    for (const p of doc.pieces) {
+      const s = pieceSurface(doc, p);
+      if (min == null || s < min) min = s;
+      if (max == null || s > max) max = s;
+    }
+    return min == null ? null : { min, max };
+  }
+  function surfaceFraction(surf, range) {
+    if (!range || range.max <= range.min) return 1;
+    return (surf - range.min) / (range.max - range.min);
+  }
+  function snapHalf(v) { return Math.round(v * 2) / 2; }
+  function markerCell(doc, marker) {
+    const p = pieceById(doc, marker.piece);
+    return p ? [p.rect[0] + marker.at[0], p.rect[1] + marker.at[1]] : null;
+  }
+  function attachMarker(doc, cx, cz) {
+    const p = pieceAtCell(doc, Math.floor(cx), Math.floor(cz));
+    return p ? { piece: p.id, at: [snapHalf(cx - p.rect[0]), snapHalf(cz - p.rect[1])] } : null;
+  }
+  function uniqueId(existing, base) {
+    const set = new Set(existing);
+    if (!set.has(base)) return base;
+    for (let i = 2; ; i++) { const c = `${base}-${i}`; if (!set.has(c)) return c; }
+  }
+
+  function contentBounds(doc) {
+    const cell = doc.globals.cell;
+    let b = null;
+    const add = (bb) => { b = b ? { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) } : { ...bb }; };
+    for (const p of doc.pieces) add(rectCellsToBlocks(p.rect, cell));
+    for (const z of doc.zones) add(rectCellsToBlocks(z.rect, cell));
+    for (const m of allMarkers(doc)) { const c = markerCell(doc, m.marker); if (c) add(rectCellsToBlocks([c[0], c[1], 1, 1], cell)); }
+    return b;
+  }
+  function viewBounds(doc) {
+    let b = contentBounds(doc);
+    if (!b) return null;
+    const add = (bb) => { b = { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) }; };
+    for (const img of pieceMirrorImages(doc)) add(img.bounds);
+    for (const img of zoneMirrorImages(doc)) add(img.bounds);
+    for (const m of markerMirrorImages(doc)) add({ min_x: m.x, min_z: m.z, max_x: m.x, max_z: m.z });
+    return b;
+  }
+  function allMarkers(doc) {
+    const out = [];
+    doc.placements.spawns.forEach((m, i) => out.push({ kind: "spawn", index: i, marker: m }));
+    doc.placements.wools.forEach((m, i) => out.push({ kind: "wool", index: i, marker: m }));
+    doc.placements.iron.forEach((m, i) => out.push({ kind: "iron", index: i, marker: m }));
+    return out;
+  }
+  const markerList = (doc, kind) => kind === "spawn" ? doc.placements.spawns : kind === "wool" ? doc.placements.wools : doc.placements.iron;
+  function markerAt(doc, kind, index) { return markerList(doc, kind)[index] || null; }
+
+  function pieceMirrorImages(doc) {
+    const { cell, symmetry } = doc.globals;
+    const out = [];
+    for (const p of doc.pieces) {
+      if (p.mirrors === false) continue;
+      const b = rectCellsToBlocks(p.rect, cell);
+      for (const axis of orbitAxes(symmetry)) out.push({ role: p.role, surface: p.surface ?? doc.globals.surface, bounds: applySymmetryToBounds(b, axis, 0, 0) });
+    }
+    return out;
+  }
+  function zoneMirrorImages(doc) {
+    const { cell, symmetry } = doc.globals;
+    const out = [];
+    for (const z of doc.zones) {
+      const b = rectCellsToBlocks(z.rect, cell);
+      for (const axis of orbitAxes(symmetry)) {
+        const holes = (z.holes || []).map(h => applySymmetryToBounds(rectCellsToBlocks(h, cell), axis, 0, 0));
+        out.push({ id: z.id, bounds: applySymmetryToBounds(b, axis, 0, 0), holes });
+      }
+    }
+    return out;
+  }
+  function markerMirrorImages(doc) {
+    const { cell, symmetry } = doc.globals;
+    const out = [];
+    for (const { kind, marker } of allMarkers(doc)) {
+      const p = pieceById(doc, marker.piece);
+      if (!p || p.mirrors === false) continue;
+      const c = markerCell(doc, marker);
+      const cx = c[0] * cell, cz = c[1] * cell;
+      for (const axis of orbitAxes(symmetry)) { const [x, z] = applySymmetry(cx, cz, axis, 0, 0); out.push({ kind, x, z }); }
+    }
+    return out;
+  }
+
+  /* ==================================================================== *
+   *  canvas/canvas-base.js                                                *
+   * ==================================================================== */
+  const ZOOM_FACTOR = 1.15, ZOOM_MIN = 0.5, ZOOM_MAX = 200;
+
+  class CanvasBase {
+    _svg = null; _wrap = null; _scale = 1; _panX = 0; _panY = 0; _viewportG = null; _activeTool = null;
+    #isDragging = false; #midDragging = false; #dragAnchor = null; #didDrag = false; #clickWasDrag = false; #moveState = null;
+
+    constructor(svgEl, wrapEl) { this._svg = svgEl; this._wrap = wrapEl; this._setupBaseEvents(); }
+
+    _onViewportChanged() {}
+    _onZoom(scale) {}
+    _onToolMousedown(e, svgPt) {}
+    _onPointerMove(e, svgPt) {}
+    _onToolMouseup(e, svgPt) {}
+    _onCanvasClick(e, svgPt) {}
+    _onMouseleave() {}
+    _onResizeMove(e) { return false; }
+    _onResizeUp(e) { return false; }
+    _toWorld(svgPt) { return { x: svgPt.x, z: svgPt.y }; }
+    _hitMovable(world) { return null; }
+    _moveStart(handle, world) {}
+    _moveTo(handle, dx, dz) { return false; }
+    _moveBy(handle, dx, dz) {}
+    _commitMove(handle) {}
+
+    _applyViewportTransform() {
+      if (!this._viewportG) return;
+      this._viewportG.setAttribute("transform", `matrix(${this._scale},0,0,${this._scale},${this._panX},${this._panY})`);
+      this._onViewportChanged();
+    }
+    _clientToSvg(clientX, clientY) {
+      const rect = this._svg.getBoundingClientRect();
+      return { x: (clientX - rect.left - this._panX) / this._scale, y: (clientY - rect.top - this._panY) / this._scale };
+    }
+
+    _setupBaseEvents() {
+      this._svg.addEventListener("wheel", (e) => {
+        if (!this._viewportG) return;
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+        const newScale = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, this._scale * factor));
+        const rect = this._svg.getBoundingClientRect();
+        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        this._panX = mx - (mx - this._panX) * (newScale / this._scale);
+        this._panY = my - (my - this._panY) * (newScale / this._scale);
+        this._scale = newScale;
+        this._applyViewportTransform();
+        this._onZoom(this._scale);
+      }, { passive: false });
+
+      this._svg.addEventListener("mousedown", (e) => {
+        if (!this._viewportG) return;
+        if (e.button === 1) { e.preventDefault(); this.#midDragging = true; this.#dragAnchor = { x: e.clientX, y: e.clientY, panX: this._panX, panY: this._panY }; return; }
+        if (e.button !== 0) return;
+        if (this._activeTool === "move" || this._activeTool === null) e.preventDefault();
+        const svgPt = this._clientToSvg(e.clientX, e.clientY);
+        this.#isDragging = true; this.#didDrag = false;
+        this.#dragAnchor = { x: e.clientX, y: e.clientY, panX: this._panX, panY: this._panY };
+        this.#moveState = null;
+        if (this._activeTool === "select") {
+          const world = this._toWorld(svgPt);
+          const handle = world ? this._hitMovable(world) : null;
+          if (handle != null) { this.#moveState = { handle, grab: world, lastBx: Math.floor(world.x), lastBz: Math.floor(world.z), moved: false }; this._moveStart(handle, world); }
+        }
+        this._onToolMousedown(e, svgPt);
+      });
+
+      document.addEventListener("mousemove", (e) => {
+        if (this._onResizeMove(e)) return;
+        if (!this._viewportG) return;
+        if (this.#midDragging && this.#dragAnchor) {
+          this._panX = this.#dragAnchor.panX + (e.clientX - this.#dragAnchor.x);
+          this._panY = this.#dragAnchor.panY + (e.clientY - this.#dragAnchor.y);
+          this._applyViewportTransform();
+        } else if (this.#isDragging && this.#dragAnchor) {
+          const dx = e.clientX - this.#dragAnchor.x, dy = e.clientY - this.#dragAnchor.y;
+          if (!this.#didDrag && Math.sqrt(dx * dx + dy * dy) > 4) this.#didDrag = true;
+          if (this.#didDrag && this.#moveState) {
+            const world = this._toWorld(this._clientToSvg(e.clientX, e.clientY));
+            if (world) {
+              const ms = this.#moveState;
+              if (this._moveTo(ms.handle, world.x - ms.grab.x, world.z - ms.grab.z, e.altKey)) { ms.moved = true; this._svg.style.cursor = "grabbing"; }
+              else {
+                const bx = Math.floor(world.x), bz = Math.floor(world.z);
+                const mdx = bx - ms.lastBx, mdz = bz - ms.lastBz;
+                if (mdx || mdz) { this._moveBy(ms.handle, mdx, mdz); ms.lastBx = bx; ms.lastBz = bz; ms.moved = true; this._svg.style.cursor = "grabbing"; }
+              }
+            }
+          } else if (this.#didDrag && this._activeTool === "move") {
+            this._panX = this.#dragAnchor.panX + dx; this._panY = this.#dragAnchor.panY + dy; this._applyViewportTransform();
+          }
+        }
+        this._onPointerMove(e, this._clientToSvg(e.clientX, e.clientY));
+      });
+
+      document.addEventListener("mouseup", (e) => {
+        if (this._onResizeUp(e)) return;
+        if (e.button === 1) { this.#midDragging = false; this.#dragAnchor = null; return; }
+        if (e.button !== 0) return;
+        if (this.#isDragging) { this.#clickWasDrag = this.#didDrag; this.#isDragging = false; this.#didDrag = false; this.#dragAnchor = null; }
+        if (this.#moveState) { if (this.#moveState.moved) { this._commitMove(this.#moveState.handle); this._svg.style.cursor = ""; } this.#moveState = null; }
+        this._onToolMouseup(e, this._clientToSvg(e.clientX, e.clientY));
+      });
+
+      this._svg.addEventListener("click", (e) => {
+        if (this.#clickWasDrag) { this.#clickWasDrag = false; return; }
+        if (this._activeTool !== null && this._activeTool !== "select") return;
+        this._onCanvasClick(e, this._clientToSvg(e.clientX, e.clientY));
+      });
+
+      this._svg.addEventListener("mouseleave", () => this._onMouseleave());
+    }
+  }
+
+  /* ==================================================================== *
+   *  canvas/plan-canvas.js                                                *
+   * ==================================================================== */
+  const FIT_MARGIN = 0.82;
+  const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4" };
+  const HANDLES = [
+    { ex: -1, ez: -1, nx: 0, nz: 0, cur: "nwse-resize" },
+    { ex: 1, ez: -1, nx: 1, nz: 0, cur: "nesw-resize" },
+    { ex: 1, ez: 1, nx: 1, nz: 1, cur: "nwse-resize" },
+    { ex: -1, ez: 1, nx: 0, nz: 1, cur: "nesw-resize" },
+    { ex: 0, ez: -1, nx: 0.5, nz: 0, cur: "ns-resize" },
+    { ex: 1, ez: 0, nx: 1, nz: 0.5, cur: "ew-resize" },
+    { ex: 0, ez: 1, nx: 0.5, nz: 1, cur: "ns-resize" },
+    { ex: -1, ez: 0, nx: 0, nz: 0.5, cur: "ew-resize" },
+  ];
+  function tint(hex, t) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const m = (c) => Math.round(c + (255 - c) * t);
+    return `rgb(${m(r)},${m(g)},${m(b)})`;
+  }
+  const HEIGHT_STOPS = [[0, [26, 44, 74]], [0.5, [46, 128, 130]], [1, [232, 214, 128]]];
+  function heightColor(t) {
+    const v = Math.max(0, Math.min(1, t));
+    let lo = HEIGHT_STOPS[0], hi = HEIGHT_STOPS[HEIGHT_STOPS.length - 1];
+    for (let i = 1; i < HEIGHT_STOPS.length; i++) { if (v <= HEIGHT_STOPS[i][0]) { lo = HEIGHT_STOPS[i - 1]; hi = HEIGHT_STOPS[i]; break; } }
+    const span = hi[0] - lo[0] || 1, f = (v - lo[0]) / span;
+    const m = (i) => Math.round(lo[1][i] + (hi[1][i] - lo[1][i]) * f);
+    return `rgb(${m(0)},${m(1)},${m(2)})`;
+  }
+
+  class PlanCanvas extends CanvasBase {
+    #doc = null;
+    #tool = "select";
+    #pieceRole = "piece";
+    #sel = null;
+    #drag = null;
+    #resize = null;
+    #cb = {};
+    #cursorEl = null;
+    #inspect = { interfaces: [], gapLinks: [], frontline: [] };
+    #overlayOn = { interfaces: true, labels: false, frontline: true };
+    #heightMap = false;
+    #pulseTimer = null;
+    #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
+    #overlay;
+    #defs;
+
+    constructor(svgEl_, wrapEl, { cursorEl, ...cb } = {}) {
+      super(svgEl_, wrapEl);
+      this.#cb = cb;
+      this.#cursorEl = cursorEl ?? null;
+      this.#build();
+    }
+
+    setDoc(doc) { this.#doc = doc; this.render(); }
+    setTool(tool) {
+      this.#tool = tool;
+      this._activeTool = tool === "pan" ? "move" : tool;
+      const draws = tool === "piece" || tool === "zone" || tool === "spawn" || tool === "wool" || tool === "iron" || tool === "wall";
+      this._svg.style.cursor = draws ? "crosshair" : (tool === "select" ? "default" : "");
+    }
+    setPieceRole(role) { this.#pieceRole = role; }
+
+    setInspect(data) {
+      this.#inspect = { interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] };
+      this.#renderInspect(); this.#refreshOverlay();
+    }
+    setOverlayVisible(key, on) {
+      if (!(key in this.#overlayOn)) return;
+      this.#overlayOn[key] = !!on; this.#renderInspect(); this.#refreshOverlay();
+    }
+    setHeightMap(on) {
+      this.#heightMap = !!on;
+      if (!this.#doc) return;
+      this.#renderPieces(); this.#refreshOverlay();
+    }
+
+    getSelection() { return this.#sel; }
+    select(sel) { this.#sel = sel; this.#refreshOverlay(); this.#fireSelect(); }
+    clearSelection() { this.#sel = null; this.#refreshOverlay(); this.#fireSelect(); }
+
+    fit() {
+      const b = this.#doc ? viewBounds(this.#doc) : null;
+      const box = b ?? { min_x: -40, min_z: -40, max_x: 40, max_z: 40 };
+      const { w, h } = this.#size();
+      const bw = Math.max(box.max_x - box.min_x, 1), bh = Math.max(box.max_z - box.min_z, 1);
+      this._scale = Math.min(w / bw, h / bh) * FIT_MARGIN;
+      this._panX = w / 2 - ((box.min_x + box.max_x) / 2) * this._scale;
+      this._panY = h / 2 - ((box.min_z + box.max_z) / 2) * this._scale;
+      this._applyViewportTransform();
+      this._onZoom(this._scale);
+    }
+    resize() {
+      const { w, h } = this.#size();
+      this._svg.setAttribute("width", w); this._svg.setAttribute("height", h);
+      this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      this.#refreshOverlay();
+    }
+
+    render() {
+      if (!this.#doc) return;
+      this.#ensureHatch(); this.#renderGrid(); this.#renderGhost(); this.#renderZones();
+      this.#renderPieces(); this.#renderMarkers(); this.#refreshOverlay(); this.#cb.onChange?.();
+    }
+    #clear(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
+
+    #ensureHatch() {
+      if (!this.#defs) return;
+      this.#clear(this.#defs);
+      const cell = this.#doc?.globals.cell || 5;
+      const step = Math.max(2, cell * 0.7);
+      const col = ROLE_COLORS.buffer;
+      const pat = svgEl("pattern", { id: "buffer-hatch", patternUnits: "userSpaceOnUse", width: step, height: step, patternTransform: "rotate(45)" });
+      pat.appendChild(svgEl("rect", { x: 0, y: 0, width: step, height: step, fill: col, "fill-opacity": "0.12" }));
+      pat.appendChild(svgEl("line", { x1: 0, y1: 0, x2: 0, y2: step, stroke: col, "stroke-width": Math.max(0.6, cell * 0.14) }));
+      this.#defs.appendChild(pat);
+    }
+
+    #renderGrid() {
+      const layer = this.#gridLayer; this.#clear(layer);
+      const cell = this.#doc.globals.cell;
+      const b = viewBounds(this.#doc);
+      let cx0 = -8, cz0 = -8, cx1 = 8, cz1 = 8;
+      if (b) { cx0 = Math.floor(b.min_x / cell) - 3; cz0 = Math.floor(b.min_z / cell) - 3; cx1 = Math.ceil(b.max_x / cell) + 3; cz1 = Math.ceil(b.max_z / cell) + 3; }
+      const cellLine = (x1, y1, x2, y2) => layer.appendChild(svgEl("line", { x1, y1, x2, y2, stroke: "var(--canvas-chunk)", "stroke-width": "1", "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke" }));
+      for (let c = cx0; c <= cx1; c++) cellLine(c * cell, cz0 * cell, c * cell, cz1 * cell);
+      for (let c = cz0; c <= cz1; c++) cellLine(cx0 * cell, c * cell, cx1 * cell, c * cell);
+      const axis = (x1, y1, x2, y2) => layer.appendChild(svgEl("line", { x1, y1, x2, y2, stroke: "var(--canvas-axis)", "stroke-width": "2", "vector-effect": "non-scaling-stroke" }));
+      if (0 >= cx0 && 0 <= cx1) axis(0, cz0 * cell, 0, cz1 * cell);
+      if (0 >= cz0 && 0 <= cz1) axis(cx0 * cell, 0, cx1 * cell, 0);
+      const cl = this.#centerLayer; this.#clear(cl);
+      const arm = cell * 0.6, mr = cell * 0.32;
+      const mark = (a) => cl.appendChild(svgEl("line", { stroke: "var(--canvas-axis)", "stroke-width": "1.5", "vector-effect": "non-scaling-stroke", ...a }));
+      mark({ x1: -arm, y1: 0, x2: arm, y2: 0 });
+      mark({ x1: 0, y1: -arm, x2: 0, y2: arm });
+      cl.appendChild(svgEl("circle", { cx: 0, cy: 0, r: mr, fill: "none", stroke: "var(--canvas-axis)", "stroke-width": "1.5", "vector-effect": "non-scaling-stroke" }));
+    }
+
+    #renderGhost() {
+      const layer = this.#ghostLayer; this.#clear(layer);
+      for (const img of pieceMirrorImages(this.#doc)) {
+        const { min_x, min_z, max_x, max_z } = img.bounds;
+        if (img.role === "buffer") {
+          layer.appendChild(svgEl("rect", { x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z, fill: "url(#buffer-hatch)", "fill-opacity": "0.3", stroke: ROLE_COLORS.buffer, "stroke-opacity": "0.4", "stroke-width": "1", "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke" }));
+          continue;
+        }
+        layer.appendChild(svgEl("rect", { x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z, fill: ROLE_COLORS[img.role] || "#888", "fill-opacity": "0.08", stroke: ROLE_COLORS[img.role] || "#888", "stroke-opacity": "0.5", "stroke-width": "1", "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke" }));
+      }
+      for (const img of zoneMirrorImages(this.#doc)) {
+        const { min_x, min_z, max_x, max_z } = img.bounds;
+        layer.appendChild(svgEl("rect", { x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z, fill: "var(--accent)", "fill-opacity": "0.07", stroke: "var(--accent)", "stroke-opacity": "0.5", "stroke-width": "1.2", "stroke-dasharray": "7 4", "vector-effect": "non-scaling-stroke" }));
+        for (const h of img.holes)
+          layer.appendChild(svgEl("rect", { x: h.min_x, y: h.min_z, width: h.max_x - h.min_x, height: h.max_z - h.min_z, fill: "var(--bg-canvas)", "fill-opacity": "0.5", stroke: "var(--accent)", "stroke-opacity": "0.4", "stroke-width": "0.8", "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke" }));
+      }
+      const cell = this.#doc.globals.cell;
+      for (const m of markerMirrorImages(this.#doc))
+        layer.appendChild(svgEl("circle", { cx: m.x, cy: m.z, r: cell * 0.28, fill: MARKER_COLORS[m.kind] || "#888", "fill-opacity": "0.3" }));
+    }
+
+    #renderZones() {
+      const layer = this.#zoneLayer; this.#clear(layer);
+      const cell = this.#doc.globals.cell;
+      for (const z of this.#doc.zones) {
+        const b = rectCellsToBlocks(z.rect, cell);
+        layer.appendChild(svgEl("rect", { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill: "var(--accent)", "fill-opacity": "0.22", stroke: "var(--accent)", "stroke-width": "1.4", "stroke-dasharray": "7 4", "vector-effect": "non-scaling-stroke", "data-zone": z.id, style: "cursor:pointer" }));
+        for (const h of z.holes) {
+          const hb = rectCellsToBlocks(h, cell);
+          layer.appendChild(svgEl("rect", { x: hb.min_x, y: hb.min_z, width: hb.max_x - hb.min_x, height: hb.max_z - hb.min_z, fill: "var(--bg-canvas)", "fill-opacity": "0.6", stroke: "var(--accent)", "stroke-width": "0.8", "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
+        }
+      }
+    }
+
+    #renderPieces() {
+      const layer = this.#pieceLayer; this.#clear(layer);
+      const cell = this.#doc.globals.cell, base = this.#doc.globals.surface;
+      const range = this.#heightMap ? surfaceRange(this.#doc) : null;
+      for (const p of this.#doc.pieces) {
+        const b = rectCellsToBlocks(p.rect, cell);
+        if (p.role === "buffer") {
+          layer.appendChild(svgEl("rect", { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill: "url(#buffer-hatch)", "fill-opacity": "0.9", stroke: ROLE_COLORS.buffer, "stroke-opacity": "0.85", "stroke-width": "1.4", "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke", "data-piece": p.id, style: "cursor:pointer" }));
+          continue;
+        }
+        const surf = pieceSurface(this.#doc, p);
+        let fill, stroke;
+        if (this.#heightMap) { fill = heightColor(surfaceFraction(surf, range)); stroke = fill; }
+        else { const t = Math.max(0, Math.min(0.6, (surf - base) / 16)); fill = tint(ROLE_COLORS[p.role] || "#888", t); stroke = ROLE_COLORS[p.role] || "#888"; }
+        layer.appendChild(svgEl("rect", { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill, "fill-opacity": this.#heightMap ? "0.85" : "0.7", stroke, "stroke-width": "1.5", "vector-effect": "non-scaling-stroke", "data-piece": p.id, style: "cursor:pointer" }));
+      }
+    }
+
+    #renderMarkers() {
+      const layer = this.#markerLayer; this.#clear(layer);
+      const cell = this.#doc.globals.cell;
+      for (const { kind, marker } of allMarkers(this.#doc)) {
+        const c = markerCell(this.#doc, marker);
+        if (!c) continue;
+        const cx = c[0] * cell, cz = c[1] * cell, r = cell * 0.34;
+        const col = MARKER_COLORS[kind] || "#888";
+        if (kind === "spawn") {
+          layer.appendChild(svgEl("circle", { cx, cy: cz, r, fill: col, "fill-opacity": "0.85", stroke: "#222", "stroke-width": "1", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
+          const [dx, dz] = FACING_DIR[marker.facing] || FACING_DIR.front;
+          layer.appendChild(svgEl("line", { x1: cx, y1: cz, x2: cx + dx * r * 1.7, y2: cz + dz * r * 1.7, stroke: "#222", "stroke-width": "2", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
+        } else {
+          const s = r * 1.5;
+          layer.appendChild(svgEl("rect", { x: cx - s / 2, y: cz - s / 2, width: s, height: s, rx: cell * 0.08, fill: col, "fill-opacity": "0.85", stroke: "#222", "stroke-width": "1", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
+        }
+      }
+    }
+
+    #renderInspect() {
+      const layer = this.#inspectLayer; if (!layer) return;
+      this.#clear(layer);
+      if (!this.#doc) return;
+      if (this.#overlayOn.frontline)
+        for (const f of this.#inspect.frontline)
+          layer.appendChild(svgEl("line", { x1: f.x1, y1: f.z1, x2: f.x2, y2: f.z2, stroke: "var(--accent)", "stroke-width": "6", "stroke-opacity": "0.4", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" }));
+    }
+
+    pulseSubjects(ids) {
+      const layer = this.#pulseLayer; if (!layer || !this.#doc) return;
+      this.#clear(layer);
+      const cell = this.#doc.globals.cell;
+      for (const id of ids || []) {
+        const item = this.#doc.pieces.find(p => p.id === id) || this.#doc.zones.find(z => z.id === id);
+        if (!item) continue;
+        const b = rectCellsToBlocks(item.rect, cell);
+        const rect = svgEl("rect", { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill: "none", stroke: "var(--accent)", "stroke-width": "3", "vector-effect": "non-scaling-stroke", "pointer-events": "none" });
+        const anim = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+        anim.setAttribute("attributeName", "opacity"); anim.setAttribute("values", "1;0.2;1;0.2;0");
+        anim.setAttribute("dur", "1.6s"); anim.setAttribute("repeatCount", "1"); anim.setAttribute("fill", "freeze");
+        rect.appendChild(anim); layer.appendChild(rect);
+      }
+      if (this.#pulseTimer) clearTimeout(this.#pulseTimer);
+      this.#pulseTimer = setTimeout(() => this.#clear(layer), 1700);
+    }
+
+    #refreshOverlay() {
+      const layer = this.#overlay; if (!layer || !this.#doc) return;
+      this.#clear(layer);
+      const toS = (x, z) => ({ x: x * this._scale + this._panX, y: z * this._scale + this._panY });
+      const cell = this.#doc.globals.cell;
+      const label = (text, bx, bz, color, size = "11") => {
+        const c = toS(bx, bz);
+        const t = svgEl("text", { x: c.x, y: c.y, "text-anchor": "middle", "dominant-baseline": "middle", "font-size": size, "font-family": "ui-monospace, monospace", "font-weight": "600", fill: color, "paint-order": "stroke", stroke: "var(--bg-canvas)", "stroke-width": "3", "stroke-linejoin": "round", "pointer-events": "none" });
+        t.textContent = text; layer.appendChild(t);
+      };
+      const showLabels = this.#overlayOn.labels;
+      const selId = this.#sel && (this.#sel.kind === "piece" || this.#sel.kind === "zone") ? this.#sel.id : null;
+      for (const p of this.#doc.pieces) {
+        const b = rectCellsToBlocks(p.rect, cell);
+        const mx = (b.min_x + b.max_x) / 2, mz = (b.min_z + b.max_z) / 2;
+        const showId = showLabels || p.id === selId;
+        if (this.#heightMap) { label(String(pieceSurface(this.#doc, p)), mx, mz, "var(--canvas-ink)", "13"); if (showId) label(p.id, mx, b.min_z, "var(--canvas-ink)", "9"); }
+        else if (showId) { label(p.id, mx, mz, "var(--canvas-ink)"); }
+      }
+      for (const z of this.#doc.zones)
+        if (showLabels || z.id === selId) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
+
+      if (!this.#sel) return;
+      if (this.#sel.kind === "marker") {
+        const m = markerAt(this.#doc, this.#sel.markerKind, this.#sel.index);
+        const c = m && markerCell(this.#doc, m);
+        if (!c) return;
+        const s = toS(c[0] * cell, c[1] * cell);
+        layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 15, fill: "var(--accent)", "fill-opacity": "0.14", stroke: "none", "pointer-events": "none" }));
+        layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 13, fill: "none", stroke: "var(--bg-canvas)", "stroke-width": "4", "pointer-events": "none" }));
+        layer.appendChild(svgEl("circle", { cx: s.x, cy: s.y, r: 13, fill: "none", stroke: "var(--accent)", "stroke-width": "2.5", "pointer-events": "none" }));
+        return;
+      }
+      const item = this.#selItem();
+      if (!item) return;
+      const b = rectCellsToBlocks(item.rect, cell);
+      const p0 = toS(b.min_x, b.min_z), p1 = toS(b.max_x, b.max_z);
+      const l = Math.min(p0.x, p1.x), r = Math.max(p0.x, p1.x), t = Math.min(p0.y, p1.y), bot = Math.max(p0.y, p1.y);
+      layer.appendChild(svgEl("rect", { x: l, y: t, width: r - l, height: bot - t, fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none" }));
+      const HALF = 5;
+      for (const hd of HANDLES) {
+        const hx = l + hd.nx * (r - l), hy = t + hd.nz * (bot - t);
+        const el = svgEl("rect", { x: hx - HALF, y: hy - HALF, width: HALF * 2, height: HALF * 2, rx: 1, fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5" });
+        el.style.cursor = hd.cur;
+        el.addEventListener("mousedown", (e) => this.#startResize(e, hd));
+        layer.appendChild(el);
+      }
+    }
+
+    #selItem() {
+      if (!this.#sel) return null;
+      if (this.#sel.kind === "piece") return this.#doc.pieces.find(p => p.id === this.#sel.id) || null;
+      if (this.#sel.kind === "zone") return this.#doc.zones.find(z => z.id === this.#sel.id) || null;
+      return null;
+    }
+
+    #fireSelect() {
+      if (!this.#sel) { this.#cb.onSelect?.(null); return; }
+      if (this.#sel.kind === "marker") {
+        const m = markerAt(this.#doc, this.#sel.markerKind, this.#sel.index);
+        const c = m && markerCell(this.#doc, m);
+        this.#cb.onSelect?.({ kind: "marker", markerKind: this.#sel.markerKind, index: this.#sel.index, piece: m?.piece, at: m?.at, cell: c, facing: m?.facing });
+        return;
+      }
+      const item = this.#selItem();
+      if (!item) { this.#cb.onSelect?.(null); return; }
+      if (this.#sel.kind === "piece") this.#cb.onSelect?.({ kind: "piece", id: item.id, role: item.role, rect: item.rect, surface: item.surface ?? this.#doc.globals.surface, surfaceSet: item.surface != null, mirrors: item.mirrors !== false });
+      else this.#cb.onSelect?.({ kind: "zone", id: item.id, rect: item.rect });
+    }
+
+    _onViewportChanged() { this.#refreshOverlay(); }
+    _onZoom(scale) { this.#cb.onZoom?.(Math.round(scale * 100)); }
+
+    _onToolMousedown(e, svgPt) {
+      const cell = this.#doc.globals.cell;
+      const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
+      if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz);
+      if (this.#tool === "piece" || this.#tool === "zone") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#renderPreview(); return; }
+      if (this.#tool === "spawn" || this.#tool === "wool" || this.#tool === "iron") this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
+    }
+
+    _onPointerMove(e, svgPt) {
+      const cell = this.#doc.globals.cell;
+      const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
+      if (this.#cursorEl) this.#cursorEl.textContent = `cell ${cx}, ${cz}`;
+      if (this.#drag?.mode === "draw") { this.#drag.b = [cx, cz]; this.#renderPreview(); return; }
+      if (this.#drag?.mode === "move") this.#moveTo(cx, cz, svgPt.x / cell, svgPt.y / cell);
+    }
+
+    _onToolMouseup(e, svgPt) {
+      if (this.#drag?.mode === "draw") { this.#commitDraw(); return; }
+      if (this.#drag?.mode === "move") {
+        const { moved, reselect } = this.#drag;
+        this.#drag = null;
+        if (moved) { this.render(); this.#cb.onChange?.(); this.#fireSelect(); }
+        else this.#clickSelect(reselect);
+      }
+    }
+
+    _onResizeMove(e) {
+      if (!this.#resize) return false;
+      const p = this._clientToSvg(e.clientX, e.clientY);
+      const [cx, cz] = cellOfWorld(p.x, p.y, this.#doc.globals.cell);
+      this.#resizeTo(cx, cz);
+      return true;
+    }
+    _onResizeUp(e) {
+      if (!this.#resize) return false;
+      if (e.button !== 0) return false;
+      this.#resize = null;
+      this.render(); this.#cb.onChange?.(); this.#fireSelect();
+      return true;
+    }
+    _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; }
+
+    #selectDown(svgPt, cx, cz) {
+      const prev = this.#sel;
+      const hit = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
+      this.#sel = hit;
+      this.#refreshOverlay(); this.#fireSelect();
+      this.#drag = { mode: "move", sel: hit, grab: [cx, cz], moved: false, reselect: sameSelection(prev, hit) };
+    }
+
+    #moveTo(cx, cz, fcx, fcz) {
+      const d = this.#drag; if (!d?.sel) return;
+      if (d.sel.kind === "marker") {
+        const m = markerAt(this.#doc, d.sel.markerKind, d.sel.index);
+        const at = attachMarker(this.#doc, fcx, fcz);
+        if (at && (at.piece !== m.piece || at.at[0] !== m.at[0] || at.at[1] !== m.at[1])) { m.piece = at.piece; m.at = at.at; d.moved = true; this.render(); }
+        return;
+      }
+      const ddx = cx - d.grab[0], ddz = cz - d.grab[1];
+      if (!ddx && !ddz) return;
+      d.grab = [cx, cz];
+      const item = this.#selItem();
+      if (item) { item.rect[0] += ddx; item.rect[1] += ddz; d.moved = true; }
+      this.render();
+    }
+
+    #clickSelect(reselect) {
+      if (reselect && this.#sel?.kind === "marker" && this.#sel.markerKind === "spawn") {
+        const m = markerAt(this.#doc, "spawn", this.#sel.index);
+        if (m) { m.facing = nextFacing(m.facing); this.render(); this.#cb.onChange?.(); this.#fireSelect(); }
+      } else if (!this.#sel) { this.#refreshOverlay(); }
+    }
+
+    #placeMarker(kind, cx, cz) {
+      const at = attachMarker(this.#doc, cx, cz);
+      if (!at) return;
+      const rec = kind === "spawn" ? { ...at, facing: "front" } : { ...at };
+      const list = kind === "spawn" ? this.#doc.placements.spawns : kind === "wool" ? this.#doc.placements.wools : this.#doc.placements.iron;
+      list.push(rec);
+      this.#sel = { kind: "marker", markerKind: kind, index: list.length - 1 };
+      this.setTool("select"); this.#cb.onTool?.("select");
+      this.render(); this.#cb.onChange?.(); this.#fireSelect();
+    }
+
+    #renderPreview() {
+      const layer = this.#previewLayer; this.#clear(layer);
+      if (this.#drag?.mode !== "draw") return;
+      const cell = this.#doc.globals.cell;
+      const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
+      const b = rectCellsToBlocks(rect, cell);
+      const isBuffer = this.#drag.kind === "piece" && this.#pieceRole === "buffer";
+      const color = this.#drag.kind === "zone" ? "var(--accent)" : ROLE_COLORS[this.#pieceRole];
+      layer.appendChild(svgEl("rect", { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill: isBuffer ? "url(#buffer-hatch)" : color, "fill-opacity": isBuffer ? "0.6" : "0.2", stroke: color, "stroke-width": "1.5", "stroke-dasharray": isBuffer ? "6 4" : "4 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
+    }
+
+    #commitDraw() {
+      const kind = this.#drag.kind;
+      const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
+      this.#drag = null;
+      this.#clear(this.#previewLayer);
+      this.#cb.onCreate?.(kind, rect);
+      this.setTool("select"); this.#cb.onTool?.("select");
+    }
+
+    #startResize(e, handle) {
+      if (e.button !== 0 || !this.#sel || this.#sel.kind === "marker") return;
+      e.stopPropagation(); e.preventDefault();
+      this.#resize = { handle, sel: this.#sel };
+    }
+
+    #resizeTo(cx, cz) {
+      const item = this.#selItem(); if (!item) return;
+      const h = this.#resize.handle;
+      let [x, z, w, hh] = item.rect;
+      let minX = x, maxX = x + w - 1, minZ = z, maxZ = z + hh - 1;
+      if (h.ex === -1) minX = Math.min(cx, maxX);
+      else if (h.ex === 1) maxX = Math.max(cx, minX);
+      if (h.ez === -1) minZ = Math.min(cz, maxZ);
+      else if (h.ez === 1) maxZ = Math.max(cz, minZ);
+      item.rect = [minX, minZ, maxX - minX + 1, maxZ - minZ + 1];
+      this.render();
+    }
+
+    #size() { return { w: (this._wrap.clientWidth || 600) - 24, h: (this._wrap.clientHeight || 600) - 24 }; }
+
+    #build() {
+      const { w, h } = this.#size();
+      this._svg.setAttribute("width", w); this._svg.setAttribute("height", h);
+      this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+      this._viewportG = svgEl("g");
+      this.#gridLayer = svgEl("g", { "pointer-events": "none" });
+      this.#centerLayer = svgEl("g", { "pointer-events": "none" });
+      this.#ghostLayer = svgEl("g", { "pointer-events": "none" });
+      this.#zoneLayer = svgEl("g");
+      this.#pieceLayer = svgEl("g");
+      this.#inspectLayer = svgEl("g", { "pointer-events": "none" });
+      this.#markerLayer = svgEl("g");
+      this.#previewLayer = svgEl("g", { "pointer-events": "none" });
+      this.#pulseLayer = svgEl("g", { "pointer-events": "none" });
+      for (const g of [this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#inspectLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
+      this._svg.appendChild(this._viewportG);
+      this.#overlay = svgEl("g");
+      this._svg.appendChild(this.#overlay);
+      this.#defs = svgEl("defs");
+      this._svg.appendChild(this.#defs);
+      this.#ensureHatch();
+      this._applyViewportTransform();
+      document.addEventListener("keydown", this.#onKey);
+      this.setTool("select");
+    }
+
+    #onKey = (e) => {
+      if (this._wrap?.offsetParent == null) return;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+      if ((e.key === "Delete" || e.key === "Backspace") && this.#sel) { e.preventDefault(); this.#cb.onDelete?.(this.#sel); }
+    };
+
+    dispose() { if (this.#pulseTimer) clearTimeout(this.#pulseTimer); document.removeEventListener("keydown", this.#onKey); }
+  }
+
+  /* ==================================================================== *
+   *  Touch + pinch-zoom shim (mouse-only source needs this for phones)    *
+   * ==================================================================== */
+  function installTouch(svg) {
+    let panId = null;        // identifier of the finger driving a 1-finger gesture
+    let pinchD = null;       // last two-finger distance, for stepwise zoom
+    const dispatch = (target, type, x, y, buttons) =>
+      target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, buttons }));
+    const dist = (a, b) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const mid = (a, b) => ({ x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 });
+
+    svg.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 1) {
+        const t = e.touches[0]; panId = t.identifier;
+        dispatch(svg, "mousedown", t.clientX, t.clientY, 1);
+      } else if (e.touches.length === 2) {
+        if (panId != null) { const t = e.touches[0]; dispatch(document, "mouseup", t.clientX, t.clientY, 0); panId = null; }
+        pinchD = dist(e.touches[0], e.touches[1]);
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    svg.addEventListener("touchmove", (e) => {
+      if (pinchD != null && e.touches.length === 2) {
+        const d = dist(e.touches[0], e.touches[1]), m = mid(e.touches[0], e.touches[1]);
+        const ratio = d / pinchD;
+        if (ratio > 1.1 || ratio < 0.9) {
+          svg.dispatchEvent(new WheelEvent("wheel", { bubbles: true, cancelable: true, deltaY: ratio > 1 ? -100 : 100, clientX: m.x, clientY: m.y }));
+          pinchD = d;
+        }
+      } else if (panId != null) {
+        const t = [...e.touches].find(x => x.identifier === panId) || e.touches[0];
+        if (t) dispatch(document, "mousemove", t.clientX, t.clientY, 1);
+      }
+      e.preventDefault();
+    }, { passive: false });
+
+    const endTouch = (e) => {
+      if (e.touches.length === 0) {
+        pinchD = null;
+        if (panId != null) { const t = e.changedTouches[0]; dispatch(document, "mouseup", t.clientX, t.clientY, 0); panId = null; }
+      } else if (e.touches.length === 1 && pinchD != null) {
+        pinchD = null;   // pinch released to a single finger — drop it, don't start a drag mid-gesture
+      }
+      e.preventDefault();
+    };
+    svg.addEventListener("touchend", endTouch, { passive: false });
+    svg.addEventListener("touchcancel", endTouch, { passive: false });
+  }
+
+  /* ==================================================================== *
+   *  Chrome + document controller (replaces plan-bridge + Blazor page)    *
+   * ==================================================================== */
+  const STORAGE_KEY = "pgm-plan-editor";
+  const HEIGHTMAP_KEY = "pgm-plan-heightmap";
+  const THEME_KEY = "pgm-plan-theme";
+  const $ = (id) => document.getElementById(id);
+
+  // Ensure a mobile-friendly viewport even in the artifact skeleton (no <head> control there).
+  if (!document.querySelector('meta[name="viewport"]')) {
+    const mv = document.createElement("meta");
+    mv.name = "viewport"; mv.content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no";
+    document.head.appendChild(mv);
+  }
+
+  // Theme: restore saved choice, else follow the OS.
+  try { const th = localStorage.getItem(THEME_KEY); if (th) document.documentElement.setAttribute("data-theme", th); } catch { /* private mode */ }
+
+  const svg = $("planSvg"), wrap = $("planWrap"), cursorEl = $("cursorReadout");
+  let doc = emptyDoc();
+  let canvasRole = "piece";
+  let heightMap = false;
+  try { heightMap = localStorage.getItem(HEIGHTMAP_KEY) === "1"; } catch { /* default */ }
+
+  const canvas = new PlanCanvas(svg, wrap, {
+    cursorEl,
+    onSelect: (sel) => renderInspector(sel),
+    onZoom: (pct) => { $("zoomLabel").textContent = pct + "%"; },
+    onTool: (t) => reflectTool(t),
+    onChange: () => scheduleSave(),
+    onCreate: (kind, rect) => createRect(kind, rect),
+    onDelete: (sel) => deleteSelection(sel),
+  });
+  installTouch(svg);
+
+  // ── document mutations ──────────────────────────────────────────────
+  function createRect(kind, rect) {
+    if (kind === "zone") {
+      const id = uniqueId(doc.zones.map(z => z.id), "zone");
+      doc.zones.push({ id, rect, holes: [] });
+      canvas.setDoc(doc); canvas.select({ kind: "zone", id });
+    } else {
+      const role = canvasRole;
+      const base = role === "wool-room" ? "wool" : role === "spawn" ? "spawn" : role === "buffer" ? "buffer" : "piece";
+      const id = uniqueId(doc.pieces.map(p => p.id), base);
+      doc.pieces.push({ id, role, rect });
+      canvas.setDoc(doc); canvas.select({ kind: "piece", id });
+    }
+    scheduleSave();
+  }
+
+  function deleteSelection(sel) {
+    if (!sel) return;
+    if (sel.kind === "piece") {
+      const p = doc.pieces.find(x => x.id === sel.id);
+      doc.pieces = doc.pieces.filter(x => x.id !== sel.id);
+      if (p) {
+        doc.placements.spawns = doc.placements.spawns.filter(m => m.piece !== sel.id);
+        doc.placements.wools = doc.placements.wools.filter(m => m.piece !== sel.id);
+        doc.placements.iron = doc.placements.iron.filter(m => m.piece !== sel.id);
+        doc.cliffs = (doc.cliffs || []).filter(c => c.a !== sel.id && c.b !== sel.id);
+        doc.walls = (doc.walls || []).filter(w => w.a !== sel.id && w.b !== sel.id);
+      }
+    } else if (sel.kind === "zone") {
+      doc.zones = doc.zones.filter(x => x.id !== sel.id);
+    } else if (sel.kind === "marker") {
+      const list = sel.markerKind === "spawn" ? doc.placements.spawns : sel.markerKind === "wool" ? doc.placements.wools : doc.placements.iron;
+      list.splice(sel.index, 1);
+    }
+    canvas.clearSelection(); canvas.setDoc(doc); scheduleSave();
+  }
+
+  let saveTimer = null;
+  function scheduleSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { try { localStorage.setItem(STORAGE_KEY, toJson(doc)); } catch { /* private mode */ } }, 500);
+  }
+
+  function loadDoc(next, { fit = true } = {}) {
+    doc = normalizeDoc(next);
+    canvas.clearSelection(); canvas.setDoc(doc);
+    if (fit) canvas.fit();
+    syncGlobalsForm(); scheduleSave();
+  }
+
+  // ── toolbar / palette ───────────────────────────────────────────────
+  let tool = "select";
+  const ROLE_META = ROLES.map(id => ({ id, label: ROLE_LABELS[id], color: ROLE_COLORS[id] }));
+  const BUILD_TOOLS = [
+    { id: "zone", label: "Build area", swatch: "dash" },
+    { id: "spawn", label: "Spawn", color: MARKER_COLORS.spawn, swatch: "ring" },
+    { id: "wool", label: "Wool", color: MARKER_COLORS.wool, swatch: "ring" },
+    { id: "iron", label: "Iron", color: MARKER_COLORS.iron, swatch: "ring" },
+  ];
+
+  function buildPalettes() {
+    const rp = $("rolePalette"); rp.innerHTML = "";
+    for (const r of ROLE_META) {
+      const btn = document.createElement("button");
+      btn.className = "tool-btn"; btn.dataset.tool = "piece"; btn.dataset.role = r.id;
+      btn.innerHTML = `<span class="swatch" style="--role:${r.color}"></span>${r.label}`;
+      btn.addEventListener("click", () => pickRole(r.id));
+      rp.appendChild(btn);
+    }
+    const tp = $("toolPalette"); tp.innerHTML = "";
+    for (const t of BUILD_TOOLS) {
+      const btn = document.createElement("button");
+      btn.className = "tool-btn"; btn.dataset.tool = t.id;
+      const sw = t.swatch === "dash" ? `<span class="swatch swatch--dash"></span>` : `<span class="swatch swatch--ring" style="--role:${t.color}"></span>`;
+      btn.innerHTML = `${sw}${t.label}`;
+      btn.addEventListener("click", () => pickTool(t.id));
+      tp.appendChild(btn);
+    }
+  }
+
+  function pickTool(t) {
+    tool = t;
+    canvas.setTool(t);
+    reflectTool(t);
+    if (window.matchMedia("(max-width: 900px)").matches) closeLeft();
+  }
+  function pickRole(role) {
+    canvasRole = ROLES.includes(role) ? role : "piece";
+    tool = "piece";
+    canvas.setPieceRole(canvasRole);
+    canvas.setTool("piece");
+    reflectTool("piece");
+    if (window.matchMedia("(max-width: 900px)").matches) closeLeft();
+  }
+
+  // Sync the active state of every tool/role/chip button to the current tool.
+  function reflectTool(t) {
+    tool = t;
+    $("tSelect").classList.toggle("chip--active", t === "select");
+    $("tPan").classList.toggle("chip--active", t === "pan");
+    for (const btn of document.querySelectorAll("#rolePalette .tool-btn"))
+      btn.classList.toggle("tool-btn--active", t === "piece" && btn.dataset.role === canvasRole);
+    for (const btn of document.querySelectorAll("#toolPalette .tool-btn"))
+      btn.classList.toggle("tool-btn--active", btn.dataset.tool === t);
+  }
+
+  // ── globals form ────────────────────────────────────────────────────
+  function syncGlobalsForm() {
+    $("planName").value = doc.meta.name || "";
+    $("gSym").value = doc.globals.symmetry;
+    $("gCell").value = doc.globals.cell;
+    $("gSurface").value = doc.globals.surface;
+    $("gHeadroom").value = doc.globals.headroom;
+    $("gPlayers").value = doc.globals.maxPlayers;
+  }
+  function setGlobal(key, value) {
+    const g = doc.globals;
+    if (key === "symmetry") g.symmetry = value;
+    else { const n = Number(value); if (!Number.isFinite(n)) return; g[key] = n; }
+    canvas.setDoc(doc);
+    if (key === "cell") canvas.fit();
+    scheduleSave();
+  }
+
+  $("planName").addEventListener("change", (e) => { doc.meta.name = e.target.value || "Untitled plan"; scheduleSave(); });
+  $("gSym").addEventListener("change", (e) => setGlobal("symmetry", e.target.value));
+  $("gCell").addEventListener("change", (e) => setGlobal("cell", e.target.value));
+  $("gSurface").addEventListener("change", (e) => setGlobal("surface", e.target.value));
+  $("gHeadroom").addEventListener("change", (e) => setGlobal("headroom", e.target.value));
+  $("gPlayers").addEventListener("change", (e) => setGlobal("maxPlayers", e.target.value));
+
+  // ── inspector ───────────────────────────────────────────────────────
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function renderInspector(sel) {
+    const body = $("inspBody"), title = $("inspTitle");
+    const rightOpen = () => { if (window.matchMedia("(max-width: 900px)").matches) openRight(); };
+
+    if (!sel) {
+      title.textContent = "Inspector";
+      body.innerHTML = `<p class="section-desc">Select a piece, build area or marker to inspect. Draw a piece from the palette, then drop spawns / wools onto it.</p>`;
+      if (window.matchMedia("(max-width: 900px)").matches) closeRight();
+      return;
+    }
+
+    if (sel.kind === "piece") {
+      title.textContent = "Piece";
+      const roleOpts = ROLE_META.map(r => `<option value="${r.id}" ${r.id === sel.role ? "selected" : ""}>${r.label}</option>`).join("");
+      body.innerHTML = `
+        <div class="field"><label class="field-label">Id</label><input class="field-input" id="ins_id" value="${esc(sel.id)}" /></div>
+        <div class="field"><label class="field-label">Role</label><select class="field-input" id="ins_role">${roleOpts}</select></div>
+        <div class="field"><label class="field-label">Surface (y)</label>
+          <div class="ctrl-row">
+            <button class="btn" id="ins_sdown">−</button>
+            <span class="stepper-value">${sel.surface}${sel.surfaceSet ? "" : " (base)"}</span>
+            <button class="btn" id="ins_sup">+</button>
+          </div></div>
+        <div class="stack" style="margin-top:12px">
+          <button class="btn btn--full" id="ins_mirror">${sel.mirrors ? "Exclude from mirror" : "Include in mirror"}</button>
+          <button class="btn btn--full btn--danger" id="ins_del">Delete piece</button>
+        </div>`;
+      $("ins_id").addEventListener("change", (e) => setPieceId(sel.id, e.target.value.trim()));
+      $("ins_role").addEventListener("change", (e) => setPieceRole(sel.id, e.target.value));
+      $("ins_sdown").addEventListener("click", () => stepPieceSurface(sel.id, -2));
+      $("ins_sup").addEventListener("click", () => stepPieceSurface(sel.id, 2));
+      $("ins_mirror").addEventListener("click", () => togglePieceMirrors(sel.id));
+      $("ins_del").addEventListener("click", () => canvas.clearSelection() || deleteSelection(sel));
+      rightOpen();
+    } else if (sel.kind === "zone") {
+      title.textContent = "Build area";
+      body.innerHTML = `
+        <div class="field"><label class="field-label">Id</label><input class="field-input" id="ins_id" value="${esc(sel.id)}" /></div>
+        <button class="btn btn--full btn--danger" id="ins_del" style="margin-top:12px">Delete build area</button>`;
+      $("ins_id").addEventListener("change", (e) => setZoneId(sel.id, e.target.value.trim()));
+      $("ins_del").addEventListener("click", () => deleteSelection(sel));
+      rightOpen();
+    } else {
+      title.textContent = sel.markerKind;
+      const at = Array.isArray(sel.at) ? `${sel.at[0]}, ${sel.at[1]}` : "";
+      const facingRow = sel.markerKind === "spawn"
+        ? `<div class="field"><label class="field-label">Facing</label>
+             <div class="ctrl-row"><span class="stepper-value" id="ins_facing">${esc(sel.facing || "front")}</span>
+             <button class="btn" id="ins_cycle" title="Cycle facing">Rotate</button></div></div>` : "";
+      body.innerHTML = `
+        <div class="field"><label class="field-label">On piece</label>
+          <div class="readout">${esc(sel.piece || "")} &nbsp; <span style="color:var(--text-muted)">at ${at}</span></div></div>
+        ${facingRow}
+        <button class="btn btn--full btn--danger" id="ins_del" style="margin-top:12px">Delete marker</button>`;
+      if (sel.markerKind === "spawn") $("ins_cycle").addEventListener("click", () => cycleFacing(sel.index));
+      $("ins_del").addEventListener("click", () => deleteSelection(sel));
+      rightOpen();
+    }
+  }
+
+  // Inspector edit operations (mirror the source bridge's setters).
+  function setPieceId(oldId, newId) {
+    const p = doc.pieces.find(x => x.id === oldId); if (!p || !newId || newId === oldId) { renderInspector(canvas.getSelection() && selDto()); return; }
+    const id = uniqueId(doc.pieces.filter(x => x !== p).map(x => x.id), newId);
+    for (const m of [...doc.placements.spawns, ...doc.placements.wools, ...doc.placements.iron]) if (m.piece === oldId) m.piece = id;
+    for (const c of [...(doc.cliffs || []), ...(doc.walls || [])]) { if (c.a === oldId) c.a = id; if (c.b === oldId) c.b = id; }
+    p.id = id;
+    canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave();
+  }
+  function setPieceRole(id, role) { const p = doc.pieces.find(x => x.id === id); if (!p) return; p.role = role; canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave(); }
+  function stepPieceSurface(id, delta) {
+    const p = doc.pieces.find(x => x.id === id); if (!p) return;
+    const next = (p.surface ?? doc.globals.surface) + delta;
+    if (next === doc.globals.surface) delete p.surface; else p.surface = next;
+    canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave();
+  }
+  function togglePieceMirrors(id) { const p = doc.pieces.find(x => x.id === id); if (!p) return; if (p.mirrors === false) delete p.mirrors; else p.mirrors = false; canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave(); }
+  function setZoneId(oldId, newId) {
+    const z = doc.zones.find(x => x.id === oldId); if (!z || !newId || newId === oldId) return;
+    z.id = uniqueId(doc.zones.filter(x => x !== z).map(x => x.id), newId);
+    canvas.setDoc(doc); canvas.select({ kind: "zone", id: z.id }); scheduleSave();
+  }
+  function cycleFacing(index) {
+    const m = doc.placements.spawns[index]; if (!m) return;
+    m.facing = nextFacing(m.facing);
+    canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); scheduleSave();
+  }
+  function selDto() { return null; }
+
+  // ── top-bar actions ─────────────────────────────────────────────────
+  $("btnNew").addEventListener("click", () => { if (confirm("Start a blank plan? Unsaved edits to the current plan are cleared.")) loadDoc(emptyDoc()); });
+  $("btnExport").addEventListener("click", () => {
+    const slug = (doc.meta.name || "plan").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "plan";
+    const blob = new Blob([toJson(doc)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `${slug}.plan.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("btnImport").addEventListener("click", () => $("fileInput").click());
+  $("fileInput").addEventListener("change", (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { try { loadDoc(fromJson(String(reader.result))); } catch (err) { alert("Import failed: " + (err?.message || "invalid plan JSON")); } };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  $("btnTheme").addEventListener("click", () => {
+    const cur = document.documentElement.getAttribute("data-theme")
+      || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode */ }
+    canvas.render();
+  });
+
+  $("tSelect").addEventListener("click", () => pickTool("select"));
+  $("tPan").addEventListener("click", () => pickTool("pan"));
+  $("cFit").addEventListener("click", () => canvas.fit());
+  $("cHeights").addEventListener("click", () => {
+    heightMap = !heightMap;
+    $("cHeights").classList.toggle("chip--active", heightMap);
+    try { localStorage.setItem(HEIGHTMAP_KEY, heightMap ? "1" : "0"); } catch { /* private mode */ }
+    canvas.setHeightMap(heightMap);
+  });
+
+  // ── mobile drawers ──────────────────────────────────────────────────
+  const scrim = $("scrim");
+  function openLeft() { $("leftPanel").classList.add("open"); scrim.classList.add("show"); }
+  function closeLeft() { $("leftPanel").classList.remove("open"); if (!$("rightPanel").classList.contains("open")) scrim.classList.remove("show"); }
+  function openRight() { $("rightPanel").classList.add("open"); scrim.classList.add("show"); }
+  function closeRight() { $("rightPanel").classList.remove("open"); if (!$("leftPanel").classList.contains("open")) scrim.classList.remove("show"); }
+  $("tglLeft").addEventListener("click", () => $("leftPanel").classList.contains("open") ? closeLeft() : openLeft());
+  $("sheetClose").addEventListener("click", () => { canvas.clearSelection(); closeRight(); });
+  scrim.addEventListener("click", () => { closeLeft(); closeRight(); });
+
+  // ── boot ────────────────────────────────────────────────────────────
+  buildPalettes();
+  try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) doc = fromJson(saved); } catch { doc = emptyDoc(); }
+  canvas.setHeightMap(heightMap);
+  $("cHeights").classList.toggle("chip--active", heightMap);
+  canvas.setDoc(doc);
+  canvas.fit();
+  canvas.resize();
+  syncGlobalsForm();
+  reflectTool("select");
+  renderInspector(null);
+
+  window.addEventListener("resize", () => canvas.resize());
+  if (window.ResizeObserver) new ResizeObserver(() => canvas.resize()).observe(wrap);
+</script>
