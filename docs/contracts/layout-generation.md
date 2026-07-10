@@ -153,6 +153,15 @@ length** (how far the wool sits past the loop/bend/junction), **ring thickness**
 wraps a hole), **arm count and attach point** (where the wool meets a branch), and the **build-zone
 cuts** that break any of these into the through-cut lanes the composer emits.
 
+A consequence the emitter makes concrete: **interface width is a free knob only where it decorates rather
+than selects.** A *closed* shape carries one — the donut's hub attachment is an appendage on the ring, so
+its width runs the full `w2/w4/w6` grammar without touching the ring's topology. An *open* shape does not:
+widening a thin shape's entry mouth is exactly a step up the escalation — a wide entry on a Z forms a
+pocket (it becomes a **scythe**), and a wider entry on a scythe roofs its bay into a hole (it becomes a
+**donut**). So the open families take no width parameter; their width-varied forms already have names
+further up the ladder, and their genuine knobs are the *length* ones above. (Emitted and checked through the
+mirror: a scythe emitted with a `w6` mouth classifies back as a donut.)
+
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
 team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`
 on every inter-team path; interface widths ≥ the corridor minimum; spawn depth ≥ some distance
