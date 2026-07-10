@@ -8,6 +8,12 @@ namespace PgmStudio.Pgm.Compose;
 /// (donut) and solid (plug) families come with the promoted skeleton classifier.</summary>
 public enum ApproachFamily { I, L, Z }
 
+/// <summary>Where the wool room sits relative to the approach's final segment. <see cref="Inline"/> continues
+/// it straight (the plain dead-end). <see cref="SideTuck"/> turns the room off perpendicular at the end — the
+/// catalog's <c>side-tuck</c>: still an <b>I</b> lane, because the categorizer excludes the room from the bend
+/// read, so the straight approach reads as I while the wool hangs off its end.</summary>
+public enum RoomPlacement { Inline, SideTuck }
+
 /// <summary>A wool box: the axis-aligned cell region a single wool's approach is emitted into. The approach
 /// enters at the <b>mouth</b> (the top edge, <c>z = Z</c> — the hub-side interface) and dead-ends at the
 /// <see cref="WoolBoxEmitter"/>-placed room deep in the box.</summary>
@@ -38,16 +44,30 @@ public static class WoolBoxEmitter
     /// <summary>Emit <paramref name="family"/> into <paramref name="box"/> at the given
     /// <paramref name="corridorWidth"/> (cells). <paramref name="flip"/> mirrors the shape across the box's
     /// vertical centre (the turn goes left instead of right) so both handednesses are reachable.</summary>
-    public static EmittedApproach Emit(ApproachFamily family, WoolBox box, int corridorWidth, bool flip = false, string idPrefix = "wa")
+    public static EmittedApproach Emit(ApproachFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, string idPrefix = "wa")
     {
         var cw = corridorWidth;
         if (cw < 2) throw new ComposeException($"corridor width {cw} < 2 (a lane is at least one 10-block cell pair).");
         if (cw > box.W) throw new ComposeException($"corridor width {cw} exceeds box width {box.W}.");
+        if (roomPlacement == RoomPlacement.SideTuck && family != ApproachFamily.I)
+            throw new ComposeException($"side-tuck room is only supported for the I family in this pass (requested {family}).");
 
         var t = new List<int[]>();
         int[] room;
+        double[]? at = null;                                 // wool marker offset within the room (defaults to centre)
         switch (family)
         {
+            case ApproachFamily.I when roomPlacement == RoomPlacement.SideTuck:
+            {
+                // straight approach, room turned perpendicular off the end — the room extends past the lane
+                // column so the wool tucks to the side. Still reads I: the lane (room excluded) is straight.
+                Need(box.W >= cw + 1 && box.H >= RoomDepthCells + cw, family, box);
+                int laneLen = box.H - RoomDepthCells, roomLen = Math.Min(box.W, 2 * cw);
+                t.Add([0, 0, cw, laneLen]);                  // straight vertical approach (left)
+                room = [0, laneLen, roomLen, RoomDepthCells];// room turns off to the +x side at the end
+                at = [roomLen - cw / 2.0, RoomDepthCells / 2.0];  // wool at the tucked (far) end
+                break;
+            }
             case ApproachFamily.I:
             {
                 Need(box.H >= RoomDepthCells + 1, family, box);
@@ -83,14 +103,20 @@ public static class WoolBoxEmitter
             default: throw new ComposeException($"unsupported family {family}.");
         }
 
-        if (flip) { foreach (var r in t) r[0] = box.W - r[0] - r[2]; room[0] = box.W - room[0] - room[2]; }
+        at ??= [room[2] / 2.0, room[3] / 2.0];
+        if (flip)
+        {
+            foreach (var r in t) r[0] = box.W - r[0] - r[2];
+            room[0] = box.W - room[0] - room[2];
+            at = [room[2] - at[0], at[1]];                   // mirror the marker within the flipped room
+        }
 
         // translate box-local -> absolute and wrap as pieces
         var terrain = new List<GrownPiece>(t.Count);
         for (var i = 0; i < t.Count; i++)
             terrain.Add(new GrownPiece($"{idPrefix}-t{i + 1}", [box.X + t[i][0], box.Z + t[i][1], t[i][2], t[i][3]]));
         var woolRoom = new GrownPiece($"{idPrefix}-wool", [box.X + room[0], box.Z + room[1], room[2], room[3]], PlanRoles.WoolRoom);
-        return new EmittedApproach(terrain, woolRoom, [room[2] / 2.0, room[3] / 2.0]);
+        return new EmittedApproach(terrain, woolRoom, at);
     }
 
     private static void Need(bool ok, ApproachFamily family, WoolBox box)
