@@ -105,12 +105,14 @@ composer's `cw`; the four-way test is relative to it, so the caller passes the w
 matters — the earlier tests are the stronger signals:
 
 1. **No terrain touches the wool?** → **isolated** (build-only).
-2. **A closed loop** — terrain encloses a void? → **hole / donut**.
-3. **A filled block** — a solid `(W+1)²` chunk (the `Thick`/`Blk` test)? → **plug / body** (the wool caps
+2. **Wool flanked on two opposite sides** — terrain on both top+bottom or both left+right of the room? →
+   **U / flanked** (the wool is *integrated* between terrain, not a dead-end cap — `tt/vw/tt`).
+3. **A closed loop** — terrain encloses a void? → **hole / donut**.
+4. **A filled block** — a solid `(W+1)²` chunk (the `Thick`/`Blk` test)? → **plug / body** (the wool caps
    a solid mass; the `plaza` pole).
-4. **A branch** — a filled `W×W` block with ≥3 sides whose full outward `W`-strip is also filled (a T / +
+5. **A branch** — a filled `W×W` block with ≥3 sides whose full outward `W`-strip is also filled (a T / +
    / Y)? → **H / branch**.
-5. else the thin open path → **I** / **L** by bend count; **≥2 bends** split by whether the lane wraps a
+6. else the thin open path → **I** / **L** by bend count; **≥2 bends** split by whether the lane wraps a
    **bay** (an open concavity — a void with lane within `W` on ≥3 sides = **scythe**/U) or not (an **S** =
    **Z**).
 

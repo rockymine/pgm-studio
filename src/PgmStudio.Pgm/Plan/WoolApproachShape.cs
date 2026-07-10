@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm.Plan;
 /// <c>docs/contracts/layout-generation.md</c> §2). <see cref="I"/>/<see cref="L"/>/<see cref="Z"/>/
 /// <see cref="Scythe"/> are the thin open path by bend count; <see cref="H"/> branches; <see cref="Donut"/>
 /// encloses a void; <see cref="Plug"/> is a solid body; <see cref="Isolated"/> has no terrain approach.</summary>
-public enum ApproachShape { Isolated, I, L, Z, Scythe, H, Donut, Plug }
+public enum ApproachShape { Isolated, I, L, Z, Scythe, U, H, Donut, Plug }
 
 /// <summary>
 /// The canonical wool-approach skeleton classifier — the four-way decision tree of the base-shape catalog,
@@ -66,6 +66,14 @@ public static class WoolApproachShape
         int cross = Math.Max(1, seeds.Min(c => Math.Min(Hrun(c), Vrun(c))));  // measured terminal cross-section
         int width = Math.Clamp(cross, 2, 6);                                 // reported width (lane convention)
         int w = Math.Max(1, laneWidth);                                      // reference lane width for the structural tests
+
+        // U / flanked: the wool is integrated between terrain on two OPPOSITE sides (a dead-end cap has terrain
+        // on one). Checked before the lane read — the wool being embedded overrides how the terrain would flood.
+        int rminx = room.Min(c => c.Item1), rmaxx = room.Max(c => c.Item1), rminz = room.Min(c => c.Item2), rmaxz = room.Max(c => c.Item2);
+        bool Side(int x0, int x1, int z0, int z1) { for (var x = x0; x <= x1; x++) for (var z = z0; z <= z1; z++) if (comp.Contains((x, z)) && !room.Contains((x, z))) return true; return false; }
+        bool top = Side(rminx, rmaxx, rminz - 1, rminz - 1), bot = Side(rminx, rmaxx, rmaxz + 1, rmaxz + 1);
+        bool left = Side(rminx - 1, rminx - 1, rminz, rmaxz), right = Side(rmaxx + 1, rmaxx + 1, rminz, rmaxz);
+        if ((top && bot) || (left && right)) return (ApproachShape.U, width);
 
         if (HasEnclosedVoid(comp)) return (ApproachShape.Donut, width);
 

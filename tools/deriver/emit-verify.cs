@@ -47,6 +47,7 @@ foreach (var cw in cws)
     Check($"donut single cw{cw}", ApproachFamily.Donut, () => WoolBoxEmitter.Emit(ApproachFamily.Donut, db, cw, attachments: 1), cw);
     Check($"donut double cw{cw}", ApproachFamily.Donut, () => WoolBoxEmitter.Emit(ApproachFamily.Donut, db, cw, attachments: 2), cw);
     Check($"donut short-I cw{cw}", ApproachFamily.Donut, () => WoolBoxEmitter.Emit(ApproachFamily.Donut, db, cw, woolExtend: true), cw);
+    Check($"donut corner cw{cw}", ApproachFamily.Donut, () => WoolBoxEmitter.Emit(ApproachFamily.Donut, db, cw, woolAtEnd: true), cw);
     var hb = new WoolBox(0, 0, 4 * cw, 6 * cw);
     Check($"H middle cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw), cw);
     Check($"H edge cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw, woolAtEnd: true), cw);

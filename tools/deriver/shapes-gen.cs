@@ -16,7 +16,7 @@ var grids = new (string name, string fam, string[] rows)[]
     ("i-sidetuck",  "I",     ["tttt", "vvvw"]),
     ("l-corner-1",  "L",     ["tw", "vt", "tt"]),
     ("l-corner-2",  "L",     ["tttv", "vvtw"]),
-    ("flanked",     "I",     ["tt", "vw", "tt"]),
+    ("flanked",     "U",     ["tt", "vw", "tt"]),
     ("scythe-1",    "Scythe",     ["tttv", "tvtw"]),
     ("scythe-2",    "Scythe",     ["tttvv", "tvttw"]),
     ("scythe-3-wide", "Scythe",   ["ttttv", "ttvtw"]),

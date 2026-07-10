@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Compose;
 /// reads back (see the base wool-approach catalog in <c>docs/contracts/layout-generation.md</c> §2). This
 /// first pass covers the thin-corridor families the bend count already names; the branched (H), looped
 /// (donut) and solid (plug) families come with the promoted skeleton classifier.</summary>
-public enum ApproachFamily { I, L, Z, Scythe, H, Donut, Plug }
+public enum ApproachFamily { I, L, Z, Scythe, U, H, Donut, Plug }
 
 /// <summary>Where the wool room sits relative to the approach's final segment. <see cref="Inline"/> continues
 /// it straight (the plain dead-end). <see cref="SideTuck"/> turns the room off perpendicular at the end — the
@@ -133,23 +133,43 @@ public static class WoolBoxEmitter
                 room = [wx, 0, cw, RoomDepthCells];                  // wool on top (middle or an end)
                 break;
             }
+            case ApproachFamily.U:
+            {
+                // a terrain cup — two parallel bars with the wool integrated as the closing wall between them,
+                // approached from the open side (tt/vw/tt). The wool sits with terrain on two opposite sides.
+                Need(box.W >= 2 * cw && box.H >= 2 * cw + 1, family, box);
+                int barLen = 2 * cw;
+                t.Add([0, 0, barLen, cw]);                           // top bar
+                t.Add([0, box.H - cw, barLen, cw]);                  // bottom bar
+                room = [barLen - cw, cw, cw, box.H - 2 * cw];        // wool = the closing wall (connects the bars)
+                break;
+            }
             case ApproachFamily.Donut:
             {
                 // a rectangular ring around an enclosed hole (multi-access), built from NON-overlapping rects.
-                // Hub-side attachment stub(s) extend the bars leftward (single = top only, double = top+bottom);
-                // the wool hangs off the ring's bottom-right, optionally held a short I further out.
+                // Hub-side attachment stub(s) extend the bars leftward (single = top only, double = top+bottom).
+                // The wool sits off the ring's bottom-right — a stub (optionally a short I out), or integrated
+                // AT the bottom-right corner (woolAtEnd), replacing that corner cell (tttt/vtvt/vttw).
                 int extend = woolExtend ? cw : 0;
                 Need(box.W >= 4 * cw + extend + RoomDepthCells && box.H >= 2 * cw + 1, family, box);
                 int ax = cw, ringH = box.H, span = 3 * cw;           // ring x in [ax, ax+3cw); hub stubs sit in [0, cw)
                 t.Add([ax, 0, span, cw]);                            // top bar
-                t.Add([ax, ringH - cw, span, cw]);                   // bottom bar
                 t.Add([ax, cw, cw, ringH - 2 * cw]);                 // left leg (middle only — no corner overlap)
                 t.Add([ax + 2 * cw, cw, cw, ringH - 2 * cw]);        // right leg (middle only)
                 t.Add([0, 0, cw, cw]);                               // hub attachment (top-left)
                 if (attachments >= 2) t.Add([0, ringH - cw, cw, cw]);// second attachment (bottom-left)
-                int wxr = ax + span;                                 // right of the ring's right leg
-                if (woolExtend) { t.Add([wxr, ringH - cw, cw, cw]); wxr += cw; }  // short I holding the wool
-                room = [wxr, ringH - cw, RoomDepthCells, cw];        // wool off the bottom-right
+                if (woolAtEnd)
+                {
+                    t.Add([ax, ringH - cw, 2 * cw, cw]);            // bottom bar stops before the corner
+                    room = [ax + 2 * cw, ringH - cw, cw, cw];       // wool AT the bottom-right corner (integrated)
+                }
+                else
+                {
+                    t.Add([ax, ringH - cw, span, cw]);              // full bottom bar
+                    int wxr = ax + span;                            // right of the ring's right leg
+                    if (woolExtend) { t.Add([wxr, ringH - cw, cw, cw]); wxr += cw; }  // short I holding the wool
+                    room = [wxr, ringH - cw, RoomDepthCells, cw];   // wool off the bottom-right
+                }
                 break;
             }
             case ApproachFamily.Plug:
