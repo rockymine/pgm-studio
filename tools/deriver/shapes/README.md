@@ -6,9 +6,10 @@ as real `*.plan.json` files, one per shape: `isolated`, `i-straight`, `i-sidetuc
 
 These are generated, not hand-authored — do not edit them by hand. The source of truth is the `t`/`v`/`w`
 grid catalog in the contract; `tools/deriver/shapes-gen.cs` mirrors those grids inline, converts each to
-the plan format, writes it here, and runs the skeleton decision tree (isolated → donut → plug → H →
-thin) to check every fixture against its catalog family. The `t`/`v`/`w` notation lives **only** in the
-doc and inline in the generator — it is never a persisted format.
+the plan format, writes it here, and classifies each with the library's `WoolApproachShape` (the four-way
+skeleton test: isolated → donut → plug → H → thin I/L/Z/scythe) to check it against its catalog family.
+The `t`/`v`/`w` notation lives **only** in the doc and inline in the generator — it is never a persisted
+format.
 
 ```
 dotnet run tools/deriver/shapes-gen.cs

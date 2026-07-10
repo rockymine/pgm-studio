@@ -99,29 +99,38 @@ bottom. These are scale-independent *shapes*, not sizes — each cell stretches 
 build zones **subdivide** them afterward (a zone replaces a run of `v` to bridge it, or cuts a `t`
 run to split a lane), so the catalog is the terrain/void topology *before* cutting.
 
-**The skeleton test** places any approach as one decision tree over the terrain (the wool `w` counts
-as a walkable terminus). Order matters — the earlier tests are the stronger signals:
+**The skeleton test** — implemented as `WoolApproachShape` (`PgmStudio.Pgm.Plan`) — places any approach
+as one decision tree over the terrain. It takes the **reference corridor width `W`** as a parameter (the
+composer's `cw`; the four-way test is relative to it, so the caller passes the width it built at). Order
+matters — the earlier tests are the stronger signals:
 
 1. **No terrain touches the wool?** → **isolated** (build-only).
 2. **A closed loop** — terrain encloses a void? → **hole / donut**.
-3. **A filled block** — a solid `(W+1)²` chunk (`WoolLaneShape`'s `Thick`/`Blk` test)? → **plug / body**
-   (the wool caps a solid mass; the `plaza` pole).
-4. **A junction** — any walkable cell with ≥3 walkable neighbours (a T / + / Y)? → **H / branch**.
-5. else open, unbranched → **I / L / Z / scythe** by bend count.
+3. **A filled block** — a solid `(W+1)²` chunk (the `Thick`/`Blk` test)? → **plug / body** (the wool caps
+   a solid mass; the `plaza` pole).
+4. **A branch** — a filled `W×W` block with ≥3 sides whose full outward `W`-strip is also filled (a T / +
+   / Y)? → **H / branch**.
+5. else the thin open path → **I** / **L** by bend count; **≥2 bends** split by whether the lane wraps a
+   **bay** (an open concavity — a void with lane within `W` on ≥3 sides = **scythe**/U) or not (an **S** =
+   **Z**).
 
-**Donut precedes plug deliberately:** a loop can carry a locally thick corner (a `(W+1)²` block on a
-fat part of the ring) yet is still a donut — the enclosed void is the stronger signal (two donut
-fixtures have exactly this hole-and-block overlap). Step 2's loop test is the enclosed-void test —
-**a void notch is a `bay` if it reaches the shape's edge, a `hole` if terrain encloses it** — the line
-between the open scythe and the closed donut `[]`. Steps 3 and 4 are the two families the thin-path
-catalog was blind to: the body and the branch.
+**The branch test is rectilinear, not morphological — no medial-axis / thinning.** Counting full-width
+arms off a `W×W` block is width-robust by construction: a *wide* straight still shows only 2 arms (its
+narrow sides are void), so a 3-wide lane never reads as a junction. **Donut precedes plug deliberately:**
+a loop can carry a locally thick corner (a `(W+1)²` block on a fat part of the ring) yet is still a donut —
+the enclosed void is the stronger signal. Step 2's loop test is the enclosed-void test — **a void notch is
+a `bay` if it reaches the shape's edge, a `hole` if terrain encloses it** — the line between the open
+scythe and the closed donut `[]`. Steps 3 and 4 are the two families the thin-path catalog was blind to:
+the body and the branch; the **bay** test in step 5 is what tells a scythe (U) from a Z (both have two
+bends).
 
-**The block and junction predicates are relative to the realized corridor width `W`** — that is why
-they read `(W+1)²` (as `WoolLaneShape` already computes), not a fixed size. The scale-free `t/v/w`
-shape does **not** fix `W`, so a *wide* scythe (a 2-wide fold) and a plug are only separable once
-realized: classification runs on geometry, not on the abstract grid. The fixtures in
-`tools/deriver/shapes/` carry this catalog in the plan format — `shapes-gen` builds them from the grids
-above and checks each against its family.
+**The predicates are relative to `W`, so the scale-free `t/v/w` shape does not fully fix a shape.** A
+*wide* scythe (a 2-wide fold) and a plug, or a wide scythe and a branch, are only separable once the
+width is known — which is why `WoolApproachShape` takes `W` rather than guessing it. At unit scale
+(`W=1`) one fixture, `scythe-3-wide`, genuinely branches and reads **H**; at its realized (wider) width
+it is a scythe. The fixtures in `tools/deriver/shapes/` carry this catalog in the plan format —
+`shapes-gen` builds them from the grids above and checks each against its family with `WoolApproachShape`
+(**16 OK / 1 W-ambiguous**).
 
 | shape | example(s) | reads |
 |---|---|---|
