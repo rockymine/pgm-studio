@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Compose;
 /// reads back (see the base wool-approach catalog in <c>docs/contracts/layout-generation.md</c> §2). This
 /// first pass covers the thin-corridor families the bend count already names; the branched (H), looped
 /// (donut) and solid (plug) families come with the promoted skeleton classifier.</summary>
-public enum ApproachFamily { I, L, Z }
+public enum ApproachFamily { I, L, Z, Scythe, H, Donut, Plug }
 
 /// <summary>Where the wool room sits relative to the approach's final segment. <see cref="Inline"/> continues
 /// it straight (the plain dead-end). <see cref="SideTuck"/> turns the room off perpendicular at the end — the
@@ -99,6 +99,47 @@ public static class WoolBoxEmitter
                 t.Add([0, z1, box.W, cw]);                           // crossing band
                 t.Add([box.W - cw, botZ, cw, botLen]);               // bottom arm (right)
                 room = [box.W - cw, box.H - RoomDepthCells, cw, RoomDepthCells];
+                break;
+            }
+            case ApproachFamily.Scythe:
+            {
+                // U: down the mouth-side leg, across the bottom, up the return leg; the legs sit one corridor
+                // width apart so the bay between them is a tight ~cw notch (a wider gap stops reading as a bay).
+                Need(box.W >= 3 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
+                int legH = box.H - cw, span = 3 * cw;                 // left leg | cw bay | return leg
+                t.Add([0, 0, cw, legH]);                              // left leg (down) — the mouth
+                t.Add([0, box.H - cw, span, cw]);                     // bottom bar spanning both legs + the bay
+                t.Add([2 * cw, RoomDepthCells, cw, legH - RoomDepthCells]);  // return leg (up), one bay over
+                room = [2 * cw, 0, cw, RoomDepthCells];               // wool caps the return leg
+                break;
+            }
+            case ApproachFamily.H:
+            {
+                // a + : a full-height spine crossed by a full-width bar; the wool dead-ends the spine's bottom.
+                Need(box.W >= 3 * cw && box.H >= 3 * cw + RoomDepthCells, family, box);
+                int sx = (box.W - cw) / 2, cz = (box.H - RoomDepthCells - cw) / 2;
+                t.Add([sx, 0, cw, box.H - RoomDepthCells]);          // vertical spine
+                t.Add([0, cz, box.W, cw]);                           // horizontal crossbar (both sides)
+                room = [sx, box.H - RoomDepthCells, cw, RoomDepthCells];
+                break;
+            }
+            case ApproachFamily.Donut:
+            {
+                // a rectangular ring around an enclosed hole (multi-access); the wool is a stub off the bottom bar.
+                Need(box.W >= 2 * cw + 1 && box.H >= 2 * cw + 1, family, box);
+                t.Add([0, 0, box.W, cw]);                            // top bar
+                t.Add([0, box.H - cw, box.W, cw]);                   // bottom bar
+                t.Add([0, 0, cw, box.H]);                            // left bar
+                t.Add([box.W - cw, 0, cw, box.H]);                   // right bar
+                room = [(box.W - cw) / 2, box.H, cw, RoomDepthCells];// stub below the bottom bar
+                break;
+            }
+            case ApproachFamily.Plug:
+            {
+                // a solid body — the wool caps it on a tab (the plaza pole).
+                Need(box.W >= cw + 1 && box.H >= cw + 1 + RoomDepthCells, family, box);
+                t.Add([0, 0, box.W, box.H - RoomDepthCells]);        // solid body
+                room = [(box.W - cw) / 2, box.H - RoomDepthCells, cw, RoomDepthCells];  // tab
                 break;
             }
             default: throw new ComposeException($"unsupported family {family}.");

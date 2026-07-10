@@ -1,56 +1,51 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// Round-trip verification for the composer's wool-box base-shape emitter (docs/contracts/layout-generation.md §2,
-// "base wool-approach shapes"). Emits a matrix of base shapes with WoolBoxEmitter and reads each back with the
-// categorizer (WoolLaneShape): requested == derived is the mirror closing. This pass covers the thin-corridor
-// families the bend count already names (I/L/Z); the branched/looped/solid families follow once the four-way
-// skeleton classifier is promoted into the library. Run: dotnet run tools/deriver/emit-verify.cs
+// Round-trip verification for the composer's wool-box base-shape emitter (docs/contracts/layout-generation.md §2).
+// Emits every base family with WoolBoxEmitter and reads each back with the canonical classifier
+// (WoolApproachShape, laneWidth = cw): requested == derived is the mirror closing — what the composer meant to
+// make is what the categorizer sees. Run: dotnet run tools/deriver/emit-verify.cs
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 
-var families = new[] { ApproachFamily.I, ApproachFamily.L, ApproachFamily.Z };
-string Expect(ApproachFamily f) => f.ToString();
-
-var boxes = new (int W, int H)[] { (4, 8), (6, 12), (6, 16), (8, 14), (10, 20) };
-var widths = new[] { 2, 3 };
+var families = Enum.GetValues<ApproachFamily>();
+var cws = new[] { 2, 3 };
+var boxes = new (int W, int H)[] { (12, 16), (16, 22) };   // large enough for every family's turns
 int ok = 0, bad = 0, skip = 0; var fails = new List<string>();
-Console.WriteLine($"{"family",-7} {"box",-7} {"cw",3} {"flip",6}  {"derived",-9} status");
-Console.WriteLine(new string('-', 47));
+Console.WriteLine($"{"family",-8} {"box",-7} {"cw",3} {"flip",6}  {"derived",-11} status");
+Console.WriteLine(new string('-', 48));
 foreach (var f in families)
-    foreach (var (bw, bh) in boxes)
-        foreach (var cw in widths)
+    foreach (var cw in cws)
+        foreach (var (W, H) in boxes)
             foreach (var flip in new[] { false, true })
             {
-                if (cw > bw) { skip++; continue; }
                 EmittedApproach a;
-                try { a = WoolBoxEmitter.Emit(f, new WoolBox(0, 0, bw, bh), cw, flip); }
-                catch (ComposeException) { skip++; continue; }   // box too small for this family/width
+                try { a = WoolBoxEmitter.Emit(f, new WoolBox(0, 0, W, H), cw, flip); }
+                catch (ComposeException) { skip++; continue; }
                 var plan = WoolBoxEmitter.AsPlan(a);
-                var (shape, w) = WoolLaneShape.Classify(plan, a.WoolRoom.Id);
-                var pass = shape == Expect(f);
-                if (pass) ok++; else { bad++; fails.Add($"{f} {bw}x{bh} cw{cw} flip{flip}: got {shape}·w{w}"); }
-                Console.WriteLine($"{f,-7} {bw + "x" + bh,-7} {cw,3} {flip,6}  {shape + "·w" + w,-9} {(pass ? "OK" : "MISMATCH")}");
+                var (s, wd) = WoolApproachShape.Classify(plan, a.WoolRoom.Id, cw);
+                var pass = s.ToString() == f.ToString();
+                if (pass) ok++; else { bad++; fails.Add($"{f} {W}x{H} cw{cw} flip{flip}: got {s}"); }
+                Console.WriteLine($"{f,-8} {W + "x" + H,-7} {cw,3} {flip,6}  {s + "·w" + wd,-11} {(pass ? "OK" : "MISMATCH")}");
             }
-// side-tuck: an I lane whose room turns perpendicular at the end (the catalog's side-tuck). It must still
-// read I (the lane is straight — the room is excluded from the bend count) AND the room must be a real tuck
-// (wider than the lane column), not an inline continuation.
-foreach (var (bw, bh) in boxes)
-    foreach (var cw in widths)
+
+// side-tuck: an I lane whose room turns perpendicular at the terminal — must read I and be side-attached
+// (the room shares a vertical edge with the lane), never a cap extending the lane's end.
+foreach (var cw in cws)
+    foreach (var (W, H) in boxes)
         foreach (var flip in new[] { false, true })
         {
-            if (cw > bw) { skip++; continue; }
             EmittedApproach a;
-            try { a = WoolBoxEmitter.Emit(ApproachFamily.I, new WoolBox(0, 0, bw, bh), cw, flip, RoomPlacement.SideTuck); }
+            try { a = WoolBoxEmitter.Emit(ApproachFamily.I, new WoolBox(0, 0, W, H), cw, flip, RoomPlacement.SideTuck); }
             catch (ComposeException) { skip++; continue; }
             var plan = WoolBoxEmitter.AsPlan(a);
-            var (shape, w) = WoolLaneShape.Classify(plan, a.WoolRoom.Id);
+            var (s, wd) = WoolApproachShape.Classify(plan, a.WoolRoom.Id, cw);
             int[] lane = a.Terrain[0].Rect, rm = a.WoolRoom.Rect;
-            var side = rm[0] == lane[0] + lane[2] || rm[0] + rm[2] == lane[0];  // room beside the lane, not capping its end
-            var pass = shape == "I" && side;
-            if (pass) ok++; else { bad++; fails.Add($"I-tuck {bw}x{bh} cw{cw} flip{flip}: got {shape}·w{w} side={side}"); }
-            Console.WriteLine($"{"I-tuck",-7} {bw + "x" + bh,-7} {cw,3} {flip,6}  {shape + "·w" + w,-9} {(pass ? "OK" : "MISMATCH")}");
+            var side = rm[0] == lane[0] + lane[2] || rm[0] + rm[2] == lane[0];
+            var pass = s == ApproachShape.I && side;
+            if (pass) ok++; else { bad++; fails.Add($"I-tuck {W}x{H} cw{cw} flip{flip}: got {s} side={side}"); }
+            Console.WriteLine($"{"I-tuck",-8} {W + "x" + H,-7} {cw,3} {flip,6}  {s + "·w" + wd,-11} {(pass ? "OK" : "MISMATCH")}");
         }
 
-Console.WriteLine(new string('-', 47));
+Console.WriteLine(new string('-', 48));
 Console.WriteLine($"{ok} OK / {bad} MISMATCH / {skip} skipped (box too small)");
 foreach (var m in fails) Console.WriteLine($"  FAIL {m}");
