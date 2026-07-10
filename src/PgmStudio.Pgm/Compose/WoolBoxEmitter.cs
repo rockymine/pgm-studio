@@ -103,24 +103,28 @@ public static class WoolBoxEmitter
             }
             case ApproachFamily.Scythe:
             {
-                // U: down the mouth-side leg, across the bottom, up the return leg; the legs sit one corridor
-                // width apart so the bay between them is a tight ~cw notch (a wider gap stops reading as a bay).
-                Need(box.W >= 3 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
-                int legH = box.H - cw, span = 3 * cw;                 // left leg | cw bay | return leg
-                t.Add([0, 0, cw, legH]);                              // left leg (down) — the mouth
-                t.Add([0, box.H - cw, span, cw]);                     // bottom bar spanning both legs + the bay
-                t.Add([2 * cw, RoomDepthCells, cw, legH - RoomDepthCells]);  // return leg (up), one bay over
-                room = [2 * cw, 0, cw, RoomDepthCells];               // wool caps the return leg
+                // the S-hook (ttvw/vtvt/vttt): enter at the top-left tail, drop the spine, run the bottom,
+                // climb the return leg to the wool at top-right — three bends with a tight bay between the
+                // spine and the return leg (not a symmetric U).
+                Need(box.W >= 4 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
+                int botZ = box.H - cw;
+                t.Add([0, 0, cw, cw]);                               // top-left tail — the mouth
+                t.Add([cw, 0, cw, botZ]);                            // spine (down from the tail)
+                t.Add([cw, botZ, 3 * cw, cw]);                       // bottom bar (spine → return leg)
+                t.Add([3 * cw, RoomDepthCells, cw, botZ - RoomDepthCells]);  // return leg (up), one bay over
+                room = [3 * cw, 0, cw, RoomDepthCells];              // wool caps the return leg (top-right)
                 break;
             }
             case ApproachFamily.H:
             {
-                // a + : a full-height spine crossed by a full-width bar; the wool dead-ends the spine's bottom.
-                Need(box.W >= 3 * cw && box.H >= 3 * cw + RoomDepthCells, family, box);
-                int sx = (box.W - cw) / 2, cz = (box.H - RoomDepthCells - cw) / 2;
-                t.Add([sx, 0, cw, box.H - RoomDepthCells]);          // vertical spine
-                t.Add([0, cz, box.W, cw]);                           // horizontal crossbar (both sides)
-                room = [sx, box.H - RoomDepthCells, cw, RoomDepthCells];
+                // the branch (vwv/ttt/tvt): two legs run down to the hub and merge at a crossbar; the wool
+                // sits on the crossbar's middle. TWO attachment feet + the wool (multi-access), not a 4-armed +.
+                Need(box.W >= 3 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
+                int wx = (box.W - cw) / 2, barZ = RoomDepthCells;
+                t.Add([0, barZ, box.W, cw]);                         // crossbar (full width)
+                t.Add([0, barZ + cw, cw, box.H - barZ - cw]);        // left leg (down to the hub)
+                t.Add([box.W - cw, barZ + cw, cw, box.H - barZ - cw]);  // right leg (down to the hub)
+                room = [wx, 0, cw, RoomDepthCells];                  // wool on top of the crossbar's middle
                 break;
             }
             case ApproachFamily.Donut:
