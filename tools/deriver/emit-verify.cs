@@ -44,9 +44,10 @@ foreach (var (bw, bh) in boxes)
             catch (ComposeException) { skip++; continue; }
             var plan = WoolBoxEmitter.AsPlan(a);
             var (shape, w) = WoolLaneShape.Classify(plan, a.WoolRoom.Id);
-            var perp = a.WoolRoom.Rect[2] > a.Terrain[0].Rect[2];   // room wider than the lane column = a real tuck
-            var pass = shape == "I" && perp;
-            if (pass) ok++; else { bad++; fails.Add($"I-tuck {bw}x{bh} cw{cw} flip{flip}: got {shape}·w{w} perp={perp}"); }
+            int[] lane = a.Terrain[0].Rect, rm = a.WoolRoom.Rect;
+            var side = rm[0] == lane[0] + lane[2] || rm[0] + rm[2] == lane[0];  // room beside the lane, not capping its end
+            var pass = shape == "I" && side;
+            if (pass) ok++; else { bad++; fails.Add($"I-tuck {bw}x{bh} cw{cw} flip{flip}: got {shape}·w{w} side={side}"); }
             Console.WriteLine($"{"I-tuck",-7} {bw + "x" + bh,-7} {cw,3} {flip,6}  {shape + "·w" + w,-9} {(pass ? "OK" : "MISMATCH")}");
         }
 

@@ -59,13 +59,14 @@ public static class WoolBoxEmitter
         {
             case ApproachFamily.I when roomPlacement == RoomPlacement.SideTuck:
             {
-                // straight approach, room turned perpendicular off the end — the room extends past the lane
-                // column so the wool tucks to the side. Still reads I: the lane (room excluded) is straight.
-                Need(box.W >= cw + 1 && box.H >= RoomDepthCells + cw, family, box);
-                int laneLen = box.H - RoomDepthCells, roomLen = Math.Min(box.W, 2 * cw);
-                t.Add([0, 0, cw, laneLen]);                  // straight vertical approach (left)
-                room = [0, laneLen, roomLen, RoomDepthCells];// room turns off to the +x side at the end
-                at = [roomLen - cw / 2.0, RoomDepthCells / 2.0];  // wool at the tucked (far) end
+                // straight lane; the room is a stub off the SIDE of the lane at the terminal — the catalog's
+                // side-tuck (tttt/vvvw): the lane runs straight to its end and the wool ducks off to one side.
+                // The room is BESIDE the lane (shares a vertical corridor-width edge), never a wide cap extending
+                // the lane's end. It reads I: the lane is straight and the room is excluded from the bend count.
+                Need(box.W >= cw + RoomDepthCells && box.H >= 2 * cw, family, box);
+                t.Add([0, 0, cw, box.H]);                    // straight vertical lane, full depth (left)
+                room = [cw, box.H - cw, RoomDepthCells, cw]; // room off the lane's right side, at the terminal
+                at = [RoomDepthCells / 2.0, cw / 2.0];
                 break;
             }
             case ApproachFamily.I:
