@@ -99,18 +99,29 @@ bottom. These are scale-independent *shapes*, not sizes — each cell stretches 
 build zones **subdivide** them afterward (a zone replaces a run of `v` to bridge it, or cuts a `t`
 run to split a lane), so the catalog is the terrain/void topology *before* cutting.
 
-**The four-way skeleton test** places any approach as a single decision tree over the terrain
-(`w` counts as a terminus of the terrain skeleton):
+**The skeleton test** places any approach as one decision tree over the terrain (the wool `w` counts
+as a walkable terminus). Order matters — the earlier tests are the stronger signals:
 
-1. **A filled block present** (a solid `(W+1)²` chunk — `WoolLaneShape`'s `Thick`/`Blk` test)? →
-   **plug / body**. The wool caps a solid mass, not a corridor; this is the `plaza` pole.
-2. else a thin path — **is it a closed loop?** → **hole / donut** (terrain encloses a void).
-3. else — **any cell with ≥3 walkable neighbours (a T / + / Y junction)?** → **H / branch**.
-4. else open and unbranched → **I / L / Z / scythe** by bend count.
+1. **No terrain touches the wool?** → **isolated** (build-only).
+2. **A closed loop** — terrain encloses a void? → **hole / donut**.
+3. **A filled block** — a solid `(W+1)²` chunk (`WoolLaneShape`'s `Thick`/`Blk` test)? → **plug / body**
+   (the wool caps a solid mass; the `plaza` pole).
+4. **A junction** — any walkable cell with ≥3 walkable neighbours (a T / + / Y)? → **H / branch**.
+5. else open, unbranched → **I / L / Z / scythe** by bend count.
 
-Step 2's loop test is the enclosed-void test — **a void notch is a `bay` if it reaches the shape's
-edge, a `hole` if terrain encloses it** — the line between the open scythe/U and the closed donut
-`[]`. Steps 1 and 3 are the two families the thin-path catalog was blind to: the branch and the body.
+**Donut precedes plug deliberately:** a loop can carry a locally thick corner (a `(W+1)²` block on a
+fat part of the ring) yet is still a donut — the enclosed void is the stronger signal (two donut
+fixtures have exactly this hole-and-block overlap). Step 2's loop test is the enclosed-void test —
+**a void notch is a `bay` if it reaches the shape's edge, a `hole` if terrain encloses it** — the line
+between the open scythe and the closed donut `[]`. Steps 3 and 4 are the two families the thin-path
+catalog was blind to: the body and the branch.
+
+**The block and junction predicates are relative to the realized corridor width `W`** — that is why
+they read `(W+1)²` (as `WoolLaneShape` already computes), not a fixed size. The scale-free `t/v/w`
+shape does **not** fix `W`, so a *wide* scythe (a 2-wide fold) and a plug are only separable once
+realized: classification runs on geometry, not on the abstract grid. The fixtures in
+`tools/deriver/shapes/` carry this catalog in the plan format — `shapes-gen` builds them from the grids
+above and checks each against its family.
 
 | shape | example(s) | reads |
 |---|---|---|

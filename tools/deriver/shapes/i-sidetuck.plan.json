@@ -1,0 +1,51 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "i-sidetuck"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "none",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "t1",
+      "role": "piece",
+      "rect": [
+        0,
+        0,
+        4,
+        1
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        3,
+        1,
+        1,
+        1
+      ]
+    }
+  ],
+  "zones": [],
+  "placements": {
+    "spawns": [],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          0,
+          0
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}

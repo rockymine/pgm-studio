@@ -122,7 +122,7 @@ public sealed class PlanPiece
     [JsonPropertyName("surface")] public int? Surface { get; set; }
     [JsonPropertyName("mirrors")] public bool? Mirrors { get; set; }
 
-    public bool MirrorsOrDefault => Mirrors ?? true;
+    [JsonIgnore] public bool MirrorsOrDefault => Mirrors ?? true;
 }
 
 /// <summary>A build zone: a plain rect (<c>[x, z, w, h]</c> cells) where building is allowed, with optional
