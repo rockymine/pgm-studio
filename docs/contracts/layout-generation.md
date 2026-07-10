@@ -54,6 +54,69 @@ front it creates: a 40-block `gap` interface along a rectangle's whole side is a
 the attack paths.* The old "directed-flow vs open-mid" axis stops being a category and becomes
 geometry.
 
+**Interface width is the master variable.** The **lane** — the seeds' 10-block / 2-cell corridor —
+is the base *reference* width, and the useful rungs are **w2 / w4 / w6 ≈ 1 / 2 / 3 lanes**
+(10 / 20 / 30 blocks). Width is **not** strictly quantized: a 15- or 25-wide interface is valid, and
+a wide **entry** commonly tapers into a narrower lane (a 15 mouth funnelling to a 10 corridor). Sizes
+scale; the approach *shapes* are scale-independent, and the fill menu is keyed on the rung a width
+sits nearest. The reference range matches what the lane classifier admits — `WoolLaneShape` clamps
+corridor width to `[2, 6]` cells, i.e. 1 to 3 lanes; wider than that is not a corridor but a hub. The
+width of the interface where two boxes touch does three things at once:
+
+- **sets connectivity** — a w2 touch is a single funnel (a chokepoint everyone passes through); w4/w6
+  admit parallel or split flow;
+- **classifies the joint** — a touch ≤ ~1 lane *continues* a lane (a **bridge**: the corridor runs
+  through it); a touch ≥ ~3 lanes *is an area* (a **hub**: a junction, not a corridor). w4 is the
+  unstable middle that must resolve — a 20-wide run reads badly as a straight lane, so it either
+  twists (thins to an L/I) or splits (lane + build-lane);
+- **gates the fill menu** — the width tells the composer which realizations are legal at that touch.
+
+The width→fill menu is the generative core (the production rule) — reference rungs, with intermediate
+widths (15, 25) tapering toward the nearest. Buckets are stable; entries grow:
+
+| touch | lanes | connectivity | legal fills |
+|---|---|---|---|
+| **w2 (10)** | 1 | single funnel / chokepoint | one I / L / Z lane; or a pure drain (protection only) |
+| **w4 (20)** | 2 | too wide to stay straight | 10 terrain + 10 build-lane beside it; or a 20 stub that twists to an L/I |
+| **w6 (30)** | 3 | multi-access | 20 terrain + 10 build feeding in; two parallel 10 strands with a hole between; terrain-10 / build-10 / terrain-10; or a wide funnel that splits into a hole with two approaches (the controlled plaza) |
+
+**Lane and approach are separate objects.** A wool lane always ends in a T (the dead-end room), and
+that terminal corridor is simple — one of **I / L / Z**, which is all the lane classifier ever needs
+to name. The *approach* — how the lane meets the hub — is where the apparent complexity lives
+(scythe, snake, closed-hole `[]_`), and it is described not by counting bends but by **interface
+width + whether the remainder closes into a hole**. So the "complex" archetypes are **approach
+shapes, not lane shapes**: a w6 approach whose remainder encloses is the closed-hole; the same lane
+with the remainder beside it is a lane + build-zone. This split is load-bearing twice — the
+classifier stays simple (lanes are only I/L/Z), and the composer factorises cleanly: pick the
+approach width → pick a lane from that width's menu → **label the remainder** (build-zone if it sits
+beside, hole if it closes). The remainder is never built ad-hoc; it is classified — the mirror of the
+categorizer's zone/hole read.
+
+**The base wool-approach shapes (`t` / `v` / `w` notation).** The *approach* — the terrain
+immediately around a wool room — has a small base vocabulary, written as a character grid: **`t`
+terrain (walkable), `v` void (empty; a build zone may later span it), `w` wool**, rows read top to
+bottom. These are scale-independent *shapes*, not sizes — each cell stretches under realization — and
+build zones **subdivide** them afterward (a zone replaces a run of `v` to bridge it, or cuts a `t`
+run to split a lane), so the catalog is the terrain/void topology *before* cutting. The one test that
+separates the hard cases: **a void notch is a `bay` if it reaches the shape's edge, a `hole` if
+terrain encloses it** — the categorizer's enclosed-void test, and the line between the open scythe/U
+and the closed donut `[]`.
+
+| shape | example(s) | reads |
+|---|---|---|
+| **isolated** | `vv / wv / vv` | wool ringed by void — no terrain approach; reachable only by building |
+| **straight (I)** | `tttw / vvvv` | a terrain lane caps the wool inline; void below |
+| **side-tuck (I)** | `tttt / vvvw` | the wool hangs under one end of a terrain bar (approached from the long side) |
+| **corner (L)** | `tw / vt / tt` · `tttv / vvtw` | one bend — terrain reaches the wool from two adjacent sides |
+| **flanked** | `tt / vw / tt` | terrain on two opposite sides of the wool, an open void slot on the flank |
+| **bay / scythe (U)** | `tttv / tvtw` · `tttvv / tvttw` · `ttttv / ttvtw` | an *open* void notch beside the wool — a partial loop; tail length to the wool varies |
+| **hole / donut** | `ttttv / vtvtv / vtttw` · `ttttv / ttvtv / vtttw` · `ttttvv / ttvtvv / vttttw` | terrain *encloses* a void — a full loop, multi-access; ring thickness and tail length vary |
+
+The families are an **escalation, not a flat set**: an L whose lane doubles back is a scythe; a scythe
+whose bay closes is a donut. The variants inside a family are the knobs — **tail length** (how far the
+wool sits past the loop/bend), **ring thickness** (how much terrain wraps a hole), and the
+**build-zone cuts** that break any of these into the through-cut lanes the composer emits.
+
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
 team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`
 on every inter-team path; interface widths ≥ the corridor minimum; spawn depth ≥ some distance
@@ -142,6 +205,41 @@ intent.
 7. **Fan by symmetry, emit** `SketchLayout` + `MapIntent` — the existing seed pipeline
    (rasterizer, auto-wired monuments, spawn cubes, wool cages, export) unchanged.
 8. **Roughen pass** (separate, last) — see §4.
+
+### Coarse layout: the box partition and generation order
+
+Step 2 ("grow the team unit") is made concrete by a **coarse box partition** done before any piece
+is filled. A budget (from team size / player count) fixes counts — how many wool lanes, how many
+bridge zones, how wide the middle — and those counts draw a handful of **typed boxes**:
+
+- **spawn** — small and fixed-width (the spawn lane is short and attaches close to terrain):
+  ~10×10 direct, 10×20 with a run-up, or 20×20 for an L around a corner; never large.
+- **hub** — the remainder rectangle: narrow-ish, need not be square, may carry holes. Its fill
+  density is set by wool count — a single wool tolerates a solid-region hub (a plaza only when a wide
+  funnel controls it into a split-hole); multiple wools make the hub direct flow, and it is never a
+  bare plaza.
+- **frontline** — the hub's forward edge, or a piece attached to it.
+- **mid** — the neutral band between the two frontlines.
+
+A box is a **bounding envelope, not a fill target**: its contents must touch its edges and stay
+connected, but need not fill it solid. That is what lets one archetype take many footprints inside a
+fixed envelope. Each box **side is typed and carries a width** — the interface where it meets its
+neighbour — and that width gates the fill menu (§2). Archetype endpoints are likewise typed
+(`entry` docks the hub, `dead-end` is the wool room), so placement is endpoint-to-side matching: the
+dead-end points away from the frontline, the entry meets the hub-side. "Which way an L faces" is not
+a tuned rule; it is the only legal placement.
+
+**Generation runs from the spawn outward, in a relative frame, then embeds.** Order: **spawn → hub →
+rule/wool boxes → frontline**, all in local (relative) coordinates with no fixed origin. The
+**frontline is a join, not a placement** — under symmetry only one half is generated and fanned, so
+the frontline is where the fanned images meet; its position, and therefore the map's overall length,
+is an *output* of how much each half generated, not an input. The join style is the neutral-middle
+form (clean / parallel / hash, per layout-rules.md CT1) chosen up front and realized last. Only once
+the join resolves is the relative concept **embedded into absolute coordinates**. This is the same
+author's-gesture-forward move the seeds already use (author one unit, fan by symmetry), lifted to
+drive the whole coarse layout. The frontline's own shape is then an *output of how the hub was cut* —
+a straight frontline is the uncut hub front; an L/D frontline is a hub with a corner cut, a hole, and
+a small tab attached.
 
 **Unfolding (exploratory).** Treat a team's side as one connected rectilinear piece — build zones
 count as tiles alongside terrain — then *unfold* it: straighten every L corner, so the unfolded
