@@ -97,10 +97,20 @@ immediately around a wool room — has a small base vocabulary, written as a cha
 terrain (walkable), `v` void (empty; a build zone may later span it), `w` wool**, rows read top to
 bottom. These are scale-independent *shapes*, not sizes — each cell stretches under realization — and
 build zones **subdivide** them afterward (a zone replaces a run of `v` to bridge it, or cuts a `t`
-run to split a lane), so the catalog is the terrain/void topology *before* cutting. The one test that
-separates the hard cases: **a void notch is a `bay` if it reaches the shape's edge, a `hole` if
-terrain encloses it** — the categorizer's enclosed-void test, and the line between the open scythe/U
-and the closed donut `[]`.
+run to split a lane), so the catalog is the terrain/void topology *before* cutting.
+
+**The four-way skeleton test** places any approach as a single decision tree over the terrain
+(`w` counts as a terminus of the terrain skeleton):
+
+1. **A filled block present** (a solid `(W+1)²` chunk — `WoolLaneShape`'s `Thick`/`Blk` test)? →
+   **plug / body**. The wool caps a solid mass, not a corridor; this is the `plaza` pole.
+2. else a thin path — **is it a closed loop?** → **hole / donut** (terrain encloses a void).
+3. else — **any cell with ≥3 walkable neighbours (a T / + / Y junction)?** → **H / branch**.
+4. else open and unbranched → **I / L / Z / scythe** by bend count.
+
+Step 2's loop test is the enclosed-void test — **a void notch is a `bay` if it reaches the shape's
+edge, a `hole` if terrain encloses it** — the line between the open scythe/U and the closed donut
+`[]`. Steps 1 and 3 are the two families the thin-path catalog was blind to: the branch and the body.
 
 | shape | example(s) | reads |
 |---|---|---|
@@ -110,12 +120,16 @@ and the closed donut `[]`.
 | **corner (L)** | `tw / vt / tt` · `tttv / vvtw` | one bend — terrain reaches the wool from two adjacent sides |
 | **flanked** | `tt / vw / tt` | terrain on two opposite sides of the wool, an open void slot on the flank |
 | **bay / scythe (U)** | `tttv / tvtw` · `tttvv / tvttw` · `ttttv / ttvtw` | an *open* void notch beside the wool — a partial loop; tail length to the wool varies |
+| **H / branch (T · + · Y)** | `ttv / vtw / ttv` · `ttv / vtv / ttw` · `ttvv / vtvv / tttw` · `ttvw / vtvt / tttt` | terrain *branches* — ≥2 arms meet at a junction and the wool attaches at the spine or an arm's end; open (no enclosed void). The branching escalation of **flanked**; it is the "T and + intersection" the Unfolding pass (§3) keeps when it straightens corners |
 | **hole / donut** | `ttttv / vtvtv / vtttw` · `ttttv / ttvtv / vtttw` · `ttttvv / ttvtvv / vttttw` | terrain *encloses* a void — a full loop, multi-access; ring thickness and tail length vary |
+| **plug / body** | `ttvw / vttt / tttt` | the wool caps a solid convex mass on a tab, not a corridor — the solid-body pole, kin to `plaza` |
 
 The families are an **escalation, not a flat set**: an L whose lane doubles back is a scythe; a scythe
-whose bay closes is a donut. The variants inside a family are the knobs — **tail length** (how far the
-wool sits past the loop/bend), **ring thickness** (how much terrain wraps a hole), and the
-**build-zone cuts** that break any of these into the through-cut lanes the composer emits.
+whose bay closes is a donut; a flanked approach that grows a spine and a junction is an H; and a shape
+filled until no thin path remains is a plug. The variants inside a family are the knobs — **tail
+length** (how far the wool sits past the loop/bend/junction), **ring thickness** (how much terrain
+wraps a hole), **arm count and attach point** (where the wool meets a branch), and the **build-zone
+cuts** that break any of these into the through-cut lanes the composer emits.
 
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
 team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`
