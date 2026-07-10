@@ -43,8 +43,11 @@ public static class WoolBoxEmitter
 
     /// <summary>Emit <paramref name="family"/> into <paramref name="box"/> at the given
     /// <paramref name="corridorWidth"/> (cells). <paramref name="flip"/> mirrors the shape across the box's
-    /// vertical centre (the turn goes left instead of right) so both handednesses are reachable.</summary>
-    public static EmittedApproach Emit(ApproachFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, string idPrefix = "wa")
+    /// vertical centre (the turn goes left instead of right) so both handednesses are reachable.
+    /// <paramref name="attachments"/> (donut) is the number of hub-side stubs, 1 or 2. <paramref name="woolAtEnd"/>
+    /// (H) puts the wool on an end of the crossbar instead of its middle. <paramref name="woolExtend"/>
+    /// (H / donut) holds the wool a short I out from the shape rather than tucked against it.</summary>
+    public static EmittedApproach Emit(ApproachFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, string idPrefix = "wa")
     {
         var cw = corridorWidth;
         if (cw < 2) throw new ComposeException($"corridor width {cw} < 2 (a lane is at least one 10-block cell pair).");
@@ -118,24 +121,35 @@ public static class WoolBoxEmitter
             case ApproachFamily.H:
             {
                 // the branch (vwv/ttt/tvt): two legs run down to the hub and merge at a crossbar; the wool
-                // sits on the crossbar's middle. TWO attachment feet + the wool (multi-access), not a 4-armed +.
-                Need(box.W >= 3 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
-                int wx = (box.W - cw) / 2, barZ = RoomDepthCells;
+                // sits on the crossbar — its middle, or an end (woolAtEnd) — optionally held a short I above it
+                // (woolExtend). TWO attachment feet + the wool (multi-access), not a 4-armed +.
+                Need(box.W >= 3 * cw && box.H >= 2 * cw + RoomDepthCells + (woolExtend ? RoomDepthCells : 0), family, box);
+                int barZ = RoomDepthCells + (woolExtend ? RoomDepthCells : 0);   // room above the bar for the wool (+ short I)
+                int wx = woolAtEnd ? 0 : (box.W - cw) / 2;
                 t.Add([0, barZ, box.W, cw]);                         // crossbar (full width)
                 t.Add([0, barZ + cw, cw, box.H - barZ - cw]);        // left leg (down to the hub)
                 t.Add([box.W - cw, barZ + cw, cw, box.H - barZ - cw]);  // right leg (down to the hub)
-                room = [wx, 0, cw, RoomDepthCells];                  // wool on top of the crossbar's middle
+                if (woolExtend) t.Add([wx, RoomDepthCells, cw, RoomDepthCells]);  // short I from the crossbar up to the wool
+                room = [wx, 0, cw, RoomDepthCells];                  // wool on top (middle or an end)
                 break;
             }
             case ApproachFamily.Donut:
             {
-                // a rectangular ring around an enclosed hole (multi-access); the wool is a stub off the bottom bar.
-                Need(box.W >= 2 * cw + 1 && box.H >= 2 * cw + 1, family, box);
-                t.Add([0, 0, box.W, cw]);                            // top bar
-                t.Add([0, box.H - cw, box.W, cw]);                   // bottom bar
-                t.Add([0, 0, cw, box.H]);                            // left bar
-                t.Add([box.W - cw, 0, cw, box.H]);                   // right bar
-                room = [(box.W - cw) / 2, box.H, cw, RoomDepthCells];// stub below the bottom bar
+                // a rectangular ring around an enclosed hole (multi-access), built from NON-overlapping rects.
+                // Hub-side attachment stub(s) extend the bars leftward (single = top only, double = top+bottom);
+                // the wool hangs off the ring's bottom-right, optionally held a short I further out.
+                int extend = woolExtend ? cw : 0;
+                Need(box.W >= 4 * cw + extend + RoomDepthCells && box.H >= 2 * cw + 1, family, box);
+                int ax = cw, ringH = box.H, span = 3 * cw;           // ring x in [ax, ax+3cw); hub stubs sit in [0, cw)
+                t.Add([ax, 0, span, cw]);                            // top bar
+                t.Add([ax, ringH - cw, span, cw]);                   // bottom bar
+                t.Add([ax, cw, cw, ringH - 2 * cw]);                 // left leg (middle only — no corner overlap)
+                t.Add([ax + 2 * cw, cw, cw, ringH - 2 * cw]);        // right leg (middle only)
+                t.Add([0, 0, cw, cw]);                               // hub attachment (top-left)
+                if (attachments >= 2) t.Add([0, ringH - cw, cw, cw]);// second attachment (bottom-left)
+                int wxr = ax + span;                                 // right of the ring's right leg
+                if (woolExtend) { t.Add([wxr, ringH - cw, cw, cw]); wxr += cw; }  // short I holding the wool
+                room = [wxr, ringH - cw, RoomDepthCells, cw];        // wool off the bottom-right
                 break;
             }
             case ApproachFamily.Plug:
