@@ -46,8 +46,10 @@ public static class WoolBoxEmitter
     /// vertical centre (the turn goes left instead of right) so both handednesses are reachable.
     /// <paramref name="attachments"/> (donut) is the number of hub-side stubs, 1 or 2. <paramref name="woolAtEnd"/>
     /// (H) puts the wool on an end of the crossbar instead of its middle. <paramref name="woolExtend"/>
-    /// (H / donut) holds the wool a short I out from the shape rather than tucked against it.</summary>
-    public static EmittedApproach Emit(ApproachFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, string idPrefix = "wa")
+    /// (H / donut) holds the wool a short I out from the shape rather than tucked against it.
+    /// <paramref name="attachmentWidth"/> (donut) is the hub-interface width of each attachment in cells (0 =
+    /// one corridor width; the width grammar's w2/w4/w6 = <c>cw</c>/<c>2·cw</c>/<c>3·cw</c>).</summary>
+    public static EmittedApproach Emit(ApproachFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa")
     {
         var cw = corridorWidth;
         if (cw < 2) throw new ComposeException($"corridor width {cw} < 2 (a lane is at least one 10-block cell pair).");
@@ -150,14 +152,14 @@ public static class WoolBoxEmitter
                 // Hub-side attachment stub(s) extend the bars leftward (single = top only, double = top+bottom).
                 // The wool sits off the ring's bottom-right — a stub (optionally a short I out), or integrated
                 // AT the bottom-right corner (woolAtEnd), replacing that corner cell (tttt/vtvt/vttw).
-                int extend = woolExtend ? cw : 0;
-                Need(box.W >= 4 * cw + extend + RoomDepthCells && box.H >= 2 * cw + 1, family, box);
+                int extend = woolExtend ? cw : 0, aw = attachmentWidth > 0 ? attachmentWidth : cw;  // attachment interface width
+                Need(box.W >= 4 * cw + extend + RoomDepthCells && box.H >= 2 * cw + 1 && box.H >= 2 * aw + 1, family, box);
                 int ax = cw, ringH = box.H, span = 3 * cw;           // ring x in [ax, ax+3cw); hub stubs sit in [0, cw)
                 t.Add([ax, 0, span, cw]);                            // top bar
                 t.Add([ax, cw, cw, ringH - 2 * cw]);                 // left leg (middle only — no corner overlap)
                 t.Add([ax + 2 * cw, cw, cw, ringH - 2 * cw]);        // right leg (middle only)
-                t.Add([0, 0, cw, cw]);                               // hub attachment (top-left)
-                if (attachments >= 2) t.Add([0, ringH - cw, cw, cw]);// second attachment (bottom-left)
+                t.Add([0, 0, cw, aw]);                               // hub attachment (top-left), aw cells wide
+                if (attachments >= 2) t.Add([0, ringH - aw, cw, aw]);// second attachment (bottom-left)
                 if (woolAtEnd)
                 {
                     t.Add([ax, ringH - cw, 2 * cw, cw]);            // bottom bar stops before the corner
