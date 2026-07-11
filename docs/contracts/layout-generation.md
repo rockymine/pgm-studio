@@ -112,9 +112,10 @@ matters — the earlier tests are the stronger signals:
    a solid mass; the `plaza` pole).
 5. **A branch** — a filled `W×W` block with ≥3 sides whose full outward `W`-strip is also filled (a T / +
    / Y)? → **H / branch**.
-6. else the thin open path → **I** / **L** by bend count; **≥2 bends** split by whether the lane wraps a
-   **bay** (an open concavity — a void with lane within `W` on ≥3 sides = **scythe**/U) or not (an **S** =
-   **Z**).
+6. else the open path → **I** / **L** by bend count; **≥2 bends** split by whether the approach wraps a
+   **bay** (an open concavity — a void with terrain within `W` on ≥3 sides = **scythe**/U) or not (an **S** =
+   **Z**). The bends are reflex corners of the terrain **outline** (the approach minus the room), so the count
+   is **width-invariant** — a lane and the same lane widened uniformly turn the same number of times.
 
 **The branch test is rectilinear, not morphological — no medial-axis / thinning.** Counting full-width
 arms off a `W×W` block is width-robust by construction: a *wide* straight still shows only 2 arms (its
@@ -126,13 +127,16 @@ scythe and the closed donut `[]`. Steps 3 and 4 are the two families the thin-pa
 the body and the branch; the **bay** test in step 5 is what tells a scythe (U) from a Z (both have two
 bends).
 
-**The predicates are relative to `W`, so the scale-free `t/v/w` shape does not fully fix a shape.** A
-*wide* scythe (a 2-wide fold) and a plug, or a wide scythe and a branch, are only separable once the
-width is known — which is why `WoolApproachShape` takes `W` rather than guessing it. At unit scale
-(`W=1`) one fixture, `scythe-3-wide`, genuinely branches and reads **H**; at its realized (wider) width
-it is a scythe. The fixtures in `tools/deriver/shapes/` carry this catalog in the plan format —
+**The turn count is width-invariant; width still fixes the two width-native families.** The bend split
+(I/L/Z/scythe) reads the outline, so it no longer needs `W` — a fold is a fold at any width. `W` is still
+passed because the **plug** (terrain thicker than a lane is a body) and **branch** (arms meet at lane width)
+tests are genuinely width-native: a 2-wide fold vs a plug, or a wide junction, only separate once the
+reference lane width is known. One fixture, `scythe-3-wide` (`ttttv/ttvtw`), is *drawn with a real
+T-junction* (cell 1,0 has terrain on three sides), so it reads **H** at every scale — a compact grid
+encoding a branch the label didn't intend; a genuinely wide scythe (a scaled `scythe-1`/`scythe-2`) reads
+scythe at any width. The fixtures in `tools/deriver/shapes/` carry this catalog in the plan format —
 `shapes-gen` builds them from the grids above and checks each against its family with `WoolApproachShape`
-(**16 OK / 1 W-ambiguous**).
+(**16 OK / 1 branch-as-drawn**).
 
 | shape | example(s) | reads |
 |---|---|---|
@@ -153,15 +157,18 @@ length** (how far the wool sits past the loop/bend/junction), **ring thickness**
 wraps a hole), **arm count and attach point** (where the wool meets a branch), and the **build-zone
 cuts** that break any of these into the through-cut lanes the composer emits.
 
-A separate knob the emitter makes concrete: the **entry attachment carries its own width**, independent of
-the lane. The hub-side attachment — the donut's ring stub, or the **entry nub** the Z and scythe start
-from — runs the full `w2/w4/w6` grammar, so a wide interface can dock the hub while the lane past it stays
-one corridor. What matters is *direction*: the nub grows **away** from the rest of the shape, into open
-void, and necks back to one corridor before it meets anything, so the wide part touches only void on its
-far side. That keeps the family — the Z stays two-bend, the scythe keeps its three bends and its open bay.
-Widen the *wrong* way and you get the escalation instead: a fat arm laid **on** the crossing band reads as a
-T (→ **H**), and a nub grown **over** the bay roofs it into a hole (→ **donut**). (All emitted and checked
-through the mirror: `Z nub-w4/w6` → Z, `scythe nub-w4/w6` → scythe, all `ov=0`.)
+**Width is orthogonal to family — the classifier reads the turn count, not the width.** The family is the
+sequence of turns along the approach (I = 0, L = 1, Z = 2 opposing, scythe = 3 with a fold/bay, H = a
+branch), and that is read off the terrain **outline** (reflex corners of the whole approach), so widening the
+*whole* approach uniformly does not change the family: a lane and the same lane at `w4`/`w6` both read the
+same. Width enters only where it genuinely means something — the **plug** test (a body is terrain thicker
+than a lane) and the **branch** test (arms meet at lane width). So "make the approach wider" is just the
+shape at a larger corridor width; the emitter's `attachmentWidth` widens a *donut* attachment (safe because
+the donut is fixed by its enclosed void, ahead of any width test). A caution the geometry forces: a shape
+that changes width *within* one approach — a wide arm narrowing to a thin lane mid-run — grows a shoulder
+that is, rectilinearly, a local T; keep a widening uniform (or let it narrow only at the wool cap, which the
+outline read excludes) rather than stepping down mid-approach. (Checked through the mirror: every family at
+`×1/×2/×3` uniform scale reads its own family, all `ov=0`.)
 
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
 team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`

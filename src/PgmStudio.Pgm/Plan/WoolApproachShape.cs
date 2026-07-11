@@ -11,7 +11,12 @@ public enum ApproachShape { Isolated, I, L, Z, Scythe, U, H, Donut, Plug }
 /// promoted so both the shape fixtures and the composer's emitter read shapes the same way. Order (the earlier
 /// tests are the stronger signals): <b>isolated</b> (no terrain touches the wool) → <b>donut</b> (terrain
 /// encloses a void) → <b>plug</b> (the wool docks a solid body — its approach lane is all thick) →
-/// <b>H</b> (the corridor branches) → else the thin open path <b>I/L/Z/scythe</b> by bend count.
+/// <b>H</b> (the corridor branches) → else the open path <b>I/L/Z/scythe</b> by bend count.
+///
+/// <para><b>Bend count is width-invariant.</b> The I/L/Z/scythe split counts reflex corners of the terrain
+/// <em>outline</em> (the whole approach minus the room), not a thinned centre-line, so a lane and the same lane
+/// widened uniformly read the same family — an L is one turn at any width. Width only enters where it must: the
+/// plug test (a body is terrain thicker than a lane) and the branch test below.</para>
 ///
 /// <para><b>Branch test — rectilinear, width-robust, no thinning.</b> The corridor is a union of axis-aligned
 /// rects. At every fully-filled <c>W×W</c> block (<c>W</c> = the actual corridor width) count the sides whose
@@ -90,12 +95,16 @@ public static class WoolApproachShape
 
         if (HasBranch(comp, w)) return (ApproachShape.H, width);
 
-        // thin open path: I/L by bend count; ≥2 bends split by whether the lane wraps a bay (an open
-        // concavity, void on ≥3 lane sides = scythe/U) or not (an S = Z).
-        int reflex = ReflexCount(lane);
+        // thin open path: I/L/Z/scythe by bend count. The bends are counted on the terrain OUTLINE (the whole
+        // approach minus the room), not the thinned lane — so the turn count is width-invariant: a lane and the
+        // same lane widened uniformly read the same family (an L is one turn at any width). ≥2 bends split by
+        // whether the approach wraps a bay (an open concavity = scythe) or not (an S = Z).
+        var outline = new HashSet<(int, int)>(comp);
+        outline.ExceptWith(room);
+        int reflex = ReflexCount(outline);
         if (reflex == 0) return (ApproachShape.I, width);
         if (reflex == 1) return (ApproachShape.L, width);
-        return (HasBay(lane, comp, w) ? ApproachShape.Scythe : ApproachShape.Z, width);
+        return (HasBay(outline, comp, w) ? ApproachShape.Scythe : ApproachShape.Z, width);
     }
 
     // A fully-filled w×w block with ≥3 sides whose full outward w-strip is also filled — a branch (T/+/Y).

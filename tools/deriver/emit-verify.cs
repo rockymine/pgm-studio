@@ -55,14 +55,15 @@ foreach (var cw in cws)
     Check($"H middle cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw), cw);
     Check($"H edge cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw, woolAtEnd: true), cw);
     Check($"H edge+short-I cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw, woolAtEnd: true, woolExtend: true), cw);
-    // wide entry nub (attachment) on the open shapes — the nub sticks away from the bay, so the family holds
-    var zb = new WoolBox(0, 0, 5 * cw, 7 * cw);
-    Check($"Z nub-w4 cw{cw}", ApproachFamily.Z, () => WoolBoxEmitter.Emit(ApproachFamily.Z, zb, cw, attachmentWidth: 2 * cw), cw);
-    Check($"Z nub-w6 cw{cw}", ApproachFamily.Z, () => WoolBoxEmitter.Emit(ApproachFamily.Z, zb, cw, attachmentWidth: 3 * cw), cw);
-    var sb = new WoolBox(0, 0, 6 * cw, 4 * cw + 2);
-    Check($"scythe nub-w4 cw{cw}", ApproachFamily.Scythe, () => WoolBoxEmitter.Emit(ApproachFamily.Scythe, sb, cw, attachmentWidth: 2 * cw), cw);
-    Check($"scythe nub-w6 cw{cw}", ApproachFamily.Scythe, () => WoolBoxEmitter.Emit(ApproachFamily.Scythe, sb, cw, attachmentWidth: 3 * cw), cw);
 }
+
+// a uniformly-widened approach reads the same family as the base lane — the classifier counts turns on the
+// terrain outline, so width is invariant. Emit each thin family, then a ×2 and ×3 scaled twin, at the matching
+// reference width, and assert requested == derived at every scale.
+Console.WriteLine("=== width-invariance (uniform scaling) ===");
+foreach (var f in new[] { ApproachFamily.I, ApproachFamily.L, ApproachFamily.Z, ApproachFamily.Scythe, ApproachFamily.H })
+    foreach (var k in new[] { 1, 2, 3 })
+        Check($"{f} x{k}", f, () => WoolBoxEmitter.Emit(f, new WoolBox(0, 0, 6 * (2 * k), 10 * (2 * k)), 2 * k), 2 * k);
 
 Console.WriteLine("=== side-tuck (I, room off the side) ===");
 foreach (var cw in cws)

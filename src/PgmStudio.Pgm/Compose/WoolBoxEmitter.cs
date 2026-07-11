@@ -47,10 +47,8 @@ public static class WoolBoxEmitter
     /// <paramref name="attachments"/> (donut) is the number of hub-side stubs, 1 or 2. <paramref name="woolAtEnd"/>
     /// (H) puts the wool on an end of the crossbar instead of its middle. <paramref name="woolExtend"/>
     /// (H / donut) holds the wool a short I out from the shape rather than tucked against it.
-    /// <paramref name="attachmentWidth"/> is the hub-side attachment/entry width in cells (0 = one corridor
-    /// width; the width grammar's w2/w4/w6 = <c>cw</c>/<c>2·cw</c>/<c>3·cw</c>). It widens the donut's hub stub(s)
-    /// or the scythe's entry tail (the nub grows away from the bay, so the mouth presents a wide interface without
-    /// closing the loop — the three bends and the open bay are preserved, so it stays a scythe).</summary>
+    /// <paramref name="attachmentWidth"/> (donut) is the hub-interface width of each attachment in cells (0 =
+    /// one corridor width; the width grammar's w2/w4/w6 = <c>cw</c>/<c>2·cw</c>/<c>3·cw</c>).</summary>
     public static EmittedApproach Emit(ApproachFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa")
     {
         var cw = corridorWidth;
@@ -98,19 +96,12 @@ public static class WoolBoxEmitter
             }
             case ApproachFamily.Z:
             {
-                // top arm on the left, a full-width band, bottom arm on the right ending in the room. The entry
-                // (top arm) is an attachment: it may widen (attachmentWidth) as a nub sticking LEFT into free
-                // space, necking down to the cw top arm before the band — so the wide mouth never touches the
-                // band-side (a wide arm ON the band would read as a T / branch) and never encloses a pocket. Two
-                // bends stay, no bay forms, so it stays a Z (never a scythe).
-                int aw = attachmentWidth > 0 ? attachmentWidth : cw; // entry (nub) width; nub extends left of the arm
-                Need(box.W >= aw + cw && box.H >= 3 * cw + RoomDepthCells, family, box);
-                int z1 = (box.H - RoomDepthCells - cw) / 2;          // top vertical extent (nub + arm)
+                // top arm on the left, a full-width band, bottom arm on the right ending in the room.
+                Need(box.W >= 2 * cw && box.H >= 3 * cw + RoomDepthCells, family, box);
+                int z1 = (box.H - RoomDepthCells - cw) / 2;          // top-arm length (balanced with the bottom arm)
                 int botZ = z1 + cw, botLen = box.H - RoomDepthCells - botZ;
-                int ax = aw - cw;                                    // top-arm x (nub sticks out to its left)
-                if (aw > cw) t.Add([0, 0, aw, cw]);                  // wide entry nub (top bar, sticks left)
-                t.Add([ax, aw > cw ? cw : 0, cw, aw > cw ? z1 - cw : z1]);  // top arm / neck down to the band
-                t.Add([ax, z1, box.W - ax, cw]);                     // crossing band (top arm → bottom arm)
+                t.Add([0, 0, cw, z1]);                               // top arm (left)
+                t.Add([0, z1, box.W, cw]);                           // crossing band
                 t.Add([box.W - cw, botZ, cw, botLen]);               // bottom arm (right)
                 room = [box.W - cw, box.H - RoomDepthCells, cw, RoomDepthCells];
                 break;
@@ -118,19 +109,15 @@ public static class WoolBoxEmitter
             case ApproachFamily.Scythe:
             {
                 // the S-hook (ttvw/vtvt/vttt): enter at the top-left tail, drop the spine, run the bottom,
-                // climb the return leg to the wool at top-right — three bends with a tight bay (the open void
-                // notch between the spine and the return leg; not a symmetric U). The entry tail is an
-                // attachment: it may widen (attachmentWidth) to the LEFT, away from the bay — the spine drops
-                // from the nub's right end and everything downstream shifts right, so the wide mouth never roofs
-                // the bay (which would close it into a donut). All three bends stay, so it stays a scythe.
-                int aw = attachmentWidth > 0 ? attachmentWidth : cw;  // entry-tail (nub) width
-                Need(box.W >= aw + 3 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
+                // climb the return leg to the wool at top-right — three bends with a tight bay between the
+                // spine and the return leg (not a symmetric U).
+                Need(box.W >= 4 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
                 int botZ = box.H - cw;
-                t.Add([0, 0, aw, cw]);                               // entry tail / nub — the mouth (aw wide)
-                t.Add([aw, 0, cw, botZ]);                            // spine (down from the nub's right end)
-                t.Add([aw, botZ, 3 * cw, cw]);                       // bottom bar (spine → return leg)
-                t.Add([aw + 2 * cw, RoomDepthCells, cw, botZ - RoomDepthCells]);  // return leg (up), one bay over
-                room = [aw + 2 * cw, 0, cw, RoomDepthCells];         // wool caps the return leg (top-right)
+                t.Add([0, 0, cw, cw]);                               // top-left tail — the mouth
+                t.Add([cw, 0, cw, botZ]);                            // spine (down from the tail)
+                t.Add([cw, botZ, 3 * cw, cw]);                       // bottom bar (spine → return leg)
+                t.Add([3 * cw, RoomDepthCells, cw, botZ - RoomDepthCells]);  // return leg (up), one bay over
+                room = [3 * cw, 0, cw, RoomDepthCells];              // wool caps the return leg (top-right)
                 break;
             }
             case ApproachFamily.H:
