@@ -201,6 +201,26 @@ The open work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
 
+- [ ] **G50 — Wool-box emitter: shift the entry/attachment off the box corner.** `WoolBoxEmitter` pins each
+  shape's docking point to a box corner flush against the interface edge, so exactly 3 corners always fill; in
+  a real plan the docking point slides along that edge. Applies to **donut and scythe only** (Z stays corner-
+  pinned). The two behave differently:
+  - **donut** — the attachment slides along the ring's edge; **only the attachment moves, the ring is
+    unchanged.** Standard `ttttb / btvtb / btttw` → moved `btttb / ttvtb / btttw` (attachment drops from the
+    top-left corner down to the left leg; `b` = box/buffer cell, `v` = ring hole).
+  - **scythe** — the entry (tail) shifts off the corner and the shift **propagates inward**: the piece the
+    tail docks to (the spine) **shrinks from the top** so only the wool still reaches the edge. Standard
+    `ttbw / btbt / bttt` → shifted `bbbw / ttbt / bttt`. Shifting *only* the entry cell while leaving the
+    spine full-height is **wrong** (`btbw / ttbt / bttt`) — the attached piece must resize with the shift.
+  Add an entry-offset parameter (offset along the interface edge, clamp rules TBD). The classifier already
+  reads shifted and standard as the same family (both verified `Scythe·w2`). Source plans:
+  `scythenotboxaligned` and `smalldonutattach` uploads. Sibling of G51.
+- [ ] **G51 — Wool-box emitter: variable attachment width on the scythe (parallel to the docked edge).** The
+  attachment's interface width — measured **along** the edge it docks to (it stacks *parallel* to the shape it
+  attaches to, never sticking away perpendicular) — is a knob wired **only on the donut** today
+  (`attachmentWidth`, the ring-leg-parallel `aw`, `w2/w4/w6 = cw/2·cw/3·cw`). Wire the same on the **scythe**
+  entry (widen the tail along the spine it docks to), same grammar. Donut done; scythe missing. Pairs with G50
+  (a shifted, widened entry is the general case).
 - [ ] **G27 — Plan editor: 3-D isometric preview (reuse the sketch iso preview).** The author wants to see
   elevation spatially while planning; the sketch tool's iso preview (prism/terrain calc in
   `sketch-bridge.js`) should be reusable over the compiled plan's pieces/surfaces. Follows the G25
