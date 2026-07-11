@@ -223,6 +223,27 @@ The open work sorts into three domains:
   (`attachmentWidth`, the ring-leg-parallel `aw`, `w2/w4/w6 = cw/2·cw/3·cw`). Wire the same on the **scythe**
   entry (widen the tail along the spine it docks to), same grammar. Donut done; scythe missing. Pairs with G50
   (a shifted, widened entry is the general case).
+- [ ] **G53 — Classifier: width-independent, structural H / U / plug (the branch test must stop being
+  local).** `WoolApproachShape` classifies thin (lane-width) H/U correctly but **breaks on wide ones** — an H
+  with wide legs/crossbar reads **Plug** (solid) or **Scythe** (when it has a bay); a U made of a terrain
+  crossbar + two legs with the wool docked on the crossbar reads **Plug**. Two root causes: (1) the **plug**
+  test is "no thin lane ⇒ body", so any all-thick shape is swallowed — but a wide H/U is thick *and*
+  structured; plug should mean **solid with no bays/arms**, not merely wide. (2) the **branch** test is local
+  (a `W×W` block with ≥3 full-strip arms), and a wide-H's crossbar junction is **locally identical** to a
+  wide-scythe's spine-with-a-side-stub (both are "a straight run + one perpendicular stub") — only *global*
+  structure separates them. The `c5d08da` thin-junction fix rescued the wide **scythe** but is in tension with
+  the wide **H** for exactly this reason; a structural test supersedes it. Corrected definitions (author, these
+  are the spec):
+  - **H** = one **crossbar**, **two legs** attaching flush at the crossbar's two edges (same direction), plus
+    **another I** off the crossbar (opposite side) that **holds the wool**. A 3-arm junction whose two arms are
+    *parallel legs*; the wool rides the stub, not the junction.
+  - **U** = **two legs + a central crossbar** (2 arms). The wool **docks against the crossbar** *or* **is the
+    crossbar** (caught between the legs — today's `flanked`).
+  Hard requirements: **width-independent** (the `completelyabstrusehshapes` plan varies leg / crossbar / stub
+  widths on purpose) and **wool-independent** (the room must not change the reading — the docked-wool U reading
+  H violates this). **Open design question (author-flagged):** the U is conflicted — "U-terrain + docked wool"
+  vs "wool *is* the crossbar (flanked)"; decide whether those are one family or two before implementing. Source
+  plans: `completelyabstrusehshapes`, `uexamples`.
 - [ ] **G52 — Wool-box emitter: wool-room docking mode (extend vs side-dock) for Z and scythe.** Today the
   wool always **extends** the terminal piece in-line (the lane runs straight into the room). Add the option
   for the wool to **dock the side** — perpendicular off the terminal piece, exactly like the `I` family's
