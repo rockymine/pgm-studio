@@ -174,6 +174,50 @@ run reads L). Narrowing only at the wool cap stays invisible (the room is exclud
 (Checked through the mirror: every family at `×1/×2/×3` uniform scale reads its own family, the wide-scythe /
 real-H pair separate correctly, all `ov=0`.)
 
+**The piece vocabulary — every family is a template of role-typed segments.** The classifier *reads* a shape;
+the emitter (`WoolBoxEmitter`) *builds* it, and it lays down each family as the **same fixed set of
+rectangles, only resized**. So a family is an ordered **template** of pieces, each tagged with a **slot role**
+— and naming the roles is what lets the composition rules be stated over pieces instead of raw geometry. The
+roles are a small, stable set:
+
+- **entry** — the *universal attach*: any piece that docks the hub — a lane's mouth, either leg of an H or U,
+  the donut's hub stub. The entry is what the *shift* and *attachment-width* rules target.
+- **room** — the wool room; carries the *extend vs side-dock* rule.
+- **run** — a corridor segment; qualified **entry-run** / **room-run** when a family has two, to say which end
+  it sits at.
+- **bar** — a connecting / crossing bar; qualified **entry-bar** / **room-bar** likewise.
+- **leg** — a structural ring arm (donut).
+
+Each family's template (`room` is always last; terrain pieces precede it in emit order):
+
+| family | template |
+|---|---|
+| **plug** | `room` |
+| **I** | `entry · room` |
+| **L** | `entry · run · room` |
+| **Z** | `entry · bar · room-run · room` |
+| **scythe** | `entry · entry-run · bar · room-run · room` |
+| **U** | `entry · entry · room` |
+| **H** | `bar · entry · entry · room-run · room` |
+| **donut** | `entry-bar · leg · leg · entry · room-bar · room` |
+
+**Plug is the base case** — just the `room` docking the hub box directly, no approach; kept **square and
+size-limited** (~10×10, 15×15), never elongated. (The emitter's current solid-body-plus-tab output is a
+wide/solid *I*, deferred — not this.)
+
+Two invariants: a family always emits the **same piece count** (don't merge collinear pieces — a stable set is
+what makes "the entry is piece N" a usable rule); and a **role is a template slot, not a property of the
+rectangle** — a scythe's `entry-run` and a donut's `leg` are the same rectangle in different slots.
+
+Why this is load-bearing: the composition rules become properties of a **role**, defined once for every
+family. **Entry widening** (the width grammar) and **entry shift** live on the `entry` slot; **wool docking**
+(extend vs side-dock) lives on the `room` slot; **which pieces may split into build zones** (v2) is stated
+per role — a `run`/`bar` can be cut into lane + build-lane, an `entry`/`room` typically stays whole; and
+**where the wool attaches** is the `room`'s relation to its neighbour slot (a `run` it extends, or a `bar` /
+`leg` it side-docks). The templates are also the **structural signatures** the width-independent classifier
+needs — `H = bar · entry · entry · room-run · room` vs `U = entry · entry · room` differ by their pieces, not
+by a local block test.
+
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
 team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`
 on every inter-team path; interface widths ≥ the corridor minimum; spawn depth ≥ some distance
