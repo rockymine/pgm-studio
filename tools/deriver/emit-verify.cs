@@ -51,6 +51,11 @@ foreach (var cw in cws)
     var dbw = new WoolBox(0, 0, 6 * cw + 4, 7 * cw);   // taller box for wide attachments
     Check($"donut attach-w4 cw{cw}", ApproachFamily.Donut, () => WoolBoxEmitter.Emit(ApproachFamily.Donut, dbw, cw, attachmentWidth: 2 * cw), cw);
     Check($"donut attach-w6 cw{cw}", ApproachFamily.Donut, () => WoolBoxEmitter.Emit(ApproachFamily.Donut, dbw, cw, attachments: 2, attachmentWidth: 3 * cw), cw);
+    // regression: a SINGLE wide attachment only needs its own minimal ring (aw + cw tall) — it must NOT be
+    // forced to the two-stub height (2·aw + 1). This box is exactly aw + cw for a w4 attachment; if the height
+    // guard over-constrains again it will ComposeException here and register as a skip, not an OK.
+    var dmin = new WoolBox(0, 0, 6 * cw + 4, 3 * cw);   // 3·cw = aw(2·cw) + cw
+    Check($"donut attach-w4 min-box cw{cw}", ApproachFamily.Donut, () => WoolBoxEmitter.Emit(ApproachFamily.Donut, dmin, cw, attachmentWidth: 2 * cw), cw);
     var hb = new WoolBox(0, 0, 4 * cw, 6 * cw);
     Check($"H middle cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw), cw);
     Check($"H edge cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw, woolAtEnd: true), cw);

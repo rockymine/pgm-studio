@@ -153,7 +153,10 @@ public static class WoolBoxEmitter
                 // The wool sits off the ring's bottom-right — a stub (optionally a short I out), or integrated
                 // AT the bottom-right corner (woolAtEnd), replacing that corner cell (tttt/vtvt/vttw).
                 int extend = woolExtend ? cw : 0, aw = attachmentWidth > 0 ? attachmentWidth : cw;  // attachment interface width
-                Need(box.W >= 4 * cw + extend + RoomDepthCells && box.H >= 2 * cw + 1 && box.H >= 2 * aw + 1, family, box);
+                // a single attachment only has to clear the bottom bar (aw + cw); two need to stack without
+                // overlapping (2·aw + 1). Don't force the two-stub height on a one-stub ring.
+                int needH = Math.Max(2 * cw + 1, attachments >= 2 ? 2 * aw + 1 : aw + cw);
+                Need(box.W >= 4 * cw + extend + RoomDepthCells && box.H >= needH, family, box);
                 int ax = cw, ringH = box.H, span = 3 * cw;           // ring x in [ax, ax+3cw); hub stubs sit in [0, cw)
                 t.Add([ax, 0, span, cw]);                            // top bar
                 t.Add([ax, cw, cw, ringH - 2 * cw]);                 // left leg (middle only — no corner overlap)
