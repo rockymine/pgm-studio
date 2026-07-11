@@ -55,6 +55,13 @@ foreach (var cw in cws)
     Check($"H middle cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw), cw);
     Check($"H edge cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw, woolAtEnd: true), cw);
     Check($"H edge+short-I cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw, woolAtEnd: true, woolExtend: true), cw);
+    // wide entry nub (attachment) on the open shapes — the nub sticks away from the bay, so the family holds
+    var zb = new WoolBox(0, 0, 5 * cw, 7 * cw);
+    Check($"Z nub-w4 cw{cw}", ApproachFamily.Z, () => WoolBoxEmitter.Emit(ApproachFamily.Z, zb, cw, attachmentWidth: 2 * cw), cw);
+    Check($"Z nub-w6 cw{cw}", ApproachFamily.Z, () => WoolBoxEmitter.Emit(ApproachFamily.Z, zb, cw, attachmentWidth: 3 * cw), cw);
+    var sb = new WoolBox(0, 0, 6 * cw, 4 * cw + 2);
+    Check($"scythe nub-w4 cw{cw}", ApproachFamily.Scythe, () => WoolBoxEmitter.Emit(ApproachFamily.Scythe, sb, cw, attachmentWidth: 2 * cw), cw);
+    Check($"scythe nub-w6 cw{cw}", ApproachFamily.Scythe, () => WoolBoxEmitter.Emit(ApproachFamily.Scythe, sb, cw, attachmentWidth: 3 * cw), cw);
 }
 
 Console.WriteLine("=== side-tuck (I, room off the side) ===");

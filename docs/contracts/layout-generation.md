@@ -153,14 +153,15 @@ length** (how far the wool sits past the loop/bend/junction), **ring thickness**
 wraps a hole), **arm count and attach point** (where the wool meets a branch), and the **build-zone
 cuts** that break any of these into the through-cut lanes the composer emits.
 
-A consequence the emitter makes concrete: **interface width is a free knob only where it decorates rather
-than selects.** A *closed* shape carries one — the donut's hub attachment is an appendage on the ring, so
-its width runs the full `w2/w4/w6` grammar without touching the ring's topology. An *open* shape does not:
-widening a thin shape's entry mouth is exactly a step up the escalation — a wide entry on a Z forms a
-pocket (it becomes a **scythe**), and a wider entry on a scythe roofs its bay into a hole (it becomes a
-**donut**). So the open families take no width parameter; their width-varied forms already have names
-further up the ladder, and their genuine knobs are the *length* ones above. (Emitted and checked through the
-mirror: a scythe emitted with a `w6` mouth classifies back as a donut.)
+A separate knob the emitter makes concrete: the **entry attachment carries its own width**, independent of
+the lane. The hub-side attachment — the donut's ring stub, or the **entry nub** the Z and scythe start
+from — runs the full `w2/w4/w6` grammar, so a wide interface can dock the hub while the lane past it stays
+one corridor. What matters is *direction*: the nub grows **away** from the rest of the shape, into open
+void, and necks back to one corridor before it meets anything, so the wide part touches only void on its
+far side. That keeps the family — the Z stays two-bend, the scythe keeps its three bends and its open bay.
+Widen the *wrong* way and you get the escalation instead: a fat arm laid **on** the crossing band reads as a
+T (→ **H**), and a nub grown **over** the bay roofs it into a hole (→ **donut**). (All emitted and checked
+through the mirror: `Z nub-w4/w6` → Z, `scythe nub-w4/w6` → scythe, all `ov=0`.)
 
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
 team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`
