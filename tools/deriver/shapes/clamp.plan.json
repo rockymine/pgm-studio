@@ -1,7 +1,7 @@
 {
   "plan": 1,
   "meta": {
-    "name": "h-branch-1"
+    "name": "clamp"
   },
   "globals": {
     "cell": 5,
@@ -25,16 +25,6 @@
       "id": "t2",
       "role": "piece",
       "rect": [
-        1,
-        1,
-        1,
-        1
-      ]
-    },
-    {
-      "id": "t3",
-      "role": "piece",
-      "rect": [
         0,
         2,
         2,
@@ -45,7 +35,7 @@
       "id": "wool",
       "role": "wool-room",
       "rect": [
-        2,
+        1,
         1,
         1,
         1

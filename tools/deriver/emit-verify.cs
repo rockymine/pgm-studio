@@ -56,17 +56,20 @@ foreach (var cw in cws)
     // guard over-constrains again it will ComposeException here and register as a skip, not an OK.
     var dmin = new WoolBox(0, 0, 6 * cw + 4, 3 * cw);   // 3·cw = aw(2·cw) + cw
     Check($"donut attach-w4 min-box cw{cw}", ApproachFamily.Donut, () => WoolBoxEmitter.Emit(ApproachFamily.Donut, dmin, cw, attachmentWidth: 2 * cw), cw);
+    // U (wool flush on the crossbar) and H (wool on a room-run stub) — middle and end (woolAtEnd) wool.
+    var ub = new WoolBox(0, 0, 4 * cw, 5 * cw);
+    Check($"U middle cw{cw}", ApproachFamily.U, () => WoolBoxEmitter.Emit(ApproachFamily.U, ub, cw), cw);
+    Check($"U edge cw{cw}", ApproachFamily.U, () => WoolBoxEmitter.Emit(ApproachFamily.U, ub, cw, woolAtEnd: true), cw);
     var hb = new WoolBox(0, 0, 4 * cw, 6 * cw);
     Check($"H middle cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw), cw);
     Check($"H edge cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw, woolAtEnd: true), cw);
-    Check($"H edge+short-I cw{cw}", ApproachFamily.H, () => WoolBoxEmitter.Emit(ApproachFamily.H, hb, cw, woolAtEnd: true, woolExtend: true), cw);
 }
 
 // a uniformly-widened approach reads the same family as the base lane — the classifier counts turns on the
 // terrain outline, so width is invariant. Emit each thin family, then a ×2 and ×3 scaled twin, at the matching
 // reference width, and assert requested == derived at every scale.
 Console.WriteLine("=== width-invariance (uniform scaling) ===");
-foreach (var f in new[] { ApproachFamily.I, ApproachFamily.L, ApproachFamily.Z, ApproachFamily.Scythe, ApproachFamily.H })
+foreach (var f in new[] { ApproachFamily.I, ApproachFamily.L, ApproachFamily.Z, ApproachFamily.Scythe, ApproachFamily.Clamp, ApproachFamily.U, ApproachFamily.H })
     foreach (var k in new[] { 1, 2, 3 })
         Check($"{f} x{k}", f, () => WoolBoxEmitter.Emit(f, new WoolBox(0, 0, 6 * (2 * k), 10 * (2 * k)), 2 * k), 2 * k);
 

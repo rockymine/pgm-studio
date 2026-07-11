@@ -679,6 +679,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   compose review gallery (`tools/compose/gallery-gen.cs`) renders the rooms in the editor's role colours.
   323 Pgm tests green. (G49)
 
+- **Wool-approach classifier — width-independent, structural** — `Pgm/Plan/WoolApproachShape.cs`: the
+  categorizer's read of a wool box, rebuilt so **nothing keys off the absolute width of any piece** (uniform
+  scale and per-piece thickness never change the family). One tree: enclosed void → **donut**; wool bridging
+  two opposite bars (removing it disconnects the terrain) → **Clamp**; else by bend count off the outline
+  (0 → I, 1 → L; ≥2 → the two-leg **branch** — two terrain legs share a bbox edge the wool does not sit on —
+  split into **U** when the crossbar overhangs the wool's footprint (flush on a bar wider than itself) vs **H**
+  when the wool caps a room-run stub its own width; no branch → **scythe** if a single-edge bay is wrapped,
+  else **Z**). A bay is a one-bbox-edge concavity (any width), a branch is two runs on a shared edge (a thick
+  leg is still one leg), the U/H split is the crossbar's overhang past the wool. **Plug dropped** (a solid body
+  is a wide/solid **I**; the room-only dock is an interface concern, replaceable by a short-entry **I**). Fixes
+  the wide-H→Scythe/Plug, wide-Z→Plug, and wide-bay→Z misreads. Verified: `shapes-gen` **17/17**, `emit-verify`
+  **113/113**, `stress-shapes` **31/31 · 0 breaks** (grammar-valid but extreme pieces). Contract:
+  `docs/contracts/layout-generation.md` §2. (G53)
+
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
   primitives that let an author design reusable single-unit lane / spawn templates. **G46** adds a `none`

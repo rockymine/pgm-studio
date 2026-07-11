@@ -100,79 +100,77 @@ build zones **subdivide** them afterward (a zone replaces a run of `v` to bridge
 run to split a lane), so the catalog is the terrain/void topology *before* cutting.
 
 **The skeleton test** — implemented as `WoolApproachShape` (`PgmStudio.Pgm.Plan`) — places any approach
-as one decision tree over the terrain. It takes the **reference corridor width `W`** as a parameter (the
-composer's `cw`; the four-way test is relative to it, so the caller passes the width it built at). Order
-matters — the earlier tests are the stronger signals:
+as one decision tree over the terrain, read **width-independently**: nothing keys off the absolute width of
+any piece, so uniform scaling and per-piece thickness (a box-shaped leg, a thick crossbar, a wide bay) never
+change the family. (`W` is still accepted, for the reported corridor width only.) Order matters — the earlier
+tests are the stronger signals:
 
 1. **No terrain touches the wool?** → **isolated** (build-only).
-2. **Wool flanked on two opposite sides** — terrain on both top+bottom or both left+right of the room? →
-   **U / flanked** (the wool is *integrated* between terrain, not a dead-end cap — `tt/vw/tt`).
-3. **A closed loop** — terrain encloses a void? → **hole / donut**.
-4. **A filled block** — a solid `(W+1)²` chunk (the `Thick`/`Blk` test)? → **plug / body** (the wool caps
-   a solid mass; the `plaza` pole).
-5. **A branch** — a **thin** junction: on the terrain with thick body cells removed (every cell inside a
-   `(W+1)²` block, room excepted), a filled `W×W` block with ≥3 sides whose full outward `W`-strip is also
-   filled (a T / + / Y)? → **H / branch**.
-6. else the open path → **I** / **L** by bend count; **≥2 bends** split by whether the approach wraps a
-   **bay** (an open concavity — a void with terrain within `W` on ≥3 sides = **scythe**/U) or not (an **S** =
-   **Z**). The bends are reflex corners of the terrain **outline** (the approach minus the room), so the count
-   is **width-invariant** — a lane and the same lane widened uniformly turn the same number of times.
+2. **A closed loop** — terrain encloses a void? → **hole / donut** (the strongest signal; a loop can carry a
+   locally thick corner and still be a donut).
+3. **Wool clamped between two opposite bars, load-bearing** — terrain on both top+bottom or both left+right
+   of the room *and* removing the wool **disconnects** the terrain (the wool is the closing wall bridging two
+   otherwise-separate bars) → **Clamp** (`tt/vw/tt`). The load-bearing test is what makes this its own family:
+   a wool merely flanked but not bridging falls through to the bend test below.
+4. else the open path by **bend count** — reflex corners of the terrain **outline** (the approach minus the
+   room), so the count is width-invariant: **0 → I**, **1 → L**. **≥2 bends** fork four ways, split first by
+   whether the terrain **branches** (two legs press against one bounding-box edge the wool does *not* sit on —
+   two legs off a crossbar; the wool's own edge is excluded, so a fold's two path-ends never read as a fork):
+   - **branch, wool flush on the crossbar** — the crossbar reaches *past* the wool toward the legs, so the
+     wool docks on a bar wider than itself → **U** (`ttv/vtw/ttv`).
+   - **branch, wool on its own stub** — the wool caps a room-run the same width as itself, lifting it off the
+     crossbar → **H** (`ttvv/vtvv/tttw`). U and H are siblings, split only by that overhang.
+   - **no branch** — a fold that wraps a **bay** (an open concavity) → **scythe**; two opposing bends with no
+     bay → **Z**.
 
-**The branch test is a thin-junction test — rectilinear, no medial-axis / thinning.** It runs on the
-terrain with the thick body cells stripped, so a real fork (thin legs meeting a thin crossbar) is a branch
-but a *wide spot* is not: a fat entry or thick corner produces a "third arm" whose junction sits inside a
-`(W+1)²` solid, which is dropped — a wide scythe stays a scythe, a genuine H still reads as one. Counting
-full-width arms off a `W×W` block is width-robust the other way too: a *wide* straight shows only 2 arms
-(its narrow sides are void), so a 3-wide lane never reads as a junction. **Donut precedes plug deliberately:**
-a loop can carry a locally thick corner (a `(W+1)²` block on a fat part of the ring) yet is still a donut —
-the enclosed void is the stronger signal. Step 2's loop test is the enclosed-void test — **a void notch is
-a `bay` if it reaches the shape's edge, a `hole` if terrain encloses it** — the line between the open
-scythe and the closed donut `[]`. Steps 3 and 4 are the two families the thin-path catalog was blind to:
-the body and the branch; the **bay** test in step 5 is what tells a scythe (U) from a Z (both have two
-bends).
+**Every test is width-independent — no medial-axis / thinning, no reference-`W` probe.** A **bay** is a
+concavity that indents from a *single* edge of the bounding box (a notch wrapped by terrain on its other
+three sides); a corner notch touches two edges and an enclosed hole touches none, so neither counts — and a
+bay is one bay at any width, so a wide bay is still a scythe. A **branch** is two terrain runs on a shared
+bounding-box edge — a thick leg is still one run, so a widened fork still forks and a single (wide) lane,
+whose one run spans the whole edge, never does. The **U vs H** split off a branch is the crossbar's
+**overhang** past the wool's footprint (terrain flush against the wool on the perpendicular diagonal) — a
+bar wider than the wool reads U, a stub the wool's own width reads H, at any absolute width. A **bridge**
+(Clamp) is the wool being a cut cell: remove it and count the terrain's components. Because none of these
+consult `W`, the stress set proves it: an H with a box leg + a thin leg + a box crossbar still reads **H**,
+a U with a box leg and a box crossbar still reads **U**, a uniformly wide **Z** stays Z (it is not a body —
+plug was dropped, see below), and a wide-bay **scythe** stays scythe.
 
-**The turn count is width-invariant; width still fixes the two width-native families.** The bend split
-(I/L/Z/scythe) reads the outline, so it no longer needs `W` — a fold is a fold at any width. `W` is still
-passed because the **plug** (terrain thicker than a lane is a body) and **branch** (a *thin* junction) tests
-are genuinely width-native: a wide spot must not read as a body-or-fork it isn't. There is **no width
-ambiguity** — `scythe-3-wide` (`ttttv/ttvtw`) reads **scythe**, because its apparent T-junction sits inside a
-thick block and so is not a fork; and a wide scythe with a wide entry attachment reads scythe while a genuine
-two-legged H reads H. The fixtures in `tools/deriver/shapes/` carry this catalog in the plan format —
-`shapes-gen` builds them from the grids above and checks each against its family with `WoolApproachShape`
-(**17 OK / 0 mismatch**).
+The fixtures in `tools/deriver/shapes/` carry this catalog in the plan format — `shapes-gen` builds them
+from the grids above and checks each against its family with `WoolApproachShape` (**17 OK / 0 mismatch**);
+`emit-verify` closes the emitter⇄classifier mirror (**113 OK**), and `stress-shapes` pushes every family's
+pieces to extremes at a fixed width (**31 OK / 0 breaks**).
 
 | shape | example(s) | reads |
 |---|---|---|
 | **isolated** | `vv / wv / vv` | wool ringed by void — no terrain approach; reachable only by building |
-| **straight (I)** | `tttw / vvvv` | a terrain lane caps the wool inline; void below |
+| **straight (I)** | `tttw / vvvv` | a terrain lane caps the wool inline; void below. A solid body (no bends) also reads I — a wide/solid I |
 | **side-tuck (I)** | `tttt / vvvw` | the wool hangs under one end of a terrain bar (approached from the long side) |
 | **corner (L)** | `tw / vt / tt` · `tttv / vvtw` | one bend — terrain reaches the wool from two adjacent sides |
-| **flanked** | `tt / vw / tt` | terrain on two opposite sides of the wool, an open void slot on the flank |
-| **bay / scythe (U)** | `tttv / tvtw` · `tttvv / tvttw` · `ttttv / ttvtw` | an *open* void notch beside the wool — a partial loop; tail length to the wool varies |
-| **H / branch (T · + · Y)** | `ttv / vtw / ttv` · `ttv / vtv / ttw` · `ttvv / vtvv / tttw` · `ttvw / vtvt / tttt` | terrain *branches* — ≥2 arms meet at a junction and the wool attaches at the spine or an arm's end; open (no enclosed void). The branching escalation of **flanked**; it is the "T and + intersection" the Unfolding pass (§3) keeps when it straightens corners |
+| **clamp (Clamp)** | `tt / vw / tt` | the wool *bridges* two otherwise-separate bars — remove it and the terrain splits; the wool is the closing wall clamped between them |
+| **branch, flush (U)** | `ttv / vtw / ttv` · `ttv / vtv / ttw` | two legs meet a crossbar and the wool docks *flush* on it — the crossbar overhangs the wool toward the legs (a bar wider than the wool); open (no enclosed void) |
+| **bay / scythe** | `tttv / tvtw` · `tttvv / tvttw` · `ttttv / ttvtw` | an *open* void notch beside the wool — a fold that wraps a bay; tail length to the wool varies |
+| **branch, stub (H)** | `ttvv / vtvv / tttw` · `ttvw / vtvt / tttt` · `vwv / vtv / ttt / tvt` | two legs meet a crossbar and the wool caps a **room-run stub** rising off it (a stub the wool's own width) — the branch escalation of the clamp; the "T and + intersection" the Unfolding pass (§3) keeps when it straightens corners |
 | **hole / donut** | `ttttv / vtvtv / vtttw` · `ttttv / ttvtv / vtttw` · `ttttvv / ttvtvv / vttttw` | terrain *encloses* a void — a full loop, multi-access; ring thickness and tail length vary |
-| **plug / body** | `ttvw / vttt / tttt` | the wool caps a solid convex mass on a tab, not a corridor — the solid-body pole, kin to `plaza` |
 
 The families are an **escalation, not a flat set**: an L whose lane doubles back is a scythe; a scythe
-whose bay closes is a donut; a flanked approach that grows a spine and a junction is an H; and a shape
-filled until no thin path remains is a plug. The variants inside a family are the knobs — **tail
+whose bay closes is a donut; a clamp whose wool docks flush on one bar (instead of bridging both) is a U;
+and a U that lifts its wool onto a room-run stub is an H. The variants inside a family are the knobs — **tail
 length** (how far the wool sits past the loop/bend/junction), **ring thickness** (how much terrain
 wraps a hole), **arm count and attach point** (where the wool meets a branch), and the **build-zone
 cuts** that break any of these into the through-cut lanes the composer emits.
 
-**Width is orthogonal to family — the classifier reads the turn count, not the width.** The family is the
-sequence of turns along the approach (I = 0, L = 1, Z = 2 opposing, scythe = 3 with a fold/bay, H = a
-branch), and that is read off the terrain **outline** (reflex corners of the whole approach), so widening the
-*whole* approach uniformly does not change the family: a lane and the same lane at `w4`/`w6` both read the
-same. Width enters only where it genuinely means something — the **plug** test (a body is terrain thicker
-than a lane) and the **branch** test (a *thin* junction). So "make the approach wider" is just the shape at a
-larger corridor width; a wide entry attachment (the donut's `attachmentWidth`, or a scythe's fat tail) is a
-wide spot, not a fork, so it never turns the shape into an H — the branch test strips thick body cells first.
-A width change *within* one approach — a wide arm narrowing to a thin lane mid-run — no longer misreads as a
-branch either; it reads as the jogged lane it is (its thin skeleton gains a bend, so a straight wide→narrow
-run reads L). Narrowing only at the wool cap stays invisible (the room is excluded from the outline read).
-(Checked through the mirror: every family at `×1/×2/×3` uniform scale reads its own family, the wide-scythe /
-real-H pair separate correctly, all `ov=0`.)
+**Width is orthogonal to family — the classifier reads structure, not width.** The family is the sequence of
+turns along the approach (I = 0, L = 1, Z = 2 opposing, scythe = a fold with a bay, U/H = a branch), plus
+the wool's seating (bridging two opposite bars → clamp; flush on a branch's crossbar → U; on its own stub →
+H; enclosed void → donut). Every one of these is read width-independently — the turn count off the terrain
+**outline**, the branch off two legs sharing a bounding-box edge, the bay off a single-edge concavity, the
+clamp off whether removing the wool disconnects the terrain, the U/H split off the crossbar's overhang past
+the wool. So a box-shaped leg, a thick crossbar, a fat scythe tail, or a wide bay is a *wide
+spot*, never a change of family: an H with one leg a box and the other thin still reads H, and a uniformly
+`×2`/`×3` shape reads its own family. (Checked through `stress-shapes`: every family's pieces pushed to
+extremes at a fixed width read their own family, the wide-scythe / box-legged-H pair separate correctly, all
+`ov=0`; and `emit-verify`'s `×1/×2/×3` mirror closes.)
 
 **The piece vocabulary — every family is a template of role-typed segments.** The classifier *reads* a shape;
 the emitter (`WoolBoxEmitter`) *builds* it, and it lays down each family as the **same fixed set of
@@ -180,8 +178,8 @@ rectangles, only resized**. So a family is an ordered **template** of pieces, ea
 — and naming the roles is what lets the composition rules be stated over pieces instead of raw geometry. The
 roles are a small, stable set:
 
-- **entry** — the *universal attach*: any piece that docks the hub — a lane's mouth, either leg of an H or U,
-  the donut's hub stub. The entry is what the *shift* and *attachment-width* rules target.
+- **entry** — the *universal attach*: any piece that docks the hub — a lane's mouth, either leg of a U or an
+  H, either bar of a clamp, the donut's hub stub. The entry is what the *shift* and *attachment-width* rules target.
 - **room** — the wool room; carries the *extend vs side-dock* rule.
 - **run** — a corridor segment; qualified **entry-run** / **room-run** when a family has two, to say which end
   it sits at.
@@ -192,18 +190,19 @@ Each family's template (`room` is always last; terrain pieces precede it in emit
 
 | family | template |
 |---|---|
-| **plug** | `room` |
 | **I** | `entry · room` |
 | **L** | `entry · run · room` |
 | **Z** | `entry · bar · room-run · room` |
 | **scythe** | `entry · entry-run · bar · room-run · room` |
-| **U** | `entry · entry · room` |
+| **clamp** | `entry · entry · room` |
+| **U** | `bar · entry · entry · room` |
 | **H** | `bar · entry · entry · room-run · room` |
 | **donut** | `entry-bar · leg · leg · entry · room-bar · room` |
 
-**Plug is the base case** — just the `room` docking the hub box directly, no approach; kept **square and
-size-limited** (~10×10, 15×15), never elongated. (The emitter's current solid-body-plus-tab output is a
-wide/solid *I*, deferred — not this.)
+U and H differ by exactly one piece — the **room-run stub** H inserts between the crossbar and the wool (U
+docks the wool flush on the crossbar), which is the emitter side of the classifier's overhang test. **Plug is
+dropped**: a solid body reads as a wide/solid **I**, and the degenerate "wool docks the hub directly" case is
+an interface concern (land vs gap), not a terrain shape — replaceable by an **I** with a very short entry.)
 
 Two invariants: a family always emits the **same piece count** (don't merge collinear pieces — a stable set is
 what makes "the entry is piece N" a usable rule); and a **role is a template slot, not a property of the
@@ -215,8 +214,8 @@ family. **Entry widening** (the width grammar) and **entry shift** live on the `
 per role — a `run`/`bar` can be cut into lane + build-lane, an `entry`/`room` typically stays whole; and
 **where the wool attaches** is the `room`'s relation to its neighbour slot (a `run` it extends, or a `bar` /
 `leg` it side-docks). The templates are also the **structural signatures** the width-independent classifier
-needs — `H = bar · entry · entry · room-run · room` vs `U = entry · entry · room` differ by their pieces, not
-by a local block test.
+needs — `H = bar · entry · entry · room-run · room` vs `U = bar · entry · entry · room` differ by exactly the
+`room-run` stub, not by a local block test.
 
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
 team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`

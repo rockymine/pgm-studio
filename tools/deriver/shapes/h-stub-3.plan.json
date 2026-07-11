@@ -1,7 +1,7 @@
 {
   "plan": 1,
   "meta": {
-    "name": "h-branch-2"
+    "name": "h-stub-3"
   },
   "globals": {
     "cell": 5,
@@ -15,9 +15,9 @@
       "id": "t1",
       "role": "piece",
       "rect": [
-        0,
-        0,
-        2,
+        1,
+        1,
+        1,
         1
       ]
     },
@@ -25,9 +25,9 @@
       "id": "t2",
       "role": "piece",
       "rect": [
-        1,
-        1,
-        1,
+        0,
+        2,
+        3,
         1
       ]
     },
@@ -36,8 +36,18 @@
       "role": "piece",
       "rect": [
         0,
+        3,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "t4",
+      "role": "piece",
+      "rect": [
         2,
-        2,
+        3,
+        1,
         1
       ]
     },
@@ -45,8 +55,8 @@
       "id": "wool",
       "role": "wool-room",
       "rect": [
-        2,
-        2,
+        1,
+        0,
         1,
         1
       ]

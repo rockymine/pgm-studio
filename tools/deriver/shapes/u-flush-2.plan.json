@@ -1,7 +1,7 @@
 {
   "plan": 1,
   "meta": {
-    "name": "h-branch-4"
+    "name": "u-flush-2"
   },
   "globals": {
     "cell": 5,
@@ -35,19 +35,9 @@
       "id": "t3",
       "role": "piece",
       "rect": [
-        3,
-        1,
-        1,
-        1
-      ]
-    },
-    {
-      "id": "t4",
-      "role": "piece",
-      "rect": [
         0,
         2,
-        4,
+        2,
         1
       ]
     },
@@ -55,8 +45,8 @@
       "id": "wool",
       "role": "wool-room",
       "rect": [
-        3,
-        0,
+        2,
+        2,
         1,
         1
       ]

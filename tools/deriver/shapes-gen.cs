@@ -16,18 +16,19 @@ var grids = new (string name, string fam, string[] rows)[]
     ("i-sidetuck",  "I",     ["tttt", "vvvw"]),
     ("l-corner-1",  "L",     ["tw", "vt", "tt"]),
     ("l-corner-2",  "L",     ["tttv", "vvtw"]),
-    ("flanked",     "U",     ["tt", "vw", "tt"]),
+    ("clamp",       "Clamp", ["tt", "vw", "tt"]),
     ("scythe-1",    "Scythe",     ["tttv", "tvtw"]),
     ("scythe-2",    "Scythe",     ["tttvv", "tvttw"]),
     ("scythe-3-wide", "Scythe",   ["ttttv", "ttvtw"]),
-    ("h-branch-1",  "H",        ["ttv", "vtw", "ttv"]),
-    ("h-branch-2",  "H",        ["ttv", "vtv", "ttw"]),
-    ("h-branch-3",  "H",        ["ttvv", "vtvv", "tttw"]),
-    ("h-branch-4",  "H",        ["ttvw", "vtvt", "tttt"]),
+    // U = wool flush on the bar (no stub); H = wool caps its own room-run stub.
+    ("u-flush-1",   "U",        ["ttv", "vtw", "ttv"]),
+    ("u-flush-2",   "U",        ["ttv", "vtv", "ttw"]),
+    ("h-stub-1",    "H",        ["ttvv", "vtvv", "tttw"]),
+    ("h-stub-2",    "H",        ["ttvw", "vtvt", "tttt"]),
+    ("h-stub-3",    "H",        ["vwv", "vtv", "ttt", "tvt"]),
     ("donut-1",     "Donut",    ["ttttv", "vtvtv", "vtttw"]),
     ("donut-2",     "Donut",    ["ttttv", "ttvtv", "vtttw"]),
     ("donut-3",     "Donut",    ["ttttvv", "ttvtvv", "vttttw"]),
-    ("plug",        "Plug",     ["ttvw", "vttt", "tttt"]),
 };
 
 var outDir = Path.Combine("tools", "deriver", "shapes");
