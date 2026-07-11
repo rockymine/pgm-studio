@@ -110,16 +110,20 @@ matters — the earlier tests are the stronger signals:
 3. **A closed loop** — terrain encloses a void? → **hole / donut**.
 4. **A filled block** — a solid `(W+1)²` chunk (the `Thick`/`Blk` test)? → **plug / body** (the wool caps
    a solid mass; the `plaza` pole).
-5. **A branch** — a filled `W×W` block with ≥3 sides whose full outward `W`-strip is also filled (a T / +
-   / Y)? → **H / branch**.
+5. **A branch** — a **thin** junction: on the terrain with thick body cells removed (every cell inside a
+   `(W+1)²` block, room excepted), a filled `W×W` block with ≥3 sides whose full outward `W`-strip is also
+   filled (a T / + / Y)? → **H / branch**.
 6. else the open path → **I** / **L** by bend count; **≥2 bends** split by whether the approach wraps a
    **bay** (an open concavity — a void with terrain within `W` on ≥3 sides = **scythe**/U) or not (an **S** =
    **Z**). The bends are reflex corners of the terrain **outline** (the approach minus the room), so the count
    is **width-invariant** — a lane and the same lane widened uniformly turn the same number of times.
 
-**The branch test is rectilinear, not morphological — no medial-axis / thinning.** Counting full-width
-arms off a `W×W` block is width-robust by construction: a *wide* straight still shows only 2 arms (its
-narrow sides are void), so a 3-wide lane never reads as a junction. **Donut precedes plug deliberately:**
+**The branch test is a thin-junction test — rectilinear, no medial-axis / thinning.** It runs on the
+terrain with the thick body cells stripped, so a real fork (thin legs meeting a thin crossbar) is a branch
+but a *wide spot* is not: a fat entry or thick corner produces a "third arm" whose junction sits inside a
+`(W+1)²` solid, which is dropped — a wide scythe stays a scythe, a genuine H still reads as one. Counting
+full-width arms off a `W×W` block is width-robust the other way too: a *wide* straight shows only 2 arms
+(its narrow sides are void), so a 3-wide lane never reads as a junction. **Donut precedes plug deliberately:**
 a loop can carry a locally thick corner (a `(W+1)²` block on a fat part of the ring) yet is still a donut —
 the enclosed void is the stronger signal. Step 2's loop test is the enclosed-void test — **a void notch is
 a `bay` if it reaches the shape's edge, a `hole` if terrain encloses it** — the line between the open
@@ -129,14 +133,13 @@ bends).
 
 **The turn count is width-invariant; width still fixes the two width-native families.** The bend split
 (I/L/Z/scythe) reads the outline, so it no longer needs `W` — a fold is a fold at any width. `W` is still
-passed because the **plug** (terrain thicker than a lane is a body) and **branch** (arms meet at lane width)
-tests are genuinely width-native: a 2-wide fold vs a plug, or a wide junction, only separate once the
-reference lane width is known. One fixture, `scythe-3-wide` (`ttttv/ttvtw`), is *drawn with a real
-T-junction* (cell 1,0 has terrain on three sides), so it reads **H** at every scale — a compact grid
-encoding a branch the label didn't intend; a genuinely wide scythe (a scaled `scythe-1`/`scythe-2`) reads
-scythe at any width. The fixtures in `tools/deriver/shapes/` carry this catalog in the plan format —
+passed because the **plug** (terrain thicker than a lane is a body) and **branch** (a *thin* junction) tests
+are genuinely width-native: a wide spot must not read as a body-or-fork it isn't. There is **no width
+ambiguity** — `scythe-3-wide` (`ttttv/ttvtw`) reads **scythe**, because its apparent T-junction sits inside a
+thick block and so is not a fork; and a wide scythe with a wide entry attachment reads scythe while a genuine
+two-legged H reads H. The fixtures in `tools/deriver/shapes/` carry this catalog in the plan format —
 `shapes-gen` builds them from the grids above and checks each against its family with `WoolApproachShape`
-(**16 OK / 1 branch-as-drawn**).
+(**17 OK / 0 mismatch**).
 
 | shape | example(s) | reads |
 |---|---|---|
@@ -162,13 +165,14 @@ sequence of turns along the approach (I = 0, L = 1, Z = 2 opposing, scythe = 3 w
 branch), and that is read off the terrain **outline** (reflex corners of the whole approach), so widening the
 *whole* approach uniformly does not change the family: a lane and the same lane at `w4`/`w6` both read the
 same. Width enters only where it genuinely means something — the **plug** test (a body is terrain thicker
-than a lane) and the **branch** test (arms meet at lane width). So "make the approach wider" is just the
-shape at a larger corridor width; the emitter's `attachmentWidth` widens a *donut* attachment (safe because
-the donut is fixed by its enclosed void, ahead of any width test). A caution the geometry forces: a shape
-that changes width *within* one approach — a wide arm narrowing to a thin lane mid-run — grows a shoulder
-that is, rectilinearly, a local T; keep a widening uniform (or let it narrow only at the wool cap, which the
-outline read excludes) rather than stepping down mid-approach. (Checked through the mirror: every family at
-`×1/×2/×3` uniform scale reads its own family, all `ov=0`.)
+than a lane) and the **branch** test (a *thin* junction). So "make the approach wider" is just the shape at a
+larger corridor width; a wide entry attachment (the donut's `attachmentWidth`, or a scythe's fat tail) is a
+wide spot, not a fork, so it never turns the shape into an H — the branch test strips thick body cells first.
+A width change *within* one approach — a wide arm narrowing to a thin lane mid-run — no longer misreads as a
+branch either; it reads as the jogged lane it is (its thin skeleton gains a bend, so a straight wide→narrow
+run reads L). Narrowing only at the wool cap stays invisible (the room is excluded from the outline read).
+(Checked through the mirror: every family at `×1/×2/×3` uniform scale reads its own family, the wide-scythe /
+real-H pair separate correctly, all `ov=0`.)
 
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing
 team's spawn across `land`+`gap` interfaces; no wool path passes through a `spawn` piece; ≥1 `gap`

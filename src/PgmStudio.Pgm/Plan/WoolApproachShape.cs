@@ -18,11 +18,14 @@ public enum ApproachShape { Isolated, I, L, Z, Scythe, U, H, Donut, Plug }
 /// widened uniformly read the same family — an L is one turn at any width. Width only enters where it must: the
 /// plug test (a body is terrain thicker than a lane) and the branch test below.</para>
 ///
-/// <para><b>Branch test — rectilinear, width-robust, no thinning.</b> The corridor is a union of axis-aligned
-/// rects. At every fully-filled <c>W×W</c> block (<c>W</c> = the actual corridor width) count the sides whose
-/// full outward <c>W</c>-strip is also filled — a "full-width arm". A straight lane has 2 (the two ends), an
-/// L/Z corner has 2 (two adjacent arms), a T/+ has ≥3. Because arms must be the full corridor width, a
-/// <em>wide</em> straight still counts 2 (its narrow sides are void), so the test needs no medial axis.</para>
+/// <para><b>Branch test — a thin junction, rectilinear, no thinning.</b> H is a fork of lane-width corridors,
+/// so the test runs on the terrain with the <em>thick body cells removed</em> (every cell inside a
+/// <c>(W+1)²</c> block, the room excepted). At each fully-filled <c>W×W</c> block count the sides whose full
+/// outward <c>W</c>-strip is also filled — a "full-width arm"; a straight lane has 2, an L/Z corner 2, a T/+/Y
+/// has ≥3. Removing the thick cells first is what tells a real fork from a <em>wide spot</em>: a fat entry or a
+/// thick corner produces a "third arm" that is really just a widening — its junction sits inside a <c>(W+1)²</c>
+/// solid and is dropped, so a wide scythe stays a scythe while a genuine two-legged H (thin legs, thin crossbar)
+/// still reads as a branch. Width never invents a junction.</para>
 /// </summary>
 public static class WoolApproachShape
 {
@@ -93,7 +96,12 @@ public static class WoolApproachShape
         while (lq.Count > 0) { var c = lq.Dequeue(); foreach (var n in N4(c)) if (Narrow(n) && lane.Add(n)) lq.Enqueue(n); }
         if (lane.Count == 0) return (ApproachShape.Plug, width);
 
-        if (HasBranch(comp, w)) return (ApproachShape.H, width);
+        // H is a *thin* junction — three lane-width arms meeting. A junction sitting inside a (w+1)² solid is
+        // not a fork, it's a wide spot (a fat entry, a thick corner): drop those body cells so a widened
+        // approach never false-reads as a branch. The room stays (a real thin branch can meet the wool there).
+        var branchable = new HashSet<(int, int)>(comp);
+        branchable.RemoveWhere(c => Thick(c) && !room.Contains(c));
+        if (HasBranch(branchable, w)) return (ApproachShape.H, width);
 
         // thin open path: I/L/Z/scythe by bend count. The bends are counted on the terrain OUTLINE (the whole
         // approach minus the room), not the thinned lane — so the turn count is width-invariant: a lane and the

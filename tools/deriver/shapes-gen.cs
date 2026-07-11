@@ -33,7 +33,7 @@ var grids = new (string name, string fam, string[] rows)[]
 var outDir = Path.Combine("tools", "deriver", "shapes");
 Directory.CreateDirectory(outDir);
 
-int ok = 0, bad = 0, ambigN = 0;
+int ok = 0, bad = 0;
 Console.WriteLine($"{"fixture",-15} {"expected",-9} {"derived",-9}  status");
 Console.WriteLine(new string('-', 46));
 foreach (var (name, fam, rows) in grids)
@@ -62,17 +62,10 @@ foreach (var (name, fam, rows) in grids)
     // classify with the library four-way test at the fixture's unit scale (laneWidth = 1)
     var (shape, width) = WoolApproachShape.Classify(plan, "wool", 1);
     var derived = shape.ToString();
-    // scythe-3-wide, as drawn, carries a real T-junction (cell 1,0 has terrain W+E+S), so the branch test
-    // names it H at every scale — it is a branch, not a scythe. Kept as a documented edge: a compact grid can
-    // encode a junction the family label doesn't intend; a genuinely wide scythe (a scaled scythe-1/2) reads
-    // scythe. The turn count itself is now width-invariant (bends read off the terrain outline).
-    bool ambig = name == "scythe-3-wide" && derived == "H";
     string status;
-    if (ambig) { status = "W-AMBIG"; ambigN++; }
-    else if (derived == fam) { status = "OK"; ok++; }
+    if (derived == fam) { status = "OK"; ok++; }
     else { status = "MISMATCH"; bad++; }
-    var note = ambig ? "  (drawn with a real branch → H; a scaled scythe reads scythe at any width)" : "";
-    Console.WriteLine($"{name,-15} {fam,-9} {derived + "·w" + width,-9}  {status}{note}");
+    Console.WriteLine($"{name,-15} {fam,-9} {derived + "·w" + width,-9}  {status}");
 }
 Console.WriteLine(new string('-', 46));
-Console.WriteLine($"{ok} OK / {bad} MISMATCH / {ambigN} W-ambiguous  ->  {outDir}/*.plan.json ({grids.Length} fixtures)");
+Console.WriteLine($"{ok} OK / {bad} MISMATCH  ->  {outDir}/*.plan.json ({grids.Length} fixtures)");
