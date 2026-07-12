@@ -12,6 +12,7 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
+import { blockDataToDataUrl } from "../render/block-render.js";
 import {
   ROLE_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
   markerCell, attachMarker, markerAt, allMarkers, viewBounds, pickAtWorld, sameSelection,
@@ -76,7 +77,9 @@ export class PlanCanvas extends CanvasBase {
   #pulseTimer = null;
 
   // viewport layers (world space)
-  #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
+  #refLayer; #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
+  // reference (tracing backdrop) state: the fetched block payload, its world bbox, and the placement cfg.
+  #refData = null; #refBounds = null; #refCfg = null;
   // screen-space overlay (labels + selection box + resize handles)
   #overlay;
   // svg <defs> holding the buffer (reserved-gap) hatch pattern
@@ -121,13 +124,75 @@ export class PlanCanvas extends CanvasBase {
     this.#refreshOverlay();
   }
 
+  // ── reference (tracing) backdrop ────────────────────────────────────────────
+  // A real map's top-down block render, painted behind the grid so the author can trace over it. `data` is the
+  // /api/map/{slug}/layers/top-surface payload ({xs,zs,colors,min_x,min_z,max_x,max_z}); `cfg` is
+  // {offset:[x,z] cells, scale, opacity}. The <image> sits at its natural world/block coords; a group transform
+  // auto-centres its bbox on the symmetry origin, then applies the author's offset (cells → blocks) and scale, so
+  // it shares the plan's block frame — a real 10-block lane reads as 2 cells at scale 1. The PNG is rebuilt only
+  // when the payload changes; nudging offset/scale/opacity just re-applies the group transform.
+  setReference(data, cfg) {
+    this.#refData = data || null;
+    this.#refBounds = data ? { min_x: data.min_x, min_z: data.min_z, max_x: data.max_x, max_z: data.max_z } : null;
+    this.#refCfg = cfg || null;
+    this.#clear(this.#refLayer);
+    if (data) {
+      const img = svgEl("image", {
+        href: blockDataToDataUrl(data),
+        x: data.min_x, y: data.min_z,
+        width: data.max_x - data.min_x + 1, height: data.max_z - data.min_z + 1,
+        preserveAspectRatio: "none", "pointer-events": "none",
+      });
+      img.style.imageRendering = "pixelated";
+      this.#refLayer.appendChild(img);
+    }
+    this.#applyReferenceTransform();
+  }
+
+  // Re-place an already-loaded backdrop after an offset/scale/opacity change (no PNG rebuild).
+  updateReference(cfg) { this.#refCfg = cfg || null; this.#applyReferenceTransform(); }
+  clearReference() { this.setReference(null, null); }
+
+  #applyReferenceTransform() {
+    const layer = this.#refLayer;
+    if (!this.#refBounds || !this.#refCfg) { layer.removeAttribute("transform"); layer.style.opacity = ""; return; }
+    const b = this.#refWorldTranslate();
+    layer.setAttribute("transform", `scale(${b.s}) translate(${b.tx} ${b.tz})`);
+    layer.style.opacity = this.#refCfg.opacity == null ? "0.5" : String(this.#refCfg.opacity);
+  }
+
+  // The scale + pre-scale translation that centres the backdrop bbox on the origin, then applies the cell-space
+  // offset (× cell → blocks). Shared by the transform and the fit-bounds computation so they never diverge.
+  #refWorldTranslate() {
+    const cell = this.#doc?.globals.cell || 5;
+    const b = this.#refBounds;
+    const cx = (b.min_x + b.max_x + 1) / 2, cz = (b.min_z + b.max_z + 1) / 2;   // bbox centre, blocks
+    const off = this.#refCfg.offset || [0, 0];
+    const s = this.#refCfg.scale > 0 ? this.#refCfg.scale : 1;
+    return { s, tx: -cx + (Number(off[0]) || 0) * cell, tz: -cz + (Number(off[1]) || 0) * cell };
+  }
+
+  // The backdrop's world/block AABB after its centre/offset/scale transform — folded into fit() so loading a
+  // map frames it even before any piece is drawn.
+  #refWorldBounds() {
+    if (!this.#refBounds || !this.#refCfg) return null;
+    const b = this.#refBounds, t = this.#refWorldTranslate();
+    return {
+      min_x: t.s * (b.min_x + t.tx), min_z: t.s * (b.min_z + t.tz),
+      max_x: t.s * (b.max_x + 1 + t.tx), max_z: t.s * (b.max_z + 1 + t.tz),
+    };
+  }
+
   getSelection() { return this.#sel; }
   select(sel) { this.#sel = sel; this.#refreshOverlay(); this.#fireSelect(); }
   clearSelection() { this.#sel = null; this.#refreshOverlay(); this.#fireSelect(); }
 
   fit() {
-    const b = this.#doc ? viewBounds(this.#doc) : null;
-    const box = b ?? { min_x: -40, min_z: -40, max_x: 40, max_z: 40 };
+    const pb = this.#doc ? viewBounds(this.#doc) : null;
+    const rb = this.#refWorldBounds();
+    const box = (pb && rb)
+      ? { min_x: Math.min(pb.min_x, rb.min_x), min_z: Math.min(pb.min_z, rb.min_z), max_x: Math.max(pb.max_x, rb.max_x), max_z: Math.max(pb.max_z, rb.max_z) }
+      : (pb ?? rb ?? { min_x: -40, min_z: -40, max_x: 40, max_z: 40 });
     const { w, h } = this.#size();
     const bw = Math.max(box.max_x - box.min_x, 1), bh = Math.max(box.max_z - box.min_z, 1);
     this._scale = Math.min(w / bw, h / bh) * FIT_MARGIN;
@@ -150,6 +215,7 @@ export class PlanCanvas extends CanvasBase {
   render() {
     if (!this.#doc) return;
     this.#ensureHatch();
+    if (this.#refData) this.#applyReferenceTransform();   // offset is in cells → track a cell-size change
     this.#renderGrid();
     this.#renderGhost();
     this.#renderZones();
@@ -685,6 +751,7 @@ export class PlanCanvas extends CanvasBase {
     this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
 
     this._viewportG = svgEl("g");
+    this.#refLayer = svgEl("g", { "pointer-events": "none" });
     this.#gridLayer = svgEl("g", { "pointer-events": "none" });
     this.#centerLayer = svgEl("g", { "pointer-events": "none" });
     this.#ghostLayer = svgEl("g", { "pointer-events": "none" });
@@ -694,7 +761,7 @@ export class PlanCanvas extends CanvasBase {
     this.#markerLayer = svgEl("g");
     this.#previewLayer = svgEl("g", { "pointer-events": "none" });
     this.#pulseLayer = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#inspectLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
+    for (const g of [this.#refLayer, this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#inspectLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
     this.#overlay = svgEl("g");

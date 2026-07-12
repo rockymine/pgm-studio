@@ -63,7 +63,7 @@ export function normalizeDoc(d) {
   if (g.observerY != null) globals.observerY = g.observerY;
   const meta = { name: src.meta?.name ?? "Untitled plan" };
   if (src.meta?.notes != null) meta.notes = src.meta.notes;
-  return {
+  const out = {
     plan: src.plan ?? 1,
     meta,
     globals,
@@ -82,7 +82,21 @@ export function normalizeDoc(d) {
     cliffs: (src.cliffs || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
     walls: (src.walls || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
   };
+  // Optional tracing provenance — kept only when a source map is named, so untraced plans omit it entirely.
+  if (src.reference?.map) {
+    const r = src.reference;
+    out.reference = {
+      map: r.map,
+      offset: [Number(r.offset?.[0]) || 0, Number(r.offset?.[1]) || 0],
+      scale: Number(r.scale) > 0 ? Number(r.scale) : 1,
+      opacity: r.opacity == null ? 0.5 : Math.max(0, Math.min(1, Number(r.opacity))),
+    };
+  }
+  return out;
 }
+
+/** Default reference block for a freshly picked source map (auto-centred, half-strength backdrop). */
+export function defaultReference(map) { return { map, offset: [0, 0], scale: 1, opacity: 0.5 }; }
 
 /** Parse a plan JSON string into a normalised document, or throw if it isn't a plan object. */
 export function fromJson(text) {

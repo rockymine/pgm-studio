@@ -55,6 +55,10 @@ Notes:
   connectivity is *derived* from zones (§2). The author never draws a connection.
 - Wool colours are not authored: one wool → the team colour, several → distinct dyes (the
   existing `LaneMapGenerator` convention). Team palette from the shared slot list.
+- **Optional `reference` block** (tracing provenance): `{ "map": <slug>, "offset": [x,z] cells,
+  "scale": 1, "opacity": 0.5 }` records the real map this plan was traced over and where its top-down
+  render sat under the grid. Authoring-only — the compiler never reads it, so it has no effect on the
+  compiled layout/intent. Omitted for genuinely new (untraced) plans.
 
 ### Schema v2 (first-use corrections)
 
@@ -150,6 +154,13 @@ New page `Pages/Plan/PlanEditor.razor` (+ `js/studio/plan/`), reusing the studio
 - **Canvas:** cell grid at `globals.cell`; draw / move / resize rects snapped to cells; pieces
   colour-coded by role; zones rendered as translucent overlays; the symmetry ghost renders the
   orbit images live (non-editable).
+- **Reference backdrop (tracing):** a **Reference** panel picks any processed map (`GET /api/maps`
+  `hasSurface` flag) and paints its top-down block render (`GET /map/{slug}/layers/top-surface` via the
+  shared `render/block-render.js` rasteriser) in a bottom canvas layer, behind the grid. Auto-centred on
+  the symmetry origin, then Opacity / Offset (cells) / Scale / Recenter / Clear place it; the canvas is a
+  block-unit frame, so a real 10-block lane traces as 2 cells at scale 1. Persisted as the schema's
+  optional `reference` block (round-trips + restores on reload). Trace one team's sector and check the
+  live mirror ghost against the map's opposing teams. Feeds the box-based / wool-approach vocabulary.
 - **Palette:** piece roles (lane · hub · wool-room · mid) + zone tool + markers (spawn with a
   drag-to-set facing arrow, wool, iron).
 - **Inspector (selected piece):** role, surface stepper (±2, EL1), `mirrors` toggle, id.

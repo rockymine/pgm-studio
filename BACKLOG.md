@@ -201,6 +201,12 @@ The open work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
 
+- [ ] **G56 — Trace a real-map corpus + mine it for missed shapes.** With the plan editor's reference
+  backdrop shipped, trace a batch of real maps into `tools/seeds/*.plan.json` (each carrying its `reference`
+  provenance), then run the deriver (`WoolApproachShape.Classify` + `PlanDerived` junctions/lanes) over them to
+  surface **WoolApproachShapes / hub shapes the current vocabulary misses or misreads** — feeding corrections
+  back into `docs/contracts/layout-generation.md` §2. Author-driven tracing (manual), mechanical
+  classify/report can be a small harness under `tools/`.
 - [ ] **G50 — Wool-box emitter: shift the entry/attachment off the box corner.** `WoolBoxEmitter` pins each
   shape's docking point to a box corner flush against the interface edge, so exactly 3 corners always fill; in
   a real plan the docking point slides along that edge. Applies to **donut and scythe only** (Z stays corner-

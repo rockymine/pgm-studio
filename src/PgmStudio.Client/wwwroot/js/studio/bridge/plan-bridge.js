@@ -6,7 +6,7 @@
 
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
-  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, ROLES,
+  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES,
 } from "../plan/plan-doc.js";
 import { parseOverlays, sortFindings } from "../plan/plan-inspect.js";
 
@@ -126,13 +126,37 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     fire("OnFindings", JSON.stringify(sortFindings(data.findings || [])));
   }
 
+  // ── reference (tracing) backdrop ─────────────────────────────────────────────
+  // The plan may carry a `reference` block (the real map it was traced over + placement); it round-trips in the
+  // file but the compiler ignores it. Fetch the map's top-down render and paint it behind the grid.
+
+  const metaJson = () => JSON.stringify({ name: doc.meta.name, globals: doc.globals, reference: doc.reference || null });
+
+  async function fetchSurface(slug) {
+    let res;
+    try { res = await fetch(`/api/map/${encodeURIComponent(slug)}/layers/top-surface`); } catch { return null; }
+    if (!res.ok) return null;
+    try { return await res.json(); } catch { return null; }
+  }
+
+  // Paint whatever `doc.reference` currently names (or clear the backdrop when there is none). Keeps the
+  // reference block even if the render can't be fetched (offline / unscanned map) so provenance survives.
+  async function paintReference() {
+    const ref = doc.reference;
+    if (!ref?.map) { canvas.setReference(null, null); return false; }
+    const data = await fetchSurface(ref.map);
+    canvas.setReference(data, { offset: ref.offset, scale: ref.scale, opacity: ref.opacity });
+    return !!data;
+  }
+
   function load(next, { fit = true } = {}) {
     doc = normalizeDoc(next);
     canvas.clearSelection();
     canvas.setDoc(doc);
     if (fit) canvas.fit();
-    fire("OnMeta", JSON.stringify({ name: doc.meta.name, globals: doc.globals }));
+    fire("OnMeta", metaJson());
     scheduleSave();
+    paintReference().then(painted => { if (fit && painted) canvas.fit(); });
   }
 
   function persistOverlays() { try { localStorage.setItem(OVERLAY_KEY, JSON.stringify(overlays)); } catch { /* private mode */ } }
@@ -144,6 +168,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   canvas.setDoc(doc);
   canvas.fit();
   canvas.resize();
+  paintReference().then(painted => { if (painted) canvas.fit(); });
   scheduleInspect();
 
   return {
@@ -155,7 +180,39 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     newDoc() { load(emptyDoc()); },
     importJson(text) { try { load(fromJson(text)); return null; } catch (e) { return e?.message || "Invalid plan JSON"; } },
     exportJson() { return toJson(doc); },
-    getMeta() { return JSON.stringify({ name: doc.meta.name, globals: doc.globals }); },
+    getMeta() { return metaJson(); },
+
+    // Reference (tracing) backdrop: pick a real map to trace over, nudge its placement, or clear it.
+    async setReferenceMap(slug) {
+      if (!slug) { delete doc.reference; canvas.setReference(null, null); fire("OnMeta", metaJson()); scheduleSave(); return null; }
+      const data = await fetchSurface(slug);
+      if (!data) return "That map has no cached surface render.";
+      doc.reference = defaultReference(slug);
+      canvas.setReference(data, { offset: doc.reference.offset, scale: doc.reference.scale, opacity: doc.reference.opacity });
+      canvas.fit();
+      fire("OnMeta", metaJson());
+      scheduleSave();
+      return null;
+    },
+    setReferenceParam(key, value) {
+      const ref = doc.reference; if (!ref) return;
+      if (key === "opacity") ref.opacity = Math.max(0, Math.min(1, Number(value)));
+      else if (key === "scale") { const s = Number(value); if (s > 0) ref.scale = s; }
+      else if (key === "offsetX") ref.offset[0] = Number(value) || 0;
+      else if (key === "offsetZ") ref.offset[1] = Number(value) || 0;
+      else return;
+      canvas.updateReference({ offset: ref.offset, scale: ref.scale, opacity: ref.opacity });
+      scheduleSave();
+    },
+    recenterReference() {
+      const ref = doc.reference; if (!ref) return;
+      ref.offset = [0, 0]; ref.scale = 1;
+      canvas.updateReference({ offset: ref.offset, scale: ref.scale, opacity: ref.opacity });
+      canvas.fit();
+      fire("OnMeta", metaJson());
+      scheduleSave();
+    },
+    clearReference() { delete doc.reference; canvas.setReference(null, null); fire("OnMeta", metaJson()); scheduleSave(); },
 
     setName(name) { doc.meta.name = name || "Untitled plan"; scheduleSave(); },
     setGlobal(key, value) {

@@ -69,6 +69,11 @@ public sealed class PlanModel
     [JsonPropertyName("cliffs")]     public List<PlanCliff> Cliffs { get; set; } = [];
     [JsonPropertyName("walls")]      public List<PlanWall> Walls { get; set; } = [];
 
+    /// <summary>Optional provenance: the real map this plan was traced over, and where its top-down render
+    /// sat under the grid. Purely authoring metadata — the compiler never reads it, so it has no effect on the
+    /// compiled layout/intent. Absent for genuinely new (untraced) plans.</summary>
+    [JsonPropertyName("reference")]  public PlanReference? Reference { get; set; }
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
@@ -96,6 +101,18 @@ public sealed class PlanMeta
 {
     [JsonPropertyName("name")]  public string Name { get; set; } = "";
     [JsonPropertyName("notes")] public string? Notes { get; set; }
+}
+
+/// <summary>Tracing provenance for a plan drawn over a real map's top-down render (authoring-only; ignored by
+/// the compiler). <see cref="Map"/> is the source map's slug. The render is auto-centred on the symmetry
+/// centre, then adjusted by <see cref="Offset"/> (a <c>[x, z]</c> nudge in proxy cells), <see cref="Scale"/>
+/// (about the centre) and <see cref="Opacity"/> (0–1 backdrop strength).</summary>
+public sealed class PlanReference
+{
+    [JsonPropertyName("map")]     public string Map { get; set; } = "";
+    [JsonPropertyName("offset")]  public double[] Offset { get; set; } = [0, 0];
+    [JsonPropertyName("scale")]   public double Scale { get; set; } = 1;
+    [JsonPropertyName("opacity")] public double Opacity { get; set; } = 0.5;
 }
 
 /// <summary>Board-wide parameters. <see cref="Cell"/> is the blocks-per-proxy-cell scale; <see cref="Surface"/>

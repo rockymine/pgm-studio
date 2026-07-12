@@ -593,6 +593,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   navy→teal→gold ramp over the plan's surface range + in-piece height labels), and **zone mirror ghosts**
   (build areas + holes fan through the same orbit images as pieces; view bounds include them) — a rot_90
   pinwheel's centre tiling is finally visible while authoring. JS 115 tests. (G25)
+- **Plan-editor reference backdrop (trace real maps)** — a **Reference** sidebar section picks any processed
+  map (`GET /api/maps` now flags `hasSurface`; 367/390 traceable) and paints its top-down block render behind
+  the grid as a tracing aid, reusing the shared `render/block-render.js` rasteriser in a new bottom
+  `#refLayer` of `PlanCanvas`. Auto-centres the map bbox on the symmetry origin, then **Opacity / Offset X·Z
+  (cells) / Scale / Recenter / Clear** controls place it; because the plan canvas is a block-unit frame, a real
+  10-block lane reads as 2 cells at scale 1. The placement (map slug + offset/scale/opacity) is an **optional
+  `reference` block** in the plan wire model — round-trips in the `*.plan.json` file as provenance, restores +
+  repaints on reload, and is **ignored by the compiler** (verified: a seed compiles byte-identically with and
+  without it). Builds the corpus that informs the box-based / wool-approach vocabulary in
+  `docs/contracts/layout-generation.md`. (G55)
 - **Zone-union connectivity + contact lint** — buildable **regions** = union-find components of zone rects
   (merged on overlap or positive-length shared border; corner-point touch does not merge); straight-span
   gap-link overlays test containment against the merged region, while fanned **reachability** links every

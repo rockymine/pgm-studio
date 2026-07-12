@@ -73,6 +73,42 @@
             </div>
 
             <div class="panel-section">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Reference</h2></div>
+              <div class="field">
+                <label class="field-label">Trace over map</label>
+                <select class="field-input" value="@refMap" @onchange="OnPickReferenceMap">
+                  <option value="">— none —</option>
+                  @foreach (var m in traceMaps) { <option value="@m.Slug">@m.Name</option> }
+                </select>
+              </div>
+              @if (refError is not null) { <p class="section-desc plan-compile-draft-error">@refError</p> }
+              @if (refMap is not null)
+              {
+                <div class="field">
+                  <label class="field-label">Opacity</label>
+                  <input type="range" class="field-input" min="0" max="1" step="0.05" value="@refOpacity" @oninput="OnRefOpacity" />
+                </div>
+                <div class="field">
+                  <label class="field-label">Offset X (cells)</label>
+                  <NumberField Value="refOffsetX" ValueChanged="OnRefOffsetX" Step="1" />
+                </div>
+                <div class="field">
+                  <label class="field-label">Offset Z (cells)</label>
+                  <NumberField Value="refOffsetZ" ValueChanged="OnRefOffsetZ" Step="1" />
+                </div>
+                <div class="field">
+                  <label class="field-label">Scale</label>
+                  <NumberField Value="refScale" ValueChanged="OnRefScale" Min="0.1" Step="0.1" />
+                </div>
+                <div class="ctrl-row">
+                  <button class="action-btn action-btn--full" @onclick="RecenterReference" title="Reset offset and scale">Recenter</button>
+                  <button class="action-btn action-btn--full" @onclick="ClearReference" title="Remove the backdrop (keeps the plan)">Clear</button>
+                </div>
+              }
+              <p class="section-desc">Trace a real map's top-down render to build a plan from it. The backdrop is saved with the plan as provenance and never affects the compiled output.</p>
+            </div>
+
+            <div class="panel-section">
               <div class="section-header section-header--ruled"><h2 class="section-title">Pieces</h2></div>
               <div class="plan-palette">
                 @foreach (var r in GeneratingRoles)

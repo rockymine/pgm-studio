@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
+using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Pages.Plan;
 
@@ -50,6 +51,13 @@ public partial class PlanEditor
     private bool heightMap;
     private List<InspectFinding> findings = [];
 
+    // Reference (tracing) backdrop: the traceable maps for the picker + the current placement, both mirrored
+    // from the plan doc via the meta sync. The bridge owns the doc; these drive the sidebar form.
+    private List<MapSummary> traceMaps = [];
+    private string? refMap;
+    private double refOpacity = 0.5, refScale = 1, refOffsetX, refOffsetZ;
+    private string? refError;
+
     private record RolePalette(string Id, string Label, string Color);
 
     // The G48 taxonomy: true pieces (terrain-producing roles) vs technical pieces (non-generating annotations).
@@ -80,6 +88,12 @@ public partial class PlanEditor
         try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
         try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
         try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
+        try
+        {
+            var all = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps");
+            traceMaps = all?.Where(m => m.HasSurface).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+        }
+        catch { /* picker just stays empty */ }
         StateHasChanged();
     }
 
@@ -99,6 +113,44 @@ public partial class PlanEditor
     }
 
     private Task Fit() => handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask;
+
+    // ── reference (tracing) backdrop ─────────────────────────────────────────────
+
+    private async Task OnPickReferenceMap(ChangeEventArgs e)
+    {
+        refError = null;
+        if (handle is null) return;
+        var slug = e.Value?.ToString();
+        var arg = string.IsNullOrEmpty(slug) ? null : slug;
+        var err = await handle.InvokeAsync<string?>("setReferenceMap", arg);
+        if (err is not null) refError = err;   // the bridge fires OnMeta on success, which re-syncs the form
+        StateHasChanged();
+    }
+
+    private async Task OnRefOpacity(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var v)) refOpacity = v;
+        if (handle is not null) await handle.InvokeVoidAsync("setReferenceParam", "opacity", refOpacity);
+    }
+
+    private Task OnRefScale(double v) { refScale = v; return RefParam("scale", v); }
+    private Task OnRefOffsetX(double v) { refOffsetX = v; return RefParam("offsetX", v); }
+    private Task OnRefOffsetZ(double v) { refOffsetZ = v; return RefParam("offsetZ", v); }
+
+    private Task RefParam(string key, double v)
+        => handle?.InvokeVoidAsync("setReferenceParam", key, v).AsTask() ?? Task.CompletedTask;
+
+    private async Task RecenterReference()
+    {
+        refOffsetX = refOffsetZ = 0; refScale = 1;
+        if (handle is not null) await handle.InvokeVoidAsync("recenterReference");
+    }
+
+    private async Task ClearReference()
+    {
+        refMap = null; refError = null;
+        if (handle is not null) await handle.InvokeVoidAsync("clearReference");
+    }
 
     // ── derived-structure overlays + lint ────────────────────────────────────────
 
@@ -222,6 +274,13 @@ public partial class PlanEditor
         surface = m.Globals.Surface;
         headroom = m.Globals.Headroom;
         maxPlayers = m.Globals.MaxPlayers;
+
+        var r = m.Reference;
+        refMap = string.IsNullOrEmpty(r?.Map) ? null : r!.Map;
+        refOffsetX = r?.Offset is { Length: 2 } o ? o[0] : 0;
+        refOffsetZ = r?.Offset is { Length: 2 } o2 ? o2[1] : 0;
+        refScale = r is null ? 1 : r.Scale;
+        refOpacity = r is null ? 0.5 : r.Opacity;
     }
 
     // ── compile & test (the walk-test loop) ──────────────────────────────────────
@@ -419,6 +478,15 @@ public partial class PlanEditor
     {
         [JsonPropertyName("name")] public string? Name { get; set; }
         [JsonPropertyName("globals")] public GlobalsDto? Globals { get; set; }
+        [JsonPropertyName("reference")] public ReferenceDto? Reference { get; set; }
+    }
+
+    private sealed class ReferenceDto
+    {
+        [JsonPropertyName("map")] public string? Map { get; set; }
+        [JsonPropertyName("offset")] public double[]? Offset { get; set; }
+        [JsonPropertyName("scale")] public double Scale { get; set; } = 1;
+        [JsonPropertyName("opacity")] public double Opacity { get; set; } = 0.5;
     }
 
     private sealed class GlobalsDto
