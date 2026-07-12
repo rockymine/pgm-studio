@@ -63,6 +63,10 @@
                 <NumberField Value="surface" ValueChanged="OnSurface" Min="0" />
               </div>
               <div class="field">
+                <label class="field-label">Surface step (y)</label>
+                <NumberField Value="surfaceStep" ValueChanged="OnSurfaceStep" Min="1" />
+              </div>
+              <div class="field">
                 <label class="field-label">Headroom</label>
                 <NumberField Value="headroom" ValueChanged="OnHeadroom" Min="1" />
               </div>
@@ -218,9 +222,18 @@
                 <div class="field">
                   <label class="field-label">Surface (y)</label>
                   <div class="ctrl-row">
-                    <button class="action-btn action-btn--icon" @onclick="() => StepSurface(-2)">−</button>
+                    <button class="action-btn action-btn--icon" title="Lower surface by @((int)surfaceStep)" @onclick="() => StepSurface(-(int)surfaceStep)">−</button>
                     <span class="plan-stepper-value">@sel.Surface@(sel.SurfaceSet ? "" : " (base)")</span>
-                    <button class="action-btn action-btn--icon" @onclick="() => StepSurface(2)">+</button>
+                    <button class="action-btn action-btn--icon" title="Raise surface by @((int)surfaceStep)" @onclick="() => StepSurface((int)surfaceStep)">+</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="field-label">Step</label>
+                  <div class="ctrl-row">
+                    @foreach (var s in StepPresets)
+                    {
+                      <button class="filter-chip @((int)surfaceStep == s ? "filter-chip--active" : null)" title="Step surface by @s" @onclick="() => SetSurfaceStep(s)">@s</button>
+                    }
                   </div>
                 </div>
                 <button class="action-btn action-btn--full" @onclick="ToggleMirrors">

@@ -13,6 +13,7 @@ import { parseOverlays, sortFindings } from "../plan/plan-inspect.js";
 const STORAGE_KEY = "pgm-plan-editor";
 const OVERLAY_KEY = "pgm-plan-overlays";
 const HEIGHTMAP_KEY = "pgm-plan-heightmap";
+const SURFACESTEP_KEY = "pgm-plan-surface-step";
 
 export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let doc = emptyDoc();
@@ -101,6 +102,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   // Height-map fill mode (off by default) — persisted like the overlay chips, under its own key.
   let heightMap = false;
   try { heightMap = localStorage.getItem(HEIGHTMAP_KEY) === "1"; } catch { /* default off */ }
+
+  // Surface-stepper increment (blocks per ± click on a piece's surface; default 2 per EL1). An authoring
+  // preference — persisted per browser, never written to the plan; the host reads it to size its ± buttons.
+  let surfaceStep = 2;
+  try { const v = parseInt(localStorage.getItem(SURFACESTEP_KEY), 10); if (v >= 1) surfaceStep = v; } catch { /* default 2 */ }
 
   let inspectTimer = null, inspectSeq = 0;
   function scheduleInspect() {
@@ -254,6 +260,8 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     setOverlay(key, on) { if (!(key in overlays)) return; overlays[key] = !!on; persistOverlays(); canvas.setOverlayVisible(key, overlays[key]); },
     getHeightMap() { return heightMap; },
     setHeightMap(on) { heightMap = !!on; try { localStorage.setItem(HEIGHTMAP_KEY, heightMap ? "1" : "0"); } catch { /* private mode */ } canvas.setHeightMap(heightMap); },
+    getSurfaceStep() { return surfaceStep; },
+    setSurfaceStep(v) { surfaceStep = Math.max(1, Math.round(Number(v) || 2)); try { localStorage.setItem(SURFACESTEP_KEY, String(surfaceStep)); } catch { /* private mode */ } return surfaceStep; },
     highlightSubjects(idsJson) { try { canvas.pulseSubjects(JSON.parse(idsJson) || []); } catch { /* ignore */ } },
 
     dispose() { if (saveTimer) clearTimeout(saveTimer); if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },

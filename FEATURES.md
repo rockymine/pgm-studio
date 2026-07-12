@@ -603,6 +603,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   repaints on reload, and is **ignored by the compiler** (verified: a seed compiles byte-identically with and
   without it). Builds the corpus that informs the box-based / wool-approach vocabulary in
   `docs/contracts/layout-generation.md`. (G55)
+- **Configurable surface step** — the piece surface stepper's ± increment (formerly hardcoded ±2 per EL1) is
+  now an editor preference: a **Surface step (y)** field in the globals panel sets any whole value ≥ 1, and
+  **1 / 2 / 3 quick-preset chips** under the inspector's surface stepper switch the common ones in-context,
+  applied live mid-edit. Persisted per browser (bridge `getSurfaceStep`/`setSurfaceStep`, key
+  `pgm-plan-surface-step`); the ± button tooltips read the current step. Not part of the plan file. (G57)
 - **Zone-union connectivity + contact lint** — buildable **regions** = union-find components of zone rects
   (merged on overlap or positive-length shared border; corner-point touch does not merge); straight-span
   gap-link overlays test containment against the merged region, while fanned **reachability** links every

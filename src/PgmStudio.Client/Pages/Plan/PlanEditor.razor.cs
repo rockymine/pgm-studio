@@ -44,6 +44,10 @@ public partial class PlanEditor
     private string symmetry = "rot_180";
     private double cell = 5, surface = 9, headroom = 11, maxPlayers = 12;
 
+    // Surface-stepper increment (blocks per ± click on a piece's surface). An editor preference persisted by
+    // the bridge (default 2 per EL1), not part of the plan.
+    private double surfaceStep = 2;
+
     private PlanSelection? sel;
 
     // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs) + the live lint feed.
@@ -88,6 +92,7 @@ public partial class PlanEditor
         try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
         try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
         try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
+        try { surfaceStep = await handle.InvokeAsync<double>("getSurfaceStep"); } catch { /* keep default 2 */ }
         try
         {
             var all = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps");
@@ -205,6 +210,18 @@ public partial class PlanEditor
 
     private Task SetGlobal(string key, double value)
         => handle?.InvokeVoidAsync("setGlobal", key, value).AsTask() ?? Task.CompletedTask;
+
+    // Surface-stepper increment (editor preference; the bridge clamps to a whole number ≥ 1 and persists it).
+    // The globals field sets any value; the inspector's quick-preset chips switch the common ones in-context.
+    private static readonly int[] StepPresets = [1, 2, 3];
+
+    private async Task OnSurfaceStep(double v)
+    {
+        surfaceStep = v < 1 ? 1 : v;
+        if (handle is not null) surfaceStep = await handle.InvokeAsync<double>("setSurfaceStep", surfaceStep);
+    }
+
+    private Task SetSurfaceStep(int s) => OnSurfaceStep(s);
 
     // ── inspector edits ──────────────────────────────────────────────────────────
 

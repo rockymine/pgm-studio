@@ -163,7 +163,10 @@ New page `Pages/Plan/PlanEditor.razor` (+ `js/studio/plan/`), reusing the studio
   live mirror ghost against the map's opposing teams. Feeds the box-based / wool-approach vocabulary.
 - **Palette:** piece roles (lane · hub · wool-room · mid) + zone tool + markers (spawn with a
   drag-to-set facing arrow, wool, iron).
-- **Inspector (selected piece):** role, surface stepper (±2, EL1), `mirrors` toggle, id.
+- **Inspector (selected piece):** role, surface stepper (± a configurable step, default 2 per EL1; the
+  step is a persisted editor preference — set any value in the globals panel or switch the common ones
+  (1 / 2 / 3) in-context via quick-preset chips under the stepper, applied live mid-edit), `mirrors`
+  toggle, id.
 - **Overlays (toggleable):** derived land interfaces (green intervals; a slimmer green core where
   narrow; red only at a bare corner point), gap links through zones with hop distances, computed
   frontline edges, spawn→wool path trace.
