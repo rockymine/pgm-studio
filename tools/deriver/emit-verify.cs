@@ -40,6 +40,20 @@ foreach (var f in families)
             foreach (var flip in new[] { false, true })
                 Check($"{f} {W}x{H} cw{cw}{(flip ? " flip" : "")}", f, () => WoolBoxEmitter.Emit(f, new WoolBox(0, 0, W, H), cw, flip), cw);
 
+// every emitted piece carries its template slot role (piece vocabulary §2); the emitted slot sequence must
+// equal ApproachSlots.Template for each family — the stable named sequence the shift/width/docking rules target.
+Console.WriteLine("=== slot templates (piece vocabulary §2) ===");
+foreach (var f in families)
+{
+    EmittedApproach a;
+    try { a = WoolBoxEmitter.Emit(f, new WoolBox(0, 0, 20, 24), 2); } catch (ComposeException) { skip++; continue; }
+    var got = string.Join(" · ", a.Terrain.Select(p => p.Slot).Append(a.WoolRoom.Slot));
+    var want = string.Join(" · ", ApproachSlots.Template(f));
+    var pass = got == want;
+    if (pass) ok++; else { bad++; fails.Add($"{f} slots: got [{got}] want [{want}]"); }
+    Console.WriteLine($"{f,-8} {got,-46} {(pass ? "OK" : "MISMATCH")}");
+}
+
 Console.WriteLine("=== variants ===");
 foreach (var cw in cws)
 {

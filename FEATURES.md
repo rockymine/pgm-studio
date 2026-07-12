@@ -693,6 +693,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **113/113**, `stress-shapes` **31/31 · 0 breaks** (grammar-valid but extreme pieces). Contract:
   `docs/contracts/layout-generation.md` §2. (G53)
 
+- **Wool-box pieces carry their slot role** — `Pgm/Compose/WoolBoxEmitter.cs` + `TeamUnitGrower.cs`:
+  `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`ApproachSlots` on `GrownPiece.Slot`) —
+  `entry` (the universal hub-attach), `run`, `bar`, `leg`, `room`, qualified `entry-run`/`room-run` and
+  `entry-bar`/`room-bar` — per the §2 piece-vocabulary table, exposed as data via `ApproachSlots.Template`.
+  It is a **shape-internal taxonomy, distinct from the map-level piece `role`** (terrain pieces keep `piece`),
+  and is the foundation the shift (G50) / width (G51) / docking (G52) rules target — those name a slot instead
+  of re-deriving it from geometry. Invariants held: a family emits a **stable piece count** (no collinear
+  merges) and a role is a **template slot, not a property of the rectangle**. Verified: `WoolBoxEmitterTests`
+  (25 cases — template order per family, flip/variant invariants, stable count) + `emit-verify` slot section
+  (**121/121**). Contract: `docs/contracts/layout-generation.md` §2. (G54)
+
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
   primitives that let an author design reusable single-unit lane / spawn templates. **G46** adds a `none`

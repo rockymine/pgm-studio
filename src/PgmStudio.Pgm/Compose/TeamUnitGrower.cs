@@ -5,8 +5,14 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>A grown piece: a rect in cell coordinates (<see cref="Plan.PlanPiece.Rect"/> convention) and its
 /// role. The grower authors only anonymous <c>piece</c>-role rects (the default); the role-bearing
 /// <c>wool-room</c>/<c>spawn</c> rooms are carved from the terminal lanes afterwards
-/// (<see cref="SpawnWoolRooms"/>).</summary>
-public sealed record GrownPiece(string Id, int[] Rect, string Role = PlanRoles.Piece);
+/// (<see cref="SpawnWoolRooms"/>).
+///
+/// <para><see cref="Slot"/> is the piece's <b>wool-approach slot role</b> (<see cref="ApproachSlots"/>) when it
+/// came from <see cref="WoolBoxEmitter"/> — the shape-internal template position (<c>entry</c>/<c>bar</c>/
+/// <c>leg</c>/<c>room</c>, qualified <c>entry-run</c>/<c>room-run</c>/<c>entry-bar</c>/<c>room-bar</c>), which
+/// the shift/width/docking rules target. It is distinct from the map-level <see cref="Role"/> and is
+/// <c>null</c> for any piece not emitted as part of an approach shape.</para></summary>
+public sealed record GrownPiece(string Id, int[] Rect, string Role = PlanRoles.Piece, string? Slot = null);
 
 /// <summary>The grown unit's spawn: which piece it sits on, its piece-relative half-cell offset, and its
 /// absolute facing (SP3: toward the enemy by default).</summary>

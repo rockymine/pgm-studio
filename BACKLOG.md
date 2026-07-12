@@ -201,18 +201,6 @@ The open work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
 
-- [ ] **G54 — Name the wool-box pieces in code (slot roles per the piece vocabulary).** `WoolBoxEmitter` emits
-  anonymous terrain pieces (`wa-t1`, `wa-t2`, …). Tag each with its **slot role** — `entry` (the universal
-  hub-attach), `run`, `bar`, `leg`, `room`, qualified `entry-run`/`room-run` and `entry-bar`/`room-bar` where a
-  family has two — per the **piece-vocabulary table in `docs/contracts/layout-generation.md` §2** (I=`entry·room`,
-  L=`entry·run·room`, Z=`entry·bar·room-run·room`, scythe=`entry·entry-run·bar·room-run·room`, U=`entry·entry·room`,
-  H=`bar·entry·entry·room-run·room`, donut=`entry-bar·leg·leg·entry·room-bar·room`). This is the
-  **foundation** the rule tasks hang off: entry shift (G50) and entry width (G51) target the `entry` slot, wool
-  docking (G52) the `room` slot, and the templates are the structural signatures the shipped width-independent
-  classifier keys on. Invariants: a family emits a **stable piece count** (don't merge collinear pieces); a role is a
-  **template slot, not a property of the rectangle**. Shape-internal taxonomy on the emitted pieces — distinct
-  from the plan's map-level `role` field (`spawn`/`hub`/`lane`…). Reference gallery: the "One named shape per
-  category" artifact.
 - [ ] **G50 — Wool-box emitter: shift the entry/attachment off the box corner.** `WoolBoxEmitter` pins each
   shape's docking point to a box corner flush against the interface edge, so exactly 3 corners always fill; in
   a real plan the docking point slides along that edge. Applies to **donut and scythe only** (Z stays corner-

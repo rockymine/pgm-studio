@@ -9,6 +9,46 @@ namespace PgmStudio.Pgm.Compose;
 /// <see cref="Clamp"/> caught between two bars; <see cref="Donut"/> around an enclosed void.</summary>
 public enum ApproachFamily { I, L, Z, Scythe, Clamp, U, H, Donut }
 
+/// <summary>The wool-approach <b>slot roles</b> — the shape-internal taxonomy every emitted piece carries
+/// (<see cref="GrownPiece.Slot"/>), naming its position in the family template so the composition rules read
+/// as properties of a slot rather than raw geometry. <see cref="Entry"/> is the universal hub-attach (a lane's
+/// mouth, either leg of a U/H, either bar of a clamp, the donut's hub stub) — the target of entry shift and
+/// entry width; <see cref="Room"/> is the wool room — the target of the extend-vs-side-dock rule;
+/// <see cref="Run"/>/<see cref="Bar"/> are corridor/crossing segments, qualified <see cref="EntryRun"/>/
+/// <see cref="RoomRun"/> and <see cref="EntryBar"/>/<see cref="RoomBar"/> where a family has two; <see cref="Leg"/>
+/// is a donut ring arm. A role is a <b>template slot, not a property of the rectangle</b> — a scythe's
+/// <c>entry-run</c> and a donut's <c>leg</c> can be the same rectangle in different slots. See the piece
+/// vocabulary in <c>docs/contracts/layout-generation.md</c> §2.</summary>
+public static class ApproachSlots
+{
+    public const string Entry = "entry";
+    public const string Run = "run";
+    public const string Bar = "bar";
+    public const string Leg = "leg";
+    public const string Room = "room";
+    public const string EntryRun = "entry-run";
+    public const string RoomRun = "room-run";
+    public const string EntryBar = "entry-bar";
+    public const string RoomBar = "room-bar";
+
+    /// <summary>The canonical ordered slot template of <paramref name="family"/> — terrain slots in emit order,
+    /// the <see cref="Room"/> last — the §2 piece-vocabulary table as data. This is the base configuration
+    /// (single donut attachment, no wool-extend, inline room); the optional donut knobs add pieces
+    /// (a second attachment is another <see cref="Entry"/>, a wool-extend a <see cref="Run"/>).</summary>
+    public static IReadOnlyList<string> Template(ApproachFamily family) => family switch
+    {
+        ApproachFamily.I     => [Entry, Room],
+        ApproachFamily.L     => [Entry, Run, Room],
+        ApproachFamily.Z     => [Entry, Bar, RoomRun, Room],
+        ApproachFamily.Scythe => [Entry, EntryRun, Bar, RoomRun, Room],
+        ApproachFamily.Clamp => [Entry, Entry, Room],
+        ApproachFamily.U     => [Bar, Entry, Entry, Room],
+        ApproachFamily.H     => [Bar, Entry, Entry, RoomRun, Room],
+        ApproachFamily.Donut => [EntryBar, Leg, Leg, Entry, RoomBar, Room],
+        _ => throw new ComposeException($"no slot template for family {family}."),
+    };
+}
+
 /// <summary>Where the wool room sits relative to the approach's final segment. <see cref="Inline"/> continues
 /// it straight (the plain dead-end). <see cref="SideTuck"/> turns the room off perpendicular at the end — the
 /// catalog's <c>side-tuck</c>: still an <b>I</b> lane, because the categorizer excludes the room from the bend
@@ -58,7 +98,7 @@ public static class WoolBoxEmitter
         if (roomPlacement == RoomPlacement.SideTuck && family != ApproachFamily.I)
             throw new ComposeException($"side-tuck room is only supported for the I family in this pass (requested {family}).");
 
-        var t = new List<int[]>();
+        var t = new List<(int[] Rect, string Slot)>();
         int[] room;
         double[]? at = null;                                 // wool marker offset within the room (defaults to centre)
         switch (family)
@@ -70,7 +110,7 @@ public static class WoolBoxEmitter
                 // The room is BESIDE the lane (shares a vertical corridor-width edge), never a wide cap extending
                 // the lane's end. It reads I: the lane is straight and the room is excluded from the bend count.
                 Need(box.W >= cw + RoomDepthCells && box.H >= 2 * cw, family, box);
-                t.Add([0, 0, cw, box.H]);                    // straight vertical lane, full depth (left)
+                t.Add(([0, 0, cw, box.H], ApproachSlots.Entry));   // straight vertical lane, full depth (left)
                 room = [cw, box.H - cw, RoomDepthCells, cw]; // room off the lane's right side, at the terminal
                 at = [RoomDepthCells / 2.0, cw / 2.0];
                 break;
@@ -79,7 +119,7 @@ public static class WoolBoxEmitter
             {
                 Need(box.H >= RoomDepthCells + 1, family, box);
                 int lx = (box.W - cw) / 2, laneH = box.H - RoomDepthCells;
-                t.Add([lx, 0, cw, laneH]);
+                t.Add(([lx, 0, cw, laneH], ApproachSlots.Entry));
                 room = [lx, laneH, cw, RoomDepthCells];
                 break;
             }
@@ -90,8 +130,8 @@ public static class WoolBoxEmitter
                 // the band sits in the vertical's own column and the shape collapses to a straight I).
                 Need(box.W >= cw + RoomDepthCells + 1 && box.H >= 2 * cw, family, box);
                 int vLx = 0, bandZ = box.H - cw, roomLen = RoomDepthCells;
-                t.Add([vLx, 0, cw, bandZ]);                          // vertical arm
-                t.Add([0, bandZ, box.W - roomLen, cw]);              // horizontal band up to the room
+                t.Add(([vLx, 0, cw, bandZ], ApproachSlots.Entry));           // vertical arm (enters at the mouth)
+                t.Add(([0, bandZ, box.W - roomLen, cw], ApproachSlots.Run)); // horizontal band up to the room
                 room = [box.W - roomLen, bandZ, roomLen, cw];        // dead-end at the far side of the band
                 break;
             }
@@ -101,9 +141,9 @@ public static class WoolBoxEmitter
                 Need(box.W >= 2 * cw && box.H >= 3 * cw + RoomDepthCells, family, box);
                 int z1 = (box.H - RoomDepthCells - cw) / 2;          // top-arm length (balanced with the bottom arm)
                 int botZ = z1 + cw, botLen = box.H - RoomDepthCells - botZ;
-                t.Add([0, 0, cw, z1]);                               // top arm (left)
-                t.Add([0, z1, box.W, cw]);                           // crossing band
-                t.Add([box.W - cw, botZ, cw, botLen]);               // bottom arm (right)
+                t.Add(([0, 0, cw, z1], ApproachSlots.Entry));            // top arm (left) — the mouth
+                t.Add(([0, z1, box.W, cw], ApproachSlots.Bar));          // crossing band
+                t.Add(([box.W - cw, botZ, cw, botLen], ApproachSlots.RoomRun)); // bottom arm (right) up to the room
                 room = [box.W - cw, box.H - RoomDepthCells, cw, RoomDepthCells];
                 break;
             }
@@ -114,10 +154,10 @@ public static class WoolBoxEmitter
                 // spine and the return leg (not a symmetric U).
                 Need(box.W >= 4 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
                 int botZ = box.H - cw;
-                t.Add([0, 0, cw, cw]);                               // top-left tail — the mouth
-                t.Add([cw, 0, cw, botZ]);                            // spine (down from the tail)
-                t.Add([cw, botZ, 3 * cw, cw]);                       // bottom bar (spine → return leg)
-                t.Add([3 * cw, RoomDepthCells, cw, botZ - RoomDepthCells]);  // return leg (up), one bay over
+                t.Add(([0, 0, cw, cw], ApproachSlots.Entry));            // top-left tail — the mouth
+                t.Add(([cw, 0, cw, botZ], ApproachSlots.EntryRun));      // spine (down from the tail)
+                t.Add(([cw, botZ, 3 * cw, cw], ApproachSlots.Bar));      // bottom bar (spine → return leg)
+                t.Add(([3 * cw, RoomDepthCells, cw, botZ - RoomDepthCells], ApproachSlots.RoomRun)); // return leg (up), one bay over
                 room = [3 * cw, 0, cw, RoomDepthCells];              // wool caps the return leg (top-right)
                 break;
             }
@@ -129,10 +169,10 @@ public static class WoolBoxEmitter
                 Need(box.W >= 3 * cw && box.H >= 2 * cw + 2 * RoomDepthCells, family, box);
                 int barZ = 2 * RoomDepthCells;                       // wool + stub above the bar
                 int wx = woolAtEnd ? 0 : (box.W - cw) / 2;
-                t.Add([0, barZ, box.W, cw]);                         // crossbar (full width)
-                t.Add([0, barZ + cw, cw, box.H - barZ - cw]);        // left leg (down to the hub)
-                t.Add([box.W - cw, barZ + cw, cw, box.H - barZ - cw]);  // right leg (down to the hub)
-                t.Add([wx, RoomDepthCells, cw, RoomDepthCells]);     // room-run stub from the crossbar up to the wool
+                t.Add(([0, barZ, box.W, cw], ApproachSlots.Bar));                        // crossbar (full width)
+                t.Add(([0, barZ + cw, cw, box.H - barZ - cw], ApproachSlots.Entry));     // left leg (down to the hub)
+                t.Add(([box.W - cw, barZ + cw, cw, box.H - barZ - cw], ApproachSlots.Entry)); // right leg (down to the hub)
+                t.Add(([wx, RoomDepthCells, cw, RoomDepthCells], ApproachSlots.RoomRun)); // room-run stub from the crossbar up to the wool
                 room = [wx, 0, cw, RoomDepthCells];                  // wool caps the stub (middle or an end)
                 break;
             }
@@ -145,9 +185,9 @@ public static class WoolBoxEmitter
                 Need(box.W >= 3 * cw && box.H >= 2 * cw + RoomDepthCells, family, box);
                 int barZ = RoomDepthCells;                           // wool sits directly above the bar
                 int wx = woolAtEnd ? 0 : (box.W - cw) / 2;
-                t.Add([0, barZ, box.W, cw]);                         // crossbar (full width)
-                t.Add([0, barZ + cw, cw, box.H - barZ - cw]);        // left leg (down to the hub)
-                t.Add([box.W - cw, barZ + cw, cw, box.H - barZ - cw]);  // right leg (down to the hub)
+                t.Add(([0, barZ, box.W, cw], ApproachSlots.Bar));                        // crossbar (full width)
+                t.Add(([0, barZ + cw, cw, box.H - barZ - cw], ApproachSlots.Entry));     // left leg (down to the hub)
+                t.Add(([box.W - cw, barZ + cw, cw, box.H - barZ - cw], ApproachSlots.Entry)); // right leg (down to the hub)
                 room = [wx, 0, cw, RoomDepthCells];                  // wool flush on the crossbar
                 break;
             }
@@ -157,8 +197,8 @@ public static class WoolBoxEmitter
                 // is the closing wall connecting them (terrain on two opposite sides, and it bridges them).
                 Need(box.W >= 2 * cw && box.H >= 2 * cw + 1, family, box);
                 int barLen = 2 * cw;
-                t.Add([0, 0, barLen, cw]);                           // top bar
-                t.Add([0, box.H - cw, barLen, cw]);                  // bottom bar
+                t.Add(([0, 0, barLen, cw], ApproachSlots.Entry));           // top bar
+                t.Add(([0, box.H - cw, barLen, cw], ApproachSlots.Entry));  // bottom bar
                 room = [barLen - cw, cw, cw, box.H - 2 * cw];        // wool = the closing wall (connects the bars)
                 break;
             }
@@ -174,21 +214,21 @@ public static class WoolBoxEmitter
                 int needH = Math.Max(2 * cw + 1, attachments >= 2 ? 2 * aw + 1 : aw + cw);
                 Need(box.W >= 4 * cw + extend + RoomDepthCells && box.H >= needH, family, box);
                 int ax = cw, ringH = box.H, span = 3 * cw;           // ring x in [ax, ax+3cw); hub stubs sit in [0, cw)
-                t.Add([ax, 0, span, cw]);                            // top bar
-                t.Add([ax, cw, cw, ringH - 2 * cw]);                 // left leg (middle only — no corner overlap)
-                t.Add([ax + 2 * cw, cw, cw, ringH - 2 * cw]);        // right leg (middle only)
-                t.Add([0, 0, cw, aw]);                               // hub attachment (top-left), aw cells wide
-                if (attachments >= 2) t.Add([0, ringH - aw, cw, aw]);// second attachment (bottom-left)
+                t.Add(([ax, 0, span, cw], ApproachSlots.EntryBar));          // top bar
+                t.Add(([ax, cw, cw, ringH - 2 * cw], ApproachSlots.Leg));    // left leg (middle only — no corner overlap)
+                t.Add(([ax + 2 * cw, cw, cw, ringH - 2 * cw], ApproachSlots.Leg)); // right leg (middle only)
+                t.Add(([0, 0, cw, aw], ApproachSlots.Entry));               // hub attachment (top-left), aw cells wide
+                if (attachments >= 2) t.Add(([0, ringH - aw, cw, aw], ApproachSlots.Entry)); // second attachment (bottom-left)
                 if (woolAtEnd)
                 {
-                    t.Add([ax, ringH - cw, 2 * cw, cw]);            // bottom bar stops before the corner
+                    t.Add(([ax, ringH - cw, 2 * cw, cw], ApproachSlots.RoomBar)); // bottom bar stops before the corner
                     room = [ax + 2 * cw, ringH - cw, cw, cw];       // wool AT the bottom-right corner (integrated)
                 }
                 else
                 {
-                    t.Add([ax, ringH - cw, span, cw]);              // full bottom bar
+                    t.Add(([ax, ringH - cw, span, cw], ApproachSlots.RoomBar));  // full bottom bar
                     int wxr = ax + span;                            // right of the ring's right leg
-                    if (woolExtend) { t.Add([wxr, ringH - cw, cw, cw]); wxr += cw; }  // short I holding the wool
+                    if (woolExtend) { t.Add(([wxr, ringH - cw, cw, cw], ApproachSlots.Run)); wxr += cw; }  // short I holding the wool
                     room = [wxr, ringH - cw, RoomDepthCells, cw];   // wool off the bottom-right
                 }
                 break;
@@ -199,16 +239,16 @@ public static class WoolBoxEmitter
         at ??= [room[2] / 2.0, room[3] / 2.0];
         if (flip)
         {
-            foreach (var r in t) r[0] = box.W - r[0] - r[2];
+            foreach (var (rect, _) in t) rect[0] = box.W - rect[0] - rect[2];   // slot survives the mirror
             room[0] = box.W - room[0] - room[2];
             at = [room[2] - at[0], at[1]];                   // mirror the marker within the flipped room
         }
 
-        // translate box-local -> absolute and wrap as pieces
+        // translate box-local -> absolute and wrap as pieces, each carrying its template slot role
         var terrain = new List<GrownPiece>(t.Count);
         for (var i = 0; i < t.Count; i++)
-            terrain.Add(new GrownPiece($"{idPrefix}-t{i + 1}", [box.X + t[i][0], box.Z + t[i][1], t[i][2], t[i][3]]));
-        var woolRoom = new GrownPiece($"{idPrefix}-wool", [box.X + room[0], box.Z + room[1], room[2], room[3]], PlanRoles.WoolRoom);
+            terrain.Add(new GrownPiece($"{idPrefix}-t{i + 1}", [box.X + t[i].Rect[0], box.Z + t[i].Rect[1], t[i].Rect[2], t[i].Rect[3]], PlanRoles.Piece, t[i].Slot));
+        var woolRoom = new GrownPiece($"{idPrefix}-wool", [box.X + room[0], box.Z + room[1], room[2], room[3]], PlanRoles.WoolRoom, ApproachSlots.Room);
         return new EmittedApproach(terrain, woolRoom, at);
     }
 

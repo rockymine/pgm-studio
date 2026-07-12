@@ -208,6 +208,13 @@ Two invariants: a family always emits the **same piece count** (don't merge coll
 what makes "the entry is piece N" a usable rule); and a **role is a template slot, not a property of the
 rectangle** — a scythe's `entry-run` and a donut's `leg` are the same rectangle in different slots.
 
+This table is realized in code: `WoolBoxEmitter` tags every emitted piece with its slot (`ApproachSlots` on
+`GrownPiece.Slot` — a **shape-internal taxonomy, distinct from the map-level piece `role`**), and
+`ApproachSlots.Template(family)` is this table as data. The tagging is checked both ways — `emit-verify`
+asserts the emitted slot sequence equals the template per family, and `WoolBoxEmitterTests` locks the order,
+the stable count, and the flip/variant invariants. So the composition rules below can name a slot (`entry`,
+`room`) rather than re-deriving it from geometry.
+
 Why this is load-bearing: the composition rules become properties of a **role**, defined once for every
 family. **Entry widening** (the width grammar) and **entry shift** live on the `entry` slot; **wool docking**
 (extend vs side-dock) lives on the `room` slot; **which pieces may split into build zones** (v2) is stated
