@@ -1,0 +1,821 @@
+<title>Layout Generation — the plan, in order</title>
+<style>
+  :root {
+    --paper:    #eef1f0;
+    --surface:  #f8faf9;
+    --surface-2:#f0f3f2;
+    --ink:      #15201b;
+    --ink-soft: #4d5b54;
+    --ink-faint:#7c8981;
+    --line:     #d4ddd8;
+    --line-soft:#e3eae6;
+    --wool:     #cf3d3d;
+    --wool-hi:  #e07a7a;
+    --wool-soft:#efd4d4;
+    --terrain:  #6f9673;
+    --terrain-soft:#dde8de;
+    --void:     #aeb8b2;
+    --shipped:  #2f8a63;
+    --pending:  #bf842a;
+    --todo:     #8a948e;
+    --grid:     rgba(21,32,27,0.045);
+
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    --maxw: 74ch;
+    --wide: 1000px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:    #0f1512;
+      --surface:  #161d19;
+      --surface-2:#131a16;
+      --ink:      #e6ece8;
+      --ink-soft: #9aa79f;
+      --ink-faint:#6c7a72;
+      --line:     #26302a;
+      --line-soft:#1e2721;
+      --wool:     #e05a5a;
+      --wool-hi:  #f09090;
+      --wool-soft:#3a221f;
+      --terrain:  #7fac83;
+      --terrain-soft:#20302a;
+      --void:     #38443d;
+      --shipped:  #4bb686;
+      --pending:  #d69f4c;
+      --todo:     #7d8880;
+      --grid:     rgba(230,236,232,0.05);
+    }
+  }
+  :root[data-theme="light"] {
+    --paper:#eef1f0;--surface:#f8faf9;--surface-2:#f0f3f2;--ink:#15201b;--ink-soft:#4d5b54;
+    --ink-faint:#7c8981;--line:#d4ddd8;--line-soft:#e3eae6;--wool:#cf3d3d;--wool-hi:#e07a7a;
+    --wool-soft:#efd4d4;--terrain:#6f9673;--terrain-soft:#dde8de;--void:#aeb8b2;--shipped:#2f8a63;
+    --pending:#bf842a;--todo:#8a948e;--grid:rgba(21,32,27,0.045);
+  }
+  :root[data-theme="dark"] {
+    --paper:#0f1512;--surface:#161d19;--surface-2:#131a16;--ink:#e6ece8;--ink-soft:#9aa79f;
+    --ink-faint:#6c7a72;--line:#26302a;--line-soft:#1e2721;--wool:#e05a5a;--wool-hi:#f09090;
+    --wool-soft:#3a221f;--terrain:#7fac83;--terrain-soft:#20302a;--void:#38443d;--shipped:#4bb686;
+    --pending:#d69f4c;--todo:#7d8880;--grid:rgba(230,236,232,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--wide); margin: 0 auto; padding: 0 22px 6rem; }
+  .col  { max-width: var(--maxw); }
+
+  a { color: var(--wool); text-underline-offset: 2px; }
+
+  /* ---------- masthead ---------- */
+  header.mast {
+    padding: 4.5rem 0 2.2rem;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 2.6rem;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.1rem; align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  .eyebrow .tick { color: var(--wool); }
+  h1 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: clamp(2rem, 5.2vw, 3.1rem);
+    line-height: 1.04;
+    letter-spacing: -0.01em;
+    margin: 0 0 1.1rem;
+    text-wrap: balance;
+  }
+  h1 .accent { color: var(--wool); }
+  .standfirst {
+    font-size: 1.16rem;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 68ch;
+    margin: 0 0 1.8rem;
+  }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 0.6rem 1.4rem;
+    font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.02em;
+    color: var(--ink-soft);
+  }
+  .legend .k { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .swatch { width: 0.85rem; height: 0.85rem; border-radius: 3px; flex: none; }
+  .sw-ship { background: var(--shipped); }
+  .sw-prog { background: var(--pending); }
+  .sw-todo { background: transparent; border: 1.5px dashed var(--todo); }
+
+  /* ---------- section scaffolding ---------- */
+  section { margin: 3.4rem 0 0; }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--wool);
+    display: flex; align-items: center; gap: 0.7rem;
+    margin-bottom: 0.7rem;
+  }
+  .kicker::before {
+    content: ""; width: 1.4rem; height: 2px; background: var(--wool); flex: none;
+  }
+  h2 {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--sans);
+    font-weight: 650;
+    font-size: 1.06rem;
+    margin: 1.8rem 0 0.5rem;
+  }
+  p { margin: 0 0 1rem; }
+  .col p, .col ul { max-width: var(--maxw); }
+  strong { font-weight: 650; }
+  code {
+    font-family: var(--mono);
+    font-size: 0.86em;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 4px;
+    padding: 0.05em 0.36em;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  ul.clean { list-style: none; padding: 0; margin: 0 0 1rem; }
+  ul.clean li { position: relative; padding-left: 1.3rem; margin-bottom: 0.5rem; }
+  ul.clean li::before {
+    content: "›"; position: absolute; left: 0; top: -0.02em;
+    color: var(--wool); font-family: var(--mono); font-weight: 700;
+  }
+
+  /* ---------- diagram figure ---------- */
+  .figure {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.6rem 1.6rem 1.4rem;
+    margin: 1.8rem 0;
+  }
+  .diagrams {
+    display: flex; flex-wrap: wrap; gap: 1.5rem;
+    align-items: flex-start; justify-content: center;
+  }
+  .plate {
+    flex: 1 1 320px;
+    min-width: 280px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    padding: 1.1rem 1.1rem 1rem;
+  }
+  .plate h4 {
+    font-family: var(--mono); font-weight: 600; font-size: 0.98rem;
+    margin: 0 0 0.15rem; display: flex; align-items: baseline; gap: 0.55rem;
+  }
+  .plate h4 .fam { color: var(--wool); }
+  .plate .tmpl {
+    font-family: var(--mono); font-size: 0.73rem; color: var(--ink-faint);
+    letter-spacing: 0.02em; margin-bottom: 0.9rem;
+  }
+  .plate svg { width: 100%; height: auto; display: block; }
+  .plate .cap {
+    font-size: 0.85rem; color: var(--ink-soft); line-height: 1.5;
+    margin: 0.9rem 0 0; max-width: none;
+  }
+  .charrow {
+    font-family: var(--mono); font-size: 0.78rem; color: var(--ink-soft);
+    margin-top: 0.7rem; letter-spacing: 0.12em;
+  }
+  .charrow b { color: var(--ink); font-weight: 600; }
+
+  .keyrow {
+    display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem;
+    font-family: var(--mono); font-size: 0.75rem; color: var(--ink-soft);
+    margin-top: 1.3rem; padding-top: 1.1rem; border-top: 1px dashed var(--line);
+  }
+  .keyrow .k { display: inline-flex; align-items: center; gap: 0.5rem; }
+  .keybox { width: 1rem; height: 1rem; border-radius: 3px; flex: none; }
+
+  /* ---------- pipeline rail ---------- */
+  .rail { margin: 1.6rem 0 0; border-left: 2px solid var(--line); padding-left: 0; }
+  .step {
+    display: grid; grid-template-columns: 2.2rem 1fr; gap: 0 1rem;
+    padding: 0.85rem 0 0.85rem 1.3rem; position: relative;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .step:last-child { border-bottom: 0; }
+  .step .num {
+    font-family: var(--mono); font-size: 0.82rem; font-weight: 600;
+    color: var(--ink-faint); grid-row: span 2; padding-top: 0.1rem;
+  }
+  .step .dot {
+    position: absolute; left: -1.55rem; top: 1rem;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--paper); border: 2px solid var(--todo);
+  }
+  .step.ship .dot { background: var(--shipped); border-color: var(--shipped); }
+  .step.prog .dot { background: var(--pending); border-color: var(--pending); }
+  .step .st-title {
+    font-weight: 600; font-size: 1.01rem; display: flex; flex-wrap: wrap;
+    align-items: baseline; gap: 0.6rem;
+  }
+  .step .st-body { color: var(--ink-soft); font-size: 0.92rem; grid-column: 2; }
+
+  .tag {
+    font-family: var(--mono); font-size: 0.64rem; font-weight: 600;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    padding: 0.13em 0.5em; border-radius: 4px; white-space: nowrap;
+  }
+  .tag.ship { color: var(--shipped); background: color-mix(in srgb, var(--shipped) 15%, transparent); }
+  .tag.prog { color: var(--pending); background: color-mix(in srgb, var(--pending) 16%, transparent); }
+  .tag.todo { color: var(--todo);    background: color-mix(in srgb, var(--todo) 15%, transparent); }
+  .ids { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); }
+
+  /* ---------- status board ---------- */
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.6rem 0 0; }
+  .lane {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; padding: 1rem 1rem 1.1rem;
+  }
+  .lane > h4 {
+    font-family: var(--mono); font-size: 0.76rem; letter-spacing: 0.08em;
+    text-transform: uppercase; margin: 0 0 0.85rem; display: flex; align-items: center; gap: 0.5rem;
+  }
+  .lane.ship > h4 { color: var(--shipped); }
+  .lane.prog > h4 { color: var(--pending); }
+  .lane.todo > h4 { color: var(--ink-soft); }
+  .lane > h4 .cnt { margin-left: auto; font-weight: 400; color: var(--ink-faint); }
+  .item {
+    padding: 0.55rem 0; border-top: 1px solid var(--line-soft);
+    font-size: 0.88rem; line-height: 1.45;
+  }
+  .item:first-of-type { border-top: 0; }
+  .item .h { display: block; font-weight: 600; color: var(--ink); margin-bottom: 0.1rem; }
+  .item .h .gid {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint); font-weight: 600;
+  }
+  .item .d { color: var(--ink-soft); font-size: 0.83rem; }
+
+  /* ---------- families table ---------- */
+  .scroll { overflow-x: auto; margin: 1.4rem 0; border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; min-width: 540px; }
+  th, td { text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  thead th {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-faint); background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.fam { font-family: var(--mono); font-weight: 600; color: var(--wool); white-space: nowrap; }
+  td.grid { font-family: var(--mono); font-size: 0.82rem; color: var(--ink-soft); white-space: nowrap; }
+  tbody tr:hover { background: var(--surface); }
+
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--wool);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin: 1.6rem 0;
+    font-size: 0.95rem;
+  }
+  .callout .lbl {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--wool); display: block; margin-bottom: 0.35rem;
+  }
+
+  footer {
+    margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 0.74rem; color: var(--ink-faint);
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.2rem; justify-content: space-between;
+  }
+
+  @media (max-width: 720px) {
+    body { font-size: 16px; }
+    .board { grid-template-columns: 1fr; }
+    header.mast { padding-top: 3rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color 0.15s ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="eyebrow">
+      <span><span class="tick">◆</span> docs/contracts/layout-generation.md</span>
+      <span>G-series · plan-then-realize</span>
+      <span>read 2026-07-12</span>
+    </div>
+    <h1>Generating a whole map<br>from <span class="accent">pieces and interfaces</span></h1>
+    <p class="standfirst">
+      The layout generator separates a map's <strong>topology</strong> (the plan) from its
+      <strong>geometry</strong> (the realization). The plan is areal by construction —
+      <strong>rectangular pieces joined by edge-interval interfaces</strong>, never a thinned
+      skeleton — and generation grows outward, rule-based, from the deliberately boring
+      rectilinear seeds. This is that document, laid out in build order, with each stage marked
+      by where it actually stands.
+    </p>
+    <div class="legend">
+      <span class="k"><span class="swatch sw-ship"></span> shipped (FEATURES.md)</span>
+      <span class="k"><span class="swatch sw-prog"></span> in progress (TODO.md)</span>
+      <span class="k"><span class="swatch sw-todo"></span> not started</span>
+    </div>
+  </header>
+
+  <!-- ============ THE CORE IDEA ============ -->
+  <section class="col">
+    <div class="kicker">The core claim</div>
+    <h2>Topology before geometry</h2>
+    <p>
+      A <strong>plan</strong> is a small, explicit, persisted artifact: globals (symmetry mode,
+      team count, board bbox, a coarse 5-block grid cell), one authored per-team unit, and the
+      neutral middle. It holds the meaning that a raw <code>layout.json</code> +
+      <code>intent.json</code> pair only implies — roles, isolation, elevation transitions — and
+      it <strong>compiles into both</strong>:
+    </p>
+    <ul class="clean">
+      <li><strong>Piece</strong> — a rectangle on the coarse grid, tagged with a <em>role</em>
+        (<code>spawn</code>, <code>hub</code>, <code>lane</code>, <code>wool-room</code>,
+        <code>mid</code>, <code>frontline</code>), a plateau height, and pinned objective
+        placements.</li>
+      <li><strong>Interface</strong> — a shared <em>edge interval</em> between two pieces. Not a
+        point: it has a position <em>and a width</em>. <code>land</code> merges the pieces;
+        <code>gap</code> leaves a void a bridge must span. A piece with no <code>land</code>
+        interface is <em>isolated</em> — one rule that expresses every isolation motif.</li>
+    </ul>
+    <div class="callout">
+      <span class="lbl">The master variable</span>
+      <strong>Interface width is the whole design.</strong> The lane — the seeds' 10-block /
+      2-cell corridor — is the reference; the rungs <code>w2 / w4 / w6</code> (≈ 1 / 2 / 3 lanes)
+      set connectivity, classify the joint (a touch ≤ 1 lane <em>continues</em> a lane; ≥ 3 lanes
+      <em>is</em> a hub), and gate which fills are legal at that touch. Player-flow control is just
+      the distribution of interface widths along the attack paths.
+    </div>
+  </section>
+
+  <!-- ============ THE BOX VISUALIZATION ============ -->
+  <section>
+    <div class="col">
+      <div class="kicker">The box-based approach — visualized</div>
+      <h2>A wool box is an envelope of typed rectangles</h2>
+      <p>
+        The terrain immediately around a wool room is a <strong>wool box</strong>: a bounding
+        envelope subdivided into an ordered <strong>template of role-typed rectangles</strong>.
+        A family (I, L, Z, scythe, U, H, clamp, donut) is <em>the same fixed set of boxes, only
+        resized</em>. Below, two wool boxes — an <strong>I approach</strong> and a
+        <strong>Donut approach</strong>. In both, the <span style="color:var(--wool);font-weight:600">wool room box is filled</span>
+        (the objective is placed); the terrain boxes stay <strong>empty envelopes</strong> — drawn
+        but not yet realized — and void is genuinely open space a build zone may later span.
+      </p>
+    </div>
+
+    <div class="figure">
+      <div class="diagrams">
+
+        <!-- ---------- I APPROACH ---------- -->
+        <div class="plate">
+          <h4><span class="fam">I</span> straight approach</h4>
+          <div class="tmpl">template &nbsp;·&nbsp; entry · room</div>
+          <svg viewBox="0 0 188 118" role="img" aria-label="I-shape wool box: a terrain entry bar caps the filled wool room inline, with a void band below.">
+            <defs>
+              <pattern id="woolTexA" width="19" height="19" patternUnits="userSpaceOnUse">
+                <rect width="19" height="19" fill="var(--wool)"/>
+                <rect width="9.5" height="9.5" fill="var(--wool-hi)"/>
+                <rect x="9.5" y="9.5" width="9.5" height="9.5" fill="var(--wool-hi)"/>
+              </pattern>
+              <pattern id="voidHatchA" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <rect width="7" height="7" fill="var(--surface)"/>
+                <line x1="0" y1="0" x2="0" y2="7" stroke="var(--line)" stroke-width="1.3"/>
+              </pattern>
+            </defs>
+            <!-- cells: cell=38, pad=18 -->
+            <!-- void band z=1 -->
+            <g>
+              <rect x="18"  y="56" width="38" height="38" fill="url(#voidHatchA)" stroke="var(--void)" stroke-width="1" stroke-dasharray="3 3"/>
+              <rect x="56"  y="56" width="38" height="38" fill="url(#voidHatchA)" stroke="var(--void)" stroke-width="1" stroke-dasharray="3 3"/>
+              <rect x="94"  y="56" width="38" height="38" fill="url(#voidHatchA)" stroke="var(--void)" stroke-width="1" stroke-dasharray="3 3"/>
+              <rect x="132" y="56" width="38" height="38" fill="url(#voidHatchA)" stroke="var(--void)" stroke-width="1" stroke-dasharray="3 3"/>
+            </g>
+            <!-- terrain entry z=0 x0..2 -->
+            <g>
+              <rect x="18" y="18" width="38" height="38" fill="var(--terrain-soft)" stroke="var(--terrain)" stroke-width="1.2"/>
+              <rect x="56" y="18" width="38" height="38" fill="var(--terrain-soft)" stroke="var(--terrain)" stroke-width="1.2"/>
+              <rect x="94" y="18" width="38" height="38" fill="var(--terrain-soft)" stroke="var(--terrain)" stroke-width="1.2"/>
+            </g>
+            <!-- wool room z=0 x3 -->
+            <rect x="132" y="18" width="38" height="38" fill="url(#woolTexA)" stroke="var(--wool)" stroke-width="1.4"/>
+            <!-- box grouping outlines -->
+            <rect x="18" y="18" width="114" height="38" fill="none" stroke="var(--terrain)" stroke-width="2.4" rx="2"/>
+            <rect x="132" y="18" width="38" height="38" fill="none" stroke="var(--wool)" stroke-width="2.6" rx="2"/>
+            <!-- labels -->
+            <text x="75" y="43" text-anchor="middle" font-family="var(--mono)" font-size="10.5" font-weight="600" fill="var(--ink)">entry</text>
+            <text x="151" y="41" text-anchor="middle" font-family="var(--mono)" font-size="9.5" font-weight="700" fill="#fff">wool</text>
+            <text x="94" y="80" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--ink-soft)">void</text>
+          </svg>
+          <div class="charrow"><b>t t t w</b> &nbsp;/&nbsp; v v v v</div>
+          <p class="cap">
+            A terrain <em>entry</em> bar caps the wool inline. The <strong>room</strong> box is
+            filled; the entry is an empty envelope; the whole bottom row is void a build zone can
+            bridge. Zero bends — the simplest read.
+          </p>
+        </div>
+
+        <!-- ---------- DONUT APPROACH ---------- -->
+        <div class="plate">
+          <h4><span class="fam">Donut</span> hole approach</h4>
+          <div class="tmpl">template &nbsp;·&nbsp; entry-bar · leg · leg · entry · room-bar · room</div>
+          <svg viewBox="0 0 226 156" role="img" aria-label="Donut wool box: terrain boxes form a ring enclosing a void hole, with the filled wool room on a tail off the ring.">
+            <defs>
+              <pattern id="woolTexB" width="19" height="19" patternUnits="userSpaceOnUse">
+                <rect width="19" height="19" fill="var(--wool)"/>
+                <rect width="9.5" height="9.5" fill="var(--wool-hi)"/>
+                <rect x="9.5" y="9.5" width="9.5" height="9.5" fill="var(--wool-hi)"/>
+              </pattern>
+              <pattern id="voidHatchB" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <rect width="7" height="7" fill="var(--surface)"/>
+                <line x1="0" y1="0" x2="0" y2="7" stroke="var(--line)" stroke-width="1.3"/>
+              </pattern>
+            </defs>
+            <!-- 5 wide x 3 tall, cell=38, pad=18 -->
+            <!-- outer void cells: (4,0)(0,1)(4,1)(0,2) -->
+            <g>
+              <rect x="170" y="18"  width="38" height="38" fill="url(#voidHatchB)" stroke="var(--void)" stroke-width="1" stroke-dasharray="3 3"/>
+              <rect x="18"  y="56"  width="38" height="38" fill="url(#voidHatchB)" stroke="var(--void)" stroke-width="1" stroke-dasharray="3 3"/>
+              <rect x="170" y="56"  width="38" height="38" fill="url(#voidHatchB)" stroke="var(--void)" stroke-width="1" stroke-dasharray="3 3"/>
+              <rect x="18"  y="94"  width="38" height="38" fill="url(#voidHatchB)" stroke="var(--void)" stroke-width="1" stroke-dasharray="3 3"/>
+            </g>
+            <!-- terrain ring cells -->
+            <g fill="var(--terrain-soft)" stroke="var(--terrain)" stroke-width="1.2">
+              <!-- top bar z=0 x0..3 -->
+              <rect x="18"  y="18" width="38" height="38"/>
+              <rect x="56"  y="18" width="38" height="38"/>
+              <rect x="94"  y="18" width="38" height="38"/>
+              <rect x="132" y="18" width="38" height="38"/>
+              <!-- legs z=1 x1,x3 -->
+              <rect x="56"  y="56" width="38" height="38"/>
+              <rect x="132" y="56" width="38" height="38"/>
+              <!-- bottom bar z=2 x1..3 -->
+              <rect x="56"  y="94" width="38" height="38"/>
+              <rect x="94"  y="94" width="38" height="38"/>
+              <rect x="132" y="94" width="38" height="38"/>
+            </g>
+            <!-- enclosed void (the hole) (2,1) -->
+            <rect x="94" y="56" width="38" height="38" fill="var(--paper)" stroke="var(--wool)" stroke-width="1.6" stroke-dasharray="4 3"/>
+            <text x="113" y="79" text-anchor="middle" font-family="var(--mono)" font-size="9" font-weight="600" fill="var(--wool)">hole</text>
+            <!-- wool room (4,2) -->
+            <rect x="170" y="94" width="38" height="38" fill="url(#woolTexB)" stroke="var(--wool)" stroke-width="1.4"/>
+            <text x="189" y="117" text-anchor="middle" font-family="var(--mono)" font-size="9.5" font-weight="700" fill="#fff">wool</text>
+            <!-- ring grouping outline (approx loop) -->
+            <path d="M18,18 H170 V56 H170 V132 H132 V94 H56 V132 H18 Z"
+                  fill="none" stroke="var(--terrain)" stroke-width="2.4"
+                  stroke-linejoin="round" opacity="0.9"/>
+            <rect x="170" y="94" width="38" height="38" fill="none" stroke="var(--wool)" stroke-width="2.6" rx="2"/>
+            <text x="94" y="43" text-anchor="middle" font-family="var(--mono)" font-size="10" font-weight="600" fill="var(--ink)">terrain ring</text>
+          </svg>
+          <div class="charrow"><b>t t t t</b> v &nbsp;/&nbsp; v <b>t</b> · <b>t</b> v &nbsp;/&nbsp; v <b>t t t w</b></div>
+          <p class="cap">
+            Terrain boxes <em>enclose</em> a void — the strongest structural signal (a full loop,
+            multi-access). The <strong>room</strong> box is filled on a tail off the ring; the
+            ring stays empty envelopes; the centre is an enclosed hole. Same six boxes at any
+            scale.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="keyrow">
+        <span class="k"><span class="keybox" style="background:var(--wool)"></span> wool room — <b style="color:var(--ink)">filled</b> (placed objective)</span>
+        <span class="k"><span class="keybox" style="background:var(--terrain-soft);border:1px solid var(--terrain)"></span> terrain box — empty envelope</span>
+        <span class="k"><span class="keybox" style="background:var(--surface);border:1px dashed var(--void)"></span> void — open / bridgeable</span>
+        <span class="k"><span class="keybox" style="background:var(--paper);border:1.5px dashed var(--wool)"></span> enclosed hole (donut)</span>
+      </div>
+    </div>
+
+    <div class="col">
+      <p>
+        Why the split is load-bearing: the <em>classifier</em> reads a shape width-independently
+        (turn count off the outline, branch off two legs sharing an edge, hole off an enclosed
+        void), and the <em>emitter</em> builds each family as the same stable set of boxes tagged
+        with a slot role. So the composition rules — entry widening, wool docking, which boxes may
+        split into build zones — become properties of a <strong>role</strong>, defined once per
+        family, instead of ad-hoc geometry. <strong>Both halves are already built and verified</strong>
+        (see the board below).
+      </p>
+    </div>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Family</th><th>Grid (t·v·w)</th><th>Reads as</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="fam">isolated</td><td class="grid">vv / wv / vv</td><td>no terrain touches the wool — reachable only by building</td></tr>
+          <tr><td class="fam">I</td><td class="grid">tttw / vvvv</td><td>a terrain lane caps the wool inline (0 bends; a solid body reads as a wide I)</td></tr>
+          <tr><td class="fam">L</td><td class="grid">tw / vt / tt</td><td>one bend — terrain reaches the wool from two adjacent sides</td></tr>
+          <tr><td class="fam">Z</td><td class="grid">— (2 opposing bends)</td><td>two opposing bends, no wrapped bay</td></tr>
+          <tr><td class="fam">scythe</td><td class="grid">tttv / tvtw</td><td>a fold that wraps an <em>open</em> bay beside the wool</td></tr>
+          <tr><td class="fam">clamp</td><td class="grid">tt / vw / tt</td><td>the wool <em>bridges</em> two bars — remove it and the terrain splits</td></tr>
+          <tr><td class="fam">U</td><td class="grid">ttv / vtw / ttv</td><td>two legs meet a crossbar; wool docks flush on a bar wider than itself</td></tr>
+          <tr><td class="fam">H</td><td class="grid">ttvv / vtvv / tttw</td><td>the U escalation — wool caps a room-run stub its own width</td></tr>
+          <tr><td class="fam">donut</td><td class="grid">ttttv / vtvtv / vtttw</td><td>terrain encloses a void — a full loop, multi-access</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="col" style="font-size:0.9rem;color:var(--ink-soft)">
+      The families are an <strong>escalation, not a flat set</strong>: an L whose lane doubles back
+      is a scythe; a scythe whose bay closes is a donut; a clamp whose wool docks flush is a U; a U
+      that lifts its wool onto a stub is an H.
+    </p>
+  </section>
+
+  <!-- ============ RUNTIME PIPELINE (§3) ============ -->
+  <section>
+    <div class="col">
+      <div class="kicker">Generation, in order · §3</div>
+      <h2>What the generator does, step by step</h2>
+      <p>
+        The runtime pipeline. The composer's natural order is the author's gesture run forward:
+        compose the map as one connected mass, assign the team sides, then fragment each regime.
+        Everything runs in a relative frame from the spawn outward, then embeds into absolute
+        coordinates once symmetry resolves the join.
+      </p>
+    </div>
+    <div class="rail col">
+      <div class="step ship">
+        <span class="num">1</span>
+        <div class="st-title"><span class="dot"></span>Globals <span class="tag ship">shipped</span></div>
+        <div class="st-body">Symmetry, teams, board bbox, grid cell — sampled by <code>Envelope</code> from the player count (G8 land-budget coupling, G3 board bands).</div>
+      </div>
+      <div class="step prog">
+        <span class="num">2</span>
+        <div class="st-title"><span class="dot"></span>Grow the team unit <span class="tag prog">partial</span></div>
+        <div class="st-body">Place spawn → attach hub → grow k lanes each dead-ending in a wool-room → attach frontlines. <code>TeamUnitGrower</code> + real <code>spawn</code>/<code>wool-room</code> rooms ship; the lane-archetype grammar and hub-shape variety remain (G37/G41).</div>
+      </div>
+      <div class="step prog">
+        <span class="num">3</span>
+        <div class="st-title"><span class="dot"></span>Fragmentation — carve mid, cut team sides <span class="tag prog">partial</span></div>
+        <div class="st-body">Carve the mid into its interface form (clean / parallel / hash), cut secondary isolation behind bridges. <code>MidCarver</code> + <code>IsolationCut</code> ship the clean form; parallel/hash bands and the frontline↔build-zone interlock remain (G38/G39/G40).</div>
+      </div>
+      <div class="step prog">
+        <span class="num">4</span>
+        <div class="st-title"><span class="dot"></span>Neutral middle <span class="tag prog">partial</span></div>
+        <div class="st-body">Place mid pieces and build zones between the frontlines. Clean band + CT7-snapped mid stones ship; multiple/parallel bands are unshipped (G38).</div>
+      </div>
+      <div class="step ship">
+        <span class="num">5</span>
+        <div class="st-title"><span class="dot"></span>Validate the plan <span class="tag ship">shipped</span></div>
+        <div class="st-body">Zero-geometry invariants — every wool reachable, no wool path through a spawn, ≥1 gap per inter-team path, widths ≥ corridor minimum. <code>PlanValidator</code> gates every compose; full-suite goldens are the open slice (G32-D).</div>
+      </div>
+      <div class="step todo">
+        <span class="num">6</span>
+        <div class="st-title"><span class="dot"></span>Heights <span class="tag todo">not started</span></div>
+        <div class="st-body">Per-role plateau defaults (raised spawn, stepped wool approach, low frontline), transitions per interface. Rooms are flat at the base surface today — this is the G32-C elevation pass.</div>
+      </div>
+      <div class="step prog">
+        <span class="num">7</span>
+        <div class="st-title"><span class="dot"></span>Fan by symmetry &amp; emit <span class="tag prog">partial</span></div>
+        <div class="st-body"><code>ComposeGeometry</code> fans the authored unit into <code>teams</code> islands. The full <code>SketchLayout</code>+<code>MapIntent</code> emit through the existing export chain, plus markers/walls, is the G32-C/D finish.</div>
+      </div>
+      <div class="step todo">
+        <span class="num">8</span>
+        <div class="st-title"><span class="dot"></span>Roughen pass <span class="tag todo">not started</span></div>
+        <div class="st-body">Separate, last: turns the rectilinear plan into an organic read. See phase 4 below.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DELIVERY PHASING (§8) ============ -->
+  <section>
+    <div class="col">
+      <div class="kicker">Delivery phasing · §8</div>
+      <h2>The build roadmap</h2>
+      <p>
+        The six phases the document commits to, in order. Phases 1–2 are done; phase 3 (the
+        composer) is the current focus and mid-flight; phases 4–6 have not begun.
+      </p>
+    </div>
+    <div class="rail col">
+      <div class="step ship">
+        <span class="num">P1</span>
+        <div class="st-title"><span class="dot"></span>Seed studio <span class="tag ship">shipped</span> <span class="ids">G16–G28</span></div>
+        <div class="st-body">Plan schema + plan→(layout, intent) compiler + validator, the minimal plan editor over the canvas infra, and the 12-seed authored corpus in <code>tools/seeds/</code>. Compiling the seed plans reproduces today's files exactly — the regression anchor.</div>
+      </div>
+      <div class="step ship">
+        <span class="num">P2</span>
+        <div class="st-title"><span class="dot"></span>Rule capture <span class="tag ship">shipped</span> <span class="ids">G21</span></div>
+        <div class="st-body"><code>docs/contracts/layout-rules.md</code> — frozen 2026-07-04 as the composer's v1 acceptance oracle. Frozen ≠ static: it grows through the correction protocol (CT8, BZ6–BZ9 already amended in).</div>
+      </div>
+      <div class="step prog">
+        <span class="num">P3</span>
+        <div class="st-title"><span class="dot"></span>Composer <span class="tag prog">in progress</span> <span class="ids">G32 · G35–G49</span></div>
+        <div class="st-body">Rule-based unit growth + neutral middle + isolation moves. Envelope/grower, mid carve, isolation cuts, build-zone discipline, and real spawn/wool rooms ship; the frontline↔build-zone interface (G39), hole caps (G40), hub variety (G41), budget→length decoupling (G44), markers/heights/walls (G32-C) and gates/goldens/emit (G32-D) remain. Hardened <em>from the mid outward</em>.</div>
+      </div>
+      <div class="step todo">
+        <span class="num">P4</span>
+        <div class="st-title"><span class="dot"></span>Roughen pass <span class="tag todo">not started</span></div>
+        <div class="st-body">Anchor jitter, edge subdivision + displacement, pull-to-polygon (the "twist"), width profile, 45° chamfer, piece shear/rotate — with per-operator invariants (corridor minimum, no self-intersection, interfaces stay covered). Turns the boring rectilinear plan into an organic read; runs before the author ever sees output.</div>
+      </div>
+      <div class="step todo">
+        <span class="num">P5</span>
+        <div class="st-title"><span class="dot"></span>Elevation rules <span class="tag todo">not started</span></div>
+        <div class="st-body">Plateaus, cut &amp; raise (refine one piece into two joined by a land interface with a height delta), role defaults, ramps/cliffs if in scope. Attached to roles and interfaces, not geometry. The plan carries height fields; the composer-side rule pass does not exist yet (overlaps G32-C).</div>
+      </div>
+      <div class="step todo">
+        <span class="num">P6</span>
+        <div class="st-title"><span class="dot"></span>Mutation in the UI <span class="tag todo">not started</span></div>
+        <div class="st-body">Plan operators (add a wool branch, isolate a piece, widen an interface, re-side the spawn) + re-roll buttons per layer. The staged loop: edit the plan, re-roll roughen and elevation independently.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DONE vs TODO BOARD ============ -->
+  <section>
+    <div class="col">
+      <div class="kicker">Where it stands</div>
+      <h2>Done · doing · to do</h2>
+      <p>
+        The same work, sorted by status rather than by phase — grounded in <code>FEATURES.md</code>
+        and <code>TODO.md</code>. The box vocabulary (the visualization above) sits entirely in the
+        shipped column; the composer's interface and finishing layers are the live work.
+      </p>
+    </div>
+    <div class="board">
+
+      <div class="lane ship">
+        <h4>Shipped <span class="cnt">FEATURES.md</span></h4>
+        <div class="item">
+          <span class="h">Wool-approach classifier <span class="gid">G53</span></span>
+          <span class="d">Width-independent, structural read of every family. 17/17 shapes, 113/113 emit-verify, 31/31 stress. This is the "mostly done already" piece.</span>
+        </div>
+        <div class="item">
+          <span class="h">Wool-box slot roles <span class="gid">G54</span></span>
+          <span class="d"><code>WoolBoxEmitter</code> tags every box with its template slot (entry / run / bar / leg / room). 121/121 mirror.</span>
+        </div>
+        <div class="item">
+          <span class="h">Plan schema · compiler · editor <span class="gid">G16–G28</span></span>
+          <span class="d">plan.json → layout + intent, validator, canvas editor, 12-seed corpus.</span>
+        </div>
+        <div class="item">
+          <span class="h">Rules frozen <span class="gid">G21</span></span>
+          <span class="d">layout-rules.md — the v1 acceptance oracle, growing by amendment.</span>
+        </div>
+        <div class="item">
+          <span class="h">Composer envelope + grower <span class="gid">G32-A</span></span>
+          <span class="d">Deterministic PCG32 team-unit growth from a player count.</span>
+        </div>
+        <div class="item">
+          <span class="h">Mid carve · isolation · zone discipline <span class="gid">G32-B</span></span>
+          <span class="d">Clean band, mid stones, CT5 cuts, BZ6–BZ9.</span>
+        </div>
+        <div class="item">
+          <span class="h">Real spawn + wool-room rooms <span class="gid">G49</span></span>
+          <span class="d">Terminal lanes carve into role-bearing rooms the plain lanes dock to.</span>
+        </div>
+        <div class="item">
+          <span class="h">Freeform authoring templates <span class="gid">G46–G48</span></span>
+          <span class="d"><code>none</code> symmetry, the <code>connector</code> piece, palette resort.</span>
+        </div>
+        <div class="item">
+          <span class="h">Traffic ground truth (first) <span class="gid">G33</span></span>
+          <span class="d">ingwaz trace + graph validated: 23/23 void, 171/171 land, 6=6 islands.</span>
+        </div>
+      </div>
+
+      <div class="lane prog">
+        <h4>In progress <span class="cnt">the composer</span></h4>
+        <div class="item">
+          <span class="h">Frontline ↔ build-zone interface <span class="gid">G39</span></span>
+          <span class="d">The crux. Band and frontline must interlock like tetris — snap band edges to CT7 corner lines, require full-face coincidence. A shifted/thin dock poisons every layer above it.</span>
+        </div>
+        <div class="item">
+          <span class="h">Hole-size cap <span class="gid">G40</span></span>
+          <span class="d">rot_180 twin frontlines extrude too long; enclosed holes must stay ~10×10, never 10×40. Route surplus to width, not length.</span>
+        </div>
+        <div class="item">
+          <span class="h">L/Z frontline-hub + hub variety <span class="gid">G41</span></span>
+          <span class="d">The hub is always one square today; add the authored L/Z compositions (HB4).</span>
+        </div>
+        <div class="item">
+          <span class="h">Budget → length decoupling <span class="gid">G44</span></span>
+          <span class="d">Traced root cause of lane bloat — surplus budget stretches lanes to 95 blocks instead of adding structure. Cap lengths; spend on width/plaza/pieces.</span>
+        </div>
+        <div class="item">
+          <span class="h">Markers · heights · walls <span class="gid">G32-C</span></span>
+          <span class="d">Spawn facing + raise, iron, stepped wool climb, elevation palette, walls. Rooms are flat at base surface.</span>
+        </div>
+        <div class="item">
+          <span class="h">Gates · goldens · emit <span class="gid">G32-D</span></span>
+          <span class="d">Zero-error validation with zones, full traversability, stat envelopes, fixed-RNG goldens under <code>tests/</code>.</span>
+        </div>
+        <div class="item">
+          <span class="h">Parallel mid bands · spawn-dock · 3rd wool <span class="gid">G38·G42·G45</span></span>
+          <span class="d">Variations and defects surfaced by the visual review loop.</span>
+        </div>
+      </div>
+
+      <div class="lane todo">
+        <h4>Not started <span class="cnt">phases 4–6</span></h4>
+        <div class="item">
+          <span class="h">Roughen pass <span class="gid">P4</span></span>
+          <span class="d">Jitter, subdivision, pull-to-polygon, width profile, chamfer, shear — the rectilinear → organic transform, with per-operator invariants.</span>
+        </div>
+        <div class="item">
+          <span class="h">Elevation rule pass <span class="gid">P5</span></span>
+          <span class="d">Role/interface-attached plateaus, cut &amp; raise, ramps/cliffs. Plan carries the fields; the rule pass is unbuilt.</span>
+        </div>
+        <div class="item">
+          <span class="h">Mutation ops in the UI <span class="gid">P6</span></span>
+          <span class="d">Plan operators + per-layer re-roll — the staged edit loop.</span>
+        </div>
+        <div class="item">
+          <span class="h">Lane-archetypes track <span class="gid">G37</span></span>
+          <span class="d">Authored lane shapes, connections, hub shaping, alt entries. Blocked on teaching maps; sequenced after the interface layer.</span>
+        </div>
+        <div class="item">
+          <span class="h">The scale pass <span class="gid">Q1</span></span>
+          <span class="d">De-proxying the mini-layout — targeted per-part stretches, not a uniform multiply (open question §7).</span>
+        </div>
+        <div class="item">
+          <span class="h">Conformance metrics <span class="gid">G43</span></span>
+          <span class="d">Turn "does it match the examples?" into measured envelopes — the gate that would have caught G39/G40.</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ SCOPE + GROUND TRUTH ============ -->
+  <section class="col">
+    <div class="kicker">Scope &amp; the division of labour</div>
+    <h2>What the generator owns, what the author owns</h2>
+    <p>
+      "Making a boring layout interesting" is a <strong>generator stage, not user work</strong> —
+      the roughen and elevation passes run before the author sees an output. The author's share is
+      three smaller things: <strong>rule authorship</strong> (a mostly one-time 20–40-rule
+      checklist), <strong>curation</strong> (reject outputs and say why — each articulated
+      rejection becomes a checkable invariant), and <strong>post-detach polish</strong> (set
+      pieces, themed builds — always manual).
+    </p>
+    <ul class="clean">
+      <li><strong>Tier 1 (high confidence)</strong> — parameterized seed families end-to-end: a
+        "new map" button producing a valid, walkable map that reads <em>competent but plain</em>.
+        The first ~60–70% of layout work.</li>
+      <li><strong>Tier 2 (viable via curation)</strong> — re-roll workflows, plan-level mutation
+        ops, rules converging from feedback rounds. Ceiling: maps tweaked for an hour instead of
+        built for days.</li>
+      <li><strong>Tier 3 (not promised)</strong> — signature interestingness. Rule systems
+        recombine encoded motifs; they don't coin new ones. The motif library grows only when the
+        author adds to it.</li>
+    </ul>
+    <div class="callout">
+      <span class="lbl">Evaluation instrument · ground truth</span>
+      A month of server logging (pgmlogger → parquet) yields per-map <strong>traffic graphs</strong>:
+      player positions every 2s, aggregated on a 3-block grid. Two readings feed generation — the
+      closure <em>photographed</em> (hot void cells are the build regions emerging from behaviour
+      alone) and <strong>flow priors</strong> to score composer candidates. Validated on ingwaz:
+      the plan model, a real map, and real player behaviour agree to the block.
+    </div>
+    <p style="font-size:0.92rem;color:var(--ink-soft)">
+      <strong>Why not the corpus, WFC, or skeletons.</strong> The 350-map corpus is reference
+      imagery, not an oracle (extraction flattens away what made maps read). WFC solves local
+      adjacency; CTW quality is global and relational. A medial-axis skeleton can't carry
+      side-contact intervals and biases toward thin maps. The rule set is
+      <strong>expert-authored</strong>, areal by construction, and grown from the boring seeds.
+    </p>
+  </section>
+
+  <footer>
+    <span>docs/contracts/layout-generation.md · layout-rules.md · plan-editor.md</span>
+    <span>status compiled from FEATURES.md + TODO.md · 2026-07-12</span>
+  </footer>
+
+</div>
