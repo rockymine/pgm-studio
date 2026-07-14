@@ -769,7 +769,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `tools/deriver/envelope-stats.cs` — it runs each term's `Value` over the seeds (so band and score can't drift)
   → embedded `Evaluate/seed-envelopes.json` + generated `docs/seed-envelopes.md` — scored as `Band` distance
   (normalized by half-width; rounding only ever widens a band). First soft-term batch: `fill-ratio` (G8),
-  `island-count` (CT1), `max-chain-length` (LN2), `wool-wool-distance` (WL7), `spawn-wool-distance` (WL2).
+  `max-chain-length` (LN2), `wool-wool-distance` (WL7), `spawn-wool-distance` (WL2).
   **Distances are rectilinear traversal over the walkable surface**, not straight-line: `Geom.Cells.ShortestPath`
   (4-connected BFS — routes around voids, hugs borders, no corner-cutting) over the k=0 terrain ∪ build cells,
   the real "how far a player travels" (materially larger than Euclidean — odd-facing wool↔wool 46→65). **WL2
@@ -777,6 +777,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   travel); byte-identical because the generator never trips WL2 (0 gate rejects over the sweep) — the surface
   gate is the new oracle. Composed output **byte-identical** throughout; soft terms are gate-skipped and derive
   the board only outside the gate. `Cells` shortest-path tests + soft-term/envelope/floor tests green. (G60)
+- **Composer evaluator — catalogue growth + traced corpus (M2, part 2b)** — six more soft terms and the traced
+  teaching corpus. `lane-width` (LN1, narrowest wool lane in blocks — the goat-path guard) and
+  `enclosed-void-count` (CT8, enclosed-hole count); the team-scale CT terms that **replace the blunt
+  `island-count`**: `neutral-stepping-count` + `team-stepping-count` (CT4 — contested mid stones vs a team's own
+  captive movement stones), `band-count` (CT1 — front-front crossings: one channelled, ≥2 parallel, none hash),
+  `isolation-cut-count` (CT5 — intra/self team-side cuts); the four team-owned counts normalized ÷ orbit order so
+  a 2-team and 4-team board compare. `tools/deriver/envelope-stats.cs` now teaches over the authored seeds **+**
+  the traced real maps in `tools/seeds/traced/` (12 authored + 11 traced; `3084` held — its wools don't
+  attribute), and a `SoftTerm.LearnsFromTraced` opt-out keeps `max-chain-length` an authored cap the traced
+  long-chain maps must not widen. Composed output **byte-identical** (soft terms gate-skipped). (G60)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor

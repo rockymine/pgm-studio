@@ -58,10 +58,21 @@ first soft-term batch (`fill-ratio`/G8, `island-count`/CT1, `max-chain-length`/L
 (`Geom.Cells.ShortestPath`, 4-connected — routes around voids, no corner-cut), not straight-line; **WL2 moved to
 a surface `SpawnWoolFloor` gate term** (byte-identical — WL2 never gates), retired from `PlanValidator`.
 
-- [~] **G60 — Composer evaluator: extend the catalogue, wiring, harness.** On the landed soft half:
-  **(1)** grow the §6 soft-term catalogue (frontline dock/G39, residual shape, lane width/LN1, approach
-  count/WL8·G45, height/EL1·EL4, …) — each reads `BoardStructure` measurables only (never a family name — the
-  enumeration trap), scored as `Band` distance with `Evidence`. **(2)** the hole-hunt loop keeps the
+**G60 (2b) landed (`FEATURES.md`):** catalogue growth + the traced teaching corpus. Six more soft terms —
+`lane-width`/LN1 (narrowest wool lane, the goat-path guard) and `enclosed-void-count`/CT8, plus the team-scale
+CT split that **retires the blunt `island-count`**: `neutral-stepping-count`+`team-stepping-count`/CT4 (contested
+mid stones vs captive movement stones), `band-count`/CT1 (front-front crossings), `isolation-cut-count`/CT5
+(intra/self team-side cuts) — team-owned counts normalized ÷ orbit order. `envelope-stats` now folds the traced
+real maps (`tools/seeds/traced`, 11 of 12; `3084` held — wools don't attribute); a `SoftTerm.LearnsFromTraced`
+opt-out holds `max-chain-length` to authored intent so the traced long-chain maps can't widen it. Byte-identical.
+
+- [~] **G60 — Composer evaluator: finish the catalogue, wiring, harness.** On the landed catalogue:
+  **(1)** finish the §6 soft-term catalogue — **Slice B**: frontline runs (a `FrontlineRun` deriver step over
+  `FrontEdges` → per-team count / width / straight-vs-offset profile, G39/FR6); **Slice C**: the composite
+  thin-frontline punishment `f(stepping stones, frontline width, band count)` — needs an authored negative to
+  calibrate; plus approach count/WL8·G45 (conditional — gated on G62 slots) and height/EL1·EL4 (blocked on the
+  G32-C elevation pass). Each reads `BoardStructure` measurables only (never a family name — the enumeration
+  trap), scored as `Band` distance with `Evidence`. **(2)** the hole-hunt loop keeps the
   **lowest-scoring** acceptable attempt — the first point composed output shifts, its own re-baseline. **(3)
   Wiring** — `EvaluationDto` in `Contracts` (carrying the `Evidence` primitives) + `POST /api/plan/evaluate` for
   the editor's live score/lint; the client draws violations **and their evidence** as a JS canvas overlay (§9.7;

@@ -1,0 +1,267 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "agrostid"
+  },
+  "globals": {
+    "cell": 4,
+    "symmetry": "mirror_z",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        4,
+        -2,
+        6,
+        4
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        4,
+        -10,
+        4,
+        6
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        8,
+        -10,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -7,
+        -10,
+        4,
+        6
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -9,
+        -10,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -1,
+        -10,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        -1,
+        -4,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        -9,
+        -2,
+        6,
+        4
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        -11,
+        -16,
+        9,
+        3
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        3,
+        -16,
+        9,
+        3
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -14,
+        -16,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        12,
+        -16,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        -5,
+        -21,
+        11,
+        3
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        -1,
+        -23,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -1,
+        -26,
+        3,
+        3
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -5,
+        -18,
+        3,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        3,
+        -18,
+        3,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        -9,
+        -13,
+        7,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-4",
+      "rect": [
+        3,
+        -13,
+        7,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-5",
+      "rect": [
+        -7,
+        -10,
+        6,
+        10
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-6",
+      "rect": [
+        2,
+        -10,
+        6,
+        10
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          1.5,
+          1.5
+        ],
+        "facing": "back"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          1.5,
+          1.5
+        ]
+      },
+      {
+        "piece": "wool-2",
+        "at": [
+          1.5,
+          1.5
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": [],
+  "reference": {
+    "map": "agrostid",
+    "offset": [
+      1,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0
+  }
+}

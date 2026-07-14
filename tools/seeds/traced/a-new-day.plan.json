@@ -1,0 +1,235 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "a new day"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -5,
+        -1,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -8,
+        -8,
+        3,
+        16
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -5,
+        5,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -5,
+        -8,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -14,
+        -2,
+        6,
+        4
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -14,
+        -8,
+        3,
+        6
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        -22,
+        5,
+        8,
+        3
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        -22,
+        8,
+        3,
+        7
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        -22,
+        -8,
+        8,
+        3
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        -22,
+        -15,
+        3,
+        7
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -23,
+        -20,
+        5,
+        5
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        -23,
+        15,
+        5,
+        5
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        -16,
+        -1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        -20,
+        -3,
+        4,
+        6
+      ]
+    },
+    {
+      "id": "piece-13",
+      "role": "spawn",
+      "rect": [
+        -25,
+        -2,
+        5,
+        4
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        -14,
+        2,
+        3,
+        6
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone-2",
+      "rect": [
+        -11,
+        -8,
+        11,
+        16
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "piece-13",
+        "at": [
+          2,
+          2
+        ],
+        "facing": "right"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool-2",
+        "at": [
+          2.5,
+          2.5
+        ]
+      },
+      {
+        "piece": "wool",
+        "at": [
+          2.5,
+          2.5
+        ]
+      }
+    ],
+    "iron": [
+      {
+        "piece": "piece-12",
+        "at": [
+          2,
+          3
+        ]
+      }
+    ]
+  },
+  "cliffs": [],
+  "walls": [],
+  "reference": {
+    "map": "a_new_day",
+    "offset": [
+      0,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0
+  }
+}

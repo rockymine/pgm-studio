@@ -1,0 +1,307 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "agrorythe"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -10,
+        -5,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -10,
+        -7,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -6,
+        -7,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        3,
+        -5,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        3,
+        -7,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        7,
+        -7,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        -12,
+        -10,
+        24,
+        3
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        -4,
+        -13,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        2,
+        -13,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        -12,
+        -15,
+        24,
+        2
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        -8,
+        -17,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        -3,
+        -17,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "piece-13",
+      "role": "piece",
+      "rect": [
+        -12,
+        -19,
+        24,
+        2
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        -11,
+        -29,
+        3,
+        10
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -11,
+        -32,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-15",
+      "role": "piece",
+      "rect": [
+        8,
+        -29,
+        3,
+        10
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        8,
+        -32,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-16",
+      "role": "piece",
+      "rect": [
+        -3,
+        -23,
+        6,
+        4
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -2,
+        -27,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "piece-17",
+      "role": "piece",
+      "rect": [
+        6,
+        -17,
+        2,
+        2
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -12,
+        -13,
+        4,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        -12,
+        -17,
+        4,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        8,
+        -17,
+        4,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-4",
+      "rect": [
+        8,
+        -13,
+        4,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-5",
+      "rect": [
+        -10,
+        -3,
+        7,
+        6
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          2,
+          2
+        ],
+        "facing": "back"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          1.5,
+          1.5
+        ]
+      },
+      {
+        "piece": "wool-2",
+        "at": [
+          1.5,
+          1.5
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": [],
+  "reference": {
+    "map": "agrorythe",
+    "offset": [
+      0,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0
+  }
+}

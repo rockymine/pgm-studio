@@ -29,8 +29,13 @@ public static class LayoutEvaluator
         new SpawnWoolFloor(),      // WL2 as a surface-distance floor (was the Euclidean WL2 lint)
         // soft terms — feel metrics scored against the authored seed envelopes
         new FillRatio(),
-        new IslandCount(),
+        new EnclosedVoidCount(),
+        new NeutralSteppingCount(),
+        new TeamSteppingCount(),
+        new BandCount(),
+        new IsolationCutCount(),
         new MaxChainLength(),
+        new LaneWidth(),
         new WoolWoolDistance(),
         new SpawnWoolDistance(),
     ];

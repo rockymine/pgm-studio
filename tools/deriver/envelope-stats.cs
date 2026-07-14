@@ -1,59 +1,85 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// Generates the soft-term envelopes. Runs every SoftTerm's Value() over the authored seeds
-// (tools/seeds/*.plan.json) — the same method the term scores with, so the band and the score can never drift
-// — takes each metric's [min, max] across the seeds, and writes:
+// Generates the soft-term envelopes. Runs every SoftTerm's Value() over the teaching maps — the same method the
+// term scores with, so the band and the score can never drift — takes each metric's [min, max], and writes:
 //   • src/PgmStudio.Pgm/Evaluate/seed-envelopes.json   (embedded, the bands the evaluator loads)
 //   • docs/seed-envelopes.md                           (the human-readable band table + per-seed matrix)
-// Checked in, never hand-edited: adding a teaching seed and re-running is how the evaluator learns the taste.
+// Two teaching corpora feed the bands: the authored intent seeds (tools/seeds) and the traced real maps
+// (tools/seeds/traced). Most terms learn from both; a term that encodes an authored *cap* (LearnsFromTraced =
+// false) learns from the authored seeds only, so a real map that exceeds the cap does not silently widen it.
+// Checked in, never hand-edited: adding a teaching map and re-running is how the evaluator learns the taste.
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 
-var seedDir = Path.Combine("tools", "seeds");
-var files = Directory.EnumerateFiles(seedDir, "*.plan.json").OrderBy(p => p, StringComparer.Ordinal).ToList();
-var seeds = files.Select(f => (Name: Path.GetFileName(f)[..^".plan.json".Length],
-                               Ctx: EvalContext.Build(PlanModel.Parse(File.ReadAllText(f))!))).ToList();
+// Held out of the teaching set: its wools do not attribute to islands (0 approaches / no lane), so it would
+// teach a degenerate band. Fold it back once its derivation is understood.
+var skip = new HashSet<string> { "3084" };
+
+var authoredDir = Path.Combine("tools", "seeds");
+var tracedDir = Path.Combine(authoredDir, "traced");
+
+(string Name, EvalContext Ctx, bool Traced) Load(string f, bool traced) =>
+    (Path.GetFileName(f)[..^".plan.json".Length], EvalContext.Build(PlanModel.Parse(File.ReadAllText(f))!), traced);
+
+string Stem(string f) => Path.GetFileName(f)[..^".plan.json".Length];
+
+var authored = Directory.EnumerateFiles(authoredDir, "*.plan.json")   // top-level only — excludes traced/
+    .OrderBy(p => p, StringComparer.Ordinal).Select(f => Load(f, false)).ToList();
+var traced = Directory.Exists(tracedDir)
+    ? Directory.EnumerateFiles(tracedDir, "*.plan.json").Where(f => !skip.Contains(Stem(f)))
+        .OrderBy(p => p, StringComparer.Ordinal).Select(f => Load(f, true)).ToList()
+    : new();
+var seeds = authored.Concat(traced).ToList();
+foreach (var s in skip) Console.WriteLine($"held out of teaching set: traced/{s}");
 
 var softTerms = LayoutEvaluator.AllTerms.OfType<SoftTerm>().ToList();
 
 var bands = new Dictionary<string, double[]>();
-var rows = new List<(string Id, string Rule, double Lo, double Hi, int N, List<(string Seed, double? V)> Values)>();
+var rows = new List<(string Id, string Rule, double Lo, double Hi, int N, bool AuthoredOnly,
+                     List<(string Seed, double? V)> Values)>();
 foreach (var term in softTerms)
 {
-    var values = seeds.Select(s => (s.Name, V: term.Value(s.Ctx))).ToList();
-    var present = values.Where(v => v.V is not null).Select(v => v.V!.Value).ToList();
-    if (present.Count == 0) { rows.Add((term.Id, term.RuleId, 0, 0, 0, values)); continue; }
+    var pool = term.LearnsFromTraced ? seeds : authored;       // cap terms learn from authored intent only
+    var values = seeds.Select(s => (s.Name, V: term.Value(s.Ctx))).ToList();   // every map, for the matrix
+    var present = pool.Select(s => term.Value(s.Ctx)).Where(v => v is not null).Select(v => v!.Value).ToList();
+    if (present.Count == 0) { rows.Add((term.Id, term.RuleId, 0, 0, 0, !term.LearnsFromTraced, values)); continue; }
     // floor the low, ceil the high (to 6 decimals): rounding must only ever WIDEN the band, never narrow it,
-    // or a seed that defined a bound would fall just outside its own band.
+    // or a map that defined a bound would fall just outside its own band.
     double lo = Math.Floor(present.Min() * 1e6) / 1e6, hi = Math.Ceiling(present.Max() * 1e6) / 1e6;
     bands[term.Id] = [lo, hi];
-    rows.Add((term.Id, term.RuleId, lo, hi, present.Count, values));
+    rows.Add((term.Id, term.RuleId, lo, hi, present.Count, !term.LearnsFromTraced, values));
 }
 
 var jsonPath = Path.Combine("src", "PgmStudio.Pgm", "Evaluate", "seed-envelopes.json");
 File.WriteAllText(jsonPath, JsonSerializer.Serialize(bands, new JsonSerializerOptions { WriteIndented = true }) + "\n");
-Console.WriteLine($"wrote {jsonPath} — {bands.Count} bands over {seeds.Count} seeds");
+Console.WriteLine($"wrote {jsonPath} — {bands.Count} bands over {authored.Count} authored + {traced.Count} traced maps");
 
 var md = new StringBuilder();
 md.AppendLine("# Soft-term envelopes (generated — do not hand-edit)");
 md.AppendLine();
-md.AppendLine("Generated by `tools/deriver/envelope-stats.cs` from the authored seeds in `tools/seeds/`. Each");
-md.AppendLine("band is `[min, max]` of the metric across the seeds that carry it; the evaluator scores a plan's");
-md.AppendLine("distance outside the band (normalized by half-width). Re-run after adding a teaching seed.");
+md.AppendLine("Generated by `tools/deriver/envelope-stats.cs` from the authored seeds in `tools/seeds/` and the");
+md.AppendLine("traced real maps in `tools/seeds/traced/`. Each band is `[min, max]` of the metric across the maps");
+md.AppendLine("that carry it; the evaluator scores a plan's distance outside the band (normalized by half-width).");
+md.AppendLine("A term marked **authored-only** learns from the authored seeds alone — an authored cap the traced");
+md.AppendLine("maps must not widen. Re-run after adding a teaching map.");
+md.AppendLine();
+md.AppendLine($"Held out: {string.Join(", ", skip.Select(s => $"`traced/{s}`"))} (wools do not attribute — degenerate band).");
 md.AppendLine();
 md.AppendLine("## Bands");
 md.AppendLine();
-md.AppendLine("| term | rule | lo | hi | seeds |");
-md.AppendLine("|---|---|---|---|---|");
+md.AppendLine("| term | rule | lo | hi | maps | scope |");
+md.AppendLine("|---|---|---|---|---|---|");
 foreach (var r in rows)
-    md.AppendLine($"| `{r.Id}` | {r.Rule} | {Fmt(r.Lo)} | {Fmt(r.Hi)} | {r.N}/{seeds.Count} |");
+    md.AppendLine($"| `{r.Id}` | {r.Rule} | {Fmt(r.Lo)} | {Fmt(r.Hi)} | {r.N} | {(r.AuthoredOnly ? "authored-only" : "authored + traced")} |");
 md.AppendLine();
-md.AppendLine("## Per-seed values");
+md.AppendLine("## Per-map values");
 md.AppendLine();
-md.Append("| seed |");
+md.AppendLine("Authored seeds first, then traced maps (a `†` marks a value outside the term's band).");
+md.AppendLine();
+md.Append("| map |");
 foreach (var r in rows) md.Append($" {r.Id} |");
 md.AppendLine();
 md.Append("|---|");
@@ -61,11 +87,12 @@ foreach (var _ in rows) md.Append("---|");
 md.AppendLine();
 foreach (var s in seeds)
 {
-    md.Append($"| {s.Name} |");
+    md.Append($"| {(s.Traced ? "◦ " : "")}{s.Name} |");
     foreach (var r in rows)
     {
         var v = r.Values.First(x => x.Seed == s.Name).V;
-        md.Append($" {(v is null ? "—" : Fmt(v.Value))} |");
+        var outOfBand = v is { } vv && r.N > 0 && (vv < r.Lo || vv > r.Hi);
+        md.Append($" {(v is null ? "—" : Fmt(v.Value) + (outOfBand ? "†" : ""))} |");
     }
     md.AppendLine();
 }

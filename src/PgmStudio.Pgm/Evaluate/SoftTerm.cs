@@ -18,6 +18,12 @@ public abstract class SoftTerm : ILayoutTerm
     /// metric on a single-wool plan) — null values are excluded from both scoring and band computation.</summary>
     public abstract double? Value(EvalContext ctx);
 
+    /// <summary>Whether the band generator may widen this term's band with the traced real-map corpus, not the
+    /// authored intent seeds alone. Default true (more ground truth, tighter bands). A term whose band is an
+    /// authored *cap* we impose — not a distribution we observe — overrides this to false, so real maps that
+    /// exceed the cap do not silently license it.</summary>
+    public virtual bool LearnsFromTraced => true;
+
     /// <summary>The piece/zone ids the metric implicates (for editor highlight); empty by default.</summary>
     protected virtual IReadOnlyList<string> Subjects(EvalContext ctx) => [];
 

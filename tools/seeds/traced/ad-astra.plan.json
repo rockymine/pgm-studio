@@ -1,0 +1,207 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "ad astra"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -15,
+        -13,
+        29,
+        9
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -8,
+        -17,
+        16,
+        4
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -12,
+        -21,
+        8,
+        4
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -16,
+        -27,
+        8,
+        3
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -12,
+        -24,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -19,
+        -27,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        3,
+        -21,
+        9,
+        4
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        8,
+        -24,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        8,
+        -27,
+        8,
+        3
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        16,
+        -27,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        -3,
+        -25,
+        5,
+        8
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -3,
+        -30,
+        5,
+        5
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -3,
+        -4,
+        6,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        -15,
+        -4,
+        6,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        8,
+        -4,
+        6,
+        4
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          2.5,
+          2.5
+        ],
+        "facing": "back"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          1.5,
+          1.5
+        ]
+      },
+      {
+        "piece": "wool-2",
+        "at": [
+          1.5,
+          1.5
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": [],
+  "reference": {
+    "map": "ad_astra",
+    "offset": [
+      2,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0.5
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "a new day ii"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "mirror_x",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -12,
+        -2,
+        2,
+        3
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -17,
+        -3,
+        5,
+        5
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "spawn",
+      "rect": [
+        -21,
+        -2,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -10,
+        -9,
+        3,
+        17
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -15,
+        5,
+        5,
+        3
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        -15,
+        -9,
+        5,
+        3
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "wool-room",
+      "rect": [
+        -20,
+        -10,
+        5,
+        5
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "wool-room",
+      "rect": [
+        -20,
+        4,
+        5,
+        5
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -3,
+        -7,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        -3,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -7,
+        -7,
+        4,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        -7,
+        2,
+        4,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        -2,
+        -3,
+        2,
+        5
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "piece-3",
+        "at": [
+          1.5,
+          1.5
+        ],
+        "facing": "right"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "piece-8",
+        "at": [
+          2.5,
+          2.5
+        ]
+      },
+      {
+        "piece": "piece-9",
+        "at": [
+          2.5,
+          2.5
+        ]
+      }
+    ],
+    "iron": [
+      {
+        "piece": "piece-2",
+        "at": [
+          2.5,
+          2.5
+        ]
+      }
+    ]
+  },
+  "cliffs": [],
+  "walls": [],
+  "reference": {
+    "map": "a_new_day_ii",
+    "offset": [
+      0,
+      4
+    ],
+    "scale": 1,
+    "opacity": 0.5
+  }
+}

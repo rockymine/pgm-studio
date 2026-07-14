@@ -1,0 +1,150 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "803"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -4,
+        -6,
+        4,
+        12
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -16,
+        -6,
+        9,
+        5
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -14,
+        -10,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -19,
+        -13,
+        3,
+        7
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -23,
+        -6,
+        7,
+        3
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -19,
+        -16,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -26,
+        -6,
+        3,
+        3
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -16,
+        -10,
+        2,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        -14,
+        -8,
+        7,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        -7,
+        -6,
+        3,
+        8
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          1.5,
+          1.5
+        ],
+        "facing": "right"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          1.5,
+          1.5
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": [],
+  "reference": {
+    "map": "803",
+    "offset": [
+      0,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0.5
+  }
+}

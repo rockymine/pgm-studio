@@ -19,15 +19,16 @@ public sealed class FillRatio : SoftTerm
     }
 }
 
-/// <summary>The number of land-connected islands the fanned board forms. The corpus fragments a team's side
-/// into a handful of islands the build zones bridge (CT-family); a board that is one solid mass, or shattered
-/// into many, falls outside the authored distribution.</summary>
-public sealed class IslandCount : SoftTerm
+/// <summary>CT8: the closure encloses internal void pockets — holes — as the player-rotation device, ~1 per team
+/// side by default (2–13 across the fanned seeds). A board with far more or fewer enclosed voids than the
+/// authored distribution reads wrong: none is the flat-arena exception, a great many is Swiss cheese. Counts the
+/// enclosed voids the deriver classifies; a global scalar, so no single hole to point at.</summary>
+public sealed class EnclosedVoidCount : SoftTerm
 {
-    public override string Id => "island-count";
-    public override string RuleId => "CT1";
+    public override string Id => "enclosed-void-count";
+    public override string RuleId => "CT8";
 
-    public override double? Value(EvalContext ctx) => ctx.Board.Islands.Count;
+    public override double? Value(EvalContext ctx) => ctx.Board.Voids.Count;
 }
 
 /// <summary>G5: every void gap a build region spans between two individual landmasses is a 10..20-block hop. The

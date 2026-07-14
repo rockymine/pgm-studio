@@ -1,19 +1,39 @@
 {
   "fill-ratio": [
-    0.213675,
-    0.48718
+    0.200721,
+    0.496241
   ],
-  "island-count": [
-    2,
-    17
+  "enclosed-void-count": [
+    0,
+    15
+  ],
+  "neutral-stepping-count": [
+    0,
+    4.5
+  ],
+  "team-stepping-count": [
+    0,
+    2
+  ],
+  "band-count": [
+    0,
+    3
+  ],
+  "isolation-cut-count": [
+    0,
+    6
   ],
   "max-chain-length": [
     25,
     90
   ],
+  "lane-width": [
+    10,
+    20
+  ],
   "wool-wool-distance": [
     65,
-    200
+    265
   ],
   "spawn-wool-distance": [
     30,

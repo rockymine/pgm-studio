@@ -1,0 +1,297 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "aequabilis"
+  },
+  "globals": {
+    "cell": 4,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -10,
+        -2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -10,
+        11,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -14,
+        -15,
+        4,
+        30
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -10,
+        -15,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -25,
+        -2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -34,
+        -2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        -31,
+        -11,
+        9,
+        9
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        -31,
+        2,
+        9,
+        9
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -38,
+        -2,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        -25,
+        -15,
+        11,
+        4
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        -42,
+        -15,
+        14,
+        4
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -46,
+        -15,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        -31,
+        -2,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        -22,
+        -2,
+        8,
+        4
+      ]
+    },
+    {
+      "id": "piece-13",
+      "role": "piece",
+      "rect": [
+        -42,
+        11,
+        14,
+        4
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        -25,
+        11,
+        11,
+        4
+      ]
+    },
+    {
+      "id": "piece-15",
+      "role": "piece",
+      "rect": [
+        -2,
+        6,
+        2,
+        9
+      ]
+    },
+    {
+      "id": "piece-16",
+      "role": "piece",
+      "rect": [
+        -2,
+        -2,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "piece-17",
+      "role": "piece",
+      "rect": [
+        -2,
+        -15,
+        2,
+        9
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        -46,
+        11,
+        4,
+        4
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -7,
+        -15,
+        5,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        -7,
+        -2,
+        5,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        -7,
+        11,
+        5,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-4",
+      "rect": [
+        -2,
+        -6,
+        4,
+        4
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          2,
+          2
+        ],
+        "facing": "right"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool-2",
+        "at": [
+          2,
+          2
+        ]
+      },
+      {
+        "piece": "wool",
+        "at": [
+          2,
+          2
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": [],
+  "reference": {
+    "map": "aequabilis",
+    "offset": [
+      0,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0.5
+  }
+}

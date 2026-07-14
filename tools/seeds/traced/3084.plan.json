@@ -1,0 +1,283 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "3084"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -10,
+        -23,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        16,
+        -26,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "wool-3",
+      "role": "wool-room",
+      "rect": [
+        -6,
+        -36,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -2,
+        -26,
+        13,
+        3
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -10,
+        -26,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -10,
+        -29,
+        11,
+        3
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -6,
+        -33,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        6,
+        -31,
+        3,
+        5
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        8,
+        -35,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        1,
+        -33,
+        10,
+        2
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        1,
+        -31,
+        3,
+        5
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        -2,
+        -23,
+        5,
+        6
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        7,
+        -23,
+        4,
+        3
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        7,
+        -11,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        -4,
+        -11,
+        8,
+        4
+      ]
+    },
+    {
+      "id": "piece-13",
+      "role": "piece",
+      "rect": [
+        7,
+        -4,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        -11,
+        -4,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "piece-15",
+      "role": "piece",
+      "rect": [
+        -4,
+        -4,
+        8,
+        4
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        8,
+        -38,
+        3,
+        3
+      ]
+    },
+    {
+      "id": "piece-16",
+      "role": "piece",
+      "rect": [
+        -2,
+        -13,
+        5,
+        2
+      ]
+    },
+    {
+      "id": "piece-17",
+      "role": "piece",
+      "rect": [
+        11,
+        -26,
+        5,
+        3
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -2,
+        -17,
+        5,
+        4
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        7,
+        -20,
+        4,
+        9
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-3",
+      "rect": [
+        -4,
+        -11,
+        15,
+        11
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-4",
+      "rect": [
+        -7,
+        -4,
+        3,
+        4
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [],
+    "wools": [],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": [],
+  "reference": {
+    "map": "3084",
+    "offset": [
+      0,
+      0
+    ],
+    "scale": 1,
+    "opacity": 0.55
+  }
+}

@@ -27,6 +27,90 @@ public sealed class SoftTermsTests
         await Assert.That(SeedEnvelopes.Default["fill-ratio"]).IsNotNull();
         await Assert.That(SeedEnvelopes.Default["wool-wool-distance"]).IsNotNull();
         await Assert.That(SeedEnvelopes.Default["spawn-wool-distance"]).IsNotNull();
+        await Assert.That(SeedEnvelopes.Default["lane-width"]).IsNotNull();
+        await Assert.That(SeedEnvelopes.Default["enclosed-void-count"]).IsNotNull();
+        await Assert.That(SeedEnvelopes.Default["neutral-stepping-count"]).IsNotNull();
+        await Assert.That(SeedEnvelopes.Default["band-count"]).IsNotNull();
+        await Assert.That(SeedEnvelopes.Default["isolation-cut-count"]).IsNotNull();
+    }
+
+    [Test]
+    public async Task Island_count_is_retired_from_the_catalogue()
+    {
+        await Assert.That(SeedEnvelopes.Default["island-count"]).IsNull();
+        await Assert.That(LayoutEvaluator.AllTerms.Any(t => t.Id == "island-count")).IsFalse();
+    }
+
+    [Test]
+    public async Task Neutral_stepping_count_fires_above_the_band_and_cites_ct4()
+    {
+        // base-2island carries contested mid stones; scored against a no-stones band [0,0] → out of band.
+        var env = SeedEnvelopes.Load("""{"neutral-stepping-count":[0,0]}""");
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!, env);
+        var score = new NeutralSteppingCount().Measure(ctx);
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("CT4");
+    }
+
+    [Test]
+    public async Task Isolation_cut_count_fires_above_the_band_and_cites_ct5()
+    {
+        // base-2wool cuts its team side (intra zones); scored against a no-cuts band [0,0] → out of band.
+        var env = SeedEnvelopes.Load("""{"isolation-cut-count":[0,0]}""");
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!, env);
+        var score = new IsolationCutCount().Measure(ctx);
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("CT5");
+    }
+
+    [Test]
+    public async Task Band_count_reads_the_front_front_crossings()
+    {
+        // isolated-spawn is one channelled crossing → a single team↔team band (a shared count, not per-team).
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("isolated-spawn.plan.json"))!, SeedEnvelopes.Default);
+        await Assert.That(new BandCount().Value(ctx)).IsEqualTo(1.0);
+    }
+
+    [Test]
+    public async Task Lane_width_fires_when_the_narrowest_lane_is_below_the_authored_band()
+    {
+        // a real seed's lane (10–20 blocks) scored against an absurd band [100,200] → far below → violation.
+        var env = SeedEnvelopes.Load("""{"lane-width":[100,200]}""");
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!, env);
+        var score = new LaneWidth().Measure(ctx);
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("LN1");
+        await Assert.That(score.Distance).IsGreaterThan(0.0);
+    }
+
+    [Test]
+    public async Task Lane_width_does_not_apply_without_a_wool_lane()
+    {
+        // no wools → no lane shapes → the metric does not apply → clean, not a violation.
+        var ctx = Ctx("""
+            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+             "pieces":[{"id":"p","role":"piece","rect":[0,0,4,4]}]}
+            """, SeedEnvelopes.Default);
+        await Assert.That(new LaneWidth().Value(ctx)).IsNull();
+        await Assert.That(new LaneWidth().Measure(ctx).Violation).IsNull();
+    }
+
+    [Test]
+    public async Task Max_chain_length_learns_from_the_authored_seeds_only()
+    {
+        // LN2 is an authored cap: the band is anchored to intent, not widened by the traced real maps.
+        await Assert.That(new MaxChainLength().LearnsFromTraced).IsFalse();
+    }
+
+    [Test]
+    public async Task Enclosed_void_count_fires_when_the_board_holes_leave_the_band()
+    {
+        // base-2wool derives two enclosed voids; scored against a no-holes band [0,0] → out of band → violation.
+        var env = SeedEnvelopes.Load("""{"enclosed-void-count":[0,0]}""");
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!, env);
+        var score = new EnclosedVoidCount().Measure(ctx);
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("CT8");
     }
 
     [Test]
