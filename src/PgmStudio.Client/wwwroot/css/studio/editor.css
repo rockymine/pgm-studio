@@ -890,6 +890,31 @@ body.dashboard-page { overflow: hidden; }
 .plan-toolbar .draw-tool-btn { flex-shrink: 0; }
 .plan-toolbar .plan-role-swatch { width: 14px; height: 14px; }
 
+/* Custom swatches for the tools whose canvas fill is a pattern, not a flat colour — so the palette reads
+   like the canvas. Build = the dashed, translucent accent zone; buffer = its single-diagonal reserved-gap
+   hatch; connector = its crossed attachment hatch. --role-color carries the annotation colour (buffer
+   orange / connector teal); the build zone is accent-coloured on the canvas, so it reads --accent. */
+.plan-toolbar .plan-role-swatch--build {
+  background: color-mix(in oklch, var(--accent) 22%, transparent);
+  border: 1px dashed var(--accent);
+  border-radius: 2px;
+}
+.plan-toolbar .plan-role-swatch--buffer {
+  background:
+    repeating-linear-gradient(45deg, transparent 0 2.5px, var(--role-color) 2.5px 3.5px),
+    color-mix(in oklch, var(--role-color) 18%, transparent);
+  border: 1px dashed var(--role-color);
+  border-radius: 2px;
+}
+.plan-toolbar .plan-role-swatch--connector {
+  background:
+    repeating-linear-gradient(45deg, transparent 0 2.5px, var(--role-color) 2.5px 3.5px),
+    repeating-linear-gradient(135deg, transparent 0 2.5px, var(--role-color) 2.5px 3.5px),
+    color-mix(in oklch, var(--role-color) 18%, transparent);
+  border: 1px dashed var(--role-color);
+  border-radius: 2px;
+}
+
 /* Overlays section (settings panel) — the derived-structure visibility toggles, wrapped. */
 .plan-overlay-toggles { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 

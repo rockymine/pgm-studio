@@ -164,7 +164,7 @@
                 </button>
               }
               <button class="draw-tool-btn @(tool == "zone" ? "draw-tool-btn--active" : null)" title="Draw a build area" @onclick='() => PickTool("zone")'>
-                <i data-lucide="square-dashed"></i>
+                <span class="plan-role-swatch plan-role-swatch--build"></span>
               </button>
               <span class="plan-tool-sep"></span>
               <button class="draw-tool-btn @(tool == "spawn" ? "draw-tool-btn--active" : null)" title="Place a spawn marker · click a placed spawn to cycle its facing" @onclick='() => PickTool("spawn")'>
@@ -184,7 +184,7 @@
               {
                 <button class="draw-tool-btn @(tool == "piece" && role == r.Id ? "draw-tool-btn--active" : null)"
                         style="--role-color:@r.Color" title="Draw a @r.Label annotation" @onclick="() => PickRole(r.Id)">
-                  <span class="plan-role-swatch"></span>
+                  <span class="plan-role-swatch plan-role-swatch--@r.Id"></span>
                 </button>
               }
             </div>
