@@ -146,7 +146,7 @@ The user asked specifically; here is the critique:
 | Today | Proposed | Why |
 |---|---|---|
 | `ApproachFamily` + `ApproachShape` | one `ShapeFamily` enum (with `Isolated`); emitter refuses `Isolated` explicitly | one taxonomy, one type; the mirror becomes `derived == requested` on the same enum |
-| `WoolApproachShape` (static class) | `ApproachClassifier` (or `ShapeClassifier` once generalized, §3) | it classifies; it is not a shape |
+| `WoolApproachShape` (static class) | **dissolves at M0** into `Shapes/ShapeClassifier` — the name does not survive | it classifies (it is not a shape), and nothing in it is wool-specific (§3.1); unlike the emit side there is no wool adapter to keep — callers pass the room cells as the terminal (a plan-aware `Classify(plan, terminalPieceId)` convenience overload replaces today's entry point) |
 | `WoolLaneShape`'s string result | `LaneRead` enum { I, L, Z, Complex, Plaza, None } | kills the stringly twin taxonomy; the doc already spends a paragraph disambiguating lane ≠ approach — the types should too (whether the class itself survives at all: §3.6) |
 | `PlanDerived` (the rect layer) | `ContactGraph` | it *is* the pairwise contact / interface / gap-link / component graph; "PlanDerived" says only "stuff derived from a plan" |
 | the gallery's `Derive()` result (the raster layer) | `BoardStructure`, built by `BoardDeriver.Derive(plan)` | the class name matches the doc's own term ("the board deriver"); the result names the *product* (structure: islands, zone kinds, holes, mid form), not its provenance |
@@ -237,6 +237,14 @@ Thin bindings stay in `PgmStudio.Pgm`:
 - `SpawnBoxEmitter` (new, small): same shapes, `terminal` → `PlanRoles.Spawn` — replaces the grower's
   inline spawn-lane geometry when the box migration lands (§4).
 - Frontline/hub composition (G41): open-variant emission — same templates, two entries, no terminal.
+
+The M0 name ledger, to leave no doubt about what survives:
+
+| Fate | Names |
+|---|---|
+| **dissolve** (absorbed into `Shapes/`, name gone) | `WoolApproachShape`, `ApproachShape`, `ApproachFamily`, `ApproachSlots` |
+| **survive as a thin adapter** | `WoolBoxEmitter` (emit-side wool binding: role + marker; classification needs no wool adapter) |
+| **survive until task 5, then dissolve** | `WoolLaneShape` (§3.6 — its flood becomes `CorridorExtent`, its read `ClassifyOpen`) |
 
 ### 3.3 Where the shapes live — the "more general location" question
 
@@ -389,8 +397,10 @@ Notes on each:
 
 ### 4.3 Per-kind shapes — there is no `HubShape`/`SpawnShape` zoo
 
-The obvious follow-up to §3: `WoolApproachShape` has a home — what are `HubShape`, `SpawnShape`,
-`FrontlineShape`? The answer this plan commits to: **they do not exist as types.** Three orthogonal
+The obvious follow-up to §3: the wool approach classifier's fate is settled (`WoolApproachShape`
+**dissolves** into the shared `ShapeClassifier` at M0 — the name does not survive, §2.2) — so what
+are `HubShape`, `SpawnShape`, `FrontlineShape`? The answer this plan commits to: **they do not exist
+as types either.** Three orthogonal
 concepts cover every box kind, and everything kind-specific is *data*, not a class:
 
 - **family** — what one shape *is* (the shared §3 vocabulary, kind-agnostic);
