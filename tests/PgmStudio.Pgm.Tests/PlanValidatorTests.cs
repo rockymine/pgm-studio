@@ -278,23 +278,6 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task WL2_fires_when_the_wool_is_too_close_to_the_spawn()
-    {
-        var near = Plan("""
-        { "plan":1, "globals":{"cell":1},
-          "pieces":[ {"id":"s","role":"lane","rect":[0,0,10,10]}, {"id":"w","role":"wool-room","rect":[0,10,10,10]} ],
-          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ], "wools":[ {"piece":"w","at":[5,5]} ] } }
-        """);
-        var far = Plan("""
-        { "plan":1, "globals":{"cell":1},
-          "pieces":[ {"id":"s","role":"lane","rect":[0,0,10,10]}, {"id":"w","role":"wool-room","rect":[0,40,10,10]} ],
-          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ], "wools":[ {"piece":"w","at":[5,5]} ] } }
-        """);
-        await Assert.That(Lint(near, "WL2")).IsTrue();
-        await Assert.That(Lint(far, "WL2")).IsFalse();
-    }
-
-    [Test]
     public async Task BZ5_fires_when_a_zone_touches_a_spawn_piece()
     {
         var touching = Plan("""

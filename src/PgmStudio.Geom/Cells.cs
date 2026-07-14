@@ -38,6 +38,43 @@ public static class Cells
         return comp;
     }
 
+    /// <summary>The shortest 4-connected path from <paramref name="from"/> to <paramref name="to"/> through
+    /// <paramref name="within"/> — cardinal steps only, so the path is rectilinear (no diagonal shortcut) and
+    /// routes around any cell not in the set, hugging its border. Returns the cell sequence including both ends,
+    /// or null when either end is outside the set or <paramref name="to"/> is unreachable. BFS, so the first
+    /// path reaching the target is a shortest one.</summary>
+    public static List<(int, int)>? ShortestPath((int, int) from, (int, int) to, IReadOnlySet<(int, int)> within)
+    {
+        if (!within.Contains(from) || !within.Contains(to)) return null;
+        if (from == to) return [from];
+
+        var prev = new Dictionary<(int, int), (int, int)> { [from] = from };
+        var q = new Queue<(int, int)>();
+        q.Enqueue(from);
+        while (q.Count > 0)
+        {
+            var c = q.Dequeue();
+            foreach (var n in N4(c))
+            {
+                if (!within.Contains(n) || !prev.TryAdd(n, c)) continue;
+                if (n == to)
+                {
+                    var path = new List<(int, int)>();
+                    for (var p = to; ; p = prev[p]) { path.Add(p); if (p == from) break; }
+                    path.Reverse();
+                    return path;
+                }
+                q.Enqueue(n);
+            }
+        }
+        return null;
+    }
+
+    /// <summary>The step count of the shortest 4-connected path (cells − 1), or null when unreachable. This is
+    /// the rectilinear traversal distance in cells — Manhattan in open space, longer where it detours a gap.</summary>
+    public static int? PathLength((int, int) from, (int, int) to, IReadOnlySet<(int, int)> within) =>
+        ShortestPath(from, to, within) is { } path ? path.Count - 1 : null;
+
     /// <summary>Number of 4-connected components of a cell set.</summary>
     public static int Components(IReadOnlySet<(int, int)> cells)
     {

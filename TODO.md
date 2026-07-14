@@ -51,19 +51,23 @@ wool-room dock (G49), the **box-based wool-approach shape vocabulary + classifie
 convention — and the **dissolved `Composer.Acceptable`**: seven hard terms (STRUCT, WL2/PC-C/G2, G5, BZ6, WL8) +
 the opt-in reject sink, composed output **byte-identical**. The soft half + wiring remain below.
 
-- [~] **G60 — Composer evaluator: soft terms, envelopes, wiring, harness.** On the landed engine:
-  **(1) `SeedEnvelopes` generation** — `tools/deriver/envelope-stats.cs` runs the deriver over `tools/seeds/`,
-  writes `Evaluate/seed-envelopes.json` (global bands first, split by symmetry mode only where the ranking
-  harness proves a global band mis-ranks) and regenerates `docs/seed-stats.md`. **(2) The §6 soft-term
-  catalogue** — one `ILayoutTerm` per `layout-rules.md` id, reading `BoardStructure` measurables only (never a
-  family name — the enumeration trap), scored as `Band` distance; each **attaches `Evidence`** (§9.7 — the band
-  drawn as a `Measure`) while its geometry is in hand; and the hole-hunt loop keeps the **lowest-scoring**
-  acceptable attempt (not the first). **(3) Wiring** — `EvaluationDto` in `Contracts` (carrying the `Evidence`
-  primitives) + `POST /api/plan/evaluate` for the editor's live score/lint; the client draws violations **and
-  their evidence** as a canvas overlay in JS (the §9.7 editor renderer — C# ships only data). **(4) Ranking
-  harness** `eval-rank.cs` + minimal-pair negatives (`tools/seeds/negatives/` + `labels.json`): assert
-  `Score(negative) > Score(positive)` **and** the labelled term fires; per-term TUnit tests for each new soft
-  term. (review §5, §9; `docs/contracts/layout-evaluator.md`)
+**G60 (2a) landed (`FEATURES.md`):** the soft half — `SoftTerm` (pure `Value` + drawn evidence),
+`tools/deriver/envelope-stats.cs` → embedded `seed-envelopes.json` (+ generated `docs/seed-envelopes.md`), and a
+first soft-term batch (`fill-ratio`/G8, `island-count`/CT1, `max-chain-length`/LN2, `wool-wool-distance`/WL7,
+`spawn-wool-distance`/WL2), scored as `Band` distance. **Distances are rectilinear surface traversal**
+(`Geom.Cells.ShortestPath`, 4-connected — routes around voids, no corner-cut), not straight-line; **WL2 moved to
+a surface `SpawnWoolFloor` gate term** (byte-identical — WL2 never gates), retired from `PlanValidator`.
+
+- [~] **G60 — Composer evaluator: extend the catalogue, wiring, harness.** On the landed soft half:
+  **(1)** grow the §6 soft-term catalogue (frontline dock/G39, residual shape, lane width/LN1, approach
+  count/WL8·G45, height/EL1·EL4, …) — each reads `BoardStructure` measurables only (never a family name — the
+  enumeration trap), scored as `Band` distance with `Evidence`. **(2)** the hole-hunt loop keeps the
+  **lowest-scoring** acceptable attempt — the first point composed output shifts, its own re-baseline. **(3)
+  Wiring** — `EvaluationDto` in `Contracts` (carrying the `Evidence` primitives) + `POST /api/plan/evaluate` for
+  the editor's live score/lint; the client draws violations **and their evidence** as a JS canvas overlay (§9.7;
+  this also restores WL2 to the editor). **(4) Ranking harness** `eval-rank.cs` + minimal-pair negatives
+  (`tools/seeds/negatives/` + `labels.json`): `Score(negative) > Score(positive)` **and** the labelled term
+  fires; per-term tests. (review §5, §9; `docs/contracts/layout-evaluator.md`)
 
 **Realize & gate (plan → loadable, validated seed)**
 - [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`); the `spawn` / `wool-room` piece

@@ -124,7 +124,7 @@ public static class PlanValidator
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
     public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<PlanFinding>>> LintRules =
     [
-        LintPcC, LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3, LintSt2,
+        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintEl3, LintSt2,
     ];
 
     private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
@@ -192,25 +192,6 @@ public static class PlanValidator
             double pos = zAxis ? bz : bx, mid = zAxis ? r.CenterZ : r.CenterX, center = 0;
             bool inBack = Math.Abs(pos - center) >= Math.Abs(mid - center);
             if (!inBack) yield return Lint("SP2", $"spawn on '{s.Piece}' not near the back of its lane", s.Piece);
-        }
-    }
-
-    // WL2 — a team's wool sits ≥ 20 blocks from its spawn.
-    private static IEnumerable<PlanFinding> LintWl2(PlanModel plan, ContactGraph d)
-    {
-        foreach (var s in plan.Placements.Spawns)
-        {
-            var sp = d.Piece(s.Piece);
-            if (sp is null) continue;
-            var (sx, sz) = ResolveBlock(sp.Value.Rect, s.At, d.Cell);
-            foreach (var w in plan.Placements.Wools)
-            {
-                var wp = d.Piece(w.Piece);
-                if (wp is null) continue;
-                var (wx, wz) = ResolveBlock(wp.Value.Rect, w.At, d.Cell);
-                var dist = Math.Sqrt((wx - sx) * (wx - sx) + (wz - sz) * (wz - sz));
-                if (dist < 20) yield return Lint("WL2", $"wool on '{w.Piece}' is {dist:0} < 20 blocks from spawn on '{s.Piece}'", w.Piece, s.Piece);
-            }
         }
     }
 

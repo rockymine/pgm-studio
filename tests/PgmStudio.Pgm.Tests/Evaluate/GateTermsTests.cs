@@ -141,6 +141,36 @@ public sealed class GateTermsTests
         await Assert.That(new BandWoolClearance().Measure(ctx).Violation).IsNull();
     }
 
+    // ── SpawnWoolFloor (WL2, surface distance) ──────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Spawn_wool_floor_fires_when_the_wool_hugs_the_spawn()
+    {
+        // spawn and wool on one lane, ~10 blocks apart by surface path (cell 5) < WL2's 20-block floor.
+        var ctx = Ctx("""
+            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+             "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,4]}],
+             "placements":{"spawns":[{"piece":"lane","at":[1,0],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[1,2]}]}}
+            """);
+        var score = new SpawnWoolFloor().Measure(ctx);
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("WL2");
+    }
+
+    [Test]
+    public async Task Spawn_wool_floor_is_clean_when_far_enough()
+    {
+        // 5 cells = 25 blocks by surface path ≥ the 20-block floor.
+        var ctx = Ctx("""
+            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+             "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,7]}],
+             "placements":{"spawns":[{"piece":"lane","at":[1,0],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[1,5]}]}}
+            """);
+        await Assert.That(new SpawnWoolFloor().Measure(ctx).Violation).IsNull();
+    }
+
     // ── WoolRingedHole (WL8) ────────────────────────────────────────────────────────────────────────────
     // A rot_180 annulus (top + left bars fan to bottom + right) enclosing a central hole.
 

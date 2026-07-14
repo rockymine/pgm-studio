@@ -19,13 +19,20 @@ public static class LayoutEvaluator
     /// envelope catalogue is built. A profile selects/weights them by id.</summary>
     public static readonly IReadOnlyList<ILayoutTerm> AllTerms =
     [
+        // hard terms — the acceptance gate (port of Composer.Acceptable)
         new StructuralIntegrity(),
-        new LintRejectTerm("WL2"),
         new LintRejectTerm("PC-C"),
         new LintRejectTerm("G2"),
         new GapHopBand(),
         new BandWoolClearance(),
         new WoolRingedHole(),
+        new SpawnWoolFloor(),      // WL2 as a surface-distance floor (was the Euclidean WL2 lint)
+        // soft terms — feel metrics scored against the authored seed envelopes
+        new FillRatio(),
+        new IslandCount(),
+        new MaxChainLength(),
+        new WoolWoolDistance(),
+        new SpawnWoolDistance(),
     ];
 
     /// <summary>Full scored evaluation: run every enabled term, sum hard penalties + weighted soft distances.</summary>
@@ -50,9 +57,10 @@ public static class LayoutEvaluator
         return new Evaluation(sum, scores);
     }
 
-    /// <summary>Build the context and evaluate a plan. Pass <paramref name="envelopes"/> for soft scoring.</summary>
+    /// <summary>Build the context and evaluate a plan. Soft terms score against <paramref name="envelopes"/>,
+    /// defaulting to the checked-in <see cref="SeedEnvelopes.Default"/>.</summary>
     public static Evaluation Evaluate(PlanModel plan, EvaluationProfile profile, SeedEnvelopes? envelopes = null) =>
-        Evaluate(EvalContext.Build(plan, envelopes), profile);
+        Evaluate(EvalContext.Build(plan, envelopes ?? SeedEnvelopes.Default), profile);
 
     /// <summary>The composer's acceptance gate: run the enabled hard terms in order and return the first
     /// violation (or null to accept). Short-circuit — a rejected attempt costs only the terms up to its first

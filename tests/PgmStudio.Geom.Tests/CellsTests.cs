@@ -91,4 +91,43 @@ public sealed class CellsTests
         // an 8×8 block clamps down to the ceiling of 6
         await Assert.That(Cells.MinRunWidth(Rect(0, 0, 8, 8), new[] { (4, 4) })).IsEqualTo(6);
     }
+
+    [Test]
+    public async Task ShortestPath_in_open_space_is_the_manhattan_distance()
+    {
+        // a diagonal target: rectilinear (no diagonal shortcut) → dx + dz steps, not the Euclidean 5
+        await Assert.That(Cells.PathLength((0, 0), (3, 4), Rect(0, 0, 8, 8))).IsEqualTo(7);
+    }
+
+    [Test]
+    public async Task ShortestPath_routes_around_an_obstacle_hugging_its_border()
+    {
+        // a U of walkable cells: a wall of removed cells splits the two arms, so the path must go down one arm,
+        // across the base, and up the other — longer than the straight 2-step gap between the arm tops.
+        var u = Rect(0, 0, 5, 5);
+        for (var z = 1; z <= 4; z++) { u.Remove((2, z)); }      // a wall from the top, base open at z=0
+        var len = Cells.PathLength((1, 4), (3, 4), u);
+        await Assert.That(len).IsNotNull();
+        await Assert.That(len!.Value).IsGreaterThan(2);         // not the straight-line 2 — it detours the wall
+        await Assert.That(len!.Value).IsEqualTo(10);            // down 4, across 2, up 4
+    }
+
+    [Test]
+    public async Task ShortestPath_is_null_across_a_disconnected_gap()
+    {
+        var split = Rect(0, 0, 2, 2);
+        split.UnionWith(Rect(0, 5, 2, 2));                      // two blocks with a void between
+        await Assert.That(Cells.PathLength((0, 0), (0, 5), split)).IsNull();
+        await Assert.That(Cells.ShortestPath((0, 0), (0, 5), split)).IsNull();
+    }
+
+    [Test]
+    public async Task ShortestPath_returns_the_cell_sequence_including_both_ends()
+    {
+        var path = Cells.ShortestPath((0, 0), (0, 3), Rect(0, 0, 1, 4));
+        await Assert.That(path).IsNotNull();
+        await Assert.That(path![0]).IsEqualTo((0, 0));
+        await Assert.That(path[^1]).IsEqualTo((0, 3));
+        await Assert.That(path.Count).IsEqualTo(4);
+    }
 }

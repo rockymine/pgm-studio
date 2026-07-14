@@ -18,21 +18,23 @@ public sealed class LayoutEvaluatorTests
         """;
 
     [Test]
-    public async Task A_clean_composed_plan_scores_zero_and_is_valid()
+    public async Task A_clean_composed_plan_is_valid_with_no_hard_violation()
     {
+        // Composed plans pass the gate (no hard violation); their soft score is how authored-like they are —
+        // nonzero is expected once soft terms score against the seed envelopes.
         var plan = Composer.Compose(new ComposeRequest(12, seed: 1));
         var eval = LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default);
         await Assert.That(eval.IsValid).IsTrue();
-        await Assert.That(eval.Score).IsEqualTo(0.0).Within(1e-9);
+        await Assert.That(eval.Violations.Any(v => v.RuleId == "STRUCT")).IsFalse();
     }
 
     [Test]
-    public async Task A_hard_violation_costs_the_flat_penalty_and_invalidates()
+    public async Task A_hard_violation_dominates_the_score_and_invalidates()
     {
         var plan = PlanModel.Parse(ErrorPlanJson)!;
         var eval = LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default);
         await Assert.That(eval.IsValid).IsFalse();
-        await Assert.That(eval.Score).IsEqualTo(LayoutEvaluator.HardPenalty).Within(1e-9);
+        await Assert.That(eval.Score).IsGreaterThanOrEqualTo(LayoutEvaluator.HardPenalty);
         await Assert.That(eval.Violations.Any(v => v.RuleId == "STRUCT")).IsTrue();
     }
 
@@ -52,19 +54,20 @@ public sealed class LayoutEvaluatorTests
         await Assert.That(LayoutEvaluator.Gate(ctx, profile)).IsNull();
     }
 
-    // Every plan the composer emits must pass the gate and score 0 — the permanent form of the byte-identity
-    // check made when Composer.Acceptable was dissolved into the evaluator.
+    // Every plan the composer emits must pass the gate (no hard violation) — the permanent form of the
+    // byte-identity check made when Composer.Acceptable was dissolved into the evaluator. (Soft score is not
+    // asserted 0: soft terms measure authored-likeness, which the current constructive grower does not optimize.)
     [Test]
-    public async Task Every_composed_plan_passes_the_gate_and_scores_zero()
+    public async Task Every_composed_plan_passes_the_hard_gate()
     {
         foreach (var players in new[] { 12, 20 })
             foreach (var teams in new[] { 2, 4 })
                 for (ulong seed = 1; seed <= 10; seed++)
                 {
                     var plan = Composer.Compose(new ComposeRequest(players, teams, seed: seed));
-                    var eval = LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default);
-                    await Assert.That(eval.IsValid).IsTrue();
-                    await Assert.That(eval.Score).IsEqualTo(0.0).Within(1e-9);
+                    var ctx = EvalContext.Build(plan);
+                    await Assert.That(LayoutEvaluator.Gate(ctx, EvaluationProfile.Default)).IsNull();
+                    await Assert.That(LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default).IsValid).IsTrue();
                 }
     }
 

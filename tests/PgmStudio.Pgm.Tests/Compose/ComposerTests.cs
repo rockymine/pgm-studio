@@ -68,7 +68,7 @@ public sealed class ComposerTests
             var findings = PlanValidator.Validate(plan);
 
             await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error)).IsFalse();
-            foreach (var rule in new[] { "WL2", "PC-C", "G2", "G5" })
+            foreach (var rule in new[] { "PC-C", "G2", "G5" })
                 await Assert.That(findings.Any(f => f.Rule == rule)).IsFalse();
 
             var derived = ContactGraph.Build(plan);

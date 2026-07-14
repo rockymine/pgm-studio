@@ -1,0 +1,22 @@
+{
+  "fill-ratio": [
+    0.213675,
+    0.48718
+  ],
+  "island-count": [
+    2,
+    17
+  ],
+  "max-chain-length": [
+    25,
+    90
+  ],
+  "wool-wool-distance": [
+    65,
+    200
+  ],
+  "spawn-wool-distance": [
+    30,
+    195
+  ]
+}

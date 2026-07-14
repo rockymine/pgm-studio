@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Text.Json;
+
 namespace PgmStudio.Pgm.Evaluate;
 
 /// <summary>An authored metric band <c>[Lo, Hi]</c> — the range a soft metric lands in across the teaching
@@ -36,4 +39,29 @@ public sealed record SeedEnvelopes(IReadOnlyDictionary<string, Band> Bands)
     /// <summary>The band for <paramref name="metricId"/>, or null when the envelope set does not carry it
     /// (a soft term with no band contributes nothing — it stays dormant until the stats are generated).</summary>
     public Band? this[string metricId] => Bands.TryGetValue(metricId, out var b) ? b : null;
+
+    /// <summary>The generated, checked-in envelopes embedded in the assembly (from <c>seed-envelopes.json</c>) —
+    /// the default soft-scoring bands. <see cref="Empty"/> if the resource is absent (before the stats are
+    /// first generated), so a term simply stays dormant rather than the load throwing.</summary>
+    public static SeedEnvelopes Default { get; } = LoadEmbedded();
+
+    /// <summary>Parse the <c>{ "metric-id": [lo, hi], ... }</c> envelope document.</summary>
+    public static SeedEnvelopes Load(string json)
+    {
+        var raw = JsonSerializer.Deserialize<Dictionary<string, double[]>>(json) ?? [];
+        var bands = raw
+            .Where(kv => kv.Value.Length == 2)
+            .ToDictionary(kv => kv.Key, kv => new Band(kv.Value[0], kv.Value[1]));
+        return new SeedEnvelopes(bands);
+    }
+
+    private static SeedEnvelopes LoadEmbedded()
+    {
+        var asm = Assembly.GetExecutingAssembly();
+        var name = asm.GetManifestResourceNames().FirstOrDefault(n => n.EndsWith("seed-envelopes.json", StringComparison.Ordinal));
+        if (name is null) return Empty;
+        using var stream = asm.GetManifestResourceStream(name)!;
+        using var reader = new StreamReader(stream);
+        return Load(reader.ReadToEnd());
+    }
 }

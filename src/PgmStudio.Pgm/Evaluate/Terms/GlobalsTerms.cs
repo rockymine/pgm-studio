@@ -1,5 +1,35 @@
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
+/// <summary>The share of the board's footprint that is land — filled land cells over the bounding box of all
+/// land + build. The authored corpus sits in a middle band (roughly a third to three-fifths land); a board far
+/// denser or sparser than the seeds reads wrong. A global scalar, so no single geometry to point at.</summary>
+public sealed class FillRatio : SoftTerm
+{
+    public override string Id => "fill-ratio";
+    public override string RuleId => "G8";
+
+    public override double? Value(EvalContext ctx)
+    {
+        var board = ctx.Board;
+        var cells = board.Filled.Keys.Concat(board.Build).ToList();
+        if (cells.Count == 0) return null;
+        double w = cells.Max(c => c.Item1) - cells.Min(c => c.Item1) + 1;
+        double h = cells.Max(c => c.Item2) - cells.Min(c => c.Item2) + 1;
+        return board.Filled.Count / (w * h);
+    }
+}
+
+/// <summary>The number of land-connected islands the fanned board forms. The corpus fragments a team's side
+/// into a handful of islands the build zones bridge (CT-family); a board that is one solid mass, or shattered
+/// into many, falls outside the authored distribution.</summary>
+public sealed class IslandCount : SoftTerm
+{
+    public override string Id => "island-count";
+    public override string RuleId => "CT1";
+
+    public override double? Value(EvalContext ctx) => ctx.Board.Islands.Count;
+}
+
 /// <summary>G5: every void gap a build region spans between two individual landmasses is a 10..20-block hop. The
 /// geometric crossing/bridge constructions guarantee the designed hops; this catches any incidental link the
 /// fanned zones create (and a zero-length weld, which is not a legal hop either). Reads the gap links off the
