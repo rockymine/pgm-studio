@@ -901,15 +901,15 @@ body.dashboard-page { overflow: hidden; }
 }
 .plan-toolbar .plan-role-swatch--buffer {
   background:
-    repeating-linear-gradient(45deg, transparent 0 2.5px, var(--role-color) 2.5px 3.5px),
+    repeating-linear-gradient(45deg, transparent 0 6px, var(--role-color) 6px 7px),
     color-mix(in oklch, var(--role-color) 18%, transparent);
   border: 1px dashed var(--role-color);
   border-radius: 2px;
 }
 .plan-toolbar .plan-role-swatch--connector {
   background:
-    repeating-linear-gradient(45deg, transparent 0 2.5px, var(--role-color) 2.5px 3.5px),
-    repeating-linear-gradient(135deg, transparent 0 2.5px, var(--role-color) 2.5px 3.5px),
+    repeating-linear-gradient(45deg, transparent 0 6px, var(--role-color) 6px 7px),
+    repeating-linear-gradient(135deg, transparent 0 6px, var(--role-color) 6px 7px),
     color-mix(in oklch, var(--role-color) 18%, transparent);
   border: 1px dashed var(--role-color);
   border-radius: 2px;
