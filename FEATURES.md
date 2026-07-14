@@ -606,8 +606,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   moved out of the sidebar into the **canvas toolbar** as compact **icon-only** buttons sharing the
   `.draw-tool-btn` box with select / move — a solid role-colour swatch for terrain pieces, a glyph for
   markers, and **canvas-matching pattern swatches** for the tools whose fill is a pattern (build = the
-  dashed translucent accent zone, buffer = its single-diagonal reserved-gap hatch, connector = its crossed
-  attachment hatch, via `repeating-linear-gradient`), grouped `select · move │ piece · spawn · wool-room ·
+  dashed translucent accent zone via CSS; buffer = its single-diagonal reserved-gap hatch, connector = its
+  crossed attachment hatch — a centred inline SVG, 2 / 4 lines symmetric about the swatch centre), grouped `select · move │ piece · spawn · wool-room ·
   build │ spawn · wool · iron · wall │ buffer · connector` with separators; the visibility toggles moved the other
   way — out of the toolbar into an **Overlays** section in the settings panel. All tool/overlay wiring
   unchanged (same bridge calls); verified light + dark. (G71)

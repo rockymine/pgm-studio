@@ -899,20 +899,15 @@ body.dashboard-page { overflow: hidden; }
   border: 1px dashed var(--accent);
   border-radius: 2px;
 }
+/* Buffer / connector carry an inline SVG (fill + dashed border + hatch) rather than a repeating gradient:
+   a gradient's stripe phase is anchored to a box corner, so its lines can't be centred in the swatch. The
+   SVG places the lines symmetric about the 14-unit centre — 2 diagonals for buffer, a crossed 4 for
+   connector. Colours are the fixed role hexes (buffer orange / connector teal, matching the RolePalette). */
 .plan-toolbar .plan-role-swatch--buffer {
-  background:
-    repeating-linear-gradient(45deg, transparent 0 6px, var(--role-color) 6px 7px),
-    color-mix(in oklch, var(--role-color) 18%, transparent);
-  border: 1px dashed var(--role-color);
-  border-radius: 2px;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='%23f2792b' fill-opacity='.18'/><g stroke='%23f2792b' stroke-width='1.2' stroke-linecap='round'><line x1='1' y1='9.5' x2='9.5' y2='1'/><line x1='4.5' y1='13' x2='13' y2='4.5'/></g><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='none' stroke='%23f2792b' stroke-dasharray='2 1.4'/></svg>") center / 100% 100% no-repeat;
 }
 .plan-toolbar .plan-role-swatch--connector {
-  background:
-    repeating-linear-gradient(45deg, transparent 0 6px, var(--role-color) 6px 7px),
-    repeating-linear-gradient(135deg, transparent 0 6px, var(--role-color) 6px 7px),
-    color-mix(in oklch, var(--role-color) 18%, transparent);
-  border: 1px dashed var(--role-color);
-  border-radius: 2px;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='%232dd4bf' fill-opacity='.18'/><g stroke='%232dd4bf' stroke-width='1.2' stroke-linecap='round'><line x1='1' y1='9.5' x2='9.5' y2='1'/><line x1='4.5' y1='13' x2='13' y2='4.5'/><line x1='1' y1='4.5' x2='9.5' y2='13'/><line x1='4.5' y1='1' x2='13' y2='9.5'/></g><rect x='.7' y='.7' width='12.6' height='12.6' rx='2' fill='none' stroke='%232dd4bf' stroke-dasharray='2 1.4'/></svg>") center / 100% 100% no-repeat;
 }
 
 /* Overlays section (settings panel) — the derived-structure visibility toggles, wrapped. */
