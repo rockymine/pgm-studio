@@ -8,7 +8,7 @@ namespace PgmStudio.Pgm.Tests;
 /// centre on the corridor minimum: an exact-10 border is full land, a shorter positive border is a narrow land
 /// interface (still connects), a bare corner touch connects neither.
 /// </summary>
-public sealed class PlanDerivedTests
+public sealed class ContactGraphTests
 {
     private static DerivedPiece P(string id, int minX, int minZ, int maxX, int maxZ, int surface = 9) =>
         new(id, "lane", new BlockRect(minX, minZ, maxX, maxZ), surface, true);
@@ -16,7 +16,7 @@ public sealed class PlanDerivedTests
     [Test]
     public async Task Exact_ten_block_shared_border_is_a_land_interface()
     {
-        var c = PlanDerived.Classify(P("a", 0, 0, 10, 10), P("b", 10, 0, 20, 10));
+        var c = ContactGraph.Classify(P("a", 0, 0, 10, 10), P("b", 10, 0, 20, 10));
         await Assert.That(c.Kind).IsEqualTo(ContactKind.Land);
         await Assert.That(c.BorderLength).IsEqualTo(10);
     }
@@ -25,30 +25,30 @@ public sealed class PlanDerivedTests
     public async Task A_nine_block_border_is_a_narrow_land_interface()
     {
         // a positive border below the corridor minimum still connects — it is a narrow land interface.
-        var c = PlanDerived.Classify(P("a", 0, 0, 10, 9), P("b", 10, 0, 20, 10));
+        var c = ContactGraph.Classify(P("a", 0, 0, 10, 9), P("b", 10, 0, 20, 10));
         await Assert.That(c.Kind).IsEqualTo(ContactKind.Narrow);
         await Assert.That(c.BorderLength).IsEqualTo(9);
-        await Assert.That(PlanDerived.IsLandInterface(c.Kind)).IsTrue();
+        await Assert.That(ContactGraph.IsLandInterface(c.Kind)).IsTrue();
     }
 
     [Test]
     public async Task A_bare_corner_touch_is_a_corner_contact()
     {
-        var c = PlanDerived.Classify(P("a", 0, 0, 10, 10), P("b", 10, 10, 20, 20));
+        var c = ContactGraph.Classify(P("a", 0, 0, 10, 10), P("b", 10, 10, 20, 20));
         await Assert.That(c.Kind).IsEqualTo(ContactKind.Corner);
     }
 
     [Test]
     public async Task Separated_pieces_do_not_contact()
     {
-        var c = PlanDerived.Classify(P("a", 0, 0, 10, 10), P("b", 20, 0, 30, 10));
+        var c = ContactGraph.Classify(P("a", 0, 0, 10, 10), P("b", 20, 0, 30, 10));
         await Assert.That(c.Kind).IsEqualTo(ContactKind.None);
     }
 
     [Test]
     public async Task Area_overlap_carries_the_surface_delta()
     {
-        var c = PlanDerived.Classify(P("a", 0, 0, 10, 10, 9), P("b", 5, 5, 15, 15, 13));
+        var c = ContactGraph.Classify(P("a", 0, 0, 10, 10, 9), P("b", 5, 5, 15, 15, 13));
         await Assert.That(c.Kind).IsEqualTo(ContactKind.Overlap);
         await Assert.That(c.SurfaceDelta).IsEqualTo(4);
     }
@@ -57,7 +57,7 @@ public sealed class PlanDerivedTests
     public async Task The_h_bars_form_one_component_the_square_another()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.Components.Count).IsEqualTo(2);              // H (three bars) + square
         var big = d.Components.OrderByDescending(c => c.Count).First();
         await Assert.That(big.Count).IsEqualTo(3);
@@ -70,7 +70,7 @@ public sealed class PlanDerivedTests
     public async Task A_build_zone_gap_links_the_pieces_it_touches()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         // the bridge zone links the east bar to the wool room across a 10-block void
         var bridge = d.GapLinks.Where(g => g.Zone == "bridge-e").ToList();
         await Assert.That(bridge.Any(g =>
@@ -92,7 +92,7 @@ public sealed class PlanDerivedTests
                      {"id":"c","role":"mid","rect":[0,25,10,10]} ],
           "zones":[ {"id":"z","rect":[0,10,20,15]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.GapLinks.Any(g => g.A is "a" or "b" && g.B is "a" or "b")).IsFalse();
         await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "c") or ("c", "a"))).IsTrue();
         await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("b", "c") or ("c", "b"))).IsTrue();
@@ -109,7 +109,7 @@ public sealed class PlanDerivedTests
                      {"id":"b","role":"lane","rect":[20,0,10,10]} ],
           "zones":[ {"id":"z","rect":[0,10,30,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.GapLinks).IsEmpty();
     }
 
@@ -123,7 +123,7 @@ public sealed class PlanDerivedTests
                      {"id":"b","role":"lane","rect":[20,0,10,10]} ],
           "zones":[ {"id":"z","rect":[10,0,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.GapLinks.Count).IsEqualTo(1);
         await Assert.That(d.GapLinks[0].Hop).IsEqualTo(10);
     }
@@ -140,7 +140,7 @@ public sealed class PlanDerivedTests
                      {"id":"c","role":"lane","rect":[40,0,10,10]} ],
           "zones":[ {"id":"z","rect":[10,0,30,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "c") or ("c", "a"))).IsFalse();
         await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "b") or ("b", "a"))).IsTrue();
         await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("b", "c") or ("c", "b"))).IsTrue();
@@ -153,7 +153,7 @@ public sealed class PlanDerivedTests
         // void from the central island out to lane-4 / lane-5 (10 blocks each) survive; the abutting mid band's
         // out-of-zone spans (the two 15s) and the cross-map 40 are dropped.
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("isolated-spawn.plan.json"))!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.GapLinks.Count).IsEqualTo(2);
         await Assert.That(d.GapLinks.All(g => g.Hop == 10)).IsTrue();
         var partners = d.GapLinks.SelectMany(g => new[] { g.A, g.B }).ToHashSet();
@@ -165,7 +165,7 @@ public sealed class PlanDerivedTests
     public async Task Frontline_is_the_pieces_abutting_a_zone()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.Frontline).Contains("bar-e");              // spawn lane abuts the mid band
         await Assert.That(d.Frontline).Contains("bar-w");              // wool lane overlaps the mid band
     }
@@ -179,7 +179,7 @@ public sealed class PlanDerivedTests
         { "plan":1, "globals":{"cell":1},
           "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[5,5,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.BuildRegions.Count).IsEqualTo(1);
         await Assert.That(d.BuildRegions[0].ZoneIds).Contains("z1");
         await Assert.That(d.BuildRegions[0].ZoneIds).Contains("z2");
@@ -193,7 +193,7 @@ public sealed class PlanDerivedTests
         { "plan":1, "globals":{"cell":1},
           "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[10,0,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.BuildRegions.Count).IsEqualTo(1);
     }
 
@@ -206,9 +206,9 @@ public sealed class PlanDerivedTests
         { "plan":1, "globals":{"cell":1},
           "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[10,10,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.BuildRegions.Count).IsEqualTo(2);
-        await Assert.That(PlanDerived.RegionsMerge(new BlockRect(0, 0, 10, 10), new BlockRect(10, 10, 20, 20))).IsFalse();
+        await Assert.That(ContactGraph.RegionsMerge(new BlockRect(0, 0, 10, 10), new BlockRect(10, 10, 20, 20))).IsFalse();
     }
 
     [Test]
@@ -218,7 +218,7 @@ public sealed class PlanDerivedTests
         { "plan":1, "globals":{"cell":1},
           "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[20,0,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.BuildRegions.Count).IsEqualTo(2);
     }
 
@@ -232,7 +232,7 @@ public sealed class PlanDerivedTests
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[40,0,10,10]} ],
           "zones":[ {"id":"z1","rect":[10,0,10,10]}, {"id":"z2","rect":[20,0,10,10]}, {"id":"z3","rect":[30,0,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.BuildRegions.Count).IsEqualTo(1);
         await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "b") or ("b", "a"))).IsTrue();
         await Assert.That(d.GapLinks.First(g => g.A is "a" or "b" && g.B is "a" or "b").Hop).IsEqualTo(30);
@@ -248,7 +248,7 @@ public sealed class PlanDerivedTests
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[40,0,10,10]} ],
           "zones":[ {"id":"z1","rect":[10,0,10,10]}, {"id":"z3","rect":[30,0,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.BuildRegions.Count).IsEqualTo(2);
         await Assert.That(d.GapLinks.Any(g => (g.A, g.B) is ("a", "b") or ("b", "a"))).IsFalse();
     }
@@ -259,14 +259,14 @@ public sealed class PlanDerivedTests
     public async Task Border_segment_of_an_x_abutting_pair_runs_along_the_shared_edge()
     {
         // a: [0,0]-[10,10], b: [10,0]-[20,10] touch on the vertical line x=10 over z∈[0,10].
-        var seg = PlanDerived.BorderSegment(new BlockRect(0, 0, 10, 10), new BlockRect(10, 0, 20, 10));
+        var seg = ContactGraph.BorderSegment(new BlockRect(0, 0, 10, 10), new BlockRect(10, 0, 20, 10));
         await Assert.That(seg).IsEqualTo((10, 0, 10, 10));
     }
 
     [Test]
     public async Task Border_segment_of_a_corner_touch_is_the_single_point()
     {
-        var seg = PlanDerived.BorderSegment(new BlockRect(0, 0, 10, 10), new BlockRect(10, 10, 20, 20));
+        var seg = ContactGraph.BorderSegment(new BlockRect(0, 0, 10, 10), new BlockRect(10, 10, 20, 20));
         await Assert.That(seg).IsEqualTo((10, 10, 10, 10));
     }
 
@@ -274,18 +274,18 @@ public sealed class PlanDerivedTests
     public async Task Interface_segments_expose_land_and_narrow_contacts()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         // the H-bars connect via land interfaces → at least one land segment carrying the border length
         var land = d.InterfaceSegments.Where(s => s.Kind == ContactKind.Land).ToList();
         await Assert.That(land).IsNotEmpty();
-        await Assert.That(land.All(s => s.Length >= PlanDerived.CorridorMin)).IsTrue();
+        await Assert.That(land.All(s => s.Length >= ContactGraph.CorridorMin)).IsTrue();
 
         // a sub-corridor seam surfaces as a narrow segment (still a positive-length connector, not a corner)
         var narrowPlan = PlanModel.Parse("""
         { "plan":1, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,5]}, {"id":"b","role":"piece","rect":[10,0,10,5]} ] }
         """)!;
-        var nd = PlanDerived.Build(narrowPlan);
+        var nd = ContactGraph.Build(narrowPlan);
         var narrow = nd.InterfaceSegments.Single(s => s.Kind == ContactKind.Narrow);
         await Assert.That(narrow.Length).IsEqualTo(5);
         await Assert.That(narrow.X1 == narrow.X2 || narrow.Z1 == narrow.Z2).IsTrue();   // a real line, not a point
@@ -301,7 +301,7 @@ public sealed class PlanDerivedTests
         { "plan":1, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,5]}, {"id":"b","role":"piece","rect":[10,0,10,5]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.Components.Count).IsEqualTo(1);
         await Assert.That(d.Components[0].Count).IsEqualTo(2);
     }
@@ -318,7 +318,7 @@ public sealed class PlanDerivedTests
                      {"id":"step2","role":"piece","rect":[1,1,1,1],"surface":11},
                      {"id":"step3","role":"piece","rect":[1,2,1,1],"surface":13} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.Components.Count).IsEqualTo(1);
         await Assert.That(d.Components[0].Count).IsEqualTo(4);
     }
@@ -333,7 +333,7 @@ public sealed class PlanDerivedTests
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
                      {"id":"b","role":"piece","rect":[10,10,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.Contacts.Single(x => (x.A, x.B) is ("a", "b") or ("b", "a")).Kind).IsEqualTo(ContactKind.Corner);
         await Assert.That(d.Components.Count).IsEqualTo(2);
     }
@@ -347,7 +347,7 @@ public sealed class PlanDerivedTests
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"b","role":"piece","rect":[10,0,10,10]} ],
           "walls":[ {"a":"b","b":"a"} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         await Assert.That(d.WallInterfaces.Count).IsEqualTo(1);
         var seg = d.InterfaceSegments.Single(s => s.Kind == ContactKind.Land);
         await Assert.That(seg.Wall).IsTrue();
@@ -364,7 +364,7 @@ public sealed class PlanDerivedTests
                      {"id":"b","role":"wool-room","rect":[10,0,10,10]},
                      {"id":"c","role":"wool-room","rect":[20,0,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         var ab = d.InterfaceSegments.Single(s => (s.A, s.B) is ("a", "b") or ("b", "a"));
         var bc = d.InterfaceSegments.Single(s => (s.A, s.B) is ("b", "c") or ("c", "b"));
         await Assert.That(ab.WoolRoom).IsTrue();
@@ -375,7 +375,7 @@ public sealed class PlanDerivedTests
     public async Task Nearest_segment_connects_the_confronting_edges_across_a_gap()
     {
         // a right edge at x=10, b left edge at x=20; they share z∈[0,10] → mid z = 5 on both ends.
-        var seg = PlanDerived.NearestSegment(new BlockRect(0, 0, 10, 10), new BlockRect(20, 0, 30, 10));
+        var seg = ContactGraph.NearestSegment(new BlockRect(0, 0, 10, 10), new BlockRect(20, 0, 30, 10));
         await Assert.That(seg).IsEqualTo((10, 5, 20, 5));
     }
 
@@ -393,7 +393,7 @@ public sealed class PlanDerivedTests
                      {"id":"buffer","role":"buffer","rect":[10,0,10,10]},
                      {"id":"b","role":"piece","rect":[20,0,10,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
 
         await Assert.That(d.Piece("buffer")).IsNull();
         await Assert.That(d.Pieces.Select(p => p.Id)).IsEquivalentTo(new[] { "a", "b" });
@@ -417,7 +417,7 @@ public sealed class PlanDerivedTests
           "pieces":[ {"id":"lane","role":"lane","rect":[0,0,20,10]} ],
           "zones":[ {"id":"z","rect":[0,10,20,10]} ] }
         """)!;
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         var edges = d.FrontlineEdges.Where(e => e.Piece == "lane").ToList();
         await Assert.That(edges).IsNotEmpty();
         await Assert.That(edges.Any(e => e.Z1 == 10 && e.Z2 == 10)).IsTrue();

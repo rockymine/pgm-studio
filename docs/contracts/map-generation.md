@@ -28,7 +28,7 @@ specific verb:
 | Verb | Means | Where it lives |
 |---|---|---|
 | **emit** | Fill one box with one base shape (forward). | `WoolBoxEmitter` |
-| **derive** | Read structure back out of geometry (inverse). Two derivers — see §1.3. | `WoolApproachShape`, `PlanDerived` |
+| **derive** | Read structure back out of geometry (inverse). Two derivers — see §1.3. | `ShapeClassifier`, `ContactGraph` + `BoardDeriver` |
 | **compose** | Build the plan: `budget → boxes → emit → join → embed`. | the composer (`Composer`) |
 | **evaluate** | Validate + score a plan → `(score, [violations])`. | the evaluator |
 | **realize** | Compile the plan → sketch + intent → roughen + elevation → export. | the seed pipeline |
@@ -53,8 +53,8 @@ Two classifiers share the verb *derive*; they read **different things** and are 
 
 | Deriver | Reads | Produces | Code |
 |---|---|---|---|
-| **shape deriver** | one wool box's terrain | the family (§1.2) — the emitter's mirror | `WoolApproachShape.Classify` |
-| **board deriver** | the whole board's terrain + markers | connectivity: islands, voids/holes, contacts, build-zone kinds, wool lanes, the mid form | `PlanDerived` + `tools/deriver/derive-gallery.cs` |
+| **shape deriver** | one wool box's terrain | the family (§1.2) — the emitter's mirror | `ShapeClassifier.Classify` |
+| **board deriver** | the whole board's terrain + markers | connectivity: islands, voids/holes, contacts, build-zone kinds, wool lanes, the mid form | `ContactGraph` (rect layer) + `BoardDeriver` → `BoardStructure` (raster layer) |
 
 When a doc says "the deriver" without qualification it means the **board deriver**; the shape
 deriver is always named as such.
@@ -403,8 +403,9 @@ This is the emitter's mirror.
 
 ### 6.2 The board deriver
 
-`PlanDerived` + `tools/deriver/derive-gallery.cs` read the **whole board** and compute connectivity.
-Its outputs:
+`ContactGraph` (the rect layer) + `BoardDeriver.Derive → BoardStructure` (the raster layer, in
+`Pgm/Derive/`) read the **whole board** and compute connectivity; `tools/deriver/derive-gallery.cs`
+renders `BoardStructure` to `out/derive-gallery.html`. Its outputs:
 
 - **islands** — components of union-find over the land interfaces (`ContactKind.Land` + `Narrow`),
   each tagged by anchor role: **team** (holds a spawn), **objective** (holds a wool, no spawn — the
@@ -568,9 +569,9 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
 | Piece | Path | What |
 |---|---|---|
-| `PlanDerived` | `Plan/PlanDerived.cs` | connectivity primitives: `ContactKind`, `Contact`, `BuildRegion` (with `Holes`), `GapLink`, `InterfaceSegment`, `FrontlineEdge`, islands. |
-| `derive-gallery.cs` | `tools/deriver/derive-gallery.cs` | the board reader: hole classes, build-zone kinds, intra/self, wool lanes, the CT mid-form → `out/derive-gallery.html`. |
-| `FannedGraph` | `Plan/FannedGraph.cs` | fanned-board reachability (looser than the straight-span gap links). |
+| `ContactGraph` | `Derive/ContactGraph.cs` | connectivity primitives (rect layer): `ContactKind`, `Contact`, `BuildRegion` (with `Holes`), `GapLink`, `InterfaceSegment`, `FrontlineEdge`, islands. |
+| `BoardDeriver` | `Derive/BoardDeriver.cs` → `BoardStructure` | the board reader (raster layer): hole classes, build-zone kinds, intra/self, wool lanes, the CT mid-form. `derive-gallery.cs` renders it → `out/derive-gallery.html`. |
+| `FannedGraph` | `Plan/FannedGraph.cs` | fanned-board reachability (looser than the straight-span gap links; its `LandAdjacent` differs from `ContactGraph` on different-surface overlaps — reconcile pending). |
 
 **The composer**
 

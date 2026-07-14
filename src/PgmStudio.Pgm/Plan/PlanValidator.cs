@@ -26,20 +26,20 @@ public static class PlanValidator
 {
     public static IReadOnlyList<PlanFinding> Validate(PlanModel plan)
     {
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         var findings = new List<PlanFinding>();
         findings.AddRange(Errors(plan, d));
         foreach (var rule in LintRules) findings.AddRange(rule(plan, d));
         return findings;
     }
 
-    public static IReadOnlyList<PlanFinding> Errors(PlanModel plan) => Errors(plan, PlanDerived.Build(plan)).ToList();
+    public static IReadOnlyList<PlanFinding> Errors(PlanModel plan) => Errors(plan, ContactGraph.Build(plan)).ToList();
 
     public static bool HasErrors(PlanModel plan) => Validate(plan).Any(f => f.Severity == PlanSeverity.Error);
 
     // ── errors (block the compile) ──────────────────────────────────────────────────────────────────────
 
-    private static IEnumerable<PlanFinding> Errors(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> Errors(PlanModel plan, ContactGraph d)
     {
         var findings = new List<PlanFinding>();
         void Error(string m, params string[] subjects) =>
@@ -70,7 +70,7 @@ public static class PlanValidator
         return findings;
     }
 
-    private static void CheckInside(PlanDerived d, string kind, string pieceId, double[] at, List<PlanFinding> findings)
+    private static void CheckInside(ContactGraph d, string kind, string pieceId, double[] at, List<PlanFinding> findings)
     {
         var piece = d.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references unknown piece '{pieceId}'", null, [pieceId])); return; }
@@ -84,7 +84,7 @@ public static class PlanValidator
 
     // Build the fanned piece graph (land + gap edges), then check each wool node is reachable from a capturing
     // team's spawn, and that some frontline path reaches it without passing through a spawn piece.
-    private static IEnumerable<PlanFinding> ReachabilityErrors(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> ReachabilityErrors(PlanModel plan, ContactGraph d)
     {
         var findings = new List<PlanFinding>();
         var spawnPieces = plan.Placements.Spawns.Select(s => s.Piece).ToList();
@@ -122,7 +122,7 @@ public static class PlanValidator
     // ── lint (never blocks; each cites a rule id) ───────────────────────────────────────────────────────
 
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
-    public static readonly IReadOnlyList<Func<PlanModel, PlanDerived, IEnumerable<PlanFinding>>> LintRules =
+    public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<PlanFinding>>> LintRules =
     [
         LintPcC, LintG2, LintG5, LintSp2, LintWl2, LintBz5, LintEl1, LintEl3, LintSt2,
     ];
@@ -134,7 +134,7 @@ public static class PlanValidator
     // connection (no walkable corridor mouth). A corner as the pair's only relationship is a sneaky diagonal
     // between otherwise-separate areas; when the pieces already join the same land component through real
     // interfaces the corner is harmless, so it is suppressed.
-    private static IEnumerable<PlanFinding> LintPcC(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintPcC(PlanModel plan, ContactGraph d)
     {
         var comp = ComponentIndex(d);
         foreach (var c in d.Contacts)
@@ -144,7 +144,7 @@ public static class PlanValidator
 
     // Map each piece id to its land component index (components join pieces via real land interfaces and
     // same-surface overlaps). Two pieces in the same component are already walkably connected.
-    private static Dictionary<string, int> ComponentIndex(PlanDerived d)
+    private static Dictionary<string, int> ComponentIndex(ContactGraph d)
     {
         var comp = new Dictionary<string, int>();
         for (var i = 0; i < d.Components.Count; i++)
@@ -156,19 +156,19 @@ public static class PlanValidator
         comp.TryGetValue(a, out var ca) && comp.TryGetValue(b, out var cb) && ca == cb;
 
     // G2 — minimum corridor width 10: a build zone narrower than the corridor minimum in either dimension.
-    private static IEnumerable<PlanFinding> LintG2(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintG2(PlanModel plan, ContactGraph d)
     {
         foreach (var z in plan.Zones)
         {
-            var r = PlanDerived.ToBlock(z.Rect, d.Cell);
+            var r = ContactGraph.ToBlock(z.Rect, d.Cell);
             var min = Math.Min(r.Width, r.Depth);
-            if (min < PlanDerived.CorridorMin)
-                yield return Lint("G2", $"zone '{z.Id}' corridor width {min} < {PlanDerived.CorridorMin}", z.Id);
+            if (min < ContactGraph.CorridorMin)
+                yield return Lint("G2", $"zone '{z.Id}' corridor width {min} < {ContactGraph.CorridorMin}", z.Id);
         }
     }
 
     // G5 — void gaps between individual landmasses are 10–20 per hop.
-    private static IEnumerable<PlanFinding> LintG5(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintG5(PlanModel plan, ContactGraph d)
     {
         foreach (var g in d.GapLinks)
         {
@@ -179,7 +179,7 @@ public static class PlanValidator
     }
 
     // SP2 — spawn near the back of its lane (toward the map edge), not the front half.
-    private static IEnumerable<PlanFinding> LintSp2(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintSp2(PlanModel plan, ContactGraph d)
     {
         foreach (var s in plan.Placements.Spawns)
         {
@@ -196,7 +196,7 @@ public static class PlanValidator
     }
 
     // WL2 — a team's wool sits ≥ 20 blocks from its spawn.
-    private static IEnumerable<PlanFinding> LintWl2(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintWl2(PlanModel plan, ContactGraph d)
     {
         foreach (var s in plan.Placements.Spawns)
         {
@@ -215,12 +215,12 @@ public static class PlanValidator
     }
 
     // BZ5 — build zones never touch a spawn piece.
-    private static IEnumerable<PlanFinding> LintBz5(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintBz5(PlanModel plan, ContactGraph d)
     {
         var spawnPieces = plan.Placements.Spawns.Select(s => s.Piece).ToHashSet();
         foreach (var z in plan.Zones)
         {
-            var zr = PlanDerived.ToBlock(z.Rect, d.Cell);
+            var zr = ContactGraph.ToBlock(z.Rect, d.Cell);
             foreach (var p in d.Pieces)
                 if (spawnPieces.Contains(p.Id) && Touches(p.Rect, zr))
                     yield return Lint("BZ5", $"build zone '{z.Id}' touches spawn piece '{p.Id}'", z.Id, p.Id);
@@ -228,7 +228,7 @@ public static class PlanValidator
     }
 
     // EL1 — plateau step unit is 2: every piece surface delta from the base is a multiple of 2.
-    private static IEnumerable<PlanFinding> LintEl1(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintEl1(PlanModel plan, ContactGraph d)
     {
         foreach (var p in plan.Pieces)
         {
@@ -243,7 +243,7 @@ public static class PlanValidator
     // when (b) it cuts a full-lane width (seam length ≥ the corridor minimum) and (c) either has no gentler
     // bypass, or — where a stepped bypass runs alongside — the drop is ≥ 6. Shorter seams and those relieved
     // by a ≤ 4 bypass are stepped path edges and need no mark. The finding cites EL6, the qualification.
-    private static IEnumerable<PlanFinding> LintEl3(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintEl3(PlanModel plan, ContactGraph d)
     {
         var cliffs = plan.Cliffs.Select(c => (c.A, c.B)).ToHashSet();
         foreach (var c in d.LandInterfaces)
@@ -259,18 +259,18 @@ public static class PlanValidator
     // a big drop (Δ ≥ 6) is always a cliff; a shallow drop (Δ 4–5) is a cliff only where it walls a pit — a low
     // floor pinched between opposing cliffs (EL7) with no gentler way out — and not where it is a lone step up
     // onto a plateau or the edge of a staircase (a stepped bypass runs alongside).
-    private static bool QualifiesAsCliff(PlanDerived d, Contact c)
+    private static bool QualifiesAsCliff(ContactGraph d, Contact c)
     {
         var delta = Math.Abs(c.SurfaceDelta);
         if (delta < 4) return false;
-        if (c.BorderLength < PlanDerived.CorridorMin) return false;   // narrower than a lane → stepped edge
+        if (c.BorderLength < ContactGraph.CorridorMin) return false;   // narrower than a lane → stepped edge
         if (delta >= 6) return true;                                  // a full-width big drop is always a cliff
         return WallsAPit(d, c) && !HasSteppedBypass(d, c);            // a shallow drop: only a sealed pit wall
     }
 
     // The seam walls a pit when its lower (floor) piece is pinched between opposing cliffs: it carries another
     // Δ ≥ 4 land seam, to a higher piece, on the face opposite this one (west↔east or north↔south).
-    private static bool WallsAPit(PlanDerived d, Contact c)
+    private static bool WallsAPit(ContactGraph d, Contact c)
     {
         var a = d.Piece(c.A)!.Value;
         var b = d.Piece(c.B)!.Value;
@@ -289,14 +289,14 @@ public static class PlanValidator
     // Which face of the floor rect the wall abuts (W/E on a vertical seam, N/S on a horizontal one).
     private static char FaceToward(BlockRect floor, BlockRect wall)
     {
-        var (x1, z1, x2, _) = PlanDerived.BorderSegment(floor, wall);
+        var (x1, z1, x2, _) = ContactGraph.BorderSegment(floor, wall);
         if (x1 == x2) return x1 == floor.MinX ? 'W' : 'E';
         return z1 == floor.MinZ ? 'N' : 'S';
     }
 
     // A stepped bypass exists when pieces c.A and c.B are joined by an alternative land path — every hop a
     // walkable (|Δ| ≤ 2) land seam — that does not use the seam c itself: a gentler way around the drop.
-    private static bool HasSteppedBypass(PlanDerived d, Contact c)
+    private static bool HasSteppedBypass(ContactGraph d, Contact c)
     {
         var adj = new Dictionary<string, List<string>>();
         void Link(string x, string y)
@@ -327,7 +327,7 @@ public static class PlanValidator
 
     // ST2 — when a spawn-role piece exists, every iron marker belongs inside a spawn piece (iron inside the
     // spawn region auto-renews in the export; iron elsewhere is dead resource).
-    private static IEnumerable<PlanFinding> LintSt2(PlanModel plan, PlanDerived d)
+    private static IEnumerable<PlanFinding> LintSt2(PlanModel plan, ContactGraph d)
     {
         var spawnPieces = d.Pieces.Where(p => p.Role == PlanRoles.Spawn).ToList();
         if (spawnPieces.Count == 0) yield break;

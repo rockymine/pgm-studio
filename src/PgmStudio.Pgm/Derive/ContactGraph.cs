@@ -34,7 +34,7 @@ public sealed record GapLink(string A, string B, string Zone, int Hop);
 /// can traverse without landing on terrain. <see cref="ZoneIds"/> are the merged zones' ids; <see cref="Rects"/>
 /// their block rects; <see cref="Holes"/> the union of their no-build cutouts. Two zones join a region when
 /// they overlap or share a border segment of positive length (a bare corner touch does not merge — see
-/// <see cref="PlanDerived.RegionsMerge"/>).</summary>
+/// <see cref="ContactGraph.RegionsMerge"/>).</summary>
 public sealed record BuildRegion(IReadOnlyList<string> ZoneIds, IReadOnlyList<BlockRect> Rects, IReadOnlyList<BlockRect> Holes);
 
 /// <summary>An edge/point contact between two pieces resolved to a block-space segment: the shared border for a
@@ -53,7 +53,7 @@ public sealed record FrontlineEdge(string Piece, string Zone, int X1, int Z1, in
 /// connectivity, connected components (islands), the frontline (pieces facing a zone), and the fanned board
 /// graph reachability uses. Pure — computed from a <see cref="PlanModel"/>, cached on the instance.
 /// </summary>
-public sealed class PlanDerived
+public sealed class ContactGraph
 {
     /// <summary>Minimum corridor width (blocks): a shared border at least this long is a full-width
     /// <see cref="ContactKind.Land"/> interface; a shorter positive border is a <see cref="ContactKind.Narrow"/>
@@ -92,7 +92,7 @@ public sealed class PlanDerived
 
     private readonly Dictionary<string, DerivedPiece> _byId;
 
-    private PlanDerived(PlanModel plan)
+    private ContactGraph(PlanModel plan)
     {
         Plan = plan;
         Cell = plan.Globals.Cell;
@@ -118,7 +118,7 @@ public sealed class PlanDerived
         FrontlineEdges = ComputeFrontlineEdges(plan, Cell, Pieces);
     }
 
-    public static PlanDerived Build(PlanModel plan) => new(plan);
+    public static ContactGraph Build(PlanModel plan) => new(plan);
 
     /// <summary>The derived piece for an id, or null when no generating piece carries it (a missing id or an
     /// annotation piece such as a buffer, which never enters the derived structure).</summary>

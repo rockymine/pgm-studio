@@ -26,14 +26,16 @@ Full analysis: `docs/map-generation-architecture-review.md`.
 We pay this down **refactor-first**, before the interface / hub / lane features and **before the G32-D
 goldens freeze** — because the box-model milestones (M2–M4) re-key every seed's RNG, so goldens frozen
 first would just re-break, and the consolidation makes every later feature cheaper. The batch below is
-pure refactor + the evaluator foundation (G59 → G60); it changes no generated output until G61. The
-interface / hub / lane feature long-tail and the box milestones M2–M4 (G61 / G62 / G41 / G63) are parked
-in `BACKLOG.md`, reworded to be delivered *through* the box model rather than against the current grower.
+the evaluator foundation (G60); it changes no generated output until G61. The interface / hub / lane feature
+long-tail and the box milestones M2–M4 (G61 / G62 / G41 / G63) are parked in `BACKLOG.md`, reworded to be
+delivered *through* the box model rather than against the current grower.
 
-**M0 landed (G58, `FEATURES.md`):** the `Geom.Cells` substrate + one `ShapeFamily` enum + `Shapes/ShapeClassifier`
-(`WoolApproachShape` dissolved) + `LaneRead`/`ClassifyOpen`, with the three mirror harnesses ported to TUnit —
-`derive-gallery` byte-identical. Two of the five substrate sites now route through `Geom.Cells`; the other three
-(`ClosureAnalysis`, the gallery raster, `FannedGraph`) rewire onto it as part of G59, when they move into `src`.
+**M0 + M1 landed (G58, G59, `FEATURES.md`):** the `Geom.Cells` substrate + one `ShapeFamily` enum +
+`Shapes/ShapeClassifier` + `LaneRead`/`ClassifyOpen` (M0); and the board deriver in `src` —
+`Derive/BoardDeriver.Derive → BoardStructure` (the gallery is render-only over it) + `Plan/PlanDerived` →
+`Derive/ContactGraph` (M1). `derive-gallery` byte-identical throughout. The evaluator (G60) can now derive the
+board as a library call. One deferred slice — the `FannedGraph` ↔ `ContactGraph` surface-overlap reconcile — is
+**G65** in `BACKLOG.md`.
 
 Shipped so far (`FEATURES.md`): closure/envelope + team-unit grower, the CT1 mid band, centre islands
 (CT11), the MD6 stone grid, the wide frontline (FR6), isolation cuts, BZ6–BZ9 discipline, the spawn +
@@ -41,17 +43,6 @@ wool-room dock (G49), the **box-based wool-approach shape vocabulary + classifie
 (G53/G54), the authoring lever (G46–G48), and the **M0 shape substrate + family-enum consolidation** (G58).
 
 **Consolidation — the refactor-first batch (current)**
-- [ ] **G59 — [M1] Board deriver into `src`.** Extract the raster-layer `Derive()` (~460 lines run-by-hand
-  in `tools/deriver/derive-gallery.cs`) into `Pgm/Derive/BoardDeriver.Derive(plan) → BoardStructure`
-  (islands + anchor roles, stepping-stone kinds, intra/self bridges, zone kinds + widths, hole classes +
-  parallel-ways, wool lanes, mid form). Rename `Plan/PlanDerived` → `Derive/ContactGraph` (rect layer:
-  contacts, interfaces, gap links, build regions, frontline edges, components). Gallery becomes
-  render-only over `BoardStructure`. Reconcile `ClosureAnalysis` (a query over the raster layer, or a
-  documented fast-path twin — measure first, it runs in the 60-attempt hunt loop); unify `FannedGraph`'s
-  private adjacency predicates onto `ContactGraph` and settle the different-surface-overlap disagreement
-  (review 2.3 / 6.5). Unblocks the evaluator (G60) + the conformance sweep (G43) as library calls.
-  Acceptance: byte-identical gallery output; doc §1.3/§6.2 names the class, not the script. Depends on
-  G58. (review §2, §7.2)
 - [ ] **G60 — Composer evaluator engine.** `Pgm/Evaluate/`:
   `LayoutEvaluator.Evaluate(plan | EvalContext, profile) → Evaluation`, where
   `Score = Σ hard-penalties + Σ w·envelope-distance` (lower is better; 0 = perfect). `ILayoutTerm` — one

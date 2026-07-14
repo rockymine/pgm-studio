@@ -461,6 +461,14 @@ The remaining generator / detection / validation work sorts into three domains:
   decor. Re-validate the over-split fixes (a_new_day/thunder) still hold after re-adding the ceiling.
 
 **Validation / playability**
+- [ ] **G65 — FannedGraph ↔ ContactGraph adjacency reconcile (deferred from G59).** `FannedGraph.LandAdjacent`
+  (reachability) diverges from the rect-layer authority `ContactGraph` (`Classify` + `Components`) on two
+  counts: **(1)** any area overlap connects regardless of surface delta, while `Components` unions an overlap
+  only at `SurfaceDelta == 0`; **(2)** an edge connects only at full corridor width (`Land`), while `Components`
+  also unions `Narrow` seams. Pick one rule for reachability and add a test (review 2.3 / 6.5). Needs per-node
+  surface carried into the fanned graph (not there yet) and validation against the traversability harness
+  (`tools/PgmStudio.RoundTrip --traversability`), so G59 left it behavior-unchanged with the divergence
+  documented in `FannedGraph.LandAdjacent`.
 - [ ] **G2 — Protection-aware reachability port (memory stage S4).** `MapValidity` (every-wool-needs-a-monument)
   and the `NVAL` export gate (`PreflightEndpoint`) already shipped (`FEATURES.md`). The open slice is to **port
   protection-aware reachability** from `scripts/generator/validate_play.py` to C# `Analysis/Playability`:

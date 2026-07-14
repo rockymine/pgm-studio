@@ -23,7 +23,7 @@ public static class PlanCompiler
 
     public static (SketchLayout Layout, MapIntent Intent) Compile(PlanModel plan)
     {
-        var d = PlanDerived.Build(plan);
+        var d = ContactGraph.Build(plan);
         var layout = BuildLayout(plan, d);
         var intent = BuildIntent(plan, d, layout);
         return (layout, intent);
@@ -31,7 +31,7 @@ public static class PlanCompiler
 
     // ── layout: unioned shapes + mirror islands + framing ───────────────────────────────────────────────
 
-    private static SketchLayout BuildLayout(PlanModel plan, PlanDerived d)
+    private static SketchLayout BuildLayout(PlanModel plan, ContactGraph d)
     {
         var shapes = new List<SketchShape>();
         var islandShapes = new List<(bool Mirrors, string ShapeId)>();
@@ -91,7 +91,7 @@ public static class PlanCompiler
     }
 
     // The framing box: the extent of every shape vertex fanned across the orbit, expanded one cell all round.
-    private static SketchBbox FannedBbox(List<SketchShape> shapes, PlanDerived d)
+    private static SketchBbox FannedBbox(List<SketchShape> shapes, ContactGraph d)
     {
         double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
         foreach (var s in shapes)
@@ -112,7 +112,7 @@ public static class PlanCompiler
 
     // ── intent: teams/spawns/wools/build fanned from team 0 ─────────────────────────────────────────────
 
-    private static MapIntent BuildIntent(PlanModel plan, PlanDerived d, SketchLayout layout)
+    private static MapIntent BuildIntent(PlanModel plan, ContactGraph d, SketchLayout layout)
     {
         var order = d.Order;
         var teams = Palette.Take(Math.Max(1, order))
@@ -187,7 +187,7 @@ public static class PlanCompiler
     // Directives are computed once on the authored team-0 unit, then fanned to every orbit image in absolute
     // block coordinates (the world-export path stamps them verbatim). Fanning is deduplicated so a
     // self-symmetric directive lands once.
-    private static StructureIntent BuildStructures(PlanModel plan, PlanDerived d)
+    private static StructureIntent BuildStructures(PlanModel plan, ContactGraph d)
     {
         var s = new StructureIntent();
 
@@ -255,7 +255,7 @@ public static class PlanCompiler
 
     // The redstone row: one block inside the wool room, running the shared-interface width, with the two
     // endpoints (where the torches sit). Uses the border segment and the room piece's side of the seam.
-    private static (double X1, double Z1, double X2, double Z2) EntranceRow(PlanDerived d, InterfaceSegment seg)
+    private static (double X1, double Z1, double X2, double Z2) EntranceRow(ContactGraph d, InterfaceSegment seg)
     {
         var a = d.Piece(seg.A)!.Value;
         var b = d.Piece(seg.B)!.Value;
@@ -280,7 +280,7 @@ public static class PlanCompiler
     // A wall footprint: two blocks thick across the shared seam, the full interface width along it.
     private static (int MinX, int MinZ, int MaxX, int MaxZ) WallFootprint(DerivedPiece a, DerivedPiece b)
     {
-        var (x1, z1, x2, z2) = PlanDerived.BorderSegment(a.Rect, b.Rect);
+        var (x1, z1, x2, z2) = ContactGraph.BorderSegment(a.Rect, b.Rect);
         if (x1 == x2)   // vertical seam
             return (x1 - 1, Math.Min(z1, z2), x1 + 1, Math.Max(z1, z2));
         return (Math.Min(x1, x2), z1 - 1, Math.Max(x1, x2), z1 + 1);   // horizontal seam
@@ -289,7 +289,7 @@ public static class PlanCompiler
     // The attack side of a wall pair: the piece with the larger walk-graph distance to the nearest same-unit
     // wool marker (attackers approach from farther out); a tie breaks to the lower-surface side.
     private static (DerivedPiece Approach, DerivedPiece Defence) ApproachSide(
-        PlanDerived d, IReadOnlyDictionary<string, int> dist, Contact c)
+        ContactGraph d, IReadOnlyDictionary<string, int> dist, Contact c)
     {
         var a = d.Piece(c.A)!.Value;
         var b = d.Piece(c.B)!.Value;
@@ -301,7 +301,7 @@ public static class PlanCompiler
 
     // Hop distance from each piece to the nearest wool-marker piece over the walk graph (land interfaces +
     // gap links). Unreached pieces are absent (treated as infinite by callers).
-    private static Dictionary<string, int> WoolWalkDistances(PlanModel plan, PlanDerived d)
+    private static Dictionary<string, int> WoolWalkDistances(PlanModel plan, ContactGraph d)
     {
         var adj = d.Pieces.ToDictionary(p => p.Id, _ => new List<string>());
         void Link(string x, string y) { if (adj.ContainsKey(x) && adj.ContainsKey(y)) { adj[x].Add(y); adj[y].Add(x); } }
@@ -322,13 +322,13 @@ public static class PlanCompiler
     }
 
     // Fan a set of cell rects to every orbit image, de-duplicating exact repeats (self-symmetric rects).
-    private static List<Rect> FanRects(IEnumerable<int[]> cellRects, PlanDerived d)
+    private static List<Rect> FanRects(IEnumerable<int[]> cellRects, ContactGraph d)
     {
         var areas = new List<Rect>();
         var seen = new HashSet<(int, int, int, int)>();
         foreach (var cr in cellRects)
         {
-            var block = PlanDerived.ToBlock(cr, d.Cell);
+            var block = ContactGraph.ToBlock(cr, d.Cell);
             for (var k = 0; k < d.Order; k++)
             {
                 var r = d.FanRect(block, k);
@@ -355,7 +355,7 @@ public static class PlanCompiler
     };
 
     // The k-th orbit image's yaw: fan the facing as a direction (image of point+dir minus image of point).
-    private static double FanYaw(PlanDerived d, double x, double z, int dx, int dz, int k)
+    private static double FanYaw(ContactGraph d, double x, double z, int dx, int dz, int k)
     {
         var p = d.FanPoint(x, z, k);
         var q = d.FanPoint(x + dx, z + dz, k);

@@ -29,11 +29,11 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
         catch (JsonException) { plan = null; }
         if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
 
-        PlanDerived d;
+        ContactGraph d;
         IReadOnlyList<PlanFinding> raw;
         try
         {
-            d = PlanDerived.Build(plan);
+            d = ContactGraph.Build(plan);
             raw = PlanValidator.Validate(plan);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
@@ -59,7 +59,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 
         var gapLinks = d.GapLinks.Select(g =>
         {
-            var (x1, z1, x2, z2) = PlanDerived.NearestSegment(d.Piece(g.A)!.Value.Rect, d.Piece(g.B)!.Value.Rect);
+            var (x1, z1, x2, z2) = ContactGraph.NearestSegment(d.Piece(g.A)!.Value.Rect, d.Piece(g.B)!.Value.Rect);
             return new { a = g.A, b = g.B, zone = g.Zone, hop = g.Hop, x1, z1, x2, z2 };
         });
 

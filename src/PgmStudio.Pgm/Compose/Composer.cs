@@ -81,7 +81,7 @@ public static class Composer
         // reject the acceptance-contract lint rules too (G2 narrow corridor, WL2/PC-C marker distances, G5
         // hops): the geometric constructions almost always satisfy them, but a resample beats emitting a lint
         if (findings.Any(f => f.Rule is "WL2" or "PC-C" or "G2" or "G5")) return false;
-        var derived = PlanDerived.Build(plan);
+        var derived = ContactGraph.Build(plan);
         if (derived.GapLinks.Any(g => g.Hop < 10 || g.Hop > 20)) return false;
 
         var woolPieces = unit.Wools.Select(w => w.Piece).ToHashSet();

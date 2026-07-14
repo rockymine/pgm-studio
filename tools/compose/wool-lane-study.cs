@@ -92,7 +92,7 @@ string Stat(string v, string l) => $"<span class=\"stat\"><span class=\"stat-v\"
 string BuildSvg(PlanModel plan)
 {
     int cell = plan.Globals.Cell;
-    var d = PlanDerived.Build(plan);
+    var d = ContactGraph.Build(plan);
 
     double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
     void Bound(double a, double b, double c, double e)
@@ -275,7 +275,7 @@ string Page(string cardsHtml)
       <div class="grid">
     {cardsHtml}  </div>
 
-      <footer>Static SVG · self-contained · order-1 (none) plans, cell = 5 blocks · seams from PlanDerived · authored by hand, validated by PlanValidator.</footer>
+      <footer>Static SVG · self-contained · order-1 (none) plans, cell = 5 blocks · seams from ContactGraph · authored by hand, validated by PlanValidator.</footer>
     </div>
     """;
 

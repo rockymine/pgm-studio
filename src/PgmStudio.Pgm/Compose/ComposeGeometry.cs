@@ -70,7 +70,7 @@ internal static class ComposeGeometry
     }
 
     /// <summary>The k-th orbit image of a rect: identity at k=0, the mode's concrete orbit axes for
-    /// k=1..order-1 — matching <see cref="Plan.PlanDerived.FanRect"/> (unlike the k-agnostic
+    /// k=1..order-1 — matching <see cref="Plan.ContactGraph.FanRect"/> (unlike the k-agnostic
     /// <see cref="Symmetry.Rect"/>).</summary>
     internal static (double X1, double Z1, double X2, double Z2) FanImage(
         double x1, double z1, double x2, double z2, string[] axes, int k)

@@ -13,7 +13,7 @@ public sealed class FannedGraphTests
     // reachability question is answered by the team-0 pieces + the region they share.
     private static bool Reaches(string json, string fromPiece, string toPiece)
     {
-        var d = PlanDerived.Build(PlanModel.Parse(json)!);
+        var d = ContactGraph.Build(PlanModel.Parse(json)!);
         var graph = FannedGraph.Build(d);
         return graph.Reachable(new[] { (0, fromPiece) }, (0, toPiece));
     }

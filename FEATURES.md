@@ -734,6 +734,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   tests green, 5 pre-existing Pgm failures unchanged. `ClosureAnalysis` / the gallery raster / `FannedGraph`
   rewire onto `Cells` at M1 (G59). Review: `docs/map-generation-architecture-review.md` §3. (G58)
 
+- **Board deriver into `src` (M1)** — `Pgm/Derive/`: the raster-layer board reader — islands + anchor roles,
+  stepping-stone kinds, build-zone kinds/widths/interfaces, per-wool approaches + lane shapes, frontline/intra/
+  self edges, wool lanes, the mid form, and boundary-classified enclosed voids — extracted from the ~460-line
+  run-by-hand `derive-gallery.cs` into `BoardDeriver.Derive(plan) → BoardStructure`, a library call the
+  evaluator (G60) and the conformance sweep (G43) can now make. The gallery is **render-only** over
+  `BoardStructure`. `Plan/PlanDerived` → `Derive/ContactGraph` (the rect layer: contacts, interfaces, gap
+  links, build regions, frontline edges, components; test → `ContactGraphTests`). `BoardDeriver`'s substrate
+  routes through `Geom.Cells` (N4 / components); `ClosureAnalysis` documented as a deliberate fast-path twin of
+  `BoardStructure.Voids` (kept dense-grid for the composer's 60-attempt hunt loop). Pure refactor:
+  `derive-gallery` output **byte-identical** over all base + generated cases; Pgm 410 pass (5 pre-existing
+  failures unchanged), Api builds clean. Canonical doc §1.3/§6.2 now name the classes, not the script. The one
+  deferred slice — `FannedGraph.LandAdjacent` ↔ `ContactGraph` surface-overlap reconcile — is G65.
+  (G59)
+
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
   primitives that let an author design reusable single-unit lane / spawn templates. **G46** adds a `none`

@@ -643,16 +643,16 @@ public static class TeamUnitGrower
 
     /// <summary>Every pairwise contact among the authored pieces (pre-fan) is a full land interface or no
     /// contact at all — no narrow seams and no bare corners are authored (unlike a hand-authored plan, the
-    /// grower has no author judgment to fall back on for either). Reuses <see cref="PlanDerived.Classify"/>
+    /// grower has no author judgment to fall back on for either). Reuses <see cref="ContactGraph.Classify"/>
     /// directly so this is exactly the same test the plan validator/editor apply.</summary>
     private static bool ValidateContacts(ComposeEnvelope env, IReadOnlyList<GrownPiece> pieces)
     {
         var derived = pieces
-            .Select(p => new DerivedPiece(p.Id, PlanRoles.Piece, PlanDerived.ToBlock(p.Rect, env.Cell), env.Surface, true))
+            .Select(p => new DerivedPiece(p.Id, PlanRoles.Piece, ContactGraph.ToBlock(p.Rect, env.Cell), env.Surface, true))
             .ToList();
         for (var i = 0; i < derived.Count; i++)
             for (var j = i + 1; j < derived.Count; j++)
-                if (PlanDerived.Classify(derived[i], derived[j]).Kind is not (ContactKind.Land or ContactKind.None))
+                if (ContactGraph.Classify(derived[i], derived[j]).Kind is not (ContactKind.Land or ContactKind.None))
                     return false;
         return true;
     }

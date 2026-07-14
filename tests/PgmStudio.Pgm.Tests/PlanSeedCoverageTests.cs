@@ -24,7 +24,7 @@ public sealed class PlanSeedCoverageTests
         {
             var seed = Path.GetFileName(path);
             var plan = PlanModel.Parse(File.ReadAllText(path))!;
-            var derived = PlanDerived.Build(plan);
+            var derived = ContactGraph.Build(plan);
             var (layout, _) = PlanCompiler.Compile(plan);
             var shapes = layout.Layout!.Shapes;
 

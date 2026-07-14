@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm.Plan;
 /// The whole symmetric board as a reachability graph: every piece fanned to each orbit image is a node, edges
 /// are land interfaces (walkable adjacency) and gap links (a shared build zone spans the void). Reachability
 /// checks — capturing spawn → wool, and frontline → wool avoiding spawn pieces — run over it. Built from a
-/// <see cref="PlanDerived"/>; pure.
+/// <see cref="ContactGraph"/>; pure.
 /// </summary>
 public sealed class FannedGraph
 {
@@ -24,7 +24,7 @@ public sealed class FannedGraph
         Frontline = frontline;
     }
 
-    public static FannedGraph Build(PlanDerived d)
+    public static FannedGraph Build(ContactGraph d)
     {
         // fan every piece to each orbit image; drop image duplicates a self-symmetric piece produces
         var nodes = new List<Node>();
@@ -37,7 +37,7 @@ public sealed class FannedGraph
             }
 
         var zones = d.Plan.Zones
-            .SelectMany(z => Enumerable.Range(0, d.Order).Select(k => d.FanRect(PlanDerived.ToBlock(z.Rect, d.Cell), k)))
+            .SelectMany(z => Enumerable.Range(0, d.Order).Select(k => d.FanRect(ContactGraph.ToBlock(z.Rect, d.Cell), k)))
             .ToList();
 
         var adj = nodes.ToDictionary(n => n.Key, _ => new List<(int, string)>());
@@ -53,7 +53,7 @@ public sealed class FannedGraph
         // chained-bridging fix: a piece touching one end of a region reaches a piece at the other end even
         // when no single zone spans both. Unlike the team-0 overlay gap links, reachability requires no
         // straight span — routing through the region interior is free.
-        foreach (var group in PlanDerived.MergeGroups(zones))
+        foreach (var group in ContactGraph.MergeGroups(zones))
         {
             var regionRects = group.Select(i => zones[i]).ToList();
             var touch = nodes.Where(n => regionRects.Any(zr => Touches(n.Rect, zr))).ToList();
@@ -96,6 +96,13 @@ public sealed class FannedGraph
         return false;
     }
 
+    // Reachability adjacency on bare fanned rects. NOTE: this diverges from the rect-layer authority
+    // (ContactGraph.Classify + Components) on two counts, both deliberate-until-reconciled (review 6.5):
+    // (1) any area overlap connects here regardless of surface delta, whereas Components unions an overlap
+    //     only when SurfaceDelta == 0; (2) an edge contact connects only at full corridor width (Land),
+    //     whereas Components also unions Narrow seams. Settling this — pick one rule for reachability and add
+    //     a test — is the open slice of the M1 deriver unification; it needs per-node surface (not carried
+    //     here yet) and validation against the traversability harness, so it is left behavior-unchanged.
     private static bool LandAdjacent(BlockRect a, BlockRect b)
     {
         int ix = Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX);
@@ -103,7 +110,7 @@ public sealed class FannedGraph
         if (ix > 0 && iz > 0) return true;                                  // area overlap → same landmass
         if (ix < 0 || iz < 0) return false;                                 // disjoint
         int border = ix == 0 ? iz : ix;
-        return border >= PlanDerived.CorridorMin;
+        return border >= ContactGraph.CorridorMin;
     }
 
     private static bool Touches(BlockRect a, BlockRect b)

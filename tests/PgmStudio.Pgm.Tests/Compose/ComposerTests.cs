@@ -71,7 +71,7 @@ public sealed class ComposerTests
             foreach (var rule in new[] { "WL2", "PC-C", "G2", "G5" })
                 await Assert.That(findings.Any(f => f.Rule == rule)).IsFalse();
 
-            var derived = PlanDerived.Build(plan);
+            var derived = ContactGraph.Build(plan);
             foreach (var c in derived.Contacts)
             {
                 await Assert.That(c.Kind is ContactKind.Land or ContactKind.None).IsTrue();
@@ -98,12 +98,12 @@ public sealed class ComposerTests
 
     // CT1's clean form: the authored band spans the axis, so its own orbit images overlap and the fanned
     // zones merge into exactly ONE build region; stones sit entirely inside the band rect (MD4).
-    private static async Task AssertCleanFormBand(PlanModel plan, PlanDerived derived)
+    private static async Task AssertCleanFormBand(PlanModel plan, ContactGraph derived)
     {
         var band = plan.Zones.First(z => z.Id == "mid-band");
-        var bandBlocks = PlanDerived.ToBlock(band.Rect, derived.Cell);
+        var bandBlocks = ContactGraph.ToBlock(band.Rect, derived.Cell);
         var fanned = Enumerable.Range(0, derived.Order).Select(k => derived.FanRect(bandBlocks, k)).ToList();
-        await Assert.That(PlanDerived.MergeGroups(fanned).Count).IsEqualTo(1);
+        await Assert.That(ContactGraph.MergeGroups(fanned).Count).IsEqualTo(1);
 
         foreach (var stone in plan.Pieces.Where(p => p.Id.StartsWith("stone")))
         {
@@ -117,7 +117,7 @@ public sealed class ComposerTests
     // Fanned-board separation (CT1): pieces of DIFFERENT orbit images never overlap, touch, or come within
     // 10 blocks on both axes — team territories stay separate islands the zones bridge. Exception (CT11): a
     // centre island (a stone touching the fanning axis) abuts its own fan images at the axis by design.
-    private static async Task AssertFannedSeparation(PlanModel plan, PlanDerived derived)
+    private static async Task AssertFannedSeparation(PlanModel plan, ContactGraph derived)
     {
         var axisZ = plan.Globals.Symmetry != "mirror_x";
         var images = new List<(int K, BlockRect R)>();
@@ -144,7 +144,7 @@ public sealed class ComposerTests
     // The closure is fully traversable: every team's spawn reaches every wool of every team it can capture
     // over the fanned graph (land interfaces + build-region gap links) — what the validator's reachability
     // errors assert, checked here explicitly against the graph.
-    private static async Task AssertClosureTraversable(PlanModel plan, PlanDerived derived)
+    private static async Task AssertClosureTraversable(PlanModel plan, ContactGraph derived)
     {
         var graph = FannedGraph.Build(derived);
         var spawnPieces = plan.Placements.Spawns.Select(s => s.Piece).ToList();
@@ -160,7 +160,7 @@ public sealed class ComposerTests
                 }
     }
 
-    private static async Task AssertMarkerDistances(PlanModel plan, PlanDerived derived)
+    private static async Task AssertMarkerDistances(PlanModel plan, ContactGraph derived)
     {
         (double X, double Z) Resolve(string pieceId, double[] at)
         {
@@ -298,7 +298,7 @@ public sealed class ComposerTests
 
             var plan = stages.Plan;
             await Assert.That(plan.Zones.Any(z => z.Id == "bridge-a")).IsTrue();
-            var derived = PlanDerived.Build(plan);
+            var derived = ContactGraph.Build(plan);
             // some component beyond the main mass + the stones holds a marker piece
             var markerPieces = plan.Placements.Wools.Select(w => w.Piece)
                 .Append(plan.Placements.Spawns[0].Piece).ToHashSet();
