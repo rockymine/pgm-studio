@@ -1173,3 +1173,38 @@ practice before a line was built.
 Ruthless sequencing, if forced: **interface discipline first** (G39 and the `BoxInterface` types —
 the seeds say the gaps are the design), shape/pattern variety second, elevation patterns third,
 generator sophistication last.
+
+### 11.4 Rule-elicitation sequencing — where rule confidence actually comes from
+
+Decided with the author (2026-07-14, while the evaluator terms were in flight): the author's low
+confidence in parts of `layout-rules.md` is **not a rule problem but a missing-instrument problem**
+— rules were never going to be right upfront (the correction protocol assumes they evolve); what is
+missing is the machine that *tests* one. Two label sources must not be conflated:
+
+- **Derive-side labels** (`BoardStructure`: holes, zone kinds, frontline edges, mid form) exist for
+  **every** plan — traced, authored, generated. Rules over them need no box model. The first three
+  soft terms to write are exactly the author's floated ones, all derive-side: **hole-count band**
+  (per class, envelope from seeds), **frontline-count** (distinct frontline runs / `front↔front`
+  zones — "not one solid band"), and **rotation-device presence** — easier than it looks, because
+  the CT8 pocket already derives as a `frontline`-class hole and the composer already samples
+  `wantHole` at 80%: the term is ~10 lines, "`frontline`-class holes per team side in [1,1],
+  holelessness the tolerated exception", hole rect as evidence.
+- **Emit-side labels** (slots) exist only for **generated** plans until task 5's `SlotAssignment`.
+  The box model labels nothing in the traced corpus — so it is not the fix for corpus-analysis
+  limits, but it *is* the prerequisite for slot-level rule terminology.
+
+**The toggle-off elicitation loop** — the direct answer to "the corpus is limited": run the
+composer with one term disabled in the `EvaluationProfile`; the boards that now pass are
+machine-manufactured **teaching negatives for exactly that rule**, evidence overlays included, for
+free. Rule confidence stops depending on corpus size: counterexamples are manufactured, reviewed as
+cards, and the keepers become labeled negatives. Reuses only what is already designed (profiles,
+reject log, rule cards) and works with the *current* composer.
+
+**The revised order:** evidence terms (in flight) → **M1 + the workbench** (rule-cards, eval-rank,
+envelope-stats) + the three derive-side terms above → toggle-off negatives feeding card review →
+**M2 in parity mode** — the box skeleton whose explicit success criterion is *statistically near
+the current composer's output, wools richer*, because its payoff at that stage is labels and rule
+homes (`FillProfiles`/`CutProfiles`), not better maps → slot-level rules only after M2 lands.
+The anti-recommendation, stated once: do **not** write slot-level rules before generated output
+carries slots — defining terminology against unlabeled examples is precisely the frustration that
+motivated this section.
