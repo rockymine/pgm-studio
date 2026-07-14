@@ -801,6 +801,88 @@ tuned.
 - **Later search** (anneal / CP-SAT, `layout-evaluator.md` §8.2–8.3) minimizes `Score` directly;
   nothing here changes shape for that, which is the point of the cost convention.
 
+### 9.6 A worked term — "an intra-team bridge may not exceed 20 blocks in any dimension"
+
+The full life of one rule, end to end, to make §9.1–§9.5 concrete.
+
+**Step 0 — mint the rule, not the code.** The number 20 does not originate in a `.cs` file:
+it enters `layout-rules.md` through its correction protocol as a new id — say **BZ10** ("an
+`intra` build region's footprint stays bridge-shaped: neither bounding-box extent exceeds
+20 blocks"). One term per rule id, the id in the term, the number stated once. Note this is
+**not** G5: G5 bounds the *hop* — the void distance a bridge spans between two pieces (10–20).
+BZ10 bounds the *zone's own footprint* — an intra region 40 blocks long is a plaza the defender
+strolls around in, even if its hop is a legal 15. Distinct measurables, distinct ids.
+
+**Step 1 — the term** (`Evaluate/Terms/BuildZoneTerms.cs`):
+
+```csharp
+/// BZ10: an intra-team bridge (a build region the deriver kinds `intra` — the team's own
+/// spawn↔wool isolation cut) must stay a bridge: neither extent of its bounding box may
+/// exceed 20 blocks. Bigger is a plaza, not a cut.
+public sealed class IntraBridgeMaxExtent : ILayoutTerm
+{
+    public string Id => "intra-bridge-max-extent";
+    public string RuleId => "BZ10";
+    public TermKind Kind => TermKind.Hard;
+
+    private const int MaxExtentBlocks = 20;          // BZ10's number — stated here, once
+
+    public TermScore Measure(EvalContext ctx)
+    {
+        var offenders = new List<string>();
+        var worst = 0;
+        foreach (var zone in ctx.Board.Zones.Where(z => z.Kind == ZoneKind.Intra))
+        {
+            var extent = Math.Max(zone.Bounds.Width, zone.Bounds.Depth);   // blocks
+            if (extent <= MaxExtentBlocks) continue;
+            offenders.AddRange(zone.ZoneIds);        // authored ids → editor highlight
+            worst = Math.Max(worst, extent);
+        }
+        return offenders.Count == 0
+            ? TermScore.Pass(this)
+            : TermScore.Violated(this, new Violation(Id, RuleId,
+                $"intra-team bridge spans {worst} blocks (BZ10 max {MaxExtentBlocks})",
+                offenders));
+    }
+}
+```
+
+What to notice:
+
+- **It reads `BoardStructure`, never the plan.** `Kind == Intra` is the deriver's
+  captive-island / single-team / on-the-spawn↔wool-route classification — logic that exists today
+  only inside `derive-gallery.cs:287-301`. Without M1 this ~15-line term would have to drag ~80
+  lines of union-find and captivity analysis along with it; *that* is the M1 argument in miniature.
+- **The measurable and the judgment stay separable.** "Bounding-box extent of an intra region" is a
+  pure derived quantity; "≤ 20" is the law. The term is the only place they meet.
+- **`Subjects` are authored ids** (the zone ids the region merged from), so the editor highlights
+  the actual offending zone, the reject log names it, and a minimal-pair negative can assert on it.
+
+**Step 1b — the soft variant, for contrast.** If the author's stance is "bridges should be *like
+the seeds*" rather than "20 is law", the same measurable becomes an envelope term instead: `Kind =
+Soft`, no constant, and
+
+```csharp
+var band = ctx.Envelopes.Band("intra-bridge-extent");        // e.g. seeds imply [10, 20]
+var distance = band.Distance(extent);                        // §9.2 half-width convention
+```
+
+with `envelope-stats.cs` computing the band from the seeds. The phrasing decides: "may not" = hard
+(threshold in `layout-rules.md`); "typically is" = soft (band from `seed-envelopes.json`). Both can
+coexist — a generous hard cap plus a tight soft band — but each under its own term id.
+
+**Step 2 — tests.** A synthetic TUnit fixture in `tests/.../Evaluate/`: two pieces, an intra zone
+stretched to 25 blocks → violated with the zone id in `Subjects`; at 20 → pass (boundary inclusive).
+Plus one minimal pair in `tools/seeds/negatives/`: copy a positive whose bridge is legal, stretch
+the zone rect past 20, label `{"expectTerms": ["BZ10"]}` — the ranking harness now proves the term
+fires on realistic geometry, not just the synthetic fixture.
+
+**Step 3 — wiring: none.** The term registers in the default `EvaluationProfile` and everything
+else follows from §9.5: the composer's hard gate starts rejecting oversized bridges (the reject log
+shows `termId: intra-bridge-max-extent` with the seed to reproduce), the editor shows the violation
+on the zone, and G43's sweep reports how often generated boards trip it. Turning it off later is a
+profile edit.
+
 ---
 
 ## 10. Decisions (open questions resolved with the author, 2026-07-14)
