@@ -285,20 +285,36 @@ Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
   slot rules off the enumeration trap (`layout-evaluator.md` §8). Evidence carries `slot:*`-tagged rects/measures;
   the **slot legend card per family** (the §5.3 template table drawn from `SlotTemplate` + `ShapeEmitter`) joins
   the `rule-cards.cs` output as the shared key. Depends on G62, G66. (review §9.8)
-- [ ] **G69 — Offset team masses: a deriver primitive, then the cramming term.** The frontline-cramming
-  negatives (`tools/seeds/teaching/crammed-frontline-*`) are indistinguishable from good real maps by every
-  current `BoardStructure` signal — `crammed-single-band` ≡ `acapulco` across stones/crossings, void-exposure,
-  stone density, crossing aspect, stone spacing, and opposing-frontline overlap (all seven read *opposite* to the
-  author's visual). The author's model: acapulco's two team masses are **offset** (its mid is two staggered
-  rectangles, so a stone reads more void-exposed as a by-product), while the crammed seeds sit **aligned**
-  (frontlines on the same axis, over-saturated with closely-spaced vertically-stacked stones on a long thin
-  band). The deriver has **no primitive for this offset/alignment of opposing team masses** — that gap is why
-  the numbers fight the eye. Work: (a) reconcile the deriver's reading against the maps visually (the G60 (2d)
-  reconciliation gallery is the starting artifact); (b) derive an **offset/alignment** measurable (opposing
-  frontline stagger, mid-rectangle offset) as a real structural element ("a real element maps can use", the
-  author); (c) only then build the cramming term on a signal that matches the map — likely the FR4 "one face is
-  fine only if it's wide" composite conditioned on alignment. Until (b), cramming is not expressible. (G60 §6;
-  from the Slice-C investigation)
+- [ ] **G69 — The deriver mis-reads dense mids: crossing-corridor + rotation primitives, then the cramming
+  term.** The frontline-cramming negatives (`tools/seeds/teaching/crammed-frontline-*`) can't be scored because
+  the deriver's structural reading systematically contradicts the play-experience on saturated mids — nine
+  measurables tried over the Slice-C investigation (stones−crossings, stones/frontline-width, per-stone
+  void-exposure, stone density, crossing aspect, stone spacing, opposing-frontline overlap, band-length/team-
+  footprint, uncrossed-void) and none expresses cramming. The diagnosis, from the author's models + the
+  reconciliation gallery (artifact `faf3ffcc`):
+  - **acapulco is NOT a clean positive** — the author confirms it "can read bad" (its crossing runs nearly as
+    long as the team footprint too). So the goal is **not** to separate crammed from acapulco; both should read
+    mildly-to-badly crammed. The old "crammed ≡ acapulco" paradox dissolves — they're similar because they're
+    both long-band-crammed.
+  - **Band length isn't the separator** — `bandSpan/teamSpan` is 0.67 on `crammed-single` *and* on the good
+    resolutions `rotation-stone`/`move-closer`; positives run higher (aether 0.84). The resolutions kept the long
+    band and are good because they added **rotation**, not because the band shrank.
+  - **The deriver's mid reads fight the eye, repeatedly:** per-stone void-exposure reads acapulco's stones *more*
+    exposed than the crammed seeds' (opposite); opposing-frontline overlap reads acapulco *more* aligned
+    (opposite to "offset masses"); `crossRoutes=2` on `crammed-double-band` claims rotation the author says isn't
+    there ("you just hop between islands, no way to switch"); and its two far-end islands are mis-classed **team**
+    stones because the (deliberately bad) spawn↔wool path routes through them (captivity/route rule bends to bad
+    marker placement).
+  The real work is **deriver primitives**, then the term: **(a)** a **crossing-corridor** read — the mid modelled
+  as a corridor with a cross-section and a length, so "band as long as the team footprint" (single-band) and
+  "band-width = stone-size, N hops, no lateral switch" (double-band) become expressible; **(b)** **rotation that
+  means rotation** — a measure of "can a player actually switch sides here", not the ring-count `crossRoutes`
+  (crammed-double must read *no rotation* despite two ringing zones); **(c)** **robust stone classification** —
+  team-vs-neutral must not flip on degenerate spawn/wool routing (offset team masses / mid-rectangle stagger is a
+  real element that falls out here — "a real element maps can use"); **(d)** only then the cramming term, likely
+  FR4's "one crossing is fine only if it rotates / isn't over-long vs the footprint", with acapulco landing
+  mildly bad by construction. Until (a)–(c), cramming is not expressible. (G60 §6; from the Slice-C
+  investigation, artifact `faf3ffcc`)
 
 **Composer — mid / frontline / interface (reframed as evaluator terms + partition constraints)**
 - [ ] **G38 — Multiple / parallel mid bands + their variations.** The composer ships only the CT1 clean
