@@ -304,9 +304,11 @@
               else
               {
                 <div class="plan-lint-list">
-                  @foreach (var v in evaluation.Violations)
+                  @for (var i = 0; i < evaluation.Violations.Count; i++)
                   {
-                    <button class="plan-lint-row" @onclick="() => HighlightViolation(v)" title="Highlight on canvas">
+                    var idx = i;
+                    var v = evaluation.Violations[i];
+                    <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show only this rule's evidence on the canvas">
                       <span class="plan-lint-dot @(v.Kind == "hard" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
                       <span class="plan-lint-chip">@v.RuleId</span>
                       <span class="plan-lint-msg">@v.Message</span>

@@ -949,6 +949,9 @@ body.dashboard-page { overflow: hidden; }
 .plan-lint-msg { line-height: 1.35; }
 .plan-lint-row--static { cursor: default; }
 .plan-lint-row--static:hover { background: transparent; color: var(--text-secondary); border-color: transparent; }
+/* Selected violation — its evidence is isolated on the canvas; the row stays lit (persistent, unlike hover). */
+.plan-lint-row--active,
+.plan-lint-row--active:hover { background: var(--bg-selected); color: var(--text-bright); border-color: var(--accent); }
 
 /* Compile & test drawer — the walk-test loop: compiled layout/intent preview + create-draft/export. */
 .plan-compile-backdrop {

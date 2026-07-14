@@ -808,7 +808,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the posted plan and maps it, 400 on a malformed body. The plan-bridge debounces the evaluate POST alongside
   inspect (`runLive`), feeding the canvas a **Rules** evidence overlay (`PlanCanvas.setViolations` → offender/
   bound/measure/context styling table; measure labels ride the screen-space layer) and the Blazor **Score** panel
-  (headline cost + fired-rule list, click → highlight subjects). Restores WL2 to the editor (the soft
+  (headline cost + fired-rule list; click a rule to **isolate** its evidence, click again to restore the
+  all-violations overlay — `focusViolation`). Restores WL2 to the editor (the soft
   `spawn-wool-distance` + the hard `spawn-wool-floor`, retired from the structural lint). Endpoint + JS
   overlay-pref tests green. `docs/map-generation-architecture-review.md` §9.7. (G60)
 

@@ -289,6 +289,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     getSurfaceStep() { return surfaceStep; },
     setSurfaceStep(v) { surfaceStep = Math.max(1, Math.round(Number(v) || 2)); try { localStorage.setItem(SURFACESTEP_KEY, String(surfaceStep)); } catch { /* private mode */ } return surfaceStep; },
     highlightSubjects(idsJson) { try { canvas.pulseSubjects(JSON.parse(idsJson) || []); } catch { /* ignore */ } },
+    focusViolation(index) { canvas.focusViolation(index); },
 
     dispose() { if (saveTimer) clearTimeout(saveTimer); if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },
   };

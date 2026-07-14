@@ -58,6 +58,10 @@ public partial class PlanEditor
     // The live evaluator feed (score + fired rules), pushed from the bridge's /api/plan/evaluate poll. Null when
     // the plan is malformed (the evaluate endpoint 400s) or before the first response.
     private EvaluationDto? evaluation;
+    // The violation whose evidence is isolated on the canvas (index into the current feed's Violations), or null
+    // for the all-violations overlay. Cleared whenever a new feed arrives — a stale index would isolate the wrong
+    // rule (the canvas resets its own focus in lockstep from the same response).
+    private int? selectedViolation;
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
     // Reference (tracing) backdrop: the traceable maps for the picker + the current placement, both mirrored
@@ -186,8 +190,13 @@ public partial class PlanEditor
     private Task HighlightFinding(InspectFinding f)
         => handle is not null ? handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(f.Subjects ?? [])).AsTask() : Task.CompletedTask;
 
-    private Task HighlightViolation(ViolationDto v)
-        => handle is not null ? handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(v.Subjects)).AsTask() : Task.CompletedTask;
+    // Click a violation row to isolate its evidence on the canvas; click it again to restore the all-violations
+    // overlay. -1 tells the canvas "show all".
+    private async Task SelectViolation(int index)
+    {
+        selectedViolation = selectedViolation == index ? null : index;
+        if (handle is not null) await handle.InvokeVoidAsync("focusViolation", selectedViolation ?? -1);
+    }
 
     private void SyncOverlays(string json)
     {
@@ -479,6 +488,7 @@ public partial class PlanEditor
     public void OnEvaluation(string json)
     {
         evaluation = string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<EvaluationDto>(json, Web);
+        selectedViolation = null;   // a fresh feed — the canvas drops its focus too, so the two stay in step
         StateHasChanged();
     }
 

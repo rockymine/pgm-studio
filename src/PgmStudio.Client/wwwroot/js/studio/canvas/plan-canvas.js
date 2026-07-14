@@ -85,6 +85,8 @@ export class PlanCanvas extends CanvasBase {
   #inspect = { interfaces: [], gapLinks: [], frontline: [] };
   // Evaluator violations (cell-space evidence from /api/plan/evaluate) — the fired rules drawn on the grid.
   #violations = [];
+  // Which violation's evidence to isolate: -1 draws every violation (the default), an index draws only that one.
+  #focusedViolation = -1;
   // Labels off by default keeps the canvas quiet: no piece/zone id text, no gap connectors or hop numbers.
   #overlayOn = { interfaces: true, labels: false, frontline: true, violations: true };
   #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
@@ -123,11 +125,25 @@ export class PlanCanvas extends CanvasBase {
     this.#renderInspect();
     this.#refreshOverlay();
   }
-  // Evaluator-violation feed (cell-space evidence). Redraw the evidence layer + the screen-space measure labels.
+  // Evaluator-violation feed (cell-space evidence). A new feed is a fresh rule set, so any isolate-focus is
+  // dropped (a stale index would point at the wrong rule). Redraw the evidence layer + screen-space measure labels.
   setViolations(violations) {
     this.#violations = Array.isArray(violations) ? violations : [];
+    this.#focusedViolation = -1;
     this.#renderViolations();
     this.#refreshOverlay();
+  }
+  // Isolate one fired rule's evidence (from the Score panel): -1 restores the all-violations overlay.
+  focusViolation(index) {
+    this.#focusedViolation = Number.isInteger(index) ? index : -1;
+    this.#renderViolations();
+    this.#refreshOverlay();
+  }
+  // The violations to draw right now: the single focused one, or all when nothing is isolated.
+  #shownViolations() {
+    if (this.#focusedViolation < 0) return this.#violations;
+    const v = this.#violations[this.#focusedViolation];
+    return v ? [v] : [];
   }
   setOverlayVisible(key, on) {
     if (!(key in this.#overlayOn)) return;
@@ -490,7 +506,7 @@ export class PlanCanvas extends CanvasBase {
     if (!this.#doc || !this.#overlayOn.violations) return;
     const cell = this.#doc.globals.cell;
 
-    for (const v of this.#violations)
+    for (const v of this.#shownViolations())
       for (const e of v.evidence || []) {
         const st = evidenceStyle(e.tag);
         const base = { stroke: st.stroke, "stroke-width": String(st.width), "vector-effect": "non-scaling-stroke", ...(st.dash ? { "stroke-dasharray": st.dash } : {}) };
@@ -577,7 +593,7 @@ export class PlanCanvas extends CanvasBase {
     // Evaluator measure labels (e.g. "17 < 20") ride the screen-space overlay too — a dimension line's number
     // must stay readable at any zoom. Cell-space endpoints → block coords for the midpoint.
     if (this.#overlayOn.violations)
-      for (const v of this.#violations)
+      for (const v of this.#shownViolations())
         for (const e of v.evidence || [])
           if (e.kind === "measure" && e.label)
             label(e.label, ((e.x1 + e.x2) / 2) * cell, ((e.z1 + e.z2) / 2) * cell, "var(--accent-light)");
