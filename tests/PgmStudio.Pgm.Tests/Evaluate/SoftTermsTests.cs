@@ -32,6 +32,8 @@ public sealed class SoftTermsTests
         await Assert.That(SeedEnvelopes.Default["neutral-stepping-count"]).IsNotNull();
         await Assert.That(SeedEnvelopes.Default["band-count"]).IsNotNull();
         await Assert.That(SeedEnvelopes.Default["isolation-cut-count"]).IsNotNull();
+        await Assert.That(SeedEnvelopes.Default["frontline-count"]).IsNotNull();
+        await Assert.That(SeedEnvelopes.Default["frontline-width"]).IsNotNull();
     }
 
     [Test]
@@ -69,6 +71,41 @@ public sealed class SoftTermsTests
         // isolated-spawn is one channelled crossing → a single team↔team band (a shared count, not per-team).
         var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("isolated-spawn.plan.json"))!, SeedEnvelopes.Default);
         await Assert.That(new BandCount().Value(ctx)).IsEqualTo(1.0);
+    }
+
+    [Test]
+    public async Task Frontline_runs_read_isolated_spawn_straight_and_base_2island_offset()
+    {
+        // the derived frontline profile matches the authored examples: isolated-spawn's faces are flush-straight,
+        // base-2island's step (offset).
+        var iso = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("isolated-spawn.plan.json"))!).Board.FrontlineRuns;
+        await Assert.That(iso).IsNotEmpty();
+        await Assert.That(iso.All(r => r.Profile == "straight")).IsTrue();
+
+        var island = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!).Board.FrontlineRuns;
+        await Assert.That(island.Any(r => r.Profile == "offset")).IsTrue();
+    }
+
+    [Test]
+    public async Task Frontline_count_fires_above_the_band_and_cites_fr4()
+    {
+        // base-4team presents two faces per team; against a one-face band [0,1] → out of band.
+        var env = SeedEnvelopes.Load("""{"frontline-count":[0,1]}""");
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("base-4team.plan.json"))!, env);
+        var score = new FrontlineCount().Measure(ctx);
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("FR4");
+    }
+
+    [Test]
+    public async Task Frontline_width_fires_above_the_band_and_cites_fr6()
+    {
+        // rotate-wide-frontline's broad face (12 cells) against a narrow band [1,2] → out of band.
+        var env = SeedEnvelopes.Load("""{"frontline-width":[1,2]}""");
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("rotate-wide-frontline.plan.json"))!, env);
+        var score = new FrontlineWidth().Measure(ctx);
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("FR6");
     }
 
     [Test]

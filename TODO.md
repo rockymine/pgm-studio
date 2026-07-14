@@ -66,13 +66,17 @@ mid stones vs captive movement stones), `band-count`/CT1 (front-front crossings)
 real maps (`tools/seeds/traced`, 11 of 12; `3084` held — wools don't attribute); a `SoftTerm.LearnsFromTraced`
 opt-out holds `max-chain-length` to authored intent so the traced long-chain maps can't widen it. Byte-identical.
 
+**G60 (2c) landed (`FEATURES.md`):** frontline runs — the deriver groups frontline segments into per-team faces
+(`BoardStructure.FrontlineRuns`: team, width, straight/offset profile), and `frontline-count`/FR4 +
+`frontline-width`/FR6 score them. Profile is derived but not scored (both styles authored-valid). Byte-identical.
+
 - [~] **G60 — Composer evaluator: finish the catalogue, wiring, harness.** On the landed catalogue:
-  **(1)** finish the §6 soft-term catalogue — **Slice B**: frontline runs (a `FrontlineRun` deriver step over
-  `FrontEdges` → per-team count / width / straight-vs-offset profile, G39/FR6); **Slice C**: the composite
-  thin-frontline punishment `f(stepping stones, frontline width, band count)` — needs an authored negative to
-  calibrate; plus approach count/WL8·G45 (conditional — gated on G62 slots) and height/EL1·EL4 (blocked on the
-  G32-C elevation pass). Each reads `BoardStructure` measurables only (never a family name — the enumeration
-  trap), scored as `Band` distance with `Evidence`. **(2)** the hole-hunt loop keeps the
+  **(1)** finish the §6 soft-term catalogue — **Slice C**: the composite thin-frontline punishment
+  `f(stepping stones, frontline width, band count)` — FR4's "one face is fine only if it's wide"; needs an
+  authored negative (a crammed emitter output) to calibrate; plus approach count/WL8·G45 (conditional — gated on
+  G62 slots) and height/EL1·EL4 (blocked on the G32-C elevation pass). Each reads `BoardStructure` measurables
+  only (never a family name — the enumeration trap), scored as `Band` distance with `Evidence`. **(2)** the
+  hole-hunt loop keeps the
   **lowest-scoring** acceptable attempt — the first point composed output shifts, its own re-baseline. **(3)
   Wiring** — `EvaluationDto` in `Contracts` (carrying the `Evidence` primitives) + `POST /api/plan/evaluate` for
   the editor's live score/lint; the client draws violations **and their evidence** as a JS canvas overlay (§9.7;

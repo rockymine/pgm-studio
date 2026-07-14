@@ -23,6 +23,14 @@
     0,
     6
   ],
+  "frontline-count": [
+    1,
+    7
+  ],
+  "frontline-width": [
+    1,
+    16
+  ],
   "max-chain-length": [
     25,
     90

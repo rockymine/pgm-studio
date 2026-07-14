@@ -377,6 +377,7 @@ public static class BoardDeriver
         // built a deliberate internal gap — a piece chopped off the main mass and bridged back across a slow-down
         // void (the CT5 isolation cut). A learnable pattern for the builder, not just an exclusion.
         var frontEdges = new List<(int X1, int Z1, int X2, int Z2)>();
+        var frontEdgeIsland = new List<int>();   // owning island per frontline segment — grouped into runs below
         var intraEdges = new List<(int X1, int Z1, int X2, int Z2)>();
         var selfEdges = new List<(int X1, int Z1, int X2, int Z2)>();
         foreach (var c in filled.Keys)
@@ -391,9 +392,14 @@ public static class BoardDeriver
                 // edges are still gated to void-dominant islands (exposed territory facing a shared void). A
                 // self-bridge (region touching only this island) is split off as its own signal: a notch, not a gap.
                 if (regionOf.TryGetValue(nb, out var r) && intraTeam[r]) (selfBridge[r] ? selfEdges : intraEdges).Add(seg);
-                else if (voidDom) frontEdges.Add(seg);
+                else if (voidDom) { frontEdges.Add(seg); frontEdgeIsland.Add(isl); }
             }
         }
+        // frontline RUNS — group the segments into contiguous same-island faces (segments sharing an endpoint on
+        // one island). Each run carries its owning team (orbit image), the face width (its longer extent in
+        // cells), and the profile: STRAIGHT (one colinear face, e.g. isolated-spawn) or OFFSET (the face steps,
+        // e.g. base-2island). A team's number of runs, face widths, and profiles are the frontline measurables.
+        var frontlineRuns = GroupFrontlineRuns(frontEdges, frontEdgeIsland, islandTeam);
 
         // enclosed voids — a hole is TRUE void (empty terrain, non-buildable) that the border can't reach without
         // crossing terrain OR a build region: both terrain and build are walls for this flood. That is what lets a
@@ -471,7 +477,39 @@ public static class BoardDeriver
         var zones = Enumerable.Range(0, regionCount)
             .Select(r => (Kind: zoneKind[r], Neutrals: zoneNeutral[r], Width: zoneWidth[r], IfaceMin: zoneIfaceMin[r], IfaceMax: zoneIfaceMax[r]))
             .ToList();
-        return new BoardStructure(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, woolShapes, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids);
+        return new BoardStructure(plan.Globals.Cell, filled, build, buildKindOf, zones, midForm, islands, islandOf, roles, steppingKind, approaches, woolShapes, frontEdges, intraEdges, selfEdges, laneCells, redstoneEdges, voids, frontlineRuns);
+    }
+
+    // group frontline segments into runs — a run is one island's contiguous void-facing face (segments joined by
+    // a shared endpoint on the same island). Per run: the owning team (the island's orbit image), the face width
+    // (the longer extent of its bounding box, in cells), and whether it is straight (all segments colinear on one
+    // line) or offset (the face steps in and out).
+    private static List<(int Team, int Width, string Profile)> GroupFrontlineRuns(
+        List<(int X1, int Z1, int X2, int Z2)> edges, List<int> islandOfEdge, int[] islandTeam)
+    {
+        int n = edges.Count;
+        var uf = Enumerable.Range(0, n).ToArray();
+        int Find(int x) { while (uf[x] != x) { uf[x] = uf[uf[x]]; x = uf[x]; } return x; }
+        var byPt = new Dictionary<((int, int) Pt, int Isl), List<int>>();
+        for (var i = 0; i < n; i++)
+            foreach (var p in new[] { (edges[i].X1, edges[i].Z1), (edges[i].X2, edges[i].Z2) })
+                (byPt.TryGetValue((p, islandOfEdge[i]), out var l) ? l : byPt[(p, islandOfEdge[i])] = new()).Add(i);
+        foreach (var l in byPt.Values) for (var j = 1; j < l.Count; j++) uf[Find(l[0])] = Find(l[j]);
+
+        var comp = new Dictionary<int, List<int>>();
+        for (var i = 0; i < n; i++) (comp.TryGetValue(Find(i), out var l) ? l : comp[Find(i)] = new()).Add(i);
+
+        var runs = new List<(int Team, int Width, string Profile)>();
+        foreach (var segs in comp.Values)
+        {
+            bool colinV = segs.All(i => edges[i].X1 == edges[i].X2) && segs.Select(i => edges[i].X1).Distinct().Count() == 1;
+            bool colinH = segs.All(i => edges[i].Z1 == edges[i].Z2) && segs.Select(i => edges[i].Z1).Distinct().Count() == 1;
+            var xs = segs.SelectMany(i => new[] { edges[i].X1, edges[i].X2 }).ToList();
+            var zs = segs.SelectMany(i => new[] { edges[i].Z1, edges[i].Z2 }).ToList();
+            int width = Math.Max(xs.Max() - xs.Min(), zs.Max() - zs.Min());
+            runs.Add((islandTeam[islandOfEdge[segs[0]]], width, colinV || colinH ? "straight" : "offset"));
+        }
+        return runs;
     }
 
     // neighbour + the shared cell-edge segment (in CELL units) between c and that neighbour

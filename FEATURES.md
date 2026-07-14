@@ -787,6 +787,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the traced real maps in `tools/seeds/traced/` (12 authored + 11 traced; `3084` held — its wools don't
   attribute), and a `SoftTerm.LearnsFromTraced` opt-out keeps `max-chain-length` an authored cap the traced
   long-chain maps must not widen. Composed output **byte-identical** (soft terms gate-skipped). (G60)
+- **Composer evaluator — frontline runs (M2, part 2c)** — the deriver groups the flat frontline segments into
+  per-team **faces**: `BoardStructure.FrontlineRuns` carries each run's `(Team, Width, Profile)` — width the
+  face's longer extent in cells, profile **straight** (one colinear face, `isolated-spawn`) vs **offset** (the
+  face steps, `base-2island`). Two soft terms read them: `frontline-count` (FR4 — faces per team ÷ orbit order,
+  an over-exposed team side) and `frontline-width` (FR6 — the widest face, the wide-vs-split axis). Profile is
+  derived but **not scored** (both straight and offset are authored-valid; it feeds the future composite and the
+  evidence overlay). Additive deriver field, gate stays derive-free — composed output **byte-identical**. (G60)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
