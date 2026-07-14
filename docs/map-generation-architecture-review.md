@@ -52,9 +52,15 @@ What ships:
 **Finding 1.1 — the doc states the emission order three different ways.** §2: "generation runs from
 the spawn outward". §4: "it [the hub] emits first", then two paragraphs later "Order: spawn → hub →
 wool boxes → frontline". `TODO.md` (the working strategy): "we harden it **from the mid outward**".
-And the code implements a fourth order (crossing sampled first, unit grown against it). Each is
-defensible; four at once is not. The doc should pick one target order and mark the mid-outward
-hardening as the *migration* strategy, not the model.
+And the code implements a fourth order (crossing sampled first, unit grown against it). The order
+is in fact an **open experimental question** — spawn-first is simply the latest idea and reads in
+the doc as if settled — and the architecture should treat it that way: the box model must be
+**order-agnostic**. Boxes and typed interfaces form a constraint graph (a hub edge *is* its
+neighbour's interface, whichever side is drawn first); the emission order is then a named, pluggable
+**growth strategy** over that graph (`spawn-first`, `hub-first`, `mid-out`, …) so candidate orders
+can be A/B'd against the evaluator instead of relitigated in prose. The doc should say exactly that:
+the constraint relationships are the model; the order is a strategy knob. Design consequences in
+§4.2.
 
 **Finding 1.2 — frontline as output vs input.** §4's "the frontline is where the fanned images meet —
 its position … is an *output*" is contradicted by `TeamUnitGrower.cs:247`
@@ -141,28 +147,44 @@ The user asked specifically; here is the critique:
 |---|---|---|
 | `ApproachFamily` + `ApproachShape` | one `ShapeFamily` enum (with `Isolated`); emitter refuses `Isolated` explicitly | one taxonomy, one type; the mirror becomes `derived == requested` on the same enum |
 | `WoolApproachShape` (static class) | `ApproachClassifier` (or `ShapeClassifier` once generalized, §3) | it classifies; it is not a shape |
-| `WoolLaneShape`'s string result | `LaneRead` enum { I, L, Z, Complex, Plaza, None } | kills the stringly twin taxonomy; the doc already spends a paragraph disambiguating lane ≠ approach — the types should too |
-| `PlanDerived` | keep as the rect layer, but introduce `BoardDerived` as the umbrella (below) | the doc's own term |
+| `WoolLaneShape`'s string result | `LaneRead` enum { I, L, Z, Complex, Plaza, None } | kills the stringly twin taxonomy; the doc already spends a paragraph disambiguating lane ≠ approach — the types should too (whether the class itself survives at all: §3.6) |
+| `PlanDerived` (the rect layer) | `ContactGraph` | it *is* the pairwise contact / interface / gap-link / component graph; "PlanDerived" says only "stuff derived from a plan" |
+| the gallery's `Derive()` result (the raster layer) | `BoardStructure`, built by `BoardDeriver.Derive(plan)` | the class name matches the doc's own term ("the board deriver"); the result names the *product* (structure: islands, zone kinds, holes, mid form), not its provenance |
+
+An earlier draft of this review proposed `BoardDerived` as the umbrella; both `PlanDerived` and
+`BoardDerived` are odd names for the same reason — "derived" is a participle standing in for a noun,
+naming where the data came from instead of what it is. The proposals above name the thing (a graph,
+a structure). Alternatives weighed and passed over: `PlanTopology` / `BoardRead` (fine, weaker),
+`LayoutStructure` (collides mentally with `SketchLayout`).
 
 ### 2.3 Placement — the board deriver extraction
 
 Target state, two layers under one roof (`src/PgmStudio.Pgm/Derive/` — a sibling of `Plan/`, or a
 `Plan/Derive` folder; either is fine, the point is *src*):
 
-- **Rect layer** (exact, block coords): today's `PlanDerived` unchanged — contacts, interfaces, gap
-  links, build regions, frontline edges. It is genuinely good code.
-- **Raster layer**: `BoardDerived.Build(plan)` extracted from the gallery's `Derive()`, returning the
-  typed record the gallery already builds internally (islands + anchor roles, stepping-stone kinds,
-  intra/self bridges, zone kinds + widths, hole classes + parallel-ways, wool lanes, mid form). The
-  gallery script becomes **render-only** over `BoardDerived` — which is also what §5.4's
-  derive-then-override workflow wants anyway.
+- **Rect layer** (exact, block coords): today's `PlanDerived`, renamed `ContactGraph` (§2.2) but
+  otherwise unchanged — contacts, interfaces, gap links, build regions, frontline edges. It is
+  genuinely good code.
+- **Raster layer**: `BoardDeriver.Derive(plan) → BoardStructure`, extracted from the gallery's
+  `Derive()`, returning the typed record the gallery already builds internally (islands + anchor
+  roles, stepping-stone kinds, intra/self bridges, zone kinds + widths, hole classes +
+  parallel-ways, wool lanes, mid form). The gallery script becomes **render-only** over
+  `BoardStructure` — which is also what §5.4's derive-then-override workflow wants anyway.
 - **`ClosureAnalysis`** becomes a thin query over the raster layer *or* stays as a deliberately
   narrow fast path — it runs inside the composer's 60-attempt × hunt loop, so measure before folding
-  it in. If it stays, mark it in code as a derived-subset twin of `BoardDerived` holes (the same
-  discipline CLAUDE.md applies to the JS symmetry twin), so the two can't silently diverge.
+  it in. If it stays, mark it in code as a derived-subset twin of the `BoardStructure` holes (the
+  same discipline CLAUDE.md applies to the JS symmetry twin), so the two can't silently diverge.
 - **`FannedGraph`** keeps its looser reachability semantics but sources adjacency predicates from
-  `PlanDerived` instead of private copies, and resolves the overlap/surface inconsistency (2.3 above)
-  one way or the other.
+  the rect layer instead of private copies, and resolves the overlap/surface inconsistency (2.3
+  above) one way or the other.
+
+**Regression safety.** The consolidation ships with a ready-made no-regression harness: the authored
+base seeds (`tools/seeds/*.plan.json`) plus the gallery's fixed generated-case list are a complete
+before/after oracle. Protocol for every extraction step: capture `derive-gallery`'s console summary
+lines and `out/derive-gallery.html` before the change, re-run after, and require a **byte-identical
+diff** — M0/M1 are pure moves, so *identical* is the bar, not "looks the same". The mirror harness
+and the Pgm suite ride along. Only the behavioral steps (M2 onward, §4.3) may change gallery output,
+and each re-baselines deliberately.
 
 ---
 
@@ -273,11 +295,46 @@ entire team unit: a hub + twin frontline that enclose a pocket would make **ever
 read Donut**. Today this is latent only because no production code calls `Classify` on a full plan.
 
 The mirror's derive side needs a **scope**: "which cells are *this wool's* approach". The board
-deriver already answers it — the stack-band wool-lane trace (`derive-gallery.cs:387-456`) walks from
-the room to the first crossbar/hub, which is exactly the approach extent. So the architecture wants
-an explicit dependency: **board deriver delimits → shape deriver classifies**. When the box model
-lands (§4), a composed plan gets the scope for free (the wool box); traced/authored plans use the
-stack-band extent. This must be settled before G56 (corpus tracing) can mine families at all.
+deriver already contains two candidate mechanisms — the stack-band trace
+(`derive-gallery.cs:387-456`) and `WoolLaneShape`'s junction-stop flood, which §3.6 argues is the
+one to promote. So the architecture wants an explicit dependency: **board deriver delimits → shape
+deriver classifies**. When the box model lands (§4), a composed plan gets the scope for free (the
+wool box); traced/authored plans use the extracted corridor extent. This must be settled before G56
+(corpus tracing) can mine families at all.
+
+### 3.6 Is `WoolLaneShape` still needed at all?
+
+Short answer: **not as a separate classifier — but it is not subsumed by `WoolApproachShape` yet,
+and deleting it today would lose the one capability the family classifier lacks.**
+
+What it uniquely has: it works on a **full board**. Its width-adaptive junction test (`Thick` — a
+cell sitting inside a filled `(W+1)×(W+1)` block, `WoolLaneShape.cs:50-52`) makes the trace
+**self-delimiting**: the flood follows the thin corridor out of the room and stops at any
+hub/plaza. That is precisely the scope mechanism §3.5 shows `WoolApproachShape` is missing — the
+family classifier floods the whole connected component and therefore only works on standalone
+fixtures. So today the two are complements, not duplicates: the lane read is the only wool read the
+board deriver can run on composed plans, and the gallery report and the `layout-evaluator.md`
+measurables consume it.
+
+End state — dissolve it into the shared layer, in two parts:
+
+1. **The junction-stop flood is promoted to the scope delimiter** (`CorridorExtent` in the shape
+   layer), parameterized by **stop policy**: *stop at any junction* (the lane read — the corridor up
+   to the first hub) vs *continue through same-width forks, stop at hubs/plazas* (the approach read —
+   a U/H's second leg is part of the shape, a plaza is not). One flood, two policies — not two
+   implementations. (Note the gallery separately traces lane *cells* with a third mechanism, the
+   stack-band walk at `derive-gallery.cs:387-456`, used for rendering the orange lane tiles — fold it
+   onto the same extent extraction when M1 lands.)
+2. **The bend count merges** with the family classifier's outline reflex count —
+   `WoolLaneShape.cs:60-68` and `WoolApproachShape.ReflexCount` are near-identical code already —
+   via `Geom.Cells.ReflexCorners`.
+
+After that, the *family* classifier run on the approach-policy extent supersedes the lane taxonomy
+for shape identity. The board deriver's **wool-lane measurable stays** — §1.11's lane ≠ approach
+distinction is real (the lane is the corridor the room owns; the approach is the whole box shape) —
+but it becomes the open read (`I/L/Z/Complex/Plaza/None`) of the lane-policy extent, computed
+through the same machinery rather than a parallel class. Sequencing: the string taxonomy goes in M0
+(enum), `WoolLaneShape` the class retires in the step that lands the scope delimiter (task 5, §7).
 
 ---
 
@@ -300,6 +357,8 @@ BoxInterface   (A, B, EdgeInterval /*position+width — §1.5's "always an inter
 BoxPartition   (Boxes, Interfaces)
 FillMenu       For(widthCells) → legal (family, options) set   // the §4 w2/w4/w6 table as data
 FillResult     Ok(pieces) | TooSmall(family, minBox) | NoFamilyFits(menu)
+GrowthOrder    a named strategy: the sequence in which box kinds are drawn and filled
+               (spawn-first · hub-first · mid-out · …) — a ComposeRequest parameter
 ```
 
 Notes on each:
@@ -321,6 +380,12 @@ Notes on each:
   half; **fragment** then becomes a generic pass over the partition (convert emitted land inside a
   box until it meets its target), of which `IsolationCut` and the mid's low target are the two
   existing special cases.
+- **`GrowthOrder` makes the emission order an experiment, not doctrine** (Finding 1.1). The
+  partition is a constraint graph; any order walks it, propagating interface constraints from
+  whatever is already fixed onto whatever is drawn next — so `spawn-first`, `hub-first`, and
+  `mid-out` are all expressible without touching the types. Orders are *named* so that seeds stay
+  comparable within one strategy, and the evaluator (plus the teaching-set conformance metrics, G43)
+  can judge orders against each other rather than the doc having to pick a winner up front.
 
 ### 4.3 Migration sequence — do not big-bang the grower
 
@@ -343,7 +408,8 @@ repair loops) and currently *works*. Replace it organ by organ:
   HB4 multi-piece hubs; G39's corner/edge interlock enforced on `BoxInterface` at partition time.
 - **M4 — the partitioner as the first artifact**: `BoxPartition` replaces the `Shape` record as what
   sampling produces; the composer's resample loop becomes partition-repair driven by `FillResult` and
-  evaluator feedback.
+  evaluator feedback; `GrowthOrder` strategies (spawn-first / hub-first / mid-out) become the
+  experiment axis, judged by the evaluator and the G43 conformance metrics.
 
 **Timing warning (load-bearing):** every one of M2–M4 changes RNG consumption and therefore every
 seed's output — the gallery's negative-set cases re-key and any goldens break. G32-D (fixed-RNG
@@ -362,7 +428,7 @@ hole-ring test, and a lint-reject list (`"WL2" or "PC-C" or "G2" or "G5"`). §7'
 fourth unless `Acceptable` is dissolved into it: hard terms return large penalties, the composer
 keeps only `score == 0` (or a threshold) as its gate. Same engine for the editor lint, the composer
 gate, and the eventual scored search — which is precisely §7's three-layer model. M1 makes this
-possible (the evaluator needs `BoardDerived`'s measurables); it should follow directly after.
+possible (the evaluator needs `BoardStructure`'s measurables); it should follow directly after.
 
 ---
 
@@ -390,20 +456,26 @@ G section as-is. Dependencies point up the list.
    takes terminal cells; `WoolLaneShape` → `ClassifyOpen` returning a `LaneRead` enum; kill the dead
    param; fix stale doc refs (6.2); port the three mirror harnesses to TUnit (6.3). Pure refactor —
    gallery output byte-identical.
-2. **[M1] Board deriver into src.** `BoardDerived.Build` extracted from `derive-gallery.cs`; gallery
-   render-only; `ClosureAnalysis` reconciled; `FannedGraph` predicates unified (6.5). Doc §1.3/§6.2
-   updated to name the class, not the script.
-3. **Evaluator skeleton over `BoardDerived`.** Dissolve `Composer.Acceptable` into hard terms;
+2. **[M1] Board deriver into src.** `BoardDeriver.Derive → BoardStructure` extracted from
+   `derive-gallery.cs`; `PlanDerived` renamed `ContactGraph`; gallery render-only; `ClosureAnalysis`
+   reconciled; `FannedGraph` predicates unified (6.5). Acceptance gate: byte-identical gallery
+   output over the base seeds + generated cases (§2.3 regression protocol). Doc §1.3/§6.2 updated to
+   name the class, not the script.
+3. **Evaluator skeleton over `BoardStructure`.** Dissolve `Composer.Acceptable` into hard terms;
    score + violations per §7; G43's metrics land here.
 4. **[M2] Wool boxes in the grower.** `Box`/`BoxInterface`/`FillMenu`/`FillResult`; wool arms filled
    via `WoolBoxEmitter`; emitter orientation transform. Unlocks G44's structural spend, G50–G52.
-5. **Derive-side slot recovery + classifier scoping.** `AssignSlots` template match; approach-extent
-   scope (stack-band or box); upgraded mirror test. Prerequisite for G56 corpus mining.
+5. **Derive-side slot recovery + classifier scoping.** `AssignSlots` template match;
+   `CorridorExtent` scope delimiter with the two stop policies (§3.6) — `WoolLaneShape` the class
+   retires here, its lane measurable re-expressed as the open read of the lane-policy extent;
+   upgraded mirror test. Prerequisite for G56 corpus mining.
 6. **[M3] Open-variant shapes for frontline/hub.** G41 L/Z compositions, HB4; G39's interlock as a
    `BoxInterface` constraint.
 7. **[M4] Partitioner-first composition.** `BoxPartition` replaces the `Shape` sampling record;
-   directed repair from `FillResult`. Re-baseline gallery cases; then freeze G32-D goldens.
-8. **Doc pass on `map-generation.md`.** One emission order; current-vs-target status per stage;
+   directed repair from `FillResult`; `GrowthOrder` strategies as the order experiment. Re-baseline
+   gallery cases; then freeze G32-D goldens (per strategy).
+8. **Doc pass on `map-generation.md`.** Emission order declared an experimental strategy axis over
+   the constraint graph (Finding 1.1), not a fixed sequence; current-vs-target status per stage;
    frontline input/output reconciled; deriver named as code.
 
 The ordering principle: **1–3 are pure consolidation that make every later feature cheaper and can
