@@ -7,14 +7,15 @@ using Microsoft.AspNetCore.Mvc.Testing;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// POST /api/plan/inspect — the plan editor's live derived-structure + lint feed. A valid plan body returns
-/// findings (with subject ids) and block-space overlay geometry (interfaces / gapLinks / frontline); a
-/// malformed body is answered 400, never 500. The endpoint is DB-free, so a bare host suffices.
+/// POST /api/plan/inspect — the plan editor's live derived-geometry feed for the canvas overlays. A valid plan
+/// body returns block-space overlay geometry (interfaces / gapLinks / frontline); rule findings are the
+/// <c>/plan/evaluate</c> endpoint's job. A malformed body is answered 400, never 500. The endpoint is DB-free,
+/// so a bare host suffices.
 /// </summary>
 public sealed class PlanInspectEndpointTests
 {
     [Test]
-    public async Task Valid_plan_returns_findings_and_derived_geometry()
+    public async Task Valid_plan_returns_derived_geometry()
     {
         await using var factory = new WebApplicationFactory<Program>();
         using var client = factory.CreateClient();
@@ -24,8 +25,8 @@ public sealed class PlanInspectEndpointTests
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        // the four derived arrays are always present
-        foreach (var key in new[] { "findings", "interfaces", "gapLinks", "frontline" })
+        // the three derived arrays are always present
+        foreach (var key in new[] { "interfaces", "gapLinks", "frontline" })
             await Assert.That(body.TryGetProperty(key, out _)).IsTrue();
 
         // land interfaces carry a segment + border length
@@ -40,27 +41,6 @@ public sealed class PlanInspectEndpointTests
         await Assert.That(gaps.EnumerateArray().Any(g => g.TryGetProperty("hop", out _) && g.TryGetProperty("x1", out _))).IsTrue();
 
         await Assert.That(body.GetProperty("frontline").GetArrayLength()).IsGreaterThan(0);
-    }
-
-    [Test]
-    public async Task Findings_carry_subject_ids()
-    {
-        await using var factory = new WebApplicationFactory<Program>();
-        using var client = factory.CreateClient();
-
-        // a corner contact between separate areas → a PC-C lint finding naming both pieces
-        const string plan = """
-        { "plan":1, "globals":{"cell":1},
-          "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[10,10,10,10]} ] }
-        """;
-        var resp = await client.PostAsync("/api/plan/inspect", new StringContent(plan, Encoding.UTF8, "application/json"));
-        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
-
-        var findings = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings");
-        var corner = findings.EnumerateArray().First(f => f.GetProperty("rule").GetString() == "PC-C");
-        var subjects = corner.GetProperty("subjects").EnumerateArray().Select(s => s.GetString()).ToList();
-        await Assert.That(subjects).Contains("a");
-        await Assert.That(subjects).Contains("b");
     }
 
     [Test]

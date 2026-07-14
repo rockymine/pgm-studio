@@ -318,30 +318,6 @@
                 </div>
               }
             </div>
-
-            <div class="panel-section">
-              <div class="section-header section-header--ruled">
-                <h2 class="section-title">Lint</h2>
-                @if (findings.Count > 0) { <span class="badge badge--neutral">@findings.Count</span> }
-              </div>
-              @if (findings.Count == 0)
-              {
-                <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> Plan OK</div>
-              }
-              else
-              {
-                <div class="plan-lint-list">
-                  @foreach (var f in findings)
-                  {
-                    <button class="plan-lint-row" @onclick="() => HighlightFinding(f)" title="Highlight on canvas">
-                      <span class="plan-lint-dot @(f.Severity == "error" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
-                      @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
-                      <span class="plan-lint-msg">@f.Message</span>
-                    </button>
-                  }
-                </div>
-              }
-            </div>
           </div>
         </div>
       </div>

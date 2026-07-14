@@ -9,13 +9,13 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// POST /api/plan/inspect — the live derived-structure + lint feed for the plan editor. The request body is a
-/// plan wire document (<c>*.plan.json</c>); the response carries everything already resolved to block
-/// coordinates so the canvas draws it directly: <c>findings</c> (errors then rule lint, each with the
-/// implicated subject ids), <c>interfaces</c> (land/narrow/corner contacts as segments), <c>gapLinks</c>
-/// (zone-spanning connectors with the hop distance) and <c>frontline</c> (piece edges facing a zone). The
-/// canonical validator/derivation runs server-side because the Blazor client can't reference the plan library.
-/// A malformed body is answered 400, never 500.
+/// POST /api/plan/inspect — the live derived-geometry feed for the plan editor's canvas overlays. The request
+/// body is a plan wire document (<c>*.plan.json</c>); the response carries everything already resolved to block
+/// coordinates so the canvas draws it directly: <c>interfaces</c> (land/narrow/corner contacts as segments),
+/// <c>gapLinks</c> (zone-spanning connectors with the hop distance) and <c>frontline</c> (piece edges facing a
+/// zone). Rule findings/violations are the <c>/plan/evaluate</c> endpoint's job (the evaluator is the single
+/// source) — this endpoint is purely the <see cref="ContactGraph"/> derivation, which the Blazor client can't run
+/// itself. A malformed body is answered 400, never 500.
 /// </summary>
 public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 {
@@ -32,25 +32,15 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
         if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
 
         ContactGraph d;
-        IReadOnlyList<PlanFinding> raw;
         try
         {
             d = ContactGraph.Build(plan);
-            raw = PlanValidator.Validate(plan);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
             await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
             return;
         }
-
-        var findings = raw.Select(f => new
-        {
-            severity = f.Severity == PlanSeverity.Error ? "error" : "lint",
-            rule = f.Rule,
-            message = f.Message,
-            subjects = f.SubjectIds,
-        });
 
         var interfaces = d.InterfaceSegments.Select(s => new
         {
@@ -67,7 +57,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 
         var frontline = d.FrontlineEdges.Select(f => new { piece = f.Piece, x1 = f.X1, z1 = f.Z1, x2 = f.X2, z2 = f.Z2 });
 
-        await Send.OkAsync(new { findings, interfaces, gapLinks, frontline }, ct);
+        await Send.OkAsync(new { interfaces, gapLinks, frontline }, ct);
     }
 }
 

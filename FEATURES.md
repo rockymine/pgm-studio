@@ -570,14 +570,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   content ∪ ghost extents). Plan JSON import/export in the `PlanModel` wire shape (seed round-trip tested) +
   debounced localStorage autosave; pure geometry in `plan/plan-doc.js` (node-tested, 16 tests); mounted via
   `studio.js` native import; dashboard footer "Plan" link. (G18)
-- **Plan-editor overlays + live lint** — `POST /api/plan/inspect` (the single canonical C# validator/derived
-  structure serving the editor; plan JSON in → findings with subject ids + ready-to-draw block-space overlay
-  geometry out; malformed body → 400): derived **land interfaces** (cased-green seams; sliver/corner red),
-  **gap links** with hop-distance labels (suppressed between pieces of the same land component — a walkable
-  pair is no void crossing, which also de-noises the G5 lint), and computed **frontline** edges — three
-  persisted overlay toggles drawn in a dedicated canvas layer. The bridge re-inspects debounced (~300ms,
-  stale-response guarded); a lint panel lists errors-then-lint with rule chips, click pulsing the subject
-  pieces. `PlanFinding` carries subject ids. Pgm 219 / Api 40 / JS 102 tests green. (G19)
+- **Plan-editor derived-geometry overlays** — `POST /api/plan/inspect` (the canonical C# derived-structure feed
+  for the editor's canvas; plan JSON in → ready-to-draw block-space overlay geometry out; malformed body → 400):
+  derived **land interfaces** (cased-green seams; sliver/corner red), **gap links** with hop-distance labels
+  (suppressed between pieces of the same land component — a walkable pair is no void crossing), and computed
+  **frontline** edges — persisted overlay toggles drawn in a dedicated canvas layer. The bridge re-inspects
+  debounced (~300ms, stale-response guarded). `PlanFinding` carries subject ids (read by the compiler + the
+  evaluator). Originally shipped a live lint panel off this same feed; the **evaluator Score panel** (G60) is now
+  the single validation surface, so `/plan/inspect` serves only the geometry overlays. (G19)
 - **Plan compile preview + walk-test loop** — `POST /api/plan/compile` (malformed → 400; structural errors →
   422 with the error findings, lint never blocks; else `{layout, intent}` serialized with each consumer's own
   JSON options for byte-exact downstream compatibility) + the editor's **Compile** drawer (Layout/Intent tabs
@@ -810,8 +810,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   bound/measure/context styling table; measure labels ride the screen-space layer) and the Blazor **Score** panel
   (headline cost + fired-rule list; click a rule to **isolate** its evidence, click again to restore the
   all-violations overlay — `focusViolation`). Restores WL2 to the editor (the soft
-  `spawn-wool-distance` + the hard `spawn-wool-floor`, retired from the structural lint). Endpoint + JS
-  overlay-pref tests green. `docs/map-generation-architecture-review.md` §9.7. (G60)
+  `spawn-wool-distance` + the hard `spawn-wool-floor`, retired from the structural lint). The Score panel is the
+  editor's **single validation surface** — its STRUCT / PC-C / G2 / G5 hard terms cover every `PlanValidator`
+  finding, so the old lint panel is dropped and `/plan/inspect` is trimmed to the geometry overlays alone.
+  Endpoint + JS overlay-pref tests green. `docs/map-generation-architecture-review.md` §9.7. (G60)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor

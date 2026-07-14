@@ -50,10 +50,9 @@ public partial class PlanEditor
 
     private PlanSelection? sel;
 
-    // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs) + the live lint feed.
+    // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs).
     private bool overlayInterfaces = true, overlayFrontline = true, overlayLabels, overlayViolations = true;
     private bool heightMap;
-    private List<InspectFinding> findings = [];
 
     // The live evaluator feed (score + fired rules), pushed from the bridge's /api/plan/evaluate poll. Null when
     // the plan is malformed (the evaluate endpoint 400s) or before the first response.
@@ -186,9 +185,6 @@ public partial class PlanEditor
         heightMap = !heightMap;
         if (handle is not null) await handle.InvokeVoidAsync("setHeightMap", heightMap);
     }
-
-    private Task HighlightFinding(InspectFinding f)
-        => handle is not null ? handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(f.Subjects ?? [])).AsTask() : Task.CompletedTask;
 
     // Click a violation row to isolate its evidence on the canvas; click it again to restore the all-violations
     // overlay. -1 tells the canvas "show all".
@@ -478,13 +474,6 @@ public partial class PlanEditor
     public void OnMeta(string json) { SyncMeta(json); StateHasChanged(); }
 
     [JSInvokable]
-    public void OnFindings(string json)
-    {
-        findings = JsonSerializer.Deserialize<List<InspectFinding>>(json) ?? [];
-        StateHasChanged();
-    }
-
-    [JSInvokable]
     public void OnEvaluation(string json)
     {
         evaluation = string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<EvaluationDto>(json, Web);
@@ -550,7 +539,7 @@ public partial class PlanEditor
         [JsonPropertyName("violations")] public bool Violations { get; set; } = true;
     }
 
-    // A validation finding pushed from the bridge (already error-first ordered) for the lint panel.
+    // A structural finding from /api/plan/compile — the 422 errors that block a compile (the compile-drawer list).
     private sealed class InspectFinding
     {
         [JsonPropertyName("severity")] public string Severity { get; set; } = "";

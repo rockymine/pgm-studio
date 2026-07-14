@@ -173,9 +173,12 @@ New page `Pages/Plan/PlanEditor.razor` (+ `js/studio/plan/`), reusing the studio
   toggle, id.
 - **Overlays (toggleable):** derived land interfaces (green intervals; a slimmer green core where
   narrow; red only at a bare corner point), gap links through zones with hop distances, computed
-  frontline edges, spawn→wool path trace.
-- **Panels:** lint list (click → highlight the offender); plan JSON import/export (file
-  download/upload — seeds live in git); autosave to localStorage.
+  frontline edges, spawn→wool path trace, and the evaluator's fired-rule **evidence** (the Rules
+  overlay — see §6, `layout-evaluator.md`).
+- **Panels:** the **Score** panel — the evaluator's live cost + every fired rule (structural errors +
+  rule lint via the STRUCT / PC-C / G2 / G5 terms, then soft feel), each click-to-**isolate** its
+  evidence on the canvas (the single validation surface; there is no separate lint list); plan JSON
+  import/export (file download/upload — seeds live in git); autosave to localStorage.
 - **Compile & test:** tabs previewing the compiled `layout.json` / `intent.json`; a **Create
   draft** button that runs the existing chain (`POST /api/sketch` → `PUT sketch` → `POST finish`
   → `PUT intent`) and surfaces the `GET /map/{slug}/export` link — draw → compile → walk the

@@ -3,30 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  DEFAULT_OVERLAYS, sortFindings, parseOverlays,
+  DEFAULT_OVERLAYS, parseOverlays,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-inspect.js";
-
-test("sortFindings puts errors before lint, stable within a group", () => {
-  const input = [
-    { severity: "lint", rule: "G2", message: "a" },
-    { severity: "error", message: "b" },
-    { severity: "lint", rule: "G5", message: "c" },
-    { severity: "error", message: "d" },
-  ];
-  const out = sortFindings(input);
-  assert.deepEqual(out.map((f) => f.message), ["b", "d", "a", "c"]);
-});
-
-test("sortFindings tolerates an empty / missing list", () => {
-  assert.deepEqual(sortFindings([]), []);
-  assert.deepEqual(sortFindings(undefined), []);
-});
-
-test("sortFindings does not mutate its input", () => {
-  const input = [{ severity: "lint", message: "a" }, { severity: "error", message: "b" }];
-  sortFindings(input);
-  assert.deepEqual(input.map((f) => f.message), ["a", "b"]);
-});
 
 test("DEFAULT_OVERLAYS keeps labels off, interfaces/frontline/violations on", () => {
   assert.deepEqual(DEFAULT_OVERLAYS, { interfaces: true, labels: false, frontline: true, violations: true });

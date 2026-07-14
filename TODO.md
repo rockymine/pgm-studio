@@ -81,7 +81,9 @@ The **cramming** half is parked on **G69**: no `BoardStructure` signal separates
 flattened to one kind-keyed `EvidenceDto`; `ViolationDto`; score · valid · hard-first violations) + `POST
 /api/plan/evaluate` (`PlanEvaluateEndpoint` maps `LayoutEvaluator.Evaluate`); the plan-bridge debounces evaluate
 alongside inspect and feeds the canvas a **Rules** evidence overlay + the Blazor **Score** panel (click a rule to
-**isolate** its evidence). Restores WL2 to the editor.
+**isolate** its evidence). Restores WL2 to the editor. The Score panel is the editor's single validation surface —
+its STRUCT/PC-C/G2/G5 hard terms subsume the old lint panel, so it is dropped and `/plan/inspect` is trimmed to
+the geometry overlays.
 
 - [~] **G60 — Composer evaluator: finish the catalogue + harness.** On the landed catalogue + wiring:
   **(1)** finish the §6 soft-term catalogue — the rotation half landed (2d); **remaining**: the cramming

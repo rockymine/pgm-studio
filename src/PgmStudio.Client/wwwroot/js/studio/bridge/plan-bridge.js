@@ -8,7 +8,7 @@ import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES,
 } from "../plan/plan-doc.js";
-import { parseOverlays, sortFindings } from "../plan/plan-inspect.js";
+import { parseOverlays } from "../plan/plan-inspect.js";
 
 const STORAGE_KEY = "pgm-plan-editor";
 const OVERLAY_KEY = "pgm-plan-overlays";
@@ -124,16 +124,14 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       res = await fetch("/api/plan/inspect", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
     } catch { return; }                       // offline / transient — keep the last good overlay
     if (seq !== inspectSeq) return;            // a newer edit already fired
-    if (!res.ok) {                             // malformed plan (400) — clear the derived layer + panel
+    if (!res.ok) {                             // malformed plan (400) — clear the derived overlay
       canvas.setInspect({ interfaces: [], gapLinks: [], frontline: [] });
-      fire("OnFindings", "[]");
       return;
     }
     let data;
     try { data = await res.json(); } catch { return; }
     if (seq !== inspectSeq) return;            // re-check after the awaited body
     canvas.setInspect({ interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] });
-    fire("OnFindings", JSON.stringify(sortFindings(data.findings || [])));
   }
 
   // The evaluator feed: the plan's score + every fired rule (hard-first) with cell-space evidence. The evidence
