@@ -6,8 +6,7 @@
 @* Organic-generation demonstration page — the whole OrganicLane seeding pipeline on one page, each stage in
    its own panel with static explanatory text (the stages are fixed; only the geometry changes with the seed).
    The seed control re-runs the REAL generator (POST /api/sketch/generate/stages → OrganicLane.GrowStages) and
-   re-renders every stage live via render/gen-stages.js. /concepts-style; see
-   docs/contracts/organic-lane-generation.md. *@
+   re-renders every stage live via render/gen-stages.js. /concepts-style. *@
 
 <div class="editor-page">
 
@@ -48,7 +47,7 @@
         into a few wool lanes, using a seeded noise field to place and bend them. This page lays out every
         stage of that growth as the <em>real</em> generator runs it — change the seed and every panel
         re-renders from a fresh <code>OrganicLane.GrowStages</code> run (no mock). Stages are fixed; only the
-        geometry moves. The full design lives in <code>docs/contracts/organic-lane-generation.md</code>.
+        geometry moves.
       </p>
 
       <div class="gen-controls">

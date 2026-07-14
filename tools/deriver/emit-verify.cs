@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// Round-trip verification for the composer's wool-box base-shape emitter (docs/contracts/layout-generation.md §2).
+// Round-trip verification for the composer's wool-box base-shape emitter (docs/contracts/map-generation.md §5).
 // Emits every base family (and its variants) with WoolBoxEmitter and reads each back with the canonical
 // classifier (WoolApproachShape, laneWidth = cw): requested == derived is the mirror closing. Also asserts the
 // emitted pieces never overlap. Run: dotnet run tools/deriver/emit-verify.cs

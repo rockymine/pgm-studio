@@ -15,10 +15,10 @@ three files. Moving a task between files never changes its id; never renumber or
 ## Layout generation (G) — current focus: the composer
 
 Phase 2 of plan-then-realize: the rule-based composer generates `plan.json` seeds under the **frozen**
-rule set (`docs/contracts/layout-rules.md`) in the §3 order of `docs/contracts/layout-generation.md`. We
+rule set (`docs/contracts/layout-rules.md`) in the pipeline order of `docs/contracts/map-generation.md` (§2). We
 harden it **from the mid outward** — mid band/crossing → the **frontline / build-zone interface** → hub →
 spawn → wool lanes → realize/emit — because each layer's shape constrains the next: a settled frontline+
-bridge is what the hub, spawn, and wool-lane generation dock onto. Working doc: `docs/handoff-composer.md`.
+bridge is what the hub, spawn, and wool-lane generation dock onto. 
 Every generated board is judged against the **authored example set** (`tools/seeds/teaching/`), not the
 rules alone — where a board misfits, suspect a rule that is looser than the examples (the current theme).
 
@@ -117,8 +117,8 @@ BZ6–BZ9 build-zone discipline. The layers below are what remains.
   can't self-collapse, hold spacing on small boards — to unblock p5 (BZ6 + spawn ≥2×2 over-budget at 325
   blocks²) and p5/t4/rot_90 (interior-overlap self-weld). Teaching material + a `layout-rules.md` amendment
   first. Never fix p5 by enlarging the board (re-triggers the LN2 arm stretch).
-- [ ] **G36 — Residual composer polish (from the B2 review).** What's left in
-  `docs/composer-review-findings.md` after the mid-feel slice shipped and (2)/(3) moved to G37/G41:
+- [ ] **G36 — Residual composer polish (from the B2 review).** What's left after the mid-feel slice
+  shipped and (2)/(3) moved to G37/G41:
   **(1)** confirm the rot_180 mid-band asymmetry (`p30-s7`/`s13`) is a real off-centre band vs a render
   artefact; **(4)** cap spawn-lane growth (`p30-s13` over-grown L); **(6)** frontline-**count** variety (not
   every board double-frontline).

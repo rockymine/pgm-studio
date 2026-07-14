@@ -494,7 +494,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   from a spawn hub out to noise-spread wool tips (variable-width `Lane.Ribbon` hulls, optional organic
   holes, forked lanes, spawn-on-a-spur). `POST /api/sketch/generate` originates a draft sketch from a
   chosen archetype/seed (`SketchLayoutPrep` simplifies + Bézier-rounds lanes for the editor). Pure +
-  seeded — same seed → same layout. (`docs/contracts/organic-lane-generation.md`)
+  seeded — same seed → same layout.
 - **Organic-generation demo page** — `/concepts/organic` visualises the whole Organic pipeline on one
   page, one panel per stage (value-noise field → anchor sampling → lane spines → ribbon hulls →
   assembled + mirror) with static explanatory text; a seed / wools control re-runs the **real** generator
@@ -509,7 +509,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   map nor clobbers a draft). Simplification only — the faithful outline; cutting it into lanes is `G6`.
   `scripts/island_shapes.py` is the shape-feature analyzer behind it. (G6 base)
 - **Lane-decomposition surface (manual cut tool) — RETIRED** with the corpus-mining flywheel (the
-  plan-then-realize direction, `docs/contracts/layout-generation.md` §1): the page, its canvas bridge and
+  plan-then-realize direction, `docs/contracts/map-generation.md`): the page, its canvas bridge and
   the queue/load/save endpoints are removed; the pure seam-split geometry (`geometry/decompose-cut.js`)
   lives on under the sketch tool's split feature, and saved `lane_decomposition_json` artifacts remain as
   data. As shipped: `/maps/{slug}/decompose` (dashboard footer →
@@ -538,7 +538,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     stepping-stone, decorative → decorative; team/objective left to cut), so the human confirms the auto-tags and
     cuts only the team islands. Persists per shape in `lane_decomposition_json`. (G7)
 - **Layout-generation design (plan-then-realize) + expert rule capture** — the direction docs for full map
-  generation: `docs/contracts/layout-generation.md` (the **piece/interface plan model** — areal pieces +
+  generation: `docs/contracts/map-generation.md` (the **piece/interface plan model** — areal pieces +
   edge-interval interfaces, no skeletons; proxy-cell mini-layout semantics; one-way compile into sketch +
   intent with a detach point; rule-based composition, fragmentation moves, roughen + elevation passes; scope
   tiers), `docs/contracts/layout-rules.md` (the author-corrected per-role rule checklist + the seed shopping
@@ -602,7 +602,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `reference` block** in the plan wire model — round-trips in the `*.plan.json` file as provenance, restores +
   repaints on reload, and is **ignored by the compiler** (verified: a seed compiles byte-identically with and
   without it). Builds the corpus that informs the box-based / wool-approach vocabulary in
-  `docs/contracts/layout-generation.md`. (G55)
+  `docs/contracts/map-generation.md`. (G55)
 - **Configurable surface step** — the piece surface stepper's ± increment (formerly hardcoded ±2 per EL1) is
   now an editor preference: a **Surface step (y)** field in the globals panel sets any whole value ≥ 1, and
   **1 / 2 / 3 quick-preset chips** under the inspector's surface stepper switch the common ones in-context,
@@ -706,7 +706,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   is a wide/solid **I**; the room-only dock is an interface concern, replaceable by a short-entry **I**). Fixes
   the wide-H→Scythe/Plug, wide-Z→Plug, and wide-bay→Z misreads. Verified: `shapes-gen` **17/17**, `emit-verify`
   **113/113**, `stress-shapes` **31/31 · 0 breaks** (grammar-valid but extreme pieces). Contract:
-  `docs/contracts/layout-generation.md` §2. (G53)
+  `docs/contracts/map-generation.md` §5. (G53)
 
 - **Wool-box pieces carry their slot role** — `Pgm/Compose/WoolBoxEmitter.cs` + `TeamUnitGrower.cs`:
   `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`ApproachSlots` on `GrownPiece.Slot`) —
@@ -717,7 +717,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   of re-deriving it from geometry. Invariants held: a family emits a **stable piece count** (no collinear
   merges) and a role is a **template slot, not a property of the rectangle**. Verified: `WoolBoxEmitterTests`
   (25 cases — template order per family, flip/variant invariants, stable count) + `emit-verify` slot section
-  (**121/121**). Contract: `docs/contracts/layout-generation.md` §2. (G54)
+  (**121/121**). Contract: `docs/contracts/map-generation.md` §5. (G54)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor

@@ -1,7 +1,7 @@
 # Layout rules — the composer's v1 rule set (v3, frozen 2026-07-04)
 
 The generator's actual content: per-role attachment rules, dimensions, and elevation defaults for
-the plan composer (`docs/contracts/layout-generation.md` §3). v3 measures every rule against the
+the plan composer (`docs/contracts/map-generation.md` §2, §4). v3 measures every rule against the
 **twelve-seed corpus** (`tools/seeds/*.plan.json`; the eleventh, `big-board-…-parallel-mid`, is a
 **trace of a real map** at 30/team; the twelfth, `mirror-tiny-map-cliff`, the tiniest at 5/team).
 **FROZEN 2026-07-04**: the maxPlayers pass completed — every seed carries the author's per-team
@@ -206,8 +206,7 @@ toward the map centre / the enemy; "back" = toward the map edge.
   a band are placed in a **grid**, parallel, aligned to (or slightly inset from) the band border —
   never a single chain funnelling all flow through one gap. Do: mirror-mid `ex-2`/`ex-4` parallel
   `step-2a`/`2b`; `ex-3`'s one large `step-3` padded inside, the band kept aligned to the frontline
-  corners. Don't: the `gen-p30-t2-rot_180-s1` vertical stone-chain
-  (`docs/composer-review-findings.md`). On a wide frontline the stone edges align with the
+  corners. Don't: the `gen-p30-t2-rot_180-s1` vertical stone-chain. On a wide frontline the stone edges align with the
   build-zone border. Refines CT7 (stones extend the team islands' lines) for stones inside a band.
   **Column count [author, 2026-07-05]: two lateral columns are the NORM, three the hard maximum**
   (three appears in exactly one authored example) — never a wider grid; "wide, not too wide."
@@ -372,8 +371,7 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   (WL8 alternative-approach variants).
 
 The four rules below are **author-curated (amendment 2026-07-04)**: evidence is the teaching
-sketch `tools/seeds/build-interface-dos-and-donts.plan.json` + the review
-`docs/build-zone-failure-modes.md` (per-example ids there). The sketch informs **build-zone rules
+sketch `tools/seeds/build-interface-dos-and-donts.plan.json`. The sketch informs **build-zone rules
 only** — its islands are scaffolding (its `piece-9` dead-end is disclaimed), and it is not part of
 the stat corpus.
 
@@ -537,13 +535,13 @@ palette, the plaza hub, and the 35 crossing at 30/team):
    land/closure distinction, carries the function. Author-confirmed: bridged approaches count
    (the base-seed `bar-w` holes are two-approach wools).
 3. **BZ6–BZ9 added (2026-07-04, composer round 2).** Build-zone interface discipline from the
-   author's review of the first generated mids (`docs/build-zone-failure-modes.md`) + the curated
+   author's review of the first generated mids + the curated
    teaching sketch `build-interface-dos-and-donts.plan.json`: mid never touches wool (BZ6), dock
    don't overlap with the plaza-encasement exception (BZ7), connector-extrusion readability (BZ8),
    zone fit (BZ9).
 4. **Frontline/mid rules added (2026-07-05, composer round 3).** From the author's frontline/mid
-   teaching sets (`tools/seeds/teaching/mirror-mid-examples.plan.json` + `rot-90-mid-example-*` +
-   remarks in `docs/composer-review-findings.md`): split-vs-wide frontline + flush dock (FR6),
+   teaching sets (`tools/seeds/teaching/mirror-mid-examples.plan.json` + `rot-90-mid-example-*`):
+   split-vs-wide frontline + flush dock (FR6),
    rot_180-only variable-length parallel bands (FR7), the frontline rotation hole (CT9), rot_90 mid
    archetypes (CT10), band-step grids not chains (MD6), band depth / no long-thin band (BZ10), L/Z
    hub↔frontline composition (HB4), and the CT8 "hole = enclosed buffer" refinement. **CT11 is a

@@ -10,7 +10,7 @@ namespace PgmStudio.Pgm.Sketch;
 /// body is a variable-width jittered polygon <b>ribbon</b> (an interesting hull, not a clean rectangle) that
 /// may carry a <b>diamond hole</b>. A lane is one hub→tip branch ending in a dead-end wool tip; the spawn
 /// sits at the hub where the lanes meet. Pure + seeded (same <see cref="LaneLayoutOptions.Seed"/> → same
-/// island). Documented in docs/contracts/organic-lane-generation.md.
+/// island).
 /// </summary>
 public static class OrganicLane
 {

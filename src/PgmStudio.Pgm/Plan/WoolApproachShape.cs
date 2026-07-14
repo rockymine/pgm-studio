@@ -1,7 +1,7 @@
 namespace PgmStudio.Pgm.Plan;
 
 /// <summary>The base wool-approach families (the categorizer's read of a wool box — see the catalog in
-/// <c>docs/contracts/layout-generation.md</c> §2). <see cref="I"/>/<see cref="L"/>/<see cref="Z"/>/
+/// <c>docs/contracts/map-generation.md</c> §5). <see cref="I"/>/<see cref="L"/>/<see cref="Z"/>/
 /// <see cref="Scythe"/> are the open path by turn count (an S with a fold wraps a bay = scythe);
 /// <see cref="U"/> and <see cref="H"/> are the two-leg branch, split by how the wool docks the crossbar —
 /// <see cref="U"/> flush against a bar wider than itself, <see cref="H"/> capping its own room-run stub;

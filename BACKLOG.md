@@ -187,7 +187,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 The "meaning → structure" engine: seed a draft map from lane primitives, then hand an editable
 `SketchLayout` to the Sketch tool / Configure wizard. **The current headline direction is the
 plan-then-realize model** — piece/interface plans compiled one-way into sketch + intent, rule-based
-composition from expert-authored rules (`docs/contracts/layout-generation.md` + `layout-rules.md` +
+composition from expert-authored rules (`docs/contracts/map-generation.md` + `layout-rules.md` +
 `plan-editor.md`); its Phase 1 build-out (`G16`–`G21`, the plan editor / seed studio) is the current focus
 in `TODO.md`. The lane-archetype tasks below are the earlier, parallel track. **The staged plan and design
 decisions of that track are in the `project_sketch_generators` working memory**
@@ -205,7 +205,7 @@ The open work sorts into three domains:
   backdrop shipped, trace a batch of real maps into `tools/seeds/*.plan.json` (each carrying its `reference`
   provenance), then run the deriver (`WoolApproachShape.Classify` + `PlanDerived` junctions/lanes) over them to
   surface **WoolApproachShapes / hub shapes the current vocabulary misses or misreads** — feeding corrections
-  back into `docs/contracts/layout-generation.md` §2. Author-driven tracing (manual), mechanical
+  back into `docs/contracts/map-generation.md` §5. Author-driven tracing (manual), mechanical
   classify/report can be a small harness under `tools/`.
 - [ ] **G50 — Wool-box emitter: shift the entry/attachment off the box corner.** `WoolBoxEmitter` pins each
   shape's docking point to a box corner flush against the interface edge, so exactly 3 corners always fill; in
@@ -272,7 +272,7 @@ The open work sorts into three domains:
   self-overlap. Render it (overlay or side view) to compare lane twisting/nesting across the corpus and to
   see where cuts sit on the straightened routes; run backwards it's a composer strategy (assemble unfolded
   tiles → cut → re-fold/twist at chosen corners → add elevation). Exploratory — prototype the transform
-  before promising UI. Spec note: `docs/contracts/layout-generation.md` §3 "Unfolding".
+  before promising UI.
 - [ ] **G24 — Junction-region derivation + Hubs overlay + lane chains.** Derive hubs as *internal* computed
   structure on the unioned island footprint (mouth-extrusion intersections of ≥3 access mouths — see
   `docs/contracts/plan-editor.md` §2 "Junction regions"; corners yield nothing), expose them through
@@ -287,7 +287,7 @@ The open work sorts into three domains:
   build zones and G6 headroom, seeded-deterministic like the composer). The stamp machinery is precedent
   (spawn cubes / wool cages / ST1–ST4; `G31` scales them); capture theming rules the same way
   `layout-rules.md` was captured — expert-authored, correction-by-id, a `theming-rules.md` contract.
-  **Deliberately moves the §6 division-of-labour boundary** (layout-generation.md: art was "always manual"
+  **Deliberately moves the division-of-labour boundary** (baseline theming vs the author's "always manual"
   post-detach polish): generator does layout + *baseline* theming; character/set pieces/themed identity stay
   the author's (Tier 3 unchanged).
 - [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade

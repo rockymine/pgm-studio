@@ -1,6 +1,6 @@
 # Plan editor — the seed studio (Phase 1 implementation design)
 
-The concrete design for `docs/contracts/layout-generation.md` §8 Phase 1: the plan JSON schema,
+The concrete design for the model in `docs/contracts/map-generation.md`: the plan JSON schema,
 the plan→(layout, intent) compiler, and the minimal grid editor the author uses to build the
 boring-seed corpus (`docs/contracts/layout-rules.md`, seed shopping list). File-first: plans are
 repo files in `tools/seeds/` (like the existing seed pairs); the studio is the editor, git is the
@@ -8,6 +8,10 @@ store.
 
 Builds on the landed `P9` export pipeline (`tools/seeds/`, `PUT /map/{slug}/intent`,
 `GET /map/{slug}/export`).
+
+> **Terminology + model:** `docs/contracts/map-generation.md` is canonical. This doc owns the
+> field-level schema and the editor; the authored role set, interfaces, and derived structure are
+> defined there.
 
 ## 1. The plan schema (`*.plan.json`)
 
@@ -27,10 +31,10 @@ to the symmetry centre); heights are blocks. One team's unit is authored; symmet
   },
   "pieces": [
     // rect = [x, z, w, h] in cells; surface overrides globals.surface (plateaus, EL1/EL4)
-    { "id": "bar-e",  "role": "lane",      "rect": [1, 5, 2, 6] },
-    { "id": "cross",  "role": "hub",       "rect": [-1, 7, 2, 2] },
-    { "id": "bar-w",  "role": "lane",      "rect": [-3, 4, 2, 9] },
-    { "id": "stone",  "role": "mid",       "rect": [1, 1, 2, 2], "surface": 13 },
+    { "id": "bar-e",  "role": "piece",     "rect": [1, 5, 2, 6] },
+    { "id": "cross",  "role": "piece",     "rect": [-1, 7, 2, 2] },
+    { "id": "bar-w",  "role": "piece",     "rect": [-3, 4, 2, 9] },
+    { "id": "stone",  "role": "piece",     "rect": [1, 1, 2, 2], "surface": 13 },
     { "id": "wl2",    "role": "wool-room", "rect": [5, 5, 4, 4], "surface": 13, "mirrors": true }
   ],
   "zones": [
@@ -112,7 +116,7 @@ Author feedback after building the first real seed reshapes the role model:
 `PlanCompiler.Compile(plan) → (SketchLayout, MapIntent)`, pure + deterministic:
 
 - **Cells → blocks** by `globals.cell` (the v1 scale pass is this uniform multiply; the per-part
-  stretch pass is future work — layout-generation.md §7.1).
+  stretch pass is future work).
 - **Layout:** each piece → a rect `SketchShape` (`base_height` = surface); islands from §2 →
   `SketchIsland` (mirrors flag through); setup from globals (symmetry, centre, bbox from extents).
 - **Intent:** team defs from the orbit order + palette; team-0 placements resolved to block

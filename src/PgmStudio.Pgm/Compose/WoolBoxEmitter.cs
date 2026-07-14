@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>The base wool-approach shape a wool box is filled with — the terrain topology the categorizer
-/// reads back (see the base wool-approach catalog in <c>docs/contracts/layout-generation.md</c> §2).
+/// reads back (see the base wool-approach catalog in <c>docs/contracts/map-generation.md</c> §5).
 /// <see cref="I"/>/<see cref="L"/>/<see cref="Z"/>/<see cref="Scythe"/> are the open path by bend count;
 /// <see cref="U"/>/<see cref="H"/> are the two-leg branch (wool flush on the crossbar vs on its own stub);
 /// <see cref="Clamp"/> caught between two bars; <see cref="Donut"/> around an enclosed void.</summary>
@@ -18,7 +18,7 @@ public enum ApproachFamily { I, L, Z, Scythe, Clamp, U, H, Donut }
 /// <see cref="RoomRun"/> and <see cref="EntryBar"/>/<see cref="RoomBar"/> where a family has two; <see cref="Leg"/>
 /// is a donut ring arm. A role is a <b>template slot, not a property of the rectangle</b> — a scythe's
 /// <c>entry-run</c> and a donut's <c>leg</c> can be the same rectangle in different slots. See the piece
-/// vocabulary in <c>docs/contracts/layout-generation.md</c> §2.</summary>
+/// vocabulary in <c>docs/contracts/map-generation.md</c> §5.</summary>
 public static class ApproachSlots
 {
     public const string Entry = "entry";

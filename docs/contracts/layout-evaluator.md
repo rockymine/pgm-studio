@@ -1,11 +1,15 @@
 # Layout evaluator — derive structure, judge by property (direction doc)
 
+> **Terminology + model:** `docs/contracts/map-generation.md` is canonical. This doc owns the
+> detailed deriver-measurable and evaluator-metric catalogue; the pipeline, the two derivers, roles,
+> and the score model are defined there.
+
 Direction doc for the `G`-series composer track. It reframes layout generation around an **evaluator**
 (a critic that scores a `plan.json`) instead of a generate-and-test sampler, and pins the model that
 makes the evaluator authorable: **author intent · derive structure · judge by property.** It sits
 above `docs/contracts/layout-rules.md` (the frozen rule content the evaluator scores against),
-`docs/contracts/layout-generation.md` (the plan/realize split), and `docs/seed-stats.md` (the measured
-envelopes the soft terms use). It **refines** layout-generation.md §2's role model: structural roles are
+`docs/contracts/map-generation.md` (the canonical model), and `docs/seed-stats.md` (the measured
+envelopes the soft terms use). It follows `map-generation.md`'s role model (§1.4, §3): structural roles are
 *derived*, not authored — and derived cautiously (§5): the evaluator keys off **measurable** quantities,
 not named roles the author is not ready to pin.
 
@@ -422,8 +426,7 @@ asset you keep growing:
   lane / spawn / objective) × per **rotation mode** (rot_180 / rot_90 / mirror_x / mirror_z / none). The
   authored frontline + bridge sets exist; the other cells are the shopping list.
 
-The 350-map corpus is **not** this set: it is unlabeled in plan-model semantics and its quality is mixed
-(layout-generation.md §1). The authored examples — small, high-quality, labeled by intent — are the ground
+The 350-map corpus is **not** this set: it is unlabeled in plan-model semantics and its quality is mixed. The authored examples — small, high-quality, labeled by intent — are the ground
 truth. The traffic pipeline (`docs/contracts/traffic-ground-truth.md`) may promote a *few* real maps into
 labeled layouts; do not block on it.
 

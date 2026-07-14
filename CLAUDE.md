@@ -6,14 +6,6 @@ A from-scratch **ASP.NET Core** rewrite of the Python `pgm-map-studio`
 (routes, the data contract, analysis oracles, and the 350-map corpus). Goal: full feature
 parity in C# with all map data in **MariaDB**.
 
-Approved plan: `/root/.claude/plans/imperative-whistling-key.md`.
-Contract specs (copied from the reference) live in `docs/` — `contracts/region-authoring.md`,
-`contracts/region-categorization.md`, `contracts/filter-region-wiring.md`, `filter-use-cases.md` —
-the design for the authoring (`N`) / `F`-series tasks in `TODO.md`. `contracts/new-map-authoring.md`
-is the **declarative intent-model** direction for new maps (meaning→structure; generator = mirror of
-the categorizer) — original to this repo, the current headline direction and the design for the `N`
-tasks; it **supersedes** the split-view-model bits of `region-authoring.md` for new maps (§7).
-
 ## Stack (decided, do not relitigate)
 ASP.NET Core · FastEndpoints (`/api`) · Blazor WebAssembly hosted by the backend ·
 MariaDB · FluentMigrator · linq2db (MySqlConnector) · TUnit · Parquet.Net.
@@ -112,21 +104,9 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
 9. **Deferred *decisions* are parked** in `BACKLOG.md`, clearly marked with the blocking question — not
    interleaved with actionable tasks.
 
-**Where it stands:** M0–M7 + the intent-model backend + the **Configure wizard** (`N00`–`N07` + `NVAL`)
-are landed (`FEATURES.md`) — a new map flows intent → World → Teams → Build → Wools → Review & Export → a
-validated `map.xml`. The **Sketch-tool depth pass** and the **generated-XML conventions** batch (`B10`/`B11`)
-have shipped (`FEATURES.md`), and so has the **sketch world-folder export** (`P9a`–`P9l`, `FEATURES.md` —
-sketch-originated maps now export a playable `{slug}/` world ZIP: `map.xml` + `level.dat` + `region/*.mca`
-synthesised from the sketch columns + intent; spec in `docs/contracts/sketch-world-export.md`). The **plan
-editor / seed studio has shipped end-to-end** (`G16`–`G21`, `FEATURES.md`): a **12-seed corpus** with honest
-player counts lives in `tools/seeds/`, and **`docs/contracts/layout-rules.md` is FROZEN (2026-07-04) as the
-composer's v1 rule set** (amendments only, via its correction protocol). **Current focus: the composer**
-(`TODO.md`, `G32`) — read `docs/handoff-composer.md` first (plan of attack + working conventions). Player-
-traffic ground truth (formats + logs-only pipeline) is specified in `docs/contracts/traffic-ground-truth.md`
-with the first validated pair in `tools/traffic/` (`G33`). Design docs for the whole direction:
-`docs/contracts/layout-generation.md` · `layout-rules.md` · `plan-editor.md`. Everything else — Configure/authoring polish (`N`), the lane-archetype
-generation track (`G`), shared editor/canvas infra (`C`/`CV`), the rest of backend/pipeline (`B`/`P`/`A`),
-parked Sketch polish (`S12`/`S16`), and the frozen Edit editor's parked feature UIs — is in `BACKLOG.md`.
+## Layout generation — the docs
+The model, terminology, and pipeline are canonical in **`docs/contracts/map-generation.md`**; the frozen
+rule law is **`docs/contracts/layout-rules.md`**; the plan schema is **`docs/contracts/plan-editor.md`**.
 
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts

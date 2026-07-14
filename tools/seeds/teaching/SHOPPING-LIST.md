@@ -30,4 +30,4 @@ do/don't findings become a rule amendment.)
 | **Elevation transitions** — plateau defaults, odd-height stepped palette | EL1/EL6 | queued |
 | **Walls** — marks on terrain↔wool seams | ST1/ST4 | queued |
 
-Findings that motivated the near-term sets are in `docs/composer-review-findings.md`.
+Findings that motivated the near-term sets came from the author's B2 composer review.

@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// Generates the base wool-approach shape fixtures (docs/contracts/layout-generation.md §2) as real
+// Generates the base wool-approach shape fixtures (docs/contracts/map-generation.md §5) as real
 // *.plan.json files, straight from the doc's t/v/w catalog. The t/v/w notation stays doc-only — it lives
 // here only as inline literals that MIRROR the doc (canonical), never as a persisted on-disk format; the
 // output is the actual plan format. The generator also runs the four-way skeleton decision tree on each

@@ -3,8 +3,7 @@
  * one stage of the real generator's pipeline into its own <svg id="gen-stage-…"> panel, from the per-stage
  * intermediates the POST /api/sketch/generate/stages endpoint emits (OrganicLane.GrowStages). Pure render —
  * no interaction. Reuses the geometry + render layers (transform / svg / boolean / symmetry / sketch-render)
- * so the demo draws the same polygons the rest of the studio does. Documented in
- * docs/contracts/organic-lane-generation.md.
+ * so the demo draws the same polygons the rest of the studio does.
  */
 
 import { buildTransform } from "../geometry/transform.js";

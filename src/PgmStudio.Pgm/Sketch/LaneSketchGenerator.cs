@@ -65,7 +65,7 @@ public sealed record LaneLayoutResult(SketchLayout Layout, IReadOnlyList<Objecti
 /// Builds a starter Capture-the-Wool sketch from lane primitives. One team's unit — lanes that dead-end at
 /// the far side (wool tips) plus a spawn hub — is authored once and fanned to every team by the board's
 /// symmetry, with optional neutral mid islands in the contested centre. Wools sit at the lane tips and
-/// spawns at the hub, matching how real maps place objectives (docs/generator-archetypes.md). The output is
+/// spawns at the hub, matching how real maps place objectives. The output is
 /// a <see cref="SketchLayout"/> ready to store on a draft map or feed straight to <see cref="SketchRasterizer"/>.
 /// </summary>
 public static class LaneSketchGenerator
@@ -84,7 +84,7 @@ public static class LaneSketchGenerator
     public static LaneLayoutOptions OrganicOptions(LaneLayoutOptions o) =>
         o is { Width: 60, Height: 90 } ? o with { Width = 120, Height = 150 } : o;
 
-    // ── Organic: lanes grown from the hub out to noise-spread wool tips (docs/contracts/organic-lane-generation.md) ──
+    // ── Organic: lanes grown from the hub out to noise-spread wool tips ──
     private static LaneLayoutResult Organic(LaneLayoutOptions o)
     {
         o = OrganicOptions(o);
