@@ -1,3 +1,4 @@
+using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Compose;
@@ -12,9 +13,11 @@ public sealed record ComposedStages(
 /// arithmetic (<see cref="MidCarver.SampleCrossing"/>), grow one team's authored unit against it
 /// (<see cref="TeamUnitGrower"/>), carve the mid band and stones (<see cref="MidCarver"/>), optionally sever
 /// one marker piece behind a bridge (<see cref="IsolationCut"/>), and assemble the plan. Every attempt's
-/// assembled plan must pass the final acceptance gate — zero validator errors, every void hop in G5's band,
-/// and no closure hole ringed by a wool plateau (WL8 is out of the grammar) — or the whole attempt is
-/// resampled. Cliffs and walls stay empty (the elevation pass fills them later).
+/// assembled plan must pass the <see cref="LayoutEvaluator"/> hard-terms gate — no structural errors, no
+/// WL2/PC-C/G2 lint, every void hop in G5's band, the mid band clear of every wool by two cells (BZ6), and no
+/// closure hole ringed by a wool plateau (WL8) — or the whole attempt is resampled (an optional
+/// <see cref="IComposeRejectSink"/> captures why). Cliffs and walls stay empty (the elevation pass fills them
+/// later).
 /// </summary>
 public static class Composer
 {
@@ -22,9 +25,10 @@ public static class Composer
     private const int GrowAttemptsPerCrossing = 8;
     private const int HoleHuntAttempts = 16;
 
-    public static PlanModel Compose(ComposeRequest request) => ComposeStages(request).Plan;
+    public static PlanModel Compose(ComposeRequest request, IComposeRejectSink? rejects = null) =>
+        ComposeStages(request, rejects).Plan;
 
-    public static ComposedStages ComposeStages(ComposeRequest request)
+    public static ComposedStages ComposeStages(ComposeRequest request, IComposeRejectSink? rejects = null)
     {
         var rng = new ComposeRng(request.Seed);
         var envelope = Envelope.Derive(request, rng);
@@ -51,7 +55,14 @@ public static class Composer
             unit = SpawnWoolRooms.Carve(unit);
 
             var plan = Assemble(request, envelope, unit, mid, cut);
-            if (!Acceptable(plan, unit)) continue;
+            var violation = LayoutEvaluator.Gate(EvalContext.Build(plan), EvaluationProfile.Default);
+            if (violation is not null)
+            {
+                rejects?.Reject(new RejectRecord(
+                    request.Seed, request.PlayersPerTeam, request.Teams, request.Symmetry, attempt, "acceptance",
+                    violation.TermId, violation.RuleId, violation.Subjects));
+                continue;
+            }
 
             // hunt for the sampled hole outcome (CT8): keep resampling for a plan whose hole state matches
             // wantHole — a rotation pocket when wantHole, a holeless closure when not — keeping the first
@@ -65,48 +76,6 @@ public static class Composer
         throw new ComposeException(
             $"composition could not assemble an acceptable plan within {ComposeAttempts} attempts " +
             $"(players {request.PlayersPerTeam}, teams {request.Teams}, symmetry '{request.Symmetry}', seed {request.Seed})");
-    }
-
-    // The final acceptance gate on the assembled plan: it must compile-validate with zero errors (every wool
-    // reachable from every capturing spawn over the fanned board, no wool locked behind a spawn piece — SP1),
-    // every gap-link hop must sit in G5's 10..20 band (the geometric constructions guarantee the designed
-    // hops; this also catches any incidental link the zones create), the mid band must clear every
-    // wool-carrying piece by two full cells across all orbit images (BZ6 — re-checked here because the cut
-    // may move a wool after the band is carved), and no closure hole may be ringed by a wool plateau (a
-    // wool-ringed hole is the two-approaches motif, WL8, which the grammar does not author).
-    private static bool Acceptable(PlanModel plan, GrownUnit unit)
-    {
-        var findings = PlanValidator.Validate(plan);
-        if (findings.Any(f => f.Severity == PlanSeverity.Error)) return false;
-        // reject the acceptance-contract lint rules too (G2 narrow corridor, WL2/PC-C marker distances, G5
-        // hops): the geometric constructions almost always satisfy them, but a resample beats emitting a lint
-        if (findings.Any(f => f.Rule is "WL2" or "PC-C" or "G2" or "G5")) return false;
-        var derived = ContactGraph.Build(plan);
-        if (derived.GapLinks.Any(g => g.Hop < 10 || g.Hop > 20)) return false;
-
-        var woolPieces = unit.Wools.Select(w => w.Piece).ToHashSet();
-
-        // BZ6: band ↔ wool clearance ≥ 2 cells, every image pair
-        var order = Geom.Symmetry.Order(plan.Globals.Symmetry);
-        var axes = Geom.Symmetry.OrbitAxes(plan.Globals.Symmetry);
-        var band = plan.Zones.First(z => z.Id == "mid-band").Rect;
-        var bandImages = Enumerable.Range(0, order)
-            .Select(k => ComposeGeometry.FanImage(band[0], band[1], band[0] + band[2], band[1] + band[3], axes, k))
-            .ToList();
-        foreach (var piece in plan.Pieces.Where(p => woolPieces.Contains(p.Id)))
-            for (var k = 0; k < order; k++)
-            {
-                var (px1, pz1, px2, pz2) = ComposeGeometry.FanImage(
-                    piece.Rect[0], piece.Rect[1], piece.Rect[0] + piece.Rect[2], piece.Rect[1] + piece.Rect[3], axes, k);
-                foreach (var b in bandImages)
-                {
-                    var ix = Math.Min(px2, b.X2) - Math.Max(px1, b.X1);
-                    var iz = Math.Min(pz2, b.Z2) - Math.Max(pz1, b.Z1);
-                    if (ix > -2 + 1e-9 && iz > -2 + 1e-9) return false;
-                }
-            }
-
-        return !ClosureAnalysis.AnyHoleRingedBy(plan, woolPieces);
     }
 
     private static PlanModel Assemble(

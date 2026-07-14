@@ -25,8 +25,9 @@ Full analysis: `docs/map-generation-architecture-review.md`.
 
 We pay this down **refactor-first**, before the interface / hub / lane features and **before the G32-D
 goldens freeze** — because the box-model milestones (M2–M4) re-key every seed's RNG, so goldens frozen
-first would just re-break, and the consolidation makes every later feature cheaper. The batch below is
-the evaluator foundation (G60); it changes no generated output until G61. The interface / hub / lane feature
+first would just re-break, and the consolidation makes every later feature cheaper. The batch below is the
+evaluator's soft half (G60, on the landed foundation); output only begins to shift once its soft terms +
+lowest-scoring-attempt land, and the seed goldens do not freeze until G63. The interface / hub / lane feature
 long-tail and the box milestones M2–M4 (G61 / G62 / G41 / G63) are parked in `BACKLOG.md`, reworded to be
 delivered *through* the box model rather than against the current grower.
 
@@ -40,25 +41,27 @@ board as a library call. One deferred slice — the `FannedGraph` ↔ `ContactGr
 Shipped so far (`FEATURES.md`): closure/envelope + team-unit grower, the CT1 mid band, centre islands
 (CT11), the MD6 stone grid, the wide frontline (FR6), isolation cuts, BZ6–BZ9 discipline, the spawn +
 wool-room dock (G49), the **box-based wool-approach shape vocabulary + classifier/emitter/deriver**
-(G53/G54), the authoring lever (G46–G48), and the **M0 shape substrate + family-enum consolidation** (G58).
+(G53/G54), the authoring lever (G46–G48), the **M0 shape substrate + family-enum consolidation** (G58), the
+**M1 board deriver in `src`** (G59), and the **evaluator engine + `Acceptable` dissolve** (G60 foundation).
 
 **Consolidation — the refactor-first batch (current)**
-- [ ] **G60 — Composer evaluator engine.** `Pgm/Evaluate/`:
-  `LayoutEvaluator.Evaluate(plan | EvalContext, profile) → Evaluation`, where
-  `Score = Σ hard-penalties + Σ w·envelope-distance` (lower is better; 0 = perfect). `ILayoutTerm` — one
-  per `layout-rules.md` id, reading derived measurables only, never family names (the enumeration-trap
-  rule). `EvalContext` (Plan + `ContactGraph` + `BoardStructure` + `SeedEnvelopes`, derived once).
-  `EvaluationProfile` (per-term enabled + weight — the criteria on/off switch: composer gate, editor
-  lint, and sweep each run a profile). `SeedEnvelopes` from a **generated** `seed-envelopes.json`
-  (`tools/deriver/envelope-stats.cs` over `tools/seeds/`; global bands first, split by symmetry mode only
-  where the ranking harness proves a global band mis-ranks; also regenerates `docs/seed-stats.md`).
-  **Dissolve `Composer.Acceptable`** into a hard-terms-only **short-circuit** gate + a reject log
-  (`{seed,request,attempt,stage,termId,ruleId,subjects}`, RNG-reproducible); the hole-hunt loop keeps the
-  **lowest-scoring** acceptable attempt. `EvaluationDto` in `Contracts` + `POST /api/plan/evaluate` for
-  the editor's live score/lint (findings render like `PlanValidator`'s). Ranking harness `eval-rank.cs` +
-  minimal-pair negatives (`tools/seeds/negatives/` + `labels.json`): assert
-  `Score(negative) > Score(positive)` **and** the labelled term fires. Per-term TUnit tests. Depends on
-  G59. (review §5, §9)
+
+**G60 foundation landed (`FEATURES.md`):** the `Pgm/Evaluate/` engine — `LayoutEvaluator.Evaluate`/`Gate`,
+`ILayoutTerm`, `EvalContext` (lazy `BoardStructure`), `EvaluationProfile`, `SeedEnvelopes` + the `Band` distance
+convention — and the **dissolved `Composer.Acceptable`**: seven hard terms (STRUCT, WL2/PC-C/G2, G5, BZ6, WL8) +
+the opt-in reject sink, composed output **byte-identical**. The soft half + wiring remain below.
+
+- [~] **G60 — Composer evaluator: soft terms, envelopes, wiring, harness.** On the landed engine:
+  **(1) `SeedEnvelopes` generation** — `tools/deriver/envelope-stats.cs` runs the deriver over `tools/seeds/`,
+  writes `Evaluate/seed-envelopes.json` (global bands first, split by symmetry mode only where the ranking
+  harness proves a global band mis-ranks) and regenerates `docs/seed-stats.md`. **(2) The §6 soft-term
+  catalogue** — one `ILayoutTerm` per `layout-rules.md` id, reading `BoardStructure` measurables only (never a
+  family name — the enumeration trap), scored as `Band` distance; and the hole-hunt loop keeps the
+  **lowest-scoring** acceptable attempt (not the first). **(3) Wiring** — `EvaluationDto` in `Contracts` +
+  `POST /api/plan/evaluate` for the editor's live score/lint (findings render like `PlanValidator`'s).
+  **(4) Ranking harness** `eval-rank.cs` + minimal-pair negatives (`tools/seeds/negatives/` + `labels.json`):
+  assert `Score(negative) > Score(positive)` **and** the labelled term fires; per-term TUnit tests for each new
+  soft term. (review §5, §9; `docs/contracts/layout-evaluator.md`)
 
 **Realize & gate (plan → loadable, validated seed)**
 - [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`); the `spawn` / `wool-room` piece

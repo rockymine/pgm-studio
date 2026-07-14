@@ -747,6 +747,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   failures unchanged), Api builds clean. Canonical doc §1.3/§6.2 now name the classes, not the script. The one
   deferred slice — `FannedGraph.LandAdjacent` ↔ `ContactGraph` surface-overlap reconcile — is G65.
   (G59)
+- **Composer evaluator engine — foundation (M2 groundwork)** — `Pgm/Evaluate/`: the one place layout rules are
+  scored. `LayoutEvaluator.Evaluate(ctx | plan, profile) → Evaluation` (`Score = Σ hard-penalty + Σ w·distance`,
+  lower is better, 0 = perfect) + a hard-only short-circuit `Gate`; `ILayoutTerm` (reads derived measurables,
+  cites one `layout-rules.md` id, never a family name); `EvalContext` (derives `ContactGraph` + `PlanValidator`
+  findings once, **lazy `BoardStructure`** so the gate never derives the board on its resample loop);
+  `EvaluationProfile` (per-term enable/weight — the criteria on/off switch); `SeedEnvelopes` + the `Band`
+  distance convention (metric normalized by the band half-width). **`Composer.Acceptable` dissolved** into the
+  gate: seven hard terms port it one-to-one — `StructuralIntegrity` (STRUCT), `LintRejectTerm` (WL2/PC-C/G2),
+  `GapHopBand` (G5), `BandWoolClearance` (BZ6), `WoolRingedHole` (WL8) — plus an opt-in `IComposeRejectSink`
+  (RNG-reproducible `{seed,request,attempt,stage,termId,ruleId,subjects}`, null by default). Faithful:
+  composed output **byte-identical** over the 300-case sweep; 25 new tests (distance convention, each term at
+  its boundary, engine score/gate/profile, and a permanent every-composed-plan-passes-the-gate guard) green.
+  Review: `docs/map-generation-architecture-review.md` §5/§9; direction: `docs/contracts/layout-evaluator.md`.
+  (G60)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
