@@ -26,27 +26,21 @@ Full analysis: `docs/map-generation-architecture-review.md`.
 We pay this down **refactor-first**, before the interface / hub / lane features and **before the G32-D
 goldens freeze** — because the box-model milestones (M2–M4) re-key every seed's RNG, so goldens frozen
 first would just re-break, and the consolidation makes every later feature cheaper. The batch below is
-pure refactor + the evaluator foundation (G58 → G59 → G60); it changes no generated output until G61. The
+pure refactor + the evaluator foundation (G59 → G60); it changes no generated output until G61. The
 interface / hub / lane feature long-tail and the box milestones M2–M4 (G61 / G62 / G41 / G63) are parked
 in `BACKLOG.md`, reworded to be delivered *through* the box model rather than against the current grower.
+
+**M0 landed (G58, `FEATURES.md`):** the `Geom.Cells` substrate + one `ShapeFamily` enum + `Shapes/ShapeClassifier`
+(`WoolApproachShape` dissolved) + `LaneRead`/`ClassifyOpen`, with the three mirror harnesses ported to TUnit —
+`derive-gallery` byte-identical. Two of the five substrate sites now route through `Geom.Cells`; the other three
+(`ClosureAnalysis`, the gallery raster, `FannedGraph`) rewire onto it as part of G59, when they move into `src`.
 
 Shipped so far (`FEATURES.md`): closure/envelope + team-unit grower, the CT1 mid band, centre islands
 (CT11), the MD6 stone grid, the wide frontline (FR6), isolation cuts, BZ6–BZ9 discipline, the spawn +
 wool-room dock (G49), the **box-based wool-approach shape vocabulary + classifier/emitter/deriver**
-(G53/G54), and the authoring lever (G46–G48).
+(G53/G54), the authoring lever (G46–G48), and the **M0 shape substrate + family-enum consolidation** (G58).
 
 **Consolidation — the refactor-first batch (current)**
-- [ ] **G58 — [M0] Shape substrate + one family enum (pure refactor, zero output change).** New
-  `PgmStudio.Geom/Cells.cs` for the substrate hand-rolled in 5 sites: N4 neighbours · flood fill ·
-  connected components · enclosed-void detection · reflex-corner count · bays · bounding-box ·
-  min-run-width. Merge `ApproachFamily` (Compose, 8) + `ApproachShape` (Plan, 9 incl. `Isolated`) into
-  one `ShapeFamily` enum so the emit↔derive mirror is `derived == requested` on one type, not a
-  `ToString()` bridge. `WoolApproachShape` dissolves into `Shapes/ShapeClassifier` taking **terminal**
-  cells (nothing in it is wool-specific); `WoolLaneShape`'s string result → a `LaneRead` enum
-  (`ClassifyOpen`). Kill the dead `laneWidth` param; fix stale doc refs (`WoolBoxEmitterTests` §2,
-  `ApproachSlots` xmldoc). Port the three mirror harnesses (`shapes-gen`/`emit-verify`/`stress-shapes`)
-  from `tools/` → TUnit. Acceptance: `derive-gallery` output **byte-identical** over the base seeds +
-  generated cases. (review §3, §7.1)
 - [ ] **G59 — [M1] Board deriver into `src`.** Extract the raster-layer `Derive()` (~460 lines run-by-hand
   in `tools/deriver/derive-gallery.cs`) into `Pgm/Derive/BoardDeriver.Derive(plan) → BoardStructure`
   (islands + anchor roles, stepping-stone kinds, intra/self bridges, zone kinds + widths, hole classes +

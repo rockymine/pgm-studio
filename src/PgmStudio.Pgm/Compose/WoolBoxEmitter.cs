@@ -1,13 +1,7 @@
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
-
-/// <summary>The base wool-approach shape a wool box is filled with — the terrain topology the categorizer
-/// reads back (see the base wool-approach catalog in <c>docs/contracts/map-generation.md</c> §5).
-/// <see cref="I"/>/<see cref="L"/>/<see cref="Z"/>/<see cref="Scythe"/> are the open path by bend count;
-/// <see cref="U"/>/<see cref="H"/> are the two-leg branch (wool flush on the crossbar vs on its own stub);
-/// <see cref="Clamp"/> caught between two bars; <see cref="Donut"/> around an enclosed void.</summary>
-public enum ApproachFamily { I, L, Z, Scythe, Clamp, U, H, Donut }
 
 /// <summary>The wool-approach <b>slot roles</b> — the shape-internal taxonomy every emitted piece carries
 /// (<see cref="GrownPiece.Slot"/>), naming its position in the family template so the composition rules read
@@ -32,19 +26,19 @@ public static class ApproachSlots
     public const string RoomBar = "room-bar";
 
     /// <summary>The canonical ordered slot template of <paramref name="family"/> — terrain slots in emit order,
-    /// the <see cref="Room"/> last — the §2 piece-vocabulary table as data. This is the base configuration
+    /// the <see cref="Room"/> last — the §5.3 piece-vocabulary table as data. This is the base configuration
     /// (single donut attachment, no wool-extend, inline room); the optional donut knobs add pieces
     /// (a second attachment is another <see cref="Entry"/>, a wool-extend a <see cref="Run"/>).</summary>
-    public static IReadOnlyList<string> Template(ApproachFamily family) => family switch
+    public static IReadOnlyList<string> Template(ShapeFamily family) => family switch
     {
-        ApproachFamily.I     => [Entry, Room],
-        ApproachFamily.L     => [Entry, Run, Room],
-        ApproachFamily.Z     => [Entry, Bar, RoomRun, Room],
-        ApproachFamily.Scythe => [Entry, EntryRun, Bar, RoomRun, Room],
-        ApproachFamily.Clamp => [Entry, Entry, Room],
-        ApproachFamily.U     => [Bar, Entry, Entry, Room],
-        ApproachFamily.H     => [Bar, Entry, Entry, RoomRun, Room],
-        ApproachFamily.Donut => [EntryBar, Leg, Leg, Entry, RoomBar, Room],
+        ShapeFamily.I     => [Entry, Room],
+        ShapeFamily.L     => [Entry, Run, Room],
+        ShapeFamily.Z     => [Entry, Bar, RoomRun, Room],
+        ShapeFamily.Scythe => [Entry, EntryRun, Bar, RoomRun, Room],
+        ShapeFamily.Clamp => [Entry, Entry, Room],
+        ShapeFamily.U     => [Bar, Entry, Entry, Room],
+        ShapeFamily.H     => [Bar, Entry, Entry, RoomRun, Room],
+        ShapeFamily.Donut => [EntryBar, Leg, Leg, Entry, RoomBar, Room],
         _ => throw new ComposeException($"no slot template for family {family}."),
     };
 }
@@ -66,7 +60,7 @@ public sealed record EmittedApproach(IReadOnlyList<GrownPiece> Terrain, GrownPie
 
 /// <summary>
 /// Fills a wool box with a base wool-approach shape — the composer's mirror of the categorizer's shape
-/// read. Given the box, a target <see cref="ApproachFamily"/> and a corridor width, it emits rectilinear
+/// read. Given the box, a target <see cref="ShapeFamily"/> and a corridor width, it emits rectilinear
 /// terrain that realizes exactly that family: the lane enters at the mouth (top edge), turns the family's
 /// number of times, and caps at a dead-end wool room. Output is composer-native <see cref="GrownPiece"/>s
 /// (id prefix <paramref name="idPrefix"/>), so it drops into the grown unit; <see cref="AsPlan"/> wraps one
@@ -90,12 +84,13 @@ public static class WoolBoxEmitter
     /// (donut) holds the wool a short I out from the shape rather than tucked against it.
     /// <paramref name="attachmentWidth"/> (donut) is the hub-interface width of each attachment in cells (0 =
     /// one corridor width; the width grammar's w2/w4/w6 = <c>cw</c>/<c>2·cw</c>/<c>3·cw</c>).</summary>
-    public static EmittedApproach Emit(ApproachFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa")
+    public static EmittedApproach Emit(ShapeFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa")
     {
         var cw = corridorWidth;
+        if (family == ShapeFamily.Isolated) throw new ComposeException("the emitter fills terminal-capped families; Isolated is a derive-only reading.");
         if (cw < 2) throw new ComposeException($"corridor width {cw} < 2 (a lane is at least one 10-block cell pair).");
         if (cw > box.W) throw new ComposeException($"corridor width {cw} exceeds box width {box.W}.");
-        if (roomPlacement == RoomPlacement.SideTuck && family != ApproachFamily.I)
+        if (roomPlacement == RoomPlacement.SideTuck && family != ShapeFamily.I)
             throw new ComposeException($"side-tuck room is only supported for the I family in this pass (requested {family}).");
 
         var t = new List<(int[] Rect, string Slot)>();
@@ -103,7 +98,7 @@ public static class WoolBoxEmitter
         double[]? at = null;                                 // wool marker offset within the room (defaults to centre)
         switch (family)
         {
-            case ApproachFamily.I when roomPlacement == RoomPlacement.SideTuck:
+            case ShapeFamily.I when roomPlacement == RoomPlacement.SideTuck:
             {
                 // straight lane; the room is a stub off the SIDE of the lane at the terminal — the catalog's
                 // side-tuck (tttt/vvvw): the lane runs straight to its end and the wool ducks off to one side.
@@ -115,7 +110,7 @@ public static class WoolBoxEmitter
                 at = [RoomDepthCells / 2.0, cw / 2.0];
                 break;
             }
-            case ApproachFamily.I:
+            case ShapeFamily.I:
             {
                 Need(box.H >= RoomDepthCells + 1, family, box);
                 int lx = (box.W - cw) / 2, laneH = box.H - RoomDepthCells;
@@ -123,7 +118,7 @@ public static class WoolBoxEmitter
                 room = [lx, laneH, cw, RoomDepthCells];
                 break;
             }
-            case ApproachFamily.L:
+            case ShapeFamily.L:
             {
                 // vertical arm down one side, a horizontal band across the bottom, room at its far end. The
                 // +1 guarantees ≥1 cell of horizontal arm beyond the vertical, so the bend is real (without it
@@ -135,7 +130,7 @@ public static class WoolBoxEmitter
                 room = [box.W - roomLen, bandZ, roomLen, cw];        // dead-end at the far side of the band
                 break;
             }
-            case ApproachFamily.Z:
+            case ShapeFamily.Z:
             {
                 // top arm on the left, a full-width band, bottom arm on the right ending in the room.
                 Need(box.W >= 2 * cw && box.H >= 3 * cw + RoomDepthCells, family, box);
@@ -147,7 +142,7 @@ public static class WoolBoxEmitter
                 room = [box.W - cw, box.H - RoomDepthCells, cw, RoomDepthCells];
                 break;
             }
-            case ApproachFamily.Scythe:
+            case ShapeFamily.Scythe:
             {
                 // the S-hook (ttvw/vtvt/vttt): enter at the top-left tail, drop the spine, run the bottom,
                 // climb the return leg to the wool at top-right — three bends with a tight bay between the
@@ -161,7 +156,7 @@ public static class WoolBoxEmitter
                 room = [3 * cw, 0, cw, RoomDepthCells];              // wool caps the return leg (top-right)
                 break;
             }
-            case ApproachFamily.H:
+            case ShapeFamily.H:
             {
                 // the branch with a room-run STUB: two legs run down to the hub and merge at a crossbar; the wool
                 // caps a short stub rising from the crossbar's opposite side — its middle, or an end (woolAtEnd).
@@ -176,7 +171,7 @@ public static class WoolBoxEmitter
                 room = [wx, 0, cw, RoomDepthCells];                  // wool caps the stub (middle or an end)
                 break;
             }
-            case ApproachFamily.U:
+            case ShapeFamily.U:
             {
                 // the branch with the wool FLUSH on the crossbar (no stub): two legs down to the hub, the
                 // crossbar, and the wool docked directly on the crossbar's opposite side — middle, or an end
@@ -191,7 +186,7 @@ public static class WoolBoxEmitter
                 room = [wx, 0, cw, RoomDepthCells];                  // wool flush on the crossbar
                 break;
             }
-            case ApproachFamily.Clamp:
+            case ShapeFamily.Clamp:
             {
                 // the wool clamped between two parallel bars, approached from the open side (tt/vw/tt) — the wool
                 // is the closing wall connecting them (terrain on two opposite sides, and it bridges them).
@@ -202,7 +197,7 @@ public static class WoolBoxEmitter
                 room = [barLen - cw, cw, cw, box.H - 2 * cw];        // wool = the closing wall (connects the bars)
                 break;
             }
-            case ApproachFamily.Donut:
+            case ShapeFamily.Donut:
             {
                 // a rectangular ring around an enclosed hole (multi-access), built from NON-overlapping rects.
                 // Hub-side attachment stub(s) extend the bars leftward (single = top only, double = top+bottom).
@@ -252,7 +247,7 @@ public static class WoolBoxEmitter
         return new EmittedApproach(terrain, woolRoom, at);
     }
 
-    private static void Need(bool ok, ApproachFamily family, WoolBox box)
+    private static void Need(bool ok, ShapeFamily family, WoolBox box)
     {
         if (!ok) throw new ComposeException($"wool box {box.W}x{box.H} is too small for family {family}.");
     }

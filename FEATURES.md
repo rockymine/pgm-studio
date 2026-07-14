@@ -694,7 +694,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   compose review gallery (`tools/compose/gallery-gen.cs`) renders the rooms in the editor's role colours.
   323 Pgm tests green. (G49)
 
-- **Wool-approach classifier — width-independent, structural** — `Pgm/Plan/WoolApproachShape.cs`: the
+- **Wool-approach classifier — width-independent, structural** — `Pgm/Shapes/ShapeClassifier.cs` (dissolved
+  from `Pgm/Plan/WoolApproachShape.cs` by G58): the
   categorizer's read of a wool box, rebuilt so **nothing keys off the absolute width of any piece** (uniform
   scale and per-piece thickness never change the family). One tree: enclosed void → **donut**; wool bridging
   two opposite bars (removing it disconnects the terrain) → **Clamp**; else by bend count off the outline
@@ -704,8 +705,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   else **Z**). A bay is a one-bbox-edge concavity (any width), a branch is two runs on a shared edge (a thick
   leg is still one leg), the U/H split is the crossbar's overhang past the wool. **Plug dropped** (a solid body
   is a wide/solid **I**; the room-only dock is an interface concern, replaceable by a short-entry **I**). Fixes
-  the wide-H→Scythe/Plug, wide-Z→Plug, and wide-bay→Z misreads. Verified: `shapes-gen` **17/17**, `emit-verify`
-  **113/113**, `stress-shapes` **31/31 · 0 breaks** (grammar-valid but extreme pieces). Contract:
+  the wide-H→Scythe/Plug, wide-Z→Plug, and wide-bay→Z misreads. Verified by the mirror/catalog/stress suite
+  (`shapes-gen`/`emit-verify`/`stress-shapes`, now the TUnit `Shapes/` tests — G58). Contract:
   `docs/contracts/map-generation.md` §5. (G53)
 
 - **Wool-box pieces carry their slot role** — `Pgm/Compose/WoolBoxEmitter.cs` + `TeamUnitGrower.cs`:
@@ -716,8 +717,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   and is the foundation the shift (G50) / width (G51) / docking (G52) rules target — those name a slot instead
   of re-deriving it from geometry. Invariants held: a family emits a **stable piece count** (no collinear
   merges) and a role is a **template slot, not a property of the rectangle**. Verified: `WoolBoxEmitterTests`
-  (25 cases — template order per family, flip/variant invariants, stable count) + `emit-verify` slot section
-  (**121/121**). Contract: `docs/contracts/map-generation.md` §5. (G54)
+  (25 cases — template order per family, flip/variant invariants, stable count) + the `ShapeMirrorTests` slot
+  round-trip (G58). Contract: `docs/contracts/map-generation.md` §5. (G54)
+
+- **Shape substrate + one family enum (M0 consolidation)** — `Geom/Cells.cs` + `Pgm/Shapes/`: the shared
+  rectilinear cell substrate (N4 · flood · connected components · enclosed-void · reflex corners · bays ·
+  bounding-box · min-run-width) extracted to the `Geom` leaf, and the base-shape taxonomy unified into **one
+  `ShapeFamily` enum** (`Isolated, I, L, Z, Scythe, Clamp, U, H, Donut`) shared by emit and derive — the mirror
+  now closes as `derived == requested` on one type, not a `ToString()` bridge across the old
+  `ApproachFamily`/`ApproachShape` pair. `WoolApproachShape` dissolves into `Shapes/ShapeClassifier` reading
+  **terminal** cells (nothing wool-specific; the dead `laneWidth` param is gone); the wool-lane string read
+  becomes a `LaneRead` enum via `ShapeClassifier.ClassifyOpen`, with `WoolLaneShape` kept as a thin string shim.
+  The three run-by-hand mirror harnesses move into the suite — `ShapeMirrorTests` (emit↔derive), `ShapeCatalogTests`
+  (the §5 t/v/w catalog), `ShapeStressTests` (extreme-geometry width-invariance) — plus direct `CellsTests`.
+  Pure refactor: `derive-gallery` output **byte-identical** over all base + generated cases; Geom 61/0, +67 shape
+  tests green, 5 pre-existing Pgm failures unchanged. `ClosureAnalysis` / the gallery raster / `FannedGraph`
+  rewire onto `Cells` at M1 (G59). Review: `docs/map-generation-architecture-review.md` §3. (G58)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
