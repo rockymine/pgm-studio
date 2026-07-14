@@ -39,17 +39,22 @@
           <span class="activity-logo-sub">STUDIO</span>
         </div>
       </a>
-      <button class="activity-btn @(settingsOpen ? "active" : null)" title="@(settingsOpen ? "Hide settings" : "Show settings")" @onclick="ToggleSettings">
+      <button class="activity-btn @(leftPanel == "settings" ? "active" : null)" title="Settings" @onclick='() => SelectActivity("settings")'>
         <i data-lucide="sliders-horizontal"></i>
+      </button>
+      <button class="activity-btn @(leftPanel == "validation" ? "active" : null)" title="Validation — evaluator score &amp; fired rules" @onclick='() => SelectActivity("validation")'>
+        <i data-lucide="shield-check"></i>
       </button>
     </nav>
 
     <div class="activity-viewport">
       <div class="workspace">
-        @if (settingsOpen)
+        @if (leftOpen)
         {
         <div class="workspace-sidebar">
           <div class="workspace-scroll">
+            @if (leftPanel == "settings")
+            {
             <div class="panel-section">
               <div class="field">
                 <label class="field-label">Plan name</label>
@@ -136,17 +141,54 @@
                         @onclick='() => ToggleOverlay("frontline")'>Frontline</button>
                 <button class="filter-chip @(overlayLabels ? "filter-chip--active" : null)" title="Piece / build-area id labels and build-area gap links with hop distance"
                         @onclick='() => ToggleOverlay("labels")'>Labels</button>
-                <button class="filter-chip @(overlayViolations ? "filter-chip--active" : null)" title="Evaluator evidence — the fired rules drawn on the grid"
-                        @onclick='() => ToggleOverlay("violations")'>Rules</button>
                 <button class="filter-chip @(heightMap ? "filter-chip--active" : null)" title="Colour pieces by island height (surface y)"
                         @onclick="ToggleHeightMap">Heights</button>
               </div>
               <p class="section-desc">Toggle the derived-structure overlays and the height ramp drawn on the canvas.</p>
             </div>
+            }
+            else
+            {
+            <div class="panel-section">
+              <div class="section-header section-header--ruled">
+                <h2 class="section-title">Validation</h2>
+                @if (evaluation is not null)
+                {
+                  <span class="badge @(evaluation.Valid ? "badge--success" : "badge--error")" title="Evaluator cost — lower is better, 0 is perfect">@evaluation.Score.ToString("0.##")</span>
+                }
+              </div>
+              @if (evaluation is null)
+              {
+                <p class="section-desc">The evaluator scores the plan against the layout rules — hard well-formedness first, then soft feel. Click a fired rule to isolate its evidence on the canvas.</p>
+              }
+              else if (evaluation.Violations.Count == 0)
+              {
+                <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> No rules fired</div>
+              }
+              else
+              {
+                <div class="plan-lint-list">
+                  @for (var i = 0; i < evaluation.Violations.Count; i++)
+                  {
+                    var idx = i;
+                    var v = evaluation.Violations[i];
+                    <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show only this rule's evidence on the canvas">
+                      <span class="plan-lint-dot @(v.Kind == "hard" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
+                      <span class="plan-lint-chip">@v.RuleId</span>
+                      <span class="plan-lint-msg">@v.Message</span>
+                      @if (v.Kind == "soft") { <span class="list-tag">@v.Distance.ToString("0.#")</span> }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            }
           </div>
         </div>
-        <div class="sidebar-handle"></div>
         }
+        <button class="panel-edge-toggle" title="@(leftOpen ? "Collapse panel" : "Expand panel")" @onclick="ToggleLeftPanel">
+          <i data-lucide="@(leftOpen ? "chevron-left" : "chevron-right")"></i>
+        </button>
 
         <div class="workspace-canvas">
           <div class="canvas-subbar">
@@ -285,40 +327,6 @@
                 <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete marker
                 </button>
-              }
-            </div>
-
-            <div class="panel-section">
-              <div class="section-header section-header--ruled">
-                <h2 class="section-title">Score</h2>
-                @if (evaluation is not null)
-                {
-                  <span class="badge @(evaluation.Valid ? "badge--success" : "badge--error")" title="Evaluator cost — lower is better, 0 is perfect">@evaluation.Score.ToString("0.##")</span>
-                }
-              </div>
-              @if (evaluation is null)
-              {
-                <p class="section-desc">The evaluator scores the plan against the layout rules — hard well-formedness first, then soft feel. Click a fired rule to highlight it; toggle <strong>Rules</strong> on the canvas to see its evidence.</p>
-              }
-              else if (evaluation.Violations.Count == 0)
-              {
-                <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> No rules fired</div>
-              }
-              else
-              {
-                <div class="plan-lint-list">
-                  @for (var i = 0; i < evaluation.Violations.Count; i++)
-                  {
-                    var idx = i;
-                    var v = evaluation.Violations[i];
-                    <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show only this rule's evidence on the canvas">
-                      <span class="plan-lint-dot @(v.Kind == "hard" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
-                      <span class="plan-lint-chip">@v.RuleId</span>
-                      <span class="plan-lint-msg">@v.Message</span>
-                      @if (v.Kind == "soft") { <span class="list-tag">@v.Distance.ToString("0.#")</span> }
-                    </button>
-                  }
-                </div>
               }
             </div>
           </div>

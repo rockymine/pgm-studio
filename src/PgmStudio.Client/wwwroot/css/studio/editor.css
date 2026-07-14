@@ -874,6 +874,26 @@ body.dashboard-page { overflow: hidden; }
    PLAN EDITOR (the seed studio)
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* Panel-edge collapse toggle — a slim in-flow strip riding the left panel's right edge (or, when the panel
+   is collapsed, the canvas's left edge). The activity rail switches panels, so it can no longer double as
+   the hide control; this button owns collapse. Panel-coloured so it reads as part of the panel/rail. */
+.panel-edge-toggle {
+  flex-shrink: 0;
+  width: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: var(--bg-panel);
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.panel-edge-toggle:hover { color: var(--text-bright); background: var(--border); }
+.panel-edge-toggle svg { width: 14px; height: 14px; }
+
 /* Canvas-toolbar palette — the draw tools (pieces / build / markers / technical) as compact horizontal
    buttons in the plan editor's canvas sub-bar. Scrolls rather than overflowing when space is tight. */
 .plan-toolbar {

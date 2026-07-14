@@ -39,10 +39,21 @@ public partial class PlanEditor
     private string zoomLabel = "—";
     private string? importError;
 
-    // Left settings panel (plan name / globals / reference / overlays) collapse — the drawing tools live
-    // in the canvas toolbar, so the panel is pure settings and can fold away to give the canvas room.
-    private bool settingsOpen = true;
-    private void ToggleSettings() => settingsOpen = !settingsOpen;
+    // The left panel is a rail-selected activity — "settings" (plan name / globals / reference / overlays)
+    // or "validation" (the evaluator score + fired rules) — plus a collapse flag driven by the panel-edge
+    // button. The rail icons now switch activity, so they can no longer double as the hide toggle. Selecting
+    // "validation" switches on the Rules evidence layer, so the activity itself IS the validation-layer toggle.
+    private string leftPanel = "settings";
+    private bool leftOpen = true;
+
+    private async Task SelectActivity(string which)
+    {
+        leftPanel = which;
+        leftOpen = true;
+        if (handle is not null) await handle.InvokeVoidAsync("setOverlay", "violations", which == "validation");
+    }
+
+    private void ToggleLeftPanel() => leftOpen = !leftOpen;
 
     // Globals mirrored from the plan document (the JS bridge is the source of truth; these drive the form).
     private string planName = "Untitled plan";
@@ -55,8 +66,9 @@ public partial class PlanEditor
 
     private PlanSelection? sel;
 
-    // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs).
-    private bool overlayInterfaces = true, overlayFrontline = true, overlayLabels, overlayViolations = true;
+    // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs). The Rules (violations)
+    // layer is not here — it is driven by the "validation" activity, not a settings-panel toggle.
+    private bool overlayInterfaces = true, overlayFrontline = true, overlayLabels;
     private bool heightMap;
 
     // The live evaluator feed (score + fired rules), pushed from the bridge's /api/plan/evaluate poll. Null when
@@ -104,6 +116,8 @@ public partial class PlanEditor
         await handle.InvokeVoidAsync("setRole", role);
         try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
         try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
+        // The Rules layer follows the active activity, not the persisted overlay flag — sync it to the initial one.
+        try { await handle.InvokeVoidAsync("setOverlay", "violations", leftPanel == "validation"); } catch { }
         try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
         try { surfaceStep = await handle.InvokeAsync<double>("getSurfaceStep"); } catch { /* keep default 2 */ }
         try
@@ -179,7 +193,6 @@ public partial class PlanEditor
             "interfaces" => overlayInterfaces = !overlayInterfaces,
             "labels" => overlayLabels = !overlayLabels,
             "frontline" => overlayFrontline = !overlayFrontline,
-            "violations" => overlayViolations = !overlayViolations,
             _ => true,
         };
         if (handle is not null) await handle.InvokeVoidAsync("setOverlay", key, on);
@@ -206,7 +219,6 @@ public partial class PlanEditor
         overlayInterfaces = o.Interfaces;
         overlayLabels = o.Labels;
         overlayFrontline = o.Frontline;
-        overlayViolations = o.Violations;
     }
 
     // ── globals form ─────────────────────────────────────────────────────────────

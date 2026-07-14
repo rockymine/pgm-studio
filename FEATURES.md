@@ -611,6 +611,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   build │ spawn · wool · iron · wall │ buffer · connector` with separators; the visibility toggles moved the other
   way — out of the toolbar into an **Overlays** section in the settings panel. All tool/overlay wiring
   unchanged (same bridge calls); verified light + dark. (G71)
+- **Plan editor validation activity + panel-edge collapse** — the left panel is now a rail-selected
+  **activity**: a second rail icon (**Validation**, below Settings) switches the sidebar between *Settings*
+  (plan name / globals / reference / overlays) and *Validation* (the evaluator score + fired rules, moved
+  out of the right inspector so it no longer competes with the selection inspector). Selecting Validation
+  switches on the **Rules evidence layer**, so the activity itself is the layer toggle — the Rules chip is
+  gone from Overlays, and the layer follows the active activity (not a persisted flag), off in Settings.
+  Because the rail icons now switch activity, a dedicated **panel-edge collapse button** (a chevron riding
+  the panel's right edge, or the canvas's left edge when folded) owns hide/show; collapsing keeps the active
+  mode and its Rules layer. Click-a-fired-rule-to-isolate its evidence carries over. Verified light + dark. (G72)
 - **Plan-editor reference backdrop (trace real maps)** — a **Reference** sidebar section picks any processed
   map (`GET /api/maps` now flags `hasSurface`; 367/390 traceable) and paints its top-down block render behind
   the grid as a tracing aid, reusing the shared `render/block-render.js` rasteriser in a new bottom
