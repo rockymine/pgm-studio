@@ -35,4 +35,14 @@ public sealed class BandTests
         await Assert.That(new Band(5.0, 5.0).Distance(6.0)).IsEqualTo(2.0).Within(1e-9);
         await Assert.That(new Band(5.0, 5.0).Distance(5.0)).IsEqualTo(0.0).Within(1e-9);
     }
+
+    [Test]
+    public async Task A_zero_tolerance_band_scores_one_unit_out_as_distance_one()
+    {
+        // [0,0] has no value to scale a floor from, so it floors to 1.0 — a count one over is distance 1.0, a
+        // bounded soft penalty (not ~1e9, which would swamp a hard violation).
+        await Assert.That(new Band(0.0, 0.0).Distance(1.0)).IsEqualTo(1.0).Within(1e-9);
+        await Assert.That(new Band(0.0, 0.0).Distance(2.0)).IsEqualTo(2.0).Within(1e-9);
+        await Assert.That(new Band(0.0, 0.0).Distance(0.0)).IsEqualTo(0.0).Within(1e-9);
+    }
 }

@@ -9,14 +9,18 @@ namespace PgmStudio.Pgm.Evaluate;
 public readonly record struct Band(double Lo, double Hi)
 {
     /// <summary>Half the band's width — the distance normalizer. A degenerate band (<c>Lo == Hi</c>) has no
-    /// width, so it falls back to a floor (<c>|Hi|·0.1</c>, itself floored to ε) rather than dividing by zero.
-    /// The floor applies <i>only</i> when degenerate; a wide band keeps its true half-width.</summary>
+    /// width, so it falls back to 10% of the value; a <i>zero</i> band (<c>[0,0]</c>, a zero-tolerance counting
+    /// band) has no value to scale from, so it floors to <c>1.0</c> — one unit outside is distance <c>1.0</c>,
+    /// not ~1e9, which would let a soft term dominate a hard violation. The floor applies <i>only</i> when
+    /// degenerate; a wide band keeps its true half-width.</summary>
     public double HalfWidth
     {
         get
         {
             var hw = (Hi - Lo) / 2.0;
-            return hw > 1e-9 ? hw : Math.Max(Math.Abs(Hi) * 0.1, 1e-9);
+            if (hw > 1e-9) return hw;
+            var scaled = Math.Abs(Hi) * 0.1;
+            return scaled > 1e-9 ? scaled : 1.0;
         }
     }
 

@@ -794,6 +794,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   an over-exposed team side) and `frontline-width` (FR6 — the widest face, the wide-vs-split axis). Profile is
   derived but **not scored** (both straight and offset are authored-valid; it feeds the future composite and the
   evidence overlay). Additive deriver field, gate stays derive-free — composed output **byte-identical**. (G60)
+- **Composer evaluator — the rotation term (M2, part 2d)** — `uncrossed-middle-void` (CT9): a contested `middle`
+  void the deriver leaves with **no** crossing route (no front-front / neutral-neutral zone ringing it) is the
+  rotation failure — the long dead void where the teams never meet. Band `[0,0]` (no authored map carries one),
+  so any is punished; a contained `Band` fix floors a zero-tolerance `[0,0]` band's half-width to `1.0` so it
+  scores O(1), not ~1e9 — preserving hard-dominates-soft (`[5,5]` and wider bands unchanged). Calibrated on six
+  authored teaching seeds (`tools/seeds/teaching/`: an escalation of 3 crammed / over-stretched negatives + 3
+  rotation resolutions — bridge zone, rotation stone, move-closer). Byte-identical composed output. (G60)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor

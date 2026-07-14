@@ -34,6 +34,28 @@ public sealed class SoftTermsTests
         await Assert.That(SeedEnvelopes.Default["isolation-cut-count"]).IsNotNull();
         await Assert.That(SeedEnvelopes.Default["frontline-count"]).IsNotNull();
         await Assert.That(SeedEnvelopes.Default["frontline-width"]).IsNotNull();
+        await Assert.That(SeedEnvelopes.Default["uncrossed-middle-void"]).IsNotNull();
+    }
+
+    [Test]
+    public async Task Uncrossed_middle_void_fires_on_the_overstretched_middle_and_cites_ct9()
+    {
+        // the double frontline leaves a long contested middle void with no crossing route — the rotation failure.
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("teaching/overstretched-middle-void.plan.json"))!, SeedEnvelopes.Default);
+        var score = new UncrossedMiddleVoid().Measure(ctx);
+        await Assert.That(score.Violation).IsNotNull();
+        await Assert.That(score.Violation!.RuleId).IsEqualTo("CT9");
+    }
+
+    [Test]
+    [Arguments("double-frontline-pocket-mid-internal-crossing")]
+    [Arguments("double-frontline-pocket-mid-rotation-stone")]
+    [Arguments("double-band-middle-void-no-steps")]
+    public async Task Uncrossed_middle_void_is_clean_once_the_middle_is_crossable(string seed)
+    {
+        // each resolution supplies a crossing (bridge zone / rotation stone / move-closer) → no uncrossed void.
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed($"teaching/{seed}.plan.json"))!, SeedEnvelopes.Default);
+        await Assert.That(new UncrossedMiddleVoid().Measure(ctx).Violation).IsNull();
     }
 
     [Test]

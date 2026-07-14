@@ -18,6 +18,7 @@ Held out: `traced/3084` (wools do not attribute — degenerate band).
 | `team-stepping-count` | CT4 | 0 | 2 | 23 | authored + traced |
 | `band-count` | CT1 | 0 | 3 | 23 | authored + traced |
 | `isolation-cut-count` | CT5 | 0 | 6 | 23 | authored + traced |
+| `uncrossed-middle-void` | CT9 | 0 | 0 | 23 | authored + traced |
 | `frontline-count` | FR4 | 1 | 7 | 23 | authored + traced |
 | `frontline-width` | FR6 | 1 | 16 | 23 | authored + traced |
 | `max-chain-length` | LN2 | 25 | 90 | 12 | authored-only |
@@ -29,28 +30,28 @@ Held out: `traced/3084` (wools do not attribute — degenerate band).
 
 Authored seeds first, then traced maps (a `†` marks a value outside the term's band).
 
-| map | fill-ratio | enclosed-void-count | neutral-stepping-count | team-stepping-count | band-count | isolation-cut-count | frontline-count | frontline-width | max-chain-length | lane-width | wool-wool-distance | spawn-wool-distance |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| base-2island | 0.487 | 2 | 1 | 0 | 1 | 0 | 2 | 2 | 45 | 10 | — | 50 |
-| base-2wool | 0.214 | 2 | 1 | 0 | 1 | 1 | 2 | 2 | 45 | 10 | 80 | 50 |
-| base-4team | 0.225 | 4 | 1 | 0 | 1 | 0 | 2 | 2 | 45 | 10 | — | 50 |
-| big-board-wool-two-sided-plaza-parallel-mid | 0.269 | 3 | 0 | 0 | 2 | 0 | 2 | 3 | 90 | 15 | — | 195 |
-| four-team-towers-big | 0.355 | 5 | 1 | 0 | 0 | 1 | 2 | 3 | 30 | 10 | 135 | 75 |
-| four-team-wool-two-sided | 0.355 | 13 | 1 | 0 | 0 | 2 | 2 | 2 | 40 | 10 | — | 60 |
-| isolated-spawn-approaches | 0.231 | 4 | 1.5 | 0 | 0 | 1 | 3 | 2 | 35 | 10 | — | 75 |
-| isolated-spawn | 0.352 | 4 | 0 | 0 | 1 | 2 | 3 | 2 | 45 | 20 | 115 | 65 |
-| mirror-big-board | 0.323 | 10 | 2 | 0 | 1 | 5 | 2 | 3 | 50 | 15 | 200 | 130 |
-| mirror-tiny-map-cliff | 0.314 | 2 | 1.5 | 0 | 1 | 0 | 2 | 1 | 25 | 10 | — | 30 |
-| odd-facing-three-wool | 0.278 | 4 | 2 | 0 | 0 | 2 | 2 | 2 | 65 | 10 | 65 | 65 |
-| rotate-wide-frontline | 0.368 | 8 | 3.5 | 2 | 1 | 6 | 1 | 12 | 60 | 10 | 90 | 50 |
-| ◦ 803 | 0.201 | 0 | 0.5 | 1 | 0 | 1 | 2 | 8 | 60 | 15 | — | 85 |
-| ◦ a-new-day-ii | 0.496 | 2 | 1 | 0 | 0 | 0 | 2 | 4 | 85 | 15 | 150 | 125 |
-| ◦ a-new-day | 0.32 | 0 | 0 | 0 | 1 | 2 | 1 | 16 | 80 | 15 | 245 | 165 |
-| ◦ acapulco | 0.296 | 6 | 2.5 | 0 | 1 | 0 | 7 | 5 | 124† | 20 | 148 | 104 |
-| ◦ ad-astra | 0.481 | 2 | 0 | 0 | 3 | 0 | 3 | 6 | 145† | 15 | 265 | 185 |
-| ◦ aequabilis | 0.491 | 10 | 1.5 | 0 | 0 | 0 | 6 | 4 | 120† | 16 | 208 | 124 |
-| ◦ aether | 0.332 | 0 | 3 | 0 | 1 | 0 | 1 | 11 | 24† | 12 | — | 57 |
-| ◦ after-hours | 0.396 | 0 | 0.5 | 0 | 0 | 0 | 1 | 8 | 55 | 15 | — | 120 |
-| ◦ agrorythe | 0.482 | 15 | 0 | 0 | 2 | 4 | 2 | 7 | 120† | 15 | 215 | 135 |
-| ◦ agrostid | 0.293 | 4 | 4.5 | 0 | 2 | 2 | 2 | 7 | 48 | 12 | 136 | 92 |
-| ◦ bridgid-ii | 0.431 | 6 | 0 | 1 | 1 | 2 | 2 | 3 | 50 | 15 | 155 | 35 |
+| map | fill-ratio | enclosed-void-count | neutral-stepping-count | team-stepping-count | band-count | isolation-cut-count | uncrossed-middle-void | frontline-count | frontline-width | max-chain-length | lane-width | wool-wool-distance | spawn-wool-distance |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| base-2island | 0.487 | 2 | 1 | 0 | 1 | 0 | 0 | 2 | 2 | 45 | 10 | — | 50 |
+| base-2wool | 0.214 | 2 | 1 | 0 | 1 | 1 | 0 | 2 | 2 | 45 | 10 | 80 | 50 |
+| base-4team | 0.225 | 4 | 1 | 0 | 1 | 0 | 0 | 2 | 2 | 45 | 10 | — | 50 |
+| big-board-wool-two-sided-plaza-parallel-mid | 0.269 | 3 | 0 | 0 | 2 | 0 | 0 | 2 | 3 | 90 | 15 | — | 195 |
+| four-team-towers-big | 0.355 | 5 | 1 | 0 | 0 | 1 | 0 | 2 | 3 | 30 | 10 | 135 | 75 |
+| four-team-wool-two-sided | 0.355 | 13 | 1 | 0 | 0 | 2 | 0 | 2 | 2 | 40 | 10 | — | 60 |
+| isolated-spawn-approaches | 0.231 | 4 | 1.5 | 0 | 0 | 1 | 0 | 3 | 2 | 35 | 10 | — | 75 |
+| isolated-spawn | 0.352 | 4 | 0 | 0 | 1 | 2 | 0 | 3 | 2 | 45 | 20 | 115 | 65 |
+| mirror-big-board | 0.323 | 10 | 2 | 0 | 1 | 5 | 0 | 2 | 3 | 50 | 15 | 200 | 130 |
+| mirror-tiny-map-cliff | 0.314 | 2 | 1.5 | 0 | 1 | 0 | 0 | 2 | 1 | 25 | 10 | — | 30 |
+| odd-facing-three-wool | 0.278 | 4 | 2 | 0 | 0 | 2 | 0 | 2 | 2 | 65 | 10 | 65 | 65 |
+| rotate-wide-frontline | 0.368 | 8 | 3.5 | 2 | 1 | 6 | 0 | 1 | 12 | 60 | 10 | 90 | 50 |
+| ◦ 803 | 0.201 | 0 | 0.5 | 1 | 0 | 1 | 0 | 2 | 8 | 60 | 15 | — | 85 |
+| ◦ a-new-day-ii | 0.496 | 2 | 1 | 0 | 0 | 0 | 0 | 2 | 4 | 85 | 15 | 150 | 125 |
+| ◦ a-new-day | 0.32 | 0 | 0 | 0 | 1 | 2 | 0 | 1 | 16 | 80 | 15 | 245 | 165 |
+| ◦ acapulco | 0.296 | 6 | 2.5 | 0 | 1 | 0 | 0 | 7 | 5 | 124† | 20 | 148 | 104 |
+| ◦ ad-astra | 0.481 | 2 | 0 | 0 | 3 | 0 | 0 | 3 | 6 | 145† | 15 | 265 | 185 |
+| ◦ aequabilis | 0.491 | 10 | 1.5 | 0 | 0 | 0 | 0 | 6 | 4 | 120† | 16 | 208 | 124 |
+| ◦ aether | 0.332 | 0 | 3 | 0 | 1 | 0 | 0 | 1 | 11 | 24† | 12 | — | 57 |
+| ◦ after-hours | 0.396 | 0 | 0.5 | 0 | 0 | 0 | 0 | 1 | 8 | 55 | 15 | — | 120 |
+| ◦ agrorythe | 0.482 | 15 | 0 | 0 | 2 | 4 | 0 | 2 | 7 | 120† | 15 | 215 | 135 |
+| ◦ agrostid | 0.293 | 4 | 4.5 | 0 | 2 | 2 | 0 | 2 | 7 | 48 | 12 | 136 | 92 |
+| ◦ bridgid-ii | 0.431 | 6 | 0 | 1 | 1 | 2 | 0 | 2 | 3 | 50 | 15 | 155 | 35 |

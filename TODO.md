@@ -70,12 +70,19 @@ opt-out holds `max-chain-length` to authored intent so the traced long-chain map
 (`BoardStructure.FrontlineRuns`: team, width, straight/offset profile), and `frontline-count`/FR4 +
 `frontline-width`/FR6 score them. Profile is derived but not scored (both styles authored-valid). Byte-identical.
 
+**G60 (2d) landed (`FEATURES.md`):** the rotation half of the frontline composite — `uncrossed-middle-void`/CT9
+(a contested middle void with no crossing route is the "no rotation" defect; band `[0,0]`, so any is punished),
+plus a contained `Band` `[0,0]`-floor fix (a zero-tolerance band scores O(1), not ~1e9). Calibrated on six
+authored teaching seeds (`tools/seeds/teaching/`: 3 crammed/over-stretched negatives + 3 rotation resolutions).
+The **cramming** half is parked on **G69**: no `BoardStructure` signal separates it from good real maps (crammed
+≡ acapulco across 7 features), and the deriver reads the geometry opposite to the author's visual.
+
 - [~] **G60 — Composer evaluator: finish the catalogue, wiring, harness.** On the landed catalogue:
-  **(1)** finish the §6 soft-term catalogue — **Slice C**: the composite thin-frontline punishment
-  `f(stepping stones, frontline width, band count)` — FR4's "one face is fine only if it's wide"; needs an
-  authored negative (a crammed emitter output) to calibrate; plus approach count/WL8·G45 (conditional — gated on
-  G62 slots) and height/EL1·EL4 (blocked on the G32-C elevation pass). Each reads `BoardStructure` measurables
-  only (never a family name — the enumeration trap), scored as `Band` distance with `Evidence`. **(2)** the
+  **(1)** finish the §6 soft-term catalogue — the rotation half landed (2d); **remaining**: the cramming
+  punishment is parked on **G69** (the deriver has no offset-team-mass primitive); approach count/WL8·G45
+  (conditional — gated on G62 slots); height/EL1·EL4 (blocked on the G32-C elevation pass). Each reads
+  `BoardStructure` measurables only (never a family name — the enumeration trap), scored as `Band` distance with
+  `Evidence`. **(2)** the
   hole-hunt loop keeps the
   **lowest-scoring** acceptable attempt — the first point composed output shifts, its own re-baseline. **(3)
   Wiring** — `EvaluationDto` in `Contracts` (carrying the `Evidence` primitives) + `POST /api/plan/evaluate` for

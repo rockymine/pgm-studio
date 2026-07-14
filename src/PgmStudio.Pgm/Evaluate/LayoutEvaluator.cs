@@ -34,6 +34,7 @@ public static class LayoutEvaluator
         new TeamSteppingCount(),
         new BandCount(),
         new IsolationCutCount(),
+        new UncrossedMiddleVoid(),
         new FrontlineCount(),
         new FrontlineWidth(),
         new MaxChainLength(),

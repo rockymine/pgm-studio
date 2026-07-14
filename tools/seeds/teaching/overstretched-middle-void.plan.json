@@ -1,0 +1,161 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "overstretched-middle-void"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -3,
+        -1,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -3,
+        -5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        1,
+        -5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -3,
+        -7,
+        6,
+        2
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        -2,
+        -11,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        -2,
+        -15,
+        2,
+        4
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -2,
+        -17,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        4,
+        -11,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        2,
+        -11,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "buffer",
+      "role": "buffer",
+      "rect": [
+        -1,
+        -5,
+        2,
+        10
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -3,
+        -3,
+        2,
+        3
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone-2",
+      "rect": [
+        1,
+        -3,
+        2,
+        3
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          1,
+          1
+        ],
+        "facing": "left"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          1,
+          1
+        ]
+      }
+    ],
+    "iron": []
+  },
+  "cliffs": [],
+  "walls": []
+}

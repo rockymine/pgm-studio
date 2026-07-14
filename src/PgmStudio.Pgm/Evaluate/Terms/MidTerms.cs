@@ -50,3 +50,17 @@ public sealed class IsolationCutCount : SoftTerm
     public override double? Value(EvalContext ctx) =>
         ctx.Board.Zones.Count(z => z.Kind is "intra" or "self") / (double)Symmetry.Order(ctx.Plan.Globals.Symmetry);
 }
+
+/// <summary>CT9: a split frontline encloses a contested middle void in the tip-gap, and that void must carry a
+/// rotation link — a bridge, a band, or a stepping stone across it — so players can rotate between the two lanes
+/// instead of committing to one side. A middle void the deriver leaves with <b>no</b> crossing route (no
+/// front-front / neutral-neutral zone ringing it) is the rotation failure: the long dead void where the teams
+/// never meet. No authored map carries one (the band is [0,0]); any is a hard feel defect. Counts them.</summary>
+public sealed class UncrossedMiddleVoid : SoftTerm
+{
+    public override string Id => "uncrossed-middle-void";
+    public override string RuleId => "CT9";
+
+    public override double? Value(EvalContext ctx) =>
+        ctx.Board.Voids.Count(v => v.Class == "middle" && v.CrossRoutes == 0);
+}
