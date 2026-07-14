@@ -73,7 +73,11 @@ wool-room dock (G49), the **box-based wool-approach shape vocabulary + classifie
 - [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`); the `spawn` / `wool-room` piece
   roles now land too (G49, `FEATURES.md`). Remaining: **G32-C markers/heights/walls** — SP3/SP4 spawn
   (facing absolute, raised), SP7 iron, WL5 stepped approach climb, EL1 palette (base 9, step 2, all-odd),
-  ST4 walls, EL6 (the rooms are flat at the base surface — the elevation pass raises them). **G32-D gates
+  ST4 walls, EL6 (the rooms are flat at the base surface — the elevation pass raises them). **G32-C is a
+  second generator, not a checklist line** (review §11.3): the authored feel is substantially elevation
+  (~⅓ of the complex seeds are stair treads; every wool tops a climb), so the elevation pass wants its own
+  pattern vocabulary — a staircase chain (n treads × step 2 climbing an interface) is a §4.3-style pattern.
+  If generated maps ever read valid-but-flat, this is where the missing soul is. **G32-D gates
   + goldens + emit** — `PlanValidator` zero-errors with zones present, `FannedGraph` full traversability,
   stat envelopes vs `seed-stats.md`, `plan.json` loadable in `/plan`, fixed-RNG goldens under `tests/`.
   **G32-D goldens freeze only after G63 (M4):** the box migration (G61/G63) changes RNG consumption and

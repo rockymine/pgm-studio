@@ -204,11 +204,14 @@ Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
   shape implementation) with: partition the arm region into a `Box(Wool)` carrying a typed entry
   `BoxInterface` → `FillMenu` (interface-width → legal patterns; the §4 `w2/w4/w6` table as **data**,
   cited by rule id) → `WoolBoxEmitter` (thinned to a binding over `Shapes.ShapeEmitter`: terminal →
-  `WoolRoom` role + wool marker). `FillResult` (`Ok | TooSmall(minBox) | NoFamilyFits`) replaces
-  exception control flow, so a bad fit is a directed signal, not a 60-attempt re-roll. Emitter
-  orientation via a rect transform (`Geom.Symmetry.Apply`) instead of the hardcoded top-edge mouth. Kills
-  the third shape impl; gives G44 its structural-spend vocabulary and makes G50–G52 reachable from
-  generation. **Changes RNG consumption** (goldens re-key). Depends on G58. (review §4, §7.4)
+  `WoolRoom` role + wool marker). `FillResult` (`Ok(pieces, vacancies) | TooSmall(minBox) |
+  NoFamilyFits`) replaces exception control flow, so a bad fit is a directed signal, not a 60-attempt
+  re-roll; `Ok` already carries the fill's **vacancies** — its emit-side negative space (a U's bay, a
+  donut's hole) as a `Vacancy` (kind bay/notch/hole + mouth `BoxInterface` + bounding walls; §4.4) —
+  shaped from the start so the type doesn't churn even though *claiming* lands at M3. Emitter orientation
+  via a rect transform (`Geom.Symmetry.Apply`) instead of the hardcoded top-edge mouth. Kills the third
+  shape impl; gives G44 its structural-spend vocabulary and makes G50–G52 reachable from generation.
+  **Changes RNG consumption** (goldens re-key). Depends on G58. (review §4, §4.4, §7.4)
 - [ ] **G62 — Derive-side slot recovery + classifier scoping.** `Shapes/SlotAssignment`: after `Classify`
   returns the family, template-match the slot sequence onto the classified pieces
   (`AssignSlots(family, pieces) → piece→slot map`) — slots survive save/load/author/trace **without**
@@ -228,18 +231,28 @@ Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
   one profile-driven fill entry point). `FrontForm` retires into frontline patterns (none · single-chain
   I/Z · wide-face · twin-strands+recess — FR3/FR4/FR6/CT8); hub open patterns (solid I · L · Z ·
   ring-with-hole — HB1/HB3/HB4). **G39's** corner/edge interlock is expressed here as a `BoxInterface`
-  constraint. `emit-verify` grows per-kind pattern mirrors (twin → closure hole ringed by two strands;
-  L hub → one-bend junction outline) — no new `*Shape` classes. Blocked partly on the author's
-  frontline/hub teaching set. Depends on G61. (review §3.1, §4.3, §7.6)
+  constraint. Fills start **publishing vacancies** (§4.4): boxes may overlap (piece-disjointness, not
+  box-disjointness, is the invariant), so a fill's residual envelope is published as claimable negative
+  space — a **U-hub publishes its bay**, a twin frontline its recess (the CT8 recess generalized). Emit-side
+  and exact (families are fixed templates), so no derive pass finds them. `FillProfiles` gates claims
+  (a spawn may claim a hub bay whose mouth faces away from the axis) — this is what makes the
+  **spawn-in-hub-bay** layout expressible (three wools L/T/R + the spawn in the U's bay) instead of
+  forcing the G45 parallel-lane anti-pattern. `emit-verify` grows per-kind pattern mirrors (twin → closure
+  hole ringed by two strands; L hub → one-bend junction outline) — no new `*Shape` classes. Blocked partly
+  on the author's frontline/hub teaching set. Depends on G61. (review §3.1, §4.3, §4.4, §7.6)
 - [ ] **G63 — [M4] Partitioner-first composition.** `Compose/Boxes/BoxPartition` (boxes + interfaces =
   a constraint graph) replaces the `Shape` sampling record as what sampling produces; `BoxPartitioner`
-  (budget → partition, **directed repair** from `FillResult` instead of 60-attempt re-rolls);
-  `GrowthOrder` named strategies (`spawn-first` / `hub-first` / `mid-out`) make the emission order an
-  **experiment axis** judged by the evaluator + G43, not doctrine. `Box.LandTargetCells` gives the
+  (budget → partition, **directed repair** from `FillResult` instead of 60-attempt re-rolls). **Boxes may
+  overlap** — the partition allocates budgets and constraints, not exclusive area (piece-disjointness +
+  image clearance is the real invariant); the partitioner allocates later boxes **from published vacancies**
+  (§4.4) as well as fresh space, so a bay-seated spawn docks up to three walls for free (`spawn-first`
+  inverts it — the hub's fill must wrap a staked pocket). `GrowthOrder` named strategies (`spawn-first` /
+  `hub-first` / `mid-out`) make the emission order an **experiment axis** judged by the evaluator + G43, not
+  doctrine. `Box.LandTargetCells` gives the
   two-currency budget its per-box half, so **fragment** becomes a generic pass over the partition
   (`IsolationCut` + the mid's low target are its two existing special cases). `TeamUnitGrower` retires.
   Re-baseline gallery cases; **then** freeze the G32-D goldens (per strategy). Depends on G61.
-  (review §4.2, §4.4, §7.7)
+  (review §4.2, §4.4, §4.5, §7.7)
 - [ ] **G64 — Doc pass on `map-generation.md` (reconcile with shipped code).** The canonical doc silently
   mixes description and aspiration. Declare the emission order an **experimental strategy axis over the
   constraint graph** (`spawn-first`/`hub-first`/`mid-out` are `GrowthOrder` knobs), not a fixed sequence —
@@ -294,9 +307,12 @@ Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
   relax so a compact unit needn't hit the full target).
 - [ ] **G45 — Third wool: rarer, and placed as a real route.** A third wool is sampled at **40%** for ≥16
   players and **always** built as a 2-cell dead-end straight back beside the spawn lane (`wool-lane-c`;
-  `gen-p20-t2-rot_180-s13` — the wool squeezed next to the spawn). Reality: 2 wools common, **3 rare**, and
-  a genuine third wool sits as **its own route**, not crammed against the spawn. Lower the rate and add
-  real 3-wool placement patterns — needs teaching examples (the current set has none).
+  `gen-p20-t2-rot_180-s13` — the wool squeezed next to the spawn). That parallel-lane placement is the **G45
+  anti-pattern** — a failure mode of the square-hub model, **never a pattern to sample**. Reality: 2 wools
+  common, **3 rare**, and a genuine third wool sits as **its own route**. The missing **positive** is the
+  three-wool **L/T/R + spawn in a U-hub's bay** layout (a real third-wool route enabled by a claimed vacancy,
+  §4.4) — author it as the G45 teaching seed the current set lacks. Lower the rate and add real 3-wool
+  placement patterns. Depends on the G41/G63 vacancy mechanism (spawn claims the hub bay).
 - [ ] **G37 — Lane-archetypes track (lane shapes · connections · hub shaping · alt entries).** The real
   lane grammar: authored **lane archetypes**, **what connects to the frontline**, **how hubs shape** (today
   the hub is a dumb square everything smashes into — G41), and **alternative entry points** to a lane (a
