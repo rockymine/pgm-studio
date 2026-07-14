@@ -874,26 +874,40 @@ body.dashboard-page { overflow: hidden; }
    PLAN EDITOR (the seed studio)
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Left-toolbar palette — role / zone / marker tool buttons, one per row. */
-.plan-palette { display: flex; flex-direction: column; gap: var(--space-2); }
-
-.plan-role-btn {
+/* Canvas-toolbar palette — the draw tools (pieces / build / markers / technical) as compact horizontal
+   buttons in the plan editor's canvas sub-bar. Scrolls rather than overflowing when space is tight. */
+.plan-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: 5px 8px;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.plan-tool-sep { flex-shrink: 0; width: 1px; height: 18px; margin: 0 4px; background: var(--border); }
+.plan-tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 8px;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--text-muted);
-  font-size: var(--font-base);
+  font-size: var(--font-sm);
+  white-space: nowrap;
   cursor: pointer;
-  text-align: left;
   transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
 }
-.plan-role-btn:hover { color: var(--text-bright); background: var(--border); }
-.plan-role-btn--active { color: var(--text-bright); border-color: var(--accent); background: var(--bg-selected); }
+.plan-tool:hover { color: var(--text-bright); background: var(--border); }
+.plan-tool--active { color: var(--text-bright); border-color: var(--accent); background: var(--bg-selected); }
+.plan-tool svg { width: 14px; height: 14px; }
+.plan-tool .plan-role-swatch { width: 10px; height: 10px; }
+
+/* Overlays section (settings panel) — the derived-structure visibility toggles, wrapped. */
+.plan-overlay-toggles { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 
 /* Role colour swatch — the piece fill colour, passed in via the --role-color custom property. */
 .plan-role-swatch {
@@ -920,9 +934,6 @@ body.dashboard-page { overflow: hidden; }
   font-size: var(--font-base);
   color: var(--text-bright);
 }
-
-/* Derived-structure overlay toggles in the canvas sub-bar. */
-.canvas-overlay-toggles { display: inline-flex; gap: var(--space-1); margin-right: var(--space-2); }
 
 /* Lint panel (inspector) — click a row to pulse its subjects on the canvas. */
 .plan-lint-ok {

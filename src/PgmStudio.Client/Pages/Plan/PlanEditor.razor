@@ -3,10 +3,11 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-@* Plan editor (the seed studio) — a coarse cell-grid layout tool. Blazor renders the topbar, the left
-   globals + palette toolbar, the canvas shell and the right inspector; the PlanCanvas JS (via
-   bridge/plan-bridge.js) owns the plan document, the pointer tools and the live symmetry mirror ghost.
-   Plans import/export as *.plan.json; edits autosave to localStorage. *@
+@* Plan editor (the seed studio) — a coarse cell-grid layout tool. Blazor renders the topbar, a thin
+   rail that folds the collapsible left settings panel (plan name · globals · reference · overlays), the
+   canvas shell whose toolbar holds the draw tools (pieces · build · markers · technical), and the right
+   inspector; the PlanCanvas JS (via bridge/plan-bridge.js) owns the plan document, the pointer tools and
+   the live symmetry mirror ghost. Plans import/export as *.plan.json; edits autosave to localStorage. *@
 
 <div class="editor-page">
   <div id="topbar" class="topbar">
@@ -31,8 +32,22 @@
   </div>
 
   <div id="main" class="app-body">
+    <nav class="activity-rail">
+      <a class="activity-logo" href="/" title="Studio home">
+        <div class="activity-logo-box">
+          <span class="activity-logo-pgm">pgm</span>
+          <span class="activity-logo-sub">STUDIO</span>
+        </div>
+      </a>
+      <button class="activity-btn @(settingsOpen ? "active" : null)" title="@(settingsOpen ? "Hide settings" : "Show settings")" @onclick="ToggleSettings">
+        <i data-lucide="sliders-horizontal"></i>
+      </button>
+    </nav>
+
     <div class="activity-viewport">
       <div class="workspace">
+        @if (settingsOpen)
+        {
         <div class="workspace-sidebar">
           <div class="workspace-scroll">
             <div class="panel-section">
@@ -113,69 +128,8 @@
             </div>
 
             <div class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Pieces</h2></div>
-              <div class="plan-palette">
-                @foreach (var r in GeneratingRoles)
-                {
-                  <button class="plan-role-btn @(tool == "piece" && role == r.Id ? "plan-role-btn--active" : null)"
-                          style="--role-color:@r.Color" title="Draw a @r.Label piece" @onclick="() => PickRole(r.Id)">
-                    <span class="plan-role-swatch"></span>@r.Label
-                  </button>
-                }
-                <button class="plan-role-btn @(tool == "zone" ? "plan-role-btn--active" : null)" title="Draw a build area" @onclick='() => PickTool("zone")'>
-                  <i data-lucide="square-dashed"></i> Build
-                </button>
-              </div>
-              <p class="section-desc">Terrain pieces. A <strong>spawn</strong> / <strong>wool-room</strong> piece is the region; a build area is where building is allowed.</p>
-            </div>
-
-            <div class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Markers</h2></div>
-              <div class="plan-palette">
-                <button class="plan-role-btn @(tool == "wool" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("wool")'>
-                  <i data-lucide="square"></i> Wool
-                </button>
-                <button class="plan-role-btn @(tool == "spawn" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("spawn")'>
-                  <i data-lucide="flag"></i> Spawn
-                </button>
-                <button class="plan-role-btn @(tool == "iron" ? "plan-role-btn--active" : null)" @onclick='() => PickTool("iron")'>
-                  <i data-lucide="pickaxe"></i> Iron
-                </button>
-                <button class="plan-role-btn @(tool == "wall" ? "plan-role-btn--active" : null)" title="Mark a land interface as a pre-built wall" @onclick='() => PickTool("wall")'>
-                  <i data-lucide="brick-wall"></i> Wall
-                </button>
-              </div>
-              <p class="section-desc">Markers ride the piece under them. Click a placed spawn to cycle its facing. The Wall tool toggles a wall mark on the land interface you click.</p>
-            </div>
-
-            <div class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Technical</h2></div>
-              <div class="plan-palette">
-                @foreach (var r in TechnicalRoles)
-                {
-                  <button class="plan-role-btn @(tool == "piece" && role == r.Id ? "plan-role-btn--active" : null)"
-                          style="--role-color:@r.Color" title="Draw a @r.Label annotation" @onclick="() => PickRole(r.Id)">
-                    <span class="plan-role-swatch"></span>@r.Label
-                  </button>
-                }
-              </div>
-              <p class="section-desc"><strong>Buffer</strong> marks reserved empty space (lane spacing / holes); <strong>connector</strong> marks an attachment point where other structure docks. Both are informational — no terrain, not buildable.</p>
-            </div>
-          </div>
-        </div>
-        <div class="sidebar-handle"></div>
-
-        <div class="workspace-canvas">
-          <div class="canvas-subbar">
-            <div class="canvas-toolbar">
-              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
-                      @onclick='() => PickTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
-              <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)" title="Pan"
-                      @onclick='() => PickTool("pan")'><i data-lucide="hand"></i></button>
-            </div>
-            <div @ref="cursorRef" class="canvas-cursor"></div>
-            <div class="canvas-subbar-right">
-              <span class="canvas-overlay-toggles">
+              <div class="section-header section-header--ruled"><h2 class="section-title">Overlays</h2></div>
+              <div class="plan-overlay-toggles">
                 <button class="filter-chip @(overlayInterfaces ? "filter-chip--active" : null)" title="Land interfaces (green, slimmer core if narrow) · corner contacts (red)"
                         @onclick='() => ToggleOverlay("interfaces")'>Interfaces</button>
                 <button class="filter-chip @(overlayFrontline ? "filter-chip--active" : null)" title="Piece edges facing a build area"
@@ -186,7 +140,56 @@
                         @onclick='() => ToggleOverlay("violations")'>Rules</button>
                 <button class="filter-chip @(heightMap ? "filter-chip--active" : null)" title="Colour pieces by island height (surface y)"
                         @onclick="ToggleHeightMap">Heights</button>
-              </span>
+              </div>
+              <p class="section-desc">Toggle the derived-structure overlays and the height ramp drawn on the canvas.</p>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-handle"></div>
+        }
+
+        <div class="workspace-canvas">
+          <div class="canvas-subbar">
+            <div class="plan-toolbar">
+              <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
+                      @onclick='() => PickTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
+              <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)" title="Pan"
+                      @onclick='() => PickTool("pan")'><i data-lucide="hand"></i></button>
+              <span class="plan-tool-sep"></span>
+              @foreach (var r in GeneratingRoles)
+              {
+                <button class="plan-tool @(tool == "piece" && role == r.Id ? "plan-tool--active" : null)"
+                        style="--role-color:@r.Color" title="Draw a @r.Label piece" @onclick="() => PickRole(r.Id)">
+                  <span class="plan-role-swatch"></span>@r.Label
+                </button>
+              }
+              <button class="plan-tool @(tool == "zone" ? "plan-tool--active" : null)" title="Draw a build area" @onclick='() => PickTool("zone")'>
+                <i data-lucide="square-dashed"></i> Build
+              </button>
+              <span class="plan-tool-sep"></span>
+              <button class="plan-tool @(tool == "wool" ? "plan-tool--active" : null)" title="Place a wool goal marker" @onclick='() => PickTool("wool")'>
+                <i data-lucide="square"></i> Wool
+              </button>
+              <button class="plan-tool @(tool == "spawn" ? "plan-tool--active" : null)" title="Place a spawn marker · click a placed spawn to cycle its facing" @onclick='() => PickTool("spawn")'>
+                <i data-lucide="flag"></i> Spawn
+              </button>
+              <button class="plan-tool @(tool == "iron" ? "plan-tool--active" : null)" title="Place an iron marker" @onclick='() => PickTool("iron")'>
+                <i data-lucide="pickaxe"></i> Iron
+              </button>
+              <button class="plan-tool @(tool == "wall" ? "plan-tool--active" : null)" title="Toggle a pre-built wall on the land interface you click" @onclick='() => PickTool("wall")'>
+                <i data-lucide="brick-wall"></i> Wall
+              </button>
+              <span class="plan-tool-sep"></span>
+              @foreach (var r in TechnicalRoles)
+              {
+                <button class="plan-tool @(tool == "piece" && role == r.Id ? "plan-tool--active" : null)"
+                        style="--role-color:@r.Color" title="Draw a @r.Label annotation" @onclick="() => PickRole(r.Id)">
+                  <span class="plan-role-swatch"></span>@r.Label
+                </button>
+              }
+            </div>
+            <div @ref="cursorRef" class="canvas-cursor"></div>
+            <div class="canvas-subbar-right">
               <button class="filter-chip" title="Fit the plan to view" @onclick="Fit"><i data-lucide="scan"></i></button>
               <span class="canvas-zoom">@zoomLabel</span>
             </div>

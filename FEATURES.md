@@ -599,6 +599,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   navy→teal→gold ramp over the plan's surface range + in-piece height labels), and **zone mirror ghosts**
   (build areas + holes fan through the same orbit images as pieces; view bounds include them) — a rot_90
   pinwheel's centre tiling is finally visible while authoring. JS 115 tests. (G25)
+- **Plan editor sidebar / toolbar declutter** — the left sidebar is now a **collapsible settings panel**
+  only (plan name · symmetry & globals · reference · overlays), folded by a thin settings **rail** (the
+  studio logo + a sliders toggle, matching the other editors) so the canvas reclaims the width. The draw
+  tools (piece / spawn / wool-room · build · wool / spawn / iron / wall markers · buffer / connector)
+  moved out of the sidebar into the **canvas toolbar** as compact grouped `.plan-tool` buttons (swatch or
+  icon + label, separators between groups); the derived-structure **visibility toggles** moved the other
+  way — out of the toolbar into an **Overlays** section in the settings panel. All tool/overlay wiring
+  unchanged (same bridge calls); verified light + dark. (G71)
 - **Plan-editor reference backdrop (trace real maps)** — a **Reference** sidebar section picks any processed
   map (`GET /api/maps` now flags `hasSurface`; 367/390 traceable) and paints its top-down block render behind
   the grid as a tracing aid, reusing the shared `render/block-render.js` rasteriser in a new bottom

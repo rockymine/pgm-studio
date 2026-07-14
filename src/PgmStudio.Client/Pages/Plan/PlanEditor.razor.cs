@@ -39,6 +39,11 @@ public partial class PlanEditor
     private string zoomLabel = "—";
     private string? importError;
 
+    // Left settings panel (plan name / globals / reference / overlays) collapse — the drawing tools live
+    // in the canvas toolbar, so the panel is pure settings and can fold away to give the canvas room.
+    private bool settingsOpen = true;
+    private void ToggleSettings() => settingsOpen = !settingsOpen;
+
     // Globals mirrored from the plan document (the JS bridge is the source of truth; these drive the form).
     private string planName = "Untitled plan";
     private string symmetry = "rot_180";
