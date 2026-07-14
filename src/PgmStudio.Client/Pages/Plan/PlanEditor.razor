@@ -153,38 +153,38 @@
             <div class="plan-toolbar">
               <button class="draw-tool-btn @(tool == "select" ? "draw-tool-btn--active" : null)" title="Select / edit"
                       @onclick='() => PickTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
-              <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)" title="Pan"
+              <button class="draw-tool-btn @(tool == "pan" ? "draw-tool-btn--active" : null)" title="Move / pan"
                       @onclick='() => PickTool("pan")'><i data-lucide="hand"></i></button>
               <span class="plan-tool-sep"></span>
               @foreach (var r in GeneratingRoles)
               {
-                <button class="plan-tool @(tool == "piece" && role == r.Id ? "plan-tool--active" : null)"
+                <button class="draw-tool-btn @(tool == "piece" && role == r.Id ? "draw-tool-btn--active" : null)"
                         style="--role-color:@r.Color" title="Draw a @r.Label piece" @onclick="() => PickRole(r.Id)">
-                  <span class="plan-role-swatch"></span>@r.Label
+                  <span class="plan-role-swatch"></span>
                 </button>
               }
-              <button class="plan-tool @(tool == "zone" ? "plan-tool--active" : null)" title="Draw a build area" @onclick='() => PickTool("zone")'>
-                <i data-lucide="square-dashed"></i> Build
+              <button class="draw-tool-btn @(tool == "zone" ? "draw-tool-btn--active" : null)" title="Draw a build area" @onclick='() => PickTool("zone")'>
+                <i data-lucide="square-dashed"></i>
               </button>
               <span class="plan-tool-sep"></span>
-              <button class="plan-tool @(tool == "wool" ? "plan-tool--active" : null)" title="Place a wool goal marker" @onclick='() => PickTool("wool")'>
-                <i data-lucide="square"></i> Wool
+              <button class="draw-tool-btn @(tool == "spawn" ? "draw-tool-btn--active" : null)" title="Place a spawn marker · click a placed spawn to cycle its facing" @onclick='() => PickTool("spawn")'>
+                <i data-lucide="flag"></i>
               </button>
-              <button class="plan-tool @(tool == "spawn" ? "plan-tool--active" : null)" title="Place a spawn marker · click a placed spawn to cycle its facing" @onclick='() => PickTool("spawn")'>
-                <i data-lucide="flag"></i> Spawn
+              <button class="draw-tool-btn @(tool == "wool" ? "draw-tool-btn--active" : null)" title="Place a wool goal marker" @onclick='() => PickTool("wool")'>
+                <i data-lucide="square"></i>
               </button>
-              <button class="plan-tool @(tool == "iron" ? "plan-tool--active" : null)" title="Place an iron marker" @onclick='() => PickTool("iron")'>
-                <i data-lucide="pickaxe"></i> Iron
+              <button class="draw-tool-btn @(tool == "iron" ? "draw-tool-btn--active" : null)" title="Place an iron marker" @onclick='() => PickTool("iron")'>
+                <i data-lucide="pickaxe"></i>
               </button>
-              <button class="plan-tool @(tool == "wall" ? "plan-tool--active" : null)" title="Toggle a pre-built wall on the land interface you click" @onclick='() => PickTool("wall")'>
-                <i data-lucide="brick-wall"></i> Wall
+              <button class="draw-tool-btn @(tool == "wall" ? "draw-tool-btn--active" : null)" title="Toggle a pre-built wall on the land interface you click" @onclick='() => PickTool("wall")'>
+                <i data-lucide="brick-wall"></i>
               </button>
               <span class="plan-tool-sep"></span>
               @foreach (var r in TechnicalRoles)
               {
-                <button class="plan-tool @(tool == "piece" && role == r.Id ? "plan-tool--active" : null)"
+                <button class="draw-tool-btn @(tool == "piece" && role == r.Id ? "draw-tool-btn--active" : null)"
                         style="--role-color:@r.Color" title="Draw a @r.Label annotation" @onclick="() => PickRole(r.Id)">
-                  <span class="plan-role-swatch"></span>@r.Label
+                  <span class="plan-role-swatch"></span>
                 </button>
               }
             </div>

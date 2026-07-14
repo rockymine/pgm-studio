@@ -603,8 +603,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   only (plan name · symmetry & globals · reference · overlays), folded by a thin settings **rail** (the
   studio logo + a sliders toggle, matching the other editors) so the canvas reclaims the width. The draw
   tools (piece / spawn / wool-room · build · wool / spawn / iron / wall markers · buffer / connector)
-  moved out of the sidebar into the **canvas toolbar** as compact grouped `.plan-tool` buttons (swatch or
-  icon + label, separators between groups); the derived-structure **visibility toggles** moved the other
+  moved out of the sidebar into the **canvas toolbar** as compact **icon-only** buttons sharing the
+  `.draw-tool-btn` box with select / move — a role-colour swatch for pieces & annotations, a glyph for
+  markers & build, grouped `select · move │ piece · spawn · wool-room · build │ spawn · wool · iron ·
+  wall │ buffer · connector` with separators; the derived-structure **visibility toggles** moved the other
   way — out of the toolbar into an **Overlays** section in the settings panel. All tool/overlay wiring
   unchanged (same bridge calls); verified light + dark. (G71)
 - **Plan-editor reference backdrop (trace real maps)** — a **Reference** sidebar section picks any processed

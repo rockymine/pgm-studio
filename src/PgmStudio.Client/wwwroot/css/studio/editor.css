@@ -884,27 +884,11 @@ body.dashboard-page { overflow: hidden; }
   overflow-x: auto;
   scrollbar-width: thin;
 }
-.plan-tool-sep { flex-shrink: 0; width: 1px; height: 18px; margin: 0 4px; background: var(--border); }
-.plan-tool {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  height: 26px;
-  padding: 0 8px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
-  font-size: var(--font-sm);
-  white-space: nowrap;
-  cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
-}
-.plan-tool:hover { color: var(--text-bright); background: var(--border); }
-.plan-tool--active { color: var(--text-bright); border-color: var(--accent); background: var(--bg-selected); }
-.plan-tool svg { width: 14px; height: 14px; }
-.plan-tool .plan-role-swatch { width: 10px; height: 10px; }
+.plan-tool-sep { flex-shrink: 0; width: 1px; height: 20px; margin: 0 4px; background: var(--border); }
+/* Palette tools reuse the .draw-tool-btn box — icon-only, same 16px glyphs as select / move. Pieces and
+   technical annotations show their role colour swatch in place of a glyph, sized to match the icons. */
+.plan-toolbar .draw-tool-btn { flex-shrink: 0; }
+.plan-toolbar .plan-role-swatch { width: 14px; height: 14px; }
 
 /* Overlays section (settings panel) — the derived-structure visibility toggles, wrapped. */
 .plan-overlay-toggles { display: flex; flex-wrap: wrap; gap: var(--space-1); }
