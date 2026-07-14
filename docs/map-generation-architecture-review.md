@@ -183,7 +183,7 @@ base seeds (`tools/seeds/*.plan.json`) plus the gallery's fixed generated-case l
 before/after oracle. Protocol for every extraction step: capture `derive-gallery`'s console summary
 lines and `out/derive-gallery.html` before the change, re-run after, and require a **byte-identical
 diff** — M0/M1 are pure moves, so *identical* is the bar, not "looks the same". The mirror harness
-and the Pgm suite ride along. Only the behavioral steps (M2 onward, §4.4) may change gallery output,
+and the Pgm suite ride along. Only the behavioral steps (M2 onward, §4.5) may change gallery output,
 and each re-baselines deliberately.
 
 ---
@@ -364,7 +364,9 @@ Box            (Id, Kind, Rect /*cells*/, LandTargetCells)
 BoxInterface   (A, B, EdgeInterval /*position+width — §1.5's "always an interval"*/, WidthCells)
 BoxPartition   (Boxes, Interfaces)
 FillMenu       For(widthCells) → legal (family, options) set   // the §4 w2/w4/w6 table as data
-FillResult     Ok(pieces) | TooSmall(family, minBox) | NoFamilyFits(menu)
+FillResult     Ok(pieces, vacancies) | TooSmall(family, minBox) | NoFamilyFits(menu)
+Vacancy        residual envelope space a fill publishes for later claims (§4.4):
+               (kind: bay | notch | hole, rect, mouth: BoxInterface, walls: slot refs)
 GrowthOrder    a named strategy: the sequence in which box kinds are drawn and filled
                (spawn-first · hub-first · mid-out · …) — a ComposeRequest parameter
 ```
@@ -449,9 +451,54 @@ What the table pins down:
 
 `SpawnBoxEmitter` from the §8 tree is therefore not a second emitter: it is the spawn *profile* +
 role binding over the same machinery, and if it stays a named class at all it is a ~20-line adapter
-like the thinned `WoolBoxEmitter`.
+like the thinned `WoolBoxEmitter`. (How a spawn ends up *inside* a hub's bay — the negative-space
+case a rectangle partition cannot express — is §4.4.)
 
-### 4.4 Migration sequence — do not big-bang the grower
+### 4.4 Negative space — boxes may overlap; fills publish vacancies
+
+An author-identified failure of the naive box model, caught before it was built. The motivating
+layout: **three wools** placed left / top / right, the spawn tucked at the bottom **inside the bay
+of a U-shaped hub** that connects all three. A disjoint-rectangle partition cannot express this:
+the hub's box occupies the bay, so the spawn has nowhere legal to sit. Both workarounds are bad —
+pre-cutting the U into thin bar-boxes (one horizontal bar for the hub, vertical bars for
+frontlines/wools) forces I-shapes everywhere and makes §4.3's pattern vocabulary pointless; and the
+current composer's actual behavior — the third wool as an I lane squeezed **parallel to the spawn
+lane** (`wool-lane-c`) — is the G45 anti-pattern, visible in several generated seeds, and is a
+**failure mode, never a pattern to sample**.
+
+The fix is latent in the canonical doc's own words: *"a box is a bounding envelope, not a fill
+target."* The load-bearing invariant was never box-disjointness — it is **piece**-disjointness
+(exactly what `emit-verify` asserts today) plus image clearance. Consequences:
+
+1. **Boxes may overlap.** The partition allocates budgets and constraints, not exclusive area.
+   Non-overlap is enforced where it is real: on the emitted terrain.
+2. **A fill publishes its vacancies.** `FillResult.Ok(pieces, vacancies)` — the residual regions of
+   the envelope after emission, classified with the vocabulary the doc already owns: **bay** (open
+   on one side — claimable by a later box), **notch** (corner remainder), **hole** (enclosed —
+   claimable only as a declared hole/buffer, or left void). Each vacancy carries its **mouth** (a
+   `BoxInterface`: the open interval and its width) and its **walls** (which template slots of the
+   emitted shape bound it). Because families are fixed templates, vacancies are **emit-side data —
+   exact and free**: a U publishes its bay, a scythe its bay, a clamp its open gap, a donut its
+   enclosed void, a twin frontline its recess. No derive pass needed to find them.
+3. **Later fills claim vacancies.** A `Box` may be allocated *inside* a vacancy of an earlier fill;
+   its dock edges come from the vacancy's walls — a bay-seated spawn touches up to three interfaces
+   for free, which is precisely what makes the position interesting to defend. `FillProfiles`
+   constrains claims per kind ("a spawn may claim a hub bay whose mouth faces away from the axis");
+   the `GrowthOrder` decides who publishes and who claims — hub-first publishes the bay the spawn
+   claims, while spawn-first inverts it (the spawn stakes a pocket the hub's fill must then wrap:
+   harder, and one more reason order stays an experiment, §10.5).
+4. **The precedent already exists.** The twin-frontline recess (CT8) is exactly a deliberately
+   published vacancy that the mid band later seals into the rotation hole. This section names the
+   mechanism and generalizes it beyond that single hard-coded case.
+
+Downstream, nothing changes: a claimed vacancy produces ordinary piece contacts, so the derive
+side, the mirror, and the evaluator are untouched (SP1 still guards the new hazard — a bay-seated
+spawn docking multiple walls must not become the only path to a wool). An unclaimed vacancy is just
+void, or a `buffer` if the void is the point. And the motivating layout itself — three wools
+L/T/R, spawn in the U's bay — should be authored as a **teaching seed**: it is the missing G45
+positive, a genuine third-wool route enabled by a claimed bay.
+
+### 4.5 Migration sequence — do not big-bang the grower
 
 The grower encodes real, hard-won invariants (fixed draw order, LN2 chains, image clearance, the
 repair loops) and currently *works*. Replace it organ by organ:
@@ -469,10 +516,12 @@ repair loops) and currently *works*. Replace it organ by organ:
   generation at last, and gives G44 its structural spend vocabulary (escalate family instead of
   stretching length).
 - **M3 — hub + frontline as shape consumers**: open-variant emission for G41's L/Z compositions and
-  HB4 multi-piece hubs; G39's corner/edge interlock enforced on `BoxInterface` at partition time.
+  HB4 multi-piece hubs; G39's corner/edge interlock enforced on `BoxInterface` at partition time;
+  fills start **publishing vacancies** (§4.4) — the U-hub's bay becomes a claimable slot.
 - **M4 — the partitioner as the first artifact**: `BoxPartition` replaces the `Shape` record as what
   sampling produces; the composer's resample loop becomes partition-repair driven by `FillResult` and
-  evaluator feedback; `GrowthOrder` strategies (spawn-first / hub-first / mid-out) become the
+  evaluator feedback; the partitioner allocates later boxes **from published vacancies** as well as
+  fresh space (§4.4); `GrowthOrder` strategies (spawn-first / hub-first / mid-out) become the
   experiment axis, judged by the evaluator and the G43 conformance metrics.
 
 **Timing warning (load-bearing):** every one of M2–M4 changes RNG consumption and therefore every
@@ -536,8 +585,9 @@ G section as-is. Dependencies point up the list.
 6. **[M3] Open-variant shapes for frontline/hub.** `FillPattern`/`FillProfiles`/`BoxFiller`
    (§4.3): G41 L/Z compositions and HB4 hub shapes as open patterns over the same families;
    `FrontForm` retires into frontline patterns; G39's interlock as a `BoxInterface` constraint;
-   `emit-verify` grows the per-kind pattern mirrors (twin → closure hole + two strands, L hub →
-   one-bend junction outline).
+   fills publish `Vacancy`s and profiles gate claims (§4.4 — the spawn-in-hub-bay case, with the
+   three-wool U-hub teaching seed); `emit-verify` grows the per-kind pattern mirrors (twin →
+   closure hole + two strands, L hub → one-bend junction outline).
 7. **[M4] Partitioner-first composition.** `BoxPartition` replaces the `Shape` sampling record;
    directed repair from `FillResult`; `GrowthOrder` strategies as the order experiment. Re-baseline
    gallery cases; then freeze G32-D goldens (per strategy).
@@ -615,7 +665,8 @@ src/PgmStudio.Contracts/
       FillProfiles.cs             per-BoxKind data: legal patterns × families × binding, each
                                   restriction citing its layout-rules.md id (§4.3)
       FillMenu.cs                 interface width → legal patterns (the §4 table as data)
-      FillResult.cs               Ok | TooSmall(minBox) | NoFamilyFits
+      FillResult.cs               Ok(pieces, vacancies) | TooSmall(minBox) | NoFamilyFits
+      Vacancy.cs                  published negative space: bay/notch/hole + mouth + walls (§4.4)
       GrowthOrder.cs              named order strategies (spawn-first / hub-first / mid-out)
       BoxFiller.cs                [M3]  Fill(box, profile, interfaces, rng) → slot-typed pieces —
                                   the one profile-driven fill entry point (§4.3)
@@ -912,3 +963,75 @@ because the sections above build on them:
    exactly and the log doubles as a which-rule-kills-most report; **(b)** validation criteria must
    be toggleable down the line — the `EvaluationProfile` (§9.1) is that switch: enabling/disabling
    a term is configuration, not code.
+
+---
+
+## 11. Assessment against the authored seeds — will the approach actually work?
+
+Written after reading the seed corpus itself (`base-*`, `isolated-spawn`, `rotate-wide-frontline`
+piece by piece, `mirror-big-board` piece by piece, the teaching sets and their shopping list), not
+just the contracts. The question posed by the author: beyond being well-documented, is the
+rule-driven box approach actually going to work? Verdict: **yes — for reasons specific to this
+domain**, with three named risks.
+
+### 11.1 What the seeds reveal that the prose model undersells
+
+- **The negative space carries the design.** In `isolated-spawn` the whole idea is in the zones
+  (the spawn severed behind two 10×10 gaps, walls at the wool seams); in `mirror-big-board` every
+  strategically interesting decision — isolation cuts, the two bridges into the deep wool, the
+  contested centre — is a build region, not a piece. Terrain is cheap; **gaps are the design**.
+  This is why `BoxInterface` (and G39, the interlock) is even more load-bearing than the fill
+  machinery, and why §4.4's vacancies are not a corner case but the geometry of how these maps
+  actually compose.
+- **Elevation is half the map, not a finish.** Roughly a third of `rotate-wide-frontline`'s 34
+  pieces are 1-cell stair treads; `mirror-big-board` terraces 9→11→13→15→17→19 with cliffs and
+  walls; every wool in the complex seeds tops a deliberate climb and the spawns overlook. The
+  piece count of an authored map is dominated by terracing, not footprint.
+
+### 11.2 Why it will work — domain-specific, not optimism
+
+PCG efforts usually die from one of three causes, and this project structurally avoids all three:
+
+1. **The loop is already closed.** plan → XML → plugin → playable grayscale map exists today.
+   Generation *quality* is the only open variable; integration risk is zero. This is the single
+   biggest de-risker and it is rare.
+2. **The aesthetic is definable and the oracle is available.** A decade of maps for one server, one
+   mode, one style corridor — the "rules punish, the residue is the style" argument (§7 of the
+   canonical doc) only works when the style is consistent enough to *have* a residue; this one is.
+3. **The search space is tiny.** ≤40 rects on a 5-block grid, one authored unit, symmetry
+   halving/quartering the work. Evaluation is milliseconds; reject-sampling is viable now, local
+   search / CP-SAT realistic later. Rule-driven approaches drown in big spaces; this one is small
+   on purpose.
+
+The generate→punish→refine epistemics are also already *empirically validated in this repo*:
+G39, G40, G42 and G44 were each discovered by inspecting generated failures, and the teaching-set
+shopping list is the failure→rule pipeline running before the evaluator even exists. And the box
+model matches the author's actual practice (shaded paper; sometimes spawn-first, sometimes
+wool-first, sometimes hub-first) — which matters because it aligns the generator's degrees of
+freedom with the author's critique vocabulary, keeping failures legible. §4.4 is the proof the
+alignment works both ways: the author caught a real model flaw (the U-hub bay) from the drawing
+practice before a line was built.
+
+### 11.3 The three risks, named
+
+1. **Plateauing at "valid but flat."** The box/shape/pattern machinery is all footprint; the seeds
+   say authored-feel is substantially elevation. G32-C must not stay a checklist line: **the
+   elevation pass is a second generator of comparable weight**, and it wants its own pattern
+   vocabulary in the §4.3 sense — a staircase chain (n treads × step 2 climbing an interface) *is*
+   a pattern, visible 20+ times in the seeds. If generated maps ever feel correct but soulless,
+   this is where the missing soul will be.
+2. **The evaluator only refuses what the deriver can see.** Some taste (flow, fight geometry,
+   "this mid is cramped") will resist formulation; expect a persistent tail of *score says fine,
+   author says no*. That tail is what minimal pairs are for — each "no" becomes a pair, each pair
+   indicts a missing term — and the traffic-ground-truth work is the long-term answer for flow.
+   The evaluator's year-one job is to stop wasting the author's time on obviously bad boards, not
+   to replace the author's eye.
+3. **Novelty vs. validity.** As rules and envelopes stack, the acceptance region tightens toward
+   "statistically indistinguishable from the seeds." Guards: envelopes stay soft (never promoted to
+   hard for being frequently violated), and once the rule set stabilizes, move from reject-sampling
+   to search *toward* low cost (`layout-evaluator.md` §8's escalation) — search reaches novel
+   corners of the valid region that sampling never hits.
+
+Ruthless sequencing, if forced: **interface discipline first** (G39 and the `BoxInterface` types —
+the seeds say the gaps are the design), shape/pattern variety second, elevation patterns third,
+generator sophistication last.
