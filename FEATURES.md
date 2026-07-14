@@ -31,6 +31,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   /api/maps?stage=`, `GET /api/maps/stage-counts`; stage seeded/advanced at sketch-create, import, and
   sketch-finish. Editor home breadcrumbs return to the matching overview; sketch-finish lands on the
   Configure overview with a *Continue* offer rather than force-navigating into the wizard.
+- **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
+  layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
+  above a labelled `or work a map through its stages` divider from the three lifecycle cards; the
+  old footer *Plan* link is retired. A horizontal `.landing-plan` variant of the `.card--action`
+  surface, grouped with the trio under `.landing-choices` + a hairline `.landing-divider` — all
+  theme-token based (verified light + dark). (G70)
 
 ## Editor shell & activities (M6)
 - **Editor shell** — topbar + activity rail + activity-switch state machine. (E1)

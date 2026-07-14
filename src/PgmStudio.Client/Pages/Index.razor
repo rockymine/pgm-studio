@@ -26,12 +26,25 @@
               <span class="activity-logo-sub">STUDIO</span>
             </div>
             <h1 class="landing-title">Make a Capture-the-Wool map, end to end</h1>
-            <p class="landing-lead">Three stages, one map: <strong>sketch</strong> the islands,
-              <strong>configure</strong> the <code>map.xml</code>, then <strong>edit</strong> to refine.
-              Pick where to start — or pick up where you left off.</p>
+            <p class="landing-lead">From a first coarse layout to a finished <code>map.xml</code> —
+              pick where to start, or pick up where you left off.</p>
           </header>
 
-          <div class="card-grid landing-cards">
+          <div class="landing-choices">
+            <a class="card card--action landing-plan" href="plan-editor">
+              <span class="card-icon"><i data-lucide="layout-grid"></i></span>
+              <div class="landing-plan-body">
+                <span class="card-title">Plan a layout</span>
+                <p class="card-desc">Author a coarse cell-grid seed — pieces, zones, symmetry and
+                  objectives — and compile it straight into a sketch draft. The fastest way to block
+                  out a whole map before you build.</p>
+              </div>
+              <span class="card-foot-go landing-plan-go">Open <i data-lucide="arrow-right"></i></span>
+            </a>
+
+            <div class="landing-divider">or work a map through its stages</div>
+
+            <div class="card-grid landing-cards">
             <a class="card card--action" href="maps?stage=sketch">
               <div class="card-head">
                 <span class="card-icon"><i data-lucide="pencil-ruler"></i></span>
@@ -70,6 +83,7 @@
                 <span class="card-foot-go">Browse <i data-lucide="arrow-right"></i></span>
               </span>
             </a>
+            </div>
           </div>
         </div>
       </div>
@@ -81,7 +95,6 @@
     <nav class="app-footer-links">
       <a class="app-footer-link" href="concepts"><i data-lucide="sparkle"></i><span>Concepts</span></a>
       <a class="app-footer-link" href="design"><i data-lucide="palette"></i><span>Design</span></a>
-      <a class="app-footer-link" href="plan-editor"><i data-lucide="layout-grid"></i><span>Plan</span></a>
     </nav>
   </footer>
 </div>

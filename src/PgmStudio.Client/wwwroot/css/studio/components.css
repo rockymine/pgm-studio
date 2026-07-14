@@ -1052,7 +1052,41 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   line-height: 1.6;
   color: var(--text-secondary);
 }
-.landing-cards { margin-top: var(--space-4); }
+/* The two ways in, stacked: the featured "plan a layout" origin, a labelled rule, then the
+   three lifecycle cards. One flow group so its internal rhythm is tighter than the hero gap. */
+.landing-choices { display: flex; flex-direction: column; gap: var(--space-4); }
+.landing-cards { margin: 0; }
+
+/* Featured origin — a wide horizontal card above the lifecycle trio. Overrides the vertical
+   .card layout and the grid-cell height stretch it inherits from .card--action. */
+.landing-plan {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+  height: auto;
+}
+.landing-plan .card-icon { width: 44px; height: 44px; }
+.landing-plan .card-icon svg { width: 24px; height: 24px; }
+.landing-plan-body { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.landing-plan-body .card-title { font-size: var(--font-lg); }
+.landing-plan-body .card-desc { margin: 0; }
+.landing-plan-go { flex: none; font-size: var(--font-sm); }
+
+/* Labelled separator between the two paths — a centred caption flanked by hairlines. */
+.landing-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--font-sm);
+}
+.landing-divider::before,
+.landing-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
 
 /* A card that is itself a link to an editor surface — fills its grid cell, no underline. */
 .card--action { text-decoration: none; cursor: pointer; height: 100%; }
