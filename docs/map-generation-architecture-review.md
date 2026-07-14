@@ -524,13 +524,19 @@ src/PgmStudio.Pgm/
     FannedGraph.cs                [moved from Plan/]  predicates sourced from ContactGraph
 
   Evaluate/                       [new folder, task 3 — §9 below]
-    LayoutEvaluator.cs            Evaluate(plan | EvalContext) → Evaluation
+    LayoutEvaluator.cs            Evaluate(plan | EvalContext, profile) → Evaluation
     EvalContext.cs                (Plan, ContactGraph, BoardStructure, SeedEnvelopes) derived once
+    EvaluationProfile.cs          per-term enabled + weight; the criteria on/off switch (§9.1)
     Terms/                        one file per §6-catalogue group of layout-evaluator.md:
       GlobalTerms.cs · MidTerms.cs · FrontlineTerms.cs · ResidualTerms.cs ·
       LaneTerms.cs · SpawnTerms.cs · WoolTerms.cs · HeightTerms.cs
     SeedEnvelopes.cs              loads seed-envelopes.json (embedded resource)
     seed-envelopes.json           [generated — see §9.3; regenerated, never hand-edited]
+
+src/PgmStudio.Contracts/
+  EvaluationDto.cs                [new, with the editor surface — §9.5]  wire form of Evaluation
+                                  (score, term scores, violations w/ subject ids); DTO only, no
+                                  logic — the editor's live-scoring surface (§10 decision 4)
 
   Compose/
     Boxes/                        [new folder, M2–M4]
@@ -625,8 +631,11 @@ Score = Σ_hard-violated  P_HARD  +  Σ_soft  w_t · Distance_t        (lower is
 ```
 
 with `P_HARD` a constant that dominates any realistic soft sum (e.g. 1000 per violation) — a layout
-with any hard violation must rank below every merely-ugly one. Weights `w_t` start flat at 1.0 in a
-single `TermWeights` table; they are tuned only when the labeled set (§9.4) mis-ranks, never by
+with any hard violation must rank below every merely-ugly one. Weights and the enabled term set
+live together in an **`EvaluationProfile`** (per term id: enabled + weight); the default profile is
+all terms on at flat 1.0. Toggling a validation criterion on or off is a **profile edit, not a code
+change** (decision 6b, §10) — the composer gate, the editor lint, and the ranking harness may each
+run a different profile. Weights are tuned only when the labeled set (§9.4) mis-ranks, never by
 taste. **Convention: cost, not fitness** — search minimizes.
 
 ### 9.2 The distance convention (so weights stay comparable)
@@ -649,9 +658,10 @@ they yield a `Violation` or nothing.
 
 `Compose/Envelope.cs` already means *budget* — so the metric bands are **`SeedEnvelopes`** (never
 "envelope" bare, to keep the collision out of the code). Source of truth: **generated, checked in,
-never hand-edited** — `tools/deriver/envelope-stats.cs` runs the deriver over `tools/seeds/` (the
-authored positives), computes each catalogued metric's band (min/max per player-count bucket and
-symmetry mode where the seeds justify a split), and writes `Evaluate/seed-envelopes.json`, from
+never hand-edited** (decided — §10.1) — `tools/deriver/envelope-stats.cs` runs the deriver over
+`tools/seeds/` (the authored positives), computes each catalogued metric's band (**global first**;
+split by symmetry mode only when the ranking harness proves a global band mis-ranks — §10.2), and
+writes `Evaluate/seed-envelopes.json`, from
 which the human-readable `docs/seed-stats.md` tables are also refreshed. Adding a teaching seed and
 re-running the tool *is* how the evaluator learns the author's taste — no code change. Hard
 thresholds (`layout-rules.md` numbers) stay as constants in the term that cites them, exactly one
@@ -683,7 +693,8 @@ author does. Executable form:
   gallery's eyeball cards.
 - Negatives can be **authored or mutated**: a tiny mutation library (shift a zone, stretch a piece,
   delete a buffer) generates candidate negatives from positives mechanically; the author only
-  reviews and labels. Open question 3 below.
+  reviews and labels. Both paths stay open (§10 decision 3) — pick per failure class once the set
+  starts growing.
 
 Per-term **unit tests** (synthetic fixtures, `tests/.../Evaluate/`) cover each term's boundary in
 isolation; the ranking harness covers the *ensemble*. Both must pass before a term's weight is ever
@@ -691,13 +702,26 @@ tuned.
 
 ### 9.5 Consumers
 
-- **Composer gate** (dissolves `Composer.Acceptable`): accept = `IsValid` — hard layer only, so
-  soft-term additions never silently change which seeds compose. One cheap upgrade at the same time:
-  the existing hole-hunt loop keeps the **lowest-scoring** acceptable attempt instead of the first,
-  which makes new soft terms immediately steer output without any new search machinery
-  (`layout-evaluator.md` §8 option 1).
-- **Editor lint**: the same terms rendered as findings (the `PlanValidator` precedent — subject ids
-  → canvas highlights). `PlanValidator` keeps only structural/parse errors.
+- **Composer gate** (dissolves `Composer.Acceptable`): a hard-terms-only profile run in
+  **short-circuit mode** — the first hard violation rejects the attempt (decision 6, §10; the full
+  soft evaluation runs only on attempts that pass, so the hunt loop's cost stays bounded). Two
+  riders from the same decision: **(a) rejected attempts stay inspectable** — attempts are already
+  RNG-stable, so the gate appends one line per reject to a **reject log** (JSONL, e.g.
+  `tools/compose/out/rejects.jsonl` or a sink on `ComposeRequest`): `{seed, request, attempt,
+  stage, termId, ruleId, subjects}`. Re-composing with the logged seed reproduces the failed layout
+  exactly, and the log doubles as a frequency report of *which* rule kills most attempts — the
+  directed-repair shopping list for M4. **(b)** the profile is the on/off switch for criteria.
+  One cheap upgrade at the same time: the hole-hunt loop keeps the **lowest-scoring** acceptable
+  attempt instead of the first, which makes new soft terms immediately steer output without any new
+  search machinery (`layout-evaluator.md` §8 option 1).
+- **Editor (decided direction, §10 decision 4)**: automatic generation will eventually be
+  trigger-able from *inside* the editor, so scoring is a first-class editor concern, not just a
+  harness one. Wire surface: an **`EvaluationDto`** in `Contracts` (score, per-term scores,
+  violations with subject ids — DTO only, no logic, per the Contracts rule), a
+  `POST /api/plan/evaluate` endpoint, and the future compose-trigger endpoint returning
+  plan + evaluation together. The client renders violations the way `PlanValidator` findings render
+  today (subject ids → canvas highlights); the lint and the score are the same records at two
+  levels of detail. `PlanValidator` keeps only structural/parse errors.
 - **G43 conformance**: a sweep report of soft distances per term over generated boards vs the
   teaching set — it is the same `Evaluation` records, aggregated.
 - **Later search** (anneal / CP-SAT, `layout-evaluator.md` §8.2–8.3) minimizes `Score` directly;
@@ -705,34 +729,30 @@ tuned.
 
 ---
 
-## 10. Open questions for the author
+## 10. Decisions (open questions resolved with the author, 2026-07-14)
 
-Answers change the plan's details, not its order — none block M0/M1.
+The first draft closed with six open questions; the author has ruled on all of them. Recorded here
+because the sections above build on them:
 
-1. **Envelope regeneration.** No in-tree tool generates `docs/seed-stats.md` today (searched; the
-   tables look computed but the script isn't in the repo). §9.3 proposes `envelope-stats.cs` as the
-   single owner of both the evaluator's `seed-envelopes.json` and the doc tables. Confirm: should
-   the tool's output *replace* the current tables wholesale, or generate the JSON only and leave the
-   doc curated by hand (risking drift)? Recommendation: tool owns both.
-2. **Envelope splits.** Should bands be bucketed per player count and per symmetry mode from the
-   start (few seeds per bucket → wide, weak bands), or global-first and split only where the seeds
-   show real divergence? Recommendation: global-first; split a metric only when the ranking harness
-   proves the global band mis-ranks a pair.
-3. **Negative authoring.** Hand-authored minimal pairs in the plan editor, or mechanical mutation of
-   positives with author review (§9.4)? Mutation scales better and guarantees the "exactly one
-   property" discipline; hand-authoring captures failure modes no mutation operator anticipates.
-   Recommendation: both, mutation first for coverage of the already-known failure classes
-   (G39/G40/G42/G44 each suggest an operator).
-4. **Evaluator placement.** §8 puts `Evaluate/` inside `PgmStudio.Pgm` (it needs `Plan` + `Derive`;
-   `Api` reaches it transitively for any future endpoint). If the plan *editor* should show live
-   scores, the client needs a DTO in `Contracts` (a serialized `Evaluation`) and an API endpoint —
-   fine, but is live in-editor scoring wanted at all, or is the gallery/harness surface enough for
-   now?
-5. **Growth-order scope.** `GrowthOrder` is designed for the M4 partitioner. Should the *current*
-   grower already expose an order knob at M2 (cheap to thread, but its fixed draw sequence makes
-   orders only superficially different), or is order experimentation deferred until the partitioner
-   exists? Recommendation: defer to M4 — a half-real order knob would produce misleading A/B data.
-6. **Hard-violation constant vs early exit.** Is a scored-but-invalid layout ever useful to the
-   author (ranking *among* invalid attempts to see "closest to legal"), or should evaluation
-   short-circuit on the first hard violation for composer-loop speed? §9.1 assumes full evaluation
-   always (the composer loop can pass a hard-only term subset for its gate).
+1. **Envelope regeneration — decided.** `envelope-stats.cs` owns both artifacts: the evaluator's
+   `seed-envelopes.json` and the `docs/seed-stats.md` tables. (No in-tree tool generates the
+   current tables — the doc becomes generated output; hand edits to it stop.)
+2. **Envelope splits — decided.** Global bands first; bucket **by symmetry mode** only where the
+   ranking harness proves a global band mis-ranks a pair. Player-count bucketing stays out until
+   evidence demands it.
+3. **Negative authoring — deferred.** Both mutation and hand-authoring stay open; the choice is
+   made per failure class once the labeled set starts growing. Nothing in §9.4 depends on picking
+   now.
+4. **Editor surface — decided, and it shapes the architecture.** Automatic generation will be
+   trigger-able from *within the editor*, so live scoring there is a requirement, not an option:
+   `EvaluationDto` in `Contracts`, `POST /api/plan/evaluate`, and the compose-trigger endpoint
+   returning plan + evaluation together (§9.5, §8 tree).
+5. **Growth-order scope — decided.** Order experimentation waits for the M4 partitioner. No order
+   knob on the current grower — its fixed draw sequence would make orders only superficially
+   different and the A/B data misleading.
+6. **Composer gate — decided.** Short-circuit on the first hard violation. Two riders: **(a)**
+   rejected attempts must stay inspectable — RNG-stable seeds plus the reject log
+   (`{seed, request, attempt, stage, termId, ruleId, subjects}`, §9.5) so any failure reproduces
+   exactly and the log doubles as a which-rule-kills-most report; **(b)** validation criteria must
+   be toggleable down the line — the `EvaluationProfile` (§9.1) is that switch: enabling/disabling
+   a term is configuration, not code.
