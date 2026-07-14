@@ -462,7 +462,7 @@ G section as-is. Dependencies point up the list.
    output over the base seeds + generated cases (§2.3 regression protocol). Doc §1.3/§6.2 updated to
    name the class, not the script.
 3. **Evaluator skeleton over `BoardStructure`.** Dissolve `Composer.Acceptable` into hard terms;
-   score + violations per §7; G43's metrics land here.
+   score + violations per §7; G43's metrics land here. Detailed design: §9; file placement: §8.
 4. **[M2] Wool boxes in the grower.** `Box`/`BoxInterface`/`FillMenu`/`FillResult`; wool arms filled
    via `WoolBoxEmitter`; emitter orientation transform. Unlocks G44's structural spend, G50–G52.
 5. **Derive-side slot recovery + classifier scoping.** `AssignSlots` template match;
@@ -481,3 +481,258 @@ G section as-is. Dependencies point up the list.
 The ordering principle: **1–3 are pure consolidation that make every later feature cheaper and can
 ship independently; 4 is the first behavior change and the real start of "box creation"; 7 is the
 finish line where the doc's §2 pipeline and the code finally describe the same system.**
+
+---
+
+## 8. Target file layout (end state after M0–M4)
+
+The concrete tree the plan converges on. Annotations: **[new]** created, **[ren]** renamed in place,
+**[thin]** shrinks to an adapter, **[ret]** retires (deleted once its replacement lands), with the
+step that does it.
+
+```
+src/PgmStudio.Geom/
+  Cells.cs                        [new, M0]  N4 · FloodFill · Components · EnclosedVoids ·
+                                             ReflexCorners · Bays · MinRunWidth (cell-set substrate)
+  (everything else unchanged)
+
+src/PgmStudio.Pgm/
+  Shapes/                         [new namespace, M0 — §3.3 option (b); Geom-clean API]
+    ShapeFamily.cs                one enum (absorbs ApproachFamily + ApproachShape, incl. Isolated)
+    SlotTemplate.cs               from ApproachSlots; `room` → `terminal` at this layer
+    ShapeEmitter.cs               the WoolBoxEmitter switch body, freed of GrownPiece/PlanRoles:
+                                  Emit(family, box, cw, options) → slot-typed rects + terminal + marker
+    ShapeClassifier.cs            the WoolApproachShape decision tree over (filled, terminal) cells,
+                                  + ClassifyOpen(corridor) → LaneRead (absorbs WoolLaneShape's read)
+    CorridorExtent.cs             [new, task 5]  the junction-stop flood, two stop policies (§3.6)
+    SlotAssignment.cs             [new, task 5]  derive-side family→pieces template match (§3.4)
+
+  Plan/
+    PlanModel.cs                  unchanged (the frozen author-intent format)
+    PlanValidator.cs              [thin, task 3]  structural errors stay; rule terms migrate to Evaluate/
+    PlanCompiler.cs               unchanged
+    WoolApproachShape.cs          [ret, M0 → Shapes/ShapeClassifier]
+    WoolLaneShape.cs              [ret, task 5 → Shapes/CorridorExtent + ClassifyOpen]
+
+  Derive/                         [new folder, M1 — the board deriver, finally in src]
+    ContactGraph.cs               [ren from Plan/PlanDerived.cs]  rect layer: contacts, interfaces,
+                                  gap links, build regions, frontline edges, components
+    BoardStructure.cs             [new]  the raster-layer result record: islands + anchor roles,
+                                  stepping-stone kinds, intra/self bridges, zone kinds + widths,
+                                  hole classes + parallel-ways, wool lanes, mid form
+    BoardDeriver.cs               [new]  Derive(plan) → BoardStructure (extracted from the gallery)
+    FannedGraph.cs                [moved from Plan/]  predicates sourced from ContactGraph
+
+  Evaluate/                       [new folder, task 3 — §9 below]
+    LayoutEvaluator.cs            Evaluate(plan | EvalContext) → Evaluation
+    EvalContext.cs                (Plan, ContactGraph, BoardStructure, SeedEnvelopes) derived once
+    Terms/                        one file per §6-catalogue group of layout-evaluator.md:
+      GlobalTerms.cs · MidTerms.cs · FrontlineTerms.cs · ResidualTerms.cs ·
+      LaneTerms.cs · SpawnTerms.cs · WoolTerms.cs · HeightTerms.cs
+    SeedEnvelopes.cs              loads seed-envelopes.json (embedded resource)
+    seed-envelopes.json           [generated — see §9.3; regenerated, never hand-edited]
+
+  Compose/
+    Boxes/                        [new folder, M2–M4]
+      Box.cs                      (Id, Kind, Rect, LandTargetCells)
+      BoxInterface.cs             edge interval + width — the master variable as a type
+      BoxPartition.cs             boxes + interfaces (the constraint graph)
+      FillMenu.cs                 width → legal families (the §4 table as data)
+      FillResult.cs               Ok | TooSmall(minBox) | NoFamilyFits
+      GrowthOrder.cs              named order strategies (spawn-first / hub-first / mid-out)
+      BoxPartitioner.cs           [M4]  budget → BoxPartition, directed repair from FillResult
+    WoolBoxEmitter.cs             [thin, M0]  binding over Shapes.ShapeEmitter: terminal → wool-room
+                                  role + marker, wraps GrownPiece; public surface unchanged
+    SpawnBoxEmitter.cs            [new, M2/M3]  same shapes, terminal → spawn role
+    TeamUnitGrower.cs             [thin M2/M3 → ret M4]  wool arms delegate to boxes at M2, hub/
+                                  frontline at M3; the Shape sampling record dies with M4
+    Composer.cs                   Acceptable dissolved into Evaluate (task 3); orchestration stays
+    ClosureAnalysis.cs            query over BoardStructure, or a documented fast-path twin (§2.3)
+    MidCarver.cs · IsolationCut.cs · Envelope.cs · Frame.cs · ComposeRng.cs · ComposeRequest.cs
+                                  stay (ComposeRequest gains GrowthOrder)
+
+tools/deriver/
+  derive-gallery.cs               [thin, M1]  render-only over BoardDeriver
+  eval-rank.cs                    [new, task 4-ish]  the labeled-set ranking harness (§9.4)
+  envelope-stats.cs               [new]  regenerates seed-envelopes.json (+ seed-stats.md tables)
+  shapes-gen.cs · emit-verify.cs · stress-shapes.cs
+                                  [ret, M0 → tests/ as TUnit (finding 6.3)]
+  lane-audit.cs                   stays until task 5, then reads ClassifyOpen
+
+tools/seeds/
+  *.plan.json                     the positives (unchanged)
+  teaching/                       unchanged
+  negatives/                      [new]  minimal-pair negatives + labels.json (§9.4)
+
+tests/PgmStudio.Pgm.Tests/
+  Shapes/                         [new, M0]  ported mirror loop (emit → classify → slots), stress
+                                  fixtures, catalog fixtures — the §5.4 harnesses as suite tests
+  Derive/                         [new, M1]  ContactGraph/BoardStructure unit tests (synthetic)
+  Evaluate/                       [new, task 3]  per-term unit tests on synthetic fixtures
+  Compose/                        existing + Boxes coverage as M2–M4 land
+```
+
+Two deliberate non-moves: `PlanModel` stays in `Plan/` untouched (the wire format is frozen and
+everything references it), and the shape layer stays inside `PgmStudio.Pgm` per §3.3 — if it is
+later promoted to `Geom`, the `Shapes/` folder moves wholesale, which is the point of keeping its
+API Geom-clean.
+
+---
+
+## 9. The evaluator, concretely
+
+`layout-evaluator.md` §6–§7 fixes the *form* (`score = Σ hard + Σ w·envelope-distance`) and the
+term catalogue; this section is the missing *code shape* — what an implementing agent builds. It
+introduces no new law: thresholds stay in `layout-rules.md`, envelopes in the seed statistics, and
+the evaluator stays **shape-agnostic** (terms read derived measurables, never family names — the
+enumeration-trap rule of `layout-evaluator.md` §8).
+
+### 9.1 Types and flow
+
+```csharp
+enum TermKind { Hard, Soft }
+
+// one violation, legible and actionable: rule id + the pieces/zones it indicts
+sealed record Violation(string TermId, string RuleId, string Message,
+                        IReadOnlyList<string> Subjects);      // piece/zone ids, same as PlanFinding
+
+sealed record TermScore(string TermId, TermKind Kind, double Distance, Violation? Violation);
+
+sealed record Evaluation(double Score, IReadOnlyList<TermScore> Terms)
+{
+    public bool IsValid => Terms.All(t => t.Kind != TermKind.Hard || t.Violation is null);
+    public IEnumerable<Violation> Violations => ...;
+}
+
+// derived once, shared by every term — a term never re-floods the board
+sealed record EvalContext(PlanModel Plan, ContactGraph Contacts, BoardStructure Board,
+                          SeedEnvelopes Envelopes);
+
+interface ILayoutTerm
+{
+    string Id;         // e.g. "band-docks-full-face"
+    string RuleId;     // e.g. "G39" / "BZ6" — every term cites exactly one layout-rules.md id
+    TermKind Kind;
+    TermScore Measure(EvalContext ctx);   // pure; no RNG, no IO
+}
+```
+
+`LayoutEvaluator.Evaluate(plan)` = build `EvalContext` (derive `ContactGraph` + `BoardStructure`
+once), run every registered term, sum:
+
+```
+Score = Σ_hard-violated  P_HARD  +  Σ_soft  w_t · Distance_t        (lower is better; 0 = perfect)
+```
+
+with `P_HARD` a constant that dominates any realistic soft sum (e.g. 1000 per violation) — a layout
+with any hard violation must rank below every merely-ugly one. Weights `w_t` start flat at 1.0 in a
+single `TermWeights` table; they are tuned only when the labeled set (§9.4) mis-ranks, never by
+taste. **Convention: cost, not fitness** — search minimizes.
+
+### 9.2 The distance convention (so weights stay comparable)
+
+Every soft term reduces to a metric `m` against a band `[lo, hi]`:
+
+```
+Distance = 0                          if lo ≤ m ≤ hi
+         = (lo − m) / halfWidth       if m < lo        where halfWidth = (hi − lo) / 2
+         = (m − hi) / halfWidth       if m > hi        (degenerate band: halfWidth = max(|hi|·0.1, ε))
+```
+
+Normalizing by the band's half-width makes `Distance = 1.0` mean "as far outside as the authored
+band is wide" **regardless of unit** (blocks, counts, ratios) — without this, a flat `w = 1.0` start
+is meaningless and every weight becomes a unit-conversion fudge. Counting terms (e.g. "undeclared
+enclosed voids") use `[0, 0]` bands with a per-item distance. Hard terms skip distance entirely:
+they yield a `Violation` or nothing.
+
+### 9.3 Where the envelope numbers live
+
+`Compose/Envelope.cs` already means *budget* — so the metric bands are **`SeedEnvelopes`** (never
+"envelope" bare, to keep the collision out of the code). Source of truth: **generated, checked in,
+never hand-edited** — `tools/deriver/envelope-stats.cs` runs the deriver over `tools/seeds/` (the
+authored positives), computes each catalogued metric's band (min/max per player-count bucket and
+symmetry mode where the seeds justify a split), and writes `Evaluate/seed-envelopes.json`, from
+which the human-readable `docs/seed-stats.md` tables are also refreshed. Adding a teaching seed and
+re-running the tool *is* how the evaluator learns the author's taste — no code change. Hard
+thresholds (`layout-rules.md` numbers) stay as constants in the term that cites them, exactly one
+place each.
+
+### 9.4 The labeled set and the ranking harness — the actual deliverable
+
+`layout-evaluator.md` §7: the evaluator is *correct* when it ranks the labeled set the way the
+author does. Executable form:
+
+- **Positives**: `tools/seeds/*.plan.json` (+ `teaching/`). Assertion: `IsValid` and soft score in
+  the low band (they *define* the envelopes, so near-zero by construction — the check catches term
+  bugs, not seeds).
+- **Negatives**: `tools/seeds/negatives/*.plan.json`, each a **minimal pair** — a copy of a positive
+  with exactly one property broken (band shifted one cell; lane stretched past the norm; an
+  undeclared void). A sidecar `labels.json` entry per negative:
+
+  ```json
+  { "file": "big-board--band-shifted.plan.json",
+    "pairOf": "big-board.plan.json",
+    "broken": "band no longer docks the frontline full-face",
+    "expectTerms": ["G39"] }
+  ```
+
+- **The harness** (`tools/deriver/eval-rank.cs`, a corpus harness per repo convention): for every
+  pair, assert `Score(negative) > Score(positive)` **and** the negative's violated/worst terms
+  include `expectTerms` — the second clause is what makes a mis-weighted term visible even when the
+  ranking accidentally holds. Output: a ranked table + per-term hit/miss, the analogue of the
+  gallery's eyeball cards.
+- Negatives can be **authored or mutated**: a tiny mutation library (shift a zone, stretch a piece,
+  delete a buffer) generates candidate negatives from positives mechanically; the author only
+  reviews and labels. Open question 3 below.
+
+Per-term **unit tests** (synthetic fixtures, `tests/.../Evaluate/`) cover each term's boundary in
+isolation; the ranking harness covers the *ensemble*. Both must pass before a term's weight is ever
+tuned.
+
+### 9.5 Consumers
+
+- **Composer gate** (dissolves `Composer.Acceptable`): accept = `IsValid` — hard layer only, so
+  soft-term additions never silently change which seeds compose. One cheap upgrade at the same time:
+  the existing hole-hunt loop keeps the **lowest-scoring** acceptable attempt instead of the first,
+  which makes new soft terms immediately steer output without any new search machinery
+  (`layout-evaluator.md` §8 option 1).
+- **Editor lint**: the same terms rendered as findings (the `PlanValidator` precedent — subject ids
+  → canvas highlights). `PlanValidator` keeps only structural/parse errors.
+- **G43 conformance**: a sweep report of soft distances per term over generated boards vs the
+  teaching set — it is the same `Evaluation` records, aggregated.
+- **Later search** (anneal / CP-SAT, `layout-evaluator.md` §8.2–8.3) minimizes `Score` directly;
+  nothing here changes shape for that, which is the point of the cost convention.
+
+---
+
+## 10. Open questions for the author
+
+Answers change the plan's details, not its order — none block M0/M1.
+
+1. **Envelope regeneration.** No in-tree tool generates `docs/seed-stats.md` today (searched; the
+   tables look computed but the script isn't in the repo). §9.3 proposes `envelope-stats.cs` as the
+   single owner of both the evaluator's `seed-envelopes.json` and the doc tables. Confirm: should
+   the tool's output *replace* the current tables wholesale, or generate the JSON only and leave the
+   doc curated by hand (risking drift)? Recommendation: tool owns both.
+2. **Envelope splits.** Should bands be bucketed per player count and per symmetry mode from the
+   start (few seeds per bucket → wide, weak bands), or global-first and split only where the seeds
+   show real divergence? Recommendation: global-first; split a metric only when the ranking harness
+   proves the global band mis-ranks a pair.
+3. **Negative authoring.** Hand-authored minimal pairs in the plan editor, or mechanical mutation of
+   positives with author review (§9.4)? Mutation scales better and guarantees the "exactly one
+   property" discipline; hand-authoring captures failure modes no mutation operator anticipates.
+   Recommendation: both, mutation first for coverage of the already-known failure classes
+   (G39/G40/G42/G44 each suggest an operator).
+4. **Evaluator placement.** §8 puts `Evaluate/` inside `PgmStudio.Pgm` (it needs `Plan` + `Derive`;
+   `Api` reaches it transitively for any future endpoint). If the plan *editor* should show live
+   scores, the client needs a DTO in `Contracts` (a serialized `Evaluation`) and an API endpoint —
+   fine, but is live in-editor scoring wanted at all, or is the gallery/harness surface enough for
+   now?
+5. **Growth-order scope.** `GrowthOrder` is designed for the M4 partitioner. Should the *current*
+   grower already expose an order knob at M2 (cheap to thread, but its fixed draw sequence makes
+   orders only superficially different), or is order experimentation deferred until the partitioner
+   exists? Recommendation: defer to M4 — a half-real order knob would produce misleading A/B data.
+6. **Hard-violation constant vs early exit.** Is a scored-but-invalid layout ever useful to the
+   author (ranking *among* invalid attempts to see "closest to legal"), or should evaluation
+   short-circuit on the first hard violation for composer-loop speed? §9.1 assumes full evaluation
+   always (the composer loop can pass a hard-only term subset for its gate).
