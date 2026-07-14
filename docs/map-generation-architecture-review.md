@@ -989,6 +989,40 @@ the *data*, not the renderers:
 retrofitting evidence onto 30 finished terms is 30 small archaeology jobs, whereas attaching it
 while each term's geometry is in hand is two lines per term (§9.6 step 4).
 
+### 9.8 Slot-relation rules — labeled pieces, and what their visualization needs
+
+Because every emitted piece carries its template slot (`entry`/`run`/`bar`/`leg`/`terminal`),
+rules over slot *relations* become stateable — "the entry is at least as wide as the lane it
+feeds", "the room-run stub stays shorter than its bar", "only a `run`/`bar` may split into
+lane + build-lane, an `entry`/`room` stays whole" (§5.3 of the canonical doc already promises
+exactly this). Three questions, three answers:
+
+- **Do the evidence primitives cover them?** Yes, with one one-field extension: slot-relation
+  evidence is still rects and measures — the entry's rect vs. the lane-width dimension line — but
+  the card wants to *say* "entry", so `Evidence` gains an optional `Label` (or the convention
+  `tag = "slot:entry"`). Nothing else changes in any renderer. A bonus that costs nothing: a **slot
+  legend card per family** — the §5.3 template table drawn, generated straight from
+  `SlotTemplate` + `ShapeEmitter` — belongs in the `rule-cards.cs` output as the shared key the
+  slot-rule cards reference.
+- **Where do slot rules run?** Two tiers, because slots have two lives. **(1) Fill-time /
+  mirror-time** — during composition and in `emit-verify`, slots are simply in hand (the emitter
+  just produced them), so most slot-relation rules are **fill invariants**: checked when the box is
+  filled, violations visualized through the same card machinery. This is where the majority live.
+  **(2) Evaluator terms over any plan** — a loaded, authored, or traced plan has *no* slots today
+  (§3.4: `Composer.Assemble` drops them, and that is correct — slots are derived, never persisted).
+  Evaluator slot terms therefore wait on **task 5's `SlotAssignment`** (derive-side template
+  match), after which `EvalContext` carries the recovered map (pieceId → family + slot, per wool
+  approach) and slot terms are ordinary terms with slot-labeled evidence.
+- **The doctrine guard.** `layout-evaluator.md` §8: shapes are a generator concern — the evaluator
+  must be able to bless a good layout no template produced. Slot terms respect this by being
+  **conditional-fire**: they run only where `SlotAssignment` confidently recovered a family, and
+  *failure to recover a family is never itself a violation*. A hand-drawn blob that plays well
+  scores clean; a recognized scythe with an underfed entry gets the term. That keeps slot rules on
+  the right side of the enumeration trap.
+
+Net: no new machinery for visualization — one optional label on `Evidence`, the family legend card,
+and the already-planned task 5 as the gate for evaluator-side (as opposed to fill-time) slot rules.
+
 
 
 ---
