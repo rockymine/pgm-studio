@@ -12,118 +12,76 @@ When this board drains, pull the next theme up from `BACKLOG.md`. Board rules li
 Task ids are a section letter + number (`S13`, `B10`, `G15`) — **globally unique and stable** across all
 three files. Moving a task between files never changes its id; never renumber or reuse.
 
-## Layout generation (G) — current focus: the composer
+## Layout generation (G) — current focus: box / deriver / evaluator consolidation
 
-Phase 2 of plan-then-realize: the rule-based composer generates `plan.json` seeds under the **frozen**
-rule set (`docs/contracts/layout-rules.md`) in the pipeline order of `docs/contracts/map-generation.md` (§2). We
-harden it **from the mid outward** — mid band/crossing → the **frontline / build-zone interface** → hub →
-spawn → wool lanes → realize/emit — because each layer's shape constrains the next: a settled frontline+
-bridge is what the hub, spawn, and wool-lane generation dock onto. 
-Every generated board is judged against the **authored example set** (`tools/seeds/teaching/`), not the
-rules alone — where a board misfits, suspect a rule that is looser than the examples (the current theme).
+Phase 2 of plan-then-realize. The rule-based composer works and ships seeds, but it is **mid-migration**
+and the debt converges exactly where the next features land: `WoolBoxEmitter` is fully built yet has **no
+production caller** (only tools + tests invoke it); the board deriver's valuable raster half (~460 lines:
+islands, zone kinds, hole classes, mid form) lives in a run-by-hand tool script the evaluator can never
+reference; the shape vocabulary exists **~4 times** (emitter families, classifier families, the grower's
+inline lane growth, plus stringly-typed `WoolLaneShape`) bridged by a `ToString()` comparison; and the
+raster substrate (flood fill, components, enclosed voids, reflex corners) is hand-rolled in **5 sites**.
+Full analysis: `docs/map-generation-architecture-review.md`.
 
-Shipped so far (`FEATURES.md`): closure/envelope + team-unit grower, the clean-form (CT1) mid band, centre
-islands (CT11 order-2, incl. 10×10 pairs), the MD6 stone grid, the wide frontline (FR6), isolation cuts, and
-BZ6–BZ9 build-zone discipline. The layers below are what remains.
+We pay this down **refactor-first**, before the interface / hub / lane features and **before the G32-D
+goldens freeze** — because the box-model milestones (M2–M4) re-key every seed's RNG, so goldens frozen
+first would just re-break, and the consolidation makes every later feature cheaper. The batch below is
+pure refactor + the evaluator foundation (G58 → G59 → G60); it changes no generated output until G61. The
+interface / hub / lane feature long-tail and the box milestones M2–M4 (G61 / G62 / G41 / G63) are parked
+in `BACKLOG.md`, reworded to be delivered *through* the box model rather than against the current grower.
 
-> **▶ Priority within this focus.** The author-facing payoff everyone wants to reach (the lane / hub *styles* —
-> G37 / G45) sits **downstream** of the interface layer and the authored teaching inputs:
->
-> - **Interface layer (G39 / G40 / G41)** — the frontline↔build-zone must **interlock** before the hub, spawn,
->   or wool lanes can dock onto a settled frontline. G39 is the crux and the most code-grounded (the band just
->   needs the CT7 corner-snap the stones already use); a shifted or too-thin dock poisons every layer above it.
->
-> Two foundations have now **shipped** (`FEATURES.md`): the **spawn + wool-room dock** (G49 — the composer carves
-> each lane's terminal into a real `spawn` / `wool-room` room the plain lanes dock to, the anchor the spawn/wool-
-> lane grammar attaches to) and the **authoring lever** (G46–G48 — `none` symmetry + the `connector` piece + the
-> palette resort, letting the author design reusable lane / spawn templates). What remains upstream of the
-> lane-style payoff is **G39** and then authoring the teaching maps G37 / G41 / G45 need.
+Shipped so far (`FEATURES.md`): closure/envelope + team-unit grower, the CT1 mid band, centre islands
+(CT11), the MD6 stone grid, the wide frontline (FR6), isolation cuts, BZ6–BZ9 discipline, the spawn +
+wool-room dock (G49), the **box-based wool-approach shape vocabulary + classifier/emitter/deriver**
+(G53/G54), and the authoring lever (G46–G48).
 
-**Mid — band & crossing (variations remain)**
-- [ ] **G38 — Multiple / parallel mid bands + their variations.** The composer ships only the CT1 clean
-  form (one band spanning the axis). Add **two-or-more parallel bands** (FR7, rot_180-only, variable-length)
-  and the authored **variations**: a **hole in the build zone**, a **stepping stone between the dual bands**,
-  the two-sided plaza (`big-board-wool-two-sided-plaza-parallel-mid`). Each band needs its own dock + hop
-  arithmetic; the fan/merge must keep the bands distinct. Unshipped feature, not a bug (flagged 2026-07-05).
-
-**Frontline & the build-zone interface — the current failing layer**
-- [ ] **G39 — Frontline ↔ build-zone tetris interface (corner/edge match).** *New failure class.* Band and
-  frontline must **interlock like tetris pieces**: touching edges coincide at shared corner/edge lines and the
-  band **docks the full frontline face** (equal width). Today the band's lateral extent is sampled as
-  continuous fractions (`tL`/`tR`) between a minimal 2-cell interface and the hull, snapped only to *flush-or-
-  full per edge* (BZ8/BZ9) — so a band can land **flush on one edge, short on the other** (`gen-p30-t2-
-  rot_180-s1`: same width but **shifted**) or **narrower than the face it docks** (`gen-p20-t2-mirror_z-s1`:
-  build zone **too thin**). Fix: snap band edges to the frontline's **CT7 corner lines** (the stones already
-  do this via `CandidateColumns`; the band does not) and require full-face coincidence, not a minimal
-  interface. The crux the rest of the interface work sits on.
-- [ ] **G40 — Enclosed dead-space / hole-size cap (frontline + lanes).** *New.* rot_180 twin frontlines
-  extrude **overly long** to spend the land budget (`gen-p30-t2-rot_180-s7`: twin **35-block** frontlines,
-  confirmed in the trace). In the authored set the hole enclosed by hub + frontlines + build zones is
-  **~10×10, occasionally 10×20 — never 10×40**. Govern the **hole size** (cap the frontline extrusion / hub
-  gap so the enclosed hole stays in that band). Generalize the same bound to **any enclosed dead-space an L/U
-  lane wraps** — the `gen-p30-t2-rot_180-s7` wool-lane U encloses a giant empty square; a lane must not wrap a
-  big void. Route surplus budget to a wider mid / more routes, not a stretched frontline or a void-wrapping
-  lane (middle-out budget; the length driver is **G44**).
-- [ ] **G41 — L / Z frontline-hub compositions + hub-shape variety (HB4).** The hub is **always one square**
-  and the authored **L- and Z-shaped** frontline↔hub combinations are not generated. Implement HB4's L/Z
-  composition and multi-piece hub shapes. Blocked partly on the author's frontline/hub teaching set.
-
-**Hub → spawn → wool lanes (follow once the interface is settled)**
-- [ ] **G42 — Spawn docks to a piece, never submerges.** *New.* The spawn is meant to **dock** (abut) its
-  neighbours; on some boards it is **fully engulfed** by the surrounding pieces (`gen-p20-t2-rot_180-s7` —
-  which also surfaced the first accidental terrain hole). Enforce spawn-as-dock (SP): a spawn touches by a
-  readable edge and is never interior to the merged land.
-- [ ] **G44 — Budget→length decoupling (traced root cause of the lane bloat).** The grower's area gate
-  rejects any unit under 80% of `LandPerTeam`, and its only real spend-vocabulary is **longer lanes** — so a
-  big budget is absorbed by length, not structure, despite the docstring's "surplus spent structurally, never
-  by stretching a lane." Trace (`gen-p30-t2-rot_180-s7`, `LandPerTeam` 5500 blocks² / 220 cells → 217 spent):
-  a **95-block L** spawn lane (45+50) and a **95-block U** wool lane (50+45) that wraps a giant empty square,
-  putting the wool out of the playable area as a pointless deep dead-end (a defender just holds the mouth).
-  Fixes in order: (a) **cap absolute lane lengths** to the authored norms — spawn ≈ 2-3 pieces (20-30 blocks),
-  wool lanes bounded, not 95-block chains-of-chains (LN2's 50-block cap is *per collinear chain*, so an L/Z
-  stacks two); (b) route surplus into **width / plaza / more pieces** (the richer vocabulary of G37/G41), not
-  length; (c) **re-examine the budget** — whether `LandPerPlayer` over-scales past ~p16 and whether the area
-  gate's lower bound should relax so a compact unit needn't hit the full target ("too much budget for
-  lanes… the whole map").
-- [ ] **G45 — Third wool: rarer, and placed as a real route.** A third wool is sampled at **40%** for ≥16
-  players and **always** built as a 2-cell dead-end straight back beside the spawn lane (`wool-lane-c`;
-  `gen-p20-t2-rot_180-s13` — the wool squeezed next to the spawn). Reality: 2 wools common, **3 rare**, and a
-  genuine third wool sits as **its own route**, not crammed against the spawn. Lower the rate and add real
-  3-wool placement patterns — needs teaching examples (the current set has none).
-- [ ] **G37 — Lane-archetypes track (lane shapes · connections · hub shaping · alt entries).** The real lane
-  grammar: authored **lane archetypes**, **what connects to the frontline**, **how hubs shape** (today the hub
-  is a dumb square everything smashes into — G41), and **alternative entry points** to a lane (a long dead-end
-  is pointless without alt routes — the defender just holds the mouth; not formalized yet). "Lane-heavy is bad"
-  is a defect, not an archetype to sample (see the `composer-lane-archetypes-future` memory); the budget-driven
-  over-long lanes it produces are traced to **G44**. Blocked on more teaching maps; sequenced **after** the
-  interface layer (G39/G40).
+**Consolidation — the refactor-first batch (current)**
+- [ ] **G58 — [M0] Shape substrate + one family enum (pure refactor, zero output change).** New
+  `PgmStudio.Geom/Cells.cs` for the substrate hand-rolled in 5 sites: N4 neighbours · flood fill ·
+  connected components · enclosed-void detection · reflex-corner count · bays · bounding-box ·
+  min-run-width. Merge `ApproachFamily` (Compose, 8) + `ApproachShape` (Plan, 9 incl. `Isolated`) into
+  one `ShapeFamily` enum so the emit↔derive mirror is `derived == requested` on one type, not a
+  `ToString()` bridge. `WoolApproachShape` dissolves into `Shapes/ShapeClassifier` taking **terminal**
+  cells (nothing in it is wool-specific); `WoolLaneShape`'s string result → a `LaneRead` enum
+  (`ClassifyOpen`). Kill the dead `laneWidth` param; fix stale doc refs (`WoolBoxEmitterTests` §2,
+  `ApproachSlots` xmldoc). Port the three mirror harnesses (`shapes-gen`/`emit-verify`/`stress-shapes`)
+  from `tools/` → TUnit. Acceptance: `derive-gallery` output **byte-identical** over the base seeds +
+  generated cases. (review §3, §7.1)
+- [ ] **G59 — [M1] Board deriver into `src`.** Extract the raster-layer `Derive()` (~460 lines run-by-hand
+  in `tools/deriver/derive-gallery.cs`) into `Pgm/Derive/BoardDeriver.Derive(plan) → BoardStructure`
+  (islands + anchor roles, stepping-stone kinds, intra/self bridges, zone kinds + widths, hole classes +
+  parallel-ways, wool lanes, mid form). Rename `Plan/PlanDerived` → `Derive/ContactGraph` (rect layer:
+  contacts, interfaces, gap links, build regions, frontline edges, components). Gallery becomes
+  render-only over `BoardStructure`. Reconcile `ClosureAnalysis` (a query over the raster layer, or a
+  documented fast-path twin — measure first, it runs in the 60-attempt hunt loop); unify `FannedGraph`'s
+  private adjacency predicates onto `ContactGraph` and settle the different-surface-overlap disagreement
+  (review 2.3 / 6.5). Unblocks the evaluator (G60) + the conformance sweep (G43) as library calls.
+  Acceptance: byte-identical gallery output; doc §1.3/§6.2 names the class, not the script. Depends on
+  G58. (review §2, §7.2)
+- [ ] **G60 — Composer evaluator engine.** `Pgm/Evaluate/`:
+  `LayoutEvaluator.Evaluate(plan | EvalContext, profile) → Evaluation`, where
+  `Score = Σ hard-penalties + Σ w·envelope-distance` (lower is better; 0 = perfect). `ILayoutTerm` — one
+  per `layout-rules.md` id, reading derived measurables only, never family names (the enumeration-trap
+  rule). `EvalContext` (Plan + `ContactGraph` + `BoardStructure` + `SeedEnvelopes`, derived once).
+  `EvaluationProfile` (per-term enabled + weight — the criteria on/off switch: composer gate, editor
+  lint, and sweep each run a profile). `SeedEnvelopes` from a **generated** `seed-envelopes.json`
+  (`tools/deriver/envelope-stats.cs` over `tools/seeds/`; global bands first, split by symmetry mode only
+  where the ranking harness proves a global band mis-ranks; also regenerates `docs/seed-stats.md`).
+  **Dissolve `Composer.Acceptable`** into a hard-terms-only **short-circuit** gate + a reject log
+  (`{seed,request,attempt,stage,termId,ruleId,subjects}`, RNG-reproducible); the hole-hunt loop keeps the
+  **lowest-scoring** acceptable attempt. `EvaluationDto` in `Contracts` + `POST /api/plan/evaluate` for
+  the editor's live score/lint (findings render like `PlanValidator`'s). Ranking harness `eval-rank.cs` +
+  minimal-pair negatives (`tools/seeds/negatives/` + `labels.json`): assert
+  `Score(negative) > Score(positive)` **and** the labelled term fires. Per-term TUnit tests. Depends on
+  G59. (review §5, §9)
 
 **Realize & gate (plan → loadable, validated seed)**
 - [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`); the `spawn` / `wool-room` piece
   roles now land too (G49, `FEATURES.md`). Remaining: **G32-C markers/heights/walls** — SP3/SP4 spawn
   (facing absolute, raised), SP7 iron, WL5 stepped approach climb, EL1 palette (base 9, step 2, all-odd),
-  ST4 walls, EL6 (the rooms are flat at the base surface — the elevation pass raises them). **G32-D gates + goldens + emit** — `PlanValidator` zero-errors with zones present,
-  `FannedGraph` full traversability, stat envelopes vs `seed-stats.md`, `plan.json` loadable in `/plan`,
-  fixed-RNG goldens under `tests/`. p5/rot_90 stays a known limitation until **G35**.
-- [ ] **G43 — Composer ↔ example-set conformance metrics.** Turn "does it match the examples?" into
-  **measurements**, not eyeballing: over a seed sweep, measure hub-hole size distribution, band↔frontline
-  edge-coincidence / width-match, frontline extrusion length, mid-piece share, and island count, then assert
-  the envelopes the authored set (`tools/seeds/teaching/`) implies. The gate that would have caught G39/G40
-  before the gallery; feeds the G32-D goldens.
-
-**Unblock (deferred infeasibilities)**
-- [ ] **G35 — Composer-side buffer reservation (unblocks p5 / small rot_90).** Have the composer author
-  buffers/allotments during generation — reserve a ≥1-cell border on rot_90 boards so the quarter-turn image
-  can't self-collapse, hold spacing on small boards — to unblock p5 (BZ6 + spawn ≥2×2 over-budget at 325
-  blocks²) and p5/t4/rot_90 (interior-overlap self-weld). Teaching material + a `layout-rules.md` amendment
-  first. Never fix p5 by enlarging the board (re-triggers the LN2 arm stretch).
-- [ ] **G36 — Residual composer polish (from the B2 review).** What's left after the mid-feel slice
-  shipped and (2)/(3) moved to G37/G41:
-  **(1)** confirm the rot_180 mid-band asymmetry (`p30-s7`/`s13`) is a real off-centre band vs a render
-  artefact; **(4)** cap spawn-lane growth (`p30-s13` over-grown L); **(6)** frontline-**count** variety (not
-  every board double-frontline).
-
-**Authoring tooling — the teaching-material lever (plan editor)**
-The `none` symmetry, the `connector` piece, and the palette resort (G46–G48) have **shipped** (`FEATURES.md`):
-the author can now design reusable single-unit lane / spawn **templates**. What remains here is authoring the
-teaching maps those primitives unblock (tracked with G37 / G41 / G45 above).
+  ST4 walls, EL6 (the rooms are flat at the base surface — the elevation pass raises them). **G32-D gates
+  + goldens + emit** — `PlanValidator` zero-errors with zones present, `FannedGraph` full traversability,
+  stat envelopes vs `seed-stats.md`, `plan.json` loadable in `/plan`, fixed-RNG goldens under `tests/`.
+  **G32-D goldens freeze only after G63 (M4):** the box migration (G61/G63) changes RNG consumption and
+  would re-break any goldens frozen earlier — G32-C is independent and can proceed now. p5/rot_90 stays a
+  known limitation until **G35**.

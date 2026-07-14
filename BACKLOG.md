@@ -182,22 +182,141 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   as few-shot examples — tool-description curation is the real work, not plumbing. Fast-follow after the
   composer (G32) lands; its gates (validator, stat envelopes, renderer) are exactly the tools this exposes.
 
-## Layout generation (G) — auto map generation (lane sketch generators)
+## Layout generation (G)
 
-The "meaning → structure" engine: seed a draft map from lane primitives, then hand an editable
-`SketchLayout` to the Sketch tool / Configure wizard. **The current headline direction is the
-plan-then-realize model** — piece/interface plans compiled one-way into sketch + intent, rule-based
-composition from expert-authored rules (`docs/contracts/map-generation.md` + `layout-rules.md` +
-`plan-editor.md`); its Phase 1 build-out (`G16`–`G21`, the plan editor / seed studio) is the current focus
-in `TODO.md`. The lane-archetype tasks below are the earlier, parallel track. **The staged plan and design
-decisions of that track are in the `project_sketch_generators` working memory**
-(`/root/.claude/projects/-media-sf-repos/memory/project_sketch_generators.md`). Landed so far (`FEATURES.md`):
-the lane archetypes + Geom split, the generate UI + editor prep, Bézier rounding, the Organic demo page
-(`G4`), island-outline simplification (`G6` base), the lane-decompose surface + queue + overlays + select/
-categorize (`G6`/`G7`/`G8`), the `island-roles` hook (`G11`), and the layout-generation design that resolved
-the `G15` exploration. Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
+Two tracks share this section. **The headline is the composer** (plan-then-realize): rule-based
+composition of `plan.json` seeds under the frozen rules (`docs/contracts/map-generation.md` +
+`layout-rules.md` + `plan-editor.md`). Its current focus — the **box / deriver / evaluator consolidation**
+(refactor-first, `docs/map-generation-architecture-review.md`) — is the batch in `TODO.md` (G58–G60); the
+box-model milestones M2–M4 and the interface / hub / lane feature long-tail are parked here until that
+lands, **reworded to be delivered *through* the box model** rather than against the current grower. The
+older / parallel **lane sketch generator** track (seed a draft map from lane primitives → editable
+`SketchLayout`; staged plan in the `project_sketch_generators` working memory) and the island-detection /
+validation work follow. Landed so far (`FEATURES.md`): the composer core + box-based wool-approach
+vocabulary (G49/G53/G54), the lane archetypes + Geom split, the generate UI + editor prep, Bézier
+rounding, the Organic demo (`G4`), island-outline simplification (`G6`), the lane-decompose surface
+(`G6`/`G7`/`G8`), the `island-roles` hook (`G11`), and the layout-generation design that resolved `G15`.
+Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
 
-The open work sorts into three domains:
+**Composer — box-model milestones (M2–M4 + doc)**
+- [ ] **G61 — [M2] Wool arms become wool boxes (first production caller of the emitter).** Inside
+  `TeamUnitGrower`, replace the inline 1–3-segment wool-lane growth (its own I/L/Z grammar — the third
+  shape implementation) with: partition the arm region into a `Box(Wool)` carrying a typed entry
+  `BoxInterface` → `FillMenu` (interface-width → legal patterns; the §4 `w2/w4/w6` table as **data**,
+  cited by rule id) → `WoolBoxEmitter` (thinned to a binding over `Shapes.ShapeEmitter`: terminal →
+  `WoolRoom` role + wool marker). `FillResult` (`Ok | TooSmall(minBox) | NoFamilyFits`) replaces
+  exception control flow, so a bad fit is a directed signal, not a 60-attempt re-roll. Emitter
+  orientation via a rect transform (`Geom.Symmetry.Apply`) instead of the hardcoded top-edge mouth. Kills
+  the third shape impl; gives G44 its structural-spend vocabulary and makes G50–G52 reachable from
+  generation. **Changes RNG consumption** (goldens re-key). Depends on G58. (review §4, §7.4)
+- [ ] **G62 — Derive-side slot recovery + classifier scoping.** `Shapes/SlotAssignment`: after `Classify`
+  returns the family, template-match the slot sequence onto the classified pieces
+  (`AssignSlots(family, pieces) → piece→slot map`) — slots survive save/load/author/trace **without**
+  persisting them (they are derived, not authored; §3's split). `Shapes/CorridorExtent`: the junction-stop
+  flood promoted from `WoolLaneShape`, parameterised by **stop policy** — *lane read* (stop at any
+  junction) vs *approach read* (continue through same-width forks, stop at hubs/plazas) — giving the
+  classifier a **scope** so it works on full composed/traced plans, not just standalone `AsPlan` fixtures
+  (today it floods the whole component and would read every wool on a unit as `Donut`). `WoolLaneShape`
+  the class retires here; its lane measurable becomes the open read of the lane-policy extent. Upgrades
+  `emit-verify` to a true mirror (emit → classify → re-derive slots → compare). **Prerequisite for G56.**
+  Depends on G58, G59. (review §3.4–§3.6, §7.5)
+- [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
+  the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated. Build the
+  **open-variant** shape layer over the shared family machinery: `Compose/Boxes/FillPattern` (arrangements
+  of family shapes in a box — the terminal-less / through-corridor read), `FillProfiles` (per-`BoxKind`
+  legal patterns × families × binding, each restriction citing its `layout-rules.md` id), `BoxFiller` (the
+  one profile-driven fill entry point). `FrontForm` retires into frontline patterns (none · single-chain
+  I/Z · wide-face · twin-strands+recess — FR3/FR4/FR6/CT8); hub open patterns (solid I · L · Z ·
+  ring-with-hole — HB1/HB3/HB4). **G39's** corner/edge interlock is expressed here as a `BoxInterface`
+  constraint. `emit-verify` grows per-kind pattern mirrors (twin → closure hole ringed by two strands;
+  L hub → one-bend junction outline) — no new `*Shape` classes. Blocked partly on the author's
+  frontline/hub teaching set. Depends on G61. (review §3.1, §4.3, §7.6)
+- [ ] **G63 — [M4] Partitioner-first composition.** `Compose/Boxes/BoxPartition` (boxes + interfaces =
+  a constraint graph) replaces the `Shape` sampling record as what sampling produces; `BoxPartitioner`
+  (budget → partition, **directed repair** from `FillResult` instead of 60-attempt re-rolls);
+  `GrowthOrder` named strategies (`spawn-first` / `hub-first` / `mid-out`) make the emission order an
+  **experiment axis** judged by the evaluator + G43, not doctrine. `Box.LandTargetCells` gives the
+  two-currency budget its per-box half, so **fragment** becomes a generic pass over the partition
+  (`IsolationCut` + the mid's low target are its two existing special cases). `TeamUnitGrower` retires.
+  Re-baseline gallery cases; **then** freeze the G32-D goldens (per strategy). Depends on G61.
+  (review §4.2, §4.4, §7.7)
+- [ ] **G64 — Doc pass on `map-generation.md` (reconcile with shipped code).** The canonical doc silently
+  mixes description and aspiration. Declare the emission order an **experimental strategy axis over the
+  constraint graph** (`spawn-first`/`hub-first`/`mid-out` are `GrowthOrder` knobs), not a fixed sequence —
+  §2/§4 currently state it three different ways (Finding 1.1). Add **current-vs-target status per pipeline
+  stage** (Finding 1.2). Reconcile "the frontline is an output" against the shipped mid-outward input.
+  Name the board deriver as **code** (`BoardDeriver` / `ContactGraph` / `BoardStructure`), not the
+  `tools/deriver` script (Finding 1.3). Trails the code that makes each statement true. (review §1, §7.8)
+
+**Composer — mid / frontline / interface (reframed as evaluator terms + partition constraints)**
+- [ ] **G38 — Multiple / parallel mid bands + their variations.** The composer ships only the CT1 clean
+  form (one band spanning the axis). Add **two-or-more parallel bands** (FR7, rot_180-only, variable-length)
+  and the authored **variations**: a **hole in the build zone**, a **stepping stone between the dual bands**,
+  the two-sided plaza (`big-board-wool-two-sided-plaza-parallel-mid`). Each band needs its own dock + hop
+  arithmetic; the fan/merge must keep the bands distinct. Unshipped feature, not a bug (flagged 2026-07-05).
+- [ ] **G39 — Frontline↔build-zone full-face dock (requirement — delivered via the box model, not worked
+  standalone).** The band must dock the **full frontline face** at shared corner/edge lines: no
+  flush-on-one-edge-short-on-the-other (`gen-p30-t2-rot_180-s1`), no too-thin build zone
+  (`gen-p20-t2-mirror_z-s1`). Under refactor-first this is delivered as **(1)** a hard evaluator term in
+  G60 (`band-docks-full-face`) that *catches* violations and **(2)** a `BoxInterface` full-face constraint
+  at emission / partition time (G41/G63) that *prevents* them — the original standalone fix (teach the
+  current band the CT7 corner-snap the stones use) is **dropped as throwaway**, since M2–M4 replace that
+  band. Anchor requirement; do not attack directly. (review §1.2, §4.2, §9.6)
+- [ ] **G40 — Enclosed dead-space / hole-size cap (requirement — evaluator term + partition constraint).**
+  The hole enclosed by hub + frontlines + build zones stays **~10×10** (occasionally 10×20, never 10×40 —
+  `gen-p30-t2-rot_180-s7`'s twin 35-block frontlines); generalize to **any** void an L/U lane wraps.
+  Delivered as a **soft** G60 term (hole-extent band from the seeds) plus a `BoxInterface` / partition
+  constraint on frontline extrusion (G41/G63); surplus routes to width / more routes via G61, never a
+  stretched frontline or a void-wrapping lane (the length driver is **G44**). Anchor requirement.
+  (review §4.2, §9)
+- [ ] **G42 — Spawn docks to a piece, never submerges.** *New.* The spawn is meant to **dock** (abut) its
+  neighbours; on some boards it is **fully engulfed** by the surrounding pieces (`gen-p20-t2-rot_180-s7` —
+  which also surfaced the first accidental terrain hole). Enforce spawn-as-dock (SP): a spawn touches by a
+  readable edge and is never interior to the merged land.
+- [ ] **G43 — Composer ↔ example-set conformance sweep (consumer of the evaluator, G60).** Over a
+  generated-board sweep, aggregate the evaluator's soft-distance-per-term against the teaching set
+  (`tools/seeds/teaching/`) into a report — the eyeball-cards analogue, and the gate-in-aggregate that
+  would have caught G39/G40 before the gallery. The measurables (hub-hole size, band↔frontline
+  edge-coincidence / width-match, extrusion length, mid-piece share, island count) are **G60 terms**, not
+  defined here; the hard gate is G60's hard terms. Feeds the G32-D goldens. Depends on G60. (review §9.5)
+
+**Composer — hub / spawn / wool lanes**
+- [ ] **G44 — Budget→length decoupling (traced root cause of the lane bloat).** The grower's area gate
+  rejects any unit under 80% of `LandPerTeam`, and its only real spend-vocabulary is **longer lanes** — so
+  a big budget is absorbed by length, not structure. Trace (`gen-p30-t2-rot_180-s7`, 220 cells → 217
+  spent): a **95-block L** spawn lane and a **95-block U** wool lane that wraps a giant empty square,
+  putting the wool out of play as a dead-end a defender just holds. Fixes in order: **(a)** cap absolute
+  lane lengths to the authored norms (spawn ≈ 20–30 blocks; wool lanes bounded — LN2's 50-block cap is
+  *per collinear chain*, so an L/Z stacks two); **(b)** route surplus into **structure, not length** — the
+  wool-box migration (G61) supplies the vocabulary: **escalate the family** (I→L→Z→U/H/scythe) and widen,
+  rather than stretch, with directed budget repair once the partitioner lands (G63); **(c)** re-examine the
+  budget (whether `LandPerPlayer` over-scales past ~p16 and whether the area gate's lower bound should
+  relax so a compact unit needn't hit the full target).
+- [ ] **G45 — Third wool: rarer, and placed as a real route.** A third wool is sampled at **40%** for ≥16
+  players and **always** built as a 2-cell dead-end straight back beside the spawn lane (`wool-lane-c`;
+  `gen-p20-t2-rot_180-s13` — the wool squeezed next to the spawn). Reality: 2 wools common, **3 rare**, and
+  a genuine third wool sits as **its own route**, not crammed against the spawn. Lower the rate and add
+  real 3-wool placement patterns — needs teaching examples (the current set has none).
+- [ ] **G37 — Lane-archetypes track (lane shapes · connections · hub shaping · alt entries).** The real
+  lane grammar: authored **lane archetypes**, **what connects to the frontline**, **how hubs shape** (today
+  the hub is a dumb square everything smashes into — G41), and **alternative entry points** to a lane (a
+  long dead-end is pointless without alt routes — the defender just holds the mouth; not formalized yet).
+  "Lane-heavy is bad" is a defect, not an archetype to sample (see the `composer-lane-archetypes-future`
+  memory); the budget-driven over-long lanes it produces are traced to **G44**. Blocked on more teaching
+  maps; sequenced **after** the interface layer (G39/G40).
+
+**Composer — realize & unblock**
+- [ ] **G35 — Composer-side buffer reservation (unblocks p5 / small rot_90).** Have the composer author
+  buffers/allotments during generation — reserve a ≥1-cell border on rot_90 boards so the quarter-turn
+  image can't self-collapse, hold spacing on small boards — to unblock p5 (BZ6 + spawn ≥2×2 over-budget at
+  325 blocks²) and p5/t4/rot_90 (interior-overlap self-weld). Teaching material + a `layout-rules.md`
+  amendment first. Never fix p5 by enlarging the board (re-triggers the LN2 arm stretch).
+- [ ] **G36 — Residual composer polish (from the B2 review).** What's left after the mid-feel slice shipped
+  and (2)/(3) moved to G37/G41: **(1)** confirm the rot_180 mid-band asymmetry (`p30-s7`/`s13`) is a real
+  off-centre band vs a render artefact; **(4)** cap spawn-lane growth (`p30-s13` over-grown L); **(6)**
+  frontline-**count** variety (not every board double-frontline).
+
+The remaining generator / detection / validation work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
 
@@ -206,7 +325,9 @@ The open work sorts into three domains:
   provenance), then run the deriver (`WoolApproachShape.Classify` + `PlanDerived` junctions/lanes) over them to
   surface **WoolApproachShapes / hub shapes the current vocabulary misses or misreads** — feeding corrections
   back into `docs/contracts/map-generation.md` §5. Author-driven tracing (manual), mechanical
-  classify/report can be a small harness under `tools/`.
+  classify/report can be a small harness under `tools/`. **Depends on G62** — the classifier needs a
+  scope to read a wool's approach on a full traced plan, not just standalone fixtures; by then the deriver
+  is `Shapes/ShapeClassifier` + `Derive/ContactGraph`/`BoardDeriver` (the G58/G59 renames).
 - [ ] **G50 — Wool-box emitter: shift the entry/attachment off the box corner.** `WoolBoxEmitter` pins each
   shape's docking point to a box corner flush against the interface edge, so exactly 3 corners always fill; in
   a real plan the docking point slides along that edge. Applies to **donut and scythe only** (Z stays corner-
@@ -222,7 +343,9 @@ The open work sorts into three domains:
     way: standard → shifted-wool `ttbb / btbw / btbt / bttt`. All three verified `Scythe·w2` (classifier-
     transparent). Source plans: `scythenotboxaligned`, `scythewoolattachments`.
   Add offset parameters for both endpoints (offset along the interface edge, clamp rules TBD). Source plans
-  incl. `smalldonutattach`. Sibling of G51/G52.
+  incl. `smalldonutattach`. Sibling of G51/G52. **G50–G52 all become reachable from *generation* only once
+  G61 (M2) lands** — today `WoolBoxEmitter` has no production caller, so these emitter knobs are exercised
+  by tools/tests alone.
 - [ ] **G51 — Wool-box emitter: variable attachment width on the scythe (parallel to the docked edge).** The
   attachment's interface width — measured **along** the edge it docks to (it stacks *parallel* to the shape it
   attaches to, never sticking away perpendicular) — is a knob wired **only on the donut** today
