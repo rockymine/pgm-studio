@@ -644,6 +644,7 @@ src/PgmStudio.Pgm/
     LayoutEvaluator.cs            Evaluate(plan | EvalContext, profile) → Evaluation
     EvalContext.cs                (Plan, ContactGraph, BoardStructure, SeedEnvelopes) derived once
     EvaluationProfile.cs          per-term enabled + weight; the criteria on/off switch (§9.1)
+    Evidence.cs                   the four drawable primitives terms attach to violations (§9.7)
     Terms/                        one file per §6-catalogue group of layout-evaluator.md:
       GlobalTerms.cs · MidTerms.cs · FrontlineTerms.cs · ResidualTerms.cs ·
       LaneTerms.cs · SpawnTerms.cs · WoolTerms.cs · HeightTerms.cs
@@ -684,7 +685,10 @@ src/PgmStudio.Contracts/
 
 tools/deriver/
   derive-gallery.cs               [thin, M1]  render-only over BoardDeriver
-  eval-rank.cs                    [new, task 4-ish]  the labeled-set ranking harness (§9.4)
+  eval-rank.cs                    [new, task 4-ish]  the labeled-set ranking harness (§9.4);
+                                  renders minimal pairs side by side with evidence (§9.7)
+  rule-cards.cs                   [new]  the illustrated rule catalog: per term, pass/violated
+                                  fixture cards with evidence overlays (§9.7)
   envelope-stats.cs               [new]  regenerates seed-envelopes.json (+ seed-stats.md tables)
   shapes-gen.cs · emit-verify.cs · stress-shapes.cs
                                   [ret, M0 → tests/ as TUnit (finding 6.3)]
@@ -723,9 +727,19 @@ enumeration-trap rule of `layout-evaluator.md` §8).
 ```csharp
 enum TermKind { Hard, Soft }
 
-// one violation, legible and actionable: rule id + the pieces/zones it indicts
+// one violation, legible and actionable: rule id + the pieces/zones it indicts,
+// plus optional drawable evidence (§9.7) — cell-space primitives any renderer can draw
 sealed record Violation(string TermId, string RuleId, string Message,
-                        IReadOnlyList<string> Subjects);      // piece/zone ids, same as PlanFinding
+                        IReadOnlyList<string> Subjects,       // piece/zone ids, same as PlanFinding
+                        IReadOnlyList<Evidence>? Evidence = null);
+
+// the whole drawing vocabulary — four primitives cover essentially every geometric rule
+abstract record Evidence(string Tag);                          // tag: "offender"|"bound"|"measure"|…
+sealed record EvidenceRect(string Tag, int[] Rect) : Evidence(Tag);
+sealed record EvidenceSegment(string Tag, double X1, double Z1, double X2, double Z2) : Evidence(Tag);
+sealed record EvidenceMarker(string Tag, double X, double Z) : Evidence(Tag);
+sealed record EvidenceMeasure(string Tag, double X1, double Z1, double X2, double Z2,
+                              string Label) : Evidence(Tag);   // a dimension line: "35 > 20"
 
 sealed record TermScore(string TermId, TermKind Kind, double Distance, Violation? Violation);
 
@@ -933,6 +947,49 @@ else follows from §9.5: the composer's hard gate starts rejecting oversized bri
 shows `termId: intra-bridge-max-extent` with the seed to reproduce), the editor shows the violation
 on the zone, and G43's sweep reports how often generated boards trip it. Turning it off later is a
 profile edit.
+
+**Step 4 — evidence (§9.7), two lines in the term:** attach the offending region's bbox and a
+dimension line along the too-long extent —
+`[new EvidenceRect("offender", zone.Bounds.AsRect()), new EvidenceMeasure("measure", x1, z, x2, z,
+$"{worst} > {MaxExtentBlocks}")]` — and every renderer (rule cards, editor overlay, reject
+inspector) draws BZ10 without knowing what BZ10 is.
+
+### 9.7 Rules are geometry — every term draws its own evidence
+
+The author's observation, adopted as a design rule: this project is almost pure geometry, so a rule
+that can only be *read* is half a rule. Every geometric term should be **visualizable on the grid**
+— and the way to get that for ~30 terms without ~30 pieces of drawing code is to put the burden on
+the *data*, not the renderers:
+
+- **Terms return evidence, never draw.** The four primitives in §9.1 (`Rect`, `Segment`, `Marker`,
+  `Measure`) cover essentially every rule in the catalogue: BZ10 is a rect + a dimension line; G39
+  is the two edge segments that should coincide plus the offset measure; WL2 is two markers and the
+  distance line between them; an undeclared-void finding is the hole's rect; a G5 hop is the span
+  segment with its length label. Tags (`offender` / `bound` / `measure` / `context`) carry the
+  semantics; a styling table maps tag → colour/weight once, globally. Soft terms visualize their
+  **band** the same way (e.g. WL2's minimum as a `Measure` from the spawn marker labelled
+  `"17 < 20"`).
+- **Three generic renderers, zero per-term code.** (1) **Rule cards**: a `rule-cards.cs` harness
+  reuses the `derive-gallery` SVG card machinery to render, per term, a *pass* fixture and a
+  *violated* fixture with its evidence overlay — and the fixtures already exist, because they are
+  the per-term unit tests of §9.6 step 2. Output: an **illustrated `layout-rules.md`** — one HTML
+  page, per rule id: the prose, the do card, the don't card. The rule law becomes self-illustrating,
+  and a new term is not *done* until its card renders (the test fixture doubles as the
+  documentation, so neither can drift). (2) **Editor overlay**: `EvaluationDto` carries the same
+  primitives; the client draws them like any canvas overlay (rendering in JS per the hot-path
+  doctrine — the C# side ships only data). (3) **Reject inspector**: the reject log's
+  `{seed, termId}` re-composes the failed attempt and renders its violated term's evidence — the
+  which-rule-killed-it report becomes a picture.
+- **Minimal pairs become visual diffs for free.** The §9.4 ranking harness renders each pair side
+  by side with the expected term's evidence on the negative — reviewing the labeled set becomes
+  flipping through cards, the same motion as the existing derive-gallery review.
+
+**Timing note for the in-flight evaluator work:** the `Evidence` field should land on `Violation`
+*now*, while the terms are being written — it is nullable and costs nothing when absent, but
+retrofitting evidence onto 30 finished terms is 30 small archaeology jobs, whereas attaching it
+while each term's geometry is in hand is two lines per term (§9.6 step 4).
+
+
 
 ---
 
