@@ -183,7 +183,7 @@ base seeds (`tools/seeds/*.plan.json`) plus the gallery's fixed generated-case l
 before/after oracle. Protocol for every extraction step: capture `derive-gallery`'s console summary
 lines and `out/derive-gallery.html` before the change, re-run after, and require a **byte-identical
 diff** — M0/M1 are pure moves, so *identical* is the bar, not "looks the same". The mirror harness
-and the Pgm suite ride along. Only the behavioral steps (M2 onward, §4.5) may change gallery output,
+and the Pgm suite ride along. Only the behavioral steps (M2 onward, §4.6) may change gallery output,
 and each re-baselines deliberately.
 
 ---
@@ -498,7 +498,49 @@ void, or a `buffer` if the void is the point. And the motivating layout itself �
 L/T/R, spawn in the U's bay — should be authored as a **teaching seed**: it is the missing G45
 positive, a genuine third-wool route enabled by a claimed bay.
 
-### 4.5 Migration sequence — do not big-bang the grower
+### 4.5 Fragment — slot-aware cuts: constrain locally, punish globally
+
+The fragment step (land→build conversion, §8 of the canonical doc) also works over slot-labeled
+pieces, and it raises the same question §9.8 settled for shape rules: are cut-placement rules
+("a void in a donut sits mid-slot or at a slot seam, never in a corner") generator rules or
+evaluator terms? The answer is the same **one knowledge base, two expressions** split, with a
+clean dividing line:
+
+- **Local placement legality is generator data** — `CutProfiles`, the fragment-step sibling of
+  `FillProfiles`. The canonical doc §5.3 already states the first row of it: *which* slots may be
+  cut is per-slot data (a `run`/`bar` splits into lane + build-lane; an `entry`/`room` stays
+  whole). The author's donut rule adds the second dimension: *where within a slot* a cut may land —
+  a two-token vocabulary, **`mid-slot`** and **`slot-seam`**. Note the donut template already
+  conspires with this: the emitter lays the legs *middle-only* (no corner overlap), so every
+  bar↔leg seam sits a full corridor-width away from the geometric corner — "mid-slot or seam"
+  excludes corner cuts *by construction*, no special corner rule needed. `IsolationCut` generalizes
+  to a typed `CutMove(pieceId, slot, position, width)` sampled from the menu, keeping the
+  "never remove, just replace" footprint invariant; the budget decides *how much* to cut
+  (the box's land target), the menu decides *where*.
+- **Global consequences are evaluator terms** — and they mostly already exist. A cut's legality is
+  local, but its *effects* are board-emergent: the hop it creates (G5's band), the zone kind it
+  produces (`intra`/`self`), the bridge footprint (BZ10, §9.6), whether it accidentally encloses an
+  undeclared hole, whether the severed piece still reaches its spawn (SP1 / reachability). None of
+  that is knowable at cut-placement time without running the board deriver anyway — so it is
+  judged where it is visible, after the fact.
+
+Why not pure generate-then-punish for placement too (the author's own alternative)? Because a
+corner cut is known illegal *before* it is made — sampling it just to reject it burns composer
+attempts and fills the reject log with noise the menu could have prevented for free. And why not
+pure constrain? Because the global effects genuinely cannot be foreseen locally, and because
+evaluator terms serve a second constituency the menu never sees: **hand-authored and traced plans**,
+where no menu ran. So the corner-cut rule *may* additionally exist as an evaluator term — same rule
+id, conditional-fire on recovered slots per §9.8 — if the author wants it policed on authored
+plans; for generated plans it is simply unreachable, which is the menu working.
+
+Rule of thumb, stated once: **if a constraint is decidable from the slot template alone, it is menu
+data (`FillProfiles`/`CutProfiles`); if it needs the derived board, it is an evaluator term; if it
+is both decidable locally and worth policing on authored plans, it is menu data plus a
+conditional-fire term under one rule id.** Visualization rides along unchanged: legal cut positions
+render as markers on the §9.8 family legend cards (mid/seam ticks per slot), and a cut rule's
+pass/fail cards come from the same `rule-cards.cs` machinery.
+
+### 4.6 Migration sequence — do not big-bang the grower
 
 The grower encodes real, hard-won invariants (fixed draw order, LN2 chains, image clearance, the
 repair loops) and currently *works*. Replace it organ by organ:
@@ -589,8 +631,9 @@ G section as-is. Dependencies point up the list.
    three-wool U-hub teaching seed); `emit-verify` grows the per-kind pattern mirrors (twin →
    closure hole + two strands, L hub → one-bend junction outline).
 7. **[M4] Partitioner-first composition.** `BoxPartition` replaces the `Shape` sampling record;
-   directed repair from `FillResult`; `GrowthOrder` strategies as the order experiment. Re-baseline
-   gallery cases; then freeze G32-D goldens (per strategy).
+   directed repair from `FillResult`; `GrowthOrder` strategies as the order experiment;
+   fragmentation generalizes to `CutMove`s sampled from `CutProfiles` (§4.5 — `IsolationCut`
+   becomes one move of many). Re-baseline gallery cases; then freeze G32-D goldens (per strategy).
 8. **Doc pass on `map-generation.md`.** Emission order declared an experimental strategy axis over
    the constraint graph (Finding 1.1), not a fixed sequence; current-vs-target status per stage;
    frontline input/output reconciled; deriver named as code.
@@ -668,6 +711,8 @@ src/PgmStudio.Contracts/
       FillMenu.cs                 interface width → legal patterns (the §4 table as data)
       FillResult.cs               Ok(pieces, vacancies) | TooSmall(minBox) | NoFamilyFits
       Vacancy.cs                  published negative space: bay/notch/hole + mouth + walls (§4.4)
+      CutProfiles.cs              per-slot cut legality for fragment: cuttable? positions
+                                  (mid-slot / slot-seam), widths (§4.5)
       GrowthOrder.cs              named order strategies (spawn-first / hub-first / mid-out)
       BoxFiller.cs                [M3]  Fill(box, profile, interfaces, rng) → slot-typed pieces —
                                   the one profile-driven fill entry point (§4.3)
@@ -680,7 +725,9 @@ src/PgmStudio.Contracts/
                                   frontline at M3; the Shape sampling record dies with M4
     Composer.cs                   Acceptable dissolved into Evaluate (task 3); orchestration stays
     ClosureAnalysis.cs            query over BoardStructure, or a documented fast-path twin (§2.3)
-    MidCarver.cs · IsolationCut.cs · Envelope.cs · Frame.cs · ComposeRng.cs · ComposeRequest.cs
+    IsolationCut.cs               [thin, M4]  generalizes to CutMove(slot, position, width) sampled
+                                  from CutProfiles (§4.5); footprint invariant unchanged
+    MidCarver.cs · Envelope.cs · Frame.cs · ComposeRng.cs · ComposeRequest.cs
                                   stay (ComposeRequest gains GrowthOrder)
 
 tools/deriver/
