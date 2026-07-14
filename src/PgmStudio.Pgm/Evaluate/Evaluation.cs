@@ -5,9 +5,12 @@ namespace PgmStudio.Pgm.Evaluate;
 public enum TermKind { Hard, Soft }
 
 /// <summary>One rule violation, legible and actionable: the term that fired, the layout-rules id it cites, a
-/// human message, and the piece/zone ids it indicts (the same subject-id shape a <c>PlanFinding</c> carries,
-/// so the editor highlights them identically).</summary>
-public sealed record Violation(string TermId, string RuleId, string Message, IReadOnlyList<string> Subjects);
+/// human message, the piece/zone ids it indicts (the same subject-id shape a <c>PlanFinding</c> carries, so the
+/// editor highlights them identically), and optional drawable <see cref="Evidence"/> — cell-space primitives a
+/// generic renderer paints on the grid (nullable; costs nothing when absent).</summary>
+public sealed record Violation(
+    string TermId, string RuleId, string Message, IReadOnlyList<string> Subjects,
+    IReadOnlyList<Evidence>? Evidence = null);
 
 /// <summary>One term's contribution to the score: its distance outside its band (0 when inside; always 0 for a
 /// hard term) and, when the term fired, the <see cref="Violation"/> describing it.</summary>

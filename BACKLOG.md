@@ -261,6 +261,31 @@ Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
   Name the board deriver as **code** (`BoardDeriver` / `ContactGraph` / `BoardStructure`), not the
   `tools/deriver` script (Finding 1.3). Trails the code that makes each statement true. (review §1, §7.8)
 
+**Rule visualization & slot-relation rules (§9.7/§9.8 — terms already return drawable `Evidence`)**
+- [ ] **G66 — Rule-visualization renderers (illustrated catalog + reject inspector).** Generic passes over the
+  `Evidence` primitives every term already returns — **zero per-term drawing code**. (1) `tools/deriver/rule-cards.cs`:
+  reuse the `derive-gallery` SVG card machinery to render, per term, a **pass** card + a **violated** card with
+  its evidence overlaid — the fixtures *are* the per-term unit tests — outputting an **illustrated
+  `layout-rules.md`** (one HTML page: prose + do/don't card per rule id). A term is not *done* until its card
+  renders, so the fixture doubles as the documentation and neither drifts. (2) **Reject inspector**: a logged
+  `{seed, termId}` re-composes the failed attempt and renders the killing term's evidence (why-it-died becomes a
+  picture). (3) **Minimal-pair visual diffs**: the G60 ranking harness renders each pair side by side with the
+  negative's expected-term evidence. (The editor overlay is folded into G60's DTO wiring.) Depends on G60.
+  (review §9.7)
+- [ ] **G67 — Fill-time slot invariants.** Slot-relation rules checked **when a box is filled / in `emit-verify`**,
+  where the emitter's slots are in hand: "only a `run`/`bar` splits into lane + build-lane, an `entry`/`room`
+  stays whole", "the entry ≥ the lane it feeds", "the room-run stub stays shorter than its bar" — each a fill
+  invariant citing its slot rule (`map-generation.md` §5.3), visualized through the same card machinery
+  (`Evidence` tagged `slot:*`). This is where the majority of slot rules live. Depends on G61. (review §9.8)
+- [ ] **G68 — Evaluator-side slot-relation terms.** Slot rules as ordinary `ILayoutTerm`s over **any** plan,
+  gated on **G62's `SlotAssignment`** (a loaded/authored/traced plan has no slots until derive recovers them;
+  `EvalContext` gains the recovered `pieceId → family + slot` map). **Conditional-fire**: a term runs only where
+  a family was **confidently recovered**, and *failure to recover a family is never itself a violation* (a
+  hand-drawn blob that plays well scores clean; a recognized scythe with an underfed entry is flagged) — keeping
+  slot rules off the enumeration trap (`layout-evaluator.md` §8). Evidence carries `slot:*`-tagged rects/measures;
+  the **slot legend card per family** (the §5.3 template table drawn from `SlotTemplate` + `ShapeEmitter`) joins
+  the `rule-cards.cs` output as the shared key. Depends on G62, G66. (review §9.8)
+
 **Composer — mid / frontline / interface (reframed as evaluator terms + partition constraints)**
 - [ ] **G38 — Multiple / parallel mid bands + their variations.** The composer ships only the CT1 clean
   form (one band spanning the axis). Add **two-or-more parallel bands** (FR7, rot_180-only, variable-length)

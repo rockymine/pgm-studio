@@ -42,7 +42,8 @@ public sealed class BandWoolClearance : ILayoutTerm
                     if (ix > -MinClearanceCells + 1e-9 && iz > -MinClearanceCells + 1e-9)
                         return TermScores.Violated(this,
                             $"mid band comes within {MinClearanceCells} cells of wool piece '{piece.Id}'",
-                            [piece.Id, band.Id]);
+                            [piece.Id, band.Id],
+                            [Ev.Rect(EvidenceTags.Offender, piece.Rect), Ev.Rect(EvidenceTags.Context, band.Rect)]);
                 }
             }
 

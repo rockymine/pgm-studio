@@ -56,12 +56,14 @@ the opt-in reject sink, composed output **byte-identical**. The soft half + wiri
   writes `Evaluate/seed-envelopes.json` (global bands first, split by symmetry mode only where the ranking
   harness proves a global band mis-ranks) and regenerates `docs/seed-stats.md`. **(2) The §6 soft-term
   catalogue** — one `ILayoutTerm` per `layout-rules.md` id, reading `BoardStructure` measurables only (never a
-  family name — the enumeration trap), scored as `Band` distance; and the hole-hunt loop keeps the
-  **lowest-scoring** acceptable attempt (not the first). **(3) Wiring** — `EvaluationDto` in `Contracts` +
-  `POST /api/plan/evaluate` for the editor's live score/lint (findings render like `PlanValidator`'s).
-  **(4) Ranking harness** `eval-rank.cs` + minimal-pair negatives (`tools/seeds/negatives/` + `labels.json`):
-  assert `Score(negative) > Score(positive)` **and** the labelled term fires; per-term TUnit tests for each new
-  soft term. (review §5, §9; `docs/contracts/layout-evaluator.md`)
+  family name — the enumeration trap), scored as `Band` distance; each **attaches `Evidence`** (§9.7 — the band
+  drawn as a `Measure`) while its geometry is in hand; and the hole-hunt loop keeps the **lowest-scoring**
+  acceptable attempt (not the first). **(3) Wiring** — `EvaluationDto` in `Contracts` (carrying the `Evidence`
+  primitives) + `POST /api/plan/evaluate` for the editor's live score/lint; the client draws violations **and
+  their evidence** as a canvas overlay in JS (the §9.7 editor renderer — C# ships only data). **(4) Ranking
+  harness** `eval-rank.cs` + minimal-pair negatives (`tools/seeds/negatives/` + `labels.json`): assert
+  `Score(negative) > Score(positive)` **and** the labelled term fires; per-term TUnit tests for each new soft
+  term. (review §5, §9; `docs/contracts/layout-evaluator.md`)
 
 **Realize & gate (plan → loadable, validated seed)**
 - [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`); the `spawn` / `wool-room` piece

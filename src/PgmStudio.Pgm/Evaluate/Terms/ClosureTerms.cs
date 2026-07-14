@@ -15,8 +15,11 @@ public sealed class WoolRingedHole : ILayoutTerm
     public TermScore Measure(EvalContext ctx)
     {
         var woolPieces = ctx.Plan.Placements.Wools.Select(w => w.Piece).ToHashSet();
+        // Evidence is the wool pieces only; the ringed hole's own rect is not in hand (ClosureAnalysis returns a
+        // verdict, not the enclosed cells) — richer evidence waits on it surfacing the hole geometry.
         return ClosureAnalysis.AnyHoleRingedBy(ctx.Plan, woolPieces)
-            ? TermScores.Violated(this, "a closure hole is ringed by a wool plateau (two approaches, WL8)", woolPieces.ToList())
+            ? TermScores.Violated(this, "a closure hole is ringed by a wool plateau (two approaches, WL8)",
+                woolPieces.ToList(), TermEvidence.OffenderRects(ctx.Plan, woolPieces))
             : TermScores.Clean(this);
     }
 }

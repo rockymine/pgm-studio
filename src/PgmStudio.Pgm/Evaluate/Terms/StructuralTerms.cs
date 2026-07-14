@@ -25,7 +25,7 @@ public sealed class StructuralIntegrity : ILayoutTerm
         var message = errors.Count == 1
             ? errors[0].Message
             : $"{errors.Count} structural errors ({errors[0].Message})";
-        return TermScores.Violated(this, message, subjects);
+        return TermScores.Violated(this, message, subjects, TermEvidence.OffenderRects(ctx.Plan, subjects));
     }
 }
 
@@ -45,6 +45,7 @@ public sealed class LintRejectTerm(string ruleId) : ILayoutTerm
         var finding = ctx.Findings.FirstOrDefault(f => f.Rule == ruleId);
         return finding is null
             ? TermScores.Clean(this)
-            : TermScores.Violated(this, finding.Message, finding.SubjectIds);
+            : TermScores.Violated(this, finding.Message, finding.SubjectIds,
+                TermEvidence.OffenderRects(ctx.Plan, finding.SubjectIds));
     }
 }

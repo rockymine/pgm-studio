@@ -723,9 +723,19 @@ enumeration-trap rule of `layout-evaluator.md` §8).
 ```csharp
 enum TermKind { Hard, Soft }
 
-// one violation, legible and actionable: rule id + the pieces/zones it indicts
+// one violation, legible and actionable: rule id + the pieces/zones it indicts,
+// plus optional drawable evidence (§9.7) — cell-space primitives any renderer can draw
 sealed record Violation(string TermId, string RuleId, string Message,
-                        IReadOnlyList<string> Subjects);      // piece/zone ids, same as PlanFinding
+                        IReadOnlyList<string> Subjects,       // piece/zone ids, same as PlanFinding
+                        IReadOnlyList<Evidence>? Evidence = null);
+
+// the whole drawing vocabulary — four primitives cover essentially every geometric rule
+abstract record Evidence(string Tag);                          // tag: "offender"|"bound"|"measure"|…
+sealed record EvidenceRect(string Tag, int[] Rect) : Evidence(Tag);
+sealed record EvidenceSegment(string Tag, double X1, double Z1, double X2, double Z2) : Evidence(Tag);
+sealed record EvidenceMarker(string Tag, double X, double Z) : Evidence(Tag);
+sealed record EvidenceMeasure(string Tag, double X1, double Z1, double X2, double Z2,
+                              string Label) : Evidence(Tag);   // a dimension line: "35 > 20"
 
 sealed record TermScore(string TermId, TermKind Kind, double Distance, Violation? Violation);
 
@@ -933,6 +943,75 @@ else follows from §9.5: the composer's hard gate starts rejecting oversized bri
 shows `termId: intra-bridge-max-extent` with the seed to reproduce), the editor shows the violation
 on the zone, and G43's sweep reports how often generated boards trip it. Turning it off later is a
 profile edit.
+
+### 9.7 Rules are geometry — every term draws its own evidence
+
+The author's observation, adopted as a design rule: this project is almost pure geometry, so a rule
+that can only be *read* is half a rule. Every geometric term should be **visualizable on the grid**
+— and the way to get that for ~30 terms without ~30 pieces of drawing code is to put the burden on
+the *data*, not the renderers:
+
+- **Terms return evidence, never draw.** The four primitives in §9.1 (`Rect`, `Segment`, `Marker`,
+  `Measure`) cover essentially every rule in the catalogue: BZ10 is a rect + a dimension line; G39
+  is the two edge segments that should coincide plus the offset measure; WL2 is two markers and the
+  distance line between them; an undeclared-void finding is the hole's rect; a G5 hop is the span
+  segment with its length label. Tags (`offender` / `bound` / `measure` / `context`) carry the
+  semantics; a styling table maps tag → colour/weight once, globally. Soft terms visualize their
+  **band** the same way (e.g. WL2's minimum as a `Measure` from the spawn marker labelled
+  `"17 < 20"`).
+- **Three generic renderers, zero per-term code.** (1) **Rule cards**: a `rule-cards.cs` harness
+  reuses the `derive-gallery` SVG card machinery to render, per term, a *pass* fixture and a
+  *violated* fixture with its evidence overlay — and the fixtures already exist, because they are
+  the per-term unit tests of §9.6 step 2. Output: an **illustrated `layout-rules.md`** — one HTML
+  page, per rule id: the prose, the do card, the don't card. The rule law becomes self-illustrating,
+  and a new term is not *done* until its card renders (the test fixture doubles as the
+  documentation, so neither can drift). (2) **Editor overlay**: `EvaluationDto` carries the same
+  primitives; the client draws them like any canvas overlay (rendering in JS per the hot-path
+  doctrine — the C# side ships only data). (3) **Reject inspector**: the reject log's
+  `{seed, termId}` re-composes the failed attempt and renders its violated term's evidence — the
+  which-rule-killed-it report becomes a picture.
+- **Minimal pairs become visual diffs for free.** The §9.4 ranking harness renders each pair side
+  by side with the expected term's evidence on the negative — reviewing the labeled set becomes
+  flipping through cards, the same motion as the existing derive-gallery review.
+
+**Timing note for the in-flight evaluator work:** the `Evidence` field should land on `Violation`
+*now*, while the terms are being written — it is nullable and costs nothing when absent, but
+retrofitting evidence onto 30 finished terms is 30 small archaeology jobs, whereas attaching it
+while each term's geometry is in hand is two lines per term (§9.6 step 4).
+
+### 9.8 Slot-relation rules — labeled pieces, and what their visualization needs
+
+Because every emitted piece carries its template slot (`entry`/`run`/`bar`/`leg`/`terminal`),
+rules over slot *relations* become stateable — "the entry is at least as wide as the lane it
+feeds", "the room-run stub stays shorter than its bar", "only a `run`/`bar` may split into
+lane + build-lane, an `entry`/`room` stays whole" (§5.3 of the canonical doc already promises
+exactly this). Three questions, three answers:
+
+- **Do the evidence primitives cover them?** Yes, with one one-field extension: slot-relation
+  evidence is still rects and measures — the entry's rect vs. the lane-width dimension line — but
+  the card wants to *say* "entry", so `Evidence` gains an optional `Label` (or the convention
+  `tag = "slot:entry"`). Nothing else changes in any renderer. A bonus that costs nothing: a **slot
+  legend card per family** — the §5.3 template table drawn, generated straight from
+  `SlotTemplate` + `ShapeEmitter` — belongs in the `rule-cards.cs` output as the shared key the
+  slot-rule cards reference.
+- **Where do slot rules run?** Two tiers, because slots have two lives. **(1) Fill-time /
+  mirror-time** — during composition and in `emit-verify`, slots are simply in hand (the emitter
+  just produced them), so most slot-relation rules are **fill invariants**: checked when the box is
+  filled, violations visualized through the same card machinery. This is where the majority live.
+  **(2) Evaluator terms over any plan** — a loaded, authored, or traced plan has *no* slots today
+  (§3.4: `Composer.Assemble` drops them, and that is correct — slots are derived, never persisted).
+  Evaluator slot terms therefore wait on **task 5's `SlotAssignment`** (derive-side template
+  match), after which `EvalContext` carries the recovered map (pieceId → family + slot, per wool
+  approach) and slot terms are ordinary terms with slot-labeled evidence.
+- **The doctrine guard.** `layout-evaluator.md` §8: shapes are a generator concern — the evaluator
+  must be able to bless a good layout no template produced. Slot terms respect this by being
+  **conditional-fire**: they run only where `SlotAssignment` confidently recovered a family, and
+  *failure to recover a family is never itself a violation*. A hand-drawn blob that plays well
+  scores clean; a recognized scythe with an underfed entry gets the term. That keeps slot rules on
+  the right side of the enumeration trap.
+
+Net: no new machinery for visualization — one optional label on `Evidence`, the family legend card,
+and the already-planned task 5 as the gate for evaluator-side (as opposed to fill-time) slot rules.
 
 ---
 

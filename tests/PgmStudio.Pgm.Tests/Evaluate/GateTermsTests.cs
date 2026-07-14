@@ -26,6 +26,7 @@ public sealed class GateTermsTests
         var score = new StructuralIntegrity().Measure(ctx);
         await Assert.That(score.Violation).IsNotNull();
         await Assert.That(score.Violation!.RuleId).IsEqualTo("STRUCT");
+        await Assert.That(score.Violation!.Evidence!.OfType<EvidenceRect>().Any()).IsTrue();
     }
 
     [Test]
@@ -93,6 +94,10 @@ public sealed class GateTermsTests
         var score = new GapHopBand().Measure(ctx);
         await Assert.That(score.Violation).IsNotNull();
         await Assert.That(score.Violation!.RuleId).IsEqualTo("G5");
+        // the hop draws itself: a dimension line labelled with the offending span
+        var measure = score.Violation!.Evidence!.OfType<EvidenceMeasure>().FirstOrDefault();
+        await Assert.That(measure).IsNotNull();
+        await Assert.That(measure!.Label).Contains("25");
     }
 
     [Test]
@@ -117,6 +122,10 @@ public sealed class GateTermsTests
         var score = new BandWoolClearance().Measure(ctx);
         await Assert.That(score.Violation).IsNotNull();
         await Assert.That(score.Violation!.RuleId).IsEqualTo("BZ6");
+        // the wool (offender) and the band (context) are drawable rects
+        var rects = score.Violation!.Evidence!.OfType<EvidenceRect>().ToList();
+        await Assert.That(rects.Any(r => r.Tag == EvidenceTags.Offender)).IsTrue();
+        await Assert.That(rects.Any(r => r.Tag == EvidenceTags.Context)).IsTrue();
     }
 
     [Test]

@@ -17,8 +17,17 @@ public sealed class GapHopBand : ILayoutTerm
     {
         foreach (var g in ctx.Contacts.GapLinks)
             if (g.Hop < MinHop || g.Hop > MaxHop)
+            {
+                var evidence = TermEvidence.OffenderRects(ctx.Plan, [g.A, g.B]);
+                if (TermEvidence.Locate(ctx.Plan, g.A) is { } ra && TermEvidence.Locate(ctx.Plan, g.B) is { } rb)
+                {
+                    var (ax, az) = TermEvidence.Center(ra);
+                    var (bx, bz) = TermEvidence.Center(rb);
+                    evidence.Add(Ev.Measure(ax, az, bx, bz, $"hop {g.Hop} (band {MinHop}..{MaxHop})"));
+                }
                 return TermScores.Violated(this,
-                    $"gap hop {g.Hop} outside {MinHop}..{MaxHop} between '{g.A}' and '{g.B}'", [g.A, g.B]);
+                    $"gap hop {g.Hop} outside {MinHop}..{MaxHop} between '{g.A}' and '{g.B}'", [g.A, g.B], evidence);
+            }
         return TermScores.Clean(this);
     }
 }

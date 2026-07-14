@@ -759,8 +759,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (RNG-reproducible `{seed,request,attempt,stage,termId,ruleId,subjects}`, null by default). Faithful:
   composed output **byte-identical** over the 300-case sweep; 25 new tests (distance convention, each term at
   its boundary, engine score/gate/profile, and a permanent every-composed-plan-passes-the-gate guard) green.
-  Review: `docs/map-generation-architecture-review.md` §5/§9; direction: `docs/contracts/layout-evaluator.md`.
-  (G60)
+  **Every term draws its own evidence (§9.7):** `Violation` carries a nullable `Evidence` list — four cell-space
+  primitives (`EvidenceRect`/`Segment`/`Marker`/`Measure`, each tagged `offender`/`bound`/`measure`/`context`,
+  the free-string tag leaving room for §9.8's `slot:*`) — attached to the seven ported terms while their
+  geometry was in hand (a G5 hop draws a labelled measure across the void, BZ6 the wool + band rects). Review:
+  `docs/map-generation-architecture-review.md` §5/§9; direction: `docs/contracts/layout-evaluator.md`. (G60)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
