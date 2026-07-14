@@ -50,13 +50,13 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     scheduleSave();
   }
 
-  // Toggle a wall mark on a land-interface piece pair, then re-inspect immediately so the heavy bar (and the
-  // "not an interface" error, if the pair stops sharing a seam) refreshes without waiting on the debounce.
+  // Toggle a wall mark on a land-interface piece pair, then re-run the live feeds immediately so the heavy bar
+  // (and the "not an interface" error, if the pair stops sharing a seam) refreshes without waiting on the debounce.
   function toggleWallMark(a, b) {
     toggleWall(doc, a, b);
     canvas.setDoc(doc);
     scheduleSave();
-    runInspect();
+    runLive();
   }
 
   function deleteSelection(sel) {
@@ -94,9 +94,9 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     scheduleInspect();
   }
 
-  // ── live inspect (debounced POST to /api/plan/inspect; stale responses ignored) ──
+  // ── live inspect + evaluate (debounced POSTs; stale responses ignored) ──
 
-  let overlays = { interfaces: true, labels: false, frontline: true };
+  let overlays = { interfaces: true, labels: false, frontline: true, violations: true };
   try { overlays = parseOverlays(localStorage.getItem(OVERLAY_KEY)); } catch { /* default */ }
 
   // Height-map fill mode (off by default) — persisted like the overlay chips, under its own key.
@@ -108,11 +108,15 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let surfaceStep = 2;
   try { const v = parseInt(localStorage.getItem(SURFACESTEP_KEY), 10); if (v >= 1) surfaceStep = v; } catch { /* default 2 */ }
 
-  let inspectTimer = null, inspectSeq = 0;
+  let inspectTimer = null, inspectSeq = 0, evalSeq = 0;
   function scheduleInspect() {
     if (inspectTimer) clearTimeout(inspectTimer);
-    inspectTimer = setTimeout(runInspect, 300);
+    inspectTimer = setTimeout(runLive, 300);
   }
+  // One edit fires both live feeds: the structural derivation (interfaces/frontline/lint) and the rule evaluator
+  // (score + fired-rule evidence). They are independent endpoints with their own stale-response guards.
+  function runLive() { runInspect(); runEvaluate(); }
+
   async function runInspect() {
     const seq = ++inspectSeq;
     let res;
@@ -130,6 +134,28 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (seq !== inspectSeq) return;            // re-check after the awaited body
     canvas.setInspect({ interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] });
     fire("OnFindings", JSON.stringify(sortFindings(data.findings || [])));
+  }
+
+  // The evaluator feed: the plan's score + every fired rule (hard-first) with cell-space evidence. The evidence
+  // goes to the canvas overlay; the whole EvaluationDto goes to the Blazor score/violations panel. A 400
+  // (malformed) clears both — an empty string signals "no evaluation" to the host.
+  async function runEvaluate() {
+    const seq = ++evalSeq;
+    let res;
+    try {
+      res = await fetch("/api/plan/evaluate", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
+    } catch { return; }                       // offline / transient — keep the last good evidence
+    if (seq !== evalSeq) return;               // a newer edit already fired
+    if (!res.ok) {                             // malformed plan (400) — clear the evidence + score panel
+      canvas.setViolations([]);
+      fire("OnEvaluation", "");
+      return;
+    }
+    let data;
+    try { data = await res.json(); } catch { return; }
+    if (seq !== evalSeq) return;               // re-check after the awaited body
+    canvas.setViolations(data.violations || []);
+    fire("OnEvaluation", JSON.stringify(data));
   }
 
   // ── reference (tracing) backdrop ─────────────────────────────────────────────

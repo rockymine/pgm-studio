@@ -47,6 +47,18 @@ function tint(hex, t) {
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 
+// Evaluator-evidence styling table (tag → stroke): one place maps a rule's evidence semantics to colour, so a
+// generic overlay paints every term with no per-term drawing code. `offender` is the geometry that broke the
+// rule (red), `bound` the limit it should have respected (amber, dashed), `measure` a dimension line (accent,
+// dashed), `context` framing geometry (dim). Unknown tags (e.g. the `slot:*` convention) fall back to context.
+const EVIDENCE_STYLE = {
+  offender: { stroke: "#e5534b", width: 3, dash: null },
+  bound: { stroke: "#e8b923", width: 2.5, dash: "6 4" },
+  measure: { stroke: "var(--accent)", width: 2, dash: "5 4" },
+  context: { stroke: "var(--canvas-axis)", width: 2, dash: "2 3" },
+};
+const evidenceStyle = (tag) => EVIDENCE_STYLE[tag] || EVIDENCE_STYLE.context;
+
 // Height-map ramp: monotonically-lightening deep-blue → teal → pale-gold stops. Lowest surface → darkest,
 // highest → lightest, so island heights read at a glance on the dark canvas in either theme.
 const HEIGHT_STOPS = [[0, [26, 44, 74]], [0.5, [46, 128, 130]], [1, [232, 214, 128]]];
@@ -71,13 +83,15 @@ export class PlanCanvas extends CanvasBase {
 
   // Derived-structure overlay (block coords from /api/plan/inspect) + which layers are visible.
   #inspect = { interfaces: [], gapLinks: [], frontline: [] };
+  // Evaluator violations (cell-space evidence from /api/plan/evaluate) — the fired rules drawn on the grid.
+  #violations = [];
   // Labels off by default keeps the canvas quiet: no piece/zone id text, no gap connectors or hop numbers.
-  #overlayOn = { interfaces: true, labels: false, frontline: true };
+  #overlayOn = { interfaces: true, labels: false, frontline: true, violations: true };
   #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
   #pulseTimer = null;
 
   // viewport layers (world space)
-  #refLayer; #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
+  #refLayer; #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #violationLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
   // reference (tracing backdrop) state: the fetched block payload, its world bbox, and the placement cfg.
   #refData = null; #refBounds = null; #refCfg = null;
   // screen-space overlay (labels + selection box + resize handles)
@@ -109,10 +123,17 @@ export class PlanCanvas extends CanvasBase {
     this.#renderInspect();
     this.#refreshOverlay();
   }
+  // Evaluator-violation feed (cell-space evidence). Redraw the evidence layer + the screen-space measure labels.
+  setViolations(violations) {
+    this.#violations = Array.isArray(violations) ? violations : [];
+    this.#renderViolations();
+    this.#refreshOverlay();
+  }
   setOverlayVisible(key, on) {
     if (!(key in this.#overlayOn)) return;
     this.#overlayOn[key] = !!on;
     this.#renderInspect();
+    this.#renderViolations();
     this.#refreshOverlay();
   }
   // Height-map mode: pieces fill by a min..max surface ramp and carry their height number. Re-render the
@@ -459,6 +480,31 @@ export class PlanCanvas extends CanvasBase {
       }
   }
 
+  // Evaluator-evidence overlay (world space, non-interactive): every fired rule's cell-space evidence painted
+  // on the grid so a broken rule is seen, not only read. The four primitives (rect / segment / marker / measure)
+  // are drawn generically off the tag→style table; a measure's label rides the screen-space overlay (below) so
+  // it stays legible at any zoom. Coordinates are cell-space — scale by the cell size to reach block/world space.
+  #renderViolations() {
+    const layer = this.#violationLayer; if (!layer) return;
+    this.#clear(layer);
+    if (!this.#doc || !this.#overlayOn.violations) return;
+    const cell = this.#doc.globals.cell;
+
+    for (const v of this.#violations)
+      for (const e of v.evidence || []) {
+        const st = evidenceStyle(e.tag);
+        const base = { stroke: st.stroke, "stroke-width": String(st.width), "vector-effect": "non-scaling-stroke", ...(st.dash ? { "stroke-dasharray": st.dash } : {}) };
+        if (e.kind === "rect" && Array.isArray(e.rect)) {
+          const b = rectCellsToBlocks(e.rect, cell);
+          layer.appendChild(svgEl("rect", { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill: "none", ...base }));
+        } else if (e.kind === "segment" || e.kind === "measure") {
+          layer.appendChild(svgEl("line", { x1: e.x1 * cell, y1: e.z1 * cell, x2: e.x2 * cell, y2: e.z2 * cell, "stroke-linecap": "round", ...base }));
+        } else if (e.kind === "marker") {
+          layer.appendChild(svgEl("circle", { cx: e.x * cell, cy: e.z * cell, r: Math.max(2, cell * 0.24), fill: "none", ...base }));
+        }
+      }
+  }
+
   // A transient highlight pulse on the pieces/zones a clicked lint finding implicates (self-clearing).
   pulseSubjects(ids) {
     const layer = this.#pulseLayer; if (!layer || !this.#doc) return;
@@ -527,6 +573,14 @@ export class PlanCanvas extends CanvasBase {
     if (showLabels)
       for (const g of this.#inspect.gapLinks)
         label(String(g.hop), (g.x1 + g.x2) / 2, (g.z1 + g.z2) / 2, "var(--canvas-axis)");
+
+    // Evaluator measure labels (e.g. "17 < 20") ride the screen-space overlay too — a dimension line's number
+    // must stay readable at any zoom. Cell-space endpoints → block coords for the midpoint.
+    if (this.#overlayOn.violations)
+      for (const v of this.#violations)
+        for (const e of v.evidence || [])
+          if (e.kind === "measure" && e.label)
+            label(e.label, ((e.x1 + e.x2) / 2) * cell, ((e.z1 + e.z2) / 2) * cell, "var(--accent-light)");
 
     // Selection box + resize handles for a piece/zone (markers show just a ring).
     if (!this.#sel) return;
@@ -758,10 +812,11 @@ export class PlanCanvas extends CanvasBase {
     this.#zoneLayer = svgEl("g");
     this.#pieceLayer = svgEl("g");
     this.#inspectLayer = svgEl("g", { "pointer-events": "none" });
+    this.#violationLayer = svgEl("g", { "pointer-events": "none" });
     this.#markerLayer = svgEl("g");
     this.#previewLayer = svgEl("g", { "pointer-events": "none" });
     this.#pulseLayer = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#refLayer, this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#inspectLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
+    for (const g of [this.#refLayer, this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#inspectLayer, this.#violationLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
     this.#overlay = svgEl("g");

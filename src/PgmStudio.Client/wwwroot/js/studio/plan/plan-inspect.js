@@ -6,11 +6,11 @@
  */
 
 /**
- * The overlay layers and their default visibility. Interfaces and frontline show by default; labels
- * (piece/build-area ids + gap connectors and their hop distances) stay off by default to keep the canvas
- * quiet — id text and distance lines are opt-in via one toggle.
+ * The overlay layers and their default visibility. Interfaces, frontline and violations (the evaluator's fired-
+ * rule evidence) show by default; labels (piece/build-area ids + gap connectors and their hop distances) stay
+ * off by default to keep the canvas quiet — id text and distance lines are opt-in via one toggle.
  */
-export const DEFAULT_OVERLAYS = { interfaces: true, labels: false, frontline: true };
+export const DEFAULT_OVERLAYS = { interfaces: true, labels: false, frontline: true, violations: true };
 
 /**
  * Order findings for the lint panel: structural errors first, then rule lint, stable within each group so a
@@ -33,7 +33,10 @@ export function sortFindings(findings) {
 export function parseOverlays(raw) {
   try {
     const o = (raw && JSON.parse(raw)) || {};
-    return { interfaces: o.interfaces !== false, labels: o.labels === true, frontline: o.frontline !== false };
+    return {
+      interfaces: o.interfaces !== false, labels: o.labels === true,
+      frontline: o.frontline !== false, violations: o.violations !== false,
+    };
   } catch {
     return { ...DEFAULT_OVERLAYS };
   }

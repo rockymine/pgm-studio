@@ -51,9 +51,14 @@ public partial class PlanEditor
     private PlanSelection? sel;
 
     // Derived-structure overlay toggles (mirrored from the bridge's persisted prefs) + the live lint feed.
-    private bool overlayInterfaces = true, overlayFrontline = true, overlayLabels;
+    private bool overlayInterfaces = true, overlayFrontline = true, overlayLabels, overlayViolations = true;
     private bool heightMap;
     private List<InspectFinding> findings = [];
+
+    // The live evaluator feed (score + fired rules), pushed from the bridge's /api/plan/evaluate poll. Null when
+    // the plan is malformed (the evaluate endpoint 400s) or before the first response.
+    private EvaluationDto? evaluation;
+    private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
     // Reference (tracing) backdrop: the traceable maps for the picker + the current placement, both mirrored
     // from the plan doc via the meta sync. The bridge owns the doc; these drive the sidebar form.
@@ -166,6 +171,7 @@ public partial class PlanEditor
             "interfaces" => overlayInterfaces = !overlayInterfaces,
             "labels" => overlayLabels = !overlayLabels,
             "frontline" => overlayFrontline = !overlayFrontline,
+            "violations" => overlayViolations = !overlayViolations,
             _ => true,
         };
         if (handle is not null) await handle.InvokeVoidAsync("setOverlay", key, on);
@@ -180,6 +186,9 @@ public partial class PlanEditor
     private Task HighlightFinding(InspectFinding f)
         => handle is not null ? handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(f.Subjects ?? [])).AsTask() : Task.CompletedTask;
 
+    private Task HighlightViolation(ViolationDto v)
+        => handle is not null ? handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(v.Subjects)).AsTask() : Task.CompletedTask;
+
     private void SyncOverlays(string json)
     {
         var o = JsonSerializer.Deserialize<OverlayDto>(json);
@@ -187,6 +196,7 @@ public partial class PlanEditor
         overlayInterfaces = o.Interfaces;
         overlayLabels = o.Labels;
         overlayFrontline = o.Frontline;
+        overlayViolations = o.Violations;
     }
 
     // ── globals form ─────────────────────────────────────────────────────────────
@@ -465,6 +475,13 @@ public partial class PlanEditor
         StateHasChanged();
     }
 
+    [JSInvokable]
+    public void OnEvaluation(string json)
+    {
+        evaluation = string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<EvaluationDto>(json, Web);
+        StateHasChanged();
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (handle is not null)
@@ -520,6 +537,7 @@ public partial class PlanEditor
         [JsonPropertyName("interfaces")] public bool Interfaces { get; set; } = true;
         [JsonPropertyName("labels")] public bool Labels { get; set; }
         [JsonPropertyName("frontline")] public bool Frontline { get; set; } = true;
+        [JsonPropertyName("violations")] public bool Violations { get; set; } = true;
     }
 
     // A validation finding pushed from the bridge (already error-first ordered) for the lint panel.

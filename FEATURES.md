@@ -801,6 +801,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   scores O(1), not ~1e9 — preserving hard-dominates-soft (`[5,5]` and wider bands unchanged). Calibrated on six
   authored teaching seeds (`tools/seeds/teaching/`: an escalation of 3 crammed / over-stretched negatives + 3
   rotation resolutions — bridge zone, rotation stone, move-closer). Byte-identical composed output. (G60)
+- **Composer evaluator — editor wiring (M2, part 3)** — the evaluator surfaces live in the plan editor.
+  `Contracts/EvaluationDto` flattens the four `Evidence` primitives to one `EvidenceDto` (kind-keyed, cell-space)
+  carried by `ViolationDto` (term/rule id, kind, soft distance, subjects) inside `EvaluationDto` (score · valid ·
+  hard-first violations); `POST /api/plan/evaluate` (`PlanEvaluateEndpoint`) runs `LayoutEvaluator.Evaluate` on
+  the posted plan and maps it, 400 on a malformed body. The plan-bridge debounces the evaluate POST alongside
+  inspect (`runLive`), feeding the canvas a **Rules** evidence overlay (`PlanCanvas.setViolations` → offender/
+  bound/measure/context styling table; measure labels ride the screen-space layer) and the Blazor **Score** panel
+  (headline cost + fired-rule list, click → highlight subjects). Restores WL2 to the editor (the soft
+  `spawn-wool-distance` + the hard `spawn-wool-floor`, retired from the structural lint). Endpoint + JS
+  overlay-pref tests green. `docs/map-generation-architecture-review.md` §9.7. (G60)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor

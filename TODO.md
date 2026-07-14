@@ -77,17 +77,20 @@ authored teaching seeds (`tools/seeds/teaching/`: 3 crammed/over-stretched negat
 The **cramming** half is parked on **G69**: no `BoardStructure` signal separates it from good real maps (crammed
 ≡ acapulco across 7 features), and the deriver reads the geometry opposite to the author's visual.
 
-- [~] **G60 — Composer evaluator: finish the catalogue, wiring, harness.** On the landed catalogue:
+**G60 (3) landed (`FEATURES.md`):** editor wiring — `Contracts/EvaluationDto` (the four `Evidence` primitives
+flattened to one kind-keyed `EvidenceDto`; `ViolationDto`; score · valid · hard-first violations) + `POST
+/api/plan/evaluate` (`PlanEvaluateEndpoint` maps `LayoutEvaluator.Evaluate`); the plan-bridge debounces evaluate
+alongside inspect and feeds the canvas a **Rules** evidence overlay + the Blazor **Score** panel (click →
+highlight). Restores WL2 to the editor.
+
+- [~] **G60 — Composer evaluator: finish the catalogue + harness.** On the landed catalogue + wiring:
   **(1)** finish the §6 soft-term catalogue — the rotation half landed (2d); **remaining**: the cramming
   punishment is parked on **G69** (the deriver has no offset-team-mass primitive); approach count/WL8·G45
   (conditional — gated on G62 slots); height/EL1·EL4 (blocked on the G32-C elevation pass). Each reads
   `BoardStructure` measurables only (never a family name — the enumeration trap), scored as `Band` distance with
-  `Evidence`. **(2)** the
-  hole-hunt loop keeps the
+  `Evidence`. **(2)** the hole-hunt loop keeps the
   **lowest-scoring** acceptable attempt — the first point composed output shifts, its own re-baseline. **(3)
-  Wiring** — `EvaluationDto` in `Contracts` (carrying the `Evidence` primitives) + `POST /api/plan/evaluate` for
-  the editor's live score/lint; the client draws violations **and their evidence** as a JS canvas overlay (§9.7;
-  this also restores WL2 to the editor). **(4) Ranking harness** `eval-rank.cs` + minimal-pair negatives
+  Ranking harness** `eval-rank.cs` + minimal-pair negatives
   (`tools/seeds/negatives/` + `labels.json`): `Score(negative) > Score(positive)` **and** the labelled term
   fires; per-term tests. (review §5, §9; `docs/contracts/layout-evaluator.md`)
 

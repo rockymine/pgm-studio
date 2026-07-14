@@ -1,6 +1,8 @@
 using System.Text.Json;
 using FastEndpoints;
+using PgmStudio.Contracts;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 
@@ -118,4 +120,66 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
         var intentEl = JsonSerializer.SerializeToElement(intent, IntentStore.Json);
         await Send.OkAsync(new { layout = layoutEl, intent = intentEl }, ct);
     }
+}
+
+/// <summary>
+/// POST /api/plan/evaluate — the plan editor's live rule-evaluator score + lint feed (the critic that scores a
+/// <c>*.plan.json</c>). The request body is a plan wire document; the response is an <see cref="EvaluationDto"/>:
+/// the summed <c>score</c> (lower is better, 0 perfect), a <c>valid</c> flag (no hard term fired), and every
+/// fired term ordered hard-first — each carrying its <c>layout-rules.md</c> id, the pieces/zones it indicts, and
+/// the cell-space <see cref="EvidenceDto"/> the canvas overlay paints. This is where soft "feel" terms and the
+/// gate terms retired from the structural validator (e.g. WL2 spawn↔wool distance) surface in the editor, so it
+/// complements — not replaces — <c>/plan/inspect</c>'s derived-structure geometry. A malformed body is answered
+/// 400, never 500.
+/// </summary>
+public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/plan/evaluate"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var body = await reader.ReadToEndAsync(ct);
+
+        PlanModel? plan;
+        try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
+        catch (JsonException) { plan = null; }
+        if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+
+        Evaluation eval;
+        try
+        {
+            eval = LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
+        {
+            await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
+            return;
+        }
+
+        await Send.OkAsync(ToDto(eval), ct);
+    }
+
+    /// <summary>Map the derived <see cref="Evaluation"/> onto the wire DTO: every fired term (hard-first, the
+    /// registration order the evaluation already carries) with its kind, soft distance and flattened evidence.</summary>
+    internal static EvaluationDto ToDto(Evaluation eval)
+    {
+        var violations = eval.Terms
+            .Where(t => t.Violation is not null)
+            .Select(t => new ViolationDto(
+                t.Violation!.TermId, t.Violation.RuleId, t.Kind == TermKind.Hard ? "hard" : "soft",
+                t.Distance, t.Violation.Message, t.Violation.Subjects,
+                (t.Violation.Evidence ?? []).Select(MapEvidence).ToList()))
+            .ToList();
+        return new EvaluationDto(eval.Score, eval.IsValid, violations);
+    }
+
+    private static EvidenceDto MapEvidence(Evidence e) => e switch
+    {
+        EvidenceRect r => new("rect", r.Tag, Rect: r.Rect),
+        EvidenceSegment s => new("segment", s.Tag, X1: s.X1, Z1: s.Z1, X2: s.X2, Z2: s.Z2),
+        EvidenceMarker m => new("marker", m.Tag, X: m.X, Z: m.Z),
+        EvidenceMeasure m => new("measure", m.Tag, X1: m.X1, Z1: m.Z1, X2: m.X2, Z2: m.Z2, Label: m.Label),
+        _ => new("unknown", e.Tag),
+    };
 }
