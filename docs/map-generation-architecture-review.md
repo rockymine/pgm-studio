@@ -183,7 +183,7 @@ base seeds (`tools/seeds/*.plan.json`) plus the gallery's fixed generated-case l
 before/after oracle. Protocol for every extraction step: capture `derive-gallery`'s console summary
 lines and `out/derive-gallery.html` before the change, re-run after, and require a **byte-identical
 diff** — M0/M1 are pure moves, so *identical* is the bar, not "looks the same". The mirror harness
-and the Pgm suite ride along. Only the behavioral steps (M2 onward, §4.3) may change gallery output,
+and the Pgm suite ride along. Only the behavioral steps (M2 onward, §4.4) may change gallery output,
 and each re-baselines deliberately.
 
 ---
@@ -387,7 +387,61 @@ Notes on each:
   comparable within one strategy, and the evaluator (plus the teaching-set conformance metrics, G43)
   can judge orders against each other rather than the doc having to pick a winner up front.
 
-### 4.3 Migration sequence — do not big-bang the grower
+### 4.3 Per-kind shapes — there is no `HubShape`/`SpawnShape` zoo
+
+The obvious follow-up to §3: `WoolApproachShape` has a home — what are `HubShape`, `SpawnShape`,
+`FrontlineShape`? The answer this plan commits to: **they do not exist as types.** Three orthogonal
+concepts cover every box kind, and everything kind-specific is *data*, not a class:
+
+- **family** — what one shape *is* (the shared §3 vocabulary, kind-agnostic);
+- **pattern** — how one or more shapes *arrange inside a box* (count, parallelism, recesses, holes);
+- **binding** — which role the terminal carries, if the pattern has one (wool-room / spawn / none).
+
+The missing concept is the **pattern**, and the canonical doc already uses it without naming it:
+the §4 width-menu entries are patterns, not families — "two 10-strands with a hole" and
+"terrain-build-terrain" describe *arrangements*. So does the grower: `FrontForm`
+(`None/Single/Wide/Twin`, `TeamUnitGrower.cs:73`) is a pattern enum in disguise — a *Twin* frontline
+is two parallel strands each of which is just an **I** (width-independently, a *Wide* face is also
+an I); the pattern, not the family, carries the recess and the pairing. Keeping family and pattern
+separate is what stops the family enum from sprouting kind-specific members.
+
+**Per-kind profile table** (the design target; each row's numbers come from the cited rule ids):
+
+| Box kind | Terminal binding | Entries | Legal fill (the profile) | Emit path | Derive mirror |
+|---|---|---|---|---|---|
+| **wool** | wool-room + marker | 1 (docks the hub) | all nine families, gated by the entry-width menu | `WoolBoxEmitter` (binding over `ShapeEmitter`) | `ShapeClassifier(filled, room)` — exists |
+| **spawn** | spawn + marker | 1 | families {I, L} only, small boxes (SP: ~10×10 direct, 10×20 run-up, 20×20 L) | same emitter, spawn profile | the **same** classifier, terminal = spawn room |
+| **hub** | none (open) | N — its edges *are* the interfaces | open patterns: solid (I) · L · Z · ring-with-hole, sized per HB1/HB3/HB4 | open-variant emission (M3) | junction-region read (backlog **G24**) + open outline bend count; the *evaluator* stays property-only (aspect, hole count — never "must be an L") |
+| **frontline** | none | 2 (hub face → mid dock) | patterns: none · single-chain (I/Z) · wide-face · twin-strands + recess (FR3/FR4/FR6/CT8) | pattern emission at the hub front (M3) | a derived **edge attribute** + the pattern re-read from zone kinds / closure holes (`BoardStructure`) — never a piece classifier |
+| **mid** | none | the two frontline docks | patterns: band · parallel-bands · hash (+ stone grids); form = `f(frontline)`, an *output* (§9 of the canonical doc) | `MidCarver` (stays) | the mid-form read — exists in the deriver |
+
+What the table pins down:
+
+- **"Which families does each kind allow" is generator data** — `FillProfiles`, one entry per
+  `BoxKind`, living beside `FillMenu` in `Compose/Boxes/`, every restriction citing its
+  `layout-rules.md` id. Explicitly **not** in the shared shape layer (which stays kind-agnostic:
+  the classifier must happily read an L whether it's a spawn or a wool) and **not** in the evaluator
+  (`layout-evaluator.md` §8: shapes are a generator concern; the evaluator must be able to bless a
+  good layout no template produced). Legal fill for a concrete box is the three-way intersection
+  `profile(kind) ∩ menu(interface width) ∩ fits(box size)` — and §4.2's `FillResult` signals out of
+  any of the three.
+- **How `*Box` and `*Shape` relate, per kind**: the `Box` is the envelope + typed sides (where, and
+  what it must dock); the profile picks a **pattern**; the pattern instantiates 1..n **family**
+  shapes via the one `ShapeEmitter`; the **binding** stamps roles/markers. There is exactly one
+  shape identity classifier, and it serves only the **terminal-capped** kinds (wool, spawn — same
+  code, different terminal). The **open** kinds (hub, frontline, mid) have no per-shape identity to
+  mirror — their derive-side reads are *structure* reads owned by `BoardStructure` (junction region,
+  frontline edge + pattern, mid form), most of which already exist in the gallery deriver and move
+  to src at M1.
+- **The mirror extends by pattern, not by classifier**: at M3, `emit-verify` grows per-kind checks —
+  emit a twin frontline → derive back a closure hole ringed by two strands; emit an L hub → the
+  junction region's outline bends once. Same loop, new assertions; no new `*Shape` classes.
+
+`SpawnBoxEmitter` from the §8 tree is therefore not a second emitter: it is the spawn *profile* +
+role binding over the same machinery, and if it stays a named class at all it is a ~20-line adapter
+like the thinned `WoolBoxEmitter`.
+
+### 4.4 Migration sequence — do not big-bang the grower
 
 The grower encodes real, hard-won invariants (fixed draw order, LN2 chains, image clearance, the
 repair loops) and currently *works*. Replace it organ by organ:
@@ -469,8 +523,11 @@ G section as-is. Dependencies point up the list.
    `CorridorExtent` scope delimiter with the two stop policies (§3.6) — `WoolLaneShape` the class
    retires here, its lane measurable re-expressed as the open read of the lane-policy extent;
    upgraded mirror test. Prerequisite for G56 corpus mining.
-6. **[M3] Open-variant shapes for frontline/hub.** G41 L/Z compositions, HB4; G39's interlock as a
-   `BoxInterface` constraint.
+6. **[M3] Open-variant shapes for frontline/hub.** `FillPattern`/`FillProfiles`/`BoxFiller`
+   (§4.3): G41 L/Z compositions and HB4 hub shapes as open patterns over the same families;
+   `FrontForm` retires into frontline patterns; G39's interlock as a `BoxInterface` constraint;
+   `emit-verify` grows the per-kind pattern mirrors (twin → closure hole + two strands, L hub →
+   one-bend junction outline).
 7. **[M4] Partitioner-first composition.** `BoxPartition` replaces the `Shape` sampling record;
    directed repair from `FillResult`; `GrowthOrder` strategies as the order experiment. Re-baseline
    gallery cases; then freeze G32-D goldens (per strategy).
@@ -543,13 +600,20 @@ src/PgmStudio.Contracts/
       Box.cs                      (Id, Kind, Rect, LandTargetCells)
       BoxInterface.cs             edge interval + width — the master variable as a type
       BoxPartition.cs             boxes + interfaces (the constraint graph)
-      FillMenu.cs                 width → legal families (the §4 table as data)
+      FillPattern.cs              named arrangements of shapes in a box — twin-strands, wide-face,
+                                  band, ring-with-hole… (§4.3; FrontForm's successor)
+      FillProfiles.cs             per-BoxKind data: legal patterns × families × binding, each
+                                  restriction citing its layout-rules.md id (§4.3)
+      FillMenu.cs                 interface width → legal patterns (the §4 table as data)
       FillResult.cs               Ok | TooSmall(minBox) | NoFamilyFits
       GrowthOrder.cs              named order strategies (spawn-first / hub-first / mid-out)
+      BoxFiller.cs                [M3]  Fill(box, profile, interfaces, rng) → slot-typed pieces —
+                                  the one profile-driven fill entry point (§4.3)
       BoxPartitioner.cs           [M4]  budget → BoxPartition, directed repair from FillResult
     WoolBoxEmitter.cs             [thin, M0]  binding over Shapes.ShapeEmitter: terminal → wool-room
                                   role + marker, wraps GrownPiece; public surface unchanged
-    SpawnBoxEmitter.cs            [new, M2/M3]  same shapes, terminal → spawn role
+    SpawnBoxEmitter.cs            [new, M2/M3]  the spawn *profile* + role binding over the same
+                                  machinery — a ~20-line adapter, not a second emitter (§4.3)
     TeamUnitGrower.cs             [thin M2/M3 → ret M4]  wool arms delegate to boxes at M2, hub/
                                   frontline at M3; the Shape sampling record dies with M4
     Composer.cs                   Acceptable dissolved into Evaluate (task 3); orchestration stays
