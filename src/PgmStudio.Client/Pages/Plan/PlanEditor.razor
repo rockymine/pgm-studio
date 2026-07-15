@@ -39,10 +39,10 @@
           <span class="activity-logo-sub">STUDIO</span>
         </div>
       </a>
-      <button class="activity-btn @(leftPanel == "settings" ? "active" : null)" title="Settings" @onclick='() => SelectActivity("settings")'>
+      <button class="activity-btn @(leftPanel == "settings" && leftOpen ? "active" : null)" title="Settings" @onclick='() => SelectActivity("settings")'>
         <i data-lucide="sliders-horizontal"></i>
       </button>
-      <button class="activity-btn @(leftPanel == "validation" ? "active" : null)" title="Validation — evaluator score &amp; fired rules" @onclick='() => SelectActivity("validation")'>
+      <button class="activity-btn @(leftPanel == "validation" && leftOpen ? "active" : null)" title="Validation — evaluator score &amp; fired rules" @onclick='() => SelectActivity("validation")'>
         <i data-lucide="shield-check"></i>
       </button>
     </nav>
@@ -185,10 +185,8 @@
             }
           </div>
         </div>
+        <div class="sidebar-handle"></div>
         }
-        <button class="panel-edge-toggle" title="@(leftOpen ? "Collapse panel" : "Expand panel")" @onclick="ToggleLeftPanel">
-          <i data-lucide="@(leftOpen ? "chevron-left" : "chevron-right")"></i>
-        </button>
 
         <div class="workspace-canvas">
           <div class="canvas-subbar">

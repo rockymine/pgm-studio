@@ -40,20 +40,21 @@ public partial class PlanEditor
     private string? importError;
 
     // The left panel is a rail-selected activity — "settings" (plan name / globals / reference / overlays)
-    // or "validation" (the evaluator score + fired rules) — plus a collapse flag driven by the panel-edge
-    // button. The rail icons now switch activity, so they can no longer double as the hide toggle. Selecting
-    // "validation" switches on the Rules evidence layer, so the activity itself IS the validation-layer toggle.
+    // or "validation" (the evaluator score + fired rules) — plus a collapse flag. Each rail icon toggles its
+    // own panel: clicking the active-and-open one collapses the sidebar, clicking any other case opens that
+    // panel (switching is just clicking the other icon). The Rules evidence layer follows an open validation
+    // panel, so validation's icon doubles as that layer's toggle.
     private string leftPanel = "settings";
     private bool leftOpen = true;
 
     private async Task SelectActivity(string which)
     {
-        leftPanel = which;
-        leftOpen = true;
-        if (handle is not null) await handle.InvokeVoidAsync("setOverlay", "violations", which == "validation");
+        if (leftPanel == which && leftOpen)
+            leftOpen = false;
+        else
+            (leftPanel, leftOpen) = (which, true);
+        if (handle is not null) await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation");
     }
-
-    private void ToggleLeftPanel() => leftOpen = !leftOpen;
 
     // Globals mirrored from the plan document (the JS bridge is the source of truth; these drive the form).
     private string planName = "Untitled plan";
@@ -116,8 +117,8 @@ public partial class PlanEditor
         await handle.InvokeVoidAsync("setRole", role);
         try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
         try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
-        // The Rules layer follows the active activity, not the persisted overlay flag — sync it to the initial one.
-        try { await handle.InvokeVoidAsync("setOverlay", "violations", leftPanel == "validation"); } catch { }
+        // The Rules layer follows an open validation panel, not the persisted overlay flag — sync it to the initial state.
+        try { await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation"); } catch { }
         try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
         try { surfaceStep = await handle.InvokeAsync<double>("getSurfaceStep"); } catch { /* keep default 2 */ }
         try
