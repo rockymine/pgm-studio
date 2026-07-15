@@ -78,10 +78,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B12 — README setup guide for users.** The repo README has no user-facing setup description. Write one:
-  prerequisites (.NET 10 SDK pinned by `global.json`, MariaDB 10.11), DB/user provisioning (`pgm_studio`,
-  `pgm`/`pgm_dev_pw`), running via `./tools/dev.sh` (:7894), and tests (`dotnet run --project tests/<Project>`, not
-  `dotnet test`). Source the facts from CLAUDE.md's Environment / Tests sections.
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
   updated world as a *new* map and hand-copy the intent across. Add a "re-import / update world" action on

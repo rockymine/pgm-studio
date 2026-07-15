@@ -1114,3 +1114,6 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   former stale-DB symptom. (D1, closed C10)
 - **Dropped Bootstrap** — dashboard migrated to the studio shell; default `EditorLayout`;
   `/design` reachable from the dashboard footer link. (D4, satisfies D2)
+- **README setup guide** — prerequisites, DB/user provisioning, dev + tests, and the two-step
+  scan-out → import flow (incl. the stale-output `ROUND-TRIP DRIFT [kits]` gotcha + `--refresh-xml`
+  fix). (B12)
