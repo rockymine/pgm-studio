@@ -362,6 +362,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cluster centroid) + set its Y on the reused side-view; positions **orbit** like the team-spawn step
   (editing an anchor-team wool re-derives its mirror partners by mirrored position — colour/owner untouched,
   so green's mirror stays the real yellow). (`WoolSpawnPhase`; N04)
+- **Spawns seat on terrain (N11)** — a spawn placed with the **point tool** lands on the column's floor
+  instead of Y 0: team spawns + their orbit copies, the observer, and wool spawns all route through one
+  `ColumnFloor` helper, which owns the +1 (`column-floor` reports the topmost solid block *inclusive*, so
+  resting on it is floor + 1). A wool anchors the search at its **own level**, since it usually sits in a
+  covered room whose roof would otherwise be the column's topmost surface. The side-view Y line **snaps to
+  the floors of the marker's column** (`seatOnFloor`, opt-in via `SliceView.SeatOnFloor`) so it can't be
+  dragged into a block or mid-air — a vertical run offers each of its floors; a region's Y stays free. The
+  slice line tracks a Y that changes on its own, without refetching the depth map.
+  (`ColumnFloor`, `SpawnPhase`, `WoolSpawnPhase`, `WoolObjectivesPhase`, `SliceView`, `sideview-canvas.js`; N11)
 - **Wools · Monuments sub-step (N04)** — each wool needs **N−1** monuments (one per enemy team), modelled
   as the expected capturers; the scan pre-fills the signed pedestals. **Box** a cluster → `monument-suggestions`
   routes each hit to its colour's wool (capturing team = its island); an empty box drops a manual monument;

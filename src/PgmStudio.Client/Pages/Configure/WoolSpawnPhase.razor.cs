@@ -15,6 +15,7 @@ using W = WoolAuthoring;
 public partial class WoolSpawnPhase
 {
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private readonly List<W.Team> teams = new();
@@ -48,7 +49,12 @@ public partial class WoolSpawnPhase
     private async Task OnPointPick((double X, double Z) p)
     {
         if (Selected is not { } w) return;
+        // The wool's own level anchors the search: it usually sits in a covered room, whose roof is the
+        // column's topmost surface. Read before X/Z move, and re-seat before the partners are re-derived,
+        // since they copy the authored wool's Y.
+        var refY = (int)Math.Floor(w.SpawnY);
         w.SpawnX = W.Snap(p.X); w.SpawnZ = W.Snap(p.Z);
+        if (await ColumnFloor.RestingYAsync(Http, Slug, w.SpawnX, w.SpawnZ, refY) is { } y) w.SpawnY = y;
         if (IsAuthored(w)) ReDerivePartners(w);
         Write();
         await Paint();

@@ -210,19 +210,9 @@ public partial class SpawnPhase
 
     private static double Snap(double v) => Math.Floor(v) + 0.5;
 
-    // The Y a spawn stands at in a column: one block above the terrain floor, or null when the column has no
-    // segment data. `column-floor` reports the floor block itself (the topmost solid block, inclusive), so a
-    // spawn placed at that Y would sit inside it rather than on top of it.
-    private async Task<int?> StandingYAsync(double x, double z)
-    {
-        try
-        {
-            var d = await Http.GetFromJsonAsync<JsonElement>(
-                $"api/map/{Slug}/column-floor?x={(int)Math.Floor(x)}&z={(int)Math.Floor(z)}");
-            return d.TryGetProperty("y", out var y) && y.ValueKind == JsonValueKind.Number ? y.GetInt32() + 1 : null;
-        }
-        catch { return null; }
-    }
+    // The Y a spawn stands at in a column — the topmost surface, since the author picked the column on the
+    // top-down canvas. Null when the column is void.
+    private Task<int?> StandingYAsync(double x, double z) => ColumnFloor.RestingYAsync(Http, Slug, x, z);
 
     private void SelectTeam(string id) => selectedTeamId = id;
 

@@ -23,6 +23,7 @@ public partial class SliceView : IAsyncDisposable
     private DotNetObjectReference<SliceView>? selfRef;
     private string? shownId;
     private string? shownAxis;
+    private int? shownY;
     private string axis = "nz";         // view direction: nz/pz look along Z (primary X), nx/px along X (primary Z)
     private bool show;
     private bool editable;
@@ -46,12 +47,21 @@ public partial class SliceView : IAsyncDisposable
         {
             selfRef ??= DotNetObjectReference.Create(this);
             handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountSliceView", canvasRef, selfRef, Slug);
-            shownId = null; shownAxis = null;
+            shownId = null; shownAxis = null; shownY = null;
         }
-        if (Node is not null && (Node.Id != shownId || axis != shownAxis) && Window(Node) is { } w)
+        if (Node is null || Window(Node) is not { } w) return;
+        var y = w["markerMy"] as int?;
+        if (Node.Id != shownId || axis != shownAxis)
         {
-            shownId = Node.Id; shownAxis = axis;
+            shownId = Node.Id; shownAxis = axis; shownY = y;
             await handle.InvokeVoidAsync("update", w);
+        }
+        else if (y != shownY)
+        {
+            // Same window, new Y — the region's Y moved without the slice changing (a spawn re-seated onto
+            // the floor of the column it was just moved to). Move the line; the depth map still applies.
+            shownY = y;
+            await handle.InvokeVoidAsync("setMarkerY", y);
         }
     }
 

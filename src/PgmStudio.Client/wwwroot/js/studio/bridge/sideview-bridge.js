@@ -66,6 +66,15 @@ export async function mountSlice(canvasEl, dotnetRef, slug) {
 
   return {
     async update(opts) { await load(opts); },
+    // Move the line/dot within the window already loaded — for a Y that changed on its own (a spawn
+    // re-seated onto a new column's floor). Skips the segments refetch; a null markerY stays null so a
+    // display-only slice gains no line.
+    setMarkerY(y) {
+      cur.markerMy = y;
+      if (cur.markerY != null) cur.markerY = y;
+      canvas.setBuildHeight(cur.markerY);
+      canvas.setMarker(cur.markerP != null && cur.markerMy != null ? { p: cur.markerP, y: cur.markerMy } : null);
+    },
     resize() { canvas.resize(); },
     dispose() { /* dropping the reference is enough */ },
   };

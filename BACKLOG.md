@@ -32,13 +32,12 @@ the focus-integration polish remains.
   Re-derive the id on colour change and **cascade the rename** across the intent — `teams`, `islandTeams`,
   and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip the rename (just
   recolour) when the new colour-derived id would collide with another team's.
-- [~] **N11 — Monument Y must seat on terrain; wool spawns must re-snap on move.** `SpawnPhase` seats team
-  spawns (point placement + orbit copies) and the observer via `StandingYAsync`, and `WoolObjectivesPhase`
-  seeds the wool via `RestingYAsync` — both one block above the `column-floor` block (which is the topmost
-  solid block, inclusive, so seating *on* it is floor + 1). Still open: monuments aren't seated at all;
-  `WoolSpawnPhase`'s point tool moves a wool's X/Z without re-snapping its Y to the new column; and a team
-  spawn's Y isn't re-snapped when moved via the coord inputs (only on point placement). Pairs with `N08`
-  (monument Y editing) and `CV11` (the side-view clamp side of the same problem).
+- [~] **N11 — Monument Y must seat on terrain; coord-input moves must re-snap.** The **point tool** now
+  seats every spawn it places — team spawns + orbit copies, the observer, and wool spawns — on the target
+  column's floor via the shared `ColumnFloor` helper. Still open: monuments aren't seated at all; and moving
+  a spawn (team or wool) via the **coord inputs** rewrites X/Z without re-snapping Y to the new column, so
+  only the point tool re-seats. Pairs with `N08` (monument Y editing) and `CV11` (the side-view clamp side
+  of the same problem).
 
 ## Sketch tool (S) — parked slices
 

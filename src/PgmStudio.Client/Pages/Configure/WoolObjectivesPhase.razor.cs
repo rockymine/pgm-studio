@@ -272,18 +272,9 @@ public partial class WoolObjectivesPhase
         }));
     }
 
-    // The Y a wool rests at in a column: one block above the terrain floor (the segment top at/below refY).
-    // `column-floor` reports the floor block itself (the topmost solid block, inclusive), so seeding the wool
-    // at that Y would bury it inside the floor. Null when the column has no segments.
-    private async Task<int?> RestingYAsync(int x, int z, int refY)
-    {
-        try
-        {
-            var d = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/column-floor?x={x}&z={z}&y={refY}");
-            return d.TryGetProperty("y", out var y) && y.ValueKind == JsonValueKind.Number ? y.GetInt32() + 1 : null;
-        }
-        catch { return null; }
-    }
+    // The Y the wool rests at: one block above the floor under its detected pile (refY = the pile's base, so
+    // an elevated wool room finds its own floor rather than a roof above it). Null when the column is void.
+    private Task<int?> RestingYAsync(int x, int z, int refY) => ColumnFloor.RestingYAsync(Http, Slug, x, z, refY);
 
     private static string Str(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
     private static double Dbl(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
