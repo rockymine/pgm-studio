@@ -58,12 +58,14 @@ public sealed class ContactGraphTests
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;
         var d = ContactGraph.Build(plan);
-        await Assert.That(d.Components.Count).IsEqualTo(2);              // H (three bars) + square
+        await Assert.That(d.Components.Count).IsEqualTo(2);              // the land-connected H + the detached square
         var big = d.Components.OrderByDescending(c => c.Count).First();
-        await Assert.That(big.Count).IsEqualTo(3);
-        await Assert.That(big).Contains("bar-e");
-        await Assert.That(big).Contains("cross");
-        await Assert.That(big).Contains("bar-w");
+        await Assert.That(big.Count).IsEqualTo(5);                      // the five pieces forming the H
+        await Assert.That(big).Contains("piece");
+        await Assert.That(big).Contains("spawn");
+        await Assert.That(big).Contains("wool");
+        var small = d.Components.OrderBy(c => c.Count).First();
+        await Assert.That(small).IsEquivalentTo(new[] { "piece-4" });   // the raised square stands alone
     }
 
     [Test]
@@ -71,12 +73,12 @@ public sealed class ContactGraphTests
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!;
         var d = ContactGraph.Build(plan);
-        // the bridge zone links the east bar to the wool room across a 10-block void
-        var bridge = d.GapLinks.Where(g => g.Zone == "bridge-e").ToList();
-        await Assert.That(bridge.Any(g =>
-            (g.A == "bar-e" && g.B == "wl2-a") || (g.A == "wl2-a" && g.B == "bar-e"))).IsTrue();
-        var hop = bridge.First(g => g.A is "bar-e" or "wl2-a" && g.B is "bar-e" or "wl2-a").Hop;
-        await Assert.That(hop).IsEqualTo(10);
+        // the mid-band zone links the square (piece-5) to the H's near bar (piece-3) across a 10-block void
+        var links = d.GapLinks.Where(g => g.Zone == "mid-band").ToList();
+        var link = links.FirstOrDefault(g =>
+            (g.A == "piece-3" && g.B == "piece-5") || (g.A == "piece-5" && g.B == "piece-3"));
+        await Assert.That(link).IsNotNull();
+        await Assert.That(link!.Hop).IsEqualTo(10);
     }
 
     [Test]
@@ -166,8 +168,8 @@ public sealed class ContactGraphTests
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2island.plan.json"))!;
         var d = ContactGraph.Build(plan);
-        await Assert.That(d.Frontline).Contains("bar-e");              // spawn lane abuts the mid band
-        await Assert.That(d.Frontline).Contains("bar-w");              // wool lane overlaps the mid band
+        await Assert.That(d.Frontline).Contains("piece");             // the west bar abuts the mid band
+        await Assert.That(d.Frontline).Contains("piece-2");           // the east bar abuts the mid band
     }
 
     // ── buildable regions (zone-union connectivity) ────────────────────────────────────────────────────
