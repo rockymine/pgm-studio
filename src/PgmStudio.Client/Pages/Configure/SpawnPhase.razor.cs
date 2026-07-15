@@ -95,7 +95,7 @@ public partial class SpawnPhase
         double x = Snap(mx), z = Snap(mz);
         // Seat the default observer on the terrain at the map middle (falling back to the first team spawn's
         // height, else world-bottom) instead of dropping it at Y=0.
-        double y = await ColumnFloorAsync(x, z) is { } f ? f : (spawns.FirstOrDefault()?.Y ?? 0);
+        double y = await StandingYAsync(x, z) is { } f ? f : (spawns.FirstOrDefault()?.Y ?? 0);
         observer = new Spawn { Team = ObserverId, X = x, Y = y, Z = z };
         RecomputeObserverYaw();
     }
@@ -128,14 +128,14 @@ public partial class SpawnPhase
         if (selectedTeamId == ObserverId && observer is not null)
         {
             observer.X = x; observer.Z = z;
-            if (await ColumnFloorAsync(x, z) is { } oy) observer.Y = oy;   // seat on terrain, not world-bottom
+            if (await StandingYAsync(x, z) is { } oy) observer.Y = oy;   // seat on terrain, not world-bottom
             RecomputeObserverYaw();
             WriteIntent(); await PaintSpawns(); return;
         }
         var team0 = IslandTeamAt(x, z) ?? selectedTeamId ?? teams.FirstOrDefault()?.Id;
         if (team0 is null) return;
-        // Snap the spawn onto the clicked column's terrain floor; the orbit shares it (symmetric terrain).
-        var y = await ColumnFloorAsync(x, z) ?? 0;
+        // Stand the spawn on the clicked column's terrain; the orbit shares it (symmetric terrain).
+        var y = await StandingYAsync(x, z) ?? 0;
         PlaceAndOrbit(team0, x, z, y);
         selectedTeamId = team0;
         WriteIntent();
@@ -210,15 +210,16 @@ public partial class SpawnPhase
 
     private static double Snap(double v) => Math.Floor(v) + 0.5;
 
-    // The terrain floor Y at a spawn's column — the topmost solid segment top — or null when the column has
-    // no segment data. Snaps a placed spawn onto the ground instead of leaving it at world-bottom (Y=0).
-    private async Task<int?> ColumnFloorAsync(double x, double z)
+    // The Y a spawn stands at in a column: one block above the terrain floor, or null when the column has no
+    // segment data. `column-floor` reports the floor block itself (the topmost solid block, inclusive), so a
+    // spawn placed at that Y would sit inside it rather than on top of it.
+    private async Task<int?> StandingYAsync(double x, double z)
     {
         try
         {
             var d = await Http.GetFromJsonAsync<JsonElement>(
                 $"api/map/{Slug}/column-floor?x={(int)Math.Floor(x)}&z={(int)Math.Floor(z)}");
-            return d.TryGetProperty("y", out var y) && y.ValueKind == JsonValueKind.Number ? y.GetInt32() : null;
+            return d.TryGetProperty("y", out var y) && y.ValueKind == JsonValueKind.Number ? y.GetInt32() + 1 : null;
         }
         catch { return null; }
     }
