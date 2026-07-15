@@ -45,13 +45,6 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
-- [~] **S2 — Sketch tool: end-to-end verification.** The tool itself is **complete and shipped**
-  (`FEATURES.md`): originate → Setup → draw → live islands + mirror → Finish/rasterize, with persistence
-  (`SketchLayoutJson` artifact + `POST /api/sketch` + `GET`/`PUT /api/map/{slug}/sketch`, 4 integration
-  tests) and rasterize (`SketchRasterizer` + `WriteSketchAsync` + `POST .../sketch/finish`, 6 tests).
-  **The only open slice** is a single **end-to-end pass** of a sketched map *through* the Configure wizard
-  → Edit (sketch-create → Finish → Configure → validated export) — verification, not implementation.
-  Full plan: `docs/contracts/sketch-authoring.md`. (`AuthorDisplay` from C12 is reused here.)
 - [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
   (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
   **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
@@ -186,7 +179,7 @@ validation work follow. Landed so far (`FEATURES.md`): the composer core + box-b
 vocabulary (G49/G53/G54), the lane archetypes + Geom split, the generate UI + editor prep, Bézier
 rounding, the Organic demo (`G4`), island-outline simplification (`G6`), the lane-decompose surface
 (`G6`/`G7`/`G8`), the `island-roles` hook (`G11`), and the layout-generation design that resolved `G15`.
-Builds on the Sketch tool (`S2`, parked) and the intent model (`N`).
+Builds on the Sketch tool (`S2`) and the intent model (`N`).
 
 **Composer — box-model milestones (M2–M4 + doc)**
 - [ ] **G61 — [M2] Wool arms become wool boxes (first production caller of the emitter).** Inside

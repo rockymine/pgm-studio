@@ -921,9 +921,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Sketch finish / rasterize** — `SketchRasterizer` + `WorldFeatureWriter.WriteSketchAsync` +
   `POST .../sketch/finish` + the Finish button: the sketch rasterizes into the importer's geometry
   artifacts and flows into Configure (`MapStage.Configure` + a `configureUrl`; 6 rasterizer tests). The
-  `/maps/new-sketch` page (`SketchCreate`, S11) originates one. (S2e) — the tool is complete (originate →
-  frame → draw → Finish); only an end-to-end pass through Configure → Edit remains (TODO `S2`). Plan:
+  `/maps/new-sketch` page (`SketchCreate`, S11) originates one. (S2e) Plan:
   `docs/contracts/sketch-authoring.md`.
+- **Sketch tool end-to-end verified** — a live pass of the whole chain on the running app: `POST /api/sketch`
+  create → `PUT .../sketch` a two-island layout → `POST .../sketch/finish` rasterize (advances the map from
+  the *sketch* to the *configure* stage) → the sketch-origin map **opens in the Configure wizard** (Map Info /
+  ctw / auto-derived objective) → `GET .../export` returns a complete, well-formed world folder (`map.xml`
+  parses, `level.dat`, `region/*.mca`). Confirms the originate → Finish → Configure → export path holds; the
+  create/finish/export loop is also covered by Api.Tests integration tests. (S2) *(final verification slice;
+  the tool itself shipped as S2a–e)*
 - **Footprint presets + size legibility** — the footprint frame sets a **non-square** working area
   (width X × depth Z) from presets: 2-team landscape `120×80` (default), portrait `80×120`, square
   `120×120` (4-team / D2), or custom — replacing the old 512-square that made 10–15-block lanes
