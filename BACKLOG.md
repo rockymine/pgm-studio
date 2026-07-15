@@ -84,14 +84,18 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-- [ ] **CV9 — Parametrise primitive drawing styles (shape + colour + style + icon).** Edit and Configure
-  draw the same primitives but diverge (canvas-interaction.md §10): `renderShape` (`render/shape-render.js`)
-  has no point case so a point renders as a 1×1 `<rect>` (block-like) on Edit while Configure uses an
-  ad-hoc `marker`-flag `<circle>`; colour is `var(--canvas-region)` default on Edit vs an explicit team
-  colour on Configure; marker = solid vs region = dashed/translucent. Make "draw a primitive" one
-  data-driven thing: a real `point` render (dot/circle) in `renderShape`, a parametrised colour + style
-  (marker/outline) instead of the `marker` branch, and fix `SpawnPhase`'s hardcoded `cylinder`
-  sidebar/inspector icon → match `RegionNode.Icon` (point → `dot`). (Contract §10.)
+- [~] **CV9 — Parametrise primitive drawing styles (shape + colour + treatment + icon).** Cross-cutting
+  across all four editors (Sketch · Edit · Configure · Plan). **Audit done** (`primitive-styles.md`): the
+  visual language is already consistent (`region` translucent-dashed · `terrain` solid · `technical`
+  hatched · `marker` fixed-size · `ghost` faint), but expressed ad-hoc in four style functions
+  (`#regionAttrs`, `shapeAttrs`, inline plan role-styling) with duplicated colour constants. **Remaining
+  (the refactor):** give `renderShape` a real `point` case (dot/circle in screen units) so the
+  `marker:true` workaround collapses in; extract one `primitiveStyle({colour, treatment, selected,
+  primary})` helper replacing the three style fns; make colour caller-supplied (Edit slate · Configure
+  team/dye · Sketch op · Plan role); collapse the x3 add/sub + x2 plan-role constant copies; route all
+  icons through `RegionNode.Icon` (delete hardcoded `cylinder` in `SpawnPhase`, `square` in
+  `WoolMonuments` → `point→dot`). Plan hatch + surface-tint stay Plan-specific. (`primitive-styles.md`;
+  canvas-interaction.md §10.)
 
 ## Backend, pipeline & internals (B / P / A)
 

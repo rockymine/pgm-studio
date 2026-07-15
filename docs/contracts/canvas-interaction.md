@@ -323,6 +323,10 @@ release / save → onBoundsSave(id, bounds)   [JS→C#]   (mouse-up; nudge = deb
 
 ## 10. Primitive render styles (Edit vs Configure) — to unify (CV9)
 
+> **Widened.** The full four-editor audit (Sketch · Edit · Configure · Plan) + the unification
+> conclusion now lives in **`primitive-styles.md`**. This section is the Edit-vs-Configure slice it
+> builds on.
+
 The *same* renderer draws primitives on both pages — `#regionGroup` → `renderShape` + `#regionAttrs`,
 or the `marker` branch — but the **inputs diverge**, so a point on Edit and a spawn on Configure look
 different even though both are now region nodes in `#nodeMap`. A known divergence, parked for **CV9**.
