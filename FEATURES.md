@@ -222,6 +222,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   bug (its oracle emits `color: ""` too), so this is a **deliberate, PGM-grounded deviation** from the
   oracle rather than drift. `--parity` now skips out-of-range maps and excludes keys the oracle never
   produced, and reports both counts. (B24a, OB4)
+- **Phantom destroyables — a destroyable is not always an objective.** 8% of them are **scripted
+  block-swap regions** that borrow the element purely to carry a `<mode>`. `Destroyable.IsObjective` names
+  the concept so no consumer has to rediscover the discriminator, and `Destroyable.Phantom` splits the two
+  sub-kinds: **`BlockSwap`** (a mode replaces its blocks at a match time — the pre-game build floor erased
+  at `0s` is the common case, but the target is also water lanes and a wool disco floor) and **`Trigger`**
+  (no mode; broken to fire a filter). The test is exact and semantic — **a goal players cannot see is not a
+  goal** (`show="false"`) — not `completion="0%"` or `required="false"`, which flag genuine objectives.
+  Serialised as a `phantom` key beside `show`. Corpus-verified against the contract's figures **exactly**:
+  over all 1603 maps in both corpora, 297 carry `<destroyables>` / 959 leaves, of which **80 phantoms (8%)
+  across 39 maps — 70 block-swap, 10 trigger** (deathrun_aperture's ten levers), and **30 maps are
+  phantom-only**, i.e. PGM tags them DTM and they are not. (B27, OB16)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)

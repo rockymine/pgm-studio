@@ -76,10 +76,27 @@ public sealed class Wool
 }
 
 /// <summary>
+/// What a destroyable that is not an objective is really doing. Authors borrow the element to script the
+/// world, because it is the only one that carries a <see cref="ObjectiveMode"/>.
+/// </summary>
+public enum PhantomKind
+{
+    /// <summary>Not a phantom — a real objective.</summary>
+    None,
+    /// <summary>A timed block-swap: a mode replaces its blocks at a match time. The common case is the
+    /// pre-game build floor, erased at 0s, but the target is not always air (water lanes, a wool disco
+    /// floor).</summary>
+    BlockSwap,
+    /// <summary>A trigger: breaking it fires a filter. No mode, so nothing swaps.</summary>
+    Trigger,
+}
+
+/// <summary>
 /// A DTM objective: the blocks matching <see cref="Materials"/> inside <see cref="RegionId"/>, owned by one
 /// team and broken by every other. Called a destroyable, never a monument — "monument" is the CTW wool
 /// monument throughout this codebase. The region is a loose box drawn <i>around</i> the structure, so it
 /// legitimately holds mostly air; the goal is the matching blocks within it, not the box.
+/// <para>Not every destroyable is an objective — see <see cref="IsObjective"/>.</para>
 /// </summary>
 public sealed class Destroyable
 {
@@ -92,6 +109,24 @@ public sealed class Destroyable
     public bool Show = true;            // false ⇒ not an objective at all but a scripted block-swap region
     public bool ModeChanges;            // true = every mode applies; mutually exclusive with Modes
     public List<string>? Modes;         // an explicit mode set; null = none (or all, when ModeChanges)
+
+    /// <summary>
+    /// Whether this is a goal at all. The test is exact and semantic rather than heuristic: <b>a goal
+    /// players cannot see is not a goal</b>. Authors reach for the destroyable element to script the world
+    /// — it is the only one that carries a mode — and hide the result with <c>show="false"</c>. Neither
+    /// <c>completion="0%"</c> nor <c>required="false"</c> identifies these: most non-required destroyables
+    /// are genuine, and one real objective completes at 50% while crumbling to air.
+    /// <para>Never present a non-objective as one: it is a marker, not a monument. It is still load-bearing
+    /// and must not be dropped — lose a build-floor phantom and its glass is never erased, so the map keeps
+    /// a solid bridge between the teams and plays wrong, which is worse than missing a goal.</para>
+    /// </summary>
+    public bool IsObjective => Show;
+
+    /// <summary>What this destroyable is doing when it is not an objective.</summary>
+    public PhantomKind Phantom =>
+        Show ? PhantomKind.None
+        : ModeChanges || Modes is { Count: > 0 } ? PhantomKind.BlockSwap
+        : PhantomKind.Trigger;
 }
 
 /// <summary>

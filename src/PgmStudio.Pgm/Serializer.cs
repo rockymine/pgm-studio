@@ -211,7 +211,13 @@ public static class Serializer
             ["materials"] = d.Materials,
         };
         if (d.Completion is not null) r["completion"] = d.Completion;
-        if (!d.Show) r["show"] = false;
+        // A phantom is a scripted block-swap region, not a goal. Both keys go out so a reader never has to
+        // rediscover that `show="false"` is the discriminator.
+        if (!d.Show)
+        {
+            r["show"] = false;
+            r["phantom"] = d.Phantom.ToString().ToLowerInvariant();
+        }
         if (d.ModeChanges) r["mode_changes"] = true;
         if (d.Modes is { Count: > 0 }) r["modes"] = d.Modes.ToList<object?>();
         return r;

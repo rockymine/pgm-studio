@@ -113,11 +113,13 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 **DTM / DTC objectives (destroyables + cores).** The contract is `docs/contracts/destroyables-and-cores.md`
 — it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
-its rule ids (`OB*`/`DT*`/`DC*`) are cited below. These run `B24` → `B27` → `B23` → `B25` → `B26` (`B23`'s
-gamemode carve-out needs `B27`'s phantom classifier). Filed here (not `N`/`G`) because the bulk of each is
-pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
-**`B22` shipped the objective gate** (`FEATURES.md`): a map declaring a module we can't read is now rejected,
-so `B24`/`B25` each end by adding their tag to `MapParser.ParsedObjectiveModules`.
+its rule ids (`OB*`/`DT*`/`DC*`) are cited below. These run `B23` → `B25` → `B26`. Filed here (not `N`/`G`)
+because the bulk of each is pipeline — parser, writer, schema, intent, stamper — with the plan-editor
+placement as the last mile. **Shipped so far** (`FEATURES.md`): `B22`'s objective gate — a map declaring a
+module we can't read is rejected, so `B25` ends by adding `cores` to `MapParser.ParsedObjectiveModules`, as
+`B24` did for `destroyables`; `B24a`'s parser/writer/codec, whose `Xml.Flatten` (OB4) and
+`RegionParser.ParseRegionProperty` cores take as-is; and `B27`'s phantom classifier
+(`Destroyable.IsObjective`/`.Phantom`), which `B23` needs and `B26` must respect.
 
 - [ ] **B23 — Gamemode is a derived set, not the `<gamemode>` element.** PGM never reads that element to decide
   the mode — each module contributes a `MapTag` when it parses (`<wools>` → CTW, `<destroyables>` → DTM,
@@ -151,26 +153,17 @@ so `B24`/`B25` each end by adding their tag to `MapParser.ParsedObjectiveModules
   `float` are one parameter — players dig `max(0, leak − float)` blocks into the terrain under the core, and
   `leak = 5` / `float = 6` (no dig) is the corpus centre. No new class of world operation and no negative-space
   primitive: the structure rests on nothing. Depends on `B24`.
-- [ ] **B27 — Classify + flag phantom destroyables (a destroyable is not always an objective).** 8% of
-  destroyables (80 of 951 leaves, 39 maps) are **scripted block-swap regions**, not goals: they borrow the
-  element purely to carry a `<mode>`. The classifier is one exact, semantic test — **`show="false"`** (a goal
-  players cannot see is not a goal). It is clean in both directions: none of the 80 reads as an objective, and
-  the one real objective that targets an air mode (`gold_in_them_thar_kills`, gold block, `completion="50%"`,
-  crumbling at 20m) declares `show="true"`. `completion="0%"` and `required="false"` are **not** sufficient
-  alone — 170 destroyables are non-required and most are genuine. Sub-kinds: **70 carry a mode** (the swap),
-  **10 do not** (triggers — deathrun_aperture's ten `lever` destroyables fire a filter when broken). The CTW
-  instance is the **pre-game build floor**: stained glass at the **world floor (y=0)** marking bridge/build
-  regions, shipped in the world so it renders during the map cycle, erased at match start by a `0s → air`
-  mode while a void filter defines the real build region — `newgen_classic` names it `build-regions`, abstract
-  names it `monu` and gives both "owners" the *identical* region. The swap target is not always air
-  (`water-lane` air→water at 15m; `vesuvius` →water at 20m; `down_side_up` cycles wool colours every 60s), so
-  model it as a **timed block-swap** of which "erase at 0s" is the common case. Store the classification and
-  surface it — never present a phantom as an objective. Unblocks `B23`'s carve-out; constrains `B26`.
-  **Also makes an existing heuristic exact:** `LayerExtractors.CleanBaseExclude` excludes stained glass (95)
-  as a "build-floor marker removed pre-game via a `destroyables` mode-change" — a *material guess* ("glass as
-  lowest solid") standing in for this pattern because the parser cannot see the mode. A parsed phantom states
-  precisely which blocks vanish pre-game, so island detection can stop guessing (pairs with `G9`/`G12`).
-  Depends on `B24`. (OB16)
+- [ ] **B31 — Island detection still guesses at the build floor a parsed phantom now states exactly.**
+  `LayerExtractors.CleanBaseExclude` excludes stained glass (95) as a "build-floor marker removed pre-game
+  via a `destroyables` mode-change" — a **material guess** ("glass as the lowest solid must be a build
+  floor") that stands in for the phantom pattern because the parser could not see the mode. `B27` removed
+  that excuse: a `BlockSwap` phantom's region + its mode state **precisely which blocks vanish before play**,
+  per map, with no material heuristic. Replace the guess with the fact — feed the phantom regions of a map
+  into the scan so the cleaned base subtracts exactly what the mode erases, and drop 95 from the blanket
+  exclusion once it does (the guess also silently eats decorative glass floors that are *not* build markers,
+  which is the failure mode in the other direction). The plumbing is the real work, not the rule:
+  `LayerExtractors` (`PgmStudio.Minecraft`) runs with no map context today, so the phantom regions have to
+  reach it. Pairs with `G9`/`G12`. (OB16, `destroyables-and-cores.md` §2)
 - [ ] **B29 — `<include>` is silently ignored, and 93% of the corpus uses it.** `MapParser` preprocesses
   `<if>`/`<unless>` (`ResolveVariants`) and `${constants}` (`ResolveConstants`) but has **no `<include>`
   handling at all** — the element is skipped and its content never enters the document, so every rule the

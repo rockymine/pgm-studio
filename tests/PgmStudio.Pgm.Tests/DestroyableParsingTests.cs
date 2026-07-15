@@ -238,4 +238,52 @@ public sealed class DestroyableParsingTests
         await Assert.That(Parse("""<destroyables><destroyable owner="red" name="a" materials="obsidian" show="false"/></destroyables>""")
             .Destroyables[0].Show).IsFalse();
     }
+
+    // ── phantoms: a destroyable is not always an objective ──────────────────────────
+    [Test]
+    public async Task A_visible_destroyable_is_an_objective()
+    {
+        var d = Parse("""<destroyables><destroyable owner="red" name="Hill" materials="obsidian"/></destroyables>""").Destroyables[0];
+        await Assert.That(d.IsObjective).IsTrue();
+        await Assert.That(d.Phantom).IsEqualTo(PgmStudio.Domain.PhantomKind.None);
+    }
+
+    // The pre-game build floor: stained glass at the world floor, erased at match start by a 0s → air mode
+    // while a void filter defines the real build region. abstract gives both "owners" the identical region,
+    // which is what vestigial ownership looks like.
+    [Test]
+    public async Task A_hidden_destroyable_carrying_a_mode_is_a_block_swap()
+    {
+        var m = Parse("""
+            <modes><mode id="mode-air" after="0s" material="air"/></modes>
+            <destroyables materials="stained glass" completion="0%" show="false" mode-changes="true">
+                <destroyable owner="red" name="monu"/>
+                <destroyable owner="blue" name="monu"/>
+            </destroyables>
+            """);
+        foreach (var d in m.Destroyables)
+        {
+            await Assert.That(d.IsObjective).IsFalse();
+            await Assert.That(d.Phantom).IsEqualTo(PgmStudio.Domain.PhantomKind.BlockSwap);
+        }
+    }
+
+    // deathrun_aperture's ten levers: hidden, no mode — broken to fire a filter.
+    [Test]
+    public async Task A_hidden_destroyable_with_no_mode_is_a_trigger()
+    {
+        var d = Parse("""<destroyables><destroyable owner="red" name="leverarrow1" materials="lever" show="false"/></destroyables>""").Destroyables[0];
+        await Assert.That(d.IsObjective).IsFalse();
+        await Assert.That(d.Phantom).IsEqualTo(PgmStudio.Domain.PhantomKind.Trigger);
+    }
+
+    // Neither of these identifies a phantom on its own: most non-required destroyables are genuine, and
+    // gold_in_them_thar_kills is a real objective that completes at 50% while crumbling to air.
+    [Test]
+    public async Task Completion_and_required_do_not_make_a_destroyable_a_phantom()
+    {
+        var d = Parse("""<destroyables><destroyable owner="red" name="a" materials="gold block" completion="50%" required="false" show="true"/></destroyables>""").Destroyables[0];
+        await Assert.That(d.IsObjective).IsTrue();
+        await Assert.That(d.Completion).IsEqualTo(0.5);
+    }
 }
