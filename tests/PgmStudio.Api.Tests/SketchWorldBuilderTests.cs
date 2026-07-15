@@ -60,7 +60,7 @@ public sealed class SketchWorldBuilderTests
 
         // The red wool (captured by blue) has its monument located inside blue's spawn cube (near x=20),
         // and the world has a bedrock pedestal below + glass cap above that air cell.
-        var mon = resolved.Wools[0].Monuments[0];
+        var mon = resolved.Wools![0].Monuments[0];
         await Assert.That(mon.Team).IsEqualTo("blue");
         await Assert.That(Math.Abs(mon.Location.X - 20) <= 4).IsTrue();
 
