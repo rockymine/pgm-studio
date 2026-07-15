@@ -27,8 +27,6 @@ public partial class WorldIslandsPhase
     {
         public double CentreX => (MinX + MaxX + 1) / 2.0;
         public double CentreZ => (MinZ + MaxZ + 1) / 2.0;
-        // The island spanning the world origin is the map centre (a useful landmark in the list).
-        public bool HasOrigin => MinX <= 0 && MaxX >= 0 && MinZ <= 0 && MaxZ >= 0;
     }
 
     private List<Island> islands = new();
@@ -105,10 +103,6 @@ public partial class WorldIslandsPhase
         if (canvas is not null) await canvas.SetExcludedIslandsAsync(excluded.ToList());
     }
 
-    // Display label: islands are size-ranked; the origin-spanning one is flagged as the centre.
-    private string Label(Island isl)
-    {
-        var rank = islands.IndexOf(isl) + 1;
-        return isl.HasOrigin ? $"Island {rank} · centre" : $"Island {rank}";
-    }
+    // Display label: a plain positional identifier for the list.
+    private string Label(Island isl) => $"Island {islands.IndexOf(isl) + 1}";
 }
