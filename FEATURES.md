@@ -37,6 +37,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   old footer *Plan* link is retired. A horizontal `.landing-plan` variant of the `.card--action`
   surface, grouped with the trio under `.landing-choices` + a hairline `.landing-divider` — all
   theme-token based (verified light + dark). (G70)
+- **Centred staged map-overview list** — the `/maps` (and `?stage=sketch|configure`) result column
+  (`Home.razor`) had a `max-width: 960px` but no horizontal centring, so it hugged the left edge unlike
+  `/maps/new` and `/maps/new-sketch`; add `margin: 0 auto`. Verified: equal left/right gaps. (C20)
 
 ## Editor shell & activities (M6)
 - **Editor shell** — topbar + activity rail + activity-switch state machine. (E1)

@@ -107,10 +107,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   data-driven thing: a real `point` render (dot/circle) in `renderShape`, a parametrised colour + style
   (marker/outline) instead of the `marker` branch, and fix `SpawnPhase`'s hardcoded `cylinder`
   sidebar/inspector icon → match `RegionNode.Icon` (point → `dot`). (Contract §10.)
-- [ ] **C20 — Centre the staged map-overview list.** `/maps`, `/maps?stage=sketch`, `/maps?stage=configure`
-  (one component, `Home.razor`) render the result list **left-aligned**: the `.workspace-scroll` wrapper has
-  `max-width: 960px` but no `margin: 0 auto` (`Home.razor:39`), unlike `/maps/new` (`ConfigureLanding.razor`) and
-  `/maps/new-sketch` (`SketchCreate.razor`) which centre. Add `margin: 0 auto`. One-line fix.
 - [ ] **CV11 — Side-view max-Y clamp is one block short.** The draggable Y line can't reach the topmost surface
   block: `_applyHeight` clamps to `y_min + y_count - 1` (`sideview-canvas.js:281`) while the coordinate maths
   allows up to `y_min + y_count`, so you can't drag onto the highest block / match the surface. Raise the max
