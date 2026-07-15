@@ -50,20 +50,11 @@ highlight); these are the parked / dormant / deferred slices.
   **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
   parallel"), and **manually droppable** guide lines shapes snap to (vs the current auto-from-shapes). Both
   are their own work; park until needed.
-- [ ] **S10 — Auto-promote rectangles on Bézier (parked, optional).** Today S4 promotes via the inspector
-  button / `P`; a rectangle keeps its 8-handle resize and has no Bézier affordance. If we ever want a
-  rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
-  vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
-  Low priority — explicit promotion already covers the need.
 - [ ] **S12 — Pin the Islands tree to the top of the sketch sidebar (UI polish, parked).** The residual weight
   above **Islands** is the **Layers** panel + the 12-tile **Library** palette. Collapse both behind `<details>`
   accordions (Library default-collapsed once the map has shapes), or move the Library to a toolbar popover (it's a
   "reach for a primitive" action, not persistent state). (`docs/sketch-tool-ux-review.md` P0#1;
   `docs/contracts/sketch-creation-flow.md` follow-on.)
-- [ ] **S16 — Resize library primitives after placement (mostly resolved; deferred).** `S21`'s island scale
-  handles now resize a **placed** polyomino / n-gon — a single non-rectangle member gets the 8 bbox scale handles —
-  so the after-placement resize is **covered**. The only remaining slice is optional **drag-to-size during
-  placement** (`geometry/shape-library.js` `instantiate` drops at a fixed `defaultCell`). Low priority.
 
 ## Editor & canvas infrastructure (C / CV)
 
@@ -91,26 +82,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   prerequisites (.NET 10 SDK pinned by `global.json`, MariaDB 10.11), DB/user provisioning (`pgm_studio`,
   `pgm`/`pgm_dev_pw`), running via `./tools/dev.sh` (:7894), and tests (`dotnet run --project tests/<Project>`, not
   `dotnet test`). Source the facts from CLAUDE.md's Environment / Tests sections.
-- [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
-  parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
-  **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
-  has been **removed** from both editors (detection is the fixed cleaned base; the world-scanning
-  endpoints are gone), so there is no longer a config-change to honour from the UI — this remains only as
-  a rare, local-only override path outside the hosted flow (new-map-authoring.md §6a). (Island-exclusion →
-  symmetry re-run already works without a re-scan, B7.)
-- [ ] **A4 — [Consider, not perf] Vector-boolean island outlines (drop the rasterize→polygon round-trip).**
-  Today island outlines come from a pixel round-trip: vector shapes → rasterize to cells → BFS → `BlocksToPolygon`
-  (cells back to a polygon), done only to **avoid a C# polygon-boolean lib** (sketch-authoring.md §6). We
-  already depend on NTS, so the sketch-finish island polygons *could* be computed by NTS vector boolean
-  directly off the shapes (union adds, difference subs), dropping `BlocksToPolygon` + the BFS for the
-  *polygon*. **Not a perf task** — the row-run fix already removed the hotspot, and the cell rasterize must
-  still run for `layer_segment`/`layer.parquet` (Configure height side-view + analysis). Payoff is cleanliness
-  + exact (smooth) outlines; cost is NTS boolean on the authoring path and a **staircase→smooth** outline
-  divergence from scanned maps. Weigh before doing.
-- [ ] **A3 — Buildability endpoint perf (verify, then optimise if needed).** Per-cell NTS over the grid
-  was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
-  **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
-  actually slow in use; otherwise close.
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
   updated world as a *new* map and hand-copy the intent across. Add a "re-import / update world" action on
@@ -120,14 +91,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
-- [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
-  "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
-  roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,
-  not duplication; their per-layer default ignored-block sets (`Base` gets the expanded ND2 noise set;
-  Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
-  surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
-  `exclude_blocks`). Pairs with A4.
-
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
@@ -487,3 +450,43 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   and **no** implementation-phase / task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). New code already
   follows this (CLAUDE.md). ~19 task-id references + ~41 parity/"port of" references remain across
   `src/` + `tests/` (e.g. `ImportEndpoints`, `WorldScanPhase`, `WorldFeatureWriter`) — sweep them.
+
+**Deprioritized — may be dropped in a later pass.** Optional/deferred slices parked out of the active
+long-tail so they stop competing with real work. Re-evaluate (or delete) when their area is next touched.
+
+- [ ] **S10 — Auto-promote rectangles on Bézier (parked, optional).** Today S4 promotes via the inspector
+  button / `P`; a rectangle keeps its 8-handle resize and has no Bézier affordance. If we ever want a
+  rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
+  vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
+  Low priority — explicit promotion already covers the need.
+- [ ] **S16 — Resize library primitives after placement (mostly resolved; deferred).** `S21`'s island scale
+  handles now resize a **placed** polyomino / n-gon — a single non-rectangle member gets the 8 bbox scale handles —
+  so the after-placement resize is **covered**. The only remaining slice is optional **drag-to-size during
+  placement** (`geometry/shape-library.js` `instantiate` drops at a fixed `defaultCell`). Low priority.
+- [ ] **P8 — Pipeline re-run on config change (parked escape hatch, world-present only).** A
+  parameterized re-scan honouring a bespoke `scan_layer`/`exclude_blocks` → re-detect islands → rewrite
+  **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
+  has been **removed** from both editors (detection is the fixed cleaned base; the world-scanning
+  endpoints are gone), so there is no longer a config-change to honour from the UI — this remains only as
+  a rare, local-only override path outside the hosted flow (new-map-authoring.md §6a). (Island-exclusion →
+  symmetry re-run already works without a re-scan, B7.)
+- [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
+  "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
+  roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,
+  not duplication; their per-layer default ignored-block sets (`Base` gets the expanded ND2 noise set;
+  Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
+  surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
+  `exclude_blocks`). Pairs with A4.
+- [ ] **A3 — Buildability endpoint perf (verify, then optimise if needed).** Per-cell NTS over the grid
+  was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
+  **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
+  actually slow in use; otherwise close.
+- [ ] **A4 — [Consider, not perf] Vector-boolean island outlines (drop the rasterize→polygon round-trip).**
+  Today island outlines come from a pixel round-trip: vector shapes → rasterize to cells → BFS → `BlocksToPolygon`
+  (cells back to a polygon), done only to **avoid a C# polygon-boolean lib** (sketch-authoring.md §6). We
+  already depend on NTS, so the sketch-finish island polygons *could* be computed by NTS vector boolean
+  directly off the shapes (union adds, difference subs), dropping `BlocksToPolygon` + the BFS for the
+  *polygon*. **Not a perf task** — the row-run fix already removed the hotspot, and the cell rasterize must
+  still run for `layer_segment`/`layer.parquet` (Configure height side-view + analysis). Payoff is cleanliness
+  + exact (smooth) outlines; cost is NTS boolean on the authoring path and a **staircase→smooth** outline
+  divergence from scanned maps. Weigh before doing.
