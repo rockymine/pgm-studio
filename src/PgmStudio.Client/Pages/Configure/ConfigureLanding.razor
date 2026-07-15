@@ -128,7 +128,7 @@
             @if (symType is not null)
             {
               <p class="section-desc">The layout is symmetric
-                (<span class="badge badge--success">@SymLabel(symType)</span>), suggesting
+                (<span class="badge badge--success">@SymmetryInfo.Label(symType)</span>), suggesting
                 <span class="badge badge--success">@SuggestedTeams</span> teams — you'll confirm both in World &amp; Teams.</p>
             }
             else
@@ -239,7 +239,7 @@
         <section class="panel-section">
           <div class="section-header section-header--ruled">
             <h2 class="section-title">What happens next</h2>
-            <span class="badge badge--dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymLabel(symType)}" : "")</span>
+            <span class="badge badge--dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymmetryInfo.Label(symType)}" : "")</span>
           </div>
           <p class="section-desc">Six guided phases take <strong>@importedSlug</strong> from terrain to a
             PGM-ready <code>map.xml</code> — and the studio does the heavy lifting at every step.</p>

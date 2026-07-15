@@ -15,7 +15,7 @@
       {
         <SmartSuggestion Header="Smart Suggestion" Badge="@symMode" AcceptLabel="@($"Create {SuggestedCount} teams")"
                          RejectLabel="Dismiss" OnAccept="CreateSuggestedTeams" OnReject="() => dismissedSuggestion = true">
-          <p class="smart-suggestion__text">@SymLabelShort symmetry suggests @SuggestedCount teams.</p>
+          <p class="smart-suggestion__text">@SymmetryInfo.ShortLabel(symMode) symmetry suggests @SuggestedCount teams.</p>
           <div class="smart-suggestion-teams">
             @foreach (var c in SuggestedColors)
             {
@@ -48,7 +48,7 @@
         @if (teams.Count > 0)
         {
           <p class="section-desc">Team 0 is <strong>authored</strong>; the rest are <strong>orbit</strong> —
-            derived by @SymLabelShort symmetry from team 0's spawn (next step).</p>
+            derived by @SymmetryInfo.ShortLabel(symMode) symmetry from team 0's spawn (next step).</p>
         }
       </section>
 
@@ -129,7 +129,7 @@
               <label class="field-label">Islands</label>
               <div class="field-pick-row"><span class="badge badge--neutral">@IslandsFor(sel.Id)</span><span class="list-tag">tagged</span></div>
             </div>
-            <p class="section-desc">Orbit position @teams.IndexOf(sel).@(teams.IndexOf(sel) == 0 ? $" The others follow by {SymLabelShort} symmetry." : "")</p>
+            <p class="section-desc">Orbit position @teams.IndexOf(sel).@(teams.IndexOf(sel) == 0 ? $" The others follow by {SymmetryInfo.ShortLabel(symMode)} symmetry." : "")</p>
           </div>
         </section>
       }
@@ -150,12 +150,4 @@
 </div>
 
 @code {
-  // Short symmetry label for inline copy (e.g. "90° rotational", "mirror").
-  private string SymLabelShort => symMode switch
-  {
-    "rot_90" => "90° rotational",
-    "rot_180" => "180° rotational",
-    "mirror_x" or "mirror_z" or "mirror_d1" or "mirror_d2" => "mirror",
-    _ => "no",
-  };
 }

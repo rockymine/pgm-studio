@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Pages.EditorActivities;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;
 
@@ -55,7 +56,7 @@ public partial class BuildLayerPhase
     }
 
     private bool MirrorActive => SymmetryOrder > 1;
-    private int SymmetryOrder => string.IsNullOrEmpty(symMode) ? 1 : symMode == "rot_90" ? 4 : 2;
+    private int SymmetryOrder => Symmetry.Order(symMode);
 
     private void AddBoxes(JsonArray? arr, bool hole)
     {

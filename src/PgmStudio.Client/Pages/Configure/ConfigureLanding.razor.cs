@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;
 
@@ -87,25 +88,8 @@ public partial class ConfigureLanding : IAsyncDisposable
                              : OnPlan ? "Start authoring"
                              : "Next: Plan";
 
-    // Team count the symmetry implies — the seed Teams confirms (rot_90 → 4-fold; mirror/rot_180 → 2).
-    private int? SuggestedTeams => symType switch
-    {
-        "rot_90" => 4,
-        "rot_180" or "mirror_x" or "mirror_z" => 2,
-        _ => null,
-    };
-
-    // Friendly label for a detected symmetry type (matches the Configure wizard's wording).
-    private static string SymLabel(string? type) => type switch
-    {
-        "rot_90" => "Rotate 90°",
-        "rot_180" => "Rotate 180°",
-        "mirror_x" => "Mirror X (left/right)",
-        "mirror_z" => "Mirror Z (front/back)",
-        "mirror_d1" => "Mirror ╲ (diagonal)",
-        "mirror_d2" => "Mirror ╱ (diagonal)",
-        _ => type ?? "",
-    };
+    // Team count the symmetry implies — its orbit order (rot_90 → 4-fold; mirror/rot_180 → 2); no symmetry → null.
+    private int? SuggestedTeams => Symmetry.Order(symType) is var o && o > 1 ? o : null;
 
     private void SelectFinding(string key) => selectedFinding = key;
     private Finding? Find(string key) => Findings.FirstOrDefault(f => f.Key == key);

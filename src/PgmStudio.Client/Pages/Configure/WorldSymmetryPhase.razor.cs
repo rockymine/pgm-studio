@@ -5,6 +5,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Pages.EditorActivities;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;
 
@@ -30,12 +31,8 @@ public partial class WorldSymmetryPhase
     private EditorCanvas? canvas;
 
     private string Slug => Wizard.Slug;
-    private double? SuggestedTeams => selectedType switch
-    {
-        "rot_90" => 4,
-        "rot_180" or "mirror_x" or "mirror_z" or "mirror_d1" or "mirror_d2" => 2,
-        _ => null,
-    };
+    // Teams the symmetry implies = its orbit order (rot_90 → 4, mirror/rot_180 → 2); no symmetry → null.
+    private double? SuggestedTeams => Symmetry.Order(selectedType) is var o && o > 1 ? o : null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,18 +120,6 @@ public partial class WorldSymmetryPhase
             Wizard.Intent["symmetry"] = new JsonObject { ["mode"] = selectedType, ["centerX"] = centerX, ["centerZ"] = centerZ };
         Wizard.MarkDirty();
     }
-
-    // Friendly label for a symmetry type (matches the wizard's wording elsewhere).
-    private static string SymLabel(string? type) => type switch
-    {
-        "rot_90" => "Rotate 90°",
-        "rot_180" => "Rotate 180°",
-        "mirror_x" => "Mirror X (left/right)",
-        "mirror_z" => "Mirror Z (front/back)",
-        "mirror_d1" => "Mirror ╲ (diagonal)",
-        "mirror_d2" => "Mirror ╱ (diagonal)",
-        _ => "No symmetry",
-    };
 
     private static string Str(JsonElement e, string key)
         => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";

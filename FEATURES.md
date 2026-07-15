@@ -136,6 +136,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   blocks) so 1-block primitives (points/spawns) are forgiving to click everywhere. The bespoke spawn path
   — `#hitTestSpawn`, the `#authorSpawns` marker layer, `setAuthorSpawns`, the `spawn` select mode,
   `onSpawnPick` — is gone. §2.
+- **Shared symmetry label + single-source orbit count** — the friendly symmetry wording (`"Mirror X
+  (left/right)"`, `"Rotate 90°"`, …) was copy-pasted as a private `SymLabel` in four places
+  (`WorldScanPhase`/`WorldSymmetryPhase`/`ConfigureLanding`/`ConfigureActivity`) plus a `SymLabelShort` in
+  `TeamsPhase`; collapse them into one `Client/Models/SymmetryInfo` (`Label` + `ShortLabel`). The orbit
+  *count* re-derivers (`BuildLayerPhase.SymmetryOrder`, the `SuggestedTeams`/`SuggestedCount` in
+  `ConfigureLanding`/`WorldSymmetryPhase`/`TeamsPhase`) no longer re-encode the `rot_90 → 4 / else → 2`
+  magic — they route through the `Geom.Symmetry.Order` leaf (`> 1 ? order : none`), which also fixes two
+  latent edge cases (a `none` mode no longer counts as a mirror; `mirror_d1`/`d2` now suggest 2 teams on the
+  landing). Presentation labels stay in `Client`; the count stays in `Geom`. The plan/sketch symmetry
+  *pickers* are a separate concern (short author-chosen option lists, no diagonals) and are unchanged. (CV8)
 - **Side-view max-Y clamp reaches the surface** — the Build-step draggable Y line was clamped one block
   short (`_applyHeight` → `y_min + y_count - 1`) even though the render math (`_lineCanvasY`) lets the line
   sit atop the highest block at `y_min + y_count`; raise the clamp by one so you can drag onto the topmost

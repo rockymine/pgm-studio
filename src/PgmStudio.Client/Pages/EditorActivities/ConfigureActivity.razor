@@ -76,7 +76,7 @@
             @foreach (var m in symModes)
             {
               <div class="list-row list-row--compact @(symChoice == m.Type ? "list-row--selected" : null)" @onclick="() => SelectSym(m.Type)">
-                <span class="list-label">@SymLabel(m.Type)</span>
+                <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
                 <span class="badge @(m.Detected ? "badge--success" : "badge--neutral")">@($"{Math.Round(m.Confidence * 100)}%")</span>
                 @if (m.Detected) { <span class="badge badge--dim">detected</span> }
               </div>

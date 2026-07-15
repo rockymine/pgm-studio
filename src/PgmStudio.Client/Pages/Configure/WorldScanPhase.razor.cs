@@ -37,16 +37,4 @@ public partial class WorldScanPhase
         }
         catch { /* symmetry just stays blank */ }
     }
-
-    // Friendly label for a detected symmetry type (matches the wizard's wording elsewhere).
-    private static string SymLabel(string? type) => type switch
-    {
-        "rot_90" => "Rotate 90°",
-        "rot_180" => "Rotate 180°",
-        "mirror_x" => "Mirror X (left/right)",
-        "mirror_z" => "Mirror Z (front/back)",
-        "mirror_d1" => "Mirror ╲ (diagonal)",
-        "mirror_d2" => "Mirror ╱ (diagonal)",
-        _ => "No symmetry",
-    };
 }

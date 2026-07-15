@@ -18,7 +18,7 @@
           {
             <div class="list-row list-row--compact @(selectedType == m.Type ? "list-row--selected" : null)"
                  @key="m.Type" @onclick="() => Select(m.Type)">
-              <span class="list-label">@SymLabel(m.Type)</span>
+              <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
               <span class="badge @(m.Confidence >= 0.999 ? "badge--success" : "badge--neutral")">@m.Confidence.ToString("P0")</span>
               @if (m.Type == primaryType) { <span class="badge badge--dim">detected</span> }
             </div>
@@ -69,7 +69,7 @@
           </div>
           <div class="field">
             <label class="field-label">Confirmed symmetry</label>
-            <div class="field-pick-row"><span class="field-value">@SymLabel(selectedType)</span></div>
+            <div class="field-pick-row"><span class="field-value">@SymmetryInfo.Label(selectedType)</span></div>
           </div>
           <div class="field">
             <label class="field-label">Suggested teams</label>

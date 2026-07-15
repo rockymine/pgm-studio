@@ -33,14 +33,6 @@ public partial class ConfigureActivity
     private List<Island> IncludedIslands => islands.Where(i => !excludedIslands.Contains(i.Id)).ToList();
     private List<Island> ExcludedIslandsList => islands.Where(i => excludedIslands.Contains(i.Id)).ToList();
 
-    private static string SymLabel(string type) => type switch
-    {
-        "rot_90" => "Rotate 90°", "rot_180" => "Rotate 180°",
-        "mirror_x" => "Mirror X (left/right)", "mirror_z" => "Mirror Z (front/back)",
-        "mirror_d1" => "Mirror ╲ (diagonal)", "mirror_d2" => "Mirror ╱ (diagonal)",
-        _ => type,
-    };
-
     protected override async Task OnParametersSetAsync()
     {
         step = 1; symChoice = null; selectedId = null; error = null;

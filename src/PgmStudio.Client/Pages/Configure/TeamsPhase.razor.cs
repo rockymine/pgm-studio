@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Models;
 using PgmStudio.Client.Pages.EditorActivities;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;
 
@@ -35,12 +36,8 @@ public partial class TeamsPhase
     private Team? Selected => teams.FirstOrDefault(t => t.Id == selectedTeamId);
     private static string Hex(string color) => GameColors.ChatHex(color);
 
-    private int SuggestedCount => symMode switch
-    {
-        "rot_90" => 4,
-        "rot_180" or "mirror_x" or "mirror_z" or "mirror_d1" or "mirror_d2" => 2,
-        _ => 0,
-    };
+    // Teams the symmetry suggests = its orbit order (rot_90 → 4, mirror/rot_180 → 2); no symmetry → no suggestion.
+    private int SuggestedCount => Symmetry.Order(symMode) is var o && o > 1 ? o : 0;
     private bool ShowSuggestion => !dismissedSuggestion && teams.Count == 0 && SuggestedCount > 0;
     private IReadOnlyList<GameColors.Color> SuggestedColors => GameColors.FirstTeamColors(SuggestedCount);
     private int IslandsFor(string teamId) => islandTeams.Count(kv => kv.Value == teamId);
