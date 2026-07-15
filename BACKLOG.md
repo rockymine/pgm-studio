@@ -439,13 +439,6 @@ The remaining generator / detection / validation work sorts into three domains:
   markers at block centres) the stamps overlap the piece bounds, and 30+/team boards could take larger
   presets. Scale the stamp presets with map class (the G8 coupling) or the carrier piece size; author
   request from the tiny seed.
-- [ ] **G30 — Unfold analysis: straighten L corners over the team-side tile mass.** Treat a team's side
-  (terrain pieces + build zones as tiles) as one connected rectilinear piece and *unfold* it — straighten
-  every L corner so only T/`+` intersections and holes `[]` remain; valid only when the result doesn't
-  self-overlap. Render it (overlay or side view) to compare lane twisting/nesting across the corpus and to
-  see where cuts sit on the straightened routes; run backwards it's a composer strategy (assemble unfolded
-  tiles → cut → re-fold/twist at chosen corners → add elevation). Exploratory — prototype the transform
-  before promising UI.
 - [ ] **G24 — Junction-region derivation + Hubs overlay + lane chains.** Derive hubs as *internal* computed
   structure on the unioned island footprint (mouth-extrusion intersections of ≥3 access mouths — see
   `docs/contracts/plan-editor.md` §2 "Junction regions"; corners yield nothing), expose them through
