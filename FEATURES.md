@@ -70,6 +70,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   → `POST /regions`). (C5)
 - **Block-colour overlay** — the "Blocks" toggle paints the top surface under region outlines. (C6)
 - **Side-view canvas** — Build step-1 depth view + draggable max-build-height line. (C7)
+- **Panel resize (all editors)** — drag any `.sidebar-handle` bar to resize the panel it borders — the left
+  `.workspace-sidebar` (drag right → wider) or the right `.workspace-inspector` (drag right → narrower) —
+  clamped to **[200, 560] px** so a panel can neither collapse nor crowd the canvas. One delegated
+  document-level pointer listener (`js/studio/shared/panel-resize.js`, self-installed once from `studio.js`)
+  serves every editor at once and survives Blazor re-renders; the chosen width is written inline, overriding
+  the shared `--sidebar-width` / `--inspector-width` token. The CSS handle shell (hover/drag accent line, now
+  `touch-action: none`) already existed. Verified live in the plan editor: both handles resize + clamp at MAX.
+  (C8)
 - **Mouse body-drag move (shared)** — a `CanvasBase` seam (`_toWorld` / `_hitMovable` / `_moveBy` /
   `_commitMove`) lets you drag a **selected** shape/region's body to reposition it, alongside arrow-nudge;
   block-snapped, threshold so a plain click still selects. Sketch drags the selected shape (→ `translateShape`

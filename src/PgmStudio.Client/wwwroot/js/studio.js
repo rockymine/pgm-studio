@@ -145,6 +145,12 @@ window.studio = {
   },
 };
 
+// ── Panel resize (C8) ───────────────────────────────────────────────────────
+// Install the delegated `.sidebar-handle` drag-to-resize once at load. A native dynamic import (absolute
+// URL) bypasses Blazor's fingerprinting import map, matching the mount* helpers above; the module installs a
+// single document-level listener that serves every editor's panels.
+import("/js/studio/shared/panel-resize.js").catch((e) => console.warn("[studio] panel-resize unavailable:", e?.message ?? e));
+
 // ── Theme (dark default / light) ────────────────────────────────────────────
 // The initial value is set by the inline no-flash script in index.html before any CSS
 // loads; the <ThemeToggle> topbar button calls toggle(). The active sun/moon icon and all

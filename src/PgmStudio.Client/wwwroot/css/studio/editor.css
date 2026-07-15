@@ -150,6 +150,7 @@
   cursor: ew-resize;
   background: var(--bg-panel);
   position: relative;
+  touch-action: none;   /* a touch-drag resizes the panel rather than scrolling the page */
 }
 .sidebar-handle::before {
   content: '';

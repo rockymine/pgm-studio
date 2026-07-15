@@ -75,11 +75,9 @@ highlight); these are the parked / dormant / deferred slices.
 ## Editor & canvas infrastructure (C / CV)
 
 Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit editor
-(`/maps/{id}/edit`). `C8`/`C12`/`C14`/`CV8`/`CV9` are cross-cutting (serve both surfaces); `C9`/`C11`
+(`/maps/{id}/edit`). `C12`/`C14`/`CV8`/`CV9` are cross-cutting (serve both surfaces); `C9`/`C11`
 are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **C8 — Panel resize.** The `.sidebar-handle` CSS shell exists (`css/studio/editor.css`); port the
-  JS drag handler (`shared/panel-resize.js`) — no handler file exists yet.
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
