@@ -202,6 +202,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `flags`/`score`); auxiliary modules (`blitz`, `ffa`, `rage`) modify play rather than the goal and stay
   ignorable. Corpus-verified over the 350 slugs: 12 rejects, exactly the maps carrying an unread objective.
   (B22, OB10)
+- **DTM: destroyables + objective modes — parse, write, codec.** `<destroyables>` and `<modes>` now
+  round-trip: `Destroyable` (owner · region · materials · completion · show · mode membership) and
+  `ObjectiveMode` (after · material · show-before · filter · action) on `MapXml`, through `Serializer`/
+  `Deserializer` and back out as XML. Grounded in PGM's own parser: **attributes cascade from every
+  enclosing group** (`Xml.Flatten`, shared by wools/destroyables/cores — OB4), `materials`/`material` are
+  both accepted, `completion` is a percentage with or without its `%` (`0.8` means 0.8%), mode membership
+  is a **tri-state** (`modes="a b"` · `mode-changes` · neither) and combining the first two is rejected
+  (OB9), and a `<region>` wrapper is the **union** of everything in it. The writer emits the flat canonical
+  form — one block, explicit attributes, no nested groups (OB5). PGM's legacy bare-geometry region form is
+  deliberately not ported: it appears only in proto 1.3.0/1.3.3 maps, already below the floor (OB6).
+  Verified over both corpora: **188 maps / 619 destroyables / 153 modes parse, every region resolves, and
+  191 maps round-trip through the writer with zero drift**; `alpine_mining_ii`, `abstract` and `sentient`
+  reproduce the contract's worked examples exactly. (B24a, OB4/OB5/OB6/OB9/OB13)
+- **Wool group-attribute inheritance (a live parse bug the same OB4 work fixes).** Wools inherited only
+  `team`, so a wool declaring its `color`/`location` **only on the enclosing `<wools>` group** parsed as
+  colourless at `0,0,0` — `tebulas_ii` lost all 12, and `firestone_lake_research_facility`,
+  `road_trip_to_sunset_town` and `stratosphere_ctw` lost their locations. The reference app has the same
+  bug (its oracle emits `color: ""` too), so this is a **deliberate, PGM-grounded deviation** from the
+  oracle rather than drift. `--parity` now skips out-of-range maps and excludes keys the oracle never
+  produced, and reports both counts. (B24a, OB4)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)

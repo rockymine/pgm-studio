@@ -48,6 +48,34 @@ internal sealed class RegionParser
         return region;
     }
 
+    /// <summary>
+    /// Parse a <c>&lt;region&gt;</c> property wrapper: the union of the region its <c>region=</c> attribute
+    /// references and every region nested inside it. One shape is the overwhelmingly common case and
+    /// resolves to that shape directly; two or more register a synthetic union under
+    /// <paramref name="syntheticId"/> so no shape is dropped.
+    /// </summary>
+    public Region? ParseRegionProperty(XElement wrapper, string syntheticId)
+    {
+        var parts = new List<string>();
+        var reference = Xml.Get(wrapper, "region", "");
+        if (reference.Length > 0) parts.Add(reference);
+
+        foreach (var (child, i) in wrapper.Elements().Select((c, i) => (c, i)))
+        {
+            var region = ParseRegionNode(child, syntheticId, i);
+            if (region is null) continue;
+            if (region.Type == "reference") { if (region.RefId is { Length: > 0 } r) parts.Add(r); }
+            else if (region.Id.Length > 0) parts.Add(region.Id);
+        }
+
+        if (parts.Count == 0) return null;
+        if (parts.Count == 1) return _registry.GetValueOrDefault(parts[0]);
+
+        var union = new Region { Id = syntheticId, Type = "union", Children = parts, Bounds2d = UnionBounds(parts) };
+        _registry[syntheticId] = union;
+        return union;
+    }
+
     public Region? ResolveReference(string refId) => _registry.GetValueOrDefault(refId);
 
     private static string SourceRefId(Region? child)

@@ -7,7 +7,17 @@ using Dict = Dictionary<string, object?>;
 /// <summary>MapXml → JSON object tree (port of serializer.py). Mirrors the xml_data.json shape.</summary>
 public static class Serializer
 {
-    public static Dict ToDict(MapXml m) => new()
+    public static Dict ToDict(MapXml m)
+    {
+        var d = Base(m);
+        // Objective modules the reference contract has no key for. Emitted only when the map carries one,
+        // so a map without them serialises to exactly the shape it always did.
+        if (m.Destroyables.Count > 0) d["destroyables"] = m.Destroyables.Select(EncodeDestroyable).ToList<object?>();
+        if (m.Modes.Count > 0) d["modes"] = m.Modes.Select(EncodeMode).ToList<object?>();
+        return d;
+    }
+
+    private static Dict Base(MapXml m) => new()
     {
         ["name"] = m.Name,
         ["version"] = m.Version,
@@ -188,6 +198,34 @@ public static class Serializer
             });
         }
         return order.Select(c => (object?)byColor[c]).ToList();
+    }
+
+    private static Dict EncodeDestroyable(Destroyable d)
+    {
+        var r = new Dict
+        {
+            ["id"] = d.Id,
+            ["name"] = d.Name,
+            ["owner"] = d.Owner,
+            ["region"] = d.RegionId,
+            ["materials"] = d.Materials,
+        };
+        if (d.Completion is not null) r["completion"] = d.Completion;
+        if (!d.Show) r["show"] = false;
+        if (d.ModeChanges) r["mode_changes"] = true;
+        if (d.Modes is { Count: > 0 }) r["modes"] = d.Modes.ToList<object?>();
+        return r;
+    }
+
+    private static Dict EncodeMode(ObjectiveMode m)
+    {
+        var r = new Dict { ["id"] = m.Id, ["after"] = m.After };
+        if (m.Name.Length > 0) r["name"] = m.Name;
+        if (m.Material.Length > 0) r["material"] = m.Material;
+        if (m.ShowBefore.Length > 0) r["show_before"] = m.ShowBefore;
+        if (m.FilterId.Length > 0) r["filter"] = m.FilterId;
+        if (m.ActionId.Length > 0) r["action"] = m.ActionId;
+        return r;
     }
 
     private static Dict EncodeSpawner(WoolSpawner s)

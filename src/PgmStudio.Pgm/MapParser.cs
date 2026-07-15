@@ -49,7 +49,7 @@ public sealed partial class MapParser
 
     // The subset we actually read. A listed-but-unread module is an objective the map would lose on
     // round-trip with no error, so its presence rejects the map instead.
-    private static readonly HashSet<string> ParsedObjectiveModules = ["wools"];
+    private static readonly HashSet<string> ParsedObjectiveModules = ["wools", "destroyables"];
 
     // Reject maps outside the supported range up front rather than silently mis-parsing them: the old
     // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), modern worlds whose
@@ -118,6 +118,8 @@ public sealed partial class MapParser
         ResolveSpawnRegions(data);
 
         data.Wools = ParseWools(data.Regions);
+        data.Modes = ParseModes();
+        data.Destroyables = ParseDestroyables();
         data.Spawners = ParseSpawners();
         data.Renewables = ParseRenewables();
         data.BlockDropRules = ParseBlockDropRules();
@@ -382,47 +384,30 @@ public sealed partial class MapParser
     private List<Wool> ParseWools(Dictionary<string, Region> regions)
     {
         var wools = new List<Wool>();
-        foreach (var woolsElem in _root.Elements("wools"))
+        foreach (var wool in Xml.Flatten(_root, "wools", "wool"))
         {
-            var outerTeam = Xml.Get(woolsElem, "team", "");
-            foreach (var (woolElem, inheritedTeam) in CollectWoolElements(woolsElem, outerTeam))
+            var (monument, monumentRegionId) = ResolveMonument(wool, regions);
+            wools.Add(new Wool
             {
-                var location = Coords3OrZero(Xml.Get(woolElem, "location", "0,0,0"));
-                var (monument, monumentRegionId) = ResolveMonument(woolElem, regions);
-                wools.Add(new Wool
-                {
-                    Team = NonEmpty(Xml.Get(woolElem, "team", ""), inheritedTeam),
-                    Color = Xml.Get(woolElem, "color", ""),
-                    Location = location,
-                    Monument = monument,
-                    MonumentRegionId = monumentRegionId,
-                });
-            }
+                Team = wool.Get("team"),
+                Color = wool.Get("color"),
+                Location = Coords3OrZero(wool.Get("location", "0,0,0")),
+                Monument = monument,
+                MonumentRegionId = monumentRegionId,
+            });
         }
         return wools;
     }
 
-    private List<(XElement, string)> CollectWoolElements(XElement parent, string inheritedTeam)
-    {
-        var results = new List<(XElement, string)>();
-        foreach (var child in parent.Elements())
-        {
-            if (child.Name.LocalName == "wool") results.Add((child, inheritedTeam));
-            else if (child.Name.LocalName == "wools")
-                results.AddRange(CollectWoolElements(child, NonEmpty(Xml.Get(child, "team", ""), inheritedTeam)));
-        }
-        return results;
-    }
-
-    private (Vec3, string?) ResolveMonument(XElement woolElem, Dictionary<string, Region> regions)
+    private (Vec3, string?) ResolveMonument(InheritedElement wool, Dictionary<string, Region> regions)
     {
         foreach (var path in new[] { ("monument", "block"), ("monument", "point") })
         {
-            var child = woolElem.Elements(path.Item1).FirstOrDefault()?.Elements(path.Item2).FirstOrDefault();
+            var child = wool.Element.Elements(path.Item1).FirstOrDefault()?.Elements(path.Item2).FirstOrDefault();
             if (child is not null && Xml.Text(child).Length > 0)
                 return (Coords3OrZero(Xml.Text(child)), null);
         }
-        var monumentRef = Xml.GetOrNull(woolElem, "monument");
+        var monumentRef = wool.GetOrNull("monument");
         if (monumentRef is not null && monumentRef.Length > 0)
         {
             var region = regions.GetValueOrDefault(monumentRef);
@@ -431,6 +416,124 @@ public sealed partial class MapParser
         }
         return (new Vec3(0, 0, 0), null);
     }
+
+    // ── destroyables (DTM) + objective modes ────────────────────────────────────────
+    // Both are id-keyed features referenced by `modes="a b"`, so modes parse first.
+    private List<ObjectiveMode> ParseModes()
+    {
+        var modes = new List<ObjectiveMode>();
+        var used = new HashSet<string>();
+        foreach (var mode in Xml.Flatten(_root, "modes", "mode"))
+        {
+            var name = mode.Get("name");
+            var material = mode.Get("material");
+            // PGM auto-generates an id from the name (or the material, when unnamed) whenever the XML omits
+            // one. Generate the same way so `modes="…"` always resolves against a key we hold.
+            var id = mode.Get("id");
+            if (id.Length == 0) id = UniqueId($"mode-{Slug(name.Length > 0 ? name : material)}", used);
+            used.Add(id);
+
+            modes.Add(new ObjectiveMode
+            {
+                Id = id,
+                Name = name,
+                After = mode.Get("after"),
+                Material = material,
+                // `boss-bar="false"` is PGM's way of spelling "no countdown", i.e. show-before = 0.
+                ShowBefore = mode.Bool("boss-bar", true) ? mode.Get("show-before") : "0s",
+                FilterId = mode.Get("filter"),
+                ActionId = mode.Get("action"),
+            });
+        }
+        return modes;
+    }
+
+    private List<Destroyable> ParseDestroyables()
+    {
+        var destroyables = new List<Destroyable>();
+        var used = new HashSet<string>();
+        foreach (var d in Xml.Flatten(_root, "destroyables", "destroyable"))
+        {
+            var name = d.Get("name");
+            var owner = d.Get("owner");
+            var id = d.Get("id");
+            if (id.Length == 0) id = UniqueId(Slug($"{owner}-{name}"), used);
+            used.Add(id);
+
+            var (modeChanges, modes) = ParseModeMembership(d);
+            destroyables.Add(new Destroyable
+            {
+                Id = id,
+                Name = name,
+                Owner = owner,
+                RegionId = ResolveObjectiveRegion(d, $"__destroyable_{id}") ?? "",
+                // PGM accepts either spelling, preferring the plural.
+                Materials = NonEmpty(d.Get("materials"), d.Get("material")),
+                Completion = ParsePercent(d.GetOrNull("completion")),
+                Show = d.Bool("show", true),
+                ModeChanges = modeChanges,
+                Modes = modes,
+            });
+        }
+        return destroyables;
+    }
+
+    // Mode membership is a tri-state, not a list: `modes="a b"` is a specific set, `mode-changes="true"`
+    // means every mode (modelled as no set rather than an enumerated one), and neither means no modes.
+    // Declaring both is contradictory and PGM rejects it.
+    private static (bool modeChanges, List<string>? modes) ParseModeMembership(InheritedElement e)
+    {
+        var modeChanges = e.Bool("mode-changes");
+        var listed = e.Get("modes").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        if (modeChanges && listed.Count > 0)
+            throw new UnsupportedMapException(
+                $"<{e.Element.Name.LocalName}> combines modes=\"{e.Get("modes")}\" with mode-changes=\"true\"; they are mutually exclusive (mode-changes already means every mode).");
+        return (modeChanges, listed.Count > 0 ? listed : null);
+    }
+
+    /// <summary>
+    /// Resolve an objective's region property, which PGM spells two ways at our proto floor: a
+    /// <c>region="id"</c> attribute, or a <c>&lt;region&gt;</c> child wrapping the geometry. The wrapper is
+    /// the union of its own <c>region=</c> reference and every nested region, so a multi-shape wrapper
+    /// registers a synthetic union rather than silently keeping only the first shape. The bare-geometry
+    /// form (a <c>&lt;cuboid&gt;</c> straight under the leaf) is legacy and cannot occur above proto 1.3.6.
+    /// </summary>
+    private string? ResolveObjectiveRegion(InheritedElement e, string syntheticId)
+    {
+        var wrapper = e.Element.Elements("region").FirstOrDefault();
+        if (wrapper is null) return e.GetOrNull("region");
+        return _regionParser.ParseRegionProperty(wrapper, syntheticId)?.Id;
+    }
+
+    // PGM's parsePercent strips any '%' and divides by 100 — so `completion="90"` and `completion="90%"`
+    // both mean 0.9, and `completion="0.8"` means 0.8%, not 80%. Store the fraction.
+    private static double? ParsePercent(string? raw)
+    {
+        if (raw is null) return null;
+        var text = raw.Replace("%", "").Trim();
+        return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v / 100.0 : null;
+    }
+
+    private static string Slug(string value)
+    {
+        // Strip PGM's `-prefixed colour codes, then lowercase and hyphenate runs of whitespace.
+        var stripped = ColorCode().Replace(value, "");
+        var slug = WhitespaceRun().Replace(stripped.Trim().ToLowerInvariant(), "-");
+        return slug.Length > 0 ? slug : "unnamed";
+    }
+
+    private static string UniqueId(string baseId, HashSet<string> used)
+    {
+        if (!used.Contains(baseId)) return baseId;
+        for (var i = 2; ; i++)
+            if (!used.Contains($"{baseId}-{i}")) return $"{baseId}-{i}";
+    }
+
+    [GeneratedRegex(@"[`§].")]
+    private static partial Regex ColorCode();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhitespaceRun();
 
     private List<WoolSpawner> ParseSpawners()
     {

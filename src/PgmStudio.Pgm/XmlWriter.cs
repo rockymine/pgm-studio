@@ -97,6 +97,7 @@ public static partial class XmlWriter
         foreach (var r in m.BlockDropRules) if (r.RegionId.Length > 0) refs.Add(r.RegionId);
         foreach (var rule in m.ApplyRules) if (rule.RegionId.Length > 0 && !IsSynthetic(rule.RegionId)) refs.Add(rule.RegionId);
         foreach (var w in m.Wools) if (w.MonumentRegionId is { Length: > 0 }) refs.Add(w.MonumentRegionId);
+        foreach (var d in m.Destroyables) if (d.RegionId.Length > 0 && !IsSynthetic(d.RegionId)) refs.Add(d.RegionId);
         return refs;
     }
 
@@ -116,6 +117,8 @@ public static partial class XmlWriter
         WriteKits(root, m.Kits);
         WriteSpawns(root, m.Spawns, m.ObserverSpawn);
         WriteWools(root, m.Wools);
+        WriteModes(root, m.Modes);
+        WriteDestroyables(root, m.Destroyables, m.Regions);
 
         if (m.Filters.Count > 0) WriteFiltersBlock(root, m.Filters, ExternalFilterRefs(m));
         if (m.Regions.Count > 0 || m.ApplyRules.Count > 0)
@@ -279,6 +282,52 @@ public static partial class XmlWriter
             Set(e, "location", C3(w.Location.X, w.Location.Y, w.Location.Z));
             if (w.MonumentRegionId is { Length: > 0 }) Set(e, "monument", w.MonumentRegionId);
             else e.Add(new XElement("monument", new XElement("block", C3(w.Monument.X, w.Monument.Y, w.Monument.Z))));
+            block.Add(e);
+        }
+    }
+
+    private static void WriteModes(XElement parent, List<ObjectiveMode> modes)
+    {
+        if (modes.Count == 0) return;
+        var block = new XElement("modes"); parent.Add(block);
+        foreach (var mode in modes)
+        {
+            var e = new XElement("mode");
+            Set(e, "id", mode.Id);
+            Set(e, "after", mode.After);
+            if (mode.Material.Length > 0) Set(e, "material", mode.Material);
+            if (mode.Name.Length > 0) Set(e, "name", mode.Name);
+            if (mode.ShowBefore.Length > 0) Set(e, "show-before", mode.ShowBefore);
+            if (mode.FilterId.Length > 0) Set(e, "filter", mode.FilterId);
+            if (mode.ActionId.Length > 0) Set(e, "action", mode.ActionId);
+            block.Add(e);
+        }
+    }
+
+    // The flat canonical form: one <destroyables> block, every leaf carrying its own explicit attributes,
+    // no nested groups. Authors nest to share attributes; a writer has nothing to share.
+    private static void WriteDestroyables(XElement parent, List<Destroyable> destroyables, Dictionary<string, Region> regions)
+    {
+        if (destroyables.Count == 0) return;
+        var block = new XElement("destroyables"); parent.Add(block);
+        foreach (var d in destroyables)
+        {
+            var e = new XElement("destroyable");
+            Set(e, "id", d.Id);
+            Set(e, "name", d.Name);
+            Set(e, "owner", d.Owner);
+            Set(e, "materials", d.Materials);
+            // Re-emit completion as a percentage so the intent is unambiguous: PGM reads a bare `0.8` as
+            // 0.8%, not 80%.
+            if (d.Completion is { } c) Set(e, "completion", $"{C(c * 100)}%");
+            if (!d.Show) Set(e, "show", "false");
+            if (d.ModeChanges) Set(e, "mode-changes", "true");
+            if (d.Modes is { Count: > 0 } modes) Set(e, "modes", string.Join(" ", modes));
+
+            if (d.RegionId.Length > 0 && !IsSynthetic(d.RegionId))
+                Set(e, "region", d.RegionId);
+            else if (d.RegionId.Length > 0 && regions.TryGetValue(d.RegionId, out var region))
+                e.Add(new XElement("region", RegionElemInline(region)));
             block.Add(e);
         }
     }

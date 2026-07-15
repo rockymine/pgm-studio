@@ -75,6 +75,40 @@ public sealed class Wool
     public string? WoolRoomRegion;
 }
 
+/// <summary>
+/// A DTM objective: the blocks matching <see cref="Materials"/> inside <see cref="RegionId"/>, owned by one
+/// team and broken by every other. Called a destroyable, never a monument — "monument" is the CTW wool
+/// monument throughout this codebase. The region is a loose box drawn <i>around</i> the structure, so it
+/// legitimately holds mostly air; the goal is the matching blocks within it, not the box.
+/// </summary>
+public sealed class Destroyable
+{
+    public string Id = "";              // XML id; generated on parse when unauthored, so refs always resolve
+    public string Name = "";            // required by PGM
+    public string Owner = "";           // the DEFENDING team (XML attr `owner`)
+    public string RegionId = "";
+    public string Materials = "";       // ';'-separated match patterns, each `name[:data]`
+    public double? Completion;          // null = 1.0 (the whole structure); a fraction, not a percentage
+    public bool Show = true;            // false ⇒ not an objective at all but a scripted block-swap region
+    public bool ModeChanges;            // true = every mode applies; mutually exclusive with Modes
+    public List<string>? Modes;         // an explicit mode set; null = none (or all, when ModeChanges)
+}
+
+/// <summary>
+/// A scheduled change to an objective's material at a match time. Declarative — no world or structure
+/// impact — but it is what makes a <c>show="false"</c> destroyable a timed block-swap rather than a goal.
+/// </summary>
+public sealed class ObjectiveMode
+{
+    public string Id = "";              // generated on parse when unauthored
+    public string Name = "";            // may carry `-prefixed colour codes
+    public string After = "";           // a duration; required by PGM
+    public string Material = "";        // the swap target; empty when the mode carries an action instead
+    public string ShowBefore = "";      // countdown lead-in; empty = PGM's 60s default
+    public string FilterId = "";
+    public string ActionId = "";        // refs an <actions> feature we do not parse; kept so it round-trips
+}
+
 public sealed class SpawnerItem
 {
     public string Material = "";
@@ -167,6 +201,8 @@ public sealed class MapXml
     public List<Spawn> Spawns = [];
     public Spawn? ObserverSpawn;
     public List<Wool> Wools = [];
+    public List<Destroyable> Destroyables = [];
+    public List<ObjectiveMode> Modes = [];
     public List<WoolSpawner> Spawners = [];
     public List<Renewable> Renewables = [];
     public List<BlockDropRule> BlockDropRules = [];

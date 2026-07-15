@@ -1459,7 +1459,7 @@ static int RunParity(string outputRoot, string[] corpusRoots, bool verbose)
         .Where(d => File.Exists(Path.Combine(d, "xml_data.json")))
         .OrderBy(d => d, StringComparer.Ordinal).ToList();
 
-    int ok = 0, failed = 0, skipped = 0;
+    int ok = 0, failed = 0, skipped = 0, outOfRange = 0, ahead = 0;
     var failures = new List<(string, string)>();
     foreach (var dir in dirs)
     {
@@ -1468,7 +1468,13 @@ static int RunParity(string outputRoot, string[] corpusRoots, bool verbose)
         if (mapXml is null) { skipped++; continue; }
         try
         {
-            var mine = JsonTree.Canonical(Serializer.ToDict(MapParser.Parse(mapXml)));
+            var parsed = MapParser.Parse(mapXml);
+            var mineFull = Serializer.ToDict(parsed);
+            // The oracle has no key for an objective module it never parsed, so comparing one is comparing
+            // against a known gap rather than a reference. Drop those keys and count the map instead.
+            if (StudioOnlyKeys().Any(mineFull.ContainsKey)) ahead++;
+            foreach (var key in StudioOnlyKeys()) mineFull.Remove(key);
+            var mine = JsonTree.Canonical(mineFull);
             // Python json.dumps emits bare NaN/Infinity (non-standard) for some derived bounds;
             // System.Text.Json can't read them. Null them out — bounds_2d is stripped anyway.
             var raw = System.Text.RegularExpressions.Regex.Replace(
@@ -1479,13 +1485,24 @@ static int RunParity(string outputRoot, string[] corpusRoots, bool verbose)
             if (JsonTree.DeepEquals(mine, theirs)) ok++;
             else { failed++; failures.Add((slug, $"drift in: [{string.Join(", ", JsonTree.DiffKeys(mine, theirs))}]")); }
         }
+        // Out of the supported range by design — the same maps --scan-out-all skips-and-logs.
+        catch (UnsupportedMapException) { outOfRange++; }
         catch (Exception ex) { failed++; failures.Add((slug, $"{ex.GetType().Name}: {ex.Message}")); }
     }
-    Console.WriteLine($"parity vs Python xml_data.json (canonical): {ok} ok, {failed} failed, {skipped} skipped (no map.xml)");
+    Console.WriteLine($"parity vs Python xml_data.json (canonical): {ok} ok, {failed} failed, " +
+                      $"{skipped} skipped (no map.xml), {outOfRange} out of range");
+    if (ahead > 0)
+        Console.WriteLine($"  ({ahead} maps carry an objective module the oracle never parsed; " +
+                          $"[{string.Join(", ", StudioOnlyKeys())}] excluded from the comparison)");
     foreach (var (slug, detail) in verbose ? failures : failures.Take(20))
         Console.WriteLine($"  {slug}: {detail}");
     return failed == 0 ? 0 : 1;
 }
+
+// Keys the studio's contract carries and the Python oracle has no equivalent for. The oracle reads only
+// the tags it names, so for these it is silent rather than authoritative — it cannot be the reference for
+// a module it drops.
+static string[] StudioOnlyKeys() => ["destroyables", "modes"];
 
 static (bool ok, string detail) CheckMap(string xmlPath)
 {

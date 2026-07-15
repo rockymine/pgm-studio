@@ -82,4 +82,87 @@ public sealed class XmlWriterTests
         await Assert.That(spawn.Force).IsFalse();
         await Assert.That(spawn.Effects.Single().Amplifier).IsEqualTo(100);
     }
+
+    // Authors nest <destroyables> groups to share attributes; a writer has nothing to share, so it emits
+    // one flat block with every leaf carrying its own attributes. Round-trips are semantic, not textual.
+    [Test]
+    public async Task Destroyables_are_written_flat_with_explicit_attributes()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Regions = { ["mon"] = new Region { Id = "mon", Type = "block", PosX = 20, PosY = 43, PosZ = 146 } },
+            Destroyables =
+            [
+                new Destroyable { Id = "green-hill", Name = "Hill Monument", Owner = "green", RegionId = "mon",
+                                  Materials = "obsidian", ModeChanges = true },
+            ],
+        };
+        var xml = XmlWriter.ToXml(m);
+
+        await Assert.That(xml).Contains(
+            "<destroyable id=\"green-hill\" name=\"Hill Monument\" owner=\"green\" materials=\"obsidian\" mode-changes=\"true\" region=\"mon\"/>");
+        await Assert.That(xml).DoesNotContain("<destroyables>\n        <destroyables");
+
+        var back = MapParser.ParseXmlString(xml);
+        var d = back.Destroyables.Single();
+        await Assert.That(d.Owner).IsEqualTo("green");
+        await Assert.That(d.Materials).IsEqualTo("obsidian");
+        await Assert.That(d.RegionId).IsEqualTo("mon");
+        await Assert.That(d.ModeChanges).IsTrue();
+    }
+
+    // A bare `0.8` means 0.8% to PGM, so completion always goes out with its '%'.
+    [Test]
+    public async Task Completion_is_written_as_a_percentage()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Destroyables = [new Destroyable { Id = "d", Name = "n", Owner = "red", Materials = "ender stone", Completion = 0.8 }],
+        };
+        var xml = XmlWriter.ToXml(m);
+
+        await Assert.That(xml).Contains("completion=\"80%\"");
+        await Assert.That(MapParser.ParseXmlString(xml).Destroyables.Single().Completion).IsEqualTo(0.8);
+    }
+
+    // A destroyable whose region was authored inline has no id to reference, so the geometry goes back inline.
+    [Test]
+    public async Task An_inline_region_is_written_back_inline()
+    {
+        var source = """
+            <?xml version="1.0"?><map proto="1.5.0"><name>m</name><version>1</version><objective>o</objective>
+            <destroyables><destroyable owner="red" name="a" materials="obsidian"><region><cuboid min="20,43,146" max="23,46,149"/></region></destroyable></destroyables>
+            </map>
+            """;
+        var xml = XmlWriter.ToXml(MapParser.ParseXmlString(source));
+
+        await Assert.That(xml).Contains("<region>");
+        await Assert.That(xml).Contains("<cuboid min=\"20,43,146\" max=\"23,46,149\"/>");
+
+        var back = MapParser.ParseXmlString(xml);
+        var region = back.Regions[back.Destroyables.Single().RegionId];
+        await Assert.That(region.Type).IsEqualTo("cuboid");
+        await Assert.That(region.MinY).IsEqualTo(43);
+    }
+
+    [Test]
+    public async Task Modes_are_written_with_a_resolvable_id()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Modes = [new ObjectiveMode { Id = "mode-beacon", Name = "`bBEACON", After = "25m", Material = "beacon" }],
+            Destroyables = [new Destroyable { Id = "d", Name = "n", Owner = "red", Materials = "obsidian", Modes = ["mode-beacon"] }],
+        };
+        var xml = XmlWriter.ToXml(m);
+
+        await Assert.That(xml).Contains("<mode id=\"mode-beacon\" after=\"25m\" material=\"beacon\" name=\"`bBEACON\"/>");
+        await Assert.That(xml).Contains("modes=\"mode-beacon\"");
+
+        var back = MapParser.ParseXmlString(xml);
+        await Assert.That(back.Modes.Single().Id).IsEqualTo("mode-beacon");
+        await Assert.That(back.Destroyables.Single().Modes).IsEquivalentTo(new[] { "mode-beacon" });
+    }
 }

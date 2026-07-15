@@ -86,6 +86,20 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
+- [ ] **B30 — `--parity` is red on 342 of 349 maps and has been for a long time.** The harness has stopped
+  gating anything: a fresh oracle sweep (regenerate `/tmp/pyfresh`, `--parity /tmp/pyfresh`) reports **2 ok,
+  342 failed, 5 out of range**, and the failure is the same on essentially every map — `drift in: [kits]`,
+  because **C# encodes `force` and `effects` on a kit and the Python oracle emits neither**. It is not a
+  C# bug: those are kit features the C# side gained (`<kit force="true">`, `<effect>`) and the reference
+  never had, so the oracle is *silent* there rather than authoritative — the same situation `B24` hit with
+  `destroyables`/`modes` and handled by excluding studio-only keys from the comparison (`StudioOnlyKeys()`).
+  Two things to settle, and they are different questions: **(1)** teach the comparison that the oracle
+  cannot speak to a key it never produced — the existing top-level exclusion doesn't reach `kits[].force`,
+  so this needs a nested key-path exclusion, not another entry in a list; **(2)** decide what parity still
+  *means* now that C#'s contract deliberately exceeds the reference's in at least three places. If the
+  answer is "the oracle is no longer the reference for these", say so in `CLAUDE.md` and shrink the
+  harness's claim to the keys both sides own. Until then `--parity` reads as catastrophic failure and is
+  ignored, which is the worst of both. Independent of the DTM/DTC work.
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
@@ -118,24 +132,18 @@ so `B24`/`B25` each end by adding their tag to `MapParser.ParsedObjectiveModules
   (abstract, abstract_remix, citadel, down_side_up, fairy_tales_metamorphose, mine_your_own_business,
   newgen_classic, vesuvius; only `sentient` and `bungee_coorde` are genuine). A module contributes a gamemode
   only if it holds ≥1 non-`show="false"` leaf, so this **depends on `B27`**. Pairs with `B22`. (OB7, OB15, OB16)
-- [ ] **B24 — DTM: destroyables + objective modes, end to end.** The cheapest objective in PGM —
-  `owner + region + materials`, no wiring templates, no spawner, no room, no filters (the wool's whole bundle is
-  absent) and no per-capturing-team fan-out. Slices: **(a) parser + writer** — generalise
-  `MapParser.CollectWoolElements`'s nested flatten to inherit **every** attribute (it inherits only `team`
-  today) and share it across wools/destroyables/cores (OB4); emit the flat canonical form (OB5); note a
-  cuboid's block count is `max − min`, and `<block>` (a single block) is 26% of destroyable regions (OB13).
-  **(b) schema** — `destroyable` + `mode` tables on `map_id`, **not** a reuse of `monument`, whose `wool_id` FK
-  makes a wool-less objective unrepresentable. **(c) intent** — `DestroyableIntent` + orbit-fill (the
-  `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`; `rot_90` hides the placement kind (OB14).
-  **(d) stamps, in payoff order** — `pillar-1|2|3` (a 1×N obsidian column: 56% of the corpus and the simplest
-  stamp in the system), then `cube-3` + its bedrock centre (DT2), then `column-plus` (a mask over the same box,
-  DT4). Rides the iron-cube pipeline (`IronPlacement` → `PlanCompiler` → `StructureStamper.StampIronCube` →
-  `PlanStructurePreview`) with material/size parameterised; obsidian, emerald, gold, ender stone and bedrock
-  need adding to `Blocks` (it stops at stained glass). **(e) validation** — ≥1 matching block per region (10
-  corpus destroyables already fail it), never "region is full": the region is a loose box *around* the
-  structure and is legitimately mostly air (OB11, OB12). **Modes ship here** — 77 of 150 maps use them, no world
-  impact, but they need a third feature-id registry beside regions/filters and their membership is a tri-state
-  (OB9). Depends on nothing; `B22`/`B23` are independent.
+- [~] **B24 — DTM: destroyables + objective modes.** Parser, writer and codec have landed (`FEATURES.md`);
+  what remains is everything below the contract. **(b) schema** — `destroyable` + `mode` tables on `map_id`,
+  **not** a reuse of `monument`, whose `wool_id` FK makes a wool-less objective unrepresentable. **(c) intent**
+  — `DestroyableIntent` + orbit-fill (the `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`;
+  `rot_90` hides the placement kind (OB14). **(d) stamps, in payoff order** — `pillar-1|2|3` (a 1×N obsidian
+  column: 56% of the corpus and the simplest stamp in the system), then `cube-3` + its bedrock centre (DT2),
+  then `column-plus` (a mask over the same box, DT4). Rides the iron-cube pipeline (`IronPlacement` →
+  `PlanCompiler` → `StructureStamper.StampIronCube` → `PlanStructurePreview`) with material/size
+  parameterised; obsidian, emerald, gold, ender stone and bedrock need adding to `Blocks` (it stops at
+  stained glass). **(e) validation** — ≥1 matching block per region (10 corpus destroyables already fail it),
+  never "region is full": the region is a loose box *around* the structure and is legitimately mostly air
+  (OB11, OB12).
 - [ ] **B25 — DTC: cores.** Everything from `B24` applies and the delta is small: `<cores>` parse/write (the
   owning attribute is `team`, not `owner`), a `core` table, `CoreIntent`, and the shell-and-lava stamp —
   **5×5×5 obsidian casing, shell 1 thick, 3×3×3 lava interior, capped top** (65% of real cores; open-top is a

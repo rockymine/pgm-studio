@@ -29,6 +29,8 @@ public static class Deserializer
             Spawns = ListOf(d, "spawns").Select(s => DecodeSpawn(AsDict(s), regions)).ToList(),
             ObserverSpawn = obs is null ? null : DecodeSpawn(AsDict(obs), regions),
             Wools = wools,
+            Destroyables = ListOf(d, "destroyables").Select(x => DecodeDestroyable(AsDict(x))).ToList(),
+            Modes = ListOf(d, "modes").Select(x => DecodeMode(AsDict(x))).ToList(),
             Spawners = ListOf(d, "spawners").Select(s => DecodeSpawner(AsDict(s))).ToList(),
             Renewables = ListOf(d, "renewables").Select(r => DecodeRenewable(AsDict(r))).ToList(),
             BlockDropRules = ListOf(d, "block_drop_rules").Select(r => DecodeBlockDropRule(AsDict(r))).ToList(),
@@ -261,6 +263,30 @@ public static class Deserializer
             WoolRoomRegion = Val(d, "wool_room_region") as string,
         }];
     }
+
+    private static Destroyable DecodeDestroyable(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        Name = Str(d, "name"),
+        Owner = Str(d, "owner"),
+        RegionId = Str(d, "region"),
+        Materials = Str(d, "materials"),
+        Completion = Val(d, "completion") is { } c ? AsDouble(c, 1.0) : null,
+        Show = Val(d, "show") is not false,
+        ModeChanges = Val(d, "mode_changes") is true,
+        Modes = d.ContainsKey("modes") ? ListOf(d, "modes").Select(m => m as string ?? "").ToList() : null,
+    };
+
+    private static ObjectiveMode DecodeMode(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        Name = Str(d, "name"),
+        After = Str(d, "after"),
+        Material = Str(d, "material"),
+        ShowBefore = Str(d, "show_before"),
+        FilterId = Str(d, "filter"),
+        ActionId = Str(d, "action"),
+    };
 
     private static WoolSpawner DecodeSpawner(Dict d) => new()
     {

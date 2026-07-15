@@ -174,6 +174,45 @@ public sealed class CodecTests
         await Assert.That(encoded.ContainsKey("name")).IsFalse();
     }
 
+    // A map with no destroyables encodes to exactly the shape it always did — the objective keys appear
+    // only when the map carries one.
+    [Test]
+    public async Task The_objective_keys_are_absent_from_a_map_that_has_none()
+    {
+        var d = Serializer.ToDict(Parse());
+        await Assert.That(d.ContainsKey("destroyables")).IsFalse();
+        await Assert.That(d.ContainsKey("modes")).IsFalse();
+    }
+
+    [Test]
+    public async Task Destroyables_and_modes_survive_the_json_round_trip()
+    {
+        var m = Parse();
+        m.Modes = [new ObjectiveMode { Id = "mode-beacon", Name = "`bBEACON", After = "25m", Material = "beacon", ShowBefore = "30s" }];
+        m.Destroyables =
+        [
+            new Destroyable { Id = "green-hill", Name = "Hill Monument", Owner = "green", RegionId = "red-spawn",
+                              Materials = "obsidian", Completion = 0.9, Modes = ["mode-beacon"] },
+            new Destroyable { Id = "red-monu", Name = "monu", Owner = "red", RegionId = "red-spawn",
+                              Materials = "stained glass", Completion = 0.0, Show = false, ModeChanges = true },
+        ];
+
+        var back = Deserializer.FromDict(Serializer.ToDict(m));
+
+        await Assert.That(back.Modes.Single().ShowBefore).IsEqualTo("30s");
+        var hill = back.Destroyables[0];
+        await Assert.That(hill.Owner).IsEqualTo("green");
+        await Assert.That(hill.Completion).IsEqualTo(0.9);
+        await Assert.That(hill.Show).IsTrue();
+        await Assert.That(hill.Modes).IsEquivalentTo(new[] { "mode-beacon" });
+        var phantom = back.Destroyables[1];
+        await Assert.That(phantom.Show).IsFalse();
+        await Assert.That(phantom.ModeChanges).IsTrue();
+        await Assert.That(phantom.Modes).IsNull();
+        await Assert.That(JsonTree.DeepEquals(
+            JsonTree.Canonical(Serializer.ToDict(m)), JsonTree.Canonical(Serializer.ToDict(back)))).IsTrue();
+    }
+
     private static List<string> NamedRegionIds(MapXml m) => m.Regions.Keys.Where(k => !k.Contains("__")).OrderBy(x => x).ToList();
     private static List<string> NamedFilterIds(MapXml m) => m.Filters.Keys.Where(k => !k.Contains("__")).OrderBy(x => x).ToList();
 }
