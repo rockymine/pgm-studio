@@ -53,6 +53,7 @@ import { blockToExtentBounds } from "../geometry/region-convert.js";
 import { pointInRing } from "../geometry/polygon.js";
 import { applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
 import { renderShape } from "../render/shape-render.js";
+import { primitiveStyle } from "../render/primitive-style.js";
 import { renderSymmetryOverlay } from "../render/symmetry-render.js";
 import { renderBlockImage } from "../render/block-render.js";
 import { geojsonToSimplified } from "../geometry/islands.js";
@@ -982,22 +983,13 @@ export class EditorCanvas extends CanvasBase {
     g.appendChild(title);
 
     // A point primitive can opt into a fixed-size marker render (e.g. a spawn) — team-coloured, the
-    // authored one brighter. Selection still goes through the normal bounds hit-test (+ margin).
-    if (region.marker && region.bounds && this.#toSvg) {
-      const { min_x, min_z, max_x, max_z } = region.bounds;
-      const p = this.#toSvg((min_x + max_x) / 2, (min_z + max_z) / 2);
-      const shape = svgEl("circle", {
-        cx: p.x, cy: p.y, r: region.primary ? 6 : 5,
-        fill: color, stroke: "var(--canvas-marker-stroke)",
-        "stroke-width": region.primary ? "2" : "1", opacity: region.primary ? 1 : 0.55,
-      });
-      g.appendChild(shape);
-      this.#shapeMap.set(id, { shape, type });
-      return g;
-    }
-
+    // authored one brighter. It's a `point` (circle) with the marker treatment; selection still goes
+    // through the normal bounds hit-test (+ margin).
     const boundsOrPoly = region.polygon_2d ?? region.bounds;
-    const shape = renderShape(type, boundsOrPoly, this.#toSvg, this.#regionAttrs(color, region.ghost));
+    const attrs = region.marker
+      ? primitiveStyle("marker", { color, primary: region.primary })
+      : this.#regionAttrs(color, region.ghost);
+    const shape = renderShape(region.marker ? "point" : type, boundsOrPoly, this.#toSvg, attrs);
     if (shape) { g.appendChild(shape); this.#shapeMap.set(id, { shape, type }); }
     return g;
   }
@@ -1005,15 +997,7 @@ export class EditorCanvas extends CanvasBase {
   // `ghost` = a non-interactive derived preview (e.g. the symmetry-orbited copy of an authored region):
   // fainter + finer dashes, and excluded from the hit-test so it can't be selected or resized.
   #regionAttrs(color, ghost = false) {
-    return ghost ? {
-      fill: color, "fill-opacity": "0.06",
-      stroke: color, "stroke-opacity": "0.30", "stroke-width": "1.5", "stroke-dasharray": "2,3",
-      "vector-effect": "non-scaling-stroke",
-    } : {
-      fill: color, "fill-opacity": "0.20",
-      stroke: color, "stroke-opacity": "0.55", "stroke-width": "1.5", "stroke-dasharray": "4,2",
-      "vector-effect": "non-scaling-stroke",
-    };
+    return primitiveStyle("region", { color, state: ghost ? "ghost" : "normal" });
   }
 
   #refreshRegionDisplay(id) {
@@ -1025,24 +1009,13 @@ export class EditorCanvas extends CanvasBase {
     g.style.display  = (isVisible || isSelected) ? "" : "none";
     const entry = this.#shapeMap.get(id);
     if (!entry) return;
-    if (node?.ghost) {   // derived preview keeps its faint style regardless of selection
-      entry.shape.setAttribute("stroke-width",   "1.5");
-      entry.shape.setAttribute("stroke-opacity", "0.30");
-      entry.shape.setAttribute("fill-opacity",   "0.06");
-      entry.shape.setAttribute("stroke-dasharray", "2,3");
-      return;
-    }
-    if (isSelected) {
-      entry.shape.setAttribute("stroke-width",   "2.5");
-      entry.shape.setAttribute("stroke-opacity", "0.85");
-      entry.shape.setAttribute("fill-opacity",   "0.22");
-      entry.shape.removeAttribute("stroke-dasharray");
-    } else {
-      entry.shape.setAttribute("stroke-width",   "1.5");
-      entry.shape.setAttribute("stroke-opacity", "0.55");
-      entry.shape.setAttribute("fill-opacity",   "0.20");
-      entry.shape.setAttribute("stroke-dasharray", "4,2");
-    }
+    // derived preview keeps its faint style regardless of selection; otherwise selected vs normal.
+    const st = primitiveStyle("region", { state: node?.ghost ? "ghost" : (isSelected ? "selected" : "normal") });
+    entry.shape.setAttribute("stroke-width",   st["stroke-width"]);
+    entry.shape.setAttribute("stroke-opacity", st["stroke-opacity"]);
+    entry.shape.setAttribute("fill-opacity",   st["fill-opacity"]);
+    if (st["stroke-dasharray"]) entry.shape.setAttribute("stroke-dasharray", st["stroke-dasharray"]);
+    else entry.shape.removeAttribute("stroke-dasharray");
   }
 
   // ── draw tools ────────────────────────────────────────────────────────────

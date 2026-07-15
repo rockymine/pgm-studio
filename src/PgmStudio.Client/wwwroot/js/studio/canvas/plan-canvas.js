@@ -12,6 +12,7 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
+import { primitiveStyle } from "../render/primitive-style.js";
 import { blockDataToDataUrl } from "../render/block-render.js";
 import {
   ROLE_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
@@ -365,17 +366,13 @@ export class PlanCanvas extends CanvasBase {
         // An annotation ghost keeps its hatch (buffer / connector), dimmed to ghost opacity.
         layer.appendChild(svgEl("rect", {
           x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
-          fill: `url(#${HATCH[img.role]})`, "fill-opacity": "0.3",
-          stroke: ROLE_COLORS[img.role], "stroke-opacity": "0.4", "stroke-width": "1",
-          "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke",
+          ...primitiveStyle("technical", { color: ROLE_COLORS[img.role], fill: `url(#${HATCH[img.role]})`, state: "ghost" }),
         }));
         continue;
       }
       layer.appendChild(svgEl("rect", {
         x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
-        fill: ROLE_COLORS[img.role] || "#888", "fill-opacity": "0.08",
-        stroke: ROLE_COLORS[img.role] || "#888", "stroke-opacity": "0.5", "stroke-width": "1",
-        "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke",
+        ...primitiveStyle("terrain", { color: ROLE_COLORS[img.role] || "#888", state: "ghost" }),
       }));
     }
     // Zones fan into the ghost like pieces — dimmed, dashed, non-editable — so a pinwheel's centre tiling is
@@ -384,8 +381,7 @@ export class PlanCanvas extends CanvasBase {
       const { min_x, min_z, max_x, max_z } = img.bounds;
       layer.appendChild(svgEl("rect", {
         x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
-        fill: "var(--accent)", "fill-opacity": "0.07", stroke: "var(--accent)", "stroke-opacity": "0.5",
-        "stroke-width": "1.2", "stroke-dasharray": "7 4", "vector-effect": "non-scaling-stroke",
+        ...primitiveStyle("zone", { color: "var(--accent)", state: "ghost" }),
       }));
       for (const h of img.holes)
         layer.appendChild(svgEl("rect", {
@@ -406,8 +402,7 @@ export class PlanCanvas extends CanvasBase {
       const b = rectCellsToBlocks(z.rect, cell);
       layer.appendChild(svgEl("rect", {
         x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-        fill: "var(--accent)", "fill-opacity": "0.22", stroke: "var(--accent)", "stroke-width": "1.4",
-        "stroke-dasharray": "7 4", "vector-effect": "non-scaling-stroke", "data-zone": z.id, style: "cursor:pointer",
+        ...primitiveStyle("zone", { color: "var(--accent)" }), "data-zone": z.id, style: "cursor:pointer",
       }));
       for (const h of z.holes) {
         const hb = rectCellsToBlocks(h, cell);
@@ -432,9 +427,7 @@ export class PlanCanvas extends CanvasBase {
         // connector = attachment point (crossed hatch).
         layer.appendChild(svgEl("rect", {
           x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-          fill: `url(#${HATCH[p.role]})`, "fill-opacity": "0.9",
-          stroke: ROLE_COLORS[p.role], "stroke-opacity": "0.85", "stroke-width": "1.4",
-          "stroke-dasharray": "5 4", "vector-effect": "non-scaling-stroke",
+          ...primitiveStyle("technical", { color: ROLE_COLORS[p.role], fill: `url(#${HATCH[p.role]})` }),
           "data-piece": p.id, style: "cursor:pointer",
         }));
         continue;
@@ -451,8 +444,7 @@ export class PlanCanvas extends CanvasBase {
       }
       layer.appendChild(svgEl("rect", {
         x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-        fill, "fill-opacity": this.#heightMap ? "0.85" : "0.7",
-        stroke, "stroke-width": "1.5", "vector-effect": "non-scaling-stroke",
+        ...primitiveStyle("terrain", { color: fill, stroke, heightMap: this.#heightMap }),
         "data-piece": p.id, style: "cursor:pointer",
       }));
     }

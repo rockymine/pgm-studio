@@ -25,7 +25,7 @@
             var have = Capturers(w).Count(t => MonumentFor(w, t.Id) is not null);
             <div class="list-row list-row--compact @(selectedColor == w.Color ? "list-row--selected" : null)"
                  @key="w.Color" @onclick="() => SelectWool(w.Color)">
-              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><i data-lucide="square"></i></span>
+              <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><i data-lucide="@PointIcon"></i></span>
               <span class="list-label list-label--mono">@w.Color</span>
               <span class="badge @(have >= Expected ? "badge--success" : "badge--warning")">@have / @Expected</span>
             </div>
@@ -48,7 +48,7 @@
       {
         <section class="panel-section" @key="sel.Color">
           <div class="detail-header">
-            <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="square"></i></span>
+            <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="@PointIcon"></i></span>
             <span class="detail-label detail-label--mono">@sel.Color monuments</span>
             <span class="badge badge--neutral">@sel.Color wool</span>
           </div>
@@ -104,7 +104,7 @@
       {
         <section class="panel-section">
           <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="square"></i></span>
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="@PointIcon"></i></span>
             <span class="detail-label">Monuments</span>
           </div>
           <p class="section-desc">Select a wool to see its capture monuments.</p>

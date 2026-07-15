@@ -1,9 +1,10 @@
 # Primitive drawing styles across the four editors — audit & unification (CV9)
 
-Status: **audit** (first half of `CV9`). This is the cross-editor inventory of *how a drawable
-primitive is rendered and styled* in **Sketch**, **Edit**, **Configure**, and **Plan**, and the
-design conclusion for unifying it. It widens the scope of `canvas-interaction.md` §10 (which only
-compares Edit vs Configure) to all four surfaces.
+Status: **landed** (`CV9`). This is the cross-editor inventory of *how a drawable primitive is rendered
+and styled* in **Sketch**, **Edit**, **Configure**, and **Plan**, and the design that unified it. It
+widens the scope of `canvas-interaction.md` §10 (which only compares Edit vs Configure) to all four
+surfaces. §6's conclusion is now implemented — the shared helper is `render/primitive-style.js`
+(`primitiveStyle`), and `renderShape` has the `point` case.
 
 Read alongside `canvas-interaction.md` (the shared-canvas contract) and `new-map-authoring.md`
 (the wizard phases). The renderers audited: `render/shape-render.js` (shared),

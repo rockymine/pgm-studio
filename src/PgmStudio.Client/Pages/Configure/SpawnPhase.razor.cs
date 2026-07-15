@@ -17,6 +17,9 @@ namespace PgmStudio.Client.Pages.Configure;
 // it; the reused side-view sets each spawn's Y on its terrain. Writes the intent's spawns slice.
 public partial class SpawnPhase
 {
+    // Sidebar/inspector icon for a spawn — the canonical point icon, kept in sync with the region tree.
+    private static readonly string PointIcon = RegionNode.Icon("point");
+
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;

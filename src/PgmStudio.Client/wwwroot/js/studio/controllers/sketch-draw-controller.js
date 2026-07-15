@@ -13,13 +13,9 @@
 
 import { svgEl, ringToPath, handleRectAttrs } from "../render/svg.js";
 import { drawnBoundsFromBlocks } from "../geometry/region-convert.js";
+import { opColors } from "../render/primitive-style.js";
 
 const HANDLE_HALF = 5;
-
-const ADD_FILL   = "var(--canvas-add-fill)";
-const ADD_STROKE = "var(--canvas-add-stroke)";
-const SUB_FILL   = "var(--canvas-sub-fill)";
-const SUB_STROKE = "var(--canvas-sub-stroke)";
 
 const identityTransform = (x, z) => ({ x, y: z });
 
@@ -153,8 +149,8 @@ export class SketchDrawController {
     return { x: wx * scale + panX, y: wz * scale + panY };
   }
 
-  #opFill()   { return this.#activeOperation === "subtract" ? SUB_FILL   : ADD_FILL; }
-  #opStroke() { return this.#activeOperation === "subtract" ? SUB_STROKE : ADD_STROKE; }
+  #opFill()   { return opColors(this.#activeOperation).fill; }
+  #opStroke() { return opColors(this.#activeOperation).stroke; }
 
   // Rectangle ──────────────────────────────────────────────────────────────────
   #startRect(bx, bz) {

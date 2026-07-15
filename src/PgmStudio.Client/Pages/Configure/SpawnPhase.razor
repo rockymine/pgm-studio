@@ -23,7 +23,7 @@
             <div class="list-row list-row--compact @(selectedTeamId == s.Team ? "list-row--selected" : null)"
                  @key="s.Team" @onclick="() => SelectTeam(s.Team)">
               <span class="list-swatch" style="background:@Hex(s.Team)"></span>
-              <span class="geo-type-icon"><i data-lucide="cylinder"></i></span>
+              <span class="geo-type-icon"><i data-lucide="@PointIcon"></i></span>
               <span class="list-label list-label--mono">@s.Team-spawn</span>
               <span class="badge @(s.Authored ? "badge--success" : "badge--dim")">@(s.Authored ? "authored" : "orbit")</span>
             </div>
@@ -33,7 +33,7 @@
             <div class="list-row list-row--compact @(selectedTeamId == ObserverId ? "list-row--selected" : null)"
                  @key="ObserverId" @onclick="() => SelectTeam(ObserverId)">
               <span class="list-swatch" style="background:@ObserverHex"></span>
-              <span class="geo-type-icon"><i data-lucide="cylinder"></i></span>
+              <span class="geo-type-icon"><i data-lucide="@PointIcon"></i></span>
               <span class="list-label list-label--mono">observer-spawn</span>
               <span class="badge badge--dim">default</span>
             </div>
@@ -59,7 +59,7 @@
       {
         <section class="panel-section" @key="sel.Team">
           <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="cylinder"></i></span>
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="@PointIcon"></i></span>
             <span class="detail-label detail-label--mono">@(IsObserver(sel) ? "observer-spawn" : $"{sel.Team}-spawn")</span>
             @if (IsObserver(sel))
             {
@@ -105,7 +105,7 @@
       {
         <section class="panel-section">
           <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="cylinder"></i></span>
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="@PointIcon"></i></span>
             <span class="detail-label">Spawn point</span>
           </div>
           <p class="section-desc">Click an island on the canvas to place a spawn; orbit fills the rest.

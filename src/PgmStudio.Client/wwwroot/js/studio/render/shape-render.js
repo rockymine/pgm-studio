@@ -33,6 +33,12 @@ export function renderShape(type, boundsOrPoly, toSvg, attrs = {}) {
   const p1 = toSvg(min_x, min_z);
   const p2 = toSvg(max_x, max_z);
 
+  // A point is a fixed-size dot at the bounds centre (radius in screen units, so it doesn't shrink with
+  // zoom like a 1-block rect would). `attrs.r` overrides the default (a marker sets its own radius).
+  if (type === "point") {
+    return svgEl("circle", { cx: (p1.x + p2.x) / 2, cy: (p1.y + p2.y) / 2, r: 5, ...attrs });
+  }
+
   if (RADIAL_TYPES.has(type)) {
     return svgEl("ellipse", {
       cx: (p1.x + p2.x) / 2,

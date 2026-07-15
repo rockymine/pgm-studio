@@ -8,22 +8,13 @@
 
 import { svgEl, ringToPath, polyToPath } from "./svg.js";
 import { renderShape } from "./shape-render.js";
-
-const ADD_FILL   = "var(--canvas-add-fill)";
-const ADD_STROKE = "var(--canvas-add-stroke)";
-const SUB_FILL   = "var(--canvas-sub-fill)";
-const SUB_STROKE = "var(--canvas-sub-stroke)";
+import { primitiveStyle, opColors } from "./primitive-style.js";
 
 function clear(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
 
 function shapeAttrs(shape) {
-  const isAdd = shape.operation !== "subtract";
-  return {
-    fill: isAdd ? ADD_FILL : SUB_FILL,
-    stroke: isAdd ? ADD_STROKE : SUB_STROKE,
-    "stroke-width": "1.2", "fill-opacity": "0.28", "vector-effect": "non-scaling-stroke",
-    ...(shape.override ? { "stroke-dasharray": "6 3" } : {}),
-  };
+  const { fill, stroke } = opColors(shape.operation);
+  return primitiveStyle("sketch", { fill, stroke, override: shape.override });
 }
 
 /**

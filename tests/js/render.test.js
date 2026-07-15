@@ -54,6 +54,20 @@ test("renderShape → ellipse for radial types", () => {
   assert.equal(el.getAttribute("rx"), "5");
 });
 
+test("renderShape → fixed-size circle for a point (not a zoom-shrinking rect)", () => {
+  const el = renderShape("point", { min_x: 4, min_z: 4, max_x: 6, max_z: 6 }, id);
+  assert.equal(el.tagName, "circle");
+  assert.equal(el.getAttribute("cx"), "5");   // bounds centre
+  assert.equal(el.getAttribute("cy"), "5");
+  assert.equal(el.getAttribute("r"), "5");    // default screen radius
+});
+
+test("renderShape → point radius is overridable via attrs (marker treatment)", () => {
+  const el = renderShape("point", { min_x: 0, min_z: 0, max_x: 0, max_z: 0 }, id, { r: 6, fill: "gold" });
+  assert.equal(el.getAttribute("r"), "6");
+  assert.equal(el.getAttribute("fill"), "gold");
+});
+
 test("renderShape → path for polygon_2d", () => {
   const el = renderShape("polygon", { exterior: [[0, 0], [2, 0], [2, 2]] }, id);
   assert.equal(el.tagName, "path");

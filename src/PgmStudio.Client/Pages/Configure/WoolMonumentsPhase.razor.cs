@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Client.Models;
 using PgmStudio.Client.Pages.EditorActivities;
 
 namespace PgmStudio.Client.Pages.Configure;
@@ -16,6 +17,9 @@ using W = WoolAuthoring;
 // wool. The capturing team is editable per row.
 public partial class WoolMonumentsPhase
 {
+    // Sidebar/inspector icon for a monument — the canonical point icon, kept in sync with the region tree.
+    private static readonly string PointIcon = RegionNode.Icon("point");
+
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;

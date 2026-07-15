@@ -150,6 +150,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   short (`_applyHeight` → `y_min + y_count - 1`) even though the render math (`_lineCanvasY`) lets the line
   sit atop the highest block at `y_min + y_count`; raise the clamp by one so you can drag onto the topmost
   surface block. (CV11)
+- **Unified primitive drawing styles across the four editors** — "draw a primitive" is now one data-driven
+  thing: `renderShape` grows a real `point` case (a fixed-screen-radius circle, so a point stops rendering
+  as a zoom-shrinking 1×1 rect and the Edit/Configure `marker` circle-branch collapses into it), and a
+  shared `render/primitive-style.js` `primitiveStyle(treatment, {color,…})` holds every treatment recipe
+  (`region`/`marker`/`sketch`/`terrain`/`technical`/`zone`, each with ghost/selected states) with colour
+  always caller-supplied. It replaces `editor-canvas`'s `#regionAttrs` + marker attrs + the triplicated
+  `#refreshRegionDisplay` numbers, sketch's `shapeAttrs`, and the inline plan piece/zone/ghost styling; the
+  duplicated add/sub colour constants collapse to one `OP_COLORS`/`opColors` source (sketch render + draw
+  controller). Icons route through `RegionNode.Icon` — `SpawnPhase`'s hardcoded `cylinder` and
+  `WoolMonuments`' `square` become the canonical `point → dot`. Plan's surface-tint + hatch stay
+  Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
 ## Backend / API (B)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)

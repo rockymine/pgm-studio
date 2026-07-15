@@ -68,7 +68,7 @@ highlight); these are the parked / dormant / deferred slices.
 ## Editor & canvas infrastructure (C / CV)
 
 Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit editor
-(`/maps/{id}/edit`). `C12`/`C14`/`CV9` are cross-cutting (serve both surfaces); `C9`/`C11`
+(`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
 are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
@@ -84,18 +84,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-- [~] **CV9 — Parametrise primitive drawing styles (shape + colour + treatment + icon).** Cross-cutting
-  across all four editors (Sketch · Edit · Configure · Plan). **Audit done** (`primitive-styles.md`): the
-  visual language is already consistent (`region` translucent-dashed · `terrain` solid · `technical`
-  hatched · `marker` fixed-size · `ghost` faint), but expressed ad-hoc in four style functions
-  (`#regionAttrs`, `shapeAttrs`, inline plan role-styling) with duplicated colour constants. **Remaining
-  (the refactor):** give `renderShape` a real `point` case (dot/circle in screen units) so the
-  `marker:true` workaround collapses in; extract one `primitiveStyle({colour, treatment, selected,
-  primary})` helper replacing the three style fns; make colour caller-supplied (Edit slate · Configure
-  team/dye · Sketch op · Plan role); collapse the x3 add/sub + x2 plan-role constant copies; route all
-  icons through `RegionNode.Icon` (delete hardcoded `cylinder` in `SpawnPhase`, `square` in
-  `WoolMonuments` → `point→dot`). Plan hatch + surface-tint stay Plan-specific. (`primitive-styles.md`;
-  canvas-interaction.md §10.)
 
 ## Backend, pipeline & internals (B / P / A)
 
