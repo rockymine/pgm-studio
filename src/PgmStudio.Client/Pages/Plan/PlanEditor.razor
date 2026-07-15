@@ -231,6 +231,17 @@
             <div @ref="cursorRef" class="canvas-cursor"></div>
             <div class="canvas-subbar-right">
               <button class="filter-chip" title="Fit the plan to view" @onclick="Fit"><i data-lucide="scan"></i></button>
+              <button class="filter-chip @(threeD ? "filter-chip--active" : null)" disabled="@isoUnavailable"
+                      title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
+                      @onclick="Toggle3D">3D</button>
+              @if (isoUnavailable)
+              {
+                <span class="canvas-zoom" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
+              }
+              @if (threeD)
+              {
+                <button class="filter-chip" title="Rotate the preview 90°" @onclick="RotateIso"><i data-lucide="rotate-cw"></i></button>
+              }
               <span class="canvas-zoom">@zoomLabel</span>
             </div>
           </div>

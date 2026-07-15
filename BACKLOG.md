@@ -434,10 +434,6 @@ The remaining generator / detection / validation work sorts into three domains:
   keep the terminal tail at normal width — the `scythewoolattachments` wool-2 example reads `H` only because
   it *also* thickened the tail to 2 tall (a tail wider than a lane branches, independent of docking). Generalise
   `RoomPlacement` beyond `I`. Source plans: `zwoolattachments`, `scythewoolattachments`. Pairs with G50/G51.
-- [ ] **G27 — Plan editor: 3-D isometric preview (reuse the sketch iso preview).** The author wants to see
-  elevation spatially while planning; the sketch tool's iso preview (prism/terrain calc in
-  `sketch-bridge.js`) should be reusable over the compiled plan's pieces/surfaces. Follows the G25
-  height-map toggle as the richer visualization.
 - [ ] **G29 — Climb profiling on lane chains (straight ramps vs switchbacks, approach labeling).** On the
   seam graph, detect *climbs* (maximal monotone-elevation traversal runs), classify straight ramp vs
   switchback/hairpin (direction reversal while climbing; displacement ≪ path length) and landings, and label

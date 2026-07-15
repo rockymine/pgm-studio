@@ -91,6 +91,8 @@ export class PlanCanvas extends CanvasBase {
   #overlayOn = { interfaces: true, labels: false, frontline: true, violations: true };
   #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
   #pulseTimer = null;
+  #iso = null;                      // WebGL iso renderer (G27), lazily created on first 3-D toggle
+  #isoOn = false;
 
   // viewport layers (world space)
   #refLayer; #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #violationLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
@@ -159,6 +161,37 @@ export class PlanCanvas extends CanvasBase {
     if (!this.#doc) return;
     this.#renderPieces();
     this.#refreshOverlay();
+  }
+
+  // ── isometric preview (G27) ─────────────────────────────────────────────────
+  // Swap the top-down viewport for a read-only iso render of the pieces extruded to their surface
+  // heights, so elevation reads spatially while planning. Reuses the sketch tool's WebGL renderer
+  // (render/iso-webgl.js), lazily loaded on first use; returns false (leaving the 2-D viewport
+  // untouched) if the module can't load or WebGL is unavailable, so the host can fall back gracefully.
+  async showIso(solids, yawDeg, bbox) {
+    if (!this.#iso) {
+      try {
+        const { IsoScene } = await import("../render/iso-webgl.js");
+        this.#iso = new IsoScene(this._wrap);
+      } catch (e) {
+        console.warn("[plan] 3-D preview unavailable:", e?.message ?? e);
+        return false;
+      }
+    }
+    this.#isoOn = true;
+    this.#drag = null; this.#resize = null;
+    const { w, h } = this.#size();
+    this._viewportG.style.display = "none";
+    this.#overlay.style.display = "none";
+    this.#iso.show();
+    this.#iso.render(solids, w, h, yawDeg, bbox);
+    return true;
+  }
+  hideIso() {
+    this.#isoOn = false;
+    this.#iso?.hide();
+    this._viewportG.style.display = "";
+    this.#overlay.style.display = "";
   }
 
   // ── reference (tracing) backdrop ────────────────────────────────────────────
@@ -654,6 +687,7 @@ export class PlanCanvas extends CanvasBase {
   _onZoom(scale) { this.#cb.onZoom?.(Math.round(scale * 100)); }
 
   _onToolMousedown(e, svgPt) {
+    if (this.#isoOn) return;          // iso preview is read-only
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz);
@@ -664,6 +698,7 @@ export class PlanCanvas extends CanvasBase {
   }
 
   _onPointerMove(e, svgPt) {
+    if (this.#isoOn) return;          // iso preview is read-only
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#cursorEl) this.#cursorEl.textContent = `cell ${cx}, ${cz}`;
@@ -856,5 +891,5 @@ export class PlanCanvas extends CanvasBase {
     if ((e.key === "Delete" || e.key === "Backspace") && this.#sel) { e.preventDefault(); this.#cb.onDelete?.(this.#sel); }
   };
 
-  dispose() { if (this.#pulseTimer) clearTimeout(this.#pulseTimer); document.removeEventListener("keydown", this.#onKey); }
+  dispose() { if (this.#pulseTimer) clearTimeout(this.#pulseTimer); this.#iso?.dispose(); document.removeEventListener("keydown", this.#onKey); }
 }

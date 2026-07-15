@@ -621,6 +621,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   collapses the sidebar, clicking any other case opens/switches — so the icons handle both switching and
   hide/show, no separate collapse control. Click-a-fired-rule-to-isolate its evidence carries over. Verified
   light + dark. (G72)
+- **Plan editor 3-D isometric height preview** — a read-only **3D** toggle in the canvas toolbar swaps the
+  top-down view for an isometric render of the plan's terrain massing: each generating piece is extruded from
+  the ground to its resolved surface height (annotation buffer/connector pieces and build zones produce no
+  terrain and are skipped), with a mirror copy per orbit axis so the symmetry ghost stacks too — elevation
+  differences read spatially while planning. Reuses the sketch tool's WebGL renderer (`render/iso-webgl.js`)
+  unchanged: a new pure `planIsoSolids(doc)` in `plan-doc.js` maps pieces/surfaces onto the same
+  `{exterior, top, floor, mirror}` solids the sketch iso consumes, so occlusion is GPU depth-buffered (taller
+  columns occlude) and the mirror stays consistent. Lazily loaded (degrades to a disabled toggle + "no WebGL"
+  when unavailable); a **Rotate 90°** button re-frames the yaw; the preview stays current with inspector-driven
+  surface edits. 3 new `planIsoSolids` tests (JS suite 122). (G27)
 - **Plan-editor reference backdrop (trace real maps)** — a **Reference** sidebar section picks any processed
   map (`GET /api/maps` now flags `hasSurface`; 367/390 traceable) and paints its top-down block render behind
   the grid as a tracing aid, reusing the shared `render/block-render.js` rasteriser in a new bottom

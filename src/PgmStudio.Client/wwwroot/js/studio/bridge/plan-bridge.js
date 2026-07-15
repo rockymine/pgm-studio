@@ -7,6 +7,7 @@
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES,
+  planIsoSolids, viewBounds,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 
@@ -18,6 +19,12 @@ const SURFACESTEP_KEY = "pgm-plan-surface-step";
 export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let doc = emptyDoc();
   const fire = (name, ...args) => { try { dotnetRef?.invokeMethodAsync(name, ...args); } catch { /* host may not wire it */ } };
+
+  // Read-only 3-D height preview (G27): "2d" | "iso", with a user-rotatable yaw. Rebuilt from the plan
+  // pieces/surfaces whenever the document changes while the preview is showing.
+  let view = "2d";
+  let isoYaw = 30;
+  function refreshIso() { if (view === "iso") canvas.showIso(planIsoSolids(doc), isoYaw, viewBounds(doc)); }
 
   const canvas = new PlanCanvas(svgEl, wrapEl, {
     cursorEl,
@@ -92,6 +99,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => { try { localStorage.setItem(STORAGE_KEY, toJson(doc)); } catch { /* private mode */ } }, 600);
     scheduleInspect();
+    refreshIso();   // keep the read-only 3-D preview current with inspector-driven surface/geometry edits
   }
 
   // ── live inspect + evaluate (debounced POSTs; stale responses ignored) ──
@@ -206,6 +214,18 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     setRole(role) { canvasRole = ROLES.includes(role) ? role : "piece"; canvas.setPieceRole(canvasRole); },
     fit() { canvas.fit(); },
     resize() { canvas.resize(); },
+
+    // Read-only 3-D height preview (G27): swap between the 2-D top-down view and the iso extrusion of the
+    // pieces' surfaces. showIso resolves false when WebGL/the preview module is unavailable — stay in 2-D
+    // and tell the host so it can disable the toggle.
+    setView(v) {
+      if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
+      canvas.showIso(planIsoSolids(doc), isoYaw, viewBounds(doc)).then(ok => {
+        view = ok === false ? "2d" : "iso";
+        if (ok === false) fire("OnIsoUnavailable");
+      });
+    },
+    rotateIso() { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
 
     newDoc() { load(emptyDoc()); },
     importJson(text) { try { load(fromJson(text)); return null; } catch (e) { return e?.message || "Invalid plan JSON"; } },

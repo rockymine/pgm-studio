@@ -359,6 +359,31 @@ export function zoneMirrorImages(doc) {
   return out;
 }
 
+/**
+ * Iso-preview solids (one flat prism per generating piece) for the read-only 3-D height preview — the
+ * same `{ exterior, top, floor, mirror }` shape the sketch iso renderer consumes. Each terrain-producing
+ * piece is extruded from the ground (0) up to its resolved surface height, so a higher surface stands
+ * taller; annotation pieces (buffer / connector) and build zones produce no terrain and are skipped. A
+ * mirror copy is emitted per orbit axis for every mirroring piece (about the origin, since cells are
+ * centre-relative), matching the 2-D symmetry ghost. Depth-buffered on the GPU, so where footprints
+ * overlap the taller column occludes.
+ */
+export function planIsoSolids(doc) {
+  const { cell, symmetry } = doc.globals;
+  const axes = orbitAxes(symmetry);
+  const ringOf = (b) => [[b.min_x, b.min_z], [b.max_x, b.min_z], [b.max_x, b.max_z], [b.min_x, b.max_z]];
+  const out = [];
+  for (const p of doc.pieces) {
+    if (isAnnotationRole(p.role)) continue;
+    const b = rectCellsToBlocks(p.rect, cell);
+    const top = pieceSurface(doc, p);
+    out.push({ exterior: ringOf(b), top, floor: 0, mirror: false });
+    if (p.mirrors === false) continue;
+    for (const axis of axes) out.push({ exterior: ringOf(applySymmetryToBounds(b, axis, 0, 0)), top, floor: 0, mirror: true });
+  }
+  return out;
+}
+
 /** The mirror-image centre points (block coords) of every marker on a mirroring piece — for the ghost. */
 export function markerMirrorImages(doc) {
   const { cell, symmetry } = doc.globals;

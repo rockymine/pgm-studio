@@ -12,7 +12,7 @@ import {
   contentBounds, viewBounds, pieceMirrorImages, zoneMirrorImages, markerMirrorImages, ROLES, ROLE_COLORS,
   canonicalRole, toggleWall, nearestInterface,
   markerAtWorld, pickAtWorld, sameSelection, MARKER_HIT_CELLS,
-  pieceSurface, surfaceRange, surfaceFraction,
+  pieceSurface, surfaceRange, surfaceFraction, planIsoSolids,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -163,6 +163,56 @@ test("surfaceRange / pieceSurface resolve inherited surfaces across pieces", () 
   assert.equal(pieceSurface(doc, doc.pieces[1]), 15);
   assert.deepEqual(surfaceRange(doc), { min: 9, max: 15 });
   assert.equal(surfaceRange(emptyDoc()), null);
+});
+
+// ── iso preview solids (G27) ───────────────────────────────────────────────────
+test("planIsoSolids extrudes each generating piece from 0 to its surface, plus a mirror per orbit axis", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
+    pieces: [{ id: "a", role: "piece", rect: [1, 0, 2, 1], surface: 13 }],
+  });
+  const solids = planIsoSolids(doc);
+  assert.equal(solids.length, 2);   // the piece + its rot_180 mirror
+
+  const [self, mirror] = solids;
+  assert.equal(self.mirror, false);
+  assert.equal(self.floor, 0);
+  assert.equal(self.top, 13);       // its own surface, not the global base
+  // [1,0,2,1] cells × 5 → block AABB x∈[5,15], z∈[0,5], as a CCW-ish corner ring.
+  assert.deepEqual(self.exterior, [[5, 0], [15, 0], [15, 5], [5, 5]]);
+
+  assert.equal(mirror.mirror, true);
+  assert.equal(mirror.top, 13);
+  // rot_180 about the origin negates both axes → x∈[-15,-5], z∈[-5,0].
+  const xs = mirror.exterior.map(([x]) => x), zs = mirror.exterior.map(([, z]) => z);
+  assert.deepEqual([Math.min(...xs), Math.max(...xs)], [-15, -5]);
+  assert.deepEqual([Math.min(...zs), Math.max(...zs)], [-5, 0]);
+});
+
+test("planIsoSolids inherits the global surface, skips annotations, and honours mirrors:false", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
+    pieces: [
+      { id: "base", role: "piece", rect: [0, 0, 1, 1] },                    // inherits surface 9
+      { id: "solo", role: "wool-room", rect: [2, 0, 1, 1], mirrors: false }, // no mirror copy
+      { id: "buf", role: "buffer", rect: [4, 0, 1, 1] },                    // annotation → no terrain
+    ],
+  });
+  const solids = planIsoSolids(doc);
+  // base (self + mirror) + solo (self only) = 3; the buffer produces nothing.
+  assert.equal(solids.length, 3);
+  assert.equal(solids.filter(s => s.mirror).length, 1);
+  assert.equal(solids.find(s => !s.mirror).top, 9);   // inherited global surface
+});
+
+test("planIsoSolids under no symmetry emits one solid per piece (no mirrors)", () => {
+  const doc = normalizeDoc({
+    plan: 1, globals: { cell: 5, symmetry: "none", surface: 9 },
+    pieces: [{ id: "a", role: "piece", rect: [0, 0, 1, 1] }],
+  });
+  const solids = planIsoSolids(doc);
+  assert.equal(solids.length, 1);
+  assert.equal(solids[0].mirror, false);
 });
 
 test("surfaceFraction maps a surface onto 0..1; a flat plan pins to the top of the ramp", () => {

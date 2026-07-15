@@ -39,6 +39,11 @@ public partial class PlanEditor
     private string zoomLabel = "—";
     private string? importError;
 
+    // Read-only 3-D height preview (G27): whether the iso view is on, and whether it couldn't initialise
+    // (no WebGL / the preview module failed to load) so the toggle is disabled.
+    private bool threeD;
+    private bool isoUnavailable;
+
     // The left panel is a rail-selected activity — "settings" (plan name / globals / reference / overlays)
     // or "validation" (the evaluator score + fired rules) — plus a collapse flag. Each rail icon toggles its
     // own panel: clicking the active-and-open one collapses the sidebar, clicking any other case opens that
@@ -146,6 +151,21 @@ public partial class PlanEditor
     }
 
     private Task Fit() => handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask;
+
+    // ── 3-D height preview (G27) ─────────────────────────────────────────────────
+
+    private async Task Toggle3D()
+    {
+        if (isoUnavailable) return;
+        threeD = !threeD;
+        if (handle is null) return;
+        // The bridge reports an unavailable preview asynchronously via OnIsoUnavailable; this catch only
+        // guards a hard interop failure so the toggle can never trip Blazor's unhandled-error boundary.
+        try { await handle.InvokeVoidAsync("setView", threeD ? "iso" : "2d"); }
+        catch { threeD = false; isoUnavailable = true; StateHasChanged(); }
+    }
+
+    private Task RotateIso() => handle?.InvokeVoidAsync("rotateIso").AsTask() ?? Task.CompletedTask;
 
     // ── reference (tracing) backdrop ─────────────────────────────────────────────
 
@@ -484,6 +504,16 @@ public partial class PlanEditor
 
     [JSInvokable]
     public void OnTool(string t) { tool = t; StateHasChanged(); }
+
+    /// <summary>The bridge couldn't initialise the read-only 3-D preview (WebGL unavailable, or the
+    /// preview module failed to load); fall back to 2-D and disable the toggle.</summary>
+    [JSInvokable]
+    public void OnIsoUnavailable()
+    {
+        threeD = false;
+        isoUnavailable = true;
+        StateHasChanged();
+    }
 
     [JSInvokable]
     public void OnZoom(int pct) { zoomLabel = $"{pct}%"; StateHasChanged(); }
