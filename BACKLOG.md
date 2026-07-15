@@ -212,6 +212,28 @@ the `island-roles` hook (`G11`), and the layout-generation design that resolved 
 Builds on the Sketch tool (`S2`) and the intent model (`N`).
 
 **Composer — box-model milestones (M2–M4 + doc)**
+- [ ] **G76 — The marker inspector exposes none of a structure's knobs, so every placed marker is the
+  default.** The stamps are all built and the plan format names them — what is missing is the UI. A
+  destroyable has **six styles** (`pillar-1/2/3` · `cube-3` · `cube-4` · `column-plus`), a material from the
+  closed DTM vocabulary (obsidian · emerald · gold · ender stone) and a `float`; a core has
+  `size`/`height`/`shell`/`openTop` and the `float`+`leak` pair; a wool has a `color`. **The inspector offers
+  kind, an "On piece" readout, spawn Facing, and Delete — nothing else.** So a marker dropped in the editor
+  silently takes the compiler's default, and the only way to pick is to hand-edit the `.plan.json` and
+  re-import. The wool-colour gap predates the objectives; the point is the pattern, not the one field.
+  **Two rules the controls must respect**, both already enforced server-side and both easy to violate in a
+  form: an unknown style is an **error**, never a silent default (so offer `DestroyableStyles.All`, not a
+  free-text box), and `float`+`leak` are **one knob** (DC2) — a form that lets one be set alone reintroduces
+  the dig depth nobody chose. Prefer showing the derived consequence over the raw pair: the honest readout is
+  "players dig N blocks", i.e. `ObjectiveDefaults.DigDepth`. Cheap to sanity-check — the iso preview already
+  redraws each box from the same stamper the export uses (G73), so a style change is visible immediately.
+- [ ] **G77 — `bedrockCentre` is a stamp no authoring path can reach.** `ObjectiveStamper.StampDestroyable`
+  takes a `bedrockCentre` flag that fills a `cube-3`/`cube-4`'s core with bedrock, so players cannot hollow
+  one out and hide inside — it costs nothing to model because `materials` names only the outer block, leaving
+  the bedrock invisible to the goal (neither counted in its health nor breakable). But **nothing can ask for
+  it**: it is absent from `DestroyablePlacement`, `DestroyableIntent` and the world builder's call, so it is
+  dead capability. Either thread it through as a flag (plan → intent → stamp, defaulting false) or delete it;
+  a parameter no caller can set is a claim the code does not keep. Decide against the corpus — how many real
+  cube destroyables are actually hollow-proofed. Pairs with `G76`, which is where the flag would surface.
 - [ ] **G75 — Score a marker whose structure cannot paste.** The evaluator has no term for "this marker's
   structure has nowhere to sit": an iron / spawn / wool marker whose stamped footprint (4×4 iron, 8×8 cube)
   is not fully on terrain, up to none of it — the case that currently builds into the void. Sits beside G74:
