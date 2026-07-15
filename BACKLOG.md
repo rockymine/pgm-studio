@@ -107,10 +107,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   data-driven thing: a real `point` render (dot/circle) in `renderShape`, a parametrised colour + style
   (marker/outline) instead of the `marker` branch, and fix `SpawnPhase`'s hardcoded `cylinder`
   sidebar/inspector icon → match `RegionNode.Icon` (point → `dot`). (Contract §10.)
-- [ ] **CV11 — Side-view max-Y clamp is one block short.** The draggable Y line can't reach the topmost surface
-  block: `_applyHeight` clamps to `y_min + y_count - 1` (`sideview-canvas.js:281`) while the coordinate maths
-  allows up to `y_min + y_count`, so you can't drag onto the highest block / match the surface. Raise the max
-  bound by one. Pairs with `N11` (the placement-snap side of the same side-view problems).
 
 ## Backend, pipeline & internals (B / P / A)
 

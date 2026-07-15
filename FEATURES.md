@@ -136,6 +136,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   blocks) so 1-block primitives (points/spawns) are forgiving to click everywhere. The bespoke spawn path
   — `#hitTestSpawn`, the `#authorSpawns` marker layer, `setAuthorSpawns`, the `spawn` select mode,
   `onSpawnPick` — is gone. §2.
+- **Side-view max-Y clamp reaches the surface** — the Build-step draggable Y line was clamped one block
+  short (`_applyHeight` → `y_min + y_count - 1`) even though the render math (`_lineCanvasY`) lets the line
+  sit atop the highest block at `y_min + y_count`; raise the clamp by one so you can drag onto the topmost
+  surface block. (CV11)
 
 ## Backend / API (B)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)

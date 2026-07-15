@@ -278,7 +278,7 @@ export class SideviewCanvas {
   _applyHeight(wy) {
     const { y_min, y_count } = this.#data ?? {};
     const min = y_min ?? 0;
-    const max = (y_min != null && y_count != null) ? y_min + y_count - 1 : 255;
+    const max = (y_min != null && y_count != null) ? y_min + y_count : 255;
     const clamped = Math.max(min, Math.min(max, wy));
     if (clamped === this.#buildHeight) return;
     this.#buildHeight = clamped;
