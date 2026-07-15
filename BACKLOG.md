@@ -114,17 +114,25 @@ its rule ids (`OB*`/`DT*`/`DC*`) are cited below. Filed here (not `N`/`G`) becau
 pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
 **Both objectives now author end to end** (`FEATURES.md`): parse/write/codec, the schema, the world stamps,
 and plan → intent → world → `map.xml` for destroyables (`B24`) and cores (`B25`). What is left below is the
-export gate (`B24e`), detection (`B26`), and the work the phantom classifier unblocked (`B31`, `B28`).
+import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifier unblocked (`B31`, `B28`).
 
-- [~] **B24e — DTM/DTC export gate: assert each objective's region really holds its blocks.** The rest of
-  `B24` has landed (`FEATURES.md`). What remains is the gate: **≥1 block matching `materials` inside each
-  destroyable's region, and both casing and lava inside each core's**. For authored maps this should be
-  unfalsifiable — the region *is* the stamper's box (OB8) — so it is a guard against the generator drifting;
-  for **imported** maps it is a real check, and the corpus sweep already found **10 destroyables that fail
-  it** (a region containing none of its declared material). Never "the region is full": by OB12 a region is
-  legitimately mostly air (a 3×3×3 region holding a 1×3×1 pillar is correct and common), so anything
-  stricter rejects most of the corpus. **The design question is where it lives** — the check needs the world,
-  and `MapValidity` is doc-dict-only with no world access today. (OB8, OB11, OB12)
+- [ ] **B24e — Flag an *imported* map whose objective region holds none of its material (a warning, not a
+  gate).** Scoped down: the authored half of this is **already covered by tests** — `DestroyableWorldTests`
+  and `CoreWorldTests` walk each emitted region with PGM's `[min, max)` and count the blocks, which is
+  exactly the assertion this task was filed to add. For a generated map the region *is* the stamper's box
+  (OB8), so a runtime gate would re-check something true by construction. **What has no cover is the import
+  side**: the corpus sweep found **10 destroyables whose region contains none of its declared material**.
+  Those are the author's own maps, already broken before we touched them — so this is a **diagnostic on
+  import**, not a block on re-export. Blocking someone's export over a pre-existing dud is the studio
+  overreaching; telling them is the value.
+  Never "the region is full": by OB12 a region is legitimately mostly air (a 3×3×3 region holding a 1×3×1
+  pillar is correct and common), so anything stricter flags most of the corpus.
+  **Note the category difference** before extending `MapValidity`: its one existing rule (a wool needs a
+  monument) is *"PGM refuses to load this map"* — an `InvalidXMLException`, so the map is unloadable. This
+  one is *"PGM loads it fine and the goal has zero health"*, which PGM itself only logs a warning for. Two
+  different severities of truth; do not blur them into one list without saying which is which. World access
+  is **not** the blocker it was originally filed as — 14 test files already read blocks out of a built
+  world. (OB3, OB11, OB12)
 - [ ] **B31 — Island detection still guesses at the build floor a parsed phantom now states exactly.**
   `LayerExtractors.CleanBaseExclude` excludes stained glass (95) as a "build-floor marker removed pre-game
   via a `destroyables` mode-change" — a **material guess** ("glass as the lowest solid must be a build
@@ -195,6 +203,20 @@ export gate (`B24e`), detection (`B26`), and the work the phantom classifier unb
   already names the distinction, so respect it rather than re-deriving it. The parse/schema half it writes
   into has landed, and so have `B24`/`B25`'s authoring slices — a confirmed suggestion now has somewhere to
   go, so this is unblocked.
+  **Test it against authored plans, not (only) the corpus — the ground truth is free.** Author a plan with a
+  destroyable/core at a known anchor, compile it, build the world, run the detector, and assert it proposes
+  that objective *at the anchor the plan named*, with the style/size the plan asked for. The whole loop is
+  already in place (`DestroyableWorldTests`/`CoreWorldTests` build the world; the plan is the label), so this
+  is a fixture generator, not a harness.
+  **Why this matters more than it looks:** `MonumentSuggester`'s corpus recall is capped at **57.8% largely
+  because ~⅓ of maps are unlabelled** — there is no ground truth to score against without hand-labelling. A
+  generated world has ground truth *by construction*: we know exactly where we put the core, so precision and
+  recall are both computable for free, over as many synthetic cases as we care to emit (every style, every
+  casing size, on a slope, at a terrain edge). Corpus sweeps stay the reality check — synthetic worlds only
+  contain the structures we know how to build, so they can confirm the detector finds ours and can never tell
+  us what real authors do that we don't model. Use both, and expect the corpus to be the one that surprises.
+  This also **subsumes what `B24e` was going to gate for authored maps**: a detector that finds the core where
+  the plan put it has proved the blocks are there.
 
 ## Layout generation (G)
 
