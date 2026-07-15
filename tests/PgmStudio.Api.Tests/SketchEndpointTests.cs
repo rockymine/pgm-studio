@@ -110,52 +110,6 @@ public sealed class SketchEndpointTests
     }
 
     [Test]
-    public async Task Generate_creates_a_draft_with_a_framed_origin_centred_layout()
-    {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
-        using var client = factory.CreateClient();
-
-        var resp = await client.PostAsJsonAsync("/api/sketch/generate", new { name = "Gen H", archetype = "H", seed = 1 });
-        await Assert.That(resp.IsSuccessStatusCode).IsTrue();
-        var slug = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
-        await Assert.That(slug).IsEqualTo("gen-h");
-
-        // GET returns a real generated layout: framed, origin-centred, with shapes + islands.
-        var layout = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/sketch");
-        var setup = layout.GetProperty("setup");
-        await Assert.That(setup.GetProperty("center").GetProperty("cx").GetDouble()).IsEqualTo(0);
-        await Assert.That(setup.TryGetProperty("bbox", out _)).IsTrue();
-        await Assert.That(layout.GetProperty("layout").GetProperty("shapes").GetArrayLength()).IsGreaterThan(0);
-        await Assert.That(layout.GetProperty("layout").GetProperty("islands").GetArrayLength()).IsGreaterThan(0);
-    }
-
-    [Test]
-    public async Task Generate_stages_emits_the_pipeline_intermediates_deterministically()
-    {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
-        using var client = factory.CreateClient();
-
-        var resp = await client.PostAsJsonAsync("/api/sketch/generate/stages", new { seed = 42, wools = 3 });
-        await Assert.That(resp.IsSuccessStatusCode).IsTrue();
-        var s = await resp.Content.ReadFromJsonAsync<JsonElement>();
-
-        await Assert.That(s.GetProperty("seed").GetInt32()).IsEqualTo(42);
-        await Assert.That(s.GetProperty("noise").GetProperty("values").GetArrayLength()).IsGreaterThan(0);
-        await Assert.That(s.GetProperty("hub").GetProperty("r").GetDouble()).IsGreaterThan(0);
-        await Assert.That(s.GetProperty("woolTips").GetArrayLength()).IsEqualTo(3);
-        await Assert.That(s.GetProperty("spines").GetArrayLength()).IsGreaterThan(0);
-        await Assert.That(s.GetProperty("shapes").GetArrayLength()).IsGreaterThan(0);
-        await Assert.That(s.GetProperty("mirrorMode").GetString()).IsEqualTo("mirror_z");
-
-        // same seed → identical payload (the generator is deterministic; no map is created)
-        var again = await (await client.PostAsJsonAsync("/api/sketch/generate/stages", new { seed = 42, wools = 3 }))
-            .Content.ReadFromJsonAsync<JsonElement>();
-        await Assert.That(again.GetRawText()).IsEqualTo(s.GetRawText());
-    }
-
-    [Test]
     public async Task Put_rejects_non_json()
     {
         await ResetSchemaAsync();

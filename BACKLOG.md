@@ -173,12 +173,11 @@ composition of `plan.json` seeds under the frozen rules (`docs/contracts/map-gen
 (refactor-first, `docs/map-generation-architecture-review.md`) — is the batch in `TODO.md` (G58–G60); the
 box-model milestones M2–M4 and the interface / hub / lane feature long-tail are parked here until that
 lands, **reworded to be delivered *through* the box model** rather than against the current grower. The
-older / parallel **lane sketch generator** track (seed a draft map from lane primitives → editable
-`SketchLayout`; staged plan in the `project_sketch_generators` working memory) and the island-detection /
-validation work follow. Landed so far (`FEATURES.md`): the composer core + box-based wool-approach
-vocabulary (G49/G53/G54), the lane archetypes + Geom split, the generate UI + editor prep, Bézier
-rounding, the Organic demo (`G4`), island-outline simplification (`G6`), the lane-decompose surface
-(`G6`/`G7`/`G8`), the `island-roles` hook (`G11`), and the layout-generation design that resolved `G15`.
+island-detection / validation work follows. (The older / parallel **lane sketch generator** track — the
+archetype starters that seeded a draft map from lane primitives — has been **retired** in favour of the
+plan-then-realize direction; see `FEATURES.md` § Layout generation.) Landed so far (`FEATURES.md`): the
+composer core + box-based wool-approach vocabulary (G49/G53/G54), island-outline simplification (`G6`),
+the `island-roles` hook (`G11`), and the layout-generation design that resolved `G15`.
 Builds on the Sketch tool (`S2`) and the intent model (`N`).
 
 **Composer — box-model milestones (M2–M4 + doc)**
@@ -456,14 +455,6 @@ The remaining generator / detection / validation work sorts into three domains:
   **Deliberately moves the division-of-labour boundary** (baseline theming vs the author's "always manual"
   post-detach polish): generator does layout + *baseline* theming; character/set pieces/themed identity stay
   the author's (Tier 3 unchanged).
-- [ ] **G5 — Pinwheel blade `Lane.Strip` self-overlaps on its tight curl.** The Pinwheel archetype's blade
-  is a tight comma; `Lane.Strip`'s inner offset crosses itself (≈3 self-intersections in the raw simplified
-  ring) → polygon-clipping renders a phantom hole in each blade. Independent of the Bézier rounding
-  (`SketchLayoutPrep` via `RingRounding.Smooth` correctly *declines* to round a self-overlapping polygon, so
-  rounding doesn't cause or hide it). Fix at the source — either clamp the blade curl radius against the lane
-  width in `LaneSketchGenerator.Pinwheel`, or clip the inner offset in `Geom.Lane.Strip` so a tight
-  centerline can't produce a self-crossing strip. Surfaced by the `SketchLayoutPrepTests` self-intersection
-  regression.
 
 **Island detection**
 - [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split

@@ -510,18 +510,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
-- **Lane sketch generators** — `LaneSketchGenerator` grows a starter Capture-the-Wool sketch from lane
-  primitives for four archetypes (H · Pinwheel · Trident · Organic); `OrganicLane` grows a team's island
-  from a spawn hub out to noise-spread wool tips (variable-width `Lane.Ribbon` hulls, optional organic
-  holes, forked lanes, spawn-on-a-spur). `POST /api/sketch/generate` originates a draft sketch from a
-  chosen archetype/seed (`SketchLayoutPrep` simplifies + Bézier-rounds lanes for the editor). Pure +
-  seeded — same seed → same layout.
-- **Organic-generation demo page** — `/concepts/organic` visualises the whole Organic pipeline on one
-  page, one panel per stage (value-noise field → anchor sampling → lane spines → ribbon hulls →
-  assembled + mirror) with static explanatory text; a seed / wools control re-runs the **real** generator
-  live. `OrganicLane.GrowStages` captures the per-stage intermediates from a single traced `Grow` run
-  (no second code path); `POST /api/sketch/generate/stages` emits them; `render/gen-stages.js` paints each
-  stage (reuses the geometry / render layers). (G4)
+- **Lane sketch generators + Organic-generation demo — RETIRED** in favour of the plan-then-realize
+  direction (`docs/contracts/map-generation.md`): the archetype starter generators (`LaneSketchGenerator`
+  for H · Pinwheel · Trident · Organic, `OrganicLane`, `LaneMapGenerator`, `SketchLayoutPrep`, `AutoBridge`)
+  and their surfaces are removed — the `POST /api/sketch/generate` + `/api/sketch/generate/stages` endpoints,
+  the new-sketch "Generated layout" tab, and the `/concepts/organic` demo page (`render/gen-stages.js`,
+  `studio.renderGenStages`) with them. The sketch tool now originates only from a blank framed canvas; a plan
+  is authored in the plan editor and compiled instead. `SketchLayout` (the layout DTO), `SketchRasterizer`
+  (finish/rasterize) and `IslandSimplifier` (island-import) live on — none depended on the generators.
+  (was G4 / G5)
 - **Island-outline simplification → sketch format** — `IslandSimplifier` turns a real island's detected
   outline into the editable sketch layout (Douglas-Peucker simplified exterior `add` polygon +
   a `subtract` per hole, via `PolygonSimplify`); `RoundTrip --island-sketch` previews one map's layout,
@@ -943,10 +940,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   drawing surface (`.map-canvas-svg`) stops a drag from selecting the on-canvas SVG labels. (S18)
 - **New-sketch creation page** — `/maps/new-sketch` (`SketchCreate`): the full-screen origination entry
   (mirrors Configure's `/maps/new`), reached from the Sketch overview's New-sketch link. An **Identity**
-  section (map name) + a `filter-chip` **Start from** picker → **Blank** (SVG-preview footprint + symmetry
-  `choice-tile`s with W/D + centre `coord-field` rows) or **Generate** (archetype/seed); a single
-  **Continue** creates the draft via `POST /api/sketch` (now carrying the working frame → a seeded `setup`)
-  or `POST /api/sketch/generate`. The editor's footprint/symmetry **Setup** block moved off the always-open
+  section (map name) + a **Blank** framed canvas (SVG-preview footprint + symmetry `choice-tile`s with W/D +
+  centre `coord-field` rows); a single **Continue** creates the draft via `POST /api/sketch` (carrying the
+  working frame → a seeded `setup`). The editor's footprint/symmetry **Setup** block moved off the always-open
   sidebar into a collapsed **Frame** accordion, lifting the Islands tree toward the top. Reusable `.choice-*`
   tile CSS shared with the primitive palette. (S11) Plan: `docs/contracts/sketch-creation-flow.md`.
 - **Rectangle → polygon promotion** — an inspector **Convert to polygon** button (and the `P` shortcut)

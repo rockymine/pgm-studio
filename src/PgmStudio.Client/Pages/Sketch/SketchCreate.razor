@@ -5,8 +5,8 @@
 @inject NavigationManager Nav
 
 @* New-sketch landing — the full-screen creation entry for the Sketch stage (the Configure stage has the
-   matching /maps/new). Name the map and choose how to start (a blank canvas with a footprint + symmetry,
-   or a generated starter); Continue creates the draft and opens the editor at /maps/{slug}/sketch. *@
+   matching /maps/new). Name the map and set its footprint + symmetry; Continue creates the draft and
+   opens the editor at /maps/{slug}/sketch. *@
 
 <div class="editor-page">
   <div id="topbar" class="topbar">
@@ -47,19 +47,10 @@
                 <input class="field-input" @bind="sketchName" @bind:event="oninput" placeholder="My CTW Map"
                        @onkeydown="@(e => { if (e.Key == "Enter") _ = Submit(); })" />
               </div>
-              <div class="field">
-                <label class="field-label">Start from</label>
-                <div class="filter-group-options filter-group-options--fill">
-                  <button class="filter-chip @(tab == "blank" ? "filter-chip--active" : null)" @onclick='() => SetTab("blank")'>Blank canvas</button>
-                  <button class="filter-chip @(tab == "generate" ? "filter-chip--active" : null)" @onclick='() => SetTab("generate")'>Generated layout</button>
-                </div>
-              </div>
             </div>
           </section>
 
-          <div class="cfg-step-panel" @key="tab">
-            @if (tab == "blank")
-            {
+          <div class="cfg-step-panel">
               <section class="panel-section">
                 <div class="section-header section-header--ruled"><h2 class="section-title">Footprint</h2></div>
                 <div class="section-body">
@@ -147,34 +138,6 @@
                   </div>
                 </div>
               </section>
-            }
-            else
-            {
-              <section class="panel-section">
-                <div class="section-header section-header--ruled"><h2 class="section-title">Starter layout</h2></div>
-                <div class="section-body">
-                  <p class="section-desc">A mirrored lane layout, generated from the archetype and seed — drawn
-                    onto the canvas so you can reshape it before you Finish.</p>
-                  <div class="field">
-                    <label class="field-label">Archetype</label>
-                    <select class="field-input" @bind="genArchetype">
-                      <option value="H">H — 2 teams, 1 wool each</option>
-                      <option value="Trident">Trident — 2 teams, 3 wools each</option>
-                      <option value="Pinwheel">Pinwheel — 4 teams</option>
-                      <option value="Organic">Organic — grown lanes</option>
-                    </select>
-                  </div>
-                  <div class="field">
-                    <label class="field-label">Seed</label>
-                    <div class="ctrl-row">
-                      <NumberField Value="genSeed" ValueChanged="@(v => genSeed = (int)v)" Min="1"
-                                   title="Seed — re-roll for a different layout" />
-                      <button class="action-btn action-btn--icon" @onclick="RerollSeed" title="Random seed"><i data-lucide="dices"></i></button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            }
           </div>
 
           <div class="section-footer">

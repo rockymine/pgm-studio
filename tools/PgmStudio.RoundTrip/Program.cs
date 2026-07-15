@@ -127,43 +127,6 @@ if (islandStudyIdx >= 0 && islandStudyIdx + 2 < args.Length)
     return RunIslandStudy(args[islandStudyIdx + 1], args[islandStudyIdx + 2],
         islandStudyIdx + 3 < args.Length && double.TryParse(args[islandStudyIdx + 3], out var studyTol) ? studyTol : 2.0);
 
-// --gen-preview <archetype> <seed> <outJson>: run the sketch generator and rasterize it (no DB), writing
-// the island polygons + objective hints for a local render of a generated layout.
-var gpIdx = Array.IndexOf(args, "--gen-preview");
-if (gpIdx >= 0 && gpIdx + 3 < args.Length)
-    return RunGenPreview(args[gpIdx + 1], int.TryParse(args[gpIdx + 2], out var gseed) ? gseed : 1, args[gpIdx + 3]);
-
-// --gen-sketch <archetype> <seed> <outJson>: dump the RAW sketch layout (the polygon shapes + mirror setup,
-// before rasterization) so the base sketch model can be rendered as outlines rather than the rasterized cells.
-var gsIdx = Array.IndexOf(args, "--gen-sketch");
-if (gsIdx >= 0 && gsIdx + 3 < args.Length)
-{
-    var arch = Enum.Parse<PgmStudio.Pgm.Sketch.LaneArchetype>(args[gsIdx + 1], ignoreCase: true);
-    var opts = new PgmStudio.Pgm.Sketch.LaneLayoutOptions { Archetype = arch, Seed = int.TryParse(args[gsIdx + 2], out var sseed) ? sseed : 1 };
-    var res = PgmStudio.Pgm.Sketch.LaneSketchGenerator.Build(opts);
-    File.WriteAllText(args[gsIdx + 3], res.Layout.ToJson());
-    Console.WriteLine($"gen-sketch {arch} seed={opts.Seed}: {res.Layout.Layout!.Shapes.Count} shapes, {res.Layout.Layout.Islands.Count} islands, mirror={res.Layout.Setup!.MirrorMode}");
-    return 0;
-}
-
-// --gen-catalog <outJson>: dump the non-mirrored style catalogue (every hub style + lane behaviour) as a raw
-// sketch layout, for rendering an overview of the generator's shape primitives.
-var gcatIdx = Array.IndexOf(args, "--gen-catalog");
-if (gcatIdx >= 0 && gcatIdx + 1 < args.Length)
-{
-    var layout = PgmStudio.Pgm.Sketch.OrganicLane.StyleCatalog();
-    File.WriteAllText(args[gcatIdx + 1], layout.ToJson());
-    Console.WriteLine($"gen-catalog: {layout.Layout!.Shapes.Count} shapes → {args[gcatIdx + 1]}");
-    return 0;
-}
-
-// --gen-map-preview <archetype> <seed> <outJson>: run the full map generator (LaneMapGenerator) and emit the
-// island polygons together with the intent — spawns+protection, wools+rooms+monuments, build bridges — so
-// playability (reachability around spawn protection) can be validated without a database.
-var gmpIdx = Array.IndexOf(args, "--gen-map-preview");
-if (gmpIdx >= 0 && gmpIdx + 3 < args.Length)
-    return RunGenMapPreview(args[gmpIdx + 1], int.TryParse(args[gmpIdx + 2], out var mseed) ? mseed : 1, args[gmpIdx + 3]);
-
 // --skeleton-study <regionDir> <map.xml> <outJson> [tolerance]: each island's simplified polygon plus its
 // centerline graph (thinning → merge junction blobs → anchor-aware prune using the map.xml objectives as
 // fixed nodes) for studying lane structure and where objectives sit.
@@ -1359,71 +1322,6 @@ static int RunIslandStudy(string regionDir, string outJson, double tolerance)
     var simp2 = outIslands.Sum(o => (int)o.GetType().GetProperty("simpVerts")!.GetValue(o)!);
     Console.WriteLine($"  vertices: {raw} raw → {simp2} simplified ({(raw > 0 ? 100 * simp2 / raw : 0)}%)");
     Console.WriteLine($"  wrote {outJson}");
-    return 0;
-}
-
-static int RunGenPreview(string archetype, int seed, string outJson)
-{
-    var arch = Enum.Parse<PgmStudio.Pgm.Sketch.LaneArchetype>(archetype, ignoreCase: true);
-    var opts = new PgmStudio.Pgm.Sketch.LaneLayoutOptions { Archetype = arch, Seed = seed };
-    var result = PgmStudio.Pgm.Sketch.LaneSketchGenerator.Build(opts);
-    var cells = PgmStudio.Pgm.Sketch.SketchRasterizer.Rasterize(result.Layout.ToJson());
-    if (cells.Count == 0) { Console.Error.WriteLine("no cells produced"); return 1; }
-    var islands = PgmStudio.Analysis.Footprint.IslandDetector.Detect(cells, minIslandSize: 1);
-    var polys = islands.Select(i =>
-    {
-        var p = i.Polygon as NetTopologySuite.Geometries.Polygon;
-        return new
-        {
-            id = i.Id,
-            blockCount = i.BlockCount,
-            exterior = p!.ExteriorRing.Coordinates.Select(c => new[] { c.X, c.Y }).ToList(),
-            holes = p.InteriorRings.Select(r => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList()).ToList(),
-        };
-    }).ToList();
-    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(new
-    {
-        archetype, seed,
-        bbox = new { minX = cells.Min(c => c.X), minZ = cells.Min(c => c.Z), maxX = cells.Max(c => c.X), maxZ = cells.Max(c => c.Z) },
-        objectives = result.Objectives.Select(o => new { kind = o.Kind, team = o.Team, x = o.X, z = o.Z }).ToList(),
-        islands = polys,
-    }));
-    Console.WriteLine($"gen-preview {archetype} seed={seed}: {cells.Count} cells, {islands.Count} islands [{string.Join(",", islands.Take(8).Select(i => i.BlockCount))}]");
-    return 0;
-}
-
-static int RunGenMapPreview(string archetype, int seed, string outJson)
-{
-    var arch = Enum.Parse<PgmStudio.Pgm.Sketch.LaneArchetype>(archetype, ignoreCase: true);
-    var (layout, intent) = PgmStudio.Pgm.Sketch.LaneMapGenerator.Generate(
-        new PgmStudio.Pgm.Sketch.LaneLayoutOptions { Archetype = arch, Seed = seed }, "preview");
-    var cells = PgmStudio.Pgm.Sketch.SketchRasterizer.Rasterize(layout.ToJson());
-    if (cells.Count == 0) { Console.Error.WriteLine("no cells"); return 1; }
-    var islands = PgmStudio.Analysis.Footprint.IslandDetector.Detect(cells, minIslandSize: 1);
-    object Rects(List<PgmStudio.Pgm.Authoring.Rect> rs) =>
-        rs.Select(v => new { minX = v.MinX, minZ = v.MinZ, maxX = v.MaxX, maxZ = v.MaxZ }).ToList();
-    File.WriteAllText(outJson, System.Text.Json.JsonSerializer.Serialize(new
-    {
-        archetype, seed,
-        bbox = new { minX = cells.Min(c => c.X), minZ = cells.Min(c => c.Z), maxX = cells.Max(c => c.X), maxZ = cells.Max(c => c.Z) },
-        islands = islands.Select(i =>
-        {
-            var p = (NetTopologySuite.Geometries.Polygon)i.Polygon;
-            return new
-            {
-                exterior = p.ExteriorRing.Coordinates.Select(c => new[] { c.X, c.Y }).ToList(),
-                holes = p.InteriorRings.Select(r => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList()).ToList(),
-            };
-        }).ToList(),
-        spawns = intent.Spawns.Select(s => new { team = s.Team, x = s.Point.X, z = s.Point.Z, protection = Rects(s.Protection) }).ToList(),
-        wools = intent.Wools!.Select(w => new
-        {
-            owner = w.Owner, x = w.Spawn.X, z = w.Spawn.Z, room = Rects(w.Room),
-            monuments = w.Monuments.Select(mm => new { team = mm.Team, x = mm.Location.X, z = mm.Location.Z }).ToList(),
-        }).ToList(),
-        build = new { areas = intent.Build!.Areas.Select(r => new { minX = r.MinX, minZ = r.MinZ, maxX = r.MaxX, maxZ = r.MaxZ }).ToList() },
-    }));
-    Console.WriteLine($"gen-map-preview {archetype} seed={seed}: {islands.Count} islands, {intent.Spawns.Count} spawns, {intent.Wools!.Count} wools, {intent.Build!.Areas.Count} bridges");
     return 0;
 }
 

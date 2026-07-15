@@ -77,8 +77,8 @@ dotnet run --project tests/PgmStudio.Pgm.Tests # tests — one project at a time
 `Api.Tests` can flake from a shared-schema race (non-deterministic 1/5/8 failures) — known, not your change.
 
 ## If you don't need the DB
-Much of the generator work needs **no database**. `tools/PgmStudio.RoundTrip` runs DB-free:
-`--gen-sketch`, `--gen-map-preview`, `--gen-catalog`, `--skeleton-study`, plus the parity/analysis harnesses.
+Much of the analysis work needs **no database**. `tools/PgmStudio.RoundTrip` runs DB-free:
+`--island-sketch`, `--skeleton-study`, `--island-study`, plus the parity/analysis harnesses.
 The Python analysis/visualization lives in **`scripts/generator/`** (see its README); deps
 (`numpy` / `scikit-image` / `scipy`) are usually already installed.
 

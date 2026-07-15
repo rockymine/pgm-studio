@@ -6,7 +6,6 @@ namespace PgmStudio.Client.Pages.Sketch;
 
 public partial class SketchCreate
 {
-    private string tab = "blank";        // "blank" | "generate"
     private string sketchName = "";
 
     // Working frame (blank tab). Default = 2-team landscape (120×80), origin-centred, rotational symmetry —
@@ -26,16 +25,10 @@ public partial class SketchCreate
         ["square"]    = (120, 120),
     };
 
-    // Generate tab.
-    private string genArchetype = "H";
-    private int genSeed = Random.Shared.Next(1, 100000);
-
     private bool busy;
     private string? createError;
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
-
-    private void SetTab(string t) { tab = t; createError = null; }
 
     // Pick a footprint tile: a named preset sets its width/depth; "custom" keeps the current size for typing.
     private void SetPreset(string p)
@@ -51,9 +44,7 @@ public partial class SketchCreate
     private static string InferPreset(double w, double d) =>
         Presets.FirstOrDefault(kv => kv.Value.W == w && kv.Value.D == d).Key ?? "custom";
 
-    private void RerollSeed() => genSeed = Random.Shared.Next(1, 100000);
-
-    private Task Submit() => tab == "generate" ? CreateGenerated() : CreateSketch();
+    private Task Submit() => CreateSketch();
 
     private async Task CreateSketch()
     {
@@ -68,22 +59,6 @@ public partial class SketchCreate
             createError = "Could not create the sketch.";
         }
         catch { createError = "Could not create the sketch."; }
-        busy = false;
-    }
-
-    private async Task CreateGenerated()
-    {
-        if (busy) return;
-        busy = true;
-        createError = null;
-        try
-        {
-            var name = string.IsNullOrWhiteSpace(sketchName) ? $"{genArchetype} sketch" : sketchName.Trim();
-            var resp = await Http.PostAsJsonAsync("api/sketch/generate", new { name, archetype = genArchetype, seed = genSeed });
-            if (await SlugFrom(resp) is { } slug) { Nav.NavigateTo($"maps/{slug}/sketch"); return; }
-            createError = "Could not generate the sketch.";
-        }
-        catch { createError = "Could not generate the sketch."; }
         busy = false;
     }
 
