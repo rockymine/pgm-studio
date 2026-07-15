@@ -164,7 +164,7 @@ public partial class WoolObjectivesPhase
             // Seed the spawn Y onto the floor the wool rests on (the segment top at/below its base), not
             // the floating pile centroid — the author then fine-tunes it on the side-view.
             if (hasSrc)
-                cand.Y = await ColumnFloorAsync((int)Math.Round(cand.X), (int)Math.Round(cand.Z), (int)Math.Round(src.minY)) ?? cand.Y;
+                cand.Y = await RestingYAsync((int)Math.Round(cand.X), (int)Math.Round(cand.Z), (int)Math.Round(src.minY)) ?? cand.Y;
 
             // include rule: a monument-named colour is an objective; physical-only wool is decorative.
             if (mons.Count > 0) cand.Included = true;
@@ -272,13 +272,15 @@ public partial class WoolObjectivesPhase
         }));
     }
 
-    // The terrain floor Y at a column (segment top at/below refY), or null when the column has no segments.
-    private async Task<int?> ColumnFloorAsync(int x, int z, int refY)
+    // The Y a wool rests at in a column: one block above the terrain floor (the segment top at/below refY).
+    // `column-floor` reports the floor block itself (the topmost solid block, inclusive), so seeding the wool
+    // at that Y would bury it inside the floor. Null when the column has no segments.
+    private async Task<int?> RestingYAsync(int x, int z, int refY)
     {
         try
         {
             var d = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/column-floor?x={x}&z={z}&y={refY}");
-            return d.TryGetProperty("y", out var y) && y.ValueKind == JsonValueKind.Number ? y.GetInt32() : null;
+            return d.TryGetProperty("y", out var y) && y.ValueKind == JsonValueKind.Number ? y.GetInt32() + 1 : null;
         }
         catch { return null; }
     }
