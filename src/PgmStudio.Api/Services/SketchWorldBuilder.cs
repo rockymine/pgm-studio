@@ -24,6 +24,13 @@ public static class SketchWorldBuilder
         var terrain = SketchTerrainBuilder.Build(columns);
         var world = terrain.World;
         int Surface(int x, int z) => PositionSnap.SurfaceY((x, z), terrain.SurfaceTop, 1);
+        // A cube rests on the columns its shell spans, not on the one column at its anchor — the anchor is a
+        // grid line, and picking a side of it resolves different heights across the symmetry orbit.
+        int CubeFloor(int ax, int az)
+        {
+            var (minX, minZ, maxX, maxZ) = CubeStamper.Footprint(ax, az);
+            return SafeFloor(PositionSnap.SurfaceYOver(terrain.SurfaceTop, minX, minZ, maxX, maxZ, 1));
+        }
 
         var teams = intent.Teams ?? [];
         var wools = intent.Wools ?? [];
@@ -37,7 +44,7 @@ public static class SketchWorldBuilder
             var w = wools[i];
             var slug = ColorSlug(w, teams);
             var (sx, sz) = PositionSnap.SnapXZ(w.Spawn.X, w.Spawn.Z);
-            var fy = SafeFloor(Surface(sx, sz));
+            var fy = CubeFloor(sx, sz);
             WoolCageStamper.Stamp(world, sx, sz, fy, WoolColors.WoolDamage(slug));
             woolFloor[i] = fy;
             woolCell[i] = (sx, sz);
@@ -51,7 +58,7 @@ public static class SketchWorldBuilder
         foreach (var s in intent.Spawns)
         {
             var (sx, sz) = PositionSnap.SnapXZ(s.Point.X, s.Point.Z);
-            var fy = SafeFloor(Surface(sx, sz));
+            var fy = CubeFloor(sx, sz);
             var facing = PositionSnap.FacingFromYaw(s.Yaw);
 
             var captured = wools.Select((w, i) => (w, i))
@@ -158,7 +165,7 @@ public static class SketchWorldBuilder
     // A cube's roof sits at floorY + RoofLayer, so the floor must leave that much headroom below the world
     // ceiling — clamp every structure floor here so an author-elevated island can't push a stamp past 255.
     private const int MaxCubeFloor = VoxelWorld.MaxHeight - CubeStamper.RoofLayer - 1;
-    private static int SafeFloor(int y) => Math.Clamp(y, 1, MaxCubeFloor);
+    internal static int SafeFloor(int y) => Math.Clamp(y, 1, MaxCubeFloor);
 
     /// <summary>The XZ footprint of the cube anchored on <paramref name="cx"/>/<paramref name="cz"/>
     /// (the integer 2×2 centre) — its blocks span <c>[anchor-Half, anchor+Half-1]</c>, so the rect is

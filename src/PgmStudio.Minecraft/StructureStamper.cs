@@ -48,14 +48,17 @@ public static class StructureStamper
         }
     }
 
-    /// <summary>Place a 4×4×4 iron-block cube whose base rests on the surface at the anchor column and whose
+    /// <summary>Place a 4×4×4 iron-block cube whose base rests on the surface its footprint spans and whose
     /// top sits three blocks above it (ST2/ST3). The 4-wide footprint is centred on the anchor
-    /// (<c>[anchor-2, anchor+2)</c>), so a marker snapped to a whole block splits two-and-two cleanly.</summary>
+    /// (<c>[anchor-2, anchor+2)</c>), so a marker snapped to a whole block splits two-and-two cleanly — which
+    /// is also why the base comes from the footprint (<see cref="PositionSnap.SurfaceYOver"/>) and not the
+    /// anchor column: the anchor is a grid line, and sampling one side of it does not survive the symmetry
+    /// orbit.</summary>
     public static void StampIronCube(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int anchorX, int anchorZ)
     {
-        var (minX, minZ, _, _) = IronCubeFootprint(anchorX, anchorZ);
-        var baseY = surfaceTop.GetValueOrDefault((anchorX, anchorZ), 1);
+        var (minX, minZ, maxX, maxZ) = IronCubeFootprint(anchorX, anchorZ);
+        var baseY = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1);
         for (var lx = 0; lx < IronCubeSize; lx++)
         for (var lz = 0; lz < IronCubeSize; lz++)
         for (var ly = 0; ly < IronCubeSize; ly++)

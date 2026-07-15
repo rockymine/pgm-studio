@@ -629,6 +629,33 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   content ∪ ghost extents). Plan JSON import/export in the `PlanModel` wire shape (seed round-trip tested) +
   debounced localStorage autosave; pure geometry in `plan/plan-doc.js` (node-tested, 16 tests); mounted via
   `studio.js` native import; dashboard footer "Plan" link. (G18)
+- **Plan-editor iso structure preview** — the `/plan-editor` 3-D view renders the structures the world build
+  will stamp, in their materials, so the author sees what lands in the columns they drew: **spawn cubes** and
+  **wool cages** (the 8×8×9 shells, team / wool colour), **iron cubes** (4×4×4), **approach walls** (bedrock,
+  y=0→`TopY`), and the **wool-room prism tinted bedrock** — `RoomFloors` *is* that piece's fanned rect, so it
+  tints the box already drawn instead of stacking a coincident one. Shells only; everything else stays grey.
+  `PlanStructurePreview` (`Api/Services`, beside `SketchWorldBuilder` — the one project reaching both `Pgm` and
+  `Minecraft`) derives the boxes from `PlanCompiler` output sized by the stampers' own constants/footprint
+  helpers, normalizing their differing conventions (iron footprint max-inclusive; room floors / walls
+  max-exclusive; wall `TopY` inclusive) into one min-inclusive/max-exclusive frame. Served on
+  `POST /api/plan/inspect` (error-tolerant + already per-edit, unlike `/plan/compile`, which withholds its
+  intent on structural errors — i.e. most of a live edit); colours ship as slugs because the wool dye
+  assignment is a global cursor across the team loop, which a JS twin would drift from — the client maps them
+  through `render/palette.js`. `iso-webgl.js` batches by colour (one draw per distinct material, opaque:
+  translucency needs a depth sort the mirror image defeats). Tests compile a seed both ways and check every box
+  against the blocks actually stamped, so a preview that lies fails the build. (G73)
+- **Structure floors are symmetry-equivariant** — a structure and its orbit images now rest at the same height.
+  They did not: a cube/iron anchor is a grid *line* the footprint straddles, and the floor was probed as the
+  single block on its + side (`surfaceTop.GetValueOrDefault((anchorX, anchorZ), 1)`), which does not survive the
+  orbit — `FanPoint` maps grid line `g → -g` correctly, but the mirror of *block* `g` is `-1-g`, so the images
+  read the + side of one against the − side of another. Where a marker sat at a terrain edge, one image found
+  ground and its mirror took the `, 1)` fallback and built **into the void at y=1** — measured on
+  `isolated-spawn`, whose two iron cubes covered an identical 8/16 columns at top 13 (the geometry fanned
+  perfectly) yet resolved baseY 1 vs 13. `PositionSnap.SurfaceYOver` now derives every structure floor from the
+  footprint it occupies (highest top among its columns) — equivariant by construction, since a footprint is its
+  own mirror — via `CubeStamper.Footprint` / `StructureStamper.IronCubeFootprint`, in the iron stamper, both
+  cube kinds (`SketchWorldBuilder`) and the G73 preview alike. Room floors / redstone lines probe per-column and
+  were never affected. Surfaced by the G73 preview reporting true floors. (G74)
 - **Plan-editor derived-geometry overlays** — `POST /api/plan/inspect` (the canonical C# derived-structure feed
   for the editor's canvas; plan JSON in → ready-to-draw block-space overlay geometry out; malformed body → 400):
   derived **land interfaces** (cased-green seams; sliver/corner red), **gap links** with hop-distance labels

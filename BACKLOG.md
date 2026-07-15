@@ -113,6 +113,16 @@ the `island-roles` hook (`G11`), and the layout-generation design that resolved 
 Builds on the Sketch tool (`S2`) and the intent model (`N`).
 
 **Composer — box-model milestones (M2–M4 + doc)**
+- [ ] **G75 — Score a marker whose structure cannot paste.** The evaluator has no term for "this marker's
+  structure has nowhere to sit": an iron / spawn / wool marker whose stamped footprint (4×4 iron, 8×8 cube)
+  is not fully on terrain, up to none of it — the case that currently builds into the void. Sits beside G74:
+  once the floor probe is equivariant, a partly-overhanging structure is a *quality* signal (rank it by the
+  fraction of footprint off-terrain, or off a single surface) and a fully-unplaceable one is a hard/structural
+  term. Reads `BoardStructure` measurables + the surface map, never a family name; scored as `Band` distance
+  with `Evidence` so the canvas can isolate the offending marker (`docs/contracts/layout-evaluator.md` §6).
+  Note the stamped footprint, not the marker point, is the subject — a marker legally on its piece can still
+  hang its cube off the edge.
+
 - [ ] **G61 — [M2] Wool arms become wool boxes (first production caller of the emitter).** Inside
   `TeamUnitGrower`, replace the inline 1–3-segment wool-lane growth (its own I/L/Z grammar — the third
   shape implementation) with: partition the arm region into a `Box(Wool)` carrying a typed entry

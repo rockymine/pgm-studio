@@ -8,6 +8,9 @@
  * Consumes the same "solids" the bridge already builds (one per shape, plus rot/mirror copies):
  *   - prism:   { exterior, top, floor, mirror } — footprint extruded floor→top (caps + wall quads).
  *   - terrain: { vertices, heights, floor, mirror } — per-anchor: TIN top + walls following heights.
+ * Either may add `color` (0xRRGGBB) to opt out of the island/mirror pair and draw in its own material —
+ * one draw call per distinct colour. Everything stays opaque: translucency would need a back-to-front
+ * sort, which is exactly what the mirror image defeats.
  * World (x,z) map to scene (x,z); height maps to scene y. An orthographic camera at a fixed isometric
  * elevation (yaw is user-rotatable) keeps it a true axonometric view. A single owned WebGL context,
  * one shader program, and two vertex buffers are reused across renders.
@@ -16,10 +19,10 @@
 import { earClip, earClipWithHoles } from "../geometry/triangulation.js";
 
 const ELEV = Math.atan(1 / Math.SQRT2);   // true-isometric elevation (~35.26°)
-const COL = {
-  island: hexRgb(0x6d7ce8),
-  mirror: hexRgb(0xaab1dd),
-  ground: hexRgb(0xccd4e6),
+const COL = {          // 0xRRGGBB, as `solids` name their colours — hexRgb'd at the draw call
+  island: 0x6d7ce8,
+  mirror: 0xaab1dd,
+  ground: 0xccd4e6,
 };
 
 const VERT_SRC = `
@@ -106,15 +109,20 @@ export class IsoScene {
     gl.viewport(0, 0, this.#canvas.width, this.#canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Split the triangle soup by colour (one draw each) and track the scene extents for framing.
-    const island = [], mirror = [];
+    // Split the triangle soup by colour (one draw each) and track the scene extents for framing. A solid may
+    // name its own `color` (an 0xRRGGBB int — the plan view's structure materials); the rest fall back to the
+    // island/mirror pair.
+    const batches = new Map();
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, maxY = 0;
     const grow = (x, z, y) => { if (x < minX) minX = x; if (x > maxX) maxX = x; if (z < minZ) minZ = z; if (z > maxZ) maxZ = z; if (y > maxY) maxY = y; };
 
     for (const s of (solids || [])) {
       const pos = s.vertices ? terrainPositions(s) : prismPositions(s);
       if (!pos) continue;
-      (s.mirror ? mirror : island).push(...pos);
+      const key = s.color ?? (s.mirror ? COL.mirror : COL.island);
+      let batch = batches.get(key);
+      if (!batch) batches.set(key, batch = []);
+      batch.push(...pos);
       const ring = s.vertices || s.exterior;
       const top = s.vertices ? Math.max(...s.heights) : s.top;
       for (const [x, z] of ring) grow(x, z, top);
@@ -140,13 +148,12 @@ export class IsoScene {
     // depth write off) so it blends against whatever is in front of it.
     gl.disable(gl.BLEND);
     gl.depthMask(true);
-    this.#draw(island, COL.island, false, 1);
-    this.#draw(mirror, COL.mirror, false, 1);
+    for (const [hex, pos] of batches) this.#draw(pos, hexRgb(hex), false, 1);
     if (ground) {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
-      this.#draw(ground, COL.ground, true, 0.5);
+      this.#draw(ground, hexRgb(COL.ground), true, 0.5);
       gl.depthMask(true);
       gl.disable(gl.BLEND);
     }

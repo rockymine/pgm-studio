@@ -26,12 +26,28 @@ public static class SketchTerrainBuilder
             for (var y = lo; y < hi; y++) world.SetBlock(x, y, z, Blocks.Stone);
 
             footprint.Add((x, z));
-            var top = Math.Clamp(yTop, 1, VoxelWorld.MaxHeight);
-            if (!surface.TryGetValue((x, z), out var cur) || top > cur) surface[(x, z)] = top;
+            AddSurface(surface, x, z, yTop);
         }
 
         foreach (var (x, z) in footprint) world.SetBlock(x, 0, z, Blocks.Bedrock);
 
         return new SketchTerrain(world, surface);
+    }
+
+    /// <summary>Just the per-cell surface tops of <paramref name="columns"/> — the same map <see cref="Build"/>
+    /// produces, without filling a world. For callers that only need to know where the terrain's surface is
+    /// (structure floors), for which the voxel fill is pure cost.</summary>
+    public static IReadOnlyDictionary<(int X, int Z), int> SurfaceTops(
+        IEnumerable<(int X, int Z, int YFloor, int YTop)> columns)
+    {
+        var surface = new Dictionary<(int X, int Z), int>();
+        foreach (var (x, z, _, yTop) in columns) AddSurface(surface, x, z, yTop);
+        return surface;
+    }
+
+    private static void AddSurface(Dictionary<(int X, int Z), int> surface, int x, int z, int yTop)
+    {
+        var top = Math.Clamp(yTop, 1, VoxelWorld.MaxHeight);
+        if (!surface.TryGetValue((x, z), out var cur) || top > cur) surface[(x, z)] = top;
     }
 }

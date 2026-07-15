@@ -21,10 +21,13 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   const fire = (name, ...args) => { try { dotnetRef?.invokeMethodAsync(name, ...args); } catch { /* host may not wire it */ } };
 
   // Read-only 3-D height preview (G27): "2d" | "iso", with a user-rotatable yaw. Rebuilt from the plan
-  // pieces/surfaces whenever the document changes while the preview is showing.
+  // pieces/surfaces whenever the document changes while the preview is showing. The stamped structures
+  // (G73) ride along from the inspect feed — the server derives them, so they trail an edit by one
+  // debounce and refresh in place when they land.
   let view = "2d";
   let isoYaw = 30;
-  function refreshIso() { if (view === "iso") canvas.showIso(planIsoSolids(doc), isoYaw, viewBounds(doc)); }
+  let structures = [];
+  function refreshIso() { if (view === "iso") canvas.showIso(planIsoSolids(doc, structures), isoYaw, viewBounds(doc)); }
 
   const canvas = new PlanCanvas(svgEl, wrapEl, {
     cursorEl,
@@ -134,12 +137,16 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (seq !== inspectSeq) return;            // a newer edit already fired
     if (!res.ok) {                             // malformed plan (400) — clear the derived overlay
       canvas.setInspect({ interfaces: [], gapLinks: [], frontline: [] });
+      structures = [];
+      refreshIso();
       return;
     }
     let data;
     try { data = await res.json(); } catch { return; }
     if (seq !== inspectSeq) return;            // re-check after the awaited body
     canvas.setInspect({ interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] });
+    structures = data.structures || [];
+    refreshIso();
   }
 
   // The evaluator feed: the plan's score + every fired rule (hard-first) with cell-space evidence. The evidence
@@ -220,7 +227,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     // and tell the host so it can disable the toggle.
     setView(v) {
       if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }
-      canvas.showIso(planIsoSolids(doc), isoYaw, viewBounds(doc)).then(ok => {
+      canvas.showIso(planIsoSolids(doc, structures), isoYaw, viewBounds(doc)).then(ok => {
         view = ok === false ? "2d" : "iso";
         if (ok === false) fire("OnIsoUnavailable");
       });

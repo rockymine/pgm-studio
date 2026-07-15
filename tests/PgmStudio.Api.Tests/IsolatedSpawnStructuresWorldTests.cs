@@ -24,6 +24,15 @@ public sealed class IsolatedSpawnStructuresWorldTests
         return Path.Combine(dir.FullName, "tools", "seeds", "isolated-spawn.plan.json");
     }
 
+    /// <summary>The Y an iron cube rests at: the surface across its footprint, as the stamper resolves it. Not
+    /// the anchor column's surface — the anchor is a grid line, and probing one side of it disagrees across the
+    /// symmetry orbit (the seed's own marker sits at a terrain edge, where it read the y=1 fallback).</summary>
+    private static int IronBase(IronCube iron, IReadOnlyDictionary<(int X, int Z), int> surface)
+    {
+        var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(iron.X, iron.Z);
+        return PositionSnap.SurfaceYOver(surface, minX, minZ, maxX, maxZ, 1);
+    }
+
     private static (VoxelWorld World, StructureIntent Structures, IReadOnlyDictionary<(int X, int Z), int> Surface) Build()
     {
         var plan = PlanModel.Parse(File.ReadAllText(SeedPath()))!;
@@ -54,10 +63,10 @@ public sealed class IsolatedSpawnStructuresWorldTests
         var midZ = (line.Z1 + line.Z2) / 2;
         await Assert.That(w.GetBlock(midX, Surf(midX, midZ), midZ).Id).IsEqualTo(Blocks.RedstoneWire);
 
-        // ST2/ST3 — the renewable iron cube sits at its marker.
+        // ST2/ST3 — the renewable iron cube rests on the surface its footprint spans.
         var iron = s.IronCubes.First(c => c.Renew);
         var (ix, iz, _, _) = StructureStamper.IronCubeFootprint(iron.X, iron.Z);
-        int ibase = Surf(iron.X, iron.Z);
+        int ibase = IronBase(iron, surface);
         await Assert.That(w.GetBlock(ix, ibase, iz).Id).IsEqualTo(Blocks.IronBlock);
         await Assert.That(w.GetBlock(iron.X, ibase + 3, iron.Z).Id).IsEqualTo(Blocks.IronBlock);
 
@@ -75,7 +84,7 @@ public sealed class IsolatedSpawnStructuresWorldTests
         var (world, s, surface) = Build();
         var iron = s.IronCubes.First(c => c.Renew);
         var (ix, iz, _, _) = StructureStamper.IronCubeFootprint(iron.X, iron.Z);
-        int ibase = surface.GetValueOrDefault((iron.X, iron.Z), 1);
+        int ibase = IronBase(iron, surface);
 
         var dir = Path.Combine(Path.GetTempPath(), "isostruct_" + Guid.NewGuid().ToString("N"));
         try

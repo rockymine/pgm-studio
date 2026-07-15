@@ -10,6 +10,7 @@
  */
 
 import { applySymmetry, applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
+import { dyeColorHex } from "../render/palette.js";
 
 // Piece roles — the drawable-role set. Pieces are anonymous by default (one neutral tint); the two
 // intent-bearing generating roles (wool-room / spawn) keep distinct tints. Two non-generating annotations
@@ -367,8 +368,12 @@ export function zoneMirrorImages(doc) {
  * mirror copy is emitted per orbit axis for every mirroring piece (about the origin, since cells are
  * centre-relative), matching the 2-D symmetry ghost. Depth-buffered on the GPU, so where footprints
  * overlap the taller column occludes.
+ *
+ * `structures` (optional) are the boxes the world build will stamp, from `/api/plan/inspect` — already
+ * resolved to blocks and fanned across the orbit, so they are emitted verbatim in their material colour.
+ * They arrive one debounce behind an edit and simply catch up.
  */
-export function planIsoSolids(doc) {
+export function planIsoSolids(doc, structures) {
   const { cell, symmetry } = doc.globals;
   const axes = orbitAxes(symmetry);
   const ringOf = (b) => [[b.min_x, b.min_z], [b.max_x, b.min_z], [b.max_x, b.max_z], [b.min_x, b.max_z]];
@@ -377,11 +382,35 @@ export function planIsoSolids(doc) {
     if (isAnnotationRole(p.role)) continue;
     const b = rectCellsToBlocks(p.rect, cell);
     const top = pieceSurface(doc, p);
-    out.push({ exterior: ringOf(b), top, floor: 0, mirror: false });
+    // The export stamps a wool-room piece solid bedrock to its surface — its footprint *is* the room
+    // floor — so it reads as bedrock instead of terrain. No separate solid: that box is this one.
+    const bedrock = p.role === "wool-room";
+    out.push({ exterior: ringOf(b), top, floor: 0, mirror: false, color: bedrock ? MAT.bedrock : undefined });
     if (p.mirrors === false) continue;
-    for (const axis of axes) out.push({ exterior: ringOf(applySymmetryToBounds(b, axis, 0, 0)), top, floor: 0, mirror: true });
+    for (const axis of axes)
+      out.push({
+        exterior: ringOf(applySymmetryToBounds(b, axis, 0, 0)), top, floor: 0, mirror: true,
+        color: bedrock ? MAT.bedrockMirror : undefined,
+      });
+  }
+  for (const s of (structures || [])) {
+    out.push({
+      exterior: ringOf({ min_x: s.minX, min_z: s.minZ, max_x: s.maxX, max_z: s.maxZ }),
+      top: s.top, floor: s.floor, mirror: false, color: structureColor(s),
+    });
   }
   return out;
+}
+
+// Structure materials, as 0xRRGGBB the iso renderer draws directly. Mirrored terrain is washed out to
+// stay readable as a symmetry image; a structure is never washed out — every orbit image is a real box,
+// and the team/wool colours already tell them apart.
+const MAT = { bedrock: 0x4e4e56, bedrockMirror: 0x9a9aa2, iron: 0xdcdce2 };
+
+// A cube names its wool/team colour as a slug; iron and walls carry their own fixed material.
+function structureColor(s) {
+  if (s.color) return parseInt(dyeColorHex(s.color).slice(1), 16);
+  return s.kind === "iron" ? MAT.iron : MAT.bedrock;
 }
 
 /** The mirror-image centre points (block coords) of every marker on a mirroring piece — for the ghost. */

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FastEndpoints;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Evaluate;
@@ -12,10 +13,12 @@ namespace PgmStudio.Api.Endpoints;
 /// POST /api/plan/inspect — the live derived-geometry feed for the plan editor's canvas overlays. The request
 /// body is a plan wire document (<c>*.plan.json</c>); the response carries everything already resolved to block
 /// coordinates so the canvas draws it directly: <c>interfaces</c> (land/narrow/corner contacts as segments),
-/// <c>gapLinks</c> (zone-spanning connectors with the hop distance) and <c>frontline</c> (piece edges facing a
-/// zone). Rule findings/violations are the <c>/plan/evaluate</c> endpoint's job (the evaluator is the single
-/// source) — this endpoint is purely the <see cref="ContactGraph"/> derivation, which the Blazor client can't run
-/// itself. A malformed body is answered 400, never 500.
+/// <c>gapLinks</c> (zone-spanning connectors with the hop distance), <c>frontline</c> (piece edges facing a
+/// zone) and <c>structures</c> (the boxes the world build will stamp — see <see cref="PlanStructurePreview"/> —
+/// which the iso view draws). Rule findings/violations are the <c>/plan/evaluate</c> endpoint's job (the
+/// evaluator is the single source). This is the derivation the Blazor client can't run itself, and the feed for
+/// anything needing live geometry mid-edit: unlike <c>/plan/compile</c> it never withholds its answer over
+/// structural errors. A malformed body is answered 400, never 500.
 /// </summary>
 public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 {
@@ -57,7 +60,17 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 
         var frontline = d.FrontlineEdges.Select(f => new { piece = f.Piece, x1 = f.X1, z1 = f.Z1, x2 = f.X2, z2 = f.Z2 });
 
-        await Send.OkAsync(new { interfaces, gapLinks, frontline }, ct);
+        // The boxes the world build will stamp (the iso view draws them). A plan mid-edit is routinely
+        // incomplete, so a compile failure degrades to no structures rather than failing the whole feed —
+        // the derived-geometry overlays above stay live either way.
+        IReadOnlyList<StructureBox> structures;
+        try { structures = PlanStructurePreview.Build(plan); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
+        {
+            structures = [];
+        }
+
+        await Send.OkAsync(new { interfaces, gapLinks, frontline, structures }, ct);
     }
 }
 

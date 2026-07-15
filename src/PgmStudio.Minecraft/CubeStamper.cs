@@ -29,6 +29,11 @@ public static class CubeStamper
     public const int SlitLayer = 6;        // missing course — the light slit
     public const int StripLayer = 4;       // coloured strip (wool / stained clay)
 
+    /// <summary>The 8×8 XZ footprint (min inclusive, max inclusive) of a cube anchored on
+    /// <paramref name="anchorX"/>/<paramref name="anchorZ"/> — the columns its shell stands on.</summary>
+    public static (int MinX, int MinZ, int MaxX, int MaxZ) Footprint(int anchorX, int anchorZ)
+        => (anchorX - Half, anchorZ - Half, anchorX + Half - 1, anchorZ + Half - 1);
+
     public static void Stamp(VoxelWorld world, int anchorX, int anchorZ, int floorY, int color, CubeKind kind, Facing doorFacing = Facing.NegZ)
     {
         var x0 = anchorX - Half;
