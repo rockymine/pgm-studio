@@ -32,13 +32,12 @@ the focus-integration polish remains.
   Re-derive the id on colour change and **cascade the rename** across the intent — `teams`, `islandTeams`,
   and `spawns[].team` / `wools[].owner` / `wools[].monuments[].team` — with a guard to skip the rename (just
   recolour) when the new colour-derived id would collide with another team's.
-- [ ] **N11 — Spawn / wool-spawn / monument / observer Y must seat on terrain, not default to 0.**
-  `WoolObjectivesPhase` snaps its seed Y to the column floor (`ColumnFloorAsync` → `GET /map/{slug}/column-floor`),
-  but `SpawnPhase` defaults a new spawn/observer to **`Y=0`** (`SpawnPhase.razor.cs:92`; `PlaceAndOrbit(..., y=0)`
-  :149) and `WoolSpawnPhase` never snaps — so a placed spawn sits at world-bottom and the player falls out of the
-  world. On point/rect placement (**and the orbit copies**) snap Y to the terrain floor at that column via the same
-  `ColumnFloorEndpoint`, for team spawns, the observer, wool spawns, and monuments. Reuse the `WoolObjectivesPhase`
-  snap helper. Pairs with `N08` (monument Y editing) and `CV11` (the side-view clamp side of the same problem).
+- [~] **N11 — Wool-spawn & monument Y must seat on terrain, not default to 0.** `SpawnPhase` now snaps team
+  spawns (point placement + orbit copies) and the observer onto the column floor via `ColumnFloorAsync`
+  (`GET /map/{slug}/column-floor`). Still open: `WoolSpawnPhase` never snaps, monuments aren't seated, and a
+  spawn's Y isn't re-snapped when it's moved to a new column via the coord inputs (only on point placement).
+  Snap Y the same way for wool spawns and monuments (reuse the `ColumnFloorAsync` helper). Pairs with `N08`
+  (monument Y editing) and `CV11` (the side-view clamp side of the same problem).
 
 ## Sketch tool (S) — parked slices
 

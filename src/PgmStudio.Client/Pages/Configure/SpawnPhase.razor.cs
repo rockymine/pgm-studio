@@ -52,7 +52,7 @@ public partial class SpawnPhase
     {
         LoadFromIntent();
         await LoadIslands();
-        EnsureObserverDefault();
+        await EnsureObserverDefault();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -88,11 +88,15 @@ public partial class SpawnPhase
 
     // Every PGM map needs a <default> spawn; show one immediately (defaulting to the map middle) so the
     // author can edit it like a team spawn instead of leaving observers to fall in at 0,0,0.
-    private void EnsureObserverDefault()
+    private async Task EnsureObserverDefault()
     {
         if (observer is not null) return;
         var (mx, mz) = MapMiddle();
-        observer = new Spawn { Team = ObserverId, X = Snap(mx), Y = spawns.FirstOrDefault()?.Y ?? 0, Z = Snap(mz) };
+        double x = Snap(mx), z = Snap(mz);
+        // Seat the default observer on the terrain at the map middle (falling back to the first team spawn's
+        // height, else world-bottom) instead of dropping it at Y=0.
+        double y = await ColumnFloorAsync(x, z) is { } f ? f : (spawns.FirstOrDefault()?.Y ?? 0);
+        observer = new Spawn { Team = ObserverId, X = x, Y = y, Z = z };
         RecomputeObserverYaw();
     }
 
@@ -123,12 +127,16 @@ public partial class SpawnPhase
         // With the observer selected, the point tool relocates it (it has no orbit) rather than placing a team.
         if (selectedTeamId == ObserverId && observer is not null)
         {
-            observer.X = x; observer.Z = z; RecomputeObserverYaw();
+            observer.X = x; observer.Z = z;
+            if (await ColumnFloorAsync(x, z) is { } oy) observer.Y = oy;   // seat on terrain, not world-bottom
+            RecomputeObserverYaw();
             WriteIntent(); await PaintSpawns(); return;
         }
         var team0 = IslandTeamAt(x, z) ?? selectedTeamId ?? teams.FirstOrDefault()?.Id;
         if (team0 is null) return;
-        PlaceAndOrbit(team0, x, z);
+        // Snap the spawn onto the clicked column's terrain floor; the orbit shares it (symmetric terrain).
+        var y = await ColumnFloorAsync(x, z) ?? 0;
+        PlaceAndOrbit(team0, x, z, y);
         selectedTeamId = team0;
         WriteIntent();
         await PaintSpawns();
@@ -201,6 +209,19 @@ public partial class SpawnPhase
     }
 
     private static double Snap(double v) => Math.Floor(v) + 0.5;
+
+    // The terrain floor Y at a spawn's column — the topmost solid segment top — or null when the column has
+    // no segment data. Snaps a placed spawn onto the ground instead of leaving it at world-bottom (Y=0).
+    private async Task<int?> ColumnFloorAsync(double x, double z)
+    {
+        try
+        {
+            var d = await Http.GetFromJsonAsync<JsonElement>(
+                $"api/map/{Slug}/column-floor?x={(int)Math.Floor(x)}&z={(int)Math.Floor(z)}");
+            return d.TryGetProperty("y", out var y) && y.ValueKind == JsonValueKind.Number ? y.GetInt32() : null;
+        }
+        catch { return null; }
+    }
 
     private void SelectTeam(string id) => selectedTeamId = id;
 
