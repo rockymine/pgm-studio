@@ -233,6 +233,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   over all 1603 maps in both corpora, 297 carry `<destroyables>` / 959 leaves, of which **80 phantoms (8%)
   across 39 maps — 70 block-swap, 10 trigger** (deathrun_aperture's ten levers), and **30 maps are
   phantom-only**, i.e. PGM tags them DTM and they are not. (B27, OB16)
+- **Gamemode is derived from the modules, not read off the `<gamemode>` element.** The element was parsed
+  into a scalar `MapXml.Gamemode` **defaulting to `"ctw"`**, and both halves were wrong. Now split in two:
+  `DeclaredGamemode` is the author's label verbatim (empty when absent — never invented) and **`Gamemodes`
+  is the derived set**, the truth, since PGM decides the mode by which modules parsed. It is a **set**
+  because CTW/DTM/DTC coexist. One deliberate deviation from PGM: a module contributes only if it holds a
+  **real** objective, so a phantom-only map is not DTM whatever PGM's tag says (needs B27). Corpus-verified
+  over 910 in-range maps: **70% declare no `<gamemode>` at all** (the default was fabricating it), **137
+  declare one that disagrees with their own modules** (`ad`, `CTW`, or `ctw` on a DTM map), and **12 carry
+  more than one gamemode**. `abstract` derives `[ctw]` not `[ctw,dtm]` — the carve-out working; `sentient`
+  derives `[ctw,dtm]`; `alpine_mining_ii` derives `[dtm]` while declaring nothing. The `map.gamemode` column
+  holds the label (its honest meaning — `OverviewActivity` edits it as free text); whether to persist the
+  derived set is parked as B32. (B23, OB7/OB15/OB16)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)

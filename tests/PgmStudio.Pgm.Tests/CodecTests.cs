@@ -53,7 +53,8 @@ public sealed class CodecTests
     {
         var m = Parse();
         await Assert.That(m.Name).IsEqualTo("Test Map");
-        await Assert.That(m.Gamemode).IsEqualTo("ctw");          // defaulted (no <gamemode>)
+        await Assert.That(m.DeclaredGamemode).IsEmpty();          // the sample declares no <gamemode>
+        await Assert.That(m.Gamemodes).IsEquivalentTo(new[] { "ctw" });   // derived from its <wools>
         await Assert.That(m.MaxBuildHeight).IsEqualTo(128);
         await Assert.That(m.Teams.Select(t => t.Id)).Contains("red-team");
         await Assert.That(m.Teams.Select(t => t.Id)).Contains("blue-team");

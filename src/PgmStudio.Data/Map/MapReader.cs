@@ -71,7 +71,9 @@ public sealed class MapReader(PgmDb db)
         {
             Name = map.Name,
             Version = map.Version ?? "",
-            Gamemode = map.Gamemode ?? "ctw",
+            // The column holds the author's <gamemode> label, which most maps don't declare — an absent
+            // one stays absent rather than becoming an invented "ctw". MapXml.Gamemodes is the truth.
+            DeclaredGamemode = map.Gamemode ?? "",
             Objective = map.Objective ?? "",
             MaxBuildHeight = map.MaxBuildHeight is { } h ? (int)h : null,
         };

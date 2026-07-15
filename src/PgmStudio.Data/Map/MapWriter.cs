@@ -30,7 +30,7 @@ public sealed class MapWriter(PgmDb db)
         await using var tx = await db.BeginTransactionAsync(ct);
         await DeleteEntitiesAsync(mapId, ct);
         await db.Maps.Where(x => x.Id == mapId).Set(x => x.Name, m.Name)
-            .Set(x => x.Version, NullIfEmpty(m.Version)).Set(x => x.Gamemode, NullIfEmpty(m.Gamemode))
+            .Set(x => x.Version, NullIfEmpty(m.Version)).Set(x => x.Gamemode, NullIfEmpty(m.DeclaredGamemode))
             .Set(x => x.Objective, NullIfEmpty(m.Objective)).Set(x => x.MaxBuildHeight, (double?)m.MaxBuildHeight)
             .Set(x => x.UpdatedAt, DateTime.UtcNow).UpdateAsync(ct);
         await WriteEntitiesAsync(mapId, m, ct);

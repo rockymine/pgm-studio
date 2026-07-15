@@ -113,27 +113,27 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 **DTM / DTC objectives (destroyables + cores).** The contract is `docs/contracts/destroyables-and-cores.md`
 — it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
-its rule ids (`OB*`/`DT*`/`DC*`) are cited below. These run `B23` → `B25` → `B26`. Filed here (not `N`/`G`)
-because the bulk of each is pipeline — parser, writer, schema, intent, stamper — with the plan-editor
-placement as the last mile. **Shipped so far** (`FEATURES.md`): `B22`'s objective gate — a map declaring a
-module we can't read is rejected, so `B25` ends by adding `cores` to `MapParser.ParsedObjectiveModules`, as
-`B24` did for `destroyables`; `B24a`'s parser/writer/codec, whose `Xml.Flatten` (OB4) and
-`RegionParser.ParseRegionProperty` cores take as-is; and `B27`'s phantom classifier
-(`Destroyable.IsObjective`/`.Phantom`), which `B23` needs and `B26` must respect.
+its rule ids (`OB*`/`DT*`/`DC*`) are cited below. These run `B25` → `B26`. Filed here (not `N`/`G`) because
+the bulk of each is pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as
+the last mile. **Shipped so far** (`FEATURES.md`): `B22`'s objective gate — a map declaring a module we can't
+read is rejected, so `B25` ends by adding `cores` to `MapParser.ParsedObjectiveModules`, as `B24` did for
+`destroyables`; `B24a`'s parser/writer/codec, whose `Xml.Flatten` (OB4) and `RegionParser.ParseRegionProperty`
+cores take as-is; `B27`'s phantom classifier (`Destroyable.IsObjective`/`.Phantom`), which `B26` must respect;
+and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `dtc`.
 
-- [ ] **B23 — Gamemode is a derived set, not the `<gamemode>` element.** PGM never reads that element to decide
-  the mode — each module contributes a `MapTag` when it parses (`<wools>` → CTW, `<destroyables>` → DTM,
-  `<cores>` → DTC). `MapXml.Gamemode` is a single string defaulting to `"ctw"` when the element is absent
-  (`MapParser.cs:63`), and both halves are wrong. **A scalar can't hold it:** 72 of 742 objective maps across
-  both corpora carry more than one module (CTW+DTM 21 · DTM+DTC 46 · CTW+DTC 3 · all three 2), including 10 in
-  our own `ctw/` corpus. **The element is unreliable:** 68 of the 150 DTM/DTC maps declare no gamemode at all,
-  and 4 of our corpus 10 declare `ctw` while carrying destroyables. Derive a gamemode **set** from module
-  presence and retire the `"ctw"` default rather than extending it. **Deviate from PGM on one point** (needs
-  `B27`): PGM tags a map DTM the moment `DestroyableModule` parses anything, but **30 of the 297 maps with
-  `<destroyables>` hold nothing but phantoms** — and **8 of our own corpus 10 are phantom-only pure-CTW maps**
-  (abstract, abstract_remix, citadel, down_side_up, fairy_tales_metamorphose, mine_your_own_business,
-  newgen_classic, vesuvius; only `sentient` and `bungee_coorde` are genuine). A module contributes a gamemode
-  only if it holds ≥1 non-`show="false"` leaf, so this **depends on `B27`**. Pairs with `B22`. (OB7, OB15, OB16)
+- [ ] **B32 — Decide what the `map.gamemode` column is for, now that the label and the truth are separate
+  things (parked decision).** `B23` split them: `MapXml.DeclaredGamemode` is the author's `<gamemode>` text
+  and `MapXml.Gamemodes` is the set derived from the modules. The column got the **label** — which is its
+  honest meaning, since `OverviewActivity` edits it as free text with a `ctw` placeholder — but that leaves a
+  gap: **70% of maps declare no label**, so `MapSummary.Gamemode` → `Home.razor`'s `list-tag` is now blank for
+  most imported maps where it used to read `ctw`. The old value was a fabrication (and wrong outright for a
+  DTM map), so this is not a regression to revert; it is a question to answer.
+  **The blocking question: should the derived set be persisted, or computed per request?** Persisting it wants
+  a second column (`gamemode_derived`) written by the importer/`MapWriter` and kept honest whenever a wool or
+  destroyable changes — cheap to list, one more thing to keep in sync. Computing it wants the list query to
+  reach the `wool`/`destroyable` tables, which `MapsListEndpoint` doesn't today — always right, but a join per
+  map. **`B24b`'s migration is the natural moment to settle it**, since it adds the `destroyable` table the
+  derivation reads. Until then the list tag shows the label or nothing. (OB7, OB15)
 - [~] **B24 — DTM: destroyables + objective modes.** Parser, writer and codec have landed (`FEATURES.md`);
   what remains is everything below the contract. **(b) schema** — `destroyable` + `mode` tables on `map_id`,
   **not** a reuse of `monument`, whose `wool_id` FK makes a wool-less objective unrepresentable. **(c) intent**

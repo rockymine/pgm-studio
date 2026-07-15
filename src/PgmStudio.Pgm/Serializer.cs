@@ -14,6 +14,9 @@ public static class Serializer
         // so a map without them serialises to exactly the shape it always did.
         if (m.Destroyables.Count > 0) d["destroyables"] = m.Destroyables.Select(EncodeDestroyable).ToList<object?>();
         if (m.Modes.Count > 0) d["modes"] = m.Modes.Select(EncodeMode).ToList<object?>();
+        // The derived truth beside the declared label — `gamemode` is what the author wrote (often
+        // nothing), `gamemodes` is what the map's modules make it.
+        if (m.Gamemodes.Count > 0) d["gamemodes"] = m.Gamemodes.ToList<object?>();
         return d;
     }
 
@@ -21,7 +24,7 @@ public static class Serializer
     {
         ["name"] = m.Name,
         ["version"] = m.Version,
-        ["gamemode"] = m.Gamemode,
+        ["gamemode"] = m.DeclaredGamemode,
         ["objective"] = m.Objective,
         ["max_build_height"] = m.MaxBuildHeight,
         ["authors"] = m.Authors.Select(EncodeAuthor).ToList<object?>(),

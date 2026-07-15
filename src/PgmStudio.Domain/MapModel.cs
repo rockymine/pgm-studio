@@ -227,7 +227,16 @@ public sealed class MapXml
 {
     public string Name = "";
     public string Version = "";
-    public string Gamemode = "ctw";
+
+    /// <summary>
+    /// The <c>&lt;gamemode&gt;</c> element verbatim, or empty when the map declares none — which is the
+    /// common case. It is a free-text label PGM never reads to decide anything, so it is <b>not</b> the
+    /// gamemode; <see cref="Gamemodes"/> is. Kept because it is the author's own word and sometimes says
+    /// what no module can (a CTW map labelled <c>ad</c> is played attack/defend), and because it should
+    /// round-trip. Never default it: inventing "ctw" for a map that declared nothing is a guess that reads
+    /// as a fact.
+    /// </summary>
+    public string DeclaredGamemode = "";
     public string Objective = "";
     public int? MaxBuildHeight;
     public List<Author> Authors = [];
@@ -253,4 +262,26 @@ public sealed class MapXml
     public List<string> ToolRepair = [];      // tool/weapon materials auto-repaired
     public List<KillReward> KillRewards = []; // items granted per kill
     public string? HungerDepletion;           // null = no <hunger>; "off"/"on" → <hunger><depletion>…</depletion></hunger>
+
+    /// <summary>
+    /// The map's gamemodes, derived from which objective modules it carries. This is the gamemode — PGM
+    /// never reads <c>&lt;gamemode&gt;</c> to decide it; each module contributes a tag when it parses, and
+    /// the mode falls out of which ones did.
+    /// <para>It is a <b>set</b>, not a scalar: CTW, DTM and DTC coexist, and both corpora keep a
+    /// <c>mixed/</c> directory for the maps that prove it. Nothing may assume a map has exactly one.</para>
+    /// <para>One deliberate deviation from PGM: a module contributes only if it holds a <b>real</b>
+    /// objective. PGM tags a map DTM the moment <c>DestroyableModule</c> parses anything, but a map whose
+    /// every destroyable is a phantom is not DTM whatever PGM's tag says — those maps are pure CTW that
+    /// happen to script their build floor with the destroyable element.</para>
+    /// </summary>
+    public IReadOnlyList<string> Gamemodes
+    {
+        get
+        {
+            var modes = new List<string>();
+            if (Wools.Count > 0) modes.Add("ctw");
+            if (Destroyables.Any(d => d.IsObjective)) modes.Add("dtm");
+            return modes;
+        }
+    }
 }

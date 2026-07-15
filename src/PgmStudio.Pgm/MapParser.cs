@@ -98,7 +98,7 @@ public sealed partial class MapParser
         {
             Name = GetText("name", ""),
             Version = GetText("version", ""),
-            Gamemode = NonEmpty(GetText("gamemode", "ctw"), "ctw"),
+            DeclaredGamemode = GetText("gamemode"),
             Objective = GetText("objective", ""),
             Authors = ParseAuthors(),
             Teams = ParseTeams(),

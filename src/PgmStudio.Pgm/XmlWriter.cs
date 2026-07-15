@@ -107,7 +107,9 @@ public static partial class XmlWriter
         var root = new XElement("map", new XAttribute("proto", "1.5.0"));
         root.Add(new XElement("name", m.Name));
         root.Add(new XElement("version", m.Version));
-        if (m.Gamemode.Length > 0 && m.Gamemode != "ctw") root.Add(new XElement("gamemode", m.Gamemode));
+        // The author's own label, round-tripped verbatim. PGM never reads it, so a map that declared none
+        // gets none back rather than an invented one.
+        if (m.DeclaredGamemode.Length > 0) root.Add(new XElement("gamemode", m.DeclaredGamemode));
         root.Add(new XElement("objective", m.Objective));
 
         foreach (var inc in m.Includes) root.Add(new XElement("include", new XAttribute("id", inc)));
