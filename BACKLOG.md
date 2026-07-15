@@ -165,8 +165,9 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
 - [ ] **B31 — Island detection still guesses at the build floor a parsed phantom now states exactly.**
   `LayerExtractors.CleanBaseExclude` excludes stained glass (95) as a "build-floor marker removed pre-game
   via a `destroyables` mode-change" — a **material guess** ("glass as the lowest solid must be a build
-  floor") that stands in for the phantom pattern because the parser could not see the mode. `B27` removed
-  that excuse: a `BlockSwap` phantom's region + its mode state **precisely which blocks vanish before play**,
+  floor") that stands in for the phantom pattern because the parser could not see the mode. The phantom
+  classifier removed that excuse: a `BlockSwap` phantom's region + its mode state **precisely which blocks
+  vanish before play**,
   per map, with no material heuristic. Replace the guess with the fact — feed the phantom regions of a map
   into the scan so the cleaned base subtracts exactly what the mode erases, and drop 95 from the blanket
   exclusion once it does (the guess also silently eats decorative glass floors that are *not* build markers,
@@ -189,12 +190,13 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
   nothing in `B28`**. First diagnostic: dump the distinct include ids per map, so the size of the unknown is at
   least visible.
 - [ ] **B28 — Water lanes (CTW): detect all three forms, author the newest.** A **route that opens mid-match** —
-  a gap between islands becomes bridgeable, adding a late-game way to reach the wool. A CTW feature, blocked
-  here only because its legacy form *is* a destroyable (`B27`). **The mechanic is `VoidFilter`, and it reads
+  a gap between islands becomes bridgeable, adding a late-game way to reach the wool. A CTW feature, filed
+  here only because its legacy form *is* a destroyable — no longer blocked, since destroyables and their
+  phantom classification now parse. **The mechanic is `VoidFilter`, and it reads
   y=0 live:** a column is void iff `(x,0,z)` is air and wasn't a block-36 marker, and `getBlockAt` is evaluated
   **at query time, not load** — so filling y=0 with water at 15m makes the whole column non-void and
   `deny(void)` stops applying. Players then bridge a route that did not exist. (Same y=0 rule explains the
-  block-36 marker and the stained-glass build floor — see `B27`.) **Three generations, detect all:** *Gen 1* =
+  block-36 marker and the stained-glass build floor — see `B31`.) **Three generations, detect all:** *Gen 1* =
   a fake destroyable with `materials="air"` at y=0 swapped to water by a mode (vesuvius 20m, newgen_classic 15m,
   dominion 10m, piorun 5m — ownership vestigial, split per-team only because `owner` is required); *Gen 2* =
   `<action><fill region="…" material="water" filter="only-air"/></action>` on a time `<trigger>`, no destroyable
@@ -213,7 +215,8 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
   The authored primitive is **a set of y=0 rects** (a union of cuboids spanning y=0..1), not a path — straights
   and corners are both just rects; "bridgeable" is the authors' own word. Note the water bucket is **unrelated**
   (a universal movement tool for cancelling fall damage: 163 of 358 `ctw/` maps carry one, 157 of them with no
-  lanes). Depends on `B27` for Gen 1 detection only. (`destroyables-and-cores.md` §14)
+  lanes). Gen 1 detection is already unblocked — a fake lane is a `BlockSwap` phantom, which
+  `Destroyable.Phantom` now classifies. (`destroyables-and-cores.md` §14)
 - [ ] **B26 — Detect destroyables + cores from a world scan (later).** The `MonumentSuggester` move applied to
   the **easier** problem: scan the world, propose the objectives, let the author confirm which is a destroyable
   and which is a core. Wool monuments are a design free-for-all (96.6% precision / 57.8% recall, recall capped
@@ -225,8 +228,10 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
   scan plumbing, the candidate-store shape (`monument_candidate`, `monument-candidate-store.md`) and the
   confirm-in-UI flow — only the classifier changes. **Trap (OB12):** propose the **structure's** bounding box
   and emit a region around it; the region itself is a human's loose box, is not in the world, and cannot be
-  detected. **Never propose a phantom (`B27`) as an objective** — a marker is not a monument. Depends on
-  `B24`/`B25`/`B27`.
+  detected. **Never propose a phantom as an objective** — a marker is not a monument; `Destroyable.Phantom`
+  already names the distinction, so respect it rather than re-deriving it. The parse/schema half it writes
+  into has landed; it needs only `B24`/`B25`'s authoring slices to have somewhere to put a confirmed
+  suggestion.
 
 ## Layout generation (G)
 
