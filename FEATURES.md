@@ -272,6 +272,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   null-vs-empty mode set, and cascade delete) **and end to end over the dev corpus**: `--refresh-xml`
   refreshes 346 maps through the editor write path, is idempotent on a second run (0 changes), and lands 22
   destroyables / 2 cores / 33 modes. (B24b, B25b, §11)
+- **Objective structure stamps — `ObjectiveStamper`.** The world half of DTM/DTC, built to the
+  **world-measured** corpus families rather than to the XML (a hand-authored region is a loose box drawn
+  around the structure and says nothing about its size). Destroyables: `pillar-1|2|3` (a 1×N column — 56%
+  of the corpus and the simplest stamp in the system), `cube-3`/`cube-4` with an optional concentric
+  **bedrock centre** that is invisible to the goal because `materials` names only the outer block (DT2), and
+  `column-plus`, dynamite's 3×3 cross — 5 blocks a layer, corners open, which is the family's signature
+  (DT4). Cores: a casing enclosing lava, **5×5×5 / shell 1 / 3×3×3 lava / capped top** by default, open-top
+  a flag (DC1). Both **float** (DT3/DC2), so no carve, void or negative-space primitive is needed, and the
+  base clears the highest ground the *footprint* spans — not the anchor column, which is a grid line whose
+  one-sided sample would not survive the symmetry orbit. `DigDepth` makes DC2 explicit: leak and float are
+  one knob (`max(0, leak − float)`), neither meaning anything alone. **`BlockBox` is the one box function
+  OB8 demands** — shared by the stamp and the region generator, with `CuboidMax` encoding OB13 (a
+  cuboid spans `[min, max)`), because a region that misses its structure yields a silent zero-health goal.
+  `Blocks` gains obsidian, gold, emerald, end stone and lava. (B24d, B25d, DT1–DT4/DC1–DC2/OB8/OB13)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)

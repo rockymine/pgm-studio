@@ -9,14 +9,20 @@ public static class Blocks
     public const int Air = 0;
     public const int Stone = 1;
     public const int Bedrock = 7;
+    public const int Lava = 10;              // flowing; a core's interior is stationary lava
+    public const int StationaryLava = 11;
+    public const int GoldBlock = 41;
     public const int Wool = 35;
     public const int IronBlock = 42;
+    public const int Obsidian = 49;
     public const int Chest = 54;
     public const int RedstoneWire = 55;
     public const int StandingSign = 63;
     public const int WallSign = 68;
     public const int RedstoneTorch = 76;
     public const int StainedGlass = 95;
+    public const int EndStone = 121;
+    public const int EmeraldBlock = 133;
     public const int StainedClay = 159;
     public const int StainedGlassPane = 160;
 }

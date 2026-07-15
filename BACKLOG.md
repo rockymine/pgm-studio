@@ -86,6 +86,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
+- [ ] **B33 — Three box types, two of them the same shape.** `PgmStudio.Minecraft` now holds two identical
+  inclusive integer AABBs — `ScanBox` (`MonumentSuggester`: the region the author boxed, with
+  `Contains`/`Expand`/`IntersectsChunk`) and `BlockBox` (`ObjectiveStamper`: a stamped structure's volume,
+  with `Width`/`Height`/`Depth`/`CuboidMax`). Same six fields, same convention, different method sets —
+  they're one value type wearing two role names. (`Api.Services.StructureBox` is **not** a third copy and
+  should stay separate: it is a *drawing* frame with exclusive maxes plus `Kind`/`Color`, a different
+  convention for a different job — the collision with it is what surfaced this.) Unify the two into one
+  inclusive AABB with the union of the helpers. Deliberately **not** done inside `B24d`: it means editing
+  `MonumentSuggester`'s 15 call sites, and that detector is corpus-validated at 96.6% precision — not
+  something to churn as a drive-by during unrelated work. Low priority: unlike the symmetry duplication this
+  is a value record, so there is no algorithm here that can silently drift.
 - [ ] **B30 — `--parity` is red on 342 of 349 maps and has been for a long time.** The harness has stopped
   gating anything: a fresh oracle sweep (regenerate `/tmp/pyfresh`, `--parity /tmp/pyfresh`) reports **2 ok,
   342 failed, 5 out of range**, and the failure is the same on essentially every map — `drift in: [kits]`,
@@ -134,25 +145,23 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
   reach the `wool`/`destroyable` tables, which `MapsListEndpoint` doesn't today — always right, but a join per
   map. **`B24b`'s migration is the natural moment to settle it**, since it adds the `destroyable` table the
   derivation reads. Until then the list tag shows the label or nothing. (OB7, OB15)
-- [~] **B24 — DTM: destroyables + objective modes.** Parser, writer, codec and schema have landed
-  (`FEATURES.md`); what remains is the authoring half. **(c) intent** — `DestroyableIntent` + orbit-fill (the
-  `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`; `rot_90` hides the placement kind
-  (OB14). **(d) stamps, in payoff order** — `pillar-1|2|3` (a 1×N obsidian column: 56% of the corpus and the
-  simplest stamp in the system), then `cube-3` + its bedrock centre (DT2), then `column-plus` (a mask over
-  the same box, DT4). Rides the iron-cube pipeline (`IronPlacement` → `PlanCompiler` →
-  `StructureStamper.StampIronCube` → `PlanStructurePreview`) with material/size parameterised; obsidian,
-  emerald, gold, ender stone and bedrock need adding to `Blocks` (it stops at stained glass). The structure
-  and its emitted `<region>` must come from **one** box function (OB8) — never derived twice — or PGM
-  silently yields a zero-health goal. **(e) validation** — ≥1 matching block per region (10 corpus
-  destroyables already fail it), never "region is full": the region is a loose box *around* the structure and
-  is legitimately mostly air (OB11, OB12).
-- [~] **B25 — DTC: cores.** Parse/write/codec/schema have landed (`FEATURES.md`); what remains rides on
-  `B24`'s remaining slices: `CoreIntent`, and the shell-and-lava stamp — **5×5×5 obsidian
-  casing, shell 1 thick, 3×3×3 lava interior, capped top** (65% of real cores; open-top is a flag at 11%),
-  plus lava in `Blocks` (DC1). The one real design knob is **DC2**: cores *float*, so `leak` and `float` are
-  one parameter — players dig `max(0, leak − float)` blocks into the terrain under the core, and `leak = 5` /
-  `float = 6` (no dig) is the corpus centre. No new class of world operation and no negative-space
-  primitive: the structure rests on nothing.
+- [~] **B24 — DTM: destroyables, the authoring half.** Parser, writer, codec, schema and the world stamps
+  have landed (`FEATURES.md`); what remains is the wiring between them. **(c) intent** —
+  `DestroyableIntent` + orbit-fill (the `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`,
+  compiled through `PlanCompiler` the way `IronPlacement` is, with the canvas preview riding
+  `PlanStructurePreview`; `rot_90` hides the placement kind (OB14), which is free to honour from day one.
+  The compiler must take the structure box **and** the emitted `<region>` from the one
+  `ObjectiveStamper.StructureBox` (OB8) — for generated maps the region is the exact structure bounds, since
+  the slack in hand-authored regions (OB12) is an artifact we don't reproduce. **(e) validation** — the
+  export gate asserts ≥1 block matching `materials` inside each destroyable's region and both casing and
+  lava inside each core's (10 corpus destroyables already fail it). Never "the region is full": by OB12 a
+  region is legitimately mostly air, so anything stricter rejects most of the corpus. Needs world access,
+  which `MapValidity` (doc-dict only, one rule) doesn't have today — that's the design question in this
+  slice. (OB8, OB11, OB12, OB14)
+- [~] **B25 — DTC: cores, the authoring half.** Parse/write/codec/schema and the shell-and-lava stamp have
+  landed (`FEATURES.md`); what remains is `CoreIntent` + `PlanPlacements.cores`, riding whatever `B24c`
+  builds for destroyables — the delta is only the extra knobs (`size`/`height`/`shell`/`openTop`, and the
+  `float`+`leak` pair that must be authored together because neither means anything alone, DC2).
 - [ ] **B31 — Island detection still guesses at the build floor a parsed phantom now states exactly.**
   `LayerExtractors.CleanBaseExclude` excludes stained glass (95) as a "build-floor marker removed pre-game
   via a `destroyables` mode-change" — a **material guess** ("glass as the lowest solid must be a build
