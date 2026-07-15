@@ -24,6 +24,7 @@ export class SideviewCanvas {
   #data       = null;   // server response object
   #buildHeight = null;  // world Y, or null
   #marker     = null;   // { p: worldPrimary, y: worldY } — the point/block cell dot, or null
+  #seatOnFloor = false; // true ⇒ the Y line snaps to the marker column's floors (spawn lines)
   #dragging   = false;
   #scale      = 4;
   #offsetX    = 0;
@@ -57,6 +58,12 @@ export class SideviewCanvas {
   setMarker(m) {
     this.#marker = (m && m.p != null && m.y != null) ? { p: Math.round(m.p), y: Math.round(m.y) } : null;
     this._render();
+  }
+
+  /** Constrain the Y line to the floors of the marker's column (a spawn stands on terrain). Off by
+   *  default: a block region's Y may legitimately sit inside terrain. */
+  setSeatOnFloor(on) {
+    this.#seatOnFloor = !!on;
   }
 
   resize() {
@@ -279,10 +286,33 @@ export class SideviewCanvas {
     const { y_min, y_count } = this.#data ?? {};
     const min = y_min ?? 0;
     const max = (y_min != null && y_count != null) ? y_min + y_count : 255;
-    const clamped = Math.max(min, Math.min(max, wy));
+    let clamped = Math.max(min, Math.min(max, wy));
+
+    // A spawn line rests on a floor: snap to the nearest one rather than letting the drag settle inside
+    // terrain or in mid-air. Every floor in the column stays reachable, so a run with several levels
+    // (an overhang, a platform above) is still selectable by dragging near it.
+    const levels = this._floorLevels();
+    if (levels.length > 0)
+      clamped = levels.reduce((a, b) => (Math.abs(b - clamped) < Math.abs(a - clamped) ? b : a));
+
     if (clamped === this.#buildHeight) return;
     this.#buildHeight = clamped;
     this._render();
     this.#onHeightChange?.(clamped);
+  }
+
+  // The Y values a spawn can stand at in the marker's column: an empty cell with a solid one directly
+  // below. Empty when seat-on-floor is off, there is no marker/data, or the column has no floor at all
+  // (pure void) — the caller then keeps the plain range clamp.
+  _floorLevels() {
+    if (!this.#seatOnFloor || !this.#marker || !this.#data) return [];
+    const { primary_min, primary_count, y_min, y_count, depth } = this.#data;
+    if (!depth || primary_min == null || y_min == null || !y_count) return [];
+    const pIdx = this.#marker.p - primary_min;
+    if (pIdx < 0 || pIdx >= primary_count) return [];
+    const levels = [];
+    for (let i = 1; i < y_count; i++)
+      if (depth[pIdx * y_count + i] === -1 && depth[pIdx * y_count + i - 1] >= 0) levels.push(y_min + i);
+    return levels;
   }
 }

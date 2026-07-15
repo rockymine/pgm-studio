@@ -57,7 +57,7 @@
                 <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.SpawnZ" @onchange="@(e => SetCoord(sel, "z", e))" /></div>
               </div>
             </div>
-            <SliceView Slug="@Slug" Node="@SpawnNode(sel)" OnYChanged="@(y => SetY(sel, y))" />
+            <SliceView Slug="@Slug" Node="@SpawnNode(sel)" OnYChanged="@(y => SetY(sel, y))" SeatOnFloor="true" />
             <p class="section-desc">Owned by <strong>@(string.IsNullOrEmpty(sel.Owner) ? "—" : TeamName(sel.Owner))</strong>.
               Drag the side-view line to set the Y. @(IsAuthored(sel) ? "Editing X/Z re-derives the mirror." : "")</p>
           </div>

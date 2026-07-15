@@ -12,6 +12,10 @@ public partial class SliceView : IAsyncDisposable
     /// patch the region's Y; when unwired the slice is display-only (no draggable line).</summary>
     [Parameter] public EventCallback<int> OnYChanged { get; set; }
 
+    /// <summary>Constrain the Y line to the floors of the point's column — it may only rest on terrain,
+    /// never inside a block or in mid-air. For spawns; leave off for a region whose Y may sit in terrain.</summary>
+    [Parameter] public bool SeatOnFloor { get; set; }
+
     private const int HalfWidth = 10;   // 21 columns total (the point ± 10)
 
     private ElementReference canvasRef;
@@ -82,8 +86,8 @@ public partial class SliceView : IAsyncDisposable
             int? markerY = editable ? pointY : null;          // the draggable line (editable only)
             int markerP = zLook ? ix : iz;                    // the point's primary-axis column (always shown)
             return zLook
-                ? new() { ["axis"] = axis, ["xmin"] = ix - HalfWidth, ["xmax"] = ix + HalfWidth, ["zmin"] = iz, ["zmax"] = iz, ["markerY"] = markerY, ["markerP"] = markerP, ["markerMy"] = pointY }
-                : new() { ["axis"] = axis, ["xmin"] = ix, ["xmax"] = ix, ["zmin"] = iz - HalfWidth, ["zmax"] = iz + HalfWidth, ["markerY"] = markerY, ["markerP"] = markerP, ["markerMy"] = pointY };
+                ? new() { ["axis"] = axis, ["xmin"] = ix - HalfWidth, ["xmax"] = ix + HalfWidth, ["zmin"] = iz, ["zmax"] = iz, ["markerY"] = markerY, ["markerP"] = markerP, ["markerMy"] = pointY, ["seatOnFloor"] = SeatOnFloor }
+                : new() { ["axis"] = axis, ["xmin"] = ix, ["xmax"] = ix, ["zmin"] = iz - HalfWidth, ["zmax"] = iz + HalfWidth, ["markerY"] = markerY, ["markerP"] = markerP, ["markerMy"] = pointY, ["seatOnFloor"] = SeatOnFloor };
         }
 
         if (D("min_x") is not { } mnx || D("max_x") is not { } mxx || D("min_z") is not { } mnz || D("max_z") is not { } mxz)

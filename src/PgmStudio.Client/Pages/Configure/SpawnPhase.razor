@@ -85,7 +85,7 @@
                 <div class="coord-field"><span class="coord-prefix">°</span><NumberField Value="sel.Yaw" ValueChanged="@(v => SetCoord(sel, "yaw", v))" Step="any" CssClass="coord-input" /></div>
               </div>
             </div>
-            <SliceView Slug="@Slug" Node="@SpawnNode(sel)" OnYChanged="@(y => SetY(sel, y))" />
+            <SliceView Slug="@Slug" Node="@SpawnNode(sel)" OnYChanged="@(y => SetY(sel, y))" SeatOnFloor="true" />
             @if (IsObserver(sel))
             {
               <p class="section-desc">The <strong>observer</strong> (<code>&lt;default&gt;</code>) spawn — where

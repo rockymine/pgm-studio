@@ -48,7 +48,7 @@ export async function mountSlice(canvasEl, dotnetRef, slug) {
       commitTimer = setTimeout(() => dotnetRef?.invokeMethodAsync("OnSliceY", y), 150);
     },
   });
-  let cur = { axis: "z", xmin: null, xmax: null, zmin: null, zmax: null, markerY: null, markerP: null, markerMy: null };
+  let cur = { axis: "z", xmin: null, xmax: null, zmin: null, zmax: null, markerY: null, markerP: null, markerMy: null, seatOnFloor: false };
 
   async function load(opts) {
     cur = { ...cur, ...opts };
@@ -58,6 +58,7 @@ export async function mountSlice(canvasEl, dotnetRef, slug) {
       const r = await fetch(`/api/map/${enc}/segments?${qs}`, { cache: "no-store" });
       canvas.setData(r.ok ? await r.json() : null);
     } catch { canvas.setData(null); }
+    canvas.setSeatOnFloor(cur.seatOnFloor);   // spawn lines rest on terrain; a block's Y may sit inside it
     canvas.setBuildHeight(cur.markerY);   // null = no draggable line (rectangle = display only)
     canvas.setMarker(cur.markerP != null && cur.markerMy != null ? { p: cur.markerP, y: cur.markerMy } : null);
     canvas.resize();
