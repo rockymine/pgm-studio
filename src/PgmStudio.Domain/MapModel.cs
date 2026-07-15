@@ -284,27 +284,8 @@ public sealed class MapXml
     public List<KillReward> KillRewards = []; // items granted per kill
     public string? HungerDepletion;           // null = no <hunger>; "off"/"on" → <hunger><depletion>…</depletion></hunger>
 
-    /// <summary>
-    /// The map's gamemodes, derived from which objective modules it carries. This is the gamemode — PGM
-    /// never reads <c>&lt;gamemode&gt;</c> to decide it; each module contributes a tag when it parses, and
-    /// the mode falls out of which ones did.
-    /// <para>It is a <b>set</b>, not a scalar: CTW, DTM and DTC coexist, and both corpora keep a
-    /// <c>mixed/</c> directory for the maps that prove it. Nothing may assume a map has exactly one.</para>
-    /// <para>One deliberate deviation from PGM: a module contributes only if it holds a <b>real</b>
-    /// objective. PGM tags a map DTM the moment <c>DestroyableModule</c> parses anything, but a map whose
-    /// every destroyable is a phantom is not DTM whatever PGM's tag says — those maps are pure CTW that
-    /// happen to script their build floor with the destroyable element.</para>
-    /// </summary>
-    public IReadOnlyList<string> Gamemodes
-    {
-        get
-        {
-            var modes = new List<string>();
-            if (Wools.Count > 0) modes.Add("ctw");
-            if (Destroyables.Any(d => d.IsObjective)) modes.Add("dtm");
-            // Cores have no `show` attribute, so no phantom carve-out applies: every core is an objective.
-            if (Cores.Count > 0) modes.Add("dtc");
-            return modes;
-        }
-    }
+    /// <summary>This map's gamemodes, derived from its objective modules — see
+    /// <see cref="Domain.Gamemodes"/>, which owns the rule.</summary>
+    public IReadOnlyList<string> Gamemodes => Domain.Gamemodes.From(
+        Wools.Count > 0, Destroyables.Any(d => d.IsObjective), Cores.Count > 0);
 }

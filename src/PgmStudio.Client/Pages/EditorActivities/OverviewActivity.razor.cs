@@ -19,7 +19,13 @@ public partial class OverviewActivity : IAsyncDisposable
 
     private sealed class Person { public string Uuid = ""; public string Name = ""; public string Contribution = ""; public bool Error; }
 
-    private string name = "", version = "", gamemode = "", objective = "";
+    private string name = "", version = "", objective = "";
+
+    /// <summary>The map's gamemodes, derived server-side from its objective modules. Read-only here:
+    /// the author changes them by adding or removing objectives, not by typing.</summary>
+    private string[] gamemodes = [];
+
+    private string GamemodeLabel => string.Join(" · ", gamemodes.Select(g => g.ToUpperInvariant()));
     private readonly List<Person> authors = new();
     private readonly List<Person> contributors = new();
     private bool dirty;
@@ -31,7 +37,10 @@ public partial class OverviewActivity : IAsyncDisposable
         {
             var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
             name = Str(doc, "name"); version = Str(doc, "version");
-            gamemode = Str(doc, "gamemode"); objective = Str(doc, "objective");
+            objective = Str(doc, "objective");
+            gamemodes = doc.TryGetProperty("gamemodes", out var gm) && gm.ValueKind == JsonValueKind.Array
+                ? gm.EnumerateArray().Select(g => g.GetString() ?? "").Where(g => g.Length > 0).ToArray()
+                : [];
             authors.Clear(); contributors.Clear();
             if (doc.TryGetProperty("authors", out var arr) && arr.ValueKind == JsonValueKind.Array)
                 foreach (var a in arr.EnumerateArray())
@@ -92,7 +101,6 @@ public partial class OverviewActivity : IAsyncDisposable
         {
             ["name"] = name,
             ["version"] = version,
-            ["gamemode"] = gamemode,
             ["objective"] = objective,
             ["authors"] = authors.Select(p => Author(p, "author"))
                 .Concat(contributors.Select(p => Author(p, "contributor"))).ToList(),
@@ -108,10 +116,11 @@ public partial class OverviewActivity : IAsyncDisposable
         ["uuid"] = p.Uuid, ["name"] = p.Name, ["role"] = role, ["contribution"] = p.Contribution,
     };
 
-    // Required identity fields drive the rail status dot (yellow = incomplete).
+    // Required identity fields drive the rail status dot (yellow = incomplete). The gamemode is derived,
+    // so it is never something the author can complete here.
     private Task ReportStatus()
     {
-        var complete = !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(version) && !string.IsNullOrWhiteSpace(gamemode);
+        var complete = !string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(version);
         return OnStatus.InvokeAsync(complete ? null : "yellow");
     }
 

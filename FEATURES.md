@@ -243,8 +243,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   declare one that disagrees with their own modules** (`ad`, `CTW`, or `ctw` on a DTM map), and **12 carry
   more than one gamemode**. `abstract` derives `[ctw]` not `[ctw,dtm]` — the carve-out working; `sentient`
   derives `[ctw,dtm]`; `alpine_mining_ii` derives `[dtm]` while declaring nothing. The `map.gamemode` column
-  holds the label (its honest meaning — `OverviewActivity` edits it as free text); whether to persist the
-  derived set is parked as B32. (B23, OB7/OB15/OB16)
+  holds the label — round-tripped as written, and read-only. (B23, OB7/OB15/OB16)
+- **The derived set is what the studio shows.** `Domain.Gamemodes.From(hasWools, hasRealDestroyable, hasCores)`
+  is the one home for the rule; `MapXml.Gamemodes` and `MapRepository.GamemodesAsync` both route through it,
+  so the parser and the list can't drift. **The set is computed, never persisted** — no `gamemode_derived`
+  column to keep in sync, and the whole list costs three `DISTINCT map_id` lookups rather than a join per map.
+  `MapSummary.Gamemodes` carries it to `Home.razor` as one tag per mode (`sentient` lists `CTW DTM`), and the
+  Overview shows it read-only: it is derived, so typing could not change it, and `PATCH .../metadata` no longer
+  accepts a `gamemode` key. A map with no objective module we read carries **no** gamemode rather than a blank
+  tag — true of every sketch, and of no imported map. Live: 362 `[ctw]`, 1 `[ctw,dtm]`, 1 `[ctw,dtc]`;
+  `lindorm` shows `CTW` despite declaring `ad`. (B32, OB7/OB15)
 - **DTC: cores — parse, write, codec.** `<cores>` round-trips as `Core` (owner · region · material · leak ·
   mode membership), contributing `dtc` to the derived gamemode set. Structurally the destroyable with a
   different owning attribute, so it reuses `Xml.Flatten`, `ResolveObjectiveRegion` and the tri-state mode

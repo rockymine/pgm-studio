@@ -3,6 +3,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using MySqlConnector;
+using LinqToDB;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 using PgmStudio.Migrations;
 
 namespace PgmStudio.Api.Tests;
@@ -72,6 +75,67 @@ public sealed class MapsListEndpointTests
         var configuring = await client.GetFromJsonAsync<JsonElement[]>("/api/maps?stage=configure");
         await Assert.That(configuring!.Length).IsEqualTo(1);
         await Assert.That(configuring[0].GetProperty("slug").GetString()).IsEqualTo(slug);
+    }
+
+    [Test]
+    public async Task Listed_gamemodes_come_from_the_objective_rows_not_the_declared_label()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using (var db = new PgmDb(PgmDataOptions.ForConnectionString(ApiTestFactory.ConnectionString)))
+        {
+            var repo = new MapRepository(db);
+
+            // Every map below declares the same label, so nothing the endpoint returns can have come from it.
+            async Task<long> Map(string slug) => await repo.InsertAsync(new MapRow
+            {
+                Slug = slug, Name = slug, Version = "1.0.0", Gamemode = "ad",
+                CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+            });
+
+            var wooled = await Map("a-wools");
+            await db.InsertAsync(new WoolRow { MapId = wooled, WoolKey = "red", Color = "red", Team = "red-team" });
+
+            var both = await Map("b-wools-and-destroyable");
+            await db.InsertAsync(new WoolRow { MapId = both, WoolKey = "blue", Color = "blue", Team = "blue-team" });
+            await db.InsertAsync(new DestroyableRow
+            {
+                MapId = both, DestroyableKey = "blue-obsidian", Name = "Blue Obsidian",
+                Owner = "blue-team", Materials = "obsidian", Show = true,
+            });
+            // A phantom alongside the real one must not double-count DTM.
+            await db.InsertAsync(new DestroyableRow
+            {
+                MapId = both, DestroyableKey = "build-floor", Name = "Build Floor",
+                Owner = "blue-team", Materials = "glass", Show = false, ModeChanges = true,
+            });
+
+            // Phantoms only: a scripted block-swap is not a goal, so this map is not DTM — it is nothing.
+            var phantomOnly = await Map("c-phantom-only");
+            await db.InsertAsync(new DestroyableRow
+            {
+                MapId = phantomOnly, DestroyableKey = "build-floor", Name = "Build Floor",
+                Owner = "red-team", Materials = "glass", Show = false, ModeChanges = true,
+            });
+
+            var cored = await Map("d-core");
+            await db.InsertAsync(new CoreRow
+            {
+                MapId = cored, CoreKey = "red-core", Owner = "red-team", Material = "obsidian",
+            });
+        }
+
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        var maps = (await client.GetFromJsonAsync<JsonElement[]>("/api/maps"))!;
+        var bySlug = maps.ToDictionary(
+            m => m.GetProperty("slug").GetString()!,
+            m => m.GetProperty("gamemodes").EnumerateArray().Select(g => g.GetString()!).ToArray());
+
+        await Assert.That(bySlug["a-wools"]).IsEquivalentTo(new[] { "ctw" });
+        await Assert.That(bySlug["b-wools-and-destroyable"]).IsEquivalentTo(new[] { "ctw", "dtm" });
+        await Assert.That(bySlug["c-phantom-only"]).IsEmpty();
+        await Assert.That(bySlug["d-core"]).IsEquivalentTo(new[] { "dtc" });
     }
 
     // ── harness (self-contained, mirrors SketchEndpointTests) ───────────────────────

@@ -85,7 +85,9 @@
                     <span class="list-label">@m.Name</span>
                     @if (CurrentStage == MapStage.Edit)
                     {
-                      <span class="list-tag">@m.Gamemode</span>
+                      @* one tag per gamemode: a map can be more than one, and a map with no objective
+                         module we read carries none rather than a blank tag *@
+                      @foreach (var g in m.Gamemodes) { <span class="list-tag">@g.ToUpperInvariant()</span> }
                       @if (!string.IsNullOrEmpty(m.Version)) { <span class="list-tag">@($"v{m.Version}")</span> }
                     }
                     <span class="list-go"><i data-lucide="arrow-right"></i></span>

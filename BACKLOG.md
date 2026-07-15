@@ -132,19 +132,6 @@ read is rejected, so `B25` ends by adding `cores` to `MapParser.ParsedObjectiveM
 cores take as-is; `B27`'s phantom classifier (`Destroyable.IsObjective`/`.Phantom`), which `B26` must respect;
 and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `dtc`.
 
-- [ ] **B32 — Decide what the `map.gamemode` column is for, now that the label and the truth are separate
-  things (parked decision).** `B23` split them: `MapXml.DeclaredGamemode` is the author's `<gamemode>` text
-  and `MapXml.Gamemodes` is the set derived from the modules. The column got the **label** — which is its
-  honest meaning, since `OverviewActivity` edits it as free text with a `ctw` placeholder — but that leaves a
-  gap: **70% of maps declare no label**, so `MapSummary.Gamemode` → `Home.razor`'s `list-tag` is now blank for
-  most imported maps where it used to read `ctw`. The old value was a fabrication (and wrong outright for a
-  DTM map), so this is not a regression to revert; it is a question to answer.
-  **The blocking question: should the derived set be persisted, or computed per request?** Persisting it wants
-  a second column (`gamemode_derived`) written by the importer/`MapWriter` and kept honest whenever a wool or
-  destroyable changes — cheap to list, one more thing to keep in sync. Computing it wants the list query to
-  reach the `wool`/`destroyable` tables, which `MapsListEndpoint` doesn't today — always right, but a join per
-  map. **`B24b`'s migration is the natural moment to settle it**, since it adds the `destroyable` table the
-  derivation reads. Until then the list tag shows the label or nothing. (OB7, OB15)
 - [~] **B24 — DTM: destroyables, the authoring half.** Parser, writer, codec, schema and the world stamps
   have landed (`FEATURES.md`); what remains is the wiring between them. **(c) intent** —
   `DestroyableIntent` + orbit-fill (the `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`,

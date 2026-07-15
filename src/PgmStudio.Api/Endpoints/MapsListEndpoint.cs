@@ -9,7 +9,8 @@ namespace PgmStudio.Api.Endpoints;
 
 /// <summary>GET /api/maps[?stage=sketch|configure|edit] — the dashboard map list, optionally one stage.
 /// Each entry carries <see cref="MapSummary.HasSurface"/>, set from the maps that own a cached surface-layer
-/// artifact (a top-down block render is available for those).</summary>
+/// artifact (a top-down block render is available for those), and <see cref="MapSummary.Gamemodes"/>,
+/// derived from the objective rows rather than the <c>&lt;gamemode&gt;</c> label.</summary>
 public sealed class MapsListEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<List<MapSummary>>
 {
     public override void Configure()
@@ -27,8 +28,11 @@ public sealed class MapsListEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         var withSurface = (await db.Artifacts
             .Where(a => a.Kind == ArtifactKind.LayerParquet)
             .Select(a => a.MapId).Distinct().ToListAsync(ct)).ToHashSet();
+        var gamemodes = await repo.GamemodesAsync(ct);
         await Send.OkAsync(
-            maps.Select(m => new MapSummary(m.Slug, m.Name, m.Gamemode, m.Version, m.Objective, m.Stage, withSurface.Contains(m.Id))).ToList(), ct);
+            maps.Select(m => new MapSummary(
+                m.Slug, m.Name, gamemodes.GetValueOrDefault(m.Id, []),
+                m.Version, m.Objective, m.Stage, withSurface.Contains(m.Id))).ToList(), ct);
     }
 }
 

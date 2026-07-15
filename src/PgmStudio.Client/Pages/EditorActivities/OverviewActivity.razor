@@ -24,9 +24,11 @@
                    value="@version" @oninput="e => { version = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
           </div>
           <div class="field">
-            <label class="field-label" for="ov-gamemode">Gamemode <span class="field-required">*</span></label>
-            <input id="ov-gamemode" class="field-input" type="text" placeholder="ctw"
-                   value="@gamemode" @oninput="e => { gamemode = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+            @* Derived from the map's objective modules, so it is shown rather than asked for: typing a
+               gamemode could not change what the map is. Empty when the map carries no objective yet. *@
+            <label class="field-label" for="ov-gamemode">Gamemode</label>
+            <input id="ov-gamemode" class="field-input" type="text" disabled
+                   title="Derived from the map's objectives" placeholder="—" value="@GamemodeLabel" />
           </div>
         </div>
         <div class="field">

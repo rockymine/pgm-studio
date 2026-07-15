@@ -37,9 +37,12 @@ internal static class WriteSupport
     }
 }
 
-/// <summary>PATCH /api/map/{slug}/metadata — update name/version/objective/gamemode/max_build_height
+/// <summary>PATCH /api/map/{slug}/metadata — update name/version/objective/max_build_height
 /// (scalar columns) plus authors/contributors (the <c>author</c> table). Authors are id'd by uuid;
-/// the resolved username is cached in <c>author.name</c> for display.</summary>
+/// the resolved username is cached in <c>author.name</c> for display.
+/// <para>The <c>gamemode</c> column is not writable here: it holds the author's original
+/// <c>&lt;gamemode&gt;</c> label, which is round-tripped as written, while the gamemode itself is derived
+/// from the map's objective modules and so cannot be set by hand.</para></summary>
 public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure() { Patch("/map/{slug}/metadata"); AllowAnonymous(); }
@@ -56,7 +59,6 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         if (p.ContainsKey("name")) u = u.Set(x => x.Name, p["name"] as string ?? "");
         if (p.ContainsKey("version")) u = u.Set(x => x.Version, NullIfEmpty(p["version"] as string));
         if (p.ContainsKey("objective")) u = u.Set(x => x.Objective, NullIfEmpty(p["objective"] as string));
-        if (p.ContainsKey("gamemode")) u = u.Set(x => x.Gamemode, NullIfEmpty(p["gamemode"] as string));
         if (p.ContainsKey("max_build_height")) u = u.Set(x => x.MaxBuildHeight, p["max_build_height"] is { } v ? Convert.ToDouble(v) : null);
         u = u.Set(x => x.UpdatedAt, DateTime.UtcNow);
         await u.UpdateAsync(ct);

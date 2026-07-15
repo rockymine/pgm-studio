@@ -37,6 +37,27 @@ public sealed class MapRepository(PgmDb db)
     public Task<List<MapRow>> ListByStageAsync(string stage, CancellationToken ct = default)
         => db.Maps.Where(m => m.Stage == stage).OrderByDescending(m => m.UpdatedAt).ThenBy(m => m.Slug).ToListAsync(ct);
 
+    /// <summary>
+    /// Every map's gamemodes, keyed by map id — derived from the objective rows it owns, never from the
+    /// <c>&lt;gamemode&gt;</c> label, which most maps don't declare and some contradict. Three set lookups
+    /// for the whole list rather than a join per map; the derivation itself is
+    /// <see cref="Domain.Gamemodes.From"/>, shared with the parser so the two can't drift.
+    /// <para>A map with no objective module is absent from the result: it has no gamemode, which is
+    /// different from having an unknown one.</para>
+    /// </summary>
+    public async Task<Dictionary<long, IReadOnlyList<string>>> GamemodesAsync(CancellationToken ct = default)
+    {
+        var withWools = (await db.Wools.Select(w => w.MapId).Distinct().ToListAsync(ct)).ToHashSet();
+        // A phantom is not an objective, so a map whose every destroyable is hidden contributes no DTM.
+        var withDestroyables = (await db.Destroyables.Where(d => d.Show).Select(d => d.MapId).Distinct().ToListAsync(ct)).ToHashSet();
+        var withCores = (await db.Cores.Select(c => c.MapId).Distinct().ToListAsync(ct)).ToHashSet();
+
+        var result = new Dictionary<long, IReadOnlyList<string>>();
+        foreach (var id in withWools.Union(withDestroyables).Union(withCores))
+            result[id] = Domain.Gamemodes.From(withWools.Contains(id), withDestroyables.Contains(id), withCores.Contains(id));
+        return result;
+    }
+
     /// <summary>Map count per lifecycle stage (for the dashboard landing cards).</summary>
     public async Task<Dictionary<string, int>> StageCountsAsync(CancellationToken ct = default)
         => (await db.Maps.GroupBy(m => m.Stage).Select(g => new { Stage = g.Key, Count = g.Count() }).ToListAsync(ct))
