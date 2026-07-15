@@ -97,6 +97,138 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   as few-shot examples — tool-description curation is the real work, not plumbing. Fast-follow after the
   composer (G32) lands; its gates (validator, stat envelopes, renderer) are exactly the tools this exposes.
 
+**DTM / DTC objectives (destroyables + cores).** The contract is `docs/contracts/destroyables-and-cores.md`
+— it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
+its rule ids (`OB*`/`DT*`/`DC*`) are cited below. `B22` is a parser-correctness fix that bites the **shipped
+CTW corpus today** and is independent of everything else; the rest run `B24` → `B27` → `B23` → `B25` → `B26`
+(`B23`'s gamemode carve-out needs `B27`'s phantom classifier). Filed here (not `N`/`G`) because the bulk of
+each is pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
+
+- [ ] **B22 — The parser silently drops objective modules it doesn't know (live data loss).**
+  `MapParser.ParseInternal` never enumerates `_root.Elements()` — it reads only the tags it names — so
+  `<destroyables>`/`<cores>` are invisible: the map parses "successfully", passes `EnsureSupported` (they are
+  all proto 1.5.0), and **loses its objectives on round-trip with no error**. Not hypothetical: **10 of the
+  350 `ctw/` corpus maps carry them today** — `abstract`, `abstract_remix`, `bungee_coorde`, `citadel`,
+  `down_side_up`, `fairy_tales_metamorphose`, `mine_your_own_business`, `newgen_classic`, **`sentient`** (8
+  objectives), `vesuvius` — and every one silently round-trips to a map missing them. **8 of those 10 are
+  phantom-only (`B27`), which makes the loss worse, not milder:** drop abstract's phantom and its stained-glass
+  floor is never erased, so the map keeps a solid bridge between the teams and plays wrong — not merely a
+  missing goal. Fix independently of the gamemode work: **either** reject the map (`UnsupportedMapException`,
+  the kytriak_te/allure precedent) **or** flag it — quietly eating the elements is the worst of the three.
+  `B24`/`B25` supersede this for these two modules; the guard stays for anything else. (OB10)
+- [ ] **B23 — Gamemode is a derived set, not the `<gamemode>` element.** PGM never reads that element to decide
+  the mode — each module contributes a `MapTag` when it parses (`<wools>` → CTW, `<destroyables>` → DTM,
+  `<cores>` → DTC). `MapXml.Gamemode` is a single string defaulting to `"ctw"` when the element is absent
+  (`MapParser.cs:63`), and both halves are wrong. **A scalar can't hold it:** 72 of 742 objective maps across
+  both corpora carry more than one module (CTW+DTM 21 · DTM+DTC 46 · CTW+DTC 3 · all three 2), including 10 in
+  our own `ctw/` corpus. **The element is unreliable:** 68 of the 150 DTM/DTC maps declare no gamemode at all,
+  and 4 of our corpus 10 declare `ctw` while carrying destroyables. Derive a gamemode **set** from module
+  presence and retire the `"ctw"` default rather than extending it. **Deviate from PGM on one point** (needs
+  `B27`): PGM tags a map DTM the moment `DestroyableModule` parses anything, but **30 of the 297 maps with
+  `<destroyables>` hold nothing but phantoms** — and **8 of our own corpus 10 are phantom-only pure-CTW maps**
+  (abstract, abstract_remix, citadel, down_side_up, fairy_tales_metamorphose, mine_your_own_business,
+  newgen_classic, vesuvius; only `sentient` and `bungee_coorde` are genuine). A module contributes a gamemode
+  only if it holds ≥1 non-`show="false"` leaf, so this **depends on `B27`**. Pairs with `B22`. (OB7, OB15, OB16)
+- [ ] **B24 — DTM: destroyables + objective modes, end to end.** The cheapest objective in PGM —
+  `owner + region + materials`, no wiring templates, no spawner, no room, no filters (the wool's whole bundle is
+  absent) and no per-capturing-team fan-out. Slices: **(a) parser + writer** — generalise
+  `MapParser.CollectWoolElements`'s nested flatten to inherit **every** attribute (it inherits only `team`
+  today) and share it across wools/destroyables/cores (OB4); emit the flat canonical form (OB5); note a
+  cuboid's block count is `max − min`, and `<block>` (a single block) is 26% of destroyable regions (OB13).
+  **(b) schema** — `destroyable` + `mode` tables on `map_id`, **not** a reuse of `monument`, whose `wool_id` FK
+  makes a wool-less objective unrepresentable. **(c) intent** — `DestroyableIntent` + orbit-fill (the
+  `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`; `rot_90` hides the placement kind (OB14).
+  **(d) stamps, in payoff order** — `pillar-1|2|3` (a 1×N obsidian column: 56% of the corpus and the simplest
+  stamp in the system), then `cube-3` + its bedrock centre (DT2), then `column-plus` (a mask over the same box,
+  DT4). Rides the iron-cube pipeline (`IronPlacement` → `PlanCompiler` → `StructureStamper.StampIronCube` →
+  `PlanStructurePreview`) with material/size parameterised; obsidian, emerald, gold, ender stone and bedrock
+  need adding to `Blocks` (it stops at stained glass). **(e) validation** — ≥1 matching block per region (10
+  corpus destroyables already fail it), never "region is full": the region is a loose box *around* the
+  structure and is legitimately mostly air (OB11, OB12). **Modes ship here** — 77 of 150 maps use them, no world
+  impact, but they need a third feature-id registry beside regions/filters and their membership is a tri-state
+  (OB9). Depends on nothing; `B22`/`B23` are independent.
+- [ ] **B25 — DTC: cores.** Everything from `B24` applies and the delta is small: `<cores>` parse/write (the
+  owning attribute is `team`, not `owner`), a `core` table, `CoreIntent`, and the shell-and-lava stamp —
+  **5×5×5 obsidian casing, shell 1 thick, 3×3×3 lava interior, capped top** (65% of real cores; open-top is a
+  flag at 11%), plus lava in `Blocks` (DC1). The one real design knob is **DC2**: cores *float*, so `leak` and
+  `float` are one parameter — players dig `max(0, leak − float)` blocks into the terrain under the core, and
+  `leak = 5` / `float = 6` (no dig) is the corpus centre. No new class of world operation and no negative-space
+  primitive: the structure rests on nothing. Depends on `B24`.
+- [ ] **B27 — Classify + flag phantom destroyables (a destroyable is not always an objective).** 8% of
+  destroyables (80 of 951 leaves, 39 maps) are **scripted block-swap regions**, not goals: they borrow the
+  element purely to carry a `<mode>`. The classifier is one exact, semantic test — **`show="false"`** (a goal
+  players cannot see is not a goal). It is clean in both directions: none of the 80 reads as an objective, and
+  the one real objective that targets an air mode (`gold_in_them_thar_kills`, gold block, `completion="50%"`,
+  crumbling at 20m) declares `show="true"`. `completion="0%"` and `required="false"` are **not** sufficient
+  alone — 170 destroyables are non-required and most are genuine. Sub-kinds: **70 carry a mode** (the swap),
+  **10 do not** (triggers — deathrun_aperture's ten `lever` destroyables fire a filter when broken). The CTW
+  instance is the **pre-game build floor**: stained glass at the **world floor (y=0)** marking bridge/build
+  regions, shipped in the world so it renders during the map cycle, erased at match start by a `0s → air`
+  mode while a void filter defines the real build region — `newgen_classic` names it `build-regions`, abstract
+  names it `monu` and gives both "owners" the *identical* region. The swap target is not always air
+  (`water-lane` air→water at 15m; `vesuvius` →water at 20m; `down_side_up` cycles wool colours every 60s), so
+  model it as a **timed block-swap** of which "erase at 0s" is the common case. Store the classification and
+  surface it — never present a phantom as an objective. Unblocks `B23`'s carve-out; constrains `B26`.
+  **Also makes an existing heuristic exact:** `LayerExtractors.CleanBaseExclude` excludes stained glass (95)
+  as a "build-floor marker removed pre-game via a `destroyables` mode-change" — a *material guess* ("glass as
+  lowest solid") standing in for this pattern because the parser cannot see the mode. A parsed phantom states
+  precisely which blocks vanish pre-game, so island detection can stop guessing (pairs with `G9`/`G12`).
+  Depends on `B24`. (OB16)
+- [ ] **B29 — `<include>` is silently ignored, and 93% of the corpus uses it.** `MapParser` preprocesses
+  `<if>`/`<unless>` (`ResolveVariants`) and `${constants}` (`ResolveConstants`) but has **no `<include>`
+  handling at all** — the element is skipped and its content never enters the document, so every rule the
+  fragment defines is invisible to us. **334 of our 358 `ctw/` maps (93%) use it**; `gapple-kill-reward` alone
+  appears 815 times across both corpora, and PGM splices a **`global` include into every map** at the root
+  (`MapIncludeProcessorImpl.getGlobalInclude` → `MapFilePreprocessor.preprocessChildren`). PGM resolves an
+  include by id from **`config.getIncludesDirectory()` — a server directory, not the map folder** — so the
+  bodies **are not in the corpus** and cannot be recovered from it: this task is blocked on obtaining the
+  include library (the source PGM server config), which is a fetch, not a code change. Until then the honest
+  move is to **flag** a map whose `<include>` we cannot resolve rather than parse it as complete — the same
+  reasoning as `B22`. Once resolvable, splice at preprocess time (matching `MapFilePreprocessor`) so every
+  downstream parser sees one flat document. **Reading ≠ emitting** — we already emit includes
+  (`XmlWriter.cs:112`, `CtwStandards.cs:104`), so this is about *analysing imported maps* only and **gates
+  nothing in `B28`**. First diagnostic: dump the distinct include ids per map, so the size of the unknown is at
+  least visible.
+- [ ] **B28 — Water lanes (CTW): detect all three forms, author the newest.** A **route that opens mid-match** —
+  a gap between islands becomes bridgeable, adding a late-game way to reach the wool. A CTW feature, blocked
+  here only because its legacy form *is* a destroyable (`B27`). **The mechanic is `VoidFilter`, and it reads
+  y=0 live:** a column is void iff `(x,0,z)` is air and wasn't a block-36 marker, and `getBlockAt` is evaluated
+  **at query time, not load** — so filling y=0 with water at 15m makes the whole column non-void and
+  `deny(void)` stops applying. Players then bridge a route that did not exist. (Same y=0 rule explains the
+  block-36 marker and the stained-glass build floor — see `B27`.) **Three generations, detect all:** *Gen 1* =
+  a fake destroyable with `materials="air"` at y=0 swapped to water by a mode (vesuvius 20m, newgen_classic 15m,
+  dominion 10m, piorun 5m — ownership vestigial, split per-team only because `owner` is required); *Gen 2* =
+  `<action><fill region="…" material="water" filter="only-air"/></action>` on a time `<trigger>`, no destroyable
+  and no mode (`lupa`, `tulip_mania_ii` — which names its region `water-lane-fill-regions` —
+  `icecream_sandwiched_ii`, `malupa`); *Gen 3* = **`<include id="water-lanes"/>` + a `<union id="water-lanes">`
+  of y=0 cuboids and nothing else** — the behaviour factored into a shared fragment, keyed by the matching
+  region id (`bridgid_ii`, `ad_astra`, `rushers_vs_defenders`, `araxa`, `turf_wars`, `royal_garden_ctw`; **5 of
+  the 6 contain no fill, destroyable or mode at all, and none applies anything to its lane regions** — the
+  include supplies 100% of the behaviour, keyed by the matching region id). **Author Gen 3, and it is nearly
+  free.** We do not need the include's body to emit it — the server resolves it at load. `MapXml.Includes` +
+  `XmlWriter.cs:112` already exist and `CtwStandards.cs:104` already ships `gapple-kill-reward` on every
+  generated map via `m.Includes.Insert(0, …)`; a water lane is the same move — emit `<union id="water-lanes">`
+  and add `"water-lanes"` to `Includes`. **One string and a region**: no `<actions>`/`<fill>`/`<trigger>` parser
+  (that is Gen-2-only, and we have none of it today), no fake destroyable. Detection is likewise two facts —
+  `<include id="water-lanes"/>` + the matching region — so **`B29` gates neither authoring nor detection here**.
+  The authored primitive is **a set of y=0 rects** (a union of cuboids spanning y=0..1), not a path — straights
+  and corners are both just rects; "bridgeable" is the authors' own word. Note the water bucket is **unrelated**
+  (a universal movement tool for cancelling fall damage: 163 of 358 `ctw/` maps carry one, 157 of them with no
+  lanes). Depends on `B27` for Gen 1 detection only. (`destroyables-and-cores.md` §14)
+- [ ] **B26 — Detect destroyables + cores from a world scan (later).** The `MonumentSuggester` move applied to
+  the **easier** problem: scan the world, propose the objectives, let the author confirm which is a destroyable
+  and which is a core. Wool monuments are a design free-for-all (96.6% precision / 57.8% recall, recall capped
+  by unlabelled maps); these are far more standardised. **A core is obsidian enclosing lava** — a signature
+  effectively nothing else in a map produces, so bounds and material fall out geometrically, not heuristically.
+  **A destroyable is a material outlier** — a small isolated cluster in a closed four-material vocabulary
+  (obsidian / emerald / gold / ender stone), 56% of them a 1–3 block obsidian pillar. The families predict their
+  own parameters, so a detector can propose `leak` / `completion` / style, not just a box. Reuses the existing
+  scan plumbing, the candidate-store shape (`monument_candidate`, `monument-candidate-store.md`) and the
+  confirm-in-UI flow — only the classifier changes. **Trap (OB12):** propose the **structure's** bounding box
+  and emit a region around it; the region itself is a human's loose box, is not in the world, and cannot be
+  detected. **Never propose a phantom (`B27`) as an objective** — a marker is not a monument. Depends on
+  `B24`/`B25`/`B27`.
+
 ## Layout generation (G)
 
 Two tracks share this section. **The headline is the composer** (plan-then-realize): rule-based
