@@ -17,14 +17,14 @@ namespace PgmStudio.Api.Tests;
 /// Runs against the <c>pgm_studio_test</c> schema (override with <c>PGM_STUDIO_TEST_DB</c>); each test
 /// resets the schema, so they run serially.
 /// </summary>
-[NotInParallel]
+[NotInParallel("api-db")]
 public sealed class SketchEndpointTests
 {
     [Test]
     public async Task Create_returns_a_slug_and_seeds_an_empty_layout()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var resp = await client.PostAsJsonAsync("/api/sketch", new { name = "My Sketch" });
@@ -42,8 +42,8 @@ public sealed class SketchEndpointTests
     [Test]
     public async Task Create_with_a_frame_seeds_the_working_setup()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         // A portrait footprint (80×120) off-centre, mirror-Z — the new-sketch page's blank-create body.
@@ -67,8 +67,8 @@ public sealed class SketchEndpointTests
     [Test]
     public async Task Layout_round_trips_through_put_then_get()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Round Trip" }))
@@ -96,8 +96,8 @@ public sealed class SketchEndpointTests
     [Test]
     public async Task Create_dedupes_the_slug()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var first = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Dup" }))
@@ -112,8 +112,8 @@ public sealed class SketchEndpointTests
     [Test]
     public async Task Put_rejects_non_json()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Bad" }))
@@ -126,8 +126,8 @@ public sealed class SketchEndpointTests
     [Test]
     public async Task Finish_rasterizes_the_layout_and_advances_the_map_to_configure()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Finish Me" }))
@@ -174,8 +174,8 @@ public sealed class SketchEndpointTests
     [Test]
     public async Task Finish_rejects_a_layout_with_fewer_than_two_islands()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "One Island" }))
@@ -203,8 +203,8 @@ public sealed class SketchEndpointTests
     [Test]
     public async Task Compiled_plan_drives_the_full_create_layout_finish_intent_loop()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         // Compile a seed plan into the pair the pipeline consumes (the editor's Compile step).
@@ -248,44 +248,4 @@ public sealed class SketchEndpointTests
     }
 
     // ── harness (self-contained, mirrors MetadataEndpointTests) ─────────────────────
-
-    private static string TestConnectionString =>
-        Environment.GetEnvironmentVariable("PGM_STUDIO_TEST_DB")
-        ?? "Server=localhost;Database=pgm_studio_test;User ID=pgm;Password=pgm_dev_pw;";
-
-    private static async Task ResetSchemaAsync()
-    {
-        await using (var conn = new MySqlConnection(TestConnectionString))
-        {
-            await conn.OpenAsync();
-            var tables = new List<string>();
-            await using (var cmd = new MySqlCommand(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()", conn))
-            await using (var reader = await cmd.ExecuteReaderAsync())
-                while (await reader.ReadAsync())
-                    tables.Add(reader.GetString(0));
-            if (tables.Count > 0)
-            {
-                await Exec(conn, "SET FOREIGN_KEY_CHECKS=0");
-                foreach (var t in tables) await Exec(conn, $"DROP TABLE IF EXISTS `{t}`");
-                await Exec(conn, "SET FOREIGN_KEY_CHECKS=1");
-            }
-        }
-        SchemaMigrator.MigrateUp(TestConnectionString);
-    }
-
-    private static async Task Exec(MySqlConnection conn, string sql)
-    {
-        await using var cmd = new MySqlCommand(sql, conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    private sealed class TestApiFactory : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.UseEnvironment("Testing");
-            builder.UseSetting("ConnectionStrings:PgmStudio", TestConnectionString);
-        }
-    }
 }

@@ -15,7 +15,7 @@ namespace PgmStudio.Api.Tests;
 /// Runs against the <c>pgm_studio_test</c> schema (override with <c>PGM_STUDIO_TEST_DB</c>); each
 /// test resets the schema and seeds one map, so they run serially.
 /// </summary>
-[NotInParallel]
+[NotInParallel("api-db")]
 public sealed class MetadataEndpointTests
 {
     [Test]
@@ -122,10 +122,10 @@ public sealed class MetadataEndpointTests
         e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
     /// <summary>Reset the test schema, seed one empty map, and return a factory bound to that DB.</summary>
-    private static async Task<TestApiFactory> SeedAsync(string slug)
+    private static async Task<ApiTestFactory> SeedAsync(string slug)
     {
-        await ResetSchemaAsync();
-        await using (var db = new PgmDb(PgmDataOptions.ForConnectionString(TestConnectionString)))
+        await ApiTestFactory.ResetSchemaAsync();
+        await using (var db = new PgmDb(PgmDataOptions.ForConnectionString(ApiTestFactory.ConnectionString)))
         {
             await new MapRepository(db).InsertAsync(new MapRow
             {
@@ -133,49 +133,6 @@ public sealed class MetadataEndpointTests
                 CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
             });
         }
-        return new TestApiFactory();
-    }
-
-    private static string TestConnectionString =>
-        Environment.GetEnvironmentVariable("PGM_STUDIO_TEST_DB")
-        ?? "Server=localhost;Database=pgm_studio_test;User ID=pgm;Password=pgm_dev_pw;";
-
-    private static async Task ResetSchemaAsync()
-    {
-        await using (var conn = new MySqlConnection(TestConnectionString))
-        {
-            await conn.OpenAsync();
-            var tables = new List<string>();
-            await using (var cmd = new MySqlCommand(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()", conn))
-            await using (var reader = await cmd.ExecuteReaderAsync())
-                while (await reader.ReadAsync())
-                    tables.Add(reader.GetString(0));
-            if (tables.Count > 0)
-            {
-                await Exec(conn, "SET FOREIGN_KEY_CHECKS=0");
-                foreach (var t in tables) await Exec(conn, $"DROP TABLE IF EXISTS `{t}`");
-                await Exec(conn, "SET FOREIGN_KEY_CHECKS=1");
-            }
-        }
-        SchemaMigrator.MigrateUp(TestConnectionString);
-    }
-
-    private static async Task Exec(MySqlConnection conn, string sql)
-    {
-        await using var cmd = new MySqlCommand(sql, conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    /// <summary>Boots the real app but points the connection string at the test schema.</summary>
-    private sealed class TestApiFactory : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            // Non-Development so the API's User Secrets do NOT load here — they point at the real dev DB,
-            // and ResetSchemaAsync drops tables, so loading them could wipe it. Tests use pgm_studio_test.
-            builder.UseEnvironment("Testing");
-            builder.UseSetting("ConnectionStrings:PgmStudio", TestConnectionString);
-        }
+        return new ApiTestFactory();
     }
 }

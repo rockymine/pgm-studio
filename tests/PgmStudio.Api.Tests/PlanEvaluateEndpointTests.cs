@@ -11,12 +11,13 @@ namespace PgmStudio.Api.Tests;
 /// summed score, a valid flag, and every fired term (hard-first) with its rule id, subjects and cell-space
 /// evidence; a malformed body is answered 400, never 500. The endpoint is DB-free, so a bare host suffices.
 /// </summary>
+[NotInParallel("api-db")]
 public sealed class PlanEvaluateEndpointTests
 {
     [Test]
     public async Task Valid_seed_scores_clean()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/evaluate",
@@ -34,7 +35,7 @@ public sealed class PlanEvaluateEndpointTests
     [Test]
     public async Task Cramped_wool_fires_WL2_with_evidence()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         // A spawn and a wool two cells apart (10 blocks by traversal) violate WL2's 20-block floor. Single-unit
@@ -69,7 +70,7 @@ public sealed class PlanEvaluateEndpointTests
     [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/evaluate", new StringContent("not a plan", Encoding.UTF8, "application/json"));

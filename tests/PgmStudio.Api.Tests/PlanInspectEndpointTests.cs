@@ -12,12 +12,13 @@ namespace PgmStudio.Api.Tests;
 /// <c>/plan/evaluate</c> endpoint's job. A malformed body is answered 400, never 500. The endpoint is DB-free,
 /// so a bare host suffices.
 /// </summary>
+[NotInParallel("api-db")]
 public sealed class PlanInspectEndpointTests
 {
     [Test]
     public async Task Valid_plan_returns_derived_geometry()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/inspect",
@@ -46,7 +47,7 @@ public sealed class PlanInspectEndpointTests
     [Test]
     public async Task Interfaces_carry_wool_room_and_wall_flags()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         // a (piece) — b (wool-room) is a terrain↔room seam; a — c abut and carry a wall mark.
@@ -73,7 +74,7 @@ public sealed class PlanInspectEndpointTests
     [Test]
     public async Task Malformed_body_is_a_400_not_a_500()
     {
-        await using var factory = new WebApplicationFactory<Program>();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var resp = await client.PostAsync("/api/plan/inspect", new StringContent("not a plan", Encoding.UTF8, "application/json"));

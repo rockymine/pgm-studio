@@ -173,6 +173,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`PGM_STUDIO_DB` override → `ConnectionStrings:PgmStudio` via appsettings / the API's User Secrets /
   env) and echoes the source; `--migrate-only` prints an explicit applied/up-to-date summary so a silent
   no-op is impossible to misread. `docs/cloud-setup.md` updated. (B19)
+- **Deterministic Api.Tests (shared-schema isolation)** — the endpoint tests flaked (non-deterministic
+  8/12/18 failures: "expected 1 but found 92", slug dedup, author-patch 404s) from a shared-schema race. Two
+  root causes fixed: (1) minimal hosting resolves `ConnectionStrings:PgmStudio` from the **environment** ahead
+  of a factory's `UseSetting`/`ConfigureAppConfiguration`, so an ambient dev-server `ConnectionStrings__PgmStudio`
+  silently pointed every test at the live dev DB (never reset → counts accumulated) — a `[ModuleInitializer]`
+  now pins the env var at `pgm_studio_test` before any host boots; (2) the read-only Plan/Health factories set
+  no connection at all. Both now boot the one shared `ApiTestFactory` (forced test schema), and all eight
+  DB-touching classes share a `[NotInParallel("api-db")]` group so no per-test reset overlaps another. Verified
+  deterministic: **4 consecutive green runs**, including with an adversarial `ConnectionStrings__PgmStudio=dev`
+  set (the dev DB row count stayed flat — tests no longer touch it). Consolidates 4 duplicated per-class
+  factory/reset copies into one. (B20)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)

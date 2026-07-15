@@ -74,7 +74,10 @@ dotnet build                                   # whole solution
 ./tools/dev.sh restart                         # API + hosted Blazor WASM on :7894 (needs the conn string above)
 dotnet run --project tests/PgmStudio.Pgm.Tests # tests — one project at a time, NOT `dotnet test`
 ```
-`Api.Tests` can flake from a shared-schema race (non-deterministic 1/5/8 failures) — known, not your change.
+`Api.Tests` is deterministic — every DB-touching class boots the shared `ApiTestFactory`, which pins the
+connection to `pgm_studio_test` (a module initializer forces `ConnectionStrings__PgmStudio` at that schema, so
+an ambient dev-server value can't redirect the tests at the live DB) and shares one `[NotInParallel("api-db")]`
+group so no per-test schema reset overlaps another test.
 
 ## If you don't need the DB
 Much of the analysis work needs **no database**. `tools/PgmStudio.RoundTrip` runs DB-free:

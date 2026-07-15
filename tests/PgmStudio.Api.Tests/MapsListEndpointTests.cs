@@ -13,14 +13,14 @@ namespace PgmStudio.Api.Tests;
 /// (sketch-create → sketch, sketch-finish → configure). Runs against the <c>pgm_studio_test</c>
 /// schema (override with <c>PGM_STUDIO_TEST_DB</c>); each test resets the schema, so they run serially.
 /// </summary>
-[NotInParallel]
+[NotInParallel("api-db")]
 public sealed class MapsListEndpointTests
 {
     [Test]
     public async Task A_created_sketch_is_stage_sketch_and_filters_and_counts()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Draft One" }))
@@ -44,8 +44,8 @@ public sealed class MapsListEndpointTests
     [Test]
     public async Task Finishing_a_sketch_advances_it_to_configure()
     {
-        await ResetSchemaAsync();
-        await using var factory = new TestApiFactory();
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
         using var client = factory.CreateClient();
 
         var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Two Sides" }))
@@ -75,44 +75,4 @@ public sealed class MapsListEndpointTests
     }
 
     // ── harness (self-contained, mirrors SketchEndpointTests) ───────────────────────
-
-    private static string TestConnectionString =>
-        Environment.GetEnvironmentVariable("PGM_STUDIO_TEST_DB")
-        ?? "Server=localhost;Database=pgm_studio_test;User ID=pgm;Password=pgm_dev_pw;";
-
-    private static async Task ResetSchemaAsync()
-    {
-        await using (var conn = new MySqlConnection(TestConnectionString))
-        {
-            await conn.OpenAsync();
-            var tables = new List<string>();
-            await using (var cmd = new MySqlCommand(
-                "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()", conn))
-            await using (var reader = await cmd.ExecuteReaderAsync())
-                while (await reader.ReadAsync())
-                    tables.Add(reader.GetString(0));
-            if (tables.Count > 0)
-            {
-                await Exec(conn, "SET FOREIGN_KEY_CHECKS=0");
-                foreach (var t in tables) await Exec(conn, $"DROP TABLE IF EXISTS `{t}`");
-                await Exec(conn, "SET FOREIGN_KEY_CHECKS=1");
-            }
-        }
-        SchemaMigrator.MigrateUp(TestConnectionString);
-    }
-
-    private static async Task Exec(MySqlConnection conn, string sql)
-    {
-        await using var cmd = new MySqlCommand(sql, conn);
-        await cmd.ExecuteNonQueryAsync();
-    }
-
-    private sealed class TestApiFactory : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
-        {
-            builder.UseEnvironment("Testing");
-            builder.UseSetting("ConnectionStrings:PgmStudio", TestConnectionString);
-        }
-    }
 }
