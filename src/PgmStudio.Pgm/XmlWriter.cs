@@ -98,6 +98,7 @@ public static partial class XmlWriter
         foreach (var rule in m.ApplyRules) if (rule.RegionId.Length > 0 && !IsSynthetic(rule.RegionId)) refs.Add(rule.RegionId);
         foreach (var w in m.Wools) if (w.MonumentRegionId is { Length: > 0 }) refs.Add(w.MonumentRegionId);
         foreach (var d in m.Destroyables) if (d.RegionId.Length > 0 && !IsSynthetic(d.RegionId)) refs.Add(d.RegionId);
+        foreach (var c in m.Cores) if (c.RegionId.Length > 0 && !IsSynthetic(c.RegionId)) refs.Add(c.RegionId);
         return refs;
     }
 
@@ -121,6 +122,7 @@ public static partial class XmlWriter
         WriteWools(root, m.Wools);
         WriteModes(root, m.Modes);
         WriteDestroyables(root, m.Destroyables, m.Regions);
+        WriteCores(root, m.Cores, m.Regions);
 
         if (m.Filters.Count > 0) WriteFiltersBlock(root, m.Filters, ExternalFilterRefs(m));
         if (m.Regions.Count > 0 || m.ApplyRules.Count > 0)
@@ -329,6 +331,29 @@ public static partial class XmlWriter
             if (d.RegionId.Length > 0 && !IsSynthetic(d.RegionId))
                 Set(e, "region", d.RegionId);
             else if (d.RegionId.Length > 0 && regions.TryGetValue(d.RegionId, out var region))
+                e.Add(new XElement("region", RegionElemInline(region)));
+            block.Add(e);
+        }
+    }
+
+    private static void WriteCores(XElement parent, List<Core> cores, Dictionary<string, Region> regions)
+    {
+        if (cores.Count == 0) return;
+        var block = new XElement("cores"); parent.Add(block);
+        foreach (var c in cores)
+        {
+            var e = new XElement("core");
+            Set(e, "id", c.Id);
+            if (c.Name.Length > 0) Set(e, "name", c.Name);   // absent lets PGM auto-name per team
+            Set(e, "team", c.Owner);                          // the XML spells the owner `team` (OB1)
+            if (c.Material.Length > 0) Set(e, "material", c.Material);
+            if (c.Leak is { } leak) Set(e, "leak", leak.ToString(CultureInfo.InvariantCulture));
+            if (c.ModeChanges) Set(e, "mode-changes", "true");
+            if (c.Modes is { Count: > 0 } modes) Set(e, "modes", string.Join(" ", modes));
+
+            if (c.RegionId.Length > 0 && !IsSynthetic(c.RegionId))
+                Set(e, "region", c.RegionId);
+            else if (c.RegionId.Length > 0 && regions.TryGetValue(c.RegionId, out var region))
                 e.Add(new XElement("region", RegionElemInline(region)));
             block.Add(e);
         }

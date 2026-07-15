@@ -54,7 +54,6 @@ public sealed class MapSupportTests
     // An objective module the parser does not read would be dropped in silence — the map would export
     // without its goal. Each of these declares a non-auxiliary gamemode in PGM.
     [Test]
-    [Arguments("<cores><core team=\"red\" region=\"r\"/></cores>")]
     [Arguments("<control-points><control-point id=\"hill\"/></control-points>")]
     [Arguments("<king><hills><hill id=\"h\"/></hills></king>")]
     [Arguments("<flags><flag id=\"f\"/></flags>")]
@@ -71,6 +70,17 @@ public sealed class MapSupportTests
     [Arguments("<blitz><lives>1</lives></blitz>")]
     [Arguments("<rage/>")]
     public async Task Accepts_an_auxiliary_module(string module)
+    {
+        var m = MapParser.ParseXmlString(Map("<map proto=\"1.5.0\">", module));
+        await Assert.That(m.Name).IsEqualTo("m");
+    }
+
+    // The gate only covers objectives we cannot read; a module joins the parsed set when its parser lands.
+    [Test]
+    [Arguments("<wools team=\"red\"><wool color=\"red\" location=\"1,2,3\"/></wools>")]
+    [Arguments("<destroyables><destroyable owner=\"red\" name=\"a\" materials=\"obsidian\"/></destroyables>")]
+    [Arguments("<cores><core team=\"red\" region=\"r\"/></cores>")]
+    public async Task Accepts_an_objective_module_it_reads(string module)
     {
         var m = MapParser.ParseXmlString(Map("<map proto=\"1.5.0\">", module));
         await Assert.That(m.Name).IsEqualTo("m");

@@ -146,13 +146,13 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
   stained glass). **(e) validation** — ≥1 matching block per region (10 corpus destroyables already fail it),
   never "region is full": the region is a loose box *around* the structure and is legitimately mostly air
   (OB11, OB12).
-- [ ] **B25 — DTC: cores.** Everything from `B24` applies and the delta is small: `<cores>` parse/write (the
-  owning attribute is `team`, not `owner`), a `core` table, `CoreIntent`, and the shell-and-lava stamp —
-  **5×5×5 obsidian casing, shell 1 thick, 3×3×3 lava interior, capped top** (65% of real cores; open-top is a
-  flag at 11%), plus lava in `Blocks` (DC1). The one real design knob is **DC2**: cores *float*, so `leak` and
-  `float` are one parameter — players dig `max(0, leak − float)` blocks into the terrain under the core, and
-  `leak = 5` / `float = 6` (no dig) is the corpus centre. No new class of world operation and no negative-space
-  primitive: the structure rests on nothing. Depends on `B24`.
+- [~] **B25 — DTC: cores.** Parse/write/codec have landed (`FEATURES.md`); what remains rides on `B24`'s
+  remaining slices. A `core` table (`§11`), `CoreIntent`, and the shell-and-lava stamp — **5×5×5 obsidian
+  casing, shell 1 thick, 3×3×3 lava interior, capped top** (65% of real cores; open-top is a flag at 11%),
+  plus lava in `Blocks` (DC1). The one real design knob is **DC2**: cores *float*, so `leak` and `float` are
+  one parameter — players dig `max(0, leak − float)` blocks into the terrain under the core, and `leak = 5` /
+  `float = 6` (no dig) is the corpus centre. No new class of world operation and no negative-space
+  primitive: the structure rests on nothing.
 - [ ] **B31 — Island detection still guesses at the build floor a parsed phantom now states exactly.**
   `LayerExtractors.CleanBaseExclude` excludes stained glass (95) as a "build-floor marker removed pre-game
   via a `destroyables` mode-change" — a **material guess** ("glass as the lowest solid must be a build

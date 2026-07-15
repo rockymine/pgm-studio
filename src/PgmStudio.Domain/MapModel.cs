@@ -130,6 +130,26 @@ public sealed class Destroyable
 }
 
 /// <summary>
+/// A DTC objective: a casing of <see cref="Material"/> enclosing lava, owned by one team and breached by
+/// every other. It leaks when a lava block falls to <c>Y ≤ region.min.y − leak</c> within ±15 blocks
+/// horizontally of the core — so the core floats, and <see cref="Leak"/> only means anything against the
+/// height it floats at: players must dig <c>max(0, leak − float)</c> blocks into the terrain below it.
+/// <para>The XML spells the owning attribute <c>team</c> rather than <c>owner</c>, a PGM inconsistency
+/// with a standing TODO in their source. We mirror the XML and call the field Owner.</para>
+/// </summary>
+public sealed class Core
+{
+    public string Id = "";              // XML id; generated on parse when unauthored
+    public string Name = "";            // optional — PGM auto-names per team: "Core", "Core 2", …
+    public string Owner = "";           // the DEFENDING team (XML attr `team`)
+    public string RegionId = "";
+    public string Material = "";        // empty = obsidian, which is effectively universal anyway
+    public int? Leak;                   // null = 5
+    public bool ModeChanges;
+    public List<string>? Modes;
+}
+
+/// <summary>
 /// A scheduled change to an objective's material at a match time. Declarative — no world or structure
 /// impact — but it is what makes a <c>show="false"</c> destroyable a timed block-swap rather than a goal.
 /// </summary>
@@ -246,6 +266,7 @@ public sealed class MapXml
     public Spawn? ObserverSpawn;
     public List<Wool> Wools = [];
     public List<Destroyable> Destroyables = [];
+    public List<Core> Cores = [];
     public List<ObjectiveMode> Modes = [];
     public List<WoolSpawner> Spawners = [];
     public List<Renewable> Renewables = [];
@@ -281,6 +302,8 @@ public sealed class MapXml
             var modes = new List<string>();
             if (Wools.Count > 0) modes.Add("ctw");
             if (Destroyables.Any(d => d.IsObjective)) modes.Add("dtm");
+            // Cores have no `show` attribute, so no phantom carve-out applies: every core is an objective.
+            if (Cores.Count > 0) modes.Add("dtc");
             return modes;
         }
     }

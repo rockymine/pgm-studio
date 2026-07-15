@@ -49,7 +49,7 @@ public sealed partial class MapParser
 
     // The subset we actually read. A listed-but-unread module is an objective the map would lose on
     // round-trip with no error, so its presence rejects the map instead.
-    private static readonly HashSet<string> ParsedObjectiveModules = ["wools", "destroyables"];
+    private static readonly HashSet<string> ParsedObjectiveModules = ["wools", "destroyables", "cores"];
 
     // Reject maps outside the supported range up front rather than silently mis-parsing them: the old
     // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), modern worlds whose
@@ -120,6 +120,7 @@ public sealed partial class MapParser
         data.Wools = ParseWools(data.Regions);
         data.Modes = ParseModes();
         data.Destroyables = ParseDestroyables();
+        data.Cores = ParseCores();
         data.Spawners = ParseSpawners();
         data.Renewables = ParseRenewables();
         data.BlockDropRules = ParseBlockDropRules();
@@ -476,6 +477,34 @@ public sealed partial class MapParser
             });
         }
         return destroyables;
+    }
+
+    private List<Core> ParseCores()
+    {
+        var cores = new List<Core>();
+        var used = new HashSet<string>();
+        foreach (var c in Xml.Flatten(_root, "cores", "core"))
+        {
+            var name = c.Get("name");
+            var owner = c.Get("team");   // PGM spells the owner `team` here (OB1)
+            var id = c.Get("id");
+            if (id.Length == 0) id = UniqueId(Slug($"{owner}-{NonEmpty(name, "core")}"), used);
+            used.Add(id);
+
+            var (modeChanges, modes) = ParseModeMembership(c);
+            cores.Add(new Core
+            {
+                Id = id,
+                Name = name,
+                Owner = owner,
+                RegionId = ResolveObjectiveRegion(c, $"__core_{id}") ?? "",
+                Material = c.Get("material"),
+                Leak = int.TryParse(c.Get("leak"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var leak) ? leak : null,
+                ModeChanges = modeChanges,
+                Modes = modes,
+            });
+        }
+        return cores;
     }
 
     // Mode membership is a tri-state, not a list: `modes="a b"` is a specific set, `mode-changes="true"`

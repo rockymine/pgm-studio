@@ -13,6 +13,7 @@ public static class Serializer
         // Objective modules the reference contract has no key for. Emitted only when the map carries one,
         // so a map without them serialises to exactly the shape it always did.
         if (m.Destroyables.Count > 0) d["destroyables"] = m.Destroyables.Select(EncodeDestroyable).ToList<object?>();
+        if (m.Cores.Count > 0) d["cores"] = m.Cores.Select(EncodeCore).ToList<object?>();
         if (m.Modes.Count > 0) d["modes"] = m.Modes.Select(EncodeMode).ToList<object?>();
         // The derived truth beside the declared label — `gamemode` is what the author wrote (often
         // nothing), `gamemodes` is what the map's modules make it.
@@ -223,6 +224,18 @@ public static class Serializer
         }
         if (d.ModeChanges) r["mode_changes"] = true;
         if (d.Modes is { Count: > 0 }) r["modes"] = d.Modes.ToList<object?>();
+        return r;
+    }
+
+    private static Dict EncodeCore(Core c)
+    {
+        // `owner` is the field name everywhere but the XML, where PGM spells it `team` (OB1).
+        var r = new Dict { ["id"] = c.Id, ["owner"] = c.Owner, ["region"] = c.RegionId };
+        if (c.Name.Length > 0) r["name"] = c.Name;
+        if (c.Material.Length > 0) r["material"] = c.Material;
+        if (c.Leak is not null) r["leak"] = c.Leak;
+        if (c.ModeChanges) r["mode_changes"] = true;
+        if (c.Modes is { Count: > 0 }) r["modes"] = c.Modes.ToList<object?>();
         return r;
     }
 

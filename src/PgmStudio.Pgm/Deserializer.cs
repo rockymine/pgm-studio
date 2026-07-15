@@ -30,6 +30,7 @@ public static class Deserializer
             ObserverSpawn = obs is null ? null : DecodeSpawn(AsDict(obs), regions),
             Wools = wools,
             Destroyables = ListOf(d, "destroyables").Select(x => DecodeDestroyable(AsDict(x))).ToList(),
+            Cores = ListOf(d, "cores").Select(x => DecodeCore(AsDict(x))).ToList(),
             Modes = ListOf(d, "modes").Select(x => DecodeMode(AsDict(x))).ToList(),
             Spawners = ListOf(d, "spawners").Select(s => DecodeSpawner(AsDict(s))).ToList(),
             Renewables = ListOf(d, "renewables").Select(r => DecodeRenewable(AsDict(r))).ToList(),
@@ -273,6 +274,18 @@ public static class Deserializer
         Materials = Str(d, "materials"),
         Completion = Val(d, "completion") is { } c ? AsDouble(c, 1.0) : null,
         Show = Val(d, "show") is not false,
+        ModeChanges = Val(d, "mode_changes") is true,
+        Modes = d.ContainsKey("modes") ? ListOf(d, "modes").Select(m => m as string ?? "").ToList() : null,
+    };
+
+    private static Core DecodeCore(Dict d) => new()
+    {
+        Id = Str(d, "id"),
+        Name = Str(d, "name"),
+        Owner = Str(d, "owner"),
+        RegionId = Str(d, "region"),
+        Material = Str(d, "material"),
+        Leak = AsIntN(Val(d, "leak")),
         ModeChanges = Val(d, "mode_changes") is true,
         Modes = d.ContainsKey("modes") ? ListOf(d, "modes").Select(m => m as string ?? "").ToList() : null,
     };

@@ -245,6 +245,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   derives `[ctw,dtm]`; `alpine_mining_ii` derives `[dtm]` while declaring nothing. The `map.gamemode` column
   holds the label (its honest meaning — `OverviewActivity` edits it as free text); whether to persist the
   derived set is parked as B32. (B23, OB7/OB15/OB16)
+- **DTC: cores — parse, write, codec.** `<cores>` round-trips as `Core` (owner · region · material · leak ·
+  mode membership), contributing `dtc` to the derived gamemode set. Structurally the destroyable with a
+  different owning attribute, so it reuses `Xml.Flatten`, `ResolveObjectiveRegion` and the tri-state mode
+  membership **unchanged** — which is what B24a's shared work was for. The owning attribute is `team`, not
+  `owner` (a PGM inconsistency with a standing TODO in their source); the field is `Owner` (OB1). Unauthored
+  `material`/`leak`/`name` stay unauthored rather than being materialised, so PGM's own defaults (obsidian /
+  5 / per-team `Core`, `Core 2`) still apply and the map round-trips. The corpus leans on inheritance even
+  harder than DTM: **`leak` is declared on the group in 318 of 320 cases and `modes` in all 76**. Verified
+  over both corpora: **127 maps / 300 cores parse, every region resolves, zero round-trip drift**, and
+  cores rejoin the parsed objective set (1036 maps now in range, up from 910).
+  (B25a, OB1/OB4/OB9)
+- **The DTM/DTC contract, checked end to end against its own claim.** With B22–B25 in, the 10 maps B22 had
+  gated all parse, and the gamemode they derive independently reproduces what the contract asserts:
+  **8 of the 10 are phantom-only pure CTW** (abstract, abstract_remix, citadel, down_side_up,
+  fairy_tales_metamorphose, mine_your_own_business, newgen_classic, vesuvius → `[ctw]`), and **only
+  `sentient` (`[ctw,dtm]`, 8 real destroyables) and `bungee_coorde` (`[ctw,dtc]`) are genuine**.
+  down_side_up's 24 modes are its documented 12-step colour cycle. (B22/B23/B24a/B25a/B27)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)

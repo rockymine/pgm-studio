@@ -1502,7 +1502,7 @@ static int RunParity(string outputRoot, string[] corpusRoots, bool verbose)
 // Keys the studio's contract carries and the Python oracle has no equivalent for. The oracle reads only
 // the tags it names, so for these it is silent rather than authoritative — it cannot be the reference for
 // a module it drops.
-static string[] StudioOnlyKeys() => ["destroyables", "modes"];
+static string[] StudioOnlyKeys() => ["destroyables", "cores", "modes", "gamemodes"];
 
 static (bool ok, string detail) CheckMap(string xmlPath)
 {
