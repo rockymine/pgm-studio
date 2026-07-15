@@ -9,10 +9,11 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;
 
-// World · Symmetry sub-step (N01): confirm the detected symmetry (or pick another / none) and its centre.
-// This is the World intent slice — the confirmed choice is written to intent.symmetry, which the generator
-// uses to orbit-fill teams/wools. The canvas (reused EditorCanvas in symmetry mode — base layer only) shows
-// the axis/centre overlay; the detection summary surfaces the suggested team count.
+// World · Symmetry sub-step: the detected symmetry is confirmed by default and its centre pre-filled; the
+// author clicks another mode (or "none") only to change it. The choice is the World intent slice written to
+// intent.symmetry, which the generator uses to orbit-fill teams/wools. The canvas (reused EditorCanvas in
+// symmetry mode — base layer only) shows the axis/centre overlay; the detection summary surfaces the
+// suggested team count.
 public partial class WorldSymmetryPhase
 {
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
@@ -38,8 +39,9 @@ public partial class WorldSymmetryPhase
     {
         await LoadIslandCount();
         await LoadSymmetry();
-        // Seed from the stored intent if the author already confirmed; otherwise pre-select the detected
-        // primary (shown selected, but only written to the intent once the author confirms it).
+        // Seed from the stored intent if the author already chose; otherwise default-confirm the detected
+        // primary — write it to the intent up front so advancing keeps it (the author clicks only to change
+        // the choice, never to re-confirm what was detected).
         if (Wizard.Intent["symmetry"] is JsonObject sym)
         {
             selectedType = sym["mode"]?.GetValue<string>();
@@ -50,6 +52,8 @@ public partial class WorldSymmetryPhase
         {
             selectedType = primaryType;
             centerX = detCenterX; centerZ = detCenterZ;
+            // A detection is confirmed by default; no detection leaves symmetry absent (= "no symmetry").
+            if (primaryType is not null) WriteIntent();
         }
     }
 
