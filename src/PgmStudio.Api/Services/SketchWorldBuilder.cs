@@ -103,6 +103,10 @@ public static class SketchWorldBuilder
         // footprint overlap; room floors sit below the cage floor and the rest are clear of the cubes.
         StampStructures(world, terrain.SurfaceTop, intent.Structures);
 
+        // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
+        // region the generator emits is the volume these blocks were stamped into (OB8).
+        var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables);
+
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
         ObserverIntent? resolvedObserver = null;
@@ -132,6 +136,7 @@ public static class SketchWorldBuilder
             Observer = resolvedObserver ?? intent.Observer,
             Build = intent.Build,
             Wools = resolvedWools,
+            Destroyables = resolvedDestroyables,
             Meta = intent.Meta,
             Symmetry = intent.Symmetry,
             IslandTeams = intent.IslandTeams,
@@ -154,6 +159,41 @@ public static class SketchWorldBuilder
         foreach (var line in s.RedstoneLines)
             StructureStamper.StampRedstoneLine(world, surface, line.X1, line.Z1, line.X2, line.Z2);
     }
+
+    // Stamp each destroyable's structure and return the intent with every box resolved. One DestroyableBox
+    // call per objective feeds both the blocks and (via the returned intent) the emitted region — the box is
+    // never derived twice (OB8). An unknown style is dropped rather than defaulted: the plan validator
+    // already errors on it, so reaching here means something upstream skipped the gate, and stamping the
+    // wrong structure would hide that.
+    private static List<DestroyableIntent>? StampDestroyables(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<DestroyableIntent>? destroyables)
+    {
+        if (destroyables is null) return null;
+        var resolved = new List<DestroyableIntent>(destroyables.Count);
+        foreach (var b in destroyables)
+        {
+            if (!DestroyableStyles.TryParse(b.Style, out var style)) continue;
+            var (ax, az) = PositionSnap.SnapXZ(b.Anchor.X, b.Anchor.Z);
+            var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
+            ObjectiveStamper.StampDestroyable(world, box, style, MaterialId(b.Materials));
+            resolved.Add(new DestroyableIntent
+            {
+                Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = b.Materials,
+                Anchor = b.Anchor, Float = b.Float, Box = box,
+            });
+        }
+        return resolved;
+    }
+
+    // The block a destroyable's `materials` names. The closed four-material vocabulary the corpus uses for
+    // DTM goals; anything else falls back to obsidian, which is over half of them.
+    private static int MaterialId(string materials) => materials.Trim().ToLowerInvariant() switch
+    {
+        "emerald block" or "emerald_block" => Blocks.EmeraldBlock,
+        "gold block" or "gold_block" => Blocks.GoldBlock,
+        "ender stone" or "end_stone" or "ender_stone" => Blocks.EndStone,
+        _ => Blocks.Obsidian,
+    };
 
     /// <summary>The XZ footprints of the renewable iron cubes (<see cref="IronCube.Renew"/>) — the regions the
     /// map.xml renewables wiring covers so the mined ore regrows (ST2). Empty when there are none.</summary>

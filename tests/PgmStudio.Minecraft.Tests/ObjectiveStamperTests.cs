@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Minecraft.Tests;

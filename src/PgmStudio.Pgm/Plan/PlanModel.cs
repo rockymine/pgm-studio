@@ -155,9 +155,10 @@ public sealed class PlanZone
 /// cells.</summary>
 public sealed class PlanPlacements
 {
-    [JsonPropertyName("spawns")] public List<SpawnPlacement> Spawns { get; set; } = [];
-    [JsonPropertyName("wools")]  public List<WoolPlacement> Wools { get; set; } = [];
-    [JsonPropertyName("iron")]   public List<IronPlacement> Iron { get; set; } = [];
+    [JsonPropertyName("spawns")]       public List<SpawnPlacement> Spawns { get; set; } = [];
+    [JsonPropertyName("wools")]        public List<WoolPlacement> Wools { get; set; } = [];
+    [JsonPropertyName("iron")]         public List<IronPlacement> Iron { get; set; } = [];
+    [JsonPropertyName("destroyables")] public List<DestroyablePlacement> Destroyables { get; set; } = [];
 }
 
 /// <summary>A spawn on <see cref="Piece"/> at piece-relative cell offset <see cref="At"/>, facing
@@ -186,6 +187,28 @@ public sealed class IronPlacement
 {
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
+}
+
+/// <summary>
+/// A destroyable (DTM objective) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/>, owned by
+/// the authored team-0 unit and fanned to one per orbit image — the wool marker's shape, since a destroyable is
+/// likewise a goal one team defends. The marker is the structure's <b>anchor column</b>; the box itself floats
+/// <see cref="Float"/> blocks above the surface it spans, so no Y is authored.
+/// <para>Every structure parameter is optional and defaulted by the compiler, because the defaults are the
+/// corpus's own centre of mass — a bare <c>{ piece, at }</c> is a valid, typical destroyable.</para>
+/// </summary>
+public sealed class DestroyablePlacement
+{
+    [JsonPropertyName("piece")]     public string Piece { get; set; } = "";
+    [JsonPropertyName("at")]        public double[] At { get; set; } = [0, 0];
+    /// <summary>pillar-1|2|3 · cube-3 · cube-4 · column-plus; empty = pillar-3.</summary>
+    [JsonPropertyName("style")]     public string? Style { get; set; }
+    /// <summary>A PGM material match; empty = obsidian, over half the corpus.</summary>
+    [JsonPropertyName("materials")] public string? Materials { get; set; }
+    /// <summary>Blocks of air under the structure; null = 4.</summary>
+    [JsonPropertyName("float")]     public int? Float { get; set; }
+    /// <summary>Overrides the owner-and-index auto-name (<c>Red Monument</c>, <c>Red Monument 2</c>).</summary>
+    [JsonPropertyName("name")]      public string? Name { get; set; }
 }
 
 /// <summary>A land interface between pieces <see cref="A"/> and <see cref="B"/> forced to a one-way drop

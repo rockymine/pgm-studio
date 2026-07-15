@@ -1,3 +1,5 @@
+using PgmStudio.Domain;
+
 namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
@@ -29,6 +31,11 @@ public sealed class MapIntent
     /// <summary>The objective wools. One per defending team on a symmetric map; each is captured by the
     /// other N−1 teams (one monument each). Null/empty leaves objectives untouched.</summary>
     public List<WoolIntent>? Wools { get; init; }
+
+    /// <summary>The destroyable (DTM) objectives. One per defending team on a symmetric map, broken by the
+    /// other N−1 teams — so unlike a wool there are no per-capturing-team monuments to map. Null/empty leaves
+    /// them untouched, which is every CTW map.</summary>
+    public List<DestroyableIntent>? Destroyables { get; init; }
 
     /// <summary>Map identity: name + authors/contributors. Version (1.0.0), proto (1.5.0), gamemode (ctw)
     /// and the objective text are auto-derived by the generator, not authored.</summary>
@@ -182,6 +189,40 @@ public sealed class MonumentIntent
 {
     public string Team { get; init; } = "";
     public Pt Location { get; init; }
+}
+
+/// <summary>
+/// One destroyable (DTM) objective: the <see cref="Materials"/> blocks of a <see cref="Style"/> structure
+/// standing over <see cref="Anchor"/>, defended by <see cref="Owner"/> and broken by every other team.
+/// <para>The structure parameters are already resolved here — the plan's optional fields are defaulted by the
+/// compiler, so a consumer never re-decides them. <see cref="Anchor"/> is the marker column, not the
+/// structure's corner: the box is centred on it and floats <see cref="Float"/> blocks above the surface its
+/// footprint spans, so its Y is a function of the terrain rather than an authored number.</para>
+/// </summary>
+public sealed class DestroyableIntent
+{
+    /// <summary>The DEFENDING team — the same meaning as <see cref="WoolIntent.Owner"/>.</summary>
+    public string Owner { get; init; } = "";
+    /// <summary>Required by PGM, which rejects a nameless destroyable; the compiler auto-names from the owner
+    /// and index rather than pushing the burden to the author.</summary>
+    public string Name { get; init; } = "";
+    /// <summary>pillar-1|2|3 · cube-3 · cube-4 · column-plus.</summary>
+    public string Style { get; init; } = "";
+    /// <summary>A PGM material match — the goal is these blocks, not the region that holds them.</summary>
+    public string Materials { get; init; } = "";
+    public Pt Anchor { get; init; }
+    /// <summary>Blocks of air between the terrain and the structure's underside.</summary>
+    public int Float { get; init; }
+
+    /// <summary>
+    /// The structure's resolved block volume — filled by the world-export path, which is the only place that
+    /// knows the terrain the box floats over. Null on an intent that has not been through it.
+    /// <para>The generator emits this box verbatim as the destroyable's <c>&lt;region&gt;</c>, so the goal's
+    /// blocks and the region that scopes them come from the one box the stamper used (OB8). Deriving the
+    /// region independently is how a region misses its structure and PGM yields a silent zero-health
+    /// goal.</para>
+    /// </summary>
+    public BlockBox? Box { get; init; }
 }
 
 /// <summary>A world point (spawn location).</summary>

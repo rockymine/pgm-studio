@@ -118,22 +118,18 @@ read is rejected, so `B25` ends by adding `cores` to `MapParser.ParsedObjectiveM
 cores take as-is; `B27`'s phantom classifier (`Destroyable.IsObjective`/`.Phantom`), which `B26` must respect;
 and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `dtc`.
 
-- [~] **B24 — DTM: destroyables, the authoring half.** Parser, writer, codec, schema and the world stamps
-  have landed (`FEATURES.md`); what remains is the wiring between them. **(c) intent** —
-  `DestroyableIntent` + orbit-fill (the `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`,
-  compiled through `PlanCompiler` the way `IronPlacement` is, with the canvas preview riding
-  `PlanStructurePreview`; `rot_90` hides the placement kind (OB14), which is free to honour from day one.
-  The compiler must take the structure box **and** the emitted `<region>` from the one
-  `ObjectiveStamper.StructureBox` (OB8) — for generated maps the region is the exact structure bounds, since
-  the slack in hand-authored regions (OB12) is an artifact we don't reproduce. **(e) validation** — the
-  export gate asserts ≥1 block matching `materials` inside each destroyable's region and both casing and
-  lava inside each core's (10 corpus destroyables already fail it). Never "the region is full": by OB12 a
-  region is legitimately mostly air, so anything stricter rejects most of the corpus. Needs world access,
-  which `MapValidity` (doc-dict only, one rule) doesn't have today — that's the design question in this
-  slice. (OB8, OB11, OB12, OB14)
+- [~] **B24e — DTM/DTC export gate: assert each objective's region really holds its blocks.** The rest of
+  `B24` has landed (`FEATURES.md`). What remains is the gate: **≥1 block matching `materials` inside each
+  destroyable's region, and both casing and lava inside each core's**. For authored maps this should be
+  unfalsifiable — the region *is* the stamper's box (OB8) — so it is a guard against the generator drifting;
+  for **imported** maps it is a real check, and the corpus sweep already found **10 destroyables that fail
+  it** (a region containing none of its declared material). Never "the region is full": by OB12 a region is
+  legitimately mostly air (a 3×3×3 region holding a 1×3×1 pillar is correct and common), so anything
+  stricter rejects most of the corpus. **The design question is where it lives** — the check needs the world,
+  and `MapValidity` is doc-dict-only with no world access today. (OB8, OB11, OB12)
 - [~] **B25 — DTC: cores, the authoring half.** Parse/write/codec/schema and the shell-and-lava stamp have
-  landed (`FEATURES.md`); what remains is `CoreIntent` + `PlanPlacements.cores`, riding whatever `B24c`
-  builds for destroyables — the delta is only the extra knobs (`size`/`height`/`shell`/`openTop`, and the
+  landed (`FEATURES.md`); what remains is `CoreIntent` + `PlanPlacements.cores`, riding the destroyable path
+  `B24c` built — the delta is only the extra knobs (`size`/`height`/`shell`/`openTop`, and the
   `float`+`leak` pair that must be authored together because neither means anything alone, DC2).
 - [ ] **B31 — Island detection still guesses at the build floor a parsed phantom now states exactly.**
   `LayerExtractors.CleanBaseExclude` excludes stained glass (95) as a "build-floor marker removed pre-game

@@ -263,6 +263,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   accepts a `gamemode` key. A map with no objective module we read carries **no** gamemode rather than a blank
   tag — true of every sketch, and of no imported map. Live: 362 `[ctw]`, 1 `[ctw,dtm]`, 1 `[ctw,dtc]`;
   `lindorm` shows `CTW` despite declaring `ad`. (B32, OB7/OB15)
+- **DTM: authoring a destroyable, plan → world → `map.xml`.** A `destroyables` marker in the plan editor
+  compiles the wool way — team-outer, so each orbit image belongs to the team it lands on, with no monument
+  mapping since every other team breaks the same structure. `{ piece, at }` is a complete, typical
+  destroyable: the compiler defaults `style`/`materials`/`float` to the corpus's own centre of mass
+  (pillar-3 · obsidian · 4) and derives the name PGM requires from owner and index (`Red Monument`,
+  `Red Monument 2`) rather than asking. **OB8 is enforced by construction**: only the world-export path knows
+  the terrain the box floats over, so it resolves each `ObjectiveStamper.DestroyableBox` once, stamps it, and
+  carries it back on `DestroyableIntent.Box` — the generator emits that same box as the `<region>`, and a
+  destroyable whose box is unresolved emits nothing rather than a guessed region. Verified end to end by
+  walking the emitted region with PGM's own `[min, max)` semantics (OB13) and finding exactly the 3 stamped
+  blocks. **OB14 is enforced twice** — the editor offers the tool only at `Symmetry.Order == 2`, and the
+  validator errors on a hand-written `rot_90` plan that asks anyway, since a shared DTM goal is an open
+  design question and compiling one would invent an answer. An unknown style is likewise an error, never a
+  silent default. `DestroyableStyle` + its slug vocabulary moved to `Domain` (the lowest project the plan
+  layer and the stamper both reach), and the client's kind→list dispatch became a keyed lookup — it was a
+  ternary chain ending in `iron`, so any new kind would have silently placed, selected and deleted iron
+  markers. (B24a/B24c/B24d, OB8/OB12/OB13/OB14, DT3)
 - **DTC: cores — parse, write, codec.** `<cores>` round-trips as `Core` (owner · region · material · leak ·
   mode membership), contributing `dtc` to the derived gamemode set. Structurally the destroyable with a
   different owning attribute, so it reuses `Xml.Flatten`, `ResolveObjectiveRegion` and the tri-state mode

@@ -7,7 +7,7 @@
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES,
-  planIsoSolids, viewBounds,
+  planIsoSolids, viewBounds, markerList, MARKER_KINDS,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 
@@ -75,17 +75,17 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       const p = doc.pieces.find(x => x.id === sel.id);
       doc.pieces = doc.pieces.filter(x => x.id !== sel.id);
       if (p) {   // drop any markers that rode the removed piece + any cliff/wall marks referencing it
-        doc.placements.spawns = doc.placements.spawns.filter(m => m.piece !== sel.id);
-        doc.placements.wools = doc.placements.wools.filter(m => m.piece !== sel.id);
-        doc.placements.iron = doc.placements.iron.filter(m => m.piece !== sel.id);
+        for (const kind of MARKER_KINDS) {
+          const list = markerList(doc, kind);
+          if (list) markerList(doc, kind).splice(0, list.length, ...list.filter(m => m.piece !== sel.id));
+        }
         doc.cliffs = (doc.cliffs || []).filter(c => c.a !== sel.id && c.b !== sel.id);
         doc.walls = (doc.walls || []).filter(w => w.a !== sel.id && w.b !== sel.id);
       }
     } else if (sel.kind === "zone") {
       doc.zones = doc.zones.filter(x => x.id !== sel.id);
     } else if (sel.kind === "marker") {
-      const list = sel.markerKind === "spawn" ? doc.placements.spawns : sel.markerKind === "wool" ? doc.placements.wools : doc.placements.iron;
-      list.splice(sel.index, 1);
+      markerList(doc, sel.markerKind)?.splice(sel.index, 1);
     }
     canvas.clearSelection();
     canvas.setDoc(doc);

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
@@ -13,8 +14,8 @@ namespace PgmStudio.Api.Services;
 /// <c>[x, x+1)</c>. The stampers' own footprint conventions differ per structure and are normalized to
 /// this frame in <see cref="PlanStructurePreview"/>.</para>
 /// <para><see cref="Kind"/> is the structure family (<c>spawn-cube</c>, <c>wool-cage</c>, <c>iron</c>,
-/// <c>wall</c>); <see cref="Color"/> is a colour slug the client maps through its dye palette, or null where
-/// the kind carries its own fixed material colour.</para></summary>
+/// <c>destroyable</c>, <c>wall</c>); <see cref="Color"/> is a colour slug the client maps through its dye
+/// palette, or null where the kind carries its own fixed material colour.</para></summary>
 public readonly record struct StructureBox(
     string Kind, string? Color, int MinX, int MinZ, int MaxX, int MaxZ, int Floor, int Top);
 
@@ -55,6 +56,17 @@ public static class PlanStructurePreview
             boxes.Add(Cube("spawn-cube", teamColor.GetValueOrDefault(s.Team), s.Point, surface));
         foreach (var w in intent.Wools ?? [])
             boxes.Add(Cube("wool-cage", w.Color, w.Spawn, surface));
+
+        // Destroyables: the same ObjectiveStamper.DestroyableBox the world build stamps from, so the preview
+        // cannot show a structure the export would not place (OB8). Inclusive box → +1 for the exclusive frame.
+        foreach (var b in intent.Destroyables ?? [])
+        {
+            if (!DestroyableStyles.TryParse(b.Style, out var style)) continue;
+            var (ax, az) = PositionSnap.SnapXZ(b.Anchor.X, b.Anchor.Z);
+            var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
+            boxes.Add(new StructureBox("destroyable", null, box.MinX, box.MinZ,
+                box.MaxX + 1, box.MaxZ + 1, box.MinY, box.MaxY + 1));
+        }
 
         var st = intent.Structures;
         if (st is null) return boxes;

@@ -46,7 +46,7 @@ export function emptyDoc() {
     globals: { cell: 5, symmetry: "rot_180", maxPlayers: 12, surface: 9, headroom: 11 },
     pieces: [],
     zones: [],
-    placements: { spawns: [], wools: [], iron: [] },
+    placements: { spawns: [], wools: [], iron: [], destroyables: [] },
     cliffs: [],
     walls: [],
   };
@@ -79,6 +79,16 @@ export function normalizeDoc(d) {
       spawns: (src.placements?.spawns || []).map(s => ({ piece: s.piece ?? "", at: [...(s.at || [0, 0])], facing: s.facing ?? "front" })),
       wools: (src.placements?.wools || []).map(w => { const o = { piece: w.piece ?? "", at: [...(w.at || [0, 0])] }; if (w.color) o.color = w.color; return o; }),
       iron: (src.placements?.iron || []).map(i => ({ piece: i.piece ?? "", at: [...(i.at || [0, 0])] })),
+      // Every structure field is optional — the compiler defaults them — so each is kept only when authored,
+      // leaving a plain marker as the bare { piece, at } it was written as.
+      destroyables: (src.placements?.destroyables || []).map(b => {
+        const o = { piece: b.piece ?? "", at: [...(b.at || [0, 0])] };
+        if (b.style) o.style = b.style;
+        if (b.materials) o.materials = b.materials;
+        if (b.float != null) o.float = b.float;
+        if (b.name) o.name = b.name;
+        return o;
+      }),
     },
     cliffs: (src.cliffs || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
     walls: (src.walls || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
@@ -319,13 +329,23 @@ export function allMarkers(doc) {
   doc.placements.spawns.forEach((m, i) => out.push({ kind: "spawn", index: i, marker: m }));
   doc.placements.wools.forEach((m, i) => out.push({ kind: "wool", index: i, marker: m }));
   doc.placements.iron.forEach((m, i) => out.push({ kind: "iron", index: i, marker: m }));
+  doc.placements.destroyables.forEach((m, i) => out.push({ kind: "destroyable", index: i, marker: m }));
   return out;
 }
 
-const markerList = (doc, kind) => kind === "spawn" ? doc.placements.spawns : kind === "wool" ? doc.placements.wools : doc.placements.iron;
+/** The placement kinds, and the doc list each lives in. */
+export const MARKER_KINDS = ["spawn", "wool", "iron", "destroyable"];
+const MARKER_LIST_KEY = { spawn: "spawns", wool: "wools", iron: "iron", destroyable: "destroyables" };
+
+/** The doc list a marker kind lives in. Keyed rather than a chain of ternaries ending in a default: an
+ *  unknown kind must be nothing, not silently the last branch. */
+export function markerList(doc, kind) {
+  const key = MARKER_LIST_KEY[kind];
+  return key ? doc.placements[key] : null;
+}
 
 /** The marker record for a `{ kind, index }` reference, or null. */
-export function markerAt(doc, kind, index) { return markerList(doc, kind)[index] || null; }
+export function markerAt(doc, kind, index) { return markerList(doc, kind)?.[index] || null; }
 
 /**
  * The symmetry mirror images of every mirroring piece — one `{ role, surface, bounds }` per orbit image
@@ -405,12 +425,14 @@ export function planIsoSolids(doc, structures) {
 // Structure materials, as 0xRRGGBB the iso renderer draws directly. Mirrored terrain is washed out to
 // stay readable as a symmetry image; a structure is never washed out — every orbit image is a real box,
 // and the team/wool colours already tell them apart.
-const MAT = { bedrock: 0x4e4e56, bedrockMirror: 0x9a9aa2, iron: 0xdcdce2 };
+const MAT = { bedrock: 0x4e4e56, bedrockMirror: 0x9a9aa2, iron: 0xdcdce2, destroyable: 0x2a1f3d };
 
-// A cube names its wool/team colour as a slug; iron and walls carry their own fixed material.
+// A cube names its wool/team colour as a slug; the rest carry their own fixed material. Keyed rather than
+// a ternary chain: an unrecognised kind should read as the neutral bedrock, not as whichever branch is last.
+const KIND_MAT = { iron: MAT.iron, destroyable: MAT.destroyable };
 function structureColor(s) {
   if (s.color) return parseInt(dyeColorHex(s.color).slice(1), 16);
-  return s.kind === "iron" ? MAT.iron : MAT.bedrock;
+  return KIND_MAT[s.kind] ?? MAT.bedrock;
 }
 
 /** The mirror-image centre points (block coords) of every marker on a mirroring piece — for the ghost. */

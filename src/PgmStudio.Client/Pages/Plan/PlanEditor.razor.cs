@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
+using PgmStudio.Geom;
 using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Pages.Plan;
@@ -250,9 +251,21 @@ public partial class PlanEditor
         if (handle is not null) await handle.InvokeVoidAsync("setName", planName);
     }
 
+    /// <summary>
+    /// Whether the destroyable/core tools are offered (OB14). A destroyable is one team's to defend and every
+    /// other team's to break — a shape that only means something at two teams. PGM's own test is the same:
+    /// it marks a goal shared exactly when the team count is not 2, and at four teams every goal is shared,
+    /// which is a design nobody has settled. So the tools appear for the order-2 symmetries only, never for
+    /// <c>rot_90</c> (order 4) or an unmirrored plan (order 1). Asks <see cref="Symmetry.Order"/> rather than
+    /// naming the modes, so a new symmetry mode is classified rather than silently allowed.
+    /// </summary>
+    private bool ObjectivesOfferable => Symmetry.Order(symmetry) == 2;
+
     private async Task OnSymmetry(ChangeEventArgs e)
     {
         symmetry = e.Value?.ToString() ?? "rot_180";
+        // Leaving a hidden tool armed would let the next click place a marker the plan may not carry.
+        if (!ObjectivesOfferable && tool == "destroyable") await PickTool("select");
         if (handle is not null) await handle.InvokeVoidAsync("setGlobal", "symmetry", symmetry);
     }
 

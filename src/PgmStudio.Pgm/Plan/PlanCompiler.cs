@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
@@ -16,6 +17,16 @@ public static class PlanCompiler
     // Team slot palette, in orbit order (2 teams → red/blue, 4 → red/blue/yellow/green).
     private static readonly (string Id, string Name, string Color)[] Palette =
         [("red", "Red", "red"), ("blue", "Blue", "blue"), ("yellow", "Yellow", "yellow"), ("green", "Green", "green")];
+
+    // Blocks of air under a destroyable (DT3). Enough that the structure reads as a monument rather than
+    // terrain, and that breaking it means committing to the climb.
+    private const int DefaultDestroyableFloat = 4;
+
+    // PGM rejects a nameless destroyable, so the compiler names one rather than the author: "Red Monument",
+    // then "Red Monument 2" for a team's second. "Monument" is PGM's own player-facing word for a DTM goal —
+    // the codebase reserves the term for the CTW wool monument, but the map's audience is players.
+    private static string MonumentName(string teamName, int index) =>
+        index == 0 ? $"{teamName} Monument" : $"{teamName} Monument {index + 1}";
 
     // Distinct dyes for a team's non-first wools, so every wool across the board keys to a unique colour.
     private static readonly string[] Dyes =
@@ -157,6 +168,34 @@ public static class PlanCompiler
                 });
             }
 
+        // destroyables: team-outer like wools — a destroyable is a goal one team defends, so an orbit image
+        // belongs to the team it lands on. No monument mapping: every other team breaks the same structure.
+        //
+        // Only at two teams (OB14). Outside that the markers compile to nothing: the validator already errors
+        // on such a plan, so the compile endpoint never reaches here, and the only caller that compiles an
+        // unvalidated plan is the structure preview — which must not draw four shared goals the export would
+        // refuse to build. Declining to fan them is not inventing an answer to the open design question; a
+        // preview of the forbidden thing would be.
+        var destroyables = new List<DestroyableIntent>();
+        for (var k = 0; k < order && order == 2; k++)
+            for (var i = 0; i < plan.Placements.Destroyables.Count; i++)
+            {
+                var b = plan.Placements.Destroyables[i];
+                var piece = d.Piece(b.Piece);
+                if (piece is null) continue;
+                var (bx, bz) = Resolve(piece.Value.Rect, b.At, d.Cell);
+                var (px, pz) = d.FanPoint(bx, bz, k);
+                destroyables.Add(new DestroyableIntent
+                {
+                    Owner = teams[k].Id,
+                    Name = !string.IsNullOrEmpty(b.Name) ? b.Name : MonumentName(teams[k].Name, i),
+                    Style = !string.IsNullOrEmpty(b.Style) ? b.Style : DestroyableStyles.Slug(DestroyableStyles.Default),
+                    Materials = !string.IsNullOrEmpty(b.Materials) ? b.Materials : DestroyableStyles.DefaultMaterials,
+                    Anchor = new Pt(px, piece.Value.Surface, pz),
+                    Float = b.Float ?? DefaultDestroyableFloat,
+                });
+            }
+
         var maxHeight = plan.Globals.Surface + plan.Globals.Headroom;
         var build = new BuildIntent
         {
@@ -175,6 +214,7 @@ public static class PlanCompiler
             MaxPlayers = plan.Globals.MaxPlayers,
             Spawns = spawns,
             Wools = wools,
+            Destroyables = destroyables.Count > 0 ? destroyables : null,
             Observer = new ObserverIntent { Point = new Pt(0, observerY, 0), Yaw = 0 },
             Build = build,
             Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },

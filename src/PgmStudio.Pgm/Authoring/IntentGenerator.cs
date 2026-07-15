@@ -18,6 +18,7 @@ public static class IntentGenerator
         MetaGenerator.Apply(doc, intent);
         TeamsGenerator.Apply(doc, intent);
         WoolGenerator.Apply(doc, intent);
+        DestroyableGenerator.Apply(doc, intent);
         // Build last: its broad not-build-area "no-void" rule ALLOWs editing any solid block, and PGM stops
         // at the first apply rule that decides — so it must come *after* the spawn/wool-room protections
         // (which sit outside the build area) or it short-circuits them. Matches docs/template.xml ordering.

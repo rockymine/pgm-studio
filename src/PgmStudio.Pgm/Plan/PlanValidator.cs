@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Plan;
@@ -56,6 +57,21 @@ public static class PlanValidator
         foreach (var s in plan.Placements.Spawns) CheckInside(d, "spawn", s.Piece, s.At, findings);
         foreach (var w in plan.Placements.Wools) CheckInside(d, "wool", w.Piece, w.At, findings);
         foreach (var ir in plan.Placements.Iron) CheckInside(d, "iron", ir.Piece, ir.At, findings);
+        foreach (var b in plan.Placements.Destroyables) CheckInside(d, "destroyable", b.Piece, b.At, findings);
+
+        // An unknown style names no structure, so the compiler would have to invent one — and silently
+        // stamping a pillar where the author asked for a cube is worse than saying the word is not a style.
+        foreach (var b in plan.Placements.Destroyables)
+            if (!string.IsNullOrEmpty(b.Style) && !DestroyableStyles.IsKnown(b.Style))
+                Error($"destroyable style '{b.Style}' is not one of [{string.Join(", ", DestroyableStyles.All)}]", b.Piece);
+
+        // OB14 — a destroyable is one team's to defend and every other team's to break, which only means
+        // something at two teams: PGM marks a goal shared exactly when the count is not 2, and what a shared
+        // DTM goal should play like is undecided. The editor hides the tool outside order 2, but a
+        // hand-written plan can still ask; compiling it would invent an answer to an open design question.
+        if (plan.Placements.Destroyables.Count > 0 && Symmetry.Order(plan.Globals.Symmetry) != 2)
+            Error($"destroyables need a two-team symmetry; '{plan.Globals.Symmetry}' has "
+                + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s)");
 
         // a wall mark must land on a real shared land interface (else there is no lane seam to build across)
         var landPairs = new HashSet<(string, string)>();

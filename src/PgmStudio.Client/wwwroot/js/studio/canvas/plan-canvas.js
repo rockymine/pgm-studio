@@ -1,7 +1,7 @@
 /**
  * PlanCanvas — the drawing surface for the plan editor (the seed studio). Extends CanvasBase for
  * pan/zoom/drag and renders the cell grid, rect pieces (role-coloured, tinted by surface height),
- * translucent dashed zones, objective markers (spawn/wool/iron), and the dimmed non-editable symmetry
+ * translucent dashed zones, objective markers (spawn/wool/iron/destroyable), and the dimmed non-editable symmetry
  * mirror ghost. Pointer tools draw / move / resize pieces and zones and drop markers; all snapping,
  * hit-testing and mirror math live in plan/plan-doc.js (pure). World coordinates ARE the SVG base
  * coordinates (identity transform, like SketchCanvas); `fit()` frames the content bounds.
@@ -16,7 +16,7 @@ import { primitiveStyle } from "../render/primitive-style.js";
 import { blockDataToDataUrl } from "../render/block-render.js";
 import {
   ROLE_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
-  markerCell, attachMarker, markerAt, allMarkers, viewBounds, pickAtWorld, sameSelection,
+  markerCell, attachMarker, markerAt, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole,
   pieceMirrorImages, zoneMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
@@ -25,7 +25,7 @@ import {
 const HATCH = { buffer: "buffer-hatch", connector: "connector-hatch" };
 
 const FIT_MARGIN = 0.82;
-const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4" };
+const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4", destroyable: "#6b4f9e" };
 
 // The 8 resize handles of a rect: ex/ez pick which cell edge each drags (−1 = min side, 1 = max, 0 = none);
 // nx/nz are the handle's normalised position on the block-bounds box (for placing it in screen space).
@@ -74,7 +74,7 @@ function heightColor(t) {
 
 export class PlanCanvas extends CanvasBase {
   #doc = null;
-  #tool = "select";                 // select | pan | piece | zone | spawn | wool | iron | wall
+  #tool = "select";                 // select | pan | piece | zone | spawn | wool | iron | destroyable | wall
   #pieceRole = "piece";             // role armed for the piece tool
   #sel = null;                      // { kind:'piece'|'zone', id } | { kind:'marker', markerKind, index }
   #drag = null;                     // { mode:'move'|'draw', ... } live pointer op
@@ -117,7 +117,7 @@ export class PlanCanvas extends CanvasBase {
   setTool(tool) {
     this.#tool = tool;
     this._activeTool = tool === "pan" ? "move" : tool;
-    const draws = tool === "piece" || tool === "zone" || tool === "spawn" || tool === "wool" || tool === "iron" || tool === "wall";
+    const draws = tool === "piece" || tool === "zone" || tool === "wall" || MARKER_KINDS.includes(tool);
     this._svg.style.cursor = draws ? "crosshair" : (tool === "select" ? "default" : "");
   }
   setPieceRole(role) { this.#pieceRole = role; }
@@ -686,7 +686,7 @@ export class PlanCanvas extends CanvasBase {
     if (this.#tool === "wall") return this.#toggleWallAt(svgPt.x, svgPt.y);
     if (this.#tool === "piece" || this.#tool === "zone") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#renderPreview(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
-    if (this.#tool === "spawn" || this.#tool === "wool" || this.#tool === "iron") this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
+    if (MARKER_KINDS.includes(this.#tool)) this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
   }
 
   _onPointerMove(e, svgPt) {
@@ -775,7 +775,8 @@ export class PlanCanvas extends CanvasBase {
     const at = attachMarker(this.#doc, cx, cz);
     if (!at) return;                          // markers must ride a piece
     const rec = kind === "spawn" ? { ...at, facing: "front" } : { ...at };
-    const list = kind === "spawn" ? this.#doc.placements.spawns : kind === "wool" ? this.#doc.placements.wools : this.#doc.placements.iron;
+    const list = markerList(this.#doc, kind);
+    if (!list) return;
     list.push(rec);
     this.#sel = { kind: "marker", markerKind: kind, index: list.length - 1 };
     this.setTool("select"); this.#cb.onTool?.("select");

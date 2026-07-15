@@ -12,7 +12,7 @@ import {
   contentBounds, viewBounds, pieceMirrorImages, zoneMirrorImages, markerMirrorImages, ROLES, ROLE_COLORS,
   canonicalRole, toggleWall, nearestInterface,
   markerAtWorld, pickAtWorld, sameSelection, MARKER_HIT_CELLS,
-  pieceSurface, surfaceRange, surfaceFraction, planIsoSolids,
+  pieceSurface, surfaceRange, surfaceFraction, planIsoSolids, markerList, markerAt, MARKER_KINDS,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -399,4 +399,48 @@ test("fromJson → toJson round-trips a seed plan's data", () => {
   assert.equal(doc.pieces.find(p => p.id === "wool").role, "wool-room");
   assert.deepEqual(doc.placements.spawns[0], { piece: "spawn", at: [1, 1], facing: "front" });
   assert.equal(doc.placements.wools.length, 2);
+});
+
+// The kind→list dispatch used to be a ternary chain whose final branch was iron, so any kind that was not
+// "spawn" or "wool" silently resolved to the iron list — a new kind would place, select and delete the
+// wrong markers rather than fail. It must be a lookup: every kind its own list, an unknown kind nothing.
+test("markerList maps each kind to its own list, and an unknown kind to nothing", () => {
+  const doc = emptyDoc();
+  for (const kind of MARKER_KINDS) assert.ok(markerList(doc, kind), `${kind} has a list`);
+
+  const lists = MARKER_KINDS.map(k => markerList(doc, k));
+  assert.equal(new Set(lists).size, MARKER_KINDS.length, "no two kinds share a list");
+
+  assert.equal(markerList(doc, "destroyable"), doc.placements.destroyables);
+  assert.equal(markerList(doc, "iron"), doc.placements.iron);
+
+  assert.equal(markerList(doc, "core"), null);       // not a kind yet — must not fall through to iron
+  assert.equal(markerList(doc, "nonsense"), null);
+  assert.equal(markerAt(doc, "nonsense", 0), null);  // and reading through it must not throw
+});
+
+test("a destroyable placement round-trips, keeping only its authored fields", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    placements: {
+      destroyables: [
+        { piece: "bar-w", at: [2, 3] },
+        { piece: "bar-e", at: [1, 1], style: "cube-4", materials: "gold block", float: 7, name: "The Vault" },
+      ],
+    },
+  });
+  // A bare marker stays bare: the compiler owns the defaults, so the plan must not bake them in.
+  assert.deepEqual(doc.placements.destroyables[0], { piece: "bar-w", at: [2, 3] });
+  assert.deepEqual(doc.placements.destroyables[1], {
+    piece: "bar-e", at: [1, 1], style: "cube-4", materials: "gold block", float: 7, name: "The Vault",
+  });
+  assert.deepEqual(JSON.parse(toJson(doc)).placements.destroyables, doc.placements.destroyables);
+});
+
+test("allMarkers includes destroyables, tagged with their kind", () => {
+  const doc = emptyDoc();
+  doc.placements.destroyables.push({ piece: "bar-w", at: [1, 1] });
+  const found = allMarkers(doc).filter(m => m.kind === "destroyable");
+  assert.equal(found.length, 1);
+  assert.equal(found[0].index, 0);
 });

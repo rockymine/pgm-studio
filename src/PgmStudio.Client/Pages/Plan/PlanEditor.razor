@@ -216,6 +216,15 @@
               <button class="draw-tool-btn @(tool == "iron" ? "draw-tool-btn--active" : null)" title="Place an iron marker" @onclick='() => PickTool("iron")'>
                 <i data-lucide="pickaxe"></i>
               </button>
+              @* A destroyable is defended by one team and broken by the others, which only means something
+                 when there are two: at four teams PGM treats every goal as shared, and what that should play
+                 like is undecided. So the tool is offered for the 2-team symmetries only (OB14). *@
+              @if (ObjectivesOfferable)
+              {
+                <button class="draw-tool-btn @(tool == "destroyable" ? "draw-tool-btn--active" : null)" title="Place a destroyable (DTM) marker" @onclick='() => PickTool("destroyable")'>
+                  <i data-lucide="gem"></i>
+                </button>
+              }
               <button class="draw-tool-btn @(tool == "wall" ? "draw-tool-btn--active" : null)" title="Toggle a pre-built wall on the land interface you click" @onclick='() => PickTool("wall")'>
                 <i data-lucide="brick-wall"></i>
               </button>
