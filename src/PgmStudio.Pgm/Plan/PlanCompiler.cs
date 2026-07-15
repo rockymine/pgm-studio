@@ -18,10 +18,6 @@ public static class PlanCompiler
     private static readonly (string Id, string Name, string Color)[] Palette =
         [("red", "Red", "red"), ("blue", "Blue", "blue"), ("yellow", "Yellow", "yellow"), ("green", "Green", "green")];
 
-    // Blocks of air under a destroyable (DT3). Enough that the structure reads as a monument rather than
-    // terrain, and that breaking it means committing to the climb.
-    private const int DefaultDestroyableFloat = 4;
-
     // PGM rejects a nameless destroyable, so the compiler names one rather than the author: "Red Monument",
     // then "Red Monument 2" for a team's second. "Monument" is PGM's own player-facing word for a DTM goal —
     // the codebase reserves the term for the CTW wool monument, but the map's audience is players.
@@ -189,10 +185,33 @@ public static class PlanCompiler
                 {
                     Owner = teams[k].Id,
                     Name = !string.IsNullOrEmpty(b.Name) ? b.Name : MonumentName(teams[k].Name, i),
-                    Style = !string.IsNullOrEmpty(b.Style) ? b.Style : DestroyableStyles.Slug(DestroyableStyles.Default),
-                    Materials = !string.IsNullOrEmpty(b.Materials) ? b.Materials : DestroyableStyles.DefaultMaterials,
+                    Style = !string.IsNullOrEmpty(b.Style) ? b.Style : DestroyableStyles.Slug(ObjectiveDefaults.Style),
+                    Materials = !string.IsNullOrEmpty(b.Materials) ? b.Materials : ObjectiveDefaults.Materials,
                     Anchor = new Pt(px, piece.Value.Surface, pz),
-                    Float = b.Float ?? DefaultDestroyableFloat,
+                    Float = b.Float ?? ObjectiveDefaults.DestroyableFloat,
+                });
+            }
+
+        // cores: the destroyable's fan with the casing's own knobs. Order-2 only, for the same reason (OB14).
+        var cores = new List<CoreIntent>();
+        for (var k = 0; k < order && order == 2; k++)
+            foreach (var c in plan.Placements.Cores)
+            {
+                var piece = d.Piece(c.Piece);
+                if (piece is null) continue;
+                var (bx, bz) = Resolve(piece.Value.Rect, c.At, d.Cell);
+                var (px, pz) = d.FanPoint(bx, bz, k);
+                cores.Add(new CoreIntent
+                {
+                    Owner = teams[k].Id,
+                    Name = c.Name ?? "",                 // empty is correct: PGM names a core itself
+                    Anchor = new Pt(px, piece.Value.Surface, pz),
+                    Size = c.Size ?? ObjectiveDefaults.CoreSize,
+                    Height = c.Height ?? ObjectiveDefaults.CoreHeight,
+                    Shell = c.Shell ?? ObjectiveDefaults.CoreShell,
+                    OpenTop = c.OpenTop ?? false,
+                    Float = c.Float ?? ObjectiveDefaults.CoreFloat,
+                    Leak = c.Leak ?? ObjectiveDefaults.CoreLeak,
                 });
             }
 
@@ -215,6 +234,7 @@ public static class PlanCompiler
             Spawns = spawns,
             Wools = wools,
             Destroyables = destroyables.Count > 0 ? destroyables : null,
+            Cores = cores.Count > 0 ? cores : null,
             Observer = new ObserverIntent { Point = new Pt(0, observerY, 0), Yaw = 0 },
             Build = build,
             Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },

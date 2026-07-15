@@ -46,7 +46,7 @@ export function emptyDoc() {
     globals: { cell: 5, symmetry: "rot_180", maxPlayers: 12, surface: 9, headroom: 11 },
     pieces: [],
     zones: [],
-    placements: { spawns: [], wools: [], iron: [], destroyables: [] },
+    placements: { spawns: [], wools: [], iron: [], destroyables: [], cores: [] },
     cliffs: [],
     walls: [],
   };
@@ -87,6 +87,13 @@ export function normalizeDoc(d) {
         if (b.materials) o.materials = b.materials;
         if (b.float != null) o.float = b.float;
         if (b.name) o.name = b.name;
+        return o;
+      }),
+      cores: (src.placements?.cores || []).map(c => {
+        const o = { piece: c.piece ?? "", at: [...(c.at || [0, 0])] };
+        for (const k of ["size", "height", "shell", "float", "leak"]) if (c[k] != null) o[k] = c[k];
+        if (c.openTop != null) o.openTop = c.openTop;
+        if (c.name) o.name = c.name;
         return o;
       }),
     },
@@ -330,12 +337,13 @@ export function allMarkers(doc) {
   doc.placements.wools.forEach((m, i) => out.push({ kind: "wool", index: i, marker: m }));
   doc.placements.iron.forEach((m, i) => out.push({ kind: "iron", index: i, marker: m }));
   doc.placements.destroyables.forEach((m, i) => out.push({ kind: "destroyable", index: i, marker: m }));
+  doc.placements.cores.forEach((m, i) => out.push({ kind: "core", index: i, marker: m }));
   return out;
 }
 
 /** The placement kinds, and the doc list each lives in. */
-export const MARKER_KINDS = ["spawn", "wool", "iron", "destroyable"];
-const MARKER_LIST_KEY = { spawn: "spawns", wool: "wools", iron: "iron", destroyable: "destroyables" };
+export const MARKER_KINDS = ["spawn", "wool", "iron", "destroyable", "core"];
+const MARKER_LIST_KEY = { spawn: "spawns", wool: "wools", iron: "iron", destroyable: "destroyables", core: "cores" };
 
 /** The doc list a marker kind lives in. Keyed rather than a chain of ternaries ending in a default: an
  *  unknown kind must be nothing, not silently the last branch. */
@@ -425,11 +433,11 @@ export function planIsoSolids(doc, structures) {
 // Structure materials, as 0xRRGGBB the iso renderer draws directly. Mirrored terrain is washed out to
 // stay readable as a symmetry image; a structure is never washed out — every orbit image is a real box,
 // and the team/wool colours already tell them apart.
-const MAT = { bedrock: 0x4e4e56, bedrockMirror: 0x9a9aa2, iron: 0xdcdce2, destroyable: 0x2a1f3d };
+const MAT = { bedrock: 0x4e4e56, bedrockMirror: 0x9a9aa2, iron: 0xdcdce2, destroyable: 0x2a1f3d, core: 0x1d1526 };
 
 // A cube names its wool/team colour as a slug; the rest carry their own fixed material. Keyed rather than
 // a ternary chain: an unrecognised kind should read as the neutral bedrock, not as whichever branch is last.
-const KIND_MAT = { iron: MAT.iron, destroyable: MAT.destroyable };
+const KIND_MAT = { iron: MAT.iron, destroyable: MAT.destroyable, core: MAT.core };
 function structureColor(s) {
   if (s.color) return parseInt(dyeColorHex(s.color).slice(1), 16);
   return KIND_MAT[s.kind] ?? MAT.bedrock;

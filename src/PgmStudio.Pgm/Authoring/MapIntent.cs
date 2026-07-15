@@ -37,6 +37,10 @@ public sealed class MapIntent
     /// them untouched, which is every CTW map.</summary>
     public List<DestroyableIntent>? Destroyables { get; init; }
 
+    /// <summary>The core (DTC) objectives. One per defending team on a symmetric map, breached by the others.
+    /// Null/empty leaves them untouched.</summary>
+    public List<CoreIntent>? Cores { get; init; }
+
     /// <summary>Map identity: name + authors/contributors. Version (1.0.0), proto (1.5.0), gamemode (ctw)
     /// and the objective text are auto-derived by the generator, not authored.</summary>
     public MetaIntent? Meta { get; init; }
@@ -223,6 +227,42 @@ public sealed class DestroyableIntent
     /// goal.</para>
     /// </summary>
     public BlockBox? Box { get; init; }
+}
+
+/// <summary>
+/// One core (DTC) objective: an obsidian casing enclosing lava, defended by <see cref="Owner"/> and breached
+/// by every other team. The destroyable's shape with the casing's own knobs.
+/// <para>The material is not a knob: obsidian is effectively universal in the corpus (DC1), and PGM defaults
+/// to it, so the generator emits no <c>material</c> attribute at all.</para>
+/// <para><see cref="Float"/> and <see cref="Leak"/> are one knob (DC2) — together they state how far players
+/// must dig under the core to make its lava leak (<see cref="DigDepth"/>). Neither means anything alone.</para>
+/// </summary>
+public sealed class CoreIntent
+{
+    /// <summary>The DEFENDING team. Emitted as the XML's <c>team</c> attribute, not <c>owner</c> — a PGM
+    /// inconsistency we mirror in the XML while naming the field for what it means.</summary>
+    public string Owner { get; init; } = "";
+    /// <summary>Optional: PGM auto-names a core per team, unlike a destroyable, which it rejects nameless.</summary>
+    public string Name { get; init; } = "";
+    /// <summary>The marker column. The casing is centred on it and floats above the terrain, so no Y is authored.</summary>
+    public Pt Anchor { get; init; }
+    public int Size { get; init; }
+    public int Height { get; init; }
+    public int Shell { get; init; }
+    /// <summary>Omit the cap layer so the lava reaches the casing rim.</summary>
+    public bool OpenTop { get; init; }
+    public int Float { get; init; }
+    public int Leak { get; init; }
+
+    /// <summary>The casing's resolved block volume — filled by the world-export path, the only place that
+    /// knows the terrain it floats over. The generator emits it verbatim as the core's <c>&lt;region&gt;</c>,
+    /// so the blocks and the region scoping them come from the one box the stamper used (OB8). Null on an
+    /// intent that has not been through the world build.</summary>
+    public BlockBox? Box { get; init; }
+
+    /// <summary>How many blocks players must dig into the terrain under the core before its lava can leak.
+    /// Zero when breaching the casing is enough on its own.</summary>
+    public int DigDepth => Math.Max(0, Leak - Float);
 }
 
 /// <summary>A world point (spawn location).</summary>

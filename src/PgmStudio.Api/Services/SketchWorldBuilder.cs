@@ -106,6 +106,7 @@ public static class SketchWorldBuilder
         // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
         // region the generator emits is the volume these blocks were stamped into (OB8).
         var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables);
+        var resolvedCores = StampCores(world, terrain.SurfaceTop, intent.Cores);
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
@@ -137,6 +138,7 @@ public static class SketchWorldBuilder
             Build = intent.Build,
             Wools = resolvedWools,
             Destroyables = resolvedDestroyables,
+            Cores = resolvedCores,
             Meta = intent.Meta,
             Symmetry = intent.Symmetry,
             IslandTeams = intent.IslandTeams,
@@ -180,6 +182,29 @@ public static class SketchWorldBuilder
             {
                 Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = b.Materials,
                 Anchor = b.Anchor, Float = b.Float, Box = box,
+            });
+        }
+        return resolved;
+    }
+
+    // Stamp each core's casing + lava and return the intent with every box resolved — the destroyable's
+    // shape, and the same one-box rule (OB8). Obsidian is not a knob (DC1): PGM defaults to it and the
+    // corpus is effectively unanimous.
+    private static List<CoreIntent>? StampCores(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<CoreIntent>? cores)
+    {
+        if (cores is null) return null;
+        var resolved = new List<CoreIntent>(cores.Count);
+        foreach (var c in cores)
+        {
+            var (ax, az) = PositionSnap.SnapXZ(c.Anchor.X, c.Anchor.Z);
+            var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
+            ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);
+            resolved.Add(new CoreIntent
+            {
+                Owner = c.Owner, Name = c.Name, Anchor = c.Anchor,
+                Size = c.Size, Height = c.Height, Shell = c.Shell, OpenTop = c.OpenTop,
+                Float = c.Float, Leak = c.Leak, Box = box,
             });
         }
         return resolved;

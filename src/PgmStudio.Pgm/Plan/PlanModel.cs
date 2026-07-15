@@ -159,6 +159,7 @@ public sealed class PlanPlacements
     [JsonPropertyName("wools")]        public List<WoolPlacement> Wools { get; set; } = [];
     [JsonPropertyName("iron")]         public List<IronPlacement> Iron { get; set; } = [];
     [JsonPropertyName("destroyables")] public List<DestroyablePlacement> Destroyables { get; set; } = [];
+    [JsonPropertyName("cores")]        public List<CorePlacement> Cores { get; set; } = [];
 }
 
 /// <summary>A spawn on <see cref="Piece"/> at piece-relative cell offset <see cref="At"/>, facing
@@ -209,6 +210,38 @@ public sealed class DestroyablePlacement
     [JsonPropertyName("float")]     public int? Float { get; set; }
     /// <summary>Overrides the owner-and-index auto-name (<c>Red Monument</c>, <c>Red Monument 2</c>).</summary>
     [JsonPropertyName("name")]      public string? Name { get; set; }
+}
+
+/// <summary>
+/// A core (DTC objective) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/> — the destroyable
+/// marker's shape, since a core is likewise one team's goal to defend, fanned to one per orbit image. The
+/// marker is the casing's anchor column; the box floats <see cref="Float"/> blocks above the surface.
+/// <para><see cref="Float"/> and <see cref="Leak"/> are one knob (DC2): escaping lava free-falls to the
+/// terrain at <c>B − float</c> while the core leaks at <c>y ≤ B − leak</c>, so together they say how far
+/// players must dig — <c>max(0, leak − float)</c>. Setting one without the other says nothing, so authoring
+/// either requires both.</para>
+/// </summary>
+public sealed class CorePlacement
+{
+    [JsonPropertyName("piece")]    public string Piece { get; set; } = "";
+    [JsonPropertyName("at")]       public double[] At { get; set; } = [0, 0];
+    /// <summary>Casing width/depth in blocks; null = 5, the dominant corpus casing.</summary>
+    [JsonPropertyName("size")]     public int? Size { get; set; }
+    /// <summary>Casing height in blocks; null = 5.</summary>
+    [JsonPropertyName("height")]   public int? Height { get; set; }
+    /// <summary>Casing thickness; null = 1 (65% of corpus cores).</summary>
+    [JsonPropertyName("shell")]    public int? Shell { get; set; }
+    /// <summary>Omit the cap so the lava sits flush with the rim; null = false — a real but minority style,
+    /// so it is a flag rather than the default.</summary>
+    [JsonPropertyName("openTop")]  public bool? OpenTop { get; set; }
+    /// <summary>Blocks of air under the casing; null = 6. Pairs with <see cref="Leak"/> (DC2).</summary>
+    [JsonPropertyName("float")]    public int? Float { get; set; }
+    /// <summary>How far lava must fall below the casing to count as leaked; null = 5, PGM's own default.
+    /// Pairs with <see cref="Float"/> (DC2).</summary>
+    [JsonPropertyName("leak")]     public int? Leak { get; set; }
+    /// <summary>Optional — PGM auto-names a core per team (<c>Core</c>, <c>Core 2</c>), unlike a destroyable,
+    /// which it rejects nameless.</summary>
+    [JsonPropertyName("name")]     public string? Name { get; set; }
 }
 
 /// <summary>A land interface between pieces <see cref="A"/> and <see cref="B"/> forced to a one-way drop

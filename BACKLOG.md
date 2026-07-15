@@ -110,13 +110,11 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 **DTM / DTC objectives (destroyables + cores).** The contract is `docs/contracts/destroyables-and-cores.md`
 — it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
-its rule ids (`OB*`/`DT*`/`DC*`) are cited below. These run `B25` → `B26`. Filed here (not `N`/`G`) because
-the bulk of each is pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as
-the last mile. **Shipped so far** (`FEATURES.md`): `B22`'s objective gate — a map declaring a module we can't
-read is rejected, so `B25` ends by adding `cores` to `MapParser.ParsedObjectiveModules`, as `B24` did for
-`destroyables`; `B24a`'s parser/writer/codec, whose `Xml.Flatten` (OB4) and `RegionParser.ParseRegionProperty`
-cores take as-is; `B27`'s phantom classifier (`Destroyable.IsObjective`/`.Phantom`), which `B26` must respect;
-and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `dtc`.
+its rule ids (`OB*`/`DT*`/`DC*`) are cited below. Filed here (not `N`/`G`) because the bulk of each is
+pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
+**Both objectives now author end to end** (`FEATURES.md`): parse/write/codec, the schema, the world stamps,
+and plan → intent → world → `map.xml` for destroyables (`B24`) and cores (`B25`). What is left below is the
+export gate (`B24e`), detection (`B26`), and the work the phantom classifier unblocked (`B31`, `B28`).
 
 - [~] **B24e — DTM/DTC export gate: assert each objective's region really holds its blocks.** The rest of
   `B24` has landed (`FEATURES.md`). What remains is the gate: **≥1 block matching `materials` inside each
@@ -127,10 +125,6 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
   legitimately mostly air (a 3×3×3 region holding a 1×3×1 pillar is correct and common), so anything
   stricter rejects most of the corpus. **The design question is where it lives** — the check needs the world,
   and `MapValidity` is doc-dict-only with no world access today. (OB8, OB11, OB12)
-- [~] **B25 — DTC: cores, the authoring half.** Parse/write/codec/schema and the shell-and-lava stamp have
-  landed (`FEATURES.md`); what remains is `CoreIntent` + `PlanPlacements.cores`, riding the destroyable path
-  `B24c` built — the delta is only the extra knobs (`size`/`height`/`shell`/`openTop`, and the
-  `float`+`leak` pair that must be authored together because neither means anything alone, DC2).
 - [ ] **B31 — Island detection still guesses at the build floor a parsed phantom now states exactly.**
   `LayerExtractors.CleanBaseExclude` excludes stained glass (95) as a "build-floor marker removed pre-game
   via a `destroyables` mode-change" — a **material guess** ("glass as the lowest solid must be a build
@@ -199,8 +193,8 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
   and emit a region around it; the region itself is a human's loose box, is not in the world, and cannot be
   detected. **Never propose a phantom as an objective** — a marker is not a monument; `Destroyable.Phantom`
   already names the distinction, so respect it rather than re-deriving it. The parse/schema half it writes
-  into has landed; it needs only `B24`/`B25`'s authoring slices to have somewhere to put a confirmed
-  suggestion.
+  into has landed, and so have `B24`/`B25`'s authoring slices — a confirmed suggestion now has somewhere to
+  go, so this is unblocked.
 
 ## Layout generation (G)
 

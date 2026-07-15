@@ -265,7 +265,7 @@ public partial class PlanEditor
     {
         symmetry = e.Value?.ToString() ?? "rot_180";
         // Leaving a hidden tool armed would let the next click place a marker the plan may not carry.
-        if (!ObjectivesOfferable && tool == "destroyable") await PickTool("select");
+        if (!ObjectivesOfferable && tool is "destroyable" or "core") await PickTool("select");
         if (handle is not null) await handle.InvokeVoidAsync("setGlobal", "symmetry", symmetry);
     }
 

@@ -49,7 +49,10 @@ to the symmetry centre); heights are blocks. One team's unit is authored; symmet
     "iron":   [ { "piece": "bar-e", "at": [0, 4] } ],     // SP7; optional in v1
     // DTM goals (OB14: two-team symmetries only). style/materials/float/name are all optional —
     // the compiler defaults them to pillar-3 · obsidian · 4 · "<Team> Monument".
-    "destroyables": [ { "piece": "bar-w", "at": [2, 3] } ]
+    "destroyables": [ { "piece": "bar-w", "at": [2, 3] } ],
+    // DTC goals (OB14 too). size/height/shell/openTop/name optional → 5 · 5 · 1 · false · PGM-named.
+    // float+leak are one knob (DC2) — set both or neither; default 6/5 = no dig.
+    "cores": [ { "piece": "mid", "at": [2, 2] } ]
   },
   "cliffs": [ { "a": "cross", "b": "bar-w" } ]            // land interfaces forced one-way (EL5)
 }
@@ -169,8 +172,8 @@ New page `Pages/Plan/PlanEditor.razor` (+ `js/studio/plan/`), reusing the studio
   optional `reference` block (round-trips + restores on reload). Trace one team's sector and check the
   live mirror ghost against the map's opposing teams. Feeds the box-based / wool-approach vocabulary.
 - **Palette:** piece roles (lane · hub · wool-room · mid) + zone tool + markers (spawn with a
-  drag-to-set facing arrow, wool, iron, destroyable). The destroyable tool appears only for the
-  order-2 symmetries — a goal one team defends means nothing at four (OB14).
+  drag-to-set facing arrow, wool, iron, destroyable, core). The destroyable and core tools appear only
+  for the order-2 symmetries — a goal one team defends means nothing at four (OB14).
 - **Inspector (selected piece):** role, surface stepper (± a configurable step, default 2 per EL1; the
   step is a persisted editor preference — set any value in the globals panel or switch the common ones
   (1 / 2 / 3) in-context via quick-preset chips under the stepper, applied live mid-edit), `mirrors`

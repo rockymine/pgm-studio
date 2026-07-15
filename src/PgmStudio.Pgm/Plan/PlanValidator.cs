@@ -58,6 +58,27 @@ public static class PlanValidator
         foreach (var w in plan.Placements.Wools) CheckInside(d, "wool", w.Piece, w.At, findings);
         foreach (var ir in plan.Placements.Iron) CheckInside(d, "iron", ir.Piece, ir.At, findings);
         foreach (var b in plan.Placements.Destroyables) CheckInside(d, "destroyable", b.Piece, b.At, findings);
+        foreach (var c in plan.Placements.Cores) CheckInside(d, "core", c.Piece, c.At, findings);
+
+        // DC2 — float and leak are one knob: together they say how far players must dig under the core
+        // (max(0, leak − float)). Authoring one alone silently pairs it with the other's default, which is a
+        // dig depth nobody chose — so ask for both or neither.
+        foreach (var c in plan.Placements.Cores)
+            if (c.Float is null != c.Leak is null)
+                Error($"core '{(c.Float is null ? "leak" : "float")}' was set without its pair — "
+                    + "float and leak only mean anything together (they set the dig depth)", c.Piece);
+
+        // A casing needs room for lava inside it: at shell s, the interior is size − 2s across. At zero or
+        // less the stamper fills a solid block of obsidian, which is a goal that can never leak.
+        foreach (var c in plan.Placements.Cores)
+        {
+            var (size, height, shell) = (c.Size ?? ObjectiveDefaults.CoreSize, c.Height ?? ObjectiveDefaults.CoreHeight,
+                c.Shell ?? ObjectiveDefaults.CoreShell);
+            if (shell < 1) Error($"core shell {shell} is not a casing (needs ≥ 1)", c.Piece);
+            else if (size - 2 * shell < 1 || height - 2 * shell < 1)
+                Error($"core {size}×{height}×{size} with shell {shell} leaves no lava inside — "
+                    + "a solid casing is a goal that can never leak", c.Piece);
+        }
 
         // An unknown style names no structure, so the compiler would have to invent one — and silently
         // stamping a pillar where the author asked for a cube is worse than saying the word is not a style.
@@ -69,9 +90,14 @@ public static class PlanValidator
         // something at two teams: PGM marks a goal shared exactly when the count is not 2, and what a shared
         // DTM goal should play like is undecided. The editor hides the tool outside order 2, but a
         // hand-written plan can still ask; compiling it would invent an answer to an open design question.
-        if (plan.Placements.Destroyables.Count > 0 && Symmetry.Order(plan.Globals.Symmetry) != 2)
-            Error($"destroyables need a two-team symmetry; '{plan.Globals.Symmetry}' has "
-                + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s)");
+        if (Symmetry.Order(plan.Globals.Symmetry) != 2)
+            foreach (var kind in new[]
+                     {
+                         plan.Placements.Destroyables.Count > 0 ? "destroyables" : null,
+                         plan.Placements.Cores.Count > 0 ? "cores" : null,
+                     }.Where(k => k is not null))
+                Error($"{kind} need a two-team symmetry; '{plan.Globals.Symmetry}' has "
+                    + $"{Symmetry.Order(plan.Globals.Symmetry)} team(s)");
 
         // a wall mark must land on a real shared land interface (else there is no lane seam to build across)
         var landPairs = new HashSet<(string, string)>();

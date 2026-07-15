@@ -1,7 +1,7 @@
 /**
  * PlanCanvas — the drawing surface for the plan editor (the seed studio). Extends CanvasBase for
  * pan/zoom/drag and renders the cell grid, rect pieces (role-coloured, tinted by surface height),
- * translucent dashed zones, objective markers (spawn/wool/iron/destroyable), and the dimmed non-editable symmetry
+ * translucent dashed zones, objective markers (spawn/wool/iron/destroyable/core), and the dimmed non-editable symmetry
  * mirror ghost. Pointer tools draw / move / resize pieces and zones and drop markers; all snapping,
  * hit-testing and mirror math live in plan/plan-doc.js (pure). World coordinates ARE the SVG base
  * coordinates (identity transform, like SketchCanvas); `fit()` frames the content bounds.
@@ -25,7 +25,7 @@ import {
 const HATCH = { buffer: "buffer-hatch", connector: "connector-hatch" };
 
 const FIT_MARGIN = 0.82;
-const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4", destroyable: "#6b4f9e" };
+const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4", destroyable: "#6b4f9e", core: "#d4622a" };
 
 // The 8 resize handles of a rect: ex/ez pick which cell edge each drags (−1 = min side, 1 = max, 0 = none);
 // nx/nz are the handle's normalised position on the block-bounds box (for placing it in screen space).
@@ -74,7 +74,7 @@ function heightColor(t) {
 
 export class PlanCanvas extends CanvasBase {
   #doc = null;
-  #tool = "select";                 // select | pan | piece | zone | spawn | wool | iron | destroyable | wall
+  #tool = "select";                 // select | pan | piece | zone | spawn | wool | iron | destroyable | core | wall
   #pieceRole = "piece";             // role armed for the piece tool
   #sel = null;                      // { kind:'piece'|'zone', id } | { kind:'marker', markerKind, index }
   #drag = null;                     // { mode:'move'|'draw', ... } live pointer op

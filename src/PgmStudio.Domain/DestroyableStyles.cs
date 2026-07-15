@@ -24,12 +24,6 @@ public enum DestroyableStyle
 /// </summary>
 public static class DestroyableStyles
 {
-    /// <summary>Over half the corpus, and the safe structure for a goal: opaque, blast-resistant, unmistakable.</summary>
-    public const string DefaultMaterials = "obsidian";
-
-    /// <summary>The 1×3×1 pillar — tall enough to read as a monument, small enough to break in a raid.</summary>
-    public const DestroyableStyle Default = DestroyableStyle.Pillar3;
-
     private static readonly Dictionary<string, DestroyableStyle> BySlug = new(StringComparer.OrdinalIgnoreCase)
     {
         ["pillar-1"] = DestroyableStyle.Pillar1,
@@ -50,7 +44,7 @@ public static class DestroyableStyles
     /// authoring error to report, not a value to silently replace with the default.</summary>
     public static bool TryParse(string? slug, out DestroyableStyle style)
     {
-        style = Default;
+        style = ObjectiveDefaults.Style;
         return !string.IsNullOrEmpty(slug) && BySlug.TryGetValue(slug, out style);
     }
 

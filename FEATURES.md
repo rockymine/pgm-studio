@@ -280,6 +280,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   layer and the stamper both reach), and the client's kind→list dispatch became a keyed lookup — it was a
   ternary chain ending in `iron`, so any new kind would have silently placed, selected and deleted iron
   markers. (B24a/B24c/B24d, OB8/OB12/OB13/OB14, DT3)
+- **DTC: authoring a core, plan → world → `map.xml`.** A `cores` marker rides the destroyable path; the delta
+  is the casing. `{ piece, at }` compiles to DC1's modal core — a 5×5×5 obsidian shell 1 block thick, capping
+  a 3×3×3 lava interior, floating 6 — and the knobs (`size`/`height`/`shell`/`openTop`) exist for the
+  exceptions. **`float` and `leak` are enforced as one knob** (DC2): together they set how far players dig
+  (`max(0, leak − float)`, the defaults giving 0), so authoring one alone is an **error** rather than a silent
+  pairing with the other's default — a dig depth nobody chose. The validator also rejects a casing with no
+  room for lava (`size − 2·shell < 1`), which stamps a solid block: a goal that can never leak, so never
+  captured. Three things a core does *not* get: a **material** (obsidian is universal, PGM defaults to it, so
+  no attribute is emitted), an invented **name** (PGM auto-names a core per team — unlike a destroyable, which
+  it rejects nameless), and a **`leak` attribute** when it matches PGM's own default. The XML's `team`
+  spelling (OB1) is `XmlWriter`'s alone — the doc tree says `owner` like everything else, and emitting `team`
+  there parses back as an unowned core (caught by the round-trip test, not the generator's). Verified end to
+  end: 27 lava fully wrapped by 98 obsidian, cap on, floor intact, floating clear of the terrain, and the
+  emitted region walked with PGM's `[min, max)` holds all 125. The structure defaults now live once in
+  `Domain.ObjectiveDefaults`, shared by the compiler that resolves them and the stamper that builds them.
+  (B25a/B25c/B25d, DC1/DC2/OB1/OB8/OB13/OB14)
 - **DTC: cores — parse, write, codec.** `<cores>` round-trips as `Core` (owner · region · material · leak ·
   mode membership), contributing `dtc` to the derived gamemode set. Structurally the destroyable with a
   different owning attribute, so it reuses `Xml.Flatten`, `ResolveObjectiveRegion` and the tri-state mode

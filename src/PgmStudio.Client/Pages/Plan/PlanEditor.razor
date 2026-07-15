@@ -224,6 +224,9 @@
                 <button class="draw-tool-btn @(tool == "destroyable" ? "draw-tool-btn--active" : null)" title="Place a destroyable (DTM) marker" @onclick='() => PickTool("destroyable")'>
                   <i data-lucide="gem"></i>
                 </button>
+                <button class="draw-tool-btn @(tool == "core" ? "draw-tool-btn--active" : null)" title="Place a core (DTC) marker" @onclick='() => PickTool("core")'>
+                  <i data-lucide="flame"></i>
+                </button>
               }
               <button class="draw-tool-btn @(tool == "wall" ? "draw-tool-btn--active" : null)" title="Toggle a pre-built wall on the land interface you click" @onclick='() => PickTool("wall")'>
                 <i data-lucide="brick-wall"></i>

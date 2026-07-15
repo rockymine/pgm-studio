@@ -11,18 +11,15 @@ namespace PgmStudio.Minecraft;
 /// </summary>
 public static class ObjectiveStamper
 {
-    /// <summary>Blocks of air between the terrain surface and a destroyable's base.</summary>
-    public const int DefaultDestroyableFloat = 4;
-
-    /// <summary>Blocks of air between the terrain surface and a core's floor.</summary>
-    public const int DefaultCoreFloat = 6;
-
-    /// <summary>Depth below the core's floor a lava block must reach to leak.</summary>
-    public const int DefaultCoreLeak = 5;
-
-    public const int DefaultCoreSize = 5;
-    public const int DefaultCoreHeight = 5;
-    public const int DefaultCoreShell = 1;
+    // The structure defaults live in Domain.ObjectiveDefaults, where the plan compiler can reach them too —
+    // the compiler resolves an unauthored field and the stamper builds the blocks, so a second copy here
+    // could silently disagree with what was authored. Aliased rather than re-declared.
+    public const int DefaultDestroyableFloat = ObjectiveDefaults.DestroyableFloat;
+    public const int DefaultCoreFloat = ObjectiveDefaults.CoreFloat;
+    public const int DefaultCoreLeak = ObjectiveDefaults.CoreLeak;
+    public const int DefaultCoreSize = ObjectiveDefaults.CoreSize;
+    public const int DefaultCoreHeight = ObjectiveDefaults.CoreHeight;
+    public const int DefaultCoreShell = ObjectiveDefaults.CoreShell;
 
     // ── destroyables ────────────────────────────────────────────────────────────────
 
@@ -117,13 +114,9 @@ public static class ObjectiveStamper
             FillBox(world, lava, Blocks.StationaryLava);
     }
 
-    /// <summary>
-    /// How far players must dig into the terrain below a core to make it leak. Escaping lava free-falls to
-    /// the terrain at <c>floor − float</c>, and the core leaks at <c>floor − leak</c>, so the two are one
-    /// knob: at <c>leak ≤ float</c> a breached casing leaks on its own, and above it digging is part of the
-    /// capture. Neither value means anything without the other.
-    /// </summary>
-    public static int DigDepth(int leak, int floatBlocks) => Math.Max(0, leak - floatBlocks);
+    /// <summary>How far players must dig into the terrain below a core to make it leak — see
+    /// <see cref="ObjectiveDefaults.DigDepth"/>, which owns the rule.</summary>
+    public static int DigDepth(int leak, int floatBlocks) => ObjectiveDefaults.DigDepth(leak, floatBlocks);
 
     // ── shared ──────────────────────────────────────────────────────────────────────
     private static BlockBox Inset(BlockBox b, int by) => new(

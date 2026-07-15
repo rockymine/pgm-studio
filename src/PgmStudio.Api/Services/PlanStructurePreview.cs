@@ -14,7 +14,7 @@ namespace PgmStudio.Api.Services;
 /// <c>[x, x+1)</c>. The stampers' own footprint conventions differ per structure and are normalized to
 /// this frame in <see cref="PlanStructurePreview"/>.</para>
 /// <para><see cref="Kind"/> is the structure family (<c>spawn-cube</c>, <c>wool-cage</c>, <c>iron</c>,
-/// <c>destroyable</c>, <c>wall</c>); <see cref="Color"/> is a colour slug the client maps through its dye
+/// <c>destroyable</c>, <c>core</c>, <c>wall</c>); <see cref="Color"/> is a colour slug the client maps through its dye
 /// palette, or null where the kind carries its own fixed material colour.</para></summary>
 public readonly record struct StructureBox(
     string Kind, string? Color, int MinX, int MinZ, int MaxX, int MaxZ, int Floor, int Top);
@@ -65,6 +65,15 @@ public static class PlanStructurePreview
             var (ax, az) = PositionSnap.SnapXZ(b.Anchor.X, b.Anchor.Z);
             var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
             boxes.Add(new StructureBox("destroyable", null, box.MinX, box.MinZ,
+                box.MaxX + 1, box.MaxZ + 1, box.MinY, box.MaxY + 1));
+        }
+
+        // Cores: the same ObjectiveStamper.CoreBox the world build stamps from (OB8).
+        foreach (var c in intent.Cores ?? [])
+        {
+            var (ax, az) = PositionSnap.SnapXZ(c.Anchor.X, c.Anchor.Z);
+            var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
+            boxes.Add(new StructureBox("core", null, box.MinX, box.MinZ,
                 box.MaxX + 1, box.MaxZ + 1, box.MinY, box.MaxY + 1));
         }
 

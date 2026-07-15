@@ -414,8 +414,7 @@ test("markerList maps each kind to its own list, and an unknown kind to nothing"
   assert.equal(markerList(doc, "destroyable"), doc.placements.destroyables);
   assert.equal(markerList(doc, "iron"), doc.placements.iron);
 
-  assert.equal(markerList(doc, "core"), null);       // not a kind yet — must not fall through to iron
-  assert.equal(markerList(doc, "nonsense"), null);
+  assert.equal(markerList(doc, "nonsense"), null);   // unknown must be nothing, not the last branch
   assert.equal(markerAt(doc, "nonsense", 0), null);  // and reading through it must not throw
 });
 
@@ -443,4 +442,31 @@ test("allMarkers includes destroyables, tagged with their kind", () => {
   const found = allMarkers(doc).filter(m => m.kind === "destroyable");
   assert.equal(found.length, 1);
   assert.equal(found[0].index, 0);
+});
+
+test("a core placement round-trips, keeping only its authored knobs", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    placements: {
+      cores: [
+        { piece: "mid", at: [2, 2] },
+        { piece: "mid", at: [1, 1], size: 7, height: 7, shell: 2, openTop: true, float: 3, leak: 4, name: "The Heart" },
+      ],
+    },
+  });
+  // A bare marker stays bare — the compiler owns the DC1/DC2 defaults, so the plan must not bake them in.
+  assert.deepEqual(doc.placements.cores[0], { piece: "mid", at: [2, 2] });
+  assert.deepEqual(doc.placements.cores[1], {
+    piece: "mid", at: [1, 1], size: 7, height: 7, shell: 2, float: 3, leak: 4, openTop: true, name: "The Heart",
+  });
+  assert.deepEqual(JSON.parse(toJson(doc)).placements.cores, doc.placements.cores);
+});
+
+test("openTop:false and float:0 survive normalize (falsy but authored)", () => {
+  // A naive `if (c.openTop)` would drop an explicit false, and `if (c.float)` an explicit 0 — which is the
+  // 27% of cores that rest directly on the floor, the case where float matters most.
+  const doc = normalizeDoc({ plan: 1, placements: { cores: [{ piece: "mid", at: [0, 0], openTop: false, float: 0, leak: 5 }] } });
+  assert.equal(doc.placements.cores[0].openTop, false);
+  assert.equal(doc.placements.cores[0].float, 0);
+  assert.equal(doc.placements.cores[0].leak, 5);
 });
