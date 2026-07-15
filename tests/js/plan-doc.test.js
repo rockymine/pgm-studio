@@ -394,8 +394,9 @@ test("fromJson → toJson round-trips a seed plan's data", () => {
   assert.deepEqual(back, doc);                                   // stable under re-serialisation
   // Core data survives verbatim.
   assert.equal(doc.globals.symmetry, "rot_180");
-  assert.equal(doc.pieces.length, 6);
-  assert.deepEqual(doc.pieces.find(p => p.id === "bar-e").rect, [1, 5, 2, 6]);
-  assert.equal(doc.pieces.find(p => p.id === "wl2-a").surface, 13);
-  assert.deepEqual(doc.placements.spawns[0], { piece: "bar-e", at: [1, 5], facing: "front" });
+  assert.equal(doc.pieces.length, 8);
+  assert.deepEqual(doc.pieces.find(p => p.id === "piece-2").rect, [-3, 4, 2, 7]);
+  assert.equal(doc.pieces.find(p => p.id === "wool").role, "wool-room");
+  assert.deepEqual(doc.placements.spawns[0], { piece: "spawn", at: [1, 1], facing: "front" });
+  assert.equal(doc.placements.wools.length, 2);
 });

@@ -630,7 +630,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `{exterior, top, floor, mirror}` solids the sketch iso consumes, so occlusion is GPU depth-buffered (taller
   columns occlude) and the mirror stays consistent. Lazily loaded (degrades to a disabled toggle + "no WebGL"
   when unavailable); a **Rotate 90°** button re-frames the yaw; the preview stays current with inspector-driven
-  surface edits. 3 new `planIsoSolids` tests (JS suite 122). (G27)
+  surface edits. 3 new `planIsoSolids` tests; JS 122 green. (G27)
 - **Plan-editor reference backdrop (trace real maps)** — a **Reference** sidebar section picks any processed
   map (`GET /api/maps` now flags `hasSurface`; 367/390 traceable) and paints its top-down block render behind
   the grid as a tracing aid, reusing the shared `render/block-render.js` rasteriser in a new bottom
