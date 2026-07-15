@@ -1,4 +1,6 @@
 using System.Text.Json;
+using LinqToDB;
+using LinqToDB.Async;
 using LinqToDB.Data;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
@@ -31,6 +33,7 @@ public sealed class SchemaRoundTripTests
                      "kit_item", "kit_armor", "map_spawner", "renewable", "block_drop_rule",
                      "apply_rule", "author", "wool_block", "resource_block", "chest_item",
                      "spawner_block", "monument_candidate", "layer_segment", "map_artifact",
+                     "destroyable", "core", "mode",
                  })
         {
             await Assert.That(tables).Contains(expected);
@@ -199,5 +202,80 @@ public sealed class SchemaRoundTripTests
         await Assert.That(reset.Force).IsTrue();
         await Assert.That(reset.Effects.Single().Type).IsEqualTo("damage resistance");
         await Assert.That(reset.Effects.Single().Duration).IsEqualTo("0");
+    }
+
+    /// <summary>
+    /// The DTM/DTC objectives round-trip through their own tables. They hang off map_id, so a map can hold
+    /// wools, destroyables and cores at once — a destroyable has no wool, and reusing `monument` (whose
+    /// wool_id FK is NOT NULL) would make it unrepresentable.
+    /// </summary>
+    [Test]
+    public async Task Destroyables_cores_and_modes_survive_the_db_round_trip()
+    {
+        await TestDb.ResetSchemaAsync();
+        await using var db = TestDb.Connect();
+        var repo = new MapRepository(db);
+
+        var mapId = await repo.InsertAsync(new MapRow
+        {
+            Slug = "obj-map", Name = "Obj", Version = "1.0.0",
+            Objective = "break it", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow,
+        });
+
+        await new MapWriter(db).WriteEntitiesAsync(mapId, new PgmStudio.Domain.MapXml
+        {
+            Name = "Obj", Version = "1.0.0",
+            Modes = [new PgmStudio.Domain.ObjectiveMode
+            {
+                Id = "mode-beacon", Name = "`bBEACON", After = "25m", Material = "beacon", ShowBefore = "30s",
+            }],
+            Destroyables =
+            [
+                new PgmStudio.Domain.Destroyable
+                {
+                    Id = "green-hill", Name = "Hill Monument", Owner = "green", RegionId = "hill-box",
+                    Materials = "obsidian", Completion = 0.9, Modes = ["mode-beacon"],
+                },
+                new PgmStudio.Domain.Destroyable
+                {
+                    Id = "red-monu", Name = "monu", Owner = "red", RegionId = "floor",
+                    Materials = "stained glass", Completion = 0.0, Show = false, ModeChanges = true,
+                },
+            ],
+            Cores = [new PgmStudio.Domain.Core { Id = "red-core", Owner = "red", RegionId = "core-box", Leak = 4 }],
+        });
+
+        var m = await new MapReader(db).ReadAsync("obj-map");
+        await Assert.That(m).IsNotNull();
+
+        var hill = m!.Destroyables.Single(d => d.Id == "green-hill");
+        await Assert.That(hill.Owner).IsEqualTo("green");
+        await Assert.That(hill.Completion).IsEqualTo(0.9);
+        await Assert.That(hill.IsObjective).IsTrue();
+        await Assert.That(hill.Modes).IsEquivalentTo(new[] { "mode-beacon" });
+
+        // A phantom is stored, not dropped — losing one leaves its blocks in the world forever.
+        var phantom = m.Destroyables.Single(d => d.Id == "red-monu");
+        await Assert.That(phantom.IsObjective).IsFalse();
+        await Assert.That(phantom.Phantom).IsEqualTo(PgmStudio.Domain.PhantomKind.BlockSwap);
+        await Assert.That(phantom.ModeChanges).IsTrue();
+        await Assert.That(phantom.Modes).IsNull();   // null is distinct from empty: no explicit set
+
+        var core = m.Cores.Single();
+        await Assert.That(core.Owner).IsEqualTo("red");
+        await Assert.That(core.Leak).IsEqualTo(4);
+        await Assert.That(core.Material).IsEmpty();   // unauthored — PGM defaults it to obsidian
+        await Assert.That(core.Name).IsEmpty();       // unauthored — PGM auto-names it per team
+
+        await Assert.That(m.Modes.Single().ShowBefore).IsEqualTo("30s");
+
+        // Only the one real destroyable counts toward the derived gamemode.
+        await Assert.That(m.Gamemodes).IsEquivalentTo(new[] { "dtm", "dtc" });
+
+        // map-scoped, so the objectives cascade away with the map
+        await repo.DeleteMapAsync(mapId);
+        await Assert.That((await db.Destroyables.Where(x => x.MapId == mapId).ToListAsync()).Count).IsEqualTo(0);
+        await Assert.That((await db.Cores.Where(x => x.MapId == mapId).ToListAsync()).Count).IsEqualTo(0);
+        await Assert.That((await db.Modes.Where(x => x.MapId == mapId).ToListAsync()).Count).IsEqualTo(0);
     }
 }

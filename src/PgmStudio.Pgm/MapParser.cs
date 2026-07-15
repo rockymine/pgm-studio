@@ -545,9 +545,11 @@ public sealed partial class MapParser
 
     private static string Slug(string value)
     {
-        // Strip PGM's `-prefixed colour codes, then lowercase and hyphenate runs of whitespace.
+        // Strip PGM's `-prefixed colour codes, then lowercase and hyphenate runs of whitespace. Trailing
+        // separators are trimmed because a name is routinely absent or explicitly empty, which would
+        // otherwise leave a dangling hyphen in the generated key.
         var stripped = ColorCode().Replace(value, "");
-        var slug = WhitespaceRun().Replace(stripped.Trim().ToLowerInvariant(), "-");
+        var slug = WhitespaceRun().Replace(stripped.Trim().ToLowerInvariant(), "-").Trim('-');
         return slug.Length > 0 ? slug : "unnamed";
     }
 

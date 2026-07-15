@@ -134,20 +134,20 @@ and `B23`'s derived `MapXml.Gamemodes`, which `B25` extends with one line for `d
   reach the `wool`/`destroyable` tables, which `MapsListEndpoint` doesn't today — always right, but a join per
   map. **`B24b`'s migration is the natural moment to settle it**, since it adds the `destroyable` table the
   derivation reads. Until then the list tag shows the label or nothing. (OB7, OB15)
-- [~] **B24 — DTM: destroyables + objective modes.** Parser, writer and codec have landed (`FEATURES.md`);
-  what remains is everything below the contract. **(b) schema** — `destroyable` + `mode` tables on `map_id`,
-  **not** a reuse of `monument`, whose `wool_id` FK makes a wool-less objective unrepresentable. **(c) intent**
-  — `DestroyableIntent` + orbit-fill (the `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`;
-  `rot_90` hides the placement kind (OB14). **(d) stamps, in payoff order** — `pillar-1|2|3` (a 1×N obsidian
-  column: 56% of the corpus and the simplest stamp in the system), then `cube-3` + its bedrock centre (DT2),
-  then `column-plus` (a mask over the same box, DT4). Rides the iron-cube pipeline (`IronPlacement` →
-  `PlanCompiler` → `StructureStamper.StampIronCube` → `PlanStructurePreview`) with material/size
-  parameterised; obsidian, emerald, gold, ender stone and bedrock need adding to `Blocks` (it stops at
-  stained glass). **(e) validation** — ≥1 matching block per region (10 corpus destroyables already fail it),
-  never "region is full": the region is a loose box *around* the structure and is legitimately mostly air
-  (OB11, OB12).
-- [~] **B25 — DTC: cores.** Parse/write/codec have landed (`FEATURES.md`); what remains rides on `B24`'s
-  remaining slices. A `core` table (`§11`), `CoreIntent`, and the shell-and-lava stamp — **5×5×5 obsidian
+- [~] **B24 — DTM: destroyables + objective modes.** Parser, writer, codec and schema have landed
+  (`FEATURES.md`); what remains is the authoring half. **(c) intent** — `DestroyableIntent` + orbit-fill (the
+  `WoolIntent` path minus monuments) + `PlanPlacements.destroyables`; `rot_90` hides the placement kind
+  (OB14). **(d) stamps, in payoff order** — `pillar-1|2|3` (a 1×N obsidian column: 56% of the corpus and the
+  simplest stamp in the system), then `cube-3` + its bedrock centre (DT2), then `column-plus` (a mask over
+  the same box, DT4). Rides the iron-cube pipeline (`IronPlacement` → `PlanCompiler` →
+  `StructureStamper.StampIronCube` → `PlanStructurePreview`) with material/size parameterised; obsidian,
+  emerald, gold, ender stone and bedrock need adding to `Blocks` (it stops at stained glass). The structure
+  and its emitted `<region>` must come from **one** box function (OB8) — never derived twice — or PGM
+  silently yields a zero-health goal. **(e) validation** — ≥1 matching block per region (10 corpus
+  destroyables already fail it), never "region is full": the region is a loose box *around* the structure and
+  is legitimately mostly air (OB11, OB12).
+- [~] **B25 — DTC: cores.** Parse/write/codec/schema have landed (`FEATURES.md`); what remains rides on
+  `B24`'s remaining slices: `CoreIntent`, and the shell-and-lava stamp — **5×5×5 obsidian
   casing, shell 1 thick, 3×3×3 lava interior, capped top** (65% of real cores; open-top is a flag at 11%),
   plus lava in `Blocks` (DC1). The one real design knob is **DC2**: cores *float*, so `leak` and `float` are
   one parameter — players dig `max(0, leak − float)` blocks into the terrain under the core, and `leak = 5` /

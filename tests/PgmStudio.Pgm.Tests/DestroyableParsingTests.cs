@@ -190,6 +190,19 @@ public sealed class DestroyableParsingTests
             .IsEquivalentTo(new[] { "green-hill-monument", "green-hill-monument-2", "explicit" });
     }
 
+    // down_side_up declares name="" on the group, so the generated key must not trail a hyphen.
+    [Test]
+    public async Task An_empty_name_does_not_leave_a_dangling_separator_in_the_id()
+    {
+        var m = Parse("""
+            <destroyables name="" materials="wool:10">
+                <destroyable owner="blue-team"/>
+                <destroyable owner="red-team"/>
+            </destroyables>
+            """);
+        await Assert.That(m.Destroyables.Select(d => d.Id)).IsEquivalentTo(new[] { "blue-team", "red-team" });
+    }
+
     // ── modes ───────────────────────────────────────────────────────────────────────
     [Test]
     public async Task Modes_parse_their_schedule_and_material()

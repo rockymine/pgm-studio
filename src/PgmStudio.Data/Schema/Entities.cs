@@ -130,6 +130,53 @@ public sealed class MonumentRow
     [Column("monument_region_key")] public string? MonumentRegionKey { get; set; }
 }
 
+// The DTM/DTC objectives hang off map_id, not off wool: a destroyable has no wool, and MonumentRow's
+// wool_id FK would make one unrepresentable. "Monument" here always means the CTW wool monument.
+[Table("destroyable")]
+public sealed class DestroyableRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("destroyable_key"), NotNull] public string DestroyableKey { get; set; } = "";
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("owner"), NotNull] public string Owner { get; set; } = "";
+    [Column("region_key")] public string? RegionKey { get; set; }
+    [Column("materials"), NotNull] public string Materials { get; set; } = "";
+    [Column("completion")] public double? Completion { get; set; }
+    [Column("show"), NotNull] public bool Show { get; set; } = true;
+    [Column("mode_changes"), NotNull] public bool ModeChanges { get; set; }
+    [Column("modes_json")] public string? ModesJson { get; set; }
+}
+
+[Table("core")]
+public sealed class CoreRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("core_key"), NotNull] public string CoreKey { get; set; } = "";
+    [Column("name")] public string? Name { get; set; }
+    [Column("owner"), NotNull] public string Owner { get; set; } = "";
+    [Column("region_key")] public string? RegionKey { get; set; }
+    [Column("material")] public string? Material { get; set; }
+    [Column("leak")] public int? Leak { get; set; }
+    [Column("mode_changes"), NotNull] public bool ModeChanges { get; set; }
+    [Column("modes_json")] public string? ModesJson { get; set; }
+}
+
+[Table("mode")]
+public sealed class ModeRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("map_id"), NotNull] public long MapId { get; set; }
+    [Column("mode_key"), NotNull] public string ModeKey { get; set; } = "";
+    [Column("name")] public string? Name { get; set; }
+    [Column("after"), NotNull] public string After { get; set; } = "";
+    [Column("material")] public string? Material { get; set; }
+    [Column("show_before")] public string? ShowBefore { get; set; }
+    [Column("filter_key")] public string? FilterKey { get; set; }
+    [Column("action_key")] public string? ActionKey { get; set; }
+}
+
 [Table("spawn")]
 public sealed class SpawnRow
 {

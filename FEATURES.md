@@ -262,6 +262,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   fairy_tales_metamorphose, mine_your_own_business, newgen_classic, vesuvius → `[ctw]`), and **only
   `sentient` (`[ctw,dtm]`, 8 real destroyables) and `bungee_coorde` (`[ctw,dtc]`) are genuine**.
   down_side_up's 24 modes are its documented 12-step colour cycle. (B22/B23/B24a/B25a/B27)
+- **Objective persistence — `destroyable` / `core` / `mode` tables** (`M0007`). All three hang off `map_id`
+  per the hybrid rule (real columns for what we list and edit; JSON only for the irregular mode-id list),
+  and deliberately **do not reuse `monument`**, whose `wool_id` FK is `NOT NULL` — a destroyable has no
+  wool, so that FK makes a wool-less objective unrepresentable. `show` is a queryable column, since a map
+  whose every destroyable is hidden is not DTM. Unlike wools, neither needs the doc-tree codec bypass: they
+  are flat records with no grouped shape to lose, so they ride `MapXml` through `MapWriter`/`MapReader` like
+  every other entity. Verified against real MariaDB (write → read → assert, incl. the phantom, the
+  null-vs-empty mode set, and cascade delete) **and end to end over the dev corpus**: `--refresh-xml`
+  refreshes 346 maps through the editor write path, is idempotent on a second run (0 changes), and lands 22
+  destroyables / 2 cores / 33 modes. (B24b, B25b, §11)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)

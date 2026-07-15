@@ -77,6 +77,9 @@ public sealed class MapWriter(PgmDb db)
         await db.Regions.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Filters.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Wools.Where(x => x.MapId == mapId).DeleteAsync(ct);           // cascades monument
+        await db.Destroyables.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Cores.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Modes.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Spawns.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.MapSpawners.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.Renewables.Where(x => x.MapId == mapId).DeleteAsync(ct);
@@ -134,7 +137,34 @@ public sealed class MapWriter(PgmDb db)
         }
 
         // wools are written separately from the grouped doc (WriteWoolsFromDocAsync) — the flat
-        // MapXml can't represent a monument-less wool or wool-level fields.
+        // MapXml can't represent a monument-less wool or wool-level fields. Destroyables and cores need
+        // no such bypass: they are flat records with no grouped shape to lose.
+
+        foreach (var md in m.Modes)
+            await db.InsertAsync(new ModeRow
+            {
+                MapId = mapId, ModeKey = md.Id, Name = NullIfEmpty(md.Name), After = md.After,
+                Material = NullIfEmpty(md.Material), ShowBefore = NullIfEmpty(md.ShowBefore),
+                FilterKey = NullIfEmpty(md.FilterId), ActionKey = NullIfEmpty(md.ActionId),
+            }, token: ct);
+
+        foreach (var d in m.Destroyables)
+            await db.InsertAsync(new DestroyableRow
+            {
+                MapId = mapId, DestroyableKey = d.Id, Name = d.Name, Owner = d.Owner,
+                RegionKey = NullIfEmpty(d.RegionId), Materials = d.Materials, Completion = d.Completion,
+                Show = d.Show, ModeChanges = d.ModeChanges,
+                ModesJson = d.Modes is { Count: > 0 } ? Json(d.Modes.Select(x => (object?)x).ToList()) : null,
+            }, token: ct);
+
+        foreach (var c in m.Cores)
+            await db.InsertAsync(new CoreRow
+            {
+                MapId = mapId, CoreKey = c.Id, Name = NullIfEmpty(c.Name), Owner = c.Owner,
+                RegionKey = NullIfEmpty(c.RegionId), Material = NullIfEmpty(c.Material), Leak = c.Leak,
+                ModeChanges = c.ModeChanges,
+                ModesJson = c.Modes is { Count: > 0 } ? Json(c.Modes.Select(x => (object?)x).ToList()) : null,
+            }, token: ct);
 
         foreach (var s in m.Spawns)
             await db.InsertAsync(new SpawnRow { MapId = mapId, IsObserver = false, Team = s.Team, Kit = NullIfEmpty(s.Kit), Yaw = s.Yaw, RegionKey = s.Region?.Id }, token: ct);

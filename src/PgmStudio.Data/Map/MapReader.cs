@@ -117,6 +117,29 @@ public sealed class MapReader(PgmDb db)
                 });
         }
 
+        foreach (var md in await db.Modes.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.Modes.Add(new ObjectiveMode
+            {
+                Id = md.ModeKey, Name = md.Name ?? "", After = md.After, Material = md.Material ?? "",
+                ShowBefore = md.ShowBefore ?? "", FilterId = md.FilterKey ?? "", ActionId = md.ActionKey ?? "",
+            });
+
+        foreach (var d in await db.Destroyables.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.Destroyables.Add(new Destroyable
+            {
+                Id = d.DestroyableKey, Name = d.Name, Owner = d.Owner, RegionId = d.RegionKey ?? "",
+                Materials = d.Materials, Completion = d.Completion, Show = d.Show,
+                ModeChanges = d.ModeChanges, Modes = ModeKeys(d.ModesJson),
+            });
+
+        foreach (var c in await db.Cores.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
+            m.Cores.Add(new Core
+            {
+                Id = c.CoreKey, Name = c.Name ?? "", Owner = c.Owner, RegionId = c.RegionKey ?? "",
+                Material = c.Material ?? "", Leak = c.Leak,
+                ModeChanges = c.ModeChanges, Modes = ModeKeys(c.ModesJson),
+            });
+
         foreach (var s in await db.Spawns.Where(x => x.MapId == id).OrderBy(x => x.Id).ToListAsync(ct))
         {
             var spawn = new Spawn { Team = s.Team, Kit = s.Kit ?? "", Yaw = s.Yaw, Region = ResolveRegion(m, s.RegionKey) };
@@ -197,6 +220,13 @@ public sealed class MapReader(PgmDb db)
 
     private static List<Dict> ListOfDicts(string? json)
         => json is not null && JsonTree.FromJson(json) is List<object?> list ? list.OfType<Dict>().ToList() : [];
+
+    // An explicit mode set. Null is meaningful and distinct from empty: it means the objective lists no
+    // modes, which with mode_changes reads as "every mode" and without it as "none".
+    private static List<string>? ModeKeys(string? json)
+        => json is not null && JsonTree.FromJson(json) is List<object?> list
+            ? list.Select(x => x as string ?? "").ToList()
+            : null;
 
     private static string Str(Dict d, string k) => d.GetValueOrDefault(k) as string ?? "";
     private static int Int(Dict d, string k, int def = 0) => d.GetValueOrDefault(k) is { } v ? Convert.ToInt32(v) : def;
