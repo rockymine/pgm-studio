@@ -2,13 +2,13 @@ using PgmStudio.Pgm;
 
 namespace PgmStudio.Pgm.Tests;
 
-/// <summary>The parser's supported-range gate: proto >= 1.4.0 (id-based regions/filters/kits) and no
-/// modern (1.13+ palette) worlds. Below the floor or a modern min-server-version throws
-/// <see cref="UnsupportedMapException"/> rather than silently mis-parsing.</summary>
+/// <summary>The parser's supported-range gate: proto >= 1.4.0 (id-based regions/filters/kits), no
+/// modern (1.13+ palette) worlds, and no objective module the parser cannot read. Outside the range
+/// throws <see cref="UnsupportedMapException"/> rather than silently mis-parsing.</summary>
 public sealed class MapSupportTests
 {
-    private static string Map(string mapTag) =>
-        $"""<?xml version="1.0"?>{mapTag}<name>m</name><version>1</version><objective>o</objective></map>""";
+    private static string Map(string mapTag, string body = "") =>
+        $"""<?xml version="1.0"?>{mapTag}<name>m</name><version>1</version><objective>o</objective>{body}</map>""";
 
     [Test]
     [Arguments("1.4.0")]
@@ -48,6 +48,31 @@ public sealed class MapSupportTests
     public async Task Accepts_a_legacy_min_server_version()   // a declared pre-flattening server is fine
     {
         var m = MapParser.ParseXmlString(Map("<map proto=\"1.4.0\" min-server-version=\"1.8\">"));
+        await Assert.That(m.Name).IsEqualTo("m");
+    }
+
+    // An objective module the parser does not read would be dropped in silence — the map would export
+    // without its goal. Each of these declares a non-auxiliary gamemode in PGM.
+    [Test]
+    [Arguments("<cores><core team=\"red\" region=\"r\"/></cores>")]
+    [Arguments("<control-points><control-point id=\"hill\"/></control-points>")]
+    [Arguments("<king><hills><hill id=\"h\"/></hills></king>")]
+    [Arguments("<flags><flag id=\"f\"/></flags>")]
+    [Arguments("<score><limit>50</limit></score>")]
+    public async Task Rejects_an_objective_module_it_cannot_read(string module)
+    {
+        await Assert.That(() => MapParser.ParseXmlString(Map("<map proto=\"1.5.0\">", module)))
+            .Throws<UnsupportedMapException>();
+    }
+
+    // Auxiliary modules modify how a map plays, not what its goal is — PGM tags them auxiliary and
+    // dropping them costs no objective.
+    [Test]
+    [Arguments("<blitz><lives>1</lives></blitz>")]
+    [Arguments("<rage/>")]
+    public async Task Accepts_an_auxiliary_module(string module)
+    {
+        var m = MapParser.ParseXmlString(Map("<map proto=\"1.5.0\">", module));
         await Assert.That(m.Name).IsEqualTo("m");
     }
 }

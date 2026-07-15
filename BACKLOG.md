@@ -99,23 +99,12 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 **DTM / DTC objectives (destroyables + cores).** The contract is `docs/contracts/destroyables-and-cores.md`
 — it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
-its rule ids (`OB*`/`DT*`/`DC*`) are cited below. `B22` is a parser-correctness fix that bites the **shipped
-CTW corpus today** and is independent of everything else; the rest run `B24` → `B27` → `B23` → `B25` → `B26`
-(`B23`'s gamemode carve-out needs `B27`'s phantom classifier). Filed here (not `N`/`G`) because the bulk of
-each is pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
+its rule ids (`OB*`/`DT*`/`DC*`) are cited below. These run `B24` → `B27` → `B23` → `B25` → `B26` (`B23`'s
+gamemode carve-out needs `B27`'s phantom classifier). Filed here (not `N`/`G`) because the bulk of each is
+pipeline — parser, writer, schema, intent, stamper — with the plan-editor placement as the last mile.
+**`B22` shipped the objective gate** (`FEATURES.md`): a map declaring a module we can't read is now rejected,
+so `B24`/`B25` each end by adding their tag to `MapParser.ParsedObjectiveModules`.
 
-- [ ] **B22 — The parser silently drops objective modules it doesn't know (live data loss).**
-  `MapParser.ParseInternal` never enumerates `_root.Elements()` — it reads only the tags it names — so
-  `<destroyables>`/`<cores>` are invisible: the map parses "successfully", passes `EnsureSupported` (they are
-  all proto 1.5.0), and **loses its objectives on round-trip with no error**. Not hypothetical: **10 of the
-  350 `ctw/` corpus maps carry them today** — `abstract`, `abstract_remix`, `bungee_coorde`, `citadel`,
-  `down_side_up`, `fairy_tales_metamorphose`, `mine_your_own_business`, `newgen_classic`, **`sentient`** (8
-  objectives), `vesuvius` — and every one silently round-trips to a map missing them. **8 of those 10 are
-  phantom-only (`B27`), which makes the loss worse, not milder:** drop abstract's phantom and its stained-glass
-  floor is never erased, so the map keeps a solid bridge between the teams and plays wrong — not merely a
-  missing goal. Fix independently of the gamemode work: **either** reject the map (`UnsupportedMapException`,
-  the kytriak_te/allure precedent) **or** flag it — quietly eating the elements is the worst of the three.
-  `B24`/`B25` supersede this for these two modules; the guard stays for anything else. (OB10)
 - [ ] **B23 — Gamemode is a derived set, not the `<gamemode>` element.** PGM never reads that element to decide
   the mode — each module contributes a `MapTag` when it parses (`<wools>` → CTW, `<destroyables>` → DTM,
   `<cores>` → DTC). `MapXml.Gamemode` is a single string defaulting to `"ctw"` when the element is absent

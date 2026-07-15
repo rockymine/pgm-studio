@@ -195,6 +195,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   deterministic: **4 consecutive green runs**, including with an adversarial `ConnectionStrings__PgmStudio=dev`
   set (the dev DB row count stayed flat — tests no longer touch it). Consolidates 4 duplicated per-class
   factory/reset copies into one. (B20)
+- **Objective-module gate** — the parser read only the tags it named, so a map's objective could vanish on
+  round-trip with no error. `EnsureSupported` now rejects any map declaring an objective module it cannot
+  read, joining the proto/modern-world gates. The line is PGM's own: a module contributing a **non-auxiliary
+  `Gamemode` MapTag** is an objective (`wools`/`destroyables`/`cores`/`control-points`/`king`/`payloads`/
+  `flags`/`score`); auxiliary modules (`blitz`, `ffa`, `rage`) modify play rather than the goal and stay
+  ignorable. Corpus-verified over the 350 slugs: 12 rejects, exactly the maps carrying an unread objective.
+  (B22, OB10)
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)

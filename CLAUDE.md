@@ -151,12 +151,17 @@ rule law is **`docs/contracts/layout-rules.md`**; the plan schema is **`docs/con
   *store* it with island/point-aware team assignment — see `docs/contracts/new-map-authoring.md` §4 / the
   orbit memory.)
 - Don't make the format fit: reject malformed maps (e.g. kytriak_te) rather than weakening the schema.
-- **Supported map range (enforced in `MapParser`).** The studio targets PGM's **id-based regions/filters/kits,
-  introduced in proto 1.4.0**, so the parser accepts **proto >= 1.4.0** only — the older positional format
-  (e.g. kytriak_te, proto 1.3.0, anonymous teams) is rejected. It also rejects **modern worlds**: a map
-  declaring `min-server-version >= 1.13.0` (e.g. allure, 1.21.10) ships a post-"flattening" palette world the
-  Anvil reader can't decode yet. Both throw `UnsupportedMapException`; `--scan-out-all` skips-and-logs them.
-  Corpus: only kytriak_te (proto) and allure (modern) are excluded; the other ~348 CTW maps are 1.4.0–1.5.1.
+- **Supported map range (enforced in `MapParser.EnsureSupported`).** Three gates, all
+  `UnsupportedMapException`; `--scan-out-all` skips-and-logs them. **(1) proto >= 1.4.0** — the studio targets
+  PGM's id-based regions/filters/kits, so the older positional format (e.g. kytriak_te, proto 1.3.0, anonymous
+  teams) is rejected. **(2) no modern worlds** — `min-server-version >= 1.13.0` (e.g. allure, 1.21.10) ships a
+  post-"flattening" palette world the Anvil reader can't decode yet. **(3) no unread objective module** — a
+  module we don't parse would drop the map's goal silently on round-trip, so its presence rejects the map.
+  The objective set is PGM's own: the modules contributing a **non-auxiliary `Gamemode` MapTag** — `wools`
+  (CTW), `destroyables` (DTM), `cores` (DTC), `control-points`/`king`/`payloads`, `flags` (CTF), `score`
+  (TDM). Auxiliary modules (`blitz`, `ffa`, `rage`) modify play, not the goal, and are not objectives. Add a
+  tag to `ParsedObjectiveModules` when its parser lands. Corpus (350 slugs): kytriak_te (proto), allure
+  (modern) and 3084 / lost_haven (`control-points`) are excluded; the rest parse.
 - **Wool-location flooring asymmetry is intentional (PGM-grounded).** The intent generator floors the
   wool `<location>` but passes the monument block coords through raw — *because PGM treats them
   differently*. `<wool location="x,y,z">` parses via `XMLUtils.parseVector` → a raw `Vector` kept for

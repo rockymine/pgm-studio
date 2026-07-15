@@ -31,9 +31,29 @@ public sealed partial class MapParser
     private static readonly Version MinProto = new(1, 4, 0);
     private static readonly Version FirstModernServer = new(1, 13, 0);   // the 1.13 block-id "flattening"
 
+    // PGM's objective modules: the root elements whose module contributes a non-auxiliary gamemode when it
+    // parses anything. The gamemode falls out of which of these are present — the <gamemode> element is a
+    // label PGM never reads. Auxiliary modules (blitz, ffa, rage) modify how a map plays rather than what
+    // its goal is, so they are not objectives and are not listed.
+    private static readonly Dictionary<string, string> ObjectiveModules = new()
+    {
+        ["wools"] = "CTW",
+        ["destroyables"] = "DTM",
+        ["cores"] = "DTC",
+        ["control-points"] = "CP/KOTH",
+        ["king"] = "KOTH",
+        ["payloads"] = "Payload",
+        ["flags"] = "CTF",
+        ["score"] = "TDM",
+    };
+
+    // The subset we actually read. A listed-but-unread module is an objective the map would lose on
+    // round-trip with no error, so its presence rejects the map instead.
+    private static readonly HashSet<string> ParsedObjectiveModules = ["wools"];
+
     // Reject maps outside the supported range up front rather than silently mis-parsing them: the old
-    // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), and modern worlds
-    // whose 1.13+ palette chunks the Anvil reader cannot decode.
+    // positional format below proto 1.4.0 (anonymous teams, no region/filter ids), modern worlds whose
+    // 1.13+ palette chunks the Anvil reader cannot decode, and maps whose objective we cannot represent.
     private void EnsureSupported()
     {
         var protoText = _root.Attribute("proto")?.Value;
@@ -48,6 +68,24 @@ public sealed partial class MapParser
         if (serverText is not null && Version.TryParse(serverText, out var server) && server >= FirstModernServer)
             throw new UnsupportedMapException(
                 $"map requires server {serverText}: modern (>= {FirstModernServer}) worlds use the palette block format the Anvil reader does not support yet.");
+
+        EnsureObjectivesReadable();
+    }
+
+    // An objective module we do not read would be dropped in silence: the map parses, exports, and plays
+    // without its goal. Reject it instead — the objective is the map.
+    private void EnsureObjectivesReadable()
+    {
+        var unread = _root.Elements()
+            .Select(e => e.Name.LocalName)
+            .Where(t => ObjectiveModules.ContainsKey(t) && !ParsedObjectiveModules.Contains(t))
+            .Distinct()
+            .ToList();
+        if (unread.Count == 0) return;
+
+        var described = string.Join(", ", unread.Select(t => $"<{t}> ({ObjectiveModules[t]})"));
+        throw new UnsupportedMapException(
+            $"map declares an objective the studio cannot read: {described}. Parsing it would drop the objective silently on round-trip.");
     }
 
     private MapXml ParseInternal()
