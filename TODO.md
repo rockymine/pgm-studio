@@ -46,47 +46,9 @@ wool-room dock (G49), the **box-based wool-approach shape vocabulary + classifie
 
 **Consolidation — the refactor-first batch (current)**
 
-**G60 foundation landed (`FEATURES.md`):** the `Pgm/Evaluate/` engine — `LayoutEvaluator.Evaluate`/`Gate`,
-`ILayoutTerm`, `EvalContext` (lazy `BoardStructure`), `EvaluationProfile`, `SeedEnvelopes` + the `Band` distance
-convention — and the **dissolved `Composer.Acceptable`**: seven hard terms (STRUCT, WL2/PC-C/G2, G5, BZ6, WL8) +
-the opt-in reject sink, composed output **byte-identical**. The soft half + wiring remain below.
-
-**G60 (2a) landed (`FEATURES.md`):** the soft half — `SoftTerm` (pure `Value` + drawn evidence),
-`tools/deriver/envelope-stats.cs` → embedded `seed-envelopes.json` (+ generated `docs/seed-envelopes.md`), and a
-first soft-term batch (`fill-ratio`/G8, `island-count`/CT1, `max-chain-length`/LN2, `wool-wool-distance`/WL7,
-`spawn-wool-distance`/WL2), scored as `Band` distance. **Distances are rectilinear surface traversal**
-(`Geom.Cells.ShortestPath`, 4-connected — routes around voids, no corner-cut), not straight-line; **WL2 moved to
-a surface `SpawnWoolFloor` gate term** (byte-identical — WL2 never gates), retired from `PlanValidator`.
-
-**G60 (2b) landed (`FEATURES.md`):** catalogue growth + the traced teaching corpus. Six more soft terms —
-`lane-width`/LN1 (narrowest wool lane, the goat-path guard) and `enclosed-void-count`/CT8, plus the team-scale
-CT split that **retires the blunt `island-count`**: `neutral-stepping-count`+`team-stepping-count`/CT4 (contested
-mid stones vs captive movement stones), `band-count`/CT1 (front-front crossings), `isolation-cut-count`/CT5
-(intra/self team-side cuts) — team-owned counts normalized ÷ orbit order. `envelope-stats` now folds the traced
-real maps (`tools/seeds/traced`, 11 of 12; `3084` held — wools don't attribute); a `SoftTerm.LearnsFromTraced`
-opt-out holds `max-chain-length` to authored intent so the traced long-chain maps can't widen it. Byte-identical.
-
-**G60 (2c) landed (`FEATURES.md`):** frontline runs — the deriver groups frontline segments into per-team faces
-(`BoardStructure.FrontlineRuns`: team, width, straight/offset profile), and `frontline-count`/FR4 +
-`frontline-width`/FR6 score them. Profile is derived but not scored (both styles authored-valid). Byte-identical.
-
-**G60 (2d) landed (`FEATURES.md`):** the rotation half of the frontline composite — `uncrossed-middle-void`/CT9
-(a contested middle void with no crossing route is the "no rotation" defect; band `[0,0]`, so any is punished),
-plus a contained `Band` `[0,0]`-floor fix (a zero-tolerance band scores O(1), not ~1e9). Calibrated on six
-authored teaching seeds (`tools/seeds/teaching/`: 3 crammed/over-stretched negatives + 3 rotation resolutions).
-The **cramming** half is parked on **G69**: no `BoardStructure` signal separates it from good real maps (crammed
-≡ acapulco across 7 features), and the deriver reads the geometry opposite to the author's visual.
-
-**G60 (3) landed (`FEATURES.md`):** editor wiring — `Contracts/EvaluationDto` (the four `Evidence` primitives
-flattened to one kind-keyed `EvidenceDto`; `ViolationDto`; score · valid · hard-first violations) + `POST
-/api/plan/evaluate` (`PlanEvaluateEndpoint` maps `LayoutEvaluator.Evaluate`); the plan-bridge debounces evaluate
-alongside inspect and feeds the canvas a **Rules** evidence overlay + the Blazor **Score** panel (click a rule to
-**isolate** its evidence). Restores WL2 to the editor. The Score panel is the editor's single validation surface —
-its STRUCT/PC-C/G2/G5 hard terms subsume the old lint panel, so it is dropped and `/plan/inspect` is trimmed to
-the geometry overlays.
-
-- [~] **G60 — Composer evaluator: finish the catalogue + harness.** On the landed catalogue + wiring:
-  **(1)** finish the §6 soft-term catalogue — the rotation half landed (2d); **remaining**: the cramming
+- [~] **G60 — Composer evaluator: finish the catalogue + harness.** The evaluator foundation, soft-term
+  catalogue, frontline runs, the rotation half, and the editor wiring have landed (`FEATURES.md`). On that:
+  **(1)** finish the §6 soft-term catalogue — the rotation half landed; **remaining**: the cramming
   punishment is parked on **G69** (the deriver has no offset-team-mass primitive); approach count/WL8·G45
   (conditional — gated on G62 slots); height/EL1·EL4 (blocked on the G32-C elevation pass). Each reads
   `BoardStructure` measurables only (never a family name — the enumeration trap), scored as `Band` distance with
