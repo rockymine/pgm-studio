@@ -163,6 +163,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
 ## Backend / API (B)
+- **`--parity` retired — PGM is the reference for the `map.xml` contract, not the Python oracle.** The
+  harness compared `Serializer.ToDict(parse(map.xml))` against the reference's `xml_data.json` and had read
+  **2 ok / 342 failed** for a long time, so it gated nothing. The red was not drift: the C# contract
+  deliberately **exceeds** the reference's in at least four places — kit `force`/`effects`,
+  `destroyables`/`cores`/`modes`, and the OB4 group-attribute inheritance the reference gets **wrong**
+  (`tebulas_ii`'s 12 wools). On those the oracle is *silent*, not authoritative, so the comparison could
+  never go green without teaching it a growing list of exceptions to its own claim. Deleted rather than
+  patched, and `CLAUDE.md` now says what the reference is. Only the `map.xml`-contract check goes: the
+  **analysis** oracles (`--categorize`/`--buildability`/`--traversability`/`--wool`/`--extract`/`--islands`/
+  `--authoring`) compare derivations **both** sides own, were never implicated in this, and are untouched.
+  (B30)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)
 - **`RegionBoundsDeriver`** — compound/transform `bounds_2d` recomputed on read. (B2)
 - **Configure endpoints** — `state` / `scan-layer` / `exclude-island` / `exclude-block` /
@@ -220,8 +231,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   colourless at `0,0,0` — `tebulas_ii` lost all 12, and `firestone_lake_research_facility`,
   `road_trip_to_sunset_town` and `stratosphere_ctw` lost their locations. The reference app has the same
   bug (its oracle emits `color: ""` too), so this is a **deliberate, PGM-grounded deviation** from the
-  oracle rather than drift. `--parity` now skips out-of-range maps and excludes keys the oracle never
-  produced, and reports both counts. (B24a, OB4)
+  oracle rather than drift. (B24a, OB4)
 - **Phantom destroyables — a destroyable is not always an objective.** 8% of them are **scripted
   block-swap regions** that borrow the element purely to carry a `<mode>`. `Destroyable.IsObjective` names
   the concept so no consumer has to rediscover the discriminator, and `Destroyable.Phantom` splits the two

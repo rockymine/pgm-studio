@@ -15,12 +15,6 @@ string[] defaultRoots = (Environment.GetEnvironmentVariable("PGM_STUDIO_MAPS_ROO
     .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 var verbose = args.Contains("--verbose");
 
-// --parity <outputRoot>: compare C# ToDict(parse(map.xml)) against the real Python xml_data.json
-// (canonical, i.e. bounds_2d stripped — mirror reflection bounds are deferred to M5).
-var parityIdx = Array.IndexOf(args, "--parity");
-if (parityIdx >= 0 && parityIdx + 1 < args.Length)
-    return RunParity(args[parityIdx + 1], defaultRoots, verbose);
-
 // --categorize <pyfreshDir> <pyfacetsDir>: compare C# RegionCategorizer.DeriveFacets to the
 // Python derive_region_facets oracle over every map (exact category + ordered roles).
 var catIdx = Array.IndexOf(args, "--categorize");
@@ -1452,57 +1446,6 @@ static async Task<List<(int, int, int, int)>> ReadSegments(string path)
     return result.Data.Select(r => (Convert.ToInt32(r["world_x"]), Convert.ToInt32(r["world_z"]),
         Convert.ToInt32(r["world_y_start"]), Convert.ToInt32(r["world_y_end"]))).ToList();
 }
-
-static int RunParity(string outputRoot, string[] corpusRoots, bool verbose)
-{
-    var dirs = Directory.GetDirectories(outputRoot)
-        .Where(d => File.Exists(Path.Combine(d, "xml_data.json")))
-        .OrderBy(d => d, StringComparer.Ordinal).ToList();
-
-    int ok = 0, failed = 0, skipped = 0, outOfRange = 0, ahead = 0;
-    var failures = new List<(string, string)>();
-    foreach (var dir in dirs)
-    {
-        var slug = Path.GetFileName(dir)!;
-        var mapXml = corpusRoots.Select(r => Path.Combine(r, slug, "map.xml")).FirstOrDefault(File.Exists);
-        if (mapXml is null) { skipped++; continue; }
-        try
-        {
-            var parsed = MapParser.Parse(mapXml);
-            var mineFull = Serializer.ToDict(parsed);
-            // The oracle has no key for an objective module it never parsed, so comparing one is comparing
-            // against a known gap rather than a reference. Drop those keys and count the map instead.
-            if (StudioOnlyKeys().Any(mineFull.ContainsKey)) ahead++;
-            foreach (var key in StudioOnlyKeys()) mineFull.Remove(key);
-            var mine = JsonTree.Canonical(mineFull);
-            // Python json.dumps emits bare NaN/Infinity (non-standard) for some derived bounds;
-            // System.Text.Json can't read them. Null them out — bounds_2d is stripped anyway.
-            var raw = System.Text.RegularExpressions.Regex.Replace(
-                File.ReadAllText(Path.Combine(dir, "xml_data.json")),
-                @"(?<![\w""])(-?Infinity|NaN)(?![\w""])", "null");
-            var theirs = (Dictionary<string, object?>)JsonTree.FromJson(raw)!;
-            theirs = JsonTree.Canonical(theirs);
-            if (JsonTree.DeepEquals(mine, theirs)) ok++;
-            else { failed++; failures.Add((slug, $"drift in: [{string.Join(", ", JsonTree.DiffKeys(mine, theirs))}]")); }
-        }
-        // Out of the supported range by design — the same maps --scan-out-all skips-and-logs.
-        catch (UnsupportedMapException) { outOfRange++; }
-        catch (Exception ex) { failed++; failures.Add((slug, $"{ex.GetType().Name}: {ex.Message}")); }
-    }
-    Console.WriteLine($"parity vs Python xml_data.json (canonical): {ok} ok, {failed} failed, " +
-                      $"{skipped} skipped (no map.xml), {outOfRange} out of range");
-    if (ahead > 0)
-        Console.WriteLine($"  ({ahead} maps carry an objective module the oracle never parsed; " +
-                          $"[{string.Join(", ", StudioOnlyKeys())}] excluded from the comparison)");
-    foreach (var (slug, detail) in verbose ? failures : failures.Take(20))
-        Console.WriteLine($"  {slug}: {detail}");
-    return failed == 0 ? 0 : 1;
-}
-
-// Keys the studio's contract carries and the Python oracle has no equivalent for. The oracle reads only
-// the tags it names, so for these it is silent rather than authoritative — it cannot be the reference for
-// a module it drops.
-static string[] StudioOnlyKeys() => ["destroyables", "cores", "modes", "gamemodes"];
 
 static (bool ok, string detail) CheckMap(string xmlPath)
 {

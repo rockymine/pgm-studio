@@ -111,9 +111,15 @@ rule law is **`docs/contracts/layout-rules.md`**; the plan schema is **`docs/con
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts
   but the dotnet bg process doesn't, and the claude-in-chrome MCP needs reconnecting (extension panel).
-- Parity harnesses in `tools/PgmStudio.RoundTrip` (`--parity`/`--categorize`/`--buildability`/
-  `--traversability`/`--wool`/`--extract`/`--islands`/`--authoring`); regenerate Python oracles into
-  `/tmp/pyfresh` (wiped on reboot) via `parser.parse + serializer.to_dict` over the corpus.
+- Parity harnesses in `tools/PgmStudio.RoundTrip` (`--categorize`/`--buildability`/`--traversability`/
+  `--wool`/`--extract`/`--islands`/`--authoring`); regenerate Python oracles into `/tmp/pyfresh` (wiped on
+  reboot) via `parser.parse + serializer.to_dict` over the corpus.
+- **The `map.xml` contract is no longer checked against the Python oracle — `--parity` is gone (B30).** The
+  C# contract deliberately exceeds the reference's (kit `force`/`effects`, `destroyables`/`cores`/`modes`,
+  the OB4 group-attribute fix the reference gets wrong), so on those the oracle is *silent*, not
+  authoritative, and the comparison reported a red it could never go green on. **PGM itself
+  (`/media/sf_repos/PGM`) is the reference for the contract**; `tests/` + `--authoring` gate it. The
+  *analysis* oracles above are unaffected — they compare derivations both sides own, and still pass.
 - `--suggest-monuments <regionDir> <xml_data.json> [--auto-style|--pedestal K --label K] [--margin M]`
   and `--suggest-monuments-corpus` validate `MonumentSuggester` (`PgmStudio.Minecraft`) — the
   authoring-flow "which monument style? + box" extractor. Given the world, the box the author drew, and

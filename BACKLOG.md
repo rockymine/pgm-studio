@@ -97,20 +97,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   `MonumentSuggester`'s 15 call sites, and that detector is corpus-validated at 96.6% precision — not
   something to churn as a drive-by during unrelated work. Low priority: unlike the symmetry duplication this
   is a value record, so there is no algorithm here that can silently drift.
-- [ ] **B30 — `--parity` is red on 342 of 349 maps and has been for a long time.** The harness has stopped
-  gating anything: a fresh oracle sweep (regenerate `/tmp/pyfresh`, `--parity /tmp/pyfresh`) reports **2 ok,
-  342 failed, 5 out of range**, and the failure is the same on essentially every map — `drift in: [kits]`,
-  because **C# encodes `force` and `effects` on a kit and the Python oracle emits neither**. It is not a
-  C# bug: those are kit features the C# side gained (`<kit force="true">`, `<effect>`) and the reference
-  never had, so the oracle is *silent* there rather than authoritative — the same situation `B24` hit with
-  `destroyables`/`modes` and handled by excluding studio-only keys from the comparison (`StudioOnlyKeys()`).
-  Two things to settle, and they are different questions: **(1)** teach the comparison that the oracle
-  cannot speak to a key it never produced — the existing top-level exclusion doesn't reach `kits[].force`,
-  so this needs a nested key-path exclusion, not another entry in a list; **(2)** decide what parity still
-  *means* now that C#'s contract deliberately exceeds the reference's in at least three places. If the
-  answer is "the oracle is no longer the reference for these", say so in `CLAUDE.md` and shrink the
-  harness's claim to the keys both sides own. Until then `--parity` reads as catastrophic failure and is
-  ignored, which is the worst of both. Independent of the DTM/DTC work.
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
