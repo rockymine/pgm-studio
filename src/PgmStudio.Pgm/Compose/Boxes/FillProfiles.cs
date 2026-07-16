@@ -37,4 +37,29 @@ public static class FillProfiles
     /// footprint of <paramref name="w"/>×<paramref name="h"/> cells — the legal fill set for that box.</summary>
     public static IReadOnlyList<ShapeFamily> FittingFamilies(BoxKind kind, int cw, int w, int h) =>
         Families(kind, cw).Where(f => Fits(kind, f, cw, w, h)).ToList();
+
+    /// <summary>
+    /// The spawn box's allowed footprints — the <b>size rule as data</b>, the size facet of the profile (the
+    /// counterpart to the family allowlist above). A spawn is one of these <b>small fixed SP boxes</b>
+    /// (docs/contracts/map-generation.md §4 — a spawn is "small … never large", ~10×10 direct · 10×20 run-up ·
+    /// 20×20 L), <b>sampled, never stretched to absorb a land-budget share</b> the way the ported grower did.
+    /// Each entry is a <c>(family, run, turn)</c> the emitter turns into the box footprint via
+    /// <see cref="SpawnBoxEmitter.Box"/> — edit this table to retune the spawn's size or add a variant; the size
+    /// stays a rule, never a solver.
+    /// </summary>
+    public static readonly IReadOnlyList<(ShapeFamily Family, int RunCells, int TurnCells)> SpawnSizes =
+    [
+        (ShapeFamily.I, 0, 0),   // direct — the room sits at the hub edge (~10×10)
+        (ShapeFamily.I, 2, 0),   // a short run-up back from the hub (~10×20)
+        (ShapeFamily.L, 2, 2),   // a one-lane L hook (~20×20)
+    ];
+
+    /// <summary>The land (cells) a spawn <paramref name="size"/> occupies at corridor width <paramref name="cw"/>
+    /// — its footprint, for the budget accounting. The spawn no longer claims a weighted share; it spends only
+    /// this small fixed amount, and the freed budget is what stops the maps being crammed.</summary>
+    public static int SpawnLand((ShapeFamily Family, int RunCells, int TurnCells) size, int cw)
+    {
+        var (w, h) = SpawnBoxEmitter.Box(size.Family, cw, size.RunCells, size.TurnCells);
+        return w * h;
+    }
 }

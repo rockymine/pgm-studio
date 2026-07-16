@@ -193,13 +193,14 @@ public sealed class ComposerTests
     }
 
     // The team-side land budget covers the unit's pieces; mid stones are the crossing's land, not the
-    // team side's, and stay outside the G8 accounting.
+    // team side's, and stay outside the G8 accounting. The floor runs wide (0.6): the spawn is a small fixed
+    // box now (G84), so a unit sits under the quota — a deliberately less crammed map — more than over it.
     private static async Task AssertAreaWithinBudget(ComposeRequest request, PlanModel plan)
     {
         var envelope = Composer.ComposeStages(request).Envelope;
         var total = plan.Pieces.Where(p => !p.Id.StartsWith("stone"))
             .Sum(p => (double)p.Rect[2] * p.Rect[3] * envelope.Cell * envelope.Cell);
-        await Assert.That(total >= envelope.LandPerTeam * 0.8 && total <= envelope.LandPerTeam * 1.2).IsTrue();
+        await Assert.That(total >= envelope.LandPerTeam * 0.6 && total <= envelope.LandPerTeam * 1.2).IsTrue();
     }
 
     // The authored unit stays on its designated side of the symmetry axis: +z for rot_180/mirror_z/rot_90,

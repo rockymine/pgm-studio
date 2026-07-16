@@ -53,6 +53,9 @@ public static class TeamUnitGrower
     private const int MaxAttempts = 500;
     private const int FillHuntAttempts = 40;
     private const double AreaTolerance = 0.20;
+    // the spawn no longer stretches to absorb its budget share (it is a small fixed box, FillProfiles.SpawnSizes),
+    // so a team's land runs lighter than the quota — accept a sparser unit rather than inflating the wools to fill
+    private const double AreaFloorTolerance = 0.40;
     private const double WoolSpawnMin = 20;    // WL2, blocks
     private const double WoolWoolMin = 45;     // WL7, blocks
 
@@ -120,7 +123,7 @@ public static class TeamUnitGrower
     private sealed record Shape(
         int W, int ChainCap, int ArmDepthCap, int AxisMargin, int HubU, int HubV, int WoolInset,
         FrontForm Form, int[] FrontSegs, int FrontVOff, int TwinLen,
-        bool SpawnL, int SpawnLDir, double SpawnSplitFrac, int SpawnURunCap,
+        ShapeFamily SpawnFamily, int SpawnRun, int SpawnTurn, int SpawnLDir,
         bool[] LaneSpawnHost, ShapeFamily[] LaneFamily, int[] LaneWidth, RoomPlacement[] LaneRoom,
         double[] LaneAttFracs, bool[] LaneFlip, bool SideFlip, int WoolCount);
 
@@ -175,7 +178,9 @@ public static class TeamUnitGrower
 
         var asymFrac = sideLanes == 2 ? rng.NextDouble() : 0.5;
 
-        var spawnLStyle = rng.NextBool(0.5);              // spawn box family: L (hook) vs I (straight)
+        // the spawn is a small fixed SP box sampled from the size rule (FillProfiles.SpawnSizes) — never
+        // stretched to absorb a budget share (that made the ported lanes ~100 blocks long)
+        var spawnSize = FillProfiles.SpawnSizes[rng.NextInt(0, FillProfiles.SpawnSizes.Count)];
         var spawnLDirDraw = rng.NextBool(0.5) ? -1 : 1;   // the L hook's turn side
 
         // frontline form: WIDE — a solid face the band docks to fully (FR6) — is the default: it makes room
@@ -211,7 +216,6 @@ public static class TeamUnitGrower
         var hubU = rng.NextInt(hubUFloor, Math.Max(hubUFloor, hubCap) + 1);
         var hubV = rng.NextInt(HubVFloor(), Math.Max(HubVFloor(), hubCap) + 1);
 
-        var spawnSplitFrac = rng.NextDouble();
         var frontSplitFrac = form == FrontForm.Single && frontSegCount == 2 ? rng.NextDouble() : 0.5;
 
         // the hub-host mouth window (host edge cells a box's mouth row may touch): the interval between the
@@ -269,14 +273,6 @@ public static class TeamUnitGrower
             FrontForm.Twin => 1.0, FrontForm.Wide => 1.2, FrontForm.Single => 0.5 * frontSegCount, _ => 0.0,
         };
         double totalUnits = spawnUnit + sideLanes * woolUnit + (woolCount == 3 ? woolCUnit : 0) + frontUnit;
-
-        // when the hub is exactly lane-width and no frontline breaks the spine, hub + spawn's straight run
-        // merge into one collinear chain — the run must leave the hub room under the cap
-        var spawnURunCap = hubV == w && form == FrontForm.None ? Math.Max(2, chainCap - hubU) : chainCap;
-        var spawnLFeasible = spawnLStyle;
-        var spawnLenCap = spawnLFeasible ? spawnURunCap + chainCap : spawnURunCap;
-        // every spawn segment keeps a ≥2×2 footprint (a 1-cell-deep marker piece reads too small)
-        var spawnLen = Math.Clamp((int)Math.Round(flexible * (spawnUnit / totalUnits) / w), 2, spawnLenCap);
 
         int[] frontSegs = [];
         var twinLen = 0;
@@ -340,43 +336,39 @@ public static class TeamUnitGrower
         var shape = new Shape(
             w, chainCap, armDepthCap, axisMargin, hubU, hubV, woolInset,
             form, frontSegs, frontVOff, twinLen,
-            spawnLFeasible, woolCount == 3 ? -1 : spawnLDirDraw, spawnSplitFrac, spawnURunCap,
+            spawnSize.Family, spawnSize.RunCells, spawnSize.TurnCells, woolCount == 3 ? -1 : spawnLDirDraw,
             laneSpawnHost, laneFamily, laneWidth, laneRoom, laneAttFracs, laneFlip, sideFlip, woolCount);
 
-        // ── repair search (no draws): WL2/WL7, the area window, and the fill preference are coupled —
-        // shrink the spawn lane (outer) and inflate the wool boxes toward their depth caps (inner) until
-        // every hard invariant holds, preferring an in-band footprint fill and falling back to the first
-        // valid. ──
+        // ── repair search (no draws): the spawn is a fixed small box now, so there is nothing to shrink —
+        // inflate the wool boxes toward their depth caps until every hard invariant holds, preferring an in-band
+        // footprint fill and falling back to the first valid. The land floor runs wide (AreaFloorTolerance): a
+        // small spawn means the unit sits under the quota, and that is wanted (a less crammed map). ──
         GrownUnit? fallback = null;
         var maxInflate = Enumerable.Range(0, sideLanes)
                 .Sum(i => ArmDepthCapOf(laneFamily[i], w, hubWindowLen, armDepthCap) - laneDepth[i])
             + (woolCount == 3 ? chainCap - woolCLen : 0);
-        for (var shrink = 0; shrink <= Math.Min(6, spawnLen - 1); shrink++)
+        for (var inflate = 0; inflate <= maxInflate; inflate++)
         {
-            var s = spawnLen - shrink;
-            for (var inflate = 0; inflate <= maxInflate; inflate++)
-            {
-                var (depths, cLen) = ApplyInflation(
-                    laneDepth, woolCLen, inflate, i => ArmDepthCapOf(laneFamily[i], w, hubWindowLen, armDepthCap),
-                    chainCap, woolCount == 3);
-                var built = Build(frame, shape, s, depths, cLen);
-                if (built is null) continue;
-                var (pieces, spawnPieceId, spawnAt, wools) = built.Value;
+            var (depths, cLen) = ApplyInflation(
+                laneDepth, woolCLen, inflate, i => ArmDepthCapOf(laneFamily[i], w, hubWindowLen, armDepthCap),
+                chainCap, woolCount == 3);
+            var built = Build(frame, shape, depths, cLen);
+            if (built is null) continue;
+            var (pieces, spawnPieceId, spawnAt, wools) = built.Value;
 
-                var total = TotalArea(env, pieces);
-                if (total > env.LandPerTeam * (1 + AreaTolerance)) break;   // inflation only grows — next shrink
+            var total = TotalArea(env, pieces);
+            if (total > env.LandPerTeam * (1 + AreaTolerance)) break;   // inflation only grows — stop
 
-                if (!ComposeGeometry.SeparationOk(env, pieces.Select(p => p.Rect).ToList(), [])) continue;
-                if (!ValidateContacts(env, pieces)) continue;
-                if (MaxChainBlocks(env.Cell, pieces.Select(p => p.Rect).ToList()) > LaneChainMaxBlocks) continue;
-                if (total < env.LandPerTeam * (1 - AreaTolerance)) continue;
-                var rectById = pieces.ToDictionary(p => p.Id, p => p.Rect);
-                if (!ValidateMarkers(env, rectById, spawnPieceId, spawnAt, wools)) continue;
+            if (!ComposeGeometry.SeparationOk(env, pieces.Select(p => p.Rect).ToList(), [])) continue;
+            if (!ValidateContacts(env, pieces)) continue;
+            if (MaxChainBlocks(env.Cell, pieces.Select(p => p.Rect).ToList()) > LaneChainMaxBlocks) continue;
+            if (total < env.LandPerTeam * (1 - AreaFloorTolerance)) continue;
+            var rectById = pieces.ToDictionary(p => p.Id, p => p.Rect);
+            if (!ValidateMarkers(env, rectById, spawnPieceId, spawnAt, wools)) continue;
 
-                var unit = new GrownUnit(pieces, new GrownSpawn(spawnPieceId, spawnAt, frame.TowardAxis), wools);
-                if (FootprintFillInBand(pieces)) return unit;
-                fallback ??= unit;
-            }
+            var unit = new GrownUnit(pieces, new GrownSpawn(spawnPieceId, spawnAt, frame.TowardAxis), wools);
+            if (FootprintFillInBand(pieces)) return unit;
+            fallback ??= unit;
         }
         return fallback;
     }
@@ -458,7 +450,7 @@ public static class TeamUnitGrower
     // ── geometry assembly ───────────────────────────────────────────────────────────────────────────────
 
     private static (List<GrownPiece> Pieces, string SpawnPieceId, double[] SpawnAt, List<GrownWool> Wools)? Build(
-        Frame frame, Shape sh, int spawnLen, int[] armDepths, int woolCLen)
+        Frame frame, Shape sh, int[] armDepths, int woolCLen)
     {
         var w = sh.W;
         var frontReach = sh.Form switch
@@ -503,31 +495,18 @@ public static class TeamUnitGrower
             Place("frontline", sh.AxisMargin, sh.TwinLen, hubVMin + (sh.HubV - wideW) / 2, wideW);
         }
 
-        // spawn box — a Box(Spawn) filled through the shared emitter (the second box kind after the wool
-        // box): a straight I lane back from the hub, or an L hook to the SpawnLDir side. The room is emitted
-        // as a real PlanRoles.Spawn terminal carrying the marker (SP3: facing the axis), and the entry run is
-        // what a wool box may dock along — never the marker's own room (SP1). Every piece carries its slot and
-        // the spawn box label.
-        var rd = ShapeEmitter.RoomDepthCells;
-        var spawnFamily = sh.SpawnL && spawnLen >= w + 2 ? ShapeFamily.L : ShapeFamily.I;
-        int spawnRun, spawnTurn = 0;
-        if (spawnFamily == ShapeFamily.L)
-        {
-            var s1Min = Math.Max(w, spawnLen - sh.ChainCap);
-            var s1Max = Math.Min(sh.SpawnURunCap, spawnLen - 2);
-            spawnRun = Math.Clamp((int)Math.Round(spawnLen * sh.SpawnSplitFrac), s1Min, Math.Max(s1Min, s1Max));
-            spawnTurn = Math.Clamp(spawnLen - spawnRun, 2, Math.Max(2, sh.ChainCap - w));
-        }
-        else
-            spawnRun = Math.Max(w, spawnLen - rd);
-
-        var spawn = FillSpawn(frame, spawnFamily, w, spawnRun, spawnTurn, sh.SpawnLDir, spawnU0, hubVMin, "spawn-a", "spawn");
+        // spawn box — a small fixed SP box (the sampled FillProfiles.SpawnSizes rule: a straight I, or an L hook
+        // to the SpawnLDir side), never budget-stretched. The room is a real PlanRoles.Spawn terminal carrying
+        // the marker (SP3: facing the axis), and the entry run is what a wool box may dock along — never the
+        // marker's own room (SP1). Every piece carries its slot and the spawn box label.
+        var spawn = FillSpawn(
+            frame, sh.SpawnFamily, w, sh.SpawnRun, sh.SpawnTurn, sh.SpawnLDir, spawnU0, hubVMin, "spawn-a", "spawn");
         if (spawn is null) return null;
         pieces.AddRange(spawn.Pieces);
         var spawnPieceId = spawn.Room.Id;
         var spawnAt = spawn.MarkerAt;
         var spawnEntryLen = spawn.EntryLen;
-        var spawnIsL = spawnFamily == ShapeFamily.L;
+        var spawnIsL = sh.SpawnFamily == ShapeFamily.L;
 
         // wool boxes — docked on the hub's sides or the spawn lane's first run, mouth toward the host: the
         // arm's share picked the family, the depth knob sized the box, and the fill emits slot- and

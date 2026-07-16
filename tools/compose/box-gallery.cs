@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// build-cache bust: box-model gallery (G79 donut + G62 slot mirror) round 5 — spawn arm via plan-cell fill too (G63-C 1c)
+// build-cache bust: box-model gallery (G79 donut + G62 slot mirror) round 6 — spawn capped small, FillProfiles.SpawnSizes rule (G84)
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;

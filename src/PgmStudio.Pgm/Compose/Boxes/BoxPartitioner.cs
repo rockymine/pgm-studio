@@ -28,9 +28,11 @@ namespace PgmStudio.Pgm.Compose;
 /// </summary>
 public static class BoxPartitioner
 {
-    /// <summary>The grower's area tolerance: a grown unit spends land to within this fraction of the team budget
-    /// (the <c>land</c> currency window), so a partition read off one balances inside it.</summary>
-    public const double BudgetTolerance = 0.20;
+    /// <summary>The grower's area-window half-width: a grown unit's land sits within this fraction of the team
+    /// budget, so a partition read off one balances inside it. The window is asymmetric — the spawn is a small
+    /// fixed box now (G84), so a unit runs <em>under</em> the quota (a less crammed map) more than over — and
+    /// this covers the wider (floor) side.</summary>
+    public const double BudgetTolerance = 0.40;
 
     /// <summary>The two-currency <b>land</b> budget in cells: the team's land target (blocks²,
     /// <see cref="ComposeEnvelope.LandPerTeam"/>) over the cell area. The total the partition's per-box
