@@ -20,9 +20,9 @@ all in `FEATURES.md`). **This board is the box model, end to end**: one box kind
 reusing what the previous one proved — wool boxes **shipped** (G61), the mask-level corner law **shipped**
 (G79 — its pinch scan `Cells.HasDiagonalPinch` is the primitive the docking work reuses), the mirror's
 slot recovery **shipped** (G62 — `SlotAssignment`), and the spawn box **shipped** (G78 — `SpawnBoxEmitter`,
-the second box kind, all in `FEATURES.md`) → **hub/frontline patterns (G41) is next** — **opening with
-the G80 valid-edges data model** so every pattern binds to the final interface shape → docking modes
-(G80) → the partitioner switch (G63), where
+the second box kind, all in `FEATURES.md`) → **the profile-driven fill spine (G41-A) is next** — it makes
+box footprint an enforced, data-driven quantity (`FillProfiles` + `BoxFiller`), the lever the rest turns on
+→ the interface data model (G41-B) → docking modes (G80) → the partitioner switch (G63), where
 `TeamUnitGrower` retires and sampling produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
 {I, L}, small boxes per SP; what a wool entry admits: the §4 width menu), and the slot labels the
 emissions carry are what every later rule binds to (`docs/contracts/map-generation.md` §5.3: the labels
@@ -36,29 +36,27 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
 
 **Box model — M2 → M4**
 
-- [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
-  the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated.
-  **Opens with the G80 valid-edges slice**: land the `BoxInterface` valid-edges data model first (long vs
-  short; wool-touching edges never dock; per-family multi-interface demands) so `FillProfiles` and every
-  pattern bind to the final interface model instead of today's single-mouth assumption — the modes
-  themselves execute at G80. Then build the
-  **open-variant** shape layer over the shared family machinery: `Compose/Boxes/FillPattern` (arrangements
-  of family shapes in a box — the terminal-less / through-corridor read), `FillProfiles` (per-`BoxKind`
-  legal patterns × families × binding, each restriction citing its `layout-rules.md` id), `BoxFiller` (the
-  one profile-driven fill entry point). `FrontForm` retires into frontline patterns (none · single-chain
-  I/Z · wide-face · twin-strands+recess — FR3/FR4/FR6/CT8); hub open patterns (solid I · L · Z ·
-  ring-with-hole — HB1/HB3/HB4). **G39's** corner/edge interlock is expressed here as a `BoxInterface`
-  constraint. Hub/frontline pattern pieces carry **slots with box-kind ownership** (`hub-a/bar`,
-  `front-a/…`) — the first labels outside the wool box, extending G61's label-preservation invariant to
-  every box kind. Fills start **publishing vacancies** (§4.4): boxes may overlap (piece-disjointness, not
-  box-disjointness, is the invariant), so a fill's residual envelope is published as claimable negative
-  space — a **U-hub publishes its bay**, a twin frontline its recess (the CT8 recess generalized). Emit-side
-  and exact (families are fixed templates), so no derive pass finds them. `FillProfiles` gates claims
-  (a spawn may claim a hub bay whose mouth faces away from the axis) — this is what makes the
-  **spawn-in-hub-bay** layout expressible (three wools L/T/R + the spawn in the U's bay) instead of
-  forcing the G45 parallel-lane anti-pattern. `emit-verify` grows per-kind pattern mirrors (twin → closure
-  hole ringed by two strands; L hub → one-bend junction outline) — no new `*Shape` classes. Blocked partly
-  on the author's frontline/hub teaching set. Depends on G61. (review §3.1, §4.3, §4.4, §7.6)
+*(G41 was one monolith bundling four separable concerns; split into A–D so the footprint slice can ship
+without the open-variant patterns. A + B are the near-term tracks below; C + D — the open-variant hub/
+frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocked on the author's teaching set.)*
+
+- [ ] **G41-A — [M3] `FillProfiles` + `BoxFiller`: the profile-driven fill spine (box footprint enforced).**
+  The per-`BoxKind` profile becomes a **type**, not just the two data rows G61/G78 landed: `Compose/Boxes/
+  FillProfiles` maps `BoxKind` → its legal families + its **footprint/land-target policy** (each restriction
+  citing a `layout-rules.md` id), and `Compose/Boxes/BoxFiller` is the **one profile-driven fill entry point** —
+  given a `Box` (its footprint `Rect` + `Box.LandTargetCells`) it validates/picks the family against the
+  profile and fills to the land target (fragment converts land→build inside the box). The wool and spawn arms
+  route through `BoxFiller` instead of their bespoke `SolveDepth`/`SolveWidth`/`spawnLen` sizing, so **box
+  footprint stops being a by-product of the budget-share solve and becomes an enforced, data-driven quantity**
+  (the two-currency budget the `Box` record already models). Single-mouth docking + the existing families — no
+  interface model, no open-variant patterns. This is the slice that lets a wool box's share reach a donut/U/H
+  footprint and a spawn's size be governed by its profile. Depends on G61, G78. (review §4.1, §8)
+- [ ] **G41-B — [M3] The `BoxInterface` valid-edges data model (the G80-opener).** Land the interface model
+  every fill and pattern binds to, replacing today's single-mouth assumption: **valid edges** on
+  `BoxInterface` (long vs short; a wool-touching edge/corner never docks) and **per-family multi-interface
+  demands**. This is the data model `FillProfiles` binds against and G80's docking modes + G41-C's
+  open-variant patterns execute over — the slice that used to "open" G41. Independent of G41-A. Depends on
+  G61; unblocks G80. (review §1.5/§1.6, §4.3)
 - [ ] **G80 — Docking modes as per-family data: the clamp's two entries, the scythe's entry edges.**
   Valid connections are **shape-relative, not box-relative** (an entry shift carries its dock with it),
   declared per family as enumerable docking modes (map-generation.md §4). **Clamp** (the authored,
@@ -72,10 +70,10 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
   **hard violation and rejects** (the declared-bay alternative is parked as G81 — elevation-stage only).
   Introduces **valid edges** on `BoxInterface` (long vs short; a wool-touching edge/corner never docks) and
   per-family multi-interface demands — more modes may follow now that they are expressible. Depends on
-  G41's interface machinery (whose opening slice lands the valid-edges data model this task executes
-  against). If the clamp's **corner-wrap dual host** turns out to need G63's partition graph, split
+  **G41-B** (the valid-edges data model this task executes against). If the clamp's **corner-wrap dual host**
+  turns out to need G63's partition graph, split
   rather than stall: the single-host modes (scythe side/combined edge, clamp full short-edge) ship after
-  G41, the dual-host mode follows G63.
+  G41-B, the dual-host mode follows G63.
 - [ ] **G63 — [M4] Partitioner-first composition (the box-driven generation switch).** `Compose/Boxes/
   BoxPartition` (boxes + interfaces = a constraint graph) replaces the `Shape` sampling record as what
   sampling produces; `BoxPartitioner` (budget → partition, **directed repair** from `FillResult` instead

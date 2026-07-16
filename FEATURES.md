@@ -995,7 +995,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **entry run** (never the marker's room — SP1 by construction), and `SpawnWoolRooms` skips the pre-carved
   spawn room. So the spawn is terminal-capped like a wool arm: the **same classifier, the same slot mirror**
   (G62), and G61's label invariant (`spawn-a/entry`…) apply unchanged — this and the wool box are the first
-  two rows of the per-kind profile table the footprint/slot-budget work (G41/G63) reads. Changes RNG
+  two rows of the per-kind profile table the footprint/slot-budget work (G41-A/G63) reads. Changes RNG
   consumption (pre-G63 re-key). Verified: the full 300-case composer invariant sweep green, plus a spawn-box
   mirror test (classifies to I/L, slots re-derive, `Spawn`-role room) across seeds. Contract:
   `docs/contracts/map-generation.md` §4/§5.3. (G78)
