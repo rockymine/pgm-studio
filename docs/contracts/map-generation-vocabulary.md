@@ -157,7 +157,7 @@ hard-penalty(violated well-formedness) + Σ w · envelope-distance(metric)`.
 |---|---|
 | `LayoutEvaluator` | The **judge**: validates + scores a plan and returns the score with the **list of violated terms** (each citing a rule id) — the hard gate every composed plan must clear. |
 | `Violation` · `TermScore` · `Evaluation` | A **failed term** (why, which rule, the subjects), a single term's **score**, and the whole **evaluation** of a plan. |
-| `ILayoutTerm` · `TermKind` | A **scoring term** — a hard well-formedness rule or a soft envelope-distance metric — and its kind. Terms are additive; the set never has to be complete. |
+| `ILayoutTerm` · `TermKind` | A **scoring term** — a hard well-formedness rule or a soft envelope-distance metric — and its kind. Terms are additive; the set never has to be complete. **Terms read the derived board (`EvalContext`) only — never a shape/family name or a box/interface** (those are compose-internal and gone by evaluation): docking validity is a *compose-side* gate, not a term; the evaluator's hard terms (WL8, the corner law) verify the *symptom* on derived topology instead. |
 | `Evidence…` (`EvidenceRect`/`Marker`/`Segment`/`Measure`) | The **evidence** a term attaches so a failure is legible on the board (the rectangle/marker/segment/number that shows *why*). |
 | `SeedEnvelopes` | The **measured envelopes** the soft terms score distance against (from the seed corpus). |
 

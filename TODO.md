@@ -63,10 +63,19 @@ frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocke
   a host on the entry's **unoccupied edge parallel to the entry ↔ entry-run seam**; second = a wider host
   across the **combined colinear head edges of entry + entry-run**; a host touching the wool `room` is a
   **hard violation and rejects** (the declared-bay alternative is parked as G81 — elevation-stage only).
-  Introduces **valid edges** on `BoxInterface` (long vs short; a wool-touching edge/corner never docks) and
-  per-family multi-interface demands — more modes may follow now that they are expressible. Depends on
-  **G41-B** (the valid-edges data model this task executes against). If the clamp's **corner-wrap dual host**
-  turns out to need G63's partition graph, split
+  Executes the per-family modes over the **G41-B `BoxEdgeInterface` model** (valid edges: long/short,
+  wool-touching never-docks; the multi-interface set) — more modes may follow now that they are expressible.
+  **Where docking validity lives — a compose-side placement gate, NOT an `ILayoutTerm`.** Two reasons it
+  cannot be an evaluator term: (1) the evaluator reads the derived `EvalContext` only — *never a shape/family
+  name* (`LayoutEvaluator`) — and docking is inherently family/interface-relative; (2) `BoxEdgeInterface` is
+  compose-internal, dropping at `Assemble`, so it isn't there to read when the evaluator runs. Instead the
+  **filler/partitioner** consults the modes when it docks a box and **produces only legal docks, rejecting
+  illegal ones as a `FillResult`** (labels drive; "placement is the only legal placement", §4). The evaluator's
+  connection is the **derive-side mirror**: the *existing* hard well-formedness terms — WL8's sealed-bay
+  closure hole, the corner-law pinch — catch the *symptom* on the assembled board's topology (holes, islands,
+  the cell mask), never the interface, so **G80 adds zero terms**. Compose produces valid, evaluate verifies
+  well-formed: the two halves meet through the derived board, not through `BoxEdgeInterface`. Depends on
+  **G41-B**. If the clamp's **corner-wrap dual host** turns out to need G63's partition graph, split
   rather than stall: the single-host modes (scythe side/combined edge, clamp full short-edge) ship after
   G41-B, the dual-host mode follows G63.
 - [ ] **G63 — [M4] Partitioner-first composition (the box-driven generation switch).** `Compose/Boxes/
