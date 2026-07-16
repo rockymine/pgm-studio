@@ -57,7 +57,9 @@ public static class ShapeEmitter
             ShapeFamily.I when roomPlacement == RoomPlacement.SideTuck => (cw + rd, 2 * cw),
             ShapeFamily.I => (cw, rd + 1),
             ShapeFamily.L => (cw + rd + 1, 2 * cw),
+            ShapeFamily.Z when roomPlacement == RoomPlacement.SideTuck => (2 * cw + rd, 3 * cw + 1),
             ShapeFamily.Z => (2 * cw, 3 * cw + rd),
+            ShapeFamily.Scythe when roomPlacement == RoomPlacement.SideTuck => (4 * cw + rd, 2 * cw + rd),
             ShapeFamily.Scythe => (4 * cw, 2 * cw + rd),
             ShapeFamily.Clamp => (2 * cw, 2 * cw + 1),
             ShapeFamily.U => (3 * cw, 2 * cw + rd),
@@ -73,20 +75,31 @@ public static class ShapeEmitter
     /// of right) so both handednesses are reachable. <paramref name="attachments"/> (donut) is the number of
     /// hub-side stubs, 1 or 2. <paramref name="woolAtEnd"/> (U / H / donut) puts the terminal on an end of the
     /// crossbar / integrates it at the ring corner. <paramref name="woolExtend"/> (donut) holds the terminal a
-    /// short I out from the shape. <paramref name="attachmentWidth"/> (donut) is the hub-interface width of
-    /// each attachment in cells (0 = one corridor width).</summary>
+    /// short I out from the shape. <paramref name="attachmentWidth"/> (donut, scythe) is the hub-interface
+    /// width of the attachment in cells, measured ALONG the edge it docks (0 = one corridor width; the width
+    /// grammar's w2/w4/w6 = <c>cw</c>/<c>2·cw</c>/<c>3·cw</c>). <paramref name="entryShift"/> /
+    /// <paramref name="woolShift"/> (scythe) slide the two independently-offsettable endpoints down the
+    /// docking edge: the entry shift propagates inward — the spine it docks shrinks from the top with it —
+    /// and the wool shift shortens the return leg the same way, so only the shifted endpoint still reaches
+    /// the edge. <paramref name="attachmentOffset"/> (donut) slides the hub attachment down the ring's edge —
+    /// only the attachment moves, the ring is unchanged.</summary>
     public static EmittedShape Emit(
         ShapeFamily family, int boxW, int boxH, int cw, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false,
-        bool woolExtend = false, int attachmentWidth = 0)
+        bool woolExtend = false, int attachmentWidth = 0, int entryShift = 0, int woolShift = 0,
+        int attachmentOffset = 0)
     {
         var (W, H) = (boxW, boxH);
         if (family == ShapeFamily.Isolated)
             throw new ArgumentException("the emitter fills terminal-capped families; Isolated is a derive-only reading.");
         if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2 (a lane is at least one 10-block cell pair).");
         if (cw > W) throw new ArgumentException($"corridor width {cw} exceeds box width {W}.");
-        if (roomPlacement == RoomPlacement.SideTuck && family != ShapeFamily.I)
-            throw new ArgumentException($"side-tuck room is only supported for the I family in this pass (requested {family}).");
+        if (roomPlacement == RoomPlacement.SideTuck && family is not (ShapeFamily.I or ShapeFamily.Z or ShapeFamily.Scythe))
+            throw new ArgumentException($"side-tuck room is supported for I, Z and scythe (requested {family}).");
+        if ((entryShift != 0 || woolShift != 0) && family != ShapeFamily.Scythe)
+            throw new ArgumentException($"entry/wool shifts are scythe endpoint knobs (requested {family}).");
+        if (attachmentOffset != 0 && family != ShapeFamily.Donut)
+            throw new ArgumentException($"the attachment offset is a donut knob (requested {family}).");
 
         var t = new List<(int[] Rect, string Slot)>();
         var vac = new List<ShapeVacancy>();
@@ -134,6 +147,23 @@ public static class ShapeEmitter
                     [ApproachSlots.Entry, ApproachSlots.Run]));
                 break;
             }
+            case ShapeFamily.Z when roomPlacement == RoomPlacement.SideTuck:
+            {
+                // the run reaches the box bottom and the room docks its SIDE at the end, perpendicular —
+                // the run is shortened in the sense that it no longer extends past the lane to hold the
+                // room. Same I-family side-tuck grammar, and still a Z: the room is excluded from the bend
+                // read, so the staircase stays a staircase.
+                Need(W >= 2 * cw + rd && H >= 3 * cw + 1, family, W, H);
+                int z1 = (H - cw) / 2;
+                int botZ = z1 + cw;
+                t.Add(([0, 0, cw, z1], ApproachSlots.Entry));            // top arm (left) — the mouth
+                t.Add(([0, z1, W, cw], ApproachSlots.Bar));              // crossing band
+                t.Add(([W - cw, botZ, cw, H - botZ], ApproachSlots.RoomRun)); // bottom arm to the box bottom
+                room = [W - cw - rd, H - cw, rd, cw];                    // room off the run's interior side
+                vac.Add(new ShapeVacancy("notch", [cw, 0, W - cw, z1], null,
+                    [ApproachSlots.Entry, ApproachSlots.Bar]));
+                break;
+            }
             case ShapeFamily.Z:
             {
                 // top arm on the left, a full-width band, bottom arm on the right ending in the room.
@@ -154,14 +184,39 @@ public static class ShapeEmitter
             {
                 // the S-hook (ttvw/vtvt/vttt): enter at the top-left tail, drop the spine, run the bottom,
                 // climb the return leg to the wool at top-right — three bends with a tight bay between the
-                // spine and the return leg (not a symmetric U).
+                // spine and the return leg (not a symmetric U). Both endpoints may slide down the docking
+                // edge: a shifted tail takes the spine's top with it (the docked piece resizes with the
+                // shift — a full-height spine over a dropped tail is a different, wrong shape) and a
+                // shifted wool takes the return leg's top the same way.
+                int aw = attachmentWidth > 0 ? attachmentWidth : cw;     // tail width ALONG the spine it docks
                 Need(W >= 4 * cw && H >= 2 * cw + rd, family, W, H);
                 int botZ = H - cw;
-                t.Add(([0, 0, cw, cw], ApproachSlots.Entry));            // top-left tail — the mouth
-                t.Add(([cw, 0, cw, botZ], ApproachSlots.EntryRun));      // spine (down from the tail)
+                if (entryShift < 0 || entryShift + aw > botZ - 1)
+                    throw new ArgumentException(
+                        $"entry shift {entryShift} with attachment width {aw} leaves no spine above the bar (box {W}x{H}).");
+                if (woolShift < 0 || woolShift + rd > botZ - cw)
+                    throw new ArgumentException(
+                        $"wool shift {woolShift} leaves no return leg above the bar (box {W}x{H}).");
+                t.Add(([0, entryShift, cw, aw], ApproachSlots.Entry));   // tail — the mouth, slid down the edge
+                t.Add(([cw, entryShift, cw, botZ - entryShift], ApproachSlots.EntryRun)); // spine, shrunk with it
                 t.Add(([cw, botZ, 3 * cw, cw], ApproachSlots.Bar));      // bottom bar (spine → return leg)
-                t.Add(([3 * cw, rd, cw, botZ - rd], ApproachSlots.RoomRun)); // return leg (up), one bay over
-                room = [3 * cw, 0, cw, rd];                              // wool caps the return leg (top-right)
+                if (roomPlacement == RoomPlacement.SideTuck)
+                {
+                    // the wool docks the return leg's SIDE at its top end — the leg is shortened to the
+                    // room's line instead of running out to hold it, and the tail stays lane-width (a
+                    // thickened tail branches, independent of the docking)
+                    Need(W >= 4 * cw + rd, family, W, H);
+                    if (woolShift + cw > botZ - 1)
+                        throw new ArgumentException(
+                            $"wool shift {woolShift} leaves no return leg above the bar (box {W}x{H}).");
+                    t.Add(([3 * cw, woolShift, cw, botZ - woolShift], ApproachSlots.RoomRun));
+                    room = [4 * cw, woolShift, rd, cw];                  // perpendicular, off the outer side
+                }
+                else
+                {
+                    t.Add(([3 * cw, woolShift + rd, cw, botZ - woolShift - rd], ApproachSlots.RoomRun)); // return leg
+                    room = [3 * cw, woolShift, cw, rd];                  // wool caps the return leg
+                }
                 vac.Add(new ShapeVacancy("bay", [2 * cw, 0, cw, botZ], BoxEdge.Top,
                     [ApproachSlots.EntryRun, ApproachSlots.Bar, ApproachSlots.RoomRun]));
                 break;
@@ -225,10 +280,13 @@ public static class ShapeEmitter
                 int needH = Math.Max(2 * cw + 1, attachments >= 2 ? 2 * aw + 1 : aw + cw);
                 Need(W >= 4 * cw + extend + rd && H >= needH, family, W, H);
                 int ax = cw, ringH = H, span = 3 * cw;               // ring x in [ax, ax+3cw); hub stubs sit in [0, cw)
+                if (attachmentOffset < 0 || attachmentOffset + aw > (attachments >= 2 ? ringH - aw : ringH))
+                    throw new ArgumentException(
+                        $"attachment offset {attachmentOffset} slides the stub off the ring's edge (box {W}x{H}).");
                 t.Add(([ax, 0, span, cw], ApproachSlots.EntryBar));          // top bar
                 t.Add(([ax, cw, cw, ringH - 2 * cw], ApproachSlots.Leg));    // left leg (middle only — no corner overlap)
                 t.Add(([ax + 2 * cw, cw, cw, ringH - 2 * cw], ApproachSlots.Leg)); // right leg (middle only)
-                t.Add(([0, 0, cw, aw], ApproachSlots.Entry));               // hub attachment (top-left), aw cells wide
+                t.Add(([0, attachmentOffset, cw, aw], ApproachSlots.Entry)); // hub attachment, slid down the ring edge
                 if (attachments >= 2) t.Add(([0, ringH - aw, cw, aw], ApproachSlots.Entry)); // second attachment (bottom-left)
                 if (woolAtEnd)
                 {

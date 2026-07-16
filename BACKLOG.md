@@ -441,48 +441,6 @@ The remaining generator / detection / validation work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
 
-- [ ] **G50 — Wool-box emitter: shift the entry/attachment off the box corner.** `WoolBoxEmitter` pins each
-  shape's docking point to a box corner flush against the interface edge, so exactly 3 corners always fill; in
-  a real plan the docking point slides along that edge. Applies to **donut and scythe only** (Z stays corner-
-  pinned). The two behave differently:
-  - **donut** — the attachment slides along the ring's edge; **only the attachment moves, the ring is
-    unchanged.** Standard `ttttb / btvtb / btttw` → moved `btttb / ttvtb / btttw` (attachment drops from the
-    top-left corner down to the left leg; `b` = box/buffer cell, `v` = ring hole).
-  - **scythe** — has **two independently-offsettable endpoints**, entry and wool-end. The **entry** (tail)
-    shifts off the corner and **propagates inward**: the piece the tail docks to (the spine) **shrinks from the
-    top** so only the wool still reaches the edge. Standard `ttbw / btbt / bttt` → shifted-entry
-    `bbbw / ttbt / bttt`. Shifting *only* the entry cell while leaving the spine full-height is **wrong**
-    (`btbw / ttbt / bttt`) — the attached piece must resize with the shift. The **wool end** shifts the same
-    way: standard → shifted-wool `ttbb / btbw / btbt / bttt`. All three read `Scythe` under the fold-based
-    classifier, standalone and hub-docked, both scales — pinned in `ShapeVariantTests` (the earlier
-    bounding-box bay test read the shifted grids as `Z` standalone). Source plans: `scythenotboxaligned`,
-    `scythewoolattachments`.
-  Add offset parameters for both endpoints (offset along the interface edge, clamp rules TBD). Source plans
-  incl. `smalldonutattach`. Sibling of G51/G52. **This is also the scythe's production gate**: flush-docked,
-  the scythe (and the clamp) seal their bay against the host into an enclosed void walled by the wool room —
-  WL8's forbidden motif — so `FillMenu.ProductionFamilies` excludes them today; a shifted entry keeps the bay
-  open past the docking line. (The donut additionally needs a corner-free variant of its stub/room
-  tangencies before any of this applies to it.) **G50–G52 all become reachable from *generation* only once
-  G61 (M2) lands** — today `WoolBoxEmitter` has no production caller, so these emitter knobs are exercised
-  by tools/tests alone.
-- [ ] **G51 — Wool-box emitter: variable attachment width on the scythe (parallel to the docked edge).** The
-  attachment's interface width — measured **along** the edge it docks to (it stacks *parallel* to the shape it
-  attaches to, never sticking away perpendicular) — is a knob wired **only on the donut** today
-  (`attachmentWidth`, the ring-leg-parallel `aw`, `w2/w4/w6 = cw/2·cw/3·cw`). Wire the same on the **scythe**
-  entry (widen the tail along the spine it docks to), same grammar. Donut done; scythe missing. Pairs with G50
-  (a shifted, widened entry is the general case).
-- [ ] **G52 — Wool-box emitter: wool-room docking mode (extend vs side-dock) for Z and scythe.** Today the
-  wool always **extends** the terminal piece in-line (the lane runs straight into the room). Add the option
-  for the wool to **dock the side** — perpendicular off the terminal piece, exactly like the `I` family's
-  `RoomPlacement.SideTuck` — which the `I` already has but `Z`/`scythe` don't. Grants greater variance (the
-  wool needn't always poke out the end). When side-docked, **the terminal piece the wool attaches to is
-  shortened** (it no longer has to run out to hold the room). Classifier-stable when the rest of the shape is
-  standard: `Z` extend / side-dock-up / side-dock-down all read `Z` (`ttbbb/btttw`,
-  `ttbb/btbw/bttt`, `ttbb/bttt/bbbw`); a scythe side-dock reads `Scythe` under the fold-based classifier —
-  all pinned in `ShapeVariantTests`. **Caveat:**
-  keep the terminal tail at normal width — the `scythewoolattachments` wool-2 example reads `H` only because
-  it *also* thickened the tail to 2 tall (a tail wider than a lane branches, independent of docking). Generalise
-  `RoomPlacement` beyond `I`. Source plans: `zwoolattachments`, `scythewoolattachments`. Pairs with G50/G51.
 - [ ] **G29 — Climb profiling on lane chains (straight ramps vs switchbacks, approach labeling).** On the
   seam graph, detect *climbs* (maximal monotone-elevation traversal runs), classify straight ramp vs
   switchback/hairpin (direction reversal while climbing; displacement ≪ path length) and landings, and label

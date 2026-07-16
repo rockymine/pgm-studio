@@ -120,8 +120,8 @@ public static class TeamUnitGrower
         int W, int ChainCap, int ArmDepthCap, int AxisMargin, int HubU, int HubV, int WoolInset,
         FrontForm Form, int[] FrontSegs, int FrontVOff, int TwinLen,
         int SpawnSegCount, bool SpawnL, int SpawnLDir, double SpawnSplitFrac, int SpawnURunCap,
-        bool[] LaneSpawnHost, ShapeFamily[] LaneFamily, int[] LaneWidth, double[] LaneAttFracs, bool[] LaneFlip,
-        bool SideFlip, int WoolCount);
+        bool[] LaneSpawnHost, ShapeFamily[] LaneFamily, int[] LaneWidth, RoomPlacement[] LaneRoom,
+        double[] LaneAttFracs, bool[] LaneFlip, bool SideFlip, int WoolCount);
 
     private static GrownUnit? TryGrow(ComposeEnvelope env, ComposeRng rng, CrossingDesign? design)
     {
@@ -137,7 +137,8 @@ public static class TeamUnitGrower
 
         // ── structure sampling — fixed draw order (part of the golden contract): (g1) wool-box count,
         // (g2) per side box host, (g3) per side family roll, (g4) per side attachment fraction, (g4b)
-        // lone-box side flip, (g4c) per side emit flip (handedness), (g5) arm asymmetry fraction, (g6) spawn
+        // lone-box side flip, (g4c) per side emit flip (handedness), (g4d) per side room side-dock roll
+        // (applies where the family supports it), (g5) arm asymmetry fraction, (g6) spawn
         // segment count, (g7) spawn dogleg style + direction, (g8) frontline form (+ single-chain segment
         // count and cross-offset fraction), (g9) hub depth + width, (g10) spawn split fraction, (g11)
         // single-chain split fraction. Draws whose feature is absent are skipped only on deterministic
@@ -167,6 +168,9 @@ public static class TeamUnitGrower
 
         var laneFlip = new bool[sideLanes];
         for (var i = 0; i < sideLanes; i++) laneFlip[i] = rng.NextBool(0.5);
+
+        var laneSideDockRoll = new bool[sideLanes];
+        for (var i = 0; i < sideLanes; i++) laneSideDockRoll[i] = rng.NextBool(0.25);
 
         var asymFrac = sideLanes == 2 ? rng.NextDouble() : 0.5;
 
@@ -305,6 +309,7 @@ public static class TeamUnitGrower
         var laneFamily = new ShapeFamily[sideLanes];
         var laneWidth = new int[sideLanes];
         var laneDepth = new int[sideLanes];
+        var laneRoom = new RoomPlacement[sideLanes];
         for (var i = 0; i < sideLanes; i++)
         {
             var fit = FillMenu.FamiliesFor(w)
@@ -312,13 +317,20 @@ public static class TeamUnitGrower
                 .Where(f => ArmArea(f, w, ShapeEmitter.MinBox(f, w).W, ShapeEmitter.MinBox(f, w).H) <= armShares[i] * 1.25 + 2)
                 .ToList();
             var family = fit.Count == 0 ? ShapeFamily.I : fit[laneFamilyRolls[i] % fit.Count];
+            // the side-dock roll applies where the family supports it and its (slightly larger) minimum
+            // box still fits the caps — else the room stays inline
+            var rp = laneSideDockRoll[i] && family is ShapeFamily.I or ShapeFamily.Z
+                && ShapeEmitter.MinBox(family, w, RoomPlacement.SideTuck).H
+                    <= ArmDepthCapOf(family, w, hubWindowLen, armDepthCap)
+                ? RoomPlacement.SideTuck : RoomPlacement.Inline;
             var depthCap = ArmDepthCapOf(family, w, hubWindowLen, armDepthCap);
-            var minW = ShapeEmitter.MinBox(family, w).W;
+            var minW = ShapeEmitter.MinBox(family, w, rp).W;
             laneFamily[i] = family;
-            laneDepth[i] = SolveDepth(family, w, minW, armShares[i], depthCap);
-            laneWidth[i] = ArmArea(family, w, minW, depthCap) >= armShares[i]
+            laneRoom[i] = rp;
+            laneDepth[i] = SolveDepth(family, w, minW, armShares[i], depthCap, rp);
+            laneWidth[i] = ArmArea(family, w, minW, depthCap, rp) >= armShares[i]
                 ? minW
-                : SolveWidth(family, w, armShares[i], depthCap, ArmWidthCap(family, w, hubWindowLen, chainCap));
+                : SolveWidth(family, w, armShares[i], depthCap, ArmWidthCap(family, w, hubWindowLen, chainCap), rp);
         }
 
         var woolCLen = woolCount == 3
@@ -329,7 +341,7 @@ public static class TeamUnitGrower
             w, chainCap, armDepthCap, axisMargin, hubU, hubV, woolInset,
             form, frontSegs, frontVOff, twinLen,
             spawnSegCount, spawnLFeasible, woolCount == 3 ? -1 : spawnLDirDraw, spawnSplitFrac, spawnURunCap,
-            laneSpawnHost, laneFamily, laneWidth, laneAttFracs, laneFlip, sideFlip, woolCount);
+            laneSpawnHost, laneFamily, laneWidth, laneRoom, laneAttFracs, laneFlip, sideFlip, woolCount);
 
         // ── repair search (no draws): WL2/WL7, the area window, and the fill preference are coupled —
         // shrink the spawn lane (outer) and inflate the wool boxes toward their depth caps (inner) until
@@ -374,10 +386,10 @@ public static class TeamUnitGrower
     /// <summary>The emitted land area (cells) of a family filling a canonical box — monotone in the depth
     /// (every family spans it) and, for the bar-carrying families, in the width (their bar spans it): depth
     /// is the arm's repair knob, width its budget-absorption knob.</summary>
-    private static int ArmArea(ShapeFamily family, int cw, int width, int depth)
+    private static int ArmArea(ShapeFamily family, int cw, int width, int depth, RoomPlacement rp = RoomPlacement.Inline)
     {
-        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
-        var s = ShapeEmitter.Emit(family, Math.Max(width, minW), Math.Max(depth, minH), cw);
+        var (minW, minH) = ShapeEmitter.MinBox(family, cw, rp);
+        var s = ShapeEmitter.Emit(family, Math.Max(width, minW), Math.Max(depth, minH), cw, roomPlacement: rp);
         return s.Terrain.Sum(p => p.Rect[2] * p.Rect[3]) + s.Room[2] * s.Room[3];
     }
 
@@ -399,12 +411,12 @@ public static class TeamUnitGrower
     /// <summary>The width of a family's mouth row — every box-local cell column its mouth-up emission
     /// occupies on the docking edge (entries, and for some families the room). All of it must land on the
     /// host edge, so this is what the host window gates.</summary>
-    private static int MouthRowSpan(ShapeFamily family, int cw, int width, int depth)
+    private static int MouthRowSpan(ShapeFamily family, int cw, int width, int depth, RoomPlacement rp = RoomPlacement.Inline)
     {
-        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        var (minW, minH) = ShapeEmitter.MinBox(family, cw, rp);
         var canonW = Math.Max(width, minW);
         var canonH = Math.Max(depth, minH);
-        var raw = ShapeEmitter.Emit(family, canonW, canonH, cw);
+        var raw = ShapeEmitter.Emit(family, canonW, canonH, cw, roomPlacement: rp);
         var (s, _, _) = ShapeEmitter.OrientMouthTop(raw, family, false, canonW, canonH);
         var cells = s.Terrain.Select(p => p.Rect).Append(s.Room).Where(r => r[1] == 0).ToList();
         return cells.Count == 0 ? 0 : cells.Max(r => r[0] + r[2]) - cells.Min(r => r[0]);
@@ -425,21 +437,21 @@ public static class TeamUnitGrower
     }
 
     /// <summary>The smallest depth whose emitted area reaches the arm's share (clamped to the caps).</summary>
-    private static int SolveDepth(ShapeFamily family, int cw, int width, int shareCells, int depthCap)
+    private static int SolveDepth(ShapeFamily family, int cw, int width, int shareCells, int depthCap, RoomPlacement rp = RoomPlacement.Inline)
     {
-        var (_, minH) = ShapeEmitter.MinBox(family, cw);
+        var (_, minH) = ShapeEmitter.MinBox(family, cw, rp);
         for (var h = minH; h < depthCap; h++)
-            if (ArmArea(family, cw, width, h) >= shareCells) return h;
+            if (ArmArea(family, cw, width, h, rp) >= shareCells) return h;
         return Math.Max(minH, depthCap);
     }
 
     /// <summary>The smallest width whose emitted area at the capped depth reaches the arm's share (clamped
     /// to the family's width cap) — the second solve, run only when depth alone cannot absorb the share.</summary>
-    private static int SolveWidth(ShapeFamily family, int cw, int shareCells, int depthCap, int widthCap)
+    private static int SolveWidth(ShapeFamily family, int cw, int shareCells, int depthCap, int widthCap, RoomPlacement rp = RoomPlacement.Inline)
     {
-        var (minW, _) = ShapeEmitter.MinBox(family, cw);
+        var (minW, _) = ShapeEmitter.MinBox(family, cw, rp);
         for (var w2 = minW; w2 < widthCap; w2++)
-            if (ArmArea(family, cw, w2, depthCap) >= shareCells) return w2;
+            if (ArmArea(family, cw, w2, depthCap, rp) >= shareCells) return w2;
         return Math.Max(minW, widthCap);
     }
 
@@ -542,11 +554,11 @@ public static class TeamUnitGrower
 
             var (winLo, winLen, vBase) = ResolveAttachment(
                 sh, side, hubUMin, hubVMin, spawnU0, spawnS1, spawnLen, spawnL, i,
-                MouthRowSpan(sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i]));
+                MouthRowSpan(sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i], sh.LaneRoom[i]));
             var uFloor = Math.Max(hubUMin + sh.WoolInset, sh.AxisMargin + 1);
 
             var arm = PlaceArm(
-                frame, pieces, sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i], sh.LaneFlip[i],
+                frame, pieces, sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i], sh.LaneFlip[i], sh.LaneRoom[i],
                 sh.LaneAttFracs[i], side, winLo, winLen, uFloor, vBase, $"wool-{letter}", $"wool-room-{letter}");
             if (arm is null) return null;
             wools.Add(arm);
@@ -571,12 +583,13 @@ public static class TeamUnitGrower
     /// cannot sit inside the host window (the attempt is discarded, never patched).</summary>
     private static GrownWool? PlaceArm(
         Frame frame, List<GrownPiece> pieces, ShapeFamily family, int cw, int width, int depth, bool flip,
-        double attFrac, int side, int winLo, int winLen, int uFloor, int vBase, string boxId, string roomId)
+        RoomPlacement rp, double attFrac, int side, int winLo, int winLen, int uFloor, int vBase,
+        string boxId, string roomId)
     {
-        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        var (minW, minH) = ShapeEmitter.MinBox(family, cw, rp);
         var canonW = Math.Max(width, minW);
         var canonH = Math.Max(depth, minH);
-        var raw = ShapeEmitter.Emit(family, canonW, canonH, cw, flip);
+        var raw = ShapeEmitter.Emit(family, canonW, canonH, cw, flip, rp);
         var (s, _, _) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
 
         // the mouth row (d = 0) must sit fully on the host edge window, and the whole box body must stay

@@ -969,6 +969,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`shapes-gen`/`emit-verify`/`stress-shapes`, now the TUnit `Shapes/` tests — G58). Contract:
   `docs/contracts/map-generation.md` §5. (G53)
 
+- **Emitter placement knobs — endpoint shift, attachment width, side-dock** — `Pgm/Shapes/ShapeEmitter.cs`:
+  the placement grammar the slot vocabulary was built for. **Shift** (the scythe's two independently-
+  offsettable endpoints slide along the docking edge, and the piece each docks — spine / return leg —
+  resizes with the shift; the donut's attachment slides along the ring's edge, ring unchanged).
+  **Width** (the scythe entry's `attachmentWidth`, measured along the spine it docks — the same
+  `w2/w4/w6 = cw/2·cw/3·cw` grammar as the donut's; the tail widens along the dock, never perpendicular).
+  **Docking** (`RoomPlacement.SideTuck` generalised beyond `I` to `Z` and the scythe: the wool docks the
+  terminal piece's side, perpendicular, and the terminal is shortened to the room's line). All knobs are
+  clamped with named errors, keep the template slot order and piece count, and classify back to their
+  family at both handednesses (`EmitterPlacementKnobTests`). The `Z`/`I` side-dock is **sampled in
+  production** (a per-arm draw in the box fill); the scythe knobs stay tools/tests-side — a shifted entry
+  leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
+  production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
+
 - **Wool arms are box fills (M2 — the emitter's first production caller)** — `Pgm/Shapes/ShapeEmitter.cs` +
   `Pgm/Compose/Boxes/` + `TeamUnitGrower.cs`: the pure shape emitter extracted from the wool binding
   (canonical frame, `MinBox`/`MouthEdge`/`OrientMouthTop`, emit-side **vacancies** — a U's bay, a donut's

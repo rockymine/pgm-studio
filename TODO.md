@@ -27,9 +27,7 @@ drive, the mirror only verifies).
 Deliberately **not** here: the G60 soft-rule long tail (parked in `BACKLOG.md` — discovering soft rules
 for structures the composer can't yet compose is the wrong stage; the crammed-frontline dead end, G69, is
 the lesson), G32's remaining realize subtracks (parked — elevation is one of the last pipeline steps),
-and G50–G52 (the emitter placement knobs — now reachable from generation since G61; their variant grammar
-is already classifier-stable, `ShapeVariantTests`, and G50 doubles as the scythe's production gate — see
-its `BACKLOG.md` entry). The G32-D seed goldens freeze only
+(the emitter placement knobs G50–G52 shipped — `FEATURES.md`). The G32-D seed goldens freeze only
 **after G63** — every milestone below re-keys the RNG, so earlier goldens would just re-break.
 
 **Box model — M2 → M4**

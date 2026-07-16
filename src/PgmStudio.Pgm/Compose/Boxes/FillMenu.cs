@@ -23,9 +23,10 @@ public static class FillMenu
     /// as emitted, violating the no-bare-corner contact discipline the grower enforces on every authored
     /// pair — it needs a corner-free geometry variant. The <b>scythe</b> and the <b>clamp</b> carry a bay
     /// whose mouth is their own docking edge, so a flush dock seals the bay against the host into an
-    /// enclosed void walled by the wool room — exactly WL8's forbidden motif; they become production-legal
-    /// when the entry can shift off the docking line (leaving the bay open) or the sealed bay can be
-    /// declared a hole. All three stay fully emittable for harnesses and tests.</summary>
+    /// enclosed void walled by the wool room — exactly WL8's forbidden motif. The emitter's entry shift
+    /// takes the tail OFF the mouth row, so a shifted scythe cannot flush-dock at all: production entry
+    /// waits for a host that wraps the box corner (a side-edge dock) or for sealed bays to be declarable
+    /// as holes. All three stay fully emittable for harnesses and tests.</summary>
     public static readonly IReadOnlyList<ShapeFamily> ProductionFamilies =
     [
         ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.U, ShapeFamily.H,

@@ -32,12 +32,12 @@ public static class WoolBoxEmitter
     /// <summary>Emit <paramref name="family"/> into <paramref name="box"/> at the given
     /// <paramref name="corridorWidth"/> (cells), in the canonical frame (mouth per the family, top for
     /// lanes). Knobs pass through to <see cref="ShapeEmitter.Emit"/>; see there for their meaning.</summary>
-    public static EmittedApproach Emit(ShapeFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa")
+    public static EmittedApproach Emit(ShapeFamily family, WoolBox box, int corridorWidth, bool flip = false, RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false, bool woolExtend = false, int attachmentWidth = 0, string idPrefix = "wa", int entryShift = 0, int woolShift = 0, int attachmentOffset = 0)
     {
         EmittedShape shape;
         try
         {
-            shape = ShapeEmitter.Emit(family, box.W, box.H, corridorWidth, flip, roomPlacement, attachments, woolAtEnd, woolExtend, attachmentWidth);
+            shape = ShapeEmitter.Emit(family, box.W, box.H, corridorWidth, flip, roomPlacement, attachments, woolAtEnd, woolExtend, attachmentWidth, entryShift, woolShift, attachmentOffset);
         }
         catch (ArgumentException e)
         {
