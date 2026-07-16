@@ -389,6 +389,26 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   rather than stretch, with directed budget repair once the partitioner lands (G63); **(c)** re-examine the
   budget (whether `LandPerPlayer` over-scales past ~p16 and whether the area gate's lower bound should
   relax so a compact unit needn't hit the full target).
+- [ ] **G82 — Z entry widening along its bar interface (the missing half of the G51 knob).** G51 shipped
+  entry widening for the scythe only (`attachmentWidth`, along the entry ↔ entry-run seam, the w2/w4/w6
+  grammar, hard-capped short of the bar). Give Z the analogous knob: the entry widens **along its
+  interface with the slot it attaches to** (the crossing bar), same grammar, never perpendicular.
+  Overfill cap: the entry must **never spread far enough to reach the room-run column** — that merges the
+  arms and unmakes the Z — and must not swallow the notch vacancies the emitter publishes; reject with a
+  named error, never silently clamp (the scythe guard in `ShapeEmitter` + `EmitterPlacementKnobTests` is
+  the model). May largely fall out of G80's interface-width machinery — a wider Z entry is the same
+  connection, wider — in which case this reduces to the emitter knob + guards + family-stability tests.
+- [ ] **G83 — Wool-approach budget: own rules, not generic absorption (the widening spend).**
+  *Investigation + rules.* The grower's second solve widens the whole Z box so the **crossing bar absorbs
+  budget** (`SolveWidth`/`ArmWidthCap`) — which stretches the wool approach across the sum of its pieces:
+  a long entry → bar → room-run walk is a bad spend that just makes the map play worse (the G44 lane
+  bloat re-entering through width instead of depth). Wool approaches need their **own budget law**, one
+  of: **slot-labeled piece limits** — per-slot length/area caps the labels make enforceable, plus a cap
+  on the approach's **total path length** across pieces (LN2's 50 is per collinear chain, so an L/Z
+  legally stacks two) — or **box growth limitations** (a wool box may not grow past its family's playable
+  envelope; surplus routes to *other* boxes instead of inflating the approach). Refines G44(b): "widen
+  rather than stretch" holds for hubs/frontlines, but for a wool approach widening the bar *is*
+  stretching, path-wise. Sequenced with the partitioner's per-box budgets (G63, `Box.LandTargetCells`).
 - [ ] **G45 — Third wool: rarer, and placed as a real route.** A third wool is sampled at **40%** for ≥16
   players and **always** built as a 2-cell dead-end straight back beside the spawn lane (`wool-lane-c`;
   `gen-p20-t2-rot_180-s13` — the wool squeezed next to the spawn). That parallel-lane placement is the **G45
