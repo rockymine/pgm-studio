@@ -667,7 +667,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding (second box kind): profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
 | `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box` + land-vs-target accounting (the spine G63 drives). |
-| `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface`s (span, wool-touching never-dock, dockable); the multi-interface set G80's modes execute over. |
+| `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span, wool-touch, terrain reach) — it observes; the docking *rules* over the facts are the G80 gate. |
 | `SpawnWoolRooms` | `Compose/SpawnWoolRooms.cs` | the wool-lane-c terminal carve (box rooms arrive pre-carved). |
 | `Envelope` | `Compose/Envelope.cs` | the budget anchors (`bp`; the land-per-player target). |
 | `MidCarver` | `Compose/MidCarver.cs` | the mid: bands, stone grids, the recess. |

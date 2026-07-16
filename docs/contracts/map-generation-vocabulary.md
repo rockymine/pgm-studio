@@ -54,7 +54,7 @@ classifies the joint, and gates the fill menu.
 | Type | What it means |
 |---|---|
 | `BoxInterface` | One shared **edge interval** — a box-local edge, an offset along it, and a width. The concrete "here two boxes touch, this wide". |
-| `BoxEdgeInterface` | A whole **box edge as a docking candidate** (the valid-edges model, G41-B): its span (long/short), whether the wool room seals it (**never-dock**), and whether terrain reaches it. `Dockable` is the verdict. Read off the shape, so it is *shape-relative*, not a fixed box coordinate. |
+| `BoxEdgeInterface` | The **facts** about one box edge (the valid-edges data model, G41-B): its span (long/short), whether the wool room touches it, whether terrain reaches it. It **observes, it does not judge** — whether the edge may *dock* is a rule (the G80 gate) over these facts, not a field here. Read off the shape, so *shape-relative*, not a fixed box coordinate. |
 | `EdgeSpan` | A box edge's **length class**: `Long` on the box's longer sides, `Short` on the shorter — the distinction rules like "both clamp entries dock the short edge" are stated against. |
 | `ContactKind` | The raw **piece-to-piece contact** reading, straight off the terrain rectangles: `Land` (they merge into one walkable mass) · `Narrow` (a thinner walkable seam) · `Corner` (a bare point — never connects) · `Overlap` · `None`. |
 | `Contact` | One classified contact between two named pieces (its kind, its border length). |

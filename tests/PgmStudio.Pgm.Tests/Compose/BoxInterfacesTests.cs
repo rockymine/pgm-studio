@@ -4,10 +4,11 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The valid-edges data model (G41-B): <see cref="BoxInterfaces.Of"/> reads a box's four edges off the
-/// emitted shape as candidate <see cref="BoxEdgeInterface"/>s — long/short span, wool-touching (never-dock),
-/// terrain reach — the multi-interface set G80's per-family docking modes execute over. Shape-relative: the
-/// verdict is read from the shape, so it moves with the room's position rather than naming a box coordinate.
+/// The valid-edges data model (G41-B): <see cref="BoxInterfaces.Of"/> reads a box's four edges off the emitted
+/// shape as <see cref="BoxEdgeInterface"/> <b>facts</b> — long/short span, whether the wool room touches the
+/// edge, whether terrain reaches it. It observes; it does not judge — the dockability <em>rules</em> over
+/// these facts are the G80 gate's. Shape-relative: the facts are read from the shape, so they move with the
+/// room's position rather than naming a box coordinate.
 /// </summary>
 public sealed class BoxInterfacesTests
 {
@@ -22,17 +23,16 @@ public sealed class BoxInterfacesTests
     private static BoxEdgeInterface Edge(IReadOnlyList<BoxEdgeInterface> es, BoxEdge e) => es.Single(x => x.Edge == e);
 
     [Test]
-    public async Task I_docks_its_mouth_edge_the_room_edge_never_docks()
+    public async Task I_the_room_edge_is_wool_touched_the_mouth_edge_is_clear_terrain()
     {
-        // an I lane: entry on the top edge (the mouth), the wool room on the bottom → bottom is never-dock
+        // an I lane: entry on the top edge (the mouth), the wool room on the bottom
         var es = Edges(ShapeFamily.I, 6, 12);
-        await Assert.That(Edge(es, BoxEdge.Top).Dockable).IsTrue();
-        await Assert.That(Edge(es, BoxEdge.Bottom).TouchesRoom).IsTrue();
-        await Assert.That(Edge(es, BoxEdge.Bottom).Dockable).IsFalse();
-        // the void side edges reach no terrain, so nothing docks them either
-        await Assert.That(Edge(es, BoxEdge.Left).Dockable).IsFalse();
-        await Assert.That(BoxInterfaces.Dockable(ShapeEmitter.Emit(ShapeFamily.I, 6, 12, Cw), 6, 12))
-            .IsEquivalentTo(new[] { Edge(es, BoxEdge.Top) });
+        await Assert.That(Edge(es, BoxEdge.Bottom).TouchesRoom).IsTrue();      // room sits on the bottom edge
+        await Assert.That(Edge(es, BoxEdge.Top).HasTerrain).IsTrue();          // the entry reaches the top edge
+        await Assert.That(Edge(es, BoxEdge.Top).TouchesRoom).IsFalse();
+        // the void side edges reach no terrain (a fact, not a verdict)
+        await Assert.That(Edge(es, BoxEdge.Left).HasTerrain).IsFalse();
+        await Assert.That(Edge(es, BoxEdge.Right).HasTerrain).IsFalse();
     }
 
     [Test]
@@ -41,49 +41,49 @@ public sealed class BoxInterfacesTests
         // a 6×12 box: the 6-cell top/bottom edges are short, the 12-cell left/right are long
         var es = Edges(ShapeFamily.I, 6, 12);
         await Assert.That(Edge(es, BoxEdge.Top).Span).IsEqualTo(EdgeSpan.Short);
+        await Assert.That(Edge(es, BoxEdge.Top).LengthCells).IsEqualTo(6);
         await Assert.That(Edge(es, BoxEdge.Left).Span).IsEqualTo(EdgeSpan.Long);
+        await Assert.That(Edge(es, BoxEdge.Left).LengthCells).IsEqualTo(12);
     }
 
     [Test]
-    public async Task Clamp_exposes_two_dockable_short_edges_its_room_edge_sealed()
+    public async Task Clamp_has_two_short_terrain_edges_and_a_wool_touched_edge()
     {
-        // the clamp's two bars sit on the short top/bottom edges (the entries); the wool room seals one side
+        // the clamp's two bars sit on the short top/bottom edges (the entries); the room bridges to one side
         var es = Edges(ShapeFamily.Clamp, 4, 5);
         await Assert.That(Edge(es, BoxEdge.Top).Span).IsEqualTo(EdgeSpan.Short);
-        await Assert.That(Edge(es, BoxEdge.Top).Dockable).IsTrue();
+        await Assert.That(Edge(es, BoxEdge.Top).HasTerrain).IsTrue();
         await Assert.That(Edge(es, BoxEdge.Bottom).Span).IsEqualTo(EdgeSpan.Short);
-        await Assert.That(Edge(es, BoxEdge.Bottom).Dockable).IsTrue();
-        // the room bridges to one long side → that edge never docks (the multi-interface set is the rest)
-        var sealed_ = es.Single(e => e.TouchesRoom);
-        await Assert.That(sealed_.Dockable).IsFalse();
-        await Assert.That(BoxInterfaces.Dockable(ShapeEmitter.Emit(ShapeFamily.Clamp, 4, 5, Cw), 4, 5).Count).IsGreaterThanOrEqualTo(2);
+        await Assert.That(Edge(es, BoxEdge.Bottom).HasTerrain).IsTrue();
+        await Assert.That(es.Count(e => e.TouchesRoom)).IsEqualTo(1);          // exactly one edge is wool-sealed
+        await Assert.That(es.Single(e => e.TouchesRoom).Span).IsEqualTo(EdgeSpan.Long);
     }
 
     [Test]
-    public async Task U_docks_the_leg_edge_the_wool_edge_never_docks()
+    public async Task U_the_wool_edge_is_touched_the_leg_edge_is_clear_terrain()
     {
-        // U/H enter at the bottom (the legs); the wool caps the crossbar at the top → top never-docks
+        // U/H enter at the bottom (the legs); the wool caps the crossbar at the top
         var es = Edges(ShapeFamily.U, 6, 6);
         await Assert.That(Edge(es, BoxEdge.Top).TouchesRoom).IsTrue();
-        await Assert.That(Edge(es, BoxEdge.Top).Dockable).IsFalse();
-        await Assert.That(Edge(es, BoxEdge.Bottom).Dockable).IsTrue();
+        await Assert.That(Edge(es, BoxEdge.Bottom).HasTerrain).IsTrue();
+        await Assert.That(Edge(es, BoxEdge.Bottom).TouchesRoom).IsFalse();
     }
 
     [Test]
-    public async Task Validity_moves_with_the_shape_not_a_fixed_box_edge()
+    public async Task Facts_are_read_from_the_shape_not_a_fixed_box_edge()
     {
-        // flipping the shape mirrors x; the never-dock verdict tracks where the room actually is, so the
-        // dockable set is read from the shape, never a hard-coded edge
+        // flipping the shape mirrors x; the wool-touch facts track where the room actually is, so which edges
+        // it touches changes — the facts are read off the shape, not a hard-coded box edge (an L's room caps a
+        // corner, touching two edges; the flip moves it to the mirror corner)
         var box = (w: 12, h: 14);
-        var normal = BoxInterfaces.Dockable(ShapeEmitter.Emit(ShapeFamily.L, box.w, box.h, Cw, flip: false), box.w, box.h);
-        var flipped = BoxInterfaces.Dockable(ShapeEmitter.Emit(ShapeFamily.L, box.w, box.h, Cw, flip: true), box.w, box.h);
-        // both are non-empty and every dockable edge genuinely has terrain and no room contact
-        await Assert.That(normal).IsNotEmpty();
-        await Assert.That(flipped).IsNotEmpty();
-        foreach (var e in normal.Concat(flipped))
-        {
-            await Assert.That(e.HasTerrain).IsTrue();
-            await Assert.That(e.TouchesRoom).IsFalse();
-        }
+        var normal = BoxInterfaces.Of(ShapeEmitter.Emit(ShapeFamily.L, box.w, box.h, Cw, flip: false), box.w, box.h);
+        var flipped = BoxInterfaces.Of(ShapeEmitter.Emit(ShapeFamily.L, box.w, box.h, Cw, flip: true), box.w, box.h);
+        var normalRoom = normal.Where(e => e.TouchesRoom).Select(e => e.Edge).ToHashSet();
+        var flippedRoom = flipped.Where(e => e.TouchesRoom).Select(e => e.Edge).ToHashSet();
+        await Assert.That(normalRoom).IsNotEmpty();
+        await Assert.That(flippedRoom).IsNotEmpty();
+        await Assert.That(normalRoom.SetEquals(flippedRoom)).IsFalse();     // the flip moved the room's edges
+        await Assert.That(normal.Any(e => e.HasTerrain)).IsTrue();
+        await Assert.That(flipped.Any(e => e.HasTerrain)).IsTrue();
     }
 }

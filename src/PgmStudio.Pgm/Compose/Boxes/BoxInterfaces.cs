@@ -8,35 +8,32 @@ namespace PgmStudio.Pgm.Compose;
 public enum EdgeSpan { Long, Short }
 
 /// <summary>
-/// A box edge as a candidate docking <b>interface</b> — the valid-edges data model (§4). It records which
-/// edge, its <see cref="Span"/> (long vs short), whether the wool room touches it (<see cref="TouchesRoom"/> —
-/// a wool-touching edge <b>never docks</b>, else a dock would seal the wool), and whether terrain reaches it
-/// (<see cref="HasTerrain"/> — something to dock <em>to</em>). <see cref="Dockable"/> is the derived verdict.
+/// The <b>observed facts</b> about one box edge, read off the emitted shape (§4): which edge, its
+/// <see cref="Span"/> (long vs short), whether the wool room touches it (<see cref="TouchesRoom"/>), and
+/// whether terrain reaches it (<see cref="HasTerrain"/>). These are neutral observations — <b>no policy</b>.
 ///
-/// <para>It is <b>shape-relative, not box-relative</b>: every field is read off the emitted shape, so it moves
-/// <em>with</em> the shape — a room at a different corner, an entry shifted down its edge — rather than naming
-/// a fixed box coordinate. This is the vocabulary only: <em>which</em> of a box's dockable edges a given
-/// family actually docks, and how many interfaces it demands, are the per-family docking modes (G80) that
-/// execute over this model.</para>
+/// <para>Whether an edge may actually <em>receive a dock</em> is a <b>rule, not a fact</b>: it needs terrain
+/// to dock to, must not seal the wool, and must be an entry edge the family exposes in the right count/span.
+/// Those rules are the <b>G80 docking gate</b>, applied over these facts — deliberately not baked in here, so
+/// every docking rule lives in one place (a room edge that is legally docked at the elevation stage, G81, is
+/// exactly why "room ⇒ never-dock" is a policy, not a fact). It is <b>shape-relative</b>: every field is read
+/// off the shape, so the facts move with it — a room at a different corner, a flipped handedness.</para>
 /// </summary>
-public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCells, bool TouchesRoom, bool HasTerrain)
-{
-    /// <summary>A neighbour may dock this edge: terrain reaches it and the wool room does not seal it (§4).</summary>
-    public bool Dockable => HasTerrain && !TouchesRoom;
-}
+public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCells, bool TouchesRoom, bool HasTerrain);
 
 /// <summary>
-/// The valid-edges derivation (G41-B): read a box's four edges as candidate <see cref="BoxEdgeInterface"/>s
-/// off the emitted shape filling it. This is the data model every fill and pattern binds to — the
-/// <b>multi-interface</b> set (a box exposes several edges, not one mouth, retiring the single-mouth
-/// assumption) with each edge classified long/short and marked never-dock where the wool room sits. It is
-/// universal and shape-relative; the per-family selection of which dockable edges to use, and the docking
-/// modes that shift with an entry, are G80's content over this model.
+/// The valid-edges <b>data model</b> (G41-B): read a box's four edges as <see cref="BoxEdgeInterface"/>
+/// <b>facts</b> off the emitted shape filling it. It <b>observes; it does not judge</b> — the multi-interface
+/// vocabulary a box exposes (four edges, each classified long/short with wool-room contact and terrain reach),
+/// retiring the single-mouth assumption. The <b>rules</b> that turn these facts into a dockability verdict —
+/// which edges are legal docks, which slot edges never connect, how many a family demands — are the G80
+/// docking gate over this model.
 /// </summary>
 public static class BoxInterfaces
 {
-    /// <summary>The four edges of a <paramref name="boxW"/>×<paramref name="boxH"/> box as candidate
-    /// interfaces for the emitted <paramref name="shape"/> filling it (box-local cells).</summary>
+    /// <summary>The four edges of a <paramref name="boxW"/>×<paramref name="boxH"/> box as
+    /// <see cref="BoxEdgeInterface"/> facts for the emitted <paramref name="shape"/> filling it (box-local
+    /// cells). Every edge is returned — the gate (G80) decides which are dockable.</summary>
     public static IReadOnlyList<BoxEdgeInterface> Of(EmittedShape shape, int boxW, int boxH)
     {
         var room = shape.Room;
@@ -52,10 +49,4 @@ public static class BoxInterfaces
             Edge(BoxEdge.Right,  boxH, boxW, r => r[0] + r[2] == boxW),
         ];
     }
-
-    /// <summary>The <b>dockable</b> subset of <see cref="Of"/> — the interfaces a neighbour may actually claim
-    /// (terrain-reached, not wool-sealed). A box may expose more than one: the multi-interface set a family's
-    /// docking modes (G80) draw from.</summary>
-    public static IReadOnlyList<BoxEdgeInterface> Dockable(EmittedShape shape, int boxW, int boxH) =>
-        Of(shape, boxW, boxH).Where(e => e.Dockable).ToList();
 }

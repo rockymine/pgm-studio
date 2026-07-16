@@ -986,16 +986,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **The `BoxInterface` valid-edges data model — `BoxInterfaces` (M3, G41-B)** — `Compose/Boxes/
   BoxInterfaces.cs`: the interface model every fill and pattern binds to, replacing the single-mouth
   assumption. `BoxInterfaces.Of(shape, boxW, boxH)` reads a box's four edges off the emitted shape as
-  candidate `BoxEdgeInterface`s — each classified `EdgeSpan` **long/short**, marked **never-dock** where the
-  wool room touches it (a dock there would seal the wool, §4), and **dockable** where terrain reaches an
-  unsealed edge. `Dockable(...)` is the **multi-interface set** (a box exposes several edges, not one mouth).
-  It is **shape-relative, not box-relative**: every field is read off the shape, so the verdict moves with the
-  shape (a room at a different corner, a flipped handedness) rather than naming a fixed box coordinate — the
-  property that lets G80's per-family docking modes make an entry shift carry its dock. This is the vocabulary
-  + universal validity only; the per-family selection of which dockable edges a family uses, and how many it
-  demands, are G80's modes over the model. Verified: `BoxInterfacesTests` (I docks its mouth / room edge
-  sealed; the clamp's two short dockable edges; U's leg-edge dock / wool-edge sealed; span classification;
-  shape-relativity under flip). Contract: `docs/contracts/map-generation.md` §1.5/§4. (G41-B)
+  `BoxEdgeInterface` **facts** — for each edge, its `EdgeSpan` **long/short**, whether the wool room touches it
+  (`TouchesRoom`), and whether terrain reaches it (`HasTerrain`). It **observes; it does not judge**: whether
+  an edge may *dock* is a *rule* (needs terrain, must not seal the wool, plus the per-family entry/demand
+  rules), and that rule is the **G80 gate** over these facts, not baked in — so every docking rule lives in one
+  place (a room edge is legally docked at the elevation stage, G81, which is why "room ⇒ never-dock" is policy,
+  not fact). It retires the single-mouth assumption: a box exposes all four edges as the multi-interface
+  vocabulary. **Shape-relative**: every fact is read off the shape, so it moves with the shape (a room at a
+  different corner, a flipped handedness) rather than naming a fixed box coordinate — the property that lets
+  G80's gate make an entry shift carry its dock. Verified: `BoxInterfacesTests` (the I room edge is
+  wool-touched / the mouth edge clear terrain; the clamp's two short terrain edges + one wool-sealed; U's wool
+  edge touched / leg edge clear; span; the facts move with the shape under flip). Contract:
+  `docs/contracts/map-generation.md` §1.5/§4. (G41-B)
 
 - **The profile-driven fill spine — `FillProfiles` + `BoxFiller` (M3, G41-A part 1)** — `Compose/Boxes/
   FillProfiles.cs` + `BoxFiller.cs`: the per-`BoxKind` fill profile is now a **type**, not two scattered data

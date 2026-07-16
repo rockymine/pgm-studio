@@ -52,32 +52,37 @@ frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocke
   inversion. So retiring the bespoke sizing + the **intra-box fragment** that fills to the land target
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63. (review §4.1, §8)
-- [ ] **G80 — Docking modes as per-family data: the clamp's two entries, the scythe's entry edges.**
-  Valid connections are **shape-relative, not box-relative** (an entry shift carries its dock with it),
-  declared per family as enumerable docking modes (map-generation.md §4). **Clamp** (the authored,
-  allowlisted-WL8 preset: wool deliberately clamped, its bay a deliberate hole granting two approaches, the
-  fight rotating around it — *not* a published vacancy): today a fill satisfies exactly one entry through
-  one interface, forcing rotation with the other entry dangling; production = **both entries satisfied
-  along the short entry edge** — full short-edge host (closes the bay into a declared hole) or the
-  corner-wrap dual host (bay stays open); wool-side docking illegal (stubs dangle). **Scythe**: standard =
-  a host on the entry's **unoccupied edge parallel to the entry ↔ entry-run seam**; second = a wider host
-  across the **combined colinear head edges of entry + entry-run**; a host touching the wool `room` is a
-  **hard violation and rejects** (the declared-bay alternative is parked as G81 — elevation-stage only).
-  Executes the per-family modes over the **G41-B `BoxEdgeInterface` model** (valid edges: long/short,
-  wool-touching never-docks; the multi-interface set) — more modes may follow now that they are expressible.
-  **Where docking validity lives — a compose-side placement gate, NOT an `ILayoutTerm`.** Two reasons it
-  cannot be an evaluator term: (1) the evaluator reads the derived `EvalContext` only — *never a shape/family
-  name* (`LayoutEvaluator`) — and docking is inherently family/interface-relative; (2) `BoxEdgeInterface` is
-  compose-internal, dropping at `Assemble`, so it isn't there to read when the evaluator runs. Instead the
-  **filler/partitioner** consults the modes when it docks a box and **produces only legal docks, rejecting
-  illegal ones as a `FillResult`** (labels drive; "placement is the only legal placement", §4). The evaluator's
-  connection is the **derive-side mirror**: the *existing* hard well-formedness terms — WL8's sealed-bay
-  closure hole, the corner-law pinch — catch the *symptom* on the assembled board's topology (holes, islands,
-  the cell mask), never the interface, so **G80 adds zero terms**. Compose produces valid, evaluate verifies
-  well-formed: the two halves meet through the derived board, not through `BoxEdgeInterface`. Depends on
-  **G41-B**. If the clamp's **corner-wrap dual host** turns out to need G63's partition graph, split
-  rather than stall: the single-host modes (scythe side/combined edge, clamp full short-edge) ship after
-  G41-B, the dual-host mode follows G63.
+- [ ] **G80 — Docking as a declarative slot-edge gate (the clamp's two entries, the scythe's entry edges).**
+  All the docking rules reduce to **one table over slots**: a dock is legal iff it lands on a slot's
+  **docking edge** and touches no slot's **never-dock edge**. Tag each slot once, as data on the
+  `ApproachSlots` template — `room` → **never-dock** (a dock there seals the wool); `entry` → **docking
+  edge**; `run`/`bar`/`leg` → internal / not-a-dock — then per family a small **demand** (how many entry
+  edges a neighbour must connect: clamp 2, most 1) and any **span** constraint (clamp: the *short* edge). The
+  gate resolves each box edge to its **owning slot** via the **G41-B `BoxEdgeInterface` facts** (span,
+  wool-touch, terrain reach) and applies the table — no per-family imperative code, just the tags + demands.
+  **Validity is shape-relative for free**: the facts are read off the shape, so an entry shift moves its edge
+  and the verdict follows. The hard cases are just rows of this table:
+  - **Clamp** (the authored, allowlisted-WL8 preset — wool clamped, its bay a deliberate hole granting two
+    approaches, the fight rotating around it, *not* a published vacancy): both `entry` edges dock **along the
+    short edge** (demand 2), `room` never-docks. Full short-edge host closes the bay into a declared hole;
+    the corner-wrap dual host keeps it open; wool-side docking illegal (stubs dangle). Today's fill satisfies
+    one entry through one interface — this is what forces the rotation with the other entry dangling.
+  - **Scythe**: the `entry`'s **unoccupied edge parallel to the entry ↔ entry-run seam** docks (or the wider
+    **combined colinear head edge of entry + entry-run**); a host touching the `room` **rejects** (the
+    declared-bay alternative is parked as G81 — elevation-stage only).
+
+  **The never-dock-room rule moves here from G41-B.** G41-B shipped a `Dockable` verdict on `BoxEdgeInterface`
+  (`terrain && !room`) — but "room ⇒ never-dock" is the *first docking rule*, not a fact (a room edge is
+  legally docked at the elevation stage, G81), so it now lives in this gate with the rest; G41-B is facts-only
+  (it observes, the gate judges). **Where the gate lives — compose-side, NOT an `ILayoutTerm`.** The evaluator
+  reads the derived `EvalContext` only (*never a shape/family name*), and `BoxEdgeInterface` is compose-internal
+  (drops at `Assemble`), so a docking term is doubly impossible. The **filler/partitioner** consults the table
+  when it docks a box and **produces only legal docks, rejecting illegal ones as a `FillResult`** (labels
+  drive; "placement is the only legal placement", §4). The evaluator's connection is the **derive-side
+  mirror**: the *existing* hard terms (WL8's sealed-bay closure hole, the corner-law pinch) catch the
+  *symptom* on derived topology, never the interface — so **G80 adds zero terms**. Depends on **G41-B**. If
+  the clamp's **corner-wrap dual host** needs G63's partition graph, split rather than stall: the single-host
+  modes (scythe side/combined edge, clamp full short-edge) ship after G41-B, the dual-host mode follows G63.
 - [ ] **G63 — [M4] Partitioner-first composition (the box-driven generation switch).** `Compose/Boxes/
   BoxPartition` (boxes + interfaces = a constraint graph) replaces the `Shape` sampling record as what
   sampling produces; `BoxPartitioner` (budget → partition, **directed repair** from `FillResult` instead
