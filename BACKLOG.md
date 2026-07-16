@@ -222,10 +222,10 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
 
 Two tracks share this section. **The headline is the composer** (plan-then-realize): rule-based
 composition of `plan.json` seeds under the frozen rules (`docs/contracts/map-generation.md` +
-`layout-rules.md` + `plan-editor.md`). Its current focus — the **box / deriver / evaluator consolidation**
-(refactor-first, `docs/map-generation-architecture-review.md`) — is the batch in `TODO.md` (G58–G60); the
-box-model milestones M2–M4 and the interface / hub / lane feature long-tail are parked here until that
-lands, **reworded to be delivered *through* the box model** rather than against the current grower. The
+`layout-rules.md` + `plan-editor.md`). Its current focus — **the box model, box per box** — is the batch
+in `TODO.md` (G61/G62, M2); the later milestones (M3/M4 + doc), the parked G60 soft-rule long tail, and
+the interface / hub / lane feature long-tail live here, **reworded to be delivered *through* the box
+model** rather than against the current grower. The
 island-detection / validation work follows. (The older / parallel **lane sketch generator** track — the
 archetype starters that seeded a draft map from lane primitives — has been **retired** in favour of the
 plan-then-realize direction; see `FEATURES.md` § Layout generation.) Landed so far (`FEATURES.md`): the
@@ -233,7 +233,7 @@ composer core + box-based wool-approach vocabulary (G49/G53/G54), island-outline
 the `island-roles` hook (`G11`), and the layout-generation design that resolved `G15`.
 Builds on the Sketch tool (`S2`) and the intent model (`N`).
 
-**Composer — box-model milestones (M2–M4 + doc)**
+**Composer — box-model milestones (M3–M4 + doc; M2 is the `TODO.md` focus)**
 - [ ] **G76 — The marker inspector exposes none of a structure's knobs, so every placed marker is the
   default.** The stamps are all built and the plan format names them — what is missing is the UI. A
   destroyable has **six styles** (`pillar-1/2/3` · `cube-3` · `cube-4` · `column-plus`), a material from the
@@ -266,38 +266,6 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   Note the stamped footprint, not the marker point, is the subject — a marker legally on its piece can still
   hang its cube off the edge.
 
-- [ ] **G61 — [M2] Wool arms become wool boxes (first production caller of the emitter).** Inside
-  `TeamUnitGrower`, replace the inline 1–3-segment wool-lane growth (its own I/L/Z grammar — the third
-  shape implementation) with: partition the arm region into a `Box(Wool)` carrying a typed entry
-  `BoxInterface` → `FillMenu` (interface-width → legal patterns; the §4 `w2/w4/w6` table as **data**,
-  cited by rule id) → `WoolBoxEmitter` (thinned to a binding over `Shapes.ShapeEmitter`: terminal →
-  `WoolRoom` role + wool marker). `FillResult` (`Ok(pieces, vacancies) | TooSmall(minBox) |
-  NoFamilyFits`) replaces exception control flow, so a bad fit is a directed signal, not a 60-attempt
-  re-roll; `Ok` already carries the fill's **vacancies** — its emit-side negative space (a U's bay, a
-  donut's hole) as a `Vacancy` (kind bay/notch/hole + mouth `BoxInterface` + bounding walls; §4.4) —
-  shaped from the start so the type doesn't churn even though *claiming* lands at M3. Emitter orientation
-  via a rect transform (`Geom.Symmetry.Apply`) instead of the hardcoded top-edge mouth. Every emitted
-  piece carries **structured ownership** — (box id, box kind, slot) on `GrownPiece`, rendered
-  `wool-a/entry` (the id prefix is its serialization, not its source of truth) — and **every compose move
-  after emission is label-preserving**: labels live through carve/cut/repair up to `Assemble`, the one
-  boundary where they drop from the written plan (the evaluator receives them via `EvalContext` — G62/G68;
-  a shape already attached to another shape is never re-read, the labels drive and the mirror only
-  verifies). Kills the third
-  shape impl; gives G44 its structural-spend vocabulary and makes G50–G52 reachable from generation.
-  **Changes RNG consumption** (goldens re-key). Depends on G58. (review §4, §4.4, §7.4)
-- [ ] **G62 — Slot recovery for the generated mirror (generated plans only).** `Shapes/SlotAssignment`:
-  after `Classify` returns the family, template-match the slot sequence onto the classified pieces
-  (`AssignSlots(family, pieces) → piece→slot map`) — matched on **path order and adjacency** (the entry is
-  the piece on the mouth interface, the room is the terminal, run/bar/leg the chain between), never on
-  canonical rect positions, so the G50–G52 variant geometries survive (their grids are the acceptance
-  fixtures — `ShapeVariantTests`). Upgrades `emit-verify` to a true mirror (emit → classify → re-derive
-  slots → compare); slot terms on composed plans get their slots from the emitter via `EvalContext`
-  (`GrownPiece.Slot`), and the classifier's scope on a composed plan is the wool box itself (G61) — there
-  is **no derive-side recovery of authored/traced plans**, retired by decision
-  (`docs/wool-approach-read-investigation.md`: post-fragment maps carry family identity on the play
-  surface; decoding finished maps is a trap). `WoolLaneShape` the class retires here (its lane measurable
-  is already the `ClassifyOpen` read). Depends on G58, G59. (review §3.4, §7.5; the §3.5/§3.6
-  full-plan-scoping half is retired)
 - [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
   the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated. Build the
   **open-variant** shape layer over the shared family machinery: `Compose/Boxes/FillPattern` (arrangements
@@ -343,6 +311,21 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   stage** (Finding 1.2). Reconcile "the frontline is an output" against the shipped mid-outward input.
   Name the board deriver as **code** (`BoardDeriver` / `ContactGraph` / `BoardStructure`), not the
   `tools/deriver` script (Finding 1.3). Trails the code that makes each statement true. (review §1, §7.8)
+
+**Evaluator — the soft-rule long tail (parked: rules follow the composer's vocabulary, never run ahead of it)**
+- [~] **G60 — Composer evaluator: soft-term long tail + ranking harness.** Parked while the box model lands
+  (foundation, hard gate, soft-term catalogue base, frontline/rotation terms, editor wiring: `FEATURES.md`).
+  Minting and labelling soft rules for structures the composer cannot yet compose proved the wrong stage —
+  the crammed-frontline dead end (G69) was hard to detect and harder to explain *because the structure
+  isn't composable yet* — so the remaining terms resume as each box kind's vocabulary (slots, patterns,
+  vacancies) exists to bind them to. Remaining slices: **(1)** the §6 soft-term catalogue leftovers —
+  cramming (parked on G69), approach count/WL8·G45 (gated on G62 slots), height/EL1·EL4 (blocked on the
+  G32-C elevation pass) — each reading `BoardStructure` measurables only (never a family name — the
+  enumeration trap), scored as `Band` distance with `Evidence`; **(2)** the hole-hunt loop keeps the
+  **lowest-scoring** acceptable attempt — the first point composed output shifts, its own re-baseline;
+  **(3)** the ranking harness `eval-rank.cs` + minimal-pair negatives (`tools/seeds/negatives/` +
+  `labels.json`): `Score(negative) > Score(positive)` **and** the labelled term fires; per-term tests.
+  (review §5, §9; `docs/contracts/layout-evaluator.md`)
 
 **Rule visualization & slot-relation rules (§9.7/§9.8 — terms already return drawable `Evidence`)**
 - [ ] **G66 — Rule-visualization renderers (illustrated catalog + reject inspector).** Generic passes over the
