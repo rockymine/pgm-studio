@@ -77,7 +77,12 @@ frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocke
 - [ ] **G63 — [M4] Partitioner-first composition (the box-driven generation switch).** `Compose/Boxes/
   BoxPartition` (boxes + interfaces = a constraint graph) replaces the `Shape` sampling record as what
   sampling produces; `BoxPartitioner` (budget → partition, **directed repair** from `FillResult` instead
-  of 60-attempt re-rolls). **Boxes may
+  of 60-attempt re-rolls). **The concrete inversion this is (the G41-A finding):** today an arm has *no
+  box* — `PlaceArm`/`PlaceSpawn` **emit the shape first, then compute where it sits** (a host window, the
+  spawn's (u,v) frame), so the footprint is an *output* of the fill. The partitioner flips that:
+  **allocate each box's `Rect` (position + dims) first**, then `BoxFiller` (G41-A) fills a box that already
+  exists, to its `Box.LandTargetCells` target — so the bespoke `SolveDepth`/`SolveWidth`/`spawnLen` sizing
+  retires and footprint becomes an *input*. That routing is **G41-A part 2**, closed here. **Boxes may
   overlap** — the partition allocates budgets and constraints, not exclusive area (piece-disjointness +
   image clearance is the real invariant); the partitioner allocates later boxes **from published vacancies**
   (§4.4) as well as fresh space, so a bay-seated spawn docks up to three walls for free (`spawn-first`
