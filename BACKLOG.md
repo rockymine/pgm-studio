@@ -223,7 +223,7 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
 Two tracks share this section. **The headline is the composer** (plan-then-realize): rule-based
 composition of `plan.json` seeds under the frozen rules (`docs/contracts/map-generation.md` +
 `layout-rules.md` + `plan-editor.md`). Its current focus — **box-driven map generation, box per box** —
-is the batch in `TODO.md` (G61 → G79 → G62 → G78 → G41-A/B → G80 → G63-A → G63-B/C, M2–M4; G41-C/D + G63-D parked below); the doc pass, the parked G60 soft-rule
+is the batch in `TODO.md` (G61 → G79 → G62 → G78 → G41-A/B → G80 → G63-A/B → G63-C, M2–M4; G41-C/D + G63-D parked below); the doc pass, the parked G60 soft-rule
 long tail, the parked G32 realize subtracks, and the interface / hub / lane feature long-tail live here,
 **reworded to be delivered *through* the box model** rather than against the current grower. The
 island-detection / validation work follows. (The older / parallel **lane sketch generator** track — the

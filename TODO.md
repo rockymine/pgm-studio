@@ -24,9 +24,10 @@ the second box kind, the profile-driven fill spine **shipped** (G41-A part 1 —
 the lever box footprint enforcement turns on), the interface data model **shipped** (G41-B —
 `BoxInterfaces`, the valid-edges facts), the docking gate **shipped** (G80 — `DockingGate`, the declarative
 slot-edge table the partitioner produces legal docks against), and the partition constraint-graph **shipped**
-(G63-A — `BoxPartition` + the `Of` derive mirror; all in `FEATURES.md`) → **the partition-first allocator
-(G63-B) is next**, where sampling allocates box `Rect`s first and produces a `BoxPartition`, then the switch
-(G63-C) fills it through `BoxFiller`, wires `DockingGate`, retires `TeamUnitGrower` and re-baselines. Each box
+(G63-A — `BoxPartition` + the `Of` derive mirror), and the partition-first allocator seam **shipped** (G63-B —
+`BoxPartitioner` (`budget → BoxPartition`) + the two-currency budget check, parallel to the grower; all in
+`FEATURES.md`) → **the switch (G63-C) is next**, where sampling fills the allocated partition through `BoxFiller`,
+wires `DockingGate`, retires `TeamUnitGrower` and re-baselines. Each box
 kind gets its **shape profile as data** (what shapes a spawn can be:
 {I, L}, small boxes per SP; what a wool entry admits: the §4 width menu), and the slot labels the
 emissions carry are what every later rule binds to (`docs/contracts/map-generation.md` §5.3: the labels
@@ -55,20 +56,11 @@ frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocke
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63-C**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
 
-*(G63 was one monolith — the whole box-driven switch. Split A–D: A shipped the partition data model + mirror
-(`FEATURES.md`); B allocates the partition (Rects first); C flips the switch (fill + wire + retire + re-baseline);
-D — the generic fragment, `GrowthOrder` strategies, and vacancy allocation — is parked in `BACKLOG.md`.)*
+*(G63 was one monolith — the whole box-driven switch. Split A–D: A shipped the partition data model + mirror,
+B shipped the partition-first allocator seam + budget check (both `FEATURES.md`); C flips the switch (fill + wire
++ retire + re-baseline); D — the generic fragment, `GrowthOrder` strategies, and vacancy allocation — is parked
+in `BACKLOG.md`.)*
 
-- [ ] **G63-B — [M4] The partition-first allocator (`Rect`s allocated first).** `BoxPartitioner` (budget →
-  `BoxPartition`, G63-A) — sampling produces the constraint graph, **allocating each box's `Rect` (position +
-  dims) first** rather than emitting a shape and computing where it sits. **The concrete inversion (the G41-A
-  finding):** today an arm has *no box* — `PlaceArm`/`PlaceSpawn` emit the shape, *then* compute a host window
-  and the spawn's (u,v) frame, so the footprint is an *output* of the fill. The allocator flips that:
-  `Box.Rect` + `Box.LandTargetCells` are allocated up front (the two-currency budget's per-box halves), the
-  joints wired from the box adjacencies. **Boxes may overlap** — it allocates budgets and constraints, not
-  exclusive area (piece-disjointness + image clearance is the real invariant). Ships **parallel to
-  `TeamUnitGrower`** (not yet the default), verified against the budget and by round-trip: the emitted
-  partition equals `BoxPartition.Of` of the unit that fills it. Depends on G63-A. (review §4.2, §7.7)
 - [ ] **G63-C — [M4] The switch (fill the partition, retire the grower, re-baseline).** `BoxFiller` (G41-A)
   fills each allocated box to its `Box.LandTargetCells` target — so the bespoke `SolveDepth`/`SolveWidth`/
   `spawnLen` sizing retires and footprint becomes an *input* (**closes G41-A part 2**), with **directed repair**

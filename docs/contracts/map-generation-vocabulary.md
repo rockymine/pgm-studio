@@ -43,7 +43,7 @@ no finished map carries them.
 | `BoxKind` | Which kind of box: **spawn · hub · wools · frontline · mid**. The kind decides the fill profile (what may fill it) and the box's role on the map. |
 | `BoxRef` | A piece's **box ownership** — which box's fill it belongs to. With the piece's slot it forms the full label (`wool-a/entry`) every compose-side rule binds to. |
 | `WoolBox` | The specific axis-aligned region **one** wool approach is emitted into — the wool box's own geometry, mouth (hub-side) at one edge, dead-end room deep inside. |
-| *`BoxPartition`* | *(planned, G63)* the whole set of boxes + their interfaces read as one **constraint graph** — what sampling produces once the partitioner replaces the grower. |
+| `BoxPartitioner` | The **partition-first allocator** (G63): `budget → BoxPartition`. It makes the partition the first-class artifact a compose produces — boxes allocated (footprint + land-budget half), then filled — rather than letting each footprint fall out of the fill. Ships **parallel** to the grower (not yet the default): today it grows one unit and reads the partition off it (`BoxPartition.Of`), round-tripping through the mirror, and carries the two-currency budget check (`WithinBudget`); the switch that fills the partition and retires the grower is G63-C. (The constraint graph it emits is `BoxPartition`, §3.) |
 
 ## 3. The interfaces — how boxes touch
 

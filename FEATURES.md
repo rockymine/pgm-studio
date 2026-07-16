@@ -983,6 +983,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The partition-first allocator seam — `BoxPartitioner` (M4, G63-B)** — `Compose/Boxes/BoxPartitioner.cs`: the
+  `budget → BoxPartition` entry the box-driven switch is built around, shipping **parallel** to `TeamUnitGrower`
+  (not yet the default). `Partition(env, rng)` allocates the partition a compose produces; where the grower lets
+  each box's footprint *fall out of the fill* (`PlaceArm`/`PlaceSpawn` emit the shape, then compute the host
+  window), the allocator makes the `BoxPartition` — typed boxes with their `Rect` footprints and their
+  `LandTargetCells` land-budget halves, joined by their abutments — the first-class artifact. In this parallel
+  stage the fill is still the grower's: `Partition` grows one unit and reads its partition off `BoxPartition.Of`,
+  so the emitted partition **round-trips through the mirror by construction** ("the labels drive, the mirror
+  verifies"). Over the bare mirror it adds the **seam** (so the G63-C inversion to allocate-then-fill changes this
+  body, not its callers) and the **two-currency budget accounting**: `BudgetCells(env)` is the land currency (the
+  team land target over the cell area; the footprint currency is the boxes' Rects), and `WithinBudget` is the
+  balance check — `Valid()` (every box's land within its footprint) plus the total land inside the budget envelope
+  — the invariant the directed `FillResult` repair drives each box's land to at the switch. Purely additive: no
+  production path changed, no plan/golden churn (like G63-A). The literal *Rects-allocated-first* inversion (fill
+  the partition through `BoxFiller`, wire `DockingGate`, retire the grower) lands at G63-C. Verified:
+  `BoxPartitionerTests` (round-trip equals `BoxPartition.Of` of the grown unit across seeds; `Valid` + budget
+  balance across seeds × player counts × every symmetry mode with each box's land within its footprint; the typed
+  spine boxes present; `WithinBudget` rejects a land-starved partition), full Pgm suite 607/607 green. Contract:
+  `docs/contracts/map-generation.md` §4/§8/§12. (G63-B)
+
 - **The partition constraint graph — `BoxPartition` (M4, G63-A)** — `Compose/Boxes/BoxPartition.cs`: the typed
   target the box-driven switch is built around. A `BoxPartition` is the typed `Box`es (each an allocated
   footprint `Rect` + its `LandTargetCells` land-budget half) and the `BoxJoint`s between them (a shared edge
