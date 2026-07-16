@@ -150,6 +150,26 @@ public static class Cells
         return false;
     }
 
+    /// <summary>True when the cell set has a <b>diagonal pinch</b>: some 2×2 window holds exactly the two
+    /// diagonal cells filled and the other two empty, so the filled pair meets only at a point — there is no
+    /// 4-connected step between them and the two opposite diagonals are void. A ¾-solid inside corner (three
+    /// of the four filled) is <b>not</b> a pinch: a third cell bridges the diagonal into one walkable mass.
+    /// The mass-level corner law — read on the composed mask, not on a pairwise bounding-box touch, so a bare
+    /// point contact that a third piece bridges reads clean. Width-independent.</summary>
+    public static bool HasDiagonalPinch(IReadOnlySet<(int, int)> cells)
+    {
+        if (cells.Count == 0) return false;
+        var (mnx, mnz, mxx, mxz) = BoundingBox(cells);
+        for (var x = mnx; x < mxx; x++)
+            for (var z = mnz; z < mxz; z++)
+            {
+                bool a = cells.Contains((x, z)), b = cells.Contains((x + 1, z));
+                bool c = cells.Contains((x, z + 1)), d = cells.Contains((x + 1, z + 1));
+                if ((a && d && !b && !c) || (b && c && !a && !d)) return true;
+            }
+        return false;
+    }
+
     /// <summary>The minimum corridor cross-section (cells) at <paramref name="seeds"/>, measured as the smaller
     /// of each seed's horizontal and vertical run within <paramref name="cells"/>, clamped to [2, 6] (the lane
     /// width convention). Runs never fall below 1, so the clamp's lower bound is the effective floor.</summary>

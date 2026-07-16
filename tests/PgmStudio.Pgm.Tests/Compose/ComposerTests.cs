@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 
@@ -7,9 +8,10 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// The full pipeline (envelope → crossing → grown unit → carved mid → optional cut → assembled
 /// <see cref="PlanModel"/>), swept across seeds and player/team combinations. Every combination must:
 /// reproduce byte-identically on a second compose; validate with ZERO errors (the mid band carries the
-/// cross-team reachability, the bridge carries a severed piece's); carry no WL2/PC-C/G2/G5 lint; classify
-/// every land-piece contact as land or disjoint and every stone contact as none (stones connect by building
-/// only); keep every gap-link hop in G5's 10..20 band; keep pieces of different orbit images at least 10
+/// cross-team reachability, the bridge carries a severed piece's); carry no WL2/PC-C/G2/G5 lint; meet the
+/// cell-level corner law (full land edges and ¾-solid corners, no narrow seams / overlaps / diagonal pinch
+/// on the composed mask) with every stone gap-only (no land interface); keep every gap-link hop in G5's
+/// 10..20 band; keep pieces of different orbit images at least 10
 /// blocks apart on some axis; fan the mid band into exactly ONE merged build region (CT1's clean form); keep
 /// stones inside the band (MD4); keep every wool↔spawn/wool↔wool marker distance in band; keep every maximal
 /// collinear lane chain within LN2's 50-block cap; land its non-stone piece area within ±20% of the per-team
@@ -74,10 +76,20 @@ public sealed class ComposerTests
             var derived = ContactGraph.Build(plan);
             foreach (var c in derived.Contacts)
             {
-                await Assert.That(c.Kind is ContactKind.Land or ContactKind.None).IsTrue();
-                // stones are gap-only: no land interface may involve one
-                await Assert.That(c.A.StartsWith("stone") || c.B.StartsWith("stone")).IsFalse();
+                // the cell-level corner law (G79): full land edges and bare ¾-solid corners are clean; narrow
+                // seams and overlaps are not (the composed-mask pinch scan below rejects a genuine point pinch).
+                await Assert.That(c.Kind is not (ContactKind.Narrow or ContactKind.Overlap)).IsTrue();
+                // stones are gap-only: no land interface (Land/Narrow) may involve one
+                if (ContactGraph.IsLandInterface(c.Kind))
+                    await Assert.That(c.A.StartsWith("stone") || c.B.StartsWith("stone")).IsFalse();
             }
+
+            // the mask-level corner law: the composed team-unit terrain holds no diagonal pinch
+            var unitMask = new HashSet<(int, int)>();
+            foreach (var p in plan.Pieces.Where(p => !p.Id.StartsWith("stone")))
+                for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
+                    for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++) unitMask.Add((x, z));
+            await Assert.That(Cells.HasDiagonalPinch(unitMask)).IsFalse();
 
             // every void hop the zones create sits in G5's band (the designed crossing and bridge hops)
             foreach (var g in derived.GapLinks)

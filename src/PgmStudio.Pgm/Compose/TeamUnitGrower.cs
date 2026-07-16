@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 
@@ -728,15 +729,16 @@ public static class TeamUnitGrower
     private static double TotalArea(ComposeEnvelope env, IReadOnlyList<GrownPiece> pieces) =>
         pieces.Sum(p => (double)p.Rect[2] * p.Rect[3] * env.Cell * env.Cell);
 
-    /// <summary>Every pairwise contact among the authored pieces (pre-fan) is a full land interface or no
-    /// contact at all — no narrow seams and no bare corners are authored (unlike a hand-authored plan, the
-    /// grower has no author judgment to fall back on for either). Reuses <see cref="ContactGraph.Classify"/>
-    /// directly so this is exactly the same test the plan validator/editor apply. Known over-rejection:
-    /// a Corner pair whose diagonal is bridged by a third piece is a ¾-solid inside corner of one connected
-    /// mass — harmless (the editor's PC-C lint suppresses it), but this pairwise read cannot see the third
-    /// piece; the real cell-level failure is the diagonal pinch (two tiles point-to-point, void/build on
-    /// both opposite diagonals). This is what gates the donut family out of
-    /// <see cref="FillMenu.ProductionFamilies"/>.</summary>
+    /// <summary>The authored pieces (pre-fan) meet cleanly under the <b>cell-level corner law</b>: no narrow
+    /// seams, no overlaps, and no diagonal pinch on the composed mask. <see cref="ContactKind.Narrow"/> and
+    /// <see cref="ContactKind.Overlap"/> stay pairwise-rejected (the grower authors only full G2 corridor
+    /// edges or clean gaps). A bare <see cref="ContactKind.Corner"/> is <b>not</b> rejected pairwise — a
+    /// corner whose diagonal is bridged by a third piece is a ¾-solid inside corner of one connected mass
+    /// (harmless; the editor's PC-C lint suppresses exactly that), and a pairwise read cannot see the third
+    /// piece. The genuine failure is the diagonal pinch — two tiles meeting only at a point with void on both
+    /// opposite diagonals — scanned on the composed cell mask via <see cref="Cells.HasDiagonalPinch"/>. The
+    /// donut's ring holds zero pinch windows (its corners are ¾-solid), so reading the mask instead of the
+    /// pair is what admits <see cref="ShapeFamily.Donut"/> to <see cref="FillMenu.ProductionFamilies"/>.</summary>
     private static bool ValidateContacts(ComposeEnvelope env, IReadOnlyList<GrownPiece> pieces)
     {
         var derived = pieces
@@ -744,9 +746,16 @@ public static class TeamUnitGrower
             .ToList();
         for (var i = 0; i < derived.Count; i++)
             for (var j = i + 1; j < derived.Count; j++)
-                if (ContactGraph.Classify(derived[i], derived[j]).Kind is not (ContactKind.Land or ContactKind.None))
+                if (ContactGraph.Classify(derived[i], derived[j]).Kind is ContactKind.Narrow or ContactKind.Overlap)
                     return false;
-        return true;
+
+        // the cell-level corner law: scan the composed mask (cell-aligned rects → an exact cell set) for
+        // diagonal pinch windows; ¾-solid inside corners pass, a point-to-point pinch rejects.
+        var mask = new HashSet<(int, int)>();
+        foreach (var p in pieces)
+            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
+                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++) mask.Add((x, z));
+        return !Cells.HasDiagonalPinch(mask);
     }
 
     /// <summary>Wool↔spawn ≥ 20 blocks (WL2), wool↔wool ≥ 45 blocks (WL7), measured marker to marker.</summary>

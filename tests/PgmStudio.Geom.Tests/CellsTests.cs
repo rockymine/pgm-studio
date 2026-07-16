@@ -62,6 +62,23 @@ public sealed class CellsTests
     }
 
     [Test]
+    public async Task HasDiagonalPinch_flags_point_touches_but_not_solid_or_three_quarter_corners()
+    {
+        // two cells on a diagonal, the other two of the 2×2 window void → a point-to-point pinch
+        await Assert.That(Cells.HasDiagonalPinch(Set((0, 0), (1, 1)))).IsTrue();
+        await Assert.That(Cells.HasDiagonalPinch(Set((1, 0), (0, 1)))).IsTrue();
+        // a ¾-solid inside corner (three of four filled): a third cell bridges the diagonal → clean
+        await Assert.That(Cells.HasDiagonalPinch(Set((0, 0), (1, 1), (1, 0)))).IsFalse();
+        // solid blocks, bars and an L never pinch
+        await Assert.That(Cells.HasDiagonalPinch(Rect(0, 0, 3, 3))).IsFalse();
+        await Assert.That(Cells.HasDiagonalPinch(Rect(0, 0, 5, 1))).IsFalse();
+        await Assert.That(Cells.HasDiagonalPinch(Set((0, 0), (0, 1), (0, 2), (1, 2), (2, 2)))).IsFalse();
+        // a ring encloses a void but its corners are all solid → no pinch
+        var ring = Rect(0, 0, 3, 3); ring.Remove((1, 1));
+        await Assert.That(Cells.HasDiagonalPinch(ring)).IsFalse();
+    }
+
+    [Test]
     public async Task ReflexCorners_counts_concave_turns()
     {
         // a straight bar and a solid rectangle are convex everywhere → 0

@@ -983,6 +983,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The corner law reads the mask, not the pair — donut admitted (M2)** — `Geom/Cells.cs` +
+  `Pgm/Compose/TeamUnitGrower.cs` + `Boxes/FillMenu.cs`: `TeamUnitGrower.ValidateContacts` rejected any
+  pairwise `Corner` verdict, gating the donut out of production — but a corner whose diagonal a third piece
+  bridges is a harmless ¾-solid inside corner of one connected mass (the editor's `PC-C` lint suppresses
+  exactly that). The pairwise Corner rejection is replaced by the **cell-level law**: `Narrow`/`Overlap`
+  stay pairwise-rejected, and the composed cell mask is scanned for **diagonal pinch windows** (two tiles
+  meeting only at a point with void on both opposite diagonals) via the new dependency-free primitive
+  `Cells.HasDiagonalPinch` — ¾-solid corners pass, a genuine point pinch rejects. The donut's ring holds
+  zero pinch windows, so `ShapeFamily.Donut` joins `FillMenu.ProductionFamilies` (menu now {I, L, Z, U, H,
+  Donut}; changes RNG consumption — pre-G63 re-key). The pinch scan is a mass-level primitive G80's docking
+  validation reuses. Verified: `CellsTests` (pinch vs ¾-solid vs ring), the full Pgm sweep green with the
+  corner-law assertion updated (`ComposerTests`). Contract: `docs/contracts/map-generation.md` §4/§5.2. (G79)
+
 - **Wool arms are box fills (M2 — the emitter's first production caller)** — `Pgm/Shapes/ShapeEmitter.cs` +
   `Pgm/Compose/Boxes/` + `TeamUnitGrower.cs`: the pure shape emitter extracted from the wool binding
   (canonical frame, `MinBox`/`MouthEdge`/`OrientMouthTop`, emit-side **vacancies** — a U's bay, a donut's

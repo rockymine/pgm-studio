@@ -35,16 +35,6 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
 
 **Box model — M2 → M4**
 
-- [ ] **G79 — The corner law reads the mask, not the pair (un-gates the donut).**
-  `TeamUnitGrower.ValidateContacts` rejects any pairwise `Corner` verdict, but a corner whose diagonal is
-  bridged by a third piece is a ¾-solid inside corner of one connected mass — harmless, and the editor's
-  `PC-C` lint already suppresses exactly that case (same land component). Replace the pairwise Corner
-  rejection with the cell-level law: scan the composed mask for **diagonal pinch windows** (two tiles
-  meeting only at a point with void or build zone on both opposite diagonals); ¾-solid corners pass.
-  Narrow/Overlap stay pairwise-rejected. The donut's mask holds zero pinch windows, so this admits
-  `Donut` to `FillMenu.ProductionFamilies` (changes RNG consumption — goldens re-key, free before G63).
-  First in the batch: no dependencies, and the pinch scan is a mass-level primitive G80's docking
-  validation reuses (a dock that creates a pinch at a host corner rejects the same way).
 - [ ] **G78 — Spawn boxes: the spawn emits through the shared emitter (the second box kind).** After G61,
   replace `TeamUnitGrower`'s hand-rolled spawn-lane geometry (its inline I/L growth with the spawn room as
   terminal) with a `Box(Spawn)` filled through the same machinery: a small `SpawnBoxEmitter` role binding

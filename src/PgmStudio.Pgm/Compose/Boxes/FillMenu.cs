@@ -18,15 +18,12 @@ public sealed record FillMenuRow(int WidthCells, string Reads, IReadOnlyList<Sha
 /// </summary>
 public static class FillMenu
 {
-    /// <summary>Families a flush-docked wool box may emit in production today. Three exclusions, each a
-    /// named gap, not a taste: the <b>donut</b>'s attachment stub and tucked room corner-touch a ring leg
-    /// as emitted, and the grower's pairwise contact gate (Land-or-None per pair) rejects any Corner
-    /// verdict — but both touches are ¾-solid inside corners of one connected mass (a third piece carries
-    /// the land interface; the editor's PC-C lint suppresses exactly this case as harmless). The real
-    /// corner failure is the cell-level diagonal pinch — two tiles meeting only at a point with void or
-    /// build zone on both opposite diagonals — and the donut's mask has none, so the family waits on the
-    /// authoring gate learning to read the mask instead of the pair, not on a geometry variant. The
-    /// <b>scythe</b> carries a bay whose mouth is its own docking edge, so a flush dock seals the bay
+    /// <summary>Families a flush-docked wool box may emit in production today. Two exclusions, each a
+    /// named gap, not a taste. (The <b>donut</b> was the third: its attachment stub and tucked room
+    /// corner-touch a ring leg as emitted, and the grower's old pairwise contact gate rejected any Corner
+    /// verdict — but both touches are ¾-solid inside corners of one connected mass, the mask holds no
+    /// diagonal pinch, and once the corner law reads the mask instead of the pair the donut is admitted.)
+    /// The <b>scythe</b> carries a bay whose mouth is its own docking edge, so a flush dock seals the bay
     /// against the host into an enclosed void walled by the wool room — exactly WL8's forbidden motif.
     /// Its legal connections are shape-relative (the G80 docking modes, map-generation.md §4): a host on
     /// the entry's unoccupied edge parallel to the entry↔entry-run seam, or across the combined colinear
@@ -41,7 +38,7 @@ public static class FillMenu
     /// docking modes, map-generation.md §4). All three stay fully emittable for harnesses and tests.</summary>
     public static readonly IReadOnlyList<ShapeFamily> ProductionFamilies =
     [
-        ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.U, ShapeFamily.H,
+        ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.U, ShapeFamily.H, ShapeFamily.Donut,
     ];
 
     /// <summary>The §4 table. Row order is part of the deterministic sampling contract (a family draw
