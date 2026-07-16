@@ -119,6 +119,43 @@ public sealed class BoxFillerTests
     }
 
     [Test]
+    public async Task Fill_docks_all_four_mouths_keeping_the_family_in_the_box()
+    {
+        // a plan-cell box docks the host on whichever edge faces it, so the filler orients the shape onto any of
+        // the four mouths (Left/Right are a quarter turn). An Ok result already proves the entry landed on the
+        // requested mouth (the gate admitted it); we also check the family survives, the fill stays in the box,
+        // and the marker sits in the room.
+        var box = new Box("wool-a", BoxKind.Wool, [3, 5, 16, 20], 10_000);
+        foreach (var family in new[] { ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z })
+            foreach (var mouth in new[] { BoxEdge.Top, BoxEdge.Bottom, BoxEdge.Left, BoxEdge.Right })
+            {
+                var res = BoxFiller.Fill(box, mouth, Cw, family);
+                await Assert.That(res).IsTypeOf<FillResult.Ok>();
+                var ok = (FillResult.Ok)res;
+
+                await Assert.That(ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(ok.Approach), ok.Approach.WoolRoom.Id).Family)
+                    .IsEqualTo(family);
+
+                // every piece stays inside the box footprint
+                foreach (var p in ok.Approach.Terrain.Append(ok.Approach.WoolRoom))
+                {
+                    await Assert.That(p.Rect[0]).IsGreaterThanOrEqualTo(box.Rect[0]);
+                    await Assert.That(p.Rect[1]).IsGreaterThanOrEqualTo(box.Rect[1]);
+                    await Assert.That(p.Rect[0] + p.Rect[2]).IsLessThanOrEqualTo(box.Rect[0] + box.Rect[2]);
+                    await Assert.That(p.Rect[1] + p.Rect[3]).IsLessThanOrEqualTo(box.Rect[1] + box.Rect[3]);
+                }
+
+                // the wool marker lands inside its room
+                var room = ok.Approach.WoolRoom.Rect;
+                double mx = room[0] + ok.Approach.At[0], mz = room[1] + ok.Approach.At[1];
+                await Assert.That(mx).IsGreaterThanOrEqualTo(room[0]);
+                await Assert.That(mx).IsLessThanOrEqualTo(room[0] + room[2]);
+                await Assert.That(mz).IsGreaterThanOrEqualTo(room[1]);
+                await Assert.That(mz).IsLessThanOrEqualTo(room[1] + room[3]);
+            }
+    }
+
+    [Test]
     public async Task A_spawn_box_docks_through_its_own_binding_not_this_one()
     {
         await Assert.That(() => BoxFiller.Fill(new Box("spawn-a", BoxKind.Spawn, [0, 0, 6, 12], 100), BoxEdge.Top, Cw, ShapeFamily.I))

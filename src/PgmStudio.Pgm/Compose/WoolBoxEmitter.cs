@@ -48,29 +48,45 @@ public static class WoolBoxEmitter
         return Wrap(shape, box.X, box.Z, idPrefix, $"{idPrefix}-wool", null);
     }
 
-    /// <summary>Fill a typed <paramref name="box"/> whose mouth is <paramref name="mouth"/> with one family,
-    /// as a <see cref="FillResult"/> — the data-channel form ("no shape fits" is a signal, not a throw). The
-    /// emission is normalized mouth-up (<see cref="ShapeEmitter.OrientMouthTop"/>) and must fit the box's
-    /// dims after normalization; pieces carry the box's <see cref="BoxRef"/> and id prefix, the room takes
-    /// <paramref name="roomId"/>, and vacancies are published in plan cell coordinates.</summary>
+    /// <summary>Fill a typed <paramref name="box"/> whose mouth is <paramref name="mouth"/> — any of the four
+    /// box edges — with one family, as a <see cref="FillResult"/> (the data-channel form: "no shape fits" is a
+    /// signal, not a throw). The shape is emitted mouth-up (<see cref="ShapeEmitter.OrientMouthTop"/>) in the
+    /// mouth's <b>along × depth</b> frame, then rotated/flipped so its entry lands on <paramref name="mouth"/>
+    /// and it fills the box's dims; pieces carry the box's <see cref="BoxRef"/> and id prefix, the room takes
+    /// <paramref name="roomId"/>, and vacancies are published in plan cell coordinates. A plan-cell box docks
+    /// the host on whichever edge faces it, so the partitioner drives all four mouths.</summary>
     public static FillResult Fill(
         Box box, BoxEdge mouth, ShapeFamily family, int corridorWidth,
         bool flip = false, string? roomId = null)
     {
-        // canonical dims: the normalization transposes left/right-mouth families, so size the canonical
-        // frame with the box's dims swapped back through the same map
-        var transposes = ShapeEmitter.MouthEdge(family, flip) is BoxEdge.Left or BoxEdge.Right;
-        var (canonW, canonH) = transposes ? (box.Rect[3], box.Rect[2]) : (box.Rect[2], box.Rect[3]);
+        // the mouth's frame: its along-edge length and the depth perpendicular to it. Top/Bottom run along the
+        // box width; Left/Right run along its height (the shape is rotated a quarter turn onto them).
+        var lateral = mouth is BoxEdge.Left or BoxEdge.Right;
+        var (alongLen, depth) = lateral ? (box.Rect[3], box.Rect[2]) : (box.Rect[2], box.Rect[3]);
+
+        // canonical dims: the mouth-up normalization transposes left/right-mouth families, so size the canonical
+        // frame with the along/depth swapped back through the same map
+        var famTransposes = ShapeEmitter.MouthEdge(family, flip) is BoxEdge.Left or BoxEdge.Right;
+        var (canonW, canonH) = famTransposes ? (depth, alongLen) : (alongLen, depth);
         var (minW, minH) = ShapeEmitter.MinBox(family, corridorWidth);
         if (canonW < minW || canonH < minH)
-            return new FillResult.TooSmall(family, transposes ? minH : minW, transposes ? minW : minH);
+        {
+            int minAlong = famTransposes ? minH : minW, minDepth = famTransposes ? minW : minH;
+            return lateral ? new FillResult.TooSmall(family, minDepth, minAlong)
+                           : new FillResult.TooSmall(family, minAlong, minDepth);
+        }
 
         var raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip);
         var (shape, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
-        if (mouth == BoxEdge.Bottom)
-            shape = FlipVertical(shape, h);
-        else if (mouth != BoxEdge.Top)
-            throw new ArgumentException($"wool boxes dock through a top or bottom mouth (requested {mouth}).");
+        // orient the mouth-up shape onto the requested edge — Bottom mirrors it, Left/Right rotate a quarter turn
+        shape = mouth switch
+        {
+            BoxEdge.Top => shape,
+            BoxEdge.Bottom => FlipVertical(shape, h),
+            BoxEdge.Right => Rotate(shape, h, cw: true),
+            BoxEdge.Left => Rotate(shape, w, cw: false),
+            _ => throw new ArgumentException($"unknown box mouth {mouth}."),
+        };
 
         var a = Wrap(shape, box.Rect[0], box.Rect[1], box.Id, roomId ?? $"{box.Id}-room", box.Ref);
         var vacancies = shape.Vacancies
@@ -95,6 +111,30 @@ public static class WoolBoxEmitter
             s.Terrain.Select(p => (Map(p.Rect), p.Slot)).ToList(),
             Map(s.Room),
             [s.At[0], s.Room[3] - s.At[1]],
+            s.Vacancies.Select(v => v with { Rect = Map(v.Rect), Mouth = Mouth(v.Mouth) }).ToList());
+    }
+
+    // box-local quarter turn — dock the box's left or right edge. cw rotates the mouth from Top to Right
+    // (<paramref name="dim"/> is the mouth-up height); else Top to Left (dim is the mouth-up width). Rects and
+    // the marker offset (recomputed against the room's rotated dims) and vacancy mouths all follow the turn.
+    private static EmittedShape Rotate(EmittedShape s, int dim, bool cw)
+    {
+        int[] Map(int[] r) => cw
+            ? [dim - r[1] - r[3], r[0], r[3], r[2]]
+            : [r[1], dim - r[0] - r[2], r[3], r[2]];
+        BoxEdge? Mouth(BoxEdge? e) => e switch
+        {
+            BoxEdge.Top => cw ? BoxEdge.Right : BoxEdge.Left,
+            BoxEdge.Right => cw ? BoxEdge.Bottom : BoxEdge.Top,
+            BoxEdge.Bottom => cw ? BoxEdge.Left : BoxEdge.Right,
+            BoxEdge.Left => cw ? BoxEdge.Top : BoxEdge.Bottom,
+            _ => e,
+        };
+        double[] at = cw ? [s.Room[3] - s.At[1], s.At[0]] : [s.At[1], s.Room[2] - s.At[0]];
+        return new EmittedShape(
+            s.Terrain.Select(p => (Map(p.Rect), p.Slot)).ToList(),
+            Map(s.Room),
+            at,
             s.Vacancies.Select(v => v with { Rect = Map(v.Rect), Mouth = Mouth(v.Mouth) }).ToList());
     }
 
