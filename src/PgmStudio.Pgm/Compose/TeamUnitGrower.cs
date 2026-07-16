@@ -120,7 +120,7 @@ public static class TeamUnitGrower
     private sealed record Shape(
         int W, int ChainCap, int ArmDepthCap, int AxisMargin, int HubU, int HubV, int WoolInset,
         FrontForm Form, int[] FrontSegs, int FrontVOff, int TwinLen,
-        int SpawnSegCount, bool SpawnL, int SpawnLDir, double SpawnSplitFrac, int SpawnURunCap,
+        bool SpawnL, int SpawnLDir, double SpawnSplitFrac, int SpawnURunCap,
         bool[] LaneSpawnHost, ShapeFamily[] LaneFamily, int[] LaneWidth, RoomPlacement[] LaneRoom,
         double[] LaneAttFracs, bool[] LaneFlip, bool SideFlip, int WoolCount);
 
@@ -175,9 +175,8 @@ public static class TeamUnitGrower
 
         var asymFrac = sideLanes == 2 ? rng.NextDouble() : 0.5;
 
-        var spawnSegCount = rng.NextBool(0.5) ? 2 : 1;
-        var spawnLStyle = rng.NextBool(0.5);
-        var spawnLDirDraw = rng.NextBool(0.5) ? -1 : 1;
+        var spawnLStyle = rng.NextBool(0.5);              // spawn box family: L (hook) vs I (straight)
+        var spawnLDirDraw = rng.NextBool(0.5) ? -1 : 1;   // the L hook's turn side
 
         // frontline form: WIDE — a solid face the band docks to fully (FR6) — is the default: it makes room
         // for the MD6 stone grid and pairs with any crossing. Twin (its recess is CT8's hole mechanism) only
@@ -274,7 +273,7 @@ public static class TeamUnitGrower
         // when the hub is exactly lane-width and no frontline breaks the spine, hub + spawn's straight run
         // merge into one collinear chain — the run must leave the hub room under the cap
         var spawnURunCap = hubV == w && form == FrontForm.None ? Math.Max(2, chainCap - hubU) : chainCap;
-        var spawnLFeasible = spawnLStyle && spawnSegCount == 2;
+        var spawnLFeasible = spawnLStyle;
         var spawnLenCap = spawnLFeasible ? spawnURunCap + chainCap : spawnURunCap;
         // every spawn segment keeps a ≥2×2 footprint (a 1-cell-deep marker piece reads too small)
         var spawnLen = Math.Clamp((int)Math.Round(flexible * (spawnUnit / totalUnits) / w), 2, spawnLenCap);
@@ -341,7 +340,7 @@ public static class TeamUnitGrower
         var shape = new Shape(
             w, chainCap, armDepthCap, axisMargin, hubU, hubV, woolInset,
             form, frontSegs, frontVOff, twinLen,
-            spawnSegCount, spawnLFeasible, woolCount == 3 ? -1 : spawnLDirDraw, spawnSplitFrac, spawnURunCap,
+            spawnLFeasible, woolCount == 3 ? -1 : spawnLDirDraw, spawnSplitFrac, spawnURunCap,
             laneSpawnHost, laneFamily, laneWidth, laneRoom, laneAttFracs, laneFlip, sideFlip, woolCount);
 
         // ── repair search (no draws): WL2/WL7, the area window, and the fill preference are coupled —
@@ -504,45 +503,31 @@ public static class TeamUnitGrower
             Place("frontline", sh.AxisMargin, sh.TwinLen, hubVMin + (sh.HubV - wideW) / 2, wideW);
         }
 
-        // spawn lane — straight back (1-2 collinear segments) or an L hook (a straight run, then a sideways
-        // turn); the marker sits near the far end of the last segment (SP2), facing the axis (SP3)
-        var spawnL = sh.SpawnL && spawnLen >= w + 2;
-        string spawnPieceId;
-        double[] spawnAt;
-        int spawnS1;
-        if (spawnL)
+        // spawn box — a Box(Spawn) filled through the shared emitter (the second box kind after the wool
+        // box): a straight I lane back from the hub, or an L hook to the SpawnLDir side. The room is emitted
+        // as a real PlanRoles.Spawn terminal carrying the marker (SP3: facing the axis), and the entry run is
+        // what a wool box may dock along — never the marker's own room (SP1). Every piece carries its slot and
+        // the spawn box label.
+        var rd = ShapeEmitter.RoomDepthCells;
+        var spawnFamily = sh.SpawnL && spawnLen >= w + 2 ? ShapeFamily.L : ShapeFamily.I;
+        int spawnRun, spawnTurn = 0;
+        if (spawnFamily == ShapeFamily.L)
         {
             var s1Min = Math.Max(w, spawnLen - sh.ChainCap);
             var s1Max = Math.Min(sh.SpawnURunCap, spawnLen - 2);
-            var s1 = Math.Clamp((int)Math.Round(spawnLen * sh.SpawnSplitFrac), s1Min, Math.Max(s1Min, s1Max));
-            var s2 = spawnLen - s1;
-            spawnS1 = s1;
-            Place("spawn-lane", spawnU0, s1, hubVMin, w);
-            var uEnd = spawnU0 + s1;
-            var vMin2 = sh.SpawnLDir < 0 ? hubVMin - s2 : hubVMin + w;
-            Place("spawn-lane-2", uEnd - w, w, vMin2, s2);
-            spawnPieceId = "spawn-lane-2";
-            var markerV = sh.SpawnLDir < 0 ? MarkerInsetCells : s2 - MarkerInsetCells;
-            spawnAt = frame.LocalAt(0, w, 0, s2, w / 2.0, markerV);
+            spawnRun = Math.Clamp((int)Math.Round(spawnLen * sh.SpawnSplitFrac), s1Min, Math.Max(s1Min, s1Max));
+            spawnTurn = Math.Clamp(spawnLen - spawnRun, 2, Math.Max(2, sh.ChainCap - w));
         }
         else
-        {
-            // both straight segments keep the ≥2×2 footprint, so a two-piece run needs ≥4 cells
-            var segs = sh.SpawnSegCount == 2 && spawnLen >= 4
-                ? SplitTwo(spawnLen, sh.SpawnSplitFrac, 2)
-                : [spawnLen];
-            spawnS1 = segs[0];
-            spawnPieceId = "spawn-lane";
-            var cur = spawnU0;
-            for (var i = 0; i < segs.Length; i++)
-            {
-                spawnPieceId = i == 0 ? "spawn-lane" : $"spawn-lane-{i + 1}";
-                Place(spawnPieceId, cur, segs[i], hubVMin, w);
-                cur += segs[i];
-            }
-            var last = segs[^1];
-            spawnAt = frame.LocalAt(0, last, 0, w, last - MarkerInsetCells, w / 2.0);
-        }
+            spawnRun = Math.Max(w, spawnLen - rd);
+
+        var spawn = SpawnBoxEmitter.Fill(
+            spawnFamily, w, spawnRun, spawnTurn, sh.SpawnLDir, frame, spawnU0, hubVMin, "spawn-a", "spawn");
+        pieces.AddRange(spawn.Pieces);
+        var spawnPieceId = spawn.Room.Id;
+        var spawnAt = spawn.MarkerAt;
+        var spawnEntryLen = spawn.EntryLen;
+        var spawnIsL = spawnFamily == ShapeFamily.L;
 
         // wool boxes — docked on the hub's sides or the spawn lane's first run, mouth toward the host: the
         // arm's share picked the family, the depth knob sized the box, and the fill emits slot- and
@@ -554,7 +539,7 @@ public static class TeamUnitGrower
             var letter = (char)('a' + i);
 
             var (winLo, winLen, vBase) = ResolveAttachment(
-                sh, side, hubUMin, hubVMin, spawnU0, spawnS1, spawnLen, spawnL, i,
+                sh, side, hubUMin, hubVMin, spawnU0, spawnEntryLen, spawnIsL, i,
                 MouthRowSpan(sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i], sh.LaneRoom[i]));
             var uFloor = Math.Max(hubUMin + sh.WoolInset, sh.AxisMargin + 1);
 
@@ -624,13 +609,12 @@ public static class TeamUnitGrower
 
     /// <summary>The host mouth window (u of its first cell, its length, and the host edge's v line) for a
     /// side box, on its sampled host. Hub host: the hub side between the front inset and a 1-cell
-    /// back-corner clearance. Spawn host: along the spawn lane's first run, 1 cell behind the hub's back
-    /// corner, clear of any continuation piece at the run's end — and clear of an L-hook's own band when the
-    /// hook turns to this side. Only a 2-piece spawn lane may host (a wool box on the spawn MARKER's own
-    /// piece would leave the wool reachable only through it — SP1); degrades to the hub host when the
-    /// window cannot take the mouth.</summary>
+    /// back-corner clearance. Spawn host: along the spawn box's <b>entry run</b>, 1 cell behind the hub's back
+    /// corner, clear of the room/turn at the run's end — and clear of an L-hook's own band when the hook turns
+    /// to this side. The wool always docks the entry, never the marker's own room, so SP1 holds by
+    /// construction; degrades to the hub host when the window cannot take the mouth.</summary>
     private static (int Lo, int Len, int VBase) ResolveAttachment(
-        Shape sh, int side, int hubUMin, int hubVMin, int spawnU0, int spawnS1, int spawnLen, bool spawnL,
+        Shape sh, int side, int hubUMin, int hubVMin, int spawnU0, int spawnEntryLen, bool spawnIsL,
         int lane, int mouthSpan)
     {
         var w = sh.W;
@@ -639,16 +623,14 @@ public static class TeamUnitGrower
         var hubLen = Math.Max(0, spawnU0 - 1 - hubLo);
         var hubVBase = side < 0 ? hubVMin : hubVMin + sh.HubV;
 
-        var twoPieceSpawn = spawnL || (sh.SpawnSegCount == 2 && spawnLen >= 2);
         var wantSpawn = sh.LaneSpawnHost[lane]
-            && twoPieceSpawn                               // the spawn marker must not sit on the host piece (SP1)
-            && !(sh.WoolCount == 3 && side > 0);           // the third wool owns the spawn's right band
+            && !(sh.WoolCount == 3 && side > 0);           // the third wool owns the spawn's +v band
         if (!wantSpawn) return (hubLo, hubLen, hubVBase);
 
         var lo = spawnU0 + 1;
-        var hi = spawnU0 + spawnS1 - w - 1;                // clear of the continuation at the run's end
-        if (spawnL && sh.SpawnLDir == side)
-            hi = Math.Min(hi, spawnU0 + spawnS1 - 2 * w - 1);   // stay clear of the hook's own band
+        var hi = spawnU0 + spawnEntryLen - w - 1;          // clear of the room/turn at the entry run's end
+        if (spawnIsL && sh.SpawnLDir == side)
+            hi = Math.Min(hi, spawnU0 + spawnEntryLen - 2 * w - 1);   // stay clear of the hook's own band
         var len = hi + w - lo;
         if (len < mouthSpan) return (hubLo, hubLen, hubVBase);
 

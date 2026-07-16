@@ -24,16 +24,18 @@ public sealed class WoolBoxGrowthTests
     public async Task Every_wool_approach_piece_carries_its_slot_and_box_label()
     {
         var unit = Grow(16, seed: 3);
-        var boxed = unit.Pieces.Where(p => p.Box is not null).ToList();
+        var boxed = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).ToList();
         await Assert.That(boxed).IsNotEmpty();
         foreach (var p in boxed)
         {
             await Assert.That(p.Slot).IsNotNull();
-            await Assert.That(p.Box!.Kind).IsEqualTo(BoxKind.Wool);
             // terrain ids serialize the ownership as a prefix; the room carries its role-bearing name
             if (p.Slot != ApproachSlots.Room)
                 await Assert.That(p.Id.StartsWith(p.Box!.Id)).IsTrue();
         }
+        // every boxed piece (wool or spawn) carries a slot + a box label
+        foreach (var p in unit.Pieces.Where(p => p.Box is not null))
+            await Assert.That(p.Slot).IsNotNull();
     }
 
     [Test]
@@ -120,6 +122,41 @@ public sealed class WoolBoxGrowthTests
         }
         await Assert.That(families.Count >= 2).IsTrue();
         await Assert.That(families.Any(f => f != ShapeFamily.I)).IsTrue();
+    }
+
+    [Test]
+    public async Task The_spawn_box_classifies_to_I_or_L_and_its_slots_mirror()
+    {
+        // the spawn is the second box kind: a terminal-capped I or L, its room a Spawn-role terminal, every
+        // piece slot- and box-labeled. Classify the box's own terrain and re-derive its slots — the same
+        // emit↔derive mirror the wool box passes.
+        var seen = new HashSet<ShapeFamily>();
+        for (ulong seed = 1; seed <= 20; seed++)
+            foreach (var players in new[] { 12, 20, 30 })
+            {
+                var unit = Grow(players, seed: seed);
+                var boxPieces = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Spawn).ToList();
+                if (boxPieces.Count == 0) continue;
+
+                var room = boxPieces.Single(p => p.Slot == ApproachSlots.Room);
+                await Assert.That(room.Role).IsEqualTo(PlanRoles.Spawn);
+
+                var filled = new HashSet<(int, int)>();
+                var roomCells = new HashSet<(int, int)>();
+                foreach (var p in boxPieces)
+                    for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
+                        for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+                        { filled.Add((x, z)); if (p.Id == room.Id) roomCells.Add((x, z)); }
+
+                var family = ShapeClassifier.Classify(filled, roomCells).Family;
+                await Assert.That(SpawnBoxEmitter.Families.Contains(family)).IsTrue();
+
+                var slots = SlotAssignment.AssignSlots(family, boxPieces.Select(p => (p.Id, p.Rect)).ToList(), room.Id);
+                foreach (var p in boxPieces)
+                    await Assert.That(slots[p.Id]).IsEqualTo(p.Slot);
+                seen.Add(family);
+            }
+        await Assert.That(seen).IsNotEmpty();
     }
 
     [Test]

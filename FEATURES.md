@@ -983,6 +983,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **Spawn boxes — the spawn emits through the shared emitter, the second box kind (M2)** —
+  `Pgm/Compose/SpawnBoxEmitter.cs` + `TeamUnitGrower.cs`: the grower's hand-rolled spawn-lane geometry (its
+  inline straight-run / L-hook `Place` calls, the spawn room carved later by `SpawnWoolRooms`) is replaced by
+  a **`Box(Spawn)` filled through the shared machinery**. `SpawnBoxEmitter` is the role binding over
+  `ShapeEmitter`: its **shape profile is plain data** (`Families` = {I, L} only — a spawn never forks or
+  folds — and `Box`, the small SP box sizing), and `Fill` emits the family, maps it from the canonical
+  mouth-top frame into the growth frame (box-local `bz → u` outward, `bx → v` cross, an L's turn to either
+  side while the entry stays pinned on the hub edge), and stamps every piece's slot + the spawn `BoxRef`, the
+  terminal a real `PlanRoles.Spawn` room carrying the marker (SP3 facing). Wool boxes now dock the spawn's
+  **entry run** (never the marker's room — SP1 by construction), and `SpawnWoolRooms` skips the pre-carved
+  spawn room. So the spawn is terminal-capped like a wool arm: the **same classifier, the same slot mirror**
+  (G62), and G61's label invariant (`spawn-a/entry`…) apply unchanged — this and the wool box are the first
+  two rows of the per-kind profile table the footprint/slot-budget work (G41/G63) reads. Changes RNG
+  consumption (pre-G63 re-key). Verified: the full 300-case composer invariant sweep green, plus a spawn-box
+  mirror test (classifies to I/L, slots re-derive, `Spawn`-role room) across seeds. Contract:
+  `docs/contracts/map-generation.md` §4/§5.3. (G78)
+
 - **Slot recovery — the emit↔derive mirror closes at the slot level (M2)** — `Pgm/Shapes/SlotAssignment.cs`
   + `Geom/Cells.cs`: `SlotAssignment.AssignSlots(family, pieces, roomId)` re-derives every piece's
   `ApproachSlots` slot from **topology alone** — path order for the chain families (I/L/Z/scythe), adjacency

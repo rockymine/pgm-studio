@@ -76,17 +76,22 @@ public sealed class TeamUnitGrowerTests
     }
 
     [Test]
-    public async Task Only_wool_rooms_carry_a_role_at_grow_time()
+    public async Task Only_box_rooms_carry_a_role_at_grow_time()
     {
-        // a wool box emits its room as a real role-bearing terminal; everything else the grower authors is
-        // the anonymous piece role (the spawn room is carved later, by SpawnWoolRooms)
+        // the wool and spawn boxes emit their rooms as real role-bearing terminals; everything else the
+        // grower authors (hub, frontline, the third wool lane) is the anonymous piece role
         var unit = Grow(16, seed: 9);
         await Assert.That(unit.Pieces).IsNotEmpty();
         foreach (var p in unit.Pieces)
         {
             await Assert.That(p.Rect.Length).IsEqualTo(4);
-            await Assert.That(p.Role is Plan.PlanRoles.Piece or Plan.PlanRoles.WoolRoom).IsTrue();
+            await Assert.That(p.Role is Plan.PlanRoles.Piece or Plan.PlanRoles.WoolRoom or Plan.PlanRoles.Spawn).IsTrue();
         }
+        // the spawn is a box now: its room is a Spawn-role terminal carrying the marker
+        var spawnRoom = unit.Pieces.Single(p => p.Id == unit.Spawn.Piece);
+        await Assert.That(spawnRoom.Role).IsEqualTo(Plan.PlanRoles.Spawn);
+        await Assert.That(spawnRoom.Slot).IsEqualTo(PgmStudio.Pgm.Shapes.ApproachSlots.Room);
+        await Assert.That(spawnRoom.Box!.Kind).IsEqualTo(BoxKind.Spawn);
     }
 
     [Test]

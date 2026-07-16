@@ -18,10 +18,10 @@ Phase 2 of plan-then-realize. The consolidation base is in: M0 + M1 (G58/G59) an
 with its hard gate, soft-term foundation, frontline/rotation terms and editor wiring (the G60 foundation —
 all in `FEATURES.md`). **This board is the box model, end to end**: one box kind at a time, each step
 reusing what the previous one proved — wool boxes **shipped** (G61), the mask-level corner law **shipped**
-(G79 — its pinch scan `Cells.HasDiagonalPinch` is the primitive the docking work reuses), and the mirror's
-slot recovery **shipped** (G62 — `SlotAssignment`, all in `FEATURES.md`) → **spawn (G78) is next** →
-hub/frontline patterns (G41, **opening with
-the G80 valid-edges data model** so every pattern binds to the final interface shape) → docking modes
+(G79 — its pinch scan `Cells.HasDiagonalPinch` is the primitive the docking work reuses), the mirror's
+slot recovery **shipped** (G62 — `SlotAssignment`), and the spawn box **shipped** (G78 — `SpawnBoxEmitter`,
+the second box kind, all in `FEATURES.md`) → **hub/frontline patterns (G41) is next** — **opening with
+the G80 valid-edges data model** so every pattern binds to the final interface shape → docking modes
 (G80) → the partitioner switch (G63), where
 `TeamUnitGrower` retires and sampling produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
 {I, L}, small boxes per SP; what a wool entry admits: the §4 width menu), and the slot labels the
@@ -36,16 +36,6 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
 
 **Box model — M2 → M4**
 
-- [ ] **G78 — Spawn boxes: the spawn emits through the shared emitter (the second box kind).** After G61,
-  replace `TeamUnitGrower`'s hand-rolled spawn-lane geometry (its inline I/L growth with the spawn room as
-  terminal) with a `Box(Spawn)` filled through the same machinery: a small `SpawnBoxEmitter` role binding
-  over `Shapes.ShapeEmitter` (~20 lines — terminal → `spawn` role + marker) and the spawn's **shape
-  profile as plain data** — families {I, L} only, small boxes (SP: ~10×10 direct, 10×20 with a run-up,
-  20×20 for an L). This starts the per-kind profile table two rows early (wool, spawn) as data; the
-  `FillProfiles` *type machinery* still lands at G41. No new shape machinery otherwise: the spawn is
-  terminal-capped, so the same classifier, the same mirror, and G61's label invariant apply unchanged
-  (`spawn-a/entry`…). **Changes RNG consumption** (goldens re-key — free before G63). Depends on G61.
-  (review §4.3, §8 — resolves `SpawnBoxEmitter`'s "M2/M3" ambiguity into its own slice)
 - [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
   the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated.
   **Opens with the G80 valid-edges slice**: land the `BoxInterface` valid-edges data model first (long vs
