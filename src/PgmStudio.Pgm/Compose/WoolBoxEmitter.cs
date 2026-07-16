@@ -77,16 +77,8 @@ public static class WoolBoxEmitter
         }
 
         var raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement);
-        var (shape, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
-        // orient the mouth-up shape onto the requested edge — Bottom mirrors it, Left/Right rotate a quarter turn
-        shape = mouth switch
-        {
-            BoxEdge.Top => shape,
-            BoxEdge.Bottom => FlipVertical(shape, h),
-            BoxEdge.Right => Rotate(shape, h, cw: true),
-            BoxEdge.Left => Rotate(shape, w, cw: false),
-            _ => throw new ArgumentException($"unknown box mouth {mouth}."),
-        };
+        var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
+        var shape = MouthOrient.To(mouthTop, mouth, w, h);
 
         var a = Wrap(shape, box.Rect[0], box.Rect[1], box.Id, roomId ?? $"{box.Id}-room", box.Ref);
         var vacancies = shape.Vacancies
@@ -97,45 +89,6 @@ public static class WoolBoxEmitter
                 v.Walls))
             .ToList();
         return new FillResult.Ok(a, vacancies);
-    }
-
-    // box-local vertical mirror (docking the box's bottom edge instead of its top)
-    private static EmittedShape FlipVertical(EmittedShape s, int h)
-    {
-        int[] Map(int[] r) => [r[0], h - r[1] - r[3], r[2], r[3]];
-        BoxEdge? Mouth(BoxEdge? e) => e switch
-        {
-            BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top, _ => e,
-        };
-        return new EmittedShape(
-            s.Terrain.Select(p => (Map(p.Rect), p.Slot)).ToList(),
-            Map(s.Room),
-            [s.At[0], s.Room[3] - s.At[1]],
-            s.Vacancies.Select(v => v with { Rect = Map(v.Rect), Mouth = Mouth(v.Mouth) }).ToList());
-    }
-
-    // box-local quarter turn — dock the box's left or right edge. cw rotates the mouth from Top to Right
-    // (<paramref name="dim"/> is the mouth-up height); else Top to Left (dim is the mouth-up width). Rects and
-    // the marker offset (recomputed against the room's rotated dims) and vacancy mouths all follow the turn.
-    private static EmittedShape Rotate(EmittedShape s, int dim, bool cw)
-    {
-        int[] Map(int[] r) => cw
-            ? [dim - r[1] - r[3], r[0], r[3], r[2]]
-            : [r[1], dim - r[0] - r[2], r[3], r[2]];
-        BoxEdge? Mouth(BoxEdge? e) => e switch
-        {
-            BoxEdge.Top => cw ? BoxEdge.Right : BoxEdge.Left,
-            BoxEdge.Right => cw ? BoxEdge.Bottom : BoxEdge.Top,
-            BoxEdge.Bottom => cw ? BoxEdge.Left : BoxEdge.Right,
-            BoxEdge.Left => cw ? BoxEdge.Top : BoxEdge.Bottom,
-            _ => e,
-        };
-        double[] at = cw ? [s.Room[3] - s.At[1], s.At[0]] : [s.At[1], s.Room[2] - s.At[0]];
-        return new EmittedShape(
-            s.Terrain.Select(p => (Map(p.Rect), p.Slot)).ToList(),
-            Map(s.Room),
-            at,
-            s.Vacancies.Select(v => v with { Rect = Map(v.Rect), Mouth = Mouth(v.Mouth) }).ToList());
     }
 
     // translate box-local -> absolute and wrap as pieces, each carrying its slot (and box ownership when given)
