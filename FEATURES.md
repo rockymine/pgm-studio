@@ -983,6 +983,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The `BoxInterface` valid-edges data model — `BoxInterfaces` (M3, G41-B)** — `Compose/Boxes/
+  BoxInterfaces.cs`: the interface model every fill and pattern binds to, replacing the single-mouth
+  assumption. `BoxInterfaces.Of(shape, boxW, boxH)` reads a box's four edges off the emitted shape as
+  candidate `BoxEdgeInterface`s — each classified `EdgeSpan` **long/short**, marked **never-dock** where the
+  wool room touches it (a dock there would seal the wool, §4), and **dockable** where terrain reaches an
+  unsealed edge. `Dockable(...)` is the **multi-interface set** (a box exposes several edges, not one mouth).
+  It is **shape-relative, not box-relative**: every field is read off the shape, so the verdict moves with the
+  shape (a room at a different corner, a flipped handedness) rather than naming a fixed box coordinate — the
+  property that lets G80's per-family docking modes make an entry shift carry its dock. This is the vocabulary
+  + universal validity only; the per-family selection of which dockable edges a family uses, and how many it
+  demands, are G80's modes over the model. Verified: `BoxInterfacesTests` (I docks its mouth / room edge
+  sealed; the clamp's two short dockable edges; U's leg-edge dock / wool-edge sealed; span classification;
+  shape-relativity under flip). Contract: `docs/contracts/map-generation.md` §1.5/§4. (G41-B)
+
 - **The profile-driven fill spine — `FillProfiles` + `BoxFiller` (M3, G41-A part 1)** — `Compose/Boxes/
   FillProfiles.cs` + `BoxFiller.cs`: the per-`BoxKind` fill profile is now a **type**, not two scattered data
   rows. `FillProfiles.Families(kind, cw)` composes the §4 width→menu rule for the wool box and the fixed
