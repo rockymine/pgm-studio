@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// build-cache bust: box-model gallery (G79 donut + G62 slot mirror) round 1
+// build-cache bust: box-model gallery (G79 donut + G62 slot mirror) round 2 — box-partition envelope overlay
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;
@@ -21,6 +21,12 @@ const string BgCanvas = "#080f1a";    // --bg-canvas (SVG ground; stays dark in 
 const string AxisCol = "#a78bfa";     // --canvas-axis
 const string Ink = "#ffffff";         // --canvas-ink
 const string MkStroke = "#222222";    // spawn/wool/iron marker stroke (editor uses #222)
+// box-partition envelope colours (BoxPartition.Of overlay) — one per BoxKind, dashed outline over the fill
+const string BxHub = "#818cf8";       // hub — indigo
+const string BxSpawn = "#b39ff0";     // spawn — light purple (kin of the spawn role)
+const string BxWool = "#5fd39b";      // wool — bright green (kin of the wool room)
+const string BxFront = "#f5a623";     // frontline — amber
+const string BxMid = "#22d3ee";       // mid — cyan
 
 // ── the scan matrix: bias toward the bigger budgets where the escalated approaches (branch, donut) fit ──
 var scan = new List<Case>();
@@ -40,7 +46,7 @@ foreach (var c in scan)
     {
         var stages = Composer.ComposeStages(new ComposeRequest(c.P, c.T, c.S, c.Seed, 5));
         var fams = WoolFamilies(stages.Unit);
-        var svg = BuildSvg(stages.Plan);
+        var svg = BuildSvg(stages.Plan, BoxPartition.Of(stages.Unit).Boxes);
         shots.Add((c, id, svg, stages.Plan.Pieces.Count, stages.Mid.Stones.Count,
             ClosureAnalysis.HoleSizes(stages.Plan).Count, stages.Cut != null, fams));
     }
@@ -208,7 +214,7 @@ Console.WriteLine($"contains 'http': {(html.Contains("http://") || html.Contains
 // SVG builder — fans the authored unit into the full map via PgmStudio.Geom.Symmetry,
 // mirroring Compose/ComposeGeometry.FanImage's 4-corner transform + AABB rebound.
 
-string BuildSvg(PlanModel plan)
+string BuildSvg(PlanModel plan, IReadOnlyList<Box>? boxes = null)
 {
     int cell = plan.Globals.Cell;
     string sym = plan.Globals.Symmetry;
@@ -350,6 +356,23 @@ string BuildSvg(PlanModel plan)
                    $"fill=\"{col}\" fill-opacity=\"0.7\" stroke=\"{col}\" stroke-width=\"1.5\"/>");
     }
 
+    // box-partition envelopes — the BoxPartition.Of the team unit, fanned like pieces: a dashed outline per
+    // box kind over the fill it holds (footprint vs the land inside it). This is what allocate-then-fill makes
+    // an input at G63-C — the boxes drawn first, the fill sized to them.
+    if (boxes is not null)
+        foreach (var bx in boxes)
+        {
+            var bcol = BoxColor(bx.Kind);
+            double bx1 = bx.Rect[0] * cell, bz1 = bx.Rect[1] * cell;
+            double bx2 = (bx.Rect[0] + bx.Rect[2]) * cell, bz2 = (bx.Rect[1] + bx.Rect[3]) * cell;
+            for (int k = 0; k < order; k++)
+            {
+                var (a, b, cc, d) = Fan(bx1, bz1, bx2, bz2, axes, k);
+                svg.Append($"<rect x=\"{N(PX(a))}\" y=\"{N(PY(b))}\" width=\"{N((cc - a) * s)}\" height=\"{N((d - b) * s)}\" " +
+                           $"fill=\"none\" stroke=\"{bcol}\" stroke-width=\"1.3\" stroke-dasharray=\"4 3\" stroke-opacity=\"0.92\"/>");
+            }
+        }
+
     // markers — squares (wool/iron) then spawns, all images solid
     foreach (var m in squareImgs)
     {
@@ -377,6 +400,11 @@ string BuildSvg(PlanModel plan)
     return svg.ToString();
 
     string RoleColor(string role) => role switch { PlanRoles.WoolRoom => CWoolRoom, PlanRoles.Spawn => CSpawnRole, PlanRoles.Buffer => CBuffer, _ => CPiece };
+    string BoxColor(BoxKind kind) => kind switch
+    {
+        BoxKind.Hub => BxHub, BoxKind.Spawn => BxSpawn, BoxKind.Wool => BxWool,
+        BoxKind.Frontline => BxFront, _ => BxMid,
+    };
 }
 
 // FanImage twin: identity at k=0, else transform 4 corners by the k-th orbit axis about origin + rebound AABB.
@@ -466,6 +494,10 @@ string Page(string sections, string failuresPanel)
       color-mix(in srgb, #f2792b 12%, transparent); border:1.3px dashed #f2792b; }
     .sw--dot{ border-radius:50%; }
     .sw--woolmk{ background:var(--mk-wool); } .sw--ironmk{ background:var(--mk-iron); }
+    .sw--boxhub{ background:transparent; border:1.4px dashed #818cf8; }
+    .sw--boxspawn{ background:transparent; border:1.4px dashed #b39ff0; }
+    .sw--boxwool{ background:transparent; border:1.4px dashed #5fd39b; }
+    .sw--boxfront{ background:transparent; border:1.4px dashed #f5a623; }
     .legend-sep{ width:1px; align-self:stretch; background:var(--border); }
 
     /* families + grid */
@@ -539,6 +571,14 @@ string Page(string sections, string failuresPanel)
             <span class="lg"><span class="sw sw--woolmk"></span>wool</span>
             <span class="lg"><span class="sw sw--ironmk"></span>iron</span>
           </div>
+          <span class="legend-sep"></span>
+          <div class="legend-group">
+            <span class="legend-lbl">Box envelope</span>
+            <span class="lg"><span class="sw sw--boxhub"></span>hub</span>
+            <span class="lg"><span class="sw sw--boxspawn"></span>spawn</span>
+            <span class="lg"><span class="sw sw--boxwool"></span>wool</span>
+            <span class="lg"><span class="sw sw--boxfront"></span>frontline</span>
+          </div>
         </div>
     """;
 
@@ -558,7 +598,7 @@ string Page(string sections, string failuresPanel)
     string bodyInner = $"""
     <div class="wrap">
       <header class="top">
-        <p class="eyebrow">Composer · box model · G79 · G62 · G78</p>
+        <p class="eyebrow">Composer · box model · G79 · G62 · G78 · G63</p>
         <h1>The wool-approach shape space, and what the composer builds from it</h1>
         <p class="lede">The wool arm is a box fill: its budget share picks an approach family from the width
         menu, and the emitter fills the box with that shape. <strong>G79</strong> replaces the grower's
@@ -572,7 +612,11 @@ string Page(string sections, string failuresPanel)
         maps below now flows through one shared machinery. Below: first the
         <em>emitted family catalog</em> — the shapes the menu can fill, donut included — then the composer's
         real output, one authored team unit fanned into every orbit image, each arm badged with the family
-        read back from its terrain. Composer suite <span class="green">green</span>.</p>
+        read back from its terrain. The <strong>dashed rectangles</strong> are the box partition
+        (<code>BoxPartition.Of</code>) — each typed box's footprint envelope around the fill it holds; today
+        they are read <em>back</em> off the grown unit, but at <strong>G63-C</strong> they become the input the
+        fill is sized to (allocate the box first, fill it to its land target). Composer suite
+        <span class="green">green</span>.</p>
         {legend}
       </header>
 
