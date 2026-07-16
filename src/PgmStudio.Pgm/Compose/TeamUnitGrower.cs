@@ -537,15 +537,21 @@ public static class TeamUnitGrower
         {
             var side = (i == 0) == !sh.SideFlip ? -1 : 1;
             var letter = (char)('a' + i);
+            var family = sh.LaneFamily[i];
+            var rp = sh.LaneRoom[i];
+
+            // the box footprint (along the host edge × depth outward) is allocated first, then the fill fills it
+            var (minW, minH) = ShapeEmitter.MinBox(family, w, rp);
+            var alongLen = Math.Max(sh.LaneWidth[i], minW);
+            var depth = Math.Max(armDepths[i], minH);
 
             var (winLo, winLen, vBase) = ResolveAttachment(
-                sh, side, hubUMin, hubVMin, spawnU0, spawnEntryLen, spawnIsL, i,
-                MouthRowSpan(sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i], sh.LaneRoom[i]));
+                sh, side, hubUMin, hubVMin, spawnU0, spawnEntryLen, spawnIsL, i, alongLen);
             var uFloor = Math.Max(hubUMin + sh.WoolInset, sh.AxisMargin + 1);
 
-            var arm = PlaceArm(
-                frame, pieces, sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i], sh.LaneFlip[i], sh.LaneRoom[i],
-                sh.LaneAttFracs[i], side, winLo, winLen, uFloor, vBase, $"wool-{letter}", $"wool-room-{letter}");
+            var arm = FillArm(
+                frame, pieces, family, w, alongLen, depth, sh.LaneFlip[i], rp, sh.LaneAttFracs[i],
+                side, winLo, winLen, uFloor, vBase, $"wool-{letter}", $"wool-room-{letter}");
             if (arm is null) return null;
             wools.Add(arm);
         }
@@ -563,48 +569,55 @@ public static class TeamUnitGrower
         return (pieces, spawnPieceId, spawnAt, wools);
     }
 
-    /// <summary>Fill one wool box and place it against its host: the emission is normalized mouth-up in a
-    /// side-agnostic (u, d) frame — d is outward distance from the host edge — then every rect maps through
-    /// the side and the symmetry frame into real cell coordinates. Returns the wool, or null when the mouth
-    /// cannot sit inside the host window (the attempt is discarded, never patched).</summary>
-    private static GrownWool? PlaceArm(
-        Frame frame, List<GrownPiece> pieces, ShapeFamily family, int cw, int width, int depth, bool flip,
+    /// <summary>Allocate one wool box's footprint in plan cells, then fill it through <see cref="BoxFiller"/> on
+    /// the hub-facing mouth. The box's <paramref name="alongLen"/>×<paramref name="depth"/> footprint maps
+    /// through the symmetry <paramref name="frame"/> into a plan-cell <see cref="Box"/>, its depth reaching
+    /// outward from the host edge (<paramref name="vBase"/>) to the <paramref name="side"/>; the mouth is the
+    /// edge that faces the host — Left/Right for a z-frame, Top/Bottom for an x-frame — and <see cref="BoxFiller"/>
+    /// orients the fill onto it (and gates it). The box is then slid so its <b>mouth row</b> (the entry) seats
+    /// inside the host window at <paramref name="attFrac"/> — the body may overhang free space beyond it, exactly
+    /// as a hand-docked arm would, so a wide family (an L's foot) is not rejected for needing the whole window.
+    /// Returns the wool, or null when the mouth row cannot fit the window or no legal fill lands. Footprint is now
+    /// an <b>input</b>: the box is allocated first, the fill sized to it.</summary>
+    private static GrownWool? FillArm(
+        Frame frame, List<GrownPiece> pieces, ShapeFamily family, int cw, int alongLen, int depth, bool flip,
         RoomPlacement rp, double attFrac, int side, int winLo, int winLen, int uFloor, int vBase,
         string boxId, string roomId)
     {
-        var (minW, minH) = ShapeEmitter.MinBox(family, cw, rp);
-        var canonW = Math.Max(width, minW);
-        var canonH = Math.Max(depth, minH);
-        var raw = ShapeEmitter.Emit(family, canonW, canonH, cw, flip, rp);
-        var (s, _, _) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
+        var mouth = frame.PrimaryAxis == 'z'
+            ? (side > 0 ? BoxEdge.Left : BoxEdge.Right)
+            : (side > 0 ? BoxEdge.Top : BoxEdge.Bottom);
+        var vMinBox = side > 0 ? vBase : vBase - depth;
 
-        // the mouth row (d = 0) must sit fully on the host edge window, and the whole box body must stay
-        // behind the front inset line (a flipped shape's body runs toward the axis from its entry — it may
-        // overhang free space away from the mid, never toward it)
-        var mouthRects = s.Terrain.Select(p => p.Rect).Append(s.Room).Where(r => r[1] == 0).ToList();
-        var mouthLo = mouthRects.Min(r => r[0]);
-        var mouthSpan = mouthRects.Max(r => r[0] + r[2]) - mouthLo;
-        var placeLo = Math.Max(winLo, uFloor + mouthLo);
+        // fill at a provisional along-origin (uFloor), then read the entry's actual u-extent — its offset within
+        // the box follows the frame + quarter turn, so measuring beats predicting it
+        var box = new Box(boxId, BoxKind.Wool, frame.ToRect(uFloor, alongLen, vMinBox, depth), alongLen * depth);
+        if (BoxFiller.Fill(box, mouth, cw, family, flip, roomId, rp) is not FillResult.Ok ok) return null;
+
+        var entry = ok.Approach.Terrain.Where(p => p.Slot == ApproachSlots.Entry)
+            .Select(p => frame.FromRect(p.Rect)).ToList();
+        if (entry.Count == 0) return null;
+        var mLo = entry.Min(e => e.UMin);
+        var mouthSpan = entry.Max(e => e.UMin + e.USpan) - mLo;
+
+        // seat the mouth row inside the window while the box origin stays behind the front inset (uFloor)
+        var entryOff = mLo - uFloor;                                  // the entry's along offset from the box origin
+        var placeLo = Math.Max(winLo, uFloor + entryOff);
         var placeHi = winLo + winLen - mouthSpan;
         if (placeLo > placeHi) return null;
-        var boxU0 = placeLo + (int)Math.Round(attFrac * (placeHi - placeLo)) - mouthLo;
+        var target = placeLo + (int)Math.Round(attFrac * (placeHi - placeLo));
 
-        var box = new BoxRef(boxId, BoxKind.Wool);
-        var n = 1;
-        foreach (var (r, slot) in s.Terrain)
-        {
-            var vMin = side > 0 ? vBase + r[1] : vBase - r[1] - r[3];
-            pieces.Add(new GrownPiece($"{boxId}-t{n++}", frame.ToRect(boxU0 + r[0], r[2], vMin, r[3]),
-                PlanRoles.Piece, slot, box));
-        }
-        var room = s.Room;
-        var roomVMin = side > 0 ? vBase + room[1] : vBase - room[1] - room[3];
-        pieces.Add(new GrownPiece(roomId, frame.ToRect(boxU0 + room[0], room[2], roomVMin, room[3]),
-            PlanRoles.WoolRoom, ApproachSlots.Room, box));
+        // translate every emitted piece by the u-shift, mapped to a plan-cell delta through the frame (the marker
+        // offset is room-relative, so it rides the room untouched)
+        var shiftU = target - mLo;
+        var (ux, uz) = frame.ToPoint(1, 0);
+        var (ox, oz) = frame.ToPoint(0, 0);
+        int dx = (int)Math.Round((ux - ox) * shiftU), dz = (int)Math.Round((uz - oz) * shiftU);
+        GrownPiece Shift(GrownPiece p) => p with { Rect = [p.Rect[0] + dx, p.Rect[1] + dz, p.Rect[2], p.Rect[3]] };
 
-        var markerU = boxU0 + room[0] + s.At[0];
-        var markerV = side > 0 ? vBase + room[1] + s.At[1] : vBase - room[1] - s.At[1];
-        return new GrownWool(roomId, frame.LocalAt(boxU0 + room[0], room[2], roomVMin, room[3], markerU, markerV));
+        foreach (var p in ok.Approach.Terrain) pieces.Add(Shift(p));
+        pieces.Add(Shift(ok.Approach.WoolRoom));
+        return new GrownWool(roomId, ok.Approach.At);
     }
 
     /// <summary>The host mouth window (u of its first cell, its length, and the host edge's v line) for a

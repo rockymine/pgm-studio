@@ -23,13 +23,14 @@ public static class BoxFiller
     /// <paramref name="mouth"/>. Rejects (as a <see cref="FillResult"/>) when the family is outside the box's
     /// profile or its minimum box does not fit the footprint. On success carries the emission + vacancies.</summary>
     public static FillResult Fill(
-        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false, string? roomId = null)
+        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false, string? roomId = null,
+        RoomPlacement roomPlacement = RoomPlacement.Inline)
     {
         var menu = FillProfiles.Families(box.Kind, corridorWidth);
         if (!menu.Contains(family)) return new FillResult.NoFamilyFits(menu);
         var result = box.Kind switch
         {
-            BoxKind.Wool => WoolBoxEmitter.Fill(box, mouth, family, corridorWidth, flip, roomId),
+            BoxKind.Wool => WoolBoxEmitter.Fill(box, mouth, family, corridorWidth, flip, roomId, roomPlacement),
             _ => throw new ComposeException(
                 $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding " +
                 "(spawn via SpawnBoxEmitter, G78; hub/frontline at G41-C)."),

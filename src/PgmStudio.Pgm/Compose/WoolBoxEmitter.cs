@@ -57,7 +57,7 @@ public static class WoolBoxEmitter
     /// the host on whichever edge faces it, so the partitioner drives all four mouths.</summary>
     public static FillResult Fill(
         Box box, BoxEdge mouth, ShapeFamily family, int corridorWidth,
-        bool flip = false, string? roomId = null)
+        bool flip = false, string? roomId = null, RoomPlacement roomPlacement = RoomPlacement.Inline)
     {
         // the mouth's frame: its along-edge length and the depth perpendicular to it. Top/Bottom run along the
         // box width; Left/Right run along its height (the shape is rotated a quarter turn onto them).
@@ -68,7 +68,7 @@ public static class WoolBoxEmitter
         // frame with the along/depth swapped back through the same map
         var famTransposes = ShapeEmitter.MouthEdge(family, flip) is BoxEdge.Left or BoxEdge.Right;
         var (canonW, canonH) = famTransposes ? (depth, alongLen) : (alongLen, depth);
-        var (minW, minH) = ShapeEmitter.MinBox(family, corridorWidth);
+        var (minW, minH) = ShapeEmitter.MinBox(family, corridorWidth, roomPlacement);
         if (canonW < minW || canonH < minH)
         {
             int minAlong = famTransposes ? minH : minW, minDepth = famTransposes ? minW : minH;
@@ -76,7 +76,7 @@ public static class WoolBoxEmitter
                            : new FillResult.TooSmall(family, minAlong, minDepth);
         }
 
-        var raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip);
+        var raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement);
         var (shape, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
         // orient the mouth-up shape onto the requested edge — Bottom mirrors it, Left/Right rotate a quarter turn
         shape = mouth switch
