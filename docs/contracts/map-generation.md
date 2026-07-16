@@ -664,6 +664,8 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `TeamUnitGrower` | `Compose/TeamUnitGrower.cs` | budget→counts, spawn + hub, grow, frontline, stones; holds `GrownPiece` (with `Slot`), `GrownUnit`. |
 | `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fills a wool box, terminal → wool room + marker. |
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding (second box kind): profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
+| `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
+| `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box` + land-vs-target accounting (the spine G63 drives). |
 | `SpawnWoolRooms` | `Compose/SpawnWoolRooms.cs` | the wool-lane-c terminal carve (box rooms arrive pre-carved). |
 | `Envelope` | `Compose/Envelope.cs` | the budget anchors (`bp`; the land-per-player target). |
 | `MidCarver` | `Compose/MidCarver.cs` | the mid: bands, stone grids, the recess. |

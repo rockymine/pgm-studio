@@ -221,7 +221,7 @@ public static class TeamUnitGrower
 
         // deterministic capacity screen (no draws): when even the roomiest family per arm cannot hold the
         // land budget, add structure — a frontline first; else give up on this attempt.
-        double ArmCapacity() => FillMenu.ProductionFamilies
+        double ArmCapacity() => FillProfiles.Families(BoxKind.Wool, w)
             .Where(f => FitsArm(f, w, hubWindowLen, armDepthCap))
             .Select(f => (double)ArmArea(f, w, ArmWidthCap(f, w, hubWindowLen, chainCap),
                 ArmDepthCapOf(f, w, hubWindowLen, armDepthCap)))
@@ -312,7 +312,7 @@ public static class TeamUnitGrower
         var laneRoom = new RoomPlacement[sideLanes];
         for (var i = 0; i < sideLanes; i++)
         {
-            var fit = FillMenu.FamiliesFor(w)
+            var fit = FillProfiles.Families(BoxKind.Wool, w)
                 .Where(f => FitsArm(f, w, hubWindowLen, armDepthCap))
                 .Where(f => ArmArea(f, w, ShapeEmitter.MinBox(f, w).W, ShapeEmitter.MinBox(f, w).H) <= armShares[i] * 1.25 + 2)
                 .ToList();

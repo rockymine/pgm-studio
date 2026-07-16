@@ -20,9 +20,10 @@ all in `FEATURES.md`). **This board is the box model, end to end**: one box kind
 reusing what the previous one proved — wool boxes **shipped** (G61), the mask-level corner law **shipped**
 (G79 — its pinch scan `Cells.HasDiagonalPinch` is the primitive the docking work reuses), the mirror's
 slot recovery **shipped** (G62 — `SlotAssignment`), and the spawn box **shipped** (G78 — `SpawnBoxEmitter`,
-the second box kind, all in `FEATURES.md`) → **the profile-driven fill spine (G41-A) is next** — it makes
-box footprint an enforced, data-driven quantity (`FillProfiles` + `BoxFiller`), the lever the rest turns on
-→ the interface data model (G41-B) → docking modes (G80) → the partitioner switch (G63), where
+the second box kind, and the profile-driven fill spine **shipped** (G41-A part 1 — `FillProfiles` +
+`BoxFiller`, the lever box footprint enforcement turns on; all in `FEATURES.md`) → **the interface data model
+(G41-B) is next** → docking modes (G80) → the partitioner switch (G63, where G41-A part 2 routes the
+production arms through `BoxFiller`), where
 `TeamUnitGrower` retires and sampling produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
 {I, L}, small boxes per SP; what a wool entry admits: the §4 width menu), and the slot labels the
 emissions carry are what every later rule binds to (`docs/contracts/map-generation.md` §5.3: the labels
@@ -40,17 +41,16 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
 without the open-variant patterns. A + B are the near-term tracks below; C + D — the open-variant hub/
 frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocked on the author's teaching set.)*
 
-- [ ] **G41-A — [M3] `FillProfiles` + `BoxFiller`: the profile-driven fill spine (box footprint enforced).**
-  The per-`BoxKind` profile becomes a **type**, not just the two data rows G61/G78 landed: `Compose/Boxes/
-  FillProfiles` maps `BoxKind` → its legal families + its **footprint/land-target policy** (each restriction
-  citing a `layout-rules.md` id), and `Compose/Boxes/BoxFiller` is the **one profile-driven fill entry point** —
-  given a `Box` (its footprint `Rect` + `Box.LandTargetCells`) it validates/picks the family against the
-  profile and fills to the land target (fragment converts land→build inside the box). The wool and spawn arms
-  route through `BoxFiller` instead of their bespoke `SolveDepth`/`SolveWidth`/`spawnLen` sizing, so **box
-  footprint stops being a by-product of the budget-share solve and becomes an enforced, data-driven quantity**
-  (the two-currency budget the `Box` record already models). Single-mouth docking + the existing families — no
-  interface model, no open-variant patterns. This is the slice that lets a wool box's share reach a donut/U/H
-  footprint and a spawn's size be governed by its profile. Depends on G61, G78. (review §4.1, §8)
+- [~] **G41-A — [M3] Route the production arms through `BoxFiller` (part 2 — closes with G63).** Part 1
+  shipped (`FEATURES.md`): `FillProfiles` (the per-`BoxKind` profile as a type) + `BoxFiller` (the one
+  profile-gated fill entry point over a positioned `Box`, with land-vs-`Box.LandTargetCells` accounting), and
+  the wool menu reads `FillProfiles` (byte-identical). **Remaining:** the production wool + spawn arms still
+  size their own boxes with the bespoke `SolveDepth`/`SolveWidth`/`spawnLen` solvers and place via `PlaceArm`/
+  `PlaceSpawn`'s host-window and (u,v)-frame logic — they do **not** yet route through `BoxFiller`, because
+  that needs the arm's box **Rect allocated first** (position + dims), which is exactly the partition-first
+  inversion. So retiring the bespoke sizing + the **intra-box fragment** that fills to the land target
+  (convert land→build inside the box per the §5.3 slot cut law) land together with **G63**'s box-Rect
+  allocation — `BoxFiller` is the filler that switch drives. Depends on G63. (review §4.1, §8)
 - [ ] **G41-B — [M3] The `BoxInterface` valid-edges data model (the G80-opener).** Land the interface model
   every fill and pattern binds to, replacing today's single-mouth assumption: **valid edges** on
   `BoxInterface` (long vs short; a wool-touching edge/corner never docks) and **per-family multi-interface

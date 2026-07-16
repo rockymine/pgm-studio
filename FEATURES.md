@@ -983,6 +983,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The profile-driven fill spine — `FillProfiles` + `BoxFiller` (M3, G41-A part 1)** — `Compose/Boxes/
+  FillProfiles.cs` + `BoxFiller.cs`: the per-`BoxKind` fill profile is now a **type**, not two scattered data
+  rows. `FillProfiles.Families(kind, cw)` composes the §4 width→menu rule for the wool box and the fixed
+  {I, L} for the spawn; `Fits`/`FittingFamilies` add the **footprint gate** (a family's minimum box must hold
+  the footprint). `BoxFiller` is the **one profile-gated fill entry point** over a positioned `Box`: it
+  validates the family against the profile, emits it into the footprint (over `WoolBoxEmitter.Fill`), and
+  reports the **land** the fill spends against `Box.LandTargetCells` (the two-currency balance) — "no shape
+  fits" is a `FillResult` data channel, not a throw. `TeamUnitGrower`'s wool menu now reads `FillProfiles`
+  (**byte-identical**: `FamiliesFor(w) == ProductionFamilies` for w∈{2,3}, verified by a hashed compose
+  sweep). This is the spine the partitioner (G63) drives; routing the production arms through it + the
+  intra-box fragment-to-target land with the box-Rect allocation (G41-A part 2 / G63). Verified:
+  `BoxFillerTests` (profile gate, footprint fit, land accounting, roll-select, spawn-dispatch guard). Contract:
+  `docs/contracts/map-generation.md` §4.1/§8. (G41-A)
+
 - **Spawn boxes — the spawn emits through the shared emitter, the second box kind (M2)** —
   `Pgm/Compose/SpawnBoxEmitter.cs` + `TeamUnitGrower.cs`: the grower's hand-rolled spawn-lane geometry (its
   inline straight-run / L-hook `Place` calls, the spawn room carved later by `SpawnWoolRooms`) is replaced by
