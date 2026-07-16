@@ -6,6 +6,7 @@
 // classifier is wrong, or the vocabulary needs a new term. Add examples freely (any label string).
 using System.Text.Json;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Shapes;
 
 var dir = Path.Combine("tools", "deriver", "lanes");
 var raw = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(File.ReadAllText(Path.Combine(dir, "labels.json")))!;
@@ -26,7 +27,8 @@ foreach (var path in Directory.EnumerateFiles(dir, "*.plan.json").OrderBy(p => p
     var author = labels.GetValueOrDefault(name);
     foreach (var w in wools)
     {
-        var (shape, width) = WoolLaneShape.Classify(plan, w.Piece);
+        var (read, width) = ShapeClassifier.ClassifyOpen(plan, w.Piece);
+        var shape = ShapeClassifier.LaneName(read);
         var derived = width > 0 ? $"{shape}·w{width}" : shape;
         string status;
         if (author is null) { status = "— (unlabeled)"; unlabeled++; }

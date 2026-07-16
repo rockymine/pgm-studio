@@ -6,8 +6,10 @@ namespace PgmStudio.Pgm.Tests.Shapes;
 /// <summary>
 /// The emit↔derive mirror (docs/contracts/map-generation.md §5.4): emit every base family (and its variants)
 /// with <see cref="WoolBoxEmitter"/> and read each back with <see cref="ShapeClassifier"/> — requested ==
-/// derived is the mirror closing, on <b>one</b> <see cref="ShapeFamily"/> enum (no string bridge). The emitted
-/// pieces must also tile without overlap.
+/// derived is the mirror closing, on <b>one</b> <see cref="ShapeFamily"/> enum (no string bridge). It is a
+/// <b>true mirror</b>: each emission is also fed through <see cref="SlotAssignment"/> to re-derive every
+/// piece's slot from topology and assert it equals the slot the emitter stamped (§5.3). The emitted pieces
+/// must also tile without overlap.
 /// </summary>
 public sealed class ShapeMirrorTests
 {
@@ -27,14 +29,21 @@ public sealed class ShapeMirrorTests
     private static ShapeFamily Derive(EmittedApproach a) =>
         ShapeClassifier.Classify(WoolBoxEmitter.AsPlan(a), a.WoolRoom.Id).Family;
 
-    // emitting SUCCEEDS -> classify reads back the requested family, no overlaps. Too-small boxes throw
+    // emitting SUCCEEDS -> classify reads back the requested family, no overlaps, and every piece's slot
+    // re-derived from topology equals the slot the emitter stamped (the true mirror). Too-small boxes throw
     // ComposeException and are not failures (the caller sizes the box to the family).
     private static async Task MirrorOk(ShapeFamily family, Func<EmittedApproach> emit)
     {
         EmittedApproach a;
         try { a = emit(); } catch (ComposeException) { return; }
-        await Assert.That(Derive(a)).IsEqualTo(family);
+        var derived = Derive(a);
+        await Assert.That(derived).IsEqualTo(family);
         await Assert.That(Overlaps(a)).IsEqualTo(0);
+
+        var pieces = a.Terrain.Select(p => (p.Id, p.Rect)).Append((a.WoolRoom.Id, a.WoolRoom.Rect)).ToList();
+        var slots = SlotAssignment.AssignSlots(derived, pieces, a.WoolRoom.Id);
+        foreach (var p in a.Terrain.Append(a.WoolRoom))
+            await Assert.That(slots[p.Id]).IsEqualTo(p.Slot);
     }
 
     [Test]

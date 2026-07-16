@@ -177,7 +177,7 @@ The key: **a build zone costs footprint but not land**. Detailed in §8.
 ### 1.11 The small words
 
 - **box** — a bounding envelope (§4), *not* a fill target.
-- **lane** — a simple corridor (bend count `I / L / Z`), the board deriver's `WoolLaneShape` read.
+- **lane** — a simple corridor (bend count `I / L / Z`), the board deriver's `ShapeClassifier.ClassifyOpen` read.
 - **approach** — the whole wool-box shape (one of the nine families). *Lane ≠ approach.*
 - **menu** — the set of families an interface width makes legal (the width→fill production rule, §4).
 - **mid** — the neutral band between the frontlines; its **form is `f(frontline)`** (§9).
@@ -494,9 +494,9 @@ renders `BoardStructure` to `out/derive-gallery.html`. Its outputs:
   chained through a *captive* stepping stone), and a pocket carved into one landmass.
 - **void topology + hole classes** — enclosed voids classed `encased`/`gap`/`frontline`/`middle`,
   declared vs undeclared, with parallel-ways for `middle` holes (§1.7).
-- **wool lanes** — the corridor a wool room owns, and its topology via `WoolLaneShape.Classify`, which
-  returns a **string** bend read: `I` / `L` / `Z` / `complex` / `plaza` / `none`. (This is the
-  board-level corridor read — distinct from the wool-box shape identity of §5.)
+- **wool lanes** — the corridor a wool room owns, and its topology via `ShapeClassifier.ClassifyOpen`, whose
+  `LaneRead` maps to the bend read `I` / `L` / `Z` / `complex` / `plaza` / `none` (via `LaneName`). (This is
+  the board-level corridor read — distinct from the wool-box shape identity of §5.)
 - **the CT mid-form** — falls straight out of the build-zone kinds (§9).
 
 The detailed measurables catalogue — every derived quantity, its exact definition, and its
@@ -645,8 +645,8 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | Piece | Path | What |
 |---|---|---|
 | `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | **emit**: `Emit(family, box, cw, …)` → terrain pieces. Holds `ApproachFamily`, `ApproachSlots`, `WoolBox`, `RoomPlacement`, `EmittedApproach`, `AsPlan`. |
-| `WoolApproachShape` | `Plan/WoolApproachShape.cs` | **shape deriver**: `Classify` → `ApproachShape` (9 families), width-independent. |
-| `WoolLaneShape` | `Plan/WoolLaneShape.cs` | the board-level corridor bend read: `Classify` → string `I/L/Z/complex/plaza/none`. |
+| `ShapeClassifier` | `Shapes/ShapeClassifier.cs` | **shape deriver**: `Classify` → `ShapeFamily` (9 families), width-independent; `ClassifyOpen` → `LaneRead` is the board-level corridor bend read (`LaneName` → string `I/L/Z/complex/plaza/none`; the retired `WoolLaneShape` was a thin adapter over it). |
+| `SlotAssignment` | `Shapes/SlotAssignment.cs` | **slot deriver**: `AssignSlots(family, pieces, roomId)` → piece→slot, re-derived from topology — the emitter's slot mirror (§5.3/§5.4). |
 
 **The board deriver — islands / voids / interfaces**
 
@@ -677,7 +677,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `shapes-gen.cs` | `tools/deriver/shapes-gen.cs` | the §5.1 catalog fixtures. |
 | `emit-verify.cs` | `tools/deriver/emit-verify.cs` | the emit↔derive mirror loop + slot-template check. |
 | `stress-shapes.cs` | `tools/deriver/stress-shapes.cs` | width / edge-case stress fixtures. |
-| `lane-audit.cs` | `tools/deriver/lane-audit.cs` | the `WoolLaneShape` derive-then-override training harness. |
+| `lane-audit.cs` | `tools/deriver/lane-audit.cs` | the `ClassifyOpen`/`LaneName` derive-then-override training harness. |
 
 ---
 

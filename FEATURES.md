@@ -983,6 +983,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **Slot recovery — the emit↔derive mirror closes at the slot level (M2)** — `Pgm/Shapes/SlotAssignment.cs`
+  + `Geom/Cells.cs`: `SlotAssignment.AssignSlots(family, pieces, roomId)` re-derives every piece's
+  `ApproachSlots` slot from **topology alone** — path order for the chain families (I/L/Z/scythe), adjacency
+  for the branches (U/H/clamp), and hole-edge geometry for the donut (the enclosed void via the new
+  `Cells.EnclosedVoid`; bars vs legs off the hole's opposite edges, the room-bar anchored by the entry-bar's
+  hub attachment) — never a canonical rect position, so entry/wool shift, side-tuck, donut
+  attachment-offset/width/count, room-at-end, and any flip/mouth reorientation all survive. `ShapeMirrorTests`
+  becomes a **true mirror**: emit → classify → re-derive slots → assert each equals the emitter's stamped
+  slot, closing §5.4 at the slot level, not just the family. Scope is the generator's own artifacts (a box's
+  pieces) — no derive-side recovery of authored/traced plans (retired by decision). `WoolLaneShape` the class
+  **retires**: its lane read was a thin adapter over `ShapeClassifier.ClassifyOpen`, now called directly with
+  the new public `ShapeClassifier.LaneName(LaneRead)` (BoardDeriver + lane-audit rewired). Verified: full Pgm
+  suite green incl. the slot mirror over every family × size × flip × variant. Contract:
+  `docs/contracts/map-generation.md` §5.3/§5.4/§12. (G62)
+
 - **The corner law reads the mask, not the pair — donut admitted (M2)** — `Geom/Cells.cs` +
   `Pgm/Compose/TeamUnitGrower.cs` + `Boxes/FillMenu.cs`: `TeamUnitGrower.ValidateContacts` rejected any
   pairwise `Corner` verdict, gating the donut out of production — but a corner whose diagonal a third piece

@@ -102,6 +102,22 @@ public static class Cells
         return false;
     }
 
+    /// <summary>The enclosed void of a footprint: the background cells trapped inside it — unreachable from
+    /// outside the bounding box without crossing a filled cell. Empty when the footprint has no hole. The
+    /// cell-level companion to <see cref="HasEnclosedVoid"/> (which is <c>EnclosedVoid(fill).Count &gt; 0</c>).</summary>
+    public static HashSet<(int, int)> EnclosedVoid(IReadOnlySet<(int, int)> fill)
+    {
+        var trapped = new HashSet<(int, int)>();
+        if (fill.Count == 0) return trapped;
+        int mnx = fill.Min(c => c.Item1) - 1, mxx = fill.Max(c => c.Item1) + 1;
+        int mnz = fill.Min(c => c.Item2) - 1, mxz = fill.Max(c => c.Item2) + 1;
+        var outside = new HashSet<(int, int)>();
+        var q = new Queue<(int, int)>(); q.Enqueue((mnx, mnz)); outside.Add((mnx, mnz));
+        while (q.Count > 0) { var c = q.Dequeue(); foreach (var n in N4(c)) if (n.Item1 >= mnx && n.Item1 <= mxx && n.Item2 >= mnz && n.Item2 <= mxz && !fill.Contains(n) && outside.Add(n)) q.Enqueue(n); }
+        for (var x = mnx; x <= mxx; x++) for (var z = mnz; z <= mxz; z++) if (!fill.Contains((x, z)) && !outside.Contains((x, z))) trapped.Add((x, z));
+        return trapped;
+    }
+
     /// <summary>The number of reflex (concave) corners of a cell set's outline — the bend count, read
     /// width-independently (a lane and the same lane widened uniformly turn the same number of times).</summary>
     public static int ReflexCorners(IReadOnlySet<(int, int)> cells)

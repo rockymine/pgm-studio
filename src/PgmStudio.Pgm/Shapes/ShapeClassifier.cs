@@ -127,6 +127,19 @@ public static class ShapeClassifier
         return (reflex == 0 ? LaneRead.I : reflex == 1 ? LaneRead.L : reflex == 2 ? LaneRead.Z : LaneRead.Complex, w);
     }
 
+    /// <summary>The lower-case string name of a <see cref="LaneRead"/> (<c>I</c>/<c>L</c>/<c>Z</c>/
+    /// <c>complex</c>/<c>plaza</c>/<c>none</c>) — the board deriver's wool-lane measurable, for the derive
+    /// gallery and the lane-audit harness.</summary>
+    public static string LaneName(LaneRead read) => read switch
+    {
+        LaneRead.I => "I",
+        LaneRead.L => "L",
+        LaneRead.Z => "Z",
+        LaneRead.Complex => "complex",
+        LaneRead.Plaza => "plaza",
+        _ => "none",
+    };
+
     // filled terrain (buffers/connectors excluded) + the terminal piece's cells (null when the piece is absent).
     private static (HashSet<(int, int)> Filled, HashSet<(int, int)>? Terminal) CellSets(PlanModel plan, string terminalPieceId)
     {

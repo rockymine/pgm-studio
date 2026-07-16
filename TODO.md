@@ -45,19 +45,6 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
   terminal-capped, so the same classifier, the same mirror, and G61's label invariant apply unchanged
   (`spawn-a/entry`…). **Changes RNG consumption** (goldens re-key — free before G63). Depends on G61.
   (review §4.3, §8 — resolves `SpawnBoxEmitter`'s "M2/M3" ambiguity into its own slice)
-- [ ] **G62 — Slot recovery for the generated mirror (generated plans only).** `Shapes/SlotAssignment`:
-  after `Classify` returns the family, template-match the slot sequence onto the classified pieces
-  (`AssignSlots(family, pieces) → piece→slot map`) — matched on **path order and adjacency** (the entry is
-  the piece on the mouth interface, the room is the terminal, run/bar/leg the chain between), never on
-  canonical rect positions, so the G50–G52 variant geometries survive (their grids are the acceptance
-  fixtures — `ShapeVariantTests`). Upgrades `emit-verify` to a true mirror (emit → classify → re-derive
-  slots → compare); slot terms on composed plans get their slots from the emitter via `EvalContext`
-  (`GrownPiece.Slot`), and the classifier's scope on a composed plan is the wool box itself (G61) — there
-  is **no derive-side recovery of authored/traced plans**, retired by decision
-  (`docs/wool-approach-read-investigation.md`: post-fragment maps carry family identity on the play
-  surface; decoding finished maps is a trap). `WoolLaneShape` the class retires here (its lane measurable
-  is already the `ClassifyOpen` read). Depends on G58, G59. (review §3.4, §7.5; the §3.5/§3.6
-  full-plan-scoping half is retired)
 - [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
   the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated.
   **Opens with the G80 valid-edges slice**: land the `BoxInterface` valid-edges data model first (long vs

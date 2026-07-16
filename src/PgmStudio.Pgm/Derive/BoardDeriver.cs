@@ -1,5 +1,6 @@
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Derive;
 
@@ -370,7 +371,9 @@ public static class BoardDeriver
         foreach (var w in plan.Placements.Wools)
         {
             var pc = plan.Pieces.FirstOrDefault(p => p.Id == w.Piece);
-            if (pc is not null) woolShapes.Add(WoolLaneShape.Classify(filledK0.Keys.ToHashSet(), FanCellsK(pc.Rect, axes, 0).ToHashSet()));
+            if (pc is null) continue;
+            var (read, laneW) = ShapeClassifier.ClassifyOpen(filledK0.Keys.ToHashSet(), FanCellsK(pc.Rect, axes, 0).ToHashSet());
+            woolShapes.Add((ShapeClassifier.LaneName(read), laneW));
         }
 
         // frontline edges + the intra-team interfaces kept as their OWN derived signal: they mark where the author
