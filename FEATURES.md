@@ -983,6 +983,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The spawn box is a small fixed box — a size rule in `FillProfiles` (G84)** — `Compose/Boxes/FillProfiles.cs`:
+  the porting kept the old grower's "grow the shape to absorb its budget share" sizing, so a spawn stretched with
+  player count to ~100 blocks when the docs say a spawn is **small, ≤20** (`docs/contracts/map-generation.md` §4).
+  The fix is a **size rule over the box model, not a resize solver**: `FillProfiles.SpawnSizes` is the per-`BoxKind`
+  spawn allowlist as data — three small boxes `{I direct ~10×10, I run-up ~10×20, L hook ~20×20}` — and
+  `SpawnLand(size, cw)` reads a size's land off `SpawnBoxEmitter.Box`. `TeamUnitGrower` samples a `SpawnSizes` box
+  instead of drawing an L-style + split-frac + length-cap, dropping the `spawnLen`/`spawnLenCap`/`spawnURunCap`/
+  `spawnLFeasible` solvers and the shape-shrink loop (the inflate stays). The spawn's budget weight (`spawnUnit = 2.0`)
+  stays in the unit denominator, so **wool shares are unchanged** — the freed budget is left unspent (a sparser, less
+  crammed map) rather than redistributed to grow the wools, per the "keep it simple, don't grow shapes" direction.
+  The land floor widens to match (`AreaFloorTolerance = 0.40`, `BoxPartitioner.BudgetTolerance` 0.20→0.40, the
+  composer area gate floor 0.8→0.6) — the window is now asymmetric, a unit runs under quota more than over.
+  Re-keys the spawn RNG (goldens freeze after G63). Verified: spawn small on the 30p worst case, wool distribution
+  unchanged, 0 gallery failures; `BoxPartitionerTests` + `ComposerTests` re-based to the sparser envelope, 612/612
+  green. Contract: `docs/contracts/map-generation.md` §4. (G84)
+
 - **The partition-first allocator seam — `BoxPartitioner` (M4, G63-B)** — `Compose/Boxes/BoxPartitioner.cs`: the
   `budget → BoxPartition` entry the box-driven switch is built around, shipping **parallel** to `TeamUnitGrower`
   (not yet the default). `Partition(env, rng)` allocates the partition a compose produces; where the grower lets

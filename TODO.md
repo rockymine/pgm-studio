@@ -84,11 +84,6 @@ in `BACKLOG.md`.)*
 stretch with player count — a spawn can reach ~100 blocks when the docs say a spawn is small, ≤20. The fix is
 size **rules** over the box model, not a resize solver. Visual: the sizing explainer artifact.)*
 
-- [ ] **G84 — Cap the spawn box small.** The spawn carries the **largest** budget weight (`spawnUnit` 2.0) and a
-  length cap of `spawnURunCap + chainCap` (~20 cells ≈ 100 blocks), so it stretches to absorb its share. Give it a
-  **fixed SP-sized box** instead (~10×10 direct · 10×20 run-up · 20×20 L — `map-generation.md` §4), independent of
-  player count; drop `spawnUnit`/`spawnLen` from the budget split so the spawn no longer eats a share. Directly ends
-  the long lanes. (SP; review the sizing explainer artifact)
 - [ ] **G85 — Flexible spawn attachment.** The spawn always docks the hub's **back** edge (`FillSpawn` picks Top/Right
   by frame). The plan-cell fill already docks any edge (the wool arm proves it), so let the spawn attach at varied
   points/edges like the wools — a sampled host + mouth, not a fixed one. (SP2/SP3; depends on G84 landing first so the
