@@ -145,6 +145,27 @@ public sealed class WoolBoxGrowthTests
     }
 
     [Test]
+    public async Task The_spawn_seats_at_varied_points_along_the_hub_back_edge()
+    {
+        // SP2: the spawn is not pinned to one back-edge corner — its seat is sampled, so across seeds it lands at
+        // more than one offset from the hub. (Default symmetry is a z-frame, so the seat varies along x; measure
+        // the spawn box's x-min relative to the hub's.) A degenerate always-same-corner spawn fails this.
+        foreach (var players in new[] { 16, 24 })
+        {
+            var seats = new HashSet<int>();
+            for (ulong seed = 1; seed <= 40; seed++)
+            {
+                var unit = Grow(players, seed: seed);
+                var hub = unit.Pieces.First(p => p.Id == "hub").Rect;
+                var spawnPieces = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Spawn).Select(p => p.Rect).ToList();
+                if (spawnPieces.Count == 0) continue;
+                seats.Add(spawnPieces.Min(r => r[0]) - hub[0]);
+            }
+            await Assert.That(seats.Count >= 2).IsTrue();
+        }
+    }
+
+    [Test]
     public async Task Assembled_plans_carry_no_labels()
     {
         // Assemble is the label boundary: PlanPiece has no slot/box field, so the write is label-free —

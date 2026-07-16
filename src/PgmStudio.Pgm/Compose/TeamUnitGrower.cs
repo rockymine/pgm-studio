@@ -27,7 +27,8 @@ public sealed record GrownUnit(IReadOnlyList<GrownPiece> Pieces, GrownSpawn Spaw
 /// <summary>
 /// Grows one team's authored unit on the (u,v) grid a <see cref="Frame"/> maps to real cell coordinates: a
 /// hub — widening toward a plaza on big maps (HB1/HB3) — a spawn lane that runs straight back or hooks into
-/// an L (LN2/SP2/SP3), 1-3 <b>wool boxes</b> (WL6) docked on the hub's sides or the spawn lane's first run,
+/// an L (LN2/SP2/SP3), seated at a sampled point along the hub's back edge, 1-3 <b>wool boxes</b> (WL6) docked
+/// on the hub's sides or the spawn lane's first run,
 /// and a frontline toward the axis (FR3/FR4) in one of three forms: none, a single chain, or <b>twin
 /// chains</b> — two parallel narrow chains whose recessed gap the mid band later seals into a closure hole,
 /// the rotation device (CT8).
@@ -123,7 +124,7 @@ public static class TeamUnitGrower
     private sealed record Shape(
         int W, int ChainCap, int ArmDepthCap, int AxisMargin, int HubU, int HubV, int WoolInset,
         FrontForm Form, int[] FrontSegs, int FrontVOff, int TwinLen,
-        ShapeFamily SpawnFamily, int SpawnRun, int SpawnTurn, int SpawnLDir,
+        ShapeFamily SpawnFamily, int SpawnRun, int SpawnTurn, int SpawnLDir, double SpawnVFrac,
         bool[] LaneSpawnHost, ShapeFamily[] LaneFamily, int[] LaneWidth, RoomPlacement[] LaneRoom,
         double[] LaneAttFracs, bool[] LaneFlip, bool SideFlip, int WoolCount);
 
@@ -143,7 +144,7 @@ public static class TeamUnitGrower
         // (g2) per side box host, (g3) per side family roll, (g4) per side attachment fraction, (g4b)
         // lone-box side flip, (g4c) per side emit flip (handedness), (g4d) per side room side-dock roll
         // (applies where the family supports it), (g5) arm asymmetry fraction, (g6) spawn
-        // segment count, (g7) spawn dogleg style + direction, (g8) frontline form (+ single-chain segment
+        // segment count, (g7) spawn dogleg style + direction, (g7b) spawn back-edge seat fraction, (g8) frontline form (+ single-chain segment
         // count and cross-offset fraction), (g9) hub depth + width, (g10) spawn split fraction, (g11)
         // single-chain split fraction. Draws whose feature is absent are skipped only on deterministic
         // conditions, so a given request always replays the same sequence. A family roll resolves later
@@ -182,6 +183,7 @@ public static class TeamUnitGrower
         // stretched to absorb a budget share (that made the ported lanes ~100 blocks long)
         var spawnSize = FillProfiles.SpawnSizes[rng.NextInt(0, FillProfiles.SpawnSizes.Count)];
         var spawnLDirDraw = rng.NextBool(0.5) ? -1 : 1;   // the L hook's turn side
+        var spawnVFrac = rng.NextDouble();                // SP2: where the spawn seats along the hub's back edge
 
         // frontline form: WIDE — a solid face the band docks to fully (FR6) — is the default: it makes room
         // for the MD6 stone grid and pairs with any crossing. Twin (its recess is CT8's hole mechanism) only
@@ -336,7 +338,7 @@ public static class TeamUnitGrower
         var shape = new Shape(
             w, chainCap, armDepthCap, axisMargin, hubU, hubV, woolInset,
             form, frontSegs, frontVOff, twinLen,
-            spawnSize.Family, spawnSize.RunCells, spawnSize.TurnCells, woolCount == 3 ? -1 : spawnLDirDraw,
+            spawnSize.Family, spawnSize.RunCells, spawnSize.TurnCells, woolCount == 3 ? -1 : spawnLDirDraw, spawnVFrac,
             laneSpawnHost, laneFamily, laneWidth, laneRoom, laneAttFracs, laneFlip, sideFlip, woolCount);
 
         // ── repair search (no draws): the spawn is a fixed small box now, so there is nothing to shrink —
@@ -499,8 +501,14 @@ public static class TeamUnitGrower
         // to the SpawnLDir side), never budget-stretched. The room is a real PlanRoles.Spawn terminal carrying
         // the marker (SP3: facing the axis), and the entry run is what a wool box may dock along — never the
         // marker's own room (SP1). Every piece carries its slot and the spawn box label.
+        //
+        // SP2: the spawn seats at a sampled point along the hub's back edge — the same point-flexibility the wool
+        // arms have — with its entry band kept fully on the hub (slide range = hubV − w). It stays pinned at the
+        // −v corner only when the third wool shares the back edge (packed beside the spawn at hubVMin + w + 1).
+        var spawnSlide = sh.WoolCount == 3 ? 0 : Math.Max(0, sh.HubV - w);
+        var spawnVBase = hubVMin + (int)Math.Round(sh.SpawnVFrac * spawnSlide);
         var spawn = FillSpawn(
-            frame, sh.SpawnFamily, w, sh.SpawnRun, sh.SpawnTurn, sh.SpawnLDir, spawnU0, hubVMin, "spawn-a", "spawn");
+            frame, sh.SpawnFamily, w, sh.SpawnRun, sh.SpawnTurn, sh.SpawnLDir, spawnU0, spawnVBase, "spawn-a", "spawn");
         if (spawn is null) return null;
         pieces.AddRange(spawn.Pieces);
         var spawnPieceId = spawn.Room.Id;
@@ -525,7 +533,7 @@ public static class TeamUnitGrower
             var depth = Math.Max(armDepths[i], minH);
 
             var (winLo, winLen, vBase) = ResolveAttachment(
-                sh, side, hubUMin, hubVMin, spawnU0, spawnEntryLen, spawnIsL, i, alongLen);
+                sh, side, hubUMin, hubVMin, spawnU0, spawnVBase, spawnEntryLen, spawnIsL, i, alongLen);
             var uFloor = Math.Max(hubUMin + sh.WoolInset, sh.AxisMargin + 1);
 
             var arm = FillArm(
@@ -638,7 +646,7 @@ public static class TeamUnitGrower
     /// to this side. The wool always docks the entry, never the marker's own room, so SP1 holds by
     /// construction; degrades to the hub host when the window cannot take the mouth.</summary>
     private static (int Lo, int Len, int VBase) ResolveAttachment(
-        Shape sh, int side, int hubUMin, int hubVMin, int spawnU0, int spawnEntryLen, bool spawnIsL,
+        Shape sh, int side, int hubUMin, int hubVMin, int spawnU0, int spawnVBase, int spawnEntryLen, bool spawnIsL,
         int lane, int mouthSpan)
     {
         var w = sh.W;
@@ -658,7 +666,8 @@ public static class TeamUnitGrower
         var len = hi + w - lo;
         if (len < mouthSpan) return (hubLo, hubLen, hubVBase);
 
-        var vBase = side < 0 ? hubVMin : hubVMin + w;
+        // the wool docks the spawn's entry band [spawnVBase, spawnVBase + w], wherever the spawn seated
+        var vBase = side < 0 ? spawnVBase : spawnVBase + w;
         return (lo, len, vBase);
     }
 

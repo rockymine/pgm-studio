@@ -983,6 +983,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The spawn seats at a sampled point along the hub's back edge (G85)** — `Compose/TeamUnitGrower.cs`: the spawn
+  was pinned to the hub back edge's −v corner (`FillSpawn(..., hubVMin, ...)`) while the wool arms already sampled a
+  point along their host edge. G85 gives the spawn that same point-flexibility (SP2): a `spawnVFrac` draw seats it
+  anywhere along the back edge with its entry band kept fully on the hub (slide range `hubV − w`), and the
+  wool-on-spawn dock (`ResolveAttachment`) follows the seated position instead of assuming the corner. It stays
+  pinned at the −v corner only when the third wool shares the back edge (packed beside it). The spawn keeps its SP
+  semantics — always on the back edge, facing the axis — so this is *lateral* flexibility, not edge/host freedom
+  (that falls out of the allocate-first switch, G63-C, where the spawn is just a box with a sampled host + mouth).
+  Re-keys the spawn RNG. Verified: seat takes 2 distinct positions on small hubs up to 6 on big ones (scaling with
+  hub room), a distribution test pins it against silent degeneration, full Pgm suite 610/610 green, gallery 42/42.
+  (G85)
+
 - **The isolation cut is out of the compose loop — wool lanes stay pristine (G86)** — `Compose/Composer.cs`:
   `IsolationCut` carved a `bridge-a` build zone across a team's `spawn↔wool` route on ~40% of plans, *before*
   fragmentation had slot-carving rules — a bridge landing across an otherwise clean wool approach. `Composer`

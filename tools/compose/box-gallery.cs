@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// build-cache bust: box-model gallery (G79 donut + G62 slot mirror) round 7 — isolation cut out of the compose loop, wool lanes pristine (G86)
+// build-cache bust: box-model gallery (G79 donut + G62 slot mirror) round 8 — spawn seats at a sampled point along the hub back edge (G85)
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;

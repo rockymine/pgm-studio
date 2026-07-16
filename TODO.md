@@ -78,13 +78,3 @@ in `BACKLOG.md`.)*
   reconsidered as a targeted rule, not a solver.* The **hub/frontline** open boxes are their own track (G41-C).
   Depends on G63-B. (review §4.2, §4.4, §4.5, §7.7)
 
-**Shape honesty (the box shapes are too large — keep them small, spend the budget on count) — current focus**
-
-*(The porting kept the old grower's "grow the shape to absorb its budget share" sizing, so the spawn/wool shapes
-stretch with player count — a spawn can reach ~100 blocks when the docs say a spawn is small, ≤20. The fix is
-size **rules** over the box model, not a resize solver. Visual: the sizing explainer artifact.)*
-
-- [ ] **G85 — Flexible spawn attachment.** The spawn always docks the hub's **back** edge (`FillSpawn` picks Top/Right
-  by frame). The plan-cell fill already docks any edge (the wool arm proves it), so let the spawn attach at varied
-  points/edges like the wools — a sampled host + mouth, not a fixed one. (SP2/SP3; depends on G84 landing first so the
-  small box is what moves.)
