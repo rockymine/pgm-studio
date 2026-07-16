@@ -247,6 +247,11 @@ structural is **derived** from it and never written back. Coordinates are **prox
 **Derived** (computed, never authored): islands, frontline, hub, lane, mid, contacts, void topology,
 build-zone kinds, and the wool-approach family. These belong to the derivers (§6), not the file.
 
+**Compose-internal** (a third category, neither authored nor derivable): the slot labels of §5.3.
+They exist on generated pieces during composition, drive the compose-side rules, and drop at
+`Assemble` — a plan on disk never has slots, and no deriver recovers them from an authored or traced
+plan (§5.4).
+
 **Plan invariants** (checkable with zero geometry): every wool reachable from every capturing team's
 spawn across `land` + `gap` interfaces; no wool path through a `spawn` piece; ≥1 `gap` on every
 inter-team path; interface widths ≥ the corridor minimum; spawn depth ≥ some distance from the
@@ -261,6 +266,12 @@ The field-level schema and the editor are in `plan-editor.md`.
 Before any piece is filled, the budget draws a **coarse partition of typed boxes**. A box is a
 **bounding envelope, not a fill target**: its contents must touch its edges and stay connected but
 need not fill it solid. That is what lets one family take many footprints inside a fixed envelope.
+
+**The box model is a meta-model of the authoring process, not a property of maps.** It abstracts how
+a map author actually works (stake out regions, fill them, cut them up) — but boxes exist **only
+during composition**. No finished map carries boxes — not the traced corpus maps, not even the
+authored seeds — and they are never recovered from geometry (§5.4). A finished map is a plan with
+every pipeline move already applied, many times over; the moves compose one-way.
 
 **The typed boxes:** `spawn`, `hub`, `wools`, `frontline`, `mid`.
 
@@ -383,6 +394,25 @@ family. Entry widening and entry shift live on the `entry` slot; wool docking (e
 lives on the `room` slot; which pieces may split into build zones is stated per slot (a `run`/`bar`
 can be cut into lane + build-lane; an `entry`/`room` typically stays whole).
 
+**The labels drive; the deriver only verifies.** Slots exist for generated maps and nowhere else —
+they are the mechanism that makes every later pipeline move rule-governed:
+
+- **Labels survive the whole compose pipeline.** Every compose move after emission (mid carve,
+  isolation cut, repair, fragment) runs on labeled pieces — the moves all run **before `Assemble`**,
+  so the labels are in hand exactly where the rules need them. A shape that is already attached to
+  another shape is **never re-read**: the mirror (§5.4) proves the emitter placed the right thing;
+  it is not how the composer knows what a piece is.
+- **Ownership is part of the label.** A slot names a position *within one box's fill*, so the full
+  label is (box id, box kind, slot) — `wool-a/entry`, `hub-a/bar` — letting connection and
+  fragmentation rules bind per box kind, not just per slot. (Target state; today the box id lives
+  informally in the piece-id prefix.)
+- **Products of a move inherit the label.** When fragment splits or converts a piece, its products
+  keep the (box, slot) ownership — a build zone knows it replaced `wool-a/entry-run` — which is what
+  makes the per-slot cut law above enforceable *at the cut* instead of re-derived afterwards.
+- **`Assemble` is the boundary.** Labels drop from the written plan (`plan.json` has no slots —
+  they are §3's *compose-internal* category); the evaluator receives them in-memory via
+  `EvalContext`. A plan on disk is label-free by design.
+
 ### 5.4 The emit ↔ derive mirror
 
 `emit` (build a family) and `derive` (classify a family) are a forward/inverse pair, and asserting
@@ -469,6 +499,12 @@ the way the author does: **positives** (authored good layouts, auto-labeled by t
 **negatives** (flagged bad layouts — the most valuable are **minimal pairs** differing in exactly one
 property), and **coverage** (examples per sub-problem × per symmetry mode). The property-term
 catalogue and the labeled set live in `layout-evaluator.md §6–§7`.
+
+**The seeds sit at final-pipeline fidelity.** The authored seeds are what the *whole* pipeline
+should output — never what an early stage can produce on its own. A stage is therefore judged only
+against the rules that stage owns (fill/slot invariants at emit, envelope terms on the assembled
+board, elevation feel at realize) — comparing an intermediate artifact to a seed wholesale is a
+category error, the same one as classifying a finished map (§5.4) in the other direction.
 
 ---
 

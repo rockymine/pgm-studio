@@ -276,7 +276,13 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   re-roll; `Ok` already carries the fill's **vacancies** — its emit-side negative space (a U's bay, a
   donut's hole) as a `Vacancy` (kind bay/notch/hole + mouth `BoxInterface` + bounding walls; §4.4) —
   shaped from the start so the type doesn't churn even though *claiming* lands at M3. Emitter orientation
-  via a rect transform (`Geom.Symmetry.Apply`) instead of the hardcoded top-edge mouth. Kills the third
+  via a rect transform (`Geom.Symmetry.Apply`) instead of the hardcoded top-edge mouth. Every emitted
+  piece carries **structured ownership** — (box id, box kind, slot) on `GrownPiece`, rendered
+  `wool-a/entry` (the id prefix is its serialization, not its source of truth) — and **every compose move
+  after emission is label-preserving**: labels live through carve/cut/repair up to `Assemble`, the one
+  boundary where they drop from the written plan (the evaluator receives them via `EvalContext` — G62/G68;
+  a shape already attached to another shape is never re-read, the labels drive and the mirror only
+  verifies). Kills the third
   shape impl; gives G44 its structural-spend vocabulary and makes G50–G52 reachable from generation.
   **Changes RNG consumption** (goldens re-key). Depends on G58. (review §4, §4.4, §7.4)
 - [ ] **G62 — Slot recovery for the generated mirror (generated plans only).** `Shapes/SlotAssignment`:
@@ -300,7 +306,9 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   one profile-driven fill entry point). `FrontForm` retires into frontline patterns (none · single-chain
   I/Z · wide-face · twin-strands+recess — FR3/FR4/FR6/CT8); hub open patterns (solid I · L · Z ·
   ring-with-hole — HB1/HB3/HB4). **G39's** corner/edge interlock is expressed here as a `BoxInterface`
-  constraint. Fills start **publishing vacancies** (§4.4): boxes may overlap (piece-disjointness, not
+  constraint. Hub/frontline pattern pieces carry **slots with box-kind ownership** (`hub-a/bar`,
+  `front-a/…`) — the first labels outside the wool box, extending G61's label-preservation invariant to
+  every box kind. Fills start **publishing vacancies** (§4.4): boxes may overlap (piece-disjointness, not
   box-disjointness, is the invariant), so a fill's residual envelope is published as claimable negative
   space — a **U-hub publishes its bay**, a twin frontline its recess (the CT8 recess generalized). Emit-side
   and exact (families are fixed templates), so no derive pass finds them. `FillProfiles` gates claims
@@ -319,7 +327,13 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   `hub-first` / `mid-out`) make the emission order an **experiment axis** judged by the evaluator + G43, not
   doctrine. `Box.LandTargetCells` gives the
   two-currency budget its per-box half, so **fragment** becomes a generic pass over the partition
-  (`IsolationCut` + the mid's low target are its two existing special cases). `TeamUnitGrower` retires.
+  (`IsolationCut` + the mid's low target are its two existing special cases) — and a **label-inheriting**
+  one: a piece the pass splits or converts hands its (box, slot) ownership to its products, so a build
+  zone knows which slot it replaced (`wool-a/entry-run`) and the §5.3 per-slot cut law (a `run`/`bar` may
+  split, an `entry`/`room` stays whole) is enforced *at the cut* against the label, never re-derived;
+  `IsolationCut`'s connector extrusion (today born unlabeled) is labeled the same way. This is what lets
+  fragmentation and connection mutation be driven off labeled pieces to the limit — the moves cite slots,
+  the mirror only verifies. `TeamUnitGrower` retires.
   Re-baseline gallery cases; **then** freeze the G32-D goldens (per strategy). Depends on G61.
   (review §4.2, §4.4, §4.5, §7.7)
 - [ ] **G64 — Doc pass on `map-generation.md` (reconcile with shipped code).** The canonical doc silently
