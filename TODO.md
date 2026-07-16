@@ -88,8 +88,3 @@ size **rules** over the box model, not a resize solver. Visual: the sizing expla
   by frame). The plan-cell fill already docks any edge (the wool arm proves it), so let the spawn attach at varied
   points/edges like the wools — a sampled host + mouth, not a fixed one. (SP2/SP3; depends on G84 landing first so the
   small box is what moves.)
-- [ ] **G86 — Remove the premature wool-lane fragmentation.** `IsolationCut` carves a `bridge-a` build zone across a
-  wool route today, before fragmentation has slot-carving rules — visible as stray bridges on the wool lanes. Pull
-  `IsolationCut` out of the `Composer` loop now (keep the code) and reintroduce it later as a proper fragment pass
-  that knows which **slots** may be cut (a `run`/`bar`, never a `room`/`entry`), per the §5.3 slot cut law. Re-keys
-  the RNG (the cut draw goes away). (BZ/CT; the generic fragment is G63-D)

@@ -77,24 +77,9 @@ public sealed class WoolBoxGrowthTests
         }
     }
 
-    [Test]
-    public async Task Labels_survive_the_cut_and_the_room_carve_and_drop_at_assembly()
-    {
-        // find a composed plan whose cut severed a boxed wool room; its labels must have ridden through
-        for (ulong seed = 1; seed <= 40; seed++)
-        {
-            var stages = Composer.ComposeStages(new ComposeRequest(16, teams: 2, seed: seed));
-            if (stages.Cut is null) continue;
-            var severed = stages.Unit.Pieces.FirstOrDefault(p => p.Id == stages.Cut.SeveredId && p.Box is not null);
-            if (severed is null) continue;
-
-            await Assert.That(severed.Slot).IsNotNull();               // the move preserved the label
-            await Assert.That(severed.Role).IsEqualTo(PlanRoles.WoolRoom);
-            return;
-        }
-        // no boxed-room cut in 40 seeds would itself be a distribution regression
-        throw new InvalidOperationException("no cut severing a boxed wool room found in 40 seeds");
-    }
+    // Labels_survive_the_cut_and_the_room_carve_and_drop_at_assembly retired with the cut leaving the compose
+    // loop; it returns to cover the slot-aware fragment pass. The room-carve half of that guarantee still holds
+    // via Bent_and_branching_families_occur_across_seeds and the label checks below.
 
     [Test]
     public async Task Bent_and_branching_families_occur_across_seeds()

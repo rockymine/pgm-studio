@@ -285,42 +285,9 @@ public sealed class ComposerTests
         await Assert.That(stoneless > 0).IsTrue();
     }
 
-    [Test]
-    public async Task Isolation_cuts_occur_on_a_minority_of_plans_never_all()
-    {
-        // sampled at ~40% per plan (minus placements the invariants reject) — pooled over two combos to
-        // keep the assertion band loose
-        var cuts = 0;
-        foreach (var players in new[] { 12, 20 })
-            for (ulong seed = 1; seed <= 30; seed++)
-                if (Composer.ComposeStages(new ComposeRequest(players, teams: 2, seed: seed)).Cut is not null)
-                    cuts++;
-        await Assert.That(cuts >= 6).IsTrue();     // occurs
-        await Assert.That(cuts <= 42).IsTrue();    // stays a minority-ish share of 60
-    }
-
-    [Test]
-    public async Task A_cut_plan_bridges_the_severed_piece_and_keeps_its_marker()
-    {
-        // find a cut plan in the sweep and check the CT5 shape: a bridge zone, the severed piece in its own
-        // land component, and the marker still on it
-        for (ulong seed = 1; seed <= 30; seed++)
-        {
-            var stages = Composer.ComposeStages(new ComposeRequest(12, teams: 2, seed: seed));
-            if (stages.Cut is null) continue;
-
-            var plan = stages.Plan;
-            await Assert.That(plan.Zones.Any(z => z.Id == "bridge-a")).IsTrue();
-            var derived = ContactGraph.Build(plan);
-            // some component beyond the main mass + the stones holds a marker piece
-            var markerPieces = plan.Placements.Wools.Select(w => w.Piece)
-                .Append(plan.Placements.Spawns[0].Piece).ToHashSet();
-            var severed = derived.Components.Where(c => c.Count == 1 && markerPieces.Contains(c[0])).ToList();
-            await Assert.That(severed).IsNotEmpty();
-            return;
-        }
-        throw new InvalidOperationException("no cut plan found in 30 seeds");
-    }
+    // The isolation cut is out of the compose loop (it returns as a slot-aware fragment pass); the tests that
+    // asserted cuts occur — Isolation_cuts_occur_on_a_minority_of_plans_never_all and
+    // A_cut_plan_bridges_the_severed_piece_and_keeps_its_marker — retire with it, and land again with the pass.
 
     [Test]
     public async Task Most_plans_carry_a_closure_hole_but_not_all()

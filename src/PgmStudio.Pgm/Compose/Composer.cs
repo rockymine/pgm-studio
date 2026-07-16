@@ -11,8 +11,9 @@ public sealed record ComposedStages(
 /// Composes a full <see cref="PlanModel"/> from nothing but a player count and team shape, running the
 /// design-doc order of operations: derive the board envelope (<see cref="Envelope"/>), sample the crossing
 /// arithmetic (<see cref="MidCarver.SampleCrossing"/>), grow one team's authored unit against it
-/// (<see cref="TeamUnitGrower"/>), carve the mid band and stones (<see cref="MidCarver"/>), optionally sever
-/// one marker piece behind a bridge (<see cref="IsolationCut"/>), and assemble the plan. Every attempt's
+/// (<see cref="TeamUnitGrower"/>), carve the mid band and stones (<see cref="MidCarver"/>), and assemble the
+/// plan. (The <see cref="IsolationCut"/> fragment is out of the loop until it is slot-aware — see the body.)
+/// Every attempt's
 /// assembled plan must pass the <see cref="LayoutEvaluator"/> hard-terms gate — no structural errors, no
 /// WL2/PC-C/G2 lint, every void hop in G5's band, the mid band clear of every wool by two cells (BZ6), and no
 /// closure hole ringed by a wool plateau (WL8) — or the whole attempt is resampled (an optional
@@ -47,11 +48,15 @@ public static class Composer
             if (unit is null) continue;
             var mid = MidCarver.TryCarve(envelope, rng, crossing, unit);
             if (mid is null) continue;
-            var cut = IsolationCut.TryApply(envelope, rng, unit, mid);
-            if (cut is not null) unit = new GrownUnit(cut.Pieces, unit.Spawn, unit.Wools);
 
-            // carve the terminal lanes into real spawn / wool-room pieces (the lane docks to the room) — after
-            // the cut so a severed marker piece becomes its own isolated room (WL4/SP6), not a split island
+            // The isolation cut is pulled out of the compose loop: it fragmented a wool lane before
+            // fragmentation had slot-carving rules, leaving a stray bridge across an otherwise clean approach.
+            // It returns later as a proper slot-aware fragment pass (a cut may sever a run/bar, never a
+            // room/entry — the §5.3 cut law). The plumbing stays intact and dormant — ComposedStages.Cut, the
+            // bridge-a zone in Assemble, and IsolationCut itself — so reintroducing it is a one-liner.
+            CutResult? cut = null;
+
+            // carve the terminal lanes into real spawn / wool-room pieces (the lane docks to the room)
             unit = SpawnWoolRooms.Carve(unit);
 
             var plan = Assemble(request, envelope, unit, mid, cut);

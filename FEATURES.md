@@ -983,6 +983,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The isolation cut is out of the compose loop — wool lanes stay pristine (G86)** — `Compose/Composer.cs`:
+  `IsolationCut` carved a `bridge-a` build zone across a team's `spawn↔wool` route on ~40% of plans, *before*
+  fragmentation had slot-carving rules — a bridge landing across an otherwise clean wool approach. `Composer`
+  no longer calls it: the `cut` is a constant `null`, so the RNG re-keys (the whole-map layout shifts, the cut's
+  three draws gone). The code is **kept intact and dormant** — `IsolationCut`/`CutResult`, the `ComposedStages.Cut`
+  field, the `Assemble` `bridge-a` zone, the `IsolationCutCount` soft term — so it returns as a proper slot-aware
+  fragment pass (cutting only a `run`/`bar`, never a `room`/`entry`, per `docs/contracts/map-generation.md` §5.3)
+  with a one-line re-add. The two `ComposerTests` and one `WoolBoxGrowthTests` that asserted cuts occur retire
+  with it (they land again with the pass). Verified: full Pgm suite 609/609 green, gallery 42/42 with 0 `bridge-a`
+  zones. (G86)
+
 - **The spawn box is a small fixed box — a size rule in `FillProfiles` (G84)** — `Compose/Boxes/FillProfiles.cs`:
   the porting kept the old grower's "grow the shape to absorb its budget share" sizing, so a spawn stretched with
   player count to ~100 blocks when the docs say a spawn is **small, ≤20** (`docs/contracts/map-generation.md` §4).

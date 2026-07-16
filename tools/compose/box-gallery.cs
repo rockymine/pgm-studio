@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// build-cache bust: box-model gallery (G79 donut + G62 slot mirror) round 6 — spawn capped small, FillProfiles.SpawnSizes rule (G84)
+// build-cache bust: box-model gallery (G79 donut + G62 slot mirror) round 7 — isolation cut out of the compose loop, wool lanes pristine (G86)
 using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;

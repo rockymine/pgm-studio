@@ -12,10 +12,15 @@ public sealed record CutResult(IReadOnlyList<GrownPiece> Pieces, int[] BridgeRec
 /// FLUSH against both sides (BZ7: shared borders, zero overlap) at the full interface width (BZ9). When the
 /// severed piece leaves a mid-face scar on a longer edge, a small connector extrusion (BZ8's readable
 /// "offspring" piece) carries the interface and the bridge docks full-width against the connector's end; a
-/// corner-flush or full-width scar docks directly. The severed piece keeps its marker. Applied to ~40% of
-/// plans; skipped, never fatal, when no candidate placement survives the invariants.
+/// corner-flush or full-width scar docks directly. The severed piece keeps its marker. Skipped, never fatal,
+/// when no candidate placement survives the invariants.
 ///
 /// Draw order (after the mid draws): (x1) whether to cut, (x2) the wool candidate rotation, (x3) the gap.
+///
+/// <para><b>Not in the compose loop.</b> Kept intact but no longer called by <see cref="Composer"/>: it cut a
+/// wool approach before fragmentation had slot-carving rules (a bridge landing across a clean lane). It returns
+/// as a proper slot-aware fragment pass — cutting only a <c>run</c>/<c>bar</c>, never a <c>room</c>/<c>entry</c>
+/// — at which point <see cref="Composer"/> calls it again.</para>
 /// </summary>
 public static class IsolationCut
 {
