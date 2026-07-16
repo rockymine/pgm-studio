@@ -222,10 +222,10 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
 
 Two tracks share this section. **The headline is the composer** (plan-then-realize): rule-based
 composition of `plan.json` seeds under the frozen rules (`docs/contracts/map-generation.md` +
-`layout-rules.md` + `plan-editor.md`). Its current focus — **the box model, box per box** — is the batch
-in `TODO.md` (G61/G62, M2); the later milestones (M3/M4 + doc), the parked G60 soft-rule long tail, and
-the interface / hub / lane feature long-tail live here, **reworded to be delivered *through* the box
-model** rather than against the current grower. The
+`layout-rules.md` + `plan-editor.md`). Its current focus — **box-driven map generation, box per box** —
+is the batch in `TODO.md` (G61 → G78 → G62 → G41 → G63, M2–M4); the doc pass, the parked G60 soft-rule
+long tail, the parked G32 realize subtracks, and the interface / hub / lane feature long-tail live here,
+**reworded to be delivered *through* the box model** rather than against the current grower. The
 island-detection / validation work follows. (The older / parallel **lane sketch generator** track — the
 archetype starters that seeded a draft map from lane primitives — has been **retired** in favour of the
 plan-then-realize direction; see `FEATURES.md` § Layout generation.) Landed so far (`FEATURES.md`): the
@@ -233,7 +233,7 @@ composer core + box-based wool-approach vocabulary (G49/G53/G54), island-outline
 the `island-roles` hook (`G11`), and the layout-generation design that resolved `G15`.
 Builds on the Sketch tool (`S2`) and the intent model (`N`).
 
-**Composer — box-model milestones (M3–M4 + doc; M2 is the `TODO.md` focus)**
+**Composer — box-model long tail (doc pass + marker/structure knobs; M2–M4 are the `TODO.md` focus)**
 - [ ] **G76 — The marker inspector exposes none of a structure's knobs, so every placed marker is the
   default.** The stamps are all built and the plan format names them — what is missing is the UI. A
   destroyable has **six styles** (`pillar-1/2/3` · `cube-3` · `cube-4` · `column-plus`), a material from the
@@ -266,44 +266,6 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   Note the stamped footprint, not the marker point, is the subject — a marker legally on its piece can still
   hang its cube off the edge.
 
-- [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
-  the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated. Build the
-  **open-variant** shape layer over the shared family machinery: `Compose/Boxes/FillPattern` (arrangements
-  of family shapes in a box — the terminal-less / through-corridor read), `FillProfiles` (per-`BoxKind`
-  legal patterns × families × binding, each restriction citing its `layout-rules.md` id), `BoxFiller` (the
-  one profile-driven fill entry point). `FrontForm` retires into frontline patterns (none · single-chain
-  I/Z · wide-face · twin-strands+recess — FR3/FR4/FR6/CT8); hub open patterns (solid I · L · Z ·
-  ring-with-hole — HB1/HB3/HB4). **G39's** corner/edge interlock is expressed here as a `BoxInterface`
-  constraint. Hub/frontline pattern pieces carry **slots with box-kind ownership** (`hub-a/bar`,
-  `front-a/…`) — the first labels outside the wool box, extending G61's label-preservation invariant to
-  every box kind. Fills start **publishing vacancies** (§4.4): boxes may overlap (piece-disjointness, not
-  box-disjointness, is the invariant), so a fill's residual envelope is published as claimable negative
-  space — a **U-hub publishes its bay**, a twin frontline its recess (the CT8 recess generalized). Emit-side
-  and exact (families are fixed templates), so no derive pass finds them. `FillProfiles` gates claims
-  (a spawn may claim a hub bay whose mouth faces away from the axis) — this is what makes the
-  **spawn-in-hub-bay** layout expressible (three wools L/T/R + the spawn in the U's bay) instead of
-  forcing the G45 parallel-lane anti-pattern. `emit-verify` grows per-kind pattern mirrors (twin → closure
-  hole ringed by two strands; L hub → one-bend junction outline) — no new `*Shape` classes. Blocked partly
-  on the author's frontline/hub teaching set. Depends on G61. (review §3.1, §4.3, §4.4, §7.6)
-- [ ] **G63 — [M4] Partitioner-first composition.** `Compose/Boxes/BoxPartition` (boxes + interfaces =
-  a constraint graph) replaces the `Shape` sampling record as what sampling produces; `BoxPartitioner`
-  (budget → partition, **directed repair** from `FillResult` instead of 60-attempt re-rolls). **Boxes may
-  overlap** — the partition allocates budgets and constraints, not exclusive area (piece-disjointness +
-  image clearance is the real invariant); the partitioner allocates later boxes **from published vacancies**
-  (§4.4) as well as fresh space, so a bay-seated spawn docks up to three walls for free (`spawn-first`
-  inverts it — the hub's fill must wrap a staked pocket). `GrowthOrder` named strategies (`spawn-first` /
-  `hub-first` / `mid-out`) make the emission order an **experiment axis** judged by the evaluator + G43, not
-  doctrine. `Box.LandTargetCells` gives the
-  two-currency budget its per-box half, so **fragment** becomes a generic pass over the partition
-  (`IsolationCut` + the mid's low target are its two existing special cases) — and a **label-inheriting**
-  one: a piece the pass splits or converts hands its (box, slot) ownership to its products, so a build
-  zone knows which slot it replaced (`wool-a/entry-run`) and the §5.3 per-slot cut law (a `run`/`bar` may
-  split, an `entry`/`room` stays whole) is enforced *at the cut* against the label, never re-derived;
-  `IsolationCut`'s connector extrusion (today born unlabeled) is labeled the same way. This is what lets
-  fragmentation and connection mutation be driven off labeled pieces to the limit — the moves cite slots,
-  the mirror only verifies. `TeamUnitGrower` retires.
-  Re-baseline gallery cases; **then** freeze the G32-D goldens (per strategy). Depends on G61.
-  (review §4.2, §4.4, §4.5, §7.7)
 - [ ] **G64 — Doc pass on `map-generation.md` (reconcile with shipped code).** The canonical doc silently
   mixes description and aspiration. Declare the emission order an **experimental strategy axis over the
   constraint graph** (`spawn-first`/`hub-first`/`mid-out` are `GrowthOrder` knobs), not a fixed sequence —
@@ -444,6 +406,27 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   maps; sequenced **after** the interface layer (G39/G40).
 
 **Composer — realize & unblock**
+- [~] **G32 — Composer realize: the two remaining subtracks (C structures & elevation · D gates & goldens).**
+  Everything else under this id shipped (`FEATURES.md`): the A track (envelope + team-unit grower), the
+  B track (mid carve, isolation cuts, build-zone discipline, the compose acceptance gate), the
+  `spawn`/`wool-room` room carve (G49), and the plan→sketch+intent compile chain (`PlanCompiler`,
+  golden-pinned). Two separable slices remain:
+  - **G32-C — structures & elevation.** Generated plans realize *flat and bare*. Give them their third
+    dimension and their furniture: raise the spawn and face it toward play (SP3/SP4), stamp its iron
+    (SP7), give every wool approach a stepped climb to the room (WL5), lift the rooms off the base
+    surface (EL6), lay the height palette (EL1: base 9, step 2, odd heights only) and the walls (ST4).
+    This is **a second generator, not a checklist** (review §11.3): about a third of the authored seeds'
+    pieces are stair treads and every wool tops a deliberate climb, so the pass wants its own small
+    pattern vocabulary (a staircase chain climbing an interface is a pattern in the map-generation §4.3
+    sense). If generated maps ever read valid-but-flat, this is the missing soul. One of the last
+    pipeline steps — parked while the box model lands, though it is technically independent of it.
+  - **G32-D — gates, goldens, emit.** The full-pipeline acceptance gate on composed output:
+    `PlanValidator` zero errors with zones present, `FannedGraph` fully traversable, stat envelopes vs
+    `seed-stats.md`, the `plan.json` loadable in `/plan`, and fixed-RNG goldens under `tests/`.
+    **Blocked on G63** — every box milestone re-keys the RNG, so goldens frozen earlier would just
+    re-break.
+
+  p5 / rot_90 stays a known limitation until **G35** (below).
 - [ ] **G35 — Composer-side buffer reservation (unblocks p5 / small rot_90).** Have the composer author
   buffers/allotments during generation — reserve a ≥1-cell border on rot_90 boards so the quarter-turn
   image can't self-collapse, hold spacing on small boards — to unblock p5 (BZ6 + spawn ≥2×2 over-budget at

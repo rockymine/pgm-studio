@@ -12,25 +12,26 @@ When this board drains, pull the next theme up from `BACKLOG.md`. Board rules li
 Task ids are a section letter + number (`S13`, `B10`, `G15`) — **globally unique and stable** across all
 three files. Moving a task between files never changes its id; never renumber or reuse.
 
-## Layout generation (G) — current focus: the box model (box per box, simplicity first)
+## Layout generation (G) — current focus: box-driven map generation (box per box, simplicity first)
 
 Phase 2 of plan-then-realize. The consolidation base is in: M0 + M1 (G58/G59) and the evaluator engine
 with its hard gate, soft-term foundation, frontline/rotation terms and editor wiring (the G60 foundation —
-all in `FEATURES.md`). **The box model is now the focus**: G61 (M2, wool boxes in production) then G62
-(slot recovery for the mirror), with G41 (hub/frontline patterns, M3) and G63 (partitioner, M4) queued in
-`BACKLOG.md`. Box per box, with simplicity in mind — each box kind gets its **shape profile as data**
-(what shapes a spawn can be: {I, L}, small boxes per SP; what a wool entry admits: the §4 width menu), and
-the slot labels those emissions carry are what every later rule binds to
-(`docs/contracts/map-generation.md` §5.3: the labels drive, the mirror only verifies).
+all in `FEATURES.md`). **This board is the box model, end to end**: one box kind at a time, each step
+reusing what the previous one proved — wool (G61) → spawn (G78) → the mirror's slot recovery (G62) →
+hub/frontline patterns (G41) → the partitioner switch (G63), where `TeamUnitGrower` retires and sampling
+produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
+{I, L}, small boxes per SP; what a wool entry admits: the §4 width menu), and the slot labels the
+emissions carry are what every later rule binds to (`docs/contracts/map-generation.md` §5.3: the labels
+drive, the mirror only verifies).
 
-The **G60 soft-term long tail is deliberately parked** in `BACKLOG.md`: discovering and labelling soft
-rules for structures the composer cannot yet compose is the wrong stage — the crammed-frontline dead end
-(G69) is the lesson — so rule discovery resumes as the box model gives each rule its vocabulary. The
-G32-D seed goldens still freeze only **after G63** (M2–M4 re-key every seed's RNG). G50–G52 (the emitter
-placement knobs) stay in `BACKLOG.md` until G61 makes them reachable from generation; their variant
-grammar is already classifier-stable (`ShapeVariantTests`).
+Deliberately **not** here: the G60 soft-rule long tail (parked in `BACKLOG.md` — discovering soft rules
+for structures the composer can't yet compose is the wrong stage; the crammed-frontline dead end, G69, is
+the lesson), G32's remaining realize subtracks (parked — elevation is one of the last pipeline steps),
+and G50–G52 (the emitter placement knobs — parked until G61 makes them reachable from generation; their
+variant grammar is already classifier-stable, `ShapeVariantTests`). The G32-D seed goldens freeze only
+**after G63** — every milestone below re-keys the RNG, so earlier goldens would just re-break.
 
-**Box model — M2 (current)**
+**Box model — M2 → M4**
 
 - [ ] **G61 — [M2] Wool arms become wool boxes (first production caller of the emitter).** Inside
   `TeamUnitGrower`, replace the inline 1–3-segment wool-lane growth (its own I/L/Z grammar — the third
@@ -48,9 +49,19 @@ grammar is already classifier-stable (`ShapeVariantTests`).
   after emission is label-preserving**: labels live through carve/cut/repair up to `Assemble`, the one
   boundary where they drop from the written plan (the evaluator receives them via `EvalContext` — G62/G68;
   a shape already attached to another shape is never re-read, the labels drive and the mirror only
-  verifies). Kills the third
+  verifies). The spawn lane stays hand-grown at M2 — **G78** is the second box kind. Kills the third
   shape impl; gives G44 its structural-spend vocabulary and makes G50–G52 reachable from generation.
   **Changes RNG consumption** (goldens re-key). Depends on G58. (review §4, §4.4, §7.4)
+- [ ] **G78 — Spawn boxes: the spawn emits through the shared emitter (the second box kind).** After G61,
+  replace `TeamUnitGrower`'s hand-rolled spawn-lane geometry (its inline I/L growth with the spawn room as
+  terminal) with a `Box(Spawn)` filled through the same machinery: a small `SpawnBoxEmitter` role binding
+  over `Shapes.ShapeEmitter` (~20 lines — terminal → `spawn` role + marker) and the spawn's **shape
+  profile as plain data** — families {I, L} only, small boxes (SP: ~10×10 direct, 10×20 with a run-up,
+  20×20 for an L). This starts the per-kind profile table two rows early (wool, spawn) as data; the
+  `FillProfiles` *type machinery* still lands at G41. No new shape machinery otherwise: the spawn is
+  terminal-capped, so the same classifier, the same mirror, and G61's label invariant apply unchanged
+  (`spawn-a/entry`…). **Changes RNG consumption** (goldens re-key — free before G63). Depends on G61.
+  (review §4.3, §8 — resolves `SpawnBoxEmitter`'s "M2/M3" ambiguity into its own slice)
 - [ ] **G62 — Slot recovery for the generated mirror (generated plans only).** `Shapes/SlotAssignment`:
   after `Classify` returns the family, template-match the slot sequence onto the classified pieces
   (`AssignSlots(family, pieces) → piece→slot map`) — matched on **path order and adjacency** (the entry is
@@ -64,18 +75,42 @@ grammar is already classifier-stable (`ShapeVariantTests`).
   surface; decoding finished maps is a trap). `WoolLaneShape` the class retires here (its lane measurable
   is already the `ClassifyOpen` read). Depends on G58, G59. (review §3.4, §7.5; the §3.5/§3.6
   full-plan-scoping half is retired)
-
-**Realize & gate (plan → loadable, validated seed)**
-- [~] **G32 — Composer realize + gates.** Skeleton landed (`FEATURES.md`); the `spawn` / `wool-room` piece
-  roles now land too (G49, `FEATURES.md`). Remaining: **G32-C markers/heights/walls** — SP3/SP4 spawn
-  (facing absolute, raised), SP7 iron, WL5 stepped approach climb, EL1 palette (base 9, step 2, all-odd),
-  ST4 walls, EL6 (the rooms are flat at the base surface — the elevation pass raises them). **G32-C is a
-  second generator, not a checklist line** (review §11.3): the authored feel is substantially elevation
-  (~⅓ of the complex seeds are stair treads; every wool tops a climb), so the elevation pass wants its own
-  pattern vocabulary — a staircase chain (n treads × step 2 climbing an interface) is a §4.3-style pattern.
-  If generated maps ever read valid-but-flat, this is where the missing soul is. **G32-D gates
-  + goldens + emit** — `PlanValidator` zero-errors with zones present, `FannedGraph` full traversability,
-  stat envelopes vs `seed-stats.md`, `plan.json` loadable in `/plan`, fixed-RNG goldens under `tests/`.
-  **G32-D goldens freeze only after G63 (M4):** the box migration (G61/G63) changes RNG consumption and
-  would re-break any goldens frozen earlier — G32-C is independent and can proceed now. p5/rot_90 stays a
-  known limitation until **G35**.
+- [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
+  the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated. Build the
+  **open-variant** shape layer over the shared family machinery: `Compose/Boxes/FillPattern` (arrangements
+  of family shapes in a box — the terminal-less / through-corridor read), `FillProfiles` (per-`BoxKind`
+  legal patterns × families × binding, each restriction citing its `layout-rules.md` id), `BoxFiller` (the
+  one profile-driven fill entry point). `FrontForm` retires into frontline patterns (none · single-chain
+  I/Z · wide-face · twin-strands+recess — FR3/FR4/FR6/CT8); hub open patterns (solid I · L · Z ·
+  ring-with-hole — HB1/HB3/HB4). **G39's** corner/edge interlock is expressed here as a `BoxInterface`
+  constraint. Hub/frontline pattern pieces carry **slots with box-kind ownership** (`hub-a/bar`,
+  `front-a/…`) — the first labels outside the wool box, extending G61's label-preservation invariant to
+  every box kind. Fills start **publishing vacancies** (§4.4): boxes may overlap (piece-disjointness, not
+  box-disjointness, is the invariant), so a fill's residual envelope is published as claimable negative
+  space — a **U-hub publishes its bay**, a twin frontline its recess (the CT8 recess generalized). Emit-side
+  and exact (families are fixed templates), so no derive pass finds them. `FillProfiles` gates claims
+  (a spawn may claim a hub bay whose mouth faces away from the axis) — this is what makes the
+  **spawn-in-hub-bay** layout expressible (three wools L/T/R + the spawn in the U's bay) instead of
+  forcing the G45 parallel-lane anti-pattern. `emit-verify` grows per-kind pattern mirrors (twin → closure
+  hole ringed by two strands; L hub → one-bend junction outline) — no new `*Shape` classes. Blocked partly
+  on the author's frontline/hub teaching set. Depends on G61. (review §3.1, §4.3, §4.4, §7.6)
+- [ ] **G63 — [M4] Partitioner-first composition (the box-driven generation switch).** `Compose/Boxes/
+  BoxPartition` (boxes + interfaces = a constraint graph) replaces the `Shape` sampling record as what
+  sampling produces; `BoxPartitioner` (budget → partition, **directed repair** from `FillResult` instead
+  of 60-attempt re-rolls). **Boxes may
+  overlap** — the partition allocates budgets and constraints, not exclusive area (piece-disjointness +
+  image clearance is the real invariant); the partitioner allocates later boxes **from published vacancies**
+  (§4.4) as well as fresh space, so a bay-seated spawn docks up to three walls for free (`spawn-first`
+  inverts it — the hub's fill must wrap a staked pocket). `GrowthOrder` named strategies (`spawn-first` /
+  `hub-first` / `mid-out`) make the emission order an **experiment axis** judged by the evaluator + G43, not
+  doctrine. `Box.LandTargetCells` gives the
+  two-currency budget its per-box half, so **fragment** becomes a generic pass over the partition
+  (`IsolationCut` + the mid's low target are its two existing special cases) — and a **label-inheriting**
+  one: a piece the pass splits or converts hands its (box, slot) ownership to its products, so a build
+  zone knows which slot it replaced (`wool-a/entry-run`) and the §5.3 per-slot cut law (a `run`/`bar` may
+  split, an `entry`/`room` stays whole) is enforced *at the cut* against the label, never re-derived;
+  `IsolationCut`'s connector extrusion (today born unlabeled) is labeled the same way. This is what lets
+  fragmentation and connection mutation be driven off labeled pieces to the limit — the moves cite slots,
+  the mirror only verifies. `TeamUnitGrower` retires.
+  Re-baseline gallery cases; **then** freeze the G32-D goldens (per strategy). Depends on G61.
+  (review §4.2, §4.4, §4.5, §7.7)
