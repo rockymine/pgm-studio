@@ -55,8 +55,15 @@ frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocke
   every fill and pattern binds to, replacing today's single-mouth assumption: **valid edges** on
   `BoxInterface` (long vs short; a wool-touching edge/corner never docks) and **per-family multi-interface
   demands**. This is the data model `FillProfiles` binds against and G80's docking modes + G41-C's
-  open-variant patterns execute over — the slice that used to "open" G41. Independent of G41-A. Depends on
-  G61; unblocks G80. (review §1.5/§1.6, §4.3)
+  open-variant patterns execute over — the slice that used to "open" G41. **The boundary with G80 (structure
+  vs content): NOT a box-relative/shape-relative split.** A `BoxInterface` is *addressed* box-locally (an
+  `(edge, offset, width)` interval — that part is box-relative) and this task lands the *vocabulary* (an edge
+  can be tagged long/short + dockable-or-not, a family can demand several). But the **validity itself is
+  shape-relative** (a *wool-touching* edge, the *entry's parallel* edge — shape features, not box coords), and
+  the per-family *computation* of the valid set is **G80** (which makes an entry shift **carry its dock with
+  it**, §4). So the model must carry validity as **shape-derived tags, never a fixed box-edge set** — bake in
+  box edges and G80's shape-relative modes become inexpressible. G41-B = the vocabulary; G80 = the modes that
+  populate it. Independent of G41-A. Depends on G61; unblocks G80. (review §1.5/§1.6, §4.3)
 - [ ] **G80 — Docking modes as per-family data: the clamp's two entries, the scythe's entry edges.**
   Valid connections are **shape-relative, not box-relative** (an entry shift carries its dock with it),
   declared per family as enumerable docking modes (map-generation.md §4). **Clamp** (the authored,
