@@ -68,7 +68,10 @@ in `BACKLOG.md`.)*
   the **wool arm routes through the plan-cell `BoxFiller`** (`FillArm` retires `PlaceArm`): the box footprint is
   allocated first and the fill sized to it (**footprint an input**), seated by its mouth row in the host window; the
   wool arm's RNG re-keys (first churn — suite still green: tests gate invariants/authored seeds, composer goldens
-  freeze after G63).* **Remaining:** route the **spawn/hub/frontline** arms through `BoxFiller` too; fill each box to
+  freeze after G63). (1c) the shared four-mouth orientation is extracted to `MouthOrient`, and the **spawn arm routes
+  through the plan-cell fill** too (`FillSpawn`; `SpawnBoxEmitter.Fill` takes a plan-cell `Box`+mouth), the entry run
+  re-pinned for the wool-on-spawn dock — byte-identical for I / L-dir≥0 spawns.* **Remaining:** route the **hub/frontline**
+  boxes (open, no terminal — G41-C emission); fill each box to
   its `Box.LandTargetCells` with **directed repair** from `FillResult` (retiring `SolveDepth`/`SolveWidth`/`spawnLen`
   and the 60-attempt re-rolls); the clamp's **dual-host corner-wrap**; the `Composer` routes through the partitioner,
   **`TeamUnitGrower` retires**, re-baseline gallery cases, **then** freeze the G32-D goldens. Depends on G63-B.
