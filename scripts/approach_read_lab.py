@@ -82,25 +82,23 @@ def reflex_corners(cells):
             if cnt == 3: r += 1
     return r
 
-def has_bay(cells):
+def has_fold(cells):
+    if not cells: return False
     mnx, mnz, mxx, mxz = bbox(cells)
-    seen = set()
+    for z in range(mnz, mxz+1):
+        runs = 0; in_run = False
+        for x in range(mnx, mxx+1):
+            if (x, z) in cells:
+                if not in_run: runs += 1; in_run = True
+            else: in_run = False
+        if runs >= 2: return True
     for x in range(mnx, mxx+1):
+        runs = 0; in_run = False
         for z in range(mnz, mxz+1):
-            if (x, z) in cells or (x, z) in seen: continue
-            q = [(x, z)]; seen.add((x, z)); region = []
-            while q:
-                c = q.pop(); region.append(c)
-                for nb in n4(c):
-                    if mnx <= nb[0] <= mxx and mnz <= nb[1] <= mxz and nb not in cells and nb not in seen:
-                        seen.add(nb); q.append(nb)
-            mask = 0
-            for c in region:
-                if c[0] == mnx: mask |= 1
-                if c[0] == mxx: mask |= 2
-                if c[1] == mnz: mask |= 4
-                if c[1] == mxz: mask |= 8
-            if bin(mask).count('1') == 1: return True
+            if (x, z) in cells:
+                if not in_run: runs += 1; in_run = True
+            else: in_run = False
+        if runs >= 2: return True
     return False
 
 def min_run_width(cells, seeds):
@@ -146,7 +144,7 @@ def classify(filled, terminal):
     if bends == 1: return ("L", width)
     if parallel_arms(comp, terr, terminal):
         return ("U" if flush_on_bar(terr, rminx, rmaxx, rminz, rmaxz) else "H", width)
-    return ("Scythe" if has_bay(comp) else "Z", width)
+    return ("Scythe" if has_fold(terr) else "Z", width)
 
 def flush_on_bar(terr, rminx, rmaxx, rminz, rmaxz):
     def col_has(x): return any((x, z) in terr for z in range(rminz, rmaxz+1))

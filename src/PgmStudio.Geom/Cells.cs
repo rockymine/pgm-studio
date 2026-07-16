@@ -2,7 +2,7 @@ namespace PgmStudio.Geom;
 
 /// <summary>
 /// Rectilinear cell-set substrate — the shared 4-connected raster primitives (neighbour iteration, flood fill,
-/// connected components, enclosed-void detection, reflex-corner counting, bay detection, bounding box, min run
+/// connected components, enclosed-void detection, reflex-corner counting, fold detection, bounding box, min run
 /// width) that the shape classifier, the lane read, and the board deriver all read cell topology through.
 /// Pure integer-grid geometry over <c>(x, z)</c> cells; references nothing above <c>Geom</c>.
 /// </summary>
@@ -118,33 +118,35 @@ public static class Cells
         return r;
     }
 
-    /// <summary>True when the cell set has a bay: an open concavity indenting from a SINGLE bounding-box edge
-    /// (a notch wrapped by cells on its other three sides). A corner notch touches two edges and an enclosed
-    /// hole touches none, so neither counts. Width-independent.</summary>
-    public static bool HasBay(IReadOnlySet<(int, int)> cells)
+    /// <summary>True when the cell set doubles back on itself: some grid row or column meets it in two or more
+    /// runs (the set is not orthogonally convex). A fold wrapping a concavity always puts two separate runs on
+    /// the lines crossing that concavity; a staircase never does. A property of the cells alone, width-
+    /// independent — unlike a bounding-box-edge test, the verdict cannot flip merely because added neighbour
+    /// cells extend the bounding box.</summary>
+    public static bool HasFold(IReadOnlySet<(int, int)> cells)
     {
-        int mnx = cells.Min(c => c.Item1), mxx = cells.Max(c => c.Item1), mnz = cells.Min(c => c.Item2), mxz = cells.Max(c => c.Item2);
-        var seen = new HashSet<(int, int)>();
+        if (cells.Count == 0) return false;
+        var (mnx, mnz, mxx, mxz) = BoundingBox(cells);
+        for (var z = mnz; z <= mxz; z++)
+        {
+            int runs = 0; var inRun = false;
+            for (var x = mnx; x <= mxx; x++)
+            {
+                if (cells.Contains((x, z))) { if (!inRun) { runs++; inRun = true; } }
+                else inRun = false;
+            }
+            if (runs >= 2) return true;
+        }
         for (var x = mnx; x <= mxx; x++)
+        {
+            int runs = 0; var inRun = false;
             for (var z = mnz; z <= mxz; z++)
             {
-                if (cells.Contains((x, z)) || seen.Contains((x, z))) continue;
-                var mask = 0;
-                var q = new Queue<(int, int)>(); q.Enqueue((x, z)); seen.Add((x, z));
-                var region = new List<(int, int)>();
-                while (q.Count > 0)
-                {
-                    var c = q.Dequeue(); region.Add(c);
-                    foreach (var n in N4(c)) if (n.Item1 >= mnx && n.Item1 <= mxx && n.Item2 >= mnz && n.Item2 <= mxz && !cells.Contains(n) && seen.Add(n)) q.Enqueue(n);
-                }
-                foreach (var c in region)
-                {
-                    if (c.Item1 == mnx) mask |= 1; if (c.Item1 == mxx) mask |= 2;
-                    if (c.Item2 == mnz) mask |= 4; if (c.Item2 == mxz) mask |= 8;
-                }
-                int edges = ((mask & 1) != 0 ? 1 : 0) + ((mask & 2) != 0 ? 1 : 0) + ((mask & 4) != 0 ? 1 : 0) + ((mask & 8) != 0 ? 1 : 0);
-                if (edges == 1) return true;
+                if (cells.Contains((x, z))) { if (!inRun) { runs++; inRun = true; } }
+                else inRun = false;
             }
+            if (runs >= 2) return true;
+        }
         return false;
     }
 

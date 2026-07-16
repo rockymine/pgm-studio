@@ -19,8 +19,10 @@ public enum LaneRead { I, L, Z, Complex, Plaza, None }
 ///
 /// <para><b>Every test is width-independent.</b> Turns are reflex corners of the terrain <em>outline</em> (the
 /// approach minus the terminal), so a lane and the same lane widened uniformly turn the same number of times. A
-/// <b>bay</b> is a concavity that indents from a single edge of the bounding box — a wrapped notch at any width,
-/// never a reach-<c>W</c>-cells probe. A <b>branch</b> (U/H) is two terrain runs meeting a shared bounding-box
+/// <b>fold</b> (scythe) is terrain that doubles back — some row or column crosses it in two runs, the lines
+/// through the wrapped bay — read on the terrain itself, so a shifted endpoint or a docked neighbour changes
+/// the verdict only by genuinely adding or filling a fold, never by moving the bounding box. A <b>branch</b>
+/// (U/H) is two terrain runs meeting a shared bounding-box
 /// edge — two legs off a crossbar — so a leg stays one leg however thick it is drawn. A <b>bridge</b> (clamp) is
 /// the terminal being a cut cell: remove it and the terrain falls into two pieces (the wall between two bars).</para>
 ///
@@ -83,10 +85,13 @@ public static class ShapeClassifier
         // by how the terminal docks the crossbar: flush against a bar wider than itself (the crossbar reaches past
         // the terminal toward the legs) is a U; capping its own narrow room-run stub is an H. The terminal's own
         // edge is excluded from the leg test — otherwise a fold's two path-ends (a scythe) read as a fork. Else a
-        // fold that wraps a bay is a scythe; two opposing bends with no bay is a Z.
+        // terrain that doubles back (some row/column crosses it in two runs — the fold wrapping the scythe's bay)
+        // is a scythe; a staircase of opposing bends is a Z. The fold is read on the terrain cells, not the
+        // bounding box, so the verdict only changes when cells actually add or fill a fold — never because a
+        // shifted endpoint or a docked neighbour merely moved the bounding box.
         if (ParallelArms(comp, terr, terminal))
             return (FlushOnBar(terr, rminx, rmaxx, rminz, rmaxz) ? ShapeFamily.U : ShapeFamily.H, width);
-        return (Cells.HasBay(comp) ? ShapeFamily.Scythe : ShapeFamily.Z, width);
+        return (Cells.HasFold(terr) ? ShapeFamily.Scythe : ShapeFamily.Z, width);
     }
 
     /// <summary>The open (terminal-less) read of the corridor the piece <paramref name="terminalPieceId"/> caps in

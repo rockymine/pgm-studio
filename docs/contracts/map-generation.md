@@ -134,13 +134,16 @@ count of distinct crossings ringing it).
 Two other enclosed voids are **not** a hole in this sense, and must not be called one: the **donut's
 void** is a *shape-level* enclosed void (§5), and a box's opening is an **interface** (§1.5).
 
-### 1.8 bay — a scythe feature
+### 1.8 fold and bay — the scythe features
 
-A **bay** is a concavity that indents from a **single** bounding-box edge (a notch wrapped by
-terrain on its other three sides), width-independent. A corner notch touches two edges and an
-enclosed void touches none — neither is a bay. A bay **decides exactly one family**: the scythe (a
-fold that wraps a bay). The gaps in U / H / Clamp are bay-shaped too, but there the family is fixed
-by the branch and bridge tests and the bay is incidental. Bay is a *feature*, not a family.
+A **fold** is terrain that doubles back on itself — some grid row or column crosses the terrain in
+**two runs** (the terrain is not orthogonally convex), width-independent. The **bay** is the open
+concavity the fold wraps. The **fold decides exactly one family**: the scythe. The fold, not a
+bounding-box read of the bay, is the test — sliding an endpoint off a box corner opens the bay
+toward a second edge without unfolding the shape, so the fold read stays stable under the emitter's
+entry/wool shifts and under docked neighbour terrain. The gaps in U / H / Clamp are bay-shaped too,
+but there the family is fixed by the branch and bridge tests. Fold and bay are *features*, not
+families.
 
 ### 1.9 width — four distinct things, and two modes
 
@@ -345,7 +348,8 @@ Donut }`); `Isolated` is a build-only case with no terrain to emit.
      own edge is excluded, so a fold's two path-ends never read as a fork):
      - **wool flush on the crossbar** (the bar overhangs the wool) → **U**.
      - **wool on its own room-run stub** → **H**. (U and H differ by exactly one piece — the stub.)
-   - **no branch** — a fold that wraps a **bay** → **Scythe**; two opposing bends with no bay → **Z**.
+   - **no branch** — terrain that **doubles back** (some row/column crosses it in two runs — the
+     fold wrapping a bay, §1.8) → **Scythe**; a staircase of opposing bends → **Z**.
 
 Because none of these consult the reference width, an H with a box leg and a thin leg still reads H, a
 uniformly widened Z stays Z, and a wide-bay scythe stays a scythe.
@@ -382,8 +386,14 @@ can be cut into lane + build-lane; an `entry`/`room` typically stays whole).
 ### 5.4 The emit ↔ derive mirror
 
 `emit` (build a family) and `derive` (classify a family) are a forward/inverse pair, and asserting
-they agree is the **correctness test**. Deriving is also how *external* shapes are read (a traced
-corpus map, an uploaded plan). Harnesses (`tools/deriver/`, run with `dotnet run tools/deriver/<file>.cs`):
+they agree is the **correctness test**. **The mirror's scope is the generator's own artifacts** —
+emissions, synthetic fixtures, and composed pre-fragment units, where the wool box bounds what is
+read. Classifying **finished maps** (traced corpus maps, hand-authored plans) is **out of scope by
+decision**: fragmentation moves family identity onto the play surface (terrain + build links), a
+finished map's base plan is not recoverable, and full-map decoding is a trap — the human oracle
+hypothesizes the fragmentation/mutation moves instead
+(`docs/wool-approach-read-investigation.md`). Harnesses (`tools/deriver/`, run with
+`dotnet run tools/deriver/<file>.cs`):
 
 - `shapes-gen.cs` — builds the §5.1 catalog fixtures and classifies each against its family.
 - `emit-verify.cs` — the mirror loop: emit every family × size × width, derive back, assert equal + no

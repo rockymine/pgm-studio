@@ -73,12 +73,20 @@ public sealed class CellsTests
     }
 
     [Test]
-    public async Task HasBay_is_true_for_a_single_edge_notch_and_false_for_a_solid_block()
+    public async Task HasFold_is_true_when_a_line_crosses_two_runs_and_false_for_staircases()
     {
-        // a U: two arms + a floor, the notch open only on the top edge
+        // a U: two arms + a floor — the rows through the notch cross two runs
         var u = Set((0, 0), (2, 0), (0, 1), (2, 1), (0, 2), (1, 2), (2, 2));
-        await Assert.That(Cells.HasBay(u)).IsTrue();
-        await Assert.That(Cells.HasBay(Rect(0, 0, 3, 3))).IsFalse();
+        await Assert.That(Cells.HasFold(u)).IsTrue();
+        // solid blocks and straight bars have single runs everywhere
+        await Assert.That(Cells.HasFold(Rect(0, 0, 3, 3))).IsFalse();
+        await Assert.That(Cells.HasFold(Rect(0, 0, 5, 1))).IsFalse();
+        // a Z staircase is orthogonally convex — every row and column is one run
+        var z = Set((0, 0), (1, 0), (1, 1), (2, 1), (3, 1), (3, 2));
+        await Assert.That(Cells.HasFold(z)).IsFalse();
+        // the same staircase folded back at its end crosses two runs on the top row
+        var hook = Set((0, 0), (1, 0), (1, 1), (2, 1), (3, 1), (3, 0));
+        await Assert.That(Cells.HasFold(hook)).IsTrue();
     }
 
     [Test]

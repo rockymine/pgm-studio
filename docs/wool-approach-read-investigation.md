@@ -195,7 +195,37 @@ splits them apart and re-scopes the second:
 
 None of these edits were applied to `BACKLOG.md` — they are proposals for the author to fold in.
 
-## 6. Reproducing
+## 6. Addendum (2026-07-16) — the family drift is fixed; the strategy decision is applied
+
+Author's ruling on this investigation, and what shipped from it:
+
+- **Reading finished maps is out of scope by decision, permanently.** A real map's base plan is not
+  recoverable — the traces themselves already simplify (aequabilis's circular holes mocked as
+  rects; a-new-day's spawn lane traced as parallel pieces where a *hypothetical* original plan
+  would hold one spawn-width piece, later cut and stretched). Hypothesizing the
+  fragmentation/mutation moves a real map "went through" is the **human oracle's** mental model,
+  deliberately not automated. Slot definitions exist **for generated maps only**; the classifier
+  is the generator's mirror (without it we would not know what we generated) — a hard prerequisite
+  for generation, never a reverse-engineering tool. `map-generation.md` §5.4 now states this;
+  **G56 is retired**; **G62/G68 are reworded** to generated-plans-only (slots ride `EvalContext`
+  from the emitter on composed plans; `AssignSlots` serves the mirror).
+- **The §3 family drift (Scythe→Z under endpoint manipulation) is fixed** — the classifier's
+  scythe test was the culprit. The old test asked whether the *bounding box* has a single-edge
+  concavity (`Cells.HasBay`), and sliding an endpoint off a box corner opens the bay toward a
+  second edge without unfolding the shape — which is why the read flipped with context. The new
+  test asks whether the *terrain itself* doubles back — some grid row or column crosses it in two
+  runs (`Cells.HasFold`, i.e. not orthogonally convex): the lines through a wrapped bay always
+  cross two runs, and a Z staircase never does. Every shifted/side-docked variant now keeps its
+  family, standalone **and** hub-docked, at 1× and 2× scale (`ShapeVariantTests` pins all of it;
+  catalog/mirror/stress suites unchanged and green).
+- **What the fix does *not* dissolve: the scope.** The fold is a property of whatever cell set the
+  classifier is handed. A neighbour mass docked at the entry's mouth cannot flip the read any
+  more, but a mass running a shape's whole flank wraps a genuine concavity — the component really
+  does fold, and reading it as one shape is a scope error, not a classifier error. Inside
+  generation the wool box is that scope (G61), which is the only place the family read is now
+  defined to run.
+
+## 7. Reproducing
 
 ```
 python3 scripts/approach_read_lab.py        # E1 gate + E2/E3/E4 tables

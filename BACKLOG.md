@@ -279,17 +279,19 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   via a rect transform (`Geom.Symmetry.Apply`) instead of the hardcoded top-edge mouth. Kills the third
   shape impl; gives G44 its structural-spend vocabulary and makes G50–G52 reachable from generation.
   **Changes RNG consumption** (goldens re-key). Depends on G58. (review §4, §4.4, §7.4)
-- [ ] **G62 — Derive-side slot recovery + classifier scoping.** `Shapes/SlotAssignment`: after `Classify`
-  returns the family, template-match the slot sequence onto the classified pieces
-  (`AssignSlots(family, pieces) → piece→slot map`) — slots survive save/load/author/trace **without**
-  persisting them (they are derived, not authored; §3's split). `Shapes/CorridorExtent`: the junction-stop
-  flood promoted from `WoolLaneShape`, parameterised by **stop policy** — *lane read* (stop at any
-  junction) vs *approach read* (continue through same-width forks, stop at hubs/plazas) — giving the
-  classifier a **scope** so it works on full composed/traced plans, not just standalone `AsPlan` fixtures
-  (today it floods the whole component and would read every wool on a unit as `Donut`). `WoolLaneShape`
-  the class retires here; its lane measurable becomes the open read of the lane-policy extent. Upgrades
-  `emit-verify` to a true mirror (emit → classify → re-derive slots → compare). **Prerequisite for G56.**
-  Depends on G58, G59. (review §3.4–§3.6, §7.5)
+- [ ] **G62 — Slot recovery for the generated mirror (generated plans only).** `Shapes/SlotAssignment`:
+  after `Classify` returns the family, template-match the slot sequence onto the classified pieces
+  (`AssignSlots(family, pieces) → piece→slot map`) — matched on **path order and adjacency** (the entry is
+  the piece on the mouth interface, the room is the terminal, run/bar/leg the chain between), never on
+  canonical rect positions, so the G50–G52 variant geometries survive (their grids are the acceptance
+  fixtures — `ShapeVariantTests`). Upgrades `emit-verify` to a true mirror (emit → classify → re-derive
+  slots → compare); slot terms on composed plans get their slots from the emitter via `EvalContext`
+  (`GrownPiece.Slot`), and the classifier's scope on a composed plan is the wool box itself (G61) — there
+  is **no derive-side recovery of authored/traced plans**, retired by decision
+  (`docs/wool-approach-read-investigation.md`: post-fragment maps carry family identity on the play
+  surface; decoding finished maps is a trap). `WoolLaneShape` the class retires here (its lane measurable
+  is already the `ClassifyOpen` read). Depends on G58, G59. (review §3.4, §7.5; the §3.5/§3.6
+  full-plan-scoping half is retired)
 - [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
   the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated. Build the
   **open-variant** shape layer over the shared family machinery: `Compose/Boxes/FillPattern` (arrangements
@@ -344,14 +346,15 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   stays whole", "the entry ≥ the lane it feeds", "the room-run stub stays shorter than its bar" — each a fill
   invariant citing its slot rule (`map-generation.md` §5.3), visualized through the same card machinery
   (`Evidence` tagged `slot:*`). This is where the majority of slot rules live. Depends on G61. (review §9.8)
-- [ ] **G68 — Evaluator-side slot-relation terms.** Slot rules as ordinary `ILayoutTerm`s over **any** plan,
-  gated on **G62's `SlotAssignment`** (a loaded/authored/traced plan has no slots until derive recovers them;
-  `EvalContext` gains the recovered `pieceId → family + slot` map). **Conditional-fire**: a term runs only where
-  a family was **confidently recovered**, and *failure to recover a family is never itself a violation* (a
-  hand-drawn blob that plays well scores clean; a recognized scythe with an underfed entry is flagged) — keeping
-  slot rules off the enumeration trap (`layout-evaluator.md` §8). Evidence carries `slot:*`-tagged rects/measures;
-  the **slot legend card per family** (the §5.3 template table drawn from `SlotTemplate` + `ShapeEmitter`) joins
-  the `rule-cards.cs` output as the shared key. Depends on G62, G66. (review §9.8)
+- [ ] **G68 — Evaluator-side slot-relation terms (generated plans).** Slot rules as ordinary `ILayoutTerm`s
+  over plans whose slots are **in hand**: composed output evaluated in the compose loop (`EvalContext` gains
+  the emitter's `pieceId → family + slot` map; the mirror cross-checks it via G62's `AssignSlots`).
+  **Conditional-fire**: a term runs only where slots are known — an authored/traced/loaded plan has none and
+  scores clean on slot terms by construction (derive-side recovery of finished maps is retired,
+  `docs/wool-approach-read-investigation.md`) — keeping slot rules off the enumeration trap
+  (`layout-evaluator.md` §8). Evidence carries `slot:*`-tagged rects/measures; the **slot legend card per
+  family** (the §5.3 template table drawn from `SlotTemplate` + `ShapeEmitter`) joins the `rule-cards.cs`
+  output as the shared key. Depends on G62, G66. (review §9.8)
 - [ ] **G69 — The deriver mis-reads dense mids: crossing-corridor + rotation primitives, then the cramming
   term.** The frontline-cramming negatives (`tools/seeds/teaching/crammed-frontline-*`) can't be scored because
   the deriver's structural reading systematically contradicts the play-experience on saturated mids — nine
@@ -458,14 +461,6 @@ The remaining generator / detection / validation work sorts into three domains:
 
 **Generator (lane algorithm → Configure)**
 
-- [ ] **G56 — Trace a real-map corpus + mine it for missed shapes.** With the plan editor's reference
-  backdrop shipped, trace a batch of real maps into `tools/seeds/*.plan.json` (each carrying its `reference`
-  provenance), then run the deriver (`WoolApproachShape.Classify` + `PlanDerived` junctions/lanes) over them to
-  surface **WoolApproachShapes / hub shapes the current vocabulary misses or misreads** — feeding corrections
-  back into `docs/contracts/map-generation.md` §5. Author-driven tracing (manual), mechanical
-  classify/report can be a small harness under `tools/`. **Depends on G62** — the classifier needs a
-  scope to read a wool's approach on a full traced plan, not just standalone fixtures; by then the deriver
-  is `Shapes/ShapeClassifier` + `Derive/ContactGraph`/`BoardDeriver` (the G58/G59 renames).
 - [ ] **G50 — Wool-box emitter: shift the entry/attachment off the box corner.** `WoolBoxEmitter` pins each
   shape's docking point to a box corner flush against the interface edge, so exactly 3 corners always fill; in
   a real plan the docking point slides along that edge. Applies to **donut and scythe only** (Z stays corner-
@@ -478,8 +473,10 @@ The remaining generator / detection / validation work sorts into three domains:
     top** so only the wool still reaches the edge. Standard `ttbw / btbt / bttt` → shifted-entry
     `bbbw / ttbt / bttt`. Shifting *only* the entry cell while leaving the spine full-height is **wrong**
     (`btbw / ttbt / bttt`) — the attached piece must resize with the shift. The **wool end** shifts the same
-    way: standard → shifted-wool `ttbb / btbw / btbt / bttt`. All three verified `Scythe·w2` (classifier-
-    transparent). Source plans: `scythenotboxaligned`, `scythewoolattachments`.
+    way: standard → shifted-wool `ttbb / btbw / btbt / bttt`. All three read `Scythe` under the fold-based
+    classifier, standalone and hub-docked, both scales — pinned in `ShapeVariantTests` (the earlier
+    bounding-box bay test read the shifted grids as `Z` standalone). Source plans: `scythenotboxaligned`,
+    `scythewoolattachments`.
   Add offset parameters for both endpoints (offset along the interface edge, clamp rules TBD). Source plans
   incl. `smalldonutattach`. Sibling of G51/G52. **G50–G52 all become reachable from *generation* only once
   G61 (M2) lands** — today `WoolBoxEmitter` has no production caller, so these emitter knobs are exercised
@@ -495,9 +492,10 @@ The remaining generator / detection / validation work sorts into three domains:
   for the wool to **dock the side** — perpendicular off the terminal piece, exactly like the `I` family's
   `RoomPlacement.SideTuck` — which the `I` already has but `Z`/`scythe` don't. Grants greater variance (the
   wool needn't always poke out the end). When side-docked, **the terminal piece the wool attaches to is
-  shortened** (it no longer has to run out to hold the room). Verified classifier-transparent when the rest of
-  the shape is standard: `Z` extend / side-dock-up / side-dock-down all read `Z` (`ttbbb/btttw`,
-  `ttbb/btbw/bttt`, `ttbb/bttt/bbbw`); a clean scythe side-dock reads `Scythe` (`ttbb/btbtw/bttt`). **Caveat:**
+  shortened** (it no longer has to run out to hold the room). Classifier-stable when the rest of the shape is
+  standard: `Z` extend / side-dock-up / side-dock-down all read `Z` (`ttbbb/btttw`,
+  `ttbb/btbw/bttt`, `ttbb/bttt/bbbw`); a scythe side-dock reads `Scythe` under the fold-based classifier —
+  all pinned in `ShapeVariantTests`. **Caveat:**
   keep the terminal tail at normal width — the `scythewoolattachments` wool-2 example reads `H` only because
   it *also* thickened the tail to 2 tall (a tail wider than a lane branches, independent of docking). Generalise
   `RoomPlacement` beyond `I`. Source plans: `zwoolattachments`, `scythewoolattachments`. Pairs with G50/G51.

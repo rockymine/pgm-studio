@@ -969,6 +969,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`shapes-gen`/`emit-verify`/`stress-shapes`, now the TUnit `Shapes/` tests — G58). Contract:
   `docs/contracts/map-generation.md` §5. (G53)
 
+- **Fold-based scythe test — family reads stable under endpoint manipulation** — `Geom/Cells.cs` +
+  `Pgm/Shapes/ShapeClassifier.cs`: the Scythe/Z split now asks whether the terrain **doubles back** (some grid
+  row/column crosses it in two runs — `Cells.HasFold`, i.e. not orthogonally convex) instead of whether the
+  bounding box carries a one-edge bay (`HasBay`, removed). The bbox read flipped when an endpoint slid off a
+  box corner (the bay escaped past the vacated corner and the shifted/side-docked scythes read Z standalone,
+  Scythe with a hub docked); the fold is a property of the cells alone, so the emitter's entry/wool-shift and
+  side-dock manipulations keep their family in both contexts. Verified: `ShapeVariantTests` (14 variant grids
+  × 2 scales, standalone + hub-docked) + the catalog/mirror/stress suites unchanged. Analysis:
+  `docs/wool-approach-read-investigation.md` §6. Contract: `docs/contracts/map-generation.md` §1.8/§5.2.
+
 - **Wool-box pieces carry their slot role** — `Pgm/Compose/WoolBoxEmitter.cs` + `TeamUnitGrower.cs`:
   `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`ApproachSlots` on `GrownPiece.Slot`) —
   `entry` (the universal hub-attach), `run`, `bar`, `leg`, `room`, qualified `entry-run`/`room-run` and

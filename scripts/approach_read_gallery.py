@@ -222,11 +222,12 @@ every case; reading terrain&nbsp;&cup;&nbsp;that cut recovers it in every case. 
 identity lives on the <em>play surface</em> (land + lane-width build links), not on terrain.</p>
 <div class="grid">{''.join(frag)}</div>
 
-<h2>4 &middot; Emitter variants &mdash; the family read is context-dependent</h2>
-<p>The entry-shift / wool-shift / side-dock variant grids, drawn at uniform 2&times; scale. The
-shifted-entry scythe reads Z standalone and Scythe once hub terrain seals the bay's escape;
-the shifted-wool and side-dock scythes read Z in both contexts. &ldquo;Classifier-transparent&rdquo;
-is only defined relative to a scope.</p>
+<h2>4 &middot; Emitter variants &mdash; family stability under the fold read</h2>
+<p>The entry-shift / wool-shift / side-dock variant grids, drawn at uniform 2&times; scale, standalone
+and with hub terrain docked at the entry. Under the fold-based scythe test (some row/column crosses
+the terrain in two runs) every variant keeps its family in both contexts; the earlier bounding-box
+bay test read the shifted scythes as Z standalone, flipping with context. Pinned in
+<code>ShapeVariantTests</code>.</p>
 {legend([("hub context","comp"),("variant terrain","ter"),("wool room","wool")])}
 <div class="grid">{''.join(variants)}</div>
 </main>
