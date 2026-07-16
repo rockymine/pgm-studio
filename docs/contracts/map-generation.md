@@ -336,6 +336,19 @@ to be satisfied. The clamp is gated from production not by WL8 — it *is* WL8's
 but because the fill machinery cannot yet express multi-interface docking (G80). The docking modes
 are enumerable data; more may follow now that they are expressible.
 
+**The scythe's valid connections — and the height deferral.** Valid edges are **shape-relative, not
+box-relative**: an entry shift carries the dock with it. The scythe's standard connection is the
+`entry`'s **unoccupied edge parallel to the entry ↔ entry-run seam** (the outer side edge opposite
+the internal interface). The second is the **combined edge** formed by the colinear head edges of
+`entry` + `entry-run` — one wider host touching both (the two heads stay flush under the entry
+shift, so the combined edge shifts intact). A host that touches the wool `room` is a **hard
+violation — reject**: that is the flush dock that seals the bay into WL8's motif, or (under a shift)
+makes the room the door. A **declared bay is only valid at the elevation stage** (§11), where height
+fixes what the flat read cannot: with a host touching both entry and wool, the wool must be raised
+significantly so the entry-host dock is the *only* approach, the scythe terrain **stepping up from
+entry to room** — the height mechanism is noted for later (G81); until then room-host contact simply
+rejects.
+
 **"No shape fits" is a signal, not a failure.** An over-constrained box is answered by **changing the
 box** (resize, relax an interface, split it) — the Tetris failure feeds back up a level.
 

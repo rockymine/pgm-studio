@@ -427,7 +427,13 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
     re-break.
 
   p5 / rot_90 stays a known limitation until **G35** (below).
-- [ ] **G35 — Composer-side buffer reservation (unblocks p5 / small rot_90).** Have the composer author
+- [ ] **G81 — Declared-bay scythe via elevation (the height mechanism — parked until the elevation
+  stage).** A flush host that seals the scythe's bay (touching both entry and wool) is only legal once
+  height can enforce the approach: the wool raised significantly so the **entry-host dock is the sole way
+  in**, the scythe terrain **stepping up from entry to room** — the sealed bay then becomes a declared
+  hole under it. Until the elevation pass exists (G32-C territory), a host touching a wool `room` is a
+  **hard violation and rejects** (the G80 docking modes cover legal scythe entry). Blocking question: the
+  step profile (how much rise per slot, and whether WL5's stepped-climb vocabulary already covers it). Have the composer author
   buffers/allotments during generation — reserve a ≥1-cell border on rot_90 boards so the quarter-turn
   image can't self-collapse, hold spacing on small boards — to unblock p5 (BZ6 + spawn ≥2×2 over-budget at
   325 blocks²) and p5/t4/rot_90 (interior-overlap self-weld). Teaching material + a `layout-rules.md`

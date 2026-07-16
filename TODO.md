@@ -82,17 +82,20 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
   forcing the G45 parallel-lane anti-pattern. `emit-verify` grows per-kind pattern mirrors (twin → closure
   hole ringed by two strands; L hub → one-bend junction outline) — no new `*Shape` classes. Blocked partly
   on the author's frontline/hub teaching set. Depends on G61. (review §3.1, §4.3, §4.4, §7.6)
-- [ ] **G80 — Clamp docking: both entries, along the short entry edge (the allowlisted-WL8 preset).**
-  The clamp is an authored family preset: the wool deliberately clamped between two entry bars, its bay a
-  **deliberate hole** that grants the wool two approaches — the allowlisted instance of the WL8 motif, with
-  the fight rotating around the hole (the closed bay is *not* a published vacancy). Today a fill satisfies
-  exactly **one** entry through one interface, which forces the clamp to rotate and leaves the other entry
-  dangling in the void. Production entry = **both entries satisfied along the short entry edge**, as
-  enumerable docking modes (map-generation.md §4): a full short-edge host (closes the bay into a declared
-  hole) or the corner-wrap dual host (bay stays open); docking the wool-side edge is illegal (the entry
-  stubs dangle). Introduces **valid edges** on `BoxInterface` (long vs short; a wool-touching corner never
-  docks) and per-family multi-interface demands — more modes may follow now that they are expressible.
-  Depends on G41's interface machinery.
+- [ ] **G80 — Docking modes as per-family data: the clamp's two entries, the scythe's entry edges.**
+  Valid connections are **shape-relative, not box-relative** (an entry shift carries its dock with it),
+  declared per family as enumerable docking modes (map-generation.md §4). **Clamp** (the authored,
+  allowlisted-WL8 preset: wool deliberately clamped, its bay a deliberate hole granting two approaches, the
+  fight rotating around it — *not* a published vacancy): today a fill satisfies exactly one entry through
+  one interface, forcing rotation with the other entry dangling; production = **both entries satisfied
+  along the short entry edge** — full short-edge host (closes the bay into a declared hole) or the
+  corner-wrap dual host (bay stays open); wool-side docking illegal (stubs dangle). **Scythe**: standard =
+  a host on the entry's **unoccupied edge parallel to the entry ↔ entry-run seam**; second = a wider host
+  across the **combined colinear head edges of entry + entry-run**; a host touching the wool `room` is a
+  **hard violation and rejects** (the declared-bay alternative is parked as G81 — elevation-stage only).
+  Introduces **valid edges** on `BoxInterface` (long vs short; a wool-touching edge/corner never docks) and
+  per-family multi-interface demands — more modes may follow now that they are expressible. Depends on
+  G41's interface machinery.
 - [ ] **G63 — [M4] Partitioner-first composition (the box-driven generation switch).** `Compose/Boxes/
   BoxPartition` (boxes + interfaces = a constraint graph) replaces the `Shape` sampling record as what
   sampling produces; `BoxPartitioner` (budget → partition, **directed repair** from `FillResult` instead

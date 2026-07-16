@@ -27,9 +27,13 @@ public static class FillMenu
     /// build zone on both opposite diagonals — and the donut's mask has none, so the family waits on the
     /// authoring gate learning to read the mask instead of the pair, not on a geometry variant. The
     /// <b>scythe</b> carries a bay whose mouth is its own docking edge, so a flush dock seals the bay
-    /// against the host into an enclosed void walled by the wool room — exactly WL8's forbidden motif;
-    /// the entry shift also takes the tail off the mouth row, so a shifted scythe cannot flush-dock at
-    /// all (production entry waits for a corner-wrapping host or declarable holes). The <b>clamp</b> is
+    /// against the host into an enclosed void walled by the wool room — exactly WL8's forbidden motif.
+    /// Its legal connections are shape-relative (the G80 docking modes, map-generation.md §4): a host on
+    /// the entry's unoccupied edge parallel to the entry↔entry-run seam, or across the combined colinear
+    /// head edges of entry + entry-run — both survive the entry shift, which carries the dock with it. A
+    /// host touching the wool room is a hard violation (reject); the declared-bay alternative is deferred
+    /// to the elevation stage (G81: raise the wool so the entry dock is the sole approach, terrain
+    /// stepping up entry → room). The <b>clamp</b> is
     /// different: its wool-in-bay is the authored, allowlisted WL8 motif — the bay is a deliberate hole
     /// granting the wool two approaches. What gates it is docking: a fill satisfies exactly one entry
     /// through one interface, forcing the clamp to rotate with the other entry dangling in the void; it
