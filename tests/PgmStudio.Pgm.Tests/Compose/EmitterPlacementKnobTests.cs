@@ -159,9 +159,12 @@ public sealed class EmitterPlacementKnobTests
     [Test]
     public async Task Shift_clamps_and_family_guards_throw()
     {
-        // a shift that leaves no spine above the bar, an offset off the ring's edge, and a shift on a
-        // family that has no offsettable endpoints are all rejected, never silently clamped
+        // a shift that leaves no spine above the bar, a width that overfills the spine (the tail would
+        // border the bar and unmake the fold), an offset off the ring's edge, and a shift on a family
+        // that has no offsettable endpoints are all rejected, never silently clamped
         await Assert.That(() => WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, entryShift: 21))
+            .Throws<ComposeException>();
+        await Assert.That(() => WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, attachmentWidth: 22))
             .Throws<ComposeException>();
         await Assert.That(() => WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw, attachmentOffset: 23))
             .Throws<ComposeException>();
