@@ -14,6 +14,7 @@ derivers, the evaluator model, and the budget/width model. **What it defers:**
 | `seed-stats.md` | The measured envelopes the soft evaluator terms score against. |
 | `plan-editor.md` | The field-level `*.plan.json` schema and the editor UI. |
 | `layout-evaluator.md` | The detailed deriver-measurables and evaluator-metric catalogue. |
+| `map-generation-vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. §1 defines the terms, §12 is the code map, this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
 
 ---
 

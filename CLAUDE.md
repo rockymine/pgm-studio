@@ -106,7 +106,10 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
 
 ## Layout generation — the docs
 The model, terminology, and pipeline are canonical in **`docs/contracts/map-generation.md`**; the frozen
-rule law is **`docs/contracts/layout-rules.md`**; the plan schema is **`docs/contracts/plan-editor.md`**.
+rule law is **`docs/contracts/layout-rules.md`**; the plan schema is **`docs/contracts/plan-editor.md`**. The
+**living type catalog** is **`docs/contracts/map-generation-vocabulary.md`** — every type as a map concept, by
+pipeline order; **when a task adds, renames, or retires a generation type, update its row there in the same
+commit** (same discipline as the task board).
 
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts
