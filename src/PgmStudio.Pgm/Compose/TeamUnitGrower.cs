@@ -731,7 +731,12 @@ public static class TeamUnitGrower
     /// <summary>Every pairwise contact among the authored pieces (pre-fan) is a full land interface or no
     /// contact at all — no narrow seams and no bare corners are authored (unlike a hand-authored plan, the
     /// grower has no author judgment to fall back on for either). Reuses <see cref="ContactGraph.Classify"/>
-    /// directly so this is exactly the same test the plan validator/editor apply.</summary>
+    /// directly so this is exactly the same test the plan validator/editor apply. Known over-rejection:
+    /// a Corner pair whose diagonal is bridged by a third piece is a ¾-solid inside corner of one connected
+    /// mass — harmless (the editor's PC-C lint suppresses it), but this pairwise read cannot see the third
+    /// piece; the real cell-level failure is the diagonal pinch (two tiles point-to-point, void/build on
+    /// both opposite diagonals). This is what gates the donut family out of
+    /// <see cref="FillMenu.ProductionFamilies"/>.</summary>
     private static bool ValidateContacts(ComposeEnvelope env, IReadOnlyList<GrownPiece> pieces)
     {
         var derived = pieces

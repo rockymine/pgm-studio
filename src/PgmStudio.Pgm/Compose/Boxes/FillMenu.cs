@@ -20,8 +20,13 @@ public static class FillMenu
 {
     /// <summary>Families a flush-docked wool box may emit in production today. Three exclusions, each a
     /// named gap, not a taste: the <b>donut</b>'s attachment stub and tucked room corner-touch a ring leg
-    /// as emitted, violating the no-bare-corner contact discipline the grower enforces on every authored
-    /// pair — it needs a corner-free geometry variant. The <b>scythe</b> and the <b>clamp</b> carry a bay
+    /// as emitted, and the grower's pairwise contact gate (Land-or-None per pair) rejects any Corner
+    /// verdict — but both touches are ¾-solid inside corners of one connected mass (a third piece carries
+    /// the land interface; the editor's PC-C lint suppresses exactly this case as harmless). The real
+    /// corner failure is the cell-level diagonal pinch — two tiles meeting only at a point with void or
+    /// build zone on both opposite diagonals — and the donut's mask has none, so the family waits on the
+    /// authoring gate learning to read the mask instead of the pair, not on a geometry variant. The
+    /// <b>scythe</b> and the <b>clamp</b> carry a bay
     /// whose mouth is their own docking edge, so a flush dock seals the bay against the host into an
     /// enclosed void walled by the wool room — exactly WL8's forbidden motif. The emitter's entry shift
     /// takes the tail OFF the mouth row, so a shifted scythe cannot flush-dock at all: production entry
