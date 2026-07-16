@@ -17,9 +17,10 @@ three files. Moving a task between files never changes its id; never renumber or
 Phase 2 of plan-then-realize. The consolidation base is in: M0 + M1 (G58/G59) and the evaluator engine
 with its hard gate, soft-term foundation, frontline/rotation terms and editor wiring (the G60 foundation —
 all in `FEATURES.md`). **This board is the box model, end to end**: one box kind at a time, each step
-reusing what the previous one proved — wool boxes **shipped** (G61, `FEATURES.md`) → the mask-level
-corner law (G79 — smallest, re-keys the RNG early, and its pinch scan is a primitive the docking work
-reuses) → spawn (G78) → the mirror's slot recovery (G62) → hub/frontline patterns (G41, **opening with
+reusing what the previous one proved — wool boxes **shipped** (G61), the mask-level corner law **shipped**
+(G79 — its pinch scan `Cells.HasDiagonalPinch` is the primitive the docking work reuses), and the mirror's
+slot recovery **shipped** (G62 — `SlotAssignment`, all in `FEATURES.md`) → **spawn (G78) is next** →
+hub/frontline patterns (G41, **opening with
 the G80 valid-edges data model** so every pattern binds to the final interface shape) → docking modes
 (G80) → the partitioner switch (G63), where
 `TeamUnitGrower` retires and sampling produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
