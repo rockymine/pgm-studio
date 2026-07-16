@@ -558,7 +558,7 @@ string Page(string sections, string failuresPanel)
     string bodyInner = $"""
     <div class="wrap">
       <header class="top">
-        <p class="eyebrow">Composer · box model · G79 · G62</p>
+        <p class="eyebrow">Composer · box model · G79 · G62 · G78</p>
         <h1>The wool-approach shape space, and what the composer builds from it</h1>
         <p class="lede">The wool arm is a box fill: its budget share picks an approach family from the width
         menu, and the emitter fills the box with that shape. <strong>G79</strong> replaces the grower's
@@ -566,7 +566,10 @@ string Page(string sections, string failuresPanel)
         pinch rather than rejecting every bare-corner touch, so a ¾-solid inside corner passes and the
         <strong style="color:{CWoolRoom}">donut</strong> (a wool ringed by terrain around an enclosed hole)
         joins the fill menu. <strong>G62</strong> re-derives every emitted piece's slot from topology and
-        asserts it against the emitter, closing the emit↔derive mirror at the slot level. Below: first the
+        asserts it against the emitter, closing the emit↔derive mirror at the slot level. <strong>G78</strong>
+        makes the <strong style="color:{CSpawnRole}">spawn</strong> the second box kind — a terminal-capped
+        I or L filled through the very same emitter, its room a real spawn terminal — so every box in the
+        maps below now flows through one shared machinery. Below: first the
         <em>emitted family catalog</em> — the shapes the menu can fill, donut included — then the composer's
         real output, one authored team unit fanned into every orbit image, each arm badged with the family
         read back from its terrain. Composer suite <span class="green">green</span>.</p>
