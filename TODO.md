@@ -61,12 +61,14 @@ B shipped the partition-first allocator seam + budget check (both `FEATURES.md`)
 + retire + re-baseline); D — the generic fragment, `GrowthOrder` strategies, and vacancy allocation — is parked
 in `BACKLOG.md`.)*
 
-- [ ] **G63-C — [M4] The switch (fill the partition, retire the grower, re-baseline).** `BoxFiller` (G41-A)
-  fills each allocated box to its `Box.LandTargetCells` target — so the bespoke `SolveDepth`/`SolveWidth`/
-  `spawnLen` sizing retires and footprint becomes an *input* (**closes G41-A part 2**), with **directed repair**
-  from `FillResult` replacing the 60-attempt re-rolls. **Wires the docking gate (G80):** as it docks a box the
-  filler consults `DockingGate` and **produces only legal docks** — an illegal one (seals a wool, misses the
-  family's demand/span) is a directed `FillResult` rejection, not a placement; this is where the clamp's
-  **dual-host corner-wrap** placement lands (the one docking mode needing the partition graph). The `Composer`
-  routes through the partitioner, **`TeamUnitGrower` retires**, the RNG re-keys. Re-baseline gallery cases;
-  **then** freeze the G32-D goldens. Depends on G63-B. (review §4.2, §4.4, §4.5, §7.7)
+- [~] **G63-C — [M4] The switch (fill the partition, retire the grower, re-baseline).** *Landed: the docking
+  gate is wired into `BoxFiller` — it reads the box's edges off the placed fill (`BoxInterfaces.Of`) and
+  `DockingGate.CheckMouth` gates the mouth, so the filler **produces only legal docks**, an illegal one (seals a
+  wool, non-entry, wrong span, or an unmet dual-host demand) returning a directed `FillResult.IllegalDock` rather
+  than a placement. Still off the live path (the grower emits directly), so byte-identical.* **Remaining (the
+  seed-churning core rewrite):** `BoxFiller` fills each allocated box to its `Box.LandTargetCells` target so the
+  bespoke `SolveDepth`/`SolveWidth`/`spawnLen` sizing retires and footprint becomes an *input* (**closes G41-A
+  part 2**), with **directed repair** from `FillResult` replacing the 60-attempt re-rolls; the clamp's **dual-host
+  corner-wrap** placement lands (the one docking mode needing the partition graph); the `Composer` routes through
+  the partitioner, **`TeamUnitGrower` retires**, the RNG re-keys; re-baseline gallery cases, **then** freeze the
+  G32-D goldens. Depends on G63-B. (review §4.2, §4.4, §4.5, §7.7)

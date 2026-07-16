@@ -27,13 +27,35 @@ public static class BoxFiller
     {
         var menu = FillProfiles.Families(box.Kind, corridorWidth);
         if (!menu.Contains(family)) return new FillResult.NoFamilyFits(menu);
-        return box.Kind switch
+        var result = box.Kind switch
         {
             BoxKind.Wool => WoolBoxEmitter.Fill(box, mouth, family, corridorWidth, flip, roomId),
             _ => throw new ComposeException(
                 $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding " +
                 "(spawn via SpawnBoxEmitter, G78; hub/frontline at G41-C)."),
         };
+        if (result is not FillResult.Ok ok) return result;
+
+        // the docking law (G80): the host docks the mouth, so the mouth edge must be a legal dock for this
+        // family. Read the box's edges off the placed fill (shape-relative) and gate them — an illegal dock
+        // (a sealed wool, a non-entry edge, the wrong span, or a family whose dual-host demand a single mouth
+        // can't meet) is a directed rejection, never a placement.
+        var edges = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect[2], box.Rect[3]);
+        return DockingGate.CheckMouth(edges, mouth, family) is { } rejection
+            ? new FillResult.IllegalDock(rejection, family, mouth)
+            : ok;
+    }
+
+    /// <summary>Recover the box-local <see cref="EmittedShape"/> of a placed fill — the slot-typed terrain and
+    /// room rects shifted back to the box origin — so <see cref="BoxInterfaces.Of"/> can read the edge facts the
+    /// docking gate maps. (Only the geometry the gate reads is reconstructed; the marker offset and vacancies
+    /// ride along unused.)</summary>
+    private static EmittedShape BoxLocal(EmittedApproach a, Box box)
+    {
+        int ox = box.Rect[0], oz = box.Rect[1];
+        int[] Local(int[] r) => [r[0] - ox, r[1] - oz, r[2], r[3]];
+        var terrain = a.Terrain.Select(p => (Local(p.Rect), p.Slot!)).ToList();
+        return new EmittedShape(terrain, Local(a.WoolRoom.Rect), a.At, a.Vacancies);
     }
 
     /// <summary>The families the box's profile admits that <b>actually fill</b> its footprint (the emit

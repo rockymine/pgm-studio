@@ -13,8 +13,10 @@ public enum SlotDockRole { DockingEdge, NeverDock, Internal }
 /// <summary>Why a proposed dock is illegal — the directed signal a filler reports instead of silently dropping
 /// the connection. <see cref="SealsWool"/>: the edge touches the never-dock room. <see cref="NotAnEntryEdge"/>:
 /// no entry slot reaches the edge (nothing to dock to). <see cref="WrongSpan"/>: the family docks a specific
-/// span (the clamp its short edge) and this edge is the other one.</summary>
-public enum DockRejection { SealsWool, NotAnEntryEdge, WrongSpan }
+/// span (the clamp its short edge) and this edge is the other one. <see cref="UnmetDemand"/>: the family needs
+/// more distinct docking edges than the proposed dock offers — the clamp's two hosts, which the partition graph
+/// places (the dual-host corner-wrap), never a single-mouth fill.</summary>
+public enum DockRejection { SealsWool, NotAnEntryEdge, WrongSpan, UnmetDemand }
 
 /// <summary>What a family demands of the boxes that dock it: <see cref="EntryDemand"/> distinct box edges must
 /// connect (the clamp needs both its bars joined, most shapes one mouth), and <see cref="Span"/>, when set,
@@ -67,6 +69,21 @@ public static class DockingGate
         var span = FamilyDock.Of(family).Span;
         if (span is not null && edge.Span != span) return DockRejection.WrongSpan;
         return null;
+    }
+
+    /// <summary>The verdict for docking <paramref name="family"/> through a single <paramref name="mouth"/> edge,
+    /// or <c>null</c> when it is a legal dock. The mouth's own legality (<see cref="Check"/>) plus the family's
+    /// demand: a family that needs more than one distinct docking edge (the clamp's dual-host) cannot be
+    /// satisfied by a single mouth, so it rejects <see cref="DockRejection.UnmetDemand"/> here — the partition
+    /// graph places that corner-wrap, not the single-mouth filler. The <paramref name="edges"/> are the box's
+    /// <see cref="BoxEdgeInterface"/> facts read off the placed shape, so the verdict is shape-relative.</summary>
+    public static DockRejection? CheckMouth(
+        IReadOnlyList<BoxEdgeInterface> edges, BoxEdge mouth, ShapeFamily family)
+    {
+        var edge = edges.FirstOrDefault(e => e.Edge == mouth);
+        if (edge is null) return DockRejection.NotAnEntryEdge;
+        if (Check(edge, family) is { } rejection) return rejection;
+        return FamilyDock.Of(family).EntryDemand > 1 ? DockRejection.UnmetDemand : null;
     }
 
     /// <summary>The edges a box filled with <paramref name="family"/> exposes as legal docks — every edge

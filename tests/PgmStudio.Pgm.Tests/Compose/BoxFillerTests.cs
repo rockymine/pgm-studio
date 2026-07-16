@@ -104,6 +104,21 @@ public sealed class BoxFillerTests
     }
 
     [Test]
+    public async Task Fill_gates_the_dock_through_the_mouth_admitting_the_production_menu()
+    {
+        // the docking gate (G80) is wired into the fill: every production family docks cleanly through the mouth
+        // it exposes its entry on, top or bottom, so a legal fill still returns Ok (the wiring is byte-identical
+        // for the menu). Clamp/scythe never reach the gate here — the profile stops them first (NoFamilyFits).
+        foreach (var family in FillMenu.ProductionFamilies)
+        {
+            var box = WoolBox(16, 22);
+            if (BoxFiller.Fill(box, BoxEdge.Top, Cw, family) is FillResult.TooSmall) continue;
+            await Assert.That(BoxFiller.Fill(box, BoxEdge.Top, Cw, family)).IsTypeOf<FillResult.Ok>();
+            await Assert.That(BoxFiller.Fill(box, BoxEdge.Bottom, Cw, family)).IsTypeOf<FillResult.Ok>();
+        }
+    }
+
+    [Test]
     public async Task A_spawn_box_docks_through_its_own_binding_not_this_one()
     {
         await Assert.That(() => BoxFiller.Fill(new Box("spawn-a", BoxKind.Spawn, [0, 0, 6, 12], 100), BoxEdge.Top, Cw, ShapeFamily.I))

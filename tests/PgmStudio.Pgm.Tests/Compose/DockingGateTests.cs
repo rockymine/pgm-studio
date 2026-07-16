@@ -82,6 +82,40 @@ public sealed class DockingGateTests
     }
 
     [Test]
+    public async Task Check_mouth_admits_a_single_mouth_family_through_its_entry_edge()
+    {
+        // the single-mouth verdict a filler consults: a terminal-capped family docks cleanly through the edge
+        // its entry reaches (I/L/Z its top, U/H the leg edge), demand 1 met by the one mouth
+        await Assert.That(DockingGate.CheckMouth(Edges(ShapeFamily.I, 6, 12), BoxEdge.Top, ShapeFamily.I)).IsNull();
+        await Assert.That(DockingGate.CheckMouth(Edges(ShapeFamily.L, 8, 8), BoxEdge.Top, ShapeFamily.L)).IsNull();
+        await Assert.That(DockingGate.CheckMouth(Edges(ShapeFamily.U, 6, 6), BoxEdge.Bottom, ShapeFamily.U)).IsNull();
+    }
+
+    [Test]
+    public async Task Check_mouth_rejects_a_single_mouth_dock_of_a_dual_host_family()
+    {
+        // the clamp's short bars each pass the per-edge Check, but it demands TWO distinct hosts — a single
+        // mouth can't satisfy the dual-host corner-wrap, so the mouth verdict is UnmetDemand (the partition
+        // graph places it, not a single-mouth fill)
+        var es = Edges(ShapeFamily.Clamp, 4, 5);
+        await Assert.That(DockingGate.Check(es.Single(x => x.Edge == BoxEdge.Top), ShapeFamily.Clamp)).IsNull();
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Top, ShapeFamily.Clamp)).IsEqualTo(DockRejection.UnmetDemand);
+        // the mouth's own illegality still wins ahead of the demand: the bay edge is the wrong span, the wall seals
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Left, ShapeFamily.Clamp)).IsEqualTo(DockRejection.WrongSpan);
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Right, ShapeFamily.Clamp)).IsEqualTo(DockRejection.SealsWool);
+    }
+
+    [Test]
+    public async Task Check_mouth_rejects_the_scythes_room_contaminated_canonical_mouth()
+    {
+        // docking the scythe through its canonical top mouth seals the bay against the host (WL8) — the mouth
+        // verdict catches it as SealsWool even though the scythe has a clean docking edge elsewhere (the left)
+        var es = Edges(ShapeFamily.Scythe, 8, 6);
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Top, ShapeFamily.Scythe)).IsEqualTo(DockRejection.SealsWool);
+        await Assert.That(DockingGate.CheckMouth(es, BoxEdge.Bottom, ShapeFamily.Scythe)).IsEqualTo(DockRejection.NotAnEntryEdge);
+    }
+
+    [Test]
     public async Task Slot_roles_map_room_to_never_dock_entry_to_docking_rest_internal()
     {
         await Assert.That(DockingGate.Role(ApproachSlots.Room)).IsEqualTo(SlotDockRole.NeverDock);
