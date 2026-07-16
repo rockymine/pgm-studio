@@ -101,7 +101,8 @@ public static class IsolationCut
         foreach (var stone in mid.Stones)
             if (Touches(bridge, stone.Rect)) return null;
 
-        var newPieces = pieces.Select(x => x.Id == id ? new GrownPiece(id, moved) : x).ToList();
+        // the severed piece is translated, never rebuilt: role, slot and box ownership ride along
+        var newPieces = pieces.Select(x => x.Id == id ? x with { Rect = moved } : x).ToList();
         if (connector is not null) newPieces.Add(new GrownPiece("connector-a", connector));
         return new CutResult(newPieces, bridge, id);
     }

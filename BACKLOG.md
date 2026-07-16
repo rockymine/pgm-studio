@@ -458,7 +458,11 @@ The remaining generator / detection / validation work sorts into three domains:
     bounding-box bay test read the shifted grids as `Z` standalone). Source plans: `scythenotboxaligned`,
     `scythewoolattachments`.
   Add offset parameters for both endpoints (offset along the interface edge, clamp rules TBD). Source plans
-  incl. `smalldonutattach`. Sibling of G51/G52. **G50–G52 all become reachable from *generation* only once
+  incl. `smalldonutattach`. Sibling of G51/G52. **This is also the scythe's production gate**: flush-docked,
+  the scythe (and the clamp) seal their bay against the host into an enclosed void walled by the wool room —
+  WL8's forbidden motif — so `FillMenu.ProductionFamilies` excludes them today; a shifted entry keeps the bay
+  open past the docking line. (The donut additionally needs a corner-free variant of its stub/room
+  tangencies before any of this applies to it.) **G50–G52 all become reachable from *generation* only once
   G61 (M2) lands** — today `WoolBoxEmitter` has no production caller, so these emitter knobs are exercised
   by tools/tests alone.
 - [ ] **G51 — Wool-box emitter: variable attachment width on the scythe (parallel to the docked edge).** The

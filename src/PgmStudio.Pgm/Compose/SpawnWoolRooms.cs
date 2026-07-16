@@ -52,6 +52,7 @@ public static class SpawnWoolRooms
     {
         var idx = pieces.FindIndex(p => p.Id == terminalId);
         var terminal = pieces[idx];
+        if (terminal.Role == role) return (terminalId, at);  // already a room (a box fill emits it pre-carved)
         var r = terminal.Rect;
         int x = r[0], z = r[1], w = r[2], h = r[3];
         double markerX = x + at[0], markerZ = z + at[1];

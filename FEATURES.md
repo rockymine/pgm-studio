@@ -969,6 +969,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`shapes-gen`/`emit-verify`/`stress-shapes`, now the TUnit `Shapes/` tests — G58). Contract:
   `docs/contracts/map-generation.md` §5. (G53)
 
+- **Wool arms are box fills (M2 — the emitter's first production caller)** — `Pgm/Shapes/ShapeEmitter.cs` +
+  `Pgm/Compose/Boxes/` + `TeamUnitGrower.cs`: the pure shape emitter extracted from the wool binding
+  (canonical frame, `MinBox`/`MouthEdge`/`OrientMouthTop`, emit-side **vacancies** — a U's bay, a donut's
+  hole — as `ShapeVacancy` data), the box scaffold types (`Box`/`BoxKind`/`BoxRef`/`BoxInterface`,
+  `FillMenu` — the §4 width table as data — and `FillResult` with `Vacancy`), and the grower's inline
+  1–3-segment wool-lane grammar replaced by **one box fill per wool arm**: the arm's budget share picks a
+  family from the fit-filtered menu (deterministic roll), depth + width knobs size the box (surplus
+  escalates the family or widens the bar — never a stretched lane), the mouth row docks inside the host
+  edge window (u-floor keeps flipped bodies off the axis), and the wool room is emitted as a real
+  role-bearing terminal. Every emitted piece carries **(box id, kind, slot)** ownership on `GrownPiece`,
+  preserved through the isolation cut (`with`-translation) and the room carve (role-skip) and dropped only
+  at `Composer.Assemble` — the labels drive, the mirror verifies. Production menu {I, L, Z, U, H} with the
+  donut (corner tangencies) and scythe/clamp (self-sealed bay → WL8; unsealed by G50's entry shift)
+  excluded as named gaps in `FillMenu`. Verified: full compose sweep 300/300 (incl. p30/t4/rot_90), the
+  557-test Pgm suite green, `WoolBoxGrowthTests` (labels, role terminal, in-box family mirror, label
+  survival through the cut, family variety across seeds). Contract: `docs/contracts/map-generation.md`
+  §4/§5.3. (G61)
+
 - **Fold-based scythe test — family reads stable under endpoint manipulation** — `Geom/Cells.cs` +
   `Pgm/Shapes/ShapeClassifier.cs`: the Scythe/Z split now asks whether the terrain **doubles back** (some grid
   row/column crosses it in two runs — `Cells.HasFold`, i.e. not orthogonally convex) instead of whether the

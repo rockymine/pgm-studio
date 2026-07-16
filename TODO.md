@@ -17,9 +17,9 @@ three files. Moving a task between files never changes its id; never renumber or
 Phase 2 of plan-then-realize. The consolidation base is in: M0 + M1 (G58/G59) and the evaluator engine
 with its hard gate, soft-term foundation, frontline/rotation terms and editor wiring (the G60 foundation —
 all in `FEATURES.md`). **This board is the box model, end to end**: one box kind at a time, each step
-reusing what the previous one proved — wool (G61) → spawn (G78) → the mirror's slot recovery (G62) →
-hub/frontline patterns (G41) → the partitioner switch (G63), where `TeamUnitGrower` retires and sampling
-produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
+reusing what the previous one proved — wool boxes **shipped** (G61, `FEATURES.md`) → spawn (G78) → the
+mirror's slot recovery (G62) → hub/frontline patterns (G41) → the partitioner switch (G63), where
+`TeamUnitGrower` retires and sampling produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
 {I, L}, small boxes per SP; what a wool entry admits: the §4 width menu), and the slot labels the
 emissions carry are what every later rule binds to (`docs/contracts/map-generation.md` §5.3: the labels
 drive, the mirror only verifies).
@@ -27,31 +27,13 @@ drive, the mirror only verifies).
 Deliberately **not** here: the G60 soft-rule long tail (parked in `BACKLOG.md` — discovering soft rules
 for structures the composer can't yet compose is the wrong stage; the crammed-frontline dead end, G69, is
 the lesson), G32's remaining realize subtracks (parked — elevation is one of the last pipeline steps),
-and G50–G52 (the emitter placement knobs — parked until G61 makes them reachable from generation; their
-variant grammar is already classifier-stable, `ShapeVariantTests`). The G32-D seed goldens freeze only
+and G50–G52 (the emitter placement knobs — now reachable from generation since G61; their variant grammar
+is already classifier-stable, `ShapeVariantTests`, and G50 doubles as the scythe's production gate — see
+its `BACKLOG.md` entry). The G32-D seed goldens freeze only
 **after G63** — every milestone below re-keys the RNG, so earlier goldens would just re-break.
 
 **Box model — M2 → M4**
 
-- [ ] **G61 — [M2] Wool arms become wool boxes (first production caller of the emitter).** Inside
-  `TeamUnitGrower`, replace the inline 1–3-segment wool-lane growth (its own I/L/Z grammar — the third
-  shape implementation) with: partition the arm region into a `Box(Wool)` carrying a typed entry
-  `BoxInterface` → `FillMenu` (interface-width → legal patterns; the §4 `w2/w4/w6` table as **data**,
-  cited by rule id) → `WoolBoxEmitter` (thinned to a binding over `Shapes.ShapeEmitter`: terminal →
-  `WoolRoom` role + wool marker). `FillResult` (`Ok(pieces, vacancies) | TooSmall(minBox) |
-  NoFamilyFits`) replaces exception control flow, so a bad fit is a directed signal, not a 60-attempt
-  re-roll; `Ok` already carries the fill's **vacancies** — its emit-side negative space (a U's bay, a
-  donut's hole) as a `Vacancy` (kind bay/notch/hole + mouth `BoxInterface` + bounding walls; §4.4) —
-  shaped from the start so the type doesn't churn even though *claiming* lands at M3. Emitter orientation
-  via a rect transform (`Geom.Symmetry.Apply`) instead of the hardcoded top-edge mouth. Every emitted
-  piece carries **structured ownership** — (box id, box kind, slot) on `GrownPiece`, rendered
-  `wool-a/entry` (the id prefix is its serialization, not its source of truth) — and **every compose move
-  after emission is label-preserving**: labels live through carve/cut/repair up to `Assemble`, the one
-  boundary where they drop from the written plan (the evaluator receives them via `EvalContext` — G62/G68;
-  a shape already attached to another shape is never re-read, the labels drive and the mirror only
-  verifies). The spawn lane stays hand-grown at M2 — **G78** is the second box kind. Kills the third
-  shape impl; gives G44 its structural-spend vocabulary and makes G50–G52 reachable from generation.
-  **Changes RNG consumption** (goldens re-key). Depends on G58. (review §4, §4.4, §7.4)
 - [ ] **G78 — Spawn boxes: the spawn emits through the shared emitter (the second box kind).** After G61,
   replace `TeamUnitGrower`'s hand-rolled spawn-lane geometry (its inline I/L growth with the spawn room as
   terminal) with a `Box(Spawn)` filled through the same machinery: a small `SpawnBoxEmitter` role binding

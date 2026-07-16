@@ -76,14 +76,17 @@ public sealed class TeamUnitGrowerTests
     }
 
     [Test]
-    public async Task Every_piece_is_the_anonymous_piece_role()
+    public async Task Only_wool_rooms_carry_a_role_at_grow_time()
     {
-        // the grammar authors no wool-room/spawn-role pieces (PC1/PC3) — Composer stamps every grown piece
-        // as "piece"; this asserts the grower's own output carries no role information to contradict that.
+        // a wool box emits its room as a real role-bearing terminal; everything else the grower authors is
+        // the anonymous piece role (the spawn room is carved later, by SpawnWoolRooms)
         var unit = Grow(16, seed: 9);
         await Assert.That(unit.Pieces).IsNotEmpty();
         foreach (var p in unit.Pieces)
+        {
             await Assert.That(p.Rect.Length).IsEqualTo(4);
+            await Assert.That(p.Role is Plan.PlanRoles.Piece or Plan.PlanRoles.WoolRoom).IsTrue();
+        }
     }
 
     [Test]

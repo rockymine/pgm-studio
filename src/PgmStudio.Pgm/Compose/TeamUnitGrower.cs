@@ -1,18 +1,16 @@
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>A grown piece: a rect in cell coordinates (<see cref="Plan.PlanPiece.Rect"/> convention) and its
-/// role. The grower authors only anonymous <c>piece</c>-role rects (the default); the role-bearing
-/// <c>wool-room</c>/<c>spawn</c> rooms are carved from the terminal lanes afterwards
-/// (<see cref="SpawnWoolRooms"/>).
-///
-/// <para><see cref="Slot"/> is the piece's <b>wool-approach slot role</b> (<see cref="ApproachSlots"/>) when it
-/// came from <see cref="WoolBoxEmitter"/> — the shape-internal template position (<c>entry</c>/<c>bar</c>/
-/// <c>leg</c>/<c>room</c>, qualified <c>entry-run</c>/<c>room-run</c>/<c>entry-bar</c>/<c>room-bar</c>), which
-/// the shift/width/docking rules target. It is distinct from the map-level <see cref="Role"/> and is
-/// <c>null</c> for any piece not emitted as part of an approach shape.</para></summary>
-public sealed record GrownPiece(string Id, int[] Rect, string Role = PlanRoles.Piece, string? Slot = null);
+/// <summary>A grown piece: a rect in cell coordinates (<see cref="Plan.PlanPiece.Rect"/> convention), its
+/// map-level role, and — when it came out of a box fill — its shape-internal <see cref="Slot"/>
+/// (<see cref="ApproachSlots"/>) and its <see cref="Box"/> ownership. Slot + box are the full label
+/// (<c>wool-a/entry</c>) the compose-side rules bind to; both are <c>null</c> on pieces the grower authors
+/// directly (hub, spawn lane, frontline — until those become boxes too). Labels are compose-internal: every
+/// compose move preserves them, and they drop only at <see cref="Composer"/> assembly (the written plan is
+/// label-free by design).</summary>
+public sealed record GrownPiece(string Id, int[] Rect, string Role = PlanRoles.Piece, string? Slot = null, BoxRef? Box = null);
 
 /// <summary>The grown unit's spawn: which piece it sits on, its piece-relative half-cell offset, and its
 /// absolute facing (SP3: toward the enemy by default).</summary>
@@ -28,21 +26,26 @@ public sealed record GrownUnit(IReadOnlyList<GrownPiece> Pieces, GrownSpawn Spaw
 /// <summary>
 /// Grows one team's authored unit on the (u,v) grid a <see cref="Frame"/> maps to real cell coordinates: a
 /// hub — widening toward a plaza on big maps (HB1/HB3) — a spawn lane that runs straight back or hooks into
-/// an L (LN2/SP2/SP3), 1-3 wool lanes (WL6) hosted on the hub's sides or branching off the spawn lane at a
-/// sampled depth, and a frontline toward the axis (FR3/FR4) in one of three forms: none, a single chain, or
-/// <b>twin chains</b> — two parallel narrow chains whose recessed gap the mid band later seals into a closure
-/// hole, the rotation device (CT8). Every attachment shares a straight border of at least 2 cells (a full G2
-/// corridor — no narrow seams are authored), no two pieces overlap, pieces of DIFFERENT orbit images keep at
-/// least a 10-block clearance on some axis (team territories stay separate islands, bridgeable later at G5's
-/// minimum hop — CT1), and no maximal collinear chain of land-joined pieces runs past 50 blocks (LN2).
+/// an L (LN2/SP2/SP3), 1-3 <b>wool boxes</b> (WL6) docked on the hub's sides or the spawn lane's first run,
+/// and a frontline toward the axis (FR3/FR4) in one of three forms: none, a single chain, or <b>twin
+/// chains</b> — two parallel narrow chains whose recessed gap the mid band later seals into a closure hole,
+/// the rotation device (CT8).
 ///
-/// Surplus land budget beyond what capped lanes can hold is spent structurally, never by stretching a lane:
-/// a third wool lane on big teams, extra lane segments at right angles (turns), a wider hub, frontline
-/// chains. Among hard-valid candidates the grower prefers those whose footprint-bbox land fill lands in the
-/// corpus allotment band (0.32..0.60) — a soft criterion: an out-of-band unit is kept as a fallback, never
-/// rejected. A candidate that fails any hard invariant is discarded and regrown from the same
-/// <see cref="ComposeRng"/> — which is why every draw below happens in one fixed order — up to a bounded
-/// number of attempts: the grower never emits a violating unit.
+/// A wool arm is a typed box fill, not an inline lane: the arm's budget share sizes a <see cref="Box"/>
+/// docking the host through a one-lane mouth, <see cref="FillMenu"/> gates which families the mouth admits,
+/// and <see cref="WoolBoxEmitter.Fill"/> emits the family — every piece carrying its slot + box label, the
+/// wool room emitted as a real role-bearing piece. Structural surplus is spent by the family escalating
+/// (I → L → Z → scythe/clamp/U/H fit the budget share), never by stretching one lane.
+///
+/// Every attachment shares a straight border of at least 2 cells (a full G2 corridor — no narrow seams are
+/// authored), no two pieces overlap, pieces of DIFFERENT orbit images keep at least a 10-block clearance on
+/// some axis (team territories stay separate islands, bridgeable later at G5's minimum hop — CT1), and no
+/// maximal collinear chain of land-joined pieces runs past 50 blocks (LN2). Among hard-valid candidates the
+/// grower prefers those whose footprint-bbox land fill lands in the corpus allotment band (0.32..0.60) — a
+/// soft criterion: an out-of-band unit is kept as a fallback, never rejected. A candidate that fails any
+/// hard invariant is discarded and regrown from the same <see cref="ComposeRng"/> — which is why every draw
+/// below happens in one fixed order — up to a bounded number of attempts: the grower never emits a
+/// violating unit.
 /// </summary>
 public static class TeamUnitGrower
 {
@@ -114,31 +117,34 @@ public static class TeamUnitGrower
     /// <summary>The sampled shape of one growth attempt — everything random, resolved before the
     /// deterministic repair search runs.</summary>
     private sealed record Shape(
-        int W, int ChainCap, int AxisMargin, int HubU, int HubV, int WoolInset,
+        int W, int ChainCap, int ArmDepthCap, int AxisMargin, int HubU, int HubV, int WoolInset,
         FrontForm Form, int[] FrontSegs, int FrontVOff, int TwinLen,
         int SpawnSegCount, bool SpawnL, int SpawnLDir, double SpawnSplitFrac, int SpawnURunCap,
-        bool[] LaneSpawnHost, double[] LaneAttFracs, bool SideFlip, bool[] WoolEndBack, int WoolCount);
+        bool[] LaneSpawnHost, ShapeFamily[] LaneFamily, int[] LaneWidth, double[] LaneAttFracs, bool[] LaneFlip,
+        bool SideFlip, int WoolCount);
 
     private static GrownUnit? TryGrow(ComposeEnvelope env, ComposeRng rng, CrossingDesign? design)
     {
         var frame = Frame.For(env.Symmetry);
         var w = env.LandPerTeam > 2500 ? 3 : 2;                       // lane width, cells (LN1: 10; 15 on big maps)
         var chainCap = Math.Max(3, LaneChainMaxBlocks / env.Cell);    // LN2 cap in cells
-        // rot_90's wedge punishes sideways reach: cap the side (v-run) segment shallower than the chain cap
-        var seg1Cap = env.Teams == 4 ? Math.Min(chainCap, 6) : chainCap;
+        // rot_90's wedge punishes sideways reach: cap the arm's outward depth shallower than the chain cap
+        // (the separation check still rejects any candidate whose quarter-turn image comes too close)
+        var armDepthCap = env.Teams == 4 ? Math.Min(chainCap, 8) : chainCap;
         double cellArea = env.Cell * (double)env.Cell;
         double budgetCells = env.LandPerTeam / cellArea;
         var clearCells = (ImageClearanceBlocks + env.Cell - 1) / env.Cell;
 
-        // ── structure sampling — fixed draw order (part of the golden contract): (g1) wool-lane count,
-        // (g2) per side lane host, (g3) per side lane segment count, (g4) per side lane attachment fraction,
-        // (g4b) lone-lane side flip, (g4c) per side lane wool-end back offset, (g5) arm asymmetry fraction,
-        // (g6) spawn segment count, (g7) spawn dogleg style + direction, (g8) frontline form (+ single-chain
-        // segment count and cross-offset fraction), (g9) hub depth + width, (g10) spawn split fraction,
-        // (g11) single-chain split fraction. Draws whose feature is absent are skipped only on deterministic
-        // conditions, so a given request always replays the same sequence. The twin form's geometry (chain
-        // width 2, recess 2, at the hub width floor 6) is fully determined by the ≤6-cell hub cap and needs
-        // no draws. ──
+        // ── structure sampling — fixed draw order (part of the golden contract): (g1) wool-box count,
+        // (g2) per side box host, (g3) per side family roll, (g4) per side attachment fraction, (g4b)
+        // lone-box side flip, (g4c) per side emit flip (handedness), (g5) arm asymmetry fraction, (g6) spawn
+        // segment count, (g7) spawn dogleg style + direction, (g8) frontline form (+ single-chain segment
+        // count and cross-offset fraction), (g9) hub depth + width, (g10) spawn split fraction, (g11)
+        // single-chain split fraction. Draws whose feature is absent are skipped only on deterministic
+        // conditions, so a given request always replays the same sequence. A family roll resolves later
+        // against the deterministic fit-filtered menu (roll mod list size), so the roll itself is
+        // share-independent. The twin form's geometry (chain width 2, recess 2, at the hub width floor 6)
+        // is fully determined by the ≤6-cell hub cap and needs no draws. ──
         var frontlinePossible = env.LandPerTeam >= 800;
         var woolInset = frontlinePossible ? 1 : 0;
 
@@ -150,20 +156,17 @@ public static class TeamUnitGrower
         var laneSpawnHost = new bool[sideLanes];
         for (var i = 0; i < sideLanes; i++) laneSpawnHost[i] = rng.NextBool(0.35);
 
-        var laneSegCounts = new int[sideLanes];
-        for (var i = 0; i < sideLanes; i++)
-            laneSegCounts[i] = env.LandPerTeam < 900 ? (rng.NextBool(0.5) ? 2 : 1) : rng.NextInt(1, 4);
+        var laneFamilyRolls = new int[sideLanes];
+        for (var i = 0; i < sideLanes; i++) laneFamilyRolls[i] = rng.NextInt(0, 4096);
 
         var laneAttFracs = new double[sideLanes];
         for (var i = 0; i < sideLanes; i++) laneAttFracs[i] = rng.NextDouble();
 
-        // a lone wool lane picks its side (a two-lane unit keeps the fixed left/right pair)
+        // a lone wool box picks its side (a two-box unit keeps the fixed left/right pair)
         var sideFlip = sideLanes == 1 && rng.NextBool(0.5);
 
-        // a straight lane's wool may press against the lane's back edge instead of its centreline — the
-        // wool end offsets away from the mid rather than mirroring the lane's parallel run
-        var woolEndBack = new bool[sideLanes];
-        for (var i = 0; i < sideLanes; i++) woolEndBack[i] = rng.NextBool(0.5);
+        var laneFlip = new bool[sideLanes];
+        for (var i = 0; i < sideLanes; i++) laneFlip[i] = rng.NextBool(0.5);
 
         var asymFrac = sideLanes == 2 ? rng.NextDouble() : 0.5;
 
@@ -191,11 +194,11 @@ public static class TeamUnitGrower
             }
         }
 
-        // hub (HB1/HB3): the depth floor clears the side-lane inset; the width floor keeps a frontline
+        // hub (HB1/HB3): the depth floor clears the side-box inset; the width floor keeps a frontline
         // chain narrower than the hub (no merged spine chain), fits the twin recess (2+2+2), and fits the
         // third wool lane on the back edge; the cap grows toward the 30-block plaza on big budgets.
         var hubCap = env.LandPerTeam >= 3000 ? 6 : env.LandPerTeam >= 1500 ? 5 : frontlinePossible ? 4 : 3;
-        // frontline-less boards deepen the hub by one cell so the wool arm can attach a cell off the hub's
+        // frontline-less boards deepen the hub by one cell so the wool box can dock a cell off the hub's
         // front corner — keeping the wool-carrying piece clear of the mid band (BZ6) without a frontline
         var hubUFloor = frontlinePossible ? w + 1 + woolInset : w + 2;
         int HubVFloor() => Math.Max(
@@ -207,9 +210,19 @@ public static class TeamUnitGrower
         var spawnSplitFrac = rng.NextDouble();
         var frontSplitFrac = form == FrontForm.Single && frontSegCount == 2 ? rng.NextDouble() : 0.5;
 
-        // deterministic capacity repair (no draws): when the sampled shape cannot hold the land budget even
-        // with every run at its cap, add structure — more lane segments first, then a frontline.
-        int LaneCapCells(int n) => (seg1Cap + (n - 1) * chainCap) * w;
+        // the hub-host mouth window (host edge cells a box's mouth row may touch): the interval between the
+        // hub's front inset (BZ6 discipline — never the front corner) and a 1-cell back-corner clearance.
+        // Its LENGTH is placement-independent, so the family fit below can use it before geometry assembly.
+        var hubWindowLen = Math.Max(0, form == FrontForm.None ? hubU - 2 : hubU - woolInset - 1);
+
+        // deterministic capacity screen (no draws): when even the roomiest family per arm cannot hold the
+        // land budget, add structure — a frontline first; else give up on this attempt.
+        double ArmCapacity() => FillMenu.ProductionFamilies
+            .Where(f => FitsArm(f, w, hubWindowLen, armDepthCap))
+            .Select(f => (double)ArmArea(f, w, ArmWidthCap(f, w, hubWindowLen, chainCap),
+                ArmDepthCapOf(f, w, hubWindowLen, armDepthCap)))
+            .DefaultIfEmpty(0)
+            .Max();
         double FrontCapCells() => form switch
         {
             FrontForm.Twin => 2.0 * chainCap * 2,
@@ -221,20 +234,12 @@ public static class TeamUnitGrower
             hubU * hubV
             + chainCap * w                                 // spawn (its straight-run cap; an L holds more)
             + FrontCapCells()
-            + Enumerable.Range(0, sideLanes).Sum(i => LaneCapCells(laneSegCounts[i]))
+            + sideLanes * ArmCapacity()
             + (woolCount == 3 ? chainCap * 2 : 0);
-        while (Capacity() < 0.9 * budgetCells)
+        if (Capacity() < 0.9 * budgetCells && frontlinePossible && form == FrontForm.None)
         {
-            var bumped = false;
-            for (var i = 0; i < sideLanes && !bumped; i++)
-                if (laneSegCounts[i] < 3) { laneSegCounts[i]++; bumped = true; }
-            if (!bumped && frontlinePossible && form == FrontForm.None)
-            {
-                form = twinAllowed ? FrontForm.Twin : FrontForm.Wide;
-                hubV = Math.Max(hubV, HubVFloor());
-                bumped = true;
-            }
-            if (!bumped) break;
+            form = twinAllowed ? FrontForm.Twin : FrontForm.Wide;
+            hubV = Math.Max(hubV, HubVFloor());
         }
         if (Capacity() < (1 - AreaTolerance) * budgetCells) return null;
 
@@ -251,7 +256,7 @@ public static class TeamUnitGrower
             axisMargin = env.Teams == 4 ? Math.Max(Envelope.AxisMarginCells + 2, hubClear) : Envelope.AxisMarginCells;
 
         // ── deterministic length solve: distribute the non-hub budget by fixed weights, clamped to the
-        // chain caps — the surplus that clamping sheds is what the structural additions above absorb. ──
+        // family/chain caps — the surplus that clamping sheds is what the structural additions absorb. ──
         double flexible = budgetCells - hubU * hubV;
         if (flexible <= 0) return null;
         const double spawnUnit = 2.0, woolUnit = 1.8, woolCUnit = 1.2;
@@ -283,24 +288,37 @@ public static class TeamUnitGrower
             twinLen = Math.Clamp((int)Math.Round(flexible * (frontUnit / totalUnits) / Math.Min(6, hubV + 2)), 2, 4);
         var frontVOff = (int)Math.Round(frontVFrac * (hubV - w));
 
-        // arm totals: equal weighted shares skewed by the asymmetry draw, then clamped to the lane's caps
-        var laneTotals = new int[sideLanes];
+        // arm area shares: equal weighted shares skewed by the asymmetry draw
+        var armShares = new int[sideLanes];
         for (var i = 0; i < sideLanes; i++)
-            laneTotals[i] = (int)Math.Round(flexible * (woolUnit / totalUnits) / w);
+            armShares[i] = (int)Math.Round(flexible * (woolUnit / totalUnits));
         if (sideLanes == 2)
         {
-            var shift = (int)Math.Round((asymFrac - 0.5) * 0.8 * Math.Min(laneTotals[0], laneTotals[1]));
-            laneTotals[0] += shift;
-            laneTotals[1] -= shift;
+            var shift = (int)Math.Round((asymFrac - 0.5) * 0.8 * Math.Min(armShares[0], armShares[1]));
+            armShares[0] += shift;
+            armShares[1] -= shift;
         }
-        var laneSegLens = new int[sideLanes][];
+
+        // resolve each arm's family: the roll indexes the deterministic fit-filtered menu — a family whose
+        // mouth fits the hub window, whose depth fits the wedge cap, and whose minimum area is not out of
+        // all proportion to the arm's share. The fallback is the straight lane (always fits).
+        var laneFamily = new ShapeFamily[sideLanes];
+        var laneWidth = new int[sideLanes];
+        var laneDepth = new int[sideLanes];
         for (var i = 0; i < sideLanes; i++)
         {
-            // a straight lane may run as short as 2 cells (the tiniest boards); turning lanes keep 3 per
-            // segment so every turn keeps a full attachment and the marker its inset
-            laneTotals[i] = Math.Clamp(laneTotals[i],
-                laneSegCounts[i] == 1 ? 2 : 3 * laneSegCounts[i], LaneCapCells(laneSegCounts[i]) / w);
-            laneSegLens[i] = DistributeLane(laneTotals[i], laneSegCounts[i], seg1Cap, chainCap);
+            var fit = FillMenu.FamiliesFor(w)
+                .Where(f => FitsArm(f, w, hubWindowLen, armDepthCap))
+                .Where(f => ArmArea(f, w, ShapeEmitter.MinBox(f, w).W, ShapeEmitter.MinBox(f, w).H) <= armShares[i] * 1.25 + 2)
+                .ToList();
+            var family = fit.Count == 0 ? ShapeFamily.I : fit[laneFamilyRolls[i] % fit.Count];
+            var depthCap = ArmDepthCapOf(family, w, hubWindowLen, armDepthCap);
+            var minW = ShapeEmitter.MinBox(family, w).W;
+            laneFamily[i] = family;
+            laneDepth[i] = SolveDepth(family, w, minW, armShares[i], depthCap);
+            laneWidth[i] = ArmArea(family, w, minW, depthCap) >= armShares[i]
+                ? minW
+                : SolveWidth(family, w, armShares[i], depthCap, ArmWidthCap(family, w, hubWindowLen, chainCap));
         }
 
         var woolCLen = woolCount == 3
@@ -308,25 +326,30 @@ public static class TeamUnitGrower
             : 0;
 
         var shape = new Shape(
-            w, chainCap, axisMargin, hubU, hubV, woolInset,
+            w, chainCap, armDepthCap, axisMargin, hubU, hubV, woolInset,
             form, frontSegs, frontVOff, twinLen,
             spawnSegCount, spawnLFeasible, woolCount == 3 ? -1 : spawnLDirDraw, spawnSplitFrac, spawnURunCap,
-            laneSpawnHost, laneAttFracs, sideFlip, woolEndBack, woolCount);
+            laneSpawnHost, laneFamily, laneWidth, laneAttFracs, laneFlip, sideFlip, woolCount);
 
         // ── repair search (no draws): WL2/WL7, the area window, and the fill preference are coupled —
-        // shrink the spawn lane (outer) and inflate the wool lanes toward their caps (inner) until every
-        // hard invariant holds, preferring an in-band footprint fill and falling back to the first valid. ──
+        // shrink the spawn lane (outer) and inflate the wool boxes toward their depth caps (inner) until
+        // every hard invariant holds, preferring an in-band footprint fill and falling back to the first
+        // valid. ──
         GrownUnit? fallback = null;
         var maxInflate = Enumerable.Range(0, sideLanes)
-                .Sum(i => laneSegLens[i].Select((l, j) => (j == 0 ? seg1Cap : chainCap) - l).Sum())
+                .Sum(i => ArmDepthCapOf(laneFamily[i], w, hubWindowLen, armDepthCap) - laneDepth[i])
             + (woolCount == 3 ? chainCap - woolCLen : 0);
         for (var shrink = 0; shrink <= Math.Min(6, spawnLen - 1); shrink++)
         {
             var s = spawnLen - shrink;
             for (var inflate = 0; inflate <= maxInflate; inflate++)
             {
-                var (lens, cLen) = ApplyInflation(laneSegLens, woolCLen, inflate, seg1Cap, chainCap, woolCount == 3);
-                var (pieces, spawnPieceId, spawnAt, wools) = Build(frame, shape, s, lens, cLen);
+                var (depths, cLen) = ApplyInflation(
+                    laneDepth, woolCLen, inflate, i => ArmDepthCapOf(laneFamily[i], w, hubWindowLen, armDepthCap),
+                    chainCap, woolCount == 3);
+                var built = Build(frame, shape, s, depths, cLen);
+                if (built is null) continue;
+                var (pieces, spawnPieceId, spawnAt, wools) = built.Value;
 
                 var total = TotalArea(env, pieces);
                 if (total > env.LandPerTeam * (1 + AreaTolerance)) break;   // inflation only grows — next shrink
@@ -346,10 +369,84 @@ public static class TeamUnitGrower
         return fallback;
     }
 
+    // ── the arm-as-box helpers (deterministic, draw-free) ───────────────────────────────────────────────
+
+    /// <summary>The emitted land area (cells) of a family filling a canonical box — monotone in the depth
+    /// (every family spans it) and, for the bar-carrying families, in the width (their bar spans it): depth
+    /// is the arm's repair knob, width its budget-absorption knob.</summary>
+    private static int ArmArea(ShapeFamily family, int cw, int width, int depth)
+    {
+        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        var s = ShapeEmitter.Emit(family, Math.Max(width, minW), Math.Max(depth, minH), cw);
+        return s.Terrain.Sum(p => p.Rect[2] * p.Rect[3]) + s.Room[2] * s.Room[3];
+    }
+
+    /// <summary>How wide a family's canonical box may grow. Widening only pays where a bar spans the box
+    /// (L's band, Z's crossing bar, U/H's crossbar — each capped by LN2's chain limit); U/H legs ride the
+    /// box edges, so their mouth widens with the box and the host window caps them instead. The straight
+    /// lane gains nothing from width (its lane is centred, the rest is unused envelope).</summary>
+    private static int ArmWidthCap(ShapeFamily family, int cw, int hostWindowLen, int chainCap)
+    {
+        var (minW, _) = ShapeEmitter.MinBox(family, cw);
+        return family switch
+        {
+            ShapeFamily.L or ShapeFamily.Z => chainCap,
+            ShapeFamily.U or ShapeFamily.H => Math.Max(minW, Math.Min(hostWindowLen, chainCap)),
+            _ => minW,
+        };
+    }
+
+    /// <summary>The width of a family's mouth row — every box-local cell column its mouth-up emission
+    /// occupies on the docking edge (entries, and for some families the room). All of it must land on the
+    /// host edge, so this is what the host window gates.</summary>
+    private static int MouthRowSpan(ShapeFamily family, int cw, int width, int depth)
+    {
+        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        var canonW = Math.Max(width, minW);
+        var canonH = Math.Max(depth, minH);
+        var raw = ShapeEmitter.Emit(family, canonW, canonH, cw);
+        var (s, _, _) = ShapeEmitter.OrientMouthTop(raw, family, false, canonW, canonH);
+        var cells = s.Terrain.Select(p => p.Rect).Append(s.Room).Where(r => r[1] == 0).ToList();
+        return cells.Count == 0 ? 0 : cells.Max(r => r[0] + r[2]) - cells.Min(r => r[0]);
+    }
+
+    /// <summary>The arm's depth cap for a family: the wedge/chain cap, except a transposing family (the
+    /// clamp), whose canonical depth axis lies ALONG the host edge and is capped by the window instead.</summary>
+    private static int ArmDepthCapOf(ShapeFamily family, int cw, int hostWindowLen, int armDepthCap) =>
+        ShapeEmitter.MouthEdge(family) is BoxEdge.Left or BoxEdge.Right
+            ? Math.Min(hostWindowLen, armDepthCap)
+            : armDepthCap;
+
+    private static bool FitsArm(ShapeFamily family, int cw, int hostWindowLen, int armDepthCap)
+    {
+        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        var cap = ArmDepthCapOf(family, cw, hostWindowLen, armDepthCap);
+        return minH <= cap && MouthRowSpan(family, cw, minW, minH) <= hostWindowLen;
+    }
+
+    /// <summary>The smallest depth whose emitted area reaches the arm's share (clamped to the caps).</summary>
+    private static int SolveDepth(ShapeFamily family, int cw, int width, int shareCells, int depthCap)
+    {
+        var (_, minH) = ShapeEmitter.MinBox(family, cw);
+        for (var h = minH; h < depthCap; h++)
+            if (ArmArea(family, cw, width, h) >= shareCells) return h;
+        return Math.Max(minH, depthCap);
+    }
+
+    /// <summary>The smallest width whose emitted area at the capped depth reaches the arm's share (clamped
+    /// to the family's width cap) — the second solve, run only when depth alone cannot absorb the share.</summary>
+    private static int SolveWidth(ShapeFamily family, int cw, int shareCells, int depthCap, int widthCap)
+    {
+        var (minW, _) = ShapeEmitter.MinBox(family, cw);
+        for (var w2 = minW; w2 < widthCap; w2++)
+            if (ArmArea(family, cw, w2, depthCap) >= shareCells) return w2;
+        return Math.Max(minW, widthCap);
+    }
+
     // ── geometry assembly ───────────────────────────────────────────────────────────────────────────────
 
-    private static (List<GrownPiece> Pieces, string SpawnPieceId, double[] SpawnAt, List<GrownWool> Wools) Build(
-        Frame frame, Shape sh, int spawnLen, int[][] laneSegLens, int woolCLen)
+    private static (List<GrownPiece> Pieces, string SpawnPieceId, double[] SpawnAt, List<GrownWool> Wools)? Build(
+        Frame frame, Shape sh, int spawnLen, int[] armDepths, int woolCLen)
     {
         var w = sh.W;
         var frontReach = sh.Form switch
@@ -434,65 +531,25 @@ public static class TeamUnitGrower
             spawnAt = frame.LocalAt(0, last, 0, w, last - MarkerInsetCells, w / 2.0);
         }
 
-        // wool side lanes — hosted on the hub's sides or branching off the spawn lane's first run at a
-        // sampled depth, dead-ending in the wool plateau (WL1/LN3): segment 1 runs outward in v, segment 2
-        // turns backward (u+) hugging the lane's FAR v edge, segment 3 turns outward in v again — long
-        // routes come from turns, not stretched runs (LN2)
+        // wool boxes — docked on the hub's sides or the spawn lane's first run, mouth toward the host: the
+        // arm's share picked the family, the depth knob sized the box, and the fill emits slot- and
+        // box-labeled pieces with the wool room as a real role-bearing terminal (WL1/LN3)
         var wools = new List<GrownWool>();
-        for (var i = 0; i < laneSegLens.Length; i++)
+        for (var i = 0; i < armDepths.Length; i++)
         {
             var side = (i == 0) == !sh.SideFlip ? -1 : 1;
             var letter = (char)('a' + i);
-            var lens = laneSegLens[i];
-            var l1 = lens[0];
 
-            var (attLo, attHi, vBase) = ResolveAttachment(sh, side, hubUMin, hubVMin, spawnU0, spawnS1, spawnLen, spawnL, i);
-            var att = attLo + (int)Math.Round(sh.LaneAttFracs[i] * (attHi - attLo));
+            var (winLo, winLen, vBase) = ResolveAttachment(
+                sh, side, hubUMin, hubVMin, spawnU0, spawnS1, spawnLen, spawnL, i,
+                MouthRowSpan(sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i]));
+            var uFloor = Math.Max(hubUMin + sh.WoolInset, sh.AxisMargin + 1);
 
-            var seg1VMin = side < 0 ? vBase - l1 : vBase;
-            Place($"wool-lane-{letter}", att, w, seg1VMin, l1);
-
-            string markerPiece;
-            double markerU, markerV;
-            int mUMin, mUSpan, mVMin, mVSpan;
-            if (lens.Length == 1)
-            {
-                markerPiece = $"wool-lane-{letter}";
-                mUMin = att; mUSpan = w; mVMin = seg1VMin; mVSpan = l1;
-                // the sampled back offset presses the wool against the lane's rear edge — away from the mid
-                markerU = sh.WoolEndBack[i] ? mUMin + w - MarkerInsetCells : mUMin + w / 2.0;
-                markerV = side < 0 ? mVMin + MarkerInsetCells : mVMin + mVSpan - MarkerInsetCells;
-            }
-            else
-            {
-                var l2 = lens[1];
-                var w2 = Math.Min(w, l1 - 1);                              // stays clear of the host's edge
-                var seg2UMin = att + w;
-                var seg2VMin = side < 0 ? seg1VMin : seg1VMin + l1 - w2;   // hug the lane's FAR v edge
-                Place($"wool-lane-{letter}-2", seg2UMin, l2, seg2VMin, w2);
-
-                if (lens.Length == 2)
-                {
-                    markerPiece = $"wool-lane-{letter}-2";
-                    mUMin = seg2UMin; mUSpan = l2; mVMin = seg2VMin; mVSpan = w2;
-                    markerU = mUMin + mUSpan - MarkerInsetCells;
-                    markerV = mVMin + w2 / 2.0;
-                }
-                else
-                {
-                    var l3 = lens[2];
-                    var w3 = Math.Min(w, l2 - 1);                 // stays clear of segment 1's far edge
-                    var seg3UMin = seg2UMin + l2 - w3;            // hug segment 2's far u end
-                    var seg3VMin = side < 0 ? seg2VMin - l3 : seg2VMin + w2;
-                    Place($"wool-lane-{letter}-3", seg3UMin, w3, seg3VMin, l3);
-
-                    markerPiece = $"wool-lane-{letter}-3";
-                    mUMin = seg3UMin; mUSpan = w3; mVMin = seg3VMin; mVSpan = l3;
-                    markerU = mUMin + w3 / 2.0;
-                    markerV = side < 0 ? mVMin + MarkerInsetCells : mVMin + mVSpan - MarkerInsetCells;
-                }
-            }
-            wools.Add(new GrownWool(markerPiece, frame.LocalAt(mUMin, mUSpan, mVMin, mVSpan, markerU, markerV)));
+            var arm = PlaceArm(
+                frame, pieces, sh.LaneFamily[i], w, sh.LaneWidth[i], armDepths[i], sh.LaneFlip[i],
+                sh.LaneAttFracs[i], side, winLo, winLen, uFloor, vBase, $"wool-{letter}", $"wool-room-{letter}");
+            if (arm is null) return null;
+            wools.Add(arm);
         }
 
         // third wool (WL6) — a narrow (2-cell) dead-end lane straight back from the hub's back edge, beside
@@ -508,36 +565,81 @@ public static class TeamUnitGrower
         return (pieces, spawnPieceId, spawnAt, wools);
     }
 
-    /// <summary>The feasible attachment interval (u of the arm's near edge) and outward base line (v) for a
-    /// side lane, on its sampled host. Hub host: anywhere along the hub side between the front inset and a
-    /// 1-cell back-corner clearance. Spawn host: along the spawn lane's first run, 1 cell behind the hub's
-    /// back corner, clear of any continuation piece at the run's end — and clear of an L-hook's own band when
-    /// the hook turns to this side. Only a 2-piece spawn lane may host (a wool arm on the spawn MARKER's own
-    /// piece would leave the wool reachable only through it — SP1); degrades to the hub host when no interval
-    /// survives.</summary>
-    private static (int Lo, int Hi, int VBase) ResolveAttachment(
-        Shape sh, int side, int hubUMin, int hubVMin, int spawnU0, int spawnS1, int spawnLen, bool spawnL, int lane)
+    /// <summary>Fill one wool box and place it against its host: the emission is normalized mouth-up in a
+    /// side-agnostic (u, d) frame — d is outward distance from the host edge — then every rect maps through
+    /// the side and the symmetry frame into real cell coordinates. Returns the wool, or null when the mouth
+    /// cannot sit inside the host window (the attempt is discarded, never patched).</summary>
+    private static GrownWool? PlaceArm(
+        Frame frame, List<GrownPiece> pieces, ShapeFamily family, int cw, int width, int depth, bool flip,
+        double attFrac, int side, int winLo, int winLen, int uFloor, int vBase, string boxId, string roomId)
+    {
+        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        var canonW = Math.Max(width, minW);
+        var canonH = Math.Max(depth, minH);
+        var raw = ShapeEmitter.Emit(family, canonW, canonH, cw, flip);
+        var (s, _, _) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
+
+        // the mouth row (d = 0) must sit fully on the host edge window, and the whole box body must stay
+        // behind the front inset line (a flipped shape's body runs toward the axis from its entry — it may
+        // overhang free space away from the mid, never toward it)
+        var mouthRects = s.Terrain.Select(p => p.Rect).Append(s.Room).Where(r => r[1] == 0).ToList();
+        var mouthLo = mouthRects.Min(r => r[0]);
+        var mouthSpan = mouthRects.Max(r => r[0] + r[2]) - mouthLo;
+        var placeLo = Math.Max(winLo, uFloor + mouthLo);
+        var placeHi = winLo + winLen - mouthSpan;
+        if (placeLo > placeHi) return null;
+        var boxU0 = placeLo + (int)Math.Round(attFrac * (placeHi - placeLo)) - mouthLo;
+
+        var box = new BoxRef(boxId, BoxKind.Wool);
+        var n = 1;
+        foreach (var (r, slot) in s.Terrain)
+        {
+            var vMin = side > 0 ? vBase + r[1] : vBase - r[1] - r[3];
+            pieces.Add(new GrownPiece($"{boxId}-t{n++}", frame.ToRect(boxU0 + r[0], r[2], vMin, r[3]),
+                PlanRoles.Piece, slot, box));
+        }
+        var room = s.Room;
+        var roomVMin = side > 0 ? vBase + room[1] : vBase - room[1] - room[3];
+        pieces.Add(new GrownPiece(roomId, frame.ToRect(boxU0 + room[0], room[2], roomVMin, room[3]),
+            PlanRoles.WoolRoom, ApproachSlots.Room, box));
+
+        var markerU = boxU0 + room[0] + s.At[0];
+        var markerV = side > 0 ? vBase + room[1] + s.At[1] : vBase - room[1] - s.At[1];
+        return new GrownWool(roomId, frame.LocalAt(boxU0 + room[0], room[2], roomVMin, room[3], markerU, markerV));
+    }
+
+    /// <summary>The host mouth window (u of its first cell, its length, and the host edge's v line) for a
+    /// side box, on its sampled host. Hub host: the hub side between the front inset and a 1-cell
+    /// back-corner clearance. Spawn host: along the spawn lane's first run, 1 cell behind the hub's back
+    /// corner, clear of any continuation piece at the run's end — and clear of an L-hook's own band when the
+    /// hook turns to this side. Only a 2-piece spawn lane may host (a wool box on the spawn MARKER's own
+    /// piece would leave the wool reachable only through it — SP1); degrades to the hub host when the
+    /// window cannot take the mouth.</summary>
+    private static (int Lo, int Len, int VBase) ResolveAttachment(
+        Shape sh, int side, int hubUMin, int hubVMin, int spawnU0, int spawnS1, int spawnLen, bool spawnL,
+        int lane, int mouthSpan)
     {
         var w = sh.W;
-        // never on the hub's front corner: the arm must stay clear of the mid band's docking line (BZ6)
+        // never on the hub's front corner: the box must stay clear of the mid band's docking line (BZ6)
         var hubLo = Math.Max(hubUMin + sh.WoolInset, sh.AxisMargin + 1);
-        var hubHi = Math.Max(hubLo, spawnU0 - w - 1);
+        var hubLen = Math.Max(0, spawnU0 - 1 - hubLo);
         var hubVBase = side < 0 ? hubVMin : hubVMin + sh.HubV;
 
         var twoPieceSpawn = spawnL || (sh.SpawnSegCount == 2 && spawnLen >= 2);
         var wantSpawn = sh.LaneSpawnHost[lane]
             && twoPieceSpawn                               // the spawn marker must not sit on the host piece (SP1)
             && !(sh.WoolCount == 3 && side > 0);           // the third wool owns the spawn's right band
-        if (!wantSpawn) return (hubLo, hubHi, hubVBase);
+        if (!wantSpawn) return (hubLo, hubLen, hubVBase);
 
         var lo = spawnU0 + 1;
         var hi = spawnU0 + spawnS1 - w - 1;                // clear of the continuation at the run's end
         if (spawnL && sh.SpawnLDir == side)
             hi = Math.Min(hi, spawnU0 + spawnS1 - 2 * w - 1);   // stay clear of the hook's own band
-        if (hi < lo) return (hubLo, hubHi, hubVBase);
+        var len = hi + w - lo;
+        if (len < mouthSpan) return (hubLo, hubLen, hubVBase);
 
         var vBase = side < 0 ? hubVMin : hubVMin + w;
-        return (lo, hi, vBase);
+        return (lo, len, vBase);
     }
 
     // ── deterministic sizing helpers ────────────────────────────────────────────────────────────────────
@@ -549,56 +651,28 @@ public static class TeamUnitGrower
         return [first, total - first];
     }
 
-    /// <summary>Distribute a lane's total length over its segments: a turning lane's segments start at
-    /// 3 cells (room for the next turn's attachment and the marker inset), a straight lane may run at 2;
-    /// the remainder spreads round-robin up to each segment's cap (the side run may carry a tighter cap
-    /// than the chain cap).</summary>
-    private static int[] DistributeLane(int total, int segCount, int seg1Cap, int chainCap)
+    /// <summary>Apply <paramref name="steps"/> one-cell depth inflations round-robin across every wool box
+    /// (then the third wool lane), skipping arms already at their cap.</summary>
+    private static (int[] Depths, int WoolCLen) ApplyInflation(
+        int[] baseDepths, int baseWoolC, int steps, Func<int, int> capOf, int chainCap, bool hasWoolC)
     {
-        var floor = segCount == 1 ? 2 : 3;
-        var lens = new int[segCount];
-        Array.Fill(lens, floor);
-        int CapOf(int j) => j == 0 ? seg1Cap : chainCap;
-        var rest = total - floor * segCount;
-        var idx = 0;
-        while (rest > 0)
-        {
-            if (!Enumerable.Range(0, segCount).Any(j => lens[j] < CapOf(j))) break;
-            if (lens[idx] < CapOf(idx)) { lens[idx]++; rest--; }
-            idx = (idx + 1) % segCount;
-        }
-        return lens;
-    }
-
-    /// <summary>Apply <paramref name="steps"/> one-cell inflations round-robin across every wool-lane
-    /// segment (then the third wool lane), skipping segments already at their cap.</summary>
-    private static (int[][] LaneSegLens, int WoolCLen) ApplyInflation(
-        int[][] baseLens, int baseWoolC, int steps, int seg1Cap, int chainCap, bool hasWoolC)
-    {
-        var lens = baseLens.Select(l => (int[])l.Clone()).ToArray();
+        var depths = (int[])baseDepths.Clone();
         var c = baseWoolC;
-        var knobs = new List<(int Lane, int Seg)>();
-        for (var i = 0; i < lens.Length; i++)
-            for (var j = 0; j < lens[i].Length; j++)
-                knobs.Add((i, j));
-        var knobCount = knobs.Count + (hasWoolC ? 1 : 0);
-        int CapOf(int seg) => seg == 0 ? seg1Cap : chainCap;
-
+        var knobCount = depths.Length + (hasWoolC ? 1 : 0);
         var idx = 0;
         var guard = 0;
         while (steps > 0 && guard++ < 10_000)
         {
-            var anyRoom = lens.Any(l => l.Where((x, j) => x < CapOf(j)).Any()) || (hasWoolC && c < chainCap);
+            var anyRoom = depths.Where((d, i) => d < capOf(i)).Any() || (hasWoolC && c < chainCap);
             if (!anyRoom) break;
-            if (idx < knobs.Count)
+            if (idx < depths.Length)
             {
-                var (li, sj) = knobs[idx];
-                if (lens[li][sj] < CapOf(sj)) { lens[li][sj]++; steps--; }
+                if (depths[idx] < capOf(idx)) { depths[idx]++; steps--; }
             }
             else if (hasWoolC && c < chainCap) { c++; steps--; }
             idx = (idx + 1) % knobCount;
         }
-        return (lens, c);
+        return (depths, c);
     }
 
     // ── hard-invariant validation ───────────────────────────────────────────────────────────────────────
