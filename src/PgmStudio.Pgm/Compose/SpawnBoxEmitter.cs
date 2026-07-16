@@ -17,11 +17,12 @@ public sealed record EmittedSpawn(IReadOnlyList<GrownPiece> Pieces, GrownPiece R
 /// per-box shape menu and footprint budget read directly — this and the wool box are the first two rows of
 /// the per-kind profile table.
 ///
-/// <para><see cref="Fill"/> emits the family in the canonical (mouth-top) frame, then maps it into the growth
-/// frame the spawn docks the hub's back edge and runs outward through: box-local <c>bz</c> is outward distance
-/// <c>u</c>, box-local <c>bx</c> is the cross coordinate <c>v</c>, and an L's turn goes to whichever side
-/// <paramref name="dir"/> selects — the entry run stays pinned on the hub edge either way. Every piece carries
-/// its slot and the spawn <see cref="BoxRef"/>; the room takes the <see cref="PlanRoles.Spawn"/> role.</para>
+/// <para><see cref="Fill"/> fills a plan-cell <see cref="Box"/> the same way the wool box does — emit mouth-up,
+/// orient onto the docking edge via <see cref="MouthOrient"/> — and stamps the spawn specifics: every piece
+/// carries its slot and the spawn <see cref="BoxRef"/>, the room takes the <see cref="PlanRoles.Spawn"/> role,
+/// and it reports the entry-run length a wool box may dock along. The grower allocates the box against the hub's
+/// back edge and pins the entry run's cross band; the marker's facing (SP3, toward the axis) is stamped at
+/// assembly.</para>
 /// </summary>
 public static class SpawnBoxEmitter
 {
@@ -44,44 +45,41 @@ public static class SpawnBoxEmitter
         };
     }
 
-    /// <summary>Fill a spawn box docking the hub edge at <paramref name="spawnU0"/> (outward <c>u</c>), its
-    /// entry run pinned at cross coordinate <paramref name="vBase"/>, turning to side <paramref name="dir"/>
-    /// (+1/-1, L only). Pieces map through <paramref name="frame"/> into real cell coordinates and carry the
-    /// <paramref name="boxId"/> box label + their slot; the room takes <paramref name="roomId"/> and the
-    /// <see cref="PlanRoles.Spawn"/> role.</summary>
-    internal static EmittedSpawn Fill(
-        ShapeFamily family, int cw, int runCells, int turnCells, int dir,
-        Frame frame, int spawnU0, int vBase, string boxId, string roomId)
+    /// <summary>Fill a spawn <see cref="Box"/> (plan cells) docking <paramref name="mouth"/> with an I or L, its
+    /// terminal a <see cref="PlanRoles.Spawn"/> room. Mirrors the wool box's plan-cell fill — emit mouth-up, then
+    /// orient onto the mouth via <see cref="MouthOrient"/> — but stamps the spawn role and reports the
+    /// <b>entry-run length</b> (outward from the mouth) a wool box may dock along. Pieces carry the
+    /// <paramref name="box"/> label + their slot; the room takes <paramref name="roomId"/>. <paramref name="flip"/>
+    /// puts an L's hook on the other side. Null when the footprint is too small (a directed signal, not a throw).</summary>
+    public static EmittedSpawn? Fill(Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId)
     {
-        var (w, h) = Box(family, cw, runCells, turnCells);
-        EmittedShape shape;
-        try { shape = ShapeEmitter.Emit(family, w, h, cw); }
-        catch (ArgumentException e) { throw new ComposeException(e.Message); }
+        if (!Families.Contains(family))
+            throw new ComposeException($"the spawn profile admits only I and L (requested {family}).");
 
-        // box-local (bx -> v, bz -> u); dir < 0 reflects the cross axis about the entry column so the turn
-        // flips side while the entry stays pinned on [vBase, vBase+cw].
-        int VMin(int bx, int bw) => dir >= 0 ? vBase + bx : vBase + cw - (bx + bw);
-        double VPoint(double bx) => dir >= 0 ? vBase + bx : vBase + cw - bx;
-        int[] Map(int[] r) => frame.ToRect(spawnU0 + r[1], r[3], VMin(r[0], r[2]), r[2]);
+        // the mouth's along × depth frame (I/L never transpose, so the box dims map straight through)
+        var lateral = mouth is BoxEdge.Left or BoxEdge.Right;
+        var (alongLen, depth) = lateral ? (box.Rect[3], box.Rect[2]) : (box.Rect[2], box.Rect[3]);
+        var (minW, minH) = ShapeEmitter.MinBox(family, cw);
+        if (alongLen < minW || depth < minH) return null;
 
-        var box = new BoxRef(boxId, BoxKind.Spawn);
+        var raw = ShapeEmitter.Emit(family, alongLen, depth, cw, flip);
+        var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, alongLen, depth);
+        var shape = MouthOrient.To(mouthTop, mouth, w, h);
+
+        var boxRef = new BoxRef(box.Id, BoxKind.Spawn);
         var pieces = new List<GrownPiece>(shape.Terrain.Count + 1);
         var n = 1;
         foreach (var (r, slot) in shape.Terrain)
-            pieces.Add(new GrownPiece($"{boxId}-t{n++}", Map(r), PlanRoles.Piece, slot, box));
-
+            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", [box.Rect[0] + r[0], box.Rect[1] + r[1], r[2], r[3]],
+                PlanRoles.Piece, slot, boxRef));
         var rr = shape.Room;
-        var room = new GrownPiece(roomId, Map(rr), PlanRoles.Spawn, ApproachSlots.Room, box);
+        var room = new GrownPiece(roomId, [box.Rect[0] + rr[0], box.Rect[1] + rr[1], rr[2], rr[3]],
+            PlanRoles.Spawn, ApproachSlots.Room, boxRef);
         pieces.Add(room);
 
-        // the marker within the room, mapped through the cross reflection + the frame
-        var markerU = spawnU0 + rr[1] + shape.At[1];
-        var markerV = VPoint(rr[0] + shape.At[0]);
-        var at = frame.LocalAt(spawnU0 + rr[1], rr[3], VMin(rr[0], rr[2]), rr[2], markerU, markerV);
-
-        // the entry run's outward length (hub edge -> first turn/room) = the entry piece's bz extent
-        var entry = shape.Terrain[0].Rect;                 // the entry is always emitted first (slot template)
-        var entryLen = entry[3];
-        return new EmittedSpawn(pieces, room, at, entryLen);
+        // the entry run's outward length (perpendicular to the mouth) — the interval a wool box docks along
+        var entry = shape.Terrain.First(t => t.Slot == ApproachSlots.Entry).Rect;
+        var entryLen = mouth is BoxEdge.Top or BoxEdge.Bottom ? entry[3] : entry[2];
+        return new EmittedSpawn(pieces, room, shape.At, entryLen);
     }
 }

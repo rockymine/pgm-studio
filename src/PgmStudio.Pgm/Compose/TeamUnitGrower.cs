@@ -521,8 +521,8 @@ public static class TeamUnitGrower
         else
             spawnRun = Math.Max(w, spawnLen - rd);
 
-        var spawn = SpawnBoxEmitter.Fill(
-            spawnFamily, w, spawnRun, spawnTurn, sh.SpawnLDir, frame, spawnU0, hubVMin, "spawn-a", "spawn");
+        var spawn = FillSpawn(frame, spawnFamily, w, spawnRun, spawnTurn, sh.SpawnLDir, spawnU0, hubVMin, "spawn-a", "spawn");
+        if (spawn is null) return null;
         pieces.AddRange(spawn.Pieces);
         var spawnPieceId = spawn.Room.Id;
         var spawnAt = spawn.MarkerAt;
@@ -618,6 +618,38 @@ public static class TeamUnitGrower
         foreach (var p in ok.Approach.Terrain) pieces.Add(Shift(p));
         pieces.Add(Shift(ok.Approach.WoolRoom));
         return new GrownWool(roomId, ok.Approach.At);
+    }
+
+    /// <summary>Allocate the spawn box's footprint in plan cells (docking the hub's back edge and running
+    /// outward) and fill it through <see cref="SpawnBoxEmitter"/>. The box sits at <paramref name="spawnU0"/>
+    /// (outward <c>u</c>) with its cross span pinned at <paramref name="vBase"/>; the mouth is the hub-facing
+    /// edge (Top for a z-frame, Right for an x-frame), and the L's hook turns to the <paramref name="dir"/>
+    /// side via a flip. After filling, the box slides in <c>v</c> so the <b>entry run seats at
+    /// <c>[vBase, vBase+cw]</c></b> — the pinned cross band the wool-on-spawn dock expects — since the flip
+    /// otherwise moves it. Returns the spawn, or null when its footprint is too small.</summary>
+    private static EmittedSpawn? FillSpawn(
+        Frame frame, ShapeFamily family, int cw, int runCells, int turnCells, int dir,
+        int spawnU0, int vBase, string boxId, string roomId)
+    {
+        var (bw, bh) = SpawnBoxEmitter.Box(family, cw, runCells, turnCells);   // bw cross, bh outward
+        var mouth = frame.PrimaryAxis == 'z' ? BoxEdge.Top : BoxEdge.Right;
+
+        var box = new Box(boxId, BoxKind.Spawn, frame.ToRect(spawnU0, bh, vBase, bw), bw * bh);
+        var spawn = SpawnBoxEmitter.Fill(box, mouth, family, cw, dir < 0, roomId);
+        if (spawn is null) return null;
+
+        // pin the entry run's cross band to [vBase, vBase+cw] (the flip moves it) so the wool-on-spawn dock lands
+        // where the grower expects it — shift the whole box in v by the frame's v-direction
+        var entry = spawn.Pieces.First(p => p.Slot == ApproachSlots.Entry);
+        var shiftV = vBase - frame.FromRect(entry.Rect).VMin;
+        if (shiftV == 0) return spawn;
+
+        var (vx, vz) = frame.ToPoint(0, 1);
+        var (ox, oz) = frame.ToPoint(0, 0);
+        int dx = (int)Math.Round((vx - ox) * shiftV), dz = (int)Math.Round((vz - oz) * shiftV);
+        GrownPiece Shift(GrownPiece p) => p with { Rect = [p.Rect[0] + dx, p.Rect[1] + dz, p.Rect[2], p.Rect[3]] };
+        var shifted = spawn.Pieces.Select(Shift).ToList();
+        return new EmittedSpawn(shifted, shifted.First(p => p.Id == roomId), spawn.MarkerAt, spawn.EntryLen);
     }
 
     /// <summary>The host mouth window (u of its first cell, its length, and the host edge's v line) for a
