@@ -266,6 +266,15 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   well as fresh space, so a bay-seated spawn docks up to three walls for free (`spawn-first` inverts it — the
   hub's fill must wrap a staked pocket). Depends on G63-C, G41-D (the vacancy-publishing fills). (review §4.4,
   §4.5, §7.7)
+- [ ] **G87 — Fill-to-`LandTargetCells` directed repair — reconsidered, not a solver.** Originally scoped as
+  G63-C's core: allocate each box's footprint + land target from the budget, then resize the shape (directed
+  repair off `FillResult`) until its land hits the target, retiring `SolveDepth`/`SolveWidth`/`spawnLen`. **Parked
+  by author call:** "resize until it fits" grows shapes as the budget rises — the opposite of what the seeds need
+  (they're already too large). Bring it back only as a **narrow rule** — grow a box solely when it is below its
+  family's minimum, never to spend surplus budget — with surplus going to **count** (another box) or fragmentation,
+  not length. Pairs with **G84**'s spawn cap; the **wool** depth/width wants the same cap-review (grow-to-absorb
+  deepens wool approaches too — the I→L→Z escalation is wanted, unbounded stretch is not). (review §8; the sizing
+  explainer artifact)
 - [ ] **G76 — The marker inspector exposes none of a structure's knobs, so every placed marker is the
   default.** The stamps are all built and the plan format names them — what is missing is the UI. A
   destroyable has **six styles** (`pillar-1/2/3` · `cube-3` · `cube-4` · `column-plus`), a material from the

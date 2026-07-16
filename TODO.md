@@ -70,9 +70,31 @@ in `BACKLOG.md`.)*
   wool arm's RNG re-keys (first churn — suite still green: tests gate invariants/authored seeds, composer goldens
   freeze after G63). (1c) the shared four-mouth orientation is extracted to `MouthOrient`, and the **spawn arm routes
   through the plan-cell fill** too (`FillSpawn`; `SpawnBoxEmitter.Fill` takes a plan-cell `Box`+mouth), the entry run
-  re-pinned for the wool-on-spawn dock — byte-identical for I / L-dir≥0 spawns.* **Remaining:** route the **hub/frontline**
-  boxes (open, no terminal — G41-C emission); fill each box to
-  its `Box.LandTargetCells` with **directed repair** from `FillResult` (retiring `SolveDepth`/`SolveWidth`/`spawnLen`
-  and the 60-attempt re-rolls); the clamp's **dual-host corner-wrap**; the `Composer` routes through the partitioner,
-  **`TeamUnitGrower` retires**, re-baseline gallery cases, **then** freeze the G32-D goldens. Depends on G63-B.
-  (review §4.2, §4.4, §4.5, §7.7)
+  re-pinned for the wool-on-spawn dock — byte-identical for I / L-dir≥0 spawns.* **Remaining (the switch's own
+  spine):** the `Composer` routes through the partitioner, **`TeamUnitGrower` retires**, the clamp's **dual-host
+  corner-wrap** lands, re-baseline gallery cases, **then** freeze the G32-D goldens. *Deliberately NOT next: the
+  fill-to-`LandTargetCells` **directed repair** (retiring `SolveDepth`/`SolveWidth`/`spawnLen`) — it resizes shapes
+  to hit the budget, which grows them further, the opposite of what the seeds need; parked in `BACKLOG.md` to be
+  reconsidered as a targeted rule, not a solver.* The **hub/frontline** open boxes are their own track (G41-C).
+  Depends on G63-B. (review §4.2, §4.4, §4.5, §7.7)
+
+**Shape honesty (the box shapes are too large — keep them small, spend the budget on count) — current focus**
+
+*(The porting kept the old grower's "grow the shape to absorb its budget share" sizing, so the spawn/wool shapes
+stretch with player count — a spawn can reach ~100 blocks when the docs say a spawn is small, ≤20. The fix is
+size **rules** over the box model, not a resize solver. Visual: the sizing explainer artifact.)*
+
+- [ ] **G84 — Cap the spawn box small.** The spawn carries the **largest** budget weight (`spawnUnit` 2.0) and a
+  length cap of `spawnURunCap + chainCap` (~20 cells ≈ 100 blocks), so it stretches to absorb its share. Give it a
+  **fixed SP-sized box** instead (~10×10 direct · 10×20 run-up · 20×20 L — `map-generation.md` §4), independent of
+  player count; drop `spawnUnit`/`spawnLen` from the budget split so the spawn no longer eats a share. Directly ends
+  the long lanes. (SP; review the sizing explainer artifact)
+- [ ] **G85 — Flexible spawn attachment.** The spawn always docks the hub's **back** edge (`FillSpawn` picks Top/Right
+  by frame). The plan-cell fill already docks any edge (the wool arm proves it), so let the spawn attach at varied
+  points/edges like the wools — a sampled host + mouth, not a fixed one. (SP2/SP3; depends on G84 landing first so the
+  small box is what moves.)
+- [ ] **G86 — Remove the premature wool-lane fragmentation.** `IsolationCut` carves a `bridge-a` build zone across a
+  wool route today, before fragmentation has slot-carving rules — visible as stray bridges on the wool lanes. Pull
+  `IsolationCut` out of the `Composer` loop now (keep the code) and reintroduce it later as a proper fragment pass
+  that knows which **slots** may be cut (a `run`/`bar`, never a `room`/`entry`), per the §5.3 slot cut law. Re-keys
+  the RNG (the cut draw goes away). (BZ/CT; the generic fragment is G63-D)
