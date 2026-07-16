@@ -61,14 +61,15 @@ B shipped the partition-first allocator seam + budget check (both `FEATURES.md`)
 + retire + re-baseline); D — the generic fragment, `GrowthOrder` strategies, and vacancy allocation — is parked
 in `BACKLOG.md`.)*
 
-- [~] **G63-C — [M4] The switch (fill the partition, retire the grower, re-baseline).** *Landed: the docking
-  gate is wired into `BoxFiller` — it reads the box's edges off the placed fill (`BoxInterfaces.Of`) and
-  `DockingGate.CheckMouth` gates the mouth, so the filler **produces only legal docks**, an illegal one (seals a
-  wool, non-entry, wrong span, or an unmet dual-host demand) returning a directed `FillResult.IllegalDock` rather
-  than a placement. Still off the live path (the grower emits directly), so byte-identical.* **Remaining (the
-  seed-churning core rewrite):** `BoxFiller` fills each allocated box to its `Box.LandTargetCells` target so the
-  bespoke `SolveDepth`/`SolveWidth`/`spawnLen` sizing retires and footprint becomes an *input* (**closes G41-A
-  part 2**), with **directed repair** from `FillResult` replacing the 60-attempt re-rolls; the clamp's **dual-host
-  corner-wrap** placement lands (the one docking mode needing the partition graph); the `Composer` routes through
-  the partitioner, **`TeamUnitGrower` retires**, the RNG re-keys; re-baseline gallery cases, **then** freeze the
-  G32-D goldens. Depends on G63-B. (review §4.2, §4.4, §4.5, §7.7)
+- [~] **G63-C — [M4] The switch (fill the partition, retire the grower, re-baseline).** *Landed, organ by organ:
+  (1) the docking gate is wired into `BoxFiller` — `DockingGate.CheckMouth` over the box's edges (`BoxInterfaces.Of`)
+  makes the filler **produce only legal docks**, an illegal one a directed `FillResult.IllegalDock`. (1a) `BoxFiller`
+  fills all **four mouths** (Left/Right via a quarter-turn of the mouth-up shape — rects, marker, vacancies). (1b)
+  the **wool arm routes through the plan-cell `BoxFiller`** (`FillArm` retires `PlaceArm`): the box footprint is
+  allocated first and the fill sized to it (**footprint an input**), seated by its mouth row in the host window; the
+  wool arm's RNG re-keys (first churn — suite still green: tests gate invariants/authored seeds, composer goldens
+  freeze after G63).* **Remaining:** route the **spawn/hub/frontline** arms through `BoxFiller` too; fill each box to
+  its `Box.LandTargetCells` with **directed repair** from `FillResult` (retiring `SolveDepth`/`SolveWidth`/`spawnLen`
+  and the 60-attempt re-rolls); the clamp's **dual-host corner-wrap**; the `Composer` routes through the partitioner,
+  **`TeamUnitGrower` retires**, re-baseline gallery cases, **then** freeze the G32-D goldens. Depends on G63-B.
+  (review §4.2, §4.4, §4.5, §7.7)
