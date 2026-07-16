@@ -36,6 +36,17 @@ public sealed class BoxInterfacesTests
     }
 
     [Test]
+    public async Task The_slots_on_an_edge_are_the_pieces_that_reach_it()
+    {
+        // the facts carry the template slots on each edge, room included — the raw observation the gate maps to
+        // dock roles. The I's top edge is the entry, its bottom the room, its void sides carry nothing.
+        var es = Edges(ShapeFamily.I, 6, 12);
+        await Assert.That(Edge(es, BoxEdge.Top).Slots).IsEquivalentTo(new[] { ApproachSlots.Entry });
+        await Assert.That(Edge(es, BoxEdge.Bottom).Slots).IsEquivalentTo(new[] { ApproachSlots.Room });
+        await Assert.That(Edge(es, BoxEdge.Left).Slots).IsEmpty();
+    }
+
+    [Test]
     public async Task Span_is_long_on_the_boxs_longer_sides()
     {
         // a 6×12 box: the 6-cell top/bottom edges are short, the 12-cell left/right are long

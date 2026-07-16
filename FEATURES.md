@@ -983,20 +983,42 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **Docking as a declarative slot-edge gate — `DockingGate` (M3, G80)** — `Compose/Boxes/DockingGate.cs`:
+  the one place that decides whether a box edge may receive a dock, as a table over slots rather than
+  per-family imperative code. `SlotDockRole` tags each `ApproachSlots` slot once — `room` → **never-dock**
+  (a dock seals the goal), `entry` → **docking edge** (the mouth), every corridor slot (`run`/`bar`/`leg` and
+  the entry/room-qualified runs and bars) → **internal**; `FamilyDock` carries the per-family **demand** (how
+  many distinct entry edges must connect: clamp 2, most 1) and **span** (clamp: the short edge). The gate
+  resolves each box edge to its slots via the `BoxEdgeInterface` facts and applies the table: a dock is legal
+  iff the edge lands on a docking-edge slot, touches no never-dock slot, and meets the span demand
+  (`Check` → a directed `DockRejection` of `SealsWool`/`NotAnEntryEdge`/`WrongSpan`, `DockingEdges`,
+  `CanDock`, `MeetsDemand`). The hard cases are just rows: the **clamp** docks its two short bars (demand 2,
+  the long bay and wool wall rejected), the **scythe** docks its clean entry edge and rejects the
+  room-contaminated canonical mouth — the gate reading slots off the shape, not a fixed mouth edge, so validity
+  is **shape-relative for free** (an entry shift or a flip moves the edge and the verdict follows). It is a
+  **compose-side gate, not an `ILayoutTerm`** — the evaluator reads the derived board only and the interfaces
+  drop at `Assemble`, so the existing hard terms (WL8, the corner law) catch any symptom on derived topology
+  as the mirror while G80 adds zero terms. The partitioner wiring (producing `FillResult` rejections, the
+  clamp's dual-host corner-wrap placement) lands with G63. Verified: `DockingGateTests` (room never-dock /
+  entry docks; clamp two short bars + demand; scythe clean edge vs room-contaminated mouth; U leg edge; the
+  verdict tracks the room under flip; the slot-role map). Contract: `docs/contracts/map-generation.md`
+  §4/§12. (G80)
+
 - **The `BoxInterface` valid-edges data model — `BoxInterfaces` (M3, G41-B)** — `Compose/Boxes/
   BoxInterfaces.cs`: the interface model every fill and pattern binds to, replacing the single-mouth
   assumption. `BoxInterfaces.Of(shape, boxW, boxH)` reads a box's four edges off the emitted shape as
-  `BoxEdgeInterface` **facts** — for each edge, its `EdgeSpan` **long/short**, whether the wool room touches it
-  (`TouchesRoom`), and whether terrain reaches it (`HasTerrain`). It **observes; it does not judge**: whether
-  an edge may *dock* is a *rule* (needs terrain, must not seal the wool, plus the per-family entry/demand
-  rules), and that rule is the **G80 gate** over these facts, not baked in — so every docking rule lives in one
-  place (a room edge is legally docked at the elevation stage, G81, which is why "room ⇒ never-dock" is policy,
-  not fact). It retires the single-mouth assumption: a box exposes all four edges as the multi-interface
-  vocabulary. **Shape-relative**: every fact is read off the shape, so it moves with the shape (a room at a
-  different corner, a flipped handedness) rather than naming a fixed box coordinate — the property that lets
-  G80's gate make an entry shift carry its dock. Verified: `BoxInterfacesTests` (the I room edge is
-  wool-touched / the mouth edge clear terrain; the clamp's two short terrain edges + one wool-sealed; U's wool
-  edge touched / leg edge clear; span; the facts move with the shape under flip). Contract:
+  `BoxEdgeInterface` **facts** — for each edge, its `EdgeSpan` **long/short** and the **template slots on it**
+  (the pieces whose rects reach the edge, the room included; `TouchesRoom`/`HasTerrain` are convenience reads
+  over the slots). It **observes; it does not judge**: whether an edge may *dock* is a *rule* (must land on an
+  entry, must not seal the wool, plus the per-family demand/span), and that rule is the **G80 `DockingGate`**
+  over these slots, not baked in — so every docking rule lives in one place (a room edge is legally docked at
+  the elevation stage, G81, which is why "room ⇒ never-dock" is policy, not fact). It retires the single-mouth
+  assumption: a box exposes all four edges as the multi-interface vocabulary. **Shape-relative**: every fact is
+  read off the shape, so it moves with the shape (a room at a different corner, a flipped handedness) rather
+  than naming a fixed box coordinate — the property that lets G80's gate make an entry shift carry its dock.
+  Verified: `BoxInterfacesTests` (the I room edge is wool-touched / the mouth edge clear terrain; the slots on
+  an edge are the pieces that reach it; the clamp's two short terrain edges + one wool-sealed; U's wool edge
+  touched / leg edge clear; span; the facts move with the shape under flip). Contract:
   `docs/contracts/map-generation.md` §1.5/§4. (G41-B)
 
 - **The profile-driven fill spine — `FillProfiles` + `BoxFiller` (M3, G41-A part 1)** — `Compose/Boxes/

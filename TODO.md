@@ -21,11 +21,11 @@ reusing what the previous one proved — wool boxes **shipped** (G61), the mask-
 (G79 — its pinch scan `Cells.HasDiagonalPinch` is the primitive the docking work reuses), the mirror's
 slot recovery **shipped** (G62 — `SlotAssignment`), and the spawn box **shipped** (G78 — `SpawnBoxEmitter`,
 the second box kind, the profile-driven fill spine **shipped** (G41-A part 1 — `FillProfiles` + `BoxFiller`,
-the lever box footprint enforcement turns on), and the interface data model **shipped** (G41-B —
-`BoxInterfaces`, the valid-edges model G80 executes over; all in `FEATURES.md`) → **docking modes (G80) is
-next** → the partitioner switch (G63, where G41-A part 2 routes the production arms through `BoxFiller`),
-where
-`TeamUnitGrower` retires and sampling produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
+the lever box footprint enforcement turns on), the interface data model **shipped** (G41-B —
+`BoxInterfaces`, the valid-edges facts), and the docking gate **shipped** (G80 — `DockingGate`, the declarative
+slot-edge table the partitioner produces legal docks against; all in `FEATURES.md`) → **the partitioner switch
+(G63) is next**, where G41-A part 2 routes the production arms through `BoxFiller` and `TeamUnitGrower` retires
+as sampling produces a `BoxPartition`. Each box kind gets its **shape profile as data** (what shapes a spawn can be:
 {I, L}, small boxes per SP; what a wool entry admits: the §4 width menu), and the slot labels the
 emissions carry are what every later rule binds to (`docs/contracts/map-generation.md` §5.3: the labels
 drive, the mirror only verifies).
@@ -52,41 +52,15 @@ frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocke
   inversion. So retiring the bespoke sizing + the **intra-box fragment** that fills to the land target
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63. (review §4.1, §8)
-- [ ] **G80 — Docking as a declarative slot-edge gate (the clamp's two entries, the scythe's entry edges).**
-  All the docking rules reduce to **one table over slots**: a dock is legal iff it lands on a slot's
-  **docking edge** and touches no slot's **never-dock edge**. Tag each slot once, as data on the
-  `ApproachSlots` template — `room` → **never-dock** (a dock there seals the wool); `entry` → **docking
-  edge**; `run`/`bar`/`leg` → internal / not-a-dock — then per family a small **demand** (how many entry
-  edges a neighbour must connect: clamp 2, most 1) and any **span** constraint (clamp: the *short* edge). The
-  gate resolves each box edge to its **owning slot** via the **G41-B `BoxEdgeInterface` facts** (span,
-  wool-touch, terrain reach) and applies the table — no per-family imperative code, just the tags + demands.
-  **Validity is shape-relative for free**: the facts are read off the shape, so an entry shift moves its edge
-  and the verdict follows. The hard cases are just rows of this table:
-  - **Clamp** (the authored, allowlisted-WL8 preset — wool clamped, its bay a deliberate hole granting two
-    approaches, the fight rotating around it, *not* a published vacancy): both `entry` edges dock **along the
-    short edge** (demand 2), `room` never-docks. Full short-edge host closes the bay into a declared hole;
-    the corner-wrap dual host keeps it open; wool-side docking illegal (stubs dangle). Today's fill satisfies
-    one entry through one interface — this is what forces the rotation with the other entry dangling.
-  - **Scythe**: the `entry`'s **unoccupied edge parallel to the entry ↔ entry-run seam** docks (or the wider
-    **combined colinear head edge of entry + entry-run**); a host touching the `room` **rejects** (the
-    declared-bay alternative is parked as G81 — elevation-stage only).
-
-  **The never-dock-room rule moves here from G41-B.** G41-B shipped a `Dockable` verdict on `BoxEdgeInterface`
-  (`terrain && !room`) — but "room ⇒ never-dock" is the *first docking rule*, not a fact (a room edge is
-  legally docked at the elevation stage, G81), so it now lives in this gate with the rest; G41-B is facts-only
-  (it observes, the gate judges). **Where the gate lives — compose-side, NOT an `ILayoutTerm`.** The evaluator
-  reads the derived `EvalContext` only (*never a shape/family name*), and `BoxEdgeInterface` is compose-internal
-  (drops at `Assemble`), so a docking term is doubly impossible. The **filler/partitioner** consults the table
-  when it docks a box and **produces only legal docks, rejecting illegal ones as a `FillResult`** (labels
-  drive; "placement is the only legal placement", §4). The evaluator's connection is the **derive-side
-  mirror**: the *existing* hard terms (WL8's sealed-bay closure hole, the corner-law pinch) catch the
-  *symptom* on derived topology, never the interface — so **G80 adds zero terms**. Depends on **G41-B**. If
-  the clamp's **corner-wrap dual host** needs G63's partition graph, split rather than stall: the single-host
-  modes (scythe side/combined edge, clamp full short-edge) ship after G41-B, the dual-host mode follows G63.
 - [ ] **G63 — [M4] Partitioner-first composition (the box-driven generation switch).** `Compose/Boxes/
   BoxPartition` (boxes + interfaces = a constraint graph) replaces the `Shape` sampling record as what
   sampling produces; `BoxPartitioner` (budget → partition, **directed repair** from `FillResult` instead
-  of 60-attempt re-rolls). **The concrete inversion this is (the G41-A finding):** today an arm has *no
+  of 60-attempt re-rolls). **Wires the docking gate (G80):** as it docks a box the partitioner consults
+  `DockingGate` and **produces only legal docks** — an illegal one (seals a wool, misses the family's
+  demand/span) becomes a directed `FillResult` rejection, not a placement. This is where the clamp's
+  **dual-host corner-wrap** placement lands (two hosts, one entry each, the bay kept open) — the one docking
+  mode that needs the partition graph; the single-host modes the gate already decides. **The concrete
+  inversion this is (the G41-A finding):** today an arm has *no
   box* — `PlaceArm`/`PlaceSpawn` **emit the shape first, then compute where it sits** (a host window, the
   spawn's (u,v) frame), so the footprint is an *output* of the fill. The partitioner flips that:
   **allocate each box's `Rect` (position + dims) first**, then `BoxFiller` (G41-A) fills a box that already

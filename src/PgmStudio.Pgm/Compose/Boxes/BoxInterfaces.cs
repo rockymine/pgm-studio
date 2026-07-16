@@ -9,25 +9,37 @@ public enum EdgeSpan { Long, Short }
 
 /// <summary>
 /// The <b>observed facts</b> about one box edge, read off the emitted shape (§4): which edge, its
-/// <see cref="Span"/> (long vs short), whether the wool room touches it (<see cref="TouchesRoom"/>), and
-/// whether terrain reaches it (<see cref="HasTerrain"/>). These are neutral observations — <b>no policy</b>.
+/// <see cref="Span"/> (long vs short), and the <see cref="Slots"/> the fill puts on it — the template roles
+/// (<see cref="ApproachSlots"/>) of the pieces whose rects reach the edge, the room included as
+/// <see cref="ApproachSlots.Room"/>. These are neutral observations — <b>no policy</b>. <see cref="TouchesRoom"/>
+/// and <see cref="HasTerrain"/> are convenience reads over <see cref="Slots"/>.
 ///
-/// <para>Whether an edge may actually <em>receive a dock</em> is a <b>rule, not a fact</b>: it needs terrain
-/// to dock to, must not seal the wool, and must be an entry edge the family exposes in the right count/span.
-/// Those rules are the <b>G80 docking gate</b>, applied over these facts — deliberately not baked in here, so
-/// every docking rule lives in one place (a room edge that is legally docked at the elevation stage, G81, is
-/// exactly why "room ⇒ never-dock" is a policy, not a fact). It is <b>shape-relative</b>: every field is read
-/// off the shape, so the facts move with it — a room at a different corner, a flipped handedness.</para>
+/// <para>Whether an edge may actually <em>receive a dock</em> is a <b>rule, not a fact</b>: it must land on an
+/// entry (docking) slot, must not seal the wool, and must satisfy the family's span/count demand. Those rules
+/// are the <b>G80 docking gate</b> (<see cref="DockingGate"/>), which maps these slots to dock roles and
+/// applies the demand — deliberately not baked in here, so every docking rule lives in one place (a room edge
+/// is legally docked at the elevation stage, G81, which is exactly why "room ⇒ never-dock" is a policy, not a
+/// fact). It is <b>shape-relative</b>: the slots are read off the shape, so the facts move with it — a room at
+/// a different corner, an entry shift, a flipped handedness.</para>
 /// </summary>
-public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCells, bool TouchesRoom, bool HasTerrain);
+public sealed record BoxEdgeInterface(BoxEdge Edge, EdgeSpan Span, int LengthCells, IReadOnlyList<string> Slots)
+{
+    /// <summary>The wool room reaches this edge (its rect is flush with it). A convenience read over
+    /// <see cref="Slots"/>; the "room ⇒ never-dock" verdict over it is the gate's, not this fact's.</summary>
+    public bool TouchesRoom => Slots.Contains(ApproachSlots.Room);
+
+    /// <summary>Walkable terrain (any non-room slot) reaches this edge. A convenience read over
+    /// <see cref="Slots"/>.</summary>
+    public bool HasTerrain => Slots.Any(s => s != ApproachSlots.Room);
+}
 
 /// <summary>
 /// The valid-edges <b>data model</b> (G41-B): read a box's four edges as <see cref="BoxEdgeInterface"/>
 /// <b>facts</b> off the emitted shape filling it. It <b>observes; it does not judge</b> — the multi-interface
-/// vocabulary a box exposes (four edges, each classified long/short with wool-room contact and terrain reach),
+/// vocabulary a box exposes (four edges, each classified long/short and carrying the template slots on it),
 /// retiring the single-mouth assumption. The <b>rules</b> that turn these facts into a dockability verdict —
-/// which edges are legal docks, which slot edges never connect, how many a family demands — are the G80
-/// docking gate over this model.
+/// which edges are legal docks, which slots never connect, how many a family demands — are the
+/// <see cref="DockingGate"/> (G80) over this model.
 /// </summary>
 public static class BoxInterfaces
 {
@@ -38,9 +50,12 @@ public static class BoxInterfaces
     {
         var room = shape.Room;
         var terrain = shape.Terrain;
-        BoxEdgeInterface Edge(BoxEdge e, int length, int perpendicular, Func<int[], bool> on) =>
-            new(e, length >= perpendicular ? EdgeSpan.Long : EdgeSpan.Short, length,
-                on(room), terrain.Any(t => on(t.Rect)));
+        BoxEdgeInterface Edge(BoxEdge e, int length, int perpendicular, Func<int[], bool> on)
+        {
+            var slots = terrain.Where(t => on(t.Rect)).Select(t => t.Slot).ToList();
+            if (on(room)) slots.Add(ApproachSlots.Room);
+            return new(e, length >= perpendicular ? EdgeSpan.Long : EdgeSpan.Short, length, slots);
+        }
         return
         [
             Edge(BoxEdge.Top,    boxW, boxH, r => r[1] == 0),

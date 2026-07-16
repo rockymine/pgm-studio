@@ -334,8 +334,13 @@ Docking the wool-side edge (`hhh` *above* `twt/tvt`, aligned or offset) is illeg
 dangle again. Generalized: an interface declaration gains **valid edges** (long vs short; a
 wool-touching corner never docks), and a family may require a **wider interface or two interfaces**
 to be satisfied. The clamp is gated from production not by WL8 — it *is* WL8's allowlisted shape —
-but because the fill machinery cannot yet express multi-interface docking (G80). The docking modes
-are enumerable data; more may follow now that they are expressible.
+but because the fill machinery cannot yet *place* multi-interface docks. The legality is now
+expressible: `DockingGate` (G80) resolves each box edge to its slots and applies one table — a dock
+is legal iff it lands on an entry, seals no wool, and meets the family's demand (the clamp 2 short
+edges, most 1) — so the clamp's full short-edge host and the scythe's single-host edges are decided
+declaratively. What still waits on the partitioner (G63) is the **dual-host** placement (the
+corner-wrap: two hosts, one entry each) — a partition-graph concern, not a legality one. The docking
+modes are enumerable data; more may follow now that they are expressible.
 
 **The scythe's valid connections — and the height deferral.** Valid edges are **shape-relative, not
 box-relative**: an entry shift carries the dock with it. The scythe's standard connection is the
@@ -667,7 +672,8 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding (second box kind): profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
 | `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box` + land-vs-target accounting (the spine G63 drives). |
-| `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span, wool-touch, terrain reach) — it observes; the docking *rules* over the facts are the G80 gate. |
+| `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template slots on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |
+| `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `SlotDockRole` (room→never-dock, entry→docking, rest→internal) + `FamilyDock` (per-family demand/span) + the verdict (`Check`/`DockingEdges`/`MeetsDemand`) over the `BoxEdgeInterface` slots. A dock is legal iff it lands on an entry, seals no wool, meets the span demand — no per-family imperative code, shape-relative. Not an `ILayoutTerm`. |
 | `SpawnWoolRooms` | `Compose/SpawnWoolRooms.cs` | the wool-lane-c terminal carve (box rooms arrive pre-carved). |
 | `Envelope` | `Compose/Envelope.cs` | the budget anchors (`bp`; the land-per-player target). |
 | `MidCarver` | `Compose/MidCarver.cs` | the mid: bands, stone grids, the recess. |
