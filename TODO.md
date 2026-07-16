@@ -55,6 +55,14 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
   surface; decoding finished maps is a trap). `WoolLaneShape` the class retires here (its lane measurable
   is already the `ClassifyOpen` read). Depends on G58, G59. (review §3.4, §7.5; the §3.5/§3.6
   full-plan-scoping half is retired)
+- [ ] **G79 — The corner law reads the mask, not the pair (un-gates the donut).**
+  `TeamUnitGrower.ValidateContacts` rejects any pairwise `Corner` verdict, but a corner whose diagonal is
+  bridged by a third piece is a ¾-solid inside corner of one connected mass — harmless, and the editor's
+  `PC-C` lint already suppresses exactly that case (same land component). Replace the pairwise Corner
+  rejection with the cell-level law: scan the composed mask for **diagonal pinch windows** (two tiles
+  meeting only at a point with void or build zone on both opposite diagonals); ¾-solid corners pass.
+  Narrow/Overlap stay pairwise-rejected. The donut's mask holds zero pinch windows, so this admits
+  `Donut` to `FillMenu.ProductionFamilies` (changes RNG consumption — goldens re-key, free before G63).
 - [ ] **G41 — [M3] Open-variant emission for frontline & hub (delivers L/Z compositions + HB4).** Today
   the hub is always one square and the authored L/Z frontline↔hub combinations aren't generated. Build the
   **open-variant** shape layer over the shared family machinery: `Compose/Boxes/FillPattern` (arrangements
@@ -74,6 +82,17 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
   forcing the G45 parallel-lane anti-pattern. `emit-verify` grows per-kind pattern mirrors (twin → closure
   hole ringed by two strands; L hub → one-bend junction outline) — no new `*Shape` classes. Blocked partly
   on the author's frontline/hub teaching set. Depends on G61. (review §3.1, §4.3, §4.4, §7.6)
+- [ ] **G80 — Clamp docking: both entries, along the short entry edge (the allowlisted-WL8 preset).**
+  The clamp is an authored family preset: the wool deliberately clamped between two entry bars, its bay a
+  **deliberate hole** that grants the wool two approaches — the allowlisted instance of the WL8 motif, with
+  the fight rotating around the hole (the closed bay is *not* a published vacancy). Today a fill satisfies
+  exactly **one** entry through one interface, which forces the clamp to rotate and leaves the other entry
+  dangling in the void. Production entry = **both entries satisfied along the short entry edge**, as
+  enumerable docking modes (map-generation.md §4): a full short-edge host (closes the bay into a declared
+  hole) or the corner-wrap dual host (bay stays open); docking the wool-side edge is illegal (the entry
+  stubs dangle). Introduces **valid edges** on `BoxInterface` (long vs short; a wool-touching corner never
+  docks) and per-family multi-interface demands — more modes may follow now that they are expressible.
+  Depends on G41's interface machinery.
 - [ ] **G63 — [M4] Partitioner-first composition (the box-driven generation switch).** `Compose/Boxes/
   BoxPartition` (boxes + interfaces = a constraint graph) replaces the `Shape` sampling record as what
   sampling produces; `BoxPartitioner` (budget → partition, **directed repair** from `FillResult` instead

@@ -26,12 +26,15 @@ public static class FillMenu
     /// corner failure is the cell-level diagonal pinch — two tiles meeting only at a point with void or
     /// build zone on both opposite diagonals — and the donut's mask has none, so the family waits on the
     /// authoring gate learning to read the mask instead of the pair, not on a geometry variant. The
-    /// <b>scythe</b> and the <b>clamp</b> carry a bay
-    /// whose mouth is their own docking edge, so a flush dock seals the bay against the host into an
-    /// enclosed void walled by the wool room — exactly WL8's forbidden motif. The emitter's entry shift
-    /// takes the tail OFF the mouth row, so a shifted scythe cannot flush-dock at all: production entry
-    /// waits for a host that wraps the box corner (a side-edge dock) or for sealed bays to be declarable
-    /// as holes. All three stay fully emittable for harnesses and tests.</summary>
+    /// <b>scythe</b> carries a bay whose mouth is its own docking edge, so a flush dock seals the bay
+    /// against the host into an enclosed void walled by the wool room — exactly WL8's forbidden motif;
+    /// the entry shift also takes the tail off the mouth row, so a shifted scythe cannot flush-dock at
+    /// all (production entry waits for a corner-wrapping host or declarable holes). The <b>clamp</b> is
+    /// different: its wool-in-bay is the authored, allowlisted WL8 motif — the bay is a deliberate hole
+    /// granting the wool two approaches. What gates it is docking: a fill satisfies exactly one entry
+    /// through one interface, forcing the clamp to rotate with the other entry dangling in the void; it
+    /// needs both entries satisfied along the short entry edge (a wider interface or two — the G80
+    /// docking modes, map-generation.md §4). All three stay fully emittable for harnesses and tests.</summary>
     public static readonly IReadOnlyList<ShapeFamily> ProductionFamilies =
     [
         ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.U, ShapeFamily.H,

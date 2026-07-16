@@ -312,6 +312,30 @@ an input. Only once the join resolves is the relative frame embedded into absolu
 `w2/w4/w6`) and the *lane* to the wool (simple, `w2`). A wide entry tapers or splits into the narrow
 lane — which is why the emitter separates `attachmentWidth` from `cw`.
 
+**A family may demand more than one interface — and an interface names its valid edges (the clamp
+law).** Most families dock through a single `entry`, so one edge interval per box suffices. The
+**clamp** does not: it is an authored preset that deliberately clamps the wool between its two entry
+bars — the **allowlisted instance of the WL8 motif**. Its bay is a *deliberate* hole granting the
+wool two approaches, and the fight rotates around that hole (the closed bay is **not** a published
+vacancy, §4.4). Docking one entry to one interface — all a fill can express today — forces the clamp
+to rotate and leaves the other entry dangling in the void. A legal dock satisfies **both entries,
+along the short entry edge** (`t` tile, `w` wool, `v` void, `h` host):
+
+```
+t w t        t w t v
+t v t        t v t h
+h h h        h v v h
+```
+
+Left: the full short-edge host — both entries land and the bay closes into an **intended, declared
+hole** (§1.7). Right: the harder corner-wrap — two hosts take one entry each, the bay stays open.
+Docking the wool-side edge (`hhh` *above* `twt/tvt`, aligned or offset) is illegal: the entry stubs
+dangle again. Generalized: an interface declaration gains **valid edges** (long vs short; a
+wool-touching corner never docks), and a family may require a **wider interface or two interfaces**
+to be satisfied. The clamp is gated from production not by WL8 — it *is* WL8's allowlisted shape —
+but because the fill machinery cannot yet express multi-interface docking (G80). The docking modes
+are enumerable data; more may follow now that they are expressible.
+
 **"No shape fits" is a signal, not a failure.** An over-constrained box is answered by **changing the
 box** (resize, relax an interface, split it) — the Tetris failure feeds back up a level.
 
