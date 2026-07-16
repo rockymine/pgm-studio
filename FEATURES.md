@@ -983,6 +983,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The partition constraint graph — `BoxPartition` (M4, G63-A)** — `Compose/Boxes/BoxPartition.cs`: the typed
+  target the box-driven switch is built around. A `BoxPartition` is the typed `Box`es (each an allocated
+  footprint `Rect` + its `LandTargetCells` land-budget half) and the `BoxJoint`s between them (a shared edge
+  interval `BoxInterface` + the box on the other side) — the constraint graph sampling produces once
+  composition allocates boxes first and fills them second, replacing the imperative sample-then-place shape
+  record. `Valid()` is its hard-invariant gate: non-degenerate boxes, unique ids, the land currency never over
+  a box's footprint, and every joint a genuine abutment of two distinct real boxes (`SharedEdge` recomputed).
+  **Boxes may overlap** — the partition allocates budgets and constraints, not exclusive area (piece-
+  disjointness is the real invariant enforced downstream), so a joint is only asserted where two footprints
+  truly abut. `BoxPartition.Of(unit)` is the **derive-side mirror**: it reads the partition a grown unit
+  implies — labeled approach pieces group by their `BoxRef` into wool/spawn boxes, the structural pieces (hub,
+  frontline, third wool lane) by id into their plain boxes, joints from the footprint abutments — so the
+  partition a future allocator emits round-trips through it ("the labels drive, the mirror verifies"). Purely
+  additive: no production path changed, no plan/golden churn. Verified: `BoxPartitionTests` (`SharedEdge`
+  abutment intervals vs gaps/corners/overlap; the invariants reject degenerate/dup/over-budget/phantom-joint
+  partitions; `Of` reads a `Valid` partition off real grown units across seeds with the spine + wool boxes
+  present and the land currency summing; the hub is jointed to its neighbours). Contract:
+  `docs/contracts/map-generation.md` §4/§12. (G63-A)
+
 - **Docking as a declarative slot-edge gate — `DockingGate` (M3, G80)** — `Compose/Boxes/DockingGate.cs`:
   the one place that decides whether a box edge may receive a dock, as a table over slots rather than
   per-family imperative code. `SlotDockRole` tags each `ApproachSlots` slot once — `room` → **never-dock**

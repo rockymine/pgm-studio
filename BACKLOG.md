@@ -223,7 +223,7 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
 Two tracks share this section. **The headline is the composer** (plan-then-realize): rule-based
 composition of `plan.json` seeds under the frozen rules (`docs/contracts/map-generation.md` +
 `layout-rules.md` + `plan-editor.md`). Its current focus — **box-driven map generation, box per box** —
-is the batch in `TODO.md` (G61 → G79 → G62 → G78 → G41-A/B → G80 → G63, M2–M4; G41-C/D parked below); the doc pass, the parked G60 soft-rule
+is the batch in `TODO.md` (G61 → G79 → G62 → G78 → G41-A/B → G80 → G63-A → G63-B/C, M2–M4; G41-C/D + G63-D parked below); the doc pass, the parked G60 soft-rule
 long tail, the parked G32 realize subtracks, and the interface / hub / lane feature long-tail live here,
 **reworded to be delivered *through* the box model** rather than against the current grower. The
 island-detection / validation work follows. (The older / parallel **lane sketch generator** track — the
@@ -252,7 +252,20 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   `FillProfiles` gates claims (a spawn may claim a hub bay whose mouth faces away from the axis) — this is
   what makes the **spawn-in-hub-bay** layout expressible (three wools L/T/R + the spawn in the U's bay)
   instead of forcing the G45 parallel-lane anti-pattern. Depends on G41-C (the U-hub/twin patterns produce the
-  bays), G63 (the partitioner claims vacancies from the partition). (review §4.4, §7.6)
+  bays), G63-D (the partitioner claims vacancies from the partition). (review §4.4, §7.6)
+- [ ] **G63-D — Generic label-inheriting fragment + `GrowthOrder` strategies + vacancy allocation.** Once the
+  partitioner is the default (G63-C), **fragment** becomes a generic pass over the partition — and a
+  **label-inheriting** one: a piece the pass splits or converts hands its (box, slot) ownership to its products
+  (`IsolationCut` + the mid's low target are its two existing special cases), so a build zone knows which slot
+  it replaced (`wool-a/entry-run`) and the §5.3 per-slot cut law (a `run`/`bar` may split, an `entry`/`room`
+  stays whole) is enforced *at the cut* against the label, never re-derived; `IsolationCut`'s connector
+  extrusion (born unlabeled today) is labeled the same way — fragmentation and connection mutation driven off
+  labeled pieces to the limit, the moves citing slots and the mirror only verifying. `GrowthOrder` named
+  strategies (`spawn-first`/`hub-first`/`mid-out`) make the emission order an **experiment axis** judged by the
+  evaluator + G43, not doctrine. The partitioner allocates later boxes **from published vacancies** (§4.4) as
+  well as fresh space, so a bay-seated spawn docks up to three walls for free (`spawn-first` inverts it — the
+  hub's fill must wrap a staked pocket). Depends on G63-C, G41-D (the vacancy-publishing fills). (review §4.4,
+  §4.5, §7.7)
 - [ ] **G76 — The marker inspector exposes none of a structure's knobs, so every placed marker is the
   default.** The stamps are all built and the plan format names them — what is missing is the UI. A
   destroyable has **six styles** (`pillar-1/2/3` · `cube-3` · `cube-4` · `column-plus`), a material from the
