@@ -53,6 +53,9 @@ public sealed class PlanStructuresTests
         var s = Structures();
         // seam at z=20 (wool's front), the last room row; ends where the torches sit.
         await Assert.That(s.RedstoneLines).Contains(new RedstoneLine(0, 20, 9, 20));
+        // the orbit image lands one row inside the mirrored room too: a block at index c maps to −c−1,
+        // so the rot_180 row sits at z=−21 spanning the room's x — not one block off, outside the room.
+        await Assert.That(s.RedstoneLines).Contains(new RedstoneLine(-10, -21, -1, -21));
     }
 
     [Test]

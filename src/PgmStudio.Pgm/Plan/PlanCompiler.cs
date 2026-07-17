@@ -266,12 +266,18 @@ public static class PlanCompiler
         foreach (var seg in d.InterfaceSegments.Where(g => g is { WoolRoom: true, Kind: ContactKind.Land }))
         {
             var (ex1, ez1, ex2, ez2) = EntranceRow(d, seg);
+            // Fan the row as a block-region rect, not as its two endpoints: a block at index c occupies
+            // [c, c+1), so it mirrors to block −c−1, not −c. Reflecting the endpoint points lands a mirror
+            // image one block off — inset into the room, or past its edge into the void. FanRect re-bounds
+            // the fanned corners, carrying the block interval across; the inclusive ends come back as
+            // (min, max−1) per axis.
+            var row = new BlockRect(
+                (int)Math.Min(ex1, ex2), (int)Math.Min(ez1, ez2),
+                (int)Math.Max(ex1, ex2) + 1, (int)Math.Max(ez1, ez2) + 1);
             for (var k = 0; k < d.Order; k++)
             {
-                var (px1, pz1) = d.FanPoint(ex1, ez1, k);
-                var (px2, pz2) = d.FanPoint(ex2, ez2, k);
-                int x1 = (int)Math.Round(px1), z1 = (int)Math.Round(pz1);
-                int x2 = (int)Math.Round(px2), z2 = (int)Math.Round(pz2);
+                var r = d.FanRect(row, k);
+                int x1 = r.MinX, z1 = r.MinZ, x2 = r.MaxX - 1, z2 = r.MaxZ - 1;
                 if (lineSeen.Add((x1, z1, x2, z2)) && lineSeen.Add((x2, z2, x1, z1)))
                     s.RedstoneLines.Add(new RedstoneLine(x1, z1, x2, z2));
             }
