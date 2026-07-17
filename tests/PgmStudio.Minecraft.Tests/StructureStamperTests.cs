@@ -47,6 +47,8 @@ public sealed class StructureStamperTests
         await Assert.That(w.GetBlock(9, 9, 3).Id).IsEqualTo(Blocks.RedstoneTorch);   // end
         await Assert.That(w.GetBlock(5, 9, 3).Id).IsEqualTo(Blocks.RedstoneWire);    // interior
         await Assert.That(w.GetBlock(8, 9, 3).Id).IsEqualTo(Blocks.RedstoneWire);
+        // wire is laid at full signal strength (data = power level)
+        await Assert.That(w.GetBlock(5, 9, 3).Data).IsEqualTo(15);
         // sits on top of the surface (y = surface top), not below it
         await Assert.That(w.GetBlock(6, 8, 3).Id).IsEqualTo(Blocks.Air);
     }

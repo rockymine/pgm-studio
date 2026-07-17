@@ -30,7 +30,8 @@ public static class StructureStamper
 
     /// <summary>Lay a redstone-wire row on top of the surface between the two given block ends (inclusive),
     /// with a redstone torch replacing the wire at each end (ST1 — the conventional entrance-protection
-    /// marker). The two ends must share an axis (a straight row); the row is one block wide.</summary>
+    /// marker). The wire is stamped at full strength (its data value is the signal level, so 15 = a fully
+    /// lit line). The two ends must share an axis (a straight row); the row is one block wide.</summary>
     public static void StampRedstoneLine(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int x1, int z1, int x2, int z2)
@@ -43,8 +44,10 @@ public static class StructureStamper
             var x = x1 + dx * i;
             var z = z1 + dz * i;
             var y = surfaceTop.GetValueOrDefault((x, z), 1);
-            var id = i == 0 || i == steps ? Blocks.RedstoneTorch : Blocks.RedstoneWire;
-            world.SetBlock(x, y, z, id);
+            if (i == 0 || i == steps)
+                world.SetBlock(x, y, z, Blocks.RedstoneTorch);
+            else
+                world.SetBlock(x, y, z, Blocks.RedstoneWire, 15);
         }
     }
 
