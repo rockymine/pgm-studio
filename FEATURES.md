@@ -983,6 +983,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The terminal-free `Body` — the shape/designation split (M3, G90)** — `Pgm/Shapes/ShapeBody.cs` +
+  `ShapeEmitter.cs` + `ApproachSlots.cs`: `ShapeEmitter.Emit` — which baked a wool `room` into every family —
+  splits into a pure **`Body`** (`ShapeEmitter.Body` → a `ShapeBody`: structural-slotted rects + vacancies, no
+  terminal/marker/id) and an **approach designation** (`ShapeEmitter.Approach(body, room, marker)`, which `Emit`
+  composes over the body). `EmittedShape` now *is* a `ShapeBody` + the terminal room + marker (`Terrain`/
+  `Vacancies` read through to the body), so every consumer stays untouched. `ApproachSlots` gains the documented
+  **structural-slot** (`run`/`bar`/`leg`, shared by every kind) vs **designation-mark** (`entry`/`room`, stamped
+  by the approach) split — emitted strings unchanged, so the mirror stays byte-identical. The split is
+  **byte-identical** wool/spawn output: the emit↔derive mirror, the G50–G52 placement-knob tests, `BoxInterfaces`
+  and the `DockingGate` stay green (619/619 Pgm), and `ShapeBodyTests` gates that the body carries exactly the
+  emission's terrain (terminal-free) and that `Approach` reconstructs the emission. The shared stage the hub
+  (G88), frontline (G89) and new-compound (G91) work builds on. Contract:
+  `docs/contracts/shape-vocabulary.md` §8/§9. (G90)
+
 - **The spawn seats at a sampled point along the hub's back edge (G85)** — `Compose/TeamUnitGrower.cs`: the spawn
   was pinned to the hub back edge's −v corner (`FillSpawn(..., hubVMin, ...)`) while the wool arms already sampled a
   point along their host edge. G85 gives the spawn that same point-flexibility (SP2): a `spawnVFrac` draw seats it

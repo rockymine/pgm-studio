@@ -58,15 +58,6 @@ the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publ
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63-C**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
 
-- [ ] **G90 — The terminal-free `Body`: split the shape from its terminal.** Split `ShapeEmitter.Emit` — which
-  bakes a wool `room` into every family — into a pure **`Body`** (the rectilinear compound: structural-slotted
-  rects + vacancies; no terminal, marker, or id) and a **designation pass** that stamps what finishes it.
-  `ApproachSlots` splits into **structural slots** (`spine/run · bar · leg · ring-arm · stub`, shared) and
-  **designation marks** (`entry · terminal · face`). The **approach** designation (wool + spawn) re-homes onto
-  the pass **byte-identical** — the emit↔derive mirror, the G50–G52 placement knobs, and the composer goldens
-  gate it. Sub-order: extract the Body first (a byte-identical internal wrapper — small, safe), then the
-  designation pass. Enables G91; the hub/frontline designations arrive with G88/G89.
-  (`docs/contracts/shape-vocabulary.md` §8/§9)
 - [ ] **G91 — Emit the new compounds standalone (in blank space).** On the terminal-free Body (G90), emit the
   shapes the vocabulary added but the emitter can't yet build: generalize the branch family from the fixed-2-leg
   **Staple** to **spine + K arms** (T = one arm mid, Comb/E/F = 3+, arm placement a knob); add the **Double-hole**

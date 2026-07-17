@@ -10,22 +10,34 @@ public enum BoxEdge { Top, Bottom, Left, Right }
 /// template slots of the pieces bounding it.</summary>
 public sealed record ShapeVacancy(string Kind, int[] Rect, BoxEdge? Mouth, IReadOnlyList<string> Walls);
 
-/// <summary>A pure emission: slot-typed terrain rects, the terminal rect, the marker offset within the
-/// terminal (box-local half-cell coordinates), and the shape's vacancies. All rects are box-local.</summary>
-public sealed record EmittedShape(
-    IReadOnlyList<(int[] Rect, string Slot)> Terrain, int[] Room, double[] At, IReadOnlyList<ShapeVacancy> Vacancies);
+/// <summary>An approach emission: a terminal-free <see cref="ShapeBody"/> finished by the approach designation —
+/// the terminal <see cref="Room"/> rect and the marker offset <see cref="At"/> within it (box-local half-cell
+/// coordinates). <see cref="Terrain"/> and <see cref="Vacancies"/> read through to the body; all rects are
+/// box-local. The <see cref="ShapeBody"/> is what the hub/frontline designations reuse without a room.</summary>
+public sealed record EmittedShape(ShapeBody Body, int[] Room, double[] At)
+{
+    /// <summary>The body's structural-slotted rects — the walkable terrain of the approach reading.</summary>
+    public IReadOnlyList<(int[] Rect, string Slot)> Terrain => Body.Pieces;
+
+    /// <summary>The body's published vacancies.</summary>
+    public IReadOnlyList<ShapeVacancy> Vacancies => Body.Vacancies;
+
+    /// <summary>Assemble an approach emission from loose terrain + vacancies (wrapping them as a
+    /// <see cref="ShapeBody"/>) plus the terminal room and marker.</summary>
+    public EmittedShape(
+        IReadOnlyList<(int[] Rect, string Slot)> terrain, int[] room, double[] at,
+        IReadOnlyList<ShapeVacancy> vacancies)
+        : this(new ShapeBody(terrain, vacancies), room, at) { }
+}
 
 /// <summary>
-/// The one shape emitter — fills a W×H box with a base family at a corridor width, in the canonical
-/// box-local frame, returning slot-typed rects (<see cref="ApproachSlots"/>), the terminal ("room") rect,
-/// the marker offset and the emit-side vacancies. Pure cell geometry: no plan types, no roles, no ids —
-/// bindings (the wool box, later the spawn box) stamp those. Every segment abuts its neighbour along a full
-/// corridor-width edge; the shape stays inside the box; a box too small for the family's turns throws.
-///
-/// <para><b>The mouth</b> — the box edge the entry docks a host through — is family-specific in the
-/// canonical frame (<see cref="MouthEdge"/>): I/L/Z/scythe enter at the top, U/H at the bottom (their legs
-/// run down to the host), clamp/donut at the left (bars/stub open leftward). Callers reorient with
-/// <see cref="Orient"/> to put any family's mouth on the edge they dock.</para>
+/// The one shape emitter — fills a W×H box with a base family at a corridor width, in the canonical box-local
+/// frame. Pure cell geometry: no plan types, no roles, no ids — bindings (the wool box, the spawn box) stamp
+/// those. It emits in <b>two stages</b>: <see cref="Body"/> builds the terminal-free <see cref="ShapeBody"/>
+/// (slot-typed rects (<see cref="ApproachSlots"/>) + vacancies, shared by every box kind), and a
+/// <b>designation</b> finishes it — <see cref="Emit"/> applies the approach designation (<see cref="Approach"/>),
+/// stamping the terminal ("room") rect and marker; the hub/frontline designations read the same body without a
+/// room. <see cref="OrientMouthTop"/> / <see cref="MouthEdge"/> place a family's mouth on the edge a caller docks.
 /// </summary>
 public static class ShapeEmitter
 {
@@ -70,24 +82,72 @@ public static class ShapeEmitter
         };
     }
 
-    /// <summary>Emit <paramref name="family"/> into a W×H box at <paramref name="cw"/> (cells).
-    /// <paramref name="flip"/> mirrors the shape across the box's vertical centre (the turn goes left instead
-    /// of right) so both handednesses are reachable. <paramref name="attachments"/> (donut) is the number of
-    /// hub-side stubs, 1 or 2. <paramref name="woolAtEnd"/> (U / H / donut) puts the terminal on an end of the
-    /// crossbar / integrates it at the ring corner. <paramref name="woolExtend"/> (donut) holds the terminal a
-    /// short I out from the shape. <paramref name="attachmentWidth"/> (donut, scythe) is the hub-interface
-    /// width of the attachment in cells, measured ALONG the edge it docks (0 = one corridor width; the width
-    /// grammar's w2/w4/w6 = <c>cw</c>/<c>2·cw</c>/<c>3·cw</c>). <paramref name="entryShift"/> /
-    /// <paramref name="woolShift"/> (scythe) slide the two independently-offsettable endpoints down the
-    /// docking edge: the entry shift propagates inward — the spine it docks shrinks from the top with it —
-    /// and the wool shift shortens the return leg the same way, so only the shifted endpoint still reaches
-    /// the edge. <paramref name="attachmentOffset"/> (donut) slides the hub attachment down the ring's edge —
-    /// only the attachment moves, the ring is unchanged.</summary>
+    /// <summary>Emit <paramref name="family"/> into a W×H box at <paramref name="cw"/> (cells) as an
+    /// <b>approach</b>: build the terminal-free <see cref="Body"/> and stamp the approach designation onto it
+    /// (<see cref="Approach"/>) — the terminal room and its marker. <paramref name="flip"/> mirrors the shape
+    /// across the box's vertical centre (the turn goes left instead of right) so both handednesses are
+    /// reachable. <paramref name="attachments"/> (donut) is the number of hub-side stubs, 1 or 2.
+    /// <paramref name="woolAtEnd"/> (U / H / donut) puts the terminal on an end of the crossbar / integrates it
+    /// at the ring corner. <paramref name="woolExtend"/> (donut) holds the terminal a short I out from the
+    /// shape. <paramref name="attachmentWidth"/> (donut, scythe) is the hub-interface width of the attachment in
+    /// cells, measured ALONG the edge it docks (0 = one corridor width; the width grammar's w2/w4/w6 =
+    /// <c>cw</c>/<c>2·cw</c>/<c>3·cw</c>). <paramref name="entryShift"/> / <paramref name="woolShift"/> (scythe)
+    /// slide the two independently-offsettable endpoints down the docking edge: the entry shift propagates
+    /// inward — the spine it docks shrinks from the top with it — and the wool shift shortens the return leg the
+    /// same way, so only the shifted endpoint still reaches the edge. <paramref name="attachmentOffset"/>
+    /// (donut) slides the hub attachment down the ring's edge — only the attachment moves, the ring is
+    /// unchanged.</summary>
     public static EmittedShape Emit(
         ShapeFamily family, int boxW, int boxH, int cw, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false,
         bool woolExtend = false, int attachmentWidth = 0, int entryShift = 0, int woolShift = 0,
         int attachmentOffset = 0)
+    {
+        var (terrain, room, at, vac) = Compose(
+            family, boxW, boxH, cw, flip, roomPlacement, attachments, woolAtEnd, woolExtend,
+            attachmentWidth, entryShift, woolShift, attachmentOffset);
+        return Approach(new ShapeBody(terrain, vac), room, at);
+    }
+
+    /// <summary>The terminal-free <see cref="ShapeBody"/> of <paramref name="family"/> in a W×H box at
+    /// <paramref name="cw"/> — the structural pieces and vacancies with <b>no terminal, marker, or id</b>, the
+    /// stage every designation builds on. Same geometry and knobs as <see cref="Emit"/>; it just withholds the
+    /// terminal (which the approach designation stamps). Hub/frontline designations read this same body.</summary>
+    public static ShapeBody Body(
+        ShapeFamily family, int boxW, int boxH, int cw, bool flip = false,
+        RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false,
+        bool woolExtend = false, int attachmentWidth = 0, int entryShift = 0, int woolShift = 0,
+        int attachmentOffset = 0)
+    {
+        var (terrain, _, _, vac) = Compose(
+            family, boxW, boxH, cw, flip, roomPlacement, attachments, woolAtEnd, woolExtend,
+            attachmentWidth, entryShift, woolShift, attachmentOffset);
+        return new ShapeBody(terrain, vac);
+    }
+
+    /// <summary>The <b>approach</b> designation over a terminal-free <paramref name="body"/>: finish it as a
+    /// wool/spawn approach by stamping the terminal <paramref name="room"/> and its marker
+    /// <paramref name="markerAt"/> (box-local, within the room). The sibling of the hub's per-edge-interface
+    /// designation and the frontline's face designation — each takes the same <see cref="ShapeBody"/> and
+    /// finishes it its own way; here the finish is a dead-end room.</summary>
+    public static EmittedShape Approach(ShapeBody body, int[] room, double[] markerAt) =>
+        new(body, room, markerAt);
+
+    /// <summary>Build the family geometry into the canonical box, apply <paramref name="flip"/>, and return the
+    /// loose parts — the terminal-free terrain + vacancies plus the reserved terminal (room + marker). The one
+    /// per-family switch <see cref="Emit"/> and <see cref="Body"/> share; see <see cref="Emit"/> for the knobs.
+    /// Every segment abuts its neighbour along a full corridor-width edge; the shape stays inside the box; a box
+    /// too small for the family's turns throws.
+    ///
+    /// <para><b>The mouth</b> — the box edge the entry docks a host through — is family-specific in the
+    /// canonical frame (<see cref="MouthEdge"/>): I/L/Z/scythe enter at the top, U/H at the bottom (their legs
+    /// run down to the host), clamp/donut at the left (bars/stub open leftward). Callers reorient with
+    /// <see cref="OrientMouthTop"/> to put any family's mouth on the edge they dock.</para></summary>
+    private static (List<(int[] Rect, string Slot)> Terrain, int[] Room, double[] At, List<ShapeVacancy> Vacancies) Compose(
+        ShapeFamily family, int boxW, int boxH, int cw, bool flip,
+        RoomPlacement roomPlacement, int attachments, bool woolAtEnd,
+        bool woolExtend, int attachmentWidth, int entryShift, int woolShift,
+        int attachmentOffset)
     {
         var (W, H) = (boxW, boxH);
         if (family == ShapeFamily.Isolated)
@@ -325,7 +385,7 @@ public static class ShapeEmitter
             }
         }
 
-        return new EmittedShape(t, room, at, vac);
+        return (t, room, at, vac);
     }
 
     /// <summary>Normalize an emission so its mouth lands on the TOP edge: maps every rect, the room, the

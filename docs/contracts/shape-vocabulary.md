@@ -3,10 +3,11 @@
 > **Status: draft, co-authored.** The terminal-free shape model that sits *beneath* the wool/spawn
 > approach families — the shared layer the hub (**G88**) and frontline (**G89**) boxes build on. Once it
 > settles this folds into `map-generation.md` §5 (which today frames shapes as wool-approach-only) and its
-> types land as rows in `map-generation-vocabulary.md`. **Nothing here is code yet.** The working system it
-> generalizes is the eight wool/spawn families, their `ShapeEmitter` geometry, and the emit↔derive mirror —
-> those stay green throughout, and *byte-identical wool/spawn output* is the acceptance bar for any refactor
-> this doc motivates.
+> types land as rows in `map-generation-vocabulary.md`. **The terminal-free `Body` stage is now code (G90,
+> §9/§10);** the hub/frontline designations and the new compounds are still ahead (G88/G89/G91). The working
+> system it generalizes is the eight wool/spawn families, their `ShapeEmitter` geometry, and the emit↔derive
+> mirror — those stay green throughout, and *byte-identical wool/spawn output* is the acceptance bar for any
+> refactor this doc motivates.
 
 ---
 
@@ -220,15 +221,16 @@ entry* plus its structural neighbour (the spine it feeds) — so the identical s
 drives a wool mouth, a spawn mouth, a hub interface edge, or a frontline face. Byte-identical wool/spawn is
 the test that it stayed general.
 
-## 9. Sketch — the clean emitter (proposal, not built)
+## 9. Sketch — the clean emitter (Body stage built, G90)
 
-Today `ShapeEmitter.Emit(family, W, H, cw, …knobs)` returns an `EmittedShape` with the room baked in. The
-clean move is two stages:
+`ShapeEmitter` now emits in two stages (the terminal-free Body split, byte-identical to the old single-shot
+emit):
 
-1. **`Body(compound, W, H, cw, …)`** → structural-slotted rectangles + vacancies. Pure recombination with
-   alignment; no room, no marker, no ids.
-2. **A designation pass** — `Approach(body, mouth, …)` stamps the terminal + entry and runs the placement
-   knobs; `Hub(body, edgeWidths)` reads the interfaces off the edges; `Front(body, faceEdge)` marks the face.
+1. **`ShapeEmitter.Body(family, W, H, cw, …)`** → a `ShapeBody`: structural-slotted rectangles + vacancies.
+   Pure recombination with alignment; no room, no marker, no ids.
+2. **A designation pass** — `ShapeEmitter.Approach(body, room, marker)` finishes the body as a wool/spawn
+   approach (`Emit` = `Body` + this designation). The sibling `Hub(body, edgeWidths)` (reading the interfaces
+   off the edges) and `Front(body, faceEdge)` (marking the face) arrive with G88/G89.
 
 Pressure-testing this on the hard cases:
 
@@ -247,8 +249,10 @@ Pressure-testing this on the hard cases:
 - `ShapeFamily` (enum) — stays as the compound taxonomy; the question is only naming (letters vs descriptive,
   §11). `Isolated` and `Clamp` are the exceptions: both are *terminal designations*, not compounds, and
   migrate out of the shape enum into the designation layer when the multi-dock work (G63/G80) lands.
-- `ShapeEmitter.Emit` — splits into `Body` (§9 stage 1) + the approach designation (stage 2).
-- `ApproachSlots` — splits into structural slots (shared) + designation marks (per kind).
+- `ShapeEmitter.Emit` — split (G90) into `Body` (§9 stage 1, the terminal-free `ShapeBody`) + the approach
+  designation `Approach` (stage 2); `Emit` composes the two.
+- `ApproachSlots` — the structural-slot (shared) vs designation-mark (per kind) split is documented on the type
+  (G90); the emitted strings are unchanged, so the mirror stays byte-identical.
 - `ShapeClassifier` / `SlotAssignment` — the mirror reads the Body's topology; it already keys off
   width-independent features (bends/fold/branch/void), so it needs no shape-specific additions to read new
   compounds (the double-hole reads as two voids for free).
