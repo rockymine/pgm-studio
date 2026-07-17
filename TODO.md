@@ -58,20 +58,39 @@ the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publ
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63-C**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
 
+- [ ] **G90 — The terminal-free `Body`: split the shape from its terminal.** Split `ShapeEmitter.Emit` — which
+  bakes a wool `room` into every family — into a pure **`Body`** (the rectilinear compound: structural-slotted
+  rects + vacancies; no terminal, marker, or id) and a **designation pass** that stamps what finishes it.
+  `ApproachSlots` splits into **structural slots** (`spine/run · bar · leg · ring-arm · stub`, shared) and
+  **designation marks** (`entry · terminal · face`). The **approach** designation (wool + spawn) re-homes onto
+  the pass **byte-identical** — the emit↔derive mirror, the G50–G52 placement knobs, and the composer goldens
+  gate it. Sub-order: extract the Body first (a byte-identical internal wrapper — small, safe), then the
+  designation pass. Enables G91; the hub/frontline designations arrive with G88/G89.
+  (`docs/contracts/shape-vocabulary.md` §8/§9)
+- [ ] **G91 — Emit the new compounds standalone (in blank space).** On the terminal-free Body (G90), emit the
+  shapes the vocabulary added but the emitter can't yet build: generalize the branch family from the fixed-2-leg
+  **Staple** to **spine + K arms** (T = one arm mid, Comb/E/F = 3+, arm placement a knob); add the **Double-hole**
+  (Ring + a slidable U), **P** (a U closed by a longer overhanging I), and **two-U-on-one-I**. Verified by the
+  **emit↔derive mirror** (each classifies back to itself — extend `ShapeClassifier` to read the double-hole's two
+  voids) and drawn in the shape/box gallery — **standalone, not docked or composed**. Depends on G90's Body;
+  feeds G88/G89. (`docs/contracts/shape-vocabulary.md` §5)
 - [ ] **G88 — Hub as the constraint-source box.** Make the hub a first-class `BoxKind.Hub` box: a `FillProfiles`
-  hub row + a hub emitter. Per §4 the hub is the **constraint source** — a rectangle-ish host (need not be square,
-  may carry holes) whose **per-edge interface widths (`w2`/`w4`/`w6`) set the fill menu** for the spawn/wool/
-  frontline neighbours, and it **emits first**. Allowed shapes: a **subset of the existing families + some truly
-  new hub shapes** (e.g. ring-with-hole, HB4) — the exact vocabulary is authored (**definition: tomorrow**).
-  Pattern pieces carry slots with box-kind ownership (`hub-a/…`), extending the label-preservation invariant to
-  the hub. Supersedes the hub half of the old G41-C. Feeds G63-C.
+  hub row + a hub emitter (a `Hub` designation over the Body, G90). Per §4 the hub is the **constraint source** —
+  a rectangle-ish host (need not be square, may carry holes) whose **per-edge interface widths (`w2`/`w4`/`w6`)
+  set the fill menu** for the spawn/wool/frontline neighbours, and it **emits first**. Form menu (authored,
+  `shape-vocabulary.md` §6): **Rectangle · L · U · Ring · Double-hole** — no terminal; its designation is the
+  per-edge interfaces. Pieces carry structural slots with hub box-kind ownership (`hub-a/…`), extending the
+  label-preservation invariant to the hub. Supersedes the hub half of the old G41-C. Depends on G90/G91; feeds
+  G63-C.
 - [ ] **G89 — Frontline as the face/join box.** Make the frontline a first-class `BoxKind.Frontline` box: a
-  `FillProfiles` frontline row + a `FrontlineBoxEmitter` docking the hub's front edge. Per §4 the frontline is a
-  **join, not a placement** — a face with no room/marker whose far edge is where the fanned images meet, and whose
-  form drives the mid (`mid = f(frontline)`). `FrontForm` (none · single I/Z · wide-face · twin-strands+recess —
-  FR3/FR4/FR6/CT8) lifts out of the grower into the profile. Allowed shapes: a **subset of the existing families +
-  some truly new frontline shapes** — vocabulary authored (**definition: tomorrow**). Supersedes the frontline
-  half of the old G41-C. Feeds G63-C.
+  `FillProfiles` frontline row + a `FrontlineBoxEmitter` (a `Front` designation over the Body, G90) docking the
+  hub's front edge. Per §4 the frontline is a **join, not a placement** — a face with no room/marker whose far
+  edge is where the fanned images meet, and whose form drives the mid (`mid = f(frontline)`). Form menu (authored,
+  `shape-vocabulary.md` §6): a plain **Bar** (wide face, FR6), the **branch family** (spine + K arms —
+  single/twin/more, FR3/FR4/CT8), and the **holed** forms (**P**, **two-U-on-I**); **rotation is fixed** — the
+  spine docks the hub, the arm-tips are the face. `FrontForm` (none · single · wide · twin) lifts out of the
+  grower into the profile. How the mid attaches to the face is a separate, deferred rule-set. Supersedes the
+  frontline half of the old G41-C. Depends on G90/G91; feeds G63-C.
 
 *(G63 was one monolith — the whole box-driven switch. Split A–D: A shipped the partition data model + mirror,
 B shipped the partition-first allocator seam + budget check (both `FEATURES.md`); C flips the switch (fill + wire
