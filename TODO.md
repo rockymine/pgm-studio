@@ -41,9 +41,11 @@ the lesson), G32's remaining realize subtracks (parked — elevation is one of t
 
 **Box model — M2 → M4**
 
-*(G41 was one monolith bundling four separable concerns; split into A–D so the footprint slice can ship
-without the open-variant patterns. A + B are the near-term tracks below; C + D — the open-variant hub/
-frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocked on the author's teaching set.)*
+*(G41 was one monolith bundling four separable concerns; split into A–D so the footprint slice could ship
+without the open-variant patterns. A + B shipped; C's open-variant **hub/frontline emission is now promoted
+into the current focus** — split into **G88 (hub)** + **G89 (frontline)** below — because those two complete
+the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publishing) stays parked in
+`BACKLOG.md`.)*
 
 - [~] **G41-A — [M3] Route the production arms through `BoxFiller` (part 2 — closes with G63).** Part 1
   shipped (`FEATURES.md`): `FillProfiles` (the per-`BoxKind` profile as a type) + `BoxFiller` (the one
@@ -55,6 +57,21 @@ frontline emission and vacancy publishing — are parked in `BACKLOG.md`, blocke
   inversion. So retiring the bespoke sizing + the **intra-box fragment** that fills to the land target
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63-C**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
+
+- [ ] **G88 — Hub as the constraint-source box.** Make the hub a first-class `BoxKind.Hub` box: a `FillProfiles`
+  hub row + a hub emitter. Per §4 the hub is the **constraint source** — a rectangle-ish host (need not be square,
+  may carry holes) whose **per-edge interface widths (`w2`/`w4`/`w6`) set the fill menu** for the spawn/wool/
+  frontline neighbours, and it **emits first**. Allowed shapes: a **subset of the existing families + some truly
+  new hub shapes** (e.g. ring-with-hole, HB4) — the exact vocabulary is authored (**definition: tomorrow**).
+  Pattern pieces carry slots with box-kind ownership (`hub-a/…`), extending the label-preservation invariant to
+  the hub. Supersedes the hub half of the old G41-C. Feeds G63-C.
+- [ ] **G89 — Frontline as the face/join box.** Make the frontline a first-class `BoxKind.Frontline` box: a
+  `FillProfiles` frontline row + a `FrontlineBoxEmitter` docking the hub's front edge. Per §4 the frontline is a
+  **join, not a placement** — a face with no room/marker whose far edge is where the fanned images meet, and whose
+  form drives the mid (`mid = f(frontline)`). `FrontForm` (none · single I/Z · wide-face · twin-strands+recess —
+  FR3/FR4/FR6/CT8) lifts out of the grower into the profile. Allowed shapes: a **subset of the existing families +
+  some truly new frontline shapes** — vocabulary authored (**definition: tomorrow**). Supersedes the frontline
+  half of the old G41-C. Feeds G63-C.
 
 *(G63 was one monolith — the whole box-driven switch. Split A–D: A shipped the partition data model + mirror,
 B shipped the partition-first allocator seam + budget check (both `FEATURES.md`); C flips the switch (fill + wire
@@ -71,10 +88,12 @@ in `BACKLOG.md`.)*
   freeze after G63). (1c) the shared four-mouth orientation is extracted to `MouthOrient`, and the **spawn arm routes
   through the plan-cell fill** too (`FillSpawn`; `SpawnBoxEmitter.Fill` takes a plan-cell `Box`+mouth), the entry run
   re-pinned for the wool-on-spawn dock — byte-identical for I / L-dir≥0 spawns.* **Remaining (the switch's own
-  spine):** the `Composer` routes through the partitioner, **`TeamUnitGrower` retires**, the clamp's **dual-host
-  corner-wrap** lands, re-baseline gallery cases, **then** freeze the G32-D goldens. *Deliberately NOT next: the
+  spine):** with all four **team-unit** kinds now boxes (spawn + hub + wools + frontline — G88/G89), the `Composer`
+  routes through the partitioner and **allocate-then-fills the whole unit** with the **hub emitting first as the
+  constraint source** (its edge widths set the neighbour menus); **`TeamUnitGrower`'s team-unit authoring retires**;
+  the clamp's **dual-host corner-wrap** lands; re-baseline gallery cases; **then** freeze the G32-D goldens. `MidCarver`
+  stays — the mid is not a team-unit box, it is derived (`f(frontline)`). *Deliberately NOT next: the
   fill-to-`LandTargetCells` **directed repair** (retiring `SolveDepth`/`SolveWidth`/`spawnLen`) — it resizes shapes
   to hit the budget, which grows them further, the opposite of what the seeds need; parked in `BACKLOG.md` to be
-  reconsidered as a targeted rule, not a solver.* The **hub/frontline** open boxes are their own track (G41-C).
-  Depends on G63-B. (review §4.2, §4.4, §4.5, §7.7)
+  reconsidered as a targeted rule, not a solver.* Depends on G63-B, **G88, G89**. (review §4.2, §4.4, §4.5, §7.7)
 

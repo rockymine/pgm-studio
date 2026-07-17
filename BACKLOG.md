@@ -223,7 +223,7 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
 Two tracks share this section. **The headline is the composer** (plan-then-realize): rule-based
 composition of `plan.json` seeds under the frozen rules (`docs/contracts/map-generation.md` +
 `layout-rules.md` + `plan-editor.md`). Its current focus — **box-driven map generation, box per box** —
-is the batch in `TODO.md` (G61 → G79 → G62 → G78 → G41-A/B → G80 → G63-A/B → G63-C, M2–M4; G41-C/D + G63-D parked below); the doc pass, the parked G60 soft-rule
+is the batch in `TODO.md` (G61 → G79 → G62 → G78 → G41-A/B → G80 → G63-A/B → G63-C, M2–M4; G41-C promoted+split to G88/G89 in `TODO.md`; G41-D + G63-D parked below); the doc pass, the parked G60 soft-rule
 long tail, the parked G32 realize subtracks, and the interface / hub / lane feature long-tail live here,
 **reworded to be delivered *through* the box model** rather than against the current grower. The
 island-detection / validation work follows. (The older / parallel **lane sketch generator** track — the
@@ -234,24 +234,19 @@ the `island-roles` hook (`G11`), and the layout-generation design that resolved 
 Builds on the Sketch tool (`S2`) and the intent model (`N`).
 
 **Composer — box-model long tail (doc pass + marker/structure knobs; M2–M4 are the `TODO.md` focus)**
-- [ ] **G41-C — Open-variant hub & frontline patterns (delivers L/Z compositions + HB4).** Today the hub is
-  always one square and the authored L/Z frontline↔hub combinations aren't generated. Build the
-  **open-variant** shape layer over the shared family machinery: `Compose/Boxes/FillPattern` (arrangements of
-  family shapes in a box — the terminal-less / through-corridor read). `FrontForm` retires into frontline
-  patterns (none · single-chain I/Z · wide-face · twin-strands+recess — FR3/FR4/FR6/CT8); hub open patterns
-  (solid I · L · Z · ring-with-hole — HB1/HB3/HB4). **G39's** corner/edge interlock is expressed here as a
-  `BoxInterface` constraint. Hub/frontline pattern pieces carry **slots with box-kind ownership** (`hub-a/bar`,
-  `front-a/…`) — the first labels outside the wool box, extending G61's label-preservation invariant to every
-  box kind. `emit-verify` grows per-kind pattern mirrors (twin → closure hole ringed by two strands; L hub →
-  one-bend junction outline) — no new `*Shape` classes. **Blocked partly on the author's frontline/hub
-  teaching set.** Depends on G41-A (`BoxFiller`), G41-B (interface model). (review §3.1, §7.6)
+*(G41-C — open-variant hub & frontline patterns — was **promoted to `TODO.md` and split into G88 (hub) + G89
+(frontline)**: those two complete the team unit the G63-C switch fills. Its design notes — the `FillPattern`
+open-variant layer over the shared family machinery, `FrontForm` → frontline patterns, hub open patterns incl.
+ring-with-hole/HB4, G39's corner/edge interlock as a `BoxInterface` constraint, per-kind slots with box-kind
+ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant — carry into G88/G89.)*
+
 - [ ] **G41-D — Vacancy publishing + spawn-in-hub-bay (§4.4).** Fills start **publishing vacancies**: boxes
   may overlap (**piece-disjointness, not box-disjointness, is the invariant**), so a fill's residual envelope
   is published as claimable negative space — a **U-hub publishes its bay**, a twin frontline its recess (the
   CT8 recess generalized). Emit-side and exact (families are fixed templates), so no derive pass finds them.
   `FillProfiles` gates claims (a spawn may claim a hub bay whose mouth faces away from the axis) — this is
   what makes the **spawn-in-hub-bay** layout expressible (three wools L/T/R + the spawn in the U's bay)
-  instead of forcing the G45 parallel-lane anti-pattern. Depends on G41-C (the U-hub/twin patterns produce the
+  instead of forcing the G45 parallel-lane anti-pattern. Depends on G88/G89 (the U-hub/twin patterns produce the
   bays), G63-D (the partitioner claims vacancies from the partition). (review §4.4, §7.6)
 - [ ] **G63-D — Generic label-inheriting fragment + `GrowthOrder` strategies + vacancy allocation.** Once the
   partitioner is the default (G63-C), **fragment** becomes a generic pass over the partition — and a
@@ -460,7 +455,7 @@ Builds on the Sketch tool (`S2`) and the intent model (`N`).
   placement patterns. Depends on the G41-D/G63 vacancy mechanism (spawn claims the hub bay).
 - [ ] **G37 — Lane-archetypes track (lane shapes · connections · hub shaping · alt entries).** The real
   lane grammar: authored **lane archetypes**, **what connects to the frontline**, **how hubs shape** (today
-  the hub is a dumb square everything smashes into — G41-C), and **alternative entry points** to a lane (a
+  the hub is a dumb square everything smashes into — G88), and **alternative entry points** to a lane (a
   long dead-end is pointless without alt routes — the defender just holds the mouth; not formalized yet).
   "Lane-heavy is bad" is a defect, not an archetype to sample (see the `composer-lane-archetypes-future`
   memory); the budget-driven over-long lanes it produces are traced to **G44**. Blocked on more teaching
