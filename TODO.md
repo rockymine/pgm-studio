@@ -58,13 +58,6 @@ the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publ
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63-C**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
 
-- [ ] **G91 — Emit the new compounds standalone (in blank space).** On the terminal-free Body (G90), emit the
-  shapes the vocabulary added but the emitter can't yet build: generalize the branch family from the fixed-2-leg
-  **Staple** to **spine + K arms** (T = one arm mid, Comb/E/F = 3+, arm placement a knob); add the **Double-hole**
-  (Ring + a slidable U), **P** (a U closed by a longer overhanging I), and **two-U-on-one-I**. Verified by the
-  **emit↔derive mirror** (each classifies back to itself — extend `ShapeClassifier` to read the double-hole's two
-  voids) and drawn in the shape/box gallery — **standalone, not docked or composed**. Depends on G90's Body;
-  feeds G88/G89. (`docs/contracts/shape-vocabulary.md` §5)
 - [ ] **G88 — Hub as the constraint-source box.** Make the hub a first-class `BoxKind.Hub` box: a `FillProfiles`
   hub row + a hub emitter (a `Hub` designation over the Body, G90). Per §4 the hub is the **constraint source** —
   a rectangle-ish host (need not be square, may carry holes) whose **per-edge interface widths (`w2`/`w4`/`w6`)

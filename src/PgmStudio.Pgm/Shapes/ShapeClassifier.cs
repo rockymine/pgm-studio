@@ -127,6 +127,86 @@ public static class ShapeClassifier
         return (reflex == 0 ? LaneRead.I : reflex == 1 ? LaneRead.L : reflex == 2 ? LaneRead.Z : LaneRead.Complex, w);
     }
 
+    /// <summary>Read a <b>terminal-free body</b> (a <see cref="ShapeBody"/>'s cells) back to its
+    /// <see cref="Compound"/> — the derive side of the body mirror, by topology alone (§4 axes: void · branch ·
+    /// bends), no terminal. Void count is the strongest signal. <b>Two voids</b> split on whether an <em>open
+    /// channel</em> comes between them (two-U-on-I) or a solid wall does (double-hole); <b>one void</b> on whether
+    /// an outer concavity — the loop overhanging its longer bar — adds reflex corners past the four a rectangular
+    /// void contributes (P) or not (a clean ring). Void-free bodies are the solid <see cref="Compound.Rectangle"/>
+    /// or a <see cref="Compound.SpineArms"/> whose arm count is the number of runs hanging off the spine.
+    /// Width-independent, matching the approach classifier's philosophy.</summary>
+    public static CompoundRead ClassifyBody(IReadOnlySet<(int, int)> cells)
+    {
+        if (cells.Count == 0) throw new ArgumentException("cannot classify an empty body.");
+        var voids = VoidComponents(Cells.EnclosedVoid(cells));
+
+        if (voids.Count == 2)
+            return new(ChannelBetween(cells, voids[0], voids[1]) ? Compound.TwoUOnI : Compound.DoubleHole);
+        if (voids.Count == 1)
+            return new(Cells.ReflexCorners(cells) > 4 ? Compound.P : Compound.Ring);
+        if (voids.Count != 0) throw new ArgumentException($"no body form has {voids.Count} voids.");
+
+        var (mnx, mnz, mxx, mxz) = Cells.BoundingBox(cells);
+        if (cells.Count == (long)(mxx - mnx + 1) * (mxz - mnz + 1)) return new(Compound.Rectangle);
+        return new(Compound.SpineArms, ArmCount(cells, mnx, mnz, mxx, mxz));
+    }
+
+    // the enclosed void split into its 4-connected components (each a cell set) — two ⇒ a double-hole or two-U-on-I.
+    private static List<HashSet<(int, int)>> VoidComponents(IReadOnlySet<(int, int)> voidCells)
+    {
+        var seen = new HashSet<(int, int)>();
+        var comps = new List<HashSet<(int, int)>>();
+        foreach (var c in voidCells)
+        {
+            if (!seen.Add(c)) continue;
+            var comp = new HashSet<(int, int)> { c };
+            var q = new Queue<(int, int)>(); q.Enqueue(c);
+            while (q.Count > 0) { var d = q.Dequeue(); foreach (var n in Cells.N4(d)) if (voidCells.Contains(n) && seen.Add(n)) { comp.Add(n); q.Enqueue(n); } }
+            comps.Add(comp);
+        }
+        return comps;
+    }
+
+    // two voids kept apart by an OPEN channel (⇒ two-U-on-I) rather than a solid wall (⇒ double-hole): the band
+    // strictly between them, over their overlapping cross-range, holds a non-terrain (background) cell. The voids
+    // sit side by side (separated on one axis); the wall between a ring and a docked-U bay is solid, the channel
+    // between twin loops is open.
+    private static bool ChannelBetween(IReadOnlySet<(int, int)> cells, HashSet<(int, int)> a, HashSet<(int, int)> b)
+    {
+        var (ax0, az0, ax1, az1) = Cells.BoundingBox(a);
+        var (bx0, bz0, bx1, bz1) = Cells.BoundingBox(b);
+        if (ax1 < bx0 || bx1 < ax0)                              // separated in x — scan the column band between
+        {
+            int gx0 = Math.Min(ax1, bx1) + 1, gx1 = Math.Max(ax0, bx0) - 1;
+            int zlo = Math.Max(az0, bz0), zhi = Math.Min(az1, bz1);
+            for (var x = gx0; x <= gx1; x++) for (var z = zlo; z <= zhi; z++) if (!cells.Contains((x, z))) return true;
+            return false;
+        }
+        if (az1 < bz0 || bz1 < az0)                              // separated in z — scan the row band between
+        {
+            int gz0 = Math.Min(az1, bz1) + 1, gz1 = Math.Max(az0, bz0) - 1;
+            int xlo = Math.Max(ax0, bx0), xhi = Math.Min(ax1, bx1);
+            for (var z = gz0; z <= gz1; z++) for (var x = xlo; x <= xhi; x++) if (!cells.Contains((x, z))) return true;
+            return false;
+        }
+        return false;
+    }
+
+    // the arm count of a spine-with-arms: strip the spine (the contiguous full-span band on the mouth side) and
+    // count the runs left hanging off it. Reads the canonical frame (a full-width band on top, arms below) and
+    // falls back to a full-height band on the left; each surviving component is one arm.
+    private static int ArmCount(IReadOnlySet<(int, int)> cells, int mnx, int mnz, int mxx, int mxz)
+    {
+        bool RowFull(int z) { for (var x = mnx; x <= mxx; x++) if (!cells.Contains((x, z))) return false; return true; }
+        bool ColFull(int x) { for (var z = mnz; z <= mxz; z++) if (!cells.Contains((x, z))) return false; return true; }
+
+        int r = mnz; while (r <= mxz && RowFull(r)) r++;                 // spine = top full-width rows
+        if (r > mnz) { var below = cells.Where(c => c.Item2 >= r).ToHashSet(); return Cells.Components(below); }
+        int c = mnx; while (c <= mxx && ColFull(c)) c++;                 // else spine = left full-height cols
+        if (c > mnx) { var right = cells.Where(p => p.Item1 >= c).ToHashSet(); return Cells.Components(right); }
+        return 0;
+    }
+
     /// <summary>The lower-case string name of a <see cref="LaneRead"/> (<c>I</c>/<c>L</c>/<c>Z</c>/
     /// <c>complex</c>/<c>plaza</c>/<c>none</c>) — the board deriver's wool-lane measurable, for the derive
     /// gallery and the lane-audit harness.</summary>

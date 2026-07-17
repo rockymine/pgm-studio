@@ -983,6 +983,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The new terminal-free compounds, standalone (M3, G91)** — `Pgm/Shapes/BodyEmitter.cs` + `Compound.cs` +
+  `ShapeClassifier.cs`: the shapes the vocabulary names but `ShapeEmitter` couldn't build, now emitted as pure
+  `ShapeBody` on the G90 Body stage. `BodyEmitter` generalizes the branch family from the fixed two-leg staple to
+  **spine + K arms** (`SpineArms` — T at K=1, Π/F at K=2, E at K=3, arm placement a knob, **3 arms the cap**) and
+  adds the holed recombinations **`Ring`**, **`DoubleHole`** (a ring + a U docked on its edge, its bay the second
+  void — the two holes equal-sized or variant, the U sliding along the ring), **`P`** (a ring whose bottom bar runs longer than the loop, the loop
+  sliding along it — one void), and **`TwoUOnI`** (two loops on a shared baseline, an open channel between). Each
+  **classifies back to itself** through the new `ShapeClassifier.ClassifyBody` → `Compound` (a terminal-free
+  taxonomy kept separate from `ShapeFamily` so the approach path stays byte-identical): void count is the strongest
+  signal, the **two-void** pair split on whether an *open channel* comes between the voids (two-U-on-I) or a
+  *solid wall* does (double-hole), the **one-void** pair on P's overhang concavity vs a clean ring, the void-free
+  pair on the arm count (placement-independent — an F and a Π both read `SpineArms(2)`). Pieces carry the
+  structural slots (`bar`/`leg`), no terminal. Verified: `BodyMirrorTests` (each compound emits → classifies back,
+  one connected mass, no overlap, edge-aligned joins only per §3; the arm cap; the U's slide) + full Pgm suite
+  628/628 green; drawn **standalone** in the body gallery (`tools/compose/body-gallery.cs`) with every piece
+  labelled by its slot. The shared bodies the hub (G88) and frontline (G89) designations reuse. Contract:
+  `docs/contracts/shape-vocabulary.md` §5/§10. (G91)
+
 - **The terminal-free `Body` — the shape/designation split (M3, G90)** — `Pgm/Shapes/ShapeBody.cs` +
   `ShapeEmitter.cs` + `ApproachSlots.cs`: `ShapeEmitter.Emit` — which baked a wool `room` into every family —
   splits into a pure **`Body`** (`ShapeEmitter.Body` → a `ShapeBody`: structural-slotted rects + vacancies, no

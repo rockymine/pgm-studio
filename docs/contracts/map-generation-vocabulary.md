@@ -72,6 +72,7 @@ read *width-independently* (§1.2, §5).
 | Type | What it means |
 |---|---|
 | `ShapeFamily` | The **nine** wool-approach families, an escalation of one another: `Isolated · I · L · Z · Scythe · Clamp · U · H · Donut`. The one taxonomy both the emitter (build one) and the classifier (read one back) share. |
+| `Compound` · `CompoundRead` | The **terminal-free** compound taxonomy (§5 of shape-vocabulary.md): `Rectangle · SpineArms · Ring · DoubleHole · P · TwoUOnI`, read by topology alone (voids · arms · bends), no terminal. The identity `BodyEmitter` builds and `ClassifyBody` reads back — the body-layer mirror. A compound plus a designation (a terminal) is an approach; `ShapeFamily` is that terminal-capped view. |
 | `ApproachSlots` | The **shape-internal roles** (the *slots*), two layers (shape-vocabulary.md §8): **structural slots** `run · bar · leg` (the rectangle's role in the compound, shared by every kind) + **designation marks** `entry · room` (the docking rect and the terminal, stamped by the approach), qualified `entry-run`/`room-run`/`entry-bar`/`room-bar` when a family has two. A slot is a **template position**, not a property of a rectangle — a scythe's `entry-run` and a donut's `leg` can be the same rectangle in different slots. Each family is an ordered template of these. |
 | `RoomPlacement` | Where the terminal (wool/spawn room) sits relative to the last segment: `Inline` (caps it straight) or `SideTuck` (ducks off its side — still reads as the straight family). |
 | `BoxEdge` | A box-local edge (`Top`/`Bottom`/`Left`/`Right`) — used to name a family's **mouth** (the edge its entry docks a host through). |
@@ -88,6 +89,7 @@ shape fits" is a *signal*, answered by changing the box — never a crash.
 | `BoxFiller` | The **one profile-gated fill entry point** over a positioned `Box`: validate/pick a legal family that fits, emit it, and report the **land** the fill spent against the box's land target (the two-currency balance). The spine the partitioner (G63) drives. |
 | `ShapeEmitter` | The **pure family geometry** in two stages: `Body` builds the terminal-free compound, a **designation** finishes it (`Emit` = the approach designation, stamping the terminal room + marker). No roles, no ids, no plan types. |
 | `ShapeBody` | The **terminal-free compound**: structural-slotted rectangles + vacancies, with no terminal, marker, or id — the shared layer every box kind's designation builds on (approach's room, hub's per-edge interfaces, frontline's face). What `ShapeEmitter.Body` returns. |
+| `BodyEmitter` | Emits the **new terminal-free compounds** the vocabulary names but `ShapeEmitter` can't build, as `ShapeBody`: `SpineArms` (the branch family generalized to K arms — T/Π/F/E, capped at 3, arm placement a knob), `Ring`, `DoubleHole` (a ring + a docked U — holes equal or variant, the U slides), `P` (a ring on a longer bar — the loop slides), `TwoUOnI`. Each classifies back through `ClassifyBody` — the body mirror. Standalone (not docked or composed); the shared bodies the hub/frontline designations reuse. |
 | `WoolBoxEmitter` | The **wool binding** over the emitter: stamps the terminal as a `wool-room` piece carrying the wool marker, wraps each piece with its slot and box label. |
 | `SpawnBoxEmitter` | The **spawn binding** (the second box kind): the spawn's shape profile as data ({I, L}, small boxes) + `Fill`, terminal → a `spawn`-role room + marker, mapped into the growth frame. |
 | `EmittedShape` | An **approach emission**: a `ShapeBody` finished by the approach designation — the terminal room rect + marker (with `Terrain`/`Vacancies` reading through to the body). What `ShapeEmitter.Emit` returns. |
@@ -130,7 +132,7 @@ connectivity.
 
 | Type | What it means |
 |---|---|
-| `ShapeClassifier` | The **shape deriver**: reads one box's terrain back to its `ShapeFamily` (width-independently), and `ClassifyOpen` reads the corridor's bend as a `LaneRead`. The emitter's mirror. |
+| `ShapeClassifier` | The **shape deriver**: reads one box's terrain back to its `ShapeFamily` (width-independently); `ClassifyOpen` reads the corridor's bend as a `LaneRead`; `ClassifyBody` reads a terminal-free `ShapeBody` back to its `Compound` (voids · arms · bends). The emitter's mirror, on both the approach and body layers. |
 | `LaneRead` | The **open corridor read**: `I / L / Z / Complex / Plaza / None` — the board-level bend of the lane a wool room caps (distinct from the wool-box *family*). |
 | `SlotAssignment` | The **slot deriver**: re-derives every emitted piece's slot from topology alone (path order, adjacency, hole-edge geometry), closing the mirror at the slot level. |
 | `ContactGraph` | The **board deriver, rect layer**: the connectivity primitives — every `Contact`, the build regions, the gap links, the islands. |

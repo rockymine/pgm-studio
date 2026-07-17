@@ -3,11 +3,12 @@
 > **Status: draft, co-authored.** The terminal-free shape model that sits *beneath* the wool/spawn
 > approach families — the shared layer the hub (**G88**) and frontline (**G89**) boxes build on. Once it
 > settles this folds into `map-generation.md` §5 (which today frames shapes as wool-approach-only) and its
-> types land as rows in `map-generation-vocabulary.md`. **The terminal-free `Body` stage is now code (G90,
-> §9/§10);** the hub/frontline designations and the new compounds are still ahead (G88/G89/G91). The working
-> system it generalizes is the eight wool/spawn families, their `ShapeEmitter` geometry, and the emit↔derive
-> mirror — those stay green throughout, and *byte-identical wool/spawn output* is the acceptance bar for any
-> refactor this doc motivates.
+> types land as rows in `map-generation-vocabulary.md`. **The terminal-free `Body` stage is code (G90, §9/§10)
+> and the new compounds emit + classify standalone (G91, §5) — `BodyEmitter` builds them, `ClassifyBody` reads
+> them back;** the hub/frontline designations that consume them are still ahead (G88/G89). The working system it
+> generalizes is the eight wool/spawn families, their `ShapeEmitter` geometry, and the emit↔derive mirror —
+> those stay green throughout, and *byte-identical wool/spawn output* is the acceptance bar for any refactor
+> this doc motivates.
 
 ---
 
@@ -253,9 +254,18 @@ Pressure-testing this on the hard cases:
   designation `Approach` (stage 2); `Emit` composes the two.
 - `ApproachSlots` — the structural-slot (shared) vs designation-mark (per kind) split is documented on the type
   (G90); the emitted strings are unchanged, so the mirror stays byte-identical.
-- `ShapeClassifier` / `SlotAssignment` — the mirror reads the Body's topology; it already keys off
-  width-independent features (bends/fold/branch/void), so it needs no shape-specific additions to read new
-  compounds (the double-hole reads as two voids for free).
+- `BodyEmitter` / `Compound` (G91) — the terminal-free compounds the vocabulary names but `ShapeEmitter` can't
+  build: `SpineArms` (the branch family generalized to K arms — T/Π/F/E, **capped at 3**, arm placement a knob),
+  `Ring`, `DoubleHole` (a ring + a docked U — holes equal or variant, the U slidable), `P` (a ring on a longer bar, the loop
+  slidable), `TwoUOnI`, emitted as `ShapeBody`. `Compound` is their derive-side identity, a *separate* taxonomy
+  from `ShapeFamily` (the terminal-capped approach view) so the approach path stays byte-identical; the §11 merge
+  reconciles the two later.
+- `ShapeClassifier.ClassifyBody` (G91) / `SlotAssignment` — the body mirror reads a Body's topology
+  width-independently (voids · arms · bends). Void count is the strongest signal — read by counting the
+  enclosed-void *components* (the extension G91 called for). **Two voids** split on whether an open channel comes
+  between them (two-U-on-I) or a solid wall does (double-hole); **one void** on P's overhang concavity vs a clean
+  ring; **none** on the solid rectangle vs the arm count (placement-independent — an F and a Π both read
+  `SpineArms(2)`).
 - **G88 (hub)** adds the Hub designation + its form menu; **G89 (frontline)** adds the Front designation +
   its form menu. Both reuse the Body stage and the structural slots unchanged.
 
@@ -263,7 +273,9 @@ Pressure-testing this on the hard cases:
 
 1. **Naming** — *decided:* keep the letters; add descriptive names for the non-letter compounds (Hook, Ring,
    Double-hole); **rename H → Y**; and **collapse Ell / Staple / Comb into one "Spine + K arms" branch family**
-   (§5), the letters L/T/U/Π/F/E placement-reads of (arm count, arm placement).
+   (§5), the letters L/T/U/Π/F/E placement-reads of (arm count, arm placement). *Built (G91):* the `Compound`
+   taxonomy carries `SpineArms` (K arms) as one family and `ClassifyBody` reads K back; the letter/placement is
+   an emitter knob, not an identity.
 2. **Hub form menu** — *working set (§6):* Rectangle · L · U · Ring · Double-hole (Ring + a slidable U).
    Open: whether HB4 is a plain Ring or a Ring with a walkable interior (a different void class), and the
    hub's per-edge interface-width rules (the constraint it sources).
@@ -271,7 +283,8 @@ Pressure-testing this on the hard cases:
    more) plus the **holed forms** (P, two-U-on-I), plus a plain **Bar** for the wide face (FR6). Rotation is
    fixed by the designation — the **spine docks the hub, the arm-tips are the face** toward the axis. How the
    **mid** attaches to the face is a separate, deferred rule-set.
-4. **Comb / Snake** — do we emit Comb (E/F) and Snake (3+ bends) now, or park them until a kind needs them?
+4. **Comb / Snake** — *Comb decided (G91):* `SpineArms` emits any K, so E/F/Comb are in the body vocabulary and
+   the mirror. **Snake** (3+ bends, no branch/void) is still parked until a kind needs it.
 5. **The clamp** — *decided (§6/§7/§9):* the clamp is **not a shape** but a **terminal-face designation** — a
    compact room docked on two *distinct* faces (opposite → centered / I+I, adjacent → corner / L+I), escalating
    to three (T) and four (cross). U and Y stay shape families (a Staple + a one-face terminal). Open only: when
