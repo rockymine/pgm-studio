@@ -134,10 +134,13 @@ public static class PlanCompiler
                 var (bx, bz) = Resolve(piece.Value.Rect, s.At, d.Cell);
                 var (fx, fz) = FacingDir(s.Facing);
                 var (px, pz) = d.FanPoint(bx, bz, k);
+                var prot = d.FanRect(piece.Value.Rect, k);
                 spawns.Add(new SpawnIntent
                 {
                     Team = teams[k].Id,
                     Point = new Pt(px, piece.Value.Surface, pz),
+                    // Protect the whole spawn piece the marker sits on, not just the stamped spawn cube.
+                    Protection = [new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)],
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
                 });
             }
@@ -156,10 +159,13 @@ public static class PlanCompiler
                 var color = !string.IsNullOrEmpty(w.Color) ? w.Color
                     : i == 0 ? teams[k].Color
                     : Dyes[dyeCursor++ % Dyes.Length];
+                var room = d.FanRect(piece.Value.Rect, k);
                 wools.Add(new WoolIntent
                 {
                     Owner = teams[k].Id,
                     Color = color,
+                    // The room region is the whole wool-room piece the marker sits on, not just the stamped cage.
+                    Room = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
                     Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
             }

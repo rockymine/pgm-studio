@@ -30,6 +30,19 @@ public sealed class PlanCompilerTests
     }
 
     [Test]
+    public async Task Protection_and_room_are_the_marker_pieces_full_footprint()
+    {
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        // Spawn protection = the whole 'lane' piece (rect [1,5,2,6] → blocks x 5..15, z 25..55), not the
+        // smaller stamped cube around the spawn point.
+        var prot = intent.Spawns.Single(s => s.Team == "red").Protection.Single();
+        await Assert.That((prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)).IsEqualTo((5d, 25d, 15d, 55d));
+        // Wool room = the whole 'wr' piece (rect [-3,5,2,2] → blocks x -15..-5, z 25..35).
+        var room = intent.Wools!.First(w => w.Owner == "red").Room.Single();
+        await Assert.That((room.MinX, room.MinZ, room.MaxX, room.MaxZ)).IsEqualTo((-15d, 25d, -5d, 35d));
+    }
+
+    [Test]
     public async Task Rot_90_yields_four_teams_in_orbit_order()
     {
         var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_90"}, {{Unit}} }"""));
