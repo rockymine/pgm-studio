@@ -52,6 +52,10 @@ public static class TeamUnitAllocator
         return new UnitPlan(hasFrontline ? UnitSide.Front : null, spawn, AssignWools(spawn, woolCount));
     }
 
+    /// <summary>The clearance kept between a docked neighbour and each hub corner, in cells — so no two
+    /// neighbours on adjacent hub sides seat at the shared corner and only corner-touch (a diagonal pinch).</summary>
+    private const int CornerClearanceCells = 1;
+
     /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
     /// geometry layer over <see cref="SamplePlan"/>. Positions the hub on the (u, v) grid and seats the spawn on
     /// its assigned side, mapping both to plan-cell Rects through the symmetry <see cref="Frame"/>, and emits the
@@ -84,9 +88,8 @@ public static class TeamUnitAllocator
         {
             rect = [];
             var (edgeMin, edgeLen) = Edge(side);
-            if (along > edgeLen) return null;
             occupied.TryAdd(side, []);
-            if (SeatInGap(occupied[side], edgeLen, along, rng) is not { } local) return null;
+            if (SeatInGap(occupied[side], edgeLen, along, CornerClearanceCells, rng) is not { } local) return null;
             occupied[side].Add((local, along));
             rect = RectFor(frame, side, hubUMin, hubU, hubVMin, hubV, edgeMin + local, depth, along);
             return local;
@@ -111,7 +114,7 @@ public static class TeamUnitAllocator
         {
             var side = plan.Wools[i];
             var (_, edgeLen) = Edge(side);
-            var along = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen));
+            var along = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen - 2 * CornerClearanceCells));
             var depth = Math.Clamp((int)Math.Round(woolShare / along), 4, depthCap);
             if (SeatOn(side, depth, along, out var woolRect) is not { } woolStart) return null;
             var id = $"wool-{(char)('a' + i)}";
@@ -139,18 +142,22 @@ public static class TeamUnitAllocator
     }
 
     /// <summary>A free box-local along-position for an <paramref name="along"/>-wide dock in an
-    /// <paramref name="edgeLen"/>-cell edge, avoiding the <paramref name="occupied"/> intervals — sampled within
-    /// a randomly chosen fitting gap, or null when no gap holds it.</summary>
-    private static int? SeatInGap(List<(int Start, int Len)> occupied, int edgeLen, int along, ComposeRng rng)
+    /// <paramref name="edgeLen"/>-cell edge, avoiding the <paramref name="occupied"/> intervals and a
+    /// <paramref name="inset"/>-cell clearance at each corner (so no neighbour seats at a hub corner and
+    /// corner-touches a neighbour on the adjacent side) — sampled within a randomly chosen fitting gap, or null
+    /// when no gap holds it.</summary>
+    private static int? SeatInGap(List<(int Start, int Len)> occupied, int edgeLen, int along, int inset, ComposeRng rng)
     {
+        int lo0 = inset, hi0 = edgeLen - inset;
+        if (hi0 - lo0 < along) return null;
         var gaps = new List<(int Lo, int Hi)>();
-        var cursor = 0;
+        var cursor = lo0;
         foreach (var (s, l) in occupied.OrderBy(o => o.Start))
         {
             if (s - cursor >= along) gaps.Add((cursor, s));
             cursor = Math.Max(cursor, s + l);
         }
-        if (edgeLen - cursor >= along) gaps.Add((cursor, edgeLen));
+        if (hi0 - cursor >= along) gaps.Add((cursor, hi0));
         if (gaps.Count == 0) return null;
         var (lo, hi) = gaps[rng.NextInt(0, gaps.Count)];
         return lo + rng.NextInt(0, hi - lo - along + 1);

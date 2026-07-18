@@ -70,9 +70,13 @@ public static class TeamUnitFiller
         foreach (var j in hubJoints)
             if (j.Offer is { } offer) edgeWidths[HubEdge(j, hubBox.Id)] = offer.WidthClass;
 
-        var fitting = FillProfiles.HubForms.Where(f => HubBoxEmitter.Fill(hubBox, f, HubCw, edgeWidths) is not null).ToList();
-        if (fitting.Count == 0) return null;
-        var hub = HubBoxEmitter.Fill(hubBox, fitting[rng.NextInt(0, fitting.Count)], HubCw, edgeWidths)!;
+        // the hub fills SOLID (Rectangle) for now. The allocator seats neighbours on the hub's full bounding-box
+        // edges, so a non-rectangular form — whose terrain leaves stretches of an edge empty (a bay) — would let
+        // a neighbour dock that empty stretch and only corner-touch the hub (a t*/*t diagonal pinch). Filling the
+        // hub non-rect needs the allocator to seat on the form's real free-edge intervals — a follow-up; until
+        // then the hub is the solid rectangle the grower always drew.
+        if (HubBoxEmitter.Fill(hubBox, new CompoundRead(Compound.Rectangle), HubCw, edgeWidths) is not { } hub)
+            return null;
 
         var pieces = new List<GrownPiece>(hub.Pieces);
         GrownSpawn? spawn = null;

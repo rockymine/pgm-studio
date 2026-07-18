@@ -14,6 +14,7 @@ var presets = new[]
 };
 const int seeds = 8;
 
+var totalTouches = 0;
 var sections = new StringBuilder();
 foreach (var (label, sub, players, land) in presets)
 {
@@ -25,7 +26,9 @@ foreach (var (label, sub, players, land) in presets)
         if (alloc is not { } a) { cards.Append(Fail(seed, "no allocation")); continue; }
         var filled = TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed));
         if (filled is null) { cards.Append(Fail(seed, "no fill")); continue; }
-        cards.Append(Card(seed, filled.Unit.Pieces));
+        var touches = DiagonalTouches(filled.Unit.Pieces);
+        totalTouches += touches;
+        cards.Append(Card(seed, filled.Unit.Pieces, touches));
     }
     sections.Append($"<section><header><h2>{label}</h2><p>{sub}</p></header><div class=gallery>{cards}</div></section>");
 }
@@ -42,6 +45,8 @@ html.Append("<style>"
     + "header p{font-size:12px;color:var(--dim);margin:1px 0 12px;font-variant-numeric:tabular-nums}"
     + ".gallery{display:flex;flex-wrap:wrap;gap:12px}"
     + ".card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px}"
+    + ".card.warn{border-color:#f87171;box-shadow:0 0 0 1px #f8717155}"
+    + ".badge{color:#f87171;font-size:9px;letter-spacing:0}"
     + ".title{font-size:10.5px;color:var(--dim);margin-bottom:6px;letter-spacing:0.03em}"
     + ".fail{color:#f87171;font-size:11px;padding:26px;text-align:center}"
     + "svg{background:var(--canvas);border-radius:4px;display:block}</style>");
@@ -56,7 +61,23 @@ html.Append(sections.ToString());
 
 Directory.CreateDirectory("tools/compose/out");
 File.WriteAllText("tools/compose/out/unit-gallery.html", html.ToString());
-Console.WriteLine("wrote tools/compose/out/unit-gallery.html");
+Console.WriteLine($"wrote tools/compose/out/unit-gallery.html — {totalTouches} diagonal touch(es) across all units");
+
+// two pieces meet only at a corner (a t*/*t diagonal pinch) iff they are adjacent on BOTH axes — then they
+// share exactly the corner point, never a full edge.
+static int DiagonalTouches(IReadOnlyList<GrownPiece> pieces)
+{
+    var r = pieces.Select(p => p.Rect).ToList();
+    var n = 0;
+    for (var i = 0; i < r.Count; i++)
+        for (var j = i + 1; j < r.Count; j++)
+        {
+            var hAdj = r[i][0] + r[i][2] == r[j][0] || r[j][0] + r[j][2] == r[i][0];
+            var vAdj = r[i][1] + r[i][3] == r[j][1] || r[j][1] + r[j][3] == r[i][1];
+            if (hAdj && vAdj) n++;
+        }
+    return n;
+}
 
 static ComposeEnvelope Env(string sym, int players, double land) =>
     new(sym, Teams: 2, players, Cell: 5, Surface: 9, Headroom: 11,
@@ -74,7 +95,7 @@ static string Color(BoxKind k) => k switch
 static string Fail(int seed, string why) =>
     $"<div class=card><div class=title>seed {seed}</div><div class=fail>{why}</div></div>";
 
-static string Card(int seed, IReadOnlyList<GrownPiece> pieces)
+static string Card(int seed, IReadOnlyList<GrownPiece> pieces, int touches)
 {
     int minX = pieces.Min(p => p.Rect[0]), minZ = pieces.Min(p => p.Rect[1]);
     int maxX = pieces.Max(p => p.Rect[0] + p.Rect[2]), maxZ = pieces.Max(p => p.Rect[1] + p.Rect[3]);
@@ -93,5 +114,7 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces)
             + $"fill-opacity='{(room ? "0.95" : "0.4")}' stroke='{col}' stroke-width='1.5'/>");
     }
     svg.Append("</svg>");
-    return $"<div class=card><div class=title>seed {seed}</div>{svg}</div>";
+    var warn = touches > 0 ? " warn" : "";
+    var badge = touches > 0 ? $" <span class=badge>⚠ {touches} diag</span>" : "";
+    return $"<div class='card{warn}'><div class=title>seed {seed}{badge}</div>{svg}</div>";
 }

@@ -94,6 +94,37 @@ public class TeamUnitAllocatorTests
         await Assert.That(NoOverlaps(filled.Unit.Pieces.Select(p => p.Rect))).IsTrue();  // a valid layout — no piece overlaps
     }
 
+    [Test]
+    public async Task No_diagonal_pinch_across_many_seeds_and_budgets()
+    {
+        // every allocated+filled unit must have no two pieces meeting only at a corner (a t*/*t diagonal pinch):
+        // the solid-Rectangle hub gives full edges, the corner clearance keeps adjacent-side neighbours apart
+        foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0) })
+            for (ulong seed = 0; seed < 40; seed++)
+            {
+                var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
+                if (alloc is not { } a) continue;
+                var filled = TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng(seed));
+                if (filled is null) continue;
+                await Assert.That(DiagonalPinches(filled.Unit.Pieces)).IsEqualTo(0);
+            }
+    }
+
+    // count piece pairs that touch only at a corner — adjacent on both axes, so they share the corner point only
+    private static int DiagonalPinches(IReadOnlyList<GrownPiece> pieces)
+    {
+        var r = pieces.Select(p => p.Rect).ToList();
+        var n = 0;
+        for (var i = 0; i < r.Count; i++)
+            for (var j = i + 1; j < r.Count; j++)
+            {
+                var hAdj = r[i][0] + r[i][2] == r[j][0] || r[j][0] + r[j][2] == r[i][0];
+                var vAdj = r[i][1] + r[i][3] == r[j][1] || r[j][1] + r[j][3] == r[i][1];
+                if (hAdj && vAdj) n++;
+            }
+        return n;
+    }
+
     // two [x,z,w,h] cell rects overlap iff they intersect on both axes
     private static bool Overlap(int[] a, int[] b) =>
         a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
