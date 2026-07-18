@@ -73,14 +73,15 @@ offer mechanism (G96) remains, landing inside G88/G89.)*
   it back. The offer-card gallery half (grouping/width annotations per compound × designation) rides here.
   **Order: the heart of G88 (hub offers) and G89 (face offers) — lands inside them, after G94/G95.**
 
-- [ ] **G88 — Hub as the constraint-source box.** Make the hub a first-class `BoxKind.Hub` box: a `FillProfiles`
-  hub row + a hub emitter (a `Hub` designation over the Body, G90). Per §4 the hub is the **constraint source** —
-  a rectangle-ish host (need not be square, may carry holes) whose **per-edge interface widths (`w2`/`w4`/`w6`)
-  set the fill menu** for the spawn/wool/frontline neighbours, and it **emits first**. Form menu (authored,
-  `shape-vocabulary.md` §6): **Rectangle · L · U · Ring · Double-hole** — no terminal; its designation is the
-  per-edge interfaces. Pieces carry structural slots with hub box-kind ownership (`hub-a/…`), extending the
-  label-preservation invariant to the hub. Supersedes the hub half of the old G41-C. Depends on G90/G91 +
-  G94/G95 (vocabulary, marks); its per-edge width offers are G96's hub half; feeds G63-C.
+- [~] **G88 — Hub as the constraint-source box.** *Landed: `FillProfiles.HubForms` + `HubBoxEmitter` (a `Hub`
+  designation over the Body, terminal-free — no room/marker), the **Rectangle** form (the solid hub, the grower's
+  `hubU×hubV` successor), publishing one per-edge `EdgeOffer` (**G96's hub half** — the `Several`-grouped per-edge
+  width a neighbour reads as its `cw`, the composer's `edgeWidths` constraint); `BoxJoint.Offer` carries the
+  provenance.* **Remaining:** the rest of the authored form menu (`map-generation.md` §5.5) — **L**
+  (`SpineArms(1)`) · **U** (`SpineArms(2)`) · **Ring** · **Double-hole** — each with its box-sizing plus a general
+  free-edge offer reader (`BoxInterfaces.Of(ShapeBody)`, so offers derive uniformly instead of the Rectangle
+  special case). The hub **emitting first / setting neighbour menus** is the composer wiring (G63-C). Depends on
+  G90/G91 + G94/G95; feeds G63-C.
 - [ ] **G89 — Frontline as the face/join box.** Make the frontline a first-class `BoxKind.Frontline` box: a
   `FillProfiles` frontline row + a `FrontlineBoxEmitter` (a `Front` designation over the Body, G90) docking the
   hub's front edge. Per §4 the frontline is a **join, not a placement** — a face with no room/marker whose far

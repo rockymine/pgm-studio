@@ -4,8 +4,12 @@ namespace PgmStudio.Pgm.Compose;
 
 /// <summary>A <b>joint</b> of the partition graph: the shared edge interval where two boxes touch — the
 /// <see cref="BoxInterface"/> (an edge, an offset, a width) read on <see cref="BoxA"/>'s frame, plus the box
-/// on the other side. The graph edge the docking gate and the repair search reason over.</summary>
-public sealed record BoxJoint(string BoxA, string BoxB, BoxInterface Interface);
+/// on the other side. The graph edge the docking gate and the repair search reason over. When the joint
+/// consumed a designation's <see cref="EdgeOffer"/> (a neighbour landing on a hub's per-edge width offer or the
+/// frontline's face), that offer rides along as <see cref="Offer"/> provenance — so the partitioner places
+/// consumers only where a designation invited them, and <see cref="BoxPartition.Of"/> can mirror the offer
+/// back. <c>null</c> for a plain abutment carrying no offer (e.g. a derived joint).</summary>
+public sealed record BoxJoint(string BoxA, string BoxB, BoxInterface Interface, EdgeOffer? Offer = null);
 
 /// <summary>
 /// The <b>constraint graph</b> a partition is (G63): typed <see cref="Box"/>es (each an allocated

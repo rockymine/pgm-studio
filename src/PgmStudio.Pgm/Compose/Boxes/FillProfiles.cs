@@ -15,13 +15,21 @@ namespace PgmStudio.Pgm.Compose;
 public static class FillProfiles
 {
     /// <summary>The families box <paramref name="kind"/> may fill at interface width <paramref name="cw"/>
-    /// cells. Wool = the width-gated production menu; spawn = the straight/one-bend {I, L}.</summary>
+    /// cells. Wool = the width-gated production menu; spawn = the straight/one-bend {I, L}. The hub is not here:
+    /// it is a <b>terminal-free body</b>, so its profile is a <see cref="Compound"/> menu (<see cref="HubForms"/>),
+    /// not the <see cref="ShapeFamily"/> approach taxonomy.</summary>
     public static IReadOnlyList<ShapeFamily> Families(BoxKind kind, int cw) => kind switch
     {
         BoxKind.Wool => FillMenu.FamiliesFor(cw),
         BoxKind.Spawn => SpawnBoxEmitter.Families,
-        _ => [],                                          // hub / frontline / mid profiles land at G41-C
+        _ => [],                                          // hub = HubForms (Compound-typed); frontline lands at G89
     };
+
+    /// <summary>The <b>hub's</b> fill profile — its authored form menu as data (the <see cref="Compound"/> bodies
+    /// a hub may be, map-generation.md §5.5). Compound-typed, not <see cref="ShapeFamily"/>, because the hub is a
+    /// terminal-free body rather than an approach; it composes <see cref="HubBoxEmitter.Forms"/> the way the
+    /// wool/spawn rows compose their menus.</summary>
+    public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
 
     /// <summary>True when <paramref name="family"/> is admitted by <paramref name="kind"/> at
     /// <paramref name="cw"/> <b>and</b> its minimum box fits a footprint of <paramref name="w"/>×
