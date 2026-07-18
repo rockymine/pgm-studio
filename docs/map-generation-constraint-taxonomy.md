@@ -43,15 +43,15 @@ good the result **reads** (band / term)?*
 
 | Kind | Is | Rejects? | Exemplar today |
 |---|---|---|---|
-| **fact** | an observation off geometry, no policy | never | `BoxEdgeInterface` ("observes, does not judge"), `FrontlineRuns` |
+| **fact** | an observation off geometry, no policy | never | `BoxEdgeInterface.Intervals` (G93, "observes, does not judge"), the edge taxonomy (`NegativeSpace` · `ClassifiedEdge` · `SpaceMouth`, G92), `FrontlineRuns` |
 | **menu** | a generative allowlist — what may be *chosen* | empty = directed signal | `FillMenu.Rows`, `FillProfiles.Families` |
 | **fit gate** | does the choice fit the box | directed (`TooSmall`) | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
 | **demand** | a shape's requirement *on its environment* (inbound) | via the gate | `FamilyDock.EntryDemand` (the clamp's 2 entries) |
-| **offer** | constraints a shape *imposes outward* — the edges/intervals it invites neighbours onto, and in what groupings | via the gate | **no code home yet** — the G88/G89 gap (§3) |
-| **veto** | a never-attach mark | via the gate | `SlotDockRole.NeverDock` (the wool room), CT9's recess |
-| **gate** | the hard legality check applying demand/offer/veto, with a *directed rejection* | yes, legibly | `DockingGate` → `DockRejection`, `FillResult.IllegalDock` |
+| **offer** | constraints a shape *imposes outward* — the edges/intervals it invites neighbours onto, and in what groupings | via the gate | **no code home yet** — planned as `EdgeOffer` (G96; type sketch §7) |
+| **veto** | a never-attach / never-publish mark | via the gate | `SlotDockRole.NeverDock` (the wool room), `PublishPolicy`'s terminal-capped bay/hole veto (G92), CT9's recess |
+| **gate** | the hard legality check applying demand/offer/veto, with a *directed rejection* | yes, legibly | `DockingGate` → `DockRejection`, `FillResult.IllegalDock`, `PublishPolicy` → `PublishVerdict` (G92) |
 | **knob** | a free parameter *within* legality; never changes identity | guard-railed | `entryShift`, `attachmentWidth`, `SpineArms` arm placement |
-| **target** | a **per-request, prescriptive** constraint this compose aims at — chosen or sampled, then held | steers + verifies | **no code home yet** — the "controlled variance" gap (§4) |
+| **target** | a **per-request, prescriptive** constraint this compose aims at — chosen or sampled, then held | steers + verifies | **no code home yet** — planned as `ComposeTargets` (G98; §5, type sketch §7) |
 | **band** | a **descriptive** envelope measured off the seeds — advisory (the seeds are final-fidelity, see the header corrective) | never (scores distance) | `SoftTerm` + `seed-envelopes.json` (`frontline-count` [1,7]) |
 | **hard term** | a well-formedness symptom check on the derived board | flat penalty | `WoolRingedHole`, `GapHopBand` |
 | **law** | the id-bearing author rule the mechanisms implement — a **living** rule set amended by protocol, provenance not gospel | n/a (provenance) | `layout-rules.md` FR6, CT9, BZ8 |
@@ -133,15 +133,15 @@ already implied by the docs):
    flat slot list: each edge carries its per-piece **intervals** ordered along it
    (`BoxEdgeInterface.Intervals`), so a twin face is two disjoint intervals on one edge — the
    box-perimeter sibling of the §4 classified boundary.
-2. **Designation marks in the gate.** `DockingGate.Role` is one global slot→role table
-   (`entry` docks, `room` vetoes) — approach-only. Dock roles become per-designation **marks**
-   (`entry`/`room` for approaches; `face`/`hub-edge` for the frontline; per-edge `interface`
-   offers for the hub), stamped by the designation per `shape-vocabulary.md` §8, with the gate
-   unchanged in spirit: one table over marks.
-3. **Offer records on joints.** A `BoxJoint` knows two boxes share an interval; it doesn't know
-   the interval was *offered*, at what width class, in which grouping. The partition graph
-   carries the offer so the partitioner places consumers against it (and `BoxPartition.Of`
-   mirrors it back).
+2. **Designation marks in the gate** *(on the board as G95; type sketch §7)*.
+   `DockingGate.Role` is one global slot→role table (`entry` docks, `room` vetoes) —
+   approach-only. Dock roles become per-designation **marks** (`entry`/`room` for approaches;
+   `face` for the frontline; per-edge `interface` for the hub), stamped by the designation per
+   `shape-vocabulary.md` §8, with the gate unchanged in spirit: one table over marks.
+3. **Offer records on joints** *(on the board as G96; type sketch §7)*. A `BoxJoint` knows two
+   boxes share an interval; it doesn't know the interval was *offered*, at what width class, in
+   which grouping. The partition graph carries the offer so the partitioner places consumers
+   against it (and `BoxPartition.Of` mirrors it back).
 
 Never key any of it on a letter: "F" is a placement read of `SpineArms(2)` and drifts as the
 arms slide (§3 of the shape vocabulary). The offer is stated over structural slots + marks
@@ -325,7 +325,9 @@ G63-C are the existing anchors.)
    over every shape — the instrument the following steps' rules are decided against.
 1. **Adopt the vocabulary** (doc-only). The §1 kinds + the §4 edge terms land in
    `map-generation.md` §1 as locked terms (offer, target vs band, demand, veto, knob; the
-   wall-count classes); prompt templates (§7) ride along. Retire the matching sections here.
+   wall-count classes); prompt templates (§8) ride along. Retire the matching sections here.
+   On the board as **G94** (which also folds `shape-vocabulary.md` in: base shapes are
+   terminal-free compounds, approaches a designation over them).
 2. **Interval facts** *(shipped — G93)*. `BoxEdgeInterface` re-grounds on per-piece
    **intervals** ordered along each edge (`EdgeInterval(Start, LengthCells, Slot)`), `Slots`
    the flat view; the clamp's mouth edge carries both entry bars as two disjoint intervals —
@@ -352,7 +354,65 @@ G63-C are the existing anchors.)
    and demands drawn — generated from the profile data, so the picture *is* the rule table; the
    regression surface for G88/G89.
 
-## 7. Prompting future rules — templates
+## 7. The intended type structure — code homes for the missing kinds
+
+The two §1 kinds without a code home, sketched as the types G95/G96/G98 are expected to land —
+**intent, not code**; the implementing task refines freely, but the shapes below are what the
+shipped facts already support.
+
+**Designation marks (G95).** Marks are `ApproachSlots`-style string constants stamped by a
+designation, and the gate's role table becomes designation-scoped:
+
+```csharp
+// Shapes — the marks the non-approach designations stamp (approach keeps entry/room)
+public static class DesignationMarks { public const string Face = "face"; public const string Interface = "interface"; }
+
+// the designations over a ShapeBody (siblings of ShapeEmitter.Approach)
+ShapeEmitter.Hub(body, edgeWidths)  → HubShape    // body + interface-marked edges carrying widths, no terminal
+ShapeEmitter.Front(body, faceEdge)  → FrontShape  // body + face-marked tip edges, rotation fixed, no terminal
+
+// Compose — DockingGate.Role becomes per-designation; the approach row is today's table verbatim
+DockingGate.Role(designation, slotOrMark) → SlotDockRole
+```
+
+**The offer (G96).** A new record over the G93 interval facts, published by the hub/front
+designations, carried on the partition graph:
+
+```csharp
+// Compose/Boxes — where a neighbour may land, at what width, in which grouping
+public enum OfferGrouping { Joint, Several }               // one consumer spans the group | one per interval
+public sealed record EdgeOffer(
+    BoxEdge Edge, EdgeInterval Interval,                   // where — the G93 fact, shape-relative
+    int WidthClass,                                        // the wN a consumer's fill menu reads as its cw
+    OfferGrouping Grouping, string GroupId);               // Joint groups resolve together (FR6's flush span)
+
+public sealed record BoxJoint(string BoxA, string BoxB, BoxInterface Interface, EdgeOffer? Offer);
+                                                           // provenance: which offer this joint consumed
+```
+
+Producers: the hub's per-edge width offers (the constraint source — a consumed `WidthClass` is
+the `cw` fed to `FillProfiles.Families`), the frontline's face offer over its tip intervals
+(the mid's consumer contract; the inter-tip recess is simply *not offered*, and its CT9 hole is
+verified derive-side). Consumers: `BoxPartitioner` places mouths **only on offers**; the mid
+carve consumes face offers under BZ7–BZ10. Gate: `DockingGate` grows two rejections —
+`NotOffered` (a dock on an un-offered interval) and `GroupNotSpanned` (a Joint group a consumer
+fails to span flush).
+
+**Targets (G98).** A record on the compose request; unset = sampled (variance), set = held
+(control) and verified against the derived reads:
+
+```csharp
+public sealed record ComposeTargets(
+    int? FrontlineRunsPerTeam = null,    // steers the face grouping: several(K) vs joint
+    bool? FrontlineConnected = null,     // verified vs connected-run count (runs per land component)
+    string? MidForm = null,              // "channelled" | "parallel" | "hash" — vs the CT mid-form read
+    Compound? HubForm = null);           // Rectangle | SpineArms | Ring | DoubleHole — the hub menu row
+```
+
+Verification is ordinary hard terms conditioned on "this target was set" — a held target may
+leave the corpus bands (the author asked); a sampled compose stays inside them by default.
+
+## 8. Prompting future rules — templates
 
 Every rule prompt should state: **(a)** the kind (§1), **(b)** the binding in slot/mark terms —
 never letters, never screen positions, **(c)** the law id it implements (or "new law — assign
