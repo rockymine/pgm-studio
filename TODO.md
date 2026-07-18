@@ -84,11 +84,33 @@ in `BACKLOG.md`.)*
   **allocate-then-fill**, hub first — **C.1 ✓ landed** (`TeamUnitFiller.Fill`: fills an allocated partition hub-first
   into a `FilledUnit` — hub/spawn/wool/frontline, each neighbour consuming the hub's `EdgeOffer` width as its `cw`,
   the frontline's face offer carried out for the mid; the one board-frame input is the spawn facing; synthetic
-  fixtures, no golden churn) → **C.2 (next)** the allocator (`BoxPartitioner.Partition` allocates box Rects + the
-  per-edge offer plan from the budget, replacing the grow-then-derive stub) →
-  **C.3** wire `Composer` through C.2→C.1 and **retire `TeamUnitGrower`'s authoring** (RNG re-keys, goldens churn) →
-  **C.4** the clamp's **dual-host corner-wrap** → **C.5** re-baseline gallery cases, **then** freeze the G32-D goldens.
-  `MidCarver` stays — the mid is not a team-unit box, it is derived (`f(frontline)`, consuming the frontline face offer). *Deliberately NOT next: the
+  fixtures, no golden churn) → **C.2 (in progress)** the allocator (`TeamUnitAllocator`). *Landed:* the placement
+  plan (`SamplePlan`/`UnitPlan` — spawn on the back **or a lateral side**, wools assigned around it: free sides
+  first, back preferred, a 3rd doubling onto the spawn's side); the hub + spawn + wool box-Rect geometry from the
+  budget (generic share sizing, under-budget OK); the per-edge `EdgeOffer` plan on the joints (offered width = the
+  lane `w`); and **no diagonal pinches** (solid Rectangle hub + a 1-cell corner clearance). The allocate→fill loop
+  closes end-to-end and `tools/compose/unit-gallery.cs` renders it (0 pinches). *Remaining, roughly in order:*
+    - **[essential] Non-rectangular hubs.** The allocator must **own the hub-form choice** (today the filler forces
+      `Rectangle`, because the allocator seats on the hub's full **bounding-box** edges) and seat neighbours on the
+      form's **actual free-edge intervals** (via `BodyEdges` / the hub's real offers), so an L/U/Ring/Double-hole
+      hub never leaves a neighbour docking an empty bbox stretch (a `t*/*t` pinch). Unblocks the whole G88 hub form
+      menu; without it every hub is a solid rectangle.
+    - **Wool & spawn shape richness** — layouts are "very basic" (mostly `I`): the **spawn is I-only** (the L's
+      overhanging foot needs the entry-seat-and-shift — seat by the entry width `w`, let the box overhang free
+      space), and the **wool** boxes are generic-share-sized so the fill mostly lands `I`; give them family/size
+      variety (L/Z/scythe/…).
+    - **Frontline** — the front side + its reach (shifts `hubUMin` toward the axis), the `FrontForm` dims, and the
+      **face offer** (`FrontlineBoxEmitter`, grouping joint/several) carried into `FilledUnit.FrontlineFace`.
+    - **Hub-floor refinement** — the frontline / twin-recess / wool-c clearance floors the grower's `HubVFloor`
+      encodes (today a simplified `w+2` floor).
+    - **CT1 / LN2 invariants by construction** — ≥10-block image clearance (orbit images stay separate islands)
+      and the 50-block chain cap, baked into placement, failing the attempt if unmet (no repair loop).
+    - **Wire** `BoxPartitioner.Partition` to return the allocation (+ the crossing `design` the frontline reach
+      needs), replacing `BoxPartition.Of(grow)`.
+  → **C.3** wire `Composer` through C.2→C.1 and **retire `TeamUnitGrower`'s authoring** (RNG re-keys, goldens churn)
+  → **C.4** the clamp's **dual-host corner-wrap** → **C.5** re-baseline gallery cases, **then** freeze the G32-D
+  goldens. `MidCarver` stays — the mid is not a team-unit box, it is derived (`f(frontline)`, consuming the frontline
+  face offer). *Deliberately NOT next: the
   fill-to-`LandTargetCells` **directed repair** (retiring `SolveDepth`/`SolveWidth`/`spawnLen`) — it resizes shapes
   to hit the budget, which grows them further, the opposite of what the seeds need; parked in `BACKLOG.md` to be
   reconsidered as a targeted rule, not a solver.* Depends on G63-B, **G88, G89**. (review §4.2, §4.4, §4.5, §7.7)
