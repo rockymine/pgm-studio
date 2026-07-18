@@ -18,16 +18,26 @@ public enum NegativeSpaceKind { Open, Notch, Bay, Hole }
 /// stateable while the space-level class stays correct.</summary>
 public sealed record NegativeSpacePart(int[] Rect, NegativeSpaceKind Kind, bool Guarded = false);
 
+/// <summary>One <b>mouth</b> of a negative space — where it opens out of the body's bounding box: the open
+/// <see cref="Side"/>, the interval along it (<see cref="Start"/> in cell-corner coordinates,
+/// <see cref="WidthCells"/> wide), and the <see cref="WidthClass"/> the width tapers to (the w2/w4/w6 rung —
+/// the interface-width grammar: a w2 mouth is a chokepoint lane, w4 the unstable middle, w6 multi-access). A
+/// space has one mouth per open direction: a bay exactly one (the fact its offer/consumer rules read), a notch
+/// two, a hole none. The derive-side twin of the emit-time published vacancy's <c>BoxInterface</c> mouth —
+/// which exists for bays only; here every non-enclosed space carries its mouths uniformly.</summary>
+public sealed record SpaceMouth(BoxEdge Side, int Start, int WidthCells, int WidthClass);
+
 /// <summary>One connected negative space read off a body: its <see cref="Kind"/>, its cells, the number of
 /// distinct axis directions the body walls it from (<see cref="WallDirections"/> — the wall count behind the
 /// kind; a hole is enclosed outright, whatever the count says), its <see cref="Parts"/> — the slab
 /// decomposition into rectangles, each classed by its own body walls (a rectangular space is its own single
-/// part) — and its <see cref="Form"/>: the space's <b>own compound identity</b> (the void is a body too — the
+/// part) — its <see cref="Form"/>: the space's <b>own compound identity</b> (the void is a body too — the
 /// uneven branch's six-edge bay reads as a two-arm spine, the Π it is), null when the space classifies to no
-/// compound. Cells are box-local grid cells.</summary>
+/// compound — and its <see cref="Mouths"/>: the interval + width class of every opening (bay 1 · notch 2 ·
+/// hole 0). Cells are box-local grid cells.</summary>
 public sealed record NegativeSpace(
     NegativeSpaceKind Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections,
-    IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form);
+    IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form, IReadOnlyList<SpaceMouth> Mouths);
 
 /// <summary>A maximal straight run of the body's boundary, classified along two independent axes: what it
 /// <see cref="Faces"/> (<see cref="NegativeSpaceKind.Open"/> for a free outward edge, else the class of the
@@ -176,7 +186,9 @@ public static class BodyEdges
                 var parts = Decompose(comp, cells, walled);
                 if (clearance is not null)
                     parts = parts.SelectMany(p => SplitByClearance(p, clearance)).ToList();
-                spaces.Add(new NegativeSpace(kind, comp, walled.Count, parts, SpaceForm(comp)));
+                spaces.Add(new NegativeSpace(
+                    kind, comp, walled.Count, parts, SpaceForm(comp),
+                    Mouths(comp, walled, minX, minZ, maxX, maxZ)));
             }
 
         // boundary edges — every filled↔empty cell seam, classed by the space behind it (outside the bounding
@@ -224,6 +236,39 @@ public static class BodyEdges
     {
         try { return ShapeClassifier.ClassifyBody(comp); }
         catch (ArgumentException) { return null; }
+    }
+
+    /// <summary>The w2/w4/w6 rung a width in cells tapers to — nearest rung, ties to the smaller (the fill
+    /// menu's convention).</summary>
+    public static int WidthClass(int widthCells) =>
+        new[] { 2, 4, 6 }.OrderBy(r => Math.Abs(r - widthCells)).ThenBy(r => r).First();
+
+    // the mouths — one per open direction: the space's cell runs on the bounding-box border of that side (an
+    // unwalled direction always reaches the border, or the cells would have flooded further). Enclosed spaces
+    // yield none.
+    private static IReadOnlyList<SpaceMouth> Mouths(
+        HashSet<(int, int)> comp, List<(int Dx, int Dz)> walled, int minX, int minZ, int maxX, int maxZ)
+    {
+        var mouths = new List<SpaceMouth>();
+        foreach (var (dx, dz, side) in new[]
+        {
+            (0, -1, BoxEdge.Top), (0, 1, BoxEdge.Bottom), (-1, 0, BoxEdge.Left), (1, 0, BoxEdge.Right),
+        })
+        {
+            if (walled.Contains((dx, dz))) continue;
+            var border = side switch
+            {
+                BoxEdge.Top => comp.Where(c => c.Item2 == minZ).Select(c => c.Item1),
+                BoxEdge.Bottom => comp.Where(c => c.Item2 == maxZ).Select(c => c.Item1),
+                BoxEdge.Left => comp.Where(c => c.Item1 == minX).Select(c => c.Item2),
+                _ => comp.Where(c => c.Item1 == maxX).Select(c => c.Item2),
+            };
+            var spans = border.ToList();
+            if (spans.Count == 0) continue;
+            foreach (var (lo, hi) in Runs(spans))
+                mouths.Add(new SpaceMouth(side, lo, hi - lo, WidthClass(hi - lo)));
+        }
+        return mouths;
     }
 
     // split a part against the clearance rect: the covered piece is guarded (non-publishable), the guillotine

@@ -153,6 +153,30 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
         svg.Append($"<text x=\"{N(PX(lx))}\" y=\"{N(PY(lz) + 3.4)}\" font-size=\"9.5\" text-anchor=\"middle\" fill=\"{col}\" fill-opacity=\"0.9\">{s.Kind.ToString().ToLowerInvariant()}</text>");
     }
 
+    // bay mouths — a dotted bracket across each opening, labelled with its width class (the wN the mouth
+    // tapers to: what may dock THROUGH the opening)
+    foreach (var s in read.Spaces)
+    {
+        if (s.Kind != NegativeSpaceKind.Bay) continue;
+        int minCz = s.Cells.Min(c => c.Z), maxCz = s.Cells.Max(c => c.Z);
+        int minCx = s.Cells.Min(c => c.X), maxCx = s.Cells.Max(c => c.X);
+        var col = kindColor[NegativeSpaceKind.Bay];
+        foreach (var m in s.Mouths)
+        {
+            var (x1, y1, x2, y2) = m.Side switch
+            {
+                BoxEdge.Top => (PX(m.Start), PY(minCz), PX(m.Start + m.WidthCells), PY(minCz)),
+                BoxEdge.Bottom => (PX(m.Start), PY(maxCz + 1), PX(m.Start + m.WidthCells), PY(maxCz + 1)),
+                BoxEdge.Left => (PX(minCx), PY(m.Start), PX(minCx), PY(m.Start + m.WidthCells)),
+                _ => (PX(maxCx + 1), PY(m.Start), PX(maxCx + 1), PY(m.Start + m.WidthCells)),
+            };
+            svg.Append($"<line x1=\"{N(x1)}\" y1=\"{N(y1)}\" x2=\"{N(x2)}\" y2=\"{N(y2)}\" " +
+                       $"stroke=\"{col}\" stroke-width=\"1.6\" stroke-dasharray=\"2 2\"/>");
+            svg.Append($"<text x=\"{N((x1 + x2) / 2)}\" y=\"{N((y1 + y2) / 2 + (m.Side is BoxEdge.Top ? -3 : m.Side is BoxEdge.Bottom ? 9 : 3))}\" " +
+                       $"font-size=\"8.5\" text-anchor=\"middle\" fill=\"{col}\">w{m.WidthClass}</text>");
+        }
+    }
+
     // pieces — muted fill, the terminal room tinted its own colour
     foreach (var (rect, room) in pieces)
     {
@@ -235,6 +259,10 @@ string Page(List<(string Group, string Title, string Sub, string Svg, string Cou
       :root{ --bg:#eef2f8; --panel:#ffffff; --panel-2:#f6f9fd; --border:#d3dcea;
         --muted:#5a6b86; --secondary:#425068; --primary:#1f2b40; --bright:#111c30; --strong:#0b1220; --accent:#2563eb; }
     }
+    :root[data-theme="dark"]{ --bg:#0d1524; --panel:#151f33; --panel-2:#101827; --border:#2a3852;
+      --muted:#8095b2; --secondary:#9fb2cc; --primary:#c6d4e6; --bright:#e6edf6; --strong:#ffffff; --accent:#6ea8ff; }
+    :root[data-theme="light"]{ --bg:#eef2f8; --panel:#ffffff; --panel-2:#f6f9fd; --border:#d3dcea;
+      --muted:#5a6b86; --secondary:#425068; --primary:#1f2b40; --bright:#111c30; --strong:#0b1220; --accent:#2563eb; }
     *{ box-sizing:border-box; }
     body{ margin:0; background:var(--bg); color:var(--primary); font-family:var(--sans);
       font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased; }

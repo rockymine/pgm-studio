@@ -198,6 +198,36 @@ public sealed class BodyEdgesTests
         await Assert.That(plain.Spaces.SelectMany(s => s.Parts).Any(p => p.Guarded)).IsFalse();
     }
 
+    // every non-enclosed space knows its mouths — interval + width class, one per open direction: bay one,
+    // notch two, hole none (the derive-side twin of the published vacancy's BoxInterface mouth, uniform)
+    [Test]
+    public async Task Spaces_know_their_mouths()
+    {
+        var scythe = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
+        var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        await Assert.That(bay.Mouths.Count).IsEqualTo(1);
+        await Assert.That(bay.Mouths[0]).IsEqualTo(new SpaceMouth(BoxEdge.Top, 6, 3, 2));
+
+        var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw));
+        var notch = l.Spaces.Single(s => s.Kind == NegativeSpaceKind.Notch);
+        await Assert.That(notch.Mouths.Count).IsEqualTo(2);
+        await Assert.That(notch.Mouths.Any(m => m.Side == BoxEdge.Top)).IsTrue();
+        await Assert.That(notch.Mouths.Any(m => m.Side == BoxEdge.Right)).IsTrue();
+
+        var ring = BodyEdges.Classify(BodyEmitter.Ring(Cw, 5 * Cw, 5 * Cw));
+        await Assert.That(ring.Spaces.Single().Mouths).IsEmpty();
+    }
+
+    [Test]
+    public async Task Width_class_tapers_to_the_nearest_rung_ties_small()
+    {
+        await Assert.That(BodyEdges.WidthClass(2)).IsEqualTo(2);
+        await Assert.That(BodyEdges.WidthClass(3)).IsEqualTo(2);   // tie 2/4 → the smaller rung
+        await Assert.That(BodyEdges.WidthClass(5)).IsEqualTo(4);   // tie 4/6 → the smaller rung
+        await Assert.That(BodyEdges.WidthClass(9)).IsEqualTo(6);
+        await Assert.That(BodyEdges.WidthClass(18)).IsEqualTo(6);  // saturates at multi-access
+    }
+
     [Test]
     public async Task Rectangular_spaces_are_their_own_single_part()
     {

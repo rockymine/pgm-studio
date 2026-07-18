@@ -209,15 +209,17 @@ Why this is the load-bearing piece:
   Today the parts exist but carry no explicit order; the **covering/depth relation** (which
   part fronts the mouth, which parts it hides) is the open fact the vacancy-publication rules
   will bind to — publish-eligibility descends from the front part inward.
-- **A bay must know its mouth (deferred — not implemented).** The wall-count class says a bay
-  opens *somewhere*; offer/consumer rules will need the mouth's **geometry** — its edge
-  interval (position + width, the §1.5 interface primitive) and so its `wN` width class —
-  because "what can dock *through* the mouth" is the same width grammar as every other
-  interface (a `w2` mouth is a chokepoint lane, a `w6` mouth multi-access). The emit-time
-  `ShapeVacancy` already carries a `Mouth` box-edge for published bays; the derive-side
-  `NegativeSpace` should grow the same fact — mouth interval + width — when the offer work
-  starts consuming bays. Sibling fact, same vein: a hole's ring composition (which parts wall
-  it) for the CT8 rotation reads.
+- **Every space knows its mouths (author, round 6; shipped).** `NegativeSpace.Mouths` carries
+  one mouth per open direction — the open side, the **interval** along it (position + width,
+  the §1.5 primitive), and the **`wN` width class** it tapers to (fill-menu convention, ties
+  small) — because "what can dock *through* the mouth" is the same width grammar as every
+  other interface (a `w2` mouth is a chokepoint lane, a `w6` mouth multi-access). A bay has
+  exactly one (the fact its offer rules read), a notch two, a hole none. This dissolved a real
+  asymmetry the author spotted: on the **emit side** the published vacancy's mouth was already
+  a full `BoxInterface` (edge + offset + width) — *for bays only*, with notches and holes
+  null; the **derive side** had no mouth at all. Now the derive read is uniform and richer
+  than the emit-side publication. Still deferred, same vein: a hole's **ring composition**
+  (which parts wall it) for the CT8 rotation reads.
 - **The room's clearance guards beyond its wall (author, round 5; shipped).** The third layer:
   the terminal's sealed surface extends past the room itself — the room inflated by the
   **corridor minimum** (`BodyEdges.DefaultClearanceCells` = 2 cells = 10 blocks) is the guard
