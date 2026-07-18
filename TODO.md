@@ -59,16 +59,11 @@ the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publ
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
 
 *(The G88/G89 pre-work, in execution order — language, then binding, then the offer mechanism. The
-language step (G94: the shape vocabulary + rule kinds folded into `map-generation.md` §1.12–§1.14/§5)
-and the edge taxonomy + publish policy (G92) and interval facts (G93) have all shipped ahead of these;
-see `FEATURES.md`.)*
+language (G94: shape vocabulary + rule kinds → `map-generation.md` §1.12–§1.14/§5) and the binding
+(G95: `DockingGate.Role` scoped per `Designation`, the `interface`/`face` marks defined) have shipped,
+alongside the edge taxonomy + publish policy (G92) and interval facts (G93); see `FEATURES.md`. The
+offer mechanism (G96) remains, landing inside G88/G89.)*
 
-- [ ] **G95 — Designation marks drive the docking gate.** `Hub(body, edgeWidths)` and `Front(body, face)` stamp
-  **designation marks** onto the body (`map-generation.md` §5.3); `DockingGate.Role` becomes
-  (designation, slot/mark)-driven over the G93 interval facts — the approach table verbatim (`entry` docks,
-  `room` vetoes), the hub's marks its interface edges, the frontline's its face. No new rule content, only the
-  binding. **Order: after G94; the first code milestone inside G88/G89 — their two designations are its two
-  halves.**
 - [ ] **G96 — The offer as a type.** Yes, a **new type**: `EdgeOffer` = an edge **interval** (G93) + its `wN`
   width class + the **grouping** (joint — one consumer must span the group, FR6's flush dock — vs several — one
   consumer per interval, the twin/double frontline) + riding vetoes (the inter-tip recess stays CT9's hole).

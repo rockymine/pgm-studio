@@ -983,6 +983,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **Designation-scoped docking gate + the marks (G95)** — `Pgm/Shapes/Designation.cs` + `Compose/Boxes/DockingGate.cs`:
+  `DockingGate.Role` re-grounds from one global slot table to **`Role(Designation, slotOrMark)`** — the
+  binding G88/G89's hub/frontline designations stamp onto and the gate reads. New `Designation { Approach ·
+  Hub · Frontline }` (wool and spawn are both `Approach`) and `DesignationMarks { interface · face }` — the
+  siblings of the approach's `entry`/`room`. The **approach table is verbatim** (room → never-dock, entry →
+  docking edge, structural slots internal), so every emit/dock/mirror test is byte-identical; the `Hub`
+  (`interface` docks, no terminal → nothing vetoes) and `Frontline` (`face` docks) rows are defined and pinned,
+  ready for the G88/G89 emitters to stamp. No new rule content — the binding only. Pgm suite 656/656. Contract:
+  `docs/map-generation-constraint-taxonomy.md` §3 gap 2 / §7; `map-generation.md` §1.12, §5.3. (G95)
+
 - **Shape vocabulary + rule kinds folded into the canonical doc (G94)** — `docs/contracts/map-generation.md`:
   the two-layer shape model is now canonical there. §5 reframes **bodies-then-designations** (a terminal-free
   **body** — the `Compound` escalation Rectangle · Spine+K arms · Zig · Hook · Ring · Double-hole — finished by

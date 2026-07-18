@@ -49,13 +49,26 @@ public sealed record FamilyDock(int EntryDemand, EdgeSpan? Span)
 /// </summary>
 public static class DockingGate
 {
-    /// <summary>The dock role of a template slot (<see cref="ApproachSlots"/>). Only the bare <c>room</c> (the
-    /// wool) never-docks and only the bare <c>entry</c> is a docking edge; every corridor slot — runs, bars,
-    /// legs, and the entry/room-qualified runs and bars — is internal.</summary>
-    public static SlotDockRole Role(string slot) => slot switch
+    /// <summary>The dock role a slot or designation mark plays for its <paramref name="designation"/> — the
+    /// docking law as data, scoped per designation (<see cref="Designation"/>; map-generation.md §5.3). The
+    /// <see cref="Designation.Approach"/> table is the approach law verbatim: only the bare <c>room</c> (the
+    /// wool/spawn terminal) never-docks and only the bare <c>entry</c> is a docking edge; every corridor slot —
+    /// runs, bars, legs, and the entry/room-qualified runs and bars — is internal. The
+    /// <see cref="Designation.Hub"/> and <see cref="Designation.Frontline"/> carry <b>no terminal</b>, so
+    /// nothing never-docks: the hub's per-edge <see cref="DesignationMarks.Interface"/> and the frontline's
+    /// <see cref="DesignationMarks.Face"/> are the docking edges their neighbours land on, every structural slot
+    /// internal. The marks are stamped by the hub/frontline designations (G88/G89); this table is the binding
+    /// they consume.</summary>
+    public static SlotDockRole Role(Designation designation, string slotOrMark) => designation switch
     {
-        ApproachSlots.Room => SlotDockRole.NeverDock,
-        ApproachSlots.Entry => SlotDockRole.DockingEdge,
+        Designation.Approach => slotOrMark switch
+        {
+            ApproachSlots.Room => SlotDockRole.NeverDock,
+            ApproachSlots.Entry => SlotDockRole.DockingEdge,
+            _ => SlotDockRole.Internal,
+        },
+        Designation.Hub => slotOrMark == DesignationMarks.Interface ? SlotDockRole.DockingEdge : SlotDockRole.Internal,
+        Designation.Frontline => slotOrMark == DesignationMarks.Face ? SlotDockRole.DockingEdge : SlotDockRole.Internal,
         _ => SlotDockRole.Internal,
     };
 
@@ -64,8 +77,8 @@ public static class DockingGate
     /// then the edge must actually land on an entry, then satisfy the family's span demand.</summary>
     public static DockRejection? Check(BoxEdgeInterface edge, ShapeFamily family)
     {
-        if (edge.Slots.Any(s => Role(s) == SlotDockRole.NeverDock)) return DockRejection.SealsWool;
-        if (!edge.Slots.Any(s => Role(s) == SlotDockRole.DockingEdge)) return DockRejection.NotAnEntryEdge;
+        if (edge.Slots.Any(s => Role(Designation.Approach, s) == SlotDockRole.NeverDock)) return DockRejection.SealsWool;
+        if (!edge.Slots.Any(s => Role(Designation.Approach, s) == SlotDockRole.DockingEdge)) return DockRejection.NotAnEntryEdge;
         var span = FamilyDock.Of(family).Span;
         if (span is not null && edge.Span != span) return DockRejection.WrongSpan;
         return null;

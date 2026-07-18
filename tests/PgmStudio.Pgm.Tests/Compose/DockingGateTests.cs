@@ -116,12 +116,28 @@ public sealed class DockingGateTests
     }
 
     [Test]
-    public async Task Slot_roles_map_room_to_never_dock_entry_to_docking_rest_internal()
+    public async Task Approach_slot_roles_map_room_to_never_dock_entry_to_docking_rest_internal()
     {
-        await Assert.That(DockingGate.Role(ApproachSlots.Room)).IsEqualTo(SlotDockRole.NeverDock);
-        await Assert.That(DockingGate.Role(ApproachSlots.Entry)).IsEqualTo(SlotDockRole.DockingEdge);
+        await Assert.That(DockingGate.Role(Designation.Approach, ApproachSlots.Room)).IsEqualTo(SlotDockRole.NeverDock);
+        await Assert.That(DockingGate.Role(Designation.Approach, ApproachSlots.Entry)).IsEqualTo(SlotDockRole.DockingEdge);
         foreach (var s in new[] { ApproachSlots.Run, ApproachSlots.Bar, ApproachSlots.Leg,
                      ApproachSlots.EntryRun, ApproachSlots.RoomRun, ApproachSlots.EntryBar, ApproachSlots.RoomBar })
-            await Assert.That(DockingGate.Role(s)).IsEqualTo(SlotDockRole.Internal);
+            await Assert.That(DockingGate.Role(Designation.Approach, s)).IsEqualTo(SlotDockRole.Internal);
+    }
+
+    [Test]
+    public async Task Hub_and_frontline_designations_dock_their_mark_veto_nothing()
+    {
+        // no terminal on either → nothing never-docks; the mark is the docking edge, structural slots internal
+        await Assert.That(DockingGate.Role(Designation.Hub, DesignationMarks.Interface)).IsEqualTo(SlotDockRole.DockingEdge);
+        await Assert.That(DockingGate.Role(Designation.Frontline, DesignationMarks.Face)).IsEqualTo(SlotDockRole.DockingEdge);
+        foreach (var s in new[] { ApproachSlots.Run, ApproachSlots.Bar, ApproachSlots.Leg })
+        {
+            await Assert.That(DockingGate.Role(Designation.Hub, s)).IsEqualTo(SlotDockRole.Internal);
+            await Assert.That(DockingGate.Role(Designation.Frontline, s)).IsEqualTo(SlotDockRole.Internal);
+        }
+        // a mark belongs to its designation: the approach terminal is not a hub/frontline concern (no veto)
+        await Assert.That(DockingGate.Role(Designation.Hub, ApproachSlots.Room)).IsEqualTo(SlotDockRole.Internal);
+        await Assert.That(DockingGate.Role(Designation.Frontline, ApproachSlots.Room)).IsEqualTo(SlotDockRole.Internal);
     }
 }
