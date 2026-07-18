@@ -69,11 +69,10 @@ public static class TeamUnitAllocator
     /// richer family docked by the seat-and-shift (its narrow entry on a hub run, its wider body overhanging).
     /// <c>L</c> (a bent lane) and <c>U</c> (a staple with a bay) are the first two; deeper/wider families
     /// (<c>Z</c>/<c>H</c>/scythe/donut) and the clamp join as their docking lands.</summary>
-    private static readonly IReadOnlyList<WoolFill> WoolVariety =
-    [
-        new(ShapeFamily.I, RoomPlacement.SideTuck, false),
-        new(ShapeFamily.L, RoomPlacement.Inline, false),
-    ];
+    /// <summary>How often a wool takes a bent <c>L</c> (the seat-and-shift) rather than a straight <c>I</c> — the
+    /// shape variety, decoupled from the length rule so an <c>L</c> appears on any wool, not just the long ones.
+    /// When the L's overhang cannot fit a crowded hub the seat falls back to a compact inline <c>I</c>.</summary>
+    private const double BentWoolChance = 0.5;
 
     /// <summary>A wool family the <b>seat-and-shift</b> docks: a single-entry approach whose one narrow entry
     /// lands on a hub run while the body overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
@@ -174,16 +173,23 @@ public static class TeamUnitAllocator
             var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen));
             var budgetDepth = (int)Math.Round(woolShare / narrowAlong);
             var id = $"wool-{(char)('a' + i)}";
-            if (budgetDepth <= maxDepth)   // short → a compact back-room lane
+            WoolFill fill;
+            int along, depth;
+            if (rng.NextBool(BentWoolChance))                        // a bent lane (the seat-and-shift docks it)
             {
-                demands.Add(new Demand(side, BoxKind.Wool, Math.Clamp(budgetDepth, rd + 1, maxDepth), w, id,
-                    new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false)));
-                continue;
+                fill = new WoolFill(ShapeFamily.L, RoomPlacement.Inline, false);
+                (along, depth) = ShapeEmitter.MinBox(fill.Family, w, fill.Placement);
             }
-            // would run long → a side-tuck I or a bent L (the seat-and-shift docks the L's narrow entry, its body
-            // overhanging), each sized to its own footprint
-            var fill = rng.Pick(WoolVariety);
-            var (along, depth) = ShapeEmitter.MinBox(fill.Family, w, fill.Placement);
+            else if (budgetDepth <= maxDepth)                       // a short back-room lane
+            {
+                fill = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
+                (along, depth) = (w, Math.Clamp(budgetDepth, rd + 1, maxDepth));
+            }
+            else                                                    // would run long → tuck the room to the side
+            {
+                fill = new WoolFill(ShapeFamily.I, RoomPlacement.SideTuck, false);
+                (along, depth) = ShapeEmitter.MinBox(fill.Family, w, fill.Placement);
+            }
             demands.Add(new Demand(side, BoxKind.Wool, depth, along, id, fill));
         }
 
@@ -224,8 +230,9 @@ public static class TeamUnitAllocator
         var joints = new List<BoxJoint>();
         var occupied = new Dictionary<BoxEdge, List<(int Start, int Len)>>();   // per-edge docked intervals
 
-        foreach (var d in demands)
+        foreach (var demand in demands)
         {
+            var d = demand;
             var edge = SideEdge(frame, d.Side);
             var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
             if (!runsByEdge.TryGetValue(edge, out var runs)) return null;      // the form leaves this edge empty
@@ -235,12 +242,15 @@ public static class TeamUnitAllocator
             // docks its full along-edge.
             if (d.Wool is { } rich && Overhangs(rich.Family))
             {
-                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, w, rng) is not { } placed)
-                    return null;
-                var (box, iface) = placed;
-                boxes.Add(new Box(d.Id, d.Kind, box, d.Along * d.Depth, Wool: d.Wool));
-                joints.Add(HubJointFrom("hub", d.Id, iface, w));
-                continue;
+                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, w, rng) is { } placed)
+                {
+                    var (box, iface, flip) = placed;
+                    boxes.Add(new Box(d.Id, d.Kind, box, d.Along * d.Depth, Wool: rich with { Flip = flip }));
+                    joints.Add(HubJointFrom("hub", d.Id, iface, w));
+                    continue;
+                }
+                // the overhang couldn't fit this hub (crowded / narrow) → a compact inline I rather than fail
+                d = d with { Along = w, Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false) };
             }
 
             occupied.TryAdd(edge, []);
@@ -301,31 +311,34 @@ public static class TeamUnitAllocator
 
     /// <summary>Seat a <b>rich</b> wool by the seat-and-shift: probe the family's narrow <b>entry</b> on its mouth,
     /// place the box so that entry lands on a hub <paramref name="runs"/> interval while the wider body <b>overhangs</b>
-    /// the edge, and reject any placement whose box overlaps a seated box. Returns the plan-cell box + the actual
-    /// hub↔box interface (the abutment, which may be narrower than the box when it overhangs), or <c>null</c> when no
-    /// clear placement exists (a directed signal the caller resamples).</summary>
-    private static (int[] Box, BoxInterface Iface)? SeatOverhang(
+    /// the edge, and reject any placement whose box overlaps a seated box. Both handednesses are tried (the body
+    /// overhanging either way), so a crowded side does not sink the dock. Returns the plan-cell box, the actual
+    /// hub↔box interface (the abutment — narrower than the box when it overhangs), and the chosen flip; or
+    /// <c>null</c> when no clear placement exists (a directed signal the caller falls back on).</summary>
+    private static (int[] Box, BoxInterface Iface, bool Flip)? SeatOverhang(
         IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, WoolFill fill, BoxEdge edge,
         int[] hubRect, IReadOnlyList<Box> seated, int w, ComposeRng rng)
     {
         var mouth = Opposite(edge);
         var probeRect = edge is BoxEdge.Top or BoxEdge.Bottom ? new[] { 0, 0, d.Along, d.Depth } : new[] { 0, 0, d.Depth, d.Along };
-        if (BoxFiller.EntryOn(new Box("probe", BoxKind.Wool, probeRect, 0), mouth, w, fill.Family, fill.Flip, fill.Placement)
-                is not { } e)
-            return null;
-
-        // the box's along-start (seat) values for which the entry [seat+e0, +eLen] lands within a run
-        var candidates = new List<int>();
-        foreach (var (rs, rl) in runs)
-            for (var seat = rs - e.Start; seat <= rs + rl - e.Start - e.Len; seat++)
-                candidates.Add(seat);
-        var valid = candidates
-            .Select(seat => NeighbourRect(edge, seat, d.Depth, d.Along, hubRect))
-            .Where(box => BoxPartition.SharedEdge(hubRect, box) is not null && !seated.Any(b => Overlap(b.Rect, box)))
-            .ToList();
-        if (valid.Count == 0) return null;
-        var chosen = valid[rng.NextInt(0, valid.Count)];
-        return (chosen, BoxPartition.SharedEdge(hubRect, chosen)!);
+        var placements = new List<(int[] Box, bool Flip)>();
+        foreach (var flip in new[] { false, true })
+        {
+            if (BoxFiller.EntryOn(new Box("probe", BoxKind.Wool, probeRect, 0), mouth, w, fill.Family, flip, fill.Placement)
+                    is not { } e)
+                continue;
+            // the box's along-start (seat) values for which the entry [seat+e0, +eLen] lands within a run
+            foreach (var (rs, rl) in runs)
+                for (var seat = rs - e.Start; seat <= rs + rl - e.Start - e.Len; seat++)
+                {
+                    var box = NeighbourRect(edge, seat, d.Depth, d.Along, hubRect);
+                    if (BoxPartition.SharedEdge(hubRect, box) is not null && !seated.Any(b => Overlap(b.Rect, box)))
+                        placements.Add((box, flip));
+                }
+        }
+        if (placements.Count == 0) return null;
+        var (chosen, chosenFlip) = placements[rng.NextInt(0, placements.Count)];
+        return (chosen, BoxPartition.SharedEdge(hubRect, chosen)!, chosenFlip);
     }
 
     /// <summary>Two plan-cell rects overlap iff they intersect on both axes (abutment is not overlap).</summary>
