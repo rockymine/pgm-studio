@@ -197,9 +197,18 @@ Why this is the load-bearing piece:
   the corner beyond the short arm a *notch* part. The space-level class stays correct and
   untouched — this is a **layer on top** — but rules gain reach: "a piece may attach to the
   inset leg's end (through the mouth-bar part)" is now stateable, where the flat bay class
-  forbade the whole recess wholesale. (A future refinement: read the space's own *compound*
-  form — that bay literally classifies as `SpineArms(2)` once the body classifier handles all
-  four spine orientations; today it reads only the canonical top/left frames.)
+  forbade the whole recess wholesale. And the space carries its **own compound identity**
+  (`NegativeSpace.Form` — the body classifier's spine read now tries all four orientations):
+  the uneven branch's bay literally reads `SpineArms(2)` — the void is a body, fully.
+- **Parts nest — publish-eligibility has a covering order (author, round 5; partly open).**
+  Decomposition exposes *depth*: one part sits in **front** of others, at the mouth, covering
+  them. The degenerate E (equal long outer arms, shorter middle arm) wraps one bay whose three
+  parts are all bay-grade — the front part spans the mouth and **hides the two slots behind
+  it**. The front part is the space worth publishing; the covered ones are not (or only under
+  circumstances) — the same way the uneven F's mouth bar fronts its bay leg and notch leg.
+  Today the parts exist but carry no explicit order; the **covering/depth relation** (which
+  part fronts the mouth, which parts it hides) is the open fact the vacancy-publication rules
+  will bind to — publish-eligibility descends from the front part inward.
 - **A bay must know its mouth (deferred — not implemented).** The wall-count class says a bay
   opens *somewhere*; offer/consumer rules will need the mouth's **geometry** — its edge
   interval (position + width, the §1.5 interface primitive) and so its `wN` width class —
@@ -209,6 +218,18 @@ Why this is the load-bearing piece:
   `NegativeSpace` should grow the same fact — mouth interval + width — when the offer work
   starts consuming bays. Sibling fact, same vein: a hole's ring composition (which parts wall
   it) for the CT8 rotation reads.
+- **The room's clearance guards beyond its wall (author, round 5; shipped).** The third layer:
+  the terminal's sealed surface extends past the room itself — the room inflated by the
+  **corridor minimum** (`BodyEdges.DefaultClearanceCells` = 2 cells = 10 blocks) is the guard
+  region. Terrain boundary runs inside it read `Guarded` (splitting from the free remainder of
+  their line — the L's band-top edge is free up to 10 blocks before the room, guarded after),
+  and the adjacent negative space's parts split against the same rectangle, the covered piece
+  `Guarded` too. Rationale: the room and its immediate approach are **final as the emitter
+  designed them** — a piece docked or published inside the margin sits too close to the room
+  and changes the objective's difficulty out from under the design. Guard is a *rule-grade*
+  seal computed as a fact overlay (opt-in overload), stacking with ownership: the three axes on
+  every run are *faces × terminal × guarded*, and the offerable surface is
+  **open ∧ ¬terminal ∧ ¬guarded**.
 - **The terminal seals its own wall (author correction, round 3).** Boundary runs are classified
   on **two independent axes**: what they face *and* who owns them — a run on the terminal room's
   own wall carries `Terminal`, and runs **split where ownership changes**, so a room capping a

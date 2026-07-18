@@ -38,7 +38,7 @@ void Add(string group, string title, string sub, Func<(IReadOnlyList<(int[] Rect
 {
     var e = ShapeEmitter.Emit(fam, w, h, Cw);
     var pieces = e.Terrain.Select(p => (p.Rect, false)).Append((e.Room, true)).ToList();
-    return (pieces, BodyEdges.Classify(e));
+    return (pieces, BodyEdges.Classify(e, BodyEdges.DefaultClearanceCells));
 }
 
 (IReadOnlyList<(int[], bool)>, EdgeClassification) Body(ShapeBody b) =>
@@ -83,11 +83,14 @@ string CountChips(EdgeClassification read)
         var n = read.Spaces.Count(s => s.Kind == kind);
         if (n > 0) sb.Append($"<span class=\"cnt\" style=\"color:{kindColor[kind]}\">{n} {kind.ToString().ToLowerInvariant()}{(n > 1 ? (kind == NegativeSpaceKind.Notch ? "es" : "s") : "")}</span>");
     }
-    var free = read.Edges.Count(e => e.Faces == NegativeSpaceKind.Open && !e.Terminal);
+    var free = read.Edges.Count(e => e.Faces == NegativeSpaceKind.Open && !e.Terminal && !e.Guarded);
     sb.Append($"<span class=\"cnt\" style=\"color:{kindColor[NegativeSpaceKind.Open]}\">{free} free edge{(free == 1 ? "" : "s")}</span>");
     var sealedRuns = read.Edges.Count(e => e.Terminal);
     if (sealedRuns > 0)
         sb.Append($"<span class=\"cnt\" style=\"color:{TerminalCol}\">{sealedRuns} sealed</span>");
+    var guardedRuns = read.Edges.Count(e => e.Guarded && !e.Terminal);
+    if (guardedRuns > 0)
+        sb.Append($"<span class=\"cnt\" style=\"color:{TerminalCol}\">{guardedRuns} guarded</span>");
     return sb.ToString();
 }
 
@@ -125,11 +128,20 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
         {
             foreach (var p in s.Parts)
             {
-                var pc = kindColor[p.Kind];
+                var pc = p.Guarded ? TerminalCol : kindColor[p.Kind];
+                var label = p.Guarded ? "guard" : p.Kind.ToString().ToLowerInvariant();
                 svg.Append($"<rect x=\"{N(PX(p.Rect[0]))}\" y=\"{N(PY(p.Rect[1]))}\" width=\"{N(p.Rect[2] * px)}\" height=\"{N(p.Rect[3] * px)}\" " +
                            $"fill=\"{pc}\" fill-opacity=\"0.16\" stroke=\"{pc}\" stroke-opacity=\"0.55\" stroke-width=\"0.9\" stroke-dasharray=\"3 3\"/>");
                 double pcx = PX(p.Rect[0] + p.Rect[2] / 2.0), pcz = PY(p.Rect[1] + p.Rect[3] / 2.0);
-                svg.Append($"<text x=\"{N(pcx)}\" y=\"{N(pcz + 3.4)}\" font-size=\"9\" text-anchor=\"middle\" fill=\"{pc}\" fill-opacity=\"0.9\">{p.Kind.ToString().ToLowerInvariant()}</text>");
+                svg.Append($"<text x=\"{N(pcx)}\" y=\"{N(pcz + 3.4)}\" font-size=\"9\" text-anchor=\"middle\" fill=\"{pc}\" fill-opacity=\"0.9\">{label}</text>");
+            }
+            // the space's own compound identity — the void read as a body (a decomposed bay is a Π/U, not noise)
+            if (s.Form is { } form && form.Form != Compound.Rectangle)
+            {
+                var fx = (s.Cells.Min(c => c.X) + s.Cells.Max(c => c.X) + 1) / 2.0;
+                var fz = s.Cells.Min(c => c.Z);
+                var name = form.Form == Compound.SpineArms ? $"spine+{form.Arms}" : form.Form.ToString().ToLowerInvariant();
+                svg.Append($"<text x=\"{N(PX(fx))}\" y=\"{N(PY(fz) + 9)}\" font-size=\"8.5\" text-anchor=\"middle\" fill=\"#94a3b8\">≡ {name}</text>");
             }
             continue;
         }
@@ -150,12 +162,14 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
     }
 
     // the classified boundary — thick strokes in the class colour; a terminal-owned run overrides with the
-    // sealed colour whatever it faces (the never-attach wall), the tinted space still telling what is behind
+    // sealed colour whatever it faces (the never-attach wall), and a guarded terrain run (inside the room's
+    // clearance margin) draws the same colour dashed — sealed by rule, not by ownership
     foreach (var e in read.Edges)
     {
-        var col = e.Terminal ? TerminalCol : kindColor[e.Faces];
+        var col = e.Terminal || e.Guarded ? TerminalCol : kindColor[e.Faces];
+        var dash = !e.Terminal && e.Guarded ? " stroke-dasharray=\"5 3\"" : "";
         svg.Append($"<line x1=\"{N(PX(e.X1))}\" y1=\"{N(PY(e.Z1))}\" x2=\"{N(PX(e.X2))}\" y2=\"{N(PY(e.Z2))}\" " +
-                   $"stroke=\"{col}\" stroke-width=\"2.4\" stroke-linecap=\"square\"/>");
+                   $"stroke=\"{col}\" stroke-width=\"2.4\" stroke-linecap=\"square\"{dash}/>");
     }
     svg.Append("</svg>");
     return svg.ToString();
@@ -271,14 +285,19 @@ string Page(List<(string Group, string Title, string Sub, string Svg, string Cou
         it faces — <b>green edges are free surface</b>, the candidates for docks, hub offers, and the mid band —
         and <b>pink edges are the terminal room's own wall</b>: sealed, never attached (the docking gate's
         never-dock veto; the clamp's designated seat and the elevation-stage dock are the sanctioned
-        exceptions). A boundary line splits where ownership changes, so a room capping a lane leaves part of
-        the line free and part sealed. Tinted cells are the spaces themselves. The solid rectangle — today's
+        exceptions). <b>Dashed pink is the room's clearance margin</b> — terrain within the corridor minimum of
+        the room, sealed by rule so nothing docks too close and alters the approach the emitter designed; the
+        margin also splits the adjacent negative space into a guarded piece and free remainders. A boundary
+        line splits where ownership or guard changes, so a room capping a lane leaves part of the line free and
+        part sealed. Tinted cells are the spaces themselves; a decomposed space also names its own compound
+        form (<code>≡ spine+2</code> — the void is a body too). The solid rectangle — today's
         hub — shows the degenerate case: four free edges, which is the whole current attachment rule. Computed
         by <code>BodyEdges.Classify</code> from geometry alone; regenerate with
         <code>dotnet run tools/compose/edge-gallery.cs</code>.</p>
         <div class="legend">
           {Chip(NegativeSpaceKind.Open, "free edge — offerable surface")}
           <span class="chip"><span class="chip-sw" style="background:{TerminalCol}"></span>sealed — the room's wall, never attach</span>
+          <span class="chip"><span class="chip-sw" style="background:repeating-linear-gradient(90deg,{TerminalCol} 0 4px,transparent 4px 7px)"></span>guarded — room clearance (≥10 blocks), sealed by rule</span>
           {Chip(NegativeSpaceKind.Notch, "notch · 2 walls")}
           {Chip(NegativeSpaceKind.Bay, "bay · 3 walls")}
           {Chip(NegativeSpaceKind.Hole, "hole · enclosed")}

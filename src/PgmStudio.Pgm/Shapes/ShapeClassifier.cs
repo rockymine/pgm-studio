@@ -192,19 +192,27 @@ public static class ShapeClassifier
         return false;
     }
 
-    // the arm count of a spine-with-arms: strip the spine (the contiguous full-span band on the mouth side) and
-    // count the runs left hanging off it. Reads the canonical frame (a full-width band on top, arms below) and
-    // falls back to a full-height band on the left; each surviving component is one arm.
+    // the arm count of a spine-with-arms: strip the spine — a contiguous full-span band against one side of the
+    // bounding box — and count the runs left hanging off it. All four sides are tried and the BRANCHIEST read
+    // wins: a body can arrive in any orientation (a negative space's U carries its bar at the bottom), and a
+    // full-height end arm can masquerade as a side spine, whose strip merges the true arms into one run — the
+    // true spine's strip always separates every arm, so it yields the maximum. Emitted canonical bodies keep
+    // their top-spine read (it is the maximal one).
     private static int ArmCount(IReadOnlySet<(int, int)> cells, int mnx, int mnz, int mxx, int mxz)
     {
         bool RowFull(int z) { for (var x = mnx; x <= mxx; x++) if (!cells.Contains((x, z))) return false; return true; }
         bool ColFull(int x) { for (var z = mnz; z <= mxz; z++) if (!cells.Contains((x, z))) return false; return true; }
 
+        var best = 0;
         int r = mnz; while (r <= mxz && RowFull(r)) r++;                 // spine = top full-width rows
-        if (r > mnz) { var below = cells.Where(c => c.Item2 >= r).ToHashSet(); return Cells.Components(below); }
-        int c = mnx; while (c <= mxx && ColFull(c)) c++;                 // else spine = left full-height cols
-        if (c > mnx) { var right = cells.Where(p => p.Item1 >= c).ToHashSet(); return Cells.Components(right); }
-        return 0;
+        if (r > mnz) best = Math.Max(best, Cells.Components(cells.Where(c => c.Item2 >= r).ToHashSet()));
+        int c = mnx; while (c <= mxx && ColFull(c)) c++;                 // spine = left full-height cols
+        if (c > mnx) best = Math.Max(best, Cells.Components(cells.Where(p => p.Item1 >= c).ToHashSet()));
+        int rb = mxz; while (rb >= mnz && RowFull(rb)) rb--;             // spine = bottom full-width rows
+        if (rb < mxz) best = Math.Max(best, Cells.Components(cells.Where(p => p.Item2 <= rb).ToHashSet()));
+        int cr = mxx; while (cr >= mnx && ColFull(cr)) cr--;             // spine = right full-height cols
+        if (cr < mxx) best = Math.Max(best, Cells.Components(cells.Where(p => p.Item1 <= cr).ToHashSet()));
+        return best;
     }
 
     /// <summary>The lower-case string name of a <see cref="LaneRead"/> (<c>I</c>/<c>L</c>/<c>Z</c>/

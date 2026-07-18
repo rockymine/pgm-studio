@@ -147,6 +147,57 @@ public sealed class BodyEdgesTests
         await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, [15, 6, 6, 9]) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
     }
 
+    // the void is a body too: a decomposed space carries its own compound identity
+    [Test]
+    public async Task Spaces_read_their_own_compound_form()
+    {
+        var f = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 21, barThickness: 6, arms: [(0, 3, 18), (9, 6, 9)]));
+        var bay = f.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        await Assert.That(bay.Form).IsEqualTo(new CompoundRead(Compound.SpineArms, 2));
+
+        var ring = BodyEdges.Classify(BodyEmitter.Ring(Cw, 5 * Cw, 5 * Cw));
+        await Assert.That(ring.Spaces.Single().Form).IsEqualTo(new CompoundRead(Compound.Rectangle));
+    }
+
+    // the nesting case: a degenerate E (equal long outer arms, a shorter middle arm) wraps one bay whose
+    // decomposition is three bay-grade parts — the mouth-front part covering the two slots behind it
+    [Test]
+    public async Task Degenerate_E_bay_decomposes_into_a_front_bay_covering_two_slots()
+    {
+        var e = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 15, barThickness: 3, arms: [(0, 3, 12), (6, 3, 6), (12, 3, 12)]));
+        var bay = e.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        await Assert.That(bay.Parts.Count).IsEqualTo(3);
+        await Assert.That(bay.Parts.All(p => p.Kind == NegativeSpaceKind.Bay)).IsTrue();
+        // the front part spans the mouth, covering both slots behind the short middle arm
+        await Assert.That(bay.Parts.Any(p => p.Rect.SequenceEqual(new[] { 3, 9, 9, 6 }))).IsTrue();
+        await Assert.That(bay.Form).IsEqualTo(new CompoundRead(Compound.SpineArms, 2));
+    }
+
+    // the clearance layer: the room inflated by the corridor minimum guards terrain edges near the room
+    // (splitting them from the free remainder of their line) and splits the adjacent space's parts
+    [Test]
+    public async Task Room_clearance_guards_nearby_edges_and_splits_the_space()
+    {
+        var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw), BodyEdges.DefaultClearanceCells);
+
+        // the band-top line: free terrain up to the margin, then a guarded interval before the room
+        await Assert.That(l.Edges.Contains(new ClassifiedEdge(3, 15, 11, 15, NegativeSpaceKind.Notch, 8))).IsTrue();
+        await Assert.That(l.Edges.Contains(new ClassifiedEdge(11, 15, 13, 15, NegativeSpaceKind.Notch, 2, Guarded: true))).IsTrue();
+        // the bottom line: free, guarded, then the sealed room wall
+        await Assert.That(l.Edges.Contains(new ClassifiedEdge(0, 18, 11, 18, NegativeSpaceKind.Open, 11))).IsTrue();
+        await Assert.That(l.Edges.Contains(new ClassifiedEdge(11, 18, 13, 18, NegativeSpaceKind.Open, 2, Guarded: true))).IsTrue();
+
+        // the notch splits against the margin: a guarded corner at the room, free remainders elsewhere
+        var notch = l.Spaces.Single(s => s.Kind == NegativeSpaceKind.Notch);
+        await Assert.That(notch.Parts.Any(p => p.Guarded && p.Rect.SequenceEqual(new[] { 11, 13, 4, 2 }))).IsTrue();
+        await Assert.That(notch.Parts.Count(p => !p.Guarded)).IsEqualTo(2);
+
+        // without the clearance overload nothing is guarded
+        var plain = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw));
+        await Assert.That(plain.Edges.Any(e => e.Guarded)).IsFalse();
+        await Assert.That(plain.Spaces.SelectMany(s => s.Parts).Any(p => p.Guarded)).IsFalse();
+    }
+
     [Test]
     public async Task Rectangular_spaces_are_their_own_single_part()
     {
