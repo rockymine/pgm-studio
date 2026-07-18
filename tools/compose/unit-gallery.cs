@@ -79,7 +79,7 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces)
     int minX = pieces.Min(p => p.Rect[0]), minZ = pieces.Min(p => p.Rect[1]);
     int maxX = pieces.Max(p => p.Rect[0] + p.Rect[2]), maxZ = pieces.Max(p => p.Rect[1] + p.Rect[3]);
     int w = maxX - minX, h = maxZ - minZ;
-    const int scale = 7, pad = 5;
+    const int scale = 32, pad = 12;
     int vw = w * scale + 2 * pad, vh = h * scale + 2 * pad;
 
     var svg = new StringBuilder($"<svg viewBox='0 0 {vw} {vh}' width='{vw}' height='{vh}'>");
@@ -89,8 +89,8 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces)
         int pw = p.Rect[2] * scale, ph = p.Rect[3] * scale;
         var col = Color(p.Box?.Kind ?? BoxKind.Mid);
         var room = p.Role != PlanRoles.Piece;                 // wool / spawn rooms drawn solid
-        svg.Append($"<rect x='{x}' y='{y}' width='{pw}' height='{ph}' fill='{col}' "
-            + $"fill-opacity='{(room ? "0.95" : "0.45")}' stroke='{col}' stroke-width='1'/>");
+        svg.Append($"<rect x='{x}' y='{y}' width='{pw}' height='{ph}' rx='2' fill='{col}' "
+            + $"fill-opacity='{(room ? "0.95" : "0.4")}' stroke='{col}' stroke-width='1.5'/>");
     }
     svg.Append("</svg>");
     return $"<div class=card><div class=title>seed {seed}</div>{svg}</div>";
