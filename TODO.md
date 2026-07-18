@@ -119,14 +119,16 @@ in `BACKLOG.md`.)*
       **L hub with a frontline** is worth enabling: today a branch hub with a frontline falls back to a rectangle
       (front used ⇒ four sides), but a **wide Bar frontline overlapping the L's short front leg** is a good layout —
       it wants the frontline to dock a branch hub's front foot rather than forcing the fallback.
-    - **Wool & spawn family variety** — the **seat-and-shift overhang is in** (`BoxFiller.EntryOn` +
-      `TeamUnitAllocator.SeatOverhang` + `Box.Wool`): a single-entry rich wool docks its narrow entry on a hub run
-      and its wider body overhangs into free space, box-overlap-checked; the interface is the actual abutment. `L`
-      (a bent lane) is the first family through it (alongside inline / side-tuck `I`). **Remaining**: the deeper
-      single-entry families (`Z`) and the **lateral-mouth** ones (`scythe`/`donut`, whose entry sits on a side edge
-      the probe must orient onto), the **spawn `L`** (same overhang), and the **dual-entry staple/branch**
-      (`U`/`H`) which need *both* entries on the host — blocked by the small hub edge unless the wool lane drops to
-      `w2` (the entry/lane-width split) or the hub grows. The clamp is the separate dual-host slice (below).
+    - **Wool & spawn family variety** — **six wool shapes ship**: inline-`I`, side-tuck-`I`, `L`, `donut`, and the
+      staple/branch `U`/`H`. The **seat-and-shift overhang** (`BoxFiller.EntryOn` + `TeamUnitAllocator.SeatOverhang`
+      + `Box.Wool`) docks a single-entry rich wool's narrow entry on a hub run with its body overhanging (`L`,
+      `donut`), box-overlap-checked, both handednesses tried, falling back to a compact inline `I`. `WoolBoxEmitter.MouthBox`
+      resolves each family's mouth facing in one place (the donut's lateral mouth transposes). The **w2 wool-lane
+      split** (`WoolLaneCells`) sizes/offers wools at `w2` regardless of the map's `w`, shrinking a `U`'s mouth to
+      fit — so the **dual-entry** `U`/`H` dock their full mouth on a cap-6 hub (land ≥ 3000; big teams), demoting to
+      `L` where the edge is narrower. **Remaining**: the deeper `Z`; the **`scythe`** (gated from the production
+      menu — its bay seals a flush dock, WL8 — so it needs the G80 shape-relative docking, not just sizing); and the
+      **spawn `L`** (the same overhang, on the spawn box). The clamp is the separate dual-host slice (below).
     - **Wool clamp — the dual-host corner-wrap.** The clamp is a wool room clamped on two distinct faces
       (shape-vocabulary §7): opposite → centered `I+I`, adjacent → corner `L+I`. `DockingGate` already demands its
       two entries and rejects a single mouth, but nothing **places the two hosts** — the corner-wrap that docks the
