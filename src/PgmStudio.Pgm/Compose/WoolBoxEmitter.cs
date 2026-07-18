@@ -29,6 +29,18 @@ public static class WoolBoxEmitter
     /// plateau that clears the export stamp, matching <see cref="SpawnWoolRooms"/>.</summary>
     public const int RoomDepthCells = ShapeEmitter.RoomDepthCells;
 
+    /// <summary>The minimum box a wool <paramref name="family"/> needs to dock a hub edge, as
+    /// <c>(along-the-edge, outward-depth)</c> cells — its <see cref="ShapeEmitter.MinBox"/> mapped from the
+    /// family's own emit frame into the dock frame. A <b>lateral-mouth</b> family (the donut/clamp open to the
+    /// side, so their mouth runs along the box's height and their depth along its width) <b>transposes</b>; a
+    /// top-mouth family (I/L/Z/U/H) maps straight through. This is the one place the per-family mouth facing is
+    /// resolved, so the allocator sizes every family the same way.</summary>
+    public static (int Along, int Depth) MouthBox(ShapeFamily family, int cw, RoomPlacement roomPlacement = RoomPlacement.Inline)
+    {
+        var (w, h) = ShapeEmitter.MinBox(family, cw, roomPlacement);
+        return ShapeEmitter.MouthEdge(family) is BoxEdge.Left or BoxEdge.Right ? (h, w) : (w, h);
+    }
+
     /// <summary>Emit <paramref name="family"/> into <paramref name="box"/> at the given
     /// <paramref name="corridorWidth"/> (cells), in the canonical frame (mouth per the family, top for
     /// lanes). Knobs pass through to <see cref="ShapeEmitter.Emit"/>; see there for their meaning.</summary>

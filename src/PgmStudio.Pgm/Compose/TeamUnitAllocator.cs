@@ -69,6 +69,11 @@ public static class TeamUnitAllocator
     /// the L's overhang cannot fit a crowded hub the seat falls back to a compact inline <c>I</c>.</summary>
     private const double BentWoolChance = 0.4;
 
+    /// <summary>Of the rich wools, how often a <b>donut</b> (a ring the wool sits in, reached around both ways)
+    /// rather than a bent <c>L</c> — kept low because the ring is a big, deep footprint that mostly wants a
+    /// less-crowded hub (else the overhang falls back to a compact inline <c>I</c>).</summary>
+    private const double DonutChance = 0.25;
+
     /// <summary>How often a non-<c>L</c> wool tucks its room to the <b>side</b> (a compact side-room) rather than
     /// a plain inline back-room lane — for the three shapes to read in a balanced mix. A wool that would run long
     /// side-tucks regardless (the length rule).</summary>
@@ -78,7 +83,7 @@ public static class TeamUnitAllocator
     /// lands on a hub run while the body overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
     /// one — both its entries must land on the host, so it docks its full mouth (the plain seat path), never an
     /// overhang (an overhang would strand the second entry off the hub — a pinch).</summary>
-    private static bool Overhangs(ShapeFamily family) => family is ShapeFamily.L;
+    private static bool Overhangs(ShapeFamily family) => family is ShapeFamily.L or ShapeFamily.Donut;
 
     /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
     /// geometry layer over <see cref="SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
@@ -175,15 +180,16 @@ public static class TeamUnitAllocator
             var id = $"wool-{(char)('a' + i)}";
             WoolFill fill;
             int along, depth;
-            if (rng.NextBool(BentWoolChance))                        // a bent lane (the seat-and-shift docks it)
+            if (rng.NextBool(BentWoolChance))                        // a rich shape (the seat-and-shift docks it)
             {
-                fill = new WoolFill(ShapeFamily.L, RoomPlacement.Inline, false);
-                (along, depth) = ShapeEmitter.MinBox(fill.Family, w, fill.Placement);
+                var family = rng.NextBool(DonutChance) ? ShapeFamily.Donut : ShapeFamily.L;   // mostly a bent lane
+                fill = new WoolFill(family, RoomPlacement.Inline, false);
+                (along, depth) = WoolBoxEmitter.MouthBox(family, w, fill.Placement);
             }
             else if (budgetDepth > maxDepth || rng.NextBool(SideRoomChance))   // would run long, or a share → side-tuck
             {
                 fill = new WoolFill(ShapeFamily.I, RoomPlacement.SideTuck, false);
-                (along, depth) = ShapeEmitter.MinBox(fill.Family, w, fill.Placement);
+                (along, depth) = WoolBoxEmitter.MouthBox(fill.Family, w, fill.Placement);
             }
             else                                                    // a short back-room lane
             {
