@@ -187,6 +187,28 @@ Why this is the load-bearing piece:
   it** — the same two bars without the room wrap a mere notch (also pinned by a test). Negative
   space is read on the *finished* mass, so a designation can change a space's class — one more
   reason the offer lives in the designation layer.
+- **A space decomposes into parts — negative space is a body too (author, round 4; shipped).**
+  A non-rectangular space is itself a compound of rectangles: the uneven branch (a long and a
+  short arm) wraps one **six-edge bay that is a U** — and Tetris works in the void exactly as in
+  terrain (slide that U into the F and a solid rectangle remains). `BodyEdges` therefore
+  **slab-decomposes** every space into rectangles (`NegativeSpace.Parts`), each classed by its
+  **own body walls** — siblings count as open: the U's bar spanning the mouth reads
+  *notch-grade* and borders the short arm's tip, the slot between the arms stays a *bay* part,
+  the corner beyond the short arm a *notch* part. The space-level class stays correct and
+  untouched — this is a **layer on top** — but rules gain reach: "a piece may attach to the
+  inset leg's end (through the mouth-bar part)" is now stateable, where the flat bay class
+  forbade the whole recess wholesale. (A future refinement: read the space's own *compound*
+  form — that bay literally classifies as `SpineArms(2)` once the body classifier handles all
+  four spine orientations; today it reads only the canonical top/left frames.)
+- **A bay must know its mouth (deferred — not implemented).** The wall-count class says a bay
+  opens *somewhere*; offer/consumer rules will need the mouth's **geometry** — its edge
+  interval (position + width, the §1.5 interface primitive) and so its `wN` width class —
+  because "what can dock *through* the mouth" is the same width grammar as every other
+  interface (a `w2` mouth is a chokepoint lane, a `w6` mouth multi-access). The emit-time
+  `ShapeVacancy` already carries a `Mouth` box-edge for published bays; the derive-side
+  `NegativeSpace` should grow the same fact — mouth interval + width — when the offer work
+  starts consuming bays. Sibling fact, same vein: a hole's ring composition (which parts wall
+  it) for the CT8 rotation reads.
 - **The terminal seals its own wall (author correction, round 3).** Boundary runs are classified
   on **two independent axes**: what they face *and* who owns them — a run on the terminal room's
   own wall carries `Terminal`, and runs **split where ownership changes**, so a room capping a

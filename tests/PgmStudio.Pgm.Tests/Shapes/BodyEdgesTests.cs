@@ -127,6 +127,40 @@ public sealed class BodyEdgesTests
         await Assert.That(body.Edges.Any(e => e.Terminal)).IsFalse();
     }
 
+    // the parts layer: a non-rectangular space slab-decomposes into rectangles, each classed by its OWN body
+    // walls. The uneven branch (a long and a short arm) wraps one six-edge bay that is itself a U — the bar
+    // spanning the mouth under the short arm reads notch-grade (the arm's tip is reachable through it), the
+    // slot between the arms stays a bay, the corner beyond the short arm a notch
+    [Test]
+    public async Task Uneven_branch_bay_decomposes_into_mouth_bar_plus_bay_and_notch_legs()
+    {
+        var f = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 21, barThickness: 6, arms: [(0, 3, 18), (9, 6, 9)]));
+        var bay = f.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        await Assert.That(bay.Parts.Count).IsEqualTo(3);
+
+        static bool RectEq(int[] a, int[] b) => a.SequenceEqual(b);
+        // the mouth bar: full width under the short arm, bordering its tip — notch-grade, not bay
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, [3, 15, 18, 9]) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
+        // the slot between the arms — a true bay part
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, [3, 6, 6, 9]) && p.Kind == NegativeSpaceKind.Bay)).IsTrue();
+        // the corner beyond the short arm — a notch part
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, [15, 6, 6, 9]) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
+    }
+
+    [Test]
+    public async Task Rectangular_spaces_are_their_own_single_part()
+    {
+        var u = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw));
+        var bay = u.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        await Assert.That(bay.Parts.Count).IsEqualTo(1);
+        await Assert.That(bay.Parts[0].Kind).IsEqualTo(NegativeSpaceKind.Bay);
+
+        var ring = BodyEdges.Classify(BodyEmitter.Ring(Cw, 5 * Cw, 5 * Cw));
+        var hole = ring.Spaces.Single(s => s.Kind == NegativeSpaceKind.Hole);
+        await Assert.That(hole.Parts.Count).IsEqualTo(1);
+        await Assert.That(hole.Parts[0].Kind).IsEqualTo(NegativeSpaceKind.Hole);
+    }
+
     // every filled↔empty seam is covered by exactly one classified run: the run lengths sum to the perimeter
     [Test]
     [Arguments(ShapeFamily.L, 15, 18)]

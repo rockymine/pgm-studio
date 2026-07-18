@@ -60,7 +60,7 @@ Add("compound", "T · 1 arm", "one middle arm: two notches", () => Body(BodyEmit
 Add("compound", "Π · 2 arms (ends)", "arms at the ends: one bay between the legs", () => Body(BodyEmitter.SpineArms(Cw, [0, 4 * Cw], 5 * Cw)));
 Add("compound", "F · 2 arms (end + mid)", "same K, different placement: a bay AND a notch — placement decides the negative spaces", () => Body(BodyEmitter.SpineArms(Cw, [0, 2 * Cw], 5 * Cw)));
 Add("compound", "E · 3 arms", "three arms: two bays", () => Body(BodyEmitter.SpineArms(Cw, [0, 2 * Cw, 4 * Cw], 5 * Cw)));
-Add("compound", "F · uneven atoms", "atom sizes are free; the taxonomy is unchanged", () => Body(BodyEmitter.SpineArms(spineLen: 7 * Cw, barThickness: 2 * Cw, arms: [(0, Cw, 6 * Cw), (3 * Cw, 2 * Cw, 3 * Cw)])));
+Add("compound", "F · uneven atoms", "the six-edge bay is itself a U: its slab parts split into the mouth bar (notch-grade — the short arm's tip is reachable through it), a bay leg and a notch leg", () => Body(BodyEmitter.SpineArms(spineLen: 7 * Cw, barThickness: 2 * Cw, arms: [(0, Cw, 6 * Cw), (3 * Cw, 2 * Cw, 3 * Cw)])));
 Add("compound", "Ring", "one enclosed hole, all outer edges free", () => Body(BodyEmitter.Ring(Cw, 5 * Cw, 5 * Cw)));
 Add("compound", "Double-hole · equal", "a ring + a full-height U: two holes", () => Body(BodyEmitter.DoubleHole(Cw, 4 * Cw, 5 * Cw, uW: 3 * Cw, uH: 5 * Cw, uz: 0)));
 Add("compound", "Double-hole · variant", "a shorter U slid down the edge: two holes + the notches the slide opens", () => Body(BodyEmitter.DoubleHole(Cw, 4 * Cw, 7 * Cw, uW: 2 * Cw, uH: 3 * Cw, uz: 2 * Cw)));
@@ -116,10 +116,23 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
         svg.Append($"<line x1=\"{N(PX(minX))}\" y1=\"{N(PY(gz))}\" x2=\"{N(PX(maxX))}\" y2=\"{N(PY(gz))}\" stroke=\"{GridCol}\" stroke-opacity=\"0.10\" stroke-width=\"0.6\"/>");
     svg.Append("</g>");
 
-    // negative-space cells, tinted by class (unit cells — spaces are not rectangles in general)
+    // negative spaces: a rectangular space tints as one region; a decomposed space tints PER PART, each in
+    // its own class colour with a dashed outline — the layer that lets a rule reach an inset feature
     foreach (var s in read.Spaces)
     {
         if (s.Kind == NegativeSpaceKind.Open) continue;
+        if (s.Parts.Count > 1)
+        {
+            foreach (var p in s.Parts)
+            {
+                var pc = kindColor[p.Kind];
+                svg.Append($"<rect x=\"{N(PX(p.Rect[0]))}\" y=\"{N(PY(p.Rect[1]))}\" width=\"{N(p.Rect[2] * px)}\" height=\"{N(p.Rect[3] * px)}\" " +
+                           $"fill=\"{pc}\" fill-opacity=\"0.16\" stroke=\"{pc}\" stroke-opacity=\"0.55\" stroke-width=\"0.9\" stroke-dasharray=\"3 3\"/>");
+                double pcx = PX(p.Rect[0] + p.Rect[2] / 2.0), pcz = PY(p.Rect[1] + p.Rect[3] / 2.0);
+                svg.Append($"<text x=\"{N(pcx)}\" y=\"{N(pcz + 3.4)}\" font-size=\"9\" text-anchor=\"middle\" fill=\"{pc}\" fill-opacity=\"0.9\">{p.Kind.ToString().ToLowerInvariant()}</text>");
+            }
+            continue;
+        }
         var col = kindColor[s.Kind];
         foreach (var (cx, cz) in s.Cells)
             svg.Append($"<rect x=\"{N(PX(cx))}\" y=\"{N(PY(cz))}\" width=\"{N(px)}\" height=\"{N(px)}\" fill=\"{col}\" fill-opacity=\"0.16\"/>");

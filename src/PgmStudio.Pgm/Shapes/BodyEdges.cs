@@ -10,10 +10,22 @@ namespace PgmStudio.Pgm.Shapes;
 /// 2 → 3 → 4.</summary>
 public enum NegativeSpaceKind { Open, Notch, Bay, Hole }
 
-/// <summary>One connected negative space read off a body: its <see cref="Kind"/>, its cells, and the number of
+/// <summary>One rectangle of a negative space's slab decomposition, classed by its <b>own</b> body walls —
+/// counting only real terrain, never sibling parts. The layer on top of the space class: a non-rectangular
+/// space is itself a compound of rectangles (the uneven branch's six-edge bay is a U — a bar at the mouth plus
+/// two legs), and classing each part separately is what lets a rule reach an inset feature — the bar part at
+/// the mouth borders the shorter arm's end at notch grade, so "attach to the inset leg's tip" becomes
+/// stateable while the space-level class stays correct.</summary>
+public sealed record NegativeSpacePart(int[] Rect, NegativeSpaceKind Kind);
+
+/// <summary>One connected negative space read off a body: its <see cref="Kind"/>, its cells, the number of
 /// distinct axis directions the body walls it from (<see cref="WallDirections"/> — the wall count behind the
-/// kind; a hole is enclosed outright, whatever the count says). Cells are box-local grid cells.</summary>
-public sealed record NegativeSpace(NegativeSpaceKind Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections);
+/// kind; a hole is enclosed outright, whatever the count says), and its <see cref="Parts"/> — the slab
+/// decomposition into rectangles, each classed by its own body walls (a rectangular space is its own single
+/// part). Cells are box-local grid cells.</summary>
+public sealed record NegativeSpace(
+    NegativeSpaceKind Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections,
+    IReadOnlyList<NegativeSpacePart> Parts);
 
 /// <summary>A maximal straight run of the body's boundary, classified along two independent axes: what it
 /// <see cref="Faces"/> (<see cref="NegativeSpaceKind.Open"/> for a free outward edge, else the class of the
@@ -120,14 +132,14 @@ public static class BodyEdges
                     }
                 }
                 var enclosed = comp.All(c => c.Item1 > minX && c.Item1 < maxX && c.Item2 > minZ && c.Item2 < maxZ);
-                var walls = 0;
+                var walled = new List<(int Dx, int Dz)>();
                 foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
-                    if (comp.Any(c => cells.Contains((c.Item1 + dx, c.Item2 + dz)))) walls++;
+                    if (comp.Any(c => cells.Contains((c.Item1 + dx, c.Item2 + dz)))) walled.Add((dx, dz));
                 var kind = enclosed ? NegativeSpaceKind.Hole
-                    : walls >= 3 ? NegativeSpaceKind.Bay
-                    : walls == 2 ? NegativeSpaceKind.Notch
+                    : walled.Count >= 3 ? NegativeSpaceKind.Bay
+                    : walled.Count == 2 ? NegativeSpaceKind.Notch
                     : NegativeSpaceKind.Open;
-                spaces.Add(new NegativeSpace(kind, comp, walls));
+                spaces.Add(new NegativeSpace(kind, comp, walled.Count, Decompose(comp, cells, walled)));
             }
 
         // boundary edges — every filled↔empty cell seam, classed by the space behind it (outside the bounding
@@ -174,5 +186,72 @@ public static class BodyEdges
             lo = spans[i]; hi = spans[i] + 1;
         }
         yield return (lo, hi);
+    }
+
+    // slab-decompose a space into rectangles and class each by its own body walls. Both slab orientations are
+    // tried and the coarser one wins; on a tie the cut runs perpendicular to a bay's mouth, so the part at the
+    // mouth spans it (the U-bar of the uneven branch's bay) and the legs behind it separate.
+    private static IReadOnlyList<NegativeSpacePart> Decompose(
+        HashSet<(int, int)> comp, IReadOnlySet<(int, int)> body, List<(int Dx, int Dz)> walled)
+    {
+        var horizontal = Slabs(comp, horizontal: true);
+        var vertical = Slabs(comp, horizontal: false);
+        List<int[]> rects;
+        if (horizontal.Count != vertical.Count) rects = horizontal.Count < vertical.Count ? horizontal : vertical;
+        else
+        {
+            var openVertical = !walled.Contains((0, 1)) || !walled.Contains((0, -1));   // mouth up/down
+            rects = openVertical ? horizontal : vertical;
+        }
+        return rects.Select(r => new NegativeSpacePart(r, PartKind(r, body))).ToList();
+    }
+
+    // group consecutive lines (rows for horizontal slabs, columns for vertical) with identical interval
+    // structure; every interval × line-band is one rectangle
+    private static List<int[]> Slabs(HashSet<(int, int)> comp, bool horizontal)
+    {
+        int Line((int, int) c) => horizontal ? c.Item2 : c.Item1;
+        int Cross((int, int) c) => horizontal ? c.Item1 : c.Item2;
+
+        var rects = new List<int[]>();
+        List<(int Lo, int Hi)>? band = null;
+        int bandStart = 0, prevLine = 0;
+        void Flush()
+        {
+            if (band is null) return;
+            foreach (var (lo, hi) in band)
+                rects.Add(horizontal
+                    ? [lo, bandStart, hi - lo, prevLine - bandStart + 1]
+                    : [bandStart, lo, prevLine - bandStart + 1, hi - lo]);
+        }
+        foreach (var g in comp.GroupBy(Line).OrderBy(g => g.Key))
+        {
+            var intervals = Runs(g.Select(Cross).ToList()).ToList();
+            if (band is null || g.Key != prevLine + 1 || !intervals.SequenceEqual(band))
+            {
+                Flush();
+                band = intervals;
+                bandStart = g.Key;
+            }
+            prevLine = g.Key;
+        }
+        Flush();
+        return rects;
+    }
+
+    // a part's own class: walls against real body terrain only — sibling parts count as open, which is the
+    // whole point (the bar part at a bay's mouth reads notch-grade even though the legs sit beside it)
+    private static NegativeSpaceKind PartKind(int[] r, IReadOnlySet<(int, int)> body)
+    {
+        int x0 = r[0], z0 = r[1], x1 = r[0] + r[2] - 1, z1 = r[1] + r[3] - 1;
+        var walls = 0;
+        if (Enumerable.Range(z0, r[3]).Any(z => body.Contains((x1 + 1, z)))) walls++;
+        if (Enumerable.Range(z0, r[3]).Any(z => body.Contains((x0 - 1, z)))) walls++;
+        if (Enumerable.Range(x0, r[2]).Any(x => body.Contains((x, z1 + 1)))) walls++;
+        if (Enumerable.Range(x0, r[2]).Any(x => body.Contains((x, z0 - 1)))) walls++;
+        return walls >= 4 ? NegativeSpaceKind.Hole
+            : walls == 3 ? NegativeSpaceKind.Bay
+            : walls == 2 ? NegativeSpaceKind.Notch
+            : NegativeSpaceKind.Open;
     }
 }
