@@ -120,6 +120,8 @@ public class TeamUnitFillerTests
         await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Frontline)).IsTrue();
         await Assert.That(filled.Unit.Wools.Count).IsEqualTo(0);
         await Assert.That(filled.FrontlineFace.Count).IsGreaterThan(0);
-        await Assert.That(filled.FrontlineFace.All(o => o.Edge == BoxEdge.Bottom)).IsTrue();   // the face (canonical frame)
+        // it docks the hub's Top edge, so its spine orients to its Bottom mouth and the face is the opposite Top
+        // edge — toward the axis, away from the hub
+        await Assert.That(filled.FrontlineFace.All(o => o.Edge == BoxEdge.Top)).IsTrue();
     }
 }

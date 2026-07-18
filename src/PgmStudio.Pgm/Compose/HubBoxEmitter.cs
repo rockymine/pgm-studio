@@ -55,7 +55,7 @@ public static class HubBoxEmitter
         int boxW = box.Rect[2], boxH = box.Rect[3];
         var body = BuildBody(form, boxW, boxH, cw);
         if (body is null) return null;                       // too small for the form at this cw — a directed signal
-        if (flipV) body = FlipVertically(body, boxH);
+        if (flipV) body = BodyOrient.To(body, BoxEdge.Bottom, boxW, boxH);   // feet toward the box top, spine to bottom
 
         var boxRef = new BoxRef(box.Id, BoxKind.Hub);
         var pieces = new List<GrownPiece>(body.Pieces.Count);
@@ -66,18 +66,6 @@ public static class HubBoxEmitter
 
         return new EmittedHub(pieces, Offers(box, body, boxW, boxH, edgeWidths), form);
     }
-
-    // reflect a body across the box's horizontal midline (box-local z): a piece/vacancy at z spanning h maps to
-    // boxH − z − h, and a Top/Bottom mouth swaps. The forms build spine-on-top with arms hanging down, so this
-    // is how the hub turns its open feet toward one edge and its solid spine toward the opposite one.
-    private static ShapeBody FlipVertically(ShapeBody body, int boxH) => new(
-        body.Pieces.Select(p =>
-            (new[] { p.Rect[0], boxH - p.Rect[1] - p.Rect[3], p.Rect[2], p.Rect[3] }, p.Slot)).ToList(),
-        body.Vacancies.Select(v => v with
-        {
-            Rect = [v.Rect[0], boxH - v.Rect[1] - v.Rect[3], v.Rect[2], v.Rect[3]],
-            Mouth = v.Mouth switch { BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top, var m => m },
-        }).ToList());
 
     // build the body of `form` sized to fill the boxW×boxH box at `cw`; null when the box is too small for it
     // (the BodyEmitter's own dim guards, surfaced as a directed signal rather than an exception).

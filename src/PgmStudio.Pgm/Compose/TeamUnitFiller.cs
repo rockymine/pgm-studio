@@ -110,14 +110,15 @@ public static class TeamUnitFiller
                     break;
 
                 case BoxKind.Frontline:
-                    // a join, not a placement: the hub's front edge sources the frontline's spine width, and the
-                    // frontline offers its face to the mid (mid = f(frontline)). No room, no marker.
+                    // a join, not a placement: the frontline's spine docks the hub with the mouth facing it (at
+                    // the hub's front-edge offer width), and its face — opposite the spine, toward the axis —
+                    // offers to the mid (mid = f(frontline)). No room, no marker.
                     var cwF = ConsumedCw(hub, hubEdge);
                     var fitF = FillProfiles.FrontlineForms
-                        .Where(f => FrontlineBoxEmitter.Fill(neighbour, f, cwF, OfferGrouping.Several) is not null).ToList();
+                        .Where(f => FrontlineBoxEmitter.Fill(neighbour, f, cwF, OfferGrouping.Several, mouth) is not null).ToList();
                     if (fitF.Count == 0) return null;
                     var grouping = rng.NextBool(0.5) ? OfferGrouping.Joint : OfferGrouping.Several;
-                    var ef = FrontlineBoxEmitter.Fill(neighbour, fitF[rng.NextInt(0, fitF.Count)], cwF, grouping)!;
+                    var ef = FrontlineBoxEmitter.Fill(neighbour, fitF[rng.NextInt(0, fitF.Count)], cwF, grouping, mouth)!;
                     pieces.AddRange(ef.Pieces);
                     faceOffers.AddRange(ef.FaceOffers);
                     break;

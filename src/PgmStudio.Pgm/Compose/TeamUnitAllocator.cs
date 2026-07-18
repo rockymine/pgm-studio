@@ -73,24 +73,29 @@ public static class TeamUnitAllocator
     /// sampled form <b>falls back to the solid <see cref="Compound.Rectangle"/></b> when its free edges cannot host
     /// the plan. Returns the partition + the spawn facing (<see cref="Frame.TowardAxis"/>), or <c>null</c> when
     /// even the rectangle cannot host a neighbour (the box is too small — the directed "no shape fits" signal, §4).
-    /// Wools and the frontline layer on next.</summary>
+    /// When the plan carries a frontline it is allocated on the front side, its reach pushing the hub back so it
+    /// sits between the hub and the axis; the filler fills it as a join and carries its face offer to the mid.</summary>
     public static (BoxPartition Partition, string SpawnFacing)? Allocate(ComposeEnvelope env, ComposeRng rng)
     {
         var frame = Frame.For(env.Symmetry);
         var w = env.LandPerTeam > 2500 ? 3 : 2;                       // lane width (LN1: 10; 15 on big maps)
-        var plan = SamplePlan(env, rng, hasFrontline: false);         // frontline geometry lands in a later slice
+        // the frontline is the default when there is budget for it; none is the sampled exception (~1/7)
+        var hasFrontline = env.LandPerTeam >= 800 && rng.NextInt(0, 7) > 0;
+        var plan = SamplePlan(env, rng, hasFrontline);
 
         // hub dims — simplified floors/caps (the frontline/twin/wool-c clearance floors refine as those land)
         var cap = env.LandPerTeam >= 3000 ? 6 : env.LandPerTeam >= 1500 ? 5 : env.LandPerTeam >= 800 ? 4 : 3;
         var floor = w + 2;
         var hubU = rng.NextInt(floor, Math.Max(floor, cap) + 1);
         var hubV = rng.NextInt(floor, Math.Max(floor, cap) + 1);
-        var hubUMin = Envelope.AxisMarginCells;                       // + the frontline's reach when it lands
+        // the frontline sits between the hub and the axis, so its reach pushes the hub's front edge back
+        var frontReach = hasFrontline ? w + 1 : 0;
+        var hubUMin = Envelope.AxisMarginCells + frontReach;
         var hubVMin = -(hubV / 2);
         var hubRect = frame.ToRect(hubUMin, hubU, hubVMin, hubV);
 
-        // the neighbour demands (spawn + wools), sized from the budget before the form is chosen
-        var demands = Demands(env, rng, plan, w, hubU, hubV);
+        // the neighbour demands (spawn + wools + the frontline join), sized from the budget before the form is chosen
+        var demands = Demands(env, rng, plan, w, hubU, hubV, frontReach);
 
         // pick the hub form, seat the demands on its real free edges; fall back to the solid rectangle (four full
         // edges) when the sampled form's offerable surface cannot host every dock
@@ -104,12 +109,13 @@ public static class TeamUnitAllocator
     }
 
     /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats
-    /// cleanly; the L's overhanging foot lands next) plus the budget-share-sized wools, each on its planned side
-    /// (the free sides first, a third doubling into the spawn's edge). The spawn size is the one RNG draw here;
-    /// the wool sizes read the budget (generic, no per-family solve), so the whole set is fixed before the form
-    /// is chosen and is identical across a fallback re-seat.</summary>
+    /// cleanly; the L's overhanging foot lands next), the budget-share-sized wools, each on its planned side
+    /// (the free sides first, a third doubling into the spawn's edge), and — when the plan carries one — the
+    /// frontline join on the front side (reach × a face spanning the hub front). The spawn size is the one RNG
+    /// draw here; the wool sizes read the budget (generic, no per-family solve), so the whole set is fixed before
+    /// the form is chosen and is identical across a fallback re-seat.</summary>
     private static IReadOnlyList<Demand> Demands(
-        ComposeEnvelope env, ComposeRng rng, UnitPlan plan, int w, int hubU, int hubV)
+        ComposeEnvelope env, ComposeRng rng, UnitPlan plan, int w, int hubU, int hubV, int frontReach)
     {
         var demands = new List<Demand>();
 
@@ -130,6 +136,14 @@ public static class TeamUnitAllocator
             var along = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen - 2 * CornerClearanceCells));
             var depth = Math.Clamp((int)Math.Round(woolShare / along), 4, depthCap);
             demands.Add(new Demand(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}"));
+        }
+
+        // the frontline join: it docks the hub's front edge with a face spanning it (corner clearance aside) and
+        // reaches `frontReach` toward the axis; the filler picks its form (Bar / single / twin) and orientation
+        if (plan.Frontline is { } front)
+        {
+            var faceWidth = Math.Max(w, hubV - 2 * CornerClearanceCells);
+            demands.Add(new Demand(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
         }
         return demands;
     }

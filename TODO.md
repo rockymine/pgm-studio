@@ -96,8 +96,12 @@ in `BACKLOG.md`.)*
   not the coarse rect-pair proxy — a multi-piece hub's ¾-solid bridged corner reads clean); and **the allocator
   orients the form** — a vertical flip (`Box.FlipV`, replicated by the filler) turns the branch/holed forms'
   solid spine toward the demanded **back** and their open feet toward the unused **front**, so `L` and `U` land
-  on the used sides (symmetric forms are unaffected). The allocate→fill loop closes end-to-end and
-  `tools/compose/unit-gallery.cs` renders `L`/`U`/`Ring`/rectangle hubs, 0 pinches. *Remaining, roughly in order:*
+  on the used sides (symmetric forms are unaffected); and **the frontline is allocated** — when the plan carries
+  one (the default when there is budget) it seats on the front side, its reach pushing the hub back so it sits
+  between the hub and the axis, and the filler fills it as a **join** (spine docking the hub via the shared
+  `BodyOrient`, face toward the axis) whose face offer flows into `FilledUnit.FrontlineFace` (its mid consumer is
+  C.3). The allocate→fill loop closes end-to-end and `tools/compose/unit-gallery.cs` renders `L`/`U`/`Ring`/rectangle
+  hubs with frontlines, 0 pinches. *Remaining, roughly in order:*
     - **Hub-form richness — handedness, size, `mirror_x`.** `L`'s two solid edges are adjacent (spine + one arm),
       so it covers back + **one** lateral, and the arm sits on a fixed side — choosing its **handedness** to match
       the demanded lateral would let it cover back+right as well as back+left. `Double-hole` still needs a hub
@@ -107,8 +111,6 @@ in `BACKLOG.md`.)*
       overhanging foot needs the entry-seat-and-shift — seat by the entry width `w`, let the box overhang free
       space), and the **wool** boxes are generic-share-sized so the fill mostly lands `I`; give them family/size
       variety (L/Z/scythe/…).
-    - **Frontline** — the front side + its reach (shifts `hubUMin` toward the axis), the `FrontForm` dims, and the
-      **face offer** (`FrontlineBoxEmitter`, grouping joint/several) carried into `FilledUnit.FrontlineFace`.
     - **Hub-floor refinement** — the frontline / twin-recess / wool-c clearance floors the grower's `HubVFloor`
       encodes (today a simplified `w+2` floor).
     - **CT1 / LN2 invariants by construction** — ≥10-block image clearance (orbit images stay separate islands)

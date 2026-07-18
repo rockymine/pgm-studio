@@ -40,18 +40,25 @@ public static class FrontlineBoxEmitter
     ];
 
     /// <summary>Fill a frontline <see cref="Box"/> (plan cells) as <paramref name="form"/> at strand width
-    /// <paramref name="cw"/>, terminal-free, in the canonical frame (spine <see cref="BoxEdge.Top"/> docks the
-    /// hub, face <see cref="BoxEdge.Bottom"/> toward the axis). Publishes the <b>face offer</b> over the
-    /// arm-tip runs on the face edge, grouped <paramref name="faceGrouping"/> (joint — one shared group the mid
-    /// spans; several — one group per tip). <paramref name="faceWidth"/> is the width the mid reads, defaulting
-    /// to each run's own class. Pieces carry the frontline <paramref name="box"/> label; no room, no marker.
-    /// <c>null</c> when the box is too small for the form; throws for a form off the frontline menu.</summary>
+    /// <paramref name="cw"/>, terminal-free, with the spine docking <paramref name="spineMouth"/> (the box edge
+    /// facing the hub) and the face on the opposite edge toward the axis. The body is built spine-up and oriented
+    /// onto the mouth (<see cref="BodyOrient"/>), so the composer places the box against any hub edge —
+    /// <see cref="BoxEdge.Top"/> is the canonical frame (spine top, face bottom). Publishes the <b>face offer</b>
+    /// over the arm-tip runs on the face edge, grouped <paramref name="faceGrouping"/> (joint — one shared group
+    /// the mid spans; several — one group per tip). <paramref name="faceWidth"/> is the width the mid reads,
+    /// defaulting to each run's own class. Pieces carry the frontline <paramref name="box"/> label; no room, no
+    /// marker. <c>null</c> when the box is too small for the form; throws for a form off the frontline menu.</summary>
     public static EmittedFrontline? Fill(
-        Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, int? faceWidth = null)
+        Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, BoxEdge spineMouth = BoxEdge.Top, int? faceWidth = null)
     {
         int boxW = box.Rect[2], boxH = box.Rect[3];
-        var body = BuildBody(form, boxW, boxH, cw);
-        if (body is null) return null;
+        // build spine-up in the spine-length × reach frame (transposed when the spine docks a lateral edge), then
+        // orient onto the mouth — the twin of a spawn/wool box emitting mouth-up and orienting via MouthOrient
+        var lateral = spineMouth is BoxEdge.Left or BoxEdge.Right;
+        var (spineLen, reach) = lateral ? (boxH, boxW) : (boxW, boxH);
+        var built = BuildBody(form, spineLen, reach, cw);
+        if (built is null) return null;
+        var body = BodyOrient.To(built, spineMouth, spineLen, reach);
 
         var boxRef = new BoxRef(box.Id, BoxKind.Frontline);
         var pieces = new List<GrownPiece>(body.Pieces.Count);
@@ -60,9 +67,9 @@ public static class FrontlineBoxEmitter
             pieces.Add(new GrownPiece($"{box.Id}-t{n++}", [box.Rect[0] + r[0], box.Rect[1] + r[1], r[2], r[3]],
                 PlanRoles.Piece, slot, boxRef));
 
-        // the face is the arm-tip edge (Bottom in the canonical frame); the spine docks the hub (Top). Only the
-        // face is offered — the sides are inert and the spine is the consumer side (it lands on the hub's offer).
-        var face = BoxEdge.Bottom;
+        // the face is the arm-tip edge opposite the spine; only it is offered — the sides are inert and the spine
+        // is the consumer side (it lands on the hub's offer).
+        var face = Opposite(spineMouth);
         var faceIface = BoxInterfaces.Of(body, boxW, boxH).Single(e => e.Edge == face);
         var joint = faceGrouping == OfferGrouping.Joint;
         var offers = BoxInterfaces.Runs(faceIface.Intervals)
@@ -70,8 +77,15 @@ public static class FrontlineBoxEmitter
                 faceGrouping, joint ? $"{box.Id}-face" : $"{box.Id}-face-{k}"))
             .ToList();
 
-        return new EmittedFrontline(pieces, offers, BoxEdge.Top, face, form);
+        return new EmittedFrontline(pieces, offers, spineMouth, face, form);
     }
+
+    /// <summary>The box edge opposite <paramref name="e"/> — the face sits opposite the spine.</summary>
+    private static BoxEdge Opposite(BoxEdge e) => e switch
+    {
+        BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top,
+        BoxEdge.Left => BoxEdge.Right, _ => BoxEdge.Left,
+    };
 
     // build the body of `form` sized to fill the box, spine along the top; null when the box is too small.
     private static ShapeBody? BuildBody(CompoundRead form, int w, int h, int cw)
