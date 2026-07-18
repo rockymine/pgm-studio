@@ -129,10 +129,10 @@ lines — the derived run profile (`straight`/`offset`) is already the read-back
 Three mechanism gaps stand between today's code and this being expressible (all small, all
 already implied by the docs):
 
-1. **Interval facts.** `BoxInterfaces.Of` collapses each bounding-box edge to a flat slot
-   list; a twin face is two disjoint intervals on one edge. The facts should be the body's
-   **classified boundary runs** (the edge taxonomy, §4 — now code in `BodyEdges`): free runs
-   carrying `(range, piece, slot/mark)`, notch/bay/hole walls carrying their space.
+1. **Interval facts** *(shipped — G93)*. `BoxInterfaces.Of` no longer collapses an edge to a
+   flat slot list: each edge carries its per-piece **intervals** ordered along it
+   (`BoxEdgeInterface.Intervals`), so a twin face is two disjoint intervals on one edge — the
+   box-perimeter sibling of the §4 classified boundary.
 2. **Designation marks in the gate.** `DockingGate.Role` is one global slot→role table
    (`entry` docks, `room` vetoes) — approach-only. Dock roles become per-designation **marks**
    (`entry`/`room` for approaches; `face`/`hub-edge` for the frontline; per-edge `interface`
@@ -326,9 +326,10 @@ G63-C are the existing anchors.)
 1. **Adopt the vocabulary** (doc-only). The §1 kinds + the §4 edge terms land in
    `map-generation.md` §1 as locked terms (offer, target vs band, demand, veto, knob; the
    wall-count classes); prompt templates (§7) ride along. Retire the matching sections here.
-2. **Interval facts** (small code). `BoxEdgeInterface`'s facts re-ground on the classified
-   boundary (§4): free runs carry `(range, slot/mark)`, walls carry their space class;
-   `DockingGate` verdicts unchanged — byte-identical wool/spawn output is the acceptance bar.
+2. **Interval facts** *(shipped — G93)*. `BoxEdgeInterface` re-grounds on per-piece
+   **intervals** ordered along each edge (`EdgeInterval(Start, LengthCells, Slot)`), `Slots`
+   the flat view; the clamp's mouth edge carries both entry bars as two disjoint intervals —
+   `DockingGate` verdicts unchanged, every prior facts/gate test green unmodified.
 3. **Designation marks** (with G88/G89's designations). `Hub(body, edgeWidths)` and
    `Front(body, face)` stamp marks; `DockingGate.Role` becomes mark-driven per designation.
    The approach path keeps its current table verbatim.

@@ -46,6 +46,27 @@ public sealed class BoxInterfacesTests
         await Assert.That(Edge(es, BoxEdge.Left).Slots).IsEmpty();
     }
 
+    // the interval facts: an edge carries the per-piece stretches ordered along it — a shape presenting two
+    // pieces to one edge yields two disjoint intervals with the gap between them, which the flat slot list
+    // could never say
+    [Test]
+    public async Task An_edge_carries_disjoint_intervals_per_piece()
+    {
+        // the clamp's mouth edge holds BOTH entry bars, the bay's gap between them
+        var mouth = Edge(Edges(ShapeFamily.Clamp, 4, 5), BoxEdge.Left);
+        await Assert.That(mouth.Intervals.Count).IsEqualTo(2);
+        await Assert.That(mouth.Intervals.All(i => i.Slot == ApproachSlots.Entry)).IsTrue();
+        await Assert.That(mouth.Intervals[0].Start + mouth.Intervals[0].LengthCells < mouth.Intervals[1].Start).IsTrue();
+
+        // the U's two legs on its mouth edge
+        await Assert.That(Edge(Edges(ShapeFamily.U, 6, 6), BoxEdge.Bottom).Intervals.Count).IsEqualTo(2);
+
+        // a single-piece edge is one interval spanning the piece
+        var top = Edge(Edges(ShapeFamily.I, 6, 12), BoxEdge.Top);
+        await Assert.That(top.Intervals.Count).IsEqualTo(1);
+        await Assert.That(top.Intervals[0].Slot).IsEqualTo(ApproachSlots.Entry);
+    }
+
     [Test]
     public async Task Span_is_long_on_the_boxs_longer_sides()
     {

@@ -58,14 +58,41 @@ the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publ
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63-C**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
 
+*(The G88/G89 pre-work, in execution order — language, then binding, then the offer mechanism. The edge
+taxonomy + publish policy (G92) and the interval facts (G93) shipped ahead of these; see `FEATURES.md`.)*
+
+- [ ] **G94 — Fold the shape vocabulary + rule kinds into the canonical doc.** `map-generation.md` still frames
+  shapes as wool-approach-only; the model has moved: **base shapes (bodies) are terminal-free compounds**
+  (`shape-vocabulary.md` — one Staple serves U and Y, a Rectangle serves lane and hub), the approach families are
+  the *terminal designation* over them, and the edge taxonomy (notch/bay/hole by wall count · parts · mouths ·
+  wall slots · guard, G92) plus the rule-kind vocabulary (fact · menu · fit gate · demand · **offer** · veto ·
+  gate · knob · **target vs band** · law · doctrine) are proven in code. Doc-only: §5 reframes
+  bodies-then-designations, §1 gains the locked terms, `shape-vocabulary.md` folds in and retires, and the
+  shipped sections of `docs/map-generation-constraint-taxonomy.md` retire per its own header. **Order: first —
+  before G95/G96/G88/G89; language before mechanism.**
+- [ ] **G95 — Designation marks drive the docking gate.** `Hub(body, edgeWidths)` and `Front(body, face)` stamp
+  **designation marks** onto the body (`shape-vocabulary.md` §8); `DockingGate.Role` becomes
+  (designation, slot/mark)-driven over the G93 interval facts — the approach table verbatim (`entry` docks,
+  `room` vetoes), the hub's marks its interface edges, the frontline's its face. No new rule content, only the
+  binding. **Order: after G94; the first code milestone inside G88/G89 — their two designations are its two
+  halves.**
+- [ ] **G96 — The offer as a type.** Yes, a **new type**: `EdgeOffer` = an edge **interval** (G93) + its `wN`
+  width class + the **grouping** (joint — one consumer must span the group, FR6's flush dock — vs several — one
+  consumer per interval, the twin/double frontline) + riding vetoes (the inter-tip recess stays CT9's hole).
+  Published by the **hub** designation (per-edge width offers — the constraint source; a consumed width is the
+  neighbour menu's `cw`) and the **frontline** designation (the face offer the mid consumes); carried on
+  `BoxJoint` (offer provenance) so the partitioner places consumers only on offers, `BoxPartition.Of` mirroring
+  it back. The offer-card gallery half (grouping/width annotations per compound × designation) rides here.
+  **Order: the heart of G88 (hub offers) and G89 (face offers) — lands inside them, after G94/G95.**
+
 - [ ] **G88 — Hub as the constraint-source box.** Make the hub a first-class `BoxKind.Hub` box: a `FillProfiles`
   hub row + a hub emitter (a `Hub` designation over the Body, G90). Per §4 the hub is the **constraint source** —
   a rectangle-ish host (need not be square, may carry holes) whose **per-edge interface widths (`w2`/`w4`/`w6`)
   set the fill menu** for the spawn/wool/frontline neighbours, and it **emits first**. Form menu (authored,
   `shape-vocabulary.md` §6): **Rectangle · L · U · Ring · Double-hole** — no terminal; its designation is the
   per-edge interfaces. Pieces carry structural slots with hub box-kind ownership (`hub-a/…`), extending the
-  label-preservation invariant to the hub. Supersedes the hub half of the old G41-C. Depends on G90/G91; feeds
-  G63-C.
+  label-preservation invariant to the hub. Supersedes the hub half of the old G41-C. Depends on G90/G91 +
+  G94/G95 (vocabulary, marks); its per-edge width offers are G96's hub half; feeds G63-C.
 - [ ] **G89 — Frontline as the face/join box.** Make the frontline a first-class `BoxKind.Frontline` box: a
   `FillProfiles` frontline row + a `FrontlineBoxEmitter` (a `Front` designation over the Body, G90) docking the
   hub's front edge. Per §4 the frontline is a **join, not a placement** — a face with no room/marker whose far
@@ -73,8 +100,9 @@ the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publ
   `shape-vocabulary.md` §6): a plain **Bar** (wide face, FR6), the **branch family** (spine + K arms —
   single/twin/more, FR3/FR4/CT8), and the **holed** forms (**P**, **two-U-on-I**); **rotation is fixed** — the
   spine docks the hub, the arm-tips are the face. `FrontForm` (none · single · wide · twin) lifts out of the
-  grower into the profile. How the mid attaches to the face is a separate, deferred rule-set. Supersedes the
-  frontline half of the old G41-C. Depends on G90/G91; feeds G63-C.
+  grower into the profile. How the mid attaches to the face is G96's face offer (grouping joint/several over the
+  tip intervals). Supersedes the frontline half of the old G41-C. Depends on G90/G91 + G94/G95 (vocabulary,
+  marks); its face offer is G96's frontline half; feeds G63-C.
 
 *(G63 was one monolith — the whole box-driven switch. Split A–D: A shipped the partition data model + mirror,
 B shipped the partition-first allocator seam + budget check (both `FEATURES.md`); C flips the switch (fill + wire

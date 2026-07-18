@@ -246,8 +246,13 @@ ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant �
   CT8 recess generalized). Emit-side and exact (families are fixed templates), so no derive pass finds them.
   `FillProfiles` gates claims (a spawn may claim a hub bay whose mouth faces away from the axis) — this is
   what makes the **spawn-in-hub-bay** layout expressible (three wools L/T/R + the spawn in the U's bay)
-  instead of forcing the G45 parallel-lane anti-pattern. Depends on G88/G89 (the U-hub/twin patterns produce the
-  bays), G63-D (the partitioner claims vacancies from the partition). (review §4.4, §7.6)
+  instead of forcing the G45 parallel-lane anti-pattern. **Eligibility is now decided** (G92's
+  `PublishPolicy` — terminal-capped: bays/holes veto, notches allow; terminal-free: allow; publishing is an
+  offer, never a fill); what remains here is the **consumer side** — the pipeline step that claims offers once
+  the base is built (a third wool in a free-standing U's bay or a ring's hole) — plus its three pending facts:
+  the part **covering/depth order** (eligibility descends from the front part), the hole's **ring
+  composition** (CT8 reads), and the terminal-free hole **size gate**. Depends on G88/G89 (the U-hub/twin
+  patterns produce the bays), G63-D (the partitioner claims vacancies from the partition). (review §4.4, §7.6)
 - [ ] **G63-D — Generic label-inheriting fragment + `GrowthOrder` strategies + vacancy allocation.** Once the
   partitioner is the default (G63-C), **fragment** becomes a generic pass over the partition — and a
   **label-inheriting** one: a piece the pass splits or converts hands its (box, slot) ownership to its products
@@ -261,6 +266,19 @@ ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant �
   well as fresh space, so a bay-seated spawn docks up to three walls for free (`spawn-first` inverts it — the
   hub's fill must wrap a staked pocket). Depends on G63-C, G41-D (the vacancy-publishing fills). (review §4.4,
   §4.5, §7.7)
+- [ ] **G97 — Close the offer↔derive mirror.** After the offers (G96 in `TODO.md`) and the G63-C re-baseline: a
+  composed board's derived `FrontlineRuns` / build-zone kinds / hole classes must match what the designations'
+  offers intended — a compose-side assert over reads the board deriver already computes (a joint face offer reads
+  back as one wide run, a several offer as K runs; the recess as a CT9 hole). The mirror doctrine one level up:
+  the designation drives, the deriver verifies. Depends on G96, G63-C.
+  (`docs/map-generation-constraint-taxonomy.md` §6 step 5)
+- [ ] **G98 — `ComposeTargets` — controlled variance.** Per-request **prescriptive** fields (frontline runs per
+  team · connected-run count · mid form · hub form), **sampled when unset, held when set**: they steer the
+  designation/grouping/form choices and are verified against the derived reads at gate time; a held target may
+  legally leave the corpus bands (the author asked). First measurable: **connected-run count** — `FrontlineRuns`
+  grouped by their owning islands' land component (twin tips of one unit = connected; parallel-lane fronts =
+  not). The target-vs-band split that unstalls the parked soft-rule triage. Depends on G97.
+  (`docs/map-generation-constraint-taxonomy.md` §5, §6 step 6)
 - [ ] **G87 — Fill-to-`LandTargetCells` directed repair — reconsidered, not a solver.** Originally scoped as
   G63-C's core: allocate each box's footprint + land target from the budget, then resize the shape (directed
   repair off `FillResult`) until its land hits the target, retiring `SolveDepth`/`SolveWidth`/`spawnLen`. **Parked

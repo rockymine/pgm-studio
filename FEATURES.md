@@ -983,6 +983,32 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **Interval facts on the box edges (G93)** — `Compose/Boxes/BoxInterfaces.cs`: `BoxEdgeInterface` re-grounds
+  on **intervals** — each edge carries its per-piece stretches ordered along it (`EdgeInterval(Start,
+  LengthCells, Slot)`, the room included as the room slot), `Slots` becoming the flat per-interval view — so a
+  shape presenting two pieces to one edge is finally sayable: the clamp's mouth edge holds **both entry bars as
+  two disjoint intervals with the bay's gap between them**, the twin-face precondition the frontline work (G89)
+  and the offers (G96) bind to. `DockingGate` verdicts unchanged, every existing facts/gate test green
+  unmodified, emissions untouched (Pgm suite 655/655). Contract:
+  `docs/map-generation-constraint-taxonomy.md` §3/§6 step 2.
+
+- **The edge taxonomy + the publish policy (G92)** — `Pgm/Shapes/BodyEdges.cs` +
+  `Compose/Boxes/PublishPolicy.cs` + `tools/compose/edge-gallery.cs`: any rectangle set's **negative spaces**
+  classed by wall count (**notch** 2 · **bay** 3 · **hole** enclosed · open ≤1), each with its **slab parts**
+  (classed by their own body walls — the uneven branch's six-edge bay is a U whose mouth bar reads
+  notch-grade), its own **compound `Form`** (the void is a body too — `ClassifyBody`'s spine read extended to
+  all four orientations), its **mouths** (interval + `wN` width class; bay 1 · notch 2 · hole 0), and its
+  **wall slots** (the derive-side twin of `ShapeVacancy.Walls`); every boundary edge classified on three axes —
+  what it **faces** × **terminal** (the room seals its own wall, runs splitting at the ownership change) ×
+  **guarded** (the room's 10-block clearance margin, which also splits the adjacent space's parts) — the free
+  offerable surface being *open ∧ ¬terminal ∧ ¬guarded*. Over these facts, **`PublishPolicy`** (author-decided):
+  terminal-capped shapes veto bays + holes and allow notches (incl. the Z's `room-run` notch — proximity is the
+  guard's job); terminal-free bodies allow everything (hole size gate pending); the publishable region = front
+  (mouth-touching), unguarded parts; **publishing is an offer, never a fill**. All rendered by the edge gallery
+  (spaces tinted per part, mouths bracketed with width class, ✓/✗ verdicts per card), published as a hosted
+  artifact; `BodyEdgesTests` + `PublishPolicyTests` pin every class, split, mouth, and author call. Contract:
+  `docs/map-generation-constraint-taxonomy.md` §4/§4.1. (G92)
+
 - **The new terminal-free compounds, standalone (M3, G91)** — `Pgm/Shapes/BodyEmitter.cs` + `Compound.cs` +
   `ShapeClassifier.cs`: the shapes the vocabulary names but `ShapeEmitter` couldn't build, now emitted as pure
   `ShapeBody` on the G90 Body stage. `BodyEmitter` generalizes the branch family from the fixed two-leg staple to
