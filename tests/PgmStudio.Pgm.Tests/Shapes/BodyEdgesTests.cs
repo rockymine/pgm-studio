@@ -96,6 +96,37 @@ public sealed class BodyEdgesTests
         await Assert.That(c.Edges.All(e => e.Faces == NegativeSpaceKind.Open)).IsTrue();
     }
 
+    // the terminal seals its own wall: room-owned boundary runs carry Terminal, split from colinear terrain
+    // runs, and their summed length is exactly the room's exposed perimeter (its outline minus terrain seams)
+    [Test]
+    public async Task Terminal_runs_split_from_terrain_and_cover_the_rooms_exposed_wall()
+    {
+        // I 9x15 cw3: the room caps the lane — each side line splits into a free lane interval and a sealed
+        // room interval, and the room's exposed wall is 3 of its 10-perimeter shared with the lane
+        var i = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.I, 9, 15, Cw));
+        await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 0, 3, 13, NegativeSpaceKind.Open, 13))).IsTrue();
+        await Assert.That(i.Edges.Contains(new ClassifiedEdge(3, 13, 3, 15, NegativeSpaceKind.Open, 2, Terminal: true))).IsTrue();
+        await Assert.That(i.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(7);
+
+        // L 15x18 cw3: the room caps the band's far end — sealed right/bottom walls, and its top wall faces
+        // the notch (owner and faced space are independent axes)
+        var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw));
+        await Assert.That(l.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(7);
+        await Assert.That(l.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKind.Notch)).IsTrue();
+
+        // clamp 12x15 cw3: the room's bay face is the designated seat — a terminal wall on the bay
+        var clamp = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
+        await Assert.That(clamp.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKind.Bay)).IsTrue();
+        await Assert.That(clamp.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(18);
+    }
+
+    [Test]
+    public async Task Terminal_free_bodies_have_no_terminal_runs()
+    {
+        var body = BodyEdges.Classify(ShapeEmitter.Body(ShapeFamily.U, 15, 18, Cw));
+        await Assert.That(body.Edges.Any(e => e.Terminal)).IsFalse();
+    }
+
     // every filled↔empty seam is covered by exactly one classified run: the run lengths sum to the perimeter
     [Test]
     [Arguments(ShapeFamily.L, 15, 18)]

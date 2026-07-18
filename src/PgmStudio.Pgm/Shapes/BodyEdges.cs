@@ -15,12 +15,18 @@ public enum NegativeSpaceKind { Open, Notch, Bay, Hole }
 /// kind; a hole is enclosed outright, whatever the count says). Cells are box-local grid cells.</summary>
 public sealed record NegativeSpace(NegativeSpaceKind Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections);
 
-/// <summary>A maximal straight run of the body's boundary, classified by the negative space it faces:
-/// <see cref="Faces"/> is <see cref="NegativeSpaceKind.Open"/> for a free outward edge (the candidate surface
-/// for docks and offers) or the class of the notch/bay/hole the edge walls. Coordinates are cell-corner
-/// coordinates (a vertical run has <c>X1 == X2</c>, a horizontal one <c>Z1 == Z2</c>); <see cref="Length"/> is
-/// the run's extent in cells.</summary>
-public sealed record ClassifiedEdge(int X1, int Z1, int X2, int Z2, NegativeSpaceKind Faces, int Length);
+/// <summary>A maximal straight run of the body's boundary, classified along two independent axes: what it
+/// <see cref="Faces"/> (<see cref="NegativeSpaceKind.Open"/> for a free outward edge, else the class of the
+/// notch/bay/hole it walls) and who owns it — <see cref="Terminal"/> marks a run on the terminal room's own
+/// wall. The owner is a <b>fact</b>; the verdict over it is the docking gate's rule (a terminal wall never
+/// receives a dock today — <c>SlotDockRole.NeverDock</c> — with the elevation-stage dock and the clamp's
+/// designated room faces as the sanctioned exceptions), so the free offerable surface is exactly the
+/// <see cref="NegativeSpaceKind.Open"/> runs with <see cref="Terminal"/> false. Runs split where ownership
+/// changes: a room capping a lane splits the shared boundary line into a free terrain interval and a sealed
+/// room interval. Coordinates are cell-corner coordinates (a vertical run has <c>X1 == X2</c>, a horizontal one
+/// <c>Z1 == Z2</c>); <see cref="Length"/> is the run's extent in cells.</summary>
+public sealed record ClassifiedEdge(
+    int X1, int Z1, int X2, int Z2, NegativeSpaceKind Faces, int Length, bool Terminal = false);
 
 /// <summary>Everything the edge read of one body yields: its negative <see cref="Spaces"/> and its classified
 /// boundary <see cref="Edges"/>.</summary>
@@ -29,8 +35,9 @@ public sealed record EdgeClassification(IReadOnlyList<NegativeSpace> Spaces, IRe
 /// <summary>
 /// Reads a rectilinear body's <b>edge taxonomy</b> off its geometry alone: every connected negative space
 /// within the body's bounding box, classed by wall count (<see cref="NegativeSpaceKind"/> — notch 2, bay 3,
-/// hole enclosed), and every boundary edge classed by the space it faces, <see cref="NegativeSpaceKind.Open"/>
-/// marking the free outward surface. This is the derive-side generalization of the emit-time
+/// hole enclosed), and every boundary edge classed by the space it faces plus its ownership —
+/// <see cref="NegativeSpaceKind.Open"/> runs that are not <see cref="ClassifiedEdge.Terminal"/> are the free
+/// outward surface. This is the derive-side generalization of the emit-time
 /// <see cref="ShapeVacancy"/> publication: vacancies are exact but box-relative remainders a specific emitter
 /// declares; this read is shape-relative and total — it works on any rectangle set (an emitted approach, a
 /// terminal-free compound, a future hub body) with no emitter cooperation. The two deliberately disagree on
@@ -59,12 +66,31 @@ public static class BodyEdges
 
     /// <summary>Classify an approach emission as one mass — terrain plus the terminal room. The room takes part
     /// in the walls it forms (a clamp's recess is a bay only because the room closes it; the same two bars
-    /// without the room wrap a mere notch).</summary>
-    public static EdgeClassification Classify(EmittedShape shape) =>
-        Classify(shape.Terrain.Select(p => p.Rect).Append(shape.Room));
+    /// without the room wrap a mere notch), and every boundary run on the room's own wall is marked
+    /// <see cref="ClassifiedEdge.Terminal"/>.</summary>
+    public static EdgeClassification Classify(EmittedShape shape)
+    {
+        var cells = new HashSet<(int, int)>();
+        foreach (var r in shape.Terrain.Select(p => p.Rect))
+            for (var x = r[0]; x < r[0] + r[2]; x++)
+                for (var z = r[1]; z < r[1] + r[3]; z++) cells.Add((x, z));
+        var terminal = new HashSet<(int, int)>();
+        for (var x = shape.Room[0]; x < shape.Room[0] + shape.Room[2]; x++)
+            for (var z = shape.Room[1]; z < shape.Room[1] + shape.Room[3]; z++)
+            {
+                cells.Add((x, z));
+                terminal.Add((x, z));
+            }
+        return Classify(cells, terminal);
+    }
 
-    /// <summary>Classify a cell set directly.</summary>
-    public static EdgeClassification Classify(IReadOnlySet<(int, int)> cells)
+    /// <summary>Classify a cell set with no terminal.</summary>
+    public static EdgeClassification Classify(IReadOnlySet<(int, int)> cells) =>
+        Classify(cells, new HashSet<(int, int)>());
+
+    /// <summary>Classify a cell set, marking boundary runs whose inner cell lies in <paramref name="terminal"/>
+    /// (the terminal room's own wall) — runs never merge across the terrain↔terminal ownership change.</summary>
+    public static EdgeClassification Classify(IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> terminal)
     {
         if (cells.Count == 0) return new EdgeClassification([], []);
         var (minX, minZ, maxX, maxZ) = Cells.BoundingBox(cells);
@@ -105,29 +131,32 @@ public static class BodyEdges
             }
 
         // boundary edges — every filled↔empty cell seam, classed by the space behind it (outside the bounding
-        // box is open), then merged into maximal same-class straight runs
+        // box is open) and by the inner cell's ownership, then merged into maximal same-class same-owner
+        // straight runs (a run never continues across the terrain↔terminal change)
         NegativeSpaceKind FacingKind((int, int) n) =>
             spaceOf.TryGetValue(n, out var s) ? spaces[s].Kind : NegativeSpaceKind.Open;
-        var vertical = new Dictionary<(int Line, NegativeSpaceKind Kind), List<int>>();   // line x → unit spans z
-        var horizontal = new Dictionary<(int Line, NegativeSpaceKind Kind), List<int>>(); // line z → unit spans x
+        var vertical = new Dictionary<(int Line, NegativeSpaceKind Kind, bool Terminal), List<int>>();   // line x → unit spans z
+        var horizontal = new Dictionary<(int Line, NegativeSpaceKind Kind, bool Terminal), List<int>>(); // line z → unit spans x
         foreach (var (x, z) in cells)
         {
-            if (!cells.Contains((x + 1, z))) Add(vertical, (x + 1, FacingKind((x + 1, z))), z);
-            if (!cells.Contains((x - 1, z))) Add(vertical, (x, FacingKind((x - 1, z))), z);
-            if (!cells.Contains((x, z + 1))) Add(horizontal, (z + 1, FacingKind((x, z + 1))), x);
-            if (!cells.Contains((x, z - 1))) Add(horizontal, (z, FacingKind((x, z - 1))), x);
+            var own = terminal.Contains((x, z));
+            if (!cells.Contains((x + 1, z))) Add(vertical, (x + 1, FacingKind((x + 1, z)), own), z);
+            if (!cells.Contains((x - 1, z))) Add(vertical, (x, FacingKind((x - 1, z)), own), z);
+            if (!cells.Contains((x, z + 1))) Add(horizontal, (z + 1, FacingKind((x, z + 1)), own), x);
+            if (!cells.Contains((x, z - 1))) Add(horizontal, (z, FacingKind((x, z - 1)), own), x);
         }
         var edges = new List<ClassifiedEdge>();
-        foreach (var ((line, kind), spans) in vertical.OrderBy(e => e.Key.Line).ThenBy(e => e.Key.Kind))
+        foreach (var ((line, kind, own), spans) in vertical.OrderBy(e => e.Key.Line).ThenBy(e => e.Key.Kind).ThenBy(e => e.Key.Terminal))
             foreach (var (lo, hi) in Runs(spans))
-                edges.Add(new ClassifiedEdge(line, lo, line, hi, kind, hi - lo));
-        foreach (var ((line, kind), spans) in horizontal.OrderBy(e => e.Key.Line).ThenBy(e => e.Key.Kind))
+                edges.Add(new ClassifiedEdge(line, lo, line, hi, kind, hi - lo, own));
+        foreach (var ((line, kind, own), spans) in horizontal.OrderBy(e => e.Key.Line).ThenBy(e => e.Key.Kind).ThenBy(e => e.Key.Terminal))
             foreach (var (lo, hi) in Runs(spans))
-                edges.Add(new ClassifiedEdge(lo, line, hi, line, kind, hi - lo));
+                edges.Add(new ClassifiedEdge(lo, line, hi, line, kind, hi - lo, own));
         return new EdgeClassification(spaces, edges);
     }
 
-    private static void Add(Dictionary<(int, NegativeSpaceKind), List<int>> lines, (int, NegativeSpaceKind) key, int at)
+    private static void Add(
+        Dictionary<(int, NegativeSpaceKind, bool), List<int>> lines, (int, NegativeSpaceKind, bool) key, int at)
     {
         if (!lines.TryGetValue(key, out var l)) lines[key] = l = [];
         l.Add(at);

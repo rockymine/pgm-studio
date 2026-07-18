@@ -187,6 +187,15 @@ Why this is the load-bearing piece:
   it** — the same two bars without the room wrap a mere notch (also pinned by a test). Negative
   space is read on the *finished* mass, so a designation can change a space's class — one more
   reason the offer lives in the designation layer.
+- **The terminal seals its own wall (author correction, round 3).** Boundary runs are classified
+  on **two independent axes**: what they face *and* who owns them — a run on the terminal room's
+  own wall carries `Terminal`, and runs **split where ownership changes**, so a room capping a
+  lane leaves one boundary line part free interval, part sealed interval (the L/I case). The
+  free offerable surface is exactly *open ∧ not terminal*. Ownership is kept a **fact**; the
+  never-attach verdict over it stays the gate's **rule** (`SlotDockRole.NeverDock` /
+  `SealsWool`) — which is what lets the two sanctioned exceptions stay expressible: the clamp's
+  designated room faces (the designation itself docks terrain there) and the elevation-stage
+  dock. The L's room even shows the axes composing: its top wall is *terminal AND notch-facing*.
 
 ## 5. Targets — controlled variance
 

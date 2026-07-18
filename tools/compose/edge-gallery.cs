@@ -14,6 +14,7 @@ var kindColor = new Dictionary<NegativeSpaceKind, string>
     [NegativeSpaceKind.Bay] = "#fb923c",     // 3 walls — a recess, open one way
     [NegativeSpaceKind.Hole] = "#f87171",    // enclosed — the ring void
 };
+const string TerminalCol = "#ec4899";        // the terminal room's own wall — never attach (the gate's veto)
 const string PieceFill = "#3a4a66";
 const string RoomFill = "#3fae74";
 const string BgCanvas = "#080f1a";
@@ -44,11 +45,11 @@ void Add(string group, string title, string sub, Func<(IReadOnlyList<(int[] Rect
     (b.Pieces.Select(p => (p.Rect, false)).ToList(), BodyEdges.Classify(b));
 
 // (1) the approach families as full emissions — the room takes part in the walls it forms
-Add("approach", "I", "a straight lane: no negative space — every edge is free surface", () => Emission(ShapeFamily.I, 9, 15));
-Add("approach", "L", "one bend wraps one notch", () => Emission(ShapeFamily.L, 15, 18));
+Add("approach", "I", "no negative space; the lane's sides split where the sealed room caps the end", () => Emission(ShapeFamily.I, 9, 15));
+Add("approach", "L", "one notch; the band's end line splits into free terrain and the sealed room", () => Emission(ShapeFamily.L, 15, 18));
 Add("approach", "Z", "two opposing bends — a notch each", () => Emission(ShapeFamily.Z, 15, 21));
 Add("approach", "Scythe", "the fold's bay + the notch behind the entry tail", () => Emission(ShapeFamily.Scythe, 18, 15));
-Add("approach", "Clamp", "the recess is a bay only because the room closes it", () => Emission(ShapeFamily.Clamp, 12, 15));
+Add("approach", "Clamp", "the recess is a bay only because the room closes it — the room's bay face is the designated seat", () => Emission(ShapeFamily.Clamp, 12, 15));
 Add("approach", "U", "the bay between the legs; the room wraps a notch each side", () => Emission(ShapeFamily.U, 15, 18));
 Add("approach", "H / Y", "the U's bay + the notches beside the room stub", () => Emission(ShapeFamily.H, 15, 21));
 Add("approach", "Donut", "the enclosed hole; stub and room wrap notches", () => Emission(ShapeFamily.Donut, 18, 15));
@@ -82,8 +83,11 @@ string CountChips(EdgeClassification read)
         var n = read.Spaces.Count(s => s.Kind == kind);
         if (n > 0) sb.Append($"<span class=\"cnt\" style=\"color:{kindColor[kind]}\">{n} {kind.ToString().ToLowerInvariant()}{(n > 1 ? (kind == NegativeSpaceKind.Notch ? "es" : "s") : "")}</span>");
     }
-    var free = read.Edges.Count(e => e.Faces == NegativeSpaceKind.Open);
+    var free = read.Edges.Count(e => e.Faces == NegativeSpaceKind.Open && !e.Terminal);
     sb.Append($"<span class=\"cnt\" style=\"color:{kindColor[NegativeSpaceKind.Open]}\">{free} free edge{(free == 1 ? "" : "s")}</span>");
+    var sealedRuns = read.Edges.Count(e => e.Terminal);
+    if (sealedRuns > 0)
+        sb.Append($"<span class=\"cnt\" style=\"color:{TerminalCol}\">{sealedRuns} sealed</span>");
     return sb.ToString();
 }
 
@@ -132,10 +136,11 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
                    $"fill=\"{col}\" fill-opacity=\"{(room ? "0.55" : "0.45")}\"/>");
     }
 
-    // the classified boundary — thick strokes in the class colour, the card's actual subject
+    // the classified boundary — thick strokes in the class colour; a terminal-owned run overrides with the
+    // sealed colour whatever it faces (the never-attach wall), the tinted space still telling what is behind
     foreach (var e in read.Edges)
     {
-        var col = kindColor[e.Faces];
+        var col = e.Terminal ? TerminalCol : kindColor[e.Faces];
         svg.Append($"<line x1=\"{N(PX(e.X1))}\" y1=\"{N(PY(e.Z1))}\" x2=\"{N(PX(e.X2))}\" y2=\"{N(PY(e.Z2))}\" " +
                    $"stroke=\"{col}\" stroke-width=\"2.4\" stroke-linecap=\"square\"/>");
     }
@@ -250,12 +255,17 @@ string Page(List<(string Group, string Title, string Sub, string Svg, string Cou
         <p class="lede">A body's negative spaces escalate by <b>wall count</b>: a <b>notch</b> is wrapped by two
         edges (the L's corner), a <b>bay</b> by three (the staple's recess), a <b>hole</b> is enclosed (the ring's
         void); anything less encased is plain outside. Every boundary edge is stroked in the colour of the space
-        it faces — <b>green edges are free surface</b>, the candidates for docks, hub offers, and the mid band;
-        tinted cells are the spaces themselves. The solid rectangle — today's hub — shows the degenerate case:
-        four free edges, which is the whole current attachment rule. Computed by <code>BodyEdges.Classify</code>
-        from geometry alone; regenerate with <code>dotnet run tools/compose/edge-gallery.cs</code>.</p>
+        it faces — <b>green edges are free surface</b>, the candidates for docks, hub offers, and the mid band —
+        and <b>pink edges are the terminal room's own wall</b>: sealed, never attached (the docking gate's
+        never-dock veto; the clamp's designated seat and the elevation-stage dock are the sanctioned
+        exceptions). A boundary line splits where ownership changes, so a room capping a lane leaves part of
+        the line free and part sealed. Tinted cells are the spaces themselves. The solid rectangle — today's
+        hub — shows the degenerate case: four free edges, which is the whole current attachment rule. Computed
+        by <code>BodyEdges.Classify</code> from geometry alone; regenerate with
+        <code>dotnet run tools/compose/edge-gallery.cs</code>.</p>
         <div class="legend">
           {Chip(NegativeSpaceKind.Open, "free edge — offerable surface")}
+          <span class="chip"><span class="chip-sw" style="background:{TerminalCol}"></span>sealed — the room's wall, never attach</span>
           {Chip(NegativeSpaceKind.Notch, "notch · 2 walls")}
           {Chip(NegativeSpaceKind.Bay, "bay · 3 walls")}
           {Chip(NegativeSpaceKind.Hole, "hole · enclosed")}
