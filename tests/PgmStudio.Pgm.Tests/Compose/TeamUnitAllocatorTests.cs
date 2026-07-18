@@ -102,7 +102,7 @@ public class TeamUnitAllocatorTests
         // law (Cells.HasDiagonalPinch), read on the whole rasterized unit, not a pairwise bounding-box touch, so
         // a hub arm/bar that a neighbour docks reads clean where a third cell bridges the corner. Non-rectangular
         // hubs (an L/U/Ring the allocator now chooses) are multi-piece, so this is the invariant that holds.
-        foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0) })
+        foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
             for (ulong seed = 0; seed < 40; seed++)
             {
                 var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));

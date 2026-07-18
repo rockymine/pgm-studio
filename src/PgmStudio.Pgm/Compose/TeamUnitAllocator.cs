@@ -74,6 +74,17 @@ public static class TeamUnitAllocator
     /// less-crowded hub (else the overhang falls back to a compact inline <c>I</c>).</summary>
     private const double DonutChance = 0.25;
 
+    /// <summary>Of the non-donut rich wools, how often a <b>staple/branch</b> (<c>U</c>/<c>H</c> — the wool reached
+    /// by two legs) rather than a bent <c>L</c>. It docks its full dual-entry mouth, so it needs a hub edge as wide
+    /// as its mouth (~3 lanes); where the edge is too narrow it demotes to an <c>L</c>, so the staple lands mostly
+    /// on the wider hubs.</summary>
+    private const double StapleChance = 0.4;
+
+    /// <summary>The wool's own corridor width in cells — a <b>w2</b> lane (docs/contracts/map-generation.md §4:
+    /// "the lane to the wool is simple, w2"), independent of the map's lane width <c>w</c> (which is 3 on big
+    /// boards). Keeping wool families at w2 makes them compact and lets a staple's 3-lane mouth fit a hub edge.</summary>
+    private const int WoolLaneCells = 2;
+
     /// <summary>How often a non-<c>L</c> wool tucks its room to the <b>side</b> (a compact side-room) rather than
     /// a plain inline back-room lane — for the three shapes to read in a balanced mix. A wool that would run long
     /// side-tucks regardless (the length rule).</summary>
@@ -166,7 +177,8 @@ public static class TeamUnitAllocator
         // the mouth still enters cleanly — where the hub edge admits the wider dock; otherwise it stays a short
         // back-room lane, its depth capped under the 3× bound.
         var rd = ShapeEmitter.RoomDepthCells;
-        var roomDim = Math.Max(w, rd);
+        var woolCw = WoolLaneCells;                                  // the wool lane is always w2 (§4), never the map's w
+        var roomDim = Math.Max(woolCw, rd);
         var maxDepth = 3 * roomDim - 1;
         var budgetCells = env.LandPerTeam / (env.Cell * (double)env.Cell);
         var flexible = Math.Max(0.0, budgetCells - hubU * hubV);
@@ -175,26 +187,31 @@ public static class TeamUnitAllocator
         {
             var side = plan.Wools[i];
             var edgeLen = side is UnitSide.Front or UnitSide.Back ? hubV : hubU;
-            var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen));
+            var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), woolCw, Math.Min(3 * woolCw, edgeLen));
             var budgetDepth = (int)Math.Round(woolShare / narrowAlong);
             var id = $"wool-{(char)('a' + i)}";
             WoolFill fill;
             int along, depth;
-            if (rng.NextBool(BentWoolChance))                        // a rich shape (the seat-and-shift docks it)
+            if (rng.NextBool(BentWoolChance))                        // a rich shape
             {
-                var family = rng.NextBool(DonutChance) ? ShapeFamily.Donut : ShapeFamily.L;   // mostly a bent lane
+                var family = rng.NextBool(DonutChance) ? ShapeFamily.Donut
+                    : rng.NextBool(StapleChance) ? (rng.NextBool(0.5) ? ShapeFamily.U : ShapeFamily.H)
+                    : ShapeFamily.L;
+                (along, depth) = WoolBoxEmitter.MouthBox(family, woolCw);
+                // a full-mouth staple/branch the hub edge can't hold → a bent L (the seat-and-shift docks any width)
+                if (!Overhangs(family) && along > edgeLen)
+                    (family, (along, depth)) = (ShapeFamily.L, WoolBoxEmitter.MouthBox(ShapeFamily.L, woolCw));
                 fill = new WoolFill(family, RoomPlacement.Inline, false);
-                (along, depth) = WoolBoxEmitter.MouthBox(family, w, fill.Placement);
             }
             else if (budgetDepth > maxDepth || rng.NextBool(SideRoomChance))   // would run long, or a share → side-tuck
             {
                 fill = new WoolFill(ShapeFamily.I, RoomPlacement.SideTuck, false);
-                (along, depth) = WoolBoxEmitter.MouthBox(fill.Family, w, fill.Placement);
+                (along, depth) = WoolBoxEmitter.MouthBox(fill.Family, woolCw, fill.Placement);
             }
             else                                                    // a short back-room lane
             {
                 fill = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
-                (along, depth) = (w, Math.Clamp(budgetDepth, rd + 1, maxDepth));
+                (along, depth) = (woolCw, Math.Clamp(budgetDepth, rd + 1, maxDepth));
             }
             demands.Add(new Demand(side, BoxKind.Wool, depth, along, id, fill));
         }
@@ -242,29 +259,37 @@ public static class TeamUnitAllocator
             var edge = SideEdge(frame, d.Side);
             var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
             if (!runsByEdge.TryGetValue(edge, out var runs)) return null;      // the form leaves this edge empty
+            var offerW = d.Kind == BoxKind.Wool ? WoolLaneCells : w;           // the wool lane is w2; spawn/frontline read w
 
             // a single-entry rich wool docks by the seat-and-shift: its narrow entry lands on a run and the wider
             // body overhangs into free space. Every other neighbour (I, the dual-entry staple, spawn, frontline)
             // docks its full along-edge.
             if (d.Wool is { } rich && Overhangs(rich.Family))
             {
-                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, w, rng) is { } placed)
+                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, offerW, rng) is { } placed)
                 {
                     var (box, iface, flip) = placed;
                     boxes.Add(new Box(d.Id, d.Kind, box, d.Along * d.Depth, Wool: rich with { Flip = flip }));
-                    joints.Add(HubJointFrom("hub", d.Id, iface, w));
+                    joints.Add(HubJointFrom("hub", d.Id, iface, offerW));
                     continue;
                 }
                 // the overhang couldn't fit this hub (crowded / narrow) → a compact inline I rather than fail
-                d = d with { Along = w, Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false) };
+                d = d with { Along = offerW, Depth = Math.Min(d.Depth, 3 * ShapeEmitter.RoomDepthCells - 1),
+                    Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false) };
             }
 
             occupied.TryAdd(edge, []);
-            if (SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng) is not { } seat)
-                return null;
-            occupied[edge].Add((seat, d.Along));
-            boxes.Add(new Box(d.Id, d.Kind, NeighbourRect(edge, seat, d.Depth, d.Along, hubRect), d.Along * d.Depth, Wool: d.Wool));
-            joints.Add(HubJoint("hub", d.Id, edge, seat, d.Along, w));
+            var seat = SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng);
+            if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth didn't fit → a compact inline I does
+            {
+                d = d with { Along = offerW, Depth = Math.Min(d.Depth, 3 * ShapeEmitter.RoomDepthCells - 1),
+                    Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false) };
+                seat = SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng);
+            }
+            if (seat is not { } s) return null;
+            occupied[edge].Add((s, d.Along));
+            boxes.Add(new Box(d.Id, d.Kind, NeighbourRect(edge, s, d.Depth, d.Along, hubRect), d.Along * d.Depth, Wool: d.Wool));
+            joints.Add(HubJoint("hub", d.Id, edge, s, d.Along, offerW));
         }
         return (boxes, joints);
     }

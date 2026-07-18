@@ -13,6 +13,7 @@ var presets = new[]
     ("Small board", "6 players · 700 land", 6, 700.0),
     ("Mid board", "8 players · 1600 land", 8, 1600.0),
     ("Big board", "12 players · 2800 land", 12, 2800.0),
+    ("Huge board", "20 players · 3800 land — cap-6 hubs, staple/branch wools", 20, 3800.0),
 };
 const int seeds = 16;
 
