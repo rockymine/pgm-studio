@@ -1,4 +1,5 @@
 using fNbt;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Minecraft.Tests;
@@ -16,7 +17,7 @@ public class MonumentSuggesterTests
         var b = i >> 1;
         p[b] = (i & 1) == 0 ? (byte)((p[b] & 0xF0) | (v & 0x0F)) : (byte)((p[b] & 0x0F) | ((v & 0x0F) << 4));
     }
-    private static readonly ScanBox Whole = new(0, 0, 0, 15, 15, 15);
+    private static readonly BlockBox Whole = new(0, 0, 0, 15, 15, 15);
 
     // ---- text classifier (pure) ----
 
@@ -107,7 +108,7 @@ public class MonumentSuggesterTests
     [Test]
     public async Task Box_excludes_signs_outside_it()
     {
-        var box = new ScanBox(0, 0, 0, 3, 15, 15);   // the sign and its predicted cell (x=5) are outside MaxX=3
+        var box = new BlockBox(0, 0, 0, 3, 15, 15);   // the sign and its predicted cell (x=5) are outside MaxX=3
         var none = MonumentSuggester.Suggest([SignBelowChunk()], box, new MonumentStyle(PedestalKind.Bedrock, LabelKind.SignBelow));
         await Assert.That(none).IsEmpty();
     }

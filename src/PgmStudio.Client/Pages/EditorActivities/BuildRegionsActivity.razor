@@ -12,10 +12,9 @@
       @if (step == 1)
       {
         <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Maximum Build Height</h2>
+          <SectionHeader Title="Maximum Build Height">
             <span class="badge badge--dim">Step 1</span>
-          </div>
+          </SectionHeader>
           <p class="section-desc">Maximum Y level above which no block placement is permitted. Leave blank to enforce no vertical ceiling.</p>
           <div class="field">
             <label class="field-label">Blocks</label>
@@ -31,10 +30,9 @@
       else
       {
         <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Build Region</h2>
+          <SectionHeader Title="Build Region">
             <span class="badge badge--dim">Step 2</span>
-          </div>
+          </SectionHeader>
           @if (groups is null) { <div class="list-empty">Loading…</div> }
           else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selSet" OnSelect="OnTreeSelect" /> }
         </section>

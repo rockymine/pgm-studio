@@ -4,6 +4,7 @@ using LinqToDB.Data;
 using Parquet.Serialization;
 using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Data.Features;
@@ -110,12 +111,12 @@ public sealed class WorldFeatureWriter(PgmDb db)
     }
 
     /// <summary>The whole-world scan box for the monument gather (full chunk extent × full height).</summary>
-    private static ScanBox WorldBox(IReadOnlyList<AnvilRegion.Chunk> chunks)
+    private static BlockBox WorldBox(IReadOnlyList<AnvilRegion.Chunk> chunks)
     {
-        if (chunks.Count == 0) return new ScanBox(0, 0, 0, 0, 0, 0);
+        if (chunks.Count == 0) return new BlockBox(0, 0, 0, 0, 0, 0);
         int minX = chunks.Min(c => c.ChunkX) * 16, maxX = chunks.Max(c => c.ChunkX) * 16 + 15;
         int minZ = chunks.Min(c => c.ChunkZ) * 16, maxZ = chunks.Max(c => c.ChunkZ) * 16 + 15;
-        return new ScanBox(minX, 0, minZ, maxX, 255, maxZ);
+        return new BlockBox(minX, 0, minZ, maxX, 255, maxZ);
     }
 
     /// <summary>Persist the world-derived artifacts: the <b>Surface</b> layer → layer.parquet (the visual

@@ -9,10 +9,9 @@
   <div class="workspace-sidebar">
     <div class="workspace-scroll">
       <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Teams</h2>
+        <SectionHeader Title="Teams">
           <button class="action-btn" @onclick="AddTeam">+ Add Team</button>
-        </div>
+        </SectionHeader>
         <div class="panel-list">
           @if (teams.Count == 0)
           {
@@ -45,7 +44,7 @@
       </section>
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Points</h2></div>
+        <SectionHeader Title="Spawn Points" />
         <div class="panel-list geo-icons-flush">
           @if (!SpawnPoints.Any()) { <div class="list-empty">No spawn points.</div> }
           @foreach (var r in SpawnPoints)
@@ -62,7 +61,7 @@
       </section>
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Protection</h2></div>
+        <SectionHeader Title="Spawn Protection" />
         <div class="panel-list geo-icons-flush">
           @if (!SpawnProtection.Any()) { <div class="list-empty">No protection regions.</div> }
           @foreach (var r in SpawnProtection)
@@ -79,7 +78,7 @@
       @if (draftRegions.Count > 0)
       {
         <section class="panel-section">
-          <div class="section-header section-header--ruled"><h2 class="section-title">Draft</h2></div>
+          <SectionHeader Title="Draft" />
           <div class="panel-list geo-icons-flush">
             @foreach (var r in draftRegions)
             {
@@ -106,7 +105,7 @@
       <div class="panel-section">
         @if (selTeam is not null && CurrentTeam is { } team)
         {
-          <div class="section-header section-header--ruled"><h2 class="section-title">Team</h2></div>
+          <SectionHeader Title="Team" />
           <div class="field">
             <label class="field-label">ID <span class="field-required">*</span></label>
             <input class="field-input" type="text" spellcheck="false" value="@team.Id" @onchange="e => RenameTeam(team, e.Value?.ToString())" />
@@ -152,7 +151,7 @@
         {
           <RegionInspector Node="SpawnNode" Slug="@Slug" OnSetCoord="OnSetCoord" />
           <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Assignment</h2></div>
+            <SectionHeader Title="Spawn Assignment" />
             <div class="field">
               <label class="field-label">Team</label>
               <select class="field-input" value="@spawnTeam" @onchange="async e => { spawnTeam = e.Value?.ToString() ?? string.Empty; await SaveSpawn(); }">

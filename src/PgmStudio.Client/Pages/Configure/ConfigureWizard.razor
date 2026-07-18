@@ -96,10 +96,9 @@
     <div class="workspace-sidebar">
       <div class="workspace-scroll">
         <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">@Phase.Title</h2>
+          <SectionHeader Title="@Phase.Title">
             <span class="badge badge--dim">@Phase.Task</span>
-          </div>
+          </SectionHeader>
           <p class="section-desc">
             @if (Phase.SubSteps.Length == 0)
             {

@@ -9,10 +9,9 @@
   <div class="workspace-sidebar">
     <div class="workspace-scroll">
       <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Wools</h2>
+        <SectionHeader Title="Wools">
           <button class="action-btn" disabled="@(NextWoolColor() is null)" @onclick="AddWool">+ Add</button>
-        </div>
+        </SectionHeader>
         <div class="panel-list">
           @if (wools.Count == 0) { <div class="list-empty">No wools.</div> }
           @foreach (var w in wools)
@@ -26,7 +25,7 @@
       </section>
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Wool Regions</h2></div>
+        <SectionHeader Title="Wool Regions" />
         @if (groups is null) { <div class="list-empty">Loading…</div> }
         else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selRegionSet" OnSelect="OnTreeSelect" /> }
       </section>
@@ -85,10 +84,9 @@
 
           @* Monuments *@
           <section class="panel-section">
-            <div class="section-header section-header--ruled">
-              <h2 class="section-title">Monuments</h2>
+            <SectionHeader Title="Monuments">
               <button class="action-btn" disabled="@(NextMonumentTeam(wool) is null)" @onclick="() => AddMonument(wool)">+ Add</button>
-            </div>
+            </SectionHeader>
             @if (wool.Monuments.Count > 0)
             {
               <div class="filter-group-options filter-group-options--mt">

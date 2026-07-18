@@ -1,0 +1,16 @@
+@namespace PgmStudio.Client.Components
+
+@* The ruled section header repeated across the editor activities and configure phases: a title (with an
+   optional required asterisk) followed by any trailing controls — an "+ Add" action, a "Step N" badge —
+   passed as child content. Emits the same markup the hand-written headers did. *@
+
+<div class="section-header section-header--ruled">
+    <h2 class="section-title">@Title@if (Required) { <span class="field-required">*</span> }</h2>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

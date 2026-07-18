@@ -29,6 +29,24 @@ public sealed class RegionNode
 
     public bool HasKids => Children.Count > 0 || Source is not null;
 
+    /// <summary>Add this node's id and every child-descendant id to <paramref name="outSet"/>. The
+    /// transform <see cref="Source"/> is intentionally excluded — a selection scopes to the compound's own
+    /// members, not the geometry it mirrors from.</summary>
+    public void CollectDescendantIds(HashSet<string> outSet)
+    {
+        if (!string.IsNullOrEmpty(Id)) outSet.Add(Id);
+        foreach (var c in Children) c.CollectDescendantIds(outSet);
+    }
+
+    /// <summary>Index this node and every descendant — children <em>and</em> the transform
+    /// <see cref="Source"/> — into <paramref name="map"/> by id (first writer wins, via <c>TryAdd</c>).</summary>
+    public void IndexInto(Dictionary<string, RegionNode> map)
+    {
+        if (!string.IsNullOrEmpty(Id)) map.TryAdd(Id, this);
+        foreach (var c in Children) c.IndexInto(map);
+        Source?.IndexInto(map);
+    }
+
     public static RegionNode Parse(JsonElement e)
     {
         var n = new RegionNode

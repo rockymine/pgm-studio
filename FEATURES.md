@@ -102,6 +102,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **`SmartSuggestion` component** + symmetry-derived intelligent team creation (reads `/symmetry`,
   suggests 2/4 palette teams). (C15)
 - **`Toast` error component** — shared across activities. (from C12)
+- **`SectionHeader` component + `MinecraftPlayer` author-resolve helper** — the ruled section header
+  (title + optional required asterisk + trailing action/badge slot) is now one `Components/SectionHeader`
+  used across the editor activities and configure phases (~55 call sites de-duplicated); the Overview
+  editor and the Configure Info phase share `Models/MinecraftPlayer` for the mc-heads avatar +
+  username↔uuid Mojang resolve they each hand-rolled. (from C12)
+- **Editor activity code-behind dedup** — the repeated `Post/Patch/Delete/Send` HTTP trio (Objective /
+  Teams / Build / Regions activities) collapses to one `Models/MapApi` write helper (URL + error-body
+  decode), and the copy-pasted region-tree walkers become `RegionNode.CollectDescendantIds` /
+  `RegionNode.IndexInto`. (C14)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)
@@ -174,6 +183,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   **analysis** oracles (`--categorize`/`--buildability`/`--traversability`/`--wool`/`--extract`/`--islands`/
   `--authoring`) compare derivations **both** sides own, were never implicated in this, and are untouched.
   (B30)
+- **Unified inclusive block AABB (`Domain.BlockBox`)** — the two identical inclusive integer boxes
+  (`ScanBox` in `MonumentSuggester`, `BlockBox` in `ObjectiveStamper`) are now one `Domain.BlockBox`
+  carrying the union of helpers (`Width/Height/Depth/CuboidMax` + `Contains/Expand/IntersectsChunk`).
+  `Api.Services.StructureBox` stays separate — it is a drawing frame with exclusive maxes. (B33)
 - **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)
 - **`RegionBoundsDeriver`** — compound/transform `bounds_2d` recomputed on read. (B2)
 - **Configure endpoints** — `state` / `scan-layer` / `exclude-island` / `exclude-block` /

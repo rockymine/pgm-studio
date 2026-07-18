@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Client.Models;
 
 namespace PgmStudio.Client.Pages.EditorActivities;
 
@@ -14,8 +15,6 @@ public partial class OverviewActivity : IAsyncDisposable
 
     private ElementReference svgRef, wrapRef;
     private IJSObjectReference? canvasHandle;
-
-    private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
 
     private sealed class Person { public string Uuid = ""; public string Name = ""; public string Contribution = ""; public bool Error; }
 
@@ -60,13 +59,12 @@ public partial class OverviewActivity : IAsyncDisposable
     /// <summary>Resolve a stored uuid to its current username for display (does not mark dirty).</summary>
     private async Task ResolveByUuid(Person p)
     {
-        try
+        if (await MinecraftPlayer.ResolveAsync(Http, p.Uuid) is { } r)
         {
-            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?uuid={Uri.EscapeDataString(p.Uuid)}");
-            p.Name = Str(r, "name");
+            p.Name = r.Name;
             StateHasChanged();
         }
-        catch { /* leave the uuid showing if Mojang is unreachable / renamed-away */ }
+        // else leave the uuid showing if Mojang is unreachable / renamed-away
     }
 
     /// <summary>On blur of a name field: look the typed value up via Mojang, storing the canonical
@@ -75,14 +73,9 @@ public partial class OverviewActivity : IAsyncDisposable
     {
         var val = p.Name.Trim();
         if (val.Length == 0) { p.Uuid = ""; p.Error = false; return; }
-        var isUuid = val.Contains('-') && val.Length > 30;
-        var q = isUuid ? $"uuid={Uri.EscapeDataString(val)}" : $"name={Uri.EscapeDataString(val)}";
-        try
-        {
-            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?{q}");
-            p.Uuid = Str(r, "uuid"); p.Name = Str(r, "name"); p.Error = false;
-        }
-        catch { p.Uuid = ""; p.Error = true; }
+        if (await MinecraftPlayer.ResolveAsync(Http, val) is { } r)
+        { p.Uuid = r.Uuid; p.Name = r.Name; p.Error = false; }
+        else { p.Uuid = ""; p.Error = true; }
         Dirty(); StateHasChanged();
     }
 

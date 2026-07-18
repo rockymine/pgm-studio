@@ -9,7 +9,7 @@ new-map-authoring.md` §Wools). The pattern study behind it (no code) is `docs/m
 
 ## What it does
 
-Given the world (Anvil region chunks), a `ScanBox` (the region the author boxes around the monument
+Given the world (Anvil region chunks), a `BlockBox` (the region the author boxes around the monument
 area), and a `MonumentStyle`, return ranked `MonumentSuggestion`s — each a predicted **air** monument
 block, an inferred wool colour, a confidence, and the evidence it came from. The author confirms/places
 them (a monument is air on a well-formed map: PGM marks the wool "placed" when an objective wool block
@@ -21,12 +21,13 @@ the style lets the detector require a specific signature — the main lever for 
 
 ## Inputs
 
-### `ScanBox`
-Inclusive world-coordinate box: `(MinX, MinY, MinZ, MaxX, MaxY, MaxZ)`. The author draws it around a
-monument cluster. It bounds both the block scan and the candidate anchors. Call `Suggest` **once per
-box** — if a map's monuments fall in separate groups, the author boxes (and the UI calls) each group.
-`Expand(m)` and `Contains(x,y,z)` are provided; the scan internally adds a 2-block margin so an anchor
-at the box edge still resolves.
+### `BlockBox` (the scan region)
+Inclusive world-coordinate box: `(MinX, MinY, MinZ, MaxX, MaxY, MaxZ)` — the shared inclusive-AABB value
+type (`PgmStudio.Domain.BlockBox`). The author draws it around a monument cluster; here it bounds both the
+block scan and the candidate anchors. Call `Suggest` **once per box** — if a map's monuments fall in
+separate groups, the author boxes (and the UI calls) each group. `Expand(m)`, `Contains(x,y,z)` and
+`IntersectsChunk(cx,cz)` are provided; the scan internally adds a 2-block margin so an anchor at the box
+edge still resolves.
 
 ### `MonumentStyle` — the three menu dimensions
 All default to `Any`. The UI presents one dropdown per dimension; the options are the enum values.
@@ -89,7 +90,7 @@ signs raise the confidence.
 
 ```csharp
 List<MonumentSuggestion> MonumentSuggester.Suggest(
-    IEnumerable<AnvilRegion.Chunk> chunks, ScanBox box, MonumentStyle style);
+    IEnumerable<AnvilRegion.Chunk> chunks, BlockBox box, MonumentStyle style);
 ```
 
 Helpers: `MonumentSuggester.IsMonumentLabel(text)`, `ColorFromText(text)`, `ClassifyPedestal(belowId)` /
@@ -111,7 +112,7 @@ dotnet run --project tools/PgmStudio.RoundTrip -- --suggest-monuments-corpus [sa
 
 ## UI mapping (Monuments step)
 
-1. Author **boxes the monument area** on the canvas → `ScanBox` (one call per boxed group).
+1. Author **boxes the monument area** on the canvas → `BlockBox` (one call per boxed group).
 2. Author picks the **style** — three dropdowns (pedestal / label / cap), defaulting to `Any`.
 3. Run → suggestions render as **ghost monument markers** (colour + confidence + evidence on hover);
    the author **confirms** (places the monument block, the capturing team derived by orbit per the Wools

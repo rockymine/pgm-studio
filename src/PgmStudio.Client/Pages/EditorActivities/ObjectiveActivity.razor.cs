@@ -117,15 +117,9 @@ public partial class ObjectiveActivity
     {
         if (id is null || !nodeMap.TryGetValue(id, out var node)) { await Deselect(); return; }
         selRegion = id; selWool = null;
-        selRegionSet = new(); CollectDescendants(node, selRegionSet);
+        selRegionSet = new(); node.CollectDescendantIds(selRegionSet);
         if (canvas is not null) await canvas.SetSelectionAsync(selRegionSet);
         StateHasChanged();
-    }
-
-    private static void CollectDescendants(RegionNode n, HashSet<string> outSet)
-    {
-        if (!string.IsNullOrEmpty(n.Id)) outSet.Add(n.Id);
-        foreach (var c in n.Children) CollectDescendants(c, outSet);
     }
 
     private async Task Deselect() { selWool = null; selRegion = null; selRegionSet = new(); if (canvas is not null) await canvas.SetSelectionAsync(Array.Empty<string>()); StateHasChanged(); }
@@ -242,18 +236,14 @@ public partial class ObjectiveActivity
 
     // ── http ────────────────────────────────────────────────────────────────────
 
-    private async Task<bool> Post(string path, object body) => await Send(Http.PostAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Patch(string path, object body) => await Send(Http.PatchAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Delete(string path) => await Send(Http.DeleteAsync($"api/map/{Slug}/{path}"));
-    private async Task<bool> Send(Task<HttpResponseMessage> call)
+    private async Task<bool> Post(string path, object body) => await Send(MapApi.PostAsync(Http, Slug, path, body));
+    private async Task<bool> Patch(string path, object body) => await Send(MapApi.PatchAsync(Http, Slug, path, body));
+    private async Task<bool> Delete(string path) => await Send(MapApi.DeleteAsync(Http, Slug, path));
+    private async Task<bool> Send(Task<string?> call)
     {
-        error = null;
-        var resp = await call;
-        if (resp.IsSuccessStatusCode) return true;
-        try { var d = await resp.Content.ReadFromJsonAsync<JsonElement>(); error = d.TryGetProperty("error", out var e) ? e.GetString() : $"error {(int)resp.StatusCode}"; }
-        catch { error = $"error {(int)resp.StatusCode}"; }
-        StateHasChanged();
-        return false;
+        error = await call;
+        if (error is not null) StateHasChanged();
+        return error is null;
     }
 
     // ── parse ─────────────────────────────────────────────────────────────────────

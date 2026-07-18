@@ -10,10 +10,9 @@
   <div class="workspace-sidebar">
     <div class="workspace-scroll">
       <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Islands</h2>
+        <SectionHeader Title="Islands">
           <span class="badge badge--dim">@islands.Count detected</span>
-        </div>
+        </SectionHeader>
         <p class="section-desc">Exclude islands that aren't part of the playable layout (observer towers,
           decor). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
         <div class="panel-list">
@@ -30,7 +29,7 @@
         </div>
       </section>
       <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Islands</h2></div>
+        <SectionHeader Title="Excluded Islands" />
         <div class="panel-list">
           @if (ExcludedList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
           @foreach (var isl in ExcludedList)

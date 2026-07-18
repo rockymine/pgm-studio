@@ -273,18 +273,14 @@ public partial class TeamsActivity
 
     // ── http helpers ────────────────────────────────────────────────────────────
 
-    private async Task<bool> Post(string path, object body) => await Send(Http.PostAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Patch(string path, object body) => await Send(Http.PatchAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Delete(string path) => await Send(Http.DeleteAsync($"api/map/{Slug}/{path}"));
-    private async Task<bool> Send(Task<HttpResponseMessage> call)
+    private async Task<bool> Post(string path, object body) => await Send(MapApi.PostAsync(Http, Slug, path, body));
+    private async Task<bool> Patch(string path, object body) => await Send(MapApi.PatchAsync(Http, Slug, path, body));
+    private async Task<bool> Delete(string path) => await Send(MapApi.DeleteAsync(Http, Slug, path));
+    private async Task<bool> Send(Task<string?> call)
     {
-        error = null;
-        var resp = await call;
-        if (resp.IsSuccessStatusCode) return true;
-        try { var d = await resp.Content.ReadFromJsonAsync<JsonElement>(); error = d.TryGetProperty("error", out var e) ? e.GetString() : $"error {(int)resp.StatusCode}"; }
-        catch { error = $"error {(int)resp.StatusCode}"; }
-        StateHasChanged();
-        return false;
+        error = await call;
+        if (error is not null) StateHasChanged();
+        return error is null;
     }
 
     // ── parse helpers ────────────────────────────────────────────────────────────

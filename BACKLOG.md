@@ -58,7 +58,7 @@ highlight); these are the parked / dormant / deferred slices.
 ## Editor & canvas infrastructure (C / CV)
 
 Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit editor
-(`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
+(`/maps/{id}/edit`). `C12` is cross-cutting (serves both surfaces); `C9`/`C11`
 are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
@@ -66,14 +66,10 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
   in Build Regions; the Regions/Teams/Objective inspectors are **unwired** (rename/delete silently
   no-op). Wire all three + verify rename/delete/coord-patch end-to-end.
-- [ ] **C12 — Extract shared Blazor components.** (`Toast`/ErrorToast already done.) No `Shared/`
-  component directory exists yet. Remaining, by payoff: **`AuthorDisplay`** (cross-tool reuse with S2 —
-  bundle the name↔uuid resolve), the **`Workspace`** layout shell (sidebar/canvas/inspector slots,
-  repeated in 6 activities), **`SectionHeader`** (ruled title + "+ Add", ~17 uses), **`ActivityRail`**
-  (extract when S2 lands).
-- [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
-  (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
-  a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
+- [ ] **C12 — Extract shared Blazor components (remaining).** `SectionHeader` + the `MinecraftPlayer`
+  author-resolve helper shipped (see FEATURES). Remaining, by payoff: the **`Workspace`** layout shell
+  (sidebar/canvas/inspector slots, repeated across ~6 activities **and** ~16 configure phases) and
+  **`ActivityRail`** (the rail + shared logo box; extract the templated item model when S2 lands).
 
 ## Backend, pipeline & internals (B / P / A)
 
@@ -86,17 +82,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
-- [ ] **B33 — Three box types, two of them the same shape.** `PgmStudio.Minecraft` now holds two identical
-  inclusive integer AABBs — `ScanBox` (`MonumentSuggester`: the region the author boxed, with
-  `Contains`/`Expand`/`IntersectsChunk`) and `BlockBox` (`ObjectiveStamper`: a stamped structure's volume,
-  with `Width`/`Height`/`Depth`/`CuboidMax`). Same six fields, same convention, different method sets —
-  they're one value type wearing two role names. (`Api.Services.StructureBox` is **not** a third copy and
-  should stay separate: it is a *drawing* frame with exclusive maxes plus `Kind`/`Color`, a different
-  convention for a different job — the collision with it is what surfaced this.) Unify the two into one
-  inclusive AABB with the union of the helpers. Deliberately **not** done inside `B24d`: it means editing
-  `MonumentSuggester`'s 15 call sites, and that detector is corpus-validated at 96.6% precision — not
-  something to churn as a drive-by during unrelated work. Low priority: unlike the symmetry duplication this
-  is a value record, so there is no algorithm here that can silently drift.
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is

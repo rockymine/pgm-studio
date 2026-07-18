@@ -11,7 +11,7 @@
     <div class="workspace-scroll">
       <section class="panel-section">
         @{ var rows = Rows(); }
-        <div class="section-header section-header--ruled"><h2 class="section-title">Wool rooms</h2></div>
+        <SectionHeader Title="Wool rooms" />
         <p class="section-desc">With the <strong>rectangle tool</strong>, drag the room around a wool's source —
           draw several for a multi-part room. The symmetry fills the partner wools. Click a rectangle to select
           it, then drag the handles on the canvas to resize.</p>
@@ -85,10 +85,9 @@
           @if (sel.Authored)
           {
             <section class="panel-section">
-              <div class="section-header section-header--ruled">
-                <h2 class="section-title">Auto-wiring</h2>
+              <SectionHeader Title="Auto-wiring">
                 <span class="badge badge--dim">derived</span>
-              </div>
+              </SectionHeader>
               <div class="panel-list">
                 <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = not-@TeamSlug(OwnerSlug(sel.Color))</span><span class="list-tag">room defense</span></div>
                 <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = not-@TeamSlug(OwnerSlug(sel.Color))</span><span class="list-tag">build/break</span></div>

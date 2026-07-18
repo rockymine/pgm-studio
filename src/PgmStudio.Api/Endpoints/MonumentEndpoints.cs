@@ -5,6 +5,7 @@ using LinqToDB.Async;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm;
@@ -45,14 +46,14 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db) : 
         }).ToList(), ct);
     }
 
-    private static bool TryParseBox(string s, out ScanBox box)
+    private static bool TryParseBox(string s, out BlockBox box)
     {
         box = default;
         var p = s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (p.Length != 6) return false;
         var n = new int[6];
         for (var i = 0; i < 6; i++) if (!int.TryParse(p[i], out n[i])) return false;
-        box = new ScanBox(
+        box = new BlockBox(
             Math.Min(n[0], n[3]), Math.Min(n[1], n[4]), Math.Min(n[2], n[5]),
             Math.Max(n[0], n[3]), Math.Max(n[1], n[4]), Math.Max(n[2], n[5]));
         return true;

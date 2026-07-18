@@ -9,9 +9,7 @@
   <div class="workspace-scroll" style="max-width: 720px; margin: 0 auto;">
 
     <section class="panel-section">
-      <div class="section-header section-header--ruled">
-        <h2 class="section-title">Identity</h2>
-      </div>
+      <SectionHeader Title="Identity" />
       <div class="section-body">
         <div class="field">
           <label class="field-label">Map name <span class="field-required">*</span></label>
@@ -38,10 +36,9 @@
     </section>
 
     <section class="panel-section">
-      <div class="section-header section-header--ruled">
-        <h2 class="section-title">Authors <span class="field-required">*</span></h2>
+      <SectionHeader Title="Authors" Required="true">
         <button class="action-btn" @onclick="AddAuthor">+ Add</button>
-      </div>
+      </SectionHeader>
       <div class="author-list">
         @foreach (var p in authors) { @PersonRow(p) }
       </div>
@@ -50,10 +47,9 @@
     </section>
 
     <section class="panel-section">
-      <div class="section-header section-header--ruled">
-        <h2 class="section-title">Contributors</h2>
+      <SectionHeader Title="Contributors">
         <button class="action-btn" @onclick="AddContributor">+ Add</button>
-      </div>
+      </SectionHeader>
       @if (contributors.Count == 0)
       {
         <p class="section-desc">Optional — people who helped but aren't lead authors.</p>
@@ -76,7 +72,7 @@
   {
     <div class="author-row">
       <img class="author-avatar" width="16" height="16" alt=""
-           src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
+           src="@MinecraftPlayer.Avatar(p.Uuid)" />
       <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
              placeholder="Minecraft username" spellcheck="false"
              title="@(p.Error ? "No Minecraft account with this username" : p.Uuid)"

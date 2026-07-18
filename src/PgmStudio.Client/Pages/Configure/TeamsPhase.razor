@@ -26,10 +26,9 @@
       }
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Teams</h2>
+        <SectionHeader Title="Teams">
           <button class="action-btn" @onclick="AddTeam">+ Add</button>
-        </div>
+        </SectionHeader>
         <div class="panel-list">
           @if (teams.Count == 0) { <div class="list-empty">No teams yet — accept the suggestion or add one.</div> }
           @for (var i = 0; i < teams.Count; i++)
@@ -53,10 +52,9 @@
       </section>
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Island Assignment</h2>
+        <SectionHeader Title="Island Assignment">
           <span class="badge badge--dim">authoring help</span>
-        </div>
+        </SectionHeader>
         <p class="section-desc">Select a team above, then click its islands on the canvas to tag them.
           Tagging tints them and fixes the orbit order; untagged islands stay neutral (a contested centre).</p>
         @if (teams.Count > 0)
@@ -75,7 +73,7 @@
       </section>
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Team Size &amp; Kit</h2></div>
+        <SectionHeader Title="@("Team Size & Kit")" />
         <div class="section-body">
           <div class="field">
             <label class="field-label">Max Players <span class="list-tag">all teams</span></label>

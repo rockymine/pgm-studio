@@ -20,10 +20,9 @@
       <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
 
         <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Open a world folder</h2>
+          <SectionHeader Title="Open a world folder">
             <span class="badge badge--success">no map.xml needed</span>
-          </div>
+          </SectionHeader>
           <p class="section-desc">Worlds that have terrain but no <code>map.xml</code> yet — the new-map
             candidates. Pick one to scan it.</p>
 
@@ -62,10 +61,9 @@
         </section>
 
         <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">From a download link</h2>
+          <SectionHeader Title="From a download link">
             <span class="badge badge--dim">Overcast / S3 zip</span>
-          </div>
+          </SectionHeader>
           <p class="section-desc">Paste a link to a world download (an Overcast / S3 <code>…/download</code>
             zip) and the studio fetches and imports it server-side — no local files needed. Only
             allow-listed hosts can be fetched.</p>
@@ -95,7 +93,7 @@
       <div class="workspace-sidebar">
         <div class="workspace-scroll">
           <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Files</h2></div>
+            <SectionHeader Title="Files" />
             <div class="panel-list">
               <div class="list-row list-row--compact list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="folder-open"></i></span>
@@ -114,7 +112,7 @@
           </section>
 
           <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Detected</h2></div>
+            <SectionHeader Title="Detected" />
             <div class="panel-list">
               @foreach (var f in Findings.Where(f => f.Group == "detected"))
               {
@@ -138,7 +136,7 @@
           </section>
 
           <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Already built</h2></div>
+            <SectionHeader Title="Already built" />
             <div class="panel-list">
               @foreach (var f in Findings.Where(f => f.Group == "built"))
               {
@@ -237,10 +235,9 @@
     <div class="workspace" @key="step">
       <div class="workspace-scroll" style="max-width: 920px; margin: 0 auto;">
         <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">What happens next</h2>
+          <SectionHeader Title="What happens next">
             <span class="badge badge--dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymmetryInfo.Label(symType)}" : "")</span>
-          </div>
+          </SectionHeader>
           <p class="section-desc">Six guided phases take <strong>@importedSlug</strong> from terrain to a
             PGM-ready <code>map.xml</code> — and the studio does the heavy lifting at every step.</p>
 

@@ -1,8 +1,7 @@
 using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Client.Models;
 
 namespace PgmStudio.Client.Pages.Configure;
 
@@ -15,9 +14,6 @@ public partial class InfoPhase
 {
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
-
-    // 1×1 transparent gif — the avatar placeholder before a username resolves (same as the editor).
-    private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
 
     private sealed class Person { public string Name = ""; public string Uuid = ""; public bool Error; }
 
@@ -75,12 +71,10 @@ public partial class InfoPhase
     {
         var val = p.Name.Trim();
         if (val.Length == 0) { p.Uuid = ""; p.Error = false; return; }
-        try
-        {
-            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?name={Uri.EscapeDataString(val)}");
-            p.Uuid = Str(r, "uuid"); p.Name = Str(r, "name"); p.Error = false;
-        }
-        catch { p.Uuid = ""; p.Error = true; }   // unknown username (or Mojang unreachable) → flagged, kept out of the intent
+        // unknown username (or Mojang unreachable) → flagged, kept out of the intent
+        if (await MinecraftPlayer.ResolveAsync(Http, val) is { } r)
+        { p.Uuid = r.Uuid; p.Name = r.Name; p.Error = false; }
+        else { p.Uuid = ""; p.Error = true; }
     }
 
     private void Sync()
@@ -111,7 +105,4 @@ public partial class InfoPhase
         else contributors.Remove(p);
         Sync();
     }
-
-    private static string Str(JsonElement e, string key)
-        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
 }

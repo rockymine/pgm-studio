@@ -10,7 +10,7 @@
     <div class="workspace-scroll">
       <section class="panel-section">
         @{ var rows = Rows(); }
-        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Protection</h2></div>
+        <SectionHeader Title="Spawn Protection" />
         <p class="section-desc">With the <strong>rectangle tool</strong>, drag a zone around a spawn — draw
           several for a multi-part zone. The confirmed symmetry orbits it onto the other teams. Click a
           rectangle to select it, then drag the handles on the canvas to resize.</p>
@@ -83,10 +83,9 @@
           </section>
 
           <section class="panel-section">
-            <div class="section-header section-header--ruled">
-              <h2 class="section-title">Auto-wiring</h2>
+            <SectionHeader Title="Auto-wiring">
               <span class="badge badge--dim">derived</span>
-            </div>
+            </SectionHeader>
             <div class="panel-list">
               <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = only-@TeamSlug(sel.Team)</span></div>
               <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = never</span></div>

@@ -9,9 +9,7 @@
   <div class="workspace-sidebar">
     <div class="workspace-scroll">
       <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Map Identity</h2>
-        </div>
+        <SectionHeader Title="Map Identity" />
         <div class="field">
           <label class="field-label" for="ov-name">Map Name <span class="field-required">*</span></label>
           <input id="ov-name" class="field-input" type="text" placeholder="My CTW Map"
@@ -40,20 +38,18 @@
       </section>
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Authors</h2>
+        <SectionHeader Title="Authors">
           <button class="action-btn" @onclick="() => AddPerson(authors)">+ Add</button>
-        </div>
+        </SectionHeader>
         <div class="author-list">
           @foreach (var p in authors) { @PersonRow(p, authors) }
         </div>
       </section>
 
       <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Contributors</h2>
+        <SectionHeader Title="Contributors">
           <button class="action-btn" @onclick="() => AddPerson(contributors)">+ Add</button>
-        </div>
+        </SectionHeader>
         <div class="author-list">
           @foreach (var p in contributors) { @PersonRow(p, contributors) }
         </div>
@@ -84,7 +80,7 @@
     {
         <div class="author-row">
             <img class="author-avatar" width="16" height="16" alt=""
-                 src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
+                 src="@MinecraftPlayer.Avatar(p.Uuid)" />
             <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
                    placeholder="Minecraft username" title="@(p.Error ? "Player not found" : p.Uuid)"
                    value="@p.Name"

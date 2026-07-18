@@ -10,13 +10,12 @@
   <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
 
     <section class="panel-section">
-      <div class="section-header section-header--ruled">
-        <h2 class="section-title">Pre-flight checks</h2>
+      <SectionHeader Title="Pre-flight checks">
         @if (running) { <span class="badge badge--neutral">Running…</span> }
         else if (data is { IntentMap: false }) { <span class="badge badge--dim">n/a</span> }
         else if (data is { ExportReady: true }) { <span class="badge badge--success">Ready</span> }
         else { <span class="badge badge--error">Blocked</span> }
-      </div>
+      </SectionHeader>
       <p class="section-desc">A generated map can be structurally valid yet <strong>unplayable</strong>, so
         these four checks run before export. <strong>Traversability</strong> is the closing gate — a
         disconnected spawn–wool chain blocks export with HTTP&nbsp;409.</p>

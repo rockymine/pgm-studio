@@ -31,7 +31,7 @@ public partial class RegionsActivity
         {
             var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
             groups = doc.TryGetProperty("groups", out var g) ? RegionGroup.ParseGroups(g) : new();
-            foreach (var grp in groups) foreach (var n in grp.Regions) Index(n);
+            foreach (var grp in groups) foreach (var n in grp.Regions) n.IndexInto(nodeMap);
         }
         catch (Exception ex) { groups = new(); error = ex.Message; }
 
@@ -46,13 +46,6 @@ public partial class RegionsActivity
         if (canvas is not null) await canvas.ReloadAsync();
         await SyncCanvas();
         StateHasChanged();
-    }
-
-    private void Index(RegionNode n)
-    {
-        if (!string.IsNullOrEmpty(n.Id)) nodeMap.TryAdd(n.Id, n);
-        foreach (var c in n.Children) Index(c);
-        if (n.Source is not null) Index(n.Source);
     }
 
     // ── selection ─────────────────────────────────────────────────────────────────
@@ -114,14 +107,8 @@ public partial class RegionsActivity
         if (canvas is null) return;
         var hi = new HashSet<string>();
         foreach (var id in selection)
-            if (nodeMap.TryGetValue(id, out var node)) CollectDescendants(node, hi);
+            if (nodeMap.TryGetValue(id, out var node)) node.CollectDescendantIds(hi);
         await canvas.SetSelectionAsync(hi);
-    }
-
-    private static void CollectDescendants(RegionNode n, HashSet<string> outSet)
-    {
-        if (!string.IsNullOrEmpty(n.Id)) outSet.Add(n.Id);
-        foreach (var c in n.Children) CollectDescendants(c, outSet);
     }
 
     // ── Ctrl+G: group ≥2 into a union, or ungroup a single compound ────────────────
@@ -160,12 +147,10 @@ public partial class RegionsActivity
 
     private async Task<JsonElement?> Ok(HttpResponseMessage resp)
     {
-        error = null;
-        var el = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        if (resp.IsSuccessStatusCode) return el;
-        error = el.TryGetProperty("error", out var e) ? e.GetString() : $"error {(int)resp.StatusCode}";
-        StateHasChanged();
-        return null;
+        var (body, err) = await MapApi.ReadAsync(resp);
+        error = err;
+        if (err is not null) StateHasChanged();
+        return body;
     }
 
     // ── keyboard registration ───────────────────────────────────────────────────────

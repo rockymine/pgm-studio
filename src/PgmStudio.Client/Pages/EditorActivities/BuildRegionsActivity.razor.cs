@@ -96,15 +96,9 @@ public partial class BuildRegionsActivity
     private async Task Select(string? id)
     {
         if (id is null || !nodeMap.TryGetValue(id, out var node)) { await Deselect(); return; }
-        selRegion = id; selSet = new(); CollectDescendants(node, selSet);
+        selRegion = id; selSet = new(); node.CollectDescendantIds(selSet);
         if (canvas is not null) await canvas.SetSelectionAsync(selSet);
         StateHasChanged();
-    }
-
-    private static void CollectDescendants(RegionNode n, HashSet<string> outSet)
-    {
-        if (!string.IsNullOrEmpty(n.Id)) outSet.Add(n.Id);
-        foreach (var c in n.Children) CollectDescendants(c, outSet);
     }
 
     private async Task Deselect() { selRegion = null; selSet = new(); if (canvas is not null) await canvas.SetSelectionAsync(Array.Empty<string>()); StateHasChanged(); }
@@ -150,17 +144,13 @@ public partial class BuildRegionsActivity
         StateHasChanged();
     }
 
-    private async Task<bool> Patch(string path, object body) => await Send(Http.PatchAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Delete(string path) => await Send(Http.DeleteAsync($"api/map/{Slug}/{path}"));
-    private async Task<bool> Send(Task<HttpResponseMessage> call)
+    private async Task<bool> Patch(string path, object body) => await Send(MapApi.PatchAsync(Http, Slug, path, body));
+    private async Task<bool> Delete(string path) => await Send(MapApi.DeleteAsync(Http, Slug, path));
+    private async Task<bool> Send(Task<string?> call)
     {
-        error = null;
-        var resp = await call;
-        if (resp.IsSuccessStatusCode) return true;
-        try { var d = await resp.Content.ReadFromJsonAsync<JsonElement>(); error = d.TryGetProperty("error", out var e) ? e.GetString() : $"error {(int)resp.StatusCode}"; }
-        catch { error = $"error {(int)resp.StatusCode}"; }
-        StateHasChanged();
-        return false;
+        error = await call;
+        if (error is not null) StateHasChanged();
+        return error is null;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -7,10 +7,9 @@
 <div class="workspace">
   <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
     <section class="panel-section">
-      <div class="section-header section-header--ruled">
-        <h2 class="section-title">Regions</h2>
+      <SectionHeader Title="Regions">
         <span class="badge badge--dim">read-only@(RegionCount > 0 ? $" · {RegionCount} regions" : "")</span>
-      </div>
+      </SectionHeader>
       <p class="section-desc">For intent maps the shaping steps drop the tree — structure is a generated
         artifact — so it lives here as the inspect &amp; debug view of what the generator produced. The
         unions, the negative wrappers, and the synthetic <code>__anon_N</code> ids are structural glue, not

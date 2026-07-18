@@ -80,7 +80,7 @@ else
 
   @if (Children() is { Count: > 0 } kids)
   {
-    <div class="section-header section-header--ruled"><h2 class="section-title">Children</h2></div>
+    <SectionHeader Title="Children" />
     <div class="panel-list">
       @foreach (var kid in kids)
       {

@@ -10,7 +10,7 @@
   <div class="workspace-sidebar">
     <div class="workspace-scroll">
       <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Regions</h2></div>
+        <SectionHeader Title="Regions" />
         @if (groups is null) { <div class="list-empty">Loading…</div> }
         else { <RegionTree Groups="groups" SelectedId="primaryId" SelectedSet="selection" OnSelect="OnTreeSelect" OnSelectCtrl="OnTreeSelectCtrl" /> }
       </section>

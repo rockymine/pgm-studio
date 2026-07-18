@@ -20,16 +20,15 @@
       @if (step == 1)
       {
         <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Islands</h2>
+          <SectionHeader Title="Islands">
             <span class="badge badge--dim">Step 1</span>
-          </div>
+          </SectionHeader>
           <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer
             towers). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
         </section>
 
         <section class="panel-section">
-          <div class="section-header section-header--ruled"><h2 class="section-title">Included Islands</h2></div>
+          <SectionHeader Title="Included Islands" />
           <div class="panel-list">
             @if (IncludedIslands.Count == 0) { <div class="list-empty">No islands detected.</div> }
             @foreach (var isl in IncludedIslands)
@@ -47,7 +46,7 @@
         </section>
 
         <section class="panel-section">
-          <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Islands</h2></div>
+          <SectionHeader Title="Excluded Islands" />
           <div class="panel-list">
             @if (ExcludedIslandsList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
             @foreach (var isl in ExcludedIslandsList)
@@ -67,10 +66,9 @@
       else
       {
         <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Symmetry</h2>
+          <SectionHeader Title="Symmetry">
             <span class="badge badge--dim">Step 2</span>
-          </div>
+          </SectionHeader>
           <p class="section-desc">Confirm the detected symmetry, choose a different one, or reject it.</p>
           <div class="panel-list">
             @foreach (var m in symModes)
@@ -90,7 +88,7 @@
         @if (symChoice is not null && symChoice != "none")
         {
           <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Center</h2></div>
+            <SectionHeader Title="Center" />
             <div class="field-row">
               <div class="field">
                 <label class="field-label">X</label>
