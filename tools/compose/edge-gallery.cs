@@ -4,6 +4,7 @@
 // (free / notch / bay / hole), the spaces tinted — the visual ground for offer/attachment rules.
 using System.Globalization;
 using System.Text;
+using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
 
 // ── edge/space palette: the wall-count escalation, cold → hot ────────────────────────────────────
@@ -120,16 +121,21 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
     svg.Append("</g>");
 
     // negative spaces: a rectangular space tints as one region; a decomposed space tints PER PART, each in
-    // its own class colour with a dashed outline — the layer that lets a rule reach an inset feature
+    // its own class colour with a dashed outline — the layer that lets a rule reach an inset feature. The
+    // publish policy's verdict rides the labels: ✓ offered onward, ✗ vetoed wholesale.
+    var capped = read.Edges.Any(e => e.Terminal);
     foreach (var s in read.Spaces)
     {
         if (s.Kind == NegativeSpaceKind.Open) continue;
+        var pub = PublishPolicy.PublishableParts(s, capped);
+        var vetoed = PublishPolicy.Space(s, capped) == PublishVerdict.Veto;
         if (s.Parts.Count > 1)
         {
             foreach (var p in s.Parts)
             {
                 var pc = p.Guarded ? TerminalCol : kindColor[p.Kind];
-                var label = p.Guarded ? "guard" : p.Kind.ToString().ToLowerInvariant();
+                var label = (p.Guarded ? "guard" : p.Kind.ToString().ToLowerInvariant())
+                    + (pub.Contains(p) ? " ✓" : vetoed ? " ✗" : "");
                 svg.Append($"<rect x=\"{N(PX(p.Rect[0]))}\" y=\"{N(PY(p.Rect[1]))}\" width=\"{N(p.Rect[2] * px)}\" height=\"{N(p.Rect[3] * px)}\" " +
                            $"fill=\"{pc}\" fill-opacity=\"0.16\" stroke=\"{pc}\" stroke-opacity=\"0.55\" stroke-width=\"0.9\" stroke-dasharray=\"3 3\"/>");
                 double pcx = PX(p.Rect[0] + p.Rect[2] / 2.0), pcz = PY(p.Rect[1] + p.Rect[3] / 2.0);
@@ -150,7 +156,8 @@ string Render(IReadOnlyList<(int[] Rect, bool Room)> pieces, EdgeClassification 
             svg.Append($"<rect x=\"{N(PX(cx))}\" y=\"{N(PY(cz))}\" width=\"{N(px)}\" height=\"{N(px)}\" fill=\"{col}\" fill-opacity=\"0.16\"/>");
         var lx = (s.Cells.Min(c => c.X) + s.Cells.Max(c => c.X) + 1) / 2.0;
         var lz = (s.Cells.Min(c => c.Z) + s.Cells.Max(c => c.Z) + 1) / 2.0;
-        svg.Append($"<text x=\"{N(PX(lx))}\" y=\"{N(PY(lz) + 3.4)}\" font-size=\"9.5\" text-anchor=\"middle\" fill=\"{col}\" fill-opacity=\"0.9\">{s.Kind.ToString().ToLowerInvariant()}</text>");
+        var mark = pub.Count > 0 ? " ✓" : vetoed ? " ✗" : "";
+        svg.Append($"<text x=\"{N(PX(lx))}\" y=\"{N(PY(lz) + 3.4)}\" font-size=\"9.5\" text-anchor=\"middle\" fill=\"{col}\" fill-opacity=\"0.9\">{s.Kind.ToString().ToLowerInvariant()}{mark}</text>");
     }
 
     // bay mouths — a dotted bracket across each opening, labelled with its width class (the wN the mouth
@@ -329,6 +336,7 @@ string Page(List<(string Group, string Title, string Sub, string Svg, string Cou
           {Chip(NegativeSpaceKind.Notch, "notch · 2 walls")}
           {Chip(NegativeSpaceKind.Bay, "bay · 3 walls")}
           {Chip(NegativeSpaceKind.Hole, "hole · enclosed")}
+          <span class="chip">✓ published (an offer — filled later, maybe never) · ✗ vetoed</span>
         </div>
       </header>
 

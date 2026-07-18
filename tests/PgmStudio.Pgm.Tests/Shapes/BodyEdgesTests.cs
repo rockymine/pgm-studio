@@ -218,6 +218,43 @@ public sealed class BodyEdgesTests
         await Assert.That(ring.Spaces.Single().Mouths).IsEmpty();
     }
 
+    // the wall slots: which pieces wall a space, by slot/mark name — the derive-side twin of the published
+    // vacancy's Walls, present whenever the input carried slots
+    [Test]
+    public async Task Spaces_know_their_wall_slots()
+    {
+        var scythe = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Scythe, 18, 15, Cw));
+        var bay = scythe.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        await Assert.That(bay.WallSlots.Contains(ApproachSlots.RoomRun)).IsTrue();
+
+        var u = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.U, 15, 18, Cw));
+        var uBay = u.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        await Assert.That(uBay.WallSlots.Contains(ApproachSlots.Entry)).IsTrue();
+        await Assert.That(uBay.WallSlots.Any(s => s is ApproachSlots.Room or ApproachSlots.RoomRun)).IsFalse();
+
+        var clamp = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
+        await Assert.That(clamp.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay).WallSlots
+            .Contains(ApproachSlots.Room)).IsTrue();
+
+        // a slot-free input (raw rects) carries no wall slots
+        var raw = BodyEdges.Classify([new[] { 0, 0, 3, 9 }, [0, 9, 9, 3]]);
+        await Assert.That(raw.Spaces.All(s => s.WallSlots.Count == 0)).IsTrue();
+    }
+
+    // the front flag: parts touching a mouth are the covering layer; covered parts are not front
+    [Test]
+    public async Task Front_marks_the_mouth_touching_parts()
+    {
+        var e = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 15, barThickness: 3, arms: [(0, 3, 12), (6, 3, 6), (12, 3, 12)]));
+        var bay = e.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
+        await Assert.That(bay.Parts.Single(p => p.Front).Rect.SequenceEqual(new[] { 3, 9, 9, 6 })).IsTrue();
+        await Assert.That(bay.Parts.Count(p => !p.Front)).IsEqualTo(2);
+
+        // a single-part space is its own front
+        var l = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.L, 15, 18, Cw));
+        await Assert.That(l.Spaces.Single(s => s.Kind == NegativeSpaceKind.Notch).Parts.Single().Front).IsTrue();
+    }
+
     [Test]
     public async Task Width_class_tapers_to_the_nearest_rung_ties_small()
     {

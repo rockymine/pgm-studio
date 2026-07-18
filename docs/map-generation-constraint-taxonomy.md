@@ -249,13 +249,23 @@ F's front notch, and a degenerate E's front bay are publishable?* The answer is 
 **publish policy** — ordered verdicts over the facts, one rule kind per level, with precedence
 **space-veto → guard → part-allow → default deny**:
 
+*(Decided [author, round 7] and shipped as `PublishPolicy` — `Compose/Boxes/PublishPolicy.cs`,
+the `DockingGate`-style table over the edge-taxonomy facts; the ✓/✗ verdicts render on every
+gallery card. The wall-composition selector originally drafted for R2 became a rationale, not
+the trigger: the author's calls simplified the terminal-capped rule to kind level.)*
+
 | # | Verdict | Binds at | Selector | Catches |
 |---|---|---|---|---|
-| R1 | **veto** | level 1 (whole space) | `Kind == Hole` | the donut's void — an enclosed void is the shape's own device (CT8 currency), never filled |
-| R2 | **veto** | level 1 (whole space) | `Kind == Bay ∧ WallSlots ∩ {room, room-run, room-bar} ≠ ∅` | the **scythe** bay (walls `entry-run · bar · room-run`) and the clamp bay (`entry · room · entry`) — publishing a recess walled by the terminal's own path grants a second approach: the WL8 motif |
+| R1 | **veto** | level 1 (whole space) | terminal-capped ∧ `Kind == Hole` | the donut's void — a terminal shape's enclosed void is its own device (CT8 currency), never published. A **terminal-free** hole (a bare ring's) *is* publishable — its size condition is a pending gate |
+| R2 | **veto** | level 1 (whole space) | terminal-capped ∧ `Kind == Bay` | **every** approach bay: the scythe's (walls `entry-run · bar · room-run` — the WL8 second-approach rationale) and the clamp's (`entry · room · entry`), and the U/H entry-walled bay alike [author]. A terminal-free U's bay *is* publishable |
 | R3 | **carve** | level 3 (guard) | the room's clearance margin | subtracts the guarded parts/edges from anything that survived the vetoes (the L's room-corner) |
-| R4 | **allow** | level 2 (parts) | part **fronts a mouth** (the covering part) | the **L** notch (a single part — its own front), the **F**'s mouth-bar notch, the **E**'s front bay |
+| R4 | **allow** | level 2 (parts) | part **fronts a mouth** (`Front`) ∧ ¬guarded | the **L** notch (a single part — its own front), the **F**'s mouth-bar notch, the **E**'s front bay, and the **Z**'s second notch — `room-run`-walled, still published [author]: proximity is the guard's job, not a veto's. A hole (no mouth) offers all its parts |
 | — | **deny** | default | everything else | covered parts (the E's two hidden slots, the F's bay leg) stay unpublished until a rule says otherwise |
+
+**Publishing is an offer, never a fill.** A published vacancy enters the pipeline for a
+**later step** to claim once the base is built — that is where a third wool can seat inside a
+free-standing U's bay or a ring's hole — and it may legitimately stay empty. The policy decides
+what is *offered*; nothing about the offer obliges a consumer.
 
 Answers packed in there:
 
@@ -268,16 +278,17 @@ Answers packed in there:
   scythe body's bay has only structural wall slots (`run/bar/leg`), so nothing fires — the same
   body publishes differently as an approach vs a bare compound, with zero per-shape code.
   Exactly the terminal-capped vs default-shape distinction, derived rather than declared.
-- **"First level" in the allow rules = the front (covering) part** — R4's selector is
-  computable today: a part fronts a mouth iff its rect touches the space's mouth interval.
-- **Two facts to land before this is code** (both small): `NegativeSpace.WallSlots` — the
-  slot/mark names of the walling pieces (the derive-side twin of `ShapeVacancy.Walls`, which
-  already exists emit-side and is where R2's data comes from) — and the part `Front` flag off
-  the mouths. Then the policy is a `DockingGate`-style table, wired where vacancies publish.
-- **Open author calls the examples didn't cover**: the U/H bay (walls `entry · bar · entry` —
-  no room slot, so R2 spares it; front-part-publishable under R4, or vetoed by a new rule?) and
-  the Z's second notch (walls `bar · room-run` — a *notch* on the room path; R2 only binds
-  bays). Both are one-line policy rows once decided.
+- **"First level" in the allow rules = the front (covering) part** — R4's selector is the
+  `NegativeSpacePart.Front` fact: a part fronts a mouth iff it holds a cell of the mouth
+  interval.
+- **The facts landed with the policy**: `NegativeSpace.WallSlots` (the slot/mark names of the
+  walling pieces — the derive-side twin of `ShapeVacancy.Walls`, kept as the rationale carrier
+  and the binding for future finer rules) and the part `Front` flag off the mouths.
+- **The round-6 open calls are decided [author, round 7]**: the U/H bay — vetoed for terminal
+  shapes, published for the bare body (which folded the terminal-capped bay rule down to kind
+  level); the Z's `room-run` notch — published (the guard, not a veto, keeps pieces off the
+  room). Still open: the terminal-free hole's **size gate**, and the publisher step itself
+  (who consumes offers, when — after the base is built).
 
 ## 5. Targets — controlled variance
 

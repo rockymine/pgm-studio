@@ -16,7 +16,7 @@ public enum NegativeSpaceKind { Open, Notch, Bay, Hole }
 /// two legs), and classing each part separately is what lets a rule reach an inset feature — the bar part at
 /// the mouth borders the shorter arm's end at notch grade, so "attach to the inset leg's tip" becomes
 /// stateable while the space-level class stays correct.</summary>
-public sealed record NegativeSpacePart(int[] Rect, NegativeSpaceKind Kind, bool Guarded = false);
+public sealed record NegativeSpacePart(int[] Rect, NegativeSpaceKind Kind, bool Guarded = false, bool Front = false);
 
 /// <summary>One <b>mouth</b> of a negative space — where it opens out of the body's bounding box: the open
 /// <see cref="Side"/>, the interval along it (<see cref="Start"/> in cell-corner coordinates,
@@ -31,13 +31,17 @@ public sealed record SpaceMouth(BoxEdge Side, int Start, int WidthCells, int Wid
 /// distinct axis directions the body walls it from (<see cref="WallDirections"/> — the wall count behind the
 /// kind; a hole is enclosed outright, whatever the count says), its <see cref="Parts"/> — the slab
 /// decomposition into rectangles, each classed by its own body walls (a rectangular space is its own single
-/// part) — its <see cref="Form"/>: the space's <b>own compound identity</b> (the void is a body too — the
-/// uneven branch's six-edge bay reads as a two-arm spine, the Π it is), null when the space classifies to no
-/// compound — and its <see cref="Mouths"/>: the interval + width class of every opening (bay 1 · notch 2 ·
-/// hole 0). Cells are box-local grid cells.</summary>
+/// part; <see cref="NegativeSpacePart.Front"/> marks the parts touching a mouth — the covering layer) — its
+/// <see cref="WallSlots"/>: the slot/mark names of the pieces walling it, first-encounter order (the
+/// derive-side twin of the emit-time <c>ShapeVacancy.Walls</c>; empty when the input carried no slots) — its
+/// <see cref="Form"/>: the space's <b>own compound identity</b> (the void is a body too — the uneven branch's
+/// six-edge bay reads as a two-arm spine, the Π it is), null when the space classifies to no compound — and
+/// its <see cref="Mouths"/>: the interval + width class of every opening (bay 1 · notch 2 · hole 0). Cells are
+/// box-local grid cells.</summary>
 public sealed record NegativeSpace(
     NegativeSpaceKind Kind, IReadOnlySet<(int X, int Z)> Cells, int WallDirections,
-    IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form, IReadOnlyList<SpaceMouth> Mouths);
+    IReadOnlyList<string> WallSlots, IReadOnlyList<NegativeSpacePart> Parts, CompoundRead? Form,
+    IReadOnlyList<SpaceMouth> Mouths);
 
 /// <summary>A maximal straight run of the body's boundary, classified along two independent axes: what it
 /// <see cref="Faces"/> (<see cref="NegativeSpaceKind.Open"/> for a free outward edge, else the class of the
@@ -78,7 +82,8 @@ public sealed record EdgeClassification(IReadOnlyList<NegativeSpace> Spaces, IRe
 /// </summary>
 public static class BodyEdges
 {
-    /// <summary>Classify the union of <paramref name="rects"/> (<c>[x, z, w, h]</c> cell rects).</summary>
+    /// <summary>Classify the union of <paramref name="rects"/> (<c>[x, z, w, h]</c> cell rects) — no slots, so
+    /// every space's <see cref="NegativeSpace.WallSlots"/> is empty.</summary>
     public static EdgeClassification Classify(IEnumerable<int[]> rects)
     {
         var cells = new HashSet<(int, int)>();
@@ -88,8 +93,16 @@ public static class BodyEdges
         return Classify(cells);
     }
 
-    /// <summary>Classify a terminal-free body (its structural pieces).</summary>
-    public static EdgeClassification Classify(ShapeBody body) => Classify(body.Pieces.Select(p => p.Rect));
+    /// <summary>Classify a terminal-free body (its structural pieces), wall slots read from the pieces.</summary>
+    public static EdgeClassification Classify(ShapeBody body)
+    {
+        var cells = new HashSet<(int, int)>();
+        var slots = new Dictionary<(int, int), string>();
+        foreach (var (r, slot) in body.Pieces)
+            for (var x = r[0]; x < r[0] + r[2]; x++)
+                for (var z = r[1]; z < r[1] + r[3]; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
+        return Classify(cells, new HashSet<(int, int)>(), clearance: null, slots);
+    }
 
     /// <summary>The default clearance margin around a terminal room, in cells — two cells is the 10-block
     /// corridor minimum, the smallest gap that keeps a docked piece from crowding the room.</summary>
@@ -101,8 +114,8 @@ public static class BodyEdges
     /// <see cref="ClassifiedEdge.Terminal"/>.</summary>
     public static EdgeClassification Classify(EmittedShape shape)
     {
-        var (cells, terminal) = EmissionCells(shape);
-        return Classify(cells, terminal, clearance: null);
+        var (cells, terminal, slots) = EmissionCells(shape);
+        return Classify(cells, terminal, clearance: null, slots);
     }
 
     /// <summary>Classify an approach emission with the terminal's <b>clearance margin</b> applied — the third
@@ -114,39 +127,43 @@ public static class BodyEdges
     /// from under the design.</summary>
     public static EdgeClassification Classify(EmittedShape shape, int clearanceCells)
     {
-        var (cells, terminal) = EmissionCells(shape);
+        var (cells, terminal, slots) = EmissionCells(shape);
         var d = clearanceCells;
         int[] clearance = [shape.Room[0] - d, shape.Room[1] - d, shape.Room[2] + 2 * d, shape.Room[3] + 2 * d];
-        return Classify(cells, terminal, clearance);
+        return Classify(cells, terminal, clearance, slots);
     }
 
-    private static (HashSet<(int, int)> Cells, HashSet<(int, int)> Terminal) EmissionCells(EmittedShape shape)
+    private static (HashSet<(int, int)> Cells, HashSet<(int, int)> Terminal, Dictionary<(int, int), string> Slots)
+        EmissionCells(EmittedShape shape)
     {
         var cells = new HashSet<(int, int)>();
-        foreach (var r in shape.Terrain.Select(p => p.Rect))
+        var slots = new Dictionary<(int, int), string>();
+        foreach (var (r, slot) in shape.Terrain)
             for (var x = r[0]; x < r[0] + r[2]; x++)
-                for (var z = r[1]; z < r[1] + r[3]; z++) cells.Add((x, z));
+                for (var z = r[1]; z < r[1] + r[3]; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
         var terminal = new HashSet<(int, int)>();
         for (var x = shape.Room[0]; x < shape.Room[0] + shape.Room[2]; x++)
             for (var z = shape.Room[1]; z < shape.Room[1] + shape.Room[3]; z++)
             {
                 cells.Add((x, z));
                 terminal.Add((x, z));
+                slots[(x, z)] = ApproachSlots.Room;
             }
-        return (cells, terminal);
+        return (cells, terminal, slots);
     }
 
     /// <summary>Classify a cell set with no terminal.</summary>
     public static EdgeClassification Classify(IReadOnlySet<(int, int)> cells) =>
-        Classify(cells, new HashSet<(int, int)>(), clearance: null);
+        Classify(cells, new HashSet<(int, int)>(), clearance: null, slots: null);
 
     /// <summary>Classify a cell set, marking boundary runs whose inner cell lies in <paramref name="terminal"/>
     /// (the terminal room's own wall) — runs never merge across the terrain↔terminal ownership change.</summary>
     public static EdgeClassification Classify(IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> terminal) =>
-        Classify(cells, terminal, clearance: null);
+        Classify(cells, terminal, clearance: null, slots: null);
 
     private static EdgeClassification Classify(
-        IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> terminal, int[]? clearance)
+        IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> terminal, int[]? clearance,
+        IReadOnlyDictionary<(int, int), string>? slots)
     {
         if (cells.Count == 0) return new EdgeClassification([], []);
         var (minX, minZ, maxX, maxZ) = Cells.BoundingBox(cells);
@@ -183,12 +200,13 @@ public static class BodyEdges
                     : walled.Count >= 3 ? NegativeSpaceKind.Bay
                     : walled.Count == 2 ? NegativeSpaceKind.Notch
                     : NegativeSpaceKind.Open;
+                var mouths = Mouths(comp, walled, minX, minZ, maxX, maxZ);
                 var parts = Decompose(comp, cells, walled);
                 if (clearance is not null)
                     parts = parts.SelectMany(p => SplitByClearance(p, clearance)).ToList();
+                parts = parts.Select(p => p with { Front = TouchesAMouth(p.Rect, mouths, minX, minZ, maxX, maxZ) }).ToList();
                 spaces.Add(new NegativeSpace(
-                    kind, comp, walled.Count, parts, SpaceForm(comp),
-                    Mouths(comp, walled, minX, minZ, maxX, maxZ)));
+                    kind, comp, walled.Count, WallSlotsOf(comp, cells, slots), parts, SpaceForm(comp), mouths));
             }
 
         // boundary edges — every filled↔empty cell seam, classed by the space behind it (outside the bounding
@@ -242,6 +260,41 @@ public static class BodyEdges
     /// menu's convention).</summary>
     public static int WidthClass(int widthCells) =>
         new[] { 2, 4, 6 }.OrderBy(r => Math.Abs(r - widthCells)).ThenBy(r => r).First();
+
+    // the distinct slot/mark names of the pieces walling a space, in first-encounter order over a
+    // deterministic scan (empty when the classification carried no slot map)
+    private static IReadOnlyList<string> WallSlotsOf(
+        HashSet<(int, int)> comp, IReadOnlySet<(int, int)> cells, IReadOnlyDictionary<(int, int), string>? slots)
+    {
+        if (slots is null) return [];
+        var walls = new List<string>();
+        foreach (var c in comp.OrderBy(c => c.Item1).ThenBy(c => c.Item2))
+            foreach (var n in Cells.N4(c))
+                if (cells.Contains(n) && slots.TryGetValue(n, out var s) && !walls.Contains(s)) walls.Add(s);
+        return walls;
+    }
+
+    // a part fronts the space when it holds at least one cell of a mouth interval — the covering layer the
+    // publish policy's allow rules bind to
+    private static bool TouchesAMouth(
+        int[] rect, IReadOnlyList<SpaceMouth> mouths, int minX, int minZ, int maxX, int maxZ)
+    {
+        bool In(int x, int z) =>
+            x >= rect[0] && x < rect[0] + rect[2] && z >= rect[1] && z < rect[1] + rect[3];
+        foreach (var m in mouths)
+            for (var t = m.Start; t < m.Start + m.WidthCells; t++)
+            {
+                var hit = m.Side switch
+                {
+                    BoxEdge.Top => In(t, minZ),
+                    BoxEdge.Bottom => In(t, maxZ),
+                    BoxEdge.Left => In(minX, t),
+                    _ => In(maxX, t),
+                };
+                if (hit) return true;
+            }
+        return false;
+    }
 
     // the mouths — one per open direction: the space's cell runs on the bounding-box border of that side (an
     // unwalled direction always reaches the border, or the cells would have flooded further). Enclosed spaces
