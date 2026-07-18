@@ -91,7 +91,7 @@ public static class HubBoxEmitter
         foreach (var edge in BoxInterfaces.Of(body, boxW, boxH))
         {
             var k = 0;
-            foreach (var run in Runs(edge.Intervals))
+            foreach (var run in BoxInterfaces.Runs(edge.Intervals))
             {
                 var width = edgeWidths is not null && edgeWidths.TryGetValue(edge.Edge, out var w)
                     ? w : BodyEdges.WidthClass(run.LengthCells);
@@ -99,22 +99,5 @@ public static class HubBoxEmitter
             }
         }
         return offers;
-    }
-
-    // merge an edge's per-piece intervals into contiguous runs — a ring's corner + leg + corner, or a spine +
-    // its arm, is one attachable surface, not one offer per piece; a genuine gap (a U's bay between its arm
-    // tips) stays two runs.
-    private static IReadOnlyList<EdgeInterval> Runs(IReadOnlyList<EdgeInterval> intervals)
-    {
-        var runs = new List<EdgeInterval>();
-        foreach (var iv in intervals.OrderBy(i => i.Start))
-            if (runs.Count > 0 && iv.Start <= runs[^1].Start + runs[^1].LengthCells)
-            {
-                var last = runs[^1];
-                var end = Math.Max(last.Start + last.LengthCells, iv.Start + iv.LengthCells);
-                runs[^1] = last with { LengthCells = end - last.Start };
-            }
-            else runs.Add(new EdgeInterval(iv.Start, iv.LengthCells, ApproachSlots.Bar));
-        return runs;
     }
 }

@@ -983,6 +983,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The frontline box — the join box kind (G89) + the face offer (G96 frontline half)** — `Compose/FrontlineBoxEmitter.cs`:
+  the **terminal-free** frontline join (map-generation.md §5.5). `FrontlineBoxEmitter` finishes a `BodyEmitter`
+  `ShapeBody` with the Front designation — one edge the `face`, **no room/marker** — over the form menu **Bar** (the
+  wide face, FR6), **single** (`SpineArms(1)`) and **twin** (`SpineArms(2)`), lifting the grower's `FrontForm { None,
+  Single, Wide, Twin }` into `FillProfiles.FrontlineForms`. Rotation is fixed (spine Top docks the hub, face Bottom
+  toward the axis); **only the face is offered** — the spine is the consumer side (it lands on the hub's offer), the
+  sides inert. The **face offer** (G96's frontline half) carries the mid's grouping contract — **joint** (the tips
+  share one group, one wide mid spans them, the recess unoffered → CT9's hole) vs **several** (one group per tip — the
+  twin/double frontline). Offers derive from the shared `BoxInterfaces.Runs` free-run read (lifted out of the hub).
+  The holed forms (P, two-U-on-I, G100) + the composer consuming the face offer (G63-C) are follow-ups. Pgm suite
+  672/672. Contract: `map-generation.md` §1.14/§5.5. (G89, G96)
+
 - **The hub box — the constraint-source box kind (G88) + the offer type (G96 hub half)** — `Compose/HubBoxEmitter.cs`
   + `Compose/Boxes/EdgeOffer.cs`: the **terminal-free** hub box (map-generation.md §5.5). `HubBoxEmitter` finishes a
   `BodyEmitter` `ShapeBody` with the hub designation — per-edge `interface` widths, **no room/marker** — over the

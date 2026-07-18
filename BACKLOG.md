@@ -286,6 +286,15 @@ ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant �
   those citations to `map-generation.md §5` (the banner's section map has the mapping) — the same delete+repoint
   batch discipline the 2026-07-14 doc-cluster removal used. Touches source comments, so out of G94's doc-only
   scope; do it as one sweep on the author's go. Depends on G94.
+- [ ] **G100 — Holed frontline forms (P, two-U-on-I).** The authored frontline forms beyond the grower's
+  `FrontForm` (Bar/single/twin shipped G89): the closed-recess **P** (a ring on a longer bar) and **two-U-on-I**
+  (twin loops), built from `BodyEmitter`. Deferred because their **face is not the plain far edge** (unlike the
+  hub's holed forms, whose offers are the outer edges) — where the mid meets a loop is a rule to pin first. Add to
+  `FrontlineBoxEmitter.Forms` + `Fill` once that face rule is settled. Depends on G89.
+- [ ] **G101 — The offer-card gallery.** Per (compound × designation): the offered intervals annotated with
+  grouping + width class, vetoes/demands drawn — the picture *is* the offer table (the forward twin of the G92
+  edge gallery), generated from the profile data; the regression surface for the hub/frontline offers. Depends on
+  G88/G89. (`docs/map-generation-constraint-taxonomy.md` §6 step 8)
 - [ ] **G87 — Fill-to-`LandTargetCells` directed repair — reconsidered, not a solver.** Originally scoped as
   G63-C's core: allocate each box's footprint + land target from the budget, then resize the shape (directed
   repair off `FillResult`) until its land hits the target, retiring `SolveDepth`/`SolveWidth`/`spawnLen`. **Parked

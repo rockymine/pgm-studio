@@ -71,6 +71,25 @@ public static class BoxInterfaces
     public static IReadOnlyList<BoxEdgeInterface> Of(ShapeBody body, int boxW, int boxH) =>
         Of(body.Pieces, null, boxW, boxH);
 
+    /// <summary>Merge an edge's per-piece <see cref="EdgeInterval"/>s into contiguous <b>runs</b> — a ring's
+    /// corner + leg + corner, or a spine + its arm, is one attachable surface, not one per piece; a genuine gap
+    /// (a U's bay, a twin frontline's inter-tip recess) stays two runs. The offer/vacancy read a designation
+    /// publishes is over runs, not raw piece intervals. Each run carries the outward
+    /// <see cref="ApproachSlots.Bar"/> slot.</summary>
+    public static IReadOnlyList<EdgeInterval> Runs(IReadOnlyList<EdgeInterval> intervals)
+    {
+        var runs = new List<EdgeInterval>();
+        foreach (var iv in intervals.OrderBy(i => i.Start))
+            if (runs.Count > 0 && iv.Start <= runs[^1].Start + runs[^1].LengthCells)
+            {
+                var last = runs[^1];
+                var end = Math.Max(last.Start + last.LengthCells, iv.Start + iv.LengthCells);
+                runs[^1] = last with { LengthCells = end - last.Start };
+            }
+            else runs.Add(new EdgeInterval(iv.Start, iv.LengthCells, ApproachSlots.Bar));
+        return runs;
+    }
+
     private static IReadOnlyList<BoxEdgeInterface> Of(
         IReadOnlyList<(int[] Rect, string Slot)> terrain, int[]? room, int boxW, int boxH)
     {

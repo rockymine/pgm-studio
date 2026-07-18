@@ -58,30 +58,12 @@ the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publ
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63-C**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
 
-*(The G88/G89 pre-work, in execution order — language, then binding, then the offer mechanism, all shipping
-inside the box work. Landed: the language (G94), the binding (G95: `DockingGate.Role` per `Designation` + the
-`interface`/`face` marks), the edge taxonomy + publish policy (G92), interval facts (G93), and the whole **hub
-box (G88)** with the **offer type + the hub's per-edge offers (G96's hub half)**; see `FEATURES.md`. What remains
-of the arc: **G89** (the frontline box + G96's face-offer half), then **G63-C** (the composer consumes the offers
-and retires the grower).)*
-
-- [~] **G96 — The offer as a type — frontline half + the consumer.** *Landed with G88: `EdgeOffer` (edge interval
-  + `wN` width class + grouping + group id) + `OfferGrouping` (joint/several), the hub's per-edge `Several` offers,
-  and `BoxJoint.Offer` provenance.* **Remaining:** the **frontline** designation's face offer (grouping **joint** —
-  one consumer spans the tips, FR6 — vs **several** — the twin/double frontline — over the tip intervals, the
-  inter-tip recess a riding veto → CT9's hole), landing inside **G89**; the **consumer** — the partitioner placing
-  consumers only on offered intervals + `BoxPartition.Of` mirroring the offer back — landing inside **G63-C**; and
-  the offer-card gallery (grouping/width per compound × designation).
-- [ ] **G89 — Frontline as the face/join box.** Make the frontline a first-class `BoxKind.Frontline` box: a
-  `FillProfiles` frontline row + a `FrontlineBoxEmitter` (a `Front` designation over the Body, G90) docking the
-  hub's front edge. Per §4 the frontline is a **join, not a placement** — a face with no room/marker whose far
-  edge is where the fanned images meet, and whose form drives the mid (`mid = f(frontline)`). Form menu (authored,
-  `map-generation.md` §5.5): a plain **Bar** (wide face, FR6), the **branch family** (spine + K arms —
-  single/twin/more, FR3/FR4/CT8), and the **holed** forms (**P**, **two-U-on-I**); **rotation is fixed** — the
-  spine docks the hub, the arm-tips are the face. `FrontForm` (none · single · wide · twin) lifts out of the
-  grower into the profile. How the mid attaches to the face is G96's face offer (grouping joint/several over the
-  tip intervals). Supersedes the frontline half of the old G41-C. Depends on G90/G91 + G94/G95 (vocabulary,
-  marks) + G88 (the hub whose front edge it docks); its face offer is G96's frontline half; feeds G63-C.
+*(The G88/G89 pre-work has all shipped — the language (G94), the binding (G95), the edge taxonomy + publish
+policy (G92), interval facts (G93), and **both team-unit box kinds**: the **hub box (G88)** and the **frontline
+box (G89)**, together carrying the **offer type + both producer halves (G96)** — see `FEATURES.md`. What remains
+of the arc is the offer **consumer**: the spine of **G63-C** below — the composer routes through the partitioner,
+the hub emits first setting the neighbour menus, the mid consumes the frontline face offer, and
+`TeamUnitGrower`'s team-unit authoring retires. That is where the language finally shrinks the code.)*
 
 *(G63 was one monolith — the whole box-driven switch. Split A–D: A shipped the partition data model + mirror,
 B shipped the partition-first allocator seam + budget check (both `FEATURES.md`); C flips the switch (fill + wire

@@ -31,6 +31,11 @@ public static class FillProfiles
     /// wool/spawn rows compose their menus.</summary>
     public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
 
+    /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, §5.5),
+    /// Compound-typed like the hub. Composes <see cref="FrontlineBoxEmitter.Forms"/>, lifting the grower's
+    /// <c>FrontForm { None, Single, Wide, Twin }</c> into the profile.</summary>
+    public static IReadOnlyList<CompoundRead> FrontlineForms => FrontlineBoxEmitter.Forms;
+
     /// <summary>True when <paramref name="family"/> is admitted by <paramref name="kind"/> at
     /// <paramref name="cw"/> <b>and</b> its minimum box fits a footprint of <paramref name="w"/>×
     /// <paramref name="h"/> cells — the profile's footprint gate.</summary>
