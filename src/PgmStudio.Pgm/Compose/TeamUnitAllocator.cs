@@ -144,8 +144,12 @@ public static class TeamUnitAllocator
         CompoundRead form, int[] hubRect, Frame frame, int w, IReadOnlyList<Demand> demands, ComposeRng rng)
     {
         int boxW = hubRect[2], boxH = hubRect[3];
-        var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form);
-        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells) is not { } hub) return null;   // too small for the form
+        // orient the form so its open feet face the unused front (SP: the frontline's side) and its solid edges
+        // cover the demanded back/laterals — a vertical flip when the front is the box's top edge (every z-frame);
+        // symmetric forms (Rectangle, Ring) are unaffected, so this is safe to apply uniformly
+        var flipV = SideEdge(frame, UnitSide.Front) == BoxEdge.Top;
+        var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form, flipV);
+        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, flipV: flipV) is not { } hub) return null;   // too small
 
         // the offerable surface: the contiguous free runs on each hub edge (box-local along-coords), read off the
         // emitted body's per-edge offers — one offer per free run, so a bay simply yields no run over its stretch

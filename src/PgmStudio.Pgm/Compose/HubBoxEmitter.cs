@@ -42,15 +42,20 @@ public static class HubBoxEmitter
     /// <summary>Fill a hub <see cref="Box"/> (plan cells) as <paramref name="form"/> at wall/corridor width
     /// <paramref name="cw"/>, terminal-free, publishing one <see cref="EdgeOffer"/> per free run on each edge.
     /// <paramref name="edgeWidths"/> is the constraint the hub sources — the w2/w4/w6 rung each edge offers a
-    /// neighbour; an edge left unset offers its own free width (the run's length class). Pieces carry the hub
-    /// <paramref name="box"/> label and their body slot; there is no room and no marker. <paramref name="cw"/> is
-    /// ignored by the solid Rectangle. <c>null</c> when the box is too small for the form (a directed signal);
+    /// neighbour; an edge left unset offers its own free width (the run's length class). <paramref name="flipV"/>
+    /// reflects the body across the box's horizontal midline (box-local z) — the branch/holed forms are built
+    /// spine-first (arms hanging down), so flipping turns the open feet toward the box top; the allocator sets it
+    /// per frame so a form's solid edges cover the demanded sides (symmetric forms are unaffected). Pieces carry
+    /// the hub <paramref name="box"/> label and their body slot; there is no room and no marker. <paramref name="cw"/>
+    /// is ignored by the solid Rectangle. <c>null</c> when the box is too small for the form (a directed signal);
     /// throws <see cref="ComposeException"/> only for a form off the hub menu.</summary>
-    public static EmittedHub? Fill(Box box, CompoundRead form, int cw, IReadOnlyDictionary<BoxEdge, int>? edgeWidths = null)
+    public static EmittedHub? Fill(
+        Box box, CompoundRead form, int cw, IReadOnlyDictionary<BoxEdge, int>? edgeWidths = null, bool flipV = false)
     {
         int boxW = box.Rect[2], boxH = box.Rect[3];
         var body = BuildBody(form, boxW, boxH, cw);
         if (body is null) return null;                       // too small for the form at this cw — a directed signal
+        if (flipV) body = FlipVertically(body, boxH);
 
         var boxRef = new BoxRef(box.Id, BoxKind.Hub);
         var pieces = new List<GrownPiece>(body.Pieces.Count);
@@ -61,6 +66,18 @@ public static class HubBoxEmitter
 
         return new EmittedHub(pieces, Offers(box, body, boxW, boxH, edgeWidths), form);
     }
+
+    // reflect a body across the box's horizontal midline (box-local z): a piece/vacancy at z spanning h maps to
+    // boxH − z − h, and a Top/Bottom mouth swaps. The forms build spine-on-top with arms hanging down, so this
+    // is how the hub turns its open feet toward one edge and its solid spine toward the opposite one.
+    private static ShapeBody FlipVertically(ShapeBody body, int boxH) => new(
+        body.Pieces.Select(p =>
+            (new[] { p.Rect[0], boxH - p.Rect[1] - p.Rect[3], p.Rect[2], p.Rect[3] }, p.Slot)).ToList(),
+        body.Vacancies.Select(v => v with
+        {
+            Rect = [v.Rect[0], boxH - v.Rect[1] - v.Rect[3], v.Rect[2], v.Rect[3]],
+            Mouth = v.Mouth switch { BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top, var m => m },
+        }).ToList());
 
     // build the body of `form` sized to fill the boxW×boxH box at `cw`; null when the box is too small for it
     // (the BodyEmitter's own dim guards, surfaced as a directed signal rather than an exception).

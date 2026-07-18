@@ -14,7 +14,7 @@ var presets = new[]
     ("Mid board", "8 players · 1600 land", 8, 1600.0),
     ("Big board", "12 players · 2800 land", 12, 2800.0),
 };
-const int seeds = 8;
+const int seeds = 16;
 
 var totalPinches = 0;
 var sections = new StringBuilder();

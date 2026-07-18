@@ -71,7 +71,7 @@ public static class TeamUnitFiller
         // per-edge widths the joint offers carry — the same body the allocator seated its neighbours against, so
         // every dock lands on real terrain (§1.13's offerable surface), never an empty bounding-box stretch.
         var form = hubBox.Form ?? new CompoundRead(Compound.Rectangle);
-        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, edgeWidths) is not { } hub)
+        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, edgeWidths, hubBox.FlipV) is not { } hub)
             return null;
 
         var pieces = new List<GrownPiece>(hub.Pieces);

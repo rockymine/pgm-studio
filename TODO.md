@@ -93,13 +93,16 @@ in `BACKLOG.md`.)*
   to the solid rectangle when a form's free edges cannot host the plan; the chosen form rides on `Box.Form` for the
   filler to re-emit (so allocator and filler agree on the body and every dock lands on real terrain); and **no
   diagonal pinches**, now gated by the **mass-level corner law** (`Cells.HasDiagonalPinch` over the composed mask,
-  not the coarse rect-pair proxy — a multi-piece hub's ¾-solid bridged corner reads clean). The allocate→fill loop
-  closes end-to-end and `tools/compose/unit-gallery.cs` renders it (0 pinches; Ring hubs appear). *Remaining, roughly in order:*
-    - **Hub-form richness (orientation + size).** The forms are built spine-first (`BodyEmitter`'s canonical frame),
-      so a branch/holed form's solid edges face the unused **front** while its arms/feet face the used back — so `L`/`U`
-      mostly **fall back** to the rectangle today (only `Ring`, all-full outer edges, lands reliably; `Double-hole` needs
-      a hub wider than the current caps). Orient the chosen form (arms toward the free front) so `L`/`U` land on the
-      demanded back/lateral sides, making the menu **common, not just reachable** — the arm-placement knob (§1.14).
+  not the coarse rect-pair proxy — a multi-piece hub's ¾-solid bridged corner reads clean); and **the allocator
+  orients the form** — a vertical flip (`Box.FlipV`, replicated by the filler) turns the branch/holed forms'
+  solid spine toward the demanded **back** and their open feet toward the unused **front**, so `L` and `U` land
+  on the used sides (symmetric forms are unaffected). The allocate→fill loop closes end-to-end and
+  `tools/compose/unit-gallery.cs` renders `L`/`U`/`Ring`/rectangle hubs, 0 pinches. *Remaining, roughly in order:*
+    - **Hub-form richness — handedness, size, `mirror_x`.** `L`'s two solid edges are adjacent (spine + one arm),
+      so it covers back + **one** lateral, and the arm sits on a fixed side — choosing its **handedness** to match
+      the demanded lateral would let it cover back+right as well as back+left. `Double-hole` still needs a hub
+      **wider than the current caps** (≥ 9). And the vertical flip only orients the **z-frames** (front = top edge);
+      `mirror_x` (front = a lateral edge) needs a rotation, not a flip, so its `L`/`U` stay canonical for now.
     - **Wool & spawn shape richness** — layouts are "very basic" (mostly `I`): the **spawn is I-only** (the L's
       overhanging foot needs the entry-seat-and-shift — seat by the entry width `w`, let the box overhang free
       space), and the **wool** boxes are generic-share-sized so the fill mostly lands `I`; give them family/size
