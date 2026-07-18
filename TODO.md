@@ -119,11 +119,19 @@ in `BACKLOG.md`.)*
       **L hub with a frontline** is worth enabling: today a branch hub with a frontline falls back to a rectangle
       (front used ⇒ four sides), but a **wide Bar frontline overlapping the L's short front leg** is a good layout —
       it wants the frontline to dock a branch hub's front foot rather than forcing the fallback.
-    - **Wool & spawn family variety** — the wool length + inline/side-tuck placement is in, but every fill is still
-      the `I` family: the richer wool families (`L`/`Z`/`scythe`/`donut`) and the **spawn `L`** need a **seat-and-shift**
-      — dock the narrow entry (width `w`) and let the wider body **overhang** the hub edge into free space — because
-      the hub edge is too small to hold their full footprint as a flush dock. That overhang (with a collision check
-      against the seated neighbours) is the shared mechanism both want; until it lands, the family stays `I`.
+    - **Wool & spawn family variety** — the **seat-and-shift overhang is in** (`BoxFiller.EntryOn` +
+      `TeamUnitAllocator.SeatOverhang` + `Box.Wool`): a single-entry rich wool docks its narrow entry on a hub run
+      and its wider body overhangs into free space, box-overlap-checked; the interface is the actual abutment. `L`
+      (a bent lane) is the first family through it (alongside inline / side-tuck `I`). **Remaining**: the deeper
+      single-entry families (`Z`) and the **lateral-mouth** ones (`scythe`/`donut`, whose entry sits on a side edge
+      the probe must orient onto), the **spawn `L`** (same overhang), and the **dual-entry staple/branch**
+      (`U`/`H`) which need *both* entries on the host — blocked by the small hub edge unless the wool lane drops to
+      `w2` (the entry/lane-width split) or the hub grows. The clamp is the separate dual-host slice (below).
+    - **Wool clamp — the dual-host corner-wrap.** The clamp is a wool room clamped on two distinct faces
+      (shape-vocabulary §7): opposite → centered `I+I`, adjacent → corner `L+I`. `DockingGate` already demands its
+      two entries and rejects a single mouth, but nothing **places the two hosts** — the corner-wrap that docks the
+      two entries on two adjacent hub edges. Needs: the dual-host placement in the allocator, the **adjacent/corner
+      emitter form** (only the opposite-faces clamp is emitted today), and adding `Clamp` to the production menu.
     - **Hub-floor refinement** — the frontline / twin-recess / wool-c clearance floors the grower's `HubVFloor`
       encodes (today a simplified `w+2` floor).
     - **CT1 / LN2 invariants by construction** — ≥10-block image clearance (orbit images stay separate islands)

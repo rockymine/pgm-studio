@@ -99,13 +99,13 @@ public static class TeamUnitFiller
                     break;
 
                 case BoxKind.Wool:
-                    // prefer the side-tucked room where the box admits it — a compact side-room shape rather than a
-                    // back-room lane — falling back to the inline lane the narrow boxes hold
+                    // fill the shape the allocator chose and seated (Box.Wool): the compact inline / side-tuck I, or
+                    // a richer family docked by the seat-and-shift. The allocator positioned the box for this exact
+                    // family's entry, so the filler re-emits it, not a re-picked family.
                     var cwW = ConsumedCw(hub, hubEdge);
-                    var okW = BoxFiller.Fill(neighbour, mouth, cwW, ShapeFamily.I, flip: false, roomId, RoomPlacement.SideTuck)
-                        as FillResult.Ok
-                        ?? BoxFiller.Fill(neighbour, mouth, cwW, ShapeFamily.I, flip: false, roomId) as FillResult.Ok;
-                    if (okW is null) return null;
+                    var wf = neighbour.Wool ?? new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
+                    if (BoxFiller.Fill(neighbour, mouth, cwW, wf.Family, wf.Flip, roomId, wf.Placement) is not FillResult.Ok okW)
+                        return null;
                     pieces.AddRange(okW.Approach.Terrain);
                     pieces.Add(okW.Approach.WoolRoom);
                     wools.Add(new GrownWool(roomId, okW.Approach.At));

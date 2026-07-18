@@ -5,6 +5,11 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>The typed box kinds of the partition scaffold (docs/contracts/map-generation.md §4).</summary>
 public enum BoxKind { Spawn, Hub, Wool, Frontline, Mid }
 
+/// <summary>The fill directive for a wool box the allocator chose: the approach <see cref="Family"/>, its room
+/// <see cref="Placement"/> (back vs side-tuck), and the <see cref="Flip"/> handedness — carried so the filler
+/// re-emits the exact shape the allocator seated (an overhang dock aligns to a specific family's entry).</summary>
+public sealed record WoolFill(ShapeFamily Family, RoomPlacement Placement, bool Flip);
+
 /// <summary>A piece's box ownership — which box's fill it belongs to. Together with the piece's slot this is
 /// the full label (<c>wool-a/entry</c>) every compose-side rule binds to; the piece-id prefix is its
 /// serialization, never the source of truth.</summary>
@@ -20,8 +25,12 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// intervals (§1.13) the offerable surface neighbours seat against; <c>null</c> for a box whose kind carries
 /// no form (leaves the hub filler its default solid rectangle). <see cref="FlipV"/> is the hub form's
 /// orientation — reflect it vertically so its open feet face the front — the second half of that directive,
-/// carried so the filler re-emits the body the allocator seated against.</summary>
-public sealed record Box(string Id, BoxKind Kind, int[] Rect, int LandTargetCells, CompoundRead? Form = null, bool FlipV = false)
+/// carried so the filler re-emits the body the allocator seated against. <see cref="Wool"/> is the wool box's
+/// fill directive (family + room placement + handedness), likewise carried so the filler re-emits what the
+/// allocator seated; <c>null</c> for a non-wool box.</summary>
+public sealed record Box(
+    string Id, BoxKind Kind, int[] Rect, int LandTargetCells,
+    CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null)
 {
     public BoxRef Ref => new(Id, Kind);
 }

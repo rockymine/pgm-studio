@@ -59,6 +59,22 @@ public static class BoxFiller
         return new EmittedShape(terrain, Local(a.WoolRoom.Rect), a.At, a.Vacancies);
     }
 
+    /// <summary>The <b>entry</b> interval a <paramref name="family"/> fill presents on its <paramref name="mouth"/>
+    /// edge — box-local along-coords (x for a top/bottom mouth, z for a left/right one). This is the narrow dock
+    /// an <b>overhanging</b> placement aligns to the host: the entry lands on a hub run while the wider body
+    /// overhangs the edge into free space. <c>null</c> when the family does not fill the box or exposes no entry
+    /// on that mouth.</summary>
+    public static (int Start, int Len)? EntryOn(
+        Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false,
+        RoomPlacement roomPlacement = RoomPlacement.Inline)
+    {
+        if (Fill(box, mouth, corridorWidth, family, flip, "probe", roomPlacement) is not FillResult.Ok ok) return null;
+        var edge = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect[2], box.Rect[3])
+            .FirstOrDefault(e => e.Edge == mouth);
+        var entry = edge?.Intervals.FirstOrDefault(i => i.Slot == ApproachSlots.Entry);
+        return entry is null ? null : (entry.Start, entry.LengthCells);
+    }
+
     /// <summary>The families the box's profile admits that <b>actually fill</b> its footprint (the emit
     /// succeeds) — the legal fill set for this box, footprint gate included.</summary>
     public static IReadOnlyList<ShapeFamily> FittingFamilies(Box box, BoxEdge mouth, int corridorWidth) =>

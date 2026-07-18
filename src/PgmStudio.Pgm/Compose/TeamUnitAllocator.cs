@@ -62,7 +62,24 @@ public static class TeamUnitAllocator
     /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
     /// <see cref="Along"/> extent (cells), and its <see cref="Id"/>. Sizing is frame- and form-independent (it
     /// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.</summary>
-    private sealed record Demand(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id);
+    private sealed record Demand(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null);
+
+    /// <summary>The wool shapes a would-be-long wool draws from — the length rule's variety. Beyond the compact
+    /// back-room <c>I</c> (the short case), a longer wool becomes a side-tuck <c>I</c> (room to the side) or a
+    /// richer family docked by the seat-and-shift (its narrow entry on a hub run, its wider body overhanging).
+    /// <c>L</c> (a bent lane) and <c>U</c> (a staple with a bay) are the first two; deeper/wider families
+    /// (<c>Z</c>/<c>H</c>/scythe/donut) and the clamp join as their docking lands.</summary>
+    private static readonly IReadOnlyList<WoolFill> WoolVariety =
+    [
+        new(ShapeFamily.I, RoomPlacement.SideTuck, false),
+        new(ShapeFamily.L, RoomPlacement.Inline, false),
+    ];
+
+    /// <summary>A wool family the <b>seat-and-shift</b> docks: a single-entry approach whose one narrow entry
+    /// lands on a hub run while the body overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
+    /// one — both its entries must land on the host, so it docks its full mouth (the plain seat path), never an
+    /// overhang (an overhang would strand the second entry off the hub — a pinch).</summary>
+    private static bool Overhangs(ShapeFamily family) => family is ShapeFamily.L;
 
     /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
     /// geometry layer over <see cref="SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
@@ -156,12 +173,18 @@ public static class TeamUnitAllocator
             var edgeLen = side is UnitSide.Front or UnitSide.Back ? hubV : hubU;
             var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen));
             var budgetDepth = (int)Math.Round(woolShare / narrowAlong);
-            int along, depth;
-            if (budgetDepth > maxDepth && w + rd <= edgeLen)         // would run long → tuck the room to the side
-                (along, depth) = (w + rd, 2 * w);
-            else                                                     // a short back-room lane
-                (along, depth) = (w, Math.Clamp(budgetDepth, rd + 1, maxDepth));
-            demands.Add(new Demand(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}"));
+            var id = $"wool-{(char)('a' + i)}";
+            if (budgetDepth <= maxDepth)   // short → a compact back-room lane
+            {
+                demands.Add(new Demand(side, BoxKind.Wool, Math.Clamp(budgetDepth, rd + 1, maxDepth), w, id,
+                    new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false)));
+                continue;
+            }
+            // would run long → a side-tuck I or a bent L (the seat-and-shift docks the L's narrow entry, its body
+            // overhanging), each sized to its own footprint
+            var fill = rng.Pick(WoolVariety);
+            var (along, depth) = ShapeEmitter.MinBox(fill.Family, w, fill.Placement);
+            demands.Add(new Demand(side, BoxKind.Wool, depth, along, id, fill));
         }
 
         // the frontline join: it docks the hub's front edge with a face spanning it (corner clearance aside) and
@@ -206,11 +229,25 @@ public static class TeamUnitAllocator
             var edge = SideEdge(frame, d.Side);
             var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
             if (!runsByEdge.TryGetValue(edge, out var runs)) return null;      // the form leaves this edge empty
+
+            // a single-entry rich wool docks by the seat-and-shift: its narrow entry lands on a run and the wider
+            // body overhangs into free space. Every other neighbour (I, the dual-entry staple, spawn, frontline)
+            // docks its full along-edge.
+            if (d.Wool is { } rich && Overhangs(rich.Family))
+            {
+                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, w, rng) is not { } placed)
+                    return null;
+                var (box, iface) = placed;
+                boxes.Add(new Box(d.Id, d.Kind, box, d.Along * d.Depth, Wool: d.Wool));
+                joints.Add(HubJointFrom("hub", d.Id, iface, w));
+                continue;
+            }
+
             occupied.TryAdd(edge, []);
             if (SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng) is not { } seat)
                 return null;
             occupied[edge].Add((seat, d.Along));
-            boxes.Add(new Box(d.Id, d.Kind, NeighbourRect(edge, seat, d.Depth, d.Along, hubRect), d.Along * d.Depth));
+            boxes.Add(new Box(d.Id, d.Kind, NeighbourRect(edge, seat, d.Depth, d.Along, hubRect), d.Along * d.Depth, Wool: d.Wool));
             joints.Add(HubJoint("hub", d.Id, edge, seat, d.Along, w));
         }
         return (boxes, joints);
@@ -260,6 +297,55 @@ public static class TeamUnitAllocator
         if (gaps.Count == 0) return null;
         var (glo, ghi) = gaps[rng.NextInt(0, gaps.Count)];
         return glo + rng.NextInt(0, ghi - glo - along + 1);
+    }
+
+    /// <summary>Seat a <b>rich</b> wool by the seat-and-shift: probe the family's narrow <b>entry</b> on its mouth,
+    /// place the box so that entry lands on a hub <paramref name="runs"/> interval while the wider body <b>overhangs</b>
+    /// the edge, and reject any placement whose box overlaps a seated box. Returns the plan-cell box + the actual
+    /// hub↔box interface (the abutment, which may be narrower than the box when it overhangs), or <c>null</c> when no
+    /// clear placement exists (a directed signal the caller resamples).</summary>
+    private static (int[] Box, BoxInterface Iface)? SeatOverhang(
+        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, WoolFill fill, BoxEdge edge,
+        int[] hubRect, IReadOnlyList<Box> seated, int w, ComposeRng rng)
+    {
+        var mouth = Opposite(edge);
+        var probeRect = edge is BoxEdge.Top or BoxEdge.Bottom ? new[] { 0, 0, d.Along, d.Depth } : new[] { 0, 0, d.Depth, d.Along };
+        if (BoxFiller.EntryOn(new Box("probe", BoxKind.Wool, probeRect, 0), mouth, w, fill.Family, fill.Flip, fill.Placement)
+                is not { } e)
+            return null;
+
+        // the box's along-start (seat) values for which the entry [seat+e0, +eLen] lands within a run
+        var candidates = new List<int>();
+        foreach (var (rs, rl) in runs)
+            for (var seat = rs - e.Start; seat <= rs + rl - e.Start - e.Len; seat++)
+                candidates.Add(seat);
+        var valid = candidates
+            .Select(seat => NeighbourRect(edge, seat, d.Depth, d.Along, hubRect))
+            .Where(box => BoxPartition.SharedEdge(hubRect, box) is not null && !seated.Any(b => Overlap(b.Rect, box)))
+            .ToList();
+        if (valid.Count == 0) return null;
+        var chosen = valid[rng.NextInt(0, valid.Count)];
+        return (chosen, BoxPartition.SharedEdge(hubRect, chosen)!);
+    }
+
+    /// <summary>Two plan-cell rects overlap iff they intersect on both axes (abutment is not overlap).</summary>
+    private static bool Overlap(int[] a, int[] b) =>
+        a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+
+    /// <summary>The box edge opposite <paramref name="e"/> — a neighbour's mouth faces the hub across it.</summary>
+    private static BoxEdge Opposite(BoxEdge e) => e switch
+    {
+        BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top,
+        BoxEdge.Left => BoxEdge.Right, _ => BoxEdge.Left,
+    };
+
+    /// <summary>The hub↔neighbour joint over a ready-made <paramref name="iface"/> (the abutment of an overhanging
+    /// dock), carrying the hub's <paramref name="w"/>-width offer over it.</summary>
+    private static BoxJoint HubJointFrom(string hubId, string nbId, BoxInterface iface, int w)
+    {
+        var offer = new EdgeOffer(iface.Edge, new EdgeInterval(iface.Start, iface.WidthCells, ApproachSlots.Bar),
+            w, OfferGrouping.Several, $"hub-{iface.Edge}");
+        return new BoxJoint(hubId, nbId, iface, offer);
     }
 
     /// <summary>The hub↔neighbour joint carrying the hub's offer on <paramref name="edge"/>: the interface
