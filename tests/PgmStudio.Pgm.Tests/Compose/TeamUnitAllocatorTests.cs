@@ -60,4 +60,28 @@ public class TeamUnitAllocatorTests
         var plan = TeamUnitAllocator.SamplePlan(env, new ComposeRng(7), hasFrontline: false);
         await Assert.That(plan.Frontline).IsNull();
     }
+
+    [Test]
+    public async Task Allocates_a_hub_spawn_pair_the_filler_consumes_end_to_end()
+    {
+        var alloc = TeamUnitAllocator.Allocate(Env(), new ComposeRng(5));
+        await Assert.That(alloc).IsNotNull();
+        var (partition, facing) = alloc!.Value;
+
+        // the hub and spawn are both allocated and do not overlap
+        var hub = partition.ById("hub")!;
+        var spawn = partition.ById("spawn")!;
+        await Assert.That(Overlap(hub.Rect, spawn.Rect)).IsFalse();
+
+        // the allocated partition round-trips through the filler: allocate -> fill, end to end for the first time
+        var filled = TeamUnitFiller.Fill(partition, facing, new ComposeRng(5));
+        await Assert.That(filled).IsNotNull();
+        await Assert.That(filled!.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
+        await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
+        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo(facing);
+    }
+
+    // two [x,z,w,h] cell rects overlap iff they intersect on both axes
+    private static bool Overlap(int[] a, int[] b) =>
+        a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
 }

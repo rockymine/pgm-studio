@@ -1,3 +1,5 @@
+using PgmStudio.Pgm.Shapes;
+
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>A hub side in unit-relative (u, v) terms, before the symmetry frame maps it to a real
@@ -48,5 +50,96 @@ public static class TeamUnitAllocator
         var woolCount = WoolCount(env, rng);
         var spawn = new[] { UnitSide.Back, UnitSide.Left, UnitSide.Right }[rng.NextInt(0, 3)];
         return new UnitPlan(hasFrontline ? UnitSide.Front : null, spawn, AssignWools(spawn, woolCount));
+    }
+
+    /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
+    /// geometry layer over <see cref="SamplePlan"/>. Positions the hub on the (u, v) grid and seats the spawn on
+    /// its assigned side, mapping both to plan-cell Rects through the symmetry <see cref="Frame"/>, and emits the
+    /// hub↔spawn joint carrying the hub's per-edge <b>w-width offer</b> (the plan <see cref="TeamUnitFiller"/>
+    /// consumes). Returns the partition + the spawn facing (<see cref="Frame.TowardAxis"/>), or <c>null</c> when a
+    /// box does not fit its hub edge. Wools and the frontline layer on next.</summary>
+    public static (BoxPartition Partition, string SpawnFacing)? Allocate(ComposeEnvelope env, ComposeRng rng)
+    {
+        var frame = Frame.For(env.Symmetry);
+        var w = env.LandPerTeam > 2500 ? 3 : 2;                       // lane width (LN1: 10; 15 on big maps)
+        var plan = SamplePlan(env, rng, hasFrontline: false);         // frontline geometry lands in a later slice
+
+        // hub dims — simplified floors/caps (the frontline/twin/wool-c clearance floors refine as those land)
+        var cap = env.LandPerTeam >= 3000 ? 6 : env.LandPerTeam >= 1500 ? 5 : env.LandPerTeam >= 800 ? 4 : 3;
+        var floor = w + 2;
+        var hubU = rng.NextInt(floor, Math.Max(floor, cap) + 1);
+        var hubV = rng.NextInt(floor, Math.Max(floor, cap) + 1);
+        var hubUMin = Envelope.AxisMarginCells;                       // + the frontline's reach when it lands
+        var hubVMin = -(hubV / 2);
+
+        var boxes = new List<Box> { new("hub", BoxKind.Hub, frame.ToRect(hubUMin, hubU, hubVMin, hubV), hubU * hubV) };
+        var joints = new List<BoxJoint>();
+
+        // spawn — a small fixed SP box on its assigned side (its run reaches outward, its cross seats the edge).
+        // Restricted to the straight I for now: its cross equals its entry width, so it seats cleanly. The L's
+        // wide foot overhangs the edge into free space (the grower's entry-seat-and-shift), which lands next.
+        var iSizes = FillProfiles.SpawnSizes.Where(s => s.Family == ShapeFamily.I).ToList();
+        var size = iSizes[rng.NextInt(0, iSizes.Count)];
+        var (spW, spH) = SpawnBoxEmitter.Box(size.Family, w, size.RunCells, size.TurnCells);
+        if (!Seat(frame, plan.Spawn, hubUMin, hubU, hubVMin, hubV, depth: spH, along: spW, rng, out var spawnRect, out var spawnStart))
+            return null;
+        boxes.Add(new Box("spawn", BoxKind.Spawn, spawnRect, spW * spH));
+        joints.Add(HubJoint("hub", "spawn", SideEdge(frame, plan.Spawn), spawnStart, spW, w));
+
+        return (new BoxPartition(boxes, joints), frame.TowardAxis);
+    }
+
+    /// <summary>Seat a neighbour of <paramref name="depth"/>×<paramref name="along"/> on <paramref name="side"/>:
+    /// its depth reaches outward from the hub edge, its along-extent seats within the edge at a sampled point.
+    /// Yields the plan-cell <paramref name="rect"/> and the box-local <paramref name="alongStart"/> on the hub
+    /// edge (for the offer interval). <c>false</c> when the along-extent overruns the edge.</summary>
+    private static bool Seat(
+        Frame frame, UnitSide side, int hubUMin, int hubU, int hubVMin, int hubV,
+        int depth, int along, ComposeRng rng, out int[] rect, out int alongStart)
+    {
+        rect = []; alongStart = 0;
+        int hubUMax = hubUMin + hubU, hubVMax = hubVMin + hubV;
+        var (edgeMin, edgeLen) = side is UnitSide.Front or UnitSide.Back ? (hubVMin, hubV) : (hubUMin, hubU);
+        if (along > edgeLen) return false;
+        var seat = edgeMin + rng.NextInt(0, edgeLen - along + 1);
+        alongStart = seat - edgeMin;
+        var (uMin, uSpan, vMin, vSpan) = side switch
+        {
+            UnitSide.Front => (hubUMin - depth, depth, seat, along),
+            UnitSide.Back => (hubUMax, depth, seat, along),
+            UnitSide.Left => (seat, along, hubVMin - depth, depth),
+            _ => (seat, along, hubVMax, depth),                       // Right
+        };
+        rect = frame.ToRect(uMin, uSpan, vMin, vSpan);
+        return true;
+    }
+
+    /// <summary>The hub↔neighbour joint carrying the hub's offer on <paramref name="edge"/>: the interface
+    /// interval where they touch, and an <see cref="EdgeOffer"/> whose width is the lane width
+    /// <paramref name="w"/> the neighbour reads as its <c>cw</c> (severally — each neighbour its own dock).</summary>
+    private static BoxJoint HubJoint(string hubId, string nbId, BoxEdge edge, int alongStart, int along, int w)
+    {
+        var iface = new BoxInterface(edge, alongStart, along);
+        var offer = new EdgeOffer(edge, new EdgeInterval(alongStart, along, ApproachSlots.Bar), w, OfferGrouping.Several, $"hub-{edge}");
+        return new BoxJoint(hubId, nbId, iface, offer);
+    }
+
+    /// <summary>The hub's box edge facing <paramref name="side"/> — the (u, v) outward direction mapped through
+    /// the <see cref="Frame"/> to a box-local edge (min-z Top, max-z Bottom, min-x Left, max-x Right).</summary>
+    private static BoxEdge SideEdge(Frame frame, UnitSide side)
+    {
+        var (du, dv) = side switch
+        {
+            UnitSide.Front => (-1.0, 0.0),
+            UnitSide.Back => (1.0, 0.0),
+            UnitSide.Left => (0.0, -1.0),
+            _ => (0.0, 1.0),                                          // Right
+        };
+        var (ox, oz) = frame.ToPoint(0, 0);
+        var (px, pz) = frame.ToPoint(du, dv);
+        double dx = px - ox, dz = pz - oz;
+        if (dz < 0) return BoxEdge.Top;
+        if (dz > 0) return BoxEdge.Bottom;
+        return dx < 0 ? BoxEdge.Left : BoxEdge.Right;
     }
 }
