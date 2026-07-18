@@ -74,35 +74,60 @@ public static class TeamUnitAllocator
 
         var boxes = new List<Box> { new("hub", BoxKind.Hub, frame.ToRect(hubUMin, hubU, hubVMin, hubV), hubU * hubV) };
         var joints = new List<BoxJoint>();
+        var occupied = new Dictionary<UnitSide, List<(int Start, int Len)>>();   // per-side docked intervals
 
-        // spawn — a small fixed SP box on its assigned side (its run reaches outward, its cross seats the edge).
-        // Restricted to the straight I for now: its cross equals its entry width, so it seats cleanly. The L's
-        // wide foot overhangs the edge into free space (the grower's entry-seat-and-shift), which lands next.
+        (int Min, int Len) Edge(UnitSide s) => s is UnitSide.Front or UnitSide.Back ? (hubVMin, hubV) : (hubUMin, hubU);
+
+        // seat a depth×along box on `side` in a free gap of that hub edge, tracking occupancy so two boxes on one
+        // edge (a third wool beside the spawn) do not collide; the box-local alongStart for the joint, or null
+        int? SeatOn(UnitSide side, int depth, int along, out int[] rect)
+        {
+            rect = [];
+            var (edgeMin, edgeLen) = Edge(side);
+            if (along > edgeLen) return null;
+            occupied.TryAdd(side, []);
+            if (SeatInGap(occupied[side], edgeLen, along, rng) is not { } local) return null;
+            occupied[side].Add((local, along));
+            rect = RectFor(frame, side, hubUMin, hubU, hubVMin, hubV, edgeMin + local, depth, along);
+            return local;
+        }
+
+        // spawn — the straight I for now (cross = entry width, seats cleanly); the L's overhanging foot lands next
         var iSizes = FillProfiles.SpawnSizes.Where(s => s.Family == ShapeFamily.I).ToList();
         var size = iSizes[rng.NextInt(0, iSizes.Count)];
         var (spW, spH) = SpawnBoxEmitter.Box(size.Family, w, size.RunCells, size.TurnCells);
-        if (!Seat(frame, plan.Spawn, hubUMin, hubU, hubVMin, hubV, depth: spH, along: spW, rng, out var spawnRect, out var spawnStart))
-            return null;
+        if (SeatOn(plan.Spawn, spH, spW, out var spawnRect) is not { } spawnStart) return null;
         boxes.Add(new Box("spawn", BoxKind.Spawn, spawnRect, spW * spH));
         joints.Add(HubJoint("hub", "spawn", SideEdge(frame, plan.Spawn), spawnStart, spW, w));
+
+        // wools — budget-share sized (generic, no per-family solve), seated around the spawn: the free sides
+        // first, a third doubling into the spawn's edge (the gap-seating keeps them off the spawn)
+        var budgetCells = env.LandPerTeam / (env.Cell * (double)env.Cell);
+        var flexible = Math.Max(0.0, budgetCells - hubU * hubV);
+        const int laneChainBlocks = 50;                              // LN2 chain cap
+        var depthCap = Math.Max(4, laneChainBlocks / env.Cell);
+        var woolShare = flexible / (plan.Wools.Count + 1.0);         // the spawn takes a rough unit share too
+        for (var i = 0; i < plan.Wools.Count; i++)
+        {
+            var side = plan.Wools[i];
+            var (_, edgeLen) = Edge(side);
+            var along = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen));
+            var depth = Math.Clamp((int)Math.Round(woolShare / along), 4, depthCap);
+            if (SeatOn(side, depth, along, out var woolRect) is not { } woolStart) return null;
+            var id = $"wool-{(char)('a' + i)}";
+            boxes.Add(new Box(id, BoxKind.Wool, woolRect, along * depth));
+            joints.Add(HubJoint("hub", id, SideEdge(frame, side), woolStart, along, w));
+        }
 
         return (new BoxPartition(boxes, joints), frame.TowardAxis);
     }
 
-    /// <summary>Seat a neighbour of <paramref name="depth"/>×<paramref name="along"/> on <paramref name="side"/>:
-    /// its depth reaches outward from the hub edge, its along-extent seats within the edge at a sampled point.
-    /// Yields the plan-cell <paramref name="rect"/> and the box-local <paramref name="alongStart"/> on the hub
-    /// edge (for the offer interval). <c>false</c> when the along-extent overruns the edge.</summary>
-    private static bool Seat(
-        Frame frame, UnitSide side, int hubUMin, int hubU, int hubVMin, int hubV,
-        int depth, int along, ComposeRng rng, out int[] rect, out int alongStart)
+    /// <summary>The plan-cell Rect of a depth×along box seated at <paramref name="seat"/> (absolute along-coord)
+    /// on <paramref name="side"/>: its depth reaches outward from the hub edge, its along-extent runs along it.</summary>
+    private static int[] RectFor(
+        Frame frame, UnitSide side, int hubUMin, int hubU, int hubVMin, int hubV, int seat, int depth, int along)
     {
-        rect = []; alongStart = 0;
         int hubUMax = hubUMin + hubU, hubVMax = hubVMin + hubV;
-        var (edgeMin, edgeLen) = side is UnitSide.Front or UnitSide.Back ? (hubVMin, hubV) : (hubUMin, hubU);
-        if (along > edgeLen) return false;
-        var seat = edgeMin + rng.NextInt(0, edgeLen - along + 1);
-        alongStart = seat - edgeMin;
         var (uMin, uSpan, vMin, vSpan) = side switch
         {
             UnitSide.Front => (hubUMin - depth, depth, seat, along),
@@ -110,8 +135,25 @@ public static class TeamUnitAllocator
             UnitSide.Left => (seat, along, hubVMin - depth, depth),
             _ => (seat, along, hubVMax, depth),                       // Right
         };
-        rect = frame.ToRect(uMin, uSpan, vMin, vSpan);
-        return true;
+        return frame.ToRect(uMin, uSpan, vMin, vSpan);
+    }
+
+    /// <summary>A free box-local along-position for an <paramref name="along"/>-wide dock in an
+    /// <paramref name="edgeLen"/>-cell edge, avoiding the <paramref name="occupied"/> intervals — sampled within
+    /// a randomly chosen fitting gap, or null when no gap holds it.</summary>
+    private static int? SeatInGap(List<(int Start, int Len)> occupied, int edgeLen, int along, ComposeRng rng)
+    {
+        var gaps = new List<(int Lo, int Hi)>();
+        var cursor = 0;
+        foreach (var (s, l) in occupied.OrderBy(o => o.Start))
+        {
+            if (s - cursor >= along) gaps.Add((cursor, s));
+            cursor = Math.Max(cursor, s + l);
+        }
+        if (edgeLen - cursor >= along) gaps.Add((cursor, edgeLen));
+        if (gaps.Count == 0) return null;
+        var (lo, hi) = gaps[rng.NextInt(0, gaps.Count)];
+        return lo + rng.NextInt(0, hi - lo - along + 1);
     }
 
     /// <summary>The hub↔neighbour joint carrying the hub's offer on <paramref name="edge"/>: the interface

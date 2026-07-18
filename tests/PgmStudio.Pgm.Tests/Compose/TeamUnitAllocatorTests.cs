@@ -81,7 +81,29 @@ public class TeamUnitAllocatorTests
         await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo(facing);
     }
 
+    [Test]
+    public async Task Allocates_a_full_unit_with_wools_and_no_overlaps_the_filler_consumes()
+    {
+        var (partition, facing) = TeamUnitAllocator.Allocate(Env(players: 8, land: 1600), new ComposeRng(11))!.Value;
+
+        await Assert.That(partition.Boxes.Any(b => b.Kind == BoxKind.Wool)).IsTrue();
+        await Assert.That(NoOverlaps(partition.Boxes.Select(b => b.Rect))).IsTrue();   // the boxes tile without collision
+
+        var filled = TeamUnitFiller.Fill(partition, facing, new ComposeRng(11))!;
+        await Assert.That(filled.Unit.Wools.Count).IsGreaterThanOrEqualTo(1);
+        await Assert.That(NoOverlaps(filled.Unit.Pieces.Select(p => p.Rect))).IsTrue();  // a valid layout — no piece overlaps
+    }
+
     // two [x,z,w,h] cell rects overlap iff they intersect on both axes
     private static bool Overlap(int[] a, int[] b) =>
         a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+
+    private static bool NoOverlaps(IEnumerable<int[]> rects)
+    {
+        var r = rects.ToList();
+        for (var a = 0; a < r.Count; a++)
+            for (var b = a + 1; b < r.Count; b++)
+                if (Overlap(r[a], r[b])) return false;
+        return true;
+    }
 }
