@@ -79,12 +79,14 @@ in `BACKLOG.md`.)*
   wool arm's RNG re-keys (first churn — suite still green: tests gate invariants/authored seeds, composer goldens
   freeze after G63). (1c) the shared four-mouth orientation is extracted to `MouthOrient`, and the **spawn arm routes
   through the plan-cell fill** too (`FillSpawn`; `SpawnBoxEmitter.Fill` takes a plan-cell `Box`+mouth), the entry run
-  re-pinned for the wool-on-spawn dock — byte-identical for I / L-dir≥0 spawns.* **Remaining (the switch's own
-  spine):** with all four **team-unit** kinds now boxes (spawn + hub + wools + frontline — G88/G89), the `Composer`
-  routes through the partitioner and **allocate-then-fills the whole unit** with the **hub emitting first as the
-  constraint source** (its edge widths set the neighbour menus); **`TeamUnitGrower`'s team-unit authoring retires**;
-  the clamp's **dual-host corner-wrap** lands; re-baseline gallery cases; **then** freeze the G32-D goldens. `MidCarver`
-  stays — the mid is not a team-unit box, it is derived (`f(frontline)`). *Deliberately NOT next: the
+  re-pinned for the wool-on-spawn dock — byte-identical for I / L-dir≥0 spawns.* **Remaining (the switch's own spine),
+  broken into sub-steps:** with all four **team-unit** kinds now boxes (G88/G89), invert grow-then-derive to
+  **allocate-then-fill**, hub first — **C.1** the unit filler (`TeamUnitFiller`: fill an allocated partition hub-first,
+  neighbours consuming the hub's `EdgeOffer` widths as their `cw`; synthetic fixtures, no golden churn) → **C.2** the
+  allocator (`BoxPartitioner.Partition` allocates box Rects from the budget, replacing the grow-then-derive stub) →
+  **C.3** wire `Composer` through C.2→C.1 and **retire `TeamUnitGrower`'s authoring** (RNG re-keys, goldens churn) →
+  **C.4** the clamp's **dual-host corner-wrap** → **C.5** re-baseline gallery cases, **then** freeze the G32-D goldens.
+  `MidCarver` stays — the mid is not a team-unit box, it is derived (`f(frontline)`, consuming the frontline face offer). *Deliberately NOT next: the
   fill-to-`LandTargetCells` **directed repair** (retiring `SolveDepth`/`SolveWidth`/`spawnLen`) — it resizes shapes
   to hit the budget, which grows them further, the opposite of what the seeds need; parked in `BACKLOG.md` to be
   reconsidered as a targeted rule, not a solver.* Depends on G63-B, **G88, G89**. (review §4.2, §4.4, §4.5, §7.7)
