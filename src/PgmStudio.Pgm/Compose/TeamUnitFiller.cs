@@ -119,8 +119,17 @@ public static class TeamUnitFiller
                     var fitF = FillProfiles.FrontlineForms
                         .Where(f => FrontlineBoxEmitter.Fill(neighbour, f, cwF, OfferGrouping.Several, mouth) is not null).ToList();
                     if (fitF.Count == 0) return null;
+                    // the frontline form answers the hub form: a branch hub takes the wide Bar across its front
+                    // (it overlaps the short leg), but a square or holed hub prefers a staple/strand — a solid Bar
+                    // flush against an already-square hub reads flat (a square on a square).
+                    var hubForm = hubBox.Form?.Form ?? Compound.Rectangle;
+                    var bar = fitF.FirstOrDefault(f => f.Form == Compound.Rectangle);
+                    var strands = fitF.Where(f => f.Form == Compound.SpineArms).ToList();
+                    var frontForm = hubForm == Compound.SpineArms && bar is not null ? bar
+                        : strands.Count > 0 ? strands[rng.NextInt(0, strands.Count)]
+                        : fitF[rng.NextInt(0, fitF.Count)];
                     var grouping = rng.NextBool(0.5) ? OfferGrouping.Joint : OfferGrouping.Several;
-                    var ef = FrontlineBoxEmitter.Fill(neighbour, fitF[rng.NextInt(0, fitF.Count)], cwF, grouping, mouth)!;
+                    var ef = FrontlineBoxEmitter.Fill(neighbour, frontForm, cwF, grouping, mouth)!;
                     pieces.AddRange(ef.Pieces);
                     faceOffers.AddRange(ef.FaceOffers);
                     break;

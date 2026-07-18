@@ -104,14 +104,21 @@ in `BACKLOG.md`.)*
   past ~3× the room reads as a too-long single-entry corridor), so a wool that would run long instead **tucks its
   room to the side** (a compact side-room footprint the mouth still enters cleanly) rather than a long back-room
   lane, the corner clearance dropping to **zero** (the mass-level corner law lets a neighbour take the hub's full
-  edge — the wider side-tuck dock and the wide frontline face both want it). The allocate→fill loop closes
-  end-to-end and `tools/compose/unit-gallery.cs` renders `L`/`U`/`Ring`/rectangle hubs, frontlines, and inline +
-  side-tuck wools, 0 pinches. *Remaining, roughly in order:*
-    - **Hub-form richness — handedness, size, `mirror_x`.** `L`'s two solid edges are adjacent (spine + one arm),
-      so it covers back + **one** lateral, and the arm sits on a fixed side — choosing its **handedness** to match
-      the demanded lateral would let it cover back+right as well as back+left. `Double-hole` still needs a hub
-      **wider than the current caps** (≥ 9). And the vertical flip only orients the **z-frames** (front = top edge);
-      `mirror_x` (front = a lateral edge) needs a rotation, not a flip, so its `L`/`U` stay canonical for now.
+  edge — the wider side-tuck dock and the wide frontline face both want it); and the **form choices answer size and
+  each other** — a **big square** hub (both dims ≥ 5, a ring fits) prefers **negative space** (a ring's void) over a
+  solid rectangle, which is too much solid area for the budget, while a thin/small hub stays the rectangle it holds;
+  and the **frontline form answers the hub form** — a staple/strand against a square or holed hub (a solid Bar flush
+  on an already-square hub reads flat), the wide **Bar** reserved for a branch hub. The allocate→fill loop closes
+  end-to-end and `tools/compose/unit-gallery.cs` renders `Ring`/rectangle/`L` hubs, staple + strand frontlines, and
+  inline + side-tuck wools, 0 pinches. *Remaining, roughly in order:*
+    - **Hub-form richness — handedness, `mirror_x`, big-hub with frontline overlap.** `L`'s two solid edges are
+      adjacent (spine + one arm), so it covers back + **one** lateral, and the arm sits on a fixed side — choosing
+      its **handedness** to match the demanded lateral would let it cover back+right as well as back+left.
+      `Double-hole` still needs a hub **wider than the current caps** (≥ 9). The vertical flip only orients the
+      **z-frames** (front = top edge); `mirror_x` (front = a lateral edge) needs a rotation, not a flip. And an
+      **L hub with a frontline** is worth enabling: today a branch hub with a frontline falls back to a rectangle
+      (front used ⇒ four sides), but a **wide Bar frontline overlapping the L's short front leg** is a good layout —
+      it wants the frontline to dock a branch hub's front foot rather than forcing the fallback.
     - **Wool & spawn family variety** — the wool length + inline/side-tuck placement is in, but every fill is still
       the `I` family: the richer wool families (`L`/`Z`/`scythe`/`donut`) and the **spawn `L`** need a **seat-and-shift**
       — dock the narrow entry (width `w`) and let the wider body **overhang** the hub edge into free space — because

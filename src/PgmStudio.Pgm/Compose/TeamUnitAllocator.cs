@@ -90,8 +90,9 @@ public static class TeamUnitAllocator
         var floor = w + 2;
         var hubU = rng.NextInt(floor, Math.Max(floor, cap) + 1);
         var hubV = rng.NextInt(floor, Math.Max(floor, cap) + 1);
-        // the frontline sits between the hub and the axis, so its reach pushes the hub's front edge back
-        var frontReach = hasFrontline ? w + 1 : 0;
+        // the frontline sits between the hub and the axis, so its reach pushes the hub's front edge back; the +2
+        // gives a staple frontline's arms room for a real bay (a shallower reach collapses them to nubs)
+        var frontReach = hasFrontline ? w + 2 : 0;
         var hubUMin = Envelope.AxisMarginCells + frontReach;
         var hubVMin = -(hubV / 2);
         var hubRect = frame.ToRect(hubUMin, hubU, hubVMin, hubV);
@@ -99,15 +100,27 @@ public static class TeamUnitAllocator
         // the neighbour demands (spawn + wools + the frontline join), sized from the budget before the form is chosen
         var demands = Demands(env, rng, plan, w, hubU, hubV, frontReach);
 
-        // pick the hub form, seat the demands on its real free edges; fall back to the solid rectangle (four full
-        // edges) when the sampled form's offerable surface cannot host every dock
-        var sampled = rng.Pick(HubBoxEmitter.Forms);
+        // pick the hub form (biased by size — a big square hub prefers negative space), seat the demands on its
+        // real free edges; fall back to the solid rectangle (four full edges) when the offerable surface can't host
+        var sampled = ChooseHubForm(hubU, hubV, rng);
         var seating = Seat(sampled, hubRect, frame, w, demands, rng);
         if (seating is null && sampled.Form != Compound.Rectangle)
             seating = Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, w, demands, rng);
         if (seating is not { } s) return null;
 
         return (new BoxPartition(s.Boxes, s.Joints), frame.TowardAxis);
+    }
+
+    /// <summary>Choose the hub form for a <paramref name="hubU"/>×<paramref name="hubV"/> hub. A <b>big square</b>
+    /// hub (both dims ≥ 5, so a ring fits) is too much solid area for the budget — a plain rectangle wastes it —
+    /// so it prefers <b>negative space</b>: a ring's void mostly, else a branch/holed body. A small or thin hub
+    /// stays whatever compact form it can hold (the uniform menu; the wide forms simply don't fit and fall back).</summary>
+    private static CompoundRead ChooseHubForm(int hubU, int hubV, ComposeRng rng)
+    {
+        if (hubU >= 5 && hubV >= 5)
+            return rng.NextBool(0.85) ? new CompoundRead(Compound.Ring)   // the ring's void always fits + survives a frontline
+                : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is not (Compound.Rectangle or Compound.DoubleHole)).ToList());
+        return rng.Pick(HubBoxEmitter.Forms);
     }
 
     /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats
