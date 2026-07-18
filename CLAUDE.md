@@ -45,6 +45,10 @@ That plus a separation of concerns by *kind*:
   `source_id` are string-id refs; owner team derived from capturing `monument.team`.
 
 ## Environment (easy to lose)
+- **Running in a cloud container (Claude Code on the web)? Read `docs/cloud-setup.md` FIRST** — the
+  cloud runbook: sandboxed foreground shells (run `apt`/`dotnet` as background commands), SDK via
+  apt only (the Microsoft CDN is firewalled), dead PPAs to remove, MariaDB without systemd. The
+  rest of this section describes the local VM.
 - **.NET 10** installed via apt; **MariaDB 10.11** running (systemd, enabled). DB `pgm_studio`,
   user `pgm`/`pgm_dev_pw` on localhost.
 - The VirtualBox shared folder hosts the solution fine, but `dotnet run` cold-start is slow and

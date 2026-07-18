@@ -76,6 +76,9 @@ read *width-independently* (§1.2, §5).
 | `ApproachSlots` | The **shape-internal roles** (the *slots*), two layers (shape-vocabulary.md §8): **structural slots** `run · bar · leg` (the rectangle's role in the compound, shared by every kind) + **designation marks** `entry · room` (the docking rect and the terminal, stamped by the approach), qualified `entry-run`/`room-run`/`entry-bar`/`room-bar` when a family has two. A slot is a **template position**, not a property of a rectangle — a scythe's `entry-run` and a donut's `leg` can be the same rectangle in different slots. Each family is an ordered template of these. |
 | `RoomPlacement` | Where the terminal (wool/spawn room) sits relative to the last segment: `Inline` (caps it straight) or `SideTuck` (ducks off its side — still reads as the straight family). |
 | `BoxEdge` | A box-local edge (`Top`/`Bottom`/`Left`/`Right`) — used to name a family's **mouth** (the edge its entry docks a host through). |
+| `NegativeSpaceKind` | The **wall-count escalation of negative space**: `Notch` (wrapped by two edges — the L's corner) · `Bay` (three — the staple's recess, the hook's bay) · `Hole` (enclosed — the ring's void) · `Open` (at most one wall — plain outside, not a feature). The classes that decide which voids are publishable and which edges remain offerable. |
+| `NegativeSpace` · `ClassifiedEdge` | One connected negative space read off a body (its kind, cells, wall count), and one maximal straight boundary run classified by the space it **faces** — `Open` marking the free outward surface (the dock/offer candidates). |
+| `BodyEdges` | The **edge-taxonomy reader**: classifies any rectangle set's negative spaces and boundary edges from geometry alone — the derive-side, shape-relative generalization of the emit-time `ShapeVacancy` publication (works on emissions, terminal-free compounds, future hub bodies). Rendered by `tools/compose/edge-gallery.cs`. |
 
 ## 5. The fill — emitting a shape into a box
 

@@ -1,13 +1,28 @@
 # Map generation — the constraint taxonomy (review & proposal, 2026-07)
 
-> **Status: review/proposal, pre-G88/G89.** A shared language for the generator's rules and
-> constraints, an inventory of where each kind lives today, and a proposed order of changes. It
-> **proposes**; it freezes nothing. When a piece of it ships, the vocabulary lands in
-> `docs/contracts/map-generation.md` §1 (the locked terms) and the types in
-> `docs/contracts/map-generation-vocabulary.md`, and the matching section here is retired. It
-> defers to `map-generation.md` for the model, `shape-vocabulary.md` for the shape/designation
-> layers, `layout-rules.md` for every number, and `map-generation-architecture-review.md` §9 for
-> the evaluator design it extends.
+> **Status: review/proposal, pre-G88/G89; amended round 2 (author corrections + the edge
+> taxonomy, §4).** A shared language for the generator's rules and constraints, an inventory of
+> where each kind lives today, and a proposed order of changes. It **proposes**; it freezes
+> nothing. When a piece of it ships, the vocabulary lands in `docs/contracts/map-generation.md`
+> §1 (the locked terms) and the types in `docs/contracts/map-generation-vocabulary.md`, and the
+> matching section here is retired. It defers to `map-generation.md` for the model,
+> `shape-vocabulary.md` for the shape/designation layers, `layout-rules.md` for the numbers, and
+> `map-generation-architecture-review.md` §9 for the evaluator design it extends.
+>
+> **Two standing correctives (author, round 2)** this doc must not overstate:
+> - **`layout-rules.md` is a living rule set, not settled law.** It began as an interview
+>   transcript grown into rules; its "frozen" label means *amend by protocol, by id* — it does
+>   not mean the rules are final or beyond question. Nothing in it is taken for granted; rules
+>   run a development like everything else. What *is* stable is the vocabulary and the
+>   meta-model — and even the model is a **meta-model**: a mapping of how an authored layout can
+>   be decomposed into machine steps, not a claim about how authors actually work.
+> - **The seeds are final-fidelity artifacts, not composer targets.** Every seed already carries
+>   the post-compose passes (fragmentation, resizing) baked in — it shows what the *end* of the
+>   pipeline may look like, never what the composer should emit. Measuring them (the envelope
+>   bands) checks what is *expressible* and informs rules a human then judges; **auto-deriving
+>   rules from seed statistics does not work** — several band-derived rules were rejected on
+>   review, which is exactly why the band-filling effort stopped. Bands are a triage aid,
+>   author-curated one by one, never a rule factory.
 
 The trigger: G88 (hub) and G89 (frontline) both need rules of the form *"where may a neighbour
 attach, on which edges, in which groupings"* — e.g. *a frontline built as a spine + two arms
@@ -37,9 +52,9 @@ good the result **reads** (band / term)?*
 | **gate** | the hard legality check applying demand/offer/veto, with a *directed rejection* | yes, legibly | `DockingGate` → `DockRejection`, `FillResult.IllegalDock` |
 | **knob** | a free parameter *within* legality; never changes identity | guard-railed | `entryShift`, `attachmentWidth`, `SpineArms` arm placement |
 | **target** | a **per-request, prescriptive** constraint this compose aims at — chosen or sampled, then held | steers + verifies | **no code home yet** — the "controlled variance" gap (§4) |
-| **band** | a **descriptive** envelope learned from the corpus — how the result should *read* | never (scores distance) | `SoftTerm` + `seed-envelopes.json` (`frontline-count` [1,7]) |
+| **band** | a **descriptive** envelope measured off the seeds — advisory (the seeds are final-fidelity, see the header corrective) | never (scores distance) | `SoftTerm` + `seed-envelopes.json` (`frontline-count` [1,7]) |
 | **hard term** | a well-formedness symptom check on the derived board | flat penalty | `WoolRingedHole`, `GapHopBand` |
-| **law** | the frozen, id-bearing author rule the mechanisms implement | n/a (provenance) | `layout-rules.md` FR6, CT9, BZ8 |
+| **law** | the id-bearing author rule the mechanisms implement — a **living** rule set amended by protocol, provenance not gospel | n/a (provenance) | `layout-rules.md` FR6, CT9, BZ8 |
 | **doctrine** | a meta-rule about where rules may live | n/a | "labels drive, the mirror verifies"; "the evaluator never sees a shape name" |
 
 Two distinctions carry most of the weight:
@@ -115,8 +130,9 @@ Three mechanism gaps stand between today's code and this being expressible (all 
 already implied by the docs):
 
 1. **Interval facts.** `BoxInterfaces.Of` collapses each bounding-box edge to a flat slot
-   list; a twin face is two disjoint intervals on one edge. The facts model becomes
-   `edge → [(range, piece, slot/mark)]` — data `Of` already computes and discards.
+   list; a twin face is two disjoint intervals on one edge. The facts should be the body's
+   **classified boundary runs** (the edge taxonomy, §4 — now code in `BodyEdges`): free runs
+   carrying `(range, piece, slot/mark)`, notch/bay/hole walls carrying their space.
 2. **Designation marks in the gate.** `DockingGate.Role` is one global slot→role table
    (`entry` docks, `room` vetoes) — approach-only. Dock roles become per-designation **marks**
    (`entry`/`room` for approaches; `face`/`hub-edge` for the frontline; per-edge `interface`
@@ -132,7 +148,47 @@ arms slide (§3 of the shape vocabulary). The offer is stated over structural sl
 ("the arms' outward end-edges"), so it survives every knob — and covers Π, T, E, and the plain
 Bar with the same sentence.
 
-## 4. Targets — controlled variance
+## 4. The edge taxonomy — negative spaces, wall counts, offerable surface *(shipped)*
+
+The vocabulary that grounds all of §3, now **computed from geometry alone**
+(`Pgm/Shapes/BodyEdges.cs`, rendered by `tools/compose/edge-gallery.cs` →
+`tools/compose/out/edge-gallery.html`). A body's negative spaces escalate by **wall count** —
+the number of axis directions the body walls a connected void from:
+
+| Walls | Class | The picture |
+|---|---|---|
+| 2 | **notch** | the corner an L wraps |
+| 3 | **bay** | the staple's recess, the hook's bay — open one way |
+| 4 (enclosed) | **hole** | the ring's void |
+| ≤1 | *(open)* | plain outside — not a feature of the shape |
+
+Every boundary edge is then classified by the space it faces: an edge walling a notch/bay/hole,
+or a **free edge** — outward surface facing nothing — which is exactly the **offer candidate
+set**. The names align with the emit-time `ShapeVacancy` kinds; the read is shape-relative and
+total (any rectangle set — emissions, compounds, future hub bodies), needing no emitter
+cooperation.
+
+Why this is the load-bearing piece:
+
+- **It generalizes the four-edge hub.** Today's hub is a solid rectangle, and the entire
+  composer attachment rule is its four free edges: the back edge seats the spawn, the side
+  edges take the wool boxes, the front edge the frontline. A real hub body (an L, a U, a
+  spine-with-legs) has *more* edges, and how many depends on where the legs sit — the edge
+  taxonomy is what replaces "the four edges of the rect" as the thing rules bind to: **offers
+  live on free edges; notches/bays/holes are what remains.**
+- **It drives vacancy publication.** Which negative spaces are eligible to be published (the
+  parked vacancy-allocation work) becomes a rule over the classes: a hole is CT8 rotation
+  currency, a bay is claimable through its mouth, a notch is a corner remainder — and the
+  gallery is the instrument for deciding those rules by looking.
+- **Placement decides the spaces, not K.** The same `SpineArms(2)` reads *one bay* as Π and
+  *bay + notch* as F — pinned by tests (`BodyEdgesTests`); the rule language must therefore
+  speak in spaces and edges, never letters (§3's closing rule, now verifiable).
+- **The designation participates.** A clamp's recess is a **bay only because the room closes
+  it** — the same two bars without the room wrap a mere notch (also pinned by a test). Negative
+  space is read on the *finished* mass, so a designation can change a space's class — one more
+  reason the offer lives in the designation layer.
+
+## 5. Targets — controlled variance
 
 "I want layouts varied, but **controlled** variance": the sampler *chooses* among legal forms
 today (family rolls, form rolls), but nothing lets a compose *hold* a chosen character and be
@@ -156,18 +212,21 @@ runs in one component are "connected frontlines" (the twin tips of one team unit
 different components are parallel-lane fronts. Cheap to add (`SoftTerm.Value` over data the
 board deriver already holds), and the natural verification hook for the F example's two modes.
 
-## 5. Proposed order of changes
+## 6. Proposed order of changes
 
 Ordered so each step is small, independently green, and consumed by the next; steps 2–3 are
 the pre-work G89 wants anyway. (Task ids to be assigned when pulled onto the board; G88/G89/
 G63-C are the existing anchors.)
 
-1. **Adopt the vocabulary** (doc-only). The §1 kinds land in `map-generation.md` §1 as locked
-   terms (offer, target vs band, demand, veto, knob); prompt templates (§6) ride along. Retire
-   the matching sections here.
-2. **Interval facts** (small code). `BoxEdgeInterface` gains per-interval slots
-   (`edge → [(range, slot)]`); `DockingGate` verdicts unchanged (an edge's slot set is the union
-   of its intervals' slots) — byte-identical wool/spawn output is the acceptance bar.
+0. **The edge taxonomy** *(shipped — §4)*. `BodyEdges` classifies negative spaces (notch 2 /
+   bay 3 / hole enclosed) and boundary edges from geometry; `edge-gallery.cs` colour-codes them
+   over every shape — the instrument the following steps' rules are decided against.
+1. **Adopt the vocabulary** (doc-only). The §1 kinds + the §4 edge terms land in
+   `map-generation.md` §1 as locked terms (offer, target vs band, demand, veto, knob; the
+   wall-count classes); prompt templates (§7) ride along. Retire the matching sections here.
+2. **Interval facts** (small code). `BoxEdgeInterface`'s facts re-ground on the classified
+   boundary (§4): free runs carry `(range, slot/mark)`, walls carry their space class;
+   `DockingGate` verdicts unchanged — byte-identical wool/spawn output is the acceptance bar.
 3. **Designation marks** (with G88/G89's designations). `Hub(body, edgeWidths)` and
    `Front(body, face)` stamp marks; `DockingGate.Role` becomes mark-driven per designation.
    The approach path keeps its current table verbatim.
@@ -182,14 +241,15 @@ G63-C are the existing anchors.)
    steering designation/grouping/form choices, verified against the derived reads. First
    fields: frontline runs per team, connected-run count, mid form.
 7. **Measurables + bands as follow-through** (the unstalled soft-rule lane). Connected-run
-   count first; then each parked soft wish triaged through §4's decomposition —
-   measurable → band → (maybe) target — instead of forcing everything into a band.
-8. **The docking/offer card gallery** (UX, any time after 4). Per (compound × designation): a
-   card painting offered intervals green (grouping annotated), vetoes red, demands as arrows —
-   generated from the profile data, so the picture *is* the rule table; the reviewable face of
-   the whole system, and the regression surface for G88/G89.
+   count first; then each parked soft wish triaged through §5's decomposition —
+   measurable → band → (maybe) target — with every band author-curated (the header corrective:
+   seeds describe outcomes; bands are never a rule factory).
+8. **The offer-card gallery** (UX, after 4 — the edge half shipped as `edge-gallery.cs`). Per
+   (compound × designation): offered intervals annotated with grouping and width class, vetoes
+   and demands drawn — generated from the profile data, so the picture *is* the rule table; the
+   regression surface for G88/G89.
 
-## 6. Prompting future rules — templates
+## 7. Prompting future rules — templates
 
 Every rule prompt should state: **(a)** the kind (§1), **(b)** the binding in slot/mark terms —
 never letters, never screen positions, **(c)** the law id it implements (or "new law — assign
