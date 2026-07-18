@@ -1,14 +1,18 @@
 # Map generation — the shape vocabulary
 
-> **Status: draft, co-authored.** The terminal-free shape model that sits *beneath* the wool/spawn
-> approach families — the shared layer the hub (**G88**) and frontline (**G89**) boxes build on. Once it
-> settles this folds into `map-generation.md` §5 (which today frames shapes as wool-approach-only) and its
-> types land as rows in `map-generation-vocabulary.md`. **The terminal-free `Body` stage is code (G90, §9/§10)
-> and the new compounds emit + classify standalone (G91, §5) — `BodyEmitter` builds them, `ClassifyBody` reads
-> them back;** the hub/frontline designations that consume them are still ahead (G88/G89). The working system it
-> generalizes is the eight wool/spawn families, their `ShapeEmitter` geometry, and the emit↔derive mirror —
-> those stay green throughout, and *byte-identical wool/spawn output* is the acceptance bar for any refactor
-> this doc motivates.
+> **Status: RETIRED — folded into `map-generation.md` (G94); that doc governs on any disagreement.**
+> This draft's model is now canonical there: the two-layer shape model (body + designation) is **§1.12**
+> and **§5** (the body vocabulary, the hub/frontline designation menus, and the structural-slot vs
+> designation-mark split); the edge taxonomy is **§1.13**; the rule-kind vocabulary is **§1.14**. The
+> types landed as rows in `map-generation-vocabulary.md` (`Compound`, `ApproachSlots`, the `BodyEdges`
+> family). The sections below are **retained only as the anchor their live code citations still point
+> at** (`shape-vocabulary.md §N` in `ApproachSlots.cs`, `BodyEmitter.cs`, `ShapeBody.cs`, `Compound.cs`,
+> and the Body/BodyEdges tests); deleting the file and repointing those citations to `map-generation.md
+> §5` is the follow-up **G99**. Do not extend this draft — add to the canonical doc.
+>
+> _Section map:_ §1–§5 (the shape model, the body escalation) → `map-generation.md` §5 preamble; §6/§7
+> (designations, the clamp/twin) → §5.5; §8 (slots) → §5.3 + §1.12; §9/§10 (the emitter, lineage) → §5.4
+> + §12.
 
 ---
 

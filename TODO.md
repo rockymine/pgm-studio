@@ -58,20 +58,13 @@ the team unit (hub + spawn + wool + frontline) the switch fills; D (vacancy publ
   (convert land→build inside the box per the §5.3 slot cut law) land together with **G63-C**'s box-Rect
   allocation — `BoxFiller` is the filler that switch drives. Depends on G63-C. (review §4.1, §8)
 
-*(The G88/G89 pre-work, in execution order — language, then binding, then the offer mechanism. The edge
-taxonomy + publish policy (G92) and the interval facts (G93) shipped ahead of these; see `FEATURES.md`.)*
+*(The G88/G89 pre-work, in execution order — language, then binding, then the offer mechanism. The
+language step (G94: the shape vocabulary + rule kinds folded into `map-generation.md` §1.12–§1.14/§5)
+and the edge taxonomy + publish policy (G92) and interval facts (G93) have all shipped ahead of these;
+see `FEATURES.md`.)*
 
-- [ ] **G94 — Fold the shape vocabulary + rule kinds into the canonical doc.** `map-generation.md` still frames
-  shapes as wool-approach-only; the model has moved: **base shapes (bodies) are terminal-free compounds**
-  (`shape-vocabulary.md` — one Staple serves U and Y, a Rectangle serves lane and hub), the approach families are
-  the *terminal designation* over them, and the edge taxonomy (notch/bay/hole by wall count · parts · mouths ·
-  wall slots · guard, G92) plus the rule-kind vocabulary (fact · menu · fit gate · demand · **offer** · veto ·
-  gate · knob · **target vs band** · law · doctrine) are proven in code. Doc-only: §5 reframes
-  bodies-then-designations, §1 gains the locked terms, `shape-vocabulary.md` folds in and retires, and the
-  shipped sections of `docs/map-generation-constraint-taxonomy.md` retire per its own header. **Order: first —
-  before G95/G96/G88/G89; language before mechanism.**
 - [ ] **G95 — Designation marks drive the docking gate.** `Hub(body, edgeWidths)` and `Front(body, face)` stamp
-  **designation marks** onto the body (`shape-vocabulary.md` §8); `DockingGate.Role` becomes
+  **designation marks** onto the body (`map-generation.md` §5.3); `DockingGate.Role` becomes
   (designation, slot/mark)-driven over the G93 interval facts — the approach table verbatim (`entry` docks,
   `room` vetoes), the hub's marks its interface edges, the frontline's its face. No new rule content, only the
   binding. **Order: after G94; the first code milestone inside G88/G89 — their two designations are its two

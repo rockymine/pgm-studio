@@ -983,6 +983,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **Shape vocabulary + rule kinds folded into the canonical doc (G94)** — `docs/contracts/map-generation.md`:
+  the two-layer shape model is now canonical there. §5 reframes **bodies-then-designations** (a terminal-free
+  **body** — the `Compound` escalation Rectangle · Spine+K arms · Zig · Hook · Ring · Double-hole — finished by
+  a per-kind **designation**: approach, hub, frontline; §5.5 the hub/frontline form menus feeding G88/G89; §5.3
+  the structural-slot vs designation-mark split). §1 gains the locked terms — **§1.12** body/designation,
+  **§1.13** the edge taxonomy (notch/bay/hole by wall count · parts · mouths · guard · offerable surface),
+  **§1.14** the twelve rule kinds (fact · menu · fit gate · demand · **offer** · veto · gate · knob · **target
+  vs band** · law · doctrine). `shape-vocabulary.md` superseded (banner + section map; retained for its live
+  code citations, delete follow-up G99); the constraint-taxonomy's §1 and §4 terms retired to pointers, its §4.1
+  publish policy + §3/§5/§7 proposal kept as the live design record. Doc-only. (G94)
+
 - **Interval facts on the box edges (G93)** — `Compose/Boxes/BoxInterfaces.cs`: `BoxEdgeInterface` re-grounds
   on **intervals** — each edge carries its per-piece stretches ordered along it (`EdgeInterval(Start,
   LengthCells, Slot)`, the room included as the room slot), `Slots` becoming the flat per-interval view — so a

@@ -5,8 +5,9 @@ the pipeline and its order, and how every part fits the next. Every word defined
 one meaning**; where a term appears elsewhere it carries this meaning. When another doc and this one
 disagree, this one governs.
 
-**What this document owns:** the glossary, the pipeline, the box model, the shape families, the two
-derivers, the evaluator model, and the budget/width model. **What it defers:**
+**What this document owns:** the glossary, the pipeline, the box model, the shape model (bodies,
+designations, and the approach families), the two derivers, the evaluator model, and the budget/width
+model. **What it defers:**
 
 | Companion | Owns |
 |---|---|
@@ -45,8 +46,10 @@ A **family** is a base-shape class of a wool approach. There are **nine**, and t
 `Isolated · I · L · Z · Scythe · Clamp · U · H · Donut`
 
 A family's **identity is its turn count plus the wool's seating**, read **width-independently** — a
-thick leg, a box-shaped bar, or a wide bay is a *wide spot*, never a different family. Families are
-defined in §5.
+thick leg, a box-shaped bar, or a wide bay is a *wide spot*, never a different family. A family is the
+**approach designation** (§1.12) over a terminal-free **body** — one body serves several families (a
+Staple body reads **U** with the wool flush on its bar, **H** with the wool lifted onto a stub).
+Families are defined in §5.
 
 ### 1.3 The two derivers
 
@@ -133,13 +136,16 @@ Each hole is also **declared** (overlaps a `buffer` or a zone-hole — deliberat
 count of distinct crossings ringing it).
 
 Two other enclosed voids are **not** a hole in this sense, and must not be called one: the **donut's
-void** is a *shape-level* enclosed void (§5), and a box's opening is an **interface** (§1.5).
+void** is a *shape-level* enclosed void (§5) — the edge taxonomy's **hole** class (§1.13), a *shape*
+negative space distinct from these board-deriver connectivity classes — and a box's opening is an
+**interface** (§1.5).
 
 ### 1.8 fold and bay — the scythe features
 
 A **fold** is terrain that doubles back on itself — some grid row or column crosses the terrain in
 **two runs** (the terrain is not orthogonally convex), width-independent. The **bay** is the open
-concavity the fold wraps. The **fold decides exactly one family**: the scythe. The fold, not a
+concavity the fold wraps — formally a **3-wall negative space** (§1.13); the scythe's is the
+fold-wrapped instance. The **fold decides exactly one family**: the scythe. The fold, not a
 bounding-box read of the bay, is the test — sliding an endpoint off a box corner opens the bay
 toward a second edge without unfolding the shape, so the fold read stays stable under the emitter's
 entry/wool shifts and under docked neighbour terrain. The gaps in U / H / Clamp are bay-shaped too,
@@ -183,6 +189,83 @@ The key: **a build zone costs footprint but not land**. Detailed in §8.
 - **menu** — the set of families an interface width makes legal (the width→fill production rule, §4).
 - **mid** — the neutral band between the frontlines; its **form is `f(frontline)`** (§9).
 - **frontline** — a **join**, not a placement, and a **derived edge attribute**, not a piece (§4, §6).
+
+### 1.12 body and designation
+
+Every base shape is two layers. A **body** is a pure rectilinear compound — one or more rectangles
+joined **along shared edge intervals** (§1.5; never a bare corner, `Cells.HasDiagonalPinch`),
+identified by **topology alone** (voids · arms · bends), width-independent. A **designation** is what
+a box kind stamps onto a body to finish it into a placed box:
+
+| Designation | Stamps | Box kinds |
+|---|---|---|
+| **approach** | an `entry` (the docked rect/edge) + a `terminal` (the room) | wool, spawn |
+| **hub** | per-edge **interface widths**, no terminal — the *constraint source* (emits first, its edge widths set the neighbours' menus) | hub |
+| **frontline** | one edge marked the **`face`** (where the fanned images meet), no terminal — drives `mid = f(frontline)` | frontline |
+
+The body layer is shared across every box kind; the designation is per-kind. **A family (§1.2) is the
+approach designation over a body** — one body serves several families (a Staple body reads U with the
+wool flush on its bar, H with the wool on an added stub). This is why the shape enum's `Isolated` and
+`Clamp` are not bodies but *terminal designations* (§5): Isolated is a body with no terrain reaching
+the terminal; the clamp is one compact terminal docked on two **distinct** faces. Letters (I/L/Z/U/…)
+name a **placement**, not a topology — a join is free to slide and widen along its edge (the G50–G52
+knobs), so the same body reads as different letters as its pieces move; **identity stays topological**,
+the letter is notation.
+
+### 1.13 the edge taxonomy — negative spaces and the offerable surface
+
+A body's **negative spaces** — the connected empty regions around and inside it — escalate by **wall
+count**, the number of axis directions the body walls the void from:
+
+| Walls | Class | Picture |
+|---|---|---|
+| 2 | **notch** | the corner an L wraps |
+| 3 | **bay** | the staple's recess, the scythe's fold-bay (§1.8) — open one way |
+| 4 (enclosed) | **hole** | the ring / donut's void |
+| ≤1 | *(open)* | plain outside — not a feature of the shape |
+
+This is a **shape-relative fact read off finished geometry** (`BodyEdges`), total over any rectangle
+set. A space carries: its **parts** — a slab decomposition into rectangles, each re-classed by its
+*own* walls (so a rule can reach an inset leg the flat class forbade wholesale); its **mouths** — one
+per open direction (bay 1, notch 2, hole 0), each an **interval** (§1.5) tapering to a `wN` **width
+class** (what may dock *through* the opening); its **wall slots** (the slots of the walling pieces);
+and its own compound **form** (the void read as a body). A boundary run is classified on **three
+independent axes** — what it **faces**, whether it is **terminal** (the room seals its own wall), and
+whether it is **guarded** (inside the room's clearance margin, the corridor minimum). The **offerable
+surface** — the free outward surface a neighbour may attach onto — is exactly **open ∧ ¬terminal ∧
+¬guarded**. ("hole" here is the *shape-level* negative-space class — the donut's void of §1.7 — **not**
+the board-deriver's connectivity hole classes.)
+
+### 1.14 the rule kinds
+
+Every generator rule is one **kind**; naming the kind gives each new rule an address. The one-line
+test: does it change what can be **picked** (menu), whether a pick **fits** (fit gate), whether a join
+is **legal** (gate over demand / offer / veto), how a legal join **varies** (knob), what a compose
+**aims at** (target), or how good the result **reads** (band / term)?
+
+| Kind | Is | Exemplar |
+|---|---|---|
+| **fact** | an observation off geometry, no policy | `BoxEdgeInterface.Intervals`, the edge taxonomy (§1.13), `FrontlineRuns` |
+| **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillProfiles.Families`, `FillMenu.Rows` |
+| **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
+| **demand** | a shape's requirement *on its environment* (inbound) | `FamilyDock.EntryDemand` (the clamp's two entries) |
+| **offer** | constraints a shape imposes *outward* — the edges/intervals it invites neighbours onto, in which groupings | the hub's per-edge widths, the frontline's face (G96) |
+| **veto** | a never-attach / never-publish mark | `SlotDockRole.NeverDock`, `PublishPolicy`'s bay/hole veto |
+| **gate** | the hard legality check applying demand/offer/veto, with a **directed rejection** | `DockingGate` → `DockRejection`, `PublishPolicy` → `PublishVerdict` |
+| **knob** | a free parameter *within* legality — never changes identity | entry shift, attachment width, arm placement |
+| **target** | a **per-request, prescriptive** constraint a compose holds and verifies | `ComposeTargets` (G98) |
+| **band** | a **descriptive** envelope measured off the seeds — advisory, scores distance | `SoftTerm` + the seed envelopes |
+| **hard term** | a well-formedness symptom on the derived board — flat penalty | `WoolRingedHole`, `GapHopBand` |
+| **law** | the id-bearing author rule the mechanisms implement — a **living** set, amended by protocol | `layout-rules.md` FR6, CT9, BZ8 |
+| **doctrine** | a meta-rule about where rules may live | "labels drive, the mirror verifies" |
+
+Two distinctions carry the weight. **demand vs offer** is the direction of the arrow: an approach
+*demands* (its entry must find a host); a hub or frontline *offers* (its edges dictate where and how
+wide neighbours land — the constraint source of §4). **target vs band** is prescription vs
+description: a band says *authored maps run 1–7 frontline runs*; a target says *this compose wants
+exactly 2, connected*. Bands score a finished compose; targets steer it first and verify after. (Offer
+and target are locked as vocabulary here; their types — `EdgeOffer`, `ComposeTargets` — land with
+G96/G98.)
 
 ---
 
@@ -360,13 +443,44 @@ box** (resize, relax an interface, split it) — the Tetris failure feeds back u
 
 ---
 
-## 5. The shape families and the piece vocabulary
+## 5. The shape model — bodies, designations, and the piece vocabulary
 
-### 5.1 The nine families
+A base shape is two layers (§1.12): a terminal-free **body** (topology alone), finished by a per-kind
+**designation**. The body vocabulary is one escalation — each step adds a rectangle (joined along a
+shared edge interval, §1.5) and earns a feature; the set is **open** (custom builds recombine, and the
+body deriver reads the result without a new special case):
 
-Shape identity is `ApproachShape` (`WoolApproachShape`). The families are an **escalation**: an L
-whose lane doubles back is a scythe; a scythe whose bay closes is a donut; a clamp whose wool docks
-flush on one bar is a U; a U that lifts its wool onto a room-run stub is an H.
+| Body | Feature added | Letters · families it serves |
+|---|---|---|
+| **Rectangle** (a spine) | — | I · □ · the solid hub |
+| **Spine + K arms** | branch | L·T (1) · U·Π·F (2) · E·Comb (3+) — the L, U, and H/Y bodies |
+| **Zig** | staircase | Z · S |
+| **Hook** | fold (§1.8) | the scythe |
+| **Ring** | void | the donut |
+| **Double-hole** (Ring + a slid U) | 2nd void | a holed hub |
+
+The branch row is **one** family — a spine plus K perpendicular arms; the letter is a placement-read
+of (arm count, where the arms sit) and drifts as the arms slide, so Ell / Staple / Comb are not three
+bodies but one. Two further **holed** recombinations sit mostly on the frontline: **P** (a U closed by
+a longer overhanging I — a ring with a tail) and **two U's on one I** (twin loops). Width is
+orthogonal: the interface width (`w2/w4/w6`) reads a body as corridor or area, never as a different
+body. The body vocabulary is `Compound` (`SpineArms · Ring · DoubleHole · P · TwoUOnI · Rectangle`),
+built by `BodyEmitter` and read back by `ClassifyBody` — a body-layer mirror separate from the
+approach view. (In the body layer the old H is named **Y**: its stub arm slides, so a fixed `h` glyph
+misleads; the *approach family* enum keeps `H`.)
+
+The designations that finish a body are per box kind (§1.12): **approach** (wool/spawn — §5.1), **hub**
+and **frontline** (§5.5). The following subsections are the approach designation — the one with the
+complete emit↔derive mirror today — then the hub/frontline menus the box work (G88/G89) builds on.
+
+### 5.1 The approach families (the nine)
+
+Approach-shape identity is `ApproachShape` (`WoolApproachShape`) — the **approach designation** over a
+body, the nine of them an **escalation**: an L whose lane doubles back is a scythe; a scythe whose bay
+closes is a donut; a clamp whose wool docks flush on one bar is a U; a U that lifts its wool onto a
+room-run stub is an H. (`Isolated` and `Clamp` are **terminal designations**, not bodies: Isolated is
+any body with no terrain reaching the wool; the clamp is one compact room docked on two distinct
+faces.)
 
 The base vocabulary is a character grid — **`t` terrain (walkable), `v` void (a build zone may later
 span it), `w` wool**, rows top to bottom. These are scale-independent *shapes*; build zones subdivide
@@ -432,6 +546,15 @@ is what makes "the entry is piece N" a usable rule); and a **slot is a template 
 property of the rectangle**. The table is realized as data in `ApproachSlots.Template(family)`, and
 each emitted piece carries its slot on `GrownPiece.Slot`.
 
+A slot is itself **two layers**, split by what stamps it: a **structural slot** (`run · bar · leg` —
+the rectangle's role in the body, shared by every box kind) and a **designation mark** (`entry · room`
+— the docked rect and the terminal, stamped by the *approach* designation), qualified
+`entry-run`/`room-run`/`entry-bar`/`room-bar` when a family carries two. `ApproachSlots` merges them
+because the taxonomy began at wool approaches; splitting them is what lets the identical
+shift/widen/tail-follow knobs drive a wool mouth, a spawn mouth, a hub interface edge, or a frontline
+face — the hub stamps an `interface` mark per edge, the frontline a `face` mark (G95). The emitted
+strings are unchanged, so the mirror stays byte-identical.
+
 Why this is load-bearing: the composition rules become properties of a **slot**, defined once per
 family. Entry widening and entry shift live on the `entry` slot; wool docking (extend vs side-dock)
 lives on the `room` slot; which pieces may split into build zones is stated per slot (a `run`/`bar`
@@ -473,6 +596,39 @@ hypothesizes the fragmentation/mutation moves instead
   overlap, and assert the emitted slot sequence equals `ApproachSlots.Template`.
 - `stress-shapes.cs` — every family's pieces pushed to extremes at a fixed width; each must read its
   own family (the width-independence proof).
+
+The **body layer has its own mirror**: `BodyEmitter` emits a terminal-free `Compound` and
+`ClassifyBody` reads it back by topology (void count strongest, then arm count, then bends) — separate
+from the approach mirror so the wool/spawn path stays byte-identical. Void count splits **two voids**
+on whether an open channel (two-U-on-I) or a solid wall (double-hole) sits between them, **one void**
+on P's overhang vs a clean ring, **none** on the solid rectangle vs the arm count (an F and a Π both
+read `SpineArms(2)` — placement-independent).
+
+### 5.5 Designations — hub and frontline
+
+The approach (§5.1–§5.4) is one designation; the box model adds two more, each a body plus a per-kind
+mark, **no terminal** (§1.12). Both consume a **body** from the vocabulary above and are the forward
+twin of a derived read (the mirror doctrine, one level up): the designation drives, the deriver
+verifies.
+
+- **Hub** — a body + **per-edge interface widths**. It is the **constraint source**: it emits first,
+  and its edge widths set the neighbours' fill menus (a consumed width is the `cw` a neighbour reads).
+  Form menu (authored): **Rectangle · L · U · Ring · Double-hole** — compact, optionally-holed bodies;
+  deliberately *not* Zig, Hook, or the higher combs (a hub stays rectangle-ish). Its edges' free
+  surface (§1.13) is what the spawn, wool, and frontline boxes attach onto — generalizing today's
+  "four edges of the solid rect" to any body's offerable surface. (G88.)
+- **Frontline** — a body + one edge marked the **`face`** (where the fanned images meet), docking the
+  hub on the opposite edge and driving `mid = f(frontline)` (§9). **Rotation is fixed by the
+  designation**: the body docks the hub with its **spine**, and its **arm-tips are the face** toward
+  the axis. Form menu: a plain **Bar** (the wide face, FR6), the **branch family** (spine + K arms —
+  single = K1 / twin = K2 / more), and the **holed** forms (P, two-U-on-I — a closed recess). How the
+  mid attaches to the face is a deferred rule-set. (G89.)
+
+Two things once called shapes are **not bodies** but shared docks in the designation layer (§5.1):
+the **clamp** — one compact terminal on two distinct faces (opposite → centered I+I; adjacent →
+corner L+I, the bend forced because two straight bars would corner-touch) — and the **twin frontline**
+— two Bars docked to one host individually, the gap between them the face/CT8 recess. Both are
+multiple docks the partition graph places (`FamilyDock`, the corner-wrap), not new bodies.
 
 ---
 

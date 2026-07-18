@@ -279,6 +279,13 @@ ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant �
   grouped by their owning islands' land component (twin tips of one unit = connected; parallel-lane fronts =
   not). The target-vs-band split that unstalls the parked soft-rule triage. Depends on G97.
   (`docs/map-generation-constraint-taxonomy.md` §5, §6 step 6)
+- [ ] **G99 — Delete the superseded `shape-vocabulary.md` + repoint its code citations.** G94 folded the shape
+  model into `map-generation.md` (§1.12–§1.14, §5) and left `shape-vocabulary.md` as a superseded banner + its
+  body, kept only so the live `shape-vocabulary.md §N` citations in `ApproachSlots.cs`, `BodyEmitter.cs`,
+  `ShapeBody.cs`, `Compound.cs`, and the Body/BodyEdges tests still resolve. This deletes the file and repoints
+  those citations to `map-generation.md §5` (the banner's section map has the mapping) — the same delete+repoint
+  batch discipline the 2026-07-14 doc-cluster removal used. Touches source comments, so out of G94's doc-only
+  scope; do it as one sweep on the author's go. Depends on G94.
 - [ ] **G87 — Fill-to-`LandTargetCells` directed repair — reconsidered, not a solver.** Originally scoped as
   G63-C's core: allocate each box's footprint + land target from the budget, then resize the shape (directed
   repair off `FillResult`) until its land hits the target, retiring `SolveDepth`/`SolveWidth`/`spawnLen`. **Parked

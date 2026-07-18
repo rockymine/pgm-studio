@@ -36,38 +36,10 @@ has an obvious address — and an obvious prompt.
 
 ## 1. The kinds — one word per kind of rule
 
-The one-line test for classifying any new wish: *does it change what can be **picked** (menu),
-whether a pick **fits** (fit gate), whether a join is **legal** (dock law: demand / offer /
-veto), how a legal join **varies** (knob), what this compose is **aiming at** (target), or how
-good the result **reads** (band / term)?*
-
-| Kind | Is | Rejects? | Exemplar today |
-|---|---|---|---|
-| **fact** | an observation off geometry, no policy | never | `BoxEdgeInterface.Intervals` (G93, "observes, does not judge"), the edge taxonomy (`NegativeSpace` · `ClassifiedEdge` · `SpaceMouth`, G92), `FrontlineRuns` |
-| **menu** | a generative allowlist — what may be *chosen* | empty = directed signal | `FillMenu.Rows`, `FillProfiles.Families` |
-| **fit gate** | does the choice fit the box | directed (`TooSmall`) | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
-| **demand** | a shape's requirement *on its environment* (inbound) | via the gate | `FamilyDock.EntryDemand` (the clamp's 2 entries) |
-| **offer** | constraints a shape *imposes outward* — the edges/intervals it invites neighbours onto, and in what groupings | via the gate | **no code home yet** — planned as `EdgeOffer` (G96; type sketch §7) |
-| **veto** | a never-attach / never-publish mark | via the gate | `SlotDockRole.NeverDock` (the wool room), `PublishPolicy`'s terminal-capped bay/hole veto (G92), CT9's recess |
-| **gate** | the hard legality check applying demand/offer/veto, with a *directed rejection* | yes, legibly | `DockingGate` → `DockRejection`, `FillResult.IllegalDock`, `PublishPolicy` → `PublishVerdict` (G92) |
-| **knob** | a free parameter *within* legality; never changes identity | guard-railed | `entryShift`, `attachmentWidth`, `SpineArms` arm placement |
-| **target** | a **per-request, prescriptive** constraint this compose aims at — chosen or sampled, then held | steers + verifies | **no code home yet** — planned as `ComposeTargets` (G98; §5, type sketch §7) |
-| **band** | a **descriptive** envelope measured off the seeds — advisory (the seeds are final-fidelity, see the header corrective) | never (scores distance) | `SoftTerm` + `seed-envelopes.json` (`frontline-count` [1,7]) |
-| **hard term** | a well-formedness symptom check on the derived board | flat penalty | `WoolRingedHole`, `GapHopBand` |
-| **law** | the id-bearing author rule the mechanisms implement — a **living** rule set amended by protocol, provenance not gospel | n/a (provenance) | `layout-rules.md` FR6, CT9, BZ8 |
-| **doctrine** | a meta-rule about where rules may live | n/a | "labels drive, the mirror verifies"; "the evaluator never sees a shape name" |
-
-Two distinctions carry most of the weight:
-
-- **demand vs offer** — direction of the arrow. An approach *demands* (its entry must land on a
-  host). A hub/frontline *offers* (its edges dictate where and how wide neighbours may land —
-  the "constraint source" of `map-generation.md` §4). Everything the docking machinery models
-  today is inbound; G88/G89 are the outbound half.
-- **target vs band** — prescription vs description. A band says *authored maps run 1–7
-  frontline runs*; a target says *this compose wants exactly 2, connected*. Bands never steer a
-  compose (they score it); targets steer first and verify after. Conflating them is why the
-  soft-rule backlog stalled: wishes like "a certain amount of connected frontlines" are
-  targets, and the band machinery was the only place to put them.
+> **Adopted — now canonical in `map-generation.md` §1.14 (G94).** The twelve rule kinds (fact · menu ·
+> fit gate · demand · offer · veto · gate · knob · target · band · hard term · law · doctrine) and the
+> two load-bearing distinctions (**demand vs offer**, **target vs band**) are locked terms there; that
+> doc governs. This section is retired — see §1.14 for the table and the one-line classification test.
 
 ## 2. Inventory — where each kind lives, forward and mirrored
 
@@ -149,6 +121,12 @@ arms slide (§3 of the shape vocabulary). The offer is stated over structural sl
 Bar with the same sentence.
 
 ## 4. The edge taxonomy — negative spaces, wall counts, offerable surface *(shipped)*
+
+> **Terms adopted — canonical in `map-generation.md` §1.13 (G94).** The wall-count classes
+> (notch/bay/hole/open), parts, mouths, wall slots, guard, and the *offerable surface = open ∧
+> ¬terminal ∧ ¬guarded* definition are locked there; that doc governs on the vocabulary. This section
+> and §4.1 are **retained as the shipped design record** — the rationale and the worked publish policy
+> that G88/G89 bind to (which the canonical model doc does not absorb).
 
 The vocabulary that grounds all of §3, now **computed from geometry alone**
 (`Pgm/Shapes/BodyEdges.cs`, rendered by `tools/compose/edge-gallery.cs` →
@@ -323,11 +301,11 @@ G63-C are the existing anchors.)
 0. **The edge taxonomy** *(shipped — §4)*. `BodyEdges` classifies negative spaces (notch 2 /
    bay 3 / hole enclosed) and boundary edges from geometry; `edge-gallery.cs` colour-codes them
    over every shape — the instrument the following steps' rules are decided against.
-1. **Adopt the vocabulary** (doc-only). The §1 kinds + the §4 edge terms land in
-   `map-generation.md` §1 as locked terms (offer, target vs band, demand, veto, knob; the
-   wall-count classes); prompt templates (§8) ride along. Retire the matching sections here.
-   On the board as **G94** (which also folds `shape-vocabulary.md` in: base shapes are
-   terminal-free compounds, approaches a designation over them).
+1. **Adopt the vocabulary** (doc-only) — *done (G94)*. The §1 kinds + the §4 edge terms landed in
+   `map-generation.md` §1 as locked terms (§1.12 body/designation, §1.13 edge taxonomy, §1.14 rule
+   kinds); §1 and the §4 terms here retired to pointers. `shape-vocabulary.md` folded into
+   `map-generation.md` §5 (base shapes are terminal-free compounds, approaches a designation over
+   them) and was superseded. Prompt templates (§8) remain here as the live design record.
 2. **Interval facts** *(shipped — G93)*. `BoxEdgeInterface` re-grounds on per-piece
    **intervals** ordered along each edge (`EdgeInterval(Start, LengthCells, Slot)`), `Slots`
    the flat view; the clamp's mouth edge carries both entry bars as two disjoint intervals —
