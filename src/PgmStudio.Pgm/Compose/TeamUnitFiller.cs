@@ -77,6 +77,7 @@ public static class TeamUnitFiller
         var pieces = new List<GrownPiece>(hub.Pieces);
         GrownSpawn? spawn = null;
         var wools = new List<GrownWool>();
+        var faceOffers = new List<EdgeOffer>();
 
         foreach (var j in hubJoints)
         {
@@ -107,11 +108,24 @@ public static class TeamUnitFiller
                     pieces.Add(ok.Approach.WoolRoom);
                     wools.Add(new GrownWool(roomId, ok.Approach.At));
                     break;
+
+                case BoxKind.Frontline:
+                    // a join, not a placement: the hub's front edge sources the frontline's spine width, and the
+                    // frontline offers its face to the mid (mid = f(frontline)). No room, no marker.
+                    var cwF = ConsumedCw(hub, hubEdge);
+                    var fitF = FillProfiles.FrontlineForms
+                        .Where(f => FrontlineBoxEmitter.Fill(neighbour, f, cwF, OfferGrouping.Several) is not null).ToList();
+                    if (fitF.Count == 0) return null;
+                    var grouping = rng.NextBool(0.5) ? OfferGrouping.Joint : OfferGrouping.Several;
+                    var ef = FrontlineBoxEmitter.Fill(neighbour, fitF[rng.NextInt(0, fitF.Count)], cwF, grouping)!;
+                    pieces.AddRange(ef.Pieces);
+                    faceOffers.AddRange(ef.FaceOffers);
+                    break;
             }
         }
 
         if (spawn is null) return null;   // a team unit is anchored by its spawn
-        return new FilledUnit(new GrownUnit(pieces, spawn, wools), []);
+        return new FilledUnit(new GrownUnit(pieces, spawn, wools), faceOffers);
     }
 
     /// <summary>The box edge opposite <paramref name="e"/> — a neighbour docks the hub with the edge facing it.</summary>

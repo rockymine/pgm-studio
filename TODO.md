@@ -81,9 +81,11 @@ in `BACKLOG.md`.)*
   through the plan-cell fill** too (`FillSpawn`; `SpawnBoxEmitter.Fill` takes a plan-cell `Box`+mouth), the entry run
   re-pinned for the wool-on-spawn dock — byte-identical for I / L-dir≥0 spawns.* **Remaining (the switch's own spine),
   broken into sub-steps:** with all four **team-unit** kinds now boxes (G88/G89), invert grow-then-derive to
-  **allocate-then-fill**, hub first — **C.1** the unit filler (`TeamUnitFiller`: fill an allocated partition hub-first,
-  neighbours consuming the hub's `EdgeOffer` widths as their `cw`; synthetic fixtures, no golden churn) → **C.2** the
-  allocator (`BoxPartitioner.Partition` allocates box Rects from the budget, replacing the grow-then-derive stub) →
+  **allocate-then-fill**, hub first — **C.1 ✓ landed** (`TeamUnitFiller.Fill`: fills an allocated partition hub-first
+  into a `FilledUnit` — hub/spawn/wool/frontline, each neighbour consuming the hub's `EdgeOffer` width as its `cw`,
+  the frontline's face offer carried out for the mid; the one board-frame input is the spawn facing; synthetic
+  fixtures, no golden churn) → **C.2 (next)** the allocator (`BoxPartitioner.Partition` allocates box Rects + the
+  per-edge offer plan from the budget, replacing the grow-then-derive stub) →
   **C.3** wire `Composer` through C.2→C.1 and **retire `TeamUnitGrower`'s authoring** (RNG re-keys, goldens churn) →
   **C.4** the clamp's **dual-host corner-wrap** → **C.5** re-baseline gallery cases, **then** freeze the G32-D goldens.
   `MidCarver` stays — the mid is not a team-unit box, it is derived (`f(frontline)`, consuming the frontline face offer). *Deliberately NOT next: the

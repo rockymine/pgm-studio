@@ -96,4 +96,30 @@ public class TeamUnitFillerTests
             [new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36)], []);
         await Assert.That(TeamUnitFiller.Fill(partition, "south", new ComposeRng(1))).IsNull();
     }
+
+    [Test]
+    public async Task Fills_a_frontline_join_carrying_its_face_offers_for_the_mid()
+    {
+        // hub with a spawn behind (Bottom) and a frontline in front (Top), docking the hub's w4 front edge
+        var partition = new BoxPartition(
+            [
+                new Box("hub", BoxKind.Hub, [0, 10, 6, 6], 36),
+                new Box("spawn", BoxKind.Spawn, [0, 16, 6, 12], 72),
+                new Box("frontline", BoxKind.Frontline, [0, 0, 12, 10], 120),
+            ],
+            [
+                new BoxJoint("hub", "spawn", new BoxInterface(BoxEdge.Bottom, 0, 6),
+                    new EdgeOffer(BoxEdge.Bottom, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Bottom")),
+                new BoxJoint("hub", "frontline", new BoxInterface(BoxEdge.Top, 0, 6),
+                    new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Top")),
+            ]);
+
+        var filled = TeamUnitFiller.Fill(partition, "north", new ComposeRng(3))!;
+
+        // the frontline emitted its terrain but no room (a join, not a placement), and offered its face to the mid
+        await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Frontline)).IsTrue();
+        await Assert.That(filled.Unit.Wools.Count).IsEqualTo(0);
+        await Assert.That(filled.FrontlineFace.Count).IsGreaterThan(0);
+        await Assert.That(filled.FrontlineFace.All(o => o.Edge == BoxEdge.Bottom)).IsTrue();   // the face (canonical frame)
+    }
 }
