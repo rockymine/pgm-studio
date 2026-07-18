@@ -52,16 +52,28 @@ public static class TeamUnitAllocator
         return new UnitPlan(hasFrontline ? UnitSide.Front : null, spawn, AssignWools(spawn, woolCount));
     }
 
-    /// <summary>The clearance kept between a docked neighbour and each hub corner, in cells — so no two
-    /// neighbours on adjacent hub sides seat at the shared corner and only corner-touch (a diagonal pinch).</summary>
+    /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells — so no two
+    /// neighbours on adjacent hub sides seat at a shared corner and only corner-touch (a diagonal pinch).</summary>
     private const int CornerClearanceCells = 1;
 
+    /// <summary>A neighbour box to seat against the hub: the hub <see cref="Side"/> it docks, its box
+    /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
+    /// <see cref="Along"/> extent (cells), and its <see cref="Id"/>. Sizing is frame- and form-independent (it
+    /// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.</summary>
+    private sealed record Demand(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id);
+
     /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
-    /// geometry layer over <see cref="SamplePlan"/>. Positions the hub on the (u, v) grid and seats the spawn on
-    /// its assigned side, mapping both to plan-cell Rects through the symmetry <see cref="Frame"/>, and emits the
-    /// hub↔spawn joint carrying the hub's per-edge <b>w-width offer</b> (the plan <see cref="TeamUnitFiller"/>
-    /// consumes). Returns the partition + the spawn facing (<see cref="Frame.TowardAxis"/>), or <c>null</c> when a
-    /// box does not fit its hub edge. Wools and the frontline layer on next.</summary>
+    /// geometry layer over <see cref="SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
+    /// choice</b> (map-generation.md §5.5), and seats the spawn and wools on the chosen form's <b>real free-edge
+    /// intervals</b> — the offerable surface the body actually presents (§1.13), not its bounding box. So a
+    /// non-rectangular hub (L/U/Ring/Double-hole) never leaves a neighbour docking an empty bbox stretch and only
+    /// corner-touching it (a <c>t*/*t</c> pinch); the four-full-edges rectangle is just the degenerate case. The
+    /// chosen form rides on the hub <see cref="Box.Form"/> for the filler to re-emit; each hub↔neighbour joint
+    /// carries the hub's per-edge <b>w-width offer</b> (the plan <see cref="TeamUnitFiller"/> consumes). The
+    /// sampled form <b>falls back to the solid <see cref="Compound.Rectangle"/></b> when its free edges cannot host
+    /// the plan. Returns the partition + the spawn facing (<see cref="Frame.TowardAxis"/>), or <c>null</c> when
+    /// even the rectangle cannot host a neighbour (the box is too small — the directed "no shape fits" signal, §4).
+    /// Wools and the frontline layer on next.</summary>
     public static (BoxPartition Partition, string SpawnFacing)? Allocate(ComposeEnvelope env, ComposeRng rng)
     {
         var frame = Frame.For(env.Symmetry);
@@ -75,36 +87,37 @@ public static class TeamUnitAllocator
         var hubV = rng.NextInt(floor, Math.Max(floor, cap) + 1);
         var hubUMin = Envelope.AxisMarginCells;                       // + the frontline's reach when it lands
         var hubVMin = -(hubV / 2);
+        var hubRect = frame.ToRect(hubUMin, hubU, hubVMin, hubV);
 
-        var boxes = new List<Box> { new("hub", BoxKind.Hub, frame.ToRect(hubUMin, hubU, hubVMin, hubV), hubU * hubV) };
-        var joints = new List<BoxJoint>();
-        var occupied = new Dictionary<UnitSide, List<(int Start, int Len)>>();   // per-side docked intervals
+        // the neighbour demands (spawn + wools), sized from the budget before the form is chosen
+        var demands = Demands(env, rng, plan, w, hubU, hubV);
 
-        (int Min, int Len) Edge(UnitSide s) => s is UnitSide.Front or UnitSide.Back ? (hubVMin, hubV) : (hubUMin, hubU);
+        // pick the hub form, seat the demands on its real free edges; fall back to the solid rectangle (four full
+        // edges) when the sampled form's offerable surface cannot host every dock
+        var sampled = rng.Pick(HubBoxEmitter.Forms);
+        var seating = Seat(sampled, hubRect, frame, w, demands, rng);
+        if (seating is null && sampled.Form != Compound.Rectangle)
+            seating = Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, w, demands, rng);
+        if (seating is not { } s) return null;
 
-        // seat a depth×along box on `side` in a free gap of that hub edge, tracking occupancy so two boxes on one
-        // edge (a third wool beside the spawn) do not collide; the box-local alongStart for the joint, or null
-        int? SeatOn(UnitSide side, int depth, int along, out int[] rect)
-        {
-            rect = [];
-            var (edgeMin, edgeLen) = Edge(side);
-            occupied.TryAdd(side, []);
-            if (SeatInGap(occupied[side], edgeLen, along, CornerClearanceCells, rng) is not { } local) return null;
-            occupied[side].Add((local, along));
-            rect = RectFor(frame, side, hubUMin, hubU, hubVMin, hubV, edgeMin + local, depth, along);
-            return local;
-        }
+        return (new BoxPartition(s.Boxes, s.Joints), frame.TowardAxis);
+    }
 
-        // spawn — the straight I for now (cross = entry width, seats cleanly); the L's overhanging foot lands next
-        var iSizes = FillProfiles.SpawnSizes.Where(s => s.Family == ShapeFamily.I).ToList();
+    /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats
+    /// cleanly; the L's overhanging foot lands next) plus the budget-share-sized wools, each on its planned side
+    /// (the free sides first, a third doubling into the spawn's edge). The spawn size is the one RNG draw here;
+    /// the wool sizes read the budget (generic, no per-family solve), so the whole set is fixed before the form
+    /// is chosen and is identical across a fallback re-seat.</summary>
+    private static IReadOnlyList<Demand> Demands(
+        ComposeEnvelope env, ComposeRng rng, UnitPlan plan, int w, int hubU, int hubV)
+    {
+        var demands = new List<Demand>();
+
+        var iSizes = FillProfiles.SpawnSizes.Where(sz => sz.Family == ShapeFamily.I).ToList();
         var size = iSizes[rng.NextInt(0, iSizes.Count)];
         var (spW, spH) = SpawnBoxEmitter.Box(size.Family, w, size.RunCells, size.TurnCells);
-        if (SeatOn(plan.Spawn, spH, spW, out var spawnRect) is not { } spawnStart) return null;
-        boxes.Add(new Box("spawn", BoxKind.Spawn, spawnRect, spW * spH));
-        joints.Add(HubJoint("hub", "spawn", SideEdge(frame, plan.Spawn), spawnStart, spW, w));
+        demands.Add(new Demand(plan.Spawn, BoxKind.Spawn, spH, spW, "spawn"));
 
-        // wools — budget-share sized (generic, no per-family solve), seated around the spawn: the free sides
-        // first, a third doubling into the spawn's edge (the gap-seating keeps them off the spawn)
         var budgetCells = env.LandPerTeam / (env.Cell * (double)env.Cell);
         var flexible = Math.Max(0.0, budgetCells - hubU * hubV);
         const int laneChainBlocks = 50;                              // LN2 chain cap
@@ -113,54 +126,96 @@ public static class TeamUnitAllocator
         for (var i = 0; i < plan.Wools.Count; i++)
         {
             var side = plan.Wools[i];
-            var (_, edgeLen) = Edge(side);
+            var edgeLen = side is UnitSide.Front or UnitSide.Back ? hubV : hubU;
             var along = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen - 2 * CornerClearanceCells));
             var depth = Math.Clamp((int)Math.Round(woolShare / along), 4, depthCap);
-            if (SeatOn(side, depth, along, out var woolRect) is not { } woolStart) return null;
-            var id = $"wool-{(char)('a' + i)}";
-            boxes.Add(new Box(id, BoxKind.Wool, woolRect, along * depth));
-            joints.Add(HubJoint("hub", id, SideEdge(frame, side), woolStart, along, w));
+            demands.Add(new Demand(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}"));
         }
-
-        return (new BoxPartition(boxes, joints), frame.TowardAxis);
+        return demands;
     }
 
-    /// <summary>The plan-cell Rect of a depth×along box seated at <paramref name="seat"/> (absolute along-coord)
-    /// on <paramref name="side"/>: its depth reaches outward from the hub edge, its along-extent runs along it.</summary>
-    private static int[] RectFor(
-        Frame frame, UnitSide side, int hubUMin, int hubU, int hubVMin, int hubV, int seat, int depth, int along)
+    /// <summary>Seat every demand on <paramref name="form"/>'s real free-edge intervals, seated on the hub
+    /// <paramref name="hubRect"/>. Builds the body once (<see cref="HubBoxEmitter"/>) — the same body the filler
+    /// re-emits, so both read the same runs — and reads its per-edge free runs off the emitted offers (the
+    /// offerable surface, §1.13). Returns the hub box (carrying <paramref name="form"/> for the filler) plus the
+    /// seated neighbour boxes and their hub joints, or <c>null</c> when the box is too small for the form or a
+    /// demand finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
+    private static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(
+        CompoundRead form, int[] hubRect, Frame frame, int w, IReadOnlyList<Demand> demands, ComposeRng rng)
     {
-        int hubUMax = hubUMin + hubU, hubVMax = hubVMin + hubV;
-        var (uMin, uSpan, vMin, vSpan) = side switch
+        int boxW = hubRect[2], boxH = hubRect[3];
+        var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form);
+        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells) is not { } hub) return null;   // too small for the form
+
+        // the offerable surface: the contiguous free runs on each hub edge (box-local along-coords), read off the
+        // emitted body's per-edge offers — one offer per free run, so a bay simply yields no run over its stretch
+        var runsByEdge = hub.Offers.GroupBy(o => o.Edge).ToDictionary(
+            g => g.Key,
+            g => (IReadOnlyList<(int Start, int Len)>)g.Select(o => (o.Interval.Start, o.Interval.LengthCells)).ToList());
+
+        var boxes = new List<Box> { hubBox };
+        var joints = new List<BoxJoint>();
+        var occupied = new Dictionary<BoxEdge, List<(int Start, int Len)>>();   // per-edge docked intervals
+
+        foreach (var d in demands)
         {
-            UnitSide.Front => (hubUMin - depth, depth, seat, along),
-            UnitSide.Back => (hubUMax, depth, seat, along),
-            UnitSide.Left => (seat, along, hubVMin - depth, depth),
-            _ => (seat, along, hubVMax, depth),                       // Right
+            var edge = SideEdge(frame, d.Side);
+            var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
+            if (!runsByEdge.TryGetValue(edge, out var runs)) return null;      // the form leaves this edge empty
+            occupied.TryAdd(edge, []);
+            if (SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng) is not { } seat)
+                return null;
+            occupied[edge].Add((seat, d.Along));
+            boxes.Add(new Box(d.Id, d.Kind, NeighbourRect(edge, seat, d.Depth, d.Along, hubRect), d.Along * d.Depth));
+            joints.Add(HubJoint("hub", d.Id, edge, seat, d.Along, w));
+        }
+        return (boxes, joints);
+    }
+
+    /// <summary>The plan-cell rect of a <paramref name="depth"/>×<paramref name="along"/> box seated at box-local
+    /// along-coord <paramref name="seat"/> on the hub's <paramref name="edge"/>: its depth reaches outward from
+    /// that edge, its along-extent runs along it. Frame-free — the (u, v) frame chose the edge; the box then
+    /// follows the edge's outward normal (Top −z, Bottom +z, Left −x, Right +x), so the seating needs no per-mode
+    /// branch and stays correct where a (u, v)→box-local run mapping would reverse.</summary>
+    private static int[] NeighbourRect(BoxEdge edge, int seat, int depth, int along, int[] hub)
+    {
+        int hx = hub[0], hz = hub[1], hw = hub[2], hh = hub[3];
+        return edge switch
+        {
+            BoxEdge.Top => [hx + seat, hz - depth, along, depth],
+            BoxEdge.Bottom => [hx + seat, hz + hh, along, depth],
+            BoxEdge.Left => [hx - depth, hz + seat, depth, along],
+            _ => [hx + hw, hz + seat, depth, along],                  // Right
         };
-        return frame.ToRect(uMin, uSpan, vMin, vSpan);
     }
 
-    /// <summary>A free box-local along-position for an <paramref name="along"/>-wide dock in an
-    /// <paramref name="edgeLen"/>-cell edge, avoiding the <paramref name="occupied"/> intervals and a
-    /// <paramref name="inset"/>-cell clearance at each corner (so no neighbour seats at a hub corner and
-    /// corner-touches a neighbour on the adjacent side) — sampled within a randomly chosen fitting gap, or null
-    /// when no gap holds it.</summary>
-    private static int? SeatInGap(List<(int Start, int Len)> occupied, int edgeLen, int along, int inset, ComposeRng rng)
+    /// <summary>A free box-local along-position for an <paramref name="along"/>-wide dock among the edge's
+    /// <paramref name="runs"/> (its offerable surface), avoiding the <paramref name="occupied"/> intervals and an
+    /// <paramref name="inset"/>-cell clearance at each <b>box corner</b> — a run end coinciding with along-coord 0
+    /// or <paramref name="edgeLen"/>, so no neighbour seats at a hub corner and corner-touches a neighbour on the
+    /// adjacent side; an internal run end (a bay boundary) is no box corner and needs no inset. Sampled within a
+    /// randomly chosen fitting gap, or null when no gap holds it.</summary>
+    private static int? SeatInRuns(
+        IReadOnlyList<(int Start, int Len)> runs, List<(int Start, int Len)> occupied,
+        int edgeLen, int along, int inset, ComposeRng rng)
     {
-        int lo0 = inset, hi0 = edgeLen - inset;
-        if (hi0 - lo0 < along) return null;
         var gaps = new List<(int Lo, int Hi)>();
-        var cursor = lo0;
-        foreach (var (s, l) in occupied.OrderBy(o => o.Start))
+        foreach (var (rs, rl) in runs)
         {
-            if (s - cursor >= along) gaps.Add((cursor, s));
-            cursor = Math.Max(cursor, s + l);
+            int lo = rs, hi = rs + rl;
+            if (lo == 0) lo += inset;                                 // a box corner at the low end
+            if (hi == edgeLen) hi -= inset;                          // a box corner at the high end
+            var cursor = lo;
+            foreach (var (os, ol) in occupied.Where(o => o.Start < hi && o.Start + o.Len > lo).OrderBy(o => o.Start))
+            {
+                if (os - cursor >= along) gaps.Add((cursor, os));
+                cursor = Math.Max(cursor, os + ol);
+            }
+            if (hi - cursor >= along) gaps.Add((cursor, hi));
         }
-        if (hi0 - cursor >= along) gaps.Add((cursor, hi0));
         if (gaps.Count == 0) return null;
-        var (lo, hi) = gaps[rng.NextInt(0, gaps.Count)];
-        return lo + rng.NextInt(0, hi - lo - along + 1);
+        var (glo, ghi) = gaps[rng.NextInt(0, gaps.Count)];
+        return glo + rng.NextInt(0, ghi - glo - along + 1);
     }
 
     /// <summary>The hub↔neighbour joint carrying the hub's offer on <paramref name="edge"/>: the interface

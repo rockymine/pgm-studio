@@ -88,13 +88,18 @@ in `BACKLOG.md`.)*
   plan (`SamplePlan`/`UnitPlan` — spawn on the back **or a lateral side**, wools assigned around it: free sides
   first, back preferred, a 3rd doubling onto the spawn's side); the hub + spawn + wool box-Rect geometry from the
   budget (generic share sizing, under-budget OK); the per-edge `EdgeOffer` plan on the joints (offered width = the
-  lane `w`); and **no diagonal pinches** (solid Rectangle hub + a 1-cell corner clearance). The allocate→fill loop
-  closes end-to-end and `tools/compose/unit-gallery.cs` renders it (0 pinches). *Remaining, roughly in order:*
-    - **[essential] Non-rectangular hubs.** The allocator must **own the hub-form choice** (today the filler forces
-      `Rectangle`, because the allocator seats on the hub's full **bounding-box** edges) and seat neighbours on the
-      form's **actual free-edge intervals** (via `BodyEdges` / the hub's real offers), so an L/U/Ring/Double-hole
-      hub never leaves a neighbour docking an empty bbox stretch (a `t*/*t` pinch). Unblocks the whole G88 hub form
-      menu; without it every hub is a solid rectangle.
+  lane `w`); **the allocator owns the hub-form choice** — it samples a form and seats neighbours on that form's
+  **real free-edge intervals** (the offerable surface, §1.13, read off the hub's own emitted offers), falling back
+  to the solid rectangle when a form's free edges cannot host the plan; the chosen form rides on `Box.Form` for the
+  filler to re-emit (so allocator and filler agree on the body and every dock lands on real terrain); and **no
+  diagonal pinches**, now gated by the **mass-level corner law** (`Cells.HasDiagonalPinch` over the composed mask,
+  not the coarse rect-pair proxy — a multi-piece hub's ¾-solid bridged corner reads clean). The allocate→fill loop
+  closes end-to-end and `tools/compose/unit-gallery.cs` renders it (0 pinches; Ring hubs appear). *Remaining, roughly in order:*
+    - **Hub-form richness (orientation + size).** The forms are built spine-first (`BodyEmitter`'s canonical frame),
+      so a branch/holed form's solid edges face the unused **front** while its arms/feet face the used back — so `L`/`U`
+      mostly **fall back** to the rectangle today (only `Ring`, all-full outer edges, lands reliably; `Double-hole` needs
+      a hub wider than the current caps). Orient the chosen form (arms toward the free front) so `L`/`U` land on the
+      demanded back/lateral sides, making the menu **common, not just reachable** — the arm-placement knob (§1.14).
     - **Wool & spawn shape richness** — layouts are "very basic" (mostly `I`): the **spawn is I-only** (the L's
       overhanging foot needs the entry-seat-and-shift — seat by the entry width `w`, let the box overhang free
       space), and the **wool** boxes are generic-share-sized so the fill mostly lands `I`; give them family/size

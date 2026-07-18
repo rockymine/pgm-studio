@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 
 namespace PgmStudio.Pgm.Tests.Compose;
@@ -97,8 +98,10 @@ public class TeamUnitAllocatorTests
     [Test]
     public async Task No_diagonal_pinch_across_many_seeds_and_budgets()
     {
-        // every allocated+filled unit must have no two pieces meeting only at a corner (a t*/*t diagonal pinch):
-        // the solid-Rectangle hub gives full edges, the corner clearance keeps adjacent-side neighbours apart
+        // every allocated+filled unit's composed mask must be free of a diagonal pinch — the mass-level corner
+        // law (Cells.HasDiagonalPinch), read on the whole rasterized unit, not a pairwise bounding-box touch, so
+        // a hub arm/bar that a neighbour docks reads clean where a third cell bridges the corner. Non-rectangular
+        // hubs (an L/U/Ring the allocator now chooses) are multi-piece, so this is the invariant that holds.
         foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0) })
             for (ulong seed = 0; seed < 40; seed++)
             {
@@ -106,23 +109,19 @@ public class TeamUnitAllocatorTests
                 if (alloc is not { } a) continue;
                 var filled = TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng(seed));
                 if (filled is null) continue;
-                await Assert.That(DiagonalPinches(filled.Unit.Pieces)).IsEqualTo(0);
+                await Assert.That(Cells.HasDiagonalPinch(Mask(filled.Unit.Pieces))).IsFalse();
             }
     }
 
-    // count piece pairs that touch only at a corner — adjacent on both axes, so they share the corner point only
-    private static int DiagonalPinches(IReadOnlyList<GrownPiece> pieces)
+    // the unit's composed cell mask — every piece rasterized into one set (the surface the corner law reads)
+    private static HashSet<(int, int)> Mask(IReadOnlyList<GrownPiece> pieces)
     {
-        var r = pieces.Select(p => p.Rect).ToList();
-        var n = 0;
-        for (var i = 0; i < r.Count; i++)
-            for (var j = i + 1; j < r.Count; j++)
-            {
-                var hAdj = r[i][0] + r[i][2] == r[j][0] || r[j][0] + r[j][2] == r[i][0];
-                var vAdj = r[i][1] + r[i][3] == r[j][1] || r[j][1] + r[j][3] == r[i][1];
-                if (hAdj && vAdj) n++;
-            }
-        return n;
+        var cells = new HashSet<(int, int)>();
+        foreach (var p in pieces)
+            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
+                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+                    cells.Add((x, z));
+        return cells;
     }
 
     // two [x,z,w,h] cell rects overlap iff they intersect on both axes

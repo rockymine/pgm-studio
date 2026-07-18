@@ -44,17 +44,14 @@ public static class TeamUnitFiller
         EmittedHub hub, BoxEdge hubEdge, Box woolBox, BoxEdge woolMouth, ShapeFamily family, bool flip, string roomId) =>
         BoxFiller.Fill(woolBox, woolMouth, ConsumedCw(hub, hubEdge), family, flip, roomId);
 
-    /// <summary>The hub's wall/corridor width for the branch and holed forms (the solid Rectangle ignores it).</summary>
-    private const int HubCw = 2;
-
     /// <summary>
     /// Fill an allocated <paramref name="partition"/> into a team unit, hub-first (the allocate↔fill contract).
     /// The <b>allocator (C.2) provides</b>: the positioned boxes (plan-cell <see cref="Box.Rect"/>s — one hub,
     /// one spawn, 1–3 wools, 0–1 frontline), the joints between them with the hub's <b>per-edge width plan carried
     /// as the joints' <see cref="BoxJoint.Offer"/>s</b>, and the spawn's <paramref name="spawnFacing"/> (the one
     /// board-frame value — every other output is plan-cell or piece-relative). This <b>filler</b> derives the
-    /// hub's edge widths from the joint offers, samples a fitting hub form and emits the hub first (its offers
-    /// realized at those widths), then for each hub joint fills the neighbour box — the spawn/wool consuming the
+    /// hub's edge widths from the joint offers and emits the hub first at the form the allocator chose
+    /// (<see cref="Box.Form"/>, its offers realized at those widths), then for each hub joint fills the neighbour box — the spawn/wool consuming the
     /// offered width as its <c>cw</c>, docking the edge facing the hub — and assembles the pieces + placements.
     /// <c>null</c> on any directed fill failure (a form or family that does not fit), which the composer
     /// resamples. The frontline (a join, not a placement — its face offer feeds the mid) joins next.
@@ -70,12 +67,11 @@ public static class TeamUnitFiller
         foreach (var j in hubJoints)
             if (j.Offer is { } offer) edgeWidths[HubEdge(j, hubBox.Id)] = offer.WidthClass;
 
-        // the hub fills SOLID (Rectangle) for now. The allocator seats neighbours on the hub's full bounding-box
-        // edges, so a non-rectangular form — whose terrain leaves stretches of an edge empty (a bay) — would let
-        // a neighbour dock that empty stretch and only corner-touch the hub (a t*/*t diagonal pinch). Filling the
-        // hub non-rect needs the allocator to seat on the form's real free-edge intervals — a follow-up; until
-        // then the hub is the solid rectangle the grower always drew.
-        if (HubBoxEmitter.Fill(hubBox, new CompoundRead(Compound.Rectangle), HubCw, edgeWidths) is not { } hub)
+        // the hub emits at the form the allocator chose (Box.Form; the solid rectangle when unset), at the
+        // per-edge widths the joint offers carry — the same body the allocator seated its neighbours against, so
+        // every dock lands on real terrain (§1.13's offerable surface), never an empty bounding-box stretch.
+        var form = hubBox.Form ?? new CompoundRead(Compound.Rectangle);
+        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, edgeWidths) is not { } hub)
             return null;
 
         var pieces = new List<GrownPiece>(hub.Pieces);

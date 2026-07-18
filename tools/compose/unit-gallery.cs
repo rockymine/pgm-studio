@@ -3,8 +3,10 @@
 // emitted pieces drawn colour-coded by box kind (hub / spawn / wool / frontline; solid = a room). The visual
 // ground for the switch — what allocate-then-fill actually produces.
 using System.Text;
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Shapes;
 
 var presets = new[]
 {
@@ -14,7 +16,7 @@ var presets = new[]
 };
 const int seeds = 8;
 
-var totalTouches = 0;
+var totalPinches = 0;
 var sections = new StringBuilder();
 foreach (var (label, sub, players, land) in presets)
 {
@@ -26,9 +28,9 @@ foreach (var (label, sub, players, land) in presets)
         if (alloc is not { } a) { cards.Append(Fail(seed, "no allocation")); continue; }
         var filled = TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed));
         if (filled is null) { cards.Append(Fail(seed, "no fill")); continue; }
-        var touches = DiagonalTouches(filled.Unit.Pieces);
-        totalTouches += touches;
-        cards.Append(Card(seed, filled.Unit.Pieces, touches));
+        var pinched = Cells.HasDiagonalPinch(Mask(filled.Unit.Pieces));   // the mass-level corner law (G79)
+        if (pinched) totalPinches++;
+        cards.Append(Card(seed, filled.Unit.Pieces, FormLabel(a.Partition.ById("hub")!.Form), pinched));
     }
     sections.Append($"<section><header><h2>{label}</h2><p>{sub}</p></header><div class=gallery>{cards}</div></section>");
 }
@@ -51,8 +53,9 @@ html.Append("<style>"
     + ".fail{color:#f87171;font-size:11px;padding:26px;text-align:center}"
     + "svg{background:var(--canvas);border-radius:4px;display:block}</style>");
 html.Append("<h1>Team-unit layouts</h1>"
-    + "<p class=tag>The box-model switch (G63-C): allocator (C.2) lays box footprints from the budget, "
-    + "filler (C.1) emits into them — hub-first, neighbours consuming the hub's edge offers.</p>");
+    + "<p class=tag>The box-model switch (G63-C): allocator (C.2) chooses the hub form and lays box footprints "
+    + "from the budget, seating neighbours on the form's real free edges (§1.13); filler (C.1) re-emits the hub "
+    + "form and fills the neighbours, hub-first, each consuming the hub's edge offer.</p>");
 html.Append("<div class=legend>"
     + "<b style='color:#a78bfa'>■ hub</b><b style='color:#34d399'>■ spawn</b>"
     + "<b style='color:#fbbf24'>■ wool</b><b style='color:#fb923c'>■ frontline</b>"
@@ -61,23 +64,24 @@ html.Append(sections.ToString());
 
 Directory.CreateDirectory("tools/compose/out");
 File.WriteAllText("tools/compose/out/unit-gallery.html", html.ToString());
-Console.WriteLine($"wrote tools/compose/out/unit-gallery.html — {totalTouches} diagonal touch(es) across all units");
+Console.WriteLine($"wrote tools/compose/out/unit-gallery.html — {totalPinches} diagonal pinch(es) across all units");
 
-// two pieces meet only at a corner (a t*/*t diagonal pinch) iff they are adjacent on BOTH axes — then they
-// share exactly the corner point, never a full edge.
-static int DiagonalTouches(IReadOnlyList<GrownPiece> pieces)
+// the unit's composed cell mask — every piece rasterized into one set, the surface the corner law reads
+static HashSet<(int, int)> Mask(IReadOnlyList<GrownPiece> pieces)
 {
-    var r = pieces.Select(p => p.Rect).ToList();
-    var n = 0;
-    for (var i = 0; i < r.Count; i++)
-        for (var j = i + 1; j < r.Count; j++)
-        {
-            var hAdj = r[i][0] + r[i][2] == r[j][0] || r[j][0] + r[j][2] == r[i][0];
-            var vAdj = r[i][1] + r[i][3] == r[j][1] || r[j][1] + r[j][3] == r[i][1];
-            if (hAdj && vAdj) n++;
-        }
-    return n;
+    var cells = new HashSet<(int, int)>();
+    foreach (var p in pieces)
+        for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
+            for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+                cells.Add((x, z));
+    return cells;
 }
+
+// a short label for the hub form the allocator chose (Ell/Staple for the branch forms, else the compound name)
+static string FormLabel(CompoundRead? form) => form is null ? "rect"
+    : form.Form == Compound.SpineArms ? (form.Arms == 1 ? "L" : form.Arms == 2 ? "U" : $"spine+{form.Arms}")
+    : form.Form == Compound.Rectangle ? "rect"
+    : form.Form.ToString().ToLowerInvariant();
 
 static ComposeEnvelope Env(string sym, int players, double land) =>
     new(sym, Teams: 2, players, Cell: 5, Surface: 9, Headroom: 11,
@@ -95,7 +99,7 @@ static string Color(BoxKind k) => k switch
 static string Fail(int seed, string why) =>
     $"<div class=card><div class=title>seed {seed}</div><div class=fail>{why}</div></div>";
 
-static string Card(int seed, IReadOnlyList<GrownPiece> pieces, int touches)
+static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool pinched)
 {
     int minX = pieces.Min(p => p.Rect[0]), minZ = pieces.Min(p => p.Rect[1]);
     int maxX = pieces.Max(p => p.Rect[0] + p.Rect[2]), maxZ = pieces.Max(p => p.Rect[1] + p.Rect[3]);
@@ -114,7 +118,7 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces, int touches)
             + $"fill-opacity='{(room ? "0.95" : "0.4")}' stroke='{col}' stroke-width='1.5'/>");
     }
     svg.Append("</svg>");
-    var warn = touches > 0 ? " warn" : "";
-    var badge = touches > 0 ? $" <span class=badge>⚠ {touches} diag</span>" : "";
-    return $"<div class='card{warn}'><div class=title>seed {seed}{badge}</div>{svg}</div>";
+    var warn = pinched ? " warn" : "";
+    var badge = pinched ? " <span class=badge>⚠ pinch</span>" : "";
+    return $"<div class='card{warn}'><div class=title>seed {seed} · hub {form}{badge}</div>{svg}</div>";
 }

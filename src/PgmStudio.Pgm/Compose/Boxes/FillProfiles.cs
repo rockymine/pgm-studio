@@ -31,6 +31,11 @@ public static class FillProfiles
     /// wool/spawn rows compose their menus.</summary>
     public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
 
+    /// <summary>The hub's wall/corridor width in cells (the branch and holed forms use it; the solid Rectangle
+    /// ignores it). One value so the allocator and the filler emit the hub body at the <b>same</b> width and thus
+    /// read the same free-edge intervals — a divergence would seat neighbours on runs the fill does not produce.</summary>
+    public const int HubWallCells = 2;
+
     /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, §5.5),
     /// Compound-typed like the hub. Composes <see cref="FrontlineBoxEmitter.Forms"/>, lifting the grower's
     /// <c>FrontForm { None, Single, Wide, Twin }</c> into the profile.</summary>
