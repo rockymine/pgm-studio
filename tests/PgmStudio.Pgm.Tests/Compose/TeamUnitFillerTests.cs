@@ -57,4 +57,43 @@ public class TeamUnitFillerTests
 
         await Assert.That(wool is FillResult.Ok).IsTrue();
     }
+
+    [Test]
+    public async Task Fills_an_allocated_hub_spawn_wool_partition_into_a_unit()
+    {
+        // the allocated partition: hub in the centre, spawn below it (docking the hub's w4 Bottom), a wool to
+        // the right (docking the hub's w2 Right) — the hub's width plan riding on the joint offers
+        var partition = new BoxPartition(
+            [
+                new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36),
+                new Box("spawn", BoxKind.Spawn, [0, 6, 6, 12], 72),
+                new Box("wool-a", BoxKind.Wool, [8, 0, 14, 6], 84),
+            ],
+            [
+                new BoxJoint("hub", "spawn", new BoxInterface(BoxEdge.Bottom, 0, 6),
+                    new EdgeOffer(BoxEdge.Bottom, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Bottom")),
+                new BoxJoint("hub", "wool-a", new BoxInterface(BoxEdge.Right, 0, 6),
+                    new EdgeOffer(BoxEdge.Right, new EdgeInterval(0, 6, ApproachSlots.Bar), 2, OfferGrouping.Several, "hub-Right")),
+            ]);
+
+        var filled = TeamUnitFiller.Fill(partition, "south", new ComposeRng(1))!;
+
+        await Assert.That(filled.Unit.Spawn.Facing).IsEqualTo("south");                       // the one frame value, threaded through
+        await Assert.That(filled.Unit.Wools.Count).IsEqualTo(1);
+        // every team-unit box kind emitted its pieces, hub-first
+        await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
+        await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
+        await Assert.That(filled.Unit.Pieces.Any(p => p.Box!.Kind == BoxKind.Wool)).IsTrue();
+        // the spawn/wool rooms are the placements' pieces
+        await Assert.That(filled.Unit.Pieces.Any(p => p.Id == filled.Unit.Spawn.Piece)).IsTrue();
+        await Assert.That(filled.Unit.Pieces.Any(p => p.Id == filled.Unit.Wools[0].Piece)).IsTrue();
+    }
+
+    [Test]
+    public async Task A_partition_with_no_spawn_is_a_directed_null()
+    {
+        var partition = new BoxPartition(
+            [new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36)], []);
+        await Assert.That(TeamUnitFiller.Fill(partition, "south", new ComposeRng(1))).IsNull();
+    }
 }
