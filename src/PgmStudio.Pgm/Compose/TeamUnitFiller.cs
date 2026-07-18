@@ -99,14 +99,16 @@ public static class TeamUnitFiller
                     break;
 
                 case BoxKind.Wool:
-                    var fitW = BoxFiller.FittingFamilies(neighbour, mouth, ConsumedCw(hub, hubEdge));
-                    if (fitW.Count == 0) return null;
-                    if (FillWool(hub, hubEdge, neighbour, mouth, fitW[rng.NextInt(0, fitW.Count)], flip: false, roomId)
-                            is not FillResult.Ok ok)
-                        return null;
-                    pieces.AddRange(ok.Approach.Terrain);
-                    pieces.Add(ok.Approach.WoolRoom);
-                    wools.Add(new GrownWool(roomId, ok.Approach.At));
+                    // prefer the side-tucked room where the box admits it — a compact side-room shape rather than a
+                    // back-room lane — falling back to the inline lane the narrow boxes hold
+                    var cwW = ConsumedCw(hub, hubEdge);
+                    var okW = BoxFiller.Fill(neighbour, mouth, cwW, ShapeFamily.I, flip: false, roomId, RoomPlacement.SideTuck)
+                        as FillResult.Ok
+                        ?? BoxFiller.Fill(neighbour, mouth, cwW, ShapeFamily.I, flip: false, roomId) as FillResult.Ok;
+                    if (okW is null) return null;
+                    pieces.AddRange(okW.Approach.Terrain);
+                    pieces.Add(okW.Approach.WoolRoom);
+                    wools.Add(new GrownWool(roomId, okW.Approach.At));
                     break;
 
                 case BoxKind.Frontline:

@@ -100,17 +100,23 @@ in `BACKLOG.md`.)*
   one (the default when there is budget) it seats on the front side, its reach pushing the hub back so it sits
   between the hub and the axis, and the filler fills it as a **join** (spine docking the hub via the shared
   `BodyOrient`, face toward the axis) whose face offer flows into `FilledUnit.FrontlineFace` (its mid consumer is
-  C.3). The allocate→fill loop closes end-to-end and `tools/compose/unit-gallery.cs` renders `L`/`U`/`Ring`/rectangle
-  hubs with frontlines, 0 pinches. *Remaining, roughly in order:*
+  C.3); and **the wools stay compact** — a wool's shape is governed by its **room dimension** (a back-attached lane
+  past ~3× the room reads as a too-long single-entry corridor), so a wool that would run long instead **tucks its
+  room to the side** (a compact side-room footprint the mouth still enters cleanly) rather than a long back-room
+  lane, the corner clearance dropping to **zero** (the mass-level corner law lets a neighbour take the hub's full
+  edge — the wider side-tuck dock and the wide frontline face both want it). The allocate→fill loop closes
+  end-to-end and `tools/compose/unit-gallery.cs` renders `L`/`U`/`Ring`/rectangle hubs, frontlines, and inline +
+  side-tuck wools, 0 pinches. *Remaining, roughly in order:*
     - **Hub-form richness — handedness, size, `mirror_x`.** `L`'s two solid edges are adjacent (spine + one arm),
       so it covers back + **one** lateral, and the arm sits on a fixed side — choosing its **handedness** to match
       the demanded lateral would let it cover back+right as well as back+left. `Double-hole` still needs a hub
       **wider than the current caps** (≥ 9). And the vertical flip only orients the **z-frames** (front = top edge);
       `mirror_x` (front = a lateral edge) needs a rotation, not a flip, so its `L`/`U` stay canonical for now.
-    - **Wool & spawn shape richness** — layouts are "very basic" (mostly `I`): the **spawn is I-only** (the L's
-      overhanging foot needs the entry-seat-and-shift — seat by the entry width `w`, let the box overhang free
-      space), and the **wool** boxes are generic-share-sized so the fill mostly lands `I`; give them family/size
-      variety (L/Z/scythe/…).
+    - **Wool & spawn family variety** — the wool length + inline/side-tuck placement is in, but every fill is still
+      the `I` family: the richer wool families (`L`/`Z`/`scythe`/`donut`) and the **spawn `L`** need a **seat-and-shift**
+      — dock the narrow entry (width `w`) and let the wider body **overhang** the hub edge into free space — because
+      the hub edge is too small to hold their full footprint as a flush dock. That overhang (with a collision check
+      against the seated neighbours) is the shared mechanism both want; until it lands, the family stays `I`.
     - **Hub-floor refinement** — the frontline / twin-recess / wool-c clearance floors the grower's `HubVFloor`
       encodes (today a simplified `w+2` floor).
     - **CT1 / LN2 invariants by construction** — ≥10-block image clearance (orbit images stay separate islands)

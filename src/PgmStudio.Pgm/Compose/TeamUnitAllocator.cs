@@ -52,9 +52,11 @@ public static class TeamUnitAllocator
         return new UnitPlan(hasFrontline ? UnitSide.Front : null, spawn, AssignWools(spawn, woolCount));
     }
 
-    /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells — so no two
-    /// neighbours on adjacent hub sides seat at a shared corner and only corner-touch (a diagonal pinch).</summary>
-    private const int CornerClearanceCells = 1;
+    /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells. Zero under the
+    /// mass-level corner law: two neighbours on adjacent hub sides meet only at the hub's own corner cell, which
+    /// the hub fills — a ¾-solid bridged corner, never a pinch — so no clearance is needed and the neighbours may
+    /// use the hub's full edge (which the side-tuck wool and the wide frontline face want).</summary>
+    private const int CornerClearanceCells = 0;
 
     /// <summary>A neighbour box to seat against the hub: the hub <see cref="Side"/> it docks, its box
     /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
@@ -124,17 +126,28 @@ public static class TeamUnitAllocator
         var (spW, spH) = SpawnBoxEmitter.Box(size.Family, w, size.RunCells, size.TurnCells);
         demands.Add(new Demand(plan.Spawn, BoxKind.Spawn, spH, spW, "spawn"));
 
+        // a wool's shape must stay short relative to its room: a back-attached I lane past ~3× the room dimension
+        // reads as a too-long single-entry corridor. The room dimension scales with the corridor width. A wool
+        // that would run long instead tucks its room to the SIDE — a compact side-room footprint (cw+rd × 2cw)
+        // the mouth still enters cleanly — where the hub edge admits the wider dock; otherwise it stays a short
+        // back-room lane, its depth capped under the 3× bound.
+        var rd = ShapeEmitter.RoomDepthCells;
+        var roomDim = Math.Max(w, rd);
+        var maxDepth = 3 * roomDim - 1;
         var budgetCells = env.LandPerTeam / (env.Cell * (double)env.Cell);
         var flexible = Math.Max(0.0, budgetCells - hubU * hubV);
-        const int laneChainBlocks = 50;                              // LN2 chain cap
-        var depthCap = Math.Max(4, laneChainBlocks / env.Cell);
         var woolShare = flexible / (plan.Wools.Count + 1.0);         // the spawn takes a rough unit share too
         for (var i = 0; i < plan.Wools.Count; i++)
         {
             var side = plan.Wools[i];
             var edgeLen = side is UnitSide.Front or UnitSide.Back ? hubV : hubU;
-            var along = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen - 2 * CornerClearanceCells));
-            var depth = Math.Clamp((int)Math.Round(woolShare / along), 4, depthCap);
+            var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), w, Math.Min(3 * w, edgeLen));
+            var budgetDepth = (int)Math.Round(woolShare / narrowAlong);
+            int along, depth;
+            if (budgetDepth > maxDepth && w + rd <= edgeLen)         // would run long → tuck the room to the side
+                (along, depth) = (w + rd, 2 * w);
+            else                                                     // a short back-room lane
+                (along, depth) = (w, Math.Clamp(budgetDepth, rd + 1, maxDepth));
             demands.Add(new Demand(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}"));
         }
 
