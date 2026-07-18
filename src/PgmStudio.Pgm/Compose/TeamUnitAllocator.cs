@@ -64,15 +64,15 @@ public static class TeamUnitAllocator
     /// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.</summary>
     private sealed record Demand(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null);
 
-    /// <summary>The wool shapes a would-be-long wool draws from — the length rule's variety. Beyond the compact
-    /// back-room <c>I</c> (the short case), a longer wool becomes a side-tuck <c>I</c> (room to the side) or a
-    /// richer family docked by the seat-and-shift (its narrow entry on a hub run, its wider body overhanging).
-    /// <c>L</c> (a bent lane) and <c>U</c> (a staple with a bay) are the first two; deeper/wider families
-    /// (<c>Z</c>/<c>H</c>/scythe/donut) and the clamp join as their docking lands.</summary>
-    /// <summary>How often a wool takes a bent <c>L</c> (the seat-and-shift) rather than a straight <c>I</c> — the
-    /// shape variety, decoupled from the length rule so an <c>L</c> appears on any wool, not just the long ones.
-    /// When the L's overhang cannot fit a crowded hub the seat falls back to a compact inline <c>I</c>.</summary>
-    private const double BentWoolChance = 0.5;
+    /// <summary>How often a wool takes a bent <c>L</c> (the seat-and-shift) rather than an <c>I</c> — the shape
+    /// variety, decoupled from the length rule so an <c>L</c> appears on any wool, not just the long ones. When
+    /// the L's overhang cannot fit a crowded hub the seat falls back to a compact inline <c>I</c>.</summary>
+    private const double BentWoolChance = 0.4;
+
+    /// <summary>How often a non-<c>L</c> wool tucks its room to the <b>side</b> (a compact side-room) rather than
+    /// a plain inline back-room lane — for the three shapes to read in a balanced mix. A wool that would run long
+    /// side-tucks regardless (the length rule).</summary>
+    private const double SideRoomChance = 0.4;
 
     /// <summary>A wool family the <b>seat-and-shift</b> docks: a single-entry approach whose one narrow entry
     /// lands on a hub run while the body overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
@@ -180,15 +180,15 @@ public static class TeamUnitAllocator
                 fill = new WoolFill(ShapeFamily.L, RoomPlacement.Inline, false);
                 (along, depth) = ShapeEmitter.MinBox(fill.Family, w, fill.Placement);
             }
-            else if (budgetDepth <= maxDepth)                       // a short back-room lane
-            {
-                fill = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
-                (along, depth) = (w, Math.Clamp(budgetDepth, rd + 1, maxDepth));
-            }
-            else                                                    // would run long → tuck the room to the side
+            else if (budgetDepth > maxDepth || rng.NextBool(SideRoomChance))   // would run long, or a share → side-tuck
             {
                 fill = new WoolFill(ShapeFamily.I, RoomPlacement.SideTuck, false);
                 (along, depth) = ShapeEmitter.MinBox(fill.Family, w, fill.Placement);
+            }
+            else                                                    // a short back-room lane
+            {
+                fill = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
+                (along, depth) = (w, Math.Clamp(budgetDepth, rd + 1, maxDepth));
             }
             demands.Add(new Demand(side, BoxKind.Wool, depth, along, id, fill));
         }
