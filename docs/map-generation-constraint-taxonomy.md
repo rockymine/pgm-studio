@@ -242,6 +242,43 @@ Why this is the load-bearing piece:
   designated room faces (the designation itself docks terrain there) and the elevation-stage
   dock. The L's room even shows the axes composing: its top wall is *terminal AND notch-facing*.
 
+### 4.1 Targeting the taxonomy — the publish policy, worked (author question, round 6)
+
+*How do I now express: a scythe's bay is no-go for publishing, but an L's notch, a degenerate
+F's front notch, and a degenerate E's front bay are publishable?* The answer is a small
+**publish policy** — ordered verdicts over the facts, one rule kind per level, with precedence
+**space-veto → guard → part-allow → default deny**:
+
+| # | Verdict | Binds at | Selector | Catches |
+|---|---|---|---|---|
+| R1 | **veto** | level 1 (whole space) | `Kind == Hole` | the donut's void — an enclosed void is the shape's own device (CT8 currency), never filled |
+| R2 | **veto** | level 1 (whole space) | `Kind == Bay ∧ WallSlots ∩ {room, room-run, room-bar} ≠ ∅` | the **scythe** bay (walls `entry-run · bar · room-run`) and the clamp bay (`entry · room · entry`) — publishing a recess walled by the terminal's own path grants a second approach: the WL8 motif |
+| R3 | **carve** | level 3 (guard) | the room's clearance margin | subtracts the guarded parts/edges from anything that survived the vetoes (the L's room-corner) |
+| R4 | **allow** | level 2 (parts) | part **fronts a mouth** (the covering part) | the **L** notch (a single part — its own front), the **F**'s mouth-bar notch, the **E**'s front bay |
+| — | **deny** | default | everything else | covered parts (the E's two hidden slots, the F's bay leg) stay unpublished until a rule says otherwise |
+
+Answers packed in there:
+
+- **The scythe veto targets level 1** — the pure-shape space, all parts and edges at once. The
+  reason (a second approach to the wool) applies to the whole recess; the guard's ~10-block
+  margin could never carry it. The guard is only *reached* by spaces that survive the vetoes —
+  the levels are a precedence order, not alternatives.
+- **Never name the letter.** "Scythe" appears nowhere in R2 — the binding is the wall
+  composition, and that makes the rule **designation-dependent for free**: a terminal-free
+  scythe body's bay has only structural wall slots (`run/bar/leg`), so nothing fires — the same
+  body publishes differently as an approach vs a bare compound, with zero per-shape code.
+  Exactly the terminal-capped vs default-shape distinction, derived rather than declared.
+- **"First level" in the allow rules = the front (covering) part** — R4's selector is
+  computable today: a part fronts a mouth iff its rect touches the space's mouth interval.
+- **Two facts to land before this is code** (both small): `NegativeSpace.WallSlots` — the
+  slot/mark names of the walling pieces (the derive-side twin of `ShapeVacancy.Walls`, which
+  already exists emit-side and is where R2's data comes from) — and the part `Front` flag off
+  the mouths. Then the policy is a `DockingGate`-style table, wired where vacancies publish.
+- **Open author calls the examples didn't cover**: the U/H bay (walls `entry · bar · entry` —
+  no room slot, so R2 spares it; front-part-publishable under R4, or vetoed by a new rule?) and
+  the Z's second notch (walls `bar · room-run` — a *notch* on the room path; R2 only binds
+  bays). Both are one-line policy rows once decided.
+
 ## 5. Targets — controlled variance
 
 "I want layouts varied, but **controlled** variance": the sampler *chooses* among legal forms
