@@ -983,6 +983,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The hub box — the constraint-source box kind (G88) + the offer type (G96 hub half)** — `Compose/HubBoxEmitter.cs`
+  + `Compose/Boxes/EdgeOffer.cs`: the **terminal-free** hub box (map-generation.md §5.5). `HubBoxEmitter` finishes a
+  `BodyEmitter` `ShapeBody` with the hub designation — per-edge `interface` widths, **no room/marker** — over the
+  authored form menu **Rectangle · L (`SpineArms(1)`) · U (`SpineArms(2)`) · Ring · Double-hole**, each sized to fill
+  the box (a too-small box a directed null, an off-menu form a throw). It publishes one **`EdgeOffer`** per contiguous
+  free run on each edge (**G96's hub half**: `Several`-grouped, the `wN` width a neighbour reads as its `cw` — the
+  composer's `edgeWidths` constraint, geometric default; a U's bay reads as two bottom offers, a ring's wall as one
+  full run). Offers derive uniformly from a new `BoxInterfaces.Of(ShapeBody)` free-edge read; `BoxJoint.Offer` carries
+  the provenance; `FillProfiles.HubForms` is the hub's `Compound`-typed menu row. The composer consuming the offers +
+  retiring the grower's `hubU×hubV` hub is G63-C. Pgm suite 665/665. Contract: `map-generation.md` §1.14/§5.5. (G88, G96)
+
 - **Designation-scoped docking gate + the marks (G95)** — `Pgm/Shapes/Designation.cs` + `Compose/Boxes/DockingGate.cs`:
   `DockingGate.Role` re-grounds from one global slot table to **`Role(Designation, slotOrMark)`** — the
   binding G88/G89's hub/frontline designations stamp onto and the gate reads. New `Designation { Approach ·

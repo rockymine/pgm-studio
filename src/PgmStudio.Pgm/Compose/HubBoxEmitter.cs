@@ -16,38 +16,41 @@ public sealed record EmittedHub(
 /// <c>interface</c> marks carrying widths, no room. It <b>emits first</b> and its edge widths set the fill menus
 /// of the spawn/wool/frontline neighbours, published here as <see cref="EdgeOffer"/>s (the
 /// <see cref="Designation.Hub"/> half of the offer mechanism): a consumed <see cref="EdgeOffer.WidthClass"/> is
-/// the neighbour's corridor width. The composer decides which offer each neighbour takes and drives the
-/// per-edge widths (G63-C); this emitter produces the body and the offers it sources.
+/// the neighbour's corridor width. The composer decides which offer each neighbour takes and drives the per-edge
+/// widths (G63-C); this emitter produces the body and the offers it sources.
 ///
 /// <para>Form menu (<see cref="Forms"/>, authored — §5.5): <b>Rectangle · L · U · Ring · Double-hole</b>,
-/// compact optionally-holed bodies, deliberately not Zig/Hook/the higher combs. <b>Rectangle</b> (the solid hub
-/// — the direct successor to the grower's <c>hubU×hubV</c> rect) is emittable today; the branch/holed forms
-/// follow as they gain box-sizing. Pieces carry the hub <see cref="BoxRef"/> and their structural slot, extending
-/// the label-preservation invariant to the hub.</para>
+/// compact optionally-holed bodies, deliberately not Zig/Hook/the higher combs. Each is a <see cref="Compound"/>
+/// sized to fill the box, so its outward walls touch the box edges and become offers; a body too small for its
+/// form at the given <c>cw</c> is a <b>directed null</b>, not a throw. Pieces carry the hub <see cref="BoxRef"/>
+/// and their structural slot, extending the label-preservation invariant to the hub.</para>
 /// </summary>
 public static class HubBoxEmitter
 {
     /// <summary>The hub's authored form menu as data — the <see cref="Compound"/> bodies a hub may be (§5.5). A
-    /// hub stays rectangle-ish, so the menu is the compact forms only. Rectangle is emittable by
-    /// <see cref="Fill"/> today; L (<c>SpineArms(1)</c>), U (<c>SpineArms(2)</c>), Ring, and Double-hole are the
-    /// authored set the sizing lands for next.</summary>
-    public static readonly IReadOnlyList<CompoundRead> Forms = [new CompoundRead(Compound.Rectangle)];
+    /// hub stays rectangle-ish, so the menu is the compact forms only: the solid Rectangle, the branch family at
+    /// one arm (L) and two (U), the Ring, and the Double-hole.</summary>
+    public static readonly IReadOnlyList<CompoundRead> Forms =
+    [
+        new(Compound.Rectangle),
+        new(Compound.SpineArms, 1),   // L — a spine with one end arm
+        new(Compound.SpineArms, 2),   // U — a spine with two end arms, the bay between
+        new(Compound.Ring),           // one enclosed hole
+        new(Compound.DoubleHole),     // a ring + a docked U — two holes
+    ];
 
-    private static readonly BoxEdge[] AllEdges = [BoxEdge.Top, BoxEdge.Bottom, BoxEdge.Left, BoxEdge.Right];
-
-    /// <summary>Fill a hub <see cref="Box"/> (plan cells) as <paramref name="form"/>, terminal-free, publishing
-    /// one <see cref="EdgeOffer"/> per edge. <paramref name="edgeWidths"/> is the constraint the hub sources —
-    /// the w2/w4/w6 rung each edge offers a neighbour; an edge left unset offers its own free width (the edge's
-    /// length class). Pieces carry the hub <paramref name="box"/> label and their body slot; there is no room and
-    /// no marker. Only <see cref="Compound.Rectangle"/> is emittable today (the solid hub); other forms throw a
-    /// directed <see cref="ComposeException"/> until their box-sizing lands.</summary>
-    public static EmittedHub Fill(Box box, CompoundRead form, IReadOnlyDictionary<BoxEdge, int>? edgeWidths = null)
+    /// <summary>Fill a hub <see cref="Box"/> (plan cells) as <paramref name="form"/> at wall/corridor width
+    /// <paramref name="cw"/>, terminal-free, publishing one <see cref="EdgeOffer"/> per free run on each edge.
+    /// <paramref name="edgeWidths"/> is the constraint the hub sources — the w2/w4/w6 rung each edge offers a
+    /// neighbour; an edge left unset offers its own free width (the run's length class). Pieces carry the hub
+    /// <paramref name="box"/> label and their body slot; there is no room and no marker. <paramref name="cw"/> is
+    /// ignored by the solid Rectangle. <c>null</c> when the box is too small for the form (a directed signal);
+    /// throws <see cref="ComposeException"/> only for a form off the hub menu.</summary>
+    public static EmittedHub? Fill(Box box, CompoundRead form, int cw, IReadOnlyDictionary<BoxEdge, int>? edgeWidths = null)
     {
-        if (form.Form != Compound.Rectangle)
-            throw new ComposeException($"the hub emitter builds only the solid Rectangle so far (requested {form.Form}).");
-
         int boxW = box.Rect[2], boxH = box.Rect[3];
-        var body = BodyEmitter.Rectangle(boxW, boxH);
+        var body = BuildBody(form, boxW, boxH, cw);
+        if (body is null) return null;                       // too small for the form at this cw — a directed signal
 
         var boxRef = new BoxRef(box.Id, BoxKind.Hub);
         var pieces = new List<GrownPiece>(body.Pieces.Count);
@@ -56,17 +59,62 @@ public static class HubBoxEmitter
             pieces.Add(new GrownPiece($"{box.Id}-t{n++}", [box.Rect[0] + r[0], box.Rect[1] + r[1], r[2], r[3]],
                 PlanRoles.Piece, slot, boxRef));
 
-        // per-edge offers: the whole free edge is the interval a neighbour may dock along; the offered width is
-        // the composer's per-edge constraint, defaulting to the edge's own width class (the geometric maximum).
-        var offers = new List<EdgeOffer>(AllEdges.Length);
-        foreach (var e in AllEdges)
-        {
-            var alongLen = e is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
-            var width = edgeWidths is not null && edgeWidths.TryGetValue(e, out var w) ? w : BodyEdges.WidthClass(alongLen);
-            offers.Add(new EdgeOffer(e, new EdgeInterval(0, alongLen, ApproachSlots.Bar), width,
-                OfferGrouping.Several, $"{box.Id}-{e}"));
-        }
+        return new EmittedHub(pieces, Offers(box, body, boxW, boxH, edgeWidths), form);
+    }
 
-        return new EmittedHub(pieces, offers, new CompoundRead(Compound.Rectangle));
+    // build the body of `form` sized to fill the boxW×boxH box at `cw`; null when the box is too small for it
+    // (the BodyEmitter's own dim guards, surfaced as a directed signal rather than an exception).
+    private static ShapeBody? BuildBody(CompoundRead form, int w, int h, int cw)
+    {
+        try
+        {
+            return form.Form switch
+            {
+                Compound.Rectangle => BodyEmitter.Rectangle(w, h),
+                Compound.SpineArms when form.Arms == 1 => BodyEmitter.SpineArms(cw, [0], w, h - cw),           // L: one end arm
+                Compound.SpineArms when form.Arms == 2 => BodyEmitter.SpineArms(cw, [0, w - cw], w, h - cw),   // U: two end arms
+                Compound.SpineArms => throw new ComposeException($"a hub arm-form takes 1 (L) or 2 (U) arms, not {form.Arms}."),
+                Compound.Ring => BodyEmitter.Ring(cw, w, h),
+                Compound.DoubleHole => BodyEmitter.DoubleHole(cw, w - 2 * cw, h, 2 * cw),                       // ring left, U reaching to the box's right edge
+                _ => throw new ComposeException($"the hub form menu excludes {form.Form}."),
+            };
+        }
+        catch (ArgumentException) { return null; }
+    }
+
+    // one offer per contiguous free run on each box edge, Several-grouped (each neighbour docks its own run).
+    // The offered width is the composer's per-edge constraint, defaulting to the run's own width class.
+    private static IReadOnlyList<EdgeOffer> Offers(
+        Box box, ShapeBody body, int boxW, int boxH, IReadOnlyDictionary<BoxEdge, int>? edgeWidths)
+    {
+        var offers = new List<EdgeOffer>();
+        foreach (var edge in BoxInterfaces.Of(body, boxW, boxH))
+        {
+            var k = 0;
+            foreach (var run in Runs(edge.Intervals))
+            {
+                var width = edgeWidths is not null && edgeWidths.TryGetValue(edge.Edge, out var w)
+                    ? w : BodyEdges.WidthClass(run.LengthCells);
+                offers.Add(new EdgeOffer(edge.Edge, run, width, OfferGrouping.Several, $"{box.Id}-{edge.Edge}-{k++}"));
+            }
+        }
+        return offers;
+    }
+
+    // merge an edge's per-piece intervals into contiguous runs — a ring's corner + leg + corner, or a spine +
+    // its arm, is one attachable surface, not one offer per piece; a genuine gap (a U's bay between its arm
+    // tips) stays two runs.
+    private static IReadOnlyList<EdgeInterval> Runs(IReadOnlyList<EdgeInterval> intervals)
+    {
+        var runs = new List<EdgeInterval>();
+        foreach (var iv in intervals.OrderBy(i => i.Start))
+            if (runs.Count > 0 && iv.Start <= runs[^1].Start + runs[^1].LengthCells)
+            {
+                var last = runs[^1];
+                var end = Math.Max(last.Start + last.LengthCells, iv.Start + iv.LengthCells);
+                runs[^1] = last with { LengthCells = end - last.Start };
+            }
+            else runs.Add(new EdgeInterval(iv.Start, iv.LengthCells, ApproachSlots.Bar));
+        return runs;
     }
 }

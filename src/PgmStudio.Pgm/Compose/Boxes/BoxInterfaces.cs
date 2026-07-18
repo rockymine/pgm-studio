@@ -61,16 +61,25 @@ public static class BoxInterfaces
     /// <summary>The four edges of a <paramref name="boxW"/>×<paramref name="boxH"/> box as
     /// <see cref="BoxEdgeInterface"/> facts for the emitted <paramref name="shape"/> filling it (box-local
     /// cells). Every edge is returned — the gate (G80) decides which are dockable.</summary>
-    public static IReadOnlyList<BoxEdgeInterface> Of(EmittedShape shape, int boxW, int boxH)
+    public static IReadOnlyList<BoxEdgeInterface> Of(EmittedShape shape, int boxW, int boxH) =>
+        Of(shape.Terrain, shape.Room, boxW, boxH);
+
+    /// <summary>The four edges of a <b>terminal-free</b> <see cref="ShapeBody"/> filling a
+    /// <paramref name="boxW"/>×<paramref name="boxH"/> box — the hub/frontline read. Same edge facts as the
+    /// approach overload, but <b>no room</b> to fold in (a body has no terminal), so every interval is a terrain
+    /// piece: the offerable surface a designation publishes its <see cref="EdgeOffer"/>s over.</summary>
+    public static IReadOnlyList<BoxEdgeInterface> Of(ShapeBody body, int boxW, int boxH) =>
+        Of(body.Pieces, null, boxW, boxH);
+
+    private static IReadOnlyList<BoxEdgeInterface> Of(
+        IReadOnlyList<(int[] Rect, string Slot)> terrain, int[]? room, int boxW, int boxH)
     {
-        var room = shape.Room;
-        var terrain = shape.Terrain;
         BoxEdgeInterface Edge(BoxEdge e, int length, int perpendicular, Func<int[], bool> on, Func<int[], (int Start, int Len)> along)
         {
             var intervals = new List<EdgeInterval>();
             foreach (var (r, slot) in terrain)
                 if (on(r)) { var (s, l) = along(r); intervals.Add(new EdgeInterval(s, l, slot)); }
-            if (on(room)) { var (s, l) = along(room); intervals.Add(new EdgeInterval(s, l, ApproachSlots.Room)); }
+            if (room is not null && on(room)) { var (s, l) = along(room); intervals.Add(new EdgeInterval(s, l, ApproachSlots.Room)); }
             intervals.Sort((a, b) => a.Start.CompareTo(b.Start));
             return new(e, length >= perpendicular ? EdgeSpan.Long : EdgeSpan.Short, length, intervals);
         }
