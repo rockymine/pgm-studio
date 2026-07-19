@@ -25,44 +25,53 @@ public sealed record UnitPlan(UnitSide? Frontline, UnitSide Spawn, IReadOnlyList
 /// </summary>
 public static class TeamUnitAllocator
 {
-    /// <summary>The wool-box count — kept from the grower: 2–3 for a full team (3 two-in-five), one for a tiny
-    /// board, else 1–2.</summary>
-    public static int WoolCount(ComposeEnvelope env, ComposeRng rng) =>
-        env.PlayersPerTeam >= 16 ? (rng.NextBool(0.4) ? 3 : 2)
-        : env.LandPerTeam < 600 ? 1
-        : rng.NextInt(1, 3);
+    // ── the size ladders: where the unit's structure changes with the budget ───────────────────────────────
 
-    /// <summary>Assign each of <paramref name="woolCount"/> wools a hub side, given the <paramref name="spawn"/>'s
-    /// side. The two free body sides (back and the sides, minus the spawn's, <b>back first</b>) take a wool each;
-    /// a third wool doubles up on the spawn's side. Front is never a wool side (it is the frontline's).</summary>
-    public static IReadOnlyList<UnitSide> AssignWools(UnitSide spawn, int woolCount)
-    {
-        var free = new[] { UnitSide.Back, UnitSide.Left, UnitSide.Right }.Where(s => s != spawn).ToArray();
-        var wools = new UnitSide[woolCount];
-        for (var i = 0; i < woolCount; i++) wools[i] = i < free.Length ? free[i] : spawn;
-        return wools;
-    }
+    /// <summary>Land per team above which the map's lane width is <b>3</b> cells rather than 2 (LN1: 15 blocks
+    /// on big maps, 10 elsewhere). The one map-wide width every non-wool box builds to.</summary>
+    private const double WideLaneLand = 2500;
 
-    /// <summary>Sample a unit's placement plan: the wool count, the spawn's side (back or a lateral side), and
-    /// the wools around it. <paramref name="hasFrontline"/> reserves the front side for the frontline.</summary>
-    public static UnitPlan SamplePlan(ComposeEnvelope env, ComposeRng rng, bool hasFrontline)
-    {
-        var woolCount = WoolCount(env, rng);
-        var spawn = new[] { UnitSide.Back, UnitSide.Left, UnitSide.Right }[rng.NextInt(0, 3)];
-        return new UnitPlan(hasFrontline ? UnitSide.Front : null, spawn, AssignWools(spawn, woolCount));
-    }
+    /// <summary>Land per team below which a unit has <b>no frontline</b> — there is no budget for one, so the
+    /// hub fronts the mid directly.</summary>
+    private const double FrontlineMinLand = 800;
 
-    /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells. Zero under the
-    /// mass-level corner law: two neighbours on adjacent hub sides meet only at the hub's own corner cell, which
-    /// the hub fills — a ¾-solid bridged corner, never a pinch — so no clearance is needed and the neighbours may
-    /// use the hub's full edge (which the side-tuck wool and the wide frontline face want).</summary>
-    private const int CornerClearanceCells = 0;
+    /// <summary>One unit in this many has no frontline even when the budget allows — the sampled exception that
+    /// keeps the frontline from being universal.</summary>
+    private const int NoFrontlineInN = 7;
 
-    /// <summary>A neighbour box to seat against the hub: the hub <see cref="Side"/> it docks, its box
-    /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
-    /// <see cref="Along"/> extent (cells), and its <see cref="Id"/>. Sizing is frame- and form-independent (it
-    /// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.</summary>
-    private sealed record Demand(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null);
+    /// <summary>Land per team below which a unit carries a <b>single</b> wool (a tiny board cannot hold two).</summary>
+    private const double TinyBoardLand = 600;
+
+    /// <summary>Players per team at or above which the unit is a <b>full team</b>: 2–3 wools rather than 1–2.</summary>
+    private const int FullTeamPlayers = 16;
+
+    /// <summary>Of full-team units, how often the third wool appears (it doubles onto the spawn's side).</summary>
+    private const double ThirdWoolChance = 0.4;
+
+    /// <summary>The smallest hub dimension a <b>ring</b> fits in — a hub at least this big on both axes is a
+    /// "big square" and prefers negative space to solid area.</summary>
+    private const int RingFitCells = 5;
+
+    /// <summary>Of big-square hubs, how often the form is the <b>ring</b> specifically rather than another
+    /// negative-space body. The ring's void always fits and survives a frontline, so it carries most of them.</summary>
+    private const double RingChance = 0.85;
+
+    /// <summary>How long a wool may run relative to its room dimension before it reads as a <b>too-long
+    /// single-entry corridor</b> — the wool length rule. A lane past this bound tucks its room to the side
+    /// instead, and it also caps the depth of every compact fallback.</summary>
+    private const int WoolLengthRatio = 3;
+
+    /// <summary>The widest a budget-sized wool lane may be, in lanes — the along-extent the budget share is
+    /// spread over before it turns into depth.</summary>
+    private const int WoolAlongCapLanes = 3;
+
+    /// <summary>The hub's dimension cap in cells at <paramref name="landPerTeam"/> — how much hub the budget
+    /// warrants. Simplified ladder (the frontline / twin-recess / wool-c clearance floors refine it as those
+    /// land); the floor is the lane width + 2 either way.</summary>
+    private static int HubCapCells(double landPerTeam) =>
+        landPerTeam >= 3000 ? 6 : landPerTeam >= 1500 ? 5 : landPerTeam >= FrontlineMinLand ? 4 : 3;
+
+    // ── the shape mix: how often each wool shape is sampled ────────────────────────────────────────────────
 
     /// <summary>How often a wool takes a bent <c>L</c> (the seat-and-shift) rather than an <c>I</c> — the shape
     /// variety, decoupled from the length rule so an <c>L</c> appears on any wool, not just the long ones. When
@@ -90,15 +99,57 @@ public static class TeamUnitAllocator
     /// loses the trailing <c>rd</c> — a squarer ring instead of the stretched min-box sliver.</summary>
     private const double DonutCornerWoolChance = 0.5;
 
+    /// <summary>How often a non-<c>L</c> wool tucks its room to the <b>side</b> (a compact side-room) rather than
+    /// a plain inline back-room lane — for the three shapes to read in a balanced mix. A wool that would run long
+    /// side-tucks regardless (the length rule).</summary>
+    private const double SideRoomChance = 0.4;
+
+    // ── geometry: the widths and clearances the seat step builds to ────────────────────────────────────────
+
     /// <summary>The wool's own corridor width in cells — a <b>w2</b> lane (docs/contracts/map-generation.md §4:
     /// "the lane to the wool is simple, w2"), independent of the map's lane width <c>w</c> (which is 3 on big
     /// boards). Keeping wool families at w2 makes them compact and lets a staple's 3-lane mouth fit a hub edge.</summary>
     private const int WoolLaneCells = 2;
 
-    /// <summary>How often a non-<c>L</c> wool tucks its room to the <b>side</b> (a compact side-room) rather than
-    /// a plain inline back-room lane — for the three shapes to read in a balanced mix. A wool that would run long
-    /// side-tucks regardless (the length rule).</summary>
-    private const double SideRoomChance = 0.4;
+    /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells. Zero under the
+    /// mass-level corner law: two neighbours on adjacent hub sides meet only at the hub's own corner cell, which
+    /// the hub fills — a ¾-solid bridged corner, never a pinch — so no clearance is needed and the neighbours may
+    /// use the hub's full edge (which the side-tuck wool and the wide frontline face want).</summary>
+    private const int CornerClearanceCells = 0;
+
+    // ── the plan: how many wools, and which side each neighbour takes ──────────────────────────────────────
+
+    /// <summary>The wool-box count — kept from the grower: 2–3 for a full team, one for a tiny board, else 1–2.</summary>
+    public static int WoolCount(ComposeEnvelope env, ComposeRng rng) =>
+        env.PlayersPerTeam >= FullTeamPlayers ? (rng.NextBool(ThirdWoolChance) ? 3 : 2)
+        : env.LandPerTeam < TinyBoardLand ? 1
+        : rng.NextInt(1, 3);
+
+    /// <summary>Assign each of <paramref name="woolCount"/> wools a hub side, given the <paramref name="spawn"/>'s
+    /// side. The two free body sides (back and the sides, minus the spawn's, <b>back first</b>) take a wool each;
+    /// a third wool doubles up on the spawn's side. Front is never a wool side (it is the frontline's).</summary>
+    public static IReadOnlyList<UnitSide> AssignWools(UnitSide spawn, int woolCount)
+    {
+        var free = new[] { UnitSide.Back, UnitSide.Left, UnitSide.Right }.Where(s => s != spawn).ToArray();
+        var wools = new UnitSide[woolCount];
+        for (var i = 0; i < woolCount; i++) wools[i] = i < free.Length ? free[i] : spawn;
+        return wools;
+    }
+
+    /// <summary>Sample a unit's placement plan: the wool count, the spawn's side (back or a lateral side), and
+    /// the wools around it. <paramref name="hasFrontline"/> reserves the front side for the frontline.</summary>
+    public static UnitPlan SamplePlan(ComposeEnvelope env, ComposeRng rng, bool hasFrontline)
+    {
+        var woolCount = WoolCount(env, rng);
+        var spawn = new[] { UnitSide.Back, UnitSide.Left, UnitSide.Right }[rng.NextInt(0, 3)];
+        return new UnitPlan(hasFrontline ? UnitSide.Front : null, spawn, AssignWools(spawn, woolCount));
+    }
+
+    /// <summary>A neighbour box to seat against the hub: the hub <see cref="Side"/> it docks, its box
+    /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
+    /// <see cref="Along"/> extent (cells), and its <see cref="Id"/>. Sizing is frame- and form-independent (it
+    /// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.</summary>
+    private sealed record Demand(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null);
 
     /// <summary>A wool family the <b>seat-and-shift</b> docks: a single-entry approach whose one narrow entry
     /// lands on a hub run while the body overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
@@ -122,13 +173,12 @@ public static class TeamUnitAllocator
     public static (BoxPartition Partition, string SpawnFacing)? Allocate(ComposeEnvelope env, ComposeRng rng)
     {
         var frame = Frame.For(env.Symmetry);
-        var w = env.LandPerTeam > 2500 ? 3 : 2;                       // lane width (LN1: 10; 15 on big maps)
-        // the frontline is the default when there is budget for it; none is the sampled exception (~1/7)
-        var hasFrontline = env.LandPerTeam >= 800 && rng.NextInt(0, 7) > 0;
+        var w = env.LandPerTeam > WideLaneLand ? 3 : 2;               // the map-wide lane width
+        // the frontline is the default when there is budget for it; none is the sampled exception
+        var hasFrontline = env.LandPerTeam >= FrontlineMinLand && rng.NextInt(0, NoFrontlineInN) > 0;
         var plan = SamplePlan(env, rng, hasFrontline);
 
-        // hub dims — simplified floors/caps (the frontline/twin/wool-c clearance floors refine as those land)
-        var cap = env.LandPerTeam >= 3000 ? 6 : env.LandPerTeam >= 1500 ? 5 : env.LandPerTeam >= 800 ? 4 : 3;
+        var cap = HubCapCells(env.LandPerTeam);
         var floor = w + 2;
         var hubU = rng.NextInt(floor, Math.Max(floor, cap) + 1);
         var hubV = rng.NextInt(floor, Math.Max(floor, cap) + 1);
@@ -159,8 +209,8 @@ public static class TeamUnitAllocator
     /// stays whatever compact form it can hold (the uniform menu; the wide forms simply don't fit and fall back).</summary>
     private static CompoundRead ChooseHubForm(int hubU, int hubV, ComposeRng rng)
     {
-        if (hubU >= 5 && hubV >= 5)
-            return rng.NextBool(0.85) ? new CompoundRead(Compound.Ring)   // the ring's void always fits + survives a frontline
+        if (hubU >= RingFitCells && hubV >= RingFitCells)
+            return rng.NextBool(RingChance) ? new CompoundRead(Compound.Ring)
                 : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is not (Compound.Rectangle or Compound.DoubleHole)).ToList());
         return rng.Pick(HubBoxEmitter.Forms);
     }
@@ -181,56 +231,16 @@ public static class TeamUnitAllocator
         var (spW, spH) = SpawnBoxEmitter.Box(size.Family, w, size.RunCells, size.TurnCells);
         demands.Add(new Demand(plan.Spawn, BoxKind.Spawn, spH, spW, "spawn"));
 
-        // a wool's shape must stay short relative to its room: a back-attached I lane past ~3× the room dimension
-        // reads as a too-long single-entry corridor. The room dimension scales with the corridor width. A wool
-        // that would run long instead tucks its room to the SIDE — a compact side-room footprint (cw+rd × 2cw)
-        // the mouth still enters cleanly — where the hub edge admits the wider dock; otherwise it stays a short
-        // back-room lane, its depth capped under the 3× bound.
-        var rd = ShapeEmitter.RoomDepthCells;
-        var woolCw = WoolLaneCells;                                  // the wool lane is always w2 (§4), never the map's w
-        var roomDim = Math.Max(woolCw, rd);
-        var maxDepth = 3 * roomDim - 1;
+        // the flexible budget left after the hub, split into a rough share per wool (the spawn takes one too)
         var budgetCells = env.LandPerTeam / (env.Cell * (double)env.Cell);
         var flexible = Math.Max(0.0, budgetCells - hubU * hubV);
-        var woolShare = flexible / (plan.Wools.Count + 1.0);         // the spawn takes a rough unit share too
+        var woolShare = flexible / (plan.Wools.Count + 1.0);
         for (var i = 0; i < plan.Wools.Count; i++)
         {
             var side = plan.Wools[i];
             var edgeLen = side is UnitSide.Front or UnitSide.Back ? hubV : hubU;
-            var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), woolCw, Math.Min(3 * woolCw, edgeLen));
-            var budgetDepth = (int)Math.Round(woolShare / narrowAlong);
-            var id = $"wool-{(char)('a' + i)}";
-            WoolFill fill;
-            int along, depth;
-            if (rng.NextBool(BentWoolChance))                        // a rich shape
-            {
-                var family = rng.NextBool(DonutChance) ? ShapeFamily.Donut
-                    : rng.NextBool(StapleChance) ? rng.Pick(new[] { ShapeFamily.U, ShapeFamily.H, ShapeFamily.Clamp })
-                    : ShapeFamily.L;
-                // clamp: adjacent vs centered; donut: the wool at the ring's corner vs on a trailing room
-                var woolAtEnd = family switch
-                {
-                    ShapeFamily.Clamp => rng.NextBool(ClampAdjacentChance),
-                    ShapeFamily.Donut => rng.NextBool(DonutCornerWoolChance),
-                    _ => false,
-                };
-                (along, depth) = WoolBoxEmitter.MouthBox(family, woolCw, woolAtEnd: woolAtEnd);
-                // a full-mouth staple the hub edge can't hold → a bent L (the seat-and-shift docks any width)
-                if (!Overhangs(family) && along > edgeLen)
-                    (family, woolAtEnd, (along, depth)) = (ShapeFamily.L, false, WoolBoxEmitter.MouthBox(ShapeFamily.L, woolCw));
-                fill = new WoolFill(family, RoomPlacement.Inline, false, woolAtEnd);
-            }
-            else if (budgetDepth > maxDepth || rng.NextBool(SideRoomChance))   // would run long, or a share → side-tuck
-            {
-                fill = new WoolFill(ShapeFamily.I, RoomPlacement.SideTuck, false);
-                (along, depth) = WoolBoxEmitter.MouthBox(fill.Family, woolCw, fill.Placement);
-            }
-            else                                                    // a short back-room lane
-            {
-                fill = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
-                (along, depth) = (woolCw, Math.Clamp(budgetDepth, rd + 1, maxDepth));
-            }
-            demands.Add(new Demand(side, BoxKind.Wool, depth, along, id, fill));
+            var (fill, along, depth) = WoolDemand(rng, edgeLen, woolShare);
+            demands.Add(new Demand(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}", fill));
         }
 
         // the frontline join: it docks the hub's front edge with a face spanning it (corner clearance aside) and
@@ -241,6 +251,57 @@ public static class TeamUnitAllocator
             demands.Add(new Demand(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
         }
         return demands;
+    }
+
+    /// <summary>Choose one wool's <b>shape and footprint</b> — the whole per-wool decision in one place. Three
+    /// outcomes, in the order they are sampled:
+    /// <list type="bullet">
+    /// <item><b>rich</b> — a donut or a full-mouth staple (<c>U</c>/<c>H</c>/clamp), else a bent <c>L</c>; sized at
+    /// the family's mouth box. A staple whose mouth the hub edge (<paramref name="edgeLen"/>) cannot hold demotes
+    /// to the <c>L</c>, which the seat-and-shift docks at any width.</item>
+    /// <item><b>side-tuck</b> — a compact side-room <c>I</c>, taken when the budget lane would run long (the wool
+    /// length rule) or simply by chance.</item>
+    /// <item><b>back-room lane</b> — a short inline <c>I</c>, its depth the budget share capped under the same
+    /// length rule.</item>
+    /// </list>
+    /// The wool lane is always <see cref="WoolLaneCells"/> (§4), never the map's <c>w</c>.</summary>
+    private static (WoolFill Fill, int Along, int Depth) WoolDemand(ComposeRng rng, int edgeLen, double woolShare)
+    {
+        var cw = WoolLaneCells;
+        if (rng.NextBool(BentWoolChance))
+        {
+            var family = rng.NextBool(DonutChance) ? ShapeFamily.Donut
+                : rng.NextBool(StapleChance) ? rng.Pick(new[] { ShapeFamily.U, ShapeFamily.H, ShapeFamily.Clamp })
+                : ShapeFamily.L;
+            // clamp: adjacent vs centered; donut: the wool at the ring's corner vs on a trailing room
+            var woolAtEnd = family switch
+            {
+                ShapeFamily.Clamp => rng.NextBool(ClampAdjacentChance),
+                ShapeFamily.Donut => rng.NextBool(DonutCornerWoolChance),
+                _ => false,
+            };
+            var (along, depth) = WoolBoxEmitter.MouthBox(family, cw, woolAtEnd: woolAtEnd);
+            if (!Overhangs(family) && along > edgeLen)
+                (family, woolAtEnd, (along, depth)) = (ShapeFamily.L, false, WoolBoxEmitter.MouthBox(ShapeFamily.L, cw));
+            return (new WoolFill(family, RoomPlacement.Inline, false, woolAtEnd), along, depth);
+        }
+
+        // the budget's rough lane: the share spread over a narrow along-extent, the rest becoming depth
+        var rd = ShapeEmitter.RoomDepthCells;
+        var maxDepth = WoolLengthRatio * Math.Max(cw, rd) - 1;
+        var narrowAlong = Math.Clamp((int)Math.Round(Math.Sqrt(woolShare)), cw, Math.Min(WoolAlongCapLanes * cw, edgeLen));
+        var budgetDepth = (int)Math.Round(woolShare / narrowAlong);
+
+        // NB the short-circuit is load-bearing: a lane that would run long side-tucks WITHOUT consuming a draw
+        if (budgetDepth > maxDepth || rng.NextBool(SideRoomChance))
+        {
+            var tuck = new WoolFill(ShapeFamily.I, RoomPlacement.SideTuck, false);
+            var (along, depth) = WoolBoxEmitter.MouthBox(tuck.Family, cw, tuck.Placement);
+            return (tuck, along, depth);
+        }
+
+        return (new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false),
+            cw, Math.Clamp(budgetDepth, rd + 1, maxDepth));
     }
 
     /// <summary>Seat every demand on <paramref name="form"/>'s real free-edge intervals, seated on the hub
@@ -290,17 +351,14 @@ public static class TeamUnitAllocator
                     joints.Add(HubJointFrom("hub", d.Id, iface, offerW));
                     continue;
                 }
-                // the overhang couldn't fit this hub (crowded / narrow) → a compact inline I rather than fail
-                d = d with { Along = offerW, Depth = Math.Min(d.Depth, 3 * ShapeEmitter.RoomDepthCells - 1),
-                    Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false) };
+                d = Compact(d, offerW);   // no clear overhang placement on this hub (crowded / narrow)
             }
 
             occupied.TryAdd(edge, []);
             var seat = SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng);
-            if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth didn't fit → a compact inline I does
+            if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
             {
-                d = d with { Along = offerW, Depth = Math.Min(d.Depth, 3 * ShapeEmitter.RoomDepthCells - 1),
-                    Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false) };
+                d = Compact(d, offerW);
                 seat = SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng);
             }
             if (seat is not { } s) return null;
@@ -310,6 +368,17 @@ public static class TeamUnitAllocator
         }
         return (boxes, joints);
     }
+
+    /// <summary>Demote a wool demand to the <b>compact inline <c>I</c></b> — the always-seatable shape: a
+    /// one-lane mouth at the hub's offered width, its depth capped under the wool length rule. Both seat failures
+    /// land here (an overhang with no clear placement, a full mouth no run holds) rather than failing the unit.</summary>
+    private static Demand Compact(Demand d, int offerW) =>
+        d with
+        {
+            Along = offerW,
+            Depth = Math.Min(d.Depth, WoolLengthRatio * ShapeEmitter.RoomDepthCells - 1),
+            Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false),
+        };
 
     /// <summary>The plan-cell rect of a <paramref name="depth"/>×<paramref name="along"/> box seated at box-local
     /// along-coord <paramref name="seat"/> on the hub's <paramref name="edge"/>: its depth reaches outward from

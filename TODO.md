@@ -75,7 +75,7 @@ in `BACKLOG.md`.)*
   - **C.2 — the last two wool shapes + the spawn `L` (the immediate next slice).** The deeper `Z` (a compact add
     over the overhang path); the **scythe** (still gated from the production menu — its bay seals a flush dock
     against the host, WL8, so it needs the G80 **shape-relative bay docking**, not just sizing); the **spawn `L`**
-    (the same seat-and-shift overhang, on the spawn box). Finishes the shape set → then G102–G106 below.
+    (the same seat-and-shift overhang, on the spawn box). Finishes the shape set → then G103–G106 below.
   - **C.2 — hub-form richness.** `L` **handedness** (its arm sits on a fixed side — choosing it would cover
     back+right as well as back+left); `Double-hole` needs a hub **wider than the current caps** (≥ 9); the vertical
     flip only orients the **z-frames** — `mirror_x` (front = a lateral edge) needs a rotation, not a flip; and an
@@ -99,15 +99,8 @@ in `BACKLOG.md`.)*
 
 *(The next-session arc, once the wool shape set is complete (Z/scythe above): with every shape now placeable,
 stop adding and instead **consolidate, reality-check, and enrich** — clean the allocator, verify the placement
-rules sit in the right layer, understand the budget, and grow the hubs. G102 → G106, roughly in order.)*
-
-- [ ] **G102 — Clean up `TeamUnitAllocator`.** Now that the shape set is frozen, the `Demands`/`Seat` methods
-  have accumulated a lot of inline policy — `BentWoolChance`/`DonutChance`/`StapleChance`/`ClampAdjacentChance`/
-  `SideRoomChance`, the wool-length rule, and the overhang / full-mouth / demote-to-`L` / inline-`I`-fallback
-  branches all threaded together. Consolidate into a small **wool-shape planner** that returns
-  `(family, placement, box, woolAtEnd)` from the budget + the hub edge, and a **cleaner seat dispatch** (overhang
-  vs full-mouth vs fallback as named paths, not nested conditionals). **No behaviour change** — same seeds, same
-  layouts, same 0 pinches; a pure readability/structure pass so the later rule work has a clean surface.
+rules sit in the right layer, understand the budget, and grow the hubs. G103 → G106, roughly in order; the
+G102 allocator cleanup that opened the arc has landed.)*
 
 - [ ] **G103 — Reality-check the rule kinds (§1.14) against the placed shapes.** With the shapes placing, audit
   `map-generation.md` §1.14 (the rule kinds — fact / term / knob / … , the ~12) and §1.13 (the edge taxonomy)
@@ -115,8 +108,9 @@ rules sit in the right layer, understand the budget, and grow the hubs. G102 →
   clearance (now 0), the wool-length rule, the staple/clamp full-mouth demand, the form-answers-form choices —
   map cleanly onto declared rule kinds, or are some ad-hoc policy that should be a **fact**, a **term**, or a
   **derived offer**? Where a rule sits in the wrong layer, name it and file the move. Goal: the shapes are placed
-  by rules that live where the taxonomy says they should. (Pairs with G102 — the cleanup surfaces the policy this
-  audits.)
+  by rules that live where the taxonomy says they should. The G102 cleanup put every tunable in one place at the
+  top of `TeamUnitAllocator` in three labelled groups (size ladders · shape mix · geometry) — that block is this
+  audit's worklist.
 
 - [ ] **G106 — Fix the observed seat/emit failure modes (taxonomy doc §9).** The author-observed defect list,
   verified + quantified in `docs/map-generation-constraint-taxonomy.md` §9 (re-measure with
