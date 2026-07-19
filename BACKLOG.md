@@ -306,6 +306,18 @@ ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant �
   Unlike F1/WL2 this is a marker-to-marker *traversal* spread, not a body-adjacency floor, so the seat gap does
   not reach it — it is a whole-layout *scale* concern and rides with the hub-growth / budget work (**G104/G105**)
   that gives the boxes room to spread. (`docs/map-generation-constraint-taxonomy.md` §10.4)
+- [ ] **G112 — P seats more than the fallback rate (P-aware neighbour placement).** `P` joined the hub menu
+  (G105) but seats rarely (~8/200 wide picks) — its **short ends barely offer surface** (just the bar tips), so a
+  wool/spawn assigned to a short end finds no run and the whole form falls back to the solid rectangle. Make the
+  seat step P-aware: keep dockers off the short ends and onto the long bar / loop runs (or bias `ChooseHubForm` to
+  pick `P` only when the plan's neighbours fit its long edges), so the wide form the allocator chose survives
+  instead of diluting into rect. Builds on **G105**.
+- [ ] **G113 — Restore the third wool on huge (spawn/doubling on the wide edge).** The seat gap (G110) drops the
+  huge third wool because it doubles onto the spawn's own edge, which a hub cannot hold gapped unless that edge is
+  the wide one — and the spawn lands on a random side (huge is 196/200 two-wool now). With the elongated hub
+  (G105) the **back edge is now wide enough** (spawn 4 + gap 3 + wool 2 = 9), so bias the spawn toward the wide
+  back edge (or double the third wool onto the wide edge rather than the spawn's) so full teams keep three
+  objectives. Depends on **G105**, **G110**.
 - [ ] **G111 — The frontline's offer decisions move to the allocator (FR6).** `TeamUnitFiller` currently picks
   the offer **grouping** by coin flip (`rng.NextBool(0.5) ? Joint : Several`) and the frontline **form**
   (Bar-for-branch-hub / else staple-or-strand). Grouping is part of an *offer* (§1.14) and offers are the

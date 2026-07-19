@@ -65,11 +65,24 @@ public static class TeamUnitAllocator
     /// spread over before it turns into depth.</summary>
     private const int WoolAlongCapLanes = 3;
 
-    /// <summary>The hub's dimension cap in cells at <paramref name="landPerTeam"/> — how much hub the budget
-    /// warrants. Simplified ladder (the frontline / twin-recess / wool-c clearance floors refine it as those
-    /// land); the floor is the lane width + 2 either way.</summary>
+    /// <summary>The hub's <b>depth</b> cap in cells (toward the axis) at <paramref name="landPerTeam"/> — how deep
+    /// the budget warrants. Simplified ladder (the frontline / twin-recess / wool-c clearance floors refine it as
+    /// those land); the floor is the lane width + 2 either way. The <b>lateral</b> span uses the wider
+    /// <see cref="HubWideCap"/> so the hub elongates across the team's width rather than growing a bigger square.</summary>
     private static int HubCapCells(double landPerTeam) =>
         landPerTeam >= 3000 ? 6 : landPerTeam >= 1500 ? 5 : landPerTeam >= FrontlineMinLand ? 4 : 3;
+
+    /// <summary>The hub's <b>lateral</b> (cross-axis) span cap in cells at <paramref name="landPerTeam"/> — wider
+    /// than the depth cap, so a hub grows <b>wider, not squarer</b>: the long lateral edge gives the spawn and
+    /// wools room to attach with the seat gap, and at ≥ <see cref="WideHubCells"/> it affords the wide holed
+    /// bodies (P, Double-hole), whose bar/ring runs are long free surface.</summary>
+    private static int HubWideCap(double landPerTeam) =>
+        landPerTeam >= 3000 ? 11 : landPerTeam >= 1500 ? 9 : landPerTeam >= FrontlineMinLand ? 7 : 5;
+
+    /// <summary>The box width at or above which a hub is <b>wide enough for the holed wide bodies</b> — the P
+    /// (loop + overhanging bar) and the Double-hole (ring + docked U) both need width ≥ this (loop/ring
+    /// <c>w − 2·cw ≥ 2·cw + 1</c> at <c>cw = 2</c>). Below it they directed-null and the compact menu is used.</summary>
+    private const int WideHubCells = 9;
 
     // ── the shape mix: how often each wool shape is sampled ────────────────────────────────────────────────
 
@@ -178,10 +191,11 @@ public static class TeamUnitAllocator
         var hasFrontline = env.LandPerTeam >= FrontlineMinLand && rng.NextInt(0, NoFrontlineInN) > 0;
         var plan = SamplePlan(env, rng, hasFrontline);
 
-        var cap = HubCapCells(env.LandPerTeam);
+        var depthCap = HubCapCells(env.LandPerTeam);
+        var wideCap = HubWideCap(env.LandPerTeam);
         var floor = w + 2;
-        var hubU = rng.NextInt(floor, Math.Max(floor, cap) + 1);
-        var hubV = rng.NextInt(floor, Math.Max(floor, cap) + 1);
+        var hubU = rng.NextInt(floor, Math.Max(floor, depthCap) + 1);    // depth toward the axis — kept compact
+        var hubV = rng.NextInt(floor, Math.Max(floor, wideCap) + 1);     // lateral span — elongates across the team's width
         // the frontline sits between the hub and the axis, so its reach pushes the hub's front edge back; the +2
         // gives a staple frontline's arms room for a real bay (a shallower reach collapses them to nubs)
         var frontReach = hasFrontline ? w + 2 : 0;
@@ -192,9 +206,10 @@ public static class TeamUnitAllocator
         // the neighbour demands (spawn + wools + the frontline join), sized from the budget before the form is chosen
         var demands = Demands(env, rng, plan, w, hubU, hubV, frontReach);
 
-        // pick the hub form (biased by size — a big square hub prefers negative space), seat the demands on its
-        // real free edges; fall back to the solid rectangle (four full edges) when the offerable surface can't host
-        var sampled = ChooseHubForm(hubU, hubV, rng);
+        // pick the hub form from the box's real dims (frame-mapped — the wide axis afford the wide holed bodies),
+        // seat the demands on its free edges; fall back to the solid rectangle (four full edges) when the offerable
+        // surface can't host
+        var sampled = ChooseHubForm(hubRect[2], hubRect[3], rng);
         var seating = Seat(sampled, hubRect, frame, w, demands, rng);
         if (seating is null && sampled.Form != Compound.Rectangle)
             seating = Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, w, demands, rng);
@@ -203,16 +218,22 @@ public static class TeamUnitAllocator
         return (new BoxPartition(s.Boxes, s.Joints), frame.TowardAxis);
     }
 
-    /// <summary>Choose the hub form for a <paramref name="hubU"/>×<paramref name="hubV"/> hub. A <b>big square</b>
-    /// hub (both dims ≥ 5, so a ring fits) is too much solid area for the budget — a plain rectangle wastes it —
-    /// so it prefers <b>negative space</b>: a ring's void mostly, else a branch/holed body. A small or thin hub
-    /// stays whatever compact form it can hold (the uniform menu; the wide forms simply don't fit and fall back).</summary>
-    private static CompoundRead ChooseHubForm(int hubU, int hubV, ComposeRng rng)
+    /// <summary>Choose the hub form for a <paramref name="boxW"/>×<paramref name="boxH"/> box (real cell dims, the
+    /// frame having mapped the wide lateral axis onto width). A <b>wide</b> box (width ≥ <see cref="WideHubCells"/>,
+    /// height ≥ <see cref="RingFitCells"/>) affords the <b>wide holed bodies</b> — the P (a loop on a long overhanging
+    /// bar) and the Double-hole (a ring + a docked U), whose long runs are free surface — sampled alongside the
+    /// elongated ring. A <b>big square-ish</b> box (both ≥ <see cref="RingFitCells"/>) is too much solid area for the
+    /// budget, so it prefers negative space: mostly the ring, else a branch body. A small or thin box stays the
+    /// compact solid/branch menu (the wider forms would directed-null and fall back).</summary>
+    private static CompoundRead ChooseHubForm(int boxW, int boxH, ComposeRng rng)
     {
-        if (hubU >= RingFitCells && hubV >= RingFitCells)
+        if (boxW >= WideHubCells && boxH >= RingFitCells)
+            return rng.Pick(new[]
+                { new CompoundRead(Compound.P), new CompoundRead(Compound.DoubleHole), new CompoundRead(Compound.Ring) });
+        if (boxW >= RingFitCells && boxH >= RingFitCells)
             return rng.NextBool(RingChance) ? new CompoundRead(Compound.Ring)
-                : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is not (Compound.Rectangle or Compound.DoubleHole)).ToList());
-        return rng.Pick(HubBoxEmitter.Forms);
+                : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.SpineArms).ToList());
+        return rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.Rectangle or Compound.SpineArms).ToList());
     }
 
     /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats

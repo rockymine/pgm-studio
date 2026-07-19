@@ -130,17 +130,14 @@ G102 cleanup and the G103 rule-kind audit that opened the arc have landed — G1
   frontline proportions — **before** wiring any repair. This is the input G105 needs (how much hub a budget
   warrants).
 
-- [ ] **G105 — Bigger, better hub shapes.** Beyond the in-switch hub-form-richness slice above (handedness /
-  `mirror_x` / `Double-hole` ≥ 9 / L-with-frontline): raise the hub caps and add richer big-team forms (the
-  cap-6 ceiling is what keeps the staples rare), and improve the **form → size fit** so a large budget reads as
-  an interesting hub (ring / stamp / holed / negative-space) rather than a bland big rectangle. The named
-  target shape (author): the **asymmetric ring** — a `P`-class body (`BodyEmitter.P` ships the *length*
-  asymmetry: the bar longer than the loop) whose dominant bar is also **wider** than the loop's own bars
-  (e.g. a 5×5 whose right bar is a 2-wide full-height slab: `vvvii / tttii / ttvii / tttii / tttii`) — a
-  solid spine offering long free runs for the seats, the void kept as a feature. That *wider* needs the
-  **per-piece width knob** (taxonomy §9 F6 — today "bigger" only stretches the whole shape `cw × factor`,
-  the wall the old extreme-pieces script hit too), and the hub is that knob's main consumer: it also relieves
-  F1/F2 (longer runs = fewer flush/abutting seats) and the branch-hub frontline fallback. `P` joins the hub
-  form menu here. Depends on **G104** (the budget decides how much hub is warranted) and builds on the
-  G63-C hub-form work.
+- [~] **G105 — Bigger, better hub shapes.** Landed (`FEATURES.md`): the hub now **elongates laterally** (a
+  larger lateral cap than the depth cap — wider, not squarer, so the long edge gives seats room and reaches the
+  width ≥ 9 the wide forms need), and **`P` + `Double-hole` joined the hub form menu** (the Double-hole's U made
+  full-height to fit a shallow-wide hub), chosen for wide boxes. **Remaining:** the **per-piece width knob**
+  (taxonomy §9 F6 — today "bigger" only stretches the whole shape `cw × factor`); the named target shape (author),
+  the **asymmetric ring** — a `P`-class body whose dominant bar is also **wider** than the loop's own bars (e.g. a
+  5×5 whose right bar is a 2-wide full-height slab: `vvvii / tttii / ttvii / tttii / tttii`) — a solid spine
+  offering long free runs, the void a feature; raise the depth cap for richer big-team forms; and improve the
+  **form → size fit** so a large budget reads as an interesting hub rather than a bland rectangle. Depends on
+  **G104** (the budget decides how much hub is warranted).
 

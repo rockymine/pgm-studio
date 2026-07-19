@@ -1023,6 +1023,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cannot hold gapped — restoring it is the hub-growth work, G105). Closes §9 F1 (spawn/wool) + WL2; the frontline
   keeps no neighbour gap (build-zone's rule). Pgm suite 690/690. (G110 · taxonomy §9 F1, §10.4)
 
+- **Elongated hubs + the wide holed forms P and Double-hole** — `Compose/HubBoxEmitter.cs` + `TeamUnitAllocator.cs`:
+  the hub grows **wider, not squarer**. Its lateral span reads a larger cap (`HubWideCap` 5/7/9/11 by land) than
+  its depth (`HubCapCells` 3/4/5/6), so the long edge gives the spawn/wools room to attach with the seat gap and
+  reaches the width ≥ 9 the wide holed bodies need. Two new hub forms join the menu (`HubBoxEmitter.Forms`): **P**
+  (a loop on a longer overhanging bar — the bar a long free run) and **Double-hole** (a ring + a **full-height** U
+  on its right, two equal holes — the U made full-height so it fits a shallow-wide hub). `ChooseHubForm` (now
+  reading the frame-mapped box dims) picks {P, Double-hole, Ring} for wide boxes (≥ 9), the compact solid/branch
+  menu below; a wide form too small directed-nulls and falls back to the rectangle. TwoUOnI stays off the hub menu.
+  Huge hubs now average ~8w × 5.5h (85/200 ≥ 9 wide), no-alloc/no-fill/pinch 0. Pgm suite 691/691. (G105 partial ·
+  `map-generation.md` §5.5)
+
 - **The frontline box — the join box kind (G89) + the face offer (G96 frontline half)** — `Compose/FrontlineBoxEmitter.cs`:
   the **terminal-free** frontline join (map-generation.md §5.5). `FrontlineBoxEmitter` finishes a `BodyEmitter`
   `ShapeBody` with the Front designation — one edge the `face`, **no room/marker** — over the form menu **Bar** (the

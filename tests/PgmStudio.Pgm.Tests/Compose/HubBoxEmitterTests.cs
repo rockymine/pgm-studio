@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
-/// <summary>The hub box kind: a terminal-free <see cref="Compound"/> body (Rectangle · L · U · Ring · Double-hole)
+/// <summary>The hub box kind: a terminal-free <see cref="Compound"/> body (Rectangle · L · U · Ring · P · Double-hole)
 /// finished by the hub designation — no room, hub-labeled pieces, publishing one per-edge <see cref="EdgeOffer"/>
 /// as the constraint source (the offered widths the composer's per-edge constraint).</summary>
 public class HubBoxEmitterTests
@@ -109,8 +109,29 @@ public class HubBoxEmitterTests
     [Test]
     public async Task A_form_off_the_hub_menu_throws()
     {
-        // P and TwoUOnI are body compounds but not hub forms (the hub stays rectangle-ish)
-        await Assert.That(() => HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.P), cw: 2))
+        // TwoUOnI is a body compound but not a hub form (the hub menu is the compact + wide-holed bodies; P and
+        // Double-hole are on it, TwoUOnI is not)
+        await Assert.That(() => HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.TwoUOnI), cw: 2))
             .Throws<ComposeException>();
+    }
+
+    [Test]
+    public async Task The_wide_holed_forms_fill_a_wide_box_and_fall_back_below_width_9()
+    {
+        // P (loop + overhanging bar) and Double-hole (ring + full-height U) need width >= 9 at cw 2; on an 11x6
+        // box both build — terminal-free, hub-labeled, each with an enclosed hole — and offer a long free run
+        var wide = new Box("hub", BoxKind.Hub, [0, 0, 11, 6], 66);
+        foreach (var form in new[] { Compound.P, Compound.DoubleHole })
+        {
+            var hub = HubBoxEmitter.Fill(wide, new CompoundRead(form), cw: 2)!;
+            await Assert.That(hub).IsNotNull().Because($"{form} should fill an 11x6 hub");
+            await Assert.That(hub.Form.Form).IsEqualTo(form);
+            await Assert.That(hub.Pieces.All(p => p.Box!.Kind == BoxKind.Hub)).IsTrue();
+            await Assert.That(hub.Pieces.Any(p => p.Slot == ApproachSlots.Room)).IsFalse();
+            await Assert.That(hub.Offers.Max(o => o.Interval.LengthCells)).IsGreaterThanOrEqualTo(6);
+        }
+        // below width 9 both directed-null (the box is too small for the loop/ring), not throw
+        await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.P), cw: 2)).IsNull();
+        await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.DoubleHole), cw: 2)).IsNull();
     }
 }
