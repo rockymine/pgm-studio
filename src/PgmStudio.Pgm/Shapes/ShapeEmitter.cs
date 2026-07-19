@@ -60,7 +60,7 @@ public static class ShapeEmitter
     /// (or signal a directed too-small) without exception control flow.</summary>
     public static (int W, int H) MinBox(
         ShapeFamily family, int cw, RoomPlacement roomPlacement = RoomPlacement.Inline,
-        int attachments = 1, bool woolExtend = false, int attachmentWidth = 0)
+        int attachments = 1, bool woolExtend = false, int attachmentWidth = 0, bool woolAtEnd = false)
     {
         var rd = RoomDepthCells;
         var aw = attachmentWidth > 0 ? attachmentWidth : cw;
@@ -73,10 +73,14 @@ public static class ShapeEmitter
             ShapeFamily.Z => (2 * cw, 3 * cw + rd),
             ShapeFamily.Scythe when roomPlacement == RoomPlacement.SideTuck => (4 * cw + rd, 2 * cw + rd),
             ShapeFamily.Scythe => (4 * cw, 2 * cw + rd),
-            ShapeFamily.Clamp => (3 * cw, 2 * cw + rd),
+            // the clamp's legs only have to reach the mouth past the wool — it has no crossbar to clear, so it
+            // does NOT inherit the U's 2·cw leg run (that depth became a 4-cell void under every clamp)
+            ShapeFamily.Clamp => (3 * cw, cw + rd),
             ShapeFamily.U => (3 * cw, 2 * cw + rd),
             ShapeFamily.H => (3 * cw, 2 * cw + 2 * rd),
-            ShapeFamily.Donut => (4 * cw + (woolExtend ? cw : 0) + rd,
+            // the trailing `rd` is the room hanging off the ring's bottom-right; the corner-integrated wool
+            // (woolAtEnd) sits INSIDE the ring's span instead, so it needs none of it
+            ShapeFamily.Donut => (4 * cw + (woolExtend ? cw : 0) + (woolAtEnd ? 0 : rd),
                 Math.Max(2 * cw + 1, attachments >= 2 ? 2 * aw + 1 : aw + cw)),
             _ => throw new ArgumentOutOfRangeException(nameof(family), family, "the emitter fills terminal-capped families"),
         };
@@ -321,7 +325,8 @@ public static class ShapeEmitter
                 // mouth, MouthEdge Bottom) and the wool is their ONLY bridge — remove it and the terrain falls
                 // into two pieces. woolAtEnd is the adjacent/corner variant (L+I): the wool sits in a corner
                 // gripped on two ADJACENT faces; else the centered variant (I+I): the wool bridges the two legs.
-                Need(W >= 3 * cw && H >= 2 * cw + rd, family, W, H);
+                // The legs only run from the wool down to the mouth — no crossbar to clear, so cw + rd does it.
+                Need(W >= 3 * cw && H >= cw + rd, family, W, H);
                 int gap = W - 2 * cw;                                    // the space between the legs
                 if (woolAtEnd)
                 {
@@ -357,7 +362,9 @@ public static class ShapeEmitter
                 // a single attachment only has to clear the bottom bar (aw + cw); two need to stack without
                 // overlapping (2·aw + 1). Don't force the two-stub height on a one-stub ring.
                 int needH = Math.Max(2 * cw + 1, attachments >= 2 ? 2 * aw + 1 : aw + cw);
-                Need(W >= 4 * cw + extend + rd && H >= needH, family, W, H);
+                // the trailing room only exists on the non-woolAtEnd variant (see below) — the corner-integrated
+                // wool replaces the ring's own bottom-right cell, so it costs no width past the ring
+                Need(W >= 4 * cw + extend + (woolAtEnd ? 0 : rd) && H >= needH, family, W, H);
                 int ax = cw, ringH = H, span = 3 * cw;               // ring x in [ax, ax+3cw); hub stubs sit in [0, cw)
                 if (attachmentOffset < 0 || attachmentOffset + aw > (attachments >= 2 ? ringH - aw : ringH))
                     throw new ArgumentException(

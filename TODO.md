@@ -130,11 +130,12 @@ rules sit in the right layer, understand the budget, and grow the hubs. G102 →
   question, not a spacing law),
   **F3** the single frontline is a centred tiny-stub T and the form menu silently collapses to
   it at `w3` (the twin never fits), **F4** twin legs always equal (per-arm length + depth-aware face offers),
-  **F5** square-on-square hub+frontline (reach doesn't scale — pairs with G104/G100), **F6** the donut always
-  its 10×5 min-box sliver (root: every dimension keys to the one map-wide lane width — per-piece width is the
-  missing knob; plus preferred aspect, `woolAtEnd`), **F7** the clamp's void 4 cells deep (clamp-specific
-  min height). F1/F2 are the spacing laws G103 should name first; F6/F7 are small independent min-box/demand
-  fixes; F3–F5 are emitter/menu work. An entry leaves §9 when its fix lands.
+  **F5** square-on-square hub+frontline (reach doesn't scale — pairs with G104/G100), **F6** the donut sliver
+  (the `woolAtEnd` half landed — corner-wool donuts are 8×5; what remains is the root: every dimension keys to
+  the one map-wide lane width, so **per-piece width is the missing knob**, shared with G105. The preferred-aspect
+  route is closed — the per-wool budget share, 4–44 cells, is below the donut's own 50-cell minimum everywhere,
+  a finding for G104). *(F7, the clamp's over-deep void, is fixed and gone.)* F1/F2 are the spacing laws G103
+  should name first; F3–F5 are emitter/menu work. An entry leaves §9 when its fix lands.
 
 - [ ] **G104 — Investigate the budget.** The two-currency budget (land vs build, §1.10) drives every box's
   size, but the seeds still under/over-fill and the fill-to-`LandTargetCells` repair is parked as

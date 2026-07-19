@@ -85,6 +85,11 @@ public static class TeamUnitAllocator
     /// mouth; this only changes which two-leg shape clamps the cut-cell wool inside.</summary>
     private const double ClampAdjacentChance = 0.4;
 
+    /// <summary>Of the donut wools, how often the wool is <b>integrated at the ring's corner</b> rather than
+    /// hung off its bottom-right on a trailing room. The corner wool costs no width past the ring, so the box
+    /// loses the trailing <c>rd</c> — a squarer ring instead of the stretched min-box sliver.</summary>
+    private const double DonutCornerWoolChance = 0.5;
+
     /// <summary>The wool's own corridor width in cells — a <b>w2</b> lane (docs/contracts/map-generation.md §4:
     /// "the lane to the wool is simple, w2"), independent of the map's lane width <c>w</c> (which is 3 on big
     /// boards). Keeping wool families at w2 makes them compact and lets a staple's 3-lane mouth fit a hub edge.</summary>
@@ -202,8 +207,14 @@ public static class TeamUnitAllocator
                 var family = rng.NextBool(DonutChance) ? ShapeFamily.Donut
                     : rng.NextBool(StapleChance) ? rng.Pick(new[] { ShapeFamily.U, ShapeFamily.H, ShapeFamily.Clamp })
                     : ShapeFamily.L;
-                var woolAtEnd = family == ShapeFamily.Clamp && rng.NextBool(ClampAdjacentChance);   // clamp: adjacent vs centered
-                (along, depth) = WoolBoxEmitter.MouthBox(family, woolCw);
+                // clamp: adjacent vs centered; donut: the wool at the ring's corner vs on a trailing room
+                var woolAtEnd = family switch
+                {
+                    ShapeFamily.Clamp => rng.NextBool(ClampAdjacentChance),
+                    ShapeFamily.Donut => rng.NextBool(DonutCornerWoolChance),
+                    _ => false,
+                };
+                (along, depth) = WoolBoxEmitter.MouthBox(family, woolCw, woolAtEnd: woolAtEnd);
                 // a full-mouth staple the hub edge can't hold → a bent L (the seat-and-shift docks any width)
                 if (!Overhangs(family) && along > edgeLen)
                     (family, woolAtEnd, (along, depth)) = (ShapeFamily.L, false, WoolBoxEmitter.MouthBox(ShapeFamily.L, woolCw));
@@ -361,8 +372,8 @@ public static class TeamUnitAllocator
         var placements = new List<(int[] Box, bool Flip)>();
         foreach (var flip in new[] { false, true })
         {
-            if (BoxFiller.EntryOn(new Box("probe", BoxKind.Wool, probeRect, 0), mouth, w, fill.Family, flip, fill.Placement)
-                    is not { } e)
+            if (BoxFiller.EntryOn(new Box("probe", BoxKind.Wool, probeRect, 0), mouth, w, fill.Family, flip,
+                    fill.Placement, fill.WoolAtEnd) is not { } e)
                 continue;
             // the box's along-start (seat) values for which the entry [seat+e0, +eLen] lands within a run
             foreach (var (rs, rl) in runs)

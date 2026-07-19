@@ -121,6 +121,13 @@ commit** (same discipline as the task board).
 - Parity harnesses in `tools/PgmStudio.RoundTrip` (`--categorize`/`--buildability`/`--traversability`/
   `--wool`/`--extract`/`--islands`/`--authoring`); regenerate Python oracles into `/tmp/pyfresh` (wiped on
   reboot) via `parser.parse + serializer.to_dict` over the corpus.
+- **`dotnet run <script>.cs` caches the built app and will NOT pick up `src/` changes.** The file-based
+  single-file tools (`tools/compose/*.cs`, the `#:project` scripts) build into
+  `~/.local/share/dotnet/runfile/<script>-<hash>/`, keyed on the **script**, so an unchanged script re-runs
+  its old binary against the old project output — it reports pre-change numbers with no error. This silently
+  invalidates any before/after measurement. Before measuring a `src/` change, **`rm -rf
+  ~/.local/share/dotnet/runfile/<script>-*`** (or edit the script). A brand-new script file always builds
+  fresh, which is why a scratch copy can disagree with the committed tool.
 - **The `map.xml` contract is no longer checked against the Python oracle — `--parity` is gone (B30).** The
   C# contract deliberately exceeds the reference's (kit `force`/`effects`, `destroyables`/`cores`/`modes`,
   the OB4 group-attribute fix the reference gets wrong), so on those the oracle is *silent*, not

@@ -35,9 +35,10 @@ public static class WoolBoxEmitter
     /// side, so their mouth runs along the box's height and their depth along its width) <b>transposes</b>; a
     /// top-mouth family (I/L/Z/U/H) maps straight through. This is the one place the per-family mouth facing is
     /// resolved, so the allocator sizes every family the same way.</summary>
-    public static (int Along, int Depth) MouthBox(ShapeFamily family, int cw, RoomPlacement roomPlacement = RoomPlacement.Inline)
+    public static (int Along, int Depth) MouthBox(
+        ShapeFamily family, int cw, RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false)
     {
-        var (w, h) = ShapeEmitter.MinBox(family, cw, roomPlacement);
+        var (w, h) = ShapeEmitter.MinBox(family, cw, roomPlacement, woolAtEnd: woolAtEnd);
         return ShapeEmitter.MouthEdge(family) is BoxEdge.Left or BoxEdge.Right ? (h, w) : (w, h);
     }
 
@@ -81,7 +82,7 @@ public static class WoolBoxEmitter
         // frame with the along/depth swapped back through the same map
         var famTransposes = ShapeEmitter.MouthEdge(family, flip) is BoxEdge.Left or BoxEdge.Right;
         var (canonW, canonH) = famTransposes ? (depth, alongLen) : (alongLen, depth);
-        var (minW, minH) = ShapeEmitter.MinBox(family, corridorWidth, roomPlacement);
+        var (minW, minH) = ShapeEmitter.MinBox(family, corridorWidth, roomPlacement, woolAtEnd: woolAtEnd);
         if (canonW < minW || canonH < minH)
         {
             int minAlong = famTransposes ? minH : minW, minDepth = famTransposes ? minW : minH;

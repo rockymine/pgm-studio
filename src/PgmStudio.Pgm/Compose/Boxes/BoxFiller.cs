@@ -65,9 +65,10 @@ public static class BoxFiller
     /// on that mouth.</summary>
     public static (int Start, int Len)? EntryOn(
         Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false,
-        RoomPlacement roomPlacement = RoomPlacement.Inline)
+        RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false)
     {
-        if (Fill(box, mouth, corridorWidth, family, flip, "probe", roomPlacement) is not FillResult.Ok ok) return null;
+        if (Fill(box, mouth, corridorWidth, family, flip, "probe", roomPlacement, woolAtEnd) is not FillResult.Ok ok)
+            return null;
         var edge = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect[2], box.Rect[3])
             .FirstOrDefault(e => e.Edge == mouth);
         var entry = edge?.Intervals.FirstOrDefault(i => i.Slot == ApproachSlots.Entry);

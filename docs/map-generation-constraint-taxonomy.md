@@ -516,25 +516,32 @@ ones), so the eventual rule is per-size, not a blanket minimum. A possible later
 fragmentation step (cutting voids into a box shape rather than only converting land→build) —
 parked; the rule-based path stays preferred.*
 
-**F6 — The donut wool is a 2:1 sliver.** The donut approach reads stretched. Probe: every donut
-box is exactly **10×5** (or 5×10) — the min box. Mechanism: `MinBox(Donut)` chains stub (`cw`) +
-ring (`3·cw`) + trailing wool room (`rd`) along one axis at minimum height, and the allocator
-sizes rich wools at exactly the min box, so the donut is *always* the sliver; the emitter would
-round the ring out if given height (`ringH = H`). The deeper root (author): the sliver is not
-*required* — every internal dimension of the shape (legs, bars, even the hole) is keyed to the
-**one lane width picked up front** for the whole map, but in reality widths mix — some areas are
-3 wide, some 2 — and **the generation cannot express a per-area / per-piece width yet** (today's
-vocabulary is the map `w` plus the single wool-lane override). Decoupling the non-lane
-dimensions (the hole, the ring bars) from `cw` shrinks the donut below its current minimum.
-Fix direction: the per-piece width as a **knob** in the emitters (a vocabulary addition), plus
-box headroom above the min (a preferred aspect on the demand, not the minimum) and/or
-`woolAtEnd` (the corner-integrated wool, dropping the trailing room) in production. Kind: the
-min box is a **fit-gate fact** being misused as the *target* size, and the uniform width is a
-missing **knob**.
+**F6 — The donut wool is a 2:1 sliver.** *(Partly fixed — the `woolAtEnd` half landed; the root
+below remains.)* The donut approach reads stretched. Probe was: every donut box exactly **10×5**
+(or 5×10) — the min box. `MinBox(Donut)` chains stub (`cw`) + ring (`3·cw`) + trailing wool room
+(`rd`) along one axis at minimum height, and the allocator sizes rich wools at exactly the min
+box, so the donut was *always* the sliver.
 
-**F7 — The clamp's void is too deep.** The clamp's legs run too long — the void cap below the
-clamped wool is oversized. Probe: void depth below the wool = **4 cells (20 blocks)** in every
-clamp. Mechanism: `MinBox(Clamp)` height is `2·cw + rd` — inherited from the U, whose crossbar
-needs that depth; the clamp only needs legs reaching the mouth, so `cw + rd` (void `cw`) would
-do. Fix direction: a clamp-specific min height (legs shortened by `cw`), keeping the two-leg
-mouth. Kind: **fit-gate fact** correction.
+*Landed:* the trailing `rd` is only the **non**-`woolAtEnd` room — the corner-integrated wool sits
+inside the ring's own span, costing no width past it — so `MinBox`/`Need` no longer charge it, and
+the allocator now picks the corner wool for donuts (`DonutCornerWoolChance`). Those donuts are
+**8×5** (aspect 1.6, area 40) instead of 10×5 (2.0, 50); the probe now reports both.
+
+*The other cheap route is closed:* growing the box toward a preferred aspect **cannot be funded**.
+Measured per-wool budget share is **4–6 cells (small), 13–24 (mid), 29–44 (big/huge)** against a
+donut minimum of 50 — every rich wool is already over its share at its own minimum, on small by
+10×. There is no headroom to grow into anywhere, so the only lever that reshapes a rich wool is
+its **minimum**. (That gap is itself a finding for **G104**: the two-currency budget badly
+under-funds rich wools relative to their footprints.)
+
+*Root, unchanged (author):* the sliver is not *required* — every internal dimension of the shape
+(legs, bars, even the hole) is keyed to the **one lane width picked up front** for the whole map,
+but in reality widths mix — some areas are 3 wide, some 2 — and **the generation cannot express a
+per-area / per-piece width yet** (today's vocabulary is the map `w` plus the single wool-lane
+override). Decoupling the non-lane dimensions (the hole, the ring bars) from `cw` shrinks the
+donut further. Fix direction: the per-piece width as a **knob** in the emitters (a vocabulary
+addition — the same knob **G105**'s asymmetric ring needs). Kind: a missing **knob**.
+
+*(**F7 — the clamp's void too deep** — fixed and removed. `MinBox(Clamp)` had inherited the U's
+`2·cw + rd` height, but the clamp has no crossbar to clear: its legs only run from the wool down
+to the mouth, so `cw + rd` does it. Void depth below the wool went **4 cells → 2**.)*
