@@ -430,7 +430,7 @@ Each entry names the rule kind (§1.14 / map-generation.md) the fix belongs to, 
 these are not bugs in a mechanism but **missing rules** the taxonomy has an address for.
 
 **F1 — Neighbour lanes abut: no seat gap.** A spawn and a wool box can share a boundary — no
-gap between the two lanes. Probe: 28/39/39/**100** units per 200 (small/mid/big/huge; the huge
+gap between the two lanes. Probe: 31/37/38/**99** units per 200 (small/mid/big/huge; the huge
 spike is the 3-wool plans). Mechanism: `SeatInRuns` packs seats against occupied intervals with
 zero spacing, and `SeatOverhang` rejects only *overlap*, not touching; the corner inset going to
 0 removed the last incidental spacing. Fix direction: a ≥1-cell **inter-seat gap** in
@@ -444,16 +444,16 @@ surface is exactly where build regions attach in later stages, so a build region
 touching the lane. Mechanism: a dock flush against a **non-corner run end** — a run ends
 mid-edge only where the body's mass stops, so that end is a leg's wall and gets no inset by
 design; the extreme is a **leg-tip run** (width exactly `cw`) the dock consumes end to end.
-Probe: **27/2/1/1** units per 200 (small/mid/big/huge), and **every one of them a branch hub** —
-so the attribution is exact but the frequency is a small-board effect (27 of the small preset's
-39 branch hubs, ~⅔; near-zero elsewhere). Context: branch hubs are effectively
+Probe: **23/3/1/1** units per 200 (small/mid/big/huge), and **every one of them a branch hub** —
+so the attribution is exact but the frequency is a small-board effect (23 of the small preset's
+37 branch hubs, ~⅔; near-zero elsewhere). Context: branch hubs are effectively
 frontline-less-only today — with a frontline, the branch form's front free run (an arm tip,
 `cw`) cannot host the `faceWidth` demand, so the allocator falls back to the rectangle (probe:
-39/200 branch hubs on the no-frontline small preset vs 4–6/200 on the frontline presets), which
+37/200 branch hubs on the no-frontline small preset vs 4–6/200 on the frontline presets), which
 is why F2 tracks the branch-hub population rather than the board size. Fix direction: a ≥1-cell
 margin between a seat and a **mass-adjacent run end**; a tip run narrower than `along + 2`
 margins refuses the dock (demote / re-seat). **Cost of that rule, measured: it would refuse
-168/495 · 155/505 · 249/505 · 200/673 of all current docks (30–50%)** — far more than the 27+2+1+1
+166/495 · 159/505 · 246/505 · 195/673 of all current docks (30–50%)** — far more than the 27+2+1+1
 it fixes, because the `along + 2` test also rejects every dock on a *full-edge* run of a small
 hub. So the margin must be required only at **non-corner** run ends, not at every run end, or the
 rule cascades into re-seats and allocation failures on the small preset. Kind: a **law** — the
@@ -461,8 +461,8 @@ build-surface clearance ("a cell between a lane and attachable hub surface"), th
 twin of §4's room-clearance guard.
 
 *Adjacent mode the probe separates — measured, and ruled **not a defect** (author).* A lane can
-cover a whole hub side end to end, flush at both **box corners**: **103/82/33/38** units per 200,
-an order of magnitude more common than F2 proper, and **always a wool** (280/280 whole-side docks
+cover a whole hub side end to end, flush at both **box corners**: **101/79/29/37** units per 200,
+an order of magnitude more common than F2 proper, and **always a wool** (273/273 whole-side docks
 over the four presets; never a spawn, whose length runs outward so it only ever abuts `w` cells).
 It is permitted by design — the corner law sets `CornerClearanceCells = 0` precisely so "the
 neighbours may use the hub's full edge (which the side-tuck wool and the wide frontline face
@@ -477,7 +477,7 @@ that sub-case is ever worth chasing, is a **small frontline** on small boards, n
 Not scheduled, and deliberately not an F-entry: it is a **small-board** artifact, and the small
 board is low-value — at 700 land the hub is always 4×4 while the smallest wool footprint is
 already 4 (side-tuck `I`, `cw + rd × 2·cw`) or 5 (`L`), so the seat is forced, not chosen. It
-fades as budgets rise (103 → 82 → 33 → 38) exactly as hubs outgrow the wool minimum. Small-board
+fades as budgets rise (101 → 79 → 29 → 37) exactly as hubs outgrow the wool minimum. Small-board
 layout issues are expected for now.
 
 **F3 — The centred-stub single frontline (the "T").** Two-piece frontlines are always a T: a

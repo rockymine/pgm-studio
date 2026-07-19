@@ -121,9 +121,9 @@ rules sit in the right layer, understand the budget, and grow the hubs. G102 →
 - [ ] **G106 — Fix the observed seat/emit failure modes (taxonomy doc §9).** The author-observed defect list,
   verified + quantified in `docs/map-generation-constraint-taxonomy.md` §9 (re-measure with
   `tools/compose/seat-probe.cs` — 4 presets × 200 seeds) — F1–F7,
-  each with mechanism and fix direction: **F1** no inter-seat gap (neighbour lanes abut — up to 100/200 units
+  each with mechanism and fix direction: **F1** no inter-seat gap (neighbour lanes abut — up to 99/200 units
   on huge), **F2** lanes flush against a branch hub's legs at mass-adjacent run ends (the build-surface
-  clearance law — measured low-volume, 27/2/1/1 units, all branch hubs; the naive `along + 2` form of the rule
+  clearance law — measured low-volume, 23/3/1/1 units, all branch hubs; the naive `along + 2` form of the rule
   would refuse 30–50% of all docks, so it must bind at **non-corner** run ends only. The higher-volume adjacent
   mode §9 separates — a wool owning a whole hub side — is **ruled not a defect**: a forced small-board artifact,
   bad only where hub and lane combine into a flat slab with no bay/notch, and then a small-board frontline
