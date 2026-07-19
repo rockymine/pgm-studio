@@ -319,21 +319,21 @@ public static class ShapeEmitter
             {
                 // the wool clamped INSIDE the shape as a cut cell: two legs run down to the hub (one U-style
                 // mouth, MouthEdge Bottom) and the wool is their ONLY bridge — remove it and the terrain falls
-                // into two pieces. It grips terrain on two opposite sides, so the categorizer reads a clamp.
-                // woolAtEnd folds the left approach into an L capping the wool's top (the adjacent/corner variant,
-                // L+I); else both legs are straight (the centered variant, I+I).
+                // into two pieces. woolAtEnd is the adjacent/corner variant (L+I): the wool sits in a corner
+                // gripped on two ADJACENT faces; else the centered variant (I+I): the wool bridges the two legs.
                 Need(W >= 3 * cw && H >= 2 * cw + rd, family, W, H);
-                int gap = W - 2 * cw;                                    // the wool spans the space between the legs
+                int gap = W - 2 * cw;                                    // the space between the legs
                 if (woolAtEnd)
                 {
-                    // adjacent (L+I): the left approach caps over the wool (the L's turn), the right leg is a
-                    // straight I. The cap stops before the right leg — which starts a row lower — so left and
-                    // right touch only through the wool, keeping it the cut cell.
-                    t.Add(([0, 0, W - cw, cw], ApproachSlots.Bar));                     // left cap over the wool
-                    t.Add(([0, cw, cw, H - cw], ApproachSlots.Entry));                  // left leg down to the hub
-                    t.Add(([W - cw, cw, cw, H - cw], ApproachSlots.Entry));             // right leg (I) to the hub
-                    room = [cw, cw, gap, rd];                                           // wool in the L's pocket
-                    vac.Add(new ShapeVacancy("bay", [cw, cw + rd, gap, H - cw - rd], BoxEdge.Bottom,
+                    // adjacent (corner, L+I): the wool sits in the top-LEFT corner, gripped on its RIGHT (a
+                    // connector to the right leg) and its BOTTOM (the left leg) — two adjacent faces. The
+                    // connector runs a row above the left leg, so the left leg reaches the mouth only through
+                    // the wool: the wool is the cut cell. Both legs still meet the host on the bottom mouth.
+                    t.Add(([W - cw, 0, cw, H], ApproachSlots.Entry));                   // right leg (full height, I)
+                    t.Add(([cw, 0, gap, rd], ApproachSlots.Bar));                       // connector: wool → right leg
+                    t.Add(([0, rd, cw, H - rd], ApproachSlots.Entry));                  // left leg (below the wool)
+                    room = [0, 0, cw, rd];                                              // wool in the corner
+                    vac.Add(new ShapeVacancy("bay", [cw, rd, gap, H - rd], BoxEdge.Bottom,
                         [ApproachSlots.Entry, ApproachSlots.Room, ApproachSlots.Entry]));
                 }
                 else

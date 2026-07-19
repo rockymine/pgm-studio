@@ -65,14 +65,17 @@ public static class ShapeClassifier
         // 1. donut — terrain encloses a void. The strongest signal (a loop can carry a locally thick corner).
         if (Cells.HasEnclosedVoid(comp)) return (ShapeFamily.Donut, width);
 
-        // 2. clamp — the terminal is caught between terrain on two OPPOSITE sides AND it bridges them: remove the
-        //    terminal and the two bars fall apart. (A dead-end cap has terrain on one side; a self-connected shape
-        //    doesn't split, so neither is a clamp.)
+        // 2. clamp — the terminal is a cut cell caught between terrain on TWO OR MORE distinct faces: remove it
+        //    and the terrain falls into two pieces. Two faces suffice — opposite (the centered clamp) or adjacent
+        //    (the corner clamp). One face bridging two stubs is a wool perched on a bar, not clamped (§7), so
+        //    require two distinct faces; a dead-end cap grips one face and a self-connected shape doesn't split,
+        //    so neither is a clamp.
         int rminx = terminal.Min(c => c.Item1), rmaxx = terminal.Max(c => c.Item1), rminz = terminal.Min(c => c.Item2), rmaxz = terminal.Max(c => c.Item2);
         bool Side(int x0, int x1, int z0, int z1) { for (var x = x0; x <= x1; x++) for (var z = z0; z <= z1; z++) if (terr.Contains((x, z))) return true; return false; }
         bool top = Side(rminx, rmaxx, rminz - 1, rminz - 1), bot = Side(rminx, rmaxx, rmaxz + 1, rmaxz + 1);
         bool left = Side(rminx - 1, rminx - 1, rminz, rmaxz), right = Side(rmaxx + 1, rmaxx + 1, rminz, rmaxz);
-        if (((top && bot) || (left && right)) && Cells.Components(terr) >= 2) return (ShapeFamily.Clamp, width);
+        int grippedFaces = (top ? 1 : 0) + (bot ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0);
+        if (grippedFaces >= 2 && Cells.Components(terr) >= 2) return (ShapeFamily.Clamp, width);
 
         // 3. the open path — turns are reflex corners of the terrain outline (terminal excluded), so the count is
         //    width-invariant: a lane and the same lane widened uniformly read the same. 0 = I, 1 = L; ≥2 forks

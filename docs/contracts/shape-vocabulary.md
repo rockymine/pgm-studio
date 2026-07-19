@@ -177,16 +177,18 @@ mouth is the open bottom edge):
 
 ```
   opposite faces (centered, I+I)     adjacent faces (corner, L+I)
-        t w t                              t t ·
-        t · t                              t w t
+        t w t                              w t t
+        t · t                              t · t
         t · t                              t · t
 ```
 
 - **two opposite faces** → the centered clamp — two straight legs with the wool bridging them left→right
   (**I + I**);
-- **two adjacent faces** → a corner clamp — the wool sits in a fold, capped on top by one approach and gripped
-  on its side by the other; two straight legs gripping adjacent faces would corner-touch at the room (nonsense,
-  §3), so the capping approach bends into an **L** to reach around — hence **L + I**.
+- **two adjacent faces** → a corner clamp — the wool sits in a corner, gripped on its **bottom** by one leg and
+  on its **side** by a connector reaching the other leg; the connector runs a row above that first leg, so the
+  first leg reaches the mouth only through the wool (the cut cell). The two approaches read as an **L** (the
+  connector turning down the far leg) and an **I** (the near leg) — hence **L + I**. Both still dock the one
+  bottom mouth.
 
 **The room is never a long bar docked along one edge** — the case the old prose blurred, and it must be crisp:
 

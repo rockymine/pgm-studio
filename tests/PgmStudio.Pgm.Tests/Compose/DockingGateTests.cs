@@ -41,13 +41,13 @@ public sealed class DockingGateTests
     }
 
     [Test]
-    public async Task Adjacent_clamp_docks_the_two_leg_mouth_the_L_cap_never_docks()
+    public async Task Corner_clamp_docks_the_two_leg_mouth_and_seals_the_corner_wool()
     {
-        // the adjacent (L+I) variant: the two legs still meet the host on the bottom; the L's cap over the wool
-        // is a bar with no entry, so the top never docks
+        // the corner (L+I) variant: the two legs still meet the host on the bottom; the wool sits in the top
+        // corner, so the top touches the clamped wool and never docks
         var es = Edges(ShapeFamily.Clamp, 6, 6, woolAtEnd: true);
         await Assert.That(DockingGate.CanDock(es, BoxEdge.Bottom)).IsTrue();
-        await Assert.That(Check(es, BoxEdge.Top)).IsEqualTo(DockRejection.NotAnEntryEdge);   // the L cap (a bar)
+        await Assert.That(Check(es, BoxEdge.Top)).IsEqualTo(DockRejection.SealsWool);   // the corner wool
     }
 
     [Test]
