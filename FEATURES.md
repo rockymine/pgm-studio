@@ -983,6 +983,35 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   leaves the mouth row, so it needs a corner-wrapping dock (or declarable bays) before the scythe's
   production gate opens (noted in `FillMenu`). Sweep 300/300, 574 tests green. (G50, G51, G52)
 
+- **The team-unit allocate→fill loop — the filler (G63-C.1) + the allocator core (G63-C.2)** —
+  `Compose/TeamUnitAllocator.cs` + `Compose/TeamUnitFiller.cs` + `tools/compose/unit-gallery.cs`: the box-driven
+  switch's spine, inverting grow-then-derive to **allocate-then-fill**. `TeamUnitAllocator.Allocate` samples the
+  frame-independent placement plan (`UnitPlan` — spawn on the back **or a lateral side**, wools assigned around it
+  free-sides-first back-preferred, a third doubling onto the spawn's side, the front reserved for the frontline)
+  and lays the box Rects out from the budget; it **owns the hub-form choice** (Rectangle/L/U/Ring biased by size —
+  a big square hub prefers negative space over solid area) and seats every neighbour on the chosen form's **real
+  free-edge intervals** (the §1.13 offerable surface, read off the hub's own emitted offers), falling back to the
+  solid rectangle, `null` the directed no-fit signal; the chosen form rides on `Box.Form` (+ `FlipV` turning the
+  solid spine to the demanded back, open feet to the front) for the filler to re-emit the same body, and each
+  hub↔neighbour joint carries the hub's per-edge **`EdgeOffer`**. The frontline seats on the front side, its reach
+  pushing the hub back behind it. Wools stay compact: the **length rule** (a back lane past ~3× the room dimension
+  reads as a too-long corridor → the room tucks to the side), the **w2 wool-lane split** (`WoolLaneCells` — wools
+  sized/offered at w2 regardless of the map's `w`, so a staple's 3-lane mouth fits a cap-6 hub), and the
+  **seat-and-shift overhang** (`SeatOverhang` — a rich single-entry wool's narrow entry lands on a free run while
+  the body overhangs, both handednesses tried, box-overlap-checked); a full-mouth staple a narrow edge can't hold
+  demotes to `L`, a failed overhang to a compact inline `I`, rather than failing the unit. The mass-level corner
+  law (`Cells.HasDiagonalPinch` over the composed mask) replaces coarse corner clearance (now 0) — **0 pinches**.
+  `TeamUnitFiller.Fill` fills the partition **hub-first**: the hub emits at the allocator's form and per-edge
+  widths, each neighbour **consumes its joint's offered width as its `cw`** (spawn via `SpawnBoxEmitter`, wool via
+  the profile-gated `BoxFiller` at the allocator's `WoolFill`), and the frontline fills as a **join** — its form
+  answering the hub's (the wide Bar only against a branch hub; a staple/strand elsewhere) — whose face offers flow
+  out on `FilledUnit.FrontlineFace` for the mid (`mid = f(frontline)`). Seven wool shapes place: inline-`I`,
+  side-tuck-`I`, `L`, `donut`, `U`/`H`, and the redefined **clamp** (docks like a `U`, the wool a cut cell between
+  two legs on one mouth — centered `I+I` / corner `L+I` via `woolAtEnd`, retiring the dual-host `FamilyDock`).
+  `unit-gallery.cs` renders the layouts (Ring/rectangle/`L` hubs, staple + strand frontlines, inline + side-tuck +
+  overhang wools). `TeamUnitAllocatorTests` + `TeamUnitFillerTests`; Pgm suite 687/687. Contract:
+  `map-generation.md` §1.13/§1.14/§5.5. (G63-C.1, G63-C.2 core)
+
 - **The frontline box — the join box kind (G89) + the face offer (G96 frontline half)** — `Compose/FrontlineBoxEmitter.cs`:
   the **terminal-free** frontline join (map-generation.md §5.5). `FrontlineBoxEmitter` finishes a `BodyEmitter`
   `ShapeBody` with the Front designation — one edge the `face`, **no room/marker** — over the form menu **Bar** (the
