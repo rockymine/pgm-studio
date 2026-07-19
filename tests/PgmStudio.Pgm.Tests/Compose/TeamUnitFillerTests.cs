@@ -4,40 +4,73 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>G63-C.1 — the offer-consumption seam: the hub emits first as the constraint source, and a
-/// neighbour box fills at the width the hub's edge offers (the offered <c>WidthClass</c> is the neighbour's
-/// corridor width). Docking an un-offered edge is a directed error.</summary>
+/// neighbour box fills at the width <b>its own joint</b> was granted (that offer's <c>WidthClass</c> is the
+/// neighbour's corridor width). Docking an un-offered edge is a directed error.</summary>
 public class TeamUnitFillerTests
 {
     private static EmittedHub Hub() =>
-        HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36), new CompoundRead(Compound.Rectangle),
-            cw: 2, edgeWidths: new Dictionary<BoxEdge, int> { [BoxEdge.Bottom] = 4, [BoxEdge.Right] = 2 })!;
+        HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36), new CompoundRead(Compound.Rectangle), cw: 2)!;
+
+    /// <summary>A hub joint granting <paramref name="width"/> over the dock <c>[start, start+len)</c> on
+    /// <paramref name="edge"/> — the allocator's per-dock grant.</summary>
+    private static BoxJoint Joint(BoxEdge edge, int width, int start = 0, int len = 6, string nb = "nb") =>
+        new("hub", nb, new BoxInterface(edge, start, len),
+            new EdgeOffer(edge, new EdgeInterval(start, len, ApproachSlots.Bar), width, OfferGrouping.Several, $"hub-{edge}"));
 
     [Test]
-    public async Task Hub_sources_per_edge_widths_the_neighbour_consumes()
+    public async Task A_neighbour_consumes_the_width_its_own_joint_was_granted()
     {
         var hub = Hub();
-        await Assert.That(TeamUnitFiller.ConsumedCw(hub, BoxEdge.Bottom)).IsEqualTo(4);   // the explicit constraint
-        await Assert.That(TeamUnitFiller.ConsumedCw(hub, BoxEdge.Right)).IsEqualTo(2);
-        await Assert.That(TeamUnitFiller.ConsumedCw(hub, BoxEdge.Top)).IsEqualTo(BodyEdges.WidthClass(6));  // geometric default
+        await Assert.That(TeamUnitFiller.ConsumedCw(hub, Joint(BoxEdge.Bottom, 4), BoxEdge.Bottom)).IsEqualTo(4);
+        await Assert.That(TeamUnitFiller.ConsumedCw(hub, Joint(BoxEdge.Right, 2), BoxEdge.Right)).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Two_neighbours_on_one_edge_each_consume_their_own_width()
+    {
+        // the third wool doubles onto the spawn's side: same hub edge, same run on a solid hub, two widths.
+        // An edge- (or run-) keyed lookup would hand one of them the other's cw.
+        var hub = Hub();
+        var spawnJoint = Joint(BoxEdge.Bottom, 3, start: 0, len: 3, nb: "spawn");
+        var woolJoint = Joint(BoxEdge.Bottom, 2, start: 3, len: 2, nb: "wool-c");
+
+        await Assert.That(TeamUnitFiller.ConsumedCw(hub, spawnJoint, BoxEdge.Bottom)).IsEqualTo(3);
+        await Assert.That(TeamUnitFiller.ConsumedCw(hub, woolJoint, BoxEdge.Bottom)).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task An_ungranted_joint_falls_back_to_what_its_run_can_support()
+    {
+        // a derived (not allocated) partition carries no offer — the dock reads the capacity of the run it
+        // lands on: the U's Bottom edge is two 2-cell leg tips, its Top one full 6-cell run
+        var hub = HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36),
+            new CompoundRead(Compound.SpineArms, 2), cw: 2)!;
+        var onTip = new BoxJoint("hub", "nb", new BoxInterface(BoxEdge.Bottom, 4, 2), null);
+        var onSpine = new BoxJoint("hub", "nb", new BoxInterface(BoxEdge.Top, 0, 6), null);
+
+        await Assert.That(TeamUnitFiller.ConsumedCw(hub, onTip, BoxEdge.Bottom)).IsEqualTo(BodyEdges.WidthClass(2));
+        await Assert.That(TeamUnitFiller.ConsumedCw(hub, onSpine, BoxEdge.Top)).IsEqualTo(BodyEdges.WidthClass(6));
     }
 
     [Test]
     public async Task Consuming_an_edge_the_hub_did_not_offer_is_a_directed_error()
     {
-        // a hub that offers only its Top edge — docking the Bottom has nothing to consume
+        // a hub that offers only its Top edge — an ungranted dock on the Bottom has nothing to consume
         var hub = new EmittedHub([],
             [new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "g")],
             new CompoundRead(Compound.Rectangle));
-        await Assert.That(() => TeamUnitFiller.ConsumedCw(hub, BoxEdge.Bottom)).Throws<ComposeException>();
+        var ungranted = new BoxJoint("hub", "nb", new BoxInterface(BoxEdge.Bottom, 0, 6), null);
+        await Assert.That(() => TeamUnitFiller.ConsumedCw(hub, ungranted, BoxEdge.Bottom)).Throws<ComposeException>();
     }
 
     [Test]
     public async Task A_spawn_neighbour_fills_at_the_width_the_hub_offered()
     {
         var hub = Hub();
-        // the spawn box sits below the hub, docking the hub's w4 Bottom edge with its Top mouth
+        // the spawn box sits below the hub, docking the hub's Bottom edge with its Top mouth, granted w4
         var spawnBox = new Box("spawn-a", BoxKind.Spawn, [0, 6, 4, 10], 40);
-        var spawn = TeamUnitFiller.FillSpawn(hub, BoxEdge.Bottom, spawnBox, BoxEdge.Top, ShapeFamily.I, flip: false, "spawn-a-room");
+        var spawn = TeamUnitFiller.FillSpawn(hub, Joint(BoxEdge.Bottom, 4), BoxEdge.Bottom, spawnBox, BoxEdge.Top,
+            ShapeFamily.I, flip: false, "spawn-a-room");
 
         await Assert.That(spawn).IsNotNull();
         await Assert.That(spawn!.Pieces.All(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
@@ -49,11 +82,12 @@ public class TeamUnitFillerTests
     public async Task A_wool_neighbour_fills_at_the_hubs_w2_edge_through_the_gated_filler()
     {
         var hub = Hub();
-        // wool production is w2-only, so the wool consumes the hub's Right (w2) edge, not the w4 Bottom
+        // wool production is w2-only, so the wool's joint grants w2
         var family = FillMenu.FamiliesFor(2)[0];
         // docks the hub's Right (vertical) edge with its Left mouth: the lane runs rightward into the box width
         var woolBox = new Box("wool-a", BoxKind.Wool, [8, 0, 12, 6], 40);
-        var wool = TeamUnitFiller.FillWool(hub, BoxEdge.Right, woolBox, BoxEdge.Left, family, flip: false, "wool-a-room");
+        var wool = TeamUnitFiller.FillWool(hub, Joint(BoxEdge.Right, 2), BoxEdge.Right, woolBox, BoxEdge.Left,
+            family, flip: false, "wool-a-room");
 
         await Assert.That(wool is FillResult.Ok).IsTrue();
     }

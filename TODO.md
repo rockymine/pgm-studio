@@ -76,11 +76,6 @@ in `BACKLOG.md`.)*
     over the overhang path); the **scythe** (still gated from the production menu — its bay seals a flush dock
     against the host, WL8, so it needs the G80 **shape-relative bay docking**, not just sizing); the **spawn `L`**
     (the same seat-and-shift overhang, on the spawn box). Finishes the shape set → then G102–G106 below.
-  - **C.2 — per-run offer widths (seam fix).** The filler keys `edgeWidths` per *edge* and `ConsumedCw` reads the
-    edge's *first* offer, but the allocator can demand two widths on one edge: a third wool doubling onto the
-    spawn's side offers `w2` beside the spawn's `w` (reachable whenever `w == 3` and the plan has 3 wools), last
-    write winning — one of the two then consumes the wrong `cw`. Carry the width per run/joint (an `EdgeOffer`
-    already holds its interval) so each neighbour consumes the width of the run it actually docks.
   - **C.2 — hub-form richness.** `L` **handedness** (its arm sits on a fixed side — choosing it would cover
     back+right as well as back+left); `Double-hole` needs a hub **wider than the current caps** (≥ 9); the vertical
     flip only orients the **z-frames** — `mirror_x` (front = a lateral edge) needs a rotation, not a flip; and an

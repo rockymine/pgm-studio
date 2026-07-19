@@ -39,14 +39,14 @@ public class HubBoxEmitterTests
     }
 
     [Test]
-    public async Task Per_edge_width_is_the_composer_constraint_defaulting_to_the_edge_width_class()
+    public async Task Every_run_offers_the_width_its_own_length_can_support()
     {
         var hub = HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, [0, 0, 8, 5], 40), new CompoundRead(Compound.Rectangle),
-            cw: 2, edgeWidths: new Dictionary<BoxEdge, int> { [BoxEdge.Top] = 4 })!;
+            cw: 2)!;
 
-        // the sourced constraint: Top is the composer's explicit w4
-        await Assert.That(hub.Offers.Single(o => o.Edge == BoxEdge.Top).WidthClass).IsEqualTo(4);
-        // an unset edge offers its own free width class: Bottom spans 8, Left/Right span 5
+        // the hub publishes capacity, not a per-neighbour agreement: Top/Bottom span 8, Left/Right span 5. What a
+        // given neighbour was granted rides on its joint (TeamUnitFillerTests), because one run can carry two.
+        await Assert.That(hub.Offers.Single(o => o.Edge == BoxEdge.Top).WidthClass).IsEqualTo(BodyEdges.WidthClass(8));
         await Assert.That(hub.Offers.Single(o => o.Edge == BoxEdge.Bottom).WidthClass).IsEqualTo(BodyEdges.WidthClass(8));
         await Assert.That(hub.Offers.Single(o => o.Edge == BoxEdge.Left).WidthClass).IsEqualTo(BodyEdges.WidthClass(5));
     }

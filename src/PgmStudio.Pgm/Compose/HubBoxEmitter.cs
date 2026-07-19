@@ -40,17 +40,17 @@ public static class HubBoxEmitter
     ];
 
     /// <summary>Fill a hub <see cref="Box"/> (plan cells) as <paramref name="form"/> at wall/corridor width
-    /// <paramref name="cw"/>, terminal-free, publishing one <see cref="EdgeOffer"/> per free run on each edge.
-    /// <paramref name="edgeWidths"/> is the constraint the hub sources — the w2/w4/w6 rung each edge offers a
-    /// neighbour; an edge left unset offers its own free width (the run's length class). <paramref name="flipV"/>
+    /// <paramref name="cw"/>, terminal-free, publishing one <see cref="EdgeOffer"/> per free run on each edge at
+    /// the width that run can <b>support</b> (its length class). That is the hub's surface, not a per-neighbour
+    /// agreement: one run can carry two docks at two widths, so the width a given neighbour builds to rides on
+    /// its <see cref="BoxJoint.Offer"/>, not here. <paramref name="flipV"/>
     /// reflects the body across the box's horizontal midline (box-local z) — the branch/holed forms are built
     /// spine-first (arms hanging down), so flipping turns the open feet toward the box top; the allocator sets it
     /// per frame so a form's solid edges cover the demanded sides (symmetric forms are unaffected). Pieces carry
     /// the hub <paramref name="box"/> label and their body slot; there is no room and no marker. <paramref name="cw"/>
     /// is ignored by the solid Rectangle. <c>null</c> when the box is too small for the form (a directed signal);
     /// throws <see cref="ComposeException"/> only for a form off the hub menu.</summary>
-    public static EmittedHub? Fill(
-        Box box, CompoundRead form, int cw, IReadOnlyDictionary<BoxEdge, int>? edgeWidths = null, bool flipV = false)
+    public static EmittedHub? Fill(Box box, CompoundRead form, int cw, bool flipV = false)
     {
         int boxW = box.Rect[2], boxH = box.Rect[3];
         var body = BuildBody(form, boxW, boxH, cw);
@@ -64,7 +64,7 @@ public static class HubBoxEmitter
             pieces.Add(new GrownPiece($"{box.Id}-t{n++}", [box.Rect[0] + r[0], box.Rect[1] + r[1], r[2], r[3]],
                 PlanRoles.Piece, slot, boxRef));
 
-        return new EmittedHub(pieces, Offers(box, body, boxW, boxH, edgeWidths), form);
+        return new EmittedHub(pieces, Offers(box, body, boxW, boxH), form);
     }
 
     // build the body of `form` sized to fill the boxW×boxH box at `cw`; null when the box is too small for it
@@ -87,21 +87,19 @@ public static class HubBoxEmitter
         catch (ArgumentException) { return null; }
     }
 
-    // one offer per contiguous free run on each box edge, Several-grouped (each neighbour docks its own run).
-    // The offered width is the composer's per-edge constraint, defaulting to the run's own width class.
-    private static IReadOnlyList<EdgeOffer> Offers(
-        Box box, ShapeBody body, int boxW, int boxH, IReadOnlyDictionary<BoxEdge, int>? edgeWidths)
+    // one offer per contiguous free run on each box edge, Several-grouped (each neighbour docks its own run),
+    // at the w2/w4/w6 rung the run's own length can support — the hub's capacity. What a particular neighbour
+    // was granted is on its joint: two neighbours can share one run at different widths, which a per-run (let
+    // alone per-edge) width could not express.
+    private static IReadOnlyList<EdgeOffer> Offers(Box box, ShapeBody body, int boxW, int boxH)
     {
         var offers = new List<EdgeOffer>();
         foreach (var edge in BoxInterfaces.Of(body, boxW, boxH))
         {
             var k = 0;
             foreach (var run in BoxInterfaces.Runs(edge.Intervals))
-            {
-                var width = edgeWidths is not null && edgeWidths.TryGetValue(edge.Edge, out var w)
-                    ? w : BodyEdges.WidthClass(run.LengthCells);
-                offers.Add(new EdgeOffer(edge.Edge, run, width, OfferGrouping.Several, $"{box.Id}-{edge.Edge}-{k++}"));
-            }
+                offers.Add(new EdgeOffer(edge.Edge, run, BodyEdges.WidthClass(run.LengthCells),
+                    OfferGrouping.Several, $"{box.Id}-{edge.Edge}-{k++}"));
         }
         return offers;
     }

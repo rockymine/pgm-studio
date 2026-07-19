@@ -200,7 +200,7 @@ a box kind stamps onto a body to finish it into a placed box:
 | Designation | Stamps | Box kinds |
 |---|---|---|
 | **approach** | an `entry` (the docked rect/edge) + a `terminal` (the room) | wool, spawn |
-| **hub** | per-edge **interface widths**, no terminal — the *constraint source* (emits first, its edge widths set the neighbours' menus) | hub |
+| **hub** | **interface widths** per free run, no terminal — the *constraint source* (emits first, publishing what each run supports; each neighbour's own grant sets its menu) | hub |
 | **frontline** | one edge marked the **`face`** (where the fanned images meet), no terminal — drives `mid = f(frontline)` | frontline |
 
 The body layer is shared across every box kind; the designation is per-kind. **A family (§1.2) is the
@@ -249,7 +249,7 @@ is **legal** (gate over demand / offer / veto), how a legal join **varies** (kno
 | **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillProfiles.Families`, `FillMenu.Rows` |
 | **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
 | **demand** | a shape's requirement *on its environment* (inbound) | `FamilyDock.EntryDemand` (the clamp's two entries) |
-| **offer** | constraints a shape imposes *outward* — the edges/intervals it invites neighbours onto, in which groupings | the hub's per-edge widths, the frontline's face (G96) |
+| **offer** | constraints a shape imposes *outward* — the edges/intervals it invites neighbours onto, in which groupings | the hub's per-run widths (granted per dock on the joint), the frontline's face (G96) |
 | **veto** | a never-attach / never-publish mark | `SlotDockRole.NeverDock`, `PublishPolicy`'s bay/hole veto |
 | **gate** | the hard legality check applying demand/offer/veto, with a **directed rejection** | `DockingGate` → `DockRejection`, `PublishPolicy` → `PublishVerdict` |
 | **knob** | a free parameter *within* legality — never changes identity | entry shift, attachment width, arm placement |
@@ -611,8 +611,11 @@ mark, **no terminal** (§1.12). Both consume a **body** from the vocabulary abov
 twin of a derived read (the mirror doctrine, one level up): the designation drives, the deriver
 verifies.
 
-- **Hub** — a body + **per-edge interface widths**. It is the **constraint source**: it emits first,
-  and its edge widths set the neighbours' fill menus (a consumed width is the `cw` a neighbour reads).
+- **Hub** — a body + **interface widths**. It is the **constraint source**: it emits first, publishing one
+  offer per free run at the width that run can *support*, and each neighbour fills at the width **its own
+  joint** was granted (that grant is the `cw` the neighbour reads). The grant is per dock, not per edge and
+  not per run — two neighbours can share one run at two widths (a third wool doubling onto the spawn's side),
+  so an edge- or run-keyed width would hand one of them the other's `cw`.
   Form menu (authored): **Rectangle · L · U · Ring · Double-hole** — compact, optionally-holed bodies;
   deliberately *not* Zig, Hook, or the higher combs (a hub stays rectangle-ish). Its edges' free
   surface (§1.13) is what the spawn, wool, and frontline boxes attach onto — generalizing today's
