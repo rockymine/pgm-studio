@@ -441,16 +441,34 @@ zero spacing, and `SeatOverhang` rejects only *overlap*, not touching; the corne
 **F2 — Lanes flush against a branch hub's legs (frontline-less units).** On L/U hubs without a
 frontline the wool/spawn lanes can sit flush against the legs' walls. The hub's remaining free
 surface is exactly where build regions attach in later stages, so a build region would land
-touching the lane. Mechanism: a seat may start at an **internal run end** (the run boundary at a
-leg's wall gets no inset by design), and on a **leg-tip run** (width exactly `cw`) the dock
-consumes the whole run — zero margin on both sides. Context: branch hubs are effectively
+touching the lane. Mechanism: a dock flush against a **non-corner run end** — a run ends
+mid-edge only where the body's mass stops, so that end is a leg's wall and gets no inset by
+design; the extreme is a **leg-tip run** (width exactly `cw`) the dock consumes end to end.
+Probe: **27/2/1/1** units per 200 (small/mid/big/huge), and **every one of them a branch hub** —
+so the attribution is exact but the frequency is a small-board effect (27 of the small preset's
+39 branch hubs, ~⅔; near-zero elsewhere). Context: branch hubs are effectively
 frontline-less-only today — with a frontline, the branch form's front free run (an arm tip,
 `cw`) cannot host the `faceWidth` demand, so the allocator falls back to the rectangle (probe:
-39/200 branch hubs on the no-frontline small preset vs 4–6/200 on the frontline presets). Fix
-direction: a ≥1-cell margin between a seat and a **mass-adjacent run end**; a tip run narrower
-than `along + 2` margins refuses the dock (demote / re-seat). Kind: a **law** — the
+39/200 branch hubs on the no-frontline small preset vs 4–6/200 on the frontline presets), which
+is why F2 tracks the branch-hub population rather than the board size. Fix direction: a ≥1-cell
+margin between a seat and a **mass-adjacent run end**; a tip run narrower than `along + 2`
+margins refuses the dock (demote / re-seat). **Cost of that rule, measured: it would refuse
+168/495 · 155/505 · 249/505 · 200/673 of all current docks (30–50%)** — far more than the 27+2+1+1
+it fixes, because the `along + 2` test also rejects every dock on a *full-edge* run of a small
+hub. So the margin must be required only at **non-corner** run ends, not at every run end, or the
+rule cascades into re-seats and allocation failures on the small preset. Kind: a **law** — the
 build-surface clearance ("a cell between a lane and attachable hub surface"), the compose-side
 twin of §4's room-clearance guard.
+
+*Adjacent mode the probe separates (not yet an entry — it may be intended).* A lane can cover a
+whole hub side end to end, flush at both **box corners**, leaving that edge no free surface for
+anything to attach to: **103/82/33/38** units per 200, an order of magnitude more common than F2
+proper. This is **permitted by design** today — the corner law sets `CornerClearanceCells = 0`
+precisely so "the neighbours may use the hub's full edge (which the side-tuck wool and the wide
+frontline face want)" — and on the small preset the hub is always 4×4, so a 4-wide spawn owning a
+side is near-unavoidable at that budget. Whether a *wool/spawn* lane (as opposed to the frontline
+face) should be allowed to consume an entire side is an open author call; if it should not, it
+becomes its own entry with its own law, and it is the mode worth fixing first by volume.
 
 **F3 — The centred-stub single frontline (the "T").** Two-piece frontlines are always a T: a
 tiny stub (reach − cw = 2 cells) centred on the bar — build regions attach poorly around it; a
@@ -476,7 +494,7 @@ length; `ClassifyBody` must still read `SpineArms(2)`) + a small offer-model ext
 **F5 — Square hub against a square frontline.** The flat square-on-square pairing still reads
 on the mid/big/huge presets. Probe: this is **not** the Bar (never chosen) — it is the near-solid
 small forms: at reach `w + 2` and `cw = w` the single-T is a solid bar with a 2-cell stub,
-reading almost as a Bar flush on a rect/ring hub (rect+single-T = 109/151 mid fronts;
+reading almost as a Bar flush on a rect/ring hub (rect+single-T = 109/164 mid fronts;
 ring+single-T = 146/164 big). Root: the frontline's **reach and proportions do not scale** with
 the board — `frontReach = w + 2` regardless of budget — so on big boards the front is a sliver
 whose form barely matters. Fix direction: scale reach with the budget (G104's territory), open
