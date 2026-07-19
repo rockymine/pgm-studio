@@ -298,13 +298,14 @@ ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant �
   `ComposeTargets` so they are held and checked rather than being unnamed thresholds mid-method. Most are also
   **ungrounded** (no backing law — see the §10.3 trace), so this is where their values get decided on purpose.
   Depends on **G98**. (`docs/map-generation-constraint-taxonomy.md` §10.2b, §10.3)
-- [ ] **G110 — WL7 / WL2 separation by construction.** Measured (400 seeds × 4 presets, placed rooms): **WL7 is
-  systematically violated** — the law records a 46–143 block corpus with a working minimum ≈45, the composer
-  produces min 21 / median 41–55 / max 87–98 with **31–53% of wool pairs below 45**, the whole distribution
-  compressed against the corpus floor. **WL2** holds everywhere except **huge** (111/930 pairs under 20, min 12)
-  — the third wool doubling onto the spawn's own side. Both want the same lever as §9's **F1** inter-seat gap
-  and should be fixed with it; F1's gap should be **sized against WL7's numbers**, not set to a bare 1 cell.
-  (`docs/map-generation-constraint-taxonomy.md` §10.4)
+- [~] **G110 — WL7 separation by construction (F1 + WL2 landed).** The seat-step neighbour gap shipped
+  (`FEATURES.md`): the map-lane-width separation (10/15 blocks) that closed §9 **F1** (spawn/wool abut → 0) and
+  **WL2** (huge's third-wool cramming — the wool now drops rather than seating flush). **Remaining — WL7:** the
+  law records a 46–143 block corpus with a working minimum ≈45; the composer produces min 21 / median 41–55 /
+  max 87–98 with **31–53% of wool pairs below 45**, the whole distribution compressed against the corpus floor.
+  Unlike F1/WL2 this is a marker-to-marker *traversal* spread, not a body-adjacency floor, so the seat gap does
+  not reach it — it is a whole-layout *scale* concern and rides with the hub-growth / budget work (**G104/G105**)
+  that gives the boxes room to spread. (`docs/map-generation-constraint-taxonomy.md` §10.4)
 - [ ] **G111 — The frontline's offer decisions move to the allocator (FR6).** `TeamUnitFiller` currently picks
   the offer **grouping** by coin flip (`rng.NextBool(0.5) ? Joint : Several`) and the frontline **form**
   (Bar-for-branch-hub / else staple-or-strand). Grouping is part of an *offer* (§1.14) and offers are the

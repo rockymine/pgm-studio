@@ -429,14 +429,23 @@ this list when its fix lands** (the commit references it); the fix work is board
 Each entry names the rule kind (§1.14 / map-generation.md) the fix belongs to, because most of
 these are not bugs in a mechanism but **missing rules** the taxonomy has an address for.
 
-**F1 — Neighbour lanes abut: no seat gap.** A spawn and a wool box can share a boundary — no
-gap between the two lanes. Probe: 31/37/38/**99** units per 200 (small/mid/big/huge; the huge
-spike is the 3-wool plans). Mechanism: `SeatInRuns` packs seats against occupied intervals with
-zero spacing, and `SeatOverhang` rejects only *overlap*, not touching; the corner inset going to
-0 removed the last incidental spacing. Fix direction: a ≥1-cell **inter-seat gap** in
-`SeatInRuns` (inflate occupied intervals by the gap) + a touch-check in `SeatOverhang`. Kind: a
-**law** (lane spacing), applied as a demand in the seat step — distinct from the corner law
-(corners stay 0; the mass-level pinch gate owns them).
+**F1 — Neighbour lanes abut: no seat gap. (Spawn/wool part fixed.)** A spawn and a wool box could
+share a boundary — no gap between the two lanes. Probe (pre-fix): 31/37/38/**99** units per 200
+(small/mid/big/huge; the huge spike was the 3-wool plans). Mechanism: `SeatInRuns` packed seats
+against occupied intervals with zero spacing, and `SeatOverhang` rejected only *overlap*, not
+touching; the corner inset going to 0 removed the last incidental spacing. **Fixed:** the seat step
+now holds an **inter-seat gap = the map lane width** (w2 = 10 blocks, w3 = 15 on wide boards). Each
+seated spawn/wool projects onto the edge being seated (`ProjectOntoEdge`) as a forbidden along-interval
+`SeatInRuns` inflates by the gap — one pass covering same-edge abut *and* the adjacent-edge corner
+meeting (the projection's along + perpendicular conditions reproduce `TooClose`); `SeatOverhang` filters
+placements by the same `TooClose`. Probe now: spawn/wool abut **0** across all presets, no-alloc unchanged
+(0/0/0/0). Kind: a **law** (lane spacing), applied as a **demand** in the seat step, enforced by the seat
+**gate** — distinct from the corner law (corners stay 0; the mass-level pinch gate owns them).
+*Consequence:* huge's optional third wool doubles onto an occupied hub edge, which a cap-6 hub cannot hold
+with the gap (it only ever fit by touching), so it is **dropped** — huge drops to 2 wools until the hub
+caps grow (G105). *Remaining under F1:* a **frontline↔wool** abut still occurs (37/44/58 on mid/big/huge,
+none on the frontline-less small) — deliberately left to the build-zone rule (BZ, band-vs-wool), not the
+neighbour gap.
 
 **F2 — Lanes flush against a branch hub's legs (frontline-less units).** On L/U hubs without a
 frontline the wool/spawn lanes can sit flush against the legs' walls. The hub's remaining free
@@ -630,18 +639,22 @@ Measured over 400 seeds × 4 presets, on the **placed rooms** (not the boxes), i
   mini layout and grid-born distances are resolved downstream by scale + roughen, so an absolute
   block comparison is not decisive on its own. The distributional argument survives it — this is not
   a constant offset, it is a narrower spread sitting at the corpus floor.*
-- **WL2 — wool↔spawn ≥ 20. Holds except on huge.** small/mid/big: **0 violations**, min exactly 20.
-  Huge: **111/930 pairs under 20, min 12** — this is the third wool doubling onto the spawn's own
-  side (`AssignWools`), the same construction behind the F1 spike.
+- **WL2 — wool↔spawn ≥ 20. Was violated only on huge; now fixed.** small/mid/big always held (min
+  exactly 20). Huge showed **111/930 pairs under 20, min 12** — the third wool doubling onto the spawn's
+  own side (`AssignWools`), the same construction behind the F1 spike. The seat-step gap (§9 F1) resolves
+  it: that third wool can no longer seat within the gap of the spawn, so it drops rather than cramming.
 - **WL6 — 1–3 wools, each on a distinct lane. Holds.** No unit places two wools on one hub edge
   (0/400 across all presets).
 - **HB4 (L/Z hub↔frontline composition) and FR6's wide frontline are unreachable**, not merely
   unimplemented: a branch hub with a frontline falls back to the rectangle, so the Bar is never
   chosen (§9 F3 measured 0/489). The law describes a composition the code cannot currently produce.
 
-WL7 and WL2 want the same lever as §9's **F1** (the inter-seat gap) — a separation rule in the seat
-step. They should be fixed together, and F1's fix should be sized against WL7's numbers rather than
-a bare 1-cell gap.
+WL7 and WL2 wanted the same lever as §9's **F1** (the inter-seat gap) — a separation rule in the seat
+step. **F1 and WL2 are now landed** with that lever, sized at the **map lane width** (10/15 blocks) —
+a body-adjacency floor, deliberately below WL7's ~45. **WL7 remains open**: it is a marker-to-marker
+*traversal* spread, not a body-adjacency floor, so the seat gap does not achieve it — the compressed
+distribution (min 21 / max well under the corpus 143) is a whole-layout *scale* concern, not a local
+seat rule, and belongs with the hub-growth / budget work (G104/G105) that gives the boxes room to spread.
 
 ### 10.5 Rules in the wrong layer
 

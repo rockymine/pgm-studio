@@ -1012,6 +1012,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   overhang wools). `TeamUnitAllocatorTests` + `TeamUnitFillerTests`; Pgm suite 687/687. Contract:
   `map-generation.md` §1.13/§1.14/§5.5. (G63-C.1, G63-C.2 core)
 
+- **The seat-step neighbour separation gap (F1 / WL2 by construction)** — `Compose/TeamUnitAllocator.cs`: no two
+  spawn/wool neighbour bodies may seat within the **map lane width** of each other (2 cells = 10 blocks; 3 = 15 on
+  wide boards, `LandPerTeam > WideLaneLand`) — a body-adjacency **law** applied as a **demand** in the seat step,
+  enforced by the seat **gate**. Each seated spawn/wool projects onto the edge being seated (`ProjectOntoEdge`) as
+  a forbidden along-interval `SeatInRuns` inflates by the gap, covering the same-edge abut and the adjacent-edge
+  corner meeting in one pass (its along + perpendicular conditions reproduce `TooClose`, which also filters
+  `SeatOverhang`'s placements); no single-sample rejection, so no-alloc is unchanged. A supernumerary wool that
+  no longer fits with the gap **drops** rather than failing the unit (huge's doubled third wool, which a cap-6 hub
+  cannot hold gapped — restoring it is the hub-growth work, G105). Closes §9 F1 (spawn/wool) + WL2; the frontline
+  keeps no neighbour gap (build-zone's rule). Pgm suite 690/690. (G110 · taxonomy §9 F1, §10.4)
+
 - **The frontline box — the join box kind (G89) + the face offer (G96 frontline half)** — `Compose/FrontlineBoxEmitter.cs`:
   the **terminal-free** frontline join (map-generation.md §5.5). `FrontlineBoxEmitter` finishes a `BodyEmitter`
   `ShapeBody` with the Front designation — one edge the `face`, **no room/marker** — over the form menu **Bar** (the

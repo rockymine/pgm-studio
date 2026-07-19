@@ -113,6 +113,35 @@ public class TeamUnitAllocatorTests
             }
     }
 
+    [Test]
+    public async Task Neighbour_spawn_and_wool_bodies_keep_the_lane_width_gap()
+    {
+        // the seat-step separation law: no spawn/wool neighbour touches (or corner-touches) another spawn/wool —
+        // they stay at least the map lane width apart (w2 = 10 blocks, w3 = 15 on wide boards). A third wool
+        // doubling onto the spawn's own edge (the huge preset) was the reported regression: a wool flush against
+        // the spawn with no gap. The wide presets (land > 2500) exercise the 15-block (w3) jump.
+        foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
+        {
+            var w = land > 2500 ? 3 : 2;                             // the map-wide lane width, and so the gap
+            for (ulong seed = 0; seed < 64; seed++)
+            {
+                var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
+                if (alloc is not { } a) continue;
+                var nbs = a.Partition.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool).ToList();
+                for (var i = 0; i < nbs.Count; i++)
+                    for (var j = i + 1; j < nbs.Count; j++)
+                        await Assert.That(Separated(nbs[i].Rect, nbs[j].Rect, w)).IsTrue()
+                            .Because($"{nbs[i].Id}<->{nbs[j].Id} @ {players}p/{land:0} seed {seed}");
+            }
+        }
+    }
+
+    // two [x,z,w,h] rects keep at least `gap` cells between them on some axis — no touch, no corner-touch (the
+    // negation of the allocator's TooClose: separated by >= gap on at least one axis)
+    private static bool Separated(int[] a, int[] b, int gap) =>
+        !(a[0] - gap < b[0] + b[2] && b[0] < a[0] + a[2] + gap &&
+          a[1] - gap < b[1] + b[3] && b[1] < a[1] + a[3] + gap);
+
     // the unit's composed cell mask — every piece rasterized into one set (the surface the corner law reads)
     private static HashSet<(int, int)> Mask(IReadOnlyList<GrownPiece> pieces)
     {

@@ -329,7 +329,16 @@ public static class TeamUnitAllocator
 
         var boxes = new List<Box> { hubBox };
         var joints = new List<BoxJoint>();
-        var occupied = new Dictionary<BoxEdge, List<(int Start, int Len)>>();   // per-edge docked intervals
+
+        // the seat-step separation law: no spawn/wool neighbour may seat within the gap (the map lane width — w2 =
+        // 10 blocks, w3 = 15 on wide boards) of another. Each already-seated spawn/wool projects onto the edge
+        // being seated as a forbidden along-interval, so SeatInRuns samples a legal position directly — one pass
+        // covering same-edge abut and adjacent-edge corner meetings alike. The frontline keeps no such gap (its
+        // wool clearance is a build-zone rule, not this one).
+        List<(int Start, int Len)> Blocked(BoxEdge edge, int depth) => boxes
+            .Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool)
+            .Select(b => ProjectOntoEdge(edge, hubRect, depth, b.Rect, w))
+            .Where(iv => iv is not null).Select(iv => iv!.Value).ToList();
 
         foreach (var demand in demands)
         {
@@ -344,7 +353,7 @@ public static class TeamUnitAllocator
             // docks its full along-edge.
             if (d.Wool is { } rich && Overhangs(rich.Family))
             {
-                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, offerW, rng) is { } placed)
+                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, offerW, w, rng) is { } placed)
                 {
                     var (box, iface, flip) = placed;
                     boxes.Add(new Box(d.Id, d.Kind, box, d.Along * d.Depth, Wool: rich with { Flip = flip }));
@@ -354,15 +363,24 @@ public static class TeamUnitAllocator
                 d = Compact(d, offerW);   // no clear overhang placement on this hub (crowded / narrow)
             }
 
-            occupied.TryAdd(edge, []);
-            var seat = SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng);
+            var seatGap = d.Kind is BoxKind.Spawn or BoxKind.Wool ? w : 0;     // the frontline seats its full face
+            var blocked = seatGap > 0 ? Blocked(edge, d.Depth) : [];
+            var seat = SeatInRuns(runs, blocked, edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
             if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
             {
                 d = Compact(d, offerW);
-                seat = SeatInRuns(runs, occupied[edge], edgeLen, d.Along, CornerClearanceCells, rng);
+                seat = SeatInRuns(runs, Blocked(edge, d.Depth), edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
             }
-            if (seat is not { } s) return null;
-            occupied[edge].Add((s, d.Along));
+            if (seat is not { } s)
+            {
+                // a wool that no longer fits with the seat gap (the third wool doubling onto the spawn's own edge
+                // cannot clear the gap on a small hub — it only ever fit by touching) is dropped rather than
+                // failing the whole unit, so long as a wool already seated: the unit keeps its objectives, one
+                // fewer. The spawn and frontline are not droppable — a demand they cannot seat is a real too-small
+                // signal the caller answers by falling back / resampling.
+                if (d.Kind == BoxKind.Wool && boxes.Any(b => b.Kind == BoxKind.Wool)) continue;
+                return null;
+            }
             boxes.Add(new Box(d.Id, d.Kind, NeighbourRect(edge, s, d.Depth, d.Along, hubRect), d.Along * d.Depth, Wool: d.Wool));
             joints.Add(HubJoint("hub", d.Id, edge, s, d.Along, offerW));
         }
@@ -397,15 +415,50 @@ public static class TeamUnitAllocator
         };
     }
 
+    /// <summary>Project a <paramref name="seated"/> box onto <paramref name="edge"/> as the forbidden along-interval
+    /// (box-local) a candidate of outward <paramref name="depth"/> must keep the seat gap clear of — but only when
+    /// the box lies within <paramref name="gap"/> of that edge on the <b>perpendicular</b> axis (else it is too far
+    /// out to constrain this edge and returns <c>null</c>). The along-gap itself is applied by <see cref="SeatInRuns"/>'s
+    /// inflation, so this returns the box's raw along-extent. A same-edge neighbour projects to its own dock interval
+    /// (perpendicular distance 0); an adjacent-edge neighbour projects only when it hugs the shared corner — so the
+    /// one mechanism covers both the same-edge abut and the cross-edge corner meeting exactly (the along + perp
+    /// conditions reproduce <see cref="TooClose"/>), and a legal seat is sampled directly, never single-sample
+    /// rejected.</summary>
+    private static (int Start, int Len)? ProjectOntoEdge(BoxEdge edge, int[] hub, int depth, int[] seated, int gap)
+    {
+        int hx = hub[0], hz = hub[1], hw = hub[2], hh = hub[3];
+        int bx0 = seated[0], bz0 = seated[1], bx1 = seated[0] + seated[2], bz1 = seated[1] + seated[3];
+        var (perpNear, aStart, aEnd) = edge switch
+        {
+            BoxEdge.Top => (bz0 - gap < hz && hz - depth < bz1 + gap, bx0 - hx, bx1 - hx),
+            BoxEdge.Bottom => (bz0 - gap < hz + hh + depth && hz + hh < bz1 + gap, bx0 - hx, bx1 - hx),
+            BoxEdge.Left => (bx0 - gap < hx && hx - depth < bx1 + gap, bz0 - hz, bz1 - hz),
+            _ => (bx0 - gap < hx + hw + depth && hx + hw < bx1 + gap, bz0 - hz, bz1 - hz),   // Right
+        };
+        return perpNear ? (aStart, aEnd - aStart) : null;
+    }
+
+    /// <summary>Two plan-cell rects lie within <paramref name="gap"/> cells of each other by rectilinear
+    /// nearest-approach — touching (gap 0) and corner-touching included. Equivalent to inflating one rect by the
+    /// gap on all four sides and testing overlap, so a diagonal corner meeting is caught, not only a shared edge.
+    /// The seat-step separation law reads it: no two neighbour bodies may sit this close (<paramref name="gap"/>
+    /// is the map's lane width — w2 = 10 blocks, w3 = 15 on wide boards).</summary>
+    private static bool TooClose(int[] a, int[] b, int gap) =>
+        a[0] - gap < b[0] + b[2] && b[0] < a[0] + a[2] + gap &&
+        a[1] - gap < b[1] + b[3] && b[1] < a[1] + a[3] + gap;
+
     /// <summary>A free box-local along-position for an <paramref name="along"/>-wide dock among the edge's
-    /// <paramref name="runs"/> (its offerable surface), avoiding the <paramref name="occupied"/> intervals and an
-    /// <paramref name="inset"/>-cell clearance at each <b>box corner</b> — a run end coinciding with along-coord 0
-    /// or <paramref name="edgeLen"/>, so no neighbour seats at a hub corner and corner-touches a neighbour on the
-    /// adjacent side; an internal run end (a bay boundary) is no box corner and needs no inset. Sampled within a
-    /// randomly chosen fitting gap, or null when no gap holds it.</summary>
+    /// <paramref name="runs"/> (its offerable surface), avoiding the <paramref name="occupied"/> intervals (each
+    /// inflated by <paramref name="gap"/> — the inter-seat separation law, so two neighbours on one edge never
+    /// abut) and an <paramref name="inset"/>-cell clearance at each <b>box corner</b> — a run end coinciding with
+    /// along-coord 0 or <paramref name="edgeLen"/>, so no neighbour seats at a hub corner and corner-touches a
+    /// neighbour on the adjacent side; an internal run end (a bay boundary) is no box corner and needs no inset.
+    /// Sampled within a randomly chosen fitting gap, or null when no gap holds it. The <paramref name="gap"/> is
+    /// a neighbour↔neighbour clearance only — distinct from the corner law (corners keep <paramref name="inset"/>
+    /// 0; the mass-level pinch gate owns the hub's own corners).</summary>
     private static int? SeatInRuns(
         IReadOnlyList<(int Start, int Len)> runs, List<(int Start, int Len)> occupied,
-        int edgeLen, int along, int inset, ComposeRng rng)
+        int edgeLen, int along, int inset, int gap, ComposeRng rng)
     {
         var gaps = new List<(int Lo, int Hi)>();
         foreach (var (rs, rl) in runs)
@@ -414,10 +467,11 @@ public static class TeamUnitAllocator
             if (lo == 0) lo += inset;                                 // a box corner at the low end
             if (hi == edgeLen) hi -= inset;                          // a box corner at the high end
             var cursor = lo;
-            foreach (var (os, ol) in occupied.Where(o => o.Start < hi && o.Start + o.Len > lo).OrderBy(o => o.Start))
+            foreach (var (os, ol) in occupied
+                .Where(o => o.Start - gap < hi && o.Start + o.Len + gap > lo).OrderBy(o => o.Start))
             {
-                if (os - cursor >= along) gaps.Add((cursor, os));
-                cursor = Math.Max(cursor, os + ol);
+                if (os - gap - cursor >= along) gaps.Add((cursor, os - gap));   // keep gap cells clear of the seat
+                cursor = Math.Max(cursor, os + ol + gap);
             }
             if (hi - cursor >= along) gaps.Add((cursor, hi));
         }
@@ -434,7 +488,7 @@ public static class TeamUnitAllocator
     /// <c>null</c> when no clear placement exists (a directed signal the caller falls back on).</summary>
     private static (int[] Box, BoxInterface Iface, bool Flip)? SeatOverhang(
         IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, WoolFill fill, BoxEdge edge,
-        int[] hubRect, IReadOnlyList<Box> seated, int w, ComposeRng rng)
+        int[] hubRect, IReadOnlyList<Box> seated, int w, int gap, ComposeRng rng)
     {
         var mouth = Opposite(edge);
         var probeRect = edge is BoxEdge.Top or BoxEdge.Bottom ? new[] { 0, 0, d.Along, d.Depth } : new[] { 0, 0, d.Depth, d.Along };
@@ -444,12 +498,15 @@ public static class TeamUnitAllocator
             if (BoxFiller.EntryOn(new Box("probe", BoxKind.Wool, probeRect, 0), mouth, w, fill.Family, flip,
                     fill.Placement, fill.WoolAtEnd) is not { } e)
                 continue;
-            // the box's along-start (seat) values for which the entry [seat+e0, +eLen] lands within a run
+            // the box's along-start (seat) values for which the entry [seat+e0, +eLen] lands within a run; the box
+            // must abut the hub, never overlap a seated box, and keep the seat gap from any seated spawn/wool
             foreach (var (rs, rl) in runs)
                 for (var seat = rs - e.Start; seat <= rs + rl - e.Start - e.Len; seat++)
                 {
                     var box = NeighbourRect(edge, seat, d.Depth, d.Along, hubRect);
-                    if (BoxPartition.SharedEdge(hubRect, box) is not null && !seated.Any(b => Overlap(b.Rect, box)))
+                    if (BoxPartition.SharedEdge(hubRect, box) is not null
+                        && !seated.Any(b => Overlap(b.Rect, box))
+                        && !seated.Any(b => b.Kind is BoxKind.Spawn or BoxKind.Wool && TooClose(b.Rect, box, gap)))
                         placements.Add((box, flip));
                 }
         }
