@@ -160,53 +160,56 @@ the shape** — which is why one Staple serves both U and H.
   How the **mid** attaches to the face is a separate rule-set, deferred — that is where `mid = f(frontline)`
   gets cashed out.
 
-## 7. Shared docks — the clamp and the twin (not shapes)
+## 7. The clamp (a cut-cell wool) and the twin (a shared host)
 
-Most compounds are **self-connected** — their rectangles abut each other directly. Two things we have called
-shapes are not: they are **several docks onto a shared piece**, and they live in the designation layer, not
-the shape taxonomy.
+Most compounds are **self-connected** — their rectangles abut each other directly. Two cases are worth calling
+out on their own: the **clamp**, a single-mouth wool whose terminal is a *cut cell* (load-bearing terrain, not
+a leaf), and the **twin frontline**, two Bars docked to one host but not to each other.
 
-### The clamp — a compact terminal docked on two *distinct* faces
+### The clamp — a wool clamped *inside* a two-leg approach
 
-A clamp is **one compact wool room docked on two distinct faces**. The wool is genuinely *clamped* — a cut
-cell: remove it and the terrain falls apart. There are three legal forms, by which pair of the room's faces
-the terrain takes (`t` terrain, `w` wool room, `·` void):
+A clamp docks the host **like a U**: two legs meet the host on **one mouth**, and the wool is genuinely
+*clamped* between them — a cut cell: remove it and the terrain falls apart. It is a single-mouth wool like any
+other (it is *not* a shared dock, nor a dual-host placement); what makes it a clamp is that its terminal is
+**load-bearing** — the bridge between the two legs, not a leaf hanging off a crossbar (that is the U). There
+are two forms, by which pair of the room's faces the legs grip (`t` terrain, `w` wool room, `·` void; the
+mouth is the open bottom edge):
 
 ```
-  opposite faces (centered)      adjacent faces (corner)      adjacent faces (corner)
-        t · t                          t · t                        t · t
-        t w t                          w t t                        t t w
+  opposite faces (centered, I+I)     adjacent faces (corner, L+I)
+        t w t                              t t ·
+        t · t                              t w t
+        t · t                              t · t
 ```
 
-- **two opposite faces** → the centered clamp — a straight bar into each side (**I-SideTuck + I**);
-- **two adjacent faces** → a corner clamp — and *this* is why the corner case is **L + I**: two straight bars
-  on adjacent faces would meet at the room's corner and corner-touch (nonsense, §3), so one bends into an L to
-  reach around.
+- **two opposite faces** → the centered clamp — two straight legs with the wool bridging them left→right
+  (**I + I**);
+- **two adjacent faces** → a corner clamp — the wool sits in a fold, capped on top by one approach and gripped
+  on its side by the other; two straight legs gripping adjacent faces would corner-touch at the room (nonsense,
+  §3), so the capping approach bends into an **L** to reach around — hence **L + I**.
 
 **The room is never a long bar docked along one edge** — the case the old prose blurred, and it must be crisp:
 
 ```
-   NOT a clamp — one face docked twice
+   NOT a clamp — a leaf on a crossbar (that is the U)
         t · t
-        w w w
+        w w w  (a wool perched on a bar, not clamped between legs)
 ```
 
-Here the room is a *long bar* and both stubs sit on its single top face: **one face docked at two points**, so
-the wool is perched on two stubs, not clamped. A long wool room is not wanted, and this is not the clamp
-topology. The emitter and deriver already do the right thing — they only ever emit and read the compact,
-distinct-face clamp; this note only holds the *words* to the same standard as the code.
+Here the room is perched on a bar rather than bridging two otherwise-disconnected legs: remove it and the
+terrain still holds together, so it is *not* a cut cell — it is a U's leaf, not a clamp. The emitter and
+deriver already do the right thing — they emit two legs bridged by the wool, and read a terminal back as a
+clamp only when it is caught between terrain on two opposite sides *and* bridges them (`Cells.Components ≥ 2`).
 
-So the clamp is not a body to place — it is a **terminal-face designation** (§6): a shared compact room, two
-distinct faces docked. It escalates with no new family to **three faces (a T-terminal)** and **four (a cross)**
-— a wool reached from three or four sides. The code already treats it this way: `FamilyDock.Of(Clamp)` demands
-two entries, and G63/G80's *corner-wrap* is two hosts taking one entry each.
+So the clamp is an ordinary **single-mouth wool** whose terminal is a cut cell — it fills a wool box and docks
+one hub edge exactly as I/L/U/H do. It escalates with no new family to a wool reached from three or four sides
+(the terminal caught between terrain on more faces); those are deferred.
 
 ### The twin frontline — two bars sharing a host
 
 The twin frontline is two separate **Bars**, each docked to the host **individually, not to each other**; the
-gap between them is the face/CT8 recess. It shares a *host* where the clamp shares a *terminal*, but both are
-the same kind of thing — multiple docks the partition graph places (`FamilyDock`, the corner-wrap), not a new
-kind of shape.
+gap between them is the face/CT8 recess. Unlike the clamp (one wool, one mouth), the twin genuinely is two
+docks onto a shared host — the frontline emitter places both Bars against the hub front, not a single shape.
 
 ## 8. Slots — structural vs designation
 

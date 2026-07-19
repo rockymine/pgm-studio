@@ -50,7 +50,7 @@ Add("approach", "I", "no negative space; the lane's sides split where the sealed
 Add("approach", "L", "one notch; the band's end line splits into free terrain and the sealed room", () => Emission(ShapeFamily.L, 15, 18));
 Add("approach", "Z", "two opposing bends — a notch each", () => Emission(ShapeFamily.Z, 15, 21));
 Add("approach", "Scythe", "the fold's bay + the notch behind the entry tail", () => Emission(ShapeFamily.Scythe, 18, 15));
-Add("approach", "Clamp", "the recess is a bay only because the room closes it — the room's bay face is the designated seat", () => Emission(ShapeFamily.Clamp, 12, 15));
+Add("approach", "Clamp", "two legs down to the mouth; the wool clamped between them, its bottom wall facing the bay", () => Emission(ShapeFamily.Clamp, 12, 15));
 Add("approach", "U", "the bay between the legs; the room wraps a notch each side", () => Emission(ShapeFamily.U, 15, 18));
 Add("approach", "H / Y", "the U's bay + the notches beside the room stub", () => Emission(ShapeFamily.H, 15, 21));
 Add("approach", "Donut", "the enclosed hole; stub and room wrap notches", () => Emission(ShapeFamily.Donut, 18, 15));

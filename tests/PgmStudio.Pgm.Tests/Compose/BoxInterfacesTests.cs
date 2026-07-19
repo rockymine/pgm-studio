@@ -52,8 +52,8 @@ public sealed class BoxInterfacesTests
     [Test]
     public async Task An_edge_carries_disjoint_intervals_per_piece()
     {
-        // the clamp's mouth edge holds BOTH entry bars, the bay's gap between them
-        var mouth = Edge(Edges(ShapeFamily.Clamp, 4, 5), BoxEdge.Left);
+        // the clamp's mouth edge (bottom) holds BOTH leg entries, the bay's gap between them
+        var mouth = Edge(Edges(ShapeFamily.Clamp, 6, 6), BoxEdge.Bottom);
         await Assert.That(mouth.Intervals.Count).IsEqualTo(2);
         await Assert.That(mouth.Intervals.All(i => i.Slot == ApproachSlots.Entry)).IsTrue();
         await Assert.That(mouth.Intervals[0].Start + mouth.Intervals[0].LengthCells < mouth.Intervals[1].Start).IsTrue();
@@ -79,16 +79,15 @@ public sealed class BoxInterfacesTests
     }
 
     [Test]
-    public async Task Clamp_has_two_short_terrain_edges_and_a_wool_touched_edge()
+    public async Task Clamp_presents_its_legs_and_touches_the_clamped_wool_on_one_edge()
     {
-        // the clamp's two bars sit on the short top/bottom edges (the entries); the room bridges to one side
-        var es = Edges(ShapeFamily.Clamp, 4, 5);
-        await Assert.That(Edge(es, BoxEdge.Top).Span).IsEqualTo(EdgeSpan.Short);
-        await Assert.That(Edge(es, BoxEdge.Top).HasTerrain).IsTrue();
-        await Assert.That(Edge(es, BoxEdge.Bottom).Span).IsEqualTo(EdgeSpan.Short);
-        await Assert.That(Edge(es, BoxEdge.Bottom).HasTerrain).IsTrue();
-        await Assert.That(es.Count(e => e.TouchesRoom)).IsEqualTo(1);          // exactly one edge is wool-sealed
-        await Assert.That(es.Single(e => e.TouchesRoom).Span).IsEqualTo(EdgeSpan.Long);
+        // the redefined clamp docks like a U: its two legs present terrain on the bottom mouth (and the sides),
+        // and the wool is clamped between them at the top — exactly one edge (the top) touches the wool
+        var es = Edges(ShapeFamily.Clamp, 6, 6);
+        await Assert.That(Edge(es, BoxEdge.Bottom).HasTerrain).IsTrue();       // the two-leg mouth
+        await Assert.That(Edge(es, BoxEdge.Bottom).Intervals.Count).IsEqualTo(2);
+        await Assert.That(es.Count(e => e.TouchesRoom)).IsEqualTo(1);          // exactly one edge is wool-touched
+        await Assert.That(es.Single(e => e.TouchesRoom).Edge).IsEqualTo(BoxEdge.Top);
     }
 
     [Test]

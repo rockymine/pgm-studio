@@ -32,7 +32,7 @@ public static class SlotAssignment
         switch (family)
         {
             case ShapeFamily.I:                                  // entry · room — the lone terrain piece
-            case ShapeFamily.Clamp:                              // entry · entry · room — both bars are entries
+            case ShapeFamily.Clamp:                              // entry · entry · room — both legs are entries
                 foreach (var t in terrain) slots[t.Id] = ApproachSlots.Entry;
                 break;
 

@@ -24,25 +24,24 @@ public static class BoxFiller
     /// profile or its minimum box does not fit the footprint. On success carries the emission + vacancies.</summary>
     public static FillResult Fill(
         Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false, string? roomId = null,
-        RoomPlacement roomPlacement = RoomPlacement.Inline)
+        RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false)
     {
         var menu = FillProfiles.Families(box.Kind, corridorWidth);
         if (!menu.Contains(family)) return new FillResult.NoFamilyFits(menu);
         var result = box.Kind switch
         {
-            BoxKind.Wool => WoolBoxEmitter.Fill(box, mouth, family, corridorWidth, flip, roomId, roomPlacement),
+            BoxKind.Wool => WoolBoxEmitter.Fill(box, mouth, family, corridorWidth, flip, roomId, roomPlacement, woolAtEnd),
             _ => throw new ComposeException(
                 $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding " +
                 "(spawn via SpawnBoxEmitter, G78; hub/frontline at G41-C)."),
         };
         if (result is not FillResult.Ok ok) return result;
 
-        // the docking law (G80): the host docks the mouth, so the mouth edge must be a legal dock for this
-        // family. Read the box's edges off the placed fill (shape-relative) and gate them — an illegal dock
-        // (a sealed wool, a non-entry edge, the wrong span, or a family whose dual-host demand a single mouth
-        // can't meet) is a directed rejection, never a placement.
+        // the docking law (G80): the host docks the mouth, so the mouth edge must be a legal dock. Read the
+        // box's edges off the placed fill (shape-relative) and gate them — an illegal dock (a sealed wool or a
+        // non-entry edge) is a directed rejection, never a placement.
         var edges = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect[2], box.Rect[3]);
-        return DockingGate.CheckMouth(edges, mouth, family) is { } rejection
+        return DockingGate.CheckMouth(edges, mouth) is { } rejection
             ? new FillResult.IllegalDock(rejection, family, mouth)
             : ok;
     }

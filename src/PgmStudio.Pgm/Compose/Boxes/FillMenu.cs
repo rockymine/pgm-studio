@@ -18,11 +18,13 @@ public sealed record FillMenuRow(int WidthCells, string Reads, IReadOnlyList<Sha
 /// </summary>
 public static class FillMenu
 {
-    /// <summary>Families a flush-docked wool box may emit in production today. Two exclusions, each a
-    /// named gap, not a taste. (The <b>donut</b> was the third: its attachment stub and tucked room
-    /// corner-touch a ring leg as emitted, and the grower's old pairwise contact gate rejected any Corner
-    /// verdict — but both touches are ¾-solid inside corners of one connected mass, the mask holds no
-    /// diagonal pinch, and once the corner law reads the mask instead of the pair the donut is admitted.)
+    /// <summary>Families a flush-docked wool box may emit in production today. One exclusion, a named gap,
+    /// not a taste. (The <b>donut</b> was excluded once: its attachment stub and tucked room corner-touch a
+    /// ring leg as emitted, and the grower's old pairwise contact gate rejected any Corner verdict — but
+    /// both touches are ¾-solid inside corners of one connected mass, the mask holds no diagonal pinch, and
+    /// once the corner law reads the mask instead of the pair the donut is admitted. The <b>clamp</b> was
+    /// excluded while it was defined as a dual-host wool: now its two legs meet the host on one edge and the
+    /// wool is clamped inside as a cut cell, so it docks through a single mouth like the U — admitted.)
     /// The <b>scythe</b> carries a bay whose mouth is its own docking edge, so a flush dock seals the bay
     /// against the host into an enclosed void walled by the wool room — exactly WL8's forbidden motif.
     /// Its legal connections are shape-relative (the G80 docking modes, map-generation.md §4): a host on
@@ -30,15 +32,10 @@ public static class FillMenu
     /// head edges of entry + entry-run — both survive the entry shift, which carries the dock with it. A
     /// host touching the wool room is a hard violation (reject); the declared-bay alternative is deferred
     /// to the elevation stage (G81: raise the wool so the entry dock is the sole approach, terrain
-    /// stepping up entry → room). The <b>clamp</b> is
-    /// different: its wool-in-bay is the authored, allowlisted WL8 motif — the bay is a deliberate hole
-    /// granting the wool two approaches. What gates it is docking: a fill satisfies exactly one entry
-    /// through one interface, forcing the clamp to rotate with the other entry dangling in the void; it
-    /// needs both entries satisfied along the short entry edge (a wider interface or two — the G80
-    /// docking modes, map-generation.md §4). All three stay fully emittable for harnesses and tests.</summary>
+    /// stepping up entry → room). It stays fully emittable for harnesses and tests.</summary>
     public static readonly IReadOnlyList<ShapeFamily> ProductionFamilies =
     [
-        ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.U, ShapeFamily.H, ShapeFamily.Donut,
+        ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.U, ShapeFamily.H, ShapeFamily.Donut, ShapeFamily.Clamp,
     ];
 
     /// <summary>The §4 table. Row order is part of the deterministic sampling contract (a family draw

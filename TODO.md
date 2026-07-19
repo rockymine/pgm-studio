@@ -119,21 +119,19 @@ in `BACKLOG.md`.)*
       **L hub with a frontline** is worth enabling: today a branch hub with a frontline falls back to a rectangle
       (front used ⇒ four sides), but a **wide Bar frontline overlapping the L's short front leg** is a good layout —
       it wants the frontline to dock a branch hub's front foot rather than forcing the fallback.
-    - **Wool & spawn family variety** — **six wool shapes ship**: inline-`I`, side-tuck-`I`, `L`, `donut`, and the
-      staple/branch `U`/`H`. The **seat-and-shift overhang** (`BoxFiller.EntryOn` + `TeamUnitAllocator.SeatOverhang`
-      + `Box.Wool`) docks a single-entry rich wool's narrow entry on a hub run with its body overhanging (`L`,
-      `donut`), box-overlap-checked, both handednesses tried, falling back to a compact inline `I`. `WoolBoxEmitter.MouthBox`
-      resolves each family's mouth facing in one place (the donut's lateral mouth transposes). The **w2 wool-lane
-      split** (`WoolLaneCells`) sizes/offers wools at `w2` regardless of the map's `w`, shrinking a `U`'s mouth to
-      fit — so the **dual-entry** `U`/`H` dock their full mouth on a cap-6 hub (land ≥ 3000; big teams), demoting to
-      `L` where the edge is narrower. **Remaining**: the deeper `Z`; the **`scythe`** (gated from the production
-      menu — its bay seals a flush dock, WL8 — so it needs the G80 shape-relative docking, not just sizing); and the
-      **spawn `L`** (the same overhang, on the spawn box). The clamp is the separate dual-host slice (below).
-    - **Wool clamp — the dual-host corner-wrap.** The clamp is a wool room clamped on two distinct faces
-      (shape-vocabulary §7): opposite → centered `I+I`, adjacent → corner `L+I`. `DockingGate` already demands its
-      two entries and rejects a single mouth, but nothing **places the two hosts** — the corner-wrap that docks the
-      two entries on two adjacent hub edges. Needs: the dual-host placement in the allocator, the **adjacent/corner
-      emitter form** (only the opposite-faces clamp is emitted today), and adding `Clamp` to the production menu.
+    - **Wool & spawn family variety** — **seven wool shapes ship**: inline-`I`, side-tuck-`I`, `L`, `donut`, the
+      staple/branch `U`/`H`, and the **clamp** (redefined G63-C.2 — it docks like a `U`, two legs meeting the host
+      on one mouth with the wool clamped between them as a cut cell; centered `I+I` and corner `L+I` variants via
+      `woolAtEnd`, retiring the old dual-host `FamilyDock`/span machinery). The **seat-and-shift overhang**
+      (`BoxFiller.EntryOn` + `TeamUnitAllocator.SeatOverhang` + `Box.Wool`) docks a single-entry rich wool's narrow
+      entry on a hub run with its body overhanging (`L`, `donut`), box-overlap-checked, both handednesses tried,
+      falling back to a compact inline `I`. `WoolBoxEmitter.MouthBox` resolves each family's mouth facing in one
+      place (the donut's lateral mouth transposes). The **w2 wool-lane split** (`WoolLaneCells`) sizes/offers wools
+      at `w2` regardless of the map's `w`, shrinking a staple's mouth to fit — so the two-leg staples (`U`/`H`/
+      clamp) dock their full mouth on a cap-6 hub (land ≥ 3000; big teams), demoting to `L` where the edge is
+      narrower. **Remaining**: the deeper `Z`; the **`scythe`** (gated from the production menu — its bay seals a
+      flush dock, WL8 — so it needs the G80 shape-relative docking, not just sizing); and the **spawn `L`** (the
+      same overhang, on the spawn box).
     - **Hub-floor refinement** — the frontline / twin-recess / wool-c clearance floors the grower's `HubVFloor`
       encodes (today a simplified `w+2` floor).
     - **CT1 / LN2 invariants by construction** — ≥10-block image clearance (orbit images stay separate islands)
@@ -141,7 +139,7 @@ in `BACKLOG.md`.)*
     - **Wire** `BoxPartitioner.Partition` to return the allocation (+ the crossing `design` the frontline reach
       needs), replacing `BoxPartition.Of(grow)`.
   → **C.3** wire `Composer` through C.2→C.1 and **retire `TeamUnitGrower`'s authoring** (RNG re-keys, goldens churn)
-  → **C.4** the clamp's **dual-host corner-wrap** → **C.5** re-baseline gallery cases, **then** freeze the G32-D
+  → **C.4** re-baseline gallery cases, **then** freeze the G32-D
   goldens. `MidCarver` stays — the mid is not a team-unit box, it is derived (`f(frontline)`, consuming the frontline
   face offer). *Deliberately NOT next: the
   fill-to-`LandTargetCells` **directed repair** (retiring `SolveDepth`/`SolveWidth`/`spawnLen`) — it resizes shapes

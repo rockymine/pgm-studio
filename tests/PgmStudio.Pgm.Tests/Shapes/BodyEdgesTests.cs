@@ -114,10 +114,11 @@ public sealed class BodyEdgesTests
         await Assert.That(l.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(7);
         await Assert.That(l.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKind.Notch)).IsTrue();
 
-        // clamp 12x15 cw3: the room's bay face is the designated seat — a terminal wall on the bay
+        // clamp 12x15 cw3: the wool is clamped between the legs, its bottom wall facing the bay (the mouth
+        // side) — a terminal wall on the bay
         var clamp = BodyEdges.Classify(ShapeEmitter.Emit(ShapeFamily.Clamp, 12, 15, Cw));
         await Assert.That(clamp.Edges.Any(e => e.Terminal && e.Faces == NegativeSpaceKind.Bay)).IsTrue();
-        await Assert.That(clamp.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(18);
+        await Assert.That(clamp.Edges.Where(e => e.Terminal).Sum(e => e.Length)).IsEqualTo(12);
     }
 
     [Test]

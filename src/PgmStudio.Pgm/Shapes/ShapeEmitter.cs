@@ -50,8 +50,8 @@ public static class ShapeEmitter
     /// left/right mouth.</summary>
     public static BoxEdge MouthEdge(ShapeFamily family, bool flip = false) => family switch
     {
-        ShapeFamily.U or ShapeFamily.H => BoxEdge.Bottom,
-        ShapeFamily.Clamp or ShapeFamily.Donut => flip ? BoxEdge.Right : BoxEdge.Left,
+        ShapeFamily.U or ShapeFamily.H or ShapeFamily.Clamp => BoxEdge.Bottom,
+        ShapeFamily.Donut => flip ? BoxEdge.Right : BoxEdge.Left,
         _ => BoxEdge.Top,
     };
 
@@ -73,7 +73,7 @@ public static class ShapeEmitter
             ShapeFamily.Z => (2 * cw, 3 * cw + rd),
             ShapeFamily.Scythe when roomPlacement == RoomPlacement.SideTuck => (4 * cw + rd, 2 * cw + rd),
             ShapeFamily.Scythe => (4 * cw, 2 * cw + rd),
-            ShapeFamily.Clamp => (2 * cw, 2 * cw + 1),
+            ShapeFamily.Clamp => (3 * cw, 2 * cw + rd),
             ShapeFamily.U => (3 * cw, 2 * cw + rd),
             ShapeFamily.H => (3 * cw, 2 * cw + 2 * rd),
             ShapeFamily.Donut => (4 * cw + (woolExtend ? cw : 0) + rd,
@@ -317,15 +317,34 @@ public static class ShapeEmitter
             }
             case ShapeFamily.Clamp:
             {
-                // the wool clamped between two parallel bars, approached from the open side (tt/vw/tt) — the wool
-                // is the closing wall connecting them (terrain on two opposite sides, and it bridges them).
-                Need(W >= 2 * cw && H >= 2 * cw + 1, family, W, H);
-                int barLen = 2 * cw;
-                t.Add(([0, 0, barLen, cw], ApproachSlots.Entry));           // top bar
-                t.Add(([0, H - cw, barLen, cw], ApproachSlots.Entry));      // bottom bar
-                room = [barLen - cw, cw, cw, H - 2 * cw];            // wool = the closing wall (connects the bars)
-                vac.Add(new ShapeVacancy("bay", [0, cw, barLen - cw, H - 2 * cw], BoxEdge.Left,
-                    [ApproachSlots.Entry, ApproachSlots.Room, ApproachSlots.Entry]));
+                // the wool clamped INSIDE the shape as a cut cell: two legs run down to the hub (one U-style
+                // mouth, MouthEdge Bottom) and the wool is their ONLY bridge — remove it and the terrain falls
+                // into two pieces. It grips terrain on two opposite sides, so the categorizer reads a clamp.
+                // woolAtEnd folds the left approach into an L capping the wool's top (the adjacent/corner variant,
+                // L+I); else both legs are straight (the centered variant, I+I).
+                Need(W >= 3 * cw && H >= 2 * cw + rd, family, W, H);
+                int gap = W - 2 * cw;                                    // the wool spans the space between the legs
+                if (woolAtEnd)
+                {
+                    // adjacent (L+I): the left approach caps over the wool (the L's turn), the right leg is a
+                    // straight I. The cap stops before the right leg — which starts a row lower — so left and
+                    // right touch only through the wool, keeping it the cut cell.
+                    t.Add(([0, 0, W - cw, cw], ApproachSlots.Bar));                     // left cap over the wool
+                    t.Add(([0, cw, cw, H - cw], ApproachSlots.Entry));                  // left leg down to the hub
+                    t.Add(([W - cw, cw, cw, H - cw], ApproachSlots.Entry));             // right leg (I) to the hub
+                    room = [cw, cw, gap, rd];                                           // wool in the L's pocket
+                    vac.Add(new ShapeVacancy("bay", [cw, cw + rd, gap, H - cw - rd], BoxEdge.Bottom,
+                        [ApproachSlots.Entry, ApproachSlots.Room, ApproachSlots.Entry]));
+                }
+                else
+                {
+                    // centered (I+I): two straight legs, the wool bridging them across the top.
+                    t.Add(([0, 0, cw, H], ApproachSlots.Entry));                        // left leg (full height)
+                    t.Add(([W - cw, 0, cw, H], ApproachSlots.Entry));                   // right leg (full height)
+                    room = [cw, 0, gap, rd];                                            // wool bridges the two legs
+                    vac.Add(new ShapeVacancy("bay", [cw, rd, gap, H - rd], BoxEdge.Bottom,
+                        [ApproachSlots.Entry, ApproachSlots.Room, ApproachSlots.Entry]));
+                }
                 break;
             }
             case ShapeFamily.Donut:

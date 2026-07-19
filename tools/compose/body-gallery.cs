@@ -45,7 +45,7 @@ var familyCards = new List<(string Title, string Sub, string Svg)>();
     ("U", ShapeFamily.U, 15, 18, "the staple: a crossbar + two legs"),
     ("H", ShapeFamily.H, 15, 21, "the staple with a room-run stub (the Y body)"),
     ("Donut", ShapeFamily.Donut, 18, 15, "four bars around a void + a hub stub — a ring"),
-    ("Clamp", ShapeFamily.Clamp, 12, 15, "two bars — not self-connected (a designation, not a body §7)"),
+    ("Clamp", ShapeFamily.Clamp, 12, 15, "two legs, the wool clamped between them as a cut cell (§7)"),
 };
 foreach (var (name, fam, w, h, sub) in families)
 {

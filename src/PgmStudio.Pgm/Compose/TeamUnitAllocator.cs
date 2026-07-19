@@ -74,11 +74,16 @@ public static class TeamUnitAllocator
     /// less-crowded hub (else the overhang falls back to a compact inline <c>I</c>).</summary>
     private const double DonutChance = 0.25;
 
-    /// <summary>Of the non-donut rich wools, how often a <b>staple/branch</b> (<c>U</c>/<c>H</c> — the wool reached
-    /// by two legs) rather than a bent <c>L</c>. It docks its full dual-entry mouth, so it needs a hub edge as wide
-    /// as its mouth (~3 lanes); where the edge is too narrow it demotes to an <c>L</c>, so the staple lands mostly
-    /// on the wider hubs.</summary>
+    /// <summary>Of the non-donut rich wools, how often a <b>staple-class</b> two-leg wool (<c>U</c>/<c>H</c>/
+    /// <c>clamp</c> — the wool reached by two legs off one mouth) rather than a bent <c>L</c>. It docks its full
+    /// mouth (~3 lanes), so it needs a hub edge as wide as its mouth; where the edge is too narrow it demotes to
+    /// an <c>L</c>, so the staple lands mostly on the wider hubs.</summary>
     private const double StapleChance = 0.4;
+
+    /// <summary>Of the clamp wools, how often the <b>adjacent/corner</b> variant (an <c>L+I</c> gripping the wool
+    /// in a fold) rather than the <b>centered</b> one (two straight legs, <c>I+I</c>). Both dock the same full
+    /// mouth; this only changes which two-leg shape clamps the cut-cell wool inside.</summary>
+    private const double ClampAdjacentChance = 0.4;
 
     /// <summary>The wool's own corridor width in cells — a <b>w2</b> lane (docs/contracts/map-generation.md §4:
     /// "the lane to the wool is simple, w2"), independent of the map's lane width <c>w</c> (which is 3 on big
@@ -195,13 +200,14 @@ public static class TeamUnitAllocator
             if (rng.NextBool(BentWoolChance))                        // a rich shape
             {
                 var family = rng.NextBool(DonutChance) ? ShapeFamily.Donut
-                    : rng.NextBool(StapleChance) ? (rng.NextBool(0.5) ? ShapeFamily.U : ShapeFamily.H)
+                    : rng.NextBool(StapleChance) ? rng.Pick(new[] { ShapeFamily.U, ShapeFamily.H, ShapeFamily.Clamp })
                     : ShapeFamily.L;
+                var woolAtEnd = family == ShapeFamily.Clamp && rng.NextBool(ClampAdjacentChance);   // clamp: adjacent vs centered
                 (along, depth) = WoolBoxEmitter.MouthBox(family, woolCw);
-                // a full-mouth staple/branch the hub edge can't hold → a bent L (the seat-and-shift docks any width)
+                // a full-mouth staple the hub edge can't hold → a bent L (the seat-and-shift docks any width)
                 if (!Overhangs(family) && along > edgeLen)
-                    (family, (along, depth)) = (ShapeFamily.L, WoolBoxEmitter.MouthBox(ShapeFamily.L, woolCw));
-                fill = new WoolFill(family, RoomPlacement.Inline, false);
+                    (family, woolAtEnd, (along, depth)) = (ShapeFamily.L, false, WoolBoxEmitter.MouthBox(ShapeFamily.L, woolCw));
+                fill = new WoolFill(family, RoomPlacement.Inline, false, woolAtEnd);
             }
             else if (budgetDepth > maxDepth || rng.NextBool(SideRoomChance))   // would run long, or a share → side-tuck
             {
