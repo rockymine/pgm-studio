@@ -416,3 +416,86 @@ a type is added.
   violation without one)."
 - **Hard term**: "Symptom on the derived board only (doctrine: no shape names in the
   evaluator): [symptom]; evidence rects + the law id."
+
+---
+
+## 9. Observed failure modes — the current defect list (living)
+
+Author-observed over the unit-gallery seeds, each verified against the code and a 4-preset ×
+200-seed probe of `Allocate → Fill` (small/mid/big/huge as in `tools/compose/unit-gallery.cs`).
+This list lives here — the live review record — rather than in a new document. An entry **leaves
+this list when its fix lands** (the commit references it); the fix work is board task **G106**.
+Each entry names the rule kind (§1.14 / map-generation.md) the fix belongs to, because most of
+these are not bugs in a mechanism but **missing rules** the taxonomy has an address for.
+
+**F1 — Neighbour lanes abut: no seat gap.** A spawn and a wool box can share a boundary — no
+gap between the two lanes. Probe: 28/39/39/**100** units per 200 (small/mid/big/huge; the huge
+spike is the 3-wool plans). Mechanism: `SeatInRuns` packs seats against occupied intervals with
+zero spacing, and `SeatOverhang` rejects only *overlap*, not touching; the corner inset going to
+0 removed the last incidental spacing. Fix direction: a ≥1-cell **inter-seat gap** in
+`SeatInRuns` (inflate occupied intervals by the gap) + a touch-check in `SeatOverhang`. Kind: a
+**law** (lane spacing), applied as a demand in the seat step — distinct from the corner law
+(corners stay 0; the mass-level pinch gate owns them).
+
+**F2 — Lanes flush against a branch hub's legs (frontline-less units).** On L/U hubs without a
+frontline the wool/spawn lanes can sit flush against the legs' walls. The hub's remaining free
+surface is exactly where build regions attach in later stages, so a build region would land
+touching the lane. Mechanism: a seat may start at an **internal run end** (the run boundary at a
+leg's wall gets no inset by design), and on a **leg-tip run** (width exactly `cw`) the dock
+consumes the whole run — zero margin on both sides. Context: branch hubs are effectively
+frontline-less-only today — with a frontline, the branch form's front free run (an arm tip,
+`cw`) cannot host the `faceWidth` demand, so the allocator falls back to the rectangle (probe:
+39/200 branch hubs on the no-frontline small preset vs 4–6/200 on the frontline presets). Fix
+direction: a ≥1-cell margin between a seat and a **mass-adjacent run end**; a tip run narrower
+than `along + 2` margins refuses the dock (demote / re-seat). Kind: a **law** — the
+build-surface clearance ("a cell between a lane and attachable hub surface"), the compose-side
+twin of §4's room-clearance guard.
+
+**F3 — The centred-stub single frontline (the "T").** Two-piece frontlines are always a T: a
+tiny stub (reach − cw = 2 cells) centred on the bar — build regions attach poorly around it; a
+proper L (arm at an end) or the twin would read better. Mechanism: the single is **centred by
+construction** (`SpineArms(cw, [(w−cw)/2], …)` in `FrontlineBoxEmitter.BuildBody`). And the T
+*dominates*: probe 126/164 mid, **164/164 big, 161/161 huge** — at `w = 3` the twin needs
+spine length ≥ 2·cw = 6 with the arms then adjacent, so it **never fits** the cap-6 face and the
+form menu silently collapses to the T (the Bar is never chosen — 0/489 fronts — because
+form-answers-form reserves it for branch hubs, which fall back when a frontline exists, F2).
+Fix direction: an **arm-placement knob** on the single (end-arm = an L frontline), a twin that
+fits `w3` (wider face or an adjacent-arm guard with real separation), and a menu-collapse
+**fact** (when only one form fits, that should be visible, not silent). Kind: **menu** content +
+**knob**; the collapse is a missing fit-gate fact.
+
+**F4 — Twin legs always equal.** The twin/U frontline's legs are always the same length; an
+optional per-leg offset (≤ 2 cells, ~10 blocks, sometimes) would break the symmetry pleasantly.
+Mechanism: `BodyEmitter.SpineArms` has one arm length for all arms (`h − cw`). Wrinkle: the face
+offer is read off the **box's face edge** (`BoxInterfaces` runs), so a shortened leg's tip
+leaves the box edge and its offer would silently vanish — per-leg lengths need per-arm support
+in `SpineArms` **plus depth-aware face offers** (or per-tip interfaces). Kind: a **knob** (arm
+length; `ClassifyBody` must still read `SpineArms(2)`) + a small offer-model extension.
+
+**F5 — Square hub against a square frontline.** The flat square-on-square pairing still reads
+on the mid/big/huge presets. Probe: this is **not** the Bar (never chosen) — it is the near-solid
+small forms: at reach `w + 2` and `cw = w` the single-T is a solid bar with a 2-cell stub,
+reading almost as a Bar flush on a rect/ring hub (rect+single-T = 109/151 mid fronts;
+ring+single-T = 146/164 big). Root: the frontline's **reach and proportions do not scale** with
+the board — `frontReach = w + 2` regardless of budget — so on big boards the front is a sliver
+whose form barely matters. Fix direction: scale reach with the budget (G104's territory), open
+the deeper forms (holed P / two-U-on-I — G100; the F3 L-form single), and make hub-form ×
+front-form a real **pairing menu** (today one hard-coded preference in the filler). Kind:
+budget **fact** + **menu**.
+
+**F6 — The donut wool is a 2:1 sliver.** The donut approach reads stretched. Probe: every donut
+box is exactly **10×5** (or 5×10) — the min box. Mechanism: `MinBox(Donut)` chains stub (`cw`) +
+ring (`3·cw`) + trailing wool room (`rd`) along one axis at minimum height, and the allocator
+sizes rich wools at exactly the min box, so the donut is *always* the sliver; the emitter would
+round the ring out if given height (`ringH = H`). Fix direction: give the donut box headroom
+above the min (a preferred aspect on the demand, not the minimum), and/or use `woolAtEnd` (the
+corner-integrated wool, dropping the trailing room) in production. Kind: the min box is a
+**fit-gate fact** being misused as the *target* size — the demand should carry a preferred
+aspect.
+
+**F7 — The clamp's void is too deep.** The clamp's legs run too long — the void cap below the
+clamped wool is oversized. Probe: void depth below the wool = **4 cells (20 blocks)** in every
+clamp. Mechanism: `MinBox(Clamp)` height is `2·cw + rd` — inherited from the U, whose crossbar
+needs that depth; the clamp only needs legs reaching the mouth, so `cw + rd` (void `cw`) would
+do. Fix direction: a clamp-specific min height (legs shortened by `cw`), keeping the two-leg
+mouth. Kind: **fit-gate fact** correction.

@@ -75,7 +75,7 @@ in `BACKLOG.md`.)*
   - **C.2 — the last two wool shapes + the spawn `L` (the immediate next slice).** The deeper `Z` (a compact add
     over the overhang path); the **scythe** (still gated from the production menu — its bay seals a flush dock
     against the host, WL8, so it needs the G80 **shape-relative bay docking**, not just sizing); the **spawn `L`**
-    (the same seat-and-shift overhang, on the spawn box). Finishes the shape set → then G102–G105 below.
+    (the same seat-and-shift overhang, on the spawn box). Finishes the shape set → then G102–G106 below.
   - **C.2 — per-run offer widths (seam fix).** The filler keys `edgeWidths` per *edge* and `ConsumedCw` reads the
     edge's *first* offer, but the allocator can demand two widths on one edge: a third wool doubling onto the
     spawn's side offers `w2` beside the spawn's `w` (reachable whenever `w == 3` and the plan has 3 wools), last
@@ -104,7 +104,7 @@ in `BACKLOG.md`.)*
 
 *(The next-session arc, once the wool shape set is complete (Z/scythe above): with every shape now placeable,
 stop adding and instead **consolidate, reality-check, and enrich** — clean the allocator, verify the placement
-rules sit in the right layer, understand the budget, and grow the hubs. G102 → G105, roughly in order.)*
+rules sit in the right layer, understand the budget, and grow the hubs. G102 → G106, roughly in order.)*
 
 - [ ] **G102 — Clean up `TeamUnitAllocator`.** Now that the shape set is frozen, the `Demands`/`Seat` methods
   have accumulated a lot of inline policy — `BentWoolChance`/`DonutChance`/`StapleChance`/`ClampAdjacentChance`/
@@ -122,6 +122,17 @@ rules sit in the right layer, understand the budget, and grow the hubs. G102 →
   **derived offer**? Where a rule sits in the wrong layer, name it and file the move. Goal: the shapes are placed
   by rules that live where the taxonomy says they should. (Pairs with G102 — the cleanup surfaces the policy this
   audits.)
+
+- [ ] **G106 — Fix the observed seat/emit failure modes (taxonomy doc §9).** The author-observed defect list,
+  verified + quantified (4 presets × 200 seeds) in `docs/map-generation-constraint-taxonomy.md` §9 — F1–F7,
+  each with mechanism and fix direction: **F1** no inter-seat gap (neighbour lanes abut — up to 100/200 units
+  on huge), **F2** lanes flush against a branch hub's legs at mass-adjacent run ends (the build-surface
+  clearance law), **F3** the single frontline is a centred tiny-stub T and the form menu silently collapses to
+  it at `w3` (the twin never fits), **F4** twin legs always equal (per-arm length + depth-aware face offers),
+  **F5** square-on-square hub+frontline (reach doesn't scale — pairs with G104/G100), **F6** the donut always
+  its 10×5 min-box sliver (preferred aspect, `woolAtEnd`), **F7** the clamp's void 4 cells deep (clamp-specific
+  min height). F1/F2 are the spacing laws G103 should name first; F6/F7 are small independent min-box/demand
+  fixes; F3–F5 are emitter/menu work. An entry leaves §9 when its fix lands.
 
 - [ ] **G104 — Investigate the budget.** The two-currency budget (land vs build, §1.10) drives every box's
   size, but the seeds still under/over-fill and the fill-to-`LandTargetCells` repair is parked as
