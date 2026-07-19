@@ -124,13 +124,15 @@ rules sit in the right layer, understand the budget, and grow the hubs. G102 →
   audits.)
 
 - [ ] **G106 — Fix the observed seat/emit failure modes (taxonomy doc §9).** The author-observed defect list,
-  verified + quantified (4 presets × 200 seeds) in `docs/map-generation-constraint-taxonomy.md` §9 — F1–F7,
+  verified + quantified in `docs/map-generation-constraint-taxonomy.md` §9 (re-measure with
+  `tools/compose/seat-probe.cs` — 4 presets × 200 seeds) — F1–F7,
   each with mechanism and fix direction: **F1** no inter-seat gap (neighbour lanes abut — up to 100/200 units
   on huge), **F2** lanes flush against a branch hub's legs at mass-adjacent run ends (the build-surface
   clearance law), **F3** the single frontline is a centred tiny-stub T and the form menu silently collapses to
   it at `w3` (the twin never fits), **F4** twin legs always equal (per-arm length + depth-aware face offers),
   **F5** square-on-square hub+frontline (reach doesn't scale — pairs with G104/G100), **F6** the donut always
-  its 10×5 min-box sliver (preferred aspect, `woolAtEnd`), **F7** the clamp's void 4 cells deep (clamp-specific
+  its 10×5 min-box sliver (root: every dimension keys to the one map-wide lane width — per-piece width is the
+  missing knob; plus preferred aspect, `woolAtEnd`), **F7** the clamp's void 4 cells deep (clamp-specific
   min height). F1/F2 are the spacing laws G103 should name first; F6/F7 are small independent min-box/demand
   fixes; F3–F5 are emitter/menu work. An entry leaves §9 when its fix lands.
 

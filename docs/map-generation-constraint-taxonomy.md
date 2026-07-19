@@ -422,7 +422,8 @@ a type is added.
 ## 9. Observed failure modes — the current defect list (living)
 
 Author-observed over the unit-gallery seeds, each verified against the code and a 4-preset ×
-200-seed probe of `Allocate → Fill` (small/mid/big/huge as in `tools/compose/unit-gallery.cs`).
+200-seed probe of `Allocate → Fill` (small/mid/big/huge as in `tools/compose/unit-gallery.cs`;
+the probe is `tools/compose/seat-probe.cs` — re-run it to re-measure this list).
 This list lives here — the live review record — rather than in a new document. An entry **leaves
 this list when its fix lands** (the commit references it); the fix work is board task **G106**.
 Each entry names the rule kind (§1.14 / map-generation.md) the fix belongs to, because most of
@@ -481,17 +482,27 @@ the board — `frontReach = w + 2` regardless of budget — so on big boards the
 whose form barely matters. Fix direction: scale reach with the budget (G104's territory), open
 the deeper forms (holed P / two-U-on-I — G100; the F3 L-form single), and make hub-form ×
 front-form a real **pairing menu** (today one hard-coded preference in the filler). Kind:
-budget **fact** + **menu**.
+budget **fact** + **menu**. *Small note (author, low weight): a thin front is not always wrong —
+an intentional narrow choke that widens again is sometimes wanted on **small** boards (not big
+ones), so the eventual rule is per-size, not a blanket minimum. A possible later home is the
+fragmentation step (cutting voids into a box shape rather than only converting land→build) —
+parked; the rule-based path stays preferred.*
 
 **F6 — The donut wool is a 2:1 sliver.** The donut approach reads stretched. Probe: every donut
 box is exactly **10×5** (or 5×10) — the min box. Mechanism: `MinBox(Donut)` chains stub (`cw`) +
 ring (`3·cw`) + trailing wool room (`rd`) along one axis at minimum height, and the allocator
 sizes rich wools at exactly the min box, so the donut is *always* the sliver; the emitter would
-round the ring out if given height (`ringH = H`). Fix direction: give the donut box headroom
-above the min (a preferred aspect on the demand, not the minimum), and/or use `woolAtEnd` (the
-corner-integrated wool, dropping the trailing room) in production. Kind: the min box is a
-**fit-gate fact** being misused as the *target* size — the demand should carry a preferred
-aspect.
+round the ring out if given height (`ringH = H`). The deeper root (author): the sliver is not
+*required* — every internal dimension of the shape (legs, bars, even the hole) is keyed to the
+**one lane width picked up front** for the whole map, but in reality widths mix — some areas are
+3 wide, some 2 — and **the generation cannot express a per-area / per-piece width yet** (today's
+vocabulary is the map `w` plus the single wool-lane override). Decoupling the non-lane
+dimensions (the hole, the ring bars) from `cw` shrinks the donut below its current minimum.
+Fix direction: the per-piece width as a **knob** in the emitters (a vocabulary addition), plus
+box headroom above the min (a preferred aspect on the demand, not the minimum) and/or
+`woolAtEnd` (the corner-integrated wool, dropping the trailing room) in production. Kind: the
+min box is a **fit-gate fact** being misused as the *target* size, and the uniform width is a
+missing **knob**.
 
 **F7 — The clamp's void is too deep.** The clamp's legs run too long — the void cap below the
 clamped wool is oversized. Probe: void depth below the wool = **4 cells (20 blocks)** in every
