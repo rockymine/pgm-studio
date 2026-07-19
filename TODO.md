@@ -129,8 +129,10 @@ rules sit in the right layer, understand the budget, and grow the hubs. G102 →
   each with mechanism and fix direction: **F1** no inter-seat gap (neighbour lanes abut — up to 100/200 units
   on huge), **F2** lanes flush against a branch hub's legs at mass-adjacent run ends (the build-surface
   clearance law — measured low-volume, 27/2/1/1 units, all branch hubs; the naive `along + 2` form of the rule
-  would refuse 30–50% of all docks, so it must bind at **non-corner** run ends only, and §9 records a
-  higher-volume adjacent mode — a lane owning a whole hub side — awaiting an author call),
+  would refuse 30–50% of all docks, so it must bind at **non-corner** run ends only. The higher-volume adjacent
+  mode §9 separates — a wool owning a whole hub side — is **ruled not a defect**: a forced small-board artifact,
+  bad only where hub and lane combine into a flat slab with no bay/notch, and then a small-board frontline
+  question, not a spacing law),
   **F3** the single frontline is a centred tiny-stub T and the form menu silently collapses to
   it at `w3` (the twin never fits), **F4** twin legs always equal (per-arm length + depth-aware face offers),
   **F5** square-on-square hub+frontline (reach doesn't scale — pairs with G104/G100), **F6** the donut always

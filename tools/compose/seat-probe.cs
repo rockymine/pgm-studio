@@ -27,7 +27,8 @@ foreach (var (label, players, land) in presets)
     // F2, the zero-margin run-end dock: a lane flush against a run end that is NOT a box corner — the wall
     // where the body's mass stops mid-edge (a leg). Counted apart from the whole-EDGE dock, which is flush at
     // two box corners instead (the corner law's territory, inset 0 by design) and leaves the hub side with no
-    // free surface at all — a different observation that the two would otherwise be conflated into.
+    // free surface at all. The two read alike and are not: the whole-edge dock is NOT a defect (§9) — it is a
+    // forced small-board fit, tracked here only so it stays separated from F2, so this counter never goes quiet.
     int f2LegWall = 0, f2LegWallBranch = 0, f2LegWallDocks = 0, sideOwned = 0, sideOwnedDocks = 0;
     int docks = 0, tightRuns = 0;                        // per-dock: how many runs the proposed `along + 2` rule would refuse
     var frontForms = new Dictionary<string, int>();

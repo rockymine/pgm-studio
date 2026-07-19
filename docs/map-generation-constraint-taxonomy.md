@@ -460,15 +460,25 @@ rule cascades into re-seats and allocation failures on the small preset. Kind: a
 build-surface clearance ("a cell between a lane and attachable hub surface"), the compose-side
 twin of §4's room-clearance guard.
 
-*Adjacent mode the probe separates (not yet an entry — it may be intended).* A lane can cover a
-whole hub side end to end, flush at both **box corners**, leaving that edge no free surface for
-anything to attach to: **103/82/33/38** units per 200, an order of magnitude more common than F2
-proper. This is **permitted by design** today — the corner law sets `CornerClearanceCells = 0`
-precisely so "the neighbours may use the hub's full edge (which the side-tuck wool and the wide
-frontline face want)" — and on the small preset the hub is always 4×4, so a 4-wide spawn owning a
-side is near-unavoidable at that budget. Whether a *wool/spawn* lane (as opposed to the frontline
-face) should be allowed to consume an entire side is an open author call; if it should not, it
-becomes its own entry with its own law, and it is the mode worth fixing first by volume.
+*Adjacent mode the probe separates — measured, and ruled **not a defect** (author).* A lane can
+cover a whole hub side end to end, flush at both **box corners**: **103/82/33/38** units per 200,
+an order of magnitude more common than F2 proper, and **always a wool** (280/280 whole-side docks
+over the four presets; never a spawn, whose length runs outward so it only ever abuts `w` cells).
+It is permitted by design — the corner law sets `CornerClearanceCells = 0` precisely so "the
+neighbours may use the hub's full edge (which the side-tuck wool and the wide frontline face
+want)".
+
+The full dock is **fine in itself**. It reads badly only in a narrow sub-case: when the wool lane
+edge and the hub edge run **parallel the whole way** and the two masses combine into a flat slab —
+**no bay or notch** formed at their join. Where the wool's own body articulates the join (a w2 lane
+widening to its room, the common case — small seed 4) there is nothing wrong with it. The fix, if
+that sub-case is ever worth chasing, is a **small frontline** on small boards, not a spacing law.
+
+Not scheduled, and deliberately not an F-entry: it is a **small-board** artifact, and the small
+board is low-value — at 700 land the hub is always 4×4 while the smallest wool footprint is
+already 4 (side-tuck `I`, `cw + rd × 2·cw`) or 5 (`L`), so the seat is forced, not chosen. It
+fades as budgets rise (103 → 82 → 33 → 38) exactly as hubs outgrow the wool minimum. Small-board
+layout issues are expected for now.
 
 **F3 — The centred-stub single frontline (the "T").** Two-piece frontlines are always a T: a
 tiny stub (reach − cw = 2 cells) centred on the bar — build regions attach poorly around it; a
