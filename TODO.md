@@ -129,9 +129,11 @@ in `BACKLOG.md`.)*
       place (the donut's lateral mouth transposes). The **w2 wool-lane split** (`WoolLaneCells`) sizes/offers wools
       at `w2` regardless of the map's `w`, shrinking a staple's mouth to fit — so the two-leg staples (`U`/`H`/
       clamp) dock their full mouth on a cap-6 hub (land ≥ 3000; big teams), demoting to `L` where the edge is
-      narrower. **Remaining**: the deeper `Z`; the **`scythe`** (gated from the production menu — its bay seals a
-      flush dock, WL8 — so it needs the G80 shape-relative docking, not just sizing); and the **spawn `L`** (the
-      same overhang, on the spawn box).
+      narrower. **Remaining — the last two wool shapes (the immediate next slice):** the deeper `Z` (a compact
+      add over the overhang path), and the **`scythe`** (still gated from the production menu — its bay seals a
+      flush dock against the host, WL8 — so it needs the G80 **shape-relative bay docking**, not just sizing);
+      plus the **spawn `L`** (the same overhang, on the spawn box). This finishes the wool shape set → then the
+      consolidation + reality-check pass, **G102–G105** below.
     - **Hub-floor refinement** — the frontline / twin-recess / wool-c clearance floors the grower's `HubVFloor`
       encodes (today a simplified `w+2` floor).
     - **CT1 / LN2 invariants by construction** — ≥10-block image clearance (orbit images stay separate islands)
@@ -145,4 +147,38 @@ in `BACKLOG.md`.)*
   fill-to-`LandTargetCells` **directed repair** (retiring `SolveDepth`/`SolveWidth`/`spawnLen`) — it resizes shapes
   to hit the budget, which grows them further, the opposite of what the seeds need; parked in `BACKLOG.md` to be
   reconsidered as a targeted rule, not a solver.* Depends on G63-B, **G88, G89**. (review §4.2, §4.4, §4.5, §7.7)
+
+*(The next-session arc, once the wool shape set is complete (Z/scythe above): with every shape now placeable,
+stop adding and instead **consolidate, reality-check, and enrich** — clean the allocator, verify the placement
+rules sit in the right layer, understand the budget, and grow the hubs. G102 → G105, roughly in order.)*
+
+- [ ] **G102 — Clean up `TeamUnitAllocator`.** Now that the shape set is frozen, the `Demands`/`Seat` methods
+  have accumulated a lot of inline policy — `BentWoolChance`/`DonutChance`/`StapleChance`/`ClampAdjacentChance`/
+  `SideRoomChance`, the wool-length rule, and the overhang / full-mouth / demote-to-`L` / inline-`I`-fallback
+  branches all threaded together. Consolidate into a small **wool-shape planner** that returns
+  `(family, placement, box, woolAtEnd)` from the budget + the hub edge, and a **cleaner seat dispatch** (overhang
+  vs full-mouth vs fallback as named paths, not nested conditionals). **No behaviour change** — same seeds, same
+  layouts, same 0 pinches; a pure readability/structure pass so the later rule work has a clean surface.
+
+- [ ] **G103 — Reality-check the rule kinds (§1.14) against the placed shapes.** With the shapes placing, audit
+  `map-generation.md` §1.14 (the rule kinds — fact / term / knob / … , the ~12) and §1.13 (the edge taxonomy)
+  against what the allocator actually does: do the placement rules it now applies — offer widths, corner
+  clearance (now 0), the wool-length rule, the staple/clamp full-mouth demand, the form-answers-form choices —
+  map cleanly onto declared rule kinds, or are some ad-hoc policy that should be a **fact**, a **term**, or a
+  **derived offer**? Where a rule sits in the wrong layer, name it and file the move. Goal: the shapes are placed
+  by rules that live where the taxonomy says they should. (Pairs with G102 — the cleanup surfaces the policy this
+  audits.)
+
+- [ ] **G104 — Investigate the budget.** The two-currency budget (land vs build, §1.10) drives every box's
+  size, but the seeds still under/over-fill and the fill-to-`LandTargetCells` repair is parked as
+  counterproductive. Instrument the allocator's budget accounting (`flexible` / `woolShare` / the hub-cap
+  ladder) and work out what the budget *should* produce per box kind at each team size — sensible hub / wool /
+  frontline proportions — **before** wiring any repair. This is the input G105 needs (how much hub a budget
+  warrants).
+
+- [ ] **G105 — Bigger, better hub shapes.** Beyond the in-switch hub-form-richness slice above (handedness /
+  `mirror_x` / `Double-hole` ≥ 9 / L-with-frontline): raise the hub caps and add richer big-team forms (the
+  cap-6 ceiling is what keeps the staples rare), and improve the **form → size fit** so a large budget reads as
+  an interesting hub (ring / stamp / holed / negative-space) rather than a bland big rectangle. Depends on
+  **G104** (the budget decides how much hub is warranted) and builds on the G63-C hub-form work.
 
