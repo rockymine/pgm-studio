@@ -75,7 +75,7 @@ in `BACKLOG.md`.)*
   - **C.2 — the last two wool shapes + the spawn `L` (the immediate next slice).** The deeper `Z` (a compact add
     over the overhang path); the **scythe** (still gated from the production menu — its bay seals a flush dock
     against the host, WL8, so it needs the G80 **shape-relative bay docking**, not just sizing); the **spawn `L`**
-    (the same seat-and-shift overhang, on the spawn box). Finishes the shape set → then G103–G106 below.
+    (the same seat-and-shift overhang, on the spawn box). Finishes the shape set → then G104–G106 below.
   - **C.2 — hub-form richness.** `L` **handedness** (its arm sits on a fixed side — choosing it would cover
     back+right as well as back+left); `Double-hole` needs a hub **wider than the current caps** (≥ 9); the vertical
     flip only orients the **z-frames** — `mirror_x` (front = a lateral edge) needs a rotation, not a flip; and an
@@ -99,18 +99,9 @@ in `BACKLOG.md`.)*
 
 *(The next-session arc, once the wool shape set is complete (Z/scythe above): with every shape now placeable,
 stop adding and instead **consolidate, reality-check, and enrich** — clean the allocator, verify the placement
-rules sit in the right layer, understand the budget, and grow the hubs. G103 → G106, roughly in order; the
-G102 allocator cleanup that opened the arc has landed.)*
-
-- [ ] **G103 — Reality-check the rule kinds (§1.14) against the placed shapes.** With the shapes placing, audit
-  `map-generation.md` §1.14 (the rule kinds — fact / term / knob / … , the ~12) and §1.13 (the edge taxonomy)
-  against what the allocator actually does: do the placement rules it now applies — offer widths, corner
-  clearance (now 0), the wool-length rule, the staple/clamp full-mouth demand, the form-answers-form choices —
-  map cleanly onto declared rule kinds, or are some ad-hoc policy that should be a **fact**, a **term**, or a
-  **derived offer**? Where a rule sits in the wrong layer, name it and file the move. Goal: the shapes are placed
-  by rules that live where the taxonomy says they should. The G102 cleanup put every tunable in one place at the
-  top of `TeamUnitAllocator` in three labelled groups (size ladders · shape mix · geometry) — that block is this
-  audit's worklist.
+rules sit in the right layer, understand the budget, and grow the hubs. G104 → G106, roughly in order; the
+G102 cleanup and the G103 rule-kind audit that opened the arc have landed — G103's five filed moves
+(G107–G111) are in `BACKLOG.md`.)*
 
 - [ ] **G106 — Fix the observed seat/emit failure modes (taxonomy doc §9).** The author-observed defect list,
   verified + quantified in `docs/map-generation-constraint-taxonomy.md` §9 (re-measure with
@@ -128,8 +119,9 @@ G102 allocator cleanup that opened the arc has landed.)*
   (the `woolAtEnd` half landed — corner-wool donuts are 8×5; what remains is the root: every dimension keys to
   the one map-wide lane width, so **per-piece width is the missing knob**, shared with G105. The preferred-aspect
   route is closed — the per-wool budget share, 4–44 cells, is below the donut's own 50-cell minimum everywhere,
-  a finding for G104). *(F7, the clamp's over-deep void, is fixed and gone.)* F1/F2 are the spacing laws G103
-  should name first; F3–F5 are emitter/menu work. An entry leaves §9 when its fix lands.
+  a finding for G104). *(F7, the clamp's over-deep void, is fixed and gone.)* F1/F2 are the spacing laws — G103
+  named them and measured what F1's gap must be sized against (**G110**, WL7/WL2); F3–F5 are emitter/menu work.
+  An entry leaves §9 when its fix lands.
 
 - [ ] **G104 — Investigate the budget.** The two-currency budget (land vs build, §1.10) drives every box's
   size, but the seeds still under/over-fill and the fill-to-`LandTargetCells` repair is parked as

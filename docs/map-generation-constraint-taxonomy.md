@@ -545,3 +545,129 @@ addition — the same knob **G105**'s asymmetric ring needs). Kind: a missing **
 *(**F7 — the clamp's void too deep** — fixed and removed. `MinBox(Clamp)` had inherited the U's
 `2·cw + rd` height, but the clamp has no crossbar to clear: its legs only run from the wool down
 to the mouth, so `cw + rd` does it. Void depth below the wool went **4 cells → 2**.)*
+
+---
+
+## 10. The rule-kind reality check (G103)
+
+The audit §1.14 asked for: with the shapes now placing, do the placement rules the allocator
+actually applies map onto the declared rule kinds, or are some ad-hoc policy sitting in the wrong
+layer? Audited against `map-generation.md` §1.13/§1.14 and `layout-rules.md`, with measurements
+over 400 seeds × 4 presets.
+
+**The verdict.** The *shape-level* rules map cleanly — offers, fit gates, vetoes, gates and knobs
+all sit where the taxonomy says, and the corner clearance / full-mouth / form-fallback mechanisms
+are the right kinds in the right places. Two things are wrong, and neither is a rule in the wrong
+layer: **one declared kind has rotted out of the code**, and **a whole layer of what the allocator
+does has no address in the taxonomy at all**. Ungrounded constants are the third theme: most of the
+allocator's ladders trace to no law.
+
+### 10.1 One kind has no live representative: `demand`
+
+Every exemplar in the §1.14 table was checked against `src/`. Fourteen of sixteen are live.
+`ComposeTargets` is absent but *declared pending* (§1.14 says its type lands with G98) — fine.
+`FamilyDock.EntryDemand`, the exemplar for **demand**, is **gone**: G63-C.2 retired the dual-host
+`FamilyDock`/span machinery when it redefined the clamp, and the table still points at it.
+
+So the one kind with nothing behind it is `demand` — one half of the taxonomy's *first* load-bearing
+distinction ("**demand vs offer** is the direction of the arrow"). The other half is richly built
+out (`EdgeOffer` appears in seven files). The asymmetry is real, not cosmetic: what survives of the
+demand concept is `TeamUnitAllocator.Overhangs`, a private predicate that states it **by exclusion**
+— `family is L or Donut`, i.e. "these do *not* need two hosts". The clamp's two-entry requirement,
+the taxonomy's own exemplar, is now an implicit negation inside the allocator.
+
+### 10.2 The missing address: the structural sampler
+
+Most of `TeamUnitAllocator` is not shape-level rules at all. It is the layer that decides, from a
+budget, **how many** wools, **whether** a frontline, **how big** a hub, and **how often** each shape
+appears. The taxonomy has no kind for it. It shows up in two faces:
+
+**(a) The mix — a steering distribution.** Nine weights (`BentWoolChance` ·25–·5, `DonutChance`,
+`StapleChance`, `ClampAdjacentChance`, `DonutCornerWoolChance`, `SideRoomChance`, `RingChance`,
+`ThirdWoolChance`, `NoFrontlineInN`) plus six uniform picks (spawn side, staple family, spawn size,
+hub form, seat position, overhang placement). None of the kinds fits. `menu` is a *set* — "a
+generative allowlist, what may be chosen" — and carries no frequency. `band` carries a distribution
+but is explicitly **descriptive and advisory** ("bands never steer"), which is the opposite of what
+these do. A weighted generative distribution is a real, distinct kind and should be named — call it
+**mix**: it steers (unlike a band) and it carries frequency (unlike a menu).
+
+Naming it raises the question worth having: should a mix be **authored**, or **derived from a
+band**? LN1 is the case in point — it records a measured corpus frequency (width 10 ×81, 15 ×15),
+which is exactly a band over the same choice the allocator makes with a hard threshold.
+
+**(b) The ladders — budget→structure thresholds.** `WideLaneLand`, `FrontlineMinLand`,
+`TinyBoardLand`, `FullTeamPlayers`, `HubCapCells`. These are not facts (nothing is read off
+geometry), not menus, not fit gates. The closest declared kind is **target** — "a per-request,
+prescriptive constraint a compose holds and verifies" — and on reflection that is what they *should
+be*: they are per-compose prescriptions derived from the envelope. They differ from a target only in
+that nothing verifies them afterwards. **File: the ladders become derived `ComposeTargets` (G98).**
+
+### 10.3 The trace to law — which values are grounded
+
+| allocator rule | law | verdict |
+|---|---|---|
+| `WoolLaneCells = 2` | LN1 + §4 "the lane to the wool is simple, w2" | **grounded** |
+| `w = 3` above `WideLaneLand` | LN1 (10 base, 15 larger; corpus 81:15) | values grounded, **threshold invented** — LN1 states a *distribution*, the code makes it deterministic |
+| `WoolLengthRatio = 3` (max depth 5 cells = 25 blocks) | LN2 (20–50 before a junction/dead end) | **grounded** on the lower bound; the 50 cap is unimplemented |
+| `CornerClearanceCells = 0` | the mass-level corner law | **vestigial** — enforcement moved to `Cells.HasDiagonalPinch`; the constant now documents rather than acts |
+| `faceWidth` on the frontline joint | FR6 (split vs wide, band docks flush) | right kind (**offer**), law partially served |
+| `RingFitCells = 5` | geometry (`BodyEmitter.Ring` guards it itself) | right kind (**fit gate**), **duplicated** in the caller |
+| `HubCapCells` 6/5/4/3 | none — HB1 constrains *width*, not box size | **ungrounded** |
+| `FrontlineMinLand` (a unit may have no frontline) | none | **ungrounded** |
+| `TinyBoardLand`, `FullTeamPlayers` (wool count) | WL6 gives 1–3; G8 couples players↔land | range grounded, **thresholds invented** |
+| the six shape-mix weights | WL8 governs wool approach routes (single choke default, alternatives sometimes) | **ungrounded** — the donut *is* WL8's alternative-route case, but 0.25 derives from nothing |
+| `RingChance`, `ThirdWoolChance`, `NoFrontlineInN` | none | **ungrounded** |
+
+### 10.4 Laws the placement does not honour (measured)
+
+Measured over 400 seeds × 4 presets, on the **placed rooms** (not the boxes), in blocks:
+
+- **WL7 — wool↔wool separation. Systematically violated.** The law records a corpus of 46–143
+  blocks with a working minimum ≈45. The composer produces **min 21, median 41–55, max 87–98**, with
+  **31–53% of all wool pairs below 45** (small 100/189, mid 74/200, big 82/200, huge 212/690). The
+  closest pairs are less than half the corpus floor, and the whole distribution is compressed — the
+  composer's *maximum* (98) sits well below the corpus maximum (143). *Caveat (G1): the plan is a
+  mini layout and grid-born distances are resolved downstream by scale + roughen, so an absolute
+  block comparison is not decisive on its own. The distributional argument survives it — this is not
+  a constant offset, it is a narrower spread sitting at the corpus floor.*
+- **WL2 — wool↔spawn ≥ 20. Holds except on huge.** small/mid/big: **0 violations**, min exactly 20.
+  Huge: **111/930 pairs under 20, min 12** — this is the third wool doubling onto the spawn's own
+  side (`AssignWools`), the same construction behind the F1 spike.
+- **WL6 — 1–3 wools, each on a distinct lane. Holds.** No unit places two wools on one hub edge
+  (0/400 across all presets).
+- **HB4 (L/Z hub↔frontline composition) and FR6's wide frontline are unreachable**, not merely
+  unimplemented: a branch hub with a frontline falls back to the rectangle, so the Bar is never
+  chosen (§9 F3 measured 0/489). The law describes a composition the code cannot currently produce.
+
+WL7 and WL2 want the same lever as §9's **F1** (the inter-seat gap) — a separation rule in the seat
+step. They should be fixed together, and F1's fix should be sized against WL7's numbers rather than
+a bare 1-cell gap.
+
+### 10.5 Rules in the wrong layer
+
+- **The offer grouping is decided by the filler, by coin flip.** `TeamUnitFiller` picks
+  `rng.NextBool(0.5) ? Joint : Several`. Grouping is part of an **offer** (§1.14: "the edges/intervals
+  it invites neighbours onto, **in which groupings**"), and offers are the allocator's plan — it is
+  the allocator that writes joints. Worse, this is exactly **FR6**: joint vs several *is* wide vs
+  split frontline, an authored law about how the mid band docks. A coin flip stands in for it.
+- **The frontline's form choice is also the filler's.** `frontForm` picks Bar-for-branch-hub / else
+  staple-or-strand inside `TeamUnitFiller`, but form choice is declared the allocator's
+  (§5.5, and the allocator already "owns the hub-form choice"). The two halves of one decision —
+  hub form and the form that answers it — sit on opposite sides of the allocate/fill seam.
+- **`RingFitCells` restates a fit gate the shape already owns** (`BodyEmitter.Ring` throws, and
+  `HubBoxEmitter.BuildBody` converts that to a directed null). Harmless today, but it is a fit gate
+  duplicated in a caller, which is what the doctrine exists to prevent.
+
+### 10.6 A hypothesis that did not survive
+
+The staple's full-mouth check is made in the *demand* step against the hub's **bbox edge length**,
+before the form is chosen — while the dock actually lands on a free **run** of the chosen form,
+which on a branch or holed hub is shorter. That looked like a fit gate evaluated against the wrong
+surface one step too early. Measured: **0 disagreements out of 47 staples**. Staples only survive
+where the edge is wide, and there run == bbox edge; elsewhere they demote before it matters. No
+defect — recorded so it is not re-derived.
+
+### 10.7 Filed moves
+
+`G107` the demand kind · `G108` the mix kind · `G109` the ladders as targets · `G110` WL7/WL2 by
+construction · `G111` the frontline's offer decisions move to the allocator. All in `BACKLOG.md`.

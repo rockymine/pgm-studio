@@ -248,7 +248,7 @@ is **legal** (gate over demand / offer / veto), how a legal join **varies** (kno
 | **fact** | an observation off geometry, no policy | `BoxEdgeInterface.Intervals`, the edge taxonomy (§1.13), `FrontlineRuns` |
 | **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillProfiles.Families`, `FillMenu.Rows` |
 | **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
-| **demand** | a shape's requirement *on its environment* (inbound) | `FamilyDock.EntryDemand` (the clamp's two entries) |
+| **demand** | a shape's requirement *on its environment* (inbound) | *(no live type — `FamilyDock` was retired with the clamp's redefinition; the dual-entry requirement survives only as `TeamUnitAllocator.Overhangs`, stated by exclusion. See the taxonomy §10.1)* |
 | **offer** | constraints a shape imposes *outward* — the edges/intervals it invites neighbours onto, in which groupings | the hub's per-run widths (granted per dock on the joint), the frontline's face (G96) |
 | **veto** | a never-attach / never-publish mark | `SlotDockRole.NeverDock`, `PublishPolicy`'s bay/hole veto |
 | **gate** | the hard legality check applying demand/offer/veto, with a **directed rejection** | `DockingGate` → `DockRejection`, `PublishPolicy` → `PublishVerdict` |
