@@ -19,7 +19,7 @@ public sealed record EmittedHub(
 /// the neighbour's corridor width. The composer decides which offer each neighbour takes and drives the per-edge
 /// widths (G63-C); this emitter produces the body and the offers it sources.
 ///
-/// <para>Form menu (<see cref="Forms"/>, authored — §5.5): <b>Rectangle · L · U · Ring · P · Double-hole</b>,
+/// <para>Form menu (<see cref="Forms"/>, authored — §5.5): <b>Rectangle · L · U · Ring · P · Double-hole · G</b>,
 /// compact optionally-holed bodies, deliberately not Zig/Hook/the higher combs. Each is a <see cref="Compound"/>
 /// sized to fill the box, so its outward walls touch the box edges and become offers; a body too small for its
 /// form at the given <c>cw</c> is a <b>directed null</b>, not a throw. Pieces carry the hub <see cref="BoxRef"/>
@@ -28,10 +28,11 @@ public sealed record EmittedHub(
 public static class HubBoxEmitter
 {
     /// <summary>The hub's authored form menu as data — the <see cref="Compound"/> bodies a hub may be (§5.5). A
-    /// hub stays rectangle-ish, so the menu is the compact forms plus the two <b>wide holed</b> bodies a laterally
+    /// hub stays rectangle-ish, so the menu is the compact forms plus the <b>wide holed</b> bodies a laterally
     /// elongated hub affords: the solid Rectangle, the branch family at one arm (L) and two (U), the Ring, the
-    /// <b>P</b> (a loop on a longer bar — the bar's overhang is a long free run), and the <b>Double-hole</b> (a
-    /// ring + a docked U — two holes). The two wide forms need width ≥ 9 and fall back (a directed null) below it.</summary>
+    /// <b>P</b> (a loop on a longer bar — the bar's overhang is a long free run), the <b>Double-hole</b> (a ring +
+    /// a docked U — two equal holes), and the <b>G</b> (a ring + an L — the ring's hole plus a frontline-sealed bay,
+    /// asymmetric holes). The wide forms need width ≥ 9 and fall back (a directed null) below it.</summary>
     public static readonly IReadOnlyList<CompoundRead> Forms =
     [
         new(Compound.Rectangle),
@@ -40,6 +41,7 @@ public static class HubBoxEmitter
         new(Compound.Ring),           // one enclosed hole
         new(Compound.P),              // a loop on a longer bar — the overhang a long free run
         new(Compound.DoubleHole),     // a ring + a docked U — two holes
+        new(Compound.G),              // a ring + an L — the ring's hole + a frontline-sealed bay (asymmetric holes)
     ];
 
     /// <summary>Fill a hub <see cref="Box"/> (plan cells) as <paramref name="form"/> at wall/corridor width
@@ -85,6 +87,7 @@ public static class HubBoxEmitter
                 Compound.Ring => BodyEmitter.Ring(cw, w, h),
                 Compound.P => BodyEmitter.P(cw, w - 2 * cw, h, 2 * cw),                                         // loop of width w−bar, the bar overhanging by 2·cw
                 Compound.DoubleHole => BodyEmitter.DoubleHole(cw, w - 2 * cw, h, 2 * cw, h, 0),                 // ring left, a full-height U on its right (two equal holes) — fits a shallow-wide hub
+                Compound.G => BodyEmitter.G(cw, w - 2 * cw, h, w),                                              // ring left, an L on its right — the ring hole + a frontline-sealed bay
                 _ => throw new ComposeException($"the hub form menu excludes {form.Form}."),
             };
         }

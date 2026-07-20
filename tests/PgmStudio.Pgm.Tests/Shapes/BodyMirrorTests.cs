@@ -138,6 +138,20 @@ public sealed class BodyMirrorTests
         }
     }
 
+    // a G: a ring + an L — one enclosed void (the ring) plus an open three-walled bay (the L's recess). It reads
+    // G, distinct from the plain Ring / P (which have one void and no bay) at the one-void branch.
+    [Test]
+    public async Task G_reads_one_void_plus_a_bay_distinct_from_ring_and_P()
+    {
+        foreach (var cw in new[] { 2, 3 })
+        {
+            var g = BodyEmitter.G(cw, 4 * cw, 4 * cw, 6 * cw);
+            await Wellformed(g);
+            await Assert.That(Cells.Components(Cells.EnclosedVoid(CellsOf(g)))).IsEqualTo(1);   // only the ring is enclosed
+            await Assert.That(ShapeClassifier.ClassifyBody(CellsOf(g)).Form).IsEqualTo(Compound.G);
+        }
+    }
+
     // the double-hole's holes can be equal (a full-height U flush with the ring's bars) or variant (a shorter U
     // that slides along the edge) — both keep two voids apart by the solid ring leg and read DoubleHole.
     [Test]

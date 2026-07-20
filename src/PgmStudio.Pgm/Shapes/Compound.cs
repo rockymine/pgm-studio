@@ -18,10 +18,13 @@ namespace PgmStudio.Pgm.Shapes;
 /// wall (contrast <see cref="TwoUOnI"/>).</item>
 /// <item><see cref="P"/> — a ring whose bottom bar runs longer than the loop, so the loop slides along it; one
 /// void with an overhang (the P/b/d glyph).</item>
+/// <item><see cref="G"/> — a ring with an L docked on its edge: one enclosed void (the ring) plus an <em>open</em>
+/// bay (the L's recess, three-walled) that a docking frontline seals into a taller hole — the asymmetric,
+/// open-bay cousin of <see cref="DoubleHole"/> (the G glyph).</item>
 /// <item><see cref="TwoUOnI"/> — two loops sharing one baseline: two voids kept apart by an <em>open</em> channel.</item>
 /// </list>
 /// </summary>
-public enum Compound { Rectangle, SpineArms, Ring, DoubleHole, P, TwoUOnI }
+public enum Compound { Rectangle, SpineArms, Ring, DoubleHole, P, G, TwoUOnI }
 
 /// <summary>A body's derive-side read: the <see cref="Compound"/> it classifies to and, for
 /// <see cref="Compound.SpineArms"/>, the arm count <see cref="Arms"/> (0 for every other form). The mirror closes

@@ -118,10 +118,10 @@ public class HubBoxEmitterTests
     [Test]
     public async Task The_wide_holed_forms_fill_a_wide_box_and_fall_back_below_width_9()
     {
-        // P (loop + overhanging bar) and Double-hole (ring + full-height U) need width >= 9 at cw 2; on an 11x6
-        // box both build — terminal-free, hub-labeled, each with an enclosed hole — and offer a long free run
+        // P (loop + overhanging bar), Double-hole (ring + full-height U) and G (ring + L) need width >= 9 at cw 2;
+        // on an 11x6 box all build — terminal-free, hub-labeled, each with an enclosed hole — and offer a long run
         var wide = new Box("hub", BoxKind.Hub, [0, 0, 11, 6], 66);
-        foreach (var form in new[] { Compound.P, Compound.DoubleHole })
+        foreach (var form in new[] { Compound.P, Compound.DoubleHole, Compound.G })
         {
             var hub = HubBoxEmitter.Fill(wide, new CompoundRead(form), cw: 2)!;
             await Assert.That(hub).IsNotNull().Because($"{form} should fill an 11x6 hub");
@@ -130,8 +130,9 @@ public class HubBoxEmitterTests
             await Assert.That(hub.Pieces.Any(p => p.Slot == ApproachSlots.Room)).IsFalse();
             await Assert.That(hub.Offers.Max(o => o.Interval.LengthCells)).IsGreaterThanOrEqualTo(6);
         }
-        // below width 9 both directed-null (the box is too small for the loop/ring), not throw
+        // below width 9 all three directed-null (the box is too small for the loop/ring), not throw
         await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.P), cw: 2)).IsNull();
         await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.DoubleHole), cw: 2)).IsNull();
+        await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.G), cw: 2)).IsNull();
     }
 }

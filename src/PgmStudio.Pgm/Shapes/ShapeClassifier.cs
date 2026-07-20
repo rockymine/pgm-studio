@@ -146,7 +146,9 @@ public static class ShapeClassifier
         if (voids.Count == 2)
             return new(ChannelBetween(cells, voids[0], voids[1]) ? Compound.TwoUOnI : Compound.DoubleHole);
         if (voids.Count == 1)
-            return new(Cells.ReflexCorners(cells) > 4 ? Compound.P : Compound.Ring);
+            // a ring + an L reads as one enclosed void plus a three-walled bay (the L's open recess); a plain ring
+            // or a P (loop on a longer bar — its concavities are two-walled notches) has no bay
+            return new(HasBay(cells) ? Compound.G : Cells.ReflexCorners(cells) > 4 ? Compound.P : Compound.Ring);
         if (voids.Count != 0) throw new ArgumentException($"no body form has {voids.Count} voids.");
 
         var (mnx, mnz, mxx, mxz) = Cells.BoundingBox(cells);
@@ -168,6 +170,33 @@ public static class ShapeClassifier
             comps.Add(comp);
         }
         return comps;
+    }
+
+    // true when the body's bounding-box complement holds a BAY — a connected empty region walled on exactly three
+    // of the four axis directions (the fourth open to the bounding-box edge). The G's L-recess is one; a ring has
+    // none (its only empty region is the 4-walled enclosed hole), and a P's concavities beside the loop are
+    // 2-walled notches. Runs only in the one-void branch, so the enclosed hole (walled 4) never counts.
+    private static bool HasBay(IReadOnlySet<(int, int)> cells)
+    {
+        var (mnx, mnz, mxx, mxz) = Cells.BoundingBox(cells);
+        var empty = new HashSet<(int, int)>();
+        for (var x = mnx; x <= mxx; x++)
+            for (var z = mnz; z <= mxz; z++)
+                if (!cells.Contains((x, z))) empty.Add((x, z));
+
+        var seen = new HashSet<(int, int)>();
+        foreach (var start in empty)
+        {
+            if (!seen.Add(start)) continue;
+            var comp = new HashSet<(int, int)> { start };
+            var q = new Queue<(int, int)>(); q.Enqueue(start);
+            while (q.Count > 0) { var d = q.Dequeue(); foreach (var n in Cells.N4(d)) if (empty.Contains(n) && seen.Add(n)) { comp.Add(n); q.Enqueue(n); } }
+            var walled = 0;
+            foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                if (comp.Any(p => cells.Contains((p.Item1 + dx, p.Item2 + dz)))) walled++;
+            if (walled == 3) return true;
+        }
+        return false;
     }
 
     // two voids kept apart by an OPEN channel (⇒ two-U-on-I) rather than a solid wall (⇒ double-hole): the band

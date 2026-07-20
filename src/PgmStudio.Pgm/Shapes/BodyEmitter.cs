@@ -141,6 +141,32 @@ public static class BodyEmitter
         ]);
     }
 
+    /// <summary>A ring with an <b>L docked on its right edge</b> — the G glyph. Unlike the <see cref="DoubleHole"/>'s
+    /// U (two arms closing an enclosed bay), the L is a single upright plus the shared bottom bar as its foot, so its
+    /// recess is a <b>bay open at the top</b> (three walls: the ring's right leg, the L's upright, the bottom bar) —
+    /// a second void the docking frontline seals flush into a <b>taller hole</b>, beside the ring's smaller one. The
+    /// body carries one enclosed void (the ring); the bay is the derive-side second space. <paramref name="ringW"/>×
+    /// <paramref name="ringH"/> is the ring; the upright sits at the box's right edge (width <paramref name="w"/>),
+    /// the bay between it and the ring. Bars are <see cref="ApproachSlots.Bar"/>, uprights/legs
+    /// <see cref="ApproachSlots.Leg"/>.</summary>
+    public static ShapeBody G(int cw, int ringW, int ringH, int w)
+    {
+        if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2.");
+        if (ringW < 2 * cw + 1 || ringH < 2 * cw + 1) throw new ArgumentException($"ring {ringW}x{ringH} is too small for a G at cw {cw}.");
+        if (w < ringW + cw + 1) throw new ArgumentException($"width {w} leaves no bay + upright past the ring {ringW} at cw {cw}.");
+        // built bay-opening-DOWN (the shared bar on top, the L's foot part of it), so the hub's vertical flip turns
+        // the open side toward the front — the branch convention, so a docking frontline seals the bay into a hole
+        var pieces = new List<(int[] Rect, string Slot)>
+        {
+            ([0, 0, w, cw], ApproachSlots.Bar),                          // the shared top bar (ring top + the L's foot)
+            ([0, ringH - cw, ringW, cw], ApproachSlots.Bar),            // ring bottom bar
+            ([0, cw, cw, ringH - 2 * cw], ApproachSlots.Leg),           // ring left leg
+            ([ringW - cw, cw, cw, ringH - 2 * cw], ApproachSlots.Leg),  // ring right leg — the bay's left wall
+            ([w - cw, cw, cw, ringH - cw], ApproachSlots.Leg),          // the L's upright — the bay's right wall, down to the open edge
+        };
+        return new ShapeBody(pieces, [Hole(cw, cw, ringW - 2 * cw, ringH - 2 * cw)]);   // one enclosed void (the ring); the bay opens down
+    }
+
     /// <summary>Two loops sharing one baseline — two enclosed voids kept apart by an <b>open</b> channel (twin
     /// loops on an I, §5). A full-width baseline <see cref="ApproachSlots.Bar"/>, two top-bar
     /// <see cref="ApproachSlots.Bar"/>s (one per loop) with a gap between them, and four

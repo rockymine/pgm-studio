@@ -221,15 +221,19 @@ public static class TeamUnitAllocator
     /// <summary>Choose the hub form for a <paramref name="boxW"/>×<paramref name="boxH"/> box (real cell dims, the
     /// frame having mapped the wide lateral axis onto width). A <b>wide</b> box (width ≥ <see cref="WideHubCells"/>,
     /// height ≥ <see cref="RingFitCells"/>) affords the <b>wide holed bodies</b> — the P (a loop on a long overhanging
-    /// bar) and the Double-hole (a ring + a docked U), whose long runs are free surface — sampled alongside the
-    /// elongated ring. A <b>big square-ish</b> box (both ≥ <see cref="RingFitCells"/>) is too much solid area for the
+    /// bar), the Double-hole (a ring + a docked U, two equal holes), and the G (a ring + an L, the ring's hole plus a
+    /// frontline-sealed bay — asymmetric holes), whose long runs are free surface — sampled alongside the elongated
+    /// ring. A <b>big square-ish</b> box (both ≥ <see cref="RingFitCells"/>) is too much solid area for the
     /// budget, so it prefers negative space: mostly the ring, else a branch body. A small or thin box stays the
     /// compact solid/branch menu (the wider forms would directed-null and fall back).</summary>
     private static CompoundRead ChooseHubForm(int boxW, int boxH, ComposeRng rng)
     {
         if (boxW >= WideHubCells && boxH >= RingFitCells)
             return rng.Pick(new[]
-                { new CompoundRead(Compound.P), new CompoundRead(Compound.DoubleHole), new CompoundRead(Compound.Ring) });
+            {
+                new CompoundRead(Compound.P), new CompoundRead(Compound.DoubleHole),
+                new CompoundRead(Compound.G), new CompoundRead(Compound.Ring),
+            });
         if (boxW >= RingFitCells && boxH >= RingFitCells)
             return rng.NextBool(RingChance) ? new CompoundRead(Compound.Ring)
                 : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.SpineArms).ToList());

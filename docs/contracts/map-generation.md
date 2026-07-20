@@ -616,11 +616,12 @@ verifies.
   joint** was granted (that grant is the `cw` the neighbour reads). The grant is per dock, not per edge and
   not per run — two neighbours can share one run at two widths (a third wool doubling onto the spawn's side),
   so an edge- or run-keyed width would hand one of them the other's `cw`.
-  Form menu (authored): **Rectangle · L · U · Ring · P · Double-hole** — compact and (on a laterally
+  Form menu (authored): **Rectangle · L · U · Ring · P · Double-hole · G** — compact and (on a laterally
   elongated hub) **wide holed** bodies; deliberately *not* Zig, Hook, the higher combs, or TwoUOnI (a hub
   stays rectangle-ish). The hub grows **wider, not squarer** — the lateral span uses a larger cap than the
   depth, so the long edge gives neighbours room to attach and reaches the width ≥ 9 the P (loop + overhanging
-  bar) and Double-hole (ring + full-height U) need. Its edges' free surface (§1.13) is what the spawn, wool,
+  bar), Double-hole (ring + full-height U, two equal holes), and G (ring + an L, the ring's hole plus an open
+  bay the docking frontline seals into a taller hole — asymmetric holes) need. Its edges' free surface (§1.13) is what the spawn, wool,
   and frontline boxes attach onto — generalizing today's "four edges of the solid rect" to any body's
   offerable surface. (G88; wide forms + elongation G105.)
 - **Frontline** — a body + one edge marked the **`face`** (where the fanned images meet), docking the
