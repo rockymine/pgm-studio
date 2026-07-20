@@ -1023,7 +1023,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cannot hold gapped — restoring it is the hub-growth work, G105). Closes §9 F1 (spawn/wool) + WL2; the frontline
   keeps no neighbour gap (build-zone's rule). Pgm suite 690/690. (G110 · taxonomy §9 F1, §10.4)
 
-- **No-frontline front guard — no neighbour flush with the hub front face** — `Compose/TeamUnitAllocator.cs`: on a
+- **No-frontline front guard — no neighbour flush with the hub front face** — `Compose/FrontGuard.cs` (the
+  deterministic post-pass: buffer/`Backness`, the slide, `Resolve`) + `Compose/TeamUnitAllocator.cs` (applies it
+  while seating): on a
   frontline-less unit a spawn/wool ending flush with (or past) the hub's front face extends it into **one long flat
   frontier** — hub front + neighbour front reading as a single straight edge (the reported defect: flat front runs
   up to 20 cells) — which map design forbids. The guard now covers every dock, as **law**: an overhang wool
