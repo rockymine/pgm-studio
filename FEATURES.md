@@ -1023,6 +1023,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cannot hold gapped — restoring it is the hub-growth work, G105). Closes §9 F1 (spawn/wool) + WL2; the frontline
   keeps no neighbour gap (build-zone's rule). Pgm suite 690/690. (G110 · taxonomy §9 F1, §10.4)
 
+- **No-frontline front guard — overhang wools bend back off the hub front** — `Compose/TeamUnitAllocator.cs`: on a
+  frontline-less unit an overhang wool (L / donut) on a lateral edge could spike across the empty no-man's-land in
+  front of the hub, reaching well past its front face. The seat-and-shift now **prefers the placement furthest
+  behind the front face** (`Backness` over the placements it already generates): buffered-behind (≥ 1 cell back)
+  first, then at-least-behind, and only when *every* placement overreaches does it revert to a compact I (which
+  sits behind) rather than keep the spike. A preference, not a rejection — the shape is kept and bent back / flipped
+  wherever a backward placement exists (donuts and roomy hubs). With a frontline the guard does not apply (the front
+  is occupied). No-frontline overhangs reaching past the front: **0**; Pgm suite 692/692. (front-guard · G114 filed)
+
 - **Elongated hubs + the wide holed forms P, Double-hole, and G** — `Compose/HubBoxEmitter.cs` +
   `TeamUnitAllocator.cs` + `Shapes/BodyEmitter.cs`/`ShapeClassifier.cs`: the hub grows **wider, not squarer**. Its
   lateral span reads a larger cap (`HubWideCap` 5/7/9/11 by land) than its depth (`HubCapCells` 3/4/5/6), so the

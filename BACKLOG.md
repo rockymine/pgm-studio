@@ -312,6 +312,14 @@ ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant �
   seat step P-aware: keep dockers off the short ends and onto the long bar / loop runs (or bias `ChooseHubForm` to
   pick `P` only when the plan's neighbours fit its long edges), so the wide form the allocator chose survives
   instead of diluting into rect. Builds on **G105**.
+- [ ] **G114 — Along-mirror so a tight-hub L bends back instead of reverting to I.** The no-frontline front guard
+  (`FEATURES.md`) prefers the overhang placement furthest behind the hub front, but on **tight hubs** (esp. the small
+  preset, where every unit is frontline-less and hubs are 3–4 cells) the seat-and-shift generates only **one** L
+  placement and it overreaches — because the L's room is fixed at the **front end of its box** and neither of
+  `SeatOverhang`'s flips (an x-mirror) moves it to the back. So those L's revert to a behind-the-front I (small: L
+  86→54). Add the **along-axis mirror** to the overhang emission (`ShapeEmitter`/`BoxFiller.EntryOn` + a second flip
+  dimension on `WoolFill`) so an L can put its room at the back of its box — then the tight-hub L bends back (the
+  author's `moved`-plan behaviour) rather than falling to I. Builds on the front guard.
 - [ ] **G113 — Restore the third wool on huge (spawn/doubling on the wide edge).** The seat gap (G110) drops the
   huge third wool because it doubles onto the spawn's own edge, which a hub cannot hold gapped unless that edge is
   the wide one — and the spawn lands on a random side (huge is 196/200 two-wool now). With the elongated hub

@@ -124,6 +124,14 @@ public static class TeamUnitAllocator
     /// boards). Keeping wool families at w2 makes them compact and lets a staple's 3-lane mouth fit a hub edge.</summary>
     private const int WoolLaneCells = 2;
 
+    /// <summary>When a unit has <b>no frontline</b>, the buffer kept behind the hub's front face (5 blocks): an
+    /// overhanging wool prefers to sit at least this far back, so its body bends away from the axis rather than
+    /// spiking across the empty no-man's-land in front of a frontline-less hub. This is a <b>preference</b>, not a
+    /// hard gate — the seat-and-shift picks the placement furthest behind the front from the ones it already
+    /// generates (bending the shape back / flipping it), and only overreaches when the hub leaves no room; it
+    /// never drops the shape to an <c>I</c> on account of the buffer alone.</summary>
+    private const int FrontGuardCells = 1;
+
     /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells. Zero under the
     /// mass-level corner law: two neighbours on adjacent hub sides meet only at the hub's own corner cell, which
     /// the hub fills — a ¾-solid bridged corner, never a pinch — so no clearance is needed and the neighbours may
@@ -210,9 +218,9 @@ public static class TeamUnitAllocator
         // seat the demands on its free edges; fall back to the solid rectangle (four full edges) when the offerable
         // surface can't host
         var sampled = ChooseHubForm(hubRect[2], hubRect[3], rng);
-        var seating = Seat(sampled, hubRect, frame, w, demands, rng);
+        var seating = Seat(sampled, hubRect, frame, w, demands, rng, noFront: !hasFrontline);
         if (seating is null && sampled.Form != Compound.Rectangle)
-            seating = Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, w, demands, rng);
+            seating = Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, w, demands, rng, noFront: !hasFrontline);
         if (seating is not { } s) return null;
 
         return (new BoxPartition(s.Boxes, s.Joints), frame.TowardAxis);
@@ -336,13 +344,15 @@ public static class TeamUnitAllocator
     /// seated neighbour boxes and their hub joints, or <c>null</c> when the box is too small for the form or a
     /// demand finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
     private static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(
-        CompoundRead form, int[] hubRect, Frame frame, int w, IReadOnlyList<Demand> demands, ComposeRng rng)
+        CompoundRead form, int[] hubRect, Frame frame, int w, IReadOnlyList<Demand> demands, ComposeRng rng,
+        bool noFront)
     {
         int boxW = hubRect[2], boxH = hubRect[3];
+        var frontEdge = SideEdge(frame, UnitSide.Front);
         // orient the form so its open feet face the unused front (SP: the frontline's side) and its solid edges
         // cover the demanded back/laterals — a vertical flip when the front is the box's top edge (every z-frame);
         // symmetric forms (Rectangle, Ring) are unaffected, so this is safe to apply uniformly
-        var flipV = SideEdge(frame, UnitSide.Front) == BoxEdge.Top;
+        var flipV = frontEdge == BoxEdge.Top;
         var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form, flipV);
         if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, flipV: flipV) is not { } hub) return null;   // too small
 
@@ -378,7 +388,10 @@ public static class TeamUnitAllocator
             // docks its full along-edge.
             if (d.Wool is { } rich && Overhangs(rich.Family))
             {
-                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, offerW, w, rng) is { } placed)
+                // no frontline ⇒ prefer the overhang placement furthest behind the front face (bent back / flipped),
+                // not spiking across the empty no-man's-land in front of the hub
+                var guardFront = noFront ? frontEdge : (BoxEdge?)null;
+                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, offerW, w, guardFront, rng) is { } placed)
                 {
                     var (box, iface, flip) = placed;
                     boxes.Add(new Box(d.Id, d.Kind, box, d.Along * d.Depth, Wool: rich with { Flip = flip }));
@@ -513,7 +526,7 @@ public static class TeamUnitAllocator
     /// <c>null</c> when no clear placement exists (a directed signal the caller falls back on).</summary>
     private static (int[] Box, BoxInterface Iface, bool Flip)? SeatOverhang(
         IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, WoolFill fill, BoxEdge edge,
-        int[] hubRect, IReadOnlyList<Box> seated, int w, int gap, ComposeRng rng)
+        int[] hubRect, IReadOnlyList<Box> seated, int w, int gap, BoxEdge? guardFront, ComposeRng rng)
     {
         var mouth = Opposite(edge);
         var probeRect = edge is BoxEdge.Top or BoxEdge.Bottom ? new[] { 0, 0, d.Along, d.Depth } : new[] { 0, 0, d.Depth, d.Along };
@@ -536,9 +549,34 @@ public static class TeamUnitAllocator
                 }
         }
         if (placements.Count == 0) return null;
+
+        // no-frontline front guard: prefer the placements furthest behind the hub front face, so the overhang bends
+        // back instead of spiking toward the axis. Best tier is buffered-behind (≥ FrontGuardCells back), then merely
+        // behind (≥ 0), then — only if the hub leaves no room — the least-overreaching. The shape is always kept
+        // (this only re-orients among the placements already generated), and sampling within the tier keeps variety.
+        if (guardFront is { } gf)
+        {
+            var scored = placements.Select(p => (p, back: Backness(p.Box, gf, hubRect))).ToList();
+            var tier = scored.Where(t => t.back >= FrontGuardCells).ToList();   // buffered behind the front (preferred)
+            if (tier.Count == 0) tier = scored.Where(t => t.back >= 0).ToList(); // at least not past the front face
+            if (tier.Count == 0) return null;    // can only overreach — let the caller fall to a compact I, which sits behind
+            placements = tier.Select(t => t.p).ToList();
+        }
+
         var (chosen, chosenFlip) = placements[rng.NextInt(0, placements.Count)];
         return (chosen, BoxPartition.SharedEdge(hubRect, chosen)!, chosenFlip);
     }
+
+    /// <summary>How far the <paramref name="box"/>'s front-most extent sits <b>behind</b> the hub's front face
+    /// (<paramref name="front"/> the axis-facing edge), in cells: positive is behind (good — bent away from the
+    /// axis), zero flush with the face, negative overreaching toward the axis. The no-frontline guard maximises it.</summary>
+    private static int Backness(int[] box, BoxEdge front, int[] hub) => front switch
+    {
+        BoxEdge.Top => box[1] - hub[1],
+        BoxEdge.Bottom => hub[1] + hub[3] - (box[1] + box[3]),
+        BoxEdge.Left => box[0] - hub[0],
+        _ => hub[0] + hub[2] - (box[0] + box[2]),                      // Right
+    };
 
     /// <summary>Two plan-cell rects overlap iff they intersect on both axes (abutment is not overlap).</summary>
     private static bool Overlap(int[] a, int[] b) =>
