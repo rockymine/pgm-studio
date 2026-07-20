@@ -64,7 +64,7 @@ html.Append("<div class=legend>"
     + "<b style='color:#fbbf24'>■ wool</b><b style='color:#fb923c'>■ frontline</b>"
     + "<i>solid = room · translucent = terrain</i>"
     + "<b style='color:#38bdf8'>— hub front edge</b><b style='color:#f87171'>— flush (bad)</b>"
-    + "<i>grid = 5-block cells · title shows W×H cells</i></div>");
+    + "<i>grid = 5-block cells · title shows W×H cells · front = longest flat frontier (cells/blocks)</i></div>");
 html.Append(sections.ToString());
 
 Directory.CreateDirectory("tools/compose/out");
@@ -143,10 +143,41 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool
     }
     svg.Append("</svg>");
 
+    var run = FlatFrontRun(pieces, front);
     var bad = pinched || flush;
     var badges = (pinched ? " <span class=badge>⚠ pinch</span>" : "")
         + (flush ? " <span class=badge>⚠ flush front</span>" : "");
-    return $"<div class='card{(bad ? " warn" : "")}'><div class=title>seed {seed} · hub {form} · {w}×{h}{badges}</div>{svg}</div>";
+    return $"<div class='card{(bad ? " warn" : "")}'><div class=title>seed {seed} · hub {form} · {w}×{h} "
+        + $"· front {run}c/{run * 5}b{badges}</div>{svg}</div>";
+}
+
+// the longest flat stretch of the unit's front-most frontier, in cells: per cross-axis column the front-most
+// occupied cell, then the longest run of adjacent columns whose frontier coordinate is equal — the "one long
+// straight edge" measure (5 blocks per cell)
+static int FlatFrontRun(IReadOnlyList<GrownPiece> pieces, BoxEdge front)
+{
+    var frontier = new Dictionary<int, int>();
+    foreach (var p in pieces)
+        for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
+            for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+            {
+                var (along, o) = front switch
+                {
+                    BoxEdge.Top => (x, -z),
+                    BoxEdge.Bottom => (x, z),
+                    BoxEdge.Left => (z, -x),
+                    _ => (z, x),
+                };
+                frontier[along] = frontier.TryGetValue(along, out var cur) ? Math.Max(cur, o) : o;
+            }
+    var cols = frontier.Keys.OrderBy(k => k).ToList();
+    int best = 0, run = 0;
+    for (var i = 0; i < cols.Count; i++)
+    {
+        run = i > 0 && cols[i] == cols[i - 1] + 1 && frontier[cols[i]] == frontier[cols[i - 1]] ? run + 1 : 1;
+        best = Math.Max(best, run);
+    }
+    return best;
 }
 
 // the hub bounding-box front edge as a screen line, plus the plan-cell coordinate of that face

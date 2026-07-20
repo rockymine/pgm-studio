@@ -1023,14 +1023,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   cannot hold gapped — restoring it is the hub-growth work, G105). Closes §9 F1 (spawn/wool) + WL2; the frontline
   keeps no neighbour gap (build-zone's rule). Pgm suite 690/690. (G110 · taxonomy §9 F1, §10.4)
 
-- **No-frontline front guard — overhang wools bend back off the hub front** — `Compose/TeamUnitAllocator.cs`: on a
-  frontline-less unit an overhang wool (L / donut) on a lateral edge could spike across the empty no-man's-land in
-  front of the hub, reaching well past its front face. The seat-and-shift now **prefers the placement furthest
-  behind the front face** (`Backness` over the placements it already generates): buffered-behind (≥ 1 cell back)
-  first, then at-least-behind, and only when *every* placement overreaches does it revert to a compact I (which
-  sits behind) rather than keep the spike. A preference, not a rejection — the shape is kept and bent back / flipped
-  wherever a backward placement exists (donuts and roomy hubs). With a frontline the guard does not apply (the front
-  is occupied). No-frontline overhangs reaching past the front: **0**; Pgm suite 692/692. (front-guard · G114 filed)
+- **No-frontline front guard — no neighbour flush with the hub front face** — `Compose/TeamUnitAllocator.cs`: on a
+  frontline-less unit a spawn/wool ending flush with (or past) the hub's front face extends it into **one long flat
+  frontier** — hub front + neighbour front reading as a single straight edge (the reported defect: flat front runs
+  up to 20 cells) — which map design forbids. The guard now covers every dock, as **law**: an overhang wool
+  (L / donut) keeps only placements **buffered ≥ 1 cell behind** the face (`Backness`; none ⇒ the compact I); a
+  full-mouth lateral seat landing flush **slides back** to the nearest clear position (deterministic — no draw, so
+  an already-off-front seat and every untouched unit re-seat bit-identically). Seats no slide can save go through a
+  small **resolution search** (all processing orders × spawn back-edge slide variants): retry the slide with all
+  neighbours known, **relocate** to the mirror lateral / back edge (backmost lawful seat), retry both at the reduced
+  **wool-lane gap** (2 cells, 10 blocks — the narrower boards' own gap, still no-touch) as the last tier, then
+  **drop** the wool while another remains; a residue on a non-rectangle form directed-nulls into the rectangle
+  fallback. With a frontline the guard does not apply (the front is occupied and juts forward — no continuous line
+  can form). Flush spawn/wools on no-frontline units: **0 across 4 presets × 64 seeds** (gate:
+  `No_frontline_units_keep_every_neighbour_off_the_hub_front_face`); worst flat front run collapses 20 → 11 cells
+  (= the hub's own width); with-frontline units bit-identical; pinch 0. Pgm suite 693/693. (front-guard · G114 filed)
 
 - **Elongated hubs + the wide holed forms P, Double-hole, and G** — `Compose/HubBoxEmitter.cs` +
   `TeamUnitAllocator.cs` + `Shapes/BodyEmitter.cs`/`ShapeClassifier.cs`: the hub grows **wider, not squarer**. Its

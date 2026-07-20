@@ -119,7 +119,10 @@ public class TeamUnitAllocatorTests
         // the seat-step separation law: no spawn/wool neighbour touches (or corner-touches) another spawn/wool —
         // they stay at least the map lane width apart (w2 = 10 blocks, w3 = 15 on wide boards). A third wool
         // doubling onto the spawn's own edge (the huge preset) was the reported regression: a wool flush against
-        // the spawn with no gap. The wide presets (land > 2500) exercise the 15-block (w3) jump.
+        // the spawn with no gap. The wide presets (land > 2500) exercise the 15-block (w3) jump. One narrowing:
+        // on a no-frontline unit the front guard may, as its last tier before a flush front, reseat a wool at
+        // the wool-lane gap (2 cells, 10 blocks) — so a pair involving a wool there keeps that floor instead;
+        // the full gap still binds every with-frontline unit and every spawn↔spawn pair.
         foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
         {
             var w = land > 2500 ? 3 : 2;                             // the map-wide lane width, and so the gap
@@ -127,13 +130,38 @@ public class TeamUnitAllocatorTests
             {
                 var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
                 if (alloc is not { } a) continue;
+                var noFront = a.Partition.Boxes.All(b => b.Kind != BoxKind.Frontline);
                 var nbs = a.Partition.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool).ToList();
                 for (var i = 0; i < nbs.Count; i++)
                     for (var j = i + 1; j < nbs.Count; j++)
-                        await Assert.That(Separated(nbs[i].Rect, nbs[j].Rect, w)).IsTrue()
+                    {
+                        var woolPair = nbs[i].Kind == BoxKind.Wool || nbs[j].Kind == BoxKind.Wool;
+                        var gap = noFront && woolPair ? Math.Min(w, 2) : w;
+                        await Assert.That(Separated(nbs[i].Rect, nbs[j].Rect, gap)).IsTrue()
                             .Because($"{nbs[i].Id}<->{nbs[j].Id} @ {players}p/{land:0} seed {seed}");
+                    }
             }
         }
+    }
+
+    [Test]
+    public async Task No_frontline_units_keep_every_neighbour_off_the_hub_front_face()
+    {
+        // the front-guard law: on a unit without a frontline, no spawn/wool may end flush with (or past) the
+        // hub's front face — a flush neighbour extends the face into one long flat frontier, which map design
+        // forbids. Every neighbour's front-most extent stays at least one cell behind the face.
+        foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
+            for (ulong seed = 0; seed < 64; seed++)
+            {
+                var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
+                if (alloc is not { } a) continue;
+                if (a.Partition.Boxes.Any(b => b.Kind == BoxKind.Frontline)) continue;   // occupied front — exempt
+                var hub = a.Partition.ById("hub")!;
+                var face = hub.Rect[1];                               // mirror_z: the front is the hub's min-z edge
+                foreach (var nb in a.Partition.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool))
+                    await Assert.That(nb.Rect[1] - face).IsGreaterThanOrEqualTo(1)
+                        .Because($"{nb.Id} @ {players}p/{land:0} seed {seed} sits flush with the hub front");
+            }
     }
 
     // two [x,z,w,h] rects keep at least `gap` cells between them on some axis — no touch, no corner-touch (the

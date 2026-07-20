@@ -124,12 +124,13 @@ public static class TeamUnitAllocator
     /// boards). Keeping wool families at w2 makes them compact and lets a staple's 3-lane mouth fit a hub edge.</summary>
     private const int WoolLaneCells = 2;
 
-    /// <summary>When a unit has <b>no frontline</b>, the buffer kept behind the hub's front face (5 blocks): an
-    /// overhanging wool prefers to sit at least this far back, so its body bends away from the axis rather than
-    /// spiking across the empty no-man's-land in front of a frontline-less hub. This is a <b>preference</b>, not a
-    /// hard gate — the seat-and-shift picks the placement furthest behind the front from the ones it already
-    /// generates (bending the shape back / flipping it), and only overreaches when the hub leaves no room; it
-    /// never drops the shape to an <c>I</c> on account of the buffer alone.</summary>
+    /// <summary>When a unit has <b>no frontline</b>, the buffer kept behind the hub's front face (5 blocks) by
+    /// every lateral spawn/wool. A neighbour flush with the front face extends it into one long straight
+    /// frontier — hub front + neighbour front reading as a single flat edge — so flush is disallowed: an
+    /// overhanging wool only takes placements at least this far back (else it falls to the compact <c>I</c>),
+    /// and a full-mouth seat that lands flush is slid back along the edge to the nearest clear position. With a
+    /// frontline the buffer does not apply — the front is occupied and juts forward, so no continuous line can
+    /// form.</summary>
     private const int FrontGuardCells = 1;
 
     /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells. Zero under the
@@ -364,6 +365,8 @@ public static class TeamUnitAllocator
 
         var boxes = new List<Box> { hubBox };
         var joints = new List<BoxJoint>();
+        // seats left flush with the front — resolved after the loop (re-shift once neighbours settle, else drop)
+        var flushSeats = new List<(Demand D, BoxEdge Edge, int EdgeLen, IReadOnlyList<(int Start, int Len)> Runs, int Gap)>();
 
         // the seat-step separation law: no spawn/wool neighbour may seat within the gap (the map lane width — w2 =
         // 10 blocks, w3 = 15 on wide boards) of another. Each already-seated spawn/wool projects onto the edge
@@ -407,7 +410,8 @@ public static class TeamUnitAllocator
             if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
             {
                 d = Compact(d, offerW);
-                seat = SeatInRuns(runs, Blocked(edge, d.Depth), edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
+                blocked = Blocked(edge, d.Depth);
+                seat = SeatInRuns(runs, blocked, edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
             }
             if (seat is not { } s)
             {
@@ -419,10 +423,192 @@ public static class TeamUnitAllocator
                 if (d.Kind == BoxKind.Wool && boxes.Any(b => b.Kind == BoxKind.Wool)) continue;
                 return null;
             }
+            // no-frontline front guard, full-mouth side: a lateral seat flush with the hub front face would
+            // extend it into one long flat frontier, so it slides back to the nearest clear off-front position.
+            // Deterministic (no draw), and a no-op for a seat already off the front — untouched units re-seat
+            // bit-identically. A seat no backward position can hold yet (the separation gap blocks the whole
+            // edge) is recorded for the resolution pass below.
+            if (noFront && d.Kind is BoxKind.Spawn or BoxKind.Wool
+                && edge != frontEdge && edge != Opposite(frontEdge))
+            {
+                if (ShiftOffFront(runs, blocked, edgeLen, d.Along, seatGap, s,
+                        frontAtLow: frontEdge is BoxEdge.Top or BoxEdge.Left) is { } offFront)
+                    s = offFront;
+                else flushSeats.Add((d, edge, edgeLen, runs, seatGap));
+            }
             boxes.Add(new Box(d.Id, d.Kind, NeighbourRect(edge, s, d.Depth, d.Along, hubRect), d.Along * d.Depth, Wool: d.Wool));
             joints.Add(HubJoint("hub", d.Id, edge, s, d.Along, offerW));
         }
+
+        // resolve the seats still flush with the front — a small deterministic search, no draws. Per seat, in
+        // order: retry the slide (the full neighbour set is now known, and an earlier drop may have been the
+        // very blocker), relocate to the mirror lateral or the back edge (the backmost lawful seat there),
+        // retry both at the reduced wool-lane gap, and only then drop the wool so long as another remains (the
+        // same law that drops a wool over seating inside the separation gap) — the unit keeps its objectives,
+        // one fewer, rather than a flat front.
+        // Which seat resolves first changes what the rest can do, so every processing order is tried (the seats
+        // are at most four) and the outcome with the fewest flush residues, then the most wools, wins. When a
+        // residue still remains, a non-rectangle form returns the directed "cannot host" signal — the caller's
+        // rectangle fallback re-seats on four full edges, which usually hold a lawful off-front seat the form's
+        // runs could not. Only the rectangle itself keeps the flush seat, the flagged residue of a truly
+        // saturated hub.
+        if (flushSeats.Count > 0)
+        {
+            var frontAtLow = frontEdge is BoxEdge.Top or BoxEdge.Left;
+
+            List<(int Start, int Len)> BlockedFor(List<Box> bs, string selfId, BoxEdge e, int depth) => bs
+                .Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool && b.Id != selfId)
+                .Select(b => ProjectOntoEdge(e, hubRect, depth, b.Rect, w))
+                .Where(iv => iv is not null).Select(iv => iv!.Value).ToList();
+
+            void MoveTo(List<Box> bs, List<BoxJoint> js, Demand fd, BoxEdge e, int seat)
+            {
+                var i = bs.FindIndex(b => b.Id == fd.Id);
+                bs[i] = bs[i] with { Rect = NeighbourRect(e, seat, fd.Depth, fd.Along, hubRect) };
+                var ji = js.FindIndex(j => j.BoxB == fd.Id);
+                js[ji] = HubJoint("hub", fd.Id, e, seat, fd.Along, fd.Kind == BoxKind.Wool ? WoolLaneCells : w);
+            }
+
+            (List<Box> B, List<BoxJoint> J, int Residue) Resolve(
+                IReadOnlyList<(Demand D, BoxEdge Edge, int EdgeLen, IReadOnlyList<(int Start, int Len)> Runs, int Gap)> order,
+                List<Box> baseB, List<BoxJoint> baseJ)
+            {
+                var bs = new List<Box>(baseB);
+                var js = new List<BoxJoint>(baseJ);
+                var residue = 0;
+                foreach (var f in order)
+                {
+                    var self = bs.First(b => b.Id == f.D.Id);
+                    var cur = f.Edge is BoxEdge.Top or BoxEdge.Bottom ? self.Rect[0] - hubRect[0] : self.Rect[1] - hubRect[1];
+                    // gap tiers: the full separation gap first; a wool may fall to the wool-lane gap (2 cells,
+                    // 10 blocks — the very gap the narrower boards seat with, still no-touch) as the last tier
+                    // before a flush residue, trading separation ideal for the flush law
+                    var gaps = f.D.Kind == BoxKind.Wool && f.Gap > WoolLaneCells
+                        ? new[] { f.Gap, WoolLaneCells } : new[] { f.Gap };
+                    var resolved = false;
+                    foreach (var gap in gaps)
+                    {
+                        if (ShiftOffFront(f.Runs, BlockedFor(bs, f.D.Id, f.Edge, f.D.Depth), f.EdgeLen, f.D.Along, gap,
+                                cur, frontAtLow) is { } moved)
+                        {
+                            MoveTo(bs, js, f.D, f.Edge, moved);
+                            resolved = true;
+                            break;
+                        }
+                        foreach (var target in new[] { Opposite(f.Edge), Opposite(frontEdge) })
+                        {
+                            if (target == f.Edge || target == frontEdge || !runsByEdge.TryGetValue(target, out var truns)) continue;
+                            var tlen = target is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
+                            var guard = target == Opposite(frontEdge) ? 0 : FrontGuardCells;   // the back edge is off-front by construction
+                            if (BackmostSeat(truns, BlockedFor(bs, f.D.Id, target, f.D.Depth), tlen, f.D.Along, gap,
+                                    guard, frontAtLow) is { } c)
+                            {
+                                MoveTo(bs, js, f.D, target, c);
+                                resolved = true;
+                                break;
+                            }
+                        }
+                        if (resolved) break;
+                    }
+                    if (resolved) continue;
+                    if (f.D.Kind == BoxKind.Wool && bs.Count(b => b.Kind == BoxKind.Wool) > 1)
+                    {
+                        bs.RemoveAll(b => b.Id == f.D.Id);
+                        js.RemoveAll(j => j.BoxA == f.D.Id || j.BoxB == f.D.Id);
+                    }
+                    else residue++;
+                }
+                return (bs, js, residue);
+            }
+
+            // spawn-slide variants: a spawn mid-back on a narrow hub can gap-block both lateral corners at
+            // once, so when every flush seat is a wool and the spawn docks the back edge, its other lawful
+            // back-edge seats are variants of the search too — a corner spawn frees a lateral. The unchanged
+            // position comes first, so a unit the in-place search already resolves keeps that outcome.
+            var spawnSlides = new List<int?> { null };
+            var spawnBox = boxes.FirstOrDefault(b => b.Kind == BoxKind.Spawn);
+            var backEdge = Opposite(frontEdge);
+            var spawnDemand = default(Demand);
+            if (spawnBox is not null
+                && joints.FirstOrDefault(j => j.BoxB == spawnBox.Id)?.Interface.Edge == backEdge
+                && flushSeats.All(f => f.D.Kind == BoxKind.Wool)
+                && runsByEdge.TryGetValue(backEdge, out var backRuns))
+            {
+                var horizontal = backEdge is BoxEdge.Top or BoxEdge.Bottom;
+                var (spAlong, spDepth) = horizontal
+                    ? (spawnBox.Rect[2], spawnBox.Rect[3]) : (spawnBox.Rect[3], spawnBox.Rect[2]);
+                spawnDemand = new Demand(UnitSide.Back, BoxKind.Spawn, spDepth, spAlong, spawnBox.Id);
+                var spSeat = horizontal ? spawnBox.Rect[0] - hubRect[0] : spawnBox.Rect[1] - hubRect[1];
+                var backLen = horizontal ? boxW : boxH;
+                var spBlocked = BlockedFor(boxes, spawnBox.Id, backEdge, spDepth);
+                for (var cand = 0; cand + spAlong <= backLen; cand++)
+                {
+                    if (cand == spSeat) continue;
+                    if (!backRuns.Any(r => r.Start <= cand && cand + spAlong <= r.Start + r.Len)) continue;
+                    if (spBlocked.Any(o => o.Start - w < cand + spAlong && o.Start + o.Len + w > cand)) continue;
+                    spawnSlides.Add(cand);
+                }
+            }
+
+            var best = default((List<Box> B, List<BoxJoint> J, int Residue)?);
+            var maxWools = boxes.Count(x => x.Kind == BoxKind.Wool);
+            foreach (var slide in spawnSlides)
+            {
+                var baseB = new List<Box>(boxes);
+                var baseJ = new List<BoxJoint>(joints);
+                if (slide is { } sSeat) MoveTo(baseB, baseJ, spawnDemand!, backEdge, sSeat);
+                foreach (var order in Permutations(flushSeats))
+                {
+                    var trial = Resolve(order, baseB, baseJ);
+                    if (best is not { } b0
+                        || trial.Residue < b0.Residue
+                        || (trial.Residue == b0.Residue
+                            && trial.B.Count(x => x.Kind == BoxKind.Wool) > b0.B.Count(x => x.Kind == BoxKind.Wool)))
+                        best = trial;
+                    if (best is { Residue: 0 } b1 && b1.B.Count(x => x.Kind == BoxKind.Wool) == maxWools) break;
+                }
+                if (best is { Residue: 0 } b2 && b2.B.Count(x => x.Kind == BoxKind.Wool) == maxWools) break;
+            }
+            var (bBest, jBest, rBest) = best!.Value;
+            if (rBest > 0 && form.Form != Compound.Rectangle) return null;
+            (boxes, joints) = (bBest, jBest);
+        }
         return (boxes, joints);
+    }
+
+    /// <summary>Every processing order of <paramref name="items"/> — the flush-resolution search space (at most
+    /// a handful of seats, so full enumeration stays tiny). The identity order comes first, keeping the outcome
+    /// deterministic when several tie.</summary>
+    private static IEnumerable<IReadOnlyList<T>> Permutations<T>(IReadOnlyList<T> items)
+    {
+        if (items.Count <= 1) { yield return items; yield break; }
+        for (var i = 0; i < items.Count; i++)
+        {
+            var head = items[i];
+            var rest = items.Where((_, j) => j != i).ToList();
+            foreach (var p in Permutations(rest)) yield return new List<T> { head }.Concat(p).ToList();
+        }
+    }
+
+    /// <summary>The lawful dock position on an edge <b>farthest from the front</b>, or <c>null</c>: the seat must
+    /// lie wholly within a free run, keep the <paramref name="gap"/> from every <paramref name="blocked"/>
+    /// interval, and keep <paramref name="guard"/> cells from the front-side end (<paramref name="frontAtLow"/>
+    /// naming which end that is; 0 for the back edge, where no end faces the front). The relocation half of the
+    /// front guard reads it — a wool moving to the mirror lateral or the back edge lands as far off the front as
+    /// that edge allows.</summary>
+    private static int? BackmostSeat(
+        IReadOnlyList<(int Start, int Len)> runs, List<(int Start, int Len)> blocked,
+        int edgeLen, int along, int gap, int guard, bool frontAtLow)
+    {
+        var lo = frontAtLow ? guard : 0;
+        var hi = edgeLen - along - (frontAtLow ? 0 : guard);
+        for (var cand = frontAtLow ? hi : lo; cand >= lo && cand <= hi; cand += frontAtLow ? -1 : 1)
+        {
+            if (!runs.Any(r => r.Start <= cand && cand + along <= r.Start + r.Len)) continue;
+            if (blocked.Any(o => o.Start - gap < cand + along && o.Start + o.Len + gap > cand)) continue;
+            return cand;
+        }
+        return null;
     }
 
     /// <summary>Demote a wool demand to the <b>compact inline <c>I</c></b> — the always-seatable shape: a
@@ -550,21 +736,45 @@ public static class TeamUnitAllocator
         }
         if (placements.Count == 0) return null;
 
-        // no-frontline front guard: prefer the placements furthest behind the hub front face, so the overhang bends
-        // back instead of spiking toward the axis. Best tier is buffered-behind (≥ FrontGuardCells back), then merely
-        // behind (≥ 0), then — only if the hub leaves no room — the least-overreaching. The shape is always kept
-        // (this only re-orients among the placements already generated), and sampling within the tier keeps variety.
+        // no-frontline front guard: only placements buffered behind the hub front face (≥ FrontGuardCells back)
+        // are kept, so the overhang bends back instead of spiking toward — or sitting flush with — the front,
+        // where it would extend the face into one long flat frontier. When no buffered placement exists (a tight
+        // hub) the dock falls to the compact I, which the full-mouth guard seats off the front; sampling within
+        // the surviving placements keeps variety.
         if (guardFront is { } gf)
         {
-            var scored = placements.Select(p => (p, back: Backness(p.Box, gf, hubRect))).ToList();
-            var tier = scored.Where(t => t.back >= FrontGuardCells).ToList();   // buffered behind the front (preferred)
-            if (tier.Count == 0) tier = scored.Where(t => t.back >= 0).ToList(); // at least not past the front face
-            if (tier.Count == 0) return null;    // can only overreach — let the caller fall to a compact I, which sits behind
-            placements = tier.Select(t => t.p).ToList();
+            var tier = placements.Where(p => Backness(p.Box, gf, hubRect) >= FrontGuardCells).ToList();
+            if (tier.Count == 0) return null;
+            placements = tier;
         }
 
         var (chosen, chosenFlip) = placements[rng.NextInt(0, placements.Count)];
         return (chosen, BoxPartition.SharedEdge(hubRect, chosen)!, chosenFlip);
+    }
+
+    /// <summary>Slide a full-mouth lateral <paramref name="seat"/> <b>off the hub's front face</b>: when its
+    /// front-side offset (toward the box-corner the front face meets — along-coord 0 when
+    /// <paramref name="frontAtLow"/>, else the <paramref name="edgeLen"/> end) is under
+    /// <see cref="FrontGuardCells"/>, walk backward along the edge to the nearest position that is buffered,
+    /// lies wholly within a free run, and keeps the <paramref name="gap"/> from every <paramref name="blocked"/>
+    /// interval. Returns the original seat when it is already buffered, the nearest buffered position when it is
+    /// not, or <c>null</c> when no clear backward position exists (the caller drops the wool or keeps the flush
+    /// seat as the flagged residue).</summary>
+    private static int? ShiftOffFront(
+        IReadOnlyList<(int Start, int Len)> runs, List<(int Start, int Len)> blocked,
+        int edgeLen, int along, int gap, int seat, bool frontAtLow)
+    {
+        int Offset(int s) => frontAtLow ? s : edgeLen - (s + along);
+        if (Offset(seat) >= FrontGuardCells) return seat;
+        var dir = frontAtLow ? 1 : -1;
+        for (var cand = seat + dir; cand >= 0 && cand + along <= edgeLen; cand += dir)
+        {
+            if (Offset(cand) < FrontGuardCells) continue;
+            if (!runs.Any(r => r.Start <= cand && cand + along <= r.Start + r.Len)) continue;
+            if (blocked.Any(o => o.Start - gap < cand + along && o.Start + o.Len + gap > cand)) continue;
+            return cand;
+        }
+        return null;
     }
 
     /// <summary>How far the <paramref name="box"/>'s front-most extent sits <b>behind</b> the hub's front face
