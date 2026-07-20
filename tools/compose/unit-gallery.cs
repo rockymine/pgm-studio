@@ -31,7 +31,9 @@ foreach (var (label, sub, players, land) in presets)
         if (filled is null) { cards.Append(Fail(seed, "no fill")); continue; }
         var pinched = Cells.HasDiagonalPinch(Mask(filled.Unit.Pieces));   // the mass-level corner law (G79)
         if (pinched) totalPinches++;
-        cards.Append(Card(seed, filled.Unit.Pieces, FormLabel(a.Partition.ById("hub")!.Form), pinched));
+        var hub = a.Partition.ById("hub")!;
+        var front = a.SpawnFacing switch { "front" => BoxEdge.Top, "back" => BoxEdge.Bottom, "left" => BoxEdge.Left, _ => BoxEdge.Right };
+        cards.Append(Card(seed, filled.Unit.Pieces, FormLabel(hub.Form), pinched, hub.Rect, front));
     }
     sections.Append($"<section><header><h2>{label}</h2><p>{sub}</p></header><div class=gallery>{cards}</div></section>");
 }
@@ -60,7 +62,9 @@ html.Append("<h1>Team-unit layouts</h1>"
 html.Append("<div class=legend>"
     + "<b style='color:#a78bfa'>■ hub</b><b style='color:#34d399'>■ spawn</b>"
     + "<b style='color:#fbbf24'>■ wool</b><b style='color:#fb923c'>■ frontline</b>"
-    + "<i>solid = room · translucent = terrain</i></div>");
+    + "<i>solid = room · translucent = terrain</i>"
+    + "<b style='color:#38bdf8'>— hub front edge</b><b style='color:#f87171'>— flush (bad)</b>"
+    + "<i>grid = 5-block cells · title shows W×H cells</i></div>");
 html.Append(sections.ToString());
 
 Directory.CreateDirectory("tools/compose/out");
@@ -100,26 +104,83 @@ static string Color(BoxKind k) => k switch
 static string Fail(int seed, string why) =>
     $"<div class=card><div class=title>seed {seed}</div><div class=fail>{why}</div></div>";
 
-static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool pinched)
+static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool pinched, int[] hubRect, BoxEdge front)
 {
     int minX = pieces.Min(p => p.Rect[0]), minZ = pieces.Min(p => p.Rect[1]);
     int maxX = pieces.Max(p => p.Rect[0] + p.Rect[2]), maxZ = pieces.Max(p => p.Rect[1] + p.Rect[3]);
     int w = maxX - minX, h = maxZ - minZ;
-    const int scale = 32, pad = 12;
+    const int scale = 20, pad = 14;
     int vw = w * scale + 2 * pad, vh = h * scale + 2 * pad;
 
     var svg = new StringBuilder($"<svg viewBox='0 0 {vw} {vh}' width='{vw}' height='{vh}'>");
+    // faint 5×5-block cell grid (one line per cell) so shape dimensions are legible
+    for (var gx = 0; gx <= w; gx++)
+        svg.Append($"<line x1='{gx * scale + pad}' y1='{pad}' x2='{gx * scale + pad}' y2='{h * scale + pad}' stroke='#ffffff' stroke-opacity='0.07'/>");
+    for (var gz = 0; gz <= h; gz++)
+        svg.Append($"<line x1='{pad}' y1='{gz * scale + pad}' x2='{w * scale + pad}' y2='{gz * scale + pad}' stroke='#ffffff' stroke-opacity='0.07'/>");
+
     foreach (var p in pieces)
     {
         int x = (p.Rect[0] - minX) * scale + pad, y = (p.Rect[1] - minZ) * scale + pad;
         int pw = p.Rect[2] * scale, ph = p.Rect[3] * scale;
         var col = Color(p.Box?.Kind ?? BoxKind.Mid);
         var room = p.Role != PlanRoles.Piece;                 // wool / spawn rooms drawn solid
-        svg.Append($"<rect x='{x}' y='{y}' width='{pw}' height='{ph}' rx='2' fill='{col}' "
-            + $"fill-opacity='{(room ? "0.95" : "0.4")}' stroke='{col}' stroke-width='1.5'/>");
+        svg.Append($"<rect x='{x}' y='{y}' width='{pw}' height='{ph}' rx='1.5' fill='{col}' "
+            + $"fill-opacity='{(room ? "0.95" : "0.4")}' stroke='{col}' stroke-width='1'/>");
+    }
+
+    // the hub's front (axis-facing) bounding-box edge, and any spawn/wool whose own front edge sits flush on it —
+    // the long-flat-edge defect: draw the hub front line, and mark a flush neighbour front edge in red
+    var (fa, fb, faceCoord) = FrontLine(hubRect, front, minX, minZ, scale, pad);
+    svg.Append($"<line x1='{fa.X}' y1='{fa.Y}' x2='{fb.X}' y2='{fb.Y}' stroke='#38bdf8' stroke-width='1.5' stroke-dasharray='3 2'/>");
+    var flush = false;
+    foreach (var g in pieces.Where(p => p.Box?.Kind is BoxKind.Wool or BoxKind.Spawn).GroupBy(p => p.Box!.Id))
+    {
+        if (!FlushFront(g.ToList(), front, faceCoord)) continue;
+        flush = true;
+        var (la, lb) = NeighbourFrontLine(g.ToList(), front, minX, minZ, scale, pad);
+        svg.Append($"<line x1='{la.X}' y1='{la.Y}' x2='{lb.X}' y2='{lb.Y}' stroke='#f87171' stroke-width='2.5'/>");
     }
     svg.Append("</svg>");
-    var warn = pinched ? " warn" : "";
-    var badge = pinched ? " <span class=badge>⚠ pinch</span>" : "";
-    return $"<div class='card{warn}'><div class=title>seed {seed} · hub {form}{badge}</div>{svg}</div>";
+
+    var bad = pinched || flush;
+    var badges = (pinched ? " <span class=badge>⚠ pinch</span>" : "")
+        + (flush ? " <span class=badge>⚠ flush front</span>" : "");
+    return $"<div class='card{(bad ? " warn" : "")}'><div class=title>seed {seed} · hub {form} · {w}×{h}{badges}</div>{svg}</div>";
+}
+
+// the hub bounding-box front edge as a screen line, plus the plan-cell coordinate of that face
+static ((int X, int Y) A, (int X, int Y) B, int Face) FrontLine(int[] hub, BoxEdge front, int minX, int minZ, int scale, int pad)
+{
+    int hx0 = (hub[0] - minX) * scale + pad, hx1 = (hub[0] + hub[2] - minX) * scale + pad;
+    int hz0 = (hub[1] - minZ) * scale + pad, hz1 = (hub[1] + hub[3] - minZ) * scale + pad;
+    return front switch
+    {
+        BoxEdge.Top => ((hx0, hz0), (hx1, hz0), hub[1]),
+        BoxEdge.Bottom => ((hx0, hz1), (hx1, hz1), hub[1] + hub[3]),
+        BoxEdge.Left => ((hx0, hz0), (hx0, hz1), hub[0]),
+        _ => ((hx1, hz0), (hx1, hz1), hub[0] + hub[2]),
+    };
+}
+
+// a spawn/wool is flush when its own bounding-box front edge lands on the hub's front face
+static bool FlushFront(IReadOnlyList<GrownPiece> g, BoxEdge front, int face) => front switch
+{
+    BoxEdge.Top => g.Min(p => p.Rect[1]) == face,
+    BoxEdge.Bottom => g.Max(p => p.Rect[1] + p.Rect[3]) == face,
+    BoxEdge.Left => g.Min(p => p.Rect[0]) == face,
+    _ => g.Max(p => p.Rect[0] + p.Rect[2]) == face,
+};
+
+static ((int X, int Y) A, (int X, int Y) B) NeighbourFrontLine(IReadOnlyList<GrownPiece> g, BoxEdge front, int minX, int minZ, int scale, int pad)
+{
+    int nx0 = (g.Min(p => p.Rect[0]) - minX) * scale + pad, nx1 = (g.Max(p => p.Rect[0] + p.Rect[2]) - minX) * scale + pad;
+    int nz0 = (g.Min(p => p.Rect[1]) - minZ) * scale + pad, nz1 = (g.Max(p => p.Rect[1] + p.Rect[3]) - minZ) * scale + pad;
+    return front switch
+    {
+        BoxEdge.Top => ((nx0, nz0), (nx1, nz0)),
+        BoxEdge.Bottom => ((nx0, nz1), (nx1, nz1)),
+        BoxEdge.Left => ((nx0, nz0), (nx0, nz1)),
+        _ => ((nx1, nz0), (nx1, nz1)),
+    };
 }
