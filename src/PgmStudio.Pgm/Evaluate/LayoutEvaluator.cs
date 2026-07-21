@@ -44,6 +44,9 @@ public static class LayoutEvaluator
         new SpawnWoolSpread(),
         new WoolFrontDistance(),
         new WoolFrontBalance(),
+        new SpawnWoolRatio(),
+        new WoolFrontRatio(),
+        new WoolFrontRemoteness(),
     ];
 
     /// <summary>Full scored evaluation: run every enabled term, sum hard penalties + weighted soft distances.</summary>

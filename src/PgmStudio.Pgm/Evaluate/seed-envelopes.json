@@ -62,5 +62,17 @@
   "wool-front-balance": [
     0,
     140
+  ],
+  "spawn-wool-ratio": [
+    1,
+    1.2
+  ],
+  "wool-front-ratio": [
+    1,
+    1.529412
+  ],
+  "wool-front-remoteness": [
+    25,
+    145
   ]
 }

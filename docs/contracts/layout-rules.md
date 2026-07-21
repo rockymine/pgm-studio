@@ -132,7 +132,10 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **WL9 [author]** **Spawn↔wool balance.** A team's wools sit **comparably far from the spawn**: the
   spread (max − min) of the per-wool spawn→wool traversal distances stays modest. A large spread means
   one wool is trivially defended (the spawn on its doorstep) while another is left to fend for itself.
-  Bands learned from the teaching seeds (`spawn-wool-spread`).
+  Bands learned from the teaching seeds (`spawn-wool-spread`). The **size-independent factor read**
+  is the ratio max ÷ min of the same distances (`spawn-wool-ratio`) — a 40-vs-105 pair on a big board
+  and a 20-vs-52 pair on a small one read the same 2.6× — with an **authored cap**: the intent seeds
+  set the tolerable factor; traced maps do not widen it.
 - **WL10 [author]** **The spawn–wool–frontline triangle.** Two reads, both by surface traversal:
   (a) each wool keeps a real distance to the **frontline edge** — the seam where the mid build band
   meets the land, the line an attacker crosses (`wool-front-distance`, measured at the most exposed
@@ -140,7 +143,13 @@ toward the map centre / the enemy; "back" = toward the map edge.
   its spawn distance minus its frontline distance, and the deficits' spread stays modest
   (`wool-front-balance`). The failure this bans: a front-near wool whose spawn is far (free to
   capture) beside a back wool whose spawn is adjacent (trivially defended) — the defender always
-  guards the wrong door. Bands learned from the teaching seeds.
+  guards the wrong door. Bands learned from the teaching seeds. Two **size-independent, authored-cap**
+  companions: (c) the ratio max ÷ min of the per-wool frontline distances (`wool-front-ratio`) catches
+  the equal-spawn-but-unequal-front boards at any size; (d) the **remoteness cap**
+  (`wool-front-remoteness`, the largest per-wool front distance, any wool count) catches the stalemate
+  the balance reads are blind to — a wool far from the front *and* far from everything can carry a
+  perfectly balanced deficit while forcing the attacker to run the whole board into a defended
+  chokepoint.
 
 ## LN — Lane
 

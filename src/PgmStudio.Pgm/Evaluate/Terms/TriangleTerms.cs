@@ -66,6 +66,70 @@ public sealed class WoolFrontBalance : SoftTerm
             .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
 }
 
+/// <summary>WL9 (factor half): the <b>size-independent</b> spawn↔wool imbalance — the ratio (max ÷ min) of the
+/// per-wool spawn distances. A 40-vs-105 pair on a big board and a 20-vs-52 pair on a small one read the same
+/// 2.6× factor. An authored cap (<see cref="SoftTerm.LearnsFromTraced"/> false): the intent seeds teach the
+/// tolerable factor; the traced real maps do not get to widen it. Applies with two or more reachable
+/// wools.</summary>
+public sealed class SpawnWoolRatio : SoftTerm
+{
+    public override string Id => "spawn-wool-ratio";
+    public override string RuleId => "WL9";
+    public override bool LearnsFromTraced => false;
+
+    public override double? Value(EvalContext ctx)
+    {
+        var d = Triangle.SpawnDistances(ctx).Where(v => v is not null).Select(v => v!.Value).ToList();
+        return d.Count < 2 || d.Min() <= 0 ? null : d.Max() / d.Min();
+    }
+
+    protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
+        ctx.Plan.Placements.Spawns.Select(s => s.Piece)
+            .Concat(ctx.Plan.Placements.Wools.Select(w => w.Piece)).Distinct().ToList();
+}
+
+/// <summary>WL10 (factor half): the <b>size-independent</b> wool↔frontline imbalance — the ratio (max ÷ min)
+/// of the per-wool frontline distances. Catches the equal-spawn-but-unequal-front boards (one wool hugging the
+/// front while its sibling hides at the back) at any board size. An authored cap
+/// (<see cref="SoftTerm.LearnsFromTraced"/> false). Applies with two or more wools carrying a front
+/// distance.</summary>
+public sealed class WoolFrontRatio : SoftTerm
+{
+    public override string Id => "wool-front-ratio";
+    public override string RuleId => "WL10";
+    public override bool LearnsFromTraced => false;
+
+    public override double? Value(EvalContext ctx)
+    {
+        var d = Triangle.FrontDistances(ctx).Where(v => v is not null).Select(v => v!.Value).ToList();
+        return d.Count < 2 || d.Min() <= 0 ? null : d.Max() / d.Min();
+    }
+
+    protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
+        ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
+}
+
+/// <summary>WL10 (remoteness half): how far the <b>most remote wool</b> sits from the frontline edge — the
+/// stalemate signature the balance terms are blind to: a wool far from the front <i>and</i> far from
+/// everything (its deficits can read perfectly balanced) forces the attacker to run the whole board into a
+/// defended chokepoint. Measured as the largest per-wool front distance, in blocks; an authored cap
+/// (<see cref="SoftTerm.LearnsFromTraced"/> false). Applies to any wool count.</summary>
+public sealed class WoolFrontRemoteness : SoftTerm
+{
+    public override string Id => "wool-front-remoteness";
+    public override string RuleId => "WL10";
+    public override bool LearnsFromTraced => false;
+
+    public override double? Value(EvalContext ctx)
+    {
+        var d = Triangle.FrontDistances(ctx).Where(v => v is not null).Select(v => v!.Value).ToList();
+        return d.Count == 0 ? null : d.Max();
+    }
+
+    protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
+        ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
+}
+
 /// <summary>The shared per-wool distance reads of the spawn–wool–frontline triangle, all by rectilinear
 /// surface traversal (the walkable set: pieces + zones) in blocks, index-aligned with
 /// <c>Plan.Placements.Wools</c> (<c>null</c> where a wool is unreachable or the target is absent).</summary>

@@ -1080,6 +1080,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   WL2/WL7. Bands learned from the 23 teaching maps (`envelope-stats`): spread [0,85] · front distance [24,165] ·
   balance [0,140] blocks. WL9/WL10 authored into `layout-rules.md`. Pgm suite 700/700. (G115)
 
+- **Size-independent triangle factors + the stalemate probe** — `Evaluate/Terms/TriangleTerms.cs` +
+  `tools/compose/stalemate-probe.cs`: the distance terms scale with the board, so the same 2× imbalance reads
+  in-band on a big board and out-of-band on a small one — three <b>factor</b> terms fix that, all authored caps
+  (`LearnsFromTraced` false; the intent seeds set the tolerance, traced maps never widen it):
+  <b>spawn-wool-ratio</b> (WL9, max ÷ min per-wool spawn distance, band [1,1.2]), <b>wool-front-ratio</b> (WL10,
+  same over frontline distances, band [1,1.53]), and <b>wool-front-remoteness</b> (WL10, the most remote wool's
+  frontline distance, any wool count, cap 145 blocks — the outer ceiling; the size-independent catches come from
+  the ratios, e.g. the remote-donut stalemate board reads spawn-ratio 2.1). Prototype of the deeper siege
+  factors: `stalemate-probe.cs` reads the derived board per wool — approach count (`Approaches`), lane/entry
+  width (`WoolShapes`), traversal to the nearest rotation hole (middle/frontline `Voids` shore), and the defence
+  deficit — composed into a per-wool STALEMATE flag (single thin approach, defender no later than the attacker,
+  no rotation hole within 40 blocks). (G115)
+
 - **Donut growth knobs — the entry widens, the hole grows** — `ShapeEmitter` (donut) + `WoolFill.AttachmentWidth`
   + `TeamUnitAllocator.WoolDemand`: the donut always emitted its min box — good for reach, but the one-corridor
   hub entry was a fixed chokepoint and the hole a constant 1×2. The ring's span now <b>derives from the box</b>

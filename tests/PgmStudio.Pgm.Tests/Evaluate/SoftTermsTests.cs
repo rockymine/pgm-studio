@@ -36,9 +36,15 @@ public sealed class SoftTermsTests
         var spread = new SpawnWoolSpread().Value(ctx);
         await Assert.That(spread).IsNotNull();
         await Assert.That(spread!.Value).IsEqualTo(25.0).Within(1e-9);
+        // the size-independent factor read of the same pair: 45 ÷ 20
+        var ratio = new SpawnWoolRatio().Value(ctx);
+        await Assert.That(ratio).IsNotNull();
+        await Assert.That(ratio!.Value).IsEqualTo(2.25).Within(1e-9);
         // no derivable front-front band on a symmetry-less lane — the triangle halves stay dormant, not wrong
         await Assert.That(new WoolFrontDistance().Value(ctx)).IsNull();
         await Assert.That(new WoolFrontBalance().Value(ctx)).IsNull();
+        await Assert.That(new WoolFrontRatio().Value(ctx)).IsNull();
+        await Assert.That(new WoolFrontRemoteness().Value(ctx)).IsNull();
     }
 
     [Test]
@@ -47,7 +53,11 @@ public sealed class SoftTermsTests
         // the two-wool teaching seed carries a real band + spawn, so all three triangle terms measure; and a
         // teaching map sits inside the bands it taught, so each scores distance 0
         var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!, SeedEnvelopes.Default);
-        foreach (SoftTerm term in new SoftTerm[] { new SpawnWoolSpread(), new WoolFrontDistance(), new WoolFrontBalance() })
+        foreach (SoftTerm term in new SoftTerm[]
+                 {
+                     new SpawnWoolSpread(), new WoolFrontDistance(), new WoolFrontBalance(),
+                     new SpawnWoolRatio(), new WoolFrontRatio(), new WoolFrontRemoteness(),
+                 })
         {
             await Assert.That(term.Value(ctx)).IsNotNull();
             await Assert.That(term.Measure(ctx).Distance).IsEqualTo(0.0).Within(1e-9);

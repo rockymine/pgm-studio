@@ -129,6 +129,9 @@ var glosses = new Dictionary<string, string>
     ["spawn-wool-spread"] = "balance: the spread of the per-wool spawn distances (one wool guarded, another abandoned)",
     ["wool-front-distance"] = "the most exposed wool's distance to the frontline edge (where the band meets the land)",
     ["wool-front-balance"] = "the triangle: spread of per-wool defence deficits (spawn distance − frontline distance)",
+    ["spawn-wool-ratio"] = "size-independent spawn imbalance: max ÷ min per-wool spawn distance (authored cap)",
+    ["wool-front-ratio"] = "size-independent front imbalance: max ÷ min per-wool frontline distance (authored cap)",
+    ["wool-front-remoteness"] = "the most remote wool's frontline distance — the stalemate cap balance is blind to",
 };
 string TermRow(ILayoutTerm t) => $"<li><b>{t.Id}</b> <i>({t.RuleId}"
     + (t.Kind == TermKind.Soft ? $" · w {EvaluationProfile.Default.Weight(t.Id):0.##}" : "")
