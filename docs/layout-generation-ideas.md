@@ -47,6 +47,9 @@ landed, the rest is the idea.
   clearance + the 50-block chain cap baked into placement). 4-team `rot_90` and `mirror_x` support return
   through this work — the composer currently supports 2-team `rot_180`/`mirror_z`.
 - **G104** — instrument the budget: what should the two-currency budget produce per box kind at each size?
+- **G122** — the composer decision trace: optionally record every sampled choice and rejected dock during
+  a compose, keyed by the request descriptor — the real backtracking tool for "why does this bucket look
+  the way it does", better than re-running and watching. Feeds the studio's detail dialog later.
 - **G105** *(partial)* — bigger/better hubs: the per-piece width knob, the asymmetric ring, a raised depth
   cap, form→size fit.
 - **G106** *(partial)* — the observed seat/emit failure modes (taxonomy §9 F2–F5): flush lanes at branch-hub
