@@ -55,6 +55,47 @@ public class FrontlineBoxEmitterTests
     }
 
     [Test]
+    public async Task A_sampled_arm_layout_overrides_the_canonical_legs()
+    {
+        // an F on a 10-wide front: legs 2 and 3 with a 2-bay and a 3-wide end recess (ttvvtttxxx)
+        var box = new Box("frontline", BoxKind.Frontline, [0, 0, 10, 6], 60);
+        var f = FrontlineBoxEmitter.Fill(box, new CompoundRead(Compound.SpineArms, 2), cw: 2,
+            OfferGrouping.Several, armLayout: [(0, 2), (4, 3)])!;
+
+        await Assert.That(f.Pieces.Count).IsEqualTo(3);                        // spine + two uneven legs
+        await Assert.That(f.FaceOffers.Count).IsEqualTo(2);
+        await Assert.That(f.FaceOffers.Select(o => o.Interval.LengthCells).OrderBy(x => x)
+            .SequenceEqual([2, 3])).IsTrue();
+    }
+
+    [Test]
+    public async Task Sampled_layouts_respect_the_leg_laws_across_many_draws()
+    {
+        // the leg laws: every leg ≥ 2 wide; a pair within factor 2; the inter-leg bay 2–4; end recesses
+        // together at most a third of the spine; the single leg strictly wider than its notch
+        var rng = new ComposeRng(7);
+        foreach (var w in new[] { 5, 6, 8, 10, 12 })
+            for (var i = 0; i < 100; i++)
+            {
+                if (FrontlineBoxEmitter.SampleArms(rng, w, 1) is { } single)
+                {
+                    var leg = single[0].Width;
+                    await Assert.That(leg > w - leg).IsTrue();                 // strictly wider than the notch
+                }
+                if (FrontlineBoxEmitter.SampleArms(rng, w, 2) is { } pair)
+                {
+                    var (a, b) = (pair[0], pair[1]);
+                    await Assert.That(a.Width >= 2 && b.Width >= 2).IsTrue();
+                    await Assert.That(a.Width <= 2 * b.Width && b.Width <= 2 * a.Width).IsTrue();
+                    var bay = b.Start - (a.Start + a.Width);
+                    await Assert.That(bay is >= 2 and <= 4).IsTrue();
+                    var ends = a.Start + (w - (b.Start + b.Width));
+                    await Assert.That(ends <= w / 3).IsTrue();
+                }
+            }
+    }
+
+    [Test]
     public async Task Twin_several_is_two_tips_each_its_own_consumer()
     {
         var f = FrontlineBoxEmitter.Fill(Box(), new CompoundRead(Compound.SpineArms, 2), cw: 2, OfferGrouping.Several)!;

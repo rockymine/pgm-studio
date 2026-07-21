@@ -1069,6 +1069,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   land + band must reach every fanned spawn image): 80/80 preset boards compose and connect, 0 rejects. Gate:
   `Box_composition_closes_the_loop_with_a_band_only_mid` (50 boards). Pgm suite 694/694. (G115)
 
+- **Sampled frontline leg layouts — varied widths under the leg laws** — `FrontlineBoxEmitter.SampleArms` +
+  `TeamUnitFiller`: the branch frontlines gain a sampled per-leg layout over the canonical forms (which stay the
+  fallback): the single's notch varies 2–4 with the leg on either side; the twin becomes an uneven Π/F — two
+  legs of sampled widths and placements, with end recesses (`ttvvtttxxx`-style). The <b>leg laws</b>: every leg
+  ≥ 2 wide, a pair within <b>factor 2</b> of each other (never a 2 beside a 5), the inter-leg bay 2–4 wide, end
+  recesses together ≤ ⅓ of the spine, the single leg strictly wider than its notch. Built through
+  `BodyEmitter.SpineArms`' per-arm-size overload; under rot_180 the parallel-fronts law keeps only the symmetric
+  samples (uneven variants live on mirror boards). Prep for the richer mids (G116). Gate:
+  `Sampled_layouts_respect_the_leg_laws_across_many_draws`. Pgm suite 697/697. (G115)
+
 - **The single frontline is the fat L — the centred T is banned** — `Compose/FrontlineBoxEmitter.cs`: the
   `single` form built a centred `cw`-wide strand (`vtv/ttt`), whose narrow tip is the whole front-face hull —
   under the hull-fit band that forces a too-thin mid band. It now builds the <b>fat L</b> (`vtt/ttt`): one arm

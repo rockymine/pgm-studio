@@ -39,9 +39,40 @@ public static class FrontlineBoxEmitter
         new(Compound.SpineArms, 2),   // twin (CT8 / FrontForm.Twin)
     ];
 
+    /// <summary>Sample a branch frontline's <b>leg layout</b> — the variation knob over the canonical forms (the
+    /// fat L, the symmetric twin): per-leg (Start, Width) on a <paramref name="w"/>-wide spine. The laws: every
+    /// leg at least <b>2 wide</b>; at most two legs, their widths within <b>factor 2</b> of each other (never a 2
+    /// beside a 5); the inter-leg <b>bay 2–4</b> wide; end recesses allowed but together at most a <b>third</b> of
+    /// the spine (the front stays substantial); the single leg strictly wider than its notch (the fat-L law — a
+    /// thin leg re-creates the banned T's thin band). Returns <c>null</c> when <paramref name="w"/> cannot host
+    /// the layout — the caller falls back to the canonical form.</summary>
+    public static IReadOnlyList<(int Start, int Width)>? SampleArms(ComposeRng rng, int w, int arms)
+    {
+        if (arms == 1)
+        {
+            var notchMax = Math.Min(4, (w - 1) / 2);
+            if (notchMax < 2) return null;
+            var notch = rng.NextInt(2, notchMax + 1);
+            var atStart = rng.NextBool(0.5);
+            return [(atStart ? 0 : notch, w - notch)];
+        }
+        if (arms != 2 || w < 6) return null;
+        var bay = rng.NextInt(2, Math.Min(4, w - 4) + 1);           // the inter-leg bay
+        var slack = rng.NextInt(0, Math.Min(w - 4 - bay, w / 3) + 1); // end recess total, capped at w/3
+        var rem = w - bay - slack;                                   // the two legs' combined width
+        var lo = Math.Max(2, (rem + 2) / 3);                         // factor-2 law: w1 in [ceil(rem/3)..2rem/3]
+        var hi = Math.Min(rem - 2, 2 * rem / 3);
+        if (lo > hi) return null;
+        var w1 = rng.NextInt(lo, hi + 1);
+        var end0 = rng.NextInt(0, slack + 1);
+        return [(end0, w1), (end0 + w1 + bay, rem - w1)];
+    }
+
     /// <summary>Fill a frontline <see cref="Box"/> (plan cells) as <paramref name="form"/> at strand width
     /// <paramref name="cw"/>, terminal-free, with the spine docking <paramref name="spineMouth"/> (the box edge
-    /// facing the hub) and the face on the opposite edge toward the axis. The body is built spine-up and oriented
+    /// facing the hub) and the face on the opposite edge toward the axis. An optional <paramref name="armLayout"/>
+    /// (from <see cref="SampleArms"/>) overrides the branch forms' canonical legs — the sampled variation; when
+    /// absent the canonical fat L / symmetric twin builds. The body is built spine-up and oriented
     /// onto the mouth (<see cref="BodyOrient"/>), so the composer places the box against any hub edge —
     /// <see cref="BoxEdge.Top"/> is the canonical frame (spine top, face bottom). Publishes the <b>face offer</b>
     /// over the arm-tip runs on the face edge, grouped <paramref name="faceGrouping"/> (joint — one shared group
@@ -49,14 +80,15 @@ public static class FrontlineBoxEmitter
     /// defaulting to each run's own class. Pieces carry the frontline <paramref name="box"/> label; no room, no
     /// marker. <c>null</c> when the box is too small for the form; throws for a form off the frontline menu.</summary>
     public static EmittedFrontline? Fill(
-        Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, BoxEdge spineMouth = BoxEdge.Top, int? faceWidth = null)
+        Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, BoxEdge spineMouth = BoxEdge.Top,
+        int? faceWidth = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         int boxW = box.Rect[2], boxH = box.Rect[3];
         // build spine-up in the spine-length × reach frame (transposed when the spine docks a lateral edge), then
         // orient onto the mouth — the twin of a spawn/wool box emitting mouth-up and orienting via MouthOrient
         var lateral = spineMouth is BoxEdge.Left or BoxEdge.Right;
         var (spineLen, reach) = lateral ? (boxH, boxW) : (boxW, boxH);
-        var built = BuildBody(form, spineLen, reach, cw);
+        var built = BuildBody(form, spineLen, reach, cw, armLayout);
         if (built is null) return null;
         var body = BodyOrient.To(built, spineMouth, spineLen, reach);
 
@@ -87,11 +119,17 @@ public static class FrontlineBoxEmitter
         BoxEdge.Left => BoxEdge.Right, _ => BoxEdge.Left,
     };
 
-    // build the body of `form` sized to fill the box, spine along the top; null when the box is too small.
-    private static ShapeBody? BuildBody(CompoundRead form, int w, int h, int cw)
+    // build the body of `form` sized to fill the box, spine along the top; null when the box is too small. An
+    // armLayout (SampleArms) overrides the branch forms' canonical legs with the sampled per-leg sizes.
+    private static ShapeBody? BuildBody(
+        CompoundRead form, int w, int h, int cw, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         try
         {
+            if (form.Form == Compound.SpineArms && armLayout is not null)
+                return armLayout.Count == form.Arms
+                    ? BodyEmitter.SpineArms(w, cw, armLayout.Select(a => (a.Start, a.Width, h - cw)).ToList())
+                    : null;
             return form.Form switch
             {
                 Compound.Rectangle => BodyEmitter.Rectangle(w, h),                                              // Bar — the wide face

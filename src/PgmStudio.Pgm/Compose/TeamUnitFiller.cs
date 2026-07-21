@@ -141,7 +141,15 @@ public static class TeamUnitFiller
                         : strands.Count > 0 ? strands[rng.NextInt(0, strands.Count)]
                         : fitF[rng.NextInt(0, fitF.Count)];
                     var grouping = rng.NextBool(0.5) ? OfferGrouping.Joint : OfferGrouping.Several;
-                    var ef = FrontlineBoxEmitter.Fill(neighbour, frontForm, cwF, grouping, mouth)!;
+                    // the branch forms take a sampled leg layout (SampleArms — varied leg widths/placements
+                    // under the leg laws: ≥2 wide, factor-2 pairs, 2–4 bays, capped end recesses) with the
+                    // canonical fat L / symmetric twin as the fallback when the spine cannot host one
+                    var spineLenF = mouth is BoxEdge.Left or BoxEdge.Right ? neighbour.Rect[3] : neighbour.Rect[2];
+                    var layoutF = frontForm.Form == Compound.SpineArms
+                        ? FrontlineBoxEmitter.SampleArms(rng, spineLenF, frontForm.Arms) : null;
+                    var ef = (layoutF is null ? null
+                            : FrontlineBoxEmitter.Fill(neighbour, frontForm, cwF, grouping, mouth, armLayout: layoutF))
+                        ?? FrontlineBoxEmitter.Fill(neighbour, frontForm, cwF, grouping, mouth)!;
                     pieces.AddRange(ef.Pieces);
                     faceOffers.AddRange(ef.FaceOffers);
                     break;
