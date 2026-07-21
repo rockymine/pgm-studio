@@ -14,6 +14,7 @@ var presets = new[]
     ("Mid board", "8 players · 1600 land", 8, 1600.0),
     ("Big board", "12 players · 2800 land", 12, 2800.0),
     ("Huge board", "20 players · 3800 land — cap-6 hubs, staple/branch wools", 20, 3800.0),
+    ("Giant board", "30 players · 6000 land — past the cap ladder's top tier (≥ 3000), so this shows the current classification's ceiling", 30, 6000.0),
 };
 const int seeds = 16;
 
@@ -29,11 +30,14 @@ foreach (var (label, sub, players, land) in presets)
         if (alloc is not { } a) { cards.Append(Fail(seed, "no allocation")); continue; }
         var filled = TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed));
         if (filled is null) { cards.Append(Fail(seed, "no fill")); continue; }
-        var pinched = Cells.HasDiagonalPinch(Mask(filled.Unit.Pieces));   // the mass-level corner law (G79)
+        var mask = Mask(filled.Unit.Pieces);
+        var pinched = Cells.HasDiagonalPinch(mask);   // the mass-level corner law (G79)
         if (pinched) totalPinches++;
         var hub = a.Partition.ById("hub")!;
         var front = a.SpawnFacing switch { "front" => BoxEdge.Top, "back" => BoxEdge.Bottom, "left" => BoxEdge.Left, _ => BoxEdge.Right };
-        cards.Append(Card(seed, filled.Unit.Pieces, FormLabel(hub.Form), pinched, hub.Rect, front));
+        var hasFrontline = a.Partition.Boxes.Any(b => b.Kind == BoxKind.Frontline);
+        cards.Append(Card(seed, filled.Unit.Pieces, FormLabel(hub.Form), pinched, hub.Rect, front,
+            mask.Count, land / (5.0 * 5.0), hasFrontline));
     }
     sections.Append($"<section><header><h2>{label}</h2><p>{sub}</p></header><div class=gallery>{cards}</div></section>");
 }
@@ -64,7 +68,8 @@ html.Append("<div class=legend>"
     + "<b style='color:#fbbf24'>■ wool</b><b style='color:#fb923c'>■ frontline</b>"
     + "<i>solid = room · translucent = terrain</i>"
     + "<b style='color:#38bdf8'>— hub front edge</b><b style='color:#f87171'>— flush (bad)</b>"
-    + "<i>grid = 5-block cells · title shows W×H cells · front = longest flat frontier (cells/blocks)</i></div>");
+    + "<i>grid = 5-block cells · title shows W×H cells · front = longest flat frontier (cells/blocks) "
+    + "· land = emitted cells / the preset's budget (its %: how much of the budget the seed spends)</i></div>");
 html.Append(sections.ToString());
 
 Directory.CreateDirectory("tools/compose/out");
@@ -104,7 +109,8 @@ static string Color(BoxKind k) => k switch
 static string Fail(int seed, string why) =>
     $"<div class=card><div class=title>seed {seed}</div><div class=fail>{why}</div></div>";
 
-static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool pinched, int[] hubRect, BoxEdge front)
+static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool pinched, int[] hubRect, BoxEdge front,
+    int landCells, double budgetCells, bool hasFrontline)
 {
     int minX = pieces.Min(p => p.Rect[0]), minZ = pieces.Min(p => p.Rect[1]);
     int maxX = pieces.Max(p => p.Rect[0] + p.Rect[2]), maxZ = pieces.Max(p => p.Rect[1] + p.Rect[3]);
@@ -130,13 +136,15 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool
     }
 
     // the hub's front (axis-facing) bounding-box edge, and any spawn/wool whose own front edge sits flush on it —
-    // the long-flat-edge defect: draw the hub front line, and mark a flush neighbour front edge in red
+    // the long-flat-edge defect: draw the hub front line, and mark a flush neighbour front edge in red. The flag
+    // follows the front-guard law: only a frontline-less unit can form the continuous flat frontier (an occupied
+    // front juts forward), so with-frontline units are exempt.
     var (fa, fb, faceCoord) = FrontLine(hubRect, front, minX, minZ, scale, pad);
     svg.Append($"<line x1='{fa.X}' y1='{fa.Y}' x2='{fb.X}' y2='{fb.Y}' stroke='#38bdf8' stroke-width='1.5' stroke-dasharray='3 2'/>");
     var flush = false;
     foreach (var g in pieces.Where(p => p.Box?.Kind is BoxKind.Wool or BoxKind.Spawn).GroupBy(p => p.Box!.Id))
     {
-        if (!FlushFront(g.ToList(), front, faceCoord)) continue;
+        if (hasFrontline || !FlushFront(g.ToList(), front, faceCoord)) continue;
         flush = true;
         var (la, lb) = NeighbourFrontLine(g.ToList(), front, minX, minZ, scale, pad);
         svg.Append($"<line x1='{la.X}' y1='{la.Y}' x2='{lb.X}' y2='{lb.Y}' stroke='#f87171' stroke-width='2.5'/>");
@@ -144,11 +152,12 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool
     svg.Append("</svg>");
 
     var run = FlatFrontRun(pieces, front);
+    var use = landCells / budgetCells;
     var bad = pinched || flush;
     var badges = (pinched ? " <span class=badge>⚠ pinch</span>" : "")
         + (flush ? " <span class=badge>⚠ flush front</span>" : "");
     return $"<div class='card{(bad ? " warn" : "")}'><div class=title>seed {seed} · hub {form} · {w}×{h} "
-        + $"· front {run}c/{run * 5}b{badges}</div>{svg}</div>";
+        + $"· front {run}c/{run * 5}b · land {landCells}/{budgetCells:0} ({use:P0}){badges}</div>{svg}</div>";
 }
 
 // the longest flat stretch of the unit's front-most frontier, in cells: per cross-axis column the front-most
