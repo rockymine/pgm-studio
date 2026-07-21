@@ -41,6 +41,9 @@ public static class LayoutEvaluator
         new LaneWidth(),
         new WoolWoolDistance(),
         new SpawnWoolDistance(),
+        new SpawnWoolSpread(),
+        new WoolFrontDistance(),
+        new WoolFrontBalance(),
     ];
 
     /// <summary>Full scored evaluation: run every enabled term, sum hard penalties + weighted soft distances.</summary>

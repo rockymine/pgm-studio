@@ -126,6 +126,9 @@ var glosses = new Dictionary<string, string>
     ["lane-width"] = "lane width vs the board's lane class",
     ["wool-wool-distance"] = "separation between a team's wools",
     ["spawn-wool-distance"] = "spawn↔wool marker distance",
+    ["spawn-wool-spread"] = "balance: the spread of the per-wool spawn distances (one wool guarded, another abandoned)",
+    ["wool-front-distance"] = "the most exposed wool's distance to the frontline edge (where the band meets the land)",
+    ["wool-front-balance"] = "the triangle: spread of per-wool defence deficits (spawn distance − frontline distance)",
 };
 string TermRow(ILayoutTerm t) => $"<li><b>{t.Id}</b> <i>({t.RuleId}"
     + (t.Kind == TermKind.Soft ? $" · w {EvaluationProfile.Default.Weight(t.Id):0.##}" : "")

@@ -1069,6 +1069,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   land + band must reach every fanned spawn image): 80/80 preset boards compose and connect, 0 rejects. Gate:
   `Box_composition_closes_the_loop_with_a_band_only_mid` (50 boards). Pgm suite 694/694. (G115)
 
+- **The spawn–wool–frontline triangle terms (WL9/WL10)** — `Evaluate/Terms/TriangleTerms.cs`: three new soft
+  terms close the relational gap the catalogue had. <b>spawn-wool-spread</b> (WL9): the spread of the per-wool
+  spawn→wool traversal distances — one wool guarded while another is abandoned. <b>wool-front-distance</b>
+  (WL10): the most exposed wool's traversal distance to the frontline edge, read off the derived board's
+  <b>front-front build cells</b> (id-independent — works on teaching seeds and composed plans alike).
+  <b>wool-front-balance</b> (WL10): the triangle — per wool the <i>defence deficit</i> (spawn distance −
+  frontline distance), scored on the deficits' spread; the banned failure is a front-near wool with a far spawn
+  (free to capture) beside a back wool with the spawn adjacent. All by the same rectilinear surface traversal as
+  WL2/WL7. Bands learned from the 23 teaching maps (`envelope-stats`): spread [0,85] · front distance [24,165] ·
+  balance [0,140] blocks. WL9/WL10 authored into `layout-rules.md`. Pgm suite 700/700. (G115)
+
 - **Donut growth knobs — the entry widens, the hole grows** — `ShapeEmitter` (donut) + `WoolFill.AttachmentWidth`
   + `TeamUnitAllocator.WoolDemand`: the donut always emitted its min box — good for reach, but the one-corridor
   hub entry was a fixed chokepoint and the hole a constant 1×2. The ring's span now <b>derives from the box</b>

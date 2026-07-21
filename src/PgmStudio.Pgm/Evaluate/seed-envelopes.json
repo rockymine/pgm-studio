@@ -50,5 +50,17 @@
   "spawn-wool-distance": [
     30,
     195
+  ],
+  "spawn-wool-spread": [
+    0,
+    85
+  ],
+  "wool-front-distance": [
+    24,
+    165
+  ],
+  "wool-front-balance": [
+    0,
+    140
   ]
 }

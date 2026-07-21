@@ -129,6 +129,18 @@ toward the map centre / the enemy; "back" = toward the map edge.
 - **WL8 [expert, new]** Wool approach routes: the default is a **single chokepoint route**;
   real maps sometimes add **alternative routes** to the wool (and then a build zone may touch the
   wool room — see BZ5). **[seed-needed]**
+- **WL9 [author]** **Spawn↔wool balance.** A team's wools sit **comparably far from the spawn**: the
+  spread (max − min) of the per-wool spawn→wool traversal distances stays modest. A large spread means
+  one wool is trivially defended (the spawn on its doorstep) while another is left to fend for itself.
+  Bands learned from the teaching seeds (`spawn-wool-spread`).
+- **WL10 [author]** **The spawn–wool–frontline triangle.** Two reads, both by surface traversal:
+  (a) each wool keeps a real distance to the **frontline edge** — the seam where the mid build band
+  meets the land, the line an attacker crosses (`wool-front-distance`, measured at the most exposed
+  wool); (b) across a team's wools the triangle stays **balanced**: per wool, the *defence deficit* is
+  its spawn distance minus its frontline distance, and the deficits' spread stays modest
+  (`wool-front-balance`). The failure this bans: a front-near wool whose spawn is far (free to
+  capture) beside a back wool whose spawn is adjacent (trivially defended) — the defender always
+  guards the wrong door. Bands learned from the teaching seeds.
 
 ## LN — Lane
 

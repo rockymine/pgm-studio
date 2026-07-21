@@ -20,6 +20,40 @@ public sealed class SoftTermsTests
          "placements":{"wools":[{"piece":"lane","at":[1,1]},{"piece":"lane","at":[1,4]}]}}
         """;
 
+    // a straight lane with the spawn at one end and two wools at different depths — spawn→wool 20 and 45
+    // blocks by traversal, so the spread is 25
+    private const string UnbalancedWoolsJson = """
+        {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+         "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]}],
+         "placements":{"spawns":[{"piece":"lane","at":[1,0.5],"facing":"front"}],
+                       "wools":[{"piece":"lane","at":[1,4.5]},{"piece":"lane","at":[1,9.5]}]}}
+        """;
+
+    [Test]
+    public async Task Spawn_wool_spread_measures_the_per_wool_distance_spread()
+    {
+        var ctx = Ctx(UnbalancedWoolsJson, SeedEnvelopes.Default);
+        var spread = new SpawnWoolSpread().Value(ctx);
+        await Assert.That(spread).IsNotNull();
+        await Assert.That(spread!.Value).IsEqualTo(25.0).Within(1e-9);
+        // no derivable front-front band on a symmetry-less lane — the triangle halves stay dormant, not wrong
+        await Assert.That(new WoolFrontDistance().Value(ctx)).IsNull();
+        await Assert.That(new WoolFrontBalance().Value(ctx)).IsNull();
+    }
+
+    [Test]
+    public async Task Triangle_terms_measure_the_teaching_seeds_and_score_them_inside_their_own_bands()
+    {
+        // the two-wool teaching seed carries a real band + spawn, so all three triangle terms measure; and a
+        // teaching map sits inside the bands it taught, so each scores distance 0
+        var ctx = EvalContext.Build(PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!, SeedEnvelopes.Default);
+        foreach (SoftTerm term in new SoftTerm[] { new SpawnWoolSpread(), new WoolFrontDistance(), new WoolFrontBalance() })
+        {
+            await Assert.That(term.Value(ctx)).IsNotNull();
+            await Assert.That(term.Measure(ctx).Distance).IsEqualTo(0.0).Within(1e-9);
+        }
+    }
+
     [Test]
     public async Task The_embedded_default_envelopes_load_the_generated_bands()
     {
