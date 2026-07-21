@@ -30,12 +30,12 @@ public sealed record EmittedFrontline(
 public static class FrontlineBoxEmitter
 {
     /// <summary>The frontline's authored form menu as data (§5.5): the wide <b>Bar</b> and the branch family at
-    /// one arm (single strand) and two (twin). The holed forms (P, two-U-on-I) are authored additions beyond the
-    /// grower's <c>FrontForm</c> and land next.</summary>
+    /// one arm (single — the <b>fat L</b>) and two (twin). The holed forms (P, two-U-on-I) are authored additions
+    /// beyond the grower's <c>FrontForm</c> and land next.</summary>
     public static readonly IReadOnlyList<CompoundRead> Forms =
     [
         new(Compound.Rectangle),      // Bar — the wide face (FR6 / FrontForm.Wide)
-        new(Compound.SpineArms, 1),   // single strand (FR3/FR4 / FrontForm.Single)
+        new(Compound.SpineArms, 1),   // single — the fat L (FR3/FR4 / FrontForm.Single)
         new(Compound.SpineArms, 2),   // twin (CT8 / FrontForm.Twin)
     ];
 
@@ -95,7 +95,14 @@ public static class FrontlineBoxEmitter
             return form.Form switch
             {
                 Compound.Rectangle => BodyEmitter.Rectangle(w, h),                                              // Bar — the wide face
-                Compound.SpineArms when form.Arms == 1 => BodyEmitter.SpineArms(cw, [(w - cw) / 2], w, h - cw), // single — a centred strand
+                // single — the FAT L, never a centred T strand: a T's narrow tip is the whole front-face hull,
+                // which forces a too-thin mid band. The one arm anchors at the spine's start and spans all but
+                // one corridor width (the void notch a real recess), so the face tip carries most of the bar;
+                // a leg not strictly wider than the notch (w < 2·cw + 1) is the thin-leg L with the same thin
+                // band and directed-nulls instead
+                Compound.SpineArms when form.Arms == 1 => w - cw >= cw + 1
+                    ? BodyEmitter.SpineArms(w, cw, [(0, w - cw, h - cw)])
+                    : null,
                 Compound.SpineArms when form.Arms == 2 => BodyEmitter.SpineArms(cw, [0, w - cw], w, h - cw),    // twin — a strand at each end
                 _ => throw new ComposeException($"the frontline menu is Bar / single / twin, not {form.Form} (arms {form.Arms})."),
             };

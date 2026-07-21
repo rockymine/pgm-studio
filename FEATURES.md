@@ -1069,6 +1069,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   land + band must reach every fanned spawn image): 80/80 preset boards compose and connect, 0 rejects. Gate:
   `Box_composition_closes_the_loop_with_a_band_only_mid` (50 boards). Pgm suite 694/694. (G115)
 
+- **The single frontline is the fat L — the centred T is banned** — `Compose/FrontlineBoxEmitter.cs`: the
+  `single` form built a centred `cw`-wide strand (`vtv/ttt`), whose narrow tip is the whole front-face hull —
+  under the hull-fit band that forces a too-thin mid band. It now builds the <b>fat L</b> (`vtt/ttt`): one arm
+  anchored at the spine's start spanning all but one corridor width (the void notch a real recess), via
+  `BodyEmitter.SpineArms`' per-arm-size overload — the per-slot width knob, already present. A leg not strictly
+  wider than the notch (the thin-leg `vvt/ttt`, same thin band) directed-nulls. Under rot_180 the parallel-fronts
+  law resamples the asymmetric L away, so singles appear on mirror boards; the menu and its draws are unchanged.
+  Pgm suite 695/695. (G115)
+
 - **The frontline box — the join box kind (G89) + the face offer (G96 frontline half)** — `Compose/FrontlineBoxEmitter.cs`:
   the **terminal-free** frontline join (map-generation.md §5.5). `FrontlineBoxEmitter` finishes a `BodyEmitter`
   `ShapeBody` with the Front designation — one edge the `face`, **no room/marker** — over the form menu **Bar** (the

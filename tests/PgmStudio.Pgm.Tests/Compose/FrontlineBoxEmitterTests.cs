@@ -33,13 +33,25 @@ public class FrontlineBoxEmitterTests
     }
 
     [Test]
-    public async Task Single_strand_faces_the_axis_with_one_centred_tip()
+    public async Task Single_is_the_fat_L_with_the_tip_spanning_all_but_one_corridor()
     {
+        // never the centred T: a T's narrow tip is the whole front-face hull, forcing a too-thin mid band. The
+        // fat L anchors its one arm at the spine's start and spans all but one corridor width (the void notch)
         var f = FrontlineBoxEmitter.Fill(Box(), new CompoundRead(Compound.SpineArms, 1), cw: 2, OfferGrouping.Several)!;
 
-        await Assert.That(f.Pieces.Count).IsEqualTo(2);                        // spine + one arm
+        await Assert.That(f.Pieces.Count).IsEqualTo(2);                        // spine + the one fat leg
         await Assert.That(f.FaceOffers.Count).IsEqualTo(1);
-        await Assert.That(f.FaceOffers[0].Interval.LengthCells).IsEqualTo(2);  // the strand tip, cw wide
+        await Assert.That(f.FaceOffers[0].Interval.LengthCells).IsEqualTo(6);  // the leg tip: spine 8 − cw 2
+        await Assert.That(f.FaceOffers[0].Interval.Start).IsEqualTo(0);        // anchored at the spine's start
+    }
+
+    [Test]
+    public async Task Single_nulls_when_the_leg_cannot_be_strictly_wider_than_the_notch()
+    {
+        // the thin-leg L (leg ≤ notch) has the same too-thin band as the banned T and directed-nulls
+        var box = new Box("frontline", BoxKind.Frontline, [0, 0, 4, 4], 16);
+        await Assert.That(FrontlineBoxEmitter.Fill(
+            box, new CompoundRead(Compound.SpineArms, 1), cw: 2, OfferGrouping.Several)).IsNull();
     }
 
     [Test]
