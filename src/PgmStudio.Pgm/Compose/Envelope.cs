@@ -16,7 +16,7 @@ namespace PgmStudio.Pgm.Compose;
 /// blocks. Equal to <see cref="BoardWidthBlocks"/> for the 4-team square board.</param>
 /// <param name="LandPerTeam">The per-team land budget (blocks²) the grower targets — G8's player-count
 /// coupling.</param>
-/// <param name="UnitMinX">The authored unit's cell bounds — the region <see cref="TeamUnitGrower"/> may fill.</param>
+/// <param name="UnitMinX">The authored unit's cell bounds — the region the allocator may fill.</param>
 public sealed record ComposeEnvelope(
     string Symmetry,
     int Teams,

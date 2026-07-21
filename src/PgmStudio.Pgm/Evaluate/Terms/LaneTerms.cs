@@ -18,7 +18,7 @@ public sealed class MaxChainLength : SoftTerm
     {
         var pieces = ctx.Plan.Pieces.Select(p => p.Rect).ToList();
         if (pieces.Count == 0) return null;
-        return TeamUnitGrower.MaxChainBlocks(ctx.Plan.Globals.Cell, pieces);
+        return ComposeGeometry.MaxChainBlocks(ctx.Plan.Globals.Cell, pieces);
     }
 }
 

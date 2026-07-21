@@ -89,14 +89,9 @@ AddCases(12, 2, "rot_180", "r180", 1, 3, 7, 13, 15, 17, 24, 33, 45);
 AddCases(16, 2, "rot_180", "r180", 2, 8, 19, 42);
 AddCases(20, 2, "rot_180", "r180", 1, 5, 7, 11, 53);
 AddCases(30, 2, "rot_180", "r180", 1, 3);
-// 2-team mirrors
+// 2-team mirror_z
 AddCases(12, 2, "mirror_z", "mrz", 1, 2, 3, 5, 8, 11, 24);
 AddCases(20, 2, "mirror_z", "mrz", 2, 8);
-AddCases(12, 2, "mirror_x", "mrx", 2, 5, 9);
-// 4-team rot_90
-AddCases(10, 4, "rot_90", "r90", 1, 5, 9);
-AddCases(16, 4, "rot_90", "r90", 1, 5, 13);
-AddCases(20, 4, "rot_90", "r90", 3, 9);
 foreach (var g in genCases)
 {
     try { Emit(g.Label, Composer.Compose(new ComposeRequest(g.P, g.T, g.S, g.Seed, 5)), sbGen); }

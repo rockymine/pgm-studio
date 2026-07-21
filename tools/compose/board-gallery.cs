@@ -1,7 +1,7 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 // board gallery: the composed FULL board (map completion v0) in two modes. The CORPUS mode runs the real
-// pipeline (Composer.ComposeBoxStages: derived envelope, corpus land budget, one threaded RNG) — the true
+// pipeline (Composer.ComposeStages: derived envelope, corpus land budget, one threaded RNG) — the true
 // output. The PRESET mode reuses the unit gallery's handcrafted envelopes with per-stage fresh RNGs, so board
 // card N contains exactly the unit shown on unit-gallery card N, completed with the band and its fanned image.
 // Each card runs the loop-closed check — a flood from the spawn over land + band must reach every fanned spawn
@@ -24,7 +24,7 @@ foreach (var (label, players) in new[] { ("Small", 6), ("Mid", 8), ("Big", 12), 
     {
         try
         {
-            var stages = Composer.ComposeBoxStages(new ComposeRequest(players, seed: (ulong)seed));
+            var stages = Composer.ComposeStages(new ComposeRequest(players, seed: (ulong)seed));
             cards.Append(BoardCard(seed, stages.Plan, stages.Envelope.Symmetry));
         }
         catch (ComposeException) { cards.Append(Fail(seed, "no acceptable plan")); }
@@ -49,7 +49,7 @@ foreach (var (label, players, land) in new[]
         { cards.Append(Fail(seed, "no allocation")); continue; }
         if (TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed)) is not { } filled)
         { cards.Append(Fail(seed, "no fill")); continue; }
-        if (MidCarver.TryCarve(env, new ComposeRng((ulong)seed), crossing, filled.Unit, flushOnly: true) is not { } mid)
+        if (MidCarver.TryCarve(env, crossing, filled.Unit) is not { } mid)
         { cards.Append(Fail(seed, "no band — contact discipline (a wool within BZ6's clearance of the axis); the corpus path resamples such units")); continue; }
 
         var plan = new PlanModel
@@ -98,7 +98,7 @@ html.Append("<style>"
     + ".terms ul{margin:0;padding-left:16px;font-size:11.5px;line-height:1.55}.terms i{color:var(--dim);font-style:normal}"
     + "svg{background:var(--canvas);border-radius:4px;display:block}</style>");
 html.Append("<h1>Composed boards — map completion v0</h1>"
-    + "<p class=tag>Two modes. <b>Corpus budget</b>: the real pipeline (ComposeBoxStages — derived envelope, "
+    + "<p class=tag>Two modes. <b>Corpus budget</b>: the real pipeline (ComposeStages — derived envelope, "
     + "rot_180, one threaded RNG, hard-terms gate, parallel-fronts law). <b>Preset envelope</b>: the unit "
     + "gallery's handcrafted budgets with per-stage fresh RNGs — card N is exactly unit-gallery card N plus the "
     + "band and its mirror. Both use the band-only mid (uniform 20-block gap, flush dock, no stones).</p>");

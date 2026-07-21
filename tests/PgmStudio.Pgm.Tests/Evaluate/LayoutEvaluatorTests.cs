@@ -56,19 +56,18 @@ public sealed class LayoutEvaluatorTests
 
     // Every plan the composer emits must pass the gate (no hard violation) — the permanent form of the
     // byte-identity check made when Composer.Acceptable was dissolved into the evaluator. (Soft score is not
-    // asserted 0: soft terms measure authored-likeness, which the current constructive grower does not optimize.)
+    // asserted 0: soft terms measure authored-likeness, which the composer does not yet optimize.)
     [Test]
     public async Task Every_composed_plan_passes_the_hard_gate()
     {
         foreach (var players in new[] { 12, 20 })
-            foreach (var teams in new[] { 2, 4 })
-                for (ulong seed = 1; seed <= 10; seed++)
-                {
-                    var plan = Composer.Compose(new ComposeRequest(players, teams, seed: seed));
-                    var ctx = EvalContext.Build(plan);
-                    await Assert.That(LayoutEvaluator.Gate(ctx, EvaluationProfile.Default)).IsNull();
-                    await Assert.That(LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default).IsValid).IsTrue();
-                }
+            for (ulong seed = 1; seed <= 10; seed++)
+            {
+                var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
+                var ctx = EvalContext.Build(plan);
+                await Assert.That(LayoutEvaluator.Gate(ctx, EvaluationProfile.Default)).IsNull();
+                await Assert.That(LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default).IsValid).IsTrue();
+            }
     }
 
     // The reject sink is opt-in: passing one never changes the composed plan, and every captured record cites a

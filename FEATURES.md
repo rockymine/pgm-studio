@@ -1080,6 +1080,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   WL2/WL7. Bands learned from the 23 teaching maps (`envelope-stats`): spread [0,85] · front distance [24,165] ·
   balance [0,140] blocks. WL9/WL10 authored into `layout-rules.md`. Pgm suite 700/700. (G115)
 
+- **The box pipeline is THE composer — the old grower path retired (G63-C.3/C.4)** — `Compose/`:
+  `Composer.Compose`/`ComposeStages` now run the partition-first pipeline (envelope → `MidCarver.BandOnly`
+  crossing → `TeamUnitAllocator` → `TeamUnitFiller` → hull-exact flush band → evaluator gate) as the one
+  path. Deleted with the cut-over: `TeamUnitGrower` (the grow-then-fill authoring), `BoxPartitioner` (the
+  grow round-trip seam), `SpawnWoolRooms` (the lane terminal carve — box rooms arrive pre-carved),
+  `IsolationCut`/`CutResult` (dormant since G86; returns slot-aware, ideas doc G63-D), and `MidCarver`'s
+  sampled-crossing vocabulary (`SampleCrossing`, stone rows/grids, the centre island, the plaza — the
+  reference designs live in git history and re-enter as `CrossingDesign` forms, ideas doc G116). Shared
+  statics relocated: `MaxChainBlocks`/`LaneChainMaxBlocks`/`ImageClearanceBlocks` → `ComposeGeometry`;
+  `GrownUnit`/`GrownPiece` records → `Compose/GrownUnit.cs`. Supported requests: 2-team
+  `rot_180`/`mirror_z` (4-team `rot_90` + `mirror_x` return through the allocator richness work).
+  `ComposerTests` re-based to the box sweep (determinism, clean validation, flush/hull band, connectivity,
+  distribution); gallery tools (`matrix`/`gallery-gen`/`box-gallery`/`derive-gallery`/`board-gallery`) on
+  the surviving entry point — 20/20 matrix cases compose, 0 validator errors. Task board condensed with it:
+  the ~40-task G long tail → `docs/layout-generation-ideas.md` (ids preserved), the new focus (G117/G118
+  studio integration) on `TODO.md`. Suite 681/681.
+
 - **Size-independent triangle factors + the stalemate probe** — `Evaluate/Terms/TriangleTerms.cs` +
   `tools/compose/stalemate-probe.cs`: the distance terms scale with the board, so the same 2× imbalance reads
   in-band on a big board and out-of-band on a small one — three <b>factor</b> terms fix that, all authored caps

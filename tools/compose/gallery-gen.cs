@@ -28,28 +28,11 @@ void AddFam(string h, string sub, IEnumerable<Case> cs) => families.Add((h, sub,
 foreach (var p in new[] { 12, 16, 20, 30 })
     AddFam($"2-team · rot_180 · {p} players", "one authored unit, rotated 180° about centre",
         new ulong[] { 1, 7, 13 }.Select(seed => new Case(p, 2, "rot_180", seed)));
-// 4-team rot_90 pinwheel
-AddFam("4-team · rot_90", "one wedge, fanned to four by 90° rotation",
-    new[] { new Case(10, 4, "rot_90", 1UL), new Case(16, 4, "rot_90", 5UL), new Case(20, 4, "rot_90", 9UL) });
-// mirror symmetries
-AddFam("Mirror symmetries", "reflected halves (mirror_x / mirror_z)",
-    new[] { new Case(12, 2, "mirror_x", 2UL), new Case(10, 2, "mirror_z", 2UL) });
-// mirror_z at bigger budgets — where the wide frontline + MD6 stone grid form
-AddFam("Mirror · wide frontline + stone grid", "mirror_z — FR6 wide face the band docks to, MD6 2-col grid",
+// mirror_z — the straight-across reflection at small and big budgets
+AddFam("Mirror symmetries", "reflected halves (mirror_z)",
+    new[] { new Case(10, 2, "mirror_z", 2UL), new Case(12, 2, "mirror_z", 24UL) });
+AddFam("Mirror · wide budgets", "mirror_z at the bigger budgets — the wide frontline forms",
     new ulong[] { 1, 2, 3, 5, 8, 11 }.Select(seed => new Case(20, 2, "mirror_z", seed)));
-// centerline islands — a stone (or pair) straddling the axis, its fan completing central island(s) (CT11).
-// Freshly classified after the pair-depth bias: lead with the 10x10 pair, then a deep pair, then each single form.
-AddFam("Centerline islands — variety", "axis-straddling stone(s): 10×10 pair / deep pair / square / horizontal / vertical (CT11)",
-    new[]
-    {
-        new Case(12, 2, "rot_180", 24UL),   // 10x10 PAIR — two small squares on the axis (the ex-10 form, now common)
-        new Case(12, 2, "mirror_z", 24UL),  // 10x10 pair (mirror)
-        new Case(12, 2, "rot_180", 33UL),   // deep pair (10x20 each) — the occasional form
-        new Case(12, 2, "rot_180", 15UL),   // single 10x10 (small square)
-        new Case(12, 2, "rot_180", 17UL),   // single horizontal (20x10, wide+flat)
-        new Case(16, 2, "rot_180", 53UL),   // single vertical (10x20, deep+narrow)
-        new Case(12, 2, "rot_180", 45UL),   // single 20x20 (large square)
-    });
 
 int cardCount = 0;
 var failures = new List<(string Id, string Msg)>();
@@ -70,9 +53,8 @@ foreach (var (header, sub, cs) in families)
             int zones = plan.Zones.Count;
             int stones = stages.Mid.Stones.Count;
             int holes = ClosureAnalysis.HoleSizes(plan).Count;
-            bool cut = stages.Cut != null;
             var svg = BuildSvg(plan);
-            cards.Append(Card(id, c, svg, pieces, zones, stones, holes, cut));
+            cards.Append(Card(id, c, svg, pieces, zones, stones, holes));
             rendered++;
             cardCount++;
         }
@@ -311,15 +293,14 @@ static (double X1, double Z1, double X2, double Z2) Fan(double x1, double z1, do
 static string N(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
 static string Esc(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 
-string Card(string id, Case c, string svg, int pieces, int zones, int stones, int holes, bool cut)
+string Card(string id, Case c, string svg, int pieces, int zones, int stones, int holes)
 {
     string stat(string label, string val) => $"<span class=\"stat\"><span class=\"stat-v\">{val}</span> {label}</span>";
     var stats = string.Join("<span class=\"stat-dot\">·</span>",
         stat("pieces", pieces.ToString()),
         stat("zones", zones.ToString()),
         stat("stones", stones.ToString()),
-        stat("holes", holes.ToString()),
-        $"<span class=\"stat stat--{(cut ? "yes" : "no")}\"><span class=\"stat-v\">{(cut ? "yes" : "no")}</span> cut</span>");
+        stat("holes", holes.ToString()));
     return $"""
             <article class="card">
               <div class="card-head"><span class="card-id">{Esc(id)}</span></div>

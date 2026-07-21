@@ -32,12 +32,11 @@ const string BxMid = "#22d3ee";       // mid — cyan
 var scan = new List<Case>();
 foreach (var sym in new[] { "rot_180", "mirror_z" })
     for (ulong seed = 1; seed <= 40; seed++) { scan.Add(new Case(30, 2, sym, seed)); scan.Add(new Case(20, 2, sym, seed)); }
-for (ulong seed = 1; seed <= 24; seed++) { scan.Add(new Case(20, 4, "rot_90", seed)); scan.Add(new Case(16, 4, "rot_90", seed)); }
-foreach (var sym in new[] { "rot_180", "mirror_x" })
+foreach (var sym in new[] { "rot_180", "mirror_z" })
     for (ulong seed = 1; seed <= 16; seed++) scan.Add(new Case(16, 2, sym, seed));
 
 // one composed, classified shot
-var shots = new List<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, bool Cut, List<ShapeFamily> Fams)>();
+var shots = new List<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, List<ShapeFamily> Fams)>();
 var failures = new List<(string Id, string Msg)>();
 foreach (var c in scan)
 {
@@ -48,7 +47,7 @@ foreach (var c in scan)
         var fams = WoolFamilies(stages.Unit);
         var svg = BuildSvg(stages.Plan, BoxPartition.Of(stages.Unit).Boxes);
         shots.Add((c, id, svg, stages.Plan.Pieces.Count, stages.Mid.Stones.Count,
-            ClosureAnalysis.HoleSizes(stages.Plan).Count, stages.Cut != null, fams));
+            ClosureAnalysis.HoleSizes(stages.Plan).Count, fams));
     }
     catch (Exception ex) { failures.Add((id, $"{ex.GetType().Name}: {ex.Message}")); }
 }
@@ -78,8 +77,8 @@ static string FamTag(ShapeFamily f) => f.ToString().ToLowerInvariant();
 bool Has(IEnumerable<ShapeFamily> fs, params ShapeFamily[] any) => fs.Any(any.Contains);
 
 var used = new HashSet<string>();
-List<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, bool Cut, List<ShapeFamily> Fams)> Take(
-    Func<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, bool Cut, List<ShapeFamily> Fams), bool> pred, int cap)
+List<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, List<ShapeFamily> Fams)> Take(
+    Func<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, List<ShapeFamily> Fams), bool> pred, int cap)
 {
     var picked = shots.Where(s => !used.Contains(s.Id) && pred(s)).Take(cap).ToList();
     foreach (var s in picked) used.Add(s.Id);
@@ -89,12 +88,12 @@ List<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, bool Cut
 int cardCount = 0;
 var sectionsHtml = new StringBuilder();
 
-void Section(string header, string sub, IEnumerable<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, bool Cut, List<ShapeFamily> Fams)> group)
+void Section(string header, string sub, IEnumerable<(Case C, string Id, string Svg, int Pieces, int Stones, int Holes, List<ShapeFamily> Fams)> group)
 {
     var list = group.ToList();
     if (list.Count == 0) return;
     var cards = new StringBuilder();
-    foreach (var s in list) { cards.Append(Card(s.Id, s.C, s.Svg, s.Pieces, s.Stones, s.Holes, s.Cut, s.Fams)); cardCount++; }
+    foreach (var s in list) { cards.Append(Card(s.Id, s.C, s.Svg, s.Pieces, s.Stones, s.Holes, s.Fams)); cardCount++; }
     sectionsHtml.Append($"""
         <section class="fam">
           <div class="fam-head">
@@ -420,14 +419,13 @@ static (double X1, double Z1, double X2, double Z2) Fan(double x1, double z1, do
 static string N(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
 static string Esc(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 
-string Card(string id, Case c, string svg, int pieces, int stones, int holes, bool cut, List<ShapeFamily> fams)
+string Card(string id, Case c, string svg, int pieces, int stones, int holes, List<ShapeFamily> fams)
 {
     string stat(string label, string val) => $"<span class=\"stat\"><span class=\"stat-v\">{val}</span> {label}</span>";
     var stats = string.Join("<span class=\"stat-dot\">·</span>",
         stat("pieces", pieces.ToString()),
         stat("stones", stones.ToString()),
-        stat("holes", holes.ToString()),
-        $"<span class=\"stat stat--{(cut ? "yes" : "no")}\"><span class=\"stat-v\">{(cut ? "yes" : "no")}</span> cut</span>");
+        stat("holes", holes.ToString()));
     // one badge per wool arm, tagged by its emitted approach family; the donut badge is the new one
     var badges = string.Concat(fams.Select(f =>
         $"<span class=\"fam-badge fam-badge--{FamTag(f)}\">{Esc(f.ToString())}</span>"));

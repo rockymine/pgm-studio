@@ -12,11 +12,14 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// </summary>
 public sealed class BoxPartitionTests
 {
-    private static GrownUnit Grow(int players, int teams = 2, string? symmetry = null, ulong seed = 1)
+    private static GrownUnit? TryFill(int players, ulong seed)
     {
-        var request = new ComposeRequest(players, teams, symmetry, seed);
+        var request = new ComposeRequest(players, seed: seed);
         var rng = new ComposeRng(seed);
-        return TeamUnitGrower.Grow(Envelope.Derive(request, rng), rng);
+        var env = Envelope.Derive(request, rng);
+        var crossing = MidCarver.BandOnly(env);
+        if (TeamUnitAllocator.Allocate(env, rng, crossing) is not { } alloc) return null;
+        return TeamUnitFiller.Fill(alloc.Partition, alloc.SpawnFacing, rng)?.Unit;
     }
 
     [Test]
@@ -75,7 +78,7 @@ public sealed class BoxPartitionTests
     {
         for (ulong seed = 1; seed <= 8; seed++)
         {
-            var unit = Grow(24, seed: seed);
+            if (TryFill(24, seed) is not { } unit) continue;
             var partition = BoxPartition.Of(unit);
             await Assert.That(partition.Valid()).IsTrue();
             // the spine and the wool boxes are all present as typed boxes
@@ -96,7 +99,8 @@ public sealed class BoxPartitionTests
         var sawSpawnJoint = false;
         for (ulong seed = 1; seed <= 12; seed++)
         {
-            var partition = BoxPartition.Of(Grow(24, seed: seed));
+            if (TryFill(24, seed) is not { } unit) continue;
+            var partition = BoxPartition.Of(unit);
             await Assert.That(partition.JointsOf("hub")).IsNotEmpty();
             var spawn = partition.Boxes.First(b => b.Kind == BoxKind.Spawn);
             if (partition.JointsOf("hub").Any(j => j.BoxA == spawn.Id || j.BoxB == spawn.Id)) sawSpawnJoint = true;

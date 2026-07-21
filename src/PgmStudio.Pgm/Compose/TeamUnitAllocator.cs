@@ -15,12 +15,12 @@ public enum UnitSide { Front, Back, Left, Right }
 public sealed record UnitPlan(UnitSide? Frontline, UnitSide Spawn, IReadOnlyList<UnitSide> Wools);
 
 /// <summary>
-/// The partition-first team-unit allocator (G63-C.2) — a <b>clean box-model sampler</b> that decides the unit's
-/// structure and lays out box footprints from the budget, replacing <see cref="TeamUnitGrower"/>'s grow-then-fill.
-/// This layer is the frame-independent <b>placement plan</b> (<see cref="UnitPlan"/>): the wool count (kept from
-/// the grower) and which hub side each neighbour takes. The <b>spawn may sit on the back or a lateral side</b>;
+/// The partition-first team-unit allocator — a <b>clean box-model sampler</b> that decides the unit's
+/// structure and lays out box footprints from the budget.
+/// This layer is the frame-independent <b>placement plan</b> (<see cref="UnitPlan"/>): the wool count and
+/// which hub side each neighbour takes. The <b>spawn may sit on the back or a lateral side</b>;
 /// the wools are assigned <b>after</b> the spawn and around it — the two free (non-spawn, non-front) sides first,
-/// back preferred, a third wool doubling up on the spawn's side (which reduces to the grower's "two side wools +
+/// back preferred, a third wool doubling up on the spawn's side ("two side wools +
 /// a back wool-c" exactly when the spawn is on the back).
 /// </summary>
 public static class TeamUnitAllocator
@@ -142,7 +142,7 @@ public static class TeamUnitAllocator
 
     // ── the plan: how many wools, and which side each neighbour takes ──────────────────────────────────────
 
-    /// <summary>The wool-box count — kept from the grower: 2–3 for a full team, one for a tiny board, else 1–2.</summary>
+    /// <summary>The wool-box count: 2–3 for a full team, one for a tiny board, else 1–2.</summary>
     public static int WoolCount(ComposeEnvelope env, ComposeRng rng) =>
         env.PlayersPerTeam >= FullTeamPlayers ? (rng.NextBool(ThirdWoolChance) ? 3 : 2)
         : env.LandPerTeam < TinyBoardLand ? 1

@@ -2,19 +2,17 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>What filling an allocated partition produces (G63-C.1): the <see cref="GrownUnit"/> the composer
+/// <summary>What filling an allocated partition produces: the <see cref="GrownUnit"/> the composer
 /// assembles (pieces + spawn/wool placements) plus the frontline's <see cref="FrontlineFace"/> offers the mid
-/// consumes (<c>mid = f(frontline)</c>). A drop-in for a <see cref="TeamUnitGrower"/> grow, with the frontline
-/// offers additionally carried out for <see cref="MidCarver"/>.</summary>
+/// consumes (<c>mid = f(frontline)</c>), carried out for <see cref="MidCarver"/>.</summary>
 public sealed record FilledUnit(GrownUnit Unit, IReadOnlyList<EdgeOffer> FrontlineFace);
 
 /// <summary>
-/// Fills an allocated team-unit partition <b>hub-first</b> (G63-C.1) — the fill half of the box-driven switch
-/// (allocate-then-fill). The hub emits first as the <b>constraint source</b> (<see cref="HubBoxEmitter"/>), and
+/// Fills an allocated team-unit partition <b>hub-first</b> — the fill half of the allocate-then-fill
+/// pipeline. The hub emits first as the <b>constraint source</b> (<see cref="HubBoxEmitter"/>), and
 /// each neighbour box <b>consumes the hub's <see cref="EdgeOffer"/></b> on the edge it docks: the offered
-/// <see cref="EdgeOffer.WidthClass"/> <em>is</em> the neighbour's corridor width. This replaces
-/// <see cref="TeamUnitGrower"/>'s grow-then-derive authoring — the geometry is filled into footprints the
-/// allocator positions (C.2), not grown — and it is what retires the grower (C.3).
+/// <see cref="EdgeOffer.WidthClass"/> <em>is</em> the neighbour's corridor width. The geometry is filled into
+/// footprints the allocator positions, never grown outward.
 ///
 /// <para>This first slice is the <b>offer-consumption seam</b>: the offer on a neighbour's own joint driving its
 /// width. The full partition-topology orchestration — which neighbour docks which edge, assembling the

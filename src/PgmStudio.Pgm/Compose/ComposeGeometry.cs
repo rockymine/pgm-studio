@@ -7,12 +7,57 @@ namespace PgmStudio.Pgm.Compose;
 /// <b>land</b> pieces (the connected team unit — they may touch each other within one orbit image) and
 /// <b>isolated</b> pieces (mid stones, severed plateaus — reachable only by building, never by walking).
 /// Pieces of different orbit images, and any pair involving an isolated piece, must keep at least
-/// <see cref="TeamUnitGrower.ImageClearanceBlocks"/> of clearance on some axis: a shared border, however
+/// <see cref="ImageClearanceBlocks"/> of clearance on some axis: a shared border, however
 /// narrow, would weld what must stay separate islands (CT1), and anything under G5's minimum hop leaves no
-/// room to bridge.
+/// room to bridge. Also home to the collinear-chain measurement (LN2's unit of account).
 /// </summary>
-internal static class ComposeGeometry
+public static class ComposeGeometry
 {
+    /// <summary>LN2's hard cap: a lane runs at most this many blocks before a junction or dead end, and the
+    /// cap binds the maximal collinear chain of land-joined same-cross-section pieces — a long lane cut into
+    /// several collinear pieces is still one lane.</summary>
+    public const int LaneChainMaxBlocks = 50;
+
+    /// <summary>Minimum clearance (blocks, on at least one axis) between pieces of different orbit images
+    /// and around every isolated piece: G5's smallest hop, so the void stays bridgeable without ever welding
+    /// separate islands together (CT1).</summary>
+    public const int ImageClearanceBlocks = 10;
+
+    /// <summary>The longest maximal collinear chain over a set of cell rects, in blocks: rects with the same
+    /// cross-axis interval that abut along the run axis merge into one chain (a lane cut into collinear
+    /// pieces is still one lane); a jog, a width change, or a corner touch breaks the chain. LN2 caps the
+    /// result at <see cref="LaneChainMaxBlocks"/>.</summary>
+    public static int MaxChainBlocks(int cell, IReadOnlyList<int[]> rects)
+    {
+        var xRuns = LongestRun(rects, r => (r[1], r[3]), r => r[0], r => r[2]);
+        var zRuns = LongestRun(rects, r => (r[0], r[2]), r => r[1], r => r[3]);
+        return Math.Max(xRuns, zRuns) * cell;
+    }
+
+    private static int LongestRun(
+        IReadOnlyList<int[]> rects,
+        Func<int[], (int, int)> cross, Func<int[], int> runMin, Func<int[], int> runSpan)
+    {
+        var best = 0;
+        foreach (var group in rects.GroupBy(cross))
+        {
+            var runs = group.OrderBy(runMin).ToList();
+            int start = runMin(runs[0]), end = start + runSpan(runs[0]);
+            foreach (var r in runs.Skip(1))
+            {
+                if (runMin(r) == end) end = runMin(r) + runSpan(r);   // abutting — same chain
+                else
+                {
+                    best = Math.Max(best, end - start);
+                    start = runMin(r);
+                    end = start + runSpan(r);
+                }
+            }
+            best = Math.Max(best, end - start);
+        }
+        return best;
+    }
+
     /// <summary>True when every fanned pair satisfies the separation rule: same-image land↔land pairs may
     /// touch but never overlap; every other pair (different images, or involving an isolated piece) keeps
     /// the 10-block clearance on at least one axis.</summary>
@@ -38,7 +83,7 @@ internal static class ComposeGeometry
         foreach (var r in isolatedRects) Add(r, true, false);
         if (centerRects is not null) foreach (var r in centerRects) Add(r, true, true);
 
-        const double clear = TeamUnitGrower.ImageClearanceBlocks;
+        const double clear = ImageClearanceBlocks;
         const double eps = 1e-6;
         for (var i = 0; i < images.Count; i++)
             for (var j = i + 1; j < images.Count; j++)

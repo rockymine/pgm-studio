@@ -104,7 +104,7 @@ void Examine(string name, PlanModel plan)
 foreach (var (label, players) in new[] { ("small", 6), ("mid", 8), ("big", 12), ("huge", 20), ("giant", 30) })
     for (var seed = 0; seed < 16; seed++)
     {
-        try { Examine($"corpus {label} s{seed}", Composer.ComposeBoxStages(new ComposeRequest(players, seed: (ulong)seed)).Plan); }
+        try { Examine($"corpus {label} s{seed}", Composer.ComposeStages(new ComposeRequest(players, seed: (ulong)seed)).Plan); }
         catch (ComposeException) { }
     }
 
@@ -119,7 +119,7 @@ foreach (var (label, players, land) in new[]
     {
         if (TeamUnitAllocator.Allocate(env, new ComposeRng((ulong)seed), crossing) is not { } a) continue;
         if (TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed)) is not { } filled) continue;
-        if (MidCarver.TryCarve(env, new ComposeRng((ulong)seed), crossing, filled.Unit, flushOnly: true) is not { } mid) continue;
+        if (MidCarver.TryCarve(env, crossing, filled.Unit) is not { } mid) continue;
         var plan = new PlanModel
         {
             Meta = new PlanMeta { Name = $"{label} s{seed}" },

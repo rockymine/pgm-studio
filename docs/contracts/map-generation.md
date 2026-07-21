@@ -829,8 +829,10 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
 | Piece | Path | What |
 |---|---|---|
-| `Composer` | `Compose/Composer.cs` | `Compose(ComposeRequest)` — the entry point. |
-| `TeamUnitGrower` | `Compose/TeamUnitGrower.cs` | budget→counts, spawn + hub, grow, frontline, stones; holds `GrownPiece` (with `Slot`), `GrownUnit`. |
+| `Composer` | `Compose/Composer.cs` | `Compose(ComposeRequest)` — the entry point: envelope → band-only crossing → allocate → fill → carve → assemble, gated by the evaluator's hard terms. |
+| `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the partition-first allocator: placement plan (`UnitPlan`), hub-form choice, seat logic, box footprints from the budget → `BoxPartition`. |
+| `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the allocated partition hub-first (offer consumption) → `FilledUnit` (a `GrownUnit` + the frontline face offers). |
+| `GrownUnit` · `GrownPiece` | `Compose/GrownUnit.cs` | the composed unit records (pieces with `Slot`/`Box` labels + spawn/wool placements). |
 | `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fills a wool box, terminal → wool room + marker. |
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding (second box kind): profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
 | `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
@@ -838,12 +840,9 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template slots on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |
 | `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `SlotDockRole` (room→never-dock, entry→docking, rest→internal) + `FamilyDock` (per-family demand/span) + the verdict (`Check`/`DockingEdges`/`MeetsDemand`) over the `BoxEdgeInterface` slots. A dock is legal iff it lands on an entry, seals no wool, meets the span demand — no per-family imperative code, shape-relative. Not an `ILayoutTerm`. |
 | `BoxPartition` | `Compose/Boxes/BoxPartition.cs` | the partition constraint graph: typed `Box`es + `BoxJoint`s, with hard invariants (`Valid`) and `Of` the derive-side mirror reading the partition a grown unit implies (`SharedEdge` finds the abutment intervals). The typed target the partition-first allocator (G63) emits; boxes may overlap, joints assert only real abutments. |
-| `BoxPartitioner` | `Compose/Boxes/BoxPartitioner.cs` | the partition-first allocator: `budget → BoxPartition`. Ships parallel to `TeamUnitGrower` (not the default — the switch that fills the partition and retires the grower is G63-C): `Partition` grows one unit and reads its partition off `BoxPartition.Of`, round-tripping through the mirror, and carries the two-currency budget accounting (`BudgetCells` the land currency, `WithinBudget` the balance check). |
-| `SpawnWoolRooms` | `Compose/SpawnWoolRooms.cs` | the wool-lane-c terminal carve (box rooms arrive pre-carved). |
 | `Envelope` | `Compose/Envelope.cs` | the budget anchors (`bp`; the land-per-player target). |
-| `MidCarver` | `Compose/MidCarver.cs` | the mid: bands, stone grids, the recess. |
+| `MidCarver` | `Compose/MidCarver.cs` | the mid: the flush, hull-exact build band (band-only today; richer crossings layer back in here). |
 | `ClosureAnalysis` | `Compose/ClosureAnalysis.cs` | closure hole raster (`HoleSizes`, `AnyHoleRingedBy`). |
-| `IsolationCut` | `Compose/IsolationCut.cs` | the isolation-cut fragmentation move. |
 | `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the fanned-separation invariant. |
 | `PlanModel` · `PlanRoles` | `Plan/PlanModel.cs` | the plan format + the authored role set. |
 

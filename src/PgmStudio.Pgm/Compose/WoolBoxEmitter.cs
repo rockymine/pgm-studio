@@ -26,7 +26,7 @@ public sealed record EmittedApproach(
 public static class WoolBoxEmitter
 {
     /// <summary>The dead-end room's depth along the final corridor, in cells — a two-cell (~10-block)
-    /// plateau that clears the export stamp, matching <see cref="SpawnWoolRooms"/>.</summary>
+    /// plateau that clears the export stamp.</summary>
     public const int RoomDepthCells = ShapeEmitter.RoomDepthCells;
 
     /// <summary>The minimum box a wool <paramref name="family"/> needs to dock a hub edge, as
