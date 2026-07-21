@@ -8,6 +8,7 @@
 // image — and reports the closure holes (emergent only in v0).
 using System.Text;
 using PgmStudio.Pgm.Compose;
+using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 using Sym = PgmStudio.Geom.Symmetry;
 
@@ -91,12 +92,55 @@ html.Append("<style>"
     + ".badge{color:#f87171;font-size:9px;letter-spacing:0}.ok{color:#34d399;font-size:9px}"
     + ".title{font-size:10.5px;color:var(--dim);margin-bottom:6px;letter-spacing:0.03em}"
     + ".fail{color:#f87171;font-size:11px;padding:26px;text-align:center}"
+    + ".terms{border:1px solid var(--line);border-radius:8px;padding:14px 18px;margin:0 0 24px;background:var(--panel)}"
+    + ".terms h3{font-size:13px;font-weight:600;margin:0 0 4px}.terms h4{font-size:12px;font-weight:600;margin:8px 0 4px}"
+    + ".termcols{display:flex;flex-wrap:wrap;gap:26px}.termcols>div{flex:1;min-width:340px}"
+    + ".terms ul{margin:0;padding-left:16px;font-size:11.5px;line-height:1.55}.terms i{color:var(--dim);font-style:normal}"
     + "svg{background:var(--canvas);border-radius:4px;display:block}</style>");
 html.Append("<h1>Composed boards — map completion v0</h1>"
     + "<p class=tag>Two modes. <b>Corpus budget</b>: the real pipeline (ComposeBoxStages — derived envelope, "
     + "rot_180, one threaded RNG, hard-terms gate, parallel-fronts law). <b>Preset envelope</b>: the unit "
     + "gallery's handcrafted budgets with per-stage fresh RNGs — card N is exactly unit-gallery card N plus the "
     + "band and its mirror. Both use the band-only mid (uniform 20-block gap, flush dock, no stones).</p>");
+
+// ── what gets scored: the evaluator's full term catalogue, hard and soft, straight off LayoutEvaluator ──
+var glosses = new Dictionary<string, string>
+{
+    ["structural-integrity"] = "the plan is geometrically well-formed — no overlapping or malformed pieces",
+    ["lint-pc-c"] = "the cell-level corner law — full land edges, ¾-solid corners, no narrow seams or diagonal pinches",
+    ["lint-g2"] = "every land interface is a full readable edge, never a sliver",
+    ["gap-hop-band"] = "every void hop between islands stays in the 10–20-block band",
+    ["band-wool-clearance"] = "the mid band keeps two full cells from every wool piece",
+    ["wool-ringed-hole"] = "no closure hole is ringed by a wool plateau (a second approach around the wool)",
+    ["spawn-wool-floor"] = "wool↔spawn surface distance keeps the 20-block floor",
+    ["fill-ratio"] = "land area vs the per-team budget",
+    ["enclosed-void-count"] = "closure holes on the board",
+    ["neutral-stepping-count"] = "neutral stepping stones in the mid",
+    ["team-stepping-count"] = "team-side stepping stones",
+    ["band-count"] = "build bands (the clean form is one merged band)",
+    ["isolation-cut-count"] = "isolation cuts across the unit",
+    ["uncrossed-middle-void"] = "middle void left without a crossing",
+    ["frontline-count"] = "frontlines per team side",
+    ["frontline-width"] = "the frontline face width",
+    ["max-chain-length"] = "the longest collinear lane chain (the 50-block cap)",
+    ["lane-width"] = "lane width vs the board's lane class",
+    ["wool-wool-distance"] = "separation between a team's wools",
+    ["spawn-wool-distance"] = "spawn↔wool marker distance",
+};
+string TermRow(ILayoutTerm t) => $"<li><b>{t.Id}</b> <i>({t.RuleId}"
+    + (t.Kind == TermKind.Soft ? $" · w {EvaluationProfile.Default.Weight(t.Id):0.##}" : "")
+    + $")</i> — {(glosses.TryGetValue(t.Id, out var g) ? g : "")}</li>";
+var hardTerms = LayoutEvaluator.AllTerms.Where(t => t.Kind == TermKind.Hard).ToList();
+var softTerms = LayoutEvaluator.AllTerms.Where(t => t.Kind == TermKind.Soft).ToList();
+html.Append("<div class=terms><h3>What gets scored</h3>"
+    + "<p class=tag>Score = Σ violated hard terms × 1000 + Σ soft weight·distance — lower is better, 0 perfect. "
+    + "The composed pipeline gates on the hard terms only; the per-card score here runs the FULL evaluation. "
+    + "Soft distances are measured against envelopes from the authored seeds, so box-path scores read as "
+    + "distance-from-that-era's-feel until the envelopes are re-anchored.</p>"
+    + $"<div class=termcols><div><h4>Hard — the acceptance gate ({hardTerms.Count})</h4><ul>"
+    + string.Concat(hardTerms.Select(TermRow)) + "</ul></div>"
+    + $"<div><h4>Soft — the feel metrics ({softTerms.Count})</h4><ul>"
+    + string.Concat(softTerms.Select(TermRow)) + "</ul></div></div></div>");
 html.Append("<div class=legend>"
     + "<b style='color:#a78bfa'>■ hub</b><b style='color:#34d399'>■ spawn</b>"
     + "<b style='color:#fbbf24'>■ wool</b><b style='color:#fb923c'>■ frontline</b>"
@@ -109,9 +153,21 @@ Directory.CreateDirectory("tools/compose/out");
 File.WriteAllText("tools/compose/out/board-gallery.html", html.ToString());
 Console.WriteLine($"wrote tools/compose/out/board-gallery.html — {disconnected} disconnected board(s)");
 
-// one board card: fan the plan's pieces + band over the symmetry orbit, run the loop-closed flood, render
+// one board card: fan the plan's pieces + band over the symmetry orbit, run the loop-closed flood, score the
+// plan with the full evaluator (hard + soft — the composed path itself only gates the hard terms), render
 string BoardCard(int seed, PlanModel plan, string sym)
 {
+    var profile = EvaluationProfile.Default;
+    var eval = LayoutEvaluator.Evaluate(plan, profile);
+    var hardIds = eval.Terms
+        .Where(t => t.Kind == TermKind.Hard && t.Violation is not null).Select(t => t.TermId).ToList();
+    var topSoft = eval.Terms
+        .Where(t => t.Kind == TermKind.Soft && t.Distance > 0)
+        .Select(t => (t.TermId, Contribution: profile.Weight(t.TermId) * t.Distance))
+        .OrderByDescending(t => t.Contribution).Take(2).ToList();
+    var scoreLabel = $"score {eval.Score:0.0}"
+        + (topSoft.Count > 0 ? $" ({string.Join(", ", topSoft.Select(t => $"{t.TermId} {t.Contribution:0.0}"))})" : "");
+
     var order = Sym.Order(sym);
     var axes = Sym.OrbitAxes(sym);
 
@@ -132,7 +188,7 @@ string BoardCard(int seed, PlanModel plan, string sym)
     if (!connected) disconnected++;
 
     var holes = ClosureAnalysis.HoleSizes(plan);
-    return Card(seed, fanned, bandImages, spawnCells, connected, holes);
+    return Card(seed, fanned, bandImages, spawnCells, connected, holes, scoreLabel, hardIds);
 }
 
 // a rect's k-th orbit image: identity for k=0, else the symmetry op about the axis line (rect in, rect out —
@@ -182,7 +238,8 @@ static string Fail(int seed, string why) =>
     $"<div class='card warn'><div class=title>seed {seed}</div><div class=fail>{why}</div></div>";
 
 static string Card(int seed, IReadOnlyList<(int[] Rect, string Id, string Role, int K)> fanned,
-    IReadOnlyList<int[]> bandImages, IReadOnlyList<(int X, int Z)> spawnCells, bool connected, IReadOnlyList<int> holes)
+    IReadOnlyList<int[]> bandImages, IReadOnlyList<(int X, int Z)> spawnCells, bool connected, IReadOnlyList<int> holes,
+    string scoreLabel, IReadOnlyList<string> hardIds)
 {
     var all = fanned.Select(f => f.Rect).Concat(bandImages).ToList();
     int minX = all.Min(r => r[0]), minZ = all.Min(r => r[1]);
@@ -212,6 +269,8 @@ static string Card(int seed, IReadOnlyList<(int[] Rect, string Id, string Role, 
 
     var holesLabel = holes.Count == 0 ? "none" : string.Join(",", holes);
     var badge = connected ? " <span class=ok>✔ connected</span>" : " <span class=badge>⚠ disconnected</span>";
-    return $"<div class='card{(connected ? "" : " warn")}'><div class=title>seed {seed} · {w}×{h} "
-        + $"· holes {holesLabel}{badge}</div>{svg}</div>";
+    var hardBadge = hardIds.Count > 0 ? $" <span class=badge>⚠ hard: {string.Join(",", hardIds)}</span>" : "";
+    var bad = !connected || hardIds.Count > 0;
+    return $"<div class='card{(bad ? " warn" : "")}'><div class=title>seed {seed} · {w}×{h} "
+        + $"· holes {holesLabel} · {scoreLabel}{badge}{hardBadge}</div>{svg}</div>";
 }
