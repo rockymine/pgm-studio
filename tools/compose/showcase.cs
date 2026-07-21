@@ -464,11 +464,15 @@ string Mini(IEnumerable<MiniEl> els, double? forceScale = null, double pad = 0.8
 MiniEl SlotEl((int[] Rect, string Slot) p, bool label = true) =>
     new(p.Rect[0], p.Rect[1], p.Rect[2], p.Rect[3], SlotCol(p.Slot), 0.6, SlotCol(p.Slot), 1, 1.1, label ? p.Slot : null);
 
-// a family figure: emit → slot-coloured pieces + room + wool marker + vacancy tints
-string FamilyFig(ShapeFamily fam, WoolBox box, int cw, RoomPlacement placement = RoomPlacement.Inline,
-    bool woolAtEnd = false, int attachmentWidth = 0)
+// a family figure: emit → slot-coloured pieces + room + wool marker + vacancy tints. The box is the
+// composer's own sizing — the family's minimum box at the w2 wool lane (what the allocator seats via
+// MouthBox) — so the proportions are production proportions, and one shared scale keeps them comparable.
+const double FamilyScale = 19;
+string FamilyFig(ShapeFamily fam, int cw, RoomPlacement placement = RoomPlacement.Inline,
+    bool woolAtEnd = false, WoolBox? boxOverride = null)
 {
-    var a = WoolBoxEmitter.Emit(fam, box, cw, roomPlacement: placement, woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth);
+    var box = boxOverride ?? MinWoolBox(fam, cw, placement, woolAtEnd);
+    var a = WoolBoxEmitter.Emit(fam, box, cw, roomPlacement: placement, woolAtEnd: woolAtEnd);
     var els = new List<MiniEl>();
     var voidNotes = new List<(double X, double Z, string Text, string Color)>();
     foreach (var v in a.Vacancies.Where(v => v.Kind != "notch"))
@@ -483,7 +487,14 @@ string FamilyFig(ShapeFamily fam, WoolBox box, int cw, RoomPlacement placement =
     var wx = r.Rect[0] + a.At[0]; var wz = r.Rect[1] + a.At[1];
     els.Add(new(wx - 0.32, wz - 0.32, 0.64, 0.64, MkWool, 0.95, MkStroke, 1, 1, null));
     voidNotes.Add((r.Rect[0] + r.Rect[2] / 2.0, r.Rect[1] + 0.62, "room", Ink));
-    return Mini(els, notes: voidNotes);
+    return Mini(els, forceScale: FamilyScale, notes: voidNotes);
+}
+
+// the family's minimum box in its own emit frame — the exact fit gate the allocator sizes against
+WoolBox MinWoolBox(ShapeFamily fam, int cw, RoomPlacement placement = RoomPlacement.Inline, bool woolAtEnd = false)
+{
+    var (w, h) = ShapeEmitter.MinBox(fam, cw, placement, woolAtEnd: woolAtEnd);
+    return new WoolBox(0, 0, w, h);
 }
 
 // a tile-grid figure from the doc's character glyphs: t terrain · v void · w wool · h host · b build
@@ -569,27 +580,38 @@ string Guard(Func<string> render, string name)
     catch (Exception ex) { failures.Add($"{name}: {ex.GetType().Name} {ex.Message}"); return "<div class='fig-missing'>render failed</div>"; }
 }
 
-// the nine approach families (Isolated is build-only: rendered from its glyph)
-var familyCards = new List<(string Name, string Fig, string Slots, string Reads)>
+// the nine approach families, each at the composer's own sizing: the minimum box the allocator seats
+// (MouthBox at the w2 wool lane), the budget I at its capped lane depth. One shared scale, so the
+// relative footprints read true. Isolated is build-only: rendered from its glyph.
+var familyCards = new List<(string Name, string Fig, string Slots, string Reads, string Badge)>
 {
-    ("Isolated", TileFig(["vv", "wv", "vv"]), "—",
-        "wool ringed by void — no terrain approach; reachable only by building"),
-    ("I", Guard(() => FamilyFig(ShapeFamily.I, new WoolBox(0, 0, 6, 12), 2), "fam-I"),
-        "entry · room", "a terrain lane caps the wool inline — zero bends"),
-    ("L", Guard(() => FamilyFig(ShapeFamily.L, new WoolBox(0, 0, 12, 14), 2), "fam-L"),
-        "entry · run · room", "one bend — terrain reaches the wool from two adjacent sides"),
-    ("Z", Guard(() => FamilyFig(ShapeFamily.Z, new WoolBox(0, 0, 12, 18), 2), "fam-Z"),
-        "entry · bar · room-run · room", "two opposing bends — an S with no bay"),
-    ("Scythe", Guard(() => FamilyFig(ShapeFamily.Scythe, new WoolBox(0, 0, 16, 14), 2), "fam-Scythe"),
-        "entry · entry-run · bar · room-run · room", "a fold that wraps an open bay beside the wool"),
-    ("Clamp", Guard(() => FamilyFig(ShapeFamily.Clamp, new WoolBox(0, 0, 10, 14), 2), "fam-Clamp"),
-        "entry · entry · room", "the wool bridges two otherwise-separate bars — remove it and the terrain splits"),
-    ("U", Guard(() => FamilyFig(ShapeFamily.U, new WoolBox(0, 0, 12, 16), 2), "fam-U"),
-        "bar · entry · entry · room", "two legs meet a crossbar; the wool docks flush on it"),
-    ("H", Guard(() => FamilyFig(ShapeFamily.H, new WoolBox(0, 0, 12, 18), 2), "fam-H"),
-        "bar · entry · entry · room-run · room", "the wool caps a room-run stub its own width — lifted off the bar"),
-    ("Donut", Guard(() => FamilyFig(ShapeFamily.Donut, new WoolBox(0, 0, 16, 12), 2), "fam-Donut"),
-        "entry-bar · leg · leg · entry · room-bar · room", "terrain encloses a void — a full loop, multi-access"),
+    ("Isolated", TileFig(["vv", "wv", "vv"], scale: FamilyScale), "—",
+        "wool ringed by void — no terrain approach; reachable only by building", "build-only"),
+    ("I", Guard(() => FamilyFig(ShapeFamily.I, 2, boxOverride: new WoolBox(0, 0, 2, 5)), "fam-I"),
+        "entry · room", "a terrain lane caps the wool inline — zero bends; the budget sets the depth, "
+        + "the length rule caps it (a longer lane side-tucks its room instead)", "sampled"),
+    ("I · side-tuck", Guard(() => FamilyFig(ShapeFamily.I, 2, RoomPlacement.SideTuck), "fam-I-tuck"),
+        "entry · room", "the compact variant: the room tucked beside the lane — where a budget lane "
+        + "would run too long", "sampled"),
+    ("L", Guard(() => FamilyFig(ShapeFamily.L, 2), "fam-L"),
+        "entry · run · room", "one bend — terrain reaches the wool from two adjacent sides; docks by the "
+        + "seat-and-shift overhang", "sampled"),
+    ("Z", Guard(() => FamilyFig(ShapeFamily.Z, 2), "fam-Z"),
+        "entry · bar · room-run · room", "two opposing bends — an S with no bay", "menu-legal · unsampled"),
+    ("Scythe", Guard(() => FamilyFig(ShapeFamily.Scythe, 2), "fam-Scythe"),
+        "entry · entry-run · bar · room-run · room", "a fold that wraps an open bay beside the wool — a "
+        + "flush dock would seal the bay into a wool-ringed hole", "gated · WL8"),
+    ("Clamp", Guard(() => FamilyFig(ShapeFamily.Clamp, 2), "fam-Clamp"),
+        "entry · entry · room", "the wool bridges two otherwise-separate bars — remove it and the terrain "
+        + "splits", "sampled"),
+    ("U", Guard(() => FamilyFig(ShapeFamily.U, 2), "fam-U"),
+        "bar · entry · entry · room", "two legs meet a crossbar; the wool docks flush on it", "sampled"),
+    ("H", Guard(() => FamilyFig(ShapeFamily.H, 2), "fam-H"),
+        "bar · entry · entry · room-run · room", "the wool caps a room-run stub its own width — lifted off "
+        + "the bar", "sampled"),
+    ("Donut", Guard(() => FamilyFig(ShapeFamily.Donut, 2), "fam-Donut"),
+        "entry-bar · leg · leg · entry · room-bar · room", "terrain encloses a void — a full loop, "
+        + "multi-access; growth knobs widen the entry to 5 and the hole to 3×5 cells", "sampled"),
 };
 
 // the body vocabulary (terminal-free compounds)
@@ -696,7 +718,7 @@ foreach (var t in eval.Terms.OrderByDescending(t => t.Kind == TermKind.Hard).The
 // ── HTML assembly ──────────────────────────────────────────────────────────────────────────────────────
 string FigCard(string name, string fig, string gloss, string? slots = null, string? badge = null) => $"""
     <figure class="fig">
-      <div class="fig-head"><span class="fig-name">{Esc(name)}</span>{(badge is null ? "" : $"<span class='fig-badge {(badge == "✓" ? "ok" : "no")}'>{badge}</span>")}</div>
+      <div class="fig-head"><span class="fig-name">{Esc(name)}</span>{(badge is null ? "" : $"<span class='fig-badge {(badge == "✓" ? "ok" : badge == "✗" ? "no" : "mut")}'>{Esc(badge)}</span>")}</div>
       <div class="fig-svg">{fig}</div>
       {(slots is null ? "" : $"<div class='fig-slots'>{Esc(slots)}</div>")}
       <figcaption>{gloss}</figcaption>
@@ -715,7 +737,7 @@ foreach (var (num, title, svg, caption) in frames)
         </article>
 """);
 
-var famGrid = string.Concat(familyCards.Select(f => FigCard(f.Name, f.Fig, f.Reads, f.Slots)));
+var famGrid = string.Concat(familyCards.Select(f => FigCard(f.Name, f.Fig, f.Reads, f.Slots, f.Badge)));
 var bodyGrid = string.Concat(bodyCards.Select(f => FigCard(f.Name, f.Fig, f.Gloss)));
 var hubGrid = string.Concat(hubCards.Select(f => FigCard(f.Name, f.Fig, f.Gloss)));
 var frontGrid = string.Concat(frontCards.Select(f => FigCard(f.Name, f.Fig, f.Gloss)));
@@ -827,8 +849,11 @@ var html = $$"""
   <b>escalation</b>, not a flat set: an L whose lane doubles back is a scythe; a scythe whose bay closes is a
   donut; a clamp whose wool docks flush on one bar is a U; a U that lifts its wool onto a stub is an H. A
   family's identity is its <b>turn count plus the wool's seating, read width-independently</b> — a thick leg or
-  a wide bay is a <i>wide spot</i>, never a different family. Each figure below is a live emission,
-  slot-coloured; the white square is the wool.</p>
+  a wide bay is a <i>wide spot</i>, never a different family. Each figure below is a live emission at
+  <b>the composer's own sizing</b> — the minimum box the allocator seats the family in, at the w2 wool
+  lane — drawn to one shared scale so the relative footprints read true; the white square is the wool.
+  The badge is the family's production status today: <i>sampled</i> by the allocator's shape mix,
+  <i>menu-legal</i> but not yet drawn, or <i>gated</i> from flush docking by rule.</p>
   <div class="grid">{{famGrid}}</div>
   <p class="prose">The classifier that reads these back is one decision tree, strongest signal first: no
   terrain at the wool → <b>Isolated</b>; an enclosed void → <b>Donut</b>; the wool a cut cell → <b>Clamp</b>;
@@ -1134,6 +1159,9 @@ main h3.sub{font-size:16px;margin:34px 0 10px;color:var(--bright)}
 .fig-name{font-family:var(--mono);font-size:12.5px;font-weight:650;color:var(--bright)}
 .fig-badge{margin-left:auto;font-size:12px;font-weight:700}
 .fig-badge.ok{color:var(--ok)} .fig-badge.no{color:var(--warn)}
+.fig-badge.mut{color:var(--dim);font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;
+  padding:2px 7px;white-space:nowrap}
 .fig-svg{background:#080f1a;border:1px solid var(--line);border-radius:6px;line-height:0;
   display:flex;align-items:center;justify-content:center;min-height:120px;padding:6px}
 .fig-svg svg{max-width:100%;height:auto}
