@@ -173,4 +173,24 @@ public sealed class WoolBoxGrowthTests
         var plan = Composer.Compose(new ComposeRequest(16, teams: 2, seed: 7));
         await Assert.That(plan.Pieces.Any(p => p.Role == PlanRoles.WoolRoom)).IsTrue();
     }
+
+    [Test]
+    public async Task A_grown_donut_box_widens_the_ring_the_hole_and_the_entry()
+    {
+        // the donut growth knobs: a box bigger than the min is absorbed by the ring (its span derives from the
+        // box), so the enclosed hole grows with it, and the sampled attachment width widens the hub entry —
+        // here the caps: hole 3 (along) × 5 (deep), entry 5 wide, at cw 2 / rd 2. Canonical frame: W = cw
+        // (attachment) + span (2·cw + holeDeep) + rd = 13; H = 2·cw + holeAlong = 7 (also ≥ entry + cw).
+        const int cw = 2;
+        var box = new Box("wool-a", BoxKind.Wool, [0, 0, 13, 7], 91);
+        var ok = (FillResult.Ok)BoxFiller.Fill(
+            box, BoxEdge.Left, cw, ShapeFamily.Donut, roomId: "wool-a-room", attachmentWidth: 5);
+
+        var hole = ok.Vacancies.Single(v => v.Kind == "hole");
+        await Assert.That(hole.Rect[2] * hole.Rect[3]).IsEqualTo(15);         // the 3×5 hole (orientation aside)
+        await Assert.That(Math.Min(hole.Rect[2], hole.Rect[3])).IsEqualTo(3);
+        var entry = ok.Approach.Terrain.Where(p => p.Slot == ApproachSlots.Entry).ToList();
+        await Assert.That(entry.Count).IsEqualTo(1);
+        await Assert.That(Math.Max(entry[0].Rect[2], entry[0].Rect[3])).IsEqualTo(5);   // the widened hub entry
+    }
 }

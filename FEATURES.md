@@ -1069,6 +1069,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   land + band must reach every fanned spawn image): 80/80 preset boards compose and connect, 0 rejects. Gate:
   `Box_composition_closes_the_loop_with_a_band_only_mid` (50 boards). Pgm suite 694/694. (G115)
 
+- **Donut growth knobs — the entry widens, the hole grows** — `ShapeEmitter` (donut) + `WoolFill.AttachmentWidth`
+  + `TeamUnitAllocator.WoolDemand`: the donut always emitted its min box — good for reach, but the one-corridor
+  hub entry was a fixed chokepoint and the hole a constant 1×2. The ring's span now <b>derives from the box</b>
+  (the min box still gives the classic `3·cw`, so every existing min emission is bit-identical), and the
+  allocator samples the growth: the hub-entry width 2–5 cells (`attachmentWidth` — the knob existed, nothing
+  passed it; now plumbed through `WoolFill`/`BoxFiller`/`EntryOn` so the seat-and-shift docks the exact entry),
+  and the enclosed hole up to <b>3 × 5</b> (along × deep — the box grows and the ring absorbs it; height already
+  rode the box). The min box stays the floor, so crowded hubs fall back unchanged. Gate:
+  `A_grown_donut_box_widens_the_ring_the_hole_and_the_entry`. Pgm suite 698/698. (G115)
+
 - **Sampled frontline leg layouts — varied widths under the leg laws** — `FrontlineBoxEmitter.SampleArms` +
   `TeamUnitFiller`: the branch frontlines gain a sampled per-leg layout over the canonical forms (which stay the
   fallback): the single's notch varies 2–4 with the leg on either side; the twin becomes an uneven Π/F — two

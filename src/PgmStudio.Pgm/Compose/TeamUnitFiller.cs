@@ -116,7 +116,8 @@ public static class TeamUnitFiller
                     // family's entry, so the filler re-emits it, not a re-picked family.
                     var cwW = ConsumedCw(hub, j, hubEdge);
                     var wf = neighbour.Wool ?? new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
-                    if (BoxFiller.Fill(neighbour, mouth, cwW, wf.Family, wf.Flip, roomId, wf.Placement, wf.WoolAtEnd) is not FillResult.Ok okW)
+                    if (BoxFiller.Fill(neighbour, mouth, cwW, wf.Family, wf.Flip, roomId, wf.Placement,
+                            wf.WoolAtEnd, wf.AttachmentWidth) is not FillResult.Ok okW)
                         return null;
                     pieces.AddRange(okW.Approach.Terrain);
                     pieces.Add(okW.Approach.WoolRoom);

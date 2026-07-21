@@ -24,13 +24,14 @@ public static class BoxFiller
     /// profile or its minimum box does not fit the footprint. On success carries the emission + vacancies.</summary>
     public static FillResult Fill(
         Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false, string? roomId = null,
-        RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false)
+        RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0)
     {
         var menu = FillProfiles.Families(box.Kind, corridorWidth);
         if (!menu.Contains(family)) return new FillResult.NoFamilyFits(menu);
         var result = box.Kind switch
         {
-            BoxKind.Wool => WoolBoxEmitter.Fill(box, mouth, family, corridorWidth, flip, roomId, roomPlacement, woolAtEnd),
+            BoxKind.Wool => WoolBoxEmitter.Fill(
+                box, mouth, family, corridorWidth, flip, roomId, roomPlacement, woolAtEnd, attachmentWidth),
             _ => throw new ComposeException(
                 $"BoxFiller fills wool boxes; the {box.Kind} box docks through its own binding " +
                 "(spawn via SpawnBoxEmitter, G78; hub/frontline at G41-C)."),
@@ -65,9 +66,10 @@ public static class BoxFiller
     /// on that mouth.</summary>
     public static (int Start, int Len)? EntryOn(
         Box box, BoxEdge mouth, int corridorWidth, ShapeFamily family, bool flip = false,
-        RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false)
+        RoomPlacement roomPlacement = RoomPlacement.Inline, bool woolAtEnd = false, int attachmentWidth = 0)
     {
-        if (Fill(box, mouth, corridorWidth, family, flip, "probe", roomPlacement, woolAtEnd) is not FillResult.Ok ok)
+        if (Fill(box, mouth, corridorWidth, family, flip, "probe", roomPlacement, woolAtEnd, attachmentWidth)
+            is not FillResult.Ok ok)
             return null;
         var edge = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect[2], box.Rect[3])
             .FirstOrDefault(e => e.Edge == mouth);

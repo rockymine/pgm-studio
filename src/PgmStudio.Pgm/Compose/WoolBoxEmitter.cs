@@ -71,7 +71,7 @@ public static class WoolBoxEmitter
     public static FillResult Fill(
         Box box, BoxEdge mouth, ShapeFamily family, int corridorWidth,
         bool flip = false, string? roomId = null, RoomPlacement roomPlacement = RoomPlacement.Inline,
-        bool woolAtEnd = false)
+        bool woolAtEnd = false, int attachmentWidth = 0)
     {
         // the mouth's frame: its along-edge length and the depth perpendicular to it. Top/Bottom run along the
         // box width; Left/Right run along its height (the shape is rotated a quarter turn onto them).
@@ -83,6 +83,10 @@ public static class WoolBoxEmitter
         var famTransposes = ShapeEmitter.MouthEdge(family, flip) is BoxEdge.Left or BoxEdge.Right;
         var (canonW, canonH) = famTransposes ? (depth, alongLen) : (alongLen, depth);
         var (minW, minH) = ShapeEmitter.MinBox(family, corridorWidth, roomPlacement, woolAtEnd: woolAtEnd);
+        // a widened donut hub-entry raises the ring-edge floor past the default min box — gate it here so an
+        // oversized attachment returns the directed TooSmall instead of throwing out of the emitter
+        if (family == ShapeFamily.Donut && attachmentWidth > corridorWidth)
+            minH = Math.Max(minH, attachmentWidth + corridorWidth);
         if (canonW < minW || canonH < minH)
         {
             int minAlong = famTransposes ? minH : minW, minDepth = famTransposes ? minW : minH;
@@ -90,7 +94,8 @@ public static class WoolBoxEmitter
                            : new FillResult.TooSmall(family, minAlong, minDepth);
         }
 
-        var raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement, woolAtEnd: woolAtEnd);
+        var raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement,
+            woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth);
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
         var shape = MouthOrient.To(mouthTop, mouth, w, h);
 

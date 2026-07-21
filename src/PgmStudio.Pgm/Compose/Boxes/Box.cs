@@ -6,11 +6,13 @@ namespace PgmStudio.Pgm.Compose;
 public enum BoxKind { Spawn, Hub, Wool, Frontline, Mid }
 
 /// <summary>The fill directive for a wool box the allocator chose: the approach <see cref="Family"/>, its room
-/// <see cref="Placement"/> (back vs side-tuck), the <see cref="Flip"/> handedness, and <see cref="WoolAtEnd"/>
-/// (the clamp's adjacent/corner L+I variant vs its centered I+I; the U/H wool-at-an-end knob) — carried so the
-/// filler re-emits the exact shape the allocator seated (an overhang dock aligns to a specific family's
-/// entry).</summary>
-public sealed record WoolFill(ShapeFamily Family, RoomPlacement Placement, bool Flip, bool WoolAtEnd = false);
+/// <see cref="Placement"/> (back vs side-tuck), the <see cref="Flip"/> handedness, <see cref="WoolAtEnd"/>
+/// (the clamp's adjacent/corner L+I variant vs its centered I+I; the U/H wool-at-an-end knob), and
+/// <see cref="AttachmentWidth"/> (the donut's sampled hub-entry width in cells; 0 = one corridor) — carried so
+/// the filler re-emits the exact shape the allocator seated (an overhang dock aligns to a specific family's
+/// entry at its exact width).</summary>
+public sealed record WoolFill(
+    ShapeFamily Family, RoomPlacement Placement, bool Flip, bool WoolAtEnd = false, int AttachmentWidth = 0);
 
 /// <summary>A piece's box ownership — which box's fill it belongs to. Together with the piece's slot this is
 /// the full label (<c>wool-a/entry</c>) every compose-side rule binds to; the piece-id prefix is its

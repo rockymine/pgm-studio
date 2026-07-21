@@ -124,6 +124,16 @@ public static class TeamUnitAllocator
     /// boards). Keeping wool families at w2 makes them compact and lets a staple's 3-lane mouth fit a hub edge.</summary>
     internal const int WoolLaneCells = 2;
 
+    /// <summary>The widest hub-entry a donut may sample, in cells — the min-only entry (one corridor) read as a
+    /// chokepoint, so the attachment stub varies up to this along the hub edge.</summary>
+    private const int DonutEntryMaxCells = 5;
+
+    /// <summary>The donut's enclosed hole caps, in cells: <b>along</b> the hub edge (the ring's mouth-side
+    /// extent) and <b>deep</b> (outward). The min box gives the 1×2 hole; the sampled growth reaches 3×5 — the
+    /// box grows and the emitter's ring absorbs it (its span derives from the box).</summary>
+    private const int DonutHoleAlongMaxCells = 3;
+    private const int DonutHoleDeepMaxCells = 5;
+
     /// <summary>The clearance kept between a docked neighbour and each hub <b>corner</b>, in cells. Zero under the
     /// mass-level corner law: two neighbours on adjacent hub sides meet only at the hub's own corner cell, which
     /// the hub fills — a ¾-solid bridged corner, never a pinch — so no clearance is needed and the neighbours may
@@ -314,9 +324,21 @@ public static class TeamUnitAllocator
                 _ => false,
             };
             var (along, depth) = WoolBoxEmitter.MouthBox(family, cw, woolAtEnd: woolAtEnd);
+            // the donut's growth knobs: the hub-entry width (the min-only one-corridor entry read as a real
+            // chokepoint) and the enclosed hole up to the along × deep caps — the box grows and the emitter's
+            // ring absorbs it. The min box stays the floor, so a crowded hub falls back exactly as before.
+            var attachW = 0;
+            if (family == ShapeFamily.Donut)
+            {
+                attachW = rng.NextInt(cw, DonutEntryMaxCells + 1);
+                var holeAlong = rng.NextInt(1, DonutHoleAlongMaxCells + 1);
+                var holeDeep = rng.NextInt(cw, DonutHoleDeepMaxCells + 1);
+                depth += holeDeep - cw;
+                along = Math.Max(along, Math.Max(2 * cw + holeAlong, attachW + cw));
+            }
             if (!Overhangs(family) && along > edgeLen)
                 (family, woolAtEnd, (along, depth)) = (ShapeFamily.L, false, WoolBoxEmitter.MouthBox(ShapeFamily.L, cw));
-            return (new WoolFill(family, RoomPlacement.Inline, false, woolAtEnd), along, depth);
+            return (new WoolFill(family, RoomPlacement.Inline, false, woolAtEnd, attachW), along, depth);
         }
 
         // the budget's rough lane: the share spread over a narrow along-extent, the rest becoming depth
@@ -561,7 +583,7 @@ public static class TeamUnitAllocator
         foreach (var flip in new[] { false, true })
         {
             if (BoxFiller.EntryOn(new Box("probe", BoxKind.Wool, probeRect, 0), mouth, w, fill.Family, flip,
-                    fill.Placement, fill.WoolAtEnd) is not { } e)
+                    fill.Placement, fill.WoolAtEnd, fill.AttachmentWidth) is not { } e)
                 continue;
             // the box's along-start (seat) values for which the entry [seat+e0, +eLen] lands within a run; the box
             // must abut the hub, never overlap a seated box, and keep the seat gap from any seated spawn/wool

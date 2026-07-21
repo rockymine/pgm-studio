@@ -365,19 +365,22 @@ public static class ShapeEmitter
                 // the trailing room only exists on the non-woolAtEnd variant (see below) — the corner-integrated
                 // wool replaces the ring's own bottom-right cell, so it costs no width past the ring
                 Need(W >= 4 * cw + extend + (woolAtEnd ? 0 : rd) && H >= needH, family, W, H);
-                int ax = cw, ringH = H, span = 3 * cw;               // ring x in [ax, ax+3cw); hub stubs sit in [0, cw)
+                // the ring absorbs the whole box: its span derives from W (the min box gives the classic 3·cw),
+                // so an allocator-grown box widens the ring — and with it the enclosed hole — instead of leaving
+                // dead width; the height already rides H the same way
+                int ax = cw, ringH = H, span = W - cw - extend - (woolAtEnd ? 0 : rd);
                 if (attachmentOffset < 0 || attachmentOffset + aw > (attachments >= 2 ? ringH - aw : ringH))
                     throw new ArgumentException(
                         $"attachment offset {attachmentOffset} slides the stub off the ring's edge (box {W}x{H}).");
                 t.Add(([ax, 0, span, cw], ApproachSlots.EntryBar));          // top bar
                 t.Add(([ax, cw, cw, ringH - 2 * cw], ApproachSlots.Leg));    // left leg (middle only — no corner overlap)
-                t.Add(([ax + 2 * cw, cw, cw, ringH - 2 * cw], ApproachSlots.Leg)); // right leg (middle only)
+                t.Add(([ax + span - cw, cw, cw, ringH - 2 * cw], ApproachSlots.Leg)); // right leg (middle only)
                 t.Add(([0, attachmentOffset, cw, aw], ApproachSlots.Entry)); // hub attachment, slid down the ring edge
                 if (attachments >= 2) t.Add(([0, ringH - aw, cw, aw], ApproachSlots.Entry)); // second attachment (bottom-left)
                 if (woolAtEnd)
                 {
-                    t.Add(([ax, ringH - cw, 2 * cw, cw], ApproachSlots.RoomBar)); // bottom bar stops before the corner
-                    room = [ax + 2 * cw, ringH - cw, cw, cw];       // wool AT the bottom-right corner (integrated)
+                    t.Add(([ax, ringH - cw, span - cw, cw], ApproachSlots.RoomBar)); // bottom bar stops before the corner
+                    room = [ax + span - cw, ringH - cw, cw, cw];    // wool AT the bottom-right corner (integrated)
                 }
                 else
                 {
@@ -386,7 +389,7 @@ public static class ShapeEmitter
                     if (woolExtend) { t.Add(([wxr, ringH - cw, cw, cw], ApproachSlots.Run)); wxr += cw; }  // short I holding the wool
                     room = [wxr, ringH - cw, rd, cw];               // wool off the bottom-right
                 }
-                vac.Add(new ShapeVacancy("hole", [ax + cw, cw, cw, ringH - 2 * cw], null,
+                vac.Add(new ShapeVacancy("hole", [ax + cw, cw, span - 2 * cw, ringH - 2 * cw], null,
                     [ApproachSlots.EntryBar, ApproachSlots.Leg, ApproachSlots.RoomBar, ApproachSlots.Leg]));
                 break;
             }
