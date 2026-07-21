@@ -230,6 +230,19 @@ public static class MidCarver
         var tR = rng.NextDouble();
         var bandL = hullL + (int)Math.Round(tL * (minBandL - hullL));
         var bandR = hullR - (int)Math.Round(tR * (hullR - minBandR));
+        // the band is a real corridor, never degenerate: a single wide face satisfies its ≥2-cell overlap from
+        // either side alone, so the two minimal bounds can cross and the sampled edges invert to an empty
+        // interval (a non-flipping symmetry has no axis straddle forcing them apart) — floor the band at one
+        // lane (2 cells) inside the hull
+        if (bandR - bandL < 2)
+        {
+            bandR = Math.Min(hullR, bandL + 2);
+            bandL = Math.Max(hullL, bandR - 2);
+        }
+        // the box path under a lateral flip: the band must reflect onto itself (its image is the v-mirror), so
+        // its edges symmetrize about the axis — with the parallel-fronts gate holding, the hull is symmetric
+        // and the wider of the two sampled edges wins on both sides
+        if (flushOnly && flip) { bandL = Math.Min(bandL, -bandR); bandR = -bandL; }
 
         // BZ8: every face interface stays readable — flush with a face edge or covering it fully; an edge
         // that would cut an interior sub-interval snaps outward to the nearer face border (two passes, since

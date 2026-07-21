@@ -1,59 +1,77 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// board gallery: the composed FULL board (map completion v0) — Composer.ComposeBoxStages per preset × seed:
-// the box-path team unit, its fanned orbit image(s), and the band-only mid connecting them. Each card runs the
-// loop-closed check — a flood from the spawn over land + band must reach every fanned spawn image — and reports
-// the closure holes (emergent only in v0: e.g. a staple frontline's bay the band seals).
+// board gallery: the composed FULL board (map completion v0) in two modes. The CORPUS mode runs the real
+// pipeline (Composer.ComposeBoxStages: derived envelope, corpus land budget, one threaded RNG) — the true
+// output. The PRESET mode reuses the unit gallery's handcrafted envelopes with per-stage fresh RNGs, so board
+// card N contains exactly the unit shown on unit-gallery card N, completed with the band and its fanned image.
+// Each card runs the loop-closed check — a flood from the spawn over land + band must reach every fanned spawn
+// image — and reports the closure holes (emergent only in v0).
 using System.Text;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 using Sym = PgmStudio.Geom.Symmetry;
 
-var presets = new[]
-{
-    ("Small board", 6), ("Mid board", 8), ("Big board", 12), ("Huge board", 20), ("Giant board", 30),
-};
 const int seeds = 16;
-
 var disconnected = 0;
 var sections = new StringBuilder();
-foreach (var (label, players) in presets)
+
+// ── corpus mode: the real pipeline ─────────────────────────────────────────────────────────────────────
+foreach (var (label, players) in new[] { ("Small", 6), ("Mid", 8), ("Big", 12), ("Huge", 20), ("Giant", 30) })
 {
     var cards = new StringBuilder();
     for (var seed = 0; seed < seeds; seed++)
     {
-        ComposedStages stages;
-        try { stages = Composer.ComposeBoxStages(new ComposeRequest(players, seed: (ulong)seed)); }
-        catch (ComposeException) { cards.Append(Fail(seed, "no acceptable plan")); continue; }
-
-        var plan = stages.Plan;
-        var sym = stages.Envelope.Symmetry;
-        var order = Sym.Order(sym);
-        var axes = Sym.OrbitAxes(sym);
-
-        // every fanned rect: (rect, id, role, image index) over land pieces and the band zone
-        var fanned = new List<(int[] Rect, string Id, string Role, int K)>();
-        foreach (var p in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
-            for (var k = 0; k < order; k++)
-                fanned.Add((Fan(p.Rect, axes, k), p.Id, p.Role, k));
-        var band = plan.Zones.First(z => z.Id == "mid-band");
-        var bandImages = Enumerable.Range(0, order).Select(k => Fan(band.Rect, axes, k)).ToList();
-
-        // the loop-closed check: land + band cells, flooded from the spawn; every fanned spawn image reachable
-        var land = new HashSet<(int, int)>();
-        foreach (var (r, _, _, _) in fanned) Rasterize(r, land);
-        var walk = new HashSet<(int, int)>(land);
-        foreach (var b in bandImages) Rasterize(b, walk);
-        var spawnPiece = plan.Pieces.First(p => p.Role == PlanRoles.Spawn);
-        var spawnCells = Enumerable.Range(0, order).Select(k => Center(Fan(spawnPiece.Rect, axes, k))).ToList();
-        var reached = Flood(walk, spawnCells[0]);
-        var connected = spawnCells.All(reached.Contains);
-        if (!connected) disconnected++;
-
-        var holes = ClosureAnalysis.HoleSizes(plan);
-        cards.Append(Card(seed, fanned, bandImages, spawnCells, connected, holes));
+        try
+        {
+            var stages = Composer.ComposeBoxStages(new ComposeRequest(players, seed: (ulong)seed));
+            cards.Append(BoardCard(seed, stages.Plan, stages.Envelope.Symmetry));
+        }
+        catch (ComposeException) { cards.Append(Fail(seed, "no acceptable plan")); }
     }
-    sections.Append($"<section><header><h2>{label}</h2><p>{players} players/team · full fanned board · band-only mid</p></header>"
+    sections.Append($"<section><header><h2>{label} board — corpus budget</h2>"
+        + $"<p>{players} players/team · derived envelope (corpus land anchors) · rot_180 default</p>"
+        + $"<div class=gallery>{cards}</div></section>");
+}
+
+// ── preset mode: the unit gallery's handcrafted envelopes, per-stage fresh RNGs — card N holds exactly the
+// unit of unit-gallery card N, completed with the band ────────────────────────────────────────────────────
+foreach (var (label, players, land) in new[]
+    { ("Small", 6, 700.0), ("Mid", 8, 1600.0), ("Big", 12, 2800.0), ("Huge", 20, 3800.0), ("Giant", 30, 6000.0) })
+{
+    var env = new ComposeEnvelope("mirror_z", Teams: 2, players, Cell: 5, Surface: 9, Headroom: 11,
+        BoardWidthBlocks: 300, BoardLengthBlocks: 300, land, UnitMinX: 0, UnitMinZ: 0, UnitMaxX: 60, UnitMaxZ: 60);
+    var crossing = MidCarver.BandOnly(env);
+    var cards = new StringBuilder();
+    for (var seed = 0; seed < seeds; seed++)
+    {
+        if (TeamUnitAllocator.Allocate(env, new ComposeRng((ulong)seed), crossing) is not { } a)
+        { cards.Append(Fail(seed, "no allocation")); continue; }
+        if (TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed)) is not { } filled)
+        { cards.Append(Fail(seed, "no fill")); continue; }
+        if (MidCarver.TryCarve(env, new ComposeRng((ulong)seed), crossing, filled.Unit, flushOnly: true) is not { } mid)
+        { cards.Append(Fail(seed, "no band — contact discipline (a wool within BZ6's clearance of the axis); the corpus path resamples such units")); continue; }
+
+        var plan = new PlanModel
+        {
+            Meta = new PlanMeta { Name = $"preset {label} s{seed}" },
+            Globals = new PlanGlobals
+            {
+                Cell = env.Cell, Symmetry = env.Symmetry, MaxPlayers = players,
+                Surface = env.Surface, Headroom = env.Headroom,
+            },
+        };
+        foreach (var piece in filled.Unit.Pieces)
+            plan.Pieces.Add(new PlanPiece { Id = piece.Id, Role = piece.Role, Rect = piece.Rect });
+        plan.Zones.Add(new PlanZone { Id = "mid-band", Rect = mid.BandRect });
+        plan.Placements.Spawns.Add(new SpawnPlacement
+        { Piece = filled.Unit.Spawn.Piece, At = filled.Unit.Spawn.At, Facing = filled.Unit.Spawn.Facing });
+        foreach (var wool in filled.Unit.Wools)
+            plan.Placements.Wools.Add(new WoolPlacement { Piece = wool.Piece, At = wool.At });
+
+        cards.Append(BoardCard(seed, plan, env.Symmetry));
+    }
+    sections.Append($"<section><header><h2>{label} board — preset envelope</h2>"
+        + $"<p>{players} players · {land:0} land (the unit gallery's envelope) · mirror_z · card N = unit-gallery card N + the band</p>"
         + $"<div class=gallery>{cards}</div></section>");
 }
 
@@ -75,9 +93,10 @@ html.Append("<style>"
     + ".fail{color:#f87171;font-size:11px;padding:26px;text-align:center}"
     + "svg{background:var(--canvas);border-radius:4px;display:block}</style>");
 html.Append("<h1>Composed boards — map completion v0</h1>"
-    + "<p class=tag>Composer.ComposeBoxStages: allocator → filler → the band-only mid (uniform 20-block gap, no "
-    + "stones, no centre island). Both fanned team sides drawn; the loop-closed check floods from the spawn over "
-    + "land + band and must reach the opposing spawn.</p>");
+    + "<p class=tag>Two modes. <b>Corpus budget</b>: the real pipeline (ComposeBoxStages — derived envelope, "
+    + "rot_180, one threaded RNG, hard-terms gate, parallel-fronts law). <b>Preset envelope</b>: the unit "
+    + "gallery's handcrafted budgets with per-stage fresh RNGs — card N is exactly unit-gallery card N plus the "
+    + "band and its mirror. Both use the band-only mid (uniform 20-block gap, flush dock, no stones).</p>");
 html.Append("<div class=legend>"
     + "<b style='color:#a78bfa'>■ hub</b><b style='color:#34d399'>■ spawn</b>"
     + "<b style='color:#fbbf24'>■ wool</b><b style='color:#fb923c'>■ frontline</b>"
@@ -89,6 +108,32 @@ html.Append(sections.ToString());
 Directory.CreateDirectory("tools/compose/out");
 File.WriteAllText("tools/compose/out/board-gallery.html", html.ToString());
 Console.WriteLine($"wrote tools/compose/out/board-gallery.html — {disconnected} disconnected board(s)");
+
+// one board card: fan the plan's pieces + band over the symmetry orbit, run the loop-closed flood, render
+string BoardCard(int seed, PlanModel plan, string sym)
+{
+    var order = Sym.Order(sym);
+    var axes = Sym.OrbitAxes(sym);
+
+    var fanned = new List<(int[] Rect, string Id, string Role, int K)>();
+    foreach (var p in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
+        for (var k = 0; k < order; k++)
+            fanned.Add((Fan(p.Rect, axes, k), p.Id, p.Role, k));
+    var band = plan.Zones.First(z => z.Id == "mid-band");
+    var bandImages = Enumerable.Range(0, order).Select(k => Fan(band.Rect, axes, k)).ToList();
+
+    var walk = new HashSet<(int, int)>();
+    foreach (var (r, _, _, _) in fanned) Rasterize(r, walk);
+    foreach (var b in bandImages) Rasterize(b, walk);
+    var spawnPiece = plan.Pieces.First(p => p.Role == PlanRoles.Spawn);
+    var spawnCells = Enumerable.Range(0, order).Select(k => Center(Fan(spawnPiece.Rect, axes, k))).ToList();
+    var reached = Flood(walk, spawnCells[0]);
+    var connected = spawnCells.All(reached.Contains);
+    if (!connected) disconnected++;
+
+    var holes = ClosureAnalysis.HoleSizes(plan);
+    return Card(seed, fanned, bandImages, spawnCells, connected, holes);
+}
 
 // a rect's k-th orbit image: identity for k=0, else the symmetry op about the axis line (rect in, rect out —
 // the ops are axis-aligned)

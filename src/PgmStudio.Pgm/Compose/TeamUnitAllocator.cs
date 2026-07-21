@@ -197,6 +197,11 @@ public static class TeamUnitAllocator
         var floor = w + 2;
         var hubU = rng.NextInt(floor, Math.Max(floor, depthCap) + 1);    // depth toward the axis — kept compact
         var hubV = rng.NextInt(floor, Math.Max(floor, wideCap) + 1);     // lateral span — elongates across the team's width
+        // under a laterally-flipping symmetry (rot_180/rot_90) the opposing image mirrors v, so the hub must sit
+        // symmetric about the axis centre for the two fronts to align parallel — an even span at -(hubV/2) is;
+        // an odd draw rounds up within the cap (down at it), keeping the sampled spread
+        if (MidCarver.LateralFlip(env.Symmetry) && hubV % 2 != 0)
+            hubV = hubV + 1 <= Math.Max(floor, wideCap) ? hubV + 1 : hubV - 1;
         // the frontline sits between the hub and the axis, so its reach pushes the hub's front edge back; the +2
         // gives a staple frontline's arms room for a real bay (a shallower reach collapses them to nubs)
         var frontReach = hasFrontline ? w + 2 : 0;
