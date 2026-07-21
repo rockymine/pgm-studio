@@ -42,6 +42,67 @@ foreach (var (label, sub, players, land) in presets)
     sections.Append($"<section><header><h2>{label}</h2><p>{sub}</p></header><div class=gallery>{cards}</div></section>");
 }
 
+// ── the extremes: scan a wide seed range per preset and keep the superlative unit per metric — the third
+// wool (the rare survivor), the largest hole / bay / notch (the hub's negative space, measured with the
+// classifier's own definitions: a complement region walled on 4 / 3 / 2 axis directions), the largest
+// landmass, and the largest single wool. The winning negative-space region is highlighted.
+const int scanSeeds = 200;
+var extremes = new Dictionary<string, (double Val, string CardHtml)>();
+
+void Consider(string metric, double val, string preset, int seed, IReadOnlyList<GrownPiece> pieces,
+    string form, int[] hubRect, BoxEdge front, int landCells, double budgetCells, bool hasFrontline,
+    string note, HashSet<(int X, int Z)>? highlight)
+{
+    if (extremes.TryGetValue(metric, out var cur) && val <= cur.Val) return;
+    extremes[metric] = (val, Card(seed, pieces, form, false, hubRect, front, landCells, budgetCells, hasFrontline,
+        tag: $"{metric} · {preset}", note: note, highlight: highlight));
+}
+
+foreach (var (label, _, players, land) in presets)
+{
+    var env = Env("mirror_z", players, land);
+    var shortLabel = label.Split(' ')[0].ToLowerInvariant();
+    for (var seed = 0; seed < scanSeeds; seed++)
+    {
+        if (TeamUnitAllocator.Allocate(env, new ComposeRng((ulong)seed)) is not { } a) continue;
+        if (TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed)) is not { } filled) continue;
+        var pieces = filled.Unit.Pieces;
+        var mask = Mask(pieces);
+        var hub = a.Partition.ById("hub")!;
+        var front = a.SpawnFacing switch { "front" => BoxEdge.Top, "back" => BoxEdge.Bottom, "left" => BoxEdge.Left, _ => BoxEdge.Right };
+        var hasFrontline = a.Partition.Boxes.Any(b => b.Kind == BoxKind.Frontline);
+        var budget = land / (5.0 * 5.0);
+        var form = FormLabel(hub.Form);
+
+        void C(string metric, double val, string note, HashSet<(int, int)>? hi = null) =>
+            Consider(metric, val, shortLabel, seed, pieces, form, hub.Rect, front, mask.Count, budget, hasFrontline, note, hi);
+
+        var wools = a.Partition.Boxes.Count(b => b.Kind == BoxKind.Wool);
+        if (wools == 3) C("third wool", mask.Count, "3 wools");
+        C("largest landmass", mask.Count, $"{mask.Count} cells");
+
+        var biggestWool = pieces.Where(p => p.Box?.Kind == BoxKind.Wool).GroupBy(p => p.Box!.Id)
+            .Select(g => Mask(g.ToList())).OrderByDescending(c => c.Count).FirstOrDefault();
+        if (biggestWool is not null) C("largest wool", biggestWool.Count, $"{biggestWool.Count} cells", biggestWool);
+
+        // the hub body's negative space, by the classifier's walled-count read (4 = hole, 3 = bay, 2 = notch)
+        var hubCells = Mask(pieces.Where(p => p.Box?.Kind == BoxKind.Hub).ToList());
+        foreach (var (walls, region) in ComplementRegions(hubCells))
+        {
+            var (rw, rh) = RegionDims(region);
+            var metric = walls switch { 4 => "largest hole", 3 => "largest bay", 2 => "largest notch", _ => null };
+            if (metric is not null) C(metric, region.Count, $"{rw}×{rh} ({region.Count}c / {rw * 5}×{rh * 5} blocks)", region);
+        }
+    }
+}
+
+var order = new[] { "third wool", "largest hole", "largest bay", "largest notch", "largest landmass", "largest wool" };
+var extremeCards = string.Concat(order.Where(extremes.ContainsKey).Select(m => extremes[m].CardHtml));
+sections.Append("<section><header><h2>Extremes</h2><p>the superlative unit per metric over "
+    + $"all presets × seeds 0–{scanSeeds - 1}; hole/bay/notch measured on the hub body alone "
+    + "(walled on 4/3/2 axis directions — the classifier's read), the winning region highlighted in pink</p></header>"
+    + $"<div class=gallery>{extremeCards}</div></section>");
+
 var html = new StringBuilder();
 html.Append("<style>"
     + ":root{--bg:#0a1120;--panel:#111b2e;--line:#1e2b45;--ink:#e2e8f5;--dim:#8595b4;--canvas:#070d18}"
@@ -68,6 +129,7 @@ html.Append("<div class=legend>"
     + "<b style='color:#fbbf24'>■ wool</b><b style='color:#fb923c'>■ frontline</b>"
     + "<i>solid = room · translucent = terrain</i>"
     + "<b style='color:#38bdf8'>— hub front edge</b><b style='color:#f87171'>— flush (bad)</b>"
+    + "<b style='color:#f472b6'>■ extreme region</b>"
     + "<i>grid = 5-block cells · title shows W×H cells · front = longest flat frontier (cells/blocks) "
     + "· land = emitted cells / the preset's budget (its %: how much of the budget the seed spends)</i></div>");
 html.Append(sections.ToString());
@@ -110,7 +172,8 @@ static string Fail(int seed, string why) =>
     $"<div class=card><div class=title>seed {seed}</div><div class=fail>{why}</div></div>";
 
 static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool pinched, int[] hubRect, BoxEdge front,
-    int landCells, double budgetCells, bool hasFrontline)
+    int landCells, double budgetCells, bool hasFrontline,
+    string? tag = null, string? note = null, HashSet<(int X, int Z)>? highlight = null)
 {
     int minX = pieces.Min(p => p.Rect[0]), minZ = pieces.Min(p => p.Rect[1]);
     int maxX = pieces.Max(p => p.Rect[0] + p.Rect[2]), maxZ = pieces.Max(p => p.Rect[1] + p.Rect[3]);
@@ -135,6 +198,12 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool
             + $"fill-opacity='{(room ? "0.95" : "0.4")}' stroke='{col}' stroke-width='1'/>");
     }
 
+    // the winning extreme region (a hole/bay/notch or the biggest wool), overlaid cell by cell
+    if (highlight is not null)
+        foreach (var (cx, cz) in highlight)
+            svg.Append($"<rect x='{(cx - minX) * scale + pad}' y='{(cz - minZ) * scale + pad}' "
+                + $"width='{scale}' height='{scale}' fill='#f472b6' fill-opacity='0.4'/>");
+
     // the hub's front (axis-facing) bounding-box edge, and any spawn/wool whose own front edge sits flush on it —
     // the long-flat-edge defect: draw the hub front line, and mark a flush neighbour front edge in red. The flag
     // follows the front-guard law: only a frontline-less unit can form the continuous flat frontier (an occupied
@@ -156,9 +225,49 @@ static string Card(int seed, IReadOnlyList<GrownPiece> pieces, string form, bool
     var bad = pinched || flush;
     var badges = (pinched ? " <span class=badge>⚠ pinch</span>" : "")
         + (flush ? " <span class=badge>⚠ flush front</span>" : "");
-    return $"<div class='card{(bad ? " warn" : "")}'><div class=title>seed {seed} · hub {form} · {w}×{h} "
-        + $"· front {run}c/{run * 5}b · land {landCells}/{budgetCells:0} ({use:P0}){badges}</div>{svg}</div>";
+    var head = tag is null ? $"seed {seed}" : $"<b>{tag}</b> · s{seed}";
+    return $"<div class='card{(bad ? " warn" : "")}'><div class=title>{head} · hub {form} · {w}×{h} "
+        + $"· front {run}c/{run * 5}b · land {landCells}/{budgetCells:0} ({use:P0})"
+        + $"{(note is null ? "" : $" · <b>{note}</b>")}{badges}</div>{svg}</div>";
 }
+
+// the connected components of the hub body's bounding-box complement, each with its walled count — how many
+// of the four axis directions hold body cells adjacent to the region (4 = the enclosed hole, 3 = a bay,
+// 2 = a notch; the classifier's read, ShapeClassifier.HasBay)
+static List<(int Walls, HashSet<(int X, int Z)> Region)> ComplementRegions(HashSet<(int, int)> cells)
+{
+    var result = new List<(int, HashSet<(int, int)>)>();
+    if (cells.Count == 0) return result;
+    int mnx = cells.Min(c => c.Item1), mxx = cells.Max(c => c.Item1);
+    int mnz = cells.Min(c => c.Item2), mxz = cells.Max(c => c.Item2);
+    var empty = new HashSet<(int, int)>();
+    for (var x = mnx; x <= mxx; x++)
+        for (var z = mnz; z <= mxz; z++)
+            if (!cells.Contains((x, z))) empty.Add((x, z));
+
+    var seen = new HashSet<(int, int)>();
+    foreach (var start in empty)
+    {
+        if (!seen.Add(start)) continue;
+        var comp = new HashSet<(int, int)> { start };
+        var q = new Queue<(int, int)>(); q.Enqueue(start);
+        while (q.Count > 0)
+        {
+            var (dx0, dz0) = q.Dequeue();
+            foreach (var n in new[] { (dx0 + 1, dz0), (dx0 - 1, dz0), (dx0, dz0 + 1), (dx0, dz0 - 1) })
+                if (empty.Contains(n) && seen.Add(n)) { comp.Add(n); q.Enqueue(n); }
+        }
+        var walls = 0;
+        foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+            if (comp.Any(p => cells.Contains((p.Item1 + dx, p.Item2 + dz)))) walls++;
+        result.Add((walls, comp));
+    }
+    return result;
+}
+
+// a region's bounding-box dims in cells
+static (int W, int H) RegionDims(HashSet<(int X, int Z)> region) =>
+    (region.Max(c => c.X) - region.Min(c => c.X) + 1, region.Max(c => c.Z) - region.Min(c => c.Z) + 1);
 
 // the longest flat stretch of the unit's front-most frontier, in cells: per cross-axis column the front-most
 // occupied cell, then the longest run of adjacent columns whose frontier coordinate is equal — the "one long
