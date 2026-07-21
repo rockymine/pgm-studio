@@ -470,15 +470,20 @@ string FamilyFig(ShapeFamily fam, WoolBox box, int cw, RoomPlacement placement =
 {
     var a = WoolBoxEmitter.Emit(fam, box, cw, roomPlacement: placement, woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth);
     var els = new List<MiniEl>();
+    var voidNotes = new List<(double X, double Z, string Text, string Color)>();
     foreach (var v in a.Vacancies.Where(v => v.Kind != "notch"))
-        els.Add(new(v.Rect[0], v.Rect[1], v.Rect[2], v.Rect[3], CHole, 0.14, CHole, 0.55, 1, v.Kind, "3 3"));
+    {
+        els.Add(new(v.Rect[0], v.Rect[1], v.Rect[2], v.Rect[3], CHole, 0.14, CHole, 0.55, 1, null, "3 3"));
+        voidNotes.Add((v.Rect[0] + v.Rect[2] / 2.0, v.Rect[1] + 0.68, v.Kind, CHole));
+    }
     foreach (var t in a.Terrain)
         els.Add(new(t.Rect[0], t.Rect[1], t.Rect[2], t.Rect[3], SlotCol(t.Slot), 0.6, SlotCol(t.Slot), 1, 1.1, t.Slot));
     var r = a.WoolRoom;
     els.Add(new(r.Rect[0], r.Rect[1], r.Rect[2], r.Rect[3], SlotCol(ApproachSlots.Room), 0.75, SlotCol(ApproachSlots.Room), 1, 1.2, null));
     var wx = r.Rect[0] + a.At[0]; var wz = r.Rect[1] + a.At[1];
     els.Add(new(wx - 0.32, wz - 0.32, 0.64, 0.64, MkWool, 0.95, MkStroke, 1, 1, null));
-    return Mini(els, notes: [(r.Rect[0] + r.Rect[2] / 2.0, r.Rect[1] + 0.62, "room", Ink)]);
+    voidNotes.Add((r.Rect[0] + r.Rect[2] / 2.0, r.Rect[1] + 0.62, "room", Ink));
+    return Mini(els, notes: voidNotes);
 }
 
 // a tile-grid figure from the doc's character glyphs: t terrain · v void · w wool · h host · b build

@@ -1572,6 +1572,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   on a buffer is a validation error. Authored + rendered as an orange diagonal hatch in the plan editor and
   the compose render tools. 323 Pgm + 121 JS tests green. Enables the composer-side reservation (G35). (G35 slice)
 
+- **The pipeline showcase page** — `tools/compose/showcase.cs` → `out/showcase.html`: one designed,
+  self-contained explainer of the whole generation model, every figure rendered from the live composer (no
+  hand-drawn images to rot). The hero is a <b>ten-stage walkthrough strip</b> (scroll-snap + dots/arrows) of
+  one pinned board — huge corpus budget, seed 10: ring hub, twin frontline, I + H wools, score 3.4 — each
+  frame the full fanned board faint with that stage's contribution lit (request/envelope, crossing
+  arithmetic, the typed box partition, hub-first emission with joint widths, spawn, both wools with slot
+  labels, the frontline face, fan + flush band, the gate with computed closure-hole tint). Below it the
+  <b>deep dives</b>: the box model + the width→menu table (read off `FillMenu.Rows`), the nine approach
+  families emitted slot-coloured with bay/hole tints, the two-layer slot model, the body vocabulary +
+  hub/frontline designation menus with their published offers drawn bright, negative-space classes by wall
+  count, docking legality (tile-glyph legal/illegal cards incl. the clamp's three docks and the scythe's
+  WL8 flush seal), the two-currency budget measured off the walkthrough board (footprint vs land per box,
+  the 0%-land band row), `mid = f(frontline)` with the three form sketches, and the full evaluator readout
+  (hard gate clean, the two fired ratio terms glossed). (G121)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

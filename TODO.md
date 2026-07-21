@@ -20,8 +20,8 @@ feedback loop. A standalone gallery script with a handful of seeds gives the aut
 variables and no way to record judgments. This theme integrates the generator into the studio itself —
 compose interactively, filter what to see, and **collect annotated keep/discard verdicts** that become
 the labeled positive/negative corpus every later refinement (rules, envelopes, AI passes) feeds on.
-Build order: **G121 first** (the showcase — the model laid out end to end before more machinery), then
-the persistence foundation → browse → verdicts → duels (G119 → G117 → G118 → G120). The design long
+Build order: the persistence foundation → browse → verdicts → duels (G119 → G117 → G118 → G120);
+the pipeline showcase page shipped first (G121, `FEATURES.md`). The design long
 tail this focus deliberately displaced is condensed in **`docs/layout-generation-ideas.md`** (ids
 preserved — pull one back here when it becomes the focus).
 
@@ -31,21 +31,6 @@ scrolling. Generated rows are **immutable**: editing one forks a new `authored` 
 back-reference, so the labeled corpus cannot be contaminated after the fact. Browse votes (absolute)
 and duel results (pairwise preference) are **separate datasets**, unified only at analysis time. The
 hold tray persists across reloads — pinned *means* persisted.
-
-- [~] **G121 — The pipeline showcase page (walkthrough board: huge corpus budget, seed 10).** A
-  designed, self-contained HTML explainer of the whole generation process — polished enough to show
-  outsiders, detailed enough to be the author's own first full view of the model laid out end to end.
-  Narrative quality is the point, not a dump of figures. Structure: a **hero stage strip** — a
-  horizontally scrolling walkthrough of one real compose (one picked seed through
-  `Composer.ComposeBoxStages`), each step drawing the finished board faint with the current stage's
-  contribution highlighted and a short annotation beneath — then the **deep dives**: the box model
-  schematic (typed boxes, interface widths, the width→menu production rule), the nine approach
-  families with their slot templates (what `entry`/`run`/`bar`/`room` mean, rendered on real
-  emissions), the body vocabulary and how shapes dock (offers, valid edges, legal vs illegal examples),
-  the negative-space classes (notch/bay/hole), the hub/frontline designations, budget's two
-  currencies, and `mid = f(frontline)`. Everything rendered from the real composer in the established
-  visual language (`teaching-render.cs` / the board gallery) — no hand-drawn images to rot. Ships as a
-  tools script emitting one HTML file.
 
 - [ ] **G119 — The plan store (the persistence foundation).** MariaDB `plan` table (FluentMigrator +
   linq2db): plan JSON, `origin` (generated | authored | imported), the canonical request descriptor +
