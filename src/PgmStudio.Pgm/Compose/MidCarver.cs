@@ -239,10 +239,12 @@ public static class MidCarver
             bandR = Math.Min(hullR, bandL + 2);
             bandL = Math.Max(hullL, bandR - 2);
         }
-        // the box path under a lateral flip: the band must reflect onto itself (its image is the v-mirror), so
-        // its edges symmetrize about the axis — with the parallel-fronts gate holding, the hull is symmetric
-        // and the wider of the two sampled edges wins on both sides
-        if (flushOnly && flip) { bandL = Math.Min(bandL, -bandR); bandR = -bandL; }
+        // the box path: BZ9 with no slack — the band spans EXACTLY the front-face hull, one shape with the
+        // fronts it connects. A sampled narrower fit underfits a twin/U front (a thin connector between the
+        // arm mouths instead of the full face width), and any post-hoc edge snap desymmetrizes the band so its
+        // flipped fan image no longer coincides (the double-drawn band). At the hull the BZ8 snap is a no-op
+        // and, under the parallel-fronts law, the band reflects onto itself.
+        if (flushOnly) { bandL = hullL; bandR = hullR; }
 
         // BZ8: every face interface stays readable — flush with a face edge or covering it fully; an edge
         // that would cut an interior sub-interval snaps outward to the nearer face border (two passes, since
