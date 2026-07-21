@@ -330,6 +330,16 @@ public sealed class ComposerTests
                 var stages = Composer.ComposeBoxStages(new ComposeRequest(players, seed: seed));
                 await Assert.That(stages.Mid.Stones.Count).IsEqualTo(0);
 
+                // the flush law: the band docks straight against the front faces and overlaps no piece
+                var bandRect = stages.Mid.BandRect;
+                foreach (var p in stages.Plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
+                {
+                    var ox = Math.Min(p.Rect[0] + p.Rect[2], bandRect[0] + bandRect[2]) - Math.Max(p.Rect[0], bandRect[0]);
+                    var oz = Math.Min(p.Rect[1] + p.Rect[3], bandRect[1] + bandRect[3]) - Math.Max(p.Rect[1], bandRect[1]);
+                    await Assert.That(ox > 0 && oz > 0).IsFalse()
+                        .Because($"band overlaps piece {p.Id} @ {players}p seed {seed}");
+                }
+
                 var again = Composer.ComposeBoxStages(new ComposeRequest(players, seed: seed));
                 await Assert.That(again.Plan.Pieces.Select(p => string.Join(",", p.Rect))
                     .SequenceEqual(stages.Plan.Pieces.Select(p => string.Join(",", p.Rect)))).IsTrue();

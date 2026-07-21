@@ -88,8 +88,9 @@ public static class Composer
     /// <see cref="TeamUnitAllocator"/> (structure + box footprints, seated under the front guard) →
     /// <see cref="TeamUnitFiller"/> (pieces + rooms) → <see cref="MidCarver.TryCarve"/> over the draw-free
     /// <see cref="MidCarver.BandOnly"/> crossing: the mid is one plain build band spanning the axis (uniform
-    /// 20-block gap, no stones, no centre island), docked flush / plaza against the unit's front faces, so the
-    /// fanned board is two units connected by the band alone. The CT8 hole hunt is off — a closure hole is not
+    /// 20-block gap, no stones, no centre island), docked <b>flush</b> against the unit's front faces — a flat
+    /// front edge takes the build zone straight against it, never the plaza's one-cell lap — so the fanned
+    /// board is two units connected by the band alone. The CT8 hole hunt is off — a closure hole is not
     /// hunted, only emergent (a staple frontline's bay the band seals still rings one). Every attempt's plan
     /// passes the same <see cref="LayoutEvaluator"/> hard-terms gate as the grower path or is resampled. The
     /// grower path (<see cref="ComposeStages"/>) stays authoritative for goldens until the cut-over re-baseline.
@@ -104,7 +105,7 @@ public static class Composer
         {
             if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } alloc) continue;
             if (TeamUnitFiller.Fill(alloc.Partition, alloc.SpawnFacing, rng) is not { } filled) continue;
-            var mid = MidCarver.TryCarve(envelope, rng, crossing, filled.Unit);
+            var mid = MidCarver.TryCarve(envelope, rng, crossing, filled.Unit, flushOnly: true);
             if (mid is null) continue;
 
             var plan = Assemble(request, envelope, filled.Unit, mid, cut: null);

@@ -109,8 +109,12 @@ public static class MidCarver
     }
 
     /// <summary>Carve the band and stones for a grown unit, or null when no stone column fits the unit's
-    /// lines or the sized band cannot keep its contact discipline (the caller retries the attempt).</summary>
-    public static MidResult? TryCarve(ComposeEnvelope env, ComposeRng rng, CrossingDesign design, GrownUnit unit)
+    /// lines or the sized band cannot keep its contact discipline (the caller retries the attempt).
+    /// <paramref name="flushOnly"/> pins the band form to the flush dock — the box-model path's law: a flat
+    /// front edge takes the build zone straight against it, never the one-cell plaza lap (the m4 draw is still
+    /// consumed, so the grower path's sequence is untouched and the box path stays re-runnable).</summary>
+    public static MidResult? TryCarve(
+        ComposeEnvelope env, ComposeRng rng, CrossingDesign design, GrownUnit unit, bool flushOnly = false)
     {
         var frame = Frame.For(env.Symmetry);
         var h = design.HalfGapCells;
@@ -221,7 +225,7 @@ public static class MidCarver
         if (stones.Count > 0) minBandR = Math.Max(minBandR, stoneR);
         minBandR = Math.Min(minBandR, hullR);
 
-        var plaza = rng.NextBool(0.5);                                            // (m4) BZ7 form
+        var plaza = rng.NextBool(0.5) && !flushOnly;                              // (m4) BZ7 form
         var tL = rng.NextDouble();                                                // (m5) lateral extensions
         var tR = rng.NextDouble();
         var bandL = hullL + (int)Math.Round(tL * (minBandL - hullL));

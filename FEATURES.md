@@ -1061,8 +1061,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   centre island); the allocator takes it as its axis margin (`Allocate` gains an optional `CrossingDesign` — the
   mid box arithmetic decides how far the unit's front sits from the axis); `MidCarver.TryCarve` consumes the
   filled unit as-is (its hub lateral extent now unions the box path's prefixed `hub-…` pieces; the grower's
-  single `hub` piece is the degenerate case) and derives the band from the front faces (BZ7/BZ8/BZ9/BZ6
-  unchanged). Closure holes are emergent only — a staple frontline's bay the band's flush dock seals still rings
+  single `hub` piece is the degenerate case) and derives the band from the front faces — pinned <b>flush</b> on
+  the box path (`flushOnly`): a flat front edge takes the build zone straight against it, never the plaza's
+  one-cell lap (the m4 draw is still consumed; the grower path keeps sampling it). BZ8/BZ9/BZ6 unchanged. Closure holes are emergent only — a staple frontline's bay the band's flush dock seals still rings
   one (36/80 preset boards, always in symmetric pairs). The same hard-terms gate as the grower path. The board
   gallery renders the full fanned board with a per-card <b>loop-closed check</b> (a flood from the spawn over
   land + band must reach every fanned spawn image): 80/80 preset boards compose and connect, 0 rejects. Gate:
