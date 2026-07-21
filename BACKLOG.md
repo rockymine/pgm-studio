@@ -320,6 +320,12 @@ ownership `hub-a/…`/`front-a/…` extending the label-preservation invariant �
   86→54). Add the **along-axis mirror** to the overhang emission (`ShapeEmitter`/`BoxFiller.EntryOn` + a second flip
   dimension on `WoolFill`) so an L can put its room at the back of its box — then the tight-hub L bends back (the
   author's `moved`-plan behaviour) rather than falling to I. Builds on the front guard.
+- [ ] **G116 — Richer mids on the box path: the split band, stones, the centre island.** Map completion v0
+  (`FEATURES.md`, G115) fixed the crossing at the draw-free band-only design. Layer the sampled crossings back
+  into `Composer.ComposeBoxStages`: the stone rows and centre island `SampleCrossing` already carries, and the
+  **split band** — two build bands separated by a centre hole (the deliberate two-lane mid, distinct from the
+  emergent bay-sealed hole v0 already produces) — which needs a new `CrossingDesign` form. Also revisit the
+  uniform 20-block depth (the ≥20-player 30-block deep single was cut for v0's uniformity).
 - [ ] **G113 — Restore the third wool on huge (spawn/doubling on the wide edge).** The seat gap (G110) drops the
   huge third wool because it doubles onto the spawn's own edge, which a hub cannot hold gapped unless that edge is
   the wide one — and the spawn lands on a random side (huge is 196/200 two-wool now). With the elongated hub

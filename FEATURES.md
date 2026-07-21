@@ -1055,6 +1055,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wide-form mix (huge/200): Ring 115 · G 26 · Double-hole 23; no-alloc/no-fill/pinch 0. Pgm suite 692/692. (G105
   partial · `map-generation.md` §5.5)
 
+- **Map completion v0 — the box-model path closes the loop with a band-only mid** —
+  `Composer.ComposeBoxStages` + `MidCarver.BandOnly` + `tools/compose/board-gallery.cs`: the first full board off
+  the partition-first path. The crossing is the draw-free band-only design (uniform 20-block gap, no stones, no
+  centre island); the allocator takes it as its axis margin (`Allocate` gains an optional `CrossingDesign` — the
+  mid box arithmetic decides how far the unit's front sits from the axis); `MidCarver.TryCarve` consumes the
+  filled unit as-is (its hub lateral extent now unions the box path's prefixed `hub-…` pieces; the grower's
+  single `hub` piece is the degenerate case) and derives the band from the front faces (BZ7/BZ8/BZ9/BZ6
+  unchanged). Closure holes are emergent only — a staple frontline's bay the band's flush dock seals still rings
+  one (36/80 preset boards, always in symmetric pairs). The same hard-terms gate as the grower path. The board
+  gallery renders the full fanned board with a per-card <b>loop-closed check</b> (a flood from the spawn over
+  land + band must reach every fanned spawn image): 80/80 preset boards compose and connect, 0 rejects. Gate:
+  `Box_composition_closes_the_loop_with_a_band_only_mid` (50 boards). Pgm suite 694/694. (G115)
+
 - **The frontline box — the join box kind (G89) + the face offer (G96 frontline half)** — `Compose/FrontlineBoxEmitter.cs`:
   the **terminal-free** frontline join (map-generation.md §5.5). `FrontlineBoxEmitter` finishes a `BodyEmitter`
   `ShapeBody` with the Front designation — one edge the `face`, **no room/marker** — over the form menu **Bar** (the

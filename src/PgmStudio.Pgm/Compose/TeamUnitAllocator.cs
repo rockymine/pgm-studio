@@ -183,7 +183,8 @@ public static class TeamUnitAllocator
     /// even the rectangle cannot host a neighbour (the box is too small — the directed "no shape fits" signal, §4).
     /// When the plan carries a frontline it is allocated on the front side, its reach pushing the hub back so it
     /// sits between the hub and the axis; the filler fills it as a join and carries its face offer to the mid.</summary>
-    public static (BoxPartition Partition, string SpawnFacing)? Allocate(ComposeEnvelope env, ComposeRng rng)
+    public static (BoxPartition Partition, string SpawnFacing)? Allocate(
+        ComposeEnvelope env, ComposeRng rng, CrossingDesign? crossing = null)
     {
         var frame = Frame.For(env.Symmetry);
         var w = env.LandPerTeam > WideLaneLand ? 3 : 2;               // the map-wide lane width
@@ -199,7 +200,9 @@ public static class TeamUnitAllocator
         // the frontline sits between the hub and the axis, so its reach pushes the hub's front edge back; the +2
         // gives a staple frontline's arms room for a real bay (a shallower reach collapses them to nubs)
         var frontReach = hasFrontline ? w + 2 : 0;
-        var hubUMin = Envelope.AxisMarginCells + frontReach;
+        // the axis margin is the mid crossing's half-gap when the caller carries one (the composed path — the
+        // mid box arithmetic decides how far the unit's front sits from the axis); the plain default otherwise
+        var hubUMin = (crossing?.HalfGapCells ?? Envelope.AxisMarginCells) + frontReach;
         var hubVMin = -(hubV / 2);
         var hubRect = frame.ToRect(hubUMin, hubU, hubVMin, hubV);
 

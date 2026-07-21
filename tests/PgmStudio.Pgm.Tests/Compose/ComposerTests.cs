@@ -317,4 +317,72 @@ public sealed class ComposerTests
             await Assert.That(ClosureAnalysis.AnyHoleRingedBy(plan, woolPieces)).IsFalse();
         }
     }
+
+    [Test]
+    public async Task Box_composition_closes_the_loop_with_a_band_only_mid()
+    {
+        // map completion v0 (the box-model path): every composed board carries a stone-free band-only mid,
+        // composes deterministically, and is CONNECTED — a flood from the spawn over land + band reaches every
+        // fanned spawn image (the loop-closed criterion the band exists to satisfy)
+        foreach (var players in new[] { 6, 8, 12, 20, 30 })
+            for (ulong seed = 0; seed < 10; seed++)
+            {
+                var stages = Composer.ComposeBoxStages(new ComposeRequest(players, seed: seed));
+                await Assert.That(stages.Mid.Stones.Count).IsEqualTo(0);
+
+                var again = Composer.ComposeBoxStages(new ComposeRequest(players, seed: seed));
+                await Assert.That(again.Plan.Pieces.Select(p => string.Join(",", p.Rect))
+                    .SequenceEqual(stages.Plan.Pieces.Select(p => string.Join(",", p.Rect)))).IsTrue();
+
+                var plan = stages.Plan;
+                var sym = stages.Envelope.Symmetry;
+                var order = Symmetry.Order(sym);
+                var axes = Symmetry.OrbitAxes(sym);
+                var walk = new HashSet<(int, int)>();
+                foreach (var p in plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
+                    for (var k = 0; k < order; k++) Rasterize(FanRect(p.Rect, axes, k), walk);
+                var band = plan.Zones.First(z => z.Id == "mid-band");
+                for (var k = 0; k < order; k++) Rasterize(FanRect(band.Rect, axes, k), walk);
+
+                var spawnPiece = plan.Pieces.First(p => p.Role == PlanRoles.Spawn);
+                var spawnCells = Enumerable.Range(0, order)
+                    .Select(k => { var r = FanRect(spawnPiece.Rect, axes, k); return (r[0] + r[2] / 2, r[1] + r[3] / 2); })
+                    .ToList();
+                var reached = Flood(walk, spawnCells[0]);
+                await Assert.That(spawnCells.All(reached.Contains)).IsTrue()
+                    .Because($"board {players}p seed {seed} is not connected through the band");
+            }
+    }
+
+    private static int[] FanRect(int[] r, string[] axes, int k)
+    {
+        if (k == 0) return r;
+        (double x, double z)[] corners = [(r[0], r[1]), (r[0], r[1] + r[3]), (r[0] + r[2], r[1]), (r[0] + r[2], r[1] + r[3])];
+        var pts = corners.Select(c => Symmetry.Apply(c.x, c.z, axes[k - 1], 0, 0)).ToList();
+        var x1 = (int)Math.Round(pts.Min(p => p.X));
+        var z1 = (int)Math.Round(pts.Min(p => p.Z));
+        return [x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1];
+    }
+
+    private static void Rasterize(int[] r, HashSet<(int, int)> into)
+    {
+        for (var x = r[0]; x < r[0] + r[2]; x++)
+            for (var z = r[1]; z < r[1] + r[3]; z++)
+                into.Add((x, z));
+    }
+
+    private static HashSet<(int, int)> Flood(HashSet<(int, int)> walk, (int, int) start)
+    {
+        var seen = new HashSet<(int, int)>();
+        if (!walk.Contains(start)) return seen;
+        var q = new Queue<(int, int)>();
+        seen.Add(start); q.Enqueue(start);
+        while (q.Count > 0)
+        {
+            var (x, z) = q.Dequeue();
+            foreach (var n in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
+                if (walk.Contains(n) && seen.Add(n)) q.Enqueue(n);
+        }
+        return seen;
+    }
 }

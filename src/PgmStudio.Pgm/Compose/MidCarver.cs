@@ -50,6 +50,15 @@ public sealed record MidResult(int[] BandRect, IReadOnlyList<MidStone> Stones);
 public static class MidCarver
 {
 
+    /// <summary>The <b>band-only</b> crossing: a uniform 20-block gap (a 10-block half-gap per side), no stone
+    /// rows, no centre island — the mid is one plain build band spanning the axis. Draw-free (uniform depth by
+    /// choice), so it perturbs no RNG sequence. The initial map-completion crossing: the composed board is the
+    /// two fanned units connected by this band alone; richer crossings (stones, the centre island, the split
+    /// band) layer back in via <see cref="SampleCrossing"/>. A frontline bay the band's flush dock seals (the
+    /// staple/U front) still rings an enclosed hole — that hole is the terrain's, not the crossing's.</summary>
+    public static CrossingDesign BandOnly(ComposeEnvelope env) =>
+        new(20 / (2 * env.Cell), [], TwinFrontlineAllowed: true);
+
     /// <summary>Sample a crossing design. Draw order (the first draws of a compose attempt): (c1) row
     /// count, (c2) row-0: the deep-single-hop flag / row-1: stone depth, (c3) row-1: front hop, (c4) row-1:
     /// inner offset. The two-row design is fully determined (every hop at the 10-block minimum).</summary>
@@ -111,7 +120,11 @@ public static class MidCarver
         var minU = uvRects.Min(r => r.UV.UMin);
         var frontPieces = uvRects.Where(r => r.UV.UMin == minU).ToList();
         var frontIds = frontPieces.Select(f => f.Id).ToHashSet();
-        var hub = uvRects.First(r => r.Id == "hub");
+        // the hub's lateral extent (CT7's edge lines): the union over its pieces — the grower emits one piece
+        // named "hub", the box-path filler several prefixed "hub-…" (a non-rectangular form's bars)
+        var hubPieces = uvRects.Where(r => r.Id == "hub" || r.Id.StartsWith("hub-")).ToList();
+        var hubVMin = hubPieces.Min(r => r.UV.VMin);
+        var hubVMax = hubPieces.Max(r => r.UV.VMin + r.UV.VSpan);
 
         // the opposing faces the band connects: the unit's frontline faces and their orbit counterparts
         // across the axis — the band's lateral extent lives inside their hull (BZ9)
@@ -156,7 +169,7 @@ public static class MidCarver
         {
             var sw = rng.NextBool(0.5) ? 3 : 2;                                   // (m1) MD1: 2x2 / 2x3 / 3x2
             var lines = frontPieces.SelectMany(f => new[] { f.UV.VMin, f.UV.VMin + f.UV.VSpan })
-                .Concat([hub.UV.VMin, hub.UV.VMin + hub.UV.VSpan])
+                .Concat([hubVMin, hubVMax])
                 .Distinct().OrderBy(v => v).ToList();
             var fronts = frontPieces.Select(f => (f.UV.VMin, f.UV.VMin + f.UV.VSpan)).ToList();
             var innerU = design.Rows.Min(r => r.UMin);
