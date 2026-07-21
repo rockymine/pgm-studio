@@ -32,7 +32,7 @@ back-reference, so the labeled corpus cannot be contaminated after the fact. Bro
 and duel results (pairwise preference) are **separate datasets**, unified only at analysis time. The
 hold tray persists across reloads — pinned *means* persisted.
 
-- [ ] **G121 — The pipeline showcase page (next up; the author supplies the walkthrough seed).** A
+- [~] **G121 — The pipeline showcase page (walkthrough board: huge corpus budget, seed 10).** A
   designed, self-contained HTML explainer of the whole generation process — polished enough to show
   outsiders, detailed enough to be the author's own first full view of the model laid out end to end.
   Narrative quality is the point, not a dump of figures. Structure: a **hero stage strip** — a
