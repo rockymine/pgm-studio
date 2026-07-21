@@ -96,13 +96,13 @@ public sealed class FannedGraph
         return false;
     }
 
-    // Reachability adjacency on bare fanned rects. NOTE: this diverges from the rect-layer authority
-    // (ContactGraph.Classify + Components) on two counts, both deliberate-until-reconciled (review 6.5):
-    // (1) any area overlap connects here regardless of surface delta, whereas Components unions an overlap
-    //     only when SurfaceDelta == 0; (2) an edge contact connects only at full corridor width (Land),
-    //     whereas Components also unions Narrow seams. Settling this — pick one rule for reachability and add
-    //     a test — is the open slice of the M1 deriver unification; it needs per-node surface (not carried
-    //     here yet) and validation against the traversability harness, so it is left behavior-unchanged.
+    // Reachability adjacency on bare fanned rects: any positive edge border connects — Narrow seams included,
+    // matching ContactGraph.Components. The old full-corridor-width floor here misread a lane docking across
+    // the SEAM of two host pieces (a 10-block mouth split 5+5 over two slot pieces whose joint edge is one
+    // straight interface) as disconnected — the "wool unreachable" misfire; the walkable surface has no such
+    // per-piece-pair cut. NOTE the one remaining divergence from the rect-layer authority (review 6.5): any
+    // area overlap connects here regardless of surface delta, whereas Components unions an overlap only when
+    // SurfaceDelta == 0 — settling that needs per-node surface, not carried here yet.
     private static bool LandAdjacent(BlockRect a, BlockRect b)
     {
         int ix = Math.Min(a.MaxX, b.MaxX) - Math.Max(a.MinX, b.MinX);
@@ -110,7 +110,7 @@ public sealed class FannedGraph
         if (ix > 0 && iz > 0) return true;                                  // area overlap → same landmass
         if (ix < 0 || iz < 0) return false;                                 // disjoint
         int border = ix == 0 ? iz : ix;
-        return border >= ContactGraph.CorridorMin;
+        return border > 0;
     }
 
     private static bool Touches(BlockRect a, BlockRect b)

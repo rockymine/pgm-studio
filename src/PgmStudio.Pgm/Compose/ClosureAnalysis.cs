@@ -24,8 +24,13 @@ public static class ClosureAnalysis
     /// <summary>The sizes (cells) of every enclosed void pocket in the plan's fanned closure, descending.</summary>
     public static IReadOnlyList<int> HoleSizes(PlanModel plan) => Analyze(plan, null).Sizes;
 
-    /// <summary>True when any closure hole borders a fanned image of one of the given pieces — used to keep
-    /// wool plateaus off every hole ring (a wool-ringed hole would read as a second wool approach, WL8).</summary>
+    /// <summary>True when any closure hole borders a fanned image of one of the given wool-room pieces <b>and
+    /// is not that wool's own sealed courtyard</b> — the wool-two-approaches motif (WL8). A staple-class or
+    /// donut wool deliberately encloses a bay/hole of its own: two legs (or a ring) plus the room, sealed by
+    /// the one host edge it docks. Such a hole's ring reads as <b>at least two pieces of the wool's own box</b>
+    /// (shared id prefix, the room id minus <c>-room</c>) with <b>at most one foreign piece</b> (the sealing
+    /// host) — sanctioned. Any other wool-bordered hole — two or more foreign ring pieces, or a lone wool piece
+    /// on the ring — is genuine terrain wrapping the wool, the second approach WL8 bans.</summary>
     public static bool AnyHoleRingedBy(PlanModel plan, IReadOnlySet<string> pieceIds) =>
         Analyze(plan, pieceIds).AnyRinged;
 
@@ -35,14 +40,14 @@ public static class ClosureAnalysis
         var axes = Symmetry.OrbitAxes(plan.Globals.Symmetry);
 
         // fan every solid (pieces + zones) in CELL coordinates — cell rects fan exactly (integer corners)
-        var solids = new List<(int X1, int Z1, int X2, int Z2, bool Ring)>();
-        void Add(int[] rect, bool ring)
+        var solids = new List<(int X1, int Z1, int X2, int Z2, string? Id)>();
+        void Add(int[] rect, string? id)
         {
             for (var k = 0; k < order; k++)
             {
                 var (x1, z1, x2, z2) = ComposeGeometry.FanImage(
                     rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3], axes, k);
-                solids.Add(((int)Math.Round(x1), (int)Math.Round(z1), (int)Math.Round(x2), (int)Math.Round(z2), ring));
+                solids.Add(((int)Math.Round(x1), (int)Math.Round(z1), (int)Math.Round(x2), (int)Math.Round(z2), id));
             }
         }
         // A buffer marks EMPTY space — it must not rasterize as solid, or it would fill in (and erase) the very
@@ -50,23 +55,24 @@ public static class ClosureAnalysis
         foreach (var p in plan.Pieces)
         {
             if (PlanRoles.IsAnnotation(p.Role)) continue;
-            Add(p.Rect, ringIds?.Contains(p.Id) == true);
+            Add(p.Rect, p.Id);
         }
-        foreach (var z in plan.Zones) Add(z.Rect, false);
+        foreach (var z in plan.Zones) Add(z.Rect, null);
         if (solids.Count == 0) return ([], false);
 
-        // rasterize with a one-cell void margin so the outside flood reaches around everything
+        // rasterize with a one-cell void margin so the outside flood reaches around everything; each solid cell
+        // remembers its piece id (zones are anonymous) so a hole's ring can be read per piece
         int minX = solids.Min(s => s.X1) - 1, minZ = solids.Min(s => s.Z1) - 1;
         int maxX = solids.Max(s => s.X2) + 1, maxZ = solids.Max(s => s.Z2) + 1;
         int w = maxX - minX, h = maxZ - minZ;
         var solid = new bool[w, h];
-        var ringSolid = new bool[w, h];
+        var cellId = new string?[w, h];
         foreach (var s in solids)
             for (var x = s.X1; x < s.X2; x++)
                 for (var z = s.Z1; z < s.Z2; z++)
                 {
                     solid[x - minX, z - minZ] = true;
-                    if (s.Ring) ringSolid[x - minX, z - minZ] = true;
+                    cellId[x - minX, z - minZ] ??= s.Id;
                 }
 
         // flood the outside void from the margin
@@ -86,8 +92,9 @@ public static class ClosureAnalysis
                 }
         }
 
-        // remaining void cells are enclosed — group into 4-connected components; a component is "ringed"
-        // when any of its cells borders a ring solid
+        // remaining void cells are enclosed — group into 4-connected components, collecting each hole's ring
+        // (the piece ids bordering it; an anonymous zone counts as one foreign entity — buildable terrain on
+        // the ring is itself a route in)
         var seen = new bool[w, h];
         var sizes = new List<int>();
         var anyRinged = false;
@@ -96,7 +103,7 @@ public static class ClosureAnalysis
             {
                 if (solid[x, z] || outside[x, z] || seen[x, z]) continue;
                 var size = 0;
-                var ringed = false;
+                var ring = new HashSet<string>();
                 var q = new Queue<(int X, int Z)>();
                 seen[x, z] = true;
                 q.Enqueue((x, z));
@@ -109,7 +116,7 @@ public static class ClosureAnalysis
                         if (nx < 0 || nx >= w || nz < 0 || nz >= h) continue;
                         if (solid[nx, nz])
                         {
-                            if (ringSolid[nx, nz]) ringed = true;
+                            ring.Add(cellId[nx, nz] ?? "(zone)");
                             continue;
                         }
                         if (outside[nx, nz] || seen[nx, nz]) continue;
@@ -118,7 +125,23 @@ public static class ClosureAnalysis
                     }
                 }
                 sizes.Add(size);
-                anyRinged |= ringed;
+
+                // WL8, courtyard-aware: a hole bordering a wool room is that wool's own sealed bay only when
+                // the ring reads as the shape's courtyard — at least two pieces of the wool's own box (its
+                // legs/ring plus the room, shared id prefix) with at most ONE foreign piece (the sealing host
+                // edge it docks). Anything else — two or more foreign pieces, or a lone wool piece on the
+                // ring — is genuine terrain wrapping the wool, the second approach WL8 bans.
+                if (ringIds is not null && !anyRinged)
+                    foreach (var roomId in ring.Where(ringIds.Contains))
+                    {
+                        var box = roomId.EndsWith("-room", StringComparison.Ordinal) ? roomId[..^5] : roomId;
+                        var own = ring.Count(id => id.StartsWith(box, StringComparison.Ordinal));
+                        if (ring.Count - own >= 2 || own < 2)
+                        {
+                            anyRinged = true;
+                            break;
+                        }
+                    }
             }
         return (sizes.OrderByDescending(s => s).ToList(), anyRinged);
     }

@@ -2,8 +2,10 @@ using PgmStudio.Pgm.Compose;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
-/// <summary>WL8: no closure hole may be ringed by a wool plateau. A hole bordered by a wool piece is the
-/// two-approaches-around-the-wool motif the grammar does not author (the default is a single chokepoint route).
+/// <summary>WL8: no closure hole may be ringed by a wool plateau <b>and foreign terrain</b> — the
+/// two-approaches-around-the-wool motif where outside terrain wraps the wool. A staple-class or donut wool's
+/// <b>own sealed courtyard</b> (its bay/hole enclosed by its own legs + room, sealed by the one host edge it
+/// docks) is the shape's sanctioned design and exempt — see <see cref="ClosureAnalysis.AnyHoleRingedBy"/>.
 /// Reads the fanned closure via <see cref="ClosureAnalysis"/> — the dense-grid hole twin kept for the hunt
 /// loop's speed.</summary>
 public sealed class WoolRingedHole : ILayoutTerm
