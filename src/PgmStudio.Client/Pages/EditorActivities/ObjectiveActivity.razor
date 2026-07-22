@@ -5,9 +5,8 @@
 @* Objective activity — wools (list/add/inspector with location + monuments) + wool-region tree on a
    wool-filtered canvas. Port of objectives-activity.js + objectives-panel.js. Drawing is deferred. *@
 
-<div class="workspace">
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+<Workspace>
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled">
           <h2 class="section-title">Wools</h2>
@@ -30,8 +29,7 @@
         @if (groups is null) { <div class="list-empty">Loading…</div> }
         else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selRegionSet" OnSelect="OnTreeSelect" /> }
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -39,8 +37,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       <div class="panel-section">
         @if (selWool is not null && CurrentWool is { } wool)
         {
@@ -144,8 +141,7 @@
           <p class="panel-empty-msg">Select a wool or region to inspect.</p>
         }
       </div>
-    </div>
-  </div>
-</div>
+  </Inspector>
+</Workspace>
 
 <Toast Message="@error" />

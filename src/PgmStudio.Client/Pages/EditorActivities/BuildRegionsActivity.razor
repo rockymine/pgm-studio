@@ -6,9 +6,9 @@
    a value) + an X/Z axis toggle; Step 2: build-area region tree + canvas + inspector (delete/rename).
    Port of build-regions-activity.js (C7 side-view via studio.mountSideview / SideviewCanvas). *@
 
-<div class="workspace">
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+<Workspace>
+  <Sidebar>
+    <ChildContent>
       @if (step == 1)
       {
         <section class="panel-section">
@@ -39,12 +39,14 @@
           else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selSet" OnSelect="OnTreeSelect" /> }
         </section>
       }
-    </div>
+    </ChildContent>
+    <Footer>
     <div class="cfg-sidebar-nav">
       @if (step == 2) { <button class="action-btn" @onclick="() => step = 1"><i data-lucide="arrow-left"></i> Back</button> }
       @if (step == 1) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="GoStep2">Next <i data-lucide="arrow-right"></i></button> }
     </div>
-  </div>
+    </Footer>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -56,14 +58,12 @@
   {
     <EditorCanvas @ref="canvas" Slug="@Slug" Category="build" DrawCategory="build" DraftStep="build" OnSelect="OnCanvasSelect" OnRegionCreated="ReloadBuild" OnGeometrySaved="OnGeometrySaved" />
     <div class="sidebar-handle"></div>
-    <div class="workspace-inspector">
-      <div class="workspace-scroll">
+    <Inspector>
         <div class="panel-section">
           <RegionInspector Node="RegionNodeSel" Slug="@Slug" OnSelectChild="Select" OnDelete="DeleteRegion" OnRename="RenameRegion" OnSetY="SetRegionY" OnSetCoord="OnSetCoord" />
         </div>
-      </div>
-    </div>
+    </Inspector>
   }
-</div>
+</Workspace>
 
 <Toast Message="@error" />

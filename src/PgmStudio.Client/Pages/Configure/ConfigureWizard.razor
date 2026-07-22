@@ -92,9 +92,8 @@
   }
   else
   {
-  <div class="workspace" @key="@Phase.Id">
-    <div class="workspace-sidebar">
-      <div class="workspace-scroll">
+  <Workspace @key="@Phase.Id">
+    <Sidebar>
         <section class="panel-section">
           <div class="section-header section-header--ruled">
             <h2 class="section-title">@Phase.Title</h2>
@@ -114,8 +113,7 @@
             Shell scaffold — the @Phase.Title panels are built by @Phase.Task.
           </p>
         </section>
-      </div>
-    </div>
+    </Sidebar>
 
     <div class="sidebar-handle"></div>
 
@@ -127,8 +125,7 @@
 
     <div class="sidebar-handle"></div>
 
-    <div class="workspace-inspector">
-      <div class="workspace-scroll">
+    <Inspector>
         <section class="panel-section">
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="@Phase.Icon"></i></span>
@@ -136,9 +133,8 @@
           </div>
           <p class="section-desc">Phase-specific inspector panels land with @Phase.Task.</p>
         </section>
-      </div>
-    </div>
-  </div>
+    </Inspector>
+  </Workspace>
   }
   </CascadingValue>
 

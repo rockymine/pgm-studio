@@ -6,10 +6,9 @@
    signed pedestals; box a cluster to detect more (routed by colour) or drop a manual one, and confirm the
    capturing team per row. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled"><h2 class="section-title">Wool monuments</h2></div>
         <p class="section-desc">Pick a wool to see its capture monuments. <strong>Box</strong> a cluster on
@@ -32,8 +31,7 @@
           }
         </div>
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -42,8 +40,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       @if (Selected is { } sel)
       {
         <section class="panel-section" @key="sel.Color">
@@ -110,7 +107,6 @@
           <p class="section-desc">Select a wool to see its capture monuments.</p>
         </section>
       }
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>

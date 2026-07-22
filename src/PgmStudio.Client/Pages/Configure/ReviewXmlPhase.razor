@@ -4,10 +4,9 @@
    left (incl. a Full document view). The flow-bar Next is Export (download), gated on the open export gate
    (GET /xml's 409). A two-pane navigator — sidebar list + the selected block's serialized XML. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar" style="width:200px;flex:0 0 200px">
-    <div class="workspace-scroll">
+  <Sidebar style="width:200px;flex:0 0 200px">
       <section class="panel-section">
         <div class="section-header section-header--ruled"><h2 class="section-title">Containers</h2></div>
         @if (loading)
@@ -34,8 +33,7 @@
             (<code>@(Wizard.Slug).xml</code>).</p>
         }
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -74,4 +72,4 @@
     </div>
   </div>
 
-</div>
+</Workspace>

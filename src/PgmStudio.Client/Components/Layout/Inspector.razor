@@ -1,0 +1,17 @@
+@namespace PgmStudio.Client.Components
+
+@* Right panel shell — .workspace-inspector wrapping its scrolling inner column (.workspace-scroll)
+   that holds the detail/property sections. Renders .workspace-inspector as its own DOM element so
+   panel-resize.js still finds it beside a handle. *@
+
+<div class="@Cls" @attributes="Extra">
+    <div class="workspace-scroll">@ChildContent</div>
+</div>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private string Cls => string.Join(' ', new[] { "workspace-inspector", Class }.Where(c => !string.IsNullOrEmpty(c)));
+}

@@ -5,8 +5,8 @@
    the Overview editor: a username resolves on blur to its head + canonical name, an unknown one is
    flagged and kept out of the intent. Edits patch the wizard's working Intent and mark it dirty. *@
 
-<div class="workspace">
-  <div class="workspace-scroll" style="max-width: 720px; margin: 0 auto;">
+<Workspace>
+  <ContentColumn MaxWidth="720">
 
     <section class="panel-section">
       <div class="section-header section-header--ruled">
@@ -66,8 +66,8 @@
       }
     </section>
 
-  </div>
-</div>
+  </ContentColumn>
+</Workspace>
 
 @code {
   // One author/contributor row: avatar head (mc-heads, via the resolved uuid) · username field · remove.

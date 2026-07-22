@@ -6,16 +6,14 @@
 @* Regions activity: geo-tree sidebar + hybrid canvas + region inspector. R1a authoring interaction:
    Ctrl/⌘-click multi-selects; Ctrl+G groups ≥2 into a union, or ungroups a single compound. *@
 
-<div class="workspace">
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+<Workspace>
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled"><h2 class="section-title">Regions</h2></div>
         @if (groups is null) { <div class="list-empty">Loading…</div> }
         else { <RegionTree Groups="groups" SelectedId="primaryId" SelectedSet="selection" OnSelect="OnTreeSelect" OnSelectCtrl="OnTreeSelectCtrl" /> }
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -23,13 +21,11 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       <div class="panel-section">
         <RegionInspector Node="primaryNode" Slug="@Slug" OnSelectChild="SelectOne" OnSetCoord="OnSetCoord" />
       </div>
-    </div>
-  </div>
-</div>
+  </Inspector>
+</Workspace>
 
 <Toast Message="@error" />

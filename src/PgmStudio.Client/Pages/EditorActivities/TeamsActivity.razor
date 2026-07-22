@@ -5,9 +5,8 @@
 @* Teams activity — teams (list/add/inspector CRUD) + spawn regions (list + assignment) on a
    spawn-filtered canvas. Port of teams-activity.js + teams-panel.js. Region drawing is deferred. *@
 
-<div class="workspace">
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+<Workspace>
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled">
           <h2 class="section-title">Teams</h2>
@@ -92,8 +91,7 @@
           </div>
         </section>
       }
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -101,8 +99,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       <div class="panel-section">
         @if (selTeam is not null && CurrentTeam is { } team)
         {
@@ -179,8 +176,7 @@
           <p class="panel-empty-msg">Select a team or spawn region to inspect.</p>
         }
       </div>
-    </div>
-  </div>
-</div>
+  </Inspector>
+</Workspace>
 
 <Toast Message="@error" />

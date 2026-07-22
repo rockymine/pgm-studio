@@ -25,8 +25,8 @@
     </ActivityRail>
   </Rail>
   <ChildContent>
-      <div class="workspace">
-        <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
+      <Workspace>
+        <ContentColumn MaxWidth="760">
 
           <section class="panel-section">
             <div class="section-header section-header--ruled"><h2 class="section-title">Identity</h2></div>
@@ -134,7 +134,7 @@
             @if (createError is not null) { <span class="field-error">@createError</span> }
           </div>
 
-        </div>
-      </div>
+        </ContentColumn>
+      </Workspace>
   </ChildContent>
 </StudioShell>

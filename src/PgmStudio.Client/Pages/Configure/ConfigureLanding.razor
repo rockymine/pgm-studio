@@ -16,8 +16,8 @@
   @* ── Sub-step 1 · Source — pick an xml-less world folder (panel only) ─────────── *@
   @if (OnSource)
   {
-    <div class="workspace" @key="step">
-      <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
+    <Workspace @key="step">
+      <ContentColumn MaxWidth="760">
 
         <section class="panel-section">
           <div class="section-header section-header--ruled">
@@ -83,17 +83,16 @@
           </div>
         </section>
 
-      </div>
-    </div>
+      </ContentColumn>
+    </Workspace>
   }
 
   @* ── Sub-step 2 · Found — the import brief over the reused editor canvas ──────── *@
   else if (OnFound)
   {
-    <div class="workspace" @key="step">
+    <Workspace @key="step">
 
-      <div class="workspace-sidebar">
-        <div class="workspace-scroll">
+      <Sidebar>
           <section class="panel-section">
             <div class="section-header section-header--ruled"><h2 class="section-title">Files</h2></div>
             <div class="panel-list">
@@ -150,8 +149,7 @@
               }
             </div>
           </section>
-        </div>
-      </div>
+      </Sidebar>
 
       <div class="sidebar-handle"></div>
 
@@ -166,8 +164,7 @@
 
       <div class="sidebar-handle"></div>
 
-      <div class="workspace-inspector">
-        <div class="workspace-scroll">
+      <Inspector>
           <section class="panel-section" @key="selectedFinding">
             <div class="detail-header">
               <span class="geo-type-icon detail-icon--muted"><i data-lucide="@FindingIcon(selectedFinding)"></i></span>
@@ -225,17 +222,16 @@
               }
             </div>
           </section>
-        </div>
-      </div>
+      </Inspector>
 
-    </div>
+    </Workspace>
   }
 
   @* ── Sub-step 3 · Plan — the six phases, then Start (panel only) ─────────────── *@
   else
   {
-    <div class="workspace" @key="step">
-      <div class="workspace-scroll" style="max-width: 920px; margin: 0 auto;">
+    <Workspace @key="step">
+      <ContentColumn MaxWidth="920">
         <section class="panel-section">
           <div class="section-header section-header--ruled">
             <h2 class="section-title">What happens next</h2>
@@ -269,8 +265,8 @@
             <span class="panel-save-status"><strong>Start authoring</strong> opens the wizard at Map Info.</span>
           </div>
         </section>
-      </div>
-    </div>
+      </ContentColumn>
+    </Workspace>
   }
 
   @if (error is not null)

@@ -25,9 +25,8 @@
     </Topbar>
   </Bar>
   <ChildContent>
-      <div class="workspace">
-        <div class="workspace-sidebar">
-          <div class="workspace-scroll">
+      <Workspace>
+        <Sidebar>
             @* Working frame — footprint + symmetry, chosen at creation (/maps/new-sketch) and seeded into
                the layout. Collapsed by default here so the Islands tree stays near the top; open it to
                reframe mid-draw. *@
@@ -75,8 +74,7 @@
             <SketchLibrary Items="libraryItems" OnArm="ArmPlace" />
             <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
-          </div>
-        </div>
+        </Sidebar>
         <div class="sidebar-handle"></div>
         <div class="workspace-canvas">
           <div class="canvas-subbar">
@@ -138,6 +136,6 @@
                          OnPromoteShape="PromoteShape" OnSetHeight="SetHeight" OnToggleMirrors="ToggleMirrors" OnRenameIsland="RenameIsland"
                          OnRotate="Rotate"
                          SelectedVertexIdx="selectedVertexIdx" SelectedVertexHeight="selectedVertexHeight" OnSetVertexHeight="SetVertexHeight" />
-      </div>
+      </Workspace>
   </ChildContent>
 </StudioShell>

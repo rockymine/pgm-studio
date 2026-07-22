@@ -5,10 +5,9 @@
    with the rectangle tool. Each is a dummy region on the reused canvas (selectable + resizable). Writes the
    build slice's areas/holes; the generator unions the areas, subtracts the holes, and wires void enforcement. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled"><h2 class="section-title">Buildable Layer</h2></div>
         <p class="section-desc">With the <strong>rectangle tool</strong>, drag the bridges and platforms over
@@ -62,8 +61,7 @@
           bridge you drew). It refreshes when you save the step.</p>
       </section>
       }
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -75,8 +73,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       @if (Selected is { } sel)
       {
         <section class="panel-section" @key="sel.Id">
@@ -117,7 +114,6 @@
           <p class="section-desc">Draw a bridge or hole, or select one to inspect and resize it.</p>
         </section>
       }
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>

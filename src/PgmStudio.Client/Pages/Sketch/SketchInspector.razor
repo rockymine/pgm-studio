@@ -3,8 +3,7 @@
 @* Sketch Layout inspector — actions for the selected shape (operation / override / delete) or island
    (rename / mirror participation + its shape list). Edits round-trip to the JS bridge via the host. *@
 
-<div class="workspace-inspector">
-  <div class="workspace-scroll">
+<Inspector>
     <div class="panel-section">
       @if (Shape is not null)
       {
@@ -102,5 +101,4 @@
         <p class="section-desc">Select a shape or island to inspect.</p>
       }
     </div>
-  </div>
-</div>
+</Inspector>

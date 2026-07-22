@@ -4,10 +4,9 @@
 @* Build · height step: the max-build-height cap, set with the same side-view as the Edit Build Regions
    step (shared BuildHeightSideview). Writes the build slice's maxHeight; the generator applies it. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled"><h2 class="section-title">Maximum Build Height</h2></div>
         <p class="section-desc">The Y level above which no block placement is permitted (defaults to 20,
@@ -18,11 +17,10 @@
                  value="@height" @onchange="OnHeightInput" />
         </div>
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
   <BuildHeightSideview Slug="@Slug" Height="@height" HeightChanged="OnSideviewHeight" />
 
-</div>
+</Workspace>

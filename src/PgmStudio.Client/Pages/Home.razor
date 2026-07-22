@@ -34,8 +34,8 @@
     </AppFooter>
   </Footer>
   <ChildContent>
-      <div class="workspace">
-        <div class="workspace-scroll" style="max-width: 960px; margin: 0 auto;">
+      <Workspace>
+        <ContentColumn MaxWidth="960">
 
           @if (Just is not null && JustMap is not null)
           {
@@ -90,7 +90,7 @@
             </div>
             </ChildContent>
           </Section>
-        </div>
-      </div>
+        </ContentColumn>
+      </Workspace>
   </ChildContent>
 </StudioShell>

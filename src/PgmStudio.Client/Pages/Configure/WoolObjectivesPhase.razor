@@ -7,10 +7,9 @@
    the source / complement of the capturing team); physical wool that no monument names is decorative and
    excluded by default. The author confirms/rejects, fixes an owner, or adds a missing wool. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled">
           <h2 class="section-title">Objective wools</h2>
@@ -47,8 +46,7 @@
           <button class="action-btn action-btn--full action-btn--separated" @onclick="AddMissing"><i data-lucide="plus"></i> Add a wool</button>
         }
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -57,8 +55,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       @if (Selected is { } sel)
       {
         <section class="panel-section" @key="sel.Color">
@@ -147,10 +144,9 @@
             decoration. The included wools become the map's objectives.</p>
         </section>
       }
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>
 
 @code {
     private string TeamColorOf(string id) => TeamOf(id)?.Color ?? "";

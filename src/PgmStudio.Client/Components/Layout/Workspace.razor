@@ -1,0 +1,15 @@
+@namespace PgmStudio.Client.Components
+
+@* The activity workspace row — the flex container that lays out sidebar · canvas · inspector (with
+   .sidebar-handle bars between them, kept as raw siblings so panel-resize.js can find the panel each
+   handle borders). Children are placed as-is; this only owns the .workspace flex row. *@
+
+<div class="@Cls" @attributes="Extra">@ChildContent</div>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private string Cls => string.Join(' ', new[] { "workspace", Class }.Where(c => !string.IsNullOrEmpty(c)));
+}

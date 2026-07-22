@@ -5,10 +5,9 @@
 @* Wools · room: draw the rectangle(s) each wool lives in — a room is a union of rectangles, listed flat
    (one row per rectangle, authored or orbit) and edited one at a time. The right panel shows coordinates. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         @{ var rows = Rows(); }
         <div class="section-header section-header--ruled"><h2 class="section-title">Wool rooms</h2></div>
@@ -30,8 +29,7 @@
           }
         </div>
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -40,8 +38,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       @if (Selected is { } sel)
       {
         <div class="panel-stack" @key="sel.RegionId">
@@ -113,7 +110,6 @@
           <p class="section-desc">Draw a rectangle over a wool's source, or select one to inspect and resize it.</p>
         </section>
       }
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>

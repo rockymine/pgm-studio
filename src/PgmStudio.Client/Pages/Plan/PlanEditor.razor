@@ -39,11 +39,10 @@
     </ActivityRail>
   </Rail>
   <ChildContent>
-      <div class="workspace">
+      <Workspace>
         @if (leftOpen)
         {
-        <div class="workspace-sidebar">
-          <div class="workspace-scroll">
+        <Sidebar>
             @if (leftPanel == "settings")
             {
             <div class="panel-section">
@@ -174,8 +173,7 @@
               }
             </div>
             }
-          </div>
-        </div>
+        </Sidebar>
         <div class="sidebar-handle"></div>
         }
 
@@ -254,8 +252,7 @@
         </div>
         <div class="sidebar-handle"></div>
 
-        <div class="workspace-inspector">
-          <div class="workspace-scroll">
+        <Inspector>
             <div class="panel-section">
               @if (sel is null)
               {
@@ -341,9 +338,8 @@
                 </button>
               }
             </div>
-          </div>
-        </div>
-      </div>
+      </Inspector>
+      </Workspace>
 
   <SideDrawer Open="showCompile" Title="Compile & test" Icon="play" OnClose="CloseCompile">
     <Body>

@@ -6,10 +6,9 @@
    intent's teams / maxPlayers slice + the islandTeams aid. Canvas = reused EditorCanvas in island-select
    mode (base layer only): pick a team, click islands to tint them that team's colour. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
 
       @if (ShowSuggestion)
       {
@@ -88,8 +87,7 @@
         </div>
       </section>
 
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -98,8 +96,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       @if (Selected is { } sel)
       {
         <section class="panel-section" @key="sel.Id">
@@ -144,10 +141,9 @@
             islands on the canvas.</p>
         </section>
       }
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>
 
 @code {
 }

@@ -5,10 +5,9 @@
    edit-page EditorCanvas — its navigation toolbar (pan/zoom · fit island · reset) and its island-base ↔
    surface layer toggle ("Blocks"). The side panels summarise the cleaned-base detection. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled">
           <h2 class="section-title">Scan — cleaned base</h2>
@@ -30,8 +29,7 @@
           <strong>surface</strong> — the map you built (wool rooms, spawns) — for orientation. Pan with the
           hand tool, zoom with the wheel, or fit an island / reset from the toolbar.</p>
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -40,8 +38,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       <section class="panel-section">
         <div class="detail-header">
           <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
@@ -68,7 +65,6 @@
             the surface layer rides along as a visual aid only.</p>
         </div>
       </section>
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>

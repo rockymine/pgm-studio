@@ -1,0 +1,20 @@
+@namespace PgmStudio.Client.Components
+
+@* Left panel shell — .workspace-sidebar wrapping its scrolling inner column (.workspace-scroll) that
+   holds the panel sections. An optional Footer renders as a sibling of the scroll, pinned to the foot
+   of the sidebar (e.g. a Back/Next nav bar). Pass style/width through as extra attributes. Renders
+   .workspace-sidebar as its own DOM element so panel-resize.js still finds it beside a handle. *@
+
+<div class="@Cls" @attributes="Extra">
+    <div class="workspace-scroll">@ChildContent</div>
+    @Footer
+</div>
+
+@code {
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private string Cls => string.Join(' ', new[] { "workspace-sidebar", Class }.Where(c => !string.IsNullOrEmpty(c)));
+}

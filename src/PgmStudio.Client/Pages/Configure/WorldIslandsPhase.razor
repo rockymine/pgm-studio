@@ -5,10 +5,9 @@
    or by clicking the canvas; the selection's centre / block count / exclude toggle show in the inspector.
    The canvas is the reused EditorCanvas in island-select mode (island base layer + the Blocks overlay toggle). *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled">
           <h2 class="section-title">Islands</h2>
@@ -44,8 +43,7 @@
           }
         </div>
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -55,8 +53,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       @if (Selected is { } sel)
       {
         <section class="panel-section" @key="sel.Id">
@@ -101,7 +98,6 @@
             exclude it.</p>
         </section>
       }
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>

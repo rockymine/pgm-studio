@@ -5,9 +5,8 @@
 @* Overview activity — map identity + authors/contributors. Port of studio ov-workspace
    (templates/editor.html) + panels/overview-panel.js. *@
 
-<div class="workspace">
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+<Workspace>
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled">
           <h2 class="section-title">Map Identity</h2>
@@ -65,8 +64,7 @@
           <span class="panel-save-status">@saveStatus</span>
         </div>
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -75,7 +73,7 @@
       <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
   </div>
-</div>
+</Workspace>
 
 @code {
     // PersonRow stays here because it is a Razor markup template; the activity's state and logic

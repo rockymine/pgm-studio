@@ -111,6 +111,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Bare` mode for custom bodies) + `Topbar`/`Crumb`/`ActivityRail`/`ActivityButton`/`AppFooter`/
   `AppFooterLink` under `Components/Layout/`. Adopted across all 11 `editor-page` sites, retiring the
   copy-pasted topbar / activity-rail / footer chrome. (C12 phase B)
+- **Workspace-shell components** — `Workspace` (the flex row), `Sidebar` / `Inspector`
+  (`workspace-sidebar|inspector` + inner `workspace-scroll`, with a `Footer` slot for the sidebar nav
+  and `style` pass-through), and `ContentColumn` (the centered max-width "vertical content page") under
+  `Components/Layout/`. Adopted across the ~28 EditorActivity / Configure-phase / Sketch / Plan
+  surfaces; `sidebar-handle` bars stay raw so `panel-resize.js` keeps resizing by DOM sibling. (C12 phase C)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

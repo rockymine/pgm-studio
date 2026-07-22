@@ -6,10 +6,9 @@
 @* Wools · spawn: confirm/adjust each wool's source point (where it dispenses), seeded by detection. The
    point tool moves it; an anchor-team wool re-derives its symmetric partners; the side-view sets the Y. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled"><h2 class="section-title">Wool spawn</h2></div>
         <p class="section-desc">Where each wool dispenses. The seed comes from the detected source; nudge it
@@ -28,8 +27,7 @@
           }
         </div>
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -38,8 +36,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       @if (Selected is { } sel)
       {
         <section class="panel-section" @key="sel.Color">
@@ -73,7 +70,6 @@
           <p class="section-desc">Select a wool to place its source point and set its Y.</p>
         </section>
       }
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>

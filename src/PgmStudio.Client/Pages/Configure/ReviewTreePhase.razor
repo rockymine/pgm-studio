@@ -4,8 +4,8 @@
 @* Review & Export · Region tree sub-step (N07): read-only inspect/debug view of the full generated tree.
    Reuses the editor's RegionTree component (collapse · type icons · synthetic-id styling). Writes nothing. *@
 
-<div class="workspace">
-  <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
+<Workspace>
+  <ContentColumn MaxWidth="760">
     <section class="panel-section">
       <div class="section-header section-header--ruled">
         <h2 class="section-title">Regions</h2>
@@ -30,5 +30,5 @@
         <RegionTree Groups="groups" />
       }
     </section>
-  </div>
-</div>
+  </ContentColumn>
+</Workspace>

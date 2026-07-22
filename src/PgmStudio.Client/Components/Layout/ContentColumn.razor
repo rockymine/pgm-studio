@@ -1,0 +1,13 @@
+@namespace PgmStudio.Client.Components
+
+@* The "vertical content page" — a centered, max-width .workspace-scroll column used by the landing,
+   the info/review wizard steps, and list views (instead of a sidebar/canvas split). MaxWidth caps the
+   column; it centres with auto side margins. *@
+
+<div class="workspace-scroll" style="max-width: @(MaxWidth)px; margin: 0 auto;" @attributes="Extra">@ChildContent</div>
+
+@code {
+    [Parameter] public int MaxWidth { get; set; } = 960;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+}

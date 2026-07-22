@@ -7,9 +7,9 @@
    studio-chosen cleaned base; there is no scan-layer or block-exclusion choice and no world re-scan.
    Excluding an island recomputes symmetry from the already-detected islands. *@
 
-<div class="workspace">
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+<Workspace>
+  <Sidebar>
+    <ChildContent>
       @* Step tabs — jump straight to a step (e.g. Symmetry) without walking Next. *@
       <div class="cfg-step-bar">
         <button class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)" @onclick="() => JumpToStep(1)"><span class="step-number">1</span><span class="step-item-label">Islands</span></button>
@@ -105,14 +105,15 @@
           </section>
         }
       }
-    </div>
-
+    </ChildContent>
+    <Footer>
     <div class="cfg-sidebar-nav">
       @if (step > 1) { <button class="action-btn" @onclick="Prev"><i data-lucide="arrow-left"></i></button> }
       @if (step < 2) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Next">Next <i data-lucide="arrow-right"></i></button> }
       else { <button class="action-btn action-btn--primary action-btn--push-end" disabled="@(symChoice is null)" @onclick="Finish"><i data-lucide="check"></i> @(symChoice == "none" ? "Confirm: no symmetry" : "Confirm symmetry")</button> }
     </div>
-  </div>
+    </Footer>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -126,6 +127,6 @@
   {
     <EditorCanvas @ref="symCanvas" Slug="@Slug" SymmetryMode="true" OnReady="OnSymCanvasReady" />
   }
-</div>
+</Workspace>
 
 <Toast Message="@error" />

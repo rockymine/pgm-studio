@@ -6,10 +6,9 @@
    in point-pick mode (base layer only); markers show each team's spawn (placed = bright, orbit = faint).
    The reused side-view sets each spawn's Y on its terrain. *@
 
-<div class="workspace">
+<Workspace>
 
-  <div class="workspace-sidebar">
-    <div class="workspace-scroll">
+  <Sidebar>
       <section class="panel-section">
         <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Points</h2></div>
         <p class="section-desc">With the <strong>point tool</strong>, click the map to place a spawn — it
@@ -40,8 +39,7 @@
           }
         </div>
       </section>
-    </div>
-  </div>
+  </Sidebar>
 
   <div class="sidebar-handle"></div>
 
@@ -53,8 +51,7 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-inspector">
-    <div class="workspace-scroll">
+  <Inspector>
       @if (Selected is { } sel)
       {
         <section class="panel-section" @key="sel.Team">
@@ -112,7 +109,6 @@
             Select a spawn to fine-tune its coordinates.</p>
         </section>
       }
-    </div>
-  </div>
+  </Inspector>
 
-</div>
+</Workspace>
