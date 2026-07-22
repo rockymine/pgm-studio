@@ -395,3 +395,31 @@ public static class ArtifactKind
     // the entity-replace codec; never part of the PGM document.
     public const string IslandReviewJson = "island_review_json";
 }
+
+/// <summary>A persisted layout plan (see M0008_Plan). A standalone corpus row — no map FK. <see cref="Origin"/>
+/// is generated | authored | imported; the descriptor columns (<see cref="RequestJson"/>/<see cref="Seed"/>/
+/// <see cref="ComposerVersion"/>) are populated only for generated rows. <see cref="ParentId"/> is the
+/// fork-provenance back-reference.</summary>
+[Table("plan")]
+public sealed class PlanRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("origin"), NotNull] public string Origin { get; set; } = "";
+    [Column("plan_json"), NotNull] public string PlanJson { get; set; } = "";
+    [Column("content_hash"), NotNull] public string ContentHash { get; set; } = "";
+    [Column("parent_id")] public long? ParentId { get; set; }
+    [Column("request_json")] public string? RequestJson { get; set; }
+    [Column("seed")] public ulong? Seed { get; set; }
+    [Column("composer_version")] public string? ComposerVersion { get; set; }
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+    [Column("updated_at")] public DateTime UpdatedAt { get; set; }
+}
+
+/// <summary>Well-known <see cref="PlanRow.Origin"/> values.</summary>
+public static class PlanOrigin
+{
+    public const string Generated = "generated";
+    public const string Authored = "authored";
+    public const string Imported = "imported";
+}

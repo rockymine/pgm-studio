@@ -18,12 +18,16 @@
     <span class="topbar-crumb topbar-crumb--dim">Plan editor</span>
     <div class="topbar-right">
       @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
+      @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
+      @if (planOrigin is not null) { <span class="topbar-crumb topbar-crumb--dim" title="Editing a generated or imported plan forks a new authored copy on save">@planOrigin</span> }
       <button class="action-btn" @onclick="NewPlan" title="Start a blank plan">New</button>
       <label class="action-btn" title="Import a *.plan.json file">
         Import
         <InputFile OnChange="OnImport" accept=".json" style="display:none" />
       </label>
       <button class="action-btn" @onclick="ExportPlan" title="Download this plan as *.plan.json">Export</button>
+      <button class="action-btn" @onclick="SavePlan" disabled="@saving" title="Save this plan to the studio database">@(saving ? "Saving…" : "Save")</button>
+      <button class="action-btn" @onclick="OpenDbBrowser" title="Open a saved plan from the database">Open</button>
       <button class="action-btn action-btn--primary" @onclick="OpenCompile" title="Compile the plan into a layout + intent, then create a draft">
         <i data-lucide="play"></i> Compile
       </button>
@@ -425,6 +429,47 @@
           }
           @if (draftError is not null) { <p class="section-desc plan-compile-draft-error">@draftError</p> }
         </div>
+      </div>
+    </div>
+  }
+
+  @if (showOpenDb)
+  {
+    <div class="plan-compile-backdrop" @onclick="CloseDbBrowser"></div>
+    <div class="plan-compile-drawer" @onclick:stopPropagation="true">
+      <div class="plan-compile-head">
+        <div class="detail-header">
+          <span class="geo-type-icon"><i data-lucide="folder-open"></i></span>
+          <span class="detail-label">Open from database</span>
+        </div>
+        <button class="action-btn action-btn--icon" title="Close" @onclick="CloseDbBrowser"><i data-lucide="x"></i></button>
+      </div>
+      <div class="plan-compile-body">
+        @if (dbBusy)
+        {
+          <p class="section-desc">Loading…</p>
+        }
+        else if (dbError is not null)
+        {
+          <div class="plan-compile-errors"><p class="section-desc">@dbError</p></div>
+        }
+        else if (dbPlans.Count == 0)
+        {
+          <p class="section-desc">No saved plans yet. Draw a plan and press Save to see it here.</p>
+        }
+        else
+        {
+          <div class="plan-lint-list">
+            @foreach (var p in dbPlans)
+            {
+              <button class="plan-lint-row" @onclick="() => LoadFromDb(p.Id)" title="Open this plan">
+                <span class="plan-lint-chip">@p.Origin</span>
+                <span class="plan-lint-msg plan-db-name">@(string.IsNullOrWhiteSpace(p.Name) ? "Untitled plan" : p.Name)</span>
+                <span class="plan-db-date">@p.UpdatedAt.ToLocalTime().ToString("MMM d")</span>
+              </button>
+            }
+          </div>
+        }
       </div>
     </div>
   }

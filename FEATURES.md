@@ -1587,6 +1587,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the 0%-land band row), `mid = f(frontline)` with the three form sketches, and the full evaluator readout
   (hard gate clean, the two fired ratio terms glossed). (G121)
 
+- **The plan store — persistence for the generator's feedback loop** — `M0008_Plan` + `Data/Plan/PlanStore.cs`
+  + `Api/Endpoints/PlanStoreEndpoints.cs` + `Contracts/PlanDtos.cs` + the plan editor. A standalone `plan`
+  corpus (no map FK): plan JSON, `origin` (generated | authored | imported), `content_hash` (SHA-256 of the
+  canonicalized document — dedup + import identity), `parent_id` (fork provenance, self-FK ON DELETE SET
+  NULL), and the generated-only descriptor columns (`request_json`/`seed`/`composer_version`). The store owns
+  normalization + hashing and enforces the doctrine: a fresh or authored save writes in place, a generated/
+  imported source **forks** a new authored row rather than mutating the immutable corpus; per-origin
+  content-hash dedup. `ComposeDescriptor.For` + `ComposerVersion.Current` ("box-1") stamp the canonical
+  versioned request that reproduces a generated plan (G117's card identity). Endpoints `GET/POST/DELETE
+  /api/plans` (malformed body → 400); the editor gains **Save** + an **Open-from-DB** modal (origin chip ·
+  name · date), file import/export untouched. Data 16 + Api 67 + Pgm 683 tests green. Prerequisite for
+  G117/G118/G120. (G119)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

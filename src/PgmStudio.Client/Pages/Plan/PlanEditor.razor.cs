@@ -40,6 +40,17 @@ public partial class PlanEditor
     private string zoomLabel = "—";
     private string? importError;
 
+    // Plan-store binding: the DB row the editor currently holds (null = a fresh unsaved plan), its origin
+    // (generated | authored | imported — drives the fork-on-save doctrine), and the open-from-DB browser.
+    private long? planDbId;
+    private string? planOrigin;
+    private bool saving;
+    private string? saveState;          // a transient "Saved" / error note under the toolbar
+    private bool showOpenDb;
+    private bool dbBusy;
+    private string? dbError;
+    private List<PlanSummary> dbPlans = [];
+
     // Read-only 3-D height preview (G27): whether the iso view is on, and whether it couldn't initialise
     // (no WebGL / the preview module failed to load) so the toggle is disabled.
     private bool threeD;
@@ -319,6 +330,7 @@ public partial class PlanEditor
         if (handle is null) return;
         await handle.InvokeVoidAsync("newDoc");
         SyncMeta(await handle.InvokeAsync<string>("getMeta"));
+        ResetDbBinding();
         sel = null;
         StateHasChanged();
     }
@@ -333,7 +345,8 @@ public partial class PlanEditor
             var text = await reader.ReadToEndAsync();
             var err = await handle.InvokeAsync<string?>("importJson", text);
             if (err is not null) { importError = err; }
-            else { SyncMeta(await handle.InvokeAsync<string>("getMeta")); sel = null; }
+            // A file import is a fresh, not-yet-persisted plan — saving it creates a new authored row.
+            else { SyncMeta(await handle.InvokeAsync<string>("getMeta")); ResetDbBinding(); sel = null; }
         }
         catch { importError = "Could not read the file."; }
         StateHasChanged();
@@ -345,6 +358,71 @@ public partial class PlanEditor
         var json = await handle.InvokeAsync<string>("exportJson");
         var slug = string.IsNullOrWhiteSpace(planName) ? "plan" : planName.Trim().ToLowerInvariant().Replace(' ', '-');
         await JS.InvokeVoidAsync("studio.downloadText", $"{slug}.plan.json", json, "application/json");
+    }
+
+    // ── plan store (DB save / open-from-DB) ──────────────────────────────────────
+
+    private void ResetDbBinding() { planDbId = null; planOrigin = null; saveState = null; }
+
+    // Save the current plan to the DB. The server applies the fork-or-mutate doctrine: a fresh or authored
+    // plan is written in place; a loaded generated/imported plan forks a new authored row. The response is
+    // adopted so the editor flips onto whatever row now holds the work.
+    private async Task SavePlan()
+    {
+        if (handle is null || saving) return;
+        saving = true; saveState = null;
+        StateHasChanged();
+        try
+        {
+            var planJson = await handle.InvokeAsync<string>("exportJson");
+            using var resp = await Http.PostAsJsonAsync("api/plans", new PlanSaveRequest(planJson, planDbId));
+            if (resp.IsSuccessStatusCode)
+            {
+                var saved = await resp.Content.ReadFromJsonAsync<PlanDetail>();
+                if (saved is not null)
+                {
+                    planDbId = saved.Id;
+                    planOrigin = saved.Origin;
+                    saveState = "Saved";
+                }
+            }
+            else { saveState = $"Save failed (HTTP {(int)resp.StatusCode})."; }
+        }
+        catch { saveState = "Save failed."; }
+        finally { saving = false; StateHasChanged(); }
+    }
+
+    private async Task OpenDbBrowser()
+    {
+        showOpenDb = true;
+        dbBusy = true; dbError = null; dbPlans = [];
+        StateHasChanged();
+        try { dbPlans = await Http.GetFromJsonAsync<List<PlanSummary>>("api/plans") ?? []; }
+        catch { dbError = "Could not load plans."; }
+        finally { dbBusy = false; StateHasChanged(); }
+    }
+
+    private void CloseDbBrowser() => showOpenDb = false;
+
+    private async Task LoadFromDb(long id)
+    {
+        if (handle is null) return;
+        importError = null;
+        try
+        {
+            var detail = await Http.GetFromJsonAsync<PlanDetail>($"api/plans/{id}");
+            if (detail is null) { dbError = "Plan not found."; return; }
+            var err = await handle.InvokeAsync<string?>("importJson", detail.PlanJson);
+            if (err is not null) { importError = err; return; }
+            SyncMeta(await handle.InvokeAsync<string>("getMeta"));
+            planDbId = detail.Id;
+            planOrigin = detail.Origin;
+            saveState = null;
+            sel = null;
+            showOpenDb = false;
+        }
+        catch { dbError = "Could not open the plan."; }
+        StateHasChanged();
     }
 
     private void SyncMeta(string json)

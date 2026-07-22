@@ -963,6 +963,9 @@ body.dashboard-page { overflow: hidden; }
   border-radius: var(--radius-sm); padding: 0 5px; line-height: 1.5;
 }
 .plan-lint-msg { line-height: 1.35; }
+/* Open-from-DB rows reuse .plan-lint-row: name takes the slack, the date sits right-aligned and muted. */
+.plan-db-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plan-db-date { flex-shrink: 0; color: var(--text-secondary); font-size: var(--font-xs); }
 .plan-lint-row--static { cursor: default; }
 .plan-lint-row--static:hover { background: transparent; color: var(--text-secondary); border-color: transparent; }
 /* Selected violation — its evidence is isolated on the canvas; the row stays lit (persistent, unlike hover). */

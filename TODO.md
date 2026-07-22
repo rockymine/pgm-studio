@@ -20,10 +20,11 @@ feedback loop. A standalone gallery script with a handful of seeds gives the aut
 variables and no way to record judgments. This theme integrates the generator into the studio itself —
 compose interactively, filter what to see, and **collect annotated keep/discard verdicts** that become
 the labeled positive/negative corpus every later refinement (rules, envelopes, AI passes) feeds on.
-Build order: the persistence foundation → browse → verdicts → duels (G119 → G117 → G118 → G120);
-the pipeline showcase page shipped first (G121, `FEATURES.md`). The design long
-tail this focus deliberately displaced is condensed in **`docs/layout-generation-ideas.md`** (ids
-preserved — pull one back here when it becomes the focus).
+Build order: the persistence foundation → browse → verdicts → duels (G119 → G117 → G118 → G120); the
+pipeline showcase page (G121) and the persistence foundation (G119) have shipped — see `FEATURES.md`;
+browse (G117) is next up on the store. The design long tail this focus deliberately displaced is
+condensed in **`docs/layout-generation-ideas.md`** (ids preserved — pull one back here when it becomes
+the focus).
 
 **Persistence doctrine for the whole theme: the feed is ephemeral; only human attention persists.** A
 plan enters the database exactly when it is voted on, pinned, or saved from the editor — never while
@@ -31,13 +32,6 @@ scrolling. Generated rows are **immutable**: editing one forks a new `authored` 
 back-reference, so the labeled corpus cannot be contaminated after the fact. Browse votes (absolute)
 and duel results (pairwise preference) are **separate datasets**, unified only at analysis time. The
 hold tray persists across reloads — pinned *means* persisted.
-
-- [ ] **G119 — The plan store (the persistence foundation).** MariaDB `plan` table (FluentMigrator +
-  linq2db): plan JSON, `origin` (generated | authored | imported), the canonical request descriptor +
-  seed + composer version on generated rows, `parent_id` (fork provenance), `content_hash` (dedup +
-  import identity), timestamps. The plan editor gains DB save/load and an open-from-DB browser; file
-  import/export stays unchanged (files remain the user-to-user sharing path). Editing a generated plan
-  **forks, never mutates** (doctrine above). Prerequisite for G117/G118/G120's persistence.
 
 - [ ] **G117 — Browse mode (the interactive generator in the studio).** A compose API endpoint
   (request params + a seed cursor; the server composes ahead, runs the derivers, and ships only cards

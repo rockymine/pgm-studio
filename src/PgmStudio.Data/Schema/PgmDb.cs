@@ -35,6 +35,7 @@ public sealed class PgmDb : DataConnection
     public ITable<LayerSegmentRow> LayerSegments => this.GetTable<LayerSegmentRow>();
     public ITable<MapArtifactRow> Artifacts => this.GetTable<MapArtifactRow>();
     public ITable<SymmetryRow> Symmetries => this.GetTable<SymmetryRow>();
+    public ITable<PlanRow> Plans => this.GetTable<PlanRow>();
 }
 
 /// <summary>Builds linq2db <see cref="DataOptions"/> for the MariaDB/MySqlConnector provider.</summary>
