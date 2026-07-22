@@ -100,13 +100,26 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
-  small, semantic, and `PlanValidator` returns rule-id findings, giving the agent a compiler-style
-  submit→lint→fix loop. Tools: `plan_validate` · `plan_compile` (summary, not blobs) · `plan_render`
-  (image content — agents self-correct far better seeing the board) · `compose` (a G32 plan as starting
-  material to mutate) · `create_draft`/`export` (existing chain; return the export **link**, never the
-  world zip inline). MCP resources: the frozen `layout-rules.md` as the design brief + `tools/seeds/*.plan.json`
-  as few-shot examples — tool-description curation is the real work, not plumbing. Fast-follow after the
-  composer (G32) lands; its gates (validator, stat envelopes, renderer) are exactly the tools this exposes.
+  small, semantic, and the validator/evaluator return rule-id findings, giving the agent a compiler-style
+  submit→lint→fix loop. **Pull up after G119 + G117 + G125 land** — the MCP head then wraps endpoints
+  those tasks build (duplicated plumbing before them), and its genuinely new work shrinks to three
+  things: the PNG rasterization path for `plan_render`, the `emit_family` stamp tool, and the
+  tool-description/resource curation (still the real work). Tools: `compose` (the G117 endpoint —
+  request in; plan + canonical descriptor + derived facts + score out; starting material to mutate) ·
+  `plan_validate` (errors + rule lint + full evaluator readout — the response must flag empty
+  `placements`, which leave the feel terms vacuously green) · **`plan_feasibility`** (the G125
+  read-back: mask → derived params → emit-compare, directed verdicts citing rule/task ids — the oracle
+  that makes the loop converge; the validator alone passes plans the composer cannot produce, proven by
+  the funnel exemplars scoring 0) · **`emit_family`** (stamp a canonical shape through the real emitters
+  into a typed G126 box — agents never hand-cut rectangles) · `plan_render` (image content — agents
+  self-correct far better seeing the board) · `plan_save`/`plan_get`/`plan_list` (the G119 store, with
+  an agent-authored origin marking so agent output never contaminates the human-labeled corpus) ·
+  `create_draft`/`export` (existing chain; return the export **link**, never the world zip inline). MCP
+  resources: `layout-rules.md` + `map-generation.md` as the design brief, `tools/seeds/*.plan.json`
+  (incl. the funnel exemplars) as few-shot examples, and the G118 verdict JSONL once it exists. Scope
+  is the **author agent** only; the **analyst agent** (mine verdicts/reject logs for rule + envelope
+  refinements — read-only `verdicts_export`/`rejects_query`) is a small follow-on once the corpus has
+  data, not before.
 
 **DTM / DTC objectives (destroyables + cores).** The contract is `docs/contracts/destroyables-and-cores.md`
 — it owns the XML surface, the **world-measured** structure families, the schema, and the two-team scope;
