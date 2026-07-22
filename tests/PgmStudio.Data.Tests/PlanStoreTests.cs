@@ -88,6 +88,20 @@ public sealed class PlanStoreTests
     }
 
     [Test]
+    public async Task SaveGenerated_persists_the_structural_bucket_key()
+    {
+        await TestDb.ResetSchemaAsync();
+        await using var db = TestDb.Connect();
+        var store = new PlanStore(db);
+
+        var descriptor = ComposeDescriptor.For(new ComposeRequest(12, 2, "rot_180", seed: 5));
+        var row = await store.SaveGeneratedAsync(PlanJson("bucketed"), descriptor, "wools:donut,l|hub:ring|front:none");
+
+        await Assert.That(row.Structure).IsEqualTo("wools:donut,l|hub:ring|front:none");
+        await Assert.That((await store.GetByIdAsync(row.Id))!.Structure).IsEqualTo("wools:donut,l|hub:ring|front:none");
+    }
+
+    [Test]
     public async Task SaveImported_dedups_and_the_hash_is_stable_under_formatting_noise()
     {
         await TestDb.ResetSchemaAsync();

@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Text;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
+using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 
@@ -44,32 +45,12 @@ foreach (var c in scan)
     try
     {
         var stages = Composer.ComposeStages(new ComposeRequest(c.P, c.T, c.S, c.Seed, 5));
-        var fams = WoolFamilies(stages.Unit);
+        var fams = StructureSummary.WoolFamilies(stages.Unit);
         var svg = BuildSvg(stages.Plan, BoxPartition.Of(stages.Unit).Boxes);
         shots.Add((c, id, svg, stages.Plan.Pieces.Count, stages.Mid.Stones.Count,
             ClosureAnalysis.HoleSizes(stages.Plan).Count, fams));
     }
     catch (Exception ex) { failures.Add((id, $"{ex.GetType().Name}: {ex.Message}")); }
-}
-
-// classify each wool box of a grown unit to its emitted approach family (box scope — its own pieces, G61)
-static List<ShapeFamily> WoolFamilies(GrownUnit unit)
-{
-    var fams = new List<ShapeFamily>();
-    foreach (var boxId in unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Wool).Select(p => p.Box!.Id).Distinct())
-    {
-        var boxPieces = unit.Pieces.Where(p => p.Box?.Id == boxId).ToList();
-        var room = boxPieces.FirstOrDefault(p => p.Slot == ApproachSlots.Room);
-        if (room is null) continue;
-        var filled = new HashSet<(int, int)>();
-        var roomCells = new HashSet<(int, int)>();
-        foreach (var p in boxPieces)
-            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
-                { filled.Add((x, z)); if (p.Id == room.Id) roomCells.Add((x, z)); }
-        fams.Add(ShapeClassifier.Classify(filled, roomCells).Family);
-    }
-    return fams;
 }
 
 // ── buckets: the new donut arms first, then the escalation ladder, then the straight-lane baseline ──

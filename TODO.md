@@ -21,9 +21,10 @@ variables and no way to record judgments. This theme integrates the generator in
 compose interactively, filter what to see, and **collect annotated keep/discard verdicts** that become
 the labeled positive/negative corpus every later refinement (rules, envelopes, AI passes) feeds on.
 Build order: the persistence foundation → browse → verdicts → duels (G119 → G117 → G118 → G120); the
-showcase (G121), the persistence foundation (G119), and browse mode (G117) have shipped — see
-`FEATURES.md`; **verdicts (G118) is next**, and it now owns the up/down votes deferred out of browse
-(the browse pin is the only persistence action so far). The design long tail this focus deliberately
+showcase (G121), the persistence foundation (G119), browse mode (G117), and its structural sieve
+(G128 — form/family filters) have shipped — see `FEATURES.md`; **verdicts (G118) is next**, and it now
+owns the up/down votes deferred out of browse (the browse pin is the only persistence action so far,
+and the structural bucket key it stores is G118's verdict column / G120's duel bucket). The design long tail this focus deliberately
 displaced is condensed in **`docs/layout-generation-ideas.md`** (ids preserved — pull one back here
 when it becomes the focus).
 
@@ -42,12 +43,6 @@ hold tray persists across reloads — pinned *means* persisted.
   {plan ref, descriptor, verdict, tags, free-text note, evaluator score + per-term snapshot, evaluator
   version} via G119; JSONL export so the labeled examples drive rule refinement, envelope
   regeneration, and AI-assisted analysis.
-
-- [ ] **G128 — Form/family sieve filters for browse (fast-follow to G117).** Extend the compose feed's
-  sieve beyond the cheap signals (size · symmetry · score · wool count) with the structural ones the task
-  originally named — **wool families** (the approach classifier) and **hub/frontline/mid forms** (the body
-  classifier). Wire `BoardDeriver`'s labels into `ComposeCard` (and the sieve query), then add the filter
-  controls to the `/generator` panel. The classifier label surface needs confirming first — that's the work.
 
 - [ ] **G125 — Feasibility read-back in the plan editor ("could the composer make this?").** The
   validator answers *is this legal to author*; this answers *could the machine replicate it* — the

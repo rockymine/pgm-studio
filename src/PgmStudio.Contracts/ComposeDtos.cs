@@ -16,21 +16,34 @@ public sealed record ComposeRequestDto(
 /// breakdown.</summary>
 public sealed record TermContribDto(string TermId, string RuleId, double Contribution);
 
+/// <summary>A board's structural read — the sieve/bucket vocabulary as display tokens: the sorted wool
+/// approach families, the hub body form, and the frontline form (<c>none</c> when the unit has no frontline).
+/// The tokens double as the card badges and the filter values.</summary>
+public sealed record StructureSummaryDto(
+    IReadOnlyList<string> Wools,
+    string Hub,
+    string Frontline);
+
 /// <summary>One card in the browse feed: its <paramref name="Descriptor"/> (identity + reproduction key), the
-/// evaluator <paramref name="Score"/> (lower is better), the base-unit <paramref name="WoolCount"/>, any fired
-/// hard-term ids, the top soft contributors, and the ready-to-inject board <paramref name="Svg"/>.</summary>
+/// evaluator <paramref name="Score"/> (lower is better), the base-unit <paramref name="WoolCount"/>, its
+/// <paramref name="Structure"/> read (families/forms, for badges + filtering), any fired hard-term ids, the
+/// top soft contributors, and the ready-to-inject board <paramref name="Svg"/>.</summary>
 public sealed record ComposeCard(
     ComposeRequestDto Descriptor,
     double Score,
     int WoolCount,
+    StructureSummaryDto Structure,
     IReadOnlyList<string> HardTerms,
     IReadOnlyList<TermContribDto> TopSoft,
     string Svg);
 
 /// <summary>A page of browse cards. <paramref name="NextSeed"/> is the seed cursor to resume from (feed
-/// forward for infinite scroll); <paramref name="Exhausted"/> is true when the scan cap was reached before
-/// filling the page, so the client can stop requesting.</summary>
+/// forward for infinite scroll); <paramref name="Exhausted"/> is true when the per-request scan budget was
+/// reached before filling the page, so the client can stop requesting; <paramref name="Scanned"/> is how many
+/// seeds this page composed (matched = Cards.Count) — under a strict structural filter the low match rate is
+/// itself the signal to promote that filter to a held target.</summary>
 public sealed record ComposePage(
     IReadOnlyList<ComposeCard> Cards,
     int NextSeed,
-    bool Exhausted);
+    bool Exhausted,
+    int Scanned);

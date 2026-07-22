@@ -55,7 +55,38 @@
       </div>
 
       <button class="action-btn action-btn--primary action-btn--full" @onclick="Reload">Apply</button>
-      <p class="gen-hint">The feed only shows boards the composer can produce today. Lower score is better.</p>
+      <p class="gen-hint">Players / score / wool count apply on the button. Structure filters below apply on click.</p>
+
+      <div class="gen-field">
+        <span class="gen-field-label">Wool families <span class="gen-field-sub">all present</span></span>
+        <div class="gen-chips">
+          @foreach (var w in WoolChips)
+          {
+            <button class="gen-chip @(woolFilter.Contains(w.Token) ? "gen-chip--on" : null)" disabled="@(!w.InMix)"
+                    title="@(w.InMix ? w.Label : "not in the production mix")" @onclick="() => ToggleWool(w.Token)">@w.Label</button>
+          }
+        </div>
+      </div>
+
+      <div class="gen-field">
+        <span class="gen-field-label">Hub form <span class="gen-field-sub">any of</span></span>
+        <div class="gen-chips">
+          @foreach (var h in HubChips)
+          {
+            <button class="gen-chip @(hubFilter.Contains(h.Token) ? "gen-chip--on" : null)" @onclick="() => ToggleHub(h.Token)">@h.Label</button>
+          }
+        </div>
+      </div>
+
+      <div class="gen-field">
+        <span class="gen-field-label">Frontline <span class="gen-field-sub">any of</span></span>
+        <div class="gen-chips">
+          @foreach (var f in FrontChips)
+          {
+            <button class="gen-chip @(frontFilter.Contains(f.Token) ? "gen-chip--on" : null)" @onclick="() => ToggleFront(f.Token)">@f.Label</button>
+          }
+        </div>
+      </div>
     </aside>
 
     <main class="gen-main">
@@ -78,6 +109,11 @@
         </div>
       }
 
+      @if (StructuralActive)
+      {
+        <p class="gen-scanned">scanned @totalScanned · matched @cards.Count@(totalScanned > 0 && cards.Count * 12 < totalScanned ? " — rare mix; a candidate to promote to a held target" : "")</p>
+      }
+
       <div class="gen-grid">
         @foreach (var card in cards)
         {
@@ -85,6 +121,17 @@
             <button class="gen-card-fig" @onclick="() => OpenDetail(card)" title="Open details">
               @((MarkupString)card.Svg)
             </button>
+            <div class="gen-card-badges">
+              @foreach (var w in card.Structure.Wools.Distinct())
+              {
+                <button class="gen-badge gen-badge--wool @(woolFilter.Contains(w) ? "gen-badge--on" : null)"
+                        title="Filter: wool @w" @onclick="() => ToggleWool(w)">@w</button>
+              }
+              <button class="gen-badge gen-badge--hub @(hubFilter.Contains(card.Structure.Hub) ? "gen-badge--on" : null)"
+                      title="Filter: hub @card.Structure.Hub" @onclick="() => ToggleHub(card.Structure.Hub)">@card.Structure.Hub</button>
+              <button class="gen-badge gen-badge--front @(frontFilter.Contains(card.Structure.Frontline) ? "gen-badge--on" : null)"
+                      title="Filter: frontline @card.Structure.Frontline" @onclick="() => ToggleFront(card.Structure.Frontline)">@card.Structure.Frontline</button>
+            </div>
             <div class="gen-card-foot">
               <span class="gen-card-score" title="Evaluator score — lower is better">@card.Score.ToString("0.0")</span>
               <span class="gen-card-meta">@card.WoolCount wool · #@card.Descriptor.Seed</span>
@@ -116,6 +163,9 @@
         <div class="gen-detail-meta">
           Score <strong>@d.Score.ToString("0.00")</strong> · @d.WoolCount wool ·
           @d.Descriptor.Players players · @d.Descriptor.Symmetry · seed @d.Descriptor.Seed
+        </div>
+        <div class="gen-detail-meta">
+          <strong>@string.Join(", ", d.Structure.Wools)</strong> wools · hub <strong>@d.Structure.Hub</strong> · frontline <strong>@d.Structure.Frontline</strong>
         </div>
         @if (d.HardTerms.Count > 0)
         {

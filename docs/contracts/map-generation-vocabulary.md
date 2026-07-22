@@ -143,6 +143,7 @@ connectivity.
 | `ContactGraph` | The **board deriver, rect layer**: the connectivity primitives — every `Contact`, the build regions, the gap links, the islands. |
 | `BuildRegion` · `GapLink` · `InterfaceSegment` · `FrontlineEdge` | The connectivity pieces a board carries: a **build region** (typed by what islands it links), a **gap link** (a void a build region spans, with its hop distance), an **interface segment** (a shared edge), a **frontline edge** (where fanned images meet — a derived edge attribute, not a piece). |
 | `BoardDeriver` · `BoardStructure` | The **board deriver, raster layer**: islands (team/objective/neutral), hole classes (encased/gap/frontline/middle), build-zone kinds, the intra/self bridges, the wool lanes, and the mid form — the whole read of a board. |
+| `StructureSummary` · `StructureNames` | The **unit's structural read as one small fact**: the sorted wool approach families (`ShapeClassifier.Classify` per wool box), the hub body form, and the frontline form or `none` (`ClassifyBody` per hub/frontline box). Read off the labeled grown unit (box + slot), never a finished map, so it works uniformly on a bare unit and needs no labels stored back. `StructureNames` maps it to lowercase display/filter tokens (`donut`, `ring`, `twin`, `bar`, `none`…); `Canonical()` is the stable bucket key (`wools:donut,l\|hub:ring\|front:none`). The **filter fact** for the browse sieve (G117) and the bucket key for verdicts (G118) / duels (G120). |
 
 ## 9. The composer — the moves
 

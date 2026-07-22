@@ -1615,6 +1615,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
   per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
 
+- **Browse structural sieve — form/family filters** — `Pgm/Derive/StructureSummary.cs` + `ComposeEndpoints`
+  + `Client/Pages/Generator/` + `M0009`. The compose feed now sieves by **structure**, not just size/score:
+  `StructureSummary.Derive(unit)` reads a composed unit's sorted wool **approach families**
+  (`ShapeClassifier.Classify` per `BoxKind.Wool` box), its hub **body form**, and its frontline form or
+  `none` (`ClassifyBody` per hub/frontline box) — off the labeled grown unit, never a finished map. The
+  endpoint switched `Compose` → `ComposeStages` (same cost, gives the labeled unit) and runs
+  **Compose → summary → structural sieve → evaluate → score sieve → render**, so structural rejects skip the
+  evaluator and the render. Query params `wools=` (must-include — each family present), `hub=`/`front=`
+  (any-of); the filter lives wholly outside the compose call so the seed→board map and the pin path stay
+  reproducible. A per-request scan budget replaces the fixed cap and the page reports `Scanned` (matched =
+  card count) — a low match rate is the promote-to-target (G98) signal. Client: family/form filter chips
+  (Z/scythe greyed — not in the production mix) that apply on click, per-card structure badges that filter
+  on click, and a "scanned N · matched M" line. The canonical bucket key (`wools:donut,l|hub:ring|front:none`)
+  is `StructureNames.Canonical()`, persisted on pin (`plan.structure`, M0009) as G118's verdict column /
+  G120's duel bucket. `StructureSummary.WoolFamilies` promoted from the box-gallery tool (both share it);
+  vocabulary row added. Data 17 + Api 72 + Pgm 688 tests green. (G128)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

@@ -40,11 +40,31 @@ public partial class GeneratorBrowse : IAsyncDisposable
         ("mirror_x", "Mirror X", false),
     ];
 
+    // Structural filter vocabularies. Wool families the composer emits are enabled; the classifier-only reads
+    // (Z, scythe) render disabled — not in the production mix (same honesty the endpoint gives rot_90).
+    private static readonly (string Token, string Label, bool InMix)[] WoolChips =
+    [
+        ("i", "I", true), ("l", "L", true), ("u", "U", true), ("h", "H", true),
+        ("donut", "Donut", true), ("clamp", "Clamp", true), ("z", "Z", false), ("scythe", "Scythe", false),
+    ];
+    private static readonly (string Token, string Label)[] HubChips =
+        [("bar", "Bar"), ("single", "Single"), ("twin", "Twin"), ("ring", "Ring"), ("g", "G"), ("p", "P"), ("double-hole", "Double-hole")];
+    private static readonly (string Token, string Label)[] FrontChips =
+        [("none", "None"), ("bar", "Bar"), ("single", "Single"), ("twin", "Twin")];
+
+    // Selected structural filters: wools are must-include (each present), hub/front are any-of.
+    private readonly HashSet<string> woolFilter = [];
+    private readonly HashSet<string> hubFilter = [];
+    private readonly HashSet<string> frontFilter = [];
+
     // ── feed ─────────────────────────────────────────────────────────────────────
     private readonly List<ComposeCard> cards = [];
     private int cursor;              // next seed to request
+    private int totalScanned;        // seeds composed for the current filter (matched = cards.Count)
     private bool loading, exhausted;
     private string? feedError;
+
+    private bool StructuralActive => woolFilter.Count > 0 || hubFilter.Count > 0 || frontFilter.Count > 0;
 
     // ── hold tray (persisted generated plans, keyed by descriptor) ────────────────
     private List<PlanSummary> pinned = [];
@@ -75,6 +95,9 @@ public partial class GeneratorBrowse : IAsyncDisposable
         if (maxScore < ScoreCap) q += $"&maxScore={maxScore.ToString(CultureInfo.InvariantCulture)}";
         if (woolMin > 0) q += $"&woolMin={woolMin}";
         if (woolMax > 0) q += $"&woolMax={woolMax}";
+        if (woolFilter.Count > 0) q += $"&wools={string.Join(",", woolFilter)}";
+        if (hubFilter.Count > 0) q += $"&hub={string.Join(",", hubFilter)}";
+        if (frontFilter.Count > 0) q += $"&front={string.Join(",", frontFilter)}";
         return q;
     }
 
@@ -83,6 +106,7 @@ public partial class GeneratorBrowse : IAsyncDisposable
     {
         cards.Clear();
         cursor = 0;
+        totalScanned = 0;
         exhausted = false;
         feedError = null;
         await LoadPage();
@@ -100,12 +124,20 @@ public partial class GeneratorBrowse : IAsyncDisposable
             {
                 cards.AddRange(page.Cards);
                 cursor = page.NextSeed;
+                totalScanned += page.Scanned;
                 exhausted = page.Exhausted;
             }
         }
         catch { feedError = "Could not load boards."; exhausted = true; }
         finally { loading = false; StateHasChanged(); }
     }
+
+    // ── structural filters (chips + card badges; toggling re-sieves the feed immediately) ────────────
+    private Task ToggleWool(string t) { Toggle(woolFilter, t); return Reload(); }
+    private Task ToggleHub(string t) { Toggle(hubFilter, t); return Reload(); }
+    private Task ToggleFront(string t) { Toggle(frontFilter, t); return Reload(); }
+
+    private static void Toggle(HashSet<string> set, string t) { if (!set.Remove(t)) set.Add(t); }
 
     /// <summary>Invoked from the infinite-scroll observer when the sentinel nears view.</summary>
     [JSInvokable]

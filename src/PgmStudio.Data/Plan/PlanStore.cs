@@ -73,9 +73,11 @@ public sealed class PlanStore(PgmDb db)
         });
     }
 
-    /// <summary>Persist a composer output with its canonical versioned descriptor. Deduped against existing
-    /// generated rows: identical geometry already stored returns that row rather than a duplicate.</summary>
-    public async Task<PlanRow> SaveGeneratedAsync(string planJson, ComposeDescriptor descriptor, CancellationToken ct = default)
+    /// <summary>Persist a composer output with its canonical versioned descriptor and (optionally) its
+    /// structural bucket key. Deduped against existing generated rows: identical geometry already stored
+    /// returns that row rather than a duplicate.</summary>
+    public async Task<PlanRow> SaveGeneratedAsync(
+        string planJson, ComposeDescriptor descriptor, string? structure = null, CancellationToken ct = default)
     {
         var (canonical, name, hash) = Canonicalize(planJson);
         if (await GetByContentHashAsync(hash, PlanOrigin.Generated, ct) is { } existing) return existing;
@@ -85,7 +87,7 @@ public sealed class PlanStore(PgmDb db)
         {
             Name = name, Origin = PlanOrigin.Generated, PlanJson = canonical, ContentHash = hash,
             RequestJson = descriptor.ToJson(), Seed = descriptor.Seed, ComposerVersion = descriptor.ComposerVersion,
-            CreatedAt = now, UpdatedAt = now,
+            Structure = structure, CreatedAt = now, UpdatedAt = now,
         });
     }
 

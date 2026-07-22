@@ -29,6 +29,18 @@
   background: var(--bg); color: var(--text-bright); border: 1px solid var(--border); border-radius: var(--radius-sm);
 }
 .gen-hint { font-size: var(--font-xs); color: var(--text-secondary); line-height: 1.4; margin: 0; }
+.gen-field-sub { color: var(--text-secondary); font-weight: 400; font-size: var(--font-xs); }
+
+/* structural filter chips (wool families / hub / frontline) */
+.gen-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.gen-chip {
+  padding: 3px 7px; font-size: var(--font-xs); font-family: inherit; cursor: pointer;
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.gen-chip:hover:not(:disabled) { color: var(--text-bright); border-color: var(--accent); }
+.gen-chip--on { background: var(--bg-selected); color: var(--text-bright); border-color: var(--accent); }
+.gen-chip:disabled { opacity: .4; cursor: not-allowed; }
 
 /* feed */
 .gen-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }
@@ -59,6 +71,16 @@
 .gen-card--pinned { border-color: var(--accent); }
 .gen-card-fig { display: block; width: 100%; padding: 8px; background: var(--canvas); border: none; cursor: pointer; }
 .gen-card-fig svg { width: 100%; height: auto; max-height: 240px; display: block; margin: 0 auto; }
+.gen-card-badges { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px 8px 0; }
+.gen-badge {
+  padding: 1px 6px; font-size: 10px; font-family: ui-monospace, monospace; cursor: pointer;
+  background: var(--bg-selected); color: var(--text-secondary);
+  border: 1px solid transparent; border-radius: var(--radius-sm); text-transform: lowercase;
+}
+.gen-badge:hover { color: var(--text-bright); border-color: var(--accent); }
+.gen-badge--on { color: var(--text-bright); border-color: var(--accent); }
+.gen-badge--wool { color: var(--accent-lighter, var(--accent)); }
+.gen-scanned { margin: 0 0 var(--space-2); font-size: var(--font-xs); color: var(--text-secondary); }
 .gen-card-foot { display: flex; align-items: center; gap: var(--space-2); padding: 6px 8px; border-top: 1px solid var(--border); }
 .gen-card-score {
   font-family: ui-monospace, monospace; font-size: var(--font-xs); font-weight: 600;

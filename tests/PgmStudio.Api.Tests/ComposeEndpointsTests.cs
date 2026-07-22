@@ -42,6 +42,25 @@ public sealed class ComposeEndpointsTests
     }
 
     [Test]
+    public async Task Structural_sieve_wools_must_include_hub_any_of()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        await using var factory = new ApiTestFactory();
+        using var client = factory.CreateClient();
+
+        // wools=donut → every card includes a donut wool (must-include); the page reports the scan honestly.
+        var donut = await client.GetFromJsonAsync<ComposePage>(
+            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=3&wools=donut");
+        await Assert.That(donut!.Cards.All(c => c.Structure.Wools.Contains("donut"))).IsTrue();
+        await Assert.That(donut.Scanned).IsGreaterThanOrEqualTo(donut.Cards.Count);
+
+        // hub=ring → every card's hub form is ring (any-of over a single value).
+        var ring = await client.GetFromJsonAsync<ComposePage>(
+            "/api/compose?players=20&symmetry=rot_180&seedStart=0&count=3&hub=ring");
+        await Assert.That(ring!.Cards.All(c => c.Structure.Hub == "ring")).IsTrue();
+    }
+
+    [Test]
     public async Task MaxScore_sieve_excludes_higher_scored_boards()
     {
         await ApiTestFactory.ResetSchemaAsync();

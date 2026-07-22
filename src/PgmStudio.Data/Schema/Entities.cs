@@ -412,6 +412,7 @@ public sealed class PlanRow
     [Column("request_json")] public string? RequestJson { get; set; }
     [Column("seed")] public ulong? Seed { get; set; }
     [Column("composer_version")] public string? ComposerVersion { get; set; }
+    [Column("structure")] public string? Structure { get; set; }   // canonical StructureSummary bucket key (generated rows)
     [Column("created_at")] public DateTime CreatedAt { get; set; }
     [Column("updated_at")] public DateTime UpdatedAt { get; set; }
 }
