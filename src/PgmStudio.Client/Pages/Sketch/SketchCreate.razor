@@ -30,11 +30,10 @@
 
           <Section Title="Identity">
             <div class="section-body">
-              <div class="field">
-                <label class="field-label">Map name</label>
+              <Field Label="Map name">
                 <input class="field-input" @bind="sketchName" @bind:event="oninput" placeholder="My CTW Map"
                        @onkeydown="@(e => { if (e.Key == "Enter") _ = Submit(); })" />
-              </div>
+              </Field>
             </div>
           </Section>
 
@@ -63,13 +62,12 @@
                       <span class="choice-name">Custom</span>
                     </button>
                   </div>
-                  <div class="field">
-                    <label class="field-label">Size (blocks)</label>
+                  <Field Label="Size (blocks)">
                     <div class="ctrl-row">
                       <div class="coord-field"><span class="coord-prefix">W</span><NumberField Value="width" ValueChanged="OnWidth" Min="16" Step="8" CssClass="coord-input" /></div>
                       <div class="coord-field"><span class="coord-prefix">D</span><NumberField Value="depth" ValueChanged="OnDepth" Min="16" Step="8" CssClass="coord-input" /></div>
                     </div>
-                  </div>
+                  </Field>
                 </div>
               </Section>
 
@@ -115,19 +113,18 @@
                       <span class="choice-name">Rotate 90°</span>
                     </button>
                   </div>
-                  <div class="field">
-                    <label class="field-label">Centre</label>
+                  <Field Label="Centre">
                     <div class="ctrl-row">
                       <div class="coord-field"><span class="coord-prefix">X</span><NumberField Value="centerX" ValueChanged="@(v => centerX = v)" CssClass="coord-input" /></div>
                       <div class="coord-field"><span class="coord-prefix">Z</span><NumberField Value="centerZ" ValueChanged="@(v => centerZ = v)" CssClass="coord-input" /></div>
                     </div>
-                  </div>
+                  </Field>
                 </div>
               </Section>
           </div>
 
           <div class="section-footer">
-            <button class="action-btn action-btn--primary" @onclick="Submit" disabled="@busy">Continue</button>
+            <Button Variant="primary" OnClick="Submit" Disabled="@busy">Continue</Button>
             @if (createError is not null) { <span class="field-error">@createError</span> }
           </div>
 

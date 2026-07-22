@@ -18,17 +18,17 @@
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
         @if (planOrigin is not null) { <span class="topbar-crumb topbar-crumb--dim" title="Editing a generated or imported plan forks a new authored copy on save">@planOrigin</span> }
-        <button class="action-btn" @onclick="NewPlan" title="Start a blank plan">New</button>
+        <Button OnClick="NewPlan" Title="Start a blank plan">New</Button>
         <label class="action-btn" title="Import a *.plan.json file">
           Import
           <InputFile OnChange="OnImport" accept=".json" style="display:none" />
         </label>
-        <button class="action-btn" @onclick="ExportPlan" title="Download this plan as *.plan.json">Export</button>
-        <button class="action-btn" @onclick="SavePlan" disabled="@saving" title="Save this plan to the studio database">@(saving ? "Saving…" : "Save")</button>
-        <button class="action-btn" @onclick="OpenDbBrowser" title="Open a saved plan from the database">Open</button>
-        <button class="action-btn action-btn--primary" @onclick="OpenCompile" title="Compile the plan into a layout + intent, then create a draft">
+        <Button OnClick="ExportPlan" Title="Download this plan as *.plan.json">Export</Button>
+        <Button OnClick="SavePlan" Disabled="@saving" Title="Save this plan to the studio database">@(saving ? "Saving…" : "Save")</Button>
+        <Button OnClick="OpenDbBrowser" Title="Open a saved plan from the database">Open</Button>
+        <Button Variant="primary" OnClick="OpenCompile" Title="Compile the plan into a layout + intent, then create a draft">
           <i data-lucide="play"></i> Compile
-        </button>
+        </Button>
       </Right>
     </Topbar>
   </Bar>
@@ -46,15 +46,13 @@
             @if (leftPanel == "settings")
             {
             <Section>
-              <div class="field">
-                <label class="field-label">Plan name</label>
+              <Field Label="Plan name">
                 <input class="field-input" value="@planName" @onchange="OnName" placeholder="Untitled plan" />
-              </div>
+              </Field>
             </Section>
 
             <Section Title="Symmetry &amp; globals">
-              <div class="field">
-                <label class="field-label">Symmetry</label>
+              <Field Label="Symmetry">
                 <select class="field-input" value="@symmetry" @onchange="OnSymmetry">
                   <option value="rot_180">Rotate 180°</option>
                   <option value="rot_90">Rotate 90°</option>
@@ -62,59 +60,49 @@
                   <option value="mirror_z">Mirror Z</option>
                   <option value="none">None — single unit</option>
                 </select>
-              </div>
-              <div class="field">
-                <label class="field-label">Cell size (blocks)</label>
+              </Field>
+              <Field Label="Cell size (blocks)">
                 <NumberField Value="cell" ValueChanged="OnCell" Min="1" />
-              </div>
-              <div class="field">
-                <label class="field-label">Base surface (y)</label>
+              </Field>
+              <Field Label="Base surface (y)">
                 <NumberField Value="surface" ValueChanged="OnSurface" Min="0" />
-              </div>
-              <div class="field">
-                <label class="field-label">Surface step (y)</label>
+              </Field>
+              <Field Label="Surface step (y)">
                 <NumberField Value="surfaceStep" ValueChanged="OnSurfaceStep" Min="1" />
-              </div>
-              <div class="field">
-                <label class="field-label">Headroom</label>
+              </Field>
+              <Field Label="Headroom">
                 <NumberField Value="headroom" ValueChanged="OnHeadroom" Min="1" />
-              </div>
-              <div class="field">
-                <label class="field-label">Max players</label>
+              </Field>
+              <Field Label="Max players">
                 <NumberField Value="maxPlayers" ValueChanged="OnMaxPlayers" Min="2" Step="2" />
-              </div>
+              </Field>
             </Section>
 
             <Section Title="Reference">
-              <div class="field">
-                <label class="field-label">Trace over map</label>
+              <Field Label="Trace over map">
                 <select class="field-input" value="@refMap" @onchange="OnPickReferenceMap">
                   <option value="">— none —</option>
                   @foreach (var m in traceMaps) { <option value="@m.Slug">@m.Name</option> }
                 </select>
-              </div>
+              </Field>
               @if (refError is not null) { <p class="section-desc plan-compile-draft-error">@refError</p> }
               @if (refMap is not null)
               {
-                <div class="field">
-                  <label class="field-label">Opacity</label>
+                <Field Label="Opacity">
                   <input type="range" class="field-input" min="0" max="1" step="0.05" value="@refOpacity" @oninput="OnRefOpacity" />
-                </div>
-                <div class="field">
-                  <label class="field-label">Offset X (cells)</label>
+                </Field>
+                <Field Label="Offset X (cells)">
                   <NumberField Value="refOffsetX" ValueChanged="OnRefOffsetX" Step="1" />
-                </div>
-                <div class="field">
-                  <label class="field-label">Offset Z (cells)</label>
+                </Field>
+                <Field Label="Offset Z (cells)">
                   <NumberField Value="refOffsetZ" ValueChanged="OnRefOffsetZ" Step="1" />
-                </div>
-                <div class="field">
-                  <label class="field-label">Scale</label>
+                </Field>
+                <Field Label="Scale">
                   <NumberField Value="refScale" ValueChanged="OnRefScale" Min="0.1" Step="0.1" />
-                </div>
+                </Field>
                 <div class="ctrl-row">
-                  <button class="action-btn action-btn--full" @onclick="RecenterReference" title="Reset offset and scale">Recenter</button>
-                  <button class="action-btn action-btn--full" @onclick="ClearReference" title="Remove the backdrop (keeps the plan)">Clear</button>
+                  <Button Full OnClick="RecenterReference" Title="Reset offset and scale">Recenter</Button>
+                  <Button Full OnClick="ClearReference" Title="Remove the backdrop (keeps the plan)">Clear</Button>
                 </div>
               }
               <p class="section-desc">Trace a real map's top-down render to build a plan from it. The backdrop is saved with the plan as provenance and never affects the compiled output.</p>
@@ -122,14 +110,14 @@
 
             <Section Title="Overlays">
               <div class="plan-overlay-toggles">
-                <button class="filter-chip @(overlayInterfaces ? "filter-chip--active" : null)" title="Land interfaces (green, slimmer core if narrow) · corner contacts (red)"
-                        @onclick='() => ToggleOverlay("interfaces")'>Interfaces</button>
-                <button class="filter-chip @(overlayFrontline ? "filter-chip--active" : null)" title="Piece edges facing a build area"
-                        @onclick='() => ToggleOverlay("frontline")'>Frontline</button>
-                <button class="filter-chip @(overlayLabels ? "filter-chip--active" : null)" title="Piece / build-area id labels and build-area gap links with hop distance"
-                        @onclick='() => ToggleOverlay("labels")'>Labels</button>
-                <button class="filter-chip @(heightMap ? "filter-chip--active" : null)" title="Colour pieces by island height (surface y)"
-                        @onclick="ToggleHeightMap">Heights</button>
+                <Chip Active="overlayInterfaces" Title="Land interfaces (green, slimmer core if narrow) · corner contacts (red)"
+                      OnClick='() => ToggleOverlay("interfaces")'>Interfaces</Chip>
+                <Chip Active="overlayFrontline" Title="Piece edges facing a build area"
+                      OnClick='() => ToggleOverlay("frontline")'>Frontline</Chip>
+                <Chip Active="overlayLabels" Title="Piece / build-area id labels and build-area gap links with hop distance"
+                      OnClick='() => ToggleOverlay("labels")'>Labels</Chip>
+                <Chip Active="heightMap" Title="Colour pieces by island height (surface y)"
+                      OnClick="ToggleHeightMap">Heights</Chip>
               </div>
               <p class="section-desc">Toggle the derived-structure overlays and the height ramp drawn on the canvas.</p>
             </Section>
@@ -140,7 +128,7 @@
               <Actions>
                 @if (evaluation is not null)
                 {
-                  <span class="badge @(evaluation.Valid ? "badge--success" : "badge--error")" title="Evaluator cost — lower is better, 0 is perfect">@evaluation.Score.ToString("0.##")</span>
+                  <Badge Class="@(evaluation.Valid ? "badge--success" : "badge--error")" title="Evaluator cost — lower is better, 0 is perfect">@evaluation.Score.ToString("0.##")</Badge>
                 }
               </Actions>
               <ChildContent>
@@ -229,17 +217,17 @@
             </div>
             <div @ref="cursorRef" class="canvas-cursor"></div>
             <div class="canvas-subbar-right">
-              <button class="filter-chip" title="Fit the plan to view" @onclick="Fit"><i data-lucide="scan"></i></button>
-              <button class="filter-chip @(threeD ? "filter-chip--active" : null)" disabled="@isoUnavailable"
-                      title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
-                      @onclick="Toggle3D">3D</button>
+              <Chip Title="Fit the plan to view" OnClick="Fit"><i data-lucide="scan"></i></Chip>
+              <Chip Active="threeD" Disabled="@isoUnavailable"
+                    Title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
+                    OnClick="Toggle3D">3D</Chip>
               @if (isoUnavailable)
               {
                 <span class="canvas-zoom" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
               }
               @if (threeD)
               {
-                <button class="filter-chip" title="Rotate the preview 90°" @onclick="RotateIso"><i data-lucide="rotate-cw"></i></button>
+                <Chip Title="Rotate the preview 90°" OnClick="RotateIso"><i data-lucide="rotate-cw"></i></Chip>
               }
               <span class="canvas-zoom">@zoomLabel</span>
             </div>
@@ -261,41 +249,37 @@
                 <div class="detail-header">
                   <span class="geo-type-icon"><i data-lucide="box"></i></span>
                   <span class="detail-label">Piece</span>
-                  <span class="detail-header-badges"><span class="badge badge--neutral">@sel.Role</span></span>
+                  <span class="detail-header-badges"><Badge Kind="neutral">@sel.Role</Badge></span>
                 </div>
-                <div class="field">
-                  <label class="field-label">Id</label>
+                <Field Label="Id">
                   <input class="field-input" value="@sel.Id" @onchange="OnPieceId" />
-                </div>
-                <div class="field">
-                  <label class="field-label">Role</label>
+                </Field>
+                <Field Label="Role">
                   <select class="field-input" value="@sel.Role" @onchange="OnPieceRole">
                     @foreach (var r in Roles) { <option value="@r.Id">@r.Label</option> }
                   </select>
-                </div>
-                <div class="field">
-                  <label class="field-label">Surface (y)</label>
+                </Field>
+                <Field Label="Surface (y)">
                   <div class="ctrl-row">
-                    <button class="action-btn action-btn--icon" title="Lower surface by @((int)surfaceStep)" @onclick="() => StepSurface(-(int)surfaceStep)">−</button>
+                    <Button Variant="icon" Title='@($"Lower surface by {(int)surfaceStep}")' OnClick="() => StepSurface(-(int)surfaceStep)">−</Button>
                     <span class="plan-stepper-value">@sel.Surface@(sel.SurfaceSet ? "" : " (base)")</span>
-                    <button class="action-btn action-btn--icon" title="Raise surface by @((int)surfaceStep)" @onclick="() => StepSurface((int)surfaceStep)">+</button>
+                    <Button Variant="icon" Title='@($"Raise surface by {(int)surfaceStep}")' OnClick="() => StepSurface((int)surfaceStep)">+</Button>
                   </div>
-                </div>
-                <div class="field">
-                  <label class="field-label">Step</label>
+                </Field>
+                <Field Label="Step">
                   <div class="ctrl-row">
                     @foreach (var s in StepPresets)
                     {
-                      <button class="filter-chip @((int)surfaceStep == s ? "filter-chip--active" : null)" title="Step surface by @s" @onclick="() => SetSurfaceStep(s)">@s</button>
+                      <Chip Active="(int)surfaceStep == s" Title='@($"Step surface by {s}")' OnClick="() => SetSurfaceStep(s)">@s</Chip>
                     }
                   </div>
-                </div>
-                <button class="action-btn action-btn--full" @onclick="ToggleMirrors">
+                </Field>
+                <Button Full OnClick="ToggleMirrors">
                   @(sel.Mirrors ? "Exclude from mirror" : "Include in mirror")
-                </button>
-                <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
+                </Button>
+                <Button Full Variant="danger" OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete piece
-                </button>
+                </Button>
               }
               else if (sel.Kind == "zone")
               {
@@ -303,13 +287,12 @@
                   <span class="geo-type-icon"><i data-lucide="square-dashed"></i></span>
                   <span class="detail-label">Build area</span>
                 </div>
-                <div class="field">
-                  <label class="field-label">Id</label>
+                <Field Label="Id">
                   <input class="field-input" value="@sel.Id" @onchange="OnZoneId" />
-                </div>
-                <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
+                </Field>
+                <Button Full Variant="danger" OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete build area
-                </button>
+                </Button>
               }
               else
               {
@@ -317,23 +300,21 @@
                   <span class="geo-type-icon"><i data-lucide="flag"></i></span>
                   <span class="detail-label">@sel.MarkerKind</span>
                 </div>
-                <div class="field">
-                  <label class="field-label">On piece</label>
+                <Field Label="On piece">
                   <div class="plan-readout">@sel.Piece &nbsp; <span class="list-tag">at @OffsetLabel</span></div>
-                </div>
+                </Field>
                 @if (sel.MarkerKind == "spawn")
                 {
-                  <div class="field">
-                    <label class="field-label">Facing</label>
+                  <Field Label="Facing">
                     <div class="ctrl-row">
                       <span class="plan-stepper-value">@sel.Facing</span>
-                      <button class="action-btn action-btn--icon" @onclick="CycleFacing" title="Cycle facing"><i data-lucide="rotate-cw"></i></button>
+                      <Button Variant="icon" OnClick="CycleFacing" Title="Cycle facing"><i data-lucide="rotate-cw"></i></Button>
                     </div>
-                  </div>
+                  </Field>
                 }
-                <button class="action-btn action-btn--full action-btn--danger" @onclick="DeleteSelected">
+                <Button Full Variant="danger" OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete marker
-                </button>
+                </Button>
               }
             </Section>
       </Inspector>
@@ -369,8 +350,8 @@
           <button class="draw-tool-btn @(compileTab == "layout" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "layout"'>Layout</button>
           <button class="draw-tool-btn @(compileTab == "intent" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "intent"'>Intent</button>
           <div class="plan-compile-tab-actions">
-            <button class="action-btn" title="Copy to clipboard" @onclick="CopyTab"><i data-lucide="clipboard"></i> @(copied ? "Copied" : "Copy")</button>
-            <button class="action-btn" title="Download this file" @onclick="DownloadTab"><i data-lucide="download"></i> Download</button>
+            <Button Title="Copy to clipboard" OnClick="CopyTab"><i data-lucide="clipboard"></i> @(copied ? "Copied" : "Copy")</Button>
+            <Button Title="Download this file" OnClick="DownloadTab"><i data-lucide="download"></i> Download</Button>
           </div>
         </div>
         <pre class="plan-compile-json">@(compileTab == "layout" ? compiledLayout : compiledIntent)</pre>
@@ -380,19 +361,19 @@
       <div class="plan-compile-draft">
         @if (draftSlug is null)
         {
-          <button class="action-btn action-btn--primary action-btn--full" disabled="@(compiledLayout is null || draftBusy)" @onclick="CreateDraft">
+          <Button Variant="primary" Full Disabled="@(compiledLayout is null || draftBusy)" OnClick="CreateDraft">
             @if (draftBusy) { <span>@draftStep…</span> } else { <span><i data-lucide="hammer"></i> Create draft</span> }
-          </button>
+          </Button>
         }
         else
         {
           <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> Draft <strong>@draftSlug</strong> created</div>
-          <a class="action-btn action-btn--full" href="@($"/maps/{draftSlug}/sketch")" target="_blank" rel="noopener">
+          <Button Full Href="@($"/maps/{draftSlug}/sketch")" target="_blank" rel="noopener">
             <i data-lucide="external-link"></i> Open in sketch editor
-          </a>
-          <button class="action-btn action-btn--primary action-btn--full" @onclick="DownloadWorld">
+          </Button>
+          <Button Variant="primary" Full OnClick="DownloadWorld">
             <i data-lucide="download"></i> Download world ZIP
-          </button>
+          </Button>
         }
         @if (draftError is not null) { <p class="section-desc plan-compile-draft-error">@draftError</p> }
       </div>

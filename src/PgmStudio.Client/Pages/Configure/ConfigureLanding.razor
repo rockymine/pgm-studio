@@ -20,7 +20,7 @@
       <ContentColumn MaxWidth="760">
 
         <Section Title="Open a world folder">
-          <Actions><span class="badge badge--success">no map.xml needed</span></Actions>
+          <Actions><Badge Kind="success">no map.xml needed</Badge></Actions>
           <ChildContent>
           <p class="section-desc">Worlds that have terrain but no <code>map.xml</code> yet — the new-map
             candidates. Pick one to scan it.</p>
@@ -37,13 +37,12 @@
             <div class="panel-list" style="margin-top: var(--space-3);">
               @foreach (var c in candidates)
               {
-                <div class="list-row list-row--compact @(c == selected ? "list-row--selected" : null)"
-                     @onclick="() => Select(c)">
+                <ListRow Compact Selected="c == selected" OnClick="() => Select(c)">
                   <span class="geo-type-icon"><i data-lucide="@(c == selected ? "folder-open" : "folder")"></i></span>
                   <span class="list-label list-label--mono">@c.Folder</span>
                   <span class="list-tag">@c.RegionFiles region files</span>
-                  @if (c == selected) { <span class="badge badge--success">selected</span> }
-                </div>
+                  @if (c == selected) { <Badge Kind="success">selected</Badge> }
+                </ListRow>
               }
             </div>
           }
@@ -61,23 +60,22 @@
         </Section>
 
         <Section Title="From a download link">
-          <Actions><span class="badge badge--dim">Overcast / S3 zip</span></Actions>
+          <Actions><Badge Kind="dim">Overcast / S3 zip</Badge></Actions>
           <ChildContent>
           <p class="section-desc">Paste a link to a world download (an Overcast / S3 <code>…/download</code>
             zip) and the studio fetches and imports it server-side — no local files needed. Only
             allow-listed hosts can be fetched.</p>
-          <div class="field">
-            <label class="field-label">Download URL</label>
+          <Field Label="Download URL">
             <div class="ctrl-row">
               <input class="field-input" type="text" @bind="urlInput" @bind:event="oninput"
                      placeholder="https://…/maps/your-world/download" disabled="@importingUrl"
                      @onkeydown="@(e => { if (e.Key == "Enter") _ = ImportFromUrl(); })" />
-              <button class="action-btn action-btn--primary" @onclick="ImportFromUrl"
-                      disabled="@(importingUrl || string.IsNullOrWhiteSpace(urlInput))">
+              <Button Variant="primary" OnClick="ImportFromUrl"
+                      Disabled="@(importingUrl || string.IsNullOrWhiteSpace(urlInput))">
                 <i data-lucide="download"></i><span>@(importingUrl ? "Fetching…" : "Fetch & scan")</span>
-              </button>
+              </Button>
             </div>
-          </div>
+          </Field>
           </ChildContent>
         </Section>
 
@@ -93,19 +91,19 @@
       <Sidebar>
           <Section Title="Files">
             <div class="panel-list">
-              <div class="list-row list-row--compact list-row--muted">
+              <ListRow Compact Class="list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="folder-open"></i></span>
                 <span class="list-label list-label--mono">@SourceFolder/</span>
-              </div>
-              <div class="list-row list-row--compact list-row--muted">
+              </ListRow>
+              <ListRow Compact Class="list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="box"></i></span>
                 <span class="list-label list-label--mono">region/ · @SourceRegionFiles .mca</span>
-              </div>
-              <div class="list-row list-row--compact list-row--muted">
+              </ListRow>
+              <ListRow Compact Class="list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="file-x"></i></span>
                 <span class="list-label list-label--mono">map.xml</span>
-                <span class="badge badge--dim">absent</span>
-              </div>
+                <Badge Kind="dim">absent</Badge>
+              </ListRow>
             </div>
           </Section>
 
@@ -113,18 +111,18 @@
             <div class="panel-list">
               @foreach (var f in Findings.Where(f => f.Group == "detected"))
               {
-                <div class="list-row list-row--compact @(selectedFinding == f.Key ? "list-row--selected" : null)" @onclick="() => SelectFinding(f.Key)">
+                <ListRow Compact Selected="selectedFinding == f.Key" OnClick="() => SelectFinding(f.Key)">
                   <span class="geo-type-icon"><i data-lucide="@f.Icon"></i></span>
                   <span class="list-label">@f.Label</span>
                   <span class="list-tag">@FindingTag(f.Key)</span>
-                </div>
+                </ListRow>
               }
             </div>
             @if (symType is not null)
             {
               <p class="section-desc">The layout is symmetric
-                (<span class="badge badge--success">@SymmetryInfo.Label(symType)</span>), suggesting
-                <span class="badge badge--success">@SuggestedTeams</span> teams — you'll confirm both in World &amp; Teams.</p>
+                (<Badge Kind="success">@SymmetryInfo.Label(symType)</Badge>), suggesting
+                <Badge Kind="success">@SuggestedTeams</Badge> teams — you'll confirm both in World &amp; Teams.</p>
             }
             else
             {
@@ -136,11 +134,11 @@
             <div class="panel-list">
               @foreach (var f in Findings.Where(f => f.Group == "built"))
               {
-                <div class="list-row list-row--compact @(selectedFinding == f.Key ? "list-row--selected" : null)" @onclick="() => SelectFinding(f.Key)">
+                <ListRow Compact Selected="selectedFinding == f.Key" OnClick="() => SelectFinding(f.Key)">
                   <span class="geo-type-icon"><i data-lucide="@f.Icon"></i></span>
                   <span class="list-label">@f.Label</span>
                   <span class="list-tag">@FindingTag(f.Key)</span>
-                </div>
+                </ListRow>
               }
             </div>
           </Section>
@@ -164,56 +162,53 @@
             <div class="detail-header">
               <span class="geo-type-icon detail-icon--muted"><i data-lucide="@FindingIcon(selectedFinding)"></i></span>
               <span class="detail-label">@FindingLabel(selectedFinding)</span>
-              <span class="badge badge--dim">@FindingTag(selectedFinding)</span>
+              <Badge Kind="dim">@FindingTag(selectedFinding)</Badge>
             </div>
             <div class="section-body">
               <p class="section-desc">@FindingExplanation(selectedFinding)</p>
 
               @if (selectedFinding == "wool" && woolColors.Count > 0)
               {
-                <div class="field">
-                  <label class="field-label">Colours found</label>
+                <Field Label="Colours found">
                   <div class="panel-list">
                     @foreach (var w in woolColors)
                     {
-                      <div class="list-row list-row--compact list-row--muted">
+                      <ListRow Compact Class="list-row--muted">
                         <span class="list-swatch" style="background:@w.Hex"></span>
                         <span class="list-label">@w.Name</span>
                         <span class="list-tag">@w.Count</span>
-                      </div>
+                      </ListRow>
                     }
                   </div>
-                </div>
+                </Field>
               }
               else if (selectedFinding == "islands" && islands.Count > 0)
               {
-                <div class="field">
-                  <label class="field-label">Island sizes</label>
+                <Field Label="Island sizes">
                   <div class="panel-list">
                     @for (var i = 0; i < islands.Count; i++)
                     {
-                      <div class="list-row list-row--compact list-row--muted">
+                      <ListRow Compact Class="list-row--muted">
                         <span class="list-label">Island @(i + 1)</span>
                         <span class="list-tag">@islands[i].BlockCount blocks</span>
-                      </div>
+                      </ListRow>
                     }
                   </div>
-                </div>
+                </Field>
               }
               else if (selectedFinding == "resources" && resourceTypes.Count > 0)
               {
-                <div class="field">
-                  <label class="field-label">Types found</label>
+                <Field Label="Types found">
                   <div class="panel-list">
                     @foreach (var r in resourceTypes)
                     {
-                      <div class="list-row list-row--compact list-row--muted">
+                      <ListRow Compact Class="list-row--muted">
                         <span class="list-label">@r.Name</span>
                         <span class="list-tag">@r.Count</span>
-                      </div>
+                      </ListRow>
                     }
                   </div>
-                </div>
+                </Field>
               }
             </div>
           </Section>
@@ -228,7 +223,7 @@
     <Workspace @key="step">
       <ContentColumn MaxWidth="920">
         <Section Title="What happens next">
-          <Actions><span class="badge badge--dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymmetryInfo.Label(symType)}" : "")</span></Actions>
+          <Actions><Badge Kind="dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymmetryInfo.Label(symType)}" : "")</Badge></Actions>
           <ChildContent>
           <p class="section-desc">Six guided phases take <strong>@importedSlug</strong> from terrain to a
             PGM-ready <code>map.xml</code> — and the studio does the heavy lifting at every step.</p>

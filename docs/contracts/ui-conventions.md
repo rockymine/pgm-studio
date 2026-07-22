@@ -28,9 +28,14 @@ Read alongside:
 > skeletons across 31 Configure / EditorActivity / Sketch / Plan files became `<Section>` (0 raw
 > `panel-section` outside the `/concepts` + `/design` leave-raw zone of §5). `Section`/`SectionHeader`
 > gained a `Required` asterisk param, and `Section` a `CaptureUnmatchedValues` `style`/`id`/`@key`
-> pass-through. All verified against `/design`. Phase D's remainder (§6 — the atom adoption D.2 and the
-> new components D.3) is tracked in the C12 backlog entry. The other `.razor` components stay at their
-> existing altitude (page fragments like `EditorCanvas`; one-off widgets like `NumberField`,
+> pass-through. **D.2** — the atomic vocabulary adopted across every production surface: `field` →
+> `<Field>` (~102), `action-btn` → `<Button>` (~66), `badge` → `<Badge>` (~67), `list-row` →
+> `<ListRow>` (~50), `filter-chip` → `<Chip>` (~23). `Field` gained a `LabelHint` slot; dynamic badge
+> variants pass the verbatim ternary via `Class`. Two legitimate raw holdouts remain (a
+> `<label class="action-btn">` wrapping `InputFile`; `SliceView`'s header-embedded field). All verified
+> against `/design`. Phase D's remainder (§6 — the new components D.3: `Card`/`CoordField`/`DetailHeader`/
+> `FlowBar`/`Console`/`Icon`) is tracked in the C12 backlog entry. The other `.razor` components stay at
+> their existing altitude (page fragments like `EditorCanvas`; one-off widgets like `NumberField`,
 > `SideDrawer`, `SmartSuggestion`, `Toast`).
 
 ---

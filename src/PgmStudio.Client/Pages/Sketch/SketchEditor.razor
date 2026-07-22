@@ -19,8 +19,8 @@
       <Right>
         @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
         <span class="topbar-crumb topbar-crumb--dim">@islandLabel</span>
-        <button class="action-btn action-btn--primary" @onclick="Finish" disabled="@finishing"
-                title="Rasterize the sketch into a world and save it, ready to configure">Finish</button>
+        <Button Variant="primary" OnClick="Finish" Disabled="@finishing"
+                Title="Rasterize the sketch into a world and save it, ready to configure">Finish</Button>
       </Right>
     </Topbar>
   </Bar>
@@ -33,40 +33,34 @@
             <details class="panel-accordion">
               <summary class="section-header section-header--ruled"><h2 class="section-title">Frame</h2></summary>
               <Section style="margin-top: var(--space-3);">
-                <div class="field">
-                  <label class="field-label">Footprint</label>
+                <Field Label="Footprint">
                   <select class="field-input" value="@preset" @onchange="OnPresetChange">
                     <option value="landscape">2-team landscape (120×80)</option>
                     <option value="portrait">2-team portrait (80×120)</option>
                     <option value="square">Square — 4-team / D2 (120×120)</option>
                     <option value="custom">Custom</option>
                   </select>
-                </div>
-                <div class="field">
-                  <label class="field-label">Width X (blocks)</label>
+                </Field>
+                <Field Label="Width X (blocks)">
                   <NumberField Value="width" ValueChanged="OnWidth" Min="16" Step="8" />
-                </div>
-                <div class="field">
-                  <label class="field-label">Depth Z (blocks)</label>
+                </Field>
+                <Field Label="Depth Z (blocks)">
                   <NumberField Value="depth" ValueChanged="OnDepth" Min="16" Step="8" />
-                </div>
-                <div class="field">
-                  <label class="field-label">Symmetry</label>
+                </Field>
+                <Field Label="Symmetry">
                   <select class="field-input" value="@mode" @onchange="OnModeChange">
                     <option value="mirror_x">Mirror X</option>
                     <option value="mirror_z">Mirror Z</option>
                     <option value="rot_180">Rotate 180°</option>
                     <option value="rot_90">Rotate 90°</option>
                   </select>
-                </div>
-                <div class="field">
-                  <label class="field-label">Symmetry centre X</label>
+                </Field>
+                <Field Label="Symmetry centre X">
                   <NumberField Value="centerX" ValueChanged="OnCenterX" />
-                </div>
-                <div class="field">
-                  <label class="field-label">Symmetry centre Z</label>
+                </Field>
+                <Field Label="Symmetry centre Z">
                   <NumberField Value="centerZ" ValueChanged="OnCenterZ" />
-                </div>
+                </Field>
               </Section>
             </details>
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer" OnAdd="AddLayer"
@@ -103,25 +97,25 @@
             <div @ref="coordsRef" class="canvas-cursor"></div>
             <div @ref="dimRef" class="canvas-dim"></div>
             <div class="canvas-subbar-right">
-              <button class="filter-chip @(mirrorOn ? "filter-chip--active" : null)" title="Show the mirrored copies"
-                      @onclick="ToggleMirror">Mirror</button>
-              <button class="filter-chip @(shapesOn ? "filter-chip--active" : null)" title="Show the draw primitives over the islands"
-                      @onclick="ToggleShapes">Shapes</button>
-              <button class="filter-chip @(chunksOn ? "filter-chip--active" : null)" title="Show the 16-block chunk grid"
-                      @onclick="ToggleChunks">Chunks</button>
-              <button class="filter-chip @(snapOn ? "filter-chip--active" : null)" title="Snap shapes to other shapes' edges while dragging (Alt bypasses)"
-                      @onclick="ToggleSnap">Snap</button>
-              <button class="filter-chip" title="Fit the working bounds" @onclick="OnFit"><i data-lucide="scan"></i></button>
-              <button class="filter-chip @(threeD ? "filter-chip--active" : null)" disabled="@isoUnavailable"
-                      title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
-                      @onclick="Toggle3D">3D</button>
+              <Chip Active="mirrorOn" Title="Show the mirrored copies"
+                    OnClick="ToggleMirror">Mirror</Chip>
+              <Chip Active="shapesOn" Title="Show the draw primitives over the islands"
+                    OnClick="ToggleShapes">Shapes</Chip>
+              <Chip Active="chunksOn" Title="Show the 16-block chunk grid"
+                    OnClick="ToggleChunks">Chunks</Chip>
+              <Chip Active="snapOn" Title="Snap shapes to other shapes' edges while dragging (Alt bypasses)"
+                    OnClick="ToggleSnap">Snap</Chip>
+              <Chip Title="Fit the working bounds" OnClick="OnFit"><i data-lucide="scan"></i></Chip>
+              <Chip Active="threeD" Disabled="@isoUnavailable"
+                    Title="@(isoUnavailable ? "3-D preview needs WebGL, which isn't available in this browser" : "Isometric height preview (read-only)")"
+                    OnClick="Toggle3D">3D</Chip>
               @if (isoUnavailable)
               {
                 <span class="canvas-zoom" title="The 3-D height preview needs WebGL, which this browser can't provide.">no WebGL</span>
               }
               @if (threeD)
               {
-                <button class="filter-chip" title="Rotate the preview 90°" @onclick="RotateIso"><i data-lucide="rotate-cw"></i></button>
+                <Chip Title="Rotate the preview 90°" OnClick="RotateIso"><i data-lucide="rotate-cw"></i></Chip>
               }
               <span @ref="zoomRef" class="canvas-zoom">—</span>
             </div>

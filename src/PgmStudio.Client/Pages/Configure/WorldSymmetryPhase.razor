@@ -14,30 +14,28 @@
         <div class="panel-list">
           @foreach (var m in Choices)
           {
-            <div class="list-row list-row--compact @(selectedType == m.Type ? "list-row--selected" : null)"
-                 @key="m.Type" @onclick="() => Select(m.Type)">
+            <ListRow Compact Selected="selectedType == m.Type"
+                 @key="m.Type" OnClick="() => Select(m.Type)">
               <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
-              <span class="badge @(m.Confidence >= 0.999 ? "badge--success" : "badge--neutral")">@m.Confidence.ToString("P0")</span>
-              @if (m.Type == primaryType) { <span class="badge badge--dim">detected</span> }
-            </div>
+              <Badge Class="@(m.Confidence >= 0.999 ? "badge--success" : "badge--neutral")">@m.Confidence.ToString("P0")</Badge>
+              @if (m.Type == primaryType) { <Badge Kind="dim">detected</Badge> }
+            </ListRow>
           }
-          <div class="list-row list-row--compact @(selectedType is null ? "list-row--selected" : null)"
-               @key="@("none")" @onclick="() => Select(null)">
+          <ListRow Compact Selected="selectedType is null"
+               @key="@("none")" OnClick="() => Select(null)">
             <span class="list-label">No symmetry</span>
-          </div>
+          </ListRow>
         </div>
       </Section>
 
       <Section Title="Centre">
         <div class="field-row">
-          <div class="field">
-            <label class="field-label">X</label>
+          <Field Label="X">
             <NumberField Value="centerX" ValueChanged="@(v => OnCenter(v, true))" Step="0.5" disabled="@(selectedType is null)" />
-          </div>
-          <div class="field">
-            <label class="field-label">Z</label>
+          </Field>
+          <Field Label="Z">
             <NumberField Value="centerZ" ValueChanged="@(v => OnCenter(v, false))" Step="0.5" disabled="@(selectedType is null)" />
-          </div>
+          </Field>
         </div>
         <p class="section-desc">The point the layout mirrors / rotates about — defaults to the detected
           centre.</p>
@@ -58,20 +56,17 @@
           <span class="detail-label">Detection summary</span>
         </div>
         <div class="section-body">
-          <div class="field">
-            <label class="field-label">Islands</label>
+          <Field Label="Islands">
             <div class="field-pick-row"><span class="field-value">@islandCount</span></div>
-          </div>
-          <div class="field">
-            <label class="field-label">Confirmed symmetry</label>
+          </Field>
+          <Field Label="Confirmed symmetry">
             <div class="field-pick-row"><span class="field-value">@SymmetryInfo.Label(selectedType)</span></div>
-          </div>
-          <div class="field">
-            <label class="field-label">Suggested teams</label>
+          </Field>
+          <Field Label="Suggested teams">
             <div class="field-pick-row">
               @if (SuggestedTeams is { } n)
               {
-                <span class="badge badge--success">@n</span>
+                <Badge Kind="success">@n</Badge>
                 <span class="list-tag">from @selectedType</span>
               }
               else
@@ -80,7 +75,7 @@
                 <span class="list-tag">set teams manually</span>
               }
             </div>
-          </div>
+          </Field>
           <p class="section-desc">The rotational/mirror order suggests the team count. You'll confirm it and
             assign each island's owner next, in Teams.</p>
         </div>

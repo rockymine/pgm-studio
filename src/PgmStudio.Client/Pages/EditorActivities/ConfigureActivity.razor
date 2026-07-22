@@ -21,7 +21,7 @@
       {
         <Section Title="Islands">
           <Actions>
-            <span class="badge badge--dim">Step 1</span>
+            <Badge Kind="dim">Step 1</Badge>
           </Actions>
           <ChildContent>
             <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer
@@ -34,14 +34,14 @@
             @if (IncludedIslands.Count == 0) { <div class="list-empty">No islands detected.</div> }
             @foreach (var isl in IncludedIslands)
             {
-              <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
-                   @key="isl.Id" @onclick="() => Select(isl.Id)">
+              <ListRow Compact Selected="selectedId == isl.Id"
+                   @key="isl.Id" OnClick="() => Select(isl.Id)">
                 <span class="list-swatch" style="background:#6366f1"></span>
                 <span class="list-label">Island @isl.Id</span>
                 <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
                 <button class="btn-remove btn-remove--hover-only" title="Exclude island"
                         disabled="@(IncludedIslands.Count <= 1)" @onclick:stopPropagation="true" @onclick="() => ToggleIsland(isl.Id, true)"><i data-lucide="x"></i></button>
-              </div>
+              </ListRow>
             }
           </div>
         </Section>
@@ -51,14 +51,14 @@
             @if (ExcludedIslandsList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
             @foreach (var isl in ExcludedIslandsList)
             {
-              <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
-                   @key="isl.Id" @onclick="() => Select(isl.Id)">
+              <ListRow Compact Selected="selectedId == isl.Id"
+                   @key="isl.Id" OnClick="() => Select(isl.Id)">
                 <span class="list-swatch" style="background:#6b7280"></span>
                 <span class="list-label">Island @isl.Id</span>
                 <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
                 <button class="btn-remove btn-remove--hover-only" title="Re-include island"
                         @onclick:stopPropagation="true" @onclick="() => ToggleIsland(isl.Id, false)"><i data-lucide="rotate-ccw"></i></button>
-              </div>
+              </ListRow>
             }
           </div>
         </Section>
@@ -67,22 +67,22 @@
       {
         <Section Title="Symmetry">
           <Actions>
-            <span class="badge badge--dim">Step 2</span>
+            <Badge Kind="dim">Step 2</Badge>
           </Actions>
           <ChildContent>
             <p class="section-desc">Confirm the detected symmetry, choose a different one, or reject it.</p>
             <div class="panel-list">
               @foreach (var m in symModes)
               {
-                <div class="list-row list-row--compact @(symChoice == m.Type ? "list-row--selected" : null)" @onclick="() => SelectSym(m.Type)">
+                <ListRow Compact Selected="symChoice == m.Type" OnClick="() => SelectSym(m.Type)">
                   <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
-                  <span class="badge @(m.Detected ? "badge--success" : "badge--neutral")">@($"{Math.Round(m.Confidence * 100)}%")</span>
-                  @if (m.Detected) { <span class="badge badge--dim">detected</span> }
-                </div>
+                  <Badge Class="@(m.Detected ? "badge--success" : "badge--neutral")">@($"{Math.Round(m.Confidence * 100)}%")</Badge>
+                  @if (m.Detected) { <Badge Kind="dim">detected</Badge> }
+                </ListRow>
               }
-              <div class="list-row list-row--compact @(symChoice == "none" ? "list-row--selected" : null)" @onclick='() => SelectSym("none")'>
+              <ListRow Compact Selected='symChoice == "none"' OnClick='() => SelectSym("none")'>
                 <span class="list-label">No symmetry</span>
-              </div>
+              </ListRow>
             </div>
           </ChildContent>
         </Section>
@@ -91,25 +91,23 @@
         {
           <Section Title="Center">
             <div class="field-row">
-              <div class="field">
-                <label class="field-label">X</label>
+              <Field Label="X">
                 <input class="field-input" type="number" step="0.5" value="@centerX" @oninput="e => OnCenter(e, true)" />
-              </div>
-              <div class="field">
-                <label class="field-label">Z</label>
+              </Field>
+              <Field Label="Z">
                 <input class="field-input" type="number" step="0.5" value="@centerZ" @oninput="e => OnCenter(e, false)" />
-              </div>
+              </Field>
             </div>
-            <button class="action-btn" @onclick="ResetCenter">Reset to detected</button>
+            <Button OnClick="ResetCenter">Reset to detected</Button>
           </Section>
         }
       }
     </ChildContent>
     <Footer>
     <div class="cfg-sidebar-nav">
-      @if (step > 1) { <button class="action-btn" @onclick="Prev"><i data-lucide="arrow-left"></i></button> }
-      @if (step < 2) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="Next">Next <i data-lucide="arrow-right"></i></button> }
-      else { <button class="action-btn action-btn--primary action-btn--push-end" disabled="@(symChoice is null)" @onclick="Finish"><i data-lucide="check"></i> @(symChoice == "none" ? "Confirm: no symmetry" : "Confirm symmetry")</button> }
+      @if (step > 1) { <Button OnClick="Prev"><i data-lucide="arrow-left"></i></Button> }
+      @if (step < 2) { <Button Variant="primary" Class="action-btn--push-end" OnClick="Next">Next <i data-lucide="arrow-right"></i></Button> }
+      else { <Button Variant="primary" Class="action-btn--push-end" Disabled="@(symChoice is null)" OnClick="Finish"><i data-lucide="check"></i> @(symChoice == "none" ? "Confirm: no symmetry" : "Confirm symmetry")</Button> }
     </div>
     </Footer>
   </Sidebar>

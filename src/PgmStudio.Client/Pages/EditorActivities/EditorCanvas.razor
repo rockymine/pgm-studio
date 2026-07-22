@@ -44,19 +44,19 @@
     <div class="canvas-subbar-right">
       @if (orbitMode is not null)
       {
-        <button class="filter-chip @(orbitOn ? "filter-chip--active" : null)"
-                title="Mirror drawn regions across the map's confirmed symmetry"
-                @onclick="ToggleOrbit">@OrbitLabel()</button>
+        <Chip Active="orbitOn"
+                Title="Mirror drawn regions across the map's confirmed symmetry"
+                OnClick="ToggleOrbit">@OrbitLabel()</Chip>
       }
       @* Blocks overlay is a mode-independent visual aid (renders below the regions/markers); offered on every
          canvas so placement can be lined up against the real terrain. No-op when the map has no scan data. *@
-      <button class="filter-chip @(blocksOn ? "filter-chip--active" : null)" title="Overlay the top-surface block colours"
-              @onclick="ToggleBlocks">Blocks</button>
+      <Chip Active="blocksOn" Title="Overlay the top-surface block colours"
+              OnClick="ToggleBlocks">Blocks</Chip>
       @if (ShowBuildable)
       {
-        <button class="filter-chip @(buildableOn ? "filter-chip--active" : null)"
-                title="Overlay the per-column buildability verdict (green buildable · orange void-denied · red never · yellow restricted)"
-                @onclick="ToggleBuildability">Buildable</button>
+        <Chip Active="buildableOn"
+                Title="Overlay the per-column buildability verdict (green buildable · orange void-denied · red never · yellow restricted)"
+                OnClick="ToggleBuildability">Buildable</Chip>
       }
       @if (islandIds.Count > 0)
       {
@@ -68,7 +68,7 @@
           }
         </select>
       }
-      <button class="filter-chip" title="Reset zoom (fit whole map)" @onclick="OnResetClick"><i data-lucide="scan"></i></button>
+      <Chip Title="Reset zoom (fit whole map)" OnClick="OnResetClick"><i data-lucide="scan"></i></Chip>
       <span @ref="zoomRef" class="canvas-zoom">—</span>
     </div>
   </div>

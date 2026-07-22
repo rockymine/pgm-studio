@@ -13,20 +13,19 @@
         <p class="section-desc">Pick a wool to see its capture monuments. <strong>Box</strong> a cluster on
           the canvas to detect (each hit routes to its colour); an empty box drops a manual monument for the
           selected wool. Each wool needs <strong>@Expected</strong> (one per enemy team).</p>
-        <button class="action-btn action-btn--full action-btn--separated" disabled="@detecting" @onclick="DetectMapWide">
+        <Button Full Class="action-btn--separated" Disabled="@detecting" OnClick="DetectMapWide">
           <i data-lucide="scan-search"></i> @(detecting ? "Detecting…" : "Detect monuments (whole map)")
-        </button>
+        </Button>
         <div class="panel-list" style="margin-top:var(--space-3)">
           @if (wools.Count == 0) { <div class="list-empty">No wools — confirm objectives first.</div> }
           @foreach (var w in wools)
           {
             var have = Capturers(w).Count(t => MonumentFor(w, t.Id) is not null);
-            <div class="list-row list-row--compact @(selectedColor == w.Color ? "list-row--selected" : null)"
-                 @key="w.Color" @onclick="() => SelectWool(w.Color)">
+            <ListRow Compact Selected="selectedColor == w.Color" @key="w.Color" OnClick="() => SelectWool(w.Color)">
               <span class="geo-type-icon" style="color:@W.Hex(w.Color)"><i data-lucide="@PointIcon"></i></span>
               <span class="list-label list-label--mono">@w.Color</span>
-              <span class="badge @(have >= Expected ? "badge--success" : "badge--warning")">@have / @Expected</span>
-            </div>
+              <Badge Class="@(have >= Expected ? "badge--success" : "badge--warning")">@have / @Expected</Badge>
+            </ListRow>
           }
         </div>
       </Section>
@@ -46,38 +45,41 @@
           <div class="detail-header">
             <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="@PointIcon"></i></span>
             <span class="detail-label detail-label--mono">@sel.Color monuments</span>
-            <span class="badge badge--neutral">@sel.Color wool</span>
+            <Badge Kind="neutral">@sel.Color wool</Badge>
           </div>
           <div class="section-body">
             <p class="section-desc">Captured by every team except <strong>@(string.IsNullOrEmpty(sel.Owner) ? "—" : TeamName(sel.Owner))</strong> (its owner).</p>
             @foreach (var cap in Capturers(sel))
             {
               var m = MonumentFor(sel, cap.Id);
-              <div class="field" @key="cap.Id">
-                <label class="field-label">
+              <Field @key="cap.Id">
+                <LabelHint>
                   <span class="list-swatch list-swatch--sm" style="background:@W.Hex(TeamColorOf(cap.Id))"></span>
                   @cap.Name captures
-                </label>
+                </LabelHint>
+                <ChildContent>
                 @if (m is not null)
                 {
                   <div class="ctrl-row">
                     <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@m.X" readonly /></div>
                     <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="@m.Y" readonly /></div>
                     <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@m.Z" readonly /></div>
-                    <button class="action-btn" title="Remove" @onclick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></button>
+                    <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
                   </div>
                 }
                 else
                 {
                   <div class="field-value text-muted">Not placed — box its pedestal on the canvas.</div>
                 }
-              </div>
+                </ChildContent>
+              </Field>
             }
             @{ var stray = sel.Monuments.Where(m => Capturers(sel).All(t => t.Id != m.Team)).ToList(); }
             @if (stray.Count > 0)
             {
-              <div class="field">
-                <label class="field-label text-warning">Unassigned capturer</label>
+              <Field>
+                <LabelHint><span class="text-warning">Unassigned capturer</span></LabelHint>
+                <ChildContent>
                 @foreach (var m in stray)
                 {
                   <div class="ctrl-row" @key="m">
@@ -88,10 +90,11 @@
                         <option value="@t.Id">@t.Name</option>
                       }
                     </select>
-                    <button class="action-btn" title="Remove" @onclick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></button>
+                    <Button Title="Remove" OnClick="() => DeleteMonument(sel, m)"><i data-lucide="trash-2"></i></Button>
                   </div>
                 }
-              </div>
+                </ChildContent>
+              </Field>
             }
           </div>
         </Section>

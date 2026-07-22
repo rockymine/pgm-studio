@@ -9,7 +9,7 @@
 
   <Sidebar>
       <Section Title="Islands">
-        <Actions><span class="badge badge--dim">@islands.Count detected</span></Actions>
+        <Actions><Badge Kind="dim">@islands.Count detected</Badge></Actions>
         <ChildContent>
         <p class="section-desc">Exclude islands that aren't part of the playable layout (observer towers,
           decor). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
@@ -17,12 +17,12 @@
           @if (Included.Count == 0) { <div class="list-empty">No islands.</div> }
           @foreach (var isl in Included)
           {
-            <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
-                 @key="isl.Id" @onclick="() => Select(isl.Id)">
+            <ListRow Compact Selected="selectedId == isl.Id"
+                 @key="isl.Id" OnClick="() => Select(isl.Id)">
               <span class="geo-type-icon"><i data-lucide="layers"></i></span>
               <span class="list-label">@Label(isl)</span>
               <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
-            </div>
+            </ListRow>
           }
         </div>
         </ChildContent>
@@ -32,12 +32,12 @@
           @if (ExcludedList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
           @foreach (var isl in ExcludedList)
           {
-            <div class="list-row list-row--compact @(selectedId == isl.Id ? "list-row--selected" : null)"
-                 @key="isl.Id" @onclick="() => Select(isl.Id)">
+            <ListRow Compact Selected="selectedId == isl.Id"
+                 @key="isl.Id" OnClick="() => Select(isl.Id)">
               <span class="geo-type-icon"><i data-lucide="layers"></i></span>
               <span class="list-label">@Label(isl)</span>
               <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
-            </div>
+            </ListRow>
           }
         </div>
       </Section>
@@ -58,29 +58,27 @@
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
             <span class="detail-label">@Label(sel)</span>
-            <span class="badge @(IsExcluded(sel) ? "badge--dim" : "badge--success")">@(IsExcluded(sel) ? "excluded" : "included")</span>
+            <Badge Class="@(IsExcluded(sel) ? "badge--dim" : "badge--success")">@(IsExcluded(sel) ? "excluded" : "included")</Badge>
           </div>
           <div class="section-body">
-            <div class="field">
-              <label class="field-label">Centre</label>
+            <Field Label="Centre">
               <div class="ctrl-row">
                 <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.CentreX.ToString("0.#")" disabled /></div>
                 <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.CentreZ.ToString("0.#")" disabled /></div>
               </div>
-            </div>
-            <div class="field">
-              <label class="field-label">Blocks</label>
+            </Field>
+            <Field Label="Blocks">
               <div class="field-pick-row">
                 <span class="field-value">@sel.BlockCount.ToString("N0")</span>
               </div>
-            </div>
+            </Field>
             @if (IsExcluded(sel))
             {
-              <button class="action-btn action-btn--fill" @onclick="() => ToggleExclude(sel)">Include island</button>
+              <Button Fill OnClick="() => ToggleExclude(sel)">Include island</Button>
             }
             else
             {
-              <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => ToggleExclude(sel)">Exclude island</button>
+              <Button Variant="danger" Fill OnClick="() => ToggleExclude(sel)">Exclude island</Button>
             }
           </div>
         </Section>

@@ -21,11 +21,11 @@
           <div class="panel-list">
             @foreach (var c in containers)
             {
-              <div class="list-row list-row--compact @(selected == c.Key ? "list-row--selected" : null)" @onclick="() => Select(c.Key)">
+              <ListRow Compact Selected="selected == c.Key" OnClick="() => Select(c.Key)">
                 <span class="geo-type-icon"><i data-lucide="@c.Icon"></i></span>
                 <span class="list-label">@c.Label</span>
                 @if (c.Count > 0) { <span class="list-tag">@c.Count</span> }
-              </div>
+              </ListRow>
             }
           </div>
           <p class="section-desc">The flow-bar <strong>Export</strong> downloads the full document

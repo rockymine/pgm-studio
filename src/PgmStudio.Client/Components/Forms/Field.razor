@@ -6,10 +6,10 @@
    right) via .field-label--split. *@
 
 <div class="@Cls">
-    @if (!string.IsNullOrEmpty(Label) || LabelEnd is not null)
+    @if (!string.IsNullOrEmpty(Label) || LabelEnd is not null || LabelHint is not null)
     {
         <label class="@LabelCls" for="@For">
-            <span>@Label @if (Required) { <span class="field-required">*</span> }</span>
+            <span>@Label @if (Required) { <span class="field-required">*</span> } @LabelHint</span>
             @if (LabelEnd is not null) { @LabelEnd }
         </label>
     }
@@ -19,6 +19,7 @@
 
 @code {
     [Parameter] public string? Label { get; set; }
+    [Parameter] public RenderFragment? LabelHint { get; set; }  // inline helper markup after the label text (e.g. a muted note)
     [Parameter] public RenderFragment? LabelEnd { get; set; }   // right-aligned value in the label row
     [Parameter] public bool Required { get; set; }
     [Parameter] public string? Error { get; set; }

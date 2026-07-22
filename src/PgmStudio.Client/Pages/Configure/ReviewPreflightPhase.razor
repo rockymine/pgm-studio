@@ -11,10 +11,10 @@
 
     <Section Title="Pre-flight checks">
       <Actions>
-        @if (running) { <span class="badge badge--neutral">Running…</span> }
-        else if (data is { IntentMap: false }) { <span class="badge badge--dim">n/a</span> }
-        else if (data is { ExportReady: true }) { <span class="badge badge--success">Ready</span> }
-        else { <span class="badge badge--error">Blocked</span> }
+        @if (running) { <Badge Kind="neutral">Running…</Badge> }
+        else if (data is { IntentMap: false }) { <Badge Kind="dim">n/a</Badge> }
+        else if (data is { ExportReady: true }) { <Badge Kind="success">Ready</Badge> }
+        else { <Badge Kind="error">Blocked</Badge> }
       </Actions>
       <ChildContent>
         <p class="section-desc">A generated map can be structurally valid yet <strong>unplayable</strong>, so
@@ -90,9 +90,9 @@
                 </svg>
               </div>
               <p class="section-desc">
-                <span class="badge @(data?.Traversability is { Connected: true } ? "badge--success" : "badge--error")">
+                <Badge Class="@(data?.Traversability is { Connected: true } ? "badge--success" : "badge--error")">
                   @(data?.Traversability is { Connected: true } ? "connected" : $"{data?.Traversability?.ComponentCount} components")
-                </span>
+                </Badge>
                 Top-down view — islands · <span style="color:var(--canvas-add-stroke)">buildable bridges</span> ·
                 <strong>dashed box</strong> = spawn protection · <strong>filled box</strong> = wool room ·
                 <strong>●</strong> spawn (team colour), <strong>■</strong> wool &amp; <strong>◆</strong> its monument
@@ -142,17 +142,17 @@
           <div class="section-footer section-footer--separated">
             @if (data is { ExportReady: true })
             {
-              <span class="badge badge--success">Export gate open</span>
+              <Badge Kind="success">Export gate open</Badge>
               <span class="panel-save-status">advance to the XML sub-step to export</span>
             }
             else
             {
-              <span class="badge badge--error">Export gate blocked</span>
+              <Badge Kind="error">Export gate blocked</Badge>
               <span class="panel-save-status">fix the failing check, then re-run</span>
             }
-            <button class="action-btn" @onclick="RunAsync" disabled="@running">
+            <Button OnClick="RunAsync" Disabled="@running">
               <i data-lucide="refresh-cw"></i> Re-run checks
-            </button>
+            </Button>
           </div>
         }
       </ChildContent>

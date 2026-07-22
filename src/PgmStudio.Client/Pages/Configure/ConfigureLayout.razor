@@ -61,8 +61,8 @@
             </div>
           }
           <div class="flow-bar-actions">
-            <button class="action-btn" disabled="@(!BackEnabled)" @onclick="OnBack">Back</button>
-            <button class="action-btn action-btn--primary" disabled="@(!NextEnabled)" @onclick="OnNext">@NextLabel</button>
+            <Button Disabled="@(!BackEnabled)" OnClick="OnBack">Back</Button>
+            <Button Variant="primary" Disabled="@(!NextEnabled)" OnClick="OnNext">@NextLabel</Button>
           </div>
         </div>
 

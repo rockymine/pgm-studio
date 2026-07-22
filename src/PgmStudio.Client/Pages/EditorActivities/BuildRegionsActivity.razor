@@ -13,17 +13,16 @@
       {
         <Section Title="Maximum Build Height">
           <Actions>
-            <span class="badge badge--dim">Step 1</span>
+            <Badge Kind="dim">Step 1</Badge>
           </Actions>
           <ChildContent>
             <p class="section-desc">Maximum Y level above which no block placement is permitted. Leave blank to enforce no vertical ceiling.</p>
-            <div class="field">
-              <label class="field-label">Blocks</label>
+            <Field Label="Blocks">
               <input class="field-input" type="number" min="0" max="255" step="1" placeholder="None"
                      value="@maxHeight" @onchange="OnHeightInput" />
-            </div>
+            </Field>
             <div class="panel-actions">
-              <button class="action-btn action-btn--primary" disabled="@(!heightDirty)" @onclick="SaveHeight">Save</button>
+              <Button Variant="primary" Disabled="@(!heightDirty)" OnClick="SaveHeight">Save</Button>
               <span class="panel-save-status">@heightStatus</span>
             </div>
           </ChildContent>
@@ -33,7 +32,7 @@
       {
         <Section Title="Build Region">
           <Actions>
-            <span class="badge badge--dim">Step 2</span>
+            <Badge Kind="dim">Step 2</Badge>
           </Actions>
           <ChildContent>
             @if (groups is null) { <div class="list-empty">Loading…</div> }
@@ -44,8 +43,8 @@
     </ChildContent>
     <Footer>
     <div class="cfg-sidebar-nav">
-      @if (step == 2) { <button class="action-btn" @onclick="() => step = 1"><i data-lucide="arrow-left"></i> Back</button> }
-      @if (step == 1) { <button class="action-btn action-btn--primary action-btn--push-end" @onclick="GoStep2">Next <i data-lucide="arrow-right"></i></button> }
+      @if (step == 2) { <Button OnClick="() => step = 1"><i data-lucide="arrow-left"></i> Back</Button> }
+      @if (step == 1) { <Button Variant="primary" Class="action-btn--push-end" OnClick="GoStep2">Next <i data-lucide="arrow-right"></i></Button> }
     </div>
     </Footer>
   </Sidebar>

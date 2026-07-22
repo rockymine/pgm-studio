@@ -7,8 +7,8 @@
 <Section Title="Layers">
   @foreach (var L in Layers)
   {
-    <div class="list-row list-row--compact @(L.Id == ActiveId ? "list-row--active" : null)"
-         @onclick="() => OnSelect.InvokeAsync(L.Id)">
+    <ListRow Compact Class="@(L.Id == ActiveId ? "list-row--active" : null)"
+             OnClick="() => OnSelect.InvokeAsync(L.Id)">
       <span class="geo-type-icon"><i data-lucide="layers"></i></span>
       <span class="list-label">@L.Name</span>
       <span class="list-tag">y @L.BaseY</span>
@@ -18,20 +18,18 @@
           <i data-lucide="x"></i>
         </button>
       }
-    </div>
+    </ListRow>
   }
 
-  <button class="action-btn action-btn--full" @onclick="OnAdd"><i data-lucide="plus"></i> Add layer</button>
+  <Button Full OnClick="OnAdd"><i data-lucide="plus"></i> Add layer</Button>
 
   @if (ActiveLayer is not null)
   {
-    <div class="field">
-      <label class="field-label">Layer name</label>
+    <Field Label="Layer name">
       <input class="field-input" value="@ActiveLayer.Name" @onchange="RenameActive" />
-    </div>
-    <div class="field">
-      <label class="field-label">Base Y (blocks)</label>
+    </Field>
+    <Field Label="Base Y (blocks)">
       <NumberField Value="ActiveLayer.BaseY" ValueChanged="BaseYActive" />
-    </div>
+    </Field>
   }
 </Section>

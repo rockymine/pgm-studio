@@ -16,13 +16,13 @@
           @if (authored.Count == 0) { <div class="list-empty">Nothing drawn yet — drag a rectangle around a spawn.</div> }
           @foreach (var row in rows)
           {
-            <div class="list-row list-row--compact @(selectedRegionId == row.RegionId ? "list-row--selected" : null)"
-                 @key="row.RegionId" @onclick="() => SelectRow(row.RegionId)">
+            <ListRow Compact Selected="selectedRegionId == row.RegionId"
+                 @key="row.RegionId" OnClick="() => SelectRow(row.RegionId)">
               <span class="list-swatch" style="background:@Hex(row.Team)"></span>
               <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
               <span class="list-label list-label--mono">@row.Name</span>
-              <span class="badge @(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "authored" : "orbit")</span>
-            </div>
+              <Badge Class="@(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "authored" : "orbit")</Badge>
+            </ListRow>
           }
         </div>
       </Section>
@@ -45,29 +45,27 @@
             <div class="detail-header">
               <span class="geo-type-icon" style="color:@Hex(sel.Team)"><i data-lucide="rectangle-horizontal"></i></span>
               <span class="detail-label detail-label--mono">@sel.Name</span>
-              <span class="badge @(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</span>
+              <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</Badge>
             </div>
             <div class="section-body">
-              <div class="field">
-                <label class="field-label">Min</label>
+              <Field Label="Min">
                 <div class="ctrl-row">
                   <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MinX" readonly tabindex="-1" /></div>
                   <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MinZ" readonly tabindex="-1" /></div>
                 </div>
-              </div>
-              <div class="field">
-                <label class="field-label">Max</label>
+              </Field>
+              <Field Label="Max">
                 <div class="ctrl-row">
                   <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MaxX" readonly tabindex="-1" /></div>
                   <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MaxZ" readonly tabindex="-1" /></div>
                 </div>
-              </div>
+              </Field>
               @if (sel.Authored)
               {
                 <p class="section-desc">Owned by <strong>@TeamName(sel.Team)</strong>. Drag the handles on the
                   canvas to resize. Draw another rectangle to add to its zone.</p>
                 <div class="section-footer section-footer--separated">
-                  <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => Remove(sel.RegionId)">Remove rectangle</button>
+                  <Button Variant="danger" Fill OnClick="() => Remove(sel.RegionId)">Remove rectangle</Button>
                 </div>
               }
               else
@@ -79,11 +77,11 @@
           </Section>
 
           <Section Title="Auto-wiring">
-            <Actions><span class="badge badge--dim">derived</span></Actions>
+            <Actions><Badge Kind="dim">derived</Badge></Actions>
             <ChildContent>
             <div class="panel-list">
-              <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = only-@TeamSlug(sel.Team)</span></div>
-              <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = never</span></div>
+              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = only-@TeamSlug(sel.Team)</span></ListRow>
+              <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = never</span></ListRow>
             </div>
             <p class="section-desc">The generator wires these onto the whole zone — enemies can't enter and it
               can't be edited.</p>

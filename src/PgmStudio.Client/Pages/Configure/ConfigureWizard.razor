@@ -95,7 +95,7 @@
   <Workspace @key="@Phase.Id">
     <Sidebar>
         <Section Title="@Phase.Title">
-          <Actions><span class="badge badge--dim">@Phase.Task</span></Actions>
+          <Actions><Badge Kind="dim">@Phase.Task</Badge></Actions>
           <ChildContent>
           <p class="section-desc">
             @if (Phase.SubSteps.Length == 0)

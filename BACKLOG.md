@@ -72,15 +72,11 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   the app shell is copy-pasted 11×. Full audit, atomic tree, API conventions (foldered under
   `Components/`, param-first + slot override; global CSS, no `.razor.css`), and the class→component map
   are the **contract in `docs/contracts/ui-conventions.md`** — follow it; `/design` is the
-  zero-visual-diff regression oracle (components emit the same classes). **Phases A–C + D.1 shipped**
+  zero-visual-diff regression oracle (components emit the same classes). **Phases A–C + D.1–D.2 shipped**
   (`FEATURES.md`): the atoms + `Section`, the shell (`StudioShell` + topbar/rail/footer), the workspace
-  shells (`Workspace`/`Sidebar`/`Inspector`/`ContentColumn`), and `Section` adopted across every
-  production surface (0 raw `panel-section` outside the `/concepts` + `/design` leave-raw zone).
-  Remaining:
-
-  **D.2 — atom adoption** (the components exist; just not adopted): `field`/`field-label` → `<Field>`,
-  `action-btn` → `<Button>`, `badge` → `<Badge>`, `list-row` → `<ListRow>`, `filter-chip` → `<Chip>`,
-  across the same production surfaces. Section-only D.1 left these raw by design.
+  shells (`Workspace`/`Sidebar`/`Inspector`/`ContentColumn`), and — across every production surface (0
+  raw markup outside the `/concepts` + `/design` leave-raw zone) — `Section` (D.1) plus the atomic
+  vocabulary `Field`/`Button`/`Badge`/`ListRow`/`Chip` (D.2). Remaining:
 
   **D.3 — build + adopt the new components**: `Card`/`CardGrid`, `CoordField`/`CoordRow`, `DetailHeader`,
   `FlowBar`, `Console`, and an `Icon` atom (centralize the `<i data-lucide>` + `@key` lucide gotcha);

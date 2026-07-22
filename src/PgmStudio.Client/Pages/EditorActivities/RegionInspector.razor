@@ -13,13 +13,12 @@ else
   <div class="detail-header">
     <span class="geo-type-icon detail-icon--muted"><i data-lucide="@RegionNode.Icon(Node.Type)"></i></span>
     <span class="detail-label detail-label--mono">@(string.IsNullOrEmpty(Node.Id) ? Node.Type : Node.Id)</span>
-    <span class="badge badge--neutral">@Cap(Node.Type)</span>
+    <Badge Kind="neutral">@Cap(Node.Type)</Badge>
   </div>
 
   @if (!string.IsNullOrEmpty(Node.Id))
   {
-    <div class="field">
-      <label class="field-label">ID</label>
+    <Field Label="ID">
       @if (OnRename.HasDelegate)
       {
         <input class="field-input" type="text" value="@Node.Id" spellcheck="false" @onchange="OnIdChanged" />
@@ -28,7 +27,7 @@ else
       {
         <input class="field-input" type="text" value="@Node.Id" readonly tabindex="-1" spellcheck="false" />
       }
-    </div>
+    </Field>
   }
 
   @switch (Node.Type)
@@ -74,7 +73,7 @@ else
   @if (OnDelete.HasDelegate && !string.IsNullOrEmpty(Node.Id))
   {
     <div class="section-footer section-footer--separated">
-      <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => OnDelete.InvokeAsync(Node.Id)">Delete Region</button>
+      <Button Variant="danger" Fill OnClick="() => OnDelete.InvokeAsync(Node.Id)">Delete Region</Button>
     </div>
   }
 
@@ -84,11 +83,11 @@ else
     <div class="panel-list">
       @foreach (var kid in kids)
       {
-        <div class="list-row list-row--compact" @onclick="() => OnSelectChild.InvokeAsync(kid.Id)">
+        <ListRow Compact OnClick="() => OnSelectChild.InvokeAsync(kid.Id)">
           <span class="geo-type-icon detail-icon--muted"><i data-lucide="@RegionNode.Icon(kid.Type)"></i></span>
           <span class="list-label list-label--mono">@(string.IsNullOrEmpty(kid.Id) ? $"({kid.Type})" : kid.Id)</span>
           <span class="list-tag">@kid.Type</span>
-        </div>
+        </ListRow>
       }
     </div>
   }
@@ -99,8 +98,7 @@ else
     // RegionInspector.razor.cs.
     private RenderFragment Field(string label, params (string prefix, string key, object? val)[] cells) => __builder =>
     {
-        <div class="field">
-            <label class="field-label">@label</label>
+        <Field Label="@label">
             <div class="ctrl-row">
                 @foreach (var (prefix, key, val) in cells)
                 {
@@ -127,6 +125,6 @@ else
                     </div>
                 }
             </div>
-        </div>
+        </Field>
     };
 }

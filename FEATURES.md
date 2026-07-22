@@ -122,6 +122,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `panel-section` outside the `/concepts` + `/design` leave-raw zone). `Section` gained a `Required`
   asterisk param and `CaptureUnmatchedValues` (`style`/`id`/`@key` pass-through). Zero visual diff — the
   component emits the identical classes. (C12 phase D.1)
+- **The atomic vocabulary adopted across every production surface** — the raw class markup for the five
+  atoms is retired in favour of the components: `field` → `<Field>` (~102), `action-btn` → `<Button>`
+  (~66), `badge` → `<Badge>` (~67), `list-row` → `<ListRow>` (~50), `filter-chip` → `<Chip>` (~23),
+  across ~30 Configure / EditorActivity / Sketch / Plan / Generator files. `Field` gained a `LabelHint`
+  slot (inline label notes); dynamic variants pass the verbatim ternary via `Class`. The few legitimate
+  raw holdouts stay (a `<label class="action-btn">` wrapping `InputFile`; `SliceView`'s header-embedded
+  field). Zero visual diff — the components emit the identical classes. (C12 phase D.2)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

@@ -8,36 +8,32 @@
 <Workspace>
   <Sidebar>
       <Section Title="Map Identity">
-        <div class="field">
-          <label class="field-label" for="ov-name">Map Name <span class="field-required">*</span></label>
+        <Field Label="Map Name" Required For="ov-name">
           <input id="ov-name" class="field-input" type="text" placeholder="My CTW Map"
                  value="@name" @oninput="e => { name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
-        </div>
+        </Field>
         <div class="field-row">
-          <div class="field">
-            <label class="field-label" for="ov-version">Version <span class="field-required">*</span></label>
+          <Field Label="Version" Required For="ov-version">
             <input id="ov-version" class="field-input" type="text" placeholder="1.0.0"
                    value="@version" @oninput="e => { version = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
-          </div>
-          <div class="field">
+          </Field>
+          <Field Label="Gamemode" For="ov-gamemode">
             @* Derived from the map's objective modules, so it is shown rather than asked for: typing a
                gamemode could not change what the map is. Empty when the map carries no objective yet. *@
-            <label class="field-label" for="ov-gamemode">Gamemode</label>
             <input id="ov-gamemode" class="field-input" type="text" disabled
                    title="Derived from the map's objectives" placeholder="—" value="@GamemodeLabel" />
-          </div>
+          </Field>
         </div>
-        <div class="field">
-          <label class="field-label" for="ov-objective">Objective</label>
+        <Field Label="Objective" For="ov-objective">
           <textarea id="ov-objective" class="field-input field-input--textarea" rows="2"
                     placeholder="Capture all enemy wools!"
                     value="@objective" @oninput="e => { objective = e.Value?.ToString() ?? string.Empty; Dirty(); }"></textarea>
-        </div>
+        </Field>
       </Section>
 
       <Section Title="Authors">
         <Actions>
-          <button class="action-btn" @onclick="() => AddPerson(authors)">+ Add</button>
+          <Button OnClick="() => AddPerson(authors)">+ Add</Button>
         </Actions>
         <ChildContent>
           <div class="author-list">
@@ -48,7 +44,7 @@
 
       <Section Title="Contributors">
         <Actions>
-          <button class="action-btn" @onclick="() => AddPerson(contributors)">+ Add</button>
+          <Button OnClick="() => AddPerson(contributors)">+ Add</Button>
         </Actions>
         <ChildContent>
           <div class="author-list">
@@ -59,7 +55,7 @@
 
       <Section>
         <div class="panel-actions">
-          <button class="action-btn action-btn--primary" disabled="@(!dirty)" @onclick="Save">Save changes</button>
+          <Button Variant="primary" Disabled="@(!dirty)" OnClick="Save">Save changes</Button>
           <span class="panel-save-status">@saveStatus</span>
         </div>
       </Section>

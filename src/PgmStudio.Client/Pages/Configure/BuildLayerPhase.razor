@@ -12,24 +12,23 @@
         <p class="section-desc">With the <strong>rectangle tool</strong>, drag the bridges and platforms over
           the void where players may build — the islands' terrain is already buildable. Add <strong>holes</strong>
           to carve no-build cutouts back out. The <strong>select tool</strong> picks a shape to resize it.</p>
-        <div class="field">
-          <label class="field-label">Drawing</label>
+        <Field Label="Drawing">
           <div class="ctrl-row">
-            <button class="filter-chip @(drawMode == "area" ? "filter-chip--active" : null)" @onclick='() => drawMode = "area"'>Bridge</button>
-            <button class="filter-chip @(drawMode == "hole" ? "filter-chip--active" : null)" @onclick='() => drawMode = "hole"'>Hole</button>
+            <Chip Active='drawMode == "area"' OnClick='() => drawMode = "area"'>Bridge</Chip>
+            <Chip Active='drawMode == "hole"' OnClick='() => drawMode = "hole"'>Hole</Chip>
           </div>
-        </div>
+        </Field>
         <div class="panel-list">
           @if (boxes.Count == 0) { <div class="list-empty">Nothing drawn yet — pick a tool and drag a rectangle.</div> }
           @foreach (var b in boxes)
           {
-            <div class="list-row list-row--compact @(selectedId == b.Id ? "list-row--selected" : null)"
-                 @key="b.Id" @onclick="() => SelectBox(b.Id)">
+            <ListRow Compact Selected="selectedId == b.Id"
+                 @key="b.Id" OnClick="() => SelectBox(b.Id)">
               <span class="list-swatch" style="background:@(b.Hole ? HoleColor : AreaColor)"></span>
               <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
               <span class="list-label list-label--mono">@Label(b)</span>
-              <span class="badge badge--dim">@(b.Hole ? "hole" : "bridge")</span>
-            </div>
+              <Badge Kind="dim">@(b.Hole ? "hole" : "bridge")</Badge>
+            </ListRow>
           }
         </div>
         @if (MirrorActive && boxes.Count > 0)
@@ -49,10 +48,10 @@
         <p class="section-desc"><strong>Buildable</strong> shades every column by whether players can build
           there:</p>
         <div class="panel-list">
-          <div class="list-row list-row--compact"><span class="list-swatch" style="background:#4caf50"></span><span class="list-label">Buildable</span><span class="badge badge--dim">solid ground / bridge</span></div>
-          <div class="list-row list-row--compact"><span class="list-swatch" style="background:#f57c00"></span><span class="list-label">Void-denied</span><span class="badge badge--dim">draw a bridge</span></div>
-          <div class="list-row list-row--compact"><span class="list-swatch" style="background:#c62828"></span><span class="list-label">Never</span><span class="badge badge--dim">always blocked</span></div>
-          <div class="list-row list-row--compact"><span class="list-swatch" style="background:#fbc02d"></span><span class="list-label">Restricted</span><span class="badge badge--dim">limited by a rule</span></div>
+          <ListRow Compact><span class="list-swatch" style="background:#4caf50"></span><span class="list-label">Buildable</span><Badge Kind="dim">solid ground / bridge</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="background:#f57c00"></span><span class="list-label">Void-denied</span><Badge Kind="dim">draw a bridge</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="background:#c62828"></span><span class="list-label">Never</span><Badge Kind="dim">always blocked</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="background:#fbc02d"></span><span class="list-label">Restricted</span><Badge Kind="dim">limited by a rule</Badge></ListRow>
         </div>
         <p class="section-desc"><strong>Orange</strong> is open void where building is denied — draw a bridge
           across it to link your islands. <strong>Green</strong> already lets players build (terrain or a
@@ -78,26 +77,24 @@
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
             <span class="detail-label detail-label--mono">@Label(sel)</span>
-            <span class="badge badge--dim">@(sel.Hole ? "hole" : "bridge")</span>
+            <Badge Kind="dim">@(sel.Hole ? "hole" : "bridge")</Badge>
           </div>
           <div class="section-body">
-            <div class="field">
-              <label class="field-label">Min</label>
+            <Field Label="Min">
               <div class="ctrl-row">
                 <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MinX" readonly tabindex="-1" /></div>
                 <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MinZ" readonly tabindex="-1" /></div>
               </div>
-            </div>
-            <div class="field">
-              <label class="field-label">Max</label>
+            </Field>
+            <Field Label="Max">
               <div class="ctrl-row">
                 <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MaxX" readonly tabindex="-1" /></div>
                 <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MaxZ" readonly tabindex="-1" /></div>
               </div>
-            </div>
+            </Field>
             <p class="section-desc">Select it on the canvas and drag the handles to resize.</p>
             <div class="section-footer section-footer--separated">
-              <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => Remove(sel.Id)">Remove @(sel.Hole ? "hole" : "bridge")</button>
+              <Button Variant="danger" Fill OnClick="() => Remove(sel.Id)">Remove @(sel.Hole ? "hole" : "bridge")</Button>
             </div>
           </div>
         </Section>

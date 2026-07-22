@@ -10,11 +10,11 @@
   <div class="smart-suggestion__head">
     <span class="smart-suggestion__icon"><i data-lucide="@Icon"></i></span>
     <span class="smart-suggestion__title">@Header</span>
-    @if (!string.IsNullOrEmpty(Badge)) { <span class="badge badge--neutral">@Badge</span> }
+    @if (!string.IsNullOrEmpty(Badge)) { <Badge Kind="neutral">@Badge</Badge> }
   </div>
   @ChildContent
   <div class="smart-suggestion__foot">
-    <button class="action-btn" disabled="@Busy" @onclick="OnReject">@RejectLabel</button>
-    <button class="action-btn action-btn--primary" disabled="@Busy" @onclick="OnAccept">@AcceptLabel</button>
+    <Button Disabled="@Busy" OnClick="OnReject">@RejectLabel</Button>
+    <Button Variant="primary" Disabled="@Busy" OnClick="OnAccept">@AcceptLabel</Button>
   </div>
 </div>
