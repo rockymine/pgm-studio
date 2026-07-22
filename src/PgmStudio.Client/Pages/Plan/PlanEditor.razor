@@ -1,6 +1,7 @@
 @page "/plan-editor"
 @layout EditorLayout
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 @implements IAsyncDisposable
 
 @* Plan editor (the seed studio) — a coarse cell-grid layout tool. Blazor renders the topbar, a thin
@@ -360,117 +361,93 @@
     </div>
   </div>
 
-  @if (showCompile)
-  {
-    <div class="plan-compile-backdrop" @onclick="CloseCompile"></div>
-    <div class="plan-compile-drawer" @onclick:stopPropagation="true">
-      <div class="plan-compile-head">
-        <div class="detail-header">
-          <span class="geo-type-icon"><i data-lucide="play"></i></span>
-          <span class="detail-label">Compile &amp; test</span>
-        </div>
-        <button class="action-btn action-btn--icon" title="Close" @onclick="CloseCompile"><i data-lucide="x"></i></button>
-      </div>
-
-      <div class="plan-compile-body">
-        @if (compiling)
-        {
-          <p class="section-desc">Compiling…</p>
-        }
-        else if (compileErrors.Count > 0)
-        {
-          <div class="plan-compile-errors">
-            <p class="section-desc">Fix these structural errors before compiling (lint alone never blocks):</p>
-            @foreach (var f in compileErrors)
-            {
-              <div class="plan-lint-row plan-lint-row--static">
-                <span class="plan-lint-dot plan-lint-dot--error"></span>
-                @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
-                <span class="plan-lint-msg">@f.Message</span>
-              </div>
-            }
-          </div>
-        }
-        else if (compileError is not null)
-        {
-          <div class="plan-compile-errors"><p class="section-desc">@compileError</p></div>
-        }
-        else if (compiledLayout is not null)
-        {
-          <div class="plan-compile-tabs">
-            <button class="draw-tool-btn @(compileTab == "layout" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "layout"'>Layout</button>
-            <button class="draw-tool-btn @(compileTab == "intent" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "intent"'>Intent</button>
-            <div class="plan-compile-tab-actions">
-              <button class="action-btn" title="Copy to clipboard" @onclick="CopyTab"><i data-lucide="clipboard"></i> @(copied ? "Copied" : "Copy")</button>
-              <button class="action-btn" title="Download this file" @onclick="DownloadTab"><i data-lucide="download"></i> Download</button>
+  <SideDrawer Open="showCompile" Title="Compile & test" Icon="play" OnClose="CloseCompile">
+    <Body>
+      @if (compiling)
+      {
+        <p class="section-desc">Compiling…</p>
+      }
+      else if (compileErrors.Count > 0)
+      {
+        <div class="plan-compile-errors">
+          <p class="section-desc">Fix these structural errors before compiling (lint alone never blocks):</p>
+          @foreach (var f in compileErrors)
+          {
+            <div class="plan-lint-row plan-lint-row--static">
+              <span class="plan-lint-dot plan-lint-dot--error"></span>
+              @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
+              <span class="plan-lint-msg">@f.Message</span>
             </div>
+          }
+        </div>
+      }
+      else if (compileError is not null)
+      {
+        <div class="plan-compile-errors"><p class="section-desc">@compileError</p></div>
+      }
+      else if (compiledLayout is not null)
+      {
+        <div class="plan-compile-tabs">
+          <button class="draw-tool-btn @(compileTab == "layout" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "layout"'>Layout</button>
+          <button class="draw-tool-btn @(compileTab == "intent" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "intent"'>Intent</button>
+          <div class="plan-compile-tab-actions">
+            <button class="action-btn" title="Copy to clipboard" @onclick="CopyTab"><i data-lucide="clipboard"></i> @(copied ? "Copied" : "Copy")</button>
+            <button class="action-btn" title="Download this file" @onclick="DownloadTab"><i data-lucide="download"></i> Download</button>
           </div>
-          <pre class="plan-compile-json">@(compileTab == "layout" ? compiledLayout : compiledIntent)</pre>
-        }
-      </div>
-
-      <div class="plan-compile-foot">
-        <div class="plan-compile-draft">
-          @if (draftSlug is null)
-          {
-            <button class="action-btn action-btn--primary action-btn--full" disabled="@(compiledLayout is null || draftBusy)" @onclick="CreateDraft">
-              @if (draftBusy) { <span>@draftStep…</span> } else { <span><i data-lucide="hammer"></i> Create draft</span> }
-            </button>
-          }
-          else
-          {
-            <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> Draft <strong>@draftSlug</strong> created</div>
-            <a class="action-btn action-btn--full" href="@($"/maps/{draftSlug}/sketch")" target="_blank" rel="noopener">
-              <i data-lucide="external-link"></i> Open in sketch editor
-            </a>
-            <button class="action-btn action-btn--primary action-btn--full" @onclick="DownloadWorld">
-              <i data-lucide="download"></i> Download world ZIP
-            </button>
-          }
-          @if (draftError is not null) { <p class="section-desc plan-compile-draft-error">@draftError</p> }
         </div>
-      </div>
-    </div>
-  }
-
-  @if (showOpenDb)
-  {
-    <div class="plan-compile-backdrop" @onclick="CloseDbBrowser"></div>
-    <div class="plan-compile-drawer" @onclick:stopPropagation="true">
-      <div class="plan-compile-head">
-        <div class="detail-header">
-          <span class="geo-type-icon"><i data-lucide="folder-open"></i></span>
-          <span class="detail-label">Open from database</span>
-        </div>
-        <button class="action-btn action-btn--icon" title="Close" @onclick="CloseDbBrowser"><i data-lucide="x"></i></button>
-      </div>
-      <div class="plan-compile-body">
-        @if (dbBusy)
+        <pre class="plan-compile-json">@(compileTab == "layout" ? compiledLayout : compiledIntent)</pre>
+      }
+    </Body>
+    <Footer>
+      <div class="plan-compile-draft">
+        @if (draftSlug is null)
         {
-          <p class="section-desc">Loading…</p>
-        }
-        else if (dbError is not null)
-        {
-          <div class="plan-compile-errors"><p class="section-desc">@dbError</p></div>
-        }
-        else if (dbPlans.Count == 0)
-        {
-          <p class="section-desc">No saved plans yet. Draw a plan and press Save to see it here.</p>
+          <button class="action-btn action-btn--primary action-btn--full" disabled="@(compiledLayout is null || draftBusy)" @onclick="CreateDraft">
+            @if (draftBusy) { <span>@draftStep…</span> } else { <span><i data-lucide="hammer"></i> Create draft</span> }
+          </button>
         }
         else
         {
-          <div class="plan-lint-list">
-            @foreach (var p in dbPlans)
-            {
-              <button class="plan-lint-row" @onclick="() => LoadFromDb(p.Id)" title="Open this plan">
-                <span class="plan-lint-chip">@p.Origin</span>
-                <span class="plan-lint-msg plan-db-name">@(string.IsNullOrWhiteSpace(p.Name) ? "Untitled plan" : p.Name)</span>
-                <span class="plan-db-date">@p.UpdatedAt.ToLocalTime().ToString("MMM d")</span>
-              </button>
-            }
-          </div>
+          <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> Draft <strong>@draftSlug</strong> created</div>
+          <a class="action-btn action-btn--full" href="@($"/maps/{draftSlug}/sketch")" target="_blank" rel="noopener">
+            <i data-lucide="external-link"></i> Open in sketch editor
+          </a>
+          <button class="action-btn action-btn--primary action-btn--full" @onclick="DownloadWorld">
+            <i data-lucide="download"></i> Download world ZIP
+          </button>
         }
+        @if (draftError is not null) { <p class="section-desc plan-compile-draft-error">@draftError</p> }
       </div>
-    </div>
-  }
+    </Footer>
+  </SideDrawer>
+
+  <SideDrawer Open="showOpenDb" Title="Open from database" Icon="folder-open" OnClose="CloseDbBrowser">
+    <Body>
+      @if (dbBusy)
+      {
+        <p class="section-desc">Loading…</p>
+      }
+      else if (dbError is not null)
+      {
+        <div class="plan-compile-errors"><p class="section-desc">@dbError</p></div>
+      }
+      else if (dbPlans.Count == 0)
+      {
+        <p class="section-desc">No saved plans yet. Draw a plan and press Save to see it here.</p>
+      }
+      else
+      {
+        <div class="plan-lint-list">
+          @foreach (var p in dbPlans)
+          {
+            <button class="plan-lint-row" @onclick="() => LoadFromDb(p.Id)" title="Open this plan">
+              <span class="plan-lint-chip">@p.Origin</span>
+              <span class="plan-lint-msg plan-db-name">@(string.IsNullOrWhiteSpace(p.Name) ? "Untitled plan" : p.Name)</span>
+              <span class="plan-db-date">@p.UpdatedAt.ToLocalTime().ToString("MMM d")</span>
+            </button>
+          }
+        </div>
+      }
+    </Body>
+  </SideDrawer>
 </div>

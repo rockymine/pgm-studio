@@ -144,7 +144,21 @@ public partial class PlanEditor
             traceMaps = all?.Where(m => m.HasSurface).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
         }
         catch { /* picker just stays empty */ }
+        // Hand-off from the generator ("Open in plan editor"): ?plan=<id> loads that stored plan.
+        if (PlanIdFromQuery() is { } planId) await LoadFromDb(planId);
         StateHasChanged();
+    }
+
+    /// <summary>The <c>plan</c> query-string id, if the editor was opened with one (generator hand-off).</summary>
+    private long? PlanIdFromQuery()
+    {
+        var query = new Uri(Nav.Uri).Query.TrimStart('?');
+        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = pair.Split('=', 2);
+            if (kv.Length == 2 && kv[0] == "plan" && long.TryParse(kv[1], out var id)) return id;
+        }
+        return null;
     }
 
     // ── toolbar ────────────────────────────────────────────────────────────────

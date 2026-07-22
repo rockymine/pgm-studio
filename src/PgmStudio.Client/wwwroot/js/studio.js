@@ -65,6 +65,18 @@ window.studio = {
     } catch { return false; }
   },
 
+  // Infinite scroll: invoke dotnetRef.LoadMore() ([JSInvokable]) whenever `sentinelEl` scrolls near view.
+  // Returns the IntersectionObserver as a JS reference; call .disconnect() on it to stop. The C# side guards
+  // against overlapping loads, so a burst of intersections is safe.
+  onScrollEnd(sentinelEl, dotnetRef) {
+    if (!sentinelEl) return null;
+    const obs = new IntersectionObserver(
+      entries => { if (entries.some(e => e.isIntersecting)) dotnetRef.invokeMethodAsync("LoadMore"); },
+      { rootMargin: "300px" });
+    obs.observe(sentinelEl);
+    return obs;
+  },
+
   // Mount the hybrid editor canvas. Uses a native dynamic import (absolute URL) so it bypasses
   // Blazor's fingerprinting import map (which 404s for arbitrary wwwroot modules under the dev host).
   async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {

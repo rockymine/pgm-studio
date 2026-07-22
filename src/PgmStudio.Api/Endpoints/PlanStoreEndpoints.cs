@@ -3,6 +3,7 @@ using FastEndpoints;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Plan;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Api.Endpoints;
@@ -11,7 +12,21 @@ namespace PgmStudio.Api.Endpoints;
 internal static class PlanStoreMapping
 {
     public static PlanSummary ToSummary(PlanRow r) =>
-        new(r.Id, r.Name, r.Origin, r.ParentId, r.Seed, r.ComposerVersion, r.CreatedAt, r.UpdatedAt);
+        new(r.Id, r.Name, r.Origin, r.ParentId, r.Seed, r.ComposerVersion, r.CreatedAt, r.UpdatedAt, DescriptorOf(r));
+
+    /// <summary>The reproducible request behind a generated row, parsed from its stored descriptor (null for
+    /// authored/imported, or if the stored JSON is unreadable — the list must never fail over one bad row).</summary>
+    internal static ComposeRequestDto? DescriptorOf(PlanRow r)
+    {
+        if (r.RequestJson is null) return null;
+        try
+        {
+            return ComposeDescriptor.Parse(r.RequestJson) is { } d
+                ? new ComposeRequestDto(d.PlayersPerTeam, d.Teams, d.Symmetry, d.Cell, d.Seed, d.ComposerVersion, d.Schema)
+                : null;
+        }
+        catch (JsonException) { return null; }
+    }
 
     public static PlanDetail ToDetail(PlanRow r) =>
         new(r.Id, r.Name, r.Origin, r.ParentId, r.Seed, r.ComposerVersion, r.CreatedAt, r.UpdatedAt, r.PlanJson);

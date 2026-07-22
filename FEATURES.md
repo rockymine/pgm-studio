@@ -1600,6 +1600,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   name · date), file import/export untouched. Data 16 + Api 67 + Pgm 683 tests green. Prerequisite for
   G117/G118/G120. (G119)
 
+- **Browse mode — the interactive generator in the studio** — `Pgm/Render/PlanBoardSvg.cs` +
+  `Api/Endpoints/ComposeEndpoints.cs` + `Contracts/ComposeDtos.cs` + `Client/Pages/Generator/`. A studio
+  page (`/generator`) that composes boards ahead and lets the author sieve and keep them. `GET /api/compose`
+  loops seeds from a cursor, scores each with the evaluator, applies the sieve (size · symmetry · score
+  threshold · wool count), renders each to a self-contained **server-side SVG** of the full fanned board
+  (`PlanBoardSvg`, lifted from the compose tools — pieces by role, dashed band, spawn/wool/iron markers), and
+  returns a page with the cursor to resume (infinite scroll via an `IntersectionObserver` helper). A card
+  carries only its reproducible `ComposeDescriptor` + SVG + metrics; **pin** (`POST /api/compose/pin`)
+  re-composes the plan and stores it as a generated row (G119, idempotent) — the **hold tray** is
+  `GET /api/plans?origin=generated` and survives reload, with thumbnails from `GET /api/plans/{id}/svg`. The
+  filter panel greys out what the composer can't yet make (`rot_90`/`mirror_x`/scythe); the **detail dialog**
+  shows the large render, score breakdown (top soft contributors), copyable descriptor, pin, and **Open in
+  plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
+  per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

@@ -972,27 +972,9 @@ body.dashboard-page { overflow: hidden; }
 .plan-lint-row--active,
 .plan-lint-row--active:hover { background: var(--bg-selected); color: var(--text-bright); border-color: var(--accent); }
 
-/* Compile & test drawer — the walk-test loop: compiled layout/intent preview + create-draft/export. */
-.plan-compile-backdrop {
-  position: fixed; inset: 0; z-index: 40;
-  background: rgba(0, 0, 0, 0.45);
-}
-.plan-compile-drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 41;
-  width: min(560px, 92vw);
-  display: flex; flex-direction: column;
-  background: var(--bg-panel, var(--bg)); border-left: 1px solid var(--border);
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.3);
-}
-.plan-compile-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: var(--space-3); border-bottom: 1px solid var(--border);
-}
-.plan-compile-body {
-  flex: 1; min-height: 0; overflow: auto;
-  display: flex; flex-direction: column; gap: var(--space-2);
-  padding: var(--space-3);
-}
+/* Compile & test drawer body content — the walk-test loop's tabs/JSON/errors/draft. The drawer shell
+   itself (backdrop · panel · header · body · footer) is the reusable SideDrawer (.side-drawer-* in
+   components.css); these classes style what sits inside its Body/Footer. */
 .plan-compile-tabs {
   display: flex; align-items: center; gap: var(--space-2);
   flex-wrap: wrap;
@@ -1006,7 +988,6 @@ body.dashboard-page { overflow: hidden; }
   color: var(--text-bright); white-space: pre; tab-size: 2;
 }
 .plan-compile-errors { display: flex; flex-direction: column; gap: 3px; }
-.plan-compile-foot { padding: var(--space-3); border-top: 1px solid var(--border); }
 .plan-compile-draft { display: flex; flex-direction: column; gap: var(--space-2); }
 .plan-compile-draft a.action-btn { text-decoration: none; justify-content: center; }
 .plan-compile-draft-error { color: var(--color-error); }

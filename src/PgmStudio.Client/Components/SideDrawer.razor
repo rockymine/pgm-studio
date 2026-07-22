@@ -1,0 +1,49 @@
+@* SideDrawer — a right-anchored overlay panel: a dimming backdrop plus a sliding drawer with a titled
+   header, a scrolling body, and an optional pinned footer. Clicking the backdrop or the ✕ raises OnClose.
+   Reused by the plan editor (compile & test, open-from-DB) and the generator (board detail). Renders
+   nothing while closed. *@
+
+@if (Open)
+{
+  <div class="side-drawer-backdrop" @onclick="Close"></div>
+  <div class="side-drawer" @onclick:stopPropagation="true">
+    <div class="side-drawer-head">
+      <div class="detail-header">
+        @if (!string.IsNullOrEmpty(Icon)) { <span class="geo-type-icon"><i data-lucide="@Icon"></i></span> }
+        <span class="detail-label">@Title</span>
+      </div>
+      <button class="action-btn action-btn--icon" title="Close" @onclick="Close"><i data-lucide="x"></i></button>
+    </div>
+    <div class="side-drawer-body">
+      @Body
+    </div>
+    @if (Footer is not null)
+    {
+      <div class="side-drawer-foot">
+        @Footer
+      </div>
+    }
+  </div>
+}
+
+@code {
+    /// <summary>Whether the drawer is shown; renders nothing when false.</summary>
+    [Parameter] public bool Open { get; set; }
+
+    /// <summary>Header title text.</summary>
+    [Parameter] public string Title { get; set; } = "";
+
+    /// <summary>Optional Lucide icon name for the header (e.g. "layout-grid").</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>The scrolling body content.</summary>
+    [Parameter] public RenderFragment? Body { get; set; }
+
+    /// <summary>Optional pinned footer (actions). When omitted, no footer bar is rendered.</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>Raised when the backdrop or the close button is activated.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Task Close() => OnClose.InvokeAsync();
+}

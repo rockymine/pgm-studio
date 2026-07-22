@@ -21,10 +21,11 @@ variables and no way to record judgments. This theme integrates the generator in
 compose interactively, filter what to see, and **collect annotated keep/discard verdicts** that become
 the labeled positive/negative corpus every later refinement (rules, envelopes, AI passes) feeds on.
 Build order: the persistence foundation → browse → verdicts → duels (G119 → G117 → G118 → G120); the
-pipeline showcase page (G121) and the persistence foundation (G119) have shipped — see `FEATURES.md`;
-browse (G117) is next up on the store. The design long tail this focus deliberately displaced is
-condensed in **`docs/layout-generation-ideas.md`** (ids preserved — pull one back here when it becomes
-the focus).
+showcase (G121), the persistence foundation (G119), and browse mode (G117) have shipped — see
+`FEATURES.md`; **verdicts (G118) is next**, and it now owns the up/down votes deferred out of browse
+(the browse pin is the only persistence action so far). The design long tail this focus deliberately
+displaced is condensed in **`docs/layout-generation-ideas.md`** (ids preserved — pull one back here
+when it becomes the focus).
 
 **Persistence doctrine for the whole theme: the feed is ephemeral; only human attention persists.** A
 plan enters the database exactly when it is voted on, pinned, or saved from the editor — never while
@@ -32,19 +33,6 @@ scrolling. Generated rows are **immutable**: editing one forks a new `authored` 
 back-reference, so the labeled corpus cannot be contaminated after the fact. Browse votes (absolute)
 and duel results (pairwise preference) are **separate datasets**, unified only at analysis time. The
 hold tray persists across reloads — pinned *means* persisted.
-
-- [ ] **G117 — Browse mode (the interactive generator in the studio).** A compose API endpoint
-  (request params + a seed cursor; the server composes ahead, runs the derivers, and ships only cards
-  passing the **sieve filters** — wool families, hub/frontline/mid forms, wool count, size, score
-  threshold) + a studio gallery page: infinite scroll; the filter panel (greying out what the composer
-  cannot yet produce — 4-team `rot_90`, `mirror_x`, the scythe); quick up/down votes; the **hold
-  tray** (pin a card → persists via G119, survives reload; unpinned cards are simply forgotten); and
-  the **detail dialog** (large render, score breakdown with top contributing terms, copyable
-  descriptor, vote/tag controls, Open-in-plan-editor — reserving the slot where the 3D preview lands
-  once elevation exists). Card identity is the **canonical versioned request descriptor** (schema +
-  composer version + every request field + seed) — reproducible within a composer version, honest
-  across them. Filters that prove popular are the promotion queue into held `ComposeTargets` (ideas
-  doc, G98).
 
 - [ ] **G118 — Verdict collection.** Tap-chip annotation tags (large toggleable pills, multi-select —
   never checkboxes) available on both vote directions, both optional; the tag set seeded from the
@@ -54,6 +42,12 @@ hold tray persists across reloads — pinned *means* persisted.
   {plan ref, descriptor, verdict, tags, free-text note, evaluator score + per-term snapshot, evaluator
   version} via G119; JSONL export so the labeled examples drive rule refinement, envelope
   regeneration, and AI-assisted analysis.
+
+- [ ] **G128 — Form/family sieve filters for browse (fast-follow to G117).** Extend the compose feed's
+  sieve beyond the cheap signals (size · symmetry · score · wool count) with the structural ones the task
+  originally named — **wool families** (the approach classifier) and **hub/frontline/mid forms** (the body
+  classifier). Wire `BoardDeriver`'s labels into `ComposeCard` (and the sieve query), then add the filter
+  controls to the `/generator` panel. The classifier label surface needs confirming first — that's the work.
 
 - [ ] **G125 — Feasibility read-back in the plan editor ("could the composer make this?").** The
   validator answers *is this legal to author*; this answers *could the machine replicate it* — the

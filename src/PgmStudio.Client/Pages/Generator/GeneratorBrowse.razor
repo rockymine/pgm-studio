@@ -1,0 +1,145 @@
+@page "/generator"
+@layout EditorLayout
+@implements IAsyncDisposable
+
+@* Generator browse (G117): compose boards interactively, sieve them, and pin the keepers. Cards are
+   server-rendered SVGs of the full fanned board; pin/open re-compose from the reproducible descriptor. *@
+
+<div class="editor-page">
+  <div id="topbar" class="topbar">
+    <a href="/" class="topbar-breadcrumb-home" title="Studio home">
+      <i data-lucide="house"></i><span>Studio</span>
+    </a>
+    <span class="topbar-sep">›</span>
+    <span class="topbar-crumb topbar-crumb--dim">Generator</span>
+    <div class="topbar-right">
+      <a class="action-btn" href="/plan-editor" title="Open the plan editor"><i data-lucide="layout-grid"></i> Plan editor</a>
+      <ThemeToggle />
+    </div>
+  </div>
+
+  <div class="gen-body">
+    <aside class="gen-filters">
+      <h3 class="gen-filters-title">Filters</h3>
+
+      <label class="gen-field">
+        <span class="gen-field-label">Players / team <strong>@players</strong></span>
+        <input type="range" min="6" max="30" step="2" value="@players" @oninput="OnPlayers" />
+      </label>
+
+      <div class="gen-field">
+        <span class="gen-field-label">Symmetry</span>
+        <div class="gen-sym">
+          @foreach (var s in Symmetries)
+          {
+            <button class="gen-sym-chip @(symmetry == s.Id ? "gen-sym-chip--on" : null)"
+                    disabled="@(!s.Supported)"
+                    title="@(s.Supported ? s.Label : "the composer can't produce this yet")"
+                    @onclick="() => PickSymmetry(s.Id)">@s.Label</button>
+          }
+        </div>
+      </div>
+
+      <label class="gen-field">
+        <span class="gen-field-label">Max score <strong>@(maxScore >= ScoreCap ? "any" : maxScore.ToString("0.0"))</strong></span>
+        <input type="range" min="0" max="8" step="0.5" value="@maxScore" @oninput="OnMaxScore" />
+      </label>
+
+      <div class="gen-field">
+        <span class="gen-field-label">Wool count</span>
+        <div class="gen-wool">
+          <input type="number" min="0" max="6" value="@woolMin" @oninput="OnWoolMin" title="min (0 = any)" />
+          <span>–</span>
+          <input type="number" min="0" max="6" value="@woolMax" @oninput="OnWoolMax" title="max (0 = any)" />
+        </div>
+      </div>
+
+      <button class="action-btn action-btn--primary action-btn--full" @onclick="Reload">Apply</button>
+      <p class="gen-hint">The feed only shows boards the composer can produce today. Lower score is better.</p>
+    </aside>
+
+    <main class="gen-main">
+      @if (pinned.Count > 0)
+      {
+        <div class="gen-tray">
+          <span class="gen-tray-label"><i data-lucide="pin"></i> Held · @pinned.Count</span>
+          <div class="gen-tray-items">
+            @foreach (var p in pinned)
+            {
+              <div class="gen-tray-chip">
+                <a class="gen-tray-fig" href="@($"/plan-editor?plan={p.Id}")" title="Open in plan editor">
+                  @if (traySvg.TryGetValue(p.Id, out var s)) { @((MarkupString)s) }
+                </a>
+                <span class="gen-tray-name" title="@p.Name">@p.Name</span>
+                <button class="gen-tray-x" @onclick="() => Unpin(p.Id)" title="Unpin"><i data-lucide="x"></i></button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="gen-grid">
+        @foreach (var card in cards)
+        {
+          <div class="gen-card @(IsPinned(card) ? "gen-card--pinned" : null)">
+            <button class="gen-card-fig" @onclick="() => OpenDetail(card)" title="Open details">
+              @((MarkupString)card.Svg)
+            </button>
+            <div class="gen-card-foot">
+              <span class="gen-card-score" title="Evaluator score — lower is better">@card.Score.ToString("0.0")</span>
+              <span class="gen-card-meta">@card.WoolCount wool · #@card.Descriptor.Seed</span>
+              <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
+                      title="@(IsPinned(card) ? "Unpin" : "Pin to hold tray")"><i data-lucide="pin"></i></button>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (feedError is not null) { <p class="gen-status">@feedError</p> }
+      else if (loading) { <p class="gen-status">Composing…</p> }
+      else if (cards.Count == 0) { <p class="gen-status">No boards match these filters.</p> }
+      else if (exhausted) { <p class="gen-status">End of the run for these filters.</p> }
+
+      <div @ref="sentinelRef" class="gen-sentinel"></div>
+      @if (!exhausted && !loading && cards.Count > 0)
+      {
+        <button class="action-btn action-btn--full gen-more" @onclick="LoadMore">Load more</button>
+      }
+    </main>
+  </div>
+
+  @if (detail is { } d)
+  {
+    <SideDrawer Open="true" Title="Board detail" Icon="layout-grid" OnClose="CloseDetail">
+      <Body>
+        <div class="gen-detail-fig">@((MarkupString)d.Svg)</div>
+        <div class="gen-detail-meta">
+          Score <strong>@d.Score.ToString("0.00")</strong> · @d.WoolCount wool ·
+          @d.Descriptor.Players players · @d.Descriptor.Symmetry · seed @d.Descriptor.Seed
+        </div>
+        @if (d.HardTerms.Count > 0)
+        {
+          <div class="plan-compile-errors"><p class="section-desc">hard terms fired: @string.Join(", ", d.HardTerms)</p></div>
+        }
+        @if (d.TopSoft.Count > 0)
+        {
+          <div class="plan-lint-list">
+            @foreach (var t in d.TopSoft)
+            {
+              <div class="plan-lint-row plan-lint-row--static">
+                <span class="plan-lint-chip">@t.TermId</span>
+                <span class="plan-lint-msg">@t.Contribution.ToString("0.00")</span>
+              </div>
+            }
+          </div>
+        }
+        <pre class="gen-descriptor">@DescriptorJson(d)</pre>
+      </Body>
+      <Footer>
+        <button class="action-btn action-btn--full" @onclick="() => CopyDescriptor(d)"><i data-lucide="clipboard"></i> Copy descriptor</button>
+        <button class="action-btn action-btn--full" @onclick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin to hold tray")</button>
+        <button class="action-btn action-btn--primary action-btn--full" @onclick="() => OpenInEditor(d)"><i data-lucide="external-link"></i> Open in plan editor</button>
+      </Footer>
+    </SideDrawer>
+  }
+</div>
