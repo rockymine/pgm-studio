@@ -7,49 +7,34 @@
 @* Editor shell — topbar + activity rail + activity viewport. Port of studio/templates/editor.html
    + the activity state machine in static/main.js. *@
 
-<div class="editor-page">
-
-  <div id="topbar" class="topbar">
-    <a href="/maps" class="topbar-breadcrumb-home" title="Back to dashboard">
-      <i data-lucide="house"></i>
-      <span>Maps</span>
-    </a>
-    <span class="topbar-sep">›</span>
-    <span class="topbar-crumb">@(mapName ?? Slug.Replace('_', ' '))</span>
-    <span class="topbar-sep">›</span>
-    <span class="topbar-crumb topbar-crumb--dim">@(string.IsNullOrEmpty(mapVersion) ? "" : $"v{mapVersion}")</span>
-
-    <div class="topbar-right">
-      <div id="topbar-error" role="alert" class="@(error is null ? null : "is-visible")">
-        <span class="topbar-error-text">@error</span>
-        <button class="topbar-error-dismiss" @onclick="() => error = null"><i data-lucide="x"></i></button>
-      </div>
-      <button class="action-btn" disabled>Export XML</button>
-      <ThemeToggle />
-    </div>
-  </div>
-
-  <div id="main" class="app-body">
-    <nav class="activity-rail">
-      <div class="activity-logo">
-        <div class="activity-logo-box">
-          <span class="activity-logo-pgm">pgm</span>
-          <span class="activity-logo-sub">STUDIO</span>
+<StudioShell>
+  <Bar>
+    <Topbar HomeHref="/maps" HomeLabel="Maps" HomeTitle="Back to dashboard">
+      <Crumbs>
+        <Crumb>@(mapName ?? Slug.Replace('_', ' '))</Crumb>
+        <Crumb Dim>@(string.IsNullOrEmpty(mapVersion) ? "" : $"v{mapVersion}")</Crumb>
+      </Crumbs>
+      <Right>
+        <div id="topbar-error" role="alert" class="@(error is null ? null : "is-visible")">
+          <span class="topbar-error-text">@error</span>
+          <button class="topbar-error-dismiss" @onclick="() => error = null"><i data-lucide="x"></i></button>
         </div>
-      </div>
+        <button class="action-btn" disabled>Export XML</button>
+      </Right>
+    </Topbar>
+  </Bar>
+  <Rail>
+    <ActivityRail>
       @foreach (var a in Activities)
       {
-        <button class="activity-btn @(active == a.Id ? "active" : null)"
-                title="@a.Title" disabled="@(!loaded)" data-status="@StatusOf(a.Id)"
-                @onclick="() => Switch(a.Id)">
-          <i data-lucide="@a.Icon"></i>
-        </button>
+        <ActivityButton Icon="@a.Icon" Title="@a.Title" Active="active == a.Id"
+                        Disabled="!loaded" Status="@StatusOf(a.Id)" OnClick="() => Switch(a.Id)" />
       }
-      <button class="activity-btn" disabled title="Filters"><i data-lucide="gavel"></i></button>
-      <button class="activity-btn" disabled title="Export"><i data-lucide="archive"></i></button>
-    </nav>
-
-    <div class="activity-viewport">
+      <ActivityButton Icon="gavel" Title="Filters" Disabled="true" />
+      <ActivityButton Icon="archive" Title="Export" Disabled="true" />
+    </ActivityRail>
+  </Rail>
+  <ChildContent>
       @if (!loaded)
       {
         <div class="workspace workspace--placeholder">
@@ -85,6 +70,5 @@
             break;
         }
       }
-    </div>
-  </div>
-</div>
+  </ChildContent>
+</StudioShell>

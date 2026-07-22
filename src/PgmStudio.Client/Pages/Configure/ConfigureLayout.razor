@@ -6,51 +6,39 @@
    three-panel workspace. A parameterized frame (not a Blazor layout directive); the page owns the
    state machine. See new-map-authoring.md §12. *@
 
-<div class="editor-page">
-
-  <div id="topbar" class="topbar">
-    <a href="maps?stage=configure" class="topbar-breadcrumb-home" title="Back to configuring">
-      <i data-lucide="house"></i><span>Configuring</span>
-    </a>
-    <span class="topbar-sep">›</span>
-    <span class="topbar-crumb">@(string.IsNullOrEmpty(MapName) ? "New map" : MapName)</span>
-    @if (!string.IsNullOrEmpty(Crumb))
-    {
-      <span class="topbar-sep">›</span>
-      <span class="topbar-crumb topbar-crumb--dim">@Crumb</span>
-    }
-    <div class="topbar-right">
-      @if (!string.IsNullOrEmpty(SaveStatus))
-      {
-        <span class="topbar-save-status">@SaveStatus</span>
-      }
-      <ThemeToggle />
-    </div>
-  </div>
-
-  <div id="main" class="app-body">
-    <nav class="activity-rail">
-      <a class="activity-logo" href="/maps/new" title="New-map landing">
-        <div class="activity-logo-box">
-          <span class="activity-logo-pgm">pgm</span>
-          <span class="activity-logo-sub">STUDIO</span>
-        </div>
-      </a>
+<StudioShell>
+  <Bar>
+    <Topbar HomeHref="maps?stage=configure" HomeLabel="Configuring" HomeTitle="Back to configuring">
+      <Crumbs>
+        <Crumb>@(string.IsNullOrEmpty(MapName) ? "New map" : MapName)</Crumb>
+        @if (!string.IsNullOrEmpty(Crumb))
+        {
+          <Crumb Dim>@Crumb</Crumb>
+        }
+      </Crumbs>
+      <Right>
+        @if (!string.IsNullOrEmpty(SaveStatus))
+        {
+          <span class="topbar-save-status">@SaveStatus</span>
+        }
+      </Right>
+    </Topbar>
+  </Bar>
+  <Rail>
+    <ActivityRail LogoHref="/maps/new" LogoTitle="New-map landing">
       @for (var i = 0; i < ConfigurePhases.All.Length; i++)
       {
         var p = ConfigurePhases.All[i];
         // The current phase is never locked — you can walk one step past the slice-derived frontier
         // (a not-yet-completed phase) and still see where you are; only forward jumps stay gated.
         var locked = i > Furthest && p.Id != ActivePhaseId;
-        <button class="activity-btn @(p.Id == ActivePhaseId ? "active" : null)"
-                title="@p.Title" data-status="@(i < Furthest ? "green" : "")"
-                disabled="@locked" @onclick="() => OnJumpPhase.InvokeAsync(p.Id)">
-          <i data-lucide="@p.Icon"></i>
-        </button>
+        <ActivityButton Icon="@p.Icon" Title="@p.Title" Active="p.Id == ActivePhaseId"
+                        Status="@(i < Furthest ? "green" : "")" Disabled="locked"
+                        OnClick="() => OnJumpPhase.InvokeAsync(p.Id)" />
       }
-    </nav>
-
-    <div class="activity-viewport">
+    </ActivityRail>
+  </Rail>
+  <ChildContent>
       <div class="configure-main">
 
         <div class="flow-bar configure-flow-bar">
@@ -81,7 +69,5 @@
         @ChildContent
 
       </div>
-    </div>
-  </div>
-
-</div>
+  </ChildContent>
+</StudioShell>

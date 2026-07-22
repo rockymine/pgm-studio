@@ -1,0 +1,17 @@
+@namespace PgmStudio.Client.Components
+
+@* One breadcrumb segment in the Topbar — a leading "›" separator (suppress with Sep=false for the
+   first crumb when there is no home link) then the crumb, muted when Dim, a link when Href is set. *@
+
+@if (Sep) { <span class="topbar-sep">›</span> }
+@if (Href is not null) { <a class="@Cls" href="@Href">@ChildContent</a> }
+else { <span class="@Cls">@ChildContent</span> }
+
+@code {
+    [Parameter] public bool Sep { get; set; } = true;
+    [Parameter] public bool Dim { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Cls => Dim ? "topbar-crumb topbar-crumb--dim" : "topbar-crumb";
+}

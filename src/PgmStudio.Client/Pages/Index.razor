@@ -8,16 +8,15 @@
 @* Landing — the studio entry. Three lifecycle cards (Sketch · Configure · Edit) over the staged map
    collection: each opens the matching /maps?stage=… overview where a map can be started or resumed. *@
 
-<div class="editor-page">
-  <div class="topbar">
-    <span class="topbar-crumb">Map Studio</span>
-    <div class="topbar-right">
-      <ThemeToggle />
-    </div>
-  </div>
-
-  <div class="app-body">
-    <div class="activity-viewport">
+<StudioShell>
+  <Bar><Topbar><Crumbs><Crumb Sep="false">Map Studio</Crumb></Crumbs></Topbar></Bar>
+  <Footer>
+    <AppFooter>
+      <AppFooterLink Href="concepts" Icon="sparkle">Concepts</AppFooterLink>
+      <AppFooterLink Href="design" Icon="palette">Design</AppFooterLink>
+    </AppFooter>
+  </Footer>
+  <ChildContent>
       <div class="workspace">
         <div class="workspace-scroll landing">
           <header class="landing-hero">
@@ -97,14 +96,5 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <footer class="app-footer">
-    <span class="app-footer-brand">PGM Map Studio</span>
-    <nav class="app-footer-links">
-      <a class="app-footer-link" href="concepts"><i data-lucide="sparkle"></i><span>Concepts</span></a>
-      <a class="app-footer-link" href="design"><i data-lucide="palette"></i><span>Design</span></a>
-    </nav>
-  </footer>
-</div>
+  </ChildContent>
+</StudioShell>

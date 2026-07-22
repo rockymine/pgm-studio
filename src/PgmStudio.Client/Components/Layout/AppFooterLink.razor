@@ -1,0 +1,16 @@
+@namespace PgmStudio.Client.Components
+
+@* One footer link — an optional Lucide icon and a label. Extra attributes (target, rel, …) pass
+   through for external links. *@
+
+<a class="app-footer-link" href="@Href" @attributes="Extra">
+    @if (Icon is not null) { <i data-lucide="@Icon"></i> }
+    <span>@ChildContent</span>
+</a>
+
+@code {
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+}

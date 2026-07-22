@@ -1,0 +1,14 @@
+@namespace PgmStudio.Client.Components
+
+@* The dashboard-shell footer — a brand caption on the left and a links nav on the right (ChildContent;
+   compose with <AppFooterLink> or raw <a class="app-footer-link">). *@
+
+<footer class="app-footer">
+    <span class="app-footer-brand">@Brand</span>
+    <nav class="app-footer-links">@ChildContent</nav>
+</footer>
+
+@code {
+    [Parameter] public string Brand { get; set; } = "PGM Map Studio";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

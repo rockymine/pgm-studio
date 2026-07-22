@@ -10,49 +10,35 @@
    inspector; the PlanCanvas JS (via bridge/plan-bridge.js) owns the plan document, the pointer tools and
    the live symmetry mirror ghost. Plans import/export as *.plan.json; edits autosave to localStorage. *@
 
-<div class="editor-page">
-  <div id="topbar" class="topbar">
-    <a href="/" class="topbar-breadcrumb-home" title="Studio home">
-      <i data-lucide="house"></i><span>Studio</span>
-    </a>
-    <span class="topbar-sep">›</span>
-    <span class="topbar-crumb topbar-crumb--dim">Plan editor</span>
-    <div class="topbar-right">
-      @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
-      @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-      @if (planOrigin is not null) { <span class="topbar-crumb topbar-crumb--dim" title="Editing a generated or imported plan forks a new authored copy on save">@planOrigin</span> }
-      <button class="action-btn" @onclick="NewPlan" title="Start a blank plan">New</button>
-      <label class="action-btn" title="Import a *.plan.json file">
-        Import
-        <InputFile OnChange="OnImport" accept=".json" style="display:none" />
-      </label>
-      <button class="action-btn" @onclick="ExportPlan" title="Download this plan as *.plan.json">Export</button>
-      <button class="action-btn" @onclick="SavePlan" disabled="@saving" title="Save this plan to the studio database">@(saving ? "Saving…" : "Save")</button>
-      <button class="action-btn" @onclick="OpenDbBrowser" title="Open a saved plan from the database">Open</button>
-      <button class="action-btn action-btn--primary" @onclick="OpenCompile" title="Compile the plan into a layout + intent, then create a draft">
-        <i data-lucide="play"></i> Compile
-      </button>
-      <ThemeToggle />
-    </div>
-  </div>
-
-  <div id="main" class="app-body">
-    <nav class="activity-rail">
-      <a class="activity-logo" href="/" title="Studio home">
-        <div class="activity-logo-box">
-          <span class="activity-logo-pgm">pgm</span>
-          <span class="activity-logo-sub">STUDIO</span>
-        </div>
-      </a>
-      <button class="activity-btn @(leftPanel == "settings" && leftOpen ? "active" : null)" title="Settings" @onclick='() => SelectActivity("settings")'>
-        <i data-lucide="sliders-horizontal"></i>
-      </button>
-      <button class="activity-btn @(leftPanel == "validation" && leftOpen ? "active" : null)" title="Validation — evaluator score &amp; fired rules" @onclick='() => SelectActivity("validation")'>
-        <i data-lucide="shield-check"></i>
-      </button>
-    </nav>
-
-    <div class="activity-viewport">
+<StudioShell>
+  <Bar>
+    <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
+      <Crumbs><Crumb Dim>Plan editor</Crumb></Crumbs>
+      <Right>
+        @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
+        @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
+        @if (planOrigin is not null) { <span class="topbar-crumb topbar-crumb--dim" title="Editing a generated or imported plan forks a new authored copy on save">@planOrigin</span> }
+        <button class="action-btn" @onclick="NewPlan" title="Start a blank plan">New</button>
+        <label class="action-btn" title="Import a *.plan.json file">
+          Import
+          <InputFile OnChange="OnImport" accept=".json" style="display:none" />
+        </label>
+        <button class="action-btn" @onclick="ExportPlan" title="Download this plan as *.plan.json">Export</button>
+        <button class="action-btn" @onclick="SavePlan" disabled="@saving" title="Save this plan to the studio database">@(saving ? "Saving…" : "Save")</button>
+        <button class="action-btn" @onclick="OpenDbBrowser" title="Open a saved plan from the database">Open</button>
+        <button class="action-btn action-btn--primary" @onclick="OpenCompile" title="Compile the plan into a layout + intent, then create a draft">
+          <i data-lucide="play"></i> Compile
+        </button>
+      </Right>
+    </Topbar>
+  </Bar>
+  <Rail>
+    <ActivityRail LogoHref="/" LogoTitle="Studio home">
+      <ActivityButton Icon="sliders-horizontal" Title="Settings" Active="@(leftPanel == "settings" && leftOpen)" OnClick='() => SelectActivity("settings")' />
+      <ActivityButton Icon="shield-check" Title="Validation — evaluator score &amp; fired rules" Active="@(leftPanel == "validation" && leftOpen)" OnClick='() => SelectActivity("validation")' />
+    </ActivityRail>
+  </Rail>
+  <ChildContent>
       <div class="workspace">
         @if (leftOpen)
         {
@@ -358,8 +344,6 @@
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
   <SideDrawer Open="showCompile" Title="Compile & test" Icon="play" OnClose="CloseCompile">
     <Body>
@@ -450,4 +434,5 @@
       }
     </Body>
   </SideDrawer>
-</div>
+  </ChildContent>
+</StudioShell>

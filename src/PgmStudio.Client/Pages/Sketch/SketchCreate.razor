@@ -8,34 +8,23 @@
    matching /maps/new). Name the map and set its footprint + symmetry; Continue creates the draft and
    opens the editor at /maps/{slug}/sketch. *@
 
-<div class="editor-page">
-  <div id="topbar" class="topbar">
-    <a href="/" class="topbar-breadcrumb-home" title="Studio home">
-      <i data-lucide="house"></i><span>Studio</span>
-    </a>
-    <span class="topbar-sep">›</span>
-    <a class="topbar-crumb" href="maps?stage=sketch">Sketches</a>
-    <span class="topbar-sep">›</span>
-    <span class="topbar-crumb topbar-crumb--dim">New sketch</span>
-    <div class="topbar-right">
-      <ThemeToggle />
-    </div>
-  </div>
-
-  <div id="main" class="app-body">
-    <nav class="activity-rail">
-      <a class="activity-logo" href="/" title="Studio home">
-        <div class="activity-logo-box">
-          <span class="activity-logo-pgm">pgm</span>
-          <span class="activity-logo-sub">STUDIO</span>
-        </div>
-      </a>
-      <a class="activity-btn active" href="maps?stage=sketch" title="Sketches"><i data-lucide="pencil-ruler"></i></a>
-      <a class="activity-btn" href="maps?stage=configure" title="Configuring"><i data-lucide="settings-2"></i></a>
-      <a class="activity-btn" href="maps" title="Maps"><i data-lucide="map"></i></a>
-    </nav>
-
-    <div class="activity-viewport">
+<StudioShell>
+  <Bar>
+    <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
+      <Crumbs>
+        <Crumb Href="maps?stage=sketch">Sketches</Crumb>
+        <Crumb Dim>New sketch</Crumb>
+      </Crumbs>
+    </Topbar>
+  </Bar>
+  <Rail>
+    <ActivityRail LogoHref="/" LogoTitle="Studio home">
+      <ActivityButton Icon="pencil-ruler" Title="Sketches" Href="maps?stage=sketch" Active="true" />
+      <ActivityButton Icon="settings-2" Title="Configuring" Href="maps?stage=configure" />
+      <ActivityButton Icon="map" Title="Maps" Href="maps" />
+    </ActivityRail>
+  </Rail>
+  <ChildContent>
       <div class="workspace">
         <div class="workspace-scroll" style="max-width: 760px; margin: 0 auto;">
 
@@ -147,6 +136,5 @@
 
         </div>
       </div>
-    </div>
-  </div>
-</div>
+  </ChildContent>
+</StudioShell>

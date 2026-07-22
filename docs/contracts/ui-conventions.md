@@ -16,12 +16,14 @@ Read alongside:
   contract. Once a component exists, `/design` renders *it* rather than hand-written markup, so the
   showcase can't drift from production.
 
-> **Status:** Phase A shipped. The first vocabulary components — `Button`, `Badge`, `Chip`, `Field`,
-> `Section`, `SectionHeader`, `ListRow` — live under `Components/{Primitives,Forms,Data}/` and are
-> adopted in the `/generator` filter rail (retiring the `gen-*` sidebar drift) and the `/maps` list,
-> verified against `/design`. Phases B–D (§6) remain; the C12 backlog entry tracks them. The other
-> `.razor` components stay at their existing altitude (page fragments like `EditorCanvas`; one-off
-> widgets like `NumberField`, `SideDrawer`, `SmartSuggestion`, `Toast`).
+> **Status:** Phases A–B shipped. **A** — the vocabulary atoms + `Section` (`Button`, `Badge`, `Chip`,
+> `Field`, `Section`, `SectionHeader`, `ListRow` under `Components/{Primitives,Forms,Data}/`), adopted
+> in the `/generator` filter rail (retiring the `gen-*` drift) and the `/maps` list. **B** — the shell
+> (`StudioShell`, `Topbar`, `Crumb`, `ActivityRail`, `ActivityButton`, `AppFooter`, `AppFooterLink`
+> under `Components/Layout/`), adopted across **all 11 `editor-page` sites** — the copy-pasted topbar /
+> rail / footer chrome is gone. All verified against `/design`. Phases C–D (§6) remain; the C12 backlog
+> entry tracks them. The other `.razor` components stay at their existing altitude (page fragments like
+> `EditorCanvas`; one-off widgets like `NumberField`, `SideDrawer`, `SmartSuggestion`, `Toast`).
 
 ---
 

@@ -107,6 +107,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   overrides, emitting the canonical CSS classes (zero visual diff vs `/design`). Adopted in the
   `/generator` filter rail (retiring the `gen-*` sidebar drift) and the `/maps` list. Contract:
   `docs/contracts/ui-conventions.md`. (C12 phase A)
+- **App-shell components** — `StudioShell` (`editor-page` + optional rail/viewport/footer, with a
+  `Bare` mode for custom bodies) + `Topbar`/`Crumb`/`ActivityRail`/`ActivityButton`/`AppFooter`/
+  `AppFooterLink` under `Components/Layout/`. Adopted across all 11 `editor-page` sites, retiring the
+  copy-pasted topbar / activity-rail / footer chrome. (C12 phase B)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

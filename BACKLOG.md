@@ -72,14 +72,15 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   the app shell is copy-pasted 11×. Full audit, atomic tree, API conventions (foldered under
   `Components/`, param-first + slot override; global CSS, no `.razor.css`), and the class→component map
   are the **contract in `docs/contracts/ui-conventions.md`** — follow it; `/design` is the
-  zero-visual-diff regression oracle (components emit the same classes). **Phase A shipped**
-  (`FEATURES.md`): the atoms + `Section`, adopted in the `/generator` rail (retiring `gen-*`) and the
-  `/maps` list. Remaining:
+  zero-visual-diff regression oracle (components emit the same classes). **Phases A–B shipped**
+  (`FEATURES.md`): the atoms + `Section` (adopted in the `/generator` rail + `/maps` list) and the shell
+  (`StudioShell`/`Topbar`/`ActivityRail`/`AppFooter`, adopted across all 11 `editor-page` sites).
+  Remaining:
 
-  **B** — the shell: `StudioShell`/`Topbar`/`ActivityRail`/`AppFooter` (retire the 11-file
-  `editor-page` copy-paste). **C** — workspace shells `Sidebar`/`Inspector`/`Workspace`/`ContentColumn`.
-  **D** — long tail (`Card`, `CoordField`, `DetailHeader`, `FlowBar`, `Console`, `Icon`) + reconcile
-  near-dups + regenerate `/design` from the real components + drop the inline `style=` replaced by params.
+  **C** — workspace shells `Sidebar`/`Inspector`/`Workspace`/`ContentColumn` (the `workspace-sidebar` +
+  `workspace-scroll` + `workspace-inspector` mold used across the activities). **D** — long tail
+  (`Card`, `CoordField`, `DetailHeader`, `FlowBar`, `Console`, `Icon`) + reconcile near-dups + regenerate
+  `/design` from the real components + drop the inline `style=` replaced by params.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.

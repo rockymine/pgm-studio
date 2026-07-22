@@ -9,27 +9,22 @@
    JS (via bridge/sketch-bridge.js) owns drawing, the live island computation, and the mirror preview.
    Persistence (load/save) is wired in S2d; this step is the draw + live-islands experience. *@
 
-<div class="editor-page">
-  <div id="topbar" class="topbar">
-    <a href="maps?stage=sketch" class="topbar-breadcrumb-home" title="Back to sketches">
-      <i data-lucide="house"></i>
-      <span>Sketches</span>
-    </a>
-    <span class="topbar-sep">›</span>
-    <span class="topbar-crumb">@Slug.Replace('_', ' ')</span>
-    <span class="topbar-sep">›</span>
-    <span class="topbar-crumb topbar-crumb--dim">Sketch</span>
-    <div class="topbar-right">
-      @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
-      <span class="topbar-crumb topbar-crumb--dim">@islandLabel</span>
-      <button class="action-btn action-btn--primary" @onclick="Finish" disabled="@finishing"
-              title="Rasterize the sketch into a world and save it, ready to configure">Finish</button>
-      <ThemeToggle />
-    </div>
-  </div>
-
-  <div id="main" class="app-body">
-    <div class="activity-viewport">
+<StudioShell>
+  <Bar>
+    <Topbar HomeHref="maps?stage=sketch" HomeLabel="Sketches" HomeTitle="Back to sketches">
+      <Crumbs>
+        <Crumb>@Slug.Replace('_', ' ')</Crumb>
+        <Crumb Dim>Sketch</Crumb>
+      </Crumbs>
+      <Right>
+        @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
+        <span class="topbar-crumb topbar-crumb--dim">@islandLabel</span>
+        <button class="action-btn action-btn--primary" @onclick="Finish" disabled="@finishing"
+                title="Rasterize the sketch into a world and save it, ready to configure">Finish</button>
+      </Right>
+    </Topbar>
+  </Bar>
+  <ChildContent>
       <div class="workspace">
         <div class="workspace-sidebar">
           <div class="workspace-scroll">
@@ -144,6 +139,5 @@
                          OnRotate="Rotate"
                          SelectedVertexIdx="selectedVertexIdx" SelectedVertexHeight="selectedVertexHeight" OnSetVertexHeight="SetVertexHeight" />
       </div>
-    </div>
-  </div>
-</div>
+  </ChildContent>
+</StudioShell>

@@ -5,19 +5,16 @@
 @* Generator browse (G117): compose boards interactively, sieve them, and pin the keepers. Cards are
    server-rendered SVGs of the full fanned board; pin/open re-compose from the reproducible descriptor. *@
 
-<div class="editor-page">
-  <div id="topbar" class="topbar">
-    <a href="/" class="topbar-breadcrumb-home" title="Studio home">
-      <i data-lucide="house"></i><span>Studio</span>
-    </a>
-    <span class="topbar-sep">›</span>
-    <span class="topbar-crumb topbar-crumb--dim">Generator</span>
-    <div class="topbar-right">
-      <Button Href="/plan-editor" Icon="layout-grid" Title="Open the plan editor">Plan editor</Button>
-      <ThemeToggle />
-    </div>
-  </div>
-
+<StudioShell Bare="true">
+  <Bar>
+    <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
+      <Crumbs><Crumb Dim>Generator</Crumb></Crumbs>
+      <Right>
+        <Button Href="/plan-editor" Icon="layout-grid" Title="Open the plan editor">Plan editor</Button>
+      </Right>
+    </Topbar>
+  </Bar>
+  <ChildContent>
   <div class="gen-body">
     <aside class="gen-filters">
       <Section Title="Filters">
@@ -199,4 +196,5 @@
       </Footer>
     </SideDrawer>
   }
-</div>
+  </ChildContent>
+</StudioShell>
