@@ -62,6 +62,16 @@ landed, the rest is the idea.
   budget ladders as derived targets (G109), WL7 separation by construction (G110, the traversal-spread
   half), the frontline offer decisions moving to the allocator (G111 — joint-vs-several is FR6, currently a
   coin flip in the filler).
+- **G123** — the shifted partial-face frontline (the funnel dock; authored exemplar
+  `shifted-u-frontline-attach-g-hub.plan.json`). Relax the frontline demand from the pinned full hub width
+  (`Demands`' `faceWidth = max(w, hubV)`) to a sampled width + shift along the front edge, allow lateral
+  overhang past the hub bbox (the wools' seat-and-shift, on the frontline), and add the **spanning dock**:
+  one face covering run + bay-mouth + run with a ≥cw contact patch per shoulder — sealing a bay-fronted hub's
+  bay (G/U/L) into a declared hole. Unblocks G-hub+frontline coexistence outright (today the single-run seat
+  fails and the form falls back to the rectangle), and needs `FrontFacesSymmetric` relaxed from per-face
+  mirror symmetry to hull symmetry (BZ9's real requirement) so shifted fronts survive rot_180. The payoff:
+  the frontline as a flow funnel — two onward routes at asymmetric cost around the sealed hole. Subsumes the
+  FR6 half of G111.
 
 ## Vacancies, fragments, targets
 

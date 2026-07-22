@@ -1,0 +1,176 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "shifted-u-frontline-attach-g-hub"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "hub-bar",
+      "role": "piece",
+      "rect": [
+        -5,
+        -7,
+        6,
+        1
+      ]
+    },
+    {
+      "id": "hub-bar-2",
+      "role": "piece",
+      "rect": [
+        -5,
+        -5,
+        4,
+        1
+      ]
+    },
+    {
+      "id": "hub-leg",
+      "role": "piece",
+      "rect": [
+        -2,
+        -6,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "hub-leg-2",
+      "role": "piece",
+      "rect": [
+        -5,
+        -6,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "hub-leg-3",
+      "role": "piece",
+      "rect": [
+        0,
+        -6,
+        1,
+        2
+      ]
+    },
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -2,
+        -4,
+        4,
+        1
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -2,
+        -3,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        1,
+        -3,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -3,
+        -8,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        -3,
+        -9,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "wool-entry",
+      "role": "piece",
+      "rect": [
+        1,
+        -7,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        3,
+        -7,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "wool-entry-2",
+      "role": "piece",
+      "rect": [
+        -6,
+        -7,
+        1,
+        1
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        -7,
+        -7,
+        1,
+        1
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -2,
+        -2,
+        4,
+        4
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [],
+    "wools": [],
+    "iron": [],
+    "destroyables": [],
+    "cores": []
+  },
+  "cliffs": [],
+  "walls": []
+}
