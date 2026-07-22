@@ -3,8 +3,7 @@
 @* Shape-library palette — pre-defined geometric primitives grouped by category. Clicking an item arms
    it for placement (OnArm); the next canvas click drops it. Catalog comes from the JS bridge. *@
 
-<section class="panel-section">
-  <div class="section-header section-header--ruled"><h2 class="section-title">Shapes</h2></div>
+<Section Title="Shapes">
   @if (Items.Count == 0)
   {
     <p class="section-desc">Loading…</p>
@@ -29,4 +28,4 @@
     }
     <p class="section-desc">Click a shape, then click the canvas to place it (Esc cancels).</p>
   }
-</section>
+</Section>

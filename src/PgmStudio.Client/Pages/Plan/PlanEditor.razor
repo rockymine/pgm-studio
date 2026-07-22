@@ -45,15 +45,14 @@
         <Sidebar>
             @if (leftPanel == "settings")
             {
-            <div class="panel-section">
+            <Section>
               <div class="field">
                 <label class="field-label">Plan name</label>
                 <input class="field-input" value="@planName" @onchange="OnName" placeholder="Untitled plan" />
               </div>
-            </div>
+            </Section>
 
-            <div class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Symmetry &amp; globals</h2></div>
+            <Section Title="Symmetry &amp; globals">
               <div class="field">
                 <label class="field-label">Symmetry</label>
                 <select class="field-input" value="@symmetry" @onchange="OnSymmetry">
@@ -84,10 +83,9 @@
                 <label class="field-label">Max players</label>
                 <NumberField Value="maxPlayers" ValueChanged="OnMaxPlayers" Min="2" Step="2" />
               </div>
-            </div>
+            </Section>
 
-            <div class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Reference</h2></div>
+            <Section Title="Reference">
               <div class="field">
                 <label class="field-label">Trace over map</label>
                 <select class="field-input" value="@refMap" @onchange="OnPickReferenceMap">
@@ -120,10 +118,9 @@
                 </div>
               }
               <p class="section-desc">Trace a real map's top-down render to build a plan from it. The backdrop is saved with the plan as provenance and never affects the compiled output.</p>
-            </div>
+            </Section>
 
-            <div class="panel-section">
-              <div class="section-header section-header--ruled"><h2 class="section-title">Overlays</h2></div>
+            <Section Title="Overlays">
               <div class="plan-overlay-toggles">
                 <button class="filter-chip @(overlayInterfaces ? "filter-chip--active" : null)" title="Land interfaces (green, slimmer core if narrow) · corner contacts (red)"
                         @onclick='() => ToggleOverlay("interfaces")'>Interfaces</button>
@@ -135,43 +132,44 @@
                         @onclick="ToggleHeightMap">Heights</button>
               </div>
               <p class="section-desc">Toggle the derived-structure overlays and the height ramp drawn on the canvas.</p>
-            </div>
+            </Section>
             }
             else
             {
-            <div class="panel-section">
-              <div class="section-header section-header--ruled">
-                <h2 class="section-title">Validation</h2>
+            <Section Title="Validation">
+              <Actions>
                 @if (evaluation is not null)
                 {
                   <span class="badge @(evaluation.Valid ? "badge--success" : "badge--error")" title="Evaluator cost — lower is better, 0 is perfect">@evaluation.Score.ToString("0.##")</span>
                 }
-              </div>
-              @if (evaluation is null)
-              {
-                <p class="section-desc">The evaluator scores the plan against the layout rules — hard well-formedness first, then soft feel. Click a fired rule to isolate its evidence on the canvas.</p>
-              }
-              else if (evaluation.Violations.Count == 0)
-              {
-                <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> No rules fired</div>
-              }
-              else
-              {
-                <div class="plan-lint-list">
-                  @for (var i = 0; i < evaluation.Violations.Count; i++)
-                  {
-                    var idx = i;
-                    var v = evaluation.Violations[i];
-                    <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show only this rule's evidence on the canvas">
-                      <span class="plan-lint-dot @(v.Kind == "hard" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
-                      <span class="plan-lint-chip">@v.RuleId</span>
-                      <span class="plan-lint-msg">@v.Message</span>
-                      @if (v.Kind == "soft") { <span class="list-tag">@v.Distance.ToString("0.#")</span> }
-                    </button>
-                  }
-                </div>
-              }
-            </div>
+              </Actions>
+              <ChildContent>
+                @if (evaluation is null)
+                {
+                  <p class="section-desc">The evaluator scores the plan against the layout rules — hard well-formedness first, then soft feel. Click a fired rule to isolate its evidence on the canvas.</p>
+                }
+                else if (evaluation.Violations.Count == 0)
+                {
+                  <div class="plan-lint-ok"><i data-lucide="check-circle-2"></i> No rules fired</div>
+                }
+                else
+                {
+                  <div class="plan-lint-list">
+                    @for (var i = 0; i < evaluation.Violations.Count; i++)
+                    {
+                      var idx = i;
+                      var v = evaluation.Violations[i];
+                      <button class="plan-lint-row @(selectedViolation == idx ? "plan-lint-row--active" : null)" @onclick="() => SelectViolation(idx)" title="Show only this rule's evidence on the canvas">
+                        <span class="plan-lint-dot @(v.Kind == "hard" ? "plan-lint-dot--error" : "plan-lint-dot--lint")"></span>
+                        <span class="plan-lint-chip">@v.RuleId</span>
+                        <span class="plan-lint-msg">@v.Message</span>
+                        @if (v.Kind == "soft") { <span class="list-tag">@v.Distance.ToString("0.#")</span> }
+                      </button>
+                    }
+                  </div>
+                }
+              </ChildContent>
+            </Section>
             }
         </Sidebar>
         <div class="sidebar-handle"></div>
@@ -253,7 +251,7 @@
         <div class="sidebar-handle"></div>
 
         <Inspector>
-            <div class="panel-section">
+            <Section>
               @if (sel is null)
               {
                 <p class="section-desc">Select a piece, build area or marker to inspect. Draw a piece from the palette, then drop spawns / wools onto it.</p>
@@ -337,7 +335,7 @@
                   <i data-lucide="trash-2"></i> Delete marker
                 </button>
               }
-            </div>
+            </Section>
       </Inspector>
       </Workspace>
 

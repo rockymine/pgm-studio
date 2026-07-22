@@ -9,8 +9,7 @@
 <Workspace>
 
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Wool spawn</h2></div>
+      <Section Title="Wool spawn">
         <p class="section-desc">Where each wool dispenses. The seed comes from the detected source; nudge it
           with the <strong>point tool</strong> or the coordinates, and seat its Y on the side-view. Moving an
           authored wool re-derives its mirror.</p>
@@ -26,7 +25,7 @@
             </div>
           }
         </div>
-      </section>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -39,7 +38,7 @@
   <Inspector>
       @if (Selected is { } sel)
       {
-        <section class="panel-section" @key="sel.Color">
+        <Section @key="sel.Color">
           <div class="detail-header">
             <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="dot"></i></span>
             <span class="detail-label detail-label--mono">@sel.Color wool</span>
@@ -58,17 +57,17 @@
             <p class="section-desc">Owned by <strong>@(string.IsNullOrEmpty(sel.Owner) ? "—" : TeamName(sel.Owner))</strong>.
               Drag the side-view line to set the Y. @(IsAuthored(sel) ? "Editing X/Z re-derives the mirror." : "")</p>
           </div>
-        </section>
+        </Section>
       }
       else
       {
-        <section class="panel-section">
+        <Section>
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="dot"></i></span>
             <span class="detail-label">Wool spawn</span>
           </div>
           <p class="section-desc">Select a wool to place its source point and set its Y.</p>
-        </section>
+        </Section>
       }
   </Inspector>
 

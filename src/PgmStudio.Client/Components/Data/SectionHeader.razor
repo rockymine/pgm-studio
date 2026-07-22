@@ -5,13 +5,17 @@
    inspector (border-bottom) · list = left-panel list header (outer padding) · plain = neither. *@
 
 <div class="@Cls">
-    @if (!string.IsNullOrEmpty(Title)) { <h2 class="section-title">@Title</h2> }
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h2 class="section-title">@Title @if (Required) { <span class="field-required">*</span> }</h2>
+    }
     @ChildContent
 </div>
 
 @code {
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Variant { get; set; } = "ruled";   // ruled | list | plain
+    [Parameter] public bool Required { get; set; }                // appends the field-required asterisk
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
 

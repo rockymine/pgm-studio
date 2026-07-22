@@ -7,28 +7,28 @@
 
 <Workspace>
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Wools</h2>
+      <Section Title="Wools">
+        <Actions>
           <button class="action-btn" disabled="@(NextWoolColor() is null)" @onclick="AddWool">+ Add</button>
-        </div>
-        <div class="panel-list">
-          @if (wools.Count == 0) { <div class="list-empty">No wools.</div> }
-          @foreach (var w in wools)
-          {
-            <div class="list-row list-row--compact @(selWool == w.Id ? "list-row--selected" : null)" @onclick="() => SelectWool(w.Id)">
-              <span class="list-swatch" style="background-color:@GameColors.DyeHex(w.Color)"></span>
-              <span class="list-label">@DyeLabel(w.Color)</span>
-            </div>
-          }
-        </div>
-      </section>
+        </Actions>
+        <ChildContent>
+          <div class="panel-list">
+            @if (wools.Count == 0) { <div class="list-empty">No wools.</div> }
+            @foreach (var w in wools)
+            {
+              <div class="list-row list-row--compact @(selWool == w.Id ? "list-row--selected" : null)" @onclick="() => SelectWool(w.Id)">
+                <span class="list-swatch" style="background-color:@GameColors.DyeHex(w.Color)"></span>
+                <span class="list-label">@DyeLabel(w.Color)</span>
+              </div>
+            }
+          </div>
+        </ChildContent>
+      </Section>
 
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Wool Regions</h2></div>
+      <Section Title="Wool Regions">
         @if (groups is null) { <div class="list-empty">Loading…</div> }
         else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selRegionSet" OnSelect="OnTreeSelect" /> }
-      </section>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -38,7 +38,7 @@
   <div class="sidebar-handle"></div>
 
   <Inspector>
-      <div class="panel-section">
+      <Section>
         @if (selWool is not null && CurrentWool is { } wool)
         {
           <div class="section-header section-header--ruled">
@@ -81,56 +81,57 @@
           </div>
 
           @* Monuments *@
-          <section class="panel-section">
-            <div class="section-header section-header--ruled">
-              <h2 class="section-title">Monuments</h2>
+          <Section Title="Monuments">
+            <Actions>
               <button class="action-btn" disabled="@(NextMonumentTeam(wool) is null)" @onclick="() => AddMonument(wool)">+ Add</button>
-            </div>
-            @if (wool.Monuments.Count > 0)
-            {
-              <div class="filter-group-options filter-group-options--mt">
-                @foreach (var m in wool.Monuments)
-                {
-                  var mt = teams.FirstOrDefault(t => t.Id == m.Team);
-                  <button class="filter-chip @(m.Id == selMon ? "filter-chip--active" : null)"
-                          style="@(mt is null ? null : $"color:{GameColors.ChatHex(mt.Color)}")" @onclick="() => SelectMonument(m.Id)">
-                    @(mt?.Name ?? m.Team ?? "?")
-                  </button>
-                }
-              </div>
-            }
-            @if (wool.Monuments.FirstOrDefault(m => m.Id == selMon) is { } mon)
-            {
-              <div class="section-body">
-                <div class="field">
-                  <label class="field-label">Team</label>
-                  <div class="field-pick-row">
-                    <span class="field-swatch" style="background:@TeamColor(mon.Team)"></span>
-                    <select class="field-input" value="@(mon.Team ?? "")" @onchange="SaveMonTeam">
-                      <option value="">— none —</option>
-                      @foreach (var t in teams) { <option value="@t.Id">@(string.IsNullOrEmpty(t.Name) ? t.Id : t.Name)</option> }
-                    </select>
+            </Actions>
+            <ChildContent>
+              @if (wool.Monuments.Count > 0)
+              {
+                <div class="filter-group-options filter-group-options--mt">
+                  @foreach (var m in wool.Monuments)
+                  {
+                    var mt = teams.FirstOrDefault(t => t.Id == m.Team);
+                    <button class="filter-chip @(m.Id == selMon ? "filter-chip--active" : null)"
+                            style="@(mt is null ? null : $"color:{GameColors.ChatHex(mt.Color)}")" @onclick="() => SelectMonument(m.Id)">
+                      @(mt?.Name ?? m.Team ?? "?")
+                    </button>
+                  }
+                </div>
+              }
+              @if (wool.Monuments.FirstOrDefault(m => m.Id == selMon) is { } mon)
+              {
+                <div class="section-body">
+                  <div class="field">
+                    <label class="field-label">Team</label>
+                    <div class="field-pick-row">
+                      <span class="field-swatch" style="background:@TeamColor(mon.Team)"></span>
+                      <select class="field-input" value="@(mon.Team ?? "")" @onchange="SaveMonTeam">
+                        <option value="">— none —</option>
+                        @foreach (var t in teams) { <option value="@t.Id">@(string.IsNullOrEmpty(t.Name) ? t.Id : t.Name)</option> }
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Block Position</label>
+                    <div class="ctrl-row">
+                      <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" type="number" value="@mLocX" @onchange="e => mLocX = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
+                      <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" type="number" value="@mLocY" @onchange="e => mLocY = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
+                      <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" type="number" value="@mLocZ" @onchange="e => mLocZ = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Monument Region</label>
+                    <input class="field-input" type="text" spellcheck="false" placeholder="region-id (optional)" value="@(mon.MonumentRegion ?? "")"
+                           @onchange="SaveMonRegion" />
                   </div>
                 </div>
-                <div class="field">
-                  <label class="field-label">Block Position</label>
-                  <div class="ctrl-row">
-                    <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" type="number" value="@mLocX" @onchange="e => mLocX = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
-                    <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" type="number" value="@mLocY" @onchange="e => mLocY = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
-                    <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" type="number" value="@mLocZ" @onchange="e => mLocZ = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
-                  </div>
+                <div class="section-footer section-footer--separated">
+                  <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => DeleteMonument(wool, mon)">Delete Monument</button>
                 </div>
-                <div class="field">
-                  <label class="field-label">Monument Region</label>
-                  <input class="field-input" type="text" spellcheck="false" placeholder="region-id (optional)" value="@(mon.MonumentRegion ?? "")"
-                         @onchange="SaveMonRegion" />
-                </div>
-              </div>
-              <div class="section-footer section-footer--separated">
-                <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => DeleteMonument(wool, mon)">Delete Monument</button>
-              </div>
-            }
-          </section>
+              }
+            </ChildContent>
+          </Section>
         }
         else if (selRegion is not null)
         {
@@ -140,7 +141,7 @@
         {
           <p class="panel-empty-msg">Select a wool or region to inspect.</p>
         }
-      </div>
+      </Section>
   </Inspector>
 </Workspace>
 

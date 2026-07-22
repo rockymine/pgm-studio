@@ -7,44 +7,44 @@
 
 <Workspace>
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Teams</h2>
+      <Section Title="Teams">
+        <Actions>
           <button class="action-btn" @onclick="AddTeam">+ Add Team</button>
-        </div>
-        <div class="panel-list">
-          @if (teams.Count == 0)
-          {
-            @if (symMode is not null && !suggestionDismissed)
+        </Actions>
+        <ChildContent>
+          <div class="panel-list">
+            @if (teams.Count == 0)
             {
-              <SmartSuggestion Header="Smart Suggestion" Badge="@SymBadge()" AcceptLabel="@AcceptLabel()"
-                               Busy="suggestionBusy" OnAccept="AcceptSuggestion" OnReject="RejectSuggestion">
-                <p class="smart-suggestion__text">@SuggestionText()</p>
-                <div class="smart-suggestion-teams">
-                  @foreach (var s in SuggestedTeams())
-                  {
-                    <div class="smart-suggestion-team">
-                      <span class="list-swatch list-swatch--sm" style="background-color:@GameColors.ChatHex(s.Color)"></span>@s.Name
-                    </div>
-                  }
-                </div>
-              </SmartSuggestion>
+              @if (symMode is not null && !suggestionDismissed)
+              {
+                <SmartSuggestion Header="Smart Suggestion" Badge="@SymBadge()" AcceptLabel="@AcceptLabel()"
+                                 Busy="suggestionBusy" OnAccept="AcceptSuggestion" OnReject="RejectSuggestion">
+                  <p class="smart-suggestion__text">@SuggestionText()</p>
+                  <div class="smart-suggestion-teams">
+                    @foreach (var s in SuggestedTeams())
+                    {
+                      <div class="smart-suggestion-team">
+                        <span class="list-swatch list-swatch--sm" style="background-color:@GameColors.ChatHex(s.Color)"></span>@s.Name
+                      </div>
+                    }
+                  </div>
+                </SmartSuggestion>
+              }
+              else { <div class="list-empty">No teams.</div> }
             }
-            else { <div class="list-empty">No teams.</div> }
-          }
-          @foreach (var t in teams)
-          {
-            <div class="list-row list-row--compact @(selTeam == t.Id ? "list-row--selected" : null)" @onclick="() => SelectTeam(t.Id)">
-              <span class="list-swatch" style="background-color:@GameColors.ChatHex(t.Color)"></span>
-              <span class="list-label list-label--mono">@t.Id</span>
-              <span class="list-tag">@t.Name</span>
-            </div>
-          }
-        </div>
-      </section>
+            @foreach (var t in teams)
+            {
+              <div class="list-row list-row--compact @(selTeam == t.Id ? "list-row--selected" : null)" @onclick="() => SelectTeam(t.Id)">
+                <span class="list-swatch" style="background-color:@GameColors.ChatHex(t.Color)"></span>
+                <span class="list-label list-label--mono">@t.Id</span>
+                <span class="list-tag">@t.Name</span>
+              </div>
+            }
+          </div>
+        </ChildContent>
+      </Section>
 
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Points</h2></div>
+      <Section Title="Spawn Points">
         <div class="panel-list geo-icons-flush">
           @if (!SpawnPoints.Any()) { <div class="list-empty">No spawn points.</div> }
           @foreach (var r in SpawnPoints)
@@ -58,10 +58,9 @@
             </div>
           }
         </div>
-      </section>
+      </Section>
 
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Protection</h2></div>
+      <Section Title="Spawn Protection">
         <div class="panel-list geo-icons-flush">
           @if (!SpawnProtection.Any()) { <div class="list-empty">No protection regions.</div> }
           @foreach (var r in SpawnProtection)
@@ -73,12 +72,11 @@
             </div>
           }
         </div>
-      </section>
+      </Section>
 
       @if (draftRegions.Count > 0)
       {
-        <section class="panel-section">
-          <div class="section-header section-header--ruled"><h2 class="section-title">Draft</h2></div>
+        <Section Title="Draft">
           <div class="panel-list geo-icons-flush">
             @foreach (var r in draftRegions)
             {
@@ -89,7 +87,7 @@
               </div>
             }
           </div>
-        </section>
+        </Section>
       }
   </Sidebar>
 
@@ -100,7 +98,7 @@
   <div class="sidebar-handle"></div>
 
   <Inspector>
-      <div class="panel-section">
+      <Section>
         @if (selTeam is not null && CurrentTeam is { } team)
         {
           <div class="section-header section-header--ruled"><h2 class="section-title">Team</h2></div>
@@ -148,8 +146,7 @@
         else if (selSpawn is not null)
         {
           <RegionInspector Node="SpawnNode" Slug="@Slug" OnSetCoord="OnSetCoord" />
-          <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Assignment</h2></div>
+          <Section Title="Spawn Assignment">
             <div class="field">
               <label class="field-label">Team</label>
               <select class="field-input" value="@spawnTeam" @onchange="async e => { spawnTeam = e.Value?.ToString() ?? string.Empty; await SaveSpawn(); }">
@@ -169,13 +166,13 @@
             <div class="panel-actions">
               <button class="action-btn action-btn--danger action-btn--fill" @onclick="UnlinkSpawn">Remove Spawn Link</button>
             </div>
-          </section>
+          </Section>
         }
         else
         {
           <p class="panel-empty-msg">Select a team or spawn region to inspect.</p>
         }
-      </div>
+      </Section>
   </Inspector>
 </Workspace>
 

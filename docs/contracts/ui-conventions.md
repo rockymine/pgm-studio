@@ -16,7 +16,7 @@ Read alongside:
   contract. Once a component exists, `/design` renders *it* rather than hand-written markup, so the
   showcase can't drift from production.
 
-> **Status:** Phases A–C shipped. **A** — the vocabulary atoms + `Section` (`Button`, `Badge`, `Chip`,
+> **Status:** Phases A–C + D.1 shipped. **A** — the vocabulary atoms + `Section` (`Button`, `Badge`, `Chip`,
 > `Field`, `Section`, `SectionHeader`, `ListRow` under `Components/{Primitives,Forms,Data}/`), adopted
 > in the `/generator` filter rail (retiring the `gen-*` drift) and the `/maps` list. **B** — the shell
 > (`StudioShell`, `Topbar`, `Crumb`, `ActivityRail`, `ActivityButton`, `AppFooter`, `AppFooterLink`
@@ -24,9 +24,14 @@ Read alongside:
 > rail / footer chrome is gone. **C** — the workspace shells (`Workspace`, `Sidebar`, `Inspector`,
 > `ContentColumn` under `Components/Layout/`), adopted across the ~28 activity/phase surfaces (the
 > `sidebar-handle` bars stay raw so `panel-resize.js` still finds each panel by DOM sibling — verified
-> live). All verified against `/design`. Phase D (§6) remains; the C12 backlog entry tracks it. The
-> other `.razor` components stay at their existing altitude (page fragments like `EditorCanvas`;
-> one-off widgets like `NumberField`, `SideDrawer`, `SmartSuggestion`, `Toast`).
+> live). **D.1** — `Section` adopted across every production surface: ~95 hand-typed `panel-section`
+> skeletons across 31 Configure / EditorActivity / Sketch / Plan files became `<Section>` (0 raw
+> `panel-section` outside the `/concepts` + `/design` leave-raw zone of §5). `Section`/`SectionHeader`
+> gained a `Required` asterisk param, and `Section` a `CaptureUnmatchedValues` `style`/`id`/`@key`
+> pass-through. All verified against `/design`. Phase D's remainder (§6 — the atom adoption D.2 and the
+> new components D.3) is tracked in the C12 backlog entry. The other `.razor` components stay at their
+> existing altitude (page fragments like `EditorCanvas`; one-off widgets like `NumberField`,
+> `SideDrawer`, `SmartSuggestion`, `Toast`).
 
 ---
 

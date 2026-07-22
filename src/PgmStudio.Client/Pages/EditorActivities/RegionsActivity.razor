@@ -8,11 +8,10 @@
 
 <Workspace>
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Regions</h2></div>
+      <Section Title="Regions">
         @if (groups is null) { <div class="list-empty">Loading…</div> }
         else { <RegionTree Groups="groups" SelectedId="primaryId" SelectedSet="selection" OnSelect="OnTreeSelect" OnSelectCtrl="OnTreeSelectCtrl" /> }
-      </section>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -22,9 +21,9 @@
   <div class="sidebar-handle"></div>
 
   <Inspector>
-      <div class="panel-section">
+      <Section>
         <RegionInspector Node="primaryNode" Slug="@Slug" OnSelectChild="SelectOne" OnSetCoord="OnSetCoord" />
-      </div>
+      </Section>
   </Inspector>
 </Workspace>
 

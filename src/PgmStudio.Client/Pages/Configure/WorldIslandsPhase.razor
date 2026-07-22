@@ -8,11 +8,9 @@
 <Workspace>
 
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Islands</h2>
-          <span class="badge badge--dim">@islands.Count detected</span>
-        </div>
+      <Section Title="Islands">
+        <Actions><span class="badge badge--dim">@islands.Count detected</span></Actions>
+        <ChildContent>
         <p class="section-desc">Exclude islands that aren't part of the playable layout (observer towers,
           decor). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
         <div class="panel-list">
@@ -27,9 +25,9 @@
             </div>
           }
         </div>
-      </section>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Islands</h2></div>
+        </ChildContent>
+      </Section>
+      <Section Title="Excluded Islands">
         <div class="panel-list">
           @if (ExcludedList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
           @foreach (var isl in ExcludedList)
@@ -42,7 +40,7 @@
             </div>
           }
         </div>
-      </section>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -56,7 +54,7 @@
   <Inspector>
       @if (Selected is { } sel)
       {
-        <section class="panel-section" @key="sel.Id">
+        <Section @key="sel.Id">
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
             <span class="detail-label">@Label(sel)</span>
@@ -85,18 +83,18 @@
               <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => ToggleExclude(sel)">Exclude island</button>
             }
           </div>
-        </section>
+        </Section>
       }
       else
       {
-        <section class="panel-section">
+        <Section>
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
             <span class="detail-label">Islands</span>
           </div>
           <p class="section-desc">Select an island — in the list or on the canvas — to see its details and
             exclude it.</p>
-        </section>
+        </Section>
       }
   </Inspector>
 

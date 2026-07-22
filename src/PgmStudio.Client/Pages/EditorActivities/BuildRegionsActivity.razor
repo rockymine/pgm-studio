@@ -11,33 +11,35 @@
     <ChildContent>
       @if (step == 1)
       {
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Maximum Build Height</h2>
+        <Section Title="Maximum Build Height">
+          <Actions>
             <span class="badge badge--dim">Step 1</span>
-          </div>
-          <p class="section-desc">Maximum Y level above which no block placement is permitted. Leave blank to enforce no vertical ceiling.</p>
-          <div class="field">
-            <label class="field-label">Blocks</label>
-            <input class="field-input" type="number" min="0" max="255" step="1" placeholder="None"
-                   value="@maxHeight" @onchange="OnHeightInput" />
-          </div>
-          <div class="panel-actions">
-            <button class="action-btn action-btn--primary" disabled="@(!heightDirty)" @onclick="SaveHeight">Save</button>
-            <span class="panel-save-status">@heightStatus</span>
-          </div>
-        </section>
+          </Actions>
+          <ChildContent>
+            <p class="section-desc">Maximum Y level above which no block placement is permitted. Leave blank to enforce no vertical ceiling.</p>
+            <div class="field">
+              <label class="field-label">Blocks</label>
+              <input class="field-input" type="number" min="0" max="255" step="1" placeholder="None"
+                     value="@maxHeight" @onchange="OnHeightInput" />
+            </div>
+            <div class="panel-actions">
+              <button class="action-btn action-btn--primary" disabled="@(!heightDirty)" @onclick="SaveHeight">Save</button>
+              <span class="panel-save-status">@heightStatus</span>
+            </div>
+          </ChildContent>
+        </Section>
       }
       else
       {
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Build Region</h2>
+        <Section Title="Build Region">
+          <Actions>
             <span class="badge badge--dim">Step 2</span>
-          </div>
-          @if (groups is null) { <div class="list-empty">Loading…</div> }
-          else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selSet" OnSelect="OnTreeSelect" /> }
-        </section>
+          </Actions>
+          <ChildContent>
+            @if (groups is null) { <div class="list-empty">Loading…</div> }
+            else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selSet" OnSelect="OnTreeSelect" /> }
+          </ChildContent>
+        </Section>
       }
     </ChildContent>
     <Footer>
@@ -59,9 +61,9 @@
     <EditorCanvas @ref="canvas" Slug="@Slug" Category="build" DrawCategory="build" DraftStep="build" OnSelect="OnCanvasSelect" OnRegionCreated="ReloadBuild" OnGeometrySaved="OnGeometrySaved" />
     <div class="sidebar-handle"></div>
     <Inspector>
-        <div class="panel-section">
+        <Section>
           <RegionInspector Node="RegionNodeSel" Slug="@Slug" OnSelectChild="Select" OnDelete="DeleteRegion" OnRename="RenameRegion" OnSetY="SetRegionY" OnSetCoord="OnSetCoord" />
-        </div>
+        </Section>
     </Inspector>
   }
 </Workspace>

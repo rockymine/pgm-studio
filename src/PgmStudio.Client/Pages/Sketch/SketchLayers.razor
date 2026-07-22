@@ -4,9 +4,7 @@
    active layer's name + base Y. Lower/other layers render ghosted on the canvas; the iso preview stacks
    them. State comes from the JS bridge (OnLayers); edits round-trip via the host. *@
 
-<section class="panel-section">
-  <div class="section-header section-header--ruled"><h2 class="section-title">Layers</h2></div>
-
+<Section Title="Layers">
   @foreach (var L in Layers)
   {
     <div class="list-row list-row--compact @(L.Id == ActiveId ? "list-row--active" : null)"
@@ -36,4 +34,4 @@
       <NumberField Value="ActiveLayer.BaseY" ValueChanged="BaseYActive" />
     </div>
   }
-</section>
+</Section>

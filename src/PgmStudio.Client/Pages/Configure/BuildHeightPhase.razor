@@ -7,8 +7,7 @@
 <Workspace>
 
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Maximum Build Height</h2></div>
+      <Section Title="Maximum Build Height">
         <p class="section-desc">The Y level above which no block placement is permitted (defaults to 20,
           max 100). Drag the line on the side-view, or type a value. Leave blank for no vertical ceiling.</p>
         <div class="field">
@@ -16,7 +15,7 @@
           <input class="field-input" type="number" min="0" max="100" step="1" placeholder="None"
                  value="@height" @onchange="OnHeightInput" />
         </div>
-      </section>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>

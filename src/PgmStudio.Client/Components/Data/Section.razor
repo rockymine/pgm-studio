@@ -5,14 +5,14 @@
    paragraph, the body (ChildContent), and an optional Footer (.section-footer). panel-section is a
    flex column with gap, so header/desc/body/footer space themselves. *@
 
-<section class="@Cls">
+<section class="@Cls" @attributes="Extra">
     @if (Header is not null)
     {
         @Header
     }
     else if (!string.IsNullOrEmpty(Title) || Actions is not null)
     {
-        <SectionHeader Variant="@Variant" Title="@Title">@Actions</SectionHeader>
+        <SectionHeader Variant="@Variant" Title="@Title" Required="@Required">@Actions</SectionHeader>
     }
     @if (Description is not null) { <p class="section-desc">@Description</p> }
     @ChildContent
@@ -22,6 +22,7 @@
 @code {
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Variant { get; set; } = "ruled";   // header context: ruled | list | plain
+    [Parameter] public bool Required { get; set; }                // appends the field-required asterisk to the title
     [Parameter] public RenderFragment? Description { get; set; }
     [Parameter] public RenderFragment? Actions { get; set; }      // header right slot
     [Parameter] public RenderFragment? Header { get; set; }       // overrides Title/Actions entirely
@@ -29,6 +30,7 @@
     [Parameter] public string? FooterClass { get; set; }          // e.g. section-footer--end / --separated
     [Parameter] public string? Class { get; set; }
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
 
     private string Cls => string.Join(' ', new[] { "panel-section", Class }.Where(c => !string.IsNullOrEmpty(c)));
     private string FooterCls => string.Join(' ', new[] { "section-footer", FooterClass }.Where(c => !string.IsNullOrEmpty(c)));

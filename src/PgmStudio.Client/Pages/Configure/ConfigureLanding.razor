@@ -19,11 +19,9 @@
     <Workspace @key="step">
       <ContentColumn MaxWidth="760">
 
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Open a world folder</h2>
-            <span class="badge badge--success">no map.xml needed</span>
-          </div>
+        <Section Title="Open a world folder">
+          <Actions><span class="badge badge--success">no map.xml needed</span></Actions>
+          <ChildContent>
           <p class="section-desc">Worlds that have terrain but no <code>map.xml</code> yet — the new-map
             candidates. Pick one to scan it.</p>
 
@@ -59,13 +57,12 @@
               </span>
             </div>
           }
-        </section>
+          </ChildContent>
+        </Section>
 
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">From a download link</h2>
-            <span class="badge badge--dim">Overcast / S3 zip</span>
-          </div>
+        <Section Title="From a download link">
+          <Actions><span class="badge badge--dim">Overcast / S3 zip</span></Actions>
+          <ChildContent>
           <p class="section-desc">Paste a link to a world download (an Overcast / S3 <code>…/download</code>
             zip) and the studio fetches and imports it server-side — no local files needed. Only
             allow-listed hosts can be fetched.</p>
@@ -81,7 +78,8 @@
               </button>
             </div>
           </div>
-        </section>
+          </ChildContent>
+        </Section>
 
       </ContentColumn>
     </Workspace>
@@ -93,8 +91,7 @@
     <Workspace @key="step">
 
       <Sidebar>
-          <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Files</h2></div>
+          <Section Title="Files">
             <div class="panel-list">
               <div class="list-row list-row--compact list-row--muted">
                 <span class="geo-type-icon"><i data-lucide="folder-open"></i></span>
@@ -110,10 +107,9 @@
                 <span class="badge badge--dim">absent</span>
               </div>
             </div>
-          </section>
+          </Section>
 
-          <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Detected</h2></div>
+          <Section Title="Detected">
             <div class="panel-list">
               @foreach (var f in Findings.Where(f => f.Group == "detected"))
               {
@@ -134,10 +130,9 @@
             {
               <p class="section-desc">No symmetry detected, so there's no suggested team count yet — you'll set teams up later.</p>
             }
-          </section>
+          </Section>
 
-          <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Already built</h2></div>
+          <Section Title="Already built">
             <div class="panel-list">
               @foreach (var f in Findings.Where(f => f.Group == "built"))
               {
@@ -148,7 +143,7 @@
                 </div>
               }
             </div>
-          </section>
+          </Section>
       </Sidebar>
 
       <div class="sidebar-handle"></div>
@@ -165,7 +160,7 @@
       <div class="sidebar-handle"></div>
 
       <Inspector>
-          <section class="panel-section" @key="selectedFinding">
+          <Section @key="selectedFinding">
             <div class="detail-header">
               <span class="geo-type-icon detail-icon--muted"><i data-lucide="@FindingIcon(selectedFinding)"></i></span>
               <span class="detail-label">@FindingLabel(selectedFinding)</span>
@@ -221,7 +216,7 @@
                 </div>
               }
             </div>
-          </section>
+          </Section>
       </Inspector>
 
     </Workspace>
@@ -232,11 +227,9 @@
   {
     <Workspace @key="step">
       <ContentColumn MaxWidth="920">
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">What happens next</h2>
-            <span class="badge badge--dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymmetryInfo.Label(symType)}" : "")</span>
-          </div>
+        <Section Title="What happens next">
+          <Actions><span class="badge badge--dim">@importedSlug · @islandCount islands@(symType is not null ? $" · {SymmetryInfo.Label(symType)}" : "")</span></Actions>
+          <ChildContent>
           <p class="section-desc">Six guided phases take <strong>@importedSlug</strong> from terrain to a
             PGM-ready <code>map.xml</code> — and the studio does the heavy lifting at every step.</p>
 
@@ -264,7 +257,8 @@
           <div class="section-footer">
             <span class="panel-save-status"><strong>Start authoring</strong> opens the wizard at Map Info.</span>
           </div>
-        </section>
+          </ChildContent>
+        </Section>
       </ContentColumn>
     </Workspace>
   }

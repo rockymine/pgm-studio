@@ -72,16 +72,21 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   the app shell is copy-pasted 11×. Full audit, atomic tree, API conventions (foldered under
   `Components/`, param-first + slot override; global CSS, no `.razor.css`), and the class→component map
   are the **contract in `docs/contracts/ui-conventions.md`** — follow it; `/design` is the
-  zero-visual-diff regression oracle (components emit the same classes). **Phases A–C shipped**
-  (`FEATURES.md`): the atoms + `Section`, the shell (`StudioShell` + topbar/rail/footer), and the
-  workspace shells (`Workspace`/`Sidebar`/`Inspector`/`ContentColumn`, adopted across ~28 activity/phase
-  surfaces). Remaining:
+  zero-visual-diff regression oracle (components emit the same classes). **Phases A–C + D.1 shipped**
+  (`FEATURES.md`): the atoms + `Section`, the shell (`StudioShell` + topbar/rail/footer), the workspace
+  shells (`Workspace`/`Sidebar`/`Inspector`/`ContentColumn`), and `Section` adopted across every
+  production surface (0 raw `panel-section` outside the `/concepts` + `/design` leave-raw zone).
+  Remaining:
 
-  **D** — the long tail: componentize `Card`/`CardGrid`, `CoordField`/`CoordRow`, `DetailHeader`,
-  `FlowBar`, `Console`, `Chip`-adjacent bits and an `Icon` atom (centralize the `<i data-lucide>` +
-  `@key` lucide gotcha); reconcile the near-duplicate classes (`section-heading` vs `section-header`);
-  **regenerate `/design` from the real components** so the showcase can't drift; and drop the inline
-  `style=` occurrences now expressible as component params.
+  **D.2 — atom adoption** (the components exist; just not adopted): `field`/`field-label` → `<Field>`,
+  `action-btn` → `<Button>`, `badge` → `<Badge>`, `list-row` → `<ListRow>`, `filter-chip` → `<Chip>`,
+  across the same production surfaces. Section-only D.1 left these raw by design.
+
+  **D.3 — build + adopt the new components**: `Card`/`CardGrid`, `CoordField`/`CoordRow`, `DetailHeader`,
+  `FlowBar`, `Console`, and an `Icon` atom (centralize the `<i data-lucide>` + `@key` lucide gotcha);
+  reconcile the near-duplicate classes (`section-heading` vs `section-header`); **regenerate `/design`
+  from the real components** so the showcase can't drift; and drop the inline `style=` occurrences now
+  expressible as component params.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.

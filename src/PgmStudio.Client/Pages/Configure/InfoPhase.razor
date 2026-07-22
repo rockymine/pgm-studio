@@ -8,10 +8,7 @@
 <Workspace>
   <ContentColumn MaxWidth="720">
 
-    <section class="panel-section">
-      <div class="section-header section-header--ruled">
-        <h2 class="section-title">Identity</h2>
-      </div>
+    <Section Title="Identity">
       <div class="section-body">
         <div class="field">
           <label class="field-label">Map name <span class="field-required">*</span></label>
@@ -35,36 +32,34 @@
         <p class="section-desc">Version, mode, and objective are auto-derived — the generator sets them, so
           they aren't edited here.</p>
       </div>
-    </section>
+    </Section>
 
-    <section class="panel-section">
-      <div class="section-header section-header--ruled">
-        <h2 class="section-title">Authors <span class="field-required">*</span></h2>
-        <button class="action-btn" @onclick="AddAuthor">+ Add</button>
-      </div>
-      <div class="author-list">
-        @foreach (var p in authors) { @PersonRow(p) }
-      </div>
-      <p class="section-desc">At least one verified author is required. Usernames are checked against
-        Mojang when you leave the field.</p>
-    </section>
-
-    <section class="panel-section">
-      <div class="section-header section-header--ruled">
-        <h2 class="section-title">Contributors</h2>
-        <button class="action-btn" @onclick="AddContributor">+ Add</button>
-      </div>
-      @if (contributors.Count == 0)
-      {
-        <p class="section-desc">Optional — people who helped but aren't lead authors.</p>
-      }
-      else
-      {
+    <Section Title="Authors" Required>
+      <Actions><button class="action-btn" @onclick="AddAuthor">+ Add</button></Actions>
+      <ChildContent>
         <div class="author-list">
-          @foreach (var p in contributors) { @PersonRow(p) }
+          @foreach (var p in authors) { @PersonRow(p) }
         </div>
-      }
-    </section>
+        <p class="section-desc">At least one verified author is required. Usernames are checked against
+          Mojang when you leave the field.</p>
+      </ChildContent>
+    </Section>
+
+    <Section Title="Contributors">
+      <Actions><button class="action-btn" @onclick="AddContributor">+ Add</button></Actions>
+      <ChildContent>
+        @if (contributors.Count == 0)
+        {
+          <p class="section-desc">Optional — people who helped but aren't lead authors.</p>
+        }
+        else
+        {
+          <div class="author-list">
+            @foreach (var p in contributors) { @PersonRow(p) }
+          </div>
+        }
+      </ChildContent>
+    </Section>
 
   </ContentColumn>
 </Workspace>

@@ -8,9 +8,8 @@
 <Workspace>
 
   <Sidebar>
-      <section class="panel-section">
+      <Section Title="Wool rooms">
         @{ var rows = Rows(); }
-        <div class="section-header section-header--ruled"><h2 class="section-title">Wool rooms</h2></div>
         <p class="section-desc">With the <strong>rectangle tool</strong>, drag the room around a wool's source —
           draw several for a multi-part room. The symmetry fills the partner wools. Click a rectangle to select
           it, then drag the handles on the canvas to resize.</p>
@@ -28,7 +27,7 @@
             </div>
           }
         </div>
-      </section>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -42,7 +41,7 @@
       @if (Selected is { } sel)
       {
         <div class="panel-stack" @key="sel.RegionId">
-          <section class="panel-section">
+          <Section>
             <div class="detail-header">
               <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="rectangle-horizontal"></i></span>
               <span class="detail-label detail-label--mono">@sel.Name</span>
@@ -77,15 +76,13 @@
                   edit the authored partner to change it.</p>
               }
             </div>
-          </section>
+          </Section>
 
           @if (sel.Authored)
           {
-            <section class="panel-section">
-              <div class="section-header section-header--ruled">
-                <h2 class="section-title">Auto-wiring</h2>
-                <span class="badge badge--dim">derived</span>
-              </div>
+            <Section Title="Auto-wiring">
+              <Actions><span class="badge badge--dim">derived</span></Actions>
+              <ChildContent>
               <div class="panel-list">
                 <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = not-@TeamSlug(OwnerSlug(sel.Color))</span><span class="list-tag">room defense</span></div>
                 <div class="list-row list-row--compact list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = not-@TeamSlug(OwnerSlug(sel.Color))</span><span class="list-tag">build/break</span></div>
@@ -96,19 +93,20 @@
               </div>
               <p class="section-desc">The generator wires defense + build/break on the whole room and capture on
                 the monuments — derived at save.</p>
-            </section>
+              </ChildContent>
+            </Section>
           }
         </div>
       }
       else
       {
-        <section class="panel-section">
+        <Section>
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
             <span class="detail-label">Wool room</span>
           </div>
           <p class="section-desc">Draw a rectangle over a wool's source, or select one to inspect and resize it.</p>
-        </section>
+        </Section>
       }
   </Inspector>
 

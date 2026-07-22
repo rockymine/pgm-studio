@@ -7,8 +7,7 @@
 <Workspace>
 
   <Sidebar style="width:200px;flex:0 0 200px">
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Containers</h2></div>
+      <Section Title="Containers">
         @if (loading)
         {
           <p class="panel-empty-msg">Loading…</p>
@@ -32,7 +31,7 @@
           <p class="section-desc">The flow-bar <strong>Export</strong> downloads the full document
             (<code>@(Wizard.Slug).xml</code>).</p>
         }
-      </section>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -45,19 +44,19 @@
       }
       else if (blocked is not null)
       {
-        <section class="panel-section">
+        <Section>
           <div class="panel-warning">
             <strong>Export blocked — HTTP&nbsp;409.</strong> @blocked. A map must be traversable before it can
             export: go back to <strong>Pre-flight</strong> to see the gap, then <strong>Build</strong> to bridge
             it. Export re-checks when you return.
           </div>
-        </section>
+        </Section>
       }
       else if (error is not null)
       {
-        <section class="panel-section">
+        <Section>
           <div class="panel-warning"><strong>Couldn't generate the XML.</strong> @error</div>
-        </section>
+        </Section>
       }
       else
       {

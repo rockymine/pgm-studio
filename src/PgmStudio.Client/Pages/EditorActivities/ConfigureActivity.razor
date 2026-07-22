@@ -19,17 +19,17 @@
 
       @if (step == 1)
       {
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Islands</h2>
+        <Section Title="Islands">
+          <Actions>
             <span class="badge badge--dim">Step 1</span>
-          </div>
-          <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer
-            towers). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
-        </section>
+          </Actions>
+          <ChildContent>
+            <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer
+              towers). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
+          </ChildContent>
+        </Section>
 
-        <section class="panel-section">
-          <div class="section-header section-header--ruled"><h2 class="section-title">Included Islands</h2></div>
+        <Section Title="Included Islands">
           <div class="panel-list">
             @if (IncludedIslands.Count == 0) { <div class="list-empty">No islands detected.</div> }
             @foreach (var isl in IncludedIslands)
@@ -44,10 +44,9 @@
               </div>
             }
           </div>
-        </section>
+        </Section>
 
-        <section class="panel-section">
-          <div class="section-header section-header--ruled"><h2 class="section-title">Excluded Islands</h2></div>
+        <Section Title="Excluded Islands">
           <div class="panel-list">
             @if (ExcludedIslandsList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
             @foreach (var isl in ExcludedIslandsList)
@@ -62,35 +61,35 @@
               </div>
             }
           </div>
-        </section>
+        </Section>
       }
       else
       {
-        <section class="panel-section">
-          <div class="section-header section-header--ruled">
-            <h2 class="section-title">Symmetry</h2>
+        <Section Title="Symmetry">
+          <Actions>
             <span class="badge badge--dim">Step 2</span>
-          </div>
-          <p class="section-desc">Confirm the detected symmetry, choose a different one, or reject it.</p>
-          <div class="panel-list">
-            @foreach (var m in symModes)
-            {
-              <div class="list-row list-row--compact @(symChoice == m.Type ? "list-row--selected" : null)" @onclick="() => SelectSym(m.Type)">
-                <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
-                <span class="badge @(m.Detected ? "badge--success" : "badge--neutral")">@($"{Math.Round(m.Confidence * 100)}%")</span>
-                @if (m.Detected) { <span class="badge badge--dim">detected</span> }
+          </Actions>
+          <ChildContent>
+            <p class="section-desc">Confirm the detected symmetry, choose a different one, or reject it.</p>
+            <div class="panel-list">
+              @foreach (var m in symModes)
+              {
+                <div class="list-row list-row--compact @(symChoice == m.Type ? "list-row--selected" : null)" @onclick="() => SelectSym(m.Type)">
+                  <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
+                  <span class="badge @(m.Detected ? "badge--success" : "badge--neutral")">@($"{Math.Round(m.Confidence * 100)}%")</span>
+                  @if (m.Detected) { <span class="badge badge--dim">detected</span> }
+                </div>
+              }
+              <div class="list-row list-row--compact @(symChoice == "none" ? "list-row--selected" : null)" @onclick='() => SelectSym("none")'>
+                <span class="list-label">No symmetry</span>
               </div>
-            }
-            <div class="list-row list-row--compact @(symChoice == "none" ? "list-row--selected" : null)" @onclick='() => SelectSym("none")'>
-              <span class="list-label">No symmetry</span>
             </div>
-          </div>
-        </section>
+          </ChildContent>
+        </Section>
 
         @if (symChoice is not null && symChoice != "none")
         {
-          <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Center</h2></div>
+          <Section Title="Center">
             <div class="field-row">
               <div class="field">
                 <label class="field-label">X</label>
@@ -102,7 +101,7 @@
               </div>
             </div>
             <button class="action-btn" @onclick="ResetCenter">Reset to detected</button>
-          </section>
+          </Section>
         }
       }
     </ChildContent>

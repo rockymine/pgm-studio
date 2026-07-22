@@ -10,11 +10,9 @@
 <Workspace>
 
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Objective wools</h2>
-          <span class="badge @(Included > 0 ? "badge--success" : "badge--dim")">@Included objective@(Included == 1 ? "" : "s")</span>
-        </div>
+      <Section Title="Objective wools">
+        <Actions><span class="badge @(Included > 0 ? "badge--success" : "badge--dim")">@Included objective@(Included == 1 ? "" : "s")</span></Actions>
+        <ChildContent>
         <p class="section-desc">Detected from the world — signed monuments name each objective, the island
           gives its owner. <strong>Toggle</strong> a row to include/exclude; physical wool no monument names
           is excluded as decorative. Select a wool to fix its owner.</p>
@@ -45,7 +43,8 @@
           </div>
           <button class="action-btn action-btn--full action-btn--separated" @onclick="AddMissing"><i data-lucide="plus"></i> Add a wool</button>
         }
-      </section>
+        </ChildContent>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -58,7 +57,7 @@
   <Inspector>
       @if (Selected is { } sel)
       {
-        <section class="panel-section" @key="sel.Color">
+        <Section @key="sel.Color">
           <div class="detail-header">
             <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="@(sel.Signed ? "sparkles" : "square")"></i></span>
             <span class="detail-label detail-label--mono">@sel.Color</span>
@@ -131,18 +130,18 @@
               <p class="section-desc">Excluded — @sel.ExcludeReason.</p>
             }
           </div>
-        </section>
+        </Section>
       }
       else
       {
-        <section class="panel-section">
+        <Section>
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="goal"></i></span>
             <span class="detail-label">Wool</span>
           </div>
           <p class="section-desc">Select a detected wool to confirm it, fix its owner, or exclude it as
             decoration. The included wools become the map's objectives.</p>
-        </section>
+        </Section>
       }
   </Inspector>
 

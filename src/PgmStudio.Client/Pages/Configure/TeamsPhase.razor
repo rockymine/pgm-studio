@@ -24,11 +24,9 @@
         </SmartSuggestion>
       }
 
-      <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Teams</h2>
-          <button class="action-btn" @onclick="AddTeam">+ Add</button>
-        </div>
+      <Section Title="Teams">
+        <Actions><button class="action-btn" @onclick="AddTeam">+ Add</button></Actions>
+        <ChildContent>
         <div class="panel-list">
           @if (teams.Count == 0) { <div class="list-empty">No teams yet — accept the suggestion or add one.</div> }
           @for (var i = 0; i < teams.Count; i++)
@@ -49,13 +47,12 @@
           <p class="section-desc">Team 0 is <strong>authored</strong>; the rest are <strong>orbit</strong> —
             derived by @SymmetryInfo.ShortLabel(symMode) symmetry from team 0's spawn (next step).</p>
         }
-      </section>
+        </ChildContent>
+      </Section>
 
-      <section class="panel-section">
-        <div class="section-header section-header--ruled">
-          <h2 class="section-title">Island Assignment</h2>
-          <span class="badge badge--dim">authoring help</span>
-        </div>
+      <Section Title="Island Assignment">
+        <Actions><span class="badge badge--dim">authoring help</span></Actions>
+        <ChildContent>
         <p class="section-desc">Select a team above, then click its islands on the canvas to tag them.
           Tagging tints them and fixes the orbit order; untagged islands stay neutral (a contested centre).</p>
         @if (teams.Count > 0)
@@ -71,10 +68,10 @@
             }
           </div>
         }
-      </section>
+        </ChildContent>
+      </Section>
 
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Team Size &amp; Kit</h2></div>
+      <Section Title="Team Size &amp; Kit">
         <div class="section-body">
           <div class="field">
             <label class="field-label">Max Players <span class="list-tag">all teams</span></label>
@@ -85,7 +82,7 @@
             <input class="field-input" type="text" value="Standard" disabled title="Auto-applied" />
           </div>
         </div>
-      </section>
+      </Section>
 
   </Sidebar>
 
@@ -99,7 +96,7 @@
   <Inspector>
       @if (Selected is { } sel)
       {
-        <section class="panel-section" @key="sel.Id">
+        <Section @key="sel.Id">
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="users"></i></span>
             <span class="detail-label detail-label--mono">@sel.Id</span>
@@ -128,18 +125,18 @@
             </div>
             <p class="section-desc">Orbit position @teams.IndexOf(sel).@(teams.IndexOf(sel) == 0 ? $" The others follow by {SymmetryInfo.ShortLabel(symMode)} symmetry." : "")</p>
           </div>
-        </section>
+        </Section>
       }
       else
       {
-        <section class="panel-section">
+        <Section>
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="users"></i></span>
             <span class="detail-label">Teams</span>
           </div>
           <p class="section-desc">Create teams, then select one to edit its name / colour and tag its
             islands on the canvas.</p>
-        </section>
+        </Section>
       }
   </Inspector>
 

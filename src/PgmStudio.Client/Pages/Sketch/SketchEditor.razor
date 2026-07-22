@@ -32,7 +32,7 @@
                reframe mid-draw. *@
             <details class="panel-accordion">
               <summary class="section-header section-header--ruled"><h2 class="section-title">Frame</h2></summary>
-              <div class="panel-section" style="margin-top: var(--space-3);">
+              <Section style="margin-top: var(--space-3);">
                 <div class="field">
                   <label class="field-label">Footprint</label>
                   <select class="field-input" value="@preset" @onchange="OnPresetChange">
@@ -67,7 +67,7 @@
                   <label class="field-label">Symmetry centre Z</label>
                   <NumberField Value="centerZ" ValueChanged="OnCenterZ" />
                 </div>
-              </div>
+              </Section>
             </details>
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer" OnAdd="AddLayer"
                           OnDelete="DeleteLayer" OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" />

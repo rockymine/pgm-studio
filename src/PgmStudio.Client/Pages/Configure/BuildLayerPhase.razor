@@ -8,8 +8,7 @@
 <Workspace>
 
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Buildable Layer</h2></div>
+      <Section Title="Buildable Layer">
         <p class="section-desc">With the <strong>rectangle tool</strong>, drag the bridges and platforms over
           the void where players may build — the islands' terrain is already buildable. Add <strong>holes</strong>
           to carve no-build cutouts back out. The <strong>select tool</strong> picks a shape to resize it.</p>
@@ -42,12 +41,11 @@
         {
           <p class="section-desc">A hole only carves out a bridge — add a bridge for it to apply.</p>
         }
-      </section>
+      </Section>
 
       @if (overlayOn)
       {
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Buildability</h2></div>
+      <Section Title="Buildability">
         <p class="section-desc"><strong>Buildable</strong> shades every column by whether players can build
           there:</p>
         <div class="panel-list">
@@ -59,7 +57,7 @@
         <p class="section-desc"><strong>Orange</strong> is open void where building is denied — draw a bridge
           across it to link your islands. <strong>Green</strong> already lets players build (terrain or a
           bridge you drew). It refreshes when you save the step.</p>
-      </section>
+      </Section>
       }
   </Sidebar>
 
@@ -76,7 +74,7 @@
   <Inspector>
       @if (Selected is { } sel)
       {
-        <section class="panel-section" @key="sel.Id">
+        <Section @key="sel.Id">
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
             <span class="detail-label detail-label--mono">@Label(sel)</span>
@@ -102,17 +100,17 @@
               <button class="action-btn action-btn--danger action-btn--fill" @onclick="() => Remove(sel.Id)">Remove @(sel.Hole ? "hole" : "bridge")</button>
             </div>
           </div>
-        </section>
+        </Section>
       }
       else
       {
-        <section class="panel-section">
+        <Section>
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
             <span class="detail-label">Buildable layer</span>
           </div>
           <p class="section-desc">Draw a bridge or hole, or select one to inspect and resize it.</p>
-        </section>
+        </Section>
       }
   </Inspector>
 

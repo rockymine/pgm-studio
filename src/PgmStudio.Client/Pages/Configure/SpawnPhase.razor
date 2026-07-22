@@ -9,8 +9,7 @@
 <Workspace>
 
   <Sidebar>
-      <section class="panel-section">
-        <div class="section-header section-header--ruled"><h2 class="section-title">Spawn Points</h2></div>
+      <Section Title="Spawn Points">
         <p class="section-desc">With the <strong>point tool</strong>, click the map to place a spawn — it
           takes the team of the island you click, and the confirmed symmetry orbits it onto the other teams
           (each reassigned by the island it lands on). The <strong>select tool</strong> picks a placed marker
@@ -38,7 +37,7 @@
             </div>
           }
         </div>
-      </section>
+      </Section>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -54,7 +53,7 @@
   <Inspector>
       @if (Selected is { } sel)
       {
-        <section class="panel-section" @key="sel.Team">
+        <Section @key="sel.Team">
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="@PointIcon"></i></span>
             <span class="detail-label detail-label--mono">@(IsObserver(sel) ? "observer-spawn" : $"{sel.Team}-spawn")</span>
@@ -96,18 +95,18 @@
                 The yaw auto-aims at the map middle when you move it (edit it to override).</p>
             }
           </div>
-        </section>
+        </Section>
       }
       else
       {
-        <section class="panel-section">
+        <Section>
           <div class="detail-header">
             <span class="geo-type-icon detail-icon--muted"><i data-lucide="@PointIcon"></i></span>
             <span class="detail-label">Spawn point</span>
           </div>
           <p class="section-desc">Click an island on the canvas to place a spawn; orbit fills the rest.
             Select a spawn to fine-tune its coordinates.</p>
-        </section>
+        </Section>
       }
   </Inspector>
 

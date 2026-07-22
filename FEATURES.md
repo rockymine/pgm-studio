@@ -116,6 +116,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   and `style` pass-through), and `ContentColumn` (the centered max-width "vertical content page") under
   `Components/Layout/`. Adopted across the ~28 EditorActivity / Configure-phase / Sketch / Plan
   surfaces; `sidebar-handle` bars stay raw so `panel-resize.js` keeps resizing by DOM sibling. (C12 phase C)
+- **`Section` adopted across every production surface** — the hand-typed `panel-section` →
+  `section-header` → `section-title` skeleton is gone; ~95 sections across 31 Configure / EditorActivity /
+  Sketch / Plan files render `<Section Title=… Required? >` with `Actions`/`Header`/`Footer` slots (0 raw
+  `panel-section` outside the `/concepts` + `/design` leave-raw zone). `Section` gained a `Required`
+  asterisk param and `CaptureUnmatchedValues` (`style`/`id`/`@key` pass-through). Zero visual diff — the
+  component emits the identical classes. (C12 phase D.1)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

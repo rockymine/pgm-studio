@@ -28,8 +28,7 @@
       <Workspace>
         <ContentColumn MaxWidth="760">
 
-          <section class="panel-section">
-            <div class="section-header section-header--ruled"><h2 class="section-title">Identity</h2></div>
+          <Section Title="Identity">
             <div class="section-body">
               <div class="field">
                 <label class="field-label">Map name</label>
@@ -37,11 +36,10 @@
                        @onkeydown="@(e => { if (e.Key == "Enter") _ = Submit(); })" />
               </div>
             </div>
-          </section>
+          </Section>
 
           <div class="cfg-step-panel">
-              <section class="panel-section">
-                <div class="section-header section-header--ruled"><h2 class="section-title">Footprint</h2></div>
+              <Section Title="Footprint">
                 <div class="section-body">
                   <div class="choice-row">
                     <button class="choice-tile @(preset == "landscape" ? "choice-tile--active" : null)"
@@ -73,10 +71,9 @@
                     </div>
                   </div>
                 </div>
-              </section>
+              </Section>
 
-              <section class="panel-section">
-                <div class="section-header section-header--ruled"><h2 class="section-title">Symmetry</h2></div>
+              <Section Title="Symmetry">
                 <div class="section-body">
                   <div class="choice-row">
                     <button class="choice-tile @(mode == "mirror_x" ? "choice-tile--active" : null)"
@@ -126,7 +123,7 @@
                     </div>
                   </div>
                 </div>
-              </section>
+              </Section>
           </div>
 
           <div class="section-footer">
