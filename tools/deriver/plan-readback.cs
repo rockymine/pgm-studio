@@ -23,7 +23,7 @@ foreach (var path in args)
         Console.WriteLine($"{Path.GetFileName(path)}: PARSE FAILED");
         continue;
     }
-    Console.WriteLine($"── {plan.Meta.Name} ({Path.GetFileName(path)}) ──");
+    Console.WriteLine($"── {plan.Meta?.Name ?? "(unnamed)"} ({Path.GetFileName(path)}) ──");
 
     var boxes = plan.Pieces.Where(p => p.Role == PlanRoles.Buffer).ToList();
     var terrain = plan.Pieces.Where(p => p.Role != PlanRoles.Buffer).ToList();
