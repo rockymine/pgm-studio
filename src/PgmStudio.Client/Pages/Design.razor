@@ -105,31 +105,27 @@
           <div class="ds-example-label">Left sidebar form</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <section class="panel-section">
-                <div class="section-header section-header--ruled">
-                  <h2 class="section-title">Map Identity</h2>
-                </div>
-                <div class="section-body">
-                  <div class="field">
-                    <label class="field-label" for="ds-map-name">Map Name <span class="field-required">*</span></label>
-                    <input id="ds-map-name" class="field-input" value="Annealing V"/>
-                  </div>
-                  <div class="field-row">
-                    <div class="field">
-                      <label class="field-label" for="ds-version">Version</label>
-                      <input id="ds-version" class="field-input" value="1.0.0"/>
-                    </div>
-                    <div class="field field--compact">
-                      <label class="field-label" for="ds-mode">Mode</label>
-                      <input id="ds-mode" class="field-input" value="ctw" disabled/>
+              <Section Title="Map Identity">
+                <ChildContent>
+                  <div class="section-body">
+                    <Field Label="Map Name" Required For="ds-map-name">
+                      <input id="ds-map-name" class="field-input" value="Annealing V"/>
+                    </Field>
+                    <div class="field-row">
+                      <Field Label="Version" For="ds-version">
+                        <input id="ds-version" class="field-input" value="1.0.0"/>
+                      </Field>
+                      <Field Label="Mode" For="ds-mode" Class="field--compact">
+                        <input id="ds-mode" class="field-input" value="ctw" disabled/>
+                      </Field>
                     </div>
                   </div>
-                </div>
-                <div class="section-footer">
-                  <button class="action-btn action-btn--primary">Save changes</button>
+                </ChildContent>
+                <Footer>
+                  <Button Variant="primary">Save changes</Button>
                   <span class="panel-save-status">Saved</span>
-                </div>
-              </section>
+                </Footer>
+              </Section>
             </div>
           </div>
         </article>
@@ -139,42 +135,38 @@
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
               <div class="panel-stack">
-                <section class="panel-section">
-                  <div class="detail-header">
-                    <span class="geo-type-icon detail-icon--muted"><i data-lucide="cylinder"></i></span>
-                    <span class="detail-label detail-label--mono">red-spawn</span>
-                    <span class="badge badge--neutral">Cylinder</span>
-                  </div>
-                  <div class="section-body">
-                    <div class="field">
-                      <label class="field-label">Base</label>
-                      <div class="ctrl-row">
-                        <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="48.5"/></div>
-                        <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="9"/></div>
-                        <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="-187"/></div>
-                      </div>
+                <Section FooterClass="section-footer--separated">
+                  <Header>
+                    <DetailHeader Icon="cylinder" IconMuted Mono Label="red-spawn">
+                      <Badge Kind="neutral">Cylinder</Badge>
+                    </DetailHeader>
+                  </Header>
+                  <ChildContent>
+                    <div class="section-body">
+                      <Field Label="Base">
+                        <div class="ctrl-row">
+                          <CoordField Prefix="X" Value="48.5" />
+                          <CoordField Prefix="Y" Value="9" />
+                          <CoordField Prefix="Z" Value="-187" />
+                        </div>
+                      </Field>
+                      <Field Label="Dimensions">
+                        <div class="ctrl-row">
+                          <CoordField Prefix="R" Value="0.5" />
+                          <CoordField Prefix="H" Value="2" />
+                        </div>
+                      </Field>
                     </div>
-                    <div class="field">
-                      <label class="field-label">Dimensions</label>
-                      <div class="ctrl-row">
-                        <div class="coord-field"><span class="coord-prefix">R</span><input class="coord-input" value="0.5"/></div>
-                        <div class="coord-field"><span class="coord-prefix">H</span><input class="coord-input" value="2"/></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="section-footer section-footer--separated">
-                    <button class="action-btn action-btn--danger action-btn--fill">Delete region</button>
-                  </div>
-                </section>
-                <section class="panel-section">
-                  <div class="section-header section-header--ruled">
-                    <h2 class="section-title">Spawn Assignment</h2>
-                  </div>
-                  <div class="field">
-                    <label class="field-label">Team</label>
+                  </ChildContent>
+                  <Footer>
+                    <Button Variant="danger" Fill>Delete region</Button>
+                  </Footer>
+                </Section>
+                <Section Title="Spawn Assignment">
+                  <Field Label="Team">
                     <select class="field-input"><option>Red</option></select>
-                  </div>
-                </section>
+                  </Field>
+                </Section>
               </div>
             </div>
           </div>
@@ -196,21 +188,16 @@
           <div class="ds-example-label">Field row</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <section class="panel-section">
-                <div class="section-header section-header--ruled">
-                  <h2 class="section-title">Map Version</h2>
-                </div>
+              <Section Title="Map Version">
                 <div class="field-row">
-                  <div class="field">
-                    <label class="field-label" for="ds-version-major">Version</label>
+                  <Field Label="Version" For="ds-version-major">
                     <input id="ds-version-major" class="field-input" value="1.0.0"/>
-                  </div>
-                  <div class="field field--compact">
-                    <label class="field-label" for="ds-version-mode">Mode</label>
+                  </Field>
+                  <Field Label="Mode" For="ds-version-mode" Class="field--compact">
                     <input id="ds-version-mode" class="field-input" value="ctw" disabled/>
-                  </div>
+                  </Field>
                 </div>
-              </section>
+              </Section>
             </div>
           </div>
         </article>
@@ -219,17 +206,16 @@
           <div class="ds-example-label">Panel list</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <section class="panel-section">
-                <div class="section-header section-header--ruled">
-                  <h2 class="section-title">Teams</h2>
-                  <button class="action-btn">+ Add Team</button>
-                </div>
-                <div class="panel-list">
-                  <div class="list-row list-row--selected"><span class="list-swatch ds-team-red"></span><span class="list-label">Red</span><span class="badge badge--success">Ready</span></div>
-                  <div class="list-row"><span class="list-swatch ds-team-blue"></span><span class="list-label">Blue</span><span class="list-tag">20 players</span></div>
-                  <div class="list-row list-row--compact"><span class="geo-type-icon"><i data-lucide="cylinder"></i></span><span class="list-label list-label--mono">red-spawn</span><span class="list-tag">Red</span></div>
-                </div>
-              </section>
+              <Section Title="Teams">
+                <Actions><Button>+ Add Team</Button></Actions>
+                <ChildContent>
+                  <div class="panel-list">
+                    <ListRow Selected><span class="list-swatch ds-team-red"></span><span class="list-label">Red</span><Badge Kind="success">Ready</Badge></ListRow>
+                    <ListRow><span class="list-swatch ds-team-blue"></span><span class="list-label">Blue</span><span class="list-tag">20 players</span></ListRow>
+                    <ListRow Compact><span class="geo-type-icon"><i data-lucide="cylinder"></i></span><span class="list-label list-label--mono">red-spawn</span><span class="list-tag">Red</span></ListRow>
+                  </div>
+                </ChildContent>
+              </Section>
             </div>
           </div>
         </article>
@@ -238,26 +224,25 @@
           <div class="ds-example-label">Author list</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <section class="panel-section">
-                <div class="section-header section-header--ruled">
-                  <h2 class="section-title">Authors <span class="field-required">*</span></h2>
-                  <button class="action-btn">+ Add</button>
-                </div>
-                <div class="author-list">
-                  <div class="author-row">
-                    <span class="author-avatar"></span>
-                    <input class="field-input author-name" value="fakejustcupcakes"/>
-                    <input class="field-input author-contribution" placeholder="Contribution (optional)"/>
-                    <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+              <Section Title="Authors" Required>
+                <Actions><Button>+ Add</Button></Actions>
+                <ChildContent>
+                  <div class="author-list">
+                    <div class="author-row">
+                      <span class="author-avatar"></span>
+                      <input class="field-input author-name" value="fakejustcupcakes"/>
+                      <input class="field-input author-contribution" placeholder="Contribution (optional)"/>
+                      <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="author-row">
+                      <span class="author-avatar"></span>
+                      <input class="field-input author-name" value="killAce"/>
+                      <input class="field-input author-contribution" value="Terrain"/>
+                      <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
+                    </div>
                   </div>
-                  <div class="author-row">
-                    <span class="author-avatar"></span>
-                    <input class="field-input author-name" value="killAce"/>
-                    <input class="field-input author-contribution" value="Terrain"/>
-                    <button class="btn-remove" title="Remove"><i data-lucide="x"></i></button>
-                  </div>
-                </div>
-              </section>
+                </ChildContent>
+              </Section>
             </div>
           </div>
         </article>
@@ -266,16 +251,13 @@
           <div class="ds-example-label">Control list</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <section class="panel-section">
-                <div class="section-header section-header--ruled">
-                  <h2 class="section-title">Overlays</h2>
-                </div>
+              <Section Title="Overlays">
                 <div class="control-list">
                   <label class="check-row"><input type="checkbox" checked/>Mirror preview</label>
                   <label class="check-row"><input type="checkbox"/>Shapes overlay</label>
                   <label class="check-row"><input type="checkbox" checked/>Chunk grid</label>
                 </div>
-              </section>
+              </Section>
             </div>
           </div>
         </article>
@@ -284,10 +266,7 @@
           <div class="ds-example-label">Region tree</div>
           <div class="ds-panel-frame">
             <div class="workspace-scroll">
-              <section class="panel-section">
-                <div class="section-header section-header--ruled">
-                  <h2 class="section-title">Wool Regions</h2>
-                </div>
+              <Section Title="Wool Regions">
                 <div class="region-tree">
                   <div class="geo-row geo-row--selected">
                     <span class="geo-indent">
@@ -307,7 +286,7 @@
                     <span class="geo-label">orange-wool-room</span>
                   </div>
                 </div>
-              </section>
+              </Section>
             </div>
           </div>
         </article>
@@ -326,18 +305,15 @@
       <article class="ds-example">
         <div class="ds-example-label">Three-column activity workspace</div>
         <div class="ds-workspace-frame">
-          <div class="workspace">
-            <div class="workspace-sidebar">
-              <div class="workspace-scroll">
-                <section class="panel-section">
-                  <div class="section-header section-header--ruled"><h2 class="section-title">Islands</h2></div>
-                  <div class="panel-list">
-                    <div class="list-row list-row--selected"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Center</span></div>
-                    <div class="list-row"><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Team island</span></div>
-                  </div>
-                </section>
-              </div>
-            </div>
+          <Workspace>
+            <Sidebar>
+              <Section Title="Islands">
+                <div class="panel-list">
+                  <ListRow Selected><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Center</span></ListRow>
+                  <ListRow><span class="geo-type-icon"><i data-lucide="layers"></i></span><span class="list-label">Team island</span></ListRow>
+                </div>
+              </Section>
+            </Sidebar>
             <div class="sidebar-handle"></div>
             <div class="workspace-canvas">
               <div class="canvas-subbar">
@@ -356,19 +332,19 @@
               </div>
             </div>
             <div class="sidebar-handle"></div>
-            <div class="workspace-inspector">
-              <div class="workspace-scroll">
-                <section class="panel-section">
-                  <div class="detail-header">
-                    <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
-                    <span class="detail-label">Team island</span>
-                    <span class="badge badge--neutral">Rectangle</span>
-                  </div>
-                  <div class="field"><label class="field-label">Operation</label><span class="badge badge--success">Add</span></div>
-                </section>
-              </div>
-            </div>
-          </div>
+            <Inspector>
+              <Section>
+                <Header>
+                  <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Team island">
+                    <Badge Kind="neutral">Rectangle</Badge>
+                  </DetailHeader>
+                </Header>
+                <ChildContent>
+                  <Field Label="Operation"><Badge Kind="success">Add</Badge></Field>
+                </ChildContent>
+              </Section>
+            </Inspector>
+          </Workspace>
         </div>
       </article>
     </section>
@@ -413,8 +389,8 @@
             <button class="flow-step">Monuments</button>
           </div>
           <div class="flow-bar-actions">
-            <button class="action-btn">Back</button>
-            <button class="action-btn action-btn--primary">Next</button>
+            <Button>Back</Button>
+            <Button Variant="primary">Next</Button>
           </div>
         </div>
       </div>
@@ -429,31 +405,29 @@
         <p>Use one vocabulary for actions, status, empty content, validation, and confidence meters.</p>
       </div>
       <div class="ds-state-row">
-        <button class="action-btn">Secondary</button>
-        <button class="action-btn action-btn--primary">Primary</button>
-        <button class="action-btn action-btn--warn">Pending</button>
-        <button class="action-btn action-btn--danger">Delete</button>
-        <span class="badge badge--success">Ready</span>
-        <span class="badge badge--warning">Review</span>
-        <span class="badge badge--error">Invalid</span>
-        <span class="badge badge--neutral">Cylinder</span>
-        <span class="badge badge--dim">Optional</span>
+        <Button>Secondary</Button>
+        <Button Variant="primary">Primary</Button>
+        <Button Variant="warn">Pending</Button>
+        <Button Variant="danger">Delete</Button>
+        <Badge Kind="success">Ready</Badge>
+        <Badge Kind="warning">Review</Badge>
+        <Badge Kind="error">Invalid</Badge>
+        <Badge Kind="neutral">Cylinder</Badge>
+        <Badge Kind="dim">Optional</Badge>
       </div>
       <div class="ds-state-grid">
         <div class="panel-warning">The selected region overlaps the map boundary.</div>
         <div class="ds-empty-sample"><p class="panel-empty-msg">Select a team or region to inspect.</p></div>
-        <div class="field">
-          <label class="field-label">ID</label>
+        <Field Label="ID" Error='Region ID "spawn-red" is already in use.'>
           <input class="field-input field-input--error" value="spawn-red"/>
-          <div class="field-error">Region ID "spawn-red" is already in use.</div>
-        </div>
+        </Field>
       </div>
       @* Meter — thin confidence/score bar (track + .meter-fill; width inline, colour band by modifier).
          Used for ranked monument suggestions. *@
       <div class="ds-state-grid" style="margin-top:var(--space-4)">
-        <div class="field"><label class="field-label">Confidence · high <span class="text-muted text-sm">0.90</span></label><div class="meter"><div class="meter-fill" style="width:90%"></div></div></div>
-        <div class="field"><label class="field-label">Confidence · mid <span class="text-muted text-sm">0.55</span></label><div class="meter"><div class="meter-fill meter-fill--mid" style="width:55%"></div></div></div>
-        <div class="field"><label class="field-label">Confidence · low <span class="text-muted text-sm">0.25</span></label><div class="meter"><div class="meter-fill meter-fill--low" style="width:25%"></div></div></div>
+        <Field Label="Confidence · high"><LabelHint><span class="text-muted text-sm">0.90</span></LabelHint><ChildContent><div class="meter"><div class="meter-fill" style="width:90%"></div></div></ChildContent></Field>
+        <Field Label="Confidence · mid"><LabelHint><span class="text-muted text-sm">0.55</span></LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--mid" style="width:55%"></div></div></ChildContent></Field>
+        <Field Label="Confidence · low"><LabelHint><span class="text-muted text-sm">0.25</span></LabelHint><ChildContent><div class="meter"><div class="meter-fill meter-fill--low" style="width:25%"></div></div></ChildContent></Field>
       </div>
     </section>
 
@@ -517,16 +491,16 @@
       </div>
       <div style="max-width: 420px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3)">
         <div class="panel-list">
-          <a class="list-row" href="#cards">
+          <ListRow Href="#cards">
             <span class="list-label list-label--mono">annealing_iv</span>
             <span class="list-label">Annealing IV</span>
             <span class="list-go"><i data-lucide="arrow-right"></i></span>
-          </a>
-          <a class="list-row list-row--selected" href="#cards">
+          </ListRow>
+          <ListRow Selected Href="#cards">
             <span class="list-label list-label--mono">somectwmap</span>
             <span class="list-label">somectwmap</span>
             <span class="list-go"><i data-lucide="arrow-right"></i></span>
-          </a>
+          </ListRow>
         </div>
       </div>
     </section>

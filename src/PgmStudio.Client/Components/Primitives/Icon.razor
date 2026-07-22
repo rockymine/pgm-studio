@@ -1,0 +1,20 @@
+@namespace PgmStudio.Client.Components
+
+@* A lucide glyph — renders the <i data-lucide="Name"> that studio.icons (lucide.createIcons) turns into
+   an <svg> after render. The inner <i> is @keyed by Name so that when the glyph CHANGES, Blazor recreates
+   a fresh <i data-lucide> (which lucide then re-processes) instead of trying to patch a node lucide has
+   already replaced with <svg> — patching the mutated node corrupts the reconciler (removeChild /
+   non-text-child errors). This centralizes the lucide @key discipline that is otherwise hand-managed and
+   re-commented per site (see ConfigureLayout's flow-bar, the region inspectors, …).
+
+   NOT YET ADOPTED (C12 D.3): built and ready, but the ~156 raw <i data-lucide> across components and pages
+   still stand. Adopt incrementally — the icon-bearing components (Button/DetailHeader/Chip/…) and the
+   re-rendering page sites — when picking this up. Extra attributes (a class, a style, a title) pass
+   through to the <i>. *@
+
+<i data-lucide="@Name" @key="@Name" @attributes="Extra"></i>
+
+@code {
+    [Parameter] public string? Name { get; set; }   // lucide glyph name
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+}

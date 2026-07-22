@@ -33,10 +33,16 @@ Read alongside:
 > `<ListRow>` (~50), `filter-chip` → `<Chip>` (~23). `Field` gained a `LabelHint` slot; dynamic badge
 > variants pass the verbatim ternary via `Class`. Two legitimate raw holdouts remain (a
 > `<label class="action-btn">` wrapping `InputFile`; `SliceView`'s header-embedded field). All verified
-> against `/design`. Phase D's remainder (§6 — the new components D.3: `Card`/`CoordField`/`DetailHeader`/
-> `FlowBar`/`Console`/`Icon`) is tracked in the C12 backlog entry. The other `.razor` components stay at
-> their existing altitude (page fragments like `EditorCanvas`; one-off widgets like `NumberField`,
-> `SideDrawer`, `SmartSuggestion`, `Toast`).
+> against `/design`. **D.3** — `CoordField` (coord cell; `ChildContent` slot for the `NumberField`
+> variant) and `DetailHeader` (icon + label + trailing badges) built and adopted (~35 + 28 uses); the
+> `/design` gallery **regenerated** to render the real components (its `ds-*` frame stays, the examples
+> inside are now `<Section>`/`<Field>`/`<Button>`/`<Badge>`/`<ListRow>`/`<CoordField>`/`<DetailHeader>`, so
+> the showcase can't drift). `Icon` (`<i data-lucide="@Name" @key="@Name">`) is **built but unadopted** —
+> ready for incremental pickup. `FlowBar`/`Console`/`Card`/`CoordRow` were **not** built: each is single-use
+> or too varied to fit a component (`ctrl-row` triples vary XYZ/XZ/R·H), so those stay raw. Still open (C12
+> backlog): the `Icon` roll-out, folding the 1 `section-heading`, and dropping inline `style=` now
+> expressible as params. The other `.razor` components stay at their existing altitude (page fragments like
+> `EditorCanvas`; one-off widgets like `NumberField`, `SideDrawer`, `SmartSuggestion`, `Toast`).
 
 ---
 

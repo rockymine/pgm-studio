@@ -135,6 +135,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   optional trailing badges, with `IconMuted`/`IconStyle`/`Mono` params; 28 uses) componentized under
   `Components/{Forms,Data}/` and adopted across ~20 Configure / EditorActivity / Sketch / Plan files.
   Zero visual diff. (C12 phase D.3)
+- **`/design` regenerated from the real components** — the living style guide's examples now render the
+  actual `<Section>`/`<Field>`/`<Button>`/`<Badge>`/`<ListRow>`/`<CoordField>`/`<DetailHeader>` (its `ds-*`
+  gallery frame stays), so the showcase can no longer drift from production. Un-componentized patterns
+  (draw tools, flow-bar, check-rows, region-tree rows, meters, cards) stay as hand-written references.
+  Also filed: `Components/Primitives/Icon.razor` — `<i data-lucide="@Name" @key="@Name">` centralizing the
+  lucide reconciler gotcha, **built but not yet adopted** (the ~156 raw `<i>` stand; roll out later). (C12 phase D.3)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)
