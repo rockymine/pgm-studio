@@ -39,32 +39,12 @@
     </ActivityRail>
   </Rail>
   <ChildContent>
-      <div class="configure-main">
+      <div class="phase-body">
 
-        <div class="flow-bar configure-flow-bar">
-          @* @key the lucide-bearing regions by their content so Blazor RECREATES them on navigation
-             instead of patching DOM that studio.icons (lucide.createIcons) has replaced with <svg>
-             — patching the mutated nodes corrupts the reconciler (removeChild/non-text-child errors). *@
-          <div class="flow-bar-phase" @key="@PhaseTitle"><i data-lucide="@PhaseIcon"></i><span>@PhaseTitle</span></div>
-          @if (SubSteps.Count > 0)
-          {
-            <div class="flow-steps" @key="@($"{PhaseTitle}:{CurrentSubStep}")">
-              @for (var j = 0; j < SubSteps.Count; j++)
-              {
-                var idx = j;
-                var cls = idx < CurrentSubStep ? "flow-step flow-step--done"
-                        : idx == CurrentSubStep ? "flow-step flow-step--active"
-                        : "flow-step";
-                @* Label only — status icons (the check) deferred to ND4 (save model), where step status gets meaning. *@
-                <button class="@cls" disabled="@(idx > MaxStep)" @onclick="() => OnStep.InvokeAsync(idx)">@SubSteps[idx]</button>
-              }
-            </div>
-          }
-          <div class="flow-bar-actions">
-            <Button Disabled="@(!BackEnabled)" OnClick="OnBack">Back</Button>
-            <Button Variant="primary" Disabled="@(!NextEnabled)" OnClick="OnNext">@NextLabel</Button>
-          </div>
-        </div>
+        <FlowBar Class="flow-bar--flush" PhaseIcon="@PhaseIcon" PhaseTitle="@PhaseTitle"
+                 SubSteps="@SubSteps" CurrentSubStep="@CurrentSubStep" MaxStep="@MaxStep"
+                 BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
+                 OnStep="OnStep" OnBack="OnBack" OnNext="OnNext" />
 
         @ChildContent
 

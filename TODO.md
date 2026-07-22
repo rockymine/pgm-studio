@@ -90,9 +90,6 @@ regions, a real difference that should stay reflected in the sidebar/inspector c
 already proves the shared shell handles a zero-sub-step phase cleanly, which is what the extraction
 generalizes from.
 
-- [ ] **C21 — Extract a shared phase/activity shell** (topbar + activity rail + nav bar with optional
-  icon/title/sub-steps/Back-Next + body slot) generalized from `ConfigureLayout`, covering both
-  zero-step phases (`Map Info`) and stepped ones (`World`, `Build`), for reuse by Configure and Edit.
 - [ ] **C22 — Rewire `Editor.razor` onto the shared shell**, replacing its inline topbar/rail/switch;
   reorder its rail so `overview`/`setup` lead (matching Configure's `info`/`world` ordering — currently
   the two pages order the same pair differently with no justification).

@@ -141,6 +141,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (draw tools, flow-bar, check-rows, region-tree rows, meters, cards) stay as hand-written references.
   Also filed: `Components/Primitives/Icon.razor` — `<i data-lucide="@Name" @key="@Name">` centralizing the
   lucide reconciler gotcha, **built but not yet adopted** (the ~156 raw `<i>` stand; roll out later). (C12 phase D.3)
+- **`FlowBar` component** — the wizard sub-step strip (phase icon/title + optional sub-step pills +
+  Back/Next), extracted from `ConfigureLayout`'s raw markup under `Components/Layout/`. Originally
+  deferred as single-use (C12 phase D.3); built once the Editor/Configure shell-convergence work
+  needed a second consumer. `ConfigureLayout` now composes it (`.configure-flow-bar` renamed to the
+  generic `.flow-bar--flush`) with no signature change, and `/design`'s flow-bar showcase renders the
+  real component instead of hand-typed markup. (C21)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

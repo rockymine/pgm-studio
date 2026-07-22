@@ -113,11 +113,12 @@
 .app-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .activity-viewport { display: flex; flex: 1; min-width: 0; overflow: hidden; }
 
-/* New-map Configure wizard — the flow-bar is a flush strip under the topbar (no gaps, like the editor
-   shell): tight against the topbar + rail, the workspace tight against it. See new-map-authoring.md §12. */
-.configure-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.configure-flow-bar { flex-shrink: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
-.configure-main > .workspace { flex: 1; min-height: 0; }
+/* A phase's flow-bar + body, stacked so the flow-bar is a flush strip under the topbar (no gaps, like
+   the editor shell): tight against the topbar + rail, the workspace tight against it. Shared by the
+   Configure wizard (see new-map-authoring.md §12) and the Edit activities with sub-steps (Setup, Build). */
+.phase-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.flow-bar--flush { flex-shrink: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
+.phase-body > .workspace { flex: 1; min-height: 0; }
 
 /* ── App footer (dashboard shell — bottom counterpart to the topbar) ── */
 .app-footer {

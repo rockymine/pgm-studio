@@ -38,10 +38,13 @@ Read alongside:
 > `/design` gallery **regenerated** to render the real components (its `ds-*` frame stays, the examples
 > inside are now `<Section>`/`<Field>`/`<Button>`/`<Badge>`/`<ListRow>`/`<CoordField>`/`<DetailHeader>`, so
 > the showcase can't drift). `Icon` (`<i data-lucide="@Name" @key="@Name">`) is **built but unadopted** —
-> ready for incremental pickup. `FlowBar`/`Console`/`Card`/`CoordRow` were **not** built: each is single-use
-> or too varied to fit a component (`ctrl-row` triples vary XYZ/XZ/R·H), so those stay raw. Still open (C12
-> backlog): the `Icon` roll-out, folding the 1 `section-heading`, and dropping inline `style=` now
-> expressible as params. The other `.razor` components stay at their existing altitude (page fragments like
+> ready for incremental pickup. `FlowBar` — originally deferred as single-use — was built once the
+> Configure/Edit shell-convergence work (C21) needed it in a second consumer: it now backs both the
+> Configure wizard's phase nav and Edit's stepped phases (Setup, Build), retiring their bespoke
+> `.cfg-step-bar`/`.cfg-sidebar-nav` step navs. `Console`/`Card`/`CoordRow` remain **not** built: each is
+> still single-use or too varied to fit a component (`ctrl-row` triples vary XYZ/XZ/R·H), so those stay
+> raw. Still open (C12 backlog): the `Icon` roll-out, folding the 1 `section-heading`, and dropping inline
+> `style=` now expressible as params. The other `.razor` components stay at their existing altitude (page fragments like
 > `EditorCanvas`; one-off widgets like `NumberField`, `SideDrawer`, `SmartSuggestion`, `Toast`).
 
 ---
