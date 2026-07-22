@@ -90,9 +90,6 @@ regions, a real difference that should stay reflected in the sidebar/inspector c
 already proves the shared shell handles a zero-sub-step phase cleanly, which is what the extraction
 generalizes from.
 
-- [ ] **C22 — Rewire `Editor.razor` onto the shared shell**, replacing its inline topbar/rail/switch;
-  reorder its rail so `overview`/`setup` lead (matching Configure's `info`/`world` ordering — currently
-  the two pages order the same pair differently with no justification).
 - [ ] **C23 — Align `Overview` (Edit) with `Map Info` (Configure).** Drop Overview's map image and adopt
   Map Info's field layout so the two render as the same zero-step phase content.
 - [ ] **C24 — Align `Setup` (Edit) with `World` (Configure)**: same step naming/ordering; Setup keeps its

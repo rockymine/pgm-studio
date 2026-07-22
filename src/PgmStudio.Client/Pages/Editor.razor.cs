@@ -11,11 +11,11 @@ public partial class Editor
 
     private record Activity(string Id, string Icon, string Title);
 
-    // Rail order + icons mirror studio/templates/editor.html.
+    // Identity leads (matches the Configure wizard's info/world ordering), then the editing activities.
     private static readonly Activity[] Activities =
     [
-        new("setup",         "settings-2",        "Setup"),
         new("overview",      "book-open-text",    "Overview"),
+        new("setup",         "settings-2",        "Setup"),
         new("teams",         "users",             "Teams"),
         new("build-regions", "pickaxe",           "Build Regions"),
         new("objective",     "goal",              "Objective"),

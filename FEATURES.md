@@ -147,6 +147,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   needed a second consumer. `ConfigureLayout` now composes it (`.configure-flow-bar` renamed to the
   generic `.flow-bar--flush`) with no signature change, and `/design`'s flow-bar showcase renders the
   real component instead of hand-typed markup. (C21)
+- **Edit's activity rail reordered to lead with identity** — `overview` moves ahead of `setup`, matching
+  the Configure wizard's `info`/`world` ordering (previously the two pages ordered the same pair
+  differently with no reason). `Editor.razor`'s topbar/rail/switch stay otherwise untouched — C21 already
+  found the shell chrome (`StudioShell`/`Topbar`/`ActivityRail`) was shared with no duplication to remove.
+  (C22)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)
