@@ -9,6 +9,10 @@ namespace PgmStudio.Client.Pages.EditorActivities;
 public partial class RegionsActivity
 {
     [Parameter] public string Slug { get; set; } = "";
+    [Parameter] public bool IsFirstActivity { get; set; }
+    [Parameter] public bool IsLastActivity { get; set; }
+    [Parameter] public EventCallback OnPrevActivity { get; set; }
+    [Parameter] public EventCallback OnNextActivity { get; set; }
 
     private EditorCanvas? canvas;
     private List<RegionGroup>? groups;

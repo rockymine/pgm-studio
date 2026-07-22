@@ -11,6 +11,10 @@ public partial class OverviewActivity
 {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public EventCallback<string?> OnStatus { get; set; }
+    [Parameter] public bool IsFirstActivity { get; set; }
+    [Parameter] public bool IsLastActivity { get; set; }
+    [Parameter] public EventCallback OnPrevActivity { get; set; }
+    [Parameter] public EventCallback OnNextActivity { get; set; }
 
     private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
 

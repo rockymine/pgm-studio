@@ -6,6 +6,10 @@
    directly (Version/Objective are freely editable and persist via the explicit Save below) — unlike
    Configure's Map Info, which authors an intent slice that's regenerated wholesale. *@
 
+<div class="phase-body">
+<FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Overview"
+         BackEnabled="@(!IsFirstActivity)" NextLabel="@(IsLastActivity ? "Done" : "Next")"
+         OnBack="OnPrevActivity" OnNext="OnNextActivity" />
 <Workspace>
   <ContentColumn MaxWidth="720">
       <Section Title="Map Identity">
@@ -62,6 +66,7 @@
       </Section>
   </ContentColumn>
 </Workspace>
+</div>
 
 @code {
     // PersonRow stays here because it is a Razor markup template; the activity's state and logic

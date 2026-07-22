@@ -8,6 +8,7 @@ namespace PgmStudio.Client.Pages;
 public partial class Editor
 {
     [Parameter] public string Slug { get; set; } = "";
+    [Inject] private NavigationManager Nav { get; set; } = default!;
 
     private record Activity(string Id, string Icon, string Title);
 
@@ -33,7 +34,22 @@ public partial class Editor
     private string TitleOf(string id) => Activities.FirstOrDefault(a => a.Id == id)?.Title ?? id;
     private void SetStatus(string id, string? dot) { status[id] = dot; StateHasChanged(); }
     private void OnOverviewStatus(string? dot) => SetStatus("overview", dot);
-    private void GoOverview() => Switch("overview");
+
+    // Each activity's own FlowBar offers Back/Next as an alternative to the rail, walking activities in
+    // rail order (mirroring the Configure wizard's Back/Next, which does the same across phases). Past
+    // the last activity (Regions), Next leaves the editor for the maps list — the editor's equivalent of
+    // the wizard's end-of-flow Export.
+    private int ActiveIndex => Array.FindIndex(Activities, a => a.Id == active);
+    private bool IsFirstActivity => ActiveIndex <= 0;
+    private bool IsLastActivity => ActiveIndex == Activities.Length - 1;
+
+    private void GoAdjacent(int delta)
+    {
+        var i = ActiveIndex + delta;
+        if (i < 0) return;
+        if (i >= Activities.Length) { Nav.NavigateTo("maps"); return; }
+        Switch(Activities[i].Id);
+    }
 
     protected override async Task OnParametersSetAsync()
     {

@@ -8,8 +8,8 @@
 
 <div class="phase-body">
 <FlowBar Class="flow-bar--flush" PhaseIcon="pickaxe" PhaseTitle="Build" SubSteps="@(new[] { "Build height", "Buildable layer" })"
-         CurrentSubStep="@(step - 1)" BackEnabled="@(step == 2)" NextEnabled="@(step == 1)" NextLabel="Next"
-         OnStep="@(i => step = i + 1)" OnBack="@(() => step = 1)" OnNext="GoStep2" />
+         CurrentSubStep="@(step - 1)" BackEnabled="@BackEnabled" NextLabel="Next"
+         OnStep="@(i => step = i + 1)" OnBack="OnFlowBack" OnNext="OnFlowNext" />
 <Workspace>
   <Sidebar>
     <ChildContent>

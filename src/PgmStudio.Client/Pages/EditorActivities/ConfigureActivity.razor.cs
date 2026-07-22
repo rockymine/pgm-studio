@@ -13,7 +13,9 @@ namespace PgmStudio.Client.Pages.EditorActivities;
 public partial class ConfigureActivity
 {
     [Parameter] public string Slug { get; set; } = "";
-    [Parameter] public EventCallback OnComplete { get; set; }
+    [Parameter] public bool IsFirstActivity { get; set; }
+    [Parameter] public EventCallback OnPrevActivity { get; set; }
+    [Parameter] public EventCallback OnNextActivity { get; set; }
 
     private sealed record Island(int Id, int BlockCount);
     private sealed record SymMode(string Type, bool Detected, double Confidence);
@@ -143,7 +145,9 @@ public partial class ConfigureActivity
     // the Configure wizard's own per-phase NextLabel/CanAdvance.
     private string NextLabel => step == 1 ? "Next" : symChoice == "none" ? "Confirm: no symmetry" : "Confirm symmetry";
     private bool NextEnabled => step == 1 || symChoice is not null;
+    private bool BackEnabled => step > 1 || !IsFirstActivity;
     private Task OnFlowNext() => step == 1 ? Next() : Finish();
+    private Task OnFlowBack() { if (step > 1) { Prev(); return Task.CompletedTask; } return OnPrevActivity.InvokeAsync(); }
 
     private async Task Next()
     {
@@ -166,7 +170,7 @@ public partial class ConfigureActivity
         if (symChoice is not null && symChoice != "none") payload["confirmed_type"] = symChoice;
         payload["cx"] = centerX; payload["cz"] = centerZ;
         var resp = await Http.PatchAsJsonAsync($"api/map/{Slug}/symmetry", payload);
-        if (resp.IsSuccessStatusCode) await OnComplete.InvokeAsync();
+        if (resp.IsSuccessStatusCode) await OnNextActivity.InvokeAsync();
         else error = $"Failed to save symmetry ({(int)resp.StatusCode}).";
     }
 

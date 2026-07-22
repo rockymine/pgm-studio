@@ -46,22 +46,28 @@
         @switch (active)
         {
           case "setup":
-            <ConfigureActivity Slug="@Slug" OnComplete="GoOverview" />
+            <ConfigureActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity"
+                                OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
             break;
           case "overview":
-            <OverviewActivity Slug="@Slug" OnStatus="OnOverviewStatus" />
+            <OverviewActivity Slug="@Slug" OnStatus="OnOverviewStatus" IsFirstActivity="@IsFirstActivity" IsLastActivity="@IsLastActivity"
+                               OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
             break;
           case "teams":
-            <TeamsActivity Slug="@Slug" />
+            <TeamsActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity" IsLastActivity="@IsLastActivity"
+                            OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
             break;
           case "build-regions":
-            <BuildRegionsActivity Slug="@Slug" />
+            <BuildRegionsActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity"
+                                   OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
             break;
           case "objective":
-            <ObjectiveActivity Slug="@Slug" />
+            <ObjectiveActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity" IsLastActivity="@IsLastActivity"
+                                OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
             break;
           case "regions":
-            <RegionsActivity Slug="@Slug" />
+            <RegionsActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity" IsLastActivity="@IsLastActivity"
+                              OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
             break;
           default:
             <div class="workspace workspace--placeholder">

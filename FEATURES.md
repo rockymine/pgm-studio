@@ -170,6 +170,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `.flow-bar--flush` wrapper both activities now use alongside `ConfigureLayout`. Completes the
   Editor/Configure shell convergence filed in `TODO.md` this session (C21–C24); the
   `EditorActivities`→`EditorPhases` naming follow-up is parked (BACKLOG C25). (C24)
+- **`FlowBar` on every Edit activity, with cross-activity Back/Next** — the four previously bare
+  activities (Overview, Teams, Objective, Regions) gain a `FlowBar` too, for visual consistency with
+  Configure (which shows it even on zero-sub-step Map Info). Its Back/Next is now a second, optional
+  path alongside the activity rail: `Editor.razor` owns `GoAdjacent(delta)`, walking `Activities` in
+  rail order (`Overview → Setup → Teams → Build Regions → Objective → Regions`) — Back disabled at
+  Overview, and Next past Regions ("Done") navigates to `/maps`, the editor's counterpart to the
+  Configure wizard's end-of-flow Export. Setup's step-2 Finish and Build's step-2 Next now advance to
+  the *next activity* via the same `OnNextActivity` callback, replacing Setup's old hardcoded
+  jump-to-Overview (`OnComplete`/`GoOverview`, both removed) — a real behavior change caught while
+  wiring this up, not just cosmetic. (C26)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

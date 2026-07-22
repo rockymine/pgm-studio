@@ -5,6 +5,10 @@
 @* Objective activity — wools (list/add/inspector with location + monuments) + wool-region tree on a
    wool-filtered canvas. Port of objectives-activity.js + objectives-panel.js. Drawing is deferred. *@
 
+<div class="phase-body">
+<FlowBar Class="flow-bar--flush" PhaseIcon="goal" PhaseTitle="Objective"
+         BackEnabled="@(!IsFirstActivity)" NextLabel="@(IsLastActivity ? "Done" : "Next")"
+         OnBack="OnPrevActivity" OnNext="OnNextActivity" />
 <Workspace>
   <Sidebar>
       <Section Title="Wools">
@@ -137,5 +141,6 @@
       </Section>
   </Inspector>
 </Workspace>
+</div>
 
 <Toast Message="@error" />

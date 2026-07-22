@@ -5,6 +5,10 @@
 @* Teams activity — teams (list/add/inspector CRUD) + spawn regions (list + assignment) on a
    spawn-filtered canvas. Port of teams-activity.js + teams-panel.js. Region drawing is deferred. *@
 
+<div class="phase-body">
+<FlowBar Class="flow-bar--flush" PhaseIcon="users" PhaseTitle="Teams"
+         BackEnabled="@(!IsFirstActivity)" NextLabel="@(IsLastActivity ? "Done" : "Next")"
+         OnBack="OnPrevActivity" OnNext="OnNextActivity" />
 <Workspace>
   <Sidebar>
       <Section Title="Teams">
@@ -166,5 +170,6 @@
       </Section>
   </Inspector>
 </Workspace>
+</div>
 
 <Toast Message="@error" />
