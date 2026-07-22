@@ -1,0 +1,31 @@
+@namespace PgmStudio.Client.Components
+
+@* The label+input atom — the field .label (with optional required mark and a right-aligned LabelEnd
+   value), the control (ChildContent — an <input class="field-input">, a NumberField, a chip row, …),
+   and an optional .field-error line. When LabelEnd is set the label row splits (label left, value
+   right) via .field-label--split. *@
+
+<div class="@Cls">
+    @if (!string.IsNullOrEmpty(Label) || LabelEnd is not null)
+    {
+        <label class="@LabelCls" for="@For">
+            <span>@Label @if (Required) { <span class="field-required">*</span> }</span>
+            @if (LabelEnd is not null) { @LabelEnd }
+        </label>
+    }
+    @ChildContent
+    @if (!string.IsNullOrEmpty(Error)) { <div class="field-error">@Error</div> }
+</div>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public RenderFragment? LabelEnd { get; set; }   // right-aligned value in the label row
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public string? Error { get; set; }
+    [Parameter] public string? For { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Cls => string.Join(' ', new[] { "field", Class }.Where(c => !string.IsNullOrEmpty(c)));
+    private string LabelCls => LabelEnd is null ? "field-label" : "field-label field-label--split";
+}

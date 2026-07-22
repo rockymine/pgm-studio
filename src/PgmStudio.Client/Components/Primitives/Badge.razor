@@ -1,0 +1,20 @@
+@namespace PgmStudio.Client.Components
+
+@* The single chip for status / validation / type labels. Emits .badge + the meaning variant
+   (success · warning · error · neutral · dim). Works inline or standalone. *@
+
+<span class="@Cls" @attributes="Extra">@ChildContent</span>
+
+@code {
+    [Parameter] public string? Kind { get; set; }   // success | warning | error | neutral | dim → badge--<k>
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private string Cls => string.Join(' ', new[]
+    {
+        "badge",
+        Kind is null ? null : $"badge--{Kind}",
+        Class
+    }.Where(c => !string.IsNullOrEmpty(c)));
+}

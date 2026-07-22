@@ -1,0 +1,32 @@
+@namespace PgmStudio.Client.Components
+
+@* One selectable/navigable list row — the .list-row shell with its state modifiers (Selected /
+   Compact). Renders an <a> when Href is set, else a clickable <div>. The row's contents (swatch,
+   label, tag, badge, go-arrow) are ChildContent; @key the component in a loop. *@
+
+@if (Href is not null)
+{
+    <a class="@Cls" href="@Href" @attributes="Extra">@ChildContent</a>
+}
+else
+{
+    <div class="@Cls" @onclick="OnClick" @attributes="Extra">@ChildContent</div>
+}
+
+@code {
+    [Parameter] public bool Selected { get; set; }
+    [Parameter] public bool Compact { get; set; }
+    [Parameter] public string? Href { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private string Cls => string.Join(' ', new[]
+    {
+        "list-row",
+        Selected ? "list-row--selected" : null,
+        Compact ? "list-row--compact" : null,
+        Class
+    }.Where(c => !string.IsNullOrEmpty(c)));
+}

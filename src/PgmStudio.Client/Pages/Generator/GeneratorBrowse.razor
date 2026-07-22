@@ -13,80 +13,90 @@
     <span class="topbar-sep">›</span>
     <span class="topbar-crumb topbar-crumb--dim">Generator</span>
     <div class="topbar-right">
-      <a class="action-btn" href="/plan-editor" title="Open the plan editor"><i data-lucide="layout-grid"></i> Plan editor</a>
+      <Button Href="/plan-editor" Icon="layout-grid" Title="Open the plan editor">Plan editor</Button>
       <ThemeToggle />
     </div>
   </div>
 
   <div class="gen-body">
     <aside class="gen-filters">
-      <h3 class="gen-filters-title">Filters</h3>
+      <Section Title="Filters">
 
-      <label class="gen-field">
-        <span class="gen-field-label">Players / team <strong>@players</strong></span>
-        <input type="range" min="6" max="30" step="2" value="@players" @oninput="OnPlayers" />
-      </label>
+        <Field Label="Players / team">
+          <LabelEnd><strong>@players</strong></LabelEnd>
+          <ChildContent>
+            <input type="range" class="field-range" min="6" max="30" step="2" value="@players" @oninput="OnPlayers" />
+          </ChildContent>
+        </Field>
 
-      <div class="gen-field">
-        <span class="gen-field-label">Symmetry</span>
-        <div class="gen-sym">
-          @foreach (var s in Symmetries)
-          {
-            <button class="gen-sym-chip @(symmetry == s.Id ? "gen-sym-chip--on" : null)"
-                    disabled="@(!s.Supported)"
-                    title="@(s.Supported ? s.Label : "the composer can't produce this yet")"
-                    @onclick="() => PickSymmetry(s.Id)">@s.Label</button>
-          }
-        </div>
-      </div>
+        <Field Label="Symmetry">
+          <div class="filter-group-options">
+            @foreach (var s in Symmetries)
+            {
+              <Chip Active="symmetry == s.Id" Disabled="!s.Supported"
+                    Title="@(s.Supported ? s.Label : "the composer can't produce this yet")"
+                    OnClick="() => PickSymmetry(s.Id)">@s.Label</Chip>
+            }
+          </div>
+        </Field>
 
-      <label class="gen-field">
-        <span class="gen-field-label">Max score <strong>@(maxScore >= ScoreCap ? "any" : maxScore.ToString("0.0"))</strong></span>
-        <input type="range" min="0" max="8" step="0.5" value="@maxScore" @oninput="OnMaxScore" />
-      </label>
+        <Field Label="Max score">
+          <LabelEnd><strong>@(maxScore >= ScoreCap ? "any" : maxScore.ToString("0.0"))</strong></LabelEnd>
+          <ChildContent>
+            <input type="range" class="field-range" min="0" max="8" step="0.5" value="@maxScore" @oninput="OnMaxScore" />
+          </ChildContent>
+        </Field>
 
-      <div class="gen-field">
-        <span class="gen-field-label">Wool count</span>
-        <div class="gen-wool">
-          <input type="number" min="0" max="6" value="@woolMin" @oninput="OnWoolMin" title="min (0 = any)" />
-          <span>–</span>
-          <input type="number" min="0" max="6" value="@woolMax" @oninput="OnWoolMax" title="max (0 = any)" />
-        </div>
-      </div>
+        <Field Label="Wool count">
+          <div class="gen-wool">
+            <input type="number" min="0" max="6" value="@woolMin" @oninput="OnWoolMin" title="min (0 = any)" />
+            <span>–</span>
+            <input type="number" min="0" max="6" value="@woolMax" @oninput="OnWoolMax" title="max (0 = any)" />
+          </div>
+        </Field>
 
-      <button class="action-btn action-btn--primary action-btn--full" @onclick="Reload">Apply</button>
-      <p class="gen-hint">Players / score / wool count apply on the button. Structure filters below apply on click.</p>
+        <Button Variant="primary" Full OnClick="Reload">Apply</Button>
+        <p class="section-desc">Players / score / wool count apply on the button. Structure filters below apply on click.</p>
 
-      <div class="gen-field">
-        <span class="gen-field-label">Wool families <span class="gen-field-sub">all present</span></span>
-        <div class="gen-chips">
-          @foreach (var w in WoolChips)
-          {
-            <button class="gen-chip @(woolFilter.Contains(w.Token) ? "gen-chip--on" : null)" disabled="@(!w.InMix)"
-                    title="@(w.InMix ? w.Label : "not in the production mix")" @onclick="() => ToggleWool(w.Token)">@w.Label</button>
-          }
-        </div>
-      </div>
+        <Field Label="Wool families">
+          <LabelEnd><span class="text-xs text-muted">all present</span></LabelEnd>
+          <ChildContent>
+            <div class="filter-group-options">
+              @foreach (var w in WoolChips)
+              {
+                <Chip Active="woolFilter.Contains(w.Token)" Disabled="!w.InMix"
+                      Title="@(w.InMix ? w.Label : "not in the production mix")"
+                      OnClick="() => ToggleWool(w.Token)">@w.Label</Chip>
+              }
+            </div>
+          </ChildContent>
+        </Field>
 
-      <div class="gen-field">
-        <span class="gen-field-label">Hub form <span class="gen-field-sub">any of</span></span>
-        <div class="gen-chips">
-          @foreach (var h in HubChips)
-          {
-            <button class="gen-chip @(hubFilter.Contains(h.Token) ? "gen-chip--on" : null)" @onclick="() => ToggleHub(h.Token)">@h.Label</button>
-          }
-        </div>
-      </div>
+        <Field Label="Hub form">
+          <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
+          <ChildContent>
+            <div class="filter-group-options">
+              @foreach (var h in HubChips)
+              {
+                <Chip Active="hubFilter.Contains(h.Token)" OnClick="() => ToggleHub(h.Token)">@h.Label</Chip>
+              }
+            </div>
+          </ChildContent>
+        </Field>
 
-      <div class="gen-field">
-        <span class="gen-field-label">Frontline <span class="gen-field-sub">any of</span></span>
-        <div class="gen-chips">
-          @foreach (var f in FrontChips)
-          {
-            <button class="gen-chip @(frontFilter.Contains(f.Token) ? "gen-chip--on" : null)" @onclick="() => ToggleFront(f.Token)">@f.Label</button>
-          }
-        </div>
-      </div>
+        <Field Label="Frontline">
+          <LabelEnd><span class="text-xs text-muted">any of</span></LabelEnd>
+          <ChildContent>
+            <div class="filter-group-options">
+              @foreach (var f in FrontChips)
+              {
+                <Chip Active="frontFilter.Contains(f.Token)" OnClick="() => ToggleFront(f.Token)">@f.Label</Chip>
+              }
+            </div>
+          </ChildContent>
+        </Field>
+
+      </Section>
     </aside>
 
     <main class="gen-main">
@@ -147,7 +157,7 @@
       <div @ref="sentinelRef" class="gen-sentinel"></div>
       @if (!exhausted && !loading && cards.Count > 0)
       {
-        <button class="action-btn action-btn--full gen-more" @onclick="LoadMore">Load more</button>
+        <Button Full Class="gen-more" OnClick="LoadMore">Load more</Button>
       }
     </main>
   </div>
@@ -183,9 +193,9 @@
         <pre class="gen-descriptor">@DescriptorJson(d)</pre>
       </Body>
       <Footer>
-        <button class="action-btn action-btn--full" @onclick="() => CopyDescriptor(d)"><i data-lucide="clipboard"></i> Copy descriptor</button>
-        <button class="action-btn action-btn--full" @onclick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin to hold tray")</button>
-        <button class="action-btn action-btn--primary action-btn--full" @onclick="() => OpenInEditor(d)"><i data-lucide="external-link"></i> Open in plan editor</button>
+        <Button Full Icon="clipboard" OnClick="() => CopyDescriptor(d)">Copy descriptor</Button>
+        <Button Full OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin to hold tray")</Button>
+        <Button Variant="primary" Full Icon="external-link" OnClick="() => OpenInEditor(d)">Open in plan editor</Button>
       </Footer>
     </SideDrawer>
   }

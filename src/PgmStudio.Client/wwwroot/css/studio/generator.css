@@ -10,37 +10,13 @@
   border-right: 1px solid var(--border); overflow-y: auto;
   display: flex; flex-direction: column; gap: var(--space-3);
 }
-.gen-filters-title { margin: 0; font-size: var(--font-sm); color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
-.gen-field { display: flex; flex-direction: column; gap: 6px; }
-.gen-field-label { font-size: var(--font-sm); color: var(--text-secondary); display: flex; justify-content: space-between; gap: var(--space-2); }
-.gen-field-label strong { color: var(--text-bright); }
-.gen-field input[type=range] { width: 100%; accent-color: var(--accent); }
-.gen-sym { display: flex; flex-wrap: wrap; gap: 4px; }
-.gen-sym-chip {
-  padding: 4px 8px; font-size: var(--font-xs); font-family: inherit; cursor: pointer;
-  background: transparent; color: var(--text-secondary);
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-}
-.gen-sym-chip--on { background: var(--bg-selected); color: var(--text-bright); border-color: var(--accent); }
-.gen-sym-chip:disabled { opacity: .4; cursor: not-allowed; }
+/* Filter rail vocabulary (title · fields · chips) now uses the canon: Section / Field / Chip
+   (.filter-chip) / Button. Only the two-input wool-count range keeps its own micro-layout. */
 .gen-wool { display: flex; align-items: center; gap: 6px; }
 .gen-wool input {
   width: 3.5rem; padding: 3px 5px; font-family: inherit;
-  background: var(--bg); color: var(--text-bright); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-panel); color: var(--text-bright); border: 1px solid var(--border); border-radius: var(--radius-sm);
 }
-.gen-hint { font-size: var(--font-xs); color: var(--text-secondary); line-height: 1.4; margin: 0; }
-.gen-field-sub { color: var(--text-secondary); font-weight: 400; font-size: var(--font-xs); }
-
-/* structural filter chips (wool families / hub / frontline) */
-.gen-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.gen-chip {
-  padding: 3px 7px; font-size: var(--font-xs); font-family: inherit; cursor: pointer;
-  background: transparent; color: var(--text-secondary);
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-}
-.gen-chip:hover:not(:disabled) { color: var(--text-bright); border-color: var(--accent); }
-.gen-chip--on { background: var(--bg-selected); color: var(--text-bright); border-color: var(--accent); }
-.gen-chip:disabled { opacity: .4; cursor: not-allowed; }
 
 /* feed */
 .gen-main { flex: 1; min-width: 0; overflow-y: auto; padding: var(--space-3); }

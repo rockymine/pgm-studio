@@ -1,0 +1,23 @@
+@namespace PgmStudio.Client.Components
+
+@* Toggleable filter option — emits .filter-chip (+ --active when on). A <button> so it is keyboard-
+   reachable; Disabled greys it. Sits inside a .filter-group-options row. *@
+
+<button class="@Cls" type="button" title="@Title" disabled="@Disabled" @onclick="OnClick" @attributes="Extra">@ChildContent</button>
+
+@code {
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private string Cls => string.Join(' ', new[]
+    {
+        "filter-chip",
+        Active ? "filter-chip--active" : null,
+        Class
+    }.Where(c => !string.IsNullOrEmpty(c)));
+}

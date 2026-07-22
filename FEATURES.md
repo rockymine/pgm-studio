@@ -102,6 +102,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **`SmartSuggestion` component** + symmetry-derived intelligent team creation (reads `/symmetry`,
   suggests 2/4 palette teams). (C15)
 - **`Toast` error component** — shared across activities. (from C12)
+- **Core UI component vocabulary (the atomic tier)** — `Button`/`Badge`/`Chip`/`Field`/`Section`/
+  `SectionHeader`/`ListRow` under `Components/{Primitives,Forms,Data}/`, param-first with slot
+  overrides, emitting the canonical CSS classes (zero visual diff vs `/design`). Adopted in the
+  `/generator` filter rail (retiring the `gen-*` sidebar drift) and the `/maps` list. Contract:
+  `docs/contracts/ui-conventions.md`. (C12 phase A)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

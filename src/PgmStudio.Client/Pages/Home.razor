@@ -50,26 +50,20 @@
             </div>
           }
 
-          <section class="panel-section">
-            <div class="section-header section-header--ruled">
-              <h2 class="section-title">@StageTitle</h2>
-              <span class="badge badge--dim">@(maps?.Count ?? 0)</span>
-
+          <Section Title="@StageTitle">
+            <Actions>
+              <Badge Kind="dim">@(maps?.Count ?? 0)</Badge>
               @if (CurrentStage == MapStage.Sketch)
               {
-                <a class="action-btn action-btn--primary" href="maps/new-sketch" style="margin-left:auto;">
-                  <i data-lucide="plus"></i><span>New sketch</span>
-                </a>
+                <Button Variant="primary" Href="maps/new-sketch" Icon="plus" Class="action-btn--push-end">New sketch</Button>
               }
               else if (CurrentStage == MapStage.Configure)
               {
-                <a class="action-btn action-btn--primary" href="maps/new" style="margin-left:auto;">
-                  <i data-lucide="import"></i><span>Import a world</span>
-                </a>
+                <Button Variant="primary" Href="maps/new" Icon="import" Class="action-btn--push-end">Import a world</Button>
               }
-            </div>
-
-            <p class="section-desc">@StageBlurb</p>
+            </Actions>
+            <Description>@StageBlurb</Description>
+            <ChildContent>
 
             <input class="field-input" placeholder="Search…" @bind="filter" @bind:event="oninput" style="margin-top: var(--space-3);" />
 
@@ -80,7 +74,7 @@
               {
                 @foreach (var m in Filtered)
                 {
-                  <a class="list-row @(m.Slug == Just ? "list-row--selected" : null)" href="@($"maps/{m.Slug}/{RowMode}")">
+                  <ListRow Href="@($"maps/{m.Slug}/{RowMode}")" Selected="m.Slug == Just" @key="m.Slug">
                     <span class="list-label list-label--mono">@m.Slug</span>
                     <span class="list-label">@m.Name</span>
                     @if (CurrentStage == MapStage.Edit)
@@ -91,11 +85,12 @@
                       @if (!string.IsNullOrEmpty(m.Version)) { <span class="list-tag">@($"v{m.Version}")</span> }
                     }
                     <span class="list-go"><i data-lucide="arrow-right"></i></span>
-                  </a>
+                  </ListRow>
                 }
               }
             </div>
-          </section>
+            </ChildContent>
+          </Section>
         </div>
       </div>
     </div>

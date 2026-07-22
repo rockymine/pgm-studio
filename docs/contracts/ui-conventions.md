@@ -16,10 +16,12 @@ Read alongside:
   contract. Once a component exists, `/design` renders *it* rather than hand-written markup, so the
   showcase can't drift from production.
 
-> **Status:** spec only — no vocabulary components built yet. The existing `.razor` components are all
-> page fragments (`EditorCanvas`, `RegionInspector`, …) or one-off widgets (`NumberField`,
-> `SideDrawer`, `SmartSuggestion`, `Toast`, `ThemeToggle`); the atom/section tier below does not exist.
-> This doc + the C12 backlog entry are the plan of record.
+> **Status:** Phase A shipped. The first vocabulary components — `Button`, `Badge`, `Chip`, `Field`,
+> `Section`, `SectionHeader`, `ListRow` — live under `Components/{Primitives,Forms,Data}/` and are
+> adopted in the `/generator` filter rail (retiring the `gen-*` sidebar drift) and the `/maps` list,
+> verified against `/design`. Phases B–D (§6) remain; the C12 backlog entry tracks them. The other
+> `.razor` components stay at their existing altitude (page fragments like `EditorCanvas`; one-off
+> widgets like `NumberField`, `SideDrawer`, `SmartSuggestion`, `Toast`).
 
 ---
 

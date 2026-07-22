@@ -1,0 +1,24 @@
+@namespace PgmStudio.Client.Components
+
+@* A section's header row — the uppercase .section-title plus an optional right slot (ChildContent:
+   a badge, an "+ Add" Button, or both). Variant picks the context modifier: ruled = right-panel
+   inspector (border-bottom) · list = left-panel list header (outer padding) · plain = neither. *@
+
+<div class="@Cls">
+    @if (!string.IsNullOrEmpty(Title)) { <h2 class="section-title">@Title</h2> }
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Variant { get; set; } = "ruled";   // ruled | list | plain
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Cls => string.Join(' ', new[]
+    {
+        "section-header",
+        Variant is "plain" or null ? null : $"section-header--{Variant}",
+        Class
+    }.Where(c => !string.IsNullOrEmpty(c)));
+}

@@ -1,0 +1,45 @@
+@namespace PgmStudio.Client.Components
+
+@* Canonical action button — emits .action-btn plus the chosen variant/layout modifiers. Renders an
+   <a> when Href is set (navigation), otherwise a <button>. Variant maps straight to the CSS modifier
+   (primary · danger · warn · icon); Fill/Full add the layout modifiers; Class carries any extra
+   (e.g. action-btn--push-end). Pass a Lucide glyph via Icon. Unmatched attributes pass through. *@
+
+@if (Href is not null)
+{
+    <a class="@Cls" href="@Href" title="@Title" @attributes="Extra">
+        @if (Icon is not null) { <i data-lucide="@Icon"></i> }
+        @ChildContent
+    </a>
+}
+else
+{
+    <button class="@Cls" type="@Type" title="@Title" disabled="@Disabled" @onclick="OnClick" @attributes="Extra">
+        @if (Icon is not null) { <i data-lucide="@Icon"></i> }
+        @ChildContent
+    </button>
+}
+
+@code {
+    [Parameter] public string? Variant { get; set; }        // primary | danger | warn | icon → action-btn--<v>
+    [Parameter] public string? Icon { get; set; }           // Lucide glyph name
+    [Parameter] public string? Href { get; set; }           // set → renders <a>
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string Type { get; set; } = "button";
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Fill { get; set; }              // action-btn--fill
+    [Parameter] public bool Full { get; set; }              // action-btn--full
+    [Parameter] public string? Class { get; set; }          // extra modifiers
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+
+    private string Cls => string.Join(' ', new[]
+    {
+        "action-btn",
+        Variant is null ? null : $"action-btn--{Variant}",
+        Fill ? "action-btn--fill" : null,
+        Full ? "action-btn--full" : null,
+        Class
+    }.Where(c => !string.IsNullOrEmpty(c)));
+}

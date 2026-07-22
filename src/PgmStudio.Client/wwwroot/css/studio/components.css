@@ -84,6 +84,11 @@
 
 .field-label { font-size: var(--font-sm); color: var(--text-secondary); user-select: none; }
 .field-required { color: var(--color-error); }
+/* Split label row — label text left, a live value readout right (range sliders, counters). */
+.field-label--split { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.field-label--split strong { color: var(--text-bright); }
+/* Full-width range slider tinted to the accent. */
+.field-range { width: 100%; accent-color: var(--accent); }
 
 .field-value {
   font-size: var(--font-md);
