@@ -96,12 +96,12 @@ public partial class ConfigureWizard
     };
 
     // Map Info's slice is complete once it has a name and at least one (non-blank) author — the minimum
-    // the generator needs (new-map-authoring.md §0/§12).
+    // the generator needs (new-map-authoring.md §0/§12). Authors are {name, contribution?} objects.
     private bool MetaValid()
     {
         if (Obj("meta") is not { } m || string.IsNullOrWhiteSpace(Str(m, "name"))) return false;
         return m["authors"] is JsonArray a &&
-               a.Any(n => n is JsonValue v && v.TryGetValue(out string? s) && !string.IsNullOrWhiteSpace(s));
+               a.Any(n => n is JsonObject o && !string.IsNullOrWhiteSpace(Str(o, "name")));
     }
 
     // The unlocked range derives from the intent: every phase whose prerequisites (all earlier slices) are

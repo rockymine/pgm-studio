@@ -83,14 +83,10 @@ factoring out a nav bar (phase icon/title + optional sub-steps + Back/Next) that
 its rail/topbar/switch statement sit inline in `Editor.razor` itself. Mapping the two rails phase-by-phase
 shows four of Configure's six phases have a real Edit counterpart (`info`/`overview`, `world`/`setup`,
 `teams`/`teams`, `build`/`build-regions`, `wools`/`objective`), with `review` Configure-only and `regions`
-Edit-only. Where the pairs diverge it's mostly incidental (Overview carries a map image Map Info doesn't;
-Setup/World order the same two steps differently with no reason) rather than principled — except
-Teams/Objective, where Configure edits the pre-generation intent model and Edit edits raw persisted
-regions, a real difference that should stay reflected in the sidebar/inspector content. `Map Info`
-already proves the shared shell handles a zero-sub-step phase cleanly, which is what the extraction
-generalizes from.
+Edit-only. Where the pairs diverge it's mostly incidental (Setup/World order the same two steps
+differently with no reason) rather than principled — except Teams/Objective, where Configure edits the
+pre-generation intent model and Edit edits raw persisted regions, a real difference that should stay
+reflected in the sidebar/inspector content.
 
-- [ ] **C23 — Align `Overview` (Edit) with `Map Info` (Configure).** Drop Overview's map image and adopt
-  Map Info's field layout so the two render as the same zero-step phase content.
 - [ ] **C24 — Align `Setup` (Edit) with `World` (Configure)**: same step naming/ordering; Setup keeps its
   narrower Islands→Symmetry subset (no Scan) as a real functional difference, not a discrepancy to erase.

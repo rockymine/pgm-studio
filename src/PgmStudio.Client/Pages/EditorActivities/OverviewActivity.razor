@@ -2,11 +2,12 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Overview activity — map identity + authors/contributors. Port of studio ov-workspace
-   (templates/editor.html) + panels/overview-panel.js. *@
+@* Overview activity — map identity + authors/contributors, editing the map's raw stored metadata
+   directly (Version/Objective are freely editable and persist via the explicit Save below) — unlike
+   Configure's Map Info, which authors an intent slice that's regenerated wholesale. *@
 
 <Workspace>
-  <Sidebar>
+  <ContentColumn MaxWidth="720">
       <Section Title="Map Identity">
         <Field Label="Map Name" Required For="ov-name">
           <input id="ov-name" class="field-input" type="text" placeholder="My CTW Map"
@@ -59,15 +60,7 @@
           <span class="panel-save-status">@saveStatus</span>
         </div>
       </Section>
-  </Sidebar>
-
-  <div class="sidebar-handle"></div>
-
-  <div class="workspace-canvas">
-    <div @ref="wrapRef" class="svg-area">
-      <svg @ref="svgRef" class="map-canvas-svg" xmlns="http://www.w3.org/2000/svg"></svg>
-    </div>
-  </div>
+  </ContentColumn>
 </Workspace>
 
 @code {

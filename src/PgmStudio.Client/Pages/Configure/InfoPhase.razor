@@ -72,6 +72,8 @@
              placeholder="Minecraft username" spellcheck="false"
              title="@(p.Error ? "No Minecraft account with this username" : p.Uuid)"
              value="@p.Name" @oninput="e => OnInput(p, e)" @onblur="() => ResolveName(p)" />
+      <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"
+             value="@p.Contribution" @oninput="e => OnContribution(p, e)" />
       <button class="btn-remove" title="Remove" @onclick="() => Remove(p)"><i data-lucide="x"></i></button>
     </div>;
   };

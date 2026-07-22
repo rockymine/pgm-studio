@@ -19,7 +19,7 @@ public partial class InfoPhase
     // 1×1 transparent gif — the avatar placeholder before a username resolves (same as the editor).
     private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
 
-    private sealed class Person { public string Name = ""; public string Uuid = ""; public bool Error; }
+    private sealed class Person { public string Name = ""; public string Contribution = ""; public string Uuid = ""; public bool Error; }
 
     private string name = "";
     private readonly List<Person> authors = new();
@@ -44,8 +44,10 @@ public partial class InfoPhase
         if (meta?[key] is not JsonArray a) return;
         foreach (var n in a)
         {
-            var s = n?.GetValue<string>() ?? "";
-            if (s.Length > 0) list.Add(new Person { Name = s });
+            if (n is not JsonObject o) continue;
+            var name = o["name"]?.GetValue<string>() ?? "";
+            if (name.Length == 0) continue;
+            list.Add(new Person { Name = name, Contribution = o["contribution"]?.GetValue<string>() ?? "" });
         }
     }
 
@@ -98,9 +100,14 @@ public partial class InfoPhase
     // name is never persisted, so it can't silently survive into the generated map.
     private static JsonArray Confirmed(IEnumerable<Person> people) =>
         new(people.Where(p => p.Uuid.Length > 0 && !p.Error && p.Name.Trim().Length > 0)
-                  .Select(p => (JsonNode)JsonValue.Create(p.Name.Trim())!).ToArray());
+                  .Select(p => (JsonNode)new JsonObject
+                  {
+                      ["name"] = p.Name.Trim(),
+                      ["contribution"] = string.IsNullOrWhiteSpace(p.Contribution) ? null : p.Contribution.Trim(),
+                  }).ToArray());
 
     private void OnName(ChangeEventArgs e) { name = e.Value?.ToString() ?? ""; Sync(); }
+    private void OnContribution(Person p, ChangeEventArgs e) { p.Contribution = e.Value?.ToString() ?? ""; Sync(); }
 
     private void AddAuthor() => authors.Add(new Person());
     private void AddContributor() => contributors.Add(new Person());

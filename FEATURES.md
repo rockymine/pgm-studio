@@ -152,6 +152,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   differently with no reason). `Editor.razor`'s topbar/rail/switch stay otherwise untouched — C21 already
   found the shell chrome (`StudioShell`/`Topbar`/`ActivityRail`) was shared with no duplication to remove.
   (C22)
+- **Overview (Edit) aligned with Map Info (Configure)** — drops the live map canvas + JS bridge
+  (`overview-bridge.js`/`overview-renderer.js`/`studio.mountOverview`, no other consumers) for the
+  same centered `ContentColumn` layout Map Info uses; Version/Objective/Contribution and the explicit
+  Save button stay editable (Edit hand-edits an existing map's stored metadata, unlike Configure's
+  regenerated intent slice). Map Info gains the Contribution field the raw editor already had: the
+  intent's `authors`/`contributors` move from plain-string arrays to `{name, contribution?}` objects
+  (`MapIntent.AuthorIntent`), threaded through `ResolveAuthorsAsync` — nothing downstream (DB, XML,
+  generator) needed to change, `Deserializer.DecodeAuthor` already reads the key. No compat shim for
+  already-stored intent blobs (dev/WIP data, no back-compat policy in this codebase). (C23)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

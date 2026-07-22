@@ -115,7 +115,8 @@ public static class SketchWorldBuilder
         {
             var (ox, oz) = PositionSnap.SnapXZ(obs.Point.X, obs.Point.Z);
             var platformFloor = SafeFloor((int)Math.Round(obs.Point.Y, MidpointRounding.AwayFromZero));
-            ObserverPlatformStamper.Stamp(world, ox, oz, platformFloor, intent.Meta?.Name ?? "", intent.Meta?.Authors ?? []);
+            var authorNames = intent.Meta?.Authors.Select(a => a.Name).ToList() ?? [];
+            ObserverPlatformStamper.Stamp(world, ox, oz, platformFloor, intent.Meta?.Name ?? "", authorNames);
             (spawnX, spawnY, spawnZ) = (ox, platformFloor + 1, oz);
             resolvedObserver = new ObserverIntent { Point = new Pt(ox, platformFloor + 1, oz), Yaw = obs.Yaw };
         }

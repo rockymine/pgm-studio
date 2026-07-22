@@ -111,13 +111,20 @@ public sealed class SymmetryIntent
     public double CenterZ { get; init; }
 }
 
-/// <summary>Authored map identity. Authors/contributors are Minecraft <b>usernames</b>; the endpoint
-/// resolves each to a uuid via <c>MojangClient</c> before saving (the contribution attribute is unused).</summary>
+/// <summary>An authored author/contributor: a Minecraft <b>username</b> plus an optional contribution
+/// note; the endpoint resolves the username to a uuid via <c>MojangClient</c> before saving.</summary>
+public sealed class AuthorIntent
+{
+    public string Name { get; init; } = "";
+    public string? Contribution { get; init; }
+}
+
+/// <summary>Authored map identity.</summary>
 public sealed class MetaIntent
 {
     public string Name { get; init; } = "";
-    public List<string> Authors { get; init; } = new();
-    public List<string> Contributors { get; init; } = new();
+    public List<AuthorIntent> Authors { get; init; } = new();
+    public List<AuthorIntent> Contributors { get; init; } = new();
 }
 
 /// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (the over-void

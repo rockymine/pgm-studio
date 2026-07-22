@@ -84,20 +84,25 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
         await Send.ResponseAsync(resp!, status, ct);
     }
 
-    // Resolve each author/contributor username to {uuid, name, role}; unresolved names are skipped
-    // (mirrors MetadataEndpoint, which drops entries without a uuid). Null = leave authors untouched.
+    // Resolve each author/contributor username to {uuid, name, role, contribution}; unresolved names
+    // are skipped (mirrors MetadataEndpoint, which drops entries without a uuid). Null = leave authors
+    // untouched.
     private async Task<List<object?>?> ResolveAuthorsAsync(MapIntent intent, CancellationToken ct)
     {
         if (intent.Meta is not { } m) return null;
         var resolved = new List<object?>();
-        async Task Add(IEnumerable<string> names, string role)
+        async Task Add(IEnumerable<AuthorIntent> people, string role)
         {
-            foreach (var name in names.Select(n => n.Trim()).Where(n => n.Length > 0))
+            foreach (var person in people.Where(p => p.Name.Trim().Length > 0))
             {
                 try
                 {
-                    var (uuid, canonical) = await mojang.LookupAsync(name, ct);
-                    resolved.Add(new Dict { ["uuid"] = uuid, ["name"] = canonical, ["role"] = role });
+                    var (uuid, canonical) = await mojang.LookupAsync(person.Name.Trim(), ct);
+                    resolved.Add(new Dict
+                    {
+                        ["uuid"] = uuid, ["name"] = canonical, ["role"] = role,
+                        ["contribution"] = person.Contribution,
+                    });
                 }
                 catch { /* unknown username / lookup failed — skip this entry */ }
             }

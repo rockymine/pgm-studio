@@ -30,7 +30,7 @@ public sealed class SketchWorldBuilderTests
             new WoolIntent { Owner = "blue", Color = "blue", Spawn = new Pt(10, 1, 10), Monuments = [new MonumentIntent { Team = "red" }] },
         ],
         Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
-        Meta = new MetaIntent { Name = "Test", Authors = ["alice"] },
+        Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
     };
 
     [Test]
@@ -86,7 +86,7 @@ public sealed class SketchWorldBuilderTests
             ],
             Wools = [new WoolIntent { Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Monuments = [] }],
             Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
-            Meta = new MetaIntent { Name = "Test", Authors = ["alice"] },
+            Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
         };
 
         var mons = SketchWorldBuilder.Build(Layout, intent).ResolvedIntent.Wools![0].Monuments;
@@ -111,7 +111,7 @@ public sealed class SketchWorldBuilderTests
             ],
             Wools = [new WoolIntent { Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Monuments = [new MonumentIntent { Team = "gold" }] }],
             Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
-            Meta = new MetaIntent { Name = "Test", Authors = ["alice"] },
+            Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
         };
 
         var built = SketchWorldBuilder.Build(Layout, intent);
@@ -134,7 +134,7 @@ public sealed class SketchWorldBuilderTests
             Spawns = [new SpawnIntent { Team = "red", Point = new Pt(10, 1, 0), Yaw = 0 }],
             Wools = [],
             Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
-            Meta = new MetaIntent { Name = "Tall", Authors = ["alice"] },
+            Meta = new MetaIntent { Name = "Tall", Authors = [new AuthorIntent { Name = "alice" }] },
         };
 
         var built = SketchWorldBuilder.Build(tall, intent);   // must not throw
@@ -157,7 +157,7 @@ public sealed class SketchWorldBuilderTests
             Spawns = [new SpawnIntent { Team = "red", Point = new Pt(20, 1, 20), Yaw = 0 }],
             Wools = [],
             Observer = null,
-            Meta = new MetaIntent { Name = "NoObs", Authors = ["alice"] },
+            Meta = new MetaIntent { Name = "NoObs", Authors = [new AuthorIntent { Name = "alice" }] },
         };
 
         var built = SketchWorldBuilder.Build(offset, intent);
