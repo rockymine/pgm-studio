@@ -61,6 +61,29 @@ hold tray persists across reloads — pinned *means* persisted.
   version} via G119; JSONL export so the labeled examples drive rule refinement, envelope
   regeneration, and AI-assisted analysis.
 
+- [ ] **G125 — Feasibility read-back in the plan editor ("could the composer make this?").** The
+  validator answers *is this legal to author*; this answers *could the machine replicate it* — the
+  emit↔derive mirror surfaced as an authoring tool. Per labeled box: derive the shape (the approach
+  classifier for roomed boxes, the body classifier for hub/frontline), then check it against the
+  production rules — family ∈ the width menu at the granted cw, `MouthBox` fit, `DockingGate` on the
+  dock edge, hub form ∈ `HubForms`, the frontline demand rules, seat separation, the parallel-fronts
+  guard — each failure a **directed verdict citing the rule or the gap's task id** (the shifted
+  frontline reports "not yet — G123", the asymmetric ring "not yet — G105"). The internal signals
+  already exist (`DockRejection`, directed nulls, `RejectRecord`); the work is box grouping (G126) +
+  plumbing them into a per-box report panel beside the Score panel. Both funnel exemplars evaluate
+  **clean** today (score 0 — validation has no opinion on producibility), which is exactly the gap
+  this closes. Seed harness: `tools/deriver/plan-readback.cs` (per-box derive + evaluator readout,
+  buffer overlays as boxes).
+
+- [ ] **G126 — Boxes as an authored plan annotation (stop misusing `buffer`).** A typed,
+  authoring-only `boxes` section in `*.plan.json` (id + box kind + rect; membership by containment or
+  an explicit list), rendered as the dashed envelopes the compose tools already draw; **dragging a box
+  moves its member pieces with it**. Compiler- and deriver-ignored like the `reference` block, so the
+  "plan on disk is label-free" doctrine stands — this is authored annotation, not the compose-internal
+  labels. Generated plans **write their partition into it** when kept/saved (G119), so a picked board
+  opens in the editor with its boxes visible and movable. Feeds G125's grouping and the shape-preset
+  palette idea (place a typed box, stamp a family preset into it via the real emitters).
+
 - [ ] **G120 — Duel mode (the tournament).** Bucket-scoped side-by-side comparison: a **bucket** is a
   filter combination (e.g. 2 wools · F frontline · double-hole hub · one L + one donut), so both
   boards made broadly the same structural decisions — the closest thing to a controlled comparison,
