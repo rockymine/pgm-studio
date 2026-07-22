@@ -42,9 +42,11 @@
       {
         <div class="panel-stack" @key="sel.RegionId">
           <Section>
-            <DetailHeader Icon="rectangle-horizontal" IconStyle='@($"color:{Hex(sel.Team)}")' Mono Label="@sel.Name">
+            <div class="detail-header">
+              <span class="geo-type-icon" style="color:@Hex(sel.Team)"><i data-lucide="rectangle-horizontal"></i></span>
+              <span class="detail-label detail-label--mono">@sel.Name</span>
               <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</Badge>
-            </DetailHeader>
+            </div>
             <div class="section-body">
               <Field Label="Min">
                 <div class="ctrl-row">
@@ -54,8 +56,8 @@
               </Field>
               <Field Label="Max">
                 <div class="ctrl-row">
-                  <CoordField Prefix="X" Value="@sel.MaxX" ReadOnly tabindex="-1" />
-                  <CoordField Prefix="Z" Value="@sel.MaxZ" ReadOnly tabindex="-1" />
+                  <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MaxX" readonly tabindex="-1" /></div>
+                  <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MaxZ" readonly tabindex="-1" /></div>
                 </div>
               </Field>
               @if (sel.Authored)
@@ -90,7 +92,10 @@
       else
       {
         <Section>
-          <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Spawn protection" />
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
+            <span class="detail-label">Spawn protection</span>
+          </div>
           <p class="section-desc">Draw a rectangle around a spawn, or select one to inspect and resize it.</p>
         </Section>
       }

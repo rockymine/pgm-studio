@@ -42,22 +42,20 @@
       {
         <div class="panel-stack" @key="sel.RegionId">
           <Section>
-            <div class="detail-header">
-              <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="rectangle-horizontal"></i></span>
-              <span class="detail-label detail-label--mono">@sel.Name</span>
+            <DetailHeader Icon="rectangle-horizontal" IconStyle='@($"color:{W.Hex(sel.Color)}")' Mono Label="@sel.Name">
               <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</Badge>
-            </div>
+            </DetailHeader>
             <div class="section-body">
               <Field Label="Min">
                 <div class="ctrl-row">
-                  <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MinX" readonly tabindex="-1" /></div>
-                  <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MinZ" readonly tabindex="-1" /></div>
+                  <CoordField Prefix="X" Value="@sel.MinX" ReadOnly tabindex="-1" />
+                  <CoordField Prefix="Z" Value="@sel.MinZ" ReadOnly tabindex="-1" />
                 </div>
               </Field>
               <Field Label="Max">
                 <div class="ctrl-row">
-                  <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MaxX" readonly tabindex="-1" /></div>
-                  <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MaxZ" readonly tabindex="-1" /></div>
+                  <CoordField Prefix="X" Value="@sel.MaxX" ReadOnly tabindex="-1" />
+                  <CoordField Prefix="Z" Value="@sel.MaxZ" ReadOnly tabindex="-1" />
                 </div>
               </Field>
               @if (sel.Authored)
@@ -99,10 +97,7 @@
       else
       {
         <Section>
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
-            <span class="detail-label">Wool room</span>
-          </div>
+          <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Wool room" />
           <p class="section-desc">Draw a rectangle over a wool's source, or select one to inspect and resize it.</p>
         </Section>
       }

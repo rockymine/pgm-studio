@@ -42,9 +42,11 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Color">
-          <DetailHeader Icon="@PointIcon" IconStyle='@($"color:{W.Hex(sel.Color)}")' Mono Label='@($"{sel.Color} monuments")'>
+          <div class="detail-header">
+            <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="@PointIcon"></i></span>
+            <span class="detail-label detail-label--mono">@sel.Color monuments</span>
             <Badge Kind="neutral">@sel.Color wool</Badge>
-          </DetailHeader>
+          </div>
           <div class="section-body">
             <p class="section-desc">Captured by every team except <strong>@(string.IsNullOrEmpty(sel.Owner) ? "—" : TeamName(sel.Owner))</strong> (its owner).</p>
             @foreach (var cap in Capturers(sel))
@@ -100,7 +102,10 @@
       else
       {
         <Section>
-          <DetailHeader Icon="@PointIcon" IconMuted Label="Monuments" />
+          <div class="detail-header">
+            <span class="geo-type-icon detail-icon--muted"><i data-lucide="@PointIcon"></i></span>
+            <span class="detail-label">Monuments</span>
+          </div>
           <p class="section-desc">Select a wool to see its capture monuments.</p>
         </Section>
       }

@@ -52,9 +52,7 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Team">
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="@PointIcon"></i></span>
-            <span class="detail-label detail-label--mono">@(IsObserver(sel) ? "observer-spawn" : $"{sel.Team}-spawn")</span>
+          <DetailHeader Icon="@PointIcon" IconMuted Mono Label='@(IsObserver(sel) ? "observer-spawn" : $"{sel.Team}-spawn")'>
             @if (IsObserver(sel))
             {
               <Badge Kind="dim">default</Badge>
@@ -63,18 +61,18 @@
             {
               <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</Badge>
             }
-          </div>
+          </DetailHeader>
           <div class="section-body">
             <Field Label="Point">
               <div class="ctrl-row">
-                <div class="coord-field"><span class="coord-prefix">X</span><NumberField Value="sel.X" ValueChanged="@(v => SetCoord(sel, "x", v))" Step="0.5" CssClass="coord-input" /></div>
-                <div class="coord-field"><span class="coord-prefix">Y</span><NumberField Value="sel.Y" ValueChanged="@(v => SetCoord(sel, "y", v))" Step="0.5" CssClass="coord-input" /></div>
-                <div class="coord-field"><span class="coord-prefix">Z</span><NumberField Value="sel.Z" ValueChanged="@(v => SetCoord(sel, "z", v))" Step="0.5" CssClass="coord-input" /></div>
+                <CoordField Prefix="X"><NumberField Value="sel.X" ValueChanged="@(v => SetCoord(sel, "x", v))" Step="0.5" CssClass="coord-input" /></CoordField>
+                <CoordField Prefix="Y"><NumberField Value="sel.Y" ValueChanged="@(v => SetCoord(sel, "y", v))" Step="0.5" CssClass="coord-input" /></CoordField>
+                <CoordField Prefix="Z"><NumberField Value="sel.Z" ValueChanged="@(v => SetCoord(sel, "z", v))" Step="0.5" CssClass="coord-input" /></CoordField>
               </div>
             </Field>
             <Field Label="Yaw">
               <div class="ctrl-row">
-                <div class="coord-field"><span class="coord-prefix">°</span><NumberField Value="sel.Yaw" ValueChanged="@(v => SetCoord(sel, "yaw", v))" Step="any" CssClass="coord-input" /></div>
+                <CoordField Prefix="°"><NumberField Value="sel.Yaw" ValueChanged="@(v => SetCoord(sel, "yaw", v))" Step="any" CssClass="coord-input" /></CoordField>
               </div>
             </Field>
             <SliceView Slug="@Slug" Node="@SpawnNode(sel)" OnYChanged="@(y => SetY(sel, y))" SeatOnFloor="true" />
@@ -96,10 +94,7 @@
       else
       {
         <Section>
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="@PointIcon"></i></span>
-            <span class="detail-label">Spawn point</span>
-          </div>
+          <DetailHeader Icon="@PointIcon" IconMuted Label="Spawn point" />
           <p class="section-desc">Click an island on the canvas to place a spawn; orbit fills the rest.
             Select a spawn to fine-tune its coordinates.</p>
         </Section>

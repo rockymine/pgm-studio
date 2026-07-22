@@ -7,15 +7,13 @@
     <Section>
       @if (Shape is not null)
       {
-        <div class="detail-header">
-          <span class="geo-type-icon"><i data-lucide="@TypeIcon(Shape.Type)"></i></span>
-          <span class="detail-label">@Shape.Type</span>
+        <DetailHeader Icon="@TypeIcon(Shape.Type)" Label="@Shape.Type">
           <span class="detail-header-badges">
             <Badge Class="@(Shape.Operation == "subtract" ? "badge--error" : "badge--success")">@Shape.Operation</Badge>
             @if (Shape.Override) { <Badge Kind="warning">override</Badge> }
             <Badge Kind="neutral">@Shape.Dim</Badge>
           </span>
-        </div>
+        </DetailHeader>
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Actions</h2></div>
         <Button Full OnClick="() => OnToggleOp.InvokeAsync(Shape.Id)">
@@ -61,13 +59,11 @@
       }
       else if (Island is not null)
       {
-        <div class="detail-header">
-          <span class="geo-type-icon"><i data-lucide="layers"></i></span>
-          <span class="detail-label">@Island.Name</span>
+        <DetailHeader Icon="layers" Label="@Island.Name">
           <span class="detail-header-badges">
             <Badge Kind="neutral">@Island.ShapeIds.Count shape@(Island.ShapeIds.Count == 1 ? "" : "s")</Badge>
           </span>
-        </div>
+        </DetailHeader>
 
         <Field Label="Name">
           <input class="field-input" value="@Island.Name" @onchange="RenameChanged" />

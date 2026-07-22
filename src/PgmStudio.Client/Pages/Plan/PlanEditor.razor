@@ -246,11 +246,9 @@
               }
               else if (sel.Kind == "piece")
               {
-                <div class="detail-header">
-                  <span class="geo-type-icon"><i data-lucide="box"></i></span>
-                  <span class="detail-label">Piece</span>
+                <DetailHeader Icon="box" Label="Piece">
                   <span class="detail-header-badges"><Badge Kind="neutral">@sel.Role</Badge></span>
-                </div>
+                </DetailHeader>
                 <Field Label="Id">
                   <input class="field-input" value="@sel.Id" @onchange="OnPieceId" />
                 </Field>
@@ -283,10 +281,7 @@
               }
               else if (sel.Kind == "zone")
               {
-                <div class="detail-header">
-                  <span class="geo-type-icon"><i data-lucide="square-dashed"></i></span>
-                  <span class="detail-label">Build area</span>
-                </div>
+                <DetailHeader Icon="square-dashed" Label="Build area" />
                 <Field Label="Id">
                   <input class="field-input" value="@sel.Id" @onchange="OnZoneId" />
                 </Field>
@@ -296,10 +291,7 @@
               }
               else
               {
-                <div class="detail-header">
-                  <span class="geo-type-icon"><i data-lucide="flag"></i></span>
-                  <span class="detail-label">@sel.MarkerKind</span>
-                </div>
+                <DetailHeader Icon="flag" Label="@sel.MarkerKind" />
                 <Field Label="On piece">
                   <div class="plan-readout">@sel.Piece &nbsp; <span class="list-tag">at @OffsetLabel</span></div>
                 </Field>

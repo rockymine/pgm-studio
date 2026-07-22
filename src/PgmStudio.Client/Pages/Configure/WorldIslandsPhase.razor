@@ -55,16 +55,14 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Id">
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
-            <span class="detail-label">@Label(sel)</span>
+          <DetailHeader Icon="layers" IconMuted Label="@Label(sel)">
             <Badge Class="@(IsExcluded(sel) ? "badge--dim" : "badge--success")">@(IsExcluded(sel) ? "excluded" : "included")</Badge>
-          </div>
+          </DetailHeader>
           <div class="section-body">
             <Field Label="Centre">
               <div class="ctrl-row">
-                <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.CentreX.ToString("0.#")" disabled /></div>
-                <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.CentreZ.ToString("0.#")" disabled /></div>
+                <CoordField Prefix="X" Value='@sel.CentreX.ToString("0.#")' disabled />
+                <CoordField Prefix="Z" Value='@sel.CentreZ.ToString("0.#")' disabled />
               </div>
             </Field>
             <Field Label="Blocks">
@@ -86,10 +84,7 @@
       else
       {
         <Section>
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="layers"></i></span>
-            <span class="detail-label">Islands</span>
-          </div>
+          <DetailHeader Icon="layers" IconMuted Label="Islands" />
           <p class="section-desc">Select an island — in the list or on the canvas — to see its details and
             exclude it.</p>
         </Section>

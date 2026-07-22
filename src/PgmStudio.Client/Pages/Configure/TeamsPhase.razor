@@ -97,11 +97,9 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Id">
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="users"></i></span>
-            <span class="detail-label detail-label--mono">@sel.Id</span>
+          <DetailHeader Icon="users" IconMuted Mono Label="@sel.Id">
             <Badge Class="@(teams.IndexOf(sel) == 0 ? "badge--success" : "badge--dim")">@(teams.IndexOf(sel) == 0 ? "authored" : "orbit")</Badge>
-          </div>
+          </DetailHeader>
           <div class="section-body">
             <Field Label="Name">
               <input class="field-input" value="@sel.Name" @onchange="SetName" />
@@ -127,10 +125,7 @@
       else
       {
         <Section>
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="users"></i></span>
-            <span class="detail-label">Teams</span>
-          </div>
+          <DetailHeader Icon="users" IconMuted Label="Teams" />
           <p class="section-desc">Create teams, then select one to edit its name / colour and tag its
             islands on the canvas.</p>
         </Section>

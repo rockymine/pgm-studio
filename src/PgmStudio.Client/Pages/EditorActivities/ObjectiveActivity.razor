@@ -63,9 +63,9 @@
           </Field>
           <Field Label="Block Position">
             <div class="ctrl-row">
-              <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" type="number" value="@wLocX" @onchange="e => wLocX = e.Value?.ToString()" @onblur="SaveWoolLocation" /></div>
-              <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" type="number" value="@wLocY" @onchange="e => wLocY = e.Value?.ToString()" @onblur="SaveWoolLocation" /></div>
-              <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" type="number" value="@wLocZ" @onchange="e => wLocZ = e.Value?.ToString()" @onblur="SaveWoolLocation" /></div>
+              <CoordField Prefix="X" Type="number" Value="@wLocX" OnChange="e => wLocX = e.Value?.ToString()" OnBlur="SaveWoolLocation" />
+              <CoordField Prefix="Y" Type="number" Value="@wLocY" OnChange="e => wLocY = e.Value?.ToString()" OnBlur="SaveWoolLocation" />
+              <CoordField Prefix="Z" Type="number" Value="@wLocZ" OnChange="e => wLocZ = e.Value?.ToString()" OnBlur="SaveWoolLocation" />
             </div>
           </Field>
           <Field Label="Wool Room Region">
@@ -109,9 +109,9 @@
                   </Field>
                   <Field Label="Block Position">
                     <div class="ctrl-row">
-                      <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" type="number" value="@mLocX" @onchange="e => mLocX = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
-                      <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" type="number" value="@mLocY" @onchange="e => mLocY = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
-                      <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" type="number" value="@mLocZ" @onchange="e => mLocZ = e.Value?.ToString()" @onblur="() => SaveMonumentLocation(wool, mon)" /></div>
+                      <CoordField Prefix="X" Type="number" Value="@mLocX" OnChange="e => mLocX = e.Value?.ToString()" OnBlur="() => SaveMonumentLocation(wool, mon)" />
+                      <CoordField Prefix="Y" Type="number" Value="@mLocY" OnChange="e => mLocY = e.Value?.ToString()" OnBlur="() => SaveMonumentLocation(wool, mon)" />
+                      <CoordField Prefix="Z" Type="number" Value="@mLocZ" OnChange="e => mLocZ = e.Value?.ToString()" OnBlur="() => SaveMonumentLocation(wool, mon)" />
                     </div>
                   </Field>
                   <Field Label="Monument Region">

@@ -64,8 +64,8 @@
                   </div>
                   <Field Label="Size (blocks)">
                     <div class="ctrl-row">
-                      <div class="coord-field"><span class="coord-prefix">W</span><NumberField Value="width" ValueChanged="OnWidth" Min="16" Step="8" CssClass="coord-input" /></div>
-                      <div class="coord-field"><span class="coord-prefix">D</span><NumberField Value="depth" ValueChanged="OnDepth" Min="16" Step="8" CssClass="coord-input" /></div>
+                      <CoordField Prefix="W"><NumberField Value="width" ValueChanged="OnWidth" Min="16" Step="8" CssClass="coord-input" /></CoordField>
+                      <CoordField Prefix="D"><NumberField Value="depth" ValueChanged="OnDepth" Min="16" Step="8" CssClass="coord-input" /></CoordField>
                     </div>
                   </Field>
                 </div>
@@ -115,8 +115,8 @@
                   </div>
                   <Field Label="Centre">
                     <div class="ctrl-row">
-                      <div class="coord-field"><span class="coord-prefix">X</span><NumberField Value="centerX" ValueChanged="@(v => centerX = v)" CssClass="coord-input" /></div>
-                      <div class="coord-field"><span class="coord-prefix">Z</span><NumberField Value="centerZ" ValueChanged="@(v => centerZ = v)" CssClass="coord-input" /></div>
+                      <CoordField Prefix="X"><NumberField Value="centerX" ValueChanged="@(v => centerX = v)" CssClass="coord-input" /></CoordField>
+                      <CoordField Prefix="Z"><NumberField Value="centerZ" ValueChanged="@(v => centerZ = v)" CssClass="coord-input" /></CoordField>
                     </div>
                   </Field>
                 </div>

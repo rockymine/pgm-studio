@@ -10,11 +10,9 @@
 }
 else
 {
-  <div class="detail-header">
-    <span class="geo-type-icon detail-icon--muted"><i data-lucide="@RegionNode.Icon(Node.Type)"></i></span>
-    <span class="detail-label detail-label--mono">@(string.IsNullOrEmpty(Node.Id) ? Node.Type : Node.Id)</span>
+  <DetailHeader Icon="@RegionNode.Icon(Node.Type)" IconMuted Mono Label='@(string.IsNullOrEmpty(Node.Id) ? Node.Type : Node.Id)'>
     <Badge Kind="neutral">@Cap(Node.Type)</Badge>
-  </div>
+  </DetailHeader>
 
   @if (!string.IsNullOrEmpty(Node.Id))
   {
@@ -102,8 +100,7 @@ else
             <div class="ctrl-row">
                 @foreach (var (prefix, key, val) in cells)
                 {
-                    <div class="coord-field">
-                        <span class="coord-prefix">@prefix</span>
+                    <CoordField Prefix="@prefix">
                         @if (OnSetCoord.HasDelegate && key.Length > 0 && val is double dv && !double.IsInfinity(dv))
                         {
                             @* Finite, editable: NumberField enforces the per-key floor (radius/height >= 0). *@
@@ -122,7 +119,7 @@ else
                             <input @key="@($"{prefix}:{val}")" class="coord-input" type="number"
                                    value="@RegionNode.Fmt(val)" readonly tabindex="-1" />
                         }
-                    </div>
+                    </CoordField>
                 }
             </div>
         </Field>

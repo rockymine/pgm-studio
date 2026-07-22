@@ -1,0 +1,20 @@
+@namespace PgmStudio.Client.Components
+
+@* One labelled coordinate cell — the coord-prefix chip (X/Y/Z/R/H/…) and its control. The default
+   control is the built-in .coord-input (editable inputs pass Type="number" + OnChange/OnBlur; read-only
+   displays pass ReadOnly, and disabled/tabindex etc. flow through as extra attributes). Pass ChildContent
+   to supply a different control instead (e.g. a NumberField with CssClass="coord-input"). Sits inside a
+   .ctrl-row flex row alongside its siblings. *@
+
+<div class="coord-field"><span class="coord-prefix">@Prefix</span>@if (ChildContent is not null){@ChildContent}else{<input class="coord-input" type="@Type" value="@Value" readonly="@ReadOnly" @onchange="OnChange" @onblur="OnBlur" @attributes="Extra" />}</div>
+
+@code {
+    [Parameter] public string? Prefix { get; set; }
+    [Parameter] public object? Value { get; set; }        // string or numeric coordinate — rendered as-is
+    [Parameter] public string? Type { get; set; }         // e.g. "number"; null → omit (defaults to text)
+    [Parameter] public bool ReadOnly { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> OnChange { get; set; }
+    [Parameter] public EventCallback<FocusEventArgs> OnBlur { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }   // overrides the built-in input (e.g. a NumberField)
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Extra { get; set; }
+}

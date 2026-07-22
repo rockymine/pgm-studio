@@ -58,11 +58,9 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Color">
-          <div class="detail-header">
-            <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="@(sel.Signed ? "sparkles" : "square")"></i></span>
-            <span class="detail-label detail-label--mono">@sel.Color</span>
+          <DetailHeader Icon='@(sel.Signed ? "sparkles" : "square")' IconStyle='@($"color:{W.Hex(sel.Color)}")' Mono Label="@sel.Color">
             <Badge Class="@(sel.Included ? "badge--success" : "badge--dim")">@(sel.Included ? "objective" : "excluded")</Badge>
-          </div>
+          </DetailHeader>
           <div class="section-body">
             <Field Label="Colour">
               <div class="field-pick-row">
@@ -139,10 +137,7 @@
       else
       {
         <Section>
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="goal"></i></span>
-            <span class="detail-label">Wool</span>
-          </div>
+          <DetailHeader Icon="goal" IconMuted Label="Wool" />
           <p class="section-desc">Select a detected wool to confirm it, fix its owner, or exclude it as
             decoration. The included wools become the map's objectives.</p>
         </Section>

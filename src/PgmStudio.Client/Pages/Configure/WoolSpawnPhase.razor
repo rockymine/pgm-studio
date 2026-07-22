@@ -39,19 +39,17 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Color">
-          <div class="detail-header">
-            <span class="geo-type-icon" style="color:@W.Hex(sel.Color)"><i data-lucide="dot"></i></span>
-            <span class="detail-label detail-label--mono">@sel.Color wool</span>
+          <DetailHeader Icon="dot" IconStyle="@($"color:{W.Hex(sel.Color)}")" Mono Label="@($"{sel.Color} wool")">
             <Badge Class="@(IsAuthored(sel) ? "badge--success" : "badge--dim")">@(IsAuthored(sel) ? "authored" : "orbit")</Badge>
-          </div>
+          </DetailHeader>
           <div class="section-body">
             <Field Label="Spawn location">
               <LabelHint><span class="text-muted text-sm">(floored to a block)</span></LabelHint>
               <ChildContent>
               <div class="ctrl-row">
-                <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.SpawnX" @onchange="@(e => SetCoord(sel, "x", e))" /></div>
-                <div class="coord-field"><span class="coord-prefix">Y</span><input class="coord-input" value="@sel.SpawnY" @onchange="@(e => SetCoord(sel, "y", e))" /></div>
-                <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.SpawnZ" @onchange="@(e => SetCoord(sel, "z", e))" /></div>
+                <CoordField Prefix="X" Value="@sel.SpawnX" OnChange="@(e => SetCoord(sel, "x", e))" />
+                <CoordField Prefix="Y" Value="@sel.SpawnY" OnChange="@(e => SetCoord(sel, "y", e))" />
+                <CoordField Prefix="Z" Value="@sel.SpawnZ" OnChange="@(e => SetCoord(sel, "z", e))" />
               </div>
               </ChildContent>
             </Field>
@@ -64,10 +62,7 @@
       else
       {
         <Section>
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="dot"></i></span>
-            <span class="detail-label">Wool spawn</span>
-          </div>
+          <DetailHeader Icon="dot" IconMuted Label="Wool spawn" />
           <p class="section-desc">Select a wool to place its source point and set its Y.</p>
         </Section>
       }

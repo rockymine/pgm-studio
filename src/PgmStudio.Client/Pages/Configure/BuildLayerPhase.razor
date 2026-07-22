@@ -74,22 +74,20 @@
       @if (Selected is { } sel)
       {
         <Section @key="sel.Id">
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
-            <span class="detail-label detail-label--mono">@Label(sel)</span>
+          <DetailHeader Icon="rectangle-horizontal" IconMuted Mono Label="@Label(sel)">
             <Badge Kind="dim">@(sel.Hole ? "hole" : "bridge")</Badge>
-          </div>
+          </DetailHeader>
           <div class="section-body">
             <Field Label="Min">
               <div class="ctrl-row">
-                <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MinX" readonly tabindex="-1" /></div>
-                <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MinZ" readonly tabindex="-1" /></div>
+                <CoordField Prefix="X" Value="@sel.MinX" ReadOnly tabindex="-1" />
+                <CoordField Prefix="Z" Value="@sel.MinZ" ReadOnly tabindex="-1" />
               </div>
             </Field>
             <Field Label="Max">
               <div class="ctrl-row">
-                <div class="coord-field"><span class="coord-prefix">X</span><input class="coord-input" value="@sel.MaxX" readonly tabindex="-1" /></div>
-                <div class="coord-field"><span class="coord-prefix">Z</span><input class="coord-input" value="@sel.MaxZ" readonly tabindex="-1" /></div>
+                <CoordField Prefix="X" Value="@sel.MaxX" ReadOnly tabindex="-1" />
+                <CoordField Prefix="Z" Value="@sel.MaxZ" ReadOnly tabindex="-1" />
               </div>
             </Field>
             <p class="section-desc">Select it on the canvas and drag the handles to resize.</p>
@@ -102,10 +100,7 @@
       else
       {
         <Section>
-          <div class="detail-header">
-            <span class="geo-type-icon detail-icon--muted"><i data-lucide="rectangle-horizontal"></i></span>
-            <span class="detail-label">Buildable layer</span>
-          </div>
+          <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Buildable layer" />
           <p class="section-desc">Draw a bridge or hole, or select one to inspect and resize it.</p>
         </Section>
       }

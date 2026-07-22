@@ -78,11 +78,15 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   raw markup outside the `/concepts` + `/design` leave-raw zone) — `Section` (D.1) plus the atomic
   vocabulary `Field`/`Button`/`Badge`/`ListRow`/`Chip` (D.2). Remaining:
 
-  **D.3 — build + adopt the new components**: `Card`/`CardGrid`, `CoordField`/`CoordRow`, `DetailHeader`,
-  `FlowBar`, `Console`, and an `Icon` atom (centralize the `<i data-lucide>` + `@key` lucide gotcha);
-  reconcile the near-duplicate classes (`section-heading` vs `section-header`); **regenerate `/design`
-  from the real components** so the showcase can't drift; and drop the inline `style=` occurrences now
-  expressible as component params.
+  **D.3 — build + adopt the new components.** `CoordField` (the coord-prefix + coord-input cell, with a
+  ChildContent slot for the NumberField variant) and `DetailHeader` (the inspector head — icon + label +
+  trailing badges) are **done** (`FEATURES.md`). Remaining: `Card`/`CardGrid` (landing/start cards),
+  `FlowBar` (wizard sub-steps), `Console` (the pre-flight log), and an `Icon` atom (centralize the
+  `<i data-lucide>` + `@key` lucide gotcha); reconcile the near-duplicate classes (`section-heading` vs
+  `section-header`); **regenerate `/design` from the real components** so the showcase can't drift; and
+  drop the inline `style=` occurrences now expressible as component params. (`CoordRow` was dropped — the
+  `ctrl-row` triples vary too much, XYZ/XZ/R·H, for a rigid row component to fit; `ctrl-row` stays a raw
+  flex wrapper.)
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.

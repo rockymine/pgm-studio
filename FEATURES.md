@@ -129,6 +129,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   slot (inline label notes); dynamic variants pass the verbatim ternary via `Class`. The few legitimate
   raw holdouts stay (a `<label class="action-btn">` wrapping `InputFile`; `SliceView`'s header-embedded
   field). Zero visual diff — the components emit the identical classes. (C12 phase D.2)
+- **`CoordField` + `DetailHeader` components** — the repetitive coordinate cell (`coord-prefix` chip +
+  `coord-input`, covering editable / read-only / disabled inputs via params and the `NumberField` variant
+  via a `ChildContent` slot; ~35 uses) and the inspector detail head (`geo-type-icon` + `detail-label` +
+  optional trailing badges, with `IconMuted`/`IconStyle`/`Mono` params; 28 uses) componentized under
+  `Components/{Forms,Data}/` and adopted across ~20 Configure / EditorActivity / Sketch / Plan files.
+  Zero visual diff. (C12 phase D.3)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

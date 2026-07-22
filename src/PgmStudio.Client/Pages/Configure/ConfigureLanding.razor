@@ -159,11 +159,9 @@
 
       <Inspector>
           <Section @key="selectedFinding">
-            <div class="detail-header">
-              <span class="geo-type-icon detail-icon--muted"><i data-lucide="@FindingIcon(selectedFinding)"></i></span>
-              <span class="detail-label">@FindingLabel(selectedFinding)</span>
+            <DetailHeader Icon="@FindingIcon(selectedFinding)" IconMuted Label="@FindingLabel(selectedFinding)">
               <Badge Kind="dim">@FindingTag(selectedFinding)</Badge>
-            </div>
+            </DetailHeader>
             <div class="section-body">
               <p class="section-desc">@FindingExplanation(selectedFinding)</p>
 
