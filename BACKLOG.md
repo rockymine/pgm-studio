@@ -66,47 +66,22 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
   in Build Regions; the Regions/Teams/Objective inspectors are **unwired** (rename/delete silently
   no-op). Wire all three + verify rename/delete/coord-patch end-to-end.
-- [ ] **C12 — Extract shared Blazor components (the sidebar/section vocabulary is the big one).**
-  Componentize the canonical layout chrome that is currently **raw copy-pasted markup**. Already done:
-  `Toast`/ErrorToast, `NumberField`, and `SideDrawer` (this session — the right-anchored overlay panel;
-  `Components/SideDrawer.razor` + `.side-drawer-*` in `components.css`).
+- [ ] **C12 — Build the shared component vocabulary (atoms → sections → shells).** The studio has a
+  consistent CSS design system but **no Blazor layer that renders it** — the canonical skeleton
+  (`panel-section` → `section-header` → `section-title`) is hand-typed across 44 of 64 razor files, the
+  app shell is copy-pasted 11×, and `/generator` already drifted into its own `gen-*` vocabulary. Full
+  audit, atomic tree (Button/Field/Badge/ListRow → Section → Sidebar/StudioShell/ContentColumn), API
+  conventions (foldered under `Components/`, param-first + slot override; global CSS, no `.razor.css`),
+  and the class→component map are the **contract in `docs/contracts/ui-conventions.md`** — follow it;
+  `/design` is the zero-visual-diff regression oracle (components emit the same classes). Already built:
+  `Toast`, `NumberField`, `SideDrawer`, `SmartSuggestion` (widget-tier, not the vocabulary tier).
 
-  **The de-facto canonical sidebar/section pattern** (the highest-payoff target), used across **44 razor
-  files** (Configure 18 · Authoring 11 · Sketch 6 · EditorActivities 6 · Plan/Home/Design):
-  ```
-  workspace-sidebar > workspace-scroll        ← the fixed rail + scroll  (defined in editor.css)
-    section.panel-section                      ← one section block         (defined in components.css)
-      div.section-header.section-header--ruled ← header row (title + optional right-slot .action-btn)
-        h2.section-title                       ← uppercase/tracked/muted
-      p.section-desc                           ← explanatory paragraph
-  ```
-  Frequency: `panel-section` ×156, `section-header--ruled` ×112, `section-title`/`section-desc` ×112/116.
-  Supporting members: `panel-stack`, `section-body`, `section-heading`, `section-actions`, `panel-divider`,
-  `panel-list`, `panel-empty-msg`, `panel-warning`, `sidebar-handle` (collapsible drag handle).
-
-  Extract, by payoff:
-  - **`<Section Title=… [Variant] [Description] [Actions]>`** — the frequency win. Wraps `panel-section`
-    + `section-header`/`section-title` (+ optional right-slot button) + body. **Must expose the
-    `--ruled` vs `--list` modifier as a param** (the CSS comment documents both: `--ruled` = right-panel
-    inspector, `--list` = left-panel list header) — don't hardcode one.
-  - **`<Sidebar>`** — the `workspace-sidebar`+`workspace-scroll` shell (+ optional `sidebar-handle`
-    collapse). Lower priority: collapse behaviour varies per page.
-  - **`SectionHeader`** (ruled title + "+ Add") and the **`Workspace`** layout shell (sidebar/canvas/
-    inspector slots, ~6 activities) — subsumed by / adjacent to the two above.
-  - **`AuthorDisplay`** (cross-tool reuse with S2 — bundle the name↔uuid resolve) and **`ActivityRail`**
-    (extract when S2 lands) — independent of the sidebar work.
-
-  **Motivating symptom to fix first:** the `/generator` page (G117/G128) rolled its **own** bespoke
-  `gen-filters`/`gen-filters-title`/`gen-field`/`gen-hint` instead of the canon — the exact drift a shared
-  component prevents. **Recommended path:** build `<Section>`, adopt it in the generator first (retire the
-  `gen-*` sidebar classes, proving the component), then migrate the other 44 files incrementally — not a
-  big-bang rewrite.
-
-  **Audit gotchas** (the next agent should reconcile, not add a third variant): CSS is split (shell in
-  `editor.css`, section vocab in `components.css`); near-duplicate classes exist (`section-heading` vs
-  `section-header`, `section-body` vs `panel-section`); and the `/design` page has its **own** parallel
-  `ds-*` set (`ds-section-heading`/`ds-panel-frame`/`ds-workspace-frame` in `design.css`) that is
-  design-system-showcase chrome, **not** the working canon — decide whether it converges or stays separate.
+  Phased (each ships + reverts on its own): **A** — `Section`/`SectionHeader`/`Field`/`Button`/`Badge`/
+  `ListRow`, adopted in `/generator` first to retire `gen-*` (proves the vocabulary against the real
+  drift). **B** — the shell: `StudioShell`/`Topbar`/`ActivityRail`/`AppFooter`. **C** — workspace shells
+  `Sidebar`/`Inspector`/`Workspace`/`ContentColumn`. **D** — long tail (`Card`, `CoordField`,
+  `DetailHeader`, `FlowBar`, `Console`, `Chip`, `Icon`) + reconcile near-dups + regenerate `/design`
+  from the real components + drop the inline `style=` replaced by params.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
