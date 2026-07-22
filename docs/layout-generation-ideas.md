@@ -103,6 +103,20 @@ landed, the rest is the idea.
 - **G66 / G67 / G68** — rule visualization (illustrated rule catalog + reject inspector), fill-time slot
   invariants, evaluator-side slot terms.
 - **G43** — the composer↔teaching-set conformance sweep (aggregate soft distance per term).
+- **G127** — the flow graph: junction/lane-chain derivation + route signatures + the first flow terms.
+  Revives G24's already-designed substrate (plan-editor.md §2: mouths as intervals, corridor extrusion,
+  junction regions = ≥3-corridor intersections, lane chains between them — areal, decomposition-free) as
+  the derive side of a **third mirror**: the emit side assembles the intended story from the vocabulary
+  (each form a known mini-graph — donut a cycle, ring hub a cycle with tangent runs, twin frontline two
+  parallel band edges — glued at the joints), and a mismatch is itself the finding (square-on-square: the
+  story says hub + frontline, the mask says one many-mouthed blob). Per wool a **route signature** — the
+  fork-degree sequence band→wool (`2⇒1⇒2⇒1`) — one legible token for the evaluator, the G118 verdict tags
+  (which co-evolve with these terms: plaza · no-funnel · uncatchable-runner), and the B21 agent. First
+  terms, one per observed failure: **plaza** (junction area vs mouth widths / corridor coverage — G69
+  kin), **spread** (wander area along the route), **interception slack** (runner wool→home vs defender
+  spawn→cut-off on the fanned graph — uncatchable when every return route is negative at every node),
+  **redundancy** (disjoint wool↔band ways, generalizing the middle hole's parallel-ways). pgmlogger
+  traffic (G33) is the eventual ground truth the model is validated against.
 - **G75** — score a marker whose stamped structure cannot paste.
 
 ## Realize & world
