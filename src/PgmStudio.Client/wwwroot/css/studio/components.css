@@ -910,49 +910,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 
 /* ══════════════════════════════════════════════════════════════════════════
-   STEP ITEMS  (used by .cfg-step-bar in editor.css — no standalone wrapper)
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.step-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  color: var(--text-muted);
-  font-size: var(--font-sm);
-  cursor: default;
-  user-select: none;
-}
-.step-item.active { color: var(--text-bright); }
-.step-item.done   { color: var(--color-success); }
-
-.step-sep {
-  width: 20px;
-  height: 1px;
-  background: var(--border);
-  flex-shrink: 0;
-}
-
-.step-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.5px solid currentColor;
-  font-size: var(--font-xs);
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.step-item.done .step-number {
-  background: var(--color-success);
-  border-color: var(--color-success);
-  color: var(--text-on-status);
-}
-
-
-/* ══════════════════════════════════════════════════════════════════════════
    LAYER OPTION CARDS  (Configure scan-layer selection)
    ══════════════════════════════════════════════════════════════════════════ */
 

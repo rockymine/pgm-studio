@@ -7,22 +7,16 @@
    studio-chosen cleaned base; there is no scan-layer or block-exclusion choice and no world re-scan.
    Excluding an island recomputes symmetry from the already-detected islands. *@
 
+<div class="phase-body">
+<FlowBar Class="flow-bar--flush" PhaseIcon="settings-2" PhaseTitle="Setup" SubSteps="@(new[] { "Islands", "Symmetry" })"
+         CurrentSubStep="@(step - 1)" BackEnabled="@(step > 1)" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
+         OnStep="@(i => JumpToStep(i + 1))" OnBack="Prev" OnNext="OnFlowNext" />
 <Workspace>
   <Sidebar>
     <ChildContent>
-      @* Step tabs — jump straight to a step (e.g. Symmetry) without walking Next. *@
-      <div class="cfg-step-bar">
-        <button class="step-item @(step == 1 ? "active" : step > 1 ? "done" : null)" @onclick="() => JumpToStep(1)"><span class="step-number">1</span><span class="step-item-label">Islands</span></button>
-        <div class="step-sep"></div>
-        <button class="step-item @(step == 2 ? "active" : null)" @onclick="() => JumpToStep(2)"><span class="step-number">2</span><span class="step-item-label">Symmetry</span></button>
-      </div>
-
       @if (step == 1)
       {
         <Section Title="Islands">
-          <Actions>
-            <Badge Kind="dim">Step 1</Badge>
-          </Actions>
           <ChildContent>
             <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer
               towers). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
@@ -66,9 +60,6 @@
       else
       {
         <Section Title="Symmetry">
-          <Actions>
-            <Badge Kind="dim">Step 2</Badge>
-          </Actions>
           <ChildContent>
             <p class="section-desc">Confirm the detected symmetry, choose a different one, or reject it.</p>
             <div class="panel-list">
@@ -103,13 +94,6 @@
         }
       }
     </ChildContent>
-    <Footer>
-    <div class="cfg-sidebar-nav">
-      @if (step > 1) { <Button OnClick="Prev"><i data-lucide="arrow-left"></i></Button> }
-      @if (step < 2) { <Button Variant="primary" Class="action-btn--push-end" OnClick="Next">Next <i data-lucide="arrow-right"></i></Button> }
-      else { <Button Variant="primary" Class="action-btn--push-end" Disabled="@(symChoice is null)" OnClick="Finish"><i data-lucide="check"></i> @(symChoice == "none" ? "Confirm: no symmetry" : "Confirm symmetry")</Button> }
-    </div>
-    </Footer>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -125,5 +109,6 @@
     <EditorCanvas @ref="symCanvas" Slug="@Slug" SymmetryMode="true" OnReady="OnSymCanvasReady" />
   }
 </Workspace>
+</div>
 
 <Toast Message="@error" />

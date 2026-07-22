@@ -161,6 +161,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`MapIntent.AuthorIntent`), threaded through `ResolveAuthorsAsync` — nothing downstream (DB, XML,
   generator) needed to change, `Deserializer.DecodeAuthor` already reads the key. No compat shim for
   already-stored intent blobs (dev/WIP data, no back-compat policy in this codebase). (C23)
+- **Setup and Build (Edit) migrated onto `FlowBar`** — retires their bespoke step nav
+  (`.cfg-step-bar` numbered tabs + a `Sidebar` `Footer` Prev/Next, both confirmed to have no other
+  consumers and removed) for the same flow-bar strip Configure's World/Build phases use.
+  `ConfigureActivity` (Setup)'s Prev/"Next or Finish" footer collapses into `FlowBar`'s
+  `OnBack`/`OnNext`, with `NextLabel`/`NextEnabled` computed the same way `ConfigureWizard` computes
+  them per-phase. `.configure-main`/`.configure-flow-bar` (C21) are the shared `.phase-body`/
+  `.flow-bar--flush` wrapper both activities now use alongside `ConfigureLayout`. Completes the
+  Editor/Configure shell convergence filed in `TODO.md` this session (C21–C24); the
+  `EditorActivities`→`EditorPhases` naming follow-up is parked (BACKLOG C25). (C24)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

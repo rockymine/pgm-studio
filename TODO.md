@@ -74,19 +74,3 @@ hold tray persists across reloads — pinned *means* persisted.
   result is a **preference pair** `(winner, loser, bucket)` — never converted into a downvote — with a
   per-bucket ranking (Bradley-Terry/Elo-style) derived at analysis time. A separate dataset from the
   browse votes by design.
-
-## Editor/Configure shell convergence (C) — continuation of C12
-
-`Editor.razor` (`/maps/{id}/edit`) and `Configure/ConfigureWizard.razor` (`/maps/{id}/configure`) grew
-the same shell twice: topbar + activity rail + body, with Configure's `ConfigureLayout` additionally
-factoring out a nav bar (phase icon/title + optional sub-steps + Back/Next) that Edit never extracted —
-its rail/topbar/switch statement sit inline in `Editor.razor` itself. Mapping the two rails phase-by-phase
-shows four of Configure's six phases have a real Edit counterpart (`info`/`overview`, `world`/`setup`,
-`teams`/`teams`, `build`/`build-regions`, `wools`/`objective`), with `review` Configure-only and `regions`
-Edit-only. Where the pairs diverge it's mostly incidental (Setup/World order the same two steps
-differently with no reason) rather than principled — except Teams/Objective, where Configure edits the
-pre-generation intent model and Edit edits raw persisted regions, a real difference that should stay
-reflected in the sidebar/inspector content.
-
-- [ ] **C24 — Align `Setup` (Edit) with `World` (Configure)**: same step naming/ordering; Setup keeps its
-  narrower Islands→Symmetry subset (no Scan) as a real functional difference, not a discrepancy to erase.

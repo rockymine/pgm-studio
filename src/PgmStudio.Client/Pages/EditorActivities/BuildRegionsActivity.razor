@@ -6,15 +6,16 @@
    a value) + an X/Z axis toggle; Step 2: build-area region tree + canvas + inspector (delete/rename).
    Port of build-regions-activity.js (C7 side-view via studio.mountSideview / SideviewCanvas). *@
 
+<div class="phase-body">
+<FlowBar Class="flow-bar--flush" PhaseIcon="pickaxe" PhaseTitle="Build" SubSteps="@(new[] { "Build height", "Buildable layer" })"
+         CurrentSubStep="@(step - 1)" BackEnabled="@(step == 2)" NextEnabled="@(step == 1)" NextLabel="Next"
+         OnStep="@(i => step = i + 1)" OnBack="@(() => step = 1)" OnNext="GoStep2" />
 <Workspace>
   <Sidebar>
     <ChildContent>
       @if (step == 1)
       {
         <Section Title="Maximum Build Height">
-          <Actions>
-            <Badge Kind="dim">Step 1</Badge>
-          </Actions>
           <ChildContent>
             <p class="section-desc">Maximum Y level above which no block placement is permitted. Leave blank to enforce no vertical ceiling.</p>
             <Field Label="Blocks">
@@ -31,9 +32,6 @@
       else
       {
         <Section Title="Build Region">
-          <Actions>
-            <Badge Kind="dim">Step 2</Badge>
-          </Actions>
           <ChildContent>
             @if (groups is null) { <div class="list-empty">Loading…</div> }
             else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selSet" OnSelect="OnTreeSelect" /> }
@@ -41,12 +39,6 @@
         </Section>
       }
     </ChildContent>
-    <Footer>
-    <div class="cfg-sidebar-nav">
-      @if (step == 2) { <Button OnClick="() => step = 1"><i data-lucide="arrow-left"></i> Back</Button> }
-      @if (step == 1) { <Button Variant="primary" Class="action-btn--push-end" OnClick="GoStep2">Next <i data-lucide="arrow-right"></i></Button> }
-    </div>
-    </Footer>
   </Sidebar>
 
   <div class="sidebar-handle"></div>
@@ -66,5 +58,6 @@
     </Inspector>
   }
 </Workspace>
+</div>
 
 <Toast Message="@error" />

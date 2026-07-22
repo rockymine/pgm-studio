@@ -138,7 +138,13 @@ public partial class ConfigureActivity
         if (symCanvas is not null) await symCanvas.SetSymmetryAsync(symChoice == "none" ? null : symChoice, centerX, centerZ);
     }
 
-    // ── navigation ──────────────────────────────────────────────────────────────
+    // ── navigation (flow-bar Back/Next) ────────────────────────────────────────
+    // Step 1 → 2 is a plain "Next"; step 2's Next is "confirm and finish" (Finish), same shape as
+    // the Configure wizard's own per-phase NextLabel/CanAdvance.
+    private string NextLabel => step == 1 ? "Next" : symChoice == "none" ? "Confirm: no symmetry" : "Confirm symmetry";
+    private bool NextEnabled => step == 1 || symChoice is not null;
+    private Task OnFlowNext() => step == 1 ? Next() : Finish();
+
     private async Task Next()
     {
         if (step == 1) { await LoadSymmetry(); step = 2; }   // re-detect symmetry minus the excluded islands
@@ -146,7 +152,7 @@ public partial class ConfigureActivity
 
     private void Prev() { if (step > 1) step--; }
 
-    /// <summary>Jump straight to a step from the step-bar tabs (e.g. Symmetry) without walking Next.</summary>
+    /// <summary>Jump straight to a step from the flow-bar pills (e.g. Symmetry) without walking Next.</summary>
     private async Task JumpToStep(int n)
     {
         if (n == step) return;

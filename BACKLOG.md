@@ -79,10 +79,12 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   vocabulary `Field`/`Button`/`Badge`/`ListRow`/`Chip` (D.2). Remaining:
 
   **D.3 — build + adopt the new components.** `CoordField`, `DetailHeader` **done** (`FEATURES.md`); the
-  `/design` gallery **regenerated** to render the real components. Decisions that shrank the rest: `FlowBar`
-  and `Console` are **single-use** (one wizard bar in `ConfigureLayout`, one pre-flight log in
-  `ReviewPreflightPhase`) — not worth componentizing, left raw (same call as `CoordRow`, dropped because
-  `ctrl-row` triples vary XYZ/XZ/R·H). `Card`/`CardGrid` **deferred** (only ~8 landing cards; low payoff).
+  `/design` gallery **regenerated** to render the real components. `FlowBar` — once deferred as
+  single-use — **shipped** (C21) once the Editor/Configure shell-convergence work needed it in a
+  second consumer; it backs both `ConfigureLayout` and Edit's stepped activities (Setup, Build).
+  `Console` stays single-use (the pre-flight log in `ReviewPreflightPhase`) — not worth componentizing
+  yet, left raw (same call as `CoordRow`, dropped because `ctrl-row` triples vary XYZ/XZ/R·H).
+  `Card`/`CardGrid` **deferred** (only ~8 landing cards; low payoff).
 
   **Open — `Icon` adoption.** `Components/Primitives/Icon.razor` is **built but unadopted**: `<i
   data-lucide="@Name" @key="@Name">`, centralizing the lucide reconciler gotcha (recreate-on-glyph-change
@@ -95,6 +97,11 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
+- [ ] **C25 — Rename `EditorActivities` → `EditorPhases`, `*Activity.razor(.cs)` → `*Phase.razor(.cs)`.**
+  "Phase" is the better name — a phase can carry steps (Build height/Buildable layer, Islands/Symmetry),
+  matching Configure's own `*Phase` convention (C21–C24 already used `Phase*`-named params for the new
+  shared bits to not widen the gap). Flagged during the C21–C24 work, deliberately parked: a pure rename
+  with no functional payoff on its own, not worth its own diff bundled into that work.
 
 ## Backend, pipeline & internals (B / P / A)
 
