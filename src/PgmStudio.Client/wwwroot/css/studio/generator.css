@@ -67,18 +67,23 @@
 .gen-tray-x i { width: 11px; height: 11px; }
 
 .gen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-3); }
-.gen-card { display: flex; flex-direction: column; overflow: hidden; background: var(--bg-panel, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.gen-card { position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-panel, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .gen-card--pinned { border-color: var(--accent); }
-.gen-card-fig { display: block; width: 100%; padding: 8px; background: var(--canvas); border: none; cursor: pointer; }
+/* the figure grows to fill any extra card height (cards stretch to the tallest in their grid row), which
+   keeps the foot pinned to the bottom; the board SVG stays centred within it. */
+.gen-card-fig { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; padding: 8px; background: var(--canvas); border: none; cursor: pointer; }
 .gen-card-fig svg { width: 100%; height: auto; max-height: 240px; display: block; margin: 0 auto; }
-.gen-card-badges { display: flex; flex-wrap: wrap; gap: 3px; padding: 6px 8px 0; }
-.gen-badge {
-  padding: 1px 6px; font-size: 10px; font-family: ui-monospace, monospace; cursor: pointer;
-  background: var(--bg-selected); color: var(--text-secondary);
-  border: 1px solid transparent; border-radius: var(--radius-sm); text-transform: lowercase;
+/* structure badges — read-only labels overlaying the top-left corner; clicks fall through to the figure.
+   Filtering lives only in the sidebar. */
+.gen-card-badges {
+  position: absolute; top: 6px; left: 6px; z-index: 2; pointer-events: none;
+  display: flex; flex-wrap: wrap; gap: 3px; max-width: calc(100% - 12px);
 }
-.gen-badge:hover { color: var(--text-bright); border-color: var(--accent); }
-.gen-badge--on { color: var(--text-bright); border-color: var(--accent); }
+.gen-badge {
+  padding: 1px 6px; font-size: 10px; font-family: ui-monospace, monospace; text-transform: lowercase;
+  background: var(--bg-panel, var(--bg)); color: var(--text-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+}
 .gen-badge--wool { color: var(--accent-lighter, var(--accent)); }
 .gen-scanned { margin: 0 0 var(--space-2); font-size: var(--font-xs); color: var(--text-secondary); }
 .gen-card-foot { display: flex; align-items: center; gap: var(--space-2); padding: 6px 8px; border-top: 1px solid var(--border); }

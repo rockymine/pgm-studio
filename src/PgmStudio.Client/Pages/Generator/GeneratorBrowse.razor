@@ -118,20 +118,17 @@
         @foreach (var card in cards)
         {
           <div class="gen-card @(IsPinned(card) ? "gen-card--pinned" : null)">
+            <div class="gen-card-badges" title="Structure — filter from the sidebar">
+              @foreach (var w in card.Structure.Wools.Distinct())
+              {
+                <span class="gen-badge gen-badge--wool">@w</span>
+              }
+              <span class="gen-badge gen-badge--hub">@card.Structure.Hub</span>
+              <span class="gen-badge gen-badge--front">@card.Structure.Frontline</span>
+            </div>
             <button class="gen-card-fig" @onclick="() => OpenDetail(card)" title="Open details">
               @((MarkupString)card.Svg)
             </button>
-            <div class="gen-card-badges">
-              @foreach (var w in card.Structure.Wools.Distinct())
-              {
-                <button class="gen-badge gen-badge--wool @(woolFilter.Contains(w) ? "gen-badge--on" : null)"
-                        title="Filter: wool @w" @onclick="() => ToggleWool(w)">@w</button>
-              }
-              <button class="gen-badge gen-badge--hub @(hubFilter.Contains(card.Structure.Hub) ? "gen-badge--on" : null)"
-                      title="Filter: hub @card.Structure.Hub" @onclick="() => ToggleHub(card.Structure.Hub)">@card.Structure.Hub</button>
-              <button class="gen-badge gen-badge--front @(frontFilter.Contains(card.Structure.Frontline) ? "gen-badge--on" : null)"
-                      title="Filter: frontline @card.Structure.Frontline" @onclick="() => ToggleFront(card.Structure.Frontline)">@card.Structure.Frontline</button>
-            </div>
             <div class="gen-card-foot">
               <span class="gen-card-score" title="Evaluator score — lower is better">@card.Score.ToString("0.0")</span>
               <span class="gen-card-meta">@card.WoolCount wool · #@card.Descriptor.Seed</span>
