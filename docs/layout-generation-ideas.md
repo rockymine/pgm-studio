@@ -71,7 +71,14 @@ landed, the rest is the idea.
   fails and the form falls back to the rectangle), and needs `FrontFacesSymmetric` relaxed from per-face
   mirror symmetry to hull symmetry (BZ9's real requirement) so shifted fronts survive rot_180. The payoff:
   the frontline as a flow funnel — two onward routes at asymmetric cost around the sealed hole. Subsumes the
-  FR6 half of G111.
+  FR6 half of G111. Second exemplar `shifted-u-frontline-attach-hole-hub.plan.json` (ring hub, donut + side-tuck
+  wools): on a solid-front hub only the scalar half is needed (width + shift + overhang + hull guard, one
+  contact patch on one run) — the minimum viable slice; the spanning dock is specific to bay-fronted forms.
+- **G124** — what the seat-separation law measures: today `TooClose` inflates **box envelopes**
+  (corner-inclusive), so a donut's void margins make it over-reject placements whose emitted **terrain**
+  keeps the gap (the hole-hub exemplar's donut box passes 1 cell from the spawn box while its terrain keeps
+  2). Decide the measurand — envelope, emitted terrain, or terrain-with-margin — and align `SeatOverhang`/
+  `SeatInRuns` blocking on it.
 
 ## Vacancies, fragments, targets
 

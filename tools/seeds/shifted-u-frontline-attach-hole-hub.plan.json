@@ -1,0 +1,256 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "shifted-u-frontline-attach-hole-hub"
+  },
+  "globals": {
+    "cell": 5,
+    "symmetry": "rot_180",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "hub-bar-2",
+      "role": "piece",
+      "rect": [
+        0,
+        -8,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "frontline-leg",
+      "role": "piece",
+      "rect": [
+        -4,
+        -4,
+        3,
+        1
+      ]
+    },
+    {
+      "id": "hub-leg-2",
+      "role": "piece",
+      "rect": [
+        4,
+        -10,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "hub-bar",
+      "role": "piece",
+      "rect": [
+        0,
+        -12,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "hub-leg",
+      "role": "piece",
+      "rect": [
+        0,
+        -10,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "wool",
+      "role": "wool-room",
+      "rect": [
+        -8,
+        -14,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "room-bar",
+      "role": "piece",
+      "rect": [
+        -6,
+        -14,
+        5,
+        2
+      ]
+    },
+    {
+      "id": "leg-2",
+      "role": "piece",
+      "rect": [
+        -8,
+        -12,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "entry-2",
+      "role": "piece",
+      "rect": [
+        7,
+        -10,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "wool-2",
+      "role": "wool-room",
+      "rect": [
+        9,
+        -8,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "spawn-run",
+      "role": "piece",
+      "rect": [
+        1,
+        -14,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "spawn",
+      "role": "spawn",
+      "rect": [
+        1,
+        -16,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "frontline-leg-2",
+      "role": "piece",
+      "rect": [
+        2,
+        -4,
+        2,
+        1
+      ]
+    },
+    {
+      "id": "frontline-bar",
+      "role": "piece",
+      "rect": [
+        -4,
+        -6,
+        8,
+        2
+      ]
+    },
+    {
+      "id": "entry-bar",
+      "role": "piece",
+      "rect": [
+        -8,
+        -10,
+        7,
+        2
+      ]
+    },
+    {
+      "id": "leg",
+      "role": "piece",
+      "rect": [
+        -3,
+        -12,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "entry",
+      "role": "piece",
+      "rect": [
+        -1,
+        -12,
+        1,
+        4
+      ]
+    },
+    {
+      "id": "wool-box",
+      "role": "buffer",
+      "rect": [
+        -8,
+        -14,
+        8,
+        6
+      ]
+    },
+    {
+      "id": "wool-box-2",
+      "role": "buffer",
+      "rect": [
+        7,
+        -10,
+        4,
+        4
+      ]
+    },
+    {
+      "id": "hub-box",
+      "role": "buffer",
+      "rect": [
+        0,
+        -12,
+        7,
+        6
+      ]
+    },
+    {
+      "id": "buffer",
+      "role": "buffer",
+      "rect": [
+        -4,
+        -6,
+        8,
+        3
+      ]
+    },
+    {
+      "id": "buffer-2",
+      "role": "buffer",
+      "rect": [
+        1,
+        -16,
+        3,
+        4
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "zone",
+      "rect": [
+        -4,
+        -3,
+        8,
+        6
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [],
+    "wools": [],
+    "iron": [],
+    "destroyables": [],
+    "cores": []
+  },
+  "cliffs": [],
+  "walls": []
+}
