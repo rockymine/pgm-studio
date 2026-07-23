@@ -33,10 +33,10 @@
     </Topbar>
   </Bar>
   <Rail>
-    <ActivityRail LogoHref="/" LogoTitle="Studio home">
-      <ActivityButton Icon="sliders-horizontal" Title="Settings" Active="@(leftPanel == "settings" && leftOpen)" OnClick='() => SelectActivity("settings")' />
-      <ActivityButton Icon="shield-check" Title="Validation — evaluator score &amp; fired rules" Active="@(leftPanel == "validation" && leftOpen)" OnClick='() => SelectActivity("validation")' />
-    </ActivityRail>
+    <NavRail LogoHref="/" LogoTitle="Studio home">
+      <NavButton Icon="sliders-horizontal" Title="Settings" Active="@(leftPanel == "settings" && leftOpen)" OnClick='() => SelectActivity("settings")' />
+      <NavButton Icon="shield-check" Title="Validation — evaluator score &amp; fired rules" Active="@(leftPanel == "validation" && leftOpen)" OnClick='() => SelectActivity("validation")' />
+    </NavRail>
   </Rail>
   <ChildContent>
       <Workspace>

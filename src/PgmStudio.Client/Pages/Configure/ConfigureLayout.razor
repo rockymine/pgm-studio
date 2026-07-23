@@ -25,18 +25,18 @@
     </Topbar>
   </Bar>
   <Rail>
-    <ActivityRail LogoHref="/maps/new" LogoTitle="New-map landing">
+    <NavRail LogoHref="/maps/new" LogoTitle="New-map landing">
       @for (var i = 0; i < ConfigurePhases.All.Length; i++)
       {
         var p = ConfigurePhases.All[i];
         // The current phase is never locked — you can walk one step past the slice-derived frontier
         // (a not-yet-completed phase) and still see where you are; only forward jumps stay gated.
         var locked = i > Furthest && p.Id != ActivePhaseId;
-        <ActivityButton Icon="@p.Icon" Title="@p.Title" Active="p.Id == ActivePhaseId"
-                        Status="@(i < Furthest ? "green" : "")" Disabled="locked"
-                        OnClick="() => OnJumpPhase.InvokeAsync(p.Id)" />
+        <NavButton Icon="@p.Icon" Title="@p.Title" Active="p.Id == ActivePhaseId"
+                   Status="@(i < Furthest ? "green" : "")" Disabled="locked"
+                   OnClick="() => OnJumpPhase.InvokeAsync(p.Id)" />
       }
-    </ActivityRail>
+    </NavRail>
   </Rail>
   <ChildContent>
       <div class="phase-body">

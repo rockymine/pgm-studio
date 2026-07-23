@@ -24,15 +24,15 @@
     </Topbar>
   </Bar>
   <Rail>
-    <ActivityRail>
+    <NavRail>
       @foreach (var a in Activities)
       {
-        <ActivityButton Icon="@a.Icon" Title="@a.Title" Active="active == a.Id"
-                        Disabled="!loaded" Status="@StatusOf(a.Id)" OnClick="() => Switch(a.Id)" />
+        <NavButton Icon="@a.Icon" Title="@a.Title" Active="active == a.Id"
+                   Disabled="!loaded" Status="@StatusOf(a.Id)" OnClick="() => Switch(a.Id)" />
       }
-      <ActivityButton Icon="gavel" Title="Filters" Disabled="true" />
-      <ActivityButton Icon="archive" Title="Export" Disabled="true" />
-    </ActivityRail>
+      <NavButton Icon="gavel" Title="Filters" Disabled="true" />
+      <NavButton Icon="archive" Title="Export" Disabled="true" />
+    </NavRail>
   </Rail>
   <ChildContent>
       @if (!loaded)

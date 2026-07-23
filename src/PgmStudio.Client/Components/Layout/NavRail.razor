@@ -1,0 +1,32 @@
+@namespace PgmStudio.Client.Components
+
+@* The left nav rail — the pgm/STUDIO logo box (a link when LogoHref is set, else static) above
+   the nav buttons (ChildContent — compose with <NavButton>). *@
+
+<nav class="nav-rail">
+    @if (LogoHref is not null)
+    {
+        <a class="nav-logo" href="@LogoHref" title="@LogoTitle">
+            <div class="nav-logo-box">
+                <span class="nav-logo-pgm">pgm</span>
+                <span class="nav-logo-sub">STUDIO</span>
+            </div>
+        </a>
+    }
+    else
+    {
+        <div class="nav-logo">
+            <div class="nav-logo-box">
+                <span class="nav-logo-pgm">pgm</span>
+                <span class="nav-logo-sub">STUDIO</span>
+            </div>
+        </div>
+    }
+    @ChildContent
+</nav>
+
+@code {
+    [Parameter] public string? LogoHref { get; set; }
+    [Parameter] public string? LogoTitle { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

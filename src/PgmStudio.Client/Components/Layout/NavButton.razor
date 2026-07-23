@@ -1,6 +1,6 @@
 @namespace PgmStudio.Client.Components
 
-@* One activity-rail button — a single Lucide glyph, Active when it is the current activity. Renders an
+@* One nav-rail button — a single Lucide glyph, Active when it is the current activity. Renders an
    <a> when Href is set (navigation), else a <button> (state switch) that can be Disabled and carry a
    status dot (Status = green | yellow | red → data-status). *@
 
@@ -22,5 +22,5 @@ else
     [Parameter] public string? Status { get; set; }   // green | yellow | red → data-status
     [Parameter] public EventCallback OnClick { get; set; }
 
-    private string Cls => Active ? "activity-btn active" : "activity-btn";
+    private string Cls => Active ? "nav-btn active" : "nav-btn";
 }

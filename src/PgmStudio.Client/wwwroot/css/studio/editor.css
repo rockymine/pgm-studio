@@ -238,8 +238,8 @@
   user-select: none;
 }
 
-/* ── ACTIVITY RAIL ── */
-.activity-rail {
+/* ── NAV RAIL ── */
+.nav-rail {
   width: 56px;
   flex-shrink: 0;
   display: flex;
@@ -250,7 +250,7 @@
   background: var(--bg-panel);
   border-right: 1px solid var(--border);
 }
-.activity-logo {
+.nav-logo {
   width: 100%;
   display: flex;
   justify-content: center;
@@ -260,7 +260,7 @@
   border-bottom: 1px solid var(--border);
   margin-bottom: 6px;
 }
-.activity-logo-box {
+.nav-logo-box {
   width: 38px;
   height: 38px;
   border-radius: var(--radius-md);
@@ -271,7 +271,7 @@
   justify-content: center;
   gap: 2px;
 }
-.activity-logo-pgm {
+.nav-logo-pgm {
   font-family: ui-monospace, monospace;
   font-size: var(--font-sm);
   font-weight: 700;
@@ -279,7 +279,7 @@
   letter-spacing: 0.05em;
   line-height: 1;
 }
-.activity-logo-sub {
+.nav-logo-sub {
   font-family: ui-monospace, monospace;
   font-size: 6px;
   font-weight: 600;
@@ -288,7 +288,7 @@
   line-height: 1;
 }
 
-.activity-btn {
+.nav-btn {
   position: relative;
   display: flex;
   align-items: center;
@@ -303,10 +303,10 @@
   padding: 0;
   transition: color var(--transition-fast);
 }
-.activity-rail .activity-btn svg { width: 22px !important; height: 22px !important; }
-.activity-btn:not(:disabled):hover { color: var(--text-strong); }
-.activity-btn.active { color: var(--text-strong); }
-.activity-btn.active::before {
+.nav-rail .nav-btn svg { width: 22px !important; height: 22px !important; }
+.nav-btn:not(:disabled):hover { color: var(--text-strong); }
+.nav-btn.active { color: var(--text-strong); }
+.nav-btn.active::before {
   content: '';
   position: absolute;
   left: 0; top: 8px; bottom: 8px;
@@ -314,10 +314,10 @@
   background: var(--text-strong);
   border-radius: 0 2px 2px 0;
 }
-.activity-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* Activity status dots */
-.activity-btn::after {
+/* Nav status dots */
+.nav-btn::after {
   content: "";
   display: none;
   position: absolute;
@@ -329,9 +329,9 @@
   border: 1.5px solid var(--bg-panel);
   pointer-events: none;
 }
-.activity-btn[data-status="green"]::after  { display: block; background: var(--color-success); }
-.activity-btn[data-status="yellow"]::after { display: block; background: var(--color-warning); }
-.activity-btn[data-status="red"]::after    { display: block; background: var(--color-error); }
+.nav-btn[data-status="green"]::after  { display: block; background: var(--color-success); }
+.nav-btn[data-status="yellow"]::after { display: block; background: var(--color-warning); }
+.nav-btn[data-status="red"]::after    { display: block; background: var(--color-error); }
 
 /* ══════════════════════════════════════════════════════════════════════════
    WORKSPACE STRUCTURE  (shared shell — all activities use these classes)
