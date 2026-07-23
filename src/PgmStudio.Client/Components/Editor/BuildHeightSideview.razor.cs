@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace PgmStudio.Client.Pages.EditorActivities;
+namespace PgmStudio.Client.Components;
 
 public partial class BuildHeightSideview : IAsyncDisposable
 {

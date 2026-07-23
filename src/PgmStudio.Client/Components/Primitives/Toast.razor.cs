@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 
-namespace PgmStudio.Client.Pages.EditorActivities;
+namespace PgmStudio.Client.Components;
 
 public partial class Toast
 {

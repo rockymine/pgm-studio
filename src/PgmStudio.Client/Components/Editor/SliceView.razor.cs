@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Models;
 
-namespace PgmStudio.Client.Pages.EditorActivities;
+namespace PgmStudio.Client.Components;
 
 public partial class SliceView : IAsyncDisposable
 {

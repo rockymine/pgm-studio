@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using PgmStudio.Client.Pages.EditorActivities;
+using PgmStudio.Client.Components;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;

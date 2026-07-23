@@ -4,6 +4,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Client.Models;
 
+using PgmStudio.Client.Components;
+
 namespace PgmStudio.Client.Pages.EditorActivities;
 
 public partial class BuildRegionsActivity

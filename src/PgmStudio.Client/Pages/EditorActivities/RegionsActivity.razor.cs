@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Models;
 
+using PgmStudio.Client.Components;
+
 namespace PgmStudio.Client.Pages.EditorActivities;
 
 public partial class RegionsActivity

@@ -3,6 +3,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
+using PgmStudio.Client.Components;
+
 namespace PgmStudio.Client.Pages.EditorActivities;
 
 // 2-step Setup flow (Islands → Symmetry) over the reused EditorCanvas — island-select then symmetry

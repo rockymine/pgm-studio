@@ -4,7 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Models;
-using PgmStudio.Client.Pages.EditorActivities;
+using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Pages.Configure;
 
