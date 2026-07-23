@@ -49,7 +49,7 @@
                                 OnPrevPhase="@(() => GoAdjacent(-1))" OnNextPhase="@(() => GoAdjacent(1))" />
             break;
           case "overview":
-            <OverviewPhase Slug="@Slug" OnStatus="OnOverviewStatus" IsFirstPhase="@IsFirstPhase" IsLastPhase="@IsLastPhase"
+            <IdentityPhase Slug="@Slug" OnStatus="OnOverviewStatus" IsFirstPhase="@IsFirstPhase" IsLastPhase="@IsLastPhase"
                                OnPrevPhase="@(() => GoAdjacent(-1))" OnNextPhase="@(() => GoAdjacent(1))" />
             break;
           case "teams":

@@ -6,12 +6,12 @@ using Microsoft.AspNetCore.Components;
 
 namespace PgmStudio.Client.Pages.Configure;
 
-// Map Info phase body: edits the intent's meta slice (name + authors/contributors). Mirrors the Overview
+// Identity phase body: edits the intent's meta slice (name + authors/contributors). Mirrors the Edit Identity phase
 // editor's author handling — a username resolves against Mojang on blur (GET /minecraft/player) to its
 // canonical name + uuid (→ mc-heads avatar), or is flagged. Only verified usernames are written to the
 // intent, so a bad name is caught at the source and never reaches the generated map. Edits patch the
 // cascaded wizard's working Intent and mark it dirty; the wizard persists meta when the phase is left.
-public partial class InfoPhase
+public partial class IdentityPhase
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;

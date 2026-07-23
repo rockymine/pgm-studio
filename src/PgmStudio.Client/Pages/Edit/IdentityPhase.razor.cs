@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Components;
 
 namespace PgmStudio.Client.Pages.Edit;
 
-// The PersonRow markup template stays in OverviewPhase.razor (it is Razor markup); all the
-// state and behaviour for the Overview phase lives here in the code-behind partial.
-public partial class OverviewPhase
+// The PersonRow markup template stays in IdentityPhase.razor (it is Razor markup); all the
+// state and behaviour for the Identity phase lives here in the code-behind partial.
+public partial class IdentityPhase
 {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public EventCallback<string?> OnStatus { get; set; }

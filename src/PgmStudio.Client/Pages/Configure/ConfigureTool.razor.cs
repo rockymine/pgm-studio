@@ -38,7 +38,7 @@ public partial class ConfigureTool
 
     private bool BackEnabled => !AtStart;
     private string NextLabel => AtEnd ? "Export" : "Next";
-    private string StepLabel => Phase.Steps.Length == 0 ? "Map Info" : Phase.Steps[step];
+    private string StepLabel => Phase.Steps.Length == 0 ? "Identity" : Phase.Steps[step];
 
     // A phase must be complete before its boundary Next persists the slice and unlocks the next phase
     // (new-map-authoring.md §12). Step moves within a phase are always allowed; only crossing the
@@ -46,7 +46,7 @@ public partial class ConfigureTool
     // browsable — each N-task swaps in its real predicate.
     private bool CanAdvance => Phase.Id switch
     {
-        "info" => MetaValid(),   // Map Info: needs a name + at least one author
+        "info" => MetaValid(),   // Identity: needs a name + at least one author
         _ => true,
     };
     // At the very end (Review · XML step) Next is "Export", gated on the pre-flight export gate the
@@ -95,7 +95,7 @@ public partial class ConfigureTool
         _ => false,
     };
 
-    // Map Info's slice is complete once it has a name and at least one (non-blank) author — the minimum
+    // Identity's slice is complete once it has a name and at least one (non-blank) author — the minimum
     // the generator needs (new-map-authoring.md §0/§12). Authors are {name, contribution?} objects.
     private bool MetaValid()
     {
@@ -124,7 +124,7 @@ public partial class ConfigureTool
     }
 
     // Prefill the meta name from the map's existing name (set at sketch-create / import) when the intent
-    // has none yet, so a draft's name shows in Map Info instead of a blank field. Not marked dirty: it's a
+    // has none yet, so a draft's name shows in Identity instead of a blank field. Not marked dirty: it's a
     // display prefill that persists on the first phase-advance like any other meta edit.
     private void SeedMetaNameFromMap()
     {

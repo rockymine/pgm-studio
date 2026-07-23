@@ -1,8 +1,8 @@
 @namespace PgmStudio.Client.Pages.Configure
 
-@* Map Info phase body (N00): the map's identity slice — name + authors/contributors → intent meta.
+@* Identity phase body (N00): the map's identity slice — name + authors/contributors → intent meta.
    Version / mode / objective are auto-derived by the generator and shown locked. Author handling mirrors
-   the Overview editor: a username resolves on blur to its head + canonical name, an unknown one is
+   the Edit tool's Identity phase: a username resolves on blur to its head + canonical name, an unknown one is
    flagged and kept out of the intent. Edits patch the wizard's working Intent and mark it dirty. *@
 
 <Workspace>
@@ -62,7 +62,7 @@
 
 @code {
   // One author/contributor row: avatar head (mc-heads, via the resolved uuid) · username field · remove.
-  // Markup template, so it lives here rather than the code-behind. Mirrors the Overview editor's row.
+  // Markup template, so it lives here rather than the code-behind. Mirrors the Edit Identity phase's row.
   private RenderFragment PersonRow(Person p) => __builder =>
   {
     <div class="author-row">

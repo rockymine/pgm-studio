@@ -7,10 +7,10 @@ public record ConfigurePhase(string Id, string Icon, string Title, string[] Step
 public static class ConfigurePhases
 {
     // The six phases on the activity rail, in linear order. Steps mirror the concept sections;
-    // a phase with no steps (Map Info) is a single-step form (the flow bar shows just its name).
+    // a phase with no steps (Identity) is a single-step form (the flow bar shows just its name).
     public static readonly ConfigurePhase[] All =
     [
-        new("info",   "book-open-text", "Map Info",        [],                                                "N00"),
+        new("info",   "book-open-text", "Identity",        [],                                                "N00"),
         new("world",  "settings-2",     "World",           ["Scan", "Islands", "Symmetry"],                   "N01"),
         new("teams",  "users",          "Teams",           ["Teams & islands", "Spawn point", "Protection"],  "N02"),
         new("build",  "pickaxe",        "Build",           ["Build height", "Buildable layer"],               "N03"),

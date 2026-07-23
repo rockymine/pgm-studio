@@ -15,7 +15,7 @@ public partial class EditTool
     // Identity leads (matches the Configure wizard's info/world ordering), then the editing activities.
     private static readonly Phase[] Phases =
     [
-        new("overview",      "book-open-text",    "Overview"),
+        new("overview",      "book-open-text",    "Identity"),
         new("setup",         "settings-2",        "Setup"),
         new("teams",         "users",             "Teams"),
         new("build-regions", "pickaxe",           "Build Regions"),

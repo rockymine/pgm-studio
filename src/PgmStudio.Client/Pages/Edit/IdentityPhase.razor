@@ -2,12 +2,12 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Overview phase — map identity + authors/contributors, editing the map's raw stored metadata
+@* Identity phase — map identity + authors/contributors, editing the map's raw stored metadata
    directly (Version/Objective are freely editable and persist via the explicit Save below) — unlike
-   Configure's Map Info, which authors an intent slice that's regenerated wholesale. *@
+   Configure's Identity, which authors an intent slice that's regenerated wholesale. *@
 
 <div class="phase-body">
-<FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Overview"
+<FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Identity"
          BackEnabled="@(!IsFirstPhase)" NextLabel="@(IsLastPhase ? "Done" : "Next")"
          OnBack="OnPrevPhase" OnNext="OnNextPhase" />
 <Workspace>
@@ -70,7 +70,7 @@
 
 @code {
     // PersonRow stays here because it is a Razor markup template; the phase.s state and logic
-    // live in OverviewPhase.razor.cs.
+    // live in IdentityPhase.razor.cs.
     private RenderFragment PersonRow(Person p, List<Person> list) => __builder =>
     {
         <div class="author-row">

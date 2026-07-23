@@ -10,7 +10,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // New-map landing: the Import flow — Source → Found → Plan — that creates a map from a terrain-only
 // world and hands off to the Configure wizard. Source lists importable world folders; Next scans the
 // chosen world into MariaDB; Found shows the detection brief over the reused editor canvas, with each
-// finding selectable for a detail explanation; Plan starts the wizard at Map Info.
+// finding selectable for a detail explanation; Plan starts the wizard at Identity.
 public partial class ConfigureLanding : IAsyncDisposable
 {
     [Inject] private NavigationManager Nav { get; set; } = default!;

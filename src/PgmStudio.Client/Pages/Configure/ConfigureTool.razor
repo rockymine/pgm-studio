@@ -19,14 +19,14 @@
   @if (!ready)
   {
     @* Hold the phase bodies until the intent has loaded — they read it once on init, so mounting them
-       mid-load would capture an empty intent (blank Map Info even when the map has a name/authors). *@
+       mid-load would capture an empty intent (blank Identity even when the map has a name/authors). *@
     <div class="workspace" @key="@("loading")">
       <div class="workspace-scroll"><p class="panel-empty-msg">Loading…</p></div>
     </div>
   }
   else if (Phase.Id == "info")
   {
-    <InfoPhase @key="@Phase.Id" />
+    <IdentityPhase @key="@Phase.Id" />
   }
   else if (Phase.Id == "world" && step == 0)
   {
