@@ -3,13 +3,13 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* New-map Configure wizard shell. Activity rail + flow bar + three-panel workspace, with a phase/sub-step
+@* New-map Configure wizard shell. Activity rail + flow bar + three-panel workspace, with a phase/step
    state machine and an intent-slice-gated rail. Built phase bodies render their own workspace; the rest
    are scaffold placeholders until their N-task lands. See new-map-authoring.md §12 + routing-and-ia.md. *@
 
 <ConfigureLayout MapName="@mapName" Crumb="Configure" ActivePhaseId="@Phase.Id" Furthest="@furthest"
               PhaseIcon="@Phase.Icon" PhaseTitle="@Phase.Title"
-              SubSteps="@Phase.SubSteps" CurrentSubStep="@subStep" SaveStatus="@SaveStatus"
+              Steps="@Phase.Steps" CurrentStep="@step" SaveStatus="@SaveStatus"
               BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
               OnJumpPhase="JumpPhase" OnStep="JumpStep" OnBack="Back" OnNext="Next">
 
@@ -28,65 +28,65 @@
   {
     <InfoPhase @key="@Phase.Id" />
   }
-  else if (Phase.Id == "world" && subStep == 0)
+  else if (Phase.Id == "world" && step == 0)
   {
     <WorldScanPhase @key="@("world-scan")" />
   }
-  else if (Phase.Id == "world" && subStep == 1)
+  else if (Phase.Id == "world" && step == 1)
   {
     <WorldIslandsPhase @key="@("world-islands")" />
   }
-  else if (Phase.Id == "world" && subStep == 2)
+  else if (Phase.Id == "world" && step == 2)
   {
     <WorldSymmetryPhase @key="@("world-symmetry")" />
   }
-  else if (Phase.Id == "teams" && subStep == 0)
+  else if (Phase.Id == "teams" && step == 0)
   {
     <TeamsPhase @key="@("teams-assign")" />
   }
-  else if (Phase.Id == "teams" && subStep == 1)
+  else if (Phase.Id == "teams" && step == 1)
   {
     <SpawnPhase @key="@("teams-spawn")" />
   }
-  else if (Phase.Id == "teams" && subStep == 2)
+  else if (Phase.Id == "teams" && step == 2)
   {
     <ProtectionPhase @key="@("teams-protect")" />
   }
-  else if (Phase.Id == "build" && subStep == 0)
+  else if (Phase.Id == "build" && step == 0)
   {
     <BuildHeightPhase @key="@("build-height")" />
   }
-  else if (Phase.Id == "build" && subStep == 1)
+  else if (Phase.Id == "build" && step == 1)
   {
     <BuildLayerPhase @key="@("build-layer")" />
   }
-  @* Keyed on the sub-step label, not its index: sketch-origin maps drop the Monuments sub-step, which
+  @* Keyed on the step label, not its index: sketch-origin maps drop the Monuments step, which
      shifts Room's index down (ConfigureWizard.razor.cs LoadOriginAsync). *@
-  else if (Phase.Id == "wools" && SubLabel == "Objectives")
+  else if (Phase.Id == "wools" && StepLabel == "Objectives")
   {
     <WoolObjectivesPhase @key="@("wools-objectives")" />
   }
-  else if (Phase.Id == "wools" && SubLabel == "Spawn")
+  else if (Phase.Id == "wools" && StepLabel == "Spawn")
   {
     <WoolSpawnPhase @key="@("wools-spawn")" />
   }
-  else if (Phase.Id == "wools" && SubLabel == "Monuments")
+  else if (Phase.Id == "wools" && StepLabel == "Monuments")
   {
     <WoolMonumentsPhase @key="@("wools-monuments")" />
   }
-  else if (Phase.Id == "wools" && SubLabel == "Room")
+  else if (Phase.Id == "wools" && StepLabel == "Room")
   {
     <WoolRoomPhase @key="@("wools-room")" />
   }
-  else if (Phase.Id == "review" && subStep == 0)
+  else if (Phase.Id == "review" && step == 0)
   {
     <ReviewPreflightPhase @key="@("review-preflight")" />
   }
-  else if (Phase.Id == "review" && subStep == 1)
+  else if (Phase.Id == "review" && step == 1)
   {
     <ReviewTreePhase @key="@("review-tree")" />
   }
-  else if (Phase.Id == "review" && subStep == 2)
+  else if (Phase.Id == "review" && step == 2)
   {
     <ReviewXmlPhase @key="@("review-xml")" />
   }
@@ -98,13 +98,13 @@
           <Actions><Badge Kind="dim">@Phase.Task</Badge></Actions>
           <ChildContent>
           <p class="section-desc">
-            @if (Phase.SubSteps.Length == 0)
+            @if (Phase.Steps.Length == 0)
             {
               <text>Single-step phase.</text>
             }
             else
             {
-              <text>Step @(subStep + 1) of @Phase.SubSteps.Length — <strong>@SubLabel</strong>.</text>
+              <text>Step @(step + 1) of @Phase.Steps.Length — <strong>@StepLabel</strong>.</text>
             }
           </p>
           <p class="panel-empty-msg" style="text-align:left">
@@ -118,7 +118,7 @@
 
     <div class="workspace-canvas">
       <div class="canvas-surface" style="display:flex;align-items:center;justify-content:center;">
-        <p class="panel-empty-msg">@Phase.Title · @SubLabel — canvas scaffold (@Phase.Task)</p>
+        <p class="panel-empty-msg">@Phase.Title · @StepLabel — canvas scaffold (@Phase.Task)</p>
       </div>
     </div>
 

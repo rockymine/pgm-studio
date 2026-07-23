@@ -8,11 +8,11 @@
 
 <ConfigureLayout MapName="@(importedSlug ?? selected?.Slug)" Crumb="Import" ActivePhaseId="" Furthest="@(-1)"
               PhaseIcon="import" PhaseTitle="Import"
-              SubSteps="@SubSteps" CurrentSubStep="@step" MaxStep="@MaxStep"
+              Steps="@Steps" CurrentStep="@step" MaxStep="@MaxStep"
               BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
               OnStep="JumpStep" OnBack="Back" OnNext="Next">
 
-  @* ── Sub-step 1 · Source — pick an xml-less world folder (panel only) ─────────── *@
+  @* ── Step 1 · Source — pick an xml-less world folder (panel only) ─────────── *@
   @if (OnSource)
   {
     <Workspace @key="step">
@@ -82,7 +82,7 @@
     </Workspace>
   }
 
-  @* ── Sub-step 2 · Found — the import brief over the reused editor canvas ──────── *@
+  @* ── Step 2 · Found — the import brief over the reused editor canvas ──────── *@
   else if (OnFound)
   {
     <Workspace @key="step">
@@ -214,7 +214,7 @@
     </Workspace>
   }
 
-  @* ── Sub-step 3 · Plan — the six phases, then Start (panel only) ─────────────── *@
+  @* ── Step 3 · Plan — the six phases, then Start (panel only) ─────────────── *@
   else
   {
     <Workspace @key="step">

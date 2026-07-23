@@ -13,7 +13,7 @@ public partial class ConfigureWizard
     [Parameter] public string Slug { get; set; } = "";
 
     private int phaseIndex;
-    private int subStep;
+    private int step;
     private int furthest;            // highest phase reached — gates the rail (later = locked)
     private string? mapName;
     private bool loaded;             // re-entry guard: the one-time load has been kicked off
@@ -27,21 +27,21 @@ public partial class ConfigureWizard
     private SaveState save = SaveState.Saved;
     private enum SaveState { Saved, Saving, Unsaved }
 
-    // The wizard phases for this map. Sketch-origin maps drop the Wools · Monuments sub-step (monuments are
+    // The wizard phases for this map. Sketch-origin maps drop the Wools · Monuments step (monuments are
     // derived at export, not authored) — see LoadOriginAsync.
     private ConfigurePhase[] phases = ConfigurePhases.All;
 
     private ConfigurePhase Phase => phases[phaseIndex];
-    private int LastStep => Math.Max(0, Phase.SubSteps.Length - 1);
-    private bool AtStart => phaseIndex == 0 && subStep == 0;
-    private bool AtEnd => phaseIndex == phases.Length - 1 && subStep == LastStep;
+    private int LastStep => Math.Max(0, Phase.Steps.Length - 1);
+    private bool AtStart => phaseIndex == 0 && step == 0;
+    private bool AtEnd => phaseIndex == phases.Length - 1 && step == LastStep;
 
     private bool BackEnabled => !AtStart;
     private string NextLabel => AtEnd ? "Export" : "Next";
-    private string SubLabel => Phase.SubSteps.Length == 0 ? "Map Info" : Phase.SubSteps[subStep];
+    private string StepLabel => Phase.Steps.Length == 0 ? "Map Info" : Phase.Steps[step];
 
     // A phase must be complete before its boundary Next persists the slice and unlocks the next phase
-    // (new-map-authoring.md §12). Sub-step moves within a phase are always allowed; only crossing the
+    // (new-map-authoring.md §12). Step moves within a phase are always allowed; only crossing the
     // boundary is gated. Phases without a built body yet default to complete so the scaffold stays
     // browsable — each N-task swaps in its real predicate.
     private bool CanAdvance => Phase.Id switch
@@ -49,17 +49,17 @@ public partial class ConfigureWizard
         "info" => MetaValid(),   // Map Info: needs a name + at least one author
         _ => true,
     };
-    // At the very end (Review · XML sub-step) Next is "Export", gated on the pre-flight export gate the
+    // At the very end (Review · XML step) Next is "Export", gated on the pre-flight export gate the
     // XML phase reports (the 409 from GET /xml); every other boundary is the per-phase completeness gate.
-    private bool NextEnabled => subStep < LastStep || (AtEnd ? exportReady : CanAdvance);
+    private bool NextEnabled => step < LastStep || (AtEnd ? exportReady : CanAdvance);
 
-    // Export wiring (Review · XML sub-step, N06). The XML phase fetches GET /xml and registers whether the
+    // Export wiring (Review · XML step, N06). The XML phase fetches GET /xml and registers whether the
     // export gate is open + the download action; the flow-bar Export (Next at AtEnd) invokes it.
     private bool exportReady;
     private Func<Task>? exportAction;
 
-    /// <summary>The XML sub-step reports its export gate state + download action so the flow-bar Export
-    /// (Next at the final sub-step) can enable/run it.</summary>
+    /// <summary>The XML step reports its export gate state + download action so the flow-bar Export
+    /// (Next at the final step) can enable/run it.</summary>
     public void RegisterExport(bool ready, Func<Task>? download)
     {
         exportReady = ready;
@@ -67,7 +67,7 @@ public partial class ConfigureWizard
         StateHasChanged();
     }
 
-    /// <summary>Clear the export registration when the XML sub-step is left, so a stale action can't fire.</summary>
+    /// <summary>Clear the export registration when the XML step is left, so a stale action can't fire.</summary>
     public void ClearExport()
     {
         exportReady = false;
@@ -134,7 +134,7 @@ public partial class ConfigureWizard
         if (string.IsNullOrWhiteSpace(Str(meta, "name"))) meta["name"] = mapName;
     }
 
-    // Sketch-origin maps auto-wire their monuments at export, so the manual Wools · Monuments sub-step is
+    // Sketch-origin maps auto-wire their monuments at export, so the manual Wools · Monuments step is
     // dropped from the flow (best-effort: a non-sketch / unreachable map keeps the full set).
     private async Task LoadOriginAsync()
     {
@@ -146,7 +146,7 @@ public partial class ConfigureWizard
                 var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
                 if (doc.TryGetProperty("sketch", out var s) && s.GetBoolean())
                     phases = [.. ConfigurePhases.All.Select(p => p.Id == "wools"
-                        ? p with { SubSteps = [.. p.SubSteps.Where(step => step != "Monuments")] }
+                        ? p with { Steps = [.. p.Steps.Where(label => label != "Monuments")] }
                         : p)];
             }
         }
@@ -226,36 +226,36 @@ public partial class ConfigureWizard
         if (i < 0 || i > furthest || i == phaseIndex) return;   // locked / no-op
         await SaveIfDirtyAsync();   // leaving the current phase
         phaseIndex = i;
-        subStep = 0;
+        step = 0;
     }
 
     private void JumpStep(int j)
     {
-        if (j >= 0 && j <= LastStep) subStep = j;
+        if (j >= 0 && j <= LastStep) step = j;
     }
 
     private async Task Back()
     {
-        if (subStep > 0) { subStep--; return; }
+        if (step > 0) { step--; return; }
         if (phaseIndex > 0)
         {
             await SaveIfDirtyAsync();   // crossing a phase boundary
             phaseIndex--;
-            subStep = LastStep;
+            step = LastStep;
         }
     }
 
     private async Task Next()
     {
-        if (subStep < LastStep) { subStep++; return; }
+        if (step < LastStep) { step++; return; }
         if (phaseIndex < ConfigurePhases.All.Length - 1)
         {
             await SaveIfDirtyAsync();   // crossing a phase boundary persists the slice; that unlocks the next phase
             phaseIndex++;
-            subStep = 0;
+            step = 0;
             return;
         }
-        // AtEnd — the Review · XML sub-step: Next is Export. NextEnabled already gated it on the open
+        // AtEnd — the Review · XML step: Next is Export. NextEnabled already gated it on the open
         // export gate, so reaching here means the XML phase registered a download action; run it.
         if (exportAction is not null) await exportAction();
     }

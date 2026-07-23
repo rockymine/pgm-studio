@@ -7,7 +7,7 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;
 
-// Shared model + helpers for the four Wools sub-steps (Objectives / Spawn / Monuments / Room). The wool
+// Shared model + helpers for the four Wools steps (Objectives / Spawn / Monuments / Room). The wool
 // list (intent.wools) is the slice all four edit: each parses it on init, mutates its part, writes it back
 // and marks dirty. Positions follow the confirmed symmetry (orbit), exactly like spawns/protection; the
 // wool COLOUR is author-assigned/confirmed, never defaulted to the team colour.

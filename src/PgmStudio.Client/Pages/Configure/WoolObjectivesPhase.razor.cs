@@ -17,7 +17,7 @@ using W = WoolAuthoring;
 // owner is the complement; the physical wool clusters give each objective's source location. Physical wool
 // NOT named by a monument (or sitting in a team's own spawn) is decorative and excluded by default. The
 // author confirms/rejects, fixes an owner, recolours, or hand-adds a missing wool. Writes the wools slice
-// (owner + colour + a seed spawn + the detected monuments); the later sub-steps refine spawn/monuments/room.
+// (owner + colour + a seed spawn + the detected monuments); the later steps refine spawn/monuments/room.
 public partial class WoolObjectivesPhase
 {
     [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;

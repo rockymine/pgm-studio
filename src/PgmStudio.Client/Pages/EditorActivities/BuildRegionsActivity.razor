@@ -7,8 +7,8 @@
    Port of build-regions-activity.js (C7 side-view via studio.mountSideview / SideviewCanvas). *@
 
 <div class="phase-body">
-<FlowBar Class="flow-bar--flush" PhaseIcon="pickaxe" PhaseTitle="Build" SubSteps="@(new[] { "Build height", "Buildable layer" })"
-         CurrentSubStep="@(step - 1)" BackEnabled="@BackEnabled" NextLabel="Next"
+<FlowBar Class="flow-bar--flush" PhaseIcon="pickaxe" PhaseTitle="Build" Steps="@(new[] { "Build height", "Buildable layer" })"
+         CurrentStep="@(step - 1)" BackEnabled="@BackEnabled" NextLabel="Next"
          OnStep="@(i => step = i + 1)" OnBack="OnFlowBack" OnNext="OnFlowNext" />
 <Workspace>
   <Sidebar>

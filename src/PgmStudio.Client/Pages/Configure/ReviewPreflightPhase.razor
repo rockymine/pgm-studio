@@ -1,10 +1,10 @@
 @namespace PgmStudio.Client.Pages.Configure
 @using PgmStudio.Contracts
 
-@* Review & Export · Pre-flight sub-step (N05): the validation gate — a read-only overview, not a 3-column
+@* Review & Export · Pre-flight step (N05): the validation gate — a read-only overview, not a 3-column
    editing workspace. The four generated-map checks run on GET /preflight; a single static top-down map
    (real islands + buildable bridges + spawn↔wool connectivity) is the picture of the validated map.
-   Export (the XML sub-step's Next) stays blocked until every gating check passes. *@
+   Export (the XML step's Next) stays blocked until every gating check passes. *@
 
 <Workspace>
   <ContentColumn MaxWidth="760">
@@ -143,7 +143,7 @@
             @if (data is { ExportReady: true })
             {
               <Badge Kind="success">Export gate open</Badge>
-              <span class="panel-save-status">advance to the XML sub-step to export</span>
+              <span class="panel-save-status">advance to the XML step to export</span>
             }
             else
             {

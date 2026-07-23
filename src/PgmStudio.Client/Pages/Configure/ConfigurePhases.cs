@@ -1,13 +1,13 @@
 namespace PgmStudio.Client.Pages.Configure;
 
-/// <summary>A Configure-wizard phase + its sub-steps (mirrors new-map-authoring.md §12 / the concept page).
+/// <summary>A Configure-wizard phase + its steps (mirrors new-map-authoring.md §12 / the concept page).
 /// <c>Task</c> is the N-series task that builds the phase's real body.</summary>
-public record ConfigurePhase(string Id, string Icon, string Title, string[] SubSteps, string Task);
+public record ConfigurePhase(string Id, string Icon, string Title, string[] Steps, string Task);
 
 public static class ConfigurePhases
 {
-    // The six phases on the activity rail, in linear order. Sub-steps mirror the concept sections;
-    // a phase with no sub-steps (Map Info) is a single-step form (the flow bar shows just its name).
+    // The six phases on the activity rail, in linear order. Steps mirror the concept sections;
+    // a phase with no steps (Map Info) is a single-step form (the flow bar shows just its name).
     public static readonly ConfigurePhase[] All =
     [
         new("info",   "book-open-text", "Map Info",        [],                                                "N00"),

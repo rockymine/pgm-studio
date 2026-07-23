@@ -20,7 +20,6 @@ public partial class ConfigureLanding : IAsyncDisposable
     private sealed record Candidate(string Folder, string Slug, int RegionFiles);
 
     private static readonly string[] Steps = ["Source", "Found", "Plan"];
-    private IReadOnlyList<string> SubSteps => Steps;
 
     private List<Candidate> candidates = new();
     private Candidate? selected;

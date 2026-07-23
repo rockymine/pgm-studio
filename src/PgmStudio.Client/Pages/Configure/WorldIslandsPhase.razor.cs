@@ -7,7 +7,7 @@ using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Pages.Configure;
 
-// World · Islands sub-step (N01): review the detected islands and exclude the stray ones (decor / observer
+// World · Islands step (N01): review the detected islands and exclude the stray ones (decor / observer
 // towers). Islands are selectable from the list or by clicking the canvas (the reused EditorCanvas in
 // island-select mode over the island base layer); the selected island gets an accent border and
 // its centre / block count / exclude toggle show in the inspector. Excluding re-runs symmetry server-side

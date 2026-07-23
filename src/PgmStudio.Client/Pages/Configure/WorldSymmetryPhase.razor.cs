@@ -9,7 +9,7 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Pages.Configure;
 
-// World · Symmetry sub-step: the detected symmetry is confirmed by default and its centre pre-filled; the
+// World · Symmetry step: the detected symmetry is confirmed by default and its centre pre-filled; the
 // author clicks another mode (or "none") only to change it. The choice is the World intent slice written to
 // intent.symmetry, which the generator uses to orbit-fill teams/wools. The canvas (reused EditorCanvas in
 // symmetry mode — base layer only) shows the axis/centre overlay; the detection summary surfaces the

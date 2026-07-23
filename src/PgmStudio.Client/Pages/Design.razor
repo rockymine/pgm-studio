@@ -373,16 +373,16 @@
       </div>
 
       <div class="ds-subsection" style="margin-top:var(--space-5)">
-        <h3>Flow bar (wizard sub-steps)</h3>
-        <p class="ds-theming-note">A clean wizard sub-step strip for guided multi-step phases — a
+        <h3>Flow bar (wizard steps)</h3>
+        <p class="ds-theming-note">A clean wizard step strip for guided multi-step phases — a
            left-aligned <strong>phase-identity cluster</strong> (<code>flow-bar-phase</code>: the current
-           phase's icon + name), then flat-text sub-step labels with an accent underline on the active one
+           phase's icon + name), then flat-text step labels with an accent underline on the active one
            (a status icon on completed ones is deferred to ND4, where step status gets meaning), then
            Back/Next on the right (Back disabled at the first step). It is its <strong>own strip</strong>
            (<code>FlowBar</code>) above the workspace — never inside the <code>canvas-subbar</code>, which
            keeps its draw toolbar. Used by the Configure wizard and Edit's stepped phases (Setup, Build).</p>
-        <FlowBar PhaseIcon="goal" PhaseTitle="Wools" SubSteps="@(new[] { "Colours", "Spawn & room", "Monuments" })"
-                 CurrentSubStep="1" BackEnabled="true" />
+        <FlowBar PhaseIcon="goal" PhaseTitle="Wools" Steps="@(new[] { "Colours", "Spawn & room", "Monuments" })"
+                 CurrentStep="1" BackEnabled="true" />
       </div>
     </section>
 

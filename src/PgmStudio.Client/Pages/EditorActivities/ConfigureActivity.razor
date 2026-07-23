@@ -8,8 +8,8 @@
    Excluding an island recomputes symmetry from the already-detected islands. *@
 
 <div class="phase-body">
-<FlowBar Class="flow-bar--flush" PhaseIcon="settings-2" PhaseTitle="Setup" SubSteps="@(new[] { "Islands", "Symmetry" })"
-         CurrentSubStep="@(step - 1)" BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
+<FlowBar Class="flow-bar--flush" PhaseIcon="settings-2" PhaseTitle="Setup" Steps="@(new[] { "Islands", "Symmetry" })"
+         CurrentStep="@(step - 1)" BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
          OnStep="@(i => JumpToStep(i + 1))" OnBack="OnFlowBack" OnNext="OnFlowNext" />
 <Workspace>
   <Sidebar>

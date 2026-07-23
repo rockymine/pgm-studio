@@ -115,7 +115,7 @@
 
 /* A phase's flow-bar + body, stacked so the flow-bar is a flush strip under the topbar (no gaps, like
    the editor shell): tight against the topbar + rail, the workspace tight against it. Shared by the
-   Configure wizard (see new-map-authoring.md §12) and the Edit activities with sub-steps (Setup, Build). */
+   Configure wizard (see new-map-authoring.md §12) and the Edit activities with steps (Setup, Build). */
 .phase-body { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .flow-bar--flush { flex-shrink: 0; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; }
 .phase-body > .workspace { flex: 1; min-height: 0; }

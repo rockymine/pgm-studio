@@ -10,11 +10,11 @@ using Sym = PgmStudio.Geom.Symmetry;
 
 namespace PgmStudio.Client.Pages.Configure;
 
-// Review & Export · Pre-flight sub-step (N05): the validation gate. Not an editing workspace — a read-only
+// Review & Export · Pre-flight step (N05): the validation gate. Not an editing workspace — a read-only
 // overview. Runs the four generated-map checks server-side (GET /preflight) and surfaces them as check
 // rows + a validate log over a single static top-down map (real island geometry + the orbit-filled build
 // bridges + the spawn↔wool nodes in their real team/dye colours), the playability picture in one image.
-// Export (the XML sub-step's Next) stays blocked until the gate is open; a failed check links the author
+// Export (the XML step's Next) stays blocked until the gate is open; a failed check links the author
 // back to Build. Writes no intent.
 public partial class ReviewPreflightPhase
 {
