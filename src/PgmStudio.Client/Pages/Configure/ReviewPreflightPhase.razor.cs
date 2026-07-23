@@ -18,7 +18,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // back to Build. Writes no intent.
 public partial class ReviewPreflightPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
 
     private PreflightDto? data;

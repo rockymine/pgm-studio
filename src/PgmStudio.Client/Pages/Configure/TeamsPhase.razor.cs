@@ -16,7 +16,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // island tints it that team's colour. Orbit-fill mirrors team 0 onto the rest from the confirmed symmetry.
 public partial class TeamsPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 

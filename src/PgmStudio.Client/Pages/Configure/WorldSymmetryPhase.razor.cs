@@ -16,7 +16,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // suggested team count.
 public partial class WorldSymmetryPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 

@@ -15,7 +15,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // also listed (read-only, "orbit" badge) so the union reads coherently. Writes each spawn's `protection` slice.
 public partial class ProtectionPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }

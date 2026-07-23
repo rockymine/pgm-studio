@@ -14,7 +14,7 @@ using W = WoolAuthoring;
 // the team-spawn step), while editing an orbit copy nudges it alone. The side-view sets the Y.
 public partial class WoolSpawnPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 

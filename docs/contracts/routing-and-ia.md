@@ -54,7 +54,7 @@ Transitions (each set by the endpoint that performs the step):
 - **Landing (`/`)** replaces the old bare redirect: a hero over three **cards** (Sketch · Configure ·
   Edit, the shared `.card` component) that deep-link into `/maps?stage=…`, each showing a live count
   from `stage-counts`.
-- **Overviews** share one page (`Home.razor`); the **activity rail is the stage switcher** and each
+- **Overviews** share one page (`Maps.razor`); the **nav rail is the stage switcher** and each
   stage carries its own primary action (Sketch → New-sketch, Configure → Import) and resume target
   (`/maps/{id}/{stage}`).
 - **Exits are consistent.** Every editor's topbar **home breadcrumb** returns to *its* stage overview
@@ -71,12 +71,12 @@ The **map is the resource → it lives in the path**; the **mode is a trailing s
 | Route                    | Label (UI)  | What it is                                         | Lives in           | Status |
 | ------------------------ | ----------- | ------------------------------------------------- | ------------------ | ------ |
 | `/`                      | *Studio*    | **landing** — three lifecycle cards + live counts | `Index.razor`      | live   |
-| `/maps`                  | **Edit**    | staged dashboard, default stage = `edit`          | `Home.razor`       | live   |
-| `/maps?stage=sketch`     | **Sketch**  | sketch-draft overview + New-sketch (→ `/maps/new-sketch`) | `Home.razor` | live   |
-| `/maps?stage=configure`  | **Configure** | configure-stage overview + Import                | `Home.razor`       | live   |
-| `/maps/{id}/edit`        | **Edit**    | existing-map region editor (activities)           | `Editor.razor`     | live†  |
-| `/maps/{id}/configure`   | **Configure** | new-map intent wizard — the six phases          | `ConfigureWizard`  | live   |
-| `/maps/{id}/sketch`      | **Sketch**  | sketch tool — draw geometry                       | `SketchEditor`     | live   |
+| `/maps`                  | **Edit**    | staged dashboard, default stage = `edit`          | `Maps.razor`       | live   |
+| `/maps?stage=sketch`     | **Sketch**  | sketch-draft overview + New-sketch (→ `/maps/new-sketch`) | `Maps.razor` | live   |
+| `/maps?stage=configure`  | **Configure** | configure-stage overview + Import                | `Maps.razor`       | live   |
+| `/maps/{id}/edit`        | **Edit**    | existing-map region editor (phases)               | `EditTool.razor`   | live†  |
+| `/maps/{id}/configure`   | **Configure** | new-map intent wizard — the six phases          | `ConfigureTool`    | live   |
+| `/maps/{id}/sketch`      | **Sketch**  | sketch tool — draw geometry                       | `SketchTool`       | live   |
 | `/maps/new-sketch`       | *(entry)*   | originate a sketch: blank frame or generated layout | `SketchCreate`   | live   |
 | `/maps/new`              | *(entry)*   | originate a map: **Import** a world folder        | `ConfigureLanding` | live‡  |
 | `/concepts`              | —           | the authoring concept mock (`Authoring.razor`)    | `Authoring.razor`  | live   |
@@ -120,8 +120,8 @@ So origination is reached from the stage overviews (themselves reached from the 
 | UI label    | Code / concept (unchanged) | Where it lives                                                |
 | ----------- | -------------------------- | ------------------------------------------------------------- |
 | **Configure** | **authoring** — `N` series, `new-map-authoring.md`, intent model | the wizard at `/maps/{id}/configure` |
-| **Edit**    | the existing editor        | `Edit/Editor.razor` + `Edit/*Phase` at `/maps/{id}/edit`       |
-| **Sketch**  | `sketch_api` / sketch pages | `SketchCreate` at `/maps/new-sketch` + `SketchEditor` at `/maps/{id}/sketch` |
+| **Edit**    | the existing editor        | `Edit/EditTool.razor` + `Edit/*Phase` at `/maps/{id}/edit`     |
+| **Sketch**  | `sketch_api` / sketch pages | `SketchCreate` at `/maps/new-sketch` + `SketchTool` at `/maps/{id}/sketch` |
 
 > **Collision to resolve (not blocking):** the **Edit** editor already has an internal **"Configure"
 > activity** (`ConfigureActivity`, the scan/setup pass — `settings-2` icon). With **Configure** now a

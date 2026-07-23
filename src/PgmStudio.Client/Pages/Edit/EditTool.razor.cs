@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace PgmStudio.Client.Pages.Edit;
 
-public partial class Editor
+public partial class EditTool
 {
     [Parameter] public string Slug { get; set; } = "";
     [Inject] private NavigationManager Nav { get; set; } = default!;

@@ -20,7 +20,7 @@ using W = WoolAuthoring;
 // (owner + colour + a seed spawn + the detected monuments); the later steps refine spawn/monuments/room.
 public partial class WoolObjectivesPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 

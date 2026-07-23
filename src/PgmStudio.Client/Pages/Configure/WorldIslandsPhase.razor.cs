@@ -14,7 +14,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // (PATCH /configure/{slug}/exclude-island) — never a re-scan.
 public partial class WorldIslandsPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 

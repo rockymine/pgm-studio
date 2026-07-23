@@ -195,6 +195,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   record), and `Editor.razor`'s `Activity`/`Activities`/`Is*Activity`/`On*Activity` → `Phase`
   equivalents. The generic `.activity-viewport` shell class is left as-is (chrome shared by all
   pages, like the rail). (C25)
+- **Page file-role naming unified on `*Tool`** — the five tool hosts renamed to one pattern matching the
+  "everything is a tool" model: `GeneratorBrowse`→`GeneratorTool`, `PlanEditor`→`PlanTool`,
+  `SketchEditor`→`SketchTool`, `ConfigureWizard`→`ConfigureTool`, `Editor`→`EditTool` (fixes the bare,
+  prefix-less `Editor`). Plus `Home.razor`→`Maps.razor` (the `/maps` dashboard; `Index.razor` stays the
+  `/` landing) and `EditorLayout`→`StudioLayout` (it wraps all 11 pages, not just the editor). Routes,
+  cascades (`ConfigureTool Wizard`), and `App.razor`'s `DefaultLayout` updated; class rename only, no
+  behaviour change. Entry-page naming (`SketchCreate`/`ConfigureLanding`) deferred. (C26)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)
@@ -855,7 +862,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   golden tests against the checked-in layout/intent pairs (base-2island/base-4team exact; base-2wool exact
   except two documented hand-authored values). Step terraces deferred (no seed exercises raised land seams).
   (G17)
-- **Plan editor page (seed studio canvas)** — `/plan-editor` (`Pages/Plan/PlanEditor` + `js/studio/plan/`):
+- **Plan editor page (seed studio canvas)** — `/plan-editor` (`Pages/Plan/PlanTool` + `js/studio/plan/`):
   an SVG cell-grid canvas (heavy line per 5 cells) with draw/move/resize role-coloured rect pieces (fill
   tinted by surface), translucent dashed zones, spawn/wool/iron markers (spawn facing cycles on click;
   markers re-parent to the piece under them, keeping piece-relative offsets), a per-piece inspector (id,
@@ -1746,7 +1753,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/contracts/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
-- **Sketch editor** — `/maps/{slug}/sketch` (`SketchEditor` + `SketchPanel`/`SketchInspector`): draw 2-D
+- **Sketch editor** — `/maps/{slug}/sketch` (`SketchTool` + `SketchPanel`/`SketchInspector`): draw 2-D
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
   `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;
   `bridge/sketch-bridge.js`. A sketch **is a draft map**. (S2a, S2b, S2c)
@@ -1918,7 +1925,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Map XML refresh** — `--refresh-xml` re-derives every map's entities via the editor write path
   (preserves world features/artifacts); recovered annealing_iv's missing region, which fixed the
   former stale-DB symptom. (D1, closed C10)
-- **Dropped Bootstrap** — dashboard migrated to the studio shell; default `EditorLayout`;
+- **Dropped Bootstrap** — dashboard migrated to the studio shell; default `StudioLayout`;
   `/design` reachable from the dashboard footer link. (D4, satisfies D2)
 - **README setup guide** — prerequisites, DB/user provisioning, dev + tests, and the two-step
   scan-out → import flow (incl. the stale-output `ROUND-TRIP DRIFT [kits]` gotcha + `--refresh-xml`

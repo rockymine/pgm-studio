@@ -11,7 +11,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // generated artifact), so it surfaces here. Reuses the editor's RegionTree component; writes nothing.
 public partial class ReviewTreePhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
 
     private List<RegionGroup>? groups;

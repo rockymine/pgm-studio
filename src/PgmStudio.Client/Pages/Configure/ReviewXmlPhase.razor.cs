@@ -13,7 +13,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // returns 409 for an un-traversable intent map, which blocks both the preview and the download. Writes nothing.
 public partial class ReviewXmlPhase : IDisposable
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 

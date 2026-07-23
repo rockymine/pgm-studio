@@ -15,7 +15,7 @@ using W = WoolAuthoring;
 // which are also listed (read-only, "orbit" badge). The right panel shows coordinates.
 public partial class WoolRoomPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private sealed class RoomRect { public int Id; public string Color = ""; public double MinX, MinZ, MaxX, MaxZ; }

@@ -8,7 +8,7 @@ using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Pages.Configure;
 
-public partial class ConfigureWizard
+public partial class ConfigureTool
 {
     [Parameter] public string Slug { get; set; } = "";
 

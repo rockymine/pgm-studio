@@ -8,7 +8,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // Edit Build Regions step) and writes the build slice's maxHeight; BuildGenerator applies it on save.
 public partial class BuildHeightPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     // A new map starts with a sensible vertical cap; the author can raise it (to the max) or clear it.

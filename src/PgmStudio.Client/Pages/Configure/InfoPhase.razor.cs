@@ -13,7 +13,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // cascaded wizard's working Intent and mark it dirty; the wizard persists meta when the phase is left.
 public partial class InfoPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
 
     // 1×1 transparent gif — the avatar placeholder before a username resolves (same as the editor).

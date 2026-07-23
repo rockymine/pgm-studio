@@ -1,5 +1,5 @@
 @page "/maps/{Slug}/configure"
-@layout EditorLayout
+@layout StudioLayout
 @inject HttpClient Http
 @inject IJSRuntime JS
 
@@ -61,7 +61,7 @@
     <BuildLayerPhase @key="@("build-layer")" />
   }
   @* Keyed on the step label, not its index: sketch-origin maps drop the Monuments step, which
-     shifts Room's index down (ConfigureWizard.razor.cs LoadOriginAsync). *@
+     shifts Room's index down (ConfigureTool.razor.cs LoadOriginAsync). *@
   else if (Phase.Id == "wools" && StepLabel == "Objectives")
   {
     <WoolObjectivesPhase @key="@("wools-objectives")" />

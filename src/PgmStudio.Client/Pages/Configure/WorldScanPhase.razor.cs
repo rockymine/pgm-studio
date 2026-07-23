@@ -11,7 +11,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // the World slice (confirmed symmetry) is authored in the later steps.
 public partial class WorldScanPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
 
     private int islandCount;

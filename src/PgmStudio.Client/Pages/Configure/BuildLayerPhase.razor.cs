@@ -11,7 +11,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // BuildGenerator unions the areas, subtracts the holes (complement), and wires the void-enforcement negative.
 public partial class BuildLayerPhase
 {
-    [CascadingParameter] public ConfigureWizard Wizard { get; set; } = default!;
+    [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private const string AreaColor = "#22c55e";   // bridge — green

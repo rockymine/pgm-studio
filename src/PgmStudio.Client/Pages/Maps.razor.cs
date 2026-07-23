@@ -5,7 +5,7 @@ using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Pages;
 
-public partial class Home
+public partial class Maps
 {
     [SupplyParameterFromQuery] public string? Stage { get; set; }
     [SupplyParameterFromQuery] public string? Just { get; set; }   // slug just finished from Sketch → Configure

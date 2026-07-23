@@ -11,13 +11,13 @@ using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Pages.Plan;
 
-public partial class PlanEditor
+public partial class PlanTool
 {
     [Inject] private HttpClient Http { get; set; } = default!;
 
     private ElementReference svgRef, wrapRef, cursorRef;
     private IJSObjectReference? handle;
-    private DotNetObjectReference<PlanEditor>? selfRef;
+    private DotNetObjectReference<PlanTool>? selfRef;
 
     // Compile & test drawer: the compiled pair (pretty-printed for preview, raw for the draft chain),
     // structural errors when the compile is blocked, and the walk-test loop's per-step draft state.

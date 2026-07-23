@@ -13,14 +13,14 @@ namespace PgmStudio.Client.Pages.Generator;
 /// or opening a card re-composes it server-side. The hold tray is the persisted generated corpus (G119); it
 /// survives reload because pinned means stored.
 /// </summary>
-public partial class GeneratorBrowse : IAsyncDisposable
+public partial class GeneratorTool : IAsyncDisposable
 {
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
     private ElementReference sentinelRef;
-    private DotNetObjectReference<GeneratorBrowse>? selfRef;
+    private DotNetObjectReference<GeneratorTool>? selfRef;
     private IJSObjectReference? observer;
 
     // ── filters ──────────────────────────────────────────────────────────────────

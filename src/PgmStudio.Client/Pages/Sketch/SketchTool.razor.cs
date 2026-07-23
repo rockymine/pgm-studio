@@ -5,13 +5,13 @@ using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Pages.Sketch;
 
-public partial class SketchEditor
+public partial class SketchTool
 {
     [Parameter] public string Slug { get; set; } = "";
 
     private ElementReference svgRef, wrapRef, coordsRef, zoomRef, dimRef;
     private IJSObjectReference? handle;
-    private DotNetObjectReference<SketchEditor>? selfRef;
+    private DotNetObjectReference<SketchTool>? selfRef;
 
     private string tool = "move";
     private string op = "add";
