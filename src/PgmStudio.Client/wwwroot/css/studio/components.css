@@ -13,7 +13,6 @@
 .panel-stack { display: flex; flex-direction: column; gap: var(--space-6); }
 .section-body { display: flex; flex-direction: column; gap: var(--space-3); }
 .section-heading { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
-.section-actions { display: flex; align-items: center; gap: var(--space-2); }
 
 .section-title {
   font-size: var(--font-xs);
@@ -40,8 +39,6 @@
 .section-header--ruled { border-bottom: 1px solid var(--border); padding-bottom: var(--space-2); }
 /* Compact add-button sizing when placed in any section header */
 .section-header .action-btn { padding: 2px 10px; font-size: var(--font-base); }
-
-.panel-divider { height: 1px; flex-shrink: 0; background: var(--border); }
 
 /* Collapsible left-sidebar section — a <details> whose <summary> reads as a ruled section header, with a
    caret that rotates when open. (No JS: native disclosure; Blazor doesn't render/touch the `open` attr.) */
@@ -203,20 +200,9 @@
   color: var(--text-muted);
   font-style: italic;
 }
-.list-empty--error { color: var(--color-error); }
 
 /* Container for a vertical stack of .list-row elements inside a panel */
 .panel-list { padding: 4px 0; }
-
-.team-dot {
-  width: 10px;
-  height: 10px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  display: inline-block;
-  border: 1px solid var(--border-swatch);
-}
-
 
 /* ══════════════════════════════════════════════════════════════════════════
    BUTTONS
@@ -241,21 +227,8 @@
 .action-btn:disabled        { opacity: 0.35; cursor: default; }
 /* Icon-only variant — equal padding on all sides so the button stays square */
 .action-btn--icon           { padding: 4px; }
-.action-btn--primary {
-  background: var(--bg-selected);
-  border-color: var(--accent);
-  color: var(--accent-lighter);
-}
-.action-btn--primary:hover { background: var(--accent-bg-hover); color: var(--text-white); }
-.action-btn--danger       { color: var(--color-error); border-color: var(--color-error); }
-.action-btn--danger:hover { background: var(--color-error-hover); }
-.action-btn--warn         { background: var(--color-warning-bg); border-color: var(--color-warning); color: var(--color-warning); }
-.action-btn--warn:hover   { background: color-mix(in srgb, var(--color-warning) 20%, var(--bg-panel)); color: var(--text-white); }
-/* Light theme: warn-hover bg is a pale amber tint, so white text fails — use dark text. */
-:root[data-theme="light"] .action-btn--warn:hover { color: var(--text-strong); }
 .action-btn--fill         { flex: 1; justify-content: center; }
 .action-btn--push-end     { margin-left: auto; }
-.action-btn--self-start   { align-self: flex-start; }
 .action-btn--full         { width: 100%; justify-content: center; }
 .action-btn--separated    { margin-top: var(--space-2); }
 
@@ -331,7 +304,6 @@
 .panel-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
 .panel-empty-msg { font-size: var(--font-base); color: var(--text-muted); text-align: center; padding: var(--space-4); }
 .text-muted { color: var(--text-muted); }
-.inline-error { color: var(--color-error); font-size: var(--font-sm); }
 
 .section-footer,
 .panel-actions { display: flex; align-items: center; gap: var(--space-3); padding-top: var(--space-1); }
@@ -550,16 +522,13 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 .filter-group-options { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 /* Expanded chip row — chips stretch to fill available width */
-.filter-group-options--fill .filter-chip { flex: 1; justify-content: center; }
 
 /* Generic horizontal control row — label + inputs/buttons/chips side-by-side */
 .ctrl-row { display: flex; align-items: stretch; gap: var(--space-2); }
-.ctrl-row-label { flex-shrink: 0; min-width: calc(var(--space-5) + var(--space-6)); align-self: center; }
 .ctrl-row .filter-group-options,
 .ctrl-row .coord-field { flex: 1; }
 
 /* Stack of labeled chip rows */
-.sk-mode-stack { display: flex; flex-direction: column; gap: var(--space-2); }
 
 /* Modifier: add top gap before a filter-group-options row */
 .filter-group-options--mt { margin-top: var(--space-2); }
@@ -637,7 +606,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   background: var(--border);
 }
 .step-dot--done    { background: var(--color-success); }
-.step-dot--running { background: var(--accent); animation: step-pulse 1s ease-in-out infinite; }
 .step-dot--error   { background: var(--color-error); }
 @keyframes step-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
 .step-label  { color: var(--text-secondary); min-width: 70px; }
@@ -686,23 +654,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 }
 .list-row:hover .vis-btn { opacity: 1; }
 .vis-btn:hover   { background: var(--bg-vis-hover); }
-.vis-btn--always { opacity: 1; }
-
-
-/* ══════════════════════════════════════════════════════════════════════════
-   CANVAS EMPTY HINT  (centred overlay inside .workspace-canvas when nothing is drawn)
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.canvas-empty-hint {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: var(--font-base);
-  color: var(--text-muted);
-  pointer-events: none;
-  text-align: center;
-  line-height: 1.8;
-}
 
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -732,13 +683,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: var(--space-1);
-}
-.coord-summary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--font-base);
-  font-variant-numeric: tabular-nums;
 }
 .simplify-section--separated { margin-top: var(--space-3); }
 .detail-dot { width: 12px; height: 12px; border-radius: var(--radius-sm); flex-shrink: 0; }
@@ -794,7 +738,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   outline: none;
 }
 .coord-input:focus { border-color: var(--accent); }
-.coord-input--compact { width: calc(var(--space-6) * 2 + var(--space-2)); }
 
 .coord-field {
   flex: 1;
@@ -902,9 +845,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 /* ── Text-size utilities ─────────────────────────────────────────────── */
 /* Mirror the --font-* token scale for use in HTML markup. */
-.text-lg   { font-size: var(--font-lg);   }
-.text-md   { font-size: var(--font-md);   }
-.text-base { font-size: var(--font-base); }
 .text-sm   { font-size: var(--font-sm);   }
 .text-xs   { font-size: var(--font-xs);   }
 

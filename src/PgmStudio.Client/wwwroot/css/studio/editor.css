@@ -165,17 +165,6 @@
 .sidebar-handle:hover::before,
 .sidebar-handle--dragging::before { background: var(--accent); }
 
-/* ── Canvas fill area (HTML canvas, fills full workspace-canvas content) ── */
-.canvas-fill {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-  background: var(--bg-canvas);
-}
-.canvas-fill > canvas {
-  display: block;
-}
-
 /* ── SVG areas ── */
 .svg-area {
   flex: 1;
@@ -248,9 +237,6 @@
   margin-left: 3px;
   user-select: none;
 }
-
-/* spacer pushes bottom-pinned items to the foot of the rail */
-.activity-rail-spacer { flex: 1; }
 
 /* ── ACTIVITY RAIL ── */
 .activity-rail {
@@ -792,11 +778,6 @@ body.dashboard-page { overflow: hidden; }
    Must replicate the same gap that .workspace-scroll gives to direct
    panel-section children so section spacing is consistent across all steps. */
 .cfg-step-panel { display: flex; flex-direction: column; gap: var(--space-6); }
-
-/* Sub-section within a panel-section (e.g. "Center Point" header + inputs).
-   Needs explicit flex column so the section-header--ruled border and the
-   content below it get the same 12px gap that .panel-section gives its children. */
-.cfg-sub-section { display: flex; flex-direction: column; gap: var(--space-3); }
 
 /* Inspector side-view slice (mini SideviewCanvas) — fixed-height box; the canvas fills it 1:1. */
 .slice-view { position: relative; height: 150px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-canvas); }
