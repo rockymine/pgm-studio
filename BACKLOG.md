@@ -97,11 +97,25 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-- [ ] **C25 — Rename `EditorActivities` → `EditorPhases`, `*Activity.razor(.cs)` → `*Phase.razor(.cs)`.**
-  "Phase" is the better name — a phase can carry steps (Build height/Buildable layer, Islands/Symmetry),
-  matching Configure's own `*Phase` convention (C21–C24 already used `Phase*`-named params for the new
-  shared bits to not widen the gap). Flagged during the C21–C24 work, deliberately parked: a pure rename
-  with no functional payoff on its own, not worth its own diff bundled into that work.
+- [ ] **C25 — Unify the authoring-stage vocabulary on Phase / Step / Section (+ rail → `NavRail`).**
+  The Editor and the Configure wizard are two views over the same ordered authoring spine (same rail
+  entries, same nested units, same reused `EditorCanvas`/`RegionTree`/`BuildHeightSideview`), but name it
+  two ways: Configure = **phase** + *sub-step*, Editor = **activity** + *step*. The shared machinery already
+  leans phase (`FlowBar` params `PhaseIcon`/`PhaseTitle`, the `.phase-body` CSS). Settled vocabulary
+  (three strict tiers): **Phase** = an ordered rail stage (World, Teams, Build…); **Step** = an ordered
+  screen within a phase, driven by `FlowBar` (Islands/Symmetry, Build height/Buildable layer); **Section**
+  = a titled panel group within a step (already the `Section` component). Concretely:
+  - Editor: `EditorActivities/` → `EditorPhases/`, 6 `*Activity.razor(.cs)` → `*Phase.razor(.cs)`, the
+    `Activity` record/`Activities` → `Phase`/`Phases`, switch/`active` strings kept as ids.
+  - Drop "sub-": `SubStep*`/`sub-step`/`subStep` → `Step*`/`step` across Configure + `FlowBar`
+    (`SubSteps`→`Steps`, `CurrentSubStep`→`CurrentStep`).
+  - Rail is generic chrome (holds phases in Editor/Configure but plain nav on Home/Sketch and panel
+    toggles in Plan), so it gets a neutral name, not `PhaseRail`: `ActivityRail`/`ActivityButton` →
+    `NavRail`/`NavButton`, plus the `.activity-*` CSS/JS (`activity-rail`/`activity-btn`/`activity-logo*`/
+    `activity-viewport`) → `nav-*`. All 5 rail pages touched.
+
+  Pure rename, no behavior change (why it was parked during C21–C24) — do it as one self-contained diff
+  before more phases/steps get built on the ambiguity. Vocabulary decided; ready to pick up.
 
 ## Backend, pipeline & internals (B / P / A)
 
