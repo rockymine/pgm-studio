@@ -1,14 +1,14 @@
-@namespace PgmStudio.Client.Pages.EditorActivities
+@namespace PgmStudio.Client.Pages.Edit
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Objective activity — wools (list/add/inspector with location + monuments) + wool-region tree on a
+@* Objective phase — wools (list/add/inspector with location + monuments) + wool-region tree on a
    wool-filtered canvas. Port of objectives-activity.js + objectives-panel.js. Drawing is deferred. *@
 
 <div class="phase-body">
 <FlowBar Class="flow-bar--flush" PhaseIcon="goal" PhaseTitle="Objective"
-         BackEnabled="@(!IsFirstActivity)" NextLabel="@(IsLastActivity ? "Done" : "Next")"
-         OnBack="OnPrevActivity" OnNext="OnNextActivity" />
+         BackEnabled="@(!IsFirstPhase)" NextLabel="@(IsLastPhase ? "Done" : "Next")"
+         OnBack="OnPrevPhase" OnNext="OnNextPhase" />
 <Workspace>
   <Sidebar>
       <Section Title="Wools">

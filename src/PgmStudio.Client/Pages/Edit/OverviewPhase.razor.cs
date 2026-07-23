@@ -3,18 +3,18 @@ using Microsoft.JSInterop;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 
-namespace PgmStudio.Client.Pages.EditorActivities;
+namespace PgmStudio.Client.Pages.Edit;
 
-// The PersonRow markup template stays in OverviewActivity.razor (it is Razor markup); all the
-// state and behaviour for the Overview activity lives here in the code-behind partial.
-public partial class OverviewActivity
+// The PersonRow markup template stays in OverviewPhase.razor (it is Razor markup); all the
+// state and behaviour for the Overview phase lives here in the code-behind partial.
+public partial class OverviewPhase
 {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public EventCallback<string?> OnStatus { get; set; }
-    [Parameter] public bool IsFirstActivity { get; set; }
-    [Parameter] public bool IsLastActivity { get; set; }
-    [Parameter] public EventCallback OnPrevActivity { get; set; }
-    [Parameter] public EventCallback OnNextActivity { get; set; }
+    [Parameter] public bool IsFirstPhase { get; set; }
+    [Parameter] public bool IsLastPhase { get; set; }
+    [Parameter] public EventCallback OnPrevPhase { get; set; }
+    [Parameter] public EventCallback OnNextPhase { get; set; }
 
     private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
 

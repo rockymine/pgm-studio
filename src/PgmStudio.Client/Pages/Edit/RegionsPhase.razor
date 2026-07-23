@@ -1,15 +1,15 @@
-@namespace PgmStudio.Client.Pages.EditorActivities
+@namespace PgmStudio.Client.Pages.Edit
 @inject HttpClient Http
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
-@* Regions activity: geo-tree sidebar + hybrid canvas + region inspector. R1a authoring interaction:
+@* Regions phase: geo-tree sidebar + hybrid canvas + region inspector. R1a authoring interaction:
    Ctrl/⌘-click multi-selects; Ctrl+G groups ≥2 into a union, or ungroups a single compound. *@
 
 <div class="phase-body">
 <FlowBar Class="flow-bar--flush" PhaseIcon="layout-dashboard" PhaseTitle="Regions"
-         BackEnabled="@(!IsFirstActivity)" NextLabel="@(IsLastActivity ? "Done" : "Next")"
-         OnBack="OnPrevActivity" OnNext="OnNextActivity" />
+         BackEnabled="@(!IsFirstPhase)" NextLabel="@(IsLastPhase ? "Done" : "Next")"
+         OnBack="OnPrevPhase" OnNext="OnNextPhase" />
 <Workspace>
   <Sidebar>
       <Section Title="Regions">

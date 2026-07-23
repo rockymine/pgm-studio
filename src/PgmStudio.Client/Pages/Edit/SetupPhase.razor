@@ -1,8 +1,8 @@
-@namespace PgmStudio.Client.Pages.EditorActivities
+@namespace PgmStudio.Client.Pages.Edit
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Setup activity — a 2-step confirm flow (Islands → Symmetry) over the reused EditorCanvas (island-select
+@* Setup phase — a 2-step confirm flow (Islands → Symmetry) over the reused EditorCanvas (island-select
    then symmetry overlay — the same canvas the Configure World phase uses). Detection runs on the
    studio-chosen cleaned base; there is no scan-layer or block-exclusion choice and no world re-scan.
    Excluding an island recomputes symmetry from the already-detected islands. *@

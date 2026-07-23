@@ -6,15 +6,15 @@ using PgmStudio.Client.Models;
 
 using PgmStudio.Client.Components;
 
-namespace PgmStudio.Client.Pages.EditorActivities;
+namespace PgmStudio.Client.Pages.Edit;
 
-public partial class RegionsActivity
+public partial class RegionsPhase
 {
     [Parameter] public string Slug { get; set; } = "";
-    [Parameter] public bool IsFirstActivity { get; set; }
-    [Parameter] public bool IsLastActivity { get; set; }
-    [Parameter] public EventCallback OnPrevActivity { get; set; }
-    [Parameter] public EventCallback OnNextActivity { get; set; }
+    [Parameter] public bool IsFirstPhase { get; set; }
+    [Parameter] public bool IsLastPhase { get; set; }
+    [Parameter] public EventCallback OnPrevPhase { get; set; }
+    [Parameter] public EventCallback OnNextPhase { get; set; }
 
     private EditorCanvas? canvas;
     private List<RegionGroup>? groups;
@@ -26,7 +26,7 @@ public partial class RegionsActivity
     private RegionNode? primaryNode;
     private string? error;
 
-    private DotNetObjectReference<RegionsActivity>? selfRef;
+    private DotNetObjectReference<RegionsPhase>? selfRef;
 
     protected override async Task OnParametersSetAsync() => await Load();
 

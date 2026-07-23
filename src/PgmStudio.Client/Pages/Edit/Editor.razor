@@ -2,10 +2,9 @@
 @layout EditorLayout
 @inject HttpClient Http
 @inject IJSRuntime JS
-@using PgmStudio.Client.Pages.EditorActivities
 
-@* Editor shell — topbar + activity rail + activity viewport. Port of studio/templates/editor.html
-   + the activity state machine in static/main.js. *@
+@* Editor shell — topbar + nav rail + activity viewport. Port of studio/templates/editor.html
+   + the phase state machine in static/main.js. *@
 
 <StudioShell>
   <Bar>
@@ -25,7 +24,7 @@
   </Bar>
   <Rail>
     <NavRail>
-      @foreach (var a in Activities)
+      @foreach (var a in Phases)
       {
         <NavButton Icon="@a.Icon" Title="@a.Title" Active="active == a.Id"
                    Disabled="!loaded" Status="@StatusOf(a.Id)" OnClick="() => Switch(a.Id)" />
@@ -46,28 +45,28 @@
         @switch (active)
         {
           case "setup":
-            <ConfigureActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity"
-                                OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
+            <SetupPhase Slug="@Slug" IsFirstPhase="@IsFirstPhase"
+                                OnPrevPhase="@(() => GoAdjacent(-1))" OnNextPhase="@(() => GoAdjacent(1))" />
             break;
           case "overview":
-            <OverviewActivity Slug="@Slug" OnStatus="OnOverviewStatus" IsFirstActivity="@IsFirstActivity" IsLastActivity="@IsLastActivity"
-                               OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
+            <OverviewPhase Slug="@Slug" OnStatus="OnOverviewStatus" IsFirstPhase="@IsFirstPhase" IsLastPhase="@IsLastPhase"
+                               OnPrevPhase="@(() => GoAdjacent(-1))" OnNextPhase="@(() => GoAdjacent(1))" />
             break;
           case "teams":
-            <TeamsActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity" IsLastActivity="@IsLastActivity"
-                            OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
+            <TeamsPhase Slug="@Slug" IsFirstPhase="@IsFirstPhase" IsLastPhase="@IsLastPhase"
+                            OnPrevPhase="@(() => GoAdjacent(-1))" OnNextPhase="@(() => GoAdjacent(1))" />
             break;
           case "build-regions":
-            <BuildRegionsActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity"
-                                   OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
+            <BuildRegionsPhase Slug="@Slug" IsFirstPhase="@IsFirstPhase"
+                                   OnPrevPhase="@(() => GoAdjacent(-1))" OnNextPhase="@(() => GoAdjacent(1))" />
             break;
           case "objective":
-            <ObjectiveActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity" IsLastActivity="@IsLastActivity"
-                                OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
+            <ObjectivePhase Slug="@Slug" IsFirstPhase="@IsFirstPhase" IsLastPhase="@IsLastPhase"
+                                OnPrevPhase="@(() => GoAdjacent(-1))" OnNextPhase="@(() => GoAdjacent(1))" />
             break;
           case "regions":
-            <RegionsActivity Slug="@Slug" IsFirstActivity="@IsFirstActivity" IsLastActivity="@IsLastActivity"
-                              OnPrevActivity="@(() => GoAdjacent(-1))" OnNextActivity="@(() => GoAdjacent(1))" />
+            <RegionsPhase Slug="@Slug" IsFirstPhase="@IsFirstPhase" IsLastPhase="@IsLastPhase"
+                              OnPrevPhase="@(() => GoAdjacent(-1))" OnNextPhase="@(() => GoAdjacent(1))" />
             break;
           default:
             <div class="workspace workspace--placeholder">

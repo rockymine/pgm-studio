@@ -3,17 +3,17 @@ using Microsoft.JSInterop;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 
-namespace PgmStudio.Client.Pages;
+namespace PgmStudio.Client.Pages.Edit;
 
 public partial class Editor
 {
     [Parameter] public string Slug { get; set; } = "";
     [Inject] private NavigationManager Nav { get; set; } = default!;
 
-    private record Activity(string Id, string Icon, string Title);
+    private record Phase(string Id, string Icon, string Title);
 
     // Identity leads (matches the Configure wizard's info/world ordering), then the editing activities.
-    private static readonly Activity[] Activities =
+    private static readonly Phase[] Phases =
     [
         new("overview",      "book-open-text",    "Overview"),
         new("setup",         "settings-2",        "Setup"),
@@ -31,24 +31,24 @@ public partial class Editor
     private readonly Dictionary<string, string?> status = new();
 
     private string StatusOf(string id) => status.GetValueOrDefault(id) ?? "";
-    private string TitleOf(string id) => Activities.FirstOrDefault(a => a.Id == id)?.Title ?? id;
+    private string TitleOf(string id) => Phases.FirstOrDefault(a => a.Id == id)?.Title ?? id;
     private void SetStatus(string id, string? dot) { status[id] = dot; StateHasChanged(); }
     private void OnOverviewStatus(string? dot) => SetStatus("overview", dot);
 
-    // Each activity's own FlowBar offers Back/Next as an alternative to the rail, walking activities in
+    // Each phase's own FlowBar offers Back/Next as an alternative to the rail, walking phases in
     // rail order (mirroring the Configure wizard's Back/Next, which does the same across phases). Past
-    // the last activity (Regions), Next leaves the editor for the maps list — the editor's equivalent of
+    // the last phase (Regions), Next leaves the editor for the maps list — the editor's equivalent of
     // the wizard's end-of-flow Export.
-    private int ActiveIndex => Array.FindIndex(Activities, a => a.Id == active);
-    private bool IsFirstActivity => ActiveIndex <= 0;
-    private bool IsLastActivity => ActiveIndex == Activities.Length - 1;
+    private int ActiveIndex => Array.FindIndex(Phases, a => a.Id == active);
+    private bool IsFirstPhase => ActiveIndex <= 0;
+    private bool IsLastPhase => ActiveIndex == Phases.Length - 1;
 
     private void GoAdjacent(int delta)
     {
         var i = ActiveIndex + delta;
         if (i < 0) return;
-        if (i >= Activities.Length) { Nav.NavigateTo("maps"); return; }
-        Switch(Activities[i].Id);
+        if (i >= Phases.Length) { Nav.NavigateTo("maps"); return; }
+        Switch(Phases[i].Id);
     }
 
     protected override async Task OnParametersSetAsync()

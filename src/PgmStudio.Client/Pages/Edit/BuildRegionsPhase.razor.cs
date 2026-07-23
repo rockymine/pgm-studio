@@ -6,23 +6,23 @@ using PgmStudio.Client.Models;
 
 using PgmStudio.Client.Components;
 
-namespace PgmStudio.Client.Pages.EditorActivities;
+namespace PgmStudio.Client.Pages.Edit;
 
-public partial class BuildRegionsActivity
+public partial class BuildRegionsPhase
 {
     [Parameter] public string Slug { get; set; } = "";
-    [Parameter] public bool IsFirstActivity { get; set; }
-    [Parameter] public EventCallback OnPrevActivity { get; set; }
-    [Parameter] public EventCallback OnNextActivity { get; set; }
+    [Parameter] public bool IsFirstPhase { get; set; }
+    [Parameter] public EventCallback OnPrevPhase { get; set; }
+    [Parameter] public EventCallback OnNextPhase { get; set; }
 
     private EditorCanvas? canvas;
     private int step = 1;
 
     // ── navigation (flow-bar Back/Next) — step 2 has no confirm gate (freeform region editing), so
-    // Next there just walks on to the next activity, same as a non-stepped activity's Next would. ──
-    private bool BackEnabled => step == 2 || !IsFirstActivity;
-    private Task OnFlowBack() { if (step == 2) { step = 1; return Task.CompletedTask; } return OnPrevActivity.InvokeAsync(); }
-    private Task OnFlowNext() => step == 1 ? GoStep2() : OnNextActivity.InvokeAsync();
+    // Next there just walks on to the next phase, same as a non-stepped phase.s Next would. ──
+    private bool BackEnabled => step == 2 || !IsFirstPhase;
+    private Task OnFlowBack() { if (step == 2) { step = 1; return Task.CompletedTask; } return OnPrevPhase.InvokeAsync(); }
+    private Task OnFlowNext() => step == 1 ? GoStep2() : OnNextPhase.InvokeAsync();
 
     // step 1 — the side-view is the shared BuildHeightSideview component (owns its own JS lifecycle).
     private string? maxHeight;

@@ -120,7 +120,7 @@ So origination is reached from the stage overviews (themselves reached from the 
 | UI label    | Code / concept (unchanged) | Where it lives                                                |
 | ----------- | -------------------------- | ------------------------------------------------------------- |
 | **Configure** | **authoring** — `N` series, `new-map-authoring.md`, intent model | the wizard at `/maps/{id}/configure` |
-| **Edit**    | the existing editor        | `Editor.razor` + `EditorActivities/*` at `/maps/{id}/edit`     |
+| **Edit**    | the existing editor        | `Edit/Editor.razor` + `Edit/*Phase` at `/maps/{id}/edit`       |
 | **Sketch**  | `sketch_api` / sketch pages | `SketchCreate` at `/maps/new-sketch` + `SketchEditor` at `/maps/{id}/sketch` |
 
 > **Collision to resolve (not blocking):** the **Edit** editor already has an internal **"Configure"

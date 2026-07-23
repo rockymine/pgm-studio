@@ -1,15 +1,15 @@
-@namespace PgmStudio.Client.Pages.EditorActivities
+@namespace PgmStudio.Client.Pages.Edit
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Overview activity — map identity + authors/contributors, editing the map's raw stored metadata
+@* Overview phase — map identity + authors/contributors, editing the map's raw stored metadata
    directly (Version/Objective are freely editable and persist via the explicit Save below) — unlike
    Configure's Map Info, which authors an intent slice that's regenerated wholesale. *@
 
 <div class="phase-body">
 <FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Overview"
-         BackEnabled="@(!IsFirstActivity)" NextLabel="@(IsLastActivity ? "Done" : "Next")"
-         OnBack="OnPrevActivity" OnNext="OnNextActivity" />
+         BackEnabled="@(!IsFirstPhase)" NextLabel="@(IsLastPhase ? "Done" : "Next")"
+         OnBack="OnPrevPhase" OnNext="OnNextPhase" />
 <Workspace>
   <ContentColumn MaxWidth="720">
       <Section Title="Map Identity">
@@ -69,8 +69,8 @@
 </div>
 
 @code {
-    // PersonRow stays here because it is a Razor markup template; the activity's state and logic
-    // live in OverviewActivity.razor.cs.
+    // PersonRow stays here because it is a Razor markup template; the phase.s state and logic
+    // live in OverviewPhase.razor.cs.
     private RenderFragment PersonRow(Person p, List<Person> list) => __builder =>
     {
         <div class="author-row">

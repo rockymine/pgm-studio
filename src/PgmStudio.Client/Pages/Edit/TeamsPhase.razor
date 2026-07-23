@@ -1,14 +1,14 @@
-@namespace PgmStudio.Client.Pages.EditorActivities
+@namespace PgmStudio.Client.Pages.Edit
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Teams activity — teams (list/add/inspector CRUD) + spawn regions (list + assignment) on a
+@* Teams phase — teams (list/add/inspector CRUD) + spawn regions (list + assignment) on a
    spawn-filtered canvas. Port of teams-activity.js + teams-panel.js. Region drawing is deferred. *@
 
 <div class="phase-body">
 <FlowBar Class="flow-bar--flush" PhaseIcon="users" PhaseTitle="Teams"
-         BackEnabled="@(!IsFirstActivity)" NextLabel="@(IsLastActivity ? "Done" : "Next")"
-         OnBack="OnPrevActivity" OnNext="OnNextActivity" />
+         BackEnabled="@(!IsFirstPhase)" NextLabel="@(IsLastPhase ? "Done" : "Next")"
+         OnBack="OnPrevPhase" OnNext="OnNextPhase" />
 <Workspace>
   <Sidebar>
       <Section Title="Teams">

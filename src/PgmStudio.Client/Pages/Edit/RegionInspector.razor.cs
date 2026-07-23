@@ -2,7 +2,7 @@ using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Client.Models;
 
-namespace PgmStudio.Client.Pages.EditorActivities;
+namespace PgmStudio.Client.Pages.Edit;
 
 // The Field markup template stays in RegionInspector.razor (it is Razor markup); the inspector's
 // state and behaviour live here in the code-behind partial.

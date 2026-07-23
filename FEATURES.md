@@ -169,7 +169,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   them per-phase. `.configure-main`/`.configure-flow-bar` (C21) are the shared `.phase-body`/
   `.flow-bar--flush` wrapper both activities now use alongside `ConfigureLayout`. Completes the
   Editor/Configure shell convergence filed in `TODO.md` this session (C21–C24); the
-  `EditorActivities`→`EditorPhases` naming follow-up is parked (BACKLOG C25). (C24)
+  authoring-stage vocabulary was then unified across both tools (C25). (C24)
 - **`FlowBar` on every Edit activity, with cross-activity Back/Next** — the four previously bare
   activities (Overview, Teams, Objective, Regions) gain a `FlowBar` too, for visual consistency with
   Configure (which shows it even on zero-sub-step Map Info). Its Back/Next is now a second, optional
@@ -180,6 +180,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the *next activity* via the same `OnNextActivity` callback, replacing Setup's old hardcoded
   jump-to-Overview (`OnComplete`/`GoOverview`, both removed) — a real behavior change caught while
   wiring this up, not just cosmetic. (C26)
+- **Unified authoring-stage vocabulary — Phase / Step / Section (+ `NavRail`)** — the Editor and the
+  Configure wizard are two views over the same ordered authoring spine but had named it two ways
+  (Editor = *activity* + *step*, Configure = *phase* + *sub-step*). Settled on three strict tiers:
+  **Phase** (a rail stage), **Step** (a screen within a phase, driven by `FlowBar`), **Section** (a
+  titled panel group). Pure rename, no behavior change, landed in slices: (1) the shared rail
+  `ActivityRail`/`ActivityButton` → `NavRail`/`NavButton` (+ `.activity-rail`/`-btn`/`-logo*` →
+  `.nav-*`) — kept generic since it also carries plain nav on Home/Sketch and panel toggles in Plan,
+  not phases; (2) "sub-" dropped — `FlowBar` `SubSteps`/`CurrentSubStep` → `Steps`/`CurrentStep`,
+  `ConfigurePhase.SubSteps` → `Steps`, wizard `subStep`/`SubLabel` → `step`/`StepLabel`; (3) the Edit
+  page renamed to match `Sketch`/`Configure` — `Pages/EditorActivities/` → `Pages/Edit/` (host
+  `Editor.razor` moved in, namespace `…Pages.Edit`), the six `*Activity` components → `*Phase`
+  (`ConfigureActivity` → `SetupPhase`, matching its `setup` id and dodging the `ConfigurePhase`
+  record), and `Editor.razor`'s `Activity`/`Activities`/`Is*Activity`/`On*Activity` → `Phase`
+  equivalents. The generic `.activity-viewport` shell class is left as-is (chrome shared by all
+  pages, like the rail). (C25)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)
