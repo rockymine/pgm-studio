@@ -24,8 +24,17 @@
       </Right>
     </Topbar>
   </Bar>
+  <Rail>
+    <NavRail LogoHref="/" LogoTitle="Studio home">
+      <NavButton Icon="book-open-text" Title="Identity" Active="@IdentityActive" OnClick="GoIdentity" />
+      <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
+    </NavRail>
+  </Rail>
   <ChildContent>
-      <Workspace>
+      @if (IdentityActive) { <SketchIdentityPhase Slug="@Slug" /> }
+      @* Draw stays mounted (hidden, not removed) so the canvas bridge + zoom/draw state survive a trip
+         to Identity; [hidden] is display:none, and SetPhase re-measures the canvas on return. *@
+      <Workspace hidden="@(!DrawActive)">
         <Sidebar>
             @* Working frame — footprint + symmetry, chosen at creation (/maps/new-sketch) and seeded into
                the layout. Collapsed by default here so the Islands tree stays near the top; open it to

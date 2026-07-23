@@ -1,0 +1,50 @@
+@namespace PgmStudio.Client.Components
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Author/contributor editor — rows of Minecraft usernames resolved on blur to a head + canonical name
+   (an unknown username flags an error and clears the stored uuid). Reusable across the map tools: the
+   parent owns load/save (the metadata endpoint), this owns the rows + resolution and raises OnChanged on
+   every edit. Pass Contributors to show a second list; omit it for an authors-only tool. *@
+
+<Section Title="Authors">
+  <Actions><Button OnClick="() => Add(Authors)">+ Add</Button></Actions>
+  <ChildContent>
+    <div class="author-list">
+      @foreach (var p in Authors) { @Row(p, Authors) }
+      @if (Authors.Count == 0) { <p class="section-desc">Add at least one author — credited by Minecraft username.</p> }
+    </div>
+  </ChildContent>
+</Section>
+
+@if (Contributors is not null)
+{
+  <Section Title="Contributors">
+    <Actions><Button OnClick="() => Add(Contributors)">+ Add</Button></Actions>
+    <ChildContent>
+      <div class="author-list">
+        @foreach (var p in Contributors) { @Row(p, Contributors) }
+        @if (Contributors.Count == 0) { <p class="section-desc">Optional — people who helped but aren't lead authors.</p> }
+      </div>
+    </ChildContent>
+  </Section>
+}
+
+@code {
+    // Markup template, shared by the authors + contributors lists.
+    private RenderFragment Row(AuthorRow p, List<AuthorRow> list) => __builder =>
+    {
+        <div class="author-row">
+            <img class="author-avatar" width="16" height="16" alt=""
+                 src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
+            <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
+                   placeholder="Minecraft username" title="@(p.Error ? "No Minecraft account with this username" : p.Uuid)"
+                   value="@p.Name"
+                   @oninput="e => { p.Name = e.Value?.ToString() ?? string.Empty; NotifyChanged(); }"
+                   @onblur="() => ResolveName(p)" />
+            <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"
+                   value="@p.Contribution" @oninput="e => { p.Contribution = e.Value?.ToString() ?? string.Empty; NotifyChanged(); }" />
+            <button class="btn-remove" title="Remove" @onclick="() => Remove(list, p)">✕</button>
+        </div>
+    };
+}

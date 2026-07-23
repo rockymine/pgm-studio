@@ -1,0 +1,30 @@
+@namespace PgmStudio.Client.Pages.Sketch
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Sketch Identity phase — the draft map's display name + authors, editing its stored metadata via
+   GET/PATCH api/map/{slug}. Sketches are map rows, so this reuses the metadata endpoint the Edit tool
+   uses. Authors only (no contributors) for sketches. The name is editable here (fixing the previously
+   creation-locked name); the map keeps its id, only the display name changes. *@
+
+<div class="phase-body">
+  <Workspace>
+    <ContentColumn MaxWidth="720">
+      <Section Title="Map Identity">
+        <Field Label="Map name" Required For="sk-name">
+          <input id="sk-name" class="field-input" type="text" placeholder="My CTW Map"
+                 value="@name" @oninput="e => { name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+        </Field>
+      </Section>
+
+      <AuthorsEditor Authors="authors" OnChanged="Dirty" />
+
+      <Section>
+        <div class="panel-actions">
+          <Button Variant="primary" Disabled="@(!dirty)" OnClick="Save">Save changes</Button>
+          <span class="panel-save-status">@saveStatus</span>
+        </div>
+      </Section>
+    </ContentColumn>
+  </Workspace>
+</div>

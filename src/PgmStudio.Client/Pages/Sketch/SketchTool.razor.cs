@@ -38,6 +38,25 @@ public partial class SketchTool
     private bool isoUnavailable = false;   // 3-D preview couldn't initialise (no WebGL / module load failed)
     private string islandLabel = "";
 
+    // ── Phases (rail): Identity (name + authors) · Draw (the canvas). Draw is the default and stays
+    //    mounted while Identity is up (hidden, not torn down) so the drawing state + zoom survive. ──
+    private string active = "draw";
+    private bool IdentityActive => active == "identity";
+    private bool DrawActive => active == "draw";
+    private Task GoIdentity() => SetPhase("identity");
+    private Task GoDraw() => SetPhase("draw");
+
+    private async Task SetPhase(string p)
+    {
+        active = p;
+        if (p == "draw" && handle is not null)
+        {
+            // The canvas was display:none on Identity; nudge a resize so its <svg> re-reads the viewport
+            // size (the sketch canvas has no ResizeObserver). Preserves zoom/pan (only re-measures).
+            try { await handle.InvokeVoidAsync("resize"); } catch { }
+        }
+    }
+
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
     private List<SketchIslandRow> islands = [];
     private List<SketchShapeRow> shapes = [];
