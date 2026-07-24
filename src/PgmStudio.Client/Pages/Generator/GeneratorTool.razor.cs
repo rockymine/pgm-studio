@@ -197,8 +197,10 @@ public partial class GeneratorTool : IAsyncDisposable
 
     private Task CopyDescriptor(ComposeCard c) => JS.InvokeAsync<bool>("studio.copyText", DescriptorJson(c)).AsTask();
 
-    // Open a card in the plan editor: ensure it is pinned (so the editor can load it by id), then navigate.
-    private async Task OpenInEditor(ComposeCard c)
+    // Author a generated candidate into a map: ensure it is pinned as a candidate plan row (so it has an id),
+    // then commit it to a stage=plan map (POST /api/plan/{id}/author) and open the plan editor on that map.
+    // This begins the map lifecycle (plan → sketch → configure → edit); the candidate stays in the pool.
+    private async Task AuthorPlan(ComposeCard c)
     {
         var id = pinned.FirstOrDefault(p => p.Descriptor is { } d && Key(d) == Key(c.Descriptor))?.Id;
         if (id is null)
@@ -210,7 +212,18 @@ public partial class GeneratorTool : IAsyncDisposable
             }
             catch { /* fall through — no navigation if pin failed */ }
         }
-        if (id is not null) Nav.NavigateTo($"/plan-editor?plan={id}");
+        if (id is null) return;
+        try
+        {
+            var authored = await Http.PostAsync($"api/plan/{id}/author", null);
+            if (authored.IsSuccessStatusCode
+                && (await authored.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("slug", out var s)
+                && s.GetString() is { Length: > 0 } slug)
+            {
+                Nav.NavigateTo($"maps/{slug}/plan");
+            }
+        }
+        catch { /* pin succeeded but authoring failed — stay put so the user can retry */ }
     }
 
     // ── filter inputs ──────────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@
   </Bar>
   <Rail>
     <NavRail LogoHref="/" LogoTitle="Studio home">
+      <NavButton Icon="layout-dashboard" Title="Plans" Href="maps?stage=plan" Active="CurrentStage == MapStage.Plan" />
       <NavButton Icon="pencil-ruler" Title="Sketches" Href="maps?stage=sketch" Active="CurrentStage == MapStage.Sketch" />
       <NavButton Icon="settings-2" Title="Configuring" Href="maps?stage=configure" Active="CurrentStage == MapStage.Configure" />
       <NavButton Icon="map" Title="Maps" Href="maps" Active="CurrentStage == MapStage.Edit" />
@@ -52,7 +53,11 @@
           <Section Title="@StageTitle">
             <Actions>
               <Badge Kind="dim">@(maps?.Count ?? 0)</Badge>
-              @if (CurrentStage == MapStage.Sketch)
+              @if (CurrentStage == MapStage.Plan)
+              {
+                <Button Variant="primary" OnClick="NewPlan" Icon="plus" Class="action-btn--push-end" Disabled="@creatingPlan">New plan</Button>
+              }
+              else if (CurrentStage == MapStage.Sketch)
               {
                 <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Disabled="@creatingSketch">New sketch</Button>
               }

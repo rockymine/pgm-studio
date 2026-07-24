@@ -192,7 +192,7 @@
       <Footer>
         <Button Full Icon="clipboard" OnClick="() => CopyDescriptor(d)">Copy descriptor</Button>
         <Button Full OnClick="() => TogglePin(d)">@(IsPinned(d) ? "Unpin" : "Pin to hold tray")</Button>
-        <Button Variant="primary" Full Icon="external-link" OnClick="() => OpenInEditor(d)">Open in plan editor</Button>
+        <Button Variant="primary" Full Icon="file-plus-2" OnClick="() => AuthorPlan(d)">Author this plan</Button>
       </Footer>
     </SideDrawer>
   }

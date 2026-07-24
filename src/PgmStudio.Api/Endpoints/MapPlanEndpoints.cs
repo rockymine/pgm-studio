@@ -29,6 +29,36 @@ internal static class MapPlanStore
     }
 }
 
+/// <summary>POST /api/plan — originate a blank authored plan: create a <c>map</c> row at <c>stage=plan</c>
+/// with an empty <c>plan_json</c> artifact (no candidate provenance). Returns the slug; the client navigates
+/// to <c>/maps/{slug}/plan</c>, where the editor keeps its default blank document until first save. Body:
+/// optional {name}.</summary>
+public sealed class PlanCreateEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/plan"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var name = "Untitled plan";
+        try
+        {
+            using var doc = await JsonDocument.ParseAsync(HttpContext.Request.Body, cancellationToken: ct);
+            if (doc.RootElement.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String
+                && n.GetString() is { } s && !string.IsNullOrWhiteSpace(s)) name = s.Trim();
+        }
+        catch { /* empty / invalid body → default name */ }
+
+        var slug = await SketchSlug.UniqueAsync(repo, SketchSlug.Slugify(name), ct);
+        var now = DateTime.UtcNow;
+        var mapId = await repo.InsertAsync(new MapRow
+        {
+            Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Plan, CreatedAt = now, UpdatedAt = now,
+        });
+        await MapPlanStore.SaveAsync(db, mapId, "{}"u8.ToArray(), ct);
+        await Send.OkAsync(new { slug }, ct);
+    }
+}
+
 /// <summary>POST /api/plan/{planId}/author — commit a generator plan candidate to authoring: create a
 /// <c>map</c> row at <c>stage=plan</c> seeded with the candidate's <c>plan_json</c> (a <c>plan_json</c>
 /// artifact) and a <c>plan_source_id</c> back to the candidate. Returns the slug; the client navigates to
