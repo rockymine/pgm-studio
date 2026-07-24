@@ -78,7 +78,7 @@ The **map is the resource → it lives in the path**; the **mode is a trailing s
 | `/maps/{id}/configure`   | **Configure** | new-map intent wizard — the six phases          | `ConfigureTool`    | live   |
 | `/maps/{id}/sketch`      | **Sketch**  | sketch tool — draw geometry                       | `SketchTool`       | live   |
 | `/maps/new-sketch`       | *(entry)*   | originate a sketch: blank frame or generated layout | `SketchCreate`   | live   |
-| `/maps/new`              | *(entry)*   | originate a map: **Import** a world folder        | `ConfigureLanding` | live‡  |
+| `/maps/new`              | *(entry)*   | originate a map: **Import** a world folder        | `ConfigureTool` (Import phase) | live‡ |
 | `/concepts`              | —           | the authoring concept mock (`Authoring.razor`)    | `Authoring.razor`  | live   |
 | `/design`                | **Design**  | design-system showcase                            | `Design.razor`     | live   |
 | `/not-found`             | —           | 404                                               | `NotFound.razor`   | live   |
@@ -102,9 +102,12 @@ name ("Annealing IV") in the URL — spaces/caps force encoding and aren't stabl
 Sketch and Import both *originate* a map, so neither has an id yet. They split by stage rather than
 sharing one page:
 
-- **Import** — the `new-map-authoring.md` §12 landing at `/maps/new` (**Source → Found → Plan**),
-  reached from the **Configure overview**'s *Import a world* action. Picking an xml-less world folder
-  creates the map record at stage `configure` (a slug); **Start authoring** enters
+- **Import** — the `new-map-authoring.md` §12 flow at `/maps/new` (**Source → Found → Plan**), now the
+  Configure tool's conditional **phase-zero** (`ConfigureTool` routes both `/maps/new` and
+  `/maps/{id}/configure`; the `ImportPhase` component renders on the slug-less route, and a slug'd/imported
+  map skips Import → `Identity` — see `tool-consistency.md`). Reached from the **Configure overview**'s
+  *Import a world* action. Picking an xml-less world folder creates the map record at stage `configure`
+  (a slug); **Start authoring** enters
   `/maps/{slug}/configure`.
 - **Sketch** — the **New-sketch page** (`/maps/new-sketch`, `SketchCreate`), reached from the **Sketch
   overview**'s *New-sketch* action. Pick a blank frame (footprint + symmetry) or a generated starter;

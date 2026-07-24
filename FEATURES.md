@@ -242,6 +242,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   canvas. The map row's name is authoritative — a rename saved to metadata is synced into the plan doc on
   load, surviving a reload without an artifact re-save; **New plan** lands on `Info` to name it. The bare
   `/plan-editor` candidate route is unchanged (no phase host). Playwright 17/17. (C27)
+- **Configure Import folded in as a conditional phase-zero** — the standalone `/maps/new` landing page is
+  retired; `ConfigureTool` now owns the Import phase (the ex-`ConfigureLanding`, now the `ImportPhase`
+  component — Source → Found → Plan, pick-a-folder **or** paste-a-link). It routes both
+  `/maps/{slug}/configure` and `/maps/new`: the slug-less route (a map has no id until its world is
+  imported) shows Import; on import it navigates to `/maps/{slug}/configure`, which **skips** Import and
+  opens the wizard at **Identity**. So Import is phase-zero for a new/unimported map and never re-picked
+  once the world is set. No server change (same `import-folder`/`import-url` endpoints + scan brief).
+  **This completes C27** — every tool is now on the phase model. Playwright 10/10. (C27)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

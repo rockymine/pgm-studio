@@ -61,14 +61,6 @@ Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the 
 (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
 are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
-- [~] **C27 — Tool-entry & identity consistency: only Configure Import remains.** Spec:
-  `docs/contracts/tool-consistency.md`. Shipped (see `FEATURES.md`): the `Identity` label unify, the full
-  Sketch migration, the Plan phase host (`Info`[Identity+Settings]+`Draw` on `/maps/{slug}/plan`, name +
-  globals moved into `Info`, authors via the shared `AuthorsEditor`, bare `/plan-editor` left as-is), the
-  shared-`AuthorsEditor` migration across Edit/Configure, and abandoned-draft auto-discard. Remaining:
-  - **Configure/Edit** keep their existing phases; only the conditional **`Import`** phase-zero
-    (paste-link *or* pick-folder, skipped when the world is already imported) remains to build.
-  - Collapsible side-panels as an app-wide pattern stay out of scope (later).
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
