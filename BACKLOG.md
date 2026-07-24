@@ -65,10 +65,12 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   `docs/contracts/tool-consistency.md`. The `Identity` label unify and the **full Sketch migration**
   shipped (phase host, `Info`[Identity+Settings]+`Draw`, editable name + verified authors, auto-growing
   canvas, no creation page — see `FEATURES.md`). Remaining:
-  - **Plan** — turn `PlanTool` into a phase host (`Info`[Identity+Settings] + `Draw`); move plan name +
-    cell/surface globals out of the foldable sidebar into `Info`, keep Reference/overlays on the `Draw`
-    canvas. Plans need their **own author home** (a plan record field — sketches reuse the map-metadata
-    endpoint, plans don't); wire authors (author-only, username-verified) via the shared `AuthorsEditor`.
+  - **Plan** — turn `PlanTool` (on the `/maps/{slug}/plan` route) into a phase host (`Info`[Identity+
+    Settings] + `Draw`); move plan name + cell/surface globals out of the foldable sidebar into `Info`,
+    keep Reference/overlays on the `Draw` canvas. The **author-home blocker is gone** — a plan is now a
+    map row (plan-as-map shipped, see `FEATURES.md`), so `Info` reuses the same map-metadata endpoint the
+    Sketch tool does; wire authors (author-only, username-verified) via the shared `AuthorsEditor`. (The
+    bare `/plan-editor` candidate route keeps its lightweight toolbar — the phase host is the map path.)
   - **Configure/Edit** keep their existing phases; only the conditional **`Import`** phase-zero
     (paste-link *or* pick-folder, skipped when the world is already imported) remains to build.
   - Follow-ups: auto-discard empty untitled sketch drafts (created on "New sketch" click); migrate

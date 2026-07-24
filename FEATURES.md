@@ -31,6 +31,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   /api/maps?stage=`, `GET /api/maps/stage-counts`; stage seeded/advanced at sketch-create, import, and
   sketch-finish. Editor home breadcrumbs return to the matching overview; sketch-finish lands on the
   Configure overview with a *Continue* offer rather than force-navigating into the wizard.
+- **Plan-as-a-map: the plan is the first lifecycle stage.** An authored plan is a `map` row at
+  `stage=plan` (like a sketch), so one map row travels `plan → sketch → configure → edit` through its
+  `stage` field. Its coarse-grid layout lives in a regenerable `plan_json` **artifact** (outside the
+  entity-replace codec), and a nullable `plan_source_id` (`M0010`) links back to the generator candidate
+  it was authored from. Endpoints: `POST /api/plan` (originate a blank plan map), `POST
+  /api/plan/{id}/author` (fork a generator candidate into a plan map), `GET`/`PUT /api/map/{slug}/plan`
+  (the artifact). `PlanTool` gains `/maps/{slug}/plan` (loads/saves the artifact in place — no fork
+  doctrine); the bare `/plan-editor` keeps the generator-candidate pool (`/api/plans`, `?plan=<id>`). The
+  dashboard has a **Plans** stage (`/maps?stage=plan`, *New plan* action); the generator's card action is
+  **Author this plan** → begins the lifecycle. The generator's many candidates stay `plan` rows (a
+  separate pool). Contract: `docs/contracts/plan-as-map.md`. (C27)
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the
