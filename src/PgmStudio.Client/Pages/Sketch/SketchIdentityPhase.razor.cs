@@ -8,6 +8,8 @@ namespace PgmStudio.Client.Pages.Sketch;
 public partial class SketchIdentityPhase
 {
     [Parameter] public string Slug { get; set; } = "";
+    /// <summary>Advance to the Draw phase (the flow-bar's Continue) — the rail's Draw button does the same.</summary>
+    [Parameter] public EventCallback OnNext { get; set; }
 
     private string name = "";
     private readonly List<AuthorRow> authors = new();

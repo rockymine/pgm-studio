@@ -19,8 +19,6 @@
       <Right>
         @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
         <span class="topbar-crumb topbar-crumb--dim">@islandLabel</span>
-        <Button Variant="primary" OnClick="Finish" Disabled="@finishing"
-                Title="Rasterize the sketch into a world and save it, ready to configure">Finish</Button>
       </Right>
     </Topbar>
   </Bar>
@@ -31,10 +29,14 @@
     </NavRail>
   </Rail>
   <ChildContent>
-      @if (IdentityActive) { <SketchIdentityPhase Slug="@Slug" /> }
+      @if (IdentityActive) { <SketchIdentityPhase Slug="@Slug" OnNext="GoDraw" /> }
       @* Draw stays mounted (hidden, not removed) so the canvas bridge + zoom/draw state survive a trip
          to Identity; [hidden] is display:none, and SetPhase re-measures the canvas on return. *@
-      <Workspace hidden="@(!DrawActive)">
+      <div class="phase-body" hidden="@(!DrawActive)">
+      <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
+               BackEnabled="true" NextLabel="Finish" NextEnabled="@(!finishing)"
+               OnBack="GoIdentity" OnNext="Finish" />
+      <Workspace>
         <Sidebar>
             @* Working frame — footprint + symmetry, chosen at creation (/maps/new-sketch) and seeded into
                the layout. Collapsed by default here so the Islands tree stays near the top; open it to
@@ -140,5 +142,6 @@
                          OnRotate="Rotate"
                          SelectedVertexIdx="selectedVertexIdx" SelectedVertexHeight="selectedVertexHeight" OnSetVertexHeight="SetVertexHeight" />
       </Workspace>
+      </div>
   </ChildContent>
 </StudioShell>
