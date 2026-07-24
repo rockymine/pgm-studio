@@ -19,11 +19,11 @@ The Configure wizard does **not** have its own canvas. Every built phase mounts 
 
 | Phase | Mount | Mode |
 |---|---|---|
-| WorldScan | `<EditorCanvas/>` (`WorldScanPhase.razor:39`) | read-only + Blocks toggle |
-| WorldIslands | `IslandSelect="true"` (`WorldIslandsPhase.razor:53`) | island pick |
-| WorldSymmetry | `SymmetryMode="true"` (`WorldSymmetryPhase.razor:56`) | axis overlay |
-| Teams | `IslandSelect="true"` (`TeamsPhase.razor:97`) | island pick + team tint |
-| Spawn | `PointPick="true"` (`SpawnPhase.razor:39`) | point-drop + marker pick |
+| WorldScan | `<EditorCanvas/>` (`WorldScanStep.razor:39`) | read-only + Blocks toggle |
+| WorldIslands | `IslandSelect="true"` (`WorldIslandsStep.razor:53`) | island pick |
+| WorldSymmetry | `SymmetryMode="true"` (`WorldSymmetryStep.razor:56`) | axis overlay |
+| Teams | `IslandSelect="true"` (`TeamAssignStep.razor:97`) | island pick + team tint |
+| Spawn | `PointPick="true"` (`SpawnStep.razor:39`) | point-drop + marker pick |
 
 Consequence: **wiring a capability into `EditorCanvas` + its bridge makes it available to both
 surfaces at once.** Resize and arrow-key move (below) must reach the draw steps `N02` (spawn
@@ -264,11 +264,11 @@ of bolting on.
 handle helper into a shared bridge module.
 
 ### 6.3 C# geometry — DONE in A4
-`SpawnPhase` now routes through the canonical `PgmStudio.Geom` leaf: `Symmetry.Order`/`Symmetry.Point`
+`SpawnStep` now routes through the canonical `PgmStudio.Geom` leaf: `Symmetry.Order`/`Symmetry.Point`
 for orbit-fill and `Polygon.PointInRing` for island hit-testing — no hand-rolled transforms or ray-cast
 remain. What's still open here is **not** geometry: the symmetry **label** (`SymLabel`, byte-identical in
-`WorldScanPhase`/`WorldSymmetryPhase`) and **team-count** mapping (repeated in
-`WorldSymmetryPhase`/`TeamsPhase`/`SpawnPhase`) should collapse into one shared C# `SymmetryInfo`
+`WorldScanStep`/`WorldSymmetryStep`) and **team-count** mapping (repeated in
+`WorldSymmetryStep`/`TeamAssignStep`/`SpawnStep`) should collapse into one shared C# `SymmetryInfo`
 helper — small, low-risk (= **CV8**).
 
 ---
@@ -337,7 +337,7 @@ different even though both are now region nodes in `#nodeMap`. A known divergenc
 | **rectangle shape** | `<rect>` (`renderShape`) | `<rect>` (`renderShape`) — identical |
 | **fill / stroke** | `#regionAttrs`: translucent fill (0.20) + **dashed** outline | rect → `#regionAttrs` (identical); spawn marker → **solid** fill, element-`opacity` by `primary`, solid stroke |
 | **colour** | `region.color ?? var(--canvas-region)` — drawn primitives get the **default** region colour | the dummy node carries an explicit **team** colour (`Hex(team)`) |
-| **sidebar / inspector icon** | `RegionNode.Icon(type)` — type-appropriate (point → `dot`, block → `square`, rect → `rectangle-horizontal`) | `SpawnPhase.razor` hardcodes `data-lucide="cylinder"` for spawns — **incongruous** with a point (a UI icon, not a canvas render) |
+| **sidebar / inspector icon** | `RegionNode.Icon(type)` — type-appropriate (point → `dot`, block → `square`, rect → `rectangle-horizontal`) | `SpawnStep.razor` hardcodes `data-lucide="cylinder"` for spawns — **incongruous** with a point (a UI icon, not a canvas render) |
 
 So protection rects and Edit rects differ only by **colour**; points differ in **shape** (rect vs
 circle, a `renderShape` gap the `marker` flag works around), **style** (outline vs solid marker), and

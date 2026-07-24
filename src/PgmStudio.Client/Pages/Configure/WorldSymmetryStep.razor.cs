@@ -14,7 +14,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // intent.symmetry, which the generator uses to orbit-fill teams/wools. The canvas (reused EditorCanvas in
 // symmetry mode — base layer only) shows the axis/centre overlay; the detection summary surfaces the
 // suggested team count.
-public partial class WorldSymmetryPhase
+public partial class WorldSymmetryStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;

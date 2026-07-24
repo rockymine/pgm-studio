@@ -18,7 +18,7 @@ using W = WoolAuthoring;
 // NOT named by a monument (or sitting in a team's own spawn) is decorative and excluded by default. The
 // author confirms/rejects, fixes an owner, recolours, or hand-adds a missing wool. Writes the wools slice
 // (owner + colour + a seed spawn + the detected monuments); the later steps refine spawn/monuments/room.
-public partial class WoolObjectivesPhase
+public partial class WoolObjectivesStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;

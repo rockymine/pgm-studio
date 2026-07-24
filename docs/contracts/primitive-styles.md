@@ -102,7 +102,7 @@ The exact style knobs, per editor:
 | editor | colour source |
 |---|---|
 | **Edit** | **none** — real tree regions carry no `color`; `region.color ?? var(--canvas-region)` always falls back to slate (`editor-canvas.js:978`, `--canvas-region` `tokens.css:99,197`). Every Edit region is uniform slate. |
-| **Configure** | **team / dye hex** — every dummy node is tinted `GameColors.ChatHex(team)` or `DyeHex(color)` (`ProtectionPhase.razor.cs:218-234`, `SpawnPhase.razor.cs:291-297`, `WoolRoomPhase.razor.cs:192-209`, …). |
+| **Configure** | **team / dye hex** — every dummy node is tinted `GameColors.ChatHex(team)` or `DyeHex(color)` (`ProtectionStep.razor.cs:218-234`, `SpawnStep.razor.cs:291-297`, `WoolRoomStep.razor.cs:192-209`, …). |
 | **Sketch** | **operation** — add teal `--canvas-add-*`, subtract red `--canvas-sub-*` (`tokens.css:68-71`). |
 | **Plan** | **role** — `ROLE_COLORS` (piece grey, spawn purple, wool-room green, buffer orange, connector teal; `plan-doc.js:21`), lightened by surface height. |
 
@@ -117,10 +117,10 @@ node's real type:
 
 | razor | hardcoded | node type | verdict |
 |---|---|---|---|
-| `SpawnPhase.razor:26,36,62,108` | `cylinder` | `point` (marker) | **mismatch** — should be `dot` |
-| `WoolMonumentsPhase.razor:28,51,107` | `square` | `point` (marker) | **mismatch** — should be `dot` |
-| `WoolSpawnPhase.razor:24,47,70` | `dot` | `point` (marker) | matches canonical |
-| `ProtectionPhase` / `WoolRoomPhase` / `BuildLayerPhase` | `rectangle-horizontal` | `rectangle` | matches |
+| `SpawnStep.razor:26,36,62,108` | `cylinder` | `point` (marker) | **mismatch** — should be `dot` |
+| `WoolMonumentsStep.razor:28,51,107` | `square` | `point` (marker) | **mismatch** — should be `dot` |
+| `WoolSpawnStep.razor:24,47,70` | `dot` | `point` (marker) | matches canonical |
+| `ProtectionStep` / `WoolRoomStep` / `BuildLayerStep` | `rectangle-horizontal` | `rectangle` | matches |
 
 The point-markers are the hotspot: they render as circles but their sidebar icons are hardcoded to
 `cylinder` / `square` instead of the canonical `point→dot`.
@@ -155,7 +155,7 @@ tangled into each editor's bespoke draw code:
 A single `primitiveStyle({ colour, treatment, selected, primary })` helper then replaces
 `#regionAttrs`, `shapeAttrs`, and the inline plan role-styling; `renderShape` grows the `point` case
 and stays the shared element factory. Icons route through `RegionNode.Icon` everywhere (delete the
-hardcoded `cylinder`/`square` in `SpawnPhase`/`WoolMonuments`), so `point→dot` is consistent.
+hardcoded `cylinder`/`square` in `SpawnStep`/`WoolMonuments`), so `point→dot` is consistent.
 
 Scope note: Plan's hatch patterns and surface-height tint are genuinely Plan-specific and stay in
 `plan-canvas.js`; the win is the *shared* pieces — the `point` render, the style vocabulary enum, the

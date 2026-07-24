@@ -9,7 +9,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // edit-page EditorCanvas (its navigation toolbar + pan/zoom, and its island-base ↔ surface layer toggle),
 // so nothing here re-extracts; the panels just summarise the cleaned-base detection. No intent is written —
 // the World slice (confirmed symmetry) is authored in the later steps.
-public partial class WorldScanPhase
+public partial class WorldScanStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;

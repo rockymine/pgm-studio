@@ -9,7 +9,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // Build · buildable-layer step: draw over-void bridges (areas) and no-build holes with the rectangle tool;
 // each is a dummy region on the reused canvas (selectable + resizable). Writes the build slice's areas/holes;
 // BuildGenerator unions the areas, subtracts the holes (complement), and wires the void-enforcement negative.
-public partial class BuildLayerPhase
+public partial class BuildLayerStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;

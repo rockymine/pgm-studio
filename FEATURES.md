@@ -212,7 +212,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   prefix-less `Editor`). Plus `Home.razor`→`Maps.razor` (the `/maps` dashboard; `Index.razor` stays the
   `/` landing) and `EditorLayout`→`StudioLayout` (it wraps all 11 pages, not just the editor). Routes,
   cascades (`ConfigureTool Wizard`), and `App.razor`'s `DefaultLayout` updated; class rename only, no
-  behaviour change. Entry-page naming (`SketchCreate`/`ConfigureLanding`) deferred. (C26)
+  behaviour change. Entry-page naming (`SketchCreate`/`ImportPhase`) deferred. (C26)
 - **Identity phase label unified + Sketch on the phase model** — the identity surface is **`Identity`**
   everywhere (Configure `Map Info`/Edit `Overview` → `IdentityPhase`). The Sketch tool became a phase host:
   an **`Info`** phase with `Identity` (editable name + username-verified **authors**, via the shared
@@ -243,7 +243,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   load, surviving a reload without an artifact re-save; **New plan** lands on `Info` to name it. The bare
   `/plan-editor` candidate route is unchanged (no phase host). Playwright 17/17. (C27)
 - **Configure Import folded in as a conditional phase-zero** — the standalone `/maps/new` landing page is
-  retired; `ConfigureTool` now owns the Import phase (the ex-`ConfigureLanding`, now the `ImportPhase`
+  retired; `ConfigureTool` now owns the Import phase (the ex-`ImportPhase`, now the `ImportPhase`
   component — Source → Found → Plan, pick-a-folder **or** paste-a-link). It routes both
   `/maps/{slug}/configure` and `/maps/new`: the slug-less route (a map has no id until its world is
   imported) shows Import; on import it navigates to `/maps/{slug}/configure`, which **skips** Import and
@@ -286,10 +286,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `onSpawnPick` — is gone. §2.
 - **Shared symmetry label + single-source orbit count** — the friendly symmetry wording (`"Mirror X
   (left/right)"`, `"Rotate 90°"`, …) was copy-pasted as a private `SymLabel` in four places
-  (`WorldScanPhase`/`WorldSymmetryPhase`/`ConfigureLanding`/`ConfigureActivity`) plus a `SymLabelShort` in
-  `TeamsPhase`; collapse them into one `Client/Models/SymmetryInfo` (`Label` + `ShortLabel`). The orbit
-  *count* re-derivers (`BuildLayerPhase.SymmetryOrder`, the `SuggestedTeams`/`SuggestedCount` in
-  `ConfigureLanding`/`WorldSymmetryPhase`/`TeamsPhase`) no longer re-encode the `rot_90 → 4 / else → 2`
+  (`WorldScanStep`/`WorldSymmetryStep`/`ImportPhase`/`ConfigureActivity`) plus a `SymLabelShort` in
+  `TeamAssignStep`; collapse them into one `Client/Models/SymmetryInfo` (`Label` + `ShortLabel`). The orbit
+  *count* re-derivers (`BuildLayerStep.SymmetryOrder`, the `SuggestedTeams`/`SuggestedCount` in
+  `ImportPhase`/`WorldSymmetryStep`/`TeamAssignStep`) no longer re-encode the `rot_90 → 4 / else → 2`
   magic — they route through the `Geom.Symmetry.Order` leaf (`> 1 ? order : none`), which also fixes two
   latent edge cases (a `none` mode no longer counts as a mirror; `mirror_d1`/`d2` now suggest 2 teams on the
   landing). Presentation labels stay in `Client`; the count stays in `Geom`. The plan/sketch symmetry
@@ -306,7 +306,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   always caller-supplied. It replaces `editor-canvas`'s `#regionAttrs` + marker attrs + the triplicated
   `#refreshRegionDisplay` numbers, sketch's `shapeAttrs`, and the inline plan piece/zone/ghost styling; the
   duplicated add/sub colour constants collapse to one `OP_COLORS`/`opColors` source (sketch render + draw
-  controller). Icons route through `RegionNode.Icon` — `SpawnPhase`'s hardcoded `cylinder` and
+  controller). Icons route through `RegionNode.Icon` — `SpawnStep`'s hardcoded `cylinder` and
   `WoolMonuments`' `square` become the canonical `point → dot`. Plan's surface-tint + hatch stay
   Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
@@ -588,23 +588,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **World · Scan sub-step (N01)** — a read-only review of the extracted world: the centre panel is the
   reused edit-page `EditorCanvas` (its navigation toolbar — pan/zoom · fit island · reset — and its island
   base ↔ surface "Blocks" layer toggle), with a cleaned-base summary (the corpus-fixed noise exclusions)
-  and a detection summary (layer · island count · detected symmetry). Writes no intent. (`WorldScanPhase`; N01)
+  and a detection summary (layer · island count · detected symmetry). Writes no intent. (`WorldScanStep`; N01)
 - **World · Islands sub-step (N01)** — review the detected islands and exclude the stray ones (decor /
   observer towers). Islands are selectable from the list **or by clicking the canvas** (the `EditorCanvas`
   gained island hit-testing + an accent-border highlight, gated so the editor's region selection is
   unchanged); the inspector shows centre / block count / Exclude·Include. Excluding reuses
   `PATCH /configure/{slug}/exclude-island` (re-runs symmetry, no re-scan) and dims the island; saves
-  instantly (topbar Saving… → Saved). (`WorldIslandsPhase`; N01)
+  instantly (topbar Saving… → Saved). (`WorldIslandsStep`; N01)
 - **World · Symmetry sub-step (N01)** — confirm the detected symmetry (or pick another / none) + its
   centre → the World intent slice (`intent.symmetry`), which the generator orbit-fills from. The canvas
   (`EditorCanvas` symmetry mode — base layer only) draws the axis/centre overlay; the inspector surfaces the
-  suggested team count. Persists on phase-advance, which marks World done + unlocks Teams. (`WorldSymmetryPhase`; N01)
+  suggested team count. Persists on phase-advance, which marks World done + unlocks Teams. (`WorldSymmetryStep`; N01)
 - **Teams · step 1 sub-step (N02, "Teams & island assignment")** — create the teams (a Smart Suggestion
   proposes the count from the confirmed symmetry → palette teams) + edit name/colour + Max Players →
   `intent.teams` / `maxPlayers`; and tag islands to teams by clicking them on the canvas (tinted that
   team's colour) → `intent.islandTeams` (authoring aid the Spawn step consumes). Canvas = reused
   `EditorCanvas` in island-select mode, now **point-in-polygon** island hit-testing + **Select tool by
-  default** (both also improve the World · Islands step). (`TeamsPhase`; N02)
+  default** (both also improve the World · Islands step). (`TeamAssignStep`; N02)
 - **Teams · Spawn point sub-step (N02)** — the **point tool** drops team 0's spawn (island-aware: it
   takes the clicked island's team) and the confirmed symmetry orbit-fills the rest, each orbit spawn
   reassigned by the island it lands in; the **select tool** picks a placed marker (world-space hit-test,
@@ -614,29 +614,29 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   marker, the select tool, the inspector X/Y/Z/Yaw, and the side-view Y-snap) — defaulted to the map
   middle so observers don't fall in at 0,0,0; with it selected the point tool relocates it (no orbit).
   **Yaw auto-aims**: team spawns look at the map middle, the observer at a team spawn (`Geom.Heading`),
-  recomputed on any move, manual edits stick. → `intent.spawns` + `intent.observer`. (`SpawnPhase`; N02)
+  recomputed on any move, manual edits stick. → `intent.spawns` + `intent.observer`. (`SpawnStep`; N02)
 - **Teams · Spawn protection sub-step (N02)** — the **rectangle tool** draws a protection zone over a
   spawn; it's **owned by the team whose spawn it covers** and the confirmed symmetry orbits it onto the
   rest, each copy **owned by the team whose spawn IT covers** (shared `OrbitAssignment.ByCoveredAnchor`
   — spatial containment, never orbit order, so no spawn lands in an enemy's zone). Zones are **dummy
   regions** on the reused canvas; the authored zone is editable, the **orbit copies are non-editable ghost
   previews** (one-way derivation). Edits route to `intent.spawns[].protection`; the inspector shows the
-  generator's **Auto-wiring (derived)** (`enter=only-<team>` + `block=never`). (`ProtectionPhase`; N02)
+  generator's **Auto-wiring (derived)** (`enter=only-<team>` + `block=never`). (`ProtectionStep`; N02)
 - **Build · Build-height sub-step (N03)** — the max-build-height cap, set with the **shared
   `BuildHeightSideview`** — the Edit Build Regions step-1 side-view (`studio.mountSideview` / `SliceView`,
   axis toggle + draggable line) **extracted into one component used by both surfaces**, so they're
-  identical. Number input ↔ canvas line stay in sync; → `intent.build.maxHeight`. (`BuildHeightPhase`; N03)
+  identical. Number input ↔ canvas line stay in sync; → `intent.build.maxHeight`. (`BuildHeightStep`; N03)
 - **Build · Buildable-layer sub-step (N03)** — the **rectangle tool** draws over-void bridges (areas) and
   no-build holes (the negative-rectangle / complement case); a Bridge/Hole toggle picks which. Build areas
   have no team identity, so it stores **authored-only** (`intent.build.areas`/`holes`) and the **canvas**
   renders the symmetry mirror as ghost previews in JS (`setAuthorMirror`); `BuildGenerator` orbits + unions
-  them, complements the holes, and wraps the void-enforcement negative. (`BuildLayerPhase`; N03)
+  them, complements the holes, and wraps the void-enforcement negative. (`BuildLayerStep`; N03)
 - **Build · live buildability overlay (N03)** — a **Buildable** chip on the canvas sub-bar toggles a
   translucent per-column **verdict heatmap** (`GET /buildability`): green buildable · orange void-denied ·
   red never · yellow restricted. Reuses the block-overlay's pixelated `<image>` renderer (the grid → one
   PNG), sits below the authored bridges, and re-fetches on each toggle-on so it reflects the saved build
   slice. A sidebar **legend** (colour → plain-language meaning + what to do) shows while the overlay is on
-  (`OnBuildableToggled`). (`EditorCanvas` `ShowBuildable` + `setBuildability`; `BuildLayerPhase`; N03)
+  (`OnBuildableToggled`). (`EditorCanvas` `ShowBuildable` + `setBuildability`; `BuildLayerStep`; N03)
 - **Wools · Objectives sub-step (N04)** — a **detect-and-confirm** objectives list, not a colour-picker.
   On entry the world is scanned (`GET /monument-suggestions` map-wide + `POST /wool-sources`): signed
   monuments ("Place the X Wool here!") name each objective colour and give the capturing team (the island
@@ -647,11 +647,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `islandTeams` assignment). Writes `intent.wools` (owner + colour + a floor-snapped seed spawn + the
   detected monuments) — the seed Y is snapped onto the terrain floor at the wool's column via the new
   `GET /map/{slug}/column-floor` (segment top at/below the wool's base), not the floating pile centroid.
-  (`WoolObjectivesPhase`; `WoolAuthoring` shared helper; `ColumnFloorEndpoint`; N04)
+  (`WoolObjectivesStep`; `WoolAuthoring` shared helper; `ColumnFloorEndpoint`; N04)
 - **Wools · Spawn sub-step (N04)** — confirm/adjust each wool's source point (seeded by the detected
   cluster centroid) + set its Y on the reused side-view; positions **orbit** like the team-spawn step
   (editing an anchor-team wool re-derives its mirror partners by mirrored position — colour/owner untouched,
-  so green's mirror stays the real yellow). (`WoolSpawnPhase`; N04)
+  so green's mirror stays the real yellow). (`WoolSpawnStep`; N04)
 - **Spawns seat on terrain (N11)** — a spawn placed with the **point tool** lands on the column's floor
   instead of Y 0: team spawns + their orbit copies, the observer, and wool spawns all route through one
   `ColumnFloor` helper, which owns the +1 (`column-floor` reports the topmost solid block *inclusive*, so
@@ -660,16 +660,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the floors of the marker's column** (`seatOnFloor`, opt-in via `SliceView.SeatOnFloor`) so it can't be
   dragged into a block or mid-air — a vertical run offers each of its floors; a region's Y stays free. The
   slice line tracks a Y that changes on its own, without refetching the depth map.
-  (`ColumnFloor`, `SpawnPhase`, `WoolSpawnPhase`, `WoolObjectivesPhase`, `SliceView`, `sideview-canvas.js`; N11)
+  (`ColumnFloor`, `SpawnStep`, `WoolSpawnStep`, `WoolObjectivesStep`, `SliceView`, `sideview-canvas.js`; N11)
 - **Wools · Monuments sub-step (N04)** — each wool needs **N−1** monuments (one per enemy team), modelled
   as the expected capturers; the scan pre-fills the signed pedestals. **Box** a cluster → `monument-suggestions`
   routes each hit to its colour's wool (capturing team = its island); an empty box drops a manual monument;
-  one-click whole-map **Detect**. Capturing team editable per row. (`WoolMonumentsPhase`; N04)
+  one-click whole-map **Detect**. Capturing team editable per row. (`WoolMonumentsStep`; N04)
 - **Wools · Room sub-step (N04)** — the **rectangle tool** draws a wool room, owned by the wool whose spawn
   it covers; the symmetry orbits it to the partner wools via the shared **`OrbitAssignment.ByCoveredAnchor`**
   (anchors = the wool spawns), accumulating across wools so a team that defends several wools gets each room
   (authored editable, orbit copies ghost). Shows the generator's **Auto-wiring (derived)** preview
-  (`enter`/`block`=`not-<owner>` + `capture ×N`). (`WoolRoomPhase`; N04)
+  (`enter`/`block`=`not-<owner>` + `capture ×N`). (`WoolRoomStep`; N04)
 - **WoolGenerator multi-wool-per-team + partial-intent fixes (N04)** — (1) `not-<owner>` / `only-<owner>`
   room filters are per-team, not per-wool, so a team defending several wools now **shares** them (both
   creations guarded); a second same-owner wool previously collided on the filter id (HTTP 409). (2)
@@ -688,8 +688,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   unit, further rects while it's selected **add** to it (extras orbit by the primary's step via the new
   `OrbitAssignment.ByCoveredAnchorSet`), and the inspector lists each rect with a per-rect delete (× / Clear).
   Verified live (thunder_blank, `mirror_x`): a 2-rect spawn + 2-rect room orbit-fill into valid unioned XML on
-  both teams. (`MapIntent`, `TeamsGenerator`, `WoolGenerator`, `SymmetryExpander`, `ProtectionPhase`,
-  `WoolRoomPhase`, `OrbitAssignment`; N10)
+  both teams. (`MapIntent`, `TeamsGenerator`, `WoolGenerator`, `SymmetryExpander`, `ProtectionStep`,
+  `WoolRoomStep`, `OrbitAssignment`; N10)
 - **Wool-room wiring — the validated template structure (`docs/template.xml`)** — `WoolGenerator` now groups
   the rooms per defending team into a `<team>s-woolrooms` union (all under a top `woolrooms` union) instead
   of per-wool rules, and replaces the blanket `block=not-<owner>` ("forbid everything") with a shared
@@ -718,24 +718,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the playability picture in one image, no live canvas. A failed traversability/buildability/round-trip links the author back
   to **Build**, and a
   **Re-run checks** button (+ re-run on re-entry) closes the Build⇄Traversability loop.
-  (`PreflightEndpoint`, `PreflightDto`, `Preflight`, `ReviewPreflightPhase`; new-map-authoring.md §9/§12)
+  (`PreflightEndpoint`, `PreflightDto`, `Preflight`, `ReviewPreflightStep`; new-map-authoring.md §9/§12)
 - **Review & Export · Region tree sub-step (N07)** — the read-only inspect/debug view of the full generated
   region tree (between Pre-flight and XML). Intent maps drop the tree from the shaping steps (structure is a
   generated artifact), so it surfaces here: fetches `GET /map/{slug}/regions/tree` and renders it through the
   **reused editor `RegionTree` component** (category groups · collapse · type icons · synthetic-`__anon_N`
   styling · first-event tags), in the same single-column overview as Pre-flight, with a `read-only · N regions`
-  badge and a note that the tree regenerates from the shaping steps. Writes nothing. (`ReviewTreePhase`;
+  badge and a note that the tree regenerates from the shaping steps. Writes nothing. (`ReviewTreeStep`;
   new-map-authoring.md §7/§12)
 - **Review & Export · XML sub-step + gated Export (N06)** — the final sub-step: the generated PGM
   `map.xml`, segmented into containers picked on the left (**Full document** + Teams · Spawns · Wools ·
   Filters · Regions · Apply rules — the latter pulled from inside `<regions>`), each with a count, the
-  selected block shown in `detail-xml-pre`. The flow-bar **Next becomes Export** (`ReviewXmlPhase` fetches
+  selected block shown in `detail-xml-pre`. The flow-bar **Next becomes Export** (`ReviewXmlStep` fetches
   `GET /map/{slug}/xml`; on **409** the preview is replaced by the blocked message and Export is disabled;
   on 200 it registers the open gate + a download action with the wizard via `RegisterExport`). Export
   downloads exactly the previewed bytes through a new `studio.downloadText` Blob helper — `NextEnabled` at
   the final sub-step is the export gate, `Next()` runs the download. **This completes the Configure wizard
   spine** — a new map now flows intent → Map Info → World → Teams → Build → Wools → Review & Export → a
-  validated, downloaded `map.xml`. (`ReviewXmlPhase`, `ConfigureWizard` export wiring; new-map-authoring.md §9/§12)
+  validated, downloaded `map.xml`. (`ReviewXmlStep`, `ConfigureWizard` export wiring; new-map-authoring.md §9/§12)
 - **CTW standards in generated exports + PGM-faithful formatting** — generated (intent) maps now export the
   standard CTW boilerplate ~every corpus map carries: `<itemkeep>` (the non-armor, **non-block** kit items —
   tools/weapons/consumables), `<toolrepair>` (the kit's tools/weapons), `<itemremove>` (the kit's
@@ -767,8 +767,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   declaration** (`OmitXmlDeclaration` — real PGM maps start at `<map>`); the `<void/>` filter is emitted
   **bare, without an id** (trivial + always inlined); and `<regions>` are now sub-ordered **by semantic role
   within each geometry type** (spawn points · wool spawns · spawn regions · monuments · build), so `*-point`
-  and `*-spawn` ids no longer interleave. The `ReviewXmlPhase` container segmenter was retuned to the 4-space
-  indent. (`XmlWriter` + `ReviewXmlPhase`; B11/B13/B15/B16)
+  and `*-spawn` ids no longer interleave. The `ReviewXmlStep` container segmenter was retuned to the 4-space
+  indent. (`XmlWriter` + `ReviewXmlStep`; B11/B13/B15/B16)
 - **Generated CTW-standards conventions (`docs/template.xml`-faithful).** Four corpus-alignment fixes to the
   generated `map.xml`: team ids now carry the `-team` suffix (`red-team`/`blue-team`) at the derivation sites
   while `IntentNaming.Slug` keeps derived ids colour-based (`only-red`, `red-spawn-point`); the spawn kit's
@@ -780,7 +780,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `not-spawns` complement (`<apply kit="reset-resistance-kit" region="not-spawns"/>`). Potion effects + the kit
   `force` flag round-trip end-to-end (domain ↔ Dict ↔ XML ↔ DB): `KitEffect`, `MapParser`/`XmlWriter`,
   `Serializer`/`Deserializer`, and a new `force`/`effects_json` on the `kit` table (migration `M0006`).
-  (`TeamsGenerator`, `CtwStandards`, `SymmetryExpander`, `TeamsPhase`; B10/B14/B17/B18)
+  (`TeamsGenerator`, `CtwStandards`, `SymmetryExpander`, `TeamAssignStep`; B10/B14/B17/B18)
 - **Side-view point/block marker** — the inspector slice (`SliceView` / `SideviewCanvas`) now draws the
   inspected point/block as a marker dot at its primary-axis column + Y (tracking the draggable line when
   editable), so you can see *what* you're seating, not just the Y level. (shared; surfaced by N04 Spawn)
@@ -789,7 +789,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `Symmetry` (`Order`/`Point`/`Rect`/`Apply`/`Normal`/`OrbitAxes` + reflect/rotate) is the single canonical
   C# transform — every affine site routes through it (the per-phase client copies, `SymmetryExpander.Step`,
   both `ModeNormals`, and `RegionParser`/`RegionBoundsDeriver` `MirrorBounds` are gone), plus
-  `Polygon.PointInRing` for the NTS-free projects (`SketchRasterizer`, client `SpawnPhase`). *Area* geometry
+  `Polygon.PointInRing` for the NTS-free projects (`SketchRasterizer`, client `SpawnStep`). *Area* geometry
   stays on NetTopologySuite in `Analysis`: `RegionGeometry2d` (region dict → footprint) builds, and
   `Geometry2dOps` (`CoversCell` + `IoU`) is the one home for the cell-sampling and IoU idioms
   (Buildability/ResourceSources/WoolSources/SymmetryDetector route through it). `Traversability.RegionCentre`

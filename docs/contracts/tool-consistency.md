@@ -49,6 +49,19 @@ Notes:
 - **Reference & overlays stay on the canvas** (the `Draw` phase), *not* in `Settings` — they are
   aids the user toggles *while drawing*, not configuration set once up front.
 
+### Component naming — `*Phase` vs `*Step`
+
+A component's suffix states its altitude, so the file name never lies about the rail/flow-bar level it
+sits at:
+- **`*Phase`** — a component that renders a **whole phase**: a single-step phase (`IdentityPhase`,
+  Edit's `SetupPhase`/`RegionsPhase`/…) or a phase that hosts its own steps inline (`ImportPhase`,
+  `SketchInfoPhase`, `PlanInfoPhase`).
+- **`*Step`** — a component that renders **one step of a multi-step phase**. The Configure wizard's
+  multi-step phases (World, Teams, Build, Wools, Review) have no wrapper component — the phase is a
+  `ConfigurePhase` record, and each step is a `*Step` leaf (`WorldScanStep`, `TeamAssignStep`,
+  `BuildLayerStep`, `WoolMonumentsStep`, `ReviewXmlStep`, …). Edit's phases are all single-step, so
+  every Edit body is a `*Phase`.
+
 ### Entry flow
 
 The **map list** (`Maps.razor`, filtered by stage) is the shared starting surface. A **create /

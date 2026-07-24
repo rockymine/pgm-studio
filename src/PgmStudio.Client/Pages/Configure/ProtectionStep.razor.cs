@@ -13,7 +13,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // spawn fixes the authored team; further rects add to its zone. Authored rects carry a stable id and resize
 // on the canvas; the confirmed symmetry orbits them onto the other teams as non-editable copies — those are
 // also listed (read-only, "orbit" badge) so the union reads coherently. Writes each spawn's `protection` slice.
-public partial class ProtectionPhase
+public partial class ProtectionStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;

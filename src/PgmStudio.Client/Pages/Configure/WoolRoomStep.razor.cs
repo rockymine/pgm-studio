@@ -13,7 +13,7 @@ using W = WoolAuthoring;
 // starts/targets that wool; further rects add to the selected rect's wool. Authored rects carry a stable id
 // and resize on the canvas; the confirmed symmetry orbits them onto the partner wools as non-editable copies,
 // which are also listed (read-only, "orbit" badge). The right panel shows coordinates.
-public partial class WoolRoomPhase
+public partial class WoolRoomStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;

@@ -15,7 +15,7 @@ using W = WoolAuthoring;
 // gap by BOXING a cluster — monument-suggestions routes each hit to its colour's wool, capturing team =
 // the island the monument sits on. An empty box drops one manual monument at its centre for the selected
 // wool. The capturing team is editable per row.
-public partial class WoolMonumentsPhase
+public partial class WoolMonumentsStep
 {
     // Sidebar/inspector icon for a monument — the canonical point icon, kept in sync with the region tree.
     private static readonly string PointIcon = RegionNode.Icon("point");

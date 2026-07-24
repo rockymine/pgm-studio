@@ -12,7 +12,7 @@ using W = WoolAuthoring;
 // seeded by the objectives step's detected source centroid. The point tool moves the selected wool's
 // source; editing a wool owned by the anchor team re-derives its symmetric partners (position orbits, like
 // the team-spawn step), while editing an orbit copy nudges it alone. The side-view sets the Y.
-public partial class WoolSpawnPhase
+public partial class WoolSpawnStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;

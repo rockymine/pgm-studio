@@ -14,7 +14,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // tag islands to them. Writes the intent's teams + maxPlayers slice, plus the islandTeams authoring aid.
 // The reused EditorCanvas runs in island-select mode (base layer only): selecting a team then clicking an
 // island tints it that team's colour. Orbit-fill mirrors team 0 onto the rest from the confirmed symmetry.
-public partial class TeamsPhase
+public partial class TeamAssignStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;

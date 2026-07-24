@@ -12,7 +12,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // island-select mode over the island base layer); the selected island gets an accent border and
 // its centre / block count / exclude toggle show in the inspector. Excluding re-runs symmetry server-side
 // (PATCH /configure/{slug}/exclude-island) — never a re-scan.
-public partial class WorldIslandsPhase
+public partial class WorldIslandsStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;

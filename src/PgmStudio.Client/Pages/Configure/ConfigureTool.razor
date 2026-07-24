@@ -39,65 +39,65 @@ else
   }
   else if (Phase.Id == "world" && step == 0)
   {
-    <WorldScanPhase @key="@("world-scan")" />
+    <WorldScanStep @key="@("world-scan")" />
   }
   else if (Phase.Id == "world" && step == 1)
   {
-    <WorldIslandsPhase @key="@("world-islands")" />
+    <WorldIslandsStep @key="@("world-islands")" />
   }
   else if (Phase.Id == "world" && step == 2)
   {
-    <WorldSymmetryPhase @key="@("world-symmetry")" />
+    <WorldSymmetryStep @key="@("world-symmetry")" />
   }
   else if (Phase.Id == "teams" && step == 0)
   {
-    <TeamsPhase @key="@("teams-assign")" />
+    <TeamAssignStep @key="@("teams-assign")" />
   }
   else if (Phase.Id == "teams" && step == 1)
   {
-    <SpawnPhase @key="@("teams-spawn")" />
+    <SpawnStep @key="@("teams-spawn")" />
   }
   else if (Phase.Id == "teams" && step == 2)
   {
-    <ProtectionPhase @key="@("teams-protect")" />
+    <ProtectionStep @key="@("teams-protect")" />
   }
   else if (Phase.Id == "build" && step == 0)
   {
-    <BuildHeightPhase @key="@("build-height")" />
+    <BuildHeightStep @key="@("build-height")" />
   }
   else if (Phase.Id == "build" && step == 1)
   {
-    <BuildLayerPhase @key="@("build-layer")" />
+    <BuildLayerStep @key="@("build-layer")" />
   }
   @* Keyed on the step label, not its index: sketch-origin maps drop the Monuments step, which
      shifts Room's index down (ConfigureTool.razor.cs LoadOriginAsync). *@
   else if (Phase.Id == "wools" && StepLabel == "Objectives")
   {
-    <WoolObjectivesPhase @key="@("wools-objectives")" />
+    <WoolObjectivesStep @key="@("wools-objectives")" />
   }
   else if (Phase.Id == "wools" && StepLabel == "Spawn")
   {
-    <WoolSpawnPhase @key="@("wools-spawn")" />
+    <WoolSpawnStep @key="@("wools-spawn")" />
   }
   else if (Phase.Id == "wools" && StepLabel == "Monuments")
   {
-    <WoolMonumentsPhase @key="@("wools-monuments")" />
+    <WoolMonumentsStep @key="@("wools-monuments")" />
   }
   else if (Phase.Id == "wools" && StepLabel == "Room")
   {
-    <WoolRoomPhase @key="@("wools-room")" />
+    <WoolRoomStep @key="@("wools-room")" />
   }
   else if (Phase.Id == "review" && step == 0)
   {
-    <ReviewPreflightPhase @key="@("review-preflight")" />
+    <ReviewPreflightStep @key="@("review-preflight")" />
   }
   else if (Phase.Id == "review" && step == 1)
   {
-    <ReviewTreePhase @key="@("review-tree")" />
+    <ReviewTreeStep @key="@("review-tree")" />
   }
   else if (Phase.Id == "review" && step == 2)
   {
-    <ReviewXmlPhase @key="@("review-xml")" />
+    <ReviewXmlStep @key="@("review-xml")" />
   }
   else
   {

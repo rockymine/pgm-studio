@@ -20,13 +20,13 @@ intent (`docs/contracts/new-map-authoring.md`; backend + every page-order step a
 the focus-integration polish remains.
 
 - [ ] **N08 — Monument Y via side-view + per-side focus.** The side-view (`SliceView`) already sets Y on
-  **spawn** and **wool-spawn** (`SpawnPhase`/`WoolSpawnPhase`, `FEATURES.md`); the open slice is the rest:
-  (a) wire the side-view into **`WoolMonumentsPhase`** so a monument's Y is editable, not read-only
+  **spawn** and **wool-spawn** (`SpawnStep`/`WoolSpawnStep`, `FEATURES.md`); the open slice is the rest:
+  (a) wire the side-view into **`WoolMonumentsStep`** so a monument's Y is editable, not read-only
   (lift it off y=0 onto terrain); (b) **per-side focus** — `FocusSection` is still a `/concepts` mockup;
   the canvas **fit-island** exists but not per-team quadrant framing — refine the concept so the author
   can frame one team's quadrant while working its unit. (`FocusSection`)
 - [ ] **N09 — Team id should track the team's colour.** The team id is seeded from the colour first picked
-  (`Id = colour.Replace(' ','-')`), but `TeamsPhase.SetColor` only updates the colour — so recolouring a
+  (`Id = colour.Replace(' ','-')`), but `TeamAssignStep.SetColor` only updates the colour — so recolouring a
   team (e.g. red → purple) leaves `id="red"` and every id derived from it (`only-red`, `red-spawn-point`,
   the `…-red-monument` blocks, `reds-woolrooms`). Functionally fine (PGM resolves the id) but reads wrong.
   Re-derive the id on colour change and **cascade the rename** across the intent — `teams`, `islandTeams`,
@@ -82,7 +82,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   `/design` gallery **regenerated** to render the real components. `FlowBar` — once deferred as
   single-use — **shipped** (C21) once the Editor/Configure shell-convergence work needed it in a
   second consumer; it backs both `ConfigureLayout` and Edit's stepped activities (Setup, Build).
-  `Console` stays single-use (the pre-flight log in `ReviewPreflightPhase`) — not worth componentizing
+  `Console` stays single-use (the pre-flight log in `ReviewPreflightStep`) — not worth componentizing
   yet, left raw (same call as `CoordRow`, dropped because `ctrl-row` triples vary XYZ/XZ/R·H).
   `Card`/`CardGrid` **deferred** (only ~8 landing cards; low payoff).
 
@@ -315,7 +315,7 @@ auto-wires), and Edit is frozen. Resume when the existing-map authoring path is 
   only: **no** references to the Python reference app ("port of", "mirrors the reference", parity/oracle)
   and **no** implementation-phase / task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). New code already
   follows this (CLAUDE.md). ~19 task-id references + ~41 parity/"port of" references remain across
-  `src/` + `tests/` (e.g. `ImportEndpoints`, `WorldScanPhase`, `WorldFeatureWriter`) — sweep them.
+  `src/` + `tests/` (e.g. `ImportEndpoints`, `WorldScanStep`, `WorldFeatureWriter`) — sweep them.
 
 **Deprioritized — may be dropped in a later pass.** Optional/deferred slices parked out of the active
 long-tail so they stop competing with real work. Re-evaluate (or delete) when their area is next touched.

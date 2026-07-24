@@ -16,7 +16,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // bridges + the spawn↔wool nodes in their real team/dye colours), the playability picture in one image.
 // Export (the XML step's Next) stays blocked until the gate is open; a failed check links the author
 // back to Build. Writes no intent.
-public partial class ReviewPreflightPhase
+public partial class ReviewPreflightStep
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;

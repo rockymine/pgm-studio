@@ -34,7 +34,7 @@ The Analysis project uses **NetTopologySuite (NTS)** — 7 files: `RegionGeometr
   (buildability/wool/traversability 10/10). `WoolSources`' `Centroid` (banker's-rounded representative
   point) is **not** folded in — it's a single site with its own rounding, not a duplicate.
 - **Hand-rolled point-in-polygon outside NTS (intentional twins, not folded):** `Pgm/SketchRasterizer`
-  and client `SpawnPhase` use `Geom.Polygon.PointInRing` (scalar leaf — those projects have no NTS);
+  and client `SpawnStep` use `Geom.Polygon.PointInRing` (scalar leaf — those projects have no NTS);
   JS `geometry/polygon.js` `pointInRing` is the documented preview twin.
 
 ### Bounds rebound (cross-cutting)
@@ -63,12 +63,12 @@ is a real gap:
   not a missed reuse.
 
 **The latent gap to track.** "All primitives are shapes" holds at the canvas/sketch layer (shape.js) and
-for **islands** — which are polygons, ray-cast in C# by `SpawnPhase.PointInRing` (dup'ing shape.js's
+for **islands** — which are polygons, ray-cast in C# by `SpawnStep.PointInRing` (dup'ing shape.js's
 polygon contains across the runtime split). If intent zones ever go beyond rectangles (circle/polygon
 protection or build areas), three things generalize together: the intent `Rect` → a shape type;
 `OrbitAssignment`'s rect mirror → a ring mirror; and `BuildGenerator`/`WoolGenerator` (which emit
 `rectangle` regions). That needs a **shared C# shape model** mirroring `shape.js`, folding in
-`SketchRasterizer`'s and `SpawnPhase`'s hand-rolled point-in-poly. Until then, **rectangles are the
+`SketchRasterizer`'s and `SpawnStep`'s hand-rolled point-in-poly. Until then, **rectangles are the
 contract** and the current code is right.
 
 > Reality check: shape.js's header says it's "shared by the editor (regions) and the sketch tool," but in
@@ -114,7 +114,7 @@ which forced `Analysis/SymmetryDetector` to carry a byte-identical `ReflectPoint
 (`Symmetry` + `Polygon.PointInRing`); `Pgm`/`Analysis`/`Client` reference it directly, `Api` transitively.
 `Contracts.Symmetry` is gone (moved to the leaf); `Pgm` no longer references `Contracts` at all. Collapsed
 with the move: `SymmetryDetector`'s reflect/rotate + normal/degree tables (now `Geom.Symmetry.Apply`),
-and the two C# `PointInRing` ray-casts (`SketchRasterizer` + `SpawnPhase` → `Geom.Polygon.PointInRing`).
+and the two C# `PointInRing` ray-casts (`SketchRasterizer` + `SpawnStep` → `Geom.Polygon.PointInRing`).
 Named **`Geom`** not `Geometry` because `Analysis` uses NTS's `Geometry` type pervasively and a sibling
 `PgmStudio.Geometry` namespace shadows it. The leaf is also the planned home for the shape model + the
 generative layout algorithms (TSP/annealing, random-point polygon seeding).
@@ -127,7 +127,7 @@ generative layout algorithms (TSP/annealing, random-point polygon seeding).
 - The client **never** receives an NTS object: islands = GeoJSON rings, regions = untyped `polygon_2d`
   dicts + AABBs (`RegionAuthoringEncoder`), analysis = scalars (`BuildabilityDto` = digit-grid + bounds).
 - **Soft spot:** the Configure wizard holds **client-computed orbit geometry** in `Wizard.Intent` until
-  PUT. `SpawnPhase`/`ProtectionPhase` orbit-fill in WASM C# via `Geom.Symmetry` + `OrbitAssignment`;
+  PUT. `SpawnStep`/`ProtectionStep` orbit-fill in WASM C# via `Geom.Symmetry` + `OrbitAssignment`;
   the server's `SymmetryExpander.FillSpawns` then **no-ops** (teams already filled). So spawns/protection
   are *client*-authored, build areas are *server*-authored (client sends one side). Two orbit paths that
   agree **only because both call `Geom.Symmetry`** — keep that the single source.
@@ -185,7 +185,7 @@ cylinders land, its rect `Covers` test generalises to a cylinder containment, no
    Regression: `SymmetryExpanderTests.Region_orbit_keeps_block_centre_points_and_integer_grid_rects`.
 
 **Duplication:**
-4. ~~`PointInRing` ×3~~ **DONE:** the two C# copies (`SpawnPhase`, `SketchRasterizer`) now call
+4. ~~`PointInRing` ×3~~ **DONE:** the two C# copies (`SpawnStep`, `SketchRasterizer`) now call
    `Geom.Polygon.PointInRing`; `polygon.js` stays as the documented JS twin.
 5. ~~`ReflectPoint`/`RotatePoint` in `SymmetryDetector`~~ **DONE:** routed through `Geom.Symmetry.Apply`.
    (`RegionGeometry2d.Reflect` uses an NTS `AffineTransformation` matrix on a whole `Geometry`, not the

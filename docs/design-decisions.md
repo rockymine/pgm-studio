@@ -31,8 +31,8 @@ PGM itself floors `BlockRegion` but keeps wool locations as raw vectors. Already
 ## Authoring intent model
 
 ### Orbits are materialized at authoring time — the stored intent is already per-team complete
-The Configure wizard *stores* the full orbit: `SpawnPhase.PlaceAndOrbit` orbit-fills spawns for
-every team, `ProtectionPhase` writes every team's rects, and the wool sub-steps write one wool
+The Configure wizard *stores* the full orbit: `SpawnStep.PlaceAndOrbit` orbit-fills spawns for
+every team, `ProtectionStep` writes every team's rects, and the wool sub-steps write one wool
 per owner. `SymmetryExpander.Expand` at export time is a **fill-in for missing entries only**
 (it seeds a `have` set from what's authored and skips existing teams), so for wizard-authored
 intents it is a no-op.
@@ -40,12 +40,12 @@ intents it is a no-op.
 - *Looks wrong:* a consumer that iterates only `intent.Spawns`/`intent.Wools` (e.g.
   `SketchWorldBuilder`) appears to miss the mirrored teams that `SymmetryExpander` "will add
   later" — but those teams are already present in the stored intent, so world and XML agree.
-- *Enforced:* `SpawnPhase.razor.cs` (`PlaceAndOrbit` + `WriteIntent`),
+- *Enforced:* `SpawnStep.razor.cs` (`PlaceAndOrbit` + `WriteIntent`),
   `SymmetryExpander.FillSpawns`/`FillWools` dedup guards, and the orbit note in `CLAUDE.md`
   ("Spawn/Protection still compute orbit in C# via `OrbitAssignment` because they *store* it").
 
 ### At most one `SpawnIntent` per team
-Every producer of `intent.Spawns` dedupes by team: `SpawnPhase.PlaceAndOrbit` guards with
+Every producer of `intent.Spawns` dedupes by team: `SpawnStep.PlaceAndOrbit` guards with
 `spawns.All(s => s.Team != tk)`, `SymmetryExpander.FillSpawns` skips teams already in its
 `have` set, and `LaneMapGenerator` emits exactly one spawn per team slot.
 

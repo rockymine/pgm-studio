@@ -15,7 +15,7 @@ namespace PgmStudio.Client.Pages.Configure;
 // islandTeams) owns the spawn, and each orbit-filled spawn is reassigned by the island it lands in (so a
 // slightly-off rotation still lands on the right team). The select tool picks a placed marker to inspect
 // it; the reused side-view sets each spawn's Y on its terrain. Writes the intent's spawns slice.
-public partial class SpawnPhase
+public partial class SpawnStep
 {
     // Sidebar/inspector icon for a spawn — the canonical point icon, kept in sync with the region tree.
     private static readonly string PointIcon = RegionNode.Icon("point");
@@ -265,7 +265,7 @@ public partial class SpawnPhase
 
     private void WriteIntent()
     {
-        // The Protection step owns each spawn's protection rects; this phase doesn't model them, so carry the
+        // The Protection step owns each spawn's protection rects; this step doesn't model them, so carry the
         // existing union through by team — otherwise re-saving spawns here silently drops it (→ protection: null).
         var keptProtection = new Dictionary<string, JsonNode>();
         if (Wizard.Intent["spawns"] is JsonArray prior)
