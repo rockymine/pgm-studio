@@ -61,21 +61,14 @@ Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the 
 (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
 are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
-- [~] **C27 — Tool-entry & identity consistency: Plan slice + Configure Import remain.** Spec:
-  `docs/contracts/tool-consistency.md`. The `Identity` label unify and the **full Sketch migration**
-  shipped (phase host, `Info`[Identity+Settings]+`Draw`, editable name + verified authors, auto-growing
-  canvas, no creation page — see `FEATURES.md`). Remaining:
-  - **Plan** — turn `PlanTool` (on the `/maps/{slug}/plan` route) into a phase host (`Info`[Identity+
-    Settings] + `Draw`); move plan name + cell/surface globals out of the foldable sidebar into `Info`,
-    keep Reference/overlays on the `Draw` canvas. The **author-home blocker is gone** — a plan is now a
-    map row (plan-as-map shipped, see `FEATURES.md`), so `Info` reuses the same map-metadata endpoint the
-    Sketch tool does; wire authors (author-only, username-verified) via the shared `AuthorsEditor`. (The
-    bare `/plan-editor` candidate route keeps its lightweight toolbar — the phase host is the map path.)
+- [~] **C27 — Tool-entry & identity consistency: only Configure Import remains.** Spec:
+  `docs/contracts/tool-consistency.md`. Shipped (see `FEATURES.md`): the `Identity` label unify, the full
+  Sketch migration, the Plan phase host (`Info`[Identity+Settings]+`Draw` on `/maps/{slug}/plan`, name +
+  globals moved into `Info`, authors via the shared `AuthorsEditor`, bare `/plan-editor` left as-is), the
+  shared-`AuthorsEditor` migration across Edit/Configure, and abandoned-draft auto-discard. Remaining:
   - **Configure/Edit** keep their existing phases; only the conditional **`Import`** phase-zero
     (paste-link *or* pick-folder, skipped when the world is already imported) remains to build.
-  - Follow-ups (auto-discard empty untitled sketch drafts; migrate Edit/Configure's inline author blocks
-    to the shared `AuthorsEditor`) **shipped** — see `FEATURES.md`. Collapsible side-panels as an app-wide
-    pattern stay out of scope (later).
+  - Collapsible side-panels as an app-wide pattern stay out of scope (later).
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only

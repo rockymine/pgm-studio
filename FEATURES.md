@@ -232,6 +232,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`DELETE /api/map/{slug}/sketch/discard-if-empty`, called on the tool's dispose) when still pristine —
   sketch stage, default name, no authors, no shapes — so an abandoned click no longer litters the dashboard.
   Verified: curl (discard keeps renamed/drawn drafts) + Playwright (leave an empty draft → gone). (C27)
+- **Plan tool on the phase model (map route)** — a map-backed plan (`/maps/{slug}/plan`) is now a phase host
+  like Sketch: the rail is `Info`/`Draw`. The new `PlanInfoPhase` has an `Info` phase with **Identity**
+  (plan name + username-verified authors via the shared `AuthorsEditor`, saved to the map-metadata endpoint)
+  and **Settings** (the plan globals — symmetry + cell/surface/headroom/max-players — rendered here and
+  forwarded to the plan-doc bridge by the host). The **Draw** phase is the canvas workspace (kept mounted,
+  hidden across switches, re-measured on return), its sidebar stripped of name/globals and given an
+  in-sidebar Settings/Validation switch since the rail carries phases now; Reference + overlays stay on the
+  canvas. The map row's name is authoritative — a rename saved to metadata is synced into the plan doc on
+  load, surviving a reload without an artifact re-save; **New plan** lands on `Info` to name it. The bare
+  `/plan-editor` candidate route is unchanged (no phase host). Playwright 17/17. (C27)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)
