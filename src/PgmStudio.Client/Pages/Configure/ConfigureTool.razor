@@ -1,12 +1,21 @@
 @page "/maps/{Slug}/configure"
+@page "/maps/new"
 @layout StudioLayout
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* New-map Configure wizard shell. Activity rail + flow bar + three-panel workspace, with a phase/step
-   state machine and an intent-slice-gated rail. Built phase bodies render their own workspace; the rest
-   are scaffold placeholders until their N-task lands. See new-map-authoring.md §12 + routing-and-ia.md. *@
+@* Configure tool. Phase zero is the conditional Import phase (the slug-less /maps/new route — a map has
+   no id until its world is imported); once imported it navigates to /maps/{slug}/configure, which skips
+   Import and opens the wizard at Identity. The wizard is an activity rail + flow bar + three-panel
+   workspace with a phase/step state machine and an intent-slice-gated rail. Built phase bodies render
+   their own workspace; the rest are scaffold placeholders. See new-map-authoring.md §12 + tool-consistency.md. *@
 
+@if (ImportMode)
+{
+  <ImportPhase />
+}
+else
+{
 <ConfigureLayout MapName="@mapName" Crumb="Configure" ActivePhaseId="@Phase.Id" Furthest="@furthest"
               PhaseIcon="@Phase.Icon" PhaseTitle="@Phase.Title"
               Steps="@Phase.Steps" CurrentStep="@step" SaveStatus="@SaveStatus"
@@ -135,3 +144,4 @@
   </CascadingValue>
 
 </ConfigureLayout>
+}

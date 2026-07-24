@@ -10,7 +10,10 @@ namespace PgmStudio.Client.Pages.Configure;
 
 public partial class ConfigureTool
 {
+    // Empty on the slug-less /maps/new route (the Import phase, phase zero); set once a map exists — the
+    // {Slug} route token is absent from /maps/new, so the parameter keeps its default there.
     [Parameter] public string Slug { get; set; } = "";
+    private bool ImportMode => string.IsNullOrEmpty(Slug);
 
     private int phaseIndex;
     private int step;
@@ -115,6 +118,7 @@ public partial class ConfigureTool
 
     protected override async Task OnParametersSetAsync()
     {
+        if (ImportMode) return;   // Import phase (slug-less /maps/new) — nothing to load until a map exists
         if (loaded) return;   // Slug is a fixed route param — load identity + intent once
         loaded = true;
         await Task.WhenAll(LoadNameAsync(), LoadIntentAsync(), LoadOriginAsync());

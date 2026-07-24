@@ -1,10 +1,11 @@
-@page "/maps/new"
-@layout StudioLayout
+@namespace PgmStudio.Client.Pages.Configure
 
-@* New-map landing: the Import flow — Source → Found → Plan — that creates a map from a terrain-only
-   world and hands off to the Configure wizard. Source lists importable world folders; Next scans the
-   chosen world; Found shows the detection brief over the reused editor canvas (island base + surface
-   overlay); Plan starts the wizard. The rail's phases stay locked until Start. *@
+@* Import phase (Configure phase-zero) — the Source → Found → Plan flow that creates a map from a
+   terrain-only world and hands off to the Configure wizard. Hosted by ConfigureTool on the slug-less
+   /maps/new route (a map has no id until the world is imported); once a world is imported it navigates to
+   /maps/{slug}/configure, which skips straight to Identity. Source lists importable world folders; Next
+   scans the chosen world; Found shows the detection brief over the reused editor canvas; Plan starts the
+   wizard. The rail's later phases stay locked until Start. *@
 
 <ConfigureLayout MapName="@(importedSlug ?? selected?.Slug)" Crumb="Import" ActivePhaseId="" Furthest="@(-1)"
               PhaseIcon="import" PhaseTitle="Import"
