@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Contracts;
@@ -13,6 +14,30 @@ public partial class Maps
     private List<MapSummary>? maps;
     private string filter = "";
     private string? loadedStage;   // guards against refetching the same stage on every parameter set
+    private bool creatingSketch;
+
+    // New sketch: create an untitled draft (a map row) and open it on the Info phase to name it — the
+    // Sketch tool has no separate creation page; the canvas auto-grows so there's no size to pick first.
+    private async Task NewSketch()
+    {
+        if (creatingSketch) return;
+        creatingSketch = true;
+        try
+        {
+            var resp = await Http.PostAsJsonAsync("api/sketch", new { name = "Untitled sketch" });
+            if (resp.IsSuccessStatusCode)
+            {
+                var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
+                if (created.TryGetProperty("slug", out var s) && s.GetString() is { Length: > 0 } slug)
+                {
+                    Nav.NavigateTo($"maps/{slug}/sketch?phase=info");
+                    return;
+                }
+            }
+        }
+        catch { /* fall through — button re-enables so the user can retry */ }
+        creatingSketch = false;
+    }
 
     private string CurrentStage => MapStage.IsValid(Stage) ? Stage! : MapStage.Edit;
     private string RowMode => CurrentStage;   // /maps/{slug}/{sketch|configure|edit}

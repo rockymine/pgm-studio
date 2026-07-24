@@ -5,11 +5,23 @@ using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Pages.Sketch;
 
-public partial class SketchIdentityPhase
+public partial class SketchInfoPhase
 {
     [Parameter] public string Slug { get; set; } = "";
-    /// <summary>Advance to the Draw phase (the flow-bar's Continue) — the rail's Draw button does the same.</summary>
+    /// <summary>Advance to the Draw phase (Continue on the last step) — the rail's Draw button does the same.</summary>
     [Parameter] public EventCallback OnNext { get; set; }
+
+    // Settings step — symmetry, owned by the host (it holds the canvas bridge); this phase only renders
+    // the controls and raises the change callbacks so the live (hidden) canvas updates.
+    [Parameter] public string Mode { get; set; } = "rot_180";
+    [Parameter] public double CenterX { get; set; }
+    [Parameter] public double CenterZ { get; set; }
+    [Parameter] public EventCallback<ChangeEventArgs> OnModeChange { get; set; }
+    [Parameter] public EventCallback<double> OnCenterX { get; set; }
+    [Parameter] public EventCallback<double> OnCenterZ { get; set; }
+
+    private int step;   // 0 = Identity, 1 = Settings
+    private Task OnNextStep() { if (step < Steps.Length - 1) { step++; return Task.CompletedTask; } return OnNext.InvokeAsync(); }
 
     private string name = "";
     private readonly List<AuthorRow> authors = new();

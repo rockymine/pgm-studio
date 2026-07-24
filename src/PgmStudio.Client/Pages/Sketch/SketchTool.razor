@@ -24,42 +24,25 @@
   </Bar>
   <Rail>
     <NavRail LogoHref="/" LogoTitle="Studio home">
-      <NavButton Icon="book-open-text" Title="Identity" Active="@IdentityActive" OnClick="GoIdentity" />
+      <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
     </NavRail>
   </Rail>
   <ChildContent>
-      @if (IdentityActive) { <SketchIdentityPhase Slug="@Slug" OnNext="GoDraw" /> }
+      @if (InfoActive)
+      {
+        <SketchInfoPhase Slug="@Slug" OnNext="GoDraw"
+                         Mode="@mode" CenterX="@centerX" CenterZ="@centerZ"
+                         OnModeChange="OnModeChange" OnCenterX="OnCenterX" OnCenterZ="OnCenterZ" />
+      }
       @* Draw stays mounted (hidden, not removed) so the canvas bridge + zoom/draw state survive a trip
-         to Identity; [hidden] is display:none, and SetPhase re-measures the canvas on return. *@
+         to Info; [hidden] is display:none, and SetPhase re-measures the canvas on return. *@
       <div class="phase-body" hidden="@(!DrawActive)">
       <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
                BackEnabled="true" NextLabel="Finish" NextEnabled="@(!finishing)"
-               OnBack="GoIdentity" OnNext="Finish" />
+               OnBack="GoInfo" OnNext="Finish" />
       <Workspace>
         <Sidebar>
-            @* Symmetry — mode + centre for the live mirror preview. The working area is no longer set
-               here: the canvas auto-grows to the drawn content (plus a one-chunk buffer), so there's no
-               footprint/size to choose. Collapsed by default so the Islands tree stays near the top. *@
-            <details class="panel-accordion">
-              <summary class="section-header section-header--ruled"><h2 class="section-title">Symmetry</h2></summary>
-              <Section style="margin-top: var(--space-3);">
-                <Field Label="Mode">
-                  <select class="field-input" value="@mode" @onchange="OnModeChange">
-                    <option value="mirror_x">Mirror X</option>
-                    <option value="mirror_z">Mirror Z</option>
-                    <option value="rot_180">Rotate 180°</option>
-                    <option value="rot_90">Rotate 90°</option>
-                  </select>
-                </Field>
-                <Field Label="Centre X">
-                  <NumberField Value="centerX" ValueChanged="OnCenterX" />
-                </Field>
-                <Field Label="Centre Z">
-                  <NumberField Value="centerZ" ValueChanged="OnCenterZ" />
-                </Field>
-              </Section>
-            </details>
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer" OnAdd="AddLayer"
                           OnDelete="DeleteLayer" OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" />
             <SketchLibrary Items="libraryItems" OnArm="ArmPlace" />

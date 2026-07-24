@@ -2,6 +2,7 @@
 @layout StudioLayout
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <PageTitle>PGM Studio — @StageTitle</PageTitle>
 
@@ -53,7 +54,7 @@
               <Badge Kind="dim">@(maps?.Count ?? 0)</Badge>
               @if (CurrentStage == MapStage.Sketch)
               {
-                <Button Variant="primary" Href="maps/new-sketch" Icon="plus" Class="action-btn--push-end">New sketch</Button>
+                <Button Variant="primary" OnClick="NewSketch" Icon="plus" Class="action-btn--push-end" Disabled="@creatingSketch">New sketch</Button>
               }
               else if (CurrentStage == MapStage.Configure)
               {

@@ -26,13 +26,18 @@ public partial class SketchTool
     private bool isoUnavailable = false;   // 3-D preview couldn't initialise (no WebGL / module load failed)
     private string islandLabel = "";
 
-    // ── Phases (rail): Identity (name + authors) · Draw (the canvas). Draw is the default and stays
-    //    mounted while Identity is up (hidden, not torn down) so the drawing state + zoom survive. ──
+    // ── Phases (rail): Info (Identity + Settings steps) · Draw (the canvas). Draw stays mounted while
+    //    Info is up (hidden, not torn down) so the drawing state + zoom survive the trip. ──
+    [SupplyParameterFromQuery] public string? Phase { get; set; }
     private string active = "draw";
-    private bool IdentityActive => active == "identity";
+    private bool InfoActive => active == "info";
     private bool DrawActive => active == "draw";
-    private Task GoIdentity() => SetPhase("identity");
+    private Task GoInfo() => SetPhase("info");
     private Task GoDraw() => SetPhase("draw");
+
+    // A freshly-created sketch lands on Info (?phase=info) to name it; opening an existing one goes
+    // straight to Draw.
+    protected override void OnInitialized() { if (Phase == "info") active = "info"; }
 
     private async Task SetPhase(string p)
     {
