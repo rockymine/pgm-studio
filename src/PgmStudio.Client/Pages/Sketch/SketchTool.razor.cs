@@ -16,20 +16,8 @@ public partial class SketchTool
     private string tool = "move";
     private string op = "add";
     private string mode = "rot_180";
-    // Working bounds = a width(X)×depth(Z) frame centred at the origin. Default = 2-team landscape.
-    private string preset = "landscape";
-    private double width = 120;
-    private double depth = 80;
     private double centerX = 0;     // symmetry centre
     private double centerZ = 0;
-
-    // Named footprints (W,D). Square is kept for 4-team / D2-symmetry maps; Custom = author-typed W/D.
-    private static readonly Dictionary<string, (double W, double D)> Presets = new()
-    {
-        ["landscape"] = (120, 80),
-        ["portrait"]  = (80, 120),
-        ["square"]    = (120, 120),
-    };
     private bool mirrorOn = true;
     private bool shapesOn = false;
     private bool chunksOn = true;
@@ -88,14 +76,6 @@ public partial class SketchTool
                 && su.ValueKind == JsonValueKind.Object)
             {
                 if (su.TryGetProperty("mirror_mode", out var mm) && mm.GetString() is { Length: > 0 } m) mode = m;
-                if (su.TryGetProperty("bbox", out var bb) && bb.ValueKind == JsonValueKind.Object
-                    && bb.TryGetProperty("min_x", out var mnx) && bb.TryGetProperty("max_x", out var mxx)
-                    && bb.TryGetProperty("min_z", out var mnz) && bb.TryGetProperty("max_z", out var mxz))
-                {
-                    width = mxx.GetDouble() - mnx.GetDouble();
-                    depth = mxz.GetDouble() - mnz.GetDouble();
-                    preset = InferPreset(width, depth);
-                }
                 if (su.TryGetProperty("center", out var ce) && ce.ValueKind == JsonValueKind.Object)
                 {
                     if (ce.TryGetProperty("cx", out var cxv)) centerX = cxv.GetDouble();
@@ -124,28 +104,6 @@ public partial class SketchTool
         mode = e.Value?.ToString() ?? "rot_180";
         if (handle is not null) await handle.InvokeVoidAsync("setMode", mode);
     }
-
-    private async Task OnPresetChange(ChangeEventArgs e)
-    {
-        preset = e.Value?.ToString() ?? "landscape";
-        if (Presets.TryGetValue(preset, out var p)) { width = p.W; depth = p.D; await PushBbox(); }
-    }
-
-    private async Task OnWidth(double v) { width = v; preset = InferPreset(width, depth); await PushBbox(); }
-
-    private async Task OnDepth(double v) { depth = v; preset = InferPreset(width, depth); await PushBbox(); }
-
-    // The working frame is centred at the origin (the symmetry centre defaults there); the symmetry
-    // centre is set separately and does not move the frame.
-    private async Task PushBbox()
-    {
-        double hx = width / 2, hz = depth / 2;
-        if (handle is not null)
-            await handle.InvokeVoidAsync("setBbox", new { min_x = -hx, max_x = hx, min_z = -hz, max_z = hz });
-    }
-
-    private static string InferPreset(double w, double d) =>
-        Presets.FirstOrDefault(kv => kv.Value.W == w && kv.Value.D == d).Key ?? "custom";
 
     private async Task OnCenterX(double v)
     {

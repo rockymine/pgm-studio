@@ -46,6 +46,13 @@ import {
 const FIT_MARGIN = 0.85;
 const identityTransform = (x, z) => ({ x, y: z });
 
+// Auto-growing bounds (plan-editor model): the grid follows the drawn content instead of a fixed
+// user-set frame. CHUNK = the 16-block chunk grid; VIEW_BUFFER = one chunk of breathing room past the
+// content; MIN_HALF = half of the 64×64 minimum area a blank sketch shows (centred on the origin).
+const CHUNK = 16;
+const VIEW_BUFFER = 16;
+const MIN_HALF = 32;
+
 // Nearest snap target to any of `edges` within `tol`; returns { adjust, line } so edge+adjust == line.
 function bestSnap(edges, targets, tol) {
   let best = null;
@@ -57,7 +64,8 @@ function bestSnap(edges, targets, tol) {
 }
 
 export class SketchCanvas extends CanvasBase {
-  #bbox    = null;
+  #bbox    = null;    // the current view bounds (content + buffer); recomputed by #renderSetup
+  #gridKey = "";      // last chunk-grid extent key, so the grid only rebuilds when it actually changes
   #center  = { cx: 0, cz: 0 };
   #mode    = "rot_180";
 
@@ -106,9 +114,11 @@ export class SketchCanvas extends CanvasBase {
 
   // ── public API ───────────────────────────────────────────────────────────────
 
-  setBbox(bbox)        { this.#bbox = bbox; this.#renderSetup(); }
-  setCenter(cx, cz)    { this.#center = { cx, cz }; renderAxis(this.#axisLayer, this.#bbox, this.#center, this.#mode, identityTransform); this.#refreshCenter(); }
-  setMode(mode)        { this.#mode = mode; renderAxis(this.#axisLayer, this.#bbox, this.#center, this.#mode, identityTransform); }
+  // The frame is no longer author-set — the grid auto-grows to the content. setBbox is kept for the
+  // bridge's load path but its value is ignored; the bounds come from the drawn shapes + mirror.
+  setBbox()            { this.#renderSetup(); }
+  setCenter(cx, cz)    { this.#center = { cx, cz }; this.#renderSetup(); this.#refreshCenter(); }
+  setMode(mode)        { this.#mode = mode; this.#renderSetup(); }
   setOperation(op)     { this.#draw?.setOperation(op); }
 
   fitToBbox() {
@@ -154,6 +164,7 @@ export class SketchCanvas extends CanvasBase {
     const g = this.#shapeEl(shape);
     this.#shapeElMap.set(shape.id, g);
     this.#shapesLayer.appendChild(g);
+    this.#renderSetup();   // grow the grid/frame to include the new shape
   }
 
   updateShape(shape) {
@@ -164,6 +175,7 @@ export class SketchCanvas extends CanvasBase {
     this.#shapeElMap.set(shape.id, g);
     this.#shapesLayer.appendChild(g);
     if (this.#selectedId === shape.id) { this.#applySelection(); this.#edit?.refresh(); this.#renderSelectionHighlight(); }
+    this.#renderSetup();   // follow the shape as it's dragged/resized past the current edge
   }
 
   removeShape(id) {
@@ -172,6 +184,7 @@ export class SketchCanvas extends CanvasBase {
     if (el?.parentNode) el.parentNode.removeChild(el);
     this.#shapeElMap.delete(id);
     if (this.#selectedId === id) { this.#selectedId = null; this.#edit?.setSelected(null); this.#edit?.refresh(); }
+    this.#renderSetup();   // shrink back when content is removed
   }
 
   clearShapes() { for (const id of [...this.#shapes.keys()]) this.removeShape(id); }
@@ -209,7 +222,7 @@ export class SketchCanvas extends CanvasBase {
 
   setIslands(islands)        { this.#islands = islands ?? []; renderIslands(this.#islandLayer, this.#islands, identityTransform); this.#renderIslandChrome(); this.#renderSelectionHighlight(); }
   setGhostIslands(polys)     { renderGhostIslands(this.#ghostLayer, polys ?? [], identityTransform); }
-  setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; renderMirror(this.#mirrorLayer, this.#mirrorPolys, identityTransform); }
+  setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; renderMirror(this.#mirrorLayer, this.#mirrorPolys, identityTransform); this.#renderSetup(); }
   setShapesVisible(v) { this.#shapesVisible = v; if (this.#shapesLayer) this.#shapesLayer.style.display = v ? "" : "none"; }
   setMirrorVisible(v) { this.#mirrorVisible = v; if (this.#mirrorLayer) this.#mirrorLayer.style.display = v ? "" : "none"; }
   setChunkVisible(v)  { if (this.#chunkLayer) this.#chunkLayer.style.display = v ? "" : "none"; }
@@ -677,10 +690,51 @@ export class SketchCanvas extends CanvasBase {
     });
   }
 
+  // The exact block AABB of the drawn content — every shape plus the mirror-preview polygons (the
+  // reflected half). This is the tight world bound; null when the sketch is empty.
+  #contentBounds() {
+    let b = null;
+    const grow = (mnx, mnz, mxx, mxz) => {
+      if (!b) b = { min_x: mnx, min_z: mnz, max_x: mxx, max_z: mxz };
+      else {
+        b.min_x = Math.min(b.min_x, mnx); b.min_z = Math.min(b.min_z, mnz);
+        b.max_x = Math.max(b.max_x, mxx); b.max_z = Math.max(b.max_z, mxz);
+      }
+    };
+    for (const s of this.#shapes.values()) {
+      const sb = toBounds(s); if (sb) grow(sb.min_x, sb.min_z, sb.max_x, sb.max_z);
+    }
+    for (const poly of this.#mirrorPolys) {
+      for (const [x, z] of (poly?.exterior ?? [])) grow(x, z, x, z);
+    }
+    return b;
+  }
+
+  // The grid/axis extent: content padded by one chunk and snapped out to chunk lines, but never
+  // smaller than a 64×64 area centred on the origin — so a blank sketch shows a workable grid and
+  // drawing past the edge grows it a chunk at a time.
+  #viewBounds(tight) {
+    let mnx = -MIN_HALF, mnz = -MIN_HALF, mxx = MIN_HALF, mxz = MIN_HALF;
+    if (tight) {
+      mnx = Math.min(mnx, Math.floor((tight.min_x - VIEW_BUFFER) / CHUNK) * CHUNK);
+      mnz = Math.min(mnz, Math.floor((tight.min_z - VIEW_BUFFER) / CHUNK) * CHUNK);
+      mxx = Math.max(mxx, Math.ceil((tight.max_x + VIEW_BUFFER) / CHUNK) * CHUNK);
+      mxz = Math.max(mxz, Math.ceil((tight.max_z + VIEW_BUFFER) / CHUNK) * CHUNK);
+    }
+    return { min_x: mnx, min_z: mnz, max_x: mxx, max_z: mxz };
+  }
+
   #renderSetup() {
-    renderBbox(this.#bboxLayer, this.#bbox, identityTransform);
-    renderChunkGrid(this.#chunkLayer, this.#bbox, identityTransform);
-    renderAxis(this.#axisLayer, this.#bbox, this.#center, this.#mode, identityTransform);
+    const tight = this.#contentBounds();
+    const view = this.#viewBounds(tight);
+    this.#bbox = view;   // drives fit()/pan
+    // Frame outline = the tight world bounds (what Finish rasterizes); nothing when empty.
+    renderBbox(this.#bboxLayer, tight, identityTransform);
+    renderAxis(this.#axisLayer, view, this.#center, this.#mode, identityTransform);
+    // The grid can be many lines — only rebuild it when the chunk-snapped extent actually changes
+    // (i.e. when the content crosses a chunk boundary), not on every drag frame.
+    const key = `${view.min_x},${view.min_z},${view.max_x},${view.max_z}`;
+    if (key !== this.#gridKey) { this.#gridKey = key; renderChunkGrid(this.#chunkLayer, view, identityTransform); }
   }
 
   // Build the shape group (render layer). Selection is handled canvas-wide (single-click = island,
