@@ -1,7 +1,10 @@
 # Layout rules — the composer's v1 rule set (v3, frozen 2026-07-04)
 
+> Sibling docs, all under `docs/tools/`: `generate.md`, `generate-ideas.md`, `generate-measurement.md`,
+> `monument-suggestion.md`.
+
 The generator's actual content: per-role attachment rules, dimensions, and elevation defaults for
-the plan composer (`docs/contracts/map-generation.md` §2, §4). v3 measures every rule against the
+the plan composer (`docs/tools/generate.md` §2, §4). v3 measures every rule against the
 **twelve-seed corpus** (`tools/seeds/*.plan.json`; the eleventh, `big-board-…-parallel-mid`, is a
 **trace of a real map** at 30/team; the twelfth, `mirror-tiny-map-cliff`, the tiniest at 5/team).
 **FROZEN 2026-07-04**: the maxPlayers pass completed — every seed carries the author's per-team
@@ -273,7 +276,7 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   Individual hops keep G5's 10–20; longer total crossings are chains of hops with fragments
   between.
 - **CT4 — the island-size gradient [corpus].** Measured over the 90 fanned islands of the
-  ten-seed corpus (`docs/seed-stats.md`, "Island gradient sweep"): islands **grow** with distance
+  ten-seed corpus (`docs/tools/generate-measurement.md`, "Island gradient sweep"): islands **grow** with distance
   from the centre — pooled Spearman(area, centroid-distance) **+0.61**, holds per-seed in
   **8/10**. Stepping-stone candidates are islands fully submerged in a build zone, or small
   (≤100-block) islands with exactly two build-zone interfaces — **minus two author exclusions**:
@@ -547,7 +550,7 @@ palette, the plaza hub, and the 35 crossing at 30/team):
 
 1. **CT8 added (2026-07-04, composer round 1).** Internal holes / rotation loops — author-stated
    during the composer build-out, then measured universal (12/12 seeds at closure level; sweep in
-   `docs/seed-stats.md`, "Internal-hole sweep"). New rule, no existing rule changed.
+   `docs/tools/generate-measurement.md`, "Internal-hole sweep"). New rule, no existing rule changed.
 2. **CT8 function split by ring (2026-07-04, composer round 1).** Author: wool in the hole's
    ring ⇒ the two-approaches pattern, else rotation. Corpus-validated with two refinements: the
    WL1 two-sided rooms are a seam-mediated sibling (not the same device), and the all-zone ring

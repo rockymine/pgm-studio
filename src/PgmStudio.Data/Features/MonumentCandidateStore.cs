@@ -7,7 +7,7 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.Data.Features;
 
 /// <summary>
-/// Persists / loads the gathered monument candidates (F9, <c>docs/contracts/monument-candidate-store.md</c>).
+/// Persists / loads the gathered monument candidates (F9, <c>docs/tools/monument-suggestion.md</c>).
 /// Ingest writes them (delete-then-insert per map, like the feature rows); the authoring suggestion endpoint
 /// reads them back and runs <c>MonumentSuggester.Score</c> — no world access. Maps the domain
 /// <see cref="MonumentCandidate"/> (PgmStudio.Minecraft) ↔ the <see cref="MonumentCandidateRow"/> table.

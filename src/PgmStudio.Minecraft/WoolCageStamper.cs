@@ -1,7 +1,7 @@
 namespace PgmStudio.Minecraft;
 
 /// <summary>
-/// Stamps a complete wool cage (docs/contracts/sketch-world-export.md §2): the wool-cage cube shell
+/// Stamps a complete wool cage (docs/tools/sketch.md §2): the wool-cage cube shell
 /// (colour = the room's wool colour) plus the corner chest loadout. Anchored on the (integer-snapped) wool
 /// spawn point, resting on the terrain surface.
 /// </summary>

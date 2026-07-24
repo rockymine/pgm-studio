@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// The emit↔derive mirror (docs/contracts/map-generation.md §5.4): emit every base family (and its variants)
+/// The emit↔derive mirror (docs/tools/generate.md §5.4): emit every base family (and its variants)
 /// with <see cref="WoolBoxEmitter"/> and read each back with <see cref="ShapeClassifier"/> — requested ==
 /// derived is the mirror closing, on <b>one</b> <see cref="ShapeFamily"/> enum (no string bridge). It is a
 /// <b>true mirror</b>: each emission is also fed through <see cref="SlotAssignment"/> to re-derive every

@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// The edge taxonomy (docs/contracts/shape-vocabulary.md): a body's negative spaces classed by wall count —
+/// The edge taxonomy (docs/tools/generate.md): a body's negative spaces classed by wall count —
 /// notch (2), bay (3), hole (enclosed) — and every boundary edge classed by the space it faces, Open being the
 /// free outward surface. Fixtures pin the read on the compounds and the approach emissions, plus the
 /// designation interplay (a clamp's recess is a bay only once the room closes it).

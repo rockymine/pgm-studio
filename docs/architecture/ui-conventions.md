@@ -10,8 +10,8 @@ components take, and the order they get built (task **C12**).
 Read alongside:
 - `../../src/PgmStudio.Client/wwwroot/css/studio/tokens.css` — the CSS custom properties. Components
   never hardcode a colour/space/radius; they emit classes that resolve to tokens.
-- `routing-and-ia.md` — the routes and the information architecture the shells wrap.
-- `primitive-styles.md` — the canvas primitive palette (a different, canvas-side visual system).
+- `routing.md` — the routes and the information architecture the shells wrap.
+- `canvas-interaction.md` — the canvas primitive palette (a different, canvas-side visual system).
 - The **living style guide** is the `/design` page (`Pages/Design.razor`); this doc is its prose
   contract. Once a component exists, `/design` renders *it* rather than hand-written markup, so the
   showcase can't drift from production.

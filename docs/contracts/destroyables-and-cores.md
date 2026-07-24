@@ -5,11 +5,11 @@ How the studio parses, stores, generates, and places PGM's other two objective t
 the parser — a DTM map loads "successfully" and silently loses its objectives (§10).
 
 Read alongside:
-- `new-map-authoring.md` — the intent model these objectives slot into. Its wool slice is the
+- `../tools/configure.md` — the intent model these objectives slot into. Its wool slice is the
   template; §4 there (auto-derivations, coordinate flooring) applies unchanged.
-- `plan-editor.md` — the plan schema. Destroyables and cores become two new placement kinds.
-- `layout-rules.md` — the stamped-structure law (ST1–ST4). The structures here are ST-class.
-- `filter-region-wiring.md` — the wiring templates. Neither objective needs any of them (§5).
+- `../tools/plan.md` — the plan schema. Destroyables and cores become two new placement kinds.
+- `../tools/generate-rules.md` — the stamped-structure law (ST1–ST4). The structures here are ST-class.
+- `regions-and-filters.md` — the wiring templates. Neither objective needs any of them (§5).
 
 > **Scope:** the base objective only. Sparks, repairability, progress display, scoreboard filters,
 > proximity metrics, and `required` are deliberately out (§9).
@@ -613,7 +613,7 @@ Not in scope for the work above, recorded because §6's corpus study is most of 
 `MonumentSuggester` already solves the harder version of this problem for CTW: given a world and a
 box the author drew, infer which blocks are the wool monument — 96.6% precision / 57.8% recall over
 1721 monuments, using sign-facing inversion, sign-text classification, pedestal geometry, and
-armour-stand fallbacks (`monument-suggestion.md`). The same shape applies here: **scan the world,
+armour-stand fallbacks (`../tools/monument-suggestion.md`). The same shape applies here: **scan the world,
 propose the objectives, let the author confirm which is a destroyable and which is a core.**
 
 **This is the easier problem, not a harder one**, and §6 is why. Wool monuments are a design free-
@@ -633,7 +633,7 @@ at all. Destroyables and cores are far more standardised:
   and the style, not just the box.
 
 The existing CTW pattern-matching carries over directly — the same world-scan plumbing, the same
-candidate-store shape (`monument-candidate-store.md`, `monument_candidate`), the same
+candidate-store shape (`../tools/monument-suggestion.md`, `monument_candidate`), the same
 confirm-in-the-UI flow. What changes is the classifier, and it gets a cleaner signal to work with.
 
 The one trap is OB12: a detector must propose **the structure's** bounding box and then emit a region

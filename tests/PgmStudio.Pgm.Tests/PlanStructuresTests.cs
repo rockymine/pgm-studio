@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// The plan compiler's structure directives (docs/contracts/layout-rules.md ST1–ST4): wool-room bedrock
+/// The plan compiler's structure directives (docs/tools/generate-rules.md ST1–ST4): wool-room bedrock
 /// floors, entrance redstone rows, iron cubes with the spawn-piece renew flag, and approach walls whose top
 /// height comes from the attack side (the wall pair member farther from the nearest wool marker). All in block
 /// coordinates, fanned across the symmetry orbit.

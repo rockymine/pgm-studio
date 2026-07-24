@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// The Body/designation split (docs/contracts/shape-vocabulary.md §8/§9): <see cref="ShapeEmitter.Body"/> is the
+/// The Body/designation split (docs/tools/generate.md §8/§9): <see cref="ShapeEmitter.Body"/> is the
 /// terminal-free compound and <see cref="ShapeEmitter.Emit"/> is that same body finished by the approach
 /// designation. The split is <b>byte-identical</b> — the body carries exactly the emission's terrain and
 /// vacancies (no terminal), and re-stamping it with the emission's room + marker reconstructs the emission.

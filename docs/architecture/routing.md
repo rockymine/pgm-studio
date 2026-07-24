@@ -1,37 +1,42 @@
 # Routing & information architecture
 
 > **Status: landed — including the staged landing + dashboard.** Settles the URL shape + user-facing
-> labels for the three map surfaces, and the entry point that fans out to them. **Decouples the
+> labels for the map surfaces, and the entry point that fans out to them. **Decouples the
 > visible label from the code/concept name:** the code keeps **"authoring"** (the `N` series,
-> `new-map-authoring.md`, the intent model) — the UI says **"Configure"**. Supersedes the *route names*
-> in `new-map-authoring.md` §12; the §12 *interaction* design (three-level nav, Import sub-steps) is
+> `docs/tools/configure.md`, the intent model) — the UI says **"Configure"**. Supersedes the *route names*
+> in `docs/tools/configure.md` §12; the §12 *interaction* design (three-level nav, Import sub-steps) is
 > unchanged. Open sub-decisions are flagged inline.
 
 ## The model: a map is one resource; the verbs are modes on it
 
-There is **one noun — a map** — and three things you do to it. They are **stages of a lifecycle**, not
+There is **one noun — a map** — and four things you do to it. They are **stages of a lifecycle**, not
 parallel apps:
 
 ```
-Sketch  ──▶  Configure  ──▶  Edit
-(draw          (built/blank      (refine an
- geometry       world → map.xml   existing
- from nothing)  via intent)       map.xml)
+Plan  ──▶  Sketch  ──▶  Configure  ──▶  Edit
+(coarse        (draw          (built/blank      (refine an
+ cell-grid      geometry       world → map.xml   existing
+ layout)        from nothing)  via intent)       map.xml)
 ```
 
-- **Sketch** makes the **geometry** (the physical world) by drawing 2-D shapes — from nothing.
+- **Plan** makes the **coarse layout** — a mini-layout of pieces, zones, symmetry, and placements
+  (a `*.plan.json`; see `../tools/plan.md`) — authored by hand or opened from a generator candidate.
+  It compiles into Sketch geometry (a `SketchLayout`) + Configure intent (a `MapIntent`).
+- **Sketch** makes the **geometry** (the physical world) by drawing 2-D shapes — from nothing, or
+  seeded by compiling a Plan.
 - **Configure** makes the **configuration** (`map.xml`) for a world that already has geometry but no
   XML — either one you just sketched, or one imported/built in Minecraft. This is the intent-driven
-  **authoring wizard** (`new-map-authoring.md`).
+  **authoring wizard** (`../tools/configure.md`).
 - **Edit** modifies the XML of a map that **already has one** — the region-first existing-map editor.
 
-> **"New" is not the discriminator.** Both Sketch *and* Configure produce a new map, so leaning on
-> "new" to separate them is the trap. The real axes are **artifact** (geometry vs config) and
-> **lifecycle** (no XML yet vs has XML). That is why the labels are verbs, not "New Map".
+> **"New" is not the discriminator.** Plan, Sketch, *and* Configure all produce a new map, so leaning on
+> "new" to separate them is the trap. The real axes are **artifact** (layout vs geometry vs config) and
+> **lifecycle** (no geometry yet, geometry but no XML yet, has XML). That is why the labels are verbs,
+> not "New Map".
 
 ## Stage — the lifecycle marker (how a map is filed)
 
-The lifecycle above is **stored**, not inferred: `map.stage` ∈ `{sketch, configure, edit}`
+The lifecycle above is **stored**, not inferred: `map.stage` ∈ `{plan, sketch, configure, edit}`
 (`Contracts.MapStage`). It's the discriminator that lets a user re-open a draft, so each surface lists
 **only its own** maps. Deriving it from artifacts was rejected — a sketch-in-progress *is* cleanly
 derivable (`sketch_layout_json` with no `layer_parquet`), but **Configure and Edit are not
@@ -41,7 +46,10 @@ A stored marker is unambiguous and a trivial `WHERE stage = ?`.
 
 Transitions (each set by the endpoint that performs the step):
 
-- **sketch** — seeded by `POST /api/sketch` (sketch-create).
+- **plan** — seeded by `POST /api/plan/{planId}/author` (opening a generator candidate to author) or a
+  blank plan creation (`/plan-editor`); advances `plan → sketch` when the plan is opened in Sketch,
+  which compiles its geometry into a `sketch_layout_json`.
+- **sketch** — seeded by `POST /api/sketch` (sketch-create), or by the `plan → sketch` compile above.
 - **configure** — set when a world gains geometry but not a finished `map.xml`: `import-folder` /
   `import-url`, and **sketch-finish** (`POST /api/map/{slug}/sketch/finish`) which advances
   `sketch → configure`.
@@ -69,15 +77,18 @@ The **map is the resource → it lives in the path**; the **mode is a trailing s
 `?map=…` — a query param reads as an optional filter, but the editor is meaningless without a map.
 
 | Route                    | Label (UI)  | What it is                                         | Lives in           | Status |
-| ------------------------ | ----------- | ------------------------------------------------- | ------------------ | ------ |
-| `/`                      | *Studio*    | **landing** — three lifecycle cards + live counts | `Index.razor`      | live   |
+| ------------------------ | ----------- | -------------------------------------------------- | ------------------ | ------ |
+| `/`                      | *Studio*    | **landing** — lifecycle cards + live counts        | `Index.razor`      | live   |
 | `/maps`                  | **Edit**    | staged dashboard, default stage = `edit`          | `Maps.razor`       | live   |
 | `/maps?stage=sketch`     | **Sketch**  | sketch-draft overview + New-sketch (→ `/maps/new-sketch`) | `Maps.razor` | live   |
 | `/maps?stage=configure`  | **Configure** | configure-stage overview + Import                | `Maps.razor`       | live   |
+| `/maps?stage=plan`       | **Plan**    | plan-stage overview + New-plan / generator entries | `Maps.razor`      | live   |
 | `/maps/{id}/edit`        | **Edit**    | existing-map region editor (phases)               | `EditTool.razor`   | live†  |
 | `/maps/{id}/configure`   | **Configure** | new-map intent wizard — the six phases          | `ConfigureTool`    | live   |
 | `/maps/{id}/sketch`      | **Sketch**  | sketch tool — draw geometry                       | `SketchTool`       | live   |
+| `/maps/{id}/plan`        | **Plan**    | plan tool — author a coarse cell-grid layout       | `PlanTool`         | live   |
 | `/maps/new-sketch`       | *(entry)*   | originate a sketch: blank frame or generated layout | `SketchCreate`   | live   |
+| `/plan-editor`           | *(entry)*   | originate a plan: blank cell-grid, or trace/refine a generator candidate | `PlanTool` | live |
 | `/maps/new`              | *(entry)*   | originate a map: **Import** a world folder        | `ConfigureTool` (Import phase) | live‡ |
 | `/concepts`              | —           | the authoring concept mock (`Authoring.razor`)    | `Authoring.razor`  | live   |
 | `/design`                | **Design**  | design-system showcase                            | `Design.razor`     | live   |
@@ -102,10 +113,10 @@ name ("Annealing IV") in the URL — spaces/caps force encoding and aren't stabl
 Sketch and Import both *originate* a map, so neither has an id yet. They split by stage rather than
 sharing one page:
 
-- **Import** — the `new-map-authoring.md` §12 flow at `/maps/new` (**Source → Found → Plan**), now the
+- **Import** — the `docs/tools/configure.md` §12 flow at `/maps/new` (**Source → Found → Plan**), now the
   Configure tool's conditional **phase-zero** (`ConfigureTool` routes both `/maps/new` and
   `/maps/{id}/configure`; the `ImportPhase` component renders on the slug-less route, and a slug'd/imported
-  map skips Import → `Identity` — see `tool-consistency.md`). Reached from the **Configure overview**'s
+  map skips Import → `Identity` — see `tool-conventions.md`). Reached from the **Configure overview**'s
   *Import a world* action. Picking an xml-less world folder creates the map record at stage `configure`
   (a slug); **Start authoring** enters
   `/maps/{slug}/configure`.
@@ -121,8 +132,8 @@ So origination is reached from the stage overviews (themselves reached from the 
 ## Label ↔ code mapping (the decoupling)
 
 | UI label    | Code / concept (unchanged) | Where it lives                                                |
-| ----------- | -------------------------- | ------------------------------------------------------------- |
-| **Configure** | **authoring** — `N` series, `new-map-authoring.md`, intent model | the wizard at `/maps/{id}/configure` |
+| ----------- | --------------------------- | ------------------------------------------------------------- |
+| **Configure** | **authoring** — `N` series, `docs/tools/configure.md`, intent model | the wizard at `/maps/{id}/configure` |
 | **Edit**    | the existing editor        | `Edit/EditTool.razor` + `Edit/*Phase` at `/maps/{id}/edit`     |
 | **Sketch**  | `sketch_api` / sketch pages | `SketchCreate` at `/maps/new-sketch` + `SketchTool` at `/maps/{id}/sketch` |
 
@@ -151,7 +162,7 @@ the whole pass — IA rename, the Configure wizard + Sketch routes, and the stag
    was renamed **"Setup"** to free the word for the top-level mode (`Editor.razor.cs` + the switch case).
 2. **`Home.razor`** — `@page "/maps"`; now the **staged dashboard** keyed on `?stage=` (default `edit`);
    the activity rail is the stage switcher; per-stage primary action + resume target.
-3. **`Index.razor`** — `@page "/"` is now the **landing** (three lifecycle cards + `stage-counts`), no
+3. **`Index.razor`** — `@page "/"` is now the **landing** (lifecycle cards + `stage-counts`), no
    longer a redirect.
 4. **`Authoring.razor`** (the concept mock) → `/concepts`; breadcrumb home → `/maps`.
 5. **Stage** — `map.stage` column (`M0004`) + `MapStage`; `GET /api/maps?stage=` and
@@ -159,8 +170,8 @@ the whole pass — IA rename, the Configure wizard + Sketch routes, and the stag
 6. **Sketch origination** moved off `/maps/new` (now Import-only) to its own `/maps/new-sketch` page.
 7. **Exits** — editor home breadcrumbs point at their stage overview; sketch-finish lands on the
    Configure overview with a *Continue* offer instead of force-navigating into the wizard.
-8. **Docs** — route strings reworded in `new-map-authoring.md` §12, `CLAUDE.md`, `TODO.md`,
-   `monument-candidate-store.md`; `FEATURES.md` gained an "App shell & routing" entry. The concept
+8. **Docs** — route strings reworded in `docs/tools/configure.md` §12, `CLAUDE.md`, `TODO.md`,
+   `docs/tools/monument-suggestion.md`; `FEATURES.md` gained an "App shell & routing" entry. The concept
    *name* "authoring" stays everywhere; only route strings changed.
 
 **Open:** `configure → edit` has no live trigger yet — it lands with the Configure wizard's **Export**

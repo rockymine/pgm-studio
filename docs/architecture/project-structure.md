@@ -2,7 +2,7 @@
 
 > A whole-board inventory and classification. The question this answers: **do the project boundaries
 > earn their keep, and which code is mis-homed?** Companion to the `## Code placement` rule in `CLAUDE.md`
-> (the *rule*) and `geometry-consolidation.md` (the geometry *leaf*). This doc is the *map*.
+> (the *rule*) and `geometry.md` (the geometry *leaf*). This doc is the *map*.
 >
 > **Headline finding:** the cross-project boundaries are sound — namespaces are internally clean, and
 > there are **no illegal dependency edges** (`Pgm`⊥`Analysis`, `Client` sees only `Contracts`+`Geom`,
@@ -150,7 +150,7 @@ match their folders (the A5 convention):
 | Folder / namespace | Files | The concern |
 |---|---|---|
 | `Schema/` → `PgmStudio.Data.Schema` | Entities.cs (23 `*Row` + `ArtifactKind`), PgmDb.cs | the relational *model* + linq2db context |
-| `Map/` → `PgmStudio.Data.Map` | MapReader, MapWriter, MapRepository | Dict doc ⇄ entity rows (the map codec; see `region-data-flow.md`) |
+| `Map/` → `PgmStudio.Data.Map` | MapReader, MapWriter, MapRepository | Dict doc ⇄ entity rows (the map codec; see `../contracts/regions-and-filters.md`) |
 | `Features/` → `PgmStudio.Data.Features` | WorldFeatureWriter, SurfaceLayer, MonumentCandidateStore | world-feature ingest · artifact decode (`layer.parquet` blob) · monument-suggestion query store |
 
 **`WorldFeatureWriter`'s home — decided: stays in `Data` (`Features/`).** It reads as a pipeline stage

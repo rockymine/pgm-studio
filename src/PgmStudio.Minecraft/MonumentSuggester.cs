@@ -6,7 +6,7 @@ namespace PgmStudio.Minecraft;
 
 /// <summary>The pedestal block an author placed directly under the (air) monument block. Drawn from the
 /// corpus: bedrock 33%, stained clay 16%, stained glass 14%, wool 11%, floating(=air) 9% — see
-/// <c>docs/analysis/monument-patterns.md</c>.</summary>
+/// <c>docs/tools/monument-suggestion.md</c>.</summary>
 public enum PedestalKind { Any, Bedrock, StainedClay, StainedGlass, Wool, Floating }
 
 /// <summary>How the monument is labelled: a sign on the block below (34%), a sign above (16%), an
@@ -56,7 +56,7 @@ public sealed record MonumentSuggestion(
 /// authoring tier can score suggestions without re-reading the world. One row per gathered anchor
 /// emission (the cell-merge happens at <see cref="MonumentSuggester.Score"/> time). Carries exactly what
 /// <c>Score</c> needs to reproduce the declared-style filter / confidence / colour, and nothing it can
-/// recompute. See <c>docs/contracts/monument-candidate-store.md</c>.
+/// recompute. See <c>docs/tools/monument-suggestion.md</c>.
 /// </summary>
 public sealed record MonumentCandidate(
     int X, int Y, int Z,
@@ -71,8 +71,8 @@ public sealed record MonumentCandidate(
 /// <summary>
 /// The "which monument style? + box" intelligent extractor (authoring-flow backend). Given the world,
 /// the box the author drew around the monument area, and the style they declared, it suggests monument
-/// block positions. Grounded in the 345-map / 1723-monument corpus study (<c>docs/analysis/
-/// monument-patterns.md</c>): it inverts the learned wall-sign facing→monument geometry, classifies sign
+/// block positions. Grounded in the 345-map / 1723-monument corpus study (<c>docs/tools/
+/// monument-suggestion.md</c>): it inverts the learned wall-sign facing→monument geometry, classifies sign
 /// <em>text</em> as a label (not just keyword-matches), requires the declared pedestal under an air cell,
 /// and falls back to armour-stand and pure-geometry anchors.
 ///
@@ -378,7 +378,7 @@ public static class MonumentSuggester
         return (capSpecific && pedSpecific) ? 0.60 : (capSpecific || pedSpecific) ? 0.40 : 0.25;
     }
 
-    // ---- refined sign-text classifier (port of docs/analysis/sign_text_analysis.py) ----
+    // ---- refined sign-text classifier (port of scripts/sign_text_analysis.py) ----
 
     // Matched against the *normalised* text (lowercased, § codes + punctuation collapsed to spaces), so
     // each phrase must be written in that form — e.g. "can t build", not "can't build".

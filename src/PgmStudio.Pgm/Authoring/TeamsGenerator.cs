@@ -5,15 +5,15 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Forward generation for the Teams slice of the declarative authoring model
-/// (docs/contracts/new-map-authoring.md). Projects a <see cref="MapIntent"/> into the PGM document:
+/// (docs/tools/configure.md). Projects a <see cref="MapIntent"/> into the PGM document:
 /// teams, a spawn kit, per-team spawn-point + protection regions with the spawn-protection wiring
-/// (an <c>only-&lt;team&gt;</c> filter + an <c>enter</c> apply-rule — filter-region-wiring.md template
+/// (an <c>only-&lt;team&gt;</c> filter + an <c>enter</c> apply-rule — regions-and-filters.md template
 /// 2), the <c>spawns[]</c> links, and the observer (<c>&lt;default&gt;</c>) spawn.
 /// <para>Mirror of <c>RegionCategorizer</c>: the regions it emits read back as <c>spawn/point</c>,
 /// <c>spawn/protection</c>, and <c>observer_spawn</c> (the consistency check).</para>
 /// <para>Idempotent: clears its own prior output (by deterministic id) before regenerating, so
 /// re-running after an intent edit never duplicates. The save path is entity-replace anyway, so the
-/// doc is rebuilt from scratch each save — see region-data-flow.md.</para>
+/// doc is rebuilt from scratch each save — see regions-and-filters.md.</para>
 /// </summary>
 public static class TeamsGenerator
 {

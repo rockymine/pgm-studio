@@ -7,8 +7,8 @@ using Dict = Dictionary<string, object?>;
 /// <summary>
 /// Wool-slice generator (declarative authoring). Asserts the objective structure (wool + monuments +
 /// room + spawner + defense/edit wiring) and the mirror property: the room reads back as
-/// <c>wool/room</c> and the spawn point as <c>wool/spawner</c>. See new-map-authoring.md,
-/// filter-region-wiring.md templates 3 + 4.
+/// <c>wool/room</c> and the spawn point as <c>wool/spawner</c>. See configure.md,
+/// regions-and-filters.md templates 3 + 4.
 /// </summary>
 public sealed class WoolGeneratorTests
 {

@@ -271,7 +271,7 @@ public static class BoardDeriver
 
         // CT mid-form (derived, not authored) — from the zone grammar: any neutral↔neutral zone means the mid is
         // fractured into interlinked islands → HASH; else >=2 separate crossings → PARALLEL; a single crossing →
-        // CHANNELLED. (layout-rules.md CT, read off the closure.)
+        // CHANNELLED. (generate-rules.md CT, read off the closure.)
         int nnZones = zoneKind.Count(k => k == "neutral-neutral");
         int ffZones = zoneKind.Count(k => k == "front-front");
         string midForm = nnZones > 0 ? "hash" : ffZones >= 2 ? "parallel" : ffZones == 1 ? "channelled" : "—";

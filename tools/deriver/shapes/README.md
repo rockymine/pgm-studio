@@ -1,6 +1,6 @@
 # Base wool-approach shape fixtures
 
-The base wool-approach catalog (`docs/contracts/map-generation.md` §5 — **canonical**) materialised
+The base wool-approach catalog (`docs/tools/generate.md` §5 — **canonical**) materialised
 as real `*.plan.json` files, one per shape: `isolated`, `i-straight`, `i-sidetuck`, `l-corner-{1,2}`,
 `clamp`, `scythe-{1,2}`, `scythe-3-wide`, `u-flush-{1,2}`, `h-stub-{1..3}`, `donut-{1..3}`.
 

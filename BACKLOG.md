@@ -15,7 +15,7 @@ renumber or reuse.
 ## Authoring (N) — the new-map intent editor (`/maps/{id}/configure`, new maps only)
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative
-intent (`docs/contracts/new-map-authoring.md`; backend + every page-order step are landed —
+intent (`docs/tools/configure.md`; backend + every page-order step are landed —
 `FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit. Only
 the focus-integration polish remains.
 
@@ -52,14 +52,14 @@ highlight); these are the parked / dormant / deferred slices.
 - [ ] **S12 — Pin the Islands tree to the top of the sketch sidebar (UI polish, parked).** The residual weight
   above **Islands** is the **Layers** panel + the 12-tile **Library** palette. Collapse both behind `<details>`
   accordions (Library default-collapsed once the map has shapes), or move the Library to a toolbar popover (it's a
-  "reach for a primitive" action, not persistent state). (`docs/sketch-tool-ux-review.md` P0#1;
-  `docs/contracts/sketch-creation-flow.md` follow-on.)
+  "reach for a primitive" action, not persistent state). (`docs/tools/sketch.md` P0#1;
+  `docs/tools/sketch.md` follow-on.)
 
 ## Editor & canvas infrastructure (C / CV)
 
 Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit editor
 (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
-are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
+are Edit-specific. Full canvas spec: `docs/architecture/canvas-interaction.md`.
 
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
@@ -71,7 +71,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   (`panel-section` → `section-header` → `section-title`) is hand-typed across 44 of 64 razor files and
   the app shell is copy-pasted 11×. Full audit, atomic tree, API conventions (foldered under
   `Components/`, param-first + slot override; global CSS, no `.razor.css`), and the class→component map
-  are the **contract in `docs/contracts/ui-conventions.md`** — follow it; `/design` is the
+  are the **contract in `docs/architecture/ui-conventions.md`** — follow it; `/design` is the
   zero-visual-diff regression oracle (components emit the same classes). **Phases A–C + D.1–D.2 shipped**
   (`FEATURES.md`): the atoms + `Section`, the shell (`StudioShell` + topbar/rail/footer), the workspace
   shells (`Workspace`/`Sidebar`/`Inspector`/`ContentColumn`), and — across every production surface (0
@@ -137,7 +137,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   self-correct far better seeing the board) · `plan_save`/`plan_get`/`plan_list` (the G119 store, with
   an agent-authored origin marking so agent output never contaminates the human-labeled corpus) ·
   `create_draft`/`export` (existing chain; return the export **link**, never the world zip inline). MCP
-  resources: `layout-rules.md` + `map-generation.md` as the design brief, `tools/seeds/*.plan.json`
+  resources: `generate-rules.md` + `generate.md` as the design brief, `tools/seeds/*.plan.json`
   (incl. the funnel exemplars) as few-shot examples, and the G118 verdict JSONL once it exists. Scope
   is the **author agent** only; the **analyst agent** (mine verdicts/reject logs for rule + envelope
   refinements — read-only `verdicts_export`/`rejects_query`) is a small follow-on once the corpus has
@@ -231,7 +231,7 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
   **A destroyable is a material outlier** — a small isolated cluster in a closed four-material vocabulary
   (obsidian / emerald / gold / ender stone), 56% of them a 1–3 block obsidian pillar. The families predict their
   own parameters, so a detector can propose `leak` / `completion` / style, not just a box. Reuses the existing
-  scan plumbing, the candidate-store shape (`monument_candidate`, `monument-candidate-store.md`) and the
+  scan plumbing, the candidate-store shape (`monument_candidate`, `monument-suggestion.md`) and the
   confirm-in-UI flow — only the classifier changes. **Trap (OB12):** propose the **structure's** bounding box
   and emit a region around it; the region itself is a human's loose box, is not in the world, and cannot be
   detected. **Never propose a phantom as an objective** — a marker is not a monument; `Destroyable.Phantom`
@@ -257,7 +257,7 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
 
 **The design long tail moved out of the board.** With the old grower path retired and the box pipeline
 now the one composer (`FEATURES.md`), the ~40-task G backlog — much of it describing machinery that no
-longer exists — is condensed into **`docs/layout-generation-ideas.md`**: one idea per few lines, grouped
+longer exists — is condensed into **`docs/tools/generate-ideas.md`**: one idea per few lines, grouped
 by theme, **ids preserved** (never reuse one). Pull an idea back onto the board by id when it becomes the
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
@@ -334,7 +334,7 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   **layer-tagged** `layer.parquet` / `islands.json`. The per-map scan-layer + custom block-exclusion UI
   has been **removed** from both editors (detection is the fixed cleaned base; the world-scanning
   endpoints are gone), so there is no longer a config-change to honour from the UI — this remains only as
-  a rare, local-only override path outside the hosted flow (new-map-authoring.md §6a). (Island-exclusion →
+  a rare, local-only override path outside the hosted flow (configure.md §6a). (Island-exclusion →
   symmetry re-run already works without a re-scan, B7.)
 - [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
   "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
@@ -349,7 +349,7 @@ long-tail so they stop competing with real work. Re-evaluate (or delete) when th
   actually slow in use; otherwise close.
 - [ ] **A4 — [Consider, not perf] Vector-boolean island outlines (drop the rasterize→polygon round-trip).**
   Today island outlines come from a pixel round-trip: vector shapes → rasterize to cells → BFS → `BlocksToPolygon`
-  (cells back to a polygon), done only to **avoid a C# polygon-boolean lib** (sketch-authoring.md §6). We
+  (cells back to a polygon), done only to **avoid a C# polygon-boolean lib** (sketch.md §6). We
   already depend on NTS, so the sketch-finish island polygons *could* be computed by NTS vector boolean
   directly off the shapes (union adds, difference subs), dropping `BlocksToPolygon` + the BFS for the
   *polygon*. **Not a perf task** — the row-run fix already removed the hotspot, and the cell rasterize must

@@ -29,7 +29,7 @@ That plus a separation of concerns by *kind*:
   it directly; `Api` transitively. (Named `Geom`, not `Geometry`, because `Analysis` uses
   NetTopologySuite's `Geometry` type everywhere and a sibling `PgmStudio.Geometry` namespace would shadow
   it.) Do **not** put algorithms in `Contracts` (the DTO leaf) — `Analysis` can't reference it, which is
-  what forced the old duplicate reflect/rotate copy. See `docs/contracts/geometry-consolidation.md`.
+  what forced the old duplicate reflect/rotate copy. See `docs/architecture/geometry.md`.
 
 **Client (Blazor) folder layout** — three buckets, by role not by "page":
 - **`Pages/`** = standalone **routable** pages only (`Index`, `Maps`, `Design`, `NotFound`) — namespace
@@ -40,7 +40,7 @@ That plus a separation of concerns by *kind*:
   resolve each other with no `@using`. A body used by exactly one tool lives here; a body shared across
   tools moves to `Components/`. **Component-name altitude**: `*Phase` for a whole phase (single-step, or a
   phase that hosts its own steps inline), `*Step` for one step of a multi-step phase (see
-  `docs/contracts/tool-consistency.md`).
+  `docs/architecture/tool-conventions.md`).
 - **`Components/`** = the shared, tool-agnostic UI library — deliberately **flat** namespace
   `PgmStudio.Client.Components` regardless of subfolder, so any atom/shell resolves without per-subfolder
   usings.
@@ -123,9 +123,9 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
    interleaved with actionable tasks.
 
 ## Layout generation — the docs
-The model, terminology, and pipeline are canonical in **`docs/contracts/map-generation.md`**; the frozen
-rule law is **`docs/contracts/layout-rules.md`**; the plan schema is **`docs/contracts/plan-editor.md`**. The
-**living type catalog** is **`docs/contracts/map-generation-vocabulary.md`** — every type as a map concept, by
+The model, terminology, and pipeline are canonical in **`docs/tools/generate.md`**; the frozen
+rule law is **`docs/tools/generate-rules.md`**; the plan schema is **`docs/tools/plan.md`**. The
+**living type catalog** is **`docs/tools/generate-vocabulary.md`** — every type as a map concept, by
 pipeline order; **when a task adds, renames, or retires a generation type, update its row there in the same
 commit** (same discipline as the task board).
 
@@ -155,8 +155,8 @@ commit** (same discipline as the task board).
   wall-sign facing→monument geometry, classifies sign *text* as a label (not keyword-match), requires
   the declared pedestal under an air cell, plus armour-stand/geometry fallbacks. Corpus (auto-style):
   **precision 96.6% / recall 57.8% / 35 FP** over 1721 monuments (recall capped by ~⅓ unlabelled +
-  sign-post-only maps). Contract (modes/usage): `docs/contracts/monument-suggestion.md`; pattern study:
-  `docs/monument-patterns.md` (scripts in `scripts/`). `layer_segment.parquet`
+  sign-post-only maps). Contract, usage, and the corpus pattern study behind it: `docs/tools/monument-suggestion.md`
+  (scripts in `scripts/`). `layer_segment.parquet`
   can't drive it (no block materials/signs/entities) — see that doc's reuse note.
 - `--monument-slices <regionDir> <xml_data.json> <outParquet>` runs `MonumentSliceExtractor`
   (`PgmStudio.Minecraft`): for every wool monument it samples a fixed **width-3 × depth-3 × height-5**
@@ -182,7 +182,7 @@ commit** (same discipline as the task board).
   layer) — "the hot path stays in JS", the documented twin of `Geom.Symmetry`. When a Configure phase
   needs a non-editable orbit *preview*, render it on the canvas via `setAuthorMirror`, **not** by computing
   orbit rects in Blazor C#. (Spawn/Protection still compute orbit in C# via `OrbitAssignment` because they
-  *store* it with island/point-aware team assignment — see `docs/contracts/new-map-authoring.md` §4 / the
+  *store* it with island/point-aware team assignment — see `docs/tools/configure.md` §4 / the
   orbit memory.)
 - Don't make the format fit: reject malformed maps (e.g. kytriak_te) rather than weakening the schema.
 - **Supported map range (enforced in `MapParser.EnsureSupported`).** Three gates, all
@@ -203,4 +203,4 @@ commit** (same discipline as the task board).
   reference block-aligned. The monument is a `<block>` region whose `BlockRegion(Vector)` ctor floors
   itself (`new Vector(getBlockX(), getBlockY(), getBlockZ())`), so flooring in the generator would be
   redundant. Verified against `/media/sf_repos/PGM` (`wool/WoolModule`, `regions/BlockRegion`); generated
-  XML exports valid. See `docs/contracts/new-map-authoring.md` §4.
+  XML exports valid. See `docs/tools/configure.md` §4.

@@ -1,11 +1,11 @@
 # Teaching-seed shopping list
 
-Curated `*.plan.json` examples that exist **only to inform `layout-rules.md`** — do's and
+Curated `*.plan.json` examples that exist **only to inform `generate-rules.md`** — do's and
 don'ts, like the mid `build-interface-dos-and-donts` set. They are **not** part of the stat
 corpus and live here in `tools/seeds/teaching/`, kept out of the corpus so they never drive
 generated-seed validation (the seed tests enumerate `tools/seeds/` top-level only, so this
 subfolder is excluded — see the composer handoff). Deliberate anti-patterns and disclaimed
-dead-ends are allowed. Each authored set feeds a `layout-rules.md` amendment via the
+dead-ends are allowed. Each authored set feeds a `generate-rules.md` amendment via the
 correction protocol.
 
 This is the running list so features don't get lost — the analogue of the general-map

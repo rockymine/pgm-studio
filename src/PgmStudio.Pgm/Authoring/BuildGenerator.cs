@@ -6,7 +6,7 @@ using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Build slice of the declarative generator (new-map-authoring.md §5; filter-region-wiring.md template
+/// Build slice of the declarative generator (configure.md §5; regions-and-filters.md template
 /// 1). Projects the build intent into the PGM document: the buildable rectangles (the over-void
 /// bridges/platforms) unioned into <c>build-area</c>, optional no-build <see cref="MapIntent.Build"/>
 /// holes subtracted as <c>buildable = complement(build-area, holes…)</c>, all wrapped in the

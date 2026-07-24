@@ -1,7 +1,7 @@
 # Test seeds
 
 Reusable sketch maps for exercising the studio end-to-end — especially the **sketch world-folder
-export** (`docs/contracts/sketch-world-export.md`).
+export** (`docs/tools/sketch.md`).
 
 ## Base 2-island map (`base-2island.*`)
 

@@ -1,7 +1,7 @@
 namespace PgmStudio.Api.Services;
 
 /// <summary>
-/// Safeguards + target for B8 import-from-url (docs/contracts/new-map-authoring.md §12). Only the
+/// Safeguards + target for B8 import-from-url (docs/tools/configure.md §12). Only the
 /// <see cref="AllowedHosts"/> are fetched server-side (SSRF guard); extraction is bounded (zip-bomb)
 /// and writes to a dedicated imports root kept separate from the curated corpus.
 /// Built in Program.cs from config (<c>Import:*</c>) with hardcoded defaults.

@@ -1009,8 +1009,8 @@ var html = $$"""
 <footer>
   <p>Every figure rendered from the live generator — <code>tools/compose/showcase.cs</code> ·
   walkthrough board <code>p{{env.PlayersPerTeam}} · t{{env.Teams}} · {{env.Symmetry}} · seed {{request.Seed}}</code> ·
-  the canonical model lives in <code>docs/contracts/map-generation.md</code>, the rule law in
-  <code>docs/contracts/layout-rules.md</code>.</p>
+  the canonical model lives in <code>docs/tools/generate.md</code>, the rule law in
+  <code>docs/tools/generate-rules.md</code>.</p>
 </footer>
 </main>
 

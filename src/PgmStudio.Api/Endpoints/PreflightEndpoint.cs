@@ -11,7 +11,7 @@ namespace PgmStudio.Api.Endpoints;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// GET /api/map/{slug}/preflight — the Review phase's pre-flight gate (new-map-authoring.md §9). Runs the
+/// GET /api/map/{slug}/preflight — the Review phase's pre-flight gate (configure.md §9). Runs the
 /// four generated-map checks and reports the export verdict:
 /// <list type="number">
 /// <item><b>Round-trip</b> + <b>Mirror</b> — pure codec/categorizer checks (<see cref="Preflight"/>).</item>

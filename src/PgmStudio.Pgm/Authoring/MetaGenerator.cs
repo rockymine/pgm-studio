@@ -3,7 +3,7 @@ namespace PgmStudio.Pgm.Authoring;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Map-identity slice of the declarative generator (new-map-authoring.md): sets the map name and the
+/// Map-identity slice of the declarative generator (configure.md): sets the map name and the
 /// auto-derived fields — version, gamemode, and the objective text. Version/gamemode are fixed for new
 /// CTW maps; the objective is generated from the wool count.
 /// <para>Authors/contributors are <b>not</b> set here — they're Minecraft usernames that need async

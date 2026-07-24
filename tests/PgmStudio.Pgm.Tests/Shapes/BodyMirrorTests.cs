@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// The body-layer emit↔derive mirror (docs/contracts/shape-vocabulary.md §5): every terminal-free compound
+/// The body-layer emit↔derive mirror (docs/tools/generate.md §5): every terminal-free compound
 /// <see cref="BodyEmitter"/> builds classifies back to itself through <see cref="ShapeClassifier.ClassifyBody"/>.
 /// Each emission must also be one connected mass, tile without overlap, and join along shared edges only — the
 /// alignment law (§3), asserted as the absence of a diagonal pinch. The branch family is capped at three arms and

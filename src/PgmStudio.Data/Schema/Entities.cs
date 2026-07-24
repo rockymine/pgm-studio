@@ -342,7 +342,7 @@ public sealed class MapArtifactRow
     [Column("data"), NotNull] public byte[] Data { get; set; } = [];
 }
 
-/// <summary>Map symmetry (docs/contracts/new-map-authoring.md §6b) — promoted from the
+/// <summary>Map symmetry (docs/tools/configure.md §6b) — promoted from the
 /// <c>symmetry_json</c> artifact to a first-class row (one per map). The scalars are what consumers query
 /// (orbit, counterpart, team-count, the World step); <c>ModesJson</c> is the irregular candidate list;
 /// <c>center_cell</c> and the <c>primary</c> projection are derived on read. <c>ExcludedIslandsJson</c> /
@@ -368,24 +368,24 @@ public static class ArtifactKind
 {
     public const string LayerParquet = "layer_parquet";
     public const string IslandsJson = "islands_json";
-    // symmetry_json was promoted to the `symmetry` table (M0003, new-map-authoring.md §6b).
+    // symmetry_json was promoted to the `symmetry` table (M0003, configure.md §6b).
     public const string MapConfigJson = "map_config_json";
     // Editor-only sidecar: {region_key: editor_step} for freshly drawn, not-yet-wired regions (E10).
     // Lives outside the entity-replace codec so it survives MapWriter.SaveDocAsync; never part of the
     // PGM map document. Pruned against live regions on read; entries graduate out once a region's
     // derived category is no longer "other".
     public const string RegionDraftsJson = "region_drafts_json";
-    // Declarative authoring intent for NEW maps (docs/contracts/new-map-authoring.md): the source of
+    // Declarative authoring intent for NEW maps (docs/tools/configure.md): the source of
     // truth the generator projects into regions/filters/apply-rules. Like the draft sidecar it lives
     // outside the entity-replace codec, so it survives MapWriter.SaveDocAsync and is never part of the
     // PGM document. Presence of this artifact is what makes a map "intent-authored".
     public const string MapIntentJson = "map_intent_json";
-    // Sketch tool authoring source (docs/contracts/sketch-authoring.md): the drawn layout (setup +
+    // Sketch tool authoring source (docs/tools/sketch.md): the drawn layout (setup +
     // shapes + island metadata, the browser's JS-origin blob) for a draft map. Like the intent/draft
     // sidecars it lives outside the entity-replace codec. A draft map with this artifact but no
     // layer_parquet is a sketch-in-progress; "finish" rasterizes it into the geometry artifacts (S2e).
     public const string SketchLayoutJson = "sketch_layout_json";
-    // Plan tool authoring source (docs/contracts/plan-as-map.md): the plan blob (cell-grid layout +
+    // Plan tool authoring source (docs/tools/plan.md): the plan blob (cell-grid layout +
     // globals) for a map at stage=plan. Like the sketch layout it lives outside the entity-replace codec.
     // An authored plan is a map row with this artifact; the map's plan_source_id links back to the
     // generator `plan` candidate it was authored from.

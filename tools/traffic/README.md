@@ -1,6 +1,6 @@
 # Recovered footprints + traffic ground truth (G33)
 
-**Formats + derivation contract: `docs/contracts/traffic-ground-truth.md`** — the log parquet
+**Formats + derivation contract: `docs/tools/generate-measurement.md`** — the log parquet
 schema, event codes, the `traffic_graph.json` schema, and the validated logs-only pipeline.
 Input per map is one zip of raw pgmlogger parquet files; nothing else is needed.
 

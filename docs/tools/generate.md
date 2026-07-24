@@ -5,17 +5,18 @@ the pipeline and its order, and how every part fits the next. Every word defined
 one meaning**; where a term appears elsewhere it carries this meaning. When another doc and this one
 disagree, this one governs.
 
+Roadmap and open design ideas: see `docs/tools/generate-ideas.md`.
+
 **What this document owns:** the glossary, the pipeline, the box model, the shape model (bodies,
 designations, and the approach families), the two derivers, the evaluator model, and the budget/width
 model. **What it defers:**
 
 | Companion | Owns |
 |---|---|
-| `layout-rules.md` | The frozen rule law and every number (widths, depths, hop counts, heights, the CT / SP / WL / LN / HB / FR / MD / BZ / EL ids). |
-| `seed-stats.md` | The measured envelopes the soft evaluator terms score against. |
-| `plan-editor.md` | The field-level `*.plan.json` schema and the editor UI. |
-| `layout-evaluator.md` | The detailed deriver-measurables and evaluator-metric catalogue. |
-| `map-generation-vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. §1 defines the terms, §12 is the code map, this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
+| `docs/tools/generate-rules.md` | The frozen rule law and every number (widths, depths, hop counts, heights, the CT / SP / WL / LN / HB / FR / MD / BZ / EL ids). |
+| `docs/tools/plan.md` | The field-level `*.plan.json` schema and the editor UI. |
+| `docs/tools/generate-measurement.md` | The measured envelopes the soft evaluator terms score against, plus the detailed deriver-measurable and evaluator-metric catalogue. |
+| `docs/tools/generate-vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. §1 defines the terms, §12 is the code map, this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
 
 ---
 
@@ -256,7 +257,7 @@ is **legal** (gate over demand / offer / veto), how a legal join **varies** (kno
 | **target** | a **per-request, prescriptive** constraint a compose holds and verifies | `ComposeTargets` (G98) |
 | **band** | a **descriptive** envelope measured off the seeds — advisory, scores distance | `SoftTerm` + the seed envelopes |
 | **hard term** | a well-formedness symptom on the derived board — flat penalty | `WoolRingedHole`, `GapHopBand` |
-| **law** | the id-bearing author rule the mechanisms implement — a **living** set, amended by protocol | `layout-rules.md` FR6, CT9, BZ8 |
+| **law** | the id-bearing author rule the mechanisms implement — a **living** set, amended by protocol | `docs/tools/generate-rules.md` FR6, CT9, BZ8 |
 | **doctrine** | a meta-rule about where rules may live | "labels drive, the mirror verifies" |
 
 Two distinctions carry the weight. **demand vs offer** is the direction of the arrow: an approach
@@ -341,7 +342,7 @@ spawn across `land` + `gap` interfaces; no wool path through a `spawn` piece; �
 inter-team path; interface widths ≥ the corridor minimum; spawn depth ≥ some distance from the
 nearest frontline interface.
 
-The field-level schema and the editor are in `plan-editor.md`.
+The field-level schema and the editor are in `docs/tools/plan.md`.
 
 ---
 
@@ -585,11 +586,14 @@ they are the mechanism that makes every later pipeline move rule-governed:
 they agree is the **correctness test**. **The mirror's scope is the generator's own artifacts** —
 emissions, synthetic fixtures, and composed pre-fragment units, where the wool box bounds what is
 read. Classifying **finished maps** (traced corpus maps, hand-authored plans) is **out of scope by
-decision**: fragmentation moves family identity onto the play surface (terrain + build links), a
-finished map's base plan is not recoverable, and full-map decoding is a trap — the human oracle
-hypothesizes the fragmentation/mutation moves instead
-(`docs/wool-approach-read-investigation.md`). Harnesses (`tools/deriver/`, run with
-`dotnet run tools/deriver/<file>.cs`):
+decision, permanently**: fragmentation moves family identity onto the play surface (terrain + build
+links, confirmed empirically — promoting even one slot piece of an emitted family to a build zone
+flips the terrain-only family read every time, while re-reading terrain ∪ the promoted cells recovers
+the original family every time), a finished map's base plan is not recoverable, and full-map decoding
+is a trap — the human oracle hypothesizes the fragmentation/mutation moves instead. Slot templates and
+the classifier exist **for generated maps only**, as the generator's own mirror (without it we would
+not know what we generated) — never a reverse-engineering tool for finished maps. Harnesses
+(`tools/deriver/`, run with `dotnet run tools/deriver/<file>.cs`):
 
 - `shapes-gen.cs` — builds the §5.1 catalog fixtures and classifies each against its family.
 - `emit-verify.cs` — the mirror loop: emit every family × size × width, derive back, assert equal + no
@@ -669,7 +673,7 @@ renders `BoardStructure` to `out/derive-gallery.html`. Its outputs:
 - **the CT mid-form** — falls straight out of the build-zone kinds (§9).
 
 The detailed measurables catalogue — every derived quantity, its exact definition, and its
-validation against the seed corpus — is in `layout-evaluator.md §5`.
+validation against the seed corpus — is in `docs/tools/generate-measurement.md`.
 
 ---
 
@@ -695,16 +699,16 @@ score = Σ hard-penalty(violated well-formedness) + Σ w · envelope-distance(me
 ```
 
 Hard rules are large penalties (a valid layout has none); "feel" is each metric's distance outside
-the authored envelope (`seed-stats.md`). The evaluator returns the score **and the list of violated
-terms** (each citing a `layout-rules.md` id) so a failure is legible and actionable. It is
-**additive and never has to be complete** — new terms are added as failures are found, and a new term
-never tanks an acceptance rate.
+the authored envelope (`docs/tools/generate-measurement.md`). The evaluator returns the score **and
+the list of violated terms** (each citing a `docs/tools/generate-rules.md` id) so a failure is legible
+and actionable. It is **additive and never has to be complete** — new terms are added as failures are
+found, and a new term never tanks an acceptance rate.
 
 **The evaluation set is the real deliverable.** The evaluator is correct when it ranks a labeled set
 the way the author does: **positives** (authored good layouts, auto-labeled by the deriver),
 **negatives** (flagged bad layouts — the most valuable are **minimal pairs** differing in exactly one
 property), and **coverage** (examples per sub-problem × per symmetry mode). The property-term
-catalogue and the labeled set live in `layout-evaluator.md §6–§7`.
+catalogue and the labeled set live in `docs/tools/generate-measurement.md`.
 
 **The seeds sit at final-pipeline fidelity.** The authored seeds are what the *whole* pipeline
 should output — never what an early stage can produce on its own. A stage is therefore judged only
@@ -801,7 +805,7 @@ at the plan level, refining one piece into two joined by a `land` interface with
 The role/interface rules: a **raised spawn** (overview); a **stepped approach** climbing toward a wool
 room (a harder push); a **low frontline** (bridges launch low, defenders hold the high ground); a
 **`cliff` interface** where one-way flow is wanted. Constraint: walkable steps along any `land` path
-unless the plan says `cliff`. The exact height numbers are the `EL` rules in `layout-rules.md`.
+unless the plan says `cliff`. The exact height numbers are the `EL` rules in `docs/tools/generate-rules.md`.
 
 ---
 
@@ -857,11 +861,57 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
 ---
 
-## 13. Boundaries
+## 13. History — why the architecture looks like this
+
+A 2026-07 architecture review found this document's pipeline model well ahead of the shipped code at
+the time: the box model (§4) and the family emitter/classifier (§5) existed and were sound, but the
+production composer was a different, older architecture — `TeamUnitGrower` — that never called them.
+The grower grew each wool's lane inline through its own 1–3-segment I/L/Z grammar, a fourth hand-rolled
+copy of the shape vocabulary alongside the emitter's families, the classifier's families, and a
+stringly-typed `WoolLaneShape`, bridged only by `ToString()` comparison; it also took the frontline's
+position as a sampled *input* rather than the join-driven *output* §4 describes here. The board
+deriver's most valuable half — islands, hole classes, build-zone kinds, the mid form — lived only
+inside a hand-run gallery script, unreachable from the evaluator or from the composer's own acceptance
+check, which grew its own independent hole-detection implementation (`ClosureAnalysis`) rather than
+calling it. None of this was fatal, but it meant the pipeline
+(`budget → boxes → emit → compose → embed → evaluate → fragment → realize`) described a target the
+code had not yet reached.
+
+The review proposed replacing the grower organ by organ rather than in one cutover: first unify the
+shape vocabulary onto one family enum over a shared cell-geometry substrate (`Geom/Cells.cs` —
+flood-fill, components, enclosed voids, reflex corners, in one place instead of five); then extract the
+board deriver's raster layer out of the gallery script into a real library type (`BoardDeriver` →
+`BoardStructure`, with the rect layer renamed from `PlanDerived` to `ContactGraph`) so the evaluator and
+the composer's gate could call it instead of re-implementing it; then build the evaluator itself
+(`LayoutEvaluator` over `BoardStructure`, replacing the inline mini-evaluator) as its own scored,
+term-based engine; then invert the composer's own strategy from *grow-then-derive* to
+*allocate-then-fill* — partition the budget into a typed `BoxPartition` first, then fill it hub-first
+through `WoolBoxEmitter`/`BoxFiller` — and only once that path matched the grower's behaviour, delete
+the grower outright. The review also named a real gap the naive box model could not express — a spawn
+seated inside a U-shaped hub's bay — and resolved it by letting boxes overlap and letting fills publish
+their leftover space (bays, notches, holes) as claimable *vacancies* rather than requiring a disjoint
+rectangle partition (§4.4's vacancy mechanism, in the spine above, is that resolution).
+
+That migration has since landed. `TeamUnitAllocator` (the partition-first allocator) and
+`TeamUnitFiller` (the hub-first fill over the allocated partition) are the composer's actual pipeline
+today, and the cutover deleted `TeamUnitGrower`, the grower-era `BoxPartitioner` round-trip seam,
+`SpawnWoolRooms`, and `MidCarver`'s ad hoc sampled-crossing vocabulary outright — the box/shape/
+evaluator model this document describes is no longer a target architecture, it is the shipped one. The
+review's naming critique landed with it: `PlanDerived` is `ContactGraph`, `WoolApproachShape` dissolved
+into `ShapeClassifier`, and the `ApproachFamily`/`ApproachShape` split collapsed toward one family enum.
+Its evaluator type sketch (`ILayoutTerm`, `EvalContext`, `EvaluationProfile`, the `Evidence` drawing
+primitives) shipped substantially as proposed, under `Pgm/Evaluate/`. What the review no longer
+describes accurately is its own detailed M0–M4 task sequencing and its per-file "target layout" tree —
+those were a plan, not a record of the present; treat any description elsewhere of `TeamUnitGrower` or
+a pre-partition composer as superseded history, not current fact.
+
+---
+
+## 14. Boundaries
 
 This document does not restate the rules or the numbers. The **frozen rule law** — every CT / SP /
 WL / LN / HB / FR / MD / BZ / EL id, with its exact widths, depths, hop counts, and heights — is
-`layout-rules.md`, and it grows only through its correction protocol. The **measured envelopes** the
-soft evaluator terms score against are `seed-stats.md`. The **plan schema and editor** are
-`plan-editor.md`. The **detailed deriver-measurable and evaluator-metric catalogue** is
-`layout-evaluator.md`.
+`docs/tools/generate-rules.md`, and it grows only through its correction protocol. The **measured
+envelopes** the soft evaluator terms score against, and the **detailed deriver-measurable and
+evaluator-metric catalogue**, are `docs/tools/generate-measurement.md`. The **plan schema and editor**
+are `docs/tools/plan.md`.

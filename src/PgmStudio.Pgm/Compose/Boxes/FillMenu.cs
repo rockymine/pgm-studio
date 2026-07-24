@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>One row of the width→fill production rule: what an interface of this width reads as, and which
-/// fills it makes legal (docs/contracts/map-generation.md §4). Widths are not strictly quantized — a touch
+/// fills it makes legal (docs/tools/generate.md §4). Widths are not strictly quantized — a touch
 /// tapers to the nearest rung.</summary>
 public sealed record FillMenuRow(int WidthCells, string Reads, IReadOnlyList<ShapeFamily> Families, string Note);
 
@@ -27,7 +27,7 @@ public static class FillMenu
     /// wool is clamped inside as a cut cell, so it docks through a single mouth like the U — admitted.)
     /// The <b>scythe</b> carries a bay whose mouth is its own docking edge, so a flush dock seals the bay
     /// against the host into an enclosed void walled by the wool room — exactly WL8's forbidden motif.
-    /// Its legal connections are shape-relative (the G80 docking modes, map-generation.md §4): a host on
+    /// Its legal connections are shape-relative (the G80 docking modes, generate.md §4): a host on
     /// the entry's unoccupied edge parallel to the entry↔entry-run seam, or across the combined colinear
     /// head edges of entry + entry-run — both survive the entry shift, which carries the dock with it. A
     /// host touching the wool room is a hard violation (reject); the declared-bay alternative is deferred

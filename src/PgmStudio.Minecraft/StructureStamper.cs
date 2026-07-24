@@ -1,7 +1,7 @@
 namespace PgmStudio.Minecraft;
 
 /// <summary>
-/// Stamps the plan-derived layout structures onto a synthesised world (docs/contracts/layout-rules.md
+/// Stamps the plan-derived layout structures onto a synthesised world (docs/tools/generate-rules.md
 /// ST1–ST4): a wool-room bedrock floor column, a wool-room entrance redstone line with end torches, a
 /// 4×4×4 iron cube resting on the surface, and a pre-built bedrock approach wall. Every method takes the
 /// per-column surface top (the first air Y above the solid terrain, where structures rest) so the stamps

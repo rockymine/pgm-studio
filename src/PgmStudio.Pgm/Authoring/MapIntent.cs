@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
 /// Declarative authoring intent — the source of truth for a <b>new</b> map
-/// (docs/contracts/new-map-authoring.md). The author states what they want; a generator projects it
+/// (docs/tools/configure.md). The author states what they want; a generator projects it
 /// into the PGM document (teams/kits/regions/filters/apply-rules/spawns). Persisted as a
 /// <c>map_intent_json</c> artifact, outside the entity-replace codec (like the draft sidecar).
 /// <para>Teams slice: teams, per-team spawns + protection, and the observer (<c>&lt;default&gt;</c>)
@@ -24,7 +24,7 @@ public sealed class MapIntent
     /// <summary>The observer / <c>&lt;default&gt;</c> spawn (pre-game + spectators). Every PGM map needs one.</summary>
     public ObserverIntent? Observer { get; init; }
 
-    /// <summary>Buildable space (docs/contracts/new-map-authoring.md §5): the build height cap and the
+    /// <summary>Buildable space (docs/tools/configure.md §5): the build height cap and the
     /// areas/bridges where building is allowed. The generator unions them and wires the void boundary.</summary>
     public BuildIntent? Build { get; init; }
 
@@ -45,7 +45,7 @@ public sealed class MapIntent
     /// and the objective text are auto-derived by the generator, not authored.</summary>
     public MetaIntent? Meta { get; init; }
 
-    /// <summary>The confirmed symmetry of the map (docs/contracts/new-map-authoring.md §4). When set, the
+    /// <summary>The confirmed symmetry of the map (docs/tools/configure.md §4). When set, the
     /// generator <b>orbit-fills by default</b>: the author defines one orbit unit (team 0's spawn, one
     /// wool) and <see cref="SymmetryExpander"/> rotates/reflects it onto the other teams before projection,
     /// mapping orbit positions to <see cref="Teams"/> <i>in list order</i>. Null → no fill (author states
@@ -60,14 +60,14 @@ public sealed class MapIntent
     public Dictionary<string, string> IslandTeams { get; init; } = new();
 
     /// <summary>Block-coordinate structure directives the world-export path stamps into the synthesised world
-    /// (docs/contracts/layout-rules.md ST1–ST4): wool-room floors, entrance redstone lines, iron cubes, and
+    /// (docs/tools/generate-rules.md ST1–ST4): wool-room floors, entrance redstone lines, iron cubes, and
     /// pre-built approach walls. Filled only by the plan compiler (all coordinates already resolved and fanned
     /// across the symmetry orbit); null on hand-authored / imported intents, which behave exactly as before.</summary>
     public StructureIntent? Structures { get; init; }
 }
 
 /// <summary>The plan-compiled layout structures, in absolute world block coordinates already fanned across the
-/// symmetry orbit (docs/contracts/layout-rules.md ST1–ST4). Consumed by the sketch world-export path.</summary>
+/// symmetry orbit (docs/tools/generate-rules.md ST1–ST4). Consumed by the sketch world-export path.</summary>
 public sealed class StructureIntent
 {
     /// <summary>Wool-room footprints stamped as solid bedrock from y=0 to the surface (ST1).</summary>
@@ -129,7 +129,7 @@ public sealed class MetaIntent
 
 /// <summary>Where players may build. <see cref="Areas"/> are the buildable rectangles (the over-void
 /// bridges/platforms — the islands' terrain is auto-buildable via the void filter, so it needs no rect,
-/// see new-map-authoring.md §6); they're unioned and the void boundary is wired automatically.
+/// see configure.md §6); they're unioned and the void boundary is wired automatically.
 /// <see cref="Holes"/> are no-build cutouts subtracted from that union (PGM <c>complement</c>) — genuine
 /// authored intent, unlike incidental union overlaps (which PGM ignores).</summary>
 public sealed class BuildIntent
@@ -185,7 +185,7 @@ public sealed class WoolIntent
     /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
     public string Color { get; init; } = "";
     /// <summary>The wool-room footprint, as a union of rectangles. Empty until the author draws it (partial
-    /// intent is tolerated, new-map-authoring.md §11): a roomless wool still generates its objective +
+    /// intent is tolerated, configure.md §11): a roomless wool still generates its objective +
     /// monuments, just not the room region / spawner / room wiring. A simple room is one rect; a complex
     /// footprint needs several, which the generator unions into the room region. Tolerates a legacy
     /// single-object blob on read (see the converter).</summary>

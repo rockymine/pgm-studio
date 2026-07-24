@@ -20,7 +20,7 @@ public sealed record EvidenceDto(
     double? X = null, double? Z = null,
     string? Label = null);
 
-/// <summary>One fired rule, legible and actionable: the term id, the <c>layout-rules.md</c> id it cites, its
+/// <summary>One fired rule, legible and actionable: the term id, the <c>generate-rules.md</c> id it cites, its
 /// <see cref="Kind"/> (<c>hard</c> well-formedness vs <c>soft</c> feel), the soft distance outside its authored
 /// band (0 for a hard fire), a human message, the piece/zone ids it indicts (click → highlight on canvas, same
 /// subject shape a lint finding carries), and its drawable <see cref="Evidence"/>.</summary>

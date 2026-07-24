@@ -11,7 +11,7 @@ public sealed record EmittedHub(
 
 /// <summary>
 /// The hub binding over <see cref="BodyEmitter"/> — the <b>constraint-source box kind</b>
-/// (docs/contracts/map-generation.md §5.5). Unlike the wool/spawn boxes the hub is <b>terminal-free</b>: it is a
+/// (docs/tools/generate.md §5.5). Unlike the wool/spawn boxes the hub is <b>terminal-free</b>: it is a
 /// <see cref="ShapeBody"/> (a <see cref="Compound"/>) finished by the <b>hub designation</b> — per-edge
 /// <c>interface</c> marks carrying widths, no room. It <b>emits first</b> and its edge widths set the fill menus
 /// of the spawn/wool/frontline neighbours, published here as <see cref="EdgeOffer"/>s (the

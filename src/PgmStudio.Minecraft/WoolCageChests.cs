@@ -4,7 +4,7 @@ namespace PgmStudio.Minecraft;
 
 /// <summary>
 /// Stamps the wool-cage loot: two stacked chests in each of the four interior corners of the cube
-/// (docs/contracts/sketch-world-export.md §2a). The lower chest (A) holds a row of planks ×16, a row of
+/// (docs/tools/sketch.md §2a). The lower chest (A) holds a row of planks ×16, a row of
 /// Speed I (3:00) potions, and a row of golden apples ×16; the upper chest (B) holds a row of diamond
 /// leggings, a row of Power I + Infinity bows, and a row of planks ×16. Anchored on the same
 /// <c>(anchorX, anchorZ)</c> / <c>floorY</c> as <see cref="CubeStamper"/>.

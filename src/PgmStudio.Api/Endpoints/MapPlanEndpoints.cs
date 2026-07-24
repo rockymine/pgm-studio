@@ -10,7 +10,7 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
-/// Plan-as-a-map persistence (docs/contracts/plan-as-map.md): the <c>plan_json</c> artifact backing a
+/// Plan-as-a-map persistence (docs/tools/plan.md): the <c>plan_json</c> artifact backing a
 /// map at <c>stage=plan</c>. Mirrors <see cref="SketchStore"/> — it lives outside the entity-replace codec.
 /// The generator's <c>plan</c> candidate rows are a separate pool; authoring one forks it into a map here.
 /// </summary>

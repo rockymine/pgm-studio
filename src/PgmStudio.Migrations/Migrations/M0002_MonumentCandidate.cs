@@ -3,7 +3,7 @@ using FluentMigrator;
 namespace PgmStudio.Migrations.Migrations;
 
 /// <summary>
-/// The monument-candidate store (task F9, <c>docs/contracts/monument-candidate-store.md</c>): the
+/// The monument-candidate store (task F9, <c>docs/tools/monument-suggestion.md</c>): the
 /// gathered, <em>style-agnostic</em> output of <c>MonumentSuggester.Gather</c>, persisted so the authoring
 /// tier scores monument suggestions as a DB query instead of re-reading the <c>.mca</c> world. One row per
 /// gathered anchor emission (<c>Score</c> does the cell-merge). Mirrors the <c>spawner_block</c> feature

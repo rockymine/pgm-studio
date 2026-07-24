@@ -1,17 +1,21 @@
 # New-map authoring: the declarative intent model
 
+**Configure** is the guided wizard at `/maps/{id}/configure` that builds a **new** map from declarative
+intent — teams, spawns, build space, wools, objectives — instead of hand-editing the region/filter
+graph. It differs from **Edit** (`docs/tools/edit.md`): Edit is the frozen legacy per-map editor for
+editing existing/imported maps directly; Configure is the new-map authoring path. Lifecycle position:
+**Plan → Sketch → Configure → Edit**.
+
 How a **new** map is authored by stating *intent* — teams, spawns, build space, wools — and having
 the system **generate** the regions, filters, and apply-rules, instead of editing the region/filter
 graph by hand. This is the forward direction of the app; everything else (parse → derive category →
 display) is the reverse.
 
-Read alongside:
-- `region-categorization.md` — the **reverse** mapping (structure → meaning). The generator here is
-  its mirror image.
-- `filter-region-wiring.md` — the **wiring templates** the generator emits (build/void, spawn
-  protection, wool-room defense, wool-room build/break).
-- `../region-data-flow.md` — **persistence + entity-replace + the `map_artifact` sidecar**. The
-  intent model lives where the draft bucket lives, and for the same reasons.
+Read alongside `../contracts/regions-and-filters.md`: the **reverse** mapping (structure → meaning,
+`RegionCategorizer`) the generator here mirrors; the **wiring templates** it emits (build/void, spawn
+protection, wool-room defense, wool-room build/break); and the **persistence** model (entity-replace +
+the `map_artifact` sidecar) — the intent model lives where the draft bucket lives, and for the same
+reasons.
 
 > **Status:** backend landed (generator + persistence + orbit-fill + export gate, all unit-tested);
 > frontend authoring UI not yet built. New maps only — e.g. `thunder_blank` (a no-xml copy of thunder).
@@ -81,7 +85,7 @@ Notes that fall out of the model:
 
 ## 3. Where intent lives — and why regeneration is free
 
-`region-data-flow.md` §2 establishes the load-bearing constraint: **every save drops and recreates
+`../contracts/regions-and-filters.md` §2 establishes the load-bearing constraint: **every save drops and recreates
 all region/filter/apply-rule rows** (`MapWriter.SaveDocAsync` = `DeleteEntities` → `FromDict` →
 `WriteEntities`), and **editor-only state must live outside the codec** or the next save wipes it.
 
@@ -119,7 +123,7 @@ filter CRUD, apply-rules, spawns, wools, monuments, kits) using two engines that
 - **Symmetry-fill (orbit).** The confirmed symmetry (`GET /symmetry`, `POST /regions/{id}/orbit`)
   rotates/mirrors the authored unit into every orbit position. Already used for single drawn regions
   (F3); here it's applied to whole authored units.
-- **Wiring templates (F1, `filter-region-wiring.md`).** The four catalog templates are the generator's
+- **Wiring templates (F1, `../contracts/regions-and-filters.md`).** The four catalog templates are the generator's
   building blocks:
   1. **Build/void** — union the positive build areas, apply `block_place=deny(void)` to the complement.
   2. **Spawn protection** — `enter=only-<team>` on the protection zone.
@@ -471,7 +475,7 @@ Three checks, all reusing what exists:
 ## 12. The authoring wizard shell — navigation & gating (settles ND1)
 
 The Configure wizard (route `/maps/{id}/configure`, UI label **Configure**;
-see `routing-and-ia.md`) is a **guided wizard**, not the free-form region editor. Its chrome is three
+see `../architecture/routing.md` for the current route table) is a **guided wizard**, not the free-form region editor. Its chrome is three
 levels (the concept page's `NavModelSection`), and this section pins where the flow overview, the
 pre-flight checks, and phase locking actually live.
 

@@ -32,7 +32,7 @@ const NGON_R = 1.6;          // cells — keeps n-gons comparable in size to the
 const DEFAULT_CELL = 12;     // blocks per cell at drop ≈ a lane width
 
 // The catalog. `unit` shapes are in cell units (x→right, z→down). Polyomino rings are the locked
-// templates (scythe/branch verified by boundary trace; see docs/contracts/sketch-tool-improvements.md §8).
+// templates (scythe/branch verified by boundary trace; see docs/tools/sketch.md §8).
 export const LIBRARY = [
   // ── Regular ──────────────────────────────────────────────────────────────────
   { id: "tri",  name: "Triangle", category: "Regular", unit: [poly(ngon(3, NGON_R))] },

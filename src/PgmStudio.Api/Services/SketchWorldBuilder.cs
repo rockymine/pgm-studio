@@ -12,7 +12,7 @@ public sealed record SketchWorld(VoxelWorld World, int SpawnX, int SpawnY, int S
 
 /// <summary>
 /// Assembles a playable Anvil world for a sketch-originated map from its sketch layout + authoring intent
-/// (docs/contracts/sketch-world-export.md): terrain from the rasterised columns, a wool cage at each wool,
+/// (docs/tools/sketch.md): terrain from the rasterised columns, a wool cage at each wool,
 /// a spawn cube + auto-wired monuments at each team spawn, and the observer platform. Pure — no DB, no IO —
 /// so it unit-tests directly.
 /// </summary>

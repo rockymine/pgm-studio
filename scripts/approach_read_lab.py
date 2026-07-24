@@ -16,7 +16,7 @@ Experiments:
   E4  emitter-variant grids (entry shift / wool shift / side-dock) read standalone
       vs with hub terrain attached — the scope dependence of the family read
 
-Findings + interpretation: docs/wool-approach-read-investigation.md.
+Findings + interpretation: docs/tools/generate.md.
 """
 import json, glob, os
 from collections import Counter

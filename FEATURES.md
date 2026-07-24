@@ -23,7 +23,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   dashboard `/maps`, **Edit** `/maps/{id}/edit`, **Configure** `/maps/{id}/configure`, **Sketch**
   `/maps/{id}/sketch`, origination `/maps/new`, concept showcase `/concepts`, design system `/design`.
   Slugs are the on-disk map dir; query params hold view state only. Contract:
-  `docs/contracts/routing-and-ia.md`.
+  `docs/architecture/routing.md`.
 - **Landing + staged dashboard** — `/` is a landing of three lifecycle cards (Sketch · Configure ·
   Edit) with live `stage-counts`; `/maps?stage=sketch|configure|edit` (default edit) is one staged
   overview (`Home.razor`) whose activity rail switches stage and whose primary action + resume target
@@ -41,7 +41,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   doctrine); the bare `/plan-editor` keeps the generator-candidate pool (`/api/plans`, `?plan=<id>`). The
   dashboard has a **Plans** stage (`/maps?stage=plan`, *New plan* action); the generator's card action is
   **Author this plan** → begins the lifecycle. The generator's many candidates stay `plan` rows (a
-  separate pool). Contract: `docs/contracts/plan-as-map.md`. (C27)
+  separate pool). Contract: `docs/tools/plan.md`. (C27)
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the
@@ -74,7 +74,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **Overview activity** — static pixel surface render + symmetry axis/centre overlay. (E7)
 - **Draft bucket** — a freshly drawn region shows in the activity step that drew it, via an editor-only
   `region_drafts_json` sidecar kept **outside** the codec; it graduates out the moment wiring derives its
-  real category. See `docs/region-data-flow.md`. (E10)
+  real category. See `docs/contracts/regions-and-filters.md`. (E10)
 
 ## Canvas & shared UI (C)
 - **Hybrid canvas** — the reference `EditorCanvas` JS reused via interop (`studio-canvas.js`). (C1)
@@ -117,7 +117,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `SectionHeader`/`ListRow` under `Components/{Primitives,Forms,Data}/`, param-first with slot
   overrides, emitting the canonical CSS classes (zero visual diff vs `/design`). Adopted in the
   `/generator` filter rail (retiring the `gen-*` sidebar drift) and the `/maps` list. Contract:
-  `docs/contracts/ui-conventions.md`. (C12 phase A)
+  `docs/architecture/ui-conventions.md`. (C12 phase A)
 - **App-shell components** — `StudioShell` (`editor-page` + optional rail/viewport/footer, with a
   `Bare` mode for custom bodies) + `Topbar`/`Crumb`/`ActivityRail`/`ActivityButton`/`AppFooter`/
   `AppFooterLink` under `Components/Layout/`. Adopted across all 11 `editor-page` sites, retiring the
@@ -260,7 +260,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **Region geometry editing** — drag the 8 resize handles (rectangle/cuboid) on the canvas *and* type
   exact coords in the inspector; both persist (`PATCH /regions/{id}` bounds/coords) and stay in sync via
   the shared `Models/RegionEdits` (`EditorCanvas` raises `OnGeometrySaved`; the host persists). Wired in
-  all four Edit activities. `docs/contracts/canvas-interaction.md` §3. (CV1)
+  all four Edit activities. `docs/architecture/canvas-interaction.md` §3. (CV1)
 - **Arrow-key region nudge** — the selected rectangle/cuboid moves 1 block (Shift = 16) with the arrow
   keys; a single `document` keydown handler on the shared `EditorCanvas` (guards: canvas not visible,
   focus in a field, nothing selected) translates it live and persists through the same
@@ -308,7 +308,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   duplicated add/sub colour constants collapse to one `OP_COLORS`/`opColors` source (sketch render + draw
   controller). Icons route through `RegionNode.Icon` — `SpawnStep`'s hardcoded `cylinder` and
   `WoolMonuments`' `square` become the canonical `point → dot`. Plan's surface-tint + hatch stay
-  Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
+  Plan-specific. Audit + design: `docs/architecture/canvas-interaction.md` §10. (CV9)
 
 ## Backend / API (B)
 - **`--parity` retired — PGM is the reference for the `map.xml` contract, not the Python oracle.** The
@@ -335,7 +335,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   hybrid shape (scalar `status`/centre/chosen-mode columns + `modes_json`; `center_cell`/`primary` derived
   on read via `SymmetryStore`). GET/PATCH + the orbit/counterpart/Configure consumers read columns, not a
   blob. Has the authoring World-step inputs (`excluded_islands_json`, `detection_layer`) ready for `N01`.
-  Settles `D3` (new-map-authoring.md §6b). (NS)
+  Settles `D3` (configure.md §6b). (NS)
 
 - **Schema-drift guards** — the API asserts the FluentMigrator `VersionInfo` is at the newest known
   migration at startup and fails fast naming the pending versions + the exact fix command (never
@@ -563,7 +563,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 ## New-map authoring — intent model (backend) ★ headline direction
 The forward path (**meaning → structure**): the author states intent and the generator emits the
 region/filter/apply-rule graph. Backend landed + unit-tested; the **wizard shell UI + intent wiring are
-landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: `docs/contracts/new-map-authoring.md`.
+landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: `docs/tools/configure.md`.
 - **Configure wizard shell (UI)** — `/maps/{id}/configure`: activity rail (six phases) + flow bar (phase
   identity · sub-steps · Back/Next) + three-panel workspace, driven by a phase/sub-step state machine. On
   entry it loads the stored intent (`GET /map/{slug}/intent`) and derives the **rail gating from its slices**
@@ -718,14 +718,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the playability picture in one image, no live canvas. A failed traversability/buildability/round-trip links the author back
   to **Build**, and a
   **Re-run checks** button (+ re-run on re-entry) closes the Build⇄Traversability loop.
-  (`PreflightEndpoint`, `PreflightDto`, `Preflight`, `ReviewPreflightStep`; new-map-authoring.md §9/§12)
+  (`PreflightEndpoint`, `PreflightDto`, `Preflight`, `ReviewPreflightStep`; configure.md §9/§12)
 - **Review & Export · Region tree sub-step (N07)** — the read-only inspect/debug view of the full generated
   region tree (between Pre-flight and XML). Intent maps drop the tree from the shaping steps (structure is a
   generated artifact), so it surfaces here: fetches `GET /map/{slug}/regions/tree` and renders it through the
   **reused editor `RegionTree` component** (category groups · collapse · type icons · synthetic-`__anon_N`
   styling · first-event tags), in the same single-column overview as Pre-flight, with a `read-only · N regions`
   badge and a note that the tree regenerates from the shaping steps. Writes nothing. (`ReviewTreeStep`;
-  new-map-authoring.md §7/§12)
+  configure.md §7/§12)
 - **Review & Export · XML sub-step + gated Export (N06)** — the final sub-step: the generated PGM
   `map.xml`, segmented into containers picked on the left (**Full document** + Teams · Spawns · Wools ·
   Filters · Regions · Apply rules — the latter pulled from inside `<regions>`), each with a count, the
@@ -735,7 +735,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   downloads exactly the previewed bytes through a new `studio.downloadText` Blob helper — `NextEnabled` at
   the final sub-step is the export gate, `Next()` runs the download. **This completes the Configure wizard
   spine** — a new map now flows intent → Map Info → World → Teams → Build → Wools → Review & Export → a
-  validated, downloaded `map.xml`. (`ReviewXmlStep`, `ConfigureWizard` export wiring; new-map-authoring.md §9/§12)
+  validated, downloaded `map.xml`. (`ReviewXmlStep`, `ConfigureWizard` export wiring; configure.md §9/§12)
 - **CTW standards in generated exports + PGM-faithful formatting** — generated (intent) maps now export the
   standard CTW boilerplate ~every corpus map carries: `<itemkeep>` (the non-armor, **non-block** kit items —
   tools/weapons/consumables), `<toolrepair>` (the kit's tools/weapons), `<itemremove>` (the kit's
@@ -821,7 +821,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Playability export gate** — `GET /map/{slug}/xml` returns **409** for an intent map whose
   spawn↔wool chain isn't traversable-connected. (`0ac03ae`, `MapXmlEndpoint`)
 - **Monument suggester + slice extractor** — smart-detect for the Monuments step (corpus-learned
-  sign-facing → monument geometry). See `docs/contracts/monument-suggestion.md`. (`5235107`, `45209a1`)
+  sign-facing → monument geometry). See `docs/tools/monument-suggestion.md`. (`5235107`, `45209a1`)
 - **Monument candidate store** — `MonumentSuggester` split into ingest-time `Gather` (world →
   candidates) + pure `Score` (`Suggest == Score(Gather)`); `monument_candidate` table (M0002) gathered in
   `scan-world`; served by `GET /map/{slug}/monument-suggestions` (box, no world access) +
@@ -835,14 +835,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **96.7% / 58.7% / 35 FP**; label-free (`--label None`) **97.4% / 191 TP / 5 FP / 93.7% colour**. The
   single-signal + terrain-ambiguous geometry spray (~97% of the old store) is **not persisted** — flood
   maps collapse (dreamland 5859→311, fall_of_babylon 5035→40, lupain 52→2).
-  `docs/contracts/monument-candidate-store.md`. (F9)
+  `docs/tools/monument-suggestion.md`. (F9)
 - **`--migrate-only`** — `PgmStudio.Import` applies pending migrations to a live DB without importing. (F9)
 - **`/authoring` concept page** — UI mock (no backend calls), the design reference for the real
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
 - **Lane sketch generators + Organic-generation demo — RETIRED** in favour of the plan-then-realize
-  direction (`docs/contracts/map-generation.md`): the archetype starter generators (`LaneSketchGenerator`
+  direction (`docs/tools/generate.md`): the archetype starter generators (`LaneSketchGenerator`
   for H · Pinwheel · Trident · Organic, `OrganicLane`, `LaneMapGenerator`, `SketchLayoutPrep`, `AutoBridge`)
   and their surfaces are removed — the `POST /api/sketch/generate` + `/api/sketch/generate/stages` endpoints,
   the new-sketch "Generated layout" tab, and the `/concepts/organic` demo page (`render/gen-stages.js`,
@@ -858,7 +858,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   map nor clobbers a draft). Simplification only — the faithful outline; cutting it into lanes is `G6`.
   `scripts/island_shapes.py` is the shape-feature analyzer behind it. (G6 base)
 - **Lane-decomposition surface (manual cut tool) — RETIRED** with the corpus-mining flywheel (the
-  plan-then-realize direction, `docs/contracts/map-generation.md`): the page, its canvas bridge and
+  plan-then-realize direction, `docs/tools/generate.md`): the page, its canvas bridge and
   the queue/load/save endpoints are removed; the pure seam-split geometry (`geometry/decompose-cut.js`)
   lives on under the sketch tool's split feature, and saved `lane_decomposition_json` artifacts remain as
   data. As shipped: `/maps/{slug}/decompose` (dashboard footer →
@@ -887,11 +887,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     stepping-stone, decorative → decorative; team/objective left to cut), so the human confirms the auto-tags and
     cuts only the team islands. Persists per shape in `lane_decomposition_json`. (G7)
 - **Layout-generation design (plan-then-realize) + expert rule capture** — the direction docs for full map
-  generation: `docs/contracts/map-generation.md` (the **piece/interface plan model** — areal pieces +
+  generation: `docs/tools/generate.md` (the **piece/interface plan model** — areal pieces +
   edge-interval interfaces, no skeletons; proxy-cell mini-layout semantics; one-way compile into sketch +
   intent with a detach point; rule-based composition, fragmentation moves, roughen + elevation passes; scope
-  tiers), `docs/contracts/layout-rules.md` (the author-corrected per-role rule checklist + the seed shopping
-  list), and `docs/contracts/plan-editor.md` (plan schema · compiler · seed-studio editor — built as
+  tiers), `docs/tools/generate-rules.md` (the author-corrected per-role rule checklist + the seed shopping
+  list), and `docs/tools/plan.md` (plan schema · compiler · seed-studio editor — built as
   `G16`–`G21`). Resolves the `G15` exploration: **WFC evaluated and rejected** for the layout skeleton (CTW
   quality is global/relational — symmetry, spawn/wool separation, typed gaps — not local-adjacency texture);
   the polyomino vocabulary survives as the plan's proxy-cell grid. (G15)
@@ -900,7 +900,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   from rect abutment, gap links through zones, islands, frontline, orbit fanning via `Geom.Symmetry`), and
   `PlanValidator` — structural errors (sliver/corner contacts, different-surface overlaps, unreachable wool
   over the fanned land+gap graph, wool path through a spawn piece) plus a non-blocking extensible **rule-lint
-  table** citing `docs/contracts/layout-rules.md` ids (G2/G5/SP2/WL2/BZ5/EL1/EL3). 43 TUnit tests. (G16)
+  table** citing `docs/tools/generate-rules.md` ids (G2/G5/SP2/WL2/BZ5/EL1/EL3). 43 TUnit tests. (G16)
 - **Plan compiler + seed plans (golden regression)** — `PlanCompiler.Compile(plan) → (SketchLayout,
   MapIntent)`, pure/deterministic: cells→blocks, land-connected pieces united into one polygon per component
   (`Geom.RectilinearUnion` — exact integer rect union reproducing the seeds' 12-vertex H / 6-vertex L),
@@ -1010,7 +1010,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `reference` block** in the plan wire model — round-trips in the `*.plan.json` file as provenance, restores +
   repaints on reload, and is **ignored by the compiler** (verified: a seed compiles byte-identically with and
   without it). Builds the corpus that informs the box-based / wool-approach vocabulary in
-  `docs/contracts/map-generation.md`. (G55)
+  `docs/tools/generate.md`. (G55)
 - **Configurable surface step** — the piece surface stepper's ± increment (formerly hardcoded ±2 per EL1) is
   now an editor preference: a **Surface step (y)** field in the globals panel sets any whole value ≥ 1, and
   **1 / 2 / 3 quick-preset chips** under the inspector's surface stepper switch the common ones in-context,
@@ -1058,7 +1058,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `mirror-tiny-map-cliff` (5/team, `mirror_z`, sub-base palette 3–7, the axis-spanning Δ6 mid
   cliff). Every seed stores the author's per-team count (comfortable cap); the G8 land-per-player
   coupling is derived (65 → 184 b/p rising with per-team land); all mid forms author-labeled
-  (clean 8 · hash 3 · parallel 1); `docs/contracts/layout-rules.md` **froze 2026-07-04 as the
+  (clean 8 · hash 3 · parallel 1); `docs/tools/generate-rules.md` **froze 2026-07-04 as the
   composer's v1 rule set**. (G21)
 
 - **Composer — envelope + team-unit grower (first slice)** — `PgmStudio.Pgm/Compose/`: a
@@ -1085,7 +1085,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   order (envelope → crossing → grow → carve → cut → assemble) behind an acceptance gate (`PlanValidator`
   zero-errors, every gap hop in 10..20, BZ6 clearance re-checked post-cut, no wool-ringed hole) with a
   hole-hunt on both branches (holed by default, holeless the sampled exception). Rules amended: BZ6–BZ9
-  build-zone interface discipline + the CT8 hole-ring split (`layout-rules.md`). 314 Pgm tests green.
+  build-zone interface discipline + the CT8 hole-ring split (`generate-rules.md`). 314 Pgm tests green.
   **Known limitation:** p5 (t2 and t4/rot_90) is structurally infeasible under BZ6 + spawn ≥2×2 within the
   fixed budget — deferred to the buffer-tile fix (G35). (G32 — B track)
 
@@ -1115,7 +1115,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   is a wide/solid **I**; the room-only dock is an interface concern, replaceable by a short-entry **I**). Fixes
   the wide-H→Scythe/Plug, wide-Z→Plug, and wide-bay→Z misreads. Verified by the mirror/catalog/stress suite
   (`shapes-gen`/`emit-verify`/`stress-shapes`, now the TUnit `Shapes/` tests — G58). Contract:
-  `docs/contracts/map-generation.md` §5. (G53)
+  `docs/tools/generate.md` §5. (G53)
 
 - **Emitter placement knobs — endpoint shift, attachment width, side-dock** — `Pgm/Shapes/ShapeEmitter.cs`:
   the placement grammar the slot vocabulary was built for. **Shift** (the scythe's two independently-
@@ -1158,7 +1158,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   two legs on one mouth — centered `I+I` / corner `L+I` via `woolAtEnd`, retiring the dual-host `FamilyDock`).
   `unit-gallery.cs` renders the layouts (Ring/rectangle/`L` hubs, staple + strand frontlines, inline + side-tuck +
   overhang wools). `TeamUnitAllocatorTests` + `TeamUnitFillerTests`; Pgm suite 687/687. Contract:
-  `map-generation.md` §1.13/§1.14/§5.5. (G63-C.1, G63-C.2 core)
+  `generate.md` §1.13/§1.14/§5.5. (G63-C.1, G63-C.2 core)
 
 - **The seat-step neighbour separation gap (F1 / WL2 by construction)** — `Compose/TeamUnitAllocator.cs`: no two
   spawn/wool neighbour bodies may seat within the **map lane width** of each other (2 cells = 10 blocks; 3 = 15 on
@@ -1201,7 +1201,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   picks {P, Double-hole, G, Ring} for wide boxes (≥ 9), the compact solid/branch menu below; a wide form too small
   directed-nulls and falls back to the rectangle. TwoUOnI stays off the hub menu. Huge hubs average ~8w × 5.5h;
   wide-form mix (huge/200): Ring 115 · G 26 · Double-hole 23; no-alloc/no-fill/pinch 0. Pgm suite 692/692. (G105
-  partial · `map-generation.md` §5.5)
+  partial · `generate.md` §5.5)
 
 - **Map completion v0 — the box-model path closes the loop with a band-only mid** —
   `Composer.ComposeBoxStages` + `MidCarver.BandOnly` + `tools/compose/board-gallery.cs`: the first full board off
@@ -1226,7 +1226,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   frontline distance), scored on the deficits' spread; the banned failure is a front-near wool with a far spawn
   (free to capture) beside a back wool with the spawn adjacent. All by the same rectilinear surface traversal as
   WL2/WL7. Bands learned from the 23 teaching maps (`envelope-stats`): spread [0,85] · front distance [24,165] ·
-  balance [0,140] blocks. WL9/WL10 authored into `layout-rules.md`. Pgm suite 700/700. (G115)
+  balance [0,140] blocks. WL9/WL10 authored into `generate-rules.md`. Pgm suite 700/700. (G115)
 
 - **The box pipeline is THE composer — the old grower path retired (G63-C.3/C.4)** — `Compose/`:
   `Composer.Compose`/`ComposeStages` now run the partition-first pipeline (envelope → `MidCarver.BandOnly`
@@ -1242,7 +1242,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `ComposerTests` re-based to the box sweep (determinism, clean validation, flush/hull band, connectivity,
   distribution); gallery tools (`matrix`/`gallery-gen`/`box-gallery`/`derive-gallery`/`board-gallery`) on
   the surviving entry point — 20/20 matrix cases compose, 0 validator errors. Task board condensed with it:
-  the ~40-task G long tail → `docs/layout-generation-ideas.md` (ids preserved), the new focus (G117/G118
+  the ~40-task G long tail → `docs/tools/generate-ideas.md` (ids preserved), the new focus (G117/G118
   studio integration) on `TODO.md`. Suite 681/681.
 
 - **Size-independent triangle factors + the stalemate probe** — `Evaluate/Terms/TriangleTerms.cs` +
@@ -1288,7 +1288,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Pgm suite 695/695. (G115)
 
 - **The frontline box — the join box kind (G89) + the face offer (G96 frontline half)** — `Compose/FrontlineBoxEmitter.cs`:
-  the **terminal-free** frontline join (map-generation.md §5.5). `FrontlineBoxEmitter` finishes a `BodyEmitter`
+  the **terminal-free** frontline join (generate.md §5.5). `FrontlineBoxEmitter` finishes a `BodyEmitter`
   `ShapeBody` with the Front designation — one edge the `face`, **no room/marker** — over the form menu **Bar** (the
   wide face, FR6), **single** (`SpineArms(1)`) and **twin** (`SpineArms(2)`), lifting the grower's `FrontForm { None,
   Single, Wide, Twin }` into `FillProfiles.FrontlineForms`. Rotation is fixed (spine Top docks the hub, face Bottom
@@ -1297,10 +1297,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   share one group, one wide mid spans them, the recess unoffered → CT9's hole) vs **several** (one group per tip — the
   twin/double frontline). Offers derive from the shared `BoxInterfaces.Runs` free-run read (lifted out of the hub).
   The holed forms (P, two-U-on-I, G100) + the composer consuming the face offer (G63-C) are follow-ups. Pgm suite
-  672/672. Contract: `map-generation.md` §1.14/§5.5. (G89, G96)
+  672/672. Contract: `generate.md` §1.14/§5.5. (G89, G96)
 
 - **The hub box — the constraint-source box kind (G88) + the offer type (G96 hub half)** — `Compose/HubBoxEmitter.cs`
-  + `Compose/Boxes/EdgeOffer.cs`: the **terminal-free** hub box (map-generation.md §5.5). `HubBoxEmitter` finishes a
+  + `Compose/Boxes/EdgeOffer.cs`: the **terminal-free** hub box (generate.md §5.5). `HubBoxEmitter` finishes a
   `BodyEmitter` `ShapeBody` with the hub designation — per-edge `interface` widths, **no room/marker** — over the
   authored form menu **Rectangle · L (`SpineArms(1)`) · U (`SpineArms(2)`) · Ring · Double-hole**, each sized to fill
   the box (a too-small box a directed null, an off-menu form a throw). It publishes one **`EdgeOffer`** per contiguous
@@ -1308,7 +1308,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   composer's `edgeWidths` constraint, geometric default; a U's bay reads as two bottom offers, a ring's wall as one
   full run). Offers derive uniformly from a new `BoxInterfaces.Of(ShapeBody)` free-edge read; `BoxJoint.Offer` carries
   the provenance; `FillProfiles.HubForms` is the hub's `Compound`-typed menu row. The composer consuming the offers +
-  retiring the grower's `hubU×hubV` hub is G63-C. Pgm suite 665/665. Contract: `map-generation.md` §1.14/§5.5. (G88, G96)
+  retiring the grower's `hubU×hubV` hub is G63-C. Pgm suite 665/665. Contract: `generate.md` §1.14/§5.5. (G88, G96)
 
 - **Designation-scoped docking gate + the marks (G95)** — `Pgm/Shapes/Designation.cs` + `Compose/Boxes/DockingGate.cs`:
   `DockingGate.Role` re-grounds from one global slot table to **`Role(Designation, slotOrMark)`** — the
@@ -1318,18 +1318,32 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   docking edge, structural slots internal), so every emit/dock/mirror test is byte-identical; the `Hub`
   (`interface` docks, no terminal → nothing vetoes) and `Frontline` (`face` docks) rows are defined and pinned,
   ready for the G88/G89 emitters to stamp. No new rule content — the binding only. Pgm suite 656/656. Contract:
-  `docs/map-generation-constraint-taxonomy.md` §3 gap 2 / §7; `map-generation.md` §1.12, §5.3. (G95)
+  `docs/tools/generate-ideas.md` §3 gap 2 / §7; `generate.md` §1.12, §5.3. (G95)
 
-- **Shape vocabulary + rule kinds folded into the canonical doc (G94)** — `docs/contracts/map-generation.md`:
+- **Shape vocabulary + rule kinds folded into the canonical doc (G94)** — `docs/tools/generate.md`:
   the two-layer shape model is now canonical there. §5 reframes **bodies-then-designations** (a terminal-free
   **body** — the `Compound` escalation Rectangle · Spine+K arms · Zig · Hook · Ring · Double-hole — finished by
   a per-kind **designation**: approach, hub, frontline; §5.5 the hub/frontline form menus feeding G88/G89; §5.3
   the structural-slot vs designation-mark split). §1 gains the locked terms — **§1.12** body/designation,
   **§1.13** the edge taxonomy (notch/bay/hole by wall count · parts · mouths · guard · offerable surface),
   **§1.14** the twelve rule kinds (fact · menu · fit gate · demand · **offer** · veto · gate · knob · **target
-  vs band** · law · doctrine). `shape-vocabulary.md` superseded (banner + section map; retained for its live
-  code citations, delete follow-up G99); the constraint-taxonomy's §1 and §4 terms retired to pointers, its §4.1
-  publish policy + §3/§5/§7 proposal kept as the live design record. Doc-only. (G94)
+  vs band** · law · doctrine). The old `shape-vocabulary.md` superseded (banner + section map added at the
+  time, retained only for its live code citations); the constraint-taxonomy's §1 and §4 terms retired to
+  pointers, its §4.1 publish policy + §3/§5/§7 proposal kept as the live design record. Doc-only. (G94)
+
+- **Docs consolidated from 38 files to ~20, one per client tool + a small architecture/contracts set
+  (G99 + a broader pass).** `shape-vocabulary.md` deleted and its remaining code citations
+  (`BodyEmitter.cs`, `ShapeBody.cs`, `ApproachSlots.cs`, `Compound.cs`, plus test files) repointed to
+  `docs/tools/generate.md`, closing G99. Folded in the same pass: `docs/contracts/` reorganized into
+  `docs/tools/{plan,sketch,configure,edit,generate,generate-rules,generate-vocabulary,
+  generate-measurement,generate-ideas,monument-suggestion}.md`, `docs/architecture/{project-structure,
+  geometry,tool-conventions,routing,canvas-interaction,ui-conventions}.md`, and
+  `docs/contracts/regions-and-filters.md` — merging sibling docs (e.g. `plan-editor.md` +
+  `plan-as-map.md` → `plan.md`; `sketch-authoring.md` + 4 others → `sketch.md`; `monument-suggestion.md`
+  + `monument-patterns.md` + `monument-candidate-store.md` → one file) and retiring three whose content
+  had already shipped elsewhere (`map-generation-architecture-review.md`,
+  `wool-approach-read-investigation.md`, and the superseded half of `map-generation-constraint-
+  taxonomy.md`). All code/doc cross-references repointed repo-wide. Doc-only.
 
 - **Interval facts on the box edges (G93)** — `Compose/Boxes/BoxInterfaces.cs`: `BoxEdgeInterface` re-grounds
   on **intervals** — each edge carries its per-piece stretches ordered along it (`EdgeInterval(Start,
@@ -1338,7 +1352,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   two disjoint intervals with the bay's gap between them**, the twin-face precondition the frontline work (G89)
   and the offers (G96) bind to. `DockingGate` verdicts unchanged, every existing facts/gate test green
   unmodified, emissions untouched (Pgm suite 655/655). Contract:
-  `docs/map-generation-constraint-taxonomy.md` §3/§6 step 2.
+  `docs/tools/generate-ideas.md` §3/§6 step 2.
 
 - **The edge taxonomy + the publish policy (G92)** — `Pgm/Shapes/BodyEdges.cs` +
   `Compose/Boxes/PublishPolicy.cs` + `tools/compose/edge-gallery.cs`: any rectangle set's **negative spaces**
@@ -1355,7 +1369,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (mouth-touching), unguarded parts; **publishing is an offer, never a fill**. All rendered by the edge gallery
   (spaces tinted per part, mouths bracketed with width class, ✓/✗ verdicts per card), published as a hosted
   artifact; `BodyEdgesTests` + `PublishPolicyTests` pin every class, split, mouth, and author call. Contract:
-  `docs/map-generation-constraint-taxonomy.md` §4/§4.1. (G92)
+  `docs/tools/generate-ideas.md` §4/§4.1. (G92)
 
 - **The new terminal-free compounds, standalone (M3, G91)** — `Pgm/Shapes/BodyEmitter.cs` + `Compound.cs` +
   `ShapeClassifier.cs`: the shapes the vocabulary names but `ShapeEmitter` couldn't build, now emitted as pure
@@ -1373,7 +1387,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   one connected mass, no overlap, edge-aligned joins only per §3; the arm cap; the U's slide) + full Pgm suite
   628/628 green; drawn **standalone** in the body gallery (`tools/compose/body-gallery.cs`) with every piece
   labelled by its slot. The shared bodies the hub (G88) and frontline (G89) designations reuse. Contract:
-  `docs/contracts/shape-vocabulary.md` §5/§10. (G91)
+  `docs/tools/generate.md` §5/§10. (G91)
 
 - **The terminal-free `Body` — the shape/designation split (M3, G90)** — `Pgm/Shapes/ShapeBody.cs` +
   `ShapeEmitter.cs` + `ApproachSlots.cs`: `ShapeEmitter.Emit` — which baked a wool `room` into every family —
@@ -1387,7 +1401,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   and the `DockingGate` stay green (619/619 Pgm), and `ShapeBodyTests` gates that the body carries exactly the
   emission's terrain (terminal-free) and that `Approach` reconstructs the emission. The shared stage the hub
   (G88), frontline (G89) and new-compound (G91) work builds on. Contract:
-  `docs/contracts/shape-vocabulary.md` §8/§9. (G90)
+  `docs/tools/generate.md` §8/§9. (G90)
 
 - **The spawn seats at a sampled point along the hub's back edge (G85)** — `Compose/TeamUnitGrower.cs`: the spawn
   was pinned to the hub back edge's −v corner (`FillSpawn(..., hubVMin, ...)`) while the wool arms already sampled a
@@ -1407,14 +1421,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   no longer calls it: the `cut` is a constant `null`, so the RNG re-keys (the whole-map layout shifts, the cut's
   three draws gone). The code is **kept intact and dormant** — `IsolationCut`/`CutResult`, the `ComposedStages.Cut`
   field, the `Assemble` `bridge-a` zone, the `IsolationCutCount` soft term — so it returns as a proper slot-aware
-  fragment pass (cutting only a `run`/`bar`, never a `room`/`entry`, per `docs/contracts/map-generation.md` §5.3)
+  fragment pass (cutting only a `run`/`bar`, never a `room`/`entry`, per `docs/tools/generate.md` §5.3)
   with a one-line re-add. The two `ComposerTests` and one `WoolBoxGrowthTests` that asserted cuts occur retire
   with it (they land again with the pass). Verified: full Pgm suite 609/609 green, gallery 42/42 with 0 `bridge-a`
   zones. (G86)
 
 - **The spawn box is a small fixed box — a size rule in `FillProfiles` (G84)** — `Compose/Boxes/FillProfiles.cs`:
   the porting kept the old grower's "grow the shape to absorb its budget share" sizing, so a spawn stretched with
-  player count to ~100 blocks when the docs say a spawn is **small, ≤20** (`docs/contracts/map-generation.md` §4).
+  player count to ~100 blocks when the docs say a spawn is **small, ≤20** (`docs/tools/generate.md` §4).
   The fix is a **size rule over the box model, not a resize solver**: `FillProfiles.SpawnSizes` is the per-`BoxKind`
   spawn allowlist as data — three small boxes `{I direct ~10×10, I run-up ~10×20, L hook ~20×20}` — and
   `SpawnLand(size, cw)` reads a size's land off `SpawnBoxEmitter.Box`. `TeamUnitGrower` samples a `SpawnSizes` box
@@ -1426,7 +1440,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   composer area gate floor 0.8→0.6) — the window is now asymmetric, a unit runs under quota more than over.
   Re-keys the spawn RNG (goldens freeze after G63). Verified: spawn small on the 30p worst case, wool distribution
   unchanged, 0 gallery failures; `BoxPartitionerTests` + `ComposerTests` re-based to the sparser envelope, 612/612
-  green. Contract: `docs/contracts/map-generation.md` §4. (G84)
+  green. Contract: `docs/tools/generate.md` §4. (G84)
 
 - **The partition-first allocator seam — `BoxPartitioner` (M4, G63-B)** — `Compose/Boxes/BoxPartitioner.cs`: the
   `budget → BoxPartition` entry the box-driven switch is built around, shipping **parallel** to `TeamUnitGrower`
@@ -1446,7 +1460,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `BoxPartitionerTests` (round-trip equals `BoxPartition.Of` of the grown unit across seeds; `Valid` + budget
   balance across seeds × player counts × every symmetry mode with each box's land within its footprint; the typed
   spine boxes present; `WithinBudget` rejects a land-starved partition), full Pgm suite 607/607 green. Contract:
-  `docs/contracts/map-generation.md` §4/§8/§12. (G63-B)
+  `docs/tools/generate.md` §4/§8/§12. (G63-B)
 
 - **The partition constraint graph — `BoxPartition` (M4, G63-A)** — `Compose/Boxes/BoxPartition.cs`: the typed
   target the box-driven switch is built around. A `BoxPartition` is the typed `Box`es (each an allocated
@@ -1465,7 +1479,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   abutment intervals vs gaps/corners/overlap; the invariants reject degenerate/dup/over-budget/phantom-joint
   partitions; `Of` reads a `Valid` partition off real grown units across seeds with the spine + wool boxes
   present and the land currency summing; the hub is jointed to its neighbours). Contract:
-  `docs/contracts/map-generation.md` §4/§12. (G63-A)
+  `docs/tools/generate.md` §4/§12. (G63-A)
 
 - **Docking as a declarative slot-edge gate — `DockingGate` (M3, G80)** — `Compose/Boxes/DockingGate.cs`:
   the one place that decides whether a box edge may receive a dock, as a table over slots rather than
@@ -1485,7 +1499,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   as the mirror while G80 adds zero terms. The partitioner wiring (producing `FillResult` rejections, the
   clamp's dual-host corner-wrap placement) lands with G63. Verified: `DockingGateTests` (room never-dock /
   entry docks; clamp two short bars + demand; scythe clean edge vs room-contaminated mouth; U leg edge; the
-  verdict tracks the room under flip; the slot-role map). Contract: `docs/contracts/map-generation.md`
+  verdict tracks the room under flip; the slot-role map). Contract: `docs/tools/generate.md`
   §4/§12. (G80)
 
 - **The `BoxInterface` valid-edges data model — `BoxInterfaces` (M3, G41-B)** — `Compose/Boxes/
@@ -1503,7 +1517,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Verified: `BoxInterfacesTests` (the I room edge is wool-touched / the mouth edge clear terrain; the slots on
   an edge are the pieces that reach it; the clamp's two short terrain edges + one wool-sealed; U's wool edge
   touched / leg edge clear; span; the facts move with the shape under flip). Contract:
-  `docs/contracts/map-generation.md` §1.5/§4. (G41-B)
+  `docs/tools/generate.md` §1.5/§4. (G41-B)
 
 - **The profile-driven fill spine — `FillProfiles` + `BoxFiller` (M3, G41-A part 1)** — `Compose/Boxes/
   FillProfiles.cs` + `BoxFiller.cs`: the per-`BoxKind` fill profile is now a **type**, not two scattered data
@@ -1517,7 +1531,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   sweep). This is the spine the partitioner (G63) drives; routing the production arms through it + the
   intra-box fragment-to-target land with the box-Rect allocation (G41-A part 2 / G63). Verified:
   `BoxFillerTests` (profile gate, footprint fit, land accounting, roll-select, spawn-dispatch guard). Contract:
-  `docs/contracts/map-generation.md` §4.1/§8. (G41-A)
+  `docs/tools/generate.md` §4.1/§8. (G41-A)
 
 - **Spawn boxes — the spawn emits through the shared emitter, the second box kind (M2)** —
   `Pgm/Compose/SpawnBoxEmitter.cs` + `TeamUnitGrower.cs`: the grower's hand-rolled spawn-lane geometry (its
@@ -1534,7 +1548,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   two rows of the per-kind profile table the footprint/slot-budget work (G41-A/G63) reads. Changes RNG
   consumption (pre-G63 re-key). Verified: the full 300-case composer invariant sweep green, plus a spawn-box
   mirror test (classifies to I/L, slots re-derive, `Spawn`-role room) across seeds. Contract:
-  `docs/contracts/map-generation.md` §4/§5.3. (G78)
+  `docs/tools/generate.md` §4/§5.3. (G78)
 
 - **Slot recovery — the emit↔derive mirror closes at the slot level (M2)** — `Pgm/Shapes/SlotAssignment.cs`
   + `Geom/Cells.cs`: `SlotAssignment.AssignSlots(family, pieces, roomId)` re-derives every piece's
@@ -1549,7 +1563,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **retires**: its lane read was a thin adapter over `ShapeClassifier.ClassifyOpen`, now called directly with
   the new public `ShapeClassifier.LaneName(LaneRead)` (BoardDeriver + lane-audit rewired). Verified: full Pgm
   suite green incl. the slot mirror over every family × size × flip × variant. Contract:
-  `docs/contracts/map-generation.md` §5.3/§5.4/§12. (G62)
+  `docs/tools/generate.md` §5.3/§5.4/§12. (G62)
 
 - **The corner law reads the mask, not the pair — donut admitted (M2)** — `Geom/Cells.cs` +
   `Pgm/Compose/TeamUnitGrower.cs` + `Boxes/FillMenu.cs`: `TeamUnitGrower.ValidateContacts` rejected any
@@ -1562,7 +1576,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   zero pinch windows, so `ShapeFamily.Donut` joins `FillMenu.ProductionFamilies` (menu now {I, L, Z, U, H,
   Donut}; changes RNG consumption — pre-G63 re-key). The pinch scan is a mass-level primitive G80's docking
   validation reuses. Verified: `CellsTests` (pinch vs ¾-solid vs ring), the full Pgm sweep green with the
-  corner-law assertion updated (`ComposerTests`). Contract: `docs/contracts/map-generation.md` §4/§5.2. (G79)
+  corner-law assertion updated (`ComposerTests`). Contract: `docs/tools/generate.md` §4/§5.2. (G79)
 
 - **Wool arms are box fills (M2 — the emitter's first production caller)** — `Pgm/Shapes/ShapeEmitter.cs` +
   `Pgm/Compose/Boxes/` + `TeamUnitGrower.cs`: the pure shape emitter extracted from the wool binding
@@ -1579,7 +1593,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   donut (corner tangencies) and scythe/clamp (self-sealed bay → WL8; unsealed by G50's entry shift)
   excluded as named gaps in `FillMenu`. Verified: full compose sweep 300/300 (incl. p30/t4/rot_90), the
   557-test Pgm suite green, `WoolBoxGrowthTests` (labels, role terminal, in-box family mirror, label
-  survival through the cut, family variety across seeds). Contract: `docs/contracts/map-generation.md`
+  survival through the cut, family variety across seeds). Contract: `docs/tools/generate.md`
   §4/§5.3. (G61)
 
 - **Fold-based scythe test — family reads stable under endpoint manipulation** — `Geom/Cells.cs` +
@@ -1590,7 +1604,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Scythe with a hub docked); the fold is a property of the cells alone, so the emitter's entry/wool-shift and
   side-dock manipulations keep their family in both contexts. Verified: `ShapeVariantTests` (14 variant grids
   × 2 scales, standalone + hub-docked) + the catalog/mirror/stress suites unchanged. Analysis:
-  `docs/wool-approach-read-investigation.md` §6. Contract: `docs/contracts/map-generation.md` §1.8/§5.2.
+  `docs/tools/generate.md` §6. Contract: `docs/tools/generate.md` §1.8/§5.2.
 
 - **Wool-box pieces carry their slot role** — `Pgm/Compose/WoolBoxEmitter.cs` + `TeamUnitGrower.cs`:
   `WoolBoxEmitter` now tags every emitted piece with its **slot role** (`ApproachSlots` on `GrownPiece.Slot`) —
@@ -1601,7 +1615,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   of re-deriving it from geometry. Invariants held: a family emits a **stable piece count** (no collinear
   merges) and a role is a **template slot, not a property of the rectangle**. Verified: `WoolBoxEmitterTests`
   (25 cases — template order per family, flip/variant invariants, stable count) + the `ShapeMirrorTests` slot
-  round-trip (G58). Contract: `docs/contracts/map-generation.md` §5. (G54)
+  round-trip (G58). Contract: `docs/tools/generate.md` §5. (G54)
 
 - **Shape substrate + one family enum (M0 consolidation)** — `Geom/Cells.cs` + `Pgm/Shapes/`: the shared
   rectilinear cell substrate (N4 · flood · connected components · enclosed-void · reflex corners · bays ·
@@ -1615,7 +1629,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (the §5 t/v/w catalog), `ShapeStressTests` (extreme-geometry width-invariance) — plus direct `CellsTests`.
   Pure refactor: `derive-gallery` output **byte-identical** over all base + generated cases; Geom 61/0, +67 shape
   tests green, 5 pre-existing Pgm failures unchanged. `ClosureAnalysis` / the gallery raster / `FannedGraph`
-  rewire onto `Cells` at M1 (G59). Review: `docs/map-generation-architecture-review.md` §3. (G58)
+  rewire onto `Cells` at M1 (G59). Review: `docs/tools/generate.md` §3. (G58)
 
 - **Board deriver into `src` (M1)** — `Pgm/Derive/`: the raster-layer board reader — islands + anchor roles,
   stepping-stone kinds, build-zone kinds/widths/interfaces, per-wool approaches + lane shapes, frontline/intra/
@@ -1633,7 +1647,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Composer evaluator engine — foundation (M2 groundwork)** — `Pgm/Evaluate/`: the one place layout rules are
   scored. `LayoutEvaluator.Evaluate(ctx | plan, profile) → Evaluation` (`Score = Σ hard-penalty + Σ w·distance`,
   lower is better, 0 = perfect) + a hard-only short-circuit `Gate`; `ILayoutTerm` (reads derived measurables,
-  cites one `layout-rules.md` id, never a family name); `EvalContext` (derives `ContactGraph` + `PlanValidator`
+  cites one `generate-rules.md` id, never a family name); `EvalContext` (derives `ContactGraph` + `PlanValidator`
   findings once, **lazy `BoardStructure`** so the gate never derives the board on its resample loop);
   `EvaluationProfile` (per-term enable/weight — the criteria on/off switch); `SeedEnvelopes` + the `Band`
   distance convention (metric normalized by the band half-width). **`Composer.Acceptable` dissolved** into the
@@ -1646,7 +1660,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   primitives (`EvidenceRect`/`Segment`/`Marker`/`Measure`, each tagged `offender`/`bound`/`measure`/`context`,
   the free-string tag leaving room for §9.8's `slot:*`) — attached to the seven ported terms while their
   geometry was in hand (a G5 hop draws a labelled measure across the void, BZ6 the wool + band rects). Review:
-  `docs/map-generation-architecture-review.md` §5/§9; direction: `docs/contracts/layout-evaluator.md`. (G60)
+  `docs/tools/generate.md` §5/§9; direction: `docs/tools/generate-measurement.md`. (G60)
 - **Composer evaluator — soft scoring + surface distance (M2, part 2a)** — the evaluator's soft half.
   `SoftTerm` (a pure `Value(ctx)` metric + its own drawn `Evidence`); `SeedEnvelopes` generated by
   `tools/deriver/envelope-stats.cs` — it runs each term's `Value` over the seeds (so band and score can't drift)
@@ -1696,7 +1710,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `spawn-wool-distance` + the hard `spawn-wool-floor`, retired from the structural lint). The Score panel is the
   editor's **single validation surface** — its STRUCT / PC-C / G2 / G5 hard terms cover every `PlanValidator`
   finding, so the old lint panel is dropped and `/plan/inspect` is trimmed to the geometry overlays alone.
-  Endpoint + JS overlay-pref tests green. `docs/map-generation-architecture-review.md` §9.7. (G60)
+  Endpoint + JS overlay-pref tests green. `docs/tools/generate.md` §9.7. (G60)
 
 - **Plan authoring — freeform templates (`none` symmetry · `connector` piece · palette resort)** —
   `Geom.Symmetry` + `Client/wwwroot/js/studio/` + `Client/Pages/Plan/` + `Pgm/Plan/`: three plan-editor
@@ -1798,7 +1812,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   returns a `{slug}/` ZIP (`map.xml` + `level.dat` + `region/*.mca`) for sketch-origin maps and plain
   `map.xml` otherwise, behind the traversability gate (shared `MapXmlComposer`). The Configure Export button
   downloads it (`studio.downloadUrl`), and the wizard's manual Monuments sub-step is dropped for sketch maps
-  (`GET /map/{slug}/origin`). Spec: `docs/contracts/sketch-world-export.md`. (P9e, P9f, P9k)
+  (`GET /map/{slug}/origin`). Spec: `docs/tools/sketch.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
 - **Sketch editor** — `/maps/{slug}/sketch` (`SketchTool` + `SketchPanel`/`SketchInspector`): draw 2-D
@@ -1812,7 +1826,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST .../sketch/finish` + the Finish button: the sketch rasterizes into the importer's geometry
   artifacts and flows into Configure (`MapStage.Configure` + a `configureUrl`; 6 rasterizer tests). The
   `/maps/new-sketch` page (`SketchCreate`, S11) originates one. (S2e) Plan:
-  `docs/contracts/sketch-authoring.md`.
+  `docs/tools/sketch.md`.
 - **Sketch tool end-to-end verified** — a live pass of the whole chain on the running app: `POST /api/sketch`
   create → `PUT .../sketch` a two-island layout → `POST .../sketch/finish` rasterize (advances the map from
   the *sketch* to the *configure* stage) → the sketch-origin map **opens in the Configure wizard** (Map Info /
@@ -1825,7 +1839,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `120×120` (4-team / D2), or custom — replacing the old 512-square that made 10–15-block lanes
   undrawable. A live **on-canvas size readout** (`canvas-dim`) shows the active draw's `W × D` or the
   selected shape's extent. (S3)
-  Plan: `docs/contracts/sketch-tool-improvements.md` §1.
+  Plan: `docs/tools/sketch.md` §1.
 - **Ruler distance reads on the ruler line** — the measure tool renders its block distance as **pure
   screen-space text running along the ruler line** (at the midpoint, kept upright, with a thin halo so it
   stays legible over shapes at any zoom, re-drawn on every pan/zoom) instead of in the `canvas-dim` sub-bar,
@@ -1837,7 +1851,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   centre `coord-field` rows); a single **Continue** creates the draft via `POST /api/sketch` (carrying the
   working frame → a seeded `setup`). The editor's footprint/symmetry **Setup** block moved off the always-open
   sidebar into a collapsed **Frame** accordion, lifting the Islands tree toward the top. Reusable `.choice-*`
-  tile CSS shared with the primitive palette. (S11) Plan: `docs/contracts/sketch-creation-flow.md`.
+  tile CSS shared with the primitive palette. (S11) Plan: `docs/tools/sketch.md`.
 - **Rectangle → polygon promotion** — an inspector **Convert to polygon** button (and the `P` shortcut)
   turns the selected rectangle into a 4-corner polygon (id / operation / override **and the height fields**
   `base_height`/`floor`/`anchor_heights` preserved — a promoted box keeps its column instead of resetting to
@@ -1965,7 +1979,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   automatically; the accept/reject UI + IoU equivalence detection are parked.
 - **Side-view Y editing** — `SliceView` cross-section + draggable Y line (point/block) wired in Build +
   Objective inspectors; lifts a region off `y=0` onto the surface. Authoring integration is TODO `N08`.
-  (`new-map-authoring.md` §8)
+  (`configure.md` §8)
 - **Region grouping interaction** — Ctrl-click multi-select, Ctrl+G group/ungroup, shortcut registry,
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 

@@ -1,7 +1,7 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
 // build-cache bust: deriver v1
-// The layout DERIVER, first cut (docs/contracts/layout-evaluator.md §5). Reads the authored seed corpus
+// The layout DERIVER, first cut (docs/tools/generate-measurement.md §5). Reads the authored seed corpus
 // (tools/seeds/*.plan.json), fans each to the full board in CELL space, and computes structure from geometry +
 // markers: islands + anchor role (team/objective/neutral/decorative), stepping stones (neutral/team), wool
 // lanes (the terrain stacked from a wool room's redstone interface), residual (whatever terrain remains), per-
@@ -377,7 +377,7 @@ string Page(string cardsHtml, string genHtml)
         landmass); it is internal like the bridge but shapes one piece rather than gapping two, so it reads as its
         own signal. Captivity also separates a <b>team</b> stepping stone (on the spawn↔wool path) from a
         <b>neutral</b> one (a contested centre island).
-        Disagreements are the cutoff test set. Per <code>docs/contracts/layout-evaluator.md</code> §5.</p>
+        Disagreements are the cutoff test set. Per <code>docs/tools/generate-measurement.md</code> §5.</p>
         {legend}
       </header>
 

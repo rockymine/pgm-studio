@@ -2,7 +2,7 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>The typed box kinds of the partition scaffold (docs/contracts/map-generation.md §4).</summary>
+/// <summary>The typed box kinds of the partition scaffold (docs/tools/generate.md §4).</summary>
 public enum BoxKind { Spawn, Hub, Wool, Frontline, Mid }
 
 /// <summary>The fill directive for a wool box the allocator chose: the approach <see cref="Family"/>, its room

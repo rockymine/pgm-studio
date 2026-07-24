@@ -2,7 +2,7 @@
 
 Hand-labelled wool-lane examples — the ground truth the deriver's lane-shape classifier
 (`WoolLaneShape`, `src/PgmStudio.Pgm/Plan/WoolLaneShape.cs`) is calibrated against. This is the
-**derive-then-override** loop (`docs/contracts/layout-evaluator.md` §5.4): you author the example and
+**derive-then-override** loop (`docs/tools/generate-measurement.md` §5.4): you author the example and
 pin the label *you* intend; the classifier proposes its own; the **disagreements are the fix list** —
 either the classifier is wrong, or the vocabulary needs a new term.
 

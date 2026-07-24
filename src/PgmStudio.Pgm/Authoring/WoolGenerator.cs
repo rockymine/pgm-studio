@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Wool/objective slice of the declarative generator (new-map-authoring.md; filter-region-wiring.md
+/// Wool/objective slice of the declarative generator (configure.md; regions-and-filters.md
 /// templates 3 + 4). Per wool it emits: the wool-room region, the wool element (with monuments), a wool
 /// spawn point fed by a <c>&lt;spawner&gt;</c> (player-region = room, spawn-region = the point, item =
 /// the dyed wool). The room wiring follows the validated template (docs/template.xml): the rooms are grouped
@@ -54,7 +54,7 @@ public static class WoolGenerator
             var spawnId = $"{colorSlug}-wool-spawn";
 
             // wool element + monuments (one per capturing team) — emitted even before the room is drawn,
-            // so a partly-authored map still generates its objectives (new-map-authoring.md §11).
+            // so a partly-authored map still generates its objectives (configure.md §11).
             WoolEditor.AddWool(doc, new Dict { ["color"] = colorSlug });
             var update = new Dict
             {

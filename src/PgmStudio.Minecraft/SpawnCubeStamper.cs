@@ -7,7 +7,7 @@ namespace PgmStudio.Minecraft;
 public sealed record PlacedMonument(string WoolSlug, int X, int Y, int Z);
 
 /// <summary>
-/// Stamps a team's spawn cube (docs/contracts/sketch-world-export.md §2–3): the shared cube shell (team
+/// Stamps a team's spawn cube (docs/tools/sketch.md §2–3): the shared cube shell (team
 /// colour, single open-air door facing <paramref name="doorFacing"/>) plus its auto-wired in-cube
 /// monuments. Each monument = a bedrock pedestal (one block above the floor), an air placement cell, a
 /// wool-colour stained-glass cap, and a label sign against the pedestal facing the room. Placement follows

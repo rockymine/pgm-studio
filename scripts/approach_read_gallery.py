@@ -198,7 +198,7 @@ def build():
 <p class="lead">Evidence gallery for the derive-side scope question. All reads come from a Python port of
 <code>ShapeClassifier</code> validated against every fixture in <code>tools/deriver/shapes/</code>
 and the emit&rarr;classify mirror (scripts/approach_read_lab.py). Interpretation:
-<code>docs/wool-approach-read-investigation.md</code>.</p>
+<code>docs/tools/generate.md</code>.</p>
 
 <h2>1 &middot; What the wool-box emitter emits today</h2>
 <p>The eight non-isolated families at near-minimal boxes (cw&nbsp;=&nbsp;2), slot-coloured. Every one

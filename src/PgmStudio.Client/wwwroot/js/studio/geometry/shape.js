@@ -16,7 +16,7 @@
 import { pointInRing } from "./polygon.js";
 import { splitPiece } from "./decompose-cut.js";
 
-// Parity constants — must match the C# rasterizer / export (docs/contracts/sketch-authoring.md §6).
+// Parity constants — must match the C# rasterizer / export (docs/tools/sketch.md §6).
 export const CIRCLE_POINTS  = 64;   // vertices approximating a circle
 export const BEZIER_SAMPLES = 16;   // points sampled per curved edge (endpoint excluded)
 

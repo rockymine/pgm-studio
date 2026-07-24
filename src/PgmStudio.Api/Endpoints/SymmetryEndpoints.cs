@@ -76,7 +76,7 @@ internal static class SymmetrySupport
 }
 
 /// <summary>Read/write the <c>symmetry</c> table and reconstruct the symmetry.json API shape from a row
-/// (docs/contracts/new-map-authoring.md §6b) — replaces the <c>symmetry_json</c> artifact as the source.</summary>
+/// (docs/tools/configure.md §6b) — replaces the <c>symmetry_json</c> artifact as the source.</summary>
 internal static class SymmetryStore
 {
     public static Task<SymmetryRow?> LoadAsync(PgmDb db, long mapId, CancellationToken ct)

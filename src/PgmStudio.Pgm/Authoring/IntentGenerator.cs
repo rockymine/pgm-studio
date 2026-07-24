@@ -3,7 +3,7 @@ namespace PgmStudio.Pgm.Authoring;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Top-level declarative generator (docs/contracts/new-map-authoring.md): projects a whole
+/// Top-level declarative generator (docs/tools/configure.md): projects a whole
 /// <see cref="MapIntent"/> into the PGM document by applying each slice in order. The single entry
 /// point the intent endpoint calls; slices stay in their own focused generators.
 /// <para>Symmetry is applied <b>by default</b> first (<see cref="SymmetryExpander"/>): when the intent

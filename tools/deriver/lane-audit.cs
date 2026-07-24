@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// Wool-lane TRAINING harness (docs/contracts/layout-evaluator.md §5.4, derive-then-override). Runs the deriver's
+// Wool-lane TRAINING harness (docs/tools/generate-measurement.md §5.4, derive-then-override). Runs the deriver's
 // WoolLaneShape classifier on every labelled example in tools/deriver/lanes/ and diffs it against the author's
 // intended label in labels.json. Agreements confirm the classifier; disagreements are the fix list — either the
 // classifier is wrong, or the vocabulary needs a new term. Add examples freely (any label string).

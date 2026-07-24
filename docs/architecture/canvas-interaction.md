@@ -1,14 +1,18 @@
-# Canvas interaction & shared-canvas contract
+# Canvas rendering & interaction infrastructure
 
-Status: **design** (the `CV` task series in `TODO.md`). This is the technical spec for five
-coupled pieces of canvas work — **de-duplication, region resize, arrow-key move, the controller
-pattern, and pruning/realignment** — across the **Edit** editor (`/maps/{id}/edit`) and the
-**Configure** wizard (`/maps/{id}/configure`). Functionality must not degrade: every item is a
-like-for-like extraction or a wiring-up of code that already exists.
+Status: **mixed** — the `CV` task series in `TODO.md`. CV1 (resize/move wiring) and CV9
+(primitive render styles) are **landed**; CV2/CV3/CV4/CV8 are design/in-progress. This is the
+technical spec for the shared JS/canvas layer underneath the **Edit** editor (`/maps/{id}/edit`)
+and the **Configure** wizard (`/maps/{id}/configure`) — de-duplication, region resize, arrow-key
+move, the controller pattern, pruning/realignment, and (§10) how drawable primitives are rendered
+and styled. It lives in `docs/architecture/` rather than `docs/tools/` because none of this is a
+single tool's doc: Edit and Configure both mount the same canvas engine, and Sketch/Plan are
+pulled in as consumers of the shared primitive-style vocabulary in §10.
 
-Read alongside `routing-and-ia.md` (the two map surfaces) and `new-map-authoring.md` (the wizard
-phases). Coordinate/transform math lives in `transform.js`; C# geometry consolidation is its own
-track (`A4`).
+Read alongside `docs/architecture/routing.md` (the two map surfaces) and `docs/tools/configure.md`
+(the wizard phases). Coordinate/transform math lives in `transform.js`; C# geometry consolidation
+is its own track (`A4`). The sketch tool's canvas port (design, not yet built) is **not** covered
+here — see `docs/tools/sketch.md`.
 
 ---
 
@@ -55,6 +59,7 @@ geometry/      pure math, NO DOM — point arrays & numbers only
 render/        stateless SVG emit — imports geometry + a toSvg, nothing else
   svg.js           svgEl, handleRectAttrs, ringToPath/polyToPath/boundsToRingPath, anchorBlockEl
   shape-render.js  renderShape(type, boundsOrPoly, toSvg, attrs)
+  primitive-style.js  primitiveStyle({ colour, treatment, selected, primary }) — §10
   symmetry-render.js  renderSymmetryOverlay   block-render.js  blockDataToDataUrl + renderBlockImage
   palette.js       game colours (chat / dye / team)
 
@@ -74,7 +79,8 @@ bridge/        C#-interop: mount() → a `handle` object Blazor calls; one *-bri
   fetch-json.js     (no-store fetch helper, bridge-only)
 
 EditorCanvas.razor(.cs)   the Blazor host: parameters, [JSInvokable] callbacks, toolbar UI
-# (S2, not yet ported: a sketch canvas [extends canvas-base] + its sketch-*-controllers; see §11)
+# (the sketch canvas [extends canvas-base] + its sketch-*-controllers are a design, not yet
+#  ported — see docs/tools/sketch.md)
 ```
 
 `CanvasBase` provides `_scale/_panX/_panY/_viewportG/_activeTool`, wheel zoom, middle/left-drag pan,
@@ -243,9 +249,9 @@ The `_onCanvasClick` branches were mode logic. Each is now a registered picker o
 adding a mode no longer means adding an `if`. The former spawn-pick mode (and `#hitTestSpawn`) is
 gone — §2's unification turned spawns into point dummy regions picked by the one `#hitTest`. This is
 the broader "controller pattern" investigation — lower urgency than
-resize, but it is the abstraction the **S2 sketch port** needs anyway: `SketchDrawController` and
-`SketchEditController` slot into the same contract, so establishing it now means S2 plugs in instead
-of bolting on.
+resize, but it is the abstraction the **sketch canvas port** needs anyway (see
+`docs/tools/sketch.md`): `SketchDrawController` and `SketchEditController` slot into the same
+contract, so the port plugs in instead of bolting on.
 
 ---
 
@@ -270,6 +276,11 @@ remain. What's still open here is **not** geometry: the symmetry **label** (`Sym
 `WorldScanStep`/`WorldSymmetryStep`) and **team-count** mapping (repeated in
 `WorldSymmetryStep`/`TeamAssignStep`/`SpawnStep`) should collapse into one shared C# `SymmetryInfo`
 helper — small, low-risk (= **CV8**).
+
+### 6.4 Style/colour duplication (CV9 scope — see §10.5)
+Three more copies fall under the primitive-style unification landed in CV9: the add/sub colour
+constants, the Plan role-colour palette, and the near-duplicate `#regionAttrs`/`shapeAttrs` style
+functions. Detailed in §10.5.
 
 ---
 
@@ -321,61 +332,161 @@ release / save → onBoundsSave(id, bounds)   [JS→C#]   (mouse-up; nudge = deb
 
 ---
 
-## 10. Primitive render styles (Edit vs Configure) — to unify (CV9)
+## 10. Primitive drawing styles across the editors (landed, CV9)
 
-> **Widened.** The full four-editor audit (Sketch · Edit · Configure · Plan) + the unification
-> conclusion now lives in **`primitive-styles.md`**. This section is the Edit-vs-Configure slice it
-> builds on.
+Status: **landed** (`CV9`). This is the cross-editor inventory of *how a drawable primitive is
+rendered and styled* in **Sketch**, **Edit**, **Configure**, and **Plan**, and the design that
+unified it — the successor to the narrower Edit-vs-Configure comparison this doc used to carry.
+§10.6's conclusion is now implemented: the shared helper is `render/primitive-style.js`
+(`primitiveStyle`), and `renderShape` has the `point` case.
 
-The *same* renderer draws primitives on both pages — `#regionGroup` → `renderShape` + `#regionAttrs`,
-or the `marker` branch — but the **inputs diverge**, so a point on Edit and a spawn on Configure look
-different even though both are now region nodes in `#nodeMap`. A known divergence, parked for **CV9**.
+The renderers audited: `render/shape-render.js` (shared), `render/sketch-render.js`,
+`canvas/editor-canvas.js`, `canvas/plan-canvas.js`.
 
-| | Edit (real tree region) | Configure (intent dummy region) |
-|---|---|---|
-| **point shape** | `renderShape` → a **1×1 `<rect>`** — `renderShape` has no point case, so point *and* block fall through to the rect branch (a point looks like a block, scales with zoom → tiny) | the **`marker` branch** → a **fixed-`r` `<circle>`** (r 6/5 by `primary`), bypassing `renderShape` |
-| **rectangle shape** | `<rect>` (`renderShape`) | `<rect>` (`renderShape`) — identical |
-| **fill / stroke** | `#regionAttrs`: translucent fill (0.20) + **dashed** outline | rect → `#regionAttrs` (identical); spawn marker → **solid** fill, element-`opacity` by `primary`, solid stroke |
-| **colour** | `region.color ?? var(--canvas-region)` — drawn primitives get the **default** region colour | the dummy node carries an explicit **team** colour (`Hex(team)`) |
-| **sidebar / inspector icon** | `RegionNode.Icon(type)` — type-appropriate (point → `dot`, block → `square`, rect → `rectangle-horizontal`) | `SpawnStep.razor` hardcodes `data-lucide="cylinder"` for spawns — **incongruous** with a point (a UI icon, not a canvas render) |
+### 10.1 What "a primitive" means in each editor (the semantic frame)
 
-So protection rects and Edit rects differ only by **colour**; points differ in **shape** (rect vs
-circle, a `renderShape` gap the `marker` flag works around), **style** (outline vs solid marker), and
-**icon**. None is wrong today, but "draw a primitive" isn't yet one parametrised thing.
+The four editors draw axis-aligned/radial shapes, but a shape *means* a different thing in each —
+and the visual style already encodes that meaning. This is the fact that frames the whole refactor:
+**style is a function of the primitive's semantic tier, not of the editor.** The same tier looks the
+same wherever it appears; different editors just populate different tiers.
+
+| Editor | What a drawn shape *is* | Background | Colour carries |
+|---|---|---|---|
+| **Sketch** | a **terrain shape** in a boolean vocabulary (add / subtract / override) that later rasterises into the base | none (blank authoring grid) | the **operation** (add=teal, subtract=red) |
+| **Edit** | a **real `map.xml` region** (the source of truth) | immutable rasterised terrain | nothing — uniform slate; a region has no team meaning at this layer |
+| **Configure** | a **region intent** (dummy node) — the same primitives as Edit but **derived/suggested** | immutable rasterised terrain | the **team / dye** it belongs to (derived) |
+| **Plan** | a **rectangle piece coloured by role** — some pieces are true terrain + XML regions, some are annotation, some are technical/visualization-only | none (cell grid) | the **role** (+ surface-height tint) |
+
+The through-line: **Sketch and Plan are where the author *decides* geometry/symmetry; Edit and
+Configure are where it is *shown* (real) and *suggested* (derived).** Plan is the odd one out — it
+draws rectangles only and layers three *tiers of realness* on top (terrain / annotation / technical),
+which is exactly the visual vocabulary a unified primitive-style descriptor needs to express.
+
+### 10.2 Shape-type inventory — which renderer, which SVG element
+
+`renderShape(type, boundsOrPoly, toSvg, attrs)` (`render/shape-render.js:21-53`) is the **shared**
+type→element dispatch. It is imported by `editor-canvas.js` (Edit+Configure) and `sketch-render.js`
+(Sketch). **Plan does not use it** — `plan-canvas.js` draws every piece as a `<rect>` directly and
+adds its own hatch patterns and objective markers.
+
+| type | branch | SVG element | anchor |
+|---|---|---|---|
+| polygon (`.exterior`/`.polygons`) | polygon path | `<path fill-rule=evenodd>` | `shape-render.js:25-30` |
+| `cylinder` / `circle` / `sphere` | `RADIAL_TYPES` | `<ellipse>` | `shape-render.js:9,36-44` |
+| `rectangle` / `cuboid` / `block` / **`point`** / … | fallthrough | `<rect>` | `shape-render.js:46-52` |
+
+Per-editor type coverage:
+
+- **Sketch** (`sketch-render.js:33-56`): `rectangle`→rect, `circle`→ellipse, `polygon`/`lasso`→inline
+  `<path>` (Bézier-capable, bypasses `renderShape`). Library primitives (`shape-library.js:36-52`)
+  are **not** new types — `instantiate()` emits plain `rectangle`/`polygon` specs (n-gons and
+  polyominoes are polygons; the `I` bar is a rectangle; `holesquare` is add-rect + subtract-rect).
+- **Edit / Configure** (`editor-canvas.js:976-1003`): `rectangle`/`cuboid`→rect, radial→ellipse,
+  and **`point` with `marker:true`** is intercepted *before* `renderShape` and drawn as a fixed-size
+  `<circle>` (`editor-canvas.js:986-997`). Composite/transform types (`union`/`intersect`/`negative`/
+  `complement`) are filtered out before render (`editor-canvas.js:60,1064`).
+- **Plan** (`plan-canvas.js:429-478`): every piece/zone is a `<rect>`; objective markers are a
+  `<circle>` (spawn, with a facing line) or a rounded `<rect>` (wool/iron).
+
+**The `point` gap (the concrete CV9 bug, now fixed).** `renderShape` had **no `point` case** — a
+bare point fell through to the `<rect>` branch and rendered as a 1×1 block that shrank with zoom.
+The only reason Configure spawns looked right was the `marker:true` opt-in that swapped in a
+fixed-radius circle *outside* `renderShape`. So a "point" was a rect on Edit and a circle on
+Configure — same type, two looks, because the fix lived in one caller instead of the shared
+renderer. `renderShape` now has a real `point` case (§10.6).
+
+### 10.3 Style inventory — the visual language
+
+Each editor has its **own** style function; there is no shared style descriptor. But the styles fall
+into a small, consistent vocabulary:
+
+| tier / treatment | meaning | fill | stroke | where |
+|---|---|---|---|---|
+| **solid, opaque** | real buildable terrain / real region | role/dye/team colour, `fill-opacity 0.7–0.85` | solid, same colour | Plan generating pieces (`plan-canvas.js:442-457`) |
+| **translucent, dashed** | a region / an area (not solid ground) | colour @ `0.20` (Edit/Configure) / accent @ `0.22` (Plan zone) | dashed (`4,2` region · `7 4` zone) | `editor-canvas.js:1012-1016`; `plan-canvas.js:402-421` |
+| **hatched, dashed** | technical / visualization-only (teaches behaviour: intended holes, dock points) | diagonal/crossed hatch pattern | dashed, same colour (`5 4`) | Plan buffer/connector (`plan-canvas.js:429-440,303-321`) |
+| **boolean-tinted** | terrain add vs subtract | teal (add) / red (sub) @ `0.28`; `6 3` dash if override | solid | Sketch (`sketch-render.js:19-27`) |
+| **fixed-size marker** | a point objective (spawn / wool source) | team/dye/marker colour @ `0.85–1.0`, radius **fixed** (not zoom-scaled) | ink/`marker-stroke` | `editor-canvas.js:986-997`; `plan-canvas.js:461-478` |
+| **ghost / derived** | a non-editable symmetry-orbited or cross-layer preview | colour @ `0.06–0.08`, finer dash | faint | `editor-canvas.js:1008-1011`; `plan-canvas.js:360-400`; sketch `sketch-render.js:85-109` |
+
+The exact style knobs, per editor:
+
+- **Edit / Configure** — `#regionAttrs(color, ghost)` (`editor-canvas.js:1007-1017`): region fill
+  `0.20` + dash `4,2`; ghost fill `0.06` + dash `2,3`; selected → solid, width `2.5`
+  (`editor-canvas.js:1035-1039`). Marker circle `r 6/5` by `primary` (`:986-997`).
+- **Sketch** — `shapeAttrs()` (`sketch-render.js:19-27`): fill `0.28`, width `1.2`, add/sub colour,
+  `override`→`6 3` dash. Islands/mirror/ghost-islands each have their own attrs
+  (`sketch-render.js:71-109`).
+- **Plan** — inline per-role in the renderer: generating pieces solid `0.7` + surface-height `tint()`
+  toward white (`plan-canvas.js:442-457`); annotation pieces hatched `0.9` + dashed `5 4`
+  (`:429-440`); build zone translucent-accent `0.22` + dashed `7 4` with cut-out holes (`:402-421`).
+
+### 10.4 Colour source — the real Edit-vs-Configure-vs-rest divergence
+
+| editor | colour source |
+|---|---|
+| **Edit** | **none** — real tree regions carry no `color`; `region.color ?? var(--canvas-region)` always falls back to slate (`editor-canvas.js:978`, `--canvas-region` `tokens.css:99,197`). Every Edit region is uniform slate. |
+| **Configure** | **team / dye hex** — every dummy node is tinted `GameColors.ChatHex(team)` or `DyeHex(color)` (`ProtectionStep.razor.cs:218-234`, `SpawnStep.razor.cs:291-297`, `WoolRoomStep.razor.cs:192-209`, …). |
+| **Sketch** | **operation** — add teal `--canvas-add-*`, subtract red `--canvas-sub-*` (`tokens.css:68-71`). |
+| **Plan** | **role** — `ROLE_COLORS` (piece grey, spawn purple, wool-room green, buffer orange, connector teal; `plan-doc.js:21`), lightened by surface height. |
+
+### 10.5 Icons — the sidebar/inspector inconsistency
+
+`RegionNode.Icon(type)` (`Models/RegionNode.cs:85-103`) is the **canonical** type→Lucide map
+(`point→dot`, `block→square`, `rectangle→rectangle-horizontal`, `cylinder→cylinder`, …). Most
+Configure phases consume it dynamically, but several **hardcode** an icon that disagrees with the
+node's real type:
+
+| razor | hardcoded | node type | verdict |
+|---|---|---|---|
+| `SpawnStep.razor:26,36,62,108` | `cylinder` | `point` (marker) | **mismatch** — should be `dot` |
+| `WoolMonumentsStep.razor:28,51,107` | `square` | `point` (marker) | **mismatch** — should be `dot` |
+| `WoolSpawnStep.razor:24,47,70` | `dot` | `point` (marker) | matches canonical |
+| `ProtectionStep` / `WoolRoomStep` / `BuildLayerStep` | `rectangle-horizontal` | `rectangle` | matches |
+
+The point-markers are the hotspot: they render as circles but their sidebar icons are hardcoded to
+`cylinder` / `square` instead of the canonical `point→dot`.
+
+### 10.6 Duplication the refactor collapsed
+
+- **Add/sub colour constants x3**: `sketch-render.js:12-15` (committed), `sketch-draw-controller.js:19-22`
+  (previews), plus raw tokens in `components.css`. A recolour needs all three.
+- **Plan role colours x2**: `plan-doc.js:21` (`ROLE_COLORS`) and `PlanEditor.razor.cs:100-112`
+  (toolbar/inspector palette) — two hand-kept copies of the same five hexes.
+- **Two style functions that are 90% the same**: `#regionAttrs` (Edit/Configure) and `shapeAttrs`
+  (Sketch) differ only in fill-opacity (0.20 vs 0.28), dash pattern, and colour source.
+
+### 10.7 Unification conclusion (landed)
+
+"Draw a primitive" became **one data-driven thing** by separating three inputs that were previously
+tangled into each editor's bespoke draw code:
+
+1. **shape** — `{rectangle | radial | polygon | point}`. Fixes the `point` gap by giving `renderShape`
+   a real `point` case (a dot/circle sized in *screen* units), so the `marker:true` workaround in
+   `editor-canvas.js` collapses into the shared renderer.
+2. **colour** — supplied by the caller from its own semantic source (Edit: none/slate · Configure:
+   team/dye · Sketch: operation · Plan: role). The renderer never decides colour.
+3. **treatment** — one enum over the §10.3 vocabulary: `region` (translucent dashed) · `terrain`
+   (solid opaque) · `technical` (hatched) · `marker` (fixed-size) · `ghost` (faint derived). Each
+   editor picks a treatment per primitive instead of hand-writing fill/stroke/dash.
+
+The `primitiveStyle({ colour, treatment, selected, primary })` helper (`render/primitive-style.js`)
+replaces `#regionAttrs`, `shapeAttrs`, and the inline plan role-styling; `renderShape` grows the
+`point` case and stays the shared element factory. Icons route through `RegionNode.Icon`
+everywhere (the hardcoded `cylinder`/`square` in `SpawnStep`/`WoolMonuments` is the remaining
+cleanup — §10.5), so `point→dot` is consistent.
+
+Scope note: Plan's hatch patterns and surface-height tint are genuinely Plan-specific and stay in
+`plan-canvas.js`; the win is the *shared* pieces — the `point` render, the style vocabulary enum, the
+colour-is-caller-supplied rule, and the single icon map — not forcing Plan through `renderShape`.
 
 ---
 
-## 11. The sketch port & the unified shape model (planned, not built)
+## 11. The sketch canvas port (planned, not built)
 
-> The concrete S2 plan — JS port mapping, the MariaDB persistence model, and the finish/rasterise
-> step — now lives in **`docs/contracts/sketch-authoring.md`**. This section is the architectural
-> rationale it builds on.
-
-The reorg (§1) put the geometry the sketch tool needs into one importable `geometry/` layer instead
-of scattering it through `editor-canvas.js`. The remaining design step for porting the reference's
-lasso/polygon tools is a **unified shape model** — deliberately **not built yet** (no consumer would
-exist, and speculative dead code is exactly what this repo avoids; build it *with* the port).
-
-**The idea.** A *region* (Edit) and a *sketch shape* (Lasso/Polygon/Rect/Circle) are the same
-primitive wearing different metadata: a region carries `category`/`color`; a sketch shape carries
-`operation` (add/subtract) / `override` / `vertices` / `controls` (Bézier tangents). The reference
-forked these into a parallel world (`sketch/geometry.js`, `sketch-layout-canvas.js`,
-`sketch-*-controller.js`). Don't fork — unify on one shape vocabulary:
-
-- `geometry/shape.js` (new, when the port lands): `toRing(shape)`, `toBounds(shape)`,
-  `containsPoint(shape, x, z)`, `centroid`, `circleToRing`, `sampleBezierEdge`. This subsumes the
-  reference's `shapeToRing`/`circleToRing`/`pointInIsland` and unifies the editor's bounds hit-test
-  with the sketch tool's per-type containment.
-- `geometry/boolean.js` (when the port lands): the island boolean ops (`computeIslands`,
-  `assignShapesToIslands`, `computeMirrorPreview`) over `polygon-clipping` — the only genuinely
-  sketch-domain layer, sitting *above* generic shape geometry.
-- `canvas/sketch-canvas.js` extends `CanvasBase`; `controllers/sketch-draw-controller.js` +
-  `sketch-edit-controller.js` slot into the existing controller contract (§5) — the editor draw/edit
-  controllers are the template, so they bolt on rather than re-implementing pan/zoom or hit-testing.
-
-**Why the editor hit-test stays AABB.** §2's `#hitTest` is intentionally bounds+margin (forgiving
-region select); the shape model's `containsPoint` is for the *sketch* side (true per-type, incl.
-point-in-polygon for lasso/polygon). They are different needs over the same shapes — keep both.
-
-Net: the structure already *supports* the port (clean geometry/render/canvas/controllers layers +
-unit-test harness); finishing it is additive, not another refactor.
+The concrete port plan — JS module mapping (`canvas/sketch-canvas.js` extending `CanvasBase`,
+`controllers/sketch-draw-controller.js` + `sketch-edit-controller.js` slotting into the §5
+controller contract), the unified shape model (`geometry/shape.js`, `geometry/boolean.js`), the
+MariaDB persistence model, and the finish/rasterise step — lives in `docs/tools/sketch.md`. It is
+not duplicated here; this doc only supplies the controller/canvas contract (§5) and primitive-style
+vocabulary (§10) the port builds on.

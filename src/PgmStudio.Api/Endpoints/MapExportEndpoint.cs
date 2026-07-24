@@ -17,7 +17,7 @@ using Dict = Dictionary<string, object?>;
 /// GET /api/map/{slug}/export — the Configure export action. For a <b>sketch-originated</b> map (one with a
 /// stored sketch layout) it returns a ZIP of a <c>{slug}/</c> folder containing <c>map.xml</c>,
 /// <c>level.dat</c>, and <c>region/*.mca</c> — a real, playable world synthesised from the sketch columns +
-/// intent (docs/contracts/sketch-world-export.md). For any other map it returns the plain <c>map.xml</c>
+/// intent (docs/tools/sketch.md). For any other map it returns the plain <c>map.xml</c>
 /// (those already ship a world). Shares the gate + compose pipeline with <see cref="MapXmlEndpoint"/> via
 /// <see cref="MapExportComposer"/>, diverging only to bundle the region files for a sketch map.
 /// </summary>

@@ -9,7 +9,7 @@ public enum Facing { NegZ, PosZ, NegX, PosX }
 
 /// <summary>
 /// Stamps the shared 8×8 hollow-bedrock cube shell used by wool cages and spawn cubes
-/// (docs/contracts/sketch-world-export.md §2). Layers are floor-indexed (floor = 0, roof = 8): floor is
+/// (docs/tools/sketch.md §2). Layers are floor-indexed (floor = 0, roof = 8): floor is
 /// bedrock with a 2×2 wool centre (the spawn/wool marker), walls are bedrock except a coloured strip at
 /// layer 4 (wool for cages, stained clay for spawns) and a missing course at layer 6 (light slit), and the
 /// roof is bedrock with a 4×4 centre hole. Doors start at layer 1: a wool cage gets four 2-wide × 3-tall

@@ -263,7 +263,7 @@ string Page(string cardsHtml)
         <p class="lede">Six wool-lane <strong>templates</strong>, each a <code>symmetry:"none"</code> freeform single
         unit (<b>G46</b>) — no mirror fanning fighting the shape — using the <b>connector</b> attachment mark and
         <b>buffer</b> spacing mark (<b>G47</b>), which the resorted palette groups as <em>technical</em> pieces
-        (<b>G48</b>). They are hand-designed from the seed corpus and <code>layout-rules.md</code> — <em>not</em> the
+        (<b>G48</b>). They are hand-designed from the seed corpus and <code>generate-rules.md</code> — <em>not</em> the
         composer's current budget-stretched long lanes. Read across for the three things a real wool lane needs: an
         <strong style="color:{CConnector}">attachment point</strong> where the lane feeds terrain or a build zone,
         <strong style="color:{CBuffer}">buffers</strong> where spacing/voids must be reserved, and

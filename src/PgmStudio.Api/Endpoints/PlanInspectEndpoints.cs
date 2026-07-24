@@ -129,7 +129,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 /// POST /api/plan/evaluate — the plan editor's live rule-evaluator score + lint feed (the critic that scores a
 /// <c>*.plan.json</c>). The request body is a plan wire document; the response is an <see cref="EvaluationDto"/>:
 /// the summed <c>score</c> (lower is better, 0 perfect), a <c>valid</c> flag (no hard term fired), and every
-/// fired term ordered hard-first — each carrying its <c>layout-rules.md</c> id, the pieces/zones it indicts, and
+/// fired term ordered hard-first — each carrying its <c>generate-rules.md</c> id, the pieces/zones it indicts, and
 /// the cell-space <see cref="EvidenceDto"/> the canvas overlay paints. This is where soft "feel" terms and the
 /// gate terms retired from the structural validator (e.g. WL2 spawn↔wool distance) surface in the editor, so it
 /// complements — not replaces — <c>/plan/inspect</c>'s derived-structure geometry. A malformed body is answered

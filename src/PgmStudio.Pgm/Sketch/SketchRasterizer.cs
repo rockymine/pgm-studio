@@ -4,7 +4,7 @@ namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>
 /// Rasterizes a sketch layout (the <c>sketch_layout_json</c> blob) into the solid block cells of the
-/// finished world (docs/contracts/sketch-tool-improvements.md §3). Pure: no DOM, no DB. <see cref="Rasterize"/>
+/// finished world (docs/tools/sketch.md §3). Pure: no DOM, no DB. <see cref="Rasterize"/>
 /// yields the (x,z) footprint; <see cref="RasterizeColumns"/> also carries each cell's vertical span
 /// <c>[YFloor, YTop]</c>, where <c>Floor</c> is the shape's elevation and <c>Height</c> its thickness:
 /// <c>YTop = base_y + floor + height</c>. Height is a uniform <c>base_height</c>, or, for a polygon/lasso
