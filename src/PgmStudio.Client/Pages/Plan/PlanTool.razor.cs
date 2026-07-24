@@ -15,6 +15,13 @@ public partial class PlanTool
 {
     [Inject] private HttpClient Http { get; set; } = default!;
 
+    /// <summary>When routed as <c>/maps/{slug}/plan</c>, the plan is a <c>stage=plan</c> map row and the editor
+    /// loads/saves its <c>plan_json</c> artifact (GET/PUT <c>/api/map/{slug}/plan</c>) in place — no fork doctrine.
+    /// Null on the bare <c>/plan-editor</c> route (the generator-candidate pool via <c>/api/plans</c>).</summary>
+    [Parameter] public string? Slug { get; set; }
+
+    private bool MapBacked => Slug is { Length: > 0 };
+
     private ElementReference svgRef, wrapRef, cursorRef;
     private IJSObjectReference? handle;
     private DotNetObjectReference<PlanTool>? selfRef;
@@ -144,8 +151,10 @@ public partial class PlanTool
             traceMaps = all?.Where(m => m.HasSurface).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
         }
         catch { /* picker just stays empty */ }
-        // Hand-off from the generator ("Open in plan editor"): ?plan=<id> loads that stored plan.
-        if (PlanIdFromQuery() is { } planId) await LoadFromDb(planId);
+        // A map-backed plan (/maps/{slug}/plan) loads its artifact; the bare route honours the generator
+        // hand-off (?plan=<id> loads that candidate).
+        if (MapBacked) await LoadFromMap(Slug!);
+        else if (PlanIdFromQuery() is { } planId) await LoadFromDb(planId);
         StateHasChanged();
     }
 
@@ -389,6 +398,13 @@ public partial class PlanTool
         try
         {
             var planJson = await handle.InvokeAsync<string>("exportJson");
+            // A map-backed plan mutates its artifact in place — it is already the authored map row, no forking.
+            if (MapBacked)
+            {
+                using var mapResp = await Http.PutAsync($"api/map/{Slug}/plan", new StringContent(planJson, Encoding.UTF8, "application/json"));
+                saveState = mapResp.IsSuccessStatusCode ? "Saved" : $"Save failed (HTTP {(int)mapResp.StatusCode}).";
+                return;
+            }
             using var resp = await Http.PostAsJsonAsync("api/plans", new PlanSaveRequest(planJson, planDbId));
             if (resp.IsSuccessStatusCode)
             {
@@ -436,6 +452,27 @@ public partial class PlanTool
             showOpenDb = false;
         }
         catch { dbError = "Could not open the plan."; }
+        StateHasChanged();
+    }
+
+    // Load a map-backed plan's artifact (GET /api/map/{slug}/plan). An empty {} body means the map has no
+    // stored plan yet — a fresh blank plan; the editor keeps its default doc rather than importing garbage.
+    private async Task LoadFromMap(string slug)
+    {
+        if (handle is null) return;
+        importError = null;
+        try
+        {
+            var json = await Http.GetStringAsync($"api/map/{slug}/plan");
+            if (!string.IsNullOrWhiteSpace(json) && json.Trim() != "{}")
+            {
+                var err = await handle.InvokeAsync<string?>("importJson", json);
+                if (err is not null) { importError = err; return; }
+            }
+            SyncMeta(await handle.InvokeAsync<string>("getMeta"));
+            sel = null;
+        }
+        catch { importError = "Could not open the plan."; }
         StateHasChanged();
     }
 
