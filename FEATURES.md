@@ -202,6 +202,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `/` landing) and `EditorLayout`→`StudioLayout` (it wraps all 11 pages, not just the editor). Routes,
   cascades (`ConfigureTool Wizard`), and `App.razor`'s `DefaultLayout` updated; class rename only, no
   behaviour change. Entry-page naming (`SketchCreate`/`ConfigureLanding`) deferred. (C26)
+- **Identity phase label unified + Sketch on the phase model** — the identity surface is **`Identity`**
+  everywhere (Configure `Map Info`/Edit `Overview` → `IdentityPhase`). The Sketch tool became a phase host:
+  an **`Info`** phase with `Identity` (editable name + username-verified **authors**, via the shared
+  `AuthorsEditor` + the map-metadata endpoint — sketches are map rows) and `Settings` (symmetry) steps,
+  plus a **`Draw`** phase (the canvas, kept mounted/hidden across phase switches). The canvas **auto-grows
+  to the drawn content** (plan-editor model — bounds = content + a one-chunk buffer, min 64×64, snapped to
+  chunk lines), fixing the old fixed-frame that didn't grow; footprint/size presets are gone (the exported
+  world was always the tight content bounds). The `/maps/new-sketch` creation page is removed — **New
+  sketch** creates an untitled draft and opens it on `Info` (`?phase=info`) to name it. Verified end-to-end
+  with a Playwright harness against the running app. (C27)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

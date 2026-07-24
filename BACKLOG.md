@@ -61,20 +61,19 @@ Shared infra for **both** the Configure wizard (`/maps/{id}/configure`) and the 
 (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting (serve both surfaces); `C9`/`C11`
 are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
-- [ ] **C27 — Tool-entry & identity consistency (phase model for all four tools).** Spec:
-  `docs/contracts/tool-consistency.md`. Make how a user *starts* and where **identity + settings** live
-  consistent across Configure/Edit/Sketch/Plan. Adopt the phase model everywhere (retire the standalone
-  creation pages): the identity+settings surface becomes a full-page phase you can return to via the rail,
-  leaving the canvas as a focus area. Slices: (1) unify the identity label to **`Identity`** (rename
-  Configure `Map Info`/`InfoPhase` + Edit `Overview`/`OverviewPhase`); (2) give Sketch & Plan an **`Info`**
-  phase with `Identity` + `Settings` steps and a separate **`Draw`** phase (the canvas); move Plan's
-  name/globals out of the foldable sidebar into `Info` — but keep Reference/overlays on the `Draw` canvas
-  (drawing-time aids); (3) make the display **name editable** in-tool (ID stays stable — fixes the frozen
-  sketch name); (4) **authors on every tool, username-verified** — reuse the author-row component; Sketch &
-  Plan get **authors only** (no contributors), Configure/Edit keep both; store authors per-tool for now
-  (shared map-identity record deferred). Configure keeps its conditional **`Import`** phase-zero
-  (paste-link *or* pick-folder), skipped when the world is already imported. Collapsible side-panels as an
-  app-wide pattern are explicitly out of scope (later).
+- [~] **C27 — Tool-entry & identity consistency: Plan slice + Configure Import remain.** Spec:
+  `docs/contracts/tool-consistency.md`. The `Identity` label unify and the **full Sketch migration**
+  shipped (phase host, `Info`[Identity+Settings]+`Draw`, editable name + verified authors, auto-growing
+  canvas, no creation page — see `FEATURES.md`). Remaining:
+  - **Plan** — turn `PlanTool` into a phase host (`Info`[Identity+Settings] + `Draw`); move plan name +
+    cell/surface globals out of the foldable sidebar into `Info`, keep Reference/overlays on the `Draw`
+    canvas. Plans need their **own author home** (a plan record field — sketches reuse the map-metadata
+    endpoint, plans don't); wire authors (author-only, username-verified) via the shared `AuthorsEditor`.
+  - **Configure/Edit** keep their existing phases; only the conditional **`Import`** phase-zero
+    (paste-link *or* pick-folder, skipped when the world is already imported) remains to build.
+  - Follow-ups: auto-discard empty untitled sketch drafts (created on "New sketch" click); migrate
+    Edit/Configure's inline author blocks to the shared `AuthorsEditor`. Collapsible side-panels as an
+    app-wide pattern stay out of scope (later).
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only

@@ -40,7 +40,11 @@ Notes:
   `Settings` step inside an **`Info`** phase.
 - **`Info` phase steps** (Sketch/Plan):
   - `Identity` — display **name** + **author(s)**.
-  - `Settings` — the tool's technical globals (symmetry/rotation, board/cell size, surface, etc.).
+  - `Settings` — the tool's technical globals. **No footprint/size**: the canvas **auto-grows to the
+    drawn content** (the plan-editor model — bounds = content + a one-chunk buffer, min 64×64), so for
+    Sketch `Settings` is **symmetry only** (mode + centre). The exported world is the tight content
+    bounds (the rasterizer already derives it from the shapes, never a frame). Plan keeps its cell/surface
+    globals here.
 - The **drawing canvas is its own phase** (`Draw`) in Sketch and Plan — the focus area.
 - **Reference & overlays stay on the canvas** (the `Draw` phase), *not* in `Settings` — they are
   aids the user toggles *while drawing*, not configuration set once up front.
