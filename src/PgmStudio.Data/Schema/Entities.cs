@@ -15,8 +15,10 @@ public sealed class MapRow
     [Column("gamemode")] public string? Gamemode { get; set; }
     [Column("objective")] public string? Objective { get; set; }
     [Column("max_build_height")] public double? MaxBuildHeight { get; set; }
-    // Lifecycle stage: sketch | configure | edit (see Contracts.MapStage). Drives the staged dashboard.
+    // Lifecycle stage: plan | sketch | configure | edit (see Contracts.MapStage). Drives the staged dashboard.
     [Column("stage"), NotNull] public string Stage { get; set; } = "edit";
+    // For a stage=plan map authored from a generator candidate: the source `plan` row id (provenance).
+    [Column("plan_source_id")] public long? PlanSourceId { get; set; }
     [Column("created_at")] public DateTime CreatedAt { get; set; }
     [Column("updated_at")] public DateTime UpdatedAt { get; set; }
 }
@@ -383,6 +385,11 @@ public static class ArtifactKind
     // sidecars it lives outside the entity-replace codec. A draft map with this artifact but no
     // layer_parquet is a sketch-in-progress; "finish" rasterizes it into the geometry artifacts (S2e).
     public const string SketchLayoutJson = "sketch_layout_json";
+    // Plan tool authoring source (docs/contracts/plan-as-map.md): the plan blob (cell-grid layout +
+    // globals) for a map at stage=plan. Like the sketch layout it lives outside the entity-replace codec.
+    // An authored plan is a map row with this artifact; the map's plan_source_id links back to the
+    // generator `plan` candidate it was authored from.
+    public const string PlanJson = "plan_json";
     // The Douglas-Peucker simplified island outlines of an EXISTING map, in the sketch layout format
     // (one "add" polygon per island + a "subtract" per hole). Derived from islands_json — distinct from the
     // authored SketchLayoutJson so it neither re-stages the map to Sketch nor clobbers a real draft sketch.

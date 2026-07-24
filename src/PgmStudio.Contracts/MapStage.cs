@@ -9,9 +9,10 @@ namespace PgmStudio.Contracts;
 /// </summary>
 public static class MapStage
 {
+    public const string Plan = "plan";
     public const string Sketch = "sketch";
     public const string Configure = "configure";
     public const string Edit = "edit";
 
-    public static bool IsValid(string? stage) => stage is Sketch or Configure or Edit;
+    public static bool IsValid(string? stage) => stage is Plan or Sketch or Configure or Edit;
 }
