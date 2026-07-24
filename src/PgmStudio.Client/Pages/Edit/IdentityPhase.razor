@@ -36,27 +36,7 @@
         </Field>
       </Section>
 
-      <Section Title="Authors">
-        <Actions>
-          <Button OnClick="() => AddPerson(authors)">+ Add</Button>
-        </Actions>
-        <ChildContent>
-          <div class="author-list">
-            @foreach (var p in authors) { @PersonRow(p, authors) }
-          </div>
-        </ChildContent>
-      </Section>
-
-      <Section Title="Contributors">
-        <Actions>
-          <Button OnClick="() => AddPerson(contributors)">+ Add</Button>
-        </Actions>
-        <ChildContent>
-          <div class="author-list">
-            @foreach (var p in contributors) { @PersonRow(p, contributors) }
-          </div>
-        </ChildContent>
-      </Section>
+      <AuthorsEditor Authors="authors" Contributors="contributors" OnChanged="Dirty" />
 
       <Section>
         <div class="panel-actions">
@@ -67,23 +47,3 @@
   </ContentColumn>
 </Workspace>
 </div>
-
-@code {
-    // PersonRow stays here because it is a Razor markup template; the phase.s state and logic
-    // live in IdentityPhase.razor.cs.
-    private RenderFragment PersonRow(Person p, List<Person> list) => __builder =>
-    {
-        <div class="author-row">
-            <img class="author-avatar" width="16" height="16" alt=""
-                 src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
-            <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
-                   placeholder="Minecraft username" title="@(p.Error ? "Player not found" : p.Uuid)"
-                   value="@p.Name"
-                   @oninput="e => { p.Name = e.Value?.ToString() ?? string.Empty; Dirty(); }"
-                   @onblur="() => ResolveName(p)" />
-            <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"
-                   value="@p.Contribution" @oninput="e => { p.Contribution = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
-            <button class="btn-remove" title="Remove" @onclick="() => RemovePerson(list, p)">✕</button>
-        </div>
-    };
-}

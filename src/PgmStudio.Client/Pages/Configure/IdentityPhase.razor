@@ -30,51 +30,7 @@
       </div>
     </Section>
 
-    <Section Title="Authors" Required>
-      <Actions><Button OnClick="AddAuthor">+ Add</Button></Actions>
-      <ChildContent>
-        <div class="author-list">
-          @foreach (var p in authors) { @PersonRow(p) }
-        </div>
-        <p class="section-desc">At least one verified author is required. Usernames are checked against
-          Mojang when you leave the field.</p>
-      </ChildContent>
-    </Section>
-
-    <Section Title="Contributors">
-      <Actions><Button OnClick="AddContributor">+ Add</Button></Actions>
-      <ChildContent>
-        @if (contributors.Count == 0)
-        {
-          <p class="section-desc">Optional — people who helped but aren't lead authors.</p>
-        }
-        else
-        {
-          <div class="author-list">
-            @foreach (var p in contributors) { @PersonRow(p) }
-          </div>
-        }
-      </ChildContent>
-    </Section>
+    <AuthorsEditor Authors="authors" Contributors="contributors" OnChanged="Sync" />
 
   </ContentColumn>
 </Workspace>
-
-@code {
-  // One author/contributor row: avatar head (mc-heads, via the resolved uuid) · username field · remove.
-  // Markup template, so it lives here rather than the code-behind. Mirrors the Edit Identity phase's row.
-  private RenderFragment PersonRow(Person p) => __builder =>
-  {
-    <div class="author-row">
-      <img class="author-avatar" width="16" height="16" alt=""
-           src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
-      <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
-             placeholder="Minecraft username" spellcheck="false"
-             title="@(p.Error ? "No Minecraft account with this username" : p.Uuid)"
-             value="@p.Name" @oninput="e => OnInput(p, e)" @onblur="() => ResolveName(p)" />
-      <input class="field-input author-contribution" type="text" placeholder="Contribution (optional)"
-             value="@p.Contribution" @oninput="e => OnContribution(p, e)" />
-      <button class="btn-remove" title="Remove" @onclick="() => Remove(p)"><i data-lucide="x"></i></button>
-    </div>;
-  };
-}

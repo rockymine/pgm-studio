@@ -2,11 +2,13 @@ using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Pages.Edit;
 
-// The PersonRow markup template stays in IdentityPhase.razor (it is Razor markup); all the
-// state and behaviour for the Identity phase lives here in the code-behind partial.
+// Identity phase state + behaviour (the markup lives in IdentityPhase.razor). The author rows + their
+// username resolution are delegated to the shared AuthorsEditor; this phase owns load/save against the
+// map metadata endpoint.
 public partial class IdentityPhase
 {
     [Parameter] public string Slug { get; set; } = "";
@@ -16,10 +18,6 @@ public partial class IdentityPhase
     [Parameter] public EventCallback OnPrevPhase { get; set; }
     [Parameter] public EventCallback OnNextPhase { get; set; }
 
-    private const string AvatarEmpty = "data:image/gif;base64,R0lGODlhEAAQAAAAACwAAAAAEAAQAAABEIQBADs=";
-
-    private sealed class Person { public string Uuid = ""; public string Name = ""; public string Contribution = ""; public bool Error; }
-
     private string name = "", version = "", objective = "";
 
     /// <summary>The map's gamemodes, derived server-side from its objective modules. Read-only here:
@@ -27,8 +25,8 @@ public partial class IdentityPhase
     private string[] gamemodes = [];
 
     private string GamemodeLabel => string.Join(" · ", gamemodes.Select(g => g.ToUpperInvariant()));
-    private readonly List<Person> authors = new();
-    private readonly List<Person> contributors = new();
+    private readonly List<AuthorRow> authors = new();
+    private readonly List<AuthorRow> contributors = new();
     private bool dirty;
     private string? saveStatus;
 
@@ -46,54 +44,19 @@ public partial class IdentityPhase
             if (doc.TryGetProperty("authors", out var arr) && arr.ValueKind == JsonValueKind.Array)
                 foreach (var a in arr.EnumerateArray())
                 {
-                    var p = new Person { Uuid = Str(a, "uuid"), Name = Str(a, "name"), Contribution = Str(a, "contribution") };
+                    var p = new AuthorRow { Uuid = Str(a, "uuid"), Name = Str(a, "name"), Contribution = Str(a, "contribution") };
                     (Str(a, "role") == "contributor" ? contributors : authors).Add(p);
                 }
             dirty = false; saveStatus = null;
             await ReportStatus();
-            // Resolve any stored uuid that has no cached name → fill the display name (best-effort).
-            foreach (var p in authors.Concat(contributors).Where(p => p.Uuid.Length > 0 && p.Name.Length == 0))
-                _ = ResolveByUuid(p);
         }
         catch { saveStatus = "Failed to load."; }
-    }
-
-    /// <summary>Resolve a stored uuid to its current username for display (does not mark dirty).</summary>
-    private async Task ResolveByUuid(Person p)
-    {
-        try
-        {
-            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?uuid={Uri.EscapeDataString(p.Uuid)}");
-            p.Name = Str(r, "name");
-            StateHasChanged();
-        }
-        catch { /* leave the uuid showing if Mojang is unreachable / renamed-away */ }
-    }
-
-    /// <summary>On blur of a name field: look the typed value up via Mojang, storing the canonical
-    /// uuid (the persisted identity) and the resolved name. Clears the uuid + flags an error on miss.</summary>
-    private async Task ResolveName(Person p)
-    {
-        var val = p.Name.Trim();
-        if (val.Length == 0) { p.Uuid = ""; p.Error = false; return; }
-        var isUuid = val.Contains('-') && val.Length > 30;
-        var q = isUuid ? $"uuid={Uri.EscapeDataString(val)}" : $"name={Uri.EscapeDataString(val)}";
-        try
-        {
-            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?{q}");
-            p.Uuid = Str(r, "uuid"); p.Name = Str(r, "name"); p.Error = false;
-        }
-        catch { p.Uuid = ""; p.Error = true; }
-        Dirty(); StateHasChanged();
     }
 
     private static string Str(JsonElement e, string key)
         => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
 
     private void Dirty() { dirty = true; saveStatus = null; }
-
-    private void AddPerson(List<Person> list) { list.Add(new Person()); Dirty(); }
-    private void RemovePerson(List<Person> list, Person p) { list.Remove(p); Dirty(); }
 
     private async Task Save()
     {
@@ -112,7 +75,7 @@ public partial class IdentityPhase
         StateHasChanged();
     }
 
-    private static Dictionary<string, object?> Author(Person p, string role) => new()
+    private static Dictionary<string, object?> Author(AuthorRow p, string role) => new()
     {
         ["uuid"] = p.Uuid, ["name"] = p.Name, ["role"] = role, ["contribution"] = p.Contribution,
     };

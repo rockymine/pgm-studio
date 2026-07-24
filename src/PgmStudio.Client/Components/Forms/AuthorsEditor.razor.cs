@@ -32,9 +32,11 @@ public partial class AuthorsEditor
 
     protected override void OnParametersSet()
     {
-        // Fill display names for rows loaded with a stored uuid but no cached name (best-effort).
-        foreach (var p in All().Where(p => p.Uuid.Length > 0 && p.Name.Length == 0 && nameResolved.Add(p)))
-            _ = ResolveByUuid(p);
+        // Fill the missing half of each loaded row (best-effort, once per row): a stored uuid without a
+        // cached name resolves uuid → name; a stored name without a uuid resolves name → uuid so its head
+        // shows. Covers both persisted shapes (uuid-bearing metadata rows, name-only intent rows).
+        foreach (var p in All().Where(p => !p.Error && p.Name.Length > 0 != p.Uuid.Length > 0 && nameResolved.Add(p)))
+            _ = p.Uuid.Length > 0 ? ResolveByUuid(p) : ResolveByName(p);
     }
 
     private void Add(List<AuthorRow> list) { list.Add(new AuthorRow()); NotifyChanged(); }
@@ -52,6 +54,19 @@ public partial class AuthorsEditor
             StateHasChanged();
         }
         catch { /* leave the uuid showing if Mojang is unreachable / renamed-away */ }
+    }
+
+    /// <summary>Resolve a stored name to its uuid so the head shows (rows persisted name-only, e.g. an
+    /// intent meta slice). Best-effort — does not raise OnChanged or flag an error on a miss.</summary>
+    private async Task ResolveByName(AuthorRow p)
+    {
+        try
+        {
+            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?name={Uri.EscapeDataString(p.Name.Trim())}");
+            p.Uuid = Str(r, "uuid"); p.Name = Str(r, "name");
+            StateHasChanged();
+        }
+        catch { /* no head until the user re-enters the name; not an error state on load */ }
     }
 
     /// <summary>On blur: look the typed value up via Mojang, storing the canonical uuid (the persisted
