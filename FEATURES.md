@@ -223,6 +223,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   world was always the tight content bounds). The `/maps/new-sketch` creation page is removed — **New
   sketch** creates an untitled draft and opens it on `Info` (`?phase=info`) to name it. Verified end-to-end
   with a Playwright harness against the running app. (C27)
+- **Shared `AuthorsEditor` across every tool + abandoned-draft cleanup** — the Edit and Configure Identity
+  phases dropped their duplicated author/contributor rows + Mojang resolution for the shared `AuthorsEditor`
+  (the Sketch Info phase already used it), so all tools credit authors identically; each phase keeps only
+  its own load/save (Edit → map metadata, Configure → the intent meta slice, verified-only). `AuthorsEditor`
+  now resolves a row either way — stored uuid → name **or** stored name → uuid — so a name-only row (the
+  Configure intent's shape) shows its head on load. And a **New sketch** draft left untouched is auto-discarded
+  (`DELETE /api/map/{slug}/sketch/discard-if-empty`, called on the tool's dispose) when still pristine —
+  sketch stage, default name, no authors, no shapes — so an abandoned click no longer litters the dashboard.
+  Verified: curl (discard keeps renamed/drawn drafts) + Playwright (leave an empty draft → gone). (C27)
 - **Spawn-protection rendering on the Teams canvas** — protection regions (the `subtype == "protection"`
   facet from the C16 spawn split) surface in a dedicated "Spawn Protection" section and render on the
   spawn-filtered Teams canvas, not just point spawns. (C18)

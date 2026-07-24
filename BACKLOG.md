@@ -73,9 +73,9 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
     bare `/plan-editor` candidate route keeps its lightweight toolbar — the phase host is the map path.)
   - **Configure/Edit** keep their existing phases; only the conditional **`Import`** phase-zero
     (paste-link *or* pick-folder, skipped when the world is already imported) remains to build.
-  - Follow-ups: auto-discard empty untitled sketch drafts (created on "New sketch" click); migrate
-    Edit/Configure's inline author blocks to the shared `AuthorsEditor`. Collapsible side-panels as an
-    app-wide pattern stay out of scope (later).
+  - Follow-ups (auto-discard empty untitled sketch drafts; migrate Edit/Configure's inline author blocks
+    to the shared `AuthorsEditor`) **shipped** — see `FEATURES.md`. Collapsible side-panels as an app-wide
+    pattern stay out of scope (later).
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
