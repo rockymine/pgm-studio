@@ -31,7 +31,7 @@ public partial class Maps
                 var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
                 if (created.TryGetProperty("slug", out var s) && s.GetString() is { Length: > 0 } slug)
                 {
-                    Nav.NavigateTo($"maps/{slug}/plan");
+                    Nav.NavigateTo($"maps/{slug}/plan?phase=info");
                     return;
                 }
             }

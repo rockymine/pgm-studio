@@ -830,6 +830,9 @@ body.dashboard-page { overflow: hidden; }
 /* Overlays section (settings panel) — the derived-structure visibility toggles, wrapped. */
 .plan-overlay-toggles { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 
+/* Draw-phase sidebar (map-backed plans) — the Settings/Validation panel switch, atop the panel body. */
+.plan-panel-switch { display: flex; gap: var(--space-1); margin-bottom: var(--space-3); }
+
 /* Role colour swatch — the piece fill colour, passed in via the --role-color custom property. */
 .plan-role-swatch {
   width: 12px;

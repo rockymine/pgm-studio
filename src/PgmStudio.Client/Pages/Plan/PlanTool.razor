@@ -13,6 +13,26 @@
 
 <StudioShell>
   <Bar>
+    @if (MapBacked)
+    {
+    <Topbar HomeHref="maps?stage=plan" HomeLabel="Plans" HomeTitle="Back to plans">
+      <Crumbs>
+        <Crumb>@Slug!.Replace('-', ' ')</Crumb>
+        <Crumb Dim>Plan</Crumb>
+      </Crumbs>
+      <Right>
+        @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
+        @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
+        <Button OnClick="ExportPlan" Title="Download this plan as *.plan.json">Export</Button>
+        <Button OnClick="SavePlan" Disabled="@saving" Title="Save this plan">@(saving ? "Saving…" : "Save")</Button>
+        <Button Variant="primary" OnClick="OpenCompile" Title="Compile the plan into a layout + intent, then create a draft">
+          <i data-lucide="play"></i> Compile
+        </Button>
+      </Right>
+    </Topbar>
+    }
+    else
+    {
     <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
       <Crumbs><Crumb Dim>Plan editor</Crumb></Crumbs>
       <Right>
@@ -32,19 +52,54 @@
         </Button>
       </Right>
     </Topbar>
+    }
   </Bar>
   <Rail>
     <NavRail LogoHref="/" LogoTitle="Studio home">
-      <NavButton Icon="sliders-horizontal" Title="Settings" Active="@(leftPanel == "settings" && leftOpen)" OnClick='() => SelectActivity("settings")' />
-      <NavButton Icon="shield-check" Title="Validation — evaluator score &amp; fired rules" Active="@(leftPanel == "validation" && leftOpen)" OnClick='() => SelectActivity("validation")' />
+      @if (MapBacked)
+      {
+        <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
+        <NavButton Icon="pencil-ruler" Title="Draw" Active="@(!InfoActive)" OnClick="GoDraw" />
+      }
+      else
+      {
+        <NavButton Icon="sliders-horizontal" Title="Settings" Active="@(leftPanel == "settings" && leftOpen)" OnClick='() => SelectActivity("settings")' />
+        <NavButton Icon="shield-check" Title="Validation — evaluator score &amp; fired rules" Active="@(leftPanel == "validation" && leftOpen)" OnClick='() => SelectActivity("validation")' />
+      }
     </NavRail>
   </Rail>
   <ChildContent>
+      @if (InfoActive)
+      {
+        <PlanInfoPhase Slug="@Slug" OnNext="GoDraw"
+                       Name="@planName" Symmetry="@symmetry" Cell="cell" Surface="surface"
+                       SurfaceStep="surfaceStep" Headroom="headroom" MaxPlayers="maxPlayers"
+                       OnNameChanged="OnNameChanged" OnSymmetryChanged="OnSymmetryChanged"
+                       OnCellChanged="OnCell" OnSurfaceChanged="OnSurface" OnSurfaceStepChanged="OnSurfaceStep"
+                       OnHeadroomChanged="OnHeadroom" OnMaxPlayersChanged="OnMaxPlayers" />
+      }
+      @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info
+         on a map-backed plan; SetPhase re-measures the canvas on return. The bare route has no Info phase. *@
+      <div class="phase-body" hidden="@DrawHidden">
+      @if (MapBacked)
+      {
+        <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
+                 BackEnabled="true" NextLabel="Compile" OnBack="GoInfo" OnNext="OpenCompile" />
+      }
       <Workspace>
-        @if (leftOpen)
+        @if (SidebarOpen)
         {
         <Sidebar>
+            @if (MapBacked)
+            {
+            <div class="plan-panel-switch">
+              <Chip Active="@(leftPanel == "settings")" OnClick='() => SetPanel("settings")'>Settings</Chip>
+              <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Validation</Chip>
+            </div>
+            }
             @if (leftPanel == "settings")
+            {
+            @if (!MapBacked)
             {
             <Section>
               <Field Label="Plan name">
@@ -78,6 +133,7 @@
                 <NumberField Value="maxPlayers" ValueChanged="OnMaxPlayers" Min="2" Step="2" />
               </Field>
             </Section>
+            }
 
             <Section Title="Reference">
               <Field Label="Trace over map">
@@ -312,6 +368,7 @@
             </Section>
       </Inspector>
       </Workspace>
+      </div>
 
   <SideDrawer Open="showCompile" Title="Compile & test" Icon="play" OnClose="CloseCompile">
     <Body>

@@ -22,6 +22,30 @@ public partial class PlanTool
 
     private bool MapBacked => Slug is { Length: > 0 };
 
+    // ── Phases (rail, map-backed plans only): Info (Identity + Settings steps) · Draw (the canvas). Draw
+    //    stays mounted while Info is up (hidden, not torn down) so the plan doc + zoom survive the trip. The
+    //    bare /plan-editor candidate route has no phase host — it stays on the Draw workspace. ──
+    [SupplyParameterFromQuery] public string? Phase { get; set; }
+    private string active = "draw";
+    private bool InfoActive => MapBacked && active == "info";
+    // The Draw workspace stays mounted; it's hidden (not removed) only while a map-backed plan is on Info.
+    private bool DrawHidden => MapBacked && active != "draw";
+    // Map-backed Draw always shows its sidebar (part of the workspace); the bare route folds it via the rail.
+    private bool SidebarOpen => MapBacked || leftOpen;
+    private Task GoInfo() => SetPhase("info");
+    private Task GoDraw() => SetPhase("draw");
+
+    // A blank map-backed plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.
+    protected override void OnInitialized() { if (Phase == "info") active = "info"; }
+
+    private async Task SetPhase(string p)
+    {
+        active = p;
+        // The canvas was display:none on Info; nudge a resize so its <svg> re-reads the viewport size
+        // (preserves zoom/pan — only re-measures), mirroring the Sketch tool's return-to-Draw.
+        if (p == "draw" && handle is not null) { try { await handle.InvokeVoidAsync("resize"); } catch { } }
+    }
+
     private ElementReference svgRef, wrapRef, cursorRef;
     private IJSObjectReference? handle;
     private DotNetObjectReference<PlanTool>? selfRef;
@@ -78,6 +102,15 @@ public partial class PlanTool
         else
             (leftPanel, leftOpen) = (which, true);
         if (handle is not null) await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation");
+    }
+
+    // Map-backed Draw: an in-sidebar switch between the Settings (reference + overlays) and Validation
+    // panels — the rail is phases, not activities, so the panel toggle moves into the sidebar. No collapse
+    // (the sidebar is part of the Draw workspace); the violations layer follows the Validation panel.
+    private async Task SetPanel(string which)
+    {
+        leftPanel = which;
+        if (handle is not null) await handle.InvokeVoidAsync("setOverlay", "violations", leftPanel == "validation");
     }
 
     // Globals mirrored from the plan document (the JS bridge is the source of truth; these drive the form).
@@ -279,9 +312,12 @@ public partial class PlanTool
 
     // ── globals form ─────────────────────────────────────────────────────────────
 
-    private async Task OnName(ChangeEventArgs e)
+    private Task OnName(ChangeEventArgs e) => OnNameChanged(e.Value?.ToString() ?? "Untitled plan");
+
+    // Value-typed entry points shared by the Info phase (map-backed) and the bare-route sidebar controls.
+    private async Task OnNameChanged(string v)
     {
-        planName = e.Value?.ToString() ?? "Untitled plan";
+        planName = v;
         if (handle is not null) await handle.InvokeVoidAsync("setName", planName);
     }
 
@@ -295,9 +331,11 @@ public partial class PlanTool
     /// </summary>
     private bool ObjectivesOfferable => Symmetry.Order(symmetry) == 2;
 
-    private async Task OnSymmetry(ChangeEventArgs e)
+    private Task OnSymmetry(ChangeEventArgs e) => OnSymmetryChanged(e.Value?.ToString() ?? "rot_180");
+
+    private async Task OnSymmetryChanged(string v)
     {
-        symmetry = e.Value?.ToString() ?? "rot_180";
+        symmetry = v;
         // Leaving a hidden tool armed would let the next click place a marker the plan may not carry.
         if (!ObjectivesOfferable && tool is "destroyable" or "core") await PickTool("select");
         if (handle is not null) await handle.InvokeVoidAsync("setGlobal", "symmetry", symmetry);
@@ -470,6 +508,19 @@ public partial class PlanTool
                 if (err is not null) { importError = err; return; }
             }
             SyncMeta(await handle.InvokeAsync<string>("getMeta"));
+            // The map row's name (metadata) is authoritative for a map-backed plan — the Info phase saves a
+            // rename there, not into the plan artifact. Sync the doc's name from it so the rename survives a
+            // reload even though the artifact wasn't re-saved; a later plan-save then persists it into the doc.
+            try
+            {
+                var meta = await Http.GetFromJsonAsync<JsonElement>($"api/map/{slug}");
+                if (meta.TryGetProperty("name", out var n) && n.GetString() is { Length: > 0 } metaName && metaName != planName)
+                {
+                    planName = metaName;
+                    await handle.InvokeVoidAsync("setName", planName);
+                }
+            }
+            catch { /* metadata unreachable — keep the doc's name */ }
             sel = null;
         }
         catch { importError = "Could not open the plan."; }
