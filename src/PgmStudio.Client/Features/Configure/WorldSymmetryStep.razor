@@ -1,0 +1,81 @@
+@namespace PgmStudio.Client.Features.Configure
+
+@* World · Symmetry step: the detected symmetry is confirmed by default; the author clicks another mode
+   (or "none") to change it. The choice is the World intent slice (intent.symmetry); the canvas shows the
+   axis/centre overlay over the island base layer. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Symmetry">
+        <p class="section-desc">Confirm the detected symmetry, pick another, or reject it — it seeds your
+          team count and mirrors one team's setup onto the rest.</p>
+        <div class="panel-list">
+          @foreach (var m in Choices)
+          {
+            <ListRow Compact Selected="selectedType == m.Type"
+                 @key="m.Type" OnClick="() => Select(m.Type)">
+              <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
+              <Badge Class="@(m.Confidence >= 0.999 ? "badge--success" : "badge--neutral")">@m.Confidence.ToString("P0")</Badge>
+              @if (m.Type == primaryType) { <Badge Kind="dim">detected</Badge> }
+            </ListRow>
+          }
+          <ListRow Compact Selected="selectedType is null"
+               @key="@("none")" OnClick="() => Select(null)">
+            <span class="list-label">No symmetry</span>
+          </ListRow>
+        </div>
+      </Section>
+
+      <Section Title="Centre">
+        <div class="field-row">
+          <Field Label="X">
+            <NumberField Value="centerX" ValueChanged="@(v => OnCenter(v, true))" Step="0.5" disabled="@(selectedType is null)" />
+          </Field>
+          <Field Label="Z">
+            <NumberField Value="centerZ" ValueChanged="@(v => OnCenter(v, false))" Step="0.5" disabled="@(selectedType is null)" />
+          </Field>
+        </div>
+        <p class="section-desc">The point the layout mirrors / rotates about — defaults to the detected
+          centre.</p>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  @* Reused edit canvas in symmetry mode — island base layer + the axis/centre overlay + the Blocks toggle. *@
+  <EditorCanvas @ref="canvas" Slug="@Slug" SymmetryMode="true" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      <Section>
+        <DetailHeader Icon="sparkle" IconMuted Label="Detection summary" />
+        <div class="section-body">
+          <Field Label="Islands">
+            <div class="field-pick-row"><span class="field-value">@islandCount</span></div>
+          </Field>
+          <Field Label="Confirmed symmetry">
+            <div class="field-pick-row"><span class="field-value">@SymmetryInfo.Label(selectedType)</span></div>
+          </Field>
+          <Field Label="Suggested teams">
+            <div class="field-pick-row">
+              @if (SuggestedTeams is { } n)
+              {
+                <Badge Kind="success">@n</Badge>
+                <span class="list-tag">from @selectedType</span>
+              }
+              else
+              {
+                <span class="field-value">—</span>
+                <span class="list-tag">set teams manually</span>
+              }
+            </div>
+          </Field>
+          <p class="section-desc">The rotational/mirror order suggests the team count. You'll confirm it and
+            assign each island's owner next, in Teams.</p>
+        </div>
+      </Section>
+  </Inspector>
+
+</Workspace>

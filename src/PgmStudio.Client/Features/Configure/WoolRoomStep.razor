@@ -1,0 +1,105 @@
+@namespace PgmStudio.Client.Features.Configure
+@using W = PgmStudio.Client.Features.Configure.WoolAuthoring
+
+@* Wools · room: draw the rectangle(s) each wool lives in — a room is a union of rectangles, listed flat
+   (one row per rectangle, authored or orbit) and edited one at a time. The right panel shows coordinates. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Wool rooms">
+        @{ var rows = Rows(); }
+        <p class="section-desc">With the <strong>rectangle tool</strong>, drag the room around a wool's source —
+          draw several for a multi-part room. The symmetry fills the partner wools. Click a rectangle to select
+          it, then drag the handles on the canvas to resize.</p>
+        <div class="panel-list">
+          @if (wools.Count == 0) { <div class="list-empty">No wools — confirm objectives first.</div> }
+          else if (rows.Count == 0) { <div class="list-empty">Nothing drawn yet — drag a rectangle over a wool's source.</div> }
+          @foreach (var row in rows)
+          {
+            <ListRow Compact Selected="selectedRegionId == row.RegionId"
+                 @key="row.RegionId" OnClick="() => SelectRow(row.RegionId)">
+              <span class="list-swatch" style="background:@W.Hex(row.Color)"></span>
+              <span class="geo-type-icon"><i data-lucide="rectangle-horizontal"></i></span>
+              <span class="list-label list-label--mono">@row.Name</span>
+              <Badge Class="@(row.Authored ? "badge--success" : "badge--dim")">@(row.Authored ? "authored" : "orbit")</Badge>
+            </ListRow>
+          }
+        </div>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <EditorCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__wool_room__"
+                OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      @if (Selected is { } sel)
+      {
+        <div class="panel-stack" @key="sel.RegionId">
+          <Section>
+            <DetailHeader Icon="rectangle-horizontal" IconStyle='@($"color:{W.Hex(sel.Color)}")' Mono Label="@sel.Name">
+              <Badge Class="@(sel.Authored ? "badge--success" : "badge--dim")">@(sel.Authored ? "authored" : "orbit")</Badge>
+            </DetailHeader>
+            <div class="section-body">
+              <Field Label="Min">
+                <div class="ctrl-row">
+                  <CoordField Prefix="X" Value="@sel.MinX" ReadOnly tabindex="-1" />
+                  <CoordField Prefix="Z" Value="@sel.MinZ" ReadOnly tabindex="-1" />
+                </div>
+              </Field>
+              <Field Label="Max">
+                <div class="ctrl-row">
+                  <CoordField Prefix="X" Value="@sel.MaxX" ReadOnly tabindex="-1" />
+                  <CoordField Prefix="Z" Value="@sel.MaxZ" ReadOnly tabindex="-1" />
+                </div>
+              </Field>
+              @if (sel.Authored)
+              {
+                <p class="section-desc">Owned by <strong>@TeamName(OwnerSlug(sel.Color))</strong>. Drag the handles
+                  on the canvas to resize. Draw another rectangle over the @sel.Color source to add to its room.</p>
+                <div class="section-footer section-footer--separated">
+                  <Button Variant="danger" Fill OnClick="() => Remove(sel.RegionId)">Remove rectangle</Button>
+                </div>
+              }
+              else
+              {
+                <p class="section-desc">Derived from the authored <strong>@sel.Color</strong> room by symmetry —
+                  edit the authored partner to change it.</p>
+              }
+            </div>
+          </Section>
+
+          @if (sel.Authored)
+          {
+            <Section Title="Auto-wiring">
+              <Actions><Badge Kind="dim">derived</Badge></Actions>
+              <ChildContent>
+              <div class="panel-list">
+                <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">enter = not-@TeamSlug(OwnerSlug(sel.Color))</span><span class="list-tag">room defense</span></ListRow>
+                <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">block = not-@TeamSlug(OwnerSlug(sel.Color))</span><span class="list-tag">build/break</span></ListRow>
+                @if (WoolOf(sel.Color) is { } sw)
+                {
+                  <ListRow Compact Class="list-row--muted"><span class="geo-type-icon"><i data-lucide="link"></i></span><span class="list-label list-label--mono">capture ×@sw.Monuments.Count</span><span class="list-tag">monuments</span></ListRow>
+                }
+              </div>
+              <p class="section-desc">The generator wires defense + build/break on the whole room and capture on
+                the monuments — derived at save.</p>
+              </ChildContent>
+            </Section>
+          }
+        </div>
+      }
+      else
+      {
+        <Section>
+          <DetailHeader Icon="rectangle-horizontal" IconMuted Label="Wool room" />
+          <p class="section-desc">Draw a rectangle over a wool's source, or select one to inspect and resize it.</p>
+        </Section>
+      }
+  </Inspector>
+
+</Workspace>

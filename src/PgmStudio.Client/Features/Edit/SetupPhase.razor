@@ -1,0 +1,114 @@
+@namespace PgmStudio.Client.Features.Edit
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Setup phase — a 2-step confirm flow (Islands → Symmetry) over the reused EditorCanvas (island-select
+   then symmetry overlay — the same canvas the Configure World phase uses). Detection runs on the
+   studio-chosen cleaned base; there is no scan-layer or block-exclusion choice and no world re-scan.
+   Excluding an island recomputes symmetry from the already-detected islands. *@
+
+<div class="phase-body">
+<FlowBar Class="flow-bar--flush" PhaseIcon="settings-2" PhaseTitle="Setup" Steps="@(new[] { "Islands", "Symmetry" })"
+         CurrentStep="@(step - 1)" BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
+         OnStep="@(i => JumpToStep(i + 1))" OnBack="OnFlowBack" OnNext="OnFlowNext" />
+<Workspace>
+  <Sidebar>
+    <ChildContent>
+      @if (step == 1)
+      {
+        <Section Title="Islands">
+          <ChildContent>
+            <p class="section-desc">Exclude islands that are not part of the playable layout (e.g. observer
+              towers). Removing one only re-runs <strong>symmetry detection</strong> — never the scan.</p>
+          </ChildContent>
+        </Section>
+
+        <Section Title="Included Islands">
+          <div class="panel-list">
+            @if (IncludedIslands.Count == 0) { <div class="list-empty">No islands detected.</div> }
+            @foreach (var isl in IncludedIslands)
+            {
+              <ListRow Compact Selected="selectedId == isl.Id"
+                   @key="isl.Id" OnClick="() => Select(isl.Id)">
+                <span class="list-swatch" style="background:#6366f1"></span>
+                <span class="list-label">Island @isl.Id</span>
+                <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
+                <button class="btn-remove btn-remove--hover-only" title="Exclude island"
+                        disabled="@(IncludedIslands.Count <= 1)" @onclick:stopPropagation="true" @onclick="() => ToggleIsland(isl.Id, true)"><i data-lucide="x"></i></button>
+              </ListRow>
+            }
+          </div>
+        </Section>
+
+        <Section Title="Excluded Islands">
+          <div class="panel-list">
+            @if (ExcludedIslandsList.Count == 0) { <div class="list-empty">No islands excluded.</div> }
+            @foreach (var isl in ExcludedIslandsList)
+            {
+              <ListRow Compact Selected="selectedId == isl.Id"
+                   @key="isl.Id" OnClick="() => Select(isl.Id)">
+                <span class="list-swatch" style="background:#6b7280"></span>
+                <span class="list-label">Island @isl.Id</span>
+                <span class="list-tag">@isl.BlockCount.ToString("N0")</span>
+                <button class="btn-remove btn-remove--hover-only" title="Re-include island"
+                        @onclick:stopPropagation="true" @onclick="() => ToggleIsland(isl.Id, false)"><i data-lucide="rotate-ccw"></i></button>
+              </ListRow>
+            }
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section Title="Symmetry">
+          <ChildContent>
+            <p class="section-desc">Confirm the detected symmetry, choose a different one, or reject it.</p>
+            <div class="panel-list">
+              @foreach (var m in symModes)
+              {
+                <ListRow Compact Selected="symChoice == m.Type" OnClick="() => SelectSym(m.Type)">
+                  <span class="list-label">@SymmetryInfo.Label(m.Type)</span>
+                  <Badge Class="@(m.Detected ? "badge--success" : "badge--neutral")">@($"{Math.Round(m.Confidence * 100)}%")</Badge>
+                  @if (m.Detected) { <Badge Kind="dim">detected</Badge> }
+                </ListRow>
+              }
+              <ListRow Compact Selected='symChoice == "none"' OnClick='() => SelectSym("none")'>
+                <span class="list-label">No symmetry</span>
+              </ListRow>
+            </div>
+          </ChildContent>
+        </Section>
+
+        @if (symChoice is not null && symChoice != "none")
+        {
+          <Section Title="Center">
+            <div class="field-row">
+              <Field Label="X">
+                <input class="field-input" type="number" step="0.5" value="@centerX" @oninput="e => OnCenter(e, true)" />
+              </Field>
+              <Field Label="Z">
+                <input class="field-input" type="number" step="0.5" value="@centerZ" @oninput="e => OnCenter(e, false)" />
+              </Field>
+            </div>
+            <Button OnClick="ResetCenter">Reset to detected</Button>
+          </Section>
+        }
+      }
+    </ChildContent>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  @* Reused edit canvas — island-select (step 1) then symmetry overlay (step 2), base layer only. *@
+  @if (step == 1)
+  {
+    <EditorCanvas @ref="islandCanvas" Slug="@Slug" IslandSelect="true"
+                  OnIslandSelect="Select" OnReady="OnIslandCanvasReady" />
+  }
+  else
+  {
+    <EditorCanvas @ref="symCanvas" Slug="@Slug" SymmetryMode="true" OnReady="OnSymCanvasReady" />
+  }
+</Workspace>
+</div>
+
+<Toast Message="@error" />

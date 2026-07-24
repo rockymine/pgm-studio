@@ -31,6 +31,20 @@ That plus a separation of concerns by *kind*:
   it.) Do **not** put algorithms in `Contracts` (the DTO leaf) — `Analysis` can't reference it, which is
   what forced the old duplicate reflect/rotate copy. See `docs/contracts/geometry-consolidation.md`.
 
+**Client (Blazor) folder layout** — three buckets, by role not by "page":
+- **`Pages/`** = standalone **routable** pages only (`Index`, `Maps`, `Design`, `NotFound`) — namespace
+  `PgmStudio.Client.Pages`.
+- **`Features/<Tool>/`** = one **feature bundle** per tool: its routable `*Tool` host (the `@page`) plus that
+  tool's **private** bodies — phases, steps, inspectors, layout (`Configure`/`Edit`/`Sketch`/`Plan`/
+  `Generator`). Folder-matched namespace `PgmStudio.Client.Features.<Tool>`, so a host and its bodies
+  resolve each other with no `@using`. A body used by exactly one tool lives here; a body shared across
+  tools moves to `Components/`. **Component-name altitude**: `*Phase` for a whole phase (single-step, or a
+  phase that hosts its own steps inline), `*Step` for one step of a multi-step phase (see
+  `docs/contracts/tool-consistency.md`).
+- **`Components/`** = the shared, tool-agnostic UI library — deliberately **flat** namespace
+  `PgmStudio.Client.Components` regardless of subfolder, so any atom/shell resolves without per-subfolder
+  usings.
+
 ## Key data decisions
 - **Map contract persistence = hybrid.** Real tables + FKs for entities we list/query/edit
   (map, team, region, filter, wool, monument, spawn, apply_rule, kit…); JSON columns for the

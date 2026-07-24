@@ -1,0 +1,63 @@
+@namespace PgmStudio.Client.Features.Edit
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Build Regions phase — Step 1: max build height with a side-view canvas (drag the line, or type
+   a value) + an X/Z axis toggle; Step 2: build-area region tree + canvas + inspector (delete/rename).
+   Port of build-regions-activity.js (C7 side-view via studio.mountSideview / SideviewCanvas). *@
+
+<div class="phase-body">
+<FlowBar Class="flow-bar--flush" PhaseIcon="pickaxe" PhaseTitle="Build" Steps="@(new[] { "Build height", "Buildable layer" })"
+         CurrentStep="@(step - 1)" BackEnabled="@BackEnabled" NextLabel="Next"
+         OnStep="@(i => step = i + 1)" OnBack="OnFlowBack" OnNext="OnFlowNext" />
+<Workspace>
+  <Sidebar>
+    <ChildContent>
+      @if (step == 1)
+      {
+        <Section Title="Maximum Build Height">
+          <ChildContent>
+            <p class="section-desc">Maximum Y level above which no block placement is permitted. Leave blank to enforce no vertical ceiling.</p>
+            <Field Label="Blocks">
+              <input class="field-input" type="number" min="0" max="255" step="1" placeholder="None"
+                     value="@maxHeight" @onchange="OnHeightInput" />
+            </Field>
+            <div class="panel-actions">
+              <Button Variant="primary" Disabled="@(!heightDirty)" OnClick="SaveHeight">Save</Button>
+              <span class="panel-save-status">@heightStatus</span>
+            </div>
+          </ChildContent>
+        </Section>
+      }
+      else
+      {
+        <Section Title="Build Region">
+          <ChildContent>
+            @if (groups is null) { <div class="list-empty">Loading…</div> }
+            else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selSet" OnSelect="OnTreeSelect" /> }
+          </ChildContent>
+        </Section>
+      }
+    </ChildContent>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  @if (step == 1)
+  {
+    <BuildHeightSideview Slug="@Slug" Height="@ParseHeight(maxHeight)" HeightChanged="OnSideviewHeight" />
+  }
+  else
+  {
+    <EditorCanvas @ref="canvas" Slug="@Slug" Category="build" DrawCategory="build" DraftStep="build" OnSelect="OnCanvasSelect" OnRegionCreated="ReloadBuild" OnGeometrySaved="OnGeometrySaved" />
+    <div class="sidebar-handle"></div>
+    <Inspector>
+        <Section>
+          <RegionInspector Node="RegionNodeSel" Slug="@Slug" OnSelectChild="Select" OnDelete="DeleteRegion" OnRename="RenameRegion" OnSetY="SetRegionY" OnSetCoord="OnSetCoord" />
+        </Section>
+    </Inspector>
+  }
+</Workspace>
+</div>
+
+<Toast Message="@error" />

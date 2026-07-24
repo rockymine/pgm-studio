@@ -1,0 +1,53 @@
+@namespace PgmStudio.Client.Features.Configure
+@using PgmStudio.Client.Layout
+
+@* Shared layout for the new-map Configure wizard + its /maps/new landing: topbar · activity rail
+   (the six phases) · flow bar (phase identity · steps · Back/Next) · a body slot for the
+   three-panel workspace. A parameterized frame (not a Blazor layout directive); the page owns the
+   state machine. See new-map-authoring.md §12. *@
+
+<StudioShell>
+  <Bar>
+    <Topbar HomeHref="maps?stage=configure" HomeLabel="Configuring" HomeTitle="Back to configuring">
+      <Crumbs>
+        <Crumb>@(string.IsNullOrEmpty(MapName) ? "New map" : MapName)</Crumb>
+        @if (!string.IsNullOrEmpty(Crumb))
+        {
+          <Crumb Dim>@Crumb</Crumb>
+        }
+      </Crumbs>
+      <Right>
+        @if (!string.IsNullOrEmpty(SaveStatus))
+        {
+          <span class="topbar-save-status">@SaveStatus</span>
+        }
+      </Right>
+    </Topbar>
+  </Bar>
+  <Rail>
+    <NavRail LogoHref="/maps/new" LogoTitle="New-map landing">
+      @for (var i = 0; i < ConfigurePhases.All.Length; i++)
+      {
+        var p = ConfigurePhases.All[i];
+        // The current phase is never locked — you can walk one step past the slice-derived frontier
+        // (a not-yet-completed phase) and still see where you are; only forward jumps stay gated.
+        var locked = i > Furthest && p.Id != ActivePhaseId;
+        <NavButton Icon="@p.Icon" Title="@p.Title" Active="p.Id == ActivePhaseId"
+                   Status="@(i < Furthest ? "green" : "")" Disabled="locked"
+                   OnClick="() => OnJumpPhase.InvokeAsync(p.Id)" />
+      }
+    </NavRail>
+  </Rail>
+  <ChildContent>
+      <div class="phase-body">
+
+        <FlowBar Class="flow-bar--flush" PhaseIcon="@PhaseIcon" PhaseTitle="@PhaseTitle"
+                 Steps="@Steps" CurrentStep="@CurrentStep" MaxStep="@MaxStep"
+                 BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
+                 OnStep="OnStep" OnBack="OnBack" OnNext="OnNext" />
+
+        @ChildContent
+
+      </div>
+  </ChildContent>
+</StudioShell>

@@ -1,0 +1,127 @@
+@namespace PgmStudio.Client.Features.Edit
+@inject IJSRuntime JS
+
+@* Region detail panel — header (icon/id/type), id, type-specific coords, children list.
+   Read-only port of panels/region-inspector.js (rename/edit wiring comes with the editing activities). *@
+
+@if (Node is null)
+{
+  <p class="panel-empty-msg">Select a region to inspect.</p>
+}
+else
+{
+  <DetailHeader Icon="@RegionNode.Icon(Node.Type)" IconMuted Mono Label='@(string.IsNullOrEmpty(Node.Id) ? Node.Type : Node.Id)'>
+    <Badge Kind="neutral">@Cap(Node.Type)</Badge>
+  </DetailHeader>
+
+  @if (!string.IsNullOrEmpty(Node.Id))
+  {
+    <Field Label="ID">
+      @if (OnRename.HasDelegate)
+      {
+        <input class="field-input" type="text" value="@Node.Id" spellcheck="false" @onchange="OnIdChanged" />
+      }
+      else
+      {
+        <input class="field-input" type="text" value="@Node.Id" readonly tabindex="-1" spellcheck="false" />
+      }
+    </Field>
+  }
+
+  @switch (Node.Type)
+  {
+    case "cuboid":
+      @Field("Min", ("X", "min_x", C("min_x")), ("Y", "min_y", C("min_y")), ("Z", "min_z", C("min_z")))
+      @Field("Max", ("X", "max_x", C("max_x")), ("Y", "max_y", C("max_y")), ("Z", "max_z", C("max_z")))
+      break;
+    case "rectangle":
+      @Field("Min", ("X", "min_x", C("min_x")), ("Z", "min_z", C("min_z")))
+      @Field("Max", ("X", "max_x", C("max_x")), ("Z", "max_z", C("max_z")))
+      break;
+    case "cylinder":
+      @Field("Base", ("X", "base_x", C("base_x")), ("Y", "base_y", C("base_y")), ("Z", "base_z", C("base_z")))
+      @Field("Dimensions", ("R", "radius", C("radius")), ("H", "height", C("height")))
+      break;
+    case "circle":
+      @Field("Center", ("X", "center_x", C("center_x")), ("Z", "center_z", C("center_z")))
+      @Field("Radius", ("R", "radius", C("radius")))
+      break;
+    case "sphere":
+      @Field("Origin", ("X", "origin_x", C("origin_x")), ("Y", "origin_y", C("origin_y")), ("Z", "origin_z", C("origin_z")))
+      @Field("Radius", ("R", "radius", C("radius")))
+      break;
+    case "point":
+    case "block":
+      @Field("Position", ("X", "x", C("x")), ("Y", "y", C("y")), ("Z", "z", C("z")))
+      break;
+    default:
+      @if (Node.Bounds is { } b)
+      {
+        @Field("Min", ("X", "", b.GetValueOrDefault("min_x")), ("Z", "", b.GetValueOrDefault("min_z")))
+        @Field("Max", ("X", "", b.GetValueOrDefault("max_x")), ("Z", "", b.GetValueOrDefault("max_z")))
+      }
+      break;
+  }
+
+  @if (!string.IsNullOrEmpty(Slug) && Node.Type is "point" or "block" or "rectangle")
+  {
+    <SliceView Slug="@Slug" Node="Node" OnYChanged="OnSetY" />
+  }
+
+  @if (OnDelete.HasDelegate && !string.IsNullOrEmpty(Node.Id))
+  {
+    <div class="section-footer section-footer--separated">
+      <Button Variant="danger" Fill OnClick="() => OnDelete.InvokeAsync(Node.Id)">Delete Region</Button>
+    </div>
+  }
+
+  @if (Children() is { Count: > 0 } kids)
+  {
+    <div class="section-header section-header--ruled"><h2 class="section-title">Children</h2></div>
+    <div class="panel-list">
+      @foreach (var kid in kids)
+      {
+        <ListRow Compact OnClick="() => OnSelectChild.InvokeAsync(kid.Id)">
+          <span class="geo-type-icon detail-icon--muted"><i data-lucide="@RegionNode.Icon(kid.Type)"></i></span>
+          <span class="list-label list-label--mono">@(string.IsNullOrEmpty(kid.Id) ? $"({kid.Type})" : kid.Id)</span>
+          <span class="list-tag">@kid.Type</span>
+        </ListRow>
+      }
+    </div>
+  }
+}
+
+@code {
+    // Field stays here because it is a Razor markup template; the inspector logic lives in
+    // RegionInspector.razor.cs.
+    private RenderFragment Field(string label, params (string prefix, string key, object? val)[] cells) => __builder =>
+    {
+        <Field Label="@label">
+            <div class="ctrl-row">
+                @foreach (var (prefix, key, val) in cells)
+                {
+                    <CoordField Prefix="@prefix">
+                        @if (OnSetCoord.HasDelegate && key.Length > 0 && val is double dv && !double.IsInfinity(dv))
+                        {
+                            @* Finite, editable: NumberField enforces the per-key floor (radius/height >= 0). *@
+                            <NumberField Value="dv" ValueChanged="@(v => OnSetCoord.InvokeAsync((key, v)))"
+                                         Min="@MinFor(key)" CssClass="coord-input" />
+                        }
+                        else if (OnSetCoord.HasDelegate && key.Length > 0)
+                        {
+                            @* Non-finite (e.g. "oo" = unbounded radius / full-height column) — keep the plain input
+                               so the infinity stays intact; @key recreates it after a canvas edit. *@
+                            <input @key="@($"{key}:{val}")" class="coord-input" type="number"
+                                   value="@RegionNode.Fmt(val)" @onchange="e => SetCoord(key, e)" />
+                        }
+                        else
+                        {
+                            <input @key="@($"{prefix}:{val}")" class="coord-input" type="number"
+                                   value="@RegionNode.Fmt(val)" readonly tabindex="-1" />
+                        }
+                    </CoordField>
+                }
+            </div>
+        </Field>
+    };
+}

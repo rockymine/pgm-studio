@@ -1,0 +1,67 @@
+@namespace PgmStudio.Client.Features.Plan
+@inject HttpClient Http
+
+@* Plan Info phase — two steps: Identity (display name + authors, saved to the map metadata via
+   GET/PATCH api/map/{slug}, since plans are map rows) and Settings (the plan globals: symmetry mode +
+   cell/surface/headroom/max-players, which drive the live plan document through the host's callbacks).
+   Continue on the last step advances to Draw. *@
+
+<div class="phase-body">
+  <FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Info"
+           Steps="@Steps" CurrentStep="@step"
+           BackEnabled="@(step > 0)" NextLabel="@(step == Steps.Length - 1 ? "Continue" : "Next")"
+           OnStep="@(i => step = i)" OnBack="@(() => step = 0)" OnNext="OnNextStep" />
+  <Workspace>
+    <ContentColumn MaxWidth="720">
+      @if (step == 0)
+      {
+        <Section Title="Plan Identity">
+          <Field Label="Plan name" Required For="pl-name">
+            <input id="pl-name" class="field-input" type="text" placeholder="Untitled plan"
+                   value="@Name" @oninput="OnNameInput" />
+          </Field>
+        </Section>
+
+        <AuthorsEditor Authors="authors" OnChanged="Dirty" />
+
+        <Section>
+          <div class="panel-actions">
+            <Button Variant="primary" Disabled="@(!dirty)" OnClick="Save">Save changes</Button>
+            <span class="panel-save-status">@saveStatus</span>
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section Title="Symmetry &amp; globals">
+          <p class="section-desc">The mirror and grid the plan is built on. Symmetry drives the live preview
+            and the compiled team layout; the surface values set the block heights the compiler generates.</p>
+          <Field Label="Symmetry">
+            <select class="field-input" value="@Symmetry" @onchange="@(e => OnSymmetryChanged.InvokeAsync(e.Value?.ToString() ?? "rot_180"))">
+              <option value="rot_180">Rotate 180°</option>
+              <option value="rot_90">Rotate 90°</option>
+              <option value="mirror_x">Mirror X</option>
+              <option value="mirror_z">Mirror Z</option>
+              <option value="none">None — single unit</option>
+            </select>
+          </Field>
+          <Field Label="Cell size (blocks)">
+            <NumberField Value="Cell" ValueChanged="OnCellChanged" Min="1" />
+          </Field>
+          <Field Label="Base surface (y)">
+            <NumberField Value="Surface" ValueChanged="OnSurfaceChanged" Min="0" />
+          </Field>
+          <Field Label="Surface step (y)">
+            <NumberField Value="SurfaceStep" ValueChanged="OnSurfaceStepChanged" Min="1" />
+          </Field>
+          <Field Label="Headroom">
+            <NumberField Value="Headroom" ValueChanged="OnHeadroomChanged" Min="1" />
+          </Field>
+          <Field Label="Max players">
+            <NumberField Value="MaxPlayers" ValueChanged="OnMaxPlayersChanged" Min="2" Step="2" />
+          </Field>
+        </Section>
+      }
+    </ContentColumn>
+  </Workspace>
+</div>

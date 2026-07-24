@@ -1,0 +1,61 @@
+@namespace PgmStudio.Client.Features.Sketch
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+@* Sketch Info phase — two steps: Identity (display name + authors, saved to the map metadata via
+   GET/PATCH api/map/{slug}, since sketches are map rows) and Settings (symmetry mode + centre, which
+   drive the live canvas through the host's callbacks). Continue on the last step advances to Draw. *@
+
+<div class="phase-body">
+  <FlowBar Class="flow-bar--flush" PhaseIcon="book-open-text" PhaseTitle="Info"
+           Steps="@Steps" CurrentStep="@step"
+           BackEnabled="@(step > 0)" NextLabel="@(step == Steps.Length - 1 ? "Continue" : "Next")"
+           OnStep="@(i => step = i)" OnBack="@(() => step = 0)" OnNext="OnNextStep" />
+  <Workspace>
+    <ContentColumn MaxWidth="720">
+      @if (step == 0)
+      {
+        <Section Title="Map Identity">
+          <Field Label="Map name" Required For="sk-name">
+            <input id="sk-name" class="field-input" type="text" placeholder="My CTW Map"
+                   value="@name" @oninput="e => { name = e.Value?.ToString() ?? string.Empty; Dirty(); }" />
+          </Field>
+        </Section>
+
+        <AuthorsEditor Authors="authors" OnChanged="Dirty" />
+
+        <Section>
+          <div class="panel-actions">
+            <Button Variant="primary" Disabled="@(!dirty)" OnClick="Save">Save changes</Button>
+            <span class="panel-save-status">@saveStatus</span>
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section Title="Symmetry">
+          <p class="section-desc">The mirror used for the live preview while you draw. The map area
+            itself grows to fit what you draw — there's no fixed size to set.</p>
+          <Field Label="Mode">
+            <select class="field-input" value="@Mode" @onchange="OnModeChange">
+              <option value="mirror_x">Mirror X</option>
+              <option value="mirror_z">Mirror Z</option>
+              <option value="rot_180">Rotate 180°</option>
+              <option value="rot_90">Rotate 90°</option>
+            </select>
+          </Field>
+          <Field Label="Centre X">
+            <NumberField Value="CenterX" ValueChanged="OnCenterX" />
+          </Field>
+          <Field Label="Centre Z">
+            <NumberField Value="CenterZ" ValueChanged="OnCenterZ" />
+          </Field>
+        </Section>
+      }
+    </ContentColumn>
+  </Workspace>
+</div>
+
+@code {
+    private static readonly string[] Steps = { "Identity", "Settings" };
+}

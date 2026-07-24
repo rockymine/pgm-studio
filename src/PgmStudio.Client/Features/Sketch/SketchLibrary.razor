@@ -1,0 +1,31 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Shape-library palette — pre-defined geometric primitives grouped by category. Clicking an item arms
+   it for placement (OnArm); the next canvas click drops it. Catalog comes from the JS bridge. *@
+
+<Section Title="Shapes">
+  @if (Items.Count == 0)
+  {
+    <p class="section-desc">Loading…</p>
+  }
+  else
+  {
+    @foreach (var group in Items.GroupBy(i => i.Category))
+    {
+      <div class="lib-group-label">@group.Key</div>
+      <div class="lib-grid">
+        @foreach (var item in group)
+        {
+          <button class="lib-item" title="@($"Place {item.Name} — then click on the canvas")"
+                  @onclick="() => OnArm.InvokeAsync(item.Id)">
+            <svg class="lib-thumb" viewBox="@item.ThumbVB" preserveAspectRatio="xMidYMid meet">
+              <path d="@item.ThumbD" fill-rule="evenodd" />
+            </svg>
+            <span class="lib-name">@item.Name</span>
+          </button>
+        }
+      </div>
+    }
+    <p class="section-desc">Click a shape, then click the canvas to place it (Esc cancels).</p>
+  }
+</Section>

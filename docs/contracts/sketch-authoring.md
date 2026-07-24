@@ -175,7 +175,7 @@ Result: the draft map now has the exact geometry artifacts a scanned/imported ma
 - **S2c — bridge + Blazor pages** 🟡 **Layout + panel landed**: `bridge/sketch-bridge.js` (the JS
   activity: shape list + island recompute loop + arrow-nudge + the panel feed `OnLayout` +
   `OnShapeSelected`/`OnIslandSelected`/`OnDirty`/`OnToolChanged` + the edit commands), `studio.mountSketch`,
-  `Pages/Sketch/SketchEditor.razor(.cs)` at `/maps/{slug}/sketch`, and the tree/inspector — `SketchPanel`
+  `Features/Sketch/SketchTool.razor(.cs)` at `/maps/{slug}/sketch`, and the tree/inspector — `SketchPanel`
   (island→shape tree, selection) + `SketchInspector` (shape op/override/delete, island rename/mirrors +
   shape list), mirroring the Regions tree+inspector split (no context menus / invented CSS). Draw →
   live islands + rot_180 mirror → edit via the panel, all verified in-browser. **Remaining:** the Setup

@@ -157,7 +157,7 @@ Validator lives beside the compiler (`PlanValidator`), pure, unit-tested per rul
 
 ## 5. The editor UI
 
-New page `Pages/Plan/PlanEditor.razor` (+ `js/studio/plan/`), reusing the studio canvas stack
+New page `Features/Plan/PlanTool.razor` (+ `js/studio/plan/`), reusing the studio canvas stack
 (`js/studio/canvas`, `geometry/symmetry.js` for the mirror ghost, `render` layers). Deliberately
 *not* a sketch-editor mode: different model, simpler tools, no Bézier/polygon machinery.
 

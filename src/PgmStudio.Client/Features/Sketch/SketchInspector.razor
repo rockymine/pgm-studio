@@ -1,0 +1,94 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Sketch Layout inspector — actions for the selected shape (operation / override / delete) or island
+   (rename / mirror participation + its shape list). Edits round-trip to the JS bridge via the host. *@
+
+<Inspector>
+    <Section>
+      @if (Shape is not null)
+      {
+        <DetailHeader Icon="@TypeIcon(Shape.Type)" Label="@Shape.Type">
+          <span class="detail-header-badges">
+            <Badge Class="@(Shape.Operation == "subtract" ? "badge--error" : "badge--success")">@Shape.Operation</Badge>
+            @if (Shape.Override) { <Badge Kind="warning">override</Badge> }
+            <Badge Kind="neutral">@Shape.Dim</Badge>
+          </span>
+        </DetailHeader>
+
+        <div class="section-header section-header--ruled"><h2 class="section-title">Actions</h2></div>
+        <Button Full OnClick="() => OnToggleOp.InvokeAsync(Shape.Id)">
+          @(Shape.Operation == "subtract" ? "Make add" : "Make subtract")
+        </Button>
+        <Button Full OnClick="() => OnToggleOverride.InvokeAsync(Shape.Id)">
+          @(Shape.Override ? "Remove override" : "Set override")
+        </Button>
+        @if (Shape.Type == "rectangle")
+        {
+          <Button Full OnClick="() => OnPromoteShape.InvokeAsync(Shape.Id)"
+                  Title="Turn this rectangle into a polygon — then drag corners, insert vertices, or curve edges (P)">
+            <i data-lucide="pentagon"></i> Convert to polygon
+          </Button>
+        }
+        <Field Label="Height (thickness)">
+          <NumberField Value="Shape.BaseHeight" ValueChanged="HeightChanged" Min="1" />
+        </Field>
+        <Field Label="Floor (elevation)">
+          <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" />
+        </Field>
+        <p class="section-desc">Floor lifts the base; the top sits at floor + height.</p>
+        <Field Label="Rotate (°)">
+          <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
+        </Field>
+        @if (Shape.Type == "polygon" || Shape.Type == "lasso")
+        {
+          @if (SelectedVertexIdx >= 0)
+          {
+            <Field Label='@($"Vertex {SelectedVertexIdx + 1} height")'>
+              <NumberField Value="SelectedVertexHeight" ValueChanged="VertexHeightChanged" Min="1" />
+            </Field>
+          }
+          else
+          {
+            <p class="section-desc">Click a vertex to set its height (ramp/undulate).</p>
+          }
+        }
+        <Button Full Variant="danger" OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
+          <i data-lucide="trash-2"></i> Delete
+        </Button>
+        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = to polygon" : "")</p>
+      }
+      else if (Island is not null)
+      {
+        <DetailHeader Icon="layers" Label="@Island.Name">
+          <span class="detail-header-badges">
+            <Badge Kind="neutral">@Island.ShapeIds.Count shape@(Island.ShapeIds.Count == 1 ? "" : "s")</Badge>
+          </span>
+        </DetailHeader>
+
+        <Field Label="Name">
+          <input class="field-input" value="@Island.Name" @onchange="RenameChanged" />
+        </Field>
+        <Button Full OnClick="() => OnToggleMirrors.InvokeAsync(Island.Id)">
+          @(Island.Mirrors ? "Exclude from mirror" : "Include in mirror")
+        </Button>
+        <Field Label="Rotate (°)">
+          <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
+        </Field>
+
+        <div class="section-header section-header--ruled"><h2 class="section-title">Shapes</h2></div>
+        @foreach (var s in IslandShapes())
+        {
+          <ListRow Compact>
+            <span class="geo-type-icon" style="@(s.Operation == "subtract" ? "color:var(--canvas-sub-fill)" : null)"><i data-lucide="@TypeIcon(s.Type)"></i></span>
+            <span class="list-label">@s.Type</span>
+            <span class="list-tag">@s.Dim</span>
+          </ListRow>
+        }
+        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks</p>
+      }
+      else
+      {
+        <p class="section-desc">Select a shape or island to inspect.</p>
+      }
+    </Section>
+</Inspector>

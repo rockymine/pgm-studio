@@ -1,0 +1,151 @@
+@namespace PgmStudio.Client.Features.Configure
+@using PgmStudio.Client.Models
+@using W = PgmStudio.Client.Features.Configure.WoolAuthoring
+
+@* Wools · objectives: the world scan names the objectives (signed monuments) and their owners (island of
+   the source / complement of the capturing team); physical wool that no monument names is decorative and
+   excluded by default. The author confirms/rejects, fixes an owner, or adds a missing wool. *@
+
+<Workspace>
+
+  <Sidebar>
+      <Section Title="Objective wools">
+        <Actions><Badge Class="@(Included > 0 ? "badge--success" : "badge--dim")">@Included objective@(Included == 1 ? "" : "s")</Badge></Actions>
+        <ChildContent>
+        <p class="section-desc">Detected from the world — signed monuments name each objective, the island
+          gives its owner. <strong>Toggle</strong> a row to include/exclude; physical wool no monument names
+          is excluded as decorative. Select a wool to fix its owner.</p>
+        @if (loading)
+        {
+          <div class="list-empty">Scanning the world…</div>
+        }
+        else
+        {
+          <div class="panel-list">
+            @if (candidates.Count == 0) { <div class="list-empty">No wool found in the world — add one below.</div> }
+            @foreach (var c in candidates)
+            {
+              <ListRow Compact Selected="selectedColor == c.Color" Class="@(c.Included ? null : "list-row--muted")"
+                   @key="c.Color" OnClick="() => Select(c)">
+                <span class="list-swatch" style="background:@W.Hex(c.Color)"></span>
+                <span class="list-label list-label--mono">@c.Color</span>
+                @if (c.Included)
+                {
+                  <Badge style='@("background:" + (string.IsNullOrEmpty(c.Owner) ? "transparent" : W.Hex(TeamColorOf(c.Owner))) + ";color:#fff")'>@(string.IsNullOrEmpty(c.Owner) ? "no owner" : TeamName(c.Owner))</Badge>
+                }
+                else
+                {
+                  <Badge Kind="dim" title="@c.ExcludeReason">excluded</Badge>
+                }
+              </ListRow>
+            }
+          </div>
+          <Button Full Class="action-btn--separated" OnClick="AddMissing"><i data-lucide="plus"></i> Add a wool</Button>
+        }
+        </ChildContent>
+      </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <EditorCanvas @ref="canvas" Slug="@Slug" Category="__wool_objectives__"
+                OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+      @if (Selected is { } sel)
+      {
+        <Section @key="sel.Color">
+          <DetailHeader Icon='@(sel.Signed ? "sparkles" : "square")' IconStyle='@($"color:{W.Hex(sel.Color)}")' Mono Label="@sel.Color">
+            <Badge Class="@(sel.Included ? "badge--success" : "badge--dim")">@(sel.Included ? "objective" : "excluded")</Badge>
+          </DetailHeader>
+          <div class="section-body">
+            <Field Label="Colour">
+              <div class="field-pick-row">
+                <span class="field-swatch" style="background:@W.Hex(sel.Color)"></span>
+                <select class="field-input" @onchange="@(e => SetColor(sel, e.Value?.ToString() ?? sel.Color))">
+                  @foreach (var d in GameColors.DyeColors)
+                  {
+                    <option value="@W.NormColor(d.Value)" selected="@(W.NormColor(d.Value) == sel.Color)">@d.Label</option>
+                  }
+                </select>
+              </div>
+            </Field>
+            <Field Label="Owning team">
+              <LabelHint><span class="text-muted text-sm">(defends it)</span></LabelHint>
+              <ChildContent>
+                <div class="field-pick-row">
+                  <span class="field-swatch" style="background:@(string.IsNullOrEmpty(sel.Owner) ? "transparent" : W.Hex(TeamColorOf(sel.Owner)))"></span>
+                  <select class="field-input" @onchange="@(e => SetOwner(sel, e.Value?.ToString() ?? string.Empty))">
+                    <option value="" selected="@string.IsNullOrEmpty(sel.Owner)">— pick —</option>
+                    @foreach (var t in teams)
+                    {
+                      <option value="@t.Id" selected="@(t.Id == sel.Owner)">@t.Name</option>
+                    }
+                  </select>
+                </div>
+              </ChildContent>
+            </Field>
+
+            @if (sel.Signed && !string.IsNullOrEmpty(sel.Evidence))
+            {
+              <Field Label="Evidence">
+                <LabelHint><span class="text-muted text-sm">· sign</span></LabelHint>
+                <ChildContent>
+                  <div class="field-value" style="white-space:pre-line">@sel.Evidence.Replace("\n", " ")</div>
+                  <div class="meter" style="margin-top:var(--space-1)"><div class="meter-fill" style="width:@((int)(sel.Confidence * 100))%"></div></div>
+                </ChildContent>
+              </Field>
+            }
+
+            <Field Label="Source">
+              <div class="field-value">
+                @if (sel.HasSource) { <text>@sel.Count wool block@(sel.Count == 1 ? "" : "s") · centre @Fmt(sel.X), @Fmt(sel.Y), @Fmt(sel.Z)</text> }
+                else { <text>no physical wool — place it in the Spawn step</text> }
+              </div>
+            </Field>
+            <Field Label="Monuments">
+              <LabelHint><span class="text-muted text-sm">(captured by)</span></LabelHint>
+              <ChildContent>
+                <div class="field-value">
+                  @if (sel.Monuments.Count == 0) { <text>none detected — place in the Monuments step</text> }
+                  else { @string.Join(", ", sel.Monuments.Select(m => string.IsNullOrEmpty(m.Team) ? "?" : TeamName(m.Team))) }
+                </div>
+              </ChildContent>
+            </Field>
+
+            <div class="ctrl-row" style="margin-top:var(--space-2)">
+              @if (sel.Included)
+              {
+                <Button Fill OnClick="() => Toggle(sel)"><i data-lucide="x"></i> Exclude</Button>
+              }
+              else
+              {
+                <Button Variant="primary" Fill OnClick="() => Toggle(sel)"><i data-lucide="check"></i> Include@(string.IsNullOrEmpty(sel.ExcludeReason) ? "" : " anyway")</Button>
+              }
+              <Button Fill OnClick="() => Remove(sel)" Title="Remove from the list"><i data-lucide="trash-2"></i></Button>
+            </div>
+            @if (!sel.Included && !string.IsNullOrEmpty(sel.ExcludeReason))
+            {
+              <p class="section-desc">Excluded — @sel.ExcludeReason.</p>
+            }
+          </div>
+        </Section>
+      }
+      else
+      {
+        <Section>
+          <DetailHeader Icon="goal" IconMuted Label="Wool" />
+          <p class="section-desc">Select a detected wool to confirm it, fix its owner, or exclude it as
+            decoration. The included wools become the map's objectives.</p>
+        </Section>
+      }
+  </Inspector>
+
+</Workspace>
+
+@code {
+    private string TeamColorOf(string id) => TeamOf(id)?.Color ?? "";
+    private static string Fmt(double v) => v.ToString("0.#");
+}
