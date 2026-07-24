@@ -49,6 +49,10 @@ public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : Endpoin
 {
     public override void Configure() { Post("/sketch"); AllowAnonymous(); }
 
+    /// <summary>The name a blank "New sketch" draft is created with. A draft still carrying it (never
+    /// renamed) is one signal the draft is pristine — see <see cref="SketchDiscardIfEmptyEndpoint"/>.</summary>
+    public const string DefaultName = "Untitled sketch";
+
     // The default footprint: 2-team landscape (120×80), origin-centred, rotational symmetry — the same
     // default the editor/bridge use, applied to any frame field the body leaves out.
     private const double DefaultWidth = 120, DefaultDepth = 80;
@@ -57,7 +61,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, PgmDb db) : Endpoin
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var name = "Untitled sketch";
+        var name = DefaultName;
         var hasFrame = false;
         double width = DefaultWidth, depth = DefaultDepth, centerX = 0, centerZ = 0;
         var mode = DefaultMode;
@@ -184,4 +188,53 @@ public sealed class SketchFinishEndpoint(MapRepository repo, PgmDb db, WorldFeat
         await repo.SetStageAsync(map.Id, MapStage.Configure, ct);   // the draft now has geometry → ready to configure
         await Send.OkAsync(new { slug = map.Slug, configureUrl = $"/maps/{map.Slug}/configure" }, ct);
     }
+}
+
+/// <summary>DELETE /api/map/{slug}/sketch/discard-if-empty — drop a still-pristine sketch draft (the row
+/// "New sketch" creates up front, then abandoned). The client calls this best-effort when it leaves the
+/// Sketch tool. Discards only a draft that is genuinely untouched: sketch stage, still carrying the default
+/// name, no authors, and nothing drawn — anything else is real work and is left alone. Returns
+/// <c>{discarded}</c>; a missing map or a non-pristine one is a no-op success.</summary>
+public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+{
+    public override void Configure() { Delete("/map/{slug}/sketch/discard-if-empty"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.OkAsync(new { discarded = false }, ct); return; }
+
+        var pristine = map.Stage == MapStage.Sketch
+            && string.Equals(map.Name?.Trim(), SketchCreateEndpoint.DefaultName, StringComparison.Ordinal)
+            && !await db.Authors.AnyAsync(a => a.MapId == map.Id, ct)
+            && !await SketchHasShapesAsync(db, map.Id, ct);
+
+        if (pristine) await repo.DeleteMapAsync(map.Id, ct);   // FK cascade removes the layout artifact
+        await Send.OkAsync(new { discarded = pristine }, ct);
+    }
+
+    // The layout blob is {setup?, layers:[{layout:{shapes,islands}}]} (or a legacy single {layout:{…}}, or
+    // {} / setup-only for a fresh draft). "Empty" = no shapes in any layer.
+    private static async Task<bool> SketchHasShapesAsync(PgmDb db, long mapId, CancellationToken ct)
+    {
+        var data = await SketchStore.LoadAsync(db, mapId, ct);
+        if (data is null || data.Length == 0) return false;
+        try { using var doc = JsonDocument.Parse(data); return HasShapes(doc.RootElement); }
+        catch { return false; }
+    }
+
+    private static bool HasShapes(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object) return false;
+        if (root.TryGetProperty("layers", out var layers) && layers.ValueKind == JsonValueKind.Array)
+            foreach (var l in layers.EnumerateArray())
+                if (LayoutHasShapes(l)) return true;
+        return LayoutHasShapes(root);   // legacy top-level {layout:{shapes}}
+    }
+
+    private static bool LayoutHasShapes(JsonElement el)
+        => el.ValueKind == JsonValueKind.Object
+           && el.TryGetProperty("layout", out var layout) && layout.ValueKind == JsonValueKind.Object
+           && layout.TryGetProperty("shapes", out var shapes) && shapes.ValueKind == JsonValueKind.Array
+           && shapes.GetArrayLength() > 0;
 }

@@ -329,6 +329,13 @@ public partial class SketchTool
         saveCts?.Cancel();
         // Best-effort final flush of the last (<800 ms) change before tearing the handle down.
         await SaveAsync(CancellationToken.None);
+        // A draft left with nothing drawn is discarded so an abandoned "New sketch" click doesn't linger on
+        // the dashboard. The client gates on empty geometry to skip the call for real work; the server
+        // re-checks the full pristine condition (default name, no authors, no shapes) before deleting.
+        if (shapes.Count == 0 && islands.Count == 0)
+        {
+            try { await Http.DeleteAsync($"api/map/{Slug}/sketch/discard-if-empty"); } catch { }
+        }
         if (handle is not null)
         {
             try { await handle.InvokeVoidAsync("dispose"); } catch { }
