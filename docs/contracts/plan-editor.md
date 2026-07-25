@@ -76,10 +76,9 @@ Notes:
   never members) unless `members` names the pieces explicitly, which a **composed partition writes** when a
   generated board is kept, so a picked board opens with exactly the grouping that produced it. Ignored by
   the compiler, the validator and the derivers exactly as `reference` is — drawing a box can never change
-  what a plan compiles to. In the editor a box renders as an unfilled dashed envelope, is grabbed by its
-  **border** (the interior belongs to the pieces inside it), and **dragging it carries its members**; deleting
-  it removes the annotation alone. This is authored annotation, not the compose-internal slot labels — the
-  plan on disk stays label-free.
+  what a plan compiles to. In the editor a box renders as an unfilled dashed envelope and behaves as a
+  **group** (§5, the same model the sketch tool applies to islands). This is authored annotation, not the
+  compose-internal slot labels — the plan on disk stays label-free.
 - **Optional `reference` block** (tracing provenance): `{ "map": <slug>, "offset": [x,z] cells,
   "scale": 1, "opacity": 0.5 }` records the real map this plan was traced over and where its top-down
   render sat under the grid. Authoring-only — the compiler never reads it, so it has no effect on the
@@ -186,7 +185,14 @@ New page `Features/Plan/PlanTool.razor` (+ `js/studio/plan/`), reusing the studi
   block-unit frame, so a real 10-block lane traces as 2 cells at scale 1. Persisted as the schema's
   optional `reference` block (round-trips + restores on reload). Trace one team's sector and check the
   live mirror ghost against the map's opposing teams. Feeds the box-based / wool-approach vocabulary.
-- **Boxes:** one draw tool per typed kind arms the box tool with that kind; the inspector edits a selected
+- **Boxes (the group model):** a box is the plan tool's **group**, and it selects the way the sketch tool's
+  islands do — **single-click picks the box, double-click drills into the piece** under the cursor, **Escape
+  pops back out** to the box that groups it. Dragging a selected box **carries its members** (membership is
+  resolved when the drag starts, so a containment-grouped piece can't fall out mid-drag); resizing only
+  re-scopes the envelope, and deleting removes the annotation alone. A piece drilled into stays grabbed while
+  the press lands inside it, so drill-then-drag moves that one piece. Markers keep single-click priority at
+  both levels — their hit radius is a fraction of a cell and a marker rides a piece rather than being grouped
+  by a box. One draw tool per typed kind arms the box tool with that kind; the inspector edits a selected
   box's id and kind, lists the pieces it groups, and can **fix** that membership as an explicit list (or
   release it back to containment). Boxes fan into the symmetry ghost like zones.
 - **Palette:** piece roles (lane · hub · wool-room · mid) + zone tool + markers (spawn with a

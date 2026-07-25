@@ -13,7 +13,7 @@ import {
   canonicalRole, toggleWall, nearestInterface,
   markerAtWorld, pickAtWorld, sameSelection, MARKER_HIT_CELLS,
   pieceSurface, surfaceRange, surfaceFraction, planIsoSolids, markerList, markerAt, MARKER_KINDS,
-  boxMembers, boxAtWorld, boxMirrorImages, rectContainsRect,
+  boxMembers, boxAtCell, boxOfPiece, boxMirrorImages, rectContainsRect,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -527,26 +527,44 @@ test("rectContainsRect counts touching edges as inside", () => {
   assert.equal(rectContainsRect([0, 0, 2, 2], [1, 1, 2, 1]), false);
 });
 
-test("a box is grabbed by its border, never its interior", () => {
-  // cell 5 → the box spans blocks x∈[0,20], z∈[0,20]; the tolerance band is 0.4 cells = 2 blocks.
-  const doc = normalizeDoc({ plan: 1, boxes: [{ id: "b", kind: "hub", rect: [0, 0, 4, 4] }] });
-  assert.equal(boxAtWorld(doc, 0, 10)?.id, "b");          // on the left edge
-  assert.equal(boxAtWorld(doc, 19, 10)?.id, "b");         // just inside the right edge
-  assert.equal(boxAtWorld(doc, 21, 10)?.id, "b");         // just outside, within tolerance
-  assert.equal(boxAtWorld(doc, 10, 10), null);            // deep inside — belongs to the pieces there
-  assert.equal(boxAtWorld(doc, 40, 10), null);            // well clear of the box
+test("boxAtCell takes the smallest containing box, whatever the draw order", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    boxes: [{ id: "inner", kind: "wool", rect: [1, 1, 2, 2] }, { id: "outer", kind: "hub", rect: [0, 0, 4, 4] }],
+  });
+  assert.equal(boxAtCell(doc, 0, 0)?.id, "outer");   // only the outer box covers this cell
+  assert.equal(boxAtCell(doc, 2, 2)?.id, "inner");   // the tightest group wins, though it was drawn first
+  assert.equal(boxAtCell(doc, 9, 9), null);
 });
 
-test("pickAtWorld puts a box border above pieces but below markers", () => {
+test("boxOfPiece finds the box that groups a piece (what Escape pops out to)", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    pieces: [{ id: "p", role: "piece", rect: [1, 1, 1, 1] }, { id: "loose", role: "piece", rect: [9, 9, 1, 1] }],
+    boxes: [{ id: "b", kind: "hub", rect: [0, 0, 4, 4] }],
+  });
+  assert.equal(boxOfPiece(doc, "p")?.id, "b");
+  assert.equal(boxOfPiece(doc, "loose"), null);
+});
+
+test("pickAtWorld picks the box over its pieces, and drill reaches past it", () => {
   const doc = normalizeDoc({
     plan: 1,
     pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }],
     boxes: [{ id: "b", kind: "hub", rect: [0, 0, 4, 4] }],
     placements: { spawns: [{ piece: "p", at: [0, 2], facing: "front" }] },
   });
-  assert.deepEqual(pickAtWorld(doc, 0, 10), { kind: "marker", markerKind: "spawn", index: 0 });  // marker wins
-  assert.deepEqual(pickAtWorld(doc, 20, 10), { kind: "box", id: "b" });                          // border
-  assert.deepEqual(pickAtWorld(doc, 10, 10), { kind: "piece", id: "p" });                        // interior
+  // Single-click: the marker still wins on its own tight radius; elsewhere the box (the group) does.
+  assert.deepEqual(pickAtWorld(doc, 0, 10), { kind: "marker", markerKind: "spawn", index: 0 });
+  assert.deepEqual(pickAtWorld(doc, 10, 10), { kind: "box", id: "b" });
+  // Double-click drills past the box to the piece under the cursor.
+  assert.deepEqual(pickAtWorld(doc, 10, 10, { drill: true }), { kind: "piece", id: "p" });
+  assert.deepEqual(pickAtWorld(doc, 0, 10, { drill: true }), { kind: "marker", markerKind: "spawn", index: 0 });
+});
+
+test("an unboxed plan is unaffected by the group model", () => {
+  const doc = normalizeDoc({ plan: 1, pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }] });
+  assert.deepEqual(pickAtWorld(doc, 10, 10), { kind: "piece", id: "p" });
 });
 
 test("boxes fan into the mirror ghost and widen the view bounds", () => {

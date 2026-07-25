@@ -1789,10 +1789,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Authoring-only, exactly like the tracing `reference` block: the compiler, validator and derivers ignore it
   — gated by a test compiling a boxed plan against the same plan with its boxes stripped — so the "plan on
   disk is label-free" doctrine stands. In the editor a box draws as an unfilled dashed envelope (one palette
-  tool per kind, kind-coloured), is **grabbed by its border** so the interior still picks the pieces inside
-  it, **carries its members when dragged** (membership resolved at grab time, so nothing falls out mid-drag),
-  fans into the symmetry ghost, and deletes without touching what it grouped; the inspector edits id/kind,
-  lists the members and can **fix** them as an explicit list or release them back to containment. A kept
+  tool per kind, kind-coloured) and is **the plan tool's group, selecting exactly as the sketch tool's
+  islands do**: single-click picks the box, **double-click drills** into the piece under the cursor, **Escape
+  pops back out** to its box, and a drilled piece stays grabbed while the press lands inside it (the
+  precedence `sketch-canvas`'s `_hitMovable` gives a drilled shape). Dragging a box **carries its members**
+  (resolved at grab time, so nothing falls out mid-drag); resizing only re-scopes it and deleting removes the
+  annotation alone. Markers keep single-click priority at both levels — a marker rides a piece rather than
+  being grouped, and its sub-cell hit radius can't steal a click aimed at the box body. Boxes fan into the
+  symmetry ghost; the inspector edits id/kind, lists the members and can **fix** them as an explicit list or
+  release them back to containment. A kept
   board writes its own partition in (`PlanBoxAnnotation.Apply` on `POST /api/compose/pin`, members explicit
   off `BoxPartition.KeyOf`), so a picked generated board opens with the grouping that produced it. The two
   shifted-frontline exemplars migrate off the `buffer`-as-overlay misuse onto real boxes (`buffer` means a

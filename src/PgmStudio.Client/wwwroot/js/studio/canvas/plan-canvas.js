@@ -17,7 +17,7 @@ import { blockDataToDataUrl } from "../render/block-render.js";
 import {
   ROLE_COLORS, BOX_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
   markerCell, attachMarker, markerAt, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
-  pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers,
+  pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece, rectContainsCell,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
 
@@ -765,12 +765,20 @@ export class PlanCanvas extends CanvasBase {
 
   // ── interaction ───────────────────────────────────────────────────────────────
 
-  // Press with the select tool: pick the item under the click (marker-first, by paint order) and begin a
-  // move drag from it. Records whether the click re-hit the already-selected item, so a plain re-click on a
-  // selected spawn cycles its facing (the first click only selects).
+  // Press with the select tool: pick the item under the click (marker-first, then the box that groups the
+  // pieces there) and begin a move drag from it. Records whether the click re-hit the already-selected item,
+  // so a plain re-click on a selected spawn cycles its facing (the first click only selects).
+  //
+  // A piece the author drilled into stays grabbed while the press lands inside it, so drill-then-drag moves
+  // that one piece instead of snapping back to its box — the precedence the sketch tool's `_hitMovable`
+  // applies to a drilled shape under a selected island. Pressing anywhere else re-selects the box.
   #selectDown(svgPt, cx, cz) {
     const prev = this.#sel;
-    const hit = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
+    let hit = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
+    if (prev?.kind === "piece" && hit?.kind === "box") {
+      const drilled = this.#doc.pieces.find(p => p.id === prev.id);
+      if (drilled && rectContainsCell(drilled.rect, cx, cz)) hit = prev;
+    }
     this.#sel = hit;
     this.#refreshOverlay();
     this.#fireSelect();
@@ -929,16 +937,46 @@ export class PlanCanvas extends CanvasBase {
 
     this._applyViewportTransform();
 
-    // Delete / Backspace removes the current selection (guarded by visibility + not typing in a field).
+    // Double-click drills into the piece under the cursor, past the box that groups it (the group model the
+    // sketch tool sets: single-click picks the group, double-click enters a member). Select tool only — a
+    // draw tool owns its own double-click.
+    this._svg.addEventListener("dblclick", this.#onDblClick);
+    // Delete / Backspace removes the current selection; Escape pops a drilled piece back out to its box
+    // (guarded by visibility + not typing in a field).
     document.addEventListener("keydown", this.#onKey);
     this.setTool("select");
   }
+
+  #onDblClick = (e) => {
+    if (this.#isoOn || this.#tool !== "select" || !this.#doc) return;
+    const p = this._clientToSvg(e.clientX, e.clientY);
+    const hit = pickAtWorld(this.#doc, p.x, p.y, { drill: true });
+    if (!hit) return;
+    this.#drag = null;
+    this.#sel = hit;
+    this.#refreshOverlay();
+    this.#fireSelect();
+  };
 
   #onKey = (e) => {
     if (this._wrap?.offsetParent == null) return;
     if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
     if ((e.key === "Delete" || e.key === "Backspace") && this.#sel) { e.preventDefault(); this.#cb.onDelete?.(this.#sel); }
+    // Escape walks the group model back out: a drilled piece pops to the box that groups it, anything else
+    // (including a box, or a piece in no box) clears.
+    if (e.key === "Escape" && this.#sel && this.#doc) {
+      e.preventDefault();
+      const parent = this.#sel.kind === "piece" ? boxOfPiece(this.#doc, this.#sel.id) : null;
+      this.#sel = parent ? { kind: "box", id: parent.id } : null;
+      this.#refreshOverlay();
+      this.#fireSelect();
+    }
   };
 
-  dispose() { if (this.#pulseTimer) clearTimeout(this.#pulseTimer); this.#iso?.dispose(); document.removeEventListener("keydown", this.#onKey); }
+  dispose() {
+    if (this.#pulseTimer) clearTimeout(this.#pulseTimer);
+    this.#iso?.dispose();
+    this._svg.removeEventListener("dblclick", this.#onDblClick);
+    document.removeEventListener("keydown", this.#onKey);
+  }
 }

@@ -207,30 +207,28 @@ export function boxMembers(doc, box) {
   return doc.pieces.filter(p => !isAnnotationRole(p.role) && rectContainsRect(box.rect, p.rect));
 }
 
-/** How close (in cells) to a box's dashed border a click must land to grab the box. */
-export const BOX_EDGE_CELLS = 0.4;
-
 /**
- * The box whose border passes within `BOX_EDGE_CELLS` of a world/block point, or null. Boxes are grabbed by
- * their **border**, never their interior: an envelope drawn around pieces would otherwise swallow every click
- * meant for the pieces inside it. Ties break to the later-drawn (topmost) box.
+ * The box whose footprint contains cell `(cx, cz)`, or null — the group half of the drill model below, and
+ * the rect analogue of the sketch tool's `#hitIsland`.
+ *
+ * The **smallest** containing box wins (ties to the later-drawn one), the rule the region canvas already
+ * uses: boxes are allowed to overlap, and where they do, draw order is arbitrary to the author while "the
+ * tightest group around what I clicked" is what they meant.
  */
-export function boxAtWorld(doc, wx, wz) {
-  const cell = doc.globals.cell;
-  const tol = BOX_EDGE_CELLS * cell;
-  let best = null, bestD = tol;
+export function boxAtCell(doc, cx, cz) {
+  let best = null, bestArea = Infinity;
   for (const b of doc.boxes || []) {
-    const r = rectCellsToBlocks(b.rect, cell);
-    // Distance from the point to the rect's frame: outside the rect it is the overshoot past the nearer
-    // edges; inside it is the smallest inset from any edge. Deep inside the rect (inset > tol) the click
-    // belongs to whatever pieces sit there, not to the envelope.
-    const ox = Math.max(r.min_x - wx, wx - r.max_x, 0);
-    const oz = Math.max(r.min_z - wz, wz - r.max_z, 0);
-    const inset = Math.min(wx - r.min_x, r.max_x - wx, wz - r.min_z, r.max_z - wz);
-    const d = (ox > 0 || oz > 0) ? Math.max(ox, oz) : inset;
-    if (d <= bestD) { bestD = d; best = b; }
+    if (!rectContainsCell(b.rect, cx, cz)) continue;
+    const area = b.rect[2] * b.rect[3];
+    if (area <= bestArea) { bestArea = area; best = b; }
   }
   return best;
+}
+
+/** The box that groups the piece with `pieceId`, or null — what Escape pops out of a drilled piece to. */
+export function boxOfPiece(doc, pieceId) {
+  for (const b of doc.boxes || []) if (boxMembers(doc, b).some(p => p.id === pieceId)) return b;
+  return null;
 }
 
 /**
@@ -272,16 +270,23 @@ export function markerAtWorld(doc, wx, wz) {
 }
 
 /**
- * The item a click at world/block point `(wx, wz)` selects, honouring paint order: a marker (topmost, within
- * its pick radius) first, then a box whose *border* the click is on (the interior belongs to the pieces the
- * box groups), then the topmost containing piece, then a zone. Returns a selection ref or null.
+ * The item a click at world/block point `(wx, wz)` selects. Two levels, the group model the sketch tool
+ * already sets (single-click picks the island, double-click enters a member): by default a box wins over the
+ * pieces it groups, and `drill` (the double-click pass) skips boxes to reach the piece under the cursor.
+ *
+ * Markers pick first at both levels rather than sitting inside the group. Their hit radius is a fraction of a
+ * cell and they paint on top, so they can't steal a click aimed at the box body — and a marker is carried by
+ * a piece, not grouped by a box, so making spawns need a double-click would cost the marker workflow for
+ * nothing. Below that: the topmost containing box (unless drilling), then the topmost piece, then a zone.
  */
-export function pickAtWorld(doc, wx, wz) {
+export function pickAtWorld(doc, wx, wz, { drill = false } = {}) {
   const m = markerAtWorld(doc, wx, wz);
   if (m) return m;
-  const b = boxAtWorld(doc, wx, wz);
-  if (b) return { kind: "box", id: b.id };
   const [cx, cz] = cellOfWorld(wx, wz, doc.globals.cell);
+  if (!drill) {
+    const b = boxAtCell(doc, cx, cz);
+    if (b) return { kind: "box", id: b.id };
+  }
   const p = pieceAtCell(doc, cx, cz);
   if (p) return { kind: "piece", id: p.id };
   const z = zoneAtCell(doc, cx, cz);
