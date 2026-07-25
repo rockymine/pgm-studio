@@ -180,56 +180,6 @@
         1,
         4
       ]
-    },
-    {
-      "id": "wool-box",
-      "role": "buffer",
-      "rect": [
-        -8,
-        -14,
-        8,
-        6
-      ]
-    },
-    {
-      "id": "wool-box-2",
-      "role": "buffer",
-      "rect": [
-        7,
-        -10,
-        4,
-        4
-      ]
-    },
-    {
-      "id": "hub-box",
-      "role": "buffer",
-      "rect": [
-        0,
-        -12,
-        7,
-        6
-      ]
-    },
-    {
-      "id": "buffer",
-      "role": "buffer",
-      "rect": [
-        -4,
-        -6,
-        8,
-        3
-      ]
-    },
-    {
-      "id": "buffer-2",
-      "role": "buffer",
-      "rect": [
-        1,
-        -16,
-        3,
-        4
-      ]
     }
   ],
   "zones": [
@@ -252,5 +202,57 @@
     "cores": []
   },
   "cliffs": [],
-  "walls": []
+  "walls": [],
+  "boxes": [
+    {
+      "id": "hub",
+      "kind": "hub",
+      "rect": [
+        0,
+        -12,
+        7,
+        6
+      ]
+    },
+    {
+      "id": "frontline",
+      "kind": "frontline",
+      "rect": [
+        -4,
+        -6,
+        8,
+        3
+      ]
+    },
+    {
+      "id": "spawn",
+      "kind": "spawn",
+      "rect": [
+        1,
+        -16,
+        3,
+        4
+      ]
+    },
+    {
+      "id": "wool-a",
+      "kind": "wool",
+      "rect": [
+        -8,
+        -14,
+        8,
+        6
+      ]
+    },
+    {
+      "id": "wool-b",
+      "kind": "wool",
+      "rect": [
+        7,
+        -10,
+        4,
+        4
+      ]
+    }
+  ]
 }

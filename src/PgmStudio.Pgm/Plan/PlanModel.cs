@@ -51,6 +51,30 @@ public static class PlanRoles
     };
 }
 
+/// <summary>The kinds an authored <see cref="PlanBox"/> may carry — the partition's typed box vocabulary
+/// (docs/contracts/map-generation.md §4) as authoring strings. A box names <b>what its pieces realize</b>: the
+/// <see cref="Spawn"/> and <see cref="Wool"/> approaches (each a terminal capping a corridor), the
+/// <see cref="Hub"/> body they seat on, the <see cref="Frontline"/> that fronts it, and the <see cref="Mid"/>
+/// between the fanned images.</summary>
+public static class PlanBoxKinds
+{
+    public const string Spawn = "spawn";
+    public const string Hub = "hub";
+    public const string Wool = "wool";
+    public const string Frontline = "frontline";
+    public const string Mid = "mid";
+
+    public static readonly IReadOnlySet<string> All =
+        new HashSet<string> { Spawn, Hub, Wool, Frontline, Mid };
+
+    /// <summary>The canonical kind for a raw (possibly unknown) value. An unrecognised kind folds to
+    /// <see cref="Mid"/> — the same fallback a box read off an unexpected piece already takes — so a box
+    /// authored under a vocabulary this build does not know still loads as a group, just an unclassified
+    /// one.</summary>
+    public static string Canonical(string? kind) =>
+        kind is not null && All.Contains(kind) ? kind : Mid;
+}
+
 /// <summary>
 /// The plan wire model (<c>*.plan.json</c>) — a mini-layout scale proxy: globals + a single team unit
 /// (pieces, zones, placements) authored once, with symmetry fanning the rest. All footprint coordinates are
@@ -68,6 +92,12 @@ public sealed class PlanModel
     [JsonPropertyName("placements")] public PlanPlacements Placements { get; set; } = new();
     [JsonPropertyName("cliffs")]     public List<PlanCliff> Cliffs { get; set; } = [];
     [JsonPropertyName("walls")]      public List<PlanWall> Walls { get; set; } = [];
+
+    /// <summary>Optional authoring annotation: the typed <see cref="PlanBox"/> envelopes grouping the pieces
+    /// into the partition they realize. Like <see cref="Reference"/> it is read by authoring and reporting
+    /// tools only — the compiler, the validator and the derivers ignore it, so a plan's compiled output does
+    /// not depend on whether its boxes were drawn.</summary>
+    [JsonPropertyName("boxes")]      public List<PlanBox> Boxes { get; set; } = [];
 
     /// <summary>Optional provenance: the real map this plan was traced over, and where its top-down render
     /// sat under the grid. Purely authoring metadata — the compiler never reads it, so it has no effect on the
@@ -90,10 +120,12 @@ public sealed class PlanModel
     }
 
     /// <summary>Fold legacy/unknown piece roles down to their canonical value, so plans authored under the
-    /// earlier role model (<c>lane</c>/<c>hub</c>/<c>mid</c>) load cleanly as anonymous pieces.</summary>
+    /// earlier role model (<c>lane</c>/<c>hub</c>/<c>mid</c>) load cleanly as anonymous pieces, and unknown
+    /// box kinds down to theirs.</summary>
     private void Normalize()
     {
         foreach (var p in Pieces) p.Role = PlanRoles.Canonical(p.Role);
+        foreach (var b in Boxes) b.Kind = PlanBoxKinds.Canonical(b.Kind);
     }
 }
 
@@ -149,6 +181,27 @@ public sealed class PlanZone
     [JsonPropertyName("id")]    public string Id { get; set; } = "";
     [JsonPropertyName("rect")]  public int[] Rect { get; set; } = [0, 0, 0, 0];
     [JsonPropertyName("holes")] public List<int[]> Holes { get; set; } = [];
+}
+
+/// <summary>A <b>box</b>: the typed envelope grouping the pieces that realize one part of the partition —
+/// a wool approach, the spawn, the hub body, the frontline, the mid. <see cref="Rect"/> is <c>[x, z, w, h]</c>
+/// in cells, drawn around its members rather than filled by them (boxes may overlap; a box's contents need
+/// not fill it solid).
+///
+/// <para>Membership is by <b>containment</b> — every generating piece wholly inside the rect — unless
+/// <see cref="Members"/> names the pieces explicitly, which a composed partition writes so a picked board
+/// opens with exactly the grouping that produced it. Authoring annotation throughout: nothing downstream of
+/// the editor reads it (see <see cref="PlanModel.Boxes"/>), so drawing a box can never change what a plan
+/// compiles to.</para></summary>
+public sealed class PlanBox
+{
+    [JsonPropertyName("id")]      public string Id { get; set; } = "";
+    [JsonPropertyName("kind")]    public string Kind { get; set; } = PlanBoxKinds.Mid;
+    [JsonPropertyName("rect")]    public int[] Rect { get; set; } = [0, 0, 0, 0];
+
+    /// <summary>The member piece ids, when the grouping is stated rather than inferred; <c>null</c>/empty
+    /// leaves membership to containment.</summary>
+    [JsonPropertyName("members")] public List<string>? Members { get; set; }
 }
 
 /// <summary>The team-0 unit's objective markers; the compiler fans orbit images. Positions are piece-relative

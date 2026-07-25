@@ -1780,6 +1780,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   G120's duel bucket. `StructureSummary.WoolFamilies` promoted from the box-gallery tool (both share it);
   vocabulary row added. Data 17 + Api 72 + Pgm 688 tests green. (G128)
 
+- **Boxes as an authored plan annotation** — `Pgm/Plan/PlanModel.cs` + `Pgm/Plan/PlanBoxes.cs` +
+  `Pgm/Compose/PlanBoxAnnotation.cs` + `Client/.../plan-doc.js`/`plan-canvas.js`/`plan-bridge.js` +
+  `Features/Plan/PlanTool`. A typed `boxes` section in `*.plan.json` — `{ id, kind, rect, members? }` with
+  `kind` ∈ `spawn`/`hub`/`wool`/`frontline`/`mid` (unknown folds to `mid`) — naming the partition a plan's
+  pieces realize. **Membership** is one rule in one place (`PlanBoxes.MembersOf`, mirrored in JS): the pieces
+  `members` names, else every **generating** piece wholly inside the rect (annotations are never members).
+  Authoring-only, exactly like the tracing `reference` block: the compiler, validator and derivers ignore it
+  — gated by a test compiling a boxed plan against the same plan with its boxes stripped — so the "plan on
+  disk is label-free" doctrine stands. In the editor a box draws as an unfilled dashed envelope (one palette
+  tool per kind, kind-coloured), is **grabbed by its border** so the interior still picks the pieces inside
+  it, **carries its members when dragged** (membership resolved at grab time, so nothing falls out mid-drag),
+  fans into the symmetry ghost, and deletes without touching what it grouped; the inspector edits id/kind,
+  lists the members and can **fix** them as an explicit list or release them back to containment. A kept
+  board writes its own partition in (`PlanBoxAnnotation.Apply` on `POST /api/compose/pin`, members explicit
+  off `BoxPartition.KeyOf`), so a picked generated board opens with the grouping that produced it. The two
+  shifted-frontline exemplars migrate off the `buffer`-as-overlay misuse onto real boxes (`buffer` means a
+  reserved gap again), and `tools/deriver/plan-readback.cs` reads `boxes` — per-box derived reads on both
+  exemplars (g-hub: G hub + 2-arm frontline; hole-hub: Ring hub + Donut wool). Pgm 696 + 146 JS tests green.
+  Contract: `plan-editor.md` §1/§5; vocabulary row added. Unblocks G125. (G126)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

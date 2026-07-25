@@ -29,6 +29,17 @@ export const TECHNICAL_ROLES = ["buffer", "connector"];
 /** Fold a raw (possibly legacy or unknown) role down to a canonical one: the known roles survive, everything else → piece. */
 export function canonicalRole(role) { return ROLES.includes(role) ? role : "piece"; }
 
+// Box kinds — the typed envelopes grouping pieces into the partition they realize (a wool approach, the
+// spawn, the hub body, the frontline, the mid). Authoring annotation only: boxes are never compiled, so
+// drawing one cannot change what a plan builds. Each kind's colour echoes what it groups (a wool box the
+// wool-room green, a spawn box the spawn purple); an unknown kind loads as the unclassified `mid`.
+export const BOX_KINDS = ["hub", "wool", "spawn", "frontline", "mid"];
+export const BOX_COLORS = { hub: "#4ea3d8", wool: "#3fae74", spawn: "#8f7bd6", frontline: "#e0714a", mid: "#9aa7b4" };
+export const BOX_LABELS = { hub: "Hub", wool: "Wool", spawn: "Spawn", frontline: "Frontline", mid: "Mid" };
+
+/** Fold a raw (possibly unknown) box kind down to a canonical one; anything unrecognised → the unclassified `mid`. */
+export function canonicalBoxKind(kind) { return BOX_KINDS.includes(kind) ? kind : "mid"; }
+
 /** True for a non-generating annotation role (buffer / connector) — hatched, no terrain, not buildable. */
 export function isAnnotationRole(role) { return TECHNICAL_ROLES.includes(role); }
 
@@ -49,6 +60,7 @@ export function emptyDoc() {
     placements: { spawns: [], wools: [], iron: [], destroyables: [], cores: [] },
     cliffs: [],
     walls: [],
+    boxes: [],
   };
 }
 
@@ -99,6 +111,13 @@ export function normalizeDoc(d) {
     },
     cliffs: (src.cliffs || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
     walls: (src.walls || []).map(c => ({ a: c.a ?? "", b: c.b ?? "" })),
+    // Box annotations: `members` is kept only when it names pieces, so a containment-grouped box stays the
+    // bare { id, kind, rect } it was authored as.
+    boxes: (src.boxes || []).map(b => {
+      const o = { id: b.id ?? "", kind: canonicalBoxKind(b.kind), rect: [...(b.rect || [0, 0, 1, 1])] };
+      if (Array.isArray(b.members) && b.members.length) o.members = [...b.members];
+      return o;
+    }),
   };
   // Optional tracing provenance — kept only when a source map is named, so untraced plans omit it entirely.
   if (src.reference?.map) {
@@ -163,6 +182,71 @@ export function zoneAtCell(doc, cx, cz) {
   return null;
 }
 
+// ── box annotations (typed envelopes grouping pieces) ───────────────────────
+
+export function boxById(doc, id) { return (doc.boxes || []).find(b => b.id === id) || null; }
+
+/** True if the `[x, z, w, h]` cell rect `inner` lies wholly within `outer` (touching edges count as inside). */
+export function rectContainsRect(outer, inner) {
+  return inner[0] >= outer[0] && inner[1] >= outer[1]
+    && inner[0] + inner[2] <= outer[0] + outer[2]
+    && inner[1] + inner[3] <= outer[1] + outer[3];
+}
+
+/**
+ * The pieces a box groups — the same rule the server applies (PlanBoxes.MembersOf): the pieces `members`
+ * names when it names any (what a composed partition writes), else every generating piece wholly inside the
+ * rect. Annotation pieces (buffer / connector) are never members — a reserved gap inside a box documents its
+ * spacing, it isn't part of what the box realizes.
+ */
+export function boxMembers(doc, box) {
+  if (Array.isArray(box.members) && box.members.length) {
+    const ids = new Set(box.members);
+    return doc.pieces.filter(p => ids.has(p.id));
+  }
+  return doc.pieces.filter(p => !isAnnotationRole(p.role) && rectContainsRect(box.rect, p.rect));
+}
+
+/** How close (in cells) to a box's dashed border a click must land to grab the box. */
+export const BOX_EDGE_CELLS = 0.4;
+
+/**
+ * The box whose border passes within `BOX_EDGE_CELLS` of a world/block point, or null. Boxes are grabbed by
+ * their **border**, never their interior: an envelope drawn around pieces would otherwise swallow every click
+ * meant for the pieces inside it. Ties break to the later-drawn (topmost) box.
+ */
+export function boxAtWorld(doc, wx, wz) {
+  const cell = doc.globals.cell;
+  const tol = BOX_EDGE_CELLS * cell;
+  let best = null, bestD = tol;
+  for (const b of doc.boxes || []) {
+    const r = rectCellsToBlocks(b.rect, cell);
+    // Distance from the point to the rect's frame: outside the rect it is the overshoot past the nearer
+    // edges; inside it is the smallest inset from any edge. Deep inside the rect (inset > tol) the click
+    // belongs to whatever pieces sit there, not to the envelope.
+    const ox = Math.max(r.min_x - wx, wx - r.max_x, 0);
+    const oz = Math.max(r.min_z - wz, wz - r.max_z, 0);
+    const inset = Math.min(wx - r.min_x, r.max_x - wx, wz - r.min_z, r.max_z - wz);
+    const d = (ox > 0 || oz > 0) ? Math.max(ox, oz) : inset;
+    if (d <= bestD) { bestD = d; best = b; }
+  }
+  return best;
+}
+
+/**
+ * The symmetry mirror images of every box — one `{ id, kind, bounds }` per orbit image (block AABBs), for the
+ * dimmed non-editable ghost. Boxes always mirror: they annotate the authored unit, which is fanned whole.
+ */
+export function boxMirrorImages(doc) {
+  const { cell, symmetry } = doc.globals;
+  const out = [];
+  for (const b of doc.boxes || []) {
+    const bb = rectCellsToBlocks(b.rect, cell);
+    for (const axis of orbitAxes(symmetry)) out.push({ id: b.id, kind: b.kind, bounds: applySymmetryToBounds(bb, axis, 0, 0) });
+  }
+  return out;
+}
+
 // ── pick priority (markers paint above pieces, so they pick first) ───────────
 
 /** Pick radius, in cell units, of a marker's visual disc/box — a click this close to a centre hits it. */
@@ -189,11 +273,14 @@ export function markerAtWorld(doc, wx, wz) {
 
 /**
  * The item a click at world/block point `(wx, wz)` selects, honouring paint order: a marker (topmost, within
- * its pick radius) first, then the topmost containing piece, then a zone. Returns a selection ref or null.
+ * its pick radius) first, then a box whose *border* the click is on (the interior belongs to the pieces the
+ * box groups), then the topmost containing piece, then a zone. Returns a selection ref or null.
  */
 export function pickAtWorld(doc, wx, wz) {
   const m = markerAtWorld(doc, wx, wz);
   if (m) return m;
+  const b = boxAtWorld(doc, wx, wz);
+  if (b) return { kind: "box", id: b.id };
   const [cx, cz] = cellOfWorld(wx, wz, doc.globals.cell);
   const p = pieceAtCell(doc, cx, cz);
   if (p) return { kind: "piece", id: p.id };
@@ -202,7 +289,7 @@ export function pickAtWorld(doc, wx, wz) {
   return null;
 }
 
-/** True if two selection refs point at the same item (piece/zone id, or marker kind+index). */
+/** True if two selection refs point at the same item (piece/zone/box id, or marker kind+index). */
 export function sameSelection(a, b) {
   if (!a || !b || a.kind !== b.kind) return false;
   if (a.kind === "marker") return a.markerKind === b.markerKind && a.index === b.index;
@@ -305,13 +392,14 @@ export function uniqueId(existing, base) {
 
 // ── content bounds + mirror ghost ───────────────────────────────────────────
 
-/** Block AABB enclosing every piece, zone and marker cell — null for an empty document. */
+/** Block AABB enclosing every piece, zone, box and marker cell — null for an empty document. */
 export function contentBounds(doc) {
   const cell = doc.globals.cell;
   let b = null;
   const add = (bb) => { b = b ? { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) } : { ...bb }; };
   for (const p of doc.pieces) add(rectCellsToBlocks(p.rect, cell));
   for (const z of doc.zones) add(rectCellsToBlocks(z.rect, cell));
+  for (const bx of doc.boxes || []) add(rectCellsToBlocks(bx.rect, cell));
   for (const m of allMarkers(doc)) { const c = markerCell(doc, m.marker); if (c) add(rectCellsToBlocks([c[0], c[1], 1, 1], cell)); }
   return b;
 }
@@ -326,6 +414,7 @@ export function viewBounds(doc) {
   const add = (bb) => { b = { min_x: Math.min(b.min_x, bb.min_x), min_z: Math.min(b.min_z, bb.min_z), max_x: Math.max(b.max_x, bb.max_x), max_z: Math.max(b.max_z, bb.max_z) }; };
   for (const img of pieceMirrorImages(doc)) add(img.bounds);
   for (const img of zoneMirrorImages(doc)) add(img.bounds);
+  for (const img of boxMirrorImages(doc)) add(img.bounds);
   for (const m of markerMirrorImages(doc)) add({ min_x: m.x, min_z: m.z, max_x: m.x, max_z: m.z });
   return b;
 }

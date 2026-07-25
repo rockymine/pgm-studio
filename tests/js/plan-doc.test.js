@@ -13,6 +13,7 @@ import {
   canonicalRole, toggleWall, nearestInterface,
   markerAtWorld, pickAtWorld, sameSelection, MARKER_HIT_CELLS,
   pieceSurface, surfaceRange, surfaceFraction, planIsoSolids, markerList, markerAt, MARKER_KINDS,
+  boxMembers, boxAtWorld, boxMirrorImages, rectContainsRect,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -469,4 +470,101 @@ test("openTop:false and float:0 survive normalize (falsy but authored)", () => {
   assert.equal(doc.placements.cores[0].openTop, false);
   assert.equal(doc.placements.cores[0].float, 0);
   assert.equal(doc.placements.cores[0].leak, 5);
+});
+
+// ── box annotations (typed envelopes grouping pieces) ───────────────────────
+
+test("normalizeDoc defaults boxes to [] and folds an unknown kind to mid", () => {
+  assert.deepEqual(emptyDoc().boxes, []);
+  const doc = normalizeDoc({ plan: 1, boxes: [{ id: "b", kind: "nonsense", rect: [0, 0, 2, 2] }] });
+  assert.equal(doc.boxes[0].kind, "mid");
+});
+
+test("a box's members are kept only when named, so a containment box stays bare", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    boxes: [
+      { id: "a", kind: "wool", rect: [0, 0, 2, 2] },
+      { id: "b", kind: "hub", rect: [0, 0, 2, 2], members: [] },
+      { id: "c", kind: "hub", rect: [0, 0, 2, 2], members: ["p"] },
+    ],
+  });
+  assert.deepEqual(doc.boxes[0], { id: "a", kind: "wool", rect: [0, 0, 2, 2] });
+  assert.deepEqual(doc.boxes[1], { id: "b", kind: "hub", rect: [0, 0, 2, 2] });   // empty list → containment
+  assert.deepEqual(doc.boxes[2].members, ["p"]);
+  assert.deepEqual(JSON.parse(toJson(doc)).boxes, doc.boxes);
+});
+
+test("boxMembers takes the generating pieces wholly inside, never annotations", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    pieces: [
+      { id: "entry", role: "piece", rect: [0, 0, 2, 1] },
+      { id: "room", role: "wool-room", rect: [2, 0, 1, 1] },
+      { id: "far", role: "piece", rect: [8, 8, 1, 1] },
+      { id: "gap", role: "buffer", rect: [0, 1, 3, 1] },
+    ],
+    boxes: [{ id: "wool-a", kind: "wool", rect: [0, 0, 3, 2] }],
+  });
+  assert.deepEqual(boxMembers(doc, doc.boxes[0]).map(p => p.id), ["entry", "room"]);
+});
+
+test("named members win over containment and ignore the rect", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    pieces: [
+      { id: "entry", role: "piece", rect: [0, 0, 2, 1] },
+      { id: "far", role: "piece", rect: [8, 8, 1, 1] },
+    ],
+    boxes: [{ id: "b", kind: "hub", rect: [0, 0, 1, 1], members: ["far"] }],
+  });
+  assert.deepEqual(boxMembers(doc, doc.boxes[0]).map(p => p.id), ["far"]);
+});
+
+test("rectContainsRect counts touching edges as inside", () => {
+  assert.equal(rectContainsRect([0, 0, 2, 2], [0, 0, 2, 2]), true);
+  assert.equal(rectContainsRect([0, 0, 2, 2], [1, 1, 1, 1]), true);
+  assert.equal(rectContainsRect([0, 0, 2, 2], [1, 1, 2, 1]), false);
+});
+
+test("a box is grabbed by its border, never its interior", () => {
+  // cell 5 → the box spans blocks x∈[0,20], z∈[0,20]; the tolerance band is 0.4 cells = 2 blocks.
+  const doc = normalizeDoc({ plan: 1, boxes: [{ id: "b", kind: "hub", rect: [0, 0, 4, 4] }] });
+  assert.equal(boxAtWorld(doc, 0, 10)?.id, "b");          // on the left edge
+  assert.equal(boxAtWorld(doc, 19, 10)?.id, "b");         // just inside the right edge
+  assert.equal(boxAtWorld(doc, 21, 10)?.id, "b");         // just outside, within tolerance
+  assert.equal(boxAtWorld(doc, 10, 10), null);            // deep inside — belongs to the pieces there
+  assert.equal(boxAtWorld(doc, 40, 10), null);            // well clear of the box
+});
+
+test("pickAtWorld puts a box border above pieces but below markers", () => {
+  const doc = normalizeDoc({
+    plan: 1,
+    pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }],
+    boxes: [{ id: "b", kind: "hub", rect: [0, 0, 4, 4] }],
+    placements: { spawns: [{ piece: "p", at: [0, 2], facing: "front" }] },
+  });
+  assert.deepEqual(pickAtWorld(doc, 0, 10), { kind: "marker", markerKind: "spawn", index: 0 });  // marker wins
+  assert.deepEqual(pickAtWorld(doc, 20, 10), { kind: "box", id: "b" });                          // border
+  assert.deepEqual(pickAtWorld(doc, 10, 10), { kind: "piece", id: "p" });                        // interior
+});
+
+test("boxes fan into the mirror ghost and widen the view bounds", () => {
+  const doc = normalizeDoc({ plan: 1, globals: { symmetry: "rot_180" }, boxes: [{ id: "b", kind: "hub", rect: [1, 1, 2, 2] }] });
+  const images = boxMirrorImages(doc);
+  assert.equal(images.length, 1);
+  assert.deepEqual(images[0].bounds, { min_x: -15, min_z: -15, max_x: -5, max_z: -5 });
+  assert.deepEqual(contentBounds(doc), { min_x: 5, min_z: 5, max_x: 15, max_z: 15 });
+  assert.deepEqual(viewBounds(doc), { min_x: -15, min_z: -15, max_x: 15, max_z: 15 });
+});
+
+test("the shifted-frontline exemplars carry their partition as typed boxes", () => {
+  const doc = fromJson(readFileSync(resolve(here, "../../tools/seeds/shifted-u-frontline-attach-hole-hub.plan.json"), "utf8"));
+  assert.deepEqual(doc.boxes.map(b => b.kind), ["hub", "frontline", "spawn", "wool", "wool"]);
+  // The overlay `buffer` pieces the boxes replaced are gone — buffer means a reserved gap again.
+  assert.equal(doc.pieces.some(p => p.role === "buffer"), false);
+  // Every box groups the pieces it annotates, and every piece lands in exactly one box.
+  const owned = doc.boxes.flatMap(b => boxMembers(doc, b).map(p => p.id));
+  assert.equal(new Set(owned).size, owned.length, "no piece belongs to two boxes");
+  assert.equal(owned.length, doc.pieces.length, "every piece belongs to a box");
 });

@@ -54,7 +54,12 @@ to the symmetry centre); heights are blocks. One team's unit is authored; symmet
     // float+leak are one knob (DC2) — set both or neither; default 6/5 = no dig.
     "cores": [ { "piece": "mid", "at": [2, 2] } ]
   },
-  "cliffs": [ { "a": "cross", "b": "bar-w" } ]            // land interfaces forced one-way (EL5)
+  "cliffs": [ { "a": "cross", "b": "bar-w" } ],           // land interfaces forced one-way (EL5)
+  "boxes": [
+    // authoring annotation: the typed envelopes grouping pieces into the partition they realize
+    { "id": "hub",    "kind": "hub",  "rect": [-5, -7, 6, 3] },
+    { "id": "wool-a", "kind": "wool", "rect": [1, -7, 3, 1], "members": ["wool-entry", "wool"] }
+  ]
 }
 ```
 
@@ -65,6 +70,16 @@ Notes:
   connectivity is *derived* from zones (§2). The author never draws a connection.
 - Wool colours are not authored: one wool → the team colour, several → distinct dyes (the
   existing `LaneMapGenerator` convention). Team palette from the shared slot list.
+- **Optional `boxes` section** (authoring annotation): the typed envelopes grouping pieces into the
+  **partition** they realize — `kind` ∈ `spawn` · `hub` · `wool` · `frontline` · `mid`, `rect` in cells.
+  Membership is by **containment** (every generating piece wholly inside the rect; annotation pieces are
+  never members) unless `members` names the pieces explicitly, which a **composed partition writes** when a
+  generated board is kept, so a picked board opens with exactly the grouping that produced it. Ignored by
+  the compiler, the validator and the derivers exactly as `reference` is — drawing a box can never change
+  what a plan compiles to. In the editor a box renders as an unfilled dashed envelope, is grabbed by its
+  **border** (the interior belongs to the pieces inside it), and **dragging it carries its members**; deleting
+  it removes the annotation alone. This is authored annotation, not the compose-internal slot labels — the
+  plan on disk stays label-free.
 - **Optional `reference` block** (tracing provenance): `{ "map": <slug>, "offset": [x,z] cells,
   "scale": 1, "opacity": 0.5 }` records the real map this plan was traced over and where its top-down
   render sat under the grid. Authoring-only — the compiler never reads it, so it has no effect on the
@@ -171,6 +186,9 @@ New page `Features/Plan/PlanTool.razor` (+ `js/studio/plan/`), reusing the studi
   block-unit frame, so a real 10-block lane traces as 2 cells at scale 1. Persisted as the schema's
   optional `reference` block (round-trips + restores on reload). Trace one team's sector and check the
   live mirror ghost against the map's opposing teams. Feeds the box-based / wool-approach vocabulary.
+- **Boxes:** one draw tool per typed kind arms the box tool with that kind; the inspector edits a selected
+  box's id and kind, lists the pieces it groups, and can **fix** that membership as an explicit list (or
+  release it back to containment). Boxes fan into the symmetry ghost like zones.
 - **Palette:** piece roles (lane · hub · wool-room · mid) + zone tool + markers (spawn with a
   drag-to-set facing arrow, wool, iron, destroyable, core). The destroyable and core tools appear only
   for the order-2 symmetries — a goal one team defends means nothing at four (OB14).

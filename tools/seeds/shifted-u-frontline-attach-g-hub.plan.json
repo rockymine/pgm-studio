@@ -172,5 +172,57 @@
     "cores": []
   },
   "cliffs": [],
-  "walls": []
+  "walls": [],
+  "boxes": [
+    {
+      "id": "hub",
+      "kind": "hub",
+      "rect": [
+        -5,
+        -7,
+        6,
+        3
+      ]
+    },
+    {
+      "id": "frontline",
+      "kind": "frontline",
+      "rect": [
+        -2,
+        -4,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "spawn",
+      "kind": "spawn",
+      "rect": [
+        -3,
+        -9,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "wool-a",
+      "kind": "wool",
+      "rect": [
+        1,
+        -7,
+        3,
+        1
+      ]
+    },
+    {
+      "id": "wool-b",
+      "kind": "wool",
+      "rect": [
+        -7,
+        -7,
+        2,
+        1
+      ]
+    }
+  ]
 }

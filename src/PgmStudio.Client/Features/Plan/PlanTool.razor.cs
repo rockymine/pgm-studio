@@ -163,6 +163,22 @@ public partial class PlanTool
     // Every assignable role, for the inspector's role dropdown (a piece can become any of them).
     private static readonly RolePalette[] Roles = [.. GeneratingRoles, .. TechnicalRoles];
 
+    // The typed box kinds an envelope may carry — the partition vocabulary, offered on the box tool and in the
+    // inspector's kind dropdown. Colours match plan-doc's BOX_COLORS so palette, canvas and inspector agree.
+    private static readonly RolePalette[] BoxKinds =
+    [
+        new("hub", "Hub", "#4ea3d8"),
+        new("wool", "Wool", "#3fae74"),
+        new("spawn", "Spawn", "#8f7bd6"),
+        new("frontline", "Frontline", "#e0714a"),
+        new("mid", "Mid", "#9aa7b4"),
+    ];
+
+    // The kind armed for the box tool (the last one drawn), mirrored into the bridge.
+    private string boxKind = "hub";
+
+    private string BoxKindColor => BoxKinds.FirstOrDefault(k => k.Id == boxKind)?.Color ?? "#9aa7b4";
+
     private string OffsetLabel => sel?.At is { Length: 2 } a ? $"{a[0]}, {a[1]}" : "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -216,6 +232,15 @@ public partial class PlanTool
         role = r;
         tool = "piece";
         if (handle is not null) { await handle.InvokeVoidAsync("setRole", r); await handle.InvokeVoidAsync("setTool", "piece"); }
+    }
+
+    /// <summary>Arm the box tool with <paramref name="k"/> — the kind every box drawn from now on takes, until
+    /// another is picked (the same arm-a-kind model the piece roles use).</summary>
+    private async Task PickBoxKind(string k)
+    {
+        boxKind = k;
+        tool = "box";
+        if (handle is not null) { await handle.InvokeVoidAsync("armBoxKind", k); await handle.InvokeVoidAsync("setTool", "box"); }
     }
 
     private Task Fit() => handle?.InvokeVoidAsync("fit").AsTask() ?? Task.CompletedTask;
@@ -377,6 +402,15 @@ public partial class PlanTool
 
     private Task OnZoneId(ChangeEventArgs e)
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("setZoneId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
+
+    private Task OnBoxId(ChangeEventArgs e)
+        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxId", sel.Id, e.Value?.ToString() ?? "").AsTask() : Task.CompletedTask;
+
+    private Task OnBoxKind(ChangeEventArgs e)
+        => sel is not null && handle is not null ? handle.InvokeVoidAsync("setBoxKind", sel.Id, e.Value?.ToString() ?? "mid").AsTask() : Task.CompletedTask;
+
+    private Task ToggleBoxMembers()
+        => sel is not null && handle is not null ? handle.InvokeVoidAsync("toggleBoxMembers", sel.Id).AsTask() : Task.CompletedTask;
 
     private Task CycleFacing()
         => sel is not null && handle is not null ? handle.InvokeVoidAsync("cycleFacing", sel.Index).AsTask() : Task.CompletedTask;
@@ -746,6 +780,9 @@ public partial class PlanTool
         [JsonPropertyName("piece")] public string Piece { get; set; } = "";
         [JsonPropertyName("at")] public double[]? At { get; set; }
         [JsonPropertyName("facing")] public string Facing { get; set; } = "";
+        [JsonPropertyName("boxKind")] public string BoxKind { get; set; } = "";
+        [JsonPropertyName("members")] public List<string>? Members { get; set; }
+        [JsonPropertyName("membersNamed")] public bool MembersNamed { get; set; }
     }
 
     private sealed class MetaDto

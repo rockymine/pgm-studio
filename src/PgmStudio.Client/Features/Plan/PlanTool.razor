@@ -271,6 +271,16 @@
                   <span class="plan-role-swatch plan-role-swatch--@r.Id"></span>
                 </button>
               }
+              @* Box envelopes: one tool per typed kind, so drawing one states what the pieces inside it
+                 realize. Annotation only — a box never compiles, and dragging it carries its members. *@
+              <span class="plan-tool-sep"></span>
+              @foreach (var k in BoxKinds)
+              {
+                <button class="draw-tool-btn @(tool == "box" && boxKind == k.Id ? "draw-tool-btn--active" : null)"
+                        style="--role-color:@k.Color" title="Draw a @k.Label box" @onclick="() => PickBoxKind(k.Id)">
+                  <span class="plan-role-swatch plan-role-swatch--box"></span>
+                </button>
+              }
             </div>
             <div @ref="cursorRef" class="canvas-cursor"></div>
             <div class="canvas-subbar-right">
@@ -344,6 +354,36 @@
                 </Field>
                 <Button Full Variant="danger" OnClick="DeleteSelected">
                   <i data-lucide="trash-2"></i> Delete build area
+                </Button>
+              }
+              else if (sel.Kind == "box")
+              {
+                <DetailHeader Icon="group" Label="Box">
+                  <span class="detail-header-badges"><Badge Kind="neutral">@sel.BoxKind</Badge></span>
+                </DetailHeader>
+                <Field Label="Id">
+                  <input class="field-input" value="@sel.Id" @onchange="OnBoxId" />
+                </Field>
+                <Field Label="Kind">
+                  <select class="field-input" value="@sel.BoxKind" @onchange="OnBoxKind">
+                    @foreach (var k in BoxKinds) { <option value="@k.Id">@k.Label</option> }
+                  </select>
+                </Field>
+                <Field Label="@($"Members ({sel.Members?.Count ?? 0})")">
+                  <div class="plan-readout">
+                    @(sel.Members is { Count: > 0 } ? string.Join(", ", sel.Members) : "none")
+                  </div>
+                </Field>
+                <p class="section-desc">
+                  @(sel.MembersNamed
+                    ? "Membership is fixed to the pieces named above — resizing the box no longer changes it."
+                    : "Membership follows containment: every piece wholly inside the box. Drag the box to carry them with it.")
+                </p>
+                <Button Full OnClick="ToggleBoxMembers">
+                  @(sel.MembersNamed ? "Follow containment" : "Fix these members")
+                </Button>
+                <Button Full Variant="danger" OnClick="DeleteSelected">
+                  <i data-lucide="trash-2"></i> Delete box
                 </Button>
               }
               else

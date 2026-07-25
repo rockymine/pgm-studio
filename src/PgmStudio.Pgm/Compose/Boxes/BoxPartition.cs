@@ -63,7 +63,7 @@ public sealed record BoxPartition(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoi
         var groups = new Dictionary<string, (BoxKind Kind, List<int[]> Rects)>();
         foreach (var p in unit.Pieces)
         {
-            var (id, kind) = p.Box is { } box ? (box.Id, box.Kind) : Structural(p);
+            var (id, kind) = KeyOf(p);
             if (!groups.TryGetValue(id, out var g)) { g = (kind, new List<int[]>()); groups[id] = g; order.Add(id); }
             g.Rects.Add(p.Rect);
         }
@@ -76,6 +76,13 @@ public sealed record BoxPartition(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoi
                     joints.Add(new BoxJoint(boxes[i].Id, boxes[j].Id, iface));
         return new BoxPartition(boxes, joints);
     }
+
+    /// <summary>The box a grown <paramref name="piece"/> belongs to — its carried <see cref="BoxRef"/> label
+    /// when it has one, else the plain box its id names (<see cref="Structural"/>). The single grouping key,
+    /// so anything that re-groups a unit's pieces (the partition mirror, the plan-box annotation) partitions
+    /// them identically.</summary>
+    public static (string Id, BoxKind Kind) KeyOf(GrownPiece piece) =>
+        piece.Box is { } box ? (box.Id, box.Kind) : Structural(piece);
 
     /// <summary>The plain box an unlabeled structural piece belongs to, by id: the hub, the frontline (its
     /// chains share one box), the third wool lane. Anything unexpected becomes its own single-piece box so the

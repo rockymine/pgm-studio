@@ -6,8 +6,8 @@
 
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
-  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES,
-  planIsoSolids, viewBounds, markerList, MARKER_KINDS,
+  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES, BOX_KINDS,
+  planIsoSolids, viewBounds, markerList, MARKER_KINDS, boxMembers,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 
@@ -48,6 +48,14 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       doc.zones.push({ id, rect, holes: [] });
       canvas.setDoc(doc);
       canvas.select({ kind: "zone", id });
+    } else if (kind === "box") {
+      // A drawn box groups by containment (no `members`) — the author sizes the envelope and the pieces
+      // inside it follow. An explicit member list is what a composed partition writes, not what a hand
+      // -drawn box needs.
+      const id = uniqueId((doc.boxes || []).map(b => b.id), `${canvasBoxKind}-box`);
+      (doc.boxes ||= []).push({ id, kind: canvasBoxKind, rect });
+      canvas.setDoc(doc);
+      canvas.select({ kind: "box", id });
     } else {
       const role = canvasRole;
       const base = role === "wool-room" ? "wool" : role === "spawn" ? "spawn"
@@ -81,9 +89,19 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
         }
         doc.cliffs = (doc.cliffs || []).filter(c => c.a !== sel.id && c.b !== sel.id);
         doc.walls = (doc.walls || []).filter(w => w.a !== sel.id && w.b !== sel.id);
+        // A box that named the removed piece keeps its remaining members; a box left naming nothing falls
+        // back to containment rather than becoming an empty group.
+        for (const b of doc.boxes || []) {
+          if (!Array.isArray(b.members)) continue;
+          b.members = b.members.filter(m => m !== sel.id);
+          if (!b.members.length) delete b.members;
+        }
       }
     } else if (sel.kind === "zone") {
       doc.zones = doc.zones.filter(x => x.id !== sel.id);
+    } else if (sel.kind === "box") {
+      // Deleting a box removes the annotation only — the pieces it grouped stay exactly where they are.
+      doc.boxes = (doc.boxes || []).filter(x => x.id !== sel.id);
     } else if (sel.kind === "marker") {
       markerList(doc, sel.markerKind)?.splice(sel.index, 1);
     }
@@ -92,8 +110,10 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     scheduleSave();
   }
 
-  // Role armed for the next drawn piece (mirrored in the canvas so its preview colour matches).
+  // Role armed for the next drawn piece, and kind armed for the next drawn box (both mirrored in the canvas
+  // so the draw preview's colour matches what will be created).
   let canvasRole = "piece";
+  let canvasBoxKind = "hub";
 
   // ── autosave (debounced localStorage) ───────────────────────────────────────
 
@@ -219,6 +239,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   return {
     setTool(tool) { canvas.setTool(tool); },
     setRole(role) { canvasRole = ROLES.includes(role) ? role : "piece"; canvas.setPieceRole(canvasRole); },
+    armBoxKind(kind) { canvasBoxKind = BOX_KINDS.includes(kind) ? kind : "hub"; canvas.setBoxKind(canvasBoxKind); },
     fit() { canvas.fit(); },
     resize() { canvas.resize(); },
 
@@ -287,6 +308,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       const id = uniqueId(doc.pieces.filter(x => x !== p).map(x => x.id), newId);
       for (const m of [...doc.placements.spawns, ...doc.placements.wools, ...doc.placements.iron]) if (m.piece === oldId) m.piece = id;
       for (const c of [...(doc.cliffs || []), ...(doc.walls || [])]) { if (c.a === oldId) c.a = id; if (c.b === oldId) c.b = id; }
+      for (const b of doc.boxes || []) if (Array.isArray(b.members)) b.members = b.members.map(m => (m === oldId ? id : m));
       p.id = id;
       canvas.setDoc(doc); canvas.select({ kind: "piece", id }); scheduleSave();
     },
@@ -302,6 +324,24 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       const z = doc.zones.find(x => x.id === oldId); if (!z || !newId || newId === oldId) return;
       z.id = uniqueId(doc.zones.filter(x => x !== z).map(x => x.id), newId);
       canvas.setDoc(doc); canvas.select({ kind: "zone", id: z.id }); scheduleSave();
+    },
+    setBoxId(oldId, newId) {
+      const b = (doc.boxes || []).find(x => x.id === oldId); if (!b || !newId || newId === oldId) return;
+      b.id = uniqueId(doc.boxes.filter(x => x !== b).map(x => x.id), newId);
+      canvas.setDoc(doc); canvas.select({ kind: "box", id: b.id }); scheduleSave();
+    },
+    setBoxKind(id, kind) {
+      const b = (doc.boxes || []).find(x => x.id === id); if (!b || !BOX_KINDS.includes(kind)) return;
+      b.kind = kind;
+      canvas.setDoc(doc); canvas.select({ kind: "box", id }); scheduleSave();
+    },
+    // Freeze a containment-grouped box's membership as an explicit list (or release it back to containment),
+    // so an envelope that must own an unusual set of pieces can say so.
+    toggleBoxMembers(id) {
+      const b = (doc.boxes || []).find(x => x.id === id); if (!b) return;
+      if (Array.isArray(b.members) && b.members.length) delete b.members;
+      else { const m = boxMembers(doc, b).map(p => p.id); if (m.length) b.members = m; }
+      canvas.setDoc(doc); canvas.select({ kind: "box", id }); scheduleSave();
     },
     cycleFacing(index) { const m = doc.placements.spawns[index]; if (!m) return; const o = ["front", "right", "back", "left"]; m.facing = o[(o.indexOf(m.facing) + 1) % 4]; canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); scheduleSave(); },
     deleteSelected() { deleteSelection(canvas.getSelection()); },

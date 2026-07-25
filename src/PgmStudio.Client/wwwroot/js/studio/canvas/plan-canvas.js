@@ -15,10 +15,10 @@ import { svgEl } from "../render/svg.js";
 import { primitiveStyle } from "../render/primitive-style.js";
 import { blockDataToDataUrl } from "../render/block-render.js";
 import {
-  ROLE_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
+  ROLE_COLORS, BOX_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
   markerCell, attachMarker, markerAt, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
-  pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole,
-  pieceMirrorImages, zoneMirrorImages, markerMirrorImages, nearestInterface,
+  pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers,
+  pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
 
 // The hatch pattern id backing each annotation role's fill (buffer = single diagonal, connector = crossed).
@@ -74,9 +74,10 @@ function heightColor(t) {
 
 export class PlanCanvas extends CanvasBase {
   #doc = null;
-  #tool = "select";                 // select | pan | piece | zone | spawn | wool | iron | destroyable | core | wall
+  #tool = "select";                 // select | pan | piece | zone | box | spawn | wool | iron | destroyable | core | wall
   #pieceRole = "piece";             // role armed for the piece tool
-  #sel = null;                      // { kind:'piece'|'zone', id } | { kind:'marker', markerKind, index }
+  #boxKind = "hub";                 // kind armed for the box tool
+  #sel = null;                      // { kind:'piece'|'zone'|'box', id } | { kind:'marker', markerKind, index }
   #drag = null;                     // { mode:'move'|'draw', ... } live pointer op
   #resize = null;                   // { handle, id, kind } while dragging a resize handle
   #cb = {};
@@ -96,7 +97,7 @@ export class PlanCanvas extends CanvasBase {
   #isoOn = false;
 
   // viewport layers (world space)
-  #refLayer; #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #inspectLayer; #violationLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
+  #refLayer; #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #boxLayer; #inspectLayer; #violationLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
   // reference (tracing backdrop) state: the fetched block payload, its world bbox, and the placement cfg.
   #refData = null; #refBounds = null; #refCfg = null;
   // screen-space overlay (labels + selection box + resize handles)
@@ -117,10 +118,11 @@ export class PlanCanvas extends CanvasBase {
   setTool(tool) {
     this.#tool = tool;
     this._activeTool = tool === "pan" ? "move" : tool;
-    const draws = tool === "piece" || tool === "zone" || tool === "wall" || MARKER_KINDS.includes(tool);
+    const draws = tool === "piece" || tool === "zone" || tool === "box" || tool === "wall" || MARKER_KINDS.includes(tool);
     this._svg.style.cursor = draws ? "crosshair" : (tool === "select" ? "default" : "");
   }
   setPieceRole(role) { this.#pieceRole = role; }
+  setBoxKind(kind) { this.#boxKind = kind; }
 
   // Derived-structure feed (block coords, already fanned-out excluded — authored unit only). Redraw the layer.
   setInspect(data) {
@@ -291,6 +293,7 @@ export class PlanCanvas extends CanvasBase {
     this.#renderGhost();
     this.#renderZones();
     this.#renderPieces();
+    this.#renderBoxes();
     this.#renderMarkers();
     this.#refreshOverlay();
     this.#cb.onChange?.();
@@ -390,6 +393,15 @@ export class PlanCanvas extends CanvasBase {
           "stroke-width": "0.8", "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke",
         }));
     }
+    // Boxes fan into the ghost too — dimmed, so the mirrored unit's grouping reads without being editable.
+    for (const img of boxMirrorImages(this.#doc)) {
+      const { min_x, min_z, max_x, max_z } = img.bounds;
+      layer.appendChild(svgEl("rect", {
+        x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z, fill: "none",
+        stroke: BOX_COLORS[img.kind] || "#9aa7b4", "stroke-opacity": "0.35", "stroke-width": "1.5",
+        "stroke-dasharray": "8 5", "vector-effect": "non-scaling-stroke",
+      }));
+    }
     const cell = this.#doc.globals.cell;
     for (const m of markerMirrorImages(this.#doc))
       layer.appendChild(svgEl("circle", { cx: m.x, cy: m.z, r: cell * 0.28, fill: MARKER_COLORS[m.kind] || "#888", "fill-opacity": "0.3" }));
@@ -446,6 +458,23 @@ export class PlanCanvas extends CanvasBase {
         x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
         ...primitiveStyle("terrain", { color: fill, stroke, heightMap: this.#heightMap }),
         "data-piece": p.id, style: "cursor:pointer",
+      }));
+    }
+  }
+
+  // Box annotations: an unfilled dashed envelope per box, kind-coloured, drawn above the pieces it groups so
+  // the border stays visible over terrain. Unfilled by design — a box marks an extent, it never covers what
+  // is inside it, and clicks pass through the interior to the pieces (the border itself is grabbed via
+  // plan-doc's boxAtWorld, so the layer needs no pointer events of its own).
+  #renderBoxes() {
+    const layer = this.#boxLayer; this.#clear(layer);
+    const cell = this.#doc.globals.cell;
+    for (const b of this.#doc.boxes || []) {
+      const r = rectCellsToBlocks(b.rect, cell);
+      layer.appendChild(svgEl("rect", {
+        x: r.min_x, y: r.min_z, width: r.max_x - r.min_x, height: r.max_z - r.min_z,
+        fill: "none", stroke: BOX_COLORS[b.kind] || "#9aa7b4", "stroke-width": "2",
+        "stroke-dasharray": "8 5", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
       }));
     }
   }
@@ -595,7 +624,7 @@ export class PlanCanvas extends CanvasBase {
     // selected piece/zone still shows its own id for orientation. In height-map mode the piece's surface
     // height reads big at the centre (it is data, always shown); the id rides the top edge and follows Labels.
     const showLabels = this.#overlayOn.labels;
-    const selId = this.#sel && (this.#sel.kind === "piece" || this.#sel.kind === "zone") ? this.#sel.id : null;
+    const selId = this.#sel && this.#sel.kind !== "marker" ? this.#sel.id : null;
     for (const p of this.#doc.pieces) {
       const b = rectCellsToBlocks(p.rect, cell);
       const mx = (b.min_x + b.max_x) / 2, mz = (b.min_z + b.max_z) / 2;
@@ -609,6 +638,10 @@ export class PlanCanvas extends CanvasBase {
     }
     for (const z of this.#doc.zones)
       if (showLabels || z.id === selId) { const b = rectCellsToBlocks(z.rect, cell); label(z.id, (b.min_x + b.max_x) / 2, b.min_z, "var(--accent-light)"); }
+    // A box's id rides its top-left corner in the kind's colour, so several nested envelopes stay tellable
+    // apart without their labels stacking on one another.
+    for (const bx of this.#doc.boxes || [])
+      if (showLabels || bx.id === selId) { const b = rectCellsToBlocks(bx.rect, cell); label(bx.id, b.min_x + (b.max_x - b.min_x) * 0.14, b.min_z, BOX_COLORS[bx.kind] || "#9aa7b4", "10"); }
 
     // Gap-link hop distances ride the screen-space overlay so they stay a fixed pixel size at any zoom.
     if (showLabels)
@@ -656,6 +689,7 @@ export class PlanCanvas extends CanvasBase {
     if (!this.#sel) return null;
     if (this.#sel.kind === "piece") return this.#doc.pieces.find(p => p.id === this.#sel.id) || null;
     if (this.#sel.kind === "zone") return this.#doc.zones.find(z => z.id === this.#sel.id) || null;
+    if (this.#sel.kind === "box") return boxById(this.#doc, this.#sel.id);
     return null;
   }
 
@@ -670,6 +704,10 @@ export class PlanCanvas extends CanvasBase {
     const item = this.#selItem();
     if (!item) { this.#cb.onSelect?.(null); return; }
     if (this.#sel.kind === "piece") this.#cb.onSelect?.({ kind: "piece", id: item.id, role: item.role, rect: item.rect, surface: item.surface ?? this.#doc.globals.surface, surfaceSet: item.surface != null, mirrors: item.mirrors !== false });
+    else if (this.#sel.kind === "box") this.#cb.onSelect?.({
+      kind: "box", id: item.id, boxKind: item.kind, rect: item.rect,
+      members: boxMembers(this.#doc, item).map(p => p.id), membersNamed: Array.isArray(item.members) && item.members.length > 0,
+    });
     else this.#cb.onSelect?.({ kind: "zone", id: item.id, rect: item.rect });
   }
 
@@ -684,7 +722,7 @@ export class PlanCanvas extends CanvasBase {
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz);
     if (this.#tool === "wall") return this.#toggleWallAt(svgPt.x, svgPt.y);
-    if (this.#tool === "piece" || this.#tool === "zone") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#renderPreview(); return; }
+    if (this.#tool === "piece" || this.#tool === "zone" || this.#tool === "box") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#renderPreview(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
     if (MARKER_KINDS.includes(this.#tool)) this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
   }
@@ -736,7 +774,9 @@ export class PlanCanvas extends CanvasBase {
     this.#sel = hit;
     this.#refreshOverlay();
     this.#fireSelect();
-    this.#drag = { mode: "move", sel: hit, grab: [cx, cz], moved: false, reselect: sameSelection(prev, hit) };
+    // A box drag carries its members — resolve them now, before the envelope starts moving.
+    const carried = hit?.kind === "box" ? boxMembers(this.#doc, boxById(this.#doc, hit.id) || { rect: [0, 0, 0, 0] }) : null;
+    this.#drag = { mode: "move", sel: hit, grab: [cx, cz], moved: false, reselect: sameSelection(prev, hit), carried };
   }
 
   #moveTo(cx, cz, fcx, fcz) {
@@ -755,7 +795,13 @@ export class PlanCanvas extends CanvasBase {
     if (!ddx && !ddz) return;
     d.grab = [cx, cz];
     const item = this.#selItem();
-    if (item) { item.rect[0] += ddx; item.rect[1] += ddz; d.moved = true; }
+    if (item) {
+      // A box carries the pieces it groups: dragging the envelope relocates the whole part it annotates,
+      // which is the point of typing it. Membership is resolved once at grab time (d.carried) so a piece
+      // cannot fall out of a containment-grouped box mid-drag and be left behind.
+      if (d.sel.kind === "box") for (const p of d.carried || []) { p.rect[0] += ddx; p.rect[1] += ddz; }
+      item.rect[0] += ddx; item.rect[1] += ddz; d.moved = true;
+    }
     this.render();
   }
 
@@ -798,13 +844,22 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
     const b = rectCellsToBlocks(rect, cell);
+    const drawn = { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, "vector-effect": "non-scaling-stroke", "pointer-events": "none" };
+    // A box preview is unfilled like the box itself — it frames pieces rather than covering them.
+    if (this.#drag.kind === "box") {
+      layer.appendChild(svgEl("rect", {
+        ...drawn, fill: "none", stroke: BOX_COLORS[this.#boxKind] || "#9aa7b4",
+        "stroke-width": "2", "stroke-dasharray": "8 5",
+      }));
+      return;
+    }
     const isAnno = this.#drag.kind === "piece" && isAnnotationRole(this.#pieceRole);
     const color = this.#drag.kind === "zone" ? "var(--accent)" : ROLE_COLORS[this.#pieceRole];
     layer.appendChild(svgEl("rect", {
-      x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
+      ...drawn,
       fill: isAnno ? `url(#${HATCH[this.#pieceRole]})` : color, "fill-opacity": isAnno ? "0.6" : "0.2",
       stroke: color, "stroke-width": "1.5",
-      "stroke-dasharray": isAnno ? "6 4" : "4 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
+      "stroke-dasharray": isAnno ? "6 4" : "4 3",
     }));
   }
 
@@ -855,12 +910,13 @@ export class PlanCanvas extends CanvasBase {
     this.#ghostLayer = svgEl("g", { "pointer-events": "none" });
     this.#zoneLayer = svgEl("g");
     this.#pieceLayer = svgEl("g");
+    this.#boxLayer = svgEl("g", { "pointer-events": "none" });
     this.#inspectLayer = svgEl("g", { "pointer-events": "none" });
     this.#violationLayer = svgEl("g", { "pointer-events": "none" });
     this.#markerLayer = svgEl("g");
     this.#previewLayer = svgEl("g", { "pointer-events": "none" });
     this.#pulseLayer = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#refLayer, this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#inspectLayer, this.#violationLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
+    for (const g of [this.#refLayer, this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#boxLayer, this.#inspectLayer, this.#violationLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
     this._svg.appendChild(this._viewportG);
 
     this.#overlay = svgEl("g");
