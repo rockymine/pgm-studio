@@ -10,3 +10,24 @@ namespace PgmStudio.Pgm.Shapes;
 /// </summary>
 public sealed record ShapeBody(
     IReadOnlyList<(int[] Rect, string Slot)> Pieces, IReadOnlyList<ShapeVacancy> Vacancies);
+
+/// <summary>
+/// The per-side widths of a ring's four walls, in cells — the widening knob every ring-bodied form shares
+/// (the Ring, the P's loop, the G's ring, the Double-hole's, and the donut's).
+///
+/// <para>A ring built at one corridor width has four equal walls; a ring built at four is the same shape with
+/// one side wider than the rest, which is how an author says more play flows through that side. Every emitter
+/// takes a single <c>cw</c> today, so <see cref="Uniform"/> is what they all pass and the widened cases are the
+/// reason this type exists at all.</para>
+/// </summary>
+public readonly record struct RingWalls(int Top, int Right, int Bottom, int Left)
+{
+    /// <summary>All four walls at one corridor width — the single-<c>cw</c> ring every form builds today.</summary>
+    public static RingWalls Uniform(int cw) => new(cw, cw, cw, cw);
+
+    /// <summary>The narrowest wall — what a corridor-minimum check reads.</summary>
+    public int Min => Math.Min(Math.Min(Top, Right), Math.Min(Bottom, Left));
+
+    /// <summary>The widest wall — the numerator of the spread ratio.</summary>
+    public int Max => Math.Max(Math.Max(Top, Right), Math.Max(Bottom, Left));
+}

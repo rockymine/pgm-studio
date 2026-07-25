@@ -87,8 +87,8 @@ public static class BodyEmitter
     {
         if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2.");
         if (w < 2 * cw + 1 || h < 2 * cw + 1) throw new ArgumentException($"box {w}x{h} is too small for a ring at cw {cw}.");
-        var pieces = RingPieces(cw, 0, 0, w, h);
-        return new ShapeBody(pieces, [Hole(cw, cw, w - 2 * cw, h - 2 * cw)]);
+        var walls = RingWalls.Uniform(cw);
+        return new ShapeBody(RingPieces(walls, 0, 0, w, h), [RingHole(walls, 0, 0, w, h)]);
     }
 
     /// <summary>A ring whose bottom bar is <b>longer</b> than its loop, so the loop sits on the bar with an
@@ -103,12 +103,14 @@ public static class BodyEmitter
         var ext = barExtend > 0 ? barExtend : 2 * cw;             // total overhang of the long bar past the loop
         var ox = ext / 2;                                         // loop offset — centred on the overhang
         var w = loopW + ext;
+        var walls = RingWalls.Uniform(cw);
+        var loop = RingWallRects(walls, ox, 0, loopW, ringH);
         var pieces = new List<(int[] Rect, string Slot)>
         {
-            ([0, ringH - cw, w, cw], ApproachSlots.Bar),          // the long bottom bar (the loop slides along it)
-            ([ox, 0, loopW, cw], ApproachSlots.Bar),              // loop top bar
-            ([ox, cw, cw, ringH - 2 * cw], ApproachSlots.Leg),    // loop left leg
-            ([ox + loopW - cw, cw, cw, ringH - 2 * cw], ApproachSlots.Leg),  // loop right leg
+            ([0, ringH - walls.Bottom, w, walls.Bottom], ApproachSlots.Bar),  // the long bottom bar (the loop slides along it)
+            (loop.Top, ApproachSlots.Bar),                        // loop top bar
+            (loop.Left, ApproachSlots.Leg),                       // loop left leg
+            (loop.Right, ApproachSlots.Leg),                      // loop right leg
         };
         return new ShapeBody(pieces, [Hole(ox + cw, cw, loopW - 2 * cw, ringH - 2 * cw)]);
     }
@@ -130,7 +132,7 @@ public static class BodyEmitter
         if (uh < 2 * cw + 1) throw new ArgumentException($"the U height {uh} leaves no bay at cw {cw}.");
         if (z < 0 || z + uh > ringH)
             throw new ArgumentException($"the U (z {z}, height {uh}) doesn't fit the ring's right edge (ring height {ringH}).");
-        var pieces = RingPieces(cw, 0, 0, ringW, ringH);
+        var pieces = RingPieces(RingWalls.Uniform(cw), 0, 0, ringW, ringH);
         pieces.Add(([ringW, z, uw, cw], ApproachSlots.Bar));                       // U top arm (docks the ring's right leg)
         pieces.Add(([ringW, z + uh - cw, uw, cw], ApproachSlots.Bar));            // U bottom arm
         pieces.Add(([ringW + uw - cw, z + cw, cw, uh - 2 * cw], ApproachSlots.Leg)); // U outer wall (closes it)
@@ -156,12 +158,14 @@ public static class BodyEmitter
         if (w < ringW + cw + 1) throw new ArgumentException($"width {w} leaves no bay + upright past the ring {ringW} at cw {cw}.");
         // built bay-opening-DOWN (the shared bar on top, the L's foot part of it), so the hub's vertical flip turns
         // the open side toward the front — the branch convention, so a docking frontline seals the bay into a hole
+        var walls = RingWalls.Uniform(cw);
+        var ring = RingWallRects(walls, 0, 0, ringW, ringH);
         var pieces = new List<(int[] Rect, string Slot)>
         {
-            ([0, 0, w, cw], ApproachSlots.Bar),                          // the shared top bar (ring top + the L's foot)
-            ([0, ringH - cw, ringW, cw], ApproachSlots.Bar),            // ring bottom bar
-            ([0, cw, cw, ringH - 2 * cw], ApproachSlots.Leg),           // ring left leg
-            ([ringW - cw, cw, cw, ringH - 2 * cw], ApproachSlots.Leg),  // ring right leg — the bay's left wall
+            ([0, 0, w, walls.Top], ApproachSlots.Bar),                   // the shared top bar (ring top + the L's foot)
+            (ring.Bottom, ApproachSlots.Bar),                           // ring bottom bar
+            (ring.Left, ApproachSlots.Leg),                             // ring left leg
+            (ring.Right, ApproachSlots.Leg),                            // ring right leg — the bay's left wall
             ([w - cw, cw, cw, ringH - cw], ApproachSlots.Leg),          // the L's upright — the bay's right wall, down to the open edge
         };
         return new ShapeBody(pieces, [Hole(cw, cw, ringW - 2 * cw, ringH - 2 * cw)]);   // one enclosed void (the ring); the bay opens down
@@ -200,11 +204,41 @@ public static class BodyEmitter
         new("hole", [x, z, w, h], null, [ApproachSlots.Bar, ApproachSlots.Bar, ApproachSlots.Leg, ApproachSlots.Leg]);
 
     // the four bars of a rectangular ring at (x, z), size w×h — top/bottom bars, left/right legs.
-    private static List<(int[] Rect, string Slot)> RingPieces(int cw, int x, int z, int w, int h) =>
-    [
-        ([x, z, w, cw], ApproachSlots.Bar),                        // top
-        ([x, z + h - cw, w, cw], ApproachSlots.Bar),               // bottom
-        ([x, z + cw, cw, h - 2 * cw], ApproachSlots.Leg),          // left
-        ([x + w - cw, z + cw, cw, h - 2 * cw], ApproachSlots.Leg), // right
-    ];
+    private static List<(int[] Rect, string Slot)> RingPieces(RingWalls walls, int x, int z, int w, int h)
+    {
+        var r = RingWallRects(walls, x, z, w, h);
+        return
+        [
+            (r.Top, ApproachSlots.Bar),
+            (r.Bottom, ApproachSlots.Bar),
+            (r.Left, ApproachSlots.Leg),
+            (r.Right, ApproachSlots.Leg),
+        ];
+    }
+
+    /// <summary>
+    /// The four wall rects of a ring occupying <c>(x, z, w, h)</c> at per-side <paramref name="walls"/>: the top
+    /// and bottom bars span the full width, the legs fill between them.
+    ///
+    /// <para>This is <b>the</b> place ring wall geometry lives. Six forms are built from these four walls — the
+    /// Ring and Double-hole directly, the P's loop, the G's ring, and the donut's (in
+    /// <see cref="ShapeEmitter"/>) — and each assembles them in its own order with its own slot names, because
+    /// piece order fixes emitted ids and the donut's walls are an entry/room bar rather than plain bars. So this
+    /// owns <em>where</em> the walls are, not what they are called or in what order they are laid down; that
+    /// split is what lets a per-side width be added once rather than in six copies.</para>
+    /// </summary>
+    public static (int[] Top, int[] Bottom, int[] Left, int[] Right) RingWallRects(
+        RingWalls walls, int x, int z, int w, int h)
+    {
+        var mid = h - walls.Top - walls.Bottom;
+        return (
+            [x, z, w, walls.Top],
+            [x, z + h - walls.Bottom, w, walls.Bottom],
+            [x, z + walls.Top, walls.Left, mid],
+            [x + w - walls.Right, z + walls.Top, walls.Right, mid]);
+    }
+
+    /// <summary>The enclosed void a ring at <paramref name="walls"/> leaves inside <c>(x, z, w, h)</c>.</summary>
+    public static ShapeVacancy RingHole(RingWalls walls, int x, int z, int w, int h) =>
+        Hole(x + walls.Left, z + walls.Top, w - walls.Left - walls.Right, h - walls.Top - walls.Bottom);
 }

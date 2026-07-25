@@ -372,19 +372,26 @@ public static class ShapeEmitter
                 if (attachmentOffset < 0 || attachmentOffset + aw > (attachments >= 2 ? ringH - aw : ringH))
                     throw new ArgumentException(
                         $"attachment offset {attachmentOffset} slides the stub off the ring's edge (box {W}x{H}).");
-                t.Add(([ax, 0, span, cw], ApproachSlots.EntryBar));          // top bar
-                t.Add(([ax, cw, cw, ringH - 2 * cw], ApproachSlots.Leg));    // left leg (middle only — no corner overlap)
-                t.Add(([ax + span - cw, cw, cw, ringH - 2 * cw], ApproachSlots.Leg)); // right leg (middle only)
+                // the ring's four walls come from the shared geometry (BodyEmitter.RingWallRects) — the same
+                // walls the Ring, P, G and Double-hole are built from — but the donut lays them down in its own
+                // order and names them entry-bar / room-bar, because the top bar is the hub side and the bottom
+                // carries the wool
+                var walls = RingWalls.Uniform(cw);
+                var ring = BodyEmitter.RingWallRects(walls, ax, 0, span, ringH);
+                t.Add((ring.Top, ApproachSlots.EntryBar));                   // top bar
+                t.Add((ring.Left, ApproachSlots.Leg));                       // left leg (middle only — no corner overlap)
+                t.Add((ring.Right, ApproachSlots.Leg));                      // right leg (middle only)
                 t.Add(([0, attachmentOffset, cw, aw], ApproachSlots.Entry)); // hub attachment, slid down the ring edge
                 if (attachments >= 2) t.Add(([0, ringH - aw, cw, aw], ApproachSlots.Entry)); // second attachment (bottom-left)
                 if (woolAtEnd)
                 {
-                    t.Add(([ax, ringH - cw, span - cw, cw], ApproachSlots.RoomBar)); // bottom bar stops before the corner
+                    // the bottom wall, stopped short of the corner the wool takes
+                    t.Add(([ring.Bottom[0], ring.Bottom[1], span - walls.Right, ring.Bottom[3]], ApproachSlots.RoomBar));
                     room = [ax + span - cw, ringH - cw, cw, cw];    // wool AT the bottom-right corner (integrated)
                 }
                 else
                 {
-                    t.Add(([ax, ringH - cw, span, cw], ApproachSlots.RoomBar));  // full bottom bar
+                    t.Add((ring.Bottom, ApproachSlots.RoomBar));    // full bottom bar
                     int wxr = ax + span;                            // right of the ring's right leg
                     if (woolExtend) { t.Add(([wxr, ringH - cw, cw, cw], ApproachSlots.Run)); wxr += cw; }  // short I holding the wool
                     room = [wxr, ringH - cw, rd, cw];               // wool off the bottom-right
