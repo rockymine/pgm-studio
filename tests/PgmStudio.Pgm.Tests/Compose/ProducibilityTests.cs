@@ -196,6 +196,47 @@ public sealed class ProducibilityTests
         await Assert.That(gHub.Findings.Any(f => f.Code == "proportions-outside-the-parameter-space")).IsFalse();
     }
 
+    /// <summary>
+    /// Which side of the axis a unit is drawn on must not change what the front rules measure. The composer
+    /// always grows on the +u side, so the frame's sign is fixed per symmetry; an authored plan may be drawn on
+    /// either side, and reading u the wrong way round makes the min-u pieces the unit's <b>back</b> — every front
+    /// rule then measures the spawn instead of the frontline. Mirroring a plan across the axis must leave the
+    /// unit findings identical.
+    /// </summary>
+    [Test]
+    public async Task Unit_findings_do_not_depend_on_which_side_of_the_axis_the_unit_is_drawn()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        var mirrored = PlanModel.Parse(plan.ToJson())!;
+        foreach (var p in mirrored.Pieces) p.Rect = [p.Rect[0], -(p.Rect[1] + p.Rect[3]), p.Rect[2], p.Rect[3]];
+        foreach (var b in mirrored.Boxes) b.Rect = [b.Rect[0], -(b.Rect[1] + b.Rect[3]), b.Rect[2], b.Rect[3]];
+
+        var codes = Producibility.ReadPlan(plan).Unit.Select(f => f.Code).OrderBy(c => c).ToList();
+        var mirroredCodes = Producibility.ReadPlan(mirrored).Unit.Select(f => f.Code).OrderBy(c => c).ToList();
+        await Assert.That(mirroredCodes).IsEquivalentTo(codes);
+    }
+
+    /// <summary>The front the rules read is the edge <b>facing the axis</b>, whichever side the unit sits on.
+    /// Moving a piece at the unit's far edge must not change a front finding — under a fixed-sign frame it would,
+    /// because the far edge is what that frame calls the front.</summary>
+    [Test]
+    public async Task A_far_edge_piece_does_not_drive_the_front_findings()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        // the unit is drawn wholly on the -z side, so a fixed +u frame would pick the spawn (the far edge) as
+        // "the front" and measure its lateral interval instead of the frontline's
+        await Assert.That(plan.Pieces.All(p => p.Rect[1] + p.Rect[3] <= 0)).IsTrue();
+        var before = Producibility.ReadPlan(plan).Unit.Select(f => f.Code).OrderBy(c => c).ToList();
+        await Assert.That(before).Contains("front-faces-not-mirror-symmetric");
+
+        // slide the spawn — the far-edge piece — laterally. It is not the front, so no front finding may move.
+        var moved = PlanModel.Parse(plan.ToJson())!;
+        var spawn = moved.Pieces.First(p => p.Id == "spawn");
+        spawn.Rect = [spawn.Rect[0] + 3, spawn.Rect[1], spawn.Rect[2], spawn.Rect[3]];
+        var after = Producibility.ReadPlan(moved).Unit.Select(f => f.Code).OrderBy(c => c).ToList();
+        await Assert.That(after).Contains("front-faces-not-mirror-symmetric");
+    }
+
     /// <summary>The seat-separation report says which measurand it used, because the answer depends on it — the
     /// envelope test can indict a placement whose emitted terrain keeps the gap (the question G124 parks).</summary>
     [Test]

@@ -97,20 +97,36 @@ public static class Producibility
     /// predicate where one exists (<see cref="Composer.FrontFacesSymmetric"/>,
     /// <see cref="TeamUnitAllocator.TooClose"/>) rather than restated here.
     /// </summary>
+    /// <summary>
+    /// The growth frame an <b>authored</b> unit sits in. <see cref="Frame.For"/> fixes the sign per symmetry
+    /// because a composed unit always grows on the +u side — but an authored plan may be drawn on either side of
+    /// the axis, and reading <c>u</c> the wrong way round makes the min-u pieces the unit's <b>back</b>. Every
+    /// front rule would then measure the spawn instead of the frontline. The sign is inferred from where the
+    /// pieces actually are: a unit lying wholly on the far side gets the sign flipped so <c>u</c> still grows
+    /// away from the axis.
+    /// </summary>
+    private static Frame AuthoredFrame(string symmetry, IReadOnlyList<int[]> rects)
+    {
+        var frame = Frame.For(symmetry);
+        if (rects.Count == 0) return frame;
+        var uv = rects.Select(frame.FromRect).ToList();
+        return uv.Max(r => r.UMin + r.USpan) <= 0 ? new Frame(frame.PrimaryAxis, -frame.Sign) : frame;
+    }
+
     private static IReadOnlyList<ProducibilityFinding> UnitFindings(PlanModel plan)
     {
         var findings = new List<ProducibilityFinding>();
         if (plan.Boxes.Count == 0) return findings;
 
         var symmetry = plan.Globals.Symmetry;
-        var frame = Frame.For(symmetry);
         var terrain = plan.Pieces.Where(p => PlanRoles.IsGenerating(p.Role)).Select(p => p.Rect).ToList();
+        var frame = AuthoredFrame(symmetry, terrain);
 
         // the parallel-fronts guard: under a laterally-flipping symmetry the two images' fronts must align, and
         // the gate demands that per FACE. A shifted front is hull-symmetric but not face-symmetric — which is
         // exactly the relaxation G123 owns, so name it rather than reporting a flat "no".
         if (terrain.Count > 0 && MidCarver.LateralFlip(symmetry)
-            && !Composer.FrontFacesSymmetric(symmetry, terrain))
+            && !Composer.FrontFacesSymmetric(frame, terrain))
             findings.Add(new ProducibilityFinding("front-faces-not-mirror-symmetric", "G123",
                 "The unit's front faces do not mirror onto themselves under v → −v, which the composer's " +
                 "parallel-fronts gate requires per face — so the mid band could not dock both images flush. " +

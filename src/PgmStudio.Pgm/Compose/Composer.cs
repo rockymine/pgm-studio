@@ -43,7 +43,8 @@ public static class Composer
             // front faces must mirror onto themselves — else the two sides' fronts sit offset and the band
             // overflows past the faces it docks (an asymmetric-front hub form, an off-centre frontline) — resample
             if (MidCarver.LateralFlip(envelope.Symmetry)
-                && !FrontFacesSymmetric(envelope.Symmetry, filled.Unit.Pieces.Select(p => p.Rect))) continue;
+                && !FrontFacesSymmetric(Frame.For(envelope.Symmetry), filled.Unit.Pieces.Select(p => p.Rect)))
+                continue;
             var mid = MidCarver.TryCarve(envelope, crossing, filled.Unit);
             if (mid is null) continue;
 
@@ -66,11 +67,13 @@ public static class Composer
     /// <summary>Whether a unit's front faces (the min-u pieces' lateral intervals) mirror onto themselves
     /// under v → -v — the parallel-fronts requirement of a laterally-flipping symmetry: only then does the
     /// opposing image's front align with the unit's own, and the band dock both flush without lateral
-    /// overflow. Takes the bare rects so the producibility read can ask the same question of an authored plan
-    /// (one implementation, two callers — a second copy would be free to disagree with the gate).</summary>
-    internal static bool FrontFacesSymmetric(string symmetry, IEnumerable<int[]> rects)
+    /// overflow. Takes the <paramref name="frame"/> and the bare rects so the producibility read can ask the same
+    /// question of an authored plan (one implementation, two callers — a second copy would be free to disagree
+    /// with the gate). The frame is passed rather than derived from the symmetry because a composed unit always
+    /// grows on the +u side while an authored one may be drawn on either, and reading the front off the wrong
+    /// side measures the back of the unit.</summary>
+    internal static bool FrontFacesSymmetric(Frame frame, IEnumerable<int[]> rects)
     {
-        var frame = Frame.For(symmetry);
         var uv = rects.Select(frame.FromRect).ToList();
         if (uv.Count == 0) return true;
         var minU = uv.Min(r => r.UMin);
