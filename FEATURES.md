@@ -1805,6 +1805,38 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   exemplars (g-hub: G hub + 2-arm frontline; hole-hub: Ring hub + Donut wool). Pgm 696 + 146 JS tests green.
   Contract: `plan-editor.md` §1/§5; vocabulary row added. Unblocks G125. (G126)
 
+- **Feasibility read-back — "could the composer have produced this?" (G125)** — `Pgm/Compose/Producibility.cs`
+  + `Compose/Boxes/FillRejection.cs` + `Api/Endpoints/PlanInspectEndpoints.cs` + `Contracts/FeasibilityDto.cs` +
+  `Features/Plan/PlanTool`. The read the validator can't give: a plan scores 0 with no rule fired and is still
+  unbuildable by the machine — which is exactly what both funnel exemplars are. It answers by **search, never by
+  inverse**: the parameter space is already declared as data (the hub/frontline form menus, the wool production
+  families, the spawn sizes, the wall and lane widths) and every emitter is a pure function of an explicit tuple
+  with no RNG inside, so it enumerates what those tables admit, calls the **real emitters**, and compares masks —
+  add a hub form and the search picks it up for free. The **reproduction gate** is the test that makes a negative
+  verdict mean anything: every box of every composed board must be reachable this way *and* produce zero
+  unit-level findings (30+ boxes over 10 seeds), so the check can't drift from the allocator it mirrors.
+  The **why** comes from three existing sources, no new rule logic — the emitters' own rejections, a measurement
+  against the same constant the emitter reads (`Cells.MinRunWidthRaw` vs `HubWallCells`/`WoolLaneCells`), and the
+  **nearest miss** the enumeration yields for free (closest candidate + the extra/missing cells, which localises a
+  discrepancy without a per-family analyser). Identity is a **hint, never a verdict** (a 1-cell-walled shape still
+  reads as the `G` it topologically is); terrain and room compare separately. **Unit-level** findings cover the
+  arrangement — the parallel-fronts guard (via `Composer.FrontFacesSymmetric`, generalized so the gate and the
+  read share one implementation), the frontline's pinned face demand, and seat separation (via
+  `TeamUnitAllocator.TooClose`, at the 2-cell floor `FrontGuard` can fall back to) — reported **alongside** the
+  per-box reads, never instead of them. Findings **cite the task that would unblock them**: a nearest miss of the
+  same form the box reads as means only its proportions are unreachable, so it names G105 (body widths / the
+  asymmetric ring) or G82 (approach entry widening), with G129 for the generalization; a different form cites
+  nothing rather than guessing. Prerequisite work landed in the same theme: every box-fill refusal now carries a
+  typed `FillRejection` (hub/spawn/frontline had returned bare nulls, and `BoxFiller.Fill` **threw** on an
+  unsupported knob combination against its own data-channel contract). Surface: `POST /api/plan/feasibility`
+  beside `/plan/evaluate`, and a **Feasibility panel** grouped per box with the arrangement findings pinned
+  above; clicking a box **paints the cells it differs by** on the canvas, reusing the evaluator's evidence
+  styling. On the hole-hub exemplar: the ring's one over-wide wall localises to **2 cells** citing G105, the
+  donut's 1-wide attachment to 8 cells citing G82, and the shifted frontline fires **twice** citing G123 — while
+  the evaluator still reports score 0, nothing fired. Pgm 716 + Api 76 + 148 JS tests green. Contracts:
+  `plan-editor.md` §1/§5, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
+  validator alone converges on plans the composer can't reproduce). (G125)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`

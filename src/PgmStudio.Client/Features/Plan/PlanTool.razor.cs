@@ -101,16 +101,30 @@ public partial class PlanTool
             leftOpen = false;
         else
             (leftPanel, leftOpen) = (which, true);
-        if (handle is not null) await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation");
+        await SyncPanelOverlays(leftOpen && leftPanel == "validation", leftOpen && leftPanel == "feasibility");
     }
 
-    // Map-backed Draw: an in-sidebar switch between the Settings (reference + overlays) and Validation
-    // panels — the rail is phases, not activities, so the panel toggle moves into the sidebar. No collapse
-    // (the sidebar is part of the Draw workspace); the violations layer follows the Validation panel.
+    // Map-backed Draw: an in-sidebar switch between the Settings (reference + overlays), Validation and
+    // Feasibility panels — the rail is phases, not activities, so the panel toggle moves into the sidebar. No
+    // collapse (the sidebar is part of the Draw workspace); each panel's overlay follows its own panel.
     private async Task SetPanel(string which)
     {
         leftPanel = which;
-        if (handle is not null) await handle.InvokeVoidAsync("setOverlay", "violations", leftPanel == "validation");
+        await SyncPanelOverlays(leftPanel == "validation", leftPanel == "feasibility");
+    }
+
+    /// <summary>Point each canvas overlay at the panel that owns it: the Rules layer follows Validation, the
+    /// nearest-miss evidence follows Feasibility. Leaving a panel drops its overlay, so the canvas never carries
+    /// evidence for something the author can no longer see the reason for.</summary>
+    private async Task SyncPanelOverlays(bool rules, bool feasible)
+    {
+        if (handle is null) return;
+        await handle.InvokeVoidAsync("setOverlay", "violations", rules);
+        if (!feasible && isolatedBox is not null)
+        {
+            isolatedBox = null;
+            await handle.InvokeVoidAsync("showNearestMiss", string.Empty);
+        }
     }
 
     // Globals mirrored from the plan document (the JS bridge is the source of truth; these drive the form).
@@ -136,6 +150,14 @@ public partial class PlanTool
     // for the all-violations overlay. Cleared whenever a new feed arrives — a stale index would isolate the wrong
     // rule (the canvas resets its own focus in lockstep from the same response).
     private int? selectedViolation;
+
+    // The live producibility feed ("could the composer have produced this?"), pushed from the bridge's
+    // /api/plan/feasibility poll. Null when the plan is malformed or before the first response.
+    private FeasibilityDto? feasibility;
+    // The box whose nearest-miss cells are painted on the canvas, or null for none. Cleared with every fresh feed
+    // (the bridge drops the overlay in lockstep, so the two never disagree).
+    private string? isolatedBox;
+
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
     // Reference (tracing) backdrop: the traceable maps for the picker + the current placement, both mirrored
@@ -754,6 +776,30 @@ public partial class PlanTool
         evaluation = string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<EvaluationDto>(json, Web);
         selectedViolation = null;   // a fresh feed — the canvas drops its focus too, so the two stay in step
         StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnFeasibility(string json)
+    {
+        feasibility = string.IsNullOrEmpty(json) ? null : JsonSerializer.Deserialize<FeasibilityDto>(json, Web);
+        isolatedBox = null;         // the bridge clears the canvas evidence on the same response
+        StateHasChanged();
+    }
+
+    /// <summary>Paint one box's nearest-miss cells on the canvas, or clear them by clicking the same box again.
+    /// A box the emitters reproduce has no miss to show, so it does not isolate.</summary>
+    private async Task IsolateBox(BoxFeasibilityDto box)
+    {
+        if (handle is null) return;
+        if (isolatedBox == box.BoxId || box.Nearest is null)
+        {
+            isolatedBox = null;
+            await handle.InvokeVoidAsync("showNearestMiss", string.Empty);
+            return;
+        }
+        isolatedBox = box.BoxId;
+        await handle.InvokeVoidAsync("showNearestMiss",
+            JsonSerializer.Serialize(new { extra = box.Nearest.Extra, missing = box.Nearest.Missing }, Web));
     }
 
     public async ValueTask DisposeAsync()

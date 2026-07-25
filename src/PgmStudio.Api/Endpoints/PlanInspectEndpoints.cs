@@ -3,6 +3,7 @@ using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
@@ -185,4 +186,59 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
         EvidenceMeasure m => new("measure", m.Tag, X1: m.X1, Z1: m.Z1, X2: m.X2, Z2: m.Z2, Label: m.Label),
         _ => new("unknown", e.Tag),
     };
+}
+
+/// <summary>
+/// POST /api/plan/feasibility — the plan editor's <b>producibility</b> read: could the composer have produced this
+/// plan? The question <see cref="PlanEvaluateEndpoint"/> does not ask, and the two genuinely diverge — a plan can
+/// score 0 with no rule fired and still be outside everything the emitters can build.
+///
+/// <para>The request body is a plan wire document; the response is a <see cref="FeasibilityDto"/>: the per-box
+/// reads (each naming the parameter tuple that reproduces it, or the nearest candidate and why it misses) plus the
+/// unit-level findings that belong to the arrangement. Findings cite a rule id or the id of the task that would
+/// unblock them, so the report doubles as a live map of composer gaps. Boxes come from the plan's authored
+/// <c>boxes</c> annotation, so a plan without them reads empty rather than erroring. A malformed body is answered
+/// 400, never 500.</para>
+/// </summary>
+public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
+{
+    public override void Configure() { Post("/plan/feasibility"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var body = await reader.ReadToEndAsync(ct);
+
+        PlanModel? plan;
+        try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
+        catch (JsonException) { plan = null; }
+        if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+
+        PlanProducibility read;
+        try
+        {
+            read = Producibility.ReadPlan(plan);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
+        {
+            await Send.ResponseAsync(new { error = "Invalid plan structure" }, 400, ct);
+            return;
+        }
+
+        await Send.OkAsync(ToDto(read), ct);
+    }
+
+    /// <summary>Map the derived read onto the wire DTO — a shape-for-shape projection; the service owns every
+    /// judgement, this owns only the serialization.</summary>
+    internal static FeasibilityDto ToDto(PlanProducibility read) => new(
+        read.IsProducible,
+        read.Boxes.Select(b => new BoxFeasibilityDto(
+            b.BoxId, b.Kind, b.Identity,
+            b.Producible?.Label, b.Producible?.Cw,
+            b.Nearest is null ? null : new NearestMissDto(
+                b.Nearest.Label, b.Nearest.Cw, b.Nearest.DifferingCells, b.Nearest.Extra, b.Nearest.Missing),
+            b.Findings.Select(Finding).ToList())).ToList(),
+        read.Unit.Select(Finding).ToList());
+
+    private static FeasibilityFindingDto Finding(ProducibilityFinding f) => new(f.Code, f.Cites, f.Detail);
 }

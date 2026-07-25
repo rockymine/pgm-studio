@@ -899,6 +899,38 @@ body.dashboard-page { overflow: hidden; }
 .plan-lint-row--active,
 .plan-lint-row--active:hover { background: var(--bg-selected); color: var(--text-bright); border-color: var(--accent); }
 
+/* Feasibility panel — one group per box, findings indented under their box's clickable head. The unit-level
+   findings sit in their own group above, rule-cited like the rest but belonging to no single box. */
+.plan-feas-unit { margin-bottom: var(--space-3); }
+.plan-feas-unit-title,
+.plan-feas-box + .plan-feas-box { border-top: 1px solid var(--border); }
+.plan-feas-unit-title {
+  border-top: 0; padding-bottom: var(--space-1);
+  font-size: var(--font-xs); font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.plan-feas-box { padding-top: var(--space-2); margin-top: var(--space-2); }
+.plan-feas-head {
+  display: flex; align-items: baseline; gap: var(--space-2);
+  width: 100%; text-align: left; padding: 4px 6px;
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm);
+  color: var(--text-bright); font-size: var(--font-sm); font-family: inherit; cursor: pointer;
+}
+.plan-feas-head:hover:not(:disabled) { background: var(--border); border-color: var(--accent); }
+.plan-feas-head:disabled { cursor: default; }
+.plan-feas-head--active,
+.plan-feas-head--active:hover { background: var(--bg-selected); border-color: var(--accent); }
+.plan-feas-id { font-family: ui-monospace, monospace; font-weight: 600; }
+.plan-feas-identity { margin-left: auto; color: var(--text-secondary); font-size: var(--font-xs); }
+.plan-lint-dot--ok { background: var(--success, #3fae74); }
+/* A finding line: the cited id (if any) then the detail, indented under its box head. */
+.plan-feas-finding {
+  display: flex; align-items: flex-start; gap: var(--space-2);
+  padding: 3px 6px 3px 20px;
+  color: var(--text-secondary); font-size: var(--font-sm); line-height: 1.35;
+}
+.plan-feas-finding--ok { color: var(--success, #3fae74); font-family: ui-monospace, monospace; font-size: var(--font-xs); }
+
 /* Compile & test drawer body content — the walk-test loop's tabs/JSON/errors/draft. The drawer shell
    itself (backdrop · panel · header · body · footer) is the reusable SideDrawer (.side-drawer-* in
    components.css); these classes style what sits inside its Body/Footer. */

@@ -44,20 +44,6 @@ hold tray persists across reloads — pinned *means* persisted.
   version} via G119; JSONL export so the labeled examples drive rule refinement, envelope
   regeneration, and AI-assisted analysis.
 
-- [ ] **G125 — Feasibility read-back in the plan editor ("could the composer make this?").** The
-  validator answers *is this legal to author*; this answers *could the machine replicate it* — the
-  emit↔derive mirror surfaced as an authoring tool. Per labeled box: derive the shape (the approach
-  classifier for roomed boxes, the body classifier for hub/frontline), then check it against the
-  production rules — family ∈ the width menu at the granted cw, `MouthBox` fit, `DockingGate` on the
-  dock edge, hub form ∈ `HubForms`, the frontline demand rules, seat separation, the parallel-fronts
-  guard — each failure a **directed verdict citing the rule or the gap's task id** (the shifted
-  frontline reports "not yet — G123", the asymmetric ring "not yet — G105"). The internal signals
-  already exist (`DockRejection`, directed nulls, `RejectRecord`); the grouping is now the authored
-  `boxes` section (shipped — `FEATURES.md`), so the work is plumbing them into a per-box report panel
-  beside the Score panel. Both funnel exemplars evaluate **clean** today (score 0 — validation has no opinion on
-  producibility), which is exactly the gap this closes. Seed harness:
-  `tools/deriver/plan-readback.cs` (per-box derive + evaluator readout).
-
 - [ ] **G120 — Duel mode (the tournament).** Bucket-scoped side-by-side comparison: a **bucket** is a
   filter combination (e.g. 2 wools · F frontline · double-hole hub · one L + one donut), so both
   boards made broadly the same structural decisions — the closest thing to a controlled comparison,

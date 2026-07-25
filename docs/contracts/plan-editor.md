@@ -206,6 +206,15 @@ New page `Features/Plan/PlanTool.razor` (+ `js/studio/plan/`), reusing the studi
   narrow; red only at a bare corner point), gap links through zones with hop distances, computed
   frontline edges, spawn→wool path trace, and the evaluator's fired-rule **evidence** (the Rules
   overlay — see §6, `layout-evaluator.md`).
+- **Feasibility panel:** the producibility read (`POST /api/plan/feasibility`) — *could the composer have
+  produced this?*, the question the Score panel does not ask (a plan scores 0 and can still be unbuildable).
+  Grouped **per box**, with the unit-level findings (the arrangement rules) pinned above them, because a box can
+  be unbuildable on its own geometry *and* the unit unbuildable in how its boxes sit together. Each box names the
+  parameter tuple that reproduces it, or the nearest candidate and the directed findings; a finding cites a rule
+  id or the **task that would unblock it** (`G123`, `G105`), so the panel doubles as a live map of composer gaps.
+  Clicking a box **paints the cells it differs by** on the canvas — the `missing` cells (its own geometry no
+  candidate emits) as offender, the `extra` cells (what the nearest candidate would have had) as bound, reusing
+  the evaluator's evidence styling. Leaving the panel drops the overlay.
 - **Panels:** the **Score** panel — the evaluator's live cost + every fired rule (structural errors +
   rule lint via the STRUCT / PC-C / G2 / G5 terms, then soft feel), each click-to-**isolate** its
   evidence on the canvas (the single validation surface; there is no separate lint list); plan JSON

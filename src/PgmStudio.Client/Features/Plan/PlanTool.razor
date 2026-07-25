@@ -65,6 +65,7 @@
       {
         <NavButton Icon="sliders-horizontal" Title="Settings" Active="@(leftPanel == "settings" && leftOpen)" OnClick='() => SelectActivity("settings")' />
         <NavButton Icon="shield-check" Title="Validation — evaluator score &amp; fired rules" Active="@(leftPanel == "validation" && leftOpen)" OnClick='() => SelectActivity("validation")' />
+        <NavButton Icon="factory" Title="Feasibility — could the composer have produced this?" Active="@(leftPanel == "feasibility" && leftOpen)" OnClick='() => SelectActivity("feasibility")' />
       }
     </NavRail>
   </Rail>
@@ -95,6 +96,7 @@
             <div class="plan-panel-switch">
               <Chip Active="@(leftPanel == "settings")" OnClick='() => SetPanel("settings")'>Settings</Chip>
               <Chip Active="@(leftPanel == "validation")" OnClick='() => SetPanel("validation")'>Validation</Chip>
+              <Chip Active="@(leftPanel == "feasibility")" OnClick='() => SetPanel("feasibility")'>Feasibility</Chip>
             </div>
             }
             @if (leftPanel == "settings")
@@ -177,6 +179,83 @@
                       OnClick="ToggleHeightMap">Heights</Chip>
               </div>
               <p class="section-desc">Toggle the derived-structure overlays and the height ramp drawn on the canvas.</p>
+            </Section>
+            }
+            else if (leftPanel == "feasibility")
+            {
+            @* Producibility, grouped per box with the unit-level findings pinned above them: a box can be
+               unbuildable on its own geometry AND the unit unbuildable in how its boxes are arranged, so both
+               are shown rather than the first failure. Clicking a box paints the cells by which it misses the
+               nearest thing the emitters can build. *@
+            <Section Title="Feasibility">
+              <Actions>
+                @if (feasibility is not null)
+                {
+                  <Badge Class="@(feasibility.Producible ? "badge--success" : "badge--error")"
+                         title="Whether the composer could have produced this plan">
+                    @(feasibility.Producible ? "producible" : "not producible")
+                  </Badge>
+                }
+              </Actions>
+              <ChildContent>
+                @if (feasibility is null)
+                {
+                  <p class="section-desc">Asks what the evaluator can't: could the composer have produced this? Draw a box around each part to get a read — the boxes are the grouping this hangs off.</p>
+                }
+                else if (feasibility.Boxes.Count == 0 && feasibility.Unit.Count == 0)
+                {
+                  <p class="section-desc">No boxes drawn. Add a box around each part — a hub, a wool approach, the spawn, the frontline — and each one gets its own read.</p>
+                }
+                else
+                {
+                  @if (feasibility.Unit.Count > 0)
+                  {
+                    <div class="plan-feas-unit">
+                      <div class="plan-feas-unit-title">Arrangement</div>
+                      @foreach (var f in feasibility.Unit)
+                      {
+                        <div class="plan-feas-finding">
+                          @if (f.Cites is not null) { <span class="plan-lint-chip">@f.Cites</span> }
+                          <span class="plan-lint-msg">@f.Detail</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @foreach (var box in feasibility.Boxes)
+                  {
+                    var b = box;
+                    <div class="plan-feas-box">
+                      <button class="plan-feas-head @(isolatedBox == b.BoxId ? "plan-feas-head--active" : null)"
+                              disabled="@(b.Nearest is null)"
+                              title="@(b.Nearest is null ? "Nothing to show — no candidate geometry to compare" : "Show the cells this box differs by")"
+                              @onclick="() => IsolateBox(b)">
+                        <span class="plan-lint-dot @(b.Producible ? "plan-lint-dot--ok" : "plan-lint-dot--error")"></span>
+                        <span class="plan-feas-id">@b.BoxId</span>
+                        <span class="list-tag">@b.Kind</span>
+                        <span class="plan-feas-identity" title="What the derivers read the geometry as — a hint, not a verdict">@b.Identity</span>
+                      </button>
+                      @if (b.Producible)
+                      {
+                        <div class="plan-feas-finding plan-feas-finding--ok">@b.ProducibleAs <span class="list-tag">cw @b.Cw</span></div>
+                      }
+                      else if (b.Nearest is not null)
+                      {
+                        <div class="plan-feas-finding">
+                          <span class="plan-lint-msg">Nearest: @b.Nearest.Label</span>
+                          <span class="list-tag">@b.Nearest.DifferingCells cell@(b.Nearest.DifferingCells == 1 ? "" : "s")</span>
+                        </div>
+                      }
+                      @foreach (var f in b.Findings)
+                      {
+                        <div class="plan-feas-finding">
+                          @if (f.Cites is not null) { <span class="plan-lint-chip">@f.Cites</span> }
+                          <span class="plan-lint-msg">@f.Detail</span>
+                        </div>
+                      }
+                    </div>
+                  }
+                }
+              </ChildContent>
             </Section>
             }
             else

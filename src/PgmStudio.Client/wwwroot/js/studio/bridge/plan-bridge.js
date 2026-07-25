@@ -139,14 +139,15 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
   let surfaceStep = 2;
   try { const v = parseInt(localStorage.getItem(SURFACESTEP_KEY), 10); if (v >= 1) surfaceStep = v; } catch { /* default 2 */ }
 
-  let inspectTimer = null, inspectSeq = 0, evalSeq = 0;
+  let inspectTimer = null, inspectSeq = 0, evalSeq = 0, feasSeq = 0;
   function scheduleInspect() {
     if (inspectTimer) clearTimeout(inspectTimer);
     inspectTimer = setTimeout(runLive, 300);
   }
-  // One edit fires both live feeds: the structural derivation (interfaces/frontline/lint) and the rule evaluator
-  // (score + fired-rule evidence). They are independent endpoints with their own stale-response guards.
-  function runLive() { runInspect(); runEvaluate(); }
+  // One edit fires three live feeds: the structural derivation (interfaces/frontline/lint), the rule evaluator
+  // (score + fired-rule evidence), and the producibility read (could the composer have made this?). They are
+  // independent endpoints with their own stale-response guards.
+  function runLive() { runInspect(); runEvaluate(); runFeasibility(); }
 
   async function runInspect() {
     const seq = ++inspectSeq;
@@ -189,6 +190,25 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     if (seq !== evalSeq) return;               // re-check after the awaited body
     canvas.setViolations(data.violations || []);
     fire("OnEvaluation", JSON.stringify(data));
+  }
+
+  // The producibility feed: per-box "could the composer have produced this?" plus the unit-level findings. The
+  // whole FeasibilityDto goes to the Blazor panel; the canvas evidence follows the panel's own selection (the
+  // author picks a box), so nothing is painted from this response directly. A 400 clears the panel.
+  async function runFeasibility() {
+    const seq = ++feasSeq;
+    let res;
+    try {
+      res = await fetch("/api/plan/feasibility", { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
+    } catch { return; }                       // offline / transient — keep the last good read
+    if (seq !== feasSeq) return;               // a newer edit already fired
+    if (!res.ok) { canvas.setNearestMiss(null); fire("OnFeasibility", ""); return; }
+    let data;
+    try { data = await res.json(); } catch { return; }
+    if (seq !== feasSeq) return;               // re-check after the awaited body
+    // a fresh read invalidates whichever box's evidence was painted — the panel re-selects if it wants it back
+    canvas.setNearestMiss(null);
+    fire("OnFeasibility", JSON.stringify(data));
   }
 
   // ── reference (tracing) backdrop ─────────────────────────────────────────────
@@ -355,6 +375,13 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     setSurfaceStep(v) { surfaceStep = Math.max(1, Math.round(Number(v) || 2)); try { localStorage.setItem(SURFACESTEP_KEY, String(surfaceStep)); } catch { /* private mode */ } return surfaceStep; },
     highlightSubjects(idsJson) { try { canvas.pulseSubjects(JSON.parse(idsJson) || []); } catch { /* ignore */ } },
     focusViolation(index) { canvas.focusViolation(index); },
+
+    // Paint one box's nearest-miss cells on the canvas (or clear with an empty string) — the feasibility panel's
+    // isolate action, the producibility twin of focusViolation.
+    showNearestMiss(json) {
+      if (!json) { canvas.setNearestMiss(null); return; }
+      try { canvas.setNearestMiss(JSON.parse(json)); } catch { canvas.setNearestMiss(null); }
+    },
 
     dispose() { if (saveTimer) clearTimeout(saveTimer); if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },
   };

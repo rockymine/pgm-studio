@@ -87,6 +87,9 @@ export class PlanCanvas extends CanvasBase {
   #inspect = { interfaces: [], gapLinks: [], frontline: [] };
   // Evaluator violations (cell-space evidence from /api/plan/evaluate) — the fired rules drawn on the grid.
   #violations = [];
+  // Producibility evidence (from /api/plan/feasibility): the cells by which one box's geometry misses the
+  // nearest thing the emitters can build. Only ever one box's at a time — the author picks it in the panel.
+  #nearestMiss = null;
   // Which violation's evidence to isolate: -1 draws every violation (the default), an index draws only that one.
   #focusedViolation = -1;
   // Labels off by default keeps the canvas quiet: no piece/zone id text, no gap connectors or hop numbers.
@@ -150,6 +153,17 @@ export class PlanCanvas extends CanvasBase {
     const v = this.#violations[this.#focusedViolation];
     return v ? [v] : [];
   }
+  /**
+   * Show one box's nearest-miss evidence, or clear it with null. `miss` is { extra, missing } — cell rects the
+   * nearest producible candidate emits that the box lacks (extra) and cells the box has that it does not
+   * (missing). Painted with the same offender/bound styling the evaluator evidence uses, so "8 cells differ"
+   * becomes a place on the grid rather than a number.
+   */
+  setNearestMiss(miss) {
+    this.#nearestMiss = miss && (miss.extra?.length || miss.missing?.length) ? miss : null;
+    this.#renderViolations();
+  }
+
   setOverlayVisible(key, on) {
     if (!(key in this.#overlayOn)) return;
     this.#overlayOn[key] = !!on;
@@ -557,9 +571,30 @@ export class PlanCanvas extends CanvasBase {
   #renderViolations() {
     const layer = this.#violationLayer; if (!layer) return;
     this.#clear(layer);
-    if (!this.#doc || !this.#overlayOn.violations) return;
+    if (!this.#doc) return;
     const cell = this.#doc.globals.cell;
 
+    // Producibility evidence rides this layer too — it is the same kind of thing (geometry indicted by a check)
+    // and follows its own panel selection rather than the Rules overlay toggle. `missing` cells are the box's own
+    // geometry that no candidate emits (the offender); `extra` are cells the nearest candidate would have had
+    // (the bound it should have respected) — the same semantics the evidence styling table already encodes.
+    if (this.#nearestMiss) {
+      const paint = (rects, tag) => {
+        const st = evidenceStyle(tag);
+        for (const r of rects || []) {
+          const b = rectCellsToBlocks(r, cell);
+          layer.appendChild(svgEl("rect", {
+            x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
+            fill: st.stroke, "fill-opacity": "0.18", stroke: st.stroke, "stroke-width": String(st.width),
+            "vector-effect": "non-scaling-stroke", ...(st.dash ? { "stroke-dasharray": st.dash } : {}),
+          }));
+        }
+      };
+      paint(this.#nearestMiss.missing, "offender");
+      paint(this.#nearestMiss.extra, "bound");
+    }
+
+    if (!this.#overlayOn.violations) return;
     for (const v of this.#shownViolations())
       for (const e of v.evidence || []) {
         const st = evidenceStyle(e.tag);
