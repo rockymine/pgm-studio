@@ -30,6 +30,38 @@ public sealed class BodyGeometryFingerprintTests
             "bar:0,0,5,2 | bar:0,3,5,2 | leg:0,2,2,1 | leg:3,2,2,1  voids hole:2,2,1,1");
     }
 
+    /// <summary>The widening itself: a ring with one thicker wall is the same four walls, and the hole is what
+    /// they leave — widening narrows the void rather than growing the box.</summary>
+    [Test]
+    public async Task A_ring_can_carry_one_wall_wider_than_the_rest()
+    {
+        // the right leg at 3 where the others are 2: the hole loses a column on that side, the box is unchanged
+        var walls = new RingWalls(Top: 2, Right: 3, Bottom: 2, Left: 2);
+        await Assert.That(Print(BodyEmitter.Ring(walls, 9, 7))).IsEqualTo(
+            "bar:0,0,9,2 | bar:0,5,9,2 | leg:0,2,2,3 | leg:6,2,3,3  voids hole:2,2,4,3");
+
+        // and it still reads as a ring — identity is width-independent, which is the whole premise
+        var cells = new HashSet<(int, int)>();
+        foreach (var (rect, _) in BodyEmitter.Ring(walls, 9, 7).Pieces)
+            for (var x = rect[0]; x < rect[0] + rect[2]; x++)
+                for (var z = rect[1]; z < rect[1] + rect[3]; z++) cells.Add((x, z));
+        await Assert.That(ShapeClassifier.ClassifyBody(cells).Form).IsEqualTo(Compound.Ring);
+    }
+
+    /// <summary>The emitter enforces geometry only — walls must be a corridor and must leave a hole. How far the
+    /// widths may differ from one another is a sampling law the composer owns, so the emitter builds a 2/5 ring
+    /// without complaint.</summary>
+    [Test]
+    public async Task The_emitter_bounds_ring_walls_by_geometry_not_by_taste()
+    {
+        await Assert.That(() => BodyEmitter.Ring(new RingWalls(2, 1, 2, 2), 9, 7)).Throws<ArgumentException>()
+            .Because("a 1-cell wall is under the corridor minimum");
+        await Assert.That(() => BodyEmitter.Ring(new RingWalls(2, 5, 2, 5), 9, 7)).Throws<ArgumentException>()
+            .Because("5 + 5 leaves no hole in a 9-wide box");
+        await Assert.That(Print(BodyEmitter.Ring(new RingWalls(2, 5, 2, 2), 11, 7))).IsNotEmpty()
+            .Because("a lopsided 2/5 ring is legal geometry; the ratio law lives in the sampler");
+    }
+
     [Test]
     public async Task P_geometry_is_stable()
     {

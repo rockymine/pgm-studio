@@ -83,12 +83,27 @@ public static class BodyEmitter
     /// <summary>A rectangular ring — four bars around one enclosed void (the donut body, terminal-free). Top and
     /// bottom are <see cref="ApproachSlots.Bar"/>, the sides <see cref="ApproachSlots.Leg"/>; the hole is a
     /// <c>hole</c> vacancy.</summary>
-    public static ShapeBody Ring(int cw, int w, int h)
+    public static ShapeBody Ring(int cw, int w, int h) => Ring(RingWalls.Uniform(cw), w, h);
+
+    /// <summary>A ring at per-side <paramref name="walls"/> — the widened form: one side thicker than the rest is
+    /// the same shape carrying more play through that side. The hole is whatever the walls leave, so widening a
+    /// wall narrows the void rather than growing the box.</summary>
+    public static ShapeBody Ring(RingWalls walls, int w, int h)
     {
-        if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2.");
-        if (w < 2 * cw + 1 || h < 2 * cw + 1) throw new ArgumentException($"box {w}x{h} is too small for a ring at cw {cw}.");
-        var walls = RingWalls.Uniform(cw);
+        RequireRing(walls, w, h, "ring");
         return new ShapeBody(RingPieces(walls, 0, 0, w, h), [RingHole(walls, 0, 0, w, h)]);
+    }
+
+    /// <summary>The geometric requirement of a ring occupying <paramref name="w"/>×<paramref name="h"/> at
+    /// <paramref name="walls"/>: every wall at least a corridor, and the opposing pairs leaving at least one cell
+    /// of hole between them. It is <b>only</b> geometry — how far the widths may differ from each other is a
+    /// sampling law the composer owns, not something an emitter should refuse.</summary>
+    private static void RequireRing(RingWalls walls, int w, int h, string form)
+    {
+        if (walls.Min < 2) throw new ArgumentException($"corridor width {walls.Min} < 2.");
+        if (w < walls.Left + walls.Right + 1 || h < walls.Top + walls.Bottom + 1)
+            throw new ArgumentException(
+                $"box {w}x{h} is too small for a {form} at walls {walls.Top}/{walls.Right}/{walls.Bottom}/{walls.Left}.");
     }
 
     /// <summary>A ring whose bottom bar is <b>longer</b> than its loop, so the loop sits on the bar with an
