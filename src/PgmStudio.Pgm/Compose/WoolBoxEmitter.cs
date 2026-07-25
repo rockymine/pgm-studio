@@ -94,8 +94,15 @@ public static class WoolBoxEmitter
                            : new FillResult.TooSmall(family, minAlong, minDepth);
         }
 
-        var raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement,
-            woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth);
+        // A knob combination the emitter does not build (a side-tuck room on an L, say) is a directed rejection
+        // like every other refusal here — this type's contract is a data channel, never a throw.
+        EmittedShape raw;
+        try
+        {
+            raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement,
+                woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth);
+        }
+        catch (ArgumentException e) { return new FillResult.UnsupportedKnobs(family, e.Message); }
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
         var shape = MouthOrient.To(mouthTop, mouth, w, h);
 

@@ -55,11 +55,24 @@ public static class HubBoxEmitter
     /// the hub <paramref name="box"/> label and their body slot; there is no room and no marker. <paramref name="cw"/>
     /// is ignored by the solid Rectangle. <c>null</c> when the box is too small for the form (a directed signal);
     /// throws <see cref="ComposeException"/> only for a form off the hub menu.</summary>
-    public static EmittedHub? Fill(Box box, CompoundRead form, int cw, bool flipV = false)
+    public static EmittedHub? Fill(Box box, CompoundRead form, int cw, bool flipV = false) =>
+        Fill(box, form, cw, flipV, out _);
+
+    /// <inheritdoc cref="Fill(Box, CompoundRead, int, bool)"/>
+    /// <param name="rejection">On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
+    /// the shared <see cref="FillRejection"/> vocabulary, carrying the body emitter's own dimension message
+    /// rather than discarding it. <c>null</c> when the fill succeeded.</param>
+    public static EmittedHub? Fill(
+        Box box, CompoundRead form, int cw, bool flipV, out FillRejection? rejection)
     {
+        rejection = null;
         int boxW = box.Rect[2], boxH = box.Rect[3];
-        var body = BuildBody(form, boxW, boxH, cw);
-        if (body is null) return null;                       // too small for the form at this cw — a directed signal
+        var body = BuildBody(form, boxW, boxH, cw, out var detail);
+        if (body is null)                                    // too small for the form at this cw — a directed signal
+        {
+            rejection = new FillRejection.FormDoesNotFit(detail ?? $"{form.Form} does not fit {boxW}x{boxH} at cw {cw}.");
+            return null;
+        }
         if (flipV) body = BodyOrient.To(body, BoxEdge.Bottom, boxW, boxH);   // feet toward the box top, spine to bottom
 
         var boxRef = new BoxRef(box.Id, BoxKind.Hub);
@@ -73,9 +86,11 @@ public static class HubBoxEmitter
     }
 
     // build the body of `form` sized to fill the boxW×boxH box at `cw`; null when the box is too small for it
-    // (the BodyEmitter's own dim guards, surfaced as a directed signal rather than an exception).
-    private static ShapeBody? BuildBody(CompoundRead form, int w, int h, int cw)
+    // (the BodyEmitter's own dim guards, surfaced as a directed signal rather than an exception). `detail` carries
+    // the guard's own message on refusal — the reason the caller reports, not a re-derivation of it.
+    private static ShapeBody? BuildBody(CompoundRead form, int w, int h, int cw, out string? detail)
     {
+        detail = null;
         try
         {
             return form.Form switch
@@ -91,7 +106,7 @@ public static class HubBoxEmitter
                 _ => throw new ComposeException($"the hub form menu excludes {form.Form}."),
             };
         }
-        catch (ArgumentException) { return null; }
+        catch (ArgumentException e) { detail = e.Message; return null; }
     }
 
     // one offer per contiguous free run on each box edge, Several-grouped (each neighbour docks its own run),

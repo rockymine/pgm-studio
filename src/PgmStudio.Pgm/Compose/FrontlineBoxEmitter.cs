@@ -81,15 +81,31 @@ public static class FrontlineBoxEmitter
     /// marker. <c>null</c> when the box is too small for the form; throws for a form off the frontline menu.</summary>
     public static EmittedFrontline? Fill(
         Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, BoxEdge spineMouth = BoxEdge.Top,
+        int? faceWidth = null, IReadOnlyList<(int Start, int Width)>? armLayout = null) =>
+        Fill(box, form, cw, faceGrouping, out _, spineMouth, faceWidth, armLayout);
+
+    /// <inheritdoc cref="Fill(Box, CompoundRead, int, OfferGrouping, BoxEdge, int?, IReadOnlyList{ValueTuple{int, int}})"/>
+    /// <param name="rejection">On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
+    /// the shared <see cref="FillRejection"/> vocabulary, carrying the body emitter's own message (including the
+    /// fat-L thin-leg guard) rather than discarding it. <c>null</c> when the fill succeeded.</param>
+    public static EmittedFrontline? Fill(
+        Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, out FillRejection? rejection,
+        BoxEdge spineMouth = BoxEdge.Top,
         int? faceWidth = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
+        rejection = null;
         int boxW = box.Rect[2], boxH = box.Rect[3];
         // build spine-up in the spine-length × reach frame (transposed when the spine docks a lateral edge), then
         // orient onto the mouth — the twin of a spawn/wool box emitting mouth-up and orienting via MouthOrient
         var lateral = spineMouth is BoxEdge.Left or BoxEdge.Right;
         var (spineLen, reach) = lateral ? (boxH, boxW) : (boxW, boxH);
-        var built = BuildBody(form, spineLen, reach, cw, armLayout);
-        if (built is null) return null;
+        var built = BuildBody(form, spineLen, reach, cw, armLayout, out var detail);
+        if (built is null)
+        {
+            rejection = new FillRejection.FormDoesNotFit(
+                detail ?? $"{form.Form} (arms {form.Arms}) does not fit a {spineLen}x{reach} spine frame at cw {cw}.");
+            return null;
+        }
         var body = BodyOrient.To(built, spineMouth, spineLen, reach);
 
         var boxRef = new BoxRef(box.Id, BoxKind.Frontline);
@@ -120,16 +136,22 @@ public static class FrontlineBoxEmitter
     };
 
     // build the body of `form` sized to fill the box, spine along the top; null when the box is too small. An
-    // armLayout (SampleArms) overrides the branch forms' canonical legs with the sampled per-leg sizes.
+    // armLayout (SampleArms) overrides the branch forms' canonical legs with the sampled per-leg sizes. `detail`
+    // carries the refusing guard's own message — the reason the caller reports, not a re-derivation of it.
     private static ShapeBody? BuildBody(
-        CompoundRead form, int w, int h, int cw, IReadOnlyList<(int Start, int Width)>? armLayout = null)
+        CompoundRead form, int w, int h, int cw, IReadOnlyList<(int Start, int Width)>? armLayout,
+        out string? detail)
     {
+        detail = null;
         try
         {
             if (form.Form == Compound.SpineArms && armLayout is not null)
-                return armLayout.Count == form.Arms
-                    ? BodyEmitter.SpineArms(w, cw, armLayout.Select(a => (a.Start, a.Width, h - cw)).ToList())
-                    : null;
+            {
+                if (armLayout.Count == form.Arms)
+                    return BodyEmitter.SpineArms(w, cw, armLayout.Select(a => (a.Start, a.Width, h - cw)).ToList());
+                detail = $"the arm layout names {armLayout.Count} legs, the form {form.Arms}.";
+                return null;
+            }
             return form.Form switch
             {
                 Compound.Rectangle => BodyEmitter.Rectangle(w, h),                                              // Bar — the wide face
@@ -140,11 +162,19 @@ public static class FrontlineBoxEmitter
                 // band and directed-nulls instead
                 Compound.SpineArms when form.Arms == 1 => w - cw >= cw + 1
                     ? BodyEmitter.SpineArms(w, cw, [(0, w - cw, h - cw)])
-                    : null,
+                    : Thin(out detail, w, cw),
                 Compound.SpineArms when form.Arms == 2 => BodyEmitter.SpineArms(cw, [0, w - cw], w, h - cw),    // twin — a strand at each end
                 _ => throw new ComposeException($"the frontline menu is Bar / single / twin, not {form.Form} (arms {form.Arms})."),
             };
         }
-        catch (ArgumentException) { return null; }
+        catch (ArgumentException e) { detail = e.Message; return null; }
+    }
+
+    // the fat-L law refusing a thin leg — named so the switch arm can report the reason it refuses on
+    private static ShapeBody? Thin(out string? detail, int w, int cw)
+    {
+        detail = $"the single arm's leg ({w - cw}) must be wider than its notch ({cw}) — a thin leg " +
+                 $"re-creates the banned T's thin band; needs a spine of at least {2 * cw + 1}.";
+        return null;
     }
 }

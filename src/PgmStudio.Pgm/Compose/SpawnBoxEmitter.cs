@@ -51,8 +51,18 @@ public static class SpawnBoxEmitter
     /// <b>entry-run length</b> (outward from the mouth) a wool box may dock along. Pieces carry the
     /// <paramref name="box"/> label + their slot; the room takes <paramref name="roomId"/>. <paramref name="flip"/>
     /// puts an L's hook on the other side. Null when the footprint is too small (a directed signal, not a throw).</summary>
-    public static EmittedSpawn? Fill(Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId)
+    public static EmittedSpawn? Fill(Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId) =>
+        Fill(box, mouth, family, cw, flip, roomId, out _);
+
+    /// <inheritdoc cref="Fill(Box, BoxEdge, ShapeFamily, int, bool, string)"/>
+    /// <param name="rejection">On a <c>null</c> return, <b>why</b> the fill was refused — the directed reason in
+    /// the shared <see cref="FillRejection"/> vocabulary (the family's minimum box, in the mouth's frame).
+    /// <c>null</c> when the fill succeeded.</param>
+    public static EmittedSpawn? Fill(
+        Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId,
+        out FillRejection? rejection)
     {
+        rejection = null;
         if (!Families.Contains(family))
             throw new ComposeException($"the spawn profile admits only I and L (requested {family}).");
 
@@ -60,7 +70,12 @@ public static class SpawnBoxEmitter
         var lateral = mouth is BoxEdge.Left or BoxEdge.Right;
         var (alongLen, depth) = lateral ? (box.Rect[3], box.Rect[2]) : (box.Rect[2], box.Rect[3]);
         var (minW, minH) = ShapeEmitter.MinBox(family, cw);
-        if (alongLen < minW || depth < minH) return null;
+        if (alongLen < minW || depth < minH)
+        {
+            // report the minimum in the box's own frame, so a lateral mouth's caller reads it without transposing
+            rejection = lateral ? new FillRejection.TooSmall(minH, minW) : new FillRejection.TooSmall(minW, minH);
+            return null;
+        }
 
         var raw = ShapeEmitter.Emit(family, alongLen, depth, cw, flip);
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, alongLen, depth);
