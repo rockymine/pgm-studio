@@ -37,6 +37,17 @@ public sealed record BoxProducibility(
     public bool IsProducible => Producible is not null;
 }
 
+/// <summary>The whole plan's producibility: each box's own read plus the <b>unit-level</b> findings, which are
+/// properties of how the boxes sit together (the parallel-fronts guard, the frontline's face demand, the
+/// seat-separation law) rather than of any one box. Both halves are reported: a box can be unproducible on its
+/// own geometry <em>and</em> the unit unproducible in how it is arranged, and an author wants to see both.</summary>
+public sealed record PlanProducibility(
+    IReadOnlyList<BoxProducibility> Boxes, IReadOnlyList<ProducibilityFinding> Unit)
+{
+    /// <summary>True when every box reproduces and no unit-level rule stands in the way.</summary>
+    public bool IsProducible => Boxes.All(b => b.IsProducible || b.Kind == PlanBoxKinds.Mid) && Unit.Count == 0;
+}
+
 /// <summary>
 /// <b>Could the composer have produced this?</b> — the emit↔derive mirror turned into an authoring answer, and
 /// the question the validator does not ask (a plan can score 0 and still be unbuildable by the machine).
@@ -76,6 +87,70 @@ public static class Producibility
     /// <summary>Read every box in <paramref name="plan"/>.</summary>
     public static IReadOnlyList<BoxProducibility> Read(PlanModel plan) =>
         plan.Boxes.Select(b => Read(plan, b)).ToList();
+
+    /// <summary>Read the whole plan — every box plus the unit-level rules.</summary>
+    public static PlanProducibility ReadPlan(PlanModel plan) => new(Read(plan), UnitFindings(plan));
+
+    /// <summary>
+    /// The rules that are properties of the <b>arrangement</b>, not of one box: the parallel-fronts guard, the
+    /// frontline's pinned face demand, and the seat-separation law. Each is asked of the composer's own
+    /// predicate where one exists (<see cref="Composer.FrontFacesSymmetric"/>,
+    /// <see cref="TeamUnitAllocator.TooClose"/>) rather than restated here.
+    /// </summary>
+    private static IReadOnlyList<ProducibilityFinding> UnitFindings(PlanModel plan)
+    {
+        var findings = new List<ProducibilityFinding>();
+        if (plan.Boxes.Count == 0) return findings;
+
+        var symmetry = plan.Globals.Symmetry;
+        var frame = Frame.For(symmetry);
+        var terrain = plan.Pieces.Where(p => PlanRoles.IsGenerating(p.Role)).Select(p => p.Rect).ToList();
+
+        // the parallel-fronts guard: under a laterally-flipping symmetry the two images' fronts must align, and
+        // the gate demands that per FACE. A shifted front is hull-symmetric but not face-symmetric — which is
+        // exactly the relaxation G123 owns, so name it rather than reporting a flat "no".
+        if (terrain.Count > 0 && MidCarver.LateralFlip(symmetry)
+            && !Composer.FrontFacesSymmetric(symmetry, terrain))
+            findings.Add(new ProducibilityFinding("front-faces-not-mirror-symmetric", "G123",
+                "The unit's front faces do not mirror onto themselves under v → −v, which the composer's " +
+                "parallel-fronts gate requires per face — so the mid band could not dock both images flush. " +
+                "A front shifted along the hull is the case G123 relaxes this to (hull symmetry rather than " +
+                "per-face)."));
+
+        // the frontline's face demand: the allocator pins it to the hub's full lateral span
+        // (faceWidth = max(w, hubV − 2·corner clearance)), so a narrower or laterally shifted front is not a
+        // shape the composer can ask for yet.
+        var hub = plan.Boxes.FirstOrDefault(b => b.Kind == PlanBoxKinds.Hub);
+        var front = plan.Boxes.FirstOrDefault(b => b.Kind == PlanBoxKinds.Frontline);
+        if (hub is not null && front is not null)
+        {
+            var h = frame.FromRect(hub.Rect);
+            var f = frame.FromRect(front.Rect);
+            if (f.VMin != h.VMin || f.VSpan != h.VSpan)
+                findings.Add(new ProducibilityFinding("frontline-face-not-full-hub-width", "G123",
+                    $"The frontline spans {f.VSpan} cell(s) of the hub's {h.VSpan}-cell front edge " +
+                    $"(offset {f.VMin - h.VMin:+0;-0;0}); the allocator demands a face pinned to the hub's " +
+                    "full width, so a sampled width plus a shift along the edge — and any lateral overhang " +
+                    "past the hub — is not yet a request it can make."));
+        }
+
+        // the seat-separation law: no spawn/wool seats within the separation gap of another. The gap is the map's
+        // lane width (2 or 3), but FrontGuard.Resolve may fall back to the wool-lane 2 as its last tier before a
+        // flush residue — so 2 is the true floor the allocator can seat at, and testing against it keeps this
+        // from over-reporting on a wide board. NB the measurand is the box ENVELOPE (corner-inclusive), which
+        // G124 questions: a donut's void margins can indict a placement whose emitted terrain keeps the gap.
+        var seats = plan.Boxes.Where(b => b.Kind is PlanBoxKinds.Wool or PlanBoxKinds.Spawn).ToList();
+        for (var i = 0; i < seats.Count; i++)
+            for (var j = i + 1; j < seats.Count; j++)
+                if (TeamUnitAllocator.TooClose(seats[i].Rect, seats[j].Rect, TeamUnitAllocator.WoolLaneCells))
+                    findings.Add(new ProducibilityFinding("seats-within-separation-gap", "WL7",
+                        $"Boxes '{seats[i].Id}' and '{seats[j].Id}' sit within the {TeamUnitAllocator.WoolLaneCells}-cell " +
+                        "separation gap, which the allocator never seats through. Measured on the box " +
+                        "envelopes (corner-inclusive) — the emitted terrain may keep more room than the " +
+                        "envelopes suggest, which is the measurand question G124 parks."));
+
+        return findings;
+    }
 
     /// <summary>Read one box: group its members, derive its identity, search the declared parameter space, and
     /// report.</summary>
@@ -128,9 +203,12 @@ public static class Producibility
 
         var nearest = Nearest(candidates, all);
         if (nearest is not null)
+        {
             findings.Add(new ProducibilityFinding("no-parameters-reproduce", null,
                 $"No parameter tuple on the production menus reproduces this box. Closest is {nearest.Label} " +
                 $"at cw {nearest.Cw}, differing in {nearest.DifferingCells} cell(s)."));
+            if (ProportionGap(box.Kind, identity, nearest) is { } gap) findings.Add(gap);
+        }
         else if (candidates.Count > 0)
             findings.AddRange(Refusals(candidates, box.Rect));
 
@@ -269,6 +347,42 @@ public static class Producibility
                 for (var aw = cw; aw <= TeamUnitAllocator.DonutEntryMaxCells; aw++)
                     yield return (placement, atEnd, aw);
             }
+    }
+
+    /// <summary>
+    /// The gap finding for a box whose <b>shape is in the vocabulary but whose proportions are not</b>: the
+    /// nearest candidate is the same form the box reads as, so the emitters know this shape and only its
+    /// dimensions are out of reach. Every emitter takes a single corridor width, so that is very often what one
+    /// over-wide part runs into — and there are tasks that own it, which is more use to an author than a bare
+    /// "no parameters reproduce".
+    ///
+    /// <para>A nearest miss of a <em>different</em> form means the shape itself is unreachable, and no single
+    /// task owns that — so this returns <c>null</c> rather than guessing. The mapping below is documentation as
+    /// data: it keys only off facts the search already produced (the box kind, the derived identity, the nearest
+    /// form) and re-derives no geometry.</para>
+    /// </summary>
+    private static ProducibilityFinding? ProportionGap(string kind, string identity, NearestMiss nearest)
+    {
+        if (FormToken(identity) is not { Length: > 0 } read || read != FormToken(nearest.Label)) return null;
+        var (cites, owner) = kind switch
+        {
+            PlanBoxKinds.Hub or PlanBoxKinds.Frontline =>
+                ("G105", "per-piece body widths and the asymmetric ring"),
+            _ => ("G82", "approach entry widening"),
+        };
+        return new ProducibilityFinding("proportions-outside-the-parameter-space", cites,
+            $"The shape is one the emitters build — the closest candidate is a {read} too — so only its " +
+            $"proportions are out of reach. Every emitter takes a single corridor width, so a part wider or " +
+            $"narrower than the rest cannot be asked for: {owner} is the gap ({cites}), and corridor width as a " +
+            "per-part property rather than one board-wide constant is G129.");
+    }
+
+    /// <summary>The leading form name of an identity or candidate label (<c>"Ring"</c>, <c>"SpineArms"</c>,
+    /// <c>"Donut"</c>) — the token the two share when they name the same shape.</summary>
+    private static string FormToken(string s)
+    {
+        var cut = s.IndexOfAny([' ', '(']);
+        return cut < 0 ? s : s[..cut];
     }
 
     /// <summary>The findings for a box <b>no</b> form even emitted into — every candidate was refused, so there is

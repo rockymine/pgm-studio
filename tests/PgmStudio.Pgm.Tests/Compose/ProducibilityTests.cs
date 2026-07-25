@@ -30,16 +30,21 @@ public sealed class ProducibilityTests
             PlanBoxAnnotation.Apply(plan, stages.Unit);
             await Assert.That(plan.Boxes).IsNotEmpty();
 
-            foreach (var read in Producibility.Read(plan))
+            var read = Producibility.ReadPlan(plan);
+            foreach (var b in read.Boxes)
             {
                 // the mid box is carved rather than emitted from a form menu, so it has no candidates to match
-                if (read.Kind == PlanBoxKinds.Mid) continue;
+                if (b.Kind == PlanBoxKinds.Mid) continue;
                 checkedBoxes++;
-                await Assert.That(read.IsProducible).IsTrue()
-                    .Because($"seed {seed} {read.BoxId} ({read.Kind}, reads {read.Identity}) came out of the " +
+                await Assert.That(b.IsProducible).IsTrue()
+                    .Because($"seed {seed} {b.BoxId} ({b.Kind}, reads {b.Identity}) came out of the " +
                              $"composer, so a tuple must reproduce it — nearest was " +
-                             $"{read.Nearest?.Label ?? "none"} at {read.Nearest?.DifferingCells ?? -1} cells");
+                             $"{b.Nearest?.Label ?? "none"} at {b.Nearest?.DifferingCells ?? -1} cells");
             }
+            // the other half of the gate: the composer's own arrangement must clear the unit-level rules too. A
+            // unit finding here would mean the check disagrees with the allocator that produced the board.
+            await Assert.That(read.Unit).IsEmpty()
+                .Because($"seed {seed}: {string.Join("; ", read.Unit.Select(f => f.Code))}");
         }
         await Assert.That(checkedBoxes).IsGreaterThan(20).Because("the gate must actually have covered boxes");
     }
@@ -131,5 +136,76 @@ public sealed class ProducibilityTests
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("base-2wool.plan.json"))!;
         await Assert.That(Producibility.Read(plan)).IsEmpty();
+        await Assert.That(Producibility.ReadPlan(plan).Unit).IsEmpty();
+    }
+
+    /// <summary>The shifted frontline the exemplars were authored to exercise: the allocator pins the frontline's
+    /// face to the hub's full width and the parallel-fronts gate demands per-face mirror symmetry, so both fire
+    /// and both cite G123 — the task that would relax them.</summary>
+    [Test]
+    public async Task The_shifted_frontline_reports_both_of_its_G123_blockers()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        var unit = Producibility.ReadPlan(plan).Unit;
+
+        var pin = unit.FirstOrDefault(f => f.Code == "frontline-face-not-full-hub-width");
+        await Assert.That(pin).IsNotNull();
+        await Assert.That(pin!.Cites).IsEqualTo("G123");
+
+        var faces = unit.FirstOrDefault(f => f.Code == "front-faces-not-mirror-symmetric");
+        await Assert.That(faces).IsNotNull();
+        await Assert.That(faces!.Cites).IsEqualTo("G123");
+    }
+
+    /// <summary>A box unbuildable on its own geometry AND a unit unbuildable in its arrangement are reported
+    /// together — the author needs all of it, not the first failure.</summary>
+    [Test]
+    public async Task Box_level_and_unit_level_failures_are_both_reported()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        var read = Producibility.ReadPlan(plan);
+        await Assert.That(read.IsProducible).IsFalse();
+        await Assert.That(read.Boxes.Any(b => !b.IsProducible)).IsTrue().Because("the ring and the donut fail");
+        await Assert.That(read.Unit).IsNotEmpty().Because("the shifted front and the seat gap fail");
+    }
+
+    /// <summary>A shape the emitters know whose proportions they cannot reach cites the task that owns per-part
+    /// width — more use than a bare "nothing reproduces this". A nearest miss of a different form cites nothing,
+    /// because no single task owns an unreachable shape.</summary>
+    [Test]
+    public async Task A_reachable_shape_with_unreachable_proportions_cites_the_width_gap()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        var reads = Producibility.Read(plan);
+
+        var hub = reads.First(r => r.Kind == PlanBoxKinds.Hub);
+        var hubGap = hub.Findings.FirstOrDefault(f => f.Code == "proportions-outside-the-parameter-space");
+        await Assert.That(hubGap).IsNotNull().Because("a Ring whose nearest miss is a Ring is a width gap");
+        await Assert.That(hubGap!.Cites).IsEqualTo("G105");
+        await Assert.That(hubGap.Detail).Contains("G129");
+
+        var wool = reads.First(r => r.BoxId == "wool-a");
+        var woolGap = wool.Findings.FirstOrDefault(f => f.Code == "proportions-outside-the-parameter-space");
+        await Assert.That(woolGap).IsNotNull();
+        await Assert.That(woolGap!.Cites).IsEqualTo("G82").Because("an approach's width gap is the entry knob");
+
+        // the g-hub hub reads G but its nearest is a solid Rectangle — a different shape, so no width claim
+        var other = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-g-hub.plan.json"))!;
+        var gHub = Producibility.Read(other).First(r => r.Kind == PlanBoxKinds.Hub);
+        await Assert.That(gHub.Nearest!.Label).DoesNotContain("G(");
+        await Assert.That(gHub.Findings.Any(f => f.Code == "proportions-outside-the-parameter-space")).IsFalse();
+    }
+
+    /// <summary>The seat-separation report says which measurand it used, because the answer depends on it — the
+    /// envelope test can indict a placement whose emitted terrain keeps the gap (the question G124 parks).</summary>
+    [Test]
+    public async Task Seat_separation_names_its_measurand_and_the_open_question()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        var gap = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Code == "seats-within-separation-gap");
+        await Assert.That(gap).IsNotNull();
+        await Assert.That(gap!.Cites).IsEqualTo("WL7");
+        await Assert.That(gap.Detail).Contains("envelope");
+        await Assert.That(gap.Detail).Contains("G124");
     }
 }

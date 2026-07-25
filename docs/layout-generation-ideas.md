@@ -52,6 +52,21 @@ landed, the rest is the idea.
   the way it does", better than re-running and watching. Feeds the studio's detail dialog later.
 - **G105** *(partial)* — bigger/better hubs: the per-piece width knob, the asymmetric ring, a raised depth
   cap, form→size fit.
+- **G129** — **corridor width as a per-part property, not one board-wide constant.** A board picks a single lane
+  width today (`w` = 2 or 3 from the land budget) and the wool lane and hub wall are fixed constants
+  (`WoolLaneCells`, `FillProfiles.HubWallCells`), so every corridor is the same width and every emitter takes one
+  `cw` — `BodyEmitter.Ring(cw, w, h)` cannot build a ring whose walls differ. That is an expressive limit, not a
+  simplification: **a wider leg is a design decision**, because widening one side of a loop is how an author says
+  "more player flow goes through here", and a uniform width can only say that about the whole board at once.
+  Precedent for the knob already exists on the approach side — the donut's sampled hub-entry width
+  (`AttachmentWidth`) is per-part width in all but name. Scope: which parts may vary independently, what bounds
+  their ratio (the frontline's arm law already caps legs within a factor of 2 — the same shape of rule), and how
+  the budget prices a widened part. **Relation to its neighbours:** G105 owns the per-piece width knob and the
+  asymmetric ring *for hub bodies*, G82/G83 own entry widening *for wool approaches*; this is the generalization
+  those two are special cases of, and where the flow motivation lives. G125's producibility report cites these
+  gaps, so a board with unequal walls already names which task would have to land — the
+  `shifted-u-frontline-attach-hole-hub` exemplar's ring (walls 2 and 3, nearest producible ring 2 cells away) is
+  the standing example.
 - **G106** *(partial)* — the observed seat/emit failure modes (taxonomy §9 F2–F5): flush lanes at branch-hub
   run ends, the tiny-stub fallback, twin-leg equality, square-on-square.
 - **G112** — P-aware neighbour placement so the P hub survives seating.

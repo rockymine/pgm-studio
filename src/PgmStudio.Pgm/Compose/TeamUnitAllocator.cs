@@ -530,7 +530,7 @@ public static class TeamUnitAllocator
     /// gap on all four sides and testing overlap, so a diagonal corner meeting is caught, not only a shared edge.
     /// The seat-step separation law reads it: no two neighbour bodies may sit this close (<paramref name="gap"/>
     /// is the map's lane width — w2 = 10 blocks, w3 = 15 on wide boards).</summary>
-    private static bool TooClose(int[] a, int[] b, int gap) =>
+    internal static bool TooClose(int[] a, int[] b, int gap) =>
         a[0] - gap < b[0] + b[2] && b[0] < a[0] + a[2] + gap &&
         a[1] - gap < b[1] + b[3] && b[1] < a[1] + a[3] + gap;
 

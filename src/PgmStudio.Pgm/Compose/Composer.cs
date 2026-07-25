@@ -42,7 +42,8 @@ public static class Composer
             // parallel fronts: under a laterally-flipping symmetry the opposing image mirrors v, so the unit's
             // front faces must mirror onto themselves — else the two sides' fronts sit offset and the band
             // overflows past the faces it docks (an asymmetric-front hub form, an off-centre frontline) — resample
-            if (MidCarver.LateralFlip(envelope.Symmetry) && !FrontFacesSymmetric(envelope, filled.Unit)) continue;
+            if (MidCarver.LateralFlip(envelope.Symmetry)
+                && !FrontFacesSymmetric(envelope.Symmetry, filled.Unit.Pieces.Select(p => p.Rect))) continue;
             var mid = MidCarver.TryCarve(envelope, crossing, filled.Unit);
             if (mid is null) continue;
 
@@ -62,14 +63,16 @@ public static class Composer
             $"(players {request.PlayersPerTeam}, teams {request.Teams}, symmetry '{request.Symmetry}', seed {request.Seed})");
     }
 
-    /// <summary>Whether the unit's front faces (the min-u pieces' lateral intervals) mirror onto themselves
+    /// <summary>Whether a unit's front faces (the min-u pieces' lateral intervals) mirror onto themselves
     /// under v → -v — the parallel-fronts requirement of a laterally-flipping symmetry: only then does the
     /// opposing image's front align with the unit's own, and the band dock both flush without lateral
-    /// overflow.</summary>
-    private static bool FrontFacesSymmetric(ComposeEnvelope env, GrownUnit unit)
+    /// overflow. Takes the bare rects so the producibility read can ask the same question of an authored plan
+    /// (one implementation, two callers — a second copy would be free to disagree with the gate).</summary>
+    internal static bool FrontFacesSymmetric(string symmetry, IEnumerable<int[]> rects)
     {
-        var frame = Frame.For(env.Symmetry);
-        var uv = unit.Pieces.Select(p => frame.FromRect(p.Rect)).ToList();
+        var frame = Frame.For(symmetry);
+        var uv = rects.Select(frame.FromRect).ToList();
+        if (uv.Count == 0) return true;
         var minU = uv.Min(r => r.UMin);
         var faces = uv.Where(r => r.UMin == minU).Select(r => (Lo: r.VMin, Hi: r.VMin + r.VSpan)).ToHashSet();
         return faces.All(f => faces.Contains((-f.Hi, -f.Lo)));

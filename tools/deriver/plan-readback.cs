@@ -30,16 +30,21 @@ foreach (var path in args)
     if (plan.Boxes.Count == 0)
         Console.WriteLine("  (no boxes — draw a box around each part to get per-box reads)");
 
-    foreach (var read in Producibility.Read(plan))
+    var read = Producibility.ReadPlan(plan);
+    foreach (var b in read.Boxes)
     {
-        var verdict = read.Producible is { } p ? $"PRODUCIBLE as {p.Label} (cw {p.Cw})" : "NOT PRODUCIBLE";
-        Console.WriteLine($"  {read.BoxId,-12} {read.Kind,-9} reads {read.Identity,-18} {verdict}");
-        if (read.Nearest is { } n)
+        var verdict = b.Producible is { } p ? $"PRODUCIBLE as {p.Label} (cw {p.Cw})" : "NOT PRODUCIBLE";
+        Console.WriteLine($"  {b.BoxId,-12} {b.Kind,-9} reads {b.Identity,-18} {verdict}");
+        if (b.Nearest is { } n)
             Console.WriteLine($"    nearest    {n.Label} (cw {n.Cw}) — {n.DifferingCells} cell(s) differ " +
                               $"({n.Extra.Count} extra, {n.Missing.Count} missing)");
-        foreach (var f in read.Findings)
+        foreach (var f in b.Findings)
             Console.WriteLine($"    {f.Code}{(f.Cites is null ? "" : $" [{f.Cites}]")}: {f.Detail}");
     }
+    // the unit-level rules — properties of the arrangement, reported alongside the per-box reads (both matter:
+    // a box can be unbuildable on its own geometry AND the unit unbuildable in how it is arranged)
+    foreach (var f in read.Unit)
+        Console.WriteLine($"  [unit] {f.Code}{(f.Cites is null ? "" : $" [{f.Cites}]")}: {f.Detail}");
 
     var eval = LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default);
     var fired = eval.Terms.Where(t => t.Violation is not null || t.Distance > 0)
