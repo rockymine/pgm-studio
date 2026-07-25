@@ -126,7 +126,7 @@ public static class TeamUnitAllocator
 
     /// <summary>The widest hub-entry a donut may sample, in cells — the min-only entry (one corridor) read as a
     /// chokepoint, so the attachment stub varies up to this along the hub edge.</summary>
-    private const int DonutEntryMaxCells = 5;
+    internal const int DonutEntryMaxCells = 5;
 
     /// <summary>The donut's enclosed hole caps, in cells: <b>along</b> the hub edge (the ring's mouth-side
     /// extent) and <b>deep</b> (outward). The min box gives the 1×2 hole; the sampled growth reaches 3×5 — the

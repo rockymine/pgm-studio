@@ -188,11 +188,19 @@ public static class Cells
 
     /// <summary>The minimum corridor cross-section (cells) at <paramref name="seeds"/>, measured as the smaller
     /// of each seed's horizontal and vertical run within <paramref name="cells"/>, clamped to [2, 6] (the lane
-    /// width convention). Runs never fall below 1, so the clamp's lower bound is the effective floor.</summary>
-    public static int MinRunWidth(IReadOnlySet<(int, int)> cells, IEnumerable<(int, int)> seeds)
+    /// width convention). Runs never fall below 1, so the clamp's lower bound is the effective floor — a
+    /// caller that must see a <b>sub-minimum</b> corridor (one narrower than any lane the vocabulary has) reads
+    /// <see cref="MinRunWidthRaw"/> instead.</summary>
+    public static int MinRunWidth(IReadOnlySet<(int, int)> cells, IEnumerable<(int, int)> seeds) =>
+        Math.Clamp(MinRunWidthRaw(cells, seeds), 2, 6);
+
+    /// <summary>The same measurement <b>unclamped</b> — the true minimum cross-section, which may be 1. The
+    /// width convention's floor is a reading convention, not a fact of the geometry: a 1-cell corridor exists
+    /// and something checking whether the emitters could have produced it has to be able to see it.</summary>
+    public static int MinRunWidthRaw(IReadOnlySet<(int, int)> cells, IEnumerable<(int, int)> seeds)
     {
         int Hrun((int, int) c) { int n = 1; for (var x = c.Item1 - 1; cells.Contains((x, c.Item2)); x--) n++; for (var x = c.Item1 + 1; cells.Contains((x, c.Item2)); x++) n++; return n; }
         int Vrun((int, int) c) { int n = 1; for (var z = c.Item2 - 1; cells.Contains((c.Item1, z)); z--) n++; for (var z = c.Item2 + 1; cells.Contains((c.Item1, z)); z++) n++; return n; }
-        return Math.Clamp(seeds.Min(c => Math.Min(Hrun(c), Vrun(c))), 2, 6);
+        return seeds.Min(c => Math.Min(Hrun(c), Vrun(c)));
     }
 }

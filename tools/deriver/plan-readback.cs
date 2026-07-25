@@ -1,14 +1,16 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 #:property JsonSerializerIsReflectionEnabledByDefault=true
-// plan-readback: run authored *.plan.json files through the real derivers, per authored box.
+// plan-readback: run authored *.plan.json files through the real derivers, per authored box, and ask of each
+// whether the composer could have produced it.
 // Each entry of the plan's `boxes` section is read as one group (PlanBoxes.MembersOf — named members, else
-// containment): a box holding a room (wool-room / spawn) goes through the approach classifier, a
-// terminal-free box (hub, frontline) through the body classifier. The full evaluator readout follows, so
-// one run shows both what the geometry IS and what validation fires on it.
+// containment). Per box: what the derivers READ it as, then the producibility verdict (Producibility — the
+// declared parameter menus emitted by the real emitters and compared) with its directed findings. The
+// evaluator readout follows, so one run shows the gap between "legal to author" and "buildable by the
+// machine".
 // Usage: dotnet run tools/deriver/plan-readback.cs <plan.json> [<plan.json>…]
+using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
-using PgmStudio.Pgm.Shapes;
 
 if (args.Length == 0)
 {
@@ -28,32 +30,15 @@ foreach (var path in args)
     if (plan.Boxes.Count == 0)
         Console.WriteLine("  (no boxes — draw a box around each part to get per-box reads)");
 
-    foreach (var box in plan.Boxes)
+    foreach (var read in Producibility.Read(plan))
     {
-        var members = PlanBoxes.MembersOf(plan, box);
-        if (members.Count == 0) { Console.WriteLine($"  {box.Id,-12} {box.Kind,-9} (empty)"); continue; }
-
-        var filled = new HashSet<(int, int)>();
-        var roomCells = new HashSet<(int, int)>();
-        foreach (var p in members)
-            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
-                {
-                    filled.Add((x, z));
-                    if (p.Role is PlanRoles.WoolRoom or PlanRoles.Spawn) roomCells.Add((x, z));
-                }
-
-        if (roomCells.Count > 0)
-        {
-            var read = ShapeClassifier.Classify(filled, roomCells);
-            Console.WriteLine($"  {box.Id,-12} {box.Kind,-9} approach → {read.Family} (w {read.Width}) · {members.Count} piece(s)");
-        }
-        else
-        {
-            var body = ShapeClassifier.ClassifyBody(filled);
-            var arms = body.Arms > 0 ? $"({body.Arms} arms)" : "";
-            Console.WriteLine($"  {box.Id,-12} {box.Kind,-9} body     → {body.Form}{arms} · {members.Count} piece(s)");
-        }
+        var verdict = read.Producible is { } p ? $"PRODUCIBLE as {p.Label} (cw {p.Cw})" : "NOT PRODUCIBLE";
+        Console.WriteLine($"  {read.BoxId,-12} {read.Kind,-9} reads {read.Identity,-18} {verdict}");
+        if (read.Nearest is { } n)
+            Console.WriteLine($"    nearest    {n.Label} (cw {n.Cw}) — {n.DifferingCells} cell(s) differ " +
+                              $"({n.Extra.Count} extra, {n.Missing.Count} missing)");
+        foreach (var f in read.Findings)
+            Console.WriteLine($"    {f.Code}{(f.Cites is null ? "" : $" [{f.Cites}]")}: {f.Detail}");
     }
 
     var eval = LayoutEvaluator.Evaluate(plan, EvaluationProfile.Default);
