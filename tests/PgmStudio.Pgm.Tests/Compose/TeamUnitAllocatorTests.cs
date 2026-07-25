@@ -113,6 +113,57 @@ public class TeamUnitAllocatorTests
             }
     }
 
+    /// <summary>The lane width every shoulder must hold (TeamUnitAllocator.WoolLaneCells, which is internal).</summary>
+    private const int LaneCells = 2;
+
+    /// <summary>
+    /// The spanning dock (G123): a frontline face reaching across a bay-fronted hub's bay must hold at least a
+    /// corridor's width on <b>every</b> shoulder it lands on, not just one. A face anchored on one side and
+    /// resting on a sliver on the other is cantilevered over the hole — the seat that used to be legal when the
+    /// rule was "some contact patch is wide enough".
+    /// </summary>
+    [Test]
+    public async Task A_bay_spanning_frontline_holds_a_lane_on_every_shoulder()
+    {
+        var spanning = 0;
+        foreach (var players in new[] { 8, 12, 16, 20, 24, 30 })
+            for (ulong seed = 0; seed < 60; seed++)
+            {
+                var request = new ComposeRequest(players, 2, "rot_180", seed);
+                var rng = new ComposeRng(request.Seed);
+                var envelope = Envelope.Derive(request, rng);
+                var crossing = MidCarver.BandOnly(envelope);
+                if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } alloc) continue;
+
+                var hub = alloc.Partition.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Hub);
+                var front = alloc.Partition.Boxes.FirstOrDefault(b => b.Kind == BoxKind.Frontline);
+                if (hub is null || front is null) continue;
+                if (TeamUnitFiller.Fill(alloc.Partition, alloc.SpawnFacing, rng) is not { } filled) continue;
+
+                var hubCells = Mask(filled.Unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Hub).ToList());
+                if (hubCells.Count == 0) continue;
+
+                // the hub row the face docks against, and the patches the face makes along it
+                var row = front.Rect[1] < hub.Rect[1] ? hub.Rect[1] : hub.Rect[1] + hub.Rect[3] - 1;
+                int lo = Math.Max(front.Rect[0], hub.Rect[0]);
+                int hi = Math.Min(front.Rect[0] + front.Rect[2], hub.Rect[0] + hub.Rect[2]);
+                var patches = new List<int>();
+                var run = 0;
+                for (var x = lo; x < hi; x++)
+                {
+                    if (hubCells.Contains((x, row))) run++;
+                    else if (run > 0) { patches.Add(run); run = 0; }
+                }
+                if (run > 0) patches.Add(run);
+
+                if (patches.Count <= 1) continue;      // a solid front — the single-patch case
+                spanning++;
+                await Assert.That(patches.Min()).IsGreaterThanOrEqualTo(LaneCells)
+                    .Because($"{players}p seed {seed}: face spans a bay on shoulders {string.Join("/", patches)}");
+            }
+        await Assert.That(spanning).IsGreaterThan(0).Because("the bay-spanning case must actually be exercised");
+    }
+
     [Test]
     public async Task Neighbour_spawn_and_wool_bodies_keep_the_lane_width_gap()
     {

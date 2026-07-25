@@ -625,7 +625,7 @@ public static class TeamUnitAllocator
         for (var seat = -(d.Along - cw); seat <= edgeLen - cw; seat++)
         {
             int lo = seat, hi = seat + d.Along;
-            if (!runs.Any(r => Math.Min(hi, r.Start + r.Len) - Math.Max(lo, r.Start) >= cw)) continue;
+            if (!Docks(runs, lo, hi, cw)) continue;
             if (PinchesAtEnd(runs, seat, seat + d.Along)) continue;
             var box = NeighbourRect(edge, seat, d.Depth, d.Along, hubRect);
             var overhangs = seat < 0 || seat + d.Along > edgeLen;
@@ -648,6 +648,27 @@ public static class TeamUnitAllocator
         }
         var pick = placements[rng.NextInt(0, placements.Count)];
         return (pick.Box, pick.Iface);
+    }
+
+    /// <summary>
+    /// The <b>spanning dock</b> (G123): whether a face covering edge-local <c>[lo, hi)</c> holds the hub properly.
+    /// Its contact patches are where the face meets the edge's free <paramref name="runs"/>; it docks when there
+    /// is at least one and <b>every</b> patch is at least <paramref name="cw"/> wide.
+    ///
+    /// <para>"Every", not "any", is the whole law. A face wide enough to reach across a bay-fronted hub's bay
+    /// (a G, U or L) rests on a <b>shoulder each side of the hole</b>, and a shoulder thinner than a corridor is
+    /// a sliver — the face is cantilevered over the bay, held by one side. Requiring the width per patch is what
+    /// turns "the face happens to touch the far run" into "the face is anchored on both shoulders", which is what
+    /// seals the bay into a declared hole rather than leaving a lip hanging over it.</para>
+    ///
+    /// <para>On a solid front there is one patch and this reduces to the single-patch rule.</para>
+    /// </summary>
+    private static bool Docks(IReadOnlyList<(int Start, int Len)> runs, int lo, int hi, int cw)
+    {
+        var patches = runs
+            .Select(r => Math.Min(hi, r.Start + r.Len) - Math.Max(lo, r.Start))
+            .Where(len => len > 0).ToList();
+        return patches.Count > 0 && patches.All(len => len >= cw);
     }
 
     /// <summary>

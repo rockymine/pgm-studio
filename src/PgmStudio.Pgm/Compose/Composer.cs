@@ -103,7 +103,7 @@ public static class Composer
         return Math.Max(ownHi, -ownLo) - Math.Min(ownLo, -ownHi) - (ownHi - ownLo);
     }
 
-    private static PlanModel Assemble(
+    internal static PlanModel Assemble(
         ComposeRequest request, ComposeEnvelope envelope, GrownUnit unit, MidResult mid)
     {
         var plan = new PlanModel

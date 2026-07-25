@@ -1862,8 +1862,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   400/400 still compose, 26.8% of frontlines now take a partial or shifted face and 14.2% overhang the hub, and
   the composed output still reads zero unit findings and zero unproducible boxes — the G125 reproduction gate
   holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
-  scale anomalies. Pgm 719 + Api 76 + Geom 66 + 148 JS green. The spanning dock (bay-fronted hubs) stays open —
-  see `layout-generation-ideas.md`. (G123)
+  scale anomalies. (G123)
+
+- **The spanning dock — a face anchored on every shoulder (G123)** — `Compose/TeamUnitAllocator.cs` (`Docks`) +
+  `Compose/Producibility.cs` + `tools/seeds/shifted-frontline-spanning-dock.plan.json`. The contact-patch seat
+  admitted a face if **some** patch was a lane wide; a face reaching across a bay-fronted hub's bay (a G, U or L)
+  therefore only had to hold one side, and could rest on a sliver on the other — cantilevered over the hole.
+  `Docks` requires **every** contact patch to be a lane wide, which is what seals the bay into a declared hole
+  rather than leaving a lip over it; on a solid front there is one patch and it reduces to the previous rule.
+  The producibility read gained the same law (`frontline-shoulder-too-narrow`), measured on the hub's
+  **front-row terrain** rather than its box — a bay-fronted hub's box spans the bay, so a box-level overlap
+  reports one wide contact where the face actually lands on two shoulders, which is the distinction this turns
+  on. Measured over 1200 allocations: bay-spanning seats resting on a 1-cell shoulder went 13 → 0, all 45
+  remaining hold ≥2 per shoulder, and 400/400 still compose with the partial-face (26.3%) and overhang (13.9%)
+  rates unchanged. New exemplar `shifted-frontline-spanning-dock.plan.json` — the g-hub funnel duplicated at the
+  composer's own corridor width (every wall and lane 2 cells, not 1) so it isolates the shifted frontline from
+  that trace's half scale; it reads **producible end to end**, every box and no unit finding, and is the green
+  target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12

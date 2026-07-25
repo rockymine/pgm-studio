@@ -159,6 +159,47 @@ public sealed class ProducibilityTests
         await Assert.That(front.IsProducible).IsTrue();
     }
 
+    /// <summary>The spanning-dock exemplar — the funnel at the composer's own corridor width — reads producible
+    /// end to end. It is the plan the half-scale g-hub trace was duplicated from, with the widths fixed, so it
+    /// isolates the shifted frontline from that plan's tracing scale.</summary>
+    [Test]
+    public async Task The_spanning_dock_exemplar_reads_producible_end_to_end()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-frontline-spanning-dock.plan.json"))!;
+        var read = Producibility.ReadPlan(plan);
+
+        foreach (var b in read.Boxes)
+            await Assert.That(b.IsProducible).IsTrue()
+                .Because($"{b.BoxId} ({b.Kind}, reads {b.Identity}) — nearest {b.Nearest?.Label ?? "none"}");
+        await Assert.That(read.Unit).IsEmpty()
+            .Because(string.Join("; ", read.Unit.Select(f => f.Code)));
+        await Assert.That(read.IsProducible).IsTrue();
+
+        // the point of the exemplar: a bay-fronted hub (a G) with a frontline reaching across its bay
+        await Assert.That(read.Boxes.First(b => b.Kind == PlanBoxKinds.Hub).Identity).Contains("G");
+    }
+
+    /// <summary>A face reaching across a bay must hold a corridor's width on <b>every</b> shoulder. One thinned to
+    /// a sliver is a cantilever over the hole, and reports as such — the spanning dock's law, read back.</summary>
+    [Test]
+    public async Task A_face_cantilevered_over_a_bay_reports_its_thin_shoulder()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-frontline-spanning-dock.plan.json"))!;
+        await Assert.That(Producibility.ReadPlan(plan).Unit).IsEmpty();
+
+        // The face sits on two 2-cell shoulders with the hub's bay between them. Slide it one cell and the near
+        // shoulder drops to 1 — still spanning the bay, now resting on a sliver, which is the cantilever.
+        var box = plan.Boxes.First(b => b.Kind == PlanBoxKinds.Frontline);
+        foreach (var p in PlanBoxes.MembersOf(plan, box))
+            p.Rect = [p.Rect[0] + 1, p.Rect[1], p.Rect[2], p.Rect[3]];
+        box.Rect = [box.Rect[0] + 1, box.Rect[1], box.Rect[2], box.Rect[3]];
+
+        var thin = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Code == "frontline-shoulder-too-narrow");
+        await Assert.That(thin).IsNotNull();
+        await Assert.That(thin!.Detail).Contains("shoulder");
+        await Assert.That(thin.Detail).Contains("2 patch(es)").Because("it still spans the bay — that is the point");
+    }
+
     /// <summary>The relaxation has a bound: a front slid far enough off the axis makes the mid band reach past
     /// the front it docks, and that slack is what BZ9 refuses.</summary>
     [Test]

@@ -113,6 +113,38 @@ public static class Producibility
         return uv.Max(r => r.UMin + r.USpan) <= 0 ? new Frame(frame.PrimaryAxis, -frame.Sign) : frame;
     }
 
+    /// <summary>
+    /// The widths of the contact patches a frontline's face makes with the hub's <b>front-row terrain</b> — the
+    /// shoulders it rests on, in cells.
+    ///
+    /// <para>Read off the hub's member pieces rather than its box: a bay-fronted hub's box spans the bay, so a
+    /// box-level overlap would report one wide contact where the face actually lands on two shoulders with a
+    /// hole between them, which is the very distinction the spanning dock turns on.</para>
+    /// </summary>
+    private static IReadOnlyList<int> FrontPatches(PlanModel plan, PlanBox hub, PlanBox front, Frame frame)
+    {
+        var h = frame.FromRect(hub.Rect);
+        var f = frame.FromRect(front.Rect);
+        // the hub's front row: the member pieces whose own u-start is the box's, i.e. those facing the axis
+        var filled = new SortedSet<int>();
+        foreach (var piece in PlanBoxes.MembersOf(plan, hub))
+        {
+            var p = frame.FromRect(piece.Rect);
+            if (p.UMin != h.UMin) continue;
+            for (var v = p.VMin; v < p.VMin + p.VSpan; v++) filled.Add(v);
+        }
+
+        var patches = new List<int>();
+        int run = 0;
+        for (var v = f.VMin; v < f.VMin + f.VSpan; v++)
+        {
+            if (filled.Contains(v)) run++;
+            else if (run > 0) { patches.Add(run); run = 0; }
+        }
+        if (run > 0) patches.Add(run);
+        return patches;
+    }
+
     private static IReadOnlyList<ProducibilityFinding> UnitFindings(PlanModel plan)
     {
         var findings = new List<ProducibilityFinding>();
@@ -133,21 +165,26 @@ public static class Producibility
                 "is symmetric; the legs within it need not be."));
 
         // the frontline's face: a sampled width seated anywhere along the hub's front edge, free to overhang it,
-        // but it must still abut the hub over at least one lane — the contact patch the spine docks through.
+        // but every contact patch it makes with the hub's front terrain must be at least a lane wide — the
+        // spanning dock, so a face reaching across a bay is anchored on both shoulders rather than cantilevered.
         var hub = plan.Boxes.FirstOrDefault(b => b.Kind == PlanBoxKinds.Hub);
         var front = plan.Boxes.FirstOrDefault(b => b.Kind == PlanBoxKinds.Frontline);
         if (hub is not null && front is not null)
         {
-            var h = frame.FromRect(hub.Rect);
             var f = frame.FromRect(front.Rect);
-            var patch = Math.Min(f.VMin + f.VSpan, h.VMin + h.VSpan) - Math.Max(f.VMin, h.VMin);
-            if (patch < TeamUnitAllocator.WoolLaneCells)
-                findings.Add(new ProducibilityFinding("frontline-contact-patch-too-narrow", "G2",
-                    $"The frontline spans {f.VSpan} cell(s) of the hub's {h.VSpan}-cell front edge " +
-                    $"(offset {f.VMin - h.VMin:+0;-0;0}), abutting it over {Math.Max(patch, 0)} cell(s). The " +
-                    $"spine docks through that contact patch, so it needs at least " +
-                    $"{TeamUnitAllocator.WoolLaneCells} — a face may be narrower than the edge or overhang it, " +
-                    "but it must still meet it."));
+            var patches = FrontPatches(plan, hub, front, frame);
+            var weakest = patches.Count == 0 ? 0 : patches.Min();
+            if (weakest < TeamUnitAllocator.WoolLaneCells)
+                findings.Add(new ProducibilityFinding("frontline-shoulder-too-narrow", "G2",
+                    patches.Count == 0
+                        ? $"The frontline's {f.VSpan}-cell face never meets the hub's front terrain, so its " +
+                          "spine has nothing to dock through."
+                        : $"The frontline's {f.VSpan}-cell face meets the hub's front terrain in " +
+                          $"{patches.Count} patch(es) ({string.Join(", ", patches)} cell(s)); the narrowest is " +
+                          $"{weakest}, under the {TeamUnitAllocator.WoolLaneCells}-cell lane. A face may be " +
+                          "narrower than the edge or overhang it, and may reach across a bay — but every " +
+                          "shoulder it lands on has to be a corridor's width, or the face is cantilevered " +
+                          "over the hole."));
         }
 
         // the seat-separation law: no spawn/wool seats within the separation gap of another. The gap is the map's
