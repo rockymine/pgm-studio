@@ -139,22 +139,39 @@ public sealed class ProducibilityTests
         await Assert.That(Producibility.ReadPlan(plan).Unit).IsEmpty();
     }
 
-    /// <summary>The shifted frontline the exemplars were authored to exercise: the allocator pins the frontline's
-    /// face to the hub's full width and the parallel-fronts gate demands per-face mirror symmetry, so both fire
-    /// and both cite G123 — the task that would relax them.</summary>
+    /// <summary>The exemplar the shifted frontline was authored for now clears both of the blockers that used to
+    /// stop it (G123): its face need not span the hub's full front edge, and its faces need not mirror onto
+    /// themselves — only their hull must sit on the axis, which this one's does. What remains is the exemplar's
+    /// unrelated scale anomalies, which G123 does not own.</summary>
     [Test]
-    public async Task The_shifted_frontline_reports_both_of_its_G123_blockers()
+    public async Task The_shifted_frontline_no_longer_reports_a_front_blocker()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
         var unit = Producibility.ReadPlan(plan).Unit;
 
-        var pin = unit.FirstOrDefault(f => f.Code == "frontline-face-not-full-hub-width");
-        await Assert.That(pin).IsNotNull();
-        await Assert.That(pin!.Cites).IsEqualTo("G123");
+        await Assert.That(unit.Any(f => f.Code == "frontline-contact-patch-too-narrow")).IsFalse()
+            .Because("the frontline meets the hub over plenty of cells; it just isn't the full edge");
+        await Assert.That(unit.Any(f => f.Code == "front-hull-off-axis")).IsFalse()
+            .Because("its front hull is symmetric about the axis — only the legs within it differ");
 
-        var faces = unit.FirstOrDefault(f => f.Code == "front-faces-not-mirror-symmetric");
-        await Assert.That(faces).IsNotNull();
-        await Assert.That(faces!.Cites).IsEqualTo("G123");
+        // the frontline box itself was always producible; the point is the arrangement no longer blocks it
+        var front = Producibility.Read(plan).First(b => b.Kind == PlanBoxKinds.Frontline);
+        await Assert.That(front.IsProducible).IsTrue();
+    }
+
+    /// <summary>The relaxation has a bound: a front slid far enough off the axis makes the mid band reach past
+    /// the front it docks, and that slack is what BZ9 refuses.</summary>
+    [Test]
+    public async Task A_front_far_off_the_axis_still_reports_the_band_slack()
+    {
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        // slide the whole frontline sideways, well past the cap
+        foreach (var p in plan.Pieces.Where(p => p.Id.StartsWith("frontline")))
+            p.Rect = [p.Rect[0] + 8, p.Rect[1], p.Rect[2], p.Rect[3]];
+
+        var slack = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Code == "front-hull-off-axis");
+        await Assert.That(slack).IsNotNull();
+        await Assert.That(slack!.Cites).IsEqualTo("BZ9");
     }
 
     /// <summary>A box unbuildable on its own geometry AND a unit unbuildable in its arrangement are reported
@@ -226,15 +243,15 @@ public sealed class ProducibilityTests
         // the unit is drawn wholly on the -z side, so a fixed +u frame would pick the spawn (the far edge) as
         // "the front" and measure its lateral interval instead of the frontline's
         await Assert.That(plan.Pieces.All(p => p.Rect[1] + p.Rect[3] <= 0)).IsTrue();
-        var before = Producibility.ReadPlan(plan).Unit.Select(f => f.Code).OrderBy(c => c).ToList();
-        await Assert.That(before).Contains("front-faces-not-mirror-symmetric");
-
-        // slide the spawn — the far-edge piece — laterally. It is not the front, so no front finding may move.
+        // sliding the spawn far off-axis would look like a badly off-centre "front" to a fixed-sign frame, so a
+        // front finding would appear where none belongs. The spawn is the back; no front finding may react.
         var moved = PlanModel.Parse(plan.ToJson())!;
         var spawn = moved.Pieces.First(p => p.Id == "spawn");
-        spawn.Rect = [spawn.Rect[0] + 3, spawn.Rect[1], spawn.Rect[2], spawn.Rect[3]];
-        var after = Producibility.ReadPlan(moved).Unit.Select(f => f.Code).OrderBy(c => c).ToList();
-        await Assert.That(after).Contains("front-faces-not-mirror-symmetric");
+        spawn.Rect = [spawn.Rect[0] + 12, spawn.Rect[1], spawn.Rect[2], spawn.Rect[3]];
+
+        var before = Producibility.ReadPlan(plan).Unit.Count(f => f.Code == "front-hull-off-axis");
+        var after = Producibility.ReadPlan(moved).Unit.Count(f => f.Code == "front-hull-off-axis");
+        await Assert.That(after).IsEqualTo(before);
     }
 
     /// <summary>The seat-separation report says which measurand it used, because the answer depends on it — the

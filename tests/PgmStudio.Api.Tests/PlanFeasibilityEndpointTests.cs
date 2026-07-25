@@ -36,10 +36,12 @@ public sealed class PlanFeasibilityEndpointTests
         await Assert.That(nearest.GetProperty("label").GetString()).Contains("Ring");
         await Assert.That(nearest.GetProperty("differingCells").GetInt32()).IsGreaterThan(0);
 
-        // the unit-level half: the shifted frontline, citing the task that would unblock it
+        // the unit-level half: the arrangement findings, each citing the rule or task behind it. (The frontline's
+        // own two blockers used to be here and cite G123; that landed, so what remains is the seat gap.)
         var unit = body.GetProperty("unit").EnumerateArray().ToList();
         await Assert.That(unit).IsNotEmpty();
-        await Assert.That(unit.Any(f => f.GetProperty("cites").GetString() == "G123")).IsTrue();
+        await Assert.That(unit.All(f => !string.IsNullOrEmpty(f.GetProperty("cites").GetString()))).IsTrue();
+        await Assert.That(unit.Any(f => f.GetProperty("code").GetString() == "seats-within-separation-gap")).IsTrue();
     }
 
     /// <summary>The nearest miss carries the differing cells as rects, which is what lets the canvas paint the

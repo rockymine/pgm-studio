@@ -140,6 +140,24 @@ public static class TeamUnitAllocator
     /// use the hub's full edge (which the side-tuck wool and the wide frontline face want).</summary>
     private const int CornerClearanceCells = 0;
 
+    /// <summary>How often the frontline still takes the hub's <b>full</b> front width (G123). The pinned face
+    /// stays the common case; a partial front is the deliberate exception, not the new default.</summary>
+    private const double FullFaceChance = 0.6;
+
+    /// <summary>The narrowest sampled frontline face, in cells. Below two lanes a front reads as a nub stuck to
+    /// the hub rather than a front the mid can meet.</summary>
+    private const int FaceMinCells = 4;
+
+    /// <summary>How far a sampled face may <b>overhang</b> the hub's front edge, in cells (total across both
+    /// sides). The frontline is the one neighbour allowed to be wider than the edge it docks: its face is what
+    /// the mid meets, and a face that reaches past the hub is what turns the front into a funnel.</summary>
+    private const int FaceOverhangMaxCells = 2;
+
+    /// <summary>How often the frontline slides off the centre of the hub's front edge, rather than sitting
+    /// symmetric on it. Two knobs, because width and position are different decisions: the face may be partial
+    /// and still centred. A slid face is what costs the mid band slack, so it stays the minority draw.</summary>
+    private const double ShiftedFaceChance = 0.35;
+
     // ── the plan: how many wools, and which side each neighbour takes ──────────────────────────────────────
 
     /// <summary>The wool-box count: 2–3 for a full team, one for a tiny board, else 1–2.</summary>
@@ -290,7 +308,13 @@ public static class TeamUnitAllocator
         // reaches `frontReach` toward the axis; the filler picks its form (Bar / single / twin) and orientation
         if (plan.Frontline is { } front)
         {
-            var faceWidth = Math.Max(w, hubV - 2 * CornerClearanceCells);
+            // G123: the face is no longer pinned to the hub's full front width. A sampled width — seated anywhere
+            // along the edge and free to overhang it — is the funnel: the mid meets only part of the hub front,
+            // so the two onward routes around the front cost differently. The full face stays the common draw.
+            var full = Math.Max(w, hubV - 2 * CornerClearanceCells);
+            var faceWidth = rng.NextBool(FullFaceChance)
+                ? full
+                : rng.NextInt(Math.Min(FaceMinCells, full), full + FaceOverhangMaxCells + 1);
             demands.Add(new Demand(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
         }
         return demands;
@@ -425,7 +449,18 @@ public static class TeamUnitAllocator
                 d = Compact(d, offerW);   // no clear overhang placement on this hub (crowded / narrow)
             }
 
-            var seatGap = d.Kind is BoxKind.Spawn or BoxKind.Wool ? w : 0;     // the frontline seats its full face
+            // the frontline seats by CONTACT PATCH (G123): its face may be narrower than the hub edge and may
+            // overhang it, so what must hold is not that the box fits inside a free run but that it abuts the hub
+            // over at least one lane's worth of one. The joint carries the clipped abutment, not the box width.
+            if (d.Kind == BoxKind.Frontline)
+            {
+                if (SeatFront(runs, edgeLen, d, edge, hubRect, boxes, w, rng) is not { } placed) return null;
+                boxes.Add(new Box(d.Id, d.Kind, placed.Box, d.Along * d.Depth));
+                joints.Add(HubJointFrom("hub", d.Id, placed.Iface, offerW));
+                continue;
+            }
+
+            var seatGap = d.Kind is BoxKind.Spawn or BoxKind.Wool ? w : 0;
             var blocked = seatGap > 0 ? Blocked(edge, d.Depth) : [];
             var seat = SeatInRuns(runs, blocked, edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
             if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
@@ -565,6 +600,74 @@ public static class TeamUnitAllocator
         if (gaps.Count == 0) return null;
         var (glo, ghi) = gaps[rng.NextInt(0, gaps.Count)];
         return glo + rng.NextInt(0, ghi - glo - along + 1);
+    }
+
+    /// <summary>
+    /// Seat the frontline on the hub's front edge by its <b>contact patch</b> (G123). Every other neighbour docks
+    /// by fitting wholly inside a free run; the frontline does not have to, because its face is what the mid
+    /// meets rather than a corridor the hub must hold. So a position is legal when the face abuts the hub over at
+    /// least <paramref name="cw"/> contiguous cells of one free run — which admits a face narrower than the edge
+    /// (seated anywhere along it) and one wider than the edge (overhanging either end).
+    ///
+    /// <para>Returns the plan-cell box and the <b>real</b> hub↔frontline interface, clipped to the abutment and
+    /// so narrower than the box whenever it overhangs — the filler reads the offer off this, not off the face
+    /// width. A face that overhangs must keep the neighbour separation gap from every seated spawn/wool: past
+    /// the hub's corner there is no hub cell bridging the meeting, so a frontline corner and a wool corner would
+    /// meet as a bare diagonal pinch, which the corner law forbids. (A full-width face meets those neighbours at
+    /// the hub's own corner, which the hub fills — that is why the pinned face never needed this.) <c>null</c>
+    /// when no position gives a patch — the directed signal the caller answers by falling back.</para>
+    /// </summary>
+    private static (int[] Box, BoxInterface Iface)? SeatFront(
+        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, BoxEdge edge, int[] hubRect,
+        IReadOnlyList<Box> seated, int cw, ComposeRng rng)
+    {
+        var placements = new List<(int Seat, int[] Box, BoxInterface Iface)>();
+        for (var seat = -(d.Along - cw); seat <= edgeLen - cw; seat++)
+        {
+            int lo = seat, hi = seat + d.Along;
+            if (!runs.Any(r => Math.Min(hi, r.Start + r.Len) - Math.Max(lo, r.Start) >= cw)) continue;
+            if (PinchesAtEnd(runs, seat, seat + d.Along)) continue;
+            var box = NeighbourRect(edge, seat, d.Depth, d.Along, hubRect);
+            var overhangs = seat < 0 || seat + d.Along > edgeLen;
+            if (seated.Any(b => b.Kind is BoxKind.Spawn or BoxKind.Wool
+                    && (overhangs ? TooClose(b.Rect, box, cw) : Overlap(b.Rect, box)))) continue;
+            if (BoxPartition.SharedEdge(hubRect, box) is { } iface) placements.Add((seat, box, iface));
+        }
+        if (placements.Count == 0) return null;
+
+        // (see PinchesAtEnd for the end-alignment law the loop above applies)
+
+        // Centred by default. Sliding the face along the edge is the funnel, and it costs the mid band slack
+        // (Composer.FrontHullSlackCells) — so it is a sampled exception, not what every seat does. Without this
+        // even a full-width face would land off-centre, since every overhanging position is legal too.
+        if (!rng.NextBool(ShiftedFaceChance))
+        {
+            var centre = (edgeLen - d.Along) / 2.0;
+            var best = placements.OrderBy(p => Math.Abs(p.Seat - centre)).ThenBy(p => p.Seat).First();
+            return (best.Box, best.Iface);
+        }
+        var pick = placements[rng.NextInt(0, placements.Count)];
+        return (pick.Box, pick.Iface);
+    }
+
+    /// <summary>
+    /// Whether a frontline spanning edge-local <c>[lo, hi)</c> would meet the hub's own edge terrain as a bare
+    /// <b>diagonal pinch</b> at either of its ends — the corner law, applied where the face stops.
+    ///
+    /// <para>The frontline's spine is solid across its span, so along the shared edge the two masses meet cell by
+    /// cell. The bad alignment is an end that lands where the hub's edge goes from <em>filled</em> just outside
+    /// the face to <em>empty</em> just inside it (a hub bay starting exactly at the face's end): the face's end
+    /// cell and the hub's last filled cell then touch only at a corner, with both orthogonal neighbours empty.
+    /// An end inside a run is fine (the hub is filled under both sides), and so is an end at a run's start (both
+    /// sides empty) or clear of the hub entirely (an overhang).</para>
+    ///
+    /// <para>This is why the pinned full-width face never needed the check: it ended at the hub's own corners,
+    /// where there is no edge terrain beyond it to meet.</para>
+    /// </summary>
+    private static bool PinchesAtEnd(IReadOnlyList<(int Start, int Len)> runs, int lo, int hi)
+    {
+        bool Filled(int i) => runs.Any(r => r.Start <= i && i < r.Start + r.Len);
+        return (Filled(lo - 1) && !Filled(lo)) || (Filled(hi) && !Filled(hi - 1));
     }
 
     /// <summary>Seat a <b>rich</b> wool by the seat-and-shift: probe the family's narrow <b>entry</b> on its mouth,

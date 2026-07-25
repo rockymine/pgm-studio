@@ -122,32 +122,32 @@ public static class Producibility
         var terrain = plan.Pieces.Where(p => PlanRoles.IsGenerating(p.Role)).Select(p => p.Rect).ToList();
         var frame = AuthoredFrame(symmetry, terrain);
 
-        // the parallel-fronts guard: under a laterally-flipping symmetry the two images' fronts must align, and
-        // the gate demands that per FACE. A shifted front is hull-symmetric but not face-symmetric — which is
-        // exactly the relaxation G123 owns, so name it rather than reporting a flat "no".
+        // the parallel-fronts guard: the mid band spans the hull of both images' front faces, so a front off the
+        // axis costs the band slack rather than making it impossible. The gate bounds that slack (BZ9).
         if (terrain.Count > 0 && MidCarver.LateralFlip(symmetry)
-            && !Composer.FrontFacesSymmetric(frame, terrain))
-            findings.Add(new ProducibilityFinding("front-faces-not-mirror-symmetric", "G123",
-                "The unit's front faces do not mirror onto themselves under v → −v, which the composer's " +
-                "parallel-fronts gate requires per face — so the mid band could not dock both images flush. " +
-                "A front shifted along the hull is the case G123 relaxes this to (hull symmetry rather than " +
-                "per-face)."));
+            && Composer.FrontHullSlackCells(frame, terrain) is var slack && slack > Composer.FrontSlackCapCells)
+            findings.Add(new ProducibilityFinding("front-hull-off-axis", "BZ9",
+                $"The unit's front faces sit off the symmetry axis, so the mid band — which spans the hull of " +
+                $"both images' faces — would reach {slack} cell(s) past the front it docks, over the " +
+                $"{Composer.FrontSlackCapCells}-cell cap. Centre the front on the axis, or widen it so its hull " +
+                "is symmetric; the legs within it need not be."));
 
-        // the frontline's face demand: the allocator pins it to the hub's full lateral span
-        // (faceWidth = max(w, hubV − 2·corner clearance)), so a narrower or laterally shifted front is not a
-        // shape the composer can ask for yet.
+        // the frontline's face: a sampled width seated anywhere along the hub's front edge, free to overhang it,
+        // but it must still abut the hub over at least one lane — the contact patch the spine docks through.
         var hub = plan.Boxes.FirstOrDefault(b => b.Kind == PlanBoxKinds.Hub);
         var front = plan.Boxes.FirstOrDefault(b => b.Kind == PlanBoxKinds.Frontline);
         if (hub is not null && front is not null)
         {
             var h = frame.FromRect(hub.Rect);
             var f = frame.FromRect(front.Rect);
-            if (f.VMin != h.VMin || f.VSpan != h.VSpan)
-                findings.Add(new ProducibilityFinding("frontline-face-not-full-hub-width", "G123",
+            var patch = Math.Min(f.VMin + f.VSpan, h.VMin + h.VSpan) - Math.Max(f.VMin, h.VMin);
+            if (patch < TeamUnitAllocator.WoolLaneCells)
+                findings.Add(new ProducibilityFinding("frontline-contact-patch-too-narrow", "G2",
                     $"The frontline spans {f.VSpan} cell(s) of the hub's {h.VSpan}-cell front edge " +
-                    $"(offset {f.VMin - h.VMin:+0;-0;0}); the allocator demands a face pinned to the hub's " +
-                    "full width, so a sampled width plus a shift along the edge — and any lateral overhang " +
-                    "past the hub — is not yet a request it can make."));
+                    $"(offset {f.VMin - h.VMin:+0;-0;0}), abutting it over {Math.Max(patch, 0)} cell(s). The " +
+                    $"spine docks through that contact patch, so it needs at least " +
+                    $"{TeamUnitAllocator.WoolLaneCells} — a face may be narrower than the edge or overhang it, " +
+                    "but it must still meet it."));
         }
 
         // the seat-separation law: no spawn/wool seats within the separation gap of another. The gap is the map's

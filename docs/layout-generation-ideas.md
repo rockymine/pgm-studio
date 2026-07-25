@@ -77,18 +77,15 @@ landed, the rest is the idea.
   budget ladders as derived targets (G109), WL7 separation by construction (G110, the traversal-spread
   half), the frontline offer decisions moving to the allocator (G111 — joint-vs-several is FR6, currently a
   coin flip in the filler).
-- **G123** — the shifted partial-face frontline (the funnel dock; authored exemplar
-  `shifted-u-frontline-attach-g-hub.plan.json`). Relax the frontline demand from the pinned full hub width
-  (`Demands`' `faceWidth = max(w, hubV)`) to a sampled width + shift along the front edge, allow lateral
-  overhang past the hub bbox (the wools' seat-and-shift, on the frontline), and add the **spanning dock**:
-  one face covering run + bay-mouth + run with a ≥cw contact patch per shoulder — sealing a bay-fronted hub's
-  bay (G/U/L) into a declared hole. Unblocks G-hub+frontline coexistence outright (today the single-run seat
-  fails and the form falls back to the rectangle), and needs `FrontFacesSymmetric` relaxed from per-face
-  mirror symmetry to hull symmetry (BZ9's real requirement) so shifted fronts survive rot_180. The payoff:
-  the frontline as a flow funnel — two onward routes at asymmetric cost around the sealed hole. Subsumes the
-  FR6 half of G111. Second exemplar `shifted-u-frontline-attach-hole-hub.plan.json` (ring hub, donut + side-tuck
-  wools): on a solid-front hub only the scalar half is needed (width + shift + overhang + hull guard, one
-  contact patch on one run) — the minimum viable slice; the spanning dock is specific to bay-fronted forms.
+- **G123** *(partial — the scalar half shipped, see `FEATURES.md`)* — the **spanning dock**: one face covering
+  run + bay-mouth + run with a ≥cw contact patch per **shoulder**, sealing a bay-fronted hub's bay (G/U/L) into
+  a declared hole. The shipped half seats the face on a single contact patch, which is all a solid-front hub
+  needs; a bay-fronted hub needs the face to bridge its bay and hold on both sides of it, so the seat is no
+  longer one patch but a patch pair with the bay between them. Unblocks G-hub+frontline coexistence (today the
+  single-run seat fails on those forms and the hub falls back to the rectangle). Authored exemplar
+  `shifted-u-frontline-attach-g-hub.plan.json` — note it is *also* traced at half the composer's scale (every
+  corridor 1 cell against a 2-cell floor), so it will not read producible on this task alone; the feasibility
+  report separates the two. Subsumes the FR6 half of G111.
 - **G124** — what the seat-separation law measures: today `TooClose` inflates **box envelopes**
   (corner-inclusive), so a donut's void margins make it over-reject placements whose emitted **terrain**
   keeps the gap (the hole-hub exemplar's donut box passes 1 cell from the spawn box while its terrain keeps

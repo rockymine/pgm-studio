@@ -150,15 +150,23 @@ public sealed class ComposerTests
                         .Because($"band overlaps piece {p.Id} @ {players}p seed {seed}");
                 }
 
-                // BZ9 with no slack: the band spans exactly the front-face hull (min-z pieces under the
-                // default z-frame) — a narrower band underfits a twin/U front and desyncs from its fan image
+                // BZ9: the band spans exactly the hull of the front faces AND their mirrors (min-z pieces under
+                // the default z-frame). Not the unit's own hull alone — a face slid off the axis (G123) makes
+                // the two images' fronts differ, and the band has to reach both; taking the mirrored hull is
+                // also what keeps the band self-symmetric, so its fan image coincides with itself. A narrower
+                // band underfits a twin/U front and desyncs from that image.
                 var unitPieces = stages.Unit.Pieces;
                 var minZ = unitPieces.Min(p => p.Rect[1]);
                 var fronts = unitPieces.Where(p => p.Rect[1] == minZ).ToList();
-                var hullL = fronts.Min(p => p.Rect[0]);
-                var hullR = fronts.Max(p => p.Rect[0] + p.Rect[2]);
+                var ownL = fronts.Min(p => p.Rect[0]);
+                var ownR = fronts.Max(p => p.Rect[0] + p.Rect[2]);
+                var hullL = Math.Min(ownL, -ownR);          // rot_180 mirrors x about the axis
+                var hullR = Math.Max(ownR, -ownL);
                 await Assert.That(bandRect[0] == hullL && bandRect[0] + bandRect[2] == hullR).IsTrue()
                     .Because($"band [{bandRect[0]}..{bandRect[0] + bandRect[2]}] != front hull [{hullL}..{hullR}] @ {players}p seed {seed}");
+                // and the band is symmetric about the axis, so it fans onto itself
+                await Assert.That(bandRect[0]).IsEqualTo(-(bandRect[0] + bandRect[2]))
+                    .Because($"band not axis-symmetric @ {players}p seed {seed}");
 
                 var again = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
                 await Assert.That(again.Plan.Pieces.Select(p => string.Join(",", p.Rect))

@@ -1837,6 +1837,34 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `plan-editor.md` §1/§5, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
   validator alone converges on plans the composer can't reproduce). (G125)
 
+- **The partial, shifted frontline face — the funnel dock, scalar half (G123)** — `Compose/TeamUnitAllocator.cs`
+  + `Compose/Composer.cs`. The frontline's face was **pinned to the hub's full front width**
+  (`faceWidth = max(w, hubV)`), so it spanned the whole edge and `SeatInRuns` had exactly one legal position:
+  every board's front met the mid identically. Now the width is **sampled** and the face **seats by contact
+  patch** — `SeatFront` accepts any position abutting the hub over at least one lane of a free run, which admits
+  a face narrower than the edge (seated anywhere along it) and one **overhanging** either end. The payoff is the
+  frontline as a flow funnel: the mid meets only part of the hub front, so the two onward routes around it cost
+  differently. Two knobs, because width and position are different decisions — a face may be partial and still
+  centred; **centred is the default** and sliding it is the sampled exception, since the slide is what costs the
+  band. The joint carries the **clipped** abutment, not the face width, so the filler's offer stays honest under
+  overhang.
+  The parallel-fronts gate is relaxed from per-face mirror symmetry to **bounded band slack**
+  (`Composer.FrontHullSlackCells`): `MidCarver` spans the band across the hull of *both* images' faces, which
+  makes it self-symmetric by construction, so an off-centre front never makes the band impossible — it makes it
+  wider than the front it docks, and that excess is what BZ9 actually bounds. The old test asked every face to
+  have its mirror among the faces, which only a centred front can satisfy, and so rejected fronts costing the
+  band nothing (a twin front with unequal legs, an asymmetric hub form).
+  Two guards the relaxation needed, both found by the invariants rather than by inspection: an **overhanging**
+  face keeps the neighbour separation gap from seated spawn/wool boxes (past the hub's corner no hub cell
+  bridges the meeting, so corners would meet as a bare pinch), and a face end may not land where the hub's edge
+  goes from filled outside it to empty inside — a hub bay starting exactly at the face's end (`PinchesAtEnd`).
+  The pinned full-width face needed neither: it ended at the hub's own corners. Measured over 400 seeds:
+  400/400 still compose, 26.8% of frontlines now take a partial or shifted face and 14.2% overhang the hub, and
+  the composed output still reads zero unit findings and zero unproducible boxes — the G125 reproduction gate
+  holds through the change. On the hole-hub exemplar both of its G123 blockers clear, leaving only its unrelated
+  scale anomalies. Pgm 719 + Api 76 + Geom 66 + 148 JS green. The spanning dock (bay-fronted hubs) stays open —
+  see `layout-generation-ideas.md`. (G123)
+
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`
