@@ -56,6 +56,11 @@ public static class TeamUnitAllocator
     /// negative-space body. The ring's void always fits and survives a frontline, so it carries most of them.</summary>
     private const double RingChance = 0.85;
 
+    /// <summary>Of ring-bodied hubs whose box has the slack for it, how often <b>one</b> wall comes out wider than
+    /// the other three. The uniform ring stays the common case; a widened side reads as a deliberate variation —
+    /// the author saying more play flows through there — rather than the house style.</summary>
+    private const double WidenedRingChance = 0.3;
+
     /// <summary>How long a wool may run relative to its room dimension before it reads as a <b>too-long
     /// single-entry corridor</b> — the wool length rule. A lane past this bound tucks its room to the side
     /// instead, and it also caps the depth of every compact fallback.</summary>
@@ -246,7 +251,8 @@ public static class TeamUnitAllocator
         // seat the demands on its free edges; fall back to the solid rectangle (four full edges) when the offerable
         // surface can't host
         var sampled = ChooseHubForm(hubRect[2], hubRect[3], rng);
-        var seating = Seat(sampled, hubRect, frame, w, demands, rng, noFront: !hasFrontline);
+        var walls = ChooseHubWalls(sampled, hubRect[2], hubRect[3], FillProfiles.HubWallCells, rng);
+        var seating = Seat(sampled, hubRect, frame, w, demands, rng, noFront: !hasFrontline, walls);
         if (seating is null && sampled.Form != Compound.Rectangle)
             seating = Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, w, demands, rng, noFront: !hasFrontline);
         if (seating is not { } s) return null;
@@ -274,6 +280,44 @@ public static class TeamUnitAllocator
             return rng.NextBool(RingChance) ? new CompoundRead(Compound.Ring)
                 : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.SpineArms).ToList());
         return rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.Rectangle or Compound.SpineArms).ToList());
+    }
+
+    /// <summary>Choose the four wall widths of a ring-bodied <paramref name="form"/> filling a
+    /// <paramref name="boxW"/>×<paramref name="boxH"/> box at corridor width <paramref name="cw"/>, or
+    /// <c>null</c> for an even-walled ring (and for every form without one).
+    ///
+    /// <para>Widening <b>spends the box's slack</b>: a wall thickens and the hole loses those cells, the box does
+    /// not grow — so the sampler only offers it where the hole can afford it and still stay a corridor wide. One
+    /// side is widened, drawn evenly from the four; the amount is capped so the widest wall is never more than
+    /// twice the narrowest, the same spread law the frontline's arms keep.</para></summary>
+    internal static RingWalls? ChooseHubWalls(CompoundRead form, int boxW, int boxH, int cw, ComposeRng rng)
+    {
+        // the ring inside each form: the Ring is the box, the docked forms (P/DoubleHole/G) keep a bar's width
+        // beside it — the same arithmetic the hub filler builds them with
+        var (ringW, ringH) = form.Form switch
+        {
+            Compound.Ring => (boxW, boxH),
+            Compound.P or Compound.DoubleHole or Compound.G => (boxW - 2 * cw, boxH),
+            _ => (0, 0),                                        // no ring to widen
+        };
+        if (ringW <= 0 || !rng.NextBool(WidenedRingChance)) return null;
+
+        // the slack on each axis: what the hole keeps beyond a corridor of its own once both walls are paid for
+        int slackW = ringW - 2 * cw - cw, slackH = ringH - 2 * cw - cw;
+        var sides = new List<(int Side, int Room)>();
+        if (slackW > 0) { sides.Add((1, slackW)); sides.Add((3, slackW)); }   // right, left
+        if (slackH > 0) { sides.Add((0, slackH)); sides.Add((2, slackH)); }   // top, bottom
+        if (sides.Count == 0) return null;
+
+        var (side, room) = rng.Pick(sides);
+        var extra = rng.NextInt(1, Math.Min(room, cw) + 1);     // ≤ cw keeps the widest within 2× the narrowest
+        return side switch
+        {
+            0 => new RingWalls(cw + extra, cw, cw, cw),
+            1 => new RingWalls(cw, cw + extra, cw, cw),
+            2 => new RingWalls(cw, cw, cw + extra, cw),
+            _ => new RingWalls(cw, cw, cw, cw + extra),
+        };
     }
 
     /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats
@@ -391,7 +435,7 @@ public static class TeamUnitAllocator
     /// demand finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
     private static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(
         CompoundRead form, int[] hubRect, Frame frame, int w, IReadOnlyList<Demand> demands, ComposeRng rng,
-        bool noFront)
+        bool noFront, RingWalls? walls = null)
     {
         int boxW = hubRect[2], boxH = hubRect[3];
         var frontEdge = SideEdge(frame, UnitSide.Front);
@@ -399,8 +443,9 @@ public static class TeamUnitAllocator
         // cover the demanded back/laterals — a vertical flip when the front is the box's top edge (every z-frame);
         // symmetric forms (Rectangle, Ring) are unaffected, so this is safe to apply uniformly
         var flipV = frontEdge == BoxEdge.Top;
-        var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form, flipV);
-        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, flipV: flipV) is not { } hub) return null;   // too small
+        var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form, flipV, HubWalls: walls);
+        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, flipV: flipV, ringWalls: walls) is not { } hub)
+            return null;   // too small
 
         // the offerable surface: the contiguous free runs on each hub edge (box-local along-coords), read off the
         // emitted body's per-edge offers — one offer per free run, so a bay simply yields no run over its stretch

@@ -79,10 +79,10 @@ public static class Producibility
     /// budget). A standalone box read does not know its board's choice, so both are tried.</summary>
     private static readonly int[] LaneWidths = [2, 3];
 
-    /// <summary>How many seeds to draw <see cref="FrontlineBoxEmitter.SampleArms"/> with when enumerating the
-    /// arm layouts it can produce. The layout space is tiny and the sampler is the only thing that knows its
-    /// laws, so its <em>range</em> is collected by running it rather than by restating them here.</summary>
-    private const int ArmLayoutSeeds = 400;
+    /// <summary>How many seeds to draw a composer sampler with when enumerating what it can produce — the
+    /// frontline's arm layouts, the hub's ring walls. Each space is tiny and the sampler is the only thing that
+    /// knows its laws, so its <em>range</em> is collected by running it rather than by restating them here.</summary>
+    private const int SamplerSweepSeeds = 400;
 
     /// <summary>Read every box in <paramref name="plan"/>.</summary>
     public static IReadOnlyList<BoxProducibility> Read(PlanModel plan) =>
@@ -304,15 +304,35 @@ public static class Producibility
         var b = new Box(box.Id, BoxKind.Hub, box.Rect, box.Rect[2] * box.Rect[3]);
         var cw = FillProfiles.HubWallCells;
         foreach (var form in FillProfiles.HubForms)
-            foreach (var flip in new[] { false, true })
-            {
-                var label = $"{Name(form)}{(flip ? " flipped" : "")}";
-                var hub = HubBoxEmitter.Fill(b, form, cw, flip, out var why);
-                yield return hub is null
-                    ? new Candidate(label, cw, null, null, why)
-                    : new Candidate(label, cw, Mask(hub.Pieces.Select(p => p.Rect)), null, null);
-            }
+            foreach (var walls in HubWallVectors(form, box, cw))
+                foreach (var flip in new[] { false, true })
+                {
+                    var label = $"{Name(form)}{Widened(walls, cw)}{(flip ? " flipped" : "")}";
+                    var hub = HubBoxEmitter.Fill(b, form, cw, flip, out var why, walls);
+                    yield return hub is null
+                        ? new Candidate(label, cw, null, null, why)
+                        : new Candidate(label, cw, Mask(hub.Pieces.Select(p => p.Rect)), null, null);
+                }
     }
+
+    /// <summary>The ring-wall vectors a hub form can take in this box — collected by <b>running</b>
+    /// <see cref="TeamUnitAllocator.ChooseHubWalls"/> over many seeds rather than restating its law (one side
+    /// widened, within twice the narrowest, only where the hole has the slack). The even-walled ring
+    /// (<c>null</c>) is always offered first, and a form without a ring yields only that.</summary>
+    private static IEnumerable<RingWalls?> HubWallVectors(CompoundRead form, PlanBox box, int cw)
+    {
+        yield return null;
+        var seen = new HashSet<RingWalls>();
+        for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
+        {
+            var walls = TeamUnitAllocator.ChooseHubWalls(
+                form, box.Rect[2], box.Rect[3], cw, new ComposeRng(seed));
+            if (walls is { } v && seen.Add(v)) yield return v;
+        }
+    }
+
+    private static string Widened(RingWalls? walls, int cw) => walls is not { } v ? ""
+        : $" walls {v.Top}/{v.Right}/{v.Bottom}/{v.Left}";
 
     private static IEnumerable<Candidate> FrontlineCandidates(PlanBox box)
     {
@@ -342,7 +362,7 @@ public static class Producibility
         if (form.Form != Compound.SpineArms) yield break;
         var spineLen = mouth is BoxEdge.Left or BoxEdge.Right ? box.Rect[3] : box.Rect[2];
         var seen = new HashSet<string>();
-        for (ulong seed = 1; seed <= ArmLayoutSeeds; seed++)
+        for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
         {
             var layout = FrontlineBoxEmitter.SampleArms(new ComposeRng(seed), spineLen, form.Arms);
             if (layout is null) continue;

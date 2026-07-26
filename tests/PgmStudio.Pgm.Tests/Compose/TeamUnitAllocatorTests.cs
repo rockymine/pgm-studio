@@ -1,5 +1,6 @@
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
+using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
@@ -201,8 +202,14 @@ public class TeamUnitAllocatorTests
         // the front-guard law: on a unit without a frontline, no spawn/wool may end flush with (or past) the
         // hub's front face — a flush neighbour extends the face into one long flat frontier, which map design
         // forbids. Every neighbour's front-most extent stays at least one cell behind the face.
+        //
+        // The one exemption the guard itself carries: a residue that survives the whole resolve fails the unit
+        // for every form BUT the solid rectangle, which is the last fallback and has nowhere further to fall
+        // back to. So a flush seat is lawful only on a saturated rectangle — which is what this asserts, over a
+        // sweep wide enough to actually reach one (they are ~0.3% of units, so a short sweep never sees them).
+        var flushOnRectangle = 0;
         foreach (var (players, land) in new[] { (6, 700.0), (8, 1600.0), (12, 2800.0), (20, 3800.0) })
-            for (ulong seed = 0; seed < 64; seed++)
+            for (ulong seed = 0; seed < 600; seed++)
             {
                 var alloc = TeamUnitAllocator.Allocate(Env(players, land), new ComposeRng(seed));
                 if (alloc is not { } a) continue;
@@ -210,9 +217,16 @@ public class TeamUnitAllocatorTests
                 var hub = a.Partition.ById("hub")!;
                 var face = hub.Rect[1];                               // mirror_z: the front is the hub's min-z edge
                 foreach (var nb in a.Partition.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool))
-                    await Assert.That(nb.Rect[1] - face).IsGreaterThanOrEqualTo(1)
-                        .Because($"{nb.Id} @ {players}p/{land:0} seed {seed} sits flush with the hub front");
+                {
+                    if (nb.Rect[1] - face >= 1) continue;
+                    await Assert.That(hub.Form?.Form ?? Compound.Rectangle).IsEqualTo(Compound.Rectangle)
+                        .Because($"{nb.Id} @ {players}p/{land:0} seed {seed} sits flush with the hub front, "
+                                 + "which only a saturated solid rectangle may do");
+                    flushOnRectangle++;
+                }
             }
+        await Assert.That(flushOnRectangle).IsGreaterThan(0)
+            .Because("the sweep has to actually reach the saturated-rectangle case it exempts");
     }
 
     // two [x,z,w,h] rects keep at least `gap` cells between them on some axis — no touch, no corner-touch (the

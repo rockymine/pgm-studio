@@ -31,12 +31,14 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// intervals (§1.13) the offerable surface neighbours seat against; <c>null</c> for a box whose kind carries
 /// no form (leaves the hub filler its default solid rectangle). <see cref="FlipV"/> is the hub form's
 /// orientation — reflect it vertically so its open feet face the front — the second half of that directive,
-/// carried so the filler re-emits the body the allocator seated against. <see cref="Wool"/> is the wool box's
+/// carried so the filler re-emits the body the allocator seated against. <see cref="HubWalls"/> is the third
+/// half of that directive for a ring-bodied form — the four wall widths when one is widened, in the
+/// <b>pre-flip</b> frame; <c>null</c> = every wall at the corridor width. <see cref="Wool"/> is the wool box's
 /// fill directive (family + room placement + handedness), likewise carried so the filler re-emits what the
 /// allocator seated; <c>null</c> for a non-wool box.</summary>
 public sealed record Box(
     string Id, BoxKind Kind, int[] Rect, int LandTargetCells,
-    CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null)
+    CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null)
 {
     public BoxRef Ref => new(Id, Kind);
 }

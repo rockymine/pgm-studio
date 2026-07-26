@@ -28,13 +28,19 @@ public sealed class PlanFeasibilityEndpointTests
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(body.GetProperty("producible").GetBoolean()).IsFalse();
 
-        // the per-box half: the ring reads as one, is not producible, and names the nearest candidate
-        var hub = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("kind").GetString() == "hub");
-        await Assert.That(hub.GetProperty("producible").GetBoolean()).IsFalse();
-        await Assert.That(hub.GetProperty("identity").GetString()).Contains("Ring");
-        var nearest = hub.GetProperty("nearest");
-        await Assert.That(nearest.GetProperty("label").GetString()).Contains("Ring");
+        // the per-box half: the donut wool reads as one, is not producible, and names the nearest candidate
+        var wool = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("boxId").GetString() == "wool-a");
+        await Assert.That(wool.GetProperty("producible").GetBoolean()).IsFalse();
+        await Assert.That(wool.GetProperty("identity").GetString()).Contains("Donut");
+        var nearest = wool.GetProperty("nearest");
+        await Assert.That(nearest.GetProperty("label").GetString()).Contains("Donut");
         await Assert.That(nearest.GetProperty("differingCells").GetInt32()).IsGreaterThan(0);
+
+        // and the other side of the same wire: this plan's hub is the unequal-walled ring, which does reproduce —
+        // a producible box carries its tuple and no nearest miss, in the same response as an unproducible one
+        var hub = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("kind").GetString() == "hub");
+        await Assert.That(hub.GetProperty("producible").GetBoolean()).IsTrue();
+        await Assert.That(hub.GetProperty("producibleAs").GetString()).Contains("walls");
 
         // the unit-level half: the arrangement findings, each citing the rule or task behind it. (The frontline's
         // own two blockers used to be here and cite G123; that landed, so what remains is the seat gap.)
@@ -56,8 +62,8 @@ public sealed class PlanFeasibilityEndpointTests
             new StringContent(ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"), Encoding.UTF8, "application/json"));
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
 
-        var hub = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("kind").GetString() == "hub");
-        var nearest = hub.GetProperty("nearest");
+        var wool = body.GetProperty("boxes").EnumerateArray().First(b => b.GetProperty("boxId").GetString() == "wool-a");
+        var nearest = wool.GetProperty("nearest");
         var extra = nearest.GetProperty("extra").EnumerateArray().ToList();
         var missing = nearest.GetProperty("missing").EnumerateArray().ToList();
         await Assert.That(extra.Count + missing.Count).IsEqualTo(nearest.GetProperty("differingCells").GetInt32());

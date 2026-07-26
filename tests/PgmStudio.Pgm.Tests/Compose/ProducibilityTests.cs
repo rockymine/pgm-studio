@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Compose;
+using PgmStudio.Pgm.Shapes;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Tests.Compose;
@@ -79,22 +80,53 @@ public sealed class ProducibilityTests
         await Assert.That(narrow.Detail).Contains("1 cell");
     }
 
-    /// <summary>The unequal-wall ring: the hole-hub exemplar's hub has one wall 2 cells and the other 3, while
-    /// <c>BodyEmitter.Ring</c> takes a single wall width. The nearest miss localises it to the two cells that
-    /// leave the parameter space — which is what makes the report actionable rather than just negative.</summary>
+    /// <summary>The unequal-wall ring: the hole-hub exemplar's hub has one wall 2 cells and the other 3. The
+    /// search reproduces it and <b>names the wall vector</b> that did — the widened ring is inside the parameter
+    /// space, not near it, and the label says which side is wide.</summary>
     [Test]
-    public async Task An_unequal_walled_ring_reports_the_nearest_ring_and_the_cells_that_differ()
+    public async Task An_unequal_walled_ring_reproduces_and_names_its_walls()
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
         var hub = Producibility.Read(plan).First(r => r.Kind == PlanBoxKinds.Hub);
 
         await Assert.That(hub.Identity).Contains("Ring").Because("topologically it is a ring");
-        await Assert.That(hub.IsProducible).IsFalse().Because("no ring has two different wall widths");
-        await Assert.That(hub.Nearest).IsNotNull();
-        await Assert.That(hub.Nearest!.Label).Contains("Ring");
-        // the whole discrepancy is the one over-wide wall: a small, localised diff, not a shape mismatch
-        await Assert.That(hub.Nearest.DifferingCells).IsLessThanOrEqualTo(4);
-        await Assert.That(hub.Findings.Any(f => f.Code == "no-parameters-reproduce")).IsTrue();
+        await Assert.That(hub.IsProducible).IsTrue().Because("a ring may carry one wall wider than the rest");
+        await Assert.That(hub.Producible!.Label).Contains("Ring");
+        await Assert.That(hub.Producible.Label).Contains("walls 2/3/2/2")
+            .Because("the tuple that reproduced it names which side is wide, not just that one is");
+        await Assert.That(hub.Nearest).IsNull().Because("a reproduced box needs no nearest miss");
+    }
+
+    /// <summary>The widening is bounded, and the bound is the sampler's: a ring whose wide wall is more than
+    /// twice the narrow one is legal geometry the emitter will build, but not something the composer ever draws —
+    /// so the search does not admit it. This is the line between "the emitter can" and "the composer would".</summary>
+    [Test]
+    public async Task A_ring_widened_past_the_ratio_cap_does_not_reproduce()
+    {
+        var lawful = HubPlan(BodyEmitter.Ring(new RingWalls(2, 4, 2, 2), 13, 7));
+        var beyond = HubPlan(BodyEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7));
+
+        await Assert.That(Producibility.Read(lawful).First().IsProducible).IsTrue()
+            .Because("4 is twice the 2-cell lane — the widest the spread law admits");
+        var over = Producibility.Read(beyond).First();
+        await Assert.That(over.IsProducible).IsFalse().Because("6 is three times the lane");
+        await Assert.That(over.Nearest!.Label).Contains("Ring")
+            .Because("the nearest miss is still a ring — the shape is right, the proportions are not");
+    }
+
+    // wrap a body as a one-box hub plan at the origin — the form the producibility read consumes
+    private static PlanModel HubPlan(ShapeBody body)
+    {
+        int w = body.Pieces.Max(p => p.Rect[0] + p.Rect[2]), h = body.Pieces.Max(p => p.Rect[1] + p.Rect[3]);
+        var plan = new PlanModel
+        {
+            Meta = new PlanMeta { Name = "hub-probe" },
+            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, Headroom = 11 },
+            Boxes = [new PlanBox { Id = "hub", Kind = PlanBoxKinds.Hub, Rect = [0, 0, w, h] }],
+        };
+        for (var i = 0; i < body.Pieces.Count; i++)
+            plan.Pieces.Add(new PlanPiece { Id = $"hub-t{i + 1}", Role = PlanRoles.Piece, Rect = body.Pieces[i].Rect });
+        return plan;
     }
 
     /// <summary>Identity is a hint, not a verdict: the classifiers read topology, so a shape whose walls are too
@@ -233,16 +265,16 @@ public sealed class ProducibilityTests
     [Test]
     public async Task A_reachable_shape_with_unreachable_proportions_cites_the_width_gap()
     {
-        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
-        var reads = Producibility.Read(plan);
-
-        var hub = reads.First(r => r.Kind == PlanBoxKinds.Hub);
+        // a ring widened past the spread law: the shape is one the emitters build, the proportions are not one
+        // the composer draws — the case that survives now that the lawful widening reproduces
+        var hub = Producibility.Read(HubPlan(BodyEmitter.Ring(new RingWalls(2, 6, 2, 2), 13, 7))).First();
         var hubGap = hub.Findings.FirstOrDefault(f => f.Code == "proportions-outside-the-parameter-space");
         await Assert.That(hubGap).IsNotNull().Because("a Ring whose nearest miss is a Ring is a width gap");
         await Assert.That(hubGap!.Cites).IsEqualTo("G105");
         await Assert.That(hubGap.Detail).Contains("G129");
 
-        var wool = reads.First(r => r.BoxId == "wool-a");
+        var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
+        var wool = Producibility.Read(plan).First(r => r.BoxId == "wool-a");
         var woolGap = wool.Findings.FirstOrDefault(f => f.Code == "proportions-outside-the-parameter-space");
         await Assert.That(woolGap).IsNotNull();
         await Assert.That(woolGap!.Cites).IsEqualTo("G82").Because("an approach's width gap is the entry knob");

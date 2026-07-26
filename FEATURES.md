@@ -1185,8 +1185,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **wool-lane gap** (2 cells, 10 blocks — the narrower boards' own gap, still no-touch) as the last tier, then
   **drop** the wool while another remains; a residue on a non-rectangle form directed-nulls into the rectangle
   fallback. With a frontline the guard does not apply (the front is occupied and juts forward — no continuous line
-  can form). Flush spawn/wools on no-frontline units: **0 across 4 presets × 64 seeds** (gate:
-  `No_frontline_units_keep_every_neighbour_off_the_hub_front_face`); worst flat front run collapses 20 → 11 cells
+  can form). Flush spawn/wools on no-frontline units: **0 across 4 presets × 64 seeds**, and over the wider
+  4 × 600-seed sweep **7 of ~2400 units** keep one — every case a *saturated solid rectangle*, which is the
+  guard's own documented exemption (the rectangle is the last fallback and has nowhere further to fall back to,
+  so only it may keep a residue). The gate
+  (`No_frontline_units_keep_every_neighbour_off_the_hub_front_face`) asserts that law rather than a blanket zero,
+  over a sweep wide enough to reach the exempt case. Worst flat front run collapses 20 → 11 cells
   (= the hub's own width); with-frontline units bit-identical; pinch 0. Pgm suite 693/693. (front-guard · G114 filed)
 
 - **Elongated hubs + the wide holed forms P, Double-hole, and G** — `Compose/HubBoxEmitter.cs` +
@@ -1836,6 +1840,29 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the evaluator still reports score 0, nothing fired. Pgm 716 + Api 76 + 148 JS tests green. Contracts:
   `plan-editor.md` §1/§5, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
   validator alone converges on plans the composer can't reproduce). (G125)
+
+- **Per-side ring walls — a wider leg is a design decision (G129)** — `Shapes/ShapeBody.cs` (`RingWalls`),
+  `Shapes/BodyEmitter.cs`, `Shapes/ShapeEmitter.cs`, `Compose/HubBoxEmitter.cs`, `Compose/TeamUnitAllocator.cs`,
+  `Compose/Producibility.cs`. A board picked one lane width and every emitter took one `cw`, so a ring's four
+  walls were necessarily equal — an expressive limit, not a simplification: widening one side of a loop is how
+  an author says *more player flow goes through here*, and a uniform width can only say that about the whole
+  board at once. Now every ring-bodied form (`Ring`, the `P`'s loop, the `G`'s ring, the `DoubleHole`'s, and the
+  donut's) takes a **`RingWalls`** vector through one shared wall builder, and widening **spends the box's
+  slack**: the wall thickens, the hole loses those cells, the box does not grow. The walls govern the ring's four
+  sides only — what is *docked onto* a ring is a corridor, so the P's overhanging bar, the G's L-upright and the
+  DoubleHole's U keep a plain `cw`, which is why the widened overloads take both.
+  The **sampler** widens one side, drawn evenly from the four, by an amount capped so the widest wall is never
+  more than twice the narrowest (the spread law the frontline's arms already keep), only where the hole can
+  afford it and stay a corridor wide — 30% of ring-bodied hubs that have the slack. **Producibility** admits it
+  without an enumeration blow-up by *running* the sampler over seeds to collect its range, the same way the
+  frontline's arm layouts are collected, so the search never restates the law: what the composer can draw is
+  exactly what the search accepts, and a ring widened past the cap is legal geometry the emitter builds but the
+  search correctly refuses. Emit is byte-identical at uniform walls (the body fingerprints are unchanged).
+  Measured over 408 boards: 408/408 compose, 20.5% of ring-bodied hubs come out widened, and the reproduction
+  gate still reports **zero** unproducible boxes and zero unit findings. The hole-hub exemplar's ring, the
+  standing example, moves from *"nearest Ring, 2 cells differ"* to producible as **`Ring walls 2/3/2/2`**.
+  Harnesses: `tools/compose/reproduction-gate.cs`, `tools/compose/exemplar-feasibility.cs`. Pgm 737 + Api 76
+  green. (G129)
 
 - **The partial, shifted frontline face — the funnel dock, scalar half (G123)** — `Compose/TeamUnitAllocator.cs`
   + `Compose/Composer.cs`. The frontline's face was **pinned to the hub's full front width**

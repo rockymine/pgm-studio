@@ -52,26 +52,21 @@ landed, the rest is the idea.
   the way it does", better than re-running and watching. Feeds the studio's detail dialog later.
 - **G105** *(partial)* — bigger/better hubs: the per-piece width knob, the asymmetric ring, a raised depth
   cap, form→size fit.
-- **G129** *(partial — the emitters take it; nothing samples it yet)* — **corridor width as a per-part property,
-  not one board-wide constant.** A board picks a single lane width (`w` = 2 or 3 from the land budget) and the wool
-  lane and hub wall are fixed constants (`WoolLaneCells`, `FillProfiles.HubWallCells`), so every corridor comes out
-  the same width. That is an expressive limit, not a simplification: **a wider leg is a design decision**, because
-  widening one side of a loop is how an author says "more player flow goes through here", and a uniform width can
-  only say that about the whole board at once. Precedent for the knob already exists on the approach side — the
-  donut's sampled hub-entry width (`AttachmentWidth`) is per-part width in all but name.
-  **Landed:** `RingWalls` and the widened overloads on every ring-bodied form (`Ring`/`P`/`G`/`DoubleHole` and the
-  donut), plumbed through `HubBoxEmitter.Fill`/`BoxFiller`/`Box.WoolFill`. Widening spends the box's slack (the
-  hole narrows, the box does not grow); the emitters bound it by geometry alone.
-  **Remaining:** (a) the **sampling law** — the allocator picking non-uniform walls under a ratio cap (every wall
-  ≥ the lane, none more than 2× another, mirroring the frontline's arm law), falling back to uniform when the box
-  has no slack, plus which side gets widened (a wider hub-facing leg means something different from a wider back
-  one); (b) how the **budget prices** a widened part; (c) **producibility** reading widened walls back —
-  enumerating the wall vector blows up ~256× per form, so it wants measure-then-verify rather than search.
-  **Relation to its neighbours:** G105 owns the per-piece width knob and the asymmetric ring *for hub bodies*,
-  G82/G83 own entry widening *for wool approaches*; this is the generalization those two are special cases of, and
-  where the flow motivation lives. G125's producibility report cites these gaps, so a board with unequal walls
-  already names which task would have to land — the `shifted-u-frontline-attach-hole-hub` exemplar's ring (walls 2
-  and 3, nearest producible ring 2 cells away) is the standing example, and stays red until (c).
+- **G130** — **the budget has no price for a widened part.** Ring-wall widening ships (G129): a hub ring may carry
+  one side wider than the rest, sampled under the ratio cap. What it costs is currently nothing — widening spends
+  the box's *geometric* slack (the hole narrows, the box does not grow), so the two-currency budget sees the same
+  footprint and slightly more land without ever having decided to buy it. Scope: whether a widened wall should
+  price against the land share (it is real terrain the team must cross) and whether that price should make the
+  sampler *choose* the wide side rather than draw it evenly. Until then the widening is free, which is why its
+  rate is capped by chance rather than by budget.
+- **G131** — **per-part width beyond the ring.** G129 generalized the four walls of a ring; the rest of a board is
+  still one lane width (`w` = 2 or 3 from the land budget) with the wool lane and hub wall as fixed constants
+  (`WoolLaneCells`, `FillProfiles.HubWallCells`). The remaining cases are the parts *docked onto* a ring, which
+  deliberately kept a plain `cw` — the P's overhanging bar, the G's L-upright, the DoubleHole's U — plus the
+  approach lanes and the frontline's spine. **Relation to its neighbours:** G105 owns the per-piece width knob for
+  hub bodies, G82/G83 own entry widening for wool approaches; this is the generalization those are special cases
+  of. Precedent for the knob exists on the approach side already — the donut's sampled hub-entry width
+  (`AttachmentWidth`) is per-part width in all but name.
 - **G106** *(partial)* — the observed seat/emit failure modes (taxonomy §9 F2–F5): flush lanes at branch-hub
   run ends, the tiny-stub fallback, twin-leg equality, square-on-square.
 - **G112** — P-aware neighbour placement so the P hub survives seating.
