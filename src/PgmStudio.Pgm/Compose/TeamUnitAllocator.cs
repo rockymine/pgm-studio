@@ -359,6 +359,13 @@ public static class TeamUnitAllocator
             var faceWidth = rng.NextBool(FullFaceChance)
                 ? full
                 : rng.NextInt(Math.Min(FaceMinCells, full), full + FaceOverhangMaxCells + 1);
+            // the face-parity law. Under a laterally-flipping symmetry the opposing image reflects v about the
+            // axis point, so a face spanning [lo, hi) meets its own image only where [lo, hi) and [-hi, -lo)
+            // overlap — which is exact when lo = -hi, i.e. when the span is EVEN and the face is centred. The hub
+            // is already forced even for this reason; an odd face lands half a cell off the centre the seat aims
+            // at and the band has to reach past it. Parity is all that is required — no lane multiple, and the
+            // rule reads the same in blocks as in cells because the cell size is odd.
+            if (MidCarver.LateralFlip(env.Symmetry) && faceWidth % 2 != 0) faceWidth--;
             demands.Add(new Demand(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
         }
         return demands;

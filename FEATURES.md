@@ -1841,6 +1841,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `plan-editor.md` §1/§5, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
   validator alone converges on plans the composer can't reproduce). (G125)
 
+- **The frontline face-parity law (G134)** — `Compose/TeamUnitAllocator.cs`. Under a laterally-flipping symmetry
+  the opposing image reflects `v` about the axis *point*, so a face spanning `[lo, hi)` coincides with its own
+  image only when `lo = -hi` — i.e. when its span is **even**. The hub was already forced even for exactly this
+  reason; the face the mid actually docks was not, so an odd face landed half a cell off the centre `SeatFront`
+  aims at and the band had to reach past it. The face is now rounded to an even span when the symmetry flips.
+  Parity is the whole law — no lane multiple is involved (a 6-cell face is 3 lanes at `w2` and centres fine), and
+  because the cell size is odd the rule reads identically in blocks and in cells. Measured over 900 `rot_180`
+  boards: faces landing centred 470 → **531**, boards with dead band span 210 → **189**; `mirror_z` bit-identical,
+  since a mirror preserves the cross axis and needs no parity. Governs the frontline *box*, so it is exact for the
+  solid Bar form; a branch front's face is its arm tips, which G132 and G116 own. Pgm 737 green. (G134)
+
 - **Per-side ring walls — a wider leg is a design decision (G129)** — `Shapes/ShapeBody.cs` (`RingWalls`),
   `Shapes/BodyEmitter.cs`, `Shapes/ShapeEmitter.cs`, `Compose/HubBoxEmitter.cs`, `Compose/TeamUnitAllocator.cs`,
   `Compose/Producibility.cs`. A board picked one lane width and every emitter took one `cw`, so a ring's four

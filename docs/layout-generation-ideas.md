@@ -35,6 +35,11 @@ landed, the rest is the idea.
   around a centre hole — the deliberate two-lane mid), depth variation (the ≥20-player 30-block deep
   single). All re-enter as `CrossingDesign` forms; the retired `SampleCrossing` arithmetic (hops 10..20,
   sum 30..60, CT7 column alignment, the MD6 lateral grid) is the reference design, in git history.
+  The split band is **a read of the face, never a constraint on it** — mid is a function of the frontline, and
+  never the other way round. `MidResult` carries one `BandRect` today, so a two-leg front is spanned by a single
+  band that borders neither leg across the bay; where the legs happen to be mirror-paired with an even bay, that
+  bay can carry two bands around an island instead. Leg widths stay free (a U or F front forming its own hole is
+  the common case) — such a board simply does not get the double band.
 - **G100** — holed frontline forms (P, two-U-on-I): needs the "where does the mid meet a loop" face rule first.
 - **G81** — the declared-bay scythe via elevation (a flush host sealing the bay is legal only once height
   enforces the approach); parked until the elevation pass exists.
@@ -52,6 +57,14 @@ landed, the rest is the idea.
   the way it does", better than re-running and watching. Feeds the studio's detail dialog later.
 - **G105** *(partial)* — bigger/better hubs: the per-piece width knob, the asymmetric ring, a raised depth
   cap, form→size fit.
+- **G132** — **place the team unit, don't derive it in place.** The unit's position is fixed before the frontline
+  exists (`TeamUnitAllocator` computes `hubRect` from the envelope, then seats the front onto the hub), so the
+  face's lateral position is an accident of hub seating. Under `rot_180` the opposing image reflects `v`, so an
+  off-centre face and its own image land apart and `MidCarver` spans the hull of both: measured over 900 boards,
+  a centred face is mutually faced over 5.8 of 6.8 cells, one shifted past 2 cells over **1.8 of 9.8** — the band
+  gets wider as the actual crossing collapses, and in 40 of 900 the two fronts never face at all. Build the unit
+  in unit-local `(u, v)` with the face as the anchor, then choose its global placement so the fronts align.
+  `Composer.FrontSlackCapCells` exists only to suppress the symptom and should become unnecessary.
 - **G130** — **the budget has no price for a widened part.** Ring-wall widening ships (G129): a hub ring may carry
   one side wider than the rest, sampled under the ratio cap. What it costs is currently nothing — widening spends
   the box's *geometric* slack (the hole narrows, the box does not grow), so the two-currency budget sees the same
