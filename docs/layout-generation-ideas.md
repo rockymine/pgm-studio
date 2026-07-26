@@ -103,6 +103,16 @@ landed, the rest is the idea.
   when unset, held + verified when set. **This is the natural backend for the studio integration's filter
   controls** (G117 on the board).
 - **G109** — (also listed above) the budget ladders fold into `ComposeTargets`.
+- **G136** — **the generator's hub/frontline chips do not say what the request can produce.** The wool chips
+  already carry an `InMix` flag that disables a family the composer cannot build and says why; the hub and
+  frontline chips are always enabled. But form availability is a function of the *request*, not a constant —
+  it rides on the spine the land budget buys, so at 8 players every branch hub is a spine of 4 and picking
+  **Twin** scans the whole run for nothing, reporting only "No boards match these filters". Measured live at
+  seed 0, 48 cards: 8p `bar:32 single:16` · 12p `bar:25 single:13 twin:10` · 20p `ring:29 bar:8
+  double-hole:5 twin:3 p:2 single:1` — five of the seven hub chips are dead at 8 players and four at 12.
+  Wants the availability to be *derived* per request rather than a static flag, which is the same question
+  `ComposeTargets` (G98) answers from the other side: a target the composer holds is a target it can report
+  as unreachable before the sieve runs.
 
 ## Evaluator long tail
 
