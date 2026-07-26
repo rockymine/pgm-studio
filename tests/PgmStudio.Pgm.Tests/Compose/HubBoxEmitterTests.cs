@@ -162,11 +162,18 @@ public class HubBoxEmitterTests
                     await Assert.That(start).IsGreaterThanOrEqualTo(0);
                     await Assert.That(start + width).IsLessThanOrEqualTo(spine);
                 }
-                var gap = arms == 1
-                    ? spine - legs[0].Width                                      // the L's notch
-                    : legs[1].Start - (legs[0].Start + legs[0].Width);           // the U's bay
-                await Assert.That(gap).IsGreaterThanOrEqualTo(Cw)
-                    .Because($"arms {arms} left only {gap} beside the leg(s)");
+                if (arms == 1)
+                {
+                    // the L's notch: a corridor at least, but free to run long — it is a corner recess, not a bay
+                    await Assert.That(spine - legs[0].Width).IsGreaterThanOrEqualTo(Cw);
+                }
+                else
+                {
+                    // the U's bay is bounded both ways, which is what forces a wide spine into the legs
+                    var bay = legs[1].Start - (legs[0].Start + legs[0].Width);
+                    await Assert.That(bay).IsGreaterThanOrEqualTo(Cw);
+                    await Assert.That(bay).IsLessThanOrEqualTo(2 * Cw).Because($"a bay of {bay} exceeds two lanes");
+                }
             }
 
         await Assert.That(widths).Contains(5).Because("the cap is reachable, not just an unused bound");
@@ -201,5 +208,31 @@ public class HubBoxEmitterTests
             new Box("hub", BoxKind.Hub, [0, 0, 5, 5], 25), new CompoundRead(Compound.SpineArms, 2), Cw)).IsNull();
         await Assert.That(HubBoxEmitter.Fill(
             new Box("hub", BoxKind.Hub, [0, 0, 4, 5], 20), new CompoundRead(Compound.SpineArms, 1), Cw)).IsNotNull();
+    }
+
+    /// <summary>The point of bounding the bay above: on a spine too wide for two corridor legs and a small gap,
+    /// the legs are what must absorb the span, so a big box cannot come out as two stubs either side of a chasm.
+    /// This is what lets the two-legged hub onto the larger boards at all.</summary>
+    [Test]
+    public async Task A_wide_spine_forces_at_least_one_wide_leg_on_a_two_legged_hub()
+    {
+        const int spine = 11;
+        for (ulong seed = 0; seed < 200; seed++)
+        {
+            if (HubBoxEmitter.SampleArms(new ComposeRng(seed), spine, 2, Cw) is not { } legs) continue;
+            var bay = legs[1].Start - (legs[0].Start + legs[0].Width);
+            await Assert.That(bay).IsLessThanOrEqualTo(2 * Cw);
+            // spine 11 less a bay of at most 4 leaves 7+ for two legs, so one of them is at least 4
+            await Assert.That(legs.Max(l => l.Width)).IsGreaterThan(Cw)
+                .Because($"legs {legs[0].Width}+{legs[1].Width} with bay {bay} on a {spine} spine");
+        }
+
+        // and the default layout obeys the same bound rather than being a shape the composer could never draw
+        var fallback = HubBoxEmitter.DefaultArms(spine, 2, Cw)!;
+        await Assert.That(fallback[1].Start - (fallback[0].Start + fallback[0].Width)).IsLessThanOrEqualTo(2 * Cw);
+        await Assert.That(fallback.Max(l => l.Width)).IsGreaterThan(Cw);
+
+        // a spine so long the capped bay cannot be absorbed has no lawful layout at all
+        await Assert.That(HubBoxEmitter.DefaultArms(20, 2, Cw)).IsNull();
     }
 }

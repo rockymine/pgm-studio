@@ -52,6 +52,13 @@ public static class HubBoxEmitter
     /// <inheritdoc cref="LegWidthCapNumerator"/>
     public const int LegWidthCapDenominator = 2;
 
+    /// <summary>How many corridors wide a branch hub's <b>bay</b> may be at most — the gap between a U's two legs.
+    /// It is bounded on both sides: at least one corridor so the legs read apart, at most this so a wide spine is
+    /// spent on the legs rather than swallowed by the gap. That is what makes a big box produce a wide leg rather
+    /// than two stubs either side of a chasm, and it matches the bound the frontline's own bay already keeps.
+    /// The <b>notch</b> of an L is not a bay and carries only the lower bound.</summary>
+    public const int BayCapCorridors = 2;
+
     /// <summary>
     /// Sample a branch hub's <b>leg layout</b> — each leg's <c>(Start, Width)</c> on a
     /// <paramref name="spineLen"/>-wide spine — or <c>null</c> when the spine cannot host one, which leaves the
@@ -80,14 +87,37 @@ public static class HubBoxEmitter
         }
         if (arms != 2) return null;
 
-        // two legs at the ends: the first leaves room for the second leg AND the bay, the second for the bay
-        var firstMax = Math.Min(cap, spineLen - cw - cw);
-        if (firstMax < cw) return null;
-        var w1 = rng.NextInt(cw, firstMax + 1);
-        var secondMax = Math.Min(cap, spineLen - w1 - cw);
-        if (secondMax < cw) return null;
-        var w2 = rng.NextInt(cw, secondMax + 1);
-        return [(0, w1), (spineLen - w2, w2)];
+        // the bay is drawn first, because it is the bounded quantity: whatever it does not take, the legs must
+        // absorb, which is how a wide spine comes out with a wide leg instead of a wide gap
+        var bayLo = Math.Max(cw, spineLen - 2 * cap);              // the legs cannot absorb more than 2 caps
+        var bayHi = Math.Min(BayCapCorridors * cw, spineLen - 2 * cw);
+        if (bayLo > bayHi) return null;
+        var bay = rng.NextInt(bayLo, bayHi + 1);
+
+        var legs = spineLen - bay;
+        var w1Lo = Math.Max(cw, legs - cap);
+        var w1Hi = Math.Min(cap, legs - cw);
+        if (w1Lo > w1Hi) return null;
+        var w1 = rng.NextInt(w1Lo, w1Hi + 1);
+        return [(0, w1), (w1 + bay, legs - w1)];
+    }
+
+    /// <summary>The layout a branch hub takes when none was drawn for it — the plainest one the laws admit, or
+    /// <c>null</c> when the spine admits none at all. The L keeps its one-corridor leg (its notch has no upper
+    /// bound to answer to); the U takes the widest lawful bay and splits what is left evenly, so the default obeys
+    /// the same bay cap the sampler does rather than being a shape the composer could never draw.</summary>
+    public static IReadOnlyList<(int Start, int Width)>? DefaultArms(int spineLen, int arms, int cw)
+    {
+        if (cw < 1) return null;
+        var cap = LegWidthCapNumerator * cw / LegWidthCapDenominator;
+
+        if (arms == 1) return spineLen - cw < cw ? null : [(0, cw)];
+        if (arms != 2) return null;
+
+        var bay = Math.Clamp(spineLen - 2 * cw, cw, BayCapCorridors * cw);
+        var legs = spineLen - bay;
+        int w1 = legs / 2, w2 = legs - w1;
+        return w1 < cw || w2 > cap ? null : [(0, w1), (w1 + bay, w2)];
     }
 
     /// <summary>Fill a hub <see cref="Box"/> (plan cells) as <paramref name="form"/> at wall/corridor width
@@ -147,20 +177,17 @@ public static class HubBoxEmitter
     {
         detail = null;
         var walls = ringWalls ?? RingWalls.Uniform(cw);
-        // the legs, at the sampled widths or the uniform default they had before one could be sampled
-        IReadOnlyList<(int Start, int Width)> Legs(int arms) => armLayout is { Count: > 0 } given
-            ? given
-            : arms == 1 ? [(0, cw)] : [(0, cw), (w - cw, cw)];
         ShapeBody Branch(int arms)
         {
-            // the notch/bay minimum is the form's own size floor, not just the sampler's: a spine with no room
-            // for a corridor beside its leg reads as a bar with a nub, so it is refused rather than built thin
-            var floor = (arms + 1) * cw;                  // the leg(s) plus at least a corridor of notch / bay
-            if (w < floor)
+            // the sampled legs, or the plainest lawful ones. A spine the laws admit no layout for — too short for
+            // a leg beside its notch, or so long the legs could not absorb what the capped bay leaves — is refused
+            // rather than built as a stub against a chasm, which is what the old fixed default did.
+            var legs = armLayout is { Count: > 0 } given ? given : DefaultArms(w, arms, cw);
+            if (legs is null)
                 throw new ArgumentException(
-                    $"spine {w} is too short for a {(arms == 1 ? "L" : "U")} at cw {cw} — the leg"
-                    + $"{(arms == 1 ? " and its notch" : "s and their bay")} need {floor}.");
-            return BodyEmitter.SpineArms(w, cw, Legs(arms).Select(a => (a.Start, a.Width, h - cw)).ToList());
+                    $"spine {w} admits no {(arms == 1 ? "L" : "U")} layout at cw {cw} — the leg"
+                    + $"{(arms == 1 ? " and its notch" : "s and their bay")} do not fit its length.");
+            return BodyEmitter.SpineArms(w, cw, legs.Select(a => (a.Start, a.Width, h - cw)).ToList());
         }
         try
         {

@@ -1862,6 +1862,38 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   old default produced 13 at 1. 408/408 still compose with zero unproducible boxes and zero unit findings.
   Pgm 744 green. (G105)
 
+- **The two-legged hub on the wide boards — a bounded bay (G105)** — `Compose/HubBoxEmitter.cs` +
+  `Compose/TeamUnitAllocator.cs`. With the legs now drawn rather than fixed, the U was still kept off the wide
+  form menu and its bay was still whatever the spine had left over — so a wide box came out as two one-corridor
+  stubs either side of a chasm, which is the shape that made the U look wrong on a big board in the first place.
+  The bay is now **bounded above as well as below**: at least one corridor so the legs read apart, at most
+  **two** (`BayCapCorridors`) so a wide spine is spent on the legs instead of swallowed by the gap. That is the
+  same bound the frontline's own bay has always kept, so the two branch families now answer to one law rather
+  than to two. The sampler draws the **bay first**, because it is the bounded quantity — whatever it does not
+  take, the legs must absorb — which is what turns extra spine into leg width instead of leg count. The notch of
+  an **L** is not a bay and keeps only the lower bound: it is a corner recess, and nothing sits on its far side.
+  `DefaultArms` replaces the old fixed one-corridor-each fallback, which was not a shape the sampler could draw
+  above a spine of 8; a spine the laws admit no layout for is refused (a directed null into the rectangle
+  fallback) rather than built as a stub. With `SpineArms(2)` added to the wide menu, 20-player branch hubs go
+  **17 → 49**, their leg widths **2:13 3:33 4:28 5:13** — only 15% still at a single corridor — and no bay at any
+  cohort exceeds 4 (8p `2:52 3:34 4:15`, 12p `2:7 3:8 4:4`, 20p `2:17 3:12 4:9`). 408/408 compose with zero
+  unproducible boxes and zero unit findings. Pgm 745 green. (G105)
+
+- **The producibility sweep covers the sampler it draws from (G125)** — `Compose/Producibility.cs`. The search
+  collects a sampler's range by *running* it over a fixed number of seeds rather than restating its laws, which
+  quietly makes that count a **coverage guarantee**: a layout the composer really draws but the sweep never
+  happened to see reads as unproducible, and the report blames the box instead of the search. Measured, 400 draws
+  were not enough for the widest space — the frontline's two-leg layout draws bay, end recess, offset and split
+  independently, so a 20-cell spine has ~390 outcomes whose rarest first appears around seed 5000, and 400 draws
+  covered 59% of them. Everything else (ring walls, hub legs, the single-leg frontline) saturates within fifty.
+  The sweep is now **50 000 draws, memoized per space** — the dimensions the sampler reads are all its range
+  depends on, so the form, mouth, grouping and lane width a box is retried at reuse one answer — and the
+  candidate enumeration **short-circuits on the first exact match**, so the producible case never pays for the
+  rest of the space and the deeper sweep costs nothing on it. Guarded by
+  `Every_leg_layout_the_frontline_sampler_draws_is_inside_the_search`, which emits every layout the sampler
+  yields over 200 000 draws at spines 11/16/20 and requires each to reproduce; it fails on all three at the old
+  count. Pgm 748 green. (G125)
+
 - **The split band — two parallel crossings around an island (G116)** — `Compose/MidCarver.cs` +
   `Compose/Composer.cs`. A two-leg frontline was always crossed by one band spanning the hull of its face, so the
   bay between its legs was covered by band that borders neither leg. Where the face allows, the carve now spans a

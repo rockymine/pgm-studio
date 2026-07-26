@@ -80,9 +80,31 @@ public static class Producibility
     private static readonly int[] LaneWidths = [2, 3];
 
     /// <summary>How many seeds to draw a composer sampler with when enumerating what it can produce — the
-    /// frontline's arm layouts, the hub's ring walls. Each space is tiny and the sampler is the only thing that
-    /// knows its laws, so its <em>range</em> is collected by running it rather than by restating them here.</summary>
-    private const int SamplerSweepSeeds = 400;
+    /// frontline's arm layouts, the hub's ring walls and leg layouts. The sampler is the only thing that knows its
+    /// laws, so its <em>range</em> is collected by running it rather than by restating them here — which makes the
+    /// seed count the coverage guarantee, and it has to clear the <b>largest</b> space any sampler has. The ring
+    /// walls, the hub's legs and the single-leg frontline saturate within fifty draws; the frontline's two-leg
+    /// layout does not, because its bay, end recess, offset and split are drawn independently — on a 20-cell spine
+    /// it has ~390 outcomes and the rarest first appears around seed 5000. Under-drawing it makes the search miss
+    /// layouts the composer really draws, i.e. a false unproducible. The sweeps are memoized per space
+    /// (<see cref="Memo{T}"/>), so the count costs sampler calls once, not per box.</summary>
+    private const int SamplerSweepSeeds = 50_000;
+
+    /// <summary>The result of one sampler sweep, held per <b>space</b> — the dimensions the sampler reads, which
+    /// is all its range depends on. A sweep is re-asked for every form, mouth, grouping and lane width a box is
+    /// tried at, and those do not change the answer.</summary>
+    private static readonly Dictionary<string, object> Sweeps = [];
+
+    private static IReadOnlyList<T> Memo<T>(string key, Func<IReadOnlyList<T>> build)
+    {
+        lock (Sweeps)
+        {
+            if (Sweeps.TryGetValue(key, out var hit)) return (IReadOnlyList<T>)hit;
+            var built = build();
+            Sweeps[key] = built;
+            return built;
+        }
+    }
 
     /// <summary>Read every box in <paramref name="plan"/>.</summary>
     public static IReadOnlyList<BoxProducibility> Read(PlanModel plan) =>
@@ -233,16 +255,19 @@ public static class Producibility
                 $"({(box.Kind == PlanBoxKinds.Wool ? "the wool lane" : "the hub/body wall")} width). " +
                 "Every part of this box would have to be at least that wide."));
 
-        var candidates = Candidates(box, all).ToList();
+        // enumerated lazily and kept as they come: an exact match ends the search, so the producible case — the
+        // common one — never pays for the rest of the space. Only a real miss enumerates it all, to report against.
+        var candidates = new List<Candidate>();
+        foreach (var c in Candidates(box, all))
+        {
+            candidates.Add(c);
+            if (c.Mask is not null && c.Mask.SetEquals(all))    // exact terrain+room match — the box is producible
+                return new BoxProducibility(box.Id, box.Kind, identity,
+                    new ProducibleAs(c.Label, c.Cw), null, findings);
+        }
         if (candidates.Count == 0)
             findings.Add(new ProducibilityFinding("no-candidates", null,
                 $"No production menu covers a '{box.Kind}' box, so there is nothing to compare against."));
-
-        // exact terrain+room match — the box is producible
-        foreach (var c in candidates.Where(c => c.Mask is not null))
-            if (c.Mask!.SetEquals(all))
-                return new BoxProducibility(box.Id, box.Kind, identity,
-                    new ProducibleAs(c.Label, c.Cw), null, findings);
 
         // the terrain/room split: the corridor reproduces but the terminal room does not. Only reachable past
         // the exact-match return above, so every candidate here already differs somewhere.
@@ -325,12 +350,22 @@ public static class Producibility
     {
         yield return null;
         if (form.Form != Compound.SpineArms) yield break;
+        var spineLen = box.Rect[2];
+        foreach (var layout in Memo($"hub-legs {spineLen} {form.Arms} {cw}",
+                     () => SweepLayouts(seed => HubBoxEmitter.SampleArms(seed, spineLen, form.Arms, cw))))
+            yield return layout;
+    }
+
+    /// <summary>The distinct leg layouts a leg sampler yields over <see cref="SamplerSweepSeeds"/> draws, in the
+    /// order it first produced them. The sizes it refuses (a <c>null</c> draw) are dropped.</summary>
+    private static IReadOnlyList<IReadOnlyList<(int Start, int Width)>> SweepLayouts(
+        Func<ComposeRng, IReadOnlyList<(int Start, int Width)>?> draw)
+    {
         var seen = new HashSet<string>();
+        var layouts = new List<IReadOnlyList<(int Start, int Width)>>();
         for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
-        {
-            var layout = HubBoxEmitter.SampleArms(new ComposeRng(seed), box.Rect[2], form.Arms, cw);
-            if (layout is not null && seen.Add(Legs(layout))) yield return layout;
-        }
+            if (draw(new ComposeRng(seed)) is { } layout && seen.Add(Legs(layout))) layouts.Add(layout);
+        return layouts;
     }
 
 
@@ -341,13 +376,17 @@ public static class Producibility
     private static IEnumerable<RingWalls?> HubWallVectors(CompoundRead form, PlanBox box, int cw)
     {
         yield return null;
-        var seen = new HashSet<RingWalls>();
-        for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
-        {
-            var walls = TeamUnitAllocator.ChooseHubWalls(
-                form, box.Rect[2], box.Rect[3], cw, new ComposeRng(seed));
-            if (walls is { } v && seen.Add(v)) yield return v;
-        }
+        int w = box.Rect[2], h = box.Rect[3];
+        foreach (var walls in Memo($"hub-walls {form.Form} {form.Arms} {w} {h} {cw}", () =>
+                 {
+                     var seen = new HashSet<RingWalls>();
+                     var vectors = new List<RingWalls>();
+                     for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
+                         if (TeamUnitAllocator.ChooseHubWalls(form, w, h, cw, new ComposeRng(seed)) is { } v
+                             && seen.Add(v)) vectors.Add(v);
+                     return vectors;
+                 }))
+            yield return walls;
     }
 
     private static string Widened(RingWalls? walls, int cw) => walls is not { } v ? ""
@@ -380,13 +419,9 @@ public static class Producibility
         yield return null;                                   // the canonical fat L / symmetric twin
         if (form.Form != Compound.SpineArms) yield break;
         var spineLen = mouth is BoxEdge.Left or BoxEdge.Right ? box.Rect[3] : box.Rect[2];
-        var seen = new HashSet<string>();
-        for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
-        {
-            var layout = FrontlineBoxEmitter.SampleArms(new ComposeRng(seed), spineLen, form.Arms);
-            if (layout is null) continue;
-            if (seen.Add(Legs(layout))) yield return layout;
-        }
+        foreach (var layout in Memo($"front-legs {spineLen} {form.Arms}",
+                     () => SweepLayouts(seed => FrontlineBoxEmitter.SampleArms(seed, spineLen, form.Arms))))
+            yield return layout;
     }
 
     private static IEnumerable<Candidate> ApproachCandidates(PlanBox box, BoxKind kind)

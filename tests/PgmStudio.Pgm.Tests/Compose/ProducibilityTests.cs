@@ -129,6 +129,53 @@ public sealed class ProducibilityTests
         return plan;
     }
 
+    /// <summary>The search collects a sampler's range by running it over a fixed number of seeds, which makes that
+    /// count a <b>coverage</b> guarantee: a layout the composer draws but the sweep never happened to see reads as
+    /// unproducible, and the report blames the box instead of the search. The frontline's two-leg layout is the
+    /// widest such space — bay, end recess, offset and split are drawn independently — so it is the one that binds.
+    /// Every layout the sampler yields over a range deeper than the sweep's must reproduce.</summary>
+    [Test]
+    [Arguments(11)]
+    [Arguments(16)]
+    [Arguments(20)]
+    public async Task Every_leg_layout_the_frontline_sampler_draws_is_inside_the_search(int spine)
+    {
+        var seen = new HashSet<string>();
+        var checkedLayouts = 0;
+        for (ulong seed = 1; seed <= 200_000; seed++)
+        {
+            if (FrontlineBoxEmitter.SampleArms(new ComposeRng(seed), spine, 2) is not { } legs) continue;
+            var key = string.Join("+", legs.Select(a => $"{a.Start}:{a.Width}"));
+            if (!seen.Add(key)) continue;
+
+            var box = new Box("front", BoxKind.Frontline, [0, 0, spine, 5], spine * 5);
+            var built = FrontlineBoxEmitter.Fill(box, new CompoundRead(Compound.SpineArms, 2), 2,
+                OfferGrouping.Joint, BoxEdge.Top, armLayout: legs);
+            if (built is null) continue;
+            checkedLayouts++;
+
+            var read = Producibility.Read(FrontPlan(box, built.Pieces)).Single();
+            await Assert.That(read.IsProducible).IsTrue()
+                .Because($"legs {key} on a {spine} spine came out of the sampler, so the sweep must have seen it — "
+                         + $"nearest was {read.Nearest?.Label ?? "none"}");
+        }
+        await Assert.That(checkedLayouts).IsGreaterThan(30).Because("the sweep must have had a real tail to cover");
+    }
+
+    // wrap emitted frontline pieces as a one-box plan — the frontline twin of HubPlan
+    private static PlanModel FrontPlan(Box box, IReadOnlyList<GrownPiece> pieces)
+    {
+        var plan = new PlanModel
+        {
+            Meta = new PlanMeta { Name = "front-probe" },
+            Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, Headroom = 11 },
+            Boxes = [new PlanBox { Id = box.Id, Kind = PlanBoxKinds.Frontline, Rect = box.Rect }],
+        };
+        foreach (var p in pieces)
+            plan.Pieces.Add(new PlanPiece { Id = p.Id, Role = PlanRoles.Piece, Rect = p.Rect });
+        return plan;
+    }
+
     /// <summary>Identity is a hint, not a verdict: the classifiers read topology, so a shape whose walls are too
     /// thin to emit still reads as the compound it is. The two must be free to disagree.</summary>
     [Test]

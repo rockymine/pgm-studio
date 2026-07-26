@@ -50,7 +50,7 @@ landed, the rest is the idea.
 - **G122** — the composer decision trace: optionally record every sampled choice and rejected dock during
   a compose, keyed by the request descriptor — the real backtracking tool for "why does this bucket look
   the way it does", better than re-running and watching. Feeds the studio's detail dialog later.
-- **G105** *(partial — the asymmetric ring and the branch leg sampler shipped)* — bigger/better hubs: a raised
+- **G105** *(partial — the asymmetric ring, the branch leg sampler and its bounded bay shipped)* — bigger/better hubs: a raised
   depth cap, form→size fit, and the per-piece width knob where it is still uniform — the branch hub's **bar**
   thickness and **leg length** (the emitter's per-arm overload carries both; only the leg's width is sampled) and
   a hub arm count of three (the E/comb the body emitter supports but `HubBoxEmitter` refuses).

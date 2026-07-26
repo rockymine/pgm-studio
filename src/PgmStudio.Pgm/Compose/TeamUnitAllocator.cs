@@ -280,6 +280,9 @@ public static class TeamUnitAllocator
             {
                 new CompoundRead(Compound.P), new CompoundRead(Compound.DoubleHole),
                 new CompoundRead(Compound.G), new CompoundRead(Compound.Ring),
+                // the U belongs here too: with the bay bounded above, a wide box spends its span on the legs, so
+                // the two-legged hub comes out with real legs rather than stubs either side of a gap
+                new CompoundRead(Compound.SpineArms, 2),
             });
         if (boxW >= RingFitCells && boxH >= RingFitCells)
             return rng.NextBool(RingChance) ? new CompoundRead(Compound.Ring)
