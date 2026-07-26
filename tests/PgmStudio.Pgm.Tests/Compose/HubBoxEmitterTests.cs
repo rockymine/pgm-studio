@@ -135,4 +135,71 @@ public class HubBoxEmitterTests
         await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.DoubleHole), cw: 2)).IsNull();
         await Assert.That(HubBoxEmitter.Fill(Box6x5, new CompoundRead(Compound.G), cw: 2)).IsNull();
     }
+
+    // ── the branch hub's leg sampler ──────────────────────────────────────────────────────────────────────
+
+    private const int Cw = 2;   // FillProfiles.HubWallCells
+
+    /// <summary>The leg laws, over the sampler's whole range on a spine wide enough to exercise it: every leg is
+    /// at least a corridor and at most two and a half of one, and what is left beside it — the L's notch, the U's
+    /// bay — is never under a corridor. Nothing is required to be even: a hub leg sits away from the symmetry
+    /// axis, so unlike the frontline's face it has no parity to answer to.</summary>
+    [Test]
+    public async Task Sampled_hub_legs_keep_the_width_cap_and_leave_a_corridor_beside_them()
+    {
+        var widths = new HashSet<int>();
+        foreach (var arms in new[] { 1, 2 })
+            for (ulong seed = 0; seed < 400; seed++)
+            {
+                const int spine = 12;
+                if (HubBoxEmitter.SampleArms(new ComposeRng(seed), spine, arms, Cw) is not { } legs) continue;
+                await Assert.That(legs.Count).IsEqualTo(arms);
+                foreach (var (start, width) in legs)
+                {
+                    widths.Add(width);
+                    await Assert.That(width).IsGreaterThanOrEqualTo(Cw).Because("a leg is a corridor at least");
+                    await Assert.That(width).IsLessThanOrEqualTo(5).Because("2.5 corridors is the cap at cw 2");
+                    await Assert.That(start).IsGreaterThanOrEqualTo(0);
+                    await Assert.That(start + width).IsLessThanOrEqualTo(spine);
+                }
+                var gap = arms == 1
+                    ? spine - legs[0].Width                                      // the L's notch
+                    : legs[1].Start - (legs[0].Start + legs[0].Width);           // the U's bay
+                await Assert.That(gap).IsGreaterThanOrEqualTo(Cw)
+                    .Because($"arms {arms} left only {gap} beside the leg(s)");
+            }
+
+        await Assert.That(widths).Contains(5).Because("the cap is reachable, not just an unused bound");
+        await Assert.That(widths.Any(w => w % 2 != 0)).IsTrue().Because("leg widths need not be even");
+    }
+
+    /// <summary>The point of the sampler: a hub leg can be wider than the corridor, which is what makes the L
+    /// read as an L on a small board rather than as a bar with a nub.</summary>
+    [Test]
+    public async Task A_hub_leg_can_emit_wider_than_one_corridor()
+    {
+        var box = new Box("hub", BoxKind.Hub, [0, 0, 12, 5], 60);
+        var wide = HubBoxEmitter.Fill(box, new CompoundRead(Compound.SpineArms, 1), Cw,
+            armLayout: [(0, 5)])!;
+        var leg = wide.Pieces.Single(p => p.Slot == ApproachSlots.Leg);
+        await Assert.That(leg.Rect[2]).IsEqualTo(5);
+
+        // and with no layout given it stays the uniform default it always was
+        var plain = HubBoxEmitter.Fill(box, new CompoundRead(Compound.SpineArms, 1), Cw)!;
+        await Assert.That(plain.Pieces.Single(p => p.Slot == ApproachSlots.Leg).Rect[2]).IsEqualTo(Cw);
+    }
+
+    /// <summary>A spine with no room for a corridor beside the leg is refused rather than built with a sliver
+    /// notch — the same size floor the sampler applies, enforced on the default layout too.</summary>
+    [Test]
+    public async Task A_spine_too_short_for_a_notch_refuses_the_branch_form()
+    {
+        // an L needs leg + notch = 2 corridors, a U needs legs + bay = 3
+        await Assert.That(HubBoxEmitter.Fill(
+            new Box("hub", BoxKind.Hub, [0, 0, 3, 5], 15), new CompoundRead(Compound.SpineArms, 1), Cw)).IsNull();
+        await Assert.That(HubBoxEmitter.Fill(
+            new Box("hub", BoxKind.Hub, [0, 0, 5, 5], 25), new CompoundRead(Compound.SpineArms, 2), Cw)).IsNull();
+        await Assert.That(HubBoxEmitter.Fill(
+            new Box("hub", BoxKind.Hub, [0, 0, 4, 5], 20), new CompoundRead(Compound.SpineArms, 1), Cw)).IsNotNull();
+    }
 }

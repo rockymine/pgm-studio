@@ -81,7 +81,8 @@ public static class TeamUnitFiller
         // offerable surface), never an empty bounding-box stretch. It publishes each run at what that run can
         // support; what each neighbour was granted rides on its own joint.
         var form = hubBox.Form ?? new CompoundRead(Compound.Rectangle);
-        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, hubBox.FlipV, hubBox.HubWalls) is not { } hub)
+        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, hubBox.FlipV, hubBox.HubWalls,
+                hubBox.HubArms) is not { } hub)
             return null;
 
         var pieces = new List<GrownPiece>(hub.Pieces);

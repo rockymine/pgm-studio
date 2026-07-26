@@ -1841,6 +1841,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `plan-editor.md` §1/§5, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
   validator alone converges on plans the composer can't reproduce). (G125)
 
+- **The branch hub's leg sampler — a wide leg makes the L an L (G105)** — `Compose/HubBoxEmitter.cs` +
+  `Compose/TeamUnitAllocator.cs` + `Compose/Producibility.cs`. `BodyEmitter.SpineArms` has always had a per-arm
+  overload — *"each atom rectangle free to differ in size"* — but the hub called the uniform one, so every L and U
+  leg came out exactly one corridor wide with its columns computed from the box. Measured before: leg width **2 in
+  100% of cases** across 8p/12p/20p, arm starts fully determined, nothing sampled. The frontline drove the very
+  same emitter family through the per-arm overload and got widths 2–6.
+  A hub now draws its legs (`HubBoxEmitter.SampleArms`) under laws in corridors: a leg is **at least one and at
+  most 2½** (`LegWidthCap*`, so 5 cells at `cw` 2), the **L keeps a corridor of notch** beside its leg and the
+  **U a corridor of bay** between its two. Widths are otherwise free and explicitly **not** constrained to be
+  even — a hub leg sits away from the symmetry axis and so has no parity to answer to, unlike the frontline's
+  face. The notch/bay minimum is also the form's **size floor**: a spine too short to leave one refuses the form
+  (a directed null into the rectangle fallback) rather than building a sliver, which it previously did.
+  The layout rides on `Box.HubArms` exactly as the ring walls ride on `Box.HubWalls`, because the hub body is
+  emitted twice — once by the allocator to read the runs it offers, once by the filler — and a body sampled
+  twice would not agree with itself. `Producibility` sweeps the sampler for its range the same way it sweeps the
+  wall and frontline-arm samplers, so the search admits exactly what the composer draws.
+  Measured at 8p, where the L is the form the budget actually buys (243 of 676 hubs): leg widths **2:173 3:81
+  4:52 5:26** — 29% now wider than a corridor, the 2½ cap reached — and **no notch or bay under 2**, where the
+  old default produced 13 at 1. 408/408 still compose with zero unproducible boxes and zero unit findings.
+  Pgm 744 green. (G105)
+
 - **The split band — two parallel crossings around an island (G116)** — `Compose/MidCarver.cs` +
   `Compose/Composer.cs`. A two-leg frontline was always crossed by one band spanning the hull of its face, so the
   bay between its legs was covered by band that borders neither leg. Where the face allows, the carve now spans a

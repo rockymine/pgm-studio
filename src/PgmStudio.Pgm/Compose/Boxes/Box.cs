@@ -33,12 +33,16 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// orientation — reflect it vertically so its open feet face the front — the second half of that directive,
 /// carried so the filler re-emits the body the allocator seated against. <see cref="HubWalls"/> is the third
 /// half of that directive for a ring-bodied form — the four wall widths when one is widened, in the
-/// <b>pre-flip</b> frame; <c>null</c> = every wall at the corridor width. <see cref="Wool"/> is the wool box's
+/// <b>pre-flip</b> frame; <c>null</c> = every wall at the corridor width. <see cref="HubArms"/> is the branch
+/// forms' counterpart — each leg's <c>(Start, Width)</c> on the spine, <c>null</c> = every leg one corridor wide
+/// at the spine's ends. Both are carried for the same reason as the form itself: the allocator emits the hub to
+/// read the runs it offers and the filler re-emits it, so a body sampled twice would diverge. <see cref="Wool"/> is the wool box's
 /// fill directive (family + room placement + handedness), likewise carried so the filler re-emits what the
 /// allocator seated; <c>null</c> for a non-wool box.</summary>
 public sealed record Box(
     string Id, BoxKind Kind, int[] Rect, int LandTargetCells,
-    CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null)
+    CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null,
+    IReadOnlyList<(int Start, int Width)>? HubArms = null)
 {
     public BoxRef Ref => new(Id, Kind);
 }

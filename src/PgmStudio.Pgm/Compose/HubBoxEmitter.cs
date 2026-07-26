@@ -44,6 +44,52 @@ public static class HubBoxEmitter
         new(Compound.G),              // a ring + an L — the ring's hole + a frontline-sealed bay (asymmetric holes)
     ];
 
+    /// <summary>How wide a branch hub's leg may grow, as a multiple of the corridor — the numerator over
+    /// <see cref="LegWidthCapDenominator"/>, so 5/2 is two and a half corridors, floored. A leg wider than this
+    /// stops reading as a leg and starts reading as a second body.</summary>
+    public const int LegWidthCapNumerator = 5;
+
+    /// <inheritdoc cref="LegWidthCapNumerator"/>
+    public const int LegWidthCapDenominator = 2;
+
+    /// <summary>
+    /// Sample a branch hub's <b>leg layout</b> — each leg's <c>(Start, Width)</c> on a
+    /// <paramref name="spineLen"/>-wide spine — or <c>null</c> when the spine cannot host one, which leaves the
+    /// caller its uniform default.
+    ///
+    /// <para>The laws, all in corridors (<paramref name="cw"/>): every leg is at least one corridor and at most
+    /// <see cref="LegWidthCapNumerator"/>/<see cref="LegWidthCapDenominator"/> of one; the <b>L</b> keeps at least
+    /// a corridor of notch beside its leg, and the <b>U</b> at least a corridor of bay between its two. Widths are
+    /// otherwise free — nothing here is constrained to a multiple of anything, because a hub leg sits away from
+    /// the symmetry axis and so has no parity to answer to.</para>
+    ///
+    /// <para>A wide leg is what makes the L worth having on a small board, where it is the form the budget
+    /// actually buys: at one corridor the leg is a stub against a full-width bar, and the body reads as a bar
+    /// with a nub rather than as an L.</para>
+    /// </summary>
+    public static IReadOnlyList<(int Start, int Width)>? SampleArms(
+        ComposeRng rng, int spineLen, int arms, int cw)
+    {
+        if (cw < 1) return null;
+        var cap = LegWidthCapNumerator * cw / LegWidthCapDenominator;
+
+        if (arms == 1)
+        {
+            var widest = Math.Min(cap, spineLen - cw);        // the notch beside the leg keeps a corridor
+            return widest < cw ? null : [(0, rng.NextInt(cw, widest + 1))];
+        }
+        if (arms != 2) return null;
+
+        // two legs at the ends: the first leaves room for the second leg AND the bay, the second for the bay
+        var firstMax = Math.Min(cap, spineLen - cw - cw);
+        if (firstMax < cw) return null;
+        var w1 = rng.NextInt(cw, firstMax + 1);
+        var secondMax = Math.Min(cap, spineLen - w1 - cw);
+        if (secondMax < cw) return null;
+        var w2 = rng.NextInt(cw, secondMax + 1);
+        return [(0, w1), (spineLen - w2, w2)];
+    }
+
     /// <summary>Fill a hub <see cref="Box"/> (plan cells) as <paramref name="form"/> at wall/corridor width
     /// <paramref name="cw"/>, terminal-free, publishing one <see cref="EdgeOffer"/> per free run on each edge at
     /// the width that run can <b>support</b> (its length class). That is the hub's surface, not a per-neighbour
@@ -60,20 +106,21 @@ public static class HubBoxEmitter
     /// <c>null</c> when the box is too small for the form (a directed signal);
     /// throws <see cref="ComposeException"/> only for a form off the hub menu.</summary>
     public static EmittedHub? Fill(
-        Box box, CompoundRead form, int cw, bool flipV = false, RingWalls? ringWalls = null) =>
-        Fill(box, form, cw, flipV, out _, ringWalls);
+        Box box, CompoundRead form, int cw, bool flipV = false, RingWalls? ringWalls = null,
+        IReadOnlyList<(int Start, int Width)>? armLayout = null) =>
+        Fill(box, form, cw, flipV, out _, ringWalls, armLayout);
 
-    /// <inheritdoc cref="Fill(Box, CompoundRead, int, bool, RingWalls?)"/>
+    /// <inheritdoc cref="Fill(Box, CompoundRead, int, bool, RingWalls?, IReadOnlyList{ValueTuple{int, int}})"/>
     /// <param name="rejection">On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary, carrying the body emitter's own dimension message
     /// rather than discarding it. <c>null</c> when the fill succeeded.</param>
     public static EmittedHub? Fill(
         Box box, CompoundRead form, int cw, bool flipV, out FillRejection? rejection,
-        RingWalls? ringWalls = null)
+        RingWalls? ringWalls = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         rejection = null;
         int boxW = box.Rect[2], boxH = box.Rect[3];
-        var body = BuildBody(form, boxW, boxH, cw, ringWalls, out var detail);
+        var body = BuildBody(form, boxW, boxH, cw, ringWalls, armLayout, out var detail);
         if (body is null)                                    // too small for the form at this cw — a directed signal
         {
             rejection = new FillRejection.FormDoesNotFit(detail ?? $"{form.Form} does not fit {boxW}x{boxH} at cw {cw}.");
@@ -95,17 +142,33 @@ public static class HubBoxEmitter
     // (the BodyEmitter's own dim guards, surfaced as a directed signal rather than an exception). `detail` carries
     // the guard's own message on refusal — the reason the caller reports, not a re-derivation of it.
     private static ShapeBody? BuildBody(
-        CompoundRead form, int w, int h, int cw, RingWalls? ringWalls, out string? detail)
+        CompoundRead form, int w, int h, int cw, RingWalls? ringWalls,
+        IReadOnlyList<(int Start, int Width)>? armLayout, out string? detail)
     {
         detail = null;
         var walls = ringWalls ?? RingWalls.Uniform(cw);
+        // the legs, at the sampled widths or the uniform default they had before one could be sampled
+        IReadOnlyList<(int Start, int Width)> Legs(int arms) => armLayout is { Count: > 0 } given
+            ? given
+            : arms == 1 ? [(0, cw)] : [(0, cw), (w - cw, cw)];
+        ShapeBody Branch(int arms)
+        {
+            // the notch/bay minimum is the form's own size floor, not just the sampler's: a spine with no room
+            // for a corridor beside its leg reads as a bar with a nub, so it is refused rather than built thin
+            var floor = (arms + 1) * cw;                  // the leg(s) plus at least a corridor of notch / bay
+            if (w < floor)
+                throw new ArgumentException(
+                    $"spine {w} is too short for a {(arms == 1 ? "L" : "U")} at cw {cw} — the leg"
+                    + $"{(arms == 1 ? " and its notch" : "s and their bay")} need {floor}.");
+            return BodyEmitter.SpineArms(w, cw, Legs(arms).Select(a => (a.Start, a.Width, h - cw)).ToList());
+        }
         try
         {
             return form.Form switch
             {
                 Compound.Rectangle => BodyEmitter.Rectangle(w, h),
-                Compound.SpineArms when form.Arms == 1 => BodyEmitter.SpineArms(cw, [0], w, h - cw),           // L: one end arm
-                Compound.SpineArms when form.Arms == 2 => BodyEmitter.SpineArms(cw, [0, w - cw], w, h - cw),   // U: two end arms
+                Compound.SpineArms when form.Arms == 1 => Branch(1),                                          // L: one end arm
+                Compound.SpineArms when form.Arms == 2 => Branch(2),                                          // U: two end arms
                 Compound.SpineArms => throw new ComposeException($"a hub arm-form takes 1 (L) or 2 (U) arms, not {form.Arms}."),
                 Compound.Ring => BodyEmitter.Ring(walls, w, h),
                 Compound.P => BodyEmitter.P(walls, cw, w - 2 * cw, h, 2 * cw),                                  // loop of width w−bar, the bar overhanging by 2·cw

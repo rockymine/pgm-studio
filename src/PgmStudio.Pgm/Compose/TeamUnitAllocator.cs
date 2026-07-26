@@ -252,7 +252,12 @@ public static class TeamUnitAllocator
         // surface can't host
         var sampled = ChooseHubForm(hubRect[2], hubRect[3], rng);
         var walls = ChooseHubWalls(sampled, hubRect[2], hubRect[3], FillProfiles.HubWallCells, rng);
-        var seating = Seat(sampled, hubRect, frame, w, demands, rng, noFront: !hasFrontline, walls);
+        // a branch hub's legs, drawn here rather than at fill time because the body is emitted twice — once to
+        // read the runs it offers, once to build it — and a second draw would not agree with the first
+        var arms = sampled.Form == Compound.SpineArms
+            ? HubBoxEmitter.SampleArms(rng, hubRect[2], sampled.Arms, FillProfiles.HubWallCells)
+            : null;
+        var seating = Seat(sampled, hubRect, frame, w, demands, rng, noFront: !hasFrontline, walls, arms);
         if (seating is null && sampled.Form != Compound.Rectangle)
             seating = Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, w, demands, rng, noFront: !hasFrontline);
         if (seating is not { } s) return null;
@@ -442,7 +447,7 @@ public static class TeamUnitAllocator
     /// demand finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
     private static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(
         CompoundRead form, int[] hubRect, Frame frame, int w, IReadOnlyList<Demand> demands, ComposeRng rng,
-        bool noFront, RingWalls? walls = null)
+        bool noFront, RingWalls? walls = null, IReadOnlyList<(int Start, int Width)>? arms = null)
     {
         int boxW = hubRect[2], boxH = hubRect[3];
         var frontEdge = SideEdge(frame, UnitSide.Front);
@@ -450,8 +455,10 @@ public static class TeamUnitAllocator
         // cover the demanded back/laterals — a vertical flip when the front is the box's top edge (every z-frame);
         // symmetric forms (Rectangle, Ring) are unaffected, so this is safe to apply uniformly
         var flipV = frontEdge == BoxEdge.Top;
-        var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form, flipV, HubWalls: walls);
-        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, flipV: flipV, ringWalls: walls) is not { } hub)
+        var hubBox = new Box("hub", BoxKind.Hub, hubRect, boxW * boxH, form, flipV,
+            HubWalls: walls, HubArms: arms);
+        if (HubBoxEmitter.Fill(hubBox, form, FillProfiles.HubWallCells, flipV: flipV, ringWalls: walls,
+                armLayout: arms) is not { } hub)
             return null;   // too small
 
         // the offerable surface: the contiguous free runs on each hub edge (box-local along-coords), read off the

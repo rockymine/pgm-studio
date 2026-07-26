@@ -50,8 +50,10 @@ landed, the rest is the idea.
 - **G122** — the composer decision trace: optionally record every sampled choice and rejected dock during
   a compose, keyed by the request descriptor — the real backtracking tool for "why does this bucket look
   the way it does", better than re-running and watching. Feeds the studio's detail dialog later.
-- **G105** *(partial)* — bigger/better hubs: the per-piece width knob, the asymmetric ring, a raised depth
-  cap, form→size fit.
+- **G105** *(partial — the asymmetric ring and the branch leg sampler shipped)* — bigger/better hubs: a raised
+  depth cap, form→size fit, and the per-piece width knob where it is still uniform — the branch hub's **bar**
+  thickness and **leg length** (the emitter's per-arm overload carries both; only the leg's width is sampled) and
+  a hub arm count of three (the E/comb the body emitter supports but `HubBoxEmitter` refuses).
 - **G135** — **retire the constraints the face anchor made vestigial.** With the unit placed by its face (G132),
   two older rules no longer carry their original weight: the hub's lateral span is still forced even and centred
   on the axis (`TeamUnitAllocator`, the `hubV % 2` adjustment) although the hub is now free to sit off-centre,

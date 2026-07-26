@@ -305,15 +305,34 @@ public static class Producibility
         var cw = FillProfiles.HubWallCells;
         foreach (var form in FillProfiles.HubForms)
             foreach (var walls in HubWallVectors(form, box, cw))
-                foreach (var flip in new[] { false, true })
-                {
-                    var label = $"{Name(form)}{Widened(walls, cw)}{(flip ? " flipped" : "")}";
-                    var hub = HubBoxEmitter.Fill(b, form, cw, flip, out var why, walls);
-                    yield return hub is null
-                        ? new Candidate(label, cw, null, null, why)
-                        : new Candidate(label, cw, Mask(hub.Pieces.Select(p => p.Rect)), null, null);
-                }
+                foreach (var arms in HubArmLayouts(form, box, cw))
+                    foreach (var flip in new[] { false, true })
+                    {
+                        var label = $"{Name(form)}{Widened(walls, cw)}{(arms is null ? "" : " legs " + Legs(arms))}{(flip ? " flipped" : "")}";
+                        var hub = HubBoxEmitter.Fill(b, form, cw, flip, out var why, walls, arms);
+                        yield return hub is null
+                            ? new Candidate(label, cw, null, null, why)
+                            : new Candidate(label, cw, Mask(hub.Pieces.Select(p => p.Rect)), null, null);
+                    }
     }
+
+    /// <summary>The leg layouts a branch hub can take in this box — collected by <b>running</b>
+    /// <see cref="HubBoxEmitter.SampleArms"/> over many seeds, the same way the ring walls and the frontline's
+    /// arms are, so the widths the search admits are exactly the widths the composer draws. The uniform default
+    /// (<c>null</c>) leads, and a form without arms yields only that.</summary>
+    private static IEnumerable<IReadOnlyList<(int Start, int Width)>?> HubArmLayouts(
+        CompoundRead form, PlanBox box, int cw)
+    {
+        yield return null;
+        if (form.Form != Compound.SpineArms) yield break;
+        var seen = new HashSet<string>();
+        for (ulong seed = 1; seed <= SamplerSweepSeeds; seed++)
+        {
+            var layout = HubBoxEmitter.SampleArms(new ComposeRng(seed), box.Rect[2], form.Arms, cw);
+            if (layout is not null && seen.Add(Legs(layout))) yield return layout;
+        }
+    }
+
 
     /// <summary>The ring-wall vectors a hub form can take in this box — collected by <b>running</b>
     /// <see cref="TeamUnitAllocator.ChooseHubWalls"/> over many seeds rather than restating its law (one side
