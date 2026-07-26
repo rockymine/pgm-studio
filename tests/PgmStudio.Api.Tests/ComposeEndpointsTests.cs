@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using PgmStudio.Contracts;
+using PgmStudio.Pgm.Compose;
 
 namespace PgmStudio.Api.Tests;
 
@@ -26,7 +27,8 @@ public sealed class ComposeEndpointsTests
 
         var c = page.Cards[0];
         await Assert.That(c.Svg).Contains("<svg");
-        await Assert.That(c.Descriptor.ComposerVersion).IsEqualTo("box-1");
+        await Assert.That(c.Descriptor.ComposerVersion).IsEqualTo(ComposerVersion.Current)
+            .Because("the card is stamped with the composer that made it, not a literal");
         await Assert.That(c.WoolCount).IsGreaterThan(0);
     }
 
