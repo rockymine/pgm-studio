@@ -47,6 +47,9 @@ public static class Composer
         {
             if (TeamUnitAllocator.Allocate(envelope, rng, crossing) is not { } alloc) continue;
             if (TeamUnitFiller.Fill(alloc.Partition, alloc.SpawnFacing, rng) is not { } filled) continue;
+            // place the finished unit rather than take where it was built: the allocator anchors on the hub, but
+            // the face is what the mid docks, so re-anchor the unit on its face before the band is derived
+            filled = filled with { Unit = UnitPlacement.CentreFaceOnAxis(filled.Unit, envelope.Symmetry) };
             // parallel fronts: under a laterally-flipping symmetry the opposing image mirrors v, so the unit's
             // front faces must mirror onto themselves — else the two sides' fronts sit offset and the band
             // overflows past the faces it docks (an asymmetric-front hub form, an off-centre frontline) — resample

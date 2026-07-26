@@ -1841,6 +1841,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `plan-editor.md` §1/§5, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
   validator alone converges on plans the composer can't reproduce). (G125)
 
+- **The unit is placed by its face, not by its hub (G132)** — `Compose/UnitPlacement.cs` + `Compose/Composer.cs`.
+  The allocator centres the **hub** on the symmetry axis and then seats the frontline onto whichever hub run it
+  finds, so the **face** — the only thing the mid actually docks — ended up wherever hub seating happened to put
+  it. Under a laterally-flipping symmetry that is the wrong anchor: the image reflects `v`, so an off-centre face
+  and its own image land on opposite sides of the axis and `MidCarver` must span the hull of both, leaving band
+  that borders neither front. The finished unit is now **translated across the axis so its face is centred**,
+  read off the emitted front-most terrain (a branch front's face is its arm tips, which its box is wider than).
+  Nothing inside the unit moves relative to anything else, so the G123 funnel survives intact — a face seated
+  off-centre *on its hub* stays off-centre on its hub; what changes is that the **hub** is now the thing free to
+  sit off the axis, so the two hubs no longer mirror onto the same lateral position. Mirrors are untouched by
+  construction (they preserve the cross axis, so a face already coincides with its image wherever it sits) and
+  come out bit-identical. Measured over 900 `rot_180` boards: mutually-faced band 4.6 → **5.5 cells** (59% →
+  79% of the span), band span 7.8 → **6.9**, faces centred 470 → **729**, and the two pathological buckets —
+  40 boards whose fronts never faced at all, and 48 whose face sat off-centre by more than 2 cells — both go to
+  **zero**. The residual is at most half a cell, from an odd face hull whose midpoint falls between cells.
+  Reproduction gate holds: 408/408 compose, zero unproducible boxes, zero unit findings. Pgm 737 green. (G132)
+
 - **The frontline face-parity law (G134)** — `Compose/TeamUnitAllocator.cs`. Under a laterally-flipping symmetry
   the opposing image reflects `v` about the axis *point*, so a face spanning `[lo, hi)` coincides with its own
   image only when `lo = -hi` — i.e. when its span is **even**. The hub was already forced even for exactly this
@@ -1850,7 +1867,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   because the cell size is odd the rule reads identically in blocks and in cells. Measured over 900 `rot_180`
   boards: faces landing centred 470 → **531**, boards with dead band span 210 → **189**; `mirror_z` bit-identical,
   since a mirror preserves the cross axis and needs no parity. Governs the frontline *box*, so it is exact for the
-  solid Bar form; a branch front's face is its arm tips, which G132 and G116 own. Pgm 737 green. (G134)
+  solid Bar form; a branch front's face is its arm tips, which the face-anchored placement reads directly (G132).
 
 - **Per-side ring walls — a wider leg is a design decision (G129)** — `Shapes/ShapeBody.cs` (`RingWalls`),
   `Shapes/BodyEmitter.cs`, `Shapes/ShapeEmitter.cs`, `Compose/HubBoxEmitter.cs`, `Compose/TeamUnitAllocator.cs`,

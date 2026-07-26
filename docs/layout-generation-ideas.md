@@ -57,14 +57,12 @@ landed, the rest is the idea.
   the way it does", better than re-running and watching. Feeds the studio's detail dialog later.
 - **G105** *(partial)* — bigger/better hubs: the per-piece width knob, the asymmetric ring, a raised depth
   cap, form→size fit.
-- **G132** — **place the team unit, don't derive it in place.** The unit's position is fixed before the frontline
-  exists (`TeamUnitAllocator` computes `hubRect` from the envelope, then seats the front onto the hub), so the
-  face's lateral position is an accident of hub seating. Under `rot_180` the opposing image reflects `v`, so an
-  off-centre face and its own image land apart and `MidCarver` spans the hull of both: measured over 900 boards,
-  a centred face is mutually faced over 5.8 of 6.8 cells, one shifted past 2 cells over **1.8 of 9.8** — the band
-  gets wider as the actual crossing collapses, and in 40 of 900 the two fronts never face at all. Build the unit
-  in unit-local `(u, v)` with the face as the anchor, then choose its global placement so the fronts align.
-  `Composer.FrontSlackCapCells` exists only to suppress the symptom and should become unnecessary.
+- **G135** — **retire the constraints the face anchor made vestigial.** With the unit placed by its face (G132),
+  two older rules no longer carry their original weight: the hub's lateral span is still forced even and centred
+  on the axis (`TeamUnitAllocator`, the `hubV % 2` adjustment) although the hub is now free to sit off-centre,
+  and `Composer.FrontSlackCapCells` still caps front-hull slack at 4 cells although the residual is at most one
+  by construction. Both are harmless as they stand; removing them widens the hub-size draw and the accepted set,
+  so each wants its own measured pass rather than a quiet deletion.
 - **G130** — **the budget has no price for a widened part.** Ring-wall widening ships (G129): a hub ring may carry
   one side wider than the rest, sampled under the ratio cap. What it costs is currently nothing — widening spends
   the box's *geometric* slack (the hole narrows, the box does not grow), so the two-currency budget sees the same
