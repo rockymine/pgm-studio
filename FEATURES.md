@@ -1841,6 +1841,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `plan-editor.md` §1/§5, vocabulary rows added. Unblocks the B21 agent loop (an agent iterating against the
   validator alone converges on plans the composer can't reproduce). (G125)
 
+- **The split band — two parallel crossings around an island (G116)** — `Compose/MidCarver.cs` +
+  `Compose/Composer.cs`. A two-leg frontline was always crossed by one band spanning the hull of its face, so the
+  bay between its legs was covered by band that borders neither leg. Where the face allows, the carve now spans a
+  **single leg** and lets the symmetry supply the partner: under a rotation the band's own orbit image lands
+  beside it rather than on top of it, giving two parallel crossings with the bay left as an untouched island. No
+  schema change — the plan still carries one band rect, because every consumer already fans it.
+  The mid **reads** the face and never shapes it. Three things are asked of the face and nothing is required of
+  it: the image must land across the cross axis (mirrors are refused — the partner would fall back onto the
+  original and leave the far leg uncrossed), the face must coincide with its own image, and it must be two runs
+  with the axis in the gap. Legs may differ in width and a bay may be any size; such a face simply is not offered
+  a split. **And a face that is offered one is equally valid crossed by a single band** — `CrossingDesign.SplitBand`
+  is a per-board request, drawn only under a symmetry that could carry one so mirror boards keep their sequence.
+  Measured over 900 `rot_180` boards: 69 faces (7.7%) could host a split — the rest refused as 665 single-run
+  (a solid Bar face) and 166 unequal-legged — and 22 were carved, the appetite taking about a third of the
+  eligible. Islands run 2–4 cells. All 22 split boards are **loop-closed** (the far leg reached through the
+  band's image), 408/408 still compose with zero unproducible boxes and zero unit findings. Pgm 741 green,
+  4 new `MidCarverTests`. (G116)
+
 - **The unit is placed by its face, not by its hub (G132)** — `Compose/UnitPlacement.cs` + `Compose/Composer.cs`.
   The allocator centres the **hub** on the symmetry axis and then seats the frontline onto whichever hub run it
   finds, so the **face** — the only thing the mid actually docks — ended up wherever hub seating happened to put

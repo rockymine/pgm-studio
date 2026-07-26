@@ -41,7 +41,13 @@ public static class Composer
     {
         var rng = new ComposeRng(request.Seed);
         var envelope = Envelope.Derive(request, rng);
-        var crossing = MidCarver.BandOnly(envelope);
+        // whether this board wants a split mid, decided once for the board. Only drawn where the symmetry could
+        // carry one, so a mirror board's sequence is untouched; the carve still grants it only if the face it
+        // ends up with can host it, and a face that can is equally valid crossed by a single band.
+        var crossing = MidCarver.BandOnly(envelope) with
+        {
+            SplitBand = MidCarver.LateralFlip(envelope.Symmetry) && rng.NextBool(MidCarver.SplitBandChance),
+        };
 
         for (var attempt = 0; attempt < ComposeAttempts; attempt++)
         {
