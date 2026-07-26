@@ -53,21 +53,27 @@ public static class HubBoxEmitter
     /// spine-first (arms hanging down), so flipping turns the open feet toward the box top; the allocator sets it
     /// per frame so a form's solid edges cover the demanded sides (symmetric forms are unaffected). Pieces carry
     /// the hub <paramref name="box"/> label and their body slot; there is no room and no marker. <paramref name="cw"/>
-    /// is ignored by the solid Rectangle. <c>null</c> when the box is too small for the form (a directed signal);
+    /// is ignored by the solid Rectangle. <paramref name="ringWalls"/> widens the four walls of a ring-bodied form
+    /// (Ring/P/Double-hole/G) independently, spending the box's slack rather than growing it; <c>null</c> keeps all
+    /// four at <paramref name="cw"/>, and it is ignored by the forms without a ring. Walls are given in the
+    /// <b>pre-flip</b> body frame, so <paramref name="flipV"/> swaps which of top/bottom faces the box top.
+    /// <c>null</c> when the box is too small for the form (a directed signal);
     /// throws <see cref="ComposeException"/> only for a form off the hub menu.</summary>
-    public static EmittedHub? Fill(Box box, CompoundRead form, int cw, bool flipV = false) =>
-        Fill(box, form, cw, flipV, out _);
+    public static EmittedHub? Fill(
+        Box box, CompoundRead form, int cw, bool flipV = false, RingWalls? ringWalls = null) =>
+        Fill(box, form, cw, flipV, out _, ringWalls);
 
-    /// <inheritdoc cref="Fill(Box, CompoundRead, int, bool)"/>
+    /// <inheritdoc cref="Fill(Box, CompoundRead, int, bool, RingWalls?)"/>
     /// <param name="rejection">On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary, carrying the body emitter's own dimension message
     /// rather than discarding it. <c>null</c> when the fill succeeded.</param>
     public static EmittedHub? Fill(
-        Box box, CompoundRead form, int cw, bool flipV, out FillRejection? rejection)
+        Box box, CompoundRead form, int cw, bool flipV, out FillRejection? rejection,
+        RingWalls? ringWalls = null)
     {
         rejection = null;
         int boxW = box.Rect[2], boxH = box.Rect[3];
-        var body = BuildBody(form, boxW, boxH, cw, out var detail);
+        var body = BuildBody(form, boxW, boxH, cw, ringWalls, out var detail);
         if (body is null)                                    // too small for the form at this cw — a directed signal
         {
             rejection = new FillRejection.FormDoesNotFit(detail ?? $"{form.Form} does not fit {boxW}x{boxH} at cw {cw}.");
@@ -88,9 +94,11 @@ public static class HubBoxEmitter
     // build the body of `form` sized to fill the boxW×boxH box at `cw`; null when the box is too small for it
     // (the BodyEmitter's own dim guards, surfaced as a directed signal rather than an exception). `detail` carries
     // the guard's own message on refusal — the reason the caller reports, not a re-derivation of it.
-    private static ShapeBody? BuildBody(CompoundRead form, int w, int h, int cw, out string? detail)
+    private static ShapeBody? BuildBody(
+        CompoundRead form, int w, int h, int cw, RingWalls? ringWalls, out string? detail)
     {
         detail = null;
+        var walls = ringWalls ?? RingWalls.Uniform(cw);
         try
         {
             return form.Form switch
@@ -99,10 +107,10 @@ public static class HubBoxEmitter
                 Compound.SpineArms when form.Arms == 1 => BodyEmitter.SpineArms(cw, [0], w, h - cw),           // L: one end arm
                 Compound.SpineArms when form.Arms == 2 => BodyEmitter.SpineArms(cw, [0, w - cw], w, h - cw),   // U: two end arms
                 Compound.SpineArms => throw new ComposeException($"a hub arm-form takes 1 (L) or 2 (U) arms, not {form.Arms}."),
-                Compound.Ring => BodyEmitter.Ring(cw, w, h),
-                Compound.P => BodyEmitter.P(cw, w - 2 * cw, h, 2 * cw),                                         // loop of width w−bar, the bar overhanging by 2·cw
-                Compound.DoubleHole => BodyEmitter.DoubleHole(cw, w - 2 * cw, h, 2 * cw, h, 0),                 // ring left, a full-height U on its right (two equal holes) — fits a shallow-wide hub
-                Compound.G => BodyEmitter.G(cw, w - 2 * cw, h, w),                                              // ring left, an L on its right — the ring hole + a frontline-sealed bay
+                Compound.Ring => BodyEmitter.Ring(walls, w, h),
+                Compound.P => BodyEmitter.P(walls, cw, w - 2 * cw, h, 2 * cw),                                  // loop of width w−bar, the bar overhanging by 2·cw
+                Compound.DoubleHole => BodyEmitter.DoubleHole(walls, cw, w - 2 * cw, h, 2 * cw, h, 0),          // ring left, a full-height U on its right (two equal holes) — fits a shallow-wide hub
+                Compound.G => BodyEmitter.G(walls, cw, w - 2 * cw, h, w),                                       // ring left, an L on its right — the ring hole + a frontline-sealed bay
                 _ => throw new ComposeException($"the hub form menu excludes {form.Form}."),
             };
         }

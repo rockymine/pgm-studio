@@ -111,14 +111,18 @@ public static class BodyEmitter
     /// loop on a stem). One void. <paramref name="loopW"/>×<paramref name="ringH"/> is the loop; the bar overhangs
     /// it by <paramref name="barExtend"/> cells total, the loop centred on the overhang. Bars are
     /// <see cref="ApproachSlots.Bar"/>, the loop's sides <see cref="ApproachSlots.Leg"/>.</summary>
-    public static ShapeBody P(int cw, int loopW, int ringH, int barExtend = 0)
+    public static ShapeBody P(int cw, int loopW, int ringH, int barExtend = 0) =>
+        P(RingWalls.Uniform(cw), cw, loopW, ringH, barExtend);
+
+    /// <summary>A P whose <b>loop</b> carries per-side <paramref name="walls"/>. <paramref name="cw"/> stays the
+    /// corridor width the bar's overhang is measured in — only the loop's four walls widen, since the long bar
+    /// past the loop is a run rather than a ring side.</summary>
+    public static ShapeBody P(RingWalls walls, int cw, int loopW, int ringH, int barExtend = 0)
     {
-        if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2.");
-        if (loopW < 2 * cw + 1 || ringH < 2 * cw + 1) throw new ArgumentException($"loop {loopW}x{ringH} is too small for a P at cw {cw}.");
+        RequireRing(walls, loopW, ringH, "P loop");
         var ext = barExtend > 0 ? barExtend : 2 * cw;             // total overhang of the long bar past the loop
         var ox = ext / 2;                                         // loop offset — centred on the overhang
         var w = loopW + ext;
-        var walls = RingWalls.Uniform(cw);
         var loop = RingWallRects(walls, ox, 0, loopW, ringH);
         var pieces = new List<(int[] Rect, string Slot)>
         {
@@ -127,7 +131,7 @@ public static class BodyEmitter
             (loop.Left, ApproachSlots.Leg),                       // loop left leg
             (loop.Right, ApproachSlots.Leg),                      // loop right leg
         };
-        return new ShapeBody(pieces, [Hole(ox + cw, cw, loopW - 2 * cw, ringH - 2 * cw)]);
+        return new ShapeBody(pieces, [RingHole(walls, ox, 0, loopW, ringH)]);
     }
 
     /// <summary>A ring with a <b>U docked on its right edge</b> — the U's two arms land on the ring's right side and
@@ -138,22 +142,28 @@ public static class BodyEmitter
     /// (bay width <c>uW−cw</c>), <paramref name="uH"/> its height, <paramref name="uz"/> its slide (0 = flush with
     /// the top bar; <c>-1</c> = a shorter, slid default). Bars are <see cref="ApproachSlots.Bar"/>, uprights
     /// <see cref="ApproachSlots.Leg"/>; two <c>hole</c> vacancies.</summary>
-    public static ShapeBody DoubleHole(int cw, int ringW, int ringH, int uW = 0, int uH = 0, int uz = -1)
+    public static ShapeBody DoubleHole(int cw, int ringW, int ringH, int uW = 0, int uH = 0, int uz = -1) =>
+        DoubleHole(RingWalls.Uniform(cw), cw, ringW, ringH, uW, uH, uz);
+
+    /// <summary>A double-hole whose <b>ring</b> carries per-side <paramref name="walls"/>. The docked U keeps
+    /// <paramref name="cw"/>: its arms and outer wall are a corridor, and its bay is closed by the ring's right
+    /// leg — so widening that leg thickens the wall between the two voids.</summary>
+    public static ShapeBody DoubleHole(
+        RingWalls walls, int cw, int ringW, int ringH, int uW = 0, int uH = 0, int uz = -1)
     {
-        if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2.");
-        if (ringW < 2 * cw + 1 || ringH < 2 * cw + 1) throw new ArgumentException($"ring {ringW}x{ringH} is too small for a double-hole at cw {cw}.");
+        RequireRing(walls, ringW, ringH, "double-hole ring");
         int uw = uW > 0 ? uW : 2 * cw, uh = uH > 0 ? uH : 3 * cw, z = uz >= 0 ? uz : cw;
         if (uw < cw + 1) throw new ArgumentException($"the U reach {uw} leaves no bay (need > {cw}).");
         if (uh < 2 * cw + 1) throw new ArgumentException($"the U height {uh} leaves no bay at cw {cw}.");
         if (z < 0 || z + uh > ringH)
             throw new ArgumentException($"the U (z {z}, height {uh}) doesn't fit the ring's right edge (ring height {ringH}).");
-        var pieces = RingPieces(RingWalls.Uniform(cw), 0, 0, ringW, ringH);
+        var pieces = RingPieces(walls, 0, 0, ringW, ringH);
         pieces.Add(([ringW, z, uw, cw], ApproachSlots.Bar));                       // U top arm (docks the ring's right leg)
         pieces.Add(([ringW, z + uh - cw, uw, cw], ApproachSlots.Bar));            // U bottom arm
         pieces.Add(([ringW + uw - cw, z + cw, cw, uh - 2 * cw], ApproachSlots.Leg)); // U outer wall (closes it)
         return new ShapeBody(pieces,
         [
-            Hole(cw, cw, ringW - 2 * cw, ringH - 2 * cw),        // hole 1 — the ring interior
+            RingHole(walls, 0, 0, ringW, ringH),                 // hole 1 — the ring interior
             Hole(ringW, z + cw, uw - cw, uh - 2 * cw),           // hole 2 — the U's bay, closed by the ring edge
         ]);
     }
@@ -166,14 +176,18 @@ public static class BodyEmitter
     /// <paramref name="ringH"/> is the ring; the upright sits at the box's right edge (width <paramref name="w"/>),
     /// the bay between it and the ring. Bars are <see cref="ApproachSlots.Bar"/>, uprights/legs
     /// <see cref="ApproachSlots.Leg"/>.</summary>
-    public static ShapeBody G(int cw, int ringW, int ringH, int w)
+    public static ShapeBody G(int cw, int ringW, int ringH, int w) =>
+        G(RingWalls.Uniform(cw), cw, ringW, ringH, w);
+
+    /// <summary>A G whose <b>ring</b> carries per-side <paramref name="walls"/>. <paramref name="cw"/> stays the
+    /// corridor width of the docked L — its upright and the bay it leaves are a corridor, not a ring side — while
+    /// the shared top bar takes the ring's top wall across its whole span.</summary>
+    public static ShapeBody G(RingWalls walls, int cw, int ringW, int ringH, int w)
     {
-        if (cw < 2) throw new ArgumentException($"corridor width {cw} < 2.");
-        if (ringW < 2 * cw + 1 || ringH < 2 * cw + 1) throw new ArgumentException($"ring {ringW}x{ringH} is too small for a G at cw {cw}.");
+        RequireRing(walls, ringW, ringH, "G ring");
         if (w < ringW + cw + 1) throw new ArgumentException($"width {w} leaves no bay + upright past the ring {ringW} at cw {cw}.");
         // built bay-opening-DOWN (the shared bar on top, the L's foot part of it), so the hub's vertical flip turns
         // the open side toward the front — the branch convention, so a docking frontline seals the bay into a hole
-        var walls = RingWalls.Uniform(cw);
         var ring = RingWallRects(walls, 0, 0, ringW, ringH);
         var pieces = new List<(int[] Rect, string Slot)>
         {
@@ -181,9 +195,9 @@ public static class BodyEmitter
             (ring.Bottom, ApproachSlots.Bar),                           // ring bottom bar
             (ring.Left, ApproachSlots.Leg),                             // ring left leg
             (ring.Right, ApproachSlots.Leg),                            // ring right leg — the bay's left wall
-            ([w - cw, cw, cw, ringH - cw], ApproachSlots.Leg),          // the L's upright — the bay's right wall, down to the open edge
+            ([w - cw, walls.Top, cw, ringH - walls.Top], ApproachSlots.Leg), // the L's upright — the bay's right wall, down to the open edge
         };
-        return new ShapeBody(pieces, [Hole(cw, cw, ringW - 2 * cw, ringH - 2 * cw)]);   // one enclosed void (the ring); the bay opens down
+        return new ShapeBody(pieces, [RingHole(walls, 0, 0, ringW, ringH)]);   // one enclosed void (the ring); the bay opens down
     }
 
     /// <summary>Two loops sharing one baseline — two enclosed voids kept apart by an <b>open</b> channel (twin

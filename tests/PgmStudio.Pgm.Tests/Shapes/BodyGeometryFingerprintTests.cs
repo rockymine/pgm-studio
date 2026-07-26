@@ -70,12 +70,30 @@ public sealed class BodyGeometryFingerprintTests
             "bar:0,5,11,2 | bar:2,0,7,2 | leg:2,2,2,3 | leg:7,2,2,3  voids hole:4,2,3,3");
     }
 
+    /// <summary>The P's <b>loop</b> takes the walls; the long bar past it stays a corridor, since it is a run
+    /// rather than a ring side.</summary>
+    [Test]
+    public async Task A_P_widens_its_loop_and_leaves_the_overhanging_bar_a_corridor()
+    {
+        await Assert.That(Print(BodyEmitter.P(new RingWalls(2, 3, 2, 2), Cw, 7, 7, 4))).IsEqualTo(
+            "bar:0,5,11,2 | bar:2,0,7,2 | leg:2,2,2,3 | leg:6,2,3,3  voids hole:4,2,2,3");
+    }
+
     [Test]
     public async Task G_geometry_is_stable()
     {
         // the shared top bar spans the FULL width, not the ring's
         await Assert.That(Print(BodyEmitter.G(Cw, 7, 7, 11))).IsEqualTo(
             "bar:0,0,11,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:5,2,2,3 | leg:9,2,2,5  voids hole:2,2,3,3");
+    }
+
+    /// <summary>A widened G top thickens the bar the ring <b>shares</b> with the L's foot across its whole span,
+    /// and the L's upright starts below it — the upright itself stays a corridor.</summary>
+    [Test]
+    public async Task A_G_carries_its_ring_top_across_the_shared_bar()
+    {
+        await Assert.That(Print(BodyEmitter.G(new RingWalls(3, 2, 2, 2), Cw, 7, 7, 11))).IsEqualTo(
+            "bar:0,0,11,3 | bar:0,5,7,2 | leg:0,3,2,2 | leg:5,3,2,2 | leg:9,3,2,4  voids hole:2,3,3,2");
     }
 
     [Test]
@@ -86,6 +104,16 @@ public sealed class BodyGeometryFingerprintTests
         await Assert.That(Print(BodyEmitter.DoubleHole(Cw, 7, 7, 6, 7, 0))).IsEqualTo(
             "bar:0,0,7,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:5,2,2,3 | bar:7,0,6,2 | bar:7,5,6,2 | leg:11,2,2,3"
             + "  voids hole:2,2,3,3 | hole:7,2,4,3");
+    }
+
+    /// <summary>Widening the double-hole's right leg thickens the wall <b>between</b> its two voids: the ring's
+    /// hole loses a column, the U's bay is untouched, and the U still docks flush against the leg.</summary>
+    [Test]
+    public async Task A_double_hole_widens_the_leg_between_its_two_voids()
+    {
+        await Assert.That(Print(BodyEmitter.DoubleHole(new RingWalls(2, 3, 2, 2), Cw, 7, 7, 6, 7, 0))).IsEqualTo(
+            "bar:0,0,7,2 | bar:0,5,7,2 | leg:0,2,2,3 | leg:4,2,3,3 | bar:7,0,6,2 | bar:7,5,6,2 | leg:11,2,2,3"
+            + "  voids hole:2,2,2,3 | hole:7,2,4,3");
     }
 
     [Test]
