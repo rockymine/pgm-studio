@@ -71,6 +71,15 @@ internal sealed class ApiTestFactory : WebApplicationFactory<Program>
         SchemaMigrator.MigrateUp(ConnectionString);
     }
 
+    /// <summary>Run one statement against the test schema — for arranging a row state no endpoint produces,
+    /// such as a plan stamped by an older composer.</summary>
+    public static async Task ExecuteAsync(string sql)
+    {
+        await using var conn = new MySqlConnection(ConnectionString);
+        await conn.OpenAsync();
+        await Exec(conn, sql);
+    }
+
     private static async Task Exec(MySqlConnection conn, string sql)
     {
         await using var cmd = new MySqlCommand(sql, conn);

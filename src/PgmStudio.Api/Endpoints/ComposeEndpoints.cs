@@ -53,6 +53,9 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
         var profile = EvaluationProfile.Default;
         var structural = woolReq.Count > 0 || hubReq.Count > 0 || frontReq.Count > 0;
         var cards = new List<ComposeCard>();
+        // the structural census over every board composed here, tallied before the sieve — a filter must not
+        // hide the forms it is filtering against, or the chips would read as dead the moment one was picked
+        var observed = new ObservedTally();
         var seed = seedStart;
         var scanCap = seedStart + (structural ? StructuralScanBudget : count * 4);
         var exhausted = false;
@@ -72,6 +75,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
             catch (ComposeException) { continue; }   // this seed produced no acceptable board — skip
 
             var summary = StructureSummary.Derive(stages.Unit);
+            observed.Add(summary);
             if (!StructuralPass(summary, woolReq, hubReq, frontReq)) continue;   // structural reject: no evaluate, no render
 
             var eval = LayoutEvaluator.Evaluate(stages.Plan, profile);
@@ -93,7 +97,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
                 hardTerms, topSoft, PlanBoardSvg.Render(stages.Plan)));
         }
 
-        await Send.OkAsync(new ComposePage(cards, seed, exhausted, seed - seedStart), ct);
+        await Send.OkAsync(new ComposePage(cards, seed, exhausted, seed - seedStart, observed.ToDto()), ct);
     }
 
     private List<string> Csv(string key) =>
@@ -119,6 +123,27 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
 
     internal static StructureSummaryDto ToDto(StructureSummary s) =>
         new(s.Wools.Select(StructureNames.Family).ToList(), StructureNames.Form(s.Hub), StructureNames.Form(s.Frontline));
+
+    /// <summary>Counts each structural token as boards go by. A wool family counts once per board however many
+    /// approaches of it the board has, so every tally reads against the same denominator.</summary>
+    private sealed class ObservedTally
+    {
+        private readonly Dictionary<string, int> wools = [], hubs = [], fronts = [];
+        private int boards;
+
+        public void Add(StructureSummary s)
+        {
+            boards++;
+            foreach (var family in s.Wools.Select(StructureNames.Family).Distinct()) Bump(wools, family);
+            Bump(hubs, StructureNames.Form(s.Hub));
+            Bump(fronts, StructureNames.Form(s.Frontline));
+        }
+
+        public ObservedForms ToDto() => new(boards, wools, hubs, fronts);
+
+        private static void Bump(Dictionary<string, int> into, string key) =>
+            into[key] = into.GetValueOrDefault(key) + 1;
+    }
 }
 
 /// <summary>

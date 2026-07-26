@@ -543,6 +543,15 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 .filter-chip:hover:not(:disabled) { border-color: var(--text-muted); color: var(--text-primary); }
 .filter-chip--active   { background: var(--bg-selected); border-color: var(--accent); color: var(--accent-lighter); }
 .filter-chip:disabled  { opacity: 0.35; cursor: default; }
+/* How many of the scanned boards carried this form — the chip saying what the request produces. */
+.filter-chip-n {
+  margin-left: 5px; font-family: ui-monospace, monospace; font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums; color: var(--text-muted);
+}
+/* Never produced by the current request, on a sample big enough to mean it. Dimmed rather than disabled:
+   the count is the evidence, and a rare form should stay pickable if the author wants to hunt for it. */
+.filter-chip--unseen { opacity: 0.45; border-style: dashed; }
+.filter-chip--unseen .filter-chip-n { color: var(--text-muted); }
 
 
 /* ══════════════════════════════════════════════════════════════════════════

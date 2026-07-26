@@ -5,7 +5,10 @@ namespace PgmStudio.Contracts;
 /// fork this row was split from (null if none); <paramref name="Seed"/>/<paramref name="ComposerVersion"/> are
 /// present only for generated rows. <paramref name="Descriptor"/> carries the full reproducible request for a
 /// generated row (parsed from its stored descriptor) so the browse hold-tray can identify and re-open it;
-/// null for authored/imported rows.</summary>
+/// null for authored/imported rows. <paramref name="StaleComposer"/> is true when a generated row was made by
+/// an <b>older composer</b> than the one running: the stored plan is unaffected (its geometry is stored, not
+/// recomputed), but its descriptor no longer reproduces it, so re-composing that request now gives a different
+/// board. Always false for authored/imported rows, which have no descriptor to go stale.</summary>
 public sealed record PlanSummary(
     long Id,
     string Name,
@@ -15,7 +18,8 @@ public sealed record PlanSummary(
     string? ComposerVersion,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    ComposeRequestDto? Descriptor = null);
+    ComposeRequestDto? Descriptor = null,
+    bool StaleComposer = false);
 
 /// <summary>A full plan row (GET /api/plans/{id}, and the POST /api/plans save response) — a
 /// <see cref="PlanSummary"/> plus the canonical <c>*.plan.json</c> document to load into the editor.</summary>

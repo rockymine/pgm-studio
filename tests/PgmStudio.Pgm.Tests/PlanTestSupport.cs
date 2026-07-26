@@ -10,18 +10,21 @@ internal static class PlanTestSupport
 {
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Walk up from the test binary to the repo's <c>tools/seeds</c> directory.</summary>
-    public static string SeedDir()
+    /// <summary>Walk up from the test binary to a checked-in path, given relative to the repo root.</summary>
+    public static string RepoPath(params string[] parts)
     {
         var dir = AppContext.BaseDirectory;
         while (dir is not null)
         {
-            var candidate = Path.Combine(dir, "tools", "seeds");
-            if (Directory.Exists(candidate)) return candidate;
+            var candidate = Path.Combine([dir, .. parts]);
+            if (Directory.Exists(candidate) || File.Exists(candidate)) return candidate;
             dir = Directory.GetParent(dir)?.FullName;
         }
-        throw new DirectoryNotFoundException("tools/seeds not found above the test binary");
+        throw new DirectoryNotFoundException($"{Path.Combine(parts)} not found above the test binary");
     }
+
+    /// <summary>The repo's <c>tools/seeds</c> directory — the checked-in plan/intent/layout fixtures.</summary>
+    public static string SeedDir() => RepoPath("tools", "seeds");
 
     public static string ReadSeed(string file) => File.ReadAllText(Path.Combine(SeedDir(), file));
 

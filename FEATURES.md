@@ -1862,6 +1862,46 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   old default produced 13 at 1. 408/408 still compose with zero unproducible boxes and zero unit findings.
   Pgm 744 green. (G105)
 
+- **The composer version is enforced, and a stale row says so (G137)** — `Compose/ComposerFingerprint.cs`,
+  `tools/compose/fingerprints.cs`, `Api/Endpoints/PlanStoreEndpoints.cs`, the plan-open list + generator tray.
+  A generated plan's identity is its `ComposeDescriptor`, and its contract is that *a descriptor reproduces its
+  plan exactly within one composer version*. The version was a hand-written constant nothing checked, so it sat
+  at `box-1` through every geometry change since it was introduced — measured, `(12p, rot_180, seed 3)` hashed
+  `C7B9BA11…` before this branch and `A882FAD5…` after, both stamping `box-1`.
+  **The guard.** A digest of what a fixed request set composes to, recorded next to the version it was taken
+  under. Two failures, two different messages: a record from another version (regenerate it) and a board that
+  moved while the version stood still (bump it, then regenerate). It asserts the **bookkeeping, never the
+  layouts** — a changed board is always allowed, it just has to arrive with a changed version — which is what
+  keeps it apart from the frozen goldens G32-D parks. A third test pins the premise the other two rest on: that
+  composing one request twice gives the same plan.
+  **Its sensitivity is its coverage, which had to be measured rather than assumed.** The first cut, two seeds per
+  cohort, did **not** fire when the bay cap was perturbed: the cap only binds on a two-legged hub, a form about
+  one 20-player board in sixteen carries, so twelve boards had none to move. At 12 seeds per cohort (72 boards,
+  ~2s) the same perturbation moves `20p/mirror_z/s3` and the guard names it. A change touching only a rarer form
+  can still slip through; the fix is more seeds and the cost is linear.
+  **The read-back.** `PlanSummary.StaleComposer` marks a generated row an older composer made. The stored plan is
+  untouched — geometry is stored, not recomputed — so the marker says the narrower true thing: it opens as
+  stored, but its seed no longer re-composes to it. Shown on the plan-open list and on the hold-tray thumbnail.
+  The endpoint test that asserted the literal `"box-1"` now asserts the card carries whatever the composer
+  reports, which is the invariant it was reaching for. Pgm 751 + Api 79 green. (G137)
+
+- **The filter chips say what the request actually produces (G136)** — `Contracts/ComposeDtos.cs`,
+  `Api/Endpoints/ComposeEndpoints.cs`, `Features/Generator/GeneratorTool`. The wool chips could disable a family
+  the composer cannot build; the hub and frontline chips were always enabled. But which forms a request produces
+  is a property of the **request**, not a constant — it rides on the box sizes the land budget buys — so picking
+  **Twin** at 8 players scanned the whole run and reported only *"No boards match these filters"*.
+  Rather than predict reachability, the feed **reports what it saw**: a structural census counted over the boards
+  each page composed, tallied **before the sieve** so a filter never hides the alternatives it filters against
+  (the endpoint test asserts exactly that — filter to `ring` and the other hub forms are still counted). The
+  client accumulates it across pages, keyed on the request so a change of players or symmetry starts over, and
+  each chip carries its count. A count of zero dims the chip only past a confidence floor of 150 boards, because
+  absence from 48 boards is a small sample and absence from 400 is an answer; the chip stays **pickable** either
+  way, since a rare form is worth hunting for. The empty grid now names the cause: *"Twin did not turn up in any
+  of the 409 boards this request composed — it is not a mix these players and symmetry produce."*
+  Measured live at 8 players / `rot_180` over 409 boards: hubs `bar:284 single:125`, five of the seven hub chips
+  at zero; wools `i:293 l:111 donut:5` with U/H/Clamp at zero; and **frontline `none:409`** — that cohort never
+  builds one at all, which nothing in the UI had ever said. Pgm 751 + Api 79 green. (G136)
+
 - **The two-legged hub on the wide boards — a bounded bay (G105)** — `Compose/HubBoxEmitter.cs` +
   `Compose/TeamUnitAllocator.cs`. With the legs now drawn rather than fixed, the U was still kept off the wide
   form menu and its bay was still whatever the spine had left over — so a wide box came out as two one-corridor

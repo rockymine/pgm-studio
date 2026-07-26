@@ -571,6 +571,10 @@
             <button class="plan-lint-row" @onclick="() => LoadFromDb(p.Id)" title="Open this plan">
               <span class="plan-lint-chip">@p.Origin</span>
               <span class="plan-lint-msg plan-db-name">@(string.IsNullOrWhiteSpace(p.Name) ? "Untitled plan" : p.Name)</span>
+              @if (p.StaleComposer)
+              {
+                <span class="plan-db-stale" title="@StaleTitle(p)">@(p.ComposerVersion ?? "no version")</span>
+              }
               <span class="plan-db-date">@p.UpdatedAt.ToLocalTime().ToString("MMM d")</span>
             </button>
           }

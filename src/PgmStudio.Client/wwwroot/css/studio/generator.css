@@ -41,6 +41,14 @@
   display: grid; place-items: center; background: rgba(0, 0, 0, .5); color: #fff; border: none; border-radius: 50%; cursor: pointer;
 }
 .gen-tray-x i { width: 11px; height: 11px; }
+/* A held board an older composer made: its stored plan is intact, so the marker is an annotation on the
+   thumbnail rather than anything that blocks opening it. */
+.gen-tray-fig--stale { border-color: #d9a441; }
+.gen-tray-stale {
+  position: absolute; top: 2px; left: 2px; font-family: ui-monospace, monospace; font-size: 9px;
+  line-height: 1.4; padding: 0 3px; border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, .55); color: #e8c579;
+}
 
 .gen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-3); }
 .gen-card { position: relative; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-panel, var(--bg)); border: 1px solid var(--border); border-radius: var(--radius-sm); }

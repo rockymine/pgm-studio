@@ -37,13 +37,29 @@ public sealed record ComposeCard(
     IReadOnlyList<TermContribDto> TopSoft,
     string Svg);
 
+/// <summary>What the structural vocabulary actually turned up over the boards a page composed, counted
+/// <b>before</b> the sieve so a filter never hides the alternatives it is filtering against.
+/// <paramref name="Boards"/> is how many boards the counts are drawn from (composed, not matched).
+///
+/// <para>This is what makes a filter chip say something. Which forms a request can produce is a property of the
+/// <em>request</em>, not a constant — it rides on the box sizes the land budget buys, so a small board never
+/// reaches the wide hub forms at all. Rather than predict that, the feed reports what it saw, and a token
+/// missing from a large enough sample is the honest version of "this request does not make one".</para></summary>
+public sealed record ObservedForms(
+    int Boards,
+    IReadOnlyDictionary<string, int> Wools,
+    IReadOnlyDictionary<string, int> Hubs,
+    IReadOnlyDictionary<string, int> Frontlines);
+
 /// <summary>A page of browse cards. <paramref name="NextSeed"/> is the seed cursor to resume from (feed
 /// forward for infinite scroll); <paramref name="Exhausted"/> is true when the per-request scan budget was
 /// reached before filling the page, so the client can stop requesting; <paramref name="Scanned"/> is how many
 /// seeds this page composed (matched = Cards.Count) — under a strict structural filter the low match rate is
-/// itself the signal to promote that filter to a held target.</summary>
+/// itself the signal to promote that filter to a held target. <paramref name="Observed"/> is the structural
+/// census over those same boards, which the filter chips read to say what this request produces.</summary>
 public sealed record ComposePage(
     IReadOnlyList<ComposeCard> Cards,
     int NextSeed,
     bool Exhausted,
-    int Scanned);
+    int Scanned,
+    ObservedForms? Observed = null);

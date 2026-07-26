@@ -103,28 +103,7 @@ landed, the rest is the idea.
   when unset, held + verified when set. **This is the natural backend for the studio integration's filter
   controls** (G117 on the board).
 - **G109** — (also listed above) the budget ladders fold into `ComposeTargets`.
-- **G137** — **nothing enforces or reads back the composer version.** A generated plan's identity is its
-  `ComposeDescriptor` — schema + `ComposerVersion` + the whole request — and its contract is that *a descriptor
-  reproduces its plan exactly within one version*. But the version is a hand-maintained constant, and the
-  discipline is not enforced anywhere: it sat at `box-1` through 15 commits to `Compose/`, several of which moved
-  the geometry. Measured across one session's four composer changes, `(12p, rot_180, seed 3)` went from plan hash
-  `C7B9BA11…` to `A882FAD5…` with both runs stamping `box-1`. Two halves: **(a)** something has to notice — a
-  cheap fixed-descriptor fingerprint set the suite compares, which is *not* the frozen goldens of G32-D (it
-  asserts "the version changed when the geometry did", never "the geometry didn't change"); **(b)** nothing
-  *reads* the version back — it rides the DTOs to the client and is never compared with `Current`, so a plan row
-  from an older composer looks as reproducible as a fresh one. A stale row wants saying so, on the plan list and
-  wherever a descriptor is offered for re-compose. Rows pinned before the check exists carry a version they may
-  not deserve; that is not retroactively fixable and the read-back should be worded as a hint, not a guarantee.
-- **G136** — **the generator's hub/frontline chips do not say what the request can produce.** The wool chips
-  already carry an `InMix` flag that disables a family the composer cannot build and says why; the hub and
-  frontline chips are always enabled. But form availability is a function of the *request*, not a constant —
-  it rides on the spine the land budget buys, so at 8 players every branch hub is a spine of 4 and picking
-  **Twin** scans the whole run for nothing, reporting only "No boards match these filters". Measured live at
-  seed 0, 48 cards: 8p `bar:32 single:16` · 12p `bar:25 single:13 twin:10` · 20p `ring:29 bar:8
-  double-hole:5 twin:3 p:2 single:1` — five of the seven hub chips are dead at 8 players and four at 12.
-  Wants the availability to be *derived* per request rather than a static flag, which is the same question
-  `ComposeTargets` (G98) answers from the other side: a target the composer holds is a target it can report
-  as unreachable before the sieve runs.
+
 
 ## Evaluator long tail
 

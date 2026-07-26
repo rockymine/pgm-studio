@@ -54,6 +54,13 @@
 
         <Button Variant="primary" Full OnClick="Reload">Apply</Button>
         <p class="section-desc">Players / score / wool count apply on the button. Structure filters below apply on click.</p>
+        @if (censusBoards > 0)
+        {
+          <p class="section-desc gen-census">
+            Counts are what this request produced across @censusBoards board@(censusBoards == 1 ? "" : "s")
+            scanned@(CensusIsTelling ? " — a form still at zero is one it does not make." : " so far.")
+          </p>
+        }
 
         <Field Label="Wool families">
           <LabelEnd><span class="text-xs text-muted">all present</span></LabelEnd>
@@ -62,8 +69,9 @@
               @foreach (var w in WoolChips)
               {
                 <Chip Active="woolFilter.Contains(w.Token)" Disabled="!w.InMix"
-                      Title="@(w.InMix ? w.Label : "not in the production mix")"
-                      OnClick="() => ToggleWool(w.Token)">@w.Label</Chip>
+                      Class="@(w.InMix && Unseen(seenWools, w.Token) ? "filter-chip--unseen" : null)"
+                      Title="@(w.InMix ? ChipTitle(seenWools, w.Token, w.Label) : "not in the production mix")"
+                      OnClick="() => ToggleWool(w.Token)">@w.Label@if (censusBoards > 0 && w.InMix) { <span class="filter-chip-n">@(seenWools.GetValueOrDefault(w.Token))</span> }</Chip>
               }
             </div>
           </ChildContent>
@@ -75,7 +83,10 @@
             <div class="filter-group-options">
               @foreach (var h in HubChips)
               {
-                <Chip Active="hubFilter.Contains(h.Token)" OnClick="() => ToggleHub(h.Token)">@h.Label</Chip>
+                <Chip Active="hubFilter.Contains(h.Token)"
+                      Class="@(Unseen(seenHubs, h.Token) ? "filter-chip--unseen" : null)"
+                      Title="@ChipTitle(seenHubs, h.Token, h.Label)"
+                      OnClick="() => ToggleHub(h.Token)">@h.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenHubs.GetValueOrDefault(h.Token))</span> }</Chip>
               }
             </div>
           </ChildContent>
@@ -87,7 +98,10 @@
             <div class="filter-group-options">
               @foreach (var f in FrontChips)
               {
-                <Chip Active="frontFilter.Contains(f.Token)" OnClick="() => ToggleFront(f.Token)">@f.Label</Chip>
+                <Chip Active="frontFilter.Contains(f.Token)"
+                      Class="@(Unseen(seenFronts, f.Token) ? "filter-chip--unseen" : null)"
+                      Title="@ChipTitle(seenFronts, f.Token, f.Label)"
+                      OnClick="() => ToggleFront(f.Token)">@f.Label@if (censusBoards > 0) { <span class="filter-chip-n">@(seenFronts.GetValueOrDefault(f.Token))</span> }</Chip>
               }
             </div>
           </ChildContent>
@@ -105,9 +119,14 @@
             @foreach (var p in pinned)
             {
               <div class="gen-tray-chip">
-                <a class="gen-tray-fig" href="@($"/plan-editor?plan={p.Id}")" title="Open in plan editor">
+                <a class="gen-tray-fig @(p.StaleComposer ? "gen-tray-fig--stale" : null)"
+                   href="@($"/plan-editor?plan={p.Id}")" title="Open in plan editor">
                   @if (traySvg.TryGetValue(p.Id, out var s)) { @((MarkupString)s) }
                 </a>
+                @if (p.StaleComposer)
+                {
+                  <span class="gen-tray-stale" title="@StaleTitle(p)">@(p.ComposerVersion ?? "?")</span>
+                }
                 <span class="gen-tray-name" title="@p.Name">@p.Name</span>
                 <button class="gen-tray-x" @onclick="() => Unpin(p.Id)" title="Unpin"><i data-lucide="x"></i></button>
               </div>
@@ -148,7 +167,7 @@
 
       @if (feedError is not null) { <p class="gen-status">@feedError</p> }
       else if (loading) { <p class="gen-status">Composing…</p> }
-      else if (cards.Count == 0) { <p class="gen-status">No boards match these filters.</p> }
+      else if (cards.Count == 0) { <p class="gen-status">@EmptyFeedMessage()</p> }
       else if (exhausted) { <p class="gen-status">End of the run for these filters.</p> }
 
       <div @ref="sentinelRef" class="gen-sentinel"></div>

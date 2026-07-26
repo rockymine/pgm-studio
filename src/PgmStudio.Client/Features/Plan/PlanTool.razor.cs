@@ -528,6 +528,12 @@ public partial class PlanTool
 
     private void CloseDbBrowser() => showOpenDb = false;
 
+    // A generated row made by an older composer opens exactly as stored — only its descriptor has stopped
+    // reproducing it, which matters when re-composing that request, not when loading the row.
+    private static string StaleTitle(PlanSummary p) =>
+        $"Made by composer {p.ComposerVersion ?? "(unrecorded)"}. The plan opens as stored; "
+        + "re-composing its seed on today's composer would give a different board.";
+
     private async Task LoadFromDb(long id)
     {
         if (handle is null) return;

@@ -893,6 +893,13 @@ body.dashboard-page { overflow: hidden; }
 /* Open-from-DB rows reuse .plan-lint-row: name takes the slack, the date sits right-aligned and muted. */
 .plan-db-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plan-db-date { flex-shrink: 0; color: var(--text-secondary); font-size: var(--font-xs); }
+/* A generated row whose composer has moved on: the stored plan still opens as-is, but its descriptor no
+   longer reproduces it, so the marker sits on the origin chip rather than on the row. */
+.plan-db-stale {
+  flex-shrink: 0; font-family: ui-monospace, monospace; font-size: var(--font-xs);
+  color: #d9a441; border: 1px solid currentColor; border-radius: var(--radius-sm);
+  padding: 0 4px; line-height: 1.4; opacity: 0.85;
+}
 .plan-lint-row--static { cursor: default; }
 .plan-lint-row--static:hover { background: transparent; color: var(--text-secondary); border-color: transparent; }
 /* Selected violation — its evidence is isolated on the canvas; the row stays lit (persistent, unlike hover). */

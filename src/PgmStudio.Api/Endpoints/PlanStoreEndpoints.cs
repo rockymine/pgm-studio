@@ -12,7 +12,15 @@ namespace PgmStudio.Api.Endpoints;
 internal static class PlanStoreMapping
 {
     public static PlanSummary ToSummary(PlanRow r) =>
-        new(r.Id, r.Name, r.Origin, r.ParentId, r.Seed, r.ComposerVersion, r.CreatedAt, r.UpdatedAt, DescriptorOf(r));
+        new(r.Id, r.Name, r.Origin, r.ParentId, r.Seed, r.ComposerVersion, r.CreatedAt, r.UpdatedAt,
+            DescriptorOf(r), IsStale(r));
+
+    /// <summary>Whether a generated row was made by an older composer than the one running. The row's stored
+    /// geometry is unaffected — it is loaded, never recomputed — but its descriptor has stopped reproducing it,
+    /// so re-composing that request now yields a different board. A row with no recorded version predates the
+    /// stamp and is treated as stale for the same reason: nothing says the current composer would make it.</summary>
+    internal static bool IsStale(PlanRow r) =>
+        r.Origin == PlanOrigin.Generated && r.ComposerVersion != ComposerVersion.Current;
 
     /// <summary>The reproducible request behind a generated row, parsed from its stored descriptor (null for
     /// authored/imported, or if the stored JSON is unreadable — the list must never fail over one bad row).</summary>

@@ -101,7 +101,10 @@ public partial class GeneratorTool : IAsyncDisposable
         return q;
     }
 
-    // Apply the filters: clear the feed and start the seed cursor over.
+    // Apply the filters: clear the feed and start the seed cursor over. The structural census survives a
+    // re-sieve of the same request — it is counted before the sieve, so picking a filter never invalidates it —
+    // but not a change of players or symmetry, which is a different request producing different forms. Keyed on
+    // the request rather than on which control fired, so no caller can forget.
     private async Task Reload()
     {
         cards.Clear();
@@ -109,6 +112,7 @@ public partial class GeneratorTool : IAsyncDisposable
         totalScanned = 0;
         exhausted = false;
         feedError = null;
+        if (censusKey != RequestKey) ResetCensus();
         await LoadPage();
     }
 
@@ -126,10 +130,81 @@ public partial class GeneratorTool : IAsyncDisposable
                 cursor = page.NextSeed;
                 totalScanned += page.Scanned;
                 exhausted = page.Exhausted;
+                Accumulate(page.Observed);
             }
         }
         catch { feedError = "Could not load boards."; exhausted = true; }
         finally { loading = false; StateHasChanged(); }
+    }
+
+    // ── the structural census (what this request actually produces) ──────────────────────────────────
+    // Accumulated across pages because one page is a small sample: a form absent from 48 boards may simply not
+    // have come up, while one absent from several hundred is telling you the request cannot make it.
+    private readonly Dictionary<string, int> seenWools = [], seenHubs = [], seenFronts = [];
+    private int censusBoards;
+    private string censusKey = "";
+
+    private string RequestKey => $"{players}/{symmetry}";
+
+    private void ResetCensus()
+    {
+        seenWools.Clear(); seenHubs.Clear(); seenFronts.Clear();
+        censusBoards = 0;
+        censusKey = RequestKey;
+    }
+
+    /// <summary>How many boards must be seen before a token's absence is worth reporting as absence rather than
+    /// as a small sample. Below it the chips carry their counts but nothing is called unavailable.</summary>
+    private const int CensusConfidence = 150;
+
+    private void Accumulate(ObservedForms? o)
+    {
+        if (o is null) return;
+        censusBoards += o.Boards;
+        foreach (var (k, v) in o.Wools) seenWools[k] = seenWools.GetValueOrDefault(k) + v;
+        foreach (var (k, v) in o.Hubs) seenHubs[k] = seenHubs.GetValueOrDefault(k) + v;
+        foreach (var (k, v) in o.Frontlines) seenFronts[k] = seenFronts.GetValueOrDefault(k) + v;
+    }
+
+    private bool CensusIsTelling => censusBoards >= CensusConfidence;
+
+    // A token this request has never produced, on a sample big enough to mean it. Distinct from a family the
+    // composer cannot build at all (the wool chips' own InMix flag), which is true of every request.
+    private bool Unseen(Dictionary<string, int> seen, string token) =>
+        CensusIsTelling && seen.GetValueOrDefault(token) == 0;
+
+    /// <summary>Why the grid is empty. A filter naming something this request never produced is a different
+    /// answer from an unlucky run, and the census can tell them apart — so it says which one it is.</summary>
+    private string EmptyFeedMessage()
+    {
+        var never = Selected()
+            .Where(f => Unseen(f.Seen, f.Token))
+            .Select(f => f.Label)
+            .ToList();
+        if (never.Count == 0)
+            return $"No boards match these filters in the {totalScanned} scanned.";
+        return $"{string.Join(" and ", never)} did not turn up in any of the {censusBoards} boards this request "
+             + "composed — it is not a mix these players and symmetry produce.";
+    }
+
+    // every structural filter currently picked, with the census it reads against
+    private IEnumerable<(Dictionary<string, int> Seen, string Token, string Label)> Selected()
+    {
+        foreach (var t in woolFilter) yield return (seenWools, t, Label(WoolChips.Select(w => (w.Token, w.Label)), t));
+        foreach (var t in hubFilter) yield return (seenHubs, t, Label(HubChips, t));
+        foreach (var t in frontFilter) yield return (seenFronts, t, Label(FrontChips, t));
+    }
+
+    private static string Label(IEnumerable<(string Token, string Label)> chips, string token) =>
+        chips.FirstOrDefault(c => c.Token == token).Label ?? token;
+
+    private string ChipTitle(Dictionary<string, int> seen, string token, string label)
+    {
+        var n = seen.GetValueOrDefault(token);
+        if (n > 0) return $"{label} — {n} of the {censusBoards} boards scanned so far";
+        return CensusIsTelling
+            ? $"{label} — not produced by this request (none in {censusBoards} boards scanned)"
+            : $"{label} — none yet in {censusBoards} board{(censusBoards == 1 ? "" : "s")} scanned";
     }
 
     // ── structural filters (chips + card badges; toggling re-sieves the feed immediately) ────────────
@@ -187,6 +262,12 @@ public partial class GeneratorTool : IAsyncDisposable
         await RefreshPinned();
         StateHasChanged();
     }
+
+    // A held board an older composer made. Its stored plan is intact and opens as-is; what has lapsed is the
+    // descriptor's claim to reproduce it, so re-composing the same seed today gives a different board.
+    private static string StaleTitle(PlanSummary p) =>
+        $"Held from composer {p.ComposerVersion ?? "(unrecorded)"}. Opens as stored; its seed no longer "
+        + "re-composes to this board.";
 
     // ── detail dialog ──────────────────────────────────────────────────────────────
     private void OpenDetail(ComposeCard c) => detail = c;
