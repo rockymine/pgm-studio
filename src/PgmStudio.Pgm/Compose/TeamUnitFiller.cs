@@ -115,7 +115,7 @@ public static class TeamUnitFiller
                     var cwW = ConsumedCw(hub, j, hubEdge);
                     var wf = neighbour.Wool ?? new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false);
                     if (BoxFiller.Fill(neighbour, mouth, cwW, wf.Family, wf.Flip, roomId, wf.Placement,
-                            wf.WoolAtEnd, wf.AttachmentWidth) is not FillResult.Ok okW)
+                            wf.WoolAtEnd, wf.AttachmentWidth, wf.RingWalls) is not FillResult.Ok okW)
                         return null;
                     pieces.AddRange(okW.Approach.Terrain);
                     pieces.Add(okW.Approach.WoolRoom);

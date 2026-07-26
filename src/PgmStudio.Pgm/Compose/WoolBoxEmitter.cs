@@ -71,7 +71,7 @@ public static class WoolBoxEmitter
     public static FillResult Fill(
         Box box, BoxEdge mouth, ShapeFamily family, int corridorWidth,
         bool flip = false, string? roomId = null, RoomPlacement roomPlacement = RoomPlacement.Inline,
-        bool woolAtEnd = false, int attachmentWidth = 0)
+        bool woolAtEnd = false, int attachmentWidth = 0, RingWalls? ringWalls = null)
     {
         // the mouth's frame: its along-edge length and the depth perpendicular to it. Top/Bottom run along the
         // box width; Left/Right run along its height (the shape is rotated a quarter turn onto them).
@@ -100,7 +100,7 @@ public static class WoolBoxEmitter
         try
         {
             raw = ShapeEmitter.Emit(family, canonW, canonH, corridorWidth, flip, roomPlacement,
-                woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth);
+                woolAtEnd: woolAtEnd, attachmentWidth: attachmentWidth, ringWalls: ringWalls);
         }
         catch (ArgumentException e) { return new FillResult.UnsupportedKnobs(family, e.Message); }
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);

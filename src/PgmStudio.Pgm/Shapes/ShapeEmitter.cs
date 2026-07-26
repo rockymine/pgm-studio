@@ -100,16 +100,19 @@ public static class ShapeEmitter
     /// inward — the spine it docks shrinks from the top with it — and the wool shift shortens the return leg the
     /// same way, so only the shifted endpoint still reaches the edge. <paramref name="attachmentOffset"/>
     /// (donut) slides the hub attachment down the ring's edge — only the attachment moves, the ring is
-    /// unchanged.</summary>
+    /// unchanged. <paramref name="ringWalls"/> (donut) gives the ring's four wall widths independently, so one
+    /// leg or bar can be wider than the rest (G129); <c>null</c> builds every wall at <paramref name="cw"/>.
+    /// Widening consumes the box's slack — the hole is what the walls leave — so a vector too fat for the box
+    /// is refused rather than squashing the ring.</summary>
     public static EmittedShape Emit(
         ShapeFamily family, int boxW, int boxH, int cw, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false,
         bool woolExtend = false, int attachmentWidth = 0, int entryShift = 0, int woolShift = 0,
-        int attachmentOffset = 0)
+        int attachmentOffset = 0, RingWalls? ringWalls = null)
     {
         var (terrain, room, at, vac) = Compose(
             family, boxW, boxH, cw, flip, roomPlacement, attachments, woolAtEnd, woolExtend,
-            attachmentWidth, entryShift, woolShift, attachmentOffset);
+            attachmentWidth, entryShift, woolShift, attachmentOffset, ringWalls);
         return Approach(new ShapeBody(terrain, vac), room, at);
     }
 
@@ -121,11 +124,11 @@ public static class ShapeEmitter
         ShapeFamily family, int boxW, int boxH, int cw, bool flip = false,
         RoomPlacement roomPlacement = RoomPlacement.Inline, int attachments = 1, bool woolAtEnd = false,
         bool woolExtend = false, int attachmentWidth = 0, int entryShift = 0, int woolShift = 0,
-        int attachmentOffset = 0)
+        int attachmentOffset = 0, RingWalls? ringWalls = null)
     {
         var (terrain, _, _, vac) = Compose(
             family, boxW, boxH, cw, flip, roomPlacement, attachments, woolAtEnd, woolExtend,
-            attachmentWidth, entryShift, woolShift, attachmentOffset);
+            attachmentWidth, entryShift, woolShift, attachmentOffset, ringWalls);
         return new ShapeBody(terrain, vac);
     }
 
@@ -151,7 +154,7 @@ public static class ShapeEmitter
         ShapeFamily family, int boxW, int boxH, int cw, bool flip,
         RoomPlacement roomPlacement, int attachments, bool woolAtEnd,
         bool woolExtend, int attachmentWidth, int entryShift, int woolShift,
-        int attachmentOffset)
+        int attachmentOffset, RingWalls? ringWalls)
     {
         var (W, H) = (boxW, boxH);
         if (family == ShapeFamily.Isolated)
@@ -376,7 +379,13 @@ public static class ShapeEmitter
                 // walls the Ring, P, G and Double-hole are built from — but the donut lays them down in its own
                 // order and names them entry-bar / room-bar, because the top bar is the hub side and the bottom
                 // carries the wool
-                var walls = RingWalls.Uniform(cw);
+                var walls = ringWalls ?? RingWalls.Uniform(cw);
+                // widening consumes the box's slack: the walls must still leave a hole inside the span the box
+                // affords. A vector too fat for this box is a directed refusal, not a silently squashed ring.
+                if (walls.Min < 2 || span < walls.Left + walls.Right + 1 || ringH < walls.Top + walls.Bottom + 1)
+                    throw new ArgumentException(
+                        $"ring walls {walls.Top}/{walls.Right}/{walls.Bottom}/{walls.Left} do not fit the donut's " +
+                        $"{span}x{ringH} ring in a {W}x{H} box.");
                 var ring = BodyEmitter.RingWallRects(walls, ax, 0, span, ringH);
                 t.Add((ring.Top, ApproachSlots.EntryBar));                   // top bar
                 t.Add((ring.Left, ApproachSlots.Leg));                       // left leg (middle only — no corner overlap)
@@ -387,16 +396,17 @@ public static class ShapeEmitter
                 {
                     // the bottom wall, stopped short of the corner the wool takes
                     t.Add(([ring.Bottom[0], ring.Bottom[1], span - walls.Right, ring.Bottom[3]], ApproachSlots.RoomBar));
-                    room = [ax + span - cw, ringH - cw, cw, cw];    // wool AT the bottom-right corner (integrated)
+                    room = [ax + span - walls.Right, ringH - walls.Bottom, walls.Right, walls.Bottom];  // wool AT the bottom-right corner (integrated)
                 }
                 else
                 {
                     t.Add((ring.Bottom, ApproachSlots.RoomBar));    // full bottom bar
                     int wxr = ax + span;                            // right of the ring's right leg
-                    if (woolExtend) { t.Add(([wxr, ringH - cw, cw, cw], ApproachSlots.Run)); wxr += cw; }  // short I holding the wool
-                    room = [wxr, ringH - cw, rd, cw];               // wool off the bottom-right
+                    if (woolExtend) { t.Add(([wxr, ringH - walls.Bottom, cw, walls.Bottom], ApproachSlots.Run)); wxr += cw; }  // short I holding the wool
+                    room = [wxr, ringH - walls.Bottom, rd, walls.Bottom];   // wool off the bottom-right
                 }
-                vac.Add(new ShapeVacancy("hole", [ax + cw, cw, span - 2 * cw, ringH - 2 * cw], null,
+                vac.Add(new ShapeVacancy("hole",
+                    [ax + walls.Left, walls.Top, span - walls.Left - walls.Right, ringH - walls.Top - walls.Bottom], null,
                     [ApproachSlots.EntryBar, ApproachSlots.Leg, ApproachSlots.RoomBar, ApproachSlots.Leg]));
                 break;
             }

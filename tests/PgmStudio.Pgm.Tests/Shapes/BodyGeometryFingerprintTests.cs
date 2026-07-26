@@ -113,4 +113,42 @@ public sealed class BodyGeometryFingerprintTests
             "entry-bar:2,0,8,2 | leg:2,2,2,3 | leg:8,2,2,3 | entry:0,0,2,2 | room-bar:2,5,8,2");
         await Assert.That(string.Join(",", shape.Room)).IsEqualTo("10,5,2,2");
     }
+
+    /// <summary>The donut carrying a wider leg and a wider bar — the case both exemplars are authored around.
+    /// The ring's walls differ, the hole absorbs it, and the wool still hangs off the bottom-right against the
+    /// widened bottom wall rather than a nominal corridor.</summary>
+    [Test]
+    public async Task A_donut_can_carry_a_wider_leg_and_a_wider_bar()
+    {
+        var uniform = ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, Cw);
+        var widened = ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, Cw,
+            ringWalls: new RingWalls(Top: 3, Right: 2, Bottom: 2, Left: 2));
+
+        // the top bar thickens; the hole loses that row rather than the box growing
+        var uTop = uniform.Terrain.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
+        var wTop = widened.Terrain.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
+        await Assert.That(uTop[3]).IsEqualTo(2);
+        await Assert.That(wTop[3]).IsEqualTo(3);
+        await Assert.That(widened.Vacancies.Single(v => v.Kind == "hole").Rect[3])
+            .IsEqualTo(uniform.Vacancies.Single(v => v.Kind == "hole").Rect[3] - 1);
+
+        // and it still reads as a donut — a widened wall is the same family
+        var cells = new HashSet<(int, int)>();
+        var rooms = new HashSet<(int, int)>();
+        foreach (var (rect, _) in widened.Terrain)
+            for (var x = rect[0]; x < rect[0] + rect[2]; x++)
+                for (var z = rect[1]; z < rect[1] + rect[3]; z++) cells.Add((x, z));
+        for (var x = widened.Room[0]; x < widened.Room[0] + widened.Room[2]; x++)
+            for (var z = widened.Room[1]; z < widened.Room[1] + widened.Room[3]; z++) { cells.Add((x, z)); rooms.Add((x, z)); }
+        await Assert.That(ShapeClassifier.Classify(cells, rooms).Family).IsEqualTo(ShapeFamily.Donut);
+    }
+
+    /// <summary>A wall vector too fat for the box it is asked to fill is refused, not squashed — the box's slack
+    /// is what widening spends, so there has to be some.</summary>
+    [Test]
+    public async Task A_donut_refuses_walls_its_box_has_no_slack_for()
+    {
+        await Assert.That(() => ShapeEmitter.Emit(ShapeFamily.Donut, 13, 8, Cw,
+            ringWalls: new RingWalls(Top: 4, Right: 2, Bottom: 4, Left: 2))).Throws<ArgumentException>();
+    }
 }
