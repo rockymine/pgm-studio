@@ -31,7 +31,14 @@ public static class Composer
     /// twin front with unequal legs, the asymmetric hub form — which the old per-face test refused. A small
     /// positive cap additionally admits a narrow front slid off-centre, at the cost of the band reaching past it
     /// by that much; the slack is <c>2 ×</c> the front hull's offset from the axis, so this allows one cell of
-    /// offset per cell of cap, halved.</summary>
+    /// offset per cell of cap, halved.
+    ///
+    /// <para>This bounds an <b>authored</b> plan (the BZ9 finding in <see cref="Producibility"/>), which may draw
+    /// its front anywhere. The composer no longer consults it: it centres the unit on its face
+    /// (<see cref="UnitPlacement.CentreFaceOnAxis"/>) and the face's span is even
+    /// (<see cref="TeamUnitAllocator"/>), so a composed front's residual offset is at most half a cell — one cell
+    /// of slack against a cap of four. The resample that used to test this here was measured to never fire and
+    /// has been removed.</para></summary>
     internal const int FrontSlackCapCells = 4;
 
     public static PlanModel Compose(ComposeRequest request, IComposeRejectSink? rejects = null) =>
@@ -56,13 +63,11 @@ public static class Composer
             // place the finished unit rather than take where it was built: the allocator anchors on the hub, but
             // the face is what the mid docks, so re-anchor the unit on its face before the band is derived
             filled = filled with { Unit = UnitPlacement.CentreFaceOnAxis(filled.Unit, envelope.Symmetry) };
-            // parallel fronts: under a laterally-flipping symmetry the opposing image mirrors v, so the unit's
-            // front faces must mirror onto themselves — else the two sides' fronts sit offset and the band
-            // overflows past the faces it docks (an asymmetric-front hub form, an off-centre frontline) — resample
-            if (MidCarver.LateralFlip(envelope.Symmetry)
-                && FrontHullSlackCells(Frame.For(envelope.Symmetry), filled.Unit.Pieces.Select(p => p.Rect))
-                    > FrontSlackCapCells)
-                continue;
+            // the parallel-fronts resample stood here: under a laterally-flipping symmetry a front sitting off
+            // the axis makes the band overflow past the faces it docks, and a unit whose slack ran over the cap
+            // was thrown away. Centring the unit on its face is what that guard was reaching for, so it now has
+            // nothing left to catch — the residual offset is half a cell at most. The rule still binds authored
+            // plans, which may draw a front anywhere; it is read back there (BZ9).
             var mid = MidCarver.TryCarve(envelope, crossing, filled.Unit);
             if (mid is null) continue;
 

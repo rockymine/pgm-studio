@@ -54,12 +54,14 @@ landed, the rest is the idea.
   depth cap, form→size fit, and the per-piece width knob where it is still uniform — the branch hub's **bar**
   thickness and **leg length** (the emitter's per-arm overload carries both; only the leg's width is sampled) and
   a hub arm count of three (the E/comb the body emitter supports but `HubBoxEmitter` refuses).
-- **G135** — **retire the constraints the face anchor made vestigial.** With the unit placed by its face (G132),
-  two older rules no longer carry their original weight: the hub's lateral span is still forced even and centred
-  on the axis (`TeamUnitAllocator`, the `hubV % 2` adjustment) although the hub is now free to sit off-centre,
-  and `Composer.FrontSlackCapCells` still caps front-hull slack at 4 cells although the residual is at most one
-  by construction. Both are harmless as they stand; removing them widens the hub-size draw and the accepted set,
-  so each wants its own measured pass rather than a quiet deletion.
+- **G135** *(partial — the dead front-slack resample is gone)* — **the hub's lateral span is still forced even.**
+  With the unit placed by its face (G132), the hub is free to sit off the axis, but `TeamUnitAllocator` still
+  rounds an odd `hubV` draw up to even and centres it — a rule the face anchor and the face's own parity law
+  (G134) now supply. It costs half the size ladder: measured over 903 boards per symmetry, odd hub spans are
+  **55% of the `mirror_z` draw and 0% of `rot_180`'s**, so spans 5/7/9/11 are unreachable on every rotational
+  board. Harmless as it stands, but removing it widens the draw on essentially every rotational board — a real
+  distribution shift, and a composer version bump — so it wants its own measured pass rather than a deletion.
+
 - **G130** — **the budget has no price for a widened part.** Ring-wall widening ships (G129): a hub ring may carry
   one side wider than the rest, sampled under the ratio cap. What it costs is currently nothing — widening spends
   the box's *geometric* slack (the hole narrows, the box does not grow), so the two-currency budget sees the same
