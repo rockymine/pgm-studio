@@ -1862,6 +1862,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   old default produced 13 at 1. 408/408 still compose with zero unproducible boxes and zero unit findings.
   Pgm 744 green. (G105)
 
+- **The hub draws its width free of parity — half the size ladder was unreachable (G135)** —
+  `Compose/TeamUnitAllocator.cs`, `Compose/Composer.cs`. Two rules survived the switch to placing a unit by its
+  face (G132) without anything left to do, because each was buying an alignment the face anchor now provides.
+  **The hub's lateral span.** Under a laterally-flipping symmetry an odd draw was rounded to even and the hub
+  centred on the axis, so it would coincide with its own image and the two sides' fronts line up. What has to
+  coincide is the **face** — it carries its own parity law (G134) and the finished unit is centred on it — so the
+  rounding bought nothing and cost half the ladder. Measured over 1203 boards per symmetry: `rot_180` spans were
+  `4:513 6:387 8:126 10:177`, **0% odd**, against `mirror_z`'s 54.3% — widths 5, 7, 9 and 11 had never been built
+  on a rotational board. Now `4:304 5:340 6:139 7:169 8:69 9:53 10:71 11:58`, **51.5% odd**, a ladder the shape of
+  the mirror one. Every request still composes (1203/1203), the hub-form and wool mixes hold, mean evaluator score
+  is flat (0.596 -> 0.601) and boards scoring a clean zero rise **616 -> 707**.
+  **The front-slack resample.** The compose loop threw away a unit whose front hull sat too far off the axis. With
+  the face centred and its span even the residual is half a cell — one cell of slack against a cap of four — so it
+  could not fire: 903 boards per symmetry composed **bit-identically** with the cap in place and removed. The cap
+  itself stays, because it is also the bound on the **BZ9 authoring finding**, which reads authored plans that may
+  draw a front anywhere and have no face anchor to rely on. Only the composer's copy was dead.
+  Geometry moved, so the composer version is **box-3** and the fingerprints are re-recorded — and the change is
+  confined to where the rule applied: of 72 fingerprinted boards, all 36 `mirror_z` are unchanged and 22 of 36
+  `rot_180` moved. Reproduction gate 408/408 with zero unit findings. Pgm 751 + Api 79 green. (G135)
+
 - **The composer version is enforced, and a stale row says so (G137)** — `Compose/ComposerFingerprint.cs`,
   `tools/compose/fingerprints.cs`, `Api/Endpoints/PlanStoreEndpoints.cs`, the plan-open list + generator tray.
   A generated plan's identity is its `ComposeDescriptor`, and its contract is that *a descriptor reproduces its
