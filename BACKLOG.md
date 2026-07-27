@@ -108,6 +108,19 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
+- [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
+  `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
+  `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts
+  `OrderByDescending(UpdatedAt).ThenBy(Slug)`. The dashboard always requests `?stage=…`, so it always gets
+  recency order — and on the imported Edit corpus `updated_at` records when the *pipeline* last wrote the
+  row, not when the author last worked on the map, so it carries no authoring signal. The 349 Edit rows hold
+  only 29 distinct timestamps (a re-processing pass stamped them in ~22-map batches a second apart), so the
+  list renders as 29 alphabetical runs concatenated — it reads as scrambled, with the three maps outside the
+  supported range (`3084`, `allure`, `lost_haven`, never re-processed) parked at the bottom. Recency earns
+  its keep on Sketches/Plans/Configuring, where the timestamps are real edits and the lists are short.
+  Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
+  slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
+  data is wrong, and both orders are deterministic.
 - [ ] **B33 — Three box types, two of them the same shape.** `PgmStudio.Minecraft` now holds two identical
   inclusive integer AABBs — `ScanBox` (`MonumentSuggester`: the region the author boxed, with
   `Contains`/`Expand`/`IntersectsChunk`) and `BlockBox` (`ObjectiveStamper`: a stamped structure's volume,
