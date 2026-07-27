@@ -4,7 +4,7 @@
  * Subclasses extend this and override the hook methods below.
  * All shared state is _-prefixed (convention: protected).
  *
- * See docs/contracts/geometry.md §4 (shared canvas base) for the contract.
+ * See docs/contracts/canvas-interaction.md §3 (the shared base) for the contract.
  */
 
 export const ZOOM_FACTOR = 1.15;

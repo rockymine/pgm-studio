@@ -5,15 +5,7 @@
  * key} (a new point on edge `edge` at parameter `t`). No DOM — testable in isolation.
  */
 
-export function pointInRing(x, z, ring) {
-  let inside = false;
-  const n = ring.length;
-  for (let i = 0, j = n - 1; i < n; j = i++) {
-    const xi = ring[i][0], zi = ring[i][1], xj = ring[j][0], zj = ring[j][1];
-    if (((zi > z) !== (zj > z)) && (x < (xj - xi) * (z - zi) / ((zj - zi) || 1e-12) + xi)) inside = !inside;
-  }
-  return inside;
-}
+import { pointInRing } from "./polygon.js";
 
 export function centroid(ring) {
   let x = 0, z = 0;
