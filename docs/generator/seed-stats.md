@@ -320,7 +320,7 @@ board **25×70**, 9 pieces (several 1-cell), 2 zones, 650 land blocks (**65 b/p*
 | big-board-…-parallel-mid | 30 (trace) | 10500 | 175 |
 | mirror-big-board | 32 | 11750 | 184 |
 
-**The maxPlayers pass is complete — `layout-rules.md` v3 is FROZEN (2026-07-04) as the composer's
+**The maxPlayers pass is complete — `rules.md` v3 is FROZEN (2026-07-04) as the composer's
 v1 rule set.** G8 carries the coupling table (b/p rising 65 → 184 with per-team land).
 
 ## Team-side allotment sweep (composer instrumentation, 2026-07-04)

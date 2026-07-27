@@ -123,11 +123,27 @@ Tasks flow left → right: **`BACKLOG.md` → `TODO.md` → `FEATURES.md`**.
    interleaved with actionable tasks.
 
 ## Layout generation — the docs
-The model, terminology, and pipeline are canonical in **`docs/contracts/map-generation.md`**; the frozen
-rule law is **`docs/contracts/layout-rules.md`**; the plan schema is **`docs/contracts/plan-editor.md`**. The
-**living type catalog** is **`docs/contracts/map-generation-vocabulary.md`** — every type as a map concept, by
-pipeline order; **when a task adds, renames, or retires a generation type, update its row there in the same
-commit** (same discipline as the task board).
+**All of them live in `docs/generator/`** (one folder per studio tool; the others follow). Eight files,
+no others — a new generation doc means one of these grows, not a ninth file:
+
+| File | Is |
+|---|---|
+| `model.md` | **canonical** — the glossary (locked terms), the pipeline, and how a layout is actually constructed (request → budget → allocate → fill → carve → gate). Governs on any disagreement. |
+| `vocabulary.md` | the **living type catalog** — every type as a map concept, by pipeline order. **When a task adds, renames, or retires a generation type, update its row in the same commit** (same discipline as the task board). |
+| `rules.md` | the rule law — every CT/SP/WL/LN/HB/FR/MD/BZ/EL id and number. Amended only by its correction protocol. |
+| `evaluator.md` | the deriver-measurable and evaluator-term catalogue. |
+| `audit.md` | the **measured record of where the code and `model.md` disagree** — the evidence behind the open G-tasks. An entry leaves it when its fix lands. |
+| `seed-stats.md` · `seed-envelopes.md` | measured corpus data (envelopes is generated — do not hand-edit). |
+| `ideas.md` | the G-track idea pool (ids preserved; pull one onto the board when it becomes the focus). |
+
+**`tools/compose/showcase.cs` is `model.md`'s live twin** — the same model as one HTML page with every
+figure emitted by the real generator (`dotnet run tools/compose/showcase.cs`). It cannot drift, so when
+prose and showcase disagree, suspect the prose. Keep it running: it is the fastest check that a model
+change is real.
+
+**Do not describe unbuilt machinery in the present tense.** A doc that says a type exists when it does
+not is worse than a gap — the whole `WoolApproachShape`/`FamilyDock`/`ComposeTargets` class of drift came
+from exactly that. Mark unbuilt things with their task id, or leave them out.
 
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts

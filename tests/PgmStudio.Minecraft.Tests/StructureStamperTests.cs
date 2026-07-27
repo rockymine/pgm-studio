@@ -3,7 +3,7 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// Layout-structure stamps (docs/contracts/layout-rules.md ST1–ST4): a wool-room bedrock floor column, an
+/// Layout-structure stamps (docs/generator/rules.md ST1–ST4): a wool-room bedrock floor column, an
 /// entrance redstone row with end torches, a 4×4×4 iron cube on the surface, and a bedrock approach wall to a
 /// fixed top height. Each stamp reads a per-column surface top so it sits on the real terrain.
 /// </summary>

@@ -25,7 +25,7 @@ showcase (G121), the persistence foundation (G119), browse mode (G117), and its 
 (G128 — form/family filters) have shipped — see `FEATURES.md`; **verdicts (G118) is next**, and it now
 owns the up/down votes deferred out of browse (the browse pin is the only persistence action so far,
 and the structural bucket key it stores is G118's verdict column / G120's duel bucket). The design long tail this focus deliberately
-displaced is condensed in **`docs/layout-generation-ideas.md`** (ids preserved — pull one back here
+displaced is condensed in **`docs/generator/ideas.md`** (ids preserved — pull one back here
 when it becomes the focus).
 
 **Persistence doctrine for the whole theme: the feed is ephemeral; only human attention persists.** A

@@ -1,15 +1,15 @@
 # Plan editor — the seed studio (Phase 1 implementation design)
 
-The concrete design for the model in `docs/contracts/map-generation.md`: the plan JSON schema,
+The concrete design for the model in `docs/generator/model.md`: the plan JSON schema,
 the plan→(layout, intent) compiler, and the minimal grid editor the author uses to build the
-boring-seed corpus (`docs/contracts/layout-rules.md`, seed shopping list). File-first: plans are
+boring-seed corpus (`docs/generator/rules.md`, seed shopping list). File-first: plans are
 repo files in `tools/seeds/` (like the existing seed pairs); the studio is the editor, git is the
 store.
 
 Builds on the landed `P9` export pipeline (`tools/seeds/`, `PUT /map/{slug}/intent`,
 `GET /map/{slug}/export`).
 
-> **Terminology + model:** `docs/contracts/map-generation.md` is canonical. This doc owns the
+> **Terminology + model:** `docs/generator/model.md` is canonical. This doc owns the
 > field-level schema and the editor; the authored role set, interfaces, and derived structure are
 > defined there.
 
@@ -205,7 +205,7 @@ New page `Features/Plan/PlanTool.razor` (+ `js/studio/plan/`), reusing the studi
 - **Overlays (toggleable):** derived land interfaces (green intervals; a slimmer green core where
   narrow; red only at a bare corner point), gap links through zones with hop distances, computed
   frontline edges, spawn→wool path trace, and the evaluator's fired-rule **evidence** (the Rules
-  overlay — see §6, `layout-evaluator.md`).
+  overlay — see §6, `generator/evaluator.md`).
 - **Feasibility panel:** the producibility read (`POST /api/plan/feasibility`) — *could the composer have
   produced this?*, the question the Score panel does not ask (a plan scores 0 and can still be unbuildable).
   Grouped **per box**, with the unit-level findings (the arrangement rules) pinned above them, because a box can

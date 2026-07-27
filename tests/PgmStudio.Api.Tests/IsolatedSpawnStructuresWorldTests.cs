@@ -8,7 +8,7 @@ using PgmStudio.Pgm.Sketch;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// End-to-end structure stamping (docs/contracts/layout-rules.md ST1–ST4): compiles the isolated-spawn plan
+/// End-to-end structure stamping (docs/generator/rules.md ST1–ST4): compiles the isolated-spawn plan
 /// seed → world and reads block ids back to confirm each directive landed — a wool-room bedrock column, the
 /// entrance redstone row + torches, the renewable iron cube, and the approach wall rising to approach+4. The
 /// compiled <see cref="StructureIntent"/> supplies the coordinates, so the assertions track the seed geometry.

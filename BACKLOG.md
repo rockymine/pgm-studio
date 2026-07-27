@@ -213,7 +213,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   self-correct far better seeing the board) · `plan_save`/`plan_get`/`plan_list` (the G119 store, with
   an agent-authored origin marking so agent output never contaminates the human-labeled corpus) ·
   `create_draft`/`export` (existing chain; return the export **link**, never the world zip inline). MCP
-  resources: `layout-rules.md` + `map-generation.md` as the design brief, `tools/seeds/*.plan.json`
+  resources: `generator/rules.md` + `generator/model.md` as the design brief, `tools/seeds/*.plan.json`
   (incl. the funnel exemplars) as few-shot examples, and the G118 verdict JSONL once it exists. Scope
   is the **author agent** only; the **analyst agent** (mine verdicts/reject logs for rule + envelope
   refinements — read-only `verdicts_export`/`rejects_query`) is a small follow-on once the corpus has
@@ -333,7 +333,7 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
 
 **The design long tail moved out of the board.** With the old grower path retired and the box pipeline
 now the one composer (`FEATURES.md`), the ~40-task G backlog — much of it describing machinery that no
-longer exists — is condensed into **`docs/layout-generation-ideas.md`**: one idea per few lines, grouped
+longer exists — is condensed into **`docs/generator/ideas.md`**: one idea per few lines, grouped
 by theme, **ids preserved** (never reuse one). Pull an idea back onto the board by id when it becomes the
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.

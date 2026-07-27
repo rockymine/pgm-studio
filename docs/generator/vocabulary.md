@@ -2,7 +2,7 @@
 
 This is the **living catalog of the types** the box-model generator introduces, each described as a
 *map-generation concept* — what it **means**, not its fields or signature. It sits between two other things:
-`map-generation.md` **§1** defines the abstract *terms* (family, interface, width, budget…); `map-generation.md`
+`model.md` **§1** defines the abstract *terms* (family, interface, width, budget…); `model.md`
 **§12** is the *code map* (which file); **this doc names the types that embody the ideas**, in the order the
 concepts appear in the pipeline, so a newcomer can read top-to-bottom and learn the vocabulary once.
 
@@ -10,7 +10,7 @@ concepts appear in the pipeline, so a newcomer can read top-to-bottom and learn 
 same commit — the same discipline as the task board. A type without a plain-language meaning here is a type
 that will confuse the next person. Planned-but-unbuilt types are listed *italicised* with their task id.
 
-The pipeline these are ordered along (from `map-generation.md` §2):
+The pipeline these are ordered along (from `model.md` §2):
 
 ```
 budget → boxes → interfaces → shapes → fill → compose (grown unit) → plan → derive → evaluate → realize
@@ -60,6 +60,8 @@ classifies the joint, and gates the fill menu.
 | `SlotDockRole` | The **dock role** a slot plays at an edge (the docking law as data, G80): `DockingEdge` (an `entry` — where a host connects) · `NeverDock` (the wool `room` — a dock seals the goal) · `Internal` (a `run`/`bar`/`leg` — shape-internal corridor, neither offers nor forbids a dock). One tag per slot; the gate maps the edge's slots through it, scoped per `Designation`. |
 | `Designation` · `DesignationMarks` | Which box kind's **designation** finishes a terminal-free body (map-generation.md §1.12, G95): `Approach` (wool/spawn — stamps `entry`/`room`), `Hub` (per-edge `interface` marks + widths, no terminal — the constraint source), `Frontline` (a `face` mark, no terminal). `DesignationMarks` are the non-approach marks (`interface`, `face`) — the siblings of the approach's `entry`/`room`. It is the **designation, not the box kind**, that decides a mark's `SlotDockRole` (`DockingGate.Role(designation, slotOrMark)`) — wool and spawn are both `Approach`. The binding G88/G89's hub/frontline designations stamp onto and the gate reads; the approach table is unchanged. |
 | `DockingGate` | The **compose-side gate** (G80): a dock is legal iff the edge lands on a `DockingEdge` slot and touches no `NeverDock` slot. Every family docks through a **single mouth** (the clamp too — its two legs meet the host on one edge, the wool clamped inside as a cut cell), so the verdict reads only the edge's slots — no family name. Not an `ILayoutTerm` — it runs where the box is placed, producing only legal docks (`DockRejection` names an illegal one). Validity is *shape-relative for free*: the slots are read off the shape, so an entry shift moves the edge and the verdict follows. |
+| `EdgeOffer` | An **offer** (`model.md` §1.14) — the outward constraint a designation publishes: **where** a neighbour may attach (the edge interval, shape-relative so it moves with every knob), **at what width** (the `w2/w4/w6` rung the consumer reads as its `cw`), and **in which grouping**. Produced by the hub designation (one per free run — the constraint source) and the frontline designation (the face offer the mid consumes). Carried on a `BoxJoint` as provenance, so the width a neighbour builds to is the one **its own joint** was granted. |
+| `OfferGrouping` | How the intervals of one offer group may be consumed: `Several` — each interval takes its own consumer (a hub's four edges, the twin frontline's two tips) — or `Joint` — one consumer must span the whole group flush (FR6's wide face across both tips, the inter-tip recess preserved as a hole). Joint-vs-several *is* wide-vs-split frontline. |
 | `ContactKind` | The raw **piece-to-piece contact** reading, straight off the terrain rectangles: `Land` (they merge into one walkable mass) · `Narrow` (a thinner walkable seam) · `Corner` (a bare point — never connects) · `Overlap` · `None`. |
 | `Contact` | One classified contact between two named pieces (its kind, its border length). |
 
@@ -71,8 +73,8 @@ read *width-independently* (§1.2, §5).
 | Type | What it means |
 |---|---|
 | `ShapeFamily` | The **nine** wool-approach families, an escalation of one another: `Isolated · I · L · Z · Scythe · Clamp · U · H · Donut`. The one taxonomy both the emitter (build one) and the classifier (read one back) share. |
-| `Compound` · `CompoundRead` | The **terminal-free** compound taxonomy (`map-generation.md` §5): `Rectangle · SpineArms · Ring · DoubleHole · P · G · TwoUOnI`, read by topology alone (voids · arms · bends), no terminal. `G` is a ring + an L — one enclosed void plus a three-walled bay (`ClassifyBody` reads it as one void with a bay, distinct from Ring/P). The identity `BodyEmitter` builds and `ClassifyBody` reads back — the body-layer mirror. A compound plus a designation (a terminal) is an approach; `ShapeFamily` is that terminal-capped view. |
-| `ApproachSlots` | The **shape-internal roles** (the *slots*), two layers (`map-generation.md` §5.3 / §1.12): **structural slots** `run · bar · leg` (the rectangle's role in the compound, shared by every kind) + **designation marks** `entry · room` (the docking rect and the terminal, stamped by the approach), qualified `entry-run`/`room-run`/`entry-bar`/`room-bar` when a family has two. A slot is a **template position**, not a property of a rectangle — a scythe's `entry-run` and a donut's `leg` can be the same rectangle in different slots. Each family is an ordered template of these. |
+| `Compound` · `CompoundRead` | The **terminal-free** compound taxonomy (`model.md` §5): `Rectangle · SpineArms · Ring · DoubleHole · P · G · TwoUOnI`, read by topology alone (voids · arms · bends), no terminal. `G` is a ring + an L — one enclosed void plus a three-walled bay (`ClassifyBody` reads it as one void with a bay, distinct from Ring/P). The identity `BodyEmitter` builds and `ClassifyBody` reads back — the body-layer mirror. A compound plus a designation (a terminal) is an approach; `ShapeFamily` is that terminal-capped view. |
+| `ApproachSlots` | The **shape-internal roles** (the *slots*), two layers (`model.md` §5.3 / §1.12): **structural slots** `run · bar · leg` (the rectangle's role in the compound, shared by every kind) + **designation marks** `entry · room` (the docking rect and the terminal, stamped by the approach), qualified `entry-run`/`room-run`/`entry-bar`/`room-bar` when a family has two. A slot is a **template position**, not a property of a rectangle — a scythe's `entry-run` and a donut's `leg` can be the same rectangle in different slots. Each family is an ordered template of these. |
 | `RoomPlacement` | Where the terminal (wool/spawn room) sits relative to the last segment: `Inline` (caps it straight) or `SideTuck` (ducks off its side — still reads as the straight family). |
 | `BoxEdge` | A box-local edge (`Top`/`Bottom`/`Left`/`Right`) — used to name a family's **mouth** (the edge its entry docks a host through). |
 | `NegativeSpaceKind` | The **wall-count escalation of negative space**: `Notch` (wrapped by two edges — the L's corner) · `Bay` (three — the staple's recess, the hook's bay) · `Hole` (enclosed — the ring's void) · `Open` (at most one wall — plain outside, not a feature). The classes that decide which voids are publishable and which edges remain offerable. |
@@ -153,7 +155,14 @@ The **composer** runs the pipeline: budget → grow one unit → carve the mid �
 
 | Type | What it means |
 |---|---|
+| `ComposeRequest` | The **input**: players per team (5–32), team count (2 or 4), symmetry, seed, cell size. Validated at construction — nothing else is given, and there is no geometry input (`model.md` §3.1). |
 | `Composer` | The **entry point** — composes a full `PlanModel` from a request, running the design-doc order and gating every attempt against the evaluator. |
+| `TeamUnitAllocator` | The **allocate half**: decides the unit's structure and lays out box footprints from the budget, before any terrain exists. Owns the wool count, which hub side each neighbour takes, the hub's size and **form choice**, and the seat of every neighbour on that form's real free surface. Emits a `BoxPartition` + the spawn facing (`model.md` §6). |
+| `UnitPlan` · `UnitSide` | The frame-independent **placement plan**: which hub side each neighbour sits on — `Front` (toward the axis), `Back`, `Left`, `Right`. The decision layer under the allocator's geometry; the spawn takes the back or a lateral side, the wools go around it, the front is the frontline's. |
+| `TeamUnitFiller` · `FilledUnit` | The **fill half**: fills an allocated partition **hub-first**, each neighbour consuming the offer on its own joint as its corridor width, and assembles the pieces + placements. `FilledUnit` carries the `GrownUnit` plus the frontline face offers the mid consumes (`model.md` §7). |
+| `FrontGuard` · `FlushSeat` | The **no-frontline seat post-pass**: a lateral seat left flush with the empty front is slid backward, relocated, or dropped — deterministically, no draws — so lanes do not spike across the no-man's-land in front of the hub. |
+| `UnitPlacement` | Re-anchors the finished unit on its **face** before the band is derived: the allocator anchors on the hub, but the face is what the mid docks. |
+| `ComposeDescriptor` · `ComposerFingerprint` · `ComposerVersion` | The **reproducibility set**: what a compose was asked for, the recorded structural fingerprint of what it produced, and the version stamp that must be bumped whenever composer geometry moves (a moved geometry with an unbumped version silently invalidates the reproduction gate). |
 | `MidCarver` · `MidResult` · `MidStone` · `CrossingDesign` | The **mid**: the neutral build band between frontlines — its form is `f(frontline)`, so it is structured, not carved from solid. Band-only today (flush, hull-exact, stone-free); stones / centre islands / the split band re-enter as richer `CrossingDesign` forms. |
 | `Frame` | The **growth frame**: the `(u, v)` axis-normal coordinate frame a symmetry mode grows its unit in — `u` outward from the axis, `v` cross — so one grower serves every symmetry mode. |
 | `ComposeGeometry` | The **fanned-separation rule**: pieces of different orbit images stay ≥ the minimum hop apart (team territories stay separate islands). |

@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>The dock role a template slot plays when a neighbour box meets the edge it sits on — the frozen
-/// docking law as data (docs/contracts/layout-rules.md). <see cref="DockingEdge"/>: an <c>entry</c> is where a
+/// docking law as data (docs/generator/rules.md). <see cref="DockingEdge"/>: an <c>entry</c> is where a
 /// host connects (its mouth). <see cref="NeverDock"/>: the wool <c>room</c> — a dock there seals the goal, so
 /// it never connects at this stage (it may, legally, at the elevation stage G81, which is why this is a rule,
 /// not a fact of the edge). <see cref="Internal"/>: a <c>run</c>/<c>bar</c>/<c>leg</c> (and the entry/room

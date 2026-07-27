@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
 // seat probe: run allocate->fill across the preset budgets x many seeds and count the failure modes
-// catalogued in docs/map-generation-constraint-taxonomy.md §9 directly from the geometry — neighbour
+// catalogued in docs/generator/audit.md §9 directly from the geometry — neighbour
 // boxes abutting, lanes flush against hub mass (both forms — box contact and the zero-margin run-end
 // dock), the frontline form mix (and what it pairs with), donut box dims, and clamp void depth.
 // Console-only diagnostics; entries leave §9 (and these counters go

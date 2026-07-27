@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The publish policy (docs/map-generation-constraint-taxonomy.md §4.1): terminal-capped shapes veto their
+/// The publish policy (docs/generator/audit.md §4.1): terminal-capped shapes veto their
 /// bays and holes, allow their notches (the clearance margin handles room proximity); terminal-free bodies
 /// allow everything. The publishable region is the front, unguarded parts. Publishing is an offer for a later
 /// pipeline step, never a fill.
