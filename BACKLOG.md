@@ -119,6 +119,29 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   `MonumentSuggester`'s 15 call sites, and that detector is corpus-validated at 96.6% precision — not
   something to churn as a drive-by during unrelated work. Low priority: unlike the symmetry duplication this
   is a value record, so there is no algorithm here that can silently drift.
+- [ ] **B34 — A plan rect is a bare `int[]`; give it a type (`CellRect`).** `Box.Rect`, `PlanPiece.Rect`,
+  `PlanZone.Rect`, `ShapeVacancy.Rect`, `NegativeSpacePart.Rect` and the shape emitters all mean
+  `[x, z, width, height]` in plan cells, but nothing enforces it: `Rect[2]` is width by agreement, a
+  three-element array compiles, and reading `[3]` as depth compiles. 29 declarations and 65 index reads over
+  26 files — **all inside `PgmStudio.Pgm`**, so no cross-project churn.
+  **Decided:** origin + **exclusive** extent (65 read sites already assume it), with computed `MaxX`/`MaxZ`
+  so corner-style code still reads naturally. Named **`CellRect`**, not `Rect` — `Rect` is taken by
+  `Authoring/MapIntent.cs:279` *in the same project* (`double`, `MinX/MinZ/MaxX/MaxZ`), plus three more in
+  `Client/Features/Configure/`; every existing `Rect` is world-coordinate, fractional, corner-pair, i.e. the
+  opposite convention. The split is the point: `Rect` = world blocks, `CellRect` = plan cells.
+  **Placement: `PgmStudio.Geom`.** Every consumer sits in `Pgm` today, which by the placement rule alone
+  would argue for `Pgm` — but `Geom.Cells.BoundingBox` already returns a rect in the *other* 2D convention
+  (inclusive corner tuple), so putting the type in the leaf lets that function return it and collapses the
+  two conventions instead of leaving them adjacent. Note this would be the **first public value type in
+  `Geom`**, which is currently all static function classes.
+  **The three `plan.json` properties keep their wire format** (`PlanModel.cs:170,182,200`) via a
+  `JsonConverter` — the type goes all the way through rather than stopping at the DTO.
+  **Oracle: `ComposerFingerprint` + `tools/compose/composer-fingerprints.json` + `ComposerVersionTests`.**
+  A pure representation change must leave every fingerprint byte-identical, so this cannot break silently.
+  **Out of scope:** the 3D boxes (`B33` — different dimension, different convention, and `MonumentSuggester`
+  is corpus-validated at 96.6% precision), renaming the existing `Rect` to `BlockRect`, and the `cell` →
+  `cellSize` rename.
+
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is

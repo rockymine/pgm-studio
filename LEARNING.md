@@ -28,7 +28,30 @@ Entries are dated and cite `file:line`. Debt entries are `[ ]` open / `[>]` grad
   the front it is documented to dock flush against — and `BandContactsOk` won't catch it, because it
   rejects overlap and rejects touching a non-front piece, but a band touching **nothing** falls through
   the `continue` on `MidCarver.cs:83`. **Open question: which of the two is the source of truth?**
-  (2026-07-27)
+  The two are not even the same kind of thing: `AxisMarginCells` is a declared `const int = 2`, while
+  `HalfGapCells` has no declaration at all — it is a positional property of `CrossingDesign`
+  (`MidCarver.cs:8`) whose value exists only as the expression `20 / (2 * env.Cell)` at its single
+  construction site, with the `20` a block quantity divided into cells in place. And the `??` fallback at
+  `TeamUnitAllocator.cs:243` is **live, not defensive**: `Composer` always passes a crossing, but
+  `tools/compose/unit-gallery.cs`, `seat-probe.cs`, `unit-fingerprint.cs` and four sites in
+  `TeamUnitAllocatorTests` call `Allocate` without one — so those run on `AxisMarginCells` while production
+  runs on `HalfGapCells`, and only their accidental equality keeps the two paths agreeing. (2026-07-27)
+
+- [ ] **The frontline's depth has zero variance — a floor argument implemented as a constant.**
+  `frontReach = w + 2` (`TeamUnitAllocator.cs:240`) is computed once and passed straight through as the
+  frontline demand's `Depth` (`:377`). Nothing varies it: `SeatFront` hands `d.Depth` to `NeighbourRect`
+  verbatim (its overhang freedom is *along* the edge, never outward), `Compact` and the `FrontGuard`
+  post-pass apply only to `Spawn`/`Wool`, and no downstream stage resizes the box. So the face is sampled
+  four ways laterally (full-vs-partial, width, overhang, centred-vs-shifted) and is **identical in depth on
+  every board**: 4 cells at `w = 2`, 5 at `w = 3`.
+  Because `hubUMin = HalfGapCells + frontReach`, the axis-to-hub-front distance takes exactly **three
+  values across the whole generator** — 2 cells (no frontline), 6 (`w = 2`), 7 (`w = 3`) — so the gap
+  between the two teams is 20, 60 or 70 blocks and nothing else, while board size ranges from 25×100 to
+  130×280. The justifying comment (`:238-239`) argues a **minimum** ("a shallower reach collapses them to
+  nubs"); the code writes a **fixed value**. Same shape as the entry above.
+  Not obviously wrong — a consistent approach depth is a defensible house style — but undeclared. Varying
+  it moves every hub, so it is a behaviour change needing its own task and a before/after gallery, not a
+  refactor. (2026-07-27)
 
 - [ ] **The clamps quietly eat the sampled parameter space.** `Envelope.Derive` reads like a wide
   continuous space — coverage sampled 0.28–0.42, aspect sampled 1.0–3.0 — but measured over 8,400
