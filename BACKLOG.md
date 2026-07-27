@@ -97,6 +97,26 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
+- [ ] **C28 — The Blazor client has no automated tests at all.** `PgmStudio.Client` is 57 files / ~8,000
+  lines and is **absent from the coverage report entirely** — no test project references it, so nothing
+  instruments it (`tools/coverage.sh`). There is also **no committed e2e harness**: the "Playwright 17/17"
+  and "10/10" numbers in `FEATURES.md` were one-off runs in the sessions that shipped those features, and
+  nothing in `tools/`, `scripts/` or `package.json` can reproduce them. Every phase host, step and
+  inspector is therefore verified only by hand. Decide the shape first — a bUnit component-test project
+  (`tests/PgmStudio.Client.Tests`, fast, no browser, good for the phase/step state machines and the
+  `AuthorsEditor`-style logic) versus a committed Playwright suite (slow, needs the app running, but the
+  only thing that catches canvas/interop regressions), possibly both. Start with the phase hosts, where
+  the C25–C27 renames concentrated the risk.
+- [ ] **CV12 — Two thirds of the JS layer is never loaded by a test.** `npm test --
+  --experimental-test-coverage` reports 82.8% over the 15 modules the 148 tests import (several at 100%:
+  `transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`), but **26 of 41 files / ~6,900 lines are
+  absent from the report** — they are never imported, which the coverage output shows as silence rather
+  than zero. The untested set is the whole interactive layer: every canvas (`editor-canvas` 1046,
+  `plan-canvas` 1017, `sketch-canvas` 871, `sideview-canvas`, `canvas-base`), every bridge, every
+  controller, `iso-webgl`, and `studio.js`. The split is coherent — pure geometry is tested, DOM/canvas
+  code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
+  contain** (hit-testing, snapping, viewport/transform maths, selection resolution) into pure modules the
+  existing `node --test` setup can reach without a DOM. Pairs with the JS consolidation review.
 ## Backend, pipeline & internals (B / P / A)
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
@@ -108,6 +128,22 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
+- [ ] **B35 — Endpoint coverage: half the API is exercised by nothing.** `PgmStudio.Api` sits at **42.8%**
+  lines (`tools/coverage.sh`), and the shortfall is not spread evenly — a long tail of endpoint files is
+  effectively untouched while the tested ones are fine: `PreflightEndpoint` 2.6%, `ImportEndpoints` 3.6%,
+  `IslandRolesEndpoint` 3.6%, `MonumentEndpoints` 5.3%, `LayersEndpoints` 5.5%, `ConfigureEndpoints` 6.2%,
+  `AuthoringEndpoint` 8.2%, `IslandReviewEndpoints` 8.6%, `MapPlanEndpoints` 12.3%, `AnalysisEndpoints`
+  13.0%, `RegionEndpoints` 15.6%. `ApiTestFactory` (B20) already gives schema-isolated MariaDB, so the
+  marginal cost per endpoint is one happy path plus its error contract; these are cheap tests, not a
+  redesign. Prioritise the ones that write: import, configure, region and map-plan.
+- [ ] **B36 — The region/filter authoring-and-editing path is half covered.** A coherent cluster sits
+  around 40–58% while its neighbours are high: `RegionAuthoringEncoder` 43.8% (370 uncovered lines),
+  `RegionParser` 52.0% (295), `RegionEditor` 57.5% (180), `FilterParser` 48.9%, `RegionGeometry2d` 39.5%,
+  `RegionBuilder` 43.7%, `FilterEditor` 41.9%, `WoolEditor` 58.5%. This matters more than the endpoint tail
+  because it is map-contract logic, not glue — a silent regression here changes generated `map.xml` rather
+  than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
+  neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
+  91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
   `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts
