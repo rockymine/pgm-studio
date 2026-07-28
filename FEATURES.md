@@ -77,21 +77,32 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
-- **Sketch canvas scales to its workspace, and the grid to the viewport** — three defects made a fresh
-  sketch open on a postage stamp you couldn't draw your way out of. (1) The chunk grid was clipped to the
-  same rect `fitToBbox` framed, so the grid always filled 85% of the surface with ~5 blocks of canvas
-  outside it — drawing past the edge to grow it meant drawing off the surface. The grid, the symmetry axis
-  and the snap guides now span the **visible viewport** (snapped out to a 4-chunk step, rebuilt on viewport
-  change only when that extent moves), so wherever you pan or zoom there is grid to draw on and growing the
-  sketch is just drawing. (2) The canvas mounts while the Draw phase is still `display:none` (a new sketch
-  opens on `Info`), so it measured `#size()`'s 600px fallback and framed the view for it; the phase switch's
-  `resize()` nudge ran before Blazor re-rendered, so it re-measured the *hidden* element and the `<svg>`
-  stayed 576×576 inside a 966×769 area. A `ResizeObserver` on the wrap now owns re-measuring, and a fit
-  requested with no layout box is deferred until a real one arrives (the Blazor nudge is gone). (3) `load()`
-  fitted before the saved shapes were added, so an existing sketch reopened on the blank working area
-  instead of on its drawing — it now fits after the load. The blank working area went 64×64 → 160×160, so a
-  full-size map fits without zooming out first (989% → 396% on a 1600×900 window). Playwright 11/11 against
-  the running app. (C29)
+- **One drawing-surface model for Sketch + Plan: tinted working area · viewport grid · scale bar** — a
+  fresh sketch opened on a postage stamp you couldn't draw your way out of, and the plan editor it was
+  modelled on had the same defects. Both canvases now share `render/canvas-chrome.js` and the contract in
+  `docs/contracts/tool-consistency.md` (*Drawing-surface model*):
+  - **The working area is a tinted region with a default size, present even when blank** — the size anchor
+    that says how big a map is meant to be (Sketch **64×64 blocks** = 4×4 chunks; Plan **~60×60 blocks** =
+    12×12 cells, expressed in blocks and converted to whole cells so it holds at any `globals.cell`). It
+    grows to enclose the content plus a buffer, so drawing past its edge **visibly** grows it — the part the
+    plan editor's bounded grid could never show, because its added border landed off-screen.
+  - **The grid spans the visible viewport, not the content.** Previously the grid was clipped to the very
+    rect `fit` framed, so it filled 85% of the surface with ~5 blocks of canvas beyond it and growing it
+    meant drawing off the surface. Now there is always grid (and surface) outside the drawing; rebuilt only
+    when the snapped visible extent moves, not per pan frame.
+  - **A `N blocks` scale bar** (bottom-right, screen space) carries absolute size, since the working area's
+    edge moves as the drawing grows.
+  - **Both canvases re-measure themselves** with a `ResizeObserver`, deferring a fit requested while they
+    have no layout box. Both tools mount their canvas inside a `display:none` Draw phase and both "fixed"
+    it with a `resize()` nudge on the phase switch that ran *before* Blazor re-rendered — so both sat at
+    **576×576 inside a 966×769 workspace** (45% of the available area). The nudges are gone.
+  - Sketch's `load()` also fitted before the saved shapes were added, so an existing sketch reopened on the
+    blank working area instead of on its drawing; it now fits after the load.
+
+  Verified against the running app with Playwright: 17/17 across both tools (canvas fills the workspace on
+  the Info→Draw path, default working area present and correctly sized, reads as a region rather than the
+  whole surface, grid covers the surface, scale bar present, drawing past the edge grows the area), plus
+  11/11 sketch regression and 8/8 window-resize / full-zoom-range. (C29)
 - **Hybrid canvas** — the reference `EditorCanvas` JS reused via interop (`studio-canvas.js`). (C1)
 - **Reusable `RegionTree` / `RegionInspector`** + `Models/RegionNode.cs` + `GameColors.cs`. (C2, C3)
 - **Studio design-system CSS** (verbatim) + the `/design` living reference page. (C4, S1)
