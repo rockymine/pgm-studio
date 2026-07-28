@@ -145,6 +145,29 @@ change is real.
 not is worse than a gap — the whole `WoolApproachShape`/`FamilyDock`/`ComposeTargets` class of drift came
 from exactly that. Mark unbuilt things with their task id, or leave them out.
 
+## JS dependencies — vendor, never fetch
+The rule is **no npm dependencies in the repo**: no `node_modules`, no lockfile, nothing whose install
+step runs code. Node itself is fine and already load-bearing — `package.json` marks the hand-written
+`.js` as ESM and `npm test` runs Node's built-in runner (`tools/js-test.sh`), zero dependencies, which
+is what lets the suite run from the VirtualBox shared folder at all.
+
+- **Browser libraries are vendored**, not installed and not fetched: one reviewed, pinned,
+  self-contained file under `wwwroot/js/studio/vendor/`, with its regenerate command in the header
+  comment. Two today — `polygon-clipping.js` (esbuild bundle) and `lucide-icons.js`
+  (`tools/vendor-icons.mjs`, which also has a `--check` staleness gate).
+- **Build and test tools are never installed into the repo.** Fetch with `npm pack` (download only —
+  no install, no lifecycle scripts, which is where npm's supply-chain risk actually lives), or expect
+  them globally: the e2e harness resolves Playwright from a global install and says so if it can't
+  (`tests/e2e/lib/harness.mjs`). Test infrastructure is never shipped, so it stays a developer-machine
+  prerequisite rather than a repo dependency.
+- **Never a runtime CDN tag.** It is strictly worse than the npm dependency it avoids: unpinned, fetched
+  by every user's browser, unreviewable, no integrity check, and dead the moment egress is restricted.
+  `lucide@latest` from `cdn.jsdelivr.net` was all five — no icon rendered in the cloud container, and
+  three icon names had already been renamed upstream (C30).
+- If a vendored subset can miss a name (icons are named dynamically from C#), the shim must **fail
+  loudly** — a console error, which the e2e smoke sweep turns into a failed page. A silent blank is the
+  bug being avoided.
+
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts
   but the dotnet bg process doesn't, and the claude-in-chrome MCP needs reconnecting (extension panel).

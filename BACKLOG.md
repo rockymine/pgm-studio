@@ -106,15 +106,10 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-- [ ] **C30 — The icon set is a runtime CDN dependency.** `index.html` pulls lucide from
-  `cdn.jsdelivr.net` on every page load, so in any offline or egress-restricted environment **no icon
-  renders** — the nav rail, toolbars and chips all come up blank while the app otherwise works. It also
-  pins `@latest`, so the icon set can change under the app without a commit. Vendor it into `wwwroot/js/`
-  (or an npm-free copy of the UMD bundle) and drop the CDN tag. The e2e harness allowlists the failed
-  request today (`tests/e2e/lib/harness.mjs`), which is the marker to remove when this lands.
 - [~] **C28 — The client's remaining test layers (smoke has landed).** The **smoke layer + runner shipped**
   as `C31` (`tools/e2e.sh`, `tests/e2e/`) — every route is swept for "renders and raises nothing", seeded
-  from a composed board. `PgmStudio.Client` is still **absent from the coverage report** (no test project
+  from a composed board; `icons.mjs` (C30) added the first *positive* render assertion on top of it.
+  `PgmStudio.Client` is still **absent from the coverage report** (no test project
   references it), and two layers are still open:
   **(a) mount/interop** — per canvas tool, assert the bridge mounted and the surface has a real size; this
   is the C29 class of bug (a canvas at 45% of its workspace for weeks, in two tools) and it is assertable

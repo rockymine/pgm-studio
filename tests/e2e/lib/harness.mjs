@@ -45,13 +45,6 @@ export const BASE = process.env.E2E_BASE ?? "http://localhost:7895";
  */
 const ALLOWED_FAULTS = [
   {
-    // The icon library is fetched from a public CDN at runtime, so it fails in any offline or
-    // egress-restricted environment (icons simply don't render). Tracked as C30 — vendoring it is a
-    // decision, not a test fix, so the suite records it rather than pretending it passed.
-    match: /cdn\.jsdelivr\.net/,
-    why: "lucide is loaded from a CDN (C30) — unreachable offline",
-  },
-  {
     // ERR_ABORTED is the browser cancelling a request that was still in flight, which on a route sweep is
     // the sweep itself moving on — the page is judged and left while a background fetch is open. It says
     // nothing about the page's health and it fires nondeterministically, so tolerating it removes a flake
