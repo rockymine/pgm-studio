@@ -96,7 +96,7 @@ foreach (var s in seeds)
     }
     md.AppendLine();
 }
-var mdPath = Path.Combine("docs", "seed-envelopes.md");
+var mdPath = Path.Combine("docs", "generator", "seed-envelopes.md");
 File.WriteAllText(mdPath, md.ToString());
 Console.WriteLine($"wrote {mdPath}");
 

@@ -12,25 +12,25 @@ Held out: `traced/3084` (wools do not attribute — degenerate band).
 
 | term | rule | lo | hi | maps | scope |
 |---|---|---|---|---|---|
-| `fill-ratio` | G8 | 0.201 | 0.496 | 23 | authored + traced |
-| `enclosed-void-count` | CT8 | 0 | 15 | 23 | authored + traced |
-| `neutral-stepping-count` | CT4 | 0 | 4.5 | 23 | authored + traced |
-| `team-stepping-count` | CT4 | 0 | 2 | 23 | authored + traced |
-| `band-count` | CT1 | 0 | 3 | 23 | authored + traced |
-| `isolation-cut-count` | CT5 | 0 | 6 | 23 | authored + traced |
-| `uncrossed-middle-void` | CT9 | 0 | 0 | 23 | authored + traced |
-| `frontline-count` | FR4 | 1 | 7 | 23 | authored + traced |
-| `frontline-width` | FR6 | 1 | 16 | 23 | authored + traced |
-| `max-chain-length` | LN2 | 25 | 90 | 12 | authored-only |
-| `lane-width` | LN1 | 10 | 20 | 23 | authored + traced |
-| `wool-wool-distance` | WL7 | 65 | 265 | 14 | authored + traced |
-| `spawn-wool-distance` | WL2 | 30 | 195 | 23 | authored + traced |
-| `spawn-wool-spread` | WL9 | 0 | 85 | 14 | authored + traced |
-| `wool-front-distance` | WL10 | 24 | 165 | 15 | authored + traced |
-| `wool-front-balance` | WL10 | 0 | 140 | 10 | authored + traced |
-| `spawn-wool-ratio` | WL9 | 1 | 1.2 | 6 | authored-only |
-| `wool-front-ratio` | WL10 | 1 | 1.529 | 4 | authored-only |
-| `wool-front-remoteness` | WL10 | 25 | 145 | 8 | authored-only |
+| `fill-ratio` | G8 | 0.201 | 0.496 | 26 | authored + traced |
+| `enclosed-void-count` | CT8 | 0 | 15 | 26 | authored + traced |
+| `neutral-stepping-count` | CT4 | 0 | 4.5 | 26 | authored + traced |
+| `team-stepping-count` | CT4 | 0 | 2 | 26 | authored + traced |
+| `band-count` | CT1 | 0 | 3 | 26 | authored + traced |
+| `isolation-cut-count` | CT5 | 0 | 6 | 26 | authored + traced |
+| `uncrossed-middle-void` | CT9 | 0 | 0 | 26 | authored + traced |
+| `frontline-count` | FR4 | 1 | 7 | 26 | authored + traced |
+| `frontline-width` | FR6 | 1 | 16 | 26 | authored + traced |
+| `max-chain-length` | LN2 | 25 | 110 | 15 | authored-only |
+| `lane-width` | LN1 | 10 | 20 | 26 | authored + traced |
+| `wool-wool-distance` | WL7 | 50 | 265 | 17 | authored + traced |
+| `spawn-wool-distance` | WL2 | 30 | 195 | 26 | authored + traced |
+| `spawn-wool-spread` | WL9 | 0 | 85 | 17 | authored + traced |
+| `wool-front-distance` | WL10 | 24 | 165 | 18 | authored + traced |
+| `wool-front-balance` | WL10 | 0 | 140 | 13 | authored + traced |
+| `spawn-wool-ratio` | WL9 | 1 | 1.231 | 9 | authored-only |
+| `wool-front-ratio` | WL10 | 1 | 1.529 | 7 | authored-only |
+| `wool-front-remoteness` | WL10 | 25 | 145 | 11 | authored-only |
 
 ## Per-map values
 
@@ -50,6 +50,9 @@ Authored seeds first, then traced maps (a `†` marks a value outside the term's
 | mirror-tiny-map-cliff | 0.314 | 2 | 1.5 | 0 | 1 | 0 | 0 | 2 | 1 | 25 | 10 | — | 30 | — | 25 | — | — | — | 25 |
 | odd-facing-three-wool | 0.278 | 4 | 2 | 0 | 0 | 2 | 0 | 2 | 2 | 65 | 10 | 65 | 65 | 10 | — | — | 1.154 | — | — |
 | rotate-wide-frontline | 0.368 | 8 | 3.5 | 2 | 1 | 6 | 0 | 1 | 12 | 60 | 10 | 90 | 50 | 0 | 70 | 5 | 1 | 1.071 | 75 |
+| shifted-frontline-spanning-dock | 0.222 | 6 | 0 | 0 | 1 | 0 | 0 | 2 | 4 | 110 | 10 | 100 | 65 | 10 | 80 | 20 | 1.154 | 1.125 | 90 |
+| shifted-u-frontline-attach-g-hub | 0.238 | 6 | 0 | 0 | 1 | 0 | 0 | 2 | 2 | 55 | 10 | 50 | 35 | 0 | 45 | 5 | 1 | 1.111 | 50 |
+| shifted-u-frontline-attach-hole-hub | 0.349 | 6 | 0 | 0 | 1 | 0 | 0 | 2 | 3 | 40 | 10 | 115 | 65 | 15 | 75 | 35 | 1.231 | 1.267 | 95 |
 | ◦ 803 | 0.201 | 0 | 0.5 | 1 | 0 | 1 | 0 | 2 | 8 | 60 | 15 | — | 85 | — | — | — | — | — | — |
 | ◦ a-new-day-ii | 0.496 | 2 | 1 | 0 | 0 | 0 | 0 | 2 | 4 | 85 | 15 | 150 | 125 | 0 | — | — | 1 | — | — |
 | ◦ a-new-day | 0.32 | 0 | 0 | 0 | 1 | 2 | 0 | 1 | 16 | 80 | 15 | 245 | 165 | 5 | 145 | 5 | 1.03 | 1 | 145 |

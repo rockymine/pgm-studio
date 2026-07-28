@@ -512,17 +512,14 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task Every_seed_that_places_anything_is_a_complete_map_plan()
+    public async Task Every_seed_plan_is_a_complete_map_plan()
     {
-        // Some seeds place nothing at all — they are geometry studies (a frontline shape, a hub attachment)
-        // kept for the contact/interface derivations, never meant to be finished into a map. A seed that
-        // places *something* is claiming to be a map plan, and then it owes a spawn.
+        // Every seed is a plan that could be finished into a map, including the three that were once pure
+        // geometry studies — they carry their spawn and wool markers now, so the corpus no longer holds an
+        // example of the thing the gate refuses.
         foreach (var path in Directory.EnumerateFiles(PlanTestSupport.SeedDir(), "*.plan.json"))
         {
             var plan = PlanModel.Parse(File.ReadAllText(path))!;
-            var p = plan.Placements;
-            if (p.Spawns.Count + p.Wools.Count + p.Destroyables.Count + p.Cores.Count == 0) continue;
-
             var errors = PlanValidator.Completeness(plan).Where(f => f.Severity == PlanSeverity.Error).ToList();
             await Assert.That(errors).IsEmpty();
         }
