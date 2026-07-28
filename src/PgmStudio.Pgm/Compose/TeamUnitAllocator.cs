@@ -523,16 +523,11 @@ public static class TeamUnitAllocator
                 continue;
             }
 
-            var seatGap = d.Kind is BoxKind.Spawn or BoxKind.Wool ? w : 0;
-            var blocked = seatGap > 0 ? Blocked(edge, d.Depth) : [];
-            var seat = SeatInRuns(runs, blocked, edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
-            if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
-            {
-                d = Compact(d, offerW);
-                blocked = Blocked(edge, d.Depth);
-                seat = SeatInRuns(runs, blocked, edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
-            }
-            if (seat is not { } s)
+            // every other neighbour docks by FULL MOUTH: the whole along-extent must sit inside one free run.
+            // The shape-agnostic rule — it assumes nothing about where the shape's entries are, so it holds for
+            // the dual-entry staples whose second entry an overhang would strand.
+            if (SeatFullMouth(runs, edgeLen, d, edge, hubRect, Blocked, w, offerW, noFront, frontEdge, rng)
+                is not { } dock)
             {
                 // a wool that no longer fits with the seat gap (the third wool doubling onto the spawn's own edge
                 // cannot clear the gap on a small hub — it only ever fit by touching) is dropped rather than
@@ -542,20 +537,10 @@ public static class TeamUnitAllocator
                 if (d.Kind == BoxKind.Wool && boxes.Any(b => b.Kind == BoxKind.Wool)) continue;
                 return null;
             }
-            // no-frontline front guard, full-mouth side: a lateral seat flush with the hub front face slides
-            // back to the nearest clear off-front position (deterministic — no draw, so a seat already off the
-            // front re-seats bit-identically); a seat no backward position can hold yet (the separation gap
-            // blocks the whole edge) is recorded for the FrontGuard.Resolve post-pass below.
-            if (noFront && d.Kind is BoxKind.Spawn or BoxKind.Wool
-                && edge != frontEdge && edge != Opposite(frontEdge))
-            {
-                if (FrontGuard.ShiftOffFront(runs, blocked, edgeLen, d.Along, seatGap, s,
-                        frontAtLow: frontEdge is BoxEdge.Top or BoxEdge.Left) is { } offFront)
-                    s = offFront;
-                else flushSeats.Add(new FrontGuard.FlushSeat(d.Id, d.Kind, d.Depth, d.Along, edge, edgeLen, runs, seatGap));
-            }
-            boxes.Add(new Box(d.Id, d.Kind, NeighbourRect(edge, s, d.Depth, d.Along, hubRect), d.Along * d.Depth, Wool: d.Wool));
-            joints.Add(HubJoint("hub", d.Id, edge, s, d.Along, offerW));
+            d = dock.Demand;                                  // a full mouth that found no run was demoted
+            if (dock.Flush is { } flush) flushSeats.Add(flush);
+            boxes.Add(new Box(d.Id, d.Kind, dock.Box, d.Along * d.Depth, Wool: d.Wool));
+            joints.Add(HubJoint("hub", d.Id, edge, dock.Iface.Start, d.Along, offerW));
         }
 
         // FrontGuard.Resolve — the post-pass over the seating: the seats the immediate slide could not bring
@@ -570,6 +555,64 @@ public static class TeamUnitAllocator
             (boxes, joints) = (rBoxes, rJoints);
         }
         return (boxes, joints);
+    }
+
+    /// <summary>What a full-mouth dock produced: the placed <see cref="Box"/> rect and the
+    /// <see cref="Iface"/> it abuts the hub over, the <see cref="Demand"/> <b>as it ended up</b> (a wool whose
+    /// full mouth found no run is demoted to the compact <c>I</c>, so this may differ from the one passed in),
+    /// and the <see cref="Flush"/> seat to hand <see cref="FrontGuard.Resolve"/> when the immediate slide found
+    /// no backward position. <c>null</c> from <see cref="SeatFullMouth"/> means no legal seat at all.</summary>
+    private sealed record FullMouthDock(
+        CellRect Box, BoxInterface Iface, Demand Demand, FrontGuard.FlushSeat? Flush);
+
+    /// <summary>
+    /// Seat a neighbour by <b>full mouth</b>: its whole along-extent must lie inside one of the hub's free
+    /// <paramref name="runs"/>. The shape-agnostic rule — it assumes nothing about where the shape's entries
+    /// are, so it serves the spawn, the plain <c>I</c> wools and the dual-entry staples alike (an overhang
+    /// would strand a staple's second entry off the hub).
+    ///
+    /// <para>A wool whose mouth no run holds is demoted once to the compact <c>I</c> and retried; the demand
+    /// that comes back on <see cref="FullMouthDock.Demand"/> is the one the caller must build the box from.
+    /// The no-frontline front guard then slides a lateral seat backward off the hub's front face
+    /// (deterministic, no draw); a seat no backward position can hold is returned as a
+    /// <see cref="FrontGuard.FlushSeat"/> for the post-pass rather than failing here.</para>
+    ///
+    /// <para><paramref name="blocked"/> is the caller's projection of the already-seated spawn/wool boxes onto
+    /// an edge — passed as a delegate because it closes over the boxes seated so far, which grows as the loop
+    /// runs.</para>
+    /// </summary>
+    private static FullMouthDock? SeatFullMouth(
+        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand demand, BoxEdge edge, CellRect hubRect,
+        Func<BoxEdge, int, List<(int Start, int Len)>> blocked, int w, int offerW,
+        bool noFront, BoxEdge frontEdge, ComposeRng rng)
+    {
+        var d = demand;
+        var seatGap = d.Kind is BoxKind.Spawn or BoxKind.Wool ? w : 0;
+        List<(int Start, int Len)> blk = seatGap > 0 ? blocked(edge, d.Depth) : [];
+        var seat = SeatInRuns(runs, blk, edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
+        if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
+        {
+            d = Compact(d, offerW);
+            blk = blocked(edge, d.Depth);
+            seat = SeatInRuns(runs, blk, edgeLen, d.Along, CornerClearanceCells, seatGap, rng);
+        }
+        if (seat is not { } s) return null;
+
+        // no-frontline front guard: a lateral seat flush with the hub front face slides back to the nearest
+        // clear off-front position (deterministic — no draw, so a seat already off the front re-seats
+        // bit-identically); a seat no backward position can hold yet (the separation gap blocks the whole edge)
+        // is handed to the FrontGuard.Resolve post-pass instead.
+        FrontGuard.FlushSeat? flush = null;
+        if (noFront && d.Kind is BoxKind.Spawn or BoxKind.Wool
+            && edge != frontEdge && edge != Opposite(frontEdge))
+        {
+            if (FrontGuard.ShiftOffFront(runs, blk, edgeLen, d.Along, seatGap, s,
+                    frontAtLow: frontEdge is BoxEdge.Top or BoxEdge.Left) is { } offFront)
+                s = offFront;
+            else flush = new FrontGuard.FlushSeat(d.Id, d.Kind, d.Depth, d.Along, edge, edgeLen, runs, seatGap);
+        }
+        return new FullMouthDock(
+            NeighbourRect(edge, s, d.Depth, d.Along, hubRect), new BoxInterface(edge, s, d.Along), d, flush);
     }
 
     /// <summary>Demote a wool demand to the <b>compact inline <c>I</c></b> — the always-seatable shape: a
