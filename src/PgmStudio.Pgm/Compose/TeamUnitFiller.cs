@@ -30,7 +30,7 @@ public static class TeamUnitFiller
     /// only docks a neighbour where the hub offered).</summary>
     public static int ConsumedCw(EmittedHub hub, BoxJoint joint, BoxEdge hubEdge)
     {
-        if (joint.Offer is { } granted) return granted.WidthClass;
+        if (joint.Grant is { } granted) return granted.WidthClass;
 
         var onEdge = hub.Offers.Where(o => o.Edge == hubEdge).ToList();
         if (onEdge.Count == 0)
@@ -61,8 +61,9 @@ public static class TeamUnitFiller
     /// <summary>
     /// Fill an allocated <paramref name="partition"/> into a team unit, hub-first (the allocate↔fill contract).
     /// The <b>allocator (C.2) provides</b>: the positioned boxes (plan-cell <see cref="Box.Rect"/>s — one hub,
-    /// one spawn, 1–3 wools, 0–1 frontline), the joints between them with the hub's <b>width plan carried
-    /// per joint as their <see cref="BoxJoint.Offer"/>s</b>, and the spawn's <paramref name="spawnFacing"/> (the one
+    /// one spawn, 1–3 wools, 0–1 frontline), the joints between them with the <b>corridor width each consumer
+    /// was granted, carried per joint as their <see cref="BoxJoint.Grant"/>s</b>, and the spawn's
+    /// <paramref name="spawnFacing"/> (the one
     /// board-frame value — every other output is plan-cell or piece-relative). This <b>filler</b> emits the hub
     /// first at the form the allocator chose (<see cref="Box.Form"/>), then for each hub joint fills the
     /// neighbour box — the spawn/wool consuming <b>its own joint's</b> granted width as its <c>cw</c>, docking the

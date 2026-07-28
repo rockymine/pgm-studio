@@ -5,12 +5,17 @@ namespace PgmStudio.Pgm.Compose;
 
 /// <summary>A <b>joint</b> of the partition graph: the shared edge interval where two boxes touch — the
 /// <see cref="BoxInterface"/> (an edge, an offset, a width) read on <see cref="BoxA"/>'s frame, plus the box
-/// on the other side. The graph edge the docking gate and the repair search reason over. When the joint
-/// consumed a designation's <see cref="EdgeOffer"/> (a neighbour landing on a hub's per-edge width offer or the
-/// frontline's face), that offer rides along as <see cref="Offer"/> provenance — so the partitioner places
-/// consumers only where a designation invited them, and <see cref="BoxPartition.Of"/> can mirror the offer
-/// back. <c>null</c> for a plain abutment carrying no offer (e.g. a derived joint).</summary>
-public sealed record BoxJoint(string BoxA, string BoxB, BoxInterface Interface, EdgeOffer? Offer = null);
+/// on the other side. The graph edge the docking gate and the repair search reason over.
+///
+/// <para><see cref="Grant"/> is what this consumer was <b>given</b> at the dock: the abutment interval plus the
+/// corridor width the consumer reads as its <c>cw</c>. It is deliberately <b>not</b> the host's published
+/// <see cref="EdgeOffer"/> travelling forward — the two carry different quantities. A host publishes a
+/// <em>capacity</em>, whose <c>WidthClass</c> is derived from the length of the run it sits on
+/// (<c>HubBoxEmitter</c>); a grant records a <em>selection</em>, whose width is chosen per consumer kind (a
+/// wool reads the w2 wool lane, a spawn or frontline the map lane width). Same record type, two roles: read a
+/// grant as the answer, never as a copy of the invitation. <c>null</c> for a plain abutment nobody was granted
+/// anything across (e.g. a derived joint).</para></summary>
+public sealed record BoxJoint(string BoxA, string BoxB, BoxInterface Interface, EdgeOffer? Grant = null);
 
 /// <summary>
 /// The <b>constraint graph</b> a partition is (G63): typed <see cref="Box"/>es (each an allocated

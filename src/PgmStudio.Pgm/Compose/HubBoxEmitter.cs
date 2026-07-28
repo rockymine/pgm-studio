@@ -124,7 +124,7 @@ public static class HubBoxEmitter
     /// <paramref name="cw"/>, terminal-free, publishing one <see cref="EdgeOffer"/> per free run on each edge at
     /// the width that run can <b>support</b> (its length class). That is the hub's surface, not a per-neighbour
     /// agreement: one run can carry two docks at two widths, so the width a given neighbour builds to rides on
-    /// its <see cref="BoxJoint.Offer"/>, not here. <paramref name="flipV"/>
+    /// its <see cref="BoxJoint.Grant"/>, not here. <paramref name="flipV"/>
     /// reflects the body across the box's horizontal midline (box-local z) — the branch/holed forms are built
     /// spine-first (arms hanging down), so flipping turns the open feet toward the box top; the allocator sets it
     /// per frame so a form's solid edges cover the demanded sides (symmetric forms are unaffected). Pieces carry

@@ -814,22 +814,25 @@ public static class TeamUnitAllocator
     };
 
     /// <summary>The hub↔neighbour joint over a ready-made <paramref name="iface"/> (the abutment of an overhanging
-    /// dock), carrying the hub's <paramref name="w"/>-width offer over it.</summary>
+    /// dock), granting the consumer <paramref name="w"/> as its corridor width across it. The width is the
+    /// consumer's selection, not the hub's published capacity — see <see cref="BoxJoint.Grant"/>.</summary>
     private static BoxJoint HubJointFrom(string hubId, string nbId, BoxInterface iface, int w)
     {
-        var offer = new EdgeOffer(iface.Edge, new EdgeInterval(iface.Start, iface.WidthCells, ApproachSlots.Bar),
+        var grant = new EdgeOffer(iface.Edge, new EdgeInterval(iface.Start, iface.WidthCells, ApproachSlots.Bar),
             w, OfferGrouping.Several, $"hub-{iface.Edge}");
-        return new BoxJoint(hubId, nbId, iface, offer);
+        return new BoxJoint(hubId, nbId, iface, grant);
     }
 
-    /// <summary>The hub↔neighbour joint carrying the hub's offer on <paramref name="edge"/>: the interface
-    /// interval where they touch, and an <see cref="EdgeOffer"/> whose width is the lane width
-    /// <paramref name="w"/> the neighbour reads as its <c>cw</c> (severally — each neighbour its own dock).</summary>
+    /// <summary>The hub↔neighbour joint on <paramref name="edge"/>: the interface interval where they touch, and
+    /// the <see cref="BoxJoint.Grant"/> across it — width <paramref name="w"/>, which the neighbour reads as its
+    /// <c>cw</c> (severally — each neighbour its own dock). <paramref name="w"/> is chosen by the consumer's kind
+    /// upstream (the w2 wool lane, or the map lane width); the hub's own per-run capacity is a separate figure and
+    /// is not what is recorded here.</summary>
     internal static BoxJoint HubJoint(string hubId, string nbId, BoxEdge edge, int alongStart, int along, int w)
     {
         var iface = new BoxInterface(edge, alongStart, along);
-        var offer = new EdgeOffer(edge, new EdgeInterval(alongStart, along, ApproachSlots.Bar), w, OfferGrouping.Several, $"hub-{edge}");
-        return new BoxJoint(hubId, nbId, iface, offer);
+        var grant = new EdgeOffer(edge, new EdgeInterval(alongStart, along, ApproachSlots.Bar), w, OfferGrouping.Several, $"hub-{edge}");
+        return new BoxJoint(hubId, nbId, iface, grant);
     }
 
     /// <summary>The hub's box edge facing <paramref name="side"/> — the (u, v) outward direction mapped through

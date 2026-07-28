@@ -432,6 +432,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
     which showed as a fresh plan with a blank evaluator panel and no reason. Nothing is scorable without
     pieces, so it now answers `Evaluation.Empty` — the honest empty result rather than a thrown-and-caught
     "invalid". The e2e allowance for it is gone.
+- **A joint records a `Grant`, not an `Offer`** — the two carry different quantities and the docs said
+  otherwise. A host publishes an **offer** per free run whose `WidthClass` is a *capacity* derived from that
+  run's length (`HubBoxEmitter`); a joint records a **grant**, whose width is a *selection* made per consumer
+  kind (a wool takes the w2 wool lane, a spawn or frontline the map lane width). One run can carry two docks at
+  two widths, so a grant was never the offer travelling forward — but `BoxJoint`'s docstring claimed the offer
+  "rides along as provenance" and that `BoxPartition.Of` "mirrors it back", which is what made the two read as
+  one thing. `BoxJoint.Offer` → `BoxJoint.Grant`, with `BoxJoint`'s and `EdgeOffer`'s docstrings rewritten to
+  state the capacity/selection split; `HubBoxEmitter`'s docstring already had it right and is unchanged in
+  substance. Pure rename plus comments — 761/761 Pgm tests, fingerprints untouched. The open question of
+  whether the emitted capacity *should* bound the grant is deliberately not answered here (`B41`). (B41)
 - **A plan rect is a type now — `CellRect` in `PgmStudio.Geom`.** `Box.Rect`, `PlanPiece.Rect`,
   `PlanZone.Rect`/`.Holes`, `ShapeVacancy.Rect`, `NegativeSpacePart.Rect`, `GrownPiece`, `MidStone`,
   `Vacancy`, `EvidenceRect` and the shape emitters all meant `[x, z, w, h]` in plan cells, enforced by

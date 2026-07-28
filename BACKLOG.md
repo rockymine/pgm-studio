@@ -208,19 +208,19 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   All three styles consume `rng`, so the invariant is not "does it compile" but **does the draw order
   survive** — hoisting one call above another moves the stream and every fingerprint goes red.
 
-- [ ] **B41 — `EdgeOffer` is one type doing two disconnected jobs; split it into offer and grant.** Before
-  seating, the emitted hub advertises an `EdgeOffer` per edge; `Seat` reads them and keeps only
-  `(Start, LengthCells)` as its **runs**, *discarding the width*. After seating, `HubJoint`/`HubJointFrom`
-  build a **new** `EdgeOffer` onto the `BoxJoint` whose width comes from `offerW` — derived from the
-  demand's kind (`WoolLaneCells` for a wool, `w` otherwise), not from anything the hub emitted. That one is
-  consumed: `TeamUnitFiller:33` reads `joint.Offer.WidthClass` to decide how wide to fill.
-  So the second is **not the first travelling forward** — it is a different number wearing the same type.
-  The hub emits a width nobody reads, and the filler obeys a width the hub never proposed.
-  **Two separate questions, and the task must not blur them.** (1) *Naming*: an invitation and an answer are
-  not the same object — **offer** for what the host advertises before a seat exists, **grant** for what the
-  joint records afterwards. That half is a pure rename and fingerprint-neutral. (2) *Behaviour*: should the
-  emitted width become the granted one? Today it silently doesn't. Answering yes changes what the filler
-  builds and is a behaviour change needing its own before/after gallery — **do not fold it into the rename.**
+- [~] **B41 — Should a host's published capacity bound the grant it hands out?** The naming half has landed
+  (`FEATURES.md`): `BoxJoint.Grant` is now distinct from a host's `EdgeOffer`, and the docstrings state the
+  split — an offer's `WidthClass` is a *capacity* derived from the run's length, a grant's is a *selection*
+  made per consumer kind. What remains is the behaviour question the rename deliberately did not answer.
+  Today the two are entirely unlinked: `Seat` reads the hub's offers, keeps only `(Start, LengthCells)` as its
+  **runs** and drops the published width, then `HubJoint` grants a width taken from the demand's kind
+  (`WoolLaneCells` for a wool, `w` otherwise). So a hub can grant a corridor **wider than the run it sits on
+  claims to support** and nothing objects. Either that is intended — capacity is advisory, the consumer knows
+  its own lane — or the grant should be clamped to the offer, in which case a narrow run would demote a
+  consumer's `cw` and some docks that succeed today would not.
+  **Measure before deciding**: how often does the granted width actually exceed the published capacity of the
+  run it lands on? If never, this is documentation; if often, it is a real gate the composer is missing.
+  Changes what the filler builds, so it needs a before/after gallery and will move fingerprints.
 
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`

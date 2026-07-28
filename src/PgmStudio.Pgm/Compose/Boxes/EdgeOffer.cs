@@ -18,8 +18,14 @@ public enum OfferGrouping { Joint, Several }
 ///
 /// <para>Produced by the <b>hub</b> designation (per-edge width offers — the constraint source; a consumed
 /// width is the neighbour's menu <c>cw</c>) and, ahead, the <b>frontline</b> designation (the face offer the mid
-/// consumes, with the inter-tip recess simply not offered). Carried on a <see cref="BoxJoint"/> as provenance so
-/// the partitioner places consumers only on an offered interval; <c>BoxPartition.Of</c> mirrors it back.</para>
+/// consumes, with the inter-tip recess simply not offered).</para>
+///
+/// <para>This record serves <b>two roles</b>, and they carry different quantities — do not read one as a copy of
+/// the other. As an <b>offer</b> it is published by a designation before any consumer exists, and its
+/// <see cref="WidthClass"/> is a <em>capacity</em> derived from the length of the run it sits on. As a
+/// <see cref="BoxJoint.Grant"/> it records what one consumer was actually given at one dock, and its
+/// <see cref="WidthClass"/> is a <em>selection</em> made per consumer kind. One run can carry two docks at two
+/// widths, which is exactly why a grant is not the offer travelling forward.</para>
 /// </summary>
 /// <param name="Edge">The box edge the offer sits on.</param>
 /// <param name="Interval">The stretch along the edge a neighbour may dock (the G93 <see cref="EdgeInterval"/>).</param>

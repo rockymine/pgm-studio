@@ -41,8 +41,8 @@ foreach (var (label, players, land) in presets)
                 $"wool={(b.Wool is null ? "-" : $"{b.Wool.Family}:{b.Wool.Placement}:{b.Wool.Flip}:{b.Wool.WoolAtEnd}")});");
         foreach (var j in a.Partition.Joints)
             sb.Append($"J({j.BoxA}->{j.BoxB},{j.Interface.Edge}@{j.Interface.Start}+{j.Interface.WidthCells}," +
-                $"offer={(j.Offer is null ? "-" : $"{j.Offer.Edge}@{j.Offer.Interval.Start}+{j.Offer.Interval.LengthCells}" +
-                    $":w{j.Offer.WidthClass}:{j.Offer.Grouping}:{j.Offer.GroupId}")});");
+                $"grant={(j.Grant is null ? "-" : $"{j.Grant.Edge}@{j.Grant.Interval.Start}+{j.Grant.Interval.LengthCells}" +
+                    $":w{j.Grant.WidthClass}:{j.Grant.Grouping}:{j.Grant.GroupId}")});");
 
         if (TeamUnitFiller.Fill(a.Partition, a.SpawnFacing, new ComposeRng((ulong)seed)) is not { } f)
         { sb.Append("NOFILL\n"); continue; }
