@@ -96,8 +96,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
   Behaviour-preserving by construction and checked as such: the same Playwright suites that gated C29
   return **identical numbers** (17/17 both tools, 11/11 sketch regression, 8/8 resize/zoom), JS 150/150.
-  The editor canvas's projection was rerouted too but could not be exercised end-to-end here (no
-  imported maps in this environment) — the extracted maths is unit-tested instead. (CV13, CV14)
+  The **edit** canvas — rerouted too, and the one surface with no fixture here — was covered by building a
+  map locally instead of pulling the corpus: a sketch drawn and **Finished** rasterizes to real world
+  geometry, and `/maps/{slug}/edit` opens on it. Its `Regions` phase paints both islands, wheel-zoom moves
+  the viewport (100% → 115%), the cursor read-out tracks, and the `Build Regions` side-view renders the
+  slabs in cross-section — 7/7, no console errors. (CV13, CV14)
 - **The landing page's Plan card opens the plan overview, not the bare editor.** It pointed at
   `plan-editor` — an unsaved scratch document — while Sketch/Configure/Edit all opened their
   `maps?stage=…` list, which is also what the page's own header comment says every card does. Now
