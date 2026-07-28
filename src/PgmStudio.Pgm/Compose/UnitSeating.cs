@@ -3,26 +3,26 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>Turning demands into positions — one integer per neighbour, the seat, under whichever of the three
+/// <summary>Turning requests into positions — one integer per neighbour, the seat, under whichever of the three
 /// dock rules its style selects.</summary>
 /// <summary>What a full-mouth dock produced: the placed <see cref="Box"/> rect and the
-/// <see cref="Abutment"/> it abuts the hub over, the <see cref="Demand"/> <b>as it ended up</b> (a wool whose
+/// <see cref="Abutment"/> it abuts the hub over, the <see cref="Request"/> <b>as it ended up</b> (a wool whose
 /// full mouth found no run is demoted to the compact <c>I</c>, so this may differ from the one passed in),
 /// and the <see cref="Flush"/> seat to hand <see cref="FrontGuard.Resolve"/> when the immediate slide found
 /// no backward position. <c>null</c> from <see cref="SeatFullMouth"/> means no legal seat at all.</summary>
 internal sealed record FullMouthDock(
-    CellRect Box, BoxAbutment Abutment, Demand Demand, FrontGuard.FlushSeat? Flush);
+    CellRect Box, BoxAbutment Abutment, NeighbourRequest Request, FrontGuard.FlushSeat? Flush);
 
 public static class UnitSeating
 {
-    /// <summary>Seat every demand on <paramref name="form"/>'s real free-edge intervals, seated on the hub
+    /// <summary>Seat every request on <paramref name="form"/>'s real free-edge intervals, seated on the hub
     /// <paramref name="hubRect"/>. Builds the body once (<see cref="HubBoxEmitter"/>) — the same body the filler
     /// re-emits, so both read the same runs — and reads its per-edge free runs off the emitted offers (the
     /// offerable surface, §1.13). Returns the hub box (carrying <paramref name="form"/> for the filler) plus the
     /// seated neighbour boxes and their hub joints, or <c>null</c> when the box is too small for the form or a
-    /// demand finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
+    /// request finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
     internal static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(
-        CompoundRead form, CellRect hubRect, Frame frame, int laneWidthCells, IReadOnlyList<Demand> demands, ComposeRng rng,
+        CompoundRead form, CellRect hubRect, Frame frame, int laneWidthCells, IReadOnlyList<NeighbourRequest> requests, ComposeRng rng,
         bool noFront, RingWalls? walls = null, IReadOnlyList<(int Start, int Width)>? arms = null)
     {
         int boxW = hubRect.Width, boxH = hubRect.Height;
@@ -60,57 +60,57 @@ public static class UnitSeating
 
         // record a seated neighbour: its box, and the joint granting it its corridor width. One place, so the
         // three dock styles differ only in how they FOUND the rect — never in what they record.
-        void Seated(Demand nb, CellRect rect, BoxAbutment abutment, int grantedWidthCells)
+        void Seated(NeighbourRequest nb, CellRect rect, BoxAbutment abutment, int grantedWidthCells)
         {
             boxes.Add(new Box(nb.Id, nb.Kind, rect, nb.Along * nb.Depth, Wool: nb.Wool));
             joints.Add(SeatGeometry.HubJointFrom("hub", nb.Id, abutment, grantedWidthCells));
         }
 
-        foreach (var demand in demands)
+        foreach (var initial in requests)
         {
-            var d = demand;
-            var edge = SeatGeometry.SideEdge(frame, d.Side);
+            var request = initial;
+            var edge = SeatGeometry.SideEdge(frame, request.Side);
             var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
             if (!runsByEdge.TryGetValue(edge, out var runs)) return null;      // the form leaves this edge empty
-            var grantedWidthCells = d.Kind == BoxKind.Wool ? UnitTuning.WoolLaneCells : laneWidthCells;           // the wool lane is w2; spawn/frontline read the map lane width
-            var style = UnitDemands.StyleOf(d);
+            var grantedWidthCells = request.Kind == BoxKind.Wool ? UnitTuning.WoolLaneCells : laneWidthCells;           // the wool lane is w2; spawn/frontline read the map lane width
+            var style = UnitRequests.StyleOf(request);
 
-            if (style is DockStyle.Overhang && d.Wool is { } rich)
+            if (style is DockStyle.Overhang && request.Wool is { } rich)
             {
                 // no frontline ⇒ prefer the overhang placement furthest behind the front face (bent back / flipped),
                 // not spiking across the empty no-man's-land in front of the hub
                 var guardFront = noFront ? frontEdge : (BoxEdge?)null;
-                if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, grantedWidthCells, laneWidthCells, guardFront, rng) is { } placed)
+                if (SeatOverhang(runs, edgeLen, request, rich, edge, hubRect, boxes, grantedWidthCells, laneWidthCells, guardFront, rng) is { } placed)
                 {
-                    Seated(d with { Wool = rich with { Flip = placed.Flip } }, placed.Box, placed.Abutment, grantedWidthCells);
+                    Seated(request with { Wool = rich with { Flip = placed.Flip } }, placed.Box, placed.Abutment, grantedWidthCells);
                     continue;
                 }
                 // no clear overhang placement on this hub (crowded / narrow): demote to the compact I and
                 // re-dispatch as a full mouth. The demotion IS the fallback ladder — stated, not fallen through.
-                d = UnitDemands.Compact(d, grantedWidthCells);
+                request = UnitRequests.Compact(request, grantedWidthCells);
                 style = DockStyle.FullMouth;
             }
 
             if (style is DockStyle.ContactPatch)
             {
-                if (SeatFront(runs, edgeLen, d, edge, hubRect, boxes, laneWidthCells, rng) is not { } placed) return null;
-                Seated(d, placed.Box, placed.Abutment, grantedWidthCells);
+                if (SeatFront(runs, edgeLen, request, edge, hubRect, boxes, laneWidthCells, rng) is not { } placed) return null;
+                Seated(request, placed.Box, placed.Abutment, grantedWidthCells);
                 continue;
             }
 
-            if (SeatFullMouth(runs, edgeLen, d, edge, hubRect, Blocked, laneWidthCells, grantedWidthCells, noFront, frontEdge, rng)
+            if (SeatFullMouth(runs, edgeLen, request, edge, hubRect, Blocked, laneWidthCells, grantedWidthCells, noFront, frontEdge, rng)
                 is not { } dock)
             {
                 // a wool that no longer fits with the seat gap (the third wool doubling onto the spawn's own edge
                 // cannot clear the gap on a small hub — it only ever fit by touching) is dropped rather than
                 // failing the whole unit, so long as a wool already seated: the unit keeps its objectives, one
-                // fewer. The spawn and frontline are not droppable — a demand they cannot seat is a real too-small
+                // fewer. The spawn and frontline are not droppable — a request they cannot seat is a real too-small
                 // signal the caller answers by falling back / resampling.
-                if (d.Kind == BoxKind.Wool && boxes.Any(b => b.Kind == BoxKind.Wool)) continue;
+                if (request.Kind == BoxKind.Wool && boxes.Any(b => b.Kind == BoxKind.Wool)) continue;
                 return null;
             }
             if (dock.Flush is { } flush) flushSeats.Add(flush);
-            Seated(dock.Demand, dock.Box, dock.Abutment, grantedWidthCells);   // dock.Demand — a full mouth may have demoted it
+            Seated(dock.Request, dock.Box, dock.Abutment, grantedWidthCells);   // dock.Request — a full mouth may have demoted it
         }
 
         // FrontGuard.Resolve — the post-pass over the seating: the seats the immediate slide could not bring
@@ -133,8 +133,8 @@ public static class UnitSeating
     /// are, so it serves the spawn, the plain <c>I</c> wools and the dual-entry staples alike (an overhang
     /// would strand a staple's second entry off the hub).
     ///
-    /// <para>A wool whose mouth no run holds is demoted once to the compact <c>I</c> and retried; the demand
-    /// that comes back on <see cref="FullMouthDock.Demand"/> is the one the caller must build the box from.
+    /// <para>A wool whose mouth no run holds is demoted once to the compact <c>I</c> and retried; the request
+    /// that comes back on <see cref="FullMouthDock.NeighbourRequest"/> is the one the caller must build the box from.
     /// The no-frontline front guard then slides a lateral seat backward off the hub's front face
     /// (deterministic, no draw); a seat no backward position can hold is returned as a
     /// <see cref="FrontGuard.FlushSeat"/> for the post-pass rather than failing here.</para>
@@ -144,19 +144,19 @@ public static class UnitSeating
     /// runs.</para>
     /// </summary>
     internal static FullMouthDock? SeatFullMouth(
-        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand demand, BoxEdge edge, CellRect hubRect,
+        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, NeighbourRequest requested, BoxEdge edge, CellRect hubRect,
         Func<BoxEdge, int, List<(int Start, int Len)>> blocked, int laneWidthCells, int grantedWidthCells,
         bool noFront, BoxEdge frontEdge, ComposeRng rng)
     {
-        var d = demand;
-        var seatGap = d.Kind is BoxKind.Spawn or BoxKind.Wool ? laneWidthCells : 0;
-        List<(int Start, int Len)> blk = seatGap > 0 ? blocked(edge, d.Depth) : [];
-        var seat = SeatInRuns(runs, blk, edgeLen, d.Along, UnitTuning.CornerClearanceCells, seatGap, rng);
-        if (seat is null && d.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
+        var request = requested;
+        var seatGap = request.Kind is BoxKind.Spawn or BoxKind.Wool ? laneWidthCells : 0;
+        List<(int Start, int Len)> blk = seatGap > 0 ? blocked(edge, request.Depth) : [];
+        var seat = SeatInRuns(runs, blk, edgeLen, request.Along, UnitTuning.CornerClearanceCells, seatGap, rng);
+        if (seat is null && request.Kind == BoxKind.Wool)   // a staple's full mouth found no run — the compact I will
         {
-            d = UnitDemands.Compact(d, grantedWidthCells);
-            blk = blocked(edge, d.Depth);
-            seat = SeatInRuns(runs, blk, edgeLen, d.Along, UnitTuning.CornerClearanceCells, seatGap, rng);
+            request = UnitRequests.Compact(request, grantedWidthCells);
+            blk = blocked(edge, request.Depth);
+            seat = SeatInRuns(runs, blk, edgeLen, request.Along, UnitTuning.CornerClearanceCells, seatGap, rng);
         }
         if (seat is not { } s) return null;
 
@@ -165,16 +165,16 @@ public static class UnitSeating
         // bit-identically); a seat no backward position can hold yet (the separation gap blocks the whole edge)
         // is handed to the FrontGuard.Resolve post-pass instead.
         FrontGuard.FlushSeat? flush = null;
-        if (noFront && d.Kind is BoxKind.Spawn or BoxKind.Wool
+        if (noFront && request.Kind is BoxKind.Spawn or BoxKind.Wool
             && edge != frontEdge && edge != SeatGeometry.Opposite(frontEdge))
         {
-            if (FrontGuard.ShiftOffFront(runs, blk, edgeLen, d.Along, seatGap, s,
+            if (FrontGuard.ShiftOffFront(runs, blk, edgeLen, request.Along, seatGap, s,
                     frontAtLow: frontEdge is BoxEdge.Top or BoxEdge.Left) is { } offFront)
                 s = offFront;
-            else flush = new FrontGuard.FlushSeat(d.Id, d.Kind, d.Depth, d.Along, edge, edgeLen, runs, seatGap);
+            else flush = new FrontGuard.FlushSeat(request.Id, request.Kind, request.Depth, request.Along, edge, edgeLen, runs, seatGap);
         }
         return new FullMouthDock(
-            SeatGeometry.NeighbourRect(edge, s, d.Depth, d.Along, hubRect), new BoxAbutment(edge, s, d.Along), d, flush);
+            SeatGeometry.NeighbourRect(edge, s, request.Depth, request.Along, hubRect), new BoxAbutment(edge, s, request.Along), request, flush);
     }
 
     /// <summary>A free box-local along-position for an <paramref name="along"/>-wide dock among the edge's
@@ -226,17 +226,17 @@ public static class UnitSeating
     /// when no position gives a patch — the directed signal the caller answers by falling back.</para>
     /// </summary>
     internal static (CellRect Box, BoxAbutment Abutment)? SeatFront(
-        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, BoxEdge edge, CellRect hubRect,
+        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, NeighbourRequest request, BoxEdge edge, CellRect hubRect,
         IReadOnlyList<Box> seated, int laneWidthCells, ComposeRng rng)
     {
         var placements = new List<(int Seat, CellRect Box, BoxAbutment Abutment)>();
-        for (var seat = -(d.Along - laneWidthCells); seat <= edgeLen - laneWidthCells; seat++)
+        for (var seat = -(request.Along - laneWidthCells); seat <= edgeLen - laneWidthCells; seat++)
         {
-            int lo = seat, hi = seat + d.Along;
+            int lo = seat, hi = seat + request.Along;
             if (!Docks(runs, lo, hi, laneWidthCells)) continue;
-            if (PinchesAtEnd(runs, seat, seat + d.Along)) continue;
-            var box = SeatGeometry.NeighbourRect(edge, seat, d.Depth, d.Along, hubRect);
-            var overhangs = seat < 0 || seat + d.Along > edgeLen;
+            if (PinchesAtEnd(runs, seat, seat + request.Along)) continue;
+            var box = SeatGeometry.NeighbourRect(edge, seat, request.Depth, request.Along, hubRect);
+            var overhangs = seat < 0 || seat + request.Along > edgeLen;
             if (seated.Any(b => b.Kind is BoxKind.Spawn or BoxKind.Wool
                     && (overhangs ? SeatGeometry.TooClose(b.Rect, box, laneWidthCells) : SeatGeometry.Overlap(b.Rect, box)))) continue;
             if (BoxPartition.SharedEdge(hubRect, box) is { } abutment) placements.Add((seat, box, abutment));
@@ -250,7 +250,7 @@ public static class UnitSeating
         // even a full-width face would land off-centre, since every overhanging position is legal too.
         if (!rng.NextBool(UnitTuning.ShiftedFaceChance))
         {
-            var centre = (edgeLen - d.Along) / 2.0;
+            var centre = (edgeLen - request.Along) / 2.0;
             var best = placements.OrderBy(p => Math.Abs(p.Seat - centre)).ThenBy(p => p.Seat).First();
             return (best.Box, best.Abutment);
         }
@@ -306,11 +306,11 @@ public static class UnitSeating
     /// hub↔box interface (the abutment — narrower than the box when it overhangs), and the chosen flip; or
     /// <c>null</c> when no clear placement exists (a directed signal the caller falls back on).</summary>
     internal static (CellRect Box, BoxAbutment Abutment, bool Flip)? SeatOverhang(
-        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, WoolFill fill, BoxEdge edge,
+        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, NeighbourRequest request, WoolFill fill, BoxEdge edge,
         CellRect hubRect, IReadOnlyList<Box> seated, int grantedWidthCells, int separationCells, BoxEdge? guardFront, ComposeRng rng)
     {
         var mouth = SeatGeometry.Opposite(edge);
-        var probeRect = edge is BoxEdge.Top or BoxEdge.Bottom ? new CellRect(0, 0, d.Along, d.Depth) : new CellRect(0, 0, d.Depth, d.Along);
+        var probeRect = edge is BoxEdge.Top or BoxEdge.Bottom ? new CellRect(0, 0, request.Along, request.Depth) : new CellRect(0, 0, request.Depth, request.Along);
         var placements = new List<(CellRect Box, bool Flip)>();
         foreach (var flip in new[] { false, true })
         {
@@ -322,7 +322,7 @@ public static class UnitSeating
             foreach (var (rs, rl) in runs)
                 for (var seat = rs - e.Start; seat <= rs + rl - e.Start - e.Len; seat++)
                 {
-                    var box = SeatGeometry.NeighbourRect(edge, seat, d.Depth, d.Along, hubRect);
+                    var box = SeatGeometry.NeighbourRect(edge, seat, request.Depth, request.Along, hubRect);
                     if (BoxPartition.SharedEdge(hubRect, box) is not null
                         && !seated.Any(b => SeatGeometry.Overlap(b.Rect, box))
                         && !seated.Any(b => b.Kind is BoxKind.Spawn or BoxKind.Wool && SeatGeometry.TooClose(b.Rect, box, separationCells)))

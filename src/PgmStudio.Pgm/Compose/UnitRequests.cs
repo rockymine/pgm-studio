@@ -3,13 +3,13 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>What the unit needs hung off its hub, sized before any position exists: one <see cref="Demand"/>
+/// <summary>What the unit needs hung off its hub, sized before any position exists: one <see cref="NeighbourRequest"/>
 /// per neighbour, and the dock style each one implies.</summary>
 /// <summary>A neighbour box to seat against the hub: the hub <see cref="Side"/> it docks, its box
 /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
 /// <see cref="Along"/> extent (cells), and its <see cref="Id"/>. Sizing is frame- and form-independent (it
 /// reads the budget); only the seat position is not — so the whole set is fixed before the form is chosen.</summary>
-internal sealed record Demand(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null);
+internal sealed record NeighbourRequest(UnitSide Side, BoxKind Kind, int Depth, int Along, string Id, WoolFill? Wool = null);
 
 /// <summary>
 /// How a neighbour docks its host. The three styles are indexed by <b>how much is known about where the
@@ -25,11 +25,11 @@ internal sealed record Demand(UnitSide Side, BoxKind Kind, int Depth, int Along,
 /// what must hold is that every stretch where it meets a run is at least a lane wide.</item>
 /// </list>
 /// <b>Derived, never sampled</b> — see <see cref="StyleOf"/>. The style falls out of the family roll that
-/// already happened in <see cref="WoolDemand"/>; there is no "which dock style" draw anywhere.
+/// already happened in <see cref="WoolRequest"/>; there is no "which dock style" draw anywhere.
 /// </summary>
 internal enum DockStyle { FullMouth, Overhang, ContactPatch }
 
-public static class UnitDemands
+public static class UnitRequests
 {
     /// <summary>A wool family the <b>seat-and-shift</b> docks: a single-entry approach whose one narrow entry
     /// lands on a hub run while the body overhangs. The dual-entry staple/branch (<c>U</c>/<c>H</c>) is <b>not</b>
@@ -37,13 +37,13 @@ public static class UnitDemands
     /// overhang (an overhang would strand the second entry off the hub — a pinch).</summary>
     internal static bool Overhangs(ShapeFamily family) => family is ShapeFamily.L or ShapeFamily.Donut;
 
-    /// <summary>The dock style a demand implies. A single-entry rich wool overhangs; the frontline takes the
-    /// contact patch; everything else takes the shape-agnostic full mouth. Note this is the style a demand
+    /// <summary>The dock style a request implies. A single-entry rich wool overhangs; the frontline takes the
+    /// contact patch; everything else takes the shape-agnostic full mouth. Note this is the style a request
     /// <em>starts</em> at: an overhang that finds no clear placement is demoted to the compact <c>I</c> and
     /// re-dispatched as a <see cref="DockStyle.FullMouth"/>.</summary>
-    internal static DockStyle StyleOf(Demand demand) =>
-        demand.Wool is { } wool && Overhangs(wool.Family) ? DockStyle.Overhang
-        : demand.Kind == BoxKind.Frontline ? DockStyle.ContactPatch
+    internal static DockStyle StyleOf(NeighbourRequest request) =>
+        request.Wool is { } wool && Overhangs(wool.Family) ? DockStyle.Overhang
+        : request.Kind == BoxKind.Frontline ? DockStyle.ContactPatch
         : DockStyle.FullMouth;
 
     /// <summary>The neighbour boxes to seat: the spawn (a straight I for now — cross = entry width, seats
@@ -52,15 +52,15 @@ public static class UnitDemands
     /// frontline join on the front side (reach × a face spanning the hub front). The spawn size is the one RNG
     /// draw here; the wool sizes read the budget (generic, no per-family solve), so the whole set is fixed before
     /// the form is chosen and is identical across a fallback re-seat.</summary>
-    internal static IReadOnlyList<Demand> Demands(
+    internal static IReadOnlyList<NeighbourRequest> Sample(
         ComposeEnvelope env, ComposeRng rng, UnitPlan plan, int laneWidthCells, int hubU, int hubV, int frontReach)
     {
-        var demands = new List<Demand>();
+        var requests = new List<NeighbourRequest>();
 
         var iSizes = FillProfiles.SpawnSizes.Where(sz => sz.Family == ShapeFamily.I).ToList();
         var size = iSizes[rng.NextInt(0, iSizes.Count)];
         var (spW, spH) = SpawnBoxEmitter.Box(size.Family, laneWidthCells, size.RunCells, size.TurnCells);
-        demands.Add(new Demand(plan.Spawn, BoxKind.Spawn, spH, spW, "spawn"));
+        requests.Add(new NeighbourRequest(plan.Spawn, BoxKind.Spawn, spH, spW, "spawn"));
 
         // the flexible budget left after the hub, split into a rough share per wool (the spawn takes one too)
         var budgetCells = env.LandPerTeam / (env.Cell * (double)env.Cell);
@@ -70,8 +70,8 @@ public static class UnitDemands
         {
             var side = plan.Wools[i];
             var edgeLen = side is UnitSide.Front or UnitSide.Back ? hubV : hubU;
-            var (fill, along, depth) = WoolDemand(rng, edgeLen, woolShare);
-            demands.Add(new Demand(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}", fill));
+            var (fill, along, depth) = WoolRequest(rng, edgeLen, woolShare);
+            requests.Add(new NeighbourRequest(side, BoxKind.Wool, depth, along, $"wool-{(char)('a' + i)}", fill));
         }
 
         // the frontline join: it docks the hub's front edge with a face spanning it (corner clearance aside) and
@@ -92,9 +92,9 @@ public static class UnitDemands
             // at and the band has to reach past it. Parity is all that is required — no lane multiple, and the
             // rule reads the same in blocks as in cells because the cell size is odd.
             if (MidCarver.LateralFlip(env.Symmetry) && faceWidth % 2 != 0) faceWidth--;
-            demands.Add(new Demand(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
+            requests.Add(new NeighbourRequest(front, BoxKind.Frontline, frontReach, faceWidth, "frontline"));
         }
-        return demands;
+        return requests;
     }
 
     /// <summary>Choose one wool's <b>shape and footprint</b> — the whole per-wool decision in one place. Three
@@ -109,7 +109,7 @@ public static class UnitDemands
     /// length rule.</item>
     /// </list>
     /// The wool lane is always <see cref="UnitTuning.WoolLaneCells"/> (§4), never the map's <c>w</c>.</summary>
-    internal static (WoolFill Fill, int Along, int Depth) WoolDemand(ComposeRng rng, int edgeLen, double woolShare)
+    internal static (WoolFill Fill, int Along, int Depth) WoolRequest(ComposeRng rng, int edgeLen, double woolShare)
     {
         var woolLaneCells = UnitTuning.WoolLaneCells;
         if (rng.NextBool(UnitTuning.BentWoolChance))
@@ -160,14 +160,14 @@ public static class UnitDemands
             woolLaneCells, Math.Clamp(budgetDepth, rd + 1, maxDepth));
     }
 
-    /// <summary>Demote a wool demand to the <b>compact inline <c>I</c></b> — the always-seatable shape: a
+    /// <summary>Demote a wool request to the <b>compact inline <c>I</c></b> — the always-seatable shape: a
     /// one-lane mouth at the hub's offered width, its depth capped under the wool length rule. Both seat failures
     /// land here (an overhang with no clear placement, a full mouth no run holds) rather than failing the unit.</summary>
-    internal static Demand Compact(Demand demand, int grantedWidthCells) =>
-        demand with
+    internal static NeighbourRequest Compact(NeighbourRequest request, int grantedWidthCells) =>
+        request with
         {
             Along = grantedWidthCells,
-            Depth = Math.Min(demand.Depth, UnitTuning.WoolLengthRatio * ShapeEmitter.RoomDepthCells - 1),
+            Depth = Math.Min(request.Depth, UnitTuning.WoolLengthRatio * ShapeEmitter.RoomDepthCells - 1),
             Wool = new WoolFill(ShapeFamily.I, RoomPlacement.Inline, false),
         };
 }

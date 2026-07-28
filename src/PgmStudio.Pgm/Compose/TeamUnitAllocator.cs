@@ -67,11 +67,11 @@ public static class TeamUnitAllocator
         var hubVMin = -(hubV / 2);
         var hubRect = frame.ToRect(hubUMin, hubU, hubVMin, hubV);
 
-        // the neighbour demands (spawn + wools + the frontline join), sized from the budget before the form is chosen
-        var demands = UnitDemands.Demands(env, rng, plan, laneWidthCells, hubU, hubV, frontReach);
+        // the neighbour requests (spawn + wools + the frontline join), sized from the budget before the form is chosen
+        var requests = UnitRequests.Sample(env, rng, plan, laneWidthCells, hubU, hubV, frontReach);
 
         // pick the hub form from the box's real dims (frame-mapped — the wide axis afford the wide holed bodies),
-        // seat the demands on its free edges; fall back to the solid rectangle (four full edges) when the offerable
+        // seat the requests on its free edges; fall back to the solid rectangle (four full edges) when the offerable
         // surface can't host
         var sampled = ChooseHubForm(hubRect.Width, hubRect.Height, rng);
         var walls = ChooseHubWalls(sampled, hubRect.Width, hubRect.Height, FillProfiles.HubWallCells, rng);
@@ -80,9 +80,9 @@ public static class TeamUnitAllocator
         var arms = sampled.Form == Compound.SpineArms
             ? HubBoxEmitter.SampleArms(rng, hubRect.Width, sampled.Arms, FillProfiles.HubWallCells)
             : null;
-        var seating = UnitSeating.Seat(sampled, hubRect, frame, laneWidthCells, demands, rng, noFront: !hasFrontline, walls, arms);
+        var seating = UnitSeating.Seat(sampled, hubRect, frame, laneWidthCells, requests, rng, noFront: !hasFrontline, walls, arms);
         if (seating is null && sampled.Form != Compound.Rectangle)
-            seating = UnitSeating.Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, laneWidthCells, demands, rng, noFront: !hasFrontline);
+            seating = UnitSeating.Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, laneWidthCells, requests, rng, noFront: !hasFrontline);
         if (seating is not { } s) return null;
 
         return (new BoxPartition(s.Boxes, s.Joints), frame.TowardAxis);
