@@ -917,6 +917,8 @@ exactly the two docks worth understanding — an overhang wool, whose entry is n
 and the frontline, whose face may exceed the hub's edge so the abutment is clipped narrower than the
 box. Of the four, the abutment is the only one describing something a player can walk through.
 
+---
+
 ## 7. Fill — hub-first, and the offer consumed
 
 Filling takes the allocated partition and puts terrain in it. Footprints are never grown outward;
