@@ -12,7 +12,7 @@ public sealed record EmittedFrontline(
 
 /// <summary>
 /// The frontline binding over <see cref="BodyEmitter"/> — the <b>join box kind</b>
-/// (docs/generator/model.md §5.5). Terminal-free like the hub, finished by the <b>Front designation</b>:
+/// (docs/generator/model.md §5, designations). Terminal-free like the hub, finished by the <b>Front designation</b>:
 /// one edge marked the <c>face</c> (where the fanned images meet the mid), no room. It is a <b>join, not a
 /// placement</b> — its only interfaces are the <b>spine</b> (which docks the hub, consuming the hub's front-edge
 /// offer) and the <b>face</b> (which it offers to the mid); the sides are inert. <b>Rotation is fixed by the
@@ -29,7 +29,7 @@ public sealed record EmittedFrontline(
 /// </summary>
 public static class FrontlineBoxEmitter
 {
-    /// <summary>The frontline's authored form menu as data (§5.5): the wide <b>Bar</b> and the branch family at
+    /// <summary>The frontline's authored form menu as data (model.md §5): the wide <b>Bar</b> and the branch family at
     /// one arm (single — the <b>fat L</b>) and two (twin). The holed forms (P, two-U-on-I) are authored additions
     /// beyond the grower's <c>FrontForm</c> and land next.</summary>
     public static readonly IReadOnlyList<CompoundRead> Forms =

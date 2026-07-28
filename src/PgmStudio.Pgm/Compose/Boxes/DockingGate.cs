@@ -32,7 +32,7 @@ public enum DockRejection { SealsWool, NotAnEntryEdge }
 public static class DockingGate
 {
     /// <summary>The dock role a slot or designation mark plays for its <paramref name="designation"/> — the
-    /// docking law as data, scoped per designation (<see cref="Designation"/>; map-generation.md §5.3). The
+    /// docking law as data, scoped per designation (<see cref="Designation"/>; model.md §5). The
     /// <see cref="Designation.Approach"/> table is the approach law verbatim: only the bare <c>room</c> (the
     /// wool/spawn terminal) never-docks and only the bare <c>entry</c> is a docking edge; every corridor slot —
     /// runs, bars, legs, and the entry/room-qualified runs and bars — is internal. The

@@ -26,7 +26,7 @@ public static class FillProfiles
     };
 
     /// <summary>The <b>hub's</b> fill profile — its authored form menu as data (the <see cref="Compound"/> bodies
-    /// a hub may be, map-generation.md §5.5). Compound-typed, not <see cref="ShapeFamily"/>, because the hub is a
+    /// a hub may be, model.md §5). Compound-typed, not <see cref="ShapeFamily"/>, because the hub is a
     /// terminal-free body rather than an approach; it composes <see cref="HubBoxEmitter.Forms"/> the way the
     /// wool/spawn rows compose their menus.</summary>
     public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
@@ -36,7 +36,7 @@ public static class FillProfiles
     /// read the same free-edge intervals — a divergence would seat neighbours on runs the fill does not produce.</summary>
     public const int HubWallCells = 2;
 
-    /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, §5.5),
+    /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, model.md §5),
     /// Compound-typed like the hub. Composes <see cref="FrontlineBoxEmitter.Forms"/>, lifting the grower's
     /// <c>FrontForm { None, Single, Wide, Twin }</c> into the profile.</summary>
     public static IReadOnlyList<CompoundRead> FrontlineForms => FrontlineBoxEmitter.Forms;

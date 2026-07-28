@@ -14,7 +14,7 @@ public enum Designation { Approach, Hub, Frontline }
 
 /// <summary>The <b>designation marks</b> the non-approach designations stamp onto a body's edges — the siblings
 /// of the approach's <see cref="ApproachSlots.Entry"/> / <see cref="ApproachSlots.Room"/> marks
-/// (map-generation.md §1.12, §5.3). <see cref="Interface"/> is a hub edge that sources a per-edge width a
+/// (model.md §5 — the shape model). <see cref="Interface"/> is a hub edge that sources a per-edge width a
 /// neighbour docks; <see cref="Face"/> is the frontline edge the mid meets. A designation stamps its mark and
 /// the docking gate maps the mark to a dock role per designation — the approach keeps <c>entry</c>/<c>room</c>,
 /// stamped as <see cref="ApproachSlots"/>.</summary>
