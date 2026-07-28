@@ -255,7 +255,7 @@ is **legal** (gate over demand / offer / veto), how a legal join **varies** (kno
 | **fact** | an observation off geometry, no policy | `BoxEdgeInterface.Intervals`, the edge taxonomy (§1.13), `FrontlineRuns` |
 | **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillProfiles.Families`, `FillMenu.Rows` |
 | **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
-| **demand** | a shape's requirement *on its environment* (inbound) | *(no live type — `FamilyDock` was retired with the clamp's redefinition; the dual-entry requirement survives only as `TeamUnitAllocator.Overhangs`, stated **by exclusion**. `audit.md` §1; G107)* |
+| **demand** | a shape's requirement *on its environment* (inbound) | *(no live type — `FamilyDock` was retired with the clamp's redefinition; the dual-entry requirement survives only as `UnitDemands.Overhangs`, stated **by exclusion**. `audit.md` §1; G107)*<br>**Not** the type `Demand`, which is a different sense: a neighbour's *outbound* request for a side and two extents, carrying no requirement on the host at all. The word does two jobs — see `LEARNING.md`. |
 | **offer** | constraints a shape imposes *outward* — the edges/intervals it invites neighbours onto, in which groupings | `EdgeOffer` — the hub's per-run widths (granted per dock on the joint) and the frontline's face |
 | **veto** | a never-attach / never-publish mark | `SlotDockRole.NeverDock`, `PublishPolicy`'s bay/hole veto |
 | **gate** | the hard legality check applying demand/offer/veto, with a **directed rejection** | `DockingGate` → `DockRejection`, `PublishPolicy` → `PublishVerdict` |
@@ -1028,7 +1028,11 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | Piece | Path | What |
 |---|---|---|
 | `Composer` | `Compose/Composer.cs` | `Compose(ComposeRequest)` — the entry point: envelope → band-only crossing → allocate → fill → carve → assemble, gated by the evaluator's hard terms. |
-| `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the partition-first allocator: placement plan (`UnitPlan`), hub-form choice, seat logic, box footprints from the budget → `BoxPartition`. |
+| `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the allocate entry point: hub size, hub position (the unit's only absolute rect) and hub-form choice → `BoxPartition` + spawn facing. |
+| `UnitTuning` | `Compose/UnitTuning.cs` | the size ladders, the shape mix, the seat clearances, and the placement plan (`UnitPlan`) they feed. |
+| `UnitDemands` · `Demand` · `DockStyle` | `Compose/UnitDemands.cs` | what hangs off the hub, sized coordinate-free, and the dock style each demand implies. |
+| `UnitSeating` · `FullMouthDock` | `Compose/UnitSeating.cs` | demands → seats, under the three dock rules (full mouth · overhang · contact patch). |
+| `SeatGeometry` | `Compose/SeatGeometry.cs` | `NeighbourRect` and the edge arithmetic around it: projection onto an edge, clearance, the hub joint each dock records. |
 | `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the allocated partition hub-first (offer consumption) → `FilledUnit` (a `GrownUnit` + the frontline face offers). |
 | `GrownUnit` · `GrownPiece` | `Compose/GrownUnit.cs` | the composed unit records (pieces with `Slot`/`Box` labels + spawn/wool placements). |
 | `Envelope` → `ComposeEnvelope` | `Compose/Envelope.cs` | the budget: player count → land-per-team, board extent, unit bounds (§3.2). |

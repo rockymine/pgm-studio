@@ -108,6 +108,17 @@ Entries are dated and cite `file:line`. Debt entries are `[ ]` open / `[>]` grad
   least — `wool-front-ratio` does not apply to 62% of plans, `spawn-wool-ratio` to 41% — so any average
   must divide by *applicable*, not by *total*. (2026-07-28)
 
+- [ ] **"Demand" now names two different things, one of them mine.** `model.md` §1's kind table defines
+  **demand** as *"a shape's requirement on its environment (inbound)"* — what a shape needs *from* its host,
+  e.g. a staple needing two entries on the host. The type `Demand` (`UnitDemands`) is the opposite direction:
+  a neighbour's *outbound* request for a side and two extents, which imposes nothing on the host at all. The
+  model's demand pairs with **offer**; the type's `Demand` pairs with nothing — it is a sizing request.
+  The collision was latent while `Demand` was a private nested record; hoisting it to namespace level in
+  `B42` and giving it a `vocabulary.md` row made it public. Same shape as the `Offer`/`Grant` and
+  `Interface`/`Abutment` findings, except this one I introduced rather than found. Either the type renames
+  (`NeighbourRequest`? `BoxRequest`?) or the model's term does — but the docs should not keep defining a
+  word one way while the code uses it the other. (2026-07-28)
+
 ## Covered
 
 - **2026-07-27 — Resolved config vs. the request.** `ComposeRequest` is *what was asked*; `ComposeEnvelope`
