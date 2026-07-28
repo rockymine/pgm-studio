@@ -87,6 +87,14 @@ live under `tools/`, not `tests/`.
   whenever they had to explain it. Same reason `BoxJoint.Grant` is not `Offer`: a host publishes a capacity,
   a joint records a selection, and one name for both hid that they are different quantities.
 
+## Doc style
+`model.md` is a paper, not a reference card — and the other seven follow it. **Prose carries the claim; a
+table supports one already made.** A table gives structure but never says how things connect, so it may not
+be the first statement of an idea. Take one topic, explain it to its end, then take the next — in **pipeline
+order**, not in the order the decisions happened to be made. State mechanism as fact: no second person, no
+"we", no changelog ("this used to be…"). Where something is genuinely a catalog — a code map, a rule id
+table — a table is right and prose would be padding. `model.md` §6 is the worked example.
+
 ## Code comments
 Comments stay **purely functional** — describe what the code does and why. **Never** reference the
 Python reference app ("port of", "mirrors the reference", parity/oracle) or implementation-phase /

@@ -383,6 +383,34 @@ studio, G117/G118) is in `TODO.md`.
   Ranking before recalibration just amplifies one badly-fitted band. Order: `G118` collect → calibrate /
   gate the vacuous terms → this → soft rules become causal.
 
+- [ ] **G141 — `model.md` reads as a reference, not as the paper it is supposed to be.** The content is
+  good; the structure and presentation are not. It governs on disagreement, so it is the one document that
+  has to be readable end to end, and it currently is not — hardest of the eight to read, and the one most
+  often handed to someone new.
+  **The three defects, in order of cost.** (1) **Nothing is explained before it is tabulated.** A table
+  gives structure but never says how things connect; it is a visual aid, not the content. The §1 interface
+  material is the worst case — the hole/bay/notch classification and the build-zone borders are important
+  and correct, and they arrive as a jungle of tables and one-line bullets with no paragraph around them.
+  (2) **The document does not follow the order it declares.** §2 states request → budget → allocate → fill →
+  carve → gate; the sections then run budget(3) · boxes(4) · shapes(5) · allocate(6) · fill(7) · derivers(8)
+  · gate(9) · budget-and-width(10) · carve(11) · roughen(12) · elevation(13). Carve arrives two sections
+  after the gate that judges it, and budget appears twice. Sections stop hard and restart elsewhere instead
+  of carrying one topic to its end. (3) **A quarter of the document (§1, 260 lines) is a second glossary**
+  while `vocabulary.md` already holds that job in 215. It should be a pointer plus only the terms the
+  argument itself locks, defined where first used.
+  **The target.** One topic, explained to its end, then the next, in pipeline order — prose carrying the
+  claim, tables supporting one already made, no second person and no "we". More words than today, in a
+  logical order, is the trade being bought deliberately: the model is the core of the system and stating it
+  properly once is a gain, not a burden.
+  **§6 is the worked example — follow it.** It was rewritten in the target style (88 → 199 lines) and is
+  the reference for the rest: what a section looks like when it explains rather than lists. It also now
+  carries the full seating narrative — hub first, form, runs, requests, seat, the three dock rules, the
+  separation laws, the demotion ladder, and what a joint records — so the material exists in the repo and
+  no external page is needed to do this work.
+  Do **not** preserve the current section order or the current split of material; preserve the content.
+  §5 (shape model, 195 lines) is the natural next section, then §1 → pointer, then the reordering, which is
+  mostly moving whole sections rather than rewriting them.
+
 What stays here is the concrete non-design work on *imported* maps (island detection + playability):
 
 - [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split

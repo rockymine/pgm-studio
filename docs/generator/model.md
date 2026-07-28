@@ -719,93 +719,203 @@ corner L+I, the bend forced because two straight bars would corner-touch) — an
 
 ---
 
-## 6. Allocate — the placement plan and the seat
+## 6. Allocate — from a budget to a placed partition
 
-Allocation is the half of composition that decides **structure and position**, before any terrain
-exists. It runs in three steps: sample the **plan** (§6.1), position the **hub** and choose its form
-(§6.2), then **seat** every neighbour on that form's real free surface (§6.3). Its output is a
-`BoxPartition` — typed boxes plus the joints between them, each joint carrying the hub's width offer
-— and the spawn's facing.
+Allocation is the half of composition that decides structure and position, before any terrain exists.
+It begins with nothing but a budget and ends with a `BoxPartition`: typed boxes, the joints between
+them, and the spawn's facing. Everything it produces is a rectangle in plan cells; nothing it produces
+is terrain.
 
-### 6.1 The placement plan — sides, counts, and the ladders
+The order matters more than any individual rule in it, because each step consumes what the previous
+one settled and never reopens it. The hub is placed. Its form is chosen and emitted, which is what
+turns a footprint into material and so decides where anything may dock. Separately, and in ignorance
+of all of that, the unit works out what it needs hung off the hub. Only then does seating put the two
+together, and seating's entire output is one integer per neighbour.
 
-The unit is a **hub with neighbours hung off its four sides**, named in unit-relative terms:
-`Front` (toward the axis, where the frontline meets the mid), `Back` (away from it), and the two
-lateral sides `Left` / `Right`. The plan is which neighbour takes which side:
+### 6.1 The hub goes down first
 
-- the **spawn** takes the back or a lateral side — never the front;
-- the **wools** are assigned *after* the spawn and around it: the free non-front sides first, back
-  preferred, and a third wool **doubles onto the spawn's own side**;
-- the **front** is the frontline's, or empty.
+The hub is the only box in the unit that ever receives absolute coordinates. Its rectangle is drawn in
+the symmetry frame — so many cells out from the axis, so many across — and every other box is
+positioned relative to it. Nothing downstream re-opens that decision.
 
-How many, and whether, is decided by **budget ladders** — thresholds on land-per-team and player
-count:
+Its depth toward the axis and its lateral span are drawn from different caps, so a hub grows wider
+rather than squarer. The long lateral edge is what gives the spawn and the wools room to attach with a
+gap between them, and past nine cells it affords the wide holed bodies, whose bar and ring runs are
+long stretches of free surface. Where the plan carries a frontline, the frontline's reach pushes the
+hub's front edge back, so the frontline ends up between the hub and the axis rather than beside it.
+
+The allocator, not the filler, owns the choice of hub form, because the form decides where neighbours
+can sit. It emits the body once to read what that body offers, and the chosen form — with its wall
+widths and arm layout, where it has them — rides on the hub box so the filler re-emits exactly the
+same body. A body sampled twice would not agree with itself.
+
+### 6.2 The form decides where anything may dock
+
+Emitting is what turns a footprint into material. The form decides which cells inside the hub's
+rectangle are terrain and which are holes, and that distinction matters immediately, because the next
+thing read off the emitted body is where the hub actually has material along each of its four edges.
+Those stretches are its **runs**.
+
+A run is not an edge and not a side. It is one contiguous interval of real material on one edge,
+measured in cells from that edge's origin. A solid rectangle offers a single run per edge, spanning it
+end to end. A ring or a U offers an edge broken into two runs with a hole between them, and a bay
+yields no run at all over its stretch. This is what stops a neighbour docking an empty stretch of an
+L-shaped hub's bounding box and meeting the real body only at a corner.
+
+Each run is published as an **offer**, carrying the width that run can support — a capacity derived
+from its own length. The offer bounds the search rather than filtering its output: a seat that would
+put a neighbour where the hub has no material is never proposed, not proposed and rejected.
+
+### 6.3 What the unit asks for
+
+Independently of the hub, and before any position exists, the allocator works out what the unit needs.
+The player count fixes how many wool boxes there are, whether there is a frontline, and how large the
+spawn is. Each of those becomes a `NeighbourRequest`.
+
+A request is a request, not a rectangle. It names which side of the hub the neighbour belongs on, what
+kind of box it is, and two extents: its **depth**, how far it reaches away from the hub, and its
+**along**, how far it runs parallel to the hub's edge. Nothing in a request is a coordinate. A wool's
+request also carries the shape family rolled for it, because the family is what set those two extents
+in the first place.
+
+Depth and along are named from the edge, not from the world. The same pair means an x-extent on a
+neighbour docked to the hub's top and a z-extent on one docked to its left. That is inherent to an
+edge-relative frame, and it is the single most common source of confusion in the allocator.
+
+The along-extent is checked against the hub's edge length, and the overhang families are deliberately
+exempt from that check. A staple whose mouth is wider than the edge demotes to an L — which is to say,
+demotes into the overhang path — while an L or a donut may be born wider than the edge it will dock,
+because the overhang rule only ever needs its entry to land. This exemption is the whole permission
+for a box to exceed the run it sits on, and it is one negation in one condition.
+
+How many neighbours there are, and whether a frontline exists at all, comes from thresholds on
+land-per-team and player count:
 
 | Ladder | Effect |
 |---|---|
-| land > 2500 | the map-wide lane width is **3 cells** rather than 2 |
-| land < 800 | **no frontline** — there is no budget for one, so the hub fronts the mid directly |
-| land < 600 | a **single** wool (a tiny board cannot hold two) |
-| players ≥ 16 | a **full team**: 2–3 wools rather than 1–2 |
+| land > 2500 | the map-wide lane width is 3 cells rather than 2 |
+| land < 800 | no frontline — there is no budget for one, so the hub fronts the mid directly |
+| land < 600 | a single wool; a tiny board cannot hold two |
+| players ≥ 16 | a full team: 2–3 wools rather than 1–2 |
 
-Alongside the ladders sit roughly a dozen **sampling weights** — how often a wool is bent rather
-than straight, how often a bent wool is a donut, how often a big-square hub takes the ring, how
-often a ring gets one widened wall, how often the frontline takes the hub's full front width. These
-steer the output's character more than any other numbers in the generator.
+Alongside these sit roughly a dozen sampling weights — how often a wool is bent rather than straight,
+how often a bent wool is a donut, how often a big-square hub takes the ring, how often the frontline
+spans the hub's full front width. These steer the output's character more than any other numbers in
+the generator, and most of them trace to no law in `rules.md`: they were tuned, not derived. Which are
+grounded and which are invented is measured in `audit.md`.
 
-Two honest notes. The wool lane is **always `w2`** regardless of the map's lane width, which is what
-keeps wool families compact enough for a staple's three-lane mouth to fit a hub edge. And most of
-these ladders and weights **trace to no law** in `rules.md` — they were tuned, not derived. Which
-are grounded and which are invented is measured in `audit.md`.
+### 6.4 The seat
 
-### 6.2 The hub — positioned first, and the constraint source
+Seating's entire job is to turn a request into a position, and the position is a single integer: the
+**seat**, the offset in the hub's edge-local coordinates at which the neighbour's along-extent begins.
 
-The hub is placed before anything else. Its **depth** (toward the axis) and **lateral span** are
-drawn from *different* caps, so a hub grows **wider, not squarer**: the long lateral edge is what
-gives the spawn and wools room to attach with a seat gap between them, and at ≥9 cells it affords
-the wide holed bodies (P, Double-hole) whose bar and ring runs are long free surface. Where the plan
-carries a frontline, the frontline's reach pushes the hub's front edge **back**, so the frontline
-ends up between the hub and the axis.
+Once a seat is chosen the rectangle follows mechanically. `NeighbourRect` takes the hub, steps outward
+from the chosen edge by the request's depth, and runs its along parallel to that edge. That function is
+the only place a neighbour's rectangle is ever built, and it contains no branch beyond the four edges.
 
-The allocator — not the filler — **owns the hub-form choice** (§5.5), because the form decides where
-neighbours *can* sit. It emits the body once to read the runs it offers, and the chosen form (plus
-its wall widths and arm layout, where it has them) rides on the hub box so the filler re-emits
-**exactly** the same body. A body sampled twice would not agree with itself.
+A seat may be negative, or may run past the far end of the edge. This is not an edge case: it is how a
+box comes to hang past the hub's corner, over empty space. "The neighbour only grows outward" is true,
+and it describes the depth direction alone — a box never penetrates the hub and never floats free of
+it. It says nothing about the along direction, where the box's size was fixed before the hub's edge was
+consulted.
 
-### 6.3 The seat — the offerable surface, and the laws that bind it
+Because the search runs in a single integer, nothing is ever built and then moved. Every adjustment in
+the allocator — the front guard's backward slide included — is arithmetic on the seat, and the
+rectangle is derived once, at the end, from the value that survived.
 
-Each neighbour is seated on the hub's **real free-edge runs** — the offerable surface the body
-actually presents (§1.13), read off the emitted body's offers, never its bounding box. A bay simply
-yields no run over its stretch. This is what stops a neighbour docking an empty bbox stretch of an
-L or ring hub and only corner-touching it.
+The rectangle that results is an **envelope, not a fill target**. Its contents must touch its edges and
+stay connected, but need not fill it solid; an L in a five-by-four box leaves a whole quadrant empty.
+That is what lets one shape take many footprints inside a fixed rectangle.
 
-Four laws bind the seat, and they are the least-documented rules in the generator:
+### 6.5 The three dock rules
 
-**The seat-separation law.** No spawn or wool may seat within the **map's lane width** of another.
-Each already-seated neighbour projects onto the edge being seated as a forbidden along-interval, so
-one mechanism covers same-edge abutment *and* around-the-corner meetings at once. The frontline
-keeps no such gap — its clearance from a wool is a build-zone rule, not this one. *Consequence:* on
-a small hub the third wool doubling onto the spawn's side often cannot clear the gap, so it is
-**dropped** rather than crammed — the unit keeps its objectives, one fewer.
+Which seats are legal depends on the dock style, and the style is never sampled. It follows from the
+family roll that has already happened, which makes it a derived property of the request rather than a
+decision of its own.
 
-**Seat-and-shift.** A single-entry rich shape (an L, a donut) docks its narrow **entry** on a run
-while its wider body **overhangs** into free space; both handednesses are tried, every legal
-placement collected, one sampled. The dual-entry staple (U/H) is deliberately *not* one of these —
-both its entries must land on the host, so it docks its full mouth or not at all.
+The three are not an arbitrary list. They are indexed by how much is known about where the shape's
+entries are.
 
-**The contact patch.** The frontline seats differently again: its face may be narrower than the hub
-edge *and* may overhang it, so what must hold is not that the box fits inside a free run but that it
-**abuts** the hub over at least one lane's worth of one. The joint carries the clipped abutment, not
-the box width.
+**Full mouth** knows nothing. Requiring the whole along-extent to sit inside one free run guarantees
+every entry lands, however many there are and wherever they sit. It is the conservative, shape-agnostic
+rule, and it is why the two-legged staples dock this way — an overhang would strand a second entry off
+the host, which is a pinch.
 
-**Demotion, not failure.** A wool whose rich shape finds no legal placement **demotes to the compact
-inline I** — the always-seatable shape — rather than failing the unit. A spawn or frontline that
-cannot seat is a real too-small signal, which the allocator answers by falling back to the solid
-rectangle hub and, failing that, resampling. Where a unit has no frontline, a lateral seat left
-flush with the empty front is slid backward (deterministically, no draw) so lanes do not spike
-across the no-man's-land.
+**Overhang** knows there is exactly one entry and where it sits. The shape is emitted into a probe box
+to find the entry's interval, and the seat is then solved so that interval — and only that interval —
+lands inside a run. The body is free to hang past the run's end, over the bay or past the hub's corner.
+Both handednesses are tried and one legal placement is sampled.
 
----
+**Contact patch** applies to the frontline alone, which is a face rather than a corridor and so has no
+entry at all. Its face may be narrower than the hub's edge or wider than it, and what must hold is that
+every stretch where it meets a run is at least a lane wide. Every, not any: a face spanning a bay rests
+on a shoulder each side of the hole, and a shoulder thinner than a corridor leaves the face cantilevered
+over the hole, held by one side. A second rule rejects a face whose end lands exactly where a run stops,
+because the face's end cell and the hub's last filled cell would then touch only at a corner.
+
+| Style | Who | What must land on a run |
+|---|---|---|
+| full mouth | spawn, plain wools, the two-legged staples | the whole along-extent |
+| overhang | `L` and `Donut` wools | one narrow entry interval |
+| contact patch | the frontline | every contact, each at least a lane wide |
+
+### 6.6 What keeps neighbours apart
+
+The runs constrain a neighbour against its host. A second, independent constraint holds neighbours
+apart from each other, and a seat must satisfy both.
+
+No spawn or wool may seat within the map's lane width of another. Every already-seated neighbour
+projects onto the edge being seated as a forbidden along-interval, so a legal seat is sampled directly
+from what remains rather than proposed and rejected. The projection is what makes one mechanism cover
+two cases: a neighbour on the same edge projects to its own dock interval, and a neighbour on an
+adjacent edge projects only when it hugs the shared corner, which is exactly when it could collide.
+The paths that bypass this sampling — the overhang and the frontline — test the same clearance
+directly, by rectilinear nearest approach, so a diagonal corner meeting is caught and not only a shared
+edge. The frontline keeps no separation from a wool; its clearance is a build-zone rule, not this one.
+
+The separation is enforced between **boxes**, never between the shapes inside them. Since a shape is
+contained in its box, box separation implies shape separation — a sound over-approximation, and a
+conservative one. Two shapes may end up far further apart than the lane width and can never end up
+closer, at the cost of refusing arrangements whose boxes collide before their terrain would.
+
+### 6.7 When a seat cannot be found
+
+Failure is a ladder, not a cliff, and each rung is a different answer.
+
+A rich wool that finds no legal overhang demotes to the compact inline `I` — the always-seatable shape
+— and re-enters as a full mouth. A wool whose full mouth then finds no run demotes the same way. A wool
+that still cannot clear the separation gap is **dropped**, provided another wool has already seated:
+the unit keeps its objectives, one fewer, rather than failing entirely. The spawn and the frontline are
+not droppable, because a spawn or frontline that cannot seat is a genuine too-small signal.
+
+That signal propagates upward. The allocator retries the whole seating on the solid rectangle hub,
+whose four full edges usually hold a lawful seat the chosen form's runs could not, and only when that
+also fails does the attempt return nothing and the composer resample.
+
+One further pass runs where a unit has no frontline. A lateral seat left flush with the hub's empty
+front would extend that face into one long flat frontier, so the seat slides backward — deterministically,
+consuming no draw — to the nearest position that clears the front. Seats that no backward position can
+hold are collected and resolved after every neighbour is placed, when the full set is known and an
+earlier drop may have freed the very blocker.
+
+### 6.8 What a joint records
+
+When a seat survives, two things are written into the partition. The box goes in, carrying its
+rectangle and its share of the land budget. A joint records the **abutment** — the interval where the
+two rectangles actually touch, obtained by intersecting them — and the **grant**, the corridor width
+this consumer was given across that abutment.
+
+The grant is not the host's offer travelling forward, and the two carry different quantities. An offer
+publishes a **capacity**, whose width comes from the length of the run it sits on; a grant records a
+**selection**, whose width is chosen per consumer kind — a wool reads the narrow wool lane, a spawn or
+frontline the map's lane width. One run can carry two docks at two widths, which is why the grant is
+per joint and why the filler reads a neighbour's width from its own joint rather than from the edge.
+
+Four along-extents therefore exist at a single dock, and they coincide only in the simple case: the
+request's along, the shape's entry, the geometric abutment, and the granted width. They come apart at
+exactly the two docks worth understanding — an overhang wool, whose entry is narrower than its box,
+and the frontline, whose face may exceed the hub's edge so the abutment is clipped narrower than the
+box. Of the four, the abutment is the only one describing something a player can walk through.
 
 ## 7. Fill — hub-first, and the offer consumed
 
