@@ -61,6 +61,7 @@ public partial class PlanTool
     private string? compiledLayoutRaw, compiledIntentRaw;   // verbatim, posted to the draft pipeline
     private string? compileError;                     // a malformed / transport failure message
     private List<InspectFinding> compileErrors = [];  // 422 structural findings (compile blocked)
+    private List<InspectFinding> compileWarnings = [];  // completeness complaints that did not block the compile
 
     private string? draftSlug;
     private bool draftBusy;
@@ -630,6 +631,7 @@ public partial class PlanTool
         compiling = true;
         compileError = null;
         compileErrors = [];
+        compileWarnings = [];
         compiledLayout = compiledIntent = compiledLayoutRaw = compiledIntentRaw = null;
         draftSlug = null; draftError = null; draftBusy = false;
         StateHasChanged();
@@ -647,6 +649,9 @@ public partial class PlanTool
                 compiledIntentRaw = intent.GetRawText();
                 compiledLayout = JsonSerializer.Serialize(layout, Pretty);
                 compiledIntent = JsonSerializer.Serialize(intent, Pretty);
+                compileWarnings = doc.TryGetProperty("warnings", out var w)
+                    ? JsonSerializer.Deserialize<List<InspectFinding>>(w.GetRawText()) ?? []
+                    : [];
             }
             else if ((int)resp.StatusCode == 422)
             {

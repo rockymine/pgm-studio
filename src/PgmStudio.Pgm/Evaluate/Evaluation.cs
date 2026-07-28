@@ -20,6 +20,10 @@ public sealed record TermScore(string TermId, TermKind Kind, double Distance, Vi
 /// and every term's contribution. Valid means no hard term fired.</summary>
 public sealed record Evaluation(double Score, IReadOnlyList<TermScore> Terms)
 {
+    /// <summary>The result for a plan there is nothing to score — no terms fired because none could run.
+    /// Distinct from a perfect plan only in that it has no terms at all.</summary>
+    public static readonly Evaluation Empty = new(0, []);
+
     public bool IsValid => Terms.All(t => t.Kind != TermKind.Hard || t.Violation is null);
 
     public IEnumerable<Violation> Violations => Terms.Where(t => t.Violation is not null).Select(t => t.Violation!);

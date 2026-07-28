@@ -38,6 +38,15 @@ the focus-integration polish remains.
   a spawn (team or wool) via the **coord inputs** rewrites X/Z without re-snapping Y to the new column, so
   only the point tool re-seats. Pairs with `N08` (monument Y editing) and `CV11` (the side-view clamp side
   of the same problem).
+- [ ] **N12 — Configure only authors wool objectives; the intent and the plan tool already do all three.**
+  `MapIntent` carries `Wools`, `Destroyables` and `Cores`, and `WoolGenerator`/`DestroyableGenerator`/
+  `CoreGenerator` all emit their `map.xml` — the backend is complete. The **plan tool** places all three.
+  Configure has only the wool path (`WoolObjectivesStep`, `WoolMonumentsStep`, `WoolRoomStep`,
+  `WoolSpawnStep`, and the wool phase in `ConfigurePhases`), so a DTM or DTC map authored in the plan tool
+  can be configured — the other objectives ride through untouched — but its objective cannot be *seen* or
+  edited there, and a map that arrives without one can only be given a wool. Add the destroyable and core
+  steps (both are simpler than wool: one region per defending team, no per-capturing-team monuments), and
+  make the objective phase branch on which kind the map carries rather than assuming CTW.
 
 ## Sketch tool (S) — parked slices
 
@@ -159,24 +168,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
   neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
   91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
-- [ ] **B38 — [Decision] Nothing stops an objective-less plan compiling.** `PlanValidator` gates
-  *structural consistency* — overlapping pieces at different surfaces, a placement that doesn't sit inside
-  its piece, core casing geometry — but has **no completeness gate**. Measured by `tests/e2e/plan-refusals`
-  against a composed board with one slice removed: **no spawns → 200**, **no wools → 200**, **a piece with a
-  blank id → 200**. (Removing all pieces, or the build zones, *is* refused — but via knock-on rules
-  ("spawn references unknown piece", "wool … unreachable from team 1's spawn"), not a completeness check.)
-  The question is where completeness belongs: `/plan/compile` is documented as a one-way lowering into
-  `layout` + `intent`, and Configure is the stage that fills a map in — so an incomplete plan compiling may
-  be correct by design. Decide, then either add the gate or write the intent down. The e2e spec asserts
-  today's behaviour and **fails loudly if a gate lands**, so the decision cannot be made silently.
-- [ ] **B39 — `/plan/evaluate` answers 400 on a plan that is merely empty.** A well-formed blank plan
-  (the bare `/plan-editor` document) gets `400 {"error":"Invalid plan structure"}`; its sibling
-  `/plan/inspect` answers `200` on the identical body. The 400 comes from the endpoint's catch-all around
-  `LayoutEvaluator.Evaluate`, which turns a throw into "invalid" — but the document is valid, just empty.
-  Not user-visible breakage (`plan-bridge.runEvaluate` treats a non-ok as "clear the score panel"), so the
-  symptom is a fresh plan showing a blank evaluator panel with no reason. Fix by making an empty plan
-  evaluate to an empty result rather than throw — check what actually throws first; the catch was added for
-  a reason. Found by the e2e smoke sweep, which allowlists exactly this endpoint until it's fixed.
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
   `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts

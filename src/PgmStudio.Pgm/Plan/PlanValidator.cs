@@ -38,6 +38,41 @@ public static class PlanValidator
 
     public static bool HasErrors(PlanModel plan) => Validate(plan).Any(f => f.Severity == PlanSeverity.Error);
 
+    /// <summary>
+    /// Whether the plan carries the things a map cannot exist without — a separate question from
+    /// <see cref="Validate"/>, which asks only whether what the plan *says* is coherent and therefore passes a
+    /// document that says nothing. Kept apart on purpose: a plan under construction is legitimately incomplete
+    /// (the composer scores candidates before it has placed anything), so these belong to the one-way gate that
+    /// turns a plan into a map, not to the continuous validation the editor and the evaluator run.
+    /// <para>Errors here block that gate; the lint is a complaint the author may ignore.</para>
+    /// </summary>
+    public static IReadOnlyList<PlanFinding> Completeness(PlanModel plan)
+    {
+        var findings = new List<PlanFinding>();
+
+        // No generating piece: there is no land, so there is nothing to build. Reported alone because every
+        // other complaint about a blank document is downstream of this one.
+        if (!plan.Pieces.Any(pc => PlanRoles.IsGenerating(pc.Role)))
+        {
+            findings.Add(new PlanFinding(PlanSeverity.Error, "this plan has no pieces — there is no land to build"));
+            return findings;
+        }
+
+        // No spawn: PGM has nowhere to put a player, so the finished map cannot be entered at all. The hard one.
+        if (plan.Placements.Spawns.Count == 0)
+            findings.Add(new PlanFinding(PlanSeverity.Error,
+                "this plan has no spawn — a map with nowhere to put a player cannot be loaded"));
+
+        // No objective of any kind. A complaint, not a block: which goal a map carries is the author's, all
+        // three are authorable here, and one can still be set downstream when the map is configured.
+        var p = plan.Placements;
+        if (p.Wools.Count == 0 && p.Destroyables.Count == 0 && p.Cores.Count == 0)
+            findings.Add(new PlanFinding(PlanSeverity.Lint,
+                "this plan has no objective — no wool, destroyable or core, so nothing wins the match"));
+
+        return findings;
+    }
+
     // ── errors (block the compile) ──────────────────────────────────────────────────────────────────────
 
     private static IEnumerable<PlanFinding> Errors(PlanModel plan, ContactGraph d)

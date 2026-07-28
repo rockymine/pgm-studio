@@ -515,6 +515,20 @@
       }
       else if (compiledLayout is not null)
       {
+        @if (compileWarnings.Count > 0)
+        {
+          <div class="plan-compile-warnings">
+            <p class="section-desc">Compiled, but worth a look:</p>
+            @foreach (var f in compileWarnings)
+            {
+              <div class="plan-lint-row plan-lint-row--static">
+                <span class="plan-lint-dot plan-lint-dot--lint"></span>
+                @if (!string.IsNullOrEmpty(f.Rule)) { <span class="plan-lint-chip">@f.Rule</span> }
+                <span class="plan-lint-msg">@f.Message</span>
+              </div>
+            }
+          </div>
+        }
         <div class="plan-compile-tabs">
           <button class="draw-tool-btn @(compileTab == "layout" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "layout"'>Layout</button>
           <button class="draw-tool-btn @(compileTab == "intent" ? "draw-tool-btn--active" : null)" @onclick='() => compileTab = "intent"'>Intent</button>

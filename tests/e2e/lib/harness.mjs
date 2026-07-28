@@ -52,12 +52,13 @@ const ALLOWED_FAULTS = [
     why: "lucide is loaded from a CDN (C30) — unreachable offline",
   },
   {
-    // A blank plan is well-formed but empty, and the evaluator answers 400 "Invalid plan structure"
-    // where its sibling /plan/inspect answers 200. The client degrades gracefully (it clears the score
-    // panel), so this is a wrong status rather than a broken page — B39. Narrow on purpose: only this
-    // endpoint is allowed, so any OTHER 4xx on the plan editor still fails the sweep.
-    match: /\/api\/plan\/evaluate$/,
-    why: "evaluate 400s on an empty plan (B39) — wrong status, page still healthy",
+    // ERR_ABORTED is the browser cancelling a request that was still in flight, which on a route sweep is
+    // the sweep itself moving on — the page is judged and left while a background fetch is open. It says
+    // nothing about the page's health and it fires nondeterministically, so tolerating it removes a flake
+    // rather than coverage: a request that actually fails or answers 4xx/5xx is a different event and
+    // still fails the sweep.
+    match: /request failed \(net::ERR_ABORTED\)/,
+    why: "a fetch cancelled by navigating on — an artifact of the sweep, not a page fault",
   },
 ];
 

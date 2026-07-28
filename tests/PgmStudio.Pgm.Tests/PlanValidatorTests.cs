@@ -428,4 +428,103 @@ public sealed class PlanValidatorTests
             await Assert.That(el6).IsEmpty();
         }
     }
+
+    // ── completeness (the compile gate, not the continuous validator) ────────────────────────────────────
+
+    private static bool Missing(PlanModel p, string needle) =>
+        PlanValidator.Completeness(p).Any(f => f.Severity == PlanSeverity.Error && f.Message.Contains(needle));
+
+    [Test]
+    public async Task An_empty_plan_has_no_land_to_build()
+    {
+        var p = Plan("""{ "plan":1, "globals":{"cell":1} }""");
+        await Assert.That(Missing(p, "no pieces")).IsTrue();
+    }
+
+    [Test]
+    public async Task An_annotation_only_plan_still_has_no_land_to_build()
+    {
+        // buffers and other non-generating roles produce no terrain, so a plan of nothing but them is as empty
+        // as a blank document.
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ] }
+        """);
+        await Assert.That(Missing(p, "no pieces")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_plan_with_land_but_no_spawn_cannot_be_loaded()
+    {
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ] }
+        """);
+        await Assert.That(Missing(p, "no spawn")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_blank_plan_reports_only_the_missing_land()
+    {
+        // the spawn and objective complaints are consequences of there being no plan at all — saying all three
+        // buries the one fact the author needs.
+        var p = Plan("""{ "plan":1, "globals":{"cell":1} }""");
+        await Assert.That(PlanValidator.Completeness(p).Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_missing_objective_is_a_complaint_not_a_block()
+    {
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
+          "placements":{"spawns":[{"piece":"a","at":[1,1]}]} }
+        """);
+        var findings = PlanValidator.Completeness(p);
+        await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Error)).IsFalse();
+        await Assert.That(findings.Any(f => f.Severity == PlanSeverity.Lint && f.Message.Contains("no objective"))).IsTrue();
+    }
+
+    [Test]
+    [Arguments("wools")]
+    [Arguments("destroyables")]
+    [Arguments("cores")]
+    public async Task Any_one_objective_kind_silences_the_complaint(string kind)
+    {
+        var p = Plan($$"""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
+          "placements":{"spawns":[{"piece":"a","at":[1,1]}],"{{kind}}":[{"piece":"a","at":[5,5]}]} }
+        """);
+        await Assert.That(PlanValidator.Completeness(p).Any(f => f.Message.Contains("no objective"))).IsFalse();
+    }
+
+    [Test]
+    public async Task Completeness_is_not_part_of_the_continuous_validator()
+    {
+        // Validate() runs on every candidate the composer scores and on every keystroke in the editor, where a
+        // half-built plan is normal — so an incomplete plan must not read as a structural error there.
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ] }
+        """);
+        await Assert.That(PlanValidator.Validate(p).Any(f => f.Severity == PlanSeverity.Error)).IsFalse();
+    }
+
+    [Test]
+    public async Task Every_seed_that_places_anything_is_a_complete_map_plan()
+    {
+        // Some seeds place nothing at all — they are geometry studies (a frontline shape, a hub attachment)
+        // kept for the contact/interface derivations, never meant to be finished into a map. A seed that
+        // places *something* is claiming to be a map plan, and then it owes a spawn.
+        foreach (var path in Directory.EnumerateFiles(PlanTestSupport.SeedDir(), "*.plan.json"))
+        {
+            var plan = PlanModel.Parse(File.ReadAllText(path))!;
+            var p = plan.Placements;
+            if (p.Spawns.Count + p.Wools.Count + p.Destroyables.Count + p.Cores.Count == 0) continue;
+
+            var errors = PlanValidator.Completeness(plan).Where(f => f.Severity == PlanSeverity.Error).ToList();
+            await Assert.That(errors).IsEmpty();
+        }
+    }
 }

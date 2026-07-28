@@ -99,10 +99,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   It paid for itself before it was finished — three defects, none of which a unit test could see:
   **a dead `PgmStudio.Client.styles.css` link 404ing on every page** (the project has zero `.razor.css`, and
   its own UI contract says it never will — link removed here); **the icon set is a runtime CDN dependency**
-  (C30); and **`/plan/evaluate` answers 400 on a plan that is merely empty** while its sibling
-  `/plan/inspect` answers 200 on the same body (B39). It also measured that **nothing stops an
-  objective-less plan compiling** (B38) — asserted as today's behaviour so the suite stays a signal, and
-  written to fail loudly if a gate ever lands. 31/31 smoke, 14/14 refusals. (C31)
+  (C30, still open); and **`/plan/evaluate` answering 400 on a plan that is merely empty** while its sibling
+  `/plan/inspect` answered 200 on the same body (B39, fixed below). It also measured that **nothing stopped
+  an incomplete plan compiling** (B38, gated below) — asserted as the behaviour of the day so the suite
+  stayed a signal, and written to fail loudly when a gate landed, which is how it did. 31/31 smoke,
+  22/22 refusals. (C31)
 - **The canvases share their machinery instead of re-deriving it (CV13 + CV14).** Two shapes of
   duplication, both of which had already cost something:
   - **The layer z-stack was stated twice per canvas** — once by the `#…Layer` field declarations, once by
@@ -393,6 +394,29 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
 ## Backend / API (B)
+- **A plan must carry a map before it can become one — the compile gate asks two questions, not one (B38, B39).**
+  `PlanValidator` only ever asked whether what a plan *said* was coherent, so a plan that said **nothing**
+  passed: an empty document compiled `200` into an empty layout and a spawn-less intent — a map that cannot
+  exist — and stripping the spawns out of a real board compiled just as happily. The missing question was
+  completeness, and it is now `PlanValidator.Completeness`, run by `/plan/compile` alongside `Validate`:
+  **no generating piece** ("there is no land to build") and **no spawn** ("nowhere to put a player") are
+  errors that block the compile with the same `422 + findings` shape as a structural break; **no objective
+  at all** — no wool, destroyable or core — is a *complaint*, since the goal is the author's and can still
+  be set when the map is configured. A blank document reports only the missing land, because the other two
+  are consequences of it.
+  - **Deliberately not part of `Validate`.** That runs continuously — on every keystroke in the editor and
+    on every candidate the composer scores, where a half-built plan is normal — and its errors feed the
+    evaluator's hard `STRUCT` term. Folding completeness in there made the evaluator reject every mid-search
+    candidate that had not placed its spawns yet; the three unit tests that caught it are the reason the two
+    passes are separate.
+  - **The complaint is not swallowed.** A compile that succeeds with an unmet complaint returns it as
+    `warnings` on the `200`, and the plan tool's compile drawer shows it above the compiled JSON — so a
+    goalless map says so instead of passing in silence.
+  - **`/plan/evaluate` no longer calls an empty plan invalid** (B39). It answered `400 "Invalid plan
+    structure"` on the bare `/plan-editor` document while `/plan/inspect` answered `200` on the same body,
+    which showed as a fresh plan with a blank evaluator panel and no reason. Nothing is scorable without
+    pieces, so it now answers `Evaluation.Empty` — the honest empty result rather than a thrown-and-caught
+    "invalid". The e2e allowance for it is gone.
 - **A plan rect is a type now — `CellRect` in `PgmStudio.Geom`.** `Box.Rect`, `PlanPiece.Rect`,
   `PlanZone.Rect`/`.Holes`, `ShapeVacancy.Rect`, `NegativeSpacePart.Rect`, `GrownPiece`, `MidStone`,
   `Vacancy`, `EvidenceRect` and the shape emitters all meant `[x, z, w, h]` in plan cells, enforced by

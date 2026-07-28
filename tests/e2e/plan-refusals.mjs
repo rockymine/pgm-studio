@@ -15,12 +15,15 @@ const good = JSON.parse(seed.planJson);
 const clone = () => JSON.parse(JSON.stringify(good));
 
 /**
- * Each case strips one slice out of a good plan. `refused: true` means the validator blocks the compile
- * (422 + findings); `refused: false` records that it compiles **today** — the validator gates structural
- * consistency (overlaps, a placement sitting inside its piece, core geometry) but has no *completeness*
- * gate, so an objective-less plan passes. Those are asserted as-is rather than left failing: a green
- * suite is a signal, a permanently red one is noise. If a completeness gate lands, the case flips and
- * this spec fails loudly — which is the point. Open question tracked as B38.
+ * Each case strips one slice out of a good plan. `refused: true` means the compile gate blocks it (422 +
+ * findings); `refused: false` records that it compiles **today**, asserted as-is rather than left failing —
+ * a green suite is a signal, a permanently red one is noise. A `refused: false` case that starts refusing
+ * fails this spec loudly, which is the point: it means a gate moved.
+ *
+ * The gate asks two questions. Is the plan coherent (the structural validator: overlaps, a placement inside
+ * its piece, reachability), and does it carry what a map cannot exist without (completeness: land, a spawn).
+ * A missing *objective* is deliberately not a refusal — the goal is the author's, and it can still be set
+ * when the map is configured — so it comes back as a warning on the 200 instead.
  */
 const CASES = [
   { label: "no pieces at all", refused: true,
@@ -29,10 +32,10 @@ const CASES = [
     mutate: () => { const p = clone(); p.zones = []; return p; } },
   { label: "a marker on a piece that isn't there", refused: true,
     mutate: () => { const p = clone(); if (p.placements.wools[0]) p.placements.wools[0].piece = "no-such-piece"; return p; } },
-
-  // ── compiles today; see B38 ──
-  { label: "no spawns", refused: false,
+  { label: "no spawns", refused: true,
     mutate: () => { const p = clone(); p.placements.spawns = []; return p; } },
+
+  // ── still compiles: incomplete but not un-buildable ──
   { label: "no wools", refused: false,
     mutate: () => { const p = clone(); p.placements.wools = []; return p; } },
   { label: "a piece with a blank id", refused: false,
@@ -58,11 +61,43 @@ for (const c of CASES.filter(c => c.refused)) {
   }
 }
 
-checks.section("an incomplete plan still compiles — no completeness gate (B38)");
+checks.section("an incomplete-but-buildable plan still compiles");
 for (const c of CASES.filter(c => !c.refused)) {
   const res = await apiRaw("/plan/compile", { method: "POST", body: c.mutate() });
   checks.add(`still compiles: ${c.label}`, res.status === 200,
-    res.status === 200 ? "200 — documented gap, see B38" : `now ${res.status}: a gate landed, flip this case`);
+    res.status === 200 ? "200" : `now ${res.status}: a gate landed, flip this case`);
+}
+
+checks.section("a goalless plan compiles, but says so");
+{
+  const p = clone();
+  p.placements.wools = []; p.placements.destroyables = []; p.placements.cores = [];
+  const res = await apiRaw("/plan/compile", { method: "POST", body: p });
+  const warned = (res.json?.warnings ?? []).some(w => /objective/i.test(w.message ?? ""));
+  checks.add("compiles", res.status === 200, `${res.status}`);
+  checks.add("…and warns about the missing objective", warned,
+    (res.json?.warnings ?? []).map(w => w.message).join("; ").slice(0, 100) || "no warnings");
+
+  // The warning must not be noise on a plan that does have a goal.
+  const good2 = await apiRaw("/plan/compile", { method: "POST", body: good });
+  checks.add("no warning on a plan with an objective", (good2.json?.warnings ?? []).length === 0,
+    JSON.stringify(good2.json?.warnings ?? []).slice(0, 100));
+}
+
+checks.section("an empty plan is refused, not answered with an empty map");
+{
+  const empty = { plan: 1, globals: { cell: 5 } };
+  const compiled = await apiRaw("/plan/compile", { method: "POST", body: empty });
+  checks.add("empty plan → 422", compiled.status === 422, `${compiled.status}`);
+  const why = (compiled.json?.findings ?? []).map(f => f.message)[0] ?? "";
+  checks.add("…naming the missing land", /no pieces/.test(why), why.slice(0, 90));
+
+  // Its sibling endpoints must survive the same document — an empty plan is well-formed, just empty.
+  const evaluated = await apiRaw("/plan/evaluate", { method: "POST", body: empty });
+  checks.add("evaluate answers an empty plan with an empty score", evaluated.status === 200,
+    `${evaluated.status}: ${evaluated.text.slice(0, 120)}`);
+  const inspected = await apiRaw("/plan/inspect", { method: "POST", body: empty });
+  checks.add("inspect answers an empty plan", inspected.status === 200, `${inspected.status}`);
 }
 
 checks.section("malformed input is answered, not 500");
