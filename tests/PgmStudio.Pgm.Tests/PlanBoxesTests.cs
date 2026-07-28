@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Tests;
@@ -36,11 +37,22 @@ public sealed class PlanBoxesTests
         var plan = PlanModel.Parse(Json)!;
         await Assert.That(plan.Boxes.Count).IsEqualTo(2);
         await Assert.That(plan.Boxes[0].Kind).IsEqualTo(PlanBoxKinds.Wool);
-        await Assert.That(plan.Boxes[0].Rect).IsEquivalentTo(new[] { 0, 0, 3, 2 });
+        await Assert.That(plan.Boxes[0].Rect).IsEqualTo(new CellRect(0, 0, 3, 2));
         await Assert.That(plan.Boxes[1].Members!).IsEquivalentTo(new[] { "far", "room" });
 
-        var reparsed = PlanModel.Parse(plan.ToJson())!;
+        var json = plan.ToJson();
+        // A typed rect still writes the four-element array the format has always stored (whitespace is the
+        // serializer's business — what matters is that it is an array of four numbers, not an object).
+        var wire = System.Text.Json.JsonDocument.Parse(json)
+            .RootElement.GetProperty("boxes")[0].GetProperty("rect");
+        await Assert.That(wire.ValueKind).IsEqualTo(System.Text.Json.JsonValueKind.Array)
+            .Because("a CellRect keeps the plan.json wire form");
+        await Assert.That(wire.EnumerateArray().Select(e => e.GetInt32()).ToArray())
+            .IsEquivalentTo(new[] { 0, 0, 3, 2 });
+
+        var reparsed = PlanModel.Parse(json)!;
         await Assert.That(reparsed.Boxes.Count).IsEqualTo(2);
+        await Assert.That(reparsed.Boxes[0].Rect).IsEqualTo(new CellRect(0, 0, 3, 2));
         await Assert.That(reparsed.Boxes[1].Members!.Count).IsEqualTo(2);
     }
 
@@ -90,10 +102,10 @@ public sealed class PlanBoxesTests
     [Test]
     public async Task Contains_counts_touching_edges_as_inside()
     {
-        await Assert.That(PlanBoxes.Contains([0, 0, 2, 2], [0, 0, 2, 2])).IsTrue();     // exactly filling
-        await Assert.That(PlanBoxes.Contains([0, 0, 2, 2], [1, 1, 1, 1])).IsTrue();
-        await Assert.That(PlanBoxes.Contains([0, 0, 2, 2], [1, 1, 2, 1])).IsFalse();    // overhangs
-        await Assert.That(PlanBoxes.Contains([0, 0, 2, 2], [-1, 0, 1, 1])).IsFalse();
+        await Assert.That(PlanBoxes.Contains(new(0, 0, 2, 2), new(0, 0, 2, 2))).IsTrue();     // exactly filling
+        await Assert.That(PlanBoxes.Contains(new(0, 0, 2, 2), new(1, 1, 1, 1))).IsTrue();
+        await Assert.That(PlanBoxes.Contains(new(0, 0, 2, 2), new(1, 1, 2, 1))).IsFalse();    // overhangs
+        await Assert.That(PlanBoxes.Contains(new(0, 0, 2, 2), new(-1, 0, 1, 1))).IsFalse();
     }
 
     [Test]

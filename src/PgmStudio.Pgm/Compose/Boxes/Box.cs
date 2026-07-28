@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -40,7 +41,7 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// fill directive (family + room placement + handedness), likewise carried so the filler re-emits what the
 /// allocator seated; <c>null</c> for a non-wool box.</summary>
 public sealed record Box(
-    string Id, BoxKind Kind, int[] Rect, int LandTargetCells,
+    string Id, BoxKind Kind, CellRect Rect, int LandTargetCells,
     CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null,
     IReadOnlyList<(int Start, int Width)>? HubArms = null)
 {

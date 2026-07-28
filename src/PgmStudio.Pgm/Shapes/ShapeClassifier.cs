@@ -151,9 +151,9 @@ public static class ShapeClassifier
             return new(HasBay(cells) ? Compound.G : Cells.ReflexCorners(cells) > 4 ? Compound.P : Compound.Ring);
         if (voids.Count != 0) throw new ArgumentException($"no body form has {voids.Count} voids.");
 
-        var (mnx, mnz, mxx, mxz) = Cells.BoundingBox(cells);
-        if (cells.Count == (long)(mxx - mnx + 1) * (mxz - mnz + 1)) return new(Compound.Rectangle);
-        return new(Compound.SpineArms, ArmCount(cells, mnx, mnz, mxx, mxz));
+        var bb = Cells.BoundingBox(cells);
+        if (cells.Count == (long)bb.Width * bb.Height) return new(Compound.Rectangle);
+        return new(Compound.SpineArms, ArmCount(cells, bb.X, bb.Z, bb.MaxX - 1, bb.MaxZ - 1));
     }
 
     // the enclosed void split into its 4-connected components (each a cell set) — two ⇒ a double-hole or two-U-on-I.
@@ -178,10 +178,10 @@ public static class ShapeClassifier
     // 2-walled notches. Runs only in the one-void branch, so the enclosed hole (walled 4) never counts.
     private static bool HasBay(IReadOnlySet<(int, int)> cells)
     {
-        var (mnx, mnz, mxx, mxz) = Cells.BoundingBox(cells);
+        var bb = Cells.BoundingBox(cells);
         var empty = new HashSet<(int, int)>();
-        for (var x = mnx; x <= mxx; x++)
-            for (var z = mnz; z <= mxz; z++)
+        for (var x = bb.X; x < bb.MaxX; x++)
+            for (var z = bb.Z; z < bb.MaxZ; z++)
                 if (!cells.Contains((x, z))) empty.Add((x, z));
 
         var seen = new HashSet<(int, int)>();
@@ -205,8 +205,10 @@ public static class ShapeClassifier
     // between twin loops is open.
     private static bool ChannelBetween(IReadOnlySet<(int, int)> cells, HashSet<(int, int)> a, HashSet<(int, int)> b)
     {
-        var (ax0, az0, ax1, az1) = Cells.BoundingBox(a);
-        var (bx0, bz0, bx1, bz1) = Cells.BoundingBox(b);
+        var ra = Cells.BoundingBox(a);
+        var rb = Cells.BoundingBox(b);
+        int ax0 = ra.X, az0 = ra.Z, ax1 = ra.MaxX - 1, az1 = ra.MaxZ - 1;   // inclusive far corners
+        int bx0 = rb.X, bz0 = rb.Z, bx1 = rb.MaxX - 1, bz1 = rb.MaxZ - 1;
         if (ax1 < bx0 || bx1 < ax0)                              // separated in x — scan the column band between
         {
             int gx0 = Math.Min(ax1, bx1) + 1, gx1 = Math.Max(ax0, bx0) - 1;
@@ -267,14 +269,14 @@ public static class ShapeClassifier
         foreach (var p in plan.Pieces)
         {
             if (p.Role is PlanRoles.Buffer or PlanRoles.Connector) continue;
-            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++) filled.Add((x, z));
+            for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+                for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++) filled.Add((x, z));
         }
         var wp = plan.Pieces.FirstOrDefault(p => p.Id == terminalPieceId);
         if (wp is null) return (filled, null);
         var terminal = new HashSet<(int, int)>();
-        for (var x = wp.Rect[0]; x < wp.Rect[0] + wp.Rect[2]; x++)
-            for (var z = wp.Rect[1]; z < wp.Rect[1] + wp.Rect[3]; z++) terminal.Add((x, z));
+        for (var x = wp.Rect.X; x < wp.Rect.X + wp.Rect.Width; x++)
+            for (var z = wp.Rect.Z; z < wp.Rect.Z + wp.Rect.Height; z++) terminal.Add((x, z));
         return (filled, terminal);
     }
 
@@ -298,7 +300,7 @@ public static class ShapeClassifier
     // both its runs on the terminal's edge and must not read as a fork.
     private static bool ParallelArms(HashSet<(int, int)> comp, HashSet<(int, int)> terr, IReadOnlySet<(int, int)> terminal)
     {
-        var (mnx, mnz, mxx, mxz) = Cells.BoundingBox(comp);
+        var bb = Cells.BoundingBox(comp);
         bool TwoRuns(IEnumerable<(int, int)> line)
         {
             var cells = line.ToList();
@@ -307,10 +309,10 @@ public static class ShapeClassifier
             foreach (var c in cells) { if (terr.Contains(c)) { if (!inRun) { runs++; inRun = true; } } else inRun = false; }
             return runs >= 2;
         }
-        var north = Enumerable.Range(mnx, mxx - mnx + 1).Select(x => (x, mnz));
-        var south = Enumerable.Range(mnx, mxx - mnx + 1).Select(x => (x, mxz));
-        var west = Enumerable.Range(mnz, mxz - mnz + 1).Select(z => (mnx, z));
-        var east = Enumerable.Range(mnz, mxz - mnz + 1).Select(z => (mxx, z));
+        var north = Enumerable.Range(bb.X, bb.Width).Select(x => (x, bb.Z));
+        var south = Enumerable.Range(bb.X, bb.Width).Select(x => (x, bb.MaxZ - 1));
+        var west = Enumerable.Range(bb.Z, bb.Height).Select(z => (bb.X, z));
+        var east = Enumerable.Range(bb.Z, bb.Height).Select(z => (bb.MaxX - 1, z));
         return TwoRuns(north) || TwoRuns(south) || TwoRuns(west) || TwoRuns(east);
     }
 }

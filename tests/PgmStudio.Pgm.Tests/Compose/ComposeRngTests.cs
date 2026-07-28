@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 
 namespace PgmStudio.Pgm.Tests.Compose;

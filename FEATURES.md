@@ -338,6 +338,25 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
 ## Backend / API (B)
+- **A plan rect is a type now — `CellRect` in `PgmStudio.Geom`.** `Box.Rect`, `PlanPiece.Rect`,
+  `PlanZone.Rect`/`.Holes`, `ShapeVacancy.Rect`, `NegativeSpacePart.Rect`, `GrownPiece`, `MidStone`,
+  `Vacancy`, `EvidenceRect` and the shape emitters all meant `[x, z, w, h]` in plan cells, enforced by
+  nothing: `Rect[2]` was width by agreement, a three-element array compiled, and reading `[3]` as a depth
+  compiled too. The convention is now **origin + exclusive extent** (`X`/`Z` + `Width`/`Height`, with
+  computed `MaxX`/`MaxZ`), so the rotations and mirrors that used to read `[dim - r[1] - r[3], r[0], r[3],
+  r[2]]` now say what they do. **Named `CellRect`, not `Rect`** — `Rect` is taken in the same project
+  (`Authoring/MapIntent.cs`) and is the opposite convention throughout: world **blocks**, fractional,
+  corner-pair. That split is the point: `Rect` = world blocks, `CellRect` = plan cells.
+  **Placed in `Geom`**, the dependency-free leaf, so `Cells.BoundingBox` could return it instead of a bare
+  inclusive corner tuple — collapsing the two 2-D conventions rather than leaving them adjacent. (Its extent
+  counts both bounding cells, so `MaxX` is one past the far cell; the handful of call sites written in the
+  inclusive convention bind their far corners explicitly.) First public value type in `Geom`.
+  **`plan.json` is byte-for-byte unchanged**: a `CellRectJsonConverter` on the type keeps the four-element
+  array, so every consumer agrees on the wire form by default, and the API DTOs that cross to the Blazor
+  client still hand out `int[]`. **Oracle: the composer fingerprints did not move** —
+  `tools/compose/composer-fingerprints.json` is untouched and `ComposerVersionTests` passes, which is what
+  proves a pure representation change. 68 files; Pgm 751/751, Geom 66/66, Analysis 50/50, Domain 17/17,
+  Minecraft 70/70. (B37)
 - **`--parity` retired — PGM is the reference for the `map.xml` contract, not the Python oracle.** The
   harness compared `Serializer.ToDict(parse(map.xml))` against the reference's `xml_data.json` and had read
   **2 ok / 342 failed** for a long time, so it gated nothing. The red was not drift: the C# contract

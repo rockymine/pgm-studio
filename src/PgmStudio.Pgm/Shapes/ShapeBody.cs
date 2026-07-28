@@ -1,3 +1,5 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
@@ -9,7 +11,7 @@ namespace PgmStudio.Pgm.Shapes;
 /// each designation finishes. See <c>docs/generator/model.md</c> §5.3/§5.4.
 /// </summary>
 public sealed record ShapeBody(
-    IReadOnlyList<(int[] Rect, string Slot)> Pieces, IReadOnlyList<ShapeVacancy> Vacancies);
+    IReadOnlyList<(CellRect Rect, string Slot)> Pieces, IReadOnlyList<ShapeVacancy> Vacancies);
 
 /// <summary>
 /// The per-side widths of a ring's four walls, in cells — the widening knob every ring-bodied form shares

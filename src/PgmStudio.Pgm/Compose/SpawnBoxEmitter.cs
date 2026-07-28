@@ -68,7 +68,7 @@ public static class SpawnBoxEmitter
 
         // the mouth's along × depth frame (I/L never transpose, so the box dims map straight through)
         var lateral = mouth is BoxEdge.Left or BoxEdge.Right;
-        var (alongLen, depth) = lateral ? (box.Rect[3], box.Rect[2]) : (box.Rect[2], box.Rect[3]);
+        var (alongLen, depth) = lateral ? (box.Rect.Height, box.Rect.Width) : (box.Rect.Width, box.Rect.Height);
         var (minW, minH) = ShapeEmitter.MinBox(family, cw);
         if (alongLen < minW || depth < minH)
         {
@@ -85,16 +85,16 @@ public static class SpawnBoxEmitter
         var pieces = new List<GrownPiece>(shape.Terrain.Count + 1);
         var n = 1;
         foreach (var (r, slot) in shape.Terrain)
-            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", [box.Rect[0] + r[0], box.Rect[1] + r[1], r[2], r[3]],
+            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
                 PlanRoles.Piece, slot, boxRef));
         var rr = shape.Room;
-        var room = new GrownPiece(roomId, [box.Rect[0] + rr[0], box.Rect[1] + rr[1], rr[2], rr[3]],
+        var room = new GrownPiece(roomId, new(box.Rect.X + rr.X, box.Rect.Z + rr.Z, rr.Width, rr.Height),
             PlanRoles.Spawn, ApproachSlots.Room, boxRef);
         pieces.Add(room);
 
         // the entry run's outward length (perpendicular to the mouth) — the interval a wool box docks along
         var entry = shape.Terrain.First(t => t.Slot == ApproachSlots.Entry).Rect;
-        var entryLen = mouth is BoxEdge.Top or BoxEdge.Bottom ? entry[3] : entry[2];
+        var entryLen = mouth is BoxEdge.Top or BoxEdge.Bottom ? entry.Height : entry.Width;
         return new EmittedSpawn(pieces, room, shape.At, entryLen);
     }
 }

@@ -62,7 +62,7 @@ public static class UnitPlacement
         return unit with
         {
             Pieces = unit.Pieces
-                .Select(p => p with { Rect = [p.Rect[0] + dx, p.Rect[1] + dz, p.Rect[2], p.Rect[3]] })
+                .Select(p => p with { Rect = new(p.Rect.X + dx, p.Rect.Z + dz, p.Rect.Width, p.Rect.Height) })
                 .ToList(),
         };
     }

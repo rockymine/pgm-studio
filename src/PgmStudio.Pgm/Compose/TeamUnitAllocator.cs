@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -250,12 +251,12 @@ public static class TeamUnitAllocator
         // pick the hub form from the box's real dims (frame-mapped — the wide axis afford the wide holed bodies),
         // seat the demands on its free edges; fall back to the solid rectangle (four full edges) when the offerable
         // surface can't host
-        var sampled = ChooseHubForm(hubRect[2], hubRect[3], rng);
-        var walls = ChooseHubWalls(sampled, hubRect[2], hubRect[3], FillProfiles.HubWallCells, rng);
+        var sampled = ChooseHubForm(hubRect.Width, hubRect.Height, rng);
+        var walls = ChooseHubWalls(sampled, hubRect.Width, hubRect.Height, FillProfiles.HubWallCells, rng);
         // a branch hub's legs, drawn here rather than at fill time because the body is emitted twice — once to
         // read the runs it offers, once to build it — and a second draw would not agree with the first
         var arms = sampled.Form == Compound.SpineArms
-            ? HubBoxEmitter.SampleArms(rng, hubRect[2], sampled.Arms, FillProfiles.HubWallCells)
+            ? HubBoxEmitter.SampleArms(rng, hubRect.Width, sampled.Arms, FillProfiles.HubWallCells)
             : null;
         var seating = Seat(sampled, hubRect, frame, w, demands, rng, noFront: !hasFrontline, walls, arms);
         if (seating is null && sampled.Form != Compound.Rectangle)
@@ -449,10 +450,10 @@ public static class TeamUnitAllocator
     /// seated neighbour boxes and their hub joints, or <c>null</c> when the box is too small for the form or a
     /// demand finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
     private static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(
-        CompoundRead form, int[] hubRect, Frame frame, int w, IReadOnlyList<Demand> demands, ComposeRng rng,
+        CompoundRead form, CellRect hubRect, Frame frame, int w, IReadOnlyList<Demand> demands, ComposeRng rng,
         bool noFront, RingWalls? walls = null, IReadOnlyList<(int Start, int Width)>? arms = null)
     {
-        int boxW = hubRect[2], boxH = hubRect[3];
+        int boxW = hubRect.Width, boxH = hubRect.Height;
         var frontEdge = SideEdge(frame, UnitSide.Front);
         // orient the form so its open feet face the unused front (SP: the frontline's side) and its solid edges
         // cover the demanded back/laterals — a vertical flip when the front is the box's top edge (every z-frame);
@@ -587,15 +588,15 @@ public static class TeamUnitAllocator
     /// that edge, its along-extent runs along it. Frame-free — the (u, v) frame chose the edge; the box then
     /// follows the edge's outward normal (Top −z, Bottom +z, Left −x, Right +x), so the seating needs no per-mode
     /// branch and stays correct where a (u, v)→box-local run mapping would reverse.</summary>
-    internal static int[] NeighbourRect(BoxEdge edge, int seat, int depth, int along, int[] hub)
+    internal static CellRect NeighbourRect(BoxEdge edge, int seat, int depth, int along, CellRect hub)
     {
-        int hx = hub[0], hz = hub[1], hw = hub[2], hh = hub[3];
+        int hx = hub.X, hz = hub.Z, hw = hub.Width, hh = hub.Height;
         return edge switch
         {
-            BoxEdge.Top => [hx + seat, hz - depth, along, depth],
-            BoxEdge.Bottom => [hx + seat, hz + hh, along, depth],
-            BoxEdge.Left => [hx - depth, hz + seat, depth, along],
-            _ => [hx + hw, hz + seat, depth, along],                  // Right
+            BoxEdge.Top => new(hx + seat, hz - depth, along, depth),
+            BoxEdge.Bottom => new(hx + seat, hz + hh, along, depth),
+            BoxEdge.Left => new(hx - depth, hz + seat, depth, along),
+            _ => new(hx + hw, hz + seat, depth, along),                  // Right
         };
     }
 
@@ -608,10 +609,10 @@ public static class TeamUnitAllocator
     /// one mechanism covers both the same-edge abut and the cross-edge corner meeting exactly (the along + perp
     /// conditions reproduce <see cref="TooClose"/>), and a legal seat is sampled directly, never single-sample
     /// rejected.</summary>
-    internal static (int Start, int Len)? ProjectOntoEdge(BoxEdge edge, int[] hub, int depth, int[] seated, int gap)
+    internal static (int Start, int Len)? ProjectOntoEdge(BoxEdge edge, CellRect hub, int depth, CellRect seated, int gap)
     {
-        int hx = hub[0], hz = hub[1], hw = hub[2], hh = hub[3];
-        int bx0 = seated[0], bz0 = seated[1], bx1 = seated[0] + seated[2], bz1 = seated[1] + seated[3];
+        int hx = hub.X, hz = hub.Z, hw = hub.Width, hh = hub.Height;
+        int bx0 = seated.X, bz0 = seated.Z, bx1 = seated.X + seated.Width, bz1 = seated.Z + seated.Height;
         var (perpNear, aStart, aEnd) = edge switch
         {
             BoxEdge.Top => (bz0 - gap < hz && hz - depth < bz1 + gap, bx0 - hx, bx1 - hx),
@@ -627,9 +628,9 @@ public static class TeamUnitAllocator
     /// gap on all four sides and testing overlap, so a diagonal corner meeting is caught, not only a shared edge.
     /// The seat-step separation law reads it: no two neighbour bodies may sit this close (<paramref name="gap"/>
     /// is the map's lane width — w2 = 10 blocks, w3 = 15 on wide boards).</summary>
-    internal static bool TooClose(int[] a, int[] b, int gap) =>
-        a[0] - gap < b[0] + b[2] && b[0] < a[0] + a[2] + gap &&
-        a[1] - gap < b[1] + b[3] && b[1] < a[1] + a[3] + gap;
+    internal static bool TooClose(CellRect a, CellRect b, int gap) =>
+        a.X - gap < b.X + b.Width && b.X < a.X + a.Width + gap &&
+        a.Z - gap < b.Z + b.Height && b.Z < a.Z + a.Height + gap;
 
     /// <summary>A free box-local along-position for an <paramref name="along"/>-wide dock among the edge's
     /// <paramref name="runs"/> (its offerable surface), avoiding the <paramref name="occupied"/> intervals (each
@@ -679,11 +680,11 @@ public static class TeamUnitAllocator
     /// the hub's own corner, which the hub fills — that is why the pinned face never needed this.) <c>null</c>
     /// when no position gives a patch — the directed signal the caller answers by falling back.</para>
     /// </summary>
-    private static (int[] Box, BoxInterface Iface)? SeatFront(
-        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, BoxEdge edge, int[] hubRect,
+    private static (CellRect Box, BoxInterface Iface)? SeatFront(
+        IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, BoxEdge edge, CellRect hubRect,
         IReadOnlyList<Box> seated, int cw, ComposeRng rng)
     {
-        var placements = new List<(int Seat, int[] Box, BoxInterface Iface)>();
+        var placements = new List<(int Seat, CellRect Box, BoxInterface Iface)>();
         for (var seat = -(d.Along - cw); seat <= edgeLen - cw; seat++)
         {
             int lo = seat, hi = seat + d.Along;
@@ -759,13 +760,13 @@ public static class TeamUnitAllocator
     /// overhanging either way), so a crowded side does not sink the dock. Returns the plan-cell box, the actual
     /// hub↔box interface (the abutment — narrower than the box when it overhangs), and the chosen flip; or
     /// <c>null</c> when no clear placement exists (a directed signal the caller falls back on).</summary>
-    private static (int[] Box, BoxInterface Iface, bool Flip)? SeatOverhang(
+    private static (CellRect Box, BoxInterface Iface, bool Flip)? SeatOverhang(
         IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, WoolFill fill, BoxEdge edge,
-        int[] hubRect, IReadOnlyList<Box> seated, int w, int gap, BoxEdge? guardFront, ComposeRng rng)
+        CellRect hubRect, IReadOnlyList<Box> seated, int w, int gap, BoxEdge? guardFront, ComposeRng rng)
     {
         var mouth = Opposite(edge);
-        var probeRect = edge is BoxEdge.Top or BoxEdge.Bottom ? new[] { 0, 0, d.Along, d.Depth } : new[] { 0, 0, d.Depth, d.Along };
-        var placements = new List<(int[] Box, bool Flip)>();
+        var probeRect = edge is BoxEdge.Top or BoxEdge.Bottom ? new CellRect(0, 0, d.Along, d.Depth) : new CellRect(0, 0, d.Depth, d.Along);
+        var placements = new List<(CellRect Box, bool Flip)>();
         foreach (var flip in new[] { false, true })
         {
             if (BoxFiller.EntryOn(new Box("probe", BoxKind.Wool, probeRect, 0), mouth, w, fill.Family, flip,
@@ -802,8 +803,8 @@ public static class TeamUnitAllocator
     }
 
     /// <summary>Two plan-cell rects overlap iff they intersect on both axes (abutment is not overlap).</summary>
-    private static bool Overlap(int[] a, int[] b) =>
-        a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+    private static bool Overlap(CellRect a, CellRect b) =>
+        a.X < b.X + b.Width && b.X < a.X + a.Width && a.Z < b.Z + b.Height && b.Z < a.Z + a.Height;
 
     /// <summary>The box edge opposite <paramref name="e"/> — a neighbour's mouth faces the hub across it.</summary>
     internal static BoxEdge Opposite(BoxEdge e) => e switch

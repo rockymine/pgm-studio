@@ -1,3 +1,5 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>One edge of an axis-aligned box, in box-local coordinates (Top = z min, Left = x min).</summary>
@@ -8,16 +10,16 @@ public enum BoxEdge { Top, Bottom, Left, Right }
 /// box), <c>notch</c> (a corner remainder, open on two edges), <c>hole</c> (enclosed by the shape).
 /// <see cref="Mouth"/> is the open edge of a bay (null for notches and holes); <see cref="Walls"/> are the
 /// template slots of the pieces bounding it.</summary>
-public sealed record ShapeVacancy(string Kind, int[] Rect, BoxEdge? Mouth, IReadOnlyList<string> Walls);
+public sealed record ShapeVacancy(string Kind, CellRect Rect, BoxEdge? Mouth, IReadOnlyList<string> Walls);
 
 /// <summary>An approach emission: a terminal-free <see cref="ShapeBody"/> finished by the approach designation —
 /// the terminal <see cref="Room"/> rect and the marker offset <see cref="At"/> within it (box-local half-cell
 /// coordinates). <see cref="Terrain"/> and <see cref="Vacancies"/> read through to the body; all rects are
 /// box-local. The <see cref="ShapeBody"/> is what the hub/frontline designations reuse without a room.</summary>
-public sealed record EmittedShape(ShapeBody Body, int[] Room, double[] At)
+public sealed record EmittedShape(ShapeBody Body, CellRect Room, double[] At)
 {
     /// <summary>The body's structural-slotted rects — the walkable terrain of the approach reading.</summary>
-    public IReadOnlyList<(int[] Rect, string Slot)> Terrain => Body.Pieces;
+    public IReadOnlyList<(CellRect Rect, string Slot)> Terrain => Body.Pieces;
 
     /// <summary>The body's published vacancies.</summary>
     public IReadOnlyList<ShapeVacancy> Vacancies => Body.Vacancies;
@@ -25,7 +27,7 @@ public sealed record EmittedShape(ShapeBody Body, int[] Room, double[] At)
     /// <summary>Assemble an approach emission from loose terrain + vacancies (wrapping them as a
     /// <see cref="ShapeBody"/>) plus the terminal room and marker.</summary>
     public EmittedShape(
-        IReadOnlyList<(int[] Rect, string Slot)> terrain, int[] room, double[] at,
+        IReadOnlyList<(CellRect Rect, string Slot)> terrain, CellRect room, double[] at,
         IReadOnlyList<ShapeVacancy> vacancies)
         : this(new ShapeBody(terrain, vacancies), room, at) { }
 }
@@ -137,7 +139,7 @@ public static class ShapeEmitter
     /// <paramref name="markerAt"/> (box-local, within the room). The sibling of the hub's per-edge-interface
     /// designation and the frontline's face designation — each takes the same <see cref="ShapeBody"/> and
     /// finishes it its own way; here the finish is a dead-end room.</summary>
-    public static EmittedShape Approach(ShapeBody body, int[] room, double[] markerAt) =>
+    public static EmittedShape Approach(ShapeBody body, CellRect room, double[] markerAt) =>
         new(body, room, markerAt);
 
     /// <summary>Build the family geometry into the canonical box, apply <paramref name="flip"/>, and return the
@@ -150,7 +152,7 @@ public static class ShapeEmitter
     /// canonical frame (<see cref="MouthEdge"/>): I/L/Z/scythe enter at the top, U/H at the bottom (their legs
     /// run down to the host), clamp/donut at the left (bars/stub open leftward). Callers reorient with
     /// <see cref="OrientMouthTop"/> to put any family's mouth on the edge they dock.</para></summary>
-    private static (List<(int[] Rect, string Slot)> Terrain, int[] Room, double[] At, List<ShapeVacancy> Vacancies) Compose(
+    private static (List<(CellRect Rect, string Slot)> Terrain, CellRect Room, double[] At, List<ShapeVacancy> Vacancies) Compose(
         ShapeFamily family, int boxW, int boxH, int cw, bool flip,
         RoomPlacement roomPlacement, int attachments, bool woolAtEnd,
         bool woolExtend, int attachmentWidth, int entryShift, int woolShift,
@@ -168,9 +170,9 @@ public static class ShapeEmitter
         if (attachmentOffset != 0 && family != ShapeFamily.Donut)
             throw new ArgumentException($"the attachment offset is a donut knob (requested {family}).");
 
-        var t = new List<(int[] Rect, string Slot)>();
+        var t = new List<(CellRect Rect, string Slot)>();
         var vac = new List<ShapeVacancy>();
-        int[] room;
+        CellRect room;
         double[]? at = null;                                 // marker offset within the room (defaults to centre)
         var rd = RoomDepthCells;
         switch (family)
@@ -182,22 +184,22 @@ public static class ShapeEmitter
                 // The room is BESIDE the lane (shares a vertical corridor-width edge), never a wide cap extending
                 // the lane's end. It reads I: the lane is straight and the room is excluded from the bend count.
                 Need(W >= cw + rd && H >= 2 * cw, family, W, H);
-                t.Add(([0, 0, cw, H], ApproachSlots.Entry));   // straight vertical lane, full depth (left)
-                room = [cw, H - cw, rd, cw];                   // room off the lane's right side, at the terminal
+                t.Add((new(0, 0, cw, H), ApproachSlots.Entry));   // straight vertical lane, full depth (left)
+                room = new(cw, H - cw, rd, cw);                   // room off the lane's right side, at the terminal
                 at = [rd / 2.0, cw / 2.0];
                 if (H - cw > 0)
-                    vac.Add(new ShapeVacancy("notch", [cw, 0, W - cw, H - cw], null, [ApproachSlots.Entry]));
+                    vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, H - cw), null, [ApproachSlots.Entry]));
                 break;
             }
             case ShapeFamily.I:
             {
                 Need(H >= rd + 1, family, W, H);
                 int lx = (W - cw) / 2, laneH = H - rd;
-                t.Add(([lx, 0, cw, laneH], ApproachSlots.Entry));
-                room = [lx, laneH, cw, rd];
-                if (lx > 0) vac.Add(new ShapeVacancy("notch", [0, 0, lx, H], null, [ApproachSlots.Entry]));
+                t.Add((new(lx, 0, cw, laneH), ApproachSlots.Entry));
+                room = new(lx, laneH, cw, rd);
+                if (lx > 0) vac.Add(new ShapeVacancy("notch", new(0, 0, lx, H), null, [ApproachSlots.Entry]));
                 if (W - lx - cw > 0)
-                    vac.Add(new ShapeVacancy("notch", [lx + cw, 0, W - lx - cw, H], null, [ApproachSlots.Entry]));
+                    vac.Add(new ShapeVacancy("notch", new(lx + cw, 0, W - lx - cw, H), null, [ApproachSlots.Entry]));
                 break;
             }
             case ShapeFamily.L:
@@ -207,10 +209,10 @@ public static class ShapeEmitter
                 // the band sits in the vertical's own column and the shape collapses to a straight I).
                 Need(W >= cw + rd + 1 && H >= 2 * cw, family, W, H);
                 int vLx = 0, bandZ = H - cw;
-                t.Add(([vLx, 0, cw, bandZ], ApproachSlots.Entry));       // vertical arm (enters at the mouth)
-                t.Add(([0, bandZ, W - rd, cw], ApproachSlots.Run));      // horizontal band up to the room
-                room = [W - rd, bandZ, rd, cw];                          // dead-end at the far side of the band
-                vac.Add(new ShapeVacancy("notch", [cw, 0, W - cw, H - cw], null,
+                t.Add((new(vLx, 0, cw, bandZ), ApproachSlots.Entry));       // vertical arm (enters at the mouth)
+                t.Add((new(0, bandZ, W - rd, cw), ApproachSlots.Run));      // horizontal band up to the room
+                room = new(W - rd, bandZ, rd, cw);                          // dead-end at the far side of the band
+                vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, H - cw), null,
                     [ApproachSlots.Entry, ApproachSlots.Run]));
                 break;
             }
@@ -223,11 +225,11 @@ public static class ShapeEmitter
                 Need(W >= 2 * cw + rd && H >= 3 * cw + 1, family, W, H);
                 int z1 = (H - cw) / 2;
                 int botZ = z1 + cw;
-                t.Add(([0, 0, cw, z1], ApproachSlots.Entry));            // top arm (left) — the mouth
-                t.Add(([0, z1, W, cw], ApproachSlots.Bar));              // crossing band
-                t.Add(([W - cw, botZ, cw, H - botZ], ApproachSlots.RoomRun)); // bottom arm to the box bottom
-                room = [W - cw - rd, H - cw, rd, cw];                    // room off the run's interior side
-                vac.Add(new ShapeVacancy("notch", [cw, 0, W - cw, z1], null,
+                t.Add((new(0, 0, cw, z1), ApproachSlots.Entry));            // top arm (left) — the mouth
+                t.Add((new(0, z1, W, cw), ApproachSlots.Bar));              // crossing band
+                t.Add((new(W - cw, botZ, cw, H - botZ), ApproachSlots.RoomRun)); // bottom arm to the box bottom
+                room = new(W - cw - rd, H - cw, rd, cw);                    // room off the run's interior side
+                vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, z1), null,
                     [ApproachSlots.Entry, ApproachSlots.Bar]));
                 break;
             }
@@ -237,13 +239,13 @@ public static class ShapeEmitter
                 Need(W >= 2 * cw && H >= 3 * cw + rd, family, W, H);
                 int z1 = (H - rd - cw) / 2;                              // top-arm length (balanced with the bottom arm)
                 int botZ = z1 + cw, botLen = H - rd - botZ;
-                t.Add(([0, 0, cw, z1], ApproachSlots.Entry));            // top arm (left) — the mouth
-                t.Add(([0, z1, W, cw], ApproachSlots.Bar));              // crossing band
-                t.Add(([W - cw, botZ, cw, botLen], ApproachSlots.RoomRun)); // bottom arm (right) up to the room
-                room = [W - cw, H - rd, cw, rd];
-                vac.Add(new ShapeVacancy("notch", [cw, 0, W - cw, z1], null,
+                t.Add((new(0, 0, cw, z1), ApproachSlots.Entry));            // top arm (left) — the mouth
+                t.Add((new(0, z1, W, cw), ApproachSlots.Bar));              // crossing band
+                t.Add((new(W - cw, botZ, cw, botLen), ApproachSlots.RoomRun)); // bottom arm (right) up to the room
+                room = new(W - cw, H - rd, cw, rd);
+                vac.Add(new ShapeVacancy("notch", new(cw, 0, W - cw, z1), null,
                     [ApproachSlots.Entry, ApproachSlots.Bar]));
-                vac.Add(new ShapeVacancy("notch", [0, botZ, W - cw, H - botZ], null,
+                vac.Add(new ShapeVacancy("notch", new(0, botZ, W - cw, H - botZ), null,
                     [ApproachSlots.Bar, ApproachSlots.RoomRun]));
                 break;
             }
@@ -264,9 +266,9 @@ public static class ShapeEmitter
                 if (woolShift < 0 || woolShift + rd > botZ - cw)
                     throw new ArgumentException(
                         $"wool shift {woolShift} leaves no return leg above the bar (box {W}x{H}).");
-                t.Add(([0, entryShift, cw, aw], ApproachSlots.Entry));   // tail — the mouth, slid down the edge
-                t.Add(([cw, entryShift, cw, botZ - entryShift], ApproachSlots.EntryRun)); // spine, shrunk with it
-                t.Add(([cw, botZ, 3 * cw, cw], ApproachSlots.Bar));      // bottom bar (spine → return leg)
+                t.Add((new(0, entryShift, cw, aw), ApproachSlots.Entry));   // tail — the mouth, slid down the edge
+                t.Add((new(cw, entryShift, cw, botZ - entryShift), ApproachSlots.EntryRun)); // spine, shrunk with it
+                t.Add((new(cw, botZ, 3 * cw, cw), ApproachSlots.Bar));      // bottom bar (spine → return leg)
                 if (roomPlacement == RoomPlacement.SideTuck)
                 {
                     // the wool docks the return leg's SIDE at its top end — the leg is shortened to the
@@ -276,15 +278,15 @@ public static class ShapeEmitter
                     if (woolShift + cw > botZ - 1)
                         throw new ArgumentException(
                             $"wool shift {woolShift} leaves no return leg above the bar (box {W}x{H}).");
-                    t.Add(([3 * cw, woolShift, cw, botZ - woolShift], ApproachSlots.RoomRun));
-                    room = [4 * cw, woolShift, rd, cw];                  // perpendicular, off the outer side
+                    t.Add((new(3 * cw, woolShift, cw, botZ - woolShift), ApproachSlots.RoomRun));
+                    room = new(4 * cw, woolShift, rd, cw);                  // perpendicular, off the outer side
                 }
                 else
                 {
-                    t.Add(([3 * cw, woolShift + rd, cw, botZ - woolShift - rd], ApproachSlots.RoomRun)); // return leg
-                    room = [3 * cw, woolShift, cw, rd];                  // wool caps the return leg
+                    t.Add((new(3 * cw, woolShift + rd, cw, botZ - woolShift - rd), ApproachSlots.RoomRun)); // return leg
+                    room = new(3 * cw, woolShift, cw, rd);                  // wool caps the return leg
                 }
-                vac.Add(new ShapeVacancy("bay", [2 * cw, 0, cw, botZ], BoxEdge.Top,
+                vac.Add(new ShapeVacancy("bay", new(2 * cw, 0, cw, botZ), BoxEdge.Top,
                     [ApproachSlots.EntryRun, ApproachSlots.Bar, ApproachSlots.RoomRun]));
                 break;
             }
@@ -296,12 +298,12 @@ public static class ShapeEmitter
                 Need(W >= 3 * cw && H >= 2 * cw + 2 * rd, family, W, H);
                 int barZ = 2 * rd;                                       // wool + stub above the bar
                 int wx = woolAtEnd ? 0 : (W - cw) / 2;
-                t.Add(([0, barZ, W, cw], ApproachSlots.Bar));                        // crossbar (full width)
-                t.Add(([0, barZ + cw, cw, H - barZ - cw], ApproachSlots.Entry));     // left leg (down to the hub)
-                t.Add(([W - cw, barZ + cw, cw, H - barZ - cw], ApproachSlots.Entry)); // right leg (down to the hub)
-                t.Add(([wx, rd, cw, rd], ApproachSlots.RoomRun));        // room-run stub from the crossbar up to the wool
-                room = [wx, 0, cw, rd];                                  // wool caps the stub (middle or an end)
-                vac.Add(new ShapeVacancy("bay", [cw, barZ + cw, W - 2 * cw, H - barZ - cw], BoxEdge.Bottom,
+                t.Add((new(0, barZ, W, cw), ApproachSlots.Bar));                        // crossbar (full width)
+                t.Add((new(0, barZ + cw, cw, H - barZ - cw), ApproachSlots.Entry));     // left leg (down to the hub)
+                t.Add((new(W - cw, barZ + cw, cw, H - barZ - cw), ApproachSlots.Entry)); // right leg (down to the hub)
+                t.Add((new(wx, rd, cw, rd), ApproachSlots.RoomRun));        // room-run stub from the crossbar up to the wool
+                room = new(wx, 0, cw, rd);                                  // wool caps the stub (middle or an end)
+                vac.Add(new ShapeVacancy("bay", new(cw, barZ + cw, W - 2 * cw, H - barZ - cw), BoxEdge.Bottom,
                     [ApproachSlots.Entry, ApproachSlots.Bar, ApproachSlots.Entry]));
                 break;
             }
@@ -314,11 +316,11 @@ public static class ShapeEmitter
                 Need(W >= 3 * cw && H >= 2 * cw + rd, family, W, H);
                 int barZ = rd;                                           // wool sits directly above the bar
                 int wx = woolAtEnd ? 0 : (W - cw) / 2;
-                t.Add(([0, barZ, W, cw], ApproachSlots.Bar));                        // crossbar (full width)
-                t.Add(([0, barZ + cw, cw, H - barZ - cw], ApproachSlots.Entry));     // left leg (down to the hub)
-                t.Add(([W - cw, barZ + cw, cw, H - barZ - cw], ApproachSlots.Entry)); // right leg (down to the hub)
-                room = [wx, 0, cw, rd];                                  // wool flush on the crossbar
-                vac.Add(new ShapeVacancy("bay", [cw, barZ + cw, W - 2 * cw, H - barZ - cw], BoxEdge.Bottom,
+                t.Add((new(0, barZ, W, cw), ApproachSlots.Bar));                        // crossbar (full width)
+                t.Add((new(0, barZ + cw, cw, H - barZ - cw), ApproachSlots.Entry));     // left leg (down to the hub)
+                t.Add((new(W - cw, barZ + cw, cw, H - barZ - cw), ApproachSlots.Entry)); // right leg (down to the hub)
+                room = new(wx, 0, cw, rd);                                  // wool flush on the crossbar
+                vac.Add(new ShapeVacancy("bay", new(cw, barZ + cw, W - 2 * cw, H - barZ - cw), BoxEdge.Bottom,
                     [ApproachSlots.Entry, ApproachSlots.Bar, ApproachSlots.Entry]));
                 break;
             }
@@ -337,20 +339,20 @@ public static class ShapeEmitter
                     // connector to the right leg) and its BOTTOM (the left leg) — two adjacent faces. The
                     // connector runs a row above the left leg, so the left leg reaches the mouth only through
                     // the wool: the wool is the cut cell. Both legs still meet the host on the bottom mouth.
-                    t.Add(([W - cw, 0, cw, H], ApproachSlots.Entry));                   // right leg (full height, I)
-                    t.Add(([cw, 0, gap, rd], ApproachSlots.Bar));                       // connector: wool → right leg
-                    t.Add(([0, rd, cw, H - rd], ApproachSlots.Entry));                  // left leg (below the wool)
-                    room = [0, 0, cw, rd];                                              // wool in the corner
-                    vac.Add(new ShapeVacancy("bay", [cw, rd, gap, H - rd], BoxEdge.Bottom,
+                    t.Add((new(W - cw, 0, cw, H), ApproachSlots.Entry));                   // right leg (full height, I)
+                    t.Add((new(cw, 0, gap, rd), ApproachSlots.Bar));                       // connector: wool → right leg
+                    t.Add((new(0, rd, cw, H - rd), ApproachSlots.Entry));                  // left leg (below the wool)
+                    room = new(0, 0, cw, rd);                                              // wool in the corner
+                    vac.Add(new ShapeVacancy("bay", new(cw, rd, gap, H - rd), BoxEdge.Bottom,
                         [ApproachSlots.Entry, ApproachSlots.Room, ApproachSlots.Entry]));
                 }
                 else
                 {
                     // centered (I+I): two straight legs, the wool bridging them across the top.
-                    t.Add(([0, 0, cw, H], ApproachSlots.Entry));                        // left leg (full height)
-                    t.Add(([W - cw, 0, cw, H], ApproachSlots.Entry));                   // right leg (full height)
-                    room = [cw, 0, gap, rd];                                            // wool bridges the two legs
-                    vac.Add(new ShapeVacancy("bay", [cw, rd, gap, H - rd], BoxEdge.Bottom,
+                    t.Add((new(0, 0, cw, H), ApproachSlots.Entry));                        // left leg (full height)
+                    t.Add((new(W - cw, 0, cw, H), ApproachSlots.Entry));                   // right leg (full height)
+                    room = new(cw, 0, gap, rd);                                            // wool bridges the two legs
+                    vac.Add(new ShapeVacancy("bay", new(cw, rd, gap, H - rd), BoxEdge.Bottom,
                         [ApproachSlots.Entry, ApproachSlots.Room, ApproachSlots.Entry]));
                 }
                 break;
@@ -390,35 +392,38 @@ public static class ShapeEmitter
                 t.Add((ring.Top, ApproachSlots.EntryBar));                   // top bar
                 t.Add((ring.Left, ApproachSlots.Leg));                       // left leg (middle only — no corner overlap)
                 t.Add((ring.Right, ApproachSlots.Leg));                      // right leg (middle only)
-                t.Add(([0, attachmentOffset, cw, aw], ApproachSlots.Entry)); // hub attachment, slid down the ring edge
-                if (attachments >= 2) t.Add(([0, ringH - aw, cw, aw], ApproachSlots.Entry)); // second attachment (bottom-left)
+                t.Add((new(0, attachmentOffset, cw, aw), ApproachSlots.Entry)); // hub attachment, slid down the ring edge
+                if (attachments >= 2) t.Add((new(0, ringH - aw, cw, aw), ApproachSlots.Entry)); // second attachment (bottom-left)
                 if (woolAtEnd)
                 {
                     // the bottom wall, stopped short of the corner the wool takes
-                    t.Add(([ring.Bottom[0], ring.Bottom[1], span - walls.Right, ring.Bottom[3]], ApproachSlots.RoomBar));
-                    room = [ax + span - walls.Right, ringH - walls.Bottom, walls.Right, walls.Bottom];  // wool AT the bottom-right corner (integrated)
+                    t.Add((new(ring.Bottom.X, ring.Bottom.Z, span - walls.Right, ring.Bottom.Height), ApproachSlots.RoomBar));
+                    room = new(ax + span - walls.Right, ringH - walls.Bottom, walls.Right, walls.Bottom);  // wool AT the bottom-right corner (integrated)
                 }
                 else
                 {
                     t.Add((ring.Bottom, ApproachSlots.RoomBar));    // full bottom bar
                     int wxr = ax + span;                            // right of the ring's right leg
-                    if (woolExtend) { t.Add(([wxr, ringH - walls.Bottom, cw, walls.Bottom], ApproachSlots.Run)); wxr += cw; }  // short I holding the wool
-                    room = [wxr, ringH - walls.Bottom, rd, walls.Bottom];   // wool off the bottom-right
+                    if (woolExtend) { t.Add((new(wxr, ringH - walls.Bottom, cw, walls.Bottom), ApproachSlots.Run)); wxr += cw; }  // short I holding the wool
+                    room = new(wxr, ringH - walls.Bottom, rd, walls.Bottom);   // wool off the bottom-right
                 }
                 vac.Add(new ShapeVacancy("hole",
-                    [ax + walls.Left, walls.Top, span - walls.Left - walls.Right, ringH - walls.Top - walls.Bottom], null,
+                    new(ax + walls.Left, walls.Top, span - walls.Left - walls.Right, ringH - walls.Top - walls.Bottom), null,
                     [ApproachSlots.EntryBar, ApproachSlots.Leg, ApproachSlots.RoomBar, ApproachSlots.Leg]));
                 break;
             }
             default: throw new ArgumentOutOfRangeException(nameof(family), family, "unsupported family");
         }
 
-        at ??= [room[2] / 2.0, room[3] / 2.0];
+        at ??= [room.Width / 2.0, room.Height / 2.0];
         if (flip)
         {
-            foreach (var (rect, _) in t) rect[0] = W - rect[0] - rect[2];   // slot survives the mirror
-            room[0] = W - room[0] - room[2];
-            at = [room[2] - at[0], at[1]];                   // mirror the marker within the flipped room
+            // A CellRect is a value, so the mirrored rect is written back into the list rather than
+            // mutated through the reference the int[] used to hand out.
+            for (var i = 0; i < t.Count; i++)
+                t[i] = (t[i].Rect with { X = W - t[i].Rect.X - t[i].Rect.Width }, t[i].Slot);   // slot survives the mirror
+            room = room with { X = W - room.X - room.Width };
+            at = [room.Width - at[0], at[1]];                   // mirror the marker within the flipped room
             for (var i = 0; i < vac.Count; i++)
             {
                 var v = vac[i];
@@ -427,7 +432,7 @@ public static class ShapeEmitter
                     BoxEdge.Left => BoxEdge.Right, BoxEdge.Right => BoxEdge.Left,
                     _ => v.Mouth,
                 };
-                vac[i] = v with { Rect = [W - v.Rect[0] - v.Rect[2], v.Rect[1], v.Rect[2], v.Rect[3]], Mouth = m };
+                vac[i] = v with { Rect = new(W - v.Rect.X - v.Rect.Width, v.Rect.Z, v.Rect.Width, v.Rect.Height), Mouth = m };
             }
         }
 
@@ -445,11 +450,11 @@ public static class ShapeEmitter
         var source = MouthEdge(family, flip);
         if (source == BoxEdge.Top) return (s, boxW, boxH);
 
-        Func<int[], int[]> map = source switch
+        Func<CellRect, CellRect> map = source switch
         {
-            BoxEdge.Bottom => r => [r[0], boxH - r[1] - r[3], r[2], r[3]],       // vertical mirror
-            BoxEdge.Left => r => [r[1], r[0], r[3], r[2]],                       // transpose
-            _ => r => [r[1], boxW - r[0] - r[2], r[3], r[2]],                    // transpose + vertical mirror
+            BoxEdge.Bottom => r => new(r.X, boxH - r.Z - r.Height, r.Width, r.Height),       // vertical mirror
+            BoxEdge.Left => r => new(r.Z, r.X, r.Height, r.Width),                       // transpose
+            _ => r => new(r.Z, boxW - r.X - r.Width, r.Height, r.Width),                    // transpose + vertical mirror
         };
         var dims = source == BoxEdge.Bottom ? (W: boxW, H: boxH) : (W: boxH, H: boxW);
 
@@ -476,9 +481,9 @@ public static class ShapeEmitter
         double ax = s.At[0], az = s.At[1];
         double[] at = source switch
         {
-            BoxEdge.Bottom => [ax, s.Room[3] - az],
+            BoxEdge.Bottom => [ax, s.Room.Height - az],
             BoxEdge.Left => [az, ax],
-            _ => [az, s.Room[2] - ax],
+            _ => [az, s.Room.Width - ax],
         };
         var vac = s.Vacancies.Select(v => v with { Rect = map(v.Rect), Mouth = MouthMap(v.Mouth) }).ToList();
         return (new EmittedShape(terrain, room, at, vac), dims.W, dims.H);

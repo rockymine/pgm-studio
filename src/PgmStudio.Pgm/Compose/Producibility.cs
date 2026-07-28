@@ -14,7 +14,7 @@ public sealed record ProducibleAs(string Label, int Cw);
 /// the authored geometry left the parameter space, without a bespoke per-family analyser.</summary>
 public sealed record NearestMiss(
     string Label, int Cw, int DifferingCells,
-    IReadOnlyList<int[]> Extra, IReadOnlyList<int[]> Missing);
+    IReadOnlyList<CellRect> Extra, IReadOnlyList<CellRect> Missing);
 
 /// <summary>One directed finding about a box's producibility. <see cref="Code"/> is a stable slug (the
 /// machine-legible half); <see cref="Cites"/> is the rule id or the gap's task id when one applies
@@ -127,7 +127,7 @@ public static class Producibility
     /// pieces actually are: a unit lying wholly on the far side gets the sign flipped so <c>u</c> still grows
     /// away from the axis.
     /// </summary>
-    private static Frame AuthoredFrame(string symmetry, IReadOnlyList<int[]> rects)
+    private static Frame AuthoredFrame(string symmetry, IReadOnlyList<CellRect> rects)
     {
         var frame = Frame.For(symmetry);
         if (rects.Count == 0) return frame;
@@ -273,7 +273,7 @@ public static class Producibility
         // the exact-match return above, so every candidate here already differs somewhere.
         if (roomPieces.Count > 0
             && candidates.FirstOrDefault(c => c.Mask is not null && c.Room is not null
-                                              && TerrainOnly(c.Mask!, c.Room!).SetEquals(terrain)) is { } roomMiss)
+                                              && TerrainOnly(c.Mask!, c.Room!.Value).SetEquals(terrain)) is { } roomMiss)
             findings.Add(new ProducibilityFinding("room-not-replicable", "ST1",
                 $"The corridor is reproducible ({roomMiss.Label}) but the terminal room is not: the emitters " +
                 $"build a compact {ShapeEmitter.RoomDepthCells}-cell-deep room and this one differs. The room " +
@@ -310,7 +310,7 @@ public static class Producibility
     /// <summary>One enumerated tuple: how it reads, the terrain+room mask it emits (<c>null</c> when the emitter
     /// refused), the room rect it stamps, and the refusal reason when there is one.</summary>
     private sealed record Candidate(
-        string Label, int Cw, HashSet<(int, int)>? Mask, int[]? Room, FillRejection? Rejection);
+        string Label, int Cw, HashSet<(int, int)>? Mask, CellRect? Room, FillRejection? Rejection);
 
     /// <summary>Every tuple the declared production menus admit for this box kind, emitted into the box's own
     /// footprint by the real emitters. The menus are read as data — nothing here restates them.</summary>
@@ -326,7 +326,7 @@ public static class Producibility
 
     private static IEnumerable<Candidate> HubCandidates(PlanBox box)
     {
-        var b = new Box(box.Id, BoxKind.Hub, box.Rect, box.Rect[2] * box.Rect[3]);
+        var b = new Box(box.Id, BoxKind.Hub, box.Rect, box.Rect.Width * box.Rect.Height);
         var cw = FillProfiles.HubWallCells;
         foreach (var form in FillProfiles.HubForms)
             foreach (var walls in HubWallVectors(form, box, cw))
@@ -350,7 +350,7 @@ public static class Producibility
     {
         yield return null;
         if (form.Form != Compound.SpineArms) yield break;
-        var spineLen = box.Rect[2];
+        var spineLen = box.Rect.Width;
         foreach (var layout in Memo($"hub-legs {spineLen} {form.Arms} {cw}",
                      () => SweepLayouts(seed => HubBoxEmitter.SampleArms(seed, spineLen, form.Arms, cw))))
             yield return layout;
@@ -376,7 +376,7 @@ public static class Producibility
     private static IEnumerable<RingWalls?> HubWallVectors(CompoundRead form, PlanBox box, int cw)
     {
         yield return null;
-        int w = box.Rect[2], h = box.Rect[3];
+        int w = box.Rect.Width, h = box.Rect.Height;
         foreach (var walls in Memo($"hub-walls {form.Form} {form.Arms} {w} {h} {cw}", () =>
                  {
                      var seen = new HashSet<RingWalls>();
@@ -394,7 +394,7 @@ public static class Producibility
 
     private static IEnumerable<Candidate> FrontlineCandidates(PlanBox box)
     {
-        var b = new Box(box.Id, BoxKind.Frontline, box.Rect, box.Rect[2] * box.Rect[3]);
+        var b = new Box(box.Id, BoxKind.Frontline, box.Rect, box.Rect.Width * box.Rect.Height);
         foreach (var cw in LaneWidths)
             foreach (var form in FillProfiles.FrontlineForms)
                 foreach (var mouth in AllEdges)
@@ -418,7 +418,7 @@ public static class Producibility
     {
         yield return null;                                   // the canonical fat L / symmetric twin
         if (form.Form != Compound.SpineArms) yield break;
-        var spineLen = mouth is BoxEdge.Left or BoxEdge.Right ? box.Rect[3] : box.Rect[2];
+        var spineLen = mouth is BoxEdge.Left or BoxEdge.Right ? box.Rect.Height : box.Rect.Width;
         foreach (var layout in Memo($"front-legs {spineLen} {form.Arms}",
                      () => SweepLayouts(seed => FrontlineBoxEmitter.SampleArms(seed, spineLen, form.Arms))))
             yield return layout;
@@ -426,7 +426,7 @@ public static class Producibility
 
     private static IEnumerable<Candidate> ApproachCandidates(PlanBox box, BoxKind kind)
     {
-        var b = new Box(box.Id, kind, box.Rect, box.Rect[2] * box.Rect[3]);
+        var b = new Box(box.Id, kind, box.Rect, box.Rect.Width * box.Rect.Height);
         // the wool lane is fixed at w2; a spawn reads the map's lane width, which a standalone box does not know
         var widths = kind == BoxKind.Wool ? new[] { TeamUnitAllocator.WoolLaneCells } : LaneWidths;
         foreach (var cw in widths)
@@ -517,14 +517,14 @@ public static class Producibility
     /// the smallest box any form on the menu fits: four near-identical "below the minimum" lines (one per mouth
     /// orientation) tell the author nothing the smallest one doesn't. Other refusal kinds report distinct
     /// reasons.</summary>
-    private static IEnumerable<ProducibilityFinding> Refusals(IReadOnlyList<Candidate> candidates, int[] rect)
+    private static IEnumerable<ProducibilityFinding> Refusals(IReadOnlyList<Candidate> candidates, CellRect rect)
     {
         var tooSmall = candidates
             .Select(c => c.Rejection).OfType<FillRejection.TooSmall>()
             .OrderBy(t => t.MinW * t.MinH).ThenBy(t => t.MinW).FirstOrDefault();
         if (tooSmall is not null)
             yield return new ProducibilityFinding("box-too-small", null,
-                $"This box is {rect[2]}x{rect[3]} cells; the smallest footprint any form on the menu fits is " +
+                $"This box is {rect.Width}x{rect.Height} cells; the smallest footprint any form on the menu fits is " +
                 $"{tooSmall.MinW}x{tooSmall.MinH}. Nothing can be emitted into it.");
 
         foreach (var detail in candidates
@@ -546,26 +546,26 @@ public static class Producibility
             var diff = extra.Count + missing.Count;
             if (best is not null && diff >= best.DifferingCells) continue;
             best = new NearestMiss(c.Label, c.Cw, diff,
-                extra.Select(p => new[] { p.Item1, p.Item2, 1, 1 }).ToList(),
-                missing.Select(p => new[] { p.Item1, p.Item2, 1, 1 }).ToList());
+                extra.Select(p => new CellRect(p.Item1, p.Item2, 1, 1)).ToList(),
+                missing.Select(p => new CellRect(p.Item1, p.Item2, 1, 1)).ToList());
         }
         return best;
     }
 
     private static readonly BoxEdge[] AllEdges = [BoxEdge.Top, BoxEdge.Bottom, BoxEdge.Left, BoxEdge.Right];
 
-    private static HashSet<(int, int)> TerrainOnly(IReadOnlySet<(int, int)> mask, int[] room)
+    private static HashSet<(int, int)> TerrainOnly(IReadOnlySet<(int, int)> mask, CellRect room)
     {
         var roomCells = Mask([room]);
         return mask.Where(c => !roomCells.Contains(c)).ToHashSet();
     }
 
-    private static HashSet<(int, int)> Mask(IEnumerable<int[]> rects)
+    private static HashSet<(int, int)> Mask(IEnumerable<CellRect> rects)
     {
         var cells = new HashSet<(int, int)>();
         foreach (var r in rects)
-            for (var x = r[0]; x < r[0] + r[2]; x++)
-                for (var z = r[1]; z < r[1] + r[3]; z++) cells.Add((x, z));
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) cells.Add((x, z));
         return cells;
     }
 

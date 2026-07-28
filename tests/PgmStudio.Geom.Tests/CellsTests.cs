@@ -26,13 +26,13 @@ public sealed class CellsTests
     }
 
     [Test]
-    public async Task BoundingBox_is_the_inclusive_extent()
+    public async Task BoundingBox_spans_every_cell()
     {
-        var (mnx, mnz, mxx, mxz) = Cells.BoundingBox(Set((2, 3), (5, 1), (4, 7)));
-        await Assert.That(mnx).IsEqualTo(2);
-        await Assert.That(mnz).IsEqualTo(1);
-        await Assert.That(mxx).IsEqualTo(5);
-        await Assert.That(mxz).IsEqualTo(7);
+        // both bounding corners are occupied cells, so the extent counts them: x 2..5 is 4 cells wide.
+        var b = Cells.BoundingBox(Set((2, 3), (5, 1), (4, 7)));
+        await Assert.That(b).IsEqualTo(new CellRect(2, 1, 4, 7));
+        await Assert.That(b.MaxX).IsEqualTo(6).Because("MaxX is one past the far cell");
+        await Assert.That(b.MaxZ).IsEqualTo(8);
     }
 
     [Test]

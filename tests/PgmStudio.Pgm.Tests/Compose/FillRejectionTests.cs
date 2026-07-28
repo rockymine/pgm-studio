@@ -13,10 +13,10 @@ public sealed class FillRejectionTests
 {
     private const int Cw = 2;
 
-    private static Box Hub(int w, int h) => new("hub", BoxKind.Hub, [0, 0, w, h], w * h);
-    private static Box Wool(int w, int h) => new("wool", BoxKind.Wool, [0, 0, w, h], w * h);
-    private static Box Spawn(int w, int h) => new("spawn", BoxKind.Spawn, [0, 0, w, h], w * h);
-    private static Box Front(int w, int h) => new("front", BoxKind.Frontline, [0, 0, w, h], w * h);
+    private static Box Hub(int w, int h) => new("hub", BoxKind.Hub, new(0, 0, w, h), w * h);
+    private static Box Wool(int w, int h) => new("wool", BoxKind.Wool, new(0, 0, w, h), w * h);
+    private static Box Spawn(int w, int h) => new("spawn", BoxKind.Spawn, new(0, 0, w, h), w * h);
+    private static Box Front(int w, int h) => new("front", BoxKind.Frontline, new(0, 0, w, h), w * h);
 
     [Test]
     public async Task A_hub_too_small_for_its_form_reports_the_emitters_own_reason()

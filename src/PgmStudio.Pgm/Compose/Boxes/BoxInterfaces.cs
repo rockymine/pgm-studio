@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -91,25 +92,25 @@ public static class BoxInterfaces
     }
 
     private static IReadOnlyList<BoxEdgeInterface> Of(
-        IReadOnlyList<(int[] Rect, string Slot)> terrain, int[]? room, int boxW, int boxH)
+        IReadOnlyList<(CellRect Rect, string Slot)> terrain, CellRect? room, int boxW, int boxH)
     {
-        BoxEdgeInterface Edge(BoxEdge e, int length, int perpendicular, Func<int[], bool> on, Func<int[], (int Start, int Len)> along)
+        BoxEdgeInterface Edge(BoxEdge e, int length, int perpendicular, Func<CellRect, bool> on, Func<CellRect, (int Start, int Len)> along)
         {
             var intervals = new List<EdgeInterval>();
             foreach (var (r, slot) in terrain)
                 if (on(r)) { var (s, l) = along(r); intervals.Add(new EdgeInterval(s, l, slot)); }
-            if (room is not null && on(room)) { var (s, l) = along(room); intervals.Add(new EdgeInterval(s, l, ApproachSlots.Room)); }
+            if (room is { } rm && on(rm)) { var (s, l) = along(rm); intervals.Add(new EdgeInterval(s, l, ApproachSlots.Room)); }
             intervals.Sort((a, b) => a.Start.CompareTo(b.Start));
             return new(e, length >= perpendicular ? EdgeSpan.Long : EdgeSpan.Short, length, intervals);
         }
-        (int, int) AlongX(int[] r) => (r[0], r[2]);
-        (int, int) AlongZ(int[] r) => (r[1], r[3]);
+        (int, int) AlongX(CellRect r) => (r.X, r.Width);
+        (int, int) AlongZ(CellRect r) => (r.Z, r.Height);
         return
         [
-            Edge(BoxEdge.Top,    boxW, boxH, r => r[1] == 0, AlongX),
-            Edge(BoxEdge.Bottom, boxW, boxH, r => r[1] + r[3] == boxH, AlongX),
-            Edge(BoxEdge.Left,   boxH, boxW, r => r[0] == 0, AlongZ),
-            Edge(BoxEdge.Right,  boxH, boxW, r => r[0] + r[2] == boxW, AlongZ),
+            Edge(BoxEdge.Top,    boxW, boxH, r => r.Z == 0, AlongX),
+            Edge(BoxEdge.Bottom, boxW, boxH, r => r.Z + r.Height == boxH, AlongX),
+            Edge(BoxEdge.Left,   boxH, boxW, r => r.X == 0, AlongZ),
+            Edge(BoxEdge.Right,  boxH, boxW, r => r.X + r.Width == boxW, AlongZ),
         ];
     }
 }

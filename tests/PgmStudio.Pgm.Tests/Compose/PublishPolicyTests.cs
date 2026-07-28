@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
 
@@ -79,6 +80,6 @@ public sealed class PublishPolicyTests
         var eOffers = PublishPolicy.Publishable(e);
         await Assert.That(eOffers.Count).IsEqualTo(1);
         await Assert.That(eOffers[0].Parts.Count).IsEqualTo(1);
-        await Assert.That(eOffers[0].Parts[0].Rect.SequenceEqual(new[] { 3, 9, 9, 6 })).IsTrue();
+        await Assert.That(eOffers[0].Parts[0].Rect == new CellRect(3, 9, 9, 6)).IsTrue();
     }
 }

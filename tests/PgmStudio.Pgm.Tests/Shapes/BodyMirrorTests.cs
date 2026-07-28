@@ -16,8 +16,8 @@ public sealed class BodyMirrorTests
     {
         var cells = new HashSet<(int, int)>();
         foreach (var (r, _) in body.Pieces)
-            for (var x = r[0]; x < r[0] + r[2]; x++)
-                for (var z = r[1]; z < r[1] + r[3]; z++) cells.Add((x, z));
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) cells.Add((x, z));
         return cells;
     }
 
@@ -25,8 +25,8 @@ public sealed class BodyMirrorTests
     {
         var seen = new HashSet<(int, int)>(); var n = 0;
         foreach (var (r, _) in body.Pieces)
-            for (var x = r[0]; x < r[0] + r[2]; x++)
-                for (var z = r[1]; z < r[1] + r[3]; z++) if (!seen.Add((x, z))) n++;
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) if (!seen.Add((x, z))) n++;
         return n;
     }
 
@@ -160,7 +160,7 @@ public sealed class BodyMirrorTests
         const int cw = 2;
         // equal: a full-height U whose bay matches the ring interior exactly
         var equal = BodyEmitter.DoubleHole(cw, 4 * cw, 5 * cw, uW: 3 * cw, uH: 5 * cw, uz: 0);
-        var holes = equal.Vacancies.Where(v => v.Kind == "hole").Select(v => (v.Rect[2], v.Rect[3])).ToList();
+        var holes = equal.Vacancies.Where(v => v.Kind == "hole").Select(v => (v.Rect.Width, v.Rect.Height)).ToList();
         await Wellformed(equal);
         await Assert.That(holes.Count).IsEqualTo(2);
         await Assert.That(holes[0]).IsEqualTo(holes[1]);                         // the two holes are the same size

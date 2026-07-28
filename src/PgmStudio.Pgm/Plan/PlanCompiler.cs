@@ -394,7 +394,7 @@ public static class PlanCompiler
     }
 
     // Fan a set of cell rects to every orbit image, de-duplicating exact repeats (self-symmetric rects).
-    private static List<Rect> FanRects(IEnumerable<int[]> cellRects, ContactGraph d)
+    private static List<Rect> FanRects(IEnumerable<CellRect> cellRects, ContactGraph d)
     {
         var areas = new List<Rect>();
         var seen = new HashSet<(int, int, int, int)>();

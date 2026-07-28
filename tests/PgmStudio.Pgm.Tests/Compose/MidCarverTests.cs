@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 
 namespace PgmStudio.Pgm.Tests.Compose;
@@ -33,13 +34,13 @@ public sealed class MidCarverTests
     private static GrownUnit Unit(int halfGap, params (int X, int W)[] legs)
     {
         var pieces = legs
-            .Select((l, i) => new GrownPiece($"front-{i}", [l.X, halfGap, l.W, 2]))
-            .Append(new GrownPiece("hub", [legs.Min(l => l.X), halfGap + 2, 4, 3]))
+            .Select((l, i) => new GrownPiece($"front-{i}", new(l.X, halfGap, l.W, 2)))
+            .Append(new GrownPiece("hub", new(legs.Min(l => l.X), halfGap + 2, 4, 3)))
             .ToList();
         return new GrownUnit(pieces, new GrownSpawn("hub", [0, 0], "front"), []);
     }
 
-    private static int[]? Band(string symmetry, bool split, GrownUnit unit)
+    private static CellRect? Band(string symmetry, bool split, GrownUnit unit)
     {
         var env = new ComposeEnvelope(symmetry, Teams: 2, PlayersPerTeam: 12, Cell: 5, Surface: 9, Headroom: 11,
             BoardWidthBlocks: 300, BoardLengthBlocks: 300, LandPerTeam: 2800,
@@ -59,13 +60,13 @@ public sealed class MidCarverTests
         // legs at x -5..-2 and 2..5 — equal width, mirror-paired, a 4-cell bay straddling the axis
         var face = Unit(h, (-5, 3), (2, 3));
 
-        var single = Band("rot_180", split: false, face)!;
-        var pair = Band("rot_180", split: true, face)!;
+        var single = Band("rot_180", split: false, face)!.Value;
+        var pair = Band("rot_180", split: true, face)!.Value;
 
-        await Assert.That(single[2]).IsEqualTo(10).Because("one band spans the whole face hull, bay included");
-        await Assert.That(pair[2]).IsEqualTo(3).Because("a split band spans one leg and lets the image supply the other");
+        await Assert.That(single.Width).IsEqualTo(10).Because("one band spans the whole face hull, bay included");
+        await Assert.That(pair.Width).IsEqualTo(3).Because("a split band spans one leg and lets the image supply the other");
         // the island: the band and its own reflection leave the bay uncovered between them
-        await Assert.That(-pair[0] - pair[2]).IsGreaterThan(pair[0] + pair[2])
+        await Assert.That(-pair.X - pair.Width).IsGreaterThan(pair.X + pair.Width)
             .Because("the reflected band lands beyond this one, not on top of it");
     }
 
@@ -77,8 +78,8 @@ public sealed class MidCarverTests
         var h = MidCarver.BandOnly(new ComposeEnvelope("rot_180", 2, 12, 5, 9, 11, 300, 300, 2800, -40, -40, 40, 40))
             .HalfGapCells;
         var face = Unit(h, (-5, 3), (2, 3));
-        await Assert.That(Band("rot_180", split: false, face)![2])
-            .IsNotEqualTo(Band("rot_180", split: true, face)![2]);
+        await Assert.That(Band("rot_180", split: false, face)!.Value.Width)
+            .IsNotEqualTo(Band("rot_180", split: true, face)!.Value.Width);
     }
 
     /// <summary>Legs of unequal width do not coincide with their own reflection, so a band over one would leave
@@ -90,8 +91,8 @@ public sealed class MidCarverTests
         var h = MidCarver.BandOnly(new ComposeEnvelope("rot_180", 2, 12, 5, 9, 11, 300, 300, 2800, -40, -40, 40, 40))
             .HalfGapCells;
         var lopsided = Unit(h, (-6, 4), (2, 3));   // 4 wide against 3 — not its own mirror
-        await Assert.That(Band("rot_180", split: true, lopsided)![2])
-            .IsEqualTo(Band("rot_180", split: false, lopsided)![2]);
+        await Assert.That(Band("rot_180", split: true, lopsided)!.Value.Width)
+            .IsEqualTo(Band("rot_180", split: false, lopsided)!.Value.Width);
     }
 
     /// <summary>Under a mirror the image lands straight across rather than reflected, so a band over one leg
@@ -103,7 +104,7 @@ public sealed class MidCarverTests
         var h = MidCarver.BandOnly(new ComposeEnvelope("mirror_z", 2, 12, 5, 9, 11, 300, 300, 2800, -40, -40, 40, 40))
             .HalfGapCells;
         var face = Unit(h, (-5, 3), (2, 3));
-        await Assert.That(Band("mirror_z", split: true, face)![2])
-            .IsEqualTo(Band("mirror_z", split: false, face)![2]);
+        await Assert.That(Band("mirror_z", split: true, face)!.Value.Width)
+            .IsEqualTo(Band("mirror_z", split: false, face)!.Value.Width);
     }
 }

@@ -23,7 +23,7 @@ public static class SlotAssignment
     /// <paramref name="family"/>, with <paramref name="roomId"/> naming the terminal. Returns id → slot,
     /// with the terminal at <see cref="ApproachSlots.Room"/>.</summary>
     public static IReadOnlyDictionary<string, string> AssignSlots(
-        ShapeFamily family, IReadOnlyList<(string Id, int[] Rect)> pieces, string roomId)
+        ShapeFamily family, IReadOnlyList<(string Id, CellRect Rect)> pieces, string roomId)
     {
         var slots = new Dictionary<string, string> { [roomId] = ApproachSlots.Room };
         var room = pieces.First(p => p.Id == roomId);
@@ -74,11 +74,11 @@ public static class SlotAssignment
     // I/L/Z/scythe are simple piece paths with the room at one leaf; walk from the room to the far leaf and
     // zip the visited pieces onto the family template read back-to-front (template ends at the room).
     private static void AssignChain(
-        ShapeFamily family, (string Id, int[] Rect) room, List<(string Id, int[] Rect)> terrain,
+        ShapeFamily family, (string Id, CellRect Rect) room, List<(string Id, CellRect Rect)> terrain,
         Dictionary<string, string> slots)
     {
         var template = ApproachSlots.Template(family);            // [entry, …, room]
-        var order = new List<(string Id, int[] Rect)>();
+        var order = new List<(string Id, CellRect Rect)>();
         var visited = new HashSet<string> { room.Id };
         var cur = room;
         while (order.Count < terrain.Count)
@@ -100,14 +100,15 @@ public static class SlotAssignment
     // other terrain piece is a hub attachment (an entry). All of it is read off the hole edges and adjacency,
     // so it is orientation-free and survives the attachment/room-at-end/extend/flip manipulations.
     private static void AssignDonut(
-        (string Id, int[] Rect) room, List<(string Id, int[] Rect)> terrain, Dictionary<string, string> slots)
+        (string Id, CellRect Rect) room, List<(string Id, CellRect Rect)> terrain, Dictionary<string, string> slots)
     {
         var mask = new HashSet<(int, int)>();
         foreach (var p in terrain.Append(room)) foreach (var c in CellsOf(p.Rect)) mask.Add(c);
         var hole = Cells.EnclosedVoid(mask);
-        var (hx0, hz0, hx1, hz1) = Cells.BoundingBox(hole);
+        var hb = Cells.BoundingBox(hole);
+        int hx0 = hb.X, hz0 = hb.Z, hx1 = hb.MaxX - 1, hz1 = hb.MaxZ - 1;   // inclusive far corners
 
-        bool Borders(int[] r)
+        bool Borders(CellRect r)
         {
             foreach (var (x, z) in CellsOf(r))
                 if (hole.Contains((x - 1, z)) || hole.Contains((x + 1, z)) ||
@@ -118,7 +119,7 @@ public static class SlotAssignment
         var ringIds = ring.Select(t => t.Id).ToHashSet();
 
         // which hole edge a ring piece borders (its inner face) — top = above the hole, etc.
-        string Side(int[] r)
+        string Side(CellRect r)
         {
             var cells = CellsOf(r).ToHashSet();
             bool Row(int z) { for (var x = hx0; x <= hx1; x++) if (cells.Contains((x, z))) return true; return false; }
@@ -128,21 +129,21 @@ public static class SlotAssignment
             return Col(hx0 - 1) ? "left" : "right";
         }
         var sideOf = ring.ToDictionary(t => t.Id, t => Side(t.Rect));
-        (string Id, int[] Rect) Opposite((string Id, int[] Rect) r)
+        (string Id, CellRect Rect) Opposite((string Id, CellRect Rect) r)
         {
             var opp = sideOf[r.Id] switch { "top" => "bottom", "bottom" => "top", "left" => "right", _ => "left" };
             return ring.First(t => t.Id != r.Id && sideOf[t.Id] == opp);
         }
         // a ring piece with an external neighbour (a hub attachment, or a wool-extend run) is a bar; the
         // entry-bar is the one an attachment docks, so it is the reliable anchor when the room is ambiguous.
-        bool HasAttachment((string Id, int[] Rect) rp) =>
+        bool HasAttachment((string Id, CellRect Rect) rp) =>
             terrain.Any(t => t.Id != rp.Id && t.Id != room.Id && !ringIds.Contains(t.Id) && EdgeAdjacent(t.Rect, rp.Rect));
 
         // room-bar: the ring piece the room reaches — directly, or through a wool-extend run kept as its own
         // slot. When the room caps a ring corner it touches a bar and a leg both; pick the bar, identified as
         // the one whose opposite ring piece carries the hub attachment (the entry-bar).
         var roomNbrs = terrain.Where(t => t.Id != room.Id && EdgeAdjacent(t.Rect, room.Rect)).ToList();
-        (string Id, int[] Rect) roomBar;
+        (string Id, CellRect Rect) roomBar;
         var run = roomNbrs.FirstOrDefault(t => !ringIds.Contains(t.Id));
         if (run.Id is not null)
         {
@@ -169,16 +170,16 @@ public static class SlotAssignment
 
     // two cell rects share a positive-length edge (abut on one axis with real overlap on the other) — a bare
     // corner point does not count, so the ¾-solid corners inside a ring never read as a walkable adjacency
-    private static bool EdgeAdjacent(int[] a, int[] b)
+    private static bool EdgeAdjacent(CellRect a, CellRect b)
     {
-        var ix = Math.Min(a[0] + a[2], b[0] + b[2]) - Math.Max(a[0], b[0]);
-        var iz = Math.Min(a[1] + a[3], b[1] + b[3]) - Math.Max(a[1], b[1]);
+        var ix = Math.Min(a.X + a.Width, b.X + b.Width) - Math.Max(a.X, b.X);
+        var iz = Math.Min(a.Z + a.Height, b.Z + b.Height) - Math.Max(a.Z, b.Z);
         return (ix == 0 && iz > 0) || (iz == 0 && ix > 0);
     }
 
-    private static IEnumerable<(int, int)> CellsOf(int[] r)
+    private static IEnumerable<(int, int)> CellsOf(CellRect r)
     {
-        for (var x = r[0]; x < r[0] + r[2]; x++)
-            for (var z = r[1]; z < r[1] + r[3]; z++) yield return (x, z);
+        for (var x = r.X; x < r.X + r.Width; x++)
+            for (var z = r.Z; z < r.Z + r.Height; z++) yield return (x, z);
     }
 }

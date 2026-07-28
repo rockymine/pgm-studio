@@ -144,7 +144,7 @@ public static class TeamUnitFiller
                     // the branch forms take a sampled leg layout (SampleArms — varied leg widths/placements
                     // under the leg laws: ≥2 wide, factor-2 pairs, 2–4 bays, capped end recesses) with the
                     // canonical fat L / symmetric twin as the fallback when the spine cannot host one
-                    var spineLenF = mouth is BoxEdge.Left or BoxEdge.Right ? neighbour.Rect[3] : neighbour.Rect[2];
+                    var spineLenF = mouth is BoxEdge.Left or BoxEdge.Right ? neighbour.Rect.Height : neighbour.Rect.Width;
                     var layoutF = frontForm.Form == Compound.SpineArms
                         ? FrontlineBoxEmitter.SampleArms(rng, spineLenF, frontForm.Arms) : null;
                     var ef = (layoutF is null ? null

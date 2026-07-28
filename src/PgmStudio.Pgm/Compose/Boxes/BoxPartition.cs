@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -34,9 +35,9 @@ public sealed record BoxPartition(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoi
     /// only a joint asserting a contact that is not there is.</summary>
     public bool Valid()
     {
-        if (Boxes.Any(b => b.Rect[2] <= 0 || b.Rect[3] <= 0)) return false;
+        if (Boxes.Any(b => b.Rect.Width <= 0 || b.Rect.Height <= 0)) return false;
         if (Boxes.Select(b => b.Id).Distinct().Count() != Boxes.Count) return false;
-        if (Boxes.Any(b => b.LandTargetCells < 0 || b.LandTargetCells > b.Rect[2] * b.Rect[3])) return false;
+        if (Boxes.Any(b => b.LandTargetCells < 0 || b.LandTargetCells > b.Rect.Width * b.Rect.Height)) return false;
         foreach (var j in Joints)
         {
             if (j.BoxA == j.BoxB) return false;
@@ -60,11 +61,11 @@ public sealed record BoxPartition(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoi
     public static BoxPartition Of(GrownUnit unit)
     {
         var order = new List<string>();
-        var groups = new Dictionary<string, (BoxKind Kind, List<int[]> Rects)>();
+        var groups = new Dictionary<string, (BoxKind Kind, List<CellRect> Rects)>();
         foreach (var p in unit.Pieces)
         {
             var (id, kind) = KeyOf(p);
-            if (!groups.TryGetValue(id, out var g)) { g = (kind, new List<int[]>()); groups[id] = g; order.Add(id); }
+            if (!groups.TryGetValue(id, out var g)) { g = (kind, new List<CellRect>()); groups[id] = g; order.Add(id); }
             g.Rects.Add(p.Rect);
         }
 
@@ -93,24 +94,24 @@ public sealed record BoxPartition(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoi
         : p.Id.StartsWith("wool-lane") ? ("wool-c", BoxKind.Wool)
         : (p.Id, BoxKind.Mid);
 
-    private static int[] Bbox(IReadOnlyList<int[]> rects)
+    private static CellRect Bbox(IReadOnlyList<CellRect> rects)
     {
-        var minX = rects.Min(r => r[0]);
-        var minZ = rects.Min(r => r[1]);
-        var maxX = rects.Max(r => r[0] + r[2]);
-        var maxZ = rects.Max(r => r[1] + r[3]);
-        return [minX, minZ, maxX - minX, maxZ - minZ];
+        var minX = rects.Min(r => r.X);
+        var minZ = rects.Min(r => r.Z);
+        var maxX = rects.Max(r => r.X + r.Width);
+        var maxZ = rects.Max(r => r.Z + r.Height);
+        return new(minX, minZ, maxX - minX, maxZ - minZ);
     }
 
-    private static int Land(IReadOnlyList<int[]> rects) => rects.Sum(r => r[2] * r[3]);
+    private static int Land(IReadOnlyList<CellRect> rects) => rects.Sum(r => r.Width * r.Height);
 
     /// <summary>The shared edge interval of two abutting rects (cell coordinates), on the first rect's frame,
     /// or null when they do not touch along an edge (a gap, a bare corner, or interpenetration). The interval's
     /// <see cref="BoxInterface.Start"/> is box-local to <paramref name="a"/>'s edge origin.</summary>
-    public static BoxInterface? SharedEdge(int[] a, int[] b)
+    public static BoxInterface? SharedEdge(CellRect a, CellRect b)
     {
-        int ax0 = a[0], az0 = a[1], ax1 = a[0] + a[2], az1 = a[1] + a[3];
-        int bx0 = b[0], bz0 = b[1], bx1 = b[0] + b[2], bz1 = b[1] + b[3];
+        int ax0 = a.X, az0 = a.Z, ax1 = a.X + a.Width, az1 = a.Z + a.Height;
+        int bx0 = b.X, bz0 = b.Z, bx1 = b.X + b.Width, bz1 = b.Z + b.Height;
         int zLo = Math.Max(az0, bz0), zHi = Math.Min(az1, bz1);         // vertical-edge overlap (Left/Right)
         int xLo = Math.Max(ax0, bx0), xHi = Math.Min(ax1, bx1);        // horizontal-edge overlap (Top/Bottom)
         if (ax1 == bx0 && zHi > zLo) return new BoxInterface(BoxEdge.Right, zLo - az0, zHi - zLo);

@@ -62,11 +62,11 @@ public sealed class ShapeCatalogTests
                 if (ch == 'w') wool = (x, z);
                 if (ch != 't') { x++; continue; }
                 int c0 = x; while (x < rows[z].Length && rows[z][x] == 't') x++;
-                plan.Pieces.Add(new PlanPiece { Id = $"t{++pid}", Role = PlanRoles.Piece, Rect = [c0, z, x - c0, 1] });
+                plan.Pieces.Add(new PlanPiece { Id = $"t{++pid}", Role = PlanRoles.Piece, Rect = new(c0, z, x - c0, 1) });
             }
         }
         var w = wool!.Value;
-        plan.Pieces.Add(new PlanPiece { Id = "wool", Role = PlanRoles.WoolRoom, Rect = [w.Item1, w.Item2, 1, 1] });
+        plan.Pieces.Add(new PlanPiece { Id = "wool", Role = PlanRoles.WoolRoom, Rect = new(w.Item1, w.Item2, 1, 1) });
         plan.Placements.Wools.Add(new WoolPlacement { Piece = "wool", At = [0, 0] });
         return plan;
     }

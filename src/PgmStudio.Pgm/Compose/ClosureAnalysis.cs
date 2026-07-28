@@ -41,12 +41,12 @@ public static class ClosureAnalysis
 
         // fan every solid (pieces + zones) in CELL coordinates — cell rects fan exactly (integer corners)
         var solids = new List<(int X1, int Z1, int X2, int Z2, string? Id)>();
-        void Add(int[] rect, string? id)
+        void Add(CellRect rect, string? id)
         {
             for (var k = 0; k < order; k++)
             {
                 var (x1, z1, x2, z2) = ComposeGeometry.FanImage(
-                    rect[0], rect[1], rect[0] + rect[2], rect[1] + rect[3], axes, k);
+                    rect.X, rect.Z, rect.X + rect.Width, rect.Z + rect.Height, axes, k);
                 solids.Add(((int)Math.Round(x1), (int)Math.Round(z1), (int)Math.Round(x2), (int)Math.Round(z2), id));
             }
         }

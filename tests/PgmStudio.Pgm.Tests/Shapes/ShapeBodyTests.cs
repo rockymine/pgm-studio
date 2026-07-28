@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Shapes;
@@ -13,7 +14,7 @@ public sealed class ShapeBodyTests
     private static readonly ShapeFamily[] Emittable =
         [ShapeFamily.I, ShapeFamily.L, ShapeFamily.Z, ShapeFamily.Scythe, ShapeFamily.Clamp, ShapeFamily.U, ShapeFamily.H, ShapeFamily.Donut];
 
-    private static bool RectEq(int[] a, int[] b) => a.Length == b.Length && a.SequenceEqual(b);
+    private static bool RectEq(CellRect a, CellRect b) => a == b;
 
     private static async Task AssertSameBody(EmittedShape emit, ShapeBody body)
     {

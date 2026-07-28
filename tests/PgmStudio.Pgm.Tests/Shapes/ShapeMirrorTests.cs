@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
 
@@ -21,8 +22,8 @@ public sealed class ShapeMirrorTests
     {
         var seen = new HashSet<(int, int)>(); int n = 0;
         foreach (var p in a.Terrain.Append(a.WoolRoom))
-            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++) if (!seen.Add((x, z))) n++;
+            for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+                for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++) if (!seen.Add((x, z))) n++;
         return n;
     }
 
@@ -124,8 +125,8 @@ public sealed class ShapeMirrorTests
                     EmittedApproach a;
                     try { a = WoolBoxEmitter.Emit(ShapeFamily.I, new WoolBox(0, 0, W, H), cw, flip, RoomPlacement.SideTuck); }
                     catch (ComposeException) { continue; }
-                    int[] lane = a.Terrain[0].Rect, rm = a.WoolRoom.Rect;
-                    var side = rm[0] == lane[0] + lane[2] || rm[0] + rm[2] == lane[0];
+                    CellRect lane = a.Terrain[0].Rect, rm = a.WoolRoom.Rect;
+                    var side = rm.X == lane.X + lane.Width || rm.X + rm.Width == lane.X;
                     await Assert.That(Derive(a)).IsEqualTo(ShapeFamily.I);
                     await Assert.That(side).IsTrue();
                     await Assert.That(Overlaps(a)).IsEqualTo(0);

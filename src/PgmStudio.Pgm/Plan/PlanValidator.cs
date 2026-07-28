@@ -119,7 +119,7 @@ public static class PlanValidator
         // A buffer is reserved empty space — it produces no terrain, so nothing may be placed on it.
         if (PlanRoles.IsAnnotation(piece.Role)) { findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} references non-generating buffer '{pieceId}'", null, [pieceId])); return; }
         double x = at[0], z = at[1];
-        int w = piece.Rect[2], h = piece.Rect[3];
+        int w = piece.Rect.Width, h = piece.Rect.Height;
         if (x < 0 || z < 0 || x > w || z > h)
             findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h})", null, [pieceId]));
     }

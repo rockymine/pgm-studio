@@ -1,5 +1,6 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Plan;
 
@@ -167,7 +168,7 @@ public sealed class PlanPiece
 {
     [JsonPropertyName("id")]      public string Id { get; set; } = "";
     [JsonPropertyName("role")]    public string Role { get; set; } = PlanRoles.Piece;
-    [JsonPropertyName("rect")]    public int[] Rect { get; set; } = [0, 0, 0, 0];
+    [JsonPropertyName("rect")]    public CellRect Rect { get; set; }
     [JsonPropertyName("surface")] public int? Surface { get; set; }
     [JsonPropertyName("mirrors")] public bool? Mirrors { get; set; }
 
@@ -179,8 +180,8 @@ public sealed class PlanPiece
 public sealed class PlanZone
 {
     [JsonPropertyName("id")]    public string Id { get; set; } = "";
-    [JsonPropertyName("rect")]  public int[] Rect { get; set; } = [0, 0, 0, 0];
-    [JsonPropertyName("holes")] public List<int[]> Holes { get; set; } = [];
+    [JsonPropertyName("rect")]  public CellRect Rect { get; set; }
+    [JsonPropertyName("holes")] public List<CellRect> Holes { get; set; } = [];
 }
 
 /// <summary>A <b>box</b>: the typed envelope grouping the pieces that realize one part of the partition —
@@ -197,7 +198,7 @@ public sealed class PlanBox
 {
     [JsonPropertyName("id")]      public string Id { get; set; } = "";
     [JsonPropertyName("kind")]    public string Kind { get; set; } = PlanBoxKinds.Mid;
-    [JsonPropertyName("rect")]    public int[] Rect { get; set; } = [0, 0, 0, 0];
+    [JsonPropertyName("rect")]    public CellRect Rect { get; set; }
 
     /// <summary>The member piece ids, when the grouping is stated rather than inferred; <c>null</c>/empty
     /// leaves membership to containment.</summary>

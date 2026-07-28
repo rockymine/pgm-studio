@@ -1,3 +1,5 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>
@@ -27,13 +29,13 @@ internal readonly record struct Frame(char PrimaryAxis, int Sign)
 
     /// <summary>Map a generalized rect (<c>uMin..uMin+uSpan</c>, <c>vMin..vMin+vSpan</c>) to a real cell rect
     /// <c>[x, z, w, h]</c> (<see cref="PlanPiece.Rect"/> convention).</summary>
-    public int[] ToRect(int uMin, int uSpan, int vMin, int vSpan)
+    public CellRect ToRect(int uMin, int uSpan, int vMin, int vSpan)
     {
         var (x1, z1) = ToPoint(uMin, vMin);
         var (x2, z2) = ToPoint(uMin + uSpan, vMin + vSpan);
         int minX = (int)Math.Round(Math.Min(x1, x2)), maxX = (int)Math.Round(Math.Max(x1, x2));
         int minZ = (int)Math.Round(Math.Min(z1, z2)), maxZ = (int)Math.Round(Math.Max(z1, z2));
-        return [minX, minZ, maxX - minX, maxZ - minZ];
+        return new(minX, minZ, maxX - minX, maxZ - minZ);
     }
 
     /// <summary>The piece-relative offset (a <see cref="SpawnPlacement.At"/>/<see cref="WoolPlacement.At"/>
@@ -42,12 +44,12 @@ internal readonly record struct Frame(char PrimaryAxis, int Sign)
     {
         var rect = ToRect(uMin, uSpan, vMin, vSpan);
         var (x, z) = ToPoint(u, v);
-        return [x - rect[0], z - rect[1]];
+        return [x - rect.X, z - rect.Z];
     }
 
     /// <summary>The inverse of <see cref="ToRect"/>: recover a cell rect's generalized
     /// (uMin, uSpan, vMin, vSpan) interval pair.</summary>
-    public (int UMin, int USpan, int VMin, int VSpan) FromRect(int[] rect) => PrimaryAxis == 'z'
-        ? (Sign > 0 ? rect[1] : -(rect[1] + rect[3]), rect[3], rect[0], rect[2])
-        : (Sign > 0 ? rect[0] : -(rect[0] + rect[2]), rect[2], rect[1], rect[3]);
+    public (int UMin, int USpan, int VMin, int VSpan) FromRect(CellRect rect) => PrimaryAxis == 'z'
+        ? (Sign > 0 ? rect.Z : -(rect.Z + rect.Height), rect.Height, rect.X, rect.Width)
+        : (Sign > 0 ? rect.X : -(rect.X + rect.Width), rect.Width, rect.Z, rect.Height);
 }

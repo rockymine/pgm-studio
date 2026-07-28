@@ -149,7 +149,7 @@ public static class HubBoxEmitter
         RingWalls? ringWalls = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         rejection = null;
-        int boxW = box.Rect[2], boxH = box.Rect[3];
+        int boxW = box.Rect.Width, boxH = box.Rect.Height;
         var body = BuildBody(form, boxW, boxH, cw, ringWalls, armLayout, out var detail);
         if (body is null)                                    // too small for the form at this cw — a directed signal
         {
@@ -162,7 +162,7 @@ public static class HubBoxEmitter
         var pieces = new List<GrownPiece>(body.Pieces.Count);
         var n = 1;
         foreach (var (r, slot) in body.Pieces)
-            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", [box.Rect[0] + r[0], box.Rect[1] + r[1], r[2], r[3]],
+            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
                 PlanRoles.Piece, slot, boxRef));
 
         return new EmittedHub(pieces, Offers(box, body, boxW, boxH), form);

@@ -1,3 +1,5 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
@@ -26,7 +28,7 @@ public static class BodyEmitter
     public static ShapeBody Rectangle(int w, int h)
     {
         if (w < 1 || h < 1) throw new ArgumentException($"a rectangle needs positive dims (got {w}x{h}).");
-        return new ShapeBody([([0, 0, w, h], ApproachSlots.Bar)], []);
+        return new ShapeBody([(new(0, 0, w, h), ApproachSlots.Bar)], []);
     }
 
     /// <summary>A full-width spine (top, <paramref name="cw"/> tall) with <paramref name="arms"/> equal arms
@@ -75,8 +77,8 @@ public static class BodyEmitter
             if (i > 0 && s < sorted[i - 1].Start + sorted[i - 1].Width + 1)
                 throw new ArgumentException("two arms touch — arms need a gap so each is a distinct run.");
         }
-        var pieces = new List<(int[] Rect, string Slot)> { ([0, 0, spineLen, barThickness], ApproachSlots.Bar) };
-        foreach (var (s, w, len) in arms) pieces.Add(([s, barThickness, w, len], ApproachSlots.Leg));
+        var pieces = new List<(CellRect Rect, string Slot)> { (new(0, 0, spineLen, barThickness), ApproachSlots.Bar) };
+        foreach (var (s, w, len) in arms) pieces.Add((new(s, barThickness, w, len), ApproachSlots.Leg));
         return new ShapeBody(pieces, []);
     }
 
@@ -124,9 +126,9 @@ public static class BodyEmitter
         var ox = ext / 2;                                         // loop offset — centred on the overhang
         var w = loopW + ext;
         var loop = RingWallRects(walls, ox, 0, loopW, ringH);
-        var pieces = new List<(int[] Rect, string Slot)>
+        var pieces = new List<(CellRect Rect, string Slot)>
         {
-            ([0, ringH - walls.Bottom, w, walls.Bottom], ApproachSlots.Bar),  // the long bottom bar (the loop slides along it)
+            (new(0, ringH - walls.Bottom, w, walls.Bottom), ApproachSlots.Bar),  // the long bottom bar (the loop slides along it)
             (loop.Top, ApproachSlots.Bar),                        // loop top bar
             (loop.Left, ApproachSlots.Leg),                       // loop left leg
             (loop.Right, ApproachSlots.Leg),                      // loop right leg
@@ -158,9 +160,9 @@ public static class BodyEmitter
         if (z < 0 || z + uh > ringH)
             throw new ArgumentException($"the U (z {z}, height {uh}) doesn't fit the ring's right edge (ring height {ringH}).");
         var pieces = RingPieces(walls, 0, 0, ringW, ringH);
-        pieces.Add(([ringW, z, uw, cw], ApproachSlots.Bar));                       // U top arm (docks the ring's right leg)
-        pieces.Add(([ringW, z + uh - cw, uw, cw], ApproachSlots.Bar));            // U bottom arm
-        pieces.Add(([ringW + uw - cw, z + cw, cw, uh - 2 * cw], ApproachSlots.Leg)); // U outer wall (closes it)
+        pieces.Add((new(ringW, z, uw, cw), ApproachSlots.Bar));                       // U top arm (docks the ring's right leg)
+        pieces.Add((new(ringW, z + uh - cw, uw, cw), ApproachSlots.Bar));            // U bottom arm
+        pieces.Add((new(ringW + uw - cw, z + cw, cw, uh - 2 * cw), ApproachSlots.Leg)); // U outer wall (closes it)
         return new ShapeBody(pieces,
         [
             RingHole(walls, 0, 0, ringW, ringH),                 // hole 1 — the ring interior
@@ -189,13 +191,13 @@ public static class BodyEmitter
         // built bay-opening-DOWN (the shared bar on top, the L's foot part of it), so the hub's vertical flip turns
         // the open side toward the front — the branch convention, so a docking frontline seals the bay into a hole
         var ring = RingWallRects(walls, 0, 0, ringW, ringH);
-        var pieces = new List<(int[] Rect, string Slot)>
+        var pieces = new List<(CellRect Rect, string Slot)>
         {
-            ([0, 0, w, walls.Top], ApproachSlots.Bar),                   // the shared top bar (ring top + the L's foot)
+            (new(0, 0, w, walls.Top), ApproachSlots.Bar),                   // the shared top bar (ring top + the L's foot)
             (ring.Bottom, ApproachSlots.Bar),                           // ring bottom bar
             (ring.Left, ApproachSlots.Leg),                             // ring left leg
             (ring.Right, ApproachSlots.Leg),                            // ring right leg — the bay's left wall
-            ([w - cw, walls.Top, cw, ringH - walls.Top], ApproachSlots.Leg), // the L's upright — the bay's right wall, down to the open edge
+            (new(w - cw, walls.Top, cw, ringH - walls.Top), ApproachSlots.Leg), // the L's upright — the bay's right wall, down to the open edge
         };
         return new ShapeBody(pieces, [RingHole(walls, 0, 0, ringW, ringH)]);   // one enclosed void (the ring); the bay opens down
     }
@@ -212,15 +214,15 @@ public static class BodyEmitter
         int hw = hole > 0 ? hole : cw, gp = gap > 0 ? gap : cw;
         int l0 = 0, l1 = cw + hw, l2 = 2 * cw + hw + gp, l3 = 3 * cw + hw + gp + hw;
         int w = l3 + cw, legH = h - 2 * cw, inner = cw;
-        var pieces = new List<(int[] Rect, string Slot)>
+        var pieces = new List<(CellRect Rect, string Slot)>
         {
-            ([0, h - cw, w, cw], ApproachSlots.Bar),                // shared baseline (bottom)
-            ([l0, 0, 2 * cw + hw, cw], ApproachSlots.Bar),         // left loop top bar (over l0..l1)
-            ([l2, 0, 2 * cw + hw, cw], ApproachSlots.Bar),         // right loop top bar (over l2..l3)
-            ([l0, inner, cw, legH], ApproachSlots.Leg),
-            ([l1, inner, cw, legH], ApproachSlots.Leg),
-            ([l2, inner, cw, legH], ApproachSlots.Leg),
-            ([l3, inner, cw, legH], ApproachSlots.Leg),
+            (new(0, h - cw, w, cw), ApproachSlots.Bar),                // shared baseline (bottom)
+            (new(l0, 0, 2 * cw + hw, cw), ApproachSlots.Bar),         // left loop top bar (over l0..l1)
+            (new(l2, 0, 2 * cw + hw, cw), ApproachSlots.Bar),         // right loop top bar (over l2..l3)
+            (new(l0, inner, cw, legH), ApproachSlots.Leg),
+            (new(l1, inner, cw, legH), ApproachSlots.Leg),
+            (new(l2, inner, cw, legH), ApproachSlots.Leg),
+            (new(l3, inner, cw, legH), ApproachSlots.Leg),
         };
         return new ShapeBody(pieces,
         [
@@ -230,10 +232,10 @@ public static class BodyEmitter
     }
 
     private static ShapeVacancy Hole(int x, int z, int w, int h) =>
-        new("hole", [x, z, w, h], null, [ApproachSlots.Bar, ApproachSlots.Bar, ApproachSlots.Leg, ApproachSlots.Leg]);
+        new("hole", new(x, z, w, h), null, [ApproachSlots.Bar, ApproachSlots.Bar, ApproachSlots.Leg, ApproachSlots.Leg]);
 
     // the four bars of a rectangular ring at (x, z), size w×h — top/bottom bars, left/right legs.
-    private static List<(int[] Rect, string Slot)> RingPieces(RingWalls walls, int x, int z, int w, int h)
+    private static List<(CellRect Rect, string Slot)> RingPieces(RingWalls walls, int x, int z, int w, int h)
     {
         var r = RingWallRects(walls, x, z, w, h);
         return
@@ -256,15 +258,15 @@ public static class BodyEmitter
     /// owns <em>where</em> the walls are, not what they are called or in what order they are laid down; that
     /// split is what lets a per-side width be added once rather than in six copies.</para>
     /// </summary>
-    public static (int[] Top, int[] Bottom, int[] Left, int[] Right) RingWallRects(
+    public static (CellRect Top, CellRect Bottom, CellRect Left, CellRect Right) RingWallRects(
         RingWalls walls, int x, int z, int w, int h)
     {
         var mid = h - walls.Top - walls.Bottom;
         return (
-            [x, z, w, walls.Top],
-            [x, z + h - walls.Bottom, w, walls.Bottom],
-            [x, z + walls.Top, walls.Left, mid],
-            [x + w - walls.Right, z + walls.Top, walls.Right, mid]);
+            new(x, z, w, walls.Top),
+            new(x, z + h - walls.Bottom, w, walls.Bottom),
+            new(x, z + walls.Top, walls.Left, mid),
+            new(x + w - walls.Right, z + walls.Top, walls.Right, mid));
     }
 
     /// <summary>The enclosed void a ring at <paramref name="walls"/> leaves inside <c>(x, z, w, h)</c>.</summary>
