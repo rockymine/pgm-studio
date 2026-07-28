@@ -97,16 +97,25 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-- [ ] **C28 — The Blazor client has no automated tests at all.** `PgmStudio.Client` is 57 files / ~8,000
-  lines and is **absent from the coverage report entirely** — no test project references it, so nothing
-  instruments it (`tools/coverage.sh`). There is also **no committed e2e harness**: the "Playwright 17/17"
-  and "10/10" numbers in `FEATURES.md` were one-off runs in the sessions that shipped those features, and
-  nothing in `tools/`, `scripts/` or `package.json` can reproduce them. Every phase host, step and
-  inspector is therefore verified only by hand. Decide the shape first — a bUnit component-test project
-  (`tests/PgmStudio.Client.Tests`, fast, no browser, good for the phase/step state machines and the
-  `AuthorsEditor`-style logic) versus a committed Playwright suite (slow, needs the app running, but the
-  only thing that catches canvas/interop regressions), possibly both. Start with the phase hosts, where
-  the C25–C27 renames concentrated the risk.
+- [ ] **C30 — The icon set is a runtime CDN dependency.** `index.html` pulls lucide from
+  `cdn.jsdelivr.net` on every page load, so in any offline or egress-restricted environment **no icon
+  renders** — the nav rail, toolbars and chips all come up blank while the app otherwise works. It also
+  pins `@latest`, so the icon set can change under the app without a commit. Vendor it into `wwwroot/js/`
+  (or an npm-free copy of the UMD bundle) and drop the CDN tag. The e2e harness allowlists the failed
+  request today (`tests/e2e/lib/harness.mjs`), which is the marker to remove when this lands.
+- [~] **C28 — The client's remaining test layers (smoke has landed).** The **smoke layer + runner shipped**
+  as `C31` (`tools/e2e.sh`, `tests/e2e/`) — every route is swept for "renders and raises nothing", seeded
+  from a composed board. `PgmStudio.Client` is still **absent from the coverage report** (no test project
+  references it), and two layers are still open:
+  **(a) mount/interop** — per canvas tool, assert the bridge mounted and the surface has a real size; this
+  is the C29 class of bug (a canvas at 45% of its workspace for weeks, in two tools) and it is assertable
+  without knowing user intent.
+  **(b) scenarios** — one flow per tool, specifically *the path that creates the artifact*, where a break is
+  unrecoverable rather than cosmetic: Sketch `New → name → draw → Finish → Configure`; Plan
+  `New → globals → piece → Compile`. The seed already proves that chain works headlessly.
+  Deliberately **not** e2e: field-level inspector behaviour and anything asserting where geometry lands —
+  those rot; extract the decidable logic instead (`CV12`). A bUnit project for the phase/step state machines
+  is still worth considering, and is independent of the above.
 - [ ] **CV12 — Two thirds of the JS layer is never loaded by a test.** `npm test --
   --experimental-test-coverage` reports 82.8% over the 15 modules the 148 tests import (several at 100%:
   `transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`), but **26 of 41 files / ~6,900 lines are
@@ -150,6 +159,24 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
   neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
   91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
+- [ ] **B38 — [Decision] Nothing stops an objective-less plan compiling.** `PlanValidator` gates
+  *structural consistency* — overlapping pieces at different surfaces, a placement that doesn't sit inside
+  its piece, core casing geometry — but has **no completeness gate**. Measured by `tests/e2e/plan-refusals`
+  against a composed board with one slice removed: **no spawns → 200**, **no wools → 200**, **a piece with a
+  blank id → 200**. (Removing all pieces, or the build zones, *is* refused — but via knock-on rules
+  ("spawn references unknown piece", "wool … unreachable from team 1's spawn"), not a completeness check.)
+  The question is where completeness belongs: `/plan/compile` is documented as a one-way lowering into
+  `layout` + `intent`, and Configure is the stage that fills a map in — so an incomplete plan compiling may
+  be correct by design. Decide, then either add the gate or write the intent down. The e2e spec asserts
+  today's behaviour and **fails loudly if a gate lands**, so the decision cannot be made silently.
+- [ ] **B39 — `/plan/evaluate` answers 400 on a plan that is merely empty.** A well-formed blank plan
+  (the bare `/plan-editor` document) gets `400 {"error":"Invalid plan structure"}`; its sibling
+  `/plan/inspect` answers `200` on the identical body. The 400 comes from the endpoint's catch-all around
+  `LayoutEvaluator.Evaluate`, which turns a throw into "invalid" — but the document is valid, just empty.
+  Not user-visible breakage (`plan-bridge.runEvaluate` treats a non-ok as "clear the score panel"), so the
+  symptom is a fresh plan showing a blank evaluator panel with no reason. Fix by making an empty plan
+  evaluate to an empty result rather than throw — check what actually throws first; the catch was added for
+  a reason. Found by the e2e smoke sweep, which allowlists exactly this endpoint until it's fixed.
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
   `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts

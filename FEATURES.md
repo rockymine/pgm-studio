@@ -77,6 +77,32 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **A committed end-to-end harness — the smoke layer of C28 (C31).** The "Playwright N/N" numbers in the
+  entries below were one-off runs in the sessions that produced them; nothing in the repo could reproduce
+  one. `tools/e2e.sh` can: it resets **its own database** (`pgm_studio_e2e`) and serves on **its own port**
+  (7895), so a run can never touch the dev data — the specs create maps, and on the dev DB they pile up in
+  the dashboard. Migrate → build → start → wait for health → seed → run → tear down; `npm run e2e`,
+  `--keep` to leave the server up.
+  - **Seeded from the composer, not from hand-drawn boxes.** A pinned descriptor
+    (`players/teams/symmetry/seed/cell`) composes the same real board every run — spawns, wools, a hub, a
+    frontline, connected zones — so the pages render something representative *and* the fixtures are stable
+    without committing a fixture file. Three maps, one per stage the routes need: a composed candidate
+    committed to authoring (`plan`), the same layout carried through compile → sketch → **Finish** into
+    world geometry (`configure`, and what `/edit` opens), and a draft holding that layout (`sketch`).
+  - **`smoke.mjs` — 15 routes × (renders · is clean).** "Clean" means no uncaught exception, no console
+    error, no failed or 4xx/5xx request. Anything tolerated must be named in `ALLOWED_FAULTS` **with a
+    reason and a task id**, so an allowance is a decision on the record rather than a silent filter.
+  - **`plan-refusals.mjs` — the refusal contract**, written by corrupting a composed plan one slice at a
+    time so a refusal is attributable to the slice. Structural breakage is refused with findings; malformed
+    input is 4xx and never 5xx; `Finish` refuses a one-island layout.
+
+  It paid for itself before it was finished — three defects, none of which a unit test could see:
+  **a dead `PgmStudio.Client.styles.css` link 404ing on every page** (the project has zero `.razor.css`, and
+  its own UI contract says it never will — link removed here); **the icon set is a runtime CDN dependency**
+  (C30); and **`/plan/evaluate` answers 400 on a plan that is merely empty** while its sibling
+  `/plan/inspect` answers 200 on the same body (B39). It also measured that **nothing stops an
+  objective-less plan compiling** (B38) — asserted as today's behaviour so the suite stays a signal, and
+  written to fail loudly if a gate ever lands. 31/31 smoke, 14/14 refusals. (C31)
 - **The canvases share their machinery instead of re-deriving it (CV13 + CV14).** Two shapes of
   duplication, both of which had already cost something:
   - **The layer z-stack was stated twice per canvas** — once by the `#…Layer` field declarations, once by

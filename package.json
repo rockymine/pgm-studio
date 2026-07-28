@@ -1,8 +1,10 @@
 {
   "private": true,
   "type": "module",
-  "description": "Marks the repo's hand-written .js (wwwroot studio modules + tests/js) as ES modules for Node's built-in test runner. No npm dependencies; .NET ignores this file.",
+  "description": "Marks the repo's hand-written .js (wwwroot studio modules + tests/js) as ES modules for Node's built-in test runner, and carries the e2e scripts (tools/e2e.sh drives tests/e2e/*). No npm dependencies beyond a globally-available playwright; .NET ignores this file.",
   "scripts": {
-    "test": "node --test \"tests/js/**/*.test.js\""
+    "test": "node --test \"tests/js/**/*.test.js\"",
+    "e2e": "tools/e2e.sh",
+    "e2e:all": "tools/e2e.sh all"
   }
 }
