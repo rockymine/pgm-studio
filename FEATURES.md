@@ -77,6 +77,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **Sketch canvas scales to its workspace, and the grid to the viewport** — three defects made a fresh
+  sketch open on a postage stamp you couldn't draw your way out of. (1) The chunk grid was clipped to the
+  same rect `fitToBbox` framed, so the grid always filled 85% of the surface with ~5 blocks of canvas
+  outside it — drawing past the edge to grow it meant drawing off the surface. The grid, the symmetry axis
+  and the snap guides now span the **visible viewport** (snapped out to a 4-chunk step, rebuilt on viewport
+  change only when that extent moves), so wherever you pan or zoom there is grid to draw on and growing the
+  sketch is just drawing. (2) The canvas mounts while the Draw phase is still `display:none` (a new sketch
+  opens on `Info`), so it measured `#size()`'s 600px fallback and framed the view for it; the phase switch's
+  `resize()` nudge ran before Blazor re-rendered, so it re-measured the *hidden* element and the `<svg>`
+  stayed 576×576 inside a 966×769 area. A `ResizeObserver` on the wrap now owns re-measuring, and a fit
+  requested with no layout box is deferred until a real one arrives (the Blazor nudge is gone). (3) `load()`
+  fitted before the saved shapes were added, so an existing sketch reopened on the blank working area
+  instead of on its drawing — it now fits after the load. The blank working area went 64×64 → 160×160, so a
+  full-size map fits without zooming out first (989% → 396% on a 1600×900 window). Playwright 11/11 against
+  the running app. (C29)
 - **Hybrid canvas** — the reference `EditorCanvas` JS reused via interop (`studio-canvas.js`). (C1)
 - **Reusable `RegionTree` / `RegionInspector`** + `Models/RegionNode.cs` + `GameColors.cs`. (C2, C3)
 - **Studio design-system CSS** (verbatim) + the `/design` living reference page. (C4, S1)
@@ -218,8 +233,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   an **`Info`** phase with `Identity` (editable name + username-verified **authors**, via the shared
   `AuthorsEditor` + the map-metadata endpoint — sketches are map rows) and `Settings` (symmetry) steps,
   plus a **`Draw`** phase (the canvas, kept mounted/hidden across phase switches). The canvas **auto-grows
-  to the drawn content** (plan-editor model — bounds = content + a one-chunk buffer, min 64×64, snapped to
-  chunk lines), fixing the old fixed-frame that didn't grow; footprint/size presets are gone (the exported
+  to the drawn content** (plan-editor model — working bounds = content + a one-chunk buffer, snapped to
+  chunk lines; the minimum area and the grid extent were later reworked by C29), fixing the old
+  fixed-frame that didn't grow; footprint/size presets are gone (the exported
   world was always the tight content bounds). The `/maps/new-sketch` creation page is removed — **New
   sketch** creates an untitled draft and opens it on `Info` (`?phase=info`) to name it. Verified end-to-end
   with a Playwright harness against the running app. (C27)

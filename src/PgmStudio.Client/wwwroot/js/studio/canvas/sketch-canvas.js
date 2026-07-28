@@ -46,12 +46,19 @@ import {
 const FIT_MARGIN = 0.85;
 const identityTransform = (x, z) => ({ x, y: z });
 
-// Auto-growing bounds (plan-editor model): the grid follows the drawn content instead of a fixed
-// user-set frame. CHUNK = the 16-block chunk grid; VIEW_BUFFER = one chunk of breathing room past the
-// content; MIN_HALF = half of the 64×64 minimum area a blank sketch shows (centred on the origin).
+// Auto-growing bounds (plan-editor model): the working bounds follow the drawn content instead of a
+// fixed user-set frame. CHUNK = the 16-block chunk grid; VIEW_BUFFER = one chunk of breathing room past
+// the content; MIN_HALF = half of the 160×160 minimum working area a blank sketch frames (centred on the
+// origin) — wide enough that a full-size map fits without zooming out first.
 const CHUNK = 16;
 const VIEW_BUFFER = 16;
-const MIN_HALF = 32;
+const MIN_HALF = 80;
+
+// The chunk grid and the symmetry axis span the VISIBLE VIEWPORT, not the working bounds — so there is
+// always grid (and drawing surface) outside the current content and growing the sketch is just drawing
+// where you already see grid. GRID_SNAP is the multiple the visible extent snaps out to: coarser than
+// CHUNK so panning rebuilds the lines every four chunks instead of every one.
+const GRID_SNAP = CHUNK * 4;
 
 // Nearest snap target to any of `edges` within `tol`; returns { adjust, line } so edge+adjust == line.
 function bestSnap(edges, targets, tol) {
@@ -64,8 +71,11 @@ function bestSnap(edges, targets, tol) {
 }
 
 export class SketchCanvas extends CanvasBase {
-  #bbox    = null;    // the current view bounds (content + buffer); recomputed by #renderSetup
+  #bbox    = null;    // the current working bounds (content + buffer); recomputed by #renderSetup
   #gridKey = "";      // last chunk-grid extent key, so the grid only rebuilds when it actually changes
+  #ro      = null;    // ResizeObserver on the wrap — the canvas re-measures itself
+  #fitPending = false; // a fit was asked for while the wrap had no layout box; run it once it gets one
+  #viewSize = null;   // last measured surface size; #gridBounds reads it every pan frame (see #build)
   #center  = { cx: 0, cz: 0 };
   #mode    = "rot_180";
 
@@ -121,8 +131,12 @@ export class SketchCanvas extends CanvasBase {
   setMode(mode)        { this.#mode = mode; this.#renderSetup(); }
   setOperation(op)     { this.#draw?.setOperation(op); }
 
+  // Frame the working bounds. Deferred when the wrap has no layout box yet — the tool mounts this canvas
+  // while the Draw phase is still display:none, and #size()'s fallback would frame the view for a viewport
+  // that isn't the real one (leaving the sketch scaled for a 600px box inside the real, larger one).
   fitToBbox() {
     if (!this.#bbox) return;
+    if (!this.#hasBox()) { this.#fitPending = true; return; }
     const { min_x, max_x, min_z, max_z } = this.#bbox;
     const { w, h } = this.#size();
     const bw = max_x - min_x, bh = max_z - min_z;
@@ -140,9 +154,12 @@ export class SketchCanvas extends CanvasBase {
     this._svg.setAttribute("width",  w);
     this._svg.setAttribute("height", h);
     this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    this.#renderGrid();   // a bigger/smaller viewport shows more/less grid
     this.#edit?.refresh();
     this.#refreshCenter();
   }
+
+  dispose() { this.#ro?.disconnect(); this.#ro = null; }
 
   setActiveTool(tool) {
     this.#draw?.cancel();
@@ -258,7 +275,7 @@ export class SketchCanvas extends CanvasBase {
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderIslandChrome(); }
+  _onViewportChanged() { this.#renderGrid(); this.#edit?.refresh(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderIslandChrome(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
@@ -447,8 +464,7 @@ export class SketchCanvas extends CanvasBase {
     const layer = this.#guideLayer;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
-    if (!this.#bbox) return;
-    const { min_x, max_x, min_z, max_z } = this.#bbox;
+    const { min_x, max_x, min_z, max_z } = this.#gridBounds();   // guides run the full visible width/height
     const attrs = { stroke: "var(--accent)", "stroke-width": "1", "stroke-dasharray": "4 3", "vector-effect": "non-scaling-stroke" };
     if (gx !== null) layer.appendChild(svgEl("line", { x1: gx, y1: min_z, x2: gx, y2: max_z, ...attrs }));
     if (gz !== null) layer.appendChild(svgEl("line", { x1: min_x, y1: gz, x2: max_x, y2: gz, ...attrs }));
@@ -614,7 +630,16 @@ export class SketchCanvas extends CanvasBase {
   // Otherwise `.map-canvas-svg { max-width:100% }` shrinks the svg to fit while the viewBox stays
   // larger, scaling the client→world mapping — the cursor would land off the drawn anchors/preview,
   // worse toward the right/bottom. Matches EditorCanvas (clientWidth − 24).
-  #size() { return { w: (this._wrap.clientWidth || 600) - 24, h: (this._wrap.clientHeight || 600) - 24 }; }
+  // Measures the wrap, so it forces a layout — every caller either already changed the DOM or runs off a
+  // resize. The per-frame path (#gridBounds) reads the cached #viewSize instead; only resize() re-measures.
+  #size() {
+    this.#viewSize = { w: (this._wrap.clientWidth || 600) - 24, h: (this._wrap.clientHeight || 600) - 24 };
+    return this.#viewSize;
+  }
+
+  // Whether the wrap has a real layout box — false while the canvas sits in a display:none phase, where
+  // #size() returns its fallback rather than a measurement.
+  #hasBox() { return this._wrap.clientWidth > 0 && this._wrap.clientHeight > 0; }
 
   #build() {
     const { w, h } = this.#size();
@@ -649,6 +674,19 @@ export class SketchCanvas extends CanvasBase {
     if (!this.#shapesVisible) this.#shapesLayer.style.display = "none";
     if (!this.#mirrorVisible) this.#mirrorLayer.style.display = "none";
     this._applyViewportTransform();
+
+    // The canvas re-measures itself: it is mounted while the Draw phase is still display:none (a new
+    // sketch opens on Info), and the workspace sidebars are resizable. A fit deferred because there was
+    // no layout box yet runs the first time a real one arrives — without it the view stays framed for
+    // #size()'s 600px fallback inside the real, larger viewport.
+    if (typeof ResizeObserver !== "undefined") {
+      this.#ro = new ResizeObserver(() => {
+        if (!this.#hasBox()) return;
+        this.resize();
+        if (this.#fitPending) { this.#fitPending = false; this.fitToBbox(); }
+      });
+      this.#ro.observe(this._wrap);
+    }
 
     const getViewport = () => ({ scale: this._scale, panX: this._panX, panY: this._panY });
     this.#draw = new SketchDrawController(this.#drawLayer, this.#drawHandlesLayer, getViewport, {
@@ -710,9 +748,9 @@ export class SketchCanvas extends CanvasBase {
     return b;
   }
 
-  // The grid/axis extent: content padded by one chunk and snapped out to chunk lines, but never
-  // smaller than a 64×64 area centred on the origin — so a blank sketch shows a workable grid and
-  // drawing past the edge grows it a chunk at a time.
+  // The working bounds fitToBbox() frames: content padded by one chunk and snapped out to chunk lines,
+  // but never smaller than a 160×160 area centred on the origin — so a blank sketch opens at a scale a
+  // full-size map fits in, and Fit follows the content as it grows.
   #viewBounds(tight) {
     let mnx = -MIN_HALF, mnz = -MIN_HALF, mxx = MIN_HALF, mxz = MIN_HALF;
     if (tight) {
@@ -724,17 +762,36 @@ export class SketchCanvas extends CanvasBase {
     return { min_x: mnx, min_z: mnz, max_x: mxx, max_z: mxz };
   }
 
+  // The world rect currently on screen, snapped out to GRID_SNAP — the extent the chunk grid, the
+  // symmetry axis and the alignment guides span. Viewport-driven rather than content-driven, so the
+  // drawing surface is never fenced in by the grid: wherever you pan or zoom, there is grid to draw on.
+  #gridBounds() {
+    const { w, h } = this.#viewSize ?? this.#size();   // cached — this runs on every pan/drag frame
+    const s = this._scale || 1;
+    const lo = (v) => Math.floor(v / GRID_SNAP) * GRID_SNAP;
+    const hi = (v) => Math.ceil(v / GRID_SNAP) * GRID_SNAP;
+    return {
+      min_x: lo(-this._panX / s),         min_z: lo(-this._panY / s),
+      max_x: hi((w - this._panX) / s),    max_z: hi((h - this._panY) / s),
+    };
+  }
+
   #renderSetup() {
     const tight = this.#contentBounds();
-    const view = this.#viewBounds(tight);
-    this.#bbox = view;   // drives fit()/pan
+    this.#bbox = this.#viewBounds(tight);   // drives fit()/pan
     // Frame outline = the tight world bounds (what Finish rasterizes); nothing when empty.
     renderBbox(this.#bboxLayer, tight, identityTransform);
-    renderAxis(this.#axisLayer, view, this.#center, this.#mode, identityTransform);
-    // The grid can be many lines — only rebuild it when the chunk-snapped extent actually changes
-    // (i.e. when the content crosses a chunk boundary), not on every drag frame.
-    const key = `${view.min_x},${view.min_z},${view.max_x},${view.max_z}`;
-    if (key !== this.#gridKey) { this.#gridKey = key; renderChunkGrid(this.#chunkLayer, view, identityTransform); }
+    this.#renderGrid();
+  }
+
+  // Grid + axis, across the visible viewport. Called on every viewport change as well as on content
+  // change; the grid can be many lines, so it's only rebuilt when the snapped visible extent actually
+  // changes (every four chunks of travel), not on every pan/drag frame.
+  #renderGrid() {
+    const g = this.#gridBounds();
+    renderAxis(this.#axisLayer, g, this.#center, this.#mode, identityTransform);
+    const key = `${g.min_x},${g.min_z},${g.max_x},${g.max_z}`;
+    if (key !== this.#gridKey) { this.#gridKey = key; renderChunkGrid(this.#chunkLayer, g, identityTransform); }
   }
 
   // Build the shape group (render layer). Selection is handled canvas-wide (single-click = island,

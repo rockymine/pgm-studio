@@ -41,7 +41,8 @@ Notes:
 - **`Info` phase steps** (Sketch/Plan):
   - `Identity` — display **name** + **author(s)**.
   - `Settings` — the tool's technical globals. **No footprint/size**: the canvas **auto-grows to the
-    drawn content** (the plan-editor model — bounds = content + a one-chunk buffer, min 64×64), so for
+    drawn content** (the plan-editor model — working bounds = content + a one-chunk buffer, minimum
+    160×160 about the origin; the chunk grid itself spans the visible viewport, not those bounds), so for
     Sketch `Settings` is **symmetry only** (mode + centre). The exported world is the tight content
     bounds (the rasterizer already derives it from the shapes, never a frame). Plan keeps its cell/surface
     globals here.
