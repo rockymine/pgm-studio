@@ -53,16 +53,16 @@ public static class FrontGuard
     /// for <see cref="Resolve"/>).</summary>
     public static int? ShiftOffFront(
         IReadOnlyList<(int Start, int Len)> runs, List<(int Start, int Len)> blocked,
-        int edgeLen, int along, int gap, int seat, bool frontAtLow)
+        int edgeLen, int along, int separationCells, int seat, bool frontAtLow)
     {
-        int Offset(int s) => frontAtLow ? s : edgeLen - (s + along);
+        int Offset(int at) => frontAtLow ? at : edgeLen - (at + along);
         if (Offset(seat) >= BufferCells) return seat;
         var dir = frontAtLow ? 1 : -1;
         for (var cand = seat + dir; cand >= 0 && cand + along <= edgeLen; cand += dir)
         {
             if (Offset(cand) < BufferCells) continue;
             if (!runs.Any(r => r.Start <= cand && cand + along <= r.Start + r.Len)) continue;
-            if (blocked.Any(o => o.Start - gap < cand + along && o.Start + o.Len + gap > cand)) continue;
+            if (blocked.Any(o => o.Start - separationCells < cand + along && o.Start + o.Len + separationCells > cand)) continue;
             return cand;
         }
         return null;
@@ -83,7 +83,7 @@ public static class FrontGuard
     /// flagged residue of a truly saturated hub).</summary>
     public static (List<Box> Boxes, List<BoxJoint> Joints, int Residue) Resolve(
         List<Box> boxes, List<BoxJoint> joints, IReadOnlyList<FlushSeat> flushSeats,
-        CellRect hubRect, BoxEdge frontEdge, int w,
+        CellRect hubRect, BoxEdge frontEdge, int laneWidthCells,
         IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>> runsByEdge)
     {
         int boxW = hubRect.Width, boxH = hubRect.Height;
@@ -91,7 +91,7 @@ public static class FrontGuard
 
         List<(int Start, int Len)> BlockedFor(List<Box> bs, string selfId, BoxEdge e, int depth) => bs
             .Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool && b.Id != selfId)
-            .Select(b => TeamUnitAllocator.ProjectOntoEdge(e, hubRect, depth, b.Rect, w))
+            .Select(b => TeamUnitAllocator.ProjectOntoEdge(e, hubRect, depth, b.Rect, laneWidthCells))
             .Where(iv => iv is not null).Select(iv => iv!.Value).ToList();
 
         void MoveTo(List<Box> bs, List<BoxJoint> js, string id, BoxKind kind, int depth, int along, BoxEdge e, int seat)
@@ -100,7 +100,7 @@ public static class FrontGuard
             bs[i] = bs[i] with { Rect = TeamUnitAllocator.NeighbourRect(e, seat, depth, along, hubRect) };
             var ji = js.FindIndex(j => j.BoxB == id);
             js[ji] = TeamUnitAllocator.HubJoint("hub", id, e, seat, along,
-                kind == BoxKind.Wool ? TeamUnitAllocator.WoolLaneCells : w);
+                kind == BoxKind.Wool ? TeamUnitAllocator.WoolLaneCells : laneWidthCells);
         }
 
         (List<Box> B, List<BoxJoint> J, int Residue) ResolveOrder(
@@ -113,15 +113,15 @@ public static class FrontGuard
             {
                 var self = bs.First(b => b.Id == f.Id);
                 var cur = f.Edge is BoxEdge.Top or BoxEdge.Bottom ? self.Rect.X - hubRect.X : self.Rect.Z - hubRect.Z;
-                // gap tiers: the full separation gap first; a wool may fall to the wool-lane gap (2 cells,
-                // 10 blocks — the very gap the narrower boards seat with, still no-touch) as the last tier
+                // separation tiers: the full gap first; a wool may fall to the wool-lane gap (2 cells,
+                // 10 blocks — the very separation the narrower boards seat with, still no-touch) as the last tier
                 // before a flush residue, trading separation ideal for the flush law
                 var gaps = f.Kind == BoxKind.Wool && f.Gap > TeamUnitAllocator.WoolLaneCells
                     ? new[] { f.Gap, TeamUnitAllocator.WoolLaneCells } : new[] { f.Gap };
                 var resolved = false;
-                foreach (var gap in gaps)
+                foreach (var separation in gaps)
                 {
-                    if (ShiftOffFront(f.Runs, BlockedFor(bs, f.Id, f.Edge, f.Depth), f.EdgeLen, f.Along, gap,
+                    if (ShiftOffFront(f.Runs, BlockedFor(bs, f.Id, f.Edge, f.Depth), f.EdgeLen, f.Along, separation,
                             cur, frontAtLow) is { } moved)
                     {
                         MoveTo(bs, js, f.Id, f.Kind, f.Depth, f.Along, f.Edge, moved);
@@ -133,7 +133,7 @@ public static class FrontGuard
                         if (target == f.Edge || target == frontEdge || !runsByEdge.TryGetValue(target, out var truns)) continue;
                         var tlen = target is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
                         var guard = target == TeamUnitAllocator.Opposite(frontEdge) ? 0 : BufferCells;   // the back edge is off-front by construction
-                        if (BackmostSeat(truns, BlockedFor(bs, f.Id, target, f.Depth), tlen, f.Along, gap,
+                        if (BackmostSeat(truns, BlockedFor(bs, f.Id, target, f.Depth), tlen, f.Along, separation,
                                 guard, frontAtLow) is { } c)
                         {
                             MoveTo(bs, js, f.Id, f.Kind, f.Depth, f.Along, target, c);
@@ -175,7 +175,7 @@ public static class FrontGuard
             {
                 if (cand == spSeat) continue;
                 if (!backRuns.Any(r => r.Start <= cand && cand + spAlong <= r.Start + r.Len)) continue;
-                if (spBlocked.Any(o => o.Start - w < cand + spAlong && o.Start + o.Len + w > cand)) continue;
+                if (spBlocked.Any(o => o.Start - laneWidthCells < cand + spAlong && o.Start + o.Len + laneWidthCells > cand)) continue;
                 spawnSlides.Add(cand);
             }
         }
@@ -210,14 +210,14 @@ public static class FrontGuard
     /// edge allows.</summary>
     private static int? BackmostSeat(
         IReadOnlyList<(int Start, int Len)> runs, List<(int Start, int Len)> blocked,
-        int edgeLen, int along, int gap, int guard, bool frontAtLow)
+        int edgeLen, int along, int separationCells, int guard, bool frontAtLow)
     {
         var lo = frontAtLow ? guard : 0;
         var hi = edgeLen - along - (frontAtLow ? 0 : guard);
         for (var cand = frontAtLow ? hi : lo; cand >= lo && cand <= hi; cand += frontAtLow ? -1 : 1)
         {
             if (!runs.Any(r => r.Start <= cand && cand + along <= r.Start + r.Len)) continue;
-            if (blocked.Any(o => o.Start - gap < cand + along && o.Start + o.Len + gap > cand)) continue;
+            if (blocked.Any(o => o.Start - separationCells < cand + along && o.Start + o.Len + separationCells > cand)) continue;
             return cand;
         }
         return null;
