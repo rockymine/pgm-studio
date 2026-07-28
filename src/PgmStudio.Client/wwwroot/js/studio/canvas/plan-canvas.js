@@ -12,6 +12,7 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
+import { layerStack, showLayer, showLayers, INERT } from "../render/layer-stack.js";
 import { primitiveStyle } from "../render/primitive-style.js";
 import { blockDataToDataUrl } from "../render/block-render.js";
 import {
@@ -20,11 +21,28 @@ import {
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece, rectContainsCell,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
+import { viewportWorldRect, snapOut, unionRect, renderWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
 
 // The hatch pattern id backing each annotation role's fill (buffer = single diagonal, connector = crossed).
 const HATCH = { buffer: "buffer-hatch", connector: "connector-hatch" };
 
 const FIT_MARGIN = 0.82;
+
+// The **working area** — the tinted region that anchors how big a board should be. It exists at a default
+// size on a blank plan and grows to enclose the content (plus its symmetry ghosts) with a cell buffer.
+// The default is expressed in BLOCKS and converted to whole cells, so the anchor stays ~60 blocks across
+// whatever `globals.cell` is set to (12×12 cells at the default cell size of 5).
+const DEFAULT_AREA_BLOCKS = 60;
+const AREA_BUFFER_CELLS = 3;
+
+// The cell grid spans the VISIBLE VIEWPORT, not the working area, so the surface is never fenced in.
+// GRID_SNAP_CELLS is how far out the visible extent snaps: coarse enough that panning rebuilds the lines
+// every few cells instead of every one.
+const GRID_SNAP_CELLS = 4;
+
+// fit() frames the working area with this much of it again added on each side, so the tinted region sits
+// inside a visible margin of grid rather than filling the surface edge to edge.
+const FIT_PAD_FRACTION = 0.2;
 const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4", destroyable: "#6b4f9e", core: "#d4622a" };
 
 // The 8 resize handles of a rect: ex/ez pick which cell edge each drags (−1 = min side, 1 = max, 0 = none);
@@ -96,11 +114,10 @@ export class PlanCanvas extends CanvasBase {
   #overlayOn = { interfaces: true, labels: false, frontline: true, violations: true };
   #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
   #pulseTimer = null;
-  #iso = null;                      // WebGL iso renderer (G27), lazily created on first 3-D toggle
-  #isoOn = false;
 
-  // viewport layers (world space)
-  #refLayer; #gridLayer; #ghostLayer; #zoneLayer; #pieceLayer; #boxLayer; #inspectLayer; #violationLayer; #markerLayer; #previewLayer; #centerLayer; #pulseLayer;
+  #world = {};                      // viewport layers — built by #build, z-order declared there
+  #screen = {};                     // screen-space layers (outside the viewport transform)
+  #gridKey = "";                    // last grid extent, so the lines only rebuild when it actually moves
   // reference (tracing backdrop) state: the fetched block payload, its world bbox, and the placement cfg.
   #refData = null; #refBounds = null; #refCfg = null;
   // screen-space overlay (labels + selection box + resize handles)
@@ -185,31 +202,12 @@ export class PlanCanvas extends CanvasBase {
   // heights, so elevation reads spatially while planning. Reuses the sketch tool's WebGL renderer
   // (render/iso-webgl.js), lazily loaded on first use; returns false (leaving the 2-D viewport
   // untouched) if the module can't load or WebGL is unavailable, so the host can fall back gracefully.
-  async showIso(solids, yawDeg, bbox) {
-    if (!this.#iso) {
-      try {
-        const { IsoScene } = await import("../render/iso-webgl.js");
-        this.#iso = new IsoScene(this._wrap);
-      } catch (e) {
-        console.warn("[plan] 3-D preview unavailable:", e?.message ?? e);
-        return false;
-      }
-    }
-    this.#isoOn = true;
-    this.#drag = null; this.#resize = null;
-    const { w, h } = this.#size();
-    this._viewportG.style.display = "none";
-    this.#overlay.style.display = "none";
-    this.#iso.show();
-    this.#iso.render(solids, w, h, yawDeg, bbox);
-    return true;
-  }
-  hideIso() {
-    this.#isoOn = false;
-    this.#iso?.hide();
-    this._viewportG.style.display = "";
-    this.#overlay.style.display = "";
-  }
+  showIso(solids, yawDeg, bbox) { return this._showIso(solids, yawDeg, bbox); }
+  hideIso() { this._hideIso(); }
+
+  _isoTag() { return "plan"; }
+  _onIsoEnter() { this.#drag = null; this.#resize = null; }
+  _isoLayers() { return [this._viewportG, this.#overlay]; }
 
   // ── reference (tracing) backdrop ────────────────────────────────────────────
   // A real map's top-down block render, painted behind the grid so the author can trace over it. `data` is the
@@ -222,7 +220,7 @@ export class PlanCanvas extends CanvasBase {
     this.#refData = data || null;
     this.#refBounds = data ? { min_x: data.min_x, min_z: data.min_z, max_x: data.max_x, max_z: data.max_z } : null;
     this.#refCfg = cfg || null;
-    this.#clear(this.#refLayer);
+    this.#clear(this.#world.ref);
     if (data) {
       const img = svgEl("image", {
         href: blockDataToDataUrl(data),
@@ -231,7 +229,7 @@ export class PlanCanvas extends CanvasBase {
         preserveAspectRatio: "none", "pointer-events": "none",
       });
       img.style.imageRendering = "pixelated";
-      this.#refLayer.appendChild(img);
+      this.#world.ref.appendChild(img);
     }
     this.#applyReferenceTransform();
   }
@@ -241,7 +239,7 @@ export class PlanCanvas extends CanvasBase {
   clearReference() { this.setReference(null, null); }
 
   #applyReferenceTransform() {
-    const layer = this.#refLayer;
+    const layer = this.#world.ref;
     if (!this.#refBounds || !this.#refCfg) { layer.removeAttribute("transform"); layer.style.opacity = ""; return; }
     const b = this.#refWorldTranslate();
     layer.setAttribute("transform", `scale(${b.s}) translate(${b.tx} ${b.tz})`);
@@ -274,26 +272,19 @@ export class PlanCanvas extends CanvasBase {
   select(sel) { this.#sel = sel; this.#refreshOverlay(); this.#fireSelect(); }
   clearSelection() { this.#sel = null; this.#refreshOverlay(); this.#fireSelect(); }
 
+  // Frame the working area (union'd with any tracing backdrop), leaving a margin of grid visible around
+  // it. Deferred when the wrap has no layout box yet — the tool mounts this canvas while the Draw phase is
+  // still display:none, and #size()'s fallback would frame the view for a viewport that isn't the real one.
   fit() {
-    const pb = this.#doc ? viewBounds(this.#doc) : null;
-    const rb = this.#refWorldBounds();
-    const box = (pb && rb)
-      ? { min_x: Math.min(pb.min_x, rb.min_x), min_z: Math.min(pb.min_z, rb.min_z), max_x: Math.max(pb.max_x, rb.max_x), max_z: Math.max(pb.max_z, rb.max_z) }
-      : (pb ?? rb ?? { min_x: -40, min_z: -40, max_x: 40, max_z: 40 });
-    const { w, h } = this.#size();
-    const bw = Math.max(box.max_x - box.min_x, 1), bh = Math.max(box.max_z - box.min_z, 1);
-    this._scale = Math.min(w / bw, h / bh) * FIT_MARGIN;
-    this._panX = w / 2 - ((box.min_x + box.max_x) / 2) * this._scale;
-    this._panY = h / 2 - ((box.min_z + box.max_z) / 2) * this._scale;
-    this._applyViewportTransform();
-    this._onZoom(this._scale);
+    if (!this._hasBox()) { this._fitPending = true; return; }
+    this._fitWorldBox(unionRect(this.#workArea(), this.#refWorldBounds()),
+                      { margin: FIT_MARGIN, pad: FIT_PAD_FRACTION });
   }
+  _fit() { this.fit(); }
 
   resize() {
-    const { w, h } = this.#size();
-    this._svg.setAttribute("width", w);
-    this._svg.setAttribute("height", h);
-    this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    this._resizeSvg();
+    if (this.#doc) this.#renderGrid();   // a bigger/smaller viewport shows more/less grid
     this.#refreshOverlay();
   }
 
@@ -338,18 +329,46 @@ export class PlanCanvas extends CanvasBase {
     this.#defs.appendChild(con);
   }
 
-  #renderGrid() {
-    const layer = this.#gridLayer;
-    this.#clear(layer);
-    const cell = this.#doc.globals.cell;
-    const b = viewBounds(this.#doc);
-    // Cell-index extent: the view bounds (content + its symmetry ghost images) padded by 3 cells,
-    // with a sensible minimum span so a blank (or tiny) plan still shows a workable grid.
-    let cx0 = -8, cz0 = -8, cx1 = 8, cz1 = 8;
+  // The working area, in blocks: the default region (never absent, so a blank plan still says how big a
+  // board should be) grown to enclose the content and its symmetry ghosts plus a cell buffer, snapped out
+  // to whole cells. Drawn as the tinted region and framed by fit().
+  #workArea() {
+    const cell = this.#doc?.globals.cell || 5;
+    const halfCells = Math.max(1, Math.round(DEFAULT_AREA_BLOCKS / cell / 2));
+    const half = halfCells * cell;
+    let area = { min_x: -half, min_z: -half, max_x: half, max_z: half };
+    const b = this.#doc ? viewBounds(this.#doc) : null;
     if (b) {
-      cx0 = Math.floor(b.min_x / cell) - 3; cz0 = Math.floor(b.min_z / cell) - 3;
-      cx1 = Math.ceil(b.max_x / cell) + 3; cz1 = Math.ceil(b.max_z / cell) + 3;
+      const pad = AREA_BUFFER_CELLS * cell;
+      area = unionRect(area, snapOut(
+        { min_x: b.min_x - pad, min_z: b.min_z - pad, max_x: b.max_x + pad, max_z: b.max_z + pad }, cell));
     }
+    return area;
+  }
+
+  // The world rect on screen, snapped out to whole grid steps — what the cell grid and the origin axes
+  // span, so wherever the author pans or zooms there is grid to draw on.
+  #gridBounds() {
+    const cell = this.#doc?.globals.cell || 5;
+    const { w, h } = this._viewSize ?? this._size();
+    return snapOut(viewportWorldRect(w, h, this._scale, this._panX, this._panY), cell * GRID_SNAP_CELLS);
+  }
+
+  #renderGrid() {
+    const layer = this.#world.grid;
+    const cell = this.#doc.globals.cell;
+    const g = this.#gridBounds();
+    renderWorkArea(this.#world.work, this.#workArea(), (x, z) => ({ x, y: z }));
+    const { w, h } = this._viewSize ?? this._size();
+    renderScaleBar(this.#screen.scale, { w, h, scale: this._scale });
+
+    const cx0 = Math.floor(g.min_x / cell), cz0 = Math.floor(g.min_z / cell);
+    const cx1 = Math.ceil(g.max_x / cell), cz1 = Math.ceil(g.max_z / cell);
+    // The grid can be many lines — only rebuild when the snapped extent actually moves, not per pan frame.
+    const key = `${cell}|${cx0},${cz0},${cx1},${cz1}`;
+    if (key === this.#gridKey) return;
+    this.#gridKey = key;
+    this.#clear(layer);
     // Cell grid — the sketch tool's purple chunk-grid look: one faint dashed line per cell (no heavier
     // interval; the only emphasis is the origin axes below).
     const cellLine = (x1, y1, x2, y2) => layer.appendChild(svgEl("line", {
@@ -367,7 +386,7 @@ export class PlanCanvas extends CanvasBase {
     if (0 >= cz0 && 0 <= cz1) axis(cx0 * cell, 0, cx1 * cell, 0);
 
     // Origin marker — the sketch tool's centre crosshair + ring, in the axis colour.
-    const cl = this.#centerLayer; this.#clear(cl);
+    const cl = this.#world.center; this.#clear(cl);
     const arm = cell * 0.6, mr = cell * 0.32;
     const mark = (a) => cl.appendChild(svgEl("line", { stroke: "var(--canvas-axis)", "stroke-width": "1.5", "vector-effect": "non-scaling-stroke", ...a }));
     mark({ x1: -arm, y1: 0, x2: arm, y2: 0 });
@@ -376,7 +395,7 @@ export class PlanCanvas extends CanvasBase {
   }
 
   #renderGhost() {
-    const layer = this.#ghostLayer; this.#clear(layer);
+    const layer = this.#world.ghost; this.#clear(layer);
     for (const img of pieceMirrorImages(this.#doc)) {
       const { min_x, min_z, max_x, max_z } = img.bounds;
       if (isAnnotationRole(img.role)) {
@@ -422,7 +441,7 @@ export class PlanCanvas extends CanvasBase {
   }
 
   #renderZones() {
-    const layer = this.#zoneLayer; this.#clear(layer);
+    const layer = this.#world.zone; this.#clear(layer);
     const cell = this.#doc.globals.cell;
     for (const z of this.#doc.zones) {
       const b = rectCellsToBlocks(z.rect, cell);
@@ -442,7 +461,7 @@ export class PlanCanvas extends CanvasBase {
   }
 
   #renderPieces() {
-    const layer = this.#pieceLayer; this.#clear(layer);
+    const layer = this.#world.piece; this.#clear(layer);
     const cell = this.#doc.globals.cell, base = this.#doc.globals.surface;
     const range = this.#heightMap ? surfaceRange(this.#doc) : null;   // ramp domain for height-map mode
     for (const p of this.#doc.pieces) {
@@ -481,7 +500,7 @@ export class PlanCanvas extends CanvasBase {
   // is inside it, and clicks pass through the interior to the pieces (the border itself is grabbed via
   // plan-doc's boxAtWorld, so the layer needs no pointer events of its own).
   #renderBoxes() {
-    const layer = this.#boxLayer; this.#clear(layer);
+    const layer = this.#world.box; this.#clear(layer);
     const cell = this.#doc.globals.cell;
     for (const b of this.#doc.boxes || []) {
       const r = rectCellsToBlocks(b.rect, cell);
@@ -494,7 +513,7 @@ export class PlanCanvas extends CanvasBase {
   }
 
   #renderMarkers() {
-    const layer = this.#markerLayer; this.#clear(layer);
+    const layer = this.#world.marker; this.#clear(layer);
     const cell = this.#doc.globals.cell;
     for (const { kind, marker } of allMarkers(this.#doc)) {
       const c = markerCell(this.#doc, marker);
@@ -517,7 +536,7 @@ export class PlanCanvas extends CanvasBase {
   // ruler dashes), and frontline edges (accent-tinted highlight). Drawn above pieces, below markers; the hop
   // labels ride the screen-space overlay so they stay legible.
   #renderInspect() {
-    const layer = this.#inspectLayer; if (!layer) return;
+    const layer = this.#world.inspect; if (!layer) return;
     this.#clear(layer);
     if (!this.#doc) return;
 
@@ -569,7 +588,7 @@ export class PlanCanvas extends CanvasBase {
   // are drawn generically off the tag→style table; a measure's label rides the screen-space overlay (below) so
   // it stays legible at any zoom. Coordinates are cell-space — scale by the cell size to reach block/world space.
   #renderViolations() {
-    const layer = this.#violationLayer; if (!layer) return;
+    const layer = this.#world.violation; if (!layer) return;
     this.#clear(layer);
     if (!this.#doc) return;
     const cell = this.#doc.globals.cell;
@@ -612,7 +631,7 @@ export class PlanCanvas extends CanvasBase {
 
   // A transient highlight pulse on the pieces/zones a clicked lint finding implicates (self-clearing).
   pulseSubjects(ids) {
-    const layer = this.#pulseLayer; if (!layer || !this.#doc) return;
+    const layer = this.#world.pulse; if (!layer || !this.#doc) return;
     this.#clear(layer);
     const cell = this.#doc.globals.cell;
     for (const id of ids || []) {
@@ -641,7 +660,7 @@ export class PlanCanvas extends CanvasBase {
   #refreshOverlay() {
     const layer = this.#overlay; if (!layer || !this.#doc) return;
     this.#clear(layer);
-    const toS = (x, z) => ({ x: x * this._scale + this._panX, y: z * this._scale + this._panY });
+    const toS = (x, z) => this._toScreen(x, z);
     const cell = this.#doc.globals.cell;
 
     const label = (text, bx, bz, color, size = "11") => {
@@ -748,11 +767,11 @@ export class PlanCanvas extends CanvasBase {
 
   // ── CanvasBase hooks ────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#refreshOverlay(); }
+  _onViewportChanged() { if (this.#doc) this.#renderGrid(); this.#refreshOverlay(); }
   _onZoom(scale) { this.#cb.onZoom?.(Math.round(scale * 100)); }
 
   _onToolMousedown(e, svgPt) {
-    if (this.#isoOn) return;          // iso preview is read-only
+    if (this._isoOn) return;          // iso preview is read-only
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz);
@@ -763,7 +782,7 @@ export class PlanCanvas extends CanvasBase {
   }
 
   _onPointerMove(e, svgPt) {
-    if (this.#isoOn) return;          // iso preview is read-only
+    if (this._isoOn) return;          // iso preview is read-only
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#cursorEl) this.#cursorEl.textContent = `cell ${cx}, ${cz}`;
@@ -882,7 +901,7 @@ export class PlanCanvas extends CanvasBase {
   }
 
   #renderPreview() {
-    const layer = this.#previewLayer; this.#clear(layer);
+    const layer = this.#world.preview; this.#clear(layer);
     if (this.#drag?.mode !== "draw") return;
     const cell = this.#doc.globals.cell;
     const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
@@ -910,7 +929,7 @@ export class PlanCanvas extends CanvasBase {
     const kind = this.#drag.kind;
     const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
     this.#drag = null;
-    this.#clear(this.#previewLayer);
+    this.#clear(this.#world.preview);
     this.#cb.onCreate?.(kind, rect);          // the bridge mints the id, appends, and re-selects
     this.setTool("select"); this.#cb.onTool?.("select");
   }
@@ -938,32 +957,37 @@ export class PlanCanvas extends CanvasBase {
 
   // ── build ─────────────────────────────────────────────────────────────────────
 
-  #size() { return { w: (this._wrap.clientWidth || 600) - 24, h: (this._wrap.clientHeight || 600) - 24 }; }
 
   #build() {
-    const { w, h } = this.#size();
+    const { w, h } = this._size();
     this._svg.setAttribute("width", w);
     this._svg.setAttribute("height", h);
     this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
 
     this._viewportG = svgEl("g");
-    this.#refLayer = svgEl("g", { "pointer-events": "none" });
-    this.#gridLayer = svgEl("g", { "pointer-events": "none" });
-    this.#centerLayer = svgEl("g", { "pointer-events": "none" });
-    this.#ghostLayer = svgEl("g", { "pointer-events": "none" });
-    this.#zoneLayer = svgEl("g");
-    this.#pieceLayer = svgEl("g");
-    this.#boxLayer = svgEl("g", { "pointer-events": "none" });
-    this.#inspectLayer = svgEl("g", { "pointer-events": "none" });
-    this.#violationLayer = svgEl("g", { "pointer-events": "none" });
-    this.#markerLayer = svgEl("g");
-    this.#previewLayer = svgEl("g", { "pointer-events": "none" });
-    this.#pulseLayer = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#refLayer, this.#gridLayer, this.#centerLayer, this.#ghostLayer, this.#zoneLayer, this.#pieceLayer, this.#boxLayer, this.#inspectLayer, this.#violationLayer, this.#markerLayer, this.#previewLayer, this.#pulseLayer]) this._viewportG.appendChild(g);
+    // Paint order, bottom first — stated once (see render/layer-stack.js).
+    this.#world = layerStack(this._viewportG, {
+      ref:       INERT,                 // tracing backdrop
+      work:      INERT,                 // working-area tint, under the grid
+      grid:      INERT,
+      center:    INERT,
+      ghost:     INERT,
+      zone:      null,                  // hit-tested
+      piece:     null,
+      box:       INERT,
+      inspect:   INERT,
+      violation: INERT,
+      marker:    null,
+      preview:   INERT,
+      pulse:     INERT,
+    });
     this._svg.appendChild(this._viewportG);
 
-    this.#overlay = svgEl("g");
-    this._svg.appendChild(this.#overlay);
+    this.#screen = layerStack(this._svg, {
+      overlay: null,                    // labels + selection box + resize handles
+      scale:   INERT,                   // "N blocks" bar, bottom-right
+    });
+    this.#overlay = this.#screen.overlay;
 
     // <defs> for the buffer (reserved-gap) hatch pattern, rebuilt per render sized to the cell.
     this.#defs = svgEl("defs");
@@ -971,6 +995,8 @@ export class PlanCanvas extends CanvasBase {
     this.#ensureHatch();
 
     this._applyViewportTransform();
+
+    this._observeResize();
 
     // Double-click drills into the piece under the cursor, past the box that groups it (the group model the
     // sketch tool sets: single-click picks the group, double-click enters a member). Select tool only — a
@@ -983,7 +1009,7 @@ export class PlanCanvas extends CanvasBase {
   }
 
   #onDblClick = (e) => {
-    if (this.#isoOn || this.#tool !== "select" || !this.#doc) return;
+    if (this._isoOn || this.#tool !== "select" || !this.#doc) return;
     const p = this._clientToSvg(e.clientX, e.clientY);
     const hit = pickAtWorld(this.#doc, p.x, p.y, { drill: true });
     if (!hit) return;
@@ -1010,7 +1036,7 @@ export class PlanCanvas extends CanvasBase {
 
   dispose() {
     if (this.#pulseTimer) clearTimeout(this.#pulseTimer);
-    this.#iso?.dispose();
+    this._disposeCanvasBase();
     this._svg.removeEventListener("dblclick", this.#onDblClick);
     document.removeEventListener("keydown", this.#onKey);
   }

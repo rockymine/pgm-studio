@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -34,12 +35,12 @@ public static class FrontGuard
     /// (<paramref name="front"/> the axis-facing edge), in cells: positive is behind (good — bent away from the
     /// axis), zero flush with the face, negative overreaching toward the axis. The overhang tier filter keeps
     /// only placements at <see cref="BufferCells"/> or more.</summary>
-    public static int Backness(int[] box, BoxEdge front, int[] hub) => front switch
+    public static int Backness(CellRect box, BoxEdge front, CellRect hub) => front switch
     {
-        BoxEdge.Top => box[1] - hub[1],
-        BoxEdge.Bottom => hub[1] + hub[3] - (box[1] + box[3]),
-        BoxEdge.Left => box[0] - hub[0],
-        _ => hub[0] + hub[2] - (box[0] + box[2]),                      // Right
+        BoxEdge.Top => box.Z - hub.Z,
+        BoxEdge.Bottom => hub.Z + hub.Height - (box.Z + box.Height),
+        BoxEdge.Left => box.X - hub.X,
+        _ => hub.X + hub.Width - (box.X + box.Width),                      // Right
     };
 
     /// <summary>Slide a full-mouth lateral <paramref name="seat"/> <b>off the hub's front face</b>: when its
@@ -82,10 +83,10 @@ public static class FrontGuard
     /// flagged residue of a truly saturated hub).</summary>
     public static (List<Box> Boxes, List<BoxJoint> Joints, int Residue) Resolve(
         List<Box> boxes, List<BoxJoint> joints, IReadOnlyList<FlushSeat> flushSeats,
-        int[] hubRect, BoxEdge frontEdge, int w,
+        CellRect hubRect, BoxEdge frontEdge, int w,
         IReadOnlyDictionary<BoxEdge, IReadOnlyList<(int Start, int Len)>> runsByEdge)
     {
-        int boxW = hubRect[2], boxH = hubRect[3];
+        int boxW = hubRect.Width, boxH = hubRect.Height;
         var frontAtLow = frontEdge is BoxEdge.Top or BoxEdge.Left;
 
         List<(int Start, int Len)> BlockedFor(List<Box> bs, string selfId, BoxEdge e, int depth) => bs
@@ -111,7 +112,7 @@ public static class FrontGuard
             foreach (var f in order)
             {
                 var self = bs.First(b => b.Id == f.Id);
-                var cur = f.Edge is BoxEdge.Top or BoxEdge.Bottom ? self.Rect[0] - hubRect[0] : self.Rect[1] - hubRect[1];
+                var cur = f.Edge is BoxEdge.Top or BoxEdge.Bottom ? self.Rect.X - hubRect.X : self.Rect.Z - hubRect.Z;
                 // gap tiers: the full separation gap first; a wool may fall to the wool-lane gap (2 cells,
                 // 10 blocks — the very gap the narrower boards seat with, still no-touch) as the last tier
                 // before a flush residue, trading separation ideal for the flush law
@@ -166,8 +167,8 @@ public static class FrontGuard
         {
             var horizontal = backEdge is BoxEdge.Top or BoxEdge.Bottom;
             (spAlong, spDepth) = horizontal
-                ? (spawnBox.Rect[2], spawnBox.Rect[3]) : (spawnBox.Rect[3], spawnBox.Rect[2]);
-            var spSeat = horizontal ? spawnBox.Rect[0] - hubRect[0] : spawnBox.Rect[1] - hubRect[1];
+                ? (spawnBox.Rect.Width, spawnBox.Rect.Height) : (spawnBox.Rect.Height, spawnBox.Rect.Width);
+            var spSeat = horizontal ? spawnBox.Rect.X - hubRect.X : spawnBox.Rect.Z - hubRect.Z;
             var backLen = horizontal ? boxW : boxH;
             var spBlocked = BlockedFor(boxes, spawnBox.Id, backEdge, spDepth);
             for (var cand = 0; cand + spAlong <= backLen; cand++)

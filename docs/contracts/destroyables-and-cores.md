@@ -8,7 +8,7 @@ Read alongside:
 - `new-map-authoring.md` — the intent model these objectives slot into. Its wool slice is the
   template; §4 there (auto-derivations, coordinate flooring) applies unchanged.
 - `plan-editor.md` — the plan schema. Destroyables and cores become two new placement kinds.
-- `layout-rules.md` — the stamped-structure law (ST1–ST4). The structures here are ST-class.
+- `generator/rules.md` — the stamped-structure law (ST1–ST4). The structures here are ST-class.
 - `filter-region-wiring.md` — the wiring templates. Neither objective needs any of them (§5).
 
 > **Scope:** the base objective only. Sparks, repairability, progress display, scoreboard filters,

@@ -125,8 +125,8 @@ public sealed class ContactGraph
     public DerivedPiece? Piece(string id) => _byId.TryGetValue(id, out var p) ? p : null;
 
     /// <summary>Convert a <c>[x, z, w, h]</c> cell rect to block coordinates.</summary>
-    public static BlockRect ToBlock(int[] rect, int cell) =>
-        new(rect[0] * cell, rect[1] * cell, (rect[0] + rect[2]) * cell, (rect[1] + rect[3]) * cell);
+    public static BlockRect ToBlock(CellRect rect, int cell) =>
+        new(rect.X * cell, rect.Z * cell, (rect.X + rect.Width) * cell, (rect.Z + rect.Height) * cell);
 
     // ── contact classification ──────────────────────────────────────────────────────────────────────────
 

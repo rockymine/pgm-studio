@@ -526,15 +526,15 @@ public static class BoardDeriver
     }
 
     // fan a cell rect to EVERY orbit image, yielding all cells
-    private static IEnumerable<(int, int)> FanCells(int[] rect, string[] axes, int order)
+    private static IEnumerable<(int, int)> FanCells(CellRect rect, string[] axes, int order)
     {
         for (var k = 0; k < order; k++) foreach (var c in FanCellsK(rect, axes, k)) yield return c;
     }
 
     // fan a cell rect to the k-th orbit image (identity at k=0), yielding its cells
-    private static IEnumerable<(int, int)> FanCellsK(int[] rect, string[] axes, int k)
+    private static IEnumerable<(int, int)> FanCellsK(CellRect rect, string[] axes, int k)
     {
-        int x = rect[0], z = rect[1], w = rect[2], h = rect[3];
+        int x = rect.X, z = rect.Z, w = rect.Width, h = rect.Height;
         int x1, z1, x2, z2;
         if (k == 0) { x1 = x; z1 = z; x2 = x + w; z2 = z + h; }
         else
@@ -549,9 +549,9 @@ public static class BoardDeriver
     }
 
     // a marker's block coordinate at image k (piece origin + half-cell offset, fanned)
-    public static (double X, double Z) MarkerBlock(int[] rect, double[] at, int k, string[] axes)
+    public static (double X, double Z) MarkerBlock(CellRect rect, double[] at, int k, string[] axes)
     {
-        double cx = rect[0] + at[0], cz = rect[1] + at[1];   // in cells
+        double cx = rect.X + at[0], cz = rect.Z + at[1];   // in cells
         if (k > 0) { var (fx, fz) = Symmetry.Apply(cx, cz, axes[k - 1], 0, 0); cx = fx; cz = fz; }
         return (cx, cz);   // in cells; caller scales by cell
     }

@@ -8,7 +8,7 @@ namespace PgmStudio.Pgm.Tests.Compose;
 /// contract (joint — one wide consumer; several — one per tip).</summary>
 public class FrontlineBoxEmitterTests
 {
-    private static Box Box(string id = "front") => new(id, BoxKind.Frontline, [0, 0, 8, 6], 48);
+    private static Box Box(string id = "front") => new(id, BoxKind.Frontline, new(0, 0, 8, 6), 48);
 
     [Test]
     public async Task Bar_frontline_is_a_solid_wide_face_terminal_free()
@@ -49,7 +49,7 @@ public class FrontlineBoxEmitterTests
     public async Task Single_nulls_when_the_leg_cannot_be_strictly_wider_than_the_notch()
     {
         // the thin-leg L (leg ≤ notch) has the same too-thin band as the banned T and directed-nulls
-        var box = new Box("frontline", BoxKind.Frontline, [0, 0, 4, 4], 16);
+        var box = new Box("frontline", BoxKind.Frontline, new(0, 0, 4, 4), 16);
         await Assert.That(FrontlineBoxEmitter.Fill(
             box, new CompoundRead(Compound.SpineArms, 1), cw: 2, OfferGrouping.Several)).IsNull();
     }
@@ -58,7 +58,7 @@ public class FrontlineBoxEmitterTests
     public async Task A_sampled_arm_layout_overrides_the_canonical_legs()
     {
         // an F on a 10-wide front: legs 2 and 3 with a 2-bay and a 3-wide end recess (ttvvtttxxx)
-        var box = new Box("frontline", BoxKind.Frontline, [0, 0, 10, 6], 60);
+        var box = new Box("frontline", BoxKind.Frontline, new(0, 0, 10, 6), 60);
         var f = FrontlineBoxEmitter.Fill(box, new CompoundRead(Compound.SpineArms, 2), cw: 2,
             OfferGrouping.Several, armLayout: [(0, 2), (4, 3)])!;
 
@@ -121,7 +121,7 @@ public class FrontlineBoxEmitterTests
     [Test]
     public async Task Too_small_a_box_is_a_directed_null()
     {
-        await Assert.That(FrontlineBoxEmitter.Fill(new Box("f", BoxKind.Frontline, [0, 0, 3, 3], 9),
+        await Assert.That(FrontlineBoxEmitter.Fill(new Box("f", BoxKind.Frontline, new(0, 0, 3, 3), 9),
             new CompoundRead(Compound.SpineArms, 2), cw: 2, OfferGrouping.Several)).IsNull();
     }
 

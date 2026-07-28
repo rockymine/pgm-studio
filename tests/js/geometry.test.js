@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { buildTransform, buildInverseTransform } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/transform.js";
+import { buildTransform, buildInverseTransform, toScreen } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/transform.js";
 import { pointInRing, rasterisePolygon, clipHalfPlane } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/polygon.js";
 import { applySymmetry, applySymmetryToBounds } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/symmetry.js";
 import { blockToExtentBounds, drawnBoundsFromBlocks, regionToBounds2d, sketchShapeToPgmRegion }
@@ -50,6 +50,25 @@ test("buildTransform stays finite for a degenerate (zero-extent) bbox", () => {
 });
 
 // ── polygon.js ──────────────────────────────────────────────────────────────
+test("toScreen applies scale then pan", () => {
+  const vp = { scale: 4, panX: 100, panY: -20 };
+  assert.deepEqual(toScreen(0, 0, vp), { x: 100, y: -20 });
+  assert.deepEqual(toScreen(10, 5, vp), { x: 140, y: 0 });
+  assert.deepEqual(toScreen(-3, -2, vp), { x: 88, y: -28 });
+});
+
+test("toScreen is the inverse of the canvases' client->svg mapping", () => {
+  // CanvasBase._clientToSvg is (client - pan) / scale; toScreen must undo exactly that, which is what
+  // lets the two directions live in one place instead of being re-derived per surface.
+  const vp = { scale: 2.5, panX: 33, panY: -7 };
+  const toWorld = (px, py) => ({ x: (px - vp.panX) / vp.scale, z: (py - vp.panY) / vp.scale });
+  for (const [wx, wz] of [[0, 0], [12, -8], [-40.5, 3.25]]) {
+    const s = toScreen(wx, wz, vp);
+    const back = toWorld(s.x, s.y);
+    assert.ok(Math.abs(back.x - wx) < 1e-9 && Math.abs(back.z - wz) < 1e-9, `round-trip ${wx},${wz}`);
+  }
+});
+
 test("pointInRing inside/outside", () => {
   const sq = [[0, 0], [10, 0], [10, 10], [0, 10]];
   assert.equal(pointInRing(5, 5, sq), true);

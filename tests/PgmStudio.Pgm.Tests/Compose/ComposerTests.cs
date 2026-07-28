@@ -57,7 +57,7 @@ public sealed class ComposerTests
         {
             var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
             foreach (var p in plan.Pieces)
-                await Assert.That(p.Rect[1] > 0).IsTrue()
+                await Assert.That(p.Rect.Z > 0).IsTrue()
                     .Because($"piece {p.Id} crosses the axis @ {players}p seed {seed}");
         }
     }
@@ -144,8 +144,8 @@ public sealed class ComposerTests
                 var bandRect = stages.Mid.BandRect;
                 foreach (var p in stages.Plan.Pieces.Where(p => !PlanRoles.Annotations.Contains(p.Role)))
                 {
-                    var ox = Math.Min(p.Rect[0] + p.Rect[2], bandRect[0] + bandRect[2]) - Math.Max(p.Rect[0], bandRect[0]);
-                    var oz = Math.Min(p.Rect[1] + p.Rect[3], bandRect[1] + bandRect[3]) - Math.Max(p.Rect[1], bandRect[1]);
+                    var ox = Math.Min(p.Rect.X + p.Rect.Width, bandRect.X + bandRect.Width) - Math.Max(p.Rect.X, bandRect.X);
+                    var oz = Math.Min(p.Rect.Z + p.Rect.Height, bandRect.Z + bandRect.Height) - Math.Max(p.Rect.Z, bandRect.Z);
                     await Assert.That(ox > 0 && oz > 0).IsFalse()
                         .Because($"band overlaps piece {p.Id} @ {players}p seed {seed}");
                 }
@@ -156,21 +156,21 @@ public sealed class ComposerTests
                 // also what keeps the band self-symmetric, so its fan image coincides with itself. A narrower
                 // band underfits a twin/U front and desyncs from that image.
                 var unitPieces = stages.Unit.Pieces;
-                var minZ = unitPieces.Min(p => p.Rect[1]);
-                var fronts = unitPieces.Where(p => p.Rect[1] == minZ).ToList();
-                var ownL = fronts.Min(p => p.Rect[0]);
-                var ownR = fronts.Max(p => p.Rect[0] + p.Rect[2]);
+                var minZ = unitPieces.Min(p => p.Rect.Z);
+                var fronts = unitPieces.Where(p => p.Rect.Z == minZ).ToList();
+                var ownL = fronts.Min(p => p.Rect.X);
+                var ownR = fronts.Max(p => p.Rect.X + p.Rect.Width);
                 var hullL = Math.Min(ownL, -ownR);          // rot_180 mirrors x about the axis
                 var hullR = Math.Max(ownR, -ownL);
-                await Assert.That(bandRect[0] == hullL && bandRect[0] + bandRect[2] == hullR).IsTrue()
-                    .Because($"band [{bandRect[0]}..{bandRect[0] + bandRect[2]}] != front hull [{hullL}..{hullR}] @ {players}p seed {seed}");
+                await Assert.That(bandRect.X == hullL && bandRect.X + bandRect.Width == hullR).IsTrue()
+                    .Because($"band [{bandRect.X}..{bandRect.X + bandRect.Width}] != front hull [{hullL}..{hullR}] @ {players}p seed {seed}");
                 // and the band is symmetric about the axis, so it fans onto itself
-                await Assert.That(bandRect[0]).IsEqualTo(-(bandRect[0] + bandRect[2]))
+                await Assert.That(bandRect.X).IsEqualTo(-(bandRect.X + bandRect.Width))
                     .Because($"band not axis-symmetric @ {players}p seed {seed}");
 
                 var again = Composer.ComposeStages(new ComposeRequest(players, seed: seed));
-                await Assert.That(again.Plan.Pieces.Select(p => string.Join(",", p.Rect))
-                    .SequenceEqual(stages.Plan.Pieces.Select(p => string.Join(",", p.Rect)))).IsTrue();
+                await Assert.That(again.Plan.Pieces.Select(p => p.Rect)
+                    .SequenceEqual(stages.Plan.Pieces.Select(p => p.Rect))).IsTrue();
 
                 var plan = stages.Plan;
                 var sym = stages.Envelope.Symmetry;
@@ -184,7 +184,7 @@ public sealed class ComposerTests
 
                 var spawnPiece = plan.Pieces.First(p => p.Role == PlanRoles.Spawn);
                 var spawnCells = Enumerable.Range(0, order)
-                    .Select(k => { var r = FanRect(spawnPiece.Rect, axes, k); return (r[0] + r[2] / 2, r[1] + r[3] / 2); })
+                    .Select(k => { var r = FanRect(spawnPiece.Rect, axes, k); return (r.X + r.Width / 2, r.Z + r.Height / 2); })
                     .ToList();
                 var reached = Flood(walk, spawnCells[0]);
                 await Assert.That(spawnCells.All(reached.Contains)).IsTrue()
@@ -192,20 +192,20 @@ public sealed class ComposerTests
             }
     }
 
-    private static int[] FanRect(int[] r, string[] axes, int k)
+    private static CellRect FanRect(CellRect r, string[] axes, int k)
     {
         if (k == 0) return r;
-        (double x, double z)[] corners = [(r[0], r[1]), (r[0], r[1] + r[3]), (r[0] + r[2], r[1]), (r[0] + r[2], r[1] + r[3])];
+        (double x, double z)[] corners = [(r.X, r.Z), (r.X, r.Z + r.Height), (r.X + r.Width, r.Z), (r.X + r.Width, r.Z + r.Height)];
         var pts = corners.Select(c => Symmetry.Apply(c.x, c.z, axes[k - 1], 0, 0)).ToList();
         var x1 = (int)Math.Round(pts.Min(p => p.X));
         var z1 = (int)Math.Round(pts.Min(p => p.Z));
-        return [x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1];
+        return new(x1, z1, (int)Math.Round(pts.Max(p => p.X)) - x1, (int)Math.Round(pts.Max(p => p.Z)) - z1);
     }
 
-    private static void Rasterize(int[] r, HashSet<(int, int)> into)
+    private static void Rasterize(CellRect r, HashSet<(int, int)> into)
     {
-        for (var x = r[0]; x < r[0] + r[2]; x++)
-            for (var z = r[1]; z < r[1] + r[3]; z++)
+        for (var x = r.X; x < r.X + r.Width; x++)
+            for (var z = r.Z; z < r.Z + r.Height; z++)
                 into.Add((x, z));
     }
 

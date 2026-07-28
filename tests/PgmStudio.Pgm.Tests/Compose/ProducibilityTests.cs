@@ -117,12 +117,12 @@ public sealed class ProducibilityTests
     // wrap a body as a one-box hub plan at the origin — the form the producibility read consumes
     private static PlanModel HubPlan(ShapeBody body)
     {
-        int w = body.Pieces.Max(p => p.Rect[0] + p.Rect[2]), h = body.Pieces.Max(p => p.Rect[1] + p.Rect[3]);
+        int w = body.Pieces.Max(p => p.Rect.X + p.Rect.Width), h = body.Pieces.Max(p => p.Rect.Z + p.Rect.Height);
         var plan = new PlanModel
         {
             Meta = new PlanMeta { Name = "hub-probe" },
             Globals = new PlanGlobals { Cell = 5, Symmetry = "none", MaxPlayers = 12, Surface = 9, Headroom = 11 },
-            Boxes = [new PlanBox { Id = "hub", Kind = PlanBoxKinds.Hub, Rect = [0, 0, w, h] }],
+            Boxes = [new PlanBox { Id = "hub", Kind = PlanBoxKinds.Hub, Rect = new(0, 0, w, h) }],
         };
         for (var i = 0; i < body.Pieces.Count; i++)
             plan.Pieces.Add(new PlanPiece { Id = $"hub-t{i + 1}", Role = PlanRoles.Piece, Rect = body.Pieces[i].Rect });
@@ -148,7 +148,7 @@ public sealed class ProducibilityTests
             var key = string.Join("+", legs.Select(a => $"{a.Start}:{a.Width}"));
             if (!seen.Add(key)) continue;
 
-            var box = new Box("front", BoxKind.Frontline, [0, 0, spine, 5], spine * 5);
+            var box = new Box("front", BoxKind.Frontline, new(0, 0, spine, 5), spine * 5);
             var built = FrontlineBoxEmitter.Fill(box, new CompoundRead(Compound.SpineArms, 2), 2,
                 OfferGrouping.Joint, BoxEdge.Top, armLayout: legs);
             if (built is null) continue;
@@ -204,7 +204,7 @@ public sealed class ProducibilityTests
     public async Task An_empty_box_says_so_rather_than_claiming_unproducible()
     {
         var plan = new PlanModel();
-        plan.Boxes.Add(new PlanBox { Id = "b", Kind = PlanBoxKinds.Hub, Rect = [0, 0, 4, 4] });
+        plan.Boxes.Add(new PlanBox { Id = "b", Kind = PlanBoxKinds.Hub, Rect = new(0, 0, 4, 4) });
         var read = Producibility.Read(plan).Single();
         await Assert.That(read.Findings.Any(f => f.Code == "box-empty")).IsTrue();
         await Assert.That(read.IsProducible).IsFalse();
@@ -270,8 +270,8 @@ public sealed class ProducibilityTests
         // shoulder drops to 1 — still spanning the bay, now resting on a sliver, which is the cantilever.
         var box = plan.Boxes.First(b => b.Kind == PlanBoxKinds.Frontline);
         foreach (var p in PlanBoxes.MembersOf(plan, box))
-            p.Rect = [p.Rect[0] + 1, p.Rect[1], p.Rect[2], p.Rect[3]];
-        box.Rect = [box.Rect[0] + 1, box.Rect[1], box.Rect[2], box.Rect[3]];
+            p.Rect = new(p.Rect.X + 1, p.Rect.Z, p.Rect.Width, p.Rect.Height);
+        box.Rect = new(box.Rect.X + 1, box.Rect.Z, box.Rect.Width, box.Rect.Height);
 
         var thin = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Code == "frontline-shoulder-too-narrow");
         await Assert.That(thin).IsNotNull();
@@ -287,7 +287,7 @@ public sealed class ProducibilityTests
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
         // slide the whole frontline sideways, well past the cap
         foreach (var p in plan.Pieces.Where(p => p.Id.StartsWith("frontline")))
-            p.Rect = [p.Rect[0] + 8, p.Rect[1], p.Rect[2], p.Rect[3]];
+            p.Rect = new(p.Rect.X + 8, p.Rect.Z, p.Rect.Width, p.Rect.Height);
 
         var slack = Producibility.ReadPlan(plan).Unit.FirstOrDefault(f => f.Code == "front-hull-off-axis");
         await Assert.That(slack).IsNotNull();
@@ -345,8 +345,8 @@ public sealed class ProducibilityTests
     {
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
         var mirrored = PlanModel.Parse(plan.ToJson())!;
-        foreach (var p in mirrored.Pieces) p.Rect = [p.Rect[0], -(p.Rect[1] + p.Rect[3]), p.Rect[2], p.Rect[3]];
-        foreach (var b in mirrored.Boxes) b.Rect = [b.Rect[0], -(b.Rect[1] + b.Rect[3]), b.Rect[2], b.Rect[3]];
+        foreach (var p in mirrored.Pieces) p.Rect = new(p.Rect.X, -(p.Rect.Z + p.Rect.Height), p.Rect.Width, p.Rect.Height);
+        foreach (var b in mirrored.Boxes) b.Rect = new(b.Rect.X, -(b.Rect.Z + b.Rect.Height), b.Rect.Width, b.Rect.Height);
 
         var codes = Producibility.ReadPlan(plan).Unit.Select(f => f.Code).OrderBy(c => c).ToList();
         var mirroredCodes = Producibility.ReadPlan(mirrored).Unit.Select(f => f.Code).OrderBy(c => c).ToList();
@@ -362,12 +362,12 @@ public sealed class ProducibilityTests
         var plan = PlanModel.Parse(PlanTestSupport.ReadSeed("shifted-u-frontline-attach-hole-hub.plan.json"))!;
         // the unit is drawn wholly on the -z side, so a fixed +u frame would pick the spawn (the far edge) as
         // "the front" and measure its lateral interval instead of the frontline's
-        await Assert.That(plan.Pieces.All(p => p.Rect[1] + p.Rect[3] <= 0)).IsTrue();
+        await Assert.That(plan.Pieces.All(p => p.Rect.Z + p.Rect.Height <= 0)).IsTrue();
         // sliding the spawn far off-axis would look like a badly off-centre "front" to a fixed-sign frame, so a
         // front finding would appear where none belongs. The spawn is the back; no front finding may react.
         var moved = PlanModel.Parse(plan.ToJson())!;
         var spawn = moved.Pieces.First(p => p.Id == "spawn");
-        spawn.Rect = [spawn.Rect[0] + 12, spawn.Rect[1], spawn.Rect[2], spawn.Rect[3]];
+        spawn.Rect = new(spawn.Rect.X + 12, spawn.Rect.Z, spawn.Rect.Width, spawn.Rect.Height);
 
         var before = Producibility.ReadPlan(plan).Unit.Count(f => f.Code == "front-hull-off-axis");
         var after = Producibility.ReadPlan(moved).Unit.Count(f => f.Code == "front-hull-off-axis");

@@ -98,9 +98,14 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 
         SketchLayout layout;
         MapIntent intent;
+        IReadOnlyList<PlanFinding> completeness;
         try
         {
-            var errors = PlanValidator.Validate(plan).Where(f => f.Severity == PlanSeverity.Error).ToList();
+            // Two questions, both asked here because this is the one-way gate: is the plan coherent
+            // (the structural validator), and does it carry what a map cannot exist without (completeness).
+            completeness = PlanValidator.Completeness(plan);
+            var errors = PlanValidator.Validate(plan).Concat(completeness)
+                .Where(f => f.Severity == PlanSeverity.Error).ToList();
             if (errors.Count > 0)
             {
                 var findings = errors.Select(f => new
@@ -122,7 +127,14 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
         // Web camelCase for the intent) so the editor can post the raw sub-objects straight to the pipeline.
         var layoutEl = JsonSerializer.SerializeToElement(layout, SketchLayout.Json);
         var intentEl = JsonSerializer.SerializeToElement(intent, IntentStore.Json);
-        await Send.OkAsync(new { layout = layoutEl, intent = intentEl }, ct);
+
+        // Completeness complaints that did not block (today: no objective). Carried on the success response so
+        // a compile that produced a playable-but-goalless map still says so rather than passing in silence.
+        var warnings = completeness.Where(f => f.Severity == PlanSeverity.Lint).Select(f => new
+        {
+            severity = "lint", rule = f.Rule, message = f.Message, subjects = f.SubjectIds,
+        });
+        await Send.OkAsync(new { layout = layoutEl, intent = intentEl, warnings }, ct);
     }
 }
 
@@ -149,6 +161,16 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
         catch (JsonException) { plan = null; }
         if (plan is null) { await Send.ResponseAsync(new { error = "Malformed plan JSON" }, 400, ct); return; }
+
+        // A plan with nothing in it is a valid document, not a malformed one — the evaluator has no geometry
+        // to score, so the honest answer is an empty evaluation. Answering 400 here made the editor's score
+        // panel go blank on every fresh plan with no reason given, and said "invalid" about a plan the
+        // validator is perfectly able to describe (it reports "this plan has no pieces").
+        if (!plan.Pieces.Any(pc => PlanRoles.IsGenerating(pc.Role)))
+        {
+            await Send.OkAsync(ToDto(Evaluation.Empty), ct);
+            return;
+        }
 
         Evaluation eval;
         try
@@ -180,7 +202,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
 
     private static EvidenceDto MapEvidence(Evidence e) => e switch
     {
-        EvidenceRect r => new("rect", r.Tag, Rect: r.Rect),
+        EvidenceRect r => new("rect", r.Tag, Rect: r.Rect.ToArray()),
         EvidenceSegment s => new("segment", s.Tag, X1: s.X1, Z1: s.Z1, X2: s.X2, Z2: s.Z2),
         EvidenceMarker m => new("marker", m.Tag, X: m.X, Z: m.Z),
         EvidenceMeasure m => new("measure", m.Tag, X1: m.X1, Z1: m.Z1, X2: m.X2, Z2: m.Z2, Label: m.Label),
@@ -236,7 +258,8 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
             b.BoxId, b.Kind, b.Identity,
             b.Producible?.Label, b.Producible?.Cw,
             b.Nearest is null ? null : new NearestMissDto(
-                b.Nearest.Label, b.Nearest.Cw, b.Nearest.DifferingCells, b.Nearest.Extra, b.Nearest.Missing),
+                b.Nearest.Label, b.Nearest.Cw, b.Nearest.DifferingCells,
+                [.. b.Nearest.Extra.Select(r => r.ToArray())], [.. b.Nearest.Missing.Select(r => r.ToArray())]),
             b.Findings.Select(Finding).ToList())).ToList(),
         read.Unit.Select(Finding).ToList());
 

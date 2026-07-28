@@ -11,7 +11,7 @@ public sealed record EmittedHub(
 
 /// <summary>
 /// The hub binding over <see cref="BodyEmitter"/> — the <b>constraint-source box kind</b>
-/// (docs/contracts/map-generation.md §5.5). Unlike the wool/spawn boxes the hub is <b>terminal-free</b>: it is a
+/// (docs/generator/model.md §5.5). Unlike the wool/spawn boxes the hub is <b>terminal-free</b>: it is a
 /// <see cref="ShapeBody"/> (a <see cref="Compound"/>) finished by the <b>hub designation</b> — per-edge
 /// <c>interface</c> marks carrying widths, no room. It <b>emits first</b> and its edge widths set the fill menus
 /// of the spawn/wool/frontline neighbours, published here as <see cref="EdgeOffer"/>s (the
@@ -149,7 +149,7 @@ public static class HubBoxEmitter
         RingWalls? ringWalls = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         rejection = null;
-        int boxW = box.Rect[2], boxH = box.Rect[3];
+        int boxW = box.Rect.Width, boxH = box.Rect.Height;
         var body = BuildBody(form, boxW, boxH, cw, ringWalls, armLayout, out var detail);
         if (body is null)                                    // too small for the form at this cw — a directed signal
         {
@@ -162,7 +162,7 @@ public static class HubBoxEmitter
         var pieces = new List<GrownPiece>(body.Pieces.Count);
         var n = 1;
         foreach (var (r, slot) in body.Pieces)
-            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", [box.Rect[0] + r[0], box.Rect[1] + r[1], r[2], r[3]],
+            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
                 PlanRoles.Piece, slot, boxRef));
 
         return new EmittedHub(pieces, Offers(box, body, boxW, boxH), form);

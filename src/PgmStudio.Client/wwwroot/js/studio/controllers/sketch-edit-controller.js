@@ -14,6 +14,7 @@
  */
 
 import { svgEl, handleRectAttrs } from "../render/svg.js";
+import { toScreen } from "../geometry/transform.js";
 
 const HANDLE_HALF        = 5;
 const VERTEX_HALF        = 4;
@@ -199,10 +200,7 @@ export class SketchEditController {
 
   // ── private ────────────────────────────────────────────────────────────────
 
-  #toScreen(wx, wz) {
-    const { scale, panX, panY } = this.#getViewport();
-    return { x: wx * scale + panX, y: wz * scale + panY };
-  }
+  #toScreen(wx, wz) { return toScreen(wx, wz, this.#getViewport()); }
 
   #clearGhost() {
     if (this.#ghostEl) this.#ghostEl.style.display = "none";

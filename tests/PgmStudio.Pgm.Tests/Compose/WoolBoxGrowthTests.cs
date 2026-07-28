@@ -35,8 +35,8 @@ public sealed class WoolBoxGrowthTests
         var filled = new HashSet<(int, int)>();
         var roomCells = new HashSet<(int, int)>();
         foreach (var p in boxPieces)
-            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+            for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+                for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++)
                 {
                     filled.Add((x, z));
                     if (p.Id == roomId) roomCells.Add((x, z));
@@ -156,10 +156,10 @@ public sealed class WoolBoxGrowthTests
             {
                 if (TryFill(players, seed) is not { } unit) continue;
                 var hubX = unit.Pieces
-                    .Where(p => p.Id == "hub" || p.Id.StartsWith("hub-")).Min(p => p.Rect[0]);
+                    .Where(p => p.Id == "hub" || p.Id.StartsWith("hub-")).Min(p => p.Rect.X);
                 var spawnPieces = unit.Pieces.Where(p => p.Box?.Kind == BoxKind.Spawn).Select(p => p.Rect).ToList();
                 if (spawnPieces.Count == 0) continue;
-                seats.Add(spawnPieces.Min(r => r[0]) - hubX);
+                seats.Add(spawnPieces.Min(r => r.X) - hubX);
             }
             await Assert.That(seats.Count >= 2).IsTrue();
         }
@@ -182,15 +182,15 @@ public sealed class WoolBoxGrowthTests
         // here the caps: hole 3 (along) × 5 (deep), entry 5 wide, at cw 2 / rd 2. Canonical frame: W = cw
         // (attachment) + span (2·cw + holeDeep) + rd = 13; H = 2·cw + holeAlong = 7 (also ≥ entry + cw).
         const int cw = 2;
-        var box = new Box("wool-a", BoxKind.Wool, [0, 0, 13, 7], 91);
+        var box = new Box("wool-a", BoxKind.Wool, new(0, 0, 13, 7), 91);
         var ok = (FillResult.Ok)BoxFiller.Fill(
             box, BoxEdge.Left, cw, ShapeFamily.Donut, roomId: "wool-a-room", attachmentWidth: 5);
 
         var hole = ok.Vacancies.Single(v => v.Kind == "hole");
-        await Assert.That(hole.Rect[2] * hole.Rect[3]).IsEqualTo(15);         // the 3×5 hole (orientation aside)
-        await Assert.That(Math.Min(hole.Rect[2], hole.Rect[3])).IsEqualTo(3);
+        await Assert.That(hole.Rect.Width * hole.Rect.Height).IsEqualTo(15);         // the 3×5 hole (orientation aside)
+        await Assert.That(Math.Min(hole.Rect.Width, hole.Rect.Height)).IsEqualTo(3);
         var entry = ok.Approach.Terrain.Where(p => p.Slot == ApproachSlots.Entry).ToList();
         await Assert.That(entry.Count).IsEqualTo(1);
-        await Assert.That(Math.Max(entry[0].Rect[2], entry[0].Rect[3])).IsEqualTo(5);   // the widened hub entry
+        await Assert.That(Math.Max(entry[0].Rect.Width, entry[0].Rect.Height)).IsEqualTo(5);   // the widened hub entry
     }
 }

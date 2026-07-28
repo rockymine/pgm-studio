@@ -2,7 +2,7 @@ namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>The approach <b>slot roles</b> — the taxonomy every emitted piece carries, naming its position in
 /// the family template so the composition rules read as properties of a slot rather than raw geometry. Two
-/// layers are conflated here, split conceptually per <c>docs/contracts/shape-vocabulary.md</c> §8:
+/// layers are conflated here, split conceptually per <c>docs/generator/model.md</c> §5.3/§1.12:
 ///
 /// <para><b>Structural slots</b> — a rectangle's role <em>in the compound</em>, intrinsic to the shape and
 /// shared by every box kind: <see cref="Run"/> (a corridor/spine segment), <see cref="Bar"/> (a crossing
@@ -18,7 +18,7 @@ namespace PgmStudio.Pgm.Shapes;
 /// a segment: <see cref="EntryRun"/>/<see cref="RoomRun"/> are the run a host docks vs the run leading to the
 /// terminal; <see cref="EntryBar"/>/<see cref="RoomBar"/> the same for a bar. A role is a <b>template slot, not
 /// a property of the rectangle</b> — a scythe's <c>entry-run</c> and a donut's <c>leg</c> can be the same
-/// rectangle in different slots. See the piece vocabulary in <c>docs/contracts/map-generation.md</c> §5.</summary>
+/// rectangle in different slots. See the piece vocabulary in <c>docs/generator/model.md</c> §5.</summary>
 public static class ApproachSlots
 {
     // structural slots — the rectangle's role in the compound (shared by every designation)

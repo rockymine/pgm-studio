@@ -60,14 +60,14 @@ public sealed class MapIntent
     public Dictionary<string, string> IslandTeams { get; init; } = new();
 
     /// <summary>Block-coordinate structure directives the world-export path stamps into the synthesised world
-    /// (docs/contracts/layout-rules.md ST1–ST4): wool-room floors, entrance redstone lines, iron cubes, and
+    /// (docs/generator/rules.md ST1–ST4): wool-room floors, entrance redstone lines, iron cubes, and
     /// pre-built approach walls. Filled only by the plan compiler (all coordinates already resolved and fanned
     /// across the symmetry orbit); null on hand-authored / imported intents, which behave exactly as before.</summary>
     public StructureIntent? Structures { get; init; }
 }
 
 /// <summary>The plan-compiled layout structures, in absolute world block coordinates already fanned across the
-/// symmetry orbit (docs/contracts/layout-rules.md ST1–ST4). Consumed by the sketch world-export path.</summary>
+/// symmetry orbit (docs/generator/rules.md ST1–ST4). Consumed by the sketch world-export path.</summary>
 public sealed class StructureIntent
 {
     /// <summary>Wool-room footprints stamped as solid bedrock from y=0 to the surface (ST1).</summary>

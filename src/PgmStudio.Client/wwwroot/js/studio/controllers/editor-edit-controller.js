@@ -20,6 +20,7 @@
 
 import { svgEl, handleRectAttrs } from "../render/svg.js";
 import { translateBounds } from "../geometry/shape.js";
+import { toScreen } from "../geometry/transform.js";
 
 const HANDLE_SIZE = 14;
 const HANDLE_DEFS = [
@@ -140,9 +141,9 @@ export class EditorEditController {
   #screenBounds(node) {
     const toSvg = this.#acc.getToSvg();
     if (!node?.bounds || !toSvg) return null;
-    const { scale, panX, panY } = this.#acc.getViewport();
+    const viewport = this.#acc.getViewport();
     const { min_x, min_z, max_x, max_z } = node.bounds;
-    const toScr = (bx, by) => ({ x: bx * scale + panX, y: by * scale + panY });
+    const toScr = (bx, by) => toScreen(bx, by, viewport);
     const p1b = toSvg(min_x, min_z), p2b = toSvg(max_x, max_z);
     const s1  = toScr(p1b.x, p1b.y), s2 = toScr(p2b.x, p2b.y);
     return {

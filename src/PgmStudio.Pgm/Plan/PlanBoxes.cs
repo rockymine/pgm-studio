@@ -1,3 +1,5 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Pgm.Plan;
 
 /// <summary>
@@ -13,10 +15,10 @@ public static class PlanBoxes
 {
     /// <summary>True when the <paramref name="inner"/> cell rect lies wholly within <paramref name="outer"/>
     /// (touching edges count as inside — a box drawn tight around its pieces still contains them).</summary>
-    public static bool Contains(int[] outer, int[] inner) =>
-        inner[0] >= outer[0] && inner[1] >= outer[1]
-        && inner[0] + inner[2] <= outer[0] + outer[2]
-        && inner[1] + inner[3] <= outer[1] + outer[3];
+    public static bool Contains(CellRect outer, CellRect inner) =>
+        inner.X >= outer.X && inner.Z >= outer.Z
+        && inner.X + inner.Width <= outer.X + outer.Width
+        && inner.Z + inner.Height <= outer.Z + outer.Height;
 
     /// <summary>The pieces <paramref name="box"/> groups, in the plan's piece order. A named member that no
     /// longer exists is skipped rather than failing the read — a box outliving a deleted piece is an

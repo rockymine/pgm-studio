@@ -5,7 +5,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The wool-box emitter's <b>slot roles</b> (the piece vocabulary, docs/contracts/map-generation.md §5.3).
+/// The wool-box emitter's <b>slot roles</b> (the piece vocabulary, docs/generator/model.md §5.3).
 /// Every emitted piece carries its template slot (<see cref="GrownPiece.Slot"/>); the load-bearing invariant is
 /// that a family emits the <b>same slots in the same order</b> as its <see cref="ApproachSlots.Template"/> —
 /// a stable, named sequence the shift/width/docking rules can target instead of raw geometry.

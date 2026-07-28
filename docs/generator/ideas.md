@@ -141,9 +141,20 @@ landed, the rest is the idea.
 
 ## Docs & hygiene
 
-- **G64** — the `map-generation.md` doc pass (reconcile with shipped code; §2/§4 still describe the old
-  order of operations in places).
-- **G99** — delete the superseded `shape-vocabulary.md` + repoint its code citations.
+- **G138** — integrate the showcase into the studio. `tools/compose/showcase.cs` is the only
+  generator artifact that cannot drift (every figure emitted by the real code), and it is a
+  standalone script producing a file nobody sees. Serve it — or its figure renderers — from the
+  Generator tool, so the model explainer is a page in the app and the figures are reused by the
+  browse/verdict surfaces instead of duplicated.
+- **G139** — the seat-separation law has **no rule id**. It is a live, load-bearing composer law
+  (`model.md` §6.3, enforced in the allocator's seat step, surfaced through `Producibility` and a
+  Contracts DTO) that `rules.md` does not mention, so nothing can cite it and no evaluator term
+  scores it. Give it an id in the LN or WL family, or state why it is mechanism rather than law.
+  (G124 is the sibling question — what the law *measures*; this one is whether it is a law at all.)
+- **G140** — the corner law is asserted, never gated. `Cells.HasDiagonalPinch` is invoked only from
+  tests and the unit gallery — no `src/` path rejects a pinch at compose time (`audit.md` §3).
+  Decide: gate it in the seat step, or state the by-construction argument in `model.md` and keep the
+  test as the proof.
 
 ## Marker & objective knobs (plan editor)
 

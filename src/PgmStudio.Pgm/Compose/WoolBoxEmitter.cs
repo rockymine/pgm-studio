@@ -76,7 +76,7 @@ public static class WoolBoxEmitter
         // the mouth's frame: its along-edge length and the depth perpendicular to it. Top/Bottom run along the
         // box width; Left/Right run along its height (the shape is rotated a quarter turn onto them).
         var lateral = mouth is BoxEdge.Left or BoxEdge.Right;
-        var (alongLen, depth) = lateral ? (box.Rect[3], box.Rect[2]) : (box.Rect[2], box.Rect[3]);
+        var (alongLen, depth) = lateral ? (box.Rect.Height, box.Rect.Width) : (box.Rect.Width, box.Rect.Height);
 
         // canonical dims: the mouth-up normalization transposes left/right-mouth families, so size the canonical
         // frame with the along/depth swapped back through the same map
@@ -106,12 +106,12 @@ public static class WoolBoxEmitter
         var (mouthTop, w, h) = ShapeEmitter.OrientMouthTop(raw, family, flip, canonW, canonH);
         var shape = MouthOrient.To(mouthTop, mouth, w, h);
 
-        var a = Wrap(shape, box.Rect[0], box.Rect[1], box.Id, roomId ?? $"{box.Id}-room", box.Ref);
+        var a = Wrap(shape, box.Rect.X, box.Rect.Z, box.Id, roomId ?? $"{box.Id}-room", box.Ref);
         var vacancies = shape.Vacancies
             .Select(v => new Vacancy(v.Kind,
-                [box.Rect[0] + v.Rect[0], box.Rect[1] + v.Rect[1], v.Rect[2], v.Rect[3]],
-                v.Mouth is { } e ? new BoxInterface(e, e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect[0] : v.Rect[1],
-                    e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect[2] : v.Rect[3]) : null,
+                new(box.Rect.X + v.Rect.X, box.Rect.Z + v.Rect.Z, v.Rect.Width, v.Rect.Height),
+                v.Mouth is { } e ? new BoxInterface(e, e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.X : v.Rect.Z,
+                    e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.Width : v.Rect.Height) : null,
                 v.Walls))
             .ToList();
         return new FillResult.Ok(a, vacancies);
@@ -124,9 +124,9 @@ public static class WoolBoxEmitter
         for (var i = 0; i < s.Terrain.Count; i++)
         {
             var (r, slot) = s.Terrain[i];
-            terrain.Add(new GrownPiece($"{idPrefix}-t{i + 1}", [x + r[0], z + r[1], r[2], r[3]], PlanRoles.Piece, slot, box));
+            terrain.Add(new GrownPiece($"{idPrefix}-t{i + 1}", new(x + r.X, z + r.Z, r.Width, r.Height), PlanRoles.Piece, slot, box));
         }
-        var woolRoom = new GrownPiece(roomId, [x + s.Room[0], z + s.Room[1], s.Room[2], s.Room[3]], PlanRoles.WoolRoom, ApproachSlots.Room, box);
+        var woolRoom = new GrownPiece(roomId, new(x + s.Room.X, z + s.Room.Z, s.Room.Width, s.Room.Height), PlanRoles.WoolRoom, ApproachSlots.Room, box);
         return new EmittedApproach(terrain, woolRoom, s.At, s.Vacancies);
     }
 

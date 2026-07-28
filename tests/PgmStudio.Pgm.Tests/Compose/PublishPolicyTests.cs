@@ -1,10 +1,11 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Compose;
 
 /// <summary>
-/// The publish policy (docs/map-generation-constraint-taxonomy.md §4.1): terminal-capped shapes veto their
+/// The publish policy (docs/generator/audit.md §4.1): terminal-capped shapes veto their
 /// bays and holes, allow their notches (the clearance margin handles room proximity); terminal-free bodies
 /// allow everything. The publishable region is the front, unguarded parts. Publishing is an offer for a later
 /// pipeline step, never a fill.
@@ -79,6 +80,6 @@ public sealed class PublishPolicyTests
         var eOffers = PublishPolicy.Publishable(e);
         await Assert.That(eOffers.Count).IsEqualTo(1);
         await Assert.That(eOffers[0].Parts.Count).IsEqualTo(1);
-        await Assert.That(eOffers[0].Parts[0].Rect.SequenceEqual(new[] { 3, 9, 9, 6 })).IsTrue();
+        await Assert.That(eOffers[0].Parts[0].Rect == new CellRect(3, 9, 9, 6)).IsTrue();
     }
 }

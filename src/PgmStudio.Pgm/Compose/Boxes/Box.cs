@@ -1,8 +1,9 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>The typed box kinds of the partition scaffold (docs/contracts/map-generation.md §4).</summary>
+/// <summary>The typed box kinds of the partition scaffold (docs/generator/model.md §4).</summary>
 public enum BoxKind { Spawn, Hub, Wool, Frontline, Mid }
 
 /// <summary>The fill directive for a wool box the allocator chose: the approach <see cref="Family"/>, its room
@@ -40,7 +41,7 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// fill directive (family + room placement + handedness), likewise carried so the filler re-emits what the
 /// allocator seated; <c>null</c> for a non-wool box.</summary>
 public sealed record Box(
-    string Id, BoxKind Kind, int[] Rect, int LandTargetCells,
+    string Id, BoxKind Kind, CellRect Rect, int LandTargetCells,
     CompoundRead? Form = null, bool FlipV = false, WoolFill? Wool = null, RingWalls? HubWalls = null,
     IReadOnlyList<(int Start, int Width)>? HubArms = null)
 {

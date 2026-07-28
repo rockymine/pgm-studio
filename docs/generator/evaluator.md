@@ -1,15 +1,15 @@
 # Layout evaluator — derive structure, judge by property (direction doc)
 
-> **Terminology + model:** `docs/contracts/map-generation.md` is canonical. This doc owns the
+> **Terminology + model:** `docs/generator/model.md` is canonical. This doc owns the
 > detailed deriver-measurable and evaluator-metric catalogue; the pipeline, the two derivers, roles,
 > and the score model are defined there.
 
 Direction doc for the `G`-series composer track. It reframes layout generation around an **evaluator**
 (a critic that scores a `plan.json`) instead of a generate-and-test sampler, and pins the model that
 makes the evaluator authorable: **author intent · derive structure · judge by property.** It sits
-above `docs/contracts/layout-rules.md` (the frozen rule content the evaluator scores against),
-`docs/contracts/map-generation.md` (the canonical model), and `docs/seed-stats.md` (the measured
-envelopes the soft terms use). It follows `map-generation.md`'s role model (§1.4, §3): structural roles are
+above `docs/generator/rules.md` (the frozen rule content the evaluator scores against),
+`docs/generator/model.md` (the canonical model), and `docs/generator/seed-stats.md` (the measured
+envelopes the soft terms use). It follows `model.md`'s role model (§1.4, §3): structural roles are
 *derived*, not authored — and derived cautiously (§5): the evaluator keys off **measurable** quantities,
 not named roles the author is not ready to pin.
 
@@ -37,7 +37,7 @@ hardening a *local* rule cannot produce them. Worse, adding them as reject-condi
 every hard constraint bolted onto a fixed sampling distribution drops the acceptance rate and shrinks the
 feasible region to a sliver the draw order rarely hits (this is the p5 infeasibility, the hole-hunt, the
 draw-order coupling). The tell: **the rules are written as an acceptance oracle — a checker — but a
-generator cannot invert a checker.** `layout-rules.md` says beautifully what a *good result* looks like;
+generator cannot invert a checker.** `rules.md` says beautifully what a *good result* looks like;
 the sampler reaches results by local moves and then checks. When the property is global, "check-and-reject"
 and "construct-and-hope" both fail. The rules are not too soft; they are in the wrong *form*.
 
@@ -251,7 +251,7 @@ refuses to pin the rest, so the model leans on what is measurable and treats the
    encased by twin frontlines on some sides and the mid build band on the others — leaks to the border through
    the band and is missed. **Every** enclosed void is reported, **at any size** — the seeds carry intended holes
    as small as 1×2 cells (`mirror-tiny-map-cliff`, `rotate-wide-frontline`), so no size threshold may override
-   the corpus (`layout-rules.md`'s "~10×10" is a *generation* norm, never a *detection* filter). Cross against
+   the corpus (`rules.md`'s "~10×10" is a *generation* norm, never a *detection* filter). Cross against
    the authored deliberate-void marks (buffer / `zones[].holes`) to split **declared** from **undeclared** (a
    deliberate CT8 pocket vs an accidental enclosed void — a top evaluator term, §6).
 7a. **Hole position class** — *where* a hole sits, read purely off **what its boundary touches** (never size).
@@ -373,7 +373,7 @@ approach count ≥2" — once the measurables are computed, the property checks 
 Form: `score = Σ hard-penalty(violated well-formedness) + Σ w · envelope-distance(metric)`. Hard rules are
 large penalties (a valid layout has none); soft "feel" is each metric's distance outside the authored-set
 range from `seed-stats.md`. "Feels right" = "lands in the authored distribution." The evaluator returns the
-score **and the list of violated terms** (each citing a `layout-rules.md` id) so a failure is legible and a
+score **and the list of violated terms** (each citing a `rules.md` id) so a failure is legible and a
 generator can act on it.
 
 Starter property terms, grouped by the measurable they read (each ties to a frozen rule id):
@@ -409,7 +409,7 @@ Starter property terms, grouped by the measurable they read (each ties to a froz
   step); unexplained elevation is the definition of "random" and is penalized. Match the authored
   raised-wool and tower-height distributions.
 
-The thresholds are **not** invented here — they come from `layout-rules.md` (hard) and `seed-stats.md`
+The thresholds are **not** invented here — they come from `rules.md` (hard) and `seed-stats.md`
 (envelopes). This doc fixes the *form* and the *catalogue*; the numbers stay in those two files.
 
 ## 7. The evaluation set — the real deliverable
@@ -452,18 +452,21 @@ produced. Do not encode a shape whitelist in the evaluator — that is the enume
 
 ## 9. Build order
 
-1. **Tile reading** — rasterize `plan.json` to the 5×5-cell field (occupancy + role + surface + buildable).
-2. **Deriver** — structures from markers + geometry, with the width/branch cutoff; a debug render of the
-   derived labels over a plan. *(Status: v1 landed as a review tool — `tools/deriver/derive-gallery.cs` fans
-   each seed to the full board and renders islands + anchor roles, the branch/residual erosion split, per-wool
-   approach counts, the frontline edge, and undeclared voids. Known-rough: the branch/residual cutoff
-   over-calls residual on big/wide boards — the §5.3 knob to settle first — and approaches are counted for
-   wools only. Promote into `Analysis` once the cutoff is tuned.)*
-3. **Property terms** — the §6 catalogue as pure functions over the derived structures, each citing a rule
-   id and returning a distance + a violation record.
+1. ~~**Tile reading**~~ — **landed**: `plan.json` rasterized to the cell field.
+2. ~~**Deriver**~~ — **landed in `src/`**: `ContactGraph` (rect layer) + `BoardDeriver` → `BoardStructure`
+   (raster layer), in `PgmStudio.Pgm/Derive/`; `tools/deriver/derive-gallery.cs` is now render-only.
+   Known-rough: the branch/residual cutoff over-calls residual on big/wide boards — the §5.3 knob, still
+   the first thing to settle.
+3. ~~**Property terms**~~ — **landed**: `ILayoutTerm` implementations in `PgmStudio.Pgm/Evaluate/Terms/`,
+   each citing one `rules.md` id and returning a distance + violation record.
 4. **Evaluation set** — auto-label the seeds; add minimal-pair negatives per §7 coverage; assert the
-   evaluator ranks them the way the author does. This is the test for the rules.
+   evaluator ranks them the way the author does. This is the test for the rules. **The open item** — and
+   the reason the studio's verdict-collection work (G118/G120) exists: the labeled set is gathered from
+   human judgments, not derived.
 5. **Generator, later** — start with option 8.1, escalate as the evaluator earns trust.
+
+The evaluator is no longer downstream-only: `LayoutEvaluator.Gate` runs on **every** compose attempt and
+rejects it outright on a hard-term violation (`model.md` §2), so steps 1–3 are load-bearing today.
 
 ## 10. Open questions
 

@@ -145,9 +145,9 @@ public class TeamUnitAllocatorTests
                 if (hubCells.Count == 0) continue;
 
                 // the hub row the face docks against, and the patches the face makes along it
-                var row = front.Rect[1] < hub.Rect[1] ? hub.Rect[1] : hub.Rect[1] + hub.Rect[3] - 1;
-                int lo = Math.Max(front.Rect[0], hub.Rect[0]);
-                int hi = Math.Min(front.Rect[0] + front.Rect[2], hub.Rect[0] + hub.Rect[2]);
+                var row = front.Rect.Z < hub.Rect.Z ? hub.Rect.Z : hub.Rect.Z + hub.Rect.Height - 1;
+                int lo = Math.Max(front.Rect.X, hub.Rect.X);
+                int hi = Math.Min(front.Rect.X + front.Rect.Width, hub.Rect.X + hub.Rect.Width);
                 var patches = new List<int>();
                 var run = 0;
                 for (var x = lo; x < hi; x++)
@@ -215,10 +215,10 @@ public class TeamUnitAllocatorTests
                 if (alloc is not { } a) continue;
                 if (a.Partition.Boxes.Any(b => b.Kind == BoxKind.Frontline)) continue;   // occupied front — exempt
                 var hub = a.Partition.ById("hub")!;
-                var face = hub.Rect[1];                               // mirror_z: the front is the hub's min-z edge
+                var face = hub.Rect.Z;                               // mirror_z: the front is the hub's min-z edge
                 foreach (var nb in a.Partition.Boxes.Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool))
                 {
-                    if (nb.Rect[1] - face >= 1) continue;
+                    if (nb.Rect.Z - face >= 1) continue;
                     await Assert.That(hub.Form?.Form ?? Compound.Rectangle).IsEqualTo(Compound.Rectangle)
                         .Because($"{nb.Id} @ {players}p/{land:0} seed {seed} sits flush with the hub front, "
                                  + "which only a saturated solid rectangle may do");
@@ -231,26 +231,26 @@ public class TeamUnitAllocatorTests
 
     // two [x,z,w,h] rects keep at least `gap` cells between them on some axis — no touch, no corner-touch (the
     // negation of the allocator's TooClose: separated by >= gap on at least one axis)
-    private static bool Separated(int[] a, int[] b, int gap) =>
-        !(a[0] - gap < b[0] + b[2] && b[0] < a[0] + a[2] + gap &&
-          a[1] - gap < b[1] + b[3] && b[1] < a[1] + a[3] + gap);
+    private static bool Separated(CellRect a, CellRect b, int gap) =>
+        !(a.X - gap < b.X + b.Width && b.X < a.X + a.Width + gap &&
+          a.Z - gap < b.Z + b.Height && b.Z < a.Z + a.Height + gap);
 
     // the unit's composed cell mask — every piece rasterized into one set (the surface the corner law reads)
     private static HashSet<(int, int)> Mask(IReadOnlyList<GrownPiece> pieces)
     {
         var cells = new HashSet<(int, int)>();
         foreach (var p in pieces)
-            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+            for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+                for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++)
                     cells.Add((x, z));
         return cells;
     }
 
     // two [x,z,w,h] cell rects overlap iff they intersect on both axes
-    private static bool Overlap(int[] a, int[] b) =>
-        a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+    private static bool Overlap(CellRect a, CellRect b) =>
+        a.X < b.X + b.Width && b.X < a.X + a.Width && a.Z < b.Z + b.Height && b.Z < a.Z + a.Height;
 
-    private static bool NoOverlaps(IEnumerable<int[]> rects)
+    private static bool NoOverlaps(IEnumerable<CellRect> rects)
     {
         var r = rects.ToList();
         for (var a = 0; a < r.Count; a++)

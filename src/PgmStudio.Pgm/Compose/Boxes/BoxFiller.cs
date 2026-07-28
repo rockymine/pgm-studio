@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -42,7 +43,7 @@ public static class BoxFiller
         // the docking law (G80): the host docks the mouth, so the mouth edge must be a legal dock. Read the
         // box's edges off the placed fill (shape-relative) and gate them — an illegal dock (a sealed wool or a
         // non-entry edge) is a directed rejection, never a placement.
-        var edges = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect[2], box.Rect[3]);
+        var edges = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect.Width, box.Rect.Height);
         return DockingGate.CheckMouth(edges, mouth) is { } rejection
             ? new FillResult.IllegalDock(rejection, family, mouth)
             : ok;
@@ -54,8 +55,8 @@ public static class BoxFiller
     /// ride along unused.)</summary>
     private static EmittedShape BoxLocal(EmittedApproach a, Box box)
     {
-        int ox = box.Rect[0], oz = box.Rect[1];
-        int[] Local(int[] r) => [r[0] - ox, r[1] - oz, r[2], r[3]];
+        int ox = box.Rect.X, oz = box.Rect.Z;
+        CellRect Local(CellRect r) => new(r.X - ox, r.Z - oz, r.Width, r.Height);
         var terrain = a.Terrain.Select(p => (Local(p.Rect), p.Slot!)).ToList();
         return new EmittedShape(terrain, Local(a.WoolRoom.Rect), a.At, a.Vacancies);
     }
@@ -72,7 +73,7 @@ public static class BoxFiller
         if (Fill(box, mouth, corridorWidth, family, flip, "probe", roomPlacement, woolAtEnd, attachmentWidth)
             is not FillResult.Ok ok)
             return null;
-        var edge = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect[2], box.Rect[3])
+        var edge = BoxInterfaces.Of(BoxLocal(ok.Approach, box), box.Rect.Width, box.Rect.Height)
             .FirstOrDefault(e => e.Edge == mouth);
         var entry = edge?.Intervals.FirstOrDefault(i => i.Slot == ApproachSlots.Entry);
         return entry is null ? null : (entry.Start, entry.LengthCells);
@@ -99,7 +100,7 @@ public static class BoxFiller
     /// currency (its footprint is fixed by the box; this is what fragment converts to build to hit the
     /// target).</summary>
     public static int Land(EmittedApproach a) =>
-        a.Terrain.Sum(p => p.Rect[2] * p.Rect[3]) + a.WoolRoom.Rect[2] * a.WoolRoom.Rect[3];
+        a.Terrain.Sum(p => p.Rect.Width * p.Rect.Height) + a.WoolRoom.Rect.Width * a.WoolRoom.Rect.Height;
 
     /// <summary>True when the fill's land is within the box's land target — the two-currency balance a fill
     /// under budget satisfies directly; over budget is what fragment spends down (G63).</summary>

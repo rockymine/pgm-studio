@@ -463,6 +463,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
       canvas.clearShapes();
       for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
       recompute(true);
+      // Frame what was loaded. applySetup's fit above ran before the shapes existed, so on its own it
+      // would open a saved sketch on the blank working area instead of on the drawing.
+      canvas.fitToBbox();
     },
     // The layout for the host to persist (the SketchLayoutJson shape — now layers[]).
     getState() {
@@ -481,6 +484,6 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     islandCount() { return islands.length; },
     fitToBbox() { canvas.fitToBbox(); },
     resize() { canvas.resize(); },
-    dispose() { document.removeEventListener("keydown", onKey); },
+    dispose() { document.removeEventListener("keydown", onKey); canvas.dispose(); },
   };
 }

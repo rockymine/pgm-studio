@@ -12,7 +12,7 @@ public sealed record EmittedFrontline(
 
 /// <summary>
 /// The frontline binding over <see cref="BodyEmitter"/> — the <b>join box kind</b>
-/// (docs/contracts/map-generation.md §5.5). Terminal-free like the hub, finished by the <b>Front designation</b>:
+/// (docs/generator/model.md §5.5). Terminal-free like the hub, finished by the <b>Front designation</b>:
 /// one edge marked the <c>face</c> (where the fanned images meet the mid), no room. It is a <b>join, not a
 /// placement</b> — its only interfaces are the <b>spine</b> (which docks the hub, consuming the hub's front-edge
 /// offer) and the <b>face</b> (which it offers to the mid); the sides are inert. <b>Rotation is fixed by the
@@ -94,7 +94,7 @@ public static class FrontlineBoxEmitter
         int? faceWidth = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
     {
         rejection = null;
-        int boxW = box.Rect[2], boxH = box.Rect[3];
+        int boxW = box.Rect.Width, boxH = box.Rect.Height;
         // build spine-up in the spine-length × reach frame (transposed when the spine docks a lateral edge), then
         // orient onto the mouth — the twin of a spawn/wool box emitting mouth-up and orienting via MouthOrient
         var lateral = spineMouth is BoxEdge.Left or BoxEdge.Right;
@@ -112,7 +112,7 @@ public static class FrontlineBoxEmitter
         var pieces = new List<GrownPiece>(body.Pieces.Count);
         var n = 1;
         foreach (var (r, slot) in body.Pieces)
-            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", [box.Rect[0] + r[0], box.Rect[1] + r[1], r[2], r[3]],
+            pieces.Add(new GrownPiece($"{box.Id}-t{n++}", new(box.Rect.X + r.X, box.Rect.Z + r.Z, r.Width, r.Height),
                 PlanRoles.Piece, slot, boxRef));
 
         // the face is the arm-tip edge opposite the spine; only it is offered — the sides are inert and the spine

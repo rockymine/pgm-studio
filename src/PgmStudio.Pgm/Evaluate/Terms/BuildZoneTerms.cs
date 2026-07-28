@@ -27,14 +27,14 @@ public sealed class BandWoolClearance : ILayoutTerm
 
         var bandImages = Enumerable.Range(0, order)
             .Select(k => ComposeGeometry.FanImage(
-                band.Rect[0], band.Rect[1], band.Rect[0] + band.Rect[2], band.Rect[1] + band.Rect[3], axes, k))
+                band.Rect.X, band.Rect.Z, band.Rect.X + band.Rect.Width, band.Rect.Z + band.Rect.Height, axes, k))
             .ToList();
 
         foreach (var piece in plan.Pieces.Where(p => woolPieces.Contains(p.Id)))
             for (var k = 0; k < order; k++)
             {
                 var (px1, pz1, px2, pz2) = ComposeGeometry.FanImage(
-                    piece.Rect[0], piece.Rect[1], piece.Rect[0] + piece.Rect[2], piece.Rect[1] + piece.Rect[3], axes, k);
+                    piece.Rect.X, piece.Rect.Z, piece.Rect.X + piece.Rect.Width, piece.Rect.Z + piece.Rect.Height, axes, k);
                 foreach (var b in bandImages)
                 {
                     var ix = Math.Min(px2, b.X2) - Math.Max(px1, b.X1);

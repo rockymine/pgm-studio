@@ -39,15 +39,13 @@ public partial class SketchTool
     // straight to Draw.
     protected override void OnInitialized() { if (Phase == "info") active = "info"; }
 
-    private async Task SetPhase(string p)
+    // Switching phases only flips which body renders: the canvas observes its own wrap and re-measures
+    // (and runs a deferred fit) when Draw un-hides. Nudging it from here would run against the still-
+    // hidden DOM — this method returns before the phase div is re-rendered.
+    private Task SetPhase(string p)
     {
         active = p;
-        if (p == "draw" && handle is not null)
-        {
-            // The canvas was display:none on Identity; nudge a resize so its <svg> re-reads the viewport
-            // size (the sketch canvas has no ResizeObserver). Preserves zoom/pan (only re-measures).
-            try { await handle.InvokeVoidAsync("resize"); } catch { }
-        }
+        return Task.CompletedTask;
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).

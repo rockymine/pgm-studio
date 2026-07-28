@@ -16,7 +16,7 @@ public enum NegativeSpaceKind { Open, Notch, Bay, Hole }
 /// two legs), and classing each part separately is what lets a rule reach an inset feature — the bar part at
 /// the mouth borders the shorter arm's end at notch grade, so "attach to the inset leg's tip" becomes
 /// stateable while the space-level class stays correct.</summary>
-public sealed record NegativeSpacePart(int[] Rect, NegativeSpaceKind Kind, bool Guarded = false, bool Front = false);
+public sealed record NegativeSpacePart(CellRect Rect, NegativeSpaceKind Kind, bool Guarded = false, bool Front = false);
 
 /// <summary>One <b>mouth</b> of a negative space — where it opens out of the body's bounding box: the open
 /// <see cref="Side"/>, the interval along it (<see cref="Start"/> in cell-corner coordinates,
@@ -84,12 +84,12 @@ public static class BodyEdges
 {
     /// <summary>Classify the union of <paramref name="rects"/> (<c>[x, z, w, h]</c> cell rects) — no slots, so
     /// every space's <see cref="NegativeSpace.WallSlots"/> is empty.</summary>
-    public static EdgeClassification Classify(IEnumerable<int[]> rects)
+    public static EdgeClassification Classify(IEnumerable<CellRect> rects)
     {
         var cells = new HashSet<(int, int)>();
         foreach (var r in rects)
-            for (var x = r[0]; x < r[0] + r[2]; x++)
-                for (var z = r[1]; z < r[1] + r[3]; z++) cells.Add((x, z));
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) cells.Add((x, z));
         return Classify(cells);
     }
 
@@ -99,8 +99,8 @@ public static class BodyEdges
         var cells = new HashSet<(int, int)>();
         var slots = new Dictionary<(int, int), string>();
         foreach (var (r, slot) in body.Pieces)
-            for (var x = r[0]; x < r[0] + r[2]; x++)
-                for (var z = r[1]; z < r[1] + r[3]; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
         return Classify(cells, new HashSet<(int, int)>(), clearance: null, slots);
     }
 
@@ -129,7 +129,7 @@ public static class BodyEdges
     {
         var (cells, terminal, slots) = EmissionCells(shape);
         var d = clearanceCells;
-        int[] clearance = [shape.Room[0] - d, shape.Room[1] - d, shape.Room[2] + 2 * d, shape.Room[3] + 2 * d];
+        CellRect clearance = new(shape.Room.X - d, shape.Room.Z - d, shape.Room.Width + 2 * d, shape.Room.Height + 2 * d);
         return Classify(cells, terminal, clearance, slots);
     }
 
@@ -139,11 +139,11 @@ public static class BodyEdges
         var cells = new HashSet<(int, int)>();
         var slots = new Dictionary<(int, int), string>();
         foreach (var (r, slot) in shape.Terrain)
-            for (var x = r[0]; x < r[0] + r[2]; x++)
-                for (var z = r[1]; z < r[1] + r[3]; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) { cells.Add((x, z)); slots[(x, z)] = slot; }
         var terminal = new HashSet<(int, int)>();
-        for (var x = shape.Room[0]; x < shape.Room[0] + shape.Room[2]; x++)
-            for (var z = shape.Room[1]; z < shape.Room[1] + shape.Room[3]; z++)
+        for (var x = shape.Room.X; x < shape.Room.X + shape.Room.Width; x++)
+            for (var z = shape.Room.Z; z < shape.Room.Z + shape.Room.Height; z++)
             {
                 cells.Add((x, z));
                 terminal.Add((x, z));
@@ -162,11 +162,12 @@ public static class BodyEdges
         Classify(cells, terminal, clearance: null, slots: null);
 
     private static EdgeClassification Classify(
-        IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> terminal, int[]? clearance,
+        IReadOnlySet<(int, int)> cells, IReadOnlySet<(int, int)> terminal, CellRect? clearance,
         IReadOnlyDictionary<(int, int), string>? slots)
     {
         if (cells.Count == 0) return new EdgeClassification([], []);
-        var (minX, minZ, maxX, maxZ) = Cells.BoundingBox(cells);
+        var bb = Cells.BoundingBox(cells);
+        int minX = bb.X, minZ = bb.Z, maxX = bb.MaxX - 1, maxZ = bb.MaxZ - 1;   // inclusive far corners
 
         // negative spaces — 4-connected components of the bounding box's complement, each classed by the axis
         // directions the body walls it from (or enclosed outright)
@@ -202,8 +203,8 @@ public static class BodyEdges
                     : NegativeSpaceKind.Open;
                 var mouths = Mouths(comp, walled, minX, minZ, maxX, maxZ);
                 var parts = Decompose(comp, cells, walled);
-                if (clearance is not null)
-                    parts = parts.SelectMany(p => SplitByClearance(p, clearance)).ToList();
+                if (clearance is { } clear)
+                    parts = parts.SelectMany(p => SplitByClearance(p, clear)).ToList();
                 parts = parts.Select(p => p with { Front = TouchesAMouth(p.Rect, mouths, minX, minZ, maxX, maxZ) }).ToList();
                 spaces.Add(new NegativeSpace(
                     kind, comp, walled.Count, WallSlotsOf(comp, cells, slots), parts, SpaceForm(comp), mouths));
@@ -215,9 +216,7 @@ public static class BodyEdges
         // runs: a run never continues across a terrain↔terminal or free↔guarded change
         NegativeSpaceKind FacingKind((int, int) n) =>
             spaceOf.TryGetValue(n, out var s) ? spaces[s].Kind : NegativeSpaceKind.Open;
-        bool Guarded((int, int) n) => clearance is not null
-            && n.Item1 >= clearance[0] && n.Item1 < clearance[0] + clearance[2]
-            && n.Item2 >= clearance[1] && n.Item2 < clearance[1] + clearance[3];
+        bool Guarded((int, int) n) => clearance is { } g && g.Contains(n.Item1, n.Item2);
         var vertical = new Dictionary<(int Line, NegativeSpaceKind Kind, bool Terminal, bool Guarded), List<int>>();   // line x → unit spans z
         var horizontal = new Dictionary<(int Line, NegativeSpaceKind Kind, bool Terminal, bool Guarded), List<int>>(); // line z → unit spans x
         foreach (var (x, z) in cells)
@@ -277,10 +276,10 @@ public static class BodyEdges
     // a part fronts the space when it holds at least one cell of a mouth interval — the covering layer the
     // publish policy's allow rules bind to
     private static bool TouchesAMouth(
-        int[] rect, IReadOnlyList<SpaceMouth> mouths, int minX, int minZ, int maxX, int maxZ)
+        CellRect rect, IReadOnlyList<SpaceMouth> mouths, int minX, int minZ, int maxX, int maxZ)
     {
         bool In(int x, int z) =>
-            x >= rect[0] && x < rect[0] + rect[2] && z >= rect[1] && z < rect[1] + rect[3];
+            x >= rect.X && x < rect.X + rect.Width && z >= rect.Z && z < rect.Z + rect.Height;
         foreach (var m in mouths)
             for (var t = m.Start; t < m.Start + m.WidthCells; t++)
             {
@@ -326,17 +325,17 @@ public static class BodyEdges
 
     // split a part against the clearance rect: the covered piece is guarded (non-publishable), the guillotine
     // remainders keep the part's class and stay free
-    private static IEnumerable<NegativeSpacePart> SplitByClearance(NegativeSpacePart part, int[] clearance)
+    private static IEnumerable<NegativeSpacePart> SplitByClearance(NegativeSpacePart part, CellRect clearance)
     {
-        int px0 = part.Rect[0], pz0 = part.Rect[1], px1 = px0 + part.Rect[2], pz1 = pz0 + part.Rect[3];
-        int cx0 = Math.Max(px0, clearance[0]), cz0 = Math.Max(pz0, clearance[1]);
-        int cx1 = Math.Min(px1, clearance[0] + clearance[2]), cz1 = Math.Min(pz1, clearance[1] + clearance[3]);
+        int px0 = part.Rect.X, pz0 = part.Rect.Z, px1 = px0 + part.Rect.Width, pz1 = pz0 + part.Rect.Height;
+        int cx0 = Math.Max(px0, clearance.X), cz0 = Math.Max(pz0, clearance.Z);
+        int cx1 = Math.Min(px1, clearance.X + clearance.Width), cz1 = Math.Min(pz1, clearance.Z + clearance.Height);
         if (cx0 >= cx1 || cz0 >= cz1) { yield return part; yield break; }
-        if (cx0 > px0) yield return part with { Rect = [px0, pz0, cx0 - px0, pz1 - pz0] };
-        if (px1 > cx1) yield return part with { Rect = [cx1, pz0, px1 - cx1, pz1 - pz0] };
-        if (cz0 > pz0) yield return part with { Rect = [cx0, pz0, cx1 - cx0, cz0 - pz0] };
-        if (pz1 > cz1) yield return part with { Rect = [cx0, cz1, cx1 - cx0, pz1 - cz1] };
-        yield return part with { Rect = [cx0, cz0, cx1 - cx0, cz1 - cz0], Guarded = true };
+        if (cx0 > px0) yield return part with { Rect = new(px0, pz0, cx0 - px0, pz1 - pz0) };
+        if (px1 > cx1) yield return part with { Rect = new(cx1, pz0, px1 - cx1, pz1 - pz0) };
+        if (cz0 > pz0) yield return part with { Rect = new(cx0, pz0, cx1 - cx0, cz0 - pz0) };
+        if (pz1 > cz1) yield return part with { Rect = new(cx0, cz1, cx1 - cx0, pz1 - cz1) };
+        yield return part with { Rect = new(cx0, cz0, cx1 - cx0, cz1 - cz0), Guarded = true };
     }
 
     // merge sorted unit spans [at, at+1) into maximal contiguous runs [lo, hi)
@@ -361,7 +360,7 @@ public static class BodyEdges
     {
         var horizontal = Slabs(comp, horizontal: true);
         var vertical = Slabs(comp, horizontal: false);
-        List<int[]> rects;
+        List<CellRect> rects;
         if (horizontal.Count != vertical.Count) rects = horizontal.Count < vertical.Count ? horizontal : vertical;
         else
         {
@@ -373,12 +372,12 @@ public static class BodyEdges
 
     // group consecutive lines (rows for horizontal slabs, columns for vertical) with identical interval
     // structure; every interval × line-band is one rectangle
-    private static List<int[]> Slabs(HashSet<(int, int)> comp, bool horizontal)
+    private static List<CellRect> Slabs(HashSet<(int, int)> comp, bool horizontal)
     {
         int Line((int, int) c) => horizontal ? c.Item2 : c.Item1;
         int Cross((int, int) c) => horizontal ? c.Item1 : c.Item2;
 
-        var rects = new List<int[]>();
+        var rects = new List<CellRect>();
         List<(int Lo, int Hi)>? band = null;
         int bandStart = 0, prevLine = 0;
         void Flush()
@@ -386,8 +385,8 @@ public static class BodyEdges
             if (band is null) return;
             foreach (var (lo, hi) in band)
                 rects.Add(horizontal
-                    ? [lo, bandStart, hi - lo, prevLine - bandStart + 1]
-                    : [bandStart, lo, prevLine - bandStart + 1, hi - lo]);
+                    ? new CellRect(lo, bandStart, hi - lo, prevLine - bandStart + 1)
+                    : new CellRect(bandStart, lo, prevLine - bandStart + 1, hi - lo));
         }
         foreach (var g in comp.GroupBy(Line).OrderBy(g => g.Key))
         {
@@ -406,14 +405,14 @@ public static class BodyEdges
 
     // a part's own class: walls against real body terrain only — sibling parts count as open, which is the
     // whole point (the bar part at a bay's mouth reads notch-grade even though the legs sit beside it)
-    private static NegativeSpaceKind PartKind(int[] r, IReadOnlySet<(int, int)> body)
+    private static NegativeSpaceKind PartKind(CellRect r, IReadOnlySet<(int, int)> body)
     {
-        int x0 = r[0], z0 = r[1], x1 = r[0] + r[2] - 1, z1 = r[1] + r[3] - 1;
+        int x0 = r.X, z0 = r.Z, x1 = r.X + r.Width - 1, z1 = r.Z + r.Height - 1;
         var walls = 0;
-        if (Enumerable.Range(z0, r[3]).Any(z => body.Contains((x1 + 1, z)))) walls++;
-        if (Enumerable.Range(z0, r[3]).Any(z => body.Contains((x0 - 1, z)))) walls++;
-        if (Enumerable.Range(x0, r[2]).Any(x => body.Contains((x, z1 + 1)))) walls++;
-        if (Enumerable.Range(x0, r[2]).Any(x => body.Contains((x, z0 - 1)))) walls++;
+        if (Enumerable.Range(z0, r.Height).Any(z => body.Contains((x1 + 1, z)))) walls++;
+        if (Enumerable.Range(z0, r.Height).Any(z => body.Contains((x0 - 1, z)))) walls++;
+        if (Enumerable.Range(x0, r.Width).Any(x => body.Contains((x, z1 + 1)))) walls++;
+        if (Enumerable.Range(x0, r.Width).Any(x => body.Contains((x, z0 - 1)))) walls++;
         return walls >= 4 ? NegativeSpaceKind.Hole
             : walls == 3 ? NegativeSpaceKind.Bay
             : walls == 2 ? NegativeSpaceKind.Notch

@@ -1,3 +1,5 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>The u-axis arithmetic of a mid crossing, fixed before the team unit is allocated (its half-gap is
@@ -9,10 +11,10 @@ public sealed record CrossingDesign(int HalfGapCells, bool SplitBand = false);
 
 /// <summary>A mid stepping stone: an anonymous piece inside the band (MD1/MD4), fanned by symmetry. The
 /// band-only mid carves none; richer crossings that place them layer back onto <see cref="MidCarver"/>.</summary>
-public sealed record MidStone(string Id, int[] Rect, int Surface);
+public sealed record MidStone(string Id, CellRect Rect, int Surface);
 
 /// <summary>The carved mid: the band zone rect (cells) and the stones inside it.</summary>
-public sealed record MidResult(int[] BandRect, IReadOnlyList<MidStone> Stones);
+public sealed record MidResult(CellRect BandRect, IReadOnlyList<MidStone> Stones);
 
 /// <summary>
 /// Carves the mid in its CLEAN form (CT1): one authored band zone spanning the symmetry axis — its own orbit
@@ -72,12 +74,12 @@ public static class MidCarver
     // touches NOTHING else, and it keeps two full cells of clearance to every wool-carrying piece across all
     // orbit images (BZ6).
     private static bool BandContactsOk(
-        ComposeEnvelope env, GrownUnit unit, int[] band, IReadOnlySet<string> frontIds)
+        ComposeEnvelope env, GrownUnit unit, CellRect band, IReadOnlySet<string> frontIds)
     {
         foreach (var piece in unit.Pieces)
         {
-            var ix = Math.Min(piece.Rect[0] + piece.Rect[2], band[0] + band[2]) - Math.Max(piece.Rect[0], band[0]);
-            var iz = Math.Min(piece.Rect[1] + piece.Rect[3], band[1] + band[3]) - Math.Max(piece.Rect[1], band[1]);
+            var ix = Math.Min(piece.Rect.X + piece.Rect.Width, band.X + band.Width) - Math.Max(piece.Rect.X, band.X);
+            var iz = Math.Min(piece.Rect.Z + piece.Rect.Height, band.Z + band.Height) - Math.Max(piece.Rect.Z, band.Z);
             var overlaps = ix > 0 && iz > 0;
             var borders = !overlaps && ix >= 0 && iz >= 0 && !(ix == 0 && iz == 0);
             if (!overlaps && !borders) continue;
@@ -90,13 +92,13 @@ public static class MidCarver
         var axes = Geom.Symmetry.OrbitAxes(env.Symmetry);
         var woolPieces = unit.Wools.Select(w => w.Piece).ToHashSet();
         var bandImages = Enumerable.Range(0, order)
-            .Select(k => ComposeGeometry.FanImage(band[0], band[1], band[0] + band[2], band[1] + band[3], axes, k))
+            .Select(k => ComposeGeometry.FanImage(band.X, band.Z, band.X + band.Width, band.Z + band.Height, axes, k))
             .ToList();
         foreach (var piece in unit.Pieces.Where(p => woolPieces.Contains(p.Id)))
             for (var k = 0; k < order; k++)
             {
                 var (px1, pz1, px2, pz2) = ComposeGeometry.FanImage(
-                    piece.Rect[0], piece.Rect[1], piece.Rect[0] + piece.Rect[2], piece.Rect[1] + piece.Rect[3], axes, k);
+                    piece.Rect.X, piece.Rect.Z, piece.Rect.X + piece.Rect.Width, piece.Rect.Z + piece.Rect.Height, axes, k);
                 foreach (var b in bandImages)
                 {
                     var ix = Math.Min(px2, b.X2) - Math.Max(px1, b.X1);

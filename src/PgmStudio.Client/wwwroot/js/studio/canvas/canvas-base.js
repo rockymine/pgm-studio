@@ -4,8 +4,11 @@
  * Subclasses extend this and override the hook methods below.
  * All shared state is _-prefixed (convention: protected).
  *
- * See docs/contracts/geometry.md §4 (shared canvas base) for the contract.
+ * See docs/contracts/canvas-interaction.md §3 (the shared base) for the contract.
  */
+
+import { toScreen } from "../geometry/transform.js";
+import { showLayers } from "../render/layer-stack.js";
 
 export const ZOOM_FACTOR = 1.15;
 export const ZOOM_MIN    = 0.5;
@@ -26,6 +29,11 @@ export class CanvasBase {
   #didDrag      = false;
   #clickWasDrag = false;
   #moveState    = null;   // body-drag: { handle, lastBx, lastBz, moved } while dragging a shape/region
+  #ro           = null;   // ResizeObserver on the wrap (see _observeResize)
+  #iso          = null;   // lazily-created WebGL iso renderer (see _showIso)
+  _isoOn        = false;
+  _fitPending   = false;  // a fit asked for while the wrap had no layout box; run once it gets one
+  _viewSize     = null;   // last measurement (see _size) — per-frame paths read this, not the DOM
 
   constructor(svgEl, wrapEl) {
     this._svg  = svgEl;
@@ -110,6 +118,119 @@ export class CanvasBase {
       x: (clientX - rect.left - this._panX) / this._scale,
       y: (clientY - rect.top  - this._panY) / this._scale,
     };
+  }
+
+  /** The viewport as plain data — what the controllers' `getViewport` closures hand around. */
+  _viewport() { return { scale: this._scale, panX: this._panX, panY: this._panY }; }
+
+  /** World → screen/SVG. The forward direction of `_clientToSvg`. */
+  _toScreen(wx, wz) { return toScreen(wx, wz, this._viewport()); }
+
+  /**
+   * The drawing surface's size. Subtracts the `.svg-area` padding (12px each side) so the svg's viewBox
+   * equals its rendered size — otherwise `max-width:100%` shrinks the svg while the viewBox stays larger
+   * and the client→world mapping drifts, worse toward the right/bottom.
+   *
+   * Measuring forces a layout, so the result is cached in `_viewSize`: per-frame paths (grids, overlays)
+   * read the cache; only a resize re-measures.
+   */
+  _size() {
+    this._viewSize = { w: (this._wrap.clientWidth || 600) - 24, h: (this._wrap.clientHeight || 600) - 24 };
+    return this._viewSize;
+  }
+
+  /** False while the canvas sits in a `display:none` phase, where `_size()` returns its fallback. */
+  _hasBox() { return this._wrap.clientWidth > 0 && this._wrap.clientHeight > 0; }
+
+  /** Size the `<svg>` to its wrap. Returns the size so callers can carry on with it. */
+  _resizeSvg() {
+    const { w, h } = this._size();
+    this._svg.setAttribute("width", w);
+    this._svg.setAttribute("height", h);
+    this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    return { w, h };
+  }
+
+  /**
+   * Frame a world box (identity-projected canvases). `margin` is the fraction of the surface the box may
+   * fill; `pad` grows the box by that fraction of itself on each side first, so the framed thing sits
+   * inside visible surroundings rather than edge to edge. Returns false when there is nothing to frame.
+   */
+  _fitWorldBox(box, { margin = 0.85, pad = 0 } = {}) {
+    if (!box) return false;
+    const { w, h } = this._size();
+    const bw = (box.max_x - box.min_x) * (1 + 2 * pad), bh = (box.max_z - box.min_z) * (1 + 2 * pad);
+    if (!(bw > 0) || !(bh > 0)) return false;
+    this._scale = Math.min(w / bw, h / bh) * margin;
+    this._panX = w / 2 - ((box.min_x + box.max_x) / 2) * this._scale;
+    this._panY = h / 2 - ((box.min_z + box.max_z) / 2) * this._scale;
+    this._applyViewportTransform();
+    this._onZoom(this._scale);
+    return true;
+  }
+
+  /**
+   * Re-measure whenever the wrap's box changes. Both tools mount their canvas inside a `display:none`
+   * phase, and the workspace sidebars are resizable — so the canvas owns this rather than each host
+   * nudging it (a nudge from a phase switch runs before the phase div is re-rendered, and measures the
+   * still-hidden element). A fit deferred for want of a layout box runs the first time a real one arrives.
+   */
+  _observeResize() {
+    if (typeof ResizeObserver === "undefined") return;
+    this.#ro = new ResizeObserver(() => {
+      if (!this._hasBox()) return;
+      this.resize();
+      if (this._fitPending) { this._fitPending = false; this._fit(); }
+    });
+    this.#ro.observe(this._wrap);
+  }
+
+  /** Frame the canvas's own default extent. Overridden by surfaces that support a deferred fit. */
+  _fit() {}
+
+  // ── isometric preview ────────────────────────────────────────────────────────
+  // Swap the 2-D surface for a read-only WebGL render. The renderer is imported lazily so a missing or
+  // blocked WebGL stack — or any failure to load that module — degrades to "no 3-D preview" instead of
+  // breaking the editor at page load; `false` tells the caller to stay in 2-D and disable the toggle.
+
+  /** The elements the preview covers — everything drawn in 2-D. Subclasses list their own. */
+  _isoLayers() { return [this._viewportG]; }
+
+  /** Log tag for the "unavailable" warning. */
+  _isoTag() { return "canvas"; }
+
+  /** Called just before entering the preview, for whatever in-progress interaction to drop. */
+  _onIsoEnter() {}
+
+  async _showIso(solids, yawDeg, bbox) {
+    if (!this.#iso) {
+      try {
+        const { IsoScene } = await import("../render/iso-webgl.js");
+        this.#iso = new IsoScene(this._wrap);
+      } catch (e) {
+        console.warn(`[${this._isoTag()}] 3-D preview unavailable:`, e?.message ?? e);
+        return false;
+      }
+    }
+    this._isoOn = true;
+    this._onIsoEnter();
+    const { w, h } = this._size();
+    showLayers(this._isoLayers(), false);
+    this.#iso.show();
+    this.#iso.render(solids, w, h, yawDeg, bbox);
+    return true;
+  }
+
+  _hideIso() {
+    this._isoOn = false;
+    this.#iso?.hide();
+    showLayers(this._isoLayers(), true);
+  }
+
+  /** Release the observer + the WebGL context. Subclasses call this from their own `dispose`. */
+  _disposeCanvasBase() {
+    this.#ro?.disconnect(); this.#ro = null;
+    this.#iso?.dispose(); this.#iso = null;
   }
 
   // ── event setup ────────────────────────────────────────────────────────────

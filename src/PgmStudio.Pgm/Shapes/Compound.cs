@@ -1,7 +1,7 @@
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
-/// The <b>terminal-free compound</b> taxonomy (docs/contracts/shape-vocabulary.md §5) — the named recombinations
+/// The <b>terminal-free compound</b> taxonomy (docs/generator/model.md §5) — the named recombinations
 /// of the rectangle atom, read by topology alone (the §4 feature axes: bends · fold · branch · void), never by a
 /// terminal. It is the derive-side identity of a <see cref="ShapeBody"/>: <see cref="ShapeClassifier.ClassifyBody"/>
 /// reads a body back to one of these, closing the emit↔derive mirror for the bodies <see cref="BodyEmitter"/>

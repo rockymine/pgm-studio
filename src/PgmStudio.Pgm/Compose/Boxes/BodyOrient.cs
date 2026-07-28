@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -17,12 +18,12 @@ internal static class BodyOrient
     /// it to h×w.</summary>
     public static ShapeBody To(ShapeBody body, BoxEdge spine, int w, int h)
     {
-        Func<int[], int[]> map = spine switch
+        Func<CellRect, CellRect> map = spine switch
         {
             BoxEdge.Top => r => r,
-            BoxEdge.Bottom => r => [r[0], h - r[1] - r[3], r[2], r[3]],
-            BoxEdge.Right => r => [h - r[1] - r[3], r[0], r[3], r[2]],   // quarter turn: Top → Right (dim = h)
-            BoxEdge.Left => r => [r[1], w - r[0] - r[2], r[3], r[2]],    // quarter turn: Top → Left (dim = w)
+            BoxEdge.Bottom => r => new(r.X, h - r.Z - r.Height, r.Width, r.Height),
+            BoxEdge.Right => r => new(h - r.Z - r.Height, r.X, r.Height, r.Width),   // quarter turn: Top → Right (dim = h)
+            BoxEdge.Left => r => new(r.Z, w - r.X - r.Width, r.Height, r.Width),    // quarter turn: Top → Left (dim = w)
             _ => throw new ArgumentException($"unknown spine edge {spine}."),
         };
         return new ShapeBody(

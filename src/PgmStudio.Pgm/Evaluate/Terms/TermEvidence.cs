@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Evaluate.Terms;
@@ -7,7 +8,7 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 internal static class TermEvidence
 {
     /// <summary>The cell rect of a piece or zone by id, or null if neither exists.</summary>
-    public static int[]? Locate(PlanModel plan, string id) =>
+    public static CellRect? Locate(PlanModel plan, string id) =>
         plan.Pieces.FirstOrDefault(p => p.Id == id)?.Rect
         ?? plan.Zones.FirstOrDefault(z => z.Id == id)?.Rect;
 
@@ -22,5 +23,5 @@ internal static class TermEvidence
     }
 
     /// <summary>The cell-space centre of a <c>[x, z, w, h]</c> rect.</summary>
-    public static (double X, double Z) Center(int[] rect) => (rect[0] + rect[2] / 2.0, rect[1] + rect[3] / 2.0);
+    public static (double X, double Z) Center(CellRect rect) => (rect.X + rect.Width / 2.0, rect.Z + rect.Height / 2.0);
 }

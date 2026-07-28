@@ -1,7 +1,7 @@
 # Layout rules — the composer's v1 rule set (v3, frozen 2026-07-04)
 
 The generator's actual content: per-role attachment rules, dimensions, and elevation defaults for
-the plan composer (`docs/contracts/map-generation.md` §2, §4). v3 measures every rule against the
+the plan composer (`docs/generator/model.md` §2, §4). v3 measures every rule against the
 **twelve-seed corpus** (`tools/seeds/*.plan.json`; the eleventh, `big-board-…-parallel-mid`, is a
 **trace of a real map** at 30/team; the twelfth, `mirror-tiny-map-cliff`, the tiniest at 5/team).
 **FROZEN 2026-07-04**: the maxPlayers pass completed — every seed carries the author's per-team
@@ -273,7 +273,7 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   Individual hops keep G5's 10–20; longer total crossings are chains of hops with fragments
   between.
 - **CT4 — the island-size gradient [corpus].** Measured over the 90 fanned islands of the
-  ten-seed corpus (`docs/seed-stats.md`, "Island gradient sweep"): islands **grow** with distance
+  ten-seed corpus (`docs/generator/seed-stats.md`, "Island gradient sweep"): islands **grow** with distance
   from the centre — pooled Spearman(area, centroid-distance) **+0.61**, holds per-seed in
   **8/10**. Stepping-stone candidates are islands fully submerged in a build zone, or small
   (≤100-block) islands with exactly two build-zone interfaces — **minus two author exclusions**:
@@ -506,48 +506,11 @@ on the authored unit, fanned per orbit image. (The editor always meant this; the
 interpreted "front" as toward-the-centre, which mis-yawed four seeds and mis-measured one iron —
 both corrected.)
 
-## Remaining seed work
-
-The eleven-seed corpus covers the entire original shopping list (the eleventh, the traced
-`big-board-…-parallel-mid`, additionally delivered the parallel-mid example, the below-base
-palette, the plaza hub, and the 35 crossing at 30/team):
-
-1. ~~cliff-marked seed~~ — **done**: five `cliffs` marks landed (mirror-big-board ×2,
-   odd-facing ×3) under EL6.
-2. ~~fragmented-island~~ — **resolved without a seed**: fragmentation is the closure reading
-   (CT1–CT6); every seed is a fragmented closure and the interface statistics are already
-   measured.
-3. ~~maxPlayers pass~~ — **complete**: all twelve seeds carry the author's per-team counts
-   (the last five: isolated-spawn 14 ✓ proposal, towers 18, mirror 32, wool-two-sided 12,
-   odd-facing 16 ✓); the G8 coupling is derived from the full corpus. **No freeze blockers
-   remain — v3 is frozen.**
-4. ~~behind-spawn iron~~ — retracted (facing-semantics artifact; the iron is ahead).
-
-## Resolved this round (was: freeze blockers)
-
-1. **BZ5** — retired as a prohibition; the defender-egress bridge at spawn is a motif.
-2. **Cliffs** — EL6 qualification encodes the author's criteria; marks added to mirror-big-board
-   (2) and odd-facing (3); rotate-wide-frontline's seams are stepped edges, unmarked by design.
-3. **G5** — refined to the region's minimal crossing (long hops beside shorter ones are fine).
-4. **SP7 "violation"** — retracted (facing-semantics measurement bug; iron is ahead).
-5. **CT1/CT4 revised per the author** — no team-separation cut exists (the symmetry axis plays
-   that part); the mid is the *interface between team territories*, always connected through
-   bridge zones. Carving replaced cutting as the mid operator (CT5); team-side vs mid assignment
-   is spawn+wools+minimal-connectors vs centre-proximity (CT2); the island-size gradient and
-   stepping-stone falloff measured and confirmed (CT4).
-6. **CT1 forms author-labeled; stones corrected** — the mid-form taxonomy is now
-   clean / parallel / hash (grid = alignment property, not a form; a grid of islands in one
-   connected region is *clean*, not hash — `rotate-wide-frontline`, `base-4team`; hash requires a
-   fractured or holed build region with interconnected mid islands — `four-team-towers-big`,
-   `four-team-wool-two-sided`, `isolated-spawn-approaches`). Stone classification gained the
-   marker exclusion and the team transient-link split (CT4), which sharpened the falloff to
-   **17/4/0**; stone/team-island alignment became CT7.
-
 ## Amendments (post-freeze)
 
 1. **CT8 added (2026-07-04, composer round 1).** Internal holes / rotation loops — author-stated
    during the composer build-out, then measured universal (12/12 seeds at closure level; sweep in
-   `docs/seed-stats.md`, "Internal-hole sweep"). New rule, no existing rule changed.
+   `docs/generator/seed-stats.md`, "Internal-hole sweep"). New rule, no existing rule changed.
 2. **CT8 function split by ring (2026-07-04, composer round 1).** Author: wool in the hole's
    ring ⇒ the two-approaches pattern, else rotation. Corpus-validated with two refinements: the
    WL1 two-sided rooms are a seam-mediated sibling (not the same device), and the all-zone ring

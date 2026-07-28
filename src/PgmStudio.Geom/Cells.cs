@@ -15,8 +15,10 @@ public static class Cells
         yield return (c.Item1, c.Item2 + 1); yield return (c.Item1, c.Item2 - 1);
     }
 
-    /// <summary>Inclusive bounding box of a non-empty cell set.</summary>
-    public static (int MinX, int MinZ, int MaxX, int MaxZ) BoundingBox(IReadOnlyCollection<(int, int)> cells)
+    /// <summary>The extent of a non-empty cell set. Both bounding corners are occupied cells, so the
+    /// returned rect's <see cref="CellRect.Width"/>/<see cref="CellRect.Height"/> are the cell counts the set
+    /// spans and its <see cref="CellRect.MaxX"/>/<see cref="CellRect.MaxZ"/> are one past the far cells.</summary>
+    public static CellRect BoundingBox(IReadOnlyCollection<(int, int)> cells)
     {
         int mnx = int.MaxValue, mnz = int.MaxValue, mxx = int.MinValue, mxz = int.MinValue;
         foreach (var (x, z) in cells)
@@ -24,7 +26,7 @@ public static class Cells
             if (x < mnx) mnx = x; if (x > mxx) mxx = x;
             if (z < mnz) mnz = z; if (z > mxz) mxz = z;
         }
-        return (mnx, mnz, mxx, mxz);
+        return CellRect.FromInclusive(mnx, mnz, mxx, mxz);
     }
 
     /// <summary>The 4-connected component of <paramref name="within"/> reachable from <paramref name="seeds"/>
@@ -142,21 +144,21 @@ public static class Cells
     public static bool HasFold(IReadOnlySet<(int, int)> cells)
     {
         if (cells.Count == 0) return false;
-        var (mnx, mnz, mxx, mxz) = BoundingBox(cells);
-        for (var z = mnz; z <= mxz; z++)
+        var b = BoundingBox(cells);
+        for (var z = b.Z; z < b.MaxZ; z++)
         {
             int runs = 0; var inRun = false;
-            for (var x = mnx; x <= mxx; x++)
+            for (var x = b.X; x < b.MaxX; x++)
             {
                 if (cells.Contains((x, z))) { if (!inRun) { runs++; inRun = true; } }
                 else inRun = false;
             }
             if (runs >= 2) return true;
         }
-        for (var x = mnx; x <= mxx; x++)
+        for (var x = b.X; x < b.MaxX; x++)
         {
             int runs = 0; var inRun = false;
-            for (var z = mnz; z <= mxz; z++)
+            for (var z = b.Z; z < b.MaxZ; z++)
             {
                 if (cells.Contains((x, z))) { if (!inRun) { runs++; inRun = true; } }
                 else inRun = false;
@@ -175,9 +177,9 @@ public static class Cells
     public static bool HasDiagonalPinch(IReadOnlySet<(int, int)> cells)
     {
         if (cells.Count == 0) return false;
-        var (mnx, mnz, mxx, mxz) = BoundingBox(cells);
-        for (var x = mnx; x < mxx; x++)
-            for (var z = mnz; z < mxz; z++)
+        var bb = BoundingBox(cells);
+        for (var x = bb.X; x < bb.MaxX - 1; x++)
+            for (var z = bb.Z; z < bb.MaxZ - 1; z++)
             {
                 bool a = cells.Contains((x, z)), b = cells.Contains((x + 1, z));
                 bool c = cells.Contains((x, z + 1)), d = cells.Contains((x + 1, z + 1));

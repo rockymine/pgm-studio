@@ -3,7 +3,7 @@
 // Generates the soft-term envelopes. Runs every SoftTerm's Value() over the teaching maps — the same method the
 // term scores with, so the band and the score can never drift — takes each metric's [min, max], and writes:
 //   • src/PgmStudio.Pgm/Evaluate/seed-envelopes.json   (embedded, the bands the evaluator loads)
-//   • docs/seed-envelopes.md                           (the human-readable band table + per-seed matrix)
+//   • docs/generator/seed-envelopes.md                           (the human-readable band table + per-seed matrix)
 // Two teaching corpora feed the bands: the authored intent seeds (tools/seeds) and the traced real maps
 // (tools/seeds/traced). Most terms learn from both; a term that encodes an authored *cap* (LearnsFromTraced =
 // false) learns from the authored seeds only, so a real map that exceeds the cap does not silently widen it.
@@ -96,7 +96,7 @@ foreach (var s in seeds)
     }
     md.AppendLine();
 }
-var mdPath = Path.Combine("docs", "seed-envelopes.md");
+var mdPath = Path.Combine("docs", "generator", "seed-envelopes.md");
 File.WriteAllText(mdPath, md.ToString());
 Console.WriteLine($"wrote {mdPath}");
 

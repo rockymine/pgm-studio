@@ -27,16 +27,16 @@ public static class ComposeGeometry
     /// cross-axis interval that abut along the run axis merge into one chain (a lane cut into collinear
     /// pieces is still one lane); a jog, a width change, or a corner touch breaks the chain. LN2 caps the
     /// result at <see cref="LaneChainMaxBlocks"/>.</summary>
-    public static int MaxChainBlocks(int cell, IReadOnlyList<int[]> rects)
+    public static int MaxChainBlocks(int cell, IReadOnlyList<CellRect> rects)
     {
-        var xRuns = LongestRun(rects, r => (r[1], r[3]), r => r[0], r => r[2]);
-        var zRuns = LongestRun(rects, r => (r[0], r[2]), r => r[1], r => r[3]);
+        var xRuns = LongestRun(rects, r => (r.Z, r.Height), r => r.X, r => r.Width);
+        var zRuns = LongestRun(rects, r => (r.X, r.Width), r => r.Z, r => r.Height);
         return Math.Max(xRuns, zRuns) * cell;
     }
 
     private static int LongestRun(
-        IReadOnlyList<int[]> rects,
-        Func<int[], (int, int)> cross, Func<int[], int> runMin, Func<int[], int> runSpan)
+        IReadOnlyList<CellRect> rects,
+        Func<CellRect, (int, int)> cross, Func<CellRect, int> runMin, Func<CellRect, int> runSpan)
     {
         var best = 0;
         foreach (var group in rects.GroupBy(cross))
@@ -62,17 +62,17 @@ public static class ComposeGeometry
     /// touch but never overlap; every other pair (different images, or involving an isolated piece) keeps
     /// the 10-block clearance on at least one axis.</summary>
     internal static bool SeparationOk(
-        ComposeEnvelope env, IReadOnlyList<int[]> landRects, IReadOnlyList<int[]> isolatedRects,
-        IReadOnlyList<int[]>? centerRects = null)
+        ComposeEnvelope env, IReadOnlyList<CellRect> landRects, IReadOnlyList<CellRect> isolatedRects,
+        IReadOnlyList<CellRect>? centerRects = null)
     {
         var order = Symmetry.Order(env.Symmetry);
         var axes = Symmetry.OrbitAxes(env.Symmetry);
         var images = new List<(int K, bool Isolated, bool Center, double X1, double Z1, double X2, double Z2)>();
 
-        void Add(int[] rect, bool isolated, bool center)
+        void Add(CellRect rect, bool isolated, bool center)
         {
-            double x1 = rect[0] * env.Cell, z1 = rect[1] * env.Cell;
-            double x2 = (rect[0] + rect[2]) * env.Cell, z2 = (rect[1] + rect[3]) * env.Cell;
+            double x1 = rect.X * env.Cell, z1 = rect.Z * env.Cell;
+            double x2 = (rect.X + rect.Width) * env.Cell, z2 = (rect.Z + rect.Height) * env.Cell;
             for (var k = 0; k < order; k++)
             {
                 var (ix1, iz1, ix2, iz2) = FanImage(x1, z1, x2, z2, axes, k);

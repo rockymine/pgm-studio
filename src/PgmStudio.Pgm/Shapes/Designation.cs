@@ -1,7 +1,7 @@
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>Which box kind's <b>designation</b> finishes a terminal-free <see cref="ShapeBody"/> into a placed
-/// box (docs/contracts/map-generation.md §1.12). <see cref="Approach"/> stamps an <c>entry</c> and a
+/// box (docs/generator/model.md §1.12). <see cref="Approach"/> stamps an <c>entry</c> and a
 /// <c>room</c> terminal — the wool/spawn approach. <see cref="Hub"/> stamps per-edge <c>interface</c> marks
 /// carrying widths, <b>no terminal</b> — the constraint source. <see cref="Frontline"/> stamps a <c>face</c>
 /// mark, <b>no terminal</b> — the edge where the fanned images meet.

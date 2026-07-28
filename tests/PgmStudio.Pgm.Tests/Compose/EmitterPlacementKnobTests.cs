@@ -22,8 +22,8 @@ public sealed class EmitterPlacementKnobTests
         var cells = new HashSet<(int, int)>();
         var overlap = false;
         foreach (var p in a.Terrain.Append(a.WoolRoom))
-            for (var x = p.Rect[0]; x < p.Rect[0] + p.Rect[2]; x++)
-                for (var z = p.Rect[1]; z < p.Rect[1] + p.Rect[3]; z++)
+            for (var x = p.Rect.X; x < p.Rect.X + p.Rect.Width; x++)
+                for (var z = p.Rect.Z; z < p.Rect.Z + p.Rect.Height; z++)
                     if (!cells.Add((x, z))) overlap = true;
         return (family, overlap);
     }
@@ -56,8 +56,8 @@ public sealed class EmitterPlacementKnobTests
         var a = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, entryShift: 4);
         var tail = a.Terrain.Single(p => p.Slot == ApproachSlots.Entry);
         var spine = a.Terrain.Single(p => p.Slot == ApproachSlots.EntryRun);
-        await Assert.That(tail.Rect[1]).IsEqualTo(4);
-        await Assert.That(spine.Rect[1]).IsEqualTo(4);     // shrunk from the top, flush with the tail
+        await Assert.That(tail.Rect.Z).IsEqualTo(4);
+        await Assert.That(spine.Rect.Z).IsEqualTo(4);     // shrunk from the top, flush with the tail
     }
 
     [Test]
@@ -65,8 +65,8 @@ public sealed class EmitterPlacementKnobTests
     {
         var a = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, woolShift: 3);
         var ret = a.Terrain.Single(p => p.Slot == ApproachSlots.RoomRun);
-        await Assert.That(a.WoolRoom.Rect[1]).IsEqualTo(3);
-        await Assert.That(ret.Rect[1]).IsEqualTo(3 + WoolBoxEmitter.RoomDepthCells);
+        await Assert.That(a.WoolRoom.Rect.Z).IsEqualTo(3);
+        await Assert.That(ret.Rect.Z).IsEqualTo(3 + WoolBoxEmitter.RoomDepthCells);
     }
 
     [Test]
@@ -78,8 +78,8 @@ public sealed class EmitterPlacementKnobTests
         // never sticking away perpendicular — and a widened tail is still the same fold
         var a = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, attachmentWidth: aw);
         var tail = a.Terrain.Single(p => p.Slot == ApproachSlots.Entry);
-        await Assert.That(tail.Rect[3]).IsEqualTo(aw);     // widened along the docking edge
-        await Assert.That(tail.Rect[2]).IsEqualTo(Cw);     // never thickened perpendicular
+        await Assert.That(tail.Rect.Height).IsEqualTo(aw);     // widened along the docking edge
+        await Assert.That(tail.Rect.Width).IsEqualTo(Cw);     // never thickened perpendicular
         var (family, overlap) = Read(a);
         await Assert.That(family).IsEqualTo(ShapeFamily.Scythe);
         await Assert.That(overlap).IsFalse();
@@ -103,7 +103,7 @@ public sealed class EmitterPlacementKnobTests
         var a = WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw,
             attachments: attachments, attachmentWidth: aw, attachmentOffset: offset);
         var stub = a.Terrain.First(p => p.Slot == ApproachSlots.Entry);
-        await Assert.That(stub.Rect[1]).IsEqualTo(offset);
+        await Assert.That(stub.Rect.Z).IsEqualTo(offset);
         // only the attachment moves — the ring's bars and legs are byte-identical to the unshifted emission
         var b = WoolBoxEmitter.Emit(ShapeFamily.Donut, Box, Cw, attachments: attachments, attachmentWidth: aw);
         var ringA = a.Terrain.Where(p => p.Slot != ApproachSlots.Entry).Select(p => string.Join(',', p.Rect));
@@ -126,8 +126,8 @@ public sealed class EmitterPlacementKnobTests
             await Assert.That(read).IsEqualTo(family);
             await Assert.That(overlap).IsFalse();
             // the room hangs perpendicular off the terminal piece — its long axis flips vs the inline room
-            await Assert.That(a.WoolRoom.Rect[2]).IsEqualTo(WoolBoxEmitter.RoomDepthCells);
-            await Assert.That(a.WoolRoom.Rect[3]).IsEqualTo(Cw);
+            await Assert.That(a.WoolRoom.Rect.Width).IsEqualTo(WoolBoxEmitter.RoomDepthCells);
+            await Assert.That(a.WoolRoom.Rect.Height).IsEqualTo(Cw);
         }
     }
 
@@ -140,9 +140,9 @@ public sealed class EmitterPlacementKnobTests
         var docked = WoolBoxEmitter.Emit(ShapeFamily.Scythe, Box, Cw, roomPlacement: RoomPlacement.SideTuck);
         var inlineLeg = inline_.Terrain.Single(p => p.Slot == ApproachSlots.RoomRun);
         var dockedLeg = docked.Terrain.Single(p => p.Slot == ApproachSlots.RoomRun);
-        await Assert.That(inlineLeg.Rect[1]).IsEqualTo(WoolBoxEmitter.RoomDepthCells);
-        await Assert.That(dockedLeg.Rect[1]).IsEqualTo(0);
-        await Assert.That(docked.WoolRoom.Rect[0]).IsEqualTo(dockedLeg.Rect[0] + Cw);  // beside, not beyond
+        await Assert.That(inlineLeg.Rect.Z).IsEqualTo(WoolBoxEmitter.RoomDepthCells);
+        await Assert.That(dockedLeg.Rect.Z).IsEqualTo(0);
+        await Assert.That(docked.WoolRoom.Rect.X).IsEqualTo(dockedLeg.Rect.X + Cw);  // beside, not beyond
     }
 
     [Test]
@@ -153,7 +153,7 @@ public sealed class EmitterPlacementKnobTests
         var (family, overlap) = Read(a);
         await Assert.That(family).IsEqualTo(ShapeFamily.Scythe);
         await Assert.That(overlap).IsFalse();
-        await Assert.That(a.WoolRoom.Rect[1]).IsEqualTo(4);
+        await Assert.That(a.WoolRoom.Rect.Z).IsEqualTo(4);
     }
 
     [Test]

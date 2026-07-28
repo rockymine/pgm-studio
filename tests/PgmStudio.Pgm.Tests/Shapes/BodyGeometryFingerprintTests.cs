@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Shapes;
@@ -17,9 +18,13 @@ public sealed class BodyGeometryFingerprintTests
 {
     private const int Cw = 2;
 
+    // The recorded geometry strings predate CellRect; keep printing the four numbers so a pure
+    // representation change cannot move a single expectation.
+    private static string R(CellRect r) => $"{r.X},{r.Z},{r.Width},{r.Height}";
+
     private static string Print(ShapeBody body) =>
-        string.Join(" | ", body.Pieces.Select(p => $"{p.Slot}:{string.Join(",", p.Rect)}"))
-        + "  voids " + string.Join(" | ", body.Vacancies.Select(v => $"{v.Kind}:{string.Join(",", v.Rect)}"));
+        string.Join(" | ", body.Pieces.Select(p => $"{p.Slot}:{R(p.Rect)}"))
+        + "  voids " + string.Join(" | ", body.Vacancies.Select(v => $"{v.Kind}:{R(v.Rect)}"));
 
     [Test]
     public async Task Ring_geometry_is_stable()
@@ -43,8 +48,8 @@ public sealed class BodyGeometryFingerprintTests
         // and it still reads as a ring — identity is width-independent, which is the whole premise
         var cells = new HashSet<(int, int)>();
         foreach (var (rect, _) in BodyEmitter.Ring(walls, 9, 7).Pieces)
-            for (var x = rect[0]; x < rect[0] + rect[2]; x++)
-                for (var z = rect[1]; z < rect[1] + rect[3]; z++) cells.Add((x, z));
+            for (var x = rect.X; x < rect.X + rect.Width; x++)
+                for (var z = rect.Z; z < rect.Z + rect.Height; z++) cells.Add((x, z));
         await Assert.That(ShapeClassifier.ClassifyBody(cells).Form).IsEqualTo(Compound.Ring);
     }
 
@@ -136,10 +141,10 @@ public sealed class BodyGeometryFingerprintTests
     public async Task Donut_geometry_is_stable()
     {
         var shape = ShapeEmitter.Emit(ShapeFamily.Donut, 12, 7, Cw);
-        var print = string.Join(" | ", shape.Terrain.Select(p => $"{p.Slot}:{string.Join(",", p.Rect)}"));
+        var print = string.Join(" | ", shape.Terrain.Select(p => $"{p.Slot}:{R(p.Rect)}"));
         await Assert.That(print).IsEqualTo(
             "entry-bar:2,0,8,2 | leg:2,2,2,3 | leg:8,2,2,3 | entry:0,0,2,2 | room-bar:2,5,8,2");
-        await Assert.That(string.Join(",", shape.Room)).IsEqualTo("10,5,2,2");
+        await Assert.That(R(shape.Room)).IsEqualTo("10,5,2,2");
     }
 
     /// <summary>The donut carrying a wider leg and a wider bar — the case both exemplars are authored around.
@@ -155,19 +160,19 @@ public sealed class BodyGeometryFingerprintTests
         // the top bar thickens; the hole loses that row rather than the box growing
         var uTop = uniform.Terrain.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
         var wTop = widened.Terrain.First(t => t.Slot == ApproachSlots.EntryBar).Rect;
-        await Assert.That(uTop[3]).IsEqualTo(2);
-        await Assert.That(wTop[3]).IsEqualTo(3);
-        await Assert.That(widened.Vacancies.Single(v => v.Kind == "hole").Rect[3])
-            .IsEqualTo(uniform.Vacancies.Single(v => v.Kind == "hole").Rect[3] - 1);
+        await Assert.That(uTop.Height).IsEqualTo(2);
+        await Assert.That(wTop.Height).IsEqualTo(3);
+        await Assert.That(widened.Vacancies.Single(v => v.Kind == "hole").Rect.Height)
+            .IsEqualTo(uniform.Vacancies.Single(v => v.Kind == "hole").Rect.Height - 1);
 
         // and it still reads as a donut — a widened wall is the same family
         var cells = new HashSet<(int, int)>();
         var rooms = new HashSet<(int, int)>();
         foreach (var (rect, _) in widened.Terrain)
-            for (var x = rect[0]; x < rect[0] + rect[2]; x++)
-                for (var z = rect[1]; z < rect[1] + rect[3]; z++) cells.Add((x, z));
-        for (var x = widened.Room[0]; x < widened.Room[0] + widened.Room[2]; x++)
-            for (var z = widened.Room[1]; z < widened.Room[1] + widened.Room[3]; z++) { cells.Add((x, z)); rooms.Add((x, z)); }
+            for (var x = rect.X; x < rect.X + rect.Width; x++)
+                for (var z = rect.Z; z < rect.Z + rect.Height; z++) cells.Add((x, z));
+        for (var x = widened.Room.X; x < widened.Room.X + widened.Room.Width; x++)
+            for (var z = widened.Room.Z; z < widened.Room.Z + widened.Room.Height; z++) { cells.Add((x, z)); rooms.Add((x, z)); }
         await Assert.That(ShapeClassifier.Classify(cells, rooms).Family).IsEqualTo(ShapeFamily.Donut);
     }
 

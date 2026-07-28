@@ -1,9 +1,10 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// The edge taxonomy (docs/contracts/shape-vocabulary.md): a body's negative spaces classed by wall count —
+/// The edge taxonomy (docs/generator/model.md §1.13): a body's negative spaces classed by wall count —
 /// notch (2), bay (3), hole (enclosed) — and every boundary edge classed by the space it faces, Open being the
 /// free outward surface. Fixtures pin the read on the compounds and the approach emissions, plus the
 /// designation interplay (a clamp's recess is a bay only once the room closes it).
@@ -139,13 +140,13 @@ public sealed class BodyEdgesTests
         var bay = f.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
         await Assert.That(bay.Parts.Count).IsEqualTo(3);
 
-        static bool RectEq(int[] a, int[] b) => a.SequenceEqual(b);
+        static bool RectEq(CellRect a, CellRect b) => a == b;
         // the mouth bar: full width under the short arm, bordering its tip — notch-grade, not bay
-        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, [3, 15, 18, 9]) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(3, 15, 18, 9)) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
         // the slot between the arms — a true bay part
-        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, [3, 6, 6, 9]) && p.Kind == NegativeSpaceKind.Bay)).IsTrue();
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(3, 6, 6, 9)) && p.Kind == NegativeSpaceKind.Bay)).IsTrue();
         // the corner beyond the short arm — a notch part
-        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, [15, 6, 6, 9]) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
+        await Assert.That(bay.Parts.Any(p => RectEq(p.Rect, new(15, 6, 6, 9)) && p.Kind == NegativeSpaceKind.Notch)).IsTrue();
     }
 
     // the void is a body too: a decomposed space carries its own compound identity
@@ -170,7 +171,7 @@ public sealed class BodyEdgesTests
         await Assert.That(bay.Parts.Count).IsEqualTo(3);
         await Assert.That(bay.Parts.All(p => p.Kind == NegativeSpaceKind.Bay)).IsTrue();
         // the front part spans the mouth, covering both slots behind the short middle arm
-        await Assert.That(bay.Parts.Any(p => p.Rect.SequenceEqual(new[] { 3, 9, 9, 6 }))).IsTrue();
+        await Assert.That(bay.Parts.Any(p => p.Rect == new CellRect(3, 9, 9, 6))).IsTrue();
         await Assert.That(bay.Form).IsEqualTo(new CompoundRead(Compound.SpineArms, 2));
     }
 
@@ -190,7 +191,7 @@ public sealed class BodyEdgesTests
 
         // the notch splits against the margin: a guarded corner at the room, free remainders elsewhere
         var notch = l.Spaces.Single(s => s.Kind == NegativeSpaceKind.Notch);
-        await Assert.That(notch.Parts.Any(p => p.Guarded && p.Rect.SequenceEqual(new[] { 11, 13, 4, 2 }))).IsTrue();
+        await Assert.That(notch.Parts.Any(p => p.Guarded && p.Rect == new CellRect(11, 13, 4, 2))).IsTrue();
         await Assert.That(notch.Parts.Count(p => !p.Guarded)).IsEqualTo(2);
 
         // without the clearance overload nothing is guarded
@@ -238,7 +239,7 @@ public sealed class BodyEdgesTests
             .Contains(ApproachSlots.Room)).IsTrue();
 
         // a slot-free input (raw rects) carries no wall slots
-        var raw = BodyEdges.Classify([new[] { 0, 0, 3, 9 }, [0, 9, 9, 3]]);
+        var raw = BodyEdges.Classify([new(0, 0, 3, 9), new(0, 9, 9, 3)]);
         await Assert.That(raw.Spaces.All(s => s.WallSlots.Count == 0)).IsTrue();
     }
 
@@ -248,7 +249,7 @@ public sealed class BodyEdgesTests
     {
         var e = BodyEdges.Classify(BodyEmitter.SpineArms(spineLen: 15, barThickness: 3, arms: [(0, 3, 12), (6, 3, 6), (12, 3, 12)]));
         var bay = e.Spaces.Single(s => s.Kind == NegativeSpaceKind.Bay);
-        await Assert.That(bay.Parts.Single(p => p.Front).Rect.SequenceEqual(new[] { 3, 9, 9, 6 })).IsTrue();
+        await Assert.That(bay.Parts.Single(p => p.Front).Rect == new CellRect(3, 9, 9, 6)).IsTrue();
         await Assert.That(bay.Parts.Count(p => !p.Front)).IsEqualTo(2);
 
         // a single-part space is its own front
@@ -291,8 +292,8 @@ public sealed class BodyEdgesTests
         var emit = ShapeEmitter.Emit(family, w, h, Cw);
         var cells = new HashSet<(int, int)>();
         foreach (var r in emit.Terrain.Select(p => p.Rect).Append(emit.Room))
-            for (var x = r[0]; x < r[0] + r[2]; x++)
-                for (var z = r[1]; z < r[1] + r[3]; z++) cells.Add((x, z));
+            for (var x = r.X; x < r.X + r.Width; x++)
+                for (var z = r.Z; z < r.Z + r.Height; z++) cells.Add((x, z));
         var perimeter = cells.Sum(c => PgmStudio.Geom.Cells.N4(c).Count(n => !cells.Contains(n)));
 
         var read = BodyEdges.Classify(emit);

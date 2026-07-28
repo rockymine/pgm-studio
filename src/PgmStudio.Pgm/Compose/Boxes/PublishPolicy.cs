@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Compose;
 public enum PublishVerdict { Veto, Allow }
 
 /// <summary>
-/// The publish policy (docs/map-generation-constraint-taxonomy.md §4.1): which of a shape's negative spaces are
+/// The publish policy (docs/generator/audit.md §4.1): which of a shape's negative spaces are
 /// offered onward, as ordered verdicts over the edge-taxonomy facts — <b>space veto → guard → part allow →
 /// default deny</b>. Publishing is an <b>offer, never a fill</b>: a published vacancy enters the pipeline for a
 /// later step to claim once the base is built (a third wool seated in a free-standing U's bay or a ring's

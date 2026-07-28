@@ -59,7 +59,7 @@ public static class FillProfiles
     /// <summary>
     /// The spawn box's allowed footprints — the <b>size rule as data</b>, the size facet of the profile (the
     /// counterpart to the family allowlist above). A spawn is one of these <b>small fixed SP boxes</b>
-    /// (docs/contracts/map-generation.md §4 — a spawn is "small … never large", ~10×10 direct · 10×20 run-up ·
+    /// (docs/generator/model.md §4 — a spawn is "small … never large", ~10×10 direct · 10×20 run-up ·
     /// 20×20 L), <b>sampled, never stretched to absorb a land-budget share</b> the way the ported grower did.
     /// Each entry is a <c>(family, run, turn)</c> the emitter turns into the box footprint via
     /// <see cref="SpawnBoxEmitter.Box"/> — edit this table to retune the spawn's size or add a variant; the size

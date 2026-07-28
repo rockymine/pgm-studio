@@ -4,8 +4,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  pointInRing, centroid, enclosedVertices, edgeMarkers, splitPiece, deriveLaneRole, geoPolys, polygonArea, labelCut,
+  centroid, enclosedVertices, edgeMarkers, splitPiece, deriveLaneRole, geoPolys, polygonArea, labelCut,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/decompose-cut.js";
+// The cut geometry leans on the canonical point-in-polygon predicate; it used to carry a second copy.
+import { pointInRing } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/polygon.js";
 
 const SQUARE = [[0, 0], [10, 0], [10, 10], [0, 10]];   // open ring, CCW-ish
 

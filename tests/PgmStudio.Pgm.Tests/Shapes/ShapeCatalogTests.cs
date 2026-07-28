@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Tests.Shapes;
 
 /// <summary>
-/// The base wool-approach catalog (docs/contracts/map-generation.md §5): each fixture is the doc's t/v/w grid
+/// The base wool-approach catalog (docs/generator/model.md §5): each fixture is the doc's t/v/w grid
 /// (t = terrain, v = void, w = wool), built as a real plan and classified — the classification the contract
 /// asserts, verified against the catalog family. The t/v/w notation is doc-only; it lives here as inline
 /// literals that mirror the doc.
@@ -62,11 +62,11 @@ public sealed class ShapeCatalogTests
                 if (ch == 'w') wool = (x, z);
                 if (ch != 't') { x++; continue; }
                 int c0 = x; while (x < rows[z].Length && rows[z][x] == 't') x++;
-                plan.Pieces.Add(new PlanPiece { Id = $"t{++pid}", Role = PlanRoles.Piece, Rect = [c0, z, x - c0, 1] });
+                plan.Pieces.Add(new PlanPiece { Id = $"t{++pid}", Role = PlanRoles.Piece, Rect = new(c0, z, x - c0, 1) });
             }
         }
         var w = wool!.Value;
-        plan.Pieces.Add(new PlanPiece { Id = "wool", Role = PlanRoles.WoolRoom, Rect = [w.Item1, w.Item2, 1, 1] });
+        plan.Pieces.Add(new PlanPiece { Id = "wool", Role = PlanRoles.WoolRoom, Rect = new(w.Item1, w.Item2, 1, 1) });
         plan.Placements.Wools.Add(new WoolPlacement { Piece = "wool", At = [0, 0] });
         return plan;
     }

@@ -1,8 +1,12 @@
 {
   "private": true,
   "type": "module",
-  "description": "Marks the repo's hand-written .js (wwwroot studio modules + tests/js) as ES modules for Node's built-in test runner. No npm dependencies; .NET ignores this file.",
+  "description": "Marks the repo's hand-written .js (wwwroot studio modules + tests/js) as ES modules for Node's built-in test runner, and carries the e2e + vendoring scripts. NO npm dependencies and no node_modules: browser libs are vendored under wwwroot/js/studio/vendor (see `vendor:icons`), and playwright is a developer-machine prerequisite the e2e harness resolves globally. .NET ignores this file.",
   "scripts": {
-    "test": "node --test \"tests/js/**/*.test.js\""
+    "test": "node --test \"tests/js/**/*.test.js\"",
+    "e2e": "tools/e2e.sh",
+    "e2e:all": "tools/e2e.sh all",
+    "vendor:icons": "node tools/vendor-icons.mjs",
+    "vendor:icons:check": "node tools/vendor-icons.mjs --check"
   }
 }

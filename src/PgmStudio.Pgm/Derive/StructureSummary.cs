@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Shapes;
 
@@ -63,10 +64,10 @@ public sealed record StructureSummary(
         return cells.Count == 0 ? null : ShapeClassifier.ClassifyBody(cells);
     }
 
-    private static IEnumerable<(int, int)> CellsOf(int[] rect)
+    private static IEnumerable<(int, int)> CellsOf(CellRect rect)
     {
-        for (var x = rect[0]; x < rect[0] + rect[2]; x++)
-            for (var z = rect[1]; z < rect[1] + rect[3]; z++)
+        for (var x = rect.X; x < rect.X + rect.Width; x++)
+            for (var z = rect.Z; z < rect.Z + rect.Height; z++)
                 yield return (x, z);
     }
 

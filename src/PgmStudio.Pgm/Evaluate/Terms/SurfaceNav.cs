@@ -23,10 +23,10 @@ internal static class SurfaceNav
         return walkable;
     }
 
-    private static void AddRect(HashSet<(int, int)> set, int[] rect)
+    private static void AddRect(HashSet<(int, int)> set, CellRect rect)
     {
-        for (var x = rect[0]; x < rect[0] + rect[2]; x++)
-            for (var z = rect[1]; z < rect[1] + rect[3]; z++)
+        for (var x = rect.X; x < rect.X + rect.Width; x++)
+            for (var z = rect.Z; z < rect.Z + rect.Height; z++)
                 set.Add((x, z));
     }
 
@@ -37,7 +37,7 @@ internal static class SurfaceNav
     {
         var piece = ctx.Plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null) return null;
-        return Snap(((int)Math.Floor(piece.Rect[0] + at[0]), (int)Math.Floor(piece.Rect[1] + at[1])), walkable);
+        return Snap(((int)Math.Floor(piece.Rect.X + at[0]), (int)Math.Floor(piece.Rect.Z + at[1])), walkable);
     }
 
     private static (int, int)? Snap((int, int) cell, IReadOnlySet<(int, int)> walkable)

@@ -9,7 +9,7 @@ namespace PgmStudio.Pgm.Tests.Compose;
 public class TeamUnitFillerTests
 {
     private static EmittedHub Hub() =>
-        HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36), new CompoundRead(Compound.Rectangle), cw: 2)!;
+        HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36), new CompoundRead(Compound.Rectangle), cw: 2)!;
 
     /// <summary>A hub joint granting <paramref name="width"/> over the dock <c>[start, start+len)</c> on
     /// <paramref name="edge"/> — the allocator's per-dock grant.</summary>
@@ -43,7 +43,7 @@ public class TeamUnitFillerTests
     {
         // a derived (not allocated) partition carries no offer — the dock reads the capacity of the run it
         // lands on: the U's Bottom edge is two 2-cell leg tips, its Top one full 6-cell run
-        var hub = HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36),
+        var hub = HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36),
             new CompoundRead(Compound.SpineArms, 2), cw: 2)!;
         var onTip = new BoxJoint("hub", "nb", new BoxInterface(BoxEdge.Bottom, 4, 2), null);
         var onSpine = new BoxJoint("hub", "nb", new BoxInterface(BoxEdge.Top, 0, 6), null);
@@ -68,14 +68,14 @@ public class TeamUnitFillerTests
     {
         var hub = Hub();
         // the spawn box sits below the hub, docking the hub's Bottom edge with its Top mouth, granted w4
-        var spawnBox = new Box("spawn-a", BoxKind.Spawn, [0, 6, 4, 10], 40);
+        var spawnBox = new Box("spawn-a", BoxKind.Spawn, new(0, 6, 4, 10), 40);
         var spawn = TeamUnitFiller.FillSpawn(hub, Joint(BoxEdge.Bottom, 4), BoxEdge.Bottom, spawnBox, BoxEdge.Top,
             ShapeFamily.I, flip: false, "spawn-a-room");
 
         await Assert.That(spawn).IsNotNull();
         await Assert.That(spawn!.Pieces.All(p => p.Box!.Kind == BoxKind.Spawn)).IsTrue();
         // filled at cw 4: the spawn corridor is four cells wide across the mouth
-        await Assert.That(spawn.Pieces.Any(p => p.Rect[2] == 4)).IsTrue();
+        await Assert.That(spawn.Pieces.Any(p => p.Rect.Width == 4)).IsTrue();
     }
 
     [Test]
@@ -85,7 +85,7 @@ public class TeamUnitFillerTests
         // wool production is w2-only, so the wool's joint grants w2
         var family = FillMenu.FamiliesFor(2)[0];
         // docks the hub's Right (vertical) edge with its Left mouth: the lane runs rightward into the box width
-        var woolBox = new Box("wool-a", BoxKind.Wool, [8, 0, 12, 6], 40);
+        var woolBox = new Box("wool-a", BoxKind.Wool, new(8, 0, 12, 6), 40);
         var wool = TeamUnitFiller.FillWool(hub, Joint(BoxEdge.Right, 2), BoxEdge.Right, woolBox, BoxEdge.Left,
             family, flip: false, "wool-a-room");
 
@@ -99,9 +99,9 @@ public class TeamUnitFillerTests
         // the right (docking the hub's w2 Right) — the hub's width plan riding on the joint offers
         var partition = new BoxPartition(
             [
-                new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36),
-                new Box("spawn", BoxKind.Spawn, [0, 6, 6, 12], 72),
-                new Box("wool-a", BoxKind.Wool, [8, 0, 14, 6], 84),
+                new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36),
+                new Box("spawn", BoxKind.Spawn, new(0, 6, 6, 12), 72),
+                new Box("wool-a", BoxKind.Wool, new(8, 0, 14, 6), 84),
             ],
             [
                 new BoxJoint("hub", "spawn", new BoxInterface(BoxEdge.Bottom, 0, 6),
@@ -127,7 +127,7 @@ public class TeamUnitFillerTests
     public async Task A_partition_with_no_spawn_is_a_directed_null()
     {
         var partition = new BoxPartition(
-            [new Box("hub", BoxKind.Hub, [0, 0, 6, 6], 36)], []);
+            [new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36)], []);
         await Assert.That(TeamUnitFiller.Fill(partition, "south", new ComposeRng(1))).IsNull();
     }
 
@@ -137,9 +137,9 @@ public class TeamUnitFillerTests
         // hub with a spawn behind (Bottom) and a frontline in front (Top), docking the hub's w4 front edge
         var partition = new BoxPartition(
             [
-                new Box("hub", BoxKind.Hub, [0, 10, 6, 6], 36),
-                new Box("spawn", BoxKind.Spawn, [0, 16, 6, 12], 72),
-                new Box("frontline", BoxKind.Frontline, [0, 0, 12, 10], 120),
+                new Box("hub", BoxKind.Hub, new(0, 10, 6, 6), 36),
+                new Box("spawn", BoxKind.Spawn, new(0, 16, 6, 12), 72),
+                new Box("frontline", BoxKind.Frontline, new(0, 0, 12, 10), 120),
             ],
             [
                 new BoxJoint("hub", "spawn", new BoxInterface(BoxEdge.Bottom, 0, 6),

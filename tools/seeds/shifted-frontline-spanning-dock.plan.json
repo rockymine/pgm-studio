@@ -166,8 +166,32 @@
     }
   ],
   "placements": {
-    "spawns": [],
-    "wools": [],
+    "spawns": [
+      {
+        "piece": "spawn",
+        "at": [
+          1,
+          1
+        ],
+        "facing": "back"
+      }
+    ],
+    "wools": [
+      {
+        "piece": "wool",
+        "at": [
+          1,
+          1
+        ]
+      },
+      {
+        "piece": "wool-2",
+        "at": [
+          1,
+          1
+        ]
+      }
+    ],
     "iron": [],
     "destroyables": [],
     "cores": []

@@ -38,6 +38,15 @@ the focus-integration polish remains.
   a spawn (team or wool) via the **coord inputs** rewrites X/Z without re-snapping Y to the new column, so
   only the point tool re-seats. Pairs with `N08` (monument Y editing) and `CV11` (the side-view clamp side
   of the same problem).
+- [ ] **N12 — Configure only authors wool objectives; the intent and the plan tool already do all three.**
+  `MapIntent` carries `Wools`, `Destroyables` and `Cores`, and `WoolGenerator`/`DestroyableGenerator`/
+  `CoreGenerator` all emit their `map.xml` — the backend is complete. The **plan tool** places all three.
+  Configure has only the wool path (`WoolObjectivesStep`, `WoolMonumentsStep`, `WoolRoomStep`,
+  `WoolSpawnStep`, and the wool phase in `ConfigurePhases`), so a DTM or DTC map authored in the plan tool
+  can be configured — the other objectives ride through untouched — but its objective cannot be *seen* or
+  edited there, and a map that arrives without one can only be given a wool. Add the destroyable and core
+  steps (both are simpler than wool: one region per defending team, no per-capturing-team monuments), and
+  make the objective phase branch on which kind the map carries rather than assuming CTW.
 
 ## Sketch tool (S) — parked slices
 
@@ -97,6 +106,36 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
   (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
   a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
+- [~] **C28 — The client's remaining test layers (smoke has landed).** The **smoke layer + runner shipped**
+  as `C31` (`tools/e2e.sh`, `tests/e2e/`) — every route is swept for "renders and raises nothing", seeded
+  from a composed board; `icons.mjs` (C30) added the first *positive* render assertion on top of it.
+  `PgmStudio.Client` is still **absent from the coverage report** (no test project
+  references it), and two layers are still open:
+  **(a) mount/interop** — per canvas tool, assert the bridge mounted and the surface has a real size; this
+  is the C29 class of bug (a canvas at 45% of its workspace for weeks, in two tools) and it is assertable
+  without knowing user intent.
+  **(b) scenarios** — one flow per tool, specifically *the path that creates the artifact*, where a break is
+  unrecoverable rather than cosmetic: Sketch `New → name → draw → Finish → Configure`; Plan
+  `New → globals → piece → Compile`. The seed already proves that chain works headlessly.
+  Deliberately **not** e2e: field-level inspector behaviour and anything asserting where geometry lands —
+  those rot; extract the decidable logic instead (`CV12`). A bUnit project for the phase/step state machines
+  is still worth considering, and is independent of the above.
+- [ ] **CV12 — Two thirds of the JS layer is never loaded by a test.** `npm test --
+  --experimental-test-coverage` reports 82.8% over the 15 modules the 148 tests import (several at 100%:
+  `transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`), but **26 of 41 files / ~6,900 lines are
+  absent from the report** — they are never imported, which the coverage output shows as silence rather
+  than zero. The untested set is the whole interactive layer: every canvas (`editor-canvas` 1046,
+  `plan-canvas` 1017, `sketch-canvas` 871, `sideview-canvas`, `canvas-base`), every bridge, every
+  controller, `iso-webgl`, and `studio.js`. The split is coherent — pure geometry is tested, DOM/canvas
+  code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
+  contain** (hit-testing, snapping, viewport/transform maths, selection resolution) into pure modules the
+  existing `node --test` setup can reach without a DOM. Pairs with the JS consolidation review.
+- [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
+  `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
+  callback; `editor-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
+  of a no-op. Settle on one helper next to `fetch-json.js`. Tiny, but it is the only thing the five bridges
+  genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
+  separate.
 ## Backend, pipeline & internals (B / P / A)
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
@@ -108,6 +147,35 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   islands by id, and spawns/wools are world coordinates); flag the author when the island set changes so a
   stale `islandTeams` mapping can be re-checked. (Manual procedure today: copy the `map_intent_json`
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
+- [ ] **B35 — Endpoint coverage: half the API is exercised by nothing.** `PgmStudio.Api` sits at **42.8%**
+  lines (`tools/coverage.sh`), and the shortfall is not spread evenly — a long tail of endpoint files is
+  effectively untouched while the tested ones are fine: `PreflightEndpoint` 2.6%, `ImportEndpoints` 3.6%,
+  `IslandRolesEndpoint` 3.6%, `MonumentEndpoints` 5.3%, `LayersEndpoints` 5.5%, `ConfigureEndpoints` 6.2%,
+  `AuthoringEndpoint` 8.2%, `IslandReviewEndpoints` 8.6%, `MapPlanEndpoints` 12.3%, `AnalysisEndpoints`
+  13.0%, `RegionEndpoints` 15.6%. `ApiTestFactory` (B20) already gives schema-isolated MariaDB, so the
+  marginal cost per endpoint is one happy path plus its error contract; these are cheap tests, not a
+  redesign. Prioritise the ones that write: import, configure, region and map-plan.
+- [ ] **B36 — The region/filter authoring-and-editing path is half covered.** A coherent cluster sits
+  around 40–58% while its neighbours are high: `RegionAuthoringEncoder` 43.8% (370 uncovered lines),
+  `RegionParser` 52.0% (295), `RegionEditor` 57.5% (180), `FilterParser` 48.9%, `RegionGeometry2d` 39.5%,
+  `RegionBuilder` 43.7%, `FilterEditor` 41.9%, `WoolEditor` 58.5%. This matters more than the endpoint tail
+  because it is map-contract logic, not glue — a silent regression here changes generated `map.xml` rather
+  than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
+  neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
+  91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
+- [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
+  `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
+  `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts
+  `OrderByDescending(UpdatedAt).ThenBy(Slug)`. The dashboard always requests `?stage=…`, so it always gets
+  recency order — and on the imported Edit corpus `updated_at` records when the *pipeline* last wrote the
+  row, not when the author last worked on the map, so it carries no authoring signal. The 349 Edit rows hold
+  only 29 distinct timestamps (a re-processing pass stamped them in ~22-map batches a second apart), so the
+  list renders as 29 alphabetical runs concatenated — it reads as scrambled, with the three maps outside the
+  supported range (`3084`, `allure`, `lost_haven`, never re-processed) parked at the bottom. Recency earns
+  its keep on Sketches/Plans/Configuring, where the timestamps are real edits and the lists are short.
+  Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
+  slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
+  data is wrong, and both orders are deterministic.
 - [ ] **B33 — Three box types, two of them the same shape.** `PgmStudio.Minecraft` now holds two identical
   inclusive integer AABBs — `ScanBox` (`MonumentSuggester`: the region the author boxed, with
   `Contains`/`Expand`/`IntersectsChunk`) and `BlockBox` (`ObjectiveStamper`: a stamped structure's volume,
@@ -119,29 +187,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   `MonumentSuggester`'s 15 call sites, and that detector is corpus-validated at 96.6% precision — not
   something to churn as a drive-by during unrelated work. Low priority: unlike the symmetry duplication this
   is a value record, so there is no algorithm here that can silently drift.
-- [ ] **B34 — A plan rect is a bare `int[]`; give it a type (`CellRect`).** `Box.Rect`, `PlanPiece.Rect`,
-  `PlanZone.Rect`, `ShapeVacancy.Rect`, `NegativeSpacePart.Rect` and the shape emitters all mean
-  `[x, z, width, height]` in plan cells, but nothing enforces it: `Rect[2]` is width by agreement, a
-  three-element array compiles, and reading `[3]` as depth compiles. 29 declarations and 65 index reads over
-  26 files — **all inside `PgmStudio.Pgm`**, so no cross-project churn.
-  **Decided:** origin + **exclusive** extent (65 read sites already assume it), with computed `MaxX`/`MaxZ`
-  so corner-style code still reads naturally. Named **`CellRect`**, not `Rect` — `Rect` is taken by
-  `Authoring/MapIntent.cs:279` *in the same project* (`double`, `MinX/MinZ/MaxX/MaxZ`), plus three more in
-  `Client/Features/Configure/`; every existing `Rect` is world-coordinate, fractional, corner-pair, i.e. the
-  opposite convention. The split is the point: `Rect` = world blocks, `CellRect` = plan cells.
-  **Placement: `PgmStudio.Geom`.** Every consumer sits in `Pgm` today, which by the placement rule alone
-  would argue for `Pgm` — but `Geom.Cells.BoundingBox` already returns a rect in the *other* 2D convention
-  (inclusive corner tuple), so putting the type in the leaf lets that function return it and collapses the
-  two conventions instead of leaving them adjacent. Note this would be the **first public value type in
-  `Geom`**, which is currently all static function classes.
-  **The three `plan.json` properties keep their wire format** (`PlanModel.cs:170,182,200`) via a
-  `JsonConverter` — the type goes all the way through rather than stopping at the DTO.
-  **Oracle: `ComposerFingerprint` + `tools/compose/composer-fingerprints.json` + `ComposerVersionTests`.**
-  A pure representation change must leave every fingerprint byte-identical, so this cannot break silently.
-  **Out of scope:** the 3D boxes (`B33` — different dimension, different convention, and `MonumentSuggester`
-  is corpus-validated at 96.6% precision), renaming the existing `Rect` to `BlockRect`, and the `cell` →
-  `cellSize` rename.
-
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
@@ -160,7 +205,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   self-correct far better seeing the board) · `plan_save`/`plan_get`/`plan_list` (the G119 store, with
   an agent-authored origin marking so agent output never contaminates the human-labeled corpus) ·
   `create_draft`/`export` (existing chain; return the export **link**, never the world zip inline). MCP
-  resources: `layout-rules.md` + `map-generation.md` as the design brief, `tools/seeds/*.plan.json`
+  resources: `generator/rules.md` + `generator/model.md` as the design brief, `tools/seeds/*.plan.json`
   (incl. the funnel exemplars) as few-shot examples, and the G118 verdict JSONL once it exists. Scope
   is the **author agent** only; the **analyst agent** (mine verdicts/reject logs for rule + envelope
   refinements — read-only `verdicts_export`/`rejects_query`) is a small follow-on once the corpus has
@@ -280,7 +325,7 @@ import diagnostic (`B24e`), detection (`B26`), and the work the phantom classifi
 
 **The design long tail moved out of the board.** With the old grower path retired and the box pipeline
 now the one composer (`FEATURES.md`), the ~40-task G backlog — much of it describing machinery that no
-longer exists — is condensed into **`docs/layout-generation-ideas.md`**: one idea per few lines, grouped
+longer exists — is condensed into **`docs/generator/ideas.md`**: one idea per few lines, grouped
 by theme, **ids preserved** (never reuse one). Pull an idea back onto the board by id when it becomes the
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.

@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 
@@ -106,7 +107,7 @@ public static class Composer
     /// on the +u side while an authored one may be drawn on either, and reading the front off the wrong side
     /// measures the back of the unit.</para>
     /// </summary>
-    internal static int FrontHullSlackCells(Frame frame, IEnumerable<int[]> rects)
+    internal static int FrontHullSlackCells(Frame frame, IEnumerable<CellRect> rects)
     {
         var uv = rects.Select(frame.FromRect).ToList();
         if (uv.Count == 0) return 0;

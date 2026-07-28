@@ -1,15 +1,15 @@
 # Plan editor — the seed studio (Phase 1 implementation design)
 
-The concrete design for the model in `docs/contracts/map-generation.md`: the plan JSON schema,
+The concrete design for the model in `docs/generator/model.md`: the plan JSON schema,
 the plan→(layout, intent) compiler, and the minimal grid editor the author uses to build the
-boring-seed corpus (`docs/contracts/layout-rules.md`, seed shopping list). File-first: plans are
+boring-seed corpus (`docs/generator/rules.md`, seed shopping list). File-first: plans are
 repo files in `tools/seeds/` (like the existing seed pairs); the studio is the editor, git is the
 store.
 
 Builds on the landed `P9` export pipeline (`tools/seeds/`, `PUT /map/{slug}/intent`,
 `GET /map/{slug}/export`).
 
-> **Terminology + model:** `docs/contracts/map-generation.md` is canonical. This doc owns the
+> **Terminology + model:** `docs/generator/model.md` is canonical. This doc owns the
 > field-level schema and the editor; the authored role set, interfaces, and derived structure are
 > defined there.
 
@@ -167,6 +167,20 @@ Two severities, both live in the editor and enforced by the compiler CLI:
   "BZ5: zone touches spawn piece". Lint never blocks compile (rules are provisional; seeds may
   intentionally break one to test the composer later).
 
+**Completeness is a third, separate question** (`PlanValidator.Completeness`) — not whether the plan is
+coherent, but whether it carries what a map cannot exist without. It runs **only at `/plan/compile`**, the
+one-way gate, never in the continuous validation the editor and the evaluator share: a plan mid-edit is
+legitimately incomplete, and the composer scores candidates before it has placed anything, so an errors-here
+finding must not reach the evaluator's hard `STRUCT` term.
+
+- **Errors (block the compile, 422 with the same findings shape):** no generating piece — there is no land
+  to build; no spawn — a map with nowhere to put a player cannot be loaded. A plan with no pieces reports
+  only that, since every other complaint about a blank document follows from it.
+- **Lint (a complaint on the 200):** no objective of any kind — no wool, no destroyable, no core. Which goal
+  a map carries is the author's, and one can still be set in Configure, so this never blocks. Non-blocking
+  completeness findings ride back on the success response as `warnings`, and the compile drawer renders them
+  above the compiled JSON — the compile that succeeds with a complaint still says so.
+
 Validator lives beside the compiler (`PlanValidator`), pure, unit-tested per rule id.
 
 ## 5. The editor UI
@@ -205,7 +219,7 @@ New page `Features/Plan/PlanTool.razor` (+ `js/studio/plan/`), reusing the studi
 - **Overlays (toggleable):** derived land interfaces (green intervals; a slimmer green core where
   narrow; red only at a bare corner point), gap links through zones with hop distances, computed
   frontline edges, spawn→wool path trace, and the evaluator's fired-rule **evidence** (the Rules
-  overlay — see §6, `layout-evaluator.md`).
+  overlay — see §6, `generator/evaluator.md`).
 - **Feasibility panel:** the producibility read (`POST /api/plan/feasibility`) — *could the composer have
   produced this?*, the question the Score panel does not ask (a plan scores 0 and can still be unbuildable).
   Grouped **per box**, with the unit-level findings (the arrangement rules) pinned above them, because a box can

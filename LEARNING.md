@@ -82,20 +82,11 @@ Entries are dated and cite `file:line`. Debt entries are `[ ]` open / `[>]` grad
 - [ ] **`cell` is misnamed.** It is blocks-per-cell — a scale factor, not a cell. Propagates to
   `ComposeEnvelope.Cell` and `PlanGlobals.Cell`. (2026-07-27)
 
-- [ ] **A rect is a bare `int[]` — the convention is real, documented, load-bearing, and unenforced.**
-  `Box.Rect`, `PlanPiece.Rect`, `PlanZone.Rect`, `ShapeVacancy.Rect`, `NegativeSpacePart.Rect` and the shape
-  emitters all mean `[x, z, width, height]` — origin plus extents, in plan cells. Nothing says so in a type:
-  `Rect[2]` is width purely by convention, a 3-element array compiles, and reading `[3]` as depth compiles.
-  29 declarations and 65 index reads across 26 files, **all inside `PgmStudio.Pgm`** — the churn does not
-  cross a project boundary. Three of the declarations are the `plan.json` wire format
-  (`PlanModel.cs:170,182,200`, `[JsonPropertyName("rect")]`), so the serialized form must stay a JSON array
-  whatever the in-memory type becomes.
-  **The trap to avoid: the codebase already holds several rect conventions, and a new type that picks none
-  of them just adds one more** (the `B33` failure mode, one dimension down). Known so far:
-  `Cells.BoundingBox` returns an *inclusive corner tuple* `(MinX, MinZ, MaxX, MaxZ)`; `Rect` is
-  *origin + exclusive extent*; `ScanBox`/`BlockBox` are inclusive 3D AABBs; `Api.Services.StructureBox` is a
-  3D drawing frame with exclusive maxes. A rect type has to name its convention and convert at the edges.
-  (2026-07-27)
+- [>] **A rect is a bare `int[]` — the convention is real, documented, load-bearing, and unenforced.**
+  Graduated and shipped as **B37** (`CellRect` in `PgmStudio.Geom`, origin + exclusive extent, with a
+  `JsonConverter` keeping the `plan.json` wire form) — see `FEATURES.md`. The trap this entry named was
+  avoided: the new type states its convention in its name and its docs, and `Cells.BoundingBox` was moved
+  onto it rather than left as a second, adjacent convention. (2026-07-27)
 
 - [ ] **A fifth of the soft catalogue is green by absence, and the two loudest bands describe a different
   population.** Measured over 560 composed plans (2- and 4-team, players 6–32, 40 seeds each) against the

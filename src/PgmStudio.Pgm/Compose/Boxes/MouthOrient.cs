@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
@@ -26,7 +27,7 @@ internal static class MouthOrient
     // box-local vertical mirror (docking the box's bottom edge instead of its top)
     private static EmittedShape FlipVertical(EmittedShape s, int h)
     {
-        int[] Map(int[] r) => [r[0], h - r[1] - r[3], r[2], r[3]];
+        CellRect Map(CellRect r) => new(r.X, h - r.Z - r.Height, r.Width, r.Height);
         BoxEdge? Mouth(BoxEdge? e) => e switch
         {
             BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top, _ => e,
@@ -34,7 +35,7 @@ internal static class MouthOrient
         return new EmittedShape(
             s.Terrain.Select(p => (Map(p.Rect), p.Slot)).ToList(),
             Map(s.Room),
-            [s.At[0], s.Room[3] - s.At[1]],
+            [s.At[0], s.Room.Height - s.At[1]],
             s.Vacancies.Select(v => v with { Rect = Map(v.Rect), Mouth = Mouth(v.Mouth) }).ToList());
     }
 
@@ -43,9 +44,9 @@ internal static class MouthOrient
     // (recomputed against the room's rotated dims) and vacancy mouths all follow the turn.
     private static EmittedShape Rotate(EmittedShape s, int dim, bool cw)
     {
-        int[] Map(int[] r) => cw
-            ? [dim - r[1] - r[3], r[0], r[3], r[2]]
-            : [r[1], dim - r[0] - r[2], r[3], r[2]];
+        CellRect Map(CellRect r) => cw
+            ? new(dim - r.Z - r.Height, r.X, r.Height, r.Width)
+            : new(r.Z, dim - r.X - r.Width, r.Height, r.Width);
         BoxEdge? Mouth(BoxEdge? e) => e switch
         {
             BoxEdge.Top => cw ? BoxEdge.Right : BoxEdge.Left,
@@ -54,7 +55,7 @@ internal static class MouthOrient
             BoxEdge.Left => cw ? BoxEdge.Top : BoxEdge.Bottom,
             _ => e,
         };
-        double[] at = cw ? [s.Room[3] - s.At[1], s.At[0]] : [s.At[1], s.Room[2] - s.At[0]];
+        double[] at = cw ? [s.Room.Height - s.At[1], s.At[0]] : [s.At[1], s.Room.Width - s.At[0]];
         return new EmittedShape(
             s.Terrain.Select(p => (Map(p.Rect), p.Slot)).ToList(),
             Map(s.Room),

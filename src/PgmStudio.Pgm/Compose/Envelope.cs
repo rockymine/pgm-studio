@@ -93,7 +93,7 @@ public static class Envelope
         return new ComposeEnvelope(
             symmetry, request.Teams, request.PlayersPerTeam, cell, Surface: 9, Headroom: 11,
             boardWidthBlocks, boardLengthBlocks, landPerTeam,
-            bounds[0], bounds[1], bounds[0] + bounds[2], bounds[1] + bounds[3]);
+            bounds.X, bounds.Z, bounds.X + bounds.Width, bounds.Z + bounds.Height);
     }
 
     private static double InterpolateLandPerPlayer(double players)

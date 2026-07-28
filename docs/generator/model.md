@@ -11,11 +11,18 @@ model. **What it defers:**
 
 | Companion | Owns |
 |---|---|
-| `layout-rules.md` | The frozen rule law and every number (widths, depths, hop counts, heights, the CT / SP / WL / LN / HB / FR / MD / BZ / EL ids). |
-| `seed-stats.md` | The measured envelopes the soft evaluator terms score against. |
-| `plan-editor.md` | The field-level `*.plan.json` schema and the editor UI. |
-| `layout-evaluator.md` | The detailed deriver-measurables and evaluator-metric catalogue. |
-| `map-generation-vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. §1 defines the terms, §12 is the code map, this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
+| `rules.md` | The rule law and every number (widths, depths, hop counts, heights, the CT / SP / WL / LN / HB / FR / MD / BZ / EL ids). |
+| `seed-stats.md` · `seed-envelopes.md` | The measured envelopes the soft evaluator terms score against. |
+| `evaluator.md` | The detailed deriver-measurables and evaluator-metric catalogue. |
+| `vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. §1 defines the terms, §14 is the code map, this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
+| `audit.md` | The standing measured record of where the implementation and this model **disagree** — the evidence behind the open G-tasks. |
+| `ideas.md` | The G-track idea pool: open work not on the board. |
+| `../contracts/plan-editor.md` | The field-level `*.plan.json` schema and the editor UI (the Plan tool). |
+
+**The live twin.** `tools/compose/showcase.cs` renders this same model as one self-contained HTML
+page with **every figure emitted by the real generator** (`dotnet run tools/compose/showcase.cs`).
+Where the prose here and the showcase disagree, suspect the prose: the showcase cannot drift,
+because its figures are built by the code being described.
 
 ---
 
@@ -29,9 +36,9 @@ specific verb:
 
 | Verb | Means | Where it lives |
 |---|---|---|
-| **emit** | Fill one box with one base shape (forward). | `WoolBoxEmitter` |
+| **emit** | Fill one box with one base shape (forward). | `ShapeEmitter` + the per-kind bindings |
 | **derive** | Read structure back out of geometry (inverse). Two derivers — see §1.3. | `ShapeClassifier`, `ContactGraph` + `BoardDeriver` |
-| **compose** | Build the plan: `budget → boxes → emit → join → embed`. | the composer (`Composer`) |
+| **compose** | Build the plan: `budget → allocate → fill → carve → assemble`. | the composer (`Composer`) |
 | **evaluate** | Validate + score a plan → `(score, [violations])`. | the evaluator |
 | **realize** | Compile the plan → sketch + intent → roughen + elevation → export. | the seed pipeline |
 
@@ -57,7 +64,7 @@ Two classifiers share the verb *derive*; they read **different things** and are 
 
 | Deriver | Reads | Produces | Code |
 |---|---|---|---|
-| **shape deriver** | one wool box's terrain | the family (§1.2) — the emitter's mirror | `ShapeClassifier.Classify` |
+| **shape deriver** | one box's terrain | the family (§1.2) — the emitter's mirror | `ShapeClassifier.Classify` |
 | **board deriver** | the whole board's terrain + markers | connectivity: islands, voids/holes, contacts, build-zone kinds, wool lanes, the mid form | `ContactGraph` (rect layer) + `BoardDeriver` → `BoardStructure` (raster layer) |
 
 When a doc says "the deriver" without qualification it means the **board deriver**; the shape
@@ -179,7 +186,7 @@ Budget is **two currencies that must both balance**:
 | **land** | walkable terrain area (capacity) | player count (`G8`) | every emitted piece |
 | **footprint** | total box area (terrain + build + gap) | the box partition | the box's size, fixed once |
 
-The key: **a build zone costs footprint but not land**. Detailed in §8.
+The key: **a build zone costs footprint but not land**. Detailed in §10.
 
 ### 1.11 The small words
 
@@ -187,8 +194,8 @@ The key: **a build zone costs footprint but not land**. Detailed in §8.
 - **lane** — a simple corridor (bend count `I / L / Z`), the board deriver's `ShapeClassifier.ClassifyOpen` read.
 - **approach** — the whole wool-box shape (one of the nine families). *Lane ≠ approach.*
 - **menu** — the set of families an interface width makes legal (the width→fill production rule, §4).
-- **mid** — the neutral band between the frontlines; its **form is `f(frontline)`** (§9).
-- **frontline** — a **join**, not a placement, and a **derived edge attribute**, not a piece (§4, §6).
+- **mid** — the neutral band between the frontlines; its **form is `f(frontline)`** (§11).
+- **frontline** — a **join**, not a placement, and a **derived edge attribute**, not a piece (§4, §8).
 
 ### 1.12 body and designation
 
@@ -248,45 +255,65 @@ is **legal** (gate over demand / offer / veto), how a legal join **varies** (kno
 | **fact** | an observation off geometry, no policy | `BoxEdgeInterface.Intervals`, the edge taxonomy (§1.13), `FrontlineRuns` |
 | **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillProfiles.Families`, `FillMenu.Rows` |
 | **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
-| **demand** | a shape's requirement *on its environment* (inbound) | *(no live type — `FamilyDock` was retired with the clamp's redefinition; the dual-entry requirement survives only as `TeamUnitAllocator.Overhangs`, stated by exclusion. See the taxonomy §10.1)* |
-| **offer** | constraints a shape imposes *outward* — the edges/intervals it invites neighbours onto, in which groupings | the hub's per-run widths (granted per dock on the joint), the frontline's face (G96) |
+| **demand** | a shape's requirement *on its environment* (inbound) | *(no live type — `FamilyDock` was retired with the clamp's redefinition; the dual-entry requirement survives only as `TeamUnitAllocator.Overhangs`, stated **by exclusion**. `audit.md` §1; G107)* |
+| **offer** | constraints a shape imposes *outward* — the edges/intervals it invites neighbours onto, in which groupings | `EdgeOffer` — the hub's per-run widths (granted per dock on the joint) and the frontline's face |
 | **veto** | a never-attach / never-publish mark | `SlotDockRole.NeverDock`, `PublishPolicy`'s bay/hole veto |
 | **gate** | the hard legality check applying demand/offer/veto, with a **directed rejection** | `DockingGate` → `DockRejection`, `PublishPolicy` → `PublishVerdict` |
 | **knob** | a free parameter *within* legality — never changes identity | entry shift, attachment width, arm placement |
 | **target** | a **per-request, prescriptive** constraint a compose holds and verifies | `ComposeTargets` (G98) |
 | **band** | a **descriptive** envelope measured off the seeds — advisory, scores distance | `SoftTerm` + the seed envelopes |
 | **hard term** | a well-formedness symptom on the derived board — flat penalty | `WoolRingedHole`, `GapHopBand` |
-| **law** | the id-bearing author rule the mechanisms implement — a **living** set, amended by protocol | `layout-rules.md` FR6, CT9, BZ8 |
+| **law** | the id-bearing author rule the mechanisms implement — a **living** set, amended by protocol | `rules.md` FR6, CT9, BZ8 |
 | **doctrine** | a meta-rule about where rules may live | "labels drive, the mirror verifies" |
 
 Two distinctions carry the weight. **demand vs offer** is the direction of the arrow: an approach
 *demands* (its entry must find a host); a hub or frontline *offers* (its edges dictate where and how
 wide neighbours land — the constraint source of §4). **target vs band** is prescription vs
 description: a band says *authored maps run 1–7 frontline runs*; a target says *this compose wants
-exactly 2, connected*. Bands score a finished compose; targets steer it first and verify after. (Offer
-and target are locked as vocabulary here; their types — `EdgeOffer`, `ComposeTargets` — land with
-G96/G98.)
+exactly 2, connected*. Bands score a finished compose; targets steer it first and verify after.
+
+**An offer also carries a grouping** (`OfferGrouping`), because *where* and *how wide* do not say
+whether neighbours may share: `Several` — each interval takes its own consumer (a hub's four edges;
+the twin frontline's two tips) — or `Joint` — one consumer must span the whole group flush (the wide
+face across both tips, the inter-tip recess preserved as a hole). Joint-vs-several *is* FR6's wide
+vs split frontline.
+
+**Two kinds are vocabulary-only.** `target` is locked as a term but has **no live type**
+(`ComposeTargets` was declared pending and never landed) — the budget ladders of §6.1 are what would
+become targets. And the allocator's weighted sampling (§6.1) fits **no** declared kind: a `menu` is a
+set and carries no frequency, a `band` carries a distribution but is explicitly descriptive. Naming
+that kind — provisionally **mix** — is an open author decision. Both are tracked in `audit.md`
+(G108/G109).
 
 ---
 
 ## 2. The pipeline
 
-Generation runs from the spawn outward and embeds late:
+Generation runs **from the hub outward**, in a relative frame, and embeds late. The composer is
+**allocate-then-fill**: every box footprint is positioned *before* any terrain exists, and filling
+never grows a box outward.
 
 ```
-budget → boxes → emit / fill → compose / join → embed → evaluate → fragment → realize
+request → budget → allocate (boxes + joints) → fill (hub-first) → carve the mid
+        → assemble → gate ──accept──► plan → realize
+                      └────reject───► resample
 ```
 
-- **budget** — player count fixes the land and footprint targets (§8).
-- **boxes** — the budget draws a handful of typed boxes (§4).
-- **emit / fill** — each box is filled with a base shape (§5).
-- **compose / join** — the boxes are joined; under symmetry only one half is grown and **fanned**,
-  and the **frontline is where the fanned images meet** (§4).
-- **embed** — the relative frame is placed into absolute coordinates.
-- **evaluate** — the plan is scored, and "no shape fits" feeds a box change (§7).
-- **fragment** — land is converted to build (isolation cuts, stepping stones) — footprint-conserving
-  (§8).
-- **realize** — the plan is compiled and exported (§2.1).
+- **request** — players per team, team count, symmetry, seed (§3.1).
+- **budget** — the player count fixes the land and footprint targets and the board's extent (§3.2).
+- **allocate** — the budget draws a **placement plan** (which neighbour sits on which hub side) and
+  lays out typed box footprints, seating each on the hub's real free surface (§4, §6).
+- **fill** — the hub emits **first** as the constraint source; each neighbour consumes the offer on
+  its own joint and fills its footprint with a shape (§5, §7).
+- **carve** — the mid band is derived from the frontline faces (§11).
+- **assemble** — the labeled pieces become a `plan.json`; slots drop here (§3.3).
+- **gate** — the evaluator's hard terms accept or reject the attempt; a rejection **resamples the
+  whole attempt** (60 allowed), so "no shape fits" is a signal, never a crash (§9).
+- **realize** — the accepted plan is compiled and exported (§2.1).
+
+**Fragment** — converting land to build (isolation cuts, stepping stones), footprint-conserving
+(§10) — is part of the model but is **not** in the shipped compose loop: today the only build region
+is the mid band.
 
 ### 2.1 realize — the compile chain
 
@@ -305,14 +332,50 @@ plan.json ──compile──► layout.json (SketchLayout) ──rasterize─�
 | **intent** (`intent.json`) | concrete objectives: block coords, yaws, wool colours, monument wiring | the XML generator |
 
 Sync is **one-way** while the staged loop runs (edit plan → recompile → re-roll roughening and
-elevation — §10, §11). Once the author takes the sketch into the editor for hand work, the plan
+elevation — §12, §13). Once the author takes the sketch into the editor for hand work, the plan
 **freezes as provenance**
 and sketch + intent become the working artifacts. Recovering plan meaning from edited geometry is
 out of scope.
 
 ---
 
-## 3. The plan artifact (`plan.json`)
+## 3. The request, the budget, and the plan
+
+### 3.1 The request — everything a compose is given
+
+A compose takes **four decisions and a seed**, and nothing else. There is no geometry input:
+
+| Parameter | Range | Means |
+|---|---|---|
+| `playersPerTeam` | clamped **5–32** | the only size input — the land budget and every structural ladder derive from it |
+| `teams` | **2** or **4** | 4 teams force `rot_90` |
+| `symmetry` | `rot_180` · `mirror_x` · `mirror_z` (2 teams) · `rot_90` (4) | which orbit fans the authored unit; defaults to `rot_180` / `rot_90` |
+| `seed` | any `ulong` | drives **every** draw — the same request reproduces the same plan byte-for-byte |
+| `cell` | default **5** blocks | the proxy-cell grid scale |
+
+Bad combinations throw at construction rather than failing deep inside generation. **Sampling order
+is part of the contract**: the RNG is drawn in one fixed sequence, so inserting a draw anywhere
+re-rolls everything downstream of it — which is why a geometry change means a composer version bump
+and a fingerprint re-record.
+
+### 3.2 The budget — the envelope
+
+The budget is derived once, before any geometry, from the player count alone:
+
+- **land per player** is a piecewise-linear interpolation over corpus anchors (5 players → 65
+  blocks², rising to 32 → 185), so `landPerTeam = players × landPerPlayer`. This is the **land**
+  currency of §1.10 and it counts *piece* area only — build zones carry a separate target.
+- **the board's extent** comes from a sampled **coverage ratio** (0.28–0.42 — the corpus's measured
+  land coverage of the fanned board): `fannedArea = teams × landPerTeam / coverage`. A 4-team board
+  is square (side clamped 90–180 blocks); a 2-team board additionally samples an **aspect** 1.0–3.0
+  and clamps width to 25–130 and length to 100–280.
+- **the unit bounds** — the authored unit gets half the doubled axis, keeping an axis margin of 2
+  cells between its frontmost piece and the symmetry axis.
+
+Everything downstream is sized from this one record. The **surface** (9) and **headroom** (11) are
+fixed constants, not yet budget-derived.
+
+### 3.3 The plan artifact (`plan.json`)
 
 `plan.json` is the **author-intent layer**: only what a machine cannot recover. Everything
 structural is **derived** from it and never written back. Coordinates are **proxy cells** on the
@@ -329,7 +392,7 @@ structural is **derived** from it and never written back. Coordinates are **prox
 - **override channels** — `cliffs`, `walls` — refinements over what the deriver would otherwise infer.
 
 **Derived** (computed, never authored): islands, frontline, hub, lane, mid, contacts, void topology,
-build-zone kinds, and the wool-approach family. These belong to the derivers (§6), not the file.
+build-zone kinds, and the wool-approach family. These belong to the derivers (§8), not the file.
 
 **Compose-internal** (a third category, neither authored nor derivable): the slot labels of §5.3.
 They exist on generated pieces during composition, drive the compose-side rules, and drop at
@@ -341,7 +404,7 @@ spawn across `land` + `gap` interfaces; no wool path through a `spawn` piece; �
 inter-team path; interface widths ≥ the corridor minimum; spawn depth ≥ some distance from the
 nearest frontline interface.
 
-The field-level schema and the editor are in `plan-editor.md`.
+The field-level schema and the editor are in `../contracts/plan-editor.md`.
 
 ---
 
@@ -365,7 +428,7 @@ every pipeline move already applied, many times over; the moves compose one-way.
   decides the menu for the wools, spawn, and frontline. It emits **first**.
 - **wools** — one box per wool, filled with an approach family (§5).
 - **frontline** — a **join, not a placement** (below).
-- **mid** — the neutral band between the two frontlines (§9).
+- **mid** — the neutral band between the two frontlines (§11).
 
 **Each box side is typed and carries an interface width**, and that width does three things at once:
 
@@ -401,7 +464,7 @@ law).** Most families dock through a single `entry`, so one edge interval per bo
 **clamp** does not: it is an authored preset that deliberately clamps the wool between its two entry
 bars — the **allowlisted instance of the WL8 motif**. Its bay is a *deliberate* hole granting the
 wool two approaches, and the fight rotates around that hole (the closed bay is **not** a published
-vacancy, §4.4). Docking one entry to one interface — all a fill can express today — forces the clamp
+vacancy — §4.1). Docking one entry to one interface — all a fill can express today — forces the clamp
 to rotate and leaves the other entry dangling in the void. A legal dock satisfies **both entries,
 along the short entry edge** (`t` tile, `w` wool, `v` void, `h` host):
 
@@ -432,14 +495,31 @@ the internal interface). The second is the **combined edge** formed by the colin
 `entry` + `entry-run` — one wider host touching both (the two heads stay flush under the entry
 shift, so the combined edge shifts intact). A host that touches the wool `room` is a **hard
 violation — reject**: that is the flush dock that seals the bay into WL8's motif, or (under a shift)
-makes the room the door. A **declared bay is only valid at the elevation stage** (§11), where height
+makes the room the door. A **declared bay is only valid at the elevation stage** (§13), where height
 fixes what the flat read cannot: with a host touching both entry and wool, the wool must be raised
 significantly so the entry-host dock is the *only* approach, the scythe terrain **stepping up from
 entry to room** — the height mechanism is noted for later (G81); until then room-host contact simply
 rejects.
 
 **"No shape fits" is a signal, not a failure.** An over-constrained box is answered by **changing the
-box** (resize, relax an interface, split it) — the Tetris failure feeds back up a level.
+box** (resize, relax an interface, split it) — the Tetris failure feeds back up a level. Every fill
+reports its refusal as a **directed reason** (`FillRejection`: `TooSmall` · `FormDoesNotFit` ·
+`NotOnMenu` · `IllegalDock` · `UnsupportedKnobs`) rather than a bare null, so the caller knows which
+knob to turn.
+
+### 4.1 Boxes may overlap; fills publish vacancies
+
+A box allocates a **budget, not exclusive area** — two footprints may overlap, and a joint is
+asserted only where two footprints genuinely abut. Because a fill need not fill its box solid, what
+it leaves over is published as a **vacancy**, exact by construction and classed by the edge taxonomy
+(§1.13): a `bay` (open toward one edge — claimable by a later box), a `notch` (a corner remainder),
+or a `hole` (enclosed by the shape).
+
+**Publishing is an offer, never a fill.** A later pipeline step may claim a vacancy (a third wool in
+a bare hub's bay) or nothing may — an unclaimed vacancy is simply void, or a `buffer` when the void
+is deliberate. What may be published is a **veto** (`PublishPolicy`): a terminal-capped shape vetoes
+its bays and holes and allows only its notches, because its bay shelters the goal; a terminal-free
+body allows everything.
 
 ---
 
@@ -475,7 +555,7 @@ complete emit↔derive mirror today — then the hub/frontline menus the box wor
 
 ### 5.1 The approach families (the nine)
 
-Approach-shape identity is `ApproachShape` (`WoolApproachShape`) — the **approach designation** over a
+Approach-shape identity is `ShapeFamily` — the **approach designation** over a
 body, the nine of them an **escalation**: an L whose lane doubles back is a scythe; a scythe whose bay
 closes is a donut; a clamp whose wool docks flush on one bar is a U; a U that lifts its wool onto a
 room-run stub is an H. (`Isolated` and `Clamp` are **terminal designations**, not bodies: Isolated is
@@ -498,12 +578,13 @@ them afterward, so the catalog is the terrain/void topology *before* cutting.
 | **H** | `ttvv / vtvv / tttw` | two legs meet a crossbar and the wool caps a **room-run stub** its own width, lifting it off the bar |
 | **Donut** | `ttttv / vtvtv / vtttw` | terrain **encloses** a void — a full loop, multi-access |
 
-The emitter builds the eight non-isolated families (`ApproachFamily { I, L, Z, Scythe, Clamp, U, H,
-Donut }`); `Isolated` is a build-only case with no terrain to emit.
+All nine live on one enum, `ShapeFamily` — the single taxonomy the emit side and the derive side
+share, so the mirror closes as `derived == requested`. The emitter builds the eight non-isolated
+families; `Isolated` is a **derive-only** reading with no terrain to emit.
 
 ### 5.2 The width-independent classifier
 
-`WoolApproachShape.Classify` is one decision tree over the terrain, **strongest signal first**, and
+`ShapeClassifier.Classify` is one decision tree over the terrain, **strongest signal first**, and
 **nothing keys off an absolute width**:
 
 1. **No terrain touches the wool?** → **Isolated**.
@@ -588,14 +669,12 @@ read. Classifying **finished maps** (traced corpus maps, hand-authored plans) is
 decision**: fragmentation moves family identity onto the play surface (terrain + build links), a
 finished map's base plan is not recoverable, and full-map decoding is a trap — the human oracle
 hypothesizes the fragmentation/mutation moves instead
-(`docs/wool-approach-read-investigation.md`). Harnesses (`tools/deriver/`, run with
-`dotnet run tools/deriver/<file>.cs`):
-
-- `shapes-gen.cs` — builds the §5.1 catalog fixtures and classifies each against its family.
-- `emit-verify.cs` — the mirror loop: emit every family × size × width, derive back, assert equal + no
-  overlap, and assert the emitted slot sequence equals `ApproachSlots.Template`.
-- `stress-shapes.cs` — every family's pieces pushed to extremes at a fixed width; each must read its
-  own family (the width-independence proof).
+(`wool-approach-read.md`). **The mirror is enforced by the test suite**, in
+`tests/PgmStudio.Pgm.Tests/Shapes/` — emit every family × size × width, derive back, assert equal
+with no overlap, and assert the emitted slot sequence equals `ApproachSlots.Template`; a companion
+set pushes each family's pieces to extremes at a fixed width so every one must still read its own
+family (the width-independence proof). The §5.1 catalog itself is checked in as fixtures under
+`tools/deriver/shapes/*.plan.json`.
 
 The **body layer has its own mirror**: `BodyEmitter` emits a terminal-free `Compound` and
 `ClassifyBody` reads it back by topology (void count strongest, then arm count, then bends) — separate
@@ -622,32 +701,149 @@ verifies.
   depth, so the long edge gives neighbours room to attach and reaches the width ≥ 9 the P (loop + overhanging
   bar), Double-hole (ring + full-height U, two equal holes), and G (ring + an L, the ring's hole plus an open
   bay the docking frontline seals into a taller hole — asymmetric holes) need. Its edges' free surface (§1.13) is what the spawn, wool,
-  and frontline boxes attach onto — generalizing today's "four edges of the solid rect" to any body's
-  offerable surface. (G88; wide forms + elongation G105.)
+  and frontline boxes attach onto — the solid rectangle's "four full edges" is just the degenerate
+  case. Built by `HubBoxEmitter`.
 - **Frontline** — a body + one edge marked the **`face`** (where the fanned images meet), docking the
-  hub on the opposite edge and driving `mid = f(frontline)` (§9). **Rotation is fixed by the
+  hub on the opposite edge and driving `mid = f(frontline)` (§11). **Rotation is fixed by the
   designation**: the body docks the hub with its **spine**, and its **arm-tips are the face** toward
   the axis. Form menu: a plain **Bar** (the wide face, FR6), the **branch family** (spine + K arms —
-  single = K1 / twin = K2 / more), and the **holed** forms (P, two-U-on-I — a closed recess). How the
-  mid attaches to the face is a deferred rule-set. (G89.)
+  single = K1 / twin = K2 / more), and the **holed** forms (P, two-U-on-I — a closed recess). Its
+  face offer carries the **grouping** of §1.14 — `Joint` (one mid consumer spans every tip flush) or
+  `Several` (one per tip, the inter-tip recess simply not offered and surviving as a deliberate
+  hole). Built by `FrontlineBoxEmitter`.
 
 Two things once called shapes are **not bodies** but shared docks in the designation layer (§5.1):
 the **clamp** — one compact terminal on two distinct faces (opposite → centered I+I; adjacent →
 corner L+I, the bend forced because two straight bars would corner-touch) — and the **twin frontline**
-— two Bars docked to one host individually, the gap between them the face/CT8 recess. Both are
-multiple docks the partition graph places (`FamilyDock`, the corner-wrap), not new bodies.
+— two Bars docked to one host individually, the gap between them the face/CT8 recess.
 
 ---
 
-## 6. The two derivers
+## 6. Allocate — the placement plan and the seat
 
-### 6.1 The shape deriver
+Allocation is the half of composition that decides **structure and position**, before any terrain
+exists. It runs in three steps: sample the **plan** (§6.1), position the **hub** and choose its form
+(§6.2), then **seat** every neighbour on that form's real free surface (§6.3). Its output is a
+`BoxPartition` — typed boxes plus the joints between them, each joint carrying the hub's width offer
+— and the spawn's facing.
 
-`WoolApproachShape.Classify(plan, woolPieceId, laneWidth) → (ApproachShape, Width)` — reads **one wool
-box** and returns its family (§5). The reported `Width` is an output, kept for the width report only.
-This is the emitter's mirror.
+### 6.1 The placement plan — sides, counts, and the ladders
 
-### 6.2 The board deriver
+The unit is a **hub with neighbours hung off its four sides**, named in unit-relative terms:
+`Front` (toward the axis, where the frontline meets the mid), `Back` (away from it), and the two
+lateral sides `Left` / `Right`. The plan is which neighbour takes which side:
+
+- the **spawn** takes the back or a lateral side — never the front;
+- the **wools** are assigned *after* the spawn and around it: the free non-front sides first, back
+  preferred, and a third wool **doubles onto the spawn's own side**;
+- the **front** is the frontline's, or empty.
+
+How many, and whether, is decided by **budget ladders** — thresholds on land-per-team and player
+count:
+
+| Ladder | Effect |
+|---|---|
+| land > 2500 | the map-wide lane width is **3 cells** rather than 2 |
+| land < 800 | **no frontline** — there is no budget for one, so the hub fronts the mid directly |
+| land < 600 | a **single** wool (a tiny board cannot hold two) |
+| players ≥ 16 | a **full team**: 2–3 wools rather than 1–2 |
+
+Alongside the ladders sit roughly a dozen **sampling weights** — how often a wool is bent rather
+than straight, how often a bent wool is a donut, how often a big-square hub takes the ring, how
+often a ring gets one widened wall, how often the frontline takes the hub's full front width. These
+steer the output's character more than any other numbers in the generator.
+
+Two honest notes. The wool lane is **always `w2`** regardless of the map's lane width, which is what
+keeps wool families compact enough for a staple's three-lane mouth to fit a hub edge. And most of
+these ladders and weights **trace to no law** in `rules.md` — they were tuned, not derived. Which
+are grounded and which are invented is measured in `audit.md`.
+
+### 6.2 The hub — positioned first, and the constraint source
+
+The hub is placed before anything else. Its **depth** (toward the axis) and **lateral span** are
+drawn from *different* caps, so a hub grows **wider, not squarer**: the long lateral edge is what
+gives the spawn and wools room to attach with a seat gap between them, and at ≥9 cells it affords
+the wide holed bodies (P, Double-hole) whose bar and ring runs are long free surface. Where the plan
+carries a frontline, the frontline's reach pushes the hub's front edge **back**, so the frontline
+ends up between the hub and the axis.
+
+The allocator — not the filler — **owns the hub-form choice** (§5.5), because the form decides where
+neighbours *can* sit. It emits the body once to read the runs it offers, and the chosen form (plus
+its wall widths and arm layout, where it has them) rides on the hub box so the filler re-emits
+**exactly** the same body. A body sampled twice would not agree with itself.
+
+### 6.3 The seat — the offerable surface, and the laws that bind it
+
+Each neighbour is seated on the hub's **real free-edge runs** — the offerable surface the body
+actually presents (§1.13), read off the emitted body's offers, never its bounding box. A bay simply
+yields no run over its stretch. This is what stops a neighbour docking an empty bbox stretch of an
+L or ring hub and only corner-touching it.
+
+Four laws bind the seat, and they are the least-documented rules in the generator:
+
+**The seat-separation law.** No spawn or wool may seat within the **map's lane width** of another.
+Each already-seated neighbour projects onto the edge being seated as a forbidden along-interval, so
+one mechanism covers same-edge abutment *and* around-the-corner meetings at once. The frontline
+keeps no such gap — its clearance from a wool is a build-zone rule, not this one. *Consequence:* on
+a small hub the third wool doubling onto the spawn's side often cannot clear the gap, so it is
+**dropped** rather than crammed — the unit keeps its objectives, one fewer.
+
+**Seat-and-shift.** A single-entry rich shape (an L, a donut) docks its narrow **entry** on a run
+while its wider body **overhangs** into free space; both handednesses are tried, every legal
+placement collected, one sampled. The dual-entry staple (U/H) is deliberately *not* one of these —
+both its entries must land on the host, so it docks its full mouth or not at all.
+
+**The contact patch.** The frontline seats differently again: its face may be narrower than the hub
+edge *and* may overhang it, so what must hold is not that the box fits inside a free run but that it
+**abuts** the hub over at least one lane's worth of one. The joint carries the clipped abutment, not
+the box width.
+
+**Demotion, not failure.** A wool whose rich shape finds no legal placement **demotes to the compact
+inline I** — the always-seatable shape — rather than failing the unit. A spawn or frontline that
+cannot seat is a real too-small signal, which the allocator answers by falling back to the solid
+rectangle hub and, failing that, resampling. Where a unit has no frontline, a lateral seat left
+flush with the empty front is slid backward (deterministically, no draw) so lanes do not spike
+across the no-man's-land.
+
+---
+
+## 7. Fill — hub-first, and the offer consumed
+
+Filling takes the allocated partition and puts terrain in it. Footprints are never grown outward;
+the geometry is filled **into** what the allocator positioned.
+
+**The hub emits first**, at the form the allocator chose, and publishes **one offer per free run** at
+the width that run can support. Then each neighbour box fills, docking the hub with the edge facing
+it, and the **offered width *is* the neighbour's corridor width**. That is the whole constraint-source
+contract: the hub sources the width, the neighbour builds to it.
+
+**The grant is per joint** — not per edge, and not even per run. A third wool doubling onto the
+spawn's side shares the spawn's edge, on a solid hub the very same run, at a different width; an
+edge- or run-keyed lookup would hand one of the two the other's corridor width.
+
+The neighbours differ in what they re-decide. A **wool** re-emits the exact family the allocator
+seated (the allocator positioned the box for *that* family's entry, so the filler must not re-pick).
+A **spawn** picks among the profiles that fit at the granted width. A **frontline** picks a form that
+answers the hub's: a branch hub takes the wide Bar across its front, but a square or holed hub
+prefers a staple or strand, because a solid Bar flush against an already-square hub reads flat.
+
+Two decisions sit on the **wrong side of this seam**, and are known defects rather than design: the
+frontline's **form choice** and its offer **grouping** (joint vs several — which is FR6, an authored
+law) are both made here in the filler, the grouping by coin flip. Form choice is declared the
+allocator's, and grouping is part of an offer, which is the allocator's plan. See `audit.md` (G111).
+
+---
+
+## 8. The two derivers
+
+### 8.1 The shape deriver
+
+`ShapeClassifier.Classify` reads **one box's terrain** and returns its `ShapeFamily` (§5),
+width-independently; the reported width is an output, kept for the width report only. `ClassifyBody`
+is the body-layer twin, reading a terminal-free `ShapeBody` back to its `Compound`. Both are the
+emitter's mirror.
+
+### 8.2 The board deriver
 
 `ContactGraph` (the rect layer) + `BoardDeriver.Derive → BoardStructure` (the raster layer, in
 `Pgm/Derive/`) read the **whole board** and compute connectivity; `tools/deriver/derive-gallery.cs`
@@ -666,14 +862,14 @@ renders `BoardStructure` to `out/derive-gallery.html`. Its outputs:
 - **wool lanes** — the corridor a wool room owns, and its topology via `ShapeClassifier.ClassifyOpen`, whose
   `LaneRead` maps to the bend read `I` / `L` / `Z` / `complex` / `plaza` / `none` (via `LaneName`). (This is
   the board-level corridor read — distinct from the wool-box shape identity of §5.)
-- **the CT mid-form** — falls straight out of the build-zone kinds (§9).
+- **the CT mid-form** — falls straight out of the build-zone kinds (§11).
 
 The detailed measurables catalogue — every derived quantity, its exact definition, and its
 validation against the seed corpus — is in `layout-evaluator.md §5`.
 
 ---
 
-## 7. The evaluator
+## 9. The evaluator
 
 The emitter can make anything; the maps' character comes from **what evaluation refuses to let
 through**. The rules do not *produce* good maps — they *punish* bad ones, and the residue is the
@@ -684,7 +880,7 @@ style.
 | Layer | What it is | Where |
 |---|---|---|
 | **author intent** | the irreducible input | `plan.json` (§3) |
-| **derive structure** | the roles + topology, computed | the derivers (§6), in-memory |
+| **derive structure** | the roles + topology, computed | the derivers (§8), in-memory |
 | **judge by property** | metrics vs rules + envelopes | the evaluator |
 
 Everything the file cannot recover is authored; everything structural is derived; everything the
@@ -696,7 +892,7 @@ score = Σ hard-penalty(violated well-formedness) + Σ w · envelope-distance(me
 
 Hard rules are large penalties (a valid layout has none); "feel" is each metric's distance outside
 the authored envelope (`seed-stats.md`). The evaluator returns the score **and the list of violated
-terms** (each citing a `layout-rules.md` id) so a failure is legible and actionable. It is
+terms** (each citing a `rules.md` id) so a failure is legible and actionable. It is
 **additive and never has to be complete** — new terms are added as failures are found, and a new term
 never tanks an acceptance rate.
 
@@ -704,7 +900,7 @@ never tanks an acceptance rate.
 the way the author does: **positives** (authored good layouts, auto-labeled by the deriver),
 **negatives** (flagged bad layouts — the most valuable are **minimal pairs** differing in exactly one
 property), and **coverage** (examples per sub-problem × per symmetry mode). The property-term
-catalogue and the labeled set live in `layout-evaluator.md §6–§7`.
+catalogue and the labeled set live in `evaluator.md` §6–§7.
 
 **The seeds sit at final-pipeline fidelity.** The authored seeds are what the *whole* pipeline
 should output — never what an early stage can produce on its own. A stage is therefore judged only
@@ -714,9 +910,9 @@ category error, the same one as classifying a finished map (§5.4) in the other 
 
 ---
 
-## 8. Budget and width
+## 10. Budget and width
 
-### 8.1 The two currencies
+### 10.1 The two currencies
 
 A per-box budget is `(footprint, land-target)`. **emit** fills the footprint as all-land;
 **fragment** converts land→build until the box hits its land target. Because a build zone costs
@@ -734,7 +930,7 @@ map size) and per-box, under symmetry. Every fragmentation cut spends land *glob
 difficulty (isolation, risk) in the same move — so the land budget and the gameplay knob move
 together.
 
-### 8.2 Width, disentangled
+### 10.2 Width, disentangled
 
 The four "widths" and the two modes are in §1.9. The distinction to hold when a rule reads
 contradictory: **generation-width** is the master variable (it gates the menu and sets connectivity);
@@ -743,7 +939,7 @@ which family is legal and how it joins; it never changes what a given shape *is*
 
 ---
 
-## 9. The mid
+## 11. The mid
 
 The mid is the gap between the frontlines, and its character is **build bands / islands** — additive
 structure. You **structure** the mid; you do not carve it from a solid. Its form is not a free choice:
@@ -767,7 +963,7 @@ flow priors score it.
 
 ---
 
-## 10. The roughen pass
+## 12. The roughen pass
 
 The roughen pass turns the plan's clean rectilinear geometry into an organic read. It runs **last**,
 inside realize (§2.1), on the realized polygons of the **authored unit only** — symmetry re-fans the
@@ -791,7 +987,7 @@ interfaces stay covered (distorted neighbours still overlap their shared interva
 
 ---
 
-## 11. Elevation
+## 13. Elevation
 
 Elevation attaches to **roles and interfaces, not to geometry**. The vocabulary: per-shape `floor` /
 `base_height` (plateaus); splitting a shape along a seam and offsetting the piece (**cut + raise** —
@@ -801,11 +997,11 @@ at the plan level, refining one piece into two joined by a `land` interface with
 The role/interface rules: a **raised spawn** (overview); a **stepped approach** climbing toward a wool
 room (a harder push); a **low frontline** (bridges launch low, defenders hold the high ground); a
 **`cliff` interface** where one-way flow is wanted. Constraint: walkable steps along any `land` path
-unless the plan says `cliff`. The exact height numbers are the `EL` rules in `layout-rules.md`.
+unless the plan says `cliff`. The exact height numbers are the `EL` rules in `rules.md`.
 
 ---
 
-## 12. Code map
+## 14. Code map
 
 Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
@@ -813,7 +1009,9 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
 | Piece | Path | What |
 |---|---|---|
-| `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | **emit**: `Emit(family, box, cw, …)` → terrain pieces. Holds `ApproachFamily`, `ApproachSlots`, `WoolBox`, `RoomPlacement`, `EmittedApproach`, `AsPlan`. |
+| `ShapeEmitter` | `Shapes/ShapeEmitter.cs` | **emit**, in two stages: `Body` builds the terminal-free compound, a designation finishes it (`Emit` = the approach designation, stamping the terminal room + marker). No roles, no ids, no plan types. |
+| `BodyEmitter` · `Compound` | `Shapes/BodyEmitter.cs`, `Shapes/Compound.cs` | the terminal-free body vocabulary (`Rectangle · SpineArms · Ring · DoubleHole · P · G · TwoUOnI`) and its emitter. |
+| `BodyEdges` | `Shapes/BodyEdges.cs` | the edge-taxonomy reader (§1.13): negative spaces by wall count, their parts, mouths and the offerable surface — from geometry alone. |
 | `ShapeClassifier` | `Shapes/ShapeClassifier.cs` | **shape deriver**: `Classify` → `ShapeFamily` (9 families), width-independent; `ClassifyOpen` → `LaneRead` is the board-level corridor bend read (`LaneName` → string `I/L/Z/complex/plaza/none`; the retired `WoolLaneShape` was a thin adapter over it). |
 | `SlotAssignment` | `Shapes/SlotAssignment.cs` | **slot deriver**: `AssignSlots(family, pieces, roomId)` → piece→slot, re-derived from topology — the emitter's slot mirror (§5.3/§5.4). |
 
@@ -833,35 +1031,48 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `TeamUnitAllocator` | `Compose/TeamUnitAllocator.cs` | the partition-first allocator: placement plan (`UnitPlan`), hub-form choice, seat logic, box footprints from the budget → `BoxPartition`. |
 | `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the allocated partition hub-first (offer consumption) → `FilledUnit` (a `GrownUnit` + the frontline face offers). |
 | `GrownUnit` · `GrownPiece` | `Compose/GrownUnit.cs` | the composed unit records (pieces with `Slot`/`Box` labels + spawn/wool placements). |
+| `Envelope` → `ComposeEnvelope` | `Compose/Envelope.cs` | the budget: player count → land-per-team, board extent, unit bounds (§3.2). |
+| `ComposeRequest` | `Compose/ComposeRequest.cs` | the compose input, validated at construction (§3.1). |
+| `FrontGuard` | `Compose/FrontGuard.cs` | the no-frontline seat post-pass: slide/relocate/drop a seat left flush with the empty front. |
+| `UnitPlacement` | `Compose/UnitPlacement.cs` | re-anchors the finished unit on its **face** before the band is derived. |
+| `Producibility` | `Compose/Producibility.cs` | "could the composer have produced this?" — answered by search over the declared menus, not by inverse. |
 | `WoolBoxEmitter` | `Compose/WoolBoxEmitter.cs` | the wool binding over `ShapeEmitter` — fills a wool box, terminal → wool room + marker. |
-| `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding (second box kind): profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
+| `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding: profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
+| `HubBoxEmitter` → `EmittedHub` | `Compose/HubBoxEmitter.cs` | the **hub** designation: a terminal-free body plus the per-run `EdgeOffer`s it publishes as the constraint source. |
+| `FrontlineBoxEmitter` → `EmittedFrontline` | `Compose/FrontlineBoxEmitter.cs` | the **frontline** designation: spine docks the hub, arm-tips are the face, carrying the face offers the mid consumes. |
+| `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§1.14). |
 | `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box` + land-vs-target accounting (the spine G63 drives). |
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template slots on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |
-| `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `SlotDockRole` (room→never-dock, entry→docking, rest→internal) + `FamilyDock` (per-family demand/span) + the verdict (`Check`/`DockingEdges`/`MeetsDemand`) over the `BoxEdgeInterface` slots. A dock is legal iff it lands on an entry, seals no wool, meets the span demand — no per-family imperative code, shape-relative. Not an `ILayoutTerm`. |
+| `DockingGate` | `Compose/Boxes/DockingGate.cs` | the compose-side docking gate: `SlotDockRole` (room→never-dock, entry→docking, rest→internal) + the verdict over the `BoxEdgeInterface` slots. A dock is legal iff it lands on an entry and seals no wool — no per-family imperative code, shape-relative. Every family now docks through a **single mouth**, so the verdict reads only the edge's slots, never a family name. Not an `ILayoutTerm`. |
 | `BoxPartition` | `Compose/Boxes/BoxPartition.cs` | the partition constraint graph: typed `Box`es + `BoxJoint`s, with hard invariants (`Valid`) and `Of` the derive-side mirror reading the partition a grown unit implies (`SharedEdge` finds the abutment intervals). The typed target the partition-first allocator (G63) emits; boxes may overlap, joints assert only real abutments. |
-| `Envelope` | `Compose/Envelope.cs` | the budget anchors (`bp`; the land-per-player target). |
 | `MidCarver` | `Compose/MidCarver.cs` | the mid: the flush, hull-exact build band (band-only today; richer crossings layer back in here). |
 | `ClosureAnalysis` | `Compose/ClosureAnalysis.cs` | closure hole raster (`HoleSizes`, `AnyHoleRingedBy`). |
 | `ComposeGeometry` | `Compose/ComposeGeometry.cs` | fanning + the fanned-separation invariant. |
 | `PlanModel` · `PlanRoles` | `Plan/PlanModel.cs` | the plan format + the authored role set. |
 
-**Harnesses**
+**Harnesses and galleries** (`dotnet run <path>` — a file-based script; see `CLAUDE.md` on the
+runfile cache before measuring a `src/` change)
 
 | Piece | Path | What |
 |---|---|---|
-| `shapes-gen.cs` | `tools/deriver/shapes-gen.cs` | the §5.1 catalog fixtures. |
-| `emit-verify.cs` | `tools/deriver/emit-verify.cs` | the emit↔derive mirror loop + slot-template check. |
-| `stress-shapes.cs` | `tools/deriver/stress-shapes.cs` | width / edge-case stress fixtures. |
+| the shape mirror | `tests/PgmStudio.Pgm.Tests/Shapes/` | emit↔derive + slot-template + width-independence, as tests (§5.4). |
+| `showcase.cs` | `tools/compose/showcase.cs` | **the explainer** — this document's live twin, every figure emitted by the real generator. |
+| `unit-gallery.cs` · `box-gallery.cs` · `board-gallery.cs` | `tools/compose/` | composed units / box partitions / whole boards, rendered. |
+| `body-gallery.cs` · `edge-gallery.cs` | `tools/compose/` | the terminal-free bodies; the edge taxonomy read off them. |
+| `seat-probe.cs` | `tools/compose/seat-probe.cs` | the 4-preset × 200-seed `Allocate → Fill` probe behind `audit.md`. |
+| `reproduction-gate.cs` · `fingerprints.cs` | `tools/compose/` | the determinism gate + the recorded composer fingerprints. |
+| `derive-gallery.cs` | `tools/deriver/derive-gallery.cs` | `BoardStructure` rendered → `out/derive-gallery.html`. |
 | `lane-audit.cs` | `tools/deriver/lane-audit.cs` | the `ClassifyOpen`/`LaneName` derive-then-override training harness. |
 
 ---
 
-## 13. Boundaries
+## 15. Boundaries
 
-This document does not restate the rules or the numbers. The **frozen rule law** — every CT / SP /
-WL / LN / HB / FR / MD / BZ / EL id, with its exact widths, depths, hop counts, and heights — is
-`layout-rules.md`, and it grows only through its correction protocol. The **measured envelopes** the
-soft evaluator terms score against are `seed-stats.md`. The **plan schema and editor** are
-`plan-editor.md`. The **detailed deriver-measurable and evaluator-metric catalogue** is
-`layout-evaluator.md`.
+This document does not restate the rules or the numbers. The **rule law** — every CT / SP / WL / LN /
+HB / FR / MD / BZ / EL id, with its exact widths, depths, hop counts, and heights — is `rules.md`,
+and it grows only through its correction protocol. The **measured envelopes** the soft evaluator
+terms score against are `seed-stats.md` / `seed-envelopes.md`. The **detailed deriver-measurable and
+evaluator-metric catalogue** is `evaluator.md`. Where the implementation is known to **disagree**
+with this model, the measured record is `audit.md`. The **plan schema and editor** are
+`../contracts/plan-editor.md`.

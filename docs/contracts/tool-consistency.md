@@ -41,13 +41,41 @@ Notes:
 - **`Info` phase steps** (Sketch/Plan):
   - `Identity` — display **name** + **author(s)**.
   - `Settings` — the tool's technical globals. **No footprint/size**: the canvas **auto-grows to the
-    drawn content** (the plan-editor model — bounds = content + a one-chunk buffer, min 64×64), so for
+    drawn content** (see *Drawing-surface model* below), so for
     Sketch `Settings` is **symmetry only** (mode + centre). The exported world is the tight content
     bounds (the rasterizer already derives it from the shapes, never a frame). Plan keeps its cell/surface
     globals here.
 - The **drawing canvas is its own phase** (`Draw`) in Sketch and Plan — the focus area.
 - **Reference & overlays stay on the canvas** (the `Draw` phase), *not* in `Settings` — they are
   aids the user toggles *while drawing*, not configuration set once up front.
+
+### Drawing-surface model (Sketch + Plan)
+
+Both drawing canvases present the same three-part surface, shared via `render/canvas-chrome.js`:
+
+1. **The working area** — a **tinted region**, present at a **default size even when nothing is drawn**,
+   that grows to enclose the content plus a buffer (snapped out to grid lines). It is a **size anchor,
+   not a fence**: it tells the author how big a map is meant to be, so a blank canvas doesn't invite a
+   sprawling one. Drawing past its edge visibly grows it. Defaults:
+   | Tool | Default working area | Grid step | Buffer past content |
+   |---|---|---|---|
+   | Sketch | **64×64 blocks** (4×4 chunks) | 16 blocks (chunk) | 1 chunk |
+   | Plan | **~60×60 blocks** (12×12 cells at the default cell size 5) | `globals.cell` blocks | 3 cells |
+
+   The plan default is expressed in **blocks and converted to whole cells**, so the anchor stays ~60
+   blocks across whatever `globals.cell` is.
+2. **The grid spans the visible viewport**, not the working area — so the surface is never fenced in and
+   growing the drawing is just drawing where you already see grid. It is rebuilt only when the snapped
+   visible extent actually moves, not per pan frame.
+3. **A scale bar** (`N blocks`, bottom-right, screen space) carries absolute size. The working area's
+   edge moves as the drawing grows, so it cannot serve as the scale reference itself.
+
+**Fit** frames the working area with a margin of grid visible around it (`FIT_PAD_FRACTION`) — never
+edge-to-edge, or there would be nothing visibly outside it to draw into.
+
+Both canvases **re-measure themselves** with a `ResizeObserver` on their wrap, and defer a fit requested
+while they have no layout box. A tool must **not** nudge `resize()` from a phase switch: that call runs
+before the phase div is re-rendered, so it measures the still-hidden element.
 
 ### Component naming — `*Phase` vs `*Step`
 

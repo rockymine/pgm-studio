@@ -1,3 +1,5 @@
+using PgmStudio.Geom;
+
 namespace PgmStudio.Pgm.Evaluate;
 
 /// <summary>The semantic role of a piece of evidence — a styling table maps tag → colour/weight once,
@@ -20,7 +22,7 @@ public static class EvidenceTags
 /// </summary>
 public abstract record Evidence(string Tag);
 
-public sealed record EvidenceRect(string Tag, int[] Rect) : Evidence(Tag);
+public sealed record EvidenceRect(string Tag, CellRect Rect) : Evidence(Tag);
 
 public sealed record EvidenceSegment(string Tag, double X1, double Z1, double X2, double Z2) : Evidence(Tag);
 
@@ -34,7 +36,7 @@ public sealed record EvidenceMeasure(string Tag, double X1, double Z1, double X2
 public static class Ev
 {
     /// <summary>A cell-space rectangle <c>[x, z, w, h]</c> — the same shape a plan piece/zone rect carries.</summary>
-    public static EvidenceRect Rect(string tag, int[] rect) => new(tag, rect);
+    public static EvidenceRect Rect(string tag, CellRect rect) => new(tag, rect);
 
     /// <summary>A cell-space line segment (two endpoints).</summary>
     public static EvidenceSegment Segment(string tag, double x1, double z1, double x2, double z2) =>

@@ -42,7 +42,7 @@ public static class PlanBoxAnnotation
             {
                 Id = b.Id,
                 Kind = KindOf(b.Kind),
-                Rect = [.. b.Rect],
+                Rect = b.Rect,
                 Members = members.TryGetValue(b.Id, out var ids) ? ids : null,
             })
             .ToList();

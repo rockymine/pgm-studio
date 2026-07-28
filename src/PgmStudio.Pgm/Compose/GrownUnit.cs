@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Shapes;
 
@@ -9,7 +10,7 @@ namespace PgmStudio.Pgm.Compose;
 /// (<c>wool-a/entry</c>) the compose-side rules bind to. Labels are compose-internal: every compose move
 /// preserves them, and they drop only at <see cref="Composer"/> assembly (the written plan is label-free by
 /// design).</summary>
-public sealed record GrownPiece(string Id, int[] Rect, string Role = PlanRoles.Piece, string? Slot = null, BoxRef? Box = null);
+public sealed record GrownPiece(string Id, CellRect Rect, string Role = PlanRoles.Piece, string? Slot = null, BoxRef? Box = null);
 
 /// <summary>The unit's spawn: which piece it sits on, its piece-relative half-cell offset, and its
 /// absolute facing (SP3: toward the enemy by default).</summary>

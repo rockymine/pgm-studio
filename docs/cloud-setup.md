@@ -93,4 +93,4 @@ The Python analysis/visualization lives in **`scripts/generator/`** (see its REA
 
 ## Orientation
 `CLAUDE.md` (rules) · `TODO.md` (open work) · `FEATURES.md` (shipped) ·
-`docs/contracts/map-generation.md` (the map-generation model).
+`docs/generator/model.md` (the map-generation model).
