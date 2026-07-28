@@ -285,6 +285,24 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
+- [ ] **G138 — The composer accepts, it never chooses: a soft score has nowhere to act.** `Composer` takes
+  the **first** plan that clears the gate and `break`s (`Composer.cs:59-84`) — no ranking, no comparison, no
+  best-of-K. It contains zero references to `Evaluate` or `Score`, only `Gate`, and `Gate` runs hard terms
+  only (`LayoutEvaluator.cs:86`). Worse, the compose path builds its context as `EvalContext.Build(plan)`
+  with no envelopes, which defaults to `SeedEnvelopes.**Empty**` (`EvalContext.cs:34-38`) — so every soft
+  term looks its band up, gets null, and stays dormant by design. **The authored envelopes have no causal
+  influence on generated output whatsoever**; they only score plans after the fact, via the
+  `Evaluate(PlanModel, …)` overload the API endpoints and galleries call.
+  So any soft rule derived from `G118`'s verdicts is **inert until this lands**: generate K candidates,
+  score all K, return the best. The loop already generates and discards candidates, so the change is small —
+  but it converts the composer from *first-acceptable* to *best-of-K*, which is a real behaviour change and
+  will move every fingerprint.
+  **Sequence it after the bands are calibrated, not before.** Measured over 560 composed plans, a ranking
+  today would be almost entirely a `spawn-wool-ratio` contest (outside its band on 44% of applicable plans
+  at median distance 1.64) while four terms score nothing at all — see the `LEARNING.md` debt entry.
+  Ranking before recalibration just amplifies one badly-fitted band. Order: `G118` collect → calibrate /
+  gate the vacuous terms → `G138` → soft rules become causal.
+
 What stays here is the concrete non-design work on *imported* maps (island detection + playability):
 
 - [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split

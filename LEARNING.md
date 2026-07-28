@@ -97,6 +97,26 @@ Entries are dated and cite `file:line`. Debt entries are `[ ]` open / `[>]` grad
   3D drawing frame with exclusive maxes. A rect type has to name its convention and convert at the edges.
   (2026-07-27)
 
+- [ ] **A fifth of the soft catalogue is green by absence, and the two loudest bands describe a different
+  population.** Measured over 560 composed plans (2- and 4-team, players 6–32, 40 seeds each) against the
+  checked-in `seed-envelopes.json` (19 bands, none dormant), calling `SoftTerm.Value` — the same method
+  `envelope-stats` used to learn each band.
+  **Vacuous (4 of 19):** `neutral-stepping-count`, `team-stepping-count`, `uncrossed-middle-void` and
+  `isolation-cut-count` are *identically zero on every plan* — not comfortably inside their band, but
+  scoring a feature the composer never emits (`MidCarver.BandOnly`: "no stone rows, no centre island").
+  A green score reads as "good" when it means "not applicable". This is the failure mode `B21` already
+  names for the MCP response ("must flag empty `placements`, which leave the feel terms vacuously green"),
+  and it is true of a fifth of the catalogue today.
+  **Miscalibrated for raw output (3):** `spawn-wool-ratio` lands outside its `[1, 1.2]` band on **44%** of
+  applicable plans, always above, at a median distance of 1.64 — far out, not marginal; `wool-front-ratio`
+  the same at 22%; `lane-width` sits pinned at its band's exact floor (median 10 against `[10, 20]`)
+  because `w` is 2 on nearly every board while the finished maps spread across the range.
+  **Honest (5):** `fill-ratio`, `max-chain-length`, `enclosed-void-count`, `wool-front-distance`,
+  `wool-front-remoteness` fire occasionally, in both directions, at small distances.
+  Note the applicability skew when aggregating anything over these: the most informative terms apply
+  least — `wool-front-ratio` does not apply to 62% of plans, `spawn-wool-ratio` to 41% — so any average
+  must divide by *applicable*, not by *total*. (2026-07-28)
+
 ## Covered
 
 - **2026-07-27 — Resolved config vs. the request.** `ComposeRequest` is *what was asked*; `ComposeEnvelope`
