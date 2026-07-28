@@ -62,7 +62,7 @@ public sealed record PlanProducibility(
 /// <para>The <b>why</b> comes from three sources, all of them existing: the emitters' own
 /// <see cref="FillRejection"/> reasons; a measurement of the mask against the same constants the emitters read
 /// (<see cref="Cells.MinRunWidthRaw"/> vs <see cref="FillProfiles.HubWallCells"/> /
-/// <see cref="TeamUnitAllocator.WoolLaneCells"/>); and the <b>nearest miss</b>, which the enumeration produces
+/// <see cref="UnitTuning.WoolLaneCells"/>); and the <b>nearest miss</b>, which the enumeration produces
 /// for free.</para>
 ///
 /// <para>Terrain and room are compared <b>separately</b>: a box whose corridor the emitters reproduce but whose
@@ -117,7 +117,7 @@ public static class Producibility
     /// The rules that are properties of the <b>arrangement</b>, not of one box: the parallel-fronts guard, the
     /// frontline's pinned face demand, and the seat-separation law. Each is asked of the composer's own
     /// predicate where one exists (<see cref="Composer.FrontFacesSymmetric"/>,
-    /// <see cref="TeamUnitAllocator.TooClose"/>) rather than restated here.
+    /// <see cref="SeatGeometry.TooClose"/>) rather than restated here.
     /// </summary>
     /// <summary>
     /// The growth frame an <b>authored</b> unit sits in. <see cref="Frame.For"/> fixes the sign per symmetry
@@ -196,14 +196,14 @@ public static class Producibility
             var f = frame.FromRect(front.Rect);
             var patches = FrontPatches(plan, hub, front, frame);
             var weakest = patches.Count == 0 ? 0 : patches.Min();
-            if (weakest < TeamUnitAllocator.WoolLaneCells)
+            if (weakest < UnitTuning.WoolLaneCells)
                 findings.Add(new ProducibilityFinding("frontline-shoulder-too-narrow", "G2",
                     patches.Count == 0
                         ? $"The frontline's {f.VSpan}-cell face never meets the hub's front terrain, so its " +
                           "spine has nothing to dock through."
                         : $"The frontline's {f.VSpan}-cell face meets the hub's front terrain in " +
                           $"{patches.Count} patch(es) ({string.Join(", ", patches)} cell(s)); the narrowest is " +
-                          $"{weakest}, under the {TeamUnitAllocator.WoolLaneCells}-cell lane. A face may be " +
+                          $"{weakest}, under the {UnitTuning.WoolLaneCells}-cell lane. A face may be " +
                           "narrower than the edge or overhang it, and may reach across a bay — but every " +
                           "shoulder it lands on has to be a corridor's width, or the face is cantilevered " +
                           "over the hole."));
@@ -217,9 +217,9 @@ public static class Producibility
         var seats = plan.Boxes.Where(b => b.Kind is PlanBoxKinds.Wool or PlanBoxKinds.Spawn).ToList();
         for (var i = 0; i < seats.Count; i++)
             for (var j = i + 1; j < seats.Count; j++)
-                if (TeamUnitAllocator.TooClose(seats[i].Rect, seats[j].Rect, TeamUnitAllocator.WoolLaneCells))
+                if (SeatGeometry.TooClose(seats[i].Rect, seats[j].Rect, UnitTuning.WoolLaneCells))
                     findings.Add(new ProducibilityFinding("seats-within-separation-gap", "WL7",
-                        $"Boxes '{seats[i].Id}' and '{seats[j].Id}' sit within the {TeamUnitAllocator.WoolLaneCells}-cell " +
+                        $"Boxes '{seats[i].Id}' and '{seats[j].Id}' sit within the {UnitTuning.WoolLaneCells}-cell " +
                         "separation gap, which the allocator never seats through. Measured on the box " +
                         "envelopes (corner-inclusive) — the emitted terrain may keep more room than the " +
                         "envelopes suggest, which is the measurand question G124 parks."));
@@ -247,7 +247,7 @@ public static class Producibility
 
         // The measurement, against the same constant the emitter reads. Independent of the search: a corridor
         // narrower than any lane the vocabulary has is worth saying even when a nearest miss also fires.
-        var cwFloor = box.Kind == PlanBoxKinds.Wool ? TeamUnitAllocator.WoolLaneCells : FillProfiles.HubWallCells;
+        var cwFloor = box.Kind == PlanBoxKinds.Wool ? UnitTuning.WoolLaneCells : FillProfiles.HubWallCells;
         var measured = Cells.MinRunWidthRaw(all, all);
         if (measured < cwFloor)
             findings.Add(new ProducibilityFinding("corridor-below-minimum", "G2",
@@ -428,7 +428,7 @@ public static class Producibility
     {
         var b = new Box(box.Id, kind, box.Rect, box.Rect.Width * box.Rect.Height);
         // the wool lane is fixed at w2; a spawn reads the map's lane width, which a standalone box does not know
-        var widths = kind == BoxKind.Wool ? new[] { TeamUnitAllocator.WoolLaneCells } : LaneWidths;
+        var widths = kind == BoxKind.Wool ? new[] { UnitTuning.WoolLaneCells } : LaneWidths;
         foreach (var cw in widths)
             foreach (var family in FillProfiles.Families(kind, cw))
                 foreach (var mouth in AllEdges)
@@ -471,7 +471,7 @@ public static class Producibility
             {
                 if (family != ShapeFamily.Donut) { yield return (placement, atEnd, 0); continue; }
                 yield return (placement, atEnd, 0);          // the min-only one-corridor entry
-                for (var aw = cw; aw <= TeamUnitAllocator.DonutEntryMaxCells; aw++)
+                for (var aw = cw; aw <= UnitTuning.DonutEntryMaxCells; aw++)
                     yield return (placement, atEnd, aw);
             }
     }

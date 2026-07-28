@@ -16,20 +16,20 @@ public class TeamUnitAllocatorTests
     public async Task Spawn_on_the_back_puts_wools_on_the_sides_then_a_back_wool_c()
     {
         // reduces to the grower's model: two side wools, a third back beside the spawn
-        await Assert.That(TeamUnitAllocator.AssignWools(UnitSide.Back, 1)).IsEquivalentTo(new[] { UnitSide.Left });
-        await Assert.That(TeamUnitAllocator.AssignWools(UnitSide.Back, 2)).IsEquivalentTo(new[] { UnitSide.Left, UnitSide.Right });
-        await Assert.That(TeamUnitAllocator.AssignWools(UnitSide.Back, 3)).IsEquivalentTo(new[] { UnitSide.Left, UnitSide.Right, UnitSide.Back });
+        await Assert.That(UnitTuning.AssignWools(UnitSide.Back, 1)).IsEquivalentTo(new[] { UnitSide.Left });
+        await Assert.That(UnitTuning.AssignWools(UnitSide.Back, 2)).IsEquivalentTo(new[] { UnitSide.Left, UnitSide.Right });
+        await Assert.That(UnitTuning.AssignWools(UnitSide.Back, 3)).IsEquivalentTo(new[] { UnitSide.Left, UnitSide.Right, UnitSide.Back });
     }
 
     [Test]
     public async Task Spawn_on_a_side_prefers_the_back_then_the_other_side()
     {
-        await Assert.That(TeamUnitAllocator.AssignWools(UnitSide.Left, 1)).IsEquivalentTo(new[] { UnitSide.Back });
-        await Assert.That(TeamUnitAllocator.AssignWools(UnitSide.Left, 2)).IsEquivalentTo(new[] { UnitSide.Back, UnitSide.Right });
+        await Assert.That(UnitTuning.AssignWools(UnitSide.Left, 1)).IsEquivalentTo(new[] { UnitSide.Back });
+        await Assert.That(UnitTuning.AssignWools(UnitSide.Left, 2)).IsEquivalentTo(new[] { UnitSide.Back, UnitSide.Right });
         // the third doubles up on the spawn's own side
-        await Assert.That(TeamUnitAllocator.AssignWools(UnitSide.Left, 3)).IsEquivalentTo(new[] { UnitSide.Back, UnitSide.Right, UnitSide.Left });
+        await Assert.That(UnitTuning.AssignWools(UnitSide.Left, 3)).IsEquivalentTo(new[] { UnitSide.Back, UnitSide.Right, UnitSide.Left });
         // symmetric for the other lateral side
-        await Assert.That(TeamUnitAllocator.AssignWools(UnitSide.Right, 2)).IsEquivalentTo(new[] { UnitSide.Back, UnitSide.Left });
+        await Assert.That(UnitTuning.AssignWools(UnitSide.Right, 2)).IsEquivalentTo(new[] { UnitSide.Back, UnitSide.Left });
     }
 
     [Test]
@@ -37,7 +37,7 @@ public class TeamUnitAllocatorTests
     {
         foreach (var spawn in new[] { UnitSide.Back, UnitSide.Left, UnitSide.Right })
         {
-            var wools = TeamUnitAllocator.AssignWools(spawn, 2);
+            var wools = UnitTuning.AssignWools(spawn, 2);
             await Assert.That(wools.Contains(UnitSide.Front)).IsFalse();
             await Assert.That(wools.Contains(spawn)).IsFalse();     // two wools fit the two free sides — no doubling yet
         }
@@ -47,7 +47,7 @@ public class TeamUnitAllocatorTests
     public async Task Sample_plan_reserves_the_front_for_the_frontline_and_seats_the_spawn_off_front()
     {
         var env = Env();
-        var plan = TeamUnitAllocator.SamplePlan(env, new ComposeRng(7), hasFrontline: true);
+        var plan = UnitTuning.SamplePlan(env, new ComposeRng(7), hasFrontline: true);
 
         await Assert.That(plan.Frontline).IsEqualTo(UnitSide.Front);
         await Assert.That(plan.Spawn).IsNotEqualTo(UnitSide.Front);
@@ -59,7 +59,7 @@ public class TeamUnitAllocatorTests
     public async Task No_frontline_leaves_the_front_unassigned()
     {
         var env = Env();
-        var plan = TeamUnitAllocator.SamplePlan(env, new ComposeRng(7), hasFrontline: false);
+        var plan = UnitTuning.SamplePlan(env, new ComposeRng(7), hasFrontline: false);
         await Assert.That(plan.Frontline).IsNull();
     }
 
@@ -114,7 +114,7 @@ public class TeamUnitAllocatorTests
             }
     }
 
-    /// <summary>The lane width every shoulder must hold (TeamUnitAllocator.WoolLaneCells, which is internal).</summary>
+    /// <summary>The lane width every shoulder must hold (UnitTuning.WoolLaneCells, which is internal).</summary>
     private const int LaneCells = 2;
 
     /// <summary>

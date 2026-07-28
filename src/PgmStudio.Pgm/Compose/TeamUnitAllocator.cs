@@ -24,10 +24,10 @@ public sealed record UnitPlan(UnitSide? Frontline, UnitSide Spawn, IReadOnlyList
 /// back preferred, a third wool doubling up on the spawn's side ("two side wools +
 /// a back wool-c" exactly when the spawn is on the back).
 /// </summary>
-public static partial class TeamUnitAllocator
+public static class TeamUnitAllocator
 {
     /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
-    /// geometry layer over <see cref="SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
+    /// geometry layer over <see cref="UnitTuning.SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
     /// choice</b> (map-generation.md §5.5), and seats the spawn and wools on the chosen form's <b>real free-edge
     /// intervals</b> — the offerable surface the body actually presents (§1.13), not its bounding box. So a
     /// non-rectangular hub (L/U/Ring/Double-hole) never leaves a neighbour docking an empty bbox stretch and only
@@ -43,13 +43,13 @@ public static partial class TeamUnitAllocator
         ComposeEnvelope env, ComposeRng rng, CrossingDesign? crossing = null)
     {
         var frame = Frame.For(env.Symmetry);
-        var laneWidthCells = env.LandPerTeam > WideLaneLand ? 3 : 2;               // the map-wide lane width
+        var laneWidthCells = env.LandPerTeam > UnitTuning.WideLaneLand ? 3 : 2;               // the map-wide lane width
         // the frontline is the default when there is budget for it; none is the sampled exception
-        var hasFrontline = env.LandPerTeam >= FrontlineMinLand && rng.NextInt(0, NoFrontlineInN) > 0;
-        var plan = SamplePlan(env, rng, hasFrontline);
+        var hasFrontline = env.LandPerTeam >= UnitTuning.FrontlineMinLand && rng.NextInt(0, UnitTuning.NoFrontlineInN) > 0;
+        var plan = UnitTuning.SamplePlan(env, rng, hasFrontline);
 
-        var depthCap = HubCapCells(env.LandPerTeam);
-        var wideCap = HubWideCap(env.LandPerTeam);
+        var depthCap = UnitTuning.HubCapCells(env.LandPerTeam);
+        var wideCap = UnitTuning.HubWideCap(env.LandPerTeam);
         var floor = laneWidthCells + 2;
         var hubU = rng.NextInt(floor, Math.Max(floor, depthCap) + 1);    // depth toward the axis — kept compact
         var hubV = rng.NextInt(floor, Math.Max(floor, wideCap) + 1);     // lateral span — elongates across the team's width
@@ -68,7 +68,7 @@ public static partial class TeamUnitAllocator
         var hubRect = frame.ToRect(hubUMin, hubU, hubVMin, hubV);
 
         // the neighbour demands (spawn + wools + the frontline join), sized from the budget before the form is chosen
-        var demands = Demands(env, rng, plan, laneWidthCells, hubU, hubV, frontReach);
+        var demands = UnitDemands.Demands(env, rng, plan, laneWidthCells, hubU, hubV, frontReach);
 
         // pick the hub form from the box's real dims (frame-mapped — the wide axis afford the wide holed bodies),
         // seat the demands on its free edges; fall back to the solid rectangle (four full edges) when the offerable
@@ -80,25 +80,25 @@ public static partial class TeamUnitAllocator
         var arms = sampled.Form == Compound.SpineArms
             ? HubBoxEmitter.SampleArms(rng, hubRect.Width, sampled.Arms, FillProfiles.HubWallCells)
             : null;
-        var seating = Seat(sampled, hubRect, frame, laneWidthCells, demands, rng, noFront: !hasFrontline, walls, arms);
+        var seating = UnitSeating.Seat(sampled, hubRect, frame, laneWidthCells, demands, rng, noFront: !hasFrontline, walls, arms);
         if (seating is null && sampled.Form != Compound.Rectangle)
-            seating = Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, laneWidthCells, demands, rng, noFront: !hasFrontline);
+            seating = UnitSeating.Seat(new CompoundRead(Compound.Rectangle), hubRect, frame, laneWidthCells, demands, rng, noFront: !hasFrontline);
         if (seating is not { } s) return null;
 
         return (new BoxPartition(s.Boxes, s.Joints), frame.TowardAxis);
     }
 
     /// <summary>Choose the hub form for a <paramref name="boxW"/>×<paramref name="boxH"/> box (real cell dims, the
-    /// frame having mapped the wide lateral axis onto width). A <b>wide</b> box (width ≥ <see cref="WideHubCells"/>,
-    /// height ≥ <see cref="RingFitCells"/>) affords the <b>wide holed bodies</b> — the P (a loop on a long overhanging
+    /// frame having mapped the wide lateral axis onto width). A <b>wide</b> box (width ≥ <see cref="UnitTuning.WideHubCells"/>,
+    /// height ≥ <see cref="UnitTuning.RingFitCells"/>) affords the <b>wide holed bodies</b> — the P (a loop on a long overhanging
     /// bar), the Double-hole (a ring + a docked U, two equal holes), and the G (a ring + an L, the ring's hole plus a
     /// frontline-sealed bay — asymmetric holes), whose long runs are free surface — sampled alongside the elongated
-    /// ring. A <b>big square-ish</b> box (both ≥ <see cref="RingFitCells"/>) is too much solid area for the
+    /// ring. A <b>big square-ish</b> box (both ≥ <see cref="UnitTuning.RingFitCells"/>) is too much solid area for the
     /// budget, so it prefers negative space: mostly the ring, else a branch body. A small or thin box stays the
     /// compact solid/branch menu (the wider forms would directed-null and fall back).</summary>
-    private static CompoundRead ChooseHubForm(int boxW, int boxH, ComposeRng rng)
+    internal static CompoundRead ChooseHubForm(int boxW, int boxH, ComposeRng rng)
     {
-        if (boxW >= WideHubCells && boxH >= RingFitCells)
+        if (boxW >= UnitTuning.WideHubCells && boxH >= UnitTuning.RingFitCells)
             return rng.Pick(new[]
             {
                 new CompoundRead(Compound.P), new CompoundRead(Compound.DoubleHole),
@@ -107,8 +107,8 @@ public static partial class TeamUnitAllocator
                 // the two-legged hub comes out with real legs rather than stubs either side of a gap
                 new CompoundRead(Compound.SpineArms, 2),
             });
-        if (boxW >= RingFitCells && boxH >= RingFitCells)
-            return rng.NextBool(RingChance) ? new CompoundRead(Compound.Ring)
+        if (boxW >= UnitTuning.RingFitCells && boxH >= UnitTuning.RingFitCells)
+            return rng.NextBool(UnitTuning.RingChance) ? new CompoundRead(Compound.Ring)
                 : rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.SpineArms).ToList());
         return rng.Pick(HubBoxEmitter.Forms.Where(f => f.Form is Compound.Rectangle or Compound.SpineArms).ToList());
     }
@@ -131,7 +131,7 @@ public static partial class TeamUnitAllocator
             Compound.P or Compound.DoubleHole or Compound.G => (boxW - 2 * corridorCells, boxH),
             _ => (0, 0),                                        // no ring to widen
         };
-        if (ringW <= 0 || !rng.NextBool(WidenedRingChance)) return null;
+        if (ringW <= 0 || !rng.NextBool(UnitTuning.WidenedRingChance)) return null;
 
         // the slack on each axis: what the hole keeps beyond a corridor of its own once both walls are paid for
         int slackW = ringW - 2 * corridorCells - corridorCells, slackH = ringH - 2 * corridorCells - corridorCells;

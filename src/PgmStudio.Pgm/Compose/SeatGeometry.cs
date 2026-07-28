@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Compose;
 
 /// <summary>The rect and edge arithmetic the seat step reads: building a neighbour's rect from a seat,
 /// projecting seated boxes onto an edge, clearance tests, and the hub joint each dock records.</summary>
-public static partial class TeamUnitAllocator
+public static class SeatGeometry
 {
     /// <summary>The plan-cell rect of a <paramref name="depth"/>×<paramref name="along"/> box seated at box-local
     /// along-coord <paramref name="seat"/> on the hub's <paramref name="edge"/>: its depth reaches outward from
@@ -27,7 +27,7 @@ public static partial class TeamUnitAllocator
     /// <summary>Project a <paramref name="seated"/> box onto <paramref name="edge"/> as the forbidden along-interval
     /// (box-local) a candidate of outward <paramref name="depth"/> must keep the seat gap clear of — but only when
     /// the box lies within <paramref name="gap"/> of that edge on the <b>perpendicular</b> axis (else it is too far
-    /// out to constrain this edge and returns <c>null</c>). The along-gap itself is applied by <see cref="SeatInRuns"/>'s
+    /// out to constrain this edge and returns <c>null</c>). The along-gap itself is applied by <see cref="UnitSeating.SeatInRuns"/>'s
     /// inflation, so this returns the box's raw along-extent. A same-edge neighbour projects to its own dock interval
     /// (perpendicular distance 0); an adjacent-edge neighbour projects only when it hugs the shared corner — so the
     /// one mechanism covers both the same-edge abut and the cross-edge corner meeting exactly (the along + perp
@@ -58,7 +58,7 @@ public static partial class TeamUnitAllocator
         first.Z - separationCells < second.Z + second.Height && second.Z < first.Z + first.Height + separationCells;
 
     /// <summary>Two plan-cell rects overlap iff they intersect on both axes (abutment is not overlap).</summary>
-    private static bool Overlap(CellRect first, CellRect second) =>
+    internal static bool Overlap(CellRect first, CellRect second) =>
         first.X < second.X + second.Width && second.X < first.X + first.Width && first.Z < second.Z + second.Height && second.Z < first.Z + first.Height;
 
     /// <summary>The box edge opposite <paramref name="e"/> — a neighbour's mouth faces the hub across it.</summary>
@@ -71,7 +71,7 @@ public static partial class TeamUnitAllocator
     /// <summary>The hub↔neighbour joint over a ready-made <paramref name="abutment"/> (the abutment of an overhanging
     /// dock), granting the consumer <paramref name="w"/> as its corridor width across it. The width is the
     /// consumer's selection, not the hub's published capacity — see <see cref="BoxJoint.Grant"/>.</summary>
-    private static BoxJoint HubJointFrom(string hubId, string nbId, BoxAbutment abutment, int grantedWidthCells)
+    internal static BoxJoint HubJointFrom(string hubId, string nbId, BoxAbutment abutment, int grantedWidthCells)
     {
         var grant = new EdgeOffer(abutment.Edge, new EdgeInterval(abutment.Start, abutment.WidthCells, ApproachSlots.Bar),
             grantedWidthCells, OfferGrouping.Several, $"hub-{abutment.Edge}");
@@ -88,7 +88,7 @@ public static partial class TeamUnitAllocator
 
     /// <summary>The hub's box edge facing <paramref name="side"/> — the (u, v) outward direction mapped through
     /// the <see cref="Frame"/> to a box-local edge (min-z Top, max-z Bottom, min-x Left, max-x Right).</summary>
-    private static BoxEdge SideEdge(Frame frame, UnitSide side)
+    internal static BoxEdge SideEdge(Frame frame, UnitSide side)
     {
         var (du, dv) = side switch
         {

@@ -91,16 +91,16 @@ public static class FrontGuard
 
         List<(int Start, int Len)> BlockedFor(List<Box> bs, string selfId, BoxEdge e, int depth) => bs
             .Where(b => b.Kind is BoxKind.Spawn or BoxKind.Wool && b.Id != selfId)
-            .Select(b => TeamUnitAllocator.ProjectOntoEdge(e, hubRect, depth, b.Rect, laneWidthCells))
+            .Select(b => SeatGeometry.ProjectOntoEdge(e, hubRect, depth, b.Rect, laneWidthCells))
             .Where(iv => iv is not null).Select(iv => iv!.Value).ToList();
 
         void MoveTo(List<Box> bs, List<BoxJoint> js, string id, BoxKind kind, int depth, int along, BoxEdge e, int seat)
         {
             var i = bs.FindIndex(b => b.Id == id);
-            bs[i] = bs[i] with { Rect = TeamUnitAllocator.NeighbourRect(e, seat, depth, along, hubRect) };
+            bs[i] = bs[i] with { Rect = SeatGeometry.NeighbourRect(e, seat, depth, along, hubRect) };
             var ji = js.FindIndex(j => j.BoxB == id);
-            js[ji] = TeamUnitAllocator.HubJoint("hub", id, e, seat, along,
-                kind == BoxKind.Wool ? TeamUnitAllocator.WoolLaneCells : laneWidthCells);
+            js[ji] = SeatGeometry.HubJoint("hub", id, e, seat, along,
+                kind == BoxKind.Wool ? UnitTuning.WoolLaneCells : laneWidthCells);
         }
 
         (List<Box> B, List<BoxJoint> J, int Residue) ResolveOrder(
@@ -116,8 +116,8 @@ public static class FrontGuard
                 // separation tiers: the full gap first; a wool may fall to the wool-lane gap (2 cells,
                 // 10 blocks — the very separation the narrower boards seat with, still no-touch) as the last tier
                 // before a flush residue, trading separation ideal for the flush law
-                var gaps = f.Kind == BoxKind.Wool && f.Gap > TeamUnitAllocator.WoolLaneCells
-                    ? new[] { f.Gap, TeamUnitAllocator.WoolLaneCells } : new[] { f.Gap };
+                var gaps = f.Kind == BoxKind.Wool && f.Gap > UnitTuning.WoolLaneCells
+                    ? new[] { f.Gap, UnitTuning.WoolLaneCells } : new[] { f.Gap };
                 var resolved = false;
                 foreach (var separation in gaps)
                 {
@@ -128,11 +128,11 @@ public static class FrontGuard
                         resolved = true;
                         break;
                     }
-                    foreach (var target in new[] { TeamUnitAllocator.Opposite(f.Edge), TeamUnitAllocator.Opposite(frontEdge) })
+                    foreach (var target in new[] { SeatGeometry.Opposite(f.Edge), SeatGeometry.Opposite(frontEdge) })
                     {
                         if (target == f.Edge || target == frontEdge || !runsByEdge.TryGetValue(target, out var truns)) continue;
                         var tlen = target is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
-                        var guard = target == TeamUnitAllocator.Opposite(frontEdge) ? 0 : BufferCells;   // the back edge is off-front by construction
+                        var guard = target == SeatGeometry.Opposite(frontEdge) ? 0 : BufferCells;   // the back edge is off-front by construction
                         if (BackmostSeat(truns, BlockedFor(bs, f.Id, target, f.Depth), tlen, f.Along, separation,
                                 guard, frontAtLow) is { } c)
                         {
@@ -158,7 +158,7 @@ public static class FrontGuard
         // back edge (a lateral spawn is itself front-guarded; the back edge is the one with slack)
         var spawnSlides = new List<int?> { null };
         var spawnBox = boxes.FirstOrDefault(b => b.Kind == BoxKind.Spawn);
-        var backEdge = TeamUnitAllocator.Opposite(frontEdge);
+        var backEdge = SeatGeometry.Opposite(frontEdge);
         var (spAlong, spDepth) = (0, 0);
         if (spawnBox is not null
             && joints.FirstOrDefault(j => j.BoxB == spawnBox.Id)?.Abutment.Edge == backEdge
