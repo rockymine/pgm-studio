@@ -204,6 +204,33 @@ public static class TeamUnitAllocator
     /// overhang (an overhang would strand the second entry off the hub — a pinch).</summary>
     private static bool Overhangs(ShapeFamily family) => family is ShapeFamily.L or ShapeFamily.Donut;
 
+    /// <summary>
+    /// How a neighbour docks its host. The three styles are indexed by <b>how much is known about where the
+    /// shape's entries are</b>, which is what makes them three rather than an arbitrary list:
+    /// <list type="bullet">
+    /// <item><see cref="FullMouth"/> — nothing is known, so require the <em>whole</em> along-extent to sit
+    /// inside one free run; every entry then lands wherever they are. This is why the dual-entry staples
+    /// (<c>U</c>/<c>H</c>/<c>Clamp</c>) dock here — an overhang would strand their second entry off the
+    /// host.</item>
+    /// <item><see cref="Overhang"/> — the family has exactly one entry and the emitter can say where, so only
+    /// that interval must land and the body may hang past the run.</item>
+    /// <item><see cref="ContactPatch"/> — the frontline is a face, not a corridor, so it has no entry at all;
+    /// what must hold is that every stretch where it meets a run is at least a lane wide.</item>
+    /// </list>
+    /// <b>Derived, never sampled</b> — see <see cref="StyleOf"/>. The style falls out of the family roll that
+    /// already happened in <see cref="WoolDemand"/>; there is no "which dock style" draw anywhere.
+    /// </summary>
+    private enum DockStyle { FullMouth, Overhang, ContactPatch }
+
+    /// <summary>The dock style a demand implies. A single-entry rich wool overhangs; the frontline takes the
+    /// contact patch; everything else takes the shape-agnostic full mouth. Note this is the style a demand
+    /// <em>starts</em> at: an overhang that finds no clear placement is demoted to the compact <c>I</c> and
+    /// re-dispatched as a <see cref="DockStyle.FullMouth"/>.</summary>
+    private static DockStyle StyleOf(Demand d) =>
+        d.Wool is { } wool && Overhangs(wool.Family) ? DockStyle.Overhang
+        : d.Kind == BoxKind.Frontline ? DockStyle.ContactPatch
+        : DockStyle.FullMouth;
+
     /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
     /// geometry layer over <see cref="SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
     /// choice</b> (map-generation.md §5.5), and seats the spawn and wools on the chosen form's <b>real free-edge
@@ -486,6 +513,14 @@ public static class TeamUnitAllocator
             .Select(b => ProjectOntoEdge(edge, hubRect, depth, b.Rect, w))
             .Where(iv => iv is not null).Select(iv => iv!.Value).ToList();
 
+        // record a seated neighbour: its box, and the joint granting it its corridor width. One place, so the
+        // three dock styles differ only in how they FOUND the rect — never in what they record.
+        void Seated(Demand nb, CellRect rect, BoxInterface abutment, int cw)
+        {
+            boxes.Add(new Box(nb.Id, nb.Kind, rect, nb.Along * nb.Depth, Wool: nb.Wool));
+            joints.Add(HubJointFrom("hub", nb.Id, abutment, cw));
+        }
+
         foreach (var demand in demands)
         {
             var d = demand;
@@ -493,39 +528,31 @@ public static class TeamUnitAllocator
             var edgeLen = edge is BoxEdge.Top or BoxEdge.Bottom ? boxW : boxH;
             if (!runsByEdge.TryGetValue(edge, out var runs)) return null;      // the form leaves this edge empty
             var offerW = d.Kind == BoxKind.Wool ? WoolLaneCells : w;           // the wool lane is w2; spawn/frontline read w
+            var style = StyleOf(d);
 
-            // a single-entry rich wool docks by the seat-and-shift: its narrow entry lands on a run and the wider
-            // body overhangs into free space. Every other neighbour (I, the dual-entry staple, spawn, frontline)
-            // docks its full along-edge.
-            if (d.Wool is { } rich && Overhangs(rich.Family))
+            if (style is DockStyle.Overhang && d.Wool is { } rich)
             {
                 // no frontline ⇒ prefer the overhang placement furthest behind the front face (bent back / flipped),
                 // not spiking across the empty no-man's-land in front of the hub
                 var guardFront = noFront ? frontEdge : (BoxEdge?)null;
                 if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, offerW, w, guardFront, rng) is { } placed)
                 {
-                    var (box, iface, flip) = placed;
-                    boxes.Add(new Box(d.Id, d.Kind, box, d.Along * d.Depth, Wool: rich with { Flip = flip }));
-                    joints.Add(HubJointFrom("hub", d.Id, iface, offerW));
+                    Seated(d with { Wool = rich with { Flip = placed.Flip } }, placed.Box, placed.Iface, offerW);
                     continue;
                 }
-                d = Compact(d, offerW);   // no clear overhang placement on this hub (crowded / narrow)
+                // no clear overhang placement on this hub (crowded / narrow): demote to the compact I and
+                // re-dispatch as a full mouth. The demotion IS the fallback ladder — stated, not fallen through.
+                d = Compact(d, offerW);
+                style = DockStyle.FullMouth;
             }
 
-            // the frontline seats by CONTACT PATCH (G123): its face may be narrower than the hub edge and may
-            // overhang it, so what must hold is not that the box fits inside a free run but that it abuts the hub
-            // over at least one lane's worth of one. The joint carries the clipped abutment, not the box width.
-            if (d.Kind == BoxKind.Frontline)
+            if (style is DockStyle.ContactPatch)
             {
                 if (SeatFront(runs, edgeLen, d, edge, hubRect, boxes, w, rng) is not { } placed) return null;
-                boxes.Add(new Box(d.Id, d.Kind, placed.Box, d.Along * d.Depth));
-                joints.Add(HubJointFrom("hub", d.Id, placed.Iface, offerW));
+                Seated(d, placed.Box, placed.Iface, offerW);
                 continue;
             }
 
-            // every other neighbour docks by FULL MOUTH: the whole along-extent must sit inside one free run.
-            // The shape-agnostic rule — it assumes nothing about where the shape's entries are, so it holds for
-            // the dual-entry staples whose second entry an overhang would strand.
             if (SeatFullMouth(runs, edgeLen, d, edge, hubRect, Blocked, w, offerW, noFront, frontEdge, rng)
                 is not { } dock)
             {
@@ -537,10 +564,8 @@ public static class TeamUnitAllocator
                 if (d.Kind == BoxKind.Wool && boxes.Any(b => b.Kind == BoxKind.Wool)) continue;
                 return null;
             }
-            d = dock.Demand;                                  // a full mouth that found no run was demoted
             if (dock.Flush is { } flush) flushSeats.Add(flush);
-            boxes.Add(new Box(d.Id, d.Kind, dock.Box, d.Along * d.Depth, Wool: d.Wool));
-            joints.Add(HubJoint("hub", d.Id, edge, dock.Iface.Start, d.Along, offerW));
+            Seated(dock.Demand, dock.Box, dock.Iface, offerW);   // dock.Demand — a full mouth may have demoted it
         }
 
         // FrontGuard.Resolve — the post-pass over the seating: the seats the immediate slide could not bring
@@ -871,12 +896,8 @@ public static class TeamUnitAllocator
     /// <c>cw</c> (severally — each neighbour its own dock). <paramref name="w"/> is chosen by the consumer's kind
     /// upstream (the w2 wool lane, or the map lane width); the hub's own per-run capacity is a separate figure and
     /// is not what is recorded here.</summary>
-    internal static BoxJoint HubJoint(string hubId, string nbId, BoxEdge edge, int alongStart, int along, int w)
-    {
-        var iface = new BoxInterface(edge, alongStart, along);
-        var grant = new EdgeOffer(edge, new EdgeInterval(alongStart, along, ApproachSlots.Bar), w, OfferGrouping.Several, $"hub-{edge}");
-        return new BoxJoint(hubId, nbId, iface, grant);
-    }
+    internal static BoxJoint HubJoint(string hubId, string nbId, BoxEdge edge, int alongStart, int along, int w) =>
+        HubJointFrom(hubId, nbId, new BoxInterface(edge, alongStart, along), w);
 
     /// <summary>The hub's box edge facing <paramref name="side"/> — the (u, v) outward direction mapped through
     /// the <see cref="Frame"/> to a box-local edge (min-z Top, max-z Bottom, min-x Left, max-x Right).</summary>
