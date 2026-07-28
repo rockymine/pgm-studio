@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Compose;
 /// placed into the board frame, carrying its mouth as a box-edge interval so a later box can claim it
 /// (docs/generator/model.md §4.4). Unclaimed vacancies are just void (or a buffer when the void is
 /// the point).</summary>
-public sealed record Vacancy(string Kind, CellRect Rect, BoxInterface? Mouth, IReadOnlyList<string> Walls);
+public sealed record Vacancy(string Kind, CellRect Rect, BoxAbutment? Mouth, IReadOnlyList<string> Walls);
 
 /// <summary>
 /// The outcome of filling a box — a data channel, not exception control flow: "no shape fits" is a signal

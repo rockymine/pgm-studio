@@ -201,7 +201,7 @@ public sealed class BodyEdgesTests
     }
 
     // every non-enclosed space knows its mouths — interval + width class, one per open direction: bay one,
-    // notch two, hole none (the derive-side twin of the published vacancy's BoxInterface mouth, uniform)
+    // notch two, hole none (the derive-side twin of the published vacancy's BoxAbutment mouth, uniform)
     [Test]
     public async Task Spaces_know_their_mouths()
     {

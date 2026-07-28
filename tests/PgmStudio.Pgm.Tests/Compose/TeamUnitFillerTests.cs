@@ -14,7 +14,7 @@ public class TeamUnitFillerTests
     /// <summary>A hub joint granting <paramref name="width"/> over the dock <c>[start, start+len)</c> on
     /// <paramref name="edge"/> — the allocator's per-dock grant.</summary>
     private static BoxJoint Joint(BoxEdge edge, int width, int start = 0, int len = 6, string nb = "nb") =>
-        new("hub", nb, new BoxInterface(edge, start, len),
+        new("hub", nb, new BoxAbutment(edge, start, len),
             new EdgeOffer(edge, new EdgeInterval(start, len, ApproachSlots.Bar), width, OfferGrouping.Several, $"hub-{edge}"));
 
     [Test]
@@ -45,8 +45,8 @@ public class TeamUnitFillerTests
         // lands on: the U's Bottom edge is two 2-cell leg tips, its Top one full 6-cell run
         var hub = HubBoxEmitter.Fill(new Box("hub", BoxKind.Hub, new(0, 0, 6, 6), 36),
             new CompoundRead(Compound.SpineArms, 2), cw: 2)!;
-        var onTip = new BoxJoint("hub", "nb", new BoxInterface(BoxEdge.Bottom, 4, 2), null);
-        var onSpine = new BoxJoint("hub", "nb", new BoxInterface(BoxEdge.Top, 0, 6), null);
+        var onTip = new BoxJoint("hub", "nb", new BoxAbutment(BoxEdge.Bottom, 4, 2), null);
+        var onSpine = new BoxJoint("hub", "nb", new BoxAbutment(BoxEdge.Top, 0, 6), null);
 
         await Assert.That(TeamUnitFiller.ConsumedCw(hub, onTip, BoxEdge.Bottom)).IsEqualTo(BodyEdges.WidthClass(2));
         await Assert.That(TeamUnitFiller.ConsumedCw(hub, onSpine, BoxEdge.Top)).IsEqualTo(BodyEdges.WidthClass(6));
@@ -59,7 +59,7 @@ public class TeamUnitFillerTests
         var hub = new EmittedHub([],
             [new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "g")],
             new CompoundRead(Compound.Rectangle));
-        var ungranted = new BoxJoint("hub", "nb", new BoxInterface(BoxEdge.Bottom, 0, 6), null);
+        var ungranted = new BoxJoint("hub", "nb", new BoxAbutment(BoxEdge.Bottom, 0, 6), null);
         await Assert.That(() => TeamUnitFiller.ConsumedCw(hub, ungranted, BoxEdge.Bottom)).Throws<ComposeException>();
     }
 
@@ -104,9 +104,9 @@ public class TeamUnitFillerTests
                 new Box("wool-a", BoxKind.Wool, new(8, 0, 14, 6), 84),
             ],
             [
-                new BoxJoint("hub", "spawn", new BoxInterface(BoxEdge.Bottom, 0, 6),
+                new BoxJoint("hub", "spawn", new BoxAbutment(BoxEdge.Bottom, 0, 6),
                     new EdgeOffer(BoxEdge.Bottom, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Bottom")),
-                new BoxJoint("hub", "wool-a", new BoxInterface(BoxEdge.Right, 0, 6),
+                new BoxJoint("hub", "wool-a", new BoxAbutment(BoxEdge.Right, 0, 6),
                     new EdgeOffer(BoxEdge.Right, new EdgeInterval(0, 6, ApproachSlots.Bar), 2, OfferGrouping.Several, "hub-Right")),
             ]);
 
@@ -142,9 +142,9 @@ public class TeamUnitFillerTests
                 new Box("frontline", BoxKind.Frontline, new(0, 0, 12, 10), 120),
             ],
             [
-                new BoxJoint("hub", "spawn", new BoxInterface(BoxEdge.Bottom, 0, 6),
+                new BoxJoint("hub", "spawn", new BoxAbutment(BoxEdge.Bottom, 0, 6),
                     new EdgeOffer(BoxEdge.Bottom, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Bottom")),
-                new BoxJoint("hub", "frontline", new BoxInterface(BoxEdge.Top, 0, 6),
+                new BoxJoint("hub", "frontline", new BoxAbutment(BoxEdge.Top, 0, 6),
                     new EdgeOffer(BoxEdge.Top, new EdgeInterval(0, 6, ApproachSlots.Bar), 4, OfferGrouping.Several, "hub-Top")),
             ]);
 

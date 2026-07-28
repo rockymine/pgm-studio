@@ -515,7 +515,7 @@ public static class TeamUnitAllocator
 
         // record a seated neighbour: its box, and the joint granting it its corridor width. One place, so the
         // three dock styles differ only in how they FOUND the rect — never in what they record.
-        void Seated(Demand nb, CellRect rect, BoxInterface abutment, int cw)
+        void Seated(Demand nb, CellRect rect, BoxAbutment abutment, int cw)
         {
             boxes.Add(new Box(nb.Id, nb.Kind, rect, nb.Along * nb.Depth, Wool: nb.Wool));
             joints.Add(HubJointFrom("hub", nb.Id, abutment, cw));
@@ -537,7 +537,7 @@ public static class TeamUnitAllocator
                 var guardFront = noFront ? frontEdge : (BoxEdge?)null;
                 if (SeatOverhang(runs, edgeLen, d, rich, edge, hubRect, boxes, offerW, w, guardFront, rng) is { } placed)
                 {
-                    Seated(d with { Wool = rich with { Flip = placed.Flip } }, placed.Box, placed.Iface, offerW);
+                    Seated(d with { Wool = rich with { Flip = placed.Flip } }, placed.Box, placed.Abutment, offerW);
                     continue;
                 }
                 // no clear overhang placement on this hub (crowded / narrow): demote to the compact I and
@@ -549,7 +549,7 @@ public static class TeamUnitAllocator
             if (style is DockStyle.ContactPatch)
             {
                 if (SeatFront(runs, edgeLen, d, edge, hubRect, boxes, w, rng) is not { } placed) return null;
-                Seated(d, placed.Box, placed.Iface, offerW);
+                Seated(d, placed.Box, placed.Abutment, offerW);
                 continue;
             }
 
@@ -565,7 +565,7 @@ public static class TeamUnitAllocator
                 return null;
             }
             if (dock.Flush is { } flush) flushSeats.Add(flush);
-            Seated(dock.Demand, dock.Box, dock.Iface, offerW);   // dock.Demand — a full mouth may have demoted it
+            Seated(dock.Demand, dock.Box, dock.Abutment, offerW);   // dock.Demand — a full mouth may have demoted it
         }
 
         // FrontGuard.Resolve — the post-pass over the seating: the seats the immediate slide could not bring
@@ -583,12 +583,12 @@ public static class TeamUnitAllocator
     }
 
     /// <summary>What a full-mouth dock produced: the placed <see cref="Box"/> rect and the
-    /// <see cref="Iface"/> it abuts the hub over, the <see cref="Demand"/> <b>as it ended up</b> (a wool whose
+    /// <see cref="Abutment"/> it abuts the hub over, the <see cref="Demand"/> <b>as it ended up</b> (a wool whose
     /// full mouth found no run is demoted to the compact <c>I</c>, so this may differ from the one passed in),
     /// and the <see cref="Flush"/> seat to hand <see cref="FrontGuard.Resolve"/> when the immediate slide found
     /// no backward position. <c>null</c> from <see cref="SeatFullMouth"/> means no legal seat at all.</summary>
     private sealed record FullMouthDock(
-        CellRect Box, BoxInterface Iface, Demand Demand, FrontGuard.FlushSeat? Flush);
+        CellRect Box, BoxAbutment Abutment, Demand Demand, FrontGuard.FlushSeat? Flush);
 
     /// <summary>
     /// Seat a neighbour by <b>full mouth</b>: its whole along-extent must lie inside one of the hub's free
@@ -637,7 +637,7 @@ public static class TeamUnitAllocator
             else flush = new FrontGuard.FlushSeat(d.Id, d.Kind, d.Depth, d.Along, edge, edgeLen, runs, seatGap);
         }
         return new FullMouthDock(
-            NeighbourRect(edge, s, d.Depth, d.Along, hubRect), new BoxInterface(edge, s, d.Along), d, flush);
+            NeighbourRect(edge, s, d.Depth, d.Along, hubRect), new BoxAbutment(edge, s, d.Along), d, flush);
     }
 
     /// <summary>Demote a wool demand to the <b>compact inline <c>I</c></b> — the always-seatable shape: a
@@ -748,11 +748,11 @@ public static class TeamUnitAllocator
     /// the hub's own corner, which the hub fills — that is why the pinned face never needed this.) <c>null</c>
     /// when no position gives a patch — the directed signal the caller answers by falling back.</para>
     /// </summary>
-    private static (CellRect Box, BoxInterface Iface)? SeatFront(
+    private static (CellRect Box, BoxAbutment Abutment)? SeatFront(
         IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, BoxEdge edge, CellRect hubRect,
         IReadOnlyList<Box> seated, int cw, ComposeRng rng)
     {
-        var placements = new List<(int Seat, CellRect Box, BoxInterface Iface)>();
+        var placements = new List<(int Seat, CellRect Box, BoxAbutment Abutment)>();
         for (var seat = -(d.Along - cw); seat <= edgeLen - cw; seat++)
         {
             int lo = seat, hi = seat + d.Along;
@@ -762,7 +762,7 @@ public static class TeamUnitAllocator
             var overhangs = seat < 0 || seat + d.Along > edgeLen;
             if (seated.Any(b => b.Kind is BoxKind.Spawn or BoxKind.Wool
                     && (overhangs ? TooClose(b.Rect, box, cw) : Overlap(b.Rect, box)))) continue;
-            if (BoxPartition.SharedEdge(hubRect, box) is { } iface) placements.Add((seat, box, iface));
+            if (BoxPartition.SharedEdge(hubRect, box) is { } abutment) placements.Add((seat, box, abutment));
         }
         if (placements.Count == 0) return null;
 
@@ -775,10 +775,10 @@ public static class TeamUnitAllocator
         {
             var centre = (edgeLen - d.Along) / 2.0;
             var best = placements.OrderBy(p => Math.Abs(p.Seat - centre)).ThenBy(p => p.Seat).First();
-            return (best.Box, best.Iface);
+            return (best.Box, best.Abutment);
         }
         var pick = placements[rng.NextInt(0, placements.Count)];
-        return (pick.Box, pick.Iface);
+        return (pick.Box, pick.Abutment);
     }
 
     /// <summary>
@@ -828,7 +828,7 @@ public static class TeamUnitAllocator
     /// overhanging either way), so a crowded side does not sink the dock. Returns the plan-cell box, the actual
     /// hub↔box interface (the abutment — narrower than the box when it overhangs), and the chosen flip; or
     /// <c>null</c> when no clear placement exists (a directed signal the caller falls back on).</summary>
-    private static (CellRect Box, BoxInterface Iface, bool Flip)? SeatOverhang(
+    private static (CellRect Box, BoxAbutment Abutment, bool Flip)? SeatOverhang(
         IReadOnlyList<(int Start, int Len)> runs, int edgeLen, Demand d, WoolFill fill, BoxEdge edge,
         CellRect hubRect, IReadOnlyList<Box> seated, int w, int gap, BoxEdge? guardFront, ComposeRng rng)
     {
@@ -881,14 +881,14 @@ public static class TeamUnitAllocator
         BoxEdge.Left => BoxEdge.Right, _ => BoxEdge.Left,
     };
 
-    /// <summary>The hub↔neighbour joint over a ready-made <paramref name="iface"/> (the abutment of an overhanging
+    /// <summary>The hub↔neighbour joint over a ready-made <paramref name="abutment"/> (the abutment of an overhanging
     /// dock), granting the consumer <paramref name="w"/> as its corridor width across it. The width is the
     /// consumer's selection, not the hub's published capacity — see <see cref="BoxJoint.Grant"/>.</summary>
-    private static BoxJoint HubJointFrom(string hubId, string nbId, BoxInterface iface, int w)
+    private static BoxJoint HubJointFrom(string hubId, string nbId, BoxAbutment abutment, int w)
     {
-        var grant = new EdgeOffer(iface.Edge, new EdgeInterval(iface.Start, iface.WidthCells, ApproachSlots.Bar),
-            w, OfferGrouping.Several, $"hub-{iface.Edge}");
-        return new BoxJoint(hubId, nbId, iface, grant);
+        var grant = new EdgeOffer(abutment.Edge, new EdgeInterval(abutment.Start, abutment.WidthCells, ApproachSlots.Bar),
+            w, OfferGrouping.Several, $"hub-{abutment.Edge}");
+        return new BoxJoint(hubId, nbId, abutment, grant);
     }
 
     /// <summary>The hub↔neighbour joint on <paramref name="edge"/>: the interface interval where they touch, and
@@ -897,7 +897,7 @@ public static class TeamUnitAllocator
     /// upstream (the w2 wool lane, or the map lane width); the hub's own per-run capacity is a separate figure and
     /// is not what is recorded here.</summary>
     internal static BoxJoint HubJoint(string hubId, string nbId, BoxEdge edge, int alongStart, int along, int w) =>
-        HubJointFrom(hubId, nbId, new BoxInterface(edge, alongStart, along), w);
+        HubJointFrom(hubId, nbId, new BoxAbutment(edge, alongStart, along), w);
 
     /// <summary>The hub's box edge facing <paramref name="side"/> — the (u, v) outward direction mapped through
     /// the <see cref="Frame"/> to a box-local edge (min-z Top, max-z Bottom, min-x Left, max-x Right).</summary>

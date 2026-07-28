@@ -76,6 +76,17 @@ the .NET 10 SDK (VSTest bridge removed) — run a test project directly:
 `dotnet run --project tests/<Project>`. Synthetic fixtures only; corpus/round-trip harnesses
 live under `tools/`, not `tests/`.
 
+## Naming
+- **No single-letter identifiers outside a lambda.** `laneWidthCells`, not `w`; `demand`, not `d`; `seat`,
+  not `s`. Longer is fine even when it costs a line wrap. Inside a lambda a short binder is expected
+  (`.Where(b => b.Kind == …)`), and the axis/index conventions stay: `x`/`z` for plan coordinates, `u`/`v`
+  for the symmetry frame, `i`/`j`/`k` for loop indices. Those are the notation, not laziness.
+- **No abbreviations of a type's own name.** `abutment`, not `iface`. C# has no keyword clash to dodge.
+- **A name must not promise the wrong category.** `BoxJoint.Interface` read like it held a C# interface; it
+  holds a shared edge interval, so it is `BoxAbutment`/`.Abutment` — the word the docstrings already used
+  whenever they had to explain it. Same reason `BoxJoint.Grant` is not `Offer`: a host publishes a capacity,
+  a joint records a selection, and one name for both hid that they are different quantities.
+
 ## Code comments
 Comments stay **purely functional** — describe what the code does and why. **Never** reference the
 Python reference app ("port of", "mirrors the reference", parity/oracle) or implementation-phase /

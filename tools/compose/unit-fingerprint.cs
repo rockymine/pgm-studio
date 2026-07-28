@@ -40,7 +40,7 @@ foreach (var (label, players, land) in presets)
                 $"form={(b.Form is null ? "-" : $"{b.Form.Form}:{b.Form.Arms}")},flip={b.FlipV}," +
                 $"wool={(b.Wool is null ? "-" : $"{b.Wool.Family}:{b.Wool.Placement}:{b.Wool.Flip}:{b.Wool.WoolAtEnd}")});");
         foreach (var j in a.Partition.Joints)
-            sb.Append($"J({j.BoxA}->{j.BoxB},{j.Interface.Edge}@{j.Interface.Start}+{j.Interface.WidthCells}," +
+            sb.Append($"J({j.BoxA}->{j.BoxB},{j.Abutment.Edge}@{j.Abutment.Start}+{j.Abutment.WidthCells}," +
                 $"grant={(j.Grant is null ? "-" : $"{j.Grant.Edge}@{j.Grant.Interval.Start}+{j.Grant.Interval.LengthCells}" +
                     $":w{j.Grant.WidthClass}:{j.Grant.Grouping}:{j.Grant.GroupId}")});");
 

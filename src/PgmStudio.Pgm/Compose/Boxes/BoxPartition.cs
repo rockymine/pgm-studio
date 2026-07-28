@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>A <b>joint</b> of the partition graph: the shared edge interval where two boxes touch — the
-/// <see cref="BoxInterface"/> (an edge, an offset, a width) read on <see cref="BoxA"/>'s frame, plus the box
+/// <see cref="BoxAbutment"/> (an edge, an offset, a width) read on <see cref="BoxA"/>'s frame, plus the box
 /// on the other side. The graph edge the docking gate and the repair search reason over.
 ///
 /// <para><see cref="Grant"/> is what this consumer was <b>given</b> at the dock: the abutment interval plus the
@@ -15,7 +15,7 @@ namespace PgmStudio.Pgm.Compose;
 /// wool reads the w2 wool lane, a spawn or frontline the map lane width). Same record type, two roles: read a
 /// grant as the answer, never as a copy of the invitation. <c>null</c> for a plain abutment nobody was granted
 /// anything across (e.g. a derived joint).</para></summary>
-public sealed record BoxJoint(string BoxA, string BoxB, BoxInterface Interface, EdgeOffer? Grant = null);
+public sealed record BoxJoint(string BoxA, string BoxB, BoxAbutment Abutment, EdgeOffer? Grant = null);
 
 /// <summary>
 /// The <b>constraint graph</b> a partition is (G63): typed <see cref="Box"/>es (each an allocated
@@ -49,7 +49,7 @@ public sealed record BoxPartition(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoi
             var a = ById(j.BoxA);
             var b = ById(j.BoxB);
             if (a is null || b is null) return false;
-            if (SharedEdge(a.Rect, b.Rect) is not { } shared || shared != j.Interface) return false;
+            if (SharedEdge(a.Rect, b.Rect) is not { } shared || shared != j.Abutment) return false;
         }
         return true;
     }
@@ -78,8 +78,8 @@ public sealed record BoxPartition(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoi
         var joints = new List<BoxJoint>();
         for (var i = 0; i < boxes.Count; i++)
             for (var j = i + 1; j < boxes.Count; j++)
-                if (SharedEdge(boxes[i].Rect, boxes[j].Rect) is { } iface)
-                    joints.Add(new BoxJoint(boxes[i].Id, boxes[j].Id, iface));
+                if (SharedEdge(boxes[i].Rect, boxes[j].Rect) is { } abutment)
+                    joints.Add(new BoxJoint(boxes[i].Id, boxes[j].Id, abutment));
         return new BoxPartition(boxes, joints);
     }
 
@@ -112,17 +112,17 @@ public sealed record BoxPartition(IReadOnlyList<Box> Boxes, IReadOnlyList<BoxJoi
 
     /// <summary>The shared edge interval of two abutting rects (cell coordinates), on the first rect's frame,
     /// or null when they do not touch along an edge (a gap, a bare corner, or interpenetration). The interval's
-    /// <see cref="BoxInterface.Start"/> is box-local to <paramref name="a"/>'s edge origin.</summary>
-    public static BoxInterface? SharedEdge(CellRect a, CellRect b)
+    /// <see cref="BoxAbutment.Start"/> is box-local to <paramref name="a"/>'s edge origin.</summary>
+    public static BoxAbutment? SharedEdge(CellRect a, CellRect b)
     {
         int ax0 = a.X, az0 = a.Z, ax1 = a.X + a.Width, az1 = a.Z + a.Height;
         int bx0 = b.X, bz0 = b.Z, bx1 = b.X + b.Width, bz1 = b.Z + b.Height;
         int zLo = Math.Max(az0, bz0), zHi = Math.Min(az1, bz1);         // vertical-edge overlap (Left/Right)
         int xLo = Math.Max(ax0, bx0), xHi = Math.Min(ax1, bx1);        // horizontal-edge overlap (Top/Bottom)
-        if (ax1 == bx0 && zHi > zLo) return new BoxInterface(BoxEdge.Right, zLo - az0, zHi - zLo);
-        if (ax0 == bx1 && zHi > zLo) return new BoxInterface(BoxEdge.Left, zLo - az0, zHi - zLo);
-        if (az1 == bz0 && xHi > xLo) return new BoxInterface(BoxEdge.Bottom, xLo - ax0, xHi - xLo);
-        if (az0 == bz1 && xHi > xLo) return new BoxInterface(BoxEdge.Top, xLo - ax0, xHi - xLo);
+        if (ax1 == bx0 && zHi > zLo) return new BoxAbutment(BoxEdge.Right, zLo - az0, zHi - zLo);
+        if (ax0 == bx1 && zHi > zLo) return new BoxAbutment(BoxEdge.Left, zLo - az0, zHi - zLo);
+        if (az1 == bz0 && xHi > xLo) return new BoxAbutment(BoxEdge.Bottom, xLo - ax0, xHi - xLo);
+        if (az0 == bz1 && xHi > xLo) return new BoxAbutment(BoxEdge.Top, xLo - ax0, xHi - xLo);
         return null;
     }
 }

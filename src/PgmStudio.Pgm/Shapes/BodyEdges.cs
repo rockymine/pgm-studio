@@ -23,7 +23,7 @@ public sealed record NegativeSpacePart(CellRect Rect, NegativeSpaceKind Kind, bo
 /// <see cref="WidthCells"/> wide), and the <see cref="WidthClass"/> the width tapers to (the w2/w4/w6 rung —
 /// the interface-width grammar: a w2 mouth is a chokepoint lane, w4 the unstable middle, w6 multi-access). A
 /// space has one mouth per open direction: a bay exactly one (the fact its offer/consumer rules read), a notch
-/// two, a hole none. The derive-side twin of the emit-time published vacancy's <c>BoxInterface</c> mouth —
+/// two, a hole none. The derive-side twin of the emit-time published vacancy's <c>BoxAbutment</c> mouth —
 /// which exists for bays only; here every non-enclosed space carries its mouths uniformly.</summary>
 public sealed record SpaceMouth(BoxEdge Side, int Start, int WidthCells, int WidthClass);
 

@@ -35,7 +35,7 @@ public static class TeamUnitFiller
         var onEdge = hub.Offers.Where(o => o.Edge == hubEdge).ToList();
         if (onEdge.Count == 0)
             throw new ComposeException($"the hub publishes no offer on its {hubEdge} edge to consume.");
-        int lo = joint.Interface.Start, hi = lo + joint.Interface.WidthCells;
+        int lo = joint.Abutment.Start, hi = lo + joint.Abutment.WidthCells;
         var run = onEdge.FirstOrDefault(o => o.Interval.Start < hi && lo < o.Interval.Start + o.Interval.LengthCells);
         return (run ?? onEdge[0]).WidthClass;
     }
@@ -173,7 +173,7 @@ public static class TeamUnitFiller
     /// <summary>The hub's edge a <paramref name="j"/>oint touches — the interface edge when the hub is
     /// <see cref="BoxJoint.BoxA"/>, else its opposite (the interface is read on <c>BoxA</c>'s frame).</summary>
     private static BoxEdge HubEdge(BoxJoint j, string hubId) =>
-        j.BoxA == hubId ? j.Interface.Edge : Opposite(j.Interface.Edge);
+        j.BoxA == hubId ? j.Abutment.Edge : Opposite(j.Abutment.Edge);
 
     private static string Other(BoxJoint j, string id) => j.BoxA == id ? j.BoxB : j.BoxA;
 }

@@ -110,7 +110,7 @@ public static class WoolBoxEmitter
         var vacancies = shape.Vacancies
             .Select(v => new Vacancy(v.Kind,
                 new(box.Rect.X + v.Rect.X, box.Rect.Z + v.Rect.Z, v.Rect.Width, v.Rect.Height),
-                v.Mouth is { } e ? new BoxInterface(e, e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.X : v.Rect.Z,
+                v.Mouth is { } e ? new BoxAbutment(e, e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.X : v.Rect.Z,
                     e is BoxEdge.Top or BoxEdge.Bottom ? v.Rect.Width : v.Rect.Height) : null,
                 v.Walls))
             .ToList();

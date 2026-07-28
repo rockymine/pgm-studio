@@ -161,7 +161,7 @@ public static class FrontGuard
         var backEdge = TeamUnitAllocator.Opposite(frontEdge);
         var (spAlong, spDepth) = (0, 0);
         if (spawnBox is not null
-            && joints.FirstOrDefault(j => j.BoxB == spawnBox.Id)?.Interface.Edge == backEdge
+            && joints.FirstOrDefault(j => j.BoxB == spawnBox.Id)?.Abutment.Edge == backEdge
             && flushSeats.All(f => f.Kind == BoxKind.Wool)
             && runsByEdge.TryGetValue(backEdge, out var backRuns))
         {

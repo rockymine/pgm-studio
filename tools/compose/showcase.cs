@@ -251,21 +251,21 @@ string Frame(
         foreach (var j in part.Joints)
         {
             var a = boxById[j.BoxA]; var b = boxById[j.BoxB];
-            var iface = BoxPartition.SharedEdge(a.Rect, b.Rect);
-            if (iface is null) continue;
+            var abutment = BoxPartition.SharedEdge(a.Rect, b.Rect);
+            if (abutment is null) continue;
             double x1, z1, x2, z2;
-            switch (iface.Edge)
+            switch (abutment.Edge)
             {
-                case BoxEdge.Top: x1 = a.Rect[0] + iface.Start; x2 = x1 + iface.WidthCells; z1 = z2 = a.Rect[1]; break;
-                case BoxEdge.Bottom: x1 = a.Rect[0] + iface.Start; x2 = x1 + iface.WidthCells; z1 = z2 = a.Rect[1] + a.Rect[3]; break;
-                case BoxEdge.Left: z1 = a.Rect[1] + iface.Start; z2 = z1 + iface.WidthCells; x1 = x2 = a.Rect[0]; break;
-                default: z1 = a.Rect[1] + iface.Start; z2 = z1 + iface.WidthCells; x1 = x2 = a.Rect[0] + a.Rect[2]; break;
+                case BoxEdge.Top: x1 = a.Rect[0] + abutment.Start; x2 = x1 + abutment.WidthCells; z1 = z2 = a.Rect[1]; break;
+                case BoxEdge.Bottom: x1 = a.Rect[0] + abutment.Start; x2 = x1 + abutment.WidthCells; z1 = z2 = a.Rect[1] + a.Rect[3]; break;
+                case BoxEdge.Left: z1 = a.Rect[1] + abutment.Start; z2 = z1 + abutment.WidthCells; x1 = x2 = a.Rect[0]; break;
+                default: z1 = a.Rect[1] + abutment.Start; z2 = z1 + abutment.WidthCells; x1 = x2 = a.Rect[0] + a.Rect[2]; break;
             }
             svg.Append($"<line x1='{N(PX(x1))}' y1='{N(PZ(z1))}' x2='{N(PX(x2))}' y2='{N(PZ(z2))}' "
                 + $"stroke='{Ink}' stroke-opacity='0.95' stroke-width='3' stroke-linecap='round'/>");
-            var mx = PX((x1 + x2) / 2) + (iface.Edge == BoxEdge.Left ? -13 : iface.Edge == BoxEdge.Right ? 13 : 0);
-            var mz = PZ((z1 + z2) / 2) + (iface.Edge == BoxEdge.Top ? -9 : iface.Edge == BoxEdge.Bottom ? 11 : 3);
-            svg.Append(Halo(mx, mz, $"{iface.WidthCells}c", Ink, 10.5));
+            var mx = PX((x1 + x2) / 2) + (abutment.Edge == BoxEdge.Left ? -13 : abutment.Edge == BoxEdge.Right ? 13 : 0);
+            var mz = PZ((z1 + z2) / 2) + (abutment.Edge == BoxEdge.Top ? -9 : abutment.Edge == BoxEdge.Bottom ? 11 : 3);
+            svg.Append(Halo(mx, mz, $"{abutment.WidthCells}c", Ink, 10.5));
         }
 
     // markers

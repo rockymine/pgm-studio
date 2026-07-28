@@ -7,4 +7,4 @@ namespace PgmStudio.Pgm.Compose;
 /// names the box-local edge the interval lies on; <see cref="Start"/> is the interval's offset along that
 /// edge in box-local cells; <see cref="WidthCells"/> is the master variable — the touch width that sets
 /// connectivity, classifies the joint, and gates the fill menu.</summary>
-public sealed record BoxInterface(BoxEdge Edge, int Start, int WidthCells);
+public sealed record BoxAbutment(BoxEdge Edge, int Start, int WidthCells);
