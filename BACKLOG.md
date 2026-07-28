@@ -187,6 +187,41 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   `MonumentSuggester`'s 15 call sites, and that detector is corpus-validated at 96.6% precision — not
   something to churn as a drive-by during unrelated work. Low priority: unlike the symmetry duplication this
   is a value record, so there is no algorithm here that can silently drift.
+- [ ] **B40 — The three dock styles are implicit; make them a type.** `Seat` picks between three seating
+  rules using three *different discriminators* — `d.Wool is { } rich && Overhangs(rich.Family)` (shape
+  family), `d.Kind == BoxKind.Frontline` (box kind), and falling through (everything else) — so there is
+  nowhere in the code to ask which style a demand uses. The asymmetry runs deeper than the selector:
+  two styles are named functions and the third is ~30 lines of inline loop body with no name; and the three
+  are at different altitudes — `SeatOverhang`/`SeatFront` return a placed `(CellRect, BoxInterface)` while
+  `SeatInRuns` returns a bare `int?` seat, leaving the caller to build the rect and the joint. That is why
+  `boxes.Add`/`joints.Add` is written out three times with different arguments.
+  **Scope:** (a) extract `SeatFullMouth` returning `(CellRect, BoxInterface)?` like its siblings, then (b)
+  add an explicit `DockStyle { FullMouth, Overhang, ContactPatch }` **derived** from the demand — it is never
+  sampled, it follows from the family roll — and dispatch on it. **Leave the failure policies alone**: they
+  genuinely differ in kind (overhang demotes via `Compact`, the frontline kills the attempt, a wool may be
+  dropped if another remains), and flattening them into flags loses more than it gains.
+  The doc comment writes itself, because the three styles are indexed by *how much is known about the
+  shape's entries*: full mouth knows nothing (require the whole mouth on one run and every entry lands —
+  which is why the two-entry `U`/`H`/`Clamp` dock here); overhang knows there is exactly one and where it
+  is; contact patch has no entry at all because a frontline is a face, not a corridor.
+  **Oracle + the real constraint:** `ComposerFingerprint` + `ComposerVersionTests` must stay byte-identical.
+  All three styles consume `rng`, so the invariant is not "does it compile" but **does the draw order
+  survive** — hoisting one call above another moves the stream and every fingerprint goes red.
+
+- [ ] **B41 — `EdgeOffer` is one type doing two disconnected jobs; split it into offer and grant.** Before
+  seating, the emitted hub advertises an `EdgeOffer` per edge; `Seat` reads them and keeps only
+  `(Start, LengthCells)` as its **runs**, *discarding the width*. After seating, `HubJoint`/`HubJointFrom`
+  build a **new** `EdgeOffer` onto the `BoxJoint` whose width comes from `offerW` — derived from the
+  demand's kind (`WoolLaneCells` for a wool, `w` otherwise), not from anything the hub emitted. That one is
+  consumed: `TeamUnitFiller:33` reads `joint.Offer.WidthClass` to decide how wide to fill.
+  So the second is **not the first travelling forward** — it is a different number wearing the same type.
+  The hub emits a width nobody reads, and the filler obeys a width the hub never proposed.
+  **Two separate questions, and the task must not blur them.** (1) *Naming*: an invitation and an answer are
+  not the same object — **offer** for what the host advertises before a seat exists, **grant** for what the
+  joint records afterwards. That half is a pure rename and fingerprint-neutral. (2) *Behaviour*: should the
+  emitted width become the granted one? Today it silently doesn't. Answering yes changes what the filler
+  builds and is a behaviour change needing its own before/after gallery — **do not fold it into the rename.**
+
 - [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
