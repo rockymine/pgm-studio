@@ -301,7 +301,7 @@ studio, G117/G118) is in `TODO.md`.
   today would be almost entirely a `spawn-wool-ratio` contest (outside its band on 44% of applicable plans
   at median distance 1.64) while four terms score nothing at all — see the `LEARNING.md` debt entry.
   Ranking before recalibration just amplifies one badly-fitted band. Order: `G118` collect → calibrate /
-  gate the vacuous terms → `G138` → soft rules become causal.
+  gate the vacuous terms → this → soft rules become causal.
 
 What stays here is the concrete non-design work on *imported* maps (island detection + playability):
 
