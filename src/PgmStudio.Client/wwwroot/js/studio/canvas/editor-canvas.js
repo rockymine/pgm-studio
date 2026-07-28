@@ -888,7 +888,7 @@ export class EditorCanvas extends CanvasBase {
 
     const p1b = this.#toSvg(min_x, min_z);
     const p2b = this.#toSvg(max_x, max_z);
-    const toScr = (bx, by) => ({ x: bx * this._scale + this._panX, y: by * this._scale + this._panY });
+    const toScr = (bx, by) => this._toScreen(bx, by);
     const s1 = toScr(p1b.x, p1b.y), s2 = toScr(p2b.x, p2b.y);
     const left = Math.min(s1.x, s2.x), right = Math.max(s1.x, s2.x);
     const top  = Math.min(s1.y, s2.y), bottom = Math.max(s1.y, s2.y);

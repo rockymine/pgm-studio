@@ -15,6 +15,7 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl, ringToPath } from "../render/svg.js";
+import { layerStack, showLayer, showLayers, INERT } from "../render/layer-stack.js";
 import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape, scaleShape, toRing } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
 
@@ -77,9 +78,6 @@ function bestSnap(edges, targets, tol) {
 export class SketchCanvas extends CanvasBase {
   #bbox    = null;    // the current working bounds (content + buffer); recomputed by #renderSetup
   #gridKey = "";      // last chunk-grid extent key, so the grid only rebuilds when it actually changes
-  #ro      = null;    // ResizeObserver on the wrap — the canvas re-measures itself
-  #fitPending = false; // a fit was asked for while the wrap had no layout box; run it once it gets one
-  #viewSize = null;   // last measured surface size; #gridBounds reads it every pan frame (see #build)
   #center  = { cx: 0, cz: 0 };
   #mode    = "rot_180";
 
@@ -109,13 +107,8 @@ export class SketchCanvas extends CanvasBase {
   #scaleState = null;      // { snapshots, orig, h } while scaling a selected island via a bbox handle (S21)
   #snapEnabled = true;
 
-  // viewport layers
-  #workLayer = null; #bboxLayer = null; #chunkLayer = null; #axisLayer = null;
-  #mirrorLayer = null; #ghostLayer = null; #islandLayer = null; #shapesLayer = null; #selectionLayer = null; #drawLayer = null; #measureLayer = null; #placeLayer = null; #guideLayer = null;
-  // screen-space layers (outside the viewport transform)
-  #handlesLayer = null; #centerLayer = null; #drawHandlesLayer = null; #measureLabelLayer = null; #islandChromeLayer = null; #scaleLayer = null;
-  #iso      = null;   // WebGL iso renderer (S6), lazily created on first 3-D toggle
-  #isoOn    = false;
+  #world = {};   // viewport layers (pan/zoom with the map) — built by #build, z-order declared there
+  #screen = {};  // screen-space layers (outside the viewport transform)
 
   constructor(svgEl_, wrapEl, { cursorEl, zoomEl, dimEl, ...callbacks } = {}) {
     super(svgEl_, wrapEl);
@@ -136,34 +129,22 @@ export class SketchCanvas extends CanvasBase {
   setOperation(op)     { this.#draw?.setOperation(op); }
 
   // Frame the working area, with a margin of grid visible around it. Deferred when the wrap has no layout
-  // box yet — the tool mounts this canvas while the Draw phase is still display:none, and #size()'s
+  // box yet — the tool mounts this canvas while the Draw phase is still display:none, and _size()'s
   // fallback would frame the view for a viewport that isn't the real one.
   fitToBbox() {
-    if (!this.#bbox) return;
-    if (!this.#hasBox()) { this.#fitPending = true; return; }
-    const { min_x, max_x, min_z, max_z } = this.#bbox;
-    const { w, h } = this.#size();
-    const bw = (max_x - min_x) * (1 + 2 * FIT_PAD_FRACTION), bh = (max_z - min_z) * (1 + 2 * FIT_PAD_FRACTION);
-    if (!bw || !bh) return;
-    const scale = Math.min(w / bw, h / bh) * FIT_MARGIN;
-    this._scale = scale;
-    this._panX  = w / 2 - ((min_x + max_x) / 2) * scale;
-    this._panY  = h / 2 - ((min_z + max_z) / 2) * scale;
-    this._applyViewportTransform();
-    this._onZoom(this._scale);
+    if (!this._hasBox()) { this._fitPending = true; return; }
+    this._fitWorldBox(this.#bbox, { margin: FIT_MARGIN, pad: FIT_PAD_FRACTION });
   }
+  _fit() { this.fitToBbox(); }
 
   resize() {
-    const { w, h } = this.#size();
-    this._svg.setAttribute("width",  w);
-    this._svg.setAttribute("height", h);
-    this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    this._resizeSvg();
     this.#renderGrid();   // a bigger/smaller viewport shows more/less grid
     this.#edit?.refresh();
     this.#refreshCenter();
   }
 
-  dispose() { this.#ro?.disconnect(); this.#ro = null; }
+  dispose() { this._disposeCanvasBase(); }
 
   setActiveTool(tool) {
     this.#draw?.cancel();
@@ -178,13 +159,13 @@ export class SketchCanvas extends CanvasBase {
   // Arm placement of a library item (shape specs centred at origin) — enters "place" mode; the next
   // canvas click drops them (translated to the click) via onPlace. Esc / a tool change disarms.
   armPlace(specs) { this.#placeSpecs = specs ?? null; this.setActiveTool("place"); }
-  disarmPlace()   { this.#placeSpecs = null; renderPlaceGhost(this.#placeLayer, null, identityTransform); }
+  disarmPlace()   { this.#placeSpecs = null; renderPlaceGhost(this.#world.place, null, identityTransform); }
 
   addShape(shape) {
     this.#shapes.set(shape.id, shape);
     const g = this.#shapeEl(shape);
     this.#shapeElMap.set(shape.id, g);
-    this.#shapesLayer.appendChild(g);
+    this.#world.shapes.appendChild(g);
     this.#renderSetup();   // grow the grid/frame to include the new shape
   }
 
@@ -194,7 +175,7 @@ export class SketchCanvas extends CanvasBase {
     if (old?.parentNode) old.parentNode.removeChild(old);
     const g = this.#shapeEl(shape);
     this.#shapeElMap.set(shape.id, g);
-    this.#shapesLayer.appendChild(g);
+    this.#world.shapes.appendChild(g);
     if (this.#selectedId === shape.id) { this.#applySelection(); this.#edit?.refresh(); this.#renderSelectionHighlight(); }
     this.#renderSetup();   // follow the shape as it's dragged/resized past the current edge
   }
@@ -241,40 +222,26 @@ export class SketchCanvas extends CanvasBase {
   get selectedId() { return this.#selectedId; }
   #islandOfShape(shapeId) { return this.#islands.find(i => i.shapeIds?.includes(shapeId)) ?? null; }
 
-  setIslands(islands)        { this.#islands = islands ?? []; renderIslands(this.#islandLayer, this.#islands, identityTransform); this.#renderIslandChrome(); this.#renderSelectionHighlight(); }
-  setGhostIslands(polys)     { renderGhostIslands(this.#ghostLayer, polys ?? [], identityTransform); }
-  setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; renderMirror(this.#mirrorLayer, this.#mirrorPolys, identityTransform); this.#renderSetup(); }
-  setShapesVisible(v) { this.#shapesVisible = v; if (this.#shapesLayer) this.#shapesLayer.style.display = v ? "" : "none"; }
-  setMirrorVisible(v) { this.#mirrorVisible = v; if (this.#mirrorLayer) this.#mirrorLayer.style.display = v ? "" : "none"; }
-  setChunkVisible(v)  { if (this.#chunkLayer) this.#chunkLayer.style.display = v ? "" : "none"; }
+  setIslands(islands)        { this.#islands = islands ?? []; renderIslands(this.#world.island, this.#islands, identityTransform); this.#renderIslandChrome(); this.#renderSelectionHighlight(); }
+  setGhostIslands(polys)     { renderGhostIslands(this.#world.ghost, polys ?? [], identityTransform); }
+  setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; renderMirror(this.#world.mirror, this.#mirrorPolys, identityTransform); this.#renderSetup(); }
+  setShapesVisible(v) { this.#shapesVisible = v; showLayer(this.#world.shapes, v); }
+  setMirrorVisible(v) { this.#mirrorVisible = v; showLayer(this.#world.mirror, v); }
+  setChunkVisible(v)  { showLayer(this.#world.chunk, v); }
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
   // Swap the top-down viewport for a read-only iso render of the extruded islands. Lazily loads and
   // creates the WebGL renderer on first use; returns false (leaving the 2-D viewport untouched) if the
   // preview module can't load or WebGL is unavailable, so the caller can fall back gracefully.
-  async showIso(islands, yawDeg, bbox) {
-    if (!this.#iso) {
-      try {
-        const { IsoScene } = await import("../render/iso-webgl.js");
-        this.#iso = new IsoScene(this._wrap);
-      } catch (e) {
-        console.warn("[sketch] 3-D preview unavailable:", e?.message ?? e);
-        return false;
-      }
-    }
-    this.#isoOn = true;
-    this.#draw?.cancel();
-    const { w, h } = this.#size();
-    for (const g of [this._viewportG, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer, this.#islandChromeLayer]) g.style.display = "none";
-    this.#iso.show();
-    this.#iso.render(islands, w, h, yawDeg, bbox);
-    return true;
-  }
-  hideIso() {
-    this.#isoOn = false;
-    this.#iso?.hide();
-    this._viewportG.style.display = "";
-    for (const g of [this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer, this.#islandChromeLayer]) g.style.display = "";
+  showIso(islands, yawDeg, bbox) { return this._showIso(islands, yawDeg, bbox); }
+  hideIso() { this._hideIso(); }
+
+  _isoTag() { return "sketch"; }
+  _onIsoEnter() { this.#draw?.cancel(); }
+  // What the preview covers: the whole 2-D viewport plus every screen-space overlay drawn on top.
+  _isoLayers() {
+    const { handles, center, drawHandles, measureLabel, islandChrome } = this.#screen;
+    return [this._viewportG, handles, center, drawHandles, measureLabel, islandChrome];
   }
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
@@ -283,7 +250,7 @@ export class SketchCanvas extends CanvasBase {
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
-    if (this.#isoOn) return;   // iso preview is read-only
+    if (this._isoOn) return;   // iso preview is read-only
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this._activeTool === "place") { if (this.#placeSpecs) this.#callbacks.onPlace?.(bx, bz); return; }
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
@@ -295,7 +262,7 @@ export class SketchCanvas extends CanvasBase {
     const bx = Math.floor(svgPt.x), bz = Math.floor(svgPt.y);
     if (this.#cursorEl) this.#cursorEl.textContent = `X ${bx}  Z ${bz}`;
     if (this._activeTool === "place") {
-      if (this.#placeSpecs) renderPlaceGhost(this.#placeLayer, this.#placeSpecs.map(s => translateShape(s, bx, bz)), identityTransform);
+      if (this.#placeSpecs) renderPlaceGhost(this.#world.place, this.#placeSpecs.map(s => translateShape(s, bx, bz)), identityTransform);
     } else if (this._activeTool === "measure") {
       if (this.#measure?.live) { this.#measure.bx = bx; this.#measure.bz = bz; this.#renderMeasure(); }
     } else if (this._activeTool === "split") {
@@ -314,7 +281,7 @@ export class SketchCanvas extends CanvasBase {
 
   // Single-click selects the containing ISLAND (null = deselect); double-click drills to the shape (below).
   _onCanvasClick(e, svgPt) {
-    if (this.#isoOn) return;
+    if (this._isoOn) return;
     this.#callbacks.onIslandSelected?.(this.#hitIsland(svgPt.x, svgPt.y));
   }
 
@@ -341,7 +308,7 @@ export class SketchCanvas extends CanvasBase {
   #isIslandHandle(h) { return !!(h && typeof h === "object" && h.islandId); }
 
   _hitMovable(world) {
-    if (this.#isoOn) return null;
+    if (this._isoOn) return null;
     // Island selected → drag the whole island when the point is inside its footprint.
     if (this.#selectedIslandId) {
       const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
@@ -465,7 +432,7 @@ export class SketchCanvas extends CanvasBase {
   }
 
   #renderGuides(gx, gz) {
-    const layer = this.#guideLayer;
+    const layer = this.#world.guide;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     const { min_x, max_x, min_z, max_z } = this.#gridBounds();   // guides run the full visible width/height
@@ -479,7 +446,7 @@ export class SketchCanvas extends CanvasBase {
   // island's outline (exterior + holes). Viewport-space (pans/zooms with the map); re-rendered on selection
   // change and whenever the geometry recomputes (setIslands), so it follows move / rotate / scale / resize.
   #renderSelectionHighlight() {
-    const layer = this.#selectionLayer;
+    const layer = this.#world.selection;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     let d = null;
@@ -511,7 +478,7 @@ export class SketchCanvas extends CanvasBase {
   // the four rotate zones just OUTSIDE the corners (S13 — hover shows the rotate cursor, drag rotates the
   // island). The edges are reserved for scale (S21). Re-rendered on selection + every viewport change.
   #renderIslandChrome() {
-    const layer = this.#islandChromeLayer;
+    const layer = this.#screen.islandChrome;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     if (!this.#selectedIslandId) return;
@@ -520,9 +487,9 @@ export class SketchCanvas extends CanvasBase {
     const members = (isl.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
     const b = boundsOfShapes(members);
     if (!b) return;
-    const x0 = b.min_x * this._scale + this._panX, y0 = b.min_z * this._scale + this._panY;
-    const x1 = b.max_x * this._scale + this._panX, y1 = b.max_z * this._scale + this._panY;
-    const l = Math.min(x0, x1), r = Math.max(x0, x1), t = Math.min(y0, y1), bot = Math.max(y0, y1);
+    const p0 = this._toScreen(b.min_x, b.min_z), p1 = this._toScreen(b.max_x, b.max_z);
+    const l = Math.min(p0.x, p1.x), r = Math.max(p0.x, p1.x);
+    const t = Math.min(p0.y, p1.y), bot = Math.max(p0.y, p1.y);
     layer.appendChild(svgEl("rect", {
       x: l, y: t, width: r - l, height: bot - t,
       fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none",
@@ -630,75 +597,49 @@ export class SketchCanvas extends CanvasBase {
 
   // ── private ────────────────────────────────────────────────────────────────────
 
-  // Subtract the .svg-area padding (12px each side) so the svg's viewBox equals its rendered size.
-  // Otherwise `.map-canvas-svg { max-width:100% }` shrinks the svg to fit while the viewBox stays
-  // larger, scaling the client→world mapping — the cursor would land off the drawn anchors/preview,
-  // worse toward the right/bottom. Matches EditorCanvas (clientWidth − 24).
-  // Measures the wrap, so it forces a layout — every caller either already changed the DOM or runs off a
-  // resize. The per-frame path (#gridBounds) reads the cached #viewSize instead; only resize() re-measures.
-  #size() {
-    this.#viewSize = { w: (this._wrap.clientWidth || 600) - 24, h: (this._wrap.clientHeight || 600) - 24 };
-    return this.#viewSize;
-  }
-
-  // Whether the wrap has a real layout box — false while the canvas sits in a display:none phase, where
-  // #size() returns its fallback rather than a measurement.
-  #hasBox() { return this._wrap.clientWidth > 0 && this._wrap.clientHeight > 0; }
 
   #build() {
-    const { w, h } = this.#size();
-    this._svg.setAttribute("width", w);
-    this._svg.setAttribute("height", h);
-    this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    this._resizeSvg();
 
     this._viewportG   = svgEl("g", { id: "sk-viewport" });
-    this.#workLayer   = svgEl("g", { "pointer-events": "none" });   // working-area backdrop, under everything
-    this.#bboxLayer   = svgEl("g", { "pointer-events": "none" });
-    this.#chunkLayer  = svgEl("g", { "pointer-events": "none" });
-    this.#axisLayer   = svgEl("g", { "pointer-events": "none" });
-    this.#mirrorLayer = svgEl("g", { "pointer-events": "none" });
-    this.#ghostLayer  = svgEl("g", { id: "sk-ghost", "pointer-events": "none" });
-    this.#islandLayer = svgEl("g", { "pointer-events": "none" });
-    this.#shapesLayer = svgEl("g");
-    this.#selectionLayer = svgEl("g", { "pointer-events": "none" });   // accent outline of the selection (S22)
-    this.#drawLayer   = svgEl("g", { "pointer-events": "none" });
-    this.#measureLayer = svgEl("g", { "pointer-events": "none" });
-    this.#placeLayer   = svgEl("g", { "pointer-events": "none" });
-    this.#guideLayer   = svgEl("g", { "pointer-events": "none" });
-    for (const g of [this.#workLayer, this.#bboxLayer, this.#chunkLayer, this.#axisLayer, this.#mirrorLayer, this.#ghostLayer,
-                     this.#islandLayer, this.#shapesLayer, this.#selectionLayer, this.#drawLayer, this.#measureLayer, this.#placeLayer, this.#guideLayer]) this._viewportG.appendChild(g);
+    // Paint order, bottom first — stated once (see render/layer-stack.js).
+    this.#world = layerStack(this._viewportG, {
+      work:      INERT,                            // working-area backdrop, under everything
+      bbox:      INERT,
+      chunk:     INERT,
+      axis:      INERT,
+      mirror:    INERT,
+      ghost:     { id: "sk-ghost", ...INERT },
+      island:    INERT,
+      shapes:    null,                             // hit-tested
+      selection: INERT,                            // accent outline of the selection (S22)
+      draw:      INERT,
+      measure:   INERT,
+      place:     INERT,
+      guide:     INERT,
+    });
     this._svg.appendChild(this._viewportG);
 
-    this.#islandChromeLayer = svgEl("g");   // island bbox (inert) + interactive rotate zones, below the handles
-    this.#handlesLayer      = svgEl("g");
-    this.#centerLayer       = svgEl("g", { "pointer-events": "none" });
-    this.#drawHandlesLayer  = svgEl("g", { "pointer-events": "none" });
-    this.#measureLabelLayer = svgEl("g", { "pointer-events": "none" });
-    this.#scaleLayer        = svgEl("g", { "pointer-events": "none" });   // "N blocks" bar, bottom-right
-    for (const g of [this.#islandChromeLayer, this.#handlesLayer, this.#centerLayer, this.#drawHandlesLayer, this.#measureLabelLayer, this.#scaleLayer]) this._svg.appendChild(g);
+    this.#screen = layerStack(this._svg, {
+      islandChrome: null,                          // island bbox (inert) + interactive rotate zones
+      handles:      null,
+      center:       INERT,
+      drawHandles:  INERT,
+      measureLabel: INERT,
+      scale:        INERT,                         // "N blocks" bar, bottom-right
+    });
 
-    if (!this.#shapesVisible) this.#shapesLayer.style.display = "none";
-    if (!this.#mirrorVisible) this.#mirrorLayer.style.display = "none";
+    showLayer(this.#world.shapes, this.#shapesVisible);
+    showLayer(this.#world.mirror, this.#mirrorVisible);
     this._applyViewportTransform();
 
-    // The canvas re-measures itself: it is mounted while the Draw phase is still display:none (a new
-    // sketch opens on Info), and the workspace sidebars are resizable. A fit deferred because there was
-    // no layout box yet runs the first time a real one arrives — without it the view stays framed for
-    // #size()'s 600px fallback inside the real, larger viewport.
-    if (typeof ResizeObserver !== "undefined") {
-      this.#ro = new ResizeObserver(() => {
-        if (!this.#hasBox()) return;
-        this.resize();
-        if (this.#fitPending) { this.#fitPending = false; this.fitToBbox(); }
-      });
-      this.#ro.observe(this._wrap);
-    }
+    this._observeResize();
 
     const getViewport = () => ({ scale: this._scale, panX: this._panX, panY: this._panY });
-    this.#draw = new SketchDrawController(this.#drawLayer, this.#drawHandlesLayer, getViewport, {
+    this.#draw = new SketchDrawController(this.#world.draw, this.#screen.drawHandles, getViewport, {
       onShapeCreated: (partial) => this.#callbacks.onShapeCreated?.(partial),
     });
-    this.#edit = new SketchEditController(this.#handlesLayer, getViewport, (id) => this.#shapes.get(id), {
+    this.#edit = new SketchEditController(this.#screen.handles, getViewport, (id) => this.#shapes.get(id), {
       onShapeUpdated: (shape) => { this.updateShape(shape); this.#callbacks.onShapeUpdated?.(shape); },
       onVertexSelected: (shapeId, idx) => this.#callbacks.onVertexSelected?.(shapeId, idx),
       snapEdges: (id, edges, alt) => this.#snapResize(id, edges, alt),
@@ -727,7 +668,7 @@ export class SketchCanvas extends CanvasBase {
     // the cursor (Figma group model — single-click picks the island, double-click enters a member).
     this._svg.addEventListener("dblclick", (e) => {
       if (this._activeTool === "polygon") { e.stopPropagation(); this.#draw.onDblClick(); return; }
-      if (this.#isoOn || (this._activeTool !== null && this._activeTool !== "select")) return;
+      if (this._isoOn || (this._activeTool !== null && this._activeTool !== "select")) return;
       const p = this._clientToSvg(e.clientX, e.clientY);
       const shapeId = this.#hitTest(p.x, p.y);
       if (shapeId) this.#callbacks.onShapeSelected?.(shapeId);   // drill
@@ -772,16 +713,16 @@ export class SketchCanvas extends CanvasBase {
   // symmetry axis and the alignment guides span. Viewport-driven rather than content-driven, so the
   // drawing surface is never fenced in by the grid: wherever you pan or zoom, there is grid to draw on.
   #gridBounds() {
-    const { w, h } = this.#viewSize ?? this.#size();   // cached — this runs on every pan/drag frame
+    const { w, h } = this._viewSize ?? this._size();   // cached — this runs on every pan/drag frame
     return snapOut(viewportWorldRect(w, h, this._scale, this._panX, this._panY), GRID_SNAP);
   }
 
   #renderSetup() {
     const tight = this.#contentBounds();
     this.#bbox = this.#viewBounds(tight);   // the working area — drives the tint and fit()/pan
-    renderWorkArea(this.#workLayer, this.#bbox, identityTransform);
+    renderWorkArea(this.#world.work, this.#bbox, identityTransform);
     // Frame outline = the tight world bounds (what Finish rasterizes); nothing when empty.
-    renderBbox(this.#bboxLayer, tight, identityTransform);
+    renderBbox(this.#world.bbox, tight, identityTransform);
     this.#renderGrid();
   }
 
@@ -790,11 +731,11 @@ export class SketchCanvas extends CanvasBase {
   // actually changes (every four chunks of travel), not on every pan/drag frame.
   #renderGrid() {
     const g = this.#gridBounds();
-    renderAxis(this.#axisLayer, g, this.#center, this.#mode, identityTransform);
+    renderAxis(this.#world.axis, g, this.#center, this.#mode, identityTransform);
     const key = `${g.min_x},${g.min_z},${g.max_x},${g.max_z}`;
-    if (key !== this.#gridKey) { this.#gridKey = key; renderChunkGrid(this.#chunkLayer, g, identityTransform); }
-    const { w, h } = this.#viewSize ?? this.#size();
-    renderScaleBar(this.#scaleLayer, { w, h, scale: this._scale });
+    if (key !== this.#gridKey) { this.#gridKey = key; renderChunkGrid(this.#world.chunk, g, identityTransform); }
+    const { w, h } = this._viewSize ?? this._size();
+    renderScaleBar(this.#screen.scale, { w, h, scale: this._scale });
   }
 
   // Build the shape group (render layer). Selection is handled canvas-wide (single-click = island,
@@ -820,11 +761,10 @@ export class SketchCanvas extends CanvasBase {
   }
 
   #refreshCenter() {
-    const layer = this.#centerLayer;
+    const layer = this.#screen.center;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
-    const sx = this.#center.cx * this._scale + this._panX;
-    const sy = this.#center.cz * this._scale + this._panY;
+    const { x: sx, y: sy } = this._toScreen(this.#center.cx, this.#center.cz);
     const arm = 10, col = "var(--canvas-axis)";
     layer.appendChild(svgEl("line", { x1: sx - arm, y1: sy, x2: sx + arm, y2: sy, stroke: col, "stroke-width": "1" }));
     layer.appendChild(svgEl("line", { x1: sx, y1: sy - arm, x2: sx, y2: sy + arm, stroke: col, "stroke-width": "1" }));
@@ -834,7 +774,7 @@ export class SketchCanvas extends CanvasBase {
   // The ruler: a line in world coords (so it pans/zooms with the map) plus a live distance label on the
   // line itself (#renderMeasureLabel) — the reading rides the ruler, not the sub-bar.
   #renderMeasure() {
-    const layer = this.#measureLayer;
+    const layer = this.#world.measure;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     const m = this.#measure;
@@ -849,15 +789,15 @@ export class SketchCanvas extends CanvasBase {
   // world-space label would scale with the map), so it's repositioned on every viewport change too. A
   // thin halo (paint-order stroke in the canvas bg) keeps it readable over shapes without a box/pill.
   #renderMeasureLabel() {
-    const layer = this.#measureLabelLayer;
+    const layer = this.#screen.measureLabel;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     const m = this.#measure;
     if (!m) return;
     const text = `${Math.round(Math.hypot(m.bx - m.ax, m.bz - m.az))} blocks`;
     // Endpoints + midpoint in screen space (identity world→svg, then the viewport pan/scale).
-    const ax = m.ax * this._scale + this._panX, ay = m.az * this._scale + this._panY;
-    const bx = m.bx * this._scale + this._panX, by = m.bz * this._scale + this._panY;
+    const { x: ax, y: ay } = this._toScreen(m.ax, m.az);
+    const { x: bx, y: by } = this._toScreen(m.bx, m.bz);
     const mx = (ax + bx) / 2, my = (ay + by) / 2;
     let deg = Math.atan2(by - ay, bx - ax) * 180 / Math.PI;
     if (deg > 90 || deg < -90) deg += 180;                 // keep the text upright, never mirrored
@@ -885,7 +825,7 @@ export class SketchCanvas extends CanvasBase {
         x1: bx, y1: bz, x2: bx, y2: bz, stroke: "var(--canvas-sub-stroke)", "stroke-width": "1.5",
         "stroke-dasharray": "5 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
       });
-      this.#drawLayer.appendChild(this.#splitLine);
+      this.#world.draw.appendChild(this.#splitLine);
     } else {
       this.#callbacks.onSplit?.([this.#split.ax, this.#split.az], [bx, bz]);
       this.#clearSplit();

@@ -117,27 +117,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
   contain** (hit-testing, snapping, viewport/transform maths, selection resolution) into pure modules the
   existing `node --test` setup can reach without a DOM. Pairs with the JS consolidation review.
-- [ ] **CV13 — `CanvasBase` has the inverse projection but not the forward one.** The base owns
-  `_clientToSvg`, so every surface that needs the other direction re-derives it: `{ x: wx*scale + panX,
-  y: wz*scale + panY }` is written verbatim four times (`#toScreen` in `sketch-draw-controller` and
-  `sketch-edit-controller`, an inline `toScr` const in `editor-canvas` and `editor-edit-controller`).
-  Three more shared shapes sit next to it. **Fit-to-bounds** is three copies of the same four lines
-  (`plan.fit`, `sketch.fitToBbox`, `editor.fitBounds`) — the editor's only real differences are that it
-  pre-maps corners through its `#toSvg` and clamps to `ZOOM_MIN/MAX`, i.e. parameters, not structure.
-  **`resize()`** is three copies of "set width/height/viewBox, then refresh my own stuff" — a template
-  method with a hook. **`#size()`** (`(clientWidth || 600) - 24`) is duplicated, with the magic `-24` also
-  inlined in `editor.fitBounds`. And the **iso preview lifecycle** (`showIso`/`hideIso`: lazy import,
-  try/catch → `false`, hide the 2-D layers, `show` + `render`) is duplicated between the plan and sketch
-  canvases, differing only in which layers to hide and the log tag — one base method plus an `_isoLayers()`
-  hook covers both and puts the "3-D unavailable" fallback in one place. ~100 lines, but the point is that
-  a projection used by four call sites should have one definition.
-- [ ] **CV14 — Each canvas hand-rolls its layer z-stack.** 12–24 `#…Layer` fields, 14–18 `svgEl("g")`
-  calls and `style.display` toggled in 4–15 places per canvas. In `SketchCanvas.#build()` the z-order is
-  stated **twice** — once by declaration order, once by the append-loop array — so the two can silently
-  drift. A small declarative `LayerStack` (ordered names → groups, `get`/`setVisible`/`hideAll(except)`)
-  shortens all three constructors and, more usefully, lets each canvas declare its z-order as one readable
-  list instead of spreading it over 60 lines. Do **not** generalise further than that: the layers
-  themselves are per-tool and should stay so.
 - [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
   `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
   callback; `editor-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead

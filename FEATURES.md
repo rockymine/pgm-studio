@@ -77,6 +77,32 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **The canvases share their machinery instead of re-deriving it (CV13 + CV14).** Two shapes of
+  duplication, both of which had already cost something:
+  - **The layer z-stack was stated twice per canvas** — once by the `#…Layer` field declarations, once by
+    the append-loop array — so the two could drift silently. `render/layer-stack.js` states it **once**:
+    the key order of the spec is the paint order, bottom first, and each group gets a
+    **`data-layer="<name>"`** so a layer can be addressed by name rather than by its index among its
+    siblings (an index that moves the moment a layer is inserted — which is exactly how the C29 probes
+    broke). Sketch's 19 layers and Plan's 15 now read as two declaration blocks.
+  - **`CanvasBase` owned the inverse projection but not the forward one**, so `wx * scale + panX` was
+    written out in six places. It is now `Geom`-side pure math (`transform.toScreen`, unit-tested both
+    directly and as the inverse of `_clientToSvg`) with a `_toScreen` on the base. Joined by the other
+    shapes that were copied per canvas: `_size()`/`_hasBox()` (the `(clientWidth || 600) - 24` measure,
+    cached so per-frame paths don't force a layout), `_resizeSvg()`, `_fitWorldBox(box, {margin, pad})`,
+    the `ResizeObserver` + deferred-fit that C29 had to add to each canvas separately, and the whole
+    **3-D preview lifecycle** (`_showIso`/`_hideIso` + `_isoLayers`/`_isoTag`/`_onIsoEnter` hooks) — which
+    puts the "WebGL unavailable → stay in 2-D" fallback in one place.
+
+  Behaviour-preserving by construction and checked as such: the same Playwright suites that gated C29
+  return **identical numbers** (17/17 both tools, 11/11 sketch regression, 8/8 resize/zoom), JS 150/150.
+  The editor canvas's projection was rerouted too but could not be exercised end-to-end here (no
+  imported maps in this environment) — the extracted maths is unit-tested instead. (CV13, CV14)
+- **The landing page's Plan card opens the plan overview, not the bare editor.** It pointed at
+  `plan-editor` — an unsaved scratch document — while Sketch/Configure/Edit all opened their
+  `maps?stage=…` list, which is also what the page's own header comment says every card does. Now
+  `maps?stage=plan`, so the four lifecycle cards behave alike and "Plan a layout" starts where the
+  other three do: on the list, with a **New plan** action. (CV13)
 - **One drawing-surface model for Sketch + Plan: tinted working area · viewport grid · scale bar** — a
   fresh sketch opened on a postage stamp you couldn't draw your way out of, and the plan editor it was
   modelled on had the same defects. Both canvases now share `render/canvas-chrome.js` and the contract in

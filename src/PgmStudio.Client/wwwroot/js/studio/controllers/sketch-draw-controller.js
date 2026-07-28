@@ -14,6 +14,7 @@
 import { svgEl, ringToPath, handleRectAttrs } from "../render/svg.js";
 import { drawnBoundsFromBlocks } from "../geometry/region-convert.js";
 import { opColors } from "../render/primitive-style.js";
+import { toScreen } from "../geometry/transform.js";
 
 const HANDLE_HALF = 5;
 
@@ -144,10 +145,7 @@ export class SketchDrawController {
 
   // ── private ────────────────────────────────────────────────────────────────
 
-  #toScreen(wx, wz) {
-    const { scale, panX, panY } = this.#getViewport();
-    return { x: wx * scale + panX, y: wz * scale + panY };
-  }
+  #toScreen(wx, wz) { return toScreen(wx, wz, this.#getViewport()); }
 
   #opFill()   { return opColors(this.#activeOperation).fill; }
   #opStroke() { return opColors(this.#activeOperation).stroke; }
