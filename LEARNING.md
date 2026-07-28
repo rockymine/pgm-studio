@@ -108,16 +108,19 @@ Entries are dated and cite `file:line`. Debt entries are `[ ]` open / `[>]` grad
   least — `wool-front-ratio` does not apply to 62% of plans, `spawn-wool-ratio` to 41% — so any average
   must divide by *applicable*, not by *total*. (2026-07-28)
 
-- [ ] **"Demand" now names two different things, one of them mine.** `model.md` §1's kind table defines
-  **demand** as *"a shape's requirement on its environment (inbound)"* — what a shape needs *from* its host,
-  e.g. a staple needing two entries on the host. The type `Demand` (`UnitDemands`) is the opposite direction:
-  a neighbour's *outbound* request for a side and two extents, which imposes nothing on the host at all. The
-  model's demand pairs with **offer**; the type's `Demand` pairs with nothing — it is a sizing request.
-  The collision was latent while `Demand` was a private nested record; hoisting it to namespace level in
-  `B42` and giving it a `vocabulary.md` row made it public. Same shape as the `Offer`/`Grant` and
-  `Interface`/`Abutment` findings, except this one I introduced rather than found. Either the type renames
-  (`NeighbourRequest`? `BoxRequest`?) or the model's term does — but the docs should not keep defining a
-  word one way while the code uses it the other. (2026-07-28)
+- [>] **"Demand" named two different things, one of them mine — resolved by renaming the type.**
+  `model.md` §1 defines **demand** as *"a shape's requirement on its environment (inbound)"* — what a shape
+  needs *from* its host, the thing that pairs with **offer** and drives which shapes can be picked. The type
+  `Demand` pointed the other way: a neighbour's *outbound* request for a side and two extents, requiring
+  nothing of its host. The collision was latent while it was a private nested record; hoisting it to
+  namespace level in `B42` made it public.
+  **The model's sense won** — it is the one the layout maths actually turns on, and the hub is the party
+  making offers. So the type gave up the word: `NeighbourRequest` in `UnitRequests`. Every other "demand" in
+  the tree was checked and left: the model's inbound sense in `BoxInterfaces`/`Producibility`/
+  `FeasibilityDto`, and the English idiom "on demand" in the import and symmetry paths.
+  Same shape as the `Offer`/`Grant` and `Interface`/`Abutment` findings — except this one I introduced
+  rather than found, which is the useful part: the split that made three names honest also created a fourth
+  collision, and nothing but reading caught it. (2026-07-28)
 
 ## Covered
 

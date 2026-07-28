@@ -23,7 +23,7 @@ of the arrow". The offer half is richly built out (`EdgeOffer` appears across se
 demand half has **nothing behind it**: `FamilyDock.EntryDemand`, the table's own exemplar, was
 retired when the clamp was redefined, and `grep FamilyDock src/` returns zero hits.
 
-What survives of the concept is `UnitDemands.Overhangs` — a private predicate stating demand
+What survives of the concept is `UnitRequests.Overhangs` — a private predicate stating demand
 **by exclusion** (`family is L or Donut`, i.e. "these do *not* need two hosts"). The clamp's
 two-entry requirement, the taxonomy's exemplar, is now an implicit negation inside the allocator.
 
@@ -54,7 +54,7 @@ in that nothing verifies them afterwards. → **G109**
 
 ## 3. The trace to law — which constants are grounded
 
-Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved to `UnitTuning`/`UnitDemands`/`UnitSeating`/`SeatGeometry` in B42 without changing behaviour.
+Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved to `UnitTuning`/`UnitRequests`/`UnitSeating`/`SeatGeometry` in B42 without changing behaviour.
 
 | allocator rule | law | verdict |
 |---|---|---|
