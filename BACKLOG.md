@@ -226,10 +226,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
   API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
   small, semantic, and the validator/evaluator return rule-id findings, giving the agent a compiler-style
-  submit→lint→fix loop. **Pull up after G119 + G117 + G125 land** — the MCP head then wraps endpoints
-  those tasks build (duplicated plumbing before them), and its genuinely new work shrinks to three
-  things: the PNG rasterization path for `plan_render`, the `emit_family` stamp tool, and the
-  tool-description/resource curation (still the real work). Tools: `compose` (the G117 endpoint —
+  submit→lint→fix loop. **The gate this waited on is open: G119, G117 and G125 have all landed** (with
+  G126's typed boxes), so the MCP head now wraps endpoints that exist rather than duplicating their
+  plumbing. Of the three genuinely-new pieces, **`emit_family` is half-built**: G144's
+  `GET /api/shapes/probe` already emits a canonical family through `BoxFiller` — profile check and
+  docking gate included — and answers with the shape or a directed `FillRejection`, and
+  `/api/shapes/probe/schema` serves the per-family knob surface and minimum box in the dock frame, which
+  is the payload a tool-description needs to constrain its parameter enum. What is left of it is the
+  *stamp*: placing the emission into an existing plan's typed box instead of returning a standalone
+  `symmetry:none` plan. So the remaining new work is the PNG path for `plan_render`, that stamp, and the
+  resource curation. Tools: `compose` (the G117 endpoint —
   request in; plan + canonical descriptor + derived facts + score out; starting material to mutate) ·
   `plan_validate` (errors + rule lint + full evaluator readout — the response must flag empty
   `placements`, which leave the feel terms vacuously green) · **`plan_feasibility`** (the G125
@@ -240,8 +246,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   self-correct far better seeing the board) · `plan_save`/`plan_get`/`plan_list` (the G119 store, with
   an agent-authored origin marking so agent output never contaminates the human-labeled corpus) ·
   `create_draft`/`export` (existing chain; return the export **link**, never the world zip inline). MCP
-  resources: `generator/rules.md` + `generator/model.md` as the design brief, `tools/seeds/*.plan.json`
-  (incl. the funnel exemplars) as few-shot examples, and the G118 verdict JSONL once it exists. Scope
+  resources: `generator/rules.md` + `generator/model.md` as the design brief, **`GET /api/shapes/catalog`
+  as the machine-readable half of that brief** (G144 — the same vocabulary computed from the emitters, so
+  unlike the prose it cannot drift, and each entry carries the tier that says whether the composer really
+  produces it), `tools/seeds/*.plan.json` (incl. the funnel exemplars) as few-shot examples, and the G118
+  verdict JSONL once it exists. **G146 blocks this, as correctness rather than tidiness**: the design
+  brief describes Z as a production family and no sampler draws one, so an agent that reads the prose and
+  asks for a Z authors a plan `plan_feasibility` then rejects — a loop that cannot converge, caused by a
+  doc/code disagreement the catalog's tiering made visible. Either land G146 first or restrict
+  `emit_family` to the catalog's in-mix tier. The same reasoning applies to the verdict JSONL: few-shot
+  examples inherit whatever the sampler over-produces (measured at G144: the donut is 73 of 89 wool
+  cards, U/H/L one apiece), so an unstratified corpus teaches an agent to write donuts. Scope
   is the **author agent** only; the **analyst agent** (mine verdicts/reject logs for rule + envelope
   refinements — read-only `verdicts_export`/`rejects_query`) is a small follow-on once the corpus has
   data, not before.
