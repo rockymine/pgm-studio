@@ -212,49 +212,6 @@ with what a space carries and how a boundary run is classified, are set out in �
 what a body leaves empty*. ("hole" here is the *shape-level* class — the donut's void — **not** the
 board-deriver's connectivity hole classes of §1.7.)
 
-### 1.14 the rule kinds
-
-Every generator rule is one **kind**; naming the kind gives each new rule an address. The one-line
-test: does it change what can be **picked** (menu), whether a pick **fits** (fit gate), whether a join
-is **legal** (gate over demand / offer / veto), how a legal join **varies** (knob), what a compose
-**aims at** (target), or how good the result **reads** (band / term)?
-
-| Kind | Is | Exemplar |
-|---|---|---|
-| **fact** | an observation off geometry, no policy | `BoxEdgeInterface.Intervals`, the edge taxonomy (§1.13), `FrontlineRuns` |
-| **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillProfiles.Families`, `FillMenu.Rows` |
-| **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
-| **demand** | a shape's requirement *on its environment* (inbound) | *(no live type — `FamilyDock` was retired with the clamp's redefinition; the dual-entry requirement survives only as `UnitRequests.Overhangs`, stated **by exclusion**. `audit.md` §1; G107)*<br>The word is now the model's alone: the allocator's outbound sizing type was renamed `NeighbourRequest` so **demand** means only this inbound sense. |
-| **offer** | constraints a shape imposes *outward* — the edges/intervals it invites neighbours onto, in which groupings | `EdgeOffer` — the hub's per-run widths (granted per dock on the joint) and the frontline's face |
-| **veto** | a never-attach / never-publish mark | `SlotDockRole.NeverDock`, `PublishPolicy`'s bay/hole veto |
-| **gate** | the hard legality check applying demand/offer/veto, with a **directed rejection** | `DockingGate` → `DockRejection`, `PublishPolicy` → `PublishVerdict` |
-| **knob** | a free parameter *within* legality — never changes identity | entry shift, attachment width, arm placement |
-| **target** | a **per-request, prescriptive** constraint a compose holds and verifies | `ComposeTargets` (G98) |
-| **band** | a **descriptive** envelope measured off the seeds — advisory, scores distance | `SoftTerm` + the seed envelopes |
-| **hard term** | a well-formedness symptom on the derived board — flat penalty | `WoolRingedHole`, `GapHopBand` |
-| **law** | the id-bearing author rule the mechanisms implement — a **living** set, amended by protocol | `rules.md` FR6, CT9, BZ8 |
-| **doctrine** | a meta-rule about where rules may live | "labels drive, the mirror verifies" |
-
-Two distinctions carry the weight. **demand vs offer** is the direction of the arrow: an approach
-*demands* (its entry must find a host); a hub or frontline *offers* (its edges dictate where and how
-wide neighbours land — the constraint source of §6). **target vs band** is prescription vs
-description: a band says *authored maps run 1–7 frontline runs*; a target says *this compose wants
-exactly 2, connected*. Bands score a finished compose; targets steer it first and verify after.
-
-**An offer also carries a grouping** (`OfferGrouping`), because *where* and *how wide* do not say
-whether neighbours may share: `Several` — each interval takes its own consumer (a hub's four edges;
-the twin frontline's two tips) — or `Joint` — one consumer must span the whole group flush (the wide
-face across both tips, the inter-tip recess preserved as a hole). Joint-vs-several *is* FR6's wide
-vs split frontline.
-
-**Two kinds are vocabulary-only.** `target` is locked as a term but has **no live type**
-(`ComposeTargets` was declared pending and never landed) — the budget ladders of §3, *The ladders, and the weights beside them*
-for*, are what would become targets. And the allocator's weighted sampling there fits **no** declared
-kind: a `menu` is a
-set and carries no frequency, a `band` carries a distribution but is explicitly descriptive. Naming
-that kind — provisionally **mix** — is an open author decision. Both are tracked in `audit.md`
-(G108/G109).
-
 ---
 
 ## 2. The pipeline
@@ -1469,44 +1426,130 @@ reading is defined the way it is.
 
 ---
 
-## 8. The evaluator
+## 8. Rules and scoring
 
-The emitter can make anything; the maps' character comes from **what evaluation refuses to let
-through**. The rules do not *produce* good maps — they *punish* bad ones, and the residue is the
-style.
+The emitter can make almost anything. What gives the generator's output a character is not what it
+can build but **what it refuses to let through** — the rules do not produce good maps, they punish bad
+ones, and the residue is the style. That makes the rule set the most consequential part of the model
+and the one most easily misused, so this section is about what a rule *is* before it is about what any
+particular rule says.
 
-**The model is three layers:**
+### 8.1 Every rule is one kind
 
-| Layer | What it is | Where |
+A rule that cannot be classified cannot be placed, and a rule in the wrong place is enforced at the
+wrong time. So every rule in the generator is exactly one **kind**, and naming the kind is what gives
+a new rule an address. The one-line test asks what the rule changes: what can be **picked**, whether a
+pick **fits**, whether a join is **legal**, how a legal join **varies**, what a compose **aims at**, or
+how good the result **reads**.
+
+| Kind | Is | Exemplar |
 |---|---|---|
-| **author intent** | the irreducible input | `plan.json` (§3) |
-| **derive structure** | the roles + topology, computed | the derivers (§6), in-memory |
-| **judge by property** | metrics vs rules + envelopes | the evaluator |
+| **fact** | an observation off geometry, no policy | `BoxEdgeInterface.Intervals`, the negative-space classes, `FrontlineRuns` |
+| **menu** | a generative allowlist — what may be *chosen* (empty = a directed signal) | `FillProfiles.Families`, `FillMenu.Rows` |
+| **fit gate** | does the choice fit the box | `ShapeEmitter.MinBox`, `FillProfiles.Fits` |
+| **demand** | a shape's requirement *on its environment* (inbound) | no live type — see below |
+| **offer** | what a shape imposes *outward*: the intervals it invites neighbours onto, and in which groupings | `EdgeOffer` |
+| **veto** | a never-attach or never-publish mark | `SlotDockRole.NeverDock`, the publish policy's bay and hole veto |
+| **gate** | the hard legality check applying demand, offer and veto, with a **directed rejection** | `DockingGate` → `DockRejection` |
+| **knob** | a free parameter *within* legality — never changes identity | entry shift, attachment width, arm placement |
+| **target** | a **per-request, prescriptive** constraint a compose holds and verifies | none live |
+| **band** | a **descriptive** envelope measured off the seeds — advisory, scores distance | `SoftTerm` and the seed envelopes |
+| **hard term** | a well-formedness symptom on the derived board — flat penalty | `WoolRingedHole`, `GapHopBand` |
+| **law** | the id-bearing author rule the mechanisms implement | `rules.md` — FR6, CT9, BZ8 |
+| **doctrine** | a meta-rule about where rules may live | "the labels drive, the deriver verifies" |
 
-Everything the file cannot recover is authored; everything structural is derived; everything the
-rules check is judged. The form:
+Two of those distinctions carry most of the weight.
+
+**Demand against offer is the direction of the arrow.** An approach *demands*: its entry has to find a
+host, and that requirement points outward at the world. A hub or a frontline *offers*: its edges
+dictate where neighbours may land and how wide, which is what makes it the constraint source. Confusing
+the two inverts who is obliged to whom. The word demand is now the model's alone — the allocator's
+outbound sizing type is a request, renamed precisely so that demand keeps only the inbound sense.
+
+**Target against band is prescription against description.** A band says *authored maps run one to
+seven frontline runs*; a target says *this compose wants exactly two, connected*. Bands score a
+finished compose from the outside; targets steer it first and verify afterwards. They are not
+interchangeable, and a band pressed into service as a target silently turns an observation about the
+corpus into a requirement on the generator.
+
+An offer carries one thing beyond where and how wide, because those two do not say whether neighbours
+may **share**. Its grouping is either *several* — each interval takes its own consumer, as a hub's four
+edges do — or *joint*, where one consumer must span the whole group flush, as a wide face across both
+tips of a twin frontline does, preserving the recess between them as a deliberate hole. Joint against
+several *is* the law about wide against split frontlines, which is why the grouping belongs to the
+offer rather than to whoever consumes it.
+
+Three of the kinds are currently vocabulary without machinery, and saying so is part of the model
+rather than an apology for it. **Demand** has no live type: the dual-entry requirement survives only
+as an exclusion in the allocator's request list. **Target** has none either — the budget ladders are
+what would become targets if it gained one. And the allocator's weighted sampling fits **no** declared
+kind at all: a menu is a set and carries no frequency, while a band carries a distribution but is
+explicitly descriptive. Naming that kind is an open decision, and all three are tracked in `audit.md`.
+
+### 8.2 Where a rule may live
+
+The kinds are not a filing convenience; they say *when* a rule runs, and that is a stronger constraint
+than it appears.
+
+A **menu**, a **fit gate** and a **gate** run during composition, where the thing being judged still
+has a name — a family, a form, a slot. The evaluator cannot enforce any of them, because by the time it
+sees a board those names are gone: the plan carries no slots and no family, only geometry and markers.
+That is why the docking law is a compose-side gate and not an evaluator term, and why a rule stated as
+"an L may not dock here" has to be enforced where an L is still called one.
+
+A **hard term** and a **band** run the other way round. They read the derived board and nothing else,
+which is what lets them judge a hand-authored map the composer never touched. The cost is that they can
+only see symptoms — a wool ringed by a hole, a hop outside the bridgeable range — and never intent.
+
+The two halves catch each other. The compose-side gates emit only legal structure; the derived-board
+terms catch any symptom that appears anyway, which is exactly the case where a gate was wrong.
+
+### 8.3 What the score is
+
+Judgement runs over three layers, and each answers a different question. **Author intent** is the
+irreducible input, the plan. **Derived structure** is the roles and topology, computed and held in
+memory, never written back. **The judgement** is metrics against rules and envelopes. Everything the
+file cannot recover is authored, everything structural is derived, everything the rules check is judged.
+
+The score itself is a sum of two unlike things:
 
 ```
 score = Σ hard-penalty(violated well-formedness) + Σ w · envelope-distance(metric)
 ```
 
-Hard rules are large penalties (a valid layout has none); "feel" is each metric's distance outside
-the authored envelope (`seed-stats.md`). The evaluator returns the score **and the list of violated
-terms** (each citing a `rules.md` id) so a failure is legible and actionable. It is
-**additive and never has to be complete** — new terms are added as failures are found, and a new term
-never tanks an acceptance rate.
+The first term is well-formedness, and a valid layout has none of it: hard rules carry large penalties
+because they mark a board that is broken rather than unfashionable. The second is feel, measured as
+each metric's distance outside the envelope the authored corpus occupies. A board inside every envelope
+scores zero on it and is, by construction, unremarkable in the way the corpus is unremarkable.
 
-**The evaluation set is the real deliverable.** The evaluator is correct when it ranks a labeled set
-the way the author does: **positives** (authored good layouts, auto-labeled by the deriver),
-**negatives** (flagged bad layouts — the most valuable are **minimal pairs** differing in exactly one
-property), and **coverage** (examples per sub-problem × per symmetry mode). The property-term
-catalogue and the labeled set live in `evaluator.md` §6–§7.
+The evaluator returns the score **and the list of violated terms**, each citing a rule id, so a
+refusal is legible and actionable rather than a number. And it is **additive and never has to be
+complete**: terms are added as failures are found, and a new term never tanks an acceptance rate,
+because a term only fires on the symptom it names.
 
-**The seeds sit at final-pipeline fidelity.** The authored seeds are what the *whole* pipeline
-should output — never what an early stage can produce on its own. A stage is therefore judged only
-against the rules that stage owns (fill/slot invariants at emit, envelope terms on the assembled
-board, elevation feel at realize) — comparing an intermediate artifact to a seed wholesale is a
-category error, the same one as classifying a finished map (the mirror's scope, §5) in the other direction.
+### 8.4 What makes the evaluator correct
+
+An evaluator is not correct because its terms look reasonable. It is correct when it **ranks a labeled
+set the way the author does**, which makes the evaluation set the real deliverable and the terms merely
+the means.
+
+That set needs three things. **Positives** — authored good layouts, which the deriver can label
+automatically. **Negatives** — flagged bad layouts, of which the most valuable by far are **minimal
+pairs**, two layouts differing in exactly one property, since a pair like that isolates the term
+responsible in a way a hundred unrelated failures cannot. And **coverage**: examples per sub-problem
+and per symmetry mode, so a term is not validated only on the one arrangement it was written against.
+The catalogue and the labeled set live in `evaluator.md`.
+
+One discipline governs how the seeds may be used. **They sit at final-pipeline fidelity** — an
+authored seed is what the *whole* pipeline should produce, never what any single stage produces on its
+own. A stage is therefore judged only against the rules that stage owns: fill and slot invariants at
+emission, envelope terms on the assembled board, feel at realize. Comparing an intermediate artifact
+to a seed wholesale is a category error, and it is the same error as classifying a finished map back
+to a family — reading an artifact against a standard that belongs to a different stage of its life.
+
+The laws themselves — every id, its number, its evidence, and the protocol for amending it — are in
+`rules.md`. What is here is the frame that makes those ids mean something: what kind of thing each one
+is, when it can be enforced, and what it would take to know it is right.
 
 ---
 
@@ -1553,7 +1596,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding: profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
 | `HubBoxEmitter` → `EmittedHub` | `Compose/HubBoxEmitter.cs` | the **hub** designation: a terminal-free body plus the per-run `EdgeOffer`s it publishes as the constraint source. |
 | `FrontlineBoxEmitter` → `EmittedFrontline` | `Compose/FrontlineBoxEmitter.cs` | the **frontline** designation: spine docks the hub, arm-tips are the face, carrying the face offers the mid consumes. |
-| `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§1.14). |
+| `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§8). |
 | `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box` + land-vs-target accounting (the spine G63 drives). |
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template slots on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |

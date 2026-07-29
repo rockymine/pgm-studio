@@ -21,7 +21,7 @@ public sealed record EmittedFrontline(
 /// orients the placed box onto the hub (G63-C).
 ///
 /// <para>The <b>face offer</b> is <see cref="Designation.Frontline"/>'s half of the offer mechanism, and its
-/// <see cref="OfferGrouping"/> is the mid's contract (§1.14): <b>joint</b> — one mid consumer spans all tips
+/// <see cref="OfferGrouping"/> is the mid's contract (model.md §8): <b>joint</b> — one mid consumer spans all tips
 /// (FR6's wide face; the inter-tip recess is simply not offered, staying CT9's hole) — vs <b>several</b> — one
 /// mid per tip (the twin / double frontline, K derived runs). Form menu (<see cref="Forms"/>): <b>Bar</b> (the
 /// wide face, FR6), and the branch family <b>single</b> (<c>SpineArms(1)</c>, FR3/FR4) and <b>twin</b>
