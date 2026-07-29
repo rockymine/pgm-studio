@@ -30,6 +30,8 @@ export class CanvasBase {
   #clickWasDrag = false;
   #moveState    = null;   // body-drag: { handle, lastBx, lastBz, moved } while dragging a shape/region
   #ro           = null;   // ResizeObserver on the wrap (see _observeResize)
+  #chromeFrame  = 0;      // pending rAF for the viewport-chrome repaint (see _applyViewportTransform)
+  #pendingZoom  = null;   // scale awaiting report on that frame (see _reportZoom)
   #iso          = null;   // lazily-created WebGL iso renderer (see _showIso)
   _isoOn        = false;
   _fitPending   = false;  // a fit asked for while the wrap had no layout box; run once it gets one
@@ -103,13 +105,57 @@ export class CanvasBase {
 
   // ── shared API ─────────────────────────────────────────────────────────────
 
+  /**
+   * Push the viewport matrix, and repaint the chrome that depends on it — but only **once per frame**.
+   *
+   * The matrix goes on synchronously: it is one attribute, it is what makes the surface feel attached to
+   * the pointer, and it must not lag the input. The chrome (`_onViewportChanged` — grid, work area, scale
+   * bar, overlays) is a DOM rebuild, and doing that inside the input handler is what stalls a zoom: a wheel
+   * burst is many events per frame, so the work is repeated several times over for a single painted frame.
+   * With the main thread behind, the compositor has nothing new to raster and re-uses the previous one
+   * scaled by the new matrix — which reads as the picture going soft until it catches up.
+   *
+   * Coalescing to one rAF makes a burst cost one rebuild instead of N, and rAF fires before paint, so the
+   * chrome is still correct in the frame the user sees. Panning never showed this because its grid memo
+   * usually hits; zoom moves the snapped extent almost every tick, so nothing absorbed the repetition.
+   */
   _applyViewportTransform() {
     if (!this._viewportG) return;
     this._viewportG.setAttribute(
       "transform",
       `matrix(${this._scale},0,0,${this._scale},${this._panX},${this._panY})`,
     );
+    this.#scheduleChrome();
+  }
+
+  #scheduleChrome() {
+    if (this.#chromeFrame) return;
+    this.#chromeFrame = requestAnimationFrame(() => {
+      this.#chromeFrame = 0;
+      this._onViewportChanged();
+      if (this.#pendingZoom !== null) { const z = this.#pendingZoom; this.#pendingZoom = null; this._onZoom(z); }
+    });
+  }
+
+  /**
+   * Report a new zoom scale — on the next frame, not now. The readout is chrome like the rest, and on the
+   * plan canvas it crosses into .NET (`plan-bridge`'s `fire("OnZoom")`), so a per-tick call marshals an
+   * interop message and re-renders a component for every wheel event. Measured, that was the larger half of
+   * the zoom stall once the grid stopped rebuilding — the grid was only the visible part.
+   */
+  _reportZoom(scale) {
+    this.#pendingZoom = scale;
+    this.#scheduleChrome();
+  }
+
+  /** Run any pending chrome repaint now. For callers that must read the chrome in the same tick they
+   * moved the viewport (a fit followed by a measurement, a test asserting on the grid). */
+  _flushViewportChrome() {
+    if (!this.#chromeFrame) return;
+    cancelAnimationFrame(this.#chromeFrame);
+    this.#chromeFrame = 0;
     this._onViewportChanged();
+    if (this.#pendingZoom !== null) { const z = this.#pendingZoom; this.#pendingZoom = null; this._onZoom(z); }
   }
 
   _clientToSvg(clientX, clientY) {
@@ -229,6 +275,7 @@ export class CanvasBase {
 
   /** Release the observer + the WebGL context. Subclasses call this from their own `dispose`. */
   _disposeCanvasBase() {
+    if (this.#chromeFrame) { cancelAnimationFrame(this.#chromeFrame); this.#chromeFrame = 0; }
     this.#ro?.disconnect(); this.#ro = null;
     this.#iso?.dispose(); this.#iso = null;
   }
@@ -249,7 +296,7 @@ export class CanvasBase {
       this._panY  = my - (my - this._panY) * (newScale / this._scale);
       this._scale = newScale;
       this._applyViewportTransform();
-      this._onZoom(this._scale);
+      this._reportZoom(this._scale);
     }, { passive: false });
 
     // Pan / tool start

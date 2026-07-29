@@ -21,7 +21,7 @@ import {
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece, rectContainsCell,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
-import { viewportWorldRect, snapOut, unionRect, renderWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
+import { viewportWorldRect, snapOut, unionRect, gridStep, renderWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
 
 // The hatch pattern id backing each annotation role's fill (buffer = single diagonal, connector = crossed).
 const HATCH = { buffer: "buffer-hatch", connector: "connector-hatch" };
@@ -39,6 +39,7 @@ const AREA_BUFFER_CELLS = 3;
 // GRID_SNAP_CELLS is how far out the visible extent snaps: coarse enough that panning rebuilds the lines
 // every few cells instead of every one.
 const GRID_SNAP_CELLS = 4;
+
 
 // fit() frames the working area with this much of it again added on each side, so the tinted region sits
 // inside a visible margin of grid rather than filling the surface edge to edge.
@@ -362,10 +363,14 @@ export class PlanCanvas extends CanvasBase {
     const { w, h } = this._viewSize ?? this._size();
     renderScaleBar(this.#screen.scale, { w, h, scale: this._scale });
 
-    const cx0 = Math.floor(g.min_x / cell), cz0 = Math.floor(g.min_z / cell);
-    const cx1 = Math.ceil(g.max_x / cell), cz1 = Math.ceil(g.max_z / cell);
-    // The grid can be many lines — only rebuild when the snapped extent actually moves, not per pan frame.
-    const key = `${cell}|${cx0},${cz0},${cx1},${cz1}`;
+    // Snap the drawn range to whole steps so the lines stay on the same world coordinates as the step
+    // changes — otherwise the grid shifts under the drawing at every threshold.
+    const step = gridStep(cell * this._scale);
+    const cx0 = Math.floor(g.min_x / cell / step) * step, cz0 = Math.floor(g.min_z / cell / step) * step;
+    const cx1 = Math.ceil(g.max_x / cell / step) * step, cz1 = Math.ceil(g.max_z / cell / step) * step;
+    // The grid can be many lines — only rebuild when the snapped extent or the step actually moves, not
+    // per pan frame and not per wheel tick.
+    const key = `${cell}|${step}|${cx0},${cz0},${cx1},${cz1}`;
     if (key === this.#gridKey) return;
     this.#gridKey = key;
     this.#clear(layer);
@@ -375,8 +380,8 @@ export class PlanCanvas extends CanvasBase {
       x1, y1, x2, y2, stroke: "var(--canvas-chunk)", "stroke-width": "1",
       "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke",
     }));
-    for (let c = cx0; c <= cx1; c++) cellLine(c * cell, cz0 * cell, c * cell, cz1 * cell);
-    for (let c = cz0; c <= cz1; c++) cellLine(cx0 * cell, c * cell, cx1 * cell, c * cell);
+    for (let c = cx0; c <= cx1; c += step) cellLine(c * cell, cz0 * cell, c * cell, cz1 * cell);
+    for (let c = cz0; c <= cz1; c += step) cellLine(cx0 * cell, c * cell, cx1 * cell, c * cell);
 
     // Heavier gridlines along the origin axes (x=0 and z=0), drawn atop the cell grid.
     const axis = (x1, y1, x2, y2) => layer.appendChild(svgEl("line", {

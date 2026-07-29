@@ -24,6 +24,21 @@ export function viewportWorldRect(w, h, scale, panX, panY) {
   return { min_x: -panX / s, min_z: -panY / s, max_x: (w - panX) / s, max_z: (h - panY) / s };
 }
 
+/**
+ * How coarse a grid should draw, given how many pixels one of its units spans on screen. The authoring
+ * grids span the VISIBLE world, so zooming out adds lines without bound — and past a few pixels apart they
+ * are unreadable anyway, so drawing every unit is simultaneously the most expensive and the least useful
+ * option. Stepping up at fixed thresholds is what map software calls a zoom level: detail changes at a few
+ * points instead of continuously, which keeps the line count flat and lets a grid memo hold across most of
+ * a zoom instead of missing on every wheel tick. Pairs: [min px per unit, multiple to draw].
+ */
+const GRID_STEPS = [[10, 1], [5, 2], [2, 5], [0, 10]];
+
+export function gridStep(unitPx) {
+  for (const [minPx, step] of GRID_STEPS) if (unitPx >= minPx) return step;
+  return 10;
+}
+
 /** Grow a world rect outward to whole multiples of `step`. */
 export function snapOut(rect, step) {
   return {

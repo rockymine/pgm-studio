@@ -1928,6 +1928,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
   per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
 
+- **Zoom stops going soft on the authoring canvases (CV17)** — `canvas/canvas-base.js` +
+  `render/canvas-chrome.js` + `canvas/plan-canvas.js` + `canvas/sketch-canvas.js` + `render/sketch-render.js`.
+  Zooming the plan or sketch canvas blurred the picture for a moment; panning and dragging a shape did not.
+  Two independent per-event costs, both **per input event where they should have been per frame**:
+  (1) the grid spans the *visible world* since the infinite canvas landed, so a wheel tick moves the snapped
+  extent and misses the memo that was written for pan — every tick tore down and rebuilt the whole grid,
+  which grows as you zoom out (60 → 348 lines); (2) `plan-bridge`'s `onZoom` crosses into .NET, so each tick
+  also marshalled an interop message and re-rendered a component. With the main thread behind, the
+  compositor re-uses the last raster scaled by the new matrix — which is what "muddy" was.
+  Fixed by giving the canvases a frame: `CanvasBase` applies the viewport matrix synchronously (it must not
+  lag the pointer) and coalesces the chrome repaint *and* the zoom report into one `requestAnimationFrame`,
+  with `_flushViewportChrome()` for callers that must read in the same tick. A shared `gridStep` ladder
+  (`canvas-chrome`) then draws every 1/2/5/10 units by how many pixels a unit spans — the zoom-level idea map
+  software uses — so a zoomed-out grid stays a fixed handful of lines and the memo holds across most of a
+  zoom. Both canvases share it; the chunk grid takes the step too.
+  Measured on `/plan-editor`, 8 wheel ticks: **11.4 ms → 0.3 ms per tick**, grid lines after the burst
+  348 → 116, zero grid mutations during it. 150 JS tests + e2e smoke green. (CV17)
+
 - **Land spend on every generated board (G148)** — `ComposeEndpoints` + `Contracts/ComposeDtos.cs` +
   `Features/Generator/`. The browse feed could say a board scored 2.3 and had a ring hub, but not what it
   cost. Every number already existed and none was displayed: `BoxPartition.Of(unit)` carries each box's kind,

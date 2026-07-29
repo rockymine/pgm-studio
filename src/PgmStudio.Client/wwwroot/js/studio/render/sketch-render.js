@@ -112,7 +112,7 @@ export function renderBbox(layer, bbox, toSvg) {
 }
 
 /** 16-block chunk grid clipped to the bbox. */
-export function renderChunkGrid(layer, bbox, toSvg) {
+export function renderChunkGrid(layer, bbox, toSvg, step = 1) {
   clear(layer);
   if (!bbox) return;
   const { min_x, max_x, min_z, max_z } = bbox;
@@ -124,8 +124,12 @@ export function renderChunkGrid(layer, bbox, toSvg) {
     const a = toSvg(x1, z1), b = toSvg(x2, z2);
     layer.appendChild(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, ...attrs }));
   };
-  for (let x = Math.ceil(min_x / 16) * 16; x <= max_x; x += 16) line(x, min_z, x, max_z);
-  for (let z = Math.ceil(min_z / 16) * 16; z <= max_z; z += 16) line(min_x, z, max_x, z);
+  // `step` is a multiple of the chunk: 1 draws every chunk line, higher values thin the grid out when a
+  // chunk is only a few pixels across (see canvas-chrome's gridStep) so zooming out cannot grow the line
+  // count without bound.
+  const g = 16 * Math.max(1, step);
+  for (let x = Math.ceil(min_x / g) * g; x <= max_x; x += g) line(x, min_z, x, max_z);
+  for (let z = Math.ceil(min_z / g) * g; z <= max_z; z += g) line(min_x, z, max_x, z);
 }
 
 /** The symmetry axis line(s) for the current mirror mode, through the centre, clipped to the bbox. */

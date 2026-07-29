@@ -41,7 +41,7 @@ import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   renderSketchShape, renderIslands, renderMirror, renderBbox, renderChunkGrid, renderAxis, renderPlaceGhost, renderGhostIslands,
 } from "../render/sketch-render.js";
-import { viewportWorldRect, snapOut, renderWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
+import { viewportWorldRect, snapOut, gridStep, renderWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
 
@@ -732,8 +732,11 @@ export class SketchCanvas extends CanvasBase {
   #renderGrid() {
     const g = this.#gridBounds();
     renderAxis(this.#world.axis, g, this.#center, this.#mode, identityTransform);
-    const key = `${g.min_x},${g.min_z},${g.max_x},${g.max_z}`;
-    if (key !== this.#gridKey) { this.#gridKey = key; renderChunkGrid(this.#world.chunk, g, identityTransform); }
+    // The step rides the zoom (canvas-chrome's gridStep), so a zoomed-out grid stays a fixed handful of
+    // lines instead of one per chunk, and the memo holds across most of a zoom rather than missing per tick.
+    const step = gridStep(16 * this._scale);
+    const key = `${step}|${g.min_x},${g.min_z},${g.max_x},${g.max_z}`;
+    if (key !== this.#gridKey) { this.#gridKey = key; renderChunkGrid(this.#world.chunk, g, identityTransform, step); }
     const { w, h } = this._viewSize ?? this._size();
     renderScaleBar(this.#screen.scale, { w, h, scale: this._scale });
   }

@@ -380,6 +380,17 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
+- [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
+  `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
+  visible until measured: a grid rebuild whose memo was written for pan, and a `.NET` interop call per wheel
+  tick. Both are the same class of mistake — doing work per *input event* rather than per *frame* — and
+  nothing in the canvases prevents the next one. Two guards worth having: a debug overlay (or an e2e probe)
+  that reports main-thread ms per interaction burst, so a regression shows up as a number rather than as
+  someone noticing the picture go soft; and a rule that anything crossing into Blazor from a canvas handler
+  goes through the frame coalescer, since interop is the expensive edge and its cost is invisible from the JS
+  side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
+  raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
+
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
   go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the
