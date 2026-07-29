@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>One row of the width→fill production rule: what an interface of this width reads as, and which
-/// fills it makes legal (docs/generator/model.md §4). Widths are not strictly quantized — a touch
+/// fills it makes legal (docs/generator/model.md §8). Widths are not strictly quantized — a touch
 /// tapers to the nearest rung.</summary>
 public sealed record FillMenuRow(int WidthCells, string Reads, IReadOnlyList<ShapeFamily> Families, string Note);
 

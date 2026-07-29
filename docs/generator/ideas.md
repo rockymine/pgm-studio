@@ -147,7 +147,7 @@ landed, the rest is the idea.
   Generator tool, so the model explainer is a page in the app and the figures are reused by the
   browse/verdict surfaces instead of duplicated.
 - **G139** — the seat-separation law has **no rule id**. It is a live, load-bearing composer law
-  (`model.md` §6, *What keeps neighbours apart*, enforced in the allocator's seat step, surfaced
+  (`model.md` §5, *What keeps neighbours apart*, enforced in the allocator's seat step, surfaced
   through `Producibility` and a
   Contracts DTO) that `rules.md` does not mention, so nothing can cite it and no evaluator term
   scores it. Give it an id in the LN or WL family, or state why it is mechanism rather than law.

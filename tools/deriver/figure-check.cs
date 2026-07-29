@@ -1,6 +1,6 @@
 #:project ../../src/PgmStudio.Pgm/PgmStudio.Pgm.csproj
-// Figure check for the shape model's ASCII catalogs: every labelled grid drawn in docs/generator/model.md §5
-// is parsed back out of the document and pushed through the real classifier that names that kind of thing.
+// Figure check for the shape model's ASCII catalogs: every labelled grid drawn in the shape-model section of
+// docs/generator/model.md is parsed back out of the doc and pushed through the real classifier for its kind.
 // A body figure must read as its Compound (ClassifyBody), a family figure as its ShapeFamily
 // (ShapeClassifier.Classify), a negative-space figure as its NegativeSpaceKind (BodyEdges.Classify).
 //
@@ -25,9 +25,10 @@ if (!File.Exists(docPath)) { Console.Error.WriteLine("cannot find docs/generator
 
 var all = File.ReadAllLines(docPath);
 
-// §5 only — from its heading to the next top-level heading.
-var start = Array.FindIndex(all, l => l.StartsWith("## 5."));
-if (start < 0) { Console.Error.WriteLine("no '## 5.' heading in model.md"); return 2; }
+// The shape-model section only, found by title rather than by number so a reorder cannot silently
+// empty the sweep — a checker that parses zero figures still exits 0 and reads as a pass.
+var start = Array.FindIndex(all, l => l.StartsWith("## ") && l.Contains("The shape model"));
+if (start < 0) { Console.Error.WriteLine("no shape-model heading in model.md"); return 2; }
 var end = Array.FindIndex(all, start + 1, l => l.StartsWith("## "));
 if (end < 0) end = all.Length;
 
@@ -157,7 +158,12 @@ foreach (var (label, grid) in figures)
 }
 
 Console.WriteLine();
+if (checkedCount == 0)
+{
+    Console.Error.WriteLine("no figures parsed — the section moved or the figure grammar changed.");
+    return 2;
+}
 Console.WriteLine(failures == 0
-    ? $"all {checkedCount} figures in model.md §5 classify as drawn"
+    ? $"all {checkedCount} figures in the shape-model section classify as drawn"
     : $"{failures} of {checkedCount} figures do not classify as drawn");
 return failures == 0 ? 0 : 1;

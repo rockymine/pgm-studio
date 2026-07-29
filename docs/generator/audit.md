@@ -58,7 +58,7 @@ Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved 
 
 | allocator rule | law | verdict |
 |---|---|---|
-| `WoolLaneCells = 2` | LN1 + `model.md` §4 ("the lane to the wool is simple, w2") | **grounded** |
+| `WoolLaneCells = 2` | LN1 + `model.md` §8 ("the lane to the wool is simple, w2") | **grounded** |
 | `w = 3` above `WideLaneLand` | LN1 (10 base, 15 larger; corpus 81:15) | values grounded, **threshold invented** — LN1 states a *distribution*, the code makes it deterministic |
 | `WoolLengthRatio = 3` | LN2 (20–50 blocks before a junction/dead end) | **grounded** on the lower bound; the 50 cap is unimplemented |
 | `CornerClearanceCells = 0` | the mass-level corner law | **vestigial** — it documents rather than acts (see below) |

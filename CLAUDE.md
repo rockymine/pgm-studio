@@ -93,7 +93,8 @@ table supports one already made.** A table gives structure but never says how th
 be the first statement of an idea. Take one topic, explain it to its end, then take the next — in **pipeline
 order**, not in the order the decisions happened to be made. State mechanism as fact: no second person, no
 "we", no changelog ("this used to be…"). Where something is genuinely a catalog — a code map, a rule id
-table — a table is right and prose would be padding. `model.md` §6 is the worked example.
+table — a table is right and prose would be padding. `model.md`'s shape-model and allocate sections are
+the worked examples.
 
 ## Code comments
 Comments stay **purely functional** — describe what the code does and why. **Never** reference the
@@ -193,7 +194,7 @@ is what lets the suite run from the VirtualBox shared folder at all.
 - Parity harnesses in `tools/PgmStudio.RoundTrip` (`--categorize`/`--buildability`/`--traversability`/
   `--wool`/`--extract`/`--islands`/`--authoring`); regenerate Python oracles into `/tmp/pyfresh` (wiped on
   reboot) via `parser.parse + serializer.to_dict` over the corpus.
-- **`dotnet run tools/deriver/figure-check.cs` gates `model.md` §5's ASCII figures.** It parses every labelled
+- **`dotnet run tools/deriver/figure-check.cs` gates the shape-model section's ASCII figures in `model.md`.** It parses every labelled
   grid **out of the doc** (never a copy) and pushes it through the classifier that names that kind of thing —
   a body figure through `ClassifyBody`, a family figure through `ShapeClassifier`, a negative space through
   `BodyEdges`. Run it after editing a figure or a classifier: three of the drawn figures were wrong on its
