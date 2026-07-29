@@ -39,8 +39,9 @@ public static class DockingGate
     /// <see cref="Designation.Hub"/> and <see cref="Designation.Frontline"/> carry <b>no terminal</b>, so
     /// nothing never-docks: the hub's per-edge <see cref="DesignationMarks.Interface"/> and the frontline's
     /// <see cref="DesignationMarks.Face"/> are the docking edges their neighbours land on, every structural slot
-    /// internal. The marks are stamped by the hub/frontline designations (G88/G89); this table is the binding
-    /// they consume.</summary>
+    /// internal. Nothing stamps those two marks yet — the hub publishes <c>EdgeOffer</c>s and the frontline
+    /// returns its face edge directly — so this table is the binding waiting for them (G88/G89), and
+    /// <see cref="Check"/> still scopes to the approach.</summary>
     public static SlotDockRole Role(Designation designation, string slotOrMark) => designation switch
     {
         Designation.Approach => slotOrMark switch

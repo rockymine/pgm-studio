@@ -499,7 +499,7 @@ Every base shape the generator builds is two layers, and keeping them apart is w
 vocabulary exploding. The lower layer is the **body** — a pure rectilinear compound, one or more
 rectangles joined along shared edge intervals and never at a bare corner, identified by **topology
 alone**: how many voids it encloses, how many arms branch off it, how many times it bends. The upper
-layer is the **designation** — what a box kind stamps onto a body to finish it into a placed box.
+layer is the **designation** — what a box kind adds to a body to finish it into a placed box.
 
 The split earns its keep because one body serves several finished shapes. A spine with two arms is a
 staple; stamp a wool flush against its crossbar and the result reads **U**, stamp the same wool on a
@@ -507,12 +507,29 @@ short stub lifted off that bar and it reads **H**. Nothing about the body change
 from the finished shape alone, those would be two unrelated entries in a flat list, and every rule
 about legs and crossbars would have to be written twice.
 
-Three designations exist, one per box kind. The **approach** stamps an `entry` (the rectangle that
-docks a host) and a `terminal` (the room holding the wool or the spawn), and serves wool and spawn
-boxes. The **hub** stamps an interface width per free run and has no terminal. The **frontline** marks
-one edge as its `face` and likewise has no terminal. The approach is the designation with a complete
-emit-and-derive mirror today; the hub and frontline are treated under *Designations — hub and
-frontline* below.
+Three designations exist, one per box kind. The **approach** serves wool and spawn boxes and finishes a
+body with a **terminal** — the room the wool or spawn marker sits in — plus an **entry**, the role
+naming whichever rectangle docks the host. The **hub** publishes what each of its free runs can carry
+and has no terminal. The **frontline** designates one of its edges the `face` and likewise has no
+terminal. The approach is the designation with a complete emit-and-derive mirror today; the hub and
+frontline are treated under *Designations — hub and frontline* below.
+
+**Terminal and entry are not the same kind of thing, and the word "stamp" hides that.** A terminal is
+always a **rectangle** — real material the approach adds, carried separately from the shape's other
+pieces because it is the goal rather than a corridor. An entry is a **role**, and whether it owns a
+rectangle depends on the family. In an I the lane that runs the length of the box *is* the entry, and
+in an L it is the vertical arm: rectangles the shape would have regardless, labelled for what they do.
+In a donut the entry is a rectangle that exists for no other purpose — a short attachment stub against
+the ring's edge — while the ring's own top wall is separately labelled `entry-bar`. So one family's
+entry is a label on existing material and another's is added material, and a rule quantified over
+"the entry" must mean the role, never a shape of rectangle.
+
+The two layers are also a claim about **identity, not build order**. No emitter constructs a body and
+then stamps an approach onto it: `ShapeEmitter` lays each family's rectangles down already labelled,
+sharing only the ring-wall geometry with `BodyEmitter` for the donut. The body vocabulary is emitted
+for real, but by the hub and frontline emitters. What the split buys is that the *classifier* can read
+identity in two independent registers — topology below, terminal placement above — which is what makes
+one body serve several families.
 
 Letters — I, L, Z, U, G, P — name a **placement**, not a topology. A join is free to slide and widen
 along its edge, so the same body reads as different letters as its pieces move. Identity stays
@@ -526,9 +543,9 @@ adds a rectangle and earns exactly one new feature — a branch, an enclosed voi
 progression is not a filing system imposed afterwards; it is the order in which features become
 available, and a body possesses every feature of the steps below it.
 
-A body is drawn here as `t` for a cell the body occupies and `.` for one it does not. The body layer
-knows no more than that: what the empty cells *mean* — void a build zone may span, or the wool's own
-room — is the designation's business, and the approach catalog below draws them with their own letters.
+Every figure in this section is drawn the same way: `t` is a cell the shape occupies, `.` a cell it
+does not, and `w` the wool where a figure has one. The body layer knows only the first two — what an
+empty cell *means*, void a build zone may later span or simply outside, is the designation's business.
 
 ```
 Rectangle              SpineArms(1)      SpineArms(2)      SpineArms(3)
@@ -652,25 +669,25 @@ Two of the nine are **terminal designations** rather than bodies of their own. `
 at all with no terrain reaching the wool. `Clamp` is one compact room docked on two distinct faces —
 the wool bridging two otherwise-separate bars.
 
-The catalog below is written in a character grid — `t` terrain (walkable), `v` void (a build zone may
-later span it), `w` wool — rows top to bottom. These are scale-independent *shapes*: build zones
-subdivide them afterwards, so what is drawn is the terrain/void topology **before** any cutting.
+The catalog below adds `w` for the wool to the same grid: `t` is walkable terrain, `.` a void a build
+zone may later span. These are scale-independent *shapes*, and build zones subdivide them afterwards,
+so what is drawn is the terrain-and-void topology **before** any cutting.
 
 ```
 Isolated        I               L               Z
-  vv              tttw            tw              ttvv
-  wv              vvvv            tv              vtvv
-  vv                              tt              vttw
+  ..              tttw            tw              tt..
+  w.              ....            t.              .t..
+  ..                              tt              .ttw
 
 Scythe          Clamp           U               H
-  tttv            tt              ttv             ttvv
-  tvtw            vw              vtw             vtvv
-                  tt              ttv             tttw
+  ttt.            tt              tt.             tt..
+  t.tw            .w              .tw             .t..
+                  tt              tt.             tttw
 
 Donut
-  ttttv
-  vtvtv
-  vtttw
+  tttt.
+  .t.t.
+  .tttw
 ```
 
 What each one *means* on a map, which is the reason the nine are worth telling apart at all:
@@ -746,13 +763,17 @@ be the very same rectangle occupying different slots. The table is realized as d
 `ApproachSlots.Template(family)`, and each emitted piece carries its slot on `GrownPiece.Slot`.
 
 A slot is itself two layers, split by what stamps it. The **structural slot** — `run`, `bar`, `leg` —
-is the rectangle's role in the body, and is shared by every box kind. The **designation mark** —
-`entry`, `room` — is the docked rectangle and the terminal, stamped by the approach, and qualified
+is the rectangle's role in the body, and is shared by every box kind: `BodyEmitter` labels a spine or a
+ring's bars `bar` and its arms and side walls `leg`, and stamps nothing else. The **designation mark** —
+`entry`, `room` — is the docking role and the terminal, added by the approach and qualified
 `entry-run` / `room-run` / `entry-bar` / `room-bar` where a family carries two of a segment.
 `ApproachSlots` merges the two because the taxonomy began at wool approaches. Splitting them is what
-lets one set of shift, widen and tail-follow knobs drive a wool mouth, a spawn mouth, a hub interface
-edge or a frontline face without four implementations: the hub stamps an `interface` mark per edge and
-the frontline a `face` mark, and the emitted strings are unchanged, so the mirror stays byte-identical.
+would let one set of shift, widen and tail-follow knobs drive a wool mouth, a spawn mouth, a hub edge
+or a frontline face without four implementations. The non-approach marks — `interface` for a hub edge,
+`face` for a frontline's — exist as constants and the docking law already maps them per designation,
+but no emitter stamps them yet: the hub publishes offers and the frontline returns its face edge
+directly. Binding the two designations to their marks is G88/G89, and because it adds no string to what
+the approach emits, the mirror stays byte-identical when it lands.
 
 The payoff is that composition rules become properties of a **slot**, defined once per family. Entry
 widening and entry shift live on the `entry` slot. Wool docking — extend against side-dock — lives on
@@ -798,6 +819,12 @@ equals `ApproachSlots.Template`. A companion set pushes each family's pieces to 
 width, so every one must still read its own family — the width-independence proof. The nine-family
 catalog itself is checked in as fixtures under `tools/deriver/shapes/*.plan.json`.
 
+The mirror also reaches the figures on this page. `tools/deriver/figure-check.cs` parses every labelled
+grid out of this section and pushes it through the classifier that names that kind of thing — a body
+through `ClassifyBody`, a family through `ShapeClassifier`, a negative space through `BodyEdges` — so a
+figure that does not classify as labelled is a build failure rather than a thing a reader has to catch.
+It reads the figures from the document rather than holding copies, which is what stops the two drifting.
+
 The **body layer has its own mirror**, kept separate so the wool and spawn path stays byte-identical:
 `BodyEmitter` emits a terminal-free compound and `ClassifyBody` reads it back by topology, strongest
 signal first — void count, then arm count, then bends. Void count does most of the work. **Two voids**
@@ -809,11 +836,13 @@ read as two arms. Placement is deliberately invisible to it.
 
 ### 5.7 Designations — hub and frontline
 
-The approach is one designation; the box model adds two more. Each is a body plus a per-kind mark and
-**no terminal**, and each is the forward twin of a derived read one level up from the shape mirror:
-the designation drives, the deriver verifies.
+The approach is one designation; the box model adds two more. Each finishes a body with **no terminal**
+— which is the whole of what distinguishes them from an approach, since a hub and a frontline are
+passed through rather than arrived at — and each is the forward twin of a derived read one level up
+from the shape mirror: the designation drives, the deriver verifies. Unlike the approach path, both of
+these genuinely do emit a body first, through `BodyEmitter`, and then decide what its edges offer.
 
-The **hub** is a body plus **interface widths**, and it is the **constraint source** of the whole
+The **hub** is a body whose free runs carry widths, and it is the **constraint source** of the whole
 partition. It emits first and publishes one offer per free run, at the width that run can *support*;
 each neighbour then fills at the width **its own joint** was granted. That grant is per dock — not per
 edge, and not even per run — because two neighbours can share one run at two different widths, as a
@@ -839,10 +868,11 @@ a **grouping**: `Joint`, where one mid consumer must span every tip flush, or `S
 takes its own consumer and the inter-tip recess is simply not offered, surviving as a deliberate hole.
 Joint against several *is* FR6's wide against split frontline. Built by `FrontlineBoxEmitter`.
 
-Both marks are stamped and the docking law tabulates them per designation — the hub's `interface` and
-the frontline's `face` are docking edges, every structural slot internal, and nothing never-docks,
-since neither designation carries a terminal. The gate's live check still scopes to the approach
-table; binding the hub and frontline designations into it is G88/G89.
+The docking law already tabulates both per designation — the hub's `interface` and the frontline's
+`face` are docking edges, every structural slot internal, and nothing never-docks, since neither
+designation carries a terminal. What is missing is the stamping and the use: no emitter writes either
+mark onto a piece, and the gate's live check scopes to the approach table. Binding the two
+designations to that table is G88/G89.
 
 Finally, two things once called shapes are **not bodies** at all but shared docks in the designation
 layer. The **clamp** is one compact terminal docked on two distinct faces — opposite faces give a

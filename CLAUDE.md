@@ -193,6 +193,11 @@ is what lets the suite run from the VirtualBox shared folder at all.
 - Parity harnesses in `tools/PgmStudio.RoundTrip` (`--categorize`/`--buildability`/`--traversability`/
   `--wool`/`--extract`/`--islands`/`--authoring`); regenerate Python oracles into `/tmp/pyfresh` (wiped on
   reboot) via `parser.parse + serializer.to_dict` over the corpus.
+- **`dotnet run tools/deriver/figure-check.cs` gates `model.md` §5's ASCII figures.** It parses every labelled
+  grid **out of the doc** (never a copy) and pushes it through the classifier that names that kind of thing —
+  a body figure through `ClassifyBody`, a family figure through `ShapeClassifier`, a negative space through
+  `BodyEdges`. Run it after editing a figure or a classifier: three of the drawn figures were wrong on its
+  first run, and an ASCII shape that reads as the wrong family cannot be spotted by eye.
 - **`dotnet run <script>.cs` caches the built app and will NOT pick up `src/` changes.** The file-based
   single-file tools (`tools/compose/*.cs`, the `#:project` scripts) build into
   `~/.local/share/dotnet/runfile/<script>-<hash>/`, keyed on the **script**, so an unchanged script re-runs
