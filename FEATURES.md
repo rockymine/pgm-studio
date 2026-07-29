@@ -991,6 +991,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **`model.md` rewritten as the paper it claims to be (G141).** Fifteen sections to nine, in pipeline
+  order — pipeline · request · plan · shape model · allocate and fill · deriving the board · rules and
+  scoring · code map · boundaries. Prose carries every claim and a table only supports one already made;
+  the glossary is dissolved into the sections that use its terms; boxes and fill are folded into the
+  shape and allocate sections that already described them; the two unbuilt passes (roughen, elevation)
+  move to `ideas.md` as G142/G32-C; the board deriver gains a real section (islands, build regions,
+  boundary runs, voids, the derived mid form) and with it the rule that **edge** means a full extent
+  while **run** and **interval** name the parts. Section references are by name where the target could
+  move. `tools/deriver/figure-check.cs` gates the 23 ASCII figures by parsing them out of the document
+  and pushing each through the classifier that names that kind of thing — it found three wrong figures
+  and one mislabelled family example on its first runs.
 - **Lane sketch generators + Organic-generation demo — RETIRED** in favour of the plan-then-realize
   direction (`docs/generator/model.md`): the archetype starter generators (`LaneSketchGenerator`
   for H · Pinwheel · Trident · Organic, `OrganicLane`, `LaneMapGenerator`, `SketchLayoutPrep`, `AutoBridge`)

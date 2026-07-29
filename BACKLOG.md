@@ -397,25 +397,6 @@ studio, G117/G118) is in `TODO.md`.
   Ranking before recalibration just amplifies one badly-fitted band. Order: `G118` collect → calibrate /
   gate the vacuous terms → this → soft rules become causal.
 
-- [~] **G141 — `model.md` reads as a reference, not as the paper it is supposed to be.** The content is
-  good; the structure and presentation are not. It governs on disagreement, so it is the one document that
-  has to be readable end to end. **§6 (allocate) and §5 (the shape model) are rewritten** in the target
-  style and are the worked examples for the rest: one topic explained to its end, prose carrying the claim
-  and tables supporting one already made, no second person and no "we", references by section *name* so a
-  reorder cannot strand them.
-  **What remains, in order.** (1) **§1 → a pointer.** It is still a second glossary (~230 lines) while
-  `vocabulary.md` holds that job in 215; only `body and designation`, `the edge taxonomy` and `fold and bay`
-  have been reduced to pointers so far. The rest should become a pointer plus only the terms the argument
-  itself locks, each defined where first used — moving them into the section that uses them, as the shape
-  terms were. (2) **The reordering.** §2 declares request → budget → allocate → fill → carve → gate; the
-  sections run budget(3) · boxes(4) · shapes(5) · allocate(6) · fill(7) · derivers(8) · gate(9) ·
-  budget-and-width(10) · carve(11) · roughen(12) · elevation(13). Carve arrives two sections after the gate
-  that judges it, and budget appears twice. This is mostly moving whole sections rather than rewriting them.
-  (3) **The remaining sections' prose**, wherever a table still makes the first statement of an idea.
-  Preserve the content, not the current order or split of material. Watch the seams: a range edit that cuts
-  on the next heading rather than on the boundary of the thing being replaced produces valid markdown, a
-  green build and a silently mislabelled section.
-
 What stays here is the concrete non-design work on *imported* maps (island detection + playability):
 
 - [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split
