@@ -128,7 +128,27 @@ landed, the rest is the idea.
 ## Realize & world
 
 - **G32-C** — structures & elevation (the "second generator": stairs, climbs, heights, walls). The missing
-  soul once layouts read valid-but-flat.
+  soul once layouts read valid-but-flat. The composer leaves `cliffs` and `walls` empty for this pass, and
+  the `EL` laws in `rules.md` are already measured, so what is missing is the pass itself, not its rules.
+  The intended vocabulary: a per-shape floor or base height (plateaus); **cut + raise** — splitting a shape
+  along a seam and offsetting one piece, which at plan level refines one piece into two joined by a `land`
+  interface carrying a height delta; anchor-height gradients (ramps); and stacked layers. It attaches to
+  **roles and interfaces, not to geometry** — a raised spawn for overview, a stepped approach climbing
+  toward a wool room, a low frontline so bridges launch low and defenders hold the high ground, and a
+  `cliff` interface where flow should go one way only. The binding constraint is that steps along any
+  `land` path stay walkable unless the plan explicitly says `cliff`. G81 (the declared-bay scythe) is
+  blocked on this pass existing.
+- **G142** — the **roughen pass**: turn the plan's clean rectilinear geometry into an organic read. It would
+  run last, inside realize, over the realized polygons of the **authored unit only** — symmetry re-fans the
+  images, plan meaning is frozen, and objective placements are pinned — emitting ordinary `SketchShape`s so
+  every intermediate stays hand-editable. The operators: anchor jitter (displace vertices by bounded noise);
+  edge subdivision and displacement (insert mid-edge anchors, push along the normal, one or two fractal
+  levels — organic outlines with no topology change); pull-to-polygon (one strong displacement breaking a
+  rectangle into a believable quad); a width profile varying a lane's width along its length; a 45° chamfer
+  softening right-angle corners; and a few degrees of piece shear or rotation. Each operator has to preserve
+  the minimum corridor width by an offset test, introduce no self-intersection, keep placements interior with
+  margin, hold `gap` spans inside the bridgeable range, and leave interfaces covered so distorted neighbours
+  still overlap their shared interval. No code exists for any of it.
 - **G32-D** — gates, goldens, emit: freeze fixed-RNG goldens *after* the churn settles. (The author has
   deprioritized golden stability — layouts are expected to keep evolving — so this is a
   release-discipline idea, not a near-term gate.)

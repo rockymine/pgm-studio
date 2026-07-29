@@ -14,7 +14,7 @@ model. **What it defers:**
 | `rules.md` | The rule law and every number (widths, depths, hop counts, heights, the CT / SP / WL / LN / HB / FR / MD / BZ / EL ids). |
 | `seed-stats.md` · `seed-envelopes.md` | The measured envelopes the soft evaluator terms score against. |
 | `evaluator.md` | The detailed deriver-measurables and evaluator-metric catalogue. |
-| `vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. §1 defines the terms, §12 is the code map, this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
+| `vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. §1 defines the terms, §9 is the code map, this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
 | `audit.md` | The standing measured record of where the implementation and this model **disagree** — the evidence behind the open G-tasks. |
 | `ideas.md` | The G-track idea pool: open work not on the board. |
 | `../contracts/plan-editor.md` | The field-level `*.plan.json` schema and the editor UI (the Plan tool). |
@@ -40,7 +40,7 @@ specific verb:
 | **derive** | Read structure back out of geometry (inverse). Two derivers — see §1.3. | `ShapeClassifier`, `ContactGraph` + `BoardDeriver` |
 | **compose** | Build the plan: `budget → allocate → fill → carve → assemble`. | the composer (`Composer`) |
 | **evaluate** | Validate + score a plan → `(score, [violations])`. | the evaluator |
-| **realize** | Compile the plan → sketch + intent → roughen + elevation → export. | the seed pipeline |
+| **realize** | Compile the plan → sketch + intent → export. (A roughen pass and an elevation pass would sit before export; neither is built — `ideas.md` G142, G32-C.) | the seed pipeline |
 
 `emit` and `derive` are a **forward/inverse pair** at the shape level: compose *emits*, verification
 *derives*, and the two must agree (the mirror loop — §4, *Derivation and classification*).
@@ -182,7 +182,7 @@ Budget is **two currencies that must both balance**:
 | **land** | walkable terrain area (capacity) | player count (`G8`) | every emitted piece |
 | **footprint** | total box area (terrain + build + gap) | the box partition | the box's size, fixed once |
 
-The key: **a build zone costs footprint but not land**. Detailed in §10.
+The key: **a build zone costs footprint but not land**. Detailed in §8.
 
 ### 1.11 The small words
 
@@ -190,7 +190,7 @@ The key: **a build zone costs footprint but not land**. Detailed in §10.
 - **lane** — a simple corridor (bend count `I / L / Z`), the board deriver's `ShapeClassifier.ClassifyOpen` read.
 - **approach** — the whole wool-box shape (one of the nine families). *Lane ≠ approach.*
 - **menu** — the set of families an interface width makes legal (the width→fill production rule, §8).
-- **mid** — the neutral band between the frontlines; its **form is `f(frontline)`** (§9).
+- **mid** — the neutral band between the frontlines; its **form is `f(frontline)`**, derived (§6).
 - **frontline** — a **join**, not a placement, and a **derived edge attribute**, not a piece (§5, §6).
 
 ### 1.12 body and designation
@@ -275,7 +275,7 @@ request → budget → allocate (boxes + joints) → fill (hub-first) → carve 
   lays out typed box footprints, seating each on the hub's real free surface (§5).
 - **fill** — the hub emits **first** as the constraint source; each neighbour consumes the offer on
   its own joint and fills its footprint with a shape (§4, §5).
-- **carve** — the mid band is derived from the frontline faces (§9).
+- **carve** — the mid band is derived from the frontline faces (§5).
 - **assemble** — the labeled pieces become a `plan.json`; slots drop here (§3.3).
 - **gate** — the evaluator's hard terms accept or reject the attempt; a rejection **resamples the
   whole attempt** (60 allowed), so "no shape fits" is a signal, never a crash (§7).
@@ -301,8 +301,8 @@ plan.json ──compile──► layout.json (SketchLayout) ──rasterize─�
 | **sketch** (`layout.json`) | realized geometry: polygons, béziers, per-anchor heights, layers | the rasterizer |
 | **intent** (`intent.json`) | concrete objectives: block coords, yaws, wool colours, monument wiring | the XML generator |
 
-Sync is **one-way** while the staged loop runs (edit plan → recompile → re-roll roughening and
-elevation — §10, §11). Once the author takes the sketch into the editor for hand work, the plan
+Sync is **one-way** while the staged loop runs (edit plan → recompile → re-roll whatever realize
+adds). Once the author takes the sketch into the editor for hand work, the plan
 **freezes as provenance**
 and sketch + intent become the working artifacts. Recovering plan meaning from edited geometry is
 out of scope.
@@ -1243,38 +1243,145 @@ board deriver's hole rules is a change to this twin.
 
 ---
 
-## 6. The two derivers
+## 6. Deriving the board
 
-### 6.1 The shape deriver
+A plan says what an author meant. It does not say what a player will find. Between the two sits
+**derivation**: reading a finished plan back as terrain and working out, from geometry alone, what the
+board actually is — where the islands are, what links them, which voids are enclosed and by whom, and
+where each team's exposed front runs. Nothing here is authored and nothing here is stored. It is
+recomputed whenever a plan changes, which is what lets a rule be stated over structure the author never
+has to maintain by hand.
 
-`ShapeClassifier.Classify` reads **one box's terrain** and returns its `ShapeFamily` (§4),
-width-independently; the reported width is an output, kept for the width report only. `ClassifyBody`
-is the body-layer twin, reading a terminal-free `ShapeBody` back to its `Compound`. Both are the
-emitter's mirror.
+Two things share the verb. The **shape deriver** reads one box's terrain back to a family, and belongs
+to the shape model rather than here. The **board deriver** reads the whole plan, and when this document
+says *the deriver* without qualification it means this one. It works in two layers over the same plan:
+a rect layer that compares piece rectangles pairwise, and a raster layer that fans every piece and zone
+to the full board in cell space and computes structure from geometry plus markers. The rect layer
+answers *do these two pieces touch, and how*; the raster layer answers everything that needs a picture
+of the whole board at once.
 
-### 6.2 The board deriver
+### 6.1 Islands, and what anchors them
 
-`ContactGraph` (the rect layer) + `BoardDeriver.Derive → BoardStructure` (the raster layer, in
-`Pgm/Derive/`) read the **whole board** and compute connectivity; `tools/deriver/derive-gallery.cs`
-renders `BoardStructure` to `out/derive-gallery.html`. Its outputs:
+The first question is which terrain is one place. Two pieces belong to the same landmass when they
+share a walkable border — either a full one or a thinner seam a player can still cross — and taking the
+union over every such contact splits the board into **islands**. A piece with no walkable contact at
+all is isolated, reachable only by building.
 
-- **islands** — components of union-find over the land interfaces (`ContactKind.Land` + `Narrow`),
-  each tagged by anchor role: **team** (holds a spawn), **objective** (holds a wool, no spawn — the
-  isolated-wool island), **neutral** (anchorless, in a build region), **decorative** (excluded).
-- **contacts** — every `ContactKind` between pieces (§1.5, level 1).
-- **build regions + their kinds** — `front↔front` / `front↔neutral` / `neutral↔neutral` / `intra` /
-  `self` (§1.5, level 3), plus zone width and interface width per zone.
-- **intra-team bridge** and **self-bridge notch** — a team's own internal `spawn↔wool` cut (direct or
-  chained through a *captive* stepping stone), and a pocket carved into one landmass.
-- **void topology + hole classes** — enclosed voids classed `encased`/`gap`/`frontline`/`middle`,
-  declared vs undeclared, with parallel-ways for `middle` holes (§1.7).
-- **wool lanes** — the corridor a wool room owns, and its topology via `ShapeClassifier.ClassifyOpen`, whose
-  `LaneRead` maps to the bend read `I` / `L` / `Z` / `complex` / `plaza` / `none` (via `LaneName`). (This is
-  the board-level corridor read — distinct from the wool-box shape identity of §5.)
-- **the CT mid-form** — falls straight out of the build-zone kinds (§9).
+An island on its own is just a shape. What gives it meaning is what stands on it, so each is tagged by
+its **anchor**, in a fixed order of precedence: an island holding a spawn is a **team** island; one
+holding a wool but no spawn is an **objective** island, the isolated-wool case; one holding neither but
+touching a build region is **neutral**, a stepping stone in the crossing; and one holding neither and
+touching nothing is **decorative**, excluded from play analysis entirely.
 
-The detailed measurables catalogue — every derived quantity, its exact definition, and its
-validation against the seed corpus — is in `layout-evaluator.md §4`.
+The neutral case splits once more, because two very different things read as neutral. A stone is
+**captive** to a team when every build region touching it stays single-team — no opponent can reach it,
+so it is really part of that team's own internal route rather than contested ground. A stone that any
+opponent can reach is genuinely neutral. The distinction is geometric, not authored, and it decides
+whether a link across that stone counts as a team's private bridge or as part of the crossing.
+
+### 6.2 Build regions, and what they link
+
+A build region is where a player may place blocks, and its meaning comes entirely from **what it
+connects**. Once islands and their anchors exist, each region is typed by the anchors at its ends:
+
+| Kind | Links |
+|---|---|
+| `front↔front` | two or more teams — the crossing, the direct team-to-team link |
+| `front↔neutral` | one team and a neutral — that team's bridge toward the middle |
+| `neutral↔neutral` | only neutrals — a mid-internal link, usually spanning the axis |
+| `intra` | one team's own spawn-to-wool route — an isolation cut |
+| `self` | a notch in a single island, both its walls the same landmass |
+
+The last two are the ones worth naming carefully, because they look like damage and are not. An
+**isolation cut** is a deliberate internal gap: a piece chopped off the main mass and bridged back
+across a slow-down void, so a defender pays time to cross their own ground. A **self-bridge notch** is
+a pocket carved into one landmass, both walls belonging to it. Both are authored patterns, and keeping
+them as their own signals rather than folding them into the crossing is what stops a team's private
+inconvenience from reading as contested ground.
+
+### 6.3 Boundary runs, and what a frontline is
+
+Where terrain meets build, the deriver records the boundary. This is the part of the model where
+careless vocabulary does the most damage, so the terms are fixed:
+
+- an **edge** is one full side of a box or a body, end to end — never a portion of one;
+- a **run** is one contiguous stretch along a boundary;
+- an **interval** is the stretch where two things actually touch.
+
+The deriver works in the middle term. It walks every terrain cell, looks at each of its four
+neighbours, and records a **segment** wherever a terrain cell borders a build cell. Segments are then
+grouped into runs: contiguous stretches on the same island, joined end to end. A run, not a segment and
+not an edge, is the unit every frontline measurement is taken over.
+
+Which kind of run it is follows from the build region on the other side. If that region is one of the
+team's own internal cuts, the segment belongs to the isolation cut or the self-bridge notch. Otherwise
+it faces shared void, and it is part of the team's **front** — but only if the island it sits on is
+genuinely exposed, meaning more of its boundary faces void than faces build. An island whose boundary
+is mostly build is a stepping stone sitting inside the crossing, not a shore facing it.
+
+That gives the **frontline** a definition in terms a machine can check. It is not a piece, and nothing
+in the plan declares one. It is the set of boundary runs where a team's exposed land faces the void the
+crossing spans. Each run carries the team that owns it, its **width** — the longer extent of the run,
+in cells — and its **profile**: *straight* when every segment lies on one line, *offset* when the face
+steps in and out. A team's run count, its face widths and its profiles are the frontline measurables,
+and they are what the laws about wide against split fronts are actually stated over.
+
+### 6.4 Enclosed voids
+
+A **hole** is empty ground the outside cannot reach. The flood that finds them starts beyond the
+board's bounding box and spreads through void only, treating **both terrain and build as walls** —
+which is the one decision that makes the classification useful. A rotation pocket near the front, walled
+by two frontlines on some sides and by the mid band on the others, is enclosed in every sense that
+matters to a player; letting the flood leak through the build zone would report it as open ground.
+
+Every enclosed void is reported, at any size. The authored corpus carries intended holes as small as a
+couple of cells, so no size threshold is applied — a rule that discarded small holes would discard real
+authoring.
+
+A hole is classified by **what its boundary touches**, never by how big it is, which places it on a
+spectrum from interior to contested:
+
+| Class | Boundary touches |
+|---|---|
+| `encased` | one team's terrain, no build at all — a bubble deep inside a team's land |
+| `gap` | one team, and the build it touches is all that team's own cut — a void inside an isolation cut |
+| `frontline` | one team's terrain plus frontline build — that team's exposed edge on the crossing |
+| `middle` | two or more teams, or pure build — the contested crossing, the arena |
+
+Team ownership here is conferred only by **anchored** terrain — a spawn or a wool. A neutral stepping
+stone confers none, because its team label is arbitrary: a centre island shared by both images carries
+one fixed value, and letting that count would break the symmetry of the reading.
+
+Each hole is also **declared** when it overlaps an authored buffer or zone-hole, and **undeclared**
+otherwise. Undeclared holes are not errors; they are a worklist. And a contested hole reports how many
+distinct build regions ring it, which is the count of parallel ways around it — the measurement behind
+the observation that a loop around a hole gives a map rotation, since it offers routes between lanes
+that do not retreat through one chokepoint.
+
+### 6.5 What falls out of the rest
+
+Two further readings come free once the above exists, and both are outputs rather than decisions.
+
+A **wool lane** is the corridor a wool room owns. It is found by taking the edge where the room meets
+terrain — the line the generator stamps the objective's redstone along — and stacking a fixed-width
+band straight outward from it, cell by cell, until it reaches void, build, or a crossbar. A crossbar
+means terrain reaching past the band on **both** sides; a one-sided jut is a side branch and does not
+stop the stack. A room open on two sides stacks both ways. Where the forward stack dies immediately
+into void — the room docked against the *side* of a lane rather than the end of it — the stack runs
+along that lane's own axis instead, so the whole corridor the room hangs off becomes the lane. Only
+wools stack a lane; a spawn never does. The lane's own topology is then read as a bend count, which is
+a board-level corridor reading and deliberately not the same taxonomy as a wool box's shape family.
+
+The **mid form** is the last of them, and it is entirely derived from the build regions already typed.
+Any `neutral↔neutral` region at all makes the mid a **hash** — fractured into interlinked islands. With
+none, two or more `front↔front` crossings make it **parallel**, and exactly one makes it **channelled**.
+Nothing samples this. The halves grow, the join fixes where the fronts land, the fronts fix which
+regions exist, and the mid's form is whatever those regions imply — which is why the middle of a map
+cannot be chosen directly and has to be obtained by building the sides that produce it.
+
+The exhaustive catalogue — every derived quantity, its exact definition, and its validation against the
+seed corpus — is in `evaluator.md`. What is here is the model: what the deriver looks for, and why each
+reading is defined the way it is.
 
 ---
 
@@ -1370,69 +1477,7 @@ is not an approach: the lane is the corridor, the approach is the whole shape it
 
 ---
 
-## 9. The mid
-
-The mid is the gap between the frontlines, and its character is **build bands / islands** — additive
-structure. You **structure** the mid; you do not carve it from a solid. Its form is not a free choice:
-
-```
-mid form = f(frontline)
-```
-
-Two parallel frontline edges → a parallel build band (+ islands); a single wide frontline → clean or
-hash. Since the frontline is itself the symmetry join (§5), the mid form is an **output**. The form
-derives straight from the build-zone kinds:
-
-- any `neutral↔neutral` zone ⇒ **hash** (the mid is fractured into interlinked islands);
-- else ≥2 `front↔front` crossings ⇒ **parallel**;
-- exactly one ⇒ **channelled**.
-
-The mid's target vocabulary comes from parallel-band detection; that is a *test-article* source, not a
-generation method. The order for the middle: the halves grow → the join fixes the frontline → the
-frontline dictates the mid form → the form + the mid's low land-target produce the bands/islands → the
-flow priors score it.
-
----
-
-## 10. The roughen pass
-
-The roughen pass turns the plan's clean rectilinear geometry into an organic read. It runs **last**,
-inside realize (§2.1), on the realized polygons of the **authored unit only** — symmetry re-fans the
-images, plan meaning is frozen, and objective placements are pinned. Its output is ordinary
-`SketchShape`s, so every intermediate stays hand-editable in the sketch editor.
-
-Operators:
-
-- **anchor jitter** — displace existing vertices by bounded noise.
-- **edge subdivision + displacement** — insert mid-edge anchors and push along the edge normal (1–2
-  fractal levels): organic outlines, zero topology change.
-- **pull-to-polygon** — one strong anchor displacement that breaks a rectangle into a believable quad
-  (the "twist").
-- **width profile** — vary a lane piece's width along its length (thin necks, wide rooms).
-- **45° chamfer** — soften right-angle corners into diagonal pairs.
-- **piece shear / rotate** — a few degrees around the centroid.
-
-Invariants (per operator): minimum corridor width preserved (offset test); no self-intersection;
-placements stay interior with margin; `gap` interface spans stay within the bridgeable range;
-interfaces stay covered (distorted neighbours still overlap their shared interval).
-
----
-
-## 11. Elevation
-
-Elevation attaches to **roles and interfaces, not to geometry**. The vocabulary: per-shape `floor` /
-`base_height` (plateaus); splitting a shape along a seam and offsetting the piece (**cut + raise** —
-at the plan level, refining one piece into two joined by a `land` interface with a height delta);
-`anchor_heights` gradients (ramps); stacked layers.
-
-The role/interface rules: a **raised spawn** (overview); a **stepped approach** climbing toward a wool
-room (a harder push); a **low frontline** (bridges launch low, defenders hold the high ground); a
-**`cliff` interface** where one-way flow is wanted. Constraint: walkable steps along any `land` path
-unless the plan says `cliff`. The exact height numbers are the `EL` rules in `rules.md`.
-
----
-
-## 12. Code map
+## 9. Code map
 
 Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
@@ -1502,7 +1547,7 @@ runfile cache before measuring a `src/` change)
 
 ---
 
-## 13. Boundaries
+## 10. Boundaries
 
 This document does not restate the rules or the numbers. The **rule law** — every CT / SP / WL / LN /
 HB / FR / MD / BZ / EL id, with its exact widths, depths, hop counts, and heights — is `rules.md`,
