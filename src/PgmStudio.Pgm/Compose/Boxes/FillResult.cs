@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Compose;
 
 /// <summary>Published negative space of a fill, in plan cell coordinates: a <see cref="ShapeVacancy"/>
 /// placed into the board frame, carrying its mouth as a box-edge interval so a later box can claim it
-/// (docs/generator/model.md §4 — what a body leaves empty). Unclaimed vacancies are just void (or a buffer when the void is
+/// (docs/generator/model.md §5 — what a body leaves empty). Unclaimed vacancies are just void (or a buffer when the void is
 /// the point).</summary>
 public sealed record Vacancy(string Kind, CellRect Rect, BoxAbutment? Mouth, IReadOnlyList<string> Walls);
 

@@ -10,7 +10,7 @@ namespace PgmStudio.Pgm.Shapes;
 /// donut attachment offset/width/count, room-at-end, flips, and any mouth reorientation) all survive. It is
 /// the classifier-side counterpart of the emitter's own slot stamping (<c>GrownPiece.Slot</c>): the emitter
 /// labels, this recovers, and asserting the two agree closes the mirror at the slot level, not just the
-/// family level. See <c>docs/generator/model.md</c> §4 — how a wool approach is built, and derivation.
+/// family level. See <c>docs/generator/model.md</c> §5 — how a wool approach is built, and derivation.
 ///
 /// <para><b>Scope.</b> Like the family mirror, this reads the generator's own artifacts — a single approach's
 /// emitted pieces, bounded by its box — never a finished map's welded terrain (the mirror's scope, §5). It takes the family as

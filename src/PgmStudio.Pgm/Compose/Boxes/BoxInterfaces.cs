@@ -4,7 +4,7 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>The span class of a box edge relative to its box: the longer sides are <see cref="Long"/>, the
-/// shorter <see cref="Short"/> (docs/generator/model.md §5). A square box has no short edge — its
+/// shorter <see cref="Short"/> (docs/generator/model.md §6). A square box has no short edge — its
 /// edges all read <see cref="Long"/>.</summary>
 public enum EdgeSpan { Long, Short }
 

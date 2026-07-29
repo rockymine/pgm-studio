@@ -107,7 +107,7 @@ public static class UnitTuning
 
     // ── geometry: the widths and clearances the seat step builds to ────────────────────────────────────────
 
-    /// <summary>The wool's own corridor width in cells — a <b>w2</b> lane (docs/generator/model.md §8:
+    /// <summary>The wool's own corridor width in cells — a <b>w2</b> lane (docs/generator/model.md §3:
     /// "the lane to the wool is simple, w2"), independent of the map's lane width <c>w</c> (which is 3 on big
     /// boards). Keeping wool families at w2 makes them compact and lets a staple's 3-lane mouth fit a hub edge.</summary>
     internal const int WoolLaneCells = 2;

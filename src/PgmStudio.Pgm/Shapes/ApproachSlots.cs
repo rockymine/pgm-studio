@@ -2,7 +2,7 @@ namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>The approach <b>slot roles</b> — the taxonomy every emitted piece carries, naming its position in
 /// the family template so the composition rules read as properties of a slot rather than raw geometry. Two
-/// layers are conflated here, split conceptually per <c>docs/generator/model.md</c> §4, the piece vocabulary:
+/// layers are conflated here, split conceptually per <c>docs/generator/model.md</c> §5, the piece vocabulary:
 ///
 /// <para><b>Structural slots</b> — a rectangle's role <em>in the compound</em>, intrinsic to the shape and
 /// shared by every box kind: <see cref="Run"/> (a corridor/spine segment), <see cref="Bar"/> (a crossing
@@ -18,7 +18,7 @@ namespace PgmStudio.Pgm.Shapes;
 /// a segment: <see cref="EntryRun"/>/<see cref="RoomRun"/> are the run a host docks vs the run leading to the
 /// terminal; <see cref="EntryBar"/>/<see cref="RoomBar"/> the same for a bar. A role is a <b>template slot, not
 /// a property of the rectangle</b> — a scythe's <c>entry-run</c> and a donut's <c>leg</c> can be the same
-/// rectangle in different slots. See the piece vocabulary in <c>docs/generator/model.md</c> §4.</summary>
+/// rectangle in different slots. See the piece vocabulary in <c>docs/generator/model.md</c> §5.</summary>
 public static class ApproachSlots
 {
     // structural slots — the rectangle's role in the compound (shared by every designation)
@@ -37,7 +37,7 @@ public static class ApproachSlots
     public const string RoomBar = "room-bar";
 
     /// <summary>The canonical ordered slot template of <paramref name="family"/> — terrain slots in emit order,
-    /// the <see cref="Room"/> last — model.md §4's piece-vocabulary table as data. This is the base configuration
+    /// the <see cref="Room"/> last — model.md §5's piece-vocabulary table as data. This is the base configuration
     /// (single donut attachment, no wool-extend, inline room); the optional donut knobs add pieces
     /// (a second attachment is another <see cref="Entry"/>, a wool-extend a <see cref="Run"/>).</summary>
     public static IReadOnlyList<string> Template(ShapeFamily family) => family switch

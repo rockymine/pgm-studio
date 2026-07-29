@@ -206,7 +206,7 @@ Author's ruling on this investigation, and what shipped from it:
   fragmentation/mutation moves a real map "went through" is the **human oracle's** mental model,
   deliberately not automated. Slot definitions exist **for generated maps only**; the classifier
   is the generator's mirror (without it we would not know what we generated) — a hard prerequisite
-  for generation, never a reverse-engineering tool. `model.md` §5 now states this;
+  for generation, never a reverse-engineering tool. `model.md` §6 now states this;
   **G56 is retired**; **G62/G68 are reworded** to generated-plans-only (slots ride `EvalContext`
   from the emitter on composed plans; `AssignSlots` serves the mirror).
 - **The §3 family drift (Scythe→Z under endpoint manipulation) is fixed** — the classifier's

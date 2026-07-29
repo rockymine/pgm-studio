@@ -26,7 +26,7 @@ public static class FillProfiles
     };
 
     /// <summary>The <b>hub's</b> fill profile — its authored form menu as data (the <see cref="Compound"/> bodies
-    /// a hub may be, model.md §4). Compound-typed, not <see cref="ShapeFamily"/>, because the hub is a
+    /// a hub may be, model.md §5). Compound-typed, not <see cref="ShapeFamily"/>, because the hub is a
     /// terminal-free body rather than an approach; it composes <see cref="HubBoxEmitter.Forms"/> the way the
     /// wool/spawn rows compose their menus.</summary>
     public static IReadOnlyList<CompoundRead> HubForms => HubBoxEmitter.Forms;
@@ -36,7 +36,7 @@ public static class FillProfiles
     /// read the same free-edge intervals — a divergence would seat neighbours on runs the fill does not produce.</summary>
     public const int HubWallCells = 2;
 
-    /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, model.md §4),
+    /// <summary>The <b>frontline's</b> fill profile — its authored form menu as data (Bar · single · twin, model.md §5),
     /// Compound-typed like the hub. Composes <see cref="FrontlineBoxEmitter.Forms"/>, lifting the grower's
     /// <c>FrontForm { None, Single, Wide, Twin }</c> into the profile.</summary>
     public static IReadOnlyList<CompoundRead> FrontlineForms => FrontlineBoxEmitter.Forms;
@@ -59,7 +59,7 @@ public static class FillProfiles
     /// <summary>
     /// The spawn box's allowed footprints — the <b>size rule as data</b>, the size facet of the profile (the
     /// counterpart to the family allowlist above). A spawn is one of these <b>small fixed SP boxes</b>
-    /// (docs/generator/model.md §5 — a spawn is "small … never large", ~10×10 direct · 10×20 run-up ·
+    /// (docs/generator/model.md §6 — a spawn is "small … never large", ~10×10 direct · 10×20 run-up ·
     /// 20×20 L), <b>sampled, never stretched to absorb a land-budget share</b> the way the ported grower did.
     /// Each entry is a <c>(family, run, turn)</c> the emitter turns into the box footprint via
     /// <see cref="SpawnBoxEmitter.Box"/> — edit this table to retune the spawn's size or add a variant; the size
