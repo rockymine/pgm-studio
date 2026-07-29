@@ -248,8 +248,9 @@ face across both tips, the inter-tip recess preserved as a hole). Joint-vs-sever
 vs split frontline.
 
 **Two kinds are vocabulary-only.** `target` is locked as a term but has **no live type**
-(`ComposeTargets` was declared pending and never landed) — the budget ladders of §6.1 are what would
-become targets. And the allocator's weighted sampling (§6.1) fits **no** declared kind: a `menu` is a
+(`ComposeTargets` was declared pending and never landed) — the budget ladders of §6, *What the unit asks
+for*, are what would become targets. And the allocator's weighted sampling there fits **no** declared
+kind: a `menu` is a
 set and carries no frequency, a `band` carries a distribution but is explicitly descriptive. Naming
 that kind — provisionally **mix** — is an open author decision. Both are tracked in `audit.md`
 (G108/G109).
@@ -604,8 +605,14 @@ notch — 2 walls        bay — 3 walls          hole — enclosed, 4
 A region walled from at most one direction is plain outside space along a flat side, and is not a
 feature of the shape at all.
 
-This escalation is a **fact read off finished geometry** by `BodyEdges`, total over any set of
-rectangles, and it carries more than a class name. Each space decomposes into **parts** — a slab
+Negative space is known twice over, from both ends. An emitter **declares** the spaces it means to
+leave: every emission carries `Vacancies`, a list of `ShapeVacancy` giving each space's kind, its
+rectangle, the edge its mouth opens toward, and the slots of the pieces walling it. `BodyEdges` then
+**reads** the same spaces back off the finished rectangles, and describes itself as the derive-side twin
+of that emit-time record. The two must agree, for the same reason the family and the body readings must.
+
+The derive side is the richer of the two, because it is a **fact read off finished geometry**, total
+over any set of rectangles, and it carries more than a class name. Each space decomposes into **parts** — a slab
 decomposition into rectangles, each re-classed by its *own* walls, so a rule can reach an inset leg
 that the flat class would have forbidden wholesale. Each space publishes its **mouths**, one per open
 direction, so a bay has one, a notch two and a hole none; a mouth is an edge interval tapering to a
@@ -654,6 +661,16 @@ Four box kinds bind over those two. The **wool box** and the **spawn box** both 
 same classifier, same round-trip check, differing only in what the room holds and how big it is. The **hub box**
 and the **frontline box** both bind over `BodyEmitter`, because neither ends in a goal.
 
+**Everything is emitted in one canonical orientation and turned afterwards.** An approach is built
+mouth-up and a body spine-up, always, so the per-family geometry is written once rather than four times.
+Placing it on the edge a box actually docks is a separate transform — `MouthOrient` for the terminal-capped
+kinds, `BodyOrient` for the terminal-free ones — where the top edge is the identity, the bottom a vertical
+mirror, and left or right a quarter turn that transposes the box. The piece rectangles, the marker's offset
+within its room, and the mouths of every published vacancy all follow that transform together. This is why
+the mouth edges differ per family in the canonical frame — I, L, Z and the scythe enter at the top, the U,
+H and clamp at the bottom where their legs run down to the host, the donut at the left — and why that
+difference never reaches a caller, which asks for an edge and gets a shape facing it.
+
 ### 5.4 What each box kind adds
 
 What a box kind adds on top of a body is its **designation**. There are three, and the split is by
@@ -682,12 +699,18 @@ ring's own top bar is separately labelled `entry-bar` beside it. A rule quantifi
 therefore has to mean the role; it can assume nothing about the rectangle's size, position or whether
 removing it would leave the rest of the shape intact.
 
-The two layers are also a claim about **identity, not build order**. No emitter constructs a body and
-then converts it into an approach: `ShapeEmitter` lays each family's rectangles down already labelled,
-sharing only the ring-wall geometry with `BodyEmitter` for the donut. The body vocabulary is emitted
-for real, but by the hub and frontline, which genuinely are body-first. What the split buys is that
-the *classifier* can read identity in two independent registers — topology below, terminal placement
-above — and that is what lets one body serve several finished shapes.
+The two layers are real in the code, but not as a pipeline one stage feeds the next. `ShapeEmitter`
+has a single per-family routine that computes a family's terrain, its room and its vacancies together,
+and two entry points onto it: `Body` returns the terrain alone, terminal-free, and `Approach` combines
+such a body with a room and a marker into a finished emission. So an approach can be taken apart into
+body and terminal, and the hub and frontline reuse exactly that terminal-free half — but no approach is
+built by first constructing a generic body and then designating it, and the approach path never routes
+through `BodyEmitter` at all, borrowing only its ring-wall geometry for the donut. The room is computed
+alongside the terrain by a routine that knows the whole family, not bolted onto a finished body.
+
+What the split really buys is at the reading end: identity can be taken in two independent registers,
+topology below and terminal placement above, and that is what lets one body serve several finished
+shapes.
 
 There is a fourth thing the designations were meant to carry and do not yet. The docking law is
 tabulated per designation: for a hub the `interface` mark is the docking edge, for a frontline the
@@ -814,6 +837,25 @@ pieces, fixed per family and only resized:
 Those are the base configurations. The knobs add pieces without changing the family: a second donut
 attachment is another `entry`, and the wool-extend run of the third donut figure above is a `run`.
 
+**The knobs are the variation the model allows without leaving the family.** Beyond the room placements
+already drawn, a shape can be flipped so its turn goes the other way; the room can tuck off the side of
+the last segment instead of capping it; the donut can take a second attachment, slide an attachment along
+the ring's edge, or widen it; and the scythe can slide either of its two endpoints down the docking edge.
+That last one propagates rather than merely moving a rectangle: a shifted entry takes the top of the
+spine it docks with it, and a shifted wool shortens the return leg the same way, because a full-height
+spine standing over a dropped tail is a different shape wearing the same name.
+
+`RingWalls` is the widest of them. Every ring-bodied form — the `Ring`, the `P`'s loop, the `G`'s ring,
+the `DoubleHole` and the donut — takes its four wall widths independently, so one bar or leg can run
+wider than the rest where more play should flow through that side. The hole is whatever the walls leave,
+so widening spends the box's slack, and a wall vector too fat for its box is **refused outright** rather
+than quietly squashing the ring into something thinner than asked for.
+
+Every family also has a **minimum box**, computed from the corridor width and whichever knobs are set,
+below which the shape cannot be drawn at all — a donut integrating its wool at the ring corner needs a
+narrower box than one hanging the room off the end, because the terminal sits inside the ring's span
+instead of beyond it. Asking for a box under that minimum is refused, not shrunk to fit.
+
 Two invariants hold the templates together. A family emits a **stable piece count** — collinear pieces
 are never merged, because a stable set is what makes "the entry is piece N" a usable rule. And a
 **slot is a template position, not a property of the rectangle**: a scythe's `entry-run` and a donut's
@@ -907,6 +949,14 @@ assert equality with no overlap, and assert that the emitted slot sequence equal
 every one must still read its own family — the width-independence proof. The nine-family catalog
 itself is checked in as fixtures under `tools/deriver/shapes/*.plan.json`.
 
+**Three readings are checked this way, not one.** The family reading is the one just described. The
+**slot** reading is a second: `SlotAssignment` re-derives each piece's slot from topology alone — path
+order for the chain families, adjacency for the branches, hole-edge geometry for the donut — and never
+from where a rectangle happens to sit, so every placement knob above survives it. And the **vacancy**
+reading is a third: what an emitter declared it was leaving empty must match what `BodyEdges` reads back
+off the finished rectangles. Emitter labels, deriver recovers, and the two are asserted equal at each
+level.
+
 The **body layer is checked the same way and separately**, so the wool and spawn path stays
 byte-identical: `BodyEmitter` emits a terminal-free compound and `ClassifyBody` reads it back by
 topology, strongest signal first — void count, then arm count, then bends. Void count does most of the
@@ -923,6 +973,43 @@ a body through `ClassifyBody`, a family through `ShapeClassifier`, a negative sp
 has to catch. It reads the figures from the document rather than holding copies, which is what stops
 the two drifting apart.
 
+**Classification says what a shape is; it does not say the generator could have made it.** Those are
+different questions, and the second one — *could the composer have produced this?* — is what an author
+asking why their hand-drawn box will not reproduce actually needs. Identity is only a hint toward it: a
+ring with one-cell walls still reads as the `G` it topologically is, even at a width no `G` is emittable
+at. `Producibility` answers the real question, and it is worth understanding how, because the method is
+what keeps it honest.
+
+It answers **by search, never by inverse**. The parameter space is already written down as data — the
+hub and frontline form menus, the wool production families, the spawn sizes, the wall and lane widths —
+and every emitter is a pure function of an explicit tuple with no sampling inside it, since the sampling
+lives one level up in the allocator. So the search enumerates the tuples those tables admit, calls **the
+real emitters**, and compares the resulting cell masks against the box. Nothing about a rule is restated
+here, which is the point: adding a hub form makes it producible for free, where a hand-written parameter
+recovery would have to be taught the new form and could silently disagree with the emitter it was
+imitating.
+
+When nothing reproduces a box, the enumeration has already produced the answer to *why*. The **nearest
+miss** is the candidate differing in the fewest cells, reported as the cells it emits that the box lacks
+and the cells the box has that it does not — which says where the drawn geometry left the parameter space
+without needing a bespoke analyser per family. Alongside it sit the emitters' own refusal reasons and a
+measurement of the mask against the very constants the emitters read. Terrain and room are compared
+**separately**, because a box whose corridor reproduces but whose room does not is a different answer
+worth stating on its own: the room carries export semantics rather than being more terrain.
+
+Some findings are properties of the **arrangement** rather than of any one box — the parallel-fronts
+guard, the frontline's face demand, the seat-separation law — and those are asked of the composer's own
+predicates rather than reimplemented. Both halves are reported, since a plan can have every box
+individually producible and still be arranged in a way the composer would never draw.
+
+One number in it is a coverage guarantee rather than a tuning choice. Where a sampler is the only thing
+that knows its own laws, its **range** is collected by running it rather than by restating the laws, and
+the sweep draws fifty thousand seeds. Most spaces saturate within fifty; the frontline's two-leg layout
+does not, because its bay, end recess, offset and split are drawn independently — on a twenty-cell spine
+that is some three hundred and ninety outcomes whose rarest first appears around seed five thousand.
+Under-drawing it would report a layout the composer really draws as unproducible, which is the one
+failure this must not have.
+
 ---
 
 ## 6. Allocate — from a budget to a placed partition
@@ -938,7 +1025,27 @@ turns a footprint into material and so decides where anything may dock. Separate
 of all of that, the unit works out what it needs hung off the hub. Only then does seating put the two
 together, and seating's entire output is one integer per neighbour.
 
-### 6.1 The hub goes down first
+### 6.1 The frame the unit is built in
+
+Allocation never lays out a board. It lays out **one team unit**, and the board is that unit repeated —
+reflected or rotated into its symmetry images, so a two-team map is one authored half and its mirror. The
+frontline is where those images meet. Allocation therefore describes a single image throughout, and any
+claim about the whole board is a claim about what happens when the images are placed side by side.
+
+The unit is not drawn in world coordinates either. It is drawn in a frame of two axes: **`u`**, the
+distance out from the symmetry axis, increasing away from it, and **`v`**, the cross-axis coordinate,
+centred near zero. Which real axis `u` rides on, and in which direction, is a property of the symmetry
+mode — `z` for the rotations and the z-mirror, whose unit occupies the far half or wedge, `x` for the
+x-mirror. Working in `u` and `v` is what lets one piece of layout code serve every symmetry mode: without
+it, each of the modes would need its own copy of every placement rule, differing only in which coordinate
+counted as "toward the axis".
+
+One arithmetic decision is already made before allocation begins. The **crossing is fixed first** — the
+gap from one team's front to the other's is settled while the board is still empty — and its half-gap
+*is* the margin the allocator must leave against the axis. Allocation therefore starts with the axis
+already spoken for, and the unit grows back from a boundary it does not get to move.
+
+### 6.2 The hub goes down first
 
 The hub is the only box in the unit that ever receives absolute coordinates. Its rectangle is drawn in
 the symmetry frame — so many cells out from the axis, so many across — and every other box is
@@ -955,7 +1062,7 @@ can sit. It emits the body once to read what that body offers, and the chosen fo
 widths and arm layout, where it has them — rides on the hub box so the filler re-emits exactly the
 same body. A body sampled twice would not agree with itself.
 
-### 6.2 The form decides where anything may dock
+### 6.3 The form decides where anything may dock
 
 Emitting is what turns a footprint into material. The form decides which cells inside the hub's
 rectangle are terrain and which are holes, and that distinction matters immediately, because the next
@@ -972,7 +1079,7 @@ Each run is published as an **offer**, carrying the width that run can support �
 from its own length. The offer bounds the search rather than filtering its output: a seat that would
 put a neighbour where the hub has no material is never proposed, not proposed and rejected.
 
-### 6.3 What the unit asks for
+### 6.4 What the unit asks for
 
 Independently of the hub, and before any position exists, the allocator works out what the unit needs.
 The player count fixes how many wool boxes there are, whether there is a frontline, and how large the
@@ -1010,7 +1117,7 @@ spans the hub's full front width. These steer the output's character more than a
 the generator, and most of them trace to no law in `rules.md`: they were tuned, not derived. Which are
 grounded and which are invented is measured in `audit.md`.
 
-### 6.4 The seat
+### 6.5 The seat
 
 Seating's entire job is to turn a request into a position, and the position is a single integer: the
 **seat**, the offset in the hub's edge-local coordinates at which the neighbour's along-extent begins.
@@ -1033,7 +1140,7 @@ The rectangle that results is an **envelope, not a fill target**. Its contents m
 stay connected, but need not fill it solid; an L in a five-by-four box leaves a whole quadrant empty.
 That is what lets one shape take many footprints inside a fixed rectangle.
 
-### 6.5 The three dock rules
+### 6.6 The three dock rules
 
 Which seats are legal depends on the dock style, and the style is never sampled. It follows from the
 family roll that has already happened, which makes it a derived property of the request rather than a
@@ -1065,7 +1172,7 @@ because the face's end cell and the hub's last filled cell would then touch only
 | overhang | `L` and `Donut` wools | one narrow entry interval |
 | contact patch | the frontline | every contact, each at least a lane wide |
 
-### 6.6 What keeps neighbours apart
+### 6.7 What keeps neighbours apart
 
 The runs constrain a neighbour against its host. A second, independent constraint holds neighbours
 apart from each other, and a seat must satisfy both.
@@ -1084,7 +1191,17 @@ contained in its box, box separation implies shape separation — a sound over-a
 conservative one. Two shapes may end up far further apart than the lane width and can never end up
 closer, at the cost of refusing arrangements whose boxes collide before their terrain would.
 
-### 6.7 When a seat cannot be found
+A third law governs the distance between **images**, and it is stricter than either. Terrain divides into
+two classes: **land**, the connected mass of one team unit, whose pieces are free to touch each other
+because they are meant to be one island; and **isolated** pieces — mid stones, severed plateaus — that
+are reachable only by building and must never weld to anything. Any pair drawn from different symmetry
+images, and any pair at all involving an isolated piece, has to keep a fixed clearance on some axis. The
+reason is that a shared border joins terrain no matter how narrow it is: one cell of contact between a
+unit and its own mirror image turns two islands into one and quietly deletes the crossing the whole map
+is built around. The same measurement also supplies the length of a straight unbroken run, which is the
+unit of account for the rule against long flat frontiers.
+
+### 6.8 When a seat cannot be found
 
 Failure is a ladder, not a cliff, and each rung is a different answer.
 
@@ -1104,7 +1221,7 @@ consuming no draw — to the nearest position that clears the front. Seats that 
 hold are collected and resolved after every neighbour is placed, when the full set is known and an
 earlier drop may have freed the very blocker.
 
-### 6.8 What a joint records
+### 6.9 What a joint records
 
 When a seat survives, two things are written into the partition. The box goes in, carrying its
 rectangle and its share of the land budget. A joint records the **abutment** — the interval where the
@@ -1122,6 +1239,35 @@ request's along, the shape's entry, the geometric abutment, and the granted widt
 exactly the two docks worth understanding — an overhang wool, whose entry is narrower than its box,
 and the frontline, whose face may exceed the hub's edge so the abutment is clipped narrower than the
 box. Of the four, the abutment is the only one describing something a player can walk through.
+
+### 6.10 Placing the finished unit
+
+Building the unit and placing it across the axis are two steps, and the second one exists because the
+first anchors on the wrong thing. Everything above is laid out around the hub, whose lateral span is
+centred on the axis; the frontline is then seated onto whatever run the hub happened to offer. So the
+**face** — the front-most row of terrain, and the only part of the unit the mid actually docks — ends up
+wherever seating put it, which need not be centred at all.
+
+Under a symmetry that flips laterally that is the wrong anchor, and the consequence is concrete. The
+opposing image reflects the cross-axis coordinate, so an off-centre face and its own image land on
+opposite sides of the axis. The crossing then has to span the hull of both, and most of the band it
+carves borders neither front — a wide dead crossing produced by nothing more than where a seat landed.
+
+The fix is to re-anchor the finished unit on its face: translate the whole unit across the axis until the
+face is centred on the axis point. The face and its image then coincide, and the band becomes exactly the
+face rather than the hull of two offset copies. Nothing inside the unit moves relative to anything else,
+so every seat, joint and clearance settled above survives the translation untouched — which is what makes
+this safe to do last rather than a constraint seating would have had to carry.
+
+Once both images are in place, the arrangement is measured as one board. The **closure** — every terrain
+piece and build zone across all images — is rasterized and its enclosed voids found by flooding inward
+from outside. Each such void is a hole, and holes are the device the corpus uses to give a map rotation:
+a loop around one offers routes between lanes that do not retreat through a single chokepoint. What rings
+a hole matters as much as its existence, since a hole ringed by a wool plateau is a motif the composer
+declines to author. This measurement is deliberately a fast, narrow twin of the whole-board deriver's
+void classification, kept separate because it runs inside the composer's attempt loop where re-deriving
+the entire board every attempt would be waste — and the two are required to agree, so a change to the
+board deriver's hole rules is a change to this twin.
 
 ---
 
