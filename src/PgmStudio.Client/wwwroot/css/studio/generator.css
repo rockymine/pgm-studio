@@ -94,3 +94,22 @@
   font-family: ui-monospace, monospace; font-size: var(--font-xs); white-space: pre; overflow-x: auto;
   color: var(--text-secondary); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2);
 }
+
+/* land spend (G148) — what the board cost against the budget it was built to. Two currencies: footprint is
+   the box rect, land is the walkable terrain inside it. */
+.gen-card-land {
+  font-family: ui-monospace, monospace; font-size: 10px; white-space: nowrap;
+  color: var(--text-secondary); background: var(--bg-selected); border-radius: var(--radius-sm); padding: 1px 5px;
+}
+.gen-spend { margin: var(--space-2) 0; }
+.gen-spend-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2);
+  font-size: var(--font-sm); color: var(--text-secondary);
+}
+.gen-spend-pct { font-family: ui-monospace, monospace; color: var(--accent-lighter, var(--accent)); }
+.gen-spend-table { width: 100%; margin-top: 6px; border-collapse: collapse; font-size: var(--font-xs); }
+.gen-spend-table th, .gen-spend-table td { padding: 3px 6px; text-align: right; border-bottom: 1px solid var(--border); }
+.gen-spend-table th:first-child, .gen-spend-table td:first-child { text-align: left; }
+.gen-spend-table th { font-weight: 500; color: var(--text-secondary); text-transform: lowercase; }
+.gen-spend-table td { font-family: ui-monospace, monospace; color: var(--text-bright); }
+.gen-spend-table tfoot td { border-bottom: none; color: var(--text-secondary); }

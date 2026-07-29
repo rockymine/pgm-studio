@@ -159,6 +159,10 @@
             <div class="gen-card-foot">
               <span class="gen-card-score" title="Evaluator score — lower is better">@card.Score.ToString("0.0")</span>
               <span class="gen-card-meta">@card.WoolCount wool · #@card.Descriptor.Seed</span>
+              @if (card.Spend is { } spend)
+              {
+                <span class="gen-card-land" title="@SpendTitle(spend)">@SpendShort(spend)</span>
+              }
               <button class="gen-pin @(IsPinned(card) ? "gen-pin--on" : null)" @onclick="() => TogglePin(card)"
                       title="@(IsPinned(card) ? "Unpin" : "Pin to hold tray")"><i data-lucide="pin"></i></button>
             </div>
@@ -191,6 +195,34 @@
         <div class="gen-detail-meta">
           <strong>@string.Join(", ", d.Structure.Wools)</strong> wools · hub <strong>@d.Structure.Hub</strong> · frontline <strong>@d.Structure.Frontline</strong>
         </div>
+        @if (d.Spend is { } sp)
+        {
+          <div class="gen-spend">
+            <div class="gen-spend-head">
+              <span>land <strong>@sp.LandCells</strong> / @sp.BudgetCells.ToString("0") cells</span>
+              <span class="gen-spend-pct">@SpendPercent(sp)</span>
+            </div>
+            <table class="gen-spend-table">
+              <thead><tr><th>box</th><th>land</th><th>footprint</th></tr></thead>
+              <tbody>
+                @foreach (var k in sp.ByKind)
+                {
+                  <tr>
+                    <td>@k.Kind@(k.Boxes > 1 ? $" ×{k.Boxes}" : string.Empty)</td>
+                    <td>@k.LandCells</td>
+                    <td>@k.FootprintCells</td>
+                  </tr>
+                }
+              </tbody>
+              <tfoot><tr><td>total</td><td>@sp.LandCells</td><td>@sp.FootprintCells</td></tr></tfoot>
+            </table>
+            <p class="section-desc">
+              Cells, for <strong>one team unit</strong> — the board is this unit fanned. Footprint is the box
+              rectangle; land is the walkable terrain inside it, which is what the fill spends. The budget is
+              the envelope's per-team land target, converted from blocks².
+            </p>
+          </div>
+        }
         @if (d.HardTerms.Count > 0)
         {
           <div class="plan-compile-errors"><p class="section-desc">hard terms fired: @string.Join(", ", d.HardTerms)</p></div>

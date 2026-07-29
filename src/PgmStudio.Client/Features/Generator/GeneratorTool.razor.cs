@@ -314,6 +314,29 @@ public partial class GeneratorTool : IAsyncDisposable
     private void OnWoolMax(ChangeEventArgs e) { if (int.TryParse(e.Value?.ToString(), out var v)) woolMax = Math.Max(0, v); }
     private void PickSymmetry(string s) => symmetry = s;
 
+    // ── land spend (G148) ────────────────────────────────────────────────────────
+    // Two currencies, never one: footprint is the box rect (fixed when the box was seated), land is the
+    // walkable terrain inside it (what the fill spends). The budget is per TEAM UNIT — the board is that unit
+    // fanned — so the card says "unit" rather than letting the number read as a whole-board figure.
+
+    /// <summary>The card-sized readout: land against budget, plus the share.</summary>
+    private static string SpendShort(LandSpendDto spend) =>
+        $"{spend.LandCells}/{spend.BudgetCells:0} · {SpendPercent(spend)}";
+
+    /// <summary>The share of the land budget the unit actually spent. Guards a zero budget rather than
+    /// rendering a NaN into the card.</summary>
+    private static string SpendPercent(LandSpendDto spend) =>
+        spend.BudgetCells > 0 ? $"{100 * spend.LandCells / spend.BudgetCells:0}%" : "—";
+
+    /// <summary>The hover: the same numbers spelled out, with the per-kind split and the units named.</summary>
+    private static string SpendTitle(LandSpendDto spend)
+    {
+        var kinds = string.Join(", ", spend.ByKind.Select(k =>
+            $"{k.Kind}{(k.Boxes > 1 ? $" x{k.Boxes}" : string.Empty)} {k.LandCells}"));
+        return $"Land {spend.LandCells} of {spend.BudgetCells:0} budget cells, one team unit " +
+               $"(footprint {spend.FootprintCells}). By box: {kinds}.";
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (observer is not null)

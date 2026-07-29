@@ -1928,6 +1928,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
   per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
 
+- **Land spend on every generated board (G148)** — `ComposeEndpoints` + `Contracts/ComposeDtos.cs` +
+  `Features/Generator/`. The browse feed could say a board scored 2.3 and had a ring hub, but not what it
+  cost. Every number already existed and none was displayed: `BoxPartition.Of(unit)` carries each box's kind,
+  footprint (`Rect`) and land, and `ComposedStages.Envelope.LandPerTeam` is the budget **that board** was
+  built to — the endpoint already held the unit, so this is a group-by, not a new derivation. Cards get
+  `52/50 · 103%` beside the score; the detail drawer gets the per-kind table. **Both currencies are reported**,
+  because the model keeps them apart: footprint is the box rect (fixed when the box is seated), land is the
+  walkable terrain inside it (what the fill spends) — a donut has a large footprint and modest land, so either
+  alone misreads the shape. The display names its own units: cells, for **one team unit** (the board is that
+  unit fanned), against a budget converted from the envelope's blocks². Its first run measured what nothing
+  had been measuring — 28 of 40 boards over budget, median 115%, max 222% — filed as G149. Pgm 773 + Api 89
+  green; e2e smoke 33/33. (G148)
+
 - **Shape catalog — the vocabulary as a page** — `Pgm/Compose/ShapeCatalog.cs` + `ShapeCatalogEndpoints` +
   `Client/Features/Catalog/` + `css/studio/catalog.css`. `/catalog` renders **98 cards**: every approach
   family and body form the pipeline can put in a box, emitted once mouth-up, deduplicated by cell pattern,

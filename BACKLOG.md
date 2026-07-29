@@ -380,6 +380,24 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
+- [ ] **G149 — the land budget is a number the composer reads and then overshoots.** The first thing the
+  G148 readout showed, measured over 40 boards at 12 players/team (budget 50 cells): land runs **63% to 222%**
+  of budget, median **115%**, and **28 of 40 boards are over**. So the budget is not a cap — it is an input
+  the allocator consults for its decisions (lane width, whether there is a frontline, the hub caps, the wool
+  count — `TeamUnitAllocator.cs:46-52`, `UnitTuning.WoolCount`) and then nothing reconciles the result
+  against it. `BoxFiller.WithinLandTarget` exists and no production path calls it.
+  Nothing caught this because nothing measures it: the only land-ish term is `fill-ratio` (G8), which is land
+  over the board's **bounding box**, not land against the **budget** — a different quantity that can sit
+  happily in its band while the unit is at double its target.
+  Decide what the budget means before changing anything, because both readings are defensible: either it is a
+  target the fill should be reconciled against (then something must spend the overshoot down — the
+  two-currency accounting says fragment converts surplus land to build, so the question is whether fragment
+  ever runs), or it is only a sizing heuristic (then rename it, drop the "budget" framing, and stop implying
+  a contract that does not exist). What is not defensible is the current state, where a number named budget is
+  exceeded by half again on a typical board and nothing says so. Note G138 is adjacent but distinct: that one
+  is about the composer taking the first acceptable plan rather than ranking; this is about the plan it takes
+  not honouring its own sizing input.
+
 - [ ] **G147 — verdict coverage on the catalog: which buckets has nobody judged?** *(sequenced after G118 —
   there is nothing to count until verdicts exist.)* The browse feed hands the author whatever the composer
   samples, so collection is passive: the corpus ends up shaped like the sampler, and the parts of the space

@@ -24,10 +24,31 @@ public sealed record StructureSummaryDto(
     string Hub,
     string Frontline);
 
+/// <summary>What one kind of box spent, summed over every box of that kind in the team unit.
+/// <paramref name="Boxes"/> is how many there were (two wools read as one row of two).
+///
+/// <para>The two numbers are different currencies and both are needed. <paramref name="FootprintCells"/> is
+/// the box rectangle — fixed when the box is seated; <paramref name="LandCells"/> is the walkable terrain
+/// inside it — what the fill actually spends. A donut has a large footprint and modest land, because the
+/// enclosed hole is footprint it never spends, so either number alone misreads the shape.</para></summary>
+public sealed record BoxSpendDto(string Kind, int Boxes, int LandCells, int FootprintCells);
+
+/// <summary>What a composed unit spent against the budget it was built to. <paramref name="BudgetCells"/> is
+/// the envelope's per-team land target converted to cells — <b>per team unit</b>, not per board, because the
+/// board is the unit fanned; and converted from the blocks² the envelope works in, which is why it is carried
+/// already-converted rather than leaving the client to guess the cell size. <paramref name="ByKind"/> is the
+/// breakdown, ordered largest-land first.</summary>
+public sealed record LandSpendDto(
+    int LandCells,
+    int FootprintCells,
+    double BudgetCells,
+    IReadOnlyList<BoxSpendDto> ByKind);
+
 /// <summary>One card in the browse feed: its <paramref name="Descriptor"/> (identity + reproduction key), the
 /// evaluator <paramref name="Score"/> (lower is better), the base-unit <paramref name="WoolCount"/>, its
 /// <paramref name="Structure"/> read (families/forms, for badges + filtering), any fired hard-term ids, the
-/// top soft contributors, and the ready-to-inject board <paramref name="Svg"/>.</summary>
+/// top soft contributors, what it <paramref name="Spend"/>t against its land budget, and the ready-to-inject
+/// board <paramref name="Svg"/>.</summary>
 public sealed record ComposeCard(
     ComposeRequestDto Descriptor,
     double Score,
@@ -35,7 +56,8 @@ public sealed record ComposeCard(
     StructureSummaryDto Structure,
     IReadOnlyList<string> HardTerms,
     IReadOnlyList<TermContribDto> TopSoft,
-    string Svg);
+    string Svg,
+    LandSpendDto? Spend = null);
 
 /// <summary>What the structural vocabulary actually turned up over the boards a page composed, counted
 /// <b>before</b> the sieve so a filter never hides the alternatives it is filtering against.
