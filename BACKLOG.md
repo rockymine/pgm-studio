@@ -365,6 +365,20 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
+- [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
+  `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
+  stretch along a boundary, an **interval** is where two things touch. `BoardStructure` breaks it —
+  `FrontEdges`, `IntraEdges`, `SelfEdges` and `RedstoneEdges` are all `List<(X1,Z1,X2,Z2)>` of
+  **cell-boundary segments**, not edges, and the deriver's own comments already call the grouped result
+  a *run* (`GroupFrontlineRuns` → `FrontlineRuns`). So the code contradicts itself in one file: the raw
+  list is named for a full extent, the grouped one for what it actually is. Rename the four to
+  `FrontSegments` / `IntraSegments` / `SelfSegments` / `RedstoneSegments` (or `…BoundarySegments`), and
+  sweep the comments that call a segment an edge. Mechanical — the type is a tuple list with a handful
+  of consumers (`BoardDeriver`, the deriver gallery, the evaluator terms reading front edges) — but it
+  has to land in one commit with the doc, or `model.md` will assert a rule the code visibly breaks.
+  Check `BoxEdgeInterface`/`EdgeSpan`/`EdgeInterval` in the same pass: those name a genuine full edge
+  and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
+  is worth removing rather than tolerating.
 - [ ] **G138 — The composer accepts, it never chooses: a soft score has nowhere to act.** `Composer` takes
   the **first** plan that clears the gate and `break`s (`Composer.cs:59-84`) — no ranking, no comparison, no
   best-of-K. It contains zero references to `Evaluate` or `Score`, only `Gate`, and `Gate` runs hard terms

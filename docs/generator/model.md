@@ -216,9 +216,11 @@ board-deriver's connectivity hole classes of §1.7.)
 
 ## 2. The pipeline
 
-Generation runs **from the hub outward**, in a relative frame, and embeds late. The composer is
-**allocate-then-fill**: every box footprint is positioned *before* any terrain exists, and filling
-never grows a box outward.
+Generation turns a handful of numbers into a playable map, and it does so in one direction. A request
+becomes a budget, the budget becomes a partition of empty rectangles, the rectangles are filled with
+terrain, the result is judged, and only then does it become a plan a world can be built from. Nothing
+later reopens what something earlier settled — which is what makes the whole thing explicable, since
+any property of the output can be traced to the one step that fixed it.
 
 ```
 request → budget → allocate (boxes + joints) → fill (hub-first) → carve the mid
@@ -226,26 +228,31 @@ request → budget → allocate (boxes + joints) → fill (hub-first) → carve 
                       └────reject───► resample
 ```
 
-- **request** — players per team, team count, symmetry, seed (§3.1).
-- **budget** — the player count fixes the land and footprint targets and the board's extent (§3.2).
-- **allocate** — the budget draws a **placement plan** (which neighbour sits on which hub side) and
-  lays out typed box footprints, seating each on the hub's real free surface (§6).
-- **fill** — the hub emits **first** as the constraint source; each neighbour consumes the offer on
-  its own joint and fills its footprint with a shape (§5, §6).
-- **carve** — the mid band is derived from the frontline faces (§6).
-- **assemble** — the labeled pieces become a `plan.json`; slots drop here (§4).
-- **gate** — the evaluator's hard terms accept or reject the attempt; a rejection **resamples the
-  whole attempt** (60 allowed), so "no shape fits" is a signal, never a crash (§8).
-- **realize** — the accepted plan is compiled and exported (§2.1).
+Two commitments shape everything downstream. Generation runs **from the hub outward** in a relative
+frame and embeds into world coordinates late, so every box but the hub is positioned against its
+neighbour rather than against the map. And composition is **allocate-then-fill**: every footprint is
+placed before any terrain exists, and filling never grows a box outward to accommodate what is being
+put in it.
 
-**Fragment** — converting land to build (isolation cuts, stepping stones), footprint-conserving
-(§3) — is part of the model but is **not** in the shipped compose loop: today the only build region
-is the mid band.
+The steps, in order. A **request** is players per team, team count, symmetry and a seed — no geometry
+(§3). The **budget** turns the player count into land and footprint targets and the board's extent
+(§3). **Allocation** draws typed box footprints and seats each on the hub's real free surface,
+producing boxes and the joints between them (§6). **Filling** emits the hub first as the constraint
+source, and each neighbour consumes the offer on its own joint (§5, §6). The **carve** derives the mid
+band from the frontline faces (§6). **Assembly** turns labeled pieces into a plan, and the labels drop
+here (§4). The **gate** is the evaluator's hard terms, and a rejection resamples the whole attempt —
+sixty are allowed — so "nothing fits" is a signal rather than a crash (§8). **Realize** compiles the
+accepted plan and exports it.
 
-### 2.1 realize — the compile chain
+One step in the model is absent from the loop. **Fragment** — converting land into build zones for
+isolation cuts and stepping stones, conserving footprint while spending land — is how the two
+currencies are meant to trade against each other (§3). It is not in the shipped composer: today the
+only build region on a generated map is the mid band.
 
-The plan is the **upstream artifact**; it compiles one-way into two downstream artifacts, each with
-exactly one consumer:
+### 2.1 Realize — the compile chain
+
+The plan is the **upstream artifact**. It compiles one way into two downstream ones, each with exactly
+one consumer:
 
 ```
 plan.json ──compile──► layout.json (SketchLayout) ──rasterize──► world
@@ -258,11 +265,11 @@ plan.json ──compile──► layout.json (SketchLayout) ──rasterize─�
 | **sketch** (`layout.json`) | realized geometry: polygons, béziers, per-anchor heights, layers | the rasterizer |
 | **intent** (`intent.json`) | concrete objectives: block coords, yaws, wool colours, monument wiring | the XML generator |
 
-Sync is **one-way** while the staged loop runs (edit plan → recompile → re-roll whatever realize
-adds). Once the author takes the sketch into the editor for hand work, the plan
-**freezes as provenance**
-and sketch + intent become the working artifacts. Recovering plan meaning from edited geometry is
-out of scope.
+Sync is one-way while the staged loop runs: edit the plan, recompile, and whatever realize adds is
+re-rolled. Once an author takes the sketch into the editor for hand work that stops — the plan freezes
+as provenance and sketch and intent become the working artifacts. Recovering plan meaning back out of
+edited geometry is deliberately out of scope, for the same reason a finished map's shapes cannot be
+classified back to the families that built them: the moves compose in one direction only.
 
 ---
 
