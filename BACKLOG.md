@@ -380,6 +380,40 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
+- [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
+  whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
+  go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the
+  catalog or the emitters. So an author hand-cuts rectangles and finds out afterwards. Give a selected box a
+  **family picker** — the in-mix tier of `GET /api/shapes/catalog` (G144), which is exactly the set the
+  composer really samples — plus the knobs `GET /api/shapes/probe` already serves per family, and stamp the
+  emission into the box as its members. Producible **by construction**, so the feasibility panel goes green
+  without the author aiming at it.
+  Most of this exists. The probe endpoint already emits through `BoxFiller` (profile check and docking gate
+  included) and answers with the shape or a directed `FillRejection`; `/api/shapes/probe/schema` already
+  serves the per-family knob surface and minimum box in the dock frame. What is new is the *stamp*: writing
+  the emission into an existing plan's box rather than returning a standalone `symmetry:none` plan, which
+  means placing pieces at the box's origin, giving them ids under the box, and replacing whatever was there.
+  This is the editor half of **B21's `emit_family`** — build it here and the MCP tool wraps it rather than
+  reimplementing it. It also pairs with G149: placing known-producible shapes and watching the G148 land
+  readout move is the most direct way to find out what the budget is actually worth.
+
+- [ ] **G151 — a box's rect should be the bounding box of its members.** The members inspector offers
+  "Fix these members" / "Follow containment", and the fixed half behaves oddly on purpose-built-for-something-
+  else grounds: named membership (`PlanBoxes.MembersOf`, the `Members` list) ignores geometry entirely, so a
+  piece can be dragged *out* of its box and still be carried when the box moves (`plan-canvas.js`, the box
+  drag translates `d.carried` in both modes). That is not an authoring mode — named membership exists for
+  **provenance**, so a pinned board can record the grouping that actually produced it off `BoxPartition.KeyOf`
+  rather than having it re-derived approximately. Exposing it as a toggle asks the author to edit with a
+  mechanism built to preserve history.
+  The fix is not a third mode, it is separating two questions that are currently one button. **Which pieces
+  are members** is legitimately two modes (named vs containment) and both should stay. **What the rect is**
+  should not be a mode at all: it should always be the bounding box of the members. That is not a new rule —
+  `BoxPartition.Of` already computes a box's rect as `Bbox(members)`, and `Box`'s own contract says a box's
+  contents "must touch its edges", which is the same statement. So dragging a member extends the box,
+  dragging the box moves its members, and a member outside its own box becomes unrepresentable rather than
+  merely strange. One case to decide: an empty box has no bounding box — keep its drawn rect until it has a
+  member, which also leaves the draw-then-fill flow working as it does now.
+
 - [ ] **G149 — the land budget is a number the composer reads and then overshoots.** The first thing the
   G148 readout showed, measured over 40 boards at 12 players/team (budget 50 cells): land runs **63% to 222%**
   of budget, median **115%**, and **28 of 40 boards are over**. So the budget is not a cap — it is an input
