@@ -38,8 +38,8 @@ any property of the output can be traced to the one step that fixed it.
 
 ```
 request → budget → allocate (boxes + joints) → fill (hub-first) → carve the mid
-        → assemble → gate ──accept──► plan → realize
-                      └────reject───► resample
+        → assemble → derive → gate ──accept──► plan → realize
+                               └────reject───► resample
 ```
 
 Five verbs name the stages, and they are worth keeping apart because one of them is routinely
@@ -71,9 +71,11 @@ The steps, in order. A **request** is players per team, team count, symmetry and
 producing boxes and the joints between them (§5). **Filling** emits the hub first as the constraint
 source, and each neighbour consumes the offer on its own joint (§4, §5). The **carve** derives the mid
 band from the frontline faces (§5). **Assembly** turns labeled pieces into a plan, and the labels drop
-here (§3). The **gate** is the evaluator's hard terms, and a rejection resamples the whole attempt —
-sixty are allowed — so "nothing fits" is a signal rather than a crash (§7). **Realize** compiles the
-accepted plan and exports it.
+here (§3). What comes next never looks at the plan directly: **derivation** reads it back as terrain
+and works out what the board actually is — islands, what links them, which voids are enclosed, where
+each front runs (§6). The **gate** judges *that* reading against the evaluator's hard terms, and a
+rejection resamples the whole attempt — sixty are allowed — so "nothing fits" is a signal rather than
+a crash (§7). **Realize** compiles the accepted plan and exports it.
 
 One step in the model is absent from the loop. **Fragment** — converting land into build zones for
 isolation cuts and stepping stones, conserving footprint while spending land — is how the two
@@ -243,8 +245,8 @@ at realize — measured relative to the symmetry centre.
 Three categories exist, and the boundaries between them are the point.
 
 **Authored** is the irreducible part, everything a deriver could not work out: the piece rectangles;
-the roles a piece can carry, which are exactly `piece`, `wool-room`, `spawn`, `buffer` and
-`connector`; the objective and spawn markers; the deliberate voids, where a `buffer` piece or a zone
+the role each piece carries, from the closed set below; the objective and spawn markers; the
+deliberate voids, where a `buffer` piece or a zone
 hole is an author asserting *I meant this emptiness*; per-piece height at full block resolution; and
 the override channels — `cliffs` and `walls` — which exist to overrule what a deriver would otherwise
 infer. Those last two are written by no generator today: the elevation pass that would fill them is
@@ -398,13 +400,13 @@ rectangle, the edge its mouth opens toward, and the slots of the pieces walling 
 of that emit-time record. The two must agree, for the same reason the family and the body readings must.
 
 The derive side is the richer of the two, because it is a **fact read off finished geometry**, total
-over any set of rectangles, and it carries more than a class name. Each space decomposes into **parts** — a slab
-decomposition into rectangles, each re-classed by its *own* walls, so a rule can reach an inset leg
-that the flat class would have forbidden wholesale. Each space publishes its **mouths**, one per open
-direction, so a bay has one, a notch two and a hole none; a mouth is an edge interval tapering to a
-`wN` width class, which is what says how wide a thing may dock *through* the opening. And each space
-carries the slots of the pieces walling it, plus its own compound form — the void read back as though
-it were a body.
+over any set of rectangles, and it carries more than a class name. Each space decomposes into
+**parts** — a slab decomposition into rectangles, each re-classed by its *own* walls, so a rule can
+reach an inset leg that the flat class would have forbidden wholesale. Each space publishes its
+**mouths**, one per open direction, so a bay has one, a notch two and a hole none; a mouth is an
+interval tapering to a `wN` width class, which is what says how wide a thing may dock *through* the
+opening. And each space carries the slots of the pieces walling it, plus its own compound form — the
+void read back as though it were a body.
 
 The classification of the boundary runs is what turns all of this into a usable surface. Every run is
 read on **three independent axes**: what it faces, whether it is **terminal** (the room seals its own
@@ -473,14 +475,15 @@ deliberately one vocabulary across every box kind, since a caller reasoning abou
 fill should not have to know which kind refused it.
 
 **Everything is emitted in one canonical orientation and turned afterwards.** An approach is built
-mouth-up and a body spine-up, always, so the per-family geometry is written once rather than four times.
-Placing it on the edge a box actually docks is a separate transform — `MouthOrient` for the terminal-capped
-kinds, `BodyOrient` for the terminal-free ones — where the top edge is the identity, the bottom a vertical
-mirror, and left or right a quarter turn that transposes the box. The piece rectangles, the marker's offset
-within its room, and the mouths of every published vacancy all follow that transform together. This is why
-the mouth edges differ per family in the canonical frame — I, L, Z and the scythe enter at the top, the U,
-H and clamp at the bottom where their legs run down to the host, the donut at the left — and why that
-difference never reaches a caller, which asks for an edge and gets a shape facing it.
+mouth-up and a body spine-up, always, so the per-family geometry is written once rather than four
+times. Placing it on the edge a box actually docks is a separate transform — `MouthOrient` for the
+terminal-capped kinds, `BodyOrient` for the terminal-free ones — where the top edge is the identity,
+the bottom a vertical mirror, and left or right a quarter turn that transposes the box. The piece
+rectangles, the marker's offset within its room, and the mouths of every published vacancy all
+follow that transform together. This is why the mouth edges differ per family in the canonical frame
+— I, L, Z and the scythe enter at the top, the U, H and clamp at the bottom where their legs run
+down to the host, the donut at the left — and why that difference never reaches a caller, which asks
+for an edge and gets a shape facing it.
 
 ### 4.4 What each box kind adds
 
@@ -502,12 +505,13 @@ it.
 
 **A terminal and an entry are not the same kind of thing.** The terminal is always a **rectangle**:
 real material, carried apart from the shape's other pieces because it is the goal rather than a
-corridor. The entry is a **role**, and whether it owns a rectangle of its own depends on the family.
+corridor. The entry is a **name for whichever rectangle does the docking**, and whether that rectangle
+exists for the purpose depends on the family.
 In an I the lane that runs the length of the box *is* the entry, and in an L it is the vertical arm —
 rectangles the shape would have regardless, labelled for what they do. In a donut the entry is a
 rectangle that exists for nothing else, a short attachment stub against the ring's edge, while the
 ring's own top bar is separately labelled `entry-bar` beside it. A rule quantified over "the entry"
-therefore has to mean the role; it can assume nothing about the rectangle's size, position or whether
+therefore has to mean that name; it can assume nothing about the rectangle's size, position or whether
 removing it would leave the rest of the shape intact.
 
 The two layers are real in the code, but not as a pipeline one stage feeds the next. `ShapeEmitter`
@@ -536,8 +540,9 @@ A designation does not admit every body. Each kind draws from an authored menu, 
 because the three shapes do different work on a map.
 
 The **wool and spawn** menu is the nine **approach families** — the terminal-capped shapes, drawn in
-full under *How a wool approach is built*. They are the widest menu because an approach is the most varied thing on the
-board: it must reach a goal from a host, and there are many ways to make that walk interesting.
+full under *How a wool approach is built*. They are the widest menu because an approach is the most
+varied thing on the board: it must reach a goal from a host, and there are many ways to make that
+walk interesting.
 
 The **hub** menu is **Rectangle · L · U · Ring · P · Double-hole · G**: the compact bodies, plus the
 wide holed ones once the hub is laterally elongated. Zig, hook, the higher combs and `TwoUOnI` are
@@ -645,6 +650,12 @@ pieces, fixed per family and only resized:
 | **H** | `bar · entry · entry · room-run · room` |
 | **Donut** | `entry-bar · leg · leg · entry · room-bar · room` |
 
+Two invariants hold the templates together. A family emits a **stable piece count** — collinear pieces
+are never merged, because a stable set is what makes "the entry is piece N" a usable rule. And a
+**slot is a template position, not a property of the rectangle**: a scythe's `entry-run` and a donut's
+`leg` may be the very same rectangle occupying different slots. The table is realized as data in
+`ApproachSlots.Template(family)`, and each emitted piece carries its slot on `GrownPiece.Slot`.
+
 Those are the base configurations. The knobs add pieces without changing the family: a second donut
 attachment is another `entry`, and the wool-extend run of the third donut figure above is a `run`.
 
@@ -667,15 +678,9 @@ below which the shape cannot be drawn at all — a donut integrating its wool at
 narrower box than one hanging the room off the end, because the terminal sits inside the ring's span
 instead of beyond it. Asking for a box under that minimum is refused, not shrunk to fit.
 
-Two invariants hold the templates together. A family emits a **stable piece count** — collinear pieces
-are never merged, because a stable set is what makes "the entry is piece N" a usable rule. And a
-**slot is a template position, not a property of the rectangle**: a scythe's `entry-run` and a donut's
-`leg` may be the very same rectangle occupying different slots. The table is realized as data in
-`ApproachSlots.Template(family)`, and each emitted piece carries its slot on `GrownPiece.Slot`.
-
 A slot is itself two layers, split by what supplies it. The **structural slot** — `run`, `bar`, `leg`
-— is the rectangle's role in the body and is shared by every box kind. The **designation mark** —
-`entry`, `room` — is the docking role and the terminal, supplied by the approach, and qualified
+— is what the rectangle *does* in the body, and is shared by every box kind. The **designation mark**
+— `entry`, `room` — is the docking position and the terminal, supplied by the approach, and qualified
 `entry-run` / `room-run` / `entry-bar` / `room-bar` where a family carries two of a segment.
 `ApproachSlots` merges the two because the taxonomy began at wool approaches; splitting them is what
 would let one set of shift, widen and tail-follow knobs drive a wool mouth, a spawn mouth, a hub edge
@@ -899,8 +904,10 @@ put a neighbour where the hub has no material is never proposed, not proposed an
 ### 5.4 What the unit asks for
 
 Independently of the hub, and before any position exists, the allocator works out what the unit needs.
-The player count fixes how many wool boxes there are, whether there is a frontline, and how large the
-spawn is. Each of those becomes a `NeighbourRequest`. The spawn is the one box whose size barely moves:
+It does not decide the counts: how many wool boxes there are, whether there is a frontline at all, and
+how large the spawn is all come off the budget ladders, and the allocator reads them as given. Its work
+here is to turn each into a `NeighbourRequest` — one per wool, one for the spawn, and one for the
+frontline where the budget affords it. The spawn is the one box whose size barely moves:
 roughly ten blocks square where it docks the hub directly, ten by twenty where it wants a run-up, and
 twenty square for an L. It is never large, because a spawn is somewhere a player leaves rather than
 somewhere a fight happens.
@@ -921,10 +928,6 @@ demotes into the overhang path — while an L or a donut may be born wider than 
 because the overhang rule only ever needs its entry to land. This exemption is the whole permission
 for a box to exceed the run it sits on, and it is one negation in one condition.
 
-How many neighbours there are, and whether a frontline exists at all, is not decided here: those come
-off the budget ladders, and the allocator reads them as given. What it does with them is turn each into
-a request — one per wool, one for the spawn, one for the frontline where the budget affords one.
-
 ### 5.5 The seat
 
 Seating's entire job is to turn a request into a position, and the position is a single integer: the
@@ -944,9 +947,8 @@ Because the search runs in a single integer, nothing is ever built and then move
 the allocator — the front guard's backward slide included — is arithmetic on the seat, and the
 rectangle is derived once, at the end, from the value that survived.
 
-The rectangle that results is an **envelope, not a fill target**. Its contents must touch its edges and
-stay connected, but need not fill it solid; an L in a five-by-four box leaves a whole quadrant empty.
-That is what lets one shape take many footprints inside a fixed rectangle.
+What a seat produces is an envelope, not terrain. What goes inside it — and how much of it is left
+empty — is settled later, by a filler that cannot move the rectangle it was handed.
 
 ### 5.6 The three dock rules
 
@@ -1049,10 +1051,10 @@ whose four full edges usually hold a lawful seat the chosen form's runs could no
 also fails does the attempt return nothing and the composer resample.
 
 One further pass runs where a unit has no frontline. A lateral seat left flush with the hub's empty
-front would extend that face into one long flat frontier, so the seat slides backward — deterministically,
-consuming no draw — to the nearest position that clears the front. Seats that no backward position can
-hold are collected and resolved after every neighbour is placed, when the full set is known and an
-earlier drop may have freed the very blocker.
+front would extend that face into one long flat frontier, so the seat slides backward —
+deterministically, consuming no draw — to the nearest position that clears the front. Seats that no
+backward position can hold are collected and resolved after every neighbour is placed, when the full
+set is known and an earlier drop may have freed the very blocker.
 
 ### 5.9 What a joint records
 
@@ -1152,7 +1154,7 @@ of the whole board at once.
 ### 6.1 Islands, and what anchors them
 
 The first question is which terrain is one place, and answering it needs the word for how two pieces
-meet. An **interface** is always a shared **edge interval** — a position and a width — where two pieces
+meet. An **interface** is always a shared **interval** — a position and a width — where two pieces
 touch, or where a piece meets a build zone. It is never a point and never a node, and that is a rule
 rather than a convention: two rectangles meeting only at a corner share no walkable ground, so a point
 touch connects nothing.
@@ -1330,7 +1332,7 @@ how good the result **reads**.
 Two of those distinctions carry most of the weight.
 
 **Demand against offer is the direction of the arrow.** An approach *demands*: its entry has to find a
-host, and that requirement points outward at the world. A hub or a frontline *offers*: its edges
+host, and that requirement points outward at the world. A hub or a frontline *offers*: its runs
 dictate where neighbours may land and how wide, which is what makes it the constraint source. Confusing
 the two inverts who is obliged to whom. The word demand is now the model's alone — the allocator's
 outbound sizing type is a request, renamed precisely so that demand keeps only the inbound sense.
