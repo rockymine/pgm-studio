@@ -11,7 +11,7 @@ public sealed record EmittedHub(
 
 /// <summary>
 /// The hub binding over <see cref="BodyEmitter"/> — the <b>constraint-source box kind</b>
-/// (docs/generator/model.md §5, designations). Unlike the wool/spawn boxes the hub is <b>terminal-free</b>: it is a
+/// (docs/generator/model.md §4, designations). Unlike the wool/spawn boxes the hub is <b>terminal-free</b>: it is a
 /// <see cref="ShapeBody"/> (a <see cref="Compound"/>) finished by the <b>hub designation</b> — per-edge
 /// <c>interface</c> marks carrying widths, no room. It <b>emits first</b> and its edge widths set the fill menus
 /// of the spawn/wool/frontline neighbours, published here as <see cref="EdgeOffer"/>s (the
@@ -19,7 +19,7 @@ public sealed record EmittedHub(
 /// the neighbour's corridor width. The composer decides which offer each neighbour takes and drives the per-edge
 /// widths (G63-C); this emitter produces the body and the offers it sources.
 ///
-/// <para>Form menu (<see cref="Forms"/>, authored — model.md §5): <b>Rectangle · L · U · Ring · P · Double-hole · G</b>,
+/// <para>Form menu (<see cref="Forms"/>, authored — model.md §4): <b>Rectangle · L · U · Ring · P · Double-hole · G</b>,
 /// compact optionally-holed bodies, deliberately not Zig/Hook/the higher combs. Each is a <see cref="Compound"/>
 /// sized to fill the box, so its outward walls touch the box edges and become offers; a body too small for its
 /// form at the given <c>cw</c> is a <b>directed null</b>, not a throw. Pieces carry the hub <see cref="BoxRef"/>
@@ -27,7 +27,7 @@ public sealed record EmittedHub(
 /// </summary>
 public static class HubBoxEmitter
 {
-    /// <summary>The hub's authored form menu as data — the <see cref="Compound"/> bodies a hub may be (model.md §5). A
+    /// <summary>The hub's authored form menu as data — the <see cref="Compound"/> bodies a hub may be (model.md §4). A
     /// hub stays rectangle-ish, so the menu is the compact forms plus the <b>wide holed</b> bodies a laterally
     /// elongated hub affords: the solid Rectangle, the branch family at one arm (L) and two (U), the Ring, the
     /// <b>P</b> (a loop on a longer bar — the bar's overhang is a long free run), the <b>Double-hole</b> (a ring +

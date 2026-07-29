@@ -18,7 +18,7 @@ public static class UnitSeating
     /// <summary>Seat every request on <paramref name="form"/>'s real free-edge intervals, seated on the hub
     /// <paramref name="hubRect"/>. Builds the body once (<see cref="HubBoxEmitter"/>) — the same body the filler
     /// re-emits, so both read the same runs — and reads its per-edge free runs off the emitted offers (the
-    /// offerable surface, §1.13). Returns the hub box (carrying <paramref name="form"/> for the filler) plus the
+    /// offerable surface, §4). Returns the hub box (carrying <paramref name="form"/> for the filler) plus the
     /// seated neighbour boxes and their hub joints, or <c>null</c> when the box is too small for the form or a
     /// request finds no free run to dock (the directed signal the caller answers by falling back / resampling).</summary>
     internal static (List<Box> Boxes, List<BoxJoint> Joints)? Seat(

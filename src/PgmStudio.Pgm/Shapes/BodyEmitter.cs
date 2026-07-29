@@ -3,7 +3,7 @@ using PgmStudio.Geom;
 namespace PgmStudio.Pgm.Shapes;
 
 /// <summary>
-/// Emits the <b>terminal-free compounds</b> the vocabulary names (docs/generator/model.md §5) but the
+/// Emits the <b>terminal-free compounds</b> the vocabulary names (docs/generator/model.md §4) but the
 /// approach emitter (<see cref="ShapeEmitter"/>) can't build, as pure <see cref="ShapeBody"/> — structural-slotted
 /// rects (<see cref="ApproachSlots.Bar"/> spines/crossbars, <see cref="ApproachSlots.Leg"/> arms/ring-arms) and,
 /// for the holed forms, the enclosed voids as <c>hole</c> vacancies. No terminal, marker, or id — a designation

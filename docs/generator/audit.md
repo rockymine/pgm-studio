@@ -5,7 +5,7 @@ rather than assertion. It exists because the model doc describes the system as i
 reader deserves to know which parts of it the generator does not yet honour.
 
 An entry **leaves this file when its fix lands** (the commit references its id). Each names the
-rule kind (`model.md` §8, *Every rule is one kind*) the fix belongs to, because most of these are not bugs in a mechanism
+rule kind (`model.md` §7, *Every rule is one kind*) the fix belongs to, because most of these are not bugs in a mechanism
 — they are **missing rules that the taxonomy already has an address for**.
 
 **Provenance.** The frequency measurements come from a 4-preset × 200-seed probe of
@@ -18,7 +18,7 @@ date and re-run.
 
 ## 1. `demand` is a declared kind with no live type
 
-`model.md` §8, *Every rule is one kind* builds its first load-bearing distinction on **demand vs offer** — "the direction
+`model.md` §7, *Every rule is one kind* builds its first load-bearing distinction on **demand vs offer** — "the direction
 of the arrow". The offer half is richly built out (`EdgeOffer` appears across seven files). The
 demand half has **nothing behind it**: `FamilyDock.EntryDemand`, the table's own exemplar, was
 retired when the clamp was redefined, and `grep FamilyDock src/` returns zero hits.
@@ -33,7 +33,7 @@ two-entry requirement, the taxonomy's exemplar, is now an implicit negation insi
 
 Most of the allocator is not shape-level rules at all: it decides from a budget **how many**
 wools, **whether** a frontline, **how big** a hub, and **how often** each shape appears. Nothing in
-§8 covers it. It has two faces.
+§7 covers it. It has two faces.
 
 **The mix — a steering distribution.** Roughly a dozen weights (`BentWoolChance`, `DonutChance`,
 `StapleChance`, `ClampAdjacentChance`, `DonutCornerWoolChance`, `SideRoomChance`, `RingChance`,
@@ -58,7 +58,7 @@ Re-verified against `TeamUnitAllocator.cs`, 2026-07-27; the code it cites moved 
 
 | allocator rule | law | verdict |
 |---|---|---|
-| `WoolLaneCells = 2` | LN1 + `model.md` §3 ("the lane to the wool is simple, w2") | **grounded** |
+| `WoolLaneCells = 2` | LN1 + `model.md` §2 ("the lane to the wool is simple, w2") | **grounded** |
 | `w = 3` above `WideLaneLand` | LN1 (10 base, 15 larger; corpus 81:15) | values grounded, **threshold invented** — LN1 states a *distribution*, the code makes it deterministic |
 | `WoolLengthRatio = 3` | LN2 (20–50 blocks before a junction/dead end) | **grounded** on the lower bound; the 50 cap is unimplemented |
 | `CornerClearanceCells = 0` | the mass-level corner law | **vestigial** — it documents rather than acts (see below) |
@@ -103,12 +103,12 @@ Measured over 400 seeds × 4 presets on the **placed rooms** (not the boxes), in
 Re-verified 2026-07-27 — both still present at `TeamUnitFiller.cs:137–143`.
 
 - **The offer grouping is decided by the filler, by coin flip** (`rng.NextBool(0.5) ? Joint :
-  Several`). Grouping is part of an **offer** (§8: "the intervals it invites neighbours
+  Several`). Grouping is part of an **offer** (§7: "the intervals it invites neighbours
   onto, *in which groupings*"), and offers are the allocator's plan — the allocator is what writes
   joints. Worse, this is exactly **FR6**: joint vs several *is* wide vs split frontline, an authored
   law. A coin flip stands in for it.
 - **The frontline's form choice is also the filler's.** `frontForm` picks Bar-for-branch-hub /
-  else staple-or-strand inside `TeamUnitFiller`, but form choice is declared the allocator's (§5, designations,
+  else staple-or-strand inside `TeamUnitFiller`, but form choice is declared the allocator's (§4, designations,
   and the allocator already owns the hub-form choice). The two halves of one decision — the hub form
   and the form that answers it — sit on opposite sides of the allocate/fill seam. → **G111**
 

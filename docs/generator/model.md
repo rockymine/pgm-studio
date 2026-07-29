@@ -5,16 +5,18 @@ the pipeline and its order, and how every part fits the next. Every word defined
 one meaning**; where a term appears elsewhere it carries this meaning. When another doc and this one
 disagree, this one governs.
 
-**What this document owns:** the glossary, the pipeline, the box model, the shape model (bodies,
-designations, and the approach families), the two derivers, the evaluator model, and the budget/width
-model. **What it defers:**
+**What this document owns:** the pipeline, the request and the budget that sizes everything, the plan,
+the shape model (bodies, designations, and the approach families), composition, the board deriver, and
+the rule and scoring model. Terms are **defined where they are first used** rather than collected in a
+glossary — a definition sitting next to the mechanism it describes is one that cannot quietly stop
+matching it. **What it defers:**
 
 | Companion | Owns |
 |---|---|
 | `rules.md` | The rule law and every number (widths, depths, hop counts, heights, the CT / SP / WL / LN / HB / FR / MD / BZ / EL ids). |
 | `seed-stats.md` · `seed-envelopes.md` | The measured envelopes the soft evaluator terms score against. |
 | `evaluator.md` | The detailed deriver-measurables and evaluator-metric catalogue. |
-| `vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. §1 defines the terms, §9 is the code map, this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
+| `vocabulary.md` | The **living type catalog** — every type as a map concept, by pipeline order. This document defines the terms where they are used and §8 is the code map; this names the types that embody them. Extend it in the same commit a task adds/renames/retires a type. |
 | `audit.md` | The standing measured record of where the implementation and this model **disagree** — the evidence behind the open G-tasks. |
 | `ideas.md` | The G-track idea pool: open work not on the board. |
 | `../contracts/plan-editor.md` | The field-level `*.plan.json` schema and the editor UI (the Plan tool). |
@@ -26,195 +28,7 @@ because its figures are built by the code being described.
 
 ---
 
-## 1. Glossary — the locked terms
-
-### 1.1 The five pipeline verbs
-
-Generation is five verbs, not one. **Never say "generate" for the whole thing** — it is ambiguous
-(it has been used both for the whole pipeline and for the narrow `intent → map.xml` step). Use the
-specific verb:
-
-| Verb | Means | Where it lives |
-|---|---|---|
-| **emit** | Fill one box with one base shape (forward). | `ShapeEmitter` + the per-kind bindings |
-| **derive** | Read structure back out of geometry (inverse). Two derivers — see §1.3. | `ShapeClassifier`, `ContactGraph` + `BoardDeriver` |
-| **compose** | Build the plan: `budget → allocate → fill → carve → assemble`. | the composer (`Composer`) |
-| **evaluate** | Validate + score a plan → `(score, [violations])`. | the evaluator |
-| **realize** | Compile the plan → sketch + intent → export. (A roughen pass and an elevation pass would sit before export; neither is built — `ideas.md` G142, G32-C.) | the seed pipeline |
-
-`emit` and `derive` are a **forward/inverse pair** at the shape level: compose *emits*, verification
-*derives*, and the two must agree (the mirror loop — §5, *Derivation and classification*).
-
-### 1.2 Family — a wool-approach shape
-
-A **family** is a base-shape class of a wool approach. There are **nine**, and they are an
-**escalation** of one another, not a flat set:
-
-`Isolated · I · L · Z · Scythe · Clamp · U · H · Donut`
-
-A family's **identity is its turn count plus the wool's seating**, read **width-independently** — a
-thick leg, a box-shaped bar, or a wide bay is a *wide spot*, never a different family. A family is the
-**approach designation** (§1.12) over a terminal-free **body** — one body serves several families (a
-Staple body reads **U** with the wool flush on its bar, **H** with the wool lifted onto a stub).
-Families are defined in §5.
-
-### 1.3 The two derivers
-
-Two classifiers share the verb *derive*; they read **different things** and are both current:
-
-| Deriver | Reads | Produces | Code |
-|---|---|---|---|
-| **shape deriver** | one box's terrain | the family (§1.2) — the emitter's mirror | `ShapeClassifier.Classify` |
-| **board deriver** | the whole board's terrain + markers | connectivity: islands, voids/holes, contacts, build-zone kinds, wool lanes, the mid form | `ContactGraph` (rect layer) + `BoardDeriver` → `BoardStructure` (raster layer) |
-
-When a doc says "the deriver" without qualification it means the **board deriver**; the shape
-deriver is always named as such.
-
-### 1.4 role vs slot
-
-Two different taxonomies, never mixed:
-
-- **role** — a **map-level piece role** in `plan.json`. The **authored** roles are exactly:
-  `piece` (anonymous — the default), `wool-room`, `spawn`, `buffer`, `connector`. Everything
-  structural — `frontline`, `hub`, `lane`, `mid` — is **derived, never authored**. (`piece`,
-  `wool-room`, `spawn` are *generating* roles: they make terrain. `buffer`, `connector` are
-  *annotation* roles: informational marks, no terrain, no graph/export effect.)
-- **slot** — a **shape-internal role** inside one approach family (`ApproachSlots`, carried on
-  `GrownPiece.Slot`). The slots are `entry · run · bar · leg · room`, with `run`/`bar` qualified
-  `entry-run` / `room-run` / `entry-bar` / `room-bar` when a family has two. A slot is a **template
-  position, not a property of the rectangle** — a scythe's `entry-run` and a donut's `leg` may be
-  the very same rectangle in different slots.
-
-### 1.5 interface, and the three levels of contact
-
-An **interface** is always a shared **edge interval** — a *position and a width* — where two pieces
-meet, or where a piece meets a build zone. **Never a point, never a node.** A bare point touch does
-not connect (see `Corner` below). Contact is typed at three levels:
-
-**Level 1 — `ContactKind`** (raw piece-to-piece, straight off the terrain rectangles):
-
-| Kind | Is |
-|---|---|
-| `Land` | shared border ≥ the corridor minimum (10 blocks) — the pieces merge into one walkable mass |
-| `Narrow` | a shorter positive border — still walkable (a staircase / ledge seam) |
-| `Corner` | a bare point touch — **never connects** |
-| `Overlap` | area overlap — a same-surface overlap merges |
-| `None` | disjoint — a gap a build region must span |
-
-`Land` + `Narrow` are the **land interfaces** (they connect); union-find over them yields the
-**islands**. A piece with *no* land interface is **isolated** — reachable only by building.
-
-**Level 2 — connectivity**: `land` (the pieces merge) vs `gap` (a void a build region spans,
-carrying a span distance). An elevation transition — `step` / `ramp` / `cliff` — rides on either.
-
-**Level 3 — build-zone kind** (a build region typed by *what islands it links*):
-
-| Kind | Links |
-|---|---|
-| `front↔front` | ≥2 teams — the crossing / direct team link (may carry stepping stones inside it) |
-| `front↔neutral` | one team + a neutral — a team's bridge toward the mid |
-| `neutral↔neutral` | only neutrals — a mid-internal link, usually across the axis |
-| `intra` | a team's own `spawn↔wool` route — an isolation cut |
-| `self` | a notch in a single island, both walls the same landmass |
-
-### 1.6 interface width — the master variable
-
-The **interface width** is the width of the edge interval where two boxes touch. It is the **master
-variable of generation**. The reference frame: **`cell = 5 blocks`; `lane = 2 cells = 10 blocks`;
-`wN = N cells`**, so `w2 = 1 lane = 10`, `w4 = 2 lanes = 20`, `w6 = 3 lanes = 30`. Width is **not
-strictly quantized** — 15 or 25 are valid and taper toward the nearest rung. One width does three
-things at a box touch (§3, *Width, the master variable*).
-
-### 1.7 hole — an enclosed void
-
-**Reserve "hole" for an enclosed void**: empty, non-buildable terrain the map border cannot reach
-without crossing terrain *or* a build region. The board deriver classes every hole (by what its
-boundary touches, **never by size**):
-
-| Class | Boundary touches |
-|---|---|
-| `encased` | one team's terrain, no build — a bubble deep in a team's land |
-| `gap` | one team, build all `intra`/`self` — a void in the team's own isolation cut |
-| `frontline` | one team's terrain + frontline build — the exposed edge on the crossing |
-| `middle` | ≥2 teams, or pure build — the contested crossing / arena |
-
-Each hole is also **declared** (overlaps a `buffer` or a zone-hole — deliberate) or **undeclared**
-(the buffer worklist — a suspected accident). A `middle` hole reports its **parallel ways** (the
-count of distinct crossings ringing it).
-
-Two other enclosed voids are **not** a hole in this sense, and must not be called one: the **donut's
-void** is a *shape-level* enclosed void (§5) — the edge taxonomy's **hole** class (§1.13), a *shape*
-negative space distinct from these board-deriver connectivity classes — and a box's opening is an
-**interface** (§1.5).
-
-### 1.8 fold and bay — the scythe features
-
-A **fold** is terrain that doubles back on itself — some grid row or column crosses the terrain in
-**two runs** (the terrain is not orthogonally convex), width-independent. The **bay** is the open
-concavity the fold wraps: a 3-wall negative space. Both are *features*, never families, and the fold
-decides exactly one family — the scythe. Defined, with the reason the fold rather than the bay is the
-test, in *Derivation and classification* and *What a body leaves empty*.
-
-### 1.9 width — four distinct things, and two modes
-
-Four quantities are all called "width"; keep them apart:
-
-| Name | Is |
-|---|---|
-| **interface width** | the master variable (§1.6) — the box-touch width, `w2/w4/w6` |
-| **cw / W** | the corridor width a shape is built and measured at, in cells, range `[2,6]` |
-| **w (reported)** | what the classifier measured back — an **output**, not an input |
-| **attachmentWidth** | the `entry` piece's own width, which may exceed the lane it feeds |
-
-And two **modes** of the concept:
-
-- **generation-width** — the grammar: it gates the fill menu and sets connectivity (§3).
-- **read-width** — identity: a family is its turn count, read **width-free** (§5).
-
-Width chooses which family is *legal* and how it *joins*; it does not change what a shape *is*.
-
-### 1.10 budget — two currencies
-
-Budget is **two currencies that must both balance**:
-
-| Currency | Is | Set by | Spent by |
-|---|---|---|---|
-| **land** | walkable terrain area (capacity) | player count (`G8`) | every emitted piece |
-| **footprint** | total box area (terrain + build + gap) | the box partition | the box's size, fixed once |
-
-The key: **a build zone costs footprint but not land**. Detailed in §3.
-
-### 1.11 The small words
-
-- **box** — a bounding envelope, *not* a fill target (§5, *A body is not yet a placed shape*).
-- **lane** — a simple corridor (bend count `I / L / Z`), the board deriver's `ShapeClassifier.ClassifyOpen` read.
-- **approach** — the whole wool-box shape (one of the nine families). *Lane ≠ approach.*
-- **menu** — the set of families an interface width makes legal (the width→fill production rule, §3).
-- **mid** — the neutral band between the frontlines; its **form is `f(frontline)`**, derived (§7).
-- **frontline** — a **join**, not a placement, and a **derived edge attribute**, not a piece (§6, §7).
-
-### 1.12 body and designation
-
-Every base shape is two layers. A **body** is a pure rectilinear compound — one or more rectangles
-joined **along shared edge intervals** (§1.5; never a bare corner, `Cells.HasDiagonalPinch`),
-identified by **topology alone** (voids · arms · bends), width-independent. A **designation** is what
-a box kind stamps onto a body to finish it into a placed box: **approach** (wool, spawn), **hub**, or
-**frontline**. The body layer is shared across every box kind; the designation is per-kind, and **a
-family (§1.2) is the approach designation over a body**. Both layers, the three designations and what
-each stamps, are set out in §5 — *The shape model*.
-
-### 1.13 the edge taxonomy — negative spaces and the offerable surface
-
-A body's **negative spaces** — the connected empty regions around and inside it — escalate by **wall
-count**: 2 is a **notch**, 3 a **bay**, 4 (enclosed) a **hole**, and ≤1 is plain outside, not a feature
-of the shape. The **offerable surface** is the free outward surface a neighbour may attach onto. Both,
-with what a space carries and how a boundary run is classified, are set out in §5 — *Negative space —
-what a body leaves empty*. ("hole" here is the *shape-level* class — the donut's void — **not** the
-board-deriver's connectivity hole classes of §1.7.)
-
----
-
-## 2. The pipeline
+## 1. The pipeline
 
 Generation turns a handful of numbers into a playable map, and it does so in one direction. A request
 becomes a budget, the budget becomes a partition of empty rectangles, the rectangles are filled with
@@ -228,6 +42,23 @@ request → budget → allocate (boxes + joints) → fill (hub-first) → carve 
                       └────reject───► resample
 ```
 
+Five verbs name the stages, and they are worth keeping apart because one of them is routinely
+overloaded. **Never say "generate" for the whole thing**: it has been used both for the entire
+pipeline and for the narrow step that turns intent into `map.xml`, and a sentence using it says
+nothing about which.
+
+| Verb | Means | Where it lives |
+|---|---|---|
+| **emit** | Fill one box with one base shape (forward). | `ShapeEmitter` + the per-kind bindings |
+| **derive** | Read structure back out of geometry (inverse). | `ShapeClassifier`, `ContactGraph` + `BoardDeriver` |
+| **compose** | Build the plan: budget → allocate → fill → carve → assemble. | `Composer` |
+| **evaluate** | Validate and score a plan into a score plus violations. | the evaluator |
+| **realize** | Compile the plan to sketch and intent, then export. | the seed pipeline |
+
+`emit` and `derive` are a **forward/inverse pair**: composition emits, verification derives, and the
+two are required to agree. That loop is the shape model's correctness test and is explained where it
+is used (§4).
+
 Two commitments shape everything downstream. Generation runs **from the hub outward** in a relative
 frame and embeds into world coordinates late, so every box but the hub is positioned against its
 neighbour rather than against the map. And composition is **allocate-then-fill**: every footprint is
@@ -235,21 +66,21 @@ placed before any terrain exists, and filling never grows a box outward to accom
 put in it.
 
 The steps, in order. A **request** is players per team, team count, symmetry and a seed — no geometry
-(§3). The **budget** turns the player count into land and footprint targets and the board's extent
-(§3). **Allocation** draws typed box footprints and seats each on the hub's real free surface,
-producing boxes and the joints between them (§6). **Filling** emits the hub first as the constraint
-source, and each neighbour consumes the offer on its own joint (§5, §6). The **carve** derives the mid
-band from the frontline faces (§6). **Assembly** turns labeled pieces into a plan, and the labels drop
-here (§4). The **gate** is the evaluator's hard terms, and a rejection resamples the whole attempt —
-sixty are allowed — so "nothing fits" is a signal rather than a crash (§8). **Realize** compiles the
+(§2). The **budget** turns the player count into land and footprint targets and the board's extent
+(§2). **Allocation** draws typed box footprints and seats each on the hub's real free surface,
+producing boxes and the joints between them (§5). **Filling** emits the hub first as the constraint
+source, and each neighbour consumes the offer on its own joint (§4, §5). The **carve** derives the mid
+band from the frontline faces (§5). **Assembly** turns labeled pieces into a plan, and the labels drop
+here (§3). The **gate** is the evaluator's hard terms, and a rejection resamples the whole attempt —
+sixty are allowed — so "nothing fits" is a signal rather than a crash (§7). **Realize** compiles the
 accepted plan and exports it.
 
 One step in the model is absent from the loop. **Fragment** — converting land into build zones for
 isolation cuts and stepping stones, conserving footprint while spending land — is how the two
-currencies are meant to trade against each other (§3). It is not in the shipped composer: today the
+currencies are meant to trade against each other (§2). It is not in the shipped composer: today the
 only build region on a generated map is the mid band.
 
-### 2.1 Realize — the compile chain
+### 1.1 Realize — the compile chain
 
 The plan is the **upstream artifact**. It compiles one way into two downstream ones, each with exactly
 one consumer:
@@ -273,7 +104,7 @@ classified back to the families that built them: the moves compose in one direct
 
 ---
 
-## 3. The request, and everything it sizes
+## 2. The request, and everything it sizes
 
 A compose is given no geometry. It is given four decisions and a seed, and every rectangle on the
 finished board is a consequence of them. That is the strongest claim the generator makes, and this
@@ -281,7 +112,7 @@ section is the chain that has to hold it up: from a player count to a land budge
 board's extent, from extent to how many objectives a team gets and how wide its corridors run, and
 from there to the widths that decide what may be built where.
 
-### 3.1 What a compose is given
+### 2.1 What a compose is given
 
 | Parameter | Range | Means |
 |---|---|---|
@@ -303,7 +134,7 @@ never the platform's, whose algorithm carries no stability guarantee and could s
 seed means between runtimes. No wall clock and no identifiers enter it: the same seed produces the
 same sequence, permanently.
 
-### 3.2 From players to a budget
+### 2.2 From players to a budget
 
 Everything is sized once, before any geometry exists, from the player count alone.
 
@@ -334,7 +165,7 @@ total footprint to the map size, and per box under symmetry. Every fragmentation
 globally while buying difficulty locally, so the budget and the gameplay knob move together rather
 than being tuned against each other.
 
-### 3.3 The ladders, and the weights beside them
+### 2.3 The ladders, and the weights beside them
 
 Some structure changes discontinuously with the budget. How many objectives a team gets, whether it
 has a frontline at all, and how wide its corridors run are not interpolated — they are thresholds,
@@ -358,7 +189,7 @@ in the generator, and most of them answer to no law: they were tuned rather than
 grounded in the corpus and which are invented is measured in `audit.md`, and the honest position is
 that this is the least principled part of the model.
 
-### 3.4 Width, the master variable
+### 2.4 Width, the master variable
 
 Four different quantities get called width, and a rule that conflates them reads as contradictory.
 The **interface width** is the width of the interval where two boxes touch. The **corridor width** is
@@ -399,7 +230,7 @@ an approach: the lane is the corridor, the approach is the whole shape it belong
 
 ---
 
-## 4. The plan
+## 3. The plan
 
 The plan is where composition stops and everything else begins. It is the file a map exists as
 between being generated and being built, the thing an author edits by hand, and the only artifact the
@@ -418,6 +249,16 @@ hole is an author asserting *I meant this emptiness*; per-piece height at full b
 the override channels — `cliffs` and `walls` — which exist to overrule what a deriver would otherwise
 infer. Those last two are written by no generator today: the elevation pass that would fill them is
 not built, and they stand as schema waiting for it.
+
+The authored roles are worth naming exactly, because a second taxonomy sits next to them and the two
+must never be mixed. A **role** is a *map-level* label on a piece in the plan, and the authored set is
+closed: `piece` — anonymous, the default — plus `wool-room`, `spawn`, `buffer` and `connector`. The
+first three are **generating** roles that make terrain; the last two are **annotation** roles that
+mark something informational and produce no terrain, no graph effect and no export. Everything else
+that sounds like a role — frontline, hub, lane, mid — is **derived and never authored**. A **slot**,
+by contrast, is a *shape-internal* label naming a rectangle's position inside one approach, and it
+lives only during composition. One is what a piece *is on the map*; the other is what it *does inside
+its shape*.
 
 **Derived** is everything structural: islands, the frontline, the hub, lanes, the mid, contacts, void
 topology, build-zone kinds, and a wool's approach family. None of it is written back. It is recomputed
@@ -439,7 +280,7 @@ The field-level schema and the editor that writes it are in `../contracts/plan-e
 
 ---
 
-## 5. The shape model — bodies, designations, and the piece vocabulary
+## 4. The shape model — bodies, designations, and the piece vocabulary
 
 Everything the generator puts inside a box is built from one atom, the rectangle, by two operations:
 recombining rectangles into a **body**, and finishing a body into the thing a particular kind of box
@@ -452,7 +293,7 @@ each kind of box adds to it, and which bodies each kind is allowed. Then the woo
 because it is the elaborate case and the one whose pieces carry labels. Last, reading a finished shape
 back, which is how all of it is checked.
 
-### 5.1 Every body is one rectangle, recombined
+### 4.1 Every body is one rectangle, recombined
 
 The atom is a single rectangle. Every other body is that atom recombined: each step in the escalation
 adds a rectangle and earns exactly one new feature — a branch, an enclosed void, a second void. The
@@ -529,7 +370,7 @@ decide the Z and Scythe wool approaches, and the body layer sees only bends it d
 Width sits orthogonal to all of this. The interface width reads a body as a corridor or as an area; it
 never reads it as a different body. A thick leg is a wide spot, not a new form.
 
-### 5.2 What a body leaves empty
+### 4.2 What a body leaves empty
 
 A body's shape is equally the shape of the emptiness around and inside it, and that emptiness is where
 neighbours attach. The connected empty regions escalate by **wall count** — how many of the four axis
@@ -587,7 +428,7 @@ walls, read off one body's geometry. The board deriver also classes holes (`enca
 what their boundary touches. The two are unrelated readings that happen to share a word, and a box's
 opening is neither: that is an interface.
 
-### 5.3 A body is not yet a placed shape
+### 4.3 A body is not yet a placed shape
 
 A body is geometry with no purpose attached. It has no goal in it, nothing marks which of its edges a
 neighbour may land on, and it does not know whether it is a hub in the middle of a team's land or the
@@ -641,7 +482,7 @@ the mouth edges differ per family in the canonical frame — I, L, Z and the scy
 H and clamp at the bottom where their legs run down to the host, the donut at the left — and why that
 difference never reaches a caller, which asks for an edge and gets a shape facing it.
 
-### 5.4 What each box kind adds
+### 4.4 What each box kind adds
 
 What a box kind adds on top of a body is its **designation**. There are three, and the split is by
 what the shape is *for*, not by which box holds it: wool and spawn share one, because a spawn arm and
@@ -689,7 +530,7 @@ Both marks exist as constants and `DockingGate.Role` already maps them. But no e
 onto a piece — the hub publishes offers and the frontline returns its face edge directly — and the
 gate's live check still scopes to the approach. Binding the two designations to that table is G88/G89.
 
-### 5.5 Which bodies each kind may take
+### 4.5 Which bodies each kind may take
 
 A designation does not admit every body. Each kind draws from an authored menu, and the menus differ
 because the three shapes do different work on a map.
@@ -721,7 +562,7 @@ centred I plus I, adjacent faces a corner L plus I, the bend forced because two 
 only corner-touch. The **twin frontline** is two Bars docked to one host individually, the gap between
 them being the face recess of CT8.
 
-### 5.6 How a wool approach is built
+### 4.6 How a wool approach is built
 
 An approach is a body walked from a host to a goal, and the nine of them are an escalation rather than
 a flat set. An L whose lane doubles back is a scythe; a scythe whose bay closes is a donut; a clamp
@@ -865,7 +706,7 @@ guesswork:
   they are a compose-internal category — while the evaluator receives them in memory via
   `EvalContext`. A plan on disk is label-free by design.
 
-### 5.7 Derivation and classification
+### 4.7 Derivation and classification
 
 Every shape the generator builds can be read back from its geometry alone, and the reading is what
 proves the building. `ShapeClassifier.Classify` takes one box's terrain and returns its family. It is
@@ -982,7 +823,7 @@ failure this must not have.
 
 ---
 
-## 6. Allocate and fill — from a budget to a built unit
+## 5. Allocate and fill — from a budget to a built unit
 
 Composition takes a budget and returns one team unit with terrain in it. It runs in two halves that
 must not be confused. **Allocation** decides structure and position while nothing is yet made of
@@ -997,7 +838,7 @@ of all of that, the unit works out what it needs hung off the hub. Only then doe
 together, and seating's entire output is one integer per neighbour. The boxes are filled, the finished
 unit is placed against the axis, and only then does a board exist to be judged.
 
-### 6.1 The frame the unit is built in
+### 5.1 The frame the unit is built in
 
 Allocation never lays out a board. It lays out **one team unit**, and the board is that unit repeated —
 reflected or rotated into its symmetry images, so a two-team map is one authored half and its mirror. The
@@ -1021,7 +862,7 @@ gap from one team's front to the other's is settled while the board is still emp
 *is* the margin the allocator must leave against the axis. Allocation therefore starts with the axis
 already spoken for, and the unit grows back from a boundary it does not get to move.
 
-### 6.2 The hub goes down first
+### 5.2 The hub goes down first
 
 The hub is the only box in the unit that ever receives absolute coordinates. Its rectangle is drawn in
 the symmetry frame — so many cells out from the axis, so many across — and every other box is
@@ -1038,7 +879,7 @@ can sit. It emits the body once to read what that body offers, and the chosen fo
 widths and arm layout, where it has them — rides on the hub box so the filler re-emits exactly the
 same body. A body sampled twice would not agree with itself.
 
-### 6.3 The form decides where anything may dock
+### 5.3 The form decides where anything may dock
 
 Emitting is what turns a footprint into material. The form decides which cells inside the hub's
 rectangle are terrain and which are holes, and that distinction matters immediately, because the next
@@ -1055,7 +896,7 @@ Each run is published as an **offer**, carrying the width that run can support �
 from its own length. The offer bounds the search rather than filtering its output: a seat that would
 put a neighbour where the hub has no material is never proposed, not proposed and rejected.
 
-### 6.4 What the unit asks for
+### 5.4 What the unit asks for
 
 Independently of the hub, and before any position exists, the allocator works out what the unit needs.
 The player count fixes how many wool boxes there are, whether there is a frontline, and how large the
@@ -1084,7 +925,7 @@ How many neighbours there are, and whether a frontline exists at all, is not dec
 off the budget ladders, and the allocator reads them as given. What it does with them is turn each into
 a request — one per wool, one for the spawn, one for the frontline where the budget affords one.
 
-### 6.5 The seat
+### 5.5 The seat
 
 Seating's entire job is to turn a request into a position, and the position is a single integer: the
 **seat**, the offset in the hub's edge-local coordinates at which the neighbour's along-extent begins.
@@ -1107,7 +948,7 @@ The rectangle that results is an **envelope, not a fill target**. Its contents m
 stay connected, but need not fill it solid; an L in a five-by-four box leaves a whole quadrant empty.
 That is what lets one shape take many footprints inside a fixed rectangle.
 
-### 6.6 The three dock rules
+### 5.6 The three dock rules
 
 Which seats are legal depends on the dock style, and the style is never sampled. It follows from the
 family roll that has already happened, which makes it a derived property of the request rather than a
@@ -1164,7 +1005,7 @@ heads stay flush under a shift, so the combined edge moves intact. A host touchi
 contrast, is a hard rejection in every case: that is the flush dock that would seal the bay and make the
 room itself the door.
 
-### 6.7 What keeps neighbours apart
+### 5.7 What keeps neighbours apart
 
 The runs constrain a neighbour against its host. A second, independent constraint holds neighbours
 apart from each other, and a seat must satisfy both.
@@ -1193,7 +1034,7 @@ unit and its own mirror image turns two islands into one and quietly deletes the
 is built around. The same measurement also supplies the length of a straight unbroken run, which is the
 unit of account for the rule against long flat frontiers.
 
-### 6.8 When a seat cannot be found
+### 5.8 When a seat cannot be found
 
 Failure is a ladder, not a cliff, and each rung is a different answer.
 
@@ -1213,7 +1054,7 @@ consuming no draw — to the nearest position that clears the front. Seats that 
 hold are collected and resolved after every neighbour is placed, when the full set is known and an
 earlier drop may have freed the very blocker.
 
-### 6.9 What a joint records
+### 5.9 What a joint records
 
 A box allocates a **budget, not exclusive area**, so two footprints are free to overlap — the
 partition is a set of claims on land and space, not a tiling. What that costs is that adjacency can no
@@ -1237,7 +1078,7 @@ exactly the two docks worth understanding — an overhang wool, whose entry is n
 and the frontline, whose face may exceed the hub's edge so the abutment is clipped narrower than the
 box. Of the four, the abutment is the only one describing something a player can walk through.
 
-### 6.10 What the filler still decides
+### 5.10 What the filler still decides
 
 Allocation settles structure and position; filling puts terrain inside what it settled. The seam
 between them is not a formality, because a decision taken on the wrong side of it is taken without the
@@ -1260,7 +1101,7 @@ dock. Its offer **grouping** — one consumer spanning every tip against one con
 FR6, an authored law — is part of an offer, and an offer is the allocator's plan. Both are made in the
 filler today, the grouping by coin flip. Tracked in `audit.md` as G111.
 
-### 6.11 Placing the finished unit
+### 5.11 Placing the finished unit
 
 Building the unit and placing it across the axis are two steps, and the second one exists because the
 first anchors on the wrong thing. Everything above is laid out around the hub, whose lateral span is
@@ -1291,7 +1132,7 @@ board deriver's hole rules is a change to this twin.
 
 ---
 
-## 7. Deriving the board
+## 6. Deriving the board
 
 A plan says what an author meant. It does not say what a player will find. Between the two sits
 **derivation**: reading a finished plan back as terrain and working out, from geometry alone, what the
@@ -1308,12 +1149,33 @@ to the full board in cell space and computes structure from geometry plus marker
 answers *do these two pieces touch, and how*; the raster layer answers everything that needs a picture
 of the whole board at once.
 
-### 7.1 Islands, and what anchors them
+### 6.1 Islands, and what anchors them
 
-The first question is which terrain is one place. Two pieces belong to the same landmass when they
-share a walkable border — either a full one or a thinner seam a player can still cross — and taking the
-union over every such contact splits the board into **islands**. A piece with no walkable contact at
-all is isolated, reachable only by building.
+The first question is which terrain is one place, and answering it needs the word for how two pieces
+meet. An **interface** is always a shared **edge interval** — a position and a width — where two pieces
+touch, or where a piece meets a build zone. It is never a point and never a node, and that is a rule
+rather than a convention: two rectangles meeting only at a corner share no walkable ground, so a point
+touch connects nothing.
+
+Contact off the raw rectangles reads as one of five kinds:
+
+| Kind | Is |
+|---|---|
+| `Land` | a shared border at or above the corridor minimum — the pieces merge into one walkable mass |
+| `Narrow` | a shorter positive border — still walkable, a staircase or ledge seam |
+| `Corner` | a bare point touch — **never connects** |
+| `Overlap` | area overlap — a same-surface overlap merges |
+| `None` | disjoint — a gap a build region must span |
+
+`Land` and `Narrow` are the **land interfaces**, the two that connect, and taking the union over every
+one of them splits the board into **islands**. A piece with no land interface at all is isolated,
+reachable only by building. Keeping `Narrow` as a connection is deliberate: a five-block shared step is
+one island rather than two, so connectivity is decided separately from whether a route is wide enough
+to fight through, which is judged later on the assembled footprint.
+
+Above the raw kinds sits a coarser reading the plan itself uses: two pieces are either **land**, having
+merged, or separated by a **gap** a build region spans, which carries a span distance. An elevation
+transition — a step, a ramp or a cliff — rides on either.
 
 An island on its own is just a shape. What gives it meaning is what stands on it, so each is tagged by
 its **anchor**, in a fixed order of precedence: an island holding a spawn is a **team** island; one
@@ -1327,7 +1189,7 @@ so it is really part of that team's own internal route rather than contested gro
 opponent can reach is genuinely neutral. The distinction is geometric, not authored, and it decides
 whether a link across that stone counts as a team's private bridge or as part of the crossing.
 
-### 7.2 Build regions, and what they link
+### 6.2 Build regions, and what they link
 
 A build region is where a player may place blocks, and its meaning comes entirely from **what it
 connects**. Once islands and their anchors exist, each region is typed by the anchors at its ends:
@@ -1347,7 +1209,7 @@ a pocket carved into one landmass, both walls belonging to it. Both are authored
 them as their own signals rather than folding them into the crossing is what stops a team's private
 inconvenience from reading as contested ground.
 
-### 7.3 Boundary runs, and what a frontline is
+### 6.3 Boundary runs, and what a frontline is
 
 Where terrain meets build, the deriver records the boundary. This is the part of the model where
 careless vocabulary does the most damage, so the terms are fixed:
@@ -1374,7 +1236,7 @@ in cells — and its **profile**: *straight* when every segment lies on one line
 steps in and out. A team's run count, its face widths and its profiles are the frontline measurables,
 and they are what the laws about wide against split fronts are actually stated over.
 
-### 7.4 Enclosed voids
+### 6.4 Enclosed voids
 
 A **hole** is empty ground the outside cannot reach. The flood that finds them starts beyond the
 board's bounding box and spreads through void only, treating **both terrain and build as walls** —
@@ -1406,7 +1268,7 @@ distinct build regions ring it, which is the count of parallel ways around it �
 the observation that a loop around a hole gives a map rotation, since it offers routes between lanes
 that do not retreat through one chokepoint.
 
-### 7.5 What falls out of the rest
+### 6.5 What falls out of the rest
 
 Two further readings come free once the above exists, and both are outputs rather than decisions.
 
@@ -1433,7 +1295,7 @@ reading is defined the way it is.
 
 ---
 
-## 8. Rules and scoring
+## 7. Rules and scoring
 
 The emitter can make almost anything. What gives the generator's output a character is not what it
 can build but **what it refuses to let through** — the rules do not produce good maps, they punish bad
@@ -1441,7 +1303,7 @@ ones, and the residue is the style. That makes the rule set the most consequenti
 and the one most easily misused, so this section is about what a rule *is* before it is about what any
 particular rule says.
 
-### 8.1 Every rule is one kind
+### 7.1 Every rule is one kind
 
 A rule that cannot be classified cannot be placed, and a rule in the wrong place is enforced at the
 wrong time. So every rule in the generator is exactly one **kind**, and naming the kind is what gives
@@ -1493,7 +1355,7 @@ what would become targets if it gained one. And the allocator's weighted samplin
 kind at all: a menu is a set and carries no frequency, while a band carries a distribution but is
 explicitly descriptive. Naming that kind is an open decision, and all three are tracked in `audit.md`.
 
-### 8.2 Where a rule may live
+### 7.2 Where a rule may live
 
 The kinds are not a filing convenience; they say *when* a rule runs, and that is a stronger constraint
 than it appears.
@@ -1511,7 +1373,7 @@ only see symptoms — a wool ringed by a hole, a hop outside the bridgeable rang
 The two halves catch each other. The compose-side gates emit only legal structure; the derived-board
 terms catch any symptom that appears anyway, which is exactly the case where a gate was wrong.
 
-### 8.3 What the score is
+### 7.3 What the score is
 
 Judgement runs over three layers, and each answers a different question. **Author intent** is the
 irreducible input, the plan. **Derived structure** is the roles and topology, computed and held in
@@ -1534,7 +1396,7 @@ refusal is legible and actionable rather than a number. And it is **additive and
 complete**: terms are added as failures are found, and a new term never tanks an acceptance rate,
 because a term only fires on the symptom it names.
 
-### 8.4 What makes the evaluator correct
+### 7.4 What makes the evaluator correct
 
 An evaluator is not correct because its terms look reasonable. It is correct when it **ranks a labeled
 set the way the author does**, which makes the evaluation set the real deliverable and the terms merely
@@ -1560,7 +1422,7 @@ is, when it can be enforced, and what it would take to know it is right.
 
 ---
 
-## 9. Code map
+## 8. Code map
 
 Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 
@@ -1570,9 +1432,9 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 |---|---|---|
 | `ShapeEmitter` | `Shapes/ShapeEmitter.cs` | **emit**, in two stages: `Body` builds the terminal-free compound, a designation finishes it (`Emit` = the approach designation, stamping the terminal room + marker). No roles, no ids, no plan types. |
 | `BodyEmitter` · `Compound` | `Shapes/BodyEmitter.cs`, `Shapes/Compound.cs` | the terminal-free body vocabulary (`Rectangle · SpineArms · Ring · DoubleHole · P · G · TwoUOnI`) and its emitter. |
-| `BodyEdges` | `Shapes/BodyEdges.cs` | the edge-taxonomy reader (§1.13): negative spaces by wall count, their parts, mouths and the offerable surface — from geometry alone. |
+| `BodyEdges` | `Shapes/BodyEdges.cs` | the edge-taxonomy reader (§4): negative spaces by wall count, their parts, mouths and the offerable surface — from geometry alone. |
 | `ShapeClassifier` | `Shapes/ShapeClassifier.cs` | **shape deriver**: `Classify` → `ShapeFamily` (9 families), width-independent; `ClassifyOpen` → `LaneRead` is the board-level corridor bend read (`LaneName` → string `I/L/Z/complex/plaza/none`; the retired `WoolLaneShape` was a thin adapter over it). |
-| `SlotAssignment` | `Shapes/SlotAssignment.cs` | **slot deriver**: `AssignSlots(family, pieces, roomId)` → piece→slot, re-derived from topology — the emitter's slot mirror (§5). |
+| `SlotAssignment` | `Shapes/SlotAssignment.cs` | **slot deriver**: `AssignSlots(family, pieces, roomId)` → piece→slot, re-derived from topology — the emitter's slot mirror (§4). |
 
 **The board deriver — islands / voids / interfaces**
 
@@ -1594,8 +1456,8 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `SeatGeometry` | `Compose/SeatGeometry.cs` | `NeighbourRect` and the edge arithmetic around it: projection onto an edge, clearance, the hub joint each dock records. |
 | `TeamUnitFiller` | `Compose/TeamUnitFiller.cs` | fills the allocated partition hub-first (offer consumption) → `FilledUnit` (a `GrownUnit` + the frontline face offers). |
 | `GrownUnit` · `GrownPiece` | `Compose/GrownUnit.cs` | the composed unit records (pieces with `Slot`/`Box` labels + spawn/wool placements). |
-| `Envelope` → `ComposeEnvelope` | `Compose/Envelope.cs` | the budget: player count → land-per-team, board extent, unit bounds (§3.2). |
-| `ComposeRequest` | `Compose/ComposeRequest.cs` | the compose input, validated at construction (§3.1). |
+| `Envelope` → `ComposeEnvelope` | `Compose/Envelope.cs` | the budget: player count → land-per-team, board extent, unit bounds (§2.2). |
+| `ComposeRequest` | `Compose/ComposeRequest.cs` | the compose input, validated at construction (§2.1). |
 | `FrontGuard` | `Compose/FrontGuard.cs` | the no-frontline seat post-pass: slide/relocate/drop a seat left flush with the empty front. |
 | `UnitPlacement` | `Compose/UnitPlacement.cs` | re-anchors the finished unit on its **face** before the band is derived. |
 | `Producibility` | `Compose/Producibility.cs` | "could the composer have produced this?" — answered by search over the declared menus, not by inverse. |
@@ -1603,7 +1465,7 @@ Where each concept lives (paths under `src/PgmStudio.Pgm/` unless noted):
 | `SpawnBoxEmitter` | `Compose/SpawnBoxEmitter.cs` | the spawn binding: profile {I, L} + `Fill`, terminal → `Spawn` room + marker. |
 | `HubBoxEmitter` → `EmittedHub` | `Compose/HubBoxEmitter.cs` | the **hub** designation: a terminal-free body plus the per-run `EdgeOffer`s it publishes as the constraint source. |
 | `FrontlineBoxEmitter` → `EmittedFrontline` | `Compose/FrontlineBoxEmitter.cs` | the **frontline** designation: spine docks the hub, arm-tips are the face, carrying the face offers the mid consumes. |
-| `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§8). |
+| `EdgeOffer` · `OfferGrouping` | `Compose/Boxes/EdgeOffer.cs` | the **offer**: where a neighbour may attach, at what width, in which grouping (§7). |
 | `FillProfiles` | `Compose/Boxes/FillProfiles.cs` | the per-`BoxKind` profile as data: legal families + the footprint fit gate. |
 | `BoxFiller` | `Compose/Boxes/BoxFiller.cs` | the one profile-gated fill entry point over a positioned `Box` + land-vs-target accounting (the spine G63 drives). |
 | `BoxInterfaces` | `Compose/Boxes/BoxInterfaces.cs` | the valid-edges data model: `Of` reads a box's edges off the shape as `BoxEdgeInterface` **facts** (span + the template slots on each edge) — it observes; the docking *rules* over the facts are the `DockingGate`. |
@@ -1619,7 +1481,7 @@ runfile cache before measuring a `src/` change)
 
 | Piece | Path | What |
 |---|---|---|
-| the shape mirror | `tests/PgmStudio.Pgm.Tests/Shapes/` | emit↔derive + slot-template + width-independence, as tests (§5, *Derivation and classification*). |
+| the shape mirror | `tests/PgmStudio.Pgm.Tests/Shapes/` | emit↔derive + slot-template + width-independence, as tests (§4, *Derivation and classification*). |
 | `showcase.cs` | `tools/compose/showcase.cs` | **the explainer** — this document's live twin, every figure emitted by the real generator. |
 | `unit-gallery.cs` · `box-gallery.cs` · `board-gallery.cs` | `tools/compose/` | composed units / box partitions / whole boards, rendered. |
 | `body-gallery.cs` · `edge-gallery.cs` | `tools/compose/` | the terminal-free bodies; the edge taxonomy read off them. |
@@ -1630,7 +1492,7 @@ runfile cache before measuring a `src/` change)
 
 ---
 
-## 10. Boundaries
+## 9. Boundaries
 
 This document does not restate the rules or the numbers. The **rule law** — every CT / SP / WL / LN /
 HB / FR / MD / BZ / EL id, with its exact widths, depths, hop counts, and heights — is `rules.md`,

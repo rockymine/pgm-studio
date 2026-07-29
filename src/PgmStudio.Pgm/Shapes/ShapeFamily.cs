@@ -8,5 +8,5 @@ namespace PgmStudio.Pgm.Shapes;
 /// split by how the terminal docks the crossbar — <see cref="U"/> flush against a bar wider than itself,
 /// <see cref="H"/> capping its own room-run stub; <see cref="Clamp"/> catches the terminal between two bars (it
 /// bridges them); <see cref="Donut"/> encloses a void; <see cref="Isolated"/> has no terrain approach (a
-/// derive-only reading — the emitter refuses it). See the catalog in <c>docs/generator/model.md</c> §5.</summary>
+/// derive-only reading — the emitter refuses it). See the catalog in <c>docs/generator/model.md</c> §4.</summary>
 public enum ShapeFamily { Isolated, I, L, Z, Scythe, Clamp, U, H, Donut }

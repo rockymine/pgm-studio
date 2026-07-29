@@ -1,7 +1,7 @@
 # Layout rules — the composer's v1 rule set (v3, frozen 2026-07-04)
 
 The generator's actual content: per-role attachment rules, dimensions, and elevation defaults for
-the plan composer (`docs/generator/model.md` §2, §5). v3 measures every rule against the
+the plan composer (`docs/generator/model.md` §1, §5). v3 measures every rule against the
 **twelve-seed corpus** (`tools/seeds/*.plan.json`; the eleventh, `big-board-…-parallel-mid`, is a
 **trace of a real map** at 30/team; the twelfth, `mirror-tiny-map-cliff`, the tiniest at 5/team).
 **FROZEN 2026-07-04**: the maxPlayers pass completed — every seed carries the author's per-team

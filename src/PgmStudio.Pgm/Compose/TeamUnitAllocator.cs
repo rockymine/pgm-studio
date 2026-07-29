@@ -28,8 +28,8 @@ public static class TeamUnitAllocator
 {
     /// <summary>Allocate a team unit's <see cref="BoxPartition"/> from the <paramref name="env"/> budget — the
     /// geometry layer over <see cref="UnitTuning.SamplePlan"/>. Positions the hub on the (u, v) grid, <b>owns the hub-form
-    /// choice</b> (model.md §5, designations), and seats the spawn and wools on the chosen form's <b>real free-edge
-    /// intervals</b> — the offerable surface the body actually presents (§1.13), not its bounding box. So a
+    /// choice</b> (model.md §4, designations), and seats the spawn and wools on the chosen form's <b>real free-edge
+    /// intervals</b> — the offerable surface the body actually presents (§4), not its bounding box. So a
     /// non-rectangular hub (L/U/Ring/Double-hole) never leaves a neighbour docking an empty bbox stretch and only
     /// corner-touching it (a <c>t*/*t</c> pinch); the four-full-edges rectangle is just the degenerate case. The
     /// chosen form rides on the hub <see cref="Box.Form"/> for the filler to re-emit; each hub↔neighbour joint

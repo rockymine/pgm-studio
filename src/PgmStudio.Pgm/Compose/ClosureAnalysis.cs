@@ -14,7 +14,7 @@ namespace PgmStudio.Pgm.Compose;
 /// <para>This is a deliberate <b>fast-path twin</b> of the enclosed-void classification in
 /// <c>BoardDeriver</c> (<c>BoardStructure.Voids</c>): a narrow dense-grid flood kept separate because it runs
 /// inside the composer's 60-attempt hunt loop, where re-deriving the whole board per attempt is wasteful. It
-/// computes the same §1.7 "hole" concept over the same fanned closure — the two must stay in agreement; when
+/// computes the same §6 "hole" concept over the same fanned closure — the two must stay in agreement; when
 /// the board deriver's hole rules change, this twin changes with them (the same discipline the JS symmetry
 /// twin follows). Fold it into a query over <c>BoardStructure</c> only if profiling shows the hunt loop can
 /// absorb it.</para>

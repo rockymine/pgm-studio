@@ -9,7 +9,7 @@ Direction doc for the `G`-series composer track. It reframes layout generation a
 makes the evaluator authorable: **author intent · derive structure · judge by property.** It sits
 above `docs/generator/rules.md` (the frozen rule content the evaluator scores against),
 `docs/generator/model.md` (the canonical model), and `docs/generator/seed-stats.md` (the measured
-envelopes the soft terms use). It follows `model.md`'s role model (§1.4, §3): structural roles are
+envelopes the soft terms use). It follows `model.md`'s role model (§3): structural roles are
 *derived*, not authored — and derived cautiously (§5): the evaluator keys off **measurable** quantities,
 not named roles the author is not ready to pin.
 
@@ -466,7 +466,7 @@ produced. Do not encode a shape whitelist in the evaluator — that is the enume
 5. **Generator, later** — start with option 8.1, escalate as the evaluator earns trust.
 
 The evaluator is no longer downstream-only: `LayoutEvaluator.Gate` runs on **every** compose attempt and
-rejects it outright on a hard-term violation (`model.md` §2), so steps 1–3 are load-bearing today.
+rejects it outright on a hard-term violation (`model.md` §1), so steps 1–3 are load-bearing today.
 
 ## 10. Open questions
 

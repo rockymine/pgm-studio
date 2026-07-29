@@ -2,14 +2,14 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>How the intervals of one offer group may be consumed (docs/generator/model.md §8 — the
+/// <summary>How the intervals of one offer group may be consumed (docs/generator/model.md §7 — the
 /// offer kind). <see cref="Several"/>: each interval takes its own consumer (a hub's four edges, the double
 /// frontline's two tips — two derived runs). <see cref="Joint"/>: one consumer must span the whole group flush
 /// (FR6's wide face across both tips — one wide run, the inter-tip recess preserved as a hole).</summary>
 public enum OfferGrouping { Joint, Several }
 
 /// <summary>
-/// An <b>offer</b> (docs/generator/model.md §8) — the outward constraint a designation publishes:
+/// An <b>offer</b> (docs/generator/model.md §7) — the outward constraint a designation publishes:
 /// <b>where</b> a neighbour may attach (the edge <see cref="Interval"/>, the G93 shape-relative fact, so it
 /// moves with every knob), <b>at what width</b> (<see cref="WidthClass"/>, the w2/w4/w6 rung a consumer's fill
 /// menu reads as its <c>cw</c>), and <b>in which grouping</b> (<see cref="Grouping"/> over the offers sharing a

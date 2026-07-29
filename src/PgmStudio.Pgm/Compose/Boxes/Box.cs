@@ -3,7 +3,7 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>The typed box kinds of the partition scaffold (docs/generator/model.md §5).</summary>
+/// <summary>The typed box kinds of the partition scaffold (docs/generator/model.md §4).</summary>
 public enum BoxKind { Spawn, Hub, Wool, Frontline, Mid }
 
 /// <summary>The fill directive for a wool box the allocator chose: the approach <see cref="Family"/>, its room
@@ -29,7 +29,7 @@ public sealed record BoxRef(string Id, BoxKind Kind)
 /// connected but need not fill it solid — never a fill target) plus the per-box half of the two-currency
 /// budget. <see cref="Rect"/> is in plan cell coordinates. <see cref="Form"/> is the compound the allocator
 /// chose for a body box (a hub) to fill it — the fill directive the filler re-emits, its real free-edge
-/// intervals (§1.13) the offerable surface neighbours seat against; <c>null</c> for a box whose kind carries
+/// intervals (§4) the offerable surface neighbours seat against; <c>null</c> for a box whose kind carries
 /// no form (leaves the hub filler its default solid rectangle). <see cref="FlipV"/> is the hub form's
 /// orientation — reflect it vertically so its open feet face the front — the second half of that directive,
 /// carried so the filler re-emits the body the allocator seated against. <see cref="HubWalls"/> is the third

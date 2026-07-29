@@ -78,7 +78,7 @@ public static class TeamUnitFiller
         var hubJoints = partition.JointsOf(hubBox.Id);
 
         // the hub emits first, at the form the allocator chose (Box.Form; the solid rectangle when unset) — the
-        // same body the allocator seated its neighbours against, so every dock lands on real terrain (§1.13's
+        // same body the allocator seated its neighbours against, so every dock lands on real terrain (§4's
         // offerable surface), never an empty bounding-box stretch. It publishes each run at what that run can
         // support; what each neighbour was granted rides on its own joint.
         var form = hubBox.Form ?? new CompoundRead(Compound.Rectangle);

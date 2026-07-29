@@ -4,14 +4,14 @@ using PgmStudio.Pgm.Shapes;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>The span class of a box edge relative to its box: the longer sides are <see cref="Long"/>, the
-/// shorter <see cref="Short"/> (docs/generator/model.md §6). A square box has no short edge — its
+/// shorter <see cref="Short"/> (docs/generator/model.md §5). A square box has no short edge — its
 /// edges all read <see cref="Long"/>.</summary>
 public enum EdgeSpan { Long, Short }
 
 /// <summary>One <b>interval</b> of a box edge — the stretch a single piece presents to it: the interval's
 /// <see cref="Start"/> along the edge (box-local cells; x for a horizontal edge, z for a vertical one), its
 /// <see cref="LengthCells"/>, and the template <see cref="Slot"/> of the piece (the terminal room as the room
-/// slot). The §1.5 interface primitive at fact level: a shape whose face is two arm tips presents <b>two
+/// slot). The §6 interface primitive at fact level: a shape whose face is two arm tips presents <b>two
 /// disjoint intervals on one edge</b> with the recess between them — which the flat slot list could never
 /// say, and which the multi-interval docking and offer rules bind to.</summary>
 public sealed record EdgeInterval(int Start, int LengthCells, string Slot);
