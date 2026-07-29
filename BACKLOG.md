@@ -380,6 +380,27 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
+- [ ] **G147 — verdict coverage on the catalog: which buckets has nobody judged?** *(sequenced after G118 —
+  there is nothing to count until verdicts exist.)* The browse feed hands the author whatever the composer
+  samples, so collection is passive: the corpus ends up shaped like the sampler, and the parts of the space
+  the sampler rarely visits stay permanently unjudged. The measured skew makes that concrete — the donut is
+  73 of the 89 wool cards while U, H and L are one apiece (G144) — so scrolling will produce a donut corpus
+  and silence everywhere else, which is exactly the wrong input for rule refinement.
+  The fix is to show the denominator. A `StructureNames.Canonical()` key is a triple
+  (`wools:… | hub:… | front:…`) and the catalog already renders each component of that triple as a card, over
+  a space now small enough to enumerate: 81 wool classes up to rotation/reflection, 7 hub forms, 3 frontline
+  forms. So add a third filter facet beside *kind* and *reach* — **coverage** — with three states: *judged*
+  (this bucket has verdicts), *thin* (one or two, not enough to trust), *unjudged* (nobody has ever looked at
+  a board shaped like this). "Find me something nobody has judged" then becomes a chip click, and collection
+  turns from an infinite scroll into covering a space with visible edges.
+  Needs one query — verdict counts grouped by the structure key — which is a `GROUP BY` on the column G118
+  already stores, so **design it with G118's schema rather than bolting it on after**. The UI is small: a chip
+  row and a count badge over the same tally plumbing the catalog's `ByTier`/`ByFamily`/`ByKind` already use.
+  **A card is a component of a bucket, not a bucket** — a board reading `wools:donut,l` touches both the donut
+  and the L card — so per-card coverage is an aggregate over every bucket that card participates in. Build the
+  aggregate first (cheap, and enough to spot a blind spot); add a per-bucket drill-down only if the aggregate
+  proves too coarse to act on.
+
 - [ ] **G145 — five emitter knobs are unreachable from the composer.** `ShapeEmitter.Emit` takes
   `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, and `WoolBoxEmitter.Emit`
   passes all five through — but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
