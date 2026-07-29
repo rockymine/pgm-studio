@@ -1954,7 +1954,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   scythe"`), `illegal-dock` with the `DockRejection`. On success it reports the land spent and the emitted
   slot template. `GET /api/shapes/probe/schema` serves the knob surface — each family's minimum box and which
   knobs it takes — so a family gaining a knob needs no matching client edit, and it reports the **dock frame**
-  (`WoolBoxEmitter.MouthBox`), the only frame that can agree with what a size refusal says. (G144)
+  (`WoolBoxEmitter.MouthBox`), the only frame that can agree with what a size refusal says. Api 89 tests green
+  (9 new): the schema covers every emittable family and flags the menu, the offered resize is checked to
+  actually fill for six families (a transposed or off-by-one minimum would hand the author a button that
+  refuses again), and the schema's minimum is asserted equal to the refusal's per family — the frame bug this
+  endpoint shipped with, now gated. (G144)
 
 - **Browse structural sieve — form/family filters** — `Pgm/Derive/StructureSummary.cs` + `ComposeEndpoints`
   + `Client/Pages/Generator/` + `M0009`. The compose feed now sieves by **structure**, not just size/score:
