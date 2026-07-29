@@ -1,0 +1,106 @@
+@page "/catalog"
+@layout StudioLayout
+
+@* Shape catalog (G144): the generation vocabulary as browsable cards — every approach family and body form
+   the pipeline can build, rendered server-side, each badged with how far it actually gets. *@
+
+<StudioShell Bare="true">
+  <Bar>
+    <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
+      <Crumbs><Crumb Dim>Shape catalog</Crumb></Crumbs>
+      <Right>
+        <Button Href="/generator" Icon="sparkles" Title="Browse generated layouts">Generator</Button>
+      </Right>
+    </Topbar>
+  </Bar>
+  <ChildContent>
+  <div class="cat-body">
+    <aside class="cat-filters">
+      <Section Title="Filters">
+
+        <Field Label="Box kind">
+          <div class="filter-group-options">
+            @foreach (var k in Kinds)
+            {
+              <Chip Active="kindFilter.Contains(k.Token)" Title="@k.Hint"
+                    OnClick="() => Toggle(kindFilter, k.Token)">@k.Label<span class="filter-chip-n">@Count(byKind, k.Token)</span></Chip>
+            }
+          </div>
+        </Field>
+
+        <Field Label="Reach">
+          <LabelEnd><span class="text-xs text-muted">how far it gets</span></LabelEnd>
+          <ChildContent>
+            <div class="filter-group-options">
+              @foreach (var t in Tiers)
+              {
+                <Chip Active="tierFilter.Contains(t.Token)" Title="@t.Hint"
+                      OnClick="() => Toggle(tierFilter, t.Token)">@t.Label<span class="filter-chip-n">@Count(byTier, t.Token)</span></Chip>
+              }
+            </div>
+          </ChildContent>
+        </Field>
+
+        <Field Label="Family / form">
+          <div class="filter-group-options">
+            @foreach (var family in byFamily.Keys.OrderBy(FamilyOrder))
+            {
+              <Chip Active="familyFilter.Contains(family)"
+                    OnClick="() => Toggle(familyFilter, family)">@family<span class="filter-chip-n">@Count(byFamily, family)</span></Chip>
+            }
+          </div>
+        </Field>
+
+        @if (AnyFilter)
+        {
+          <Button Full OnClick="ClearFilters">Clear filters</Button>
+        }
+
+        <p class="section-desc">
+          The counts are the whole catalog, not the filtered slice — a chip says what it would show
+          before it is picked.
+        </p>
+      </Section>
+    </aside>
+
+    <main class="cat-main">
+      <p class="cat-intro">
+        Every shape the pipeline can put in a box, emitted once and drawn mouth-up. The composer docks all
+        four box edges; the other three orientations are the same shape turned, so only one is shown. Both
+        handednesses are kept — a flip is an authored variant, not a viewing angle.
+      </p>
+
+      @if (error is not null) { <p class="cat-status">@error</p> }
+      else if (loading) { <p class="cat-status">Emitting the catalog…</p> }
+      else
+      {
+        <p class="cat-count">@Shown.Count of @total shape@(total == 1 ? string.Empty : "s")</p>
+        <div class="cat-grid">
+          @foreach (var shape in Shown)
+          {
+            <div class="cat-card cat-card--@shape.Tier">
+              <div class="cat-card-badges">
+                <span class="cat-badge cat-badge--family">@shape.Family</span>
+                <span class="cat-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
+              </div>
+              <div class="cat-card-fig">@((MarkupString)shape.Svg)</div>
+              <div class="cat-card-foot">
+                <span class="cat-card-meta">@shape.BoxW×@shape.BoxH · w@(shape.CorridorCells)</span>
+                @foreach (var knob in shape.Knobs)
+                {
+                  <span class="cat-knob">@knob</span>
+                }
+              </div>
+              @if (shape.Note is not null)
+              {
+                <p class="cat-card-note">@shape.Note</p>
+              }
+            </div>
+          }
+        </div>
+        @if (Shown.Count == 0) { <p class="cat-status">No shape matches these filters.</p> }
+      }
+    </main>
+  </div>
+  </ChildContent>
+</StudioShell>

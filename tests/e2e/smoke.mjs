@@ -21,6 +21,8 @@ const ROUTES = [
   { path: "/maps?stage=configure",                name: "maps · configure", expect: "body" },
   { path: "/design",                              name: "design system",  expect: "body" },
   { path: "/generator",                           name: "generator",      expect: "body" },
+  // the catalog proves itself by its cards: an empty grid is a dead enumerator, not a slow page
+  { path: "/catalog",                             name: "shape catalog",  expect: ".cat-grid .cat-card" },
   { path: "/plan-editor",                         name: "plan editor (bare)", expect: ".map-canvas-svg" },
   { path: `/maps/${seed.planSlug}/plan`,          name: "plan tool",      expect: "body" },
   { path: `/maps/${seed.sketchSlug}/sketch`,      name: "sketch tool",    expect: "body" },

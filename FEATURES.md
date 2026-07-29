@@ -1928,6 +1928,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
   per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
 
+- **Shape catalog — the vocabulary as a page** — `Pgm/Compose/ShapeCatalog.cs` + `ShapeCatalogEndpoints` +
+  `Client/Features/Catalog/` + `css/studio/catalog.css`. `/catalog` renders **98 cards**: every approach
+  family and body form the pipeline can put in a box, emitted once mouth-up, deduplicated by cell pattern,
+  and coloured by box kind (the same id-prefix coding `PlanBoardSvg` gives a composed board). Each card
+  carries its box, corridor width and knob tokens (`side-tuck`, `wool at end`, `attach 4`), and a **reach
+  badge** — 91 *in the mix*, 1 *reachable*, 6 *emitter-only* — with a note naming the mechanism and its task
+  id for the latter two, so a badge is never bare. The in-mix set is **collected by running**
+  `UnitRequests.WoolRequest` over seeds and the grid of inputs it reads, so retuning a chance or cap in
+  `UnitTuning` moves the catalog with it rather than drifting from a second copy. `GET /api/shapes/catalog`
+  returns the bounded set in one page with whole-catalog tallies (a chip says what it would show before it is
+  picked); the page filters in-browser. The measured shape it makes visible: the donut is 73 of the 89 wool
+  cards, while U, H and L are one apiece — the imbalance any G118 verdict corpus inherits. Pgm 772 tests
+  green (11 new, gating that each card's tier matches what the pipeline really does); e2e smoke 33/33 with
+  `/catalog` added to the route sweep. (G144)
+
 - **Browse structural sieve — form/family filters** — `Pgm/Derive/StructureSummary.cs` + `ComposeEndpoints`
   + `Client/Pages/Generator/` + `M0009`. The compose feed now sieves by **structure**, not just size/score:
   `StructureSummary.Derive(unit)` reads a composed unit's sorted wool **approach families**

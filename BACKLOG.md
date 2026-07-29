@@ -365,6 +365,34 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
+- [ ] **G145 — five emitter knobs are unreachable from the composer.** `ShapeEmitter.Emit` takes
+  `attachments`, `woolExtend`, `entryShift`, `woolShift` and `attachmentOffset`, and `WoolBoxEmitter.Emit`
+  passes all five through — but `WoolBoxEmitter.Fill`, the only path `BoxFiller` and therefore the whole
+  compose pipeline uses, forwards none of them (`WoolBoxEmitter.cs`, the `ShapeEmitter.Emit` call inside
+  `Fill`). Their only callers in the tree are `tools/compose/box-gallery.cs` (the two-attachment and
+  moved-attachment donut cards). So the two-attachment donut, the extended-wool donut and both scythe
+  endpoint shifts are built, tested, drawn in the galleries, and **cannot appear on a generated board**.
+  Decide per knob rather than in bulk: the donut's second attachment is a genuine multi-access shape the
+  hub could dock twice and is the strongest candidate to plumb; the scythe shifts are moot until the
+  scythe itself is admitted (G146). Plumbing one means widening `WoolFill` (it already carries
+  `AttachmentWidth` and `RingWalls`, so the shape of the change is settled) and giving `UnitRequests` a
+  draw for it. **Do not "fix" this by deleting the knobs** — `EmitterPlacementKnobTests` gates them and
+  `model.md` §4 describes them; the gap is the plumbing, not the geometry.
+
+- [ ] **G146 — two families are in the vocabulary but never on a board.** The emitter builds eight
+  terminal-capped families; the composer puts six on boards. **Z** is listed in
+  `FillMenu.ProductionFamilies` and `BoxFiller` fills it happily, but `UnitRequests.WoolRequest` never
+  draws it — the rich branch picks donut, then U/H/clamp, else L, and the fallbacks are I. The only caller
+  that could reach it is the roll-indexed `BoxFiller.Fill(box, mouth, cw, roll, …)` overload, which has no
+  caller in `src/` at all. So the menu advertises a family the sampler cannot produce, and the browse
+  tool's own filter chip for it can never match. **Scythe** is the honest case: excluded from
+  `ProductionFamilies` with a stated reason (its bay's mouth is its docking edge, so a flush dock seals it
+  into WL8's forbidden enclosed void), with the elevation-stage alternative already parked as G81.
+  Two separate decisions: either give the sampler a Z draw or drop Z from `ProductionFamilies` so the menu
+  stops advertising it (the second is a one-line honesty fix and should not wait on the first); and leave
+  the scythe out until G81 lands. Either way the catalog page (G144) will render both under a
+  *reachable* / *emitter-only* badge, so the gap becomes visible rather than folklore.
+
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
   stretch along a boundary, an **interval** is where two things touch. `BoardStructure` breaks it —

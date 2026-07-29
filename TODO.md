@@ -21,8 +21,11 @@ variables and no way to record judgments. This theme integrates the generator in
 compose interactively, filter what to see, and **collect annotated keep/discard verdicts** that become
 the labeled positive/negative corpus every later refinement (rules, envelopes, AI passes) feeds on.
 Build order: the persistence foundation → browse → verdicts → duels (G119 → G117 → G118 → G120); the
-showcase (G121), the persistence foundation (G119), browse mode (G117), and its structural sieve
-(G128 — form/family filters) have shipped — see `FEATURES.md`; **verdicts (G118) is next**, and it now
+showcase (G121), the persistence foundation (G119), browse mode (G117), its structural sieve
+(G128 — form/family filters) and the shape catalog page (G144) have shipped — see `FEATURES.md`. The
+catalog lands ahead of verdicts on purpose: it is the reference surface for the vocabulary the tags are
+written in, and its measured class counts are what make per-bucket coverage tractable later.
+**Verdicts (G118) is next**, and it now
 owns the up/down votes deferred out of browse (the browse pin is the only persistence action so far,
 and the structural bucket key it stores is G118's verdict column / G120's duel bucket). The design long tail this focus deliberately
 displaced is condensed in **`docs/generator/ideas.md`** (ids preserved — pull one back here
@@ -34,6 +37,16 @@ scrolling. Generated rows are **immutable**: editing one forks a new `authored` 
 back-reference, so the labeled corpus cannot be contaminated after the fact. Browse votes (absolute)
 and duel results (pairwise preference) are **separate datasets**, unified only at analysis time. The
 hold tray persists across reloads — pinned *means* persisted.
+
+- [ ] **G144 — The shape catalog's knob panel.** The catalog page ships (`FEATURES.md`) — 98 cards, reach
+  badges, filters. What remains is the half that makes it a tool rather than a gallery: a **live knob panel**.
+  Pick a family, drag the box width/height and the corridor width, toggle the knobs, and re-emit on every
+  change — including into refusal, where the point is to print the `FillRejection` **verbatim**: the family's
+  minimum box from `TooSmall`, the guard's own message from `UnsupportedKnobs`, the `DockRejection` reason
+  from `IllegalDock`. `FillResult` is already a data channel carrying all of it, and nothing in the studio
+  surfaces it — an author currently learns a family's limits by reading `MinBox` or by a gallery script
+  throwing. Emit through `BoxFiller` so the docking gate runs, and mark a knob the fill path drops (G145) as
+  emitter-only in the panel too, or the refusals will read as arbitrary.
 
 - [ ] **G118 — Verdict collection.** Tap-chip annotation tags (large toggleable pills, multi-select —
   never checkboxes) available on both vote directions, both optional; the tag set seeded from the
