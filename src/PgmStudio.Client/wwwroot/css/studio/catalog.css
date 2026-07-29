@@ -55,3 +55,31 @@
   margin: 0; padding: 6px 8px; font-size: var(--font-xs); line-height: 1.45;
   color: var(--text-secondary); border-top: 1px solid var(--border);
 }
+
+/* the knob panel — a third rail on the right: the live emission, its refusal if it has one, and the knobs */
+.cat-probe {
+  flex-shrink: 0; width: 300px; padding: var(--space-3);
+  border-left: 1px solid var(--border); overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+.cat-probe-head { display: flex; align-items: center; justify-content: space-between; }
+.cat-probe-title { font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+.cat-probe-x { width: 24px; height: 24px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+.cat-probe-x:hover { color: var(--text-bright); border-color: var(--accent); }
+.cat-probe-x i { width: 13px; height: 13px; }
+
+.cat-probe-fig {
+  display: flex; align-items: center; justify-content: center; min-height: 150px;
+  padding: 10px; background: var(--canvas); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.cat-probe-fig svg { width: 100%; height: auto; max-height: 260px; display: block; }
+.cat-probe-fig--refused { border-style: dashed; border-color: var(--warn, #d9a441); }
+.cat-probe-none { font-size: var(--font-xs); color: var(--text-secondary); }
+
+.cat-probe-reject { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.cat-probe-code {
+  padding: 1px 6px; font-size: 10px; font-family: ui-monospace, monospace;
+  color: var(--warn, #d9a441); border: 1px solid var(--warn, #d9a441); border-radius: var(--radius-sm);
+}
+.cat-probe-why { margin: 0; font-size: var(--font-xs); line-height: 1.5; color: var(--text-secondary); }
+.cat-probe-ok { margin: 0; font-size: var(--font-xs); line-height: 1.5; color: var(--text-secondary); font-family: ui-monospace, monospace; }

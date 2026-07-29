@@ -1940,8 +1940,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   returns the bounded set in one page with whole-catalog tallies (a chip says what it would show before it is
   picked); the page filters in-browser. The measured shape it makes visible: the donut is 73 of the 89 wool
   cards, while U, H and L are one apiece — the imbalance any G118 verdict corpus inherits. Pgm 772 tests
-  green (11 new, gating that each card's tier matches what the pipeline really does); e2e smoke 33/33 with
-  `/catalog` added to the route sweep. (G144)
+  green (12 new, gating that each card's tier matches what the pipeline really does, and that a card's box is
+  the smallest the emitter accepts rather than a chosen display size); e2e smoke 33/33 with `/catalog` added
+  to the route sweep. (G144)
+
+- **Shape catalog — the knob panel** — `ShapeProbeEndpoints` + `Features/Catalog/`. Clicking a card opens a
+  live emit panel seeded from that shape: family, box width/height, corridor width, mouth, flip, side-tuck,
+  wool-at-end and the donut's attachment width, re-emitted on every change through **`BoxFiller`**, so the
+  profile check and the `DockingGate` run exactly as they do in composition. **A refusal is the deliverable,
+  not an error**: `FillResult` already carried every reason as data and nothing surfaced it, so the panel
+  prints the emitter's own words — `too-small` with the family's minimum box and a one-click *Resize to
+  W×H*, `unsupported-knobs` with the guard's message verbatim (`"side-tuck room is supported for I, Z and
+  scythe"`), `illegal-dock` with the `DockRejection`. On success it reports the land spent and the emitted
+  slot template. `GET /api/shapes/probe/schema` serves the knob surface — each family's minimum box and which
+  knobs it takes — so a family gaining a knob needs no matching client edit, and it reports the **dock frame**
+  (`WoolBoxEmitter.MouthBox`), the only frame that can agree with what a size refusal says. (G144)
 
 - **Browse structural sieve — form/family filters** — `Pgm/Derive/StructureSummary.cs` + `ComposeEndpoints`
   + `Client/Pages/Generator/` + `M0009`. The compose feed now sieves by **structure**, not just size/score:

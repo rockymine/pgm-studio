@@ -38,16 +38,6 @@ back-reference, so the labeled corpus cannot be contaminated after the fact. Bro
 and duel results (pairwise preference) are **separate datasets**, unified only at analysis time. The
 hold tray persists across reloads — pinned *means* persisted.
 
-- [ ] **G144 — The shape catalog's knob panel.** The catalog page ships (`FEATURES.md`) — 98 cards, reach
-  badges, filters. What remains is the half that makes it a tool rather than a gallery: a **live knob panel**.
-  Pick a family, drag the box width/height and the corridor width, toggle the knobs, and re-emit on every
-  change — including into refusal, where the point is to print the `FillRejection` **verbatim**: the family's
-  minimum box from `TooSmall`, the guard's own message from `UnsupportedKnobs`, the `DockRejection` reason
-  from `IllegalDock`. `FillResult` is already a data channel carrying all of it, and nothing in the studio
-  surfaces it — an author currently learns a family's limits by reading `MinBox` or by a gallery script
-  throwing. Emit through `BoxFiller` so the docking gate runs, and mark a knob the fill path drops (G145) as
-  emitter-only in the panel too, or the refusals will read as arbitrary.
-
 - [ ] **G118 — Verdict collection.** Tap-chip annotation tags (large toggleable pills, multi-select —
   never checkboxes) available on both vote directions, both optional; the tag set seeded from the
   layout-rules vocabulary (wools-too-close · wools/spawns-should-swap · flat-front · crammed-mid ·

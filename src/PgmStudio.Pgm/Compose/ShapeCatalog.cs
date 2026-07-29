@@ -129,15 +129,38 @@ public static class ShapeCatalog
         // knobs the emitter takes that WoolBoxEmitter.Fill does not forward (G145)
         foreach (var (family, knob, note, emit) in UnplumbedKnobs(lane))
         {
-            var emitted = emit();
+            if (SmallestBox(family, lane, emit) is not var (w, h, emitted)) continue;
             if (!seen.Add(PatternKey(emitted))) continue;
-            entries.Add(Approach($"wool-{++n}", family, CatalogTier.EmitterOnly,
-                emitted.Terrain.Concat([emitted.WoolRoom]).Max(p => p.Rect.X + p.Rect.Width),
-                emitted.Terrain.Concat([emitted.WoolRoom]).Max(p => p.Rect.Z + p.Rect.Height),
-                lane, [knob], note, emitted));
+            entries.Add(Approach($"wool-{++n}", family, CatalogTier.EmitterOnly, w, h, lane, [knob], note, emitted));
         }
 
         return entries;
+    }
+
+    /// <summary>The <b>smallest box the emitter accepts</b> for a knob, found by asking it rather than by
+    /// choosing one. A knob's minimum is a property of its guards — the second donut stub has to clear the
+    /// first, a scythe shift has to leave spine above the bar — and those live in <see cref="ShapeEmitter"/>,
+    /// not here. Picking a display size instead would make the card assert a footprint the knob does not
+    /// need, which is the misreading the whole page exists to avoid: the box is printed on the card, so a
+    /// generous one reads as a requirement. Scans outward from <see cref="ShapeEmitter.MinBox"/> and takes
+    /// the least-area success (ties to the squarer box, so a shape is legible rather than a sliver).</summary>
+    private static (int W, int H, EmittedApproach Emitted)? SmallestBox(
+        ShapeFamily family, int lane, Func<int, int, EmittedApproach> emit)
+    {
+        const int probe = 16;                                  // far past any knob's reach past the base minimum
+        var (baseW, baseH) = ShapeEmitter.MinBox(family, lane);
+        (int W, int H, EmittedApproach Emitted)? best = null;
+        for (var w = baseW; w <= baseW + probe; w++)
+            for (var h = baseH; h <= baseH + probe; h++)
+            {
+                EmittedApproach emitted;
+                try { emitted = emit(w, h); }
+                catch (ArgumentException) { continue; }         // this box does not satisfy the knob's guard
+                catch (ComposeException) { continue; }
+                if (best is { } b && (b.W * b.H < w * h || (b.W * b.H == w * h && b.W + b.H <= w + h))) continue;
+                best = (w, h, emitted);
+            }
+        return best;
     }
 
     /// <summary>The families the emitter builds that <see cref="FillMenu.ProductionFamilies"/> leaves off, read
@@ -147,8 +170,9 @@ public static class ShapeCatalog
             .Where(f => f != ShapeFamily.Isolated && !FillMenu.ProductionFamilies.Contains(f));
 
     /// <summary>The five knobs <see cref="ShapeEmitter.Emit"/> exposes and <see cref="WoolBoxEmitter.Fill"/>
-    /// drops (G145), each drawn once at a box that shows what it does.</summary>
-    private static IEnumerable<(ShapeFamily Family, string Knob, string Note, Func<EmittedApproach> Emit)>
+    /// drops (G145). Each is declared as a <b>function of the box</b>, not at a chosen size, so
+    /// <see cref="SmallestBox"/> can ask the emitter what the knob actually costs.</summary>
+    private static IEnumerable<(ShapeFamily Family, string Knob, string Note, Func<int, int, EmittedApproach> Emit)>
         UnplumbedKnobs(int lane)
     {
         const string donutNote = "The emitter builds it and WoolBoxEmitter.Emit passes it, but the Fill path " +
@@ -156,15 +180,15 @@ public static class ShapeCatalog
         const string scytheNote = "A scythe endpoint shift — unreachable twice over: the knob is not " +
                                   "forwarded (G145) and the family is off the menu (G146).";
         yield return (ShapeFamily.Donut, "two attachments", donutNote,
-            () => WoolBoxEmitter.Emit(ShapeFamily.Donut, new WoolBox(0, 0, 16, 14), lane, idPrefix: WoolPrefix, attachments: 2));
+            (w, h) => WoolBoxEmitter.Emit(ShapeFamily.Donut, new WoolBox(0, 0, w, h), lane, idPrefix: WoolPrefix, attachments: 2));
         yield return (ShapeFamily.Donut, "moved attachment", donutNote,
-            () => WoolBoxEmitter.Emit(ShapeFamily.Donut, new WoolBox(0, 0, 16, 16), lane, idPrefix: WoolPrefix, attachmentOffset: 4));
+            (w, h) => WoolBoxEmitter.Emit(ShapeFamily.Donut, new WoolBox(0, 0, w, h), lane, idPrefix: WoolPrefix, attachmentOffset: 4));
         yield return (ShapeFamily.Donut, "wool extended", donutNote,
-            () => WoolBoxEmitter.Emit(ShapeFamily.Donut, new WoolBox(0, 0, 18, 14), lane, idPrefix: WoolPrefix, woolExtend: true));
+            (w, h) => WoolBoxEmitter.Emit(ShapeFamily.Donut, new WoolBox(0, 0, w, h), lane, idPrefix: WoolPrefix, woolExtend: true));
         yield return (ShapeFamily.Scythe, "entry shifted", scytheNote,
-            () => WoolBoxEmitter.Emit(ShapeFamily.Scythe, new WoolBox(0, 0, 16, 14), lane, idPrefix: WoolPrefix, entryShift: 3));
+            (w, h) => WoolBoxEmitter.Emit(ShapeFamily.Scythe, new WoolBox(0, 0, w, h), lane, idPrefix: WoolPrefix, entryShift: 3));
         yield return (ShapeFamily.Scythe, "wool shifted", scytheNote,
-            () => WoolBoxEmitter.Emit(ShapeFamily.Scythe, new WoolBox(0, 0, 16, 14), lane, idPrefix: WoolPrefix, woolShift: 3));
+            (w, h) => WoolBoxEmitter.Emit(ShapeFamily.Scythe, new WoolBox(0, 0, w, h), lane, idPrefix: WoolPrefix, woolShift: 3));
     }
 
     /// <summary>The distinct wool requests the sampler can make — collected by <b>running</b>

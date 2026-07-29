@@ -102,6 +102,22 @@ public sealed class ShapeCatalogTests
     }
 
     [Test]
+    public async Task A_cards_box_is_what_the_shape_needs_not_a_display_size()
+    {
+        // The box is printed on the card, so a generous one reads as a requirement. These knobs are nearly
+        // free — the donut's second attachment costs no extra box at all at w2 — so anything approaching
+        // twice the family's own minimum means a display size was hard-coded again rather than derived.
+        foreach (var shape in Wools.Where(s => s.Tier == CatalogTier.EmitterOnly))
+        {
+            var family = Enum.Parse<ShapeFamily>(shape.Family, ignoreCase: true);
+            var (minW, minH) = ShapeEmitter.MinBox(family, shape.CorridorCells);
+            await Assert.That(shape.BoxW).IsGreaterThanOrEqualTo(minW);
+            await Assert.That(shape.BoxH).IsGreaterThanOrEqualTo(minH);
+            await Assert.That(shape.BoxW * shape.BoxH).IsLessThan(2 * minW * minH);
+        }
+    }
+
+    [Test]
     public async Task Bodies_cover_both_form_menus_and_are_all_in_the_mix()
     {
         var hubs = Catalog.Where(s => s.Kind == "hub").ToList();

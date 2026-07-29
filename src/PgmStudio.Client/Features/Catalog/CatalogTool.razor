@@ -83,7 +83,8 @@
                 <span class="cat-badge cat-badge--family">@shape.Family</span>
                 <span class="cat-badge cat-badge--@shape.Tier" title="@TierHint(shape.Tier)">@TierLabel(shape.Tier)</span>
               </div>
-              <div class="cat-card-fig">@((MarkupString)shape.Svg)</div>
+              <button class="cat-card-fig" @onclick="() => OpenProbe(shape)"
+                      title="Open in the knob panel">@((MarkupString)shape.Svg)</button>
               <div class="cat-card-foot">
                 <span class="cat-card-meta">@shape.BoxW×@shape.BoxH · w@(shape.CorridorCells)</span>
                 @foreach (var knob in shape.Knobs)
@@ -101,6 +102,105 @@
         @if (Shown.Count == 0) { <p class="cat-status">No shape matches these filters.</p> }
       }
     </main>
+
+    @if (probeOpen)
+    {
+      <aside class="cat-probe">
+        <div class="cat-probe-head">
+          <span class="cat-probe-title">Knob panel</span>
+          <button class="cat-probe-x" @onclick="CloseProbe" title="Close"><i data-lucide="x" @key="@("probe-x")"></i></button>
+        </div>
+
+        <div class="cat-probe-fig @(probe?.Rejection is null ? null : "cat-probe-fig--refused")">
+          @if (probe?.Svg is { } svg) { @((MarkupString)svg) }
+          else { <span class="cat-probe-none">no shape</span> }
+        </div>
+
+        @if (probe?.Rejection is { } rejection)
+        {
+          <div class="cat-probe-reject">
+            <span class="cat-probe-code">@rejection.Code</span>
+            <p class="cat-probe-why">@rejection.Detail</p>
+            @if (rejection.MinW is { } minW && rejection.MinH is { } minH)
+            {
+              <Button OnClick="() => ResizeTo(minW, minH)">Resize to @minW×@minH</Button>
+            }
+          </div>
+        }
+        else if (probe is not null)
+        {
+          <p class="cat-probe-ok">
+            @probe.LandCells cells of land · @string.Join(" · ", probe.Slots)
+          </p>
+        }
+
+        <Field Label="Family">
+          <div class="filter-group-options">
+            @foreach (var f in schemaFamilies)
+            {
+              <Chip Active="probeFamily == f.Token"
+                    Title="@(f.OnProductionMenu ? $"min {f.MinW}×{f.MinH}" : "off the production fill menu")"
+                    OnClick="() => PickFamily(f.Token)">@f.Token</Chip>
+            }
+          </div>
+        </Field>
+
+        <Field Label="Box width">
+          <LabelEnd><strong>@probeW</strong></LabelEnd>
+          <ChildContent>
+            <input type="range" class="field-range" min="2" max="32" step="1" value="@probeW" @oninput="OnWidth" />
+          </ChildContent>
+        </Field>
+
+        <Field Label="Box height">
+          <LabelEnd><strong>@probeH</strong></LabelEnd>
+          <ChildContent>
+            <input type="range" class="field-range" min="2" max="32" step="1" value="@probeH" @oninput="OnHeight" />
+          </ChildContent>
+        </Field>
+
+        <Field Label="Corridor width">
+          <LabelEnd><strong>w@(probeCw)</strong></LabelEnd>
+          <ChildContent>
+            <input type="range" class="field-range" min="2" max="5" step="1" value="@probeCw" @oninput="OnCorridor" />
+          </ChildContent>
+        </Field>
+
+        <Field Label="Mouth">
+          <div class="filter-group-options">
+            @foreach (var edge in Edges)
+            {
+              <Chip Active="probeMouth == edge" OnClick="() => PickMouth(edge)">@edge</Chip>
+            }
+          </div>
+        </Field>
+
+        <Field Label="Knobs">
+          <div class="filter-group-options">
+            <Chip Active="probeFlip" OnClick="ToggleFlip">flip</Chip>
+            <Chip Active="probeSideTuck" Disabled="@(!SideTuckAllowed)"
+                  Title="@SideTuckTitle" OnClick="ToggleSideTuck">side-tuck</Chip>
+            <Chip Active="probeWoolAtEnd" Disabled="@(!WoolAtEndAllowed)"
+                  Title="@WoolAtEndTitle" OnClick="ToggleWoolAtEnd">wool at end</Chip>
+          </div>
+        </Field>
+
+        @if (AttachWAllowed)
+        {
+          <Field Label="Attachment width">
+            <LabelEnd><strong>@(probeAttachW == 0 ? "default" : probeAttachW.ToString())</strong></LabelEnd>
+            <ChildContent>
+              <input type="range" class="field-range" min="0" max="6" step="1" value="@probeAttachW" @oninput="OnAttachW" />
+            </ChildContent>
+          </Field>
+        }
+
+        <p class="section-desc">
+          Emitted through <code>BoxFiller</code>, so the profile check and the docking gate run exactly as they
+          do in composition. A refusal is an answer, not an error — it is the emitter's own words.
+        </p>
+      </aside>
+    }
   </div>
   </ChildContent>
 </StudioShell>

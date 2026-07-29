@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Features.Catalog;
@@ -17,6 +18,12 @@ namespace PgmStudio.Client.Features.Catalog;
 public partial class CatalogTool
 {
     [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    /// <summary>Re-run the lucide factory after every render: the panel's glyphs are created when it opens,
+    /// long after the page's first paint, and an unprocessed `&lt;i data-lucide&gt;` renders as a blank box.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender) =>
+        await JS.InvokeVoidAsync("studio.icons");
 
     private IReadOnlyList<CatalogShapeDto> shapes = [];
     private IReadOnlyDictionary<string, int> byTier = new Dictionary<string, int>();
@@ -114,4 +121,129 @@ public partial class CatalogTool
 
     private static string TierHint(string tier) =>
         Tiers.FirstOrDefault(t => t.Token == tier).Hint ?? string.Empty;
+
+    // ── the knob panel ───────────────────────────────────────────────────────────
+    // The half a gallery cannot be: emit one combination live and show what the emitter said — including
+    // when it refuses, which is the only place the studio surfaces the fill guards at all.
+
+    private static readonly string[] Edges = ["Top", "Bottom", "Left", "Right"];
+
+    private IReadOnlyList<ShapeFamilyDto> schemaFamilies = [];
+    private ShapeProbeResult? probe;
+    private bool probeOpen;
+
+    private string probeFamily = "i";
+    private int probeW = 8, probeH = 8, probeCw = 2, probeAttachW;
+    private string probeMouth = "Top";
+    private bool probeFlip, probeSideTuck, probeWoolAtEnd;
+
+    /// <summary>Serialized so a fast drag cannot land results out of order — a later request always wins,
+    /// and a stale reply is dropped rather than repainting the panel with an older answer.</summary>
+    private int probeGeneration;
+
+    private ShapeFamilyDto? ProbeFamilySchema => schemaFamilies.FirstOrDefault(f => f.Token == probeFamily);
+
+    private bool SideTuckAllowed => ProbeFamilySchema?.Knobs.Contains("sideTuck") ?? false;
+    private bool WoolAtEndAllowed => ProbeFamilySchema?.Knobs.Contains("woolAtEnd") ?? false;
+    private bool AttachWAllowed => ProbeFamilySchema?.Knobs.Contains("attachW") ?? false;
+
+    private string SideTuckTitle =>
+        SideTuckAllowed ? "Turn the room off the end, perpendicular" : "the emitter builds side-tuck for I, Z and scythe only";
+
+    private string WoolAtEndTitle =>
+        WoolAtEndAllowed ? "Put the terminal on an end rather than the middle" : "not a knob this family takes";
+
+    /// <summary>Open the panel seeded from a card, so the first thing it shows is that exact shape and the
+    /// author edits from a known-good state rather than guessing a starting box.</summary>
+    private async Task OpenProbe(CatalogShapeDto shape)
+    {
+        probeOpen = true;
+        if (shape.Kind == "wool") probeFamily = shape.Family;
+        probeW = shape.BoxW;
+        probeH = shape.BoxH;
+        probeCw = shape.CorridorCells;
+        probeMouth = "Top";
+        probeFlip = shape.Knobs.Contains("flipped");
+        probeSideTuck = shape.Knobs.Contains("side-tuck");
+        probeWoolAtEnd = shape.Knobs.Any(k => k.Contains("wool at end") || k.Contains("corner wool"));
+        probeAttachW = shape.Knobs
+            .Where(k => k.StartsWith("attach "))
+            .Select(k => int.TryParse(k[7..], out var n) ? n : 0)
+            .FirstOrDefault();
+        if (schemaFamilies.Count == 0) await LoadSchema();
+        await Emit();
+    }
+
+    private void CloseProbe()
+    {
+        probeOpen = false;
+        probe = null;
+    }
+
+    private async Task LoadSchema()
+    {
+        try
+        {
+            var schema = await Http.GetFromJsonAsync<ShapeProbeSchema>("api/shapes/probe/schema");
+            if (schema is not null) schemaFamilies = schema.Families;
+        }
+        catch (HttpRequestException)
+        {
+            // the panel still works without it; only the knob gating goes conservative
+        }
+    }
+
+    /// <summary>Emit the current knob combination. A refusal is a result, so there is no error path here —
+    /// only a transport failure clears the panel.</summary>
+    private async Task Emit()
+    {
+        var mine = ++probeGeneration;
+        var query =
+            $"api/shapes/probe?family={probeFamily}&w={probeW}&h={probeH}&cw={probeCw}&mouth={probeMouth}" +
+            $"&flip={probeFlip}&sideTuck={probeSideTuck}&woolAtEnd={probeWoolAtEnd}&attachW={probeAttachW}";
+        try
+        {
+            var result = await Http.GetFromJsonAsync<ShapeProbeResult>(query);
+            if (mine == probeGeneration) probe = result;
+        }
+        catch (HttpRequestException)
+        {
+            if (mine == probeGeneration) probe = null;
+        }
+    }
+
+    private async Task PickFamily(string token)
+    {
+        probeFamily = token;
+        // a knob the new family does not take would otherwise ride along and produce a refusal the author
+        // did not ask for — drop them rather than let the panel argue with itself
+        if (!SideTuckAllowed) probeSideTuck = false;
+        if (!WoolAtEndAllowed) probeWoolAtEnd = false;
+        if (!AttachWAllowed) probeAttachW = 0;
+        await Emit();
+    }
+
+    private async Task PickMouth(string edge) { probeMouth = edge; await Emit(); }
+    private async Task ToggleFlip() { probeFlip = !probeFlip; await Emit(); }
+    private async Task ToggleSideTuck() { probeSideTuck = !probeSideTuck; await Emit(); }
+    private async Task ToggleWoolAtEnd() { probeWoolAtEnd = !probeWoolAtEnd; await Emit(); }
+
+    private async Task ResizeTo(int w, int h)
+    {
+        // the emitter told us the minimum; take it verbatim rather than nudging one axis at a time
+        (probeW, probeH) = (w, h);
+        await Emit();
+    }
+
+    private Task OnWidth(ChangeEventArgs e) => SetNumber(e, v => probeW = v);
+    private Task OnHeight(ChangeEventArgs e) => SetNumber(e, v => probeH = v);
+    private Task OnCorridor(ChangeEventArgs e) => SetNumber(e, v => probeCw = v);
+    private Task OnAttachW(ChangeEventArgs e) => SetNumber(e, v => probeAttachW = v);
+
+    private async Task SetNumber(ChangeEventArgs e, Action<int> set)
+    {
+        if (!int.TryParse(e.Value?.ToString(), out var value)) return;
+        set(value);
+        await Emit();
+    }
 }
