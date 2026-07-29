@@ -505,6 +505,51 @@ studio, G117/G118) is in `TODO.md`.
   merely strange. One case to decide: an empty box has no bounding box — keep its drawn rect until it has a
   member, which also leaves the draw-then-fill flow working as it does now.
 
+- [ ] **G152 — the plan editor shows browser state instead of the plan it names.** Opening a map-backed plan
+  can display a drawing that belongs to no plan at all: the same three maps show one picture in one browser and
+  a different picture in another, and every plan "created" appears to contain a drawing made once, long ago.
+  Measured: of the four maps named `untitled-plan*`, three hold a `plan_json` artifact of **two bytes** — `{}` —
+  and only the fourth holds a real plan. `LoadFromMap` treats `{}` as "no stored plan yet" and deliberately
+  keeps the editor's current document rather than importing garbage, which is correct reasoning about the wrong
+  premise: the current document is not blank, because `plan-bridge` restores the last autosaved **localStorage**
+  document at mount, before any route-specific load runs. So a map with no stored plan renders whatever that
+  browser last had cached, which is why the picture is per-browser and identical across maps. The plan table
+  itself is sound — driving the real UI (New → draw → Save, twice) writes two rows with correctly different
+  geometry.
+  Two fixes, and the first is a deletion. **Remove the document cache entirely** (`STORAGE_KEY`): the database
+  is the store now, and a client-side copy of a document that the DB also holds can only ever disagree with it.
+  The other three keys stay — overlays, height-map and surface-step are UI preferences, not documents, and they
+  are not claiming to be the plan. Then **make Create-draft write the plan it compiled into the map's artifact**,
+  so a map made from a plan opens with that plan instead of `{}` — the empty three exist because it doesn't.
+  Accepted consequence: unsaved work is lost on reload until a DB autosave exists, which is its own task if it
+  turns out to be wanted.
+
+- [ ] **G153 — the feasibility read is per box and is reached through a list.** `G125` computes producibility
+  **per box** and renders it in a left-panel list, so after clicking a box on the canvas the author has to find
+  that same box again, by name, in a sidebar — for a read that is already about the thing under the cursor. The
+  inspector on the right already opens on that box with its id, kind and members; the verdict belongs there,
+  beside them: the parameter tuple that reproduces it or the nearest candidate, its directed findings, and the
+  rule or task id each finding cites, with the click that paints the missing/extra cells kept as it is. The
+  unit-level arrangement findings are genuinely **not** per box (parallel fronts, the frontline's pinned face,
+  seat separation) and stay in the left panel, which leaves that panel one coherent job instead of a mixed list.
+
+- [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
+  `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
+  different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
+  the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
+  sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
+  models, one file — the thing `docs/contracts/tool-consistency.md` exists to prevent.
+  Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
+  change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
+  differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
+  was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
+  bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
+  `plan-editor.md` with it.
+  **Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
+  hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
+  `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
+  no home on a map-backed plan.
+
 - [ ] **G149 — the land budget is a number the composer reads and then overshoots.** The first thing the
   G148 readout showed, measured over 40 boards at 12 players/team (budget 50 cells): land runs **63% to 222%**
   of budget, median **115%**, and **28 of 40 boards are over**. So the budget is not a cap — it is an input
