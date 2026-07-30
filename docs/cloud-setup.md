@@ -90,7 +90,13 @@ cannot touch dev data. Expect `22/22` plan refusals and `33/33` smoke.
 
 The suite drives **Chromium only**, so a rendering defect that exists in another engine cannot appear in it
 — which is why the browser-specific canvas artifact recorded in `BACKLOG.md` was found by hand and stays
-un-gated.
+un-gated. **Firefox cannot be added here**, and the three routes are all closed, so there is no point
+spending the attempt again: `playwright install firefox` is refused by the network policy (403 on the
+CONNECT to `cdn.playwright.dev` and `playwright.download.prss.microsoft.com`), every Mozilla download host
+is refused the same way, and Ubuntu noble's `firefox` package is a snap transition stub with no snap in the
+container. Playwright needs its own patched build regardless, so a distro Firefox would not have driven
+anyway. Anything engine-specific has to be checked on a real machine; `tools/painter-probe.mjs` takes a
+`--browser` switch for exactly that.
 
 ## If you don't need the DB
 Much of the analysis work needs **no database**. `tools/PgmStudio.RoundTrip` runs DB-free:

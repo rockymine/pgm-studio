@@ -279,7 +279,10 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   proportion of a glyph that is antialiasing, and the `MAX_DPR = 2` clamp is where the sharpness stops paying
   for the buffer. All four measured on Chromium only, which is the standing caveat on everything here —
   `color-mix` in a canvas context is the one answer that could differ by engine, and the probe takes a
-  `--browser` switch for when a second build exists locally.
+  `--browser` switch for a machine that has one. A cloud container is not that machine and cannot be made
+  into one (`cloud-setup.md`: the Playwright CDN and every Mozilla host are refused by the network policy,
+  and the distro package is a snap stub), so the Firefox reading — of the `color-mix` answer and of the
+  artifact itself — has to be taken locally.
   **The foundation is built and unit-tested: `render/canvas-painter.js`.** It owns the three things that are
   a trap when written per canvas — the backing store (buffer sized to the CSS box × DPR, the ratio baked into
   the base transform so draw calls stay in CSS pixels), the viewport (`begin` applies scale and pan to the
