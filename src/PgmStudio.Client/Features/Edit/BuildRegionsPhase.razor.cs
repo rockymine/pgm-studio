@@ -15,7 +15,7 @@ public partial class BuildRegionsPhase
     [Parameter] public EventCallback OnPrevPhase { get; set; }
     [Parameter] public EventCallback OnNextPhase { get; set; }
 
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
     private int step = 1;
 
     // ── navigation (flow-bar Back/Next) — step 2 has no confirm gate (freeform region editing), so

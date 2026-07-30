@@ -7,7 +7,7 @@ using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Edit;
 
-// 2-step Setup flow (Islands → Symmetry) over the reused EditorCanvas — island-select then symmetry
+// 2-step Setup flow (Islands → Symmetry) over the reused WorldCanvas — island-select then symmetry
 // overlay, the same canvas the Configure World phase uses. Detection runs on the studio-chosen cleaned
 // base: no scan-layer or block-exclusion choice and no world re-scan. Excluding an island recomputes
 // symmetry on the backend from the already-detected islands (the exclude-island endpoint invalidates
@@ -31,7 +31,7 @@ public partial class SetupPhase
     private string? symChoice;
     private string? error;
 
-    private EditorCanvas? islandCanvas, symCanvas;
+    private WorldCanvas? islandCanvas, symCanvas;
 
     // ── derived views for the markup ──────────────────────────────────────────────
     private List<Island> IncludedIslands => islands.Where(i => !excludedIslands.Contains(i.Id)).ToList();
@@ -46,7 +46,7 @@ public partial class SetupPhase
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    // ── canvas readiness (each step mounts its own EditorCanvas) ──────────────────
+    // ── canvas readiness (each step mounts its own WorldCanvas) ──────────────────
     private async Task OnIslandCanvasReady()
     {
         if (islandCanvas is null) return;

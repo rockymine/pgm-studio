@@ -116,7 +116,7 @@ region is now classified by derivation.
 
 ## 6. How the canvas displays a region: wired vs just drawn
 
-The canvas (`studio-canvas.js` → `EditorCanvas`) renders the **primitive** nodes (compounds excluded;
+The canvas (`studio-canvas.js` → `WorldCanvas`) renders the **primitive** nodes (compounds excluded;
 their primitive children carry the classification) selected by this rule, walking the **whole** tree
 (objective/spawn/build regions nest inside rule-containers in the "other" group, so a group-name filter
 would miss them):

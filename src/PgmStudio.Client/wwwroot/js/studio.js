@@ -77,10 +77,10 @@ window.studio = {
     return obs;
   },
 
-  // Mount the hybrid editor canvas. Uses a native dynamic import (absolute URL) so it bypasses
+  // Mount the hybrid world canvas. Uses a native dynamic import (absolute URL) so it bypasses
   // Blazor's fingerprinting import map (which 404s for arbitrary wwwroot modules under the dev host).
   async mountCanvas(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {
-    const mod = await import("/js/studio/bridge/editor-bridge.js");
+    const mod = await import("/js/studio/bridge/world-bridge.js");
     return mod.mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep);
   },
 

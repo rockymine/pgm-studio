@@ -124,7 +124,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   --experimental-test-coverage` reports 82.8% over the 15 modules the 148 tests import (several at 100%:
   `transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`), but **26 of 41 files / ~6,900 lines are
   absent from the report** — they are never imported, which the coverage output shows as silence rather
-  than zero. The untested set is the whole interactive layer: every canvas (`editor-canvas` 1046,
+  than zero. The untested set is the whole interactive layer: every canvas (`world-canvas` 1046,
   `plan-canvas` 1017, `sketch-canvas` 871, `sideview-canvas`, `canvas-base`), every bridge, every
   controller, `iso-webgl`, and `studio.js`. The split is coherent — pure geometry is tested, DOM/canvas
   code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
@@ -158,14 +158,14 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   scale, so there is no cached rasterization to go stale and zoom is identical everywhere. Three things make
   that migration cheaper here than it looks. Hit-testing is **already data-driven** — no `elementFromPoint`,
   no `e.target.closest`, no `dataset` ids anywhere in the canvases, controllers or render helpers (the only
-  two `e.target` reads are on an HTML checkbox in `editor-canvas`), so a press maps a world point against the
+  two `e.target` reads are on an HTML checkbox in `world-canvas`), so a press maps a world point against the
   document and the controller layer never learns the surface changed. The **path builders survive verbatim**:
   `ringToPath`, `polyToPath` and `boundsToRingPath` are pure string math over a `toSvg` closure, and
   `new Path2D(d)` takes SVG path data, so the geometry half of `render/svg.js` — and the half of
   `render.test.js` that asserts on its output — carries across untouched, leaving the element-emitting half
   (`renderShape`, the `svgEl` factories) as the rework. And the e2e probes assert on icons and routes, never
   on the surface's DOM. The conversion surface is the 137 `svgEl(` sites, 90 of them in the three canvases
-  (`plan-canvas` 51, `editor-canvas` 24, `sketch-canvas` 14) plus the render helpers; the artifact's own
+  (`plan-canvas` 51, `world-canvas` 24, `sketch-canvas` 14) plus the render helpers; the artifact's own
   footprint is the 42 `non-scaling-stroke` sites, 19 of them in `plan-canvas`.
   The style layer is the part that is **not** free, and it is not a stylesheet. No CSS selector targets a
   canvas child, but the inline attributes are full of custom properties — 24 distinct tokens over ~110 uses
@@ -253,7 +253,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   the screen-space chrome (labels, selection handles, resize handles, scale bar) left in SVG where DOM
   semantics are worth having, and the document, hit-testing and controller layers untouched. The plan canvas is
   the right spike not only because it carries the most `non-scaling-stroke` sites but because it has **one**
-  Blazor host (`Features/Plan/PlanTool.razor`), as does `SketchCanvas` — while `EditorCanvas` is mounted by
+  Blazor host (`Features/Plan/PlanTool.razor`), as does `SketchCanvas` — while `WorldCanvas` is mounted by
   **sixteen** components, eleven Configure steps and five Edit phases (`canvas-interaction.md` §1). That
   asymmetry is the staging plan and the largest cost in finishing the job: the third canvas cannot be converted
   without putting every Configure step through it at once.
@@ -266,10 +266,10 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   it also amends `canvas-interaction.md`, whose §1, §2 (`render/` as "stateless SVG emit") and §7 all describe
   the SVG shape. Until it lands the artifact is live and unmitigated.
 
-- [ ] **CV19 — `editor-canvas` is the layer-stack holdout, and that is also `CV18`'s prep.** `CV13`
+- [ ] **CV19 — `world-canvas` is the layer-stack holdout, and that is also `CV18`'s prep.** `CV13`
   introduced `render/layer-stack.js` so a canvas states its z-order **once** — the key order of the spec is
   the paint order — and tags each group `data-layer="<name>"` so a layer is addressable by name rather than
-  by its index among siblings. Sketch and plan were rerouted; `editor-canvas` never was. It builds 13 groups
+  by its index among siblings. Sketch and plan were rerouted; `world-canvas` never was. It builds 13 groups
   by hand as `id="layer-build"`, `"layer-blocks"`, `"layer-islands"`, `"layer-buildability"`,
   `"layer-symmetry"`, `"layer-spawns"`, `"layer-regions"`, `"layer-wools"`, `"layer-monuments"`,
   `"layer-anchors"`, `"layer-draw"` and the block highlight, plus a screen-space `"layer-overlay"` — with the
@@ -284,23 +284,9 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   with no corpus fixture (`CV13`/`CV14` covered it by building a map locally), which is also why `CV18` should
   reach this canvas last.
 
-- [ ] **CV20 — `EditorCanvas` is named for a page, not for what it draws.** Eleven of its sixteen mounts are
-  **Configure** steps and only five are Edit phases, so "Editor" describes the minority; the Configure wizard
-  has no canvas of its own and mounts this one (`canvas-interaction.md` §1). Its three siblings are all named
-  for content — `PlanCanvas` draws a plan, `SketchCanvas` a sketch, `SideviewCanvas` a side view — and this
-  is the only canvas named for a route. What it draws is the **world**: bounding box, islands, the block overlay,
-  the buildability heatmap, symmetry axes, spawns, wools, monuments, regions. `CV18` already calls that content
-  "the world layers", so **`WorldCanvas`** is both the accurate category and the word the surrounding work is
-  written in. Same class of miss as `BoxJoint.Interface` → `BoxAbutment`: the name promised the wrong
-  category. The rename covers ~46 files and both halves of the seam — the Blazor component
-  (`Components/Editor/EditorCanvas.razor` + its 346-line code-behind), the JS class in
-  `canvas/editor-canvas.js`, `bridge/editor-bridge.js`, the sixteen hosts' markup, and the doc references in
-  `canvas-interaction.md` and `ui-conventions.md`. Mechanical, and much cheaper standalone than tangled into a
-  paint-layer rewrite later — so ahead of `CV18`, not during it.
-
 - [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
   `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
-  callback; `editor-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
+  callback; `world-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
   of a no-op. Settle on one helper next to `fetch-json.js`. Tiny, but it is the only thing the five bridges
   genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
   separate.

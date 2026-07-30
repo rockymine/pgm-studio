@@ -4,7 +4,7 @@
    terrain-only world and hands off to the Configure wizard. Hosted by ConfigureTool on the slug-less
    /maps/new route (a map has no id until the world is imported); once a world is imported it navigates to
    /maps/{slug}/configure, which skips straight to Identity. Source lists importable world folders; Next
-   scans the chosen world; Found shows the detection brief over the reused editor canvas; Plan starts the
+   scans the chosen world; Found shows the detection brief over the reused world canvas; Plan starts the
    wizard. The rail's later phases stay locked until Start. *@
 
 <ConfigureLayout MapName="@(importedSlug ?? selected?.Slug)" Crumb="Import" ActivePhaseId="" Furthest="@(-1)"
@@ -83,7 +83,7 @@
     </Workspace>
   }
 
-  @* ── Step 2 · Found — the import brief over the reused editor canvas ──────── *@
+  @* ── Step 2 · Found — the import brief over the reused world canvas ──────── *@
   else if (OnFound)
   {
     <Workspace @key="step">

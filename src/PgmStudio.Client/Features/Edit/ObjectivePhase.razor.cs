@@ -16,7 +16,7 @@ public partial class ObjectivePhase
     [Parameter] public EventCallback OnPrevPhase { get; set; }
     [Parameter] public EventCallback OnNextPhase { get; set; }
 
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
     private readonly List<Wool> wools = new();
     private readonly List<Team> teams = new();
     private List<RegionGroup>? groups;

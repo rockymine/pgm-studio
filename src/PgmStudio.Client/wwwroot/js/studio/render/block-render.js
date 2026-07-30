@@ -1,6 +1,6 @@
 /**
  * Block-layer rendering: a block-pixel payload → a PNG data URL, and the shared
- * SVG <image> wrapper that places it. Used by EditorCanvas, ConfigureRenderer and
+ * SVG <image> wrapper that places it. Used by WorldCanvas, ConfigureRenderer and
  * OverviewRenderer so the block overlay is painted one way.
  */
 

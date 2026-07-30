@@ -8,7 +8,7 @@ surfaces. §6's conclusion is now implemented — the shared helper is `render/p
 
 Read alongside `canvas-interaction.md` (the shared-canvas contract) and `new-map-authoring.md`
 (the wizard phases). The renderers audited: `render/shape-render.js` (shared),
-`render/sketch-render.js`, `canvas/editor-canvas.js`, `canvas/plan-canvas.js`.
+`render/sketch-render.js`, `canvas/world-canvas.js`, `canvas/plan-canvas.js`.
 
 ---
 
@@ -36,7 +36,7 @@ which is exactly the visual vocabulary a unified primitive-style descriptor need
 ## 1. Shape-type inventory — which renderer, which SVG element
 
 `renderShape(type, boundsOrPoly, toSvg, attrs)` (`render/shape-render.js:21-53`) is the **shared**
-type→element dispatch. It is imported by `editor-canvas.js` (Edit+Configure) and `sketch-render.js`
+type→element dispatch. It is imported by `world-canvas.js` (Edit+Configure) and `sketch-render.js`
 (Sketch). **Plan does not use it** — `plan-canvas.js` draws every piece as a `<rect>` directly and
 adds its own hatch patterns and objective markers.
 
@@ -52,10 +52,10 @@ Per-editor type coverage:
   `<path>` (Bézier-capable, bypasses `renderShape`). Library primitives (`shape-library.js:36-52`)
   are **not** new types — `instantiate()` emits plain `rectangle`/`polygon` specs (n-gons and
   polyominoes are polygons; the `I` bar is a rectangle; `holesquare` is add-rect + subtract-rect).
-- **Edit / Configure** (`editor-canvas.js:976-1003`): `rectangle`/`cuboid`→rect, radial→ellipse,
+- **Edit / Configure** (`world-canvas.js:976-1003`): `rectangle`/`cuboid`→rect, radial→ellipse,
   and **`point` with `marker:true`** is intercepted *before* `renderShape` and drawn as a fixed-size
-  `<circle>` (`editor-canvas.js:986-997`). Composite/transform types (`union`/`intersect`/`negative`/
-  `complement`) are filtered out before render (`editor-canvas.js:60,1064`).
+  `<circle>` (`world-canvas.js:986-997`). Composite/transform types (`union`/`intersect`/`negative`/
+  `complement`) are filtered out before render (`world-canvas.js:60,1064`).
 - **Plan** (`plan-canvas.js:429-478`): every piece/zone is a `<rect>`; objective markers are a
   `<circle>` (spawn, with a facing line) or a rounded `<rect>` (wool/iron).
 
@@ -77,17 +77,17 @@ into a small, consistent vocabulary:
 | tier / treatment | meaning | fill | stroke | where |
 |---|---|---|---|---|
 | **solid, opaque** | real buildable terrain / real region | role/dye/team colour, `fill-opacity 0.7–0.85` | solid, same colour | Plan generating pieces (`plan-canvas.js:442-457`) |
-| **translucent, dashed** | a region / an area (not solid ground) | colour @ `0.20` (Edit/Configure) / accent @ `0.22` (Plan zone) | dashed (`4,2` region · `7 4` zone) | `editor-canvas.js:1012-1016`; `plan-canvas.js:402-421` |
+| **translucent, dashed** | a region / an area (not solid ground) | colour @ `0.20` (Edit/Configure) / accent @ `0.22` (Plan zone) | dashed (`4,2` region · `7 4` zone) | `world-canvas.js:1012-1016`; `plan-canvas.js:402-421` |
 | **hatched, dashed** | technical / visualization-only (teaches behaviour: intended holes, dock points) | diagonal/crossed hatch pattern | dashed, same colour (`5 4`) | Plan buffer/connector (`plan-canvas.js:429-440,303-321`) |
 | **boolean-tinted** | terrain add vs subtract | teal (add) / red (sub) @ `0.28`; `6 3` dash if override | solid | Sketch (`sketch-render.js:19-27`) |
-| **fixed-size marker** | a point objective (spawn / wool source) | team/dye/marker colour @ `0.85–1.0`, radius **fixed** (not zoom-scaled) | ink/`marker-stroke` | `editor-canvas.js:986-997`; `plan-canvas.js:461-478` |
-| **ghost / derived** | a non-editable symmetry-orbited or cross-layer preview | colour @ `0.06–0.08`, finer dash | faint | `editor-canvas.js:1008-1011`; `plan-canvas.js:360-400`; sketch `sketch-render.js:85-109` |
+| **fixed-size marker** | a point objective (spawn / wool source) | team/dye/marker colour @ `0.85–1.0`, radius **fixed** (not zoom-scaled) | ink/`marker-stroke` | `world-canvas.js:986-997`; `plan-canvas.js:461-478` |
+| **ghost / derived** | a non-editable symmetry-orbited or cross-layer preview | colour @ `0.06–0.08`, finer dash | faint | `world-canvas.js:1008-1011`; `plan-canvas.js:360-400`; sketch `sketch-render.js:85-109` |
 
 The exact style knobs, per editor:
 
-- **Edit / Configure** — `#regionAttrs(color, ghost)` (`editor-canvas.js:1007-1017`): region fill
+- **Edit / Configure** — `#regionAttrs(color, ghost)` (`world-canvas.js:1007-1017`): region fill
   `0.20` + dash `4,2`; ghost fill `0.06` + dash `2,3`; selected → solid, width `2.5`
-  (`editor-canvas.js:1035-1039`). Marker circle `r 6/5` by `primary` (`:986-997`).
+  (`world-canvas.js:1035-1039`). Marker circle `r 6/5` by `primary` (`:986-997`).
 - **Sketch** — `shapeAttrs()` (`sketch-render.js:19-27`): fill `0.28`, width `1.2`, add/sub colour,
   `override`→`6 3` dash. Islands/mirror/ghost-islands each have their own attrs
   (`sketch-render.js:71-109`).
@@ -101,7 +101,7 @@ The exact style knobs, per editor:
 
 | editor | colour source |
 |---|---|
-| **Edit** | **none** — real tree regions carry no `color`; `region.color ?? var(--canvas-region)` always falls back to slate (`editor-canvas.js:978`, `--canvas-region` `tokens.css:99,197`). Every Edit region is uniform slate. |
+| **Edit** | **none** — real tree regions carry no `color`; `region.color ?? var(--canvas-region)` always falls back to slate (`world-canvas.js:978`, `--canvas-region` `tokens.css:99,197`). Every Edit region is uniform slate. |
 | **Configure** | **team / dye hex** — every dummy node is tinted `GameColors.ChatHex(team)` or `DyeHex(color)` (`ProtectionStep.razor.cs:218-234`, `SpawnStep.razor.cs:291-297`, `WoolRoomStep.razor.cs:192-209`, …). |
 | **Sketch** | **operation** — add teal `--canvas-add-*`, subtract red `--canvas-sub-*` (`tokens.css:68-71`). |
 | **Plan** | **role** — `ROLE_COLORS` (piece grey, spawn purple, wool-room green, buffer orange, connector teal; `plan-doc.js:21`), lightened by surface height. |
@@ -145,7 +145,7 @@ tangled into each editor's bespoke draw code:
 
 1. **shape** — `{rectangle | radial | polygon | point}`. Fixes the `point` gap by giving `renderShape`
    a real `point` case (a dot/circle sized in *screen* units), so the `marker:true` workaround in
-   `editor-canvas.js` collapses into the shared renderer.
+   `world-canvas.js` collapses into the shared renderer.
 2. **colour** — supplied by the caller from its own semantic source (Edit: none/slate · Configure:
    team/dye · Sketch: operation · Plan: role). The renderer never decides colour.
 3. **treatment** — one enum over the §2 vocabulary: `region` (translucent dashed) · `terrain`

@@ -1,6 +1,6 @@
 /**
  * Unified primitive-shape model — the one vocabulary for rectangle / circle / polygon / lasso,
- * used by the sketch tool. (The editor canvas hit-tests and renders regions via AABB + `polygon_2d`,
+ * used by the sketch tool. (The world canvas hit-tests and renders regions via AABB + `polygon_2d`,
  * not this shape model.) Pure math, NO DOM.
  *
  * A *shape* is `{ type, …params }`: rectangle `{min_x,min_z,max_x,max_z}`, circle

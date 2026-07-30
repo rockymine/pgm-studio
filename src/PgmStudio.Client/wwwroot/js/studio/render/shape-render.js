@@ -1,6 +1,6 @@
 /**
  * Shared SVG shape renderer.
- * Used by both EditorCanvas (editor region outlines) and the sketch canvas
+ * Used by both WorldCanvas (editor region outlines) and the sketch canvas
  * (sketch shapes) to avoid duplicating type-dispatch logic.
  */
 

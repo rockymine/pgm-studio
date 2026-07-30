@@ -31,7 +31,7 @@ public partial class WoolMonumentsStep
     private readonly Dictionary<string, string> islandTeams = new();
     private string? selectedColor;
     private bool detecting;
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
     private W.Wool? Selected => wools.FirstOrDefault(w => w.Color == selectedColor);

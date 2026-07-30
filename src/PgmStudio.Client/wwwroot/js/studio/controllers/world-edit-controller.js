@@ -1,6 +1,6 @@
 /**
- * EditorEditController — region resize (8-handle drag) + arrow-key move for EditorCanvas. Extracted
- * from editor-canvas.js; mirrors EditorDrawController (state accessors + callbacks; the canvas forwards
+ * WorldEditController — region resize (8-handle drag) + arrow-key move for WorldCanvas. Extracted
+ * from world-canvas.js; mirrors WorldDrawController (state accessors + callbacks; the canvas forwards
  * its CanvasBase hooks into this controller).
  *
  * accessors:
@@ -36,7 +36,7 @@ const HANDLE_DEFS = [
 
 export const RESIZABLE_TYPES = new Set(["rectangle", "cuboid"]);
 
-export class EditorEditController {
+export class WorldEditController {
   #acc;
   #cb;
   #resizeState    = null;

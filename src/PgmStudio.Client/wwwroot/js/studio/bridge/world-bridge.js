@@ -1,8 +1,8 @@
-// editor-bridge.js — JS-interop bridge for the reused EditorCanvas (the hybrid editor canvas).
+// world-bridge.js — JS-interop bridge for the reused WorldCanvas (the hybrid world canvas).
 // Blazor owns the sidebar/inspector/state in C#; this drives the proven canvas JS:
 //   window.studioCanvas.mount(svgEl, wrapEl, dotnetRef, slug) → a handle Blazor calls
 //   (load / setTool / setSelection / resize). Selection + cursor + zoom call back into C#.
-import { EditorCanvas } from "../canvas/editor-canvas.js";
+import { WorldCanvas } from "../canvas/world-canvas.js";
 import { fetchJson } from "./fetch-json.js";
 import { normalizeIslands } from "../geometry/islands.js";
 
@@ -26,11 +26,11 @@ function buildabilityToBlockData(b) {
   return { xs, zs, colors: cols, min_x: bb.minX, min_z: bb.minZ, max_x: bb.maxX, max_z: bb.maxZ };
 }
 
-/** Create an EditorCanvas on the given elements, load the map, and return a handle.
+/** Create an WorldCanvas on the given elements, load the map, and return a handle.
  *  Cursor/zoom labels are updated in JS (per-mousemove, hot path); only selection calls C#.
  *  Imported on demand from Blazor (await JS.import) — no global, no load-order race. */
 export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, category, draftStep) {
-  const canvas = new EditorCanvas(svgEl, wrapEl, {
+  const canvas = new WorldCanvas(svgEl, wrapEl, {
     onCanvasClick: (node) => dotnetRef.invokeMethodAsync("OnCanvasSelect", node?.id ?? null),
     onCoords: (x, z) => { if (coordsEl) coordsEl.textContent = (x === null || x === undefined) ? "" : `X ${x}  Z ${z}`; },
     onZoom: (scale) => { if (zoomEl) zoomEl.textContent = `${Math.round(scale * 100)}%`; },

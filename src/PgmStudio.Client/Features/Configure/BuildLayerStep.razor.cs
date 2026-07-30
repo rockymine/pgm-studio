@@ -24,7 +24,7 @@ public partial class BuildLayerStep
     private string drawMode = "area";   // area | hole
     private int? selectedId;
     private bool overlayOn;   // the Buildable heatmap toggle — gates the legend (shown only when on)
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
     private string? symMode; private double symCx, symCz;
 
     private string Slug => Wizard.Slug;

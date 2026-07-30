@@ -2,7 +2,7 @@
 @using PgmStudio.Client.Models
 
 @* Teams · step 1 (N02): create teams (symmetry suggests the count) + tag islands to them. Writes the
-   intent's teams / maxPlayers slice + the islandTeams aid. Canvas = reused EditorCanvas in island-select
+   intent's teams / maxPlayers slice + the islandTeams aid. Canvas = reused WorldCanvas in island-select
    mode (base layer only): pick a team, click islands to tint them that team's colour. *@
 
 <Workspace>
@@ -88,7 +88,7 @@
   <div class="sidebar-handle"></div>
 
   @* Reused edit canvas in island-select mode — click islands to tag the selected team. *@
-  <EditorCanvas @ref="canvas" Slug="@Slug" IslandSelect="true" OnIslandSelect="OnAssignIsland" OnReady="OnCanvasReady" />
+  <WorldCanvas @ref="canvas" Slug="@Slug" IslandSelect="true" OnIslandSelect="OnAssignIsland" OnReady="OnCanvasReady" />
 
   <div class="sidebar-handle"></div>
 

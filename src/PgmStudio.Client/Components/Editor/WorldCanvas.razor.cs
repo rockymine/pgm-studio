@@ -5,7 +5,7 @@ using Microsoft.JSInterop;
 
 namespace PgmStudio.Client.Components;
 
-public partial class EditorCanvas
+public partial class WorldCanvas
 {
     [Parameter] public string Slug { get; set; } = "";
     [Parameter] public string? Category { get; set; }
@@ -57,7 +57,7 @@ public partial class EditorCanvas
 
     private ElementReference svgRef, wrapRef, coordsRef, zoomRef;
     private IJSObjectReference? handle;
-    private DotNetObjectReference<EditorCanvas>? selfRef;
+    private DotNetObjectReference<WorldCanvas>? selfRef;
     private string tool = "move";
 
     /// <summary>Island ids (from /islands) offered in the "fit island" dropdown; empty hides it.</summary>
@@ -317,7 +317,7 @@ public partial class EditorCanvas
         await OnRegionCreated.InvokeAsync();
     }
 
-    // Convert an EditorCanvas drawResult into a createRegion payload (port of drawResultToPayload).
+    // Convert an WorldCanvas drawResult into a createRegion payload (port of drawResultToPayload).
     private static Dictionary<string, object?> BuildPayload(JsonElement d, string category, string? draftStep)
     {
         double N(string k) => d.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;

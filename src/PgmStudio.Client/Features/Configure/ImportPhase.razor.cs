@@ -10,7 +10,7 @@ namespace PgmStudio.Client.Features.Configure;
 // Import phase (Configure phase-zero): the Source → Found → Plan flow that creates a map from a
 // terrain-only world and hands off to the Configure wizard. Hosted by ConfigureTool on /maps/new. Source
 // lists importable world folders; Next scans the chosen world into MariaDB; Found shows the detection
-// brief over the reused editor canvas, with each finding selectable for a detail explanation; Plan starts
+// brief over the reused world canvas, with each finding selectable for a detail explanation; Plan starts
 // the wizard at Identity.
 public partial class ImportPhase : IAsyncDisposable
 {
@@ -323,7 +323,7 @@ public partial class ImportPhase : IAsyncDisposable
         await SyncCanvas();
     }
 
-    // Reconcile the reused editor canvas with the current step. Re-reads the live state AFTER the
+    // Reconcile the reused world canvas with the current step. Re-reads the live state AFTER the
     // studio.icons await (so a step change mid-await is honoured) and serialises with a busy flag so two
     // close renders can't double-mount onto the same <svg>. The handle is nulled the instant we leave
     // Found (SetStep), so re-entry always re-mounts on the recreated svg ref rather than a detached one.

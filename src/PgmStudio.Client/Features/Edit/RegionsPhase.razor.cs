@@ -16,7 +16,7 @@ public partial class RegionsPhase
     [Parameter] public EventCallback OnPrevPhase { get; set; }
     [Parameter] public EventCallback OnNextPhase { get; set; }
 
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
     private List<RegionGroup>? groups;
     private readonly Dictionary<string, RegionNode> nodeMap = new();
 

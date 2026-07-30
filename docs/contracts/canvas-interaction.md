@@ -11,14 +11,14 @@ Read alongside `primitive-styles.md` (how a primitive is *styled* across the fou
 
 ## 1. The one fact that frames everything
 
-The Configure wizard has no canvas of its own. Every phase that draws mounts **the same `EditorCanvas`**
+The Configure wizard has no canvas of its own. Every phase that draws mounts **the same `WorldCanvas`**
 the Edit page uses, differing only by parameters. Sixteen Blazor components mount it today — eleven
 Configure steps (`WorldScan`, `WorldIslands`, `WorldSymmetry`, `TeamAssign`, `Spawn`, `Protection`,
 `BuildLayer`, `WoolRoom`, `WoolSpawn`, `WoolMonuments`, `WoolObjectives`) and five Edit phases (`Setup`,
 `Regions`, `BuildRegions`, `Objective`, `Teams`).
 
 The consequence is the single most useful thing to know before changing anything here: **wiring a
-capability into `EditorCanvas` and its bridge makes it available to sixteen surfaces at once**, and
+capability into `WorldCanvas` and its bridge makes it available to sixteen surfaces at once**, and
 breaking one breaks all of them. The `if`/mode branches that configure the canvas per phase
 (`IslandSelect`, `SymmetryMode`, `PointPick`, `DrawCategory`) are intentional configuration, not
 duplication — leave them alone.
@@ -66,7 +66,7 @@ canvas layer can then reuse or test it.
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
-| `canvas/editor-canvas.js` | the shared engine behind Edit + Configure (§1) |
+| `canvas/world-canvas.js` | the shared engine behind Edit + Configure (§1) |
 | `canvas/plan-canvas.js`, `sketch-canvas.js`, `sideview-canvas.js` | the plan grid, the sketch surface, the Canvas2D cross-section |
 | `canvas/static-renderer.js`, `configure-renderer.js` | fixed-fit non-interactive previews |
 | `controllers/*` | one interaction mode each (§4) |
@@ -111,8 +111,8 @@ drift:
 
 | Picker | Geometry | Why |
 |---|---|---|
-| `EditorCanvas.#hitTest` | smallest-area **AABB** containment, else nearest within a 2-block margin | forgiving region select — a 1-block point needs a clickable target, and a click inside a circle's bbox should still select it |
-| `EditorCanvas.#hitTestIsland` | exact **point-in-polygon** | islands are world polygons, where "inside" must mean inside |
+| `WorldCanvas.#hitTest` | smallest-area **AABB** containment, else nearest within a 2-block margin | forgiving region select — a 1-block point needs a clickable target, and a click inside a circle's bbox should still select it |
+| `WorldCanvas.#hitTestIsland` | exact **point-in-polygon** | islands are world polygons, where "inside" must mean inside |
 | `SketchCanvas` island pick | exact point-in-polygon, exterior minus holes | same, and holes must not swallow clicks |
 | `PlanCanvas.#selectDown` | cell-grid containment | the plan is a coarse cell frame; a cell either contains the point or does not |
 
@@ -130,7 +130,7 @@ by design: **hot paths stay in JS** — cursor coordinates and zoom percentages 
 label elements per mousemove — and only decisions cross to C# (`OnSelect`, `OnRegionDraw`,
 `OnCanvasIslandSelect`, …).
 
-`editor-bridge` mounts `EditorCanvas`, `plan-bridge` `PlanCanvas` (and owns the plan document, id minting
+`world-bridge` mounts `WorldCanvas`, `plan-bridge` `PlanCanvas` (and owns the plan document, id minting
 and the debounced autosave), `sketch-bridge` `SketchCanvas`, `sideview-bridge` `SideviewCanvas`, and
 `scan-bridge` the non-interactive `ConfigureRenderer`. `fetch-json.js` is the shared no-store fetch. The
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
@@ -165,7 +165,7 @@ line terms — a few hundred at most. It is filed because it costs *consistency*
 - **CV14** — each canvas hand-rolls its z-ordered stack of named SVG groups, and in `SketchCanvas` the
   z-order is stated twice (declaration order, then the append array), so the two can drift.
 - **CV15** — the bridge invoke wrapper: `plan-bridge` and `sketch-bridge` guard `invokeMethodAsync` in a
-  `fire()` helper, `editor-bridge` calls it unguarded.
+  `fire()` helper, `world-bridge` calls it unguarded.
 - **CV9** — a point renders as a 1×1 `<rect>` on Edit and a fixed-radius `<circle>` on Configure. Tracked
   with the full four-editor audit in `primitive-styles.md`.
 
