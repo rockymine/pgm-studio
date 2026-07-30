@@ -103,9 +103,15 @@ task ids (`NS`, `N00`, `B8`, `P5`, `ND2`, …). Existing non-conforming comments
 (see `TODO.md`).
 
 ## Git
-Commit **only when the user explicitly asks**; **commit directly to `main`** (no feature branch — keep
-history linear; if a branch already exists, fast-forward `main` to it). **Don't push** unless asked. End
-commit messages with `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+Commit **only when the user explicitly asks**. **Don't push** unless asked. End commit messages with a
+`Co-Authored-By:` trailer naming **the model that actually wrote the commit** — the model fills in its own
+name rather than reading a hardcoded one from here, so the trailer stays true as the model changes.
+
+**Branch: depends where the session runs.** On a local machine, **commit directly to `main`** — no feature
+branch, keep history linear; if a branch already exists, fast-forward `main` to it. In a **cloud container**
+(Claude Code on the web) the session is handed a designated branch and pushing anywhere else is refused, so
+there the rule is: develop and push on that branch, and never fast-forward `main` onto it from inside the
+container.
 
 ## Status & task board
 Three files, three Kanban columns — keep them current, **never duplicate a task across them**:
