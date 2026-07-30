@@ -265,6 +265,32 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   replaced by something the painter exposes, and deciding that during the spike is cheaper than after. Landing
   it also amends `canvas-interaction.md`, whose §1, §2 (`render/` as "stateless SVG emit") and §7 all describe
   the SVG shape. Until it lands the artifact is live and unmitigated.
+  **The spike's open questions are answered, by measurement — `tools/painter-probe.mjs`, which keeps them
+  answerable rather than remembered.** Colour is the one that could have sunk it and did not: a custom
+  property computes to its own text, so `getComputedStyle` hands back `--canvas-chunk` as the literal
+  `color-mix(in oklab, #a78bfa 38%, transparent)`, and a 2-D context **parses that itself**, normalising to
+  `oklab(0.708921 0.0636218 -0.145904 / 0.38)`. The painter therefore needs no colour arithmetic of its own —
+  it resolves the token and hands the string over. Assigning a literal `var(--canvas-axis)` is rejected and
+  rejected *silently*, leaving `strokeStyle` at its previous value, which is the failure the resolver exists
+  to prevent and is now demonstrated rather than asserted. The dashed cell grid survives a low zoom: at scale
+  0.08, with width and dash divided by the scale, a scanline crosses **21 separated runs** at peak channel
+  111 — every line present and distinct, neither smeared nor gone. Text is the one with a real trade: at DPR 1
+  the fringe-to-ink ratio is 1.47, at DPR 2 it is 0.76, so a scaled backing store roughly halves the
+  proportion of a glyph that is antialiasing, and the `MAX_DPR = 2` clamp is where the sharpness stops paying
+  for the buffer. All four measured on Chromium only, which is the standing caveat on everything here —
+  `color-mix` in a canvas context is the one answer that could differ by engine, and the probe takes a
+  `--browser` switch for when a second build exists locally.
+  **The foundation is built and unit-tested: `render/canvas-painter.js`.** It owns the three things that are
+  a trap when written per canvas — the backing store (buffer sized to the CSS box × DPR, the ratio baked into
+  the base transform so draw calls stay in CSS pixels), the viewport (`begin` applies scale and pan to the
+  context, so `screenPx` divides the scale back out and a screen-space width is just a width, with nothing to
+  opt into), and the token cache (resolved once, dropped on a `data-theme` flip via a `MutationObserver` —
+  the theme swap SVG gets for free). `layer(name, paint)` brackets each phase in `save`/`restore`, so a phase
+  cannot leak style into the next, and records the name: `painter.layers` is the queryable paint order that
+  answers the `data-layer` question above. 13 tests in `tests/js/canvas-painter.test.js` cover the decidable
+  half — DPR clamping and rounding, the transform, the cache and its invalidation, and that a throwing phase
+  still restores. What remains is the conversion itself: the 13 world layers of `plan-canvas`, with `#screen`
+  (overlay, scale bar) and the `<defs>` hatch staying SVG.
 
 - [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
   (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
