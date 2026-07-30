@@ -277,12 +277,22 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   111 — every line present and distinct, neither smeared nor gone. Text is the one with a real trade: at DPR 1
   the fringe-to-ink ratio is 1.47, at DPR 2 it is 0.76, so a scaled backing store roughly halves the
   proportion of a glyph that is antialiasing, and the `MAX_DPR = 2` clamp is where the sharpness stops paying
-  for the buffer. All four measured on Chromium only, which is the standing caveat on everything here —
-  `color-mix` in a canvas context is the one answer that could differ by engine, and the probe takes a
-  `--browser` switch for a machine that has one. A cloud container is not that machine and cannot be made
-  into one (`cloud-setup.md`: the Playwright CDN and every Mozilla host are refused by the network policy,
-  and the distro package is a snap stub), so the Firefox reading — of the `color-mix` answer and of the
-  artifact itself — has to be taken locally.
+  for the buffer. All four measured on Chromium only, which is the standing caveat on everything here, and
+  a cloud container cannot be made to hold a second engine (`cloud-setup.md`: the Playwright CDN and every
+  Mozilla host are refused by the network policy, and the distro package is a snap stub), so the reading of
+  the **artifact itself** has to be taken locally — that one is the acceptance test and no amount of
+  research substitutes for it.
+  The colour half of that caveat is **closed**, by argument and then by construction. `color-mix()` has been
+  Baseline since May 2023 (Firefox 113), and canvas is not a separate feature surface — `fillStyle` is
+  specified to parse its string as a CSS `<color>`, and Firefox landed the CSS Color 4 functions in the same
+  era. What keeps it from being airtight is that canvas colour parsing has historically been a *different*
+  parser from the one styling the page, which is the class of gap worth distrusting even with no bug
+  documented against current Firefox. So the painter no longer depends on the answer: `token` tries each
+  resolved value against the context once and demotes it to the caller's `fallback` if it does not take,
+  warning as it goes. The check is two sentinels rather than one, since the value under test may itself be
+  black. That converts an engine-and-version support matrix into a runtime guarantee, and it covers the
+  absent-token case by the same path — both of which would otherwise paint in whatever colour the previous
+  draw call happened to leave behind.
   **The foundation is built and unit-tested: `render/canvas-painter.js`.** It owns the three things that are
   a trap when written per canvas — the backing store (buffer sized to the CSS box × DPR, the ratio baked into
   the base transform so draw calls stay in CSS pixels), the viewport (`begin` applies scale and pan to the

@@ -3,18 +3,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-// A canvas + context stub that records what the painter did to it.
-function stubCanvas() {
-  return {
-    width: 0, height: 0, style: {},
-    getContext: () => ({
-      calls: [],
-      setTransform(...a) { this.calls.push(["setTransform", ...a]); },
-      clearRect(...a)    { this.calls.push(["clearRect", ...a]); },
-      save()             { this.calls.push(["save"]); },
-      restore()          { this.calls.push(["restore"]); },
-    }),
+/**
+ * A canvas + context stub that records what the painter did to it. `parses` decides which colour
+ * strings the fake context accepts — a rejected assignment leaves fillStyle where it was, which is the
+ * real behaviour the painter's colour check depends on.
+ */
+function stubCanvas({ parses = () => true } = {}) {
+  const ctx = {
+    calls: [], _fill: "",
+    get fillStyle() { return this._fill; },
+    set fillStyle(v) { if (parses(v)) this._fill = v; },
+    setTransform(...a) { this.calls.push(["setTransform", ...a]); },
+    clearRect(...a)    { this.calls.push(["clearRect", ...a]); },
+    save()             { this.calls.push(["save"]); },
+    restore()          { this.calls.push(["restore"]); },
   };
+  return { width: 0, height: 0, style: {}, getContext: () => ctx };
 }
 
 /** Install the globals CanvasPainter reads, with a settable theme + token table. */
@@ -117,6 +121,32 @@ test("an absent token falls back rather than returning empty, which would keep t
   installEnv({ tokens: {} });
   const painter = new CanvasPainter(stubCanvas());
   assert.equal(painter.token("--nope", "#123456"), "#123456");
+});
+
+test("a token the context refuses is demoted to the fallback, not left to paint the previous colour", () => {
+  installEnv({ tokens: { "--canvas-chunk": "color-mix(in oklab, #a78bfa 38%, transparent)" } });
+  globalThis.getComputedStyle = () => ({ getPropertyValue: () => "color-mix(in oklab, #a78bfa 38%, transparent)" });
+  const warnings = [];
+  const realWarn = console.warn; console.warn = (m) => warnings.push(m);
+  // An engine whose canvas parser predates color-mix: the stylesheet takes it, the context does not.
+  const painter = new CanvasPainter(stubCanvas({ parses: (v) => !String(v).startsWith("color-mix") }));
+  assert.equal(painter.token("--canvas-chunk", "rgba(167,139,250,0.38)"), "rgba(167,139,250,0.38)");
+  assert.match(warnings[0] ?? "", /--canvas-chunk/);
+  console.warn = realWarn;
+});
+
+test("a token the context accepts is used as resolved", () => {
+  installEnv();
+  globalThis.getComputedStyle = () => ({ getPropertyValue: () => "color-mix(in oklab, #a78bfa 38%, transparent)" });
+  const painter = new CanvasPainter(stubCanvas());   // an engine that parses it, as Chromium does
+  assert.equal(painter.token("--canvas-chunk", "#fallback"), "color-mix(in oklab, #a78bfa 38%, transparent)");
+});
+
+test("a token whose value IS a sentinel colour is not mistaken for a rejection", () => {
+  installEnv();
+  globalThis.getComputedStyle = () => ({ getPropertyValue: () => "#000000" });
+  const painter = new CanvasPainter(stubCanvas());
+  assert.equal(painter.token("--canvas-ink", "#ff0000"), "#000000");
 });
 
 test("a theme flip drops the cache so the next read re-resolves", () => {

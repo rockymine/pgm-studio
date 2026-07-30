@@ -35,7 +35,8 @@ export class CanvasPainter {
   #scale  = 1;   // the viewport scale in force, so screenPx can divide it back out
   #tokens = new Map();
   #themeWatch = null;
-  #layers = [];  // the names painted this frame, in paint order
+  #probe  = null;  // context used to ask whether a colour parses (see #accepts)
+  #layers = [];    // the names painted this frame, in paint order
 
   constructor(canvasEl) {
     this.#canvas = canvasEl;
@@ -102,17 +103,42 @@ export class CanvasPainter {
 
   /**
    * Resolve a CSS custom property to something the context accepts. `color-mix()` and the rest arrive
-   * unevaluated from `getComputedStyle` — a custom property computes to its own text — but the context
-   * parses colour syntax itself, so the value goes straight through. `fallback` covers a token that is
-   * absent, since an unparseable value would silently keep the previous colour.
+   * unevaluated from `getComputedStyle` — a custom property computes to its own text — and the context
+   * parses colour syntax itself, so the value normally goes straight through.
+   *
+   * Normally, but not provably: canvas colour parsing is specified as "parse as a CSS `<color>`", yet it
+   * has historically been a *different* parser from the one that styles the page, so a token the
+   * stylesheet accepts is not guaranteed to be a token the context accepts. Rather than pin that to a
+   * support matrix that varies by engine and version, each resolved value is tried against the context
+   * once and demoted to `fallback` if it does not take — which also covers a token that is simply
+   * absent. Both cases would otherwise paint in whatever colour the previous draw call left behind.
    */
   token(name, fallback = "#888") {
     const hit = this.#tokens.get(name);
     if (hit !== undefined) return hit;
     const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    const value = raw || fallback;
+    let value = raw || fallback;
+    if (raw && !this.#accepts(value)) {
+      console.warn(`[painter] ${name} = "${raw}" is not a colour this context parses; using ${fallback}`);
+      value = fallback;
+    }
     this.#tokens.set(name, value);
     return value;
+  }
+
+  /**
+   * Does the context parse this colour? A rejected assignment leaves the property at its previous value,
+   * so the test is "did it move" — against two sentinels, since the value under test may itself be one.
+   */
+  #accepts(value) {
+    const probe = this.#probe ??= this.#canvas.getContext("2d");
+    if (!probe) return true;   // no context to ask (a stubbed surface) — take the value as given
+    for (const sentinel of ["#000000", "#ffffff"]) {
+      probe.fillStyle = sentinel;
+      probe.fillStyle = value;
+      if (probe.fillStyle !== sentinel) return true;
+    }
+    return false;
   }
 
   /** Drop the resolved tokens — the theme moved, so every colour is stale. */
