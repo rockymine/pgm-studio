@@ -280,9 +280,14 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   addressability `CV12`/`C28` want for probes (`id="layer-*"` is not what those read), and the paint order
   ends up in the single ordered form a painter needs — so this is `CV18`'s preparation whether or not `CV18`
   proceeds. Behaviour-preserving by construction, and checkable the way `CV13`/`CV14` were: the same e2e
-  suites return identical numbers. Note the coverage gap while doing it — the edit canvas is the one surface
-  with no corpus fixture (`CV13`/`CV14` covered it by building a map locally), which is also why `CV18` should
-  reach this canvas last.
+  suites return identical numbers, and the fixture for that already exists: `tests/e2e/seed.mjs` composes a
+  board, commits it to authoring, compiles it, `PUT`s the layout and intent, and calls `sketch/finish` to
+  carry it **all the way to world geometry** — so `smoke.mjs` drives `/maps/{slug}/configure` and
+  `/maps/{slug}/edit` against a real generated map, reproducibly from a descriptor with no committed fixture
+  file. What `CV13`/`CV14` recorded as "the one surface with no fixture" was the state before `C31` landed
+  that seed. The remaining gap on this canvas is not the absence of a map, it is what `C28` (a) and (b)
+  describe — mount/interop assertions and the artifact-creating flows — so it is a reason to want `C28`, not
+  a reason to sequence `CV18` around it.
 
 - [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
   `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
