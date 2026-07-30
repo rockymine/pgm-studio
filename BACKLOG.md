@@ -266,28 +266,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   it also amends `canvas-interaction.md`, whose §1, §2 (`render/` as "stateless SVG emit") and §7 all describe
   the SVG shape. Until it lands the artifact is live and unmitigated.
 
-- [ ] **CV19 — `world-canvas` is the layer-stack holdout, and that is also `CV18`'s prep.** `CV13`
-  introduced `render/layer-stack.js` so a canvas states its z-order **once** — the key order of the spec is
-  the paint order — and tags each group `data-layer="<name>"` so a layer is addressable by name rather than
-  by its index among siblings. Sketch and plan were rerouted; `world-canvas` never was. It builds 13 groups
-  by hand as `id="layer-build"`, `"layer-blocks"`, `"layer-islands"`, `"layer-buildability"`,
-  `"layer-symmetry"`, `"layer-spawns"`, `"layer-regions"`, `"layer-wools"`, `"layer-monuments"`,
-  `"layer-anchors"`, `"layer-draw"` and the block highlight, plus a screen-space `"layer-overlay"` — with the
-  order stated **twice**, once by the `#buildLayerEl`/`#blockLayerEl`/`#islandLayerEl`… field declarations and
-  once by the append sequence in `#build()`. That is the exact silent-drift duplication `CV13` was written to
-  remove, still live on the canvas with the widest reach (16 mounts). Rerouting it is worth doing on its own
-  merits, and it lands three things at once: the duplication goes, the canvas gains the `data-layer`
-  addressability `CV12`/`C28` want for probes (`id="layer-*"` is not what those read), and the paint order
-  ends up in the single ordered form a painter needs — so this is `CV18`'s preparation whether or not `CV18`
-  proceeds. Behaviour-preserving by construction, and checkable the way `CV13`/`CV14` were: the same e2e
-  suites return identical numbers, and the fixture for that already exists: `tests/e2e/seed.mjs` composes a
-  board, commits it to authoring, compiles it, `PUT`s the layout and intent, and calls `sketch/finish` to
-  carry it **all the way to world geometry** — so `smoke.mjs` drives `/maps/{slug}/configure` and
-  `/maps/{slug}/edit` against a real generated map, reproducibly from a descriptor with no committed fixture
-  file. What `CV13`/`CV14` recorded as "the one surface with no fixture" was the state before `C31` landed
-  that seed. The remaining gap on this canvas is not the absence of a map, it is what `C28` (a) and (b)
-  describe — mount/interop assertions and the artifact-creating flows — so it is a reason to want `C28`, not
-  a reason to sequence `CV18` around it.
+- [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
+  (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
+  `visibility:hidden` whose only handle was assigned and never read. This is the other: the `build` group is
+  created empty, no painter ever appends to it, and its toggle `setBuildVisible` has no caller outside the
+  class — not the bridge, not any of the sixteen hosts. So it is an empty group with a visibility switch
+  nobody throws. Removing it takes `setBuildVisible`, `#showBuild`, `#paintBuildRegion` and one line of the
+  documented public surface with it, which is why it was left in place rather than swept during a
+  behaviour-preserving refactor. Check first whether a Build phase was *meant* to fill it (the name suggests
+  the Build-Regions work) — if so the task is to wire it, not delete it, and that is a different task in the
+  feature section.
 
 - [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
   `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a

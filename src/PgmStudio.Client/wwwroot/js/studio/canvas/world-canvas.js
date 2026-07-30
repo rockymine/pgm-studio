@@ -44,6 +44,7 @@
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
 import { translateBounds } from "../geometry/shape.js";
 import { svgEl, polyToPath, anchorBlockEl } from "../render/svg.js";
+import { layerStack, showLayer, showLayers, clearLayer, INERT } from "../render/layer-stack.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
 import { WorldDrawController } from "../controllers/world-draw-controller.js";
 import { WorldEditController, RESIZABLE_TYPES } from "../controllers/world-edit-controller.js";
@@ -71,18 +72,8 @@ export class WorldCanvas extends CanvasBase {
   #regionGroupMap = new Map();
   #shapeMap       = new Map();
   #nodeMap        = new Map();
-  #overlayLayer   = null;
-  #highlightRect  = null;
-  #anchorLayer    = null;
-  #buildLayerEl   = null;
-  #blockLayerEl   = null;
-  #buildabilityLayerEl = null;   // N03: per-column buildability verdict heatmap (Build · buildable-layer)
-  #islandLayerEl  = null;
-  #spawnLayerEl   = null;
-  #woolLayerEl    = null;
-  #monumentLayerEl= null;
-  #regionsLayerEl = null;
-  #drawLayerEl    = null;
+  #world  = {};   // viewport layers — z-order declared once in #build
+  #screen = {};   // screen-space layers (outside the viewport transform)
   #addedNodes     = [];
   #authorRegionIds = [];   // ids of "dummy" authoring regions (e.g. intent-backed spawn-protection rects)
   #authorRegionNodes = []; // the authored nodes themselves, kept so the mirror preview can re-derive
@@ -109,7 +100,6 @@ export class WorldCanvas extends CanvasBase {
   #islandTeamColors  = new Map();   // island id → team colour hex (World · Teams island assignment)
 
   // symmetry overlay (World · Symmetry step): a dashed axis line (or two, for rot_90) + a centre marker.
-  #symmetryLayerEl   = null;
   #symType           = null;
   #symCx             = 0;
   #symCz             = 0;
@@ -138,14 +128,14 @@ export class WorldCanvas extends CanvasBase {
     super(svgEl_, wrapEl);
     this.#callbacks = callbacks;
     this.#drawCtrl  = new WorldDrawController(
-      () => this.#drawLayerEl,
+      () => this.#world.draw,
       () => this.#toSvg,
       { onRegionDraw: (r) => this.#callbacks.onRegionDraw?.(r) },
     );
     this.#editCtrl  = new WorldEditController(
       {
         getSelected: () => this.#selectedNode,
-        getOverlay:  () => this.#overlayLayer,
+        getOverlay:  () => this.#screen.overlay,
         getToWorld:  () => this.#toWorld,
         getToSvg:    () => this.#toSvg,
         getViewport: () => ({ scale: this._scale, panX: this._panX, panY: this._panY }),
@@ -254,31 +244,24 @@ export class WorldCanvas extends CanvasBase {
 
   showAnchors(node) {
     this.#selectedNode = node;
-    if (this.#anchorLayer) {
-      while (this.#anchorLayer.firstChild) this.#anchorLayer.removeChild(this.#anchorLayer.firstChild);
-      this.#renderAnchors();
-    }
+    this.#renderAnchors();
     this.#updateOverlay();
   }
 
   clearAnchors() {
     this.#selectedNode = null;
-    if (this.#anchorLayer) {
-      while (this.#anchorLayer.firstChild) this.#anchorLayer.removeChild(this.#anchorLayer.firstChild);
-    }
+    clearLayer(this.#world.anchors);
     this.#updateOverlay();
   }
 
   setPoisVisible(v) {
     this.#showPois = v;
-    if (this.#spawnLayerEl)    this.#spawnLayerEl.style.display    = v ? "" : "none";
-    if (this.#woolLayerEl)     this.#woolLayerEl.style.display     = v ? "" : "none";
-    if (this.#monumentLayerEl) this.#monumentLayerEl.style.display = v ? "" : "none";
+    showLayers([this.#world.spawns, this.#world.wools, this.#world.monuments], v);
   }
 
   setBuildVisible(v) {
     this.#showBuild = v;
-    if (this.#buildLayerEl) this.#buildLayerEl.style.display = v ? "" : "none";
+    showLayer(this.#world.build, v);
   }
 
   setResolvedMode(v) {
@@ -340,30 +323,30 @@ export class WorldCanvas extends CanvasBase {
 
   setBlocksVisible(v) {
     this.#showBlocks = v;
-    if (this.#blockLayerEl) this.#blockLayerEl.style.display = v ? "" : "none";
-    if (this.#islandLayerEl) this.#islandLayerEl.setAttribute("fill-opacity", v ? "0" : "0.25");
+    showLayer(this.#world.blocks, v);
+    this.#world.islands?.setAttribute("fill-opacity", v ? "0" : "0.25");
   }
 
   loadBlockLayer(data) {
     this.#blockData = data;
-    if (this.#blockLayerEl && this.#toSvg) {
-      renderBlockImage(this.#blockLayerEl, data, this.#toSvg);
-      if (this.#showBlocks) this.#blockLayerEl.style.display = "";
+    if (this.#world.blocks && this.#toSvg) {
+      renderBlockImage(this.#world.blocks, data, this.#toSvg);
+      if (this.#showBlocks) showLayer(this.#world.blocks, true);
     }
   }
 
-  // N03 buildability heatmap — same pixelated <image> machinery as the block overlay (`data` is the
+  // The buildability heatmap uses the same pixelated <image> machinery as the block overlay (`data` is the
   // block-image payload {xs,zs,colors,min_x,min_z,max_x,max_z} the bridge builds from /buildability).
   setBuildabilityVisible(v) {
     this.#showBuildability = v;
-    if (this.#buildabilityLayerEl) this.#buildabilityLayerEl.style.display = v ? "" : "none";
+    showLayer(this.#world.buildability, v);
   }
 
   loadBuildabilityLayer(data) {
     this.#buildabilityData = data;
-    if (this.#buildabilityLayerEl && this.#toSvg) {
-      renderBlockImage(this.#buildabilityLayerEl, data, this.#toSvg);
-      if (this.#showBuildability) this.#buildabilityLayerEl.style.display = "";
+    if (this.#world.buildability && this.#toSvg) {
+      renderBlockImage(this.#world.buildability, data, this.#toSvg);
+      if (this.#showBuildability) showLayer(this.#world.buildability, true);
     }
   }
 
@@ -464,10 +447,7 @@ export class WorldCanvas extends CanvasBase {
       }
     }
     if (this.#selectedNode?.id === node.id) {
-      if (this.#anchorLayer) {
-        while (this.#anchorLayer.firstChild) this.#anchorLayer.removeChild(this.#anchorLayer.firstChild);
-        this.#renderAnchors();
-      }
+      this.#renderAnchors();
       this.#updateOverlay();
     }
   }
@@ -480,13 +460,13 @@ export class WorldCanvas extends CanvasBase {
   }
 
   addRegion(node) {
-    if (!this.#regionsLayerEl || !this.#toSvg) return;
+    if (!this.#world.regions || !this.#toSvg) return;
     const stale = this.#regionGroupMap.get(node.id);
     if (stale?.parentNode) stale.parentNode.removeChild(stale);
     const regionG = this.#regionGroup(node);
     this.#regionGroupMap.set(node.id, regionG);
     this.#nodeMap.set(node.id, node);
-    this.#regionsLayerEl.appendChild(regionG);
+    this.#world.regions.appendChild(regionG);
     if (!this.#addedNodes.some(n => n.id === node.id)) this.#addedNodes.push(node);
   }
 
@@ -595,9 +575,7 @@ export class WorldCanvas extends CanvasBase {
     this.#selectedNode = null;
     this.#currentSelectedIds.clear();
     this.#visibilityMap.clear();
-    const oldLayer = this.#regionsLayerEl;
-    const newLayer = this.#buildXmlRegions();
-    if (oldLayer?.parentNode) oldLayer.parentNode.replaceChild(newLayer, oldLayer);
+    this.#paintXmlRegions();
     this.#updateOverlay();
   }
 
@@ -615,6 +593,10 @@ export class WorldCanvas extends CanvasBase {
     // transform to, so degrade gracefully with an empty-canvas hint instead of rendering garbage.
     if (!this.#ctx.bounding_box) {
       while (this._svg.firstChild) this._svg.removeChild(this._svg.firstChild);
+      // The stack went with it — drop the handles so the layer helpers no-op instead of painting into
+      // detached groups if a setter fires before the next render.
+      this.#world = {};
+      this.#screen = {};
       const hint = svgEl("text", {
         x: w / 2, y: h / 2, "text-anchor": "middle", "dominant-baseline": "middle",
         "font-size": "13", fill: "#888",
@@ -629,28 +611,38 @@ export class WorldCanvas extends CanvasBase {
 
     while (this._svg.firstChild) this._svg.removeChild(this._svg.firstChild);
 
-    const viewport = svgEl("g");
-    this._viewportG = viewport;
+    this._viewportG = svgEl("g");
     this._applyViewportTransform();
 
-    viewport.appendChild(this.#buildBuildRegion());
-    viewport.appendChild(this.#buildBlockLayer());
-    viewport.appendChild(this.#buildIslands());
-    viewport.appendChild(this.#buildBuildabilityLayer());
-    viewport.appendChild(this.#buildSymmetryLayer());
-    viewport.appendChild(this.#buildSpawnLayer());
-    viewport.appendChild(this.#buildXmlRegions());
-    viewport.appendChild(this.#buildWoolLayer());
-    viewport.appendChild(this.#buildMonumentLayer());
-    viewport.appendChild(this.#buildAnchorLayer());
-    viewport.appendChild(this.#buildDrawLayer());
-    viewport.appendChild(this.#buildBlockHighlight());
+    // Paint order, bottom first — stated once (see render/layer-stack.js).
+    this.#world = layerStack(this._viewportG, {
+      build:        null,
+      blocks:       null,
+      islands:      { "fill-opacity": "0.25" },
+      buildability: { opacity: "0.5", ...INERT },   // translucent so terrain reads through
+      symmetry:     null,
+      spawns:       null,
+      regions:      null,
+      wools:        null,
+      monuments:    null,
+      anchors:      null,
+      draw:         null,
+    });
 
-    const overlayG = svgEl("g", { id: "layer-overlay" });
-    this.#overlayLayer = overlayG;
+    // The viewport goes on first so the screen-space overlay sits above every world layer.
+    this._svg.appendChild(this._viewportG);
+    this.#screen = layerStack(this._svg, { overlay: null });
 
-    this._svg.appendChild(viewport);
-    this._svg.appendChild(overlayG);
+    this.#paintBuildRegion();
+    this.#paintBlockLayer();
+    this.#paintIslands();
+    this.#paintBuildabilityLayer();
+    this.#renderSymmetry();
+    this.#paintSpawnLayer();
+    this.#paintXmlRegions();
+    this.#paintWoolLayer();
+    this.#paintMonumentLayer();
+    this.#renderAnchors();
     this.#updateOverlay();
   }
 
@@ -688,36 +680,28 @@ export class WorldCanvas extends CanvasBase {
 
   // ── layers ────────────────────────────────────────────────────────────────
 
-  #buildBuildRegion() {
-    const g = svgEl("g", { id: "layer-build" });
-    this.#buildLayerEl = g;
-    if (!this.#showBuild) g.style.display = "none";
-    return g;
+  #paintBuildRegion() {
+    showLayer(this.#world.build, this.#showBuild);
   }
 
-  #buildBlockLayer() {
-    const g = svgEl("g", { id: "layer-blocks" });
-    this.#blockLayerEl = g;
-    if (!this.#showBlocks || !this.#blockData) g.style.display = "none";
+  #paintBlockLayer() {
+    const g = this.#world.blocks;
+    showLayer(g, this.#showBlocks && !!this.#blockData);
     if (this.#blockData && this.#toSvg) renderBlockImage(g, this.#blockData, this.#toSvg);
-    return g;
   }
 
-  // N03: the buildability heatmap layer — translucent so terrain reads through, below the author's
-  // bridges/regions; re-paints from the cached payload after a render() reset.
-  #buildBuildabilityLayer() {
-    const g = svgEl("g", { id: "layer-buildability", opacity: "0.5", "pointer-events": "none" });
-    this.#buildabilityLayerEl = g;
-    if (!this.#showBuildability || !this.#buildabilityData) g.style.display = "none";
+  // The buildability heatmap re-paints from the cached payload after a render() reset.
+  #paintBuildabilityLayer() {
+    const g = this.#world.buildability;
+    showLayer(g, this.#showBuildability && !!this.#buildabilityData);
     if (this.#buildabilityData && this.#toSvg) renderBlockImage(g, this.#buildabilityData, this.#toSvg);
-    return g;
   }
 
-  #buildIslands() {
-    const g = svgEl("g", { id: "layer-islands", "fill-opacity": "0.25" });
-    this.#islandLayerEl = g;
+  #paintIslands() {
+    const g = this.#world.islands;
+    clearLayer(g);
     this.#islandPathMap.clear();
-    if (this.#showBlocks) g.setAttribute("fill-opacity", "0");
+    g.setAttribute("fill-opacity", this.#showBlocks ? "0" : "0.25");
     for (const island of (this.#ctx.islands || [])) {
       const poly = island.simplified_polygon ?? geojsonToSimplified(island.polygon);
       if (!poly?.exterior?.length) continue;
@@ -729,7 +713,6 @@ export class WorldCanvas extends CanvasBase {
       g.appendChild(path);
     }
     this.#paintIslandStates();
-    return g;
   }
 
   // Repaint island fill/border/opacity for the current selection, exclusions, and team tints (no full
@@ -761,18 +744,11 @@ export class WorldCanvas extends CanvasBase {
 
   setIslandSelect(on) { this.#selectCtrl.setMode(on ? "island" : "region"); }
 
-  #buildSymmetryLayer() {
-    const g = svgEl("g", { id: "layer-symmetry" });
-    this.#symmetryLayerEl = g;
-    this.#renderSymmetry();
-    return g;
-  }
-
-  // Dashed axis line(s) + a centre marker for the confirmed symmetry (mirrors ConfigureRenderer):
+  // Dashed axis line(s) + a centre marker for the confirmed symmetry:
   // mirror_x / rot_90 → vertical axis at cx; mirror_z / rot_90 / rot_180 → horizontal axis at cz;
   // mirror_d1 / mirror_d2 → a diagonal through the centre. Always a centre dot.
   #renderSymmetry() {
-    renderSymmetryOverlay(this.#symmetryLayerEl, this.#symType, this.#symCx, this.#symCz,
+    renderSymmetryOverlay(this.#world.symmetry, this.#symType, this.#symCx, this.#symCz,
       this.#ctx?.bounding_box, this.#toSvg);
   }
 
@@ -804,10 +780,10 @@ export class WorldCanvas extends CanvasBase {
     this.#paintIslandStates();
   }
 
-  #buildSpawnLayer() {
-    const g = svgEl("g", { id: "layer-spawns" });
-    this.#spawnLayerEl = g;
-    if (!this.#showPois) g.style.display = "none";
+  #paintSpawnLayer() {
+    const g = this.#world.spawns;
+    clearLayer(g);
+    showLayer(g, this.#showPois);
     for (const spawn of (this.#ctx.spawns || [])) {
       if (!spawn.x && spawn.x !== 0) continue;
       const p = this.#toSvg(spawn.x, spawn.z);
@@ -818,13 +794,12 @@ export class WorldCanvas extends CanvasBase {
       t.textContent = "★";
       g.appendChild(t);
     }
-    return g;
   }
 
-  #buildWoolLayer() {
-    const g = svgEl("g", { id: "layer-wools" });
-    this.#woolLayerEl = g;
-    if (!this.#showPois) g.style.display = "none";
+  #paintWoolLayer() {
+    const g = this.#world.wools;
+    clearLayer(g);
+    showLayer(g, this.#showPois);
     for (const wool of (this.#ctx.wools || [])) {
       if (!wool.x && wool.x !== 0) continue;
       const p = this.#toSvg(wool.x, wool.z);
@@ -835,13 +810,12 @@ export class WorldCanvas extends CanvasBase {
       t.textContent = "◆";
       g.appendChild(t);
     }
-    return g;
   }
 
-  #buildMonumentLayer() {
-    const g = svgEl("g", { id: "layer-monuments" });
-    this.#monumentLayerEl = g;
-    if (!this.#showPois) g.style.display = "none";
+  #paintMonumentLayer() {
+    const g = this.#world.monuments;
+    clearLayer(g);
+    showLayer(g, this.#showPois);
     for (const mon of (this.#ctx.monuments || [])) {
       if (!mon.x && mon.x !== 0) continue;
       const p = this.#toSvg(mon.x, mon.z);
@@ -852,33 +826,13 @@ export class WorldCanvas extends CanvasBase {
       t.textContent = "⊕";
       g.appendChild(t);
     }
-    return g;
-  }
-
-  #buildAnchorLayer() {
-    const g = svgEl("g", { id: "layer-anchors" });
-    this.#anchorLayer = g;
-    this.#renderAnchors();
-    return g;
-  }
-
-  #buildBlockHighlight() {
-    const rect = svgEl("rect", {
-      id: "block-highlight",
-      x: 0, y: 0, width: 0, height: 0, rx: 1, visibility: "hidden",
-      fill: "var(--canvas-ink)", "fill-opacity": "0.06",
-      stroke: "var(--canvas-ink)", "stroke-opacity": "0.4", "stroke-width": "1",
-      "vector-effect": "non-scaling-stroke", "pointer-events": "none",
-    });
-    this.#highlightRect = rect;
-    return rect;
   }
 
   // ── overlay ────────────────────────────────────────────────────────────────
 
   #updateOverlay() {
-    if (!this.#overlayLayer) return;
-    while (this.#overlayLayer.firstChild) this.#overlayLayer.removeChild(this.#overlayLayer.firstChild);
+    if (!this.#screen.overlay) return;
+    clearLayer(this.#screen.overlay);
 
     const node = this.#selectedNode;
     if (!node?.bounds || node.is_negative || !this.#toSvg) return;
@@ -904,7 +858,7 @@ export class WorldCanvas extends CanvasBase {
       fill: color, "pointer-events": "none",
     });
     nameEl.textContent = labelText;
-    this.#overlayLayer.appendChild(nameEl);
+    this.#screen.overlay.appendChild(nameEl);
 
     const fmtDim = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
     const dimText = `${fmtDim(max_x - min_x)} × ${fmtDim(max_z - min_z)}`;
@@ -913,7 +867,7 @@ export class WorldCanvas extends CanvasBase {
     const pillW = dimText.length * (FONT_SZ * 0.6) + PAD_X * 2;
     const pillX = mid - pillW / 2;
     const pillY = bottom + 5;
-    this.#overlayLayer.appendChild(svgEl("rect", {
+    this.#screen.overlay.appendChild(svgEl("rect", {
       x: pillX, y: pillY, width: pillW, height: pillH, rx: 3,
       fill: color, "fill-opacity": "0.85", "pointer-events": "none",
     }));
@@ -925,14 +879,16 @@ export class WorldCanvas extends CanvasBase {
       fill: "var(--canvas-handle-fill)", "font-weight": "600", "pointer-events": "none",
     });
     dimEl.textContent = dimText;
-    this.#overlayLayer.appendChild(dimEl);
+    this.#screen.overlay.appendChild(dimEl);
 
     if (RESIZABLE_TYPES.has(node.type)) this.#editCtrl.renderHandles(node);
   }
 
   // ── anchors ────────────────────────────────────────────────────────────────
 
+  // Repaint the 8-handle anchors for the selected region. Owns the clear, so every caller is a repaint.
   #renderAnchors() {
+    clearLayer(this.#world.anchors);
     const node = this.#selectedNode;
     if (!node?.bounds || !this.#toSvg || node.is_negative || COMPOSITE_TYPES.has(node.type)) return;
     const { min_x, min_z, max_x, max_z } = node.bounds;
@@ -940,23 +896,23 @@ export class WorldCanvas extends CanvasBase {
     const isCircular = ["cylinder", "circle", "sphere"].includes(node.type);
     if (isCircular) {
       const cx = (min_x + max_x) / 2, cz = (min_z + max_z) / 2;
-      this.#anchorLayer.appendChild(anchorBlockEl(this.#toSvg, Math.floor(cx), Math.floor(cz), color));
+      this.#world.anchors.appendChild(anchorBlockEl(this.#toSvg, Math.floor(cx), Math.floor(cz), color));
     } else {
       const bMinX = Math.floor(min_x), bMinZ = Math.floor(min_z);
       const bMaxX = Math.ceil(max_x) - 1, bMaxZ = Math.ceil(max_z) - 1;
-      this.#anchorLayer.appendChild(anchorBlockEl(this.#toSvg, bMinX, bMinZ, color));
-      if (bMaxX !== bMinX || bMaxZ !== bMinZ) this.#anchorLayer.appendChild(anchorBlockEl(this.#toSvg, bMaxX, bMaxZ, color));
+      this.#world.anchors.appendChild(anchorBlockEl(this.#toSvg, bMinX, bMinZ, color));
+      if (bMaxX !== bMinX || bMaxZ !== bMinZ) this.#world.anchors.appendChild(anchorBlockEl(this.#toSvg, bMaxX, bMaxZ, color));
     }
   }
 
   // ── region rendering ──────────────────────────────────────────────────────
 
-  #buildXmlRegions() {
+  #paintXmlRegions() {
     this.#regionGroupMap.clear();
     this.#shapeMap.clear();
     this.#nodeMap.clear();
-    const g = svgEl("g", { id: "layer-regions" });
-    this.#regionsLayerEl = g;
+    const g = this.#world.regions;
+    clearLayer(g);
     for (const region of this.#flattenNamed(this.#groups)) {
       const regionG = this.#regionGroup(region);
       this.#regionGroupMap.set(region.id, regionG);
@@ -971,7 +927,6 @@ export class WorldCanvas extends CanvasBase {
         g.appendChild(regionG);
       }
     }
-    return g;
   }
 
   #regionGroup(region) {
@@ -1016,14 +971,6 @@ export class WorldCanvas extends CanvasBase {
     entry.shape.setAttribute("fill-opacity",   st["fill-opacity"]);
     if (st["stroke-dasharray"]) entry.shape.setAttribute("stroke-dasharray", st["stroke-dasharray"]);
     else entry.shape.removeAttribute("stroke-dasharray");
-  }
-
-  // ── draw tools ────────────────────────────────────────────────────────────
-
-  #buildDrawLayer() {
-    const g = svgEl("g", { id: "layer-draw" });
-    this.#drawLayerEl = g;
-    return g;
   }
 
   // ── flatten helpers ────────────────────────────────────────────────────────

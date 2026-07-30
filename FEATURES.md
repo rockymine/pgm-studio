@@ -1928,6 +1928,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
   per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
 
+- **The world canvas states its layer stack once (CV19)** — `canvas/world-canvas.js` +
+  `docs/contracts/canvas-interaction.md`. `CV13` gave the canvases `render/layer-stack.js` — the key order of
+  the spec *is* the paint order, bottom first, and each group carries `data-layer="<name>"` so a layer is
+  addressable by name rather than by its index among siblings. Sketch and plan were rerouted then; the world
+  canvas, the one with sixteen mounts, was the holdout. It hand-built 13 groups as `id="layer-*"` across a
+  dozen `#buildX()` methods, each creating its group *and* painting it, with the z-order stated **twice** —
+  once by the `#buildLayerEl`/`#blockLayerEl`/`#islandLayerEl`… fields, once by the append sequence in
+  `#build()`. Now one `layerStack` block declares it, the builders became `#paintX()` painters that clear and
+  repaint a layer they no longer own, and the field wall collapsed into `#world`/`#screen`. Consequences worth
+  noting: `refreshRegions` stopped swapping the region group node for a fresh one and simply repaints it;
+  `#renderAnchors` owns its own clear, so all three callers are plain repaints instead of clear-then-render;
+  and the hand-rolled `while (firstChild) removeChild` / `style.display = v ? "" : "none"` idioms gave way to
+  `clearLayer`/`showLayer`/`showLayers`. **Two dead layers surfaced**, which is the point of stating a stack
+  truthfully: `block-highlight` was a permanently `visibility:hidden` rect whose handle was assigned and never
+  read — removed; the `build` layer has no painter and `setBuildVisible` no caller outside the class — kept
+  for now and filed as `CV21`. Net 58 lines out, behaviour-preserving by construction: JS 150/150, e2e 33/33
+  smoke + 22/22 refusals, with `configure` and `edit` clean. (CV19)
+
 - **The world canvas is named for what it draws (CV20)** — `canvas/world-canvas.js` +
   `bridge/world-bridge.js` + `controllers/world-{draw,edit}-controller.js` +
   `Components/Editor/WorldCanvas.razor{,.cs}`. `EditorCanvas` was named for a route, and the wrong one:
