@@ -156,13 +156,32 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   The tools this is being compared against do not transform a large SVG DOM at all — Figma, Excalidraw,
   tldraw and the mapping surfaces draw to `<canvas>` and re-draw the geometry every frame at the current
   scale, so there is no cached rasterization to go stale and zoom is identical everywhere. Three things make
-  that migration much cheaper here than it looks: hit-testing is **already data-driven** (no
-  `elementFromPoint`, no `e.target.closest`, no `dataset` ids anywhere in the canvases or controllers — the
-  press maps a world point against the document), the canvas content carries **no CSS** (every fill, stroke
-  and dash is an inline attribute written in JS, so there is no style layer to port), and the e2e probes
-  assert on icons and routes, never on the surface's DOM. The conversion surface is the 137 `svgEl(` sites,
-  90 of them in the three canvases (`plan-canvas` 51, `editor-canvas` 24, `sketch-canvas` 14) plus the render
-  helpers, and one test file (`render.test.js`) that asserts on emitted elements.
+  that migration cheaper here than it looks. Hit-testing is **already data-driven** — no `elementFromPoint`,
+  no `e.target.closest`, no `dataset` ids anywhere in the canvases, controllers or render helpers (the only
+  two `e.target` reads are on an HTML checkbox in `editor-canvas`), so a press maps a world point against the
+  document and the controller layer never learns the surface changed. The **path builders survive verbatim**:
+  `ringToPath`, `polyToPath` and `boundsToRingPath` are pure string math over a `toSvg` closure, and
+  `new Path2D(d)` takes SVG path data, so the geometry half of `render/svg.js` — and the half of
+  `render.test.js` that asserts on its output — carries across untouched, leaving the element-emitting half
+  (`renderShape`, the `svgEl` factories) as the rework. And the e2e probes assert on icons and routes, never
+  on the surface's DOM. The conversion surface is the 137 `svgEl(` sites, 90 of them in the three canvases
+  (`plan-canvas` 51, `editor-canvas` 24, `sketch-canvas` 14) plus the render helpers; the artifact's own
+  footprint is the 42 `non-scaling-stroke` sites, 19 of them in `plan-canvas`.
+  The style layer is the part that is **not** free, and it is not a stylesheet. No CSS selector targets a
+  canvas child, but the inline attributes are full of custom properties — 24 distinct tokens over ~110 uses
+  (`var(--accent)` 23, `var(--canvas-axis)` 18, `var(--canvas-ink)` and `var(--bg-canvas)` 6 each, down a tail
+  of one-offs) — and `ctx.strokeStyle = "var(--canvas-axis)"` is a parse failure that silently leaves the
+  previous value. So the painter needs a resolver, and it needs theme-flip invalidation that SVG gets for
+  free: `studioTheme` sets `data-theme` on `<html>` and every `var()` re-resolves, where a painted surface
+  must be told to flush its cache and repaint. `sideview-canvas` is the in-repo precedent and shows the wrong
+  shape — four `getComputedStyle(document.documentElement).getPropertyValue(…)` calls *inside* its paint,
+  uncached, a forced style recalc per frame. One token is a question rather than an assumption:
+  `--canvas-chunk` is `color-mix(in oklab, var(--canvas-axis) 38%, transparent)`, so what `getComputedStyle`
+  returns for it and what a 2-D context accepts are two separate things to check.
+  DPR is new machinery rather than a copy. `devicePixelRatio` appears exactly once in the JS layer —
+  `iso-webgl`, clamped to 2 — and `SideviewCanvas`, the one Canvas2D surface already shipping, does not handle
+  it at all. What `sideview-canvas` does have worth copying is its `#offscreen` pre-render, rebuilt only when
+  the data changes: the block layer's rasterize-once discipline, already expressed on a painter.
   A working precedent sits in a sibling map-editor repository, which paints with SkiaSharp on Blazor WASM — an
   `SKGLView`, a `MapRenderer` that sets the viewport matrix on the canvas and runs a list of `IRenderable`s
   (grid, nodes, edges, regions), a `PaintCache`, and `Invalidate()` to repaint — in 767 lines of render layer. Its structure maps across almost
@@ -190,8 +209,14 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   nothing — so every machine would need a side-loaded SDK before the client built at all, and the native payload
   lands on a first load that is already slow. And the throughput it would buy is not needed: a 2-D context has no
   dependency, no workload and nothing to vendor, which is what the JS dependency policy asks for anyway. What
-  would reopen it is one renderer serving both the browser and the server-side board images
-  (`Pgm/Render/PlanBoardSvg.cs`), or a surface that genuinely needs tens of thousands of live primitives.
+  would reopen it is one renderer serving both the browser and the server-side board images, or a surface that
+  genuinely needs tens of thousands of live primitives.
+  That first condition is the real price, and it is worth stating as a cost rather than a footnote.
+  `Pgm/Render/PlanBoardSvg.cs` renders the same `PlanModel` to an SVG string in 134 lines of C#, and four
+  endpoints depend on it — the compose board image and the browse feed's thumbnails (`ComposeEndpoints`), the
+  shape catalog's cards (`ShapeCatalogEndpoints`) and the shape probe (`ShapeProbeEndpoints`). Client and
+  server share no code today, but they do share a format; painting the client to a canvas removes even the
+  notional path to one renderer, so the divergence becomes permanent. The decision accepts that.
   Block data at map scale is **not** what this migrates, and is already handled the right way:
   `render/block-render.js` writes one pixel per block into an offscreen canvas and places the result as a single
   pixelated `<image>` (editor, configure and overview all share it), so a 45k-block layer costs one blit and its
@@ -202,13 +227,44 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   bridges are JS and the hot path stays there. So the shape to copy is the architecture, in JS over a 2D
   context; adopting SkiaSharp would mean moving `plan-doc` and the controllers into C# and taking on its WASM
   native payload, which is a far larger change than the paint layer it would fix.
+  Fixing the artifact is the trigger, not the whole return, and four of the other effects are worth having on
+  their own. **A concept is deleted.** `non-scaling-stroke` exists only because the transform lives in the DOM
+  and a stroke width therefore inherits world units; a painter applies the viewport itself, so a screen-space
+  width is just a width. That removes the artifact's possibility, and with it the standing failure mode where a
+  newly added stroke is missing its `vector-effect` and goes tens of times too thick at zoom — 42 sites of an
+  obligation nothing enforces. **Cost stops scaling with primitive count and starts scaling with viewport.**
+  Every rect, line and label is currently a retained node the browser styles, lays out and composites whether
+  or not it is on screen, which is why `CV17` measured the grid growing 60 → 348 lines on zoom-out and had to
+  answer it with a `gridStep` ladder plus `plan-canvas`'s `#gridKey` memo — both of which exist *because*
+  rebuilding DOM is expensive. Culling to the viewport makes grid cost constant in board size and turns the
+  memo back into "draw it again". **`CV16` becomes buildable.** Paint is implicit today: a DOM mutation lands
+  and the browser chooses when, which is why `CV17` had to invent a frame coalescer to get one chrome rebuild
+  per frame. A painter has an actual `render()` to time, which is exactly the per-burst main-thread number
+  `CV16` asks for, and its second wish — that anything crossing into Blazor from a canvas handler goes through
+  the coalescer — becomes structural instead of a convention to remember. **The bug class becomes testable.**
+  `CV16` already records that screenshots cannot catch this family, because `page.screenshot()` forces a fresh
+  raster and the transient artifact never lands in the capture. With no cached rasterization to go stale, frame
+  correctness is a function of the draw code, assertable offscreen with pixel checks in the Chromium harness
+  that already exists. Longer term it also consolidates: the client runs three surface technologies today (SVG
+  in three canvases, Canvas2D in `sideview-canvas` and `block-render`'s offscreen, WebGL in the iso preview),
+  and moving the world layers to Canvas2D writes the offscreen, DPR and token-resolution machinery once
+  properly rather than leaving the one existing painter resolving tokens per paint and ignoring DPR.
   Assess on a branch, on the plan canvas alone: a painter over a DPR-aware `<canvas>` for the world layers,
   the screen-space chrome (labels, selection handles, resize handles, scale bar) left in SVG where DOM
-  semantics are worth having, and the document, hit-testing and controller layers untouched. Non-scaling
-  stroke stops being a concept — a canvas painter applies the viewport itself, so a screen-space width is
-  just a width. What the spike has to answer is text quality at DPR, whether the dashed cell grid still reads
-  at low zoom, and what replaces `data-layer` addressing for `CV12`/`C28`'s test layers, since a canvas
-  offers nothing to query. Until it lands the artifact is live and unmitigated.
+  semantics are worth having, and the document, hit-testing and controller layers untouched. The plan canvas is
+  the right spike not only because it carries the most `non-scaling-stroke` sites but because it has **one**
+  Blazor host (`Features/Plan/PlanTool.razor`), as does `SketchCanvas` — while `EditorCanvas` is mounted by
+  **sixteen** components, eleven Configure steps and five Edit phases (`canvas-interaction.md` §1). That
+  asymmetry is the staging plan and the largest cost in finishing the job: the third canvas cannot be converted
+  without putting every Configure step through it at once.
+  What the spike has to answer is text quality at DPR (11 `svgEl("text")` sites, so the surface is small but
+  labels are drawn per piece), whether the dashed cell grid still reads at low zoom, and what replaces
+  `data-layer` addressing for `CV12`/`C28`'s test layers, since a canvas offers nothing to query. That last one
+  is a **prospective** cost, not a regression: nothing outside the canvases and `layer-stack.js` reads
+  `data-layer` today, so no probe breaks — but the affordance those two tasks were counting on has to be
+  replaced by something the painter exposes, and deciding that during the spike is cheaper than after. Landing
+  it also amends `canvas-interaction.md`, whose §1, §2 (`render/` as "stateless SVG emit") and §7 all describe
+  the SVG shape. Until it lands the artifact is live and unmitigated.
 
 - [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
   `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
