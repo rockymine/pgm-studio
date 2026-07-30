@@ -266,6 +266,38 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   it also amends `canvas-interaction.md`, whose §1, §2 (`render/` as "stateless SVG emit") and §7 all describe
   the SVG shape. Until it lands the artifact is live and unmitigated.
 
+- [ ] **CV19 — `editor-canvas` is the layer-stack holdout, and that is also `CV18`'s prep.** `CV13`
+  introduced `render/layer-stack.js` so a canvas states its z-order **once** — the key order of the spec is
+  the paint order — and tags each group `data-layer="<name>"` so a layer is addressable by name rather than
+  by its index among siblings. Sketch and plan were rerouted; `editor-canvas` never was. It builds 13 groups
+  by hand as `id="layer-build"`, `"layer-blocks"`, `"layer-islands"`, `"layer-buildability"`,
+  `"layer-symmetry"`, `"layer-spawns"`, `"layer-regions"`, `"layer-wools"`, `"layer-monuments"`,
+  `"layer-anchors"`, `"layer-draw"` and the block highlight, plus a screen-space `"layer-overlay"` — with the
+  order stated **twice**, once by the `#buildLayerEl`/`#blockLayerEl`/`#islandLayerEl`… field declarations and
+  once by the append sequence in `#build()`. That is the exact silent-drift duplication `CV13` was written to
+  remove, still live on the canvas with the widest reach (16 mounts). Rerouting it is worth doing on its own
+  merits, and it lands three things at once: the duplication goes, the canvas gains the `data-layer`
+  addressability `CV12`/`C28` want for probes (`id="layer-*"` is not what those read), and the paint order
+  ends up in the single ordered form a painter needs — so this is `CV18`'s preparation whether or not `CV18`
+  proceeds. Behaviour-preserving by construction, and checkable the way `CV13`/`CV14` were: the same e2e
+  suites return identical numbers. Note the coverage gap while doing it — the edit canvas is the one surface
+  with no corpus fixture (`CV13`/`CV14` covered it by building a map locally), which is also why `CV18` should
+  reach this canvas last.
+
+- [ ] **CV20 — `EditorCanvas` is named for a page, not for what it draws.** Eleven of its sixteen mounts are
+  **Configure** steps and only five are Edit phases, so "Editor" describes the minority; the Configure wizard
+  has no canvas of its own and mounts this one (`canvas-interaction.md` §1). Its three siblings are all named
+  for content — `PlanCanvas` draws a plan, `SketchCanvas` a sketch, `SideviewCanvas` a side view — and this
+  is the only canvas named for a route. What it draws is the **world**: bounding box, islands, the block overlay,
+  the buildability heatmap, symmetry axes, spawns, wools, monuments, regions. `CV18` already calls that content
+  "the world layers", so **`WorldCanvas`** is both the accurate category and the word the surrounding work is
+  written in. Same class of miss as `BoxJoint.Interface` → `BoxAbutment`: the name promised the wrong
+  category. The rename covers ~46 files and both halves of the seam — the Blazor component
+  (`Components/Editor/EditorCanvas.razor` + its 346-line code-behind), the JS class in
+  `canvas/editor-canvas.js`, `bridge/editor-bridge.js`, the sixteen hosts' markup, and the doc references in
+  `canvas-interaction.md` and `ui-conventions.md`. Mechanical, and much cheaper standalone than tangled into a
+  paint-layer rewrite later — so ahead of `CV18`, not during it.
+
 - [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
   `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
   callback; `editor-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
