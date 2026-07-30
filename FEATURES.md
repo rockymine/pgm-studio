@@ -1940,7 +1940,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   became `WorldDrawController`/`WorldEditController`. Pure rename over 52 files: the interop contract needed
   no change (the entry point was already `studio.mountCanvas` and the callbacks already `OnCanvas*`), and
   the only load-bearing edge was the module path string in `studio.js`'s native dynamic import. Client build
-  clean (0 warnings), JS 150/150. (CV20)
+  clean (0 warnings), JS 150/150, e2e 33/33 smoke + 22/22 plan refusals — the surfaces that matter here are
+  the `configure` and `edit` routes, which render clean, and a mis-renamed module would have surfaced as a
+  failed-request fault rather than passing quietly. (CV20)
 
 - **Zoom stops going soft on the authoring canvases (CV17)** — `canvas/canvas-base.js` +
   `render/canvas-chrome.js` + `canvas/plan-canvas.js` + `canvas/sketch-canvas.js` + `render/sketch-render.js`.

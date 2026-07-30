@@ -79,6 +79,19 @@ connection to `pgm_studio_test` (a module initializer forces `ConnectionStrings_
 an ambient dev-server value can't redirect the tests at the live DB) and shares one `[NotInParallel("api-db")]`
 group so no per-test schema reset overlaps another test.
 
+## End-to-end (it runs here — don't assume otherwise)
+`./tools/e2e.sh all` works in the container, and it is the only check that exercises the Blazor surfaces at
+all. Nothing extra needs installing: **Playwright is already global** (`/opt/node22`, resolved by
+`tests/e2e/lib/harness.mjs`) and **Chromium is pre-installed** at `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`
+— never run `playwright install`. The only prerequisite is the database section above, since the script
+resets its own schema through `sudo -n mariadb` (its default admin path, which works once
+`sudo service mariadb start` has run). It uses its own port (7895) and database (`pgm_studio_e2e`), so a run
+cannot touch dev data. Expect `22/22` plan refusals and `33/33` smoke.
+
+The suite drives **Chromium only**, so a rendering defect that exists in another engine cannot appear in it
+— which is why the browser-specific canvas artifact recorded in `BACKLOG.md` was found by hand and stays
+un-gated.
+
 ## If you don't need the DB
 Much of the analysis work needs **no database**. `tools/PgmStudio.RoundTrip` runs DB-free:
 `--island-sketch`, `--skeleton-study`, `--island-study`, plus the parity/analysis harnesses.
