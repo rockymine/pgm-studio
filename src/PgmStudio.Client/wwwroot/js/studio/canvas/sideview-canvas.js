@@ -7,12 +7,30 @@
  * Data format from /api/map/<name>/segments:
  *   { axis, primary_min, primary_count, y_min, y_count, depth: int[] }
  *   depth[p_idx * y_count + y_idx] = 0-255 (0=nearest) or -1 (empty)
+ *
+ * This surface was always painted — it has no SVG DOM and no viewport matrix, so it never carried the
+ * stale-rasterization artifact the other canvases were converted to fix. What it does share with them is
+ * `CanvasPainter`, for the two things that are a trap in any 2-D surface written by hand: the backing
+ * store is the CSS box times the device pixel ratio (its text and hairlines were soft on a HiDPI display
+ * before), and colour tokens are resolved once and cached rather than re-read from the document on every
+ * paint. `layer(name, paint)` brackets each phase in save/restore, so a setting like
+ * `imageSmoothingEnabled` cannot leak out of the phase that wanted it.
+ *
+ * It does NOT use the painter's box primitives. Their coordinates are named for the plan's x/z axes, and
+ * this surface's second axis is elevation — writing `min_z` for a Y would be a wrong-category name, so the
+ * rectangle-shaped draws stay raw context calls. The primitives whose call sites take plain numbers
+ * (`text`, `dot`, `line`) carry no such claim and are used.
+ *
+ * The viewport is its own: a fitted integer `#scale` with centring offsets, in CSS pixels, and no pan or
+ * zoom — which is why it does not extend CanvasBase.
  */
+
+import { CanvasPainter } from "../render/canvas-painter.js";
 
 // Color stops: nearest block = light stone, farthest = very dark
 const _NEAR  = [200, 195, 188];
 const _FAR   = [40,  38,  35];
-const _LINE_COLOR  = "rgba(250, 110, 50, 0.9)";   // fallback; real value from --canvas-sideview-line
+const _LINE_COLOR  = "var(--canvas-sideview-line, rgba(250, 110, 50, 0.9))";
 const _LINE_DASH   = [5, 4];
 const _HANDLE_W    = 20;
 const _HANDLE_H    = 10;
@@ -20,7 +38,10 @@ const _HIT_RADIUS  = 7; // px — snap zone around the line
 
 export class SideviewCanvas {
   #canvas;
+  #painter;
   #ctx;
+  #width      = 0;      // CSS pixels — the coordinates everything below is drawn and hit-tested in
+  #height     = 0;
   #data       = null;   // server response object
   #buildHeight = null;  // world Y, or null
   #marker     = null;   // { p: worldPrimary, y: worldY } — the point/block cell dot, or null
@@ -31,12 +52,15 @@ export class SideviewCanvas {
   #offsetY    = 0;
   #onHeightChange;      // (worldY: number) => void
   #offscreen  = null;   // pre-rendered block image (rebuilt when data changes)
+  #observer   = null;
 
   constructor(canvasEl, { onHeightChange } = {}) {
-    this.#canvas = canvasEl;
-    this.#ctx    = canvasEl.getContext("2d");
+    this.#canvas  = canvasEl;
+    this.#painter = new CanvasPainter(canvasEl);
+    this.#ctx     = this.#painter.ctx;
     this.#onHeightChange = onHeightChange;
     this._attachPointerListeners();
+    this._observeResize();
   }
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -66,29 +90,62 @@ export class SideviewCanvas {
     this.#seatOnFloor = !!on;
   }
 
+  /**
+   * Size the surface to the wrap's CONTENT box. `.svg-area` carries 12px of padding, and the canvas is a
+   * `width: 100%` child of it — so measuring the padded box (`clientWidth`) describes a box 24px wider
+   * than the element actually is, and the bitmap drawn for it lands stretched. CanvasBase subtracts the
+   * same padding for the same reason.
+   */
   resize() {
     const wrap = this.#canvas.parentElement;
-    this.#canvas.width  = wrap.clientWidth;
-    this.#canvas.height = wrap.clientHeight;
+    if (!wrap) return;
+    const pad = getComputedStyle(wrap);
+    const w = wrap.clientWidth  - parseFloat(pad.paddingLeft || 0) - parseFloat(pad.paddingRight  || 0);
+    const h = wrap.clientHeight - parseFloat(pad.paddingTop  || 0) - parseFloat(pad.paddingBottom || 0);
+    if (!(w > 0) || !(h > 0)) return;
+    this.#painter.resize(w, h);
+    this.#width  = w;
+    this.#height = h;
     this._computeLayout();
     this._render();
   }
 
+  /** Drop the resize observer and the painter's theme watcher. */
+  dispose() {
+    this.#observer?.disconnect();
+    this.#observer = null;
+    this.#painter?.dispose();
+  }
+
+  /** The phases painted in the last frame, bottom first. */
+  get paintOrder() { return this.#painter?.layers ?? []; }
+
   // ── Layout ─────────────────────────────────────────────────────────────────
+
+  // Follow the container without the host having to remember: this canvas is mounted inside phases that
+  // are laid out after the mount, so a size arriving late is the normal case rather than the exception.
+  _observeResize() {
+    if (typeof ResizeObserver === "undefined") return;
+    this.#observer = new ResizeObserver(() => {
+      const wrap = this.#canvas.parentElement;
+      if (wrap?.clientWidth > 0 && wrap?.clientHeight > 0) this.resize();
+    });
+    this.#observer.observe(this.#canvas.parentElement);
+  }
 
   _computeLayout() {
     if (!this.#data) return;
     const { primary_count, y_count } = this.#data;
     const pad = 20;
-    const avW = this.#canvas.width  - 2 * pad - _HANDLE_W;
-    const avH = this.#canvas.height - 2 * pad;
+    const avW = this.#width  - 2 * pad - _HANDLE_W;
+    const avH = this.#height - 2 * pad;
     const s = Math.max(1, Math.min(
       Math.floor(avW / primary_count),
       Math.floor(avH / y_count),
     ));
     this.#scale   = s;
-    this.#offsetX = Math.floor((this.#canvas.width  - _HANDLE_W - primary_count * s) / 2);
-    this.#offsetY = Math.floor((this.#canvas.height - y_count   * s) / 2);
+    this.#offsetX = Math.floor((this.#width  - _HANDLE_W - primary_count * s) / 2);
+    this.#offsetY = Math.floor((this.#height - y_count   * s) / 2);
   }
 
   // ── Offscreen block image ──────────────────────────────────────────────────
@@ -127,21 +184,26 @@ export class SideviewCanvas {
   // ── Rendering ──────────────────────────────────────────────────────────────
 
   _render() {
+    const painter = this.#painter;
     const ctx = this.#ctx;
-    const W   = this.#canvas.width;
-    const H   = this.#canvas.height;
+    const W = this.#width, H = this.#height;
+    if (!W || !H) return;
 
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = getComputedStyle(document.documentElement)
-      .getPropertyValue("--bg-canvas").trim() || "#111";
-    ctx.fillRect(0, 0, W, H);
+    // No pan or zoom here, so the frame opens at scale 1 — which leaves every draw below in CSS pixels,
+    // the same units the pointer handlers hit-test in.
+    painter.begin(1, 0, 0);
+
+    painter.layer("backdrop", () => {
+      ctx.fillStyle = painter.color("var(--bg-canvas, #111)");
+      ctx.fillRect(0, 0, W, H);
+    });
 
     if (!this.#data || !this.#offscreen) {
-      ctx.fillStyle = getComputedStyle(document.documentElement)
-        .getPropertyValue("--text-muted").trim() || "#888";
-      ctx.font      = "14px system-ui,sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("No segment data", W / 2, H / 2);
+      painter.layer("empty", () => {
+        painter.text("No segment data", W / 2, H / 2, {
+          fill: "var(--text-muted, #888)", size: 14, font: "system-ui, sans-serif",
+        });
+      });
       return;
     }
 
@@ -150,63 +212,44 @@ export class SideviewCanvas {
     const ox = this.#offsetX;
     const oy = this.#offsetY;
 
-    // Block image
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(this.#offscreen, ox, oy, primary_count * s, y_count * s);
+    painter.layer("blocks", () => {
+      ctx.imageSmoothingEnabled = false;   // restored with the phase — the depth map is per-block pixels
+      ctx.drawImage(this.#offscreen, ox, oy, primary_count * s, y_count * s);
+    });
 
-    // Build height line
-    if (this.#buildHeight !== null) {
+    painter.layer("height", () => {
+      if (this.#buildHeight === null) return;
       const lineY = this._lineCanvasY(this.#buildHeight);
-      if (lineY !== null) {
-        const x1 = ox;
-        const x2 = ox + primary_count * s;
-        const lineColor = getComputedStyle(document.documentElement)
-          .getPropertyValue("--canvas-sideview-line").trim() || _LINE_COLOR;
+      if (lineY === null) return;
+      const x1 = ox;
+      const x2 = ox + primary_count * s;
 
-        ctx.strokeStyle = lineColor;
-        ctx.lineWidth   = 2;
-        ctx.setLineDash(_LINE_DASH);
-        ctx.beginPath();
-        ctx.moveTo(x1, lineY);
-        ctx.lineTo(x2, lineY);
-        ctx.stroke();
-        ctx.setLineDash([]);
+      painter.line(x1, lineY, x2, lineY, { stroke: _LINE_COLOR, width: 2, dash: _LINE_DASH });
 
-        // Drag handle tab on right side
-        const hx = x2 + 4;
-        ctx.fillStyle = lineColor;
-        ctx.fillRect(hx, lineY - _HANDLE_H / 2, _HANDLE_W, _HANDLE_H);
+      // Drag handle tab on right side
+      ctx.fillStyle = painter.color(_LINE_COLOR);
+      ctx.fillRect(x2 + 4, lineY - _HANDLE_H / 2, _HANDLE_W, _HANDLE_H);
 
-        // Y label
-        ctx.fillStyle  = lineColor;
-        ctx.font       = "11px system-ui,sans-serif";
-        ctx.textAlign  = "right";
-        ctx.textBaseline = "bottom";
-        ctx.fillText(`Y ${this.#buildHeight}`, x1 - 4, lineY - 2);
-      }
-    }
+      painter.text(`Y ${this.#buildHeight}`, x1 - 4, lineY - 2, {
+        fill: _LINE_COLOR, size: 11, font: "system-ui, sans-serif",
+        align: "right", baseline: "bottom",
+      });
+    });
 
     // Point/block marker — the actual region cell, so you can see WHAT you're setting the Y of (not just
     // the level). It sits on the draggable line when editable (tracks buildHeight), else at its own Y.
-    if (this.#marker) {
+    painter.layer("marker", () => {
+      if (!this.#marker) return;
       const { primary_min, y_min } = this.#data;
       const pIdx = this.#marker.p - primary_min;
       const my   = (this.#buildHeight !== null) ? this.#buildHeight : this.#marker.y;
       const yi   = my - y_min;
-      if (pIdx >= 0 && pIdx < primary_count && yi >= 0 && yi < y_count) {
-        const cx = ox + (pIdx + 0.5) * s;
-        const cy = oy + (y_count - 1 - yi) * s + s / 2;
-        const r  = Math.max(4, s * 0.55);
-        const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#5b9cff";
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-        ctx.fillStyle   = accent;
-        ctx.fill();
-        ctx.lineWidth   = 1.5;
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
-      }
-    }
+      if (pIdx < 0 || pIdx >= primary_count || yi < 0 || yi >= y_count) return;
+      painter.dot(ox + (pIdx + 0.5) * s, oy + (y_count - 1 - yi) * s + s / 2, {
+        radius: Math.max(4, s * 0.55),
+        fill: "var(--accent, #5b9cff)", stroke: "#fff", width: 1.5,
+      });
+    });
   }
 
   // ── Coordinate helpers ─────────────────────────────────────────────────────

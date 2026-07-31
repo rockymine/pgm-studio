@@ -30,13 +30,22 @@ The other three canvases are genuinely separate engines because they draw differ
 All three drawing surfaces — world, plan and sketch — are **hybrid**: the world layers are painted each
 frame to a 2-D `<canvas>` pinned under the `<svg>` (via `render/canvas-painter.js` — the fix for Firefox
 holding a stale rasterization across a zoom), while the screen-space chrome (labels, selection box, resize
-handles, the scale bar) stays in the svg, which also remains the single pointer target. Two consequences
-run through everything below. Nothing world-side is retained, so a canvas's own state *is* the picture and
+handles, the scale bar) stays in the svg, which is also the single pointer target. Two consequences run
+through everything below. Nothing world-side is retained, so a canvas's own state *is* the picture and
 every setter ends in a repaint rather than an element edit — which is also why a controller's in-progress
-preview is state with a `paint(painter)` method rather than elements it mutates. And the drawn thing is no
-longer addressable: hit-testing was already data-driven off the document, and what `data-layer` offered for
-the world half is now `painter.layers`. The fixed-fit previews (`ConfigureRenderer`) stay retained SVG on
-purpose: with no viewport transform, they have no rasterization to go stale.
+preview is state with a `paint(painter)` method rather than elements it mutates. And nothing drawn is
+addressable as an element: hit-testing is data-driven off the document, and the world half reports its
+paint order through `painter.layers` rather than through `data-layer`. The fixed-fit previews
+(`ConfigureRenderer`) are retained SVG on purpose: with no viewport transform, they hold no rasterization
+that can go stale.
+
+`SideviewCanvas` is the fourth surface and the odd one: it is painted throughout, with no svg half at all.
+It has no viewport matrix either — its viewport is a fitted integer scale with centring offsets, and it
+neither pans nor zooms, which is why it does not extend `CanvasBase`. It shares `CanvasPainter` for the
+backing store (the CSS box × device pixel ratio) and the colour-token cache, and it draws through the
+primitives whose call sites take plain numbers: `text`, `dot`, `line`. The box-shaped primitives are named
+for the plan's x/z axes while this surface's second axis is elevation, so `min_z` would name a Y — those
+draws are raw context calls inside a `layer()` phase, which brackets them in save/restore.
 
 ## 2. Five layers, one direction
 
@@ -55,8 +64,8 @@ geometry    → (vendor only)
 parts under unit test (§7). `render/` is stateless emit in two dialects. The **painted** dialect is the
 default and takes a `CanvasPainter` plus data: `shape-render`, `sketch-render`, `symmetry-render`,
 `canvas-chrome`'s working area, and `primitive-style`'s whole vocabulary speak it. The **retained** dialect
-(`svg.js`) survives for what genuinely stays in the DOM — the screen-space overlays and the fixed-fit
-previews. Where both are wanted the *geometry* is factored out rather than written twice: `symmetryAxes`
+(`svg.js`) covers what stays in the DOM — the screen-space overlays and the fixed-fit previews. Where both
+are wanted the *geometry* is factored out rather than written twice: `symmetryAxes`
 is the type→lines rule for both, and the path builders (`ringToPath`/`polyToPath`) serve both because a
 canvas `Path2D` takes SVG path data. Neither dialect holds document state. `canvas/` is where state lives.
 `controllers/` are interaction strategies a canvas plugs in. `bridge/` is the only layer that talks to C#.
@@ -86,7 +95,7 @@ canvas layer can then reuse or test it.
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
 | `canvas/world-canvas.js` | the shared engine behind Edit + Configure (§1) |
-| `canvas/plan-canvas.js`, `sketch-canvas.js`, `sideview-canvas.js` | the plan grid, the sketch surface, the Canvas2D cross-section |
+| `canvas/plan-canvas.js`, `sketch-canvas.js`, `sideview-canvas.js` | the plan grid, the sketch surface, the depth cross-section (all painted; the first two hybrid, the third painted throughout) |
 | `canvas/static-renderer.js`, `configure-renderer.js` | fixed-fit non-interactive previews |
 | `controllers/*` | one interaction mode each (§4) |
 | `bridge/*` | one `mount()` per surface (§6) |
@@ -117,9 +126,9 @@ beyond its accessors. The canvas forwards its `CanvasBase` hooks into whichever 
 
 A **draw** controller holds its in-progress primitive as numbers and draws it through `paint(painter)`
 from the canvas's `draw` phase, reporting each change through `onPreviewChanged` so the canvas repaints.
-It does not own a layer, because nothing world-side survives a frame. An **edit** controller is the
-opposite case and still emits elements: its handles are screen-space, where a fixed pixel size, a cursor
-and a `mousedown` target are exactly what is wanted.
+It does not own a layer, because nothing world-side persists between frames. An **edit** controller is the
+opposite case and emits elements: its handles are screen-space, where a fixed pixel size, a cursor and a
+`mousedown` target are exactly what is wanted.
 
 There are two pairs — `world-draw`/`sketch-draw` and `world-edit`/`sketch-edit` — and **they are
 deliberately not merged.** They share a protocol, not an implementation: the world canvas draws region
@@ -172,18 +181,19 @@ other **28 files, roughly 7,000 lines, are never imported by a test at all** —
 every controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage` reports
 such files as *absent*, not as zero, so the report reads healthier than the tree is.
 
-This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. Painting moved
-the line a little in the tested direction, because a stateless painter takes a stand-in: `_painter-stub.js`
+This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The painted
+render layer sits on the tested side of it because a stateless painter takes a stand-in — `_painter-stub.js`
 records what was drawn, so `shape-render`, `symmetry-render` and the style vocabulary are asserted on
-without a canvas. The way to improve the rest is still not to mock a canvas but to keep extracting
-decidable logic — hit-testing, snapping, viewport maths, selection resolution — down into the pure layers
-where the existing harness already reaches (**CV12**).
+without a canvas. The way to reach the rest is not to mock a canvas but to keep extracting decidable logic
+— hit-testing, snapping, viewport maths, selection resolution — down into the pure layers where the
+existing harness already reaches (**CV12**).
 
 Above the unit line, `tests/e2e/paint.mjs` is the one check that a painted surface actually paints. A blank
 canvas raises no error and leaves no elements behind, so it is exactly as "clean" as a working one to the
-smoke sweep; `paint.mjs` asserts on pixels instead, for each of the three surfaces: painted coverage,
-buffer = CSS box × DPR, the screen chrome still in the svg, and that a wheel burst *changes* the pixel
-signature — which a stretched raster would not.
+smoke sweep; `paint.mjs` asserts on pixels instead, for each of the three hybrid surfaces: painted
+coverage, buffer = CSS box × DPR, the screen chrome present in the svg, and that a wheel burst *changes*
+the pixel signature — which a stretched raster would not. It reaches the world canvas through the Edit
+tool's nav rail, since that route opens on a phase with no canvas mounted.
 
 ## 8. Known duplication and open work
 

@@ -1960,6 +1960,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   report that a surface draws, while Firefox is where a stretched rasterization would still be visible. It
   is not — on any of the three. (CV18)
 
+- **The side view shares the painter too (CV18 follow-up)** — `canvas/sideview-canvas.js` +
+  `bridge/sideview-bridge.js`. The depth cross-section was the one surface still driving a 2-D context by
+  hand. It never had the zoom artifact — it has no svg DOM and no viewport matrix — but it carried the two
+  defects `CanvasPainter` exists to prevent: it re-read four CSS custom properties from the document on
+  *every* paint (the exact shape the token cache replaces, and the in-repo precedent the CV18 investigation
+  cited), and it handled `devicePixelRatio` not at all, so its text and hairlines were soft on any HiDPI
+  display. It now takes the painter's backing store, token cache and `layer()` phases — which also stops
+  `imageSmoothingEnabled` leaking out of the block blit that wants it. A third defect surfaced on the way:
+  it sized the bitmap from the wrap's *padded* box while the element itself is `width: 100%` of the content
+  box, so every frame was drawn 24px wider than the element and stretched to fit; it now measures the
+  content box, as `CanvasBase` already did for the same padding. It keeps its own viewport (a fitted
+  integer scale, no pan or zoom) and uses only the primitives whose call sites take plain numbers, since
+  the box-shaped ones are named for the plan's x/z axes and this surface's second axis is elevation. Gained
+  a `ResizeObserver` so it follows its container, and a real `dispose` on both bridge mounts. Verified by
+  hand on Build Regions and the region inspector's slice: the depth map, the dashed height line with its
+  label and drag tab, the marker dot, and a drag that lands on the Y under the cursor. JS 188/188, e2e
+  19/19 paint + 33/33 smoke + 22/22 refusals + 19/19 icons, build clean. (CV18)
+
 - **The plan canvas's world layers are painted, not retained (CV18)** — `render/canvas-painter.js` +
   `canvas/plan-canvas.js` + `tests/js/canvas-painter.test.js` + `tests/e2e/paint.mjs` +
   `tools/painter-probe.mjs`. Zooming an authoring canvas in Firefox left the picture soft until the next
