@@ -1951,9 +1951,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   same scale as everything under them; the edit controllers' handles stay SVG, where a fixed pixel size
   and a `mousedown` target are the point. `WorldCanvas` gained a real `dispose` (a painted surface owns a
   canvas element, a resize observer and a theme watcher, and sixteen hosts mount it). `paint.mjs` now
-  sweeps all three surfaces. JS 188/188, client build clean; plan, sketch, and the Configure and Edit
-  world canvases verified by hand — islands, regions, block overlay, symmetry axes, selection chrome,
-  and a zoom that redraws sharp. (CV18)
+  sweeps all three surfaces, though it is unrun so far — Playwright is a developer-machine prerequisite
+  and the machine this landed on has none. JS 188/188, client build clean; plan, sketch, and the Configure
+  and Edit world canvases verified by hand — islands, regions, block overlay, symmetry axes, selection
+  chrome, and a zoom that redraws sharp. **Accepted on a real Firefox**, which is the verification that
+  counts here: Chrome never showed the artifact, so it can only report that a surface draws, while Firefox
+  is where a stretched rasterization would still be visible. It is not — on any of the three. (CV18)
 
 - **The plan canvas's world layers are painted, not retained (CV18)** — `render/canvas-painter.js` +
   `canvas/plan-canvas.js` + `tests/js/canvas-painter.test.js` + `tests/e2e/paint.mjs` +
