@@ -1024,7 +1024,6 @@ export class PlanCanvas extends CanvasBase {
     const kind = this.#drag.kind;
     const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
     this.#drag = null;
-    
     this.#cb.onCreate?.(kind, rect);          // the bridge mints the id, appends, and re-selects
     this.setTool("select"); this.#cb.onTool?.("select");
   }
@@ -1051,7 +1050,6 @@ export class PlanCanvas extends CanvasBase {
   }
 
   // ── build ─────────────────────────────────────────────────────────────────────
-
 
   #build() {
     const { w, h } = this._size();

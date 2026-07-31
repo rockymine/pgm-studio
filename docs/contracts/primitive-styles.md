@@ -1,7 +1,11 @@
 # Primitive drawing styles across the four editors — audit & unification (CV9)
 
-Status: **landed** (`CV9`). This is the cross-editor inventory of *how a drawable primitive is rendered
-and styled* in **Sketch**, **Edit**, **Configure**, and **Plan**, and the design that unified it. It
+Status: **landed** (`CV9`); the Plan rows date from before `CV18`. This is the cross-editor inventory of
+*how a drawable primitive is rendered and styled* in **Sketch**, **Edit**, **Configure**, and **Plan**,
+and the design that unified it. Since `CV18` the plan canvas paints its world layers to a 2-D `<canvas>`
+rather than emitting SVG elements — the style *vocabulary* below (tiers, colours, dashes, the hatch) is
+unchanged, but Plan's "SVG element" and `plan-canvas.js:NNN` references describe the retained renderer
+this audit inventoried, not the painter that replaced it. It
 widens the scope of `canvas-interaction.md` §10 (which only compares Edit vs Configure) to all four
 surfaces. §6's conclusion is now implemented — the shared helper is `render/primitive-style.js`
 (`primitiveStyle`), and `renderShape` has the `point` case.

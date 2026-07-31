@@ -25,7 +25,12 @@ duplication — leave them alone.
 
 The other three canvases are genuinely separate engines because they draw different things: `PlanCanvas`
 (the coarse cell grid of the plan editor), `SketchCanvas` (freeform shapes and boolean islands), and
-`SideviewCanvas` (a Canvas2D depth cross-section, the only non-SVG surface).
+`SideviewCanvas` (a Canvas2D depth cross-section). `PlanCanvas` is a **hybrid surface**: its world
+layers are painted each frame to a 2-D `<canvas>` pinned under the `<svg>` (via `render/canvas-painter.js`
+— the fix for Firefox holding a stale rasterization across a zoom), while its screen-space chrome
+(labels, selection box, resize handles, scale bar) stays in the svg, which also remains the single
+pointer target. The world and sketch canvases still render everything as retained SVG; converting them
+is the open half of `CV18`.
 
 ## 2. Five layers, one direction
 
@@ -41,8 +46,9 @@ geometry    → (vendor only)
 ```
 
 `geometry/` and `plan/` are pure: point arrays and numbers, **no DOM**, which is exactly why they are the
-parts under unit test (§7). `render/` is stateless SVG emit — it takes geometry plus a `toSvg` and returns
-elements, holding no state of its own. `canvas/` is where state lives. `controllers/` are interaction
+parts under unit test (§7). `render/` is stateless emit in two dialects: the SVG half takes geometry plus
+a `toSvg` and returns elements, and `canvas-painter.js` is the painted counterpart — a per-frame 2-D
+surface a canvas draws into. Neither holds document state. `canvas/` is where state lives. `controllers/` are interaction
 strategies a canvas plugs in. `bridge/` is the only layer that talks to C#.
 
 Keeping a new module in the lowest layer that can hold it is the rule that has kept this tree navigable;
@@ -63,6 +69,8 @@ canvas layer can then reuse or test it.
 | `plan/plan-inspect.js` | derived-structure overlay helpers for the plan inspect layer |
 | `render/svg.js` | the element factory and path builders every other renderer uses |
 | `render/layer-stack.js` | the z-ordered layer groups, declared once per canvas (key order = paint order, bottom first); each group carries `data-layer="<name>"`, plus `showLayer`/`showLayers`/`clearLayer` |
+| `render/canvas-painter.js` | the painted counterpart to the layer stack: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen stroke width, and `token` resolves/caches CSS custom properties, demoting any value the context won't parse |
+| `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the scale bar |
 | `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless emit for primitives, sketch overlays, symmetry axes, block PNGs |
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
@@ -140,11 +148,12 @@ only the invoke wrapper, which is inconsistent today (**CV15**).
 ## 7. What is tested, and what is not
 
 `npm test` (or `tools/js-test.sh`) runs Node's built-in runner over `tests/js/` — no `node_modules`, so it
-works from the shared folder. 148 tests pass.
+works from the shared folder. 166 tests pass.
 
-Coverage splits cleanly along the DOM line. The fifteen modules the tests import average **82.8%** lines,
-several at 100% (`transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`, `decompose-cut`). The other
-**26 files, roughly 6,900 lines, are never imported by a test at all** — every canvas, every bridge, every
+Coverage splits cleanly along the DOM line. The sixteen modules the tests import average **83.7%** lines,
+several at 100% (`transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`, `decompose-cut`);
+`canvas-painter` is the one DOM-adjacent module under test, via a small stub. The other
+**25 files, roughly 7,000 lines, are never imported by a test at all** — every canvas, every bridge, every
 controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage` reports such
 files as *absent*, not as zero, so the report reads healthier than the tree is.
 
