@@ -25,12 +25,18 @@ duplication — leave them alone.
 
 The other three canvases are genuinely separate engines because they draw different things: `PlanCanvas`
 (the coarse cell grid of the plan editor), `SketchCanvas` (freeform shapes and boolean islands), and
-`SideviewCanvas` (a Canvas2D depth cross-section). `PlanCanvas` is a **hybrid surface**: its world
-layers are painted each frame to a 2-D `<canvas>` pinned under the `<svg>` (via `render/canvas-painter.js`
-— the fix for Firefox holding a stale rasterization across a zoom), while its screen-space chrome
-(labels, selection box, resize handles, scale bar) stays in the svg, which also remains the single
-pointer target. The world and sketch canvases still render everything as retained SVG; converting them
-is the open half of `CV18`.
+`SideviewCanvas` (a Canvas2D depth cross-section).
+
+All three drawing surfaces — world, plan and sketch — are **hybrid**: the world layers are painted each
+frame to a 2-D `<canvas>` pinned under the `<svg>` (via `render/canvas-painter.js` — the fix for Firefox
+holding a stale rasterization across a zoom), while the screen-space chrome (labels, selection box, resize
+handles, the scale bar) stays in the svg, which also remains the single pointer target. Two consequences
+run through everything below. Nothing world-side is retained, so a canvas's own state *is* the picture and
+every setter ends in a repaint rather than an element edit — which is also why a controller's in-progress
+preview is state with a `paint(painter)` method rather than elements it mutates. And the drawn thing is no
+longer addressable: hit-testing was already data-driven off the document, and what `data-layer` offered for
+the world half is now `painter.layers`. The fixed-fit previews (`ConfigureRenderer`) stay retained SVG on
+purpose: with no viewport transform, they have no rasterization to go stale.
 
 ## 2. Five layers, one direction
 
@@ -46,10 +52,14 @@ geometry    → (vendor only)
 ```
 
 `geometry/` and `plan/` are pure: point arrays and numbers, **no DOM**, which is exactly why they are the
-parts under unit test (§7). `render/` is stateless emit in two dialects: the SVG half takes geometry plus
-a `toSvg` and returns elements, and `canvas-painter.js` is the painted counterpart — a per-frame 2-D
-surface a canvas draws into. Neither holds document state. `canvas/` is where state lives. `controllers/` are interaction
-strategies a canvas plugs in. `bridge/` is the only layer that talks to C#.
+parts under unit test (§7). `render/` is stateless emit in two dialects. The **painted** dialect is the
+default and takes a `CanvasPainter` plus data: `shape-render`, `sketch-render`, `symmetry-render`,
+`canvas-chrome`'s working area, and `primitive-style`'s whole vocabulary speak it. The **retained** dialect
+(`svg.js`) survives for what genuinely stays in the DOM — the screen-space overlays and the fixed-fit
+previews. Where both are wanted the *geometry* is factored out rather than written twice: `symmetryAxes`
+is the type→lines rule for both, and the path builders (`ringToPath`/`polyToPath`) serve both because a
+canvas `Path2D` takes SVG path data. Neither dialect holds document state. `canvas/` is where state lives.
+`controllers/` are interaction strategies a canvas plugs in. `bridge/` is the only layer that talks to C#.
 
 Keeping a new module in the lowest layer that can hold it is the rule that has kept this tree navigable;
 the corollary is that **pure logic must not be written inside a canvas class**, because nothing below the
@@ -67,11 +77,11 @@ canvas layer can then reuse or test it.
 | `geometry/islands.js`, `region-convert.js`, `shape-library.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions; drag-on primitives |
 | `plan/plan-doc.js` | the plan document model + its geometry (pure; the wire format lives here) |
 | `plan/plan-inspect.js` | derived-structure overlay helpers for the plan inspect layer |
-| `render/svg.js` | the element factory and path builders every other renderer uses |
-| `render/layer-stack.js` | the z-ordered layer groups, declared once per canvas (key order = paint order, bottom first); each group carries `data-layer="<name>"`, plus `showLayer`/`showLayers`/`clearLayer` |
-| `render/canvas-painter.js` | the painted counterpart to the layer stack: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen stroke width, and `token` resolves/caches CSS custom properties, demoting any value the context won't parse |
-| `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the scale bar |
-| `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless emit for primitives, sketch overlays, symmetry axes, block PNGs |
+| `render/svg.js` | the retained dialect: the element factory for the screen-space overlays and the fixed-fit previews, plus the path builders both dialects share |
+| `render/layer-stack.js` | the z-ordered **screen-space** layer groups, declared once per canvas (key order = paint order, bottom first); each group carries `data-layer="<name>"`, plus `showLayers`/`clearLayer` |
+| `render/canvas-painter.js` | the painted dialect, and the whole of it: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen stroke width, `token`/`color` resolve and cache CSS custom properties (demoting any value the context won't parse), `toSurface` carries the world→surface fit, and the primitives (`rect`/`line`/`segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`) take world coordinates and one style vocabulary |
+| `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the painted working area, the scale bar |
+| `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless painting for primitives, sketch overlays, symmetry axes, block PNGs |
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
@@ -100,14 +110,19 @@ fallback.
 ## 4. Controllers
 
 A controller encapsulates exactly one interaction mode. It is a plain class that takes **accessor
-closures** in its constructor — getters for the layer or transform it needs, because layers are rebuilt on
-repaint — plus a callbacks object. It exposes `onMouseDown`/`onMouseMove`/`onMouseUp`, `cancel()`, and
-mode-specific extras such as `onResizeMove`/`onResizeUp`, `onDblClick` or `refresh`. It never reaches into
-canvas internals beyond its accessors. The canvas forwards its `CanvasBase` hooks into whichever
-controller is active.
+closures** in its constructor — getters for the screen-space layer or transform it needs — plus a
+callbacks object. It exposes `onMouseDown`/`onMouseMove`/`onMouseUp`, `cancel()`, and mode-specific extras
+such as `onResizeMove`/`onResizeUp`, `onDblClick` or `refresh`. It never reaches into canvas internals
+beyond its accessors. The canvas forwards its `CanvasBase` hooks into whichever controller is active.
 
-There are two pairs — `editor-draw`/`sketch-draw` and `editor-edit`/`sketch-edit` — and **they are
-deliberately not merged.** They share a protocol, not an implementation: the editor draws region
+A **draw** controller holds its in-progress primitive as numbers and draws it through `paint(painter)`
+from the canvas's `draw` phase, reporting each change through `onPreviewChanged` so the canvas repaints.
+It does not own a layer, because nothing world-side survives a frame. An **edit** controller is the
+opposite case and still emits elements: its handles are screen-space, where a fixed pixel size, a cursor
+and a `mousedown` target are exactly what is wanted.
+
+There are two pairs — `world-draw`/`sketch-draw` and `world-edit`/`sketch-edit` — and **they are
+deliberately not merged.** They share a protocol, not an implementation: the world canvas draws region
 primitives (rectangle drag, two-click cylinder) and resizes bounds with an 8-handle box plus keyboard
 nudge, while the sketch tool draws four shape types under a boolean operation and edits individual
 vertices, Bézier tangents and snapped edges. Unifying them would mean one class with two disjoint halves.
@@ -148,19 +163,27 @@ only the invoke wrapper, which is inconsistent today (**CV15**).
 ## 7. What is tested, and what is not
 
 `npm test` (or `tools/js-test.sh`) runs Node's built-in runner over `tests/js/` — no `node_modules`, so it
-works from the shared folder. 166 tests pass.
+works from the shared folder. 188 tests pass.
 
-Coverage splits cleanly along the DOM line. The sixteen modules the tests import average **83.7%** lines,
-several at 100% (`transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`, `decompose-cut`);
-`canvas-painter` is the one DOM-adjacent module under test, via a small stub. The other
-**25 files, roughly 7,000 lines, are never imported by a test at all** — every canvas, every bridge, every
-controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage` reports such
-files as *absent*, not as zero, so the report reads healthier than the tree is.
+Coverage splits cleanly along the DOM line. The seventeen modules the tests import average **92.0%** lines,
+several at 100% (`transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`, `decompose-cut`,
+`shape-render`); `canvas-painter` is the one DOM-adjacent module under test, via a small context stub. The
+other **28 files, roughly 7,000 lines, are never imported by a test at all** — every canvas, every bridge,
+every controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage` reports
+such files as *absent*, not as zero, so the report reads healthier than the tree is.
 
-This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The way to
-improve it is not to mock a canvas but to keep extracting decidable logic — hit-testing, snapping,
-viewport maths, selection resolution — down into the pure layers where the existing harness already
-reaches (**CV12**).
+This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. Painting moved
+the line a little in the tested direction, because a stateless painter takes a stand-in: `_painter-stub.js`
+records what was drawn, so `shape-render`, `symmetry-render` and the style vocabulary are asserted on
+without a canvas. The way to improve the rest is still not to mock a canvas but to keep extracting
+decidable logic — hit-testing, snapping, viewport maths, selection resolution — down into the pure layers
+where the existing harness already reaches (**CV12**).
+
+Above the unit line, `tests/e2e/paint.mjs` is the one check that a painted surface actually paints. A blank
+canvas raises no error and leaves no elements behind, so it is exactly as "clean" as a working one to the
+smoke sweep; `paint.mjs` asserts on pixels instead, for each of the three surfaces: painted coverage,
+buffer = CSS box × DPR, the screen chrome still in the svg, and that a wheel burst *changes* the pixel
+signature — which a stretched raster would not.
 
 ## 8. Known duplication and open work
 
@@ -170,8 +193,8 @@ line terms — a few hundred at most. It is filed because it costs *consistency*
 
 - **CV15** — the bridge invoke wrapper: `plan-bridge` and `sketch-bridge` guard `invokeMethodAsync` in a
   `fire()` helper, `world-bridge` calls it unguarded.
-- **CV9** — a point renders as a 1×1 `<rect>` on Edit and a fixed-radius `<circle>` on Configure. Tracked
-  with the full four-editor audit in `primitive-styles.md`.
+- **CV9** — a point draws as a 1×1 block on Edit and as a fixed-radius dot on Configure. Tracked with the
+  full four-editor audit in `primitive-styles.md`.
 
 One stale reference remains in a module header: `static-renderer.js` cites an `OverviewRenderer` that no
 longer exists.

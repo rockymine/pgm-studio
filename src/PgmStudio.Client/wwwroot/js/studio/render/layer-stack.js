@@ -1,14 +1,15 @@
 /**
- * A canvas's layer <g> stack, declared once.
+ * A canvas's **screen-space** layer <g> stack, declared once.
  *
- * Each authoring canvas paints into a fixed stack of SVG groups, and the stack's order IS its z-order.
- * Declared by hand that order gets stated **twice** — once by the field declarations, once by the
- * append loop — and the two can silently drift; `layerStack` states it once: the key order in the spec
- * is the paint order, bottom first.
+ * Each canvas keeps a fixed stack of SVG groups above its painted world — labels, selection chrome,
+ * handles, the scale bar — and the stack's order IS its z-order. Declared by hand that order gets stated
+ * **twice** (once by the field declarations, once by the append loop) and the two can silently drift;
+ * `layerStack` states it once: the key order in the spec is the paint order, bottom first.
  *
  * Each group carries `data-layer="<name>"`, so a layer can be addressed by name from the outside
  * (dev tools, an end-to-end probe) instead of by its index among its siblings — an index that moves
- * whenever a layer is inserted.
+ * whenever a layer is inserted. The world half is painted rather than retained and has no elements to
+ * address, so it reports its own order instead: `painter.layers`.
  */
 
 import { svgEl } from "./svg.js";
@@ -30,14 +31,9 @@ export function layerStack(parent, spec) {
   return layers;
 }
 
-/** Show or hide one layer (or any element). */
-export function showLayer(el, on) {
-  if (el) el.style.display = on ? "" : "none";
-}
-
-/** Show or hide several at once — the shape the 3-D preview's enter/leave needs. */
+/** Show or hide several elements at once — the shape the 3-D preview's enter/leave needs. */
 export function showLayers(els, on) {
-  for (const el of els) showLayer(el, on);
+  for (const el of els) if (el) el.style.display = on ? "" : "none";
 }
 
 /** Remove every child of a layer, leaving the group in place. */

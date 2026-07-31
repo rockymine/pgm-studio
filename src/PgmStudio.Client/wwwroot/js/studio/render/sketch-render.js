@@ -1,152 +1,102 @@
 /**
- * Stateless SVG emit for the sketch tool — draw primitives, island/mirror result polygons, and the
- * setup overlays (bbox / chunk grid / symmetry axis). Each function takes a layer <g> (or returns an
- * element) + data + a world→SVG transform; the canvas owns the layer lifecycle and calls these, so
- * sketch-canvas.js stays focused on state + interaction (no rendering bulk). Reuses render/shape-render
- * + render/svg. No interaction wiring — the canvas attaches handlers to the returned shape group.
+ * Stateless paint for the sketch tool — draw primitives, island/mirror result polygons, and the setup
+ * overlays (bbox / chunk grid / symmetry axis). Each function takes the canvas's `CanvasPainter` + data
+ * and draws; nothing is retained between frames, so the canvas owns *when* to paint and this owns *what*
+ * a thing looks like — which keeps sketch-canvas.js focused on state + interaction. Reuses
+ * render/shape-render for type dispatch and render/primitive-style for the treatment tiers.
  */
 
-import { svgEl, ringToPath, polyToPath } from "./svg.js";
-import { renderShape } from "./shape-render.js";
+import { paintShape } from "./shape-render.js";
 import { primitiveStyle, opColors } from "./primitive-style.js";
 
-function clear(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
-
-function shapeAttrs(shape) {
+function shapeStyle(shape, selected) {
   const { fill, stroke } = opColors(shape.operation);
-  return primitiveStyle("sketch", { fill, stroke, override: shape.override });
+  const style = primitiveStyle("sketch", { fill, stroke, override: shape.override });
+  // Selection chrome without a class to toggle: a heavier stroke and a denser fill on the shape itself.
+  return selected ? { ...style, width: 2.5, fillAlpha: 0.4 } : style;
+}
+
+/** One draw primitive: add/subtract coloured, dashed when it overrides the normal boolean order. */
+export function paintSketchShape(painter, shape, { selected = false, alpha = 1 } = {}) {
+  const style = { ...shapeStyle(shape, selected), alpha };
+  if (shape.type === "rectangle") {
+    paintShape(painter, "rectangle", shape, style);
+  } else if (shape.type === "circle") {
+    paintShape(painter, "circle", {
+      min_x: shape.center_x - shape.radius, max_x: shape.center_x + shape.radius,
+      min_z: shape.center_z - shape.radius, max_z: shape.center_z + shape.radius,
+    }, style);
+  } else if ((shape.type === "polygon" || shape.type === "lasso") && (shape.vertices?.length ?? 0) >= 3) {
+    painter.ring(shape.vertices, { ...style, fillRule: "evenodd" }, shape.controls || {});
+  }
+}
+
+/** Ghost preview of a library item being placed — the (already world-positioned) shape specs, faded. */
+export function paintPlaceGhost(painter, specs) {
+  for (const spec of specs ?? []) paintSketchShape(painter, spec, { alpha: 0.55 });
+}
+
+/** The computed island result polygons (exterior + holes). */
+export function paintIslands(painter, islands) {
+  for (const island of islands ?? []) {
+    if (!island?.exterior?.length) continue;
+    painter.poly({ exterior: island.exterior, holes: island.holes ?? [] }, {
+      fill: "var(--canvas-result-fill)", fillAlpha: 0.22,
+      stroke: "var(--canvas-result-stroke)", width: 1.5,
+    });
+  }
+}
+
+/** The *other* layers' island outlines, faintly — context for aligning the active layer. */
+export function paintGhostIslands(painter, polys) {
+  for (const poly of polys ?? []) {
+    if (!poly?.exterior?.length) continue;
+    painter.poly({ exterior: poly.exterior, holes: poly.holes ?? [] }, {
+      fill: "var(--canvas-island)", fillAlpha: 0.07,
+      stroke: "var(--canvas-island)", width: 1, dash: [2, 4],
+    });
+  }
+}
+
+/** The live mirror-preview polygons. */
+export function paintMirror(painter, polys) {
+  for (const poly of polys ?? []) {
+    if (!poly?.exterior?.length) continue;
+    painter.poly({ exterior: poly.exterior, holes: poly.holes ?? [] }, {
+      fill: "var(--canvas-mirror-fill)", stroke: "var(--canvas-mirror-stroke)", width: 1,
+    });
+  }
+}
+
+/** The working-bounds rectangle — the tight world bound of what a finish would rasterize. */
+export function paintBbox(painter, bbox) {
+  if (!bbox) return;
+  painter.rect(bbox, { stroke: "var(--border)", width: 1 });
 }
 
 /**
- * Build the SVG group for a draw primitive — `<g class="sk-shape" data-id>` containing the styled
- * shape (add/subtract colour, dashed when override). No event handlers (the canvas attaches them).
+ * The chunk grid across the visible extent. `step` is a multiple of the chunk: 1 draws every chunk line,
+ * higher values thin the grid out when a chunk is only a few pixels across (see canvas-chrome's
+ * gridStep), so zooming out cannot grow the line count without bound. Every line is one path.
  */
-export function renderSketchShape(shape, toSvg) {
-  const attrs = shapeAttrs(shape);
-  const g = svgEl("g", { class: "sk-shape", "data-id": shape.id });
-
-  if (shape.type === "rectangle") {
-    const el = renderShape("rectangle", shape, toSvg, attrs);
-    if (el) g.appendChild(el);
-  } else if (shape.type === "circle") {
-    const b = {
-      min_x: shape.center_x - shape.radius, max_x: shape.center_x + shape.radius,
-      min_z: shape.center_z - shape.radius, max_z: shape.center_z + shape.radius,
-    };
-    const el = renderShape("circle", b, toSvg, attrs);
-    if (el) g.appendChild(el);
-  } else if (shape.type === "polygon" || shape.type === "lasso") {
-    if ((shape.vertices?.length ?? 0) >= 3) {
-      g.appendChild(svgEl("path", {
-        d: ringToPath(shape.vertices, toSvg, shape.controls || {}),
-        "fill-rule": "evenodd", ...attrs,
-      }));
-    }
-  }
-  return g;
-}
-
-/** Ghost preview of a library item being placed — the (already world-positioned) shape specs at
- *  reduced opacity. Cleared first; `specs` null/empty clears the layer. */
-export function renderPlaceGhost(layer, specs, toSvg) {
-  clear(layer);
-  if (!specs?.length) return;
-  for (const spec of specs) {
-    const g = renderSketchShape({ ...spec, id: "ghost" }, toSvg);
-    g.setAttribute("opacity", "0.55");
-    layer.appendChild(g);
-  }
-}
-
-/** Paint the computed island result polygons (exterior + holes) into `layer` (cleared first). */
-export function renderIslands(layer, islands, toSvg) {
-  clear(layer);
-  for (const isl of islands) {
-    if (!isl?.exterior?.length) continue;
-    layer.appendChild(svgEl("path", {
-      d: polyToPath({ exterior: isl.exterior, holes: isl.holes ?? [] }, toSvg),
-      fill: "var(--canvas-result-fill)", stroke: "var(--canvas-result-stroke)",
-      "stroke-width": "1.5", "fill-opacity": "0.22", "fill-rule": "evenodd",
-      "vector-effect": "non-scaling-stroke",
-    }));
-  }
-}
-
-/** Paint the *other* layers' island outlines faintly (S7) — context for aligning the active layer. */
-export function renderGhostIslands(layer, polys, toSvg) {
-  clear(layer);
-  for (const p of polys) {
-    if (!p?.exterior?.length) continue;
-    layer.appendChild(svgEl("path", {
-      d: polyToPath({ exterior: p.exterior, holes: p.holes ?? [] }, toSvg),
-      fill: "var(--canvas-island)", "fill-opacity": "0.07",
-      stroke: "var(--canvas-island)", "stroke-width": "1", "stroke-dasharray": "2 4",
-      "fill-rule": "evenodd", "vector-effect": "non-scaling-stroke",
-    }));
-  }
-}
-
-/** Paint the live mirror-preview polygons into `layer` (cleared first). */
-export function renderMirror(layer, polys, toSvg) {
-  clear(layer);
-  for (const poly of polys) {
-    if (!poly?.exterior?.length) continue;
-    layer.appendChild(svgEl("path", {
-      d: polyToPath({ exterior: poly.exterior, holes: poly.holes ?? [] }, toSvg),
-      fill: "var(--canvas-mirror-fill)", stroke: "var(--canvas-mirror-stroke)",
-      "stroke-width": "1", "fill-rule": "evenodd", "vector-effect": "non-scaling-stroke",
-    }));
-  }
-}
-
-/** The working-bounds rectangle. */
-export function renderBbox(layer, bbox, toSvg) {
-  clear(layer);
-  if (!bbox) return;
-  const p1 = toSvg(bbox.min_x, bbox.min_z), p2 = toSvg(bbox.max_x, bbox.max_z);
-  layer.appendChild(svgEl("rect", {
-    x: Math.min(p1.x, p2.x), y: Math.min(p1.y, p2.y),
-    width: Math.abs(p2.x - p1.x), height: Math.abs(p2.y - p1.y),
-    fill: "none", stroke: "var(--border)", "stroke-width": "1", "vector-effect": "non-scaling-stroke",
-  }));
-}
-
-/** 16-block chunk grid clipped to the bbox. */
-export function renderChunkGrid(layer, bbox, toSvg, step = 1) {
-  clear(layer);
+export function paintChunkGrid(painter, bbox, step = 1) {
   if (!bbox) return;
   const { min_x, max_x, min_z, max_z } = bbox;
-  const attrs = {
-    stroke: "var(--canvas-chunk)", "stroke-width": "1", "stroke-dasharray": "3 3",
-    "vector-effect": "non-scaling-stroke",
-  };
-  const line = (x1, z1, x2, z2) => {
-    const a = toSvg(x1, z1), b = toSvg(x2, z2);
-    layer.appendChild(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, ...attrs }));
-  };
-  // `step` is a multiple of the chunk: 1 draws every chunk line, higher values thin the grid out when a
-  // chunk is only a few pixels across (see canvas-chrome's gridStep) so zooming out cannot grow the line
-  // count without bound.
-  const g = 16 * Math.max(1, step);
-  for (let x = Math.ceil(min_x / g) * g; x <= max_x; x += g) line(x, min_z, x, max_z);
-  for (let z = Math.ceil(min_z / g) * g; z <= max_z; z += g) line(min_x, z, max_x, z);
+  const span = 16 * Math.max(1, step);
+  const runs = [];
+  for (let x = Math.ceil(min_x / span) * span; x <= max_x; x += span) runs.push({ x1: x, z1: min_z, x2: x, z2: max_z });
+  for (let z = Math.ceil(min_z / span) * span; z <= max_z; z += span) runs.push({ x1: min_x, z1: z, x2: max_x, z2: z });
+  painter.segments(runs, { stroke: "var(--canvas-chunk)", width: 1, dash: [3, 3] });
 }
 
 /** The symmetry axis line(s) for the current mirror mode, through the centre, clipped to the bbox. */
-export function renderAxis(layer, bbox, center, mode, toSvg) {
-  clear(layer);
+export function paintAxis(painter, bbox, center, mode) {
   if (!bbox) return;
   const { min_x, max_x, min_z, max_z } = bbox;
   const cx = center?.cx ?? 0, cz = center?.cz ?? 0;
-  const attrs = {
-    stroke: "var(--canvas-axis)", "stroke-width": "1", "stroke-dasharray": "6 4", opacity: "0.75",
-    "vector-effect": "non-scaling-stroke",
-  };
-  const line = (x1, z1, x2, z2) => {
-    const a = toSvg(x1, z1), b = toSvg(x2, z2);
-    layer.appendChild(svgEl("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, ...attrs }));
-  };
-  if (mode === "mirror_x")      line(cx, min_z, cx, max_z);
-  else if (mode === "mirror_z") line(min_x, cz, max_x, cz);
-  else { line(cx, min_z, cx, max_z); line(min_x, cz, max_x, cz); } // rot_180 / rot_90 → both
+  const style = { stroke: "var(--canvas-axis)", width: 1, dash: [6, 4], alpha: 0.75 };
+  const runs = [];
+  if (mode !== "mirror_z") runs.push({ x1: cx, z1: min_z, x2: cx, z2: max_z });
+  if (mode !== "mirror_x") runs.push({ x1: min_x, z1: cz, x2: max_x, z2: cz });
+  painter.segments(runs, style);
 }

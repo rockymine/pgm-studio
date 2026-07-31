@@ -1,16 +1,15 @@
-// Characterization tests for the render layer: pure path-string builders (no DOM)
-// and shape dispatch (via a minimal DOM stub).
+// Characterization tests for the render layer: the pure path-string builders (no DOM, shared by both
+// dialects — a canvas Path2D takes SVG path data) and the shape dispatch that turns a type into a drawing.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { installDomStub } from "./_dom-stub.js";
-
-installDomStub(); // svgEl/renderShape read the global `document` at call time
+import { recordingPainter } from "./_painter-stub.js";
 
 import { ringToPath, polyToPath, boundsToRingPath, handleRectAttrs }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/render/svg.js";
-import { renderShape } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/shape-render.js";
+import { paintShape, paintAnchorBlock }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/render/shape-render.js";
 
-const id = (x, z) => ({ x, y: z }); // identity world→svg transform
+const id = (x, z) => ({ x, y: z }); // identity world→surface transform
 
 // ── path builders (pure) ──────────────────────────────────────────────────────
 test("ringToPath straight ring closes with Z", () => {
@@ -37,45 +36,54 @@ test("handleRectAttrs centres a square", () => {
   assert.deepEqual(handleRectAttrs(10, 20, 5), { x: 5, y: 15, width: 10, height: 10 });
 });
 
-// ── shape dispatch (DOM stub) ─────────────────────────────────────────────────
-test("renderShape → rect for rectangle bounds", () => {
-  const el = renderShape("rectangle", { min_x: 0, min_z: 0, max_x: 10, max_z: 5 }, id, { fill: "red" });
-  assert.equal(el.tagName, "rect");
-  assert.equal(el.getAttribute("x"), "0");
-  assert.equal(el.getAttribute("width"), "10");
-  assert.equal(el.getAttribute("height"), "5");
-  assert.equal(el.getAttribute("fill"), "red");
+// ── shape dispatch (recording painter) ────────────────────────────────────────
+test("paintShape → rect for rectangle bounds", () => {
+  const painter = recordingPainter();
+  paintShape(painter, "rectangle", { min_x: 0, min_z: 0, max_x: 10, max_z: 5 }, { fill: "red" });
+  assert.deepEqual(painter.of("rect"), [[{ min_x: 0, min_z: 0, max_x: 10, max_z: 5 }, { fill: "red" }]]);
 });
 
-test("renderShape → ellipse for radial types", () => {
-  const el = renderShape("circle", { min_x: 0, min_z: 0, max_x: 10, max_z: 10 }, id);
-  assert.equal(el.tagName, "ellipse");
-  assert.equal(el.getAttribute("cx"), "5");
-  assert.equal(el.getAttribute("rx"), "5");
+test("paintShape → ellipse for radial types", () => {
+  const painter = recordingPainter();
+  paintShape(painter, "circle", { min_x: 0, min_z: 0, max_x: 10, max_z: 10 });
+  assert.equal(painter.of("ellipse").length, 1);
+  assert.equal(painter.of("rect").length, 0);
 });
 
-test("renderShape → fixed-size circle for a point (not a zoom-shrinking rect)", () => {
-  const el = renderShape("point", { min_x: 4, min_z: 4, max_x: 6, max_z: 6 }, id);
-  assert.equal(el.tagName, "circle");
-  assert.equal(el.getAttribute("cx"), "5");   // bounds centre
-  assert.equal(el.getAttribute("cy"), "5");
-  assert.equal(el.getAttribute("r"), "5");    // default screen radius
+test("paintShape → a dot at the bounds centre for a point (not a zoom-shrinking rect)", () => {
+  const painter = recordingPainter();
+  paintShape(painter, "point", { min_x: 4, min_z: 4, max_x: 6, max_z: 6 });
+  const [cx, cz, style] = painter.of("dot")[0];
+  assert.deepEqual([cx, cz], [5, 5]);      // bounds centre
+  assert.equal(style.radius, 5);           // default, in surface units rather than world ones
 });
 
-test("renderShape → point radius is overridable via attrs (marker treatment)", () => {
-  const el = renderShape("point", { min_x: 0, min_z: 0, max_x: 0, max_z: 0 }, id, { r: 6, fill: "gold" });
-  assert.equal(el.getAttribute("r"), "6");
-  assert.equal(el.getAttribute("fill"), "gold");
+test("paintShape → the point radius is overridable by the style (marker treatment)", () => {
+  const painter = recordingPainter();
+  paintShape(painter, "point", { min_x: 0, min_z: 0, max_x: 0, max_z: 0 }, { radius: 6, fill: "gold" });
+  const style = painter.styleOf("dot");
+  assert.equal(style.radius, 6);
+  assert.equal(style.fill, "gold");
 });
 
-test("renderShape → path for polygon_2d", () => {
-  const el = renderShape("polygon", { exterior: [[0, 0], [2, 0], [2, 2]] }, id);
-  assert.equal(el.tagName, "path");
-  assert.equal(el.getAttribute("fill-rule"), "evenodd");
-  assert.equal(el.getAttribute("d"), "M0.0,0.0 L2.0,0.0 L2.0,2.0 Z");
+test("paintShape → poly for a polygon_2d, even-odd so holes read as holes", () => {
+  const painter = recordingPainter();
+  paintShape(painter, "polygon", { exterior: [[0, 0], [2, 0], [2, 2]] });
+  assert.equal(painter.of("poly").length, 1);
 });
 
-test("renderShape returns null for empty input", () => {
-  assert.equal(renderShape("rectangle", null, id), null);
-  assert.equal(renderShape("polygon", { exterior: [] }, id), null);
+test("paintShape draws nothing for empty input", () => {
+  const painter = recordingPainter();
+  paintShape(painter, "rectangle", null);
+  paintShape(painter, "polygon", { exterior: [] });
+  assert.deepEqual(painter.calls, []);
+});
+
+test("paintAnchorBlock marks the whole block, not its corner", () => {
+  const painter = recordingPainter();
+  paintAnchorBlock(painter, 7, -3, "#abc");
+  const [box, style] = painter.of("rect")[0];
+  assert.deepEqual(box, { min_x: 7, min_z: -3, max_x: 8, max_z: -2 });
+  assert.equal(style.fill, "#abc");
+  assert.equal(style.fillAlpha, 0.5);
 });

@@ -1928,6 +1928,33 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
   per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
 
+- **Every drawing canvas paints its world layers, and one vocabulary says how (CV18)** —
+  `render/canvas-painter.js` + `shape-render.js` + `sketch-render.js` + `symmetry-render.js` +
+  `primitive-style.js` + `block-render.js` + `canvas-chrome.js` + all three canvases and their draw
+  controllers + `tests/js/{canvas-painter,render,primitive-style,symmetry-render}.test.js` +
+  `tests/e2e/paint.mjs`. With the plan canvas proven (below), the sketch and world canvases followed, and
+  the primitives that were private to the plan conversion became the painter's own: `rect`/`line`/
+  `segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`, in **world** coordinates
+  through a `toSurface` fit (identity for plan and sketch, the bbox transform for the world canvas), under
+  one style vocabulary — `fill`/`fillAlpha`, `stroke`/`strokeAlpha`/`width`/`dash`, `alpha`. Two knobs a
+  caller used to have to remember are now the painter's: a `width` is in screen pixels at every zoom, and
+  a `var(--token)` colour is resolved and cached (a context takes neither for granted). `primitiveStyle`
+  returns that vocabulary rather than SVG attributes, so the treatment tiers stayed one table rather than
+  becoming two. Where a thing is drawn in both dialects the *geometry* was factored out instead of copied:
+  `symmetryAxes` is the type→lines rule for the painted world canvas and the retained Configure preview
+  alike, and the path builders serve both because a canvas `Path2D` takes SVG path data.
+  The conversions removed the element caches with the elements. `SketchCanvas` no longer keeps a shape
+  `<g>` per id, `WorldCanvas` no longer keeps a region group and shape map, and both now paint from the
+  state that was always the source of truth — which also ends the one-way patching that made a marker
+  inherit region opacities on the next selection refresh. A draw controller keeps its in-progress
+  primitive as numbers and draws it through `paint(painter)`, so previews live in the same frame at the
+  same scale as everything under them; the edit controllers' handles stay SVG, where a fixed pixel size
+  and a `mousedown` target are the point. `WorldCanvas` gained a real `dispose` (a painted surface owns a
+  canvas element, a resize observer and a theme watcher, and sixteen hosts mount it). `paint.mjs` now
+  sweeps all three surfaces. JS 188/188, client build clean; plan, sketch, and the Configure and Edit
+  world canvases verified by hand — islands, regions, block overlay, symmetry axes, selection chrome,
+  and a zoom that redraws sharp. (CV18)
+
 - **The plan canvas's world layers are painted, not retained (CV18)** — `render/canvas-painter.js` +
   `canvas/plan-canvas.js` + `tests/js/canvas-painter.test.js` + `tests/e2e/paint.mjs` +
   `tools/painter-probe.mjs`. Zooming an authoring canvas in Firefox left the picture soft until the next
@@ -1951,8 +1978,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   draw calls or documents across the WASM boundary is the class of cost already hit three times. The
   server-side `PlanBoardSvg` divergence is accepted. `paint.mjs` asserts on pixels: painted coverage,
   buffer = box × DPR, chrome still in the svg, and that a wheel burst *changes* the pixel signature — a
-  stretched raster would not. JS 166/166; the artifact is confirmed gone on a real Firefox. The
-  sketch/world conversions remain in CV18 (`BACKLOG.md`). (CV18)
+  stretched raster would not. JS 166/166; the artifact is confirmed gone on a real Firefox. (CV18)
 
 - **The world canvas states its layer stack once (CV19)** — `canvas/world-canvas.js` +
   `docs/contracts/canvas-interaction.md`. `CV13` gave the canvases `render/layer-stack.js` — the key order of

@@ -1,59 +1,48 @@
 /**
- * Shared SVG shape renderer.
- * Used by both WorldCanvas (editor region outlines) and the sketch canvas
- * (sketch shapes) to avoid duplicating type-dispatch logic.
+ * Shared shape dispatch — the one place a *type* becomes a drawing.
+ * Used by WorldCanvas (region outlines) and the sketch canvas (sketch shapes), so the rule that a
+ * cylinder is an ellipse and a point is a fixed-size dot is written once.
  */
-
-import { svgEl, polyToPath } from "./svg.js";
 
 const RADIAL_TYPES = new Set(["cylinder", "circle", "sphere"]);
 
 /**
- * Create an SVG element for a geometric shape.
+ * Paint a geometric shape onto a `CanvasPainter`.
  *
- * @param {string} type          — shape/region type ("rectangle", "cylinder", "circle", etc.)
+ * @param {CanvasPainter} painter
+ * @param {string} type          — shape/region type ("rectangle", "cylinder", "circle", "point", …)
  * @param {object} boundsOrPoly  — either {min_x, min_z, max_x, max_z} extent bounds,
- *                                 or a polygon_2d object {exterior, holes} / {polygons}
- * @param {Function} toSvg       — world→SVG coordinate transform (wx, wz) => {x, y}
- * @param {object} [attrs={}]    — SVG attributes to set on the element
- * @returns {SVGElement|null}
+ *                                 or a polygon object {exterior, holes} / {polygons}
+ * @param {object} [style={}]     — the painter's style vocabulary
  */
-export function renderShape(type, boundsOrPoly, toSvg, attrs = {}) {
-  if (!boundsOrPoly) return null;
+export function paintShape(painter, type, boundsOrPoly, style = {}) {
+  if (!boundsOrPoly) return;
 
-  // Polygon case: polygon_2d object with exterior ring
+  // Polygon case: a resolved region or an island outline, holes and all.
   if (boundsOrPoly.exterior !== undefined || boundsOrPoly.polygons !== undefined) {
-    if (!boundsOrPoly.exterior?.length && !boundsOrPoly.polygons?.length) return null;
-    const d = polyToPath(boundsOrPoly, toSvg);
-    if (!d) return null;
-    return svgEl("path", { d, "fill-rule": "evenodd", ...attrs });
+    if (!boundsOrPoly.exterior?.length && !boundsOrPoly.polygons?.length) return;
+    painter.poly(boundsOrPoly, style);
+    return;
   }
 
   const { min_x, min_z, max_x, max_z } = boundsOrPoly;
-  const p1 = toSvg(min_x, min_z);
-  const p2 = toSvg(max_x, max_z);
 
-  // A point is a fixed-size dot at the bounds centre (radius in screen units, so it doesn't shrink with
-  // zoom like a 1-block rect would). `attrs.r` overrides the default (a marker sets its own radius).
+  // A point is a fixed-size dot at the bounds centre — its radius is in surface units rather than world
+  // ones, so it stays findable instead of shrinking away like the 1×1 rect it stands for.
   if (type === "point") {
-    return svgEl("circle", { cx: (p1.x + p2.x) / 2, cy: (p1.y + p2.y) / 2, r: 5, ...attrs });
+    painter.dot((min_x + max_x) / 2, (min_z + max_z) / 2, { radius: 5, ...style });
+    return;
   }
 
-  if (RADIAL_TYPES.has(type)) {
-    return svgEl("ellipse", {
-      cx: (p1.x + p2.x) / 2,
-      cy: (p1.y + p2.y) / 2,
-      rx: Math.abs(p2.x - p1.x) / 2,
-      ry: Math.abs(p2.y - p1.y) / 2,
-      ...attrs,
-    });
-  }
+  if (RADIAL_TYPES.has(type)) painter.ellipse(boundsOrPoly, style);
+  else                        painter.rect(boundsOrPoly, style);
+}
 
-  return svgEl("rect", {
-    x:      Math.min(p1.x, p2.x),
-    y:      Math.min(p1.y, p2.y),
-    width:  Math.abs(p2.x - p1.x),
-    height: Math.abs(p2.y - p1.y),
-    ...attrs,
-  });
+/**
+ * The 1×1 block marker that pins a corner — a drawn region's anchors and a draw preview's endpoints are
+ * the same thing, so they are drawn the same way: the block itself, half-filled and firmly outlined.
+ */
+export function paintAnchorBlock(painter, bx, bz, color) {
+  painter.rect({ min_x: bx, min_z: bz, max_x: bx + 1, max_z: bz + 1 },
+    { fill: color, fillAlpha: 0.5, stroke: color, width: 2 });
 }

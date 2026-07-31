@@ -1,7 +1,12 @@
 /**
- * Block-layer rendering: a block-pixel payload → a PNG data URL, and the shared
- * SVG <image> wrapper that places it. Used by WorldCanvas, ConfigureRenderer and
- * OverviewRenderer so the block overlay is painted one way.
+ * Block-layer rendering: a block-pixel payload → a PNG, placed the same way whichever dialect a surface
+ * draws in. This is the rasterize-once discipline the whole canvas work rests on — a 45k-block layer is
+ * one bitmap and one blit, so its cost is independent of how many blocks it holds, which is why the block
+ * overlays never suffered the artifact that the vector layers did.
+ *
+ * `blockImageBounds` is the placement rule and belongs here rather than at each call site: the payload
+ * covers world cells [min_x..max_x] × [min_z..max_z] and the image spans to the FAR edge of the max cell,
+ * so pixels align to block extents rather than to their corners.
  */
 
 import { svgEl } from "./svg.js";
@@ -30,10 +35,26 @@ export function blockDataToDataUrl({ xs, zs, colors, min_x, min_z, max_x, max_z 
   return offscreen.toDataURL("image/png");
 }
 
+/** The world box a block payload's bitmap covers. */
+export function blockImageBounds({ min_x, min_z, max_x, max_z }) {
+  return { min_x, min_z, max_x: max_x + 1, max_z: max_z + 1 };
+}
+
 /**
- * Build a pixelated <image> for a block layer and append it to `g` (cleared first).
- * The payload covers world cells [min_x..max_x] × [min_z..max_z]; the image spans to the
- * far edge of the max cell (+1) so pixels align to block centres.
+ * Decode a block payload into an image a painter can blit, calling `onReady` when it is decodable. A
+ * canvas draws a decoded bitmap rather than a data URL, so the PNG is built and decoded once here and
+ * blitted on every frame thereafter.
+ */
+export function loadBlockImage(data, onReady) {
+  const image = new Image();
+  image.onload = () => onReady(image);
+  image.src = blockDataToDataUrl(data);
+  return image;
+}
+
+/**
+ * Build a pixelated <image> for a block layer and append it to `g` (cleared first) — the retained dialect,
+ * for the fixed-fit previews that have no viewport transform to go stale.
  */
 export function renderBlockImage(g, data, toSvg) {
   const { min_x, min_z, max_x, max_z } = data;

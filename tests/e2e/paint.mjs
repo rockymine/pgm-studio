@@ -1,12 +1,13 @@
 /**
- * The painted world surface: the plan editor's world layers really draw, and a zoom really re-draws them.
+ * The painted world surfaces: each authoring canvas's world layers really draw, and a zoom really
+ * re-draws them.
  *
  * The smoke sweep can only see the absence of an error, and a blank canvas raises none — it is exactly as
  * "clean" as a working one. That gap matters more for a painted surface than a retained one, because there
  * are no elements left behind to inspect: if the paint code stopped running, nothing in the DOM would say
- * so. So this asserts positively, on pixels.
+ * so. So this asserts positively, on pixels, for all three drawing surfaces.
  *
- * The zoom check is the one that speaks to why the surface is painted at all. A transformed SVG keeps the
+ * The zoom check is the one that speaks to why the surfaces are painted at all. A transformed SVG keeps the
  * rasterization it was painted at and lets the browser stretch it, which is what leaves a zoomed picture
  * soft in some engines; a painter re-draws the geometry at the new scale, so the pixels must actually
  * differ after a wheel burst. Identical pixels would mean the surface was being scaled rather than redrawn
@@ -19,6 +20,15 @@ const seed = await readSeed();
 const checks = new Checks("paint");
 const browser = await openBrowser();
 const page = await newPage(browser);
+
+// The three surfaces, with what each is expected to keep in the svg once its world is painted. `floor` is
+// the share of the viewport the world must cover: well clear of blank, and set per surface because a plan
+// board fills more of its frame than a world map fills its bounding box.
+const SURFACES = [
+  { name: "plan",   path: `/maps/${seed.planSlug}/plan`,        floor: 5, screen: ["overlay", "scale"] },
+  { name: "sketch", path: `/maps/${seed.sketchSlug}/sketch`,    floor: 5, screen: ["islandChrome", "handles", "center", "scale"] },
+  { name: "world",  path: `/maps/${seed.mapSlug}/configure`,    floor: 1, screen: ["overlay"] },
+];
 
 /** Painted pixels, distinct colours, and an order-sensitive signature of the surface's content. */
 async function survey() {
@@ -46,31 +56,33 @@ async function survey() {
   });
 }
 
-await page.goto(`${BASE}/maps/${seed.planSlug}/plan`, { waitUntil: "networkidle" });
-await page.waitForSelector("canvas.world-canvas-2d", { timeout: 20000 });
-await page.waitForTimeout(1200);   // the first paint lands after the document arrives over interop
+for (const surface of SURFACES) {
+  await page.goto(`${BASE}${surface.path}`, { waitUntil: "networkidle", timeout: 30000 });
+  const mounted = await page.waitForSelector("canvas.world-canvas-2d", { timeout: 20000 }).catch(() => null);
+  checks.add(`${surface.name}: the world surface exists`, mounted !== null, mounted ? "found" : "no canvas.world-canvas-2d");
+  if (!mounted) continue;
+  await page.waitForTimeout(1200);   // the first paint lands after the document arrives over interop
 
-const before = await survey();
-checks.add("the world surface exists", before !== null, before === null ? "no canvas.world-canvas-2d" : "found");
+  const before = await survey();
 
-if (before) {
-  // A board covers a good part of the viewport: grid, working area, pieces, zones. A blank or
-  // nearly-blank surface is the failure this exists to catch, so the bar is deliberately well clear of it.
+  // A blank or nearly-blank surface is the failure this exists to catch, so the bar is deliberately well
+  // clear of it — and above it lies whatever the surface actually draws.
   const coverage = (before.painted / (before.bufferW * before.bufferH)) * 100;
-  checks.add("the surface is painted, not blank", coverage > 5, `${coverage.toFixed(1)}% of pixels`);
-  checks.add("it draws more than one thing", before.colors > 3, `${before.colors} distinct colours`);
+  checks.add(`${surface.name}: the surface is painted, not blank`, coverage > surface.floor,
+    `${coverage.toFixed(1)}% of pixels (floor ${surface.floor}%)`);
+  checks.add(`${surface.name}: it draws more than one thing`, before.colors > 3, `${before.colors} distinct colours`);
 
   // The buffer must be the CSS box times the pixel ratio — the whole of why painted text and hairlines
   // are sharp. Headless runs at 1, so this catches a buffer that was never sized at all.
-  checks.add("the backing store matches the box × DPR",
+  checks.add(`${surface.name}: the backing store matches the box × DPR`,
     before.bufferW === Math.round(before.cssW * Math.min(before.dpr, 2))
     && before.bufferH === Math.round(before.cssH * Math.min(before.dpr, 2)),
     `${before.bufferW}x${before.bufferH} buffer for ${before.cssW}x${before.cssH} @ ${before.dpr}`);
 
   // The split: world layers painted, screen-space chrome still in the svg where DOM semantics are useful.
-  checks.add("screen chrome stays in the svg",
-    before.svgLayers.includes("overlay") && before.svgLayers.includes("scale"),
-    before.svgLayers.join(", ") || "none");
+  const missing = surface.screen.filter(name => !before.svgLayers.includes(name));
+  checks.add(`${surface.name}: screen chrome stays in the svg`, missing.length === 0,
+    missing.length ? `missing ${missing.join(", ")}` : before.svgLayers.join(", "));
 
   const box = await page.locator("svg.map-canvas-svg").boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -78,11 +90,11 @@ if (before) {
   await page.waitForTimeout(600);
   const after = await survey();
 
-  checks.add("a zoom re-draws the surface", after && after.signature !== before.signature,
+  checks.add(`${surface.name}: a zoom re-draws the surface`, after && after.signature !== before.signature,
     `${before.painted} px → ${after?.painted} px`);
 }
 
-checks.add("the page raised nothing", page.faults.length === 0, page.faults.join(" · ") || "clean");
+checks.add("the pages raised nothing", page.faults.length === 0, page.faults.join(" · ") || "clean");
 
 checks.finish();
 await browser.close();

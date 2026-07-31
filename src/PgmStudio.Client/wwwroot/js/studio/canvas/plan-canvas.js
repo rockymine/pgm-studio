@@ -327,18 +327,18 @@ export class PlanCanvas extends CanvasBase {
     const painter = this.#painter;
     painter.begin(this._scale, this._panX, this._panY);
     painter.layer("ref",       (ctx) => this.#paintReference(ctx));
-    painter.layer("work",      (ctx) => this.#paintWorkArea(ctx));
-    painter.layer("grid",      (ctx) => this.#paintGrid(ctx));
-    painter.layer("center",    (ctx) => this.#paintCenter(ctx));
-    painter.layer("ghost",     (ctx) => this.#paintGhost(ctx));
-    painter.layer("zone",      (ctx) => this.#paintZones(ctx));
-    painter.layer("piece",     (ctx) => this.#paintPieces(ctx));
-    painter.layer("box",       (ctx) => this.#paintBoxes(ctx));
-    painter.layer("inspect",   (ctx) => this.#paintInspect(ctx));
-    painter.layer("violation", (ctx) => this.#paintViolations(ctx));
-    painter.layer("marker",    (ctx) => this.#paintMarkers(ctx));
-    painter.layer("preview",   (ctx) => this.#paintPreview(ctx));
-    painter.layer("pulse",     (ctx) => this.#paintPulse(ctx));
+    painter.layer("work",      () => this.#paintWorkArea());
+    painter.layer("grid",      () => this.#paintGrid());
+    painter.layer("center",    () => this.#paintCenter());
+    painter.layer("ghost",     () => this.#paintGhost());
+    painter.layer("zone",      () => this.#paintZones());
+    painter.layer("piece",     () => this.#paintPieces());
+    painter.layer("box",       () => this.#paintBoxes());
+    painter.layer("inspect",   () => this.#paintInspect());
+    painter.layer("violation", () => this.#paintViolations());
+    painter.layer("marker",    () => this.#paintMarkers());
+    painter.layer("preview",   () => this.#paintPreview());
+    painter.layer("pulse",     () => this.#paintPulse());
     // The scale bar is screen-space chrome and stays in the svg, but it reads the zoom, so it is
     // refreshed on the same beat as the world.
     const { w, h } = this._viewSize ?? this._size();
@@ -351,42 +351,6 @@ export class PlanCanvas extends CanvasBase {
   #clear(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
 
   // ── painting helpers ──────────────────────────────────────────────────────────
-
-  /** A stroke of `px` screen pixels, whatever the zoom — the painter's replacement for non-scaling-stroke. */
-  #stroke(ctx, color, px, dash = null) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = this.#painter.screenPx(px);
-    ctx.setLineDash(dash ? dash.map(d => this.#painter.screenPx(d)) : []);
-  }
-
-  /** Fill and/or stroke a world rect. `fill`/`stroke` null to skip that half. */
-  #rect(ctx, box, { fill = null, fillAlpha = 1, stroke = null, width = 1, dash = null } = {}) {
-    const x = box.min_x, y = box.min_z, w = box.max_x - box.min_x, h = box.max_z - box.min_z;
-    if (fill) {
-      ctx.save();
-      ctx.globalAlpha = fillAlpha;
-      ctx.fillStyle = fill;
-      ctx.fillRect(x, y, w, h);
-      ctx.restore();
-    }
-    if (stroke) { this.#stroke(ctx, stroke, width, dash); ctx.strokeRect(x, y, w, h); }
-  }
-
-  #line(ctx, x1, z1, x2, z2, color, px, dash = null, cap = "butt") {
-    this.#stroke(ctx, color, px, dash);
-    ctx.lineCap = cap;
-    ctx.beginPath(); ctx.moveTo(x1, z1); ctx.lineTo(x2, z2); ctx.stroke();
-  }
-
-  #circle(ctx, cx, cz, r, { fill = null, fillAlpha = 1, stroke = null, width = 1 } = {}) {
-    ctx.beginPath();
-    ctx.arc(cx, cz, r, 0, Math.PI * 2);
-    if (fill) { ctx.save(); ctx.globalAlpha = fillAlpha; ctx.fillStyle = fill; ctx.fill(); ctx.restore(); }
-    if (stroke) { this.#stroke(ctx, stroke, width); ctx.stroke(); }
-  }
-
-  /** A token colour, resolved and cached by the painter (and demoted if the context won't parse it). */
-  #tok(name, fallback) { return this.#painter.token(name, fallback); }
 
   /**
    * The diagonal hatch behind the annotation fills, as a `CanvasPattern` per role. An SVG `<pattern>` in
@@ -463,12 +427,12 @@ export class PlanCanvas extends CanvasBase {
 
   // The working-area tint: a low-opacity lift that reads on either theme, framed by a solid border so the
   // region sets itself apart from the dashed grid above it.
-  #paintWorkArea(ctx) {
+  #paintWorkArea() {
     const area = this.#workArea();
     if (!area) return;
-    this.#rect(ctx, area, {
-      fill: this.#tok("--canvas-ink", "#ffffff"), fillAlpha: 0.05,
-      stroke: this.#tok("--canvas-axis", "#a78bfa"), width: 1.5,
+    this.#painter.rect(area, {
+      fill: "var(--canvas-ink, #ffffff)", fillAlpha: 0.05,
+      stroke: "var(--canvas-axis, #a78bfa)", width: 1.5,
     });
   }
 
@@ -478,7 +442,7 @@ export class PlanCanvas extends CanvasBase {
    * guard a DOM rebuild is gone with the DOM, but the ladder still matters, because past a few pixels
    * apart the lines are noise whatever they cost to draw.
    */
-  #paintGrid(ctx) {
+  #paintGrid() {
     const cell = this.#doc.globals.cell;
     const g = this.#gridBounds();
     // Snap the drawn range to whole steps so the lines stay on the same world coordinates as the step
@@ -488,26 +452,25 @@ export class PlanCanvas extends CanvasBase {
     const cx1 = Math.ceil(g.max_x / cell / step) * step, cz1 = Math.ceil(g.max_z / cell / step) * step;
 
     // One faint dashed line per cell, in one path — the whole grid is a single stroke.
-    this.#stroke(ctx, this.#tok("--canvas-chunk", "rgba(167,139,250,0.38)"), 1, [3, 3]);
-    ctx.beginPath();
-    for (let c = cx0; c <= cx1; c += step) { ctx.moveTo(c * cell, cz0 * cell); ctx.lineTo(c * cell, cz1 * cell); }
-    for (let c = cz0; c <= cz1; c += step) { ctx.moveTo(cx0 * cell, c * cell); ctx.lineTo(cx1 * cell, c * cell); }
-    ctx.stroke();
+    const runs = [];
+    for (let c = cx0; c <= cx1; c += step) runs.push({ x1: c * cell, z1: cz0 * cell, x2: c * cell, z2: cz1 * cell });
+    for (let c = cz0; c <= cz1; c += step) runs.push({ x1: cx0 * cell, z1: c * cell, x2: cx1 * cell, z2: c * cell });
+    this.#painter.segments(runs, { stroke: "var(--canvas-chunk, rgba(167,139,250,0.38))", width: 1, dash: [3, 3] });
 
     // Heavier gridlines along the origin axes, drawn atop the cell grid.
-    const axis = this.#tok("--canvas-axis", "#a78bfa");
-    if (0 >= cx0 && 0 <= cx1) this.#line(ctx, 0, cz0 * cell, 0, cz1 * cell, axis, 2);
-    if (0 >= cz0 && 0 <= cz1) this.#line(ctx, cx0 * cell, 0, cx1 * cell, 0, axis, 2);
+    const axis = { stroke: "var(--canvas-axis, #a78bfa)", width: 2 };
+    if (0 >= cx0 && 0 <= cx1) this.#painter.line(0, cz0 * cell, 0, cz1 * cell, axis);
+    if (0 >= cz0 && 0 <= cz1) this.#painter.line(cx0 * cell, 0, cx1 * cell, 0, axis);
   }
 
   // Origin marker — the centre crosshair + ring, in the axis colour.
-  #paintCenter(ctx) {
+  #paintCenter() {
     const cell = this.#doc.globals.cell;
     const arm = cell * 0.6, ringRadius = cell * 0.32;
-    const axis = this.#tok("--canvas-axis", "#a78bfa");
-    this.#line(ctx, -arm, 0, arm, 0, axis, 1.5);
-    this.#line(ctx, 0, -arm, 0, arm, axis, 1.5);
-    this.#circle(ctx, 0, 0, ringRadius, { stroke: axis, width: 1.5 });
+    const axis = { stroke: "var(--canvas-axis, #a78bfa)", width: 1.5 };
+    this.#painter.line(-arm, 0, arm, 0, axis);
+    this.#painter.line(0, -arm, 0, arm, axis);
+    this.#painter.circle(0, 0, ringRadius, axis);
   }
 
   /** The hatch fill for an annotation role, or its flat colour if the pattern could not be built. */
@@ -515,45 +478,40 @@ export class PlanCanvas extends CanvasBase {
 
   // The symmetry mirror: every piece, zone, box and marker fanned to its orbit images, dimmed and
   // non-editable, so a pinwheel's centre tiling is visible while authoring.
-  #paintGhost(ctx) {
+  #paintGhost() {
+    const painter = this.#painter;
     for (const img of pieceMirrorImages(this.#doc)) {
       const style = isAnnotationRole(img.role)
         ? { fill: this.#hatchFill(img.role), fillAlpha: 0.35, stroke: ROLE_COLORS[img.role], width: 1, dash: [6, 4] }
         : { fill: ROLE_COLORS[img.role] || "#888", fillAlpha: 0.28, stroke: ROLE_COLORS[img.role] || "#888", width: 1 };
-      this.#rect(ctx, img.bounds, style);
+      painter.rect(img.bounds, style);
     }
-    const accent = this.#tok("--accent", "#5b9cff");
-    const bg = this.#tok("--bg-canvas", "#080f1a");
+    const accent = "var(--accent, #5b9cff)";
     for (const img of zoneMirrorImages(this.#doc)) {
-      this.#rect(ctx, img.bounds, { fill: accent, fillAlpha: 0.06, stroke: accent, width: 1, dash: [4, 3] });
+      painter.rect(img.bounds, { fill: accent, fillAlpha: 0.06, stroke: accent, width: 1, dash: [4, 3] });
       for (const hole of img.holes)
-        this.#rect(ctx, hole, { fill: bg, fillAlpha: 0.5, stroke: accent, width: 0.8, dash: [3, 3] });
+        painter.rect(hole, { fill: "var(--bg-canvas, #080f1a)", fillAlpha: 0.5, stroke: accent, width: 0.8, dash: [3, 3] });
     }
-    for (const img of boxMirrorImages(this.#doc)) {
-      ctx.save();
-      ctx.globalAlpha = 0.35;
-      this.#rect(ctx, img.bounds, { stroke: BOX_COLORS[img.kind] || "#9aa7b4", width: 1.5, dash: [8, 5] });
-      ctx.restore();
-    }
+    for (const img of boxMirrorImages(this.#doc))
+      painter.rect(img.bounds, { stroke: BOX_COLORS[img.kind] || "#9aa7b4", width: 1.5, dash: [8, 5], alpha: 0.35 });
     const cell = this.#doc.globals.cell;
     for (const m of markerMirrorImages(this.#doc))
-      this.#circle(ctx, m.x, m.z, cell * 0.28, { fill: MARKER_COLORS[m.kind] || "#888", fillAlpha: 0.3 });
+      painter.circle(m.x, m.z, cell * 0.28, { fill: MARKER_COLORS[m.kind] || "#888", fillAlpha: 0.3 });
   }
 
-  #paintZones(ctx) {
+  #paintZones() {
     const cell = this.#doc.globals.cell;
-    const accent = this.#tok("--accent", "#5b9cff");
-    const bg = this.#tok("--bg-canvas", "#080f1a");
+    const accent = "var(--accent, #5b9cff)";
     for (const z of this.#doc.zones) {
-      this.#rect(ctx, rectCellsToBlocks(z.rect, cell),
+      this.#painter.rect(rectCellsToBlocks(z.rect, cell),
         { fill: accent, fillAlpha: 0.12, stroke: accent, width: 1.4, dash: [5, 4] });
       for (const h of z.holes)
-        this.#rect(ctx, rectCellsToBlocks(h, cell),
-          { fill: bg, fillAlpha: 0.6, stroke: accent, width: 0.8, dash: [3, 3] });
+        this.#painter.rect(rectCellsToBlocks(h, cell),
+          { fill: "var(--bg-canvas, #080f1a)", fillAlpha: 0.6, stroke: accent, width: 0.8, dash: [3, 3] });
     }
   }
 
-  #paintPieces(ctx) {
+  #paintPieces() {
     const cell = this.#doc.globals.cell, base = this.#doc.globals.surface;
     const range = this.#heightMap ? surfaceRange(this.#doc) : null;   // ramp domain for height-map mode
     for (const p of this.#doc.pieces) {
@@ -561,7 +519,7 @@ export class PlanCanvas extends CanvasBase {
       if (isAnnotationRole(p.role)) {
         // Non-generating annotation: a hatched fill + dashed same-colour stroke, no solid terrain — reads as
         // "not buildable ground" and distinct from the dashed build-zone accent.
-        this.#rect(ctx, b, { fill: this.#hatchFill(p.role), stroke: ROLE_COLORS[p.role], width: 1.2, dash: [6, 4] });
+        this.#painter.rect(b, { fill: this.#hatchFill(p.role), stroke: ROLE_COLORS[p.role], width: 1.2, dash: [6, 4] });
         continue;
       }
       const surf = pieceSurface(this.#doc, p);
@@ -574,21 +532,21 @@ export class PlanCanvas extends CanvasBase {
         fill = tint(ROLE_COLORS[p.role] || "#888", lift);
         stroke = ROLE_COLORS[p.role] || "#888";
       }
-      this.#rect(ctx, b, { fill, stroke, width: 1.2 });
+      this.#painter.rect(b, { fill, stroke, width: 1.2 });
     }
   }
 
   // Box annotations: an unfilled dashed envelope per box, kind-coloured, drawn above the pieces it groups
   // so the border stays visible over terrain. Unfilled by design — a box marks an extent, it never covers
   // what is inside it.
-  #paintBoxes(ctx) {
+  #paintBoxes() {
     const cell = this.#doc.globals.cell;
     for (const b of this.#doc.boxes || [])
-      this.#rect(ctx, rectCellsToBlocks(b.rect, cell),
+      this.#painter.rect(rectCellsToBlocks(b.rect, cell),
         { stroke: BOX_COLORS[b.kind] || "#9aa7b4", width: 2, dash: [8, 5] });
   }
 
-  #paintMarkers(ctx) {
+  #paintMarkers() {
     const cell = this.#doc.globals.cell;
     for (const { kind, marker } of allMarkers(this.#doc)) {
       const c = markerCell(this.#doc, marker);
@@ -596,12 +554,12 @@ export class PlanCanvas extends CanvasBase {
       const cx = c[0] * cell, cz = c[1] * cell, r = cell * 0.34;
       const color = MARKER_COLORS[kind] || "#888";
       if (kind === "spawn") {
-        this.#circle(ctx, cx, cz, r, { fill: color, fillAlpha: 0.85, stroke: "#222", width: 1 });
+        this.#painter.circle(cx, cz, r, { fill: color, fillAlpha: 0.85, stroke: "#222", width: 1 });
         const [dx, dz] = FACING_DIR[marker.facing] || FACING_DIR.front;
-        this.#line(ctx, cx, cz, cx + dx * r * 1.7, cz + dz * r * 1.7, "#222", 2);
+        this.#painter.line(cx, cz, cx + dx * r * 1.7, cz + dz * r * 1.7, { stroke: "#222", width: 2 });
       } else {
         const side = r * 1.5;
-        this.#rect(ctx, { min_x: cx - side / 2, min_z: cz - side / 2, max_x: cx + side / 2, max_z: cz + side / 2 },
+        this.#painter.rect({ min_x: cx - side / 2, min_z: cz - side / 2, max_x: cx + side / 2, max_z: cz + side / 2 },
           { fill: color, fillAlpha: 0.85, stroke: "#222", width: 1 });
       }
     }
@@ -611,31 +569,29 @@ export class PlanCanvas extends CanvasBase {
   // slimmer green core, still connected) vs corner point contacts (red warning), zone gap connectors (purple
   // ruler dashes), and frontline edges (accent-tinted highlight). Drawn above pieces, below markers; the hop
   // labels ride the screen-space overlay so they stay legible.
-  #paintInspect(ctx) {
+  #paintInspect() {
     if (!this.#doc) return;
     const cell = this.#doc.globals.cell;
+    const painter = this.#painter;
 
-    if (this.#overlayOn.frontline) {
-      ctx.save();
-      ctx.globalAlpha = 0.4;
+    if (this.#overlayOn.frontline)
       for (const f of this.#inspect.frontline)
-        this.#line(ctx, f.x1, f.z1, f.x2, f.z2, this.#tok("--accent", "#5b9cff"), 6, null, "round");
-      ctx.restore();
-    }
+        painter.line(f.x1, f.z1, f.x2, f.z2,
+          { stroke: "var(--accent, #5b9cff)", width: 6, cap: "round", alpha: 0.4 });
 
     if (this.#overlayOn.labels) {
-      const axis = this.#tok("--canvas-axis", "#a78bfa");
+      const axis = "var(--canvas-axis, #a78bfa)";
       for (const g of this.#inspect.gapLinks) {
-        this.#line(ctx, g.x1, g.z1, g.x2, g.z2, axis, 2.5, [4, 3], "round");
+        painter.line(g.x1, g.z1, g.x2, g.z2, { stroke: axis, width: 2.5, dash: [4, 3], cap: "round" });
         for (const [px, pz] of [[g.x1, g.z1], [g.x2, g.z2]])
-          this.#circle(ctx, px, pz, cell * 0.12, { fill: axis });
+          painter.circle(px, pz, cell * 0.12, { fill: axis });
       }
     }
 
     if (this.#overlayOn.interfaces)
       for (const it of this.#inspect.interfaces) {
         if (it.x1 === it.x2 && it.z1 === it.z2) {
-          this.#circle(ctx, it.x1, it.z1, cell * 0.22, { stroke: "#d9534f", width: 2.5 });
+          painter.circle(it.x1, it.z1, cell * 0.22, { stroke: "#d9534f", width: 2.5 });
           continue;
         }
         // A land/narrow segment sits exactly on a piece seam, where the piece strokes (or a same-green
@@ -648,8 +604,8 @@ export class PlanCanvas extends CanvasBase {
           ? ["#000000", "#3b3b44", narrow ? 8 : 11]
           : it.woolRoom ? ["#4a1211", "#e5534b", casing]
                         : ["#123d26", "#4ade80", casing];
-        this.#line(ctx, it.x1, it.z1, it.x2, it.z2, casingColor, casingWidth, null, "round");
-        this.#line(ctx, it.x1, it.z1, it.x2, it.z2, coreColor, core, null, "round");
+        painter.line(it.x1, it.z1, it.x2, it.z2, { stroke: casingColor, width: casingWidth, cap: "round" });
+        painter.line(it.x1, it.z1, it.x2, it.z2, { stroke: coreColor, width: core, cap: "round" });
       }
   }
 
@@ -657,12 +613,10 @@ export class PlanCanvas extends CanvasBase {
   // on the grid so a broken rule is seen, not only read. The four primitives (rect / segment / marker / measure)
   // are drawn generically off the tag→style table; a measure's label rides the screen-space overlay (below) so
   // it stays legible at any zoom. Coordinates are cell-space — scale by the cell size to reach block/world space.
-  #paintViolations(ctx) {
+  #paintViolations() {
     if (!this.#doc) return;
     const cell = this.#doc.globals.cell;
-    const styleColor = (st) => (st.stroke.startsWith("var(")
-      ? this.#tok(st.stroke.slice(4, -1), "#5b9cff")
-      : st.stroke);
+    const painter = this.#painter;
 
     // Producibility evidence rides this layer too — it is the same kind of thing (geometry indicted by a check)
     // and follows its own panel selection rather than the Rules overlay toggle. `missing` cells are the box's own
@@ -671,12 +625,9 @@ export class PlanCanvas extends CanvasBase {
     if (this.#nearestMiss) {
       const paint = (rects, tag) => {
         const st = evidenceStyle(tag);
-        const color = styleColor(st);
         for (const r of rects || [])
-          this.#rect(ctx, rectCellsToBlocks(r, cell), {
-            fill: color, fillAlpha: 0.18, stroke: color, width: st.width,
-            dash: st.dash ? st.dash.split(" ").map(Number) : null,
-          });
+          painter.rect(rectCellsToBlocks(r, cell),
+            { fill: st.stroke, fillAlpha: 0.18, stroke: st.stroke, width: st.width, dash: st.dash });
       };
       paint(this.#nearestMiss.missing, "offender");
       paint(this.#nearestMiss.extra, "bound");
@@ -686,14 +637,13 @@ export class PlanCanvas extends CanvasBase {
     for (const v of this.#shownViolations())
       for (const e of v.evidence || []) {
         const st = evidenceStyle(e.tag);
-        const color = styleColor(st);
-        const dash = st.dash ? st.dash.split(" ").map(Number) : null;
+        const style = { stroke: st.stroke, width: st.width, dash: st.dash };
         if (e.kind === "rect" && Array.isArray(e.rect)) {
-          this.#rect(ctx, rectCellsToBlocks(e.rect, cell), { stroke: color, width: st.width, dash });
+          painter.rect(rectCellsToBlocks(e.rect, cell), style);
         } else if (e.kind === "segment" || e.kind === "measure") {
-          this.#line(ctx, e.x1 * cell, e.z1 * cell, e.x2 * cell, e.z2 * cell, color, st.width, dash, "round");
+          painter.line(e.x1 * cell, e.z1 * cell, e.x2 * cell, e.z2 * cell, { ...style, cap: "round" });
         } else if (e.kind === "marker") {
-          this.#circle(ctx, e.x * cell, e.z * cell, Math.max(2, cell * 0.24), { stroke: color, width: st.width });
+          painter.circle(e.x * cell, e.z * cell, Math.max(2, cell * 0.24), { stroke: st.stroke, width: st.width });
         }
       }
   }
@@ -728,19 +678,17 @@ export class PlanCanvas extends CanvasBase {
     return stops[i] + (stops[i + 1] - stops[i]) * ((t - i * span) / span);
   }
 
-  #paintPulse(ctx) {
+  #paintPulse() {
     if (!this.#pulseIds.length) return;
     const alpha = this.#pulseAlpha();
     if (alpha <= 0) return;
     const cell = this.#doc.globals.cell;
-    ctx.save();
-    ctx.globalAlpha = alpha;
     for (const id of this.#pulseIds) {
       const item = this.#doc.pieces.find(p => p.id === id) || this.#doc.zones.find(z => z.id === id);
       if (!item) continue;
-      this.#rect(ctx, rectCellsToBlocks(item.rect, cell), { stroke: this.#tok("--accent", "#5b9cff"), width: 3 });
+      this.#painter.rect(rectCellsToBlocks(item.rect, cell),
+        { stroke: "var(--accent, #5b9cff)", width: 3, alpha });
     }
-    ctx.restore();
   }
 
   // Screen-space overlay: piece/zone id labels, the selection box, and the resize handles. Recomputed on
@@ -1000,20 +948,18 @@ export class PlanCanvas extends CanvasBase {
     if (it) this.#cb.onToggleWall?.(it.a, it.b);
   }
 
-  #paintPreview(ctx) {
+  #paintPreview() {
     if (this.#drag?.mode !== "draw") return;
     const cell = this.#doc.globals.cell;
     const b = rectCellsToBlocks(rectFromCells(...this.#drag.a, ...this.#drag.b), cell);
     // A box preview is unfilled like the box itself — it frames pieces rather than covering them.
     if (this.#drag.kind === "box") {
-      this.#rect(ctx, b, { stroke: BOX_COLORS[this.#boxKind] || "#9aa7b4", width: 2, dash: [8, 5] });
+      this.#painter.rect(b, { stroke: BOX_COLORS[this.#boxKind] || "#9aa7b4", width: 2, dash: [8, 5] });
       return;
     }
     const isAnnotation = this.#drag.kind === "piece" && isAnnotationRole(this.#pieceRole);
-    const color = this.#drag.kind === "zone"
-      ? this.#tok("--accent", "#5b9cff")
-      : ROLE_COLORS[this.#pieceRole];
-    this.#rect(ctx, b, {
+    const color = this.#drag.kind === "zone" ? "var(--accent, #5b9cff)" : ROLE_COLORS[this.#pieceRole];
+    this.#painter.rect(b, {
       fill: isAnnotation ? this.#hatchFill(this.#pieceRole) : color,
       fillAlpha: isAnnotation ? 0.6 : 0.2,
       stroke: color, width: 1.5, dash: isAnnotation ? [6, 4] : [4, 3],

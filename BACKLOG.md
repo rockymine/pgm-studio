@@ -130,17 +130,6 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
   contain** (hit-testing, snapping, viewport/transform maths, selection resolution) into pure modules the
   existing `node --test` setup can reach without a DOM. Pairs with the JS consolidation review.
-- [~] **CV18 — Finish the painted-surface migration: the sketch and world canvases.** The artifact
-  (zooming an authoring canvas in Firefox left the picture soft until the next input — the browser
-  stretching a cached rasterization it had decided not to redo) is **fixed on the plan editor, confirmed
-  on a real Firefox**: its world layers are painted per frame to a 2-D `<canvas>` (`FEATURES.md`), so
-  there is no raster to go stale. The other two drawing canvases still carry it. What remains:
-  **(a) `SketchCanvas`** — same shape as the plan conversion (one Blazor host, hit-testing already
-  data-driven). **(b) `WorldCanvas`** — staged last deliberately: sixteen mounts (eleven Configure steps,
-  five Edit phases), so converting it puts every Configure step through the change at once. The decision
-  record — why paint instead of retained SVG, why not SkiaSharp, the measured numbers, the accepted
-  `PlanBoardSvg` client/server divergence — is in the `FEATURES.md` entry and this file's git history.
-
 - [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
   (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
   `visibility:hidden` whose only handle was assigned and never read. This is the other: the `build` group is

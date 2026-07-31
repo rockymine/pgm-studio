@@ -1,9 +1,9 @@
 /**
- * CanvasPainter — the 2-D surface a canvas's world layers paint onto.
+ * CanvasPainter — the 2-D surface a canvas's world layers paint onto, and the vocabulary they paint in.
  *
  * The counterpart to the SVG layer stack: where `layer-stack.js` hands out retained `<g>` groups that
  * hold their content between frames, this hands out a context that is redrawn each frame at the current
- * scale. Three things it owns, because each of them is a trap when written per canvas:
+ * scale. Four things it owns, because each of them is a trap when written per canvas:
  *
  *   • **The backing store.** A canvas has two sizes — its CSS box and its pixel buffer — and text and
  *     hairlines are only as sharp as the buffer. `resize` sets the buffer to the box times the device
@@ -17,14 +17,40 @@
  *     the previous colour, so a missed token paints in whatever the last draw used. `token` resolves one
  *     against the document and caches it — resolving forces a style recalc, so doing it per draw call is
  *     the shape to avoid. The cache is dropped when the theme flips, which is the only time the values
- *     move.
+ *     move. Every primitive below resolves its own colours through it, so a layer keeps writing
+ *     `var(--accent)` and never has to know the trap exists.
+ *   • **The primitives.** `rect`/`line`/`circle`/`poly`/`text`/`image` and the rest, in **world**
+ *     coordinates: each maps through `toSurface` (identity on the surfaces whose world coordinates are
+ *     already the surface's) and applies one style vocabulary. They live here rather than privately on a
+ *     canvas because all three drawing surfaces need the same ones, and because two of the three knobs a
+ *     primitive sets — a screen-space stroke width and a resolved colour — are the painter's to divide
+ *     out and resolve, not the caller's to remember.
+ *
+ * The style vocabulary is one object, so a layer says what it wants once and never in two dialects:
+ *
+ *     fill · fillAlpha · fillRule     the filled half; omit `fill` to skip it
+ *     stroke · strokeAlpha · width    the stroked half; `width` is in SCREEN pixels at every zoom
+ *     dash · cap · join               dash lengths are screen pixels too (an array, or "6 4")
+ *     alpha                           the whole primitive, fill and stroke together
  *
  * Paint order is the order the caller draws in; `layer` exists so a surface can name the phases it paints
  * in and expose that list, since a canvas offers nothing to query the way `data-layer` does.
  */
 
+import { ringToPath, polyToPath } from "./svg.js";
+
 /** The device pixel ratio to render at. Clamped: past 2 the buffer grows faster than the sharpness. */
 const MAX_DPR = 2;
+
+/** World coordinates are the surface's own unless a canvas fits its world through a transform. */
+const IDENTITY = (x, z) => ({ x, y: z });
+
+/**
+ * Canvas text needs a family named outright — an SVG `<text>` inherits one from the page, a context has
+ * nothing to inherit from. This is the page's own stack (`css/app.css`), so a painted label matches the
+ * one beside it in the svg overlay; `style.font` overrides it where a caller wants figures to line up.
+ */
+const FONT_STACK = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 
 export class CanvasPainter {
   #canvas;
@@ -37,10 +63,12 @@ export class CanvasPainter {
   #themeWatch = null;
   #probe  = null;  // context used to ask whether a colour parses (see #accepts)
   #layers = [];    // the names painted this frame, in paint order
+  #toSurface = IDENTITY;
 
-  constructor(canvasEl) {
+  constructor(canvasEl, toSurface = IDENTITY) {
     this.#canvas = canvasEl;
     this.#ctx = canvasEl.getContext("2d");
+    this.#toSurface = toSurface ?? IDENTITY;
     this.#watchTheme();
   }
 
@@ -49,6 +77,18 @@ export class CanvasPainter {
   get dpr() { return this.#dpr; }
   /** The phases painted in the last frame, bottom first — the queryable form of a layer stack. */
   get layers() { return this.#layers.slice(); }
+
+  /**
+   * The world→surface map. Identity where a canvas draws in the surface's own coordinates (plan, sketch);
+   * a bbox fit where it does not (the world canvas), which is re-derived whenever the viewport is resized.
+   * Set it, and every primitive follows — the stroke widths do not, because the viewport scale is the only
+   * part of the chain a screen width has to survive.
+   */
+  get toSurface() { return this.#toSurface; }
+  set toSurface(fn) { this.#toSurface = fn ?? IDENTITY; }
+
+  /** A world point in surface coordinates — what a caller needs when it builds a path itself. */
+  point(x, z) { return this.#toSurface(x, z); }
 
   /**
    * Size the surface to a CSS box. The buffer is that box times the pixel ratio; the element keeps the
@@ -143,6 +183,200 @@ export class CanvasPainter {
 
   /** Drop the resolved tokens — the theme moved, so every colour is stale. */
   invalidateTokens() { this.#tokens.clear(); }
+
+  /**
+   * A style's colour, ready for the context. A layer writes the same `var(--accent)` it wrote as an SVG
+   * attribute and this resolves it (with `var(--x, #fallback)` honoured); anything else — a hex, an
+   * `rgb()`, a `CanvasPattern` — passes through untouched, since only custom properties are the trap.
+   */
+  color(value, fallback = "#888") {
+    if (!value || typeof value !== "string") return value || null;
+    if (!value.startsWith("var(")) return value;
+    const inner = value.slice(4, -1);
+    const comma = inner.indexOf(",");
+    if (comma < 0) return this.token(inner.trim(), fallback);
+    return this.token(inner.slice(0, comma).trim(), inner.slice(comma + 1).trim());
+  }
+
+  // ── primitives ────────────────────────────────────────────────────────────────
+  // Every one takes WORLD coordinates and one style object (see the header). They are the painted twin of
+  // render/svg.js's element factory, and share its path builders outright: `new Path2D(d)` takes SVG path
+  // data, so `ringToPath`/`polyToPath` serve both dialects and the geometry cannot drift between them.
+
+  /** Fill and/or stroke a world box `{min_x, min_z, max_x, max_z}`. */
+  rect(box, style = {}) {
+    const p1 = this.#toSurface(box.min_x, box.min_z), p2 = this.#toSurface(box.max_x, box.max_z);
+    const x = Math.min(p1.x, p2.x), y = Math.min(p1.y, p2.y);
+    const width = Math.abs(p2.x - p1.x), height = Math.abs(p2.y - p1.y);
+    const ctx = this.#ctx, prev = ctx.globalAlpha;
+    if (this.#useFill(style))   { ctx.globalAlpha = this.#alphaOf(style, style.fillAlpha);   ctx.fillRect(x, y, width, height); }
+    if (this.#useStroke(style)) { ctx.globalAlpha = this.#alphaOf(style, style.strokeAlpha); ctx.strokeRect(x, y, width, height); }
+    ctx.globalAlpha = prev;
+  }
+
+  /** A straight run between two world points. */
+  line(x1, z1, x2, z2, style = {}) {
+    const from = this.#toSurface(x1, z1), to = this.#toSurface(x2, z2);
+    this.#ctx.beginPath();
+    this.#ctx.moveTo(from.x, from.y);
+    this.#ctx.lineTo(to.x, to.y);
+    this.#strokeCurrent(style);
+  }
+
+  /**
+   * Many runs as ONE path — the shape a grid wants. A canvas's cost is per draw call rather than per
+   * element, so a few hundred gridlines in one `stroke()` is the difference the SVG version could not make.
+   */
+  segments(runs, style = {}) {
+    const ctx = this.#ctx;
+    ctx.beginPath();
+    for (const run of runs) {
+      const from = this.#toSurface(run.x1, run.z1), to = this.#toSurface(run.x2, run.z2);
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+    }
+    this.#strokeCurrent(style);
+  }
+
+  /** A circle of `radius` WORLD units, so it grows with the zoom the way a drawn thing does. */
+  circle(centreX, centreZ, radius, style = {}) {
+    const centre = this.#toSurface(centreX, centreZ);
+    const edge = this.#toSurface(centreX + radius, centreZ);
+    this.#arc(centre.x, centre.y, Math.hypot(edge.x - centre.x, edge.y - centre.y), style);
+  }
+
+  /**
+   * A dot whose radius is NOT in world units — the primitive for anything that must stay findable when
+   * the thing it marks is one block across. `radius` is in surface units (what an SVG `r` was, so it
+   * still grows with the zoom but never shrinks with the map); `radiusPx` pins it to screen pixels.
+   */
+  dot(centreX, centreZ, style = {}) {
+    const centre = this.#toSurface(centreX, centreZ);
+    const radius = style.radiusPx != null ? this.screenPx(style.radiusPx) : (style.radius ?? 5);
+    this.#arc(centre.x, centre.y, radius, style);
+  }
+
+  /** The radial region types (cylinder / circle / sphere): the ellipse inscribed in a world box. */
+  ellipse(box, style = {}) {
+    const p1 = this.#toSurface(box.min_x, box.min_z), p2 = this.#toSurface(box.max_x, box.max_z);
+    this.#ctx.beginPath();
+    this.#ctx.ellipse((p1.x + p2.x) / 2, (p1.y + p2.y) / 2,
+                      Math.abs(p2.x - p1.x) / 2, Math.abs(p2.y - p1.y) / 2, 0, 0, Math.PI * 2);
+    this.#paintCurrent(style);
+  }
+
+  /** SVG path data already in surface coordinates — the seam the shared path builders come through. */
+  path(data, style = {}) {
+    if (!data) return;
+    const shape = new Path2D(data);
+    const ctx = this.#ctx, prev = ctx.globalAlpha;
+    if (this.#useFill(style))   { ctx.globalAlpha = this.#alphaOf(style, style.fillAlpha);   ctx.fill(shape, style.fillRule ?? "nonzero"); }
+    if (this.#useStroke(style)) { ctx.globalAlpha = this.#alphaOf(style, style.strokeAlpha); ctx.stroke(shape); }
+    ctx.globalAlpha = prev;
+  }
+
+  /** A closed ring of world points, with the same optional Bézier `controls` an authored shape carries. */
+  ring(points, style = {}, controls = {}) {
+    if (!points?.length) return;
+    this.path(ringToPath(points, this.#toSurface, controls), style);
+  }
+
+  /** A polygon with holes (`{exterior, holes}` or `{polygons}`) — even-odd, so the holes read as holes. */
+  poly(polygon, style = {}) {
+    if (!polygon) return;
+    this.path(polyToPath(polygon, this.#toSurface), { fillRule: "evenodd", ...style });
+  }
+
+  /**
+   * Text at a world point. `size` is in world units, so it scales with the map exactly as an SVG `<text>`
+   * inside the viewport group did; screen-space labels stay in the svg overlay, where they always were.
+   * `halo` is the canvas spelling of `paint-order: stroke` — the casing that keeps a label readable over
+   * whatever it lands on.
+   */
+  text(content, x, z, style = {}) {
+    const point = this.#toSurface(x, z);
+    const at = { x: point.x + (style.dx ?? 0), y: point.y + (style.dy ?? 0) };
+    const ctx = this.#ctx, prev = ctx.globalAlpha;
+    ctx.font = `${style.weight ? `${style.weight} ` : ""}${style.size ?? 12}px ${style.font ?? FONT_STACK}`;
+    ctx.textAlign = style.align ?? "center";
+    ctx.textBaseline = style.baseline ?? "middle";
+    ctx.globalAlpha = this.#alphaOf(style, 1);
+    if (style.halo) {
+      ctx.strokeStyle = this.color(style.halo);
+      ctx.lineWidth = this.screenPx(style.haloWidth ?? 3);
+      ctx.setLineDash([]);
+      ctx.lineJoin = "round";
+      ctx.strokeText(content, at.x, at.y);
+    }
+    ctx.fillStyle = this.color(style.fill ?? style.color);
+    ctx.fillText(content, at.x, at.y);
+    ctx.globalAlpha = prev;
+  }
+
+  /**
+   * A decoded bitmap stretched over a world box. `smooth` off is the `image-rendering: pixelated` that
+   * keeps a block layer's cells square — the one case where interpolation is the defect, not the polish.
+   */
+  image(bitmap, box, style = {}) {
+    if (!bitmap) return;
+    const p1 = this.#toSurface(box.min_x, box.min_z), p2 = this.#toSurface(box.max_x, box.max_z);
+    const ctx = this.#ctx, prev = ctx.globalAlpha, prevSmooth = ctx.imageSmoothingEnabled;
+    ctx.globalAlpha = this.#alphaOf(style, 1);
+    ctx.imageSmoothingEnabled = style.smooth ?? false;
+    ctx.drawImage(bitmap, Math.min(p1.x, p2.x), Math.min(p1.y, p2.y),
+                  Math.abs(p2.x - p1.x), Math.abs(p2.y - p1.y));
+    ctx.imageSmoothingEnabled = prevSmooth;
+    ctx.globalAlpha = prev;
+  }
+
+  // ── style application ─────────────────────────────────────────────────────────
+
+  #arc(x, y, radius, style) {
+    this.#ctx.beginPath();
+    this.#ctx.arc(x, y, radius, 0, Math.PI * 2);
+    this.#paintCurrent(style);
+  }
+
+  /** Fill then stroke the path the caller just built, each at its own alpha. */
+  #paintCurrent(style) {
+    const ctx = this.#ctx, prev = ctx.globalAlpha;
+    if (this.#useFill(style))   { ctx.globalAlpha = this.#alphaOf(style, style.fillAlpha);   ctx.fill(style.fillRule ?? "nonzero"); }
+    if (this.#useStroke(style)) { ctx.globalAlpha = this.#alphaOf(style, style.strokeAlpha); ctx.stroke(); }
+    ctx.globalAlpha = prev;
+  }
+
+  #strokeCurrent(style) {
+    const ctx = this.#ctx, prev = ctx.globalAlpha;
+    if (this.#useStroke(style)) { ctx.globalAlpha = this.#alphaOf(style, style.strokeAlpha); ctx.stroke(); }
+    ctx.globalAlpha = prev;
+  }
+
+  /** Alphas multiply: a primitive-wide `alpha` scales the half-specific one rather than replacing it. */
+  #alphaOf(style, half) { return (style.alpha ?? 1) * (half ?? 1); }
+
+  #useFill(style) {
+    if (!style.fill) return false;
+    this.#ctx.fillStyle = this.color(style.fill);
+    return true;
+  }
+
+  #useStroke(style) {
+    if (!style.stroke) return false;
+    const ctx = this.#ctx;
+    ctx.strokeStyle = this.color(style.stroke);
+    ctx.lineWidth = this.screenPx(style.width ?? 1);
+    ctx.setLineDash(this.#dash(style.dash));
+    ctx.lineCap = style.cap ?? "butt";
+    ctx.lineJoin = style.join ?? "miter";
+    return true;
+  }
+
+  /** Dash lengths are screen pixels like the width, and take either an array or an SVG dasharray string. */
+  #dash(dash) {
+    if (!dash) return [];
+    const lengths = Array.isArray(dash) ? dash : String(dash).trim().split(/[\s,]+/).map(Number);
+    return lengths.map(length => this.screenPx(length));
+  }
 
   #watchTheme() {
     if (typeof MutationObserver === "undefined") return;

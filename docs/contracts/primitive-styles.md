@@ -1,14 +1,18 @@
 # Primitive drawing styles across the four editors — audit & unification (CV9)
 
-Status: **landed** (`CV9`); the Plan rows date from before `CV18`. This is the cross-editor inventory of
-*how a drawable primitive is rendered and styled* in **Sketch**, **Edit**, **Configure**, and **Plan**,
-and the design that unified it. Since `CV18` the plan canvas paints its world layers to a 2-D `<canvas>`
-rather than emitting SVG elements — the style *vocabulary* below (tiers, colours, dashes, the hatch) is
-unchanged, but Plan's "SVG element" and `plan-canvas.js:NNN` references describe the retained renderer
-this audit inventoried, not the painter that replaced it. It
+Status: **landed** (`CV9`); the element-level rows date from before `CV18`. This is the cross-editor
+inventory of *how a drawable primitive is rendered and styled* in **Sketch**, **Edit**, **Configure**, and
+**Plan**, and the design that unified it. Since `CV18` every drawing surface paints its world layers to a
+2-D `<canvas>` rather than emitting SVG elements — the style *vocabulary* below (tiers, colours, dashes,
+the hatch) is unchanged and `primitiveStyle` still decides it, but it now returns the painter's style
+object (`fill`/`fillAlpha`/`stroke`/`strokeAlpha`/`width`/`dash`/`alpha`/`radius`) instead of SVG
+attributes, and the "SVG element" and `<canvas>.js:NNN` references below describe the retained renderers
+this audit inventoried rather than the painters that replaced them. Two spellings changed with the
+dialect: `vector-effect: non-scaling-stroke` is gone because a painted width is in screen pixels by
+construction, and the annotation hatch is a `CanvasPattern` rather than an SVG `<pattern>`. It
 widens the scope of `canvas-interaction.md` §10 (which only compares Edit vs Configure) to all four
 surfaces. §6's conclusion is now implemented — the shared helper is `render/primitive-style.js`
-(`primitiveStyle`), and `renderShape` has the `point` case.
+(`primitiveStyle`), and `paintShape` has the `point` case.
 
 Read alongside `canvas-interaction.md` (the shared-canvas contract) and `new-map-authoring.md`
 (the wizard phases). The renderers audited: `render/shape-render.js` (shared),

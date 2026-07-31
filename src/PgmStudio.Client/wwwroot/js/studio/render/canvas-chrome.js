@@ -5,13 +5,14 @@
  *   • `viewportWorldRect` — the world rect currently on screen. The grid spans THIS (snapped out to whole
  *     grid steps) rather than the content, so the surface is never fenced in: wherever you pan or zoom
  *     there is grid to draw on, and growing the drawing is just drawing.
- *   • `renderWorkArea`    — the tinted **working area**: a default-sized region that exists even when
+ *   • `paintWorkArea`     — the tinted **working area**: a default-sized region that exists even when
  *     nothing is drawn, growing to enclose the content plus a buffer. It is the size anchor — the reason
  *     a blank canvas reads as "a map is about this big" instead of an open field.
  *   • `renderScaleBar`    — a screen-space "N blocks" bar, so absolute size is legible at any zoom
  *     (the working area's edge moves as the drawing grows, so it can't serve as the scale reference).
  *
- * Stateless: each takes a layer <g> plus data and repaints it. The canvas owns the layer lifecycle.
+ * The split between the two is the hybrid surface itself: the working area is world content and is
+ * painted, the scale bar is screen chrome and stays an SVG layer. Both are stateless — data in, drawn out.
  */
 
 import { svgEl } from "./svg.js";
@@ -60,19 +61,15 @@ export function unionRect(a, b) {
 /**
  * The working-area backdrop (world space, so it pans/zooms with the drawing). A low-opacity `--canvas-ink`
  * fill reads as a lift in the dark viewport and a shade in the light one, so the region is visible on both
- * themes; the solid border sets it apart from the dashed grid.
+ * themes; the border sets it apart from the dashed grid. `strokeAlpha` is the one thing the two surfaces
+ * differ on — the plan board frames its area solidly, the sketch keeps the frame quieter than its content.
  */
-export function renderWorkArea(layer, area, toSvg) {
-  clear(layer);
+export function paintWorkArea(painter, area, { strokeAlpha = 0.45 } = {}) {
   if (!area) return;
-  const p1 = toSvg(area.min_x, area.min_z), p2 = toSvg(area.max_x, area.max_z);
-  layer.appendChild(svgEl("rect", {
-    x: Math.min(p1.x, p2.x), y: Math.min(p1.y, p2.y),
-    width: Math.abs(p2.x - p1.x), height: Math.abs(p2.y - p1.y),
-    fill: "var(--canvas-ink)", "fill-opacity": "0.05",
-    stroke: "var(--canvas-axis)", "stroke-width": "1.5", "stroke-opacity": "0.45",
-    "vector-effect": "non-scaling-stroke", "pointer-events": "none",
-  }));
+  painter.rect(area, {
+    fill: "var(--canvas-ink, #ffffff)", fillAlpha: 0.05,
+    stroke: "var(--canvas-axis, #a78bfa)", strokeAlpha, width: 1.5,
+  });
 }
 
 // Block counts a scale bar is allowed to show — the round numbers a reader converts without thinking,

@@ -1,27 +1,32 @@
 /**
  * SketchDrawController — the four sketch draw tools (rectangle, circle, polygon, lasso) for
- * SketchCanvas. Same controller contract as the editor draw controller (onMouseDown→bool, onMouseMove,
+ * SketchCanvas. Same controller contract as the world draw controller (onMouseDown→bool, onMouseMove,
  * onMouseUp, cancel). Completed shapes are reported via onShapeCreated; the host assigns an id and
  * triggers the island recompute.
  *
+ * The in-progress draw is **state, not elements**: `#drawState` holds the numbers and `paint` draws them
+ * on whatever frame the canvas is painting, which is why every mutating entry point ends by asking for
+ * one (`onPreviewChanged`). Its screen-space vertex handles are the exception and stay SVG, since they
+ * live in the overlay above the painted surface where a fixed pixel size and DOM semantics are wanted.
+ *
  * Constructor:
- *   drawLayer        SVGGElement  — viewport draw layer (previews)
  *   drawHandlesLayer SVGGElement  — screen-space handle overlay
  *   getViewport      () => { scale, panX, panY }
- *   callbacks        { onShapeCreated }
+ *   callbacks        { onShapeCreated, onPreviewChanged }
  */
 
-import { svgEl, ringToPath, handleRectAttrs } from "../render/svg.js";
+import { svgEl, handleRectAttrs } from "../render/svg.js";
 import { drawnBoundsFromBlocks } from "../geometry/region-convert.js";
 import { opColors } from "../render/primitive-style.js";
 import { toScreen } from "../geometry/transform.js";
 
 const HANDLE_HALF = 5;
 
-const identityTransform = (x, z) => ({ x, y: z });
+// The in-progress outline: the operation's colours, dashed, over a light fill — "not committed yet".
+const PREVIEW_FILL_ALPHA = 0.20;
+const PREVIEW_DASH = [5, 3];
 
 export class SketchDrawController {
-  #drawLayer;
   #drawHandlesLayer;
   #getViewport;
   #callbacks;
@@ -30,11 +35,10 @@ export class SketchDrawController {
   #drawState       = null;
   #drawHandleData  = [];
 
-  constructor(drawLayer, drawHandlesLayer, getViewport, { onShapeCreated } = {}) {
-    this.#drawLayer        = drawLayer;
+  constructor(drawHandlesLayer, getViewport, { onShapeCreated, onPreviewChanged } = {}) {
     this.#drawHandlesLayer = drawHandlesLayer;
     this.#getViewport      = getViewport;
-    this.#callbacks        = { onShapeCreated };
+    this.#callbacks        = { onShapeCreated, onPreviewChanged };
   }
 
   setOperation(op)      { this.#activeOperation = op; }
@@ -107,13 +111,41 @@ export class SketchDrawController {
     if (ds.vertices.length > 1) {
       const last = ds.vertices[ds.vertices.length - 1];
       const prev = ds.vertices[ds.vertices.length - 2];
-      if (last[0] === prev[0] && last[1] === prev[1]) {
-        ds.vertices.pop();
-        const line = ds.lines.pop();
-        line?.parentNode?.removeChild(line);
-      }
+      if (last[0] === prev[0] && last[1] === prev[1]) ds.vertices.pop();
     }
     this.#closePolygon();
+  }
+
+  /**
+   * Draw the in-progress primitive onto the canvas's painter. Called from the sketch canvas's `draw`
+   * phase, so the preview is in the same frame — and at the same scale — as everything under it.
+   */
+  paint(painter) {
+    const ds = this.#drawState;
+    if (!ds) return;
+    const { fill, stroke } = opColors(this.#activeOperation);
+    const style = { fill, fillAlpha: PREVIEW_FILL_ALPHA, stroke, width: 1, dash: PREVIEW_DASH };
+    const guide = { stroke: "var(--text-muted)", width: 1 };
+
+    if (ds.type === "rectangle") {
+      painter.rect(drawnBoundsFromBlocks(ds.startBx, ds.startBz, ds.currentBx, ds.currentBz), style);
+    } else if (ds.type === "circle") {
+      const r = ds.currentRadius;
+      painter.ellipse({ min_x: ds.centerX - r, max_x: ds.centerX + r,
+                        min_z: ds.centerZ - r, max_z: ds.centerZ + r }, style);
+      painter.rect({ min_x: ds.centerX - 0.5, max_x: ds.centerX + 0.5,
+                     min_z: ds.centerZ - 0.5, max_z: ds.centerZ + 0.5 }, { fill: "var(--text-muted)" });
+    } else if (ds.type === "polygon") {
+      const runs = [];
+      for (let i = 1; i < ds.vertices.length; i++)
+        runs.push({ x1: ds.vertices[i - 1][0], z1: ds.vertices[i - 1][1], x2: ds.vertices[i][0], z2: ds.vertices[i][1] });
+      painter.segments(runs, guide);
+      // The rubber-band run to the cursor is dashed, so the edge not yet committed reads as pending.
+      const last = ds.vertices[ds.vertices.length - 1];
+      painter.line(last[0], last[1], ds.cursorX ?? last[0], ds.cursorZ ?? last[1], { ...guide, dash: [4, 3] });
+    } else if (ds.type === "lasso" && ds.vertices.length >= 2) {
+      painter.ring(ds.vertices, { ...style, fillRule: "evenodd" });
+    }
   }
 
   /** Reposition screen-space draw handles after viewport changes. */
@@ -134,57 +166,44 @@ export class SketchDrawController {
   /** Cancel any in-progress draw (Escape, tool change). */
   cancel() {
     if (!this.#drawState) return;
-    const ds = this.#drawState;
     this.#drawState      = null;
     this.#drawHandleData = [];
     this.refreshDrawHandles();
-    for (const el of [ds.preview, ds.previewPath, ds.previewLine, ds.dot, ...(ds.lines ?? [])]) {
-      el?.parentNode?.removeChild(el);
-    }
+    this.#repaint();
   }
 
   // ── private ────────────────────────────────────────────────────────────────
 
   #toScreen(wx, wz) { return toScreen(wx, wz, this.#getViewport()); }
-
-  #opFill()   { return opColors(this.#activeOperation).fill; }
-  #opStroke() { return opColors(this.#activeOperation).stroke; }
+  #repaint() { this.#callbacks.onPreviewChanged?.(); }
 
   // Rectangle ──────────────────────────────────────────────────────────────────
   #startRect(bx, bz) {
-    const preview = svgEl("rect", {
-      fill: this.#opFill(), stroke: this.#opStroke(),
-      "stroke-width": "1", "fill-opacity": "0.20", "stroke-dasharray": "5 3",
-      "vector-effect": "non-scaling-stroke", x: bx, y: bz, width: 1, height: 1,
-    });
-    this.#drawLayer.appendChild(preview);
-    this.#drawState      = { type: "rectangle", startBx: bx, startBz: bz, currentBx: bx, currentBz: bz, preview };
+    this.#drawState      = { type: "rectangle", startBx: bx, startBz: bz, currentBx: bx, currentBz: bz };
     this.#drawHandleData = [{ wx: bx, wz: bz, isFirst: true }];
     this.refreshDrawHandles();
+    this.#repaint();
   }
 
   #updateRectPreview(bx, bz) {
-    const { startBx, startBz, preview } = this.#drawState;
+    const { startBx, startBz } = this.#drawState;
     this.#drawState.currentBx = bx;
     this.#drawState.currentBz = bz;
     const { min_x: minX, max_x: maxX, min_z: minZ, max_z: maxZ } = drawnBoundsFromBlocks(startBx, startBz, bx, bz);
-    preview.setAttribute("x", minX);
-    preview.setAttribute("y", minZ);
-    preview.setAttribute("width",  maxX - minX);
-    preview.setAttribute("height", maxZ - minZ);
     this.#drawHandleData = [
       { wx: minX, wz: minZ, isFirst: false }, { wx: maxX, wz: minZ, isFirst: false },
       { wx: maxX, wz: maxZ, isFirst: false }, { wx: minX, wz: maxZ, isFirst: false },
     ];
     this.refreshDrawHandles();
+    this.#repaint();
   }
 
   #completeRect() {
-    const { startBx, startBz, currentBx, currentBz, preview } = this.#drawState;
-    preview?.parentNode?.removeChild(preview);
+    const { startBx, startBz, currentBx, currentBz } = this.#drawState;
     this.#drawState      = null;
     this.#drawHandleData = [];
     this.refreshDrawHandles();
+    this.#repaint();
     const { min_x: minX, max_x: maxX, min_z: minZ, max_z: maxZ } = drawnBoundsFromBlocks(startBx, startBz, currentBx, currentBz);
     if (maxX - minX <= 1 && maxZ - minZ <= 1) return;  // reject single-click misfire
     this.#callbacks.onShapeCreated?.({
@@ -195,34 +214,20 @@ export class SketchDrawController {
 
   // Circle (two-click: center → radius) ────────────────────────────────────────
   #startCircle(bx, bz) {
-    const dot = svgEl("rect", {
-      x: bx - 0.5, y: bz - 0.5, width: 1, height: 1, fill: "var(--text-muted)", "pointer-events": "none",
-    });
-    const preview = svgEl("ellipse", {
-      fill: this.#opFill(), stroke: this.#opStroke(),
-      "stroke-width": "1", "fill-opacity": "0.20", "stroke-dasharray": "5 3",
-      "vector-effect": "non-scaling-stroke", cx: bx, cy: bz, rx: 1, ry: 1,
-    });
-    this.#drawLayer.appendChild(preview);
-    this.#drawLayer.appendChild(dot);
-    this.#drawState = { type: "circle", centerX: bx, centerZ: bz, currentRadius: 1, preview, dot };
+    this.#drawState = { type: "circle", centerX: bx, centerZ: bz, currentRadius: 1 };
+    this.#repaint();
   }
 
   #updateCirclePreview(bx, bz) {
-    const { centerX, centerZ, preview } = this.#drawState;
-    const r = Math.max(1, Math.round(Math.hypot(bx - centerX, bz - centerZ)));
-    this.#drawState.currentRadius = r;
-    preview.setAttribute("cx", centerX);
-    preview.setAttribute("cy", centerZ);
-    preview.setAttribute("rx", r);
-    preview.setAttribute("ry", r);
+    const { centerX, centerZ } = this.#drawState;
+    this.#drawState.currentRadius = Math.max(1, Math.round(Math.hypot(bx - centerX, bz - centerZ)));
+    this.#repaint();
   }
 
   #completeCircle(bx, bz) {
-    const { centerX, centerZ, preview, dot } = this.#drawState;
-    preview?.parentNode?.removeChild(preview);
-    dot?.parentNode?.removeChild(dot);
+    const { centerX, centerZ } = this.#drawState;
     this.#drawState = null;
+    this.#repaint();
     const radius = Math.max(1, Math.round(Math.hypot(bx - centerX, bz - centerZ)));
     this.#callbacks.onShapeCreated?.({
       type: "circle", operation: this.#activeOperation, override: false,
@@ -234,36 +239,25 @@ export class SketchDrawController {
   #startPolygon(bx, bz) {
     this.#drawHandleData = [{ wx: bx, wz: bz, isFirst: true }];
     this.refreshDrawHandles();
-    const previewLine = svgEl("line", {
-      x1: bx, y1: bz, x2: bx, y2: bz, stroke: "var(--text-muted)", "stroke-width": "1",
-      "stroke-dasharray": "4 3", "pointer-events": "none", "vector-effect": "non-scaling-stroke",
-    });
-    this.#drawLayer.appendChild(previewLine);
-    this.#drawState = { type: "polygon", vertices: [[bx, bz]], lines: [], previewLine };
+    this.#drawState = { type: "polygon", vertices: [[bx, bz]], cursorX: bx, cursorZ: bz };
+    this.#repaint();
   }
 
   #addPolygonVertex(bx, bz) {
     this.#drawHandleData.push({ wx: bx, wz: bz, isFirst: false });
     this.refreshDrawHandles();
-    const ds   = this.#drawState;
-    const prev = ds.vertices[ds.vertices.length - 1];
-    const seg  = svgEl("line", {
-      x1: prev[0], y1: prev[1], x2: bx, y2: bz, stroke: "var(--text-muted)", "stroke-width": "1",
-      "pointer-events": "none", "vector-effect": "non-scaling-stroke",
-    });
-    this.#drawLayer.insertBefore(seg, ds.previewLine);
-    ds.lines.push(seg);
+    const ds = this.#drawState;
     ds.vertices.push([bx, bz]);
-    ds.previewLine.setAttribute("x1", bx);
-    ds.previewLine.setAttribute("y1", bz);
-    ds.previewLine.setAttribute("x2", bx);
-    ds.previewLine.setAttribute("y2", bz);
+    ds.cursorX = bx;
+    ds.cursorZ = bz;
+    this.#repaint();
   }
 
   #updatePolygonPreview(bx, bz) {
-    if (!this.#drawState?.previewLine) return;
-    this.#drawState.previewLine.setAttribute("x2", bx);
-    this.#drawState.previewLine.setAttribute("y2", bz);
+    if (!this.#drawState) return;
+    this.#drawState.cursorX = bx;
+    this.#drawState.cursorZ = bz;
+    this.#repaint();
   }
 
   #closePolygon() {
@@ -271,7 +265,7 @@ export class SketchDrawController {
     this.refreshDrawHandles();
     const saved = this.#drawState;
     this.#drawState = null;
-    for (const el of [...(saved.lines ?? []), saved.previewLine]) el?.parentNode?.removeChild(el);
+    this.#repaint();
     if (saved.vertices.length < 3) return;
     this.#callbacks.onShapeCreated?.({
       type: "polygon", operation: this.#activeOperation, override: false, vertices: saved.vertices,
@@ -280,13 +274,8 @@ export class SketchDrawController {
 
   // Lasso (hold drag to trace freeform; release to close) ──────────────────────
   #startLasso(bx, bz) {
-    const previewPath = svgEl("path", {
-      fill: this.#opFill(), stroke: this.#opStroke(),
-      "stroke-width": "1", "fill-opacity": "0.20", "stroke-dasharray": "5 3",
-      "fill-rule": "evenodd", "vector-effect": "non-scaling-stroke",
-    });
-    this.#drawLayer.appendChild(previewPath);
-    this.#drawState = { type: "lasso", vertices: [[bx, bz]], previewPath };
+    this.#drawState = { type: "lasso", vertices: [[bx, bz]] };
+    this.#repaint();
   }
 
   #addLassoPoint(bx, bz) {
@@ -294,19 +283,13 @@ export class SketchDrawController {
     const last = vertices[vertices.length - 1];
     if (bx === last[0] && bz === last[1]) return;
     vertices.push([bx, bz]);
-    this.#updateLassoPreview();
-  }
-
-  #updateLassoPreview() {
-    const { vertices, previewPath } = this.#drawState;
-    if (vertices.length < 2) return;
-    previewPath.setAttribute("d", ringToPath(vertices, identityTransform));
+    this.#repaint();
   }
 
   #completeLasso() {
-    const { vertices, previewPath } = this.#drawState;
-    previewPath?.parentNode?.removeChild(previewPath);
+    const { vertices } = this.#drawState;
     this.#drawState = null;
+    this.#repaint();
     if (vertices.length < 3) return;
     this.#callbacks.onShapeCreated?.({
       type: "lasso", operation: this.#activeOperation, override: false, vertices,

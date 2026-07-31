@@ -1,24 +1,35 @@
 /**
- * WorldCanvas — SVG rendering engine shared by the Edit page (/maps/{id}/edit) and the Configure
+ * WorldCanvas — the world rendering engine shared by the Edit page (/maps/{id}/edit) and the Configure
  * wizard (/maps/{id}/configure). Extends CanvasBase for pan/zoom/transform + the drag FSM (via the
  * _on* hooks below), and delegates every interaction mode to a plain controller:
- *   WorldDrawController    new-region drawing (the draw tools)
- *   WorldEditController    8-handle resize + arrow-key move of the selected region
+ *   WorldDrawController     new-region drawing (the draw tools)
+ *   WorldEditController     8-handle resize + arrow-key move of the selected region
  *   SelectController        click-select modes (region / island) — one registered picker each
+ *
+ * A hybrid surface: the world layers are **painted** to a 2-D `<canvas>` under the svg and redrawn each
+ * frame at the current scale, so no rasterization is kept for a zoom to stretch; the screen-space overlay
+ * (the region label, the dimension pill, the resize handles) stays in the svg, which also remains the
+ * single pointer target. Nothing world-side is retained between frames: `#nodeMap` and `#ctx.islands`
+ * ARE the picture, and every setter is a state change plus a repaint rather than an element edit.
+ *
+ * Unlike the plan and sketch canvases, world coordinates are NOT the surface's: `buildTransform` fits the
+ * map's bounding box to the viewport and the painter maps through it (`painter.toSurface`), which is why
+ * that transform is rebuilt on every repaint and handed over in one place.
  *
  * Public surface (grouped; the bridge (bridge/world-bridge.js) forwards the subset Blazor drives):
  *   Render / lifecycle
  *     render(ctx, groups)              full repaint + zoom reset
- *     refreshRegions(groups)           swap the region layer without resetting zoom
+ *     refreshRegions(groups)           re-take the region set without resetting zoom
  *     refreshRegionBounds(id, bounds)  repaint one region after an inspector/move edit
  *     resize()                         re-render at new dimensions (preserves zoom)
+ *     dispose()                        drop the painted surface + the base's observers
  *   Selection / editing
  *     setSelectedRegions(ids)          highlight the id set; shows resize anchors when exactly one
  *                                      resizable region is selected
  *     updateRegionBounds(node, bounds) live footprint update during a drag/resize (edit controller)
  *     showAnchors(node) / clearAnchors()  8-handle resize anchors for the focused region
  *     setActiveTool(tool)              null | "move" | "rectangle" | "cylinder" | "circle" | "point" | "block"
- *     addRegion(node) / removeRegion(id) / renameNode(old,new)  mutate the region layer, no full repaint
+ *     addRegion(node) / removeRegion(id) / renameNode(old,new)  mutate the region set
  *     setRegionVisible(id, v)          per-region show/hide
  *     setAuthorRegions(nodes)          render intent-backed "dummy" regions (Configure spawns / protection)
  *   Overlays / visibility
@@ -43,8 +54,9 @@
 
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
 import { translateBounds } from "../geometry/shape.js";
-import { svgEl, polyToPath, anchorBlockEl } from "../render/svg.js";
-import { layerStack, showLayer, showLayers, clearLayer, INERT } from "../render/layer-stack.js";
+import { svgEl, polyToPath } from "../render/svg.js";
+import { layerStack, clearLayer } from "../render/layer-stack.js";
+import { CanvasPainter } from "../render/canvas-painter.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
 import { WorldDrawController } from "../controllers/world-draw-controller.js";
 import { WorldEditController, RESIZABLE_TYPES } from "../controllers/world-edit-controller.js";
@@ -53,13 +65,21 @@ import { chatColorHex, dyeColorHex } from "../render/palette.js";
 import { blockToExtentBounds } from "../geometry/region-convert.js";
 import { pointInRing } from "../geometry/polygon.js";
 import { applySymmetryToBounds, orbitAxes } from "../geometry/symmetry.js";
-import { renderShape } from "../render/shape-render.js";
+import { paintShape, paintAnchorBlock } from "../render/shape-render.js";
 import { primitiveStyle } from "../render/primitive-style.js";
-import { renderSymmetryOverlay } from "../render/symmetry-render.js";
-import { renderBlockImage } from "../render/block-render.js";
+import { paintSymmetryOverlay } from "../render/symmetry-render.js";
+import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
 import { geojsonToSimplified } from "../geometry/islands.js";
 
 const COMPOSITE_TYPES = new Set(["union", "intersect", "negative", "complement"]);
+
+// The points of interest, as the glyph each is drawn with and where its colour comes from. One table, so
+// three layers that differ only in those two things are three lines rather than three near-copies.
+const POI_LAYERS = [
+  { key: "spawns",    source: "spawns",    glyph: "★", size: 12, weight: "bold", color: (poi) => chatColorHex(poi.team_color ?? "") },
+  { key: "wools",     source: "wools",     glyph: "◆", size: 11, weight: null,   color: (poi) => dyeColorHex(poi.color ?? "") },
+  { key: "monuments", source: "monuments", glyph: "⊕", size: 13, weight: null,   color: (poi) => dyeColorHex(poi.color ?? "") },
+];
 
 export class WorldCanvas extends CanvasBase {
   #ctx    = null;
@@ -68,12 +88,15 @@ export class WorldCanvas extends CanvasBase {
   #toWorld= null;
   #callbacks;
 
-  // DOM caches
-  #regionGroupMap = new Map();
-  #shapeMap       = new Map();
+  // The painted world surface + the screen-space svg layers above it.
+  #painter  = null;
+  #canvasEl = null;
+  #screen = {};
+
+  // The region set: `#nodeMap` for lookup (hit-test, visibility, selection), `#regionNodes` for paint
+  // order. Together they are what the region layer draws — there is no element cache beside them.
   #nodeMap        = new Map();
-  #world  = {};   // viewport layers — z-order declared once in #build
-  #screen = {};   // screen-space layers (outside the viewport transform)
+  #regionNodes    = [];
   #addedNodes     = [];
   #authorRegionIds = [];   // ids of "dummy" authoring regions (e.g. intent-backed spawn-protection rects)
   #authorRegionNodes = []; // the authored nodes themselves, kept so the mirror preview can re-derive
@@ -92,10 +115,18 @@ export class WorldCanvas extends CanvasBase {
   #currentSelectedIds = new Set();
   #resolvedMode       = false;
 
+  // Set while a batch of region mutations is in flight, so a run of them costs one repaint instead of one
+  // each — the authored mirror preview replaces its whole set at once, and every step of it would
+  // otherwise redraw the world.
+  #batching = false;
+
   // island selection (World authoring step): when on, canvas clicks pick an island instead of a region;
   // the selected island gets an accent border and excluded islands are dimmed.
-  #islandPathMap     = new Map();   // island id → <path>
   #selectedIslandId  = null;
+  // The island outlines as path data, rebuilt only when the world or the fit moves. Islands are the one
+  // world layer whose geometry is large and static — a few hundred points each, unchanged by a drag — so
+  // rebuilding their paths per frame would be the only real cost in a repaint.
+  #islandPaths = [];
   #excludedIslandIds = new Set();
   #islandTeamColors  = new Map();   // island id → team colour hex (World · Teams island assignment)
 
@@ -113,8 +144,10 @@ export class WorldCanvas extends CanvasBase {
   #showBuild  = false;
   #showBlocks = false;
   #blockData  = null;
+  #blockImage = null;          // the decoded bitmap — a canvas blits an image, not a data URL
   #showBuildability = false;   // N03 buildability overlay visibility
   #buildabilityData = null;    // cached block-image payload so a render() reset re-paints it
+  #buildabilityImage = null;
   #selectedNode = null;
 
   // blocks toggle wiring (set by connectBlocksToggle)
@@ -127,11 +160,17 @@ export class WorldCanvas extends CanvasBase {
   constructor(svgEl_, wrapEl, callbacks = {}) {
     super(svgEl_, wrapEl);
     this.#callbacks = callbacks;
-    this.#drawCtrl  = new WorldDrawController(
-      () => this.#world.draw,
-      () => this.#toSvg,
-      { onRegionDraw: (r) => this.#callbacks.onRegionDraw?.(r) },
-    );
+    // The painted surface is created here rather than in the host markup, so neither the Blazor component
+    // nor the bridge signature is changed by what the world layers are drawn with — which matters more
+    // here than anywhere else, since sixteen hosts mount this one canvas.
+    this.#canvasEl = document.createElement("canvas");
+    this.#canvasEl.className = "world-canvas-2d";
+    this._svg.parentNode.insertBefore(this.#canvasEl, this._svg);
+    this.#painter = new CanvasPainter(this.#canvasEl);
+    this.#drawCtrl  = new WorldDrawController({
+      onRegionDraw: (r) => this.#callbacks.onRegionDraw?.(r),
+      onPreviewChanged: () => this.#paintWorld(),
+    });
     this.#editCtrl  = new WorldEditController(
       {
         getSelected: () => this.#selectedNode,
@@ -158,6 +197,7 @@ export class WorldCanvas extends CanvasBase {
   // ── CanvasBase hook overrides ──────────────────────────────────────────────
 
   _onViewportChanged() {
+    this.#paintWorld();
     this.#updateOverlay();
   }
 
@@ -226,42 +266,44 @@ export class WorldCanvas extends CanvasBase {
     this.#groups = groups || [];
     this.#addedNodes = [];
     this.#selectedNode = null;
-    this.#regionGroupMap.clear();
-    this.#shapeMap.clear();
     this.#nodeMap.clear();
+    this.#regionNodes = [];
     this.#visibilityMap.clear();
     this.#currentSelectedIds.clear();
     this.#selectedIslandId = null;
     this.#blockData        = null;
+    this.#blockImage       = null;
     this.#blockFetchId++;
     this.#blockFetchPromise = null;
     this._scale = 1;
     this._panX  = 0;
     this._panY  = 0;
-    this.#repaint();
+    this.#rebuild();
     this._onZoom(this._scale);
   }
 
   showAnchors(node) {
     this.#selectedNode = node;
-    this.#renderAnchors();
+    this.#paintWorld();
     this.#updateOverlay();
   }
 
   clearAnchors() {
     this.#selectedNode = null;
-    clearLayer(this.#world.anchors);
+    this.#paintWorld();
     this.#updateOverlay();
   }
 
   setPoisVisible(v) {
     this.#showPois = v;
-    showLayers([this.#world.spawns, this.#world.wools, this.#world.monuments], v);
+    this.#paintWorld();
   }
 
+  // The `build` layer has a switch and a z-order slot but nothing that paints into it — see CV21, which
+  // owns the question of whether a Build phase was meant to fill it or whether the whole thing goes.
   setBuildVisible(v) {
     this.#showBuild = v;
-    showLayer(this.#world.build, v);
+    this.#paintWorld();
   }
 
   setResolvedMode(v) {
@@ -323,31 +365,36 @@ export class WorldCanvas extends CanvasBase {
 
   setBlocksVisible(v) {
     this.#showBlocks = v;
-    showLayer(this.#world.blocks, v);
-    this.#world.islands?.setAttribute("fill-opacity", v ? "0" : "0.25");
+    this.#paintWorld();
   }
 
   loadBlockLayer(data) {
     this.#blockData = data;
-    if (this.#world.blocks && this.#toSvg) {
-      renderBlockImage(this.#world.blocks, data, this.#toSvg);
-      if (this.#showBlocks) showLayer(this.#world.blocks, true);
-    }
+    this.#blockImage = null;
+    if (!data) { this.#paintWorld(); return; }
+    loadBlockImage(data, (image) => {
+      if (this.#blockData !== data) return;   // a newer payload arrived while this one decoded
+      this.#blockImage = image;
+      this.#paintWorld();
+    });
   }
 
-  // The buildability heatmap uses the same pixelated <image> machinery as the block overlay (`data` is the
+  // The buildability heatmap uses the same rasterize-once machinery as the block overlay (`data` is the
   // block-image payload {xs,zs,colors,min_x,min_z,max_x,max_z} the bridge builds from /buildability).
   setBuildabilityVisible(v) {
     this.#showBuildability = v;
-    showLayer(this.#world.buildability, v);
+    this.#paintWorld();
   }
 
   loadBuildabilityLayer(data) {
     this.#buildabilityData = data;
-    if (this.#world.buildability && this.#toSvg) {
-      renderBlockImage(this.#world.buildability, data, this.#toSvg);
-      if (this.#showBuildability) showLayer(this.#world.buildability, true);
-    }
+    this.#buildabilityImage = null;
+    if (!data) { this.#paintWorld(); return; }
+    loadBlockImage(data, (image) => {
+      if (this.#buildabilityData !== data) return;
+      this.#buildabilityImage = image;
+      this.#paintWorld();
+    });
   }
 
   /**
@@ -410,9 +457,9 @@ export class WorldCanvas extends CanvasBase {
 
   setSelectedRegions(ids) {
     this.#currentSelectedIds = new Set(ids);
-    for (const id of this.#regionGroupMap.keys()) this.#refreshRegionDisplay(id);
     // Show the resize overlay (dimension pill + drag handles) when the selection resolves to a single
-    // resizable region; clear it for empty, multi, or non-resizable selections.
+    // resizable region; clear it for empty, multi, or non-resizable selections. Both paths repaint, which
+    // is what puts the new selection's own styling on the surface.
     const resizable = [...this.#currentSelectedIds]
       .map(id => this.#nodeMap.get(id))
       .filter(n => n?.bounds && RESIZABLE_TYPES.has(n.type) && !n.ghost);
@@ -423,33 +470,13 @@ export class WorldCanvas extends CanvasBase {
   setRegionVisible(id, visible) {
     if (visible) this.#visibilityMap.delete(id);
     else         this.#visibilityMap.set(id, false);
-    this.#refreshRegionDisplay(id);
+    this.#paintWorld();
   }
 
   updateRegionBounds(node, newBounds) {
     Object.assign(node.bounds, newBounds);
-    const entry = this.#shapeMap.get(node.id);
-    if (entry && this.#toSvg) {
-      const { min_x, min_z, max_x, max_z } = node.bounds;
-      const p1 = this.#toSvg(min_x, min_z);
-      const p2 = this.#toSvg(max_x, max_z);
-      if (["cylinder", "circle", "sphere"].includes(entry.type)) {
-        const cx = (p1.x + p2.x) / 2, cy = (p1.y + p2.y) / 2;
-        entry.shape.setAttribute("cx", cx);
-        entry.shape.setAttribute("cy", cy);
-        entry.shape.setAttribute("rx", Math.abs(p2.x - p1.x) / 2);
-        entry.shape.setAttribute("ry", Math.abs(p2.y - p1.y) / 2);
-      } else {
-        entry.shape.setAttribute("x",      Math.min(p1.x, p2.x));
-        entry.shape.setAttribute("y",      Math.min(p1.y, p2.y));
-        entry.shape.setAttribute("width",  Math.abs(p2.x - p1.x));
-        entry.shape.setAttribute("height", Math.abs(p2.y - p1.y));
-      }
-    }
-    if (this.#selectedNode?.id === node.id) {
-      this.#renderAnchors();
-      this.#updateOverlay();
-    }
+    this.#paintWorld();
+    if (this.#selectedNode?.id === node.id) this.#updateOverlay();
   }
 
   setActiveTool(tool) {
@@ -460,26 +487,22 @@ export class WorldCanvas extends CanvasBase {
   }
 
   addRegion(node) {
-    if (!this.#world.regions || !this.#toSvg) return;
-    const stale = this.#regionGroupMap.get(node.id);
-    if (stale?.parentNode) stale.parentNode.removeChild(stale);
-    const regionG = this.#regionGroup(node);
-    this.#regionGroupMap.set(node.id, regionG);
+    const stale = this.#regionNodes.findIndex(n => n.id === node.id);
+    if (stale >= 0) this.#regionNodes.splice(stale, 1);
+    this.#regionNodes.push(node);
     this.#nodeMap.set(node.id, node);
-    this.#world.regions.appendChild(regionG);
     if (!this.#addedNodes.some(n => n.id === node.id)) this.#addedNodes.push(node);
+    this.#paintWorld();
   }
 
   removeRegion(id) {
-    const g = this.#regionGroupMap.get(id) ?? this._svg.querySelector(`[id="region-${id}"]`);
-    if (g?.parentNode) g.parentNode.removeChild(g);
-    this.#regionGroupMap.delete(id);
-    this.#shapeMap.delete(id);
+    this.#regionNodes = this.#regionNodes.filter(n => n.id !== id);
     this.#nodeMap.delete(id);
     this.#visibilityMap.delete(id);
     this.#currentSelectedIds.delete(id);
     this.#addedNodes = this.#addedNodes.filter(n => n.id !== id);
     if (this.#selectedNode?.id === id) { this.#selectedNode = null; this.#updateOverlay(); }
+    this.#paintWorld();
   }
 
   // Render a set of authoring-only "dummy" regions — geometry that lives in the intent, not the loaded
@@ -499,10 +522,16 @@ export class WorldCanvas extends CanvasBase {
   }
 
   #renderAuthorRegions() {
-    for (const id of this.#authorRegionIds) this.removeRegion(id);
-    const all = [...this.#authorRegionNodes, ...this.#mirrorGhosts(this.#authorRegionNodes)];
-    this.#authorRegionIds = all.map(n => n.id);
-    for (const node of all) this.addRegion(node);
+    this.#batching = true;
+    try {
+      for (const id of this.#authorRegionIds) this.removeRegion(id);
+      const all = [...this.#authorRegionNodes, ...this.#mirrorGhosts(this.#authorRegionNodes)];
+      this.#authorRegionIds = all.map(n => n.id);
+      for (const node of all) this.addRegion(node);
+    } finally {
+      this.#batching = false;
+    }
+    this.#paintWorld();
   }
 
   #mirrorGhosts(nodes) {
@@ -522,26 +551,18 @@ export class WorldCanvas extends CanvasBase {
   }
 
   renameNode(oldId, newId) {
-    const g = this.#regionGroupMap.get(oldId);
-    if (g) {
-      this.#regionGroupMap.delete(oldId);
-      this.#regionGroupMap.set(newId, g);
-      g.setAttribute("id", `region-${newId}`);
-      const titleEl = g.querySelector("title");
-      if (titleEl) {
-        const type = titleEl.textContent.replace(/^.*\(/, "").replace(/\)$/, "");
-        titleEl.textContent = `${newId} (${type})`;
-      }
-    }
-    const shape = this.#shapeMap.get(oldId);
-    if (shape) { this.#shapeMap.delete(oldId); this.#shapeMap.set(newId, shape); }
     const node = this.#nodeMap.get(oldId);
-    if (node) { this.#nodeMap.delete(oldId); this.#nodeMap.set(newId, node); }
+    if (node) {
+      this.#nodeMap.delete(oldId);
+      node.id = newId;
+      this.#nodeMap.set(newId, node);
+    }
     if (this.#visibilityMap.has(oldId)) {
       this.#visibilityMap.set(newId, this.#visibilityMap.get(oldId));
       this.#visibilityMap.delete(oldId);
     }
     if (this.#currentSelectedIds.has(oldId)) { this.#currentSelectedIds.delete(oldId); this.#currentSelectedIds.add(newId); }
+    this.#paintWorld();
   }
 
   resize() {
@@ -550,22 +571,21 @@ export class WorldCanvas extends CanvasBase {
     const nH = this._wrap.clientHeight - 24;
     if (nW <= 0 || nH <= 0) return;
     if (nW === +this._svg.getAttribute("width") && nH === +this._svg.getAttribute("height")) return;
-    this.#repaint();
+    this.#rebuild();
+  }
+
+  /** Drop the painted surface and the base's observers. The sixteen hosts each mount their own. */
+  dispose() {
+    this.#painter?.dispose();
+    this.#canvasEl?.remove();
+    this._disposeCanvasBase();
   }
 
   refreshRegionBounds(nodeId, newBounds) {
     const node = this.#nodeMap.get(nodeId);
-    if (!node || !this.#toSvg) return;
+    if (!node) return;
     node.bounds = newBounds;
-    const entry = this.#shapeMap.get(nodeId);
-    const groupEl = this.#regionGroupMap.get(nodeId);
-    if (!entry || !groupEl) return;
-    const color = node.color ?? "var(--canvas-region)";
-    const newShape = renderShape(node.type, newBounds, this.#toSvg, this.#regionAttrs(color));
-    if (newShape) {
-      groupEl.replaceChild(newShape, entry.shape);
-      this.#shapeMap.set(nodeId, { shape: newShape, type: node.type });
-    }
+    this.#paintWorld();
     this.#updateOverlay();
   }
 
@@ -575,28 +595,35 @@ export class WorldCanvas extends CanvasBase {
     this.#selectedNode = null;
     this.#currentSelectedIds.clear();
     this.#visibilityMap.clear();
-    this.#paintXmlRegions();
+    this.#collectRegions();
+    this.#paintWorld();
     this.#updateOverlay();
   }
 
   // ── rendering ──────────────────────────────────────────────────────────────
 
-  #repaint() {
+  /**
+   * Re-take the surface: size the svg and the backing store, rebuild the world→surface transform for the
+   * new box, and repaint. Called on load and on every size change — the transform is bbox-fitted, so it
+   * is only correct for the box it was built for.
+   */
+  #rebuild() {
     this.#drawCtrl.cancel();
     const w = this._wrap.clientWidth  - 24;
     const h = this._wrap.clientHeight - 24;
     this._svg.setAttribute("width",   w);
     this._svg.setAttribute("height",  h);
     this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    this.#painter.resize(w, h);
 
     // An xml-only / not-fully-pipelined map has no bounding_box yet: there is nothing to fit a
     // transform to, so degrade gracefully with an empty-canvas hint instead of rendering garbage.
     if (!this.#ctx.bounding_box) {
       while (this._svg.firstChild) this._svg.removeChild(this._svg.firstChild);
-      // The stack went with it — drop the handles so the layer helpers no-op instead of painting into
-      // detached groups if a setter fires before the next render.
-      this.#world = {};
       this.#screen = {};
+      this.#toSvg = null;
+      this.#toWorld = null;
+      this.#painter.begin(1, 0, 0);   // clear whatever the previous map painted
       const hint = svgEl("text", {
         x: w / 2, y: h / 2, "text-anchor": "middle", "dominant-baseline": "middle",
         "font-size": "13", fill: "#888",
@@ -608,43 +635,47 @@ export class WorldCanvas extends CanvasBase {
 
     this.#toSvg   = buildTransform(this.#ctx.bounding_box, w, h);
     this.#toWorld = buildInverseTransform(this.#ctx.bounding_box, w, h);
+    this.#painter.toSurface = this.#toSvg;
 
     while (this._svg.firstChild) this._svg.removeChild(this._svg.firstChild);
 
+    // `_viewportG` stays as an empty group because CanvasBase treats it as the "surface is ready" flag its
+    // pointer handlers guard on, and puts the viewport matrix there; nothing hangs off it now.
     this._viewportG = svgEl("g");
     this._applyViewportTransform();
-
-    // Paint order, bottom first — stated once (see render/layer-stack.js).
-    this.#world = layerStack(this._viewportG, {
-      build:        null,
-      blocks:       null,
-      islands:      { "fill-opacity": "0.25" },
-      buildability: { opacity: "0.5", ...INERT },   // translucent so terrain reads through
-      symmetry:     null,
-      spawns:       null,
-      regions:      null,
-      wools:        null,
-      monuments:    null,
-      anchors:      null,
-      draw:         null,
-    });
-
-    // The viewport goes on first so the screen-space overlay sits above every world layer.
     this._svg.appendChild(this._viewportG);
     this.#screen = layerStack(this._svg, { overlay: null });
 
-    this.#paintBuildRegion();
-    this.#paintBlockLayer();
-    this.#paintIslands();
-    this.#paintBuildabilityLayer();
-    this.#renderSymmetry();
-    this.#paintSpawnLayer();
-    this.#paintXmlRegions();
-    this.#paintWoolLayer();
-    this.#paintMonumentLayer();
-    this.#renderAnchors();
+    this.#traceIslands();
+    this.#collectRegions();
+    this.#paintWorld();
     this.#updateOverlay();
   }
+
+  /**
+   * Paint every world layer, bottom first. This is the whole of the world's z-order, and unlike a group
+   * stack it is also the whole of its cost: a layer that draws nothing costs a function call, and nothing
+   * survives between frames to be stretched by a later transform.
+   */
+  #paintWorld() {
+    if (!this.#painter || !this.#toSvg || this.#batching) return;
+    const painter = this.#painter;
+    painter.begin(this._scale, this._panX, this._panY);
+    painter.layer("build",        () => {});   // declared but unfed — CV21
+    painter.layer("blocks",       () => this.#paintBlockLayer());
+    painter.layer("islands",      () => this.#paintIslands());
+    painter.layer("buildability", () => this.#paintBuildabilityLayer());
+    painter.layer("symmetry",     () => paintSymmetryOverlay(painter, this.#symType, this.#symCx, this.#symCz, this.#ctx?.bounding_box));
+    painter.layer("spawns",       () => this.#paintPoiLayer(POI_LAYERS[0]));
+    painter.layer("regions",      () => this.#paintRegions());
+    painter.layer("wools",        () => this.#paintPoiLayer(POI_LAYERS[1]));
+    painter.layer("monuments",    () => this.#paintPoiLayer(POI_LAYERS[2]));
+    painter.layer("anchors",      () => this.#paintAnchors());
+    painter.layer("draw",         () => this.#drawCtrl.paint(painter));
+  }
+
+  /** The painted layer names of the last frame, bottom first — what `data-layer` offered on a group stack. */
+  get paintOrder() { return this.#painter?.layers ?? []; }
 
   #refreshCursor() {
     if (this._activeTool === "move")    this._svg.style.cursor = "grab";
@@ -680,52 +711,44 @@ export class WorldCanvas extends CanvasBase {
 
   // ── layers ────────────────────────────────────────────────────────────────
 
-  #paintBuildRegion() {
-    showLayer(this.#world.build, this.#showBuild);
-  }
-
   #paintBlockLayer() {
-    const g = this.#world.blocks;
-    showLayer(g, this.#showBlocks && !!this.#blockData);
-    if (this.#blockData && this.#toSvg) renderBlockImage(g, this.#blockData, this.#toSvg);
+    if (!this.#showBlocks || !this.#blockImage) return;
+    this.#painter.image(this.#blockImage, blockImageBounds(this.#blockData));
   }
 
-  // The buildability heatmap re-paints from the cached payload after a render() reset.
+  // The buildability heatmap is translucent so the terrain reads through it.
   #paintBuildabilityLayer() {
-    const g = this.#world.buildability;
-    showLayer(g, this.#showBuildability && !!this.#buildabilityData);
-    if (this.#buildabilityData && this.#toSvg) renderBlockImage(g, this.#buildabilityData, this.#toSvg);
+    if (!this.#showBuildability || !this.#buildabilityImage) return;
+    this.#painter.image(this.#buildabilityImage, blockImageBounds(this.#buildabilityData), { alpha: 0.5 });
   }
 
-  #paintIslands() {
-    const g = this.#world.islands;
-    clearLayer(g);
-    this.#islandPathMap.clear();
-    g.setAttribute("fill-opacity", this.#showBlocks ? "0" : "0.25");
-    for (const island of (this.#ctx.islands || [])) {
+  // Trace each island once, into surface coordinates. Called whenever the world or the fit changes, and
+  // only then: nothing a selection, an exclusion or a drag does moves an island outline.
+  #traceIslands() {
+    this.#islandPaths = [];
+    if (!this.#toSvg) return;
+    for (const island of (this.#ctx?.islands || [])) {
       const poly = island.simplified_polygon ?? geojsonToSimplified(island.polygon);
       if (!poly?.exterior?.length) continue;
-      const path = svgEl("path", {
-        d: polyToPath(poly, this.#toSvg),
-        fill: "var(--canvas-island)", stroke: "var(--canvas-island-stroke)", "stroke-width": "1.2", "fill-rule": "evenodd",
-      });
-      if (island.id != null) this.#islandPathMap.set(island.id, path);
-      g.appendChild(path);
+      this.#islandPaths.push({ id: island.id, data: polyToPath(poly, this.#toSvg) });
     }
-    this.#paintIslandStates();
   }
 
-  // Repaint island fill/border/opacity for the current selection, exclusions, and team tints (no full
-  // re-render). A team-assigned island is tinted that team's colour; the selected one gets an accent border.
-  #paintIslandStates() {
-    for (const [id, path] of this.#islandPathMap) {
+  // The islands, with their selection / exclusion / team-tint state applied as they are drawn: a
+  // team-assigned island is tinted that team's colour, the selected one gets an accent border, an excluded
+  // one is dimmed, and the fill drops out entirely while the block overlay is showing the real terrain.
+  #paintIslands() {
+    for (const { id, data } of this.#islandPaths) {
       const selected = this.#selectedIslandId === id;
-      const excluded = this.#excludedIslandIds.has(id);
       const team     = this.#islandTeamColors.get(id);
-      path.setAttribute("fill", team || "var(--canvas-island)");
-      path.setAttribute("stroke", selected ? "var(--accent)" : (team || "var(--canvas-island-stroke)"));
-      path.setAttribute("stroke-width", selected ? "2.5" : "1.2");
-      path.setAttribute("opacity", excluded ? "0.35" : "1");
+      this.#painter.path(data, {
+        fill: team || "var(--canvas-island)",
+        fillAlpha: this.#showBlocks ? 0 : 0.25,
+        fillRule: "evenodd",
+        stroke: selected ? "var(--accent)" : (team || "var(--canvas-island-stroke)"),
+        width: selected ? 2.5 : 1.2,
+        alpha: this.#excludedIslandIds.has(id) ? 0.35 : 1,
+      });
     }
   }
 
@@ -744,20 +767,12 @@ export class WorldCanvas extends CanvasBase {
 
   setIslandSelect(on) { this.#selectCtrl.setMode(on ? "island" : "region"); }
 
-  // Dashed axis line(s) + a centre marker for the confirmed symmetry:
-  // mirror_x / rot_90 → vertical axis at cx; mirror_z / rot_90 / rot_180 → horizontal axis at cz;
-  // mirror_d1 / mirror_d2 → a diagonal through the centre. Always a centre dot.
-  #renderSymmetry() {
-    renderSymmetryOverlay(this.#world.symmetry, this.#symType, this.#symCx, this.#symCz,
-      this.#ctx?.bounding_box, this.#toSvg);
-  }
-
   /** Show the symmetry overlay for the given type + centre (type null clears it). */
   setSymmetry(type, cx, cz) {
     this.#symType = type || null;
     this.#symCx = cx ?? 0;
     this.#symCz = cz ?? 0;
-    this.#renderSymmetry();
+    this.#paintWorld();
   }
 
   // Point-tool placement mode: the point tool drops a spawn via onPointPick (in _onToolMousedown) rather
@@ -766,65 +781,26 @@ export class WorldCanvas extends CanvasBase {
 
   setSelectedIsland(id) {
     this.#selectedIslandId = (id === null || id === undefined) ? null : id;
-    this.#paintIslandStates();
+    this.#paintWorld();
   }
 
   setExcludedIslands(ids) {
     this.#excludedIslandIds = new Set(ids || []);
-    this.#paintIslandStates();
+    this.#paintWorld();
   }
 
   // map: { islandId: teamColourHex }. Tints each assigned island; unassigned stay neutral.
   setIslandTeams(map) {
     this.#islandTeamColors = new Map(Object.entries(map || {}).map(([k, v]) => [Number(k), v]));
-    this.#paintIslandStates();
+    this.#paintWorld();
   }
 
-  #paintSpawnLayer() {
-    const g = this.#world.spawns;
-    clearLayer(g);
-    showLayer(g, this.#showPois);
-    for (const spawn of (this.#ctx.spawns || [])) {
-      if (!spawn.x && spawn.x !== 0) continue;
-      const p = this.#toSvg(spawn.x, spawn.z);
-      const t = svgEl("text", {
-        x: p.x, y: p.y, "text-anchor": "middle", "dominant-baseline": "middle",
-        "font-size": "12", fill: chatColorHex(spawn.team_color ?? ""), "font-weight": "bold",
-      });
-      t.textContent = "★";
-      g.appendChild(t);
-    }
-  }
-
-  #paintWoolLayer() {
-    const g = this.#world.wools;
-    clearLayer(g);
-    showLayer(g, this.#showPois);
-    for (const wool of (this.#ctx.wools || [])) {
-      if (!wool.x && wool.x !== 0) continue;
-      const p = this.#toSvg(wool.x, wool.z);
-      const t = svgEl("text", {
-        x: p.x, y: p.y, "text-anchor": "middle", "dominant-baseline": "middle",
-        "font-size": "11", fill: dyeColorHex(wool.color ?? ""),
-      });
-      t.textContent = "◆";
-      g.appendChild(t);
-    }
-  }
-
-  #paintMonumentLayer() {
-    const g = this.#world.monuments;
-    clearLayer(g);
-    showLayer(g, this.#showPois);
-    for (const mon of (this.#ctx.monuments || [])) {
-      if (!mon.x && mon.x !== 0) continue;
-      const p = this.#toSvg(mon.x, mon.z);
-      const t = svgEl("text", {
-        x: p.x, y: p.y, "text-anchor": "middle", "dominant-baseline": "middle",
-        "font-size": "13", fill: dyeColorHex(mon.color ?? ""),
-      });
-      t.textContent = "⊕";
-      g.appendChild(t);
+  // A point-of-interest layer: one glyph per entry, in the colour its kind derives (see POI_LAYERS).
+  #paintPoiLayer({ source, glyph, size, weight, color }) {
+    if (!this.#showPois) return;
+    for (const poi of (this.#ctx[source] || [])) {
+      if (!poi.x && poi.x !== 0) continue;
+      this.#painter.text(glyph, poi.x, poi.z, { fill: color(poi), size, weight });
     }
   }
 
@@ -886,91 +862,56 @@ export class WorldCanvas extends CanvasBase {
 
   // ── anchors ────────────────────────────────────────────────────────────────
 
-  // Repaint the 8-handle anchors for the selected region. Owns the clear, so every caller is a repaint.
-  #renderAnchors() {
-    clearLayer(this.#world.anchors);
+  // The 1×1 block anchors of the selected region — its corners in block terms, so an extent is legible
+  // even where the shape itself is a few pixels across.
+  #paintAnchors() {
     const node = this.#selectedNode;
-    if (!node?.bounds || !this.#toSvg || node.is_negative || COMPOSITE_TYPES.has(node.type)) return;
+    if (!node?.bounds || node.is_negative || COMPOSITE_TYPES.has(node.type)) return;
     const { min_x, min_z, max_x, max_z } = node.bounds;
     const color = node.color ?? "var(--canvas-region)";
-    const isCircular = ["cylinder", "circle", "sphere"].includes(node.type);
-    if (isCircular) {
-      const cx = (min_x + max_x) / 2, cz = (min_z + max_z) / 2;
-      this.#world.anchors.appendChild(anchorBlockEl(this.#toSvg, Math.floor(cx), Math.floor(cz), color));
-    } else {
-      const bMinX = Math.floor(min_x), bMinZ = Math.floor(min_z);
-      const bMaxX = Math.ceil(max_x) - 1, bMaxZ = Math.ceil(max_z) - 1;
-      this.#world.anchors.appendChild(anchorBlockEl(this.#toSvg, bMinX, bMinZ, color));
-      if (bMaxX !== bMinX || bMaxZ !== bMinZ) this.#world.anchors.appendChild(anchorBlockEl(this.#toSvg, bMaxX, bMaxZ, color));
+    if (["cylinder", "circle", "sphere"].includes(node.type)) {
+      paintAnchorBlock(this.#painter, Math.floor((min_x + max_x) / 2), Math.floor((min_z + max_z) / 2), color);
+      return;
     }
+    const bMinX = Math.floor(min_x), bMinZ = Math.floor(min_z);
+    const bMaxX = Math.ceil(max_x) - 1, bMaxZ = Math.ceil(max_z) - 1;
+    paintAnchorBlock(this.#painter, bMinX, bMinZ, color);
+    if (bMaxX !== bMinX || bMaxZ !== bMinZ) paintAnchorBlock(this.#painter, bMaxX, bMaxZ, color);
   }
 
   // ── region rendering ──────────────────────────────────────────────────────
 
-  #paintXmlRegions() {
-    this.#regionGroupMap.clear();
-    this.#shapeMap.clear();
+  // The region set in paint order: the named primitives of the loaded tree, then anything added since
+  // (drawn regions, authored dummies) that the tree does not already carry.
+  #collectRegions() {
     this.#nodeMap.clear();
-    const g = this.#world.regions;
-    clearLayer(g);
+    this.#regionNodes = [];
     for (const region of this.#flattenNamed(this.#groups)) {
-      const regionG = this.#regionGroup(region);
-      this.#regionGroupMap.set(region.id, regionG);
       this.#nodeMap.set(region.id, region);
-      g.appendChild(regionG);
+      this.#regionNodes.push(region);
     }
     for (const node of this.#addedNodes) {
-      if (!this.#regionGroupMap.has(node.id)) {
-        const regionG = this.#regionGroup(node);
-        this.#regionGroupMap.set(node.id, regionG);
-        this.#nodeMap.set(node.id, node);
-        g.appendChild(regionG);
-      }
+      if (this.#nodeMap.has(node.id)) continue;
+      this.#nodeMap.set(node.id, node);
+      this.#regionNodes.push(node);
     }
   }
 
-  #regionGroup(region) {
-    const { id, type } = region;
-    const color = region.color ?? "var(--canvas-region)";
-    const g = svgEl("g", { id: `region-${id}` });
-    const title = svgEl("title");
-    title.textContent = `${id} (${type})`;
-    g.appendChild(title);
-
-    // A point primitive can opt into a fixed-size marker render (e.g. a spawn) — team-coloured, the
-    // authored one brighter. It's a `point` (circle) with the marker treatment; selection still goes
-    // through the normal bounds hit-test (+ margin).
-    const boundsOrPoly = region.polygon_2d ?? region.bounds;
-    const attrs = region.marker
-      ? primitiveStyle("marker", { color, primary: region.primary })
-      : this.#regionAttrs(color, region.ghost);
-    const shape = renderShape(region.marker ? "point" : type, boundsOrPoly, this.#toSvg, attrs);
-    if (shape) { g.appendChild(shape); this.#shapeMap.set(id, { shape, type }); }
-    return g;
-  }
-
-  // `ghost` = a non-interactive derived preview (e.g. the symmetry-orbited copy of an authored region):
-  // fainter + finer dashes, and excluded from the hit-test so it can't be selected or resized.
-  #regionAttrs(color, ghost = false) {
-    return primitiveStyle("region", { color, state: ghost ? "ghost" : "normal" });
-  }
-
-  #refreshRegionDisplay(id) {
-    const g = this.#regionGroupMap.get(id);
-    if (!g) return;
-    const node = this.#nodeMap.get(id);
-    const isSelected = this.#currentSelectedIds.has(id);
-    const isVisible  = this.#visibilityMap.get(id) !== false;
-    g.style.display  = (isVisible || isSelected) ? "" : "none";
-    const entry = this.#shapeMap.get(id);
-    if (!entry) return;
-    // derived preview keeps its faint style regardless of selection; otherwise selected vs normal.
-    const st = primitiveStyle("region", { state: node?.ghost ? "ghost" : (isSelected ? "selected" : "normal") });
-    entry.shape.setAttribute("stroke-width",   st["stroke-width"]);
-    entry.shape.setAttribute("stroke-opacity", st["stroke-opacity"]);
-    entry.shape.setAttribute("fill-opacity",   st["fill-opacity"]);
-    if (st["stroke-dasharray"]) entry.shape.setAttribute("stroke-dasharray", st["stroke-dasharray"]);
-    else entry.shape.removeAttribute("stroke-dasharray");
+  /**
+   * Every region, styled by what it currently is rather than by an attribute patched onto it after the
+   * fact: a marker keeps the marker treatment, a derived preview (`ghost`) keeps its faint one whatever
+   * the selection does, and a hidden region is simply not drawn unless it is the selected one.
+   */
+  #paintRegions() {
+    for (const node of this.#regionNodes) {
+      const selected = this.#currentSelectedIds.has(node.id);
+      if (this.#visibilityMap.get(node.id) === false && !selected) continue;
+      const color = node.color ?? "var(--canvas-region)";
+      const style = node.marker
+        ? primitiveStyle("marker", { color, primary: node.primary })
+        : primitiveStyle("region", { color, state: node.ghost ? "ghost" : (selected ? "selected" : "normal") });
+      paintShape(this.#painter, node.marker ? "point" : node.type, node.polygon_2d ?? node.bounds, style);
+    }
   }
 
   // ── flatten helpers ────────────────────────────────────────────────────────

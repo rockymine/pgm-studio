@@ -1,8 +1,13 @@
 /**
  * SVG element factory + path-string builders.
- * The render layer's primitives: turn geometry (rings / bounds, via a world→SVG `toSvg`)
- * into SVG elements and path `d` strings. Path builders are pure string math (no DOM) and
- * are testable with a stub `toSvg`; element factories need a document.
+ *
+ * The **retained** dialect: the screen-space overlays every canvas keeps in the svg (labels, handles,
+ * pills, the scale bar) and the fixed-fit previews that have no viewport transform to go stale. The
+ * painted dialect is `render/canvas-painter.js`.
+ *
+ * The path builders are shared by both, not duplicated for each: they are pure string math (no DOM,
+ * testable with a stub `toSvg`), and a canvas `Path2D` takes SVG path data outright — so a ring is
+ * turned into a `d` here whichever surface ends up drawing it.
  */
 
 /** Create an SVG element with given attributes. */
@@ -83,22 +88,3 @@ export function boundsToRingPath(bounds, toSvg) {
   );
 }
 
-/** Create an SVG rect element representing a 1×1 block anchor at (bx, bz). */
-export function anchorBlockEl(toSvg, bx, bz, color) {
-  const p1 = toSvg(bx, bz), p2 = toSvg(bx + 1, bz + 1);
-  return svgEl("rect", {
-    x: Math.min(p1.x, p2.x), y: Math.min(p1.y, p2.y),
-    width: Math.abs(p2.x - p1.x), height: Math.abs(p2.y - p1.y),
-    fill: color, "fill-opacity": "0.5", stroke: color, "stroke-width": "2",
-    "vector-effect": "non-scaling-stroke", "pointer-events": "none",
-  });
-}
-
-/** Reposition an existing anchor block element to (bx, bz). */
-export function moveAnchorBlockEl(toSvg, el, bx, bz) {
-  const p1 = toSvg(bx, bz), p2 = toSvg(bx + 1, bz + 1);
-  el.setAttribute("x",      Math.min(p1.x, p2.x));
-  el.setAttribute("y",      Math.min(p1.y, p2.y));
-  el.setAttribute("width",  Math.abs(p2.x - p1.x));
-  el.setAttribute("height", Math.abs(p2.y - p1.y));
-}

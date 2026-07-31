@@ -1,28 +1,28 @@
 /**
- * WorldDrawController — rectangle/cuboid drag and cylinder/circle two-click draw
- * for WorldCanvas. Extracted from world-canvas.js.
+ * WorldDrawController — rectangle/cuboid drag and cylinder/circle two-click draw for WorldCanvas.
+ *
+ * Like the sketch draw controller, the in-progress draw is **state, not elements**: `#drawState` holds
+ * the numbers and `paint` draws them into whatever frame the canvas is painting, so every mutating entry
+ * point ends by asking for one (`onPreviewChanged`).
  *
  * Constructor args:
- *   getDrawLayer  () => SVGGElement | null   — getter, layer is rebuilt on repaint
- *   getToSvg      () => Function | null      — getter, transform is rebuilt on repaint
- *   callbacks     { onRegionDraw }
+ *   callbacks     { onRegionDraw, onPreviewChanged }
  */
 
-import { svgEl, anchorBlockEl, moveAnchorBlockEl } from "../render/svg.js";
 import { drawnBoundsFromBlocks } from "../geometry/region-convert.js";
+import { paintAnchorBlock } from "../render/shape-render.js";
+
+const REGION_COLOR = "var(--canvas-region)";
+const GUIDE_COLOR  = "var(--canvas-axis)";
 
 export class WorldDrawController {
-  #getDrawLayer;
-  #getToSvg;
   #callbacks;
 
   #drawState  = null;
   #activeTool = null;
 
-  constructor(getDrawLayer, getToSvg, { onRegionDraw } = {}) {
-    this.#getDrawLayer = getDrawLayer;
-    this.#getToSvg     = getToSvg;
-    this.#callbacks    = { onRegionDraw };
+  constructor({ onRegionDraw, onPreviewChanged } = {}) {
+    this.#callbacks = { onRegionDraw, onPreviewChanged };
   }
 
   setTool(tool)       { this.#activeTool = tool; }
@@ -33,7 +33,8 @@ export class WorldDrawController {
   onMouseDown(bx, bz) {
     const tool = this.#activeTool;
     if (tool === "rectangle" || tool === "cuboid") {
-      this.#startDraw(bx, bz);
+      this.#drawState = { toolType: tool, startBx: bx, startBz: bz, currentBx: bx, currentBz: bz };
+      this.#repaint();
       return true;
     }
     if (tool === "cylinder" || tool === "circle") {
@@ -63,51 +64,47 @@ export class WorldDrawController {
   /** Cancel any in-progress draw (called from canvas.setActiveTool and #repaint). */
   cancel() {
     if (!this.#drawState) return;
-    const layer = this.#getDrawLayer();
-    if (layer) while (layer.firstChild) layer.removeChild(layer.firstChild);
     this.#drawState = null;
+    this.#repaint();
+  }
+
+  /**
+   * Draw the in-progress region onto the canvas's painter, from the canvas's `draw` phase. A rectangle
+   * shows its two corner blocks so the exact extent is legible at the block level; a radial shows the
+   * centre, the radius it is being dragged to, and that radius as a number.
+   */
+  paint(painter) {
+    const ds = this.#drawState;
+    if (!ds) return;
+    if (ds.toolType === "rectangle" || ds.toolType === "cuboid") {
+      const { min_x, min_z, max_x, max_z } = drawnBoundsFromBlocks(ds.startBx, ds.startBz, ds.currentBx, ds.currentBz);
+      painter.rect({ min_x, min_z, max_x, max_z },
+        { fill: REGION_COLOR, fillAlpha: 0.12, stroke: REGION_COLOR, width: 1.5, dash: [4, 2] });
+      paintAnchorBlock(painter, min_x, min_z, REGION_COLOR);
+      paintAnchorBlock(painter, max_x - 1, max_z - 1, REGION_COLOR);
+      return;
+    }
+    const { centerX, centerZ, currentRadius, cursorX, cursorZ } = ds;
+    painter.ellipse({ min_x: centerX - currentRadius, max_x: centerX + currentRadius,
+                      min_z: centerZ - currentRadius, max_z: centerZ + currentRadius },
+                    { stroke: GUIDE_COLOR, width: 1.5, dash: [6, 3] });
+    painter.line(centerX, centerZ, cursorX ?? centerX, cursorZ ?? centerZ,
+                 { stroke: GUIDE_COLOR, width: 1.5, dash: [4, 2] });
+    painter.dot(centerX, centerZ, { radius: 5, fill: GUIDE_COLOR, stroke: "var(--canvas-marker-stroke)", width: 1.5 });
+    painter.text(`r=${currentRadius}`, cursorX ?? centerX, cursorZ ?? centerZ, {
+      fill: GUIDE_COLOR, size: 11, align: "left", baseline: "alphabetic", dx: 6, dy: -4,
+    });
   }
 
   // ── rectangle / cuboid ───────────────────────────────────────────────────────
 
-  #startDraw(bx, bz) {
-    const layer = this.#getDrawLayer();
-    const toSvg = this.#getToSvg();
-    if (!layer || !toSvg) return;
-    const color = "var(--canvas-region)";
-    const previewRect = svgEl("rect", {
-      x: 0, y: 0, width: 0, height: 0,
-      fill: color, "fill-opacity": "0.12",
-      stroke: color, "stroke-width": "1.5", "stroke-dasharray": "4,2",
-      "vector-effect": "non-scaling-stroke", "pointer-events": "none",
-    });
-    const anchor1 = anchorBlockEl(toSvg, bx, bz, color);
-    const anchor2 = anchorBlockEl(toSvg, bx, bz, color);
-    layer.appendChild(previewRect);
-    layer.appendChild(anchor1);
-    layer.appendChild(anchor2);
-    this.#drawState = {
-      toolType: this.#activeTool,
-      startBx: bx, startBz: bz, currentBx: bx, currentBz: bz,
-      previewRect, anchor1, anchor2,
-    };
-    this.#updateDrawPreview(bx, bz);
-  }
+  #repaint() { this.#callbacks.onPreviewChanged?.(); }
 
   #updateDrawPreview(bx, bz) {
-    const toSvg = this.#getToSvg();
-    if (!this.#drawState || !toSvg) return;
+    if (!this.#drawState) return;
     this.#drawState.currentBx = bx;
     this.#drawState.currentBz = bz;
-    const { startBx, startBz, previewRect, anchor1, anchor2 } = this.#drawState;
-    const { min_x, min_z, max_x, max_z } = drawnBoundsFromBlocks(startBx, startBz, bx, bz);
-    const p1 = toSvg(min_x, min_z), p2 = toSvg(max_x, max_z);
-    previewRect.setAttribute("x",      Math.min(p1.x, p2.x));
-    previewRect.setAttribute("y",      Math.min(p1.y, p2.y));
-    previewRect.setAttribute("width",  Math.abs(p2.x - p1.x));
-    previewRect.setAttribute("height", Math.abs(p2.y - p1.y));
-    moveAnchorBlockEl(toSvg, anchor1, min_x,     min_z);
-    moveAnchorBlockEl(toSvg, anchor2, max_x - 1, max_z - 1);
+    this.#repaint();
   }
 
   #completeDraw() {
@@ -121,56 +118,23 @@ export class WorldDrawController {
   // ── cylinder / circle (two-click radial) ────────────────────────────────────
 
   #startRadialDraw(bx, bz) {
-    const layer = this.#getDrawLayer();
-    const toSvg = this.#getToSvg();
-    if (!layer || !toSvg) return;
     const centerX = bx + 0.5, centerZ = bz + 0.5;
-    const pt = toSvg(centerX, centerZ);
-    const dot = svgEl("circle", {
-      cx: pt.x, cy: pt.y, r: 5,
-      fill: "var(--canvas-axis)", stroke: "var(--canvas-marker-stroke)", "stroke-width": "1.5",
-      "pointer-events": "none",
-    });
-    const line = svgEl("line", {
-      x1: pt.x, y1: pt.y, x2: pt.x, y2: pt.y,
-      stroke: "var(--canvas-axis)", "stroke-width": "1.5", "stroke-dasharray": "4 2",
-      "vector-effect": "non-scaling-stroke", "pointer-events": "none",
-    });
-    const previewCircle = svgEl("ellipse", {
-      cx: pt.x, cy: pt.y, rx: 0, ry: 0,
-      fill: "none", stroke: "var(--canvas-axis)", "stroke-width": "1.5",
-      "stroke-dasharray": "6 3", "vector-effect": "non-scaling-stroke",
-      "pointer-events": "none",
-    });
-    const label = svgEl("text", {
-      x: pt.x, y: pt.y,
-      fill: "var(--canvas-axis)", "font-size": "11",
-      "text-anchor": "start", "pointer-events": "none",
-    });
-    layer.append(previewCircle, line, dot, label);
     this.#drawState = {
       toolType: this.#activeTool,
-      centerX, centerZ, dot, line, previewCircle, label, currentRadius: 1,
+      centerX, centerZ, cursorX: centerX, cursorZ: centerZ, currentRadius: 1,
     };
+    this.#repaint();
   }
 
   #updateRadialPreview(bx, bz) {
-    const toSvg = this.#getToSvg();
-    if (!this.#drawState || !toSvg) return;
-    const { centerX, centerZ, line, previewCircle, label } = this.#drawState;
+    if (!this.#drawState) return;
+    const { centerX, centerZ } = this.#drawState;
     const cursorX = bx + 0.5, cursorZ = bz + 0.5;
     const dx = cursorX - centerX, dz = cursorZ - centerZ;
-    const radius = Math.max(1, Math.round(Math.sqrt(dx * dx + dz * dz)));
-    this.#drawState.currentRadius = radius;
-    const cPt  = toSvg(centerX, centerZ);
-    const rxPt = toSvg(centerX + radius, centerZ);
-    const rzPt = toSvg(centerX, centerZ + radius);
-    const endPt = toSvg(cursorX, cursorZ);
-    line.setAttribute("x2", endPt.x); line.setAttribute("y2", endPt.y);
-    previewCircle.setAttribute("rx", Math.abs(rxPt.x - cPt.x));
-    previewCircle.setAttribute("ry", Math.abs(rzPt.y - cPt.y));
-    label.setAttribute("x", endPt.x + 6); label.setAttribute("y", endPt.y - 4);
-    label.textContent = `r=${radius}`;
+    this.#drawState.cursorX = cursorX;
+    this.#drawState.cursorZ = cursorZ;
+    this.#drawState.currentRadius = Math.max(1, Math.round(Math.sqrt(dx * dx + dz * dz)));
+    this.#repaint();
   }
 
   #completeRadialDraw(bx, bz) {

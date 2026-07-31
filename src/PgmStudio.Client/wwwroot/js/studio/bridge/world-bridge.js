@@ -120,7 +120,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     fitIsland(id) { canvas.fitIsland(id); },
     fitBounds(minX, minZ, maxX, maxZ) { canvas.fitBounds({ min_x: minX, min_z: minZ, max_x: maxX, max_z: maxZ }); },
     resetView() { canvas.resetView(); },
-    dispose() { /* no explicit teardown; dropping the reference is enough */ },
+    // The painted surface owns a canvas element, a resize observer and a theme watcher, and sixteen hosts
+    // mount this canvas — so teardown is real work now, not just dropping the reference.
+    dispose() { canvas.dispose(); },
   };
 
   await handle.load(slug);
