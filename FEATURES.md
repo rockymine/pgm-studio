@@ -1951,8 +1951,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   draw calls or documents across the WASM boundary is the class of cost already hit three times. The
   server-side `PlanBoardSvg` divergence is accepted. `paint.mjs` asserts on pixels: painted coverage,
   buffer = box × DPR, chrome still in the svg, and that a wheel burst *changes* the pixel signature — a
-  stretched raster would not. JS 166/166; the Firefox acceptance read and the sketch/world conversions
-  remain in CV18 (`BACKLOG.md`). (CV18)
+  stretched raster would not. JS 166/166; the artifact is confirmed gone on a real Firefox. The
+  sketch/world conversions remain in CV18 (`BACKLOG.md`). (CV18)
 
 - **The world canvas states its layer stack once (CV19)** — `canvas/world-canvas.js` +
   `docs/contracts/canvas-interaction.md`. `CV13` gave the canvases `render/layer-stack.js` — the key order of
