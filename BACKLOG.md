@@ -210,6 +210,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   at low zoom, and what replaces `data-layer` addressing for `CV12`/`C28`'s test layers, since a canvas
   offers nothing to query. Until it lands the artifact is live and unmitigated.
 
+- [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
+  (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
+  `visibility:hidden` whose only handle was assigned and never read. This is the other: the `build` group is
+  created empty, no painter ever appends to it, and its toggle `setBuildVisible` has no caller outside the
+  class — not the bridge, not any of the sixteen hosts. So it is an empty group with a visibility switch
+  nobody throws. Removing it takes `setBuildVisible`, `#showBuild`, `#paintBuildRegion` and one line of the
+  documented public surface with it, which is why it was left in place rather than swept during a
+  behaviour-preserving refactor. Check first whether a Build phase was *meant* to fill it (the name suggests
+  the Build-Regions work) — if so the task is to wire it, not delete it, and that is a different task in the
+  feature section.
+
 - [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
   `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
   callback; `world-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead

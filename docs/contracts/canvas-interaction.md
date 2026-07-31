@@ -62,6 +62,7 @@ canvas layer can then reuse or test it.
 | `plan/plan-doc.js` | the plan document model + its geometry (pure; the wire format lives here) |
 | `plan/plan-inspect.js` | derived-structure overlay helpers for the plan inspect layer |
 | `render/svg.js` | the element factory and path builders every other renderer uses |
+| `render/layer-stack.js` | the z-ordered layer groups, declared once per canvas (key order = paint order, bottom first); each group carries `data-layer="<name>"`, plus `showLayer`/`showLayers`/`clearLayer` |
 | `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless emit for primitives, sketch overlays, symmetry axes, block PNGs |
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
@@ -158,12 +159,6 @@ The layer is about 6,600 lines of first-party code (the raw ~11,000 figure inclu
 `polygon-clipping`, plus comments and blanks). It is not bloated, and the remaining duplication is small in
 line terms — a few hundred at most. It is filed because it costs *consistency*, not size:
 
-- **CV13** — `CanvasBase` owns the inverse projection (`_clientToSvg`) but not the forward one, so
-  `world → screen` is written four times across two canvases and two controllers; the fit-to-bounds maths
-  exists three times; `resize()` three times; `#size()` (and its magic `-24`) likewise; and the iso
-  preview lifecycle is duplicated between the plan and sketch canvases.
-- **CV14** — each canvas hand-rolls its z-ordered stack of named SVG groups, and in `SketchCanvas` the
-  z-order is stated twice (declaration order, then the append array), so the two can drift.
 - **CV15** — the bridge invoke wrapper: `plan-bridge` and `sketch-bridge` guard `invokeMethodAsync` in a
   `fire()` helper, `world-bridge` calls it unguarded.
 - **CV9** — a point renders as a 1×1 `<rect>` on Edit and a fixed-radius `<circle>` on Configure. Tracked
