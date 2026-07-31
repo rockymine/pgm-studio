@@ -12,8 +12,8 @@
 
 import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
-import { layerStack, showLayer, showLayers, INERT } from "../render/layer-stack.js";
-import { primitiveStyle } from "../render/primitive-style.js";
+import { layerStack, INERT } from "../render/layer-stack.js";
+import { CanvasPainter } from "../render/canvas-painter.js";
 import { blockDataToDataUrl } from "../render/block-render.js";
 import {
   ROLE_COLORS, BOX_COLORS, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
@@ -21,12 +21,12 @@ import {
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece, rectContainsCell,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
-import { viewportWorldRect, snapOut, unionRect, gridStep, renderWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
-
-// The hatch pattern id backing each annotation role's fill (buffer = single diagonal, connector = crossed).
-const HATCH = { buffer: "buffer-hatch", connector: "connector-hatch" };
+import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar } from "../render/canvas-chrome.js";
 
 const FIT_MARGIN = 0.82;
+
+// How long the lint-finding highlight pulse runs, in ms.
+const PULSE_MS = 1600;
 
 // The **working area** — the tinted region that anchors how big a board should be. It exists at a default
 // size on a blank plan and grows to enclose the content (plus its symmetry ghosts) with a cell buffer.
@@ -114,22 +114,36 @@ export class PlanCanvas extends CanvasBase {
   // Labels off by default keeps the canvas quiet: no piece/zone id text, no gap connectors or hop numbers.
   #overlayOn = { interfaces: true, labels: false, frontline: true, violations: true };
   #heightMap = false;               // fill pieces by a surface-height ramp + show the height inside each
-  #pulseTimer = null;
 
-  #world = {};                      // viewport layers — built by #build, z-order declared there
+  // The world layers are PAINTED, not retained: `#painter` owns a <canvas> under the svg and redraws the
+  // whole world each frame at the current scale. That is what keeps a zoom sharp — there is no cached
+  // rasterization for the browser to stretch — and it is why `_onViewportChanged` repaints rather than
+  // just nudging a matrix. Screen-space chrome stays in the svg (`#screen`), where DOM semantics are
+  // worth having and nothing is transformed.
+  #painter = null;
+  #canvasEl = null;
   #screen = {};                     // screen-space layers (outside the viewport transform)
-  #gridKey = "";                    // last grid extent, so the lines only rebuild when it actually moves
-  // reference (tracing backdrop) state: the fetched block payload, its world bbox, and the placement cfg.
-  #refData = null; #refBounds = null; #refCfg = null;
+  #hatch = {};                      // role → CanvasPattern for the annotation fills, rebuilt per cell size
+  #hatchCell = null;                // the cell size the patterns were built for
+  #pulseUntil = 0;                  // timestamp the pulse animation runs to (see pulseSubjects)
+  #pulseIds = [];
+  #pulseFrame = 0;
+  // reference (tracing backdrop) state: the fetched block payload, its world bbox, the placement cfg,
+  // and the decoded bitmap the painter blits (an <img>, since a canvas draws images, not data URLs).
+  #refData = null; #refBounds = null; #refCfg = null; #refImage = null;
   // screen-space overlay (labels + selection box + resize handles)
   #overlay;
-  // svg <defs> holding the buffer (reserved-gap) hatch pattern
-  #defs;
 
   constructor(svgEl_, wrapEl, { cursorEl, ...cb } = {}) {
     super(svgEl_, wrapEl);
     this.#cb = cb;
     this.#cursorEl = cursorEl ?? null;
+    // The painted surface is created here rather than in the host markup, so the Blazor component and the
+    // bridge signature are unchanged by what the world layers are drawn with.
+    this.#canvasEl = document.createElement("canvas");
+    this.#canvasEl.className = "world-canvas-2d";
+    this._svg.parentNode.insertBefore(this.#canvasEl, this._svg);
+    this.#painter = new CanvasPainter(this.#canvasEl);
     this.#build();
   }
 
@@ -148,7 +162,7 @@ export class PlanCanvas extends CanvasBase {
   // Derived-structure feed (block coords, already fanned-out excluded — authored unit only). Redraw the layer.
   setInspect(data) {
     this.#inspect = { interfaces: data.interfaces || [], gapLinks: data.gapLinks || [], frontline: data.frontline || [] };
-    this.#renderInspect();
+    this.#paintWorld();
     this.#refreshOverlay();
   }
   // Evaluator-violation feed (cell-space evidence). A new feed is a fresh rule set, so any isolate-focus is
@@ -156,13 +170,13 @@ export class PlanCanvas extends CanvasBase {
   setViolations(violations) {
     this.#violations = Array.isArray(violations) ? violations : [];
     this.#focusedViolation = -1;
-    this.#renderViolations();
+    this.#paintWorld();
     this.#refreshOverlay();
   }
   // Isolate one fired rule's evidence (from the Score panel): -1 restores the all-violations overlay.
   focusViolation(index) {
     this.#focusedViolation = Number.isInteger(index) ? index : -1;
-    this.#renderViolations();
+    this.#paintWorld();
     this.#refreshOverlay();
   }
   // The violations to draw right now: the single focused one, or all when nothing is isolated.
@@ -179,14 +193,13 @@ export class PlanCanvas extends CanvasBase {
    */
   setNearestMiss(miss) {
     this.#nearestMiss = miss && (miss.extra?.length || miss.missing?.length) ? miss : null;
-    this.#renderViolations();
+    this.#paintWorld();
   }
 
   setOverlayVisible(key, on) {
     if (!(key in this.#overlayOn)) return;
     this.#overlayOn[key] = !!on;
-    this.#renderInspect();
-    this.#renderViolations();
+    this.#paintWorld();
     this.#refreshOverlay();
   }
   // Height-map mode: pieces fill by a min..max surface ramp and carry their height number. Re-render the
@@ -194,7 +207,7 @@ export class PlanCanvas extends CanvasBase {
   setHeightMap(on) {
     this.#heightMap = !!on;
     if (!this.#doc) return;
-    this.#renderPieces();
+    this.#paintWorld();
     this.#refreshOverlay();
   }
 
@@ -208,7 +221,7 @@ export class PlanCanvas extends CanvasBase {
 
   _isoTag() { return "plan"; }
   _onIsoEnter() { this.#drag = null; this.#resize = null; }
-  _isoLayers() { return [this._viewportG, this.#overlay]; }
+  _isoLayers() { return [this.#canvasEl, this._viewportG, this.#overlay]; }
 
   // ── reference (tracing) backdrop ────────────────────────────────────────────
   // A real map's top-down block render, painted behind the grid so the author can trace over it. `data` is the
@@ -221,30 +234,34 @@ export class PlanCanvas extends CanvasBase {
     this.#refData = data || null;
     this.#refBounds = data ? { min_x: data.min_x, min_z: data.min_z, max_x: data.max_x, max_z: data.max_z } : null;
     this.#refCfg = cfg || null;
-    this.#clear(this.#world.ref);
+    this.#refImage = null;
     if (data) {
-      const img = svgEl("image", {
-        href: blockDataToDataUrl(data),
-        x: data.min_x, y: data.min_z,
-        width: data.max_x - data.min_x + 1, height: data.max_z - data.min_z + 1,
-        preserveAspectRatio: "none", "pointer-events": "none",
-      });
-      img.style.imageRendering = "pixelated";
-      this.#world.ref.appendChild(img);
+      // A canvas draws an image, not a data URL, so the PNG is decoded once here and blitted thereafter.
+      const img = new Image();
+      img.onload = () => { this.#refImage = img; this.#paintWorld(); };
+      img.src = blockDataToDataUrl(data);
     }
-    this.#applyReferenceTransform();
+    this.render();
   }
 
   // Re-place an already-loaded backdrop after an offset/scale/opacity change (no PNG rebuild).
-  updateReference(cfg) { this.#refCfg = cfg || null; this.#applyReferenceTransform(); }
+  updateReference(cfg) { this.#refCfg = cfg || null; this.#paintWorld(); }
   clearReference() { this.setReference(null, null); }
 
-  #applyReferenceTransform() {
-    const layer = this.#world.ref;
-    if (!this.#refBounds || !this.#refCfg) { layer.removeAttribute("transform"); layer.style.opacity = ""; return; }
+  /**
+   * The tracing backdrop: the block PNG placed in the plan's own frame. The SVG version carried the
+   * centring, offset and scale on a group transform; here the same numbers go on the context, and
+   * `imageSmoothingEnabled = false` is the `image-rendering: pixelated` that kept blocks crisp.
+   */
+  #paintReference(ctx) {
+    if (!this.#refImage || !this.#refBounds || !this.#refCfg) return;
     const b = this.#refWorldTranslate();
-    layer.setAttribute("transform", `scale(${b.s}) translate(${b.tx} ${b.tz})`);
-    layer.style.opacity = this.#refCfg.opacity == null ? "0.5" : String(this.#refCfg.opacity);
+    ctx.globalAlpha = this.#refCfg.opacity == null ? 0.5 : Number(this.#refCfg.opacity);
+    ctx.imageSmoothingEnabled = false;
+    ctx.scale(b.s, b.s);
+    ctx.translate(b.tx, b.tz);
+    const d = this.#refBounds;
+    ctx.drawImage(this.#refImage, d.min_x, d.min_z, d.max_x - d.min_x + 1, d.max_z - d.min_z + 1);
   }
 
   // The scale + pre-scale translation that centres the backdrop bbox on the origin, then applies the cell-space
@@ -284,8 +301,9 @@ export class PlanCanvas extends CanvasBase {
   _fit() { this.fit(); }
 
   resize() {
-    this._resizeSvg();
-    if (this.#doc) this.#renderGrid();   // a bigger/smaller viewport shows more/less grid
+    const { w, h } = this._resizeSvg();
+    this.#painter.resize(w, h);          // the backing store follows the box, and re-reads the pixel ratio
+    if (this.#doc) this.#paintWorld();   // a bigger/smaller viewport shows more/less grid
     this.#refreshOverlay();
   }
 
@@ -293,41 +311,129 @@ export class PlanCanvas extends CanvasBase {
 
   render() {
     if (!this.#doc) return;
-    this.#ensureHatch();
-    if (this.#refData) this.#applyReferenceTransform();   // offset is in cells → track a cell-size change
-    this.#renderGrid();
-    this.#renderGhost();
-    this.#renderZones();
-    this.#renderPieces();
-    this.#renderBoxes();
-    this.#renderMarkers();
+    this.#paintWorld();
     this.#refreshOverlay();
     this.#cb.onChange?.();
   }
 
+  /**
+   * Paint every world layer, bottom first. This is the whole of the world's z-order, and unlike a group
+   * stack it is also the whole of its cost: a layer that draws nothing costs a function call, and nothing
+   * survives between frames to be stretched by a later transform.
+   */
+  #paintWorld() {
+    if (!this.#doc || !this.#painter) return;
+    this.#ensureHatch();
+    const painter = this.#painter;
+    painter.begin(this._scale, this._panX, this._panY);
+    painter.layer("ref",       (ctx) => this.#paintReference(ctx));
+    painter.layer("work",      (ctx) => this.#paintWorkArea(ctx));
+    painter.layer("grid",      (ctx) => this.#paintGrid(ctx));
+    painter.layer("center",    (ctx) => this.#paintCenter(ctx));
+    painter.layer("ghost",     (ctx) => this.#paintGhost(ctx));
+    painter.layer("zone",      (ctx) => this.#paintZones(ctx));
+    painter.layer("piece",     (ctx) => this.#paintPieces(ctx));
+    painter.layer("box",       (ctx) => this.#paintBoxes(ctx));
+    painter.layer("inspect",   (ctx) => this.#paintInspect(ctx));
+    painter.layer("violation", (ctx) => this.#paintViolations(ctx));
+    painter.layer("marker",    (ctx) => this.#paintMarkers(ctx));
+    painter.layer("preview",   (ctx) => this.#paintPreview(ctx));
+    painter.layer("pulse",     (ctx) => this.#paintPulse(ctx));
+    // The scale bar is screen-space chrome and stays in the svg, but it reads the zoom, so it is
+    // refreshed on the same beat as the world.
+    const { w, h } = this._viewSize ?? this._size();
+    renderScaleBar(this.#screen.scale, { w, h, scale: this._scale });
+  }
+
+  /** The painted layer names of the last frame, bottom first — what `data-layer` offered on a group stack. */
+  get paintOrder() { return this.#painter?.layers ?? []; }
+
   #clear(layer) { while (layer.firstChild) layer.removeChild(layer.firstChild); }
 
-  // Rebuild the diagonal-hatch pattern used for buffer (reserved-gap) fills, sized to the current cell so the
-  // hatch stays proportional to pieces. Defined in world units (userSpaceOnUse) so it tiles across the board;
-  // referencing rects set their own fill-opacity (full for a live buffer, low for a ghost image).
-  #ensureHatch() {
-    if (!this.#defs) return;
-    this.#clear(this.#defs);
-    const cell = this.#doc?.globals.cell || 5;
-    const step = Math.max(2, cell * 0.7);
-    const sw = Math.max(0.6, cell * 0.14);
-    // Buffer: single diagonal hatch (reserved gap). Connector: crossed hatch (attachment point) — the two
-    // annotation fills read apart at a glance while both stay clearly "not terrain".
-    const buf = svgEl("pattern", { id: "buffer-hatch", patternUnits: "userSpaceOnUse", width: step, height: step, patternTransform: "rotate(45)" });
-    buf.appendChild(svgEl("rect", { x: 0, y: 0, width: step, height: step, fill: ROLE_COLORS.buffer, "fill-opacity": "0.12" }));
-    buf.appendChild(svgEl("line", { x1: 0, y1: 0, x2: 0, y2: step, stroke: ROLE_COLORS.buffer, "stroke-width": sw }));
-    this.#defs.appendChild(buf);
+  // ── painting helpers ──────────────────────────────────────────────────────────
 
-    const con = svgEl("pattern", { id: "connector-hatch", patternUnits: "userSpaceOnUse", width: step, height: step, patternTransform: "rotate(45)" });
-    con.appendChild(svgEl("rect", { x: 0, y: 0, width: step, height: step, fill: ROLE_COLORS.connector, "fill-opacity": "0.14" }));
-    con.appendChild(svgEl("line", { x1: 0, y1: 0, x2: 0, y2: step, stroke: ROLE_COLORS.connector, "stroke-width": sw }));
-    con.appendChild(svgEl("line", { x1: 0, y1: 0, x2: step, y2: 0, stroke: ROLE_COLORS.connector, "stroke-width": sw }));
-    this.#defs.appendChild(con);
+  /** A stroke of `px` screen pixels, whatever the zoom — the painter's replacement for non-scaling-stroke. */
+  #stroke(ctx, color, px, dash = null) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = this.#painter.screenPx(px);
+    ctx.setLineDash(dash ? dash.map(d => this.#painter.screenPx(d)) : []);
+  }
+
+  /** Fill and/or stroke a world rect. `fill`/`stroke` null to skip that half. */
+  #rect(ctx, box, { fill = null, fillAlpha = 1, stroke = null, width = 1, dash = null } = {}) {
+    const x = box.min_x, y = box.min_z, w = box.max_x - box.min_x, h = box.max_z - box.min_z;
+    if (fill) {
+      ctx.save();
+      ctx.globalAlpha = fillAlpha;
+      ctx.fillStyle = fill;
+      ctx.fillRect(x, y, w, h);
+      ctx.restore();
+    }
+    if (stroke) { this.#stroke(ctx, stroke, width, dash); ctx.strokeRect(x, y, w, h); }
+  }
+
+  #line(ctx, x1, z1, x2, z2, color, px, dash = null, cap = "butt") {
+    this.#stroke(ctx, color, px, dash);
+    ctx.lineCap = cap;
+    ctx.beginPath(); ctx.moveTo(x1, z1); ctx.lineTo(x2, z2); ctx.stroke();
+  }
+
+  #circle(ctx, cx, cz, r, { fill = null, fillAlpha = 1, stroke = null, width = 1 } = {}) {
+    ctx.beginPath();
+    ctx.arc(cx, cz, r, 0, Math.PI * 2);
+    if (fill) { ctx.save(); ctx.globalAlpha = fillAlpha; ctx.fillStyle = fill; ctx.fill(); ctx.restore(); }
+    if (stroke) { this.#stroke(ctx, stroke, width); ctx.stroke(); }
+  }
+
+  /** A token colour, resolved and cached by the painter (and demoted if the context won't parse it). */
+  #tok(name, fallback) { return this.#painter.token(name, fallback); }
+
+  /**
+   * The diagonal hatch behind the annotation fills, as a `CanvasPattern` per role. An SVG `<pattern>` in
+   * `userSpaceOnUse` tiles in world units and rotates by an attribute; a canvas pattern tiles in the
+   * coordinate space in force and is rotated by a matrix on the pattern itself, so the tile is drawn
+   * axis-aligned and turned 45° through `setTransform`. Sized to the cell, like the SVG version, so the
+   * hatch stays proportional to pieces — and rebuilt only when the cell moves, since building it
+   * rasterizes a tile.
+   *
+   * Buffer is a single diagonal (a reserved gap); connector crosses it (an attachment point), so the two
+   * read apart at a glance while both stay clearly "not terrain".
+   */
+  #ensureHatch() {
+    const cell = this.#doc?.globals.cell || 5;
+    if (this.#hatchCell === cell && this.#hatch.buffer) return;
+    this.#hatchCell = cell;
+    const ctx = this.#painter.ctx;
+    const step = Math.max(2, cell * 0.7);
+    const strokeWidth = Math.max(0.6, cell * 0.14);
+    // The tile is rasterized at a fixed pixel size and scaled back to world units by the pattern matrix,
+    // so the hatch keeps its density however far the board is zoomed.
+    const TILE_PX = 16;
+    const build = (color, backdropAlpha, crossed) => {
+      const tile = document.createElement("canvas");
+      tile.width = TILE_PX; tile.height = TILE_PX;
+      const tctx = tile.getContext("2d");
+      tctx.globalAlpha = backdropAlpha;
+      tctx.fillStyle = color;
+      tctx.fillRect(0, 0, TILE_PX, TILE_PX);
+      tctx.globalAlpha = 1;
+      tctx.strokeStyle = color;
+      tctx.lineWidth = Math.max(1, (strokeWidth / step) * TILE_PX);
+      tctx.beginPath();
+      tctx.moveTo(0, 0); tctx.lineTo(0, TILE_PX);
+      if (crossed) { tctx.moveTo(0, 0); tctx.lineTo(TILE_PX, 0); }
+      tctx.stroke();
+      const pattern = ctx.createPattern(tile, "repeat");
+      // World units per tile pixel, then the 45° turn the SVG version got from patternTransform.
+      const unit = step / TILE_PX;
+      const cos = Math.cos(Math.PI / 4) * unit, sin = Math.sin(Math.PI / 4) * unit;
+      pattern?.setTransform?.({ a: cos, b: sin, c: -sin, d: cos, e: 0, f: 0 });
+      return pattern;
+    };
+    this.#hatch = {
+      buffer:    build(ROLE_COLORS.buffer, 0.12, false),
+      connector: build(ROLE_COLORS.connector, 0.14, true),
+    };
   }
 
   // The working area, in blocks: the default region (never absent, so a blank plan still says how big a
@@ -355,131 +461,107 @@ export class PlanCanvas extends CanvasBase {
     return snapOut(viewportWorldRect(w, h, this._scale, this._panX, this._panY), cell * GRID_SNAP_CELLS);
   }
 
-  #renderGrid() {
-    const layer = this.#world.grid;
+  // The working-area tint: a low-opacity lift that reads on either theme, framed by a solid border so the
+  // region sets itself apart from the dashed grid above it.
+  #paintWorkArea(ctx) {
+    const area = this.#workArea();
+    if (!area) return;
+    this.#rect(ctx, area, {
+      fill: this.#tok("--canvas-ink", "#ffffff"), fillAlpha: 0.05,
+      stroke: this.#tok("--canvas-axis", "#a78bfa"), width: 1.5,
+    });
+  }
+
+  /**
+   * The cell grid, spanning the visible viewport rather than the content, so the surface is never fenced
+   * in. The `gridStep` ladder keeps the line count flat as the board is zoomed out — the memo that used to
+   * guard a DOM rebuild is gone with the DOM, but the ladder still matters, because past a few pixels
+   * apart the lines are noise whatever they cost to draw.
+   */
+  #paintGrid(ctx) {
     const cell = this.#doc.globals.cell;
     const g = this.#gridBounds();
-    renderWorkArea(this.#world.work, this.#workArea(), (x, z) => ({ x, y: z }));
-    const { w, h } = this._viewSize ?? this._size();
-    renderScaleBar(this.#screen.scale, { w, h, scale: this._scale });
-
     // Snap the drawn range to whole steps so the lines stay on the same world coordinates as the step
     // changes — otherwise the grid shifts under the drawing at every threshold.
     const step = gridStep(cell * this._scale);
     const cx0 = Math.floor(g.min_x / cell / step) * step, cz0 = Math.floor(g.min_z / cell / step) * step;
     const cx1 = Math.ceil(g.max_x / cell / step) * step, cz1 = Math.ceil(g.max_z / cell / step) * step;
-    // The grid can be many lines — only rebuild when the snapped extent or the step actually moves, not
-    // per pan frame and not per wheel tick.
-    const key = `${cell}|${step}|${cx0},${cz0},${cx1},${cz1}`;
-    if (key === this.#gridKey) return;
-    this.#gridKey = key;
-    this.#clear(layer);
-    // Cell grid — the sketch tool's purple chunk-grid look: one faint dashed line per cell (no heavier
-    // interval; the only emphasis is the origin axes below).
-    const cellLine = (x1, y1, x2, y2) => layer.appendChild(svgEl("line", {
-      x1, y1, x2, y2, stroke: "var(--canvas-chunk)", "stroke-width": "1",
-      "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke",
-    }));
-    for (let c = cx0; c <= cx1; c += step) cellLine(c * cell, cz0 * cell, c * cell, cz1 * cell);
-    for (let c = cz0; c <= cz1; c += step) cellLine(cx0 * cell, c * cell, cx1 * cell, c * cell);
 
-    // Heavier gridlines along the origin axes (x=0 and z=0), drawn atop the cell grid.
-    const axis = (x1, y1, x2, y2) => layer.appendChild(svgEl("line", {
-      x1, y1, x2, y2, stroke: "var(--canvas-axis)", "stroke-width": "2", "vector-effect": "non-scaling-stroke",
-    }));
-    if (0 >= cx0 && 0 <= cx1) axis(0, cz0 * cell, 0, cz1 * cell);
-    if (0 >= cz0 && 0 <= cz1) axis(cx0 * cell, 0, cx1 * cell, 0);
+    // One faint dashed line per cell, in one path — the whole grid is a single stroke.
+    this.#stroke(ctx, this.#tok("--canvas-chunk", "rgba(167,139,250,0.38)"), 1, [3, 3]);
+    ctx.beginPath();
+    for (let c = cx0; c <= cx1; c += step) { ctx.moveTo(c * cell, cz0 * cell); ctx.lineTo(c * cell, cz1 * cell); }
+    for (let c = cz0; c <= cz1; c += step) { ctx.moveTo(cx0 * cell, c * cell); ctx.lineTo(cx1 * cell, c * cell); }
+    ctx.stroke();
 
-    // Origin marker — the sketch tool's centre crosshair + ring, in the axis colour.
-    const cl = this.#world.center; this.#clear(cl);
-    const arm = cell * 0.6, mr = cell * 0.32;
-    const mark = (a) => cl.appendChild(svgEl("line", { stroke: "var(--canvas-axis)", "stroke-width": "1.5", "vector-effect": "non-scaling-stroke", ...a }));
-    mark({ x1: -arm, y1: 0, x2: arm, y2: 0 });
-    mark({ x1: 0, y1: -arm, x2: 0, y2: arm });
-    cl.appendChild(svgEl("circle", { cx: 0, cy: 0, r: mr, fill: "none", stroke: "var(--canvas-axis)", "stroke-width": "1.5", "vector-effect": "non-scaling-stroke" }));
+    // Heavier gridlines along the origin axes, drawn atop the cell grid.
+    const axis = this.#tok("--canvas-axis", "#a78bfa");
+    if (0 >= cx0 && 0 <= cx1) this.#line(ctx, 0, cz0 * cell, 0, cz1 * cell, axis, 2);
+    if (0 >= cz0 && 0 <= cz1) this.#line(ctx, cx0 * cell, 0, cx1 * cell, 0, axis, 2);
   }
 
-  #renderGhost() {
-    const layer = this.#world.ghost; this.#clear(layer);
+  // Origin marker — the centre crosshair + ring, in the axis colour.
+  #paintCenter(ctx) {
+    const cell = this.#doc.globals.cell;
+    const arm = cell * 0.6, ringRadius = cell * 0.32;
+    const axis = this.#tok("--canvas-axis", "#a78bfa");
+    this.#line(ctx, -arm, 0, arm, 0, axis, 1.5);
+    this.#line(ctx, 0, -arm, 0, arm, axis, 1.5);
+    this.#circle(ctx, 0, 0, ringRadius, { stroke: axis, width: 1.5 });
+  }
+
+  /** The hatch fill for an annotation role, or its flat colour if the pattern could not be built. */
+  #hatchFill(role) { return this.#hatch[role] || ROLE_COLORS[role] || "#888"; }
+
+  // The symmetry mirror: every piece, zone, box and marker fanned to its orbit images, dimmed and
+  // non-editable, so a pinwheel's centre tiling is visible while authoring.
+  #paintGhost(ctx) {
     for (const img of pieceMirrorImages(this.#doc)) {
-      const { min_x, min_z, max_x, max_z } = img.bounds;
-      if (isAnnotationRole(img.role)) {
-        // An annotation ghost keeps its hatch (buffer / connector), dimmed to ghost opacity.
-        layer.appendChild(svgEl("rect", {
-          x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
-          ...primitiveStyle("technical", { color: ROLE_COLORS[img.role], fill: `url(#${HATCH[img.role]})`, state: "ghost" }),
-        }));
-        continue;
-      }
-      layer.appendChild(svgEl("rect", {
-        x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
-        ...primitiveStyle("terrain", { color: ROLE_COLORS[img.role] || "#888", state: "ghost" }),
-      }));
+      const style = isAnnotationRole(img.role)
+        ? { fill: this.#hatchFill(img.role), fillAlpha: 0.35, stroke: ROLE_COLORS[img.role], width: 1, dash: [6, 4] }
+        : { fill: ROLE_COLORS[img.role] || "#888", fillAlpha: 0.28, stroke: ROLE_COLORS[img.role] || "#888", width: 1 };
+      this.#rect(ctx, img.bounds, style);
     }
-    // Zones fan into the ghost like pieces — dimmed, dashed, non-editable — so a pinwheel's centre tiling is
-    // visible while authoring. Holes ghost too (a faint cut-out over their zone image).
+    const accent = this.#tok("--accent", "#5b9cff");
+    const bg = this.#tok("--bg-canvas", "#080f1a");
     for (const img of zoneMirrorImages(this.#doc)) {
-      const { min_x, min_z, max_x, max_z } = img.bounds;
-      layer.appendChild(svgEl("rect", {
-        x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z,
-        ...primitiveStyle("zone", { color: "var(--accent)", state: "ghost" }),
-      }));
-      for (const h of img.holes)
-        layer.appendChild(svgEl("rect", {
-          x: h.min_x, y: h.min_z, width: h.max_x - h.min_x, height: h.max_z - h.min_z,
-          fill: "var(--bg-canvas)", "fill-opacity": "0.5", stroke: "var(--accent)", "stroke-opacity": "0.4",
-          "stroke-width": "0.8", "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke",
-        }));
+      this.#rect(ctx, img.bounds, { fill: accent, fillAlpha: 0.06, stroke: accent, width: 1, dash: [4, 3] });
+      for (const hole of img.holes)
+        this.#rect(ctx, hole, { fill: bg, fillAlpha: 0.5, stroke: accent, width: 0.8, dash: [3, 3] });
     }
-    // Boxes fan into the ghost too — dimmed, so the mirrored unit's grouping reads without being editable.
     for (const img of boxMirrorImages(this.#doc)) {
-      const { min_x, min_z, max_x, max_z } = img.bounds;
-      layer.appendChild(svgEl("rect", {
-        x: min_x, y: min_z, width: max_x - min_x, height: max_z - min_z, fill: "none",
-        stroke: BOX_COLORS[img.kind] || "#9aa7b4", "stroke-opacity": "0.35", "stroke-width": "1.5",
-        "stroke-dasharray": "8 5", "vector-effect": "non-scaling-stroke",
-      }));
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      this.#rect(ctx, img.bounds, { stroke: BOX_COLORS[img.kind] || "#9aa7b4", width: 1.5, dash: [8, 5] });
+      ctx.restore();
     }
     const cell = this.#doc.globals.cell;
     for (const m of markerMirrorImages(this.#doc))
-      layer.appendChild(svgEl("circle", { cx: m.x, cy: m.z, r: cell * 0.28, fill: MARKER_COLORS[m.kind] || "#888", "fill-opacity": "0.3" }));
+      this.#circle(ctx, m.x, m.z, cell * 0.28, { fill: MARKER_COLORS[m.kind] || "#888", fillAlpha: 0.3 });
   }
 
-  #renderZones() {
-    const layer = this.#world.zone; this.#clear(layer);
+  #paintZones(ctx) {
     const cell = this.#doc.globals.cell;
+    const accent = this.#tok("--accent", "#5b9cff");
+    const bg = this.#tok("--bg-canvas", "#080f1a");
     for (const z of this.#doc.zones) {
-      const b = rectCellsToBlocks(z.rect, cell);
-      layer.appendChild(svgEl("rect", {
-        x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-        ...primitiveStyle("zone", { color: "var(--accent)" }), "data-zone": z.id, style: "cursor:pointer",
-      }));
-      for (const h of z.holes) {
-        const hb = rectCellsToBlocks(h, cell);
-        layer.appendChild(svgEl("rect", {
-          x: hb.min_x, y: hb.min_z, width: hb.max_x - hb.min_x, height: hb.max_z - hb.min_z,
-          fill: "var(--bg-canvas)", "fill-opacity": "0.6", stroke: "var(--accent)", "stroke-width": "0.8",
-          "stroke-dasharray": "3 3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
-        }));
-      }
+      this.#rect(ctx, rectCellsToBlocks(z.rect, cell),
+        { fill: accent, fillAlpha: 0.12, stroke: accent, width: 1.4, dash: [5, 4] });
+      for (const h of z.holes)
+        this.#rect(ctx, rectCellsToBlocks(h, cell),
+          { fill: bg, fillAlpha: 0.6, stroke: accent, width: 0.8, dash: [3, 3] });
     }
   }
 
-  #renderPieces() {
-    const layer = this.#world.piece; this.#clear(layer);
+  #paintPieces(ctx) {
     const cell = this.#doc.globals.cell, base = this.#doc.globals.surface;
     const range = this.#heightMap ? surfaceRange(this.#doc) : null;   // ramp domain for height-map mode
     for (const p of this.#doc.pieces) {
       const b = rectCellsToBlocks(p.rect, cell);
       if (isAnnotationRole(p.role)) {
         // Non-generating annotation: a hatched fill + dashed same-colour stroke, no solid terrain — reads as
-        // "not buildable ground" and distinct from the dashed build-zone accent. Buffer = reserved gap,
-        // connector = attachment point (crossed hatch).
-        layer.appendChild(svgEl("rect", {
-          x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-          ...primitiveStyle("technical", { color: ROLE_COLORS[p.role], fill: `url(#${HATCH[p.role]})` }),
-          "data-piece": p.id, style: "cursor:pointer",
-        }));
+        // "not buildable ground" and distinct from the dashed build-zone accent.
+        this.#rect(ctx, b, { fill: this.#hatchFill(p.role), stroke: ROLE_COLORS[p.role], width: 1.2, dash: [6, 4] });
         continue;
       }
       const surf = pieceSurface(this.#doc, p);
@@ -488,50 +570,39 @@ export class PlanCanvas extends CanvasBase {
         fill = heightColor(surfaceFraction(surf, range));
         stroke = fill;
       } else {
-        const t = Math.max(0, Math.min(0.6, (surf - base) / 16));   // higher surface → lighter fill
-        fill = tint(ROLE_COLORS[p.role] || "#888", t);
+        const lift = Math.max(0, Math.min(0.6, (surf - base) / 16));   // higher surface → lighter fill
+        fill = tint(ROLE_COLORS[p.role] || "#888", lift);
         stroke = ROLE_COLORS[p.role] || "#888";
       }
-      layer.appendChild(svgEl("rect", {
-        x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-        ...primitiveStyle("terrain", { color: fill, stroke, heightMap: this.#heightMap }),
-        "data-piece": p.id, style: "cursor:pointer",
-      }));
+      this.#rect(ctx, b, { fill, stroke, width: 1.2 });
     }
   }
 
-  // Box annotations: an unfilled dashed envelope per box, kind-coloured, drawn above the pieces it groups so
-  // the border stays visible over terrain. Unfilled by design — a box marks an extent, it never covers what
-  // is inside it, and clicks pass through the interior to the pieces (the border itself is grabbed via
-  // plan-doc's boxAtWorld, so the layer needs no pointer events of its own).
-  #renderBoxes() {
-    const layer = this.#world.box; this.#clear(layer);
+  // Box annotations: an unfilled dashed envelope per box, kind-coloured, drawn above the pieces it groups
+  // so the border stays visible over terrain. Unfilled by design — a box marks an extent, it never covers
+  // what is inside it.
+  #paintBoxes(ctx) {
     const cell = this.#doc.globals.cell;
-    for (const b of this.#doc.boxes || []) {
-      const r = rectCellsToBlocks(b.rect, cell);
-      layer.appendChild(svgEl("rect", {
-        x: r.min_x, y: r.min_z, width: r.max_x - r.min_x, height: r.max_z - r.min_z,
-        fill: "none", stroke: BOX_COLORS[b.kind] || "#9aa7b4", "stroke-width": "2",
-        "stroke-dasharray": "8 5", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
-      }));
-    }
+    for (const b of this.#doc.boxes || [])
+      this.#rect(ctx, rectCellsToBlocks(b.rect, cell),
+        { stroke: BOX_COLORS[b.kind] || "#9aa7b4", width: 2, dash: [8, 5] });
   }
 
-  #renderMarkers() {
-    const layer = this.#world.marker; this.#clear(layer);
+  #paintMarkers(ctx) {
     const cell = this.#doc.globals.cell;
     for (const { kind, marker } of allMarkers(this.#doc)) {
       const c = markerCell(this.#doc, marker);
       if (!c) continue;
       const cx = c[0] * cell, cz = c[1] * cell, r = cell * 0.34;
-      const col = MARKER_COLORS[kind] || "#888";
+      const color = MARKER_COLORS[kind] || "#888";
       if (kind === "spawn") {
-        layer.appendChild(svgEl("circle", { cx, cy: cz, r, fill: col, "fill-opacity": "0.85", stroke: "#222", "stroke-width": "1", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
+        this.#circle(ctx, cx, cz, r, { fill: color, fillAlpha: 0.85, stroke: "#222", width: 1 });
         const [dx, dz] = FACING_DIR[marker.facing] || FACING_DIR.front;
-        layer.appendChild(svgEl("line", { x1: cx, y1: cz, x2: cx + dx * r * 1.7, y2: cz + dz * r * 1.7, stroke: "#222", "stroke-width": "2", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
+        this.#line(ctx, cx, cz, cx + dx * r * 1.7, cz + dz * r * 1.7, "#222", 2);
       } else {
-        const s = r * 1.5;
-        layer.appendChild(svgEl("rect", { x: cx - s / 2, y: cz - s / 2, width: s, height: s, rx: cell * 0.08, fill: col, "fill-opacity": "0.85", stroke: "#222", "stroke-width": "1", "vector-effect": "non-scaling-stroke", "pointer-events": "none" }));
+        const side = r * 1.5;
+        this.#rect(ctx, { min_x: cx - side / 2, min_z: cz - side / 2, max_x: cx + side / 2, max_z: cz + side / 2 },
+          { fill: color, fillAlpha: 0.85, stroke: "#222", width: 1 });
       }
     }
   }
@@ -540,51 +611,45 @@ export class PlanCanvas extends CanvasBase {
   // slimmer green core, still connected) vs corner point contacts (red warning), zone gap connectors (purple
   // ruler dashes), and frontline edges (accent-tinted highlight). Drawn above pieces, below markers; the hop
   // labels ride the screen-space overlay so they stay legible.
-  #renderInspect() {
-    const layer = this.#world.inspect; if (!layer) return;
-    this.#clear(layer);
+  #paintInspect(ctx) {
     if (!this.#doc) return;
+    const cell = this.#doc.globals.cell;
 
-    if (this.#overlayOn.frontline)
+    if (this.#overlayOn.frontline) {
+      ctx.save();
+      ctx.globalAlpha = 0.4;
       for (const f of this.#inspect.frontline)
-        layer.appendChild(svgEl("line", {
-          x1: f.x1, y1: f.z1, x2: f.x2, y2: f.z2, stroke: "var(--accent)", "stroke-width": "6",
-          "stroke-opacity": "0.4", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke",
-        }));
+        this.#line(ctx, f.x1, f.z1, f.x2, f.z2, this.#tok("--accent", "#5b9cff"), 6, null, "round");
+      ctx.restore();
+    }
 
-    if (this.#overlayOn.labels)
+    if (this.#overlayOn.labels) {
+      const axis = this.#tok("--canvas-axis", "#a78bfa");
       for (const g of this.#inspect.gapLinks) {
-        layer.appendChild(svgEl("line", {
-          x1: g.x1, y1: g.z1, x2: g.x2, y2: g.z2, stroke: "var(--canvas-axis)", "stroke-width": "2.5",
-          "stroke-dasharray": "4 3", "stroke-linecap": "round", "vector-effect": "non-scaling-stroke",
-        }));
+        this.#line(ctx, g.x1, g.z1, g.x2, g.z2, axis, 2.5, [4, 3], "round");
         for (const [px, pz] of [[g.x1, g.z1], [g.x2, g.z2]])
-          layer.appendChild(svgEl("circle", { cx: px, cy: pz, r: this.#doc.globals.cell * 0.12, fill: "var(--canvas-axis)" }));
+          this.#circle(ctx, px, pz, cell * 0.12, { fill: axis });
       }
+    }
 
     if (this.#overlayOn.interfaces)
       for (const it of this.#inspect.interfaces) {
         if (it.x1 === it.x2 && it.z1 === it.z2) {
-          layer.appendChild(svgEl("circle", { cx: it.x1, cy: it.z1, r: this.#doc.globals.cell * 0.22, fill: "none", stroke: "#d9534f", "stroke-width": "2.5", "vector-effect": "non-scaling-stroke" }));
+          this.#circle(ctx, it.x1, it.z1, cell * 0.22, { stroke: "#d9534f", width: 2.5 });
           continue;
         }
         // A land/narrow segment sits exactly on a piece seam, where the piece strokes (or a same-green
-        // wool-room fill) would swallow a plain line — a dark casing under a bright core reads on any fill. A
-        // wall mark renders as a heavy near-black bar; a terrain↔wool-room seam renders red (ST1); other land
-        // is green. A narrow seam connects too, drawn with a slimmer core so it reads as "connected but thin".
-        const seg = { x1: it.x1, y1: it.z1, x2: it.x2, y2: it.z2, "stroke-linecap": "round", "vector-effect": "non-scaling-stroke" };
+        // wool-room fill) would swallow a plain line — a dark casing under a bright core reads on any fill.
+        // A wall mark renders as a heavy near-black bar; a terrain↔wool-room seam renders red; other land
+        // is green. A narrow seam connects too, with a slimmer core so it reads as "connected but thin".
         const narrow = it.kind === "narrow";
-        const casing = narrow ? "5" : "7", core = narrow ? "2" : "3.5";
-        if (it.wall) {
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#000000", "stroke-width": narrow ? "8" : "11" }));
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#3b3b44", "stroke-width": core }));
-        } else if (it.woolRoom) {
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#4a1211", "stroke-width": casing }));
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#e5534b", "stroke-width": core }));
-        } else {
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#123d26", "stroke-width": casing }));
-          layer.appendChild(svgEl("line", { ...seg, stroke: "#4ade80", "stroke-width": core }));
-        }
+        const casing = narrow ? 5 : 7, core = narrow ? 2 : 3.5;
+        const [casingColor, coreColor, casingWidth] = it.wall
+          ? ["#000000", "#3b3b44", narrow ? 8 : 11]
+          : it.woolRoom ? ["#4a1211", "#e5534b", casing]
+                        : ["#123d26", "#4ade80", casing];
+        this.#line(ctx, it.x1, it.z1, it.x2, it.z2, casingColor, casingWidth, null, "round");
+        this.#line(ctx, it.x1, it.z1, it.x2, it.z2, coreColor, core, null, "round");
       }
   }
 
@@ -592,11 +657,12 @@ export class PlanCanvas extends CanvasBase {
   // on the grid so a broken rule is seen, not only read. The four primitives (rect / segment / marker / measure)
   // are drawn generically off the tag→style table; a measure's label rides the screen-space overlay (below) so
   // it stays legible at any zoom. Coordinates are cell-space — scale by the cell size to reach block/world space.
-  #renderViolations() {
-    const layer = this.#world.violation; if (!layer) return;
-    this.#clear(layer);
+  #paintViolations(ctx) {
     if (!this.#doc) return;
     const cell = this.#doc.globals.cell;
+    const styleColor = (st) => (st.stroke.startsWith("var(")
+      ? this.#tok(st.stroke.slice(4, -1), "#5b9cff")
+      : st.stroke);
 
     // Producibility evidence rides this layer too — it is the same kind of thing (geometry indicted by a check)
     // and follows its own panel selection rather than the Rules overlay toggle. `missing` cells are the box's own
@@ -605,14 +671,12 @@ export class PlanCanvas extends CanvasBase {
     if (this.#nearestMiss) {
       const paint = (rects, tag) => {
         const st = evidenceStyle(tag);
-        for (const r of rects || []) {
-          const b = rectCellsToBlocks(r, cell);
-          layer.appendChild(svgEl("rect", {
-            x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z,
-            fill: st.stroke, "fill-opacity": "0.18", stroke: st.stroke, "stroke-width": String(st.width),
-            "vector-effect": "non-scaling-stroke", ...(st.dash ? { "stroke-dasharray": st.dash } : {}),
-          }));
-        }
+        const color = styleColor(st);
+        for (const r of rects || [])
+          this.#rect(ctx, rectCellsToBlocks(r, cell), {
+            fill: color, fillAlpha: 0.18, stroke: color, width: st.width,
+            dash: st.dash ? st.dash.split(" ").map(Number) : null,
+          });
       };
       paint(this.#nearestMiss.missing, "offender");
       paint(this.#nearestMiss.extra, "bound");
@@ -622,42 +686,61 @@ export class PlanCanvas extends CanvasBase {
     for (const v of this.#shownViolations())
       for (const e of v.evidence || []) {
         const st = evidenceStyle(e.tag);
-        const base = { stroke: st.stroke, "stroke-width": String(st.width), "vector-effect": "non-scaling-stroke", ...(st.dash ? { "stroke-dasharray": st.dash } : {}) };
+        const color = styleColor(st);
+        const dash = st.dash ? st.dash.split(" ").map(Number) : null;
         if (e.kind === "rect" && Array.isArray(e.rect)) {
-          const b = rectCellsToBlocks(e.rect, cell);
-          layer.appendChild(svgEl("rect", { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill: "none", ...base }));
+          this.#rect(ctx, rectCellsToBlocks(e.rect, cell), { stroke: color, width: st.width, dash });
         } else if (e.kind === "segment" || e.kind === "measure") {
-          layer.appendChild(svgEl("line", { x1: e.x1 * cell, y1: e.z1 * cell, x2: e.x2 * cell, y2: e.z2 * cell, "stroke-linecap": "round", ...base }));
+          this.#line(ctx, e.x1 * cell, e.z1 * cell, e.x2 * cell, e.z2 * cell, color, st.width, dash, "round");
         } else if (e.kind === "marker") {
-          layer.appendChild(svgEl("circle", { cx: e.x * cell, cy: e.z * cell, r: Math.max(2, cell * 0.24), fill: "none", ...base }));
+          this.#circle(ctx, e.x * cell, e.z * cell, Math.max(2, cell * 0.24), { stroke: color, width: st.width });
         }
       }
   }
 
-  // A transient highlight pulse on the pieces/zones a clicked lint finding implicates (self-clearing).
+  /**
+   * A transient highlight pulse on the pieces/zones a clicked lint finding implicates (self-clearing).
+   * An SVG `<animate>` ran itself; a painted frame has no such thing, so the pulse drives its own repaints
+   * for as long as it lasts and the opacity is a function of elapsed time (`#pulseAlpha`).
+   */
   pulseSubjects(ids) {
-    const layer = this.#world.pulse; if (!layer || !this.#doc) return;
-    this.#clear(layer);
+    if (!this.#doc) return;
+    this.#pulseIds = [...(ids || [])];
+    this.#pulseUntil = performance.now() + PULSE_MS;
+    if (this.#pulseFrame) return;
+    const step = () => {
+      this.#pulseFrame = 0;
+      this.#paintWorld();
+      if (performance.now() < this.#pulseUntil) this.#pulseFrame = requestAnimationFrame(step);
+      else { this.#pulseIds = []; this.#paintWorld(); }
+    };
+    this.#pulseFrame = requestAnimationFrame(step);
+  }
+
+  /** The pulse's opacity over its life — the `1;0.2;1;0.2;0` ramp, as a function of how far through it is. */
+  #pulseAlpha() {
+    const left = this.#pulseUntil - performance.now();
+    if (left <= 0) return 0;
+    const t = 1 - left / PULSE_MS;                       // 0 → 1 across the pulse
+    const stops = [1, 0.2, 1, 0.2, 0];
+    const span = 1 / (stops.length - 1);
+    const i = Math.min(stops.length - 2, Math.floor(t / span));
+    return stops[i] + (stops[i + 1] - stops[i]) * ((t - i * span) / span);
+  }
+
+  #paintPulse(ctx) {
+    if (!this.#pulseIds.length) return;
+    const alpha = this.#pulseAlpha();
+    if (alpha <= 0) return;
     const cell = this.#doc.globals.cell;
-    for (const id of ids || []) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    for (const id of this.#pulseIds) {
       const item = this.#doc.pieces.find(p => p.id === id) || this.#doc.zones.find(z => z.id === id);
       if (!item) continue;
-      const b = rectCellsToBlocks(item.rect, cell);
-      const rect = svgEl("rect", {
-        x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, fill: "none",
-        stroke: "var(--accent)", "stroke-width": "3", "vector-effect": "non-scaling-stroke", "pointer-events": "none",
-      });
-      const anim = document.createElementNS("http://www.w3.org/2000/svg", "animate");
-      anim.setAttribute("attributeName", "opacity");
-      anim.setAttribute("values", "1;0.2;1;0.2;0");
-      anim.setAttribute("dur", "1.6s");
-      anim.setAttribute("repeatCount", "1");
-      anim.setAttribute("fill", "freeze");
-      rect.appendChild(anim);
-      layer.appendChild(rect);
+      this.#rect(ctx, rectCellsToBlocks(item.rect, cell), { stroke: this.#tok("--accent", "#5b9cff"), width: 3 });
     }
-    if (this.#pulseTimer) clearTimeout(this.#pulseTimer);
-    this.#pulseTimer = setTimeout(() => this.#clear(layer), 1700);
+    ctx.restore();
   }
 
   // Screen-space overlay: piece/zone id labels, the selection box, and the resize handles. Recomputed on
@@ -772,7 +855,7 @@ export class PlanCanvas extends CanvasBase {
 
   // ── CanvasBase hooks ────────────────────────────────────────────────────────
 
-  _onViewportChanged() { if (this.#doc) this.#renderGrid(); this.#refreshOverlay(); }
+  _onViewportChanged() { if (this.#doc) this.#paintWorld(); this.#refreshOverlay(); }
   _onZoom(scale) { this.#cb.onZoom?.(Math.round(scale * 100)); }
 
   _onToolMousedown(e, svgPt) {
@@ -781,7 +864,7 @@ export class PlanCanvas extends CanvasBase {
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz);
     if (this.#tool === "wall") return this.#toggleWallAt(svgPt.x, svgPt.y);
-    if (this.#tool === "piece" || this.#tool === "zone" || this.#tool === "box") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#renderPreview(); return; }
+    if (this.#tool === "piece" || this.#tool === "zone" || this.#tool === "box") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#paintWorld(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
     if (MARKER_KINDS.includes(this.#tool)) this.#placeMarker(this.#tool, svgPt.x / cell, svgPt.y / cell);
   }
@@ -791,8 +874,20 @@ export class PlanCanvas extends CanvasBase {
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
     if (this.#cursorEl) this.#cursorEl.textContent = `cell ${cx}, ${cz}`;
-    if (this.#drag?.mode === "draw") { this.#drag.b = [cx, cz]; this.#renderPreview(); return; }
-    if (this.#drag?.mode === "move") this.#moveTo(cx, cz, svgPt.x / cell, svgPt.y / cell);
+    if (this.#drag?.mode === "draw") { this.#drag.b = [cx, cz]; this.#paintWorld(); return; }
+    if (this.#drag?.mode === "move") { this.#moveTo(cx, cz, svgPt.x / cell, svgPt.y / cell); return; }
+    this.#refreshHoverCursor(svgPt);
+  }
+
+  /**
+   * A pointer cursor over something grabbable. Painted shapes are not elements, so this cannot come from a
+   * per-rect `cursor:pointer` any more — it comes from the same world-point pick the click already uses,
+   * which is where the answer was really coming from all along.
+   */
+  #refreshHoverCursor(svgPt) {
+    if (this.#tool !== "select" || this.#resize) return;
+    const over = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
+    this._svg.style.cursor = over ? "pointer" : "default";
   }
 
   _onToolMouseup(e, svgPt) {
@@ -905,36 +1000,30 @@ export class PlanCanvas extends CanvasBase {
     if (it) this.#cb.onToggleWall?.(it.a, it.b);
   }
 
-  #renderPreview() {
-    const layer = this.#world.preview; this.#clear(layer);
+  #paintPreview(ctx) {
     if (this.#drag?.mode !== "draw") return;
     const cell = this.#doc.globals.cell;
-    const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
-    const b = rectCellsToBlocks(rect, cell);
-    const drawn = { x: b.min_x, y: b.min_z, width: b.max_x - b.min_x, height: b.max_z - b.min_z, "vector-effect": "non-scaling-stroke", "pointer-events": "none" };
+    const b = rectCellsToBlocks(rectFromCells(...this.#drag.a, ...this.#drag.b), cell);
     // A box preview is unfilled like the box itself — it frames pieces rather than covering them.
     if (this.#drag.kind === "box") {
-      layer.appendChild(svgEl("rect", {
-        ...drawn, fill: "none", stroke: BOX_COLORS[this.#boxKind] || "#9aa7b4",
-        "stroke-width": "2", "stroke-dasharray": "8 5",
-      }));
+      this.#rect(ctx, b, { stroke: BOX_COLORS[this.#boxKind] || "#9aa7b4", width: 2, dash: [8, 5] });
       return;
     }
-    const isAnno = this.#drag.kind === "piece" && isAnnotationRole(this.#pieceRole);
-    const color = this.#drag.kind === "zone" ? "var(--accent)" : ROLE_COLORS[this.#pieceRole];
-    layer.appendChild(svgEl("rect", {
-      ...drawn,
-      fill: isAnno ? `url(#${HATCH[this.#pieceRole]})` : color, "fill-opacity": isAnno ? "0.6" : "0.2",
-      stroke: color, "stroke-width": "1.5",
-      "stroke-dasharray": isAnno ? "6 4" : "4 3",
-    }));
+    const isAnnotation = this.#drag.kind === "piece" && isAnnotationRole(this.#pieceRole);
+    const color = this.#drag.kind === "zone"
+      ? this.#tok("--accent", "#5b9cff")
+      : ROLE_COLORS[this.#pieceRole];
+    this.#rect(ctx, b, {
+      fill: isAnnotation ? this.#hatchFill(this.#pieceRole) : color,
+      fillAlpha: isAnnotation ? 0.6 : 0.2,
+      stroke: color, width: 1.5, dash: isAnnotation ? [6, 4] : [4, 3],
+    });
   }
 
   #commitDraw() {
     const kind = this.#drag.kind;
     const rect = rectFromCells(...this.#drag.a, ...this.#drag.b);
     this.#drag = null;
-    this.#clear(this.#world.preview);
     this.#cb.onCreate?.(kind, rect);          // the bridge mints the id, appends, and re-selects
     this.setTool("select"); this.#cb.onTool?.("select");
   }
@@ -962,30 +1051,19 @@ export class PlanCanvas extends CanvasBase {
 
   // ── build ─────────────────────────────────────────────────────────────────────
 
-
   #build() {
     const { w, h } = this._size();
     this._svg.setAttribute("width", w);
     this._svg.setAttribute("height", h);
     this._svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
 
+    this.#painter.resize(w, h);
+
+    // The world's paint order lives in #paintWorld, bottom first — one sequence of painter.layer calls,
+    // and `painter.layers` reports it by name. `_viewportG` stays as an empty group because CanvasBase
+    // treats it as the "surface is ready" flag its pointer handlers guard on, and puts the viewport
+    // matrix there; nothing hangs off it now, so that matrix is inert.
     this._viewportG = svgEl("g");
-    // Paint order, bottom first — stated once (see render/layer-stack.js).
-    this.#world = layerStack(this._viewportG, {
-      ref:       INERT,                 // tracing backdrop
-      work:      INERT,                 // working-area tint, under the grid
-      grid:      INERT,
-      center:    INERT,
-      ghost:     INERT,
-      zone:      null,                  // hit-tested
-      piece:     null,
-      box:       INERT,
-      inspect:   INERT,
-      violation: INERT,
-      marker:    null,
-      preview:   INERT,
-      pulse:     INERT,
-    });
     this._svg.appendChild(this._viewportG);
 
     this.#screen = layerStack(this._svg, {
@@ -993,11 +1071,6 @@ export class PlanCanvas extends CanvasBase {
       scale:   INERT,                   // "N blocks" bar, bottom-right
     });
     this.#overlay = this.#screen.overlay;
-
-    // <defs> for the buffer (reserved-gap) hatch pattern, rebuilt per render sized to the cell.
-    this.#defs = svgEl("defs");
-    this._svg.appendChild(this.#defs);
-    this.#ensureHatch();
 
     this._applyViewportTransform();
 
@@ -1040,7 +1113,9 @@ export class PlanCanvas extends CanvasBase {
   };
 
   dispose() {
-    if (this.#pulseTimer) clearTimeout(this.#pulseTimer);
+    if (this.#pulseFrame) { cancelAnimationFrame(this.#pulseFrame); this.#pulseFrame = 0; }
+    this.#painter?.dispose();
+    this.#canvasEl?.remove();
     this._disposeCanvasBase();
     this._svg.removeEventListener("dblclick", this.#onDblClick);
     document.removeEventListener("keydown", this.#onKey);

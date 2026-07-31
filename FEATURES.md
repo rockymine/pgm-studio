@@ -1928,6 +1928,32 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
   per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
 
+- **The plan canvas's world layers are painted, not retained (CV18)** — `render/canvas-painter.js` +
+  `canvas/plan-canvas.js` + `tests/js/canvas-painter.test.js` + `tests/e2e/paint.mjs` +
+  `tools/painter-probe.mjs`. Zooming an authoring canvas in Firefox left the picture soft until the next
+  input: a viewport matrix on a transformed SVG DOM is a paint-property change, so the engine may stretch
+  the rasterization it already holds and defer re-rastering indefinitely — no repaint the app can issue
+  fixes that, and every nudge tried measured worse. The fix is the surface the reference tools (Figma,
+  Excalidraw, tldraw) use: the plan editor's 13 world layers now draw each frame, at the current scale,
+  onto a DPR-aware 2-D `<canvas>` pinned under the `<svg>` — no cached raster exists to go stale — while
+  screen-space chrome (labels, selection box, resize handles, scale bar) stays SVG where DOM semantics
+  pay, and the svg stays the single pointer target. `CanvasPainter` owns the per-canvas traps once:
+  backing store sized to the CSS box × devicePixelRatio (clamped at 2), the viewport transform on the
+  context (`screenPx` gives constant screen-width strokes — the by-hand `non-scaling-stroke`), and a
+  CSS-token resolver with theme-flip invalidation that probes each value against the context and demotes
+  what it won't parse (canvas colour parsing is historically a separate parser from the stylesheet's).
+  Interaction code is untouched — hit-testing, snapping and selection were already data-driven off
+  `plan-doc`, and the hover cursor now comes from the same `pickAtWorld` the click uses. The hatch fills
+  became `CanvasPattern`s, the lint pulse drives its own rAF loop, and `painter.layers` replaces
+  `data-layer` as the queryable paint order. Decided by measurement (`painter-probe.mjs`): rebuild-and-
+  stroke 20.4 ms vs rasterize-once 0.6 ms at 45k cells, and `color-mix()` tokens parse in a 2-D context.
+  SkiaSharp-on-Blazor was rejected — the documents, controllers and hit-testing live in JS, and marshalling
+  draw calls or documents across the WASM boundary is the class of cost already hit three times. The
+  server-side `PlanBoardSvg` divergence is accepted. `paint.mjs` asserts on pixels: painted coverage,
+  buffer = box × DPR, chrome still in the svg, and that a wheel burst *changes* the pixel signature — a
+  stretched raster would not. JS 166/166; the artifact is confirmed gone on a real Firefox. The
+  sketch/world conversions remain in CV18 (`BACKLOG.md`). (CV18)
+
 - **The world canvas states its layer stack once (CV19)** — `canvas/world-canvas.js` +
   `docs/contracts/canvas-interaction.md`. `CV13` gave the canvases `render/layer-stack.js` — the key order of
   the spec *is* the paint order, bottom first, and each group carries `data-layer="<name>"` so a layer is

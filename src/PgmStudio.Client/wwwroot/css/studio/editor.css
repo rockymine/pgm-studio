@@ -174,7 +174,20 @@
   overflow: hidden;
   padding: 12px;
   background: var(--bg-canvas);
+  position: relative;   /* anchors the 2-D world surface below the svg (see .world-canvas-2d) */
 }
+
+/* The painted world layers of a hybrid surface: a <canvas> pinned under the <svg>, inset by the same
+   12px padding so the two share a coordinate origin exactly. It never takes the pointer — the svg above
+   stays the single event target, so hit-testing and the drag machinery are unaffected by what paints. */
+.world-canvas-2d {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  pointer-events: none;
+}
+/* Positioned so it stacks above the canvas that precedes it in the DOM. */
+.map-canvas-svg { position: relative; }
 .map-svg { max-width: 100%; max-height: 100%; cursor: default; }
 
 /* Build-Regions side-view canvas (C7) — fills its .svg-area; SideviewCanvas sizes the bitmap

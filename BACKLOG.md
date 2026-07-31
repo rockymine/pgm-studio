@@ -130,85 +130,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
   contain** (hit-testing, snapping, viewport/transform maths, selection resolution) into pure modules the
   existing `node --test` setup can reach without a DOM. Pairs with the JS consolidation review.
-- [ ] **CV18 — Zoom is soft in Firefox, and the surface is the reason: assess `<canvas>` for the world
-  layers.** Zooming an authoring canvas in Firefox leaves the picture soft and it stays soft **until the next
-  input** — an untouched window never repairs itself, and the smallest mouse movement fixes it instantly.
-  Chrome, Edge and Vivaldi are clean, during and after. Measured on `/plan-editor`: the DOM is already
-  correct when the blur is on screen (the coalesced chrome repaint lands ~44 ms after the last wheel tick and
-  nothing is pending), and the mousemove that repairs it draws **nothing** — a document-wide observer over
-  three moves records three mutations, all in the `.canvas-cursor` readout in the toolbar, none inside the
-  surface. So the app is not failing to repaint; the browser is holding a rasterization.
-  The mechanism is the viewport matrix. A transform on a group is a paint-*property* change, appliable to
-  already-painted content without repainting it — which is exactly what makes putting it on synchronously
-  cheap (`CV17`) — so the content keeps the rasterization it was painted at and is stretched by the new
-  matrix. What that looks like is soft **strokes**: the grid lines and shape borders are drawn
-  `vector-effect: non-scaling-stroke`, so their width is defined in screen space and is the one thing a
-  stretch cannot carry, while fills scale correctly and look right. Panning never shows it — a translation
-  keeps its rasterization.
-  Two workarounds were built and measured against the live app, and **both were rejected**. Re-attaching the
-  viewport group each frame the scale moved (0.5–0.8 ms on a full board) fixed a slow zoom and left a fast one
-  soft, because a repeatedly-changing transform reads as an animation whose rasterization is pinned for a
-  window after the last change — an invalidation inside that window is redone at the pinned scale. Trailing
-  passes at 300 ms and 1000 ms got it to repair in 1–2 s, which is better and still visibly worse than every
-  other browser. Rewriting the surface's own `viewBox` beats the pinning (a probe firing 400 ms in, inside the
-  window, snapped it sharp) but nudging it per frame measured **worse** in use. The class of fix is the
-  problem, not the particular poke: every one of them asks the browser to redo work it has decided to skip.
-  The tools this is being compared against do not transform a large SVG DOM at all — Figma, Excalidraw,
-  tldraw and the mapping surfaces draw to `<canvas>` and re-draw the geometry every frame at the current
-  scale, so there is no cached rasterization to go stale and zoom is identical everywhere. Three things make
-  that migration much cheaper here than it looks: hit-testing is **already data-driven** (no
-  `elementFromPoint`, no `e.target.closest`, no `dataset` ids anywhere in the canvases or controllers — the
-  press maps a world point against the document), the canvas content carries **no CSS** (every fill, stroke
-  and dash is an inline attribute written in JS, so there is no style layer to port), and the e2e probes
-  assert on icons and routes, never on the surface's DOM. The conversion surface is the 137 `svgEl(` sites,
-  90 of them in the three canvases (`plan-canvas` 51, `world-canvas` 24, `sketch-canvas` 14) plus the render
-  helpers, and one test file (`render.test.js`) that asserts on emitted elements.
-  A working precedent sits in a sibling map-editor repository, which paints with SkiaSharp on Blazor WASM — an
-  `SKGLView`, a `MapRenderer` that sets the viewport matrix on the canvas and runs a list of `IRenderable`s
-  (grid, nodes, edges, regions), a `PaintCache`, and `Invalidate()` to repaint — in 767 lines of render layer. Its structure maps across almost
-  one-to-one (`Viewport` ≈ the base's scale/pan, `ScreenToWorldPos` ≈ `_clientToSvg`, the renderer list ≈ the
-  layer stack's paint order, `Invalidate` ≈ the rAF coalescing), and it holds a constant screen stroke width by
-  dividing by the viewport scale — the by-hand version of `non-scaling-stroke`, and precisely what makes the
-  artifact impossible. That app reached Skia **from** a 2-D canvas that was too slow, and the reason does not
-  transfer: what it replaced drove the 2-D context from C#, marshalling **every draw call** across the WASM/JS
-  boundary, so a grid of a few hundred lines cost a few hundred interop calls per frame. Skia collapsed that to
-  one blit by drawing inside WASM. Painting from JS pays none of it — the draw calls are already on the side the
-  context lives on — so the cost that decided that architecture is absent here. It is still slow at map scale,
-  which is the more useful lesson: its block layers rebuild a path of one rect per block on every paint, cull
-  against the model's bounds rather than the viewport, and draw every cell at every zoom. Measured on a 2-D
-  canvas at that scale (45k cells): rebuild-and-stroke per frame **20.4 ms**, path built once **10.9 ms**,
-  rasterized once and blitted **0.6 ms**. The API was never the variable.
-  Note also that nothing automated could have caught this defect: the e2e harness drives Chromium only, and the
-  artifact does not exist there.
-  **Decided — a 2-D `<canvas>` painted from JS, not SkiaSharp on Blazor.** Three things settle it. The
-  documents live in JS: `plan-doc` *is* what the canvas draws, and hit-testing, snapping and the controllers sit
-  beside it, so painting from C# means either relocating three tools' models or shipping the document across the
-  WASM boundary every paint — the same boundary that has now produced three separate performance failures at
-  three granularities (per draw call, per input event, and this repo's own per-tick `onZoom` in `CV17`). The
-  build environment cannot do it: SkiaSharp on WASM needs the `wasm-tools` workload to link its native assets,
-  and an apt-packaged SDK cannot install workloads — `dotnet workload install` reports success and installs
-  nothing — so every machine would need a side-loaded SDK before the client built at all, and the native payload
-  lands on a first load that is already slow. And the throughput it would buy is not needed: a 2-D context has no
-  dependency, no workload and nothing to vendor, which is what the JS dependency policy asks for anyway. What
-  would reopen it is one renderer serving both the browser and the server-side board images
-  (`Pgm/Render/PlanBoardSvg.cs`), or a surface that genuinely needs tens of thousands of live primitives.
-  Block data at map scale is **not** what this migrates, and is already handled the right way:
-  `render/block-render.js` writes one pixel per block into an offscreen canvas and places the result as a single
-  pixelated `<image>` (editor, configure and overview all share it), so a 45k-block layer costs one blit and its
-  cost is independent of how many blocks it holds. That is the rasterize-once row, which is why those surfaces
-  never had this problem. What migrates is the **vector** content — a few hundred rects, lines, markers and
-  labels per board — and the discipline the block layer already demonstrates is the rule the painter adopts. What does **not** carry over is the placement: there the document and the interaction
-  live in C# because the canvas is a Blazor component, whereas here the documents, hit-testing, controllers and
-  bridges are JS and the hot path stays there. So the shape to copy is the architecture, in JS over a 2D
-  context; adopting SkiaSharp would mean moving `plan-doc` and the controllers into C# and taking on its WASM
-  native payload, which is a far larger change than the paint layer it would fix.
-  Assess on a branch, on the plan canvas alone: a painter over a DPR-aware `<canvas>` for the world layers,
-  the screen-space chrome (labels, selection handles, resize handles, scale bar) left in SVG where DOM
-  semantics are worth having, and the document, hit-testing and controller layers untouched. Non-scaling
-  stroke stops being a concept — a canvas painter applies the viewport itself, so a screen-space width is
-  just a width. What the spike has to answer is text quality at DPR, whether the dashed cell grid still reads
-  at low zoom, and what replaces `data-layer` addressing for `CV12`/`C28`'s test layers, since a canvas
-  offers nothing to query. Until it lands the artifact is live and unmitigated.
+- [~] **CV18 — Finish the painted-surface migration: the sketch and world canvases.** The artifact
+  (zooming an authoring canvas in Firefox left the picture soft until the next input — the browser
+  stretching a cached rasterization it had decided not to redo) is **fixed on the plan editor, confirmed
+  on a real Firefox**: its world layers are painted per frame to a 2-D `<canvas>` (`FEATURES.md`), so
+  there is no raster to go stale. The other two drawing canvases still carry it. What remains:
+  **(a) `SketchCanvas`** — same shape as the plan conversion (one Blazor host, hit-testing already
+  data-driven). **(b) `WorldCanvas`** — staged last deliberately: sixteen mounts (eleven Configure steps,
+  five Edit phases), so converting it puts every Configure step through the change at once. The decision
+  record — why paint instead of retained SVG, why not SkiaSharp, the measured numbers, the accepted
+  `PlanBoardSvg` client/server divergence — is in the `FEATURES.md` entry and this file's git history.
 
 - [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
   (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
