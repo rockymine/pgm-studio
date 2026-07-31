@@ -197,6 +197,11 @@ is what lets the suite run from the VirtualBox shared folder at all.
 ## Verification & gotchas (load-bearing, easy to lose)
 - Run the app with **`./tools/dev.sh restart`** (`:7894`); after a host reboot MariaDB auto-starts
   but the dotnet bg process doesn't, and the claude-in-chrome MCP needs reconnecting (extension panel).
+- **`./tools/e2e.sh all`** is the browser gate (icons · paint · plan refusals · smoke) and runs on its own
+  port + database, so it can't touch dev data. It needs Playwright **globally** (the repo carries no npm
+  dependencies): `npm i -g playwright && npx playwright install chromium`. **Stop `dev.sh` first** — both
+  servers on one VM starve each other and the failures land as 30s route timeouts that look like page
+  faults; six smoke checks failed that way and passed cleanly the moment the dev server was down.
 - Parity harnesses in `tools/PgmStudio.RoundTrip` (`--categorize`/`--buildability`/`--traversability`/
   `--wool`/`--extract`/`--islands`/`--authoring`); regenerate Python oracles into `/tmp/pyfresh` (wiped on
   reboot) via `parser.parse + serializer.to_dict` over the corpus.
