@@ -63,7 +63,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   + canvas + inspector delete/rename. (E5)
 - **Setup activity** (rail label; renamed from "Configure" to free that word for the top-level
   Configure mode) — a 2-step confirm flow (**island-exclude → symmetry confirm**) over the **reused
-  `EditorCanvas`** (island-select then symmetry overlay — the same canvas the Configure World phase
+  `WorldCanvas`** (island-select then symmetry overlay — the same canvas the Configure World phase
   uses); finish → Overview. Detection runs on the studio-chosen **cleaned base** — no per-map scan-layer
   or custom block-exclusion choice and **no world re-scan** (aligned to the Configure World phase; the
   world-scanning scan-layer/block-exclusion endpoints were dropped so the surface is hosted-safe).
@@ -174,7 +174,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the Info→Draw path, default working area present and correctly sized, reads as a region rather than the
   whole surface, grid covers the surface, scale bar present, drawing past the edge grows the area), plus
   11/11 sketch regression and 8/8 window-resize / full-zoom-range. (C29)
-- **Hybrid canvas** — the reference `EditorCanvas` JS reused via interop (`studio-canvas.js`). (C1)
+- **Hybrid canvas** — the reference `WorldCanvas` JS reused via interop (`studio-canvas.js`). (C1)
 - **Reusable `RegionTree` / `RegionInspector`** + `Models/RegionNode.cs` + `GameColors.cs`. (C2, C3)
 - **Studio design-system CSS** (verbatim) + the `/design` living reference page. (C4, S1)
 - **Draw-tool interop** — region creation on the canvas (rectangle/cuboid/cylinder/circle/point/block
@@ -357,23 +357,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   of throwing `JSException` "unhandled error". (C13, `5dda68f`)
 - **Region geometry editing** — drag the 8 resize handles (rectangle/cuboid) on the canvas *and* type
   exact coords in the inspector; both persist (`PATCH /regions/{id}` bounds/coords) and stay in sync via
-  the shared `Models/RegionEdits` (`EditorCanvas` raises `OnGeometrySaved`; the host persists). Wired in
+  the shared `Models/RegionEdits` (`WorldCanvas` raises `OnGeometrySaved`; the host persists). Wired in
   all four Edit activities. `docs/contracts/canvas-interaction.md` §3. (CV1)
 - **Arrow-key region nudge** — the selected rectangle/cuboid moves 1 block (Shift = 16) with the arrow
-  keys; a single `document` keydown handler on the shared `EditorCanvas` (guards: canvas not visible,
+  keys; a single `document` keydown handler on the shared `WorldCanvas` (guards: canvas not visible,
   focus in a field, nothing selected) translates it live and persists through the same
   `onBoundsSave`/`OnGeometrySaved` path (debounced) — so Edit (PATCH) and Configure (intent + re-orbit)
   both get it. §4. (CV3)
-- **Canvas interaction controllers** — `EditorCanvas` delegates every interaction mode to plain
+- **Canvas interaction controllers** — `WorldCanvas` delegates every interaction mode to plain
   controllers (state-accessor closures + callbacks; the canvas forwards its `CanvasBase` hooks):
-  `EditorDrawController` (draw), `EditorEditController` (8-handle resize + arrow-key move), and
+  `WorldDrawController` (draw), `WorldEditController` (8-handle resize + arrow-key move), and
   `EditorSelectController` (click-select modes: region / island, each a registered picker — so
   `_onCanvasClick` is one dispatch, not an `if`-chain). The shared abstraction the S2 sketch port
   reuses. §5. (CV4, CV5)
 - **Shared renderers** — one `renderSymmetryOverlay` (`shared/symmetry-render.js`, all 6 symmetry
-  types) replaces the three drifted copies in `EditorCanvas`/`ConfigureRenderer`/`OverviewRenderer`,
+  types) replaces the three drifted copies in `WorldCanvas`/`ConfigureRenderer`/`OverviewRenderer`,
   **fixing** the latent bug where `ConfigureRenderer` couldn't draw diagonal mirrors and
-  `OverviewRenderer` couldn't draw rotations or diagonals. `EditorCanvas` block + island rendering now
+  `OverviewRenderer` couldn't draw rotations or diagonals. `WorldCanvas` block + island rendering now
   go through the shared `blockDataToDataUrl` / `polyToPath`, and all four interop bridges share one
   `fetchJson` (`shared/fetch-json.js`). §6.1. (CV6)
 - **Unified intent primitives + forgiving select** — Configure renders all intent geometry as one kind of
@@ -401,7 +401,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   as a zoom-shrinking 1×1 rect and the Edit/Configure `marker` circle-branch collapses into it), and a
   shared `render/primitive-style.js` `primitiveStyle(treatment, {color,…})` holds every treatment recipe
   (`region`/`marker`/`sketch`/`terrain`/`technical`/`zone`, each with ghost/selected states) with colour
-  always caller-supplied. It replaces `editor-canvas`'s `#regionAttrs` + marker attrs + the triplicated
+  always caller-supplied. It replaces `world-canvas`'s `#regionAttrs` + marker attrs + the triplicated
   `#refreshRegionDisplay` numbers, sketch's `shapeAttrs`, and the inline plan piece/zone/ghost styling; the
   duplicated add/sub colour constants collapse to one `OP_COLORS`/`opColors` source (sketch render + draw
   controller). Icons route through `RegionNode.Icon` — `SpawnStep`'s hardcoded `cylinder` and
@@ -736,24 +736,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   intent, so a bad username can't survive into the map. Version / mode / objective are shown locked
   (generator-derived); the server re-resolves usernames → UUIDs on the save `PUT`. (`InfoPhase`; N00)
 - **World · Scan sub-step (N01)** — a read-only review of the extracted world: the centre panel is the
-  reused edit-page `EditorCanvas` (its navigation toolbar — pan/zoom · fit island · reset — and its island
+  reused edit-page `WorldCanvas` (its navigation toolbar — pan/zoom · fit island · reset — and its island
   base ↔ surface "Blocks" layer toggle), with a cleaned-base summary (the corpus-fixed noise exclusions)
   and a detection summary (layer · island count · detected symmetry). Writes no intent. (`WorldScanStep`; N01)
 - **World · Islands sub-step (N01)** — review the detected islands and exclude the stray ones (decor /
-  observer towers). Islands are selectable from the list **or by clicking the canvas** (the `EditorCanvas`
+  observer towers). Islands are selectable from the list **or by clicking the canvas** (the `WorldCanvas`
   gained island hit-testing + an accent-border highlight, gated so the editor's region selection is
   unchanged); the inspector shows centre / block count / Exclude·Include. Excluding reuses
   `PATCH /configure/{slug}/exclude-island` (re-runs symmetry, no re-scan) and dims the island; saves
   instantly (topbar Saving… → Saved). (`WorldIslandsStep`; N01)
 - **World · Symmetry sub-step (N01)** — confirm the detected symmetry (or pick another / none) + its
   centre → the World intent slice (`intent.symmetry`), which the generator orbit-fills from. The canvas
-  (`EditorCanvas` symmetry mode — base layer only) draws the axis/centre overlay; the inspector surfaces the
+  (`WorldCanvas` symmetry mode — base layer only) draws the axis/centre overlay; the inspector surfaces the
   suggested team count. Persists on phase-advance, which marks World done + unlocks Teams. (`WorldSymmetryStep`; N01)
 - **Teams · step 1 sub-step (N02, "Teams & island assignment")** — create the teams (a Smart Suggestion
   proposes the count from the confirmed symmetry → palette teams) + edit name/colour + Max Players →
   `intent.teams` / `maxPlayers`; and tag islands to teams by clicking them on the canvas (tinted that
   team's colour) → `intent.islandTeams` (authoring aid the Spawn step consumes). Canvas = reused
-  `EditorCanvas` in island-select mode, now **point-in-polygon** island hit-testing + **Select tool by
+  `WorldCanvas` in island-select mode, now **point-in-polygon** island hit-testing + **Select tool by
   default** (both also improve the World · Islands step). (`TeamAssignStep`; N02)
 - **Teams · Spawn point sub-step (N02)** — the **point tool** drops team 0's spawn (island-aware: it
   takes the clicked island's team) and the confirmed symmetry orbit-fills the rest, each orbit spawn
@@ -786,7 +786,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   red never · yellow restricted. Reuses the block-overlay's pixelated `<image>` renderer (the grid → one
   PNG), sits below the authored bridges, and re-fetches on each toggle-on so it reflects the saved build
   slice. A sidebar **legend** (colour → plain-language meaning + what to do) shows while the overlay is on
-  (`OnBuildableToggled`). (`EditorCanvas` `ShowBuildable` + `setBuildability`; `BuildLayerStep`; N03)
+  (`OnBuildableToggled`). (`WorldCanvas` `ShowBuildable` + `setBuildability`; `BuildLayerStep`; N03)
 - **Wools · Objectives sub-step (N04)** — a **detect-and-confirm** objectives list, not a colour-picker.
   On entry the world is scanned (`GET /monument-suggestions` map-wide + `POST /wool-sources`): signed
   monuments ("Place the X Wool here!") name each objective colour and give the capturing team (the island
@@ -1927,6 +1927,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shows the large render, score breakdown (top soft contributors), copyable descriptor, pin, and **Open in
   plan editor** → `/plan-editor?plan={id}`, which loads the exact board as a generated plan (so editing forks,
   per G119). Votes deferred to G118. Pgm 685 + Api 71 tests green. (G117)
+
+- **The world canvas is named for what it draws (CV20)** — `canvas/world-canvas.js` +
+  `bridge/world-bridge.js` + `controllers/world-{draw,edit}-controller.js` +
+  `Components/Editor/WorldCanvas.razor{,.cs}`. `EditorCanvas` was named for a route, and the wrong one:
+  eleven of its sixteen mounts are **Configure** steps and only five are Edit phases, while its three
+  siblings are all named for content (`PlanCanvas` a plan, `SketchCanvas` a sketch, `SideviewCanvas` a side
+  view). What it draws is the **world** — bounding box, islands, the block overlay, the buildability
+  heatmap, symmetry axes, spawns, wools, monuments, regions — which is already the term the canvas-surface
+  work uses for that content. Its two interaction controllers followed the same rule the sketch pair
+  established (a controller is named for its canvas), so `EditorDrawController`/`EditorEditController`
+  became `WorldDrawController`/`WorldEditController`. Pure rename over 52 files: the interop contract needed
+  no change (the entry point was already `studio.mountCanvas` and the callbacks already `OnCanvas*`), and
+  the only load-bearing edge was the module path string in `studio.js`'s native dynamic import. Client build
+  clean (0 warnings), JS 150/150, e2e 33/33 smoke + 22/22 plan refusals — the surfaces that matter here are
+  the `configure` and `edit` routes, which render clean, and a mis-renamed module would have surfaced as a
+  failed-request fault rather than passing quietly. (CV20)
 
 - **Zoom stops going soft on the authoring canvases (CV17)** — `canvas/canvas-base.js` +
   `render/canvas-chrome.js` + `canvas/plan-canvas.js` + `canvas/sketch-canvas.js` + `render/sketch-render.js`.

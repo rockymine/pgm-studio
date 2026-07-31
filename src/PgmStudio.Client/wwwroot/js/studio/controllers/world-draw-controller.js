@@ -1,6 +1,6 @@
 /**
- * EditorDrawController — rectangle/cuboid drag and cylinder/circle two-click draw
- * for EditorCanvas. Extracted from editor-canvas.js.
+ * WorldDrawController — rectangle/cuboid drag and cylinder/circle two-click draw
+ * for WorldCanvas. Extracted from world-canvas.js.
  *
  * Constructor args:
  *   getDrawLayer  () => SVGGElement | null   — getter, layer is rebuilt on repaint
@@ -11,7 +11,7 @@
 import { svgEl, anchorBlockEl, moveAnchorBlockEl } from "../render/svg.js";
 import { drawnBoundsFromBlocks } from "../geometry/region-convert.js";
 
-export class EditorDrawController {
+export class WorldDrawController {
   #getDrawLayer;
   #getToSvg;
   #callbacks;

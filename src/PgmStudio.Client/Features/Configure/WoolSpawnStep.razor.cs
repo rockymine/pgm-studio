@@ -23,7 +23,7 @@ public partial class WoolSpawnStep
     private string? symMode; private double symCx, symCz;
     private string anchorTeam = "";
     private string? selectedColor;
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
     private W.Wool? Selected => wools.FirstOrDefault(w => w.Color == selectedColor);

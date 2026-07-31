@@ -11,7 +11,7 @@ namespace PgmStudio.Client.Features.Configure;
 
 // World · Symmetry step: the detected symmetry is confirmed by default and its centre pre-filled; the
 // author clicks another mode (or "none") only to change it. The choice is the World intent slice written to
-// intent.symmetry, which the generator uses to orbit-fill teams/wools. The canvas (reused EditorCanvas in
+// intent.symmetry, which the generator uses to orbit-fill teams/wools. The canvas (reused WorldCanvas in
 // symmetry mode — base layer only) shows the axis/centre overlay; the detection summary surfaces the
 // suggested team count.
 public partial class WorldSymmetryStep
@@ -29,7 +29,7 @@ public partial class WorldSymmetryStep
 
     private string? selectedType;   // null = "no symmetry"
     private double centerX, centerZ;
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
     // Teams the symmetry implies = its orbit order (rot_90 → 4, mirror/rot_180 → 2); no symmetry → null.

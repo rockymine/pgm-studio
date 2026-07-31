@@ -6,7 +6,7 @@
  * (bridge/sketch-bridge.js) owns the island recompute loop and pushes results via setIslands/setMirror.
  *
  * World coordinates ARE the SVG base coordinates here — an identity transform (no buildTransform);
- * fitToBbox() sets scale/pan to frame the working bounds. (Distinct from EditorCanvas, which maps
+ * fitToBbox() sets scale/pan to frame the working bounds. (Distinct from WorldCanvas, which maps
  * through buildTransform — do not collapse the two.)
  *
  * Callbacks: onShapeCreated(partial) · onShapeUpdated(shape) · onShapeSelected(id|null) [drill] ·

@@ -3,8 +3,8 @@
 @inject HttpClient Http
 @implements IAsyncDisposable
 
-@* Hybrid editor canvas: Blazor renders the toolbar/labels/svg shell, the reused EditorCanvas JS
-   (via bridge/editor-bridge.js interop) owns pan/zoom/render/selection. Cursor + zoom labels are written
+@* Hybrid world canvas: Blazor renders the toolbar/labels/svg shell, the reused WorldCanvas JS
+   (via bridge/world-bridge.js interop) owns pan/zoom/render/selection. Cursor + zoom labels are written
    by JS directly (hot path); only selection round-trips to C# (OnSelect). *@
 
 <div class="workspace-canvas">

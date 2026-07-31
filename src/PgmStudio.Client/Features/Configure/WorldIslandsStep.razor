@@ -2,7 +2,7 @@
 
 @* World · Islands step (N01): review detected islands, exclude the stray ones. Select from the list
    or by clicking the canvas; the selection's centre / block count / exclude toggle show in the inspector.
-   The canvas is the reused EditorCanvas in island-select mode (island base layer + the Blocks overlay toggle). *@
+   The canvas is the reused WorldCanvas in island-select mode (island base layer + the Blocks overlay toggle). *@
 
 <Workspace>
 
@@ -45,7 +45,7 @@
   <div class="sidebar-handle"></div>
 
   @* Reused edit canvas in island-select mode — base layer only, click an island to select it. *@
-  <EditorCanvas @ref="canvas" Slug="@Slug" IslandSelect="true"
+  <WorldCanvas @ref="canvas" Slug="@Slug" IslandSelect="true"
                 OnIslandSelect="Select" OnReady="OnCanvasReady" />
 
   <div class="sidebar-handle"></div>

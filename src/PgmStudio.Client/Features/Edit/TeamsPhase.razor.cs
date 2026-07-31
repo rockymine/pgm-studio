@@ -16,7 +16,7 @@ public partial class TeamsPhase
     [Parameter] public EventCallback OnPrevPhase { get; set; }
     [Parameter] public EventCallback OnNextPhase { get; set; }
 
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
     private readonly List<Team> teams = new();
     private readonly List<Spawn> spawns = new();
     private ObserverSpawn? observer;

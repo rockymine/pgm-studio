@@ -1,12 +1,12 @@
 /**
- * EditorCanvas — SVG rendering engine shared by the Edit page (/maps/{id}/edit) and the Configure
+ * WorldCanvas — SVG rendering engine shared by the Edit page (/maps/{id}/edit) and the Configure
  * wizard (/maps/{id}/configure). Extends CanvasBase for pan/zoom/transform + the drag FSM (via the
  * _on* hooks below), and delegates every interaction mode to a plain controller:
- *   EditorDrawController    new-region drawing (the draw tools)
- *   EditorEditController    8-handle resize + arrow-key move of the selected region
+ *   WorldDrawController    new-region drawing (the draw tools)
+ *   WorldEditController    8-handle resize + arrow-key move of the selected region
  *   SelectController        click-select modes (region / island) — one registered picker each
  *
- * Public surface (grouped; the bridge (bridge/editor-bridge.js) forwards the subset Blazor drives):
+ * Public surface (grouped; the bridge (bridge/world-bridge.js) forwards the subset Blazor drives):
  *   Render / lifecycle
  *     render(ctx, groups)              full repaint + zoom reset
  *     refreshRegions(groups)           swap the region layer without resetting zoom
@@ -45,8 +45,8 @@ import { buildTransform, buildInverseTransform } from "../geometry/transform.js"
 import { translateBounds } from "../geometry/shape.js";
 import { svgEl, polyToPath, anchorBlockEl } from "../render/svg.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
-import { EditorDrawController } from "../controllers/editor-draw-controller.js";
-import { EditorEditController, RESIZABLE_TYPES } from "../controllers/editor-edit-controller.js";
+import { WorldDrawController } from "../controllers/world-draw-controller.js";
+import { WorldEditController, RESIZABLE_TYPES } from "../controllers/world-edit-controller.js";
 import { SelectController } from "../controllers/select-controller.js";
 import { chatColorHex, dyeColorHex } from "../render/palette.js";
 import { blockToExtentBounds } from "../geometry/region-convert.js";
@@ -60,7 +60,7 @@ import { geojsonToSimplified } from "../geometry/islands.js";
 
 const COMPOSITE_TYPES = new Set(["union", "intersect", "negative", "complement"]);
 
-export class EditorCanvas extends CanvasBase {
+export class WorldCanvas extends CanvasBase {
   #ctx    = null;
   #groups = [];
   #toSvg  = null;
@@ -137,12 +137,12 @@ export class EditorCanvas extends CanvasBase {
   constructor(svgEl_, wrapEl, callbacks = {}) {
     super(svgEl_, wrapEl);
     this.#callbacks = callbacks;
-    this.#drawCtrl  = new EditorDrawController(
+    this.#drawCtrl  = new WorldDrawController(
       () => this.#drawLayerEl,
       () => this.#toSvg,
       { onRegionDraw: (r) => this.#callbacks.onRegionDraw?.(r) },
     );
-    this.#editCtrl  = new EditorEditController(
+    this.#editCtrl  = new WorldEditController(
       {
         getSelected: () => this.#selectedNode,
         getOverlay:  () => this.#overlayLayer,

@@ -30,7 +30,7 @@ public partial class WoolRoomStep
     private readonly Dictionary<string, List<W.Rect>> ghosts = new(); // orbit copies per partner wool colour
     private int nextId = 1;
     private string? selectedRegionId;
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
     private W.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);

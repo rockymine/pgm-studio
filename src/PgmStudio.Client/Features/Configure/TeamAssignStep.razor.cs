@@ -12,7 +12,7 @@ namespace PgmStudio.Client.Features.Configure;
 
 // Teams · step 1 (N02, "Teams & island assignment"): create the teams (symmetry suggests the count) and
 // tag islands to them. Writes the intent's teams + maxPlayers slice, plus the islandTeams authoring aid.
-// The reused EditorCanvas runs in island-select mode (base layer only): selecting a team then clicking an
+// The reused WorldCanvas runs in island-select mode (base layer only): selecting a team then clicking an
 // island tints it that team's colour. Orbit-fill mirrors team 0 onto the rest from the confirmed symmetry.
 public partial class TeamAssignStep
 {
@@ -30,7 +30,7 @@ public partial class TeamAssignStep
     private readonly Dictionary<string, string> islandTeams = new();   // island id → team id
     private string? symMode;
     private bool dismissedSuggestion;
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
     private Team? Selected => teams.FirstOrDefault(t => t.Id == selectedTeamId);

@@ -45,7 +45,7 @@ Read alongside:
 > still single-use or too varied to fit a component (`ctrl-row` triples vary XYZ/XZ/R·H), so those stay
 > raw. Still open (C12 backlog): the `Icon` roll-out, folding the 1 `section-heading`, and dropping inline
 > `style=` now expressible as params. The other `.razor` components stay at their existing altitude (page fragments like
-> `EditorCanvas`; one-off widgets like `NumberField`, `SideDrawer`, `SmartSuggestion`, `Toast`).
+> `WorldCanvas`; one-off widgets like `NumberField`, `SideDrawer`, `SmartSuggestion`, `Toast`).
 
 ---
 
@@ -129,7 +129,7 @@ nothing new is invented. `✅` = already a component; everything else is C12 sco
 Every surface maps cleanly: sidebars → `Sidebar`/`Section`; workspace canvas-or-content →
 `Workspace`/`ContentColumn`; the homeless start-page cards → `CardGrid`; the `?stage=` lists →
 `ListRow` + `ContentColumn`; the activity rail → `ActivityRail`; toolbars → `CanvasSubbar` +
-`DrawToolButton`; inspectors → `Inspector` + `DetailHeader`; the canvas → `EditorCanvas` (already one).
+`DrawToolButton`; inspectors → `Inspector` + `DetailHeader`; the canvas → `WorldCanvas` (already one).
 
 ---
 
@@ -149,7 +149,7 @@ Components/
   Feedback/     Toast, SmartSuggestion, Callout, PanelWarning, EmptyMessage, SideDrawer
 ```
 
-Page-fragment components (`EditorCanvas`, `RegionInspector`, `RegionTree`, `SliceView`, the `Sketch*`
+Page-fragment components (`WorldCanvas`, `RegionInspector`, `RegionTree`, `SliceView`, the `Sketch*`
 panels) stay next to their pages — they are features, not vocabulary. CSS stays global and unscoped;
 components do **not** introduce `.razor.css`.
 

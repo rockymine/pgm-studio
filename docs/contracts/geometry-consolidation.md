@@ -72,7 +72,7 @@ protection or build areas), three things generalize together: the intent `Rect` 
 contract** and the current code is right.
 
 > Reality check: shape.js's header says it's "shared by the editor (regions) and the sketch tool," but in
-> practice **only the sketch path imports it** — the editor canvas hit-tests regions by **AABB**
+> practice **only the sketch path imports it** — the world canvas hit-tests regions by **AABB**
 > (`#hitTest` over `node.bounds`, via `region-convert.js`), not `containsPoint`. So even within JS the
 > shape/contains story isn't fully unified; a consolidation should decide whether the editor adopts
 > `shape.js` containment or stays AABB.
@@ -137,7 +137,7 @@ generative layout algorithms (TSP/annealing, random-point polygon seeding).
   C# has **no general shape model** — the intent is **rectangle/point only** and `SketchRasterizer`'s shape
   model is **sketch-private**. Rectangles are the contract; `OrbitAssignment` rect-only is correct, not a gap.
 - ~~`shape.js`'s header ("shared by editor + sketch") is **drift**~~ **RESOLVED:** header corrected to
-  sketch-only. The **editor hit-tests regions by AABB** (`editor-canvas.js #hitTest` over `node.bounds`),
+  sketch-only. The **editor hit-tests regions by AABB** (`world-canvas.js #hitTest` over `node.bounds`),
   islands by `pointInRing` — and that AABB choice is the **decided** behaviour (coheres with the AABB
   resize/move model; see the Remaining/`DECIDED` note above).
 - ~~`containsPoint` ignores Bézier bulge → rendered curve ≠ hit shape.~~ **FIXED:** `containsPoint`
@@ -221,7 +221,7 @@ through `Geom.Symmetry`.
 All consolidation work is resolved — map-bbox #7, orbit rounding #3, `RegionCentre` #2, the family-2
 `Geometry2dOps` helper, and the editor hit-test decision; `shape.js`'s header is corrected to sketch-only.
 
-1. **DECIDED — editor region hit-test stays AABB.** `editor-canvas.js #hitTest` selects by `node.bounds`
+1. **DECIDED — editor region hit-test stays AABB.** `world-canvas.js #hitTest` selects by `node.bounds`
    (AABB; smallest-area tiebreak + `MARGIN=2` near-miss). Kept over polygon-precise (`pointInRing` over
    `node.polygon_2d`) because it **coheres with the AABB resize/move model** (the 8 handles operate on
    `node.bounds`, so select = what you can manipulate) and keeps "forgiving" select; the polygon route would

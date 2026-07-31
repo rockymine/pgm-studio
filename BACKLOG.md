@@ -124,7 +124,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   --experimental-test-coverage` reports 82.8% over the 15 modules the 148 tests import (several at 100%:
   `transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`), but **26 of 41 files / ~6,900 lines are
   absent from the report** — they are never imported, which the coverage output shows as silence rather
-  than zero. The untested set is the whole interactive layer: every canvas (`editor-canvas` 1046,
+  than zero. The untested set is the whole interactive layer: every canvas (`world-canvas` 1046,
   `plan-canvas` 1017, `sketch-canvas` 871, `sideview-canvas`, `canvas-base`), every bridge, every
   controller, `iso-webgl`, and `studio.js`. The split is coherent — pure geometry is tested, DOM/canvas
   code is not — so the win is not "test the canvases" wholesale but **extracting the decidable logic they
@@ -161,7 +161,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   press maps a world point against the document), the canvas content carries **no CSS** (every fill, stroke
   and dash is an inline attribute written in JS, so there is no style layer to port), and the e2e probes
   assert on icons and routes, never on the surface's DOM. The conversion surface is the 137 `svgEl(` sites,
-  90 of them in the three canvases (`plan-canvas` 51, `editor-canvas` 24, `sketch-canvas` 14) plus the render
+  90 of them in the three canvases (`plan-canvas` 51, `world-canvas` 24, `sketch-canvas` 14) plus the render
   helpers, and one test file (`render.test.js`) that asserts on emitted elements.
   A working precedent sits in a sibling map-editor repository, which paints with SkiaSharp on Blazor WASM — an
   `SKGLView`, a `MapRenderer` that sets the viewport matrix on the canvas and runs a list of `IRenderable`s
@@ -212,7 +212,7 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
 
 - [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
   `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
-  callback; `editor-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
+  callback; `world-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
   of a no-op. Settle on one helper next to `fetch-json.js`. Tiny, but it is the only thing the five bridges
   genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
   separate.

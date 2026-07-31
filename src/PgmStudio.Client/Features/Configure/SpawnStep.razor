@@ -1,7 +1,7 @@
 @namespace PgmStudio.Client.Features.Configure
 
 @* Teams · spawn step: the point tool drops team 0's spawn; the confirmed symmetry orbit-fills the rest
-   (island-aware). The select tool picks a placed marker to inspect/adjust it. Canvas = reused EditorCanvas
+   (island-aware). The select tool picks a placed marker to inspect/adjust it. Canvas = reused WorldCanvas
    in point-pick mode (base layer only); markers show each team's spawn (placed = bright, orbit = faint).
    The reused side-view sets each spawn's Y on its terrain. *@
 
@@ -42,7 +42,7 @@
   @* Reused edit canvas — the point tool places a spawn; spawns render as point dummy regions (markers),
      picked by the normal select hit-test. Category is a non-matching sentinel so the generated tree stays
      hidden (only the island base + the spawn markers show). *@
-  <EditorCanvas @ref="canvas" Slug="@Slug" PointPick="true" Category="__spawn_authoring__"
+  <WorldCanvas @ref="canvas" Slug="@Slug" PointPick="true" Category="__spawn_authoring__"
                 OnPointPick="OnPointPick" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady" />
 
   <div class="sidebar-handle"></div>

@@ -35,7 +35,7 @@ public partial class SpawnStep
     private readonly List<Spawn> spawns = new();
     private Spawn? observer;        // the <default> (observer/spectator) spawn — always present, editable like a team spawn
     private string? selectedTeamId;
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
 
     // Sentinel "team" id for the observer so it reuses the team-spawn selection/marker/inspector path.
     private const string ObserverId = "__observer__";

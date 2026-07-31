@@ -1,6 +1,6 @@
 /**
  * Shared symmetry-overlay renderer — the dashed axis line(s) for a symmetry type + a centre dot.
- * Used by EditorCanvas, ConfigureRenderer and OverviewRenderer so all three draw the same overlay
+ * Used by WorldCanvas, ConfigureRenderer and OverviewRenderer so all three draw the same overlay
  * (and all handle every type, incl. the diagonals `mirror_d1`/`mirror_d2` and the rotations).
  *
  * @param group   the SVG <g> to draw into (cleared first)

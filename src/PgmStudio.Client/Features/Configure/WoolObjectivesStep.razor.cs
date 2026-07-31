@@ -52,7 +52,7 @@ public partial class WoolObjectivesStep
     private readonly List<Candidate> candidates = new();
     private string? selectedColor;
     private bool loading = true;
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
     private Candidate? Selected => candidates.FirstOrDefault(c => c.Color == selectedColor);

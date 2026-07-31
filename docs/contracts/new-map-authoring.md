@@ -388,7 +388,7 @@ imprecise. New-map authoring needs **per-side focus** — zoom/fit to one team's
 restricted view-box while defining that team's regions, since the author works one orbit unit at a
 time. This is an independent canvas capability and can land before the generator.
 
-**Landed — canvas focus controls.** The editor canvas toolbar has a **Fit island** dropdown (zooms to
+**Landed — canvas focus controls.** The world canvas toolbar has a **Fit island** dropdown (zooms to
 an island's bbox) and a **reset-zoom** button (whole-map view), so the author can frame one side while
 working it.
 

@@ -22,7 +22,7 @@ public static class PlanBoardSvg
         string[] axes = Symmetry.OrbitAxes(plan.Globals.Symmetry);
 
         // base-unit rect per piece id — a marker's `At` is an offset from its host piece's origin, so its
-        // absolute cell is piece.Rect + At (the markerCell convention the editor canvas uses).
+        // absolute cell is piece.Rect + At (the markerCell convention the world canvas uses).
         var pieceRect = new Dictionary<string, CellRect>();
         foreach (var p in plan.Pieces) pieceRect[p.Id] = p.Rect;
 

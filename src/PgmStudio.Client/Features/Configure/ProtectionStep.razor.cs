@@ -33,7 +33,7 @@ public partial class ProtectionStep
     private string? authoredTeam;
     private int nextId = 1;
     private string? selectedRegionId;
-    private EditorCanvas? canvas;
+    private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
     private Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
