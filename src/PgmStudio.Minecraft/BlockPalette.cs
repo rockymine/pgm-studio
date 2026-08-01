@@ -6,7 +6,7 @@ namespace PgmStudio.Minecraft;
 /// (wool=35, stained glass=95, stained clay=159, stained glass pane=160, carpet=171) use their
 /// damage value as a sub-colour index into <see cref="StainColors"/>.
 /// </summary>
-public static class BlockColors
+public static class BlockPalette
 {
     public readonly record struct Rgb(int R, int G, int B);
 

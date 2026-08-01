@@ -110,7 +110,7 @@ public sealed class IslandsEndpoint(MapRepository repo, PgmDb db) : EndpointWith
 public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     private static readonly Dictionary<string, int> WoolDamage =
-        WoolColors.WoolDamageToColor.ToDictionary(kv => kv.Value, kv => kv.Key);
+        BlockColors.BlockDamageToColor.ToDictionary(kv => kv.Value, kv => kv.Key);
 
     public override void Configure() { Get("/map/{slug}/scan-summary"); AllowAnonymous(); }
 
@@ -124,12 +124,12 @@ public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : Endpoint
             .OrderByDescending(g => g.Count)
             .Select(g =>
             {
-                var slug = WoolColors.Normalize(g.Color);
+                var slug = BlockColors.Normalize(g.Color);
                 return new Dict
                 {
                     ["color"] = slug,
                     ["name"] = TitleCase(slug),
-                    ["hex"] = WoolDamage.TryGetValue(slug, out var dmg) ? PgmStudio.Minecraft.BlockColors.Hex(35, dmg) : "#888888",
+                    ["hex"] = WoolDamage.TryGetValue(slug, out var dmg) ? PgmStudio.Minecraft.BlockPalette.Hex(35, dmg) : "#888888",
                     ["count"] = g.Count,
                 };
             }).ToList();

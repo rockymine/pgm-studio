@@ -2,7 +2,7 @@ namespace PgmStudio.Minecraft;
 
 /// <summary>
 /// Numeric (1.8–1.12) block ids used when synthesising a world. Colour-coded blocks (wool, stained clay,
-/// stained glass + panes) take a 0–15 data value = the dye colour; <see cref="BlockColors"/> maps those.
+/// stained glass + panes) take a 0–15 data value = the dye colour; <see cref="BlockPalette"/> maps those.
 /// </summary>
 public static class Blocks
 {

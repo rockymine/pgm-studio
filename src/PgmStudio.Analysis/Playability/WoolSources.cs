@@ -64,7 +64,7 @@ public static class WoolSources
 
         foreach (var w in AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
         {
-            var color = WoolColors.Normalize(w.GetValueOrDefault("color") as string ?? "");
+            var color = BlockColors.Normalize(w.GetValueOrDefault("color") as string ?? "");
             var roomId = w.GetValueOrDefault("wool_room_region") as string;
             var room = roomId is not null ? regions.GetValueOrDefault(roomId) as Dict : null;
             var roomGeom = room is not null ? RegionGeometry2d.ToGeometry(room, bbox, regions) : null;
@@ -98,7 +98,7 @@ public static class WoolSources
     public static List<Suggestion> SuggestWools(Dict data, List<Source> sources, (double, double, double, double)? mapBbox = null)
     {
         var declared = AsList(data.GetValueOrDefault("wools")).OfType<Dict>()
-            .Select(w => WoolColors.Normalize(w.GetValueOrDefault("color") as string ?? "")).ToHashSet();
+            .Select(w => BlockColors.Normalize(w.GetValueOrDefault("color") as string ?? "")).ToHashSet();
         var renewable = RenewableGeoms(data, mapBbox);
         return SummarizeSources(sources, null, renewable)
             .Where(e => !declared.Contains(e.Color))
@@ -110,7 +110,7 @@ public static class WoolSources
         var outp = new List<MonumentCheck>();
         foreach (var w in AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
         {
-            var color = WoolColors.Normalize(w.GetValueOrDefault("color") as string ?? "");
+            var color = BlockColors.Normalize(w.GetValueOrDefault("color") as string ?? "");
             foreach (var m in AsList(w.GetValueOrDefault("monuments")).OfType<Dict>())
             {
                 var loc = AsDict(m.GetValueOrDefault("location"));
@@ -146,7 +146,7 @@ public static class WoolSources
             {
                 if (!((item.GetValueOrDefault("material") as string ?? "").ToLowerInvariant().Contains("wool"))) continue;
                 if (Num(item.GetValueOrDefault("damage")) is not { } dmg) continue;
-                if (!WoolColors.WoolDamageToColor.TryGetValue((int)dmg, out var color)) continue;
+                if (!BlockColors.BlockDamageToColor.TryGetValue((int)dmg, out var color)) continue;
                 var count = Num(item.GetValueOrDefault("amount")) is { } a and not 0 ? (int)a : 1;
                 outp.Add(new Source("pgm_spawner", color, cx, 0, cz, count, geom));
             }
@@ -163,7 +163,7 @@ public static class WoolSources
                 var mat = (item.GetValueOrDefault("material") as string ?? "").ToLowerInvariant();
                 if (mat.Contains("wool")) continue;
                 if (!mat.Contains("ink") && !mat.Contains("dye")) continue;
-                var color = Num(item.GetValueOrDefault("damage")) is { } d ? WoolColors.DyeDamageToColor.GetValueOrDefault((int)d) : "black";
+                var color = Num(item.GetValueOrDefault("damage")) is { } d ? BlockColors.DyeDamageToColor.GetValueOrDefault((int)d) : "black";
                 if (!string.IsNullOrEmpty(color)) outp.Add(color!);
             }
         return outp;

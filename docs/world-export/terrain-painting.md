@@ -128,7 +128,7 @@ grass-over-dirt, or a wall's banded riser, a run of materials each with a depth)
 tell the buckets apart on sight — none is canonical.
 
 **Team tint (built).** `TeamTintedMaterial(block, neutral)` stamps a colour-by-damage block (clay, wool,
-stained glass) with the owning team's colour — **the same 0–15 damage scale wool uses** (`WoolColors`), so a
+stained glass) with the owning team's colour — **the same 0–15 damage scale wool uses** (`BlockColors`), so a
 team's clay wall matches its wools — falling back to `neutral` on a cell with no team. It is a **material,
 not a wall feature**: it works on any bucket (a team-tinted rim or surface is just a theme that puts it
 there) and composes inside a `LayeredMaterial` or a pattern, because the tint reads the owning team from the

@@ -38,7 +38,7 @@ public static class SketchWorldBuilder
             var slug = ColorSlug(w, teams);
             var frame = WoolFrame(w);
             var fy = FrameFloor(frame, terrain.SurfaceTop);
-            WoolCageStamper.Stamp(world, frame, fy, WoolColors.WoolDamage(slug));
+            WoolCageStamper.Stamp(world, frame, fy, BlockColors.BlockDamage(slug));
             woolFrame[i] = frame;
             woolFloor[i] = fy;
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
@@ -337,13 +337,13 @@ public static class SketchWorldBuilder
         var raw = !string.IsNullOrWhiteSpace(w.Color)
             ? w.Color
             : teams.FirstOrDefault(t => t.Id == w.Owner)?.Color ?? "white";
-        return WoolColors.Normalize(raw);
+        return BlockColors.Normalize(raw);
     }
 
-    /// <summary>The wool/clay data value for a team's display colour. <see cref="WoolColors.WoolDamage"/>
+    /// <summary>The wool/clay data value for a team's display colour. <see cref="BlockColors.BlockDamage"/>
     /// resolves chat-colour team palettes (gold, aqua, dark aqua, …) to their nearest wool.</summary>
     private static int WoolDataForTeam(string teamId, IReadOnlyList<TeamDef> teams)
-        => WoolColors.WoolDamage(teams.FirstOrDefault(t => t.Id == teamId)?.Color ?? "white");
+        => BlockColors.BlockDamage(teams.FirstOrDefault(t => t.Id == teamId)?.Color ?? "white");
 
     /// <summary>Assigns each terrain cell its owning team's colour (a 0–15 wool/clay damage nibble) for the
     /// terrain painter's team tint — the nearest spawn's team wins the cell, matching the team-island split.
@@ -351,7 +351,7 @@ public static class SketchWorldBuilder
     /// later without touching the painter, which only reads the nibble.</summary>
     private static Func<int, int, int> TeamDamageResolver(MapIntent intent)
     {
-        var damageByTeam = (intent.Teams ?? []).ToDictionary(t => t.Id, t => WoolColors.WoolDamage(t.Color));
+        var damageByTeam = (intent.Teams ?? []).ToDictionary(t => t.Id, t => BlockColors.BlockDamage(t.Color));
         var spawns = intent.Spawns
             .Where(s => damageByTeam.ContainsKey(s.Team))
             .Select(s => (s.Point.X, s.Point.Z, Damage: damageByTeam[s.Team]))

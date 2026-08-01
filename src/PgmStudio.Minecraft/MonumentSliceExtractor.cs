@@ -123,7 +123,7 @@ public static class MonumentSliceExtractor
                             m.MapSlug, m.WoolId, m.WoolColor, m.MonumentId, m.Team,
                             m.CenterX, m.CenterY, m.CenterZ,
                             dx, dy, dz, wx, wy, wz,
-                            id, data, BlockColors.Name(id, data),
+                            id, data, BlockPalette.Name(id, data),
                             IsMonument: dx == 0 && dy == 0 && dz == 0, IsAir: id == 0,
                             tileId, signText, tileJson, entityIds, entityJson));
                     }

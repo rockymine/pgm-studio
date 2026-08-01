@@ -7,7 +7,7 @@ namespace PgmStudio.Domain.Tests;
 /// palette) coerce to their nearest wool, and the damage nibble follows. Guards the chat-colour → wool
 /// mapping the spawn/wool cube stampers depend on (gold/aqua/dark aqua must not fall through to white).
 /// </summary>
-public sealed class WoolColorsTests
+public sealed class BlockColorsTests
 {
     [Test]
     [Arguments("red", "red")]
@@ -23,17 +23,17 @@ public sealed class WoolColorsTests
     [Arguments("dark blue", "blue")]
     [Arguments("dark gray", "gray")]
     public async Task Normalize_maps_display_and_chat_colours_to_wool_slugs(string input, string expected)
-        => await Assert.That(WoolColors.Normalize(input)).IsEqualTo(expected);
+        => await Assert.That(BlockColors.Normalize(input)).IsEqualTo(expected);
 
     [Test]
     [Arguments("gold", 1)]      // orange
     [Arguments("aqua", 9)]      // cyan
     [Arguments("dark aqua", 9)] // cyan
     [Arguments("light purple", 10)] // purple
-    public async Task WoolDamage_resolves_chat_colours_off_white(string input, int expectedDamage)
-        => await Assert.That(WoolColors.WoolDamage(input)).IsEqualTo(expectedDamage);
+    public async Task BlockDamage_resolves_chat_colours_off_white(string input, int expectedDamage)
+        => await Assert.That(BlockColors.BlockDamage(input)).IsEqualTo(expectedDamage);
 
     [Test]
     public async Task Unknown_colour_still_falls_back_to_white()
-        => await Assert.That(WoolColors.WoolDamage("chartreuse")).IsEqualTo(0);
+        => await Assert.That(BlockColors.BlockDamage("chartreuse")).IsEqualTo(0);
 }

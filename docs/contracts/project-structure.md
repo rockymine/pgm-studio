@@ -125,7 +125,7 @@ parity harness); its `FromJson` is the production codec.
 | Project | Files / LOC | Verdict | Action |
 |---|---|---|---|
 | `Geom` | 2 / 112 | **Exemplary** | none — it's the model the others should imitate |
-| `Domain` | 6 / 332 | **Earns its place** | none — now also home to `RegionFacet` + `WoolColors` (A5); open Q §6.1 (`MapIntent`) |
+| `Domain` | 6 / 332 | **Earns its place** | none — now also home to `RegionFacet` + `BlockColors` (A5); open Q §6.1 (`MapIntent`) |
 | `Contracts` | 3 / 93 | **Earns its place** | name is fine; add a one-liner so it's not confused with `Domain` |
 | `Migrations` | 5 / 460 | **Clean** | none |
 | `Minecraft` | 8 / 1381 | **Clean** | none — the cleanest project |

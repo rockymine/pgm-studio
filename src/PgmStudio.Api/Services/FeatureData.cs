@@ -31,14 +31,14 @@ public sealed class FeatureData(PgmDb db)
     {
         var sources = new List<WoolSources.Source>();
         foreach (var r in await db.WoolBlocks.Where(x => x.MapId == mapId).ToListAsync(ct))
-            sources.Add(new("block", WoolColors.Normalize(r.Color), r.WorldX, r.WorldY, r.WorldZ, 1));
+            sources.Add(new("block", BlockColors.Normalize(r.Color), r.WorldX, r.WorldY, r.WorldZ, 1));
         foreach (var r in await db.ChestItems.Where(x => x.MapId == mapId).ToListAsync(ct))
             if (r.ItemId.Contains("wool", StringComparison.OrdinalIgnoreCase)
-                && WoolColors.WoolDamageToColor.TryGetValue(r.ItemDamage, out var c))
+                && BlockColors.BlockDamageToColor.TryGetValue(r.ItemDamage, out var c))
                 sources.Add(new("chest", c, r.WorldX, r.WorldY, r.WorldZ, r.Count));
         foreach (var r in await db.SpawnerBlocks.Where(x => x.MapId == mapId).ToListAsync(ct))
             if (r.SpawnsWool == true && r.SpawnItemDamage is { } dmg
-                && WoolColors.WoolDamageToColor.TryGetValue(dmg, out var c))
+                && BlockColors.BlockDamageToColor.TryGetValue(dmg, out var c))
                 sources.Add(new("spawner", c, r.WorldX, r.WorldY, r.WorldZ, (r.SpawnCount ?? 1) == 0 ? 1 : r.SpawnCount ?? 1));
         sources.AddRange(WoolSources.PgmSpawnerSources(doc, (await MapBboxAsync(mapId, ct))?.bounds));   // PGM <spawner> modules (from the map XML)
         return sources;

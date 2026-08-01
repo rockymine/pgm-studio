@@ -27,7 +27,7 @@ internal static class LayerData
             var c = cells[i];
             xs[i] = c.X; zs[i] = c.Z;
             var key = (c.BlockId, c.BlockData);
-            if (!colorCache.TryGetValue(key, out var hex)) colorCache[key] = hex = BlockColors.Hex(c.BlockId, c.BlockData);
+            if (!colorCache.TryGetValue(key, out var hex)) colorCache[key] = hex = BlockPalette.Hex(c.BlockId, c.BlockData);
             colors[i] = hex;
             if (c.X < minX) minX = c.X; if (c.X > maxX) maxX = c.X;
             if (c.Z < minZ) minZ = c.Z; if (c.Z > maxZ) maxZ = c.Z;
@@ -62,8 +62,8 @@ internal static class LayerData
                 return new Dict
                 {
                     ["block_id"] = kv.Key,
-                    ["name"] = BlockColors.Name(kv.Key, data),
-                    ["color"] = BlockColors.Hex(kv.Key, data),
+                    ["name"] = BlockPalette.Name(kv.Key, data),
+                    ["color"] = BlockPalette.Hex(kv.Key, data),
                     ["count"] = kv.Value,
                 };
             }).ToList();

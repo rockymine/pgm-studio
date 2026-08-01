@@ -28,7 +28,7 @@ public static class SpawnCubeStamper
         {
             var slot = slots[i];
             var slug = capturedWools[i];
-            var color = WoolColors.WoolDamage(slug);
+            var color = BlockColors.BlockDamage(slug);
 
             world.SetBlock(slot.X, floorY + 1, slot.Z, Blocks.Bedrock);                 // pedestal (elevated one block)
             // floorY + 2 is the air placement cell (wool goes here) — left air.

@@ -27,7 +27,7 @@ public static class SignBuilder
 
     /// <summary>Nearest chat-colour name for a wool colour slug (defaults to white).</summary>
     public static string ChatColor(string woolSlug)
-        => WoolChatColor.GetValueOrDefault(WoolColors.Normalize(woolSlug), "white");
+        => WoolChatColor.GetValueOrDefault(BlockColors.Normalize(woolSlug), "white");
 
     /// <summary>The 1.8 wall-sign (id 68) block data for a sign whose front faces <paramref name="facing"/>.</summary>
     public static int WallSignData(Facing facing) => facing switch
