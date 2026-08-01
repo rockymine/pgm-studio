@@ -59,7 +59,8 @@
       @if (MapBacked)
       {
         <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
-        <NavButton Icon="pencil-ruler" Title="Draw" Active="@(!InfoActive)" OnClick="GoDraw" />
+        <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
+        <NavButton Icon="palette" Title="Theme — terrain paint per piece" Active="@ThemeActive" OnClick="GoTheme" />
       }
       else
       {
@@ -78,6 +79,10 @@
                        OnNameChanged="OnNameChanged" OnSymmetryChanged="OnSymmetryChanged"
                        OnCellChanged="OnCell" OnSurfaceChanged="OnSurface" OnSurfaceStepChanged="OnSurfaceStep"
                        OnHeadroomChanged="OnHeadroom" OnMaxPlayersChanged="OnMaxPlayers" />
+      }
+      @if (ThemeActive)
+      {
+        <PlanThemePhase Handle="handle" OnBack="GoDraw" />
       }
       @* Draw stays mounted (hidden, not removed) so the plan-canvas bridge + zoom survive a trip to Info
          on a map-backed plan; SetPhase re-measures the canvas on return. The bare route has no Info phase. *@

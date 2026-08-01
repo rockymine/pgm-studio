@@ -417,26 +417,14 @@ studio, G117/G118) is in `TODO.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
-- [~] **G157 — terrain painting: scoped per-piece theming (TP10).** The base model (TP1–TP6), every
-  per-column extension (TP7–TP9, TP11, TP12) and the **material patterns (TP13)** are **built, tested and
-  shipped** (`FEATURES.md`, `TerrainPainter`, painting every sketch export map-wide): configurable rim/surface
-  depth on each bucket's `TopBand`, the layered surface stack, bedrock thickness, the wall-face + bucket
-  toggles, and the three pattern specs (`VoronoiMaterial`/`NoiseMaterial` area, `WallRunMaterial` over the
-  void-facing perimeter arc from `TerrainProfile`'s Moore walk) plus the `TerrainThemeJson` tagged-union. The
-  four-stage architecture (`docs/world-export/terrain-painting.md` §5) is in place, so the one remaining piece
-  lands on one seam: **scoped theming (TP10)** — **designed** (terrain-painting.md §6 TP10; whole-theme
-  winner-takes-all, map default › collection › piece, plan-authored + baked at `/plan/compile`, mirroring the
-  `IslandTeams`/`TeamTerritory` pattern). The build: three intent fields (theme-JSON registry, plan-baked
-  `pieceId → themeId`, piece footprints), a `PlanCompiler` bake (priority-resolve + expand boxes/collections to
-  piece ids), a `TerrainThemeScope.ThemeAt` resolver + a painter per-cell `themeAt` overload, and
-  `SketchWorldBuilder` wiring; then a Finish-phase UI writing the same fields. **Team tint is built**
-  (`TeamTintedMaterial`, a general material on any bucket, block
-  0–15 damage scale, default on the wall) with ownership through **`TeamTerritory`** — one shared decomposition
-  on the canonical `IslandDetector` islands (the same ids `islands_json`/configure use), owner = a stored
-  `IslandTeams` value, else a spawn's team on the island, else a wool's owner, else neutral. Derived **once**:
-  `/plan/compile` pre-fills `IslandTeams`, the configure step overrides it, and the export reads it — same id
-  space throughout, no re-derivation. (A corpus-wide scratch comparison confirmed this reproduces
-  `BoardDeriver`'s ownership cell-for-cell, so BoardDeriver did not need threading into the export.)
+- [ ] **G158 — visual theme/material editor for the Theme rail.** The terrain-paint theming model is fully
+  built and shipped (TP1–TP13, incl. scoped per-piece theming — see `FEATURES.md`), and the plan tool's **Theme**
+  rail authors it end to end: named themes, the map default, and per-piece / per-box assignment. What is still
+  raw is the **theme content** — a theme's materials are edited as a JSON textarea (`PlanThemePhase`). The
+  follow-up is a visual editor: per-bucket material pickers (solid colour / layered stack / team tint) and
+  pattern builders (voronoi palette, noise ramp, wall-run stripes) writing the same theme JSON, plus a small set
+  of ready-made presets. Optional richer scoping: a **custom collection** target (a drawn set of pieces, not just
+  a box) and click-to-assign on the canvas (the `TeamAssignStep` pattern) rather than the per-item dropdowns.
 
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**

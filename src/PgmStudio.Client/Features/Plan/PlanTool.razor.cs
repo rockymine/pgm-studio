@@ -28,12 +28,15 @@ public partial class PlanTool
     [SupplyParameterFromQuery] public string? Phase { get; set; }
     private string active = "draw";
     private bool InfoActive => MapBacked && active == "info";
-    // The Draw workspace stays mounted; it's hidden (not removed) only while a map-backed plan is on Info.
+    private bool DrawActive => MapBacked && active == "draw";
+    private bool ThemeActive => MapBacked && active == "theme";
+    // The Draw workspace stays mounted; it's hidden (not removed) whenever a map-backed plan is on Info/Theme.
     private bool DrawHidden => MapBacked && active != "draw";
     // Map-backed Draw always shows its sidebar (part of the workspace); the bare route folds it via the rail.
     private bool SidebarOpen => MapBacked || leftOpen;
     private Task GoInfo() => SetPhase("info");
     private Task GoDraw() => SetPhase("draw");
+    private Task GoTheme() => SetPhase("theme");
 
     // A blank map-backed plan lands on Info (?phase=info) to name it; opening an existing one goes to Draw.
     protected override void OnInitialized() { if (Phase == "info") active = "info"; }

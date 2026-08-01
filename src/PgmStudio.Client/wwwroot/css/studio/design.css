@@ -226,3 +226,6 @@
 .gen-legend-item { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); font-size: var(--font-base); }
 .gen-swatch { width: 14px; height: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); }
 .gen-swatch--mirror { background: var(--canvas-mirror-fill); border-color: var(--canvas-mirror-stroke); }
+
+/* Terrain-paint theme editor (TP10): a monospace, resizable JSON area — the one thing field-input isn't. */
+.theme-json { min-height: 200px; font-family: ui-monospace, "SF Mono", Menlo, monospace; resize: vertical; line-height: 1.4; }

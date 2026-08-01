@@ -2417,8 +2417,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   perimeter**, reading a per-column arc from `TerrainProfile`'s Moore boundary walk over each landmass);
   vertical wall bands are `LayeredMaterial`. All deterministic (hashed from a seed + cell, no RNG) and nesting —
   a pattern entry can be a team tint or another pattern. The whole theme serializes through **`TerrainThemeJson`**
-  (one `kind` discriminator per material), closing the material model for the scoped-theming step. Only scoped
-  per-piece theming (TP10) remains. (G157) The **team tint is a general material** — the wool 0–15 damage scale on
+  (one `kind` discriminator per material), closing the material model for the scoped-theming step. (G157)
+- **Scoped per-piece theming + the Theme rail (TP10).** The terrain paint is resolved **per cell** instead of
+  one theme map-wide: a piece override, its box/collection, else the map default — winner-takes-all (whole
+  theme). Mirrors the team-ownership shape: the plan carries a theme registry + `mapTheme` + ordered scope
+  assignments; `PlanCompiler` bakes them into the intent as the theme-JSON registry, a priority-resolved flat
+  `pieceId → themeId` (boxes/collections expanded to member pieces), and the fanned piece footprints.
+  **`TerrainThemeScope`** (the read side, `TeamTerritory`'s sibling) turns those into a per-cell `themeAt(x,z)`
+  the painter reads (smallest footprint wins an overlap); `SketchWorldBuilder` paints through it. Boxes stay
+  pure annotation — expanded to piece ids at compile, never read at export. Authored on the plan tool's new
+  **Theme** rail (`PlanThemePhase` + plan-bridge theme methods): define named themes, pick the map default, edit
+  a theme's JSON, and assign a theme to a piece or a box; built from the existing design system (Section/Field/
+  ListRow/Badge). Tested: compiler bake + scope resolution. (G157)
+- **Terrain team tint.** The **team tint is a general material** — the wool 0–15 damage scale on
   any colour-by-damage block, usable on **any** bucket and composable in a layer/pattern (`BucketContext`
   carries the cell's team) — the default puts it on the wall. Ownership resolves through **`TeamTerritory`**:
   one shared decomposition on the canonical `IslandDetector` islands (the ids `islands_json`/configure use),

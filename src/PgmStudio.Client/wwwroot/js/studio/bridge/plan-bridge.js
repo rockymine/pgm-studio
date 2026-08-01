@@ -7,7 +7,7 @@
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES, BOX_KINDS,
-  planIsoSolids, viewBounds, markerList, MARKER_KINDS, boxMembers,
+  planIsoSolids, viewBounds, markerList, MARKER_KINDS, boxMembers, defaultThemeJson,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 
@@ -240,11 +240,38 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     canvas.setDoc(doc);
     if (fit) canvas.fit();
     fire("OnMeta", metaJson());
+    fire("OnThemes", themesState());
     scheduleSave();
     paintReference().then(painted => { if (fit && painted) canvas.fit(); });
   }
 
   function persistOverlays() { try { localStorage.setItem(OVERLAY_KEY, JSON.stringify(overlays)); } catch { /* private mode */ } }
+
+  // ── terrain-paint themes (TP10) ────────────────────────────────────────────
+  // The theme state the Theme rail reads: the registry, the map default, the generating pieces + boxes to
+  // assign, and the resolved per-piece / per-box theme (a later scope wins, boxes ordered before pieces so a
+  // piece override beats its box).
+  function themesState() {
+    const pieceThemes = {}, boxThemes = {};
+    for (const s of (doc.themeScopes || [])) {
+      if (s.box) boxThemes[s.box] = s.theme;
+      for (const pid of (s.pieces || [])) pieceThemes[pid] = s.theme;
+    }
+    return JSON.stringify({
+      themes: doc.themes || {},
+      mapTheme: doc.mapTheme || "",
+      pieces: (doc.pieces || []).filter(p => p.role !== "buffer" && p.role !== "connector").map(p => ({ id: p.id, role: p.role })),
+      boxes: (doc.boxes || []).map(b => ({ id: b.id, kind: b.kind, members: boxMembers(doc, b).map(p => p.id) })),
+      pieceThemes, boxThemes,
+    });
+  }
+  // Rebuild themeScopes so box scopes precede piece scopes (box < piece priority), and drop the empties.
+  function normalizeScopes() {
+    const all = (doc.themeScopes || []).filter(s => s.theme && (s.box || (s.pieces || []).length));
+    const ordered = [...all.filter(s => s.box), ...all.filter(s => !s.box)];
+    if (ordered.length) doc.themeScopes = ordered; else delete doc.themeScopes;
+  }
+  function afterThemeChange() { normalizeScopes(); scheduleSave(); fire("OnThemes", themesState()); }
 
   // Restore the last autosaved plan on open; fall back to a blank document.
   try { const saved = localStorage.getItem(STORAGE_KEY); if (saved) doc = fromJson(saved); } catch { doc = emptyDoc(); }
@@ -381,6 +408,55 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     showNearestMiss(json) {
       if (!json) { canvas.setNearestMiss(null); return; }
       try { canvas.setNearestMiss(JSON.parse(json)); } catch { canvas.setNearestMiss(null); }
+    },
+
+    // ── terrain-paint themes (TP10) ──
+    getThemes() { return themesState(); },
+    defineTheme(name) {
+      if (!doc.themes) doc.themes = {};
+      const id = uniqueId(Object.keys(doc.themes), (name || "theme").trim() || "theme");
+      doc.themes[id] = defaultThemeJson();
+      afterThemeChange(); return id;
+    },
+    renameTheme(oldId, newId) {
+      if (!doc.themes || !doc.themes[oldId]) return oldId;
+      const id = uniqueId(Object.keys(doc.themes).filter(k => k !== oldId), (newId || oldId).trim() || oldId);
+      if (id === oldId) return oldId;
+      doc.themes[id] = doc.themes[oldId]; delete doc.themes[oldId];
+      if (doc.mapTheme === oldId) doc.mapTheme = id;
+      for (const s of (doc.themeScopes || [])) if (s.theme === oldId) s.theme = id;
+      afterThemeChange(); return id;
+    },
+    deleteTheme(id) {
+      if (!doc.themes || !doc.themes[id]) return;
+      delete doc.themes[id];
+      if (!Object.keys(doc.themes).length) delete doc.themes;
+      if (doc.mapTheme === id) delete doc.mapTheme;
+      if (doc.themeScopes) doc.themeScopes = doc.themeScopes.filter(s => s.theme !== id);
+      afterThemeChange();
+    },
+    // Replace a theme's material JSON (the raw TerrainTheme). Returns an error string on invalid JSON, else null.
+    setThemeJson(id, text) {
+      if (!doc.themes || !doc.themes[id]) return "No such theme.";
+      let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
+      doc.themes[id] = parsed; afterThemeChange(); return null;
+    },
+    setMapTheme(id) {
+      if (id && doc.themes && doc.themes[id]) doc.mapTheme = id; else delete doc.mapTheme;
+      afterThemeChange();
+    },
+    // Assign (or clear, with an empty themeId) a theme to one piece — a per-piece override, the top layer.
+    assignPiece(pieceId, themeId) {
+      doc.themeScopes = (doc.themeScopes || [])
+        .map(s => s.box ? s : ({ ...s, pieces: (s.pieces || []).filter(p => p !== pieceId) }));
+      if (themeId && doc.themes && doc.themes[themeId]) doc.themeScopes.push({ theme: themeId, pieces: [pieceId] });
+      afterThemeChange();
+    },
+    // Assign (or clear) a theme to a box — a collection layer under piece overrides.
+    assignBox(boxId, themeId) {
+      doc.themeScopes = (doc.themeScopes || []).filter(s => s.box !== boxId);
+      if (themeId && doc.themes && doc.themes[themeId]) doc.themeScopes.push({ theme: themeId, box: boxId });
+      afterThemeChange();
     },
 
     dispose() { if (saveTimer) clearTimeout(saveTimer); if (inspectTimer) clearTimeout(inspectTimer); inspectSeq++; canvas.dispose(); },

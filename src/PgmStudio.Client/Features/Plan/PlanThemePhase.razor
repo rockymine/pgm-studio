@@ -1,0 +1,104 @@
+@namespace PgmStudio.Client.Features.Plan
+
+@* Terrain-paint theming (docs/world-export/terrain-painting.md TP10): define named themes, pick the map
+   default, and assign a theme to a piece or a box. The map default is the lowest layer; a box override sits
+   above it; a per-piece override wins. Edits funnel through the plan-bridge onto the plan doc (compiled into
+   the intent's theme scopes and painted at export). *@
+
+<div class="phase-body">
+  <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
+           BackEnabled="true" NextLabel="Draw" OnBack="OnBack" OnNext="OnBack" />
+  <Workspace>
+    <ContentColumn MaxWidth="720">
+      @if (State is null)
+      {
+        <Section><p class="section-desc">Loading themes…</p></Section>
+      }
+      else
+      {
+        <Section Title="Themes">
+          <p class="section-desc">A theme is a full terrain-paint recipe. The <b>map default</b> paints every cell no
+            scope claims; a box paints its members; a per-piece override wins over both.</p>
+
+          @foreach (var id in State.Themes.Keys)
+          {
+            <ListRow Compact Selected="@(id == Selected)" @key="id" OnClick="() => Select(id)">
+              <span class="list-label list-label--mono">@id</span>
+              @if (State.MapTheme == id) { <Badge Kind="neutral">map default</Badge> }
+            </ListRow>
+          }
+          @if (State.Themes.Count == 0)
+          {
+            <p class="section-desc">No themes yet — the whole map paints the built-in default.</p>
+          }
+
+          <Field Label="New theme">
+            <div class="panel-actions">
+              <input class="field-input" placeholder="name" @bind="NewName" @bind:event="oninput" />
+              <Button OnClick="AddTheme">Add</Button>
+            </div>
+          </Field>
+
+          <Field Label="Map default">
+            <select class="field-input" value="@State.MapTheme" @onchange="OnMapThemeChanged">
+              <option value="">(built-in default)</option>
+              @foreach (var id in State.Themes.Keys)
+              {
+                <option value="@id">@id</option>
+              }
+            </select>
+          </Field>
+        </Section>
+
+        @if (Selected is not null && State.Themes.ContainsKey(Selected))
+        {
+          <Section Title="@($"Edit “{Selected}”")">
+            <Field Label="Rename">
+              <div class="panel-actions">
+                <input class="field-input" placeholder="@Selected" @bind="RenameTo" />
+                <Button OnClick="RenameTheme">Rename</Button>
+                <Button Variant="danger" OnClick="() => DeleteTheme(Selected)">Delete</Button>
+              </div>
+            </Field>
+            <Field Label="Theme JSON" Error="@JsonError">
+              <textarea class="field-input theme-json" spellcheck="false" @bind="ThemeJsonText"></textarea>
+            </Field>
+            <div class="panel-actions">
+              <Button Variant="primary" OnClick="ApplyThemeJson">Apply</Button>
+            </div>
+          </Section>
+        }
+
+        <Section Title="Assign to boxes">
+          <p class="section-desc">A box paints all its member pieces — the collection layer, under per-piece overrides.</p>
+          @foreach (var box in State.Boxes)
+          {
+            <Field Label="@($"{box.Id} — {box.Kind}, {box.Members.Count} pcs")" @key="box.Id">
+              <select class="field-input" value="@State.BoxThemes.GetValueOrDefault(box.Id, "")"
+                      @onchange="e => AssignBox(box.Id, (string?)e.Value)">
+                <option value="">— none —</option>
+                @foreach (var id in State.Themes.Keys) { <option value="@id">@id</option> }
+              </select>
+            </Field>
+          }
+          @if (State.Boxes.Count == 0) { <p class="section-desc">No boxes drawn.</p> }
+        </Section>
+
+        <Section Title="Assign to pieces">
+          <p class="section-desc">A per-piece theme is the top layer — it wins over the piece's box and the map default.</p>
+          @foreach (var piece in State.Pieces)
+          {
+            <Field Label="@($"{piece.Id} ({piece.Role})")" @key="piece.Id">
+              <select class="field-input" value="@State.PieceThemes.GetValueOrDefault(piece.Id, "")"
+                      @onchange="e => AssignPiece(piece.Id, (string?)e.Value)">
+                <option value="">— none —</option>
+                @foreach (var id in State.Themes.Keys) { <option value="@id">@id</option> }
+              </select>
+            </Field>
+          }
+          @if (State.Pieces.Count == 0) { <p class="section-desc">No pieces drawn.</p> }
+        </Section>
+      }
+    </ContentColumn>
+  </Workspace>
+</div>

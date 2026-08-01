@@ -64,6 +64,23 @@ export function emptyDoc() {
   };
 }
 
+/** The built-in terrain-paint theme (TP10): the whole-map default when no theme is authored. Mirrors
+ *  TerrainTheme.Default's shipping look — a quartz rim, a team-tinted clay wall, a grass-over-dirt surface. A
+ *  new theme starts as a clone of this and the author edits its JSON. Kept in the client so the Theme rail can
+ *  seed and preview a theme without a round-trip. */
+export function defaultThemeJson() {
+  return {
+    bedrock: { relative: false, value: 1 },
+    closed: false,
+    wallOnTerrainFaces: true,
+    rim: { material: { kind: "solid", id: 155 }, depth: 1, enabled: true },
+    surface: { material: { kind: "layered", layers: [{ material: { kind: "solid", id: 2 }, thickness: 1 }, { material: { kind: "solid", id: 3 }, thickness: 2 }] }, depth: 3, enabled: true },
+    wall: { kind: "teamTint", blockId: 159, neutral: { kind: "solid", id: 159, data: 8 } },
+    wallEnabled: true,
+    fill: { kind: "solid", id: 1 },
+  };
+}
+
 /**
  * Normalise a parsed plan into a full document: fill defaults, guarantee every array/sub-array exists,
  * and drop unset optionals (so re-serialising mirrors the wire format's omit-when-null behaviour).
@@ -119,6 +136,19 @@ export function normalizeDoc(d) {
       return o;
     }),
   };
+  // Terrain-paint themes (TP10) — a registry of named themes, a map-default id, and scope assignments. Kept
+  // only when authored, so an unthemed plan omits all three and serialises byte-identically to before.
+  if (src.themes && Object.keys(src.themes).length) {
+    out.themes = {};
+    for (const [id, t] of Object.entries(src.themes)) out.themes[id] = JSON.parse(JSON.stringify(t));
+  }
+  if (src.mapTheme) out.mapTheme = src.mapTheme;
+  if (Array.isArray(src.themeScopes) && src.themeScopes.length) {
+    const scopes = src.themeScopes
+      .map(s => { const o = { theme: s.theme ?? "", pieces: Array.isArray(s.pieces) ? [...s.pieces] : [] }; if (s.box) o.box = s.box; return o; })
+      .filter(s => s.theme && (s.pieces.length || s.box));
+    if (scopes.length) out.themeScopes = scopes;
+  }
   // Optional tracing provenance — kept only when a source map is named, so untraced plans omit it entirely.
   if (src.reference?.map) {
     const r = src.reference;
