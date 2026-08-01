@@ -420,10 +420,12 @@ studio, G117/G118) is in `TODO.md`.
 - [ ] **G157 — terrain painting (walls, rims, plateaus).** The exported terrain is one flat block of
   stone; a final world pass should dress it — clay walls, quartz rims, grass interior — reading the
   per-column surface the terrain builder already carries. Model spec'd in
-  `docs/world-export/terrain-painting.md` (TP1–TP5): rim = the top-most block of an edge column, found
+  `docs/world-export/terrain-painting.md` (TP1–TP6): rim = the top-most block of an edge column, found
   over the 8 neighbours so a reentrant corner never gaps, with an opt-in `closed` bool for the full
   plateau outline; wall = the exposed riser between bedrock and rim; interior = the grass top. Paints
-  **stone only**, so bedrock at y=0 and the room-piece plateaus stay untouched by construction. Build as a
+  **stone only**, so bedrock at y=0 and every stamped structure stay untouched by construction — and TP6
+  reads those stamps as height-bearing so the rim/wall turn at them: the piece-relative room plateaus and
+  the interface-relative bedrock approach wall (ST4 seam barrier) alike. Build as a
   pure `TerrainPainter` over `SketchTerrain`, run last in `SketchWorldBuilder.Build`; materials are a
   preset at the `structures.md` §6.4 seam (the first slice of G34, team-coloured walls the first knob). The
   doc's case list is the fixture list. A visual prototype over two real seeds validated the detections.
