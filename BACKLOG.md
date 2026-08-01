@@ -406,6 +406,20 @@ by theme, **ids preserved** (never reuse one). Pull an idea back onto the board 
 focus; the full original task text is in this file's git history. The current focus (the generator in the
 studio, G117/G118) is in `TODO.md`.
 
+- [ ] **G161 — the dressing pass (G34's prop-stamps slice): flora, paths, boulders, trees.** The second
+  half of G34, carved off the way G157 carved the terrain slice — a pass over the realized world, last in
+  `SketchWorldBuilder.Build` after `TerrainPainter`, adding geometry where the painter only changed
+  materials. Designed in `docs/world-export/decoration.md` (rules `DR*`) and prototyped end-to-end in
+  `tools/decorate/prototype.html` (every figure emitted by the real algorithm). Four `DR*` slices, in
+  reuse-order: **DR-FL** a paint-aware flora overlay (`PatternNoise` density/species fields over `SurfaceTop`,
+  masked by the top block — the lightest, reuses the most); **DR-PA** a path tool (open lasso centerline +
+  radius → a `"path"` branch in `SketchRasterizer.RingOf`/`RasterShape`, swept-disc fill, worn/rough/cobble/
+  stepping-stone/taper gates); **DR-SC** a `DecorationStamper` for boulders (ellipsoid mask in a `BlockBox`
+  on `SurfaceYOver`, blue-noise scatter, plan protected-regions as exclusions); **DR-TR** trees (vanilla
+  species templates + a recursive grower, grove-clumped scatter) as a style on the same stamper. Naming: the
+  code family is **dressing** — "decorative" already means floating masses / non-objective wool here. Sits
+  beside G32-C (structures & elevation) and shares G142's (roughen) noise operators.
+
 - [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
   `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
   visible until measured: a grid rebuild whose memo was written for pan, and a `.NET` interop call per wheel
