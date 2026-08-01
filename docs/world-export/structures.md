@@ -71,9 +71,12 @@ spawn point inside the room, realized as the floor pad. Placement stays on the h
 the constraint moves from the export (the integer snap) to the authoring lattice, where it already
 lives; the marker is never freely placeable.
 
-- **WX3** *Parity picks the pad class.* A marker on a block **grid line** takes the **2×2** pad
-  straddling it — the only size for that parity. A marker on a **block centre** takes a **3×3**
-  pad when the room affords it (WX4), else **1×1**. Nothing larger than 3×3 exists.
+- **WX3** *Parity picks the pad class, and the pad is always square.* A marker on a block
+  **grid line** takes the **2×2** pad straddling it — the only size for that parity. A marker on a
+  **block centre** takes a **3×3** pad when the room affords it (WX4), else **1×1** — the degrade
+  applies to both axes together, so a 1×3 never exists. Nothing larger than 3×3 exists. Parity must
+  match on both axes: a mixed-parity marker (a grid line in x, a block centre in z) has no square
+  pad and is **refused at validation**, pointing at the two legal lattice choices.
 
 - **WX4** *Clearance and minimal shift.* The pad keeps **at least one block of clear floor to every
   wall**. A marker too close to a wall (the sharp case: cell 4, marker at the centre of a corner
@@ -91,10 +94,21 @@ lives; the marker is never freely placeable.
 
 ## 4. Entries
 
-- **WX6** *Doors sit on the entry seams.* The wool cage's doors are cut where the terrain↔room
-  **land seams** meet the shell — the same interfaces the ST1 redstone line is derived from — not
-  centred one per wall: a long room with four centred doors would open two of them into the bedrock
-  ring. The spawn cube keeps its single yaw-derived door (the yaw already fans per orbit image).
+- **WX6** *Doors sit on the entry interfaces, and a build zone is one.* The wool cage's doors are
+  cut where the room is actually entered: a terrain↔room **land seam**, or an **abutting build
+  zone** — players bridge in through the build region, so that interface carries a door and the ST1
+  entrance redstone line exactly as a land seam does. Doors are never centred one per wall: a long
+  room with four centred doors would open two of them into the bedrock ring. A room with **neither**
+  interface is genuinely unreachable and is refused at validation. The spawn cube keeps its single
+  yaw-derived door (the yaw already fans per orbit image).
+
+- **WX7** *Door width follows the door wall.* An **odd** interior wall centres an odd **3-wide**
+  door — never 1-wide, and wider odd doors (5) are a later decision, capped at 3 for now. An
+  **even** wall takes the kind's canonical width (wool cage 2, spawn cube 4), narrowing to **2**
+  when the interior is 4 or less across. The invariant behind the numbers: the door is always at
+  least one block narrower than the interior on each side (width ≤ interior − 2), so the door-wall
+  corner cells — where a spawn cube seats monuments — are never exposed to the outside. Door
+  *height* is untouched; room height stays out of G31's scope entirely.
 
 ## 5. The code shape — frame, shell, furnishers, presets
 
@@ -128,7 +142,8 @@ anchor-based on purpose, a point structure rather than a room.
 - `docs/contracts/sketch-world-export.md` — §2 rewritten around the parameterized shell, §5 around
   WX3–WX5 (the integer-only constraint falls).
 - `docs/generator/rules.md` — ST1/ST2 amended via the correction protocol: the region *sizes the
-  stamp* (WX1), it no longer merely surrounds a fixed one.
+  stamp* (WX1), it no longer merely surrounds a fixed one, and ST1's entrance line gains the
+  build-zone interface (WX6).
 - `PlanValidator` — the WX2 minimum-size rule and the WX4 pad-fits check, beside the existing
   `CheckInside`.
 - Tests — `CubeStamperTests`, `SpawnCubeStamperTests`, `WoolCageChestsTests`, the world-builder and
