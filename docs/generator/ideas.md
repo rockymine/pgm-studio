@@ -152,8 +152,8 @@ landed, the rest is the idea.
 - **G32-D** — gates, goldens, emit: freeze fixed-RNG goldens *after* the churn settles. (The author has
   deprioritized golden stability — layouts are expected to keep evolving — so this is a
   release-discipline idea, not a near-term gate.)
-- **G31** — scaled structure presets (stamps must fit tiny and huge maps).
-- **G34** — theming & styling rules (material palettes + prop stamps).
+- **G34** — theming & styling rules (material palettes + prop stamps); the intended home is
+  `docs/world-export/` (G31, now on the board, defines the preset seam it attaches to).
 - **G29 / G24** — climb profiling on lane chains; junction-region derivation + hubs overlay.
 - **G33** — traffic ground truth from pgmlogger parquet (flow priors to score candidates).
 - **G82 / G83** — entry widening for Z along its bar interface; wool-approach budget law (per-slot caps /
