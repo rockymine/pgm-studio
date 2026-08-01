@@ -424,11 +424,12 @@ studio, G117/G118) is in `TODO.md`.
   toggles, and the three pattern specs (`VoronoiMaterial`/`NoiseMaterial` area, `WallRunMaterial` over the
   void-facing perimeter arc from `TerrainProfile`'s Moore walk) plus the `TerrainThemeJson` tagged-union. The
   four-stage architecture (`docs/world-export/terrain-painting.md` §5) is in place, so the one remaining piece
-  lands on one seam: **scoped theming (TP10)** — full-map today via the map-wide `Theme`; per-piece/collection
-  later, resolved at interfaces (the §5 theme-resolution lookup — piece override → collection → map default).
-  It needs a design pass first (where the scope attaches on a plan piece, and threading it to the painter), and
-  it now has a complete theme (the JSON) to attach. Authoring UI for the shipped knobs (a Finish phase over the
-  theme JSON) is also still open. **Team tint is built**
+  lands on one seam: **scoped theming (TP10)** — **designed** (terrain-painting.md §6 TP10; whole-theme
+  winner-takes-all, map default › collection › piece, plan-authored + baked at `/plan/compile`, mirroring the
+  `IslandTeams`/`TeamTerritory` pattern). The build: three intent fields (theme-JSON registry, plan-baked
+  `pieceId → themeId`, piece footprints), a `PlanCompiler` bake (priority-resolve + expand boxes/collections to
+  piece ids), a `TerrainThemeScope.ThemeAt` resolver + a painter per-cell `themeAt` overload, and
+  `SketchWorldBuilder` wiring; then a Finish-phase UI writing the same fields. **Team tint is built**
   (`TeamTintedMaterial`, a general material on any bucket, block
   0–15 damage scale, default on the wall) with ownership through **`TeamTerritory`** — one shared decomposition
   on the canonical `IslandDetector` islands (the same ids `islands_json`/configure use), owner = a stored

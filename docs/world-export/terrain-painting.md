@@ -221,10 +221,11 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
 
 2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode and `closed`/wall-face
    toggles, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and
-   fill — each bucket's depth living with its bucket, not as a loose scalar. Today one theme applies map-wide; scoping (TP10) makes it a per-cell lookup — piece override →
-   collection → map default, merged field by field so an override can change bedrock alone and inherit the
-   rest. Because the Profile already carries piece identity and interfaces, this layer adds only the lookup, no
-   new geometry.
+   fill — each bucket's depth living with its bucket, not as a loose scalar. Today one theme applies map-wide;
+   scoping (TP10) makes it a per-cell lookup that picks the **whole** theme of the highest-priority scope over a
+   cell — piece › collection › map default, winner-takes-all, not a field merge. The lookup reads the plan-baked
+   piece footprints in the intent (a cell → piece → theme resolver, the `TeamTerritory` shape), so it adds only
+   the lookup, no new geometry.
 
 3. **Bands — the resolver (pure depth math).** Given `(Profile column, resolved Theme)`, compute the vertical
    band assignment: which y-range is bedrock, rim, wall, surface, fill. Every depth and toggle rule lives here
@@ -294,18 +295,34 @@ built: the theming *scope* (TP10). The material *patterns* (TP13) are built and 
   one rim block, one-or-more wall blocks on the taller side (a difference of 1 is covered by the rim alone, no
   wall). Off, only void-facing faces paint and internal risers stay fill/stone.
 
-- **TP10** *(planned)* *Theming is scoped — full map now, per-piece/per-collection later — and always resolved at
-  interfaces.* Today one theme (bucket materials + the TP7/TP8/TP9 knobs) applies map-wide. The plan is to
-  let a theme also attach to an individual piece or a collection, so bedrock can be terrain-relative in one
-  area and a fixed depth in another. This is tractable because rim, wall and surface are already defined by
-  a piece's **interfaces** — its edges against void, other pieces, and structures — exactly what the
-  map-wide model reads per cell. Per-piece theming is the same resolution with a scoped lookup: for each
-  cell/interface, which theme governs (piece override → collection → map default). A piece with no
-  qualifying interface — sitting dead-centre among same-height neighbours of the same theme — simply has no
-  rim or wall to paint; it falls out of the neighbour test with no special case, the way an interior column
-  does now. Architecturally this is the §5 theme-resolution stage: the map-wide `Theme` becomes a
-  scope-resolved lookup, and the interface-relative machinery TP6 already needs for the approach wall is the
-  shape to generalize — resolve by interface, never by piece interior.
+- **TP10** *(planned — designed, see below)* *Theming is scoped: a map default, overridden per piece or per
+  collection.* Today one theme applies map-wide. The design keeps that as the **map default** — the lowest
+  priority layer, covering every cell no narrower scope claims — and lets a theme also attach to a **piece** or
+  a **collection** (a box's members, or a drawn set), the higher layers. A cell resolves to exactly one theme,
+  **whole**, by the highest-priority scope covering it: **piece assignment › collection › map default**. A
+  scope supplies a complete theme, not a field patch — every theme field already has a default, so "one theme
+  applied" is the whole thing, and lower layers are simply ignored for that cell.
+
+  The resolution mirrors the team-ownership decomposition (`TeamTerritory` / `IslandTeams`): the semantic
+  assignment is stored in the intent, the geometry is resolved at export. The intent carries three plan-baked
+  fields — a **theme registry** (`themeId → theme JSON`, opaque to the intent's project, with `default` the
+  map theme), a flat **`pieceId → themeId`** map (the priority stack already resolved and any box/collection
+  already expanded to its member pieces at compile — so nothing downstream re-decides priority), and the
+  **piece footprints** (the fanned world rects, the one plan fact the painter needs to map a cell to its
+  piece). At export a scope resolver builds cell → piece → theme (else the map default) and hands the painter a
+  per-cell `themeAt(x, z)` instead of one theme; because the band resolver and materials already run per column
+  against one `ColumnProfile` and the profile is theme-agnostic, the per-cell lookup needs no new geometry.
+
+  "Resolved at interfaces" then falls out with no special case: a piece's rim and wall appear only where **its**
+  cells are edges (the profile already computes that per cell), a piece dead-centre among same-height
+  neighbours has no edge and so no rim or wall the way an interior column does now, and a seam between two
+  differently-themed pieces is borne by the **taller** side's edge cell — so that cell's piece, and its theme,
+  paint the seam, unambiguously. Boxes stay pure authoring annotation: a box is *selected* by id but expanded
+  to piece ids at authoring/compile time, so the export never reads a box and "drawing a box never changes what
+  a plan compiles to" holds. Tiebreaks are deterministic — a cell in overlapping piece rects takes the
+  smallest (most specific) piece; a piece in two collections resolves by collection priority, and an explicit
+  piece assignment always beats a collection. First authored on the plan and baked at `/plan/compile` (the
+  `IslandTeams` path); a Finish-phase UI writing the same fields is the follow-up.
 
 - **TP11** *(built)* *The surface is a layered stack with its own depth.* Not one block: an ordered run of
   layers (`LayeredMaterial`) claimed from the top of an interior column — the standard being **one grass over
@@ -350,7 +367,7 @@ built: the theming *scope* (TP10). The material *patterns* (TP13) are built and 
 | **TP7** | Rim depth is configurable (`Rim.Depth`, default 1); the wall takes the height below it, and the rim never overrides the bedrock floor. |
 | **TP8** | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
 | **TP9** | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |
-| **TP10** *(planned)* | Theming is scoped (full map, or per piece/collection) and resolved at interfaces; a piece with no qualifying interface has no rim/wall. |
+| **TP10** *(planned — designed)* | Theming is scoped: map default › collection › piece, winner-takes-all (whole theme). A registry + a plan-baked `pieceId → themeId` + piece footprints in the intent; a per-cell `themeAt` resolver (the `TeamTerritory` shape) at export. Resolves at interfaces with no special case; boxes stay annotation (expanded to piece ids). |
 | **TP11** | The surface is a layered stack to a configured depth (`Surface.Depth`; grass over two dirt by default), clamped by the bedrock floor. |
 | **TP12** | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
 | **TP13** | Buckets take patterns, not just a block: `VoronoiMaterial` / `NoiseMaterial` (area, N-material palette/ramp) for any bucket, `WallRunMaterial` (N stripes wrapping the void-facing perimeter arc) for walls; deterministic, and each entry nests any material. |
