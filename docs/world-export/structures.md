@@ -126,13 +126,22 @@ structure, and structures never fuse.
   plans go through the same resolver.
 
 - **WX9** *Placeability is an attribute, not an exception.* Every structure marker resolves to
-  **placeable or not** (`IronPlacement.Placeable`). An unplaceable marker stamps **nothing** — the
+  **placeable or not** (`IronResolution.Placeable`). An unplaceable marker stamps **nothing** — the
   room takes its full WX1 footprint — but the marker itself stays on the board: validation flags it
   with the clearance requirement (the WX8 lint), and the structure preview draws **only placeable**
   structures, so the iso view never shows a cube the export refuses to place. This is the general
   contract for structure-vs-structure conflicts; the objective-separation rules (a core or
   destroyable against monuments, or inside a spawn piece — where spawn protection would make an
   enemy goal unbreakable) take the same attribute when they land (B37).
+
+  The stampers themselves stay heterogeneous on purpose — their inputs are irreducibly different (a
+  wall owns a *seam between two pieces*, a room a *piece + marker + entry interfaces*, an entrance
+  line a *piece and its neighbours*, an objective a *marker + style over terrain*), so no shared
+  base type sits over them. What every family shares is the **output**: an axis-aligned block volume
+  on a surface-derived floor, placeable or not. The B37 generalization is therefore a common
+  **resolved-stamp record** (kind · footprint · placeable · source marker) that each family's own
+  resolver produces — the currency pairwise separation rules and the preview read —
+  never a common stamper interface. `IronResolution` is that record's first instance.
 
 ## 6. The code shape — frame, shell, furnishers, presets
 

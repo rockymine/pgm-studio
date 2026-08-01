@@ -174,15 +174,20 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
   neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
   91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
-- [ ] **B37 — Objective separation via WX9 placeability.** The stamped-structure placeability attribute
-  (`docs/world-export/structures.md` WX9, shipped for spawn iron) generalizes to the objectives: a **core
-  or destroyable too close to a wool monument** merges structures that must read apart, and one **inside a
-  spawn piece** is worse than ugly — the spawn's protection region makes an enemy goal unbreakable, so the
-  map is silently unwinnable. Resolve each objective marker to placeable-or-not against the room frames and
-  the other structures (minimum separations to be decided from the corpus), stamp only placeable ones,
-  refuse/flag the rest with the same marker-stays-visible discipline. Editor half: surface unplaceable
-  markers on the plan canvas (the highlight ring the validation tab already uses for pieces), not only in
-  the findings list.
+- [ ] **B37 — Objective separation via WX9 placeability: unify the resolutions, not the stampers.** The
+  stamped-structure placeability attribute (`docs/world-export/structures.md` WX9, shipped for spawn iron)
+  generalizes to the objectives: a **core or destroyable too close to a wool monument** merges structures
+  that must read apart, and one **inside a spawn piece** is worse than ugly — the spawn's protection region
+  makes an enemy goal unbreakable, so the map is silently unwinnable. The intended shape: the stampers stay
+  heterogeneous (their inputs are irreducibly different — a wall owns a seam, a room a piece + marker +
+  entries, an objective a marker + style), but every family's resolver produces one **resolved-stamp
+  record** — kind, footprint box, `Placeable`, source marker — the uniform currency the pairwise separation
+  rules run over (minimum distances to be decided from the corpus). `IronResolution` is the first instance;
+  the preview's `StructureBox` is the drawing-side proof of the shape and would consume the record instead
+  of assembling its own (placeability then reaches the iso view for free; mind B33 — the drawing frame
+  stays a separate type). Stamp only placeable structures, flag the rest with the same
+  marker-stays-visible discipline. Editor half: surface unplaceable markers on the plan canvas (the
+  highlight ring the validation tab already uses for pieces), not only in the findings list.
 
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
