@@ -160,16 +160,67 @@ Each scenario the prototype separated is a fixture waiting to be written; togeth
 - **Bedrock floor and full room piece.** The negative control: y=0 and every stamped structure stay
   exactly as the terrain builder and stampers left them, because only stone was ever eligible.
 
-## 5. Where it attaches
+## 5. Architecture — a shared core, modular themes
 
-A pure pass — `TerrainPainter` over `SketchTerrain`, called last in `SketchWorldBuilder.Build` once the
-stampers have run — reading the world plus `SketchTerrain.SurfaceTop`, rewriting stone in place. Running
-after the stampers is what makes TP6 free: the room plateaus, cubes and approach walls are already in the
-world as non-stone columns, so "consult the stamps" is just "read the finished world's column tops," and
-the stone-only rule does the exclusion. Pure over `(world, surface, options)` the way the stampers are pure
-over their frames, so it unit-tests directly against the fixtures above with no DB and no IO. The `closed`
-bool and the material preset ride a small paint-options record; the preset resolves masks → block ids at
-the §3 seam.
+The whole point of the design is a **separation**: a geometric core that knows nothing about materials, and a
+theme layer that knows nothing about geometry, meeting at one data type. That is what lets the system be highly
+flexible (any depth knob, any pattern, any scope) without becoming tangled — each kind of change lands on
+exactly one seam, and the core never moves.
+
+**The runtime seam.** `TerrainPainter` runs **last** in `SketchWorldBuilder.Build`, after the stampers, and
+rewrites **only stone** — so bedrock and every structure are excluded by construction and a re-run is
+idempotent. It reads inputs already in hand: the finished world (column heights + materials), the per-cell
+surface grid (`SketchTerrain.SurfaceTop`), and — only for scoped theming — the piece map and contact graph the
+compiler already built. Running after the stampers is what makes TP6 free: the rooms, cubes and approach walls
+are already non-stone columns, so "consult the stamps" is just "read the finished world."
+
+**The four stages.** The pass is one pure function assembled from four separable stages, in pipeline order:
+
+1. **Profile — the shared core (theme-agnostic).** Classify every stone column into neutral geometric facts:
+   its `surfaceTop`, its plateau, whether each face drops (to void, to lower terrain, or is sealed by a
+   structure — TP6), its open- and closed-rim membership, its exposed-riser depth, and — for wall patterns — a
+   parameter running along the wall face around the map. This is the prototype's proven logic. Nothing in it
+   depends on a theme, so the same `TerrainProfile` serves every theme, scope and pattern. **This is the shared
+   core**, and it is the only stage that touches geometry.
+
+2. **Theme resolution — the scope layer.** A `Theme` is a data row: the depth knobs (bedrock mode, `rimDepth`,
+   the surface layer stack, the wall-face toggle, the bucket toggles, `closed`) plus one `MaterialSpec` per
+   bucket. Today one theme applies map-wide; scoping (TP10) makes it a per-cell lookup — piece override →
+   collection → map default, merged field by field so an override can change bedrock alone and inherit the
+   rest. Because the Profile already carries piece identity and interfaces, this layer adds only the lookup, no
+   new geometry.
+
+3. **Bands — the resolver (pure depth math).** Given `(Profile column, resolved Theme)`, compute the vertical
+   band assignment: which y-range is bedrock, rim, wall, surface, fill. Every depth and toggle rule lives here
+   and nowhere else (TP7/TP8/TP9/TP11/TP12) — bedrock claims the bottom, rim or surface the top, wall the
+   exposed riser, fill the remainder; a disabled bucket reroutes down its fallback chain; each band takes only
+   what the band above left. Output: an ordered list of `(yRange, bucket)` per column. One pure function,
+   unit-tested per column against synthetic profiles.
+
+4. **Materials — the painter (the pattern seam).** For each band, the bucket's `MaterialSpec` resolves the
+   actual block per `(x, y, z)` and writes it. The spec is the plug-in point: `Solid(id)`, `LayerStack`
+   (surface's grass-over-dirt, a wall's bands), `Area` (voronoi/fractal/cellular over the footprint),
+   `WallRun` (stripes along the wall-face parameter, wrapping the map), `TeamTinted` — composable, and
+   deterministic (seeded from map/piece id, never RNG, the same discipline as the rest of the generator).
+   Adding a pattern (TP13) is a new `MaterialSpec` and nothing else.
+
+**Why the split holds.** Each kind of change touches exactly one seam:
+
+| To … | touch only … |
+|---|---|
+| add a depth/toggle knob (TP7–TP9, TP11–TP12) | the `Theme` record + the band resolver |
+| add a material pattern (TP13) | a new `MaterialSpec` |
+| scope a theme to a piece/collection (TP10) | the theme-resolution lookup |
+| change the geometry (a new edge kind, a new stamp to consult, TP6) | the Profile core |
+
+The core never learns about materials; the materials never recompute geometry; the resolver is the only place
+depths interact. The bucket vocabulary — **bedrock · rim · wall · surface · fill** — is the shared contract
+every stage speaks. And the interface-relative principle proven for the approach wall (TP6) is the same one
+that lets a per-piece theme resolve at a seam rather than over a piece interior: a cell is rim/wall by its
+**geometry** and themed by its **owning piece**, so a boundary between two same-height pieces has no rim to
+contest, whatever their themes differ on. Every stage is pure over explicit inputs, so each tests directly —
+the Profile against the §4 fixtures, the resolver against synthetic columns, the specs on their own — with no
+DB and no IO, exactly as the stampers do.
 
 ## 6. Planned extensions (noted, not yet prototyped)
 
@@ -215,9 +266,9 @@ orthogonal to the depth stack: the theming *scope* (TP10) and the material *patt
   cell/interface, which theme governs (piece override → collection → map default). A piece with no
   qualifying interface — sitting dead-centre among same-height neighbours of the same theme — simply has no
   rim or wall to paint; it falls out of the neighbour test with no special case, the way an interior column
-  does now. Architecturally the global paint-options record of §5 becomes that scope-resolved lookup, and
-  the interface-relative machinery TP6 already needs for the approach wall is the shape to generalize —
-  resolve by interface, never by piece interior.
+  does now. Architecturally this is the §5 theme-resolution stage: the map-wide `Theme` becomes a
+  scope-resolved lookup, and the interface-relative machinery TP6 already needs for the approach wall is the
+  shape to generalize — resolve by interface, never by piece interior.
 
 - **TP11** *The surface is a layered stack with its own depth.* Not one block: an ordered run of layers
   claimed from the top of an interior column — the standard being **one grass over two dirt**. It has a
