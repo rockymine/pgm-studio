@@ -429,8 +429,9 @@ studio, G117/G118) is in `TODO.md`.
   it); **scoped theming** (full-map today via the map-wide `Theme`; per-piece/collection later, resolved at
   interfaces — the theme-resolution lookup stage); and, last, **patterns** per bucket (voronoi/fractal area
   fills for surface/fill, layered or map-wrapping vertical runs for walls) as new `TerrainMaterial`
-  implementations. Team-coloured walls (island→team) is the first real material knob beyond the neutral
-  defaults.
+  implementations. **Team tint is built** (`TeamTintedMaterial`, a general material on any bucket, wool 0–15
+  damage scale, default on the wall) with a **nearest-spawn** cell→team map; refining that to island-exact
+  ownership is the open follow-up, and touches only `SketchWorldBuilder`'s resolver, not the painter.
 
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**

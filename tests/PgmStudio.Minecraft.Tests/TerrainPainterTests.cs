@@ -151,11 +151,65 @@ public sealed class TerrainPainterTests
         await Assert.That(w.GetBlock(2, 8, 2)).IsEqualTo((Blocks.Grass, 0));
         await Assert.That(w.GetBlock(2, 4, 2)).IsEqualTo((Blocks.Stone, 0));
         await Assert.That(w.GetBlock(2, 0, 2)).IsEqualTo((Blocks.Bedrock, 0));
-        // edge column (0,2): quartz rim on top, clay wall below, bedrock floor.
+        // edge column (0,2): quartz rim on top, clay wall below (neutral grey with no team map), bedrock floor.
         await Assert.That(w.GetBlock(0, 8, 2)).IsEqualTo((Blocks.QuartzBlock, 0));
-        await Assert.That(w.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 0));
+        await Assert.That(w.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 8));
         await Assert.That(w.GetBlock(0, 0, 2)).IsEqualTo((Blocks.Bedrock, 0));
     }
+
+    // ── team tint (a material, on any bucket) ────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Team_tint_takes_the_team_damage_and_falls_back_to_neutral()
+    {
+        var tint = new TeamTintedMaterial(Blocks.StainedClay, new SolidMaterial(Blocks.StainedClay, 8));
+        await Assert.That(tint.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Wall, 0, TeamData: 14)))
+            .IsEqualTo((Blocks.StainedClay, 14));
+        await Assert.That(tint.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Wall, 0, TeamData: -1)))
+            .IsEqualTo((Blocks.StainedClay, 8));
+    }
+
+    [Test]
+    public async Task Team_tint_nested_in_a_layer_stack_keeps_the_cell_team()
+    {
+        // a team-tinted layer inside a stack still reads the cell's team from the shared context.
+        var layered = new LayeredMaterial([(new SolidMaterial(Blocks.Grass), 1), (new TeamTintedMaterial(Blocks.Wool, new SolidMaterial(Blocks.Dirt)), 2)]);
+        await Assert.That(layered.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Surface, 0, TeamData: 3))).IsEqualTo((Blocks.Grass, 0));
+        await Assert.That(layered.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Surface, 1, TeamData: 3))).IsEqualTo((Blocks.Wool, 3));
+    }
+
+    [Test]
+    public async Task Default_wall_paints_the_team_colour_and_neutral_grey_off_team()
+    {
+        var columns = new List<(int, int, int, int)>();
+        for (var x = 0; x < 5; x++)
+        for (var z = 0; z < 5; z++)
+            columns.Add((x, z, 1, 9));
+
+        var red = Build(columns);
+        TerrainPainter.Paint(red.World, red.SurfaceTop, TerrainTheme.Default, teamDamageAt: (_, _) => 14);
+        await Assert.That(red.World.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 14));   // wall = red clay
+
+        var neutral = Build(columns);
+        TerrainPainter.Paint(neutral.World, neutral.SurfaceTop, TerrainTheme.Default);           // no team map
+        await Assert.That(neutral.World.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 8));  // wall = neutral grey
+    }
+
+    [Test]
+    public async Task Team_tint_applies_to_any_bucket_not_just_the_wall()
+    {
+        // a theme whose rim is team-tinted wool proves the tint is a general material, not wall-only.
+        var theme = TerrainTheme.Default with { Rim = new TeamTintedMaterial(Blocks.Wool, new SolidMaterial(Blocks.QuartzBlock)) };
+        var columns = new List<(int, int, int, int)>();
+        for (var x = 0; x < 5; x++)
+        for (var z = 0; z < 5; z++)
+            columns.Add((x, z, 1, 9));
+        var built = Build(columns);
+        TerrainPainter.Paint(built.World, built.SurfaceTop, theme, teamDamageAt: (_, _) => 5);
+        await Assert.That(built.World.GetBlock(0, 8, 2)).IsEqualTo((Blocks.Wool, 5));   // rim = team wool
+    }
+
+    private static SketchTerrain Build(List<(int, int, int, int)> columns) => SketchTerrainBuilder.Build(columns);
 
     [Test]
     public async Task The_painter_never_touches_a_stamped_structure_column()

@@ -14,19 +14,26 @@ public readonly record struct TerrainBand(int LoY, int HiY, TerrainBucket Bucket
 public static class TerrainPainter
 {
     /// <summary>Paint the whole footprint with one map-wide theme. Runs last in the world build, after every
-    /// stamp, so the profile reads the finished world.</summary>
-    public static void Paint(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, TerrainTheme theme)
+    /// stamp, so the profile reads the finished world. <paramref name="teamDamageAt"/> gives a cell's owning
+    /// team as a 0–15 wool/clay damage nibble (-1 = neutral) — what a team-tinted material reads, on any
+    /// bucket; the default is neutral everywhere.</summary>
+    public static void Paint(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, TerrainTheme theme,
+        Func<int, int, int>? teamDamageAt = null)
     {
+        var team = teamDamageAt ?? ((_, _) => -1);
         var profile = new TerrainProfile(world, surfaceTop);
         foreach (var (cell, column) in profile.PaintableColumns())
-        foreach (var band in Resolve(column, theme))
         {
-            var material = band.Bucket == TerrainBucket.Bedrock ? Bedrock : theme.MaterialFor(band.Bucket);
-            for (var y = band.LoY; y < band.HiY; y++)
+            var teamData = team(cell.X, cell.Z);
+            foreach (var band in Resolve(column, theme))
             {
-                if (world.GetBlock(cell.X, y, cell.Z).Id != Blocks.Stone) continue;   // stone-only invariant
-                var (id, data) = material.Resolve(new BucketContext(cell.X, y, cell.Z, band.Bucket, band.HiY - 1 - y));
-                if (id != Blocks.Stone || data != 0) world.SetBlock(cell.X, y, cell.Z, id, data);
+                var material = band.Bucket == TerrainBucket.Bedrock ? Bedrock : theme.MaterialFor(band.Bucket);
+                for (var y = band.LoY; y < band.HiY; y++)
+                {
+                    if (world.GetBlock(cell.X, y, cell.Z).Id != Blocks.Stone) continue;   // stone-only invariant
+                    var (id, data) = material.Resolve(new BucketContext(cell.X, y, cell.Z, band.Bucket, band.HiY - 1 - y, teamData));
+                    if (id != Blocks.Stone || data != 0) world.SetBlock(cell.X, y, cell.Z, id, data);
+                }
             }
         }
     }

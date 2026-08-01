@@ -4,10 +4,15 @@ namespace PgmStudio.Minecraft;
 /// §3). <see cref="Fill"/> is the required base — it claims whatever no other bucket took.</summary>
 public enum TerrainBucket { Bedrock, Fill, Wall, Surface, Rim }
 
-/// <summary>Where a block sits for the material resolver: its world coordinate, its bucket, and its depth
-/// below the top of that bucket's band (0 = the band's top course) — the parameter a layered material
-/// (grass over dirt) reads. A pattern (TP13) will read the fuller context; this is the base seam.</summary>
-public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop);
+/// <summary>Where a block sits for the material resolver: its world coordinate, its bucket, its depth below
+/// the top of that bucket's band (0 = the band's top course) — the parameter a layered material (grass over
+/// dirt) reads — and the <see cref="TeamData"/> of the team that owns the cell (a 0–15 wool/clay damage
+/// nibble, -1 = neutral). A pattern (TP13) will read the fuller context; this is the base seam.</summary>
+public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1)
+{
+    /// <summary>Whether the cell belongs to a team (a colour is available for a team-tinted material).</summary>
+    public bool HasTeam => TeamData >= 0;
+}
 
 /// <summary>
 /// A bucket's material — the block(s) its cells resolve to (docs/world-export/terrain-painting.md §3). Today
@@ -40,6 +45,17 @@ public sealed record LayeredMaterial(IReadOnlyList<(TerrainMaterial Material, in
         }
         return Layers.Count > 0 ? Layers[^1].Material.Resolve(in ctx) : (Blocks.Stone, 0);
     }
+}
+
+/// <summary>The bucket's block tinted by the team that owns the cell — the same 0–15 damage scale wool uses,
+/// so a clay / wool / stained-glass block takes the team's colour (docs/world-export/terrain-painting.md §3).
+/// A cell with no team (a neutral mid) falls back to <paramref name="Neutral"/>. Usable on <b>any</b> bucket,
+/// and composable inside a <see cref="LayeredMaterial"/> or a pattern (the tint reads from the shared
+/// <see cref="BucketContext"/>, so it is not wall-specific).</summary>
+public sealed record TeamTintedMaterial(int BlockId, TerrainMaterial Neutral) : TerrainMaterial
+{
+    public override (int Id, int Data) Resolve(in BucketContext ctx)
+        => ctx.HasTeam ? (BlockId, ctx.TeamData) : Neutral.Resolve(in ctx);
 }
 
 /// <summary>How thick the bedrock floor is (TP8): a fixed block count, or the remainder under a fixed painted
@@ -87,7 +103,8 @@ public sealed record TerrainTheme
 
     // ── materials ──
     public TerrainMaterial Rim { get; init; } = new SolidMaterial(Blocks.QuartzBlock);
-    public TerrainMaterial Wall { get; init; } = new SolidMaterial(Blocks.StainedClay);   // data 0 = white; team tint later
+    // team-tinted clay, falling back to light-grey clay on a neutral cell (team-tint works on any bucket).
+    public TerrainMaterial Wall { get; init; } = new TeamTintedMaterial(Blocks.StainedClay, new SolidMaterial(Blocks.StainedClay, 8));
     public TerrainMaterial Surface { get; init; } = new SolidMaterial(Blocks.Grass);
     public TerrainMaterial Fill { get; init; } = new SolidMaterial(Blocks.Stone);
 

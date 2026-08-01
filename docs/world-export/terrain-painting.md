@@ -120,15 +120,28 @@ the blocks each bucket resolves to are a **preset** — the same style-as-data s
 - **fill** — the interior body below the surface. The **required** bucket: it claims whatever no other
   enabled bucket took, so a theme is never partial (TP12).
 
-A bucket's material is a **spec**, not necessarily a single id. Three forms, in build order: a single block
-today; a **vertical layer stack** (surface's grass-over-dirt, or a wall's banded riser — a run of materials
-each with a depth); and, last, a **pattern** that varies the block across the bucket's cells (TP13). The
-quartz / clay / grass / stone in this document and the prototype are **examples**, chosen only to tell the
-buckets apart on sight — none is canonical. The first intended real knob is the **team colour on the
-wall**: an island's stained-clay hue, chosen per plateau by the team that owns the island (the prototype
-tints by side of the mirror centre as a stand-in; the real assignment reads island→team from the intent).
-What is *not* a preset choice is the domain invariant — bedrock and every stamped structure stay untouched
-regardless of theme (TP6).
+A bucket's material is a **spec** (`TerrainMaterial`), not necessarily a single id. Its forms, in build
+order: a single block (`SolidMaterial`) today; a **vertical layer stack** (`LayeredMaterial` — surface's
+grass-over-dirt, or a wall's banded riser, a run of materials each with a depth); the **team tint**
+(`TeamTintedMaterial`, below); and, last, a **pattern** that varies the block across the bucket's cells
+(TP13). The quartz / clay / grass / stone in this document and the prototype are **examples**, chosen only to
+tell the buckets apart on sight — none is canonical.
+
+**Team tint (built).** `TeamTintedMaterial(block, neutral)` stamps a colour-by-damage block (clay, wool,
+stained glass) with the owning team's colour — **the same 0–15 damage scale wool uses** (`WoolColors`), so a
+team's clay wall matches its wools — falling back to `neutral` on a cell with no team. It is a **material,
+not a wall feature**: it works on any bucket (a team-tinted rim or surface is just a theme that puts it
+there) and composes inside a `LayeredMaterial` or a pattern, because the tint reads the owning team from the
+shared `BucketContext`. The painter fills that context per cell from a `teamDamageAt(x, z)` map; today
+`SketchWorldBuilder` derives it **nearest-spawn** (the closest team spawn owns the cell — the team-island
+split), and island-exact ownership can refine it later without touching the painter, which only reads the
+nibble. The default theme tints the wall (neutral fallback: light-grey clay); everything else stays neutral
+until a theme says otherwise. What is *not* a theme choice is the domain invariant — bedrock and every
+stamped structure stay untouched regardless (TP6).
+
+The eventual theme file (a JSON extension) is exactly this record serialized: a `TerrainMaterial` per bucket
+— any of which may be a team tint or a pattern that embeds one — plus the depth knobs, resolved per scope
+(TP10).
 
 ## 4. The cases — and the tests they drive
 

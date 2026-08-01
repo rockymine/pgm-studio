@@ -121,9 +121,10 @@ public static class SketchWorldBuilder
         var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables);
         var resolvedCores = StampCores(world, terrain.SurfaceTop, intent.Cores);
 
-        // ── Terrain finish (G157) — dress the raw stone: clay walls, quartz rims, grass surface. Runs last so
-        // it reads the finished world; touches only stone, so bedrock and every stamp above stay untouched.
-        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainTheme.Default);
+        // ── Terrain finish (G157) — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
+        // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
+        // untouched. The team tint is a material any bucket can use; the cell→team map is nearest-spawn.
+        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainTheme.Default, TeamDamageResolver(intent));
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
@@ -343,4 +344,31 @@ public static class SketchWorldBuilder
     /// resolves chat-colour team palettes (gold, aqua, dark aqua, …) to their nearest wool.</summary>
     private static int WoolDataForTeam(string teamId, IReadOnlyList<TeamDef> teams)
         => WoolColors.WoolDamage(teams.FirstOrDefault(t => t.Id == teamId)?.Color ?? "white");
+
+    /// <summary>Assigns each terrain cell its owning team's colour (a 0–15 wool/clay damage nibble) for the
+    /// terrain painter's team tint — the nearest spawn's team wins the cell, matching the team-island split.
+    /// -1 (neutral) when the map has no teamed spawns. A first cut: island-exact ownership can refine it
+    /// later without touching the painter, which only reads the nibble.</summary>
+    private static Func<int, int, int> TeamDamageResolver(MapIntent intent)
+    {
+        var damageByTeam = (intent.Teams ?? []).ToDictionary(t => t.Id, t => WoolColors.WoolDamage(t.Color));
+        var spawns = intent.Spawns
+            .Where(s => damageByTeam.ContainsKey(s.Team))
+            .Select(s => (s.Point.X, s.Point.Z, Damage: damageByTeam[s.Team]))
+            .ToList();
+        if (spawns.Count == 0) return static (_, _) => -1;
+        return (x, z) =>
+        {
+            var best = -1;
+            var bestDist = double.MaxValue;
+            foreach (var (sx, sz, damage) in spawns)
+            {
+                var dx = x + 0.5 - sx;
+                var dz = z + 0.5 - sz;
+                var dist = dx * dx + dz * dz;
+                if (dist < bestDist) { bestDist = dist; best = damage; }
+            }
+            return best;
+        };
+    }
 }

@@ -2402,12 +2402,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Terrain finish — walls, rims, plateaus (base model).** `TerrainPainter` (`PgmStudio.Minecraft`,
   `docs/world-export/terrain-painting.md` TP1–TP6) dresses the raw stone as the last world pass: a quartz
-  **rim** on the top-most block of every edge (8-neighbour, so a reentrant corner never gaps), a stained-clay
-  **wall** on the exposed riser between bedrock and rim, a grass **surface** on the interior top, and stone
-  left as **fill**. Built as the four-stage architecture — `TerrainProfile` (the theme-agnostic classifier),
-  a per-cell `TerrainTheme`, the pure band resolver, and the `TerrainMaterial` seam (`Solid`/`Layered`).
-  Touches **only stone**, so bedrock and every stamped structure (room plateaus, the bedrock approach wall,
-  objectives) are consulted as height-bearing neighbours but never painted (TP6). Wired map-wide into
+  **rim** on the top-most block of every edge (8-neighbour, so a reentrant corner never gaps), a **team-tinted stained-clay wall** on the exposed riser between bedrock and rim, a grass
+  **surface** on the interior top, and stone left as **fill**. Built as the four-stage architecture —
+  `TerrainProfile` (the theme-agnostic classifier), a per-cell `TerrainTheme`, the pure band resolver, and
+  the `TerrainMaterial` seam (`Solid`/`Layered`/`TeamTinted`). Touches **only stone**, so bedrock and every
+  stamped structure (room plateaus, the bedrock approach wall, objectives) are consulted as height-bearing
+  neighbours but never painted (TP6). The **team tint is a general material** — the wool 0–15 damage scale on
+  any colour-by-damage block, usable on **any** bucket and composable in a layer/pattern (`BucketContext`
+  carries the cell's team; nearest-spawn today) — the default puts it on the wall. Wired map-wide into
   `SketchWorldBuilder.Build`; unit-tested per column and over built worlds. (G157)
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`
