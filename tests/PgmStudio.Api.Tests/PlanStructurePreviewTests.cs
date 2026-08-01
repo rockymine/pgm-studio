@@ -83,18 +83,25 @@ public sealed class PlanStructurePreviewTests
     {
         var (boxes, w) = Build();
 
+        // The layout structures stamp after the cubes on purpose (an iron cube inside a spawn piece wins
+        // any footprint overlap), so a shell corner another structure's box covers is that structure's.
+        var others = boxes.Where(b => b.Kind is "iron" or "wall" or "destroyable" or "core").ToList();
+        bool Covered(int x, int z) =>
+            others.Any(o => x >= o.MinX && x < o.MaxX && z >= o.MinZ && z < o.MaxZ);
+
         foreach (var box in boxes.Where(b => b.Kind is "spawn-cube" or "wool-cage"))
         {
-            // The floor course is bedrock at its corners (the centre is the 2×2 wool marker).
-            foreach (var (x, z) in Corners(box))
+            // The floor course is bedrock at its corners (the centre is the wool pad).
+            foreach (var (x, z) in Corners(box).Where(c => !Covered(c.X, c.Z)))
                 await Assert.That(w.GetBlock(x, box.Floor, z).Id).IsEqualTo(Blocks.Bedrock);
 
             // The shell's walls stand on the box's own perimeter — so the box is neither too big nor too small.
-            foreach (var (x, z) in Corners(box))
+            foreach (var (x, z) in Corners(box).Where(c => !Covered(c.X, c.Z)))
                 await Assert.That(w.GetBlock(x, box.Floor + 1, z).Id).IsEqualTo(Blocks.Bedrock);
 
             // Tight: nothing of the shell sits above the box's exclusive top.
-            await Assert.That(w.GetBlock(box.MinX, box.Top, box.MinZ).Id).IsEqualTo(Blocks.Air);
+            if (!Covered(box.MinX, box.MinZ))
+                await Assert.That(w.GetBlock(box.MinX, box.Top, box.MinZ).Id).IsEqualTo(Blocks.Air);
         }
     }
 
