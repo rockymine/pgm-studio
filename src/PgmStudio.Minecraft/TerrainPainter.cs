@@ -58,8 +58,8 @@ public static class TerrainPainter
         var isRim = theme.Closed ? column.ClosedEdge : column.OpenEdge;
         TerrainBucket topBucket;
         int topDepth;
-        if (isRim && theme.RimEnabled) { topBucket = TerrainBucket.Rim; topDepth = Math.Max(1, theme.RimDepth); }
-        else if (theme.SurfaceEnabled) { topBucket = TerrainBucket.Surface; topDepth = Math.Max(1, theme.SurfaceDepth); }
+        if (isRim && theme.Rim.Enabled) { topBucket = TerrainBucket.Rim; topDepth = Math.Max(1, theme.Rim.Depth); }
+        else if (theme.Surface.Enabled) { topBucket = TerrainBucket.Surface; topDepth = Math.Max(1, theme.Surface.Depth); }
         else { topBucket = TerrainBucket.Fill; topDepth = 0; }
         var treatLo = topDepth > 0 ? Math.Max(paintFloor, top - topDepth) : top;
 

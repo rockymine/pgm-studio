@@ -6,9 +6,12 @@ objectives onto the terrain, this pass dresses the terrain **itself**: the raw s
 becomes a stone body walled in clay, lipped in quartz, and topped in grass. It reads the terrain the
 world builder already placed and rewrites its surface — no new geometry, only materials.
 
-**Status: the base model (TP1–TP6) is built and shipped; the extensions (TP7–TP13, §6) are planned.**
+**Status: the base model (TP1–TP6) and the per-column extensions (TP7–TP9, TP11, TP12) are built and shipped;
+only the two structural extensions remain — scoped theming (TP10) and material patterns (TP13, §6).**
 `TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export map-wide, wired last into
-`SketchWorldBuilder.Build`; the four-stage architecture of §5 is in place. The model was first validated by a
+`SketchWorldBuilder.Build`; the four-stage architecture of §5 is in place. Depth is a per-bucket knob (`TopBand`
+carries a bucket's material, depth and toggle), so a theme sets the rim depth and the surface stack
+independently; the default surface is grass over two dirt, three blocks deep (TP11). The model was first validated by a
 scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` — compiled through
 `PlanCompiler` and rasterized through `SketchRasterizer`) and is now covered by `TerrainPainterTests`. Rule
 ids here are `TP*` (terrain paint), local to this file the way `structures.md` owns `WX*`. Read alongside:
@@ -210,9 +213,9 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
    depends on a theme, so the same `TerrainProfile` serves every theme, scope and pattern. **This is the shared
    core**, and it is the only stage that touches geometry.
 
-2. **Theme resolution — the scope layer.** A `Theme` is a data row: the depth knobs (bedrock mode, `rimDepth`,
-   the surface layer stack, the wall-face toggle, the bucket toggles, `closed`) plus one `MaterialSpec` per
-   bucket. Today one theme applies map-wide; scoping (TP10) makes it a per-cell lookup — piece override →
+2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode and `closed`/wall-face
+   toggles, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and
+   fill — each bucket's depth living with its bucket, not as a loose scalar. Today one theme applies map-wide; scoping (TP10) makes it a per-cell lookup — piece override →
    collection → map default, merged field by field so an override can change bedrock alone and inherit the
    rest. Because the Profile already carries piece identity and interfaces, this layer adds only the lookup, no
    new geometry.
@@ -249,42 +252,41 @@ contest, whatever their themes differ on. Every stage is pure over explicit inpu
 the Profile against the §4 fixtures, the resolver against synthetic columns, the specs on their own — with no
 DB and no IO, exactly as the stampers do.
 
-## 6. Planned extensions (noted, not yet prototyped)
+## 6. Extensions
 
-The base model (TP1–TP6) is validated by the prototype's figures. The rules below are agreed additions,
-recorded here before they are built — the prototype does not yet show them. Most are per-column depth knobs
-that share one **resolution order**: the bedrock floor is claimed first (it sets how much stone a column
-even has), then from the top down the rim (on an edge) or the surface stack (on an interior), then the wall
-fills the exposed riser below the rim to the drop, and **fill** — the required base — takes every block no
-enabled bucket claimed. Every band takes only what the band above it left and the bedrock floor always wins
-the bottom, so a short column runs out of stone gracefully rather than overlapping. The last two rules are
-orthogonal to the depth stack: the theming *scope* (TP10) and the material *patterns* (TP13).
+The base model (TP1–TP6) and the per-column extensions below share one **resolution order** (`TerrainPainter.Resolve`):
+the bedrock floor is claimed first (it sets how much stone a column even has), then from the top down the rim
+(on an edge) or the surface stack (on an interior), then the wall fills the exposed riser below the rim to the
+drop, and **fill** — the required base — takes every block no enabled bucket claimed. Every band takes only
+what the band above it left and the bedrock floor always wins the bottom, so a short column runs out of stone
+gracefully rather than overlapping. The two remaining rules are orthogonal to the depth stack and are the only
+ones not yet built: the theming *scope* (TP10) and the material *patterns* (TP13).
 
-- **TP7** *Rim depth is configurable; the wall takes the rest.* The rim is the top **`rimDepth`** blocks of
-  an edge column, not always one (2 or 3 are ordinary). The wall then occupies the remaining exposed height
-  **below** the rim, down to the drop. The rim never overrides the bedrock floor: it is clamped to the
-  stone available above bedrock, so a column with only one paintable course is all rim and no wall, and the
-  bedrock course is never recoloured. Default `rimDepth = 1` — the base model.
+- **TP7** *(built)* *Rim depth is configurable; the wall takes the rest.* The rim is the top **`Rim.Depth`**
+  blocks of an edge column, not always one (2 or 3 are ordinary). The wall then occupies the remaining
+  exposed height **below** the rim, down to the drop. The rim never overrides the bedrock floor: it is clamped
+  to the stone available above bedrock, so a column with only one paintable course is all rim and no wall, and
+  the bedrock course is never recoloured. Default `Rim.Depth = 1` — the base model. Depth lives on the bucket's
+  `TopBand`, not a loose theme scalar, so the rim and the surface each carry their own.
 
-- **TP8** *Bedrock floor thickness is configurable, in two modes.* The bedrock floor is
-  **`bedrockThickness`** blocks up from y=0, at least **1**, never more than the column is tall. It is
-  claimed before anything else, so rim, wall, surface and fill all divide only the stone it leaves — and
-  when `bedrockThickness` equals the column height (a piece exactly as tall as its floor), **no stone
-  remains and rim and wall stop altogether**. Two ways to set it: **absolute** (a fixed block count), or
-  **terrain-relative** — you name the intended *terrain depth* (how thick the painted stone shell should be
-  measured down from the surface) and the bedrock takes the rest of the column, `bedrockThickness =
-  columnHeight − terrainDepth`, per column. Terrain-relative keeps the dressed shell a constant depth over
-  uneven ground (thick bedrock under a tall plateau, thin under a low one).
+- **TP8** *(built)* *Bedrock floor thickness is configurable, in two modes.* The bedrock floor (`BedrockSpec`)
+  is that many blocks up from y=0, at least **1**, never more than the column is tall. It is claimed before
+  anything else, so rim, wall, surface and fill all divide only the stone it leaves — and when the thickness
+  equals the column height (a piece exactly as tall as its floor), **no stone remains and rim and wall stop
+  altogether**. Two ways to set it: **absolute** (a fixed block count, `BedrockSpec.Absolute`), or
+  **terrain-relative** (`BedrockSpec.TerrainRelative`) — you name the intended *terrain depth* (how thick the
+  painted stone shell should be measured down from the surface) and the bedrock takes the rest of the column,
+  `thickness = columnHeight − terrainDepth`, per column. Terrain-relative keeps the dressed shell a constant
+  depth over uneven ground (thick bedrock under a tall plateau, thin under a low one).
 
-- **TP9** *Wall on terrain-to-terrain faces is a toggle.* The void-facing wall is fundamental, but a face
-  between two **terrain** pieces is exposed to air too — the mid-island case where one piece docks a
+- **TP9** *(built)* *Wall on terrain-to-terrain faces is a toggle.* The void-facing wall is fundamental, but a
+  face between two **terrain** pieces is exposed to air too — the mid-island case where one piece docks a
   neighbour four blocks shorter shows raw stone on the taller piece's inward side. That face is wall when
-  the toggle is on: with `rimDepth = 1`, an adjacent height difference of **≥2** leaves, after the one rim
-  block, one-or-more wall blocks on the taller side (a difference of 1 is covered by the rim alone, no
-  wall). Off, only void-facing faces paint and internal risers stay fill/stone. (The prototype already
-  paints internal risers unconditionally — TP9 is making that a knob and binding it to `rimDepth`.)
+  `WallOnTerrainFaces` is on: with `Rim.Depth = 1`, an adjacent height difference of **≥2** leaves, after the
+  one rim block, one-or-more wall blocks on the taller side (a difference of 1 is covered by the rim alone, no
+  wall). Off, only void-facing faces paint and internal risers stay fill/stone.
 
-- **TP10** *Theming is scoped — full map now, per-piece/per-collection later — and always resolved at
+- **TP10** *(planned)* *Theming is scoped — full map now, per-piece/per-collection later — and always resolved at
   interfaces.* Today one theme (bucket materials + the TP7/TP8/TP9 knobs) applies map-wide. The plan is to
   let a theme also attach to an individual piece or a collection, so bedrock can be terrain-relative in one
   area and a fixed depth in another. This is tractable because rim, wall and surface are already defined by
@@ -297,20 +299,21 @@ orthogonal to the depth stack: the theming *scope* (TP10) and the material *patt
   scope-resolved lookup, and the interface-relative machinery TP6 already needs for the approach wall is the
   shape to generalize — resolve by interface, never by piece interior.
 
-- **TP11** *The surface is a layered stack with its own depth.* Not one block: an ordered run of layers
-  claimed from the top of an interior column — the standard being **one grass over two dirt**. It has a
-  total depth like the rim, and the same clamp: it cannot descend past what the bedrock floor leaves
-  (bedrock takes priority), so a shallow column drops the surface stack's **deepest** layers first and
-  keeps the topmost. Below the surface, fill takes the rest. Default `surface = [grass×1, dirt×2]`.
+- **TP11** *(built)* *The surface is a layered stack with its own depth.* Not one block: an ordered run of
+  layers (`LayeredMaterial`) claimed from the top of an interior column — the standard being **one grass over
+  two dirt**. It has a total depth (`Surface.Depth`) like the rim, and the same clamp: it cannot descend past
+  what the bedrock floor leaves (bedrock takes priority), so a shallow column drops the surface stack's
+  **deepest** layers first and keeps the topmost. Below the surface, fill takes the rest. Default
+  `Surface = TopBand([grass×1, dirt×2], Depth: 3)`.
 
-- **TP12** *Surface, rim and wall are toggleable; fill is required and is the fallback.* Fill always claims
-  every block no enabled bucket took, so a theme is never partial. The fallbacks follow the treatments'
+- **TP12** *(built)* *Surface, rim and wall are toggleable; fill is required and is the fallback.* Fill always
+  claims every block no enabled bucket took, so a theme is never partial. The fallbacks follow the treatments'
   roles: turn **wall** off and its riser blocks become fill; turn **rim** off and its top blocks fall to
   the **surface** stack first (an edge then reads as surface right up to the lip), and to fill only if
   surface is off too; turn **surface** off and its blocks become fill. So any block resolves to its own
   bucket if enabled, else the next treatment down that chain, else fill.
 
-- **TP13** *Buckets take patterns, not just a block (last to build).* Every bucket's material spec (§3)
+- **TP13** *(planned, last)* *Buckets take patterns, not just a block.* Every bucket's material spec (§3)
   generalizes to a **pattern** that varies the block across the bucket's cells. Surface and fill take
   area/volume patterns — voronoi, fractal, cellular — over the footprint. Walls take either a **layered**
   pattern (bands of material A then B up the riser, each a configurable depth) or **vertical runs** that
@@ -329,10 +332,10 @@ orthogonal to the depth stack: the theming *scope* (TP10) and the material *patt
 | **TP4** | The wall is the exposed riser, `y ∈ [drop, surfaceTop − 2]`; buried stone and the y=0 bedrock course are left. |
 | **TP5** | The interior is the grass top of every non-edge column. |
 | **TP6** | A stamped structure (piece-relative room/cube, or the interface-relative bedrock approach wall) is height-bearing: never painted, never a drop (no open lip, no clay behind it), always a closed-rim edge. |
-| **TP7** *(planned)* | Rim depth is configurable (default 1); the wall takes the height below it, and the rim never overrides the bedrock floor. |
-| **TP8** *(planned)* | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
-| **TP9** *(planned)* | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |
+| **TP7** | Rim depth is configurable (`Rim.Depth`, default 1); the wall takes the height below it, and the rim never overrides the bedrock floor. |
+| **TP8** | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
+| **TP9** | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |
 | **TP10** *(planned)* | Theming is scoped (full map, or per piece/collection) and resolved at interfaces; a piece with no qualifying interface has no rim/wall. |
-| **TP11** *(planned)* | The surface is a layered stack to a configured depth (grass over two dirt by default), clamped by the bedrock floor. |
-| **TP12** *(planned)* | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
+| **TP11** | The surface is a layered stack to a configured depth (`Surface.Depth`; grass over two dirt by default), clamped by the bedrock floor. |
+| **TP12** | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
 | **TP13** *(planned, last)* | Buckets take patterns, not just a block: area patterns (voronoi/fractal/cellular) for surface/fill, layered or map-wrapping vertical runs for walls, patterns for rim. |

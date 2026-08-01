@@ -2400,14 +2400,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
-- **Terrain finish — walls, rims, plateaus (base model).** `TerrainPainter` (`PgmStudio.Minecraft`,
-  `docs/world-export/terrain-painting.md` TP1–TP6) dresses the raw stone as the last world pass: a quartz
-  **rim** on the top-most block of every edge (8-neighbour, so a reentrant corner never gaps), a **team-tinted stained-clay wall** on the exposed riser between bedrock and rim, a grass
-  **surface** on the interior top, and stone left as **fill**. Built as the four-stage architecture —
+- **Terrain finish — walls, rims, plateaus.** `TerrainPainter` (`PgmStudio.Minecraft`,
+  `docs/world-export/terrain-painting.md` TP1–TP9, TP11, TP12) dresses the raw stone as the last world pass: a quartz
+  **rim** on the top-most block of every edge (8-neighbour, so a reentrant corner never gaps), a **team-tinted stained-clay wall** on the exposed riser between bedrock and rim, a **surface** stack on the interior top,
+  and stone left as **fill**. Built as the four-stage architecture —
   `TerrainProfile` (the theme-agnostic classifier), a per-cell `TerrainTheme`, the pure band resolver, and
   the `TerrainMaterial` seam (`Solid`/`Layered`/`TeamTinted`). Touches **only stone**, so bedrock and every
   stamped structure (room plateaus, the bedrock approach wall, objectives) are consulted as height-bearing
-  neighbours but never painted (TP6). The **team tint is a general material** — the wool 0–15 damage scale on
+  neighbours but never painted (TP6). Every per-column knob is themeable: **rim/surface depth** live on each
+  bucket's `TopBand` (TP7/TP11 — the default surface is grass over two dirt, three deep), **bedrock thickness**
+  is absolute or terrain-relative (TP8), **wall-on-terrain-faces** and the **rim/wall/surface toggles** route
+  down the fill fallback chain (TP9/TP12); the two structural extensions — scoped per-piece theming (TP10) and
+  material patterns (TP13) — remain. The **team tint is a general material** — the wool 0–15 damage scale on
   any colour-by-damage block, usable on **any** bucket and composable in a layer/pattern (`BucketContext`
   carries the cell's team) — the default puts it on the wall. Ownership resolves through **`TeamTerritory`**:
   one shared decomposition on the canonical `IslandDetector` islands (the ids `islands_json`/configure use),

@@ -27,21 +27,22 @@ public sealed class TerrainPainterTests
     }
 
     [Test]
-    public async Task Interior_is_bedrock_then_fill_then_a_grass_surface_course()
+    public async Task Interior_is_bedrock_then_fill_then_a_three_deep_surface_stack()
     {
+        // the default surface claims its configured depth (3: grass over two dirt), fill takes the middle.
         var bands = TerrainPainter.Resolve(Interior(9), TerrainTheme.Default);
         await Assert.That(bands).IsEquivalentTo(new[]
         {
             new TerrainBand(0, 1, TerrainBucket.Bedrock),
-            new TerrainBand(1, 8, TerrainBucket.Fill),
-            new TerrainBand(8, 9, TerrainBucket.Surface),
+            new TerrainBand(1, 6, TerrainBucket.Fill),
+            new TerrainBand(6, 9, TerrainBucket.Surface),
         });
     }
 
     [Test]
     public async Task Rim_depth_takes_more_top_blocks_and_the_wall_takes_the_rest()
     {
-        var bands = TerrainPainter.Resolve(VoidEdge(9), TerrainTheme.Default with { RimDepth = 3 });
+        var bands = TerrainPainter.Resolve(VoidEdge(9), TerrainTheme.Default with { Rim = TerrainTheme.Default.Rim with { Depth = 3 } });
         await Assert.That(bands).IsEquivalentTo(new[]
         {
             new TerrainBand(0, 1, TerrainBucket.Bedrock),
@@ -133,6 +134,61 @@ public sealed class TerrainPainterTests
         await Assert.That(closed[^1].Bucket).IsEqualTo(TerrainBucket.Rim);
     }
 
+    // ── bucket toggles (TP12): fill is the required fallback down the chain ──────────────────────────────
+
+    [Test]
+    public async Task Rim_off_lets_the_surface_stack_read_right_up_to_the_edge_lip()
+    {
+        // an edge with the rim disabled falls to the surface stack (depth 3), the wall still rises below it.
+        var bands = TerrainPainter.Resolve(VoidEdge(9), TerrainTheme.Default with { Rim = TerrainTheme.Default.Rim with { Enabled = false } });
+        await Assert.That(bands).IsEquivalentTo(new[]
+        {
+            new TerrainBand(0, 1, TerrainBucket.Bedrock),
+            new TerrainBand(1, 6, TerrainBucket.Wall),
+            new TerrainBand(6, 9, TerrainBucket.Surface),
+        });
+    }
+
+    [Test]
+    public async Task Rim_and_surface_both_off_leaves_the_edge_top_as_wall_over_fill()
+    {
+        // rim and surface off: the top course chain bottoms out at fill, so the wall claims the whole riser.
+        var theme = TerrainTheme.Default with
+        {
+            Rim = TerrainTheme.Default.Rim with { Enabled = false },
+            Surface = TerrainTheme.Default.Surface with { Enabled = false },
+        };
+        var bands = TerrainPainter.Resolve(VoidEdge(9), theme);
+        await Assert.That(bands).IsEquivalentTo(new[]
+        {
+            new TerrainBand(0, 1, TerrainBucket.Bedrock),
+            new TerrainBand(1, 9, TerrainBucket.Wall),
+        });
+    }
+
+    [Test]
+    public async Task Wall_off_turns_the_riser_to_fill_under_the_rim()
+    {
+        var bands = TerrainPainter.Resolve(VoidEdge(9), TerrainTheme.Default with { WallEnabled = false });
+        await Assert.That(bands).IsEquivalentTo(new[]
+        {
+            new TerrainBand(0, 1, TerrainBucket.Bedrock),
+            new TerrainBand(1, 8, TerrainBucket.Fill),
+            new TerrainBand(8, 9, TerrainBucket.Rim),
+        });
+    }
+
+    [Test]
+    public async Task Surface_off_leaves_an_interior_all_fill_above_bedrock()
+    {
+        var bands = TerrainPainter.Resolve(Interior(9), TerrainTheme.Default with { Surface = TerrainTheme.Default.Surface with { Enabled = false } });
+        await Assert.That(bands).IsEquivalentTo(new[]
+        {
+            new TerrainBand(0, 1, TerrainBucket.Bedrock),
+            new TerrainBand(1, 9, TerrainBucket.Fill),
+        });
+    }
+
     // ── the whole pass over a built world ──────────────────────────────────────────────────────────────
 
     [Test]
@@ -147,8 +203,10 @@ public sealed class TerrainPainterTests
         TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, TerrainTheme.Default);
 
         var w = terrain.World;
-        // interior column (2,2): grass on top, stone body, bedrock floor.
+        // interior column (2,2): grass over two dirt (the default surface stack), stone body, bedrock floor.
         await Assert.That(w.GetBlock(2, 8, 2)).IsEqualTo((Blocks.Grass, 0));
+        await Assert.That(w.GetBlock(2, 7, 2)).IsEqualTo((Blocks.Dirt, 0));
+        await Assert.That(w.GetBlock(2, 6, 2)).IsEqualTo((Blocks.Dirt, 0));
         await Assert.That(w.GetBlock(2, 4, 2)).IsEqualTo((Blocks.Stone, 0));
         await Assert.That(w.GetBlock(2, 0, 2)).IsEqualTo((Blocks.Bedrock, 0));
         // edge column (0,2): quartz rim on top, clay wall below (neutral grey with no team map), bedrock floor.
@@ -199,7 +257,7 @@ public sealed class TerrainPainterTests
     public async Task Team_tint_applies_to_any_bucket_not_just_the_wall()
     {
         // a theme whose rim is team-tinted wool proves the tint is a general material, not wall-only.
-        var theme = TerrainTheme.Default with { Rim = new TeamTintedMaterial(Blocks.Wool, new SolidMaterial(Blocks.QuartzBlock)) };
+        var theme = TerrainTheme.Default with { Rim = TerrainTheme.Default.Rim with { Material = new TeamTintedMaterial(Blocks.Wool, new SolidMaterial(Blocks.QuartzBlock)) } };
         var columns = new List<(int, int, int, int)>();
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)

@@ -417,19 +417,19 @@ studio, G117/G118) is in `TODO.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
-- [~] **G157 — terrain painting: the extensions.** The base model (TP1–TP6: rim/wall/surface/fill,
-  corner-inclusive + `closed` rim, stamp consultation) is **built and shipped** (`FEATURES.md`,
-  `TerrainPainter`, painting every sketch export map-wide); the four-stage architecture
-  (`docs/world-export/terrain-painting.md` §5) is in place, so each remaining piece lands on one seam. Open
-  slice (TP7–TP13): a configurable **rim depth** and **bedrock floor thickness** (absolute or
-  terrain-relative) — both already carried by `TerrainTheme` + the band resolver and unit-tested, so what's
-  left is exposing/authoring them, not building them; a **toggle for wall on terrain-to-terrain faces** (also
-  already in the resolver); a **layered surface stack** (grass over dirt — `LayeredMaterial` exists, make it
-  the default `SurfaceDepth`); **bucket toggles with fill as the required fallback** (resolver done, surface
-  it); **scoped theming** (full-map today via the map-wide `Theme`; per-piece/collection later, resolved at
-  interfaces — the theme-resolution lookup stage); and, last, **patterns** per bucket (voronoi/fractal area
-  fills for surface/fill, layered or map-wrapping vertical runs for walls) as new `TerrainMaterial`
-  implementations. **Team tint is built** (`TeamTintedMaterial`, a general material on any bucket, block
+- [~] **G157 — terrain painting: the two structural extensions.** The base model (TP1–TP6) and every
+  per-column extension are **built, tested and shipped** (`FEATURES.md`, `TerrainPainter`, painting every
+  sketch export map-wide): configurable **rim/surface depth** (each on its bucket's `TopBand`), the **layered
+  surface stack** (default grass over two dirt, three deep), **bedrock thickness** (absolute or
+  terrain-relative), the **wall-on-terrain-faces** toggle and the **rim/wall/surface toggles** with fill as the
+  required fallback (TP7–TP9, TP11, TP12). The four-stage architecture (`docs/world-export/terrain-painting.md`
+  §5) is in place, so each remaining piece lands on one seam. Two structural extensions remain: **scoped
+  theming (TP10)** — full-map today via the map-wide `Theme`; per-piece/collection later, resolved at
+  interfaces (the theme-resolution lookup stage) — and, last, **patterns (TP13)** per bucket (voronoi/fractal
+  area fills for surface/fill, layered or map-wrapping vertical runs for walls) as new `TerrainMaterial`
+  implementations. Both need a design pass before building (each is a new subsystem, not a knob). Authoring UI
+  for the shipped knobs (the theme JSON / a Finish phase) is also still open. **Team tint is built**
+  (`TeamTintedMaterial`, a general material on any bucket, block
   0–15 damage scale, default on the wall) with ownership through **`TeamTerritory`** — one shared decomposition
   on the canonical `IslandDetector` islands (the same ids `islands_json`/configure use), owner = a stored
   `IslandTeams` value, else a spawn's team on the island, else a wool's owner, else neutral. Derived **once**:

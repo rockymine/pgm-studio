@@ -58,6 +58,16 @@ public sealed record TeamTintedMaterial(int BlockId, TerrainMaterial Neutral) : 
         => ctx.HasTeam ? (BlockId, ctx.TeamData) : Neutral.Resolve(in ctx);
 }
 
+/// <summary>A top-claiming bucket's spec (TP7/TP11/TP12): the material its courses resolve through, how many
+/// top courses it claims (its <b>depth</b>), and whether it is enabled. The rim and the surface share this
+/// shape — both finish the top of a column with a configurable depth (the rim on an edge, the surface on an
+/// interior), and the wall then fills the exposed riser below. Depth is a per-bucket knob living with its
+/// bucket, not a loose theme scalar, so a theme sets each independently (a 3-block rim, a grass-over-two-dirt
+/// surface). Distinct from <see cref="TerrainBand"/>, which is a <em>resolved</em> Y-run in the output — this
+/// is the <em>theme</em> spec a band resolves from. The band resolver always clamps depth to the stone the
+/// bedrock floor leaves, so it never recolours bedrock.</summary>
+public sealed record TopBand(TerrainMaterial Material, int Depth = 1, bool Enabled = true);
+
 /// <summary>How thick the bedrock floor is (TP8): a fixed block count, or the remainder under a fixed painted
 /// terrain depth (bedrock = column height − terrain depth, per column). Always ≥1, never taller than the
 /// column.</summary>
@@ -77,18 +87,19 @@ public sealed record BedrockSpec(bool Relative, int Value)
 }
 
 /// <summary>
-/// A terrain-paint theme (docs/world-export/terrain-painting.md §5): the depth knobs plus one material per
-/// bucket. The default is the validated base model — a one-block quartz rim, a stained-clay wall, a grass
-/// surface, and stone left as fill, over a one-block bedrock floor with the open rim. Every field has a base
-/// default, so <see cref="Default"/> is the shipping finish and any single knob can be overridden alone.
+/// A terrain-paint theme (docs/world-export/terrain-painting.md §5): the geometry knobs plus a material — and,
+/// for the top-claiming buckets, a depth and toggle (<see cref="TopBand"/>) — per bucket. The default is the
+/// shipping finish: a one-block quartz rim, a team-tinted stained-clay wall, a grass-over-two-dirt surface
+/// three blocks deep, and stone left as fill, over a one-block bedrock floor with the open rim. Every field has
+/// a base default, so <see cref="Default"/> is complete and any single knob can be overridden alone.
 /// </summary>
 public sealed record TerrainTheme
 {
-    // ── geometry knobs ──
-    /// <summary>How many top blocks the rim claims (TP7). Default 1.</summary>
-    public int RimDepth { get; init; } = 1;
-    /// <summary>How many top blocks the interior surface claims (TP11). Default 1.</summary>
-    public int SurfaceDepth { get; init; } = 1;
+    // grass over two dirt — the standard interior stack (TP11); its layer thicknesses sum to the surface depth.
+    private static readonly TerrainMaterial DefaultSurface = new LayeredMaterial(
+        [(new SolidMaterial(Blocks.Grass), 1), (new SolidMaterial(Blocks.Dirt), 2)]);
+
+    // ── geometry ──
     /// <summary>The bedrock floor thickness (TP8). Default one block.</summary>
     public BedrockSpec Bedrock { get; init; } = BedrockSpec.Absolute(1);
     /// <summary>Trace the full plateau outline, not only drops (TP3). Default off.</summary>
@@ -96,16 +107,19 @@ public sealed record TerrainTheme
     /// <summary>Paint wall on terrain-to-terrain faces, not only void-facing ones (TP9). Default on.</summary>
     public bool WallOnTerrainFaces { get; init; } = true;
 
-    // ── bucket toggles (TP12); fill is required and has no toggle ──
-    public bool RimEnabled { get; init; } = true;
-    public bool WallEnabled { get; init; } = true;
-    public bool SurfaceEnabled { get; init; } = true;
-
-    // ── materials ──
-    public TerrainMaterial Rim { get; init; } = new SolidMaterial(Blocks.QuartzBlock);
-    // team-tinted clay, falling back to light-grey clay on a neutral cell (team-tint works on any bucket).
+    // ── buckets ──
+    // The two top-claiming buckets carry their own depth (TP7/TP11) and toggle (TP12) via TopBand; the wall's
+    // depth is the derived riser, so it stays a bare material + toggle; fill is required and always on.
+    /// <summary>The edge cap (TP7): quartz, one block deep.</summary>
+    public TopBand Rim { get; init; } = new(new SolidMaterial(Blocks.QuartzBlock), Depth: 1);
+    /// <summary>The interior stack (TP11): grass over two dirt, three blocks deep.</summary>
+    public TopBand Surface { get; init; } = new(DefaultSurface, Depth: 3);
+    /// <summary>The exposed riser (TP9/TP12): team-tinted clay, light-grey clay on neutral land (the tint is a
+    /// material any bucket can take, not wall-specific).</summary>
     public TerrainMaterial Wall { get; init; } = new TeamTintedMaterial(Blocks.StainedClay, new SolidMaterial(Blocks.StainedClay, 8));
-    public TerrainMaterial Surface { get; init; } = new SolidMaterial(Blocks.Grass);
+    /// <summary>Whether the wall paints at all (TP12); off, its riser blocks fall to fill.</summary>
+    public bool WallEnabled { get; init; } = true;
+    /// <summary>The required base (TP12): every block no enabled bucket claimed. Stone.</summary>
     public TerrainMaterial Fill { get; init; } = new SolidMaterial(Blocks.Stone);
 
     /// <summary>The shipping finish — the validated base model with example materials.</summary>
@@ -114,9 +128,9 @@ public sealed record TerrainTheme
     /// <summary>The material a bucket resolves through (bedrock is fixed, never themeable).</summary>
     public TerrainMaterial MaterialFor(TerrainBucket bucket) => bucket switch
     {
-        TerrainBucket.Rim => Rim,
+        TerrainBucket.Rim => Rim.Material,
         TerrainBucket.Wall => Wall,
-        TerrainBucket.Surface => Surface,
+        TerrainBucket.Surface => Surface.Material,
         _ => Fill,
     };
 }
