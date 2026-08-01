@@ -53,8 +53,8 @@ pad is 2×2, and a 2×2 pad only aligns on a grid line.
 - **WX1** *The piece dictates the footprint.* A wool-room or spawn piece is stamped with a shell
   whose footprint is the **piece rect inset by one block on every side** — the one-block ring of
   clean floor is part of the contract, not an accident of sizing. A 10×10 piece carries an 8×8
-  shell (today's output, block for block — existing plans export identically), a 12×12 piece a
-  10×10 shell, a 10×20 piece an 8×18 shell. The shell's orientation is the rect's own; the fanned
+  shell (the shipped footprint — existing plans keep their geometry, with only the wool-door width
+  changing per WX7), a 12×12 piece a 10×10 shell, a 10×20 piece an 8×18 shell. The shell's orientation is the rect's own; the fanned
   rect orients the orbit images.
 
 - **WX2** *Minimums are measured in blocks, never cells.* The smallest legal shell is **6×6**
@@ -102,13 +102,15 @@ lives; the marker is never freely placeable.
   interface is genuinely unreachable and is refused at validation. The spawn cube keeps its single
   yaw-derived door (the yaw already fans per orbit image).
 
-- **WX7** *Door width follows the door wall.* An **odd** interior wall centres an odd **3-wide**
-  door — never 1-wide, and wider odd doors (5) are a later decision, capped at 3 for now. An
-  **even** wall takes the kind's canonical width (wool cage 2, spawn cube 4), narrowing to **2**
-  when the interior is 4 or less across. The invariant behind the numbers: the door is always at
-  least one block narrower than the interior on each side (width ≤ interior − 2), so the door-wall
-  corner cells — where a spawn cube seats monuments — are never exposed to the outside. Door
-  *height* is untouched; room height stays out of G31's scope entirely.
+- **WX7** *Door width follows the door wall — one rule for both kinds.* An **odd** interior wall
+  centres an odd **3-wide** door — never 1-wide, and wider odd doors (5) are a later decision,
+  capped at 3 for now. An **even** wall takes the common **4-wide** door once the interior is at
+  least **6 across**, narrowing to **2** at the 4-across minimum. There is no per-kind canonical
+  width: the wool cage's shipped 2-wide doors widen to 4 wherever the room affords it. The
+  invariant behind the numbers: the door is always at least one block narrower than the interior on
+  each side (width ≤ interior − 2), so the door-wall corner cells — where a spawn cube seats
+  monuments — are never exposed to the outside. Door *height* is untouched; room height stays out
+  of G31's scope entirely.
 
 ## 5. The code shape — frame, shell, furnishers, presets
 
