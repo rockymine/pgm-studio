@@ -50,6 +50,41 @@ public sealed class SketchWorldBuilderTests
     }
 
     [Test]
+    public async Task Team_tint_owns_terrain_by_island_and_leaves_anchorless_land_neutral()
+    {
+        // Three separate islands (no mirroring): a red-spawn island, a blue-spawn island, and one with no
+        // anchor. Each is a base_height-5 plateau, so the painter walls their edges.
+        const string layout =
+            """
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layout":{"shapes":[
+              {"id":"a","type":"rectangle","operation":"add","min_x":-30,"max_x":-10,"min_z":-10,"max_z":10,"base_height":5},
+              {"id":"b","type":"rectangle","operation":"add","min_x":10,"max_x":30,"min_z":-10,"max_z":10,"base_height":5},
+              {"id":"c","type":"rectangle","operation":"add","min_x":-5,"max_x":5,"min_z":30,"max_z":50,"base_height":5}
+            ],"islands":[]}}
+            """;
+        var intent = new MapIntent
+        {
+            Teams = [new TeamDef { Id = "red", Color = "red" }, new TeamDef { Id = "blue", Color = "blue" }],
+            Spawns =
+            [
+                new SpawnIntent { Team = "red", Point = new Pt(-20, 5, 0), Yaw = 0 },
+                new SpawnIntent { Team = "blue", Point = new Pt(20, 5, 0), Yaw = 180 },
+            ],
+            Observer = new ObserverIntent { Point = new Pt(0, 30, 0), Yaw = 0 },
+            Meta = new MetaIntent { Name = "Islands", Authors = [] },
+        };
+
+        var w = SketchWorldBuilder.Build(layout, intent).World;
+        // A left edge (x=-30) → red clay wall (14); B right edge (x=29) → blue clay (11);
+        // the anchorless island C edge → neutral light-grey clay (8).
+        await Assert.That(w.GetBlock(-30, 2, 0)).IsEqualTo((Blocks.StainedClay, 14));
+        await Assert.That(w.GetBlock(29, 2, 0)).IsEqualTo((Blocks.StainedClay, 11));
+        await Assert.That(w.GetBlock(-5, 2, 40)).IsEqualTo((Blocks.StainedClay, 8));
+        // A rim stays quartz regardless of team; the interior stays grass.
+        await Assert.That(w.GetBlock(-30, 4, 0)).IsEqualTo((Blocks.QuartzBlock, 0));
+    }
+
+    [Test]
     public async Task Resolves_snapped_spawns_and_derived_monument_locations()
     {
         var built = SketchWorldBuilder.Build(Layout, SampleIntent());

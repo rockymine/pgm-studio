@@ -2409,7 +2409,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   stamped structure (room plateaus, the bedrock approach wall, objectives) are consulted as height-bearing
   neighbours but never painted (TP6). The **team tint is a general material** — the wool 0–15 damage scale on
   any colour-by-damage block, usable on **any** bucket and composable in a layer/pattern (`BucketContext`
-  carries the cell's team; nearest-spawn today) — the default puts it on the wall. Wired map-wide into
+  carries the cell's team; island-based ownership) — the default puts it on the wall. Wired map-wide into
   `SketchWorldBuilder.Build`; unit-tested per column and over built worlds. (G157)
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`
