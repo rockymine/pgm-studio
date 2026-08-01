@@ -123,9 +123,10 @@ public static class SketchWorldBuilder
 
         // ── Terrain finish (G157) — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
-        // untouched. Team ownership is read through TeamTerritory — the canonical islands_json decomposition
-        // plus the stored/pre-filled IslandTeams — so the tint agrees with what the configure UI assigned.
-        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainTheme.Default, TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
+        // untouched. The theme is resolved per cell through TerrainThemeScope (a piece override, its collection,
+        // else the map default — TP10); team ownership is read through TeamTerritory — the canonical islands_json
+        // decomposition plus the stored/pre-filled IslandTeams — so the tint agrees with what configure assigned.
+        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainThemeScope.ThemeAt(intent), TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;

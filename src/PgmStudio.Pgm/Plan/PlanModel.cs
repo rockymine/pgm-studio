@@ -100,6 +100,23 @@ public sealed class PlanModel
     /// not depend on whether its boxes were drawn.</summary>
     [JsonPropertyName("boxes")]      public List<PlanBox> Boxes { get; set; } = [];
 
+    /// <summary>Terrain-paint theme registry (docs/world-export/terrain-painting.md TP10): <c>themeId → theme
+    /// JSON</c> (a serialized <c>TerrainTheme</c>, opaque to the plan — this project doesn't reference the world
+    /// package that owns the type). The compiler bakes these verbatim into the intent for the export to paint.
+    /// Null/absent on an unthemed plan (the common case), so it never clutters a plan that paints the default.</summary>
+    [JsonPropertyName("themes")]     public Dictionary<string, JsonElement>? Themes { get; set; }
+
+    /// <summary>The map-default theme id (into <see cref="Themes"/>) — the lowest-priority layer painting every
+    /// cell no scope claims (TP10). Null → the built-in default theme.</summary>
+    [JsonPropertyName("mapTheme")]   public string? MapTheme { get; set; }
+
+    /// <summary>Terrain-paint scope assignments (TP10), lowest priority first: each names a theme and the pieces
+    /// it paints (an explicit id list and/or a box whose members the compiler expands). Later entries override
+    /// earlier ones for a piece they both cover, so ordering the map default → collections → per-piece overrides
+    /// gives the piece › collection › map-default priority. Authoring-only until compiled; ignored by geometry.
+    /// Null/absent on an unthemed plan.</summary>
+    [JsonPropertyName("themeScopes")] public List<PlanThemeScope>? ThemeScopes { get; set; }
+
     /// <summary>Optional provenance: the real map this plan was traced over, and where its top-down render
     /// sat under the grid. Purely authoring metadata — the compiler never reads it, so it has no effect on the
     /// compiled layout/intent. Absent for genuinely new (untraced) plans.</summary>
@@ -203,6 +220,18 @@ public sealed class PlanBox
     /// <summary>The member piece ids, when the grouping is stated rather than inferred; <c>null</c>/empty
     /// leaves membership to containment.</summary>
     [JsonPropertyName("members")] public List<string>? Members { get; set; }
+}
+
+/// <summary>A terrain-paint scope assignment (docs/world-export/terrain-painting.md TP10): the
+/// <see cref="Theme"/> (a <see cref="PlanModel.Themes"/> id) painted onto a set of pieces — an explicit
+/// <see cref="Pieces"/> list, and/or every member of <see cref="Box"/> (resolved by the compiler, so the box
+/// itself stays pure annotation the export never reads). A single-piece list is a piece override; several
+/// pieces or a box is a collection. Later scopes in the plan's list win over earlier ones for a shared piece.</summary>
+public sealed class PlanThemeScope
+{
+    [JsonPropertyName("theme")]  public string Theme { get; set; } = "";
+    [JsonPropertyName("pieces")] public List<string> Pieces { get; set; } = [];
+    [JsonPropertyName("box")]    public string? Box { get; set; }
 }
 
 /// <summary>The team-0 unit's objective markers; the compiler fans orbit images. Positions are piece-relative

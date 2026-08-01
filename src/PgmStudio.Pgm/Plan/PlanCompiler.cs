@@ -256,6 +256,7 @@ public static class PlanCompiler
         var observerY = plan.Globals.ObserverY ?? plan.Globals.Surface + 15;
 
         var structures = BuildStructures(plan, d);
+        var (themes, mapTheme, pieceThemes, footprints) = BuildThemes(plan, d);
 
         return new MapIntent
         {
@@ -269,7 +270,45 @@ public static class PlanCompiler
             Build = build,
             Meta = new MetaIntent { Name = plan.Meta?.Name ?? "", Authors = [] },
             Structures = structures.IsEmpty ? null : structures,
+            Themes = themes,
+            MapTheme = mapTheme,
+            PieceThemes = pieceThemes,
+            PieceFootprints = footprints,
         };
+    }
+
+    // ── themes: bake the authored theme registry + scope assignments for scoped terrain painting (TP10) ───
+    // Nothing authored → everything empty, so the export paints the built-in default and carries no per-piece
+    // data. Otherwise: the theme JSONs verbatim, the map-default id, a flat pieceId→themeId (scopes walked in
+    // order, later winning, boxes expanded to their members), and every generating piece's fanned footprint —
+    // the one plan fact the painter needs to map a cell to its piece.
+    private static (Dictionary<string, string> Themes, string? MapTheme, Dictionary<string, string> PieceThemes, List<PieceFootprint> Footprints)
+        BuildThemes(PlanModel plan, ContactGraph d)
+    {
+        if (plan.Themes is not { Count: > 0 }) return (new(), null, new(), new());
+
+        var themes = plan.Themes.ToDictionary(kv => kv.Key, kv => kv.Value.GetRawText());
+        var mapTheme = plan.MapTheme is { } mt && themes.ContainsKey(mt) ? mt : null;
+
+        var pieceThemes = new Dictionary<string, string>();
+        foreach (var scope in plan.ThemeScopes ?? [])
+        {
+            if (!themes.ContainsKey(scope.Theme)) continue;    // a scope naming an unknown theme is ignored
+            var pieces = new HashSet<string>(scope.Pieces);
+            if (scope.Box is { } boxId && PlanBoxes.ById(plan, boxId) is { } box)
+                foreach (var member in PlanBoxes.MembersOf(plan, box)) pieces.Add(member.Id);
+            foreach (var pieceId in pieces) pieceThemes[pieceId] = scope.Theme;   // later scope wins
+        }
+
+        var footprints = new List<PieceFootprint>();
+        foreach (var piece in d.Pieces.Where(p => PlanRoles.IsGenerating(p.Role)))
+            for (var k = 0; k < d.Order; k++)
+            {
+                var r = d.FanRect(piece.Rect, k);
+                footprints.Add(new PieceFootprint(piece.Id, new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ)));
+            }
+
+        return (themes, mapTheme, pieceThemes, footprints);
     }
 
     // ── structures: bedrock room floors, entrance redstone, iron cubes, approach walls (ST1–ST4) ─────────

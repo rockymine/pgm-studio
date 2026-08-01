@@ -13,17 +13,26 @@ public readonly record struct TerrainBand(int LoY, int HiY, TerrainBucket Bucket
 /// </summary>
 public static class TerrainPainter
 {
-    /// <summary>Paint the whole footprint with one map-wide theme. Runs last in the world build, after every
-    /// stamp, so the profile reads the finished world. <paramref name="teamDamageAt"/> gives a cell's owning
-    /// team as a 0–15 wool/clay damage nibble (-1 = neutral) — what a team-tinted material reads, on any
-    /// bucket; the default is neutral everywhere.</summary>
+    /// <summary>Paint the whole footprint with one map-wide theme (TP1–TP13). Runs last in the world build,
+    /// after every stamp, so the profile reads the finished world. <paramref name="teamDamageAt"/> gives a
+    /// cell's owning team as a 0–15 wool/clay damage nibble (-1 = neutral) — what a team-tinted material reads,
+    /// on any bucket; the default is neutral everywhere.</summary>
     public static void Paint(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, TerrainTheme theme,
         Func<int, int, int>? teamDamageAt = null)
+        => Paint(world, surfaceTop, (_, _) => theme, teamDamageAt);
+
+    /// <summary>Paint the footprint with a <b>per-cell</b> theme (TP10): <paramref name="themeAt"/> resolves the
+    /// theme governing each cell — a piece override, its collection, or the map default. Each column resolves
+    /// its bands and materials against its own theme; the profile is theme-agnostic, so per-cell theming needs
+    /// no new geometry. The single-theme overload is this with a constant resolver.</summary>
+    public static void Paint(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
+        Func<int, int, TerrainTheme> themeAt, Func<int, int, int>? teamDamageAt = null)
     {
         var team = teamDamageAt ?? ((_, _) => -1);
         var profile = new TerrainProfile(world, surfaceTop);
         foreach (var (cell, column) in profile.PaintableColumns())
         {
+            var theme = themeAt(cell.X, cell.Z);
             var teamData = team(cell.X, cell.Z);
             foreach (var band in Resolve(column, theme))
             {
