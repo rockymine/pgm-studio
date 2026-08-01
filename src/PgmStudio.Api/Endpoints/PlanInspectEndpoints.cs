@@ -123,6 +123,12 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
             return;
         }
 
+        // Pre-fill team ownership once, now, on the canonical island decomposition (G157) — a spawn's team
+        // owns its island, else a wool's owner, else neutral. The compiled intent carries it downstream, so
+        // configure opens pre-assigned and the export paints without re-deriving.
+        var ownFootprint = SketchRasterizer.RasterizeColumns(JsonSerializer.Serialize(layout, SketchLayout.Json)).Select(c => (c.X, c.Z));
+        foreach (var (islandId, team) in TeamTerritory.Assign(ownFootprint, intent)) intent.IslandTeams[islandId] = team;
+
         // Serialize each half with its own consumer's options (snake_case shape fields for the sketch blob;
         // Web camelCase for the intent) so the editor can post the raw sub-objects straight to the pipeline.
         var layoutEl = JsonSerializer.SerializeToElement(layout, SketchLayout.Json);

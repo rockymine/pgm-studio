@@ -20,21 +20,34 @@ public static class IslandDetector
 
     /// <summary>Detect islands from unique surface footprint coordinates.</summary>
     public static List<Island> Detect(IEnumerable<(int X, int Z)> coords, int minIslandSize = 10, int connectivity = 8)
+        => DetectWithCells(coords, minIslandSize, connectivity).Islands;
+
+    /// <summary>As <see cref="Detect"/>, but also returns a <c>cell → island id</c> map so a caller can label
+    /// a footprint cell with the same 1-based id <c>islands_json</c> uses — the shared decomposition behind
+    /// team ownership. Same components, ordering and ids as <see cref="Detect"/> (which delegates here), so
+    /// the island a cell falls in cannot drift from the one the configure UI assigned.</summary>
+    public static (List<Island> Islands, IReadOnlyDictionary<(int X, int Z), int> CellToId) DetectWithCells(
+        IEnumerable<(int X, int Z)> coords, int minIslandSize = 10, int connectivity = 8)
     {
         var cells = new HashSet<(int, int)>(coords);
-        if (cells.Count == 0) return [];
+        var cellToId = new Dictionary<(int X, int Z), int>();
+        if (cells.Count == 0) return ([], cellToId);
 
-        var islands = new List<Island>();
-        foreach (var comp in ConnectedComponents(cells, connectivity))
+        // pair each kept component with its Island, stable-sort by block count desc, assign 1-based ids.
+        var paired = ConnectedComponents(cells, connectivity)
+            .Where(comp => comp.Count >= minIslandSize)
+            .Select(comp => (Cells: comp, Island: new Island(0, comp.Count, BoundsOf(comp), BlocksToPolygon(comp))))
+            .OrderByDescending(p => p.Island.BlockCount)
+            .ToList();
+
+        var islands = new List<Island>(paired.Count);
+        for (var i = 0; i < paired.Count; i++)
         {
-            if (comp.Count < minIslandSize) continue;
-            islands.Add(new Island(0, comp.Count, BoundsOf(comp), BlocksToPolygon(comp)));
+            var id = i + 1;
+            islands.Add(paired[i].Island with { Id = id });
+            foreach (var cell in paired[i].Cells) cellToId[cell] = id;
         }
-
-        // Stable sort by block count desc, then assign 1-based ids (matches Python's stable sort).
-        var ordered = islands.OrderByDescending(i => i.BlockCount).ToList();
-        for (var i = 0; i < ordered.Count; i++) ordered[i] = ordered[i] with { Id = i + 1 };
-        return ordered;
+        return (islands, cellToId);
     }
 
     /// <summary>

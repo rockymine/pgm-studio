@@ -132,16 +132,19 @@ stained glass) with the owning team's colour — **the same 0–15 damage scale 
 team's clay wall matches its wools — falling back to `neutral` on a cell with no team. It is a **material,
 not a wall feature**: it works on any bucket (a team-tinted rim or surface is just a theme that puts it
 there) and composes inside a `LayeredMaterial` or a pattern, because the tint reads the owning team from the
-shared `BucketContext`. The painter fills that context per cell from a `teamDamageAt(x, z)` map; `SketchWorldBuilder` derives it
-**by island** — the terrain footprint is split into connected land, and an island is owned by the team of a
-spawn on it (else the owner of a wool on it), so a whole team landmass takes one colour and land with no
-anchor stays **neutral**. That is the same team/objective/neutral decomposition `BoardDeriver` reads from
-the plan, applied to the exported terrain where the coordinates already agree. The richer, authoritative
-sources refine the map without touching the painter (which only reads the nibble): **`BoardDeriver` over the
-plan** (its captive / stepping-stone analysis splits a team island that is land-bridged to the mid, which a
-plain flood-fill would merge), and the **configure step's `IslandTeams`** when the author has clicked
-islands onto teams. The default theme tints the wall (neutral fallback: light-grey clay); everything else
-stays neutral until a theme says otherwise. What is *not* a theme choice is the domain invariant — bedrock and every
+shared `BucketContext`. The painter fills that context per cell from a `teamDamageAt(x, z)` map that `SketchWorldBuilder` gets from
+**`TeamTerritory`** — one shared ownership decomposition. It splits the terrain footprint into the
+**canonical** islands (`IslandDetector`, the same 1-based ids `islands_json` and the configure canvas use)
+and gives each island its team: a stored `intent.IslandTeams` value wins, else a spawn's team on the island,
+else a wool's owner, else **neutral**. So a whole team landmass takes one colour and anchorless land (a mid
+island) stays neutral. `IslandTeams` is populated **once, when it's cheapest** — the `/plan/compile` endpoint
+pre-fills it on the canonical decomposition (so ownership is derived at plan time, not re-derived at export),
+and the **configure step** overwrites it when the author clicks islands onto teams. Because every side keys
+on the one `IslandDetector` id space, the tint the export paints is exactly what configure shows — no second
+decomposition to drift. (This reproduces `BoardDeriver`'s ownership exactly: its islands are the same
+connected components, and its captive/stepping-stone analysis refines the zone/mid grammar, not who owns the
+land — verified cell-for-cell across the plan corpus.) The default theme tints the wall (neutral fallback:
+light-grey clay); everything else stays neutral until a theme says otherwise. What is *not* a theme choice is the domain invariant — bedrock and every
 stamped structure stay untouched regardless (TP6).
 
 The eventual theme file (a JSON extension) is exactly this record serialized: a `TerrainMaterial` per bucket

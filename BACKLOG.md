@@ -430,11 +430,12 @@ studio, G117/G118) is in `TODO.md`.
   interfaces — the theme-resolution lookup stage); and, last, **patterns** per bucket (voronoi/fractal area
   fills for surface/fill, layered or map-wrapping vertical runs for walls) as new `TerrainMaterial`
   implementations. **Team tint is built** (`TeamTintedMaterial`, a general material on any bucket, block
-  0–15 damage scale, default on the wall) with **island-based** ownership (a team owns its whole landmass;
-  anchorless land stays neutral). The open follow-up is the richer ownership sources, which touch only
-  `SketchWorldBuilder`'s resolver, not the painter: **`BoardDeriver` over the plan** (splits a team island
-  land-bridged to the mid, which the plain flood-fill merges) — needs the plan threaded into the export
-  path — and the **configure step's `IslandTeams`** when the author assigns islands to teams by hand.
+  0–15 damage scale, default on the wall) with ownership through **`TeamTerritory`** — one shared decomposition
+  on the canonical `IslandDetector` islands (the same ids `islands_json`/configure use), owner = a stored
+  `IslandTeams` value, else a spawn's team on the island, else a wool's owner, else neutral. Derived **once**:
+  `/plan/compile` pre-fills `IslandTeams`, the configure step overrides it, and the export reads it — same id
+  space throughout, no re-derivation. (A corpus-wide scratch comparison confirmed this reproduces
+  `BoardDeriver`'s ownership cell-for-cell, so BoardDeriver did not need threading into the export.)
 
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**

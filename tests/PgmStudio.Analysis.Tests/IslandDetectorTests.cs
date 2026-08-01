@@ -9,6 +9,26 @@ namespace PgmStudio.Analysis.Tests;
 public class IslandDetectorTests
 {
     [Test]
+    public async Task DetectWithCells_labels_each_cell_with_its_1_based_island_id()
+    {
+        // Blob A: 5×5 = 25 at origin (id 1, larger). Blob B: 4×4 = 16 far away (id 2).
+        var coords = new List<(int, int)>();
+        for (var x = 0; x < 5; x++) for (var z = 0; z < 5; z++) coords.Add((x, z));
+        for (var x = 100; x < 104; x++) for (var z = 100; z < 104; z++) coords.Add((x, z));
+
+        var (islands, cellToId) = IslandDetector.DetectWithCells(coords, minIslandSize: 10);
+
+        await Assert.That(islands.Select(i => i.Id).ToList()).IsEquivalentTo(new[] { 1, 2 });
+        await Assert.That(cellToId[(2, 2)]).IsEqualTo(1);            // in the big blob
+        await Assert.That(cellToId[(101, 101)]).IsEqualTo(2);       // in the small blob
+        await Assert.That(cellToId.Count).IsEqualTo(41);           // every kept cell labelled
+        // ids match Detect exactly (Detect delegates here).
+        var detect = IslandDetector.Detect(coords, minIslandSize: 10);
+        await Assert.That(islands.Select(i => (i.Id, i.BlockCount)).ToList())
+            .IsEquivalentTo(detect.Select(i => (i.Id, i.BlockCount)).ToList());
+    }
+
+    [Test]
     public async Task Detect_SplitsComponents_FiltersTiny_SortsByBlockCount()
     {
         // Blob A: 5×5 = 25 cells at origin. Blob B: 4×4 = 16 cells far away. Speck: 3 cells (< min 10).

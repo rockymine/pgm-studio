@@ -123,8 +123,9 @@ public static class SketchWorldBuilder
 
         // ── Terrain finish (G157) — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
-        // untouched. The team tint is a material any bucket can use; ownership is island-based (TeamDamageResolver).
-        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainTheme.Default, TeamDamageResolver(intent, terrain.SurfaceTop));
+        // untouched. Team ownership is read through TeamTerritory — the canonical islands_json decomposition
+        // plus the stored/pre-filled IslandTeams — so the tint agrees with what the configure UI assigned.
+        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainTheme.Default, TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
@@ -345,52 +346,4 @@ public static class SketchWorldBuilder
     private static int WoolDataForTeam(string teamId, IReadOnlyList<TeamDef> teams)
         => BlockColors.BlockDamage(teams.FirstOrDefault(t => t.Id == teamId)?.Color ?? "white");
 
-    /// <summary>Assigns each terrain cell its owning team's colour (a 0–15 block damage nibble, -1 = neutral)
-    /// for the terrain painter's team tint. Ownership is by <b>island</b>, not by nearest spawn: the terrain
-    /// footprint is split into connected land, and an island is owned by the team of a spawn on it (else the
-    /// owner of a wool on it), so a whole team landmass takes one colour and land with no anchor stays neutral
-    /// — the same team/objective/neutral decomposition <see cref="Derive.BoardDeriver"/> reads from the plan,
-    /// applied to the exported terrain where the coordinates already agree. The richer sources — BoardDeriver
-    /// over the plan (captive/stepping-stone splits) and the configure step's <c>IslandTeams</c> — refine
-    /// this without touching the painter, which only reads the nibble.</summary>
-    private static Func<int, int, int> TeamDamageResolver(MapIntent intent, IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
-    {
-        var damageByTeam = (intent.Teams ?? []).ToDictionary(t => t.Id, t => BlockColors.BlockDamage(t.Color));
-        int DamageOf(string teamId) => damageByTeam.GetValueOrDefault(teamId, -1);
-
-        // Split the footprint into 4-connected islands.
-        (int, int)[] n4 = [(1, 0), (-1, 0), (0, 1), (0, -1)];
-        var footprint = surfaceTop.Keys.ToHashSet();
-        var islandOf = new Dictionary<(int X, int Z), int>();
-        var islandCount = 0;
-        foreach (var start in footprint)
-        {
-            if (islandOf.ContainsKey(start)) continue;
-            var id = islandCount++;
-            var stack = new Stack<(int X, int Z)>();
-            stack.Push(start);
-            while (stack.Count > 0)
-            {
-                var cell = stack.Pop();
-                if (!islandOf.TryAdd(cell, id)) continue;
-                foreach (var (dx, dz) in n4)
-                {
-                    var nb = (cell.X + dx, cell.Z + dz);
-                    if (footprint.Contains(nb) && !islandOf.ContainsKey(nb)) stack.Push(nb);
-                }
-            }
-        }
-
-        // Each island's owner: a spawn's team wins, else a wool's owner, else neutral.
-        var islandDamage = new int[islandCount];
-        Array.Fill(islandDamage, -1);
-        int? IslandAt(double px, double pz)
-            => islandOf.TryGetValue(((int)Math.Floor(px), (int)Math.Floor(pz)), out var id) ? id : null;
-        foreach (var s in intent.Spawns)
-            if (IslandAt(s.Point.X, s.Point.Z) is { } id && islandDamage[id] < 0) islandDamage[id] = DamageOf(s.Team);
-        foreach (var w in intent.Wools ?? [])
-            if (IslandAt(w.Spawn.X, w.Spawn.Z) is { } id && islandDamage[id] < 0) islandDamage[id] = DamageOf(w.Owner);
-
-        return (x, z) => islandOf.TryGetValue((x, z), out var id) ? islandDamage[id] : -1;
-    }
 }
