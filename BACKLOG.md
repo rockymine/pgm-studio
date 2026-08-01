@@ -417,25 +417,20 @@ studio, G117/G118) is in `TODO.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
-- [ ] **G157 — terrain painting (walls, rims, plateaus).** The exported terrain is one flat block of
-  stone; a final world pass should dress it — clay walls, quartz rims, grass interior — reading the
-  per-column surface the terrain builder already carries. Model spec'd in
-  `docs/world-export/terrain-painting.md` (TP1–TP6): rim = the top-most block of an edge column, found
-  over the 8 neighbours so a reentrant corner never gaps, with an opt-in `closed` bool for the full
-  plateau outline; wall = the exposed riser between bedrock and rim; interior = the grass top. Paints
-  **stone only**, so bedrock at y=0 and every stamped structure stay untouched by construction — and TP6
-  reads those stamps as height-bearing so the rim/wall turn at them: the piece-relative room plateaus and
-  the interface-relative bedrock approach wall (ST4 seam barrier) alike. Build as a
-  pure `TerrainPainter` over `SketchTerrain`, run last in `SketchWorldBuilder.Build`; materials are a
-  preset at the `structures.md` §6.4 seam (the first slice of G34, team-coloured walls the first knob) over
-  four buckets — rim/wall/surface/fill. The doc's case list is the fixture list. A visual prototype over two
-  real seeds validated the base detections (TP1–TP6). Planned extensions noted for later (TP7–TP13): a
-  configurable **rim depth**; a configurable **bedrock floor thickness** (absolute or terrain-relative); a
-  **toggle for wall on terrain-to-terrain faces**; **scoped theming** (full-map now, per-piece/collection
-  later, resolved at interfaces); a **layered surface stack** (grass over dirt, clamped by bedrock);
-  **bucket toggles with fill as the required fallback**; and, last, **patterns** per bucket (voronoi/
-  fractal area fills, layered or map-wrapping vertical wall runs). The depth knobs share one per-column
-  order: bedrock → rim/surface → wall → fill.
+- [~] **G157 — terrain painting: the extensions.** The base model (TP1–TP6: rim/wall/surface/fill,
+  corner-inclusive + `closed` rim, stamp consultation) is **built and shipped** (`FEATURES.md`,
+  `TerrainPainter`, painting every sketch export map-wide); the four-stage architecture
+  (`docs/world-export/terrain-painting.md` §5) is in place, so each remaining piece lands on one seam. Open
+  slice (TP7–TP13): a configurable **rim depth** and **bedrock floor thickness** (absolute or
+  terrain-relative) — both already carried by `TerrainTheme` + the band resolver and unit-tested, so what's
+  left is exposing/authoring them, not building them; a **toggle for wall on terrain-to-terrain faces** (also
+  already in the resolver); a **layered surface stack** (grass over dirt — `LayeredMaterial` exists, make it
+  the default `SurfaceDepth`); **bucket toggles with fill as the required fallback** (resolver done, surface
+  it); **scoped theming** (full-map today via the map-wide `Theme`; per-piece/collection later, resolved at
+  interfaces — the theme-resolution lookup stage); and, last, **patterns** per bucket (voronoi/fractal area
+  fills for surface/fill, layered or map-wrapping vertical runs for walls) as new `TerrainMaterial`
+  implementations. Team-coloured walls (island→team) is the first real material knob beyond the neutral
+  defaults.
 
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**

@@ -6,15 +6,19 @@ objectives onto the terrain, this pass dresses the terrain **itself**: the raw s
 becomes a stone body walled in clay, lipped in quartz, and topped in grass. It reads the terrain the
 world builder already placed and rewrites its surface — no new geometry, only materials.
 
-**Status: planned — nothing is built.** The model below is the contract to build against; it is validated
-only by a scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` —
-compiled through `PlanCompiler` and rasterized through `SketchRasterizer`), not by any shipped code. Rule
+**Status: the base model (TP1–TP6) is built and shipped; the extensions (TP7–TP13, §6) are planned.**
+`TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export map-wide, wired last into
+`SketchWorldBuilder.Build`; the four-stage architecture of §5 is in place. The model was first validated by a
+scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` — compiled through
+`PlanCompiler` and rasterized through `SketchRasterizer`) and is now covered by `TerrainPainterTests`. Rule
 ids here are `TP*` (terrain paint), local to this file the way `structures.md` owns `WX*`. Read alongside:
 
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). Terrain materials attach here.
 - `docs/contracts/sketch-world-export.md` — the world the painter runs inside (layer scheme, `level.dat`).
 - `SketchTerrainBuilder` (`PgmStudio.Minecraft`) — the terrain this pass consumes: bedrock at y=0, stone
   fill to each column's surface top, and the per-cell `SketchTerrain.SurfaceTop`.
+- `TerrainPainter` / `TerrainProfile` / `TerrainTheme` (`PgmStudio.Minecraft`) — the implementation:
+  the pass, the classifier core, and the theme.
 
 ---
 
@@ -128,7 +132,9 @@ regardless of theme (TP6).
 
 ## 4. The cases — and the tests they drive
 
-Each scenario the prototype separated is a fixture waiting to be written; together they cover the model.
+Each scenario the prototype separated is a test fixture; several are now written as `TerrainPainterTests`
+(the void-edge stack, the terrain step, the depth knobs, the structure-facing edge), and together they cover
+the model.
 
 - **Disjoint, void-bounded plateau.** A shape surrounded entirely by void: its rim outline coincides with
   its wall footprint, and there is no internal rim. The base seeds are this case (their shapes never

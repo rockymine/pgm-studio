@@ -8,7 +8,10 @@ public static class Blocks
 {
     public const int Air = 0;
     public const int Stone = 1;
+    public const int Grass = 2;
+    public const int Dirt = 3;
     public const int Bedrock = 7;
+    public const int QuartzBlock = 155;
     public const int Lava = 10;              // flowing; a core's interior is stationary lava
     public const int StationaryLava = 11;
     public const int GoldBlock = 41;

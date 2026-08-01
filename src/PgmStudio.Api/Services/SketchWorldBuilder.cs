@@ -121,6 +121,10 @@ public static class SketchWorldBuilder
         var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables);
         var resolvedCores = StampCores(world, terrain.SurfaceTop, intent.Cores);
 
+        // ── Terrain finish (G157) — dress the raw stone: clay walls, quartz rims, grass surface. Runs last so
+        // it reads the finished world; touches only stone, so bedrock and every stamp above stay untouched.
+        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainTheme.Default);
+
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
         ObserverIntent? resolvedObserver = null;

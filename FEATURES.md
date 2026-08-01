@@ -2400,6 +2400,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **Terrain finish — walls, rims, plateaus (base model).** `TerrainPainter` (`PgmStudio.Minecraft`,
+  `docs/world-export/terrain-painting.md` TP1–TP6) dresses the raw stone as the last world pass: a quartz
+  **rim** on the top-most block of every edge (8-neighbour, so a reentrant corner never gaps), a stained-clay
+  **wall** on the exposed riser between bedrock and rim, a grass **surface** on the interior top, and stone
+  left as **fill**. Built as the four-stage architecture — `TerrainProfile` (the theme-agnostic classifier),
+  a per-cell `TerrainTheme`, the pure band resolver, and the `TerrainMaterial` seam (`Solid`/`Layered`).
+  Touches **only stone**, so bedrock and every stamped structure (room plateaus, the bedrock approach wall,
+  objectives) are consulted as height-bearing neighbours but never painted (TP6). Wired map-wide into
+  `SketchWorldBuilder.Build`; unit-tested per column and over built worlds. (G157)
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`
   sections; gzipped `level.dat` with world spawn + a real creation timestamp), the mirror of the read-only
