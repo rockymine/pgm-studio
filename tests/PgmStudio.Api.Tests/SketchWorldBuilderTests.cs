@@ -166,4 +166,24 @@ public sealed class SketchWorldBuilderTests
         await Assert.That((built.SpawnX, built.SpawnZ)).IsNotEqualTo((0, 0));                       // not the naive origin
         await Assert.That(built.World.GetBlock(built.SpawnX, 0, built.SpawnZ).Id).IsEqualTo(Blocks.Bedrock);  // real column
     }
+
+    [Test]
+    public async Task A_build_area_over_the_void_is_outlined_in_redstone_at_y_one()
+    {
+        // A buildable platform clear of the terrain (which ends at x=40): the outline is the whole marker, and
+        // the export path is what has to carry it — the geometry itself is BuildMarkerStamper's.
+        var intent = SampleIntent();
+        var built = SketchWorldBuilder.Build(Layout, new MapIntent
+        {
+            Teams = intent.Teams, Spawns = intent.Spawns, Wools = intent.Wools,
+            Observer = intent.Observer, Meta = intent.Meta,
+            Build = new BuildIntent { MaxHeight = 40, Areas = [new Rect(50, 0, 58, 8)] },
+        });
+
+        // Ringed two blocks out on the west side, with the air gap and the platform itself left empty.
+        await Assert.That(built.World.GetBlock(48, 1, 0)).IsEqualTo((Blocks.RedstoneWire, 0));
+        await Assert.That(built.World.GetBlock(48, 1, -2)).IsEqualTo((Blocks.RedstoneWire, 0));   // the corner turn
+        await Assert.That(built.World.GetBlock(49, 1, 0).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(built.World.GetBlock(54, 1, 4).Id).IsEqualTo(Blocks.Air);
+    }
 }

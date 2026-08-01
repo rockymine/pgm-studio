@@ -498,6 +498,23 @@ the stat corpus.
   down to y=0. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every
   marked interface has Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are
   legal wall carriers.
+- **ST5 [author]** *Build-region outline*: the build region is marked in the world by an **unpowered
+  redstone line at y=1**, one air block clear of the region — so two blocks out from its edge — and
+  holding that same one-block clearance from terrain. Only the **void-facing** edges carry a line: an
+  edge docked against terrain is already marked by the terrain, and terrain overhanging the region
+  pulls that line back rather than letting it touch. Clearance is measured **diagonally as well as
+  along the axes**, which is what separates a line running *beside* a terrain column (a block shorter
+  at that end) from one passing *past its corner* (full length). Where two void-facing edges meet at a
+  convex corner the two lines **turn into each other**, so a region hanging free in the void is ringed
+  while a region bridging two pieces gets two plain lines and no corner.
+  <br>The outline follows the **cells, never the authored zone list**: zones sharing a border are traced
+  as one region, an enclosed pocket inside such a region gets a ring of its own, and two regions
+  touching only at a corner come out as a single unbroken staircase. A pocket ringed by regions that
+  merely stand around it is outlined too, a side at a time, each side cut back by the clearance to the
+  region diagonally beside it. The rule is scale-free — every length follows the zone and the board's
+  cell size. Evidence: the teaching seed `tools/seeds/teaching/build-region-examples.plan.json`;
+  `dotnet run tools/deriver/build-marker-check.cs <plan.json> [--svg out.svg]` draws what a plan would
+  export.
 
 ## Facing semantics [expert]
 
@@ -540,6 +557,10 @@ both corrected.)
    one central island (or a v-symmetric pair, the `ex-10` form). Abutting/coincident images at the axis
    are one island; only interior overlap stays a clearance breach. Shipped as the composer's centre
    crossing (G36), with the pair form biased shallow so two 10×10 squares are the common pair.
+7. **ST5 added (2026-07-31).** The build region is marked in the exported world, from the author's
+   teaching seed `build-region-examples.plan.json` — five zones stating the offset, the void-facing
+   edge test, the terrain clearance and the corner turn. New rule, no existing rule changed; ST1's
+   entrance line is unaffected and stays powered, which is what distinguishes the two on sight.
 
 ## Correction protocol
 

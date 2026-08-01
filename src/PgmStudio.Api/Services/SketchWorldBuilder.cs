@@ -103,6 +103,12 @@ public static class SketchWorldBuilder
         // footprint overlap; room floors sit below the cage floor and the rest are clear of the cubes.
         StampStructures(world, terrain.SurfaceTop, intent.Structures);
 
+        // ── Build-region outline (ST5) — an unpowered redstone line in the void, one air block clear of the
+        // region and of the terrain. Derived here rather than in the compiler because the clearance rule reads
+        // the terrain the world actually placed; the areas arrive already fanned, so the marker is symmetric.
+        if (intent.Build is { } build)
+            BuildMarkerStamper.Stamp(world, BlockRects(build.Areas), BlockRects(build.Holes), terrain.SurfaceTop);
+
         // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
         // region the generator emits is the volume these blocks were stamped into (OB8).
         var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables);
@@ -162,6 +168,12 @@ public static class SketchWorldBuilder
         foreach (var line in s.RedstoneLines)
             StructureStamper.StampRedstoneLine(world, surface, line.X1, line.Z1, line.X2, line.Z2);
     }
+
+    // Intent footprints are a fractional corner pair over whole world blocks (max exclusive); the stampers
+    // work in integers.
+    private static IEnumerable<(int MinX, int MinZ, int MaxX, int MaxZ)> BlockRects(IEnumerable<Rect> rects)
+        => rects.Select(r => ((int)Math.Floor(r.MinX), (int)Math.Floor(r.MinZ),
+                              (int)Math.Ceiling(r.MaxX), (int)Math.Ceiling(r.MaxZ)));
 
     // Stamp each destroyable's structure and return the intent with every box resolved. One DestroyableBox
     // call per objective feeds both the blocks and (via the returned intent) the emitted region — the box is

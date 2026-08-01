@@ -1,0 +1,337 @@
+{
+  "plan": 1,
+  "meta": {
+    "name": "build region examples"
+  },
+  "globals": {
+    "cell": 4,
+    "symmetry": "none",
+    "maxPlayers": 12,
+    "surface": 9,
+    "headroom": 11
+  },
+  "pieces": [
+    {
+      "id": "piece",
+      "role": "piece",
+      "rect": [
+        -7,
+        -9,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-2",
+      "role": "piece",
+      "rect": [
+        -7,
+        -5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-3",
+      "role": "piece",
+      "rect": [
+        -1,
+        -9,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-4",
+      "role": "piece",
+      "rect": [
+        -2,
+        -5,
+        3,
+        2
+      ]
+    },
+    {
+      "id": "piece-5",
+      "role": "piece",
+      "rect": [
+        4,
+        -9,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-6",
+      "role": "piece",
+      "rect": [
+        3,
+        -5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-7",
+      "role": "piece",
+      "rect": [
+        14,
+        -5,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "piece-8",
+      "role": "piece",
+      "rect": [
+        14,
+        -9,
+        4,
+        2
+      ]
+    },
+    {
+      "id": "piece-9",
+      "role": "piece",
+      "rect": [
+        22,
+        -5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-10",
+      "role": "piece",
+      "rect": [
+        22,
+        -9,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-11",
+      "role": "piece",
+      "rect": [
+        26,
+        -9,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-12",
+      "role": "piece",
+      "rect": [
+        26,
+        -5,
+        2,
+        2
+      ]
+    },
+    {
+      "id": "piece-13",
+      "role": "piece",
+      "rect": [
+        31,
+        -9,
+        2,
+        6
+      ]
+    },
+    {
+      "id": "piece-14",
+      "role": "piece",
+      "rect": [
+        37,
+        -9,
+        2,
+        6
+      ]
+    }
+  ],
+  "zones": [
+    {
+      "id": "example-1",
+      "rect": [
+        -7,
+        -7,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-2",
+      "rect": [
+        -2,
+        -7,
+        3,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-3",
+      "rect": [
+        4,
+        -7,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-4",
+      "rect": [
+        8,
+        -7,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-5",
+      "rect": [
+        14,
+        -7,
+        3,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-5-1",
+      "rect": [
+        22,
+        -7,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-5-2",
+      "rect": [
+        24,
+        -9,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-5-4",
+      "rect": [
+        24,
+        -5,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-5-3",
+      "rect": [
+        26,
+        -7,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "zone",
+      "rect": [
+        33,
+        -9,
+        4,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-6-2",
+      "rect": [
+        33,
+        -5,
+        4,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-7-1",
+      "rect": [
+        41,
+        -9,
+        2,
+        6
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-7-2",
+      "rect": [
+        43,
+        -9,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-7-3",
+      "rect": [
+        45,
+        -9,
+        2,
+        6
+      ],
+      "holes": []
+    },
+    {
+      "id": "example 7-4",
+      "rect": [
+        43,
+        -5,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-8-1",
+      "rect": [
+        49,
+        -9,
+        2,
+        2
+      ],
+      "holes": []
+    },
+    {
+      "id": "example-8-2",
+      "rect": [
+        51,
+        -7,
+        2,
+        2
+      ],
+      "holes": []
+    }
+  ],
+  "placements": {
+    "spawns": [],
+    "wools": [],
+    "iron": [],
+    "destroyables": [],
+    "cores": []
+  },
+  "cliffs": [],
+  "walls": [],
+  "boxes": []
+}

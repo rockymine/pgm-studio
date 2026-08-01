@@ -2411,6 +2411,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   bedrock pedestal · air cell · wool-colour glass cap · label sign, placed by captured-wool count),
   `ObserverPlatformStamper` (solid 6×6 platform + four inward info boards), plus `SignBuilder`/`ChestBuilder`
   and `PositionSnap` (integer X/Z, `ymax` Y, yaw→door facing). (P9c, P9d, P9g, P9h, P9i, P9j, P9l)
+- **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
+  unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
+  near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds
+  that same clearance from terrain, which is what pulls it back where terrain overhangs the region. Only
+  void-facing edges carry a line, since a docked edge is already marked by the terrain it docks against, and
+  two void-facing edges meeting at a convex corner turn into each other: a free-standing region comes out
+  ringed, a region bridging two pieces comes out with two plain lines. Because the trace reads **cells rather
+  than the zone list**, the multi-zone shapes need no cases of their own — zones sharing a border outline as
+  one region with their enclosed pocket ringed in its own right, and two zones touching at a single corner come
+  out as one unbroken staircase. Derived at export rather than at compile time because the clearance reads the
+  terrain the world actually placed; the areas arrive already fanned, so the marker is symmetric with them. The
+  sixteen zones of `tools/seeds/teaching/build-region-examples.plan.json` are the authored expectations, drawn
+  by `tools/deriver/build-marker-check.cs` (`--svg` for the picture). (G155, ST5)
 - **Export endpoint** — `SketchWorldBuilder` assembles the world from a map's sketch layout + intent and
   returns a resolved intent (integer-snapped spawns + monument locations derived from the world air cells,
   capturers defaulted to every non-owner team) so the XML agrees with the world. `GET /api/map/{slug}/export`
