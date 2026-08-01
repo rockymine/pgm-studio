@@ -434,6 +434,14 @@ studio, G117/G118) is in `TODO.md`.
   cells to reach the block minimum — through `MinBox` and the spawn profile; the composer's cell-5 boards
   already clear it by construction, so this binds only when boards go small-cell.
 
+- [ ] **G160 — an undeclared enclosed void is a lint, and the author can materialize it.** Once the generator
+  declares its voids (G159), a hand-authored plan whose pieces happen to ring a gap still has no buffer over
+  it, and that gap is left to chance. The plan validator gains a lint naming each enclosed void the plan does
+  not declare — the `evaluator.md` term, at last writable — and the plan editor offers to write the buffers
+  in, so a hole stops being an emergent property of where rectangles were not drawn and becomes an object in
+  the document that can be selected, moved and deleted. The voids are the enclosed rings of the piece union —
+  the ones it winds CW, which `RectilinearUnion.Outlines` drops — decomposed back into rects.
+
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to
   go the other direction and *place* something known-producible: nothing in `Features/Plan/` references the
