@@ -427,8 +427,13 @@ studio, G117/G118) is in `TODO.md`.
   reads those stamps as height-bearing so the rim/wall turn at them: the piece-relative room plateaus and
   the interface-relative bedrock approach wall (ST4 seam barrier) alike. Build as a
   pure `TerrainPainter` over `SketchTerrain`, run last in `SketchWorldBuilder.Build`; materials are a
-  preset at the `structures.md` §6.4 seam (the first slice of G34, team-coloured walls the first knob). The
-  doc's case list is the fixture list. A visual prototype over two real seeds validated the detections.
+  preset at the `structures.md` §6.4 seam (the first slice of G34, team-coloured walls the first knob) over
+  four buckets — rim/wall/surface/fill. The doc's case list is the fixture list. A visual prototype over two
+  real seeds validated the base detections (TP1–TP6). Planned extensions noted for later (TP7–TP10): a
+  configurable **rim depth**, a configurable **bedrock floor thickness** (absolute or terrain-relative), a
+  **toggle for wall on terrain-to-terrain faces**, and **scoped theming** (full-map now, per-piece/
+  per-collection later, resolved at interfaces). These share one per-column resolution order: bedrock →
+  rim → wall → surface/fill.
 
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**

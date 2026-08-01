@@ -99,18 +99,28 @@ top-most block, when it is an edge), the **wall** (the exposed riser below the r
 
 ### Interior — the grass top
 
-- **TP5** *The interior is the top block of every non-edge column.* One block of grass at `surfaceTop − 1`,
-  everywhere the column is neither rim nor buried under a structure. The body beneath it is left as stone.
+- **TP5** *The interior is the top block of every non-edge column.* One block at `surfaceTop − 1` —
+  the **surface** bucket (grass in the examples) — everywhere the column is neither rim nor buried under a
+  structure. The body beneath it is the **fill** bucket (§3), left as stone today.
 
 ## 3. Materials — the preset seam
 
-TP1–TP5 produce **masks**, not block ids: which columns are rim, which faces are wall, which tops are
-interior. The blocks those masks resolve to are a **preset** — the same style-as-data seam the room shells
-use (`structures.md` §6.4, `DestroyableStyle`'s precedent), so a theme is a data row, never a code path.
-The first intended knob is the **team colour on the wall**: an island's stained-clay hue, chosen per
-plateau by the team that owns the island — the prototype tints by side of the mirror centre as a stand-in,
-but the real assignment reads island→team from the intent. Grass and quartz are the neutral defaults;
-bedrock-and-rooms-untouched is not a preset choice, it is TP's domain invariant.
+TP1–TP5 produce **masks**, not block ids. The masks sort every paintable block into four **buckets**, and
+the blocks each bucket resolves to are a **preset** — the same style-as-data seam the room shells use
+(`structures.md` §6.4, `DestroyableStyle`'s precedent), so a theme is a data row, never a code path:
+
+- **rim** — the edge lip (TP1).
+- **wall** — the exposed riser (TP4).
+- **surface** — the top block of the interior (TP5's top course).
+- **fill** — the interior body below the surface (today left as stone; a bucket so a theme can set it —
+  dirt under grass, sand, whatever the surface wants beneath it).
+
+The quartz / clay / grass / stone in this document and the prototype are **examples**, chosen only to tell
+the buckets apart on sight — none is canonical. The first intended real knob is the **team colour on the
+wall**: an island's stained-clay hue, chosen per plateau by the team that owns the island (the prototype
+tints by side of the mirror centre as a stand-in; the real assignment reads island→team from the intent).
+What is *not* a preset choice is the domain invariant — bedrock and every stamped structure stay untouched
+regardless of theme (TP6).
 
 ## 4. The cases — and the tests they drive
 
@@ -157,6 +167,53 @@ over their frames, so it unit-tests directly against the fixtures above with no 
 bool and the material preset ride a small paint-options record; the preset resolves masks → block ids at
 the §3 seam.
 
+## 6. Planned extensions (noted, not yet prototyped)
+
+The base model (TP1–TP6) is validated by the prototype's figures. The four below are agreed additions,
+recorded here before they are built — the prototype does not yet show them. Three are per-column depth
+knobs that share one **resolution order**: the bedrock floor is claimed first (it sets how much stone a
+column even has), the rim is claimed next from the top down, the wall fills what is left below the rim to
+the drop, and the surface/fill buckets dress the interior. Every band takes only what the band above it
+left, so a short column runs out of stone gracefully rather than overlapping. The fourth is the
+architecture that lets any of these vary across the map.
+
+- **TP7** *Rim depth is configurable; the wall takes the rest.* The rim is the top **`rimDepth`** blocks of
+  an edge column, not always one (2 or 3 are ordinary). The wall then occupies the remaining exposed height
+  **below** the rim, down to the drop. The rim never overrides the bedrock floor: it is clamped to the
+  stone available above bedrock, so a column with only one paintable course is all rim and no wall, and the
+  bedrock course is never recoloured. Default `rimDepth = 1` — the base model.
+
+- **TP8** *Bedrock floor thickness is configurable, in two modes.* The bedrock floor is
+  **`bedrockThickness`** blocks up from y=0, at least **1**, never more than the column is tall. It is
+  claimed before anything else, so rim, wall, surface and fill all divide only the stone it leaves — and
+  when `bedrockThickness` equals the column height (a piece exactly as tall as its floor), **no stone
+  remains and rim and wall stop altogether**. Two ways to set it: **absolute** (a fixed block count), or
+  **terrain-relative** — you name the intended *terrain depth* (how thick the painted stone shell should be
+  measured down from the surface) and the bedrock takes the rest of the column, `bedrockThickness =
+  columnHeight − terrainDepth`, per column. Terrain-relative keeps the dressed shell a constant depth over
+  uneven ground (thick bedrock under a tall plateau, thin under a low one).
+
+- **TP9** *Wall on terrain-to-terrain faces is a toggle.* The void-facing wall is fundamental, but a face
+  between two **terrain** pieces is exposed to air too — the mid-island case where one piece docks a
+  neighbour four blocks shorter shows raw stone on the taller piece's inward side. That face is wall when
+  the toggle is on: with `rimDepth = 1`, an adjacent height difference of **≥2** leaves, after the one rim
+  block, one-or-more wall blocks on the taller side (a difference of 1 is covered by the rim alone, no
+  wall). Off, only void-facing faces paint and internal risers stay fill/stone. (The prototype already
+  paints internal risers unconditionally — TP9 is making that a knob and binding it to `rimDepth`.)
+
+- **TP10** *Theming is scoped — full map now, per-piece/per-collection later — and always resolved at
+  interfaces.* Today one theme (bucket materials + the TP7/TP8/TP9 knobs) applies map-wide. The plan is to
+  let a theme also attach to an individual piece or a collection, so bedrock can be terrain-relative in one
+  area and a fixed depth in another. This is tractable because rim, wall and surface are already defined by
+  a piece's **interfaces** — its edges against void, other pieces, and structures — exactly what the
+  map-wide model reads per cell. Per-piece theming is the same resolution with a scoped lookup: for each
+  cell/interface, which theme governs (piece override → collection → map default). A piece with no
+  qualifying interface — sitting dead-centre among same-height neighbours of the same theme — simply has no
+  rim or wall to paint; it falls out of the neighbour test with no special case, the way an interior column
+  does now. Architecturally the global paint-options record of §5 becomes that scope-resolved lookup, and
+  the interface-relative machinery TP6 already needs for the approach wall is the shape to generalize —
+  resolve by interface, never by piece interior.
+
 ## Rule catalog
 
 | id | rule |
@@ -167,3 +224,7 @@ the §3 seam.
 | **TP4** | The wall is the exposed riser, `y ∈ [drop, surfaceTop − 2]`; buried stone and the y=0 bedrock course are left. |
 | **TP5** | The interior is the grass top of every non-edge column. |
 | **TP6** | A stamped structure (piece-relative room/cube, or the interface-relative bedrock approach wall) is height-bearing: never painted, never a drop (no open lip, no clay behind it), always a closed-rim edge. |
+| **TP7** *(planned)* | Rim depth is configurable (default 1); the wall takes the height below it, and the rim never overrides the bedrock floor. |
+| **TP8** *(planned)* | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
+| **TP9** *(planned)* | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |
+| **TP10** *(planned)* | Theming is scoped (full map, or per piece/collection) and resolved at interfaces; a piece with no qualifying interface has no rim/wall. |
