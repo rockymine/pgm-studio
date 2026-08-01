@@ -38,30 +38,15 @@ back-reference, so the labeled corpus cannot be contaminated after the fact. Bro
 and duel results (pairwise preference) are **separate datasets**, unified only at analysis time. The
 hold tray persists across reloads — pinned *means* persisted.
 
-- [ ] **G159 — the generator must declare its voids, and the compiler must honour them.** A composed board's
-  enclosed voids export as solid ground. `PlanCompiler` unions each component's same-surface pieces through
-  `RectilinearUnion.Outlines`, and a `SketchShape` polygon carries one ring — which cannot state a hole — so
-  the outline describes the patch with its voids filled in. Over 480 composed boards **55% lose at least one
-  void** (`Composed p30 t2 #9`: 950 phantom land cells across four holes). The hole is the whole point of the
-  `Ring` · `DoubleHole` · `P` · `G` compounds (`model.md` §4), so this deletes the body the generator chose.
-
-  The role for it exists: `PlanRoles.Buffer` marks "reserved gaps **and holes**, no terrain", `BoardDeriver`
-  folds buffer cells into `declaredVoid` beside zone holes, and `evaluator.md` specifies the term that needs a
-  declaration — *every enclosed void either declared or penalized*. So does the geometry: `BodyEmitter.Ring`
-  returns `ShapeBody(pieces, [RingHole(…)])` and the `ShapeVacancy(Kind: "hole", Rect, Mouth, Walls)` it
-  becomes is transformed through `BodyOrient` / `MouthOrient` / `BoxFiller`. It dies at unit assembly —
-  `GrownUnit(Pieces, Spawn, Wools)` has nowhere to put it — so no composed plan carries a buffer piece (0
-  across 200 boards). Thread the vacancy through `GrownUnit` into `Composer.Assemble`, emit one `buffer` per
-  rect of the space (a non-rectangular void is already a compound of rectangles — `NegativeSpacePart`), and
-  have `PlanCompiler` turn a buffer into the `subtract` shape the sketch format already understands.
-
-  **Settle first — does a buffer over a generating piece carve it?** Today it cannot: buffers are filtered out
-  of `ContactGraph.Pieces`, `PlanRoles` calls them "informational-only … never rasterized", and
-  `PlanCompilerTests.A_buffer_overlapping_terrain_compiles_identically_to_the_plan_without_it` asserts the
-  compiled pair is byte-identical with one present. Declaring voids makes buffers load-bearing: either a
-  buffer always subtracts, and that test and the docstring change, or it subtracts only where no generating
-  piece covers it, and both stay true. The second reaches this bug in full — the hub's hole is exactly where
-  no piece reaches.
+- [~] **G159 — a composed plan should carry its voids before it is compiled.** The compiler declares them on
+  every compile (`PlanVoids`, `FEATURES.md`), so a board's holes are correct wherever it is built. What a
+  freshly composed plan does not yet carry is the declaration itself: `Composer.Compose` returns pieces only,
+  and the buffers appear when something compiles it. Running the same step at the end of `Composer.Assemble`
+  makes a generated plan self-describing from birth — one line, no new geometry, and it cannot disagree with
+  the compiler because it is the same step. The cost is the reason it is not folded in already: the composer
+  fingerprint digests the plan JSON, so every board's digest moves, which means a `ComposerVersion` bump and a
+  re-record of `tools/compose/composer-fingerprints.json`. Worth doing on the next version bump rather than
+  spending one on annotation.
 
 - [ ] **G118 — Verdict collection.** Tap-chip annotation tags (large toggleable pills, multi-select —
   never checkboxes) available on both vote directions, both optional; the tag set seeded from the

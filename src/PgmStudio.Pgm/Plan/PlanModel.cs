@@ -12,10 +12,13 @@ namespace PgmStudio.Pgm.Plan;
 ///
 /// <para>Roles split into two kinds. <b>Generating</b> roles (<see cref="Piece"/>/<see cref="WoolRoom"/>/
 /// <see cref="Spawn"/>) produce terrain and participate in connectivity, gameplay, validation and export.
-/// <b>Annotation</b> roles (the <see cref="Annotations"/> set) are informational-only marks that produce no
-/// terrain and carry no graph or export effect — shown in authoring and render tools only. Two annotation
-/// roles exist: <see cref="Buffer"/> — a reserved empty gap covering lane-to-lane spacing, the border
-/// reservation, and holes (a hole is an enclosed buffer) — and <see cref="Connector"/>, an attachment-point
+/// <b>Annotation</b> roles (the <see cref="Annotations"/> set) produce no terrain of their own and take no
+/// part in connectivity. A <see cref="Buffer"/> does reach the export, as the one thing an annotation can say
+/// there: <b>this ground is not terrain</b>. It states negative space — lane-to-lane spacing, the border
+/// reservation, and holes (a hole is an enclosed buffer) — which the compiler carves out of the union outline
+/// that would otherwise fill it (<see cref="Plan.PlanVoids"/>). It never takes terrain from a generating
+/// piece: over one it stays inert, so a buffer can declare a void but never destroy ground. The other
+/// annotation role is <see cref="Connector"/>, an attachment-point
 /// mark ("other structure attaches / overrides here" — a hub, a frontline, the mid) that, with buffers, lets
 /// an author build reusable lane/spawn templates. New non-generating roles are added by extending
 /// <see cref="Annotations"/>.</para></summary>
@@ -27,12 +30,13 @@ public static class PlanRoles
     public const string Buffer = "buffer";
     public const string Connector = "connector";
 
-    /// <summary>The non-generating annotation roles — marks that document intent (spacing/reserved gaps and
-    /// holes via <see cref="Buffer"/>; attachment points via <see cref="Connector"/>) but produce no terrain
-    /// and have no gameplay/graph/export effect. Extend this to add more.</summary>
+    /// <summary>The non-generating annotation roles — marks that document intent (spacing, reserved gaps and
+    /// holes via <see cref="Buffer"/>; attachment points via <see cref="Connector"/>) rather than produce
+    /// terrain. Extend this to add more.</summary>
     public static readonly IReadOnlySet<string> Annotations = new HashSet<string> { Buffer, Connector };
 
-    /// <summary>True when the role is an informational-only annotation (never rasterized, never buildable).</summary>
+    /// <summary>True when the role is an annotation — never terrain of its own, never buildable, and outside
+    /// the graph. A <see cref="Buffer"/> still reaches the export as negative space (see the type remarks).</summary>
     public static bool IsAnnotation(string? role) => role is not null && Annotations.Contains(role);
 
     /// <summary>True when the role produces terrain and participates in the graph/export (everything that is

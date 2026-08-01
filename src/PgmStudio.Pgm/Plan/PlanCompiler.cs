@@ -30,9 +30,12 @@ public static class PlanCompiler
 
     public static (SketchLayout Layout, MapIntent Intent) Compile(PlanModel plan)
     {
-        var d = ContactGraph.Build(plan);
-        var layout = BuildLayout(plan, d);
-        var intent = BuildIntent(plan, d, layout);
+        // Declare the plan's negative space before reading it, so a body's enclosed void is a buffer piece
+        // whether or not the author drew one (PlanVoids). Idempotent, so compiling twice changes nothing.
+        var declared = PlanVoids.Declare(plan);
+        var d = ContactGraph.Build(declared);
+        var layout = BuildLayout(declared, d);
+        var intent = BuildIntent(declared, d, layout);
         return (layout, intent);
     }
 
@@ -71,6 +74,28 @@ public static class PlanCompiler
             }
         }
 
+        // Buffers state the negative space (PlanVoids): each becomes a subtract shape, so the ground a body
+        // encircles stays void instead of taking the fill its outline implies. A buffer never takes terrain
+        // away from a piece — it is clipped to what no generating piece covers, which is what keeps it the
+        // inert annotation it has always been where it overlaps one.
+        var terrain = d.Pieces.Select(p => (p.Rect.MinX, p.Rect.MinZ, p.Rect.MaxX, p.Rect.MaxZ)).ToList();
+        foreach (var buffer in plan.Pieces.Where(p => p.Role == PlanRoles.Buffer))
+        {
+            var rect = ContactGraph.ToBlock(buffer.Rect, d.Cell);
+            foreach (var ring in RectilinearUnion.Difference([(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ)], terrain))
+            {
+                var id = $"s{shapeIndex++}";
+                shapes.Add(new SketchShape
+                {
+                    Id = id,
+                    Type = "polygon",
+                    Operation = "subtract",
+                    Vertices = [.. ring],
+                });
+                islandShapes.Add((buffer.MirrorsOrDefault, id));
+            }
+        }
+
         // islands = mirror groups: one per distinct mirrors flag (all-true seeds → a single "team" island)
         var islands = new List<SketchIsland>();
         foreach (var mirrors in islandShapes.Select(s => s.Mirrors).Distinct())
@@ -97,11 +122,13 @@ public static class PlanCompiler
         };
     }
 
-    // The framing box: the extent of every shape vertex fanned across the orbit, expanded one cell all round.
+    // The framing box: the extent of every terrain shape's vertices fanned across the orbit, expanded one cell
+    // all round. Negative space does not frame the board — a buffer out in the void states a reserved gap, and
+    // sizing the view to it would frame ground that is not there.
     private static SketchBbox FannedBbox(List<SketchShape> shapes, ContactGraph d)
     {
         double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
-        foreach (var s in shapes)
+        foreach (var s in shapes.Where(s => s.Operation != "subtract"))
             foreach (var v in s.Vertices ?? [])
                 for (var k = 0; k < d.Order; k++)
                 {

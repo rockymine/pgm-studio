@@ -137,8 +137,19 @@ Author feedback after building the first real seed reshapes the role model:
 
 - **Cells → blocks** by `globals.cell` (the v1 scale pass is this uniform multiply; the per-part
   stretch pass is future work).
-- **Layout:** each piece → a rect `SketchShape` (`base_height` = surface); islands from §2 →
-  `SketchIsland` (mirrors flag through); setup from globals (symmetry, centre, bbox from extents).
+- **Negative space first:** `PlanVoids.Declare` runs before anything reads the plan. Terrain is stated by the
+  pieces that generate it, so ground a body encircles and no piece covers is void by omission and the document
+  says nothing about it; the step writes it down as a `buffer` piece per enclosed void. An author may draw
+  those buffers and need not — the step adds whatever is missing on every compile, so one deleted from a
+  generated plan comes back — and it is idempotent, returning the plan untouched when nothing is missing. A
+  void another piece lays ground into (a stepped plateau seated in a ring) is a plateau, not a void.
+- **Layout:** a component's land-connected pieces union into one polygon `SketchShape` per distinct surface
+  (`base_height` = surface), one shape per disjoint patch. A polygon carries a single ring, so an outline
+  states its patch with the voids it encircles filled in; each `buffer` becomes a `subtract` shape that takes
+  them back out, clipped to what no generating piece covers — over a piece a buffer stays inert, so it can
+  declare a void but never destroy ground. Negative space does not size the frame. Islands from §2 →
+  `SketchIsland` (mirrors flag through, a buffer joining the island of the body enclosing it); setup from
+  globals (symmetry, centre, bbox from terrain extents).
 - **Intent:** team defs from the orbit order + palette; team-0 placements resolved to block
   coords (piece origin + offset, y = piece surface) and fanned via `Geom.Symmetry` (yaw from
   `facing` per orbit image). `facing` is **absolute** — front = −z, back = +z, left = −x, right = +x

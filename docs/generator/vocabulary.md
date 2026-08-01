@@ -203,6 +203,7 @@ The plan compiles one-way into two downstream artifacts (§2.1), each with one c
 | `SketchLayout` | The **sketch** (`layout.json`): the realized geometry — polygons, béziers, per-anchor heights, layers — read by the rasterizer into a world. |
 | `MapIntent` | The **intent** (`intent.json`): the concrete objectives — block coordinates, yaws, wool colours, monument wiring — read by the XML generator into `map.xml`. |
 | `PlanCompiler` | The **compiler**: `plan → (sketch, intent)`. |
+| `PlanVoids` | The compiler's first step: **declares the plan's negative space**, adding a `buffer` piece over every enclosed void a body encircles and no piece covers, so a ring's hole survives as void instead of taking the fill its union outline implies. Idempotent, and it adds only — an author may draw the buffers and need not. |
 
 ---
 

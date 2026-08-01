@@ -1071,6 +1071,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   golden tests against the checked-in layout/intent pairs (base-2island/base-4team exact; base-2wool exact
   except two documented hand-authored values). Step terraces deferred (no seed exercises raised land seams).
   (G17)
+- **A plan declares its negative space, and the compiler carves it (G160).** Terrain is stated by the pieces
+  that generate it, so the ground a body encircles and no piece covers was void by omission — and a
+  `SketchShape` polygon carries one ring, so the union outline stated each patch with its voids **filled in**.
+  The hole that defines the `Ring` · `DoubleHole` · `P` · `G` compounds (`model.md` §4) exported as solid
+  ground on **55% of 480 composed boards** (`Composed p30 t2 #9`: 950 phantom land cells across four holes).
+  **`PlanVoids.Declare`** now runs as the compiler's first step and writes the omission down: every enclosed
+  void becomes a `buffer` piece — the role that already meant reserved empty space, and which `BoardDeriver`
+  already read as `declaredVoid`. An author may draw those buffers and need not; the step adds whatever is
+  missing on every compile, so one deleted from a plan comes back, and it is **idempotent** (the same instance
+  back when nothing is missing, so a caller can persist unconditionally). A void another piece lays ground
+  into — a stepped plateau seated in a ring — is a plateau, not a void. `PlanCompiler` compiles each buffer to
+  a `subtract` shape **clipped to what no generating piece covers**, so over a piece a buffer stays inert: it
+  can declare a void, never destroy ground. Geometry through `RectilinearUnion.EnclosedVoids` (uncovered cells
+  that cannot reach the outside, merged into rectangles — an L comes back as two) and `.Difference`. Over the
+  480-board sweep the built footprint is now exactly the fanned piece union — zero phantom, zero missing —
+  declaring is idempotent everywhere, and a deleted buffer restores the plan byte-for-byte. The terrain paint
+  (G157) is what made the bug legible: an unrimmed, grassed-over hole reads as ground.
 - **Plan editor page (seed studio canvas)** — `/plan-editor` (`Pages/Plan/PlanTool` + `js/studio/plan/`):
   an SVG cell-grid canvas (heavy line per 5 cells) with draw/move/resize role-coloured rect pieces (fill
   tinted by surface), translucent dashed zones, spawn/wool/iron markers (spawn facing cycles on click;

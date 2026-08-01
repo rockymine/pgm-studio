@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -221,5 +222,46 @@ public sealed class PlanCompilerTests
         await Assert.That(layout.Layout!.Shapes.Count).IsEqualTo(3);
         await Assert.That(layout.Layout!.Shapes.Select(s => s.BaseHeight!.Value).OrderBy(h => h).ToList())
             .IsEquivalentTo(new[] { 9d, 11d, 13d });
+    }
+
+    // The compiled layout's solid (x,z) footprint — what the world is actually built from.
+    private static HashSet<(int, int)> Footprint(SketchLayout layout) =>
+        [.. SketchRasterizer.Rasterize(JsonSerializer.Serialize(layout, SketchLayout.Json))];
+
+    [Test]
+    public async Task A_ring_of_pieces_keeps_its_enclosed_void()
+    {
+        // Four pieces frame a one-cell hole at cell (1,1) — blocks 5..10 on both axes. The patch's outline is
+        // only its outer boundary, so without the declared void the hole would rasterize as solid ground.
+        var (layout, _) = PlanCompiler.Compile(Plan("""
+        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+          "pieces":[ {"id":"n","role":"piece","rect":[0,0,3,1]}, {"id":"s","role":"piece","rect":[0,2,3,1]},
+                     {"id":"w","role":"piece","rect":[0,1,1,1]}, {"id":"e","role":"piece","rect":[2,1,1,1]} ] }
+        """));
+        var hole = layout.Layout!.Shapes.Single(s => s.Operation == "subtract");
+        await Assert.That(Bbox(hole.Vertices!)).IsEqualTo((5, 5, 10, 10));
+        // it joins the island of the body that encloses it, so it mirrors with that body
+        await Assert.That(layout.Layout!.Islands.Single().ShapeIds.Contains(hole.Id)).IsTrue();
+
+        var cells = Footprint(layout);
+        await Assert.That(cells.Contains((7, 7))).IsFalse();      // inside the hole — void
+        await Assert.That(cells.Contains((2, 2))).IsTrue();       // on the frame — ground
+        await Assert.That(cells.Contains((-7, -7))).IsFalse();    // the rot_180 copy's hole, void too
+    }
+
+    [Test]
+    public async Task A_buffer_subtracts_only_the_ground_no_piece_covers()
+    {
+        // a buffer half over a lane, half off its end: the covered half is inert, the open half is negative
+        // space that was never terrain — so the lane keeps every block it generates.
+        var (layout, _) = PlanCompiler.Compile(Plan("""
+        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+          "pieces":[ {"id":"lane","role":"piece","rect":[0,0,2,2]},
+                     {"id":"over","role":"buffer","rect":[1,0,2,2]} ] }
+        """));
+        var cells = Footprint(layout);
+        await Assert.That(cells.Contains((7, 2))).IsTrue();       // lane block under the buffer — kept
+        await Assert.That(cells.Contains((2, 2))).IsTrue();       // lane block clear of it — kept
+        await Assert.That(cells.Contains((12, 2))).IsFalse();     // past the lane's end — void either way
     }
 }
