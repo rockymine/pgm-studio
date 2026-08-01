@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace PgmStudio.Minecraft;
 
 /// <summary>The five buckets every paintable terrain block sorts into (docs/world-export/terrain-painting.md
@@ -6,19 +8,27 @@ public enum TerrainBucket { Bedrock, Fill, Wall, Surface, Rim }
 
 /// <summary>Where a block sits for the material resolver: its world coordinate, its bucket, its depth below
 /// the top of that bucket's band (0 = the band's top course) — the parameter a layered material (grass over
-/// dirt) reads — and the <see cref="TeamData"/> of the team that owns the cell (a 0–15 wool/clay damage
-/// nibble, -1 = neutral). A pattern (TP13) will read the fuller context; this is the base seam.</summary>
-public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1)
+/// dirt) reads — the <see cref="TeamData"/> of the team that owns the cell (a 0–15 wool/clay damage nibble,
+/// -1 = neutral), and <see cref="PerimeterArc"/>, the cell's arc index along the outer void-facing wall (-1
+/// off it) that a wall-run pattern reads (TP13).</summary>
+public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1)
 {
     /// <summary>Whether the cell belongs to a team (a colour is available for a team-tinted material).</summary>
     public bool HasTeam => TeamData >= 0;
 }
 
 /// <summary>
-/// A bucket's material — the block(s) its cells resolve to (docs/world-export/terrain-painting.md §3). Today
-/// a single block or a vertical layer stack; the same seam later grows area/perimeter patterns (TP13). The
-/// examples in the default theme (grass, quartz, stained clay) are illustrative, not canonical.
+/// A bucket's material — the block(s) its cells resolve to (docs/world-export/terrain-painting.md §3). A single
+/// block, a vertical layer stack, a team tint, or an area/perimeter pattern (TP13). Polymorphic under one
+/// <c>kind</c> discriminator so a whole theme serializes to the theme JSON that TP10 will scope.
 /// </summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
+[JsonDerivedType(typeof(SolidMaterial), "solid")]
+[JsonDerivedType(typeof(LayeredMaterial), "layered")]
+[JsonDerivedType(typeof(TeamTintedMaterial), "teamTint")]
+[JsonDerivedType(typeof(VoronoiMaterial), "voronoi")]
+[JsonDerivedType(typeof(NoiseMaterial), "noise")]
+[JsonDerivedType(typeof(WallRunMaterial), "wallRun")]
 public abstract record TerrainMaterial
 {
     public abstract (int Id, int Data) Resolve(in BucketContext ctx);
@@ -30,10 +40,13 @@ public sealed record SolidMaterial(int Id, int Data = 0) : TerrainMaterial
     public override (int Id, int Data) Resolve(in BucketContext ctx) => (Id, Data);
 }
 
+/// <summary>One layer of a <see cref="LayeredMaterial"/>: a material and how many courses deep it claims.</summary>
+public readonly record struct MaterialLayer(TerrainMaterial Material, int Thickness);
+
 /// <summary>A vertical stack claimed from the top of the bucket — grass over two dirt, a wall's banded riser
 /// (TP11). Each layer carries a thickness; the last layer repeats past the stack's depth so a deeper-than-
 /// declared band never falls through.</summary>
-public sealed record LayeredMaterial(IReadOnlyList<(TerrainMaterial Material, int Thickness)> Layers) : TerrainMaterial
+public sealed record LayeredMaterial(IReadOnlyList<MaterialLayer> Layers) : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
@@ -97,7 +110,7 @@ public sealed record TerrainTheme
 {
     // grass over two dirt — the standard interior stack (TP11); its layer thicknesses sum to the surface depth.
     private static readonly TerrainMaterial DefaultSurface = new LayeredMaterial(
-        [(new SolidMaterial(Blocks.Grass), 1), (new SolidMaterial(Blocks.Dirt), 2)]);
+        [new MaterialLayer(new SolidMaterial(Blocks.Grass), 1), new MaterialLayer(new SolidMaterial(Blocks.Dirt), 2)]);
 
     // ── geometry ──
     /// <summary>The bedrock floor thickness (TP8). Default one block.</summary>

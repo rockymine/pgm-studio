@@ -5,8 +5,10 @@ namespace PgmStudio.Minecraft;
 /// neighbour (the base rim), <see cref="ClosedEdge"/> on any plateau boundary (void, a structure, or a
 /// different plateau — TP3). <see cref="VoidDrop"/>/<see cref="TerrainDrop"/> are the shallowest exposed
 /// drop's floor Y toward the void / toward lower terrain, or -1 when there is none — the wall's lower bound,
-/// split so the TP9 toggle can take the void one alone.</summary>
-public readonly record struct ColumnProfile(int SurfaceTop, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop);
+/// split so the TP9 toggle can take the void one alone. <see cref="PerimeterArc"/> is the column's arc index
+/// along its landmass's outer void-facing perimeter (0-based around the loop), or -1 when the column is not on
+/// an outer boundary — what a wall-run pattern reads to wrap the perimeter (TP13).</summary>
+public readonly record struct ColumnProfile(int SurfaceTop, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop, int PerimeterArc = -1);
 
 /// <summary>
 /// The shared core of terrain painting (docs/world-export/terrain-painting.md §5, stage 1): classifies every
@@ -25,6 +27,7 @@ public sealed class TerrainProfile
     private readonly IReadOnlyDictionary<(int X, int Z), int> _surfaceTop;
     private readonly HashSet<(int, int)> _structure = [];
     private readonly Dictionary<(int, int), int> _plateau = [];
+    private readonly Dictionary<(int, int), int> _perimeterArc = [];
     private readonly Dictionary<(int, int), ColumnProfile> _columns = [];
 
     public TerrainProfile(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
@@ -37,6 +40,7 @@ public sealed class TerrainProfile
             if (top <= 1 || world.GetBlock(cell.X, top - 1, cell.Z).Id != Blocks.Stone) _structure.Add(cell);
 
         LabelPlateaus();
+        LabelPerimeter();
 
         foreach (var (cell, top) in surfaceTop)
         {
@@ -77,7 +81,7 @@ public sealed class TerrainProfile
             var nt = Top(nx, nz);
             if (nt < top) terrainDrop = terrainDrop < 0 ? nt : Math.Min(terrainDrop, nt);
         }
-        return new ColumnProfile(top, openEdge, closedEdge, voidDrop, terrainDrop);
+        return new ColumnProfile(top, openEdge, closedEdge, voidDrop, terrainDrop, _perimeterArc.GetValueOrDefault((x, z), -1));
     }
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau
@@ -104,6 +108,69 @@ public sealed class TerrainProfile
                 }
             }
             id++;
+        }
+    }
+
+    // The outer void-facing perimeter (TP13): split the footprint into connected landmasses (4-connected, all
+    // elevations — a structure is solid ground here so the outline stays whole) and Moore-trace each one's outer
+    // boundary, numbering its boundary cells 0..n-1 around the loop. A wall-run reads this arc so its stripes
+    // wrap the whole perimeter continuously, corners included. Interior cells and internal elevation steps (which
+    // face lower terrain, not void) are on no outer boundary and keep -1.
+    private void LabelPerimeter()
+    {
+        var seen = new HashSet<(int, int)>();
+        var stack = new Stack<(int, int)>();
+        foreach (var start in _surfaceTop.Keys)
+        {
+            if (seen.Contains(start)) continue;
+            var landmass = new HashSet<(int, int)>();
+            stack.Push(start);
+            while (stack.Count > 0)
+            {
+                var cell = stack.Pop();
+                if (!seen.Add(cell)) continue;
+                landmass.Add(cell);
+                foreach (var (dx, dz) in N4)
+                {
+                    var nb = (cell.Item1 + dx, cell.Item2 + dz);
+                    if (InFootprint(nb.Item1, nb.Item2) && !seen.Contains(nb)) stack.Push(nb);
+                }
+            }
+            MooreTrace(landmass);
+        }
+    }
+
+    // Clockwise Moore-neighbour boundary tracing of one landmass (Jacob's stopping criterion), writing each outer
+    // boundary cell its 0-based arc index into _perimeterArc. Cells already indexed (a thin neck revisited) keep
+    // their first index; each landmass numbers from 0 so a run wraps its own loop.
+    private static readonly (int dx, int dz)[] Cw =
+        [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)];
+    private void MooreTrace(HashSet<(int, int)> cells)
+    {
+        if (cells.Count == 0) return;
+        bool Solid(int x, int z) => cells.Contains((x, z));
+        static int Idx(int dx, int dz) { for (var i = 0; i < 8; i++) if (Cw[i].dx == dx && Cw[i].dz == dz) return i; return -1; }
+        var start = cells.OrderBy(c => c.Item2).ThenBy(c => c.Item1).First();   // on the boundary, entered from the west
+        var p = start;
+        int backIdx = Idx(-1, 0), startBack = -1, s = 0, guard = 0;
+        bool moved = false;
+        if (!_perimeterArc.ContainsKey(start)) _perimeterArc[start] = s++;
+        while (guard++ < 1_000_000)
+        {
+            int found = -1;
+            for (var k = 1; k <= 8; k++)
+            {
+                int idx = (backIdx + k) % 8;
+                if (Solid(p.Item1 + Cw[idx].dx, p.Item2 + Cw[idx].dz)) { found = idx; break; }
+            }
+            if (found < 0) break;                                       // isolated cell
+            var c = (p.Item1 + Cw[found].dx, p.Item2 + Cw[found].dz);
+            int prevIdx = (found - 1 + 8) % 8;                          // last background checked = new backtrack
+            int newBack = Idx(p.Item1 + Cw[prevIdx].dx - c.Item1, p.Item2 + Cw[prevIdx].dz - c.Item2);
+            if (moved && c == start && newBack == startBack) break;     // Jacob's stop: start reached, same entry
+            if (!moved) { moved = true; startBack = newBack; }
+            if (!_perimeterArc.ContainsKey(c)) _perimeterArc[c] = s++;
+            p = c; backIdx = newBack;
         }
     }
 }

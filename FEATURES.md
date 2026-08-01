@@ -2401,17 +2401,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
 - **Terrain finish — walls, rims, plateaus.** `TerrainPainter` (`PgmStudio.Minecraft`,
-  `docs/world-export/terrain-painting.md` TP1–TP9, TP11, TP12) dresses the raw stone as the last world pass: a quartz
+  `docs/world-export/terrain-painting.md` TP1–TP9, TP11–TP13) dresses the raw stone as the last world pass: a quartz
   **rim** on the top-most block of every edge (8-neighbour, so a reentrant corner never gaps), a **team-tinted stained-clay wall** on the exposed riser between bedrock and rim, a **surface** stack on the interior top,
   and stone left as **fill**. Built as the four-stage architecture —
   `TerrainProfile` (the theme-agnostic classifier), a per-cell `TerrainTheme`, the pure band resolver, and
-  the `TerrainMaterial` seam (`Solid`/`Layered`/`TeamTinted`). Touches **only stone**, so bedrock and every
+  the `TerrainMaterial` seam. Touches **only stone**, so bedrock and every
   stamped structure (room plateaus, the bedrock approach wall, objectives) are consulted as height-bearing
   neighbours but never painted (TP6). Every per-column knob is themeable: **rim/surface depth** live on each
   bucket's `TopBand` (TP7/TP11 — the default surface is grass over two dirt, three deep), **bedrock thickness**
   is absolute or terrain-relative (TP8), **wall-on-terrain-faces** and the **rim/wall/surface toggles** route
-  down the fill fallback chain (TP9/TP12); the two structural extensions — scoped per-piece theming (TP10) and
-  material patterns (TP13) — remain. The **team tint is a general material** — the wool 0–15 damage scale on
+  down the fill fallback chain (TP9/TP12).
+- **Terrain-paint patterns + theme JSON (TP13).** Any bucket's material can be a **pattern** at the same seam as
+  a solid: `VoronoiMaterial` (jittered-grid regions, N-material palette), `NoiseMaterial` (fractal/value-noise
+  field through an N-stop ramp), and `WallRunMaterial` (N stripes of any widths that wrap the **void-facing
+  perimeter**, reading a per-column arc from `TerrainProfile`'s Moore boundary walk over each landmass);
+  vertical wall bands are `LayeredMaterial`. All deterministic (hashed from a seed + cell, no RNG) and nesting —
+  a pattern entry can be a team tint or another pattern. The whole theme serializes through **`TerrainThemeJson`**
+  (one `kind` discriminator per material), closing the material model for the scoped-theming step. Only scoped
+  per-piece theming (TP10) remains. (G157) The **team tint is a general material** — the wool 0–15 damage scale on
   any colour-by-damage block, usable on **any** bucket and composable in a layer/pattern (`BucketContext`
   carries the cell's team) — the default puts it on the wall. Ownership resolves through **`TeamTerritory`**:
   one shared decomposition on the canonical `IslandDetector` islands (the ids `islands_json`/configure use),

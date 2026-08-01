@@ -31,7 +31,7 @@ public static class TerrainPainter
                 for (var y = band.LoY; y < band.HiY; y++)
                 {
                     if (world.GetBlock(cell.X, y, cell.Z).Id != Blocks.Stone) continue;   // stone-only invariant
-                    var (id, data) = material.Resolve(new BucketContext(cell.X, y, cell.Z, band.Bucket, band.HiY - 1 - y, teamData));
+                    var (id, data) = material.Resolve(new BucketContext(cell.X, y, cell.Z, band.Bucket, band.HiY - 1 - y, teamData, column.PerimeterArc));
                     if (id != Blocks.Stone || data != 0) world.SetBlock(cell.X, y, cell.Z, id, data);
                 }
             }

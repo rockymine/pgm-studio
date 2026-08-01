@@ -231,7 +231,7 @@ public sealed class TerrainPainterTests
     public async Task Team_tint_nested_in_a_layer_stack_keeps_the_cell_team()
     {
         // a team-tinted layer inside a stack still reads the cell's team from the shared context.
-        var layered = new LayeredMaterial([(new SolidMaterial(Blocks.Grass), 1), (new TeamTintedMaterial(Blocks.Wool, new SolidMaterial(Blocks.Dirt)), 2)]);
+        var layered = new LayeredMaterial([new MaterialLayer(new SolidMaterial(Blocks.Grass), 1), new MaterialLayer(new TeamTintedMaterial(Blocks.Wool, new SolidMaterial(Blocks.Dirt)), 2)]);
         await Assert.That(layered.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Surface, 0, TeamData: 3))).IsEqualTo((Blocks.Grass, 0));
         await Assert.That(layered.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Surface, 1, TeamData: 3))).IsEqualTo((Blocks.Wool, 3));
     }

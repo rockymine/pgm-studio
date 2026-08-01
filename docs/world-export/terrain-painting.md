@@ -6,12 +6,15 @@ objectives onto the terrain, this pass dresses the terrain **itself**: the raw s
 becomes a stone body walled in clay, lipped in quartz, and topped in grass. It reads the terrain the
 world builder already placed and rewrites its surface — no new geometry, only materials.
 
-**Status: the base model (TP1–TP6) and the per-column extensions (TP7–TP9, TP11, TP12) are built and shipped;
-only the two structural extensions remain — scoped theming (TP10) and material patterns (TP13, §6).**
+**Status: the base model (TP1–TP6), the per-column extensions (TP7–TP9, TP11, TP12) and the material patterns
+(TP13) are built and shipped; only scoped per-piece theming (TP10) remains.**
 `TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export map-wide, wired last into
 `SketchWorldBuilder.Build`; the four-stage architecture of §5 is in place. Depth is a per-bucket knob (`TopBand`
 carries a bucket's material, depth and toggle), so a theme sets the rim depth and the surface stack
-independently; the default surface is grass over two dirt, three blocks deep (TP11). The model was first validated by a
+independently; the default surface is grass over two dirt, three blocks deep (TP11). Any bucket's material can
+be a pattern — voronoi or fractal/value noise (area), or wall-runs that wrap the void-facing perimeter (TP13) —
+and the whole theme serializes to the theme JSON (`TerrainThemeJson`), the data a TP10 scope will attach to a
+piece. The model was first validated by a
 scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` — compiled through
 `PlanCompiler` and rasterized through `SketchRasterizer`) and is now covered by `TerrainPainterTests`. Rule
 ids here are `TP*` (terrain paint), local to this file the way `structures.md` owns `WX*`. Read alongside:
@@ -123,12 +126,13 @@ the blocks each bucket resolves to are a **preset** — the same style-as-data s
 - **fill** — the interior body below the surface. The **required** bucket: it claims whatever no other
   enabled bucket took, so a theme is never partial (TP12).
 
-A bucket's material is a **spec** (`TerrainMaterial`), not necessarily a single id. Its forms, in build
-order: a single block (`SolidMaterial`) today; a **vertical layer stack** (`LayeredMaterial` — surface's
-grass-over-dirt, or a wall's banded riser, a run of materials each with a depth); the **team tint**
-(`TeamTintedMaterial`, below); and, last, a **pattern** that varies the block across the bucket's cells
-(TP13). The quartz / clay / grass / stone in this document and the prototype are **examples**, chosen only to
-tell the buckets apart on sight — none is canonical.
+A bucket's material is a **spec** (`TerrainMaterial`), not necessarily a single id. Its forms: a single block
+(`SolidMaterial`); a **vertical layer stack** (`LayeredMaterial` — surface's grass-over-dirt, or a wall's banded
+riser, a run of materials each with a depth); the **team tint** (`TeamTintedMaterial`, below); and the
+**patterns** that vary the block across the bucket's cells (`VoronoiMaterial`, `NoiseMaterial`, `WallRunMaterial`
+— TP13, §6). Each nests any material, so a pattern can embed a tint or another pattern. The quartz / clay /
+grass / stone in this document and the prototype are **examples**, chosen only to tell the buckets apart on
+sight — none is canonical.
 
 **Team tint (built).** `TeamTintedMaterial(block, neutral)` stamps a colour-by-damage block (clay, wool,
 stained glass) with the owning team's colour — **the same 0–15 damage scale wool uses** (`BlockColors`), so a
@@ -206,12 +210,14 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
 
 **The four stages.** The pass is one pure function assembled from four separable stages, in pipeline order:
 
-1. **Profile — the shared core (theme-agnostic).** Classify every stone column into neutral geometric facts:
-   its `surfaceTop`, its plateau, whether each face drops (to void, to lower terrain, or is sealed by a
-   structure — TP6), its open- and closed-rim membership, its exposed-riser depth, and — for wall patterns — a
-   parameter running along the wall face around the map. This is the prototype's proven logic. Nothing in it
-   depends on a theme, so the same `TerrainProfile` serves every theme, scope and pattern. **This is the shared
-   core**, and it is the only stage that touches geometry.
+1. **Profile — the shared core (theme-agnostic).** Classify every stone column into neutral geometric facts
+   (`ColumnProfile`): its `surfaceTop`, its plateau, whether each face drops (to void, to lower terrain, or is
+   sealed by a structure — TP6), its open- and closed-rim membership, its void/terrain drop floors, and its
+   **perimeter arc** — the index around its landmass's outer void-facing boundary that a wall-run reads (TP13).
+   The arc comes from splitting the footprint into connected landmasses and Moore-tracing each one's outline; it
+   is the only geometric fact the patterns added. Nothing here depends on a theme, so the same `TerrainProfile`
+   serves every theme, scope and pattern. **This is the shared core**, and it is the only stage that touches
+   geometry.
 
 2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode and `closed`/wall-face
    toggles, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and
@@ -227,19 +233,21 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
    what the band above left. Output: an ordered list of `(yRange, bucket)` per column. One pure function,
    unit-tested per column against synthetic profiles.
 
-4. **Materials — the painter (the pattern seam).** For each band, the bucket's `MaterialSpec` resolves the
-   actual block per `(x, y, z)` and writes it. The spec is the plug-in point: `Solid(id)`, `LayerStack`
-   (surface's grass-over-dirt, a wall's bands), `Area` (voronoi/fractal/cellular over the footprint),
-   `WallRun` (stripes along the wall-face parameter, wrapping the map), `TeamTinted` — composable, and
-   deterministic (seeded from map/piece id, never RNG, the same discipline as the rest of the generator).
-   Adding a pattern (TP13) is a new `MaterialSpec` and nothing else.
+4. **Materials — the painter (the pattern seam).** For each band, the bucket's `TerrainMaterial` resolves the
+   actual block per `BucketContext` (`x/y/z`, bucket, depth-from-top, team nibble, perimeter arc) and writes it.
+   The material is the plug-in point: `SolidMaterial`, `LayeredMaterial` (surface's grass-over-dirt, a wall's
+   vertical bands), `TeamTintedMaterial`, and the patterns `VoronoiMaterial` / `NoiseMaterial` (area) and
+   `WallRunMaterial` (perimeter stripes) — composable (each nests any material) and deterministic (hashed from a
+   seed and the cell, never RNG, the same discipline as the rest of the generator). Adding a pattern was a new
+   `TerrainMaterial` and nothing else; the whole graph serializes through `TerrainThemeJson` under one `kind`
+   discriminator.
 
 **Why the split holds.** Each kind of change touches exactly one seam:
 
 | To … | touch only … |
 |---|---|
 | add a depth/toggle knob (TP7–TP9, TP11–TP12) | the `Theme` record + the band resolver |
-| add a material pattern (TP13) | a new `MaterialSpec` |
+| add a material pattern (TP13) | a new `TerrainMaterial` |
 | scope a theme to a piece/collection (TP10) | the theme-resolution lookup |
 | change the geometry (a new edge kind, a new stamp to consult, TP6) | the Profile core |
 
@@ -259,8 +267,8 @@ the bedrock floor is claimed first (it sets how much stone a column even has), t
 (on an edge) or the surface stack (on an interior), then the wall fills the exposed riser below the rim to the
 drop, and **fill** — the required base — takes every block no enabled bucket claimed. Every band takes only
 what the band above it left and the bedrock floor always wins the bottom, so a short column runs out of stone
-gracefully rather than overlapping. The two remaining rules are orthogonal to the depth stack and are the only
-ones not yet built: the theming *scope* (TP10) and the material *patterns* (TP13).
+gracefully rather than overlapping. One rule is orthogonal to the depth stack and is the only one not yet
+built: the theming *scope* (TP10). The material *patterns* (TP13) are built and slot into the material seam.
 
 - **TP7** *(built)* *Rim depth is configurable; the wall takes the rest.* The rim is the top **`Rim.Depth`**
   blocks of an edge column, not always one (2 or 3 are ordinary). The wall then occupies the remaining
@@ -313,14 +321,21 @@ ones not yet built: the theming *scope* (TP10) and the material *patterns* (TP13
   surface is off too; turn **surface** off and its blocks become fill. So any block resolves to its own
   bucket if enabled, else the next treatment down that chain, else fill.
 
-- **TP13** *(planned, last)* *Buckets take patterns, not just a block.* Every bucket's material spec (§3)
-  generalizes to a **pattern** that varies the block across the bucket's cells. Surface and fill take
-  area/volume patterns — voronoi, fractal, cellular — over the footprint. Walls take either a **layered**
-  pattern (bands of material A then B up the riser, each a configurable depth) or **vertical runs** that
-  travel along the wall face and wrap the whole map perimeter (a 5-wide band of A, then 5-wide B, repeating
-  around every wall). Rim takes a pattern too. This is the final slice and it is cleanly separable: a
-  pattern only changes *which block* a bucket cell resolves to, never *which cells* are in the bucket — so
-  TP1–TP12 (the geometry) are unaffected by it and come first.
+- **TP13** *(built)* *Buckets take patterns, not just a block.* A bucket's material can be a **pattern** that
+  varies the block across the bucket's cells, at the same seam as a solid — three specs, each entry itself a
+  material so a pattern nests a team tint or another pattern. **`VoronoiMaterial`** tiles the footprint with a
+  jittered grid (one deterministic seed point per grid cell of period `CellSize`) and each block takes the
+  material of the nearest region — irregular patches from an N-material palette, pure per cell (no global
+  precompute). **`NoiseMaterial`** maps a fractal-noise field through an ordered ramp of N stops: `Octaves = 1`
+  is single-octave value noise, more octaves give the cloudier fractal look — the surface/fill area pattern.
+  **`WallRunMaterial`** is the wall pattern: a list of `(material, width)` runs that repeat in order along the
+  **void-facing perimeter**, reading the arc index the profile assigns each outer-wall column, so any number of
+  stripes of any widths cycle continuously around every corner (a cell off the outer wall reads as arc 0, the
+  first run). A wall's *vertical* bands up the riser are the existing `LayeredMaterial`. Every choice is a
+  deterministic hash of a seed and the cell — never RNG — so a map exports the same pattern every time. The
+  slice was cleanly separable exactly as planned: a pattern changes only *which block* a cell resolves to, never
+  *which cells* are in the bucket, so TP1–TP12 (the geometry) were untouched — the one new geometric fact is the
+  outer-perimeter arc (below).
 
 ## Rule catalog
 
@@ -338,4 +353,4 @@ ones not yet built: the theming *scope* (TP10) and the material *patterns* (TP13
 | **TP10** *(planned)* | Theming is scoped (full map, or per piece/collection) and resolved at interfaces; a piece with no qualifying interface has no rim/wall. |
 | **TP11** | The surface is a layered stack to a configured depth (`Surface.Depth`; grass over two dirt by default), clamped by the bedrock floor. |
 | **TP12** | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
-| **TP13** *(planned, last)* | Buckets take patterns, not just a block: area patterns (voronoi/fractal/cellular) for surface/fill, layered or map-wrapping vertical runs for walls, patterns for rim. |
+| **TP13** | Buckets take patterns, not just a block: `VoronoiMaterial` / `NoiseMaterial` (area, N-material palette/ramp) for any bucket, `WallRunMaterial` (N stripes wrapping the void-facing perimeter arc) for walls; deterministic, and each entry nests any material. |
