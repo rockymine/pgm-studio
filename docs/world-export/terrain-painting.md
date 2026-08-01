@@ -99,9 +99,9 @@ top-most block, when it is an edge), the **wall** (the exposed riser below the r
 
 ### Interior — the grass top
 
-- **TP5** *The interior is the top block of every non-edge column.* One block at `surfaceTop − 1` —
-  the **surface** bucket (grass in the examples) — everywhere the column is neither rim nor buried under a
-  structure. The body beneath it is the **fill** bucket (§3), left as stone today.
+- **TP5** *The interior is the top of every non-edge column.* The top course at `surfaceTop − 1` —
+  the **surface** bucket (grass in the examples; layered to a depth under TP11) — everywhere the column is
+  neither rim nor buried under a structure. The body beneath it is the **fill** bucket (§3).
 
 ## 3. Materials — the preset seam
 
@@ -111,12 +111,16 @@ the blocks each bucket resolves to are a **preset** — the same style-as-data s
 
 - **rim** — the edge lip (TP1).
 - **wall** — the exposed riser (TP4).
-- **surface** — the top block of the interior (TP5's top course).
-- **fill** — the interior body below the surface (today left as stone; a bucket so a theme can set it —
-  dirt under grass, sand, whatever the surface wants beneath it).
+- **surface** — the top of the interior, a **layered stack** to a configured depth (grass over two dirt by
+  default), not one block (TP11).
+- **fill** — the interior body below the surface. The **required** bucket: it claims whatever no other
+  enabled bucket took, so a theme is never partial (TP12).
 
-The quartz / clay / grass / stone in this document and the prototype are **examples**, chosen only to tell
-the buckets apart on sight — none is canonical. The first intended real knob is the **team colour on the
+A bucket's material is a **spec**, not necessarily a single id. Three forms, in build order: a single block
+today; a **vertical layer stack** (surface's grass-over-dirt, or a wall's banded riser — a run of materials
+each with a depth); and, last, a **pattern** that varies the block across the bucket's cells (TP13). The
+quartz / clay / grass / stone in this document and the prototype are **examples**, chosen only to tell the
+buckets apart on sight — none is canonical. The first intended real knob is the **team colour on the
 wall**: an island's stained-clay hue, chosen per plateau by the team that owns the island (the prototype
 tints by side of the mirror centre as a stand-in; the real assignment reads island→team from the intent).
 What is *not* a preset choice is the domain invariant — bedrock and every stamped structure stay untouched
@@ -169,13 +173,14 @@ the §3 seam.
 
 ## 6. Planned extensions (noted, not yet prototyped)
 
-The base model (TP1–TP6) is validated by the prototype's figures. The four below are agreed additions,
-recorded here before they are built — the prototype does not yet show them. Three are per-column depth
-knobs that share one **resolution order**: the bedrock floor is claimed first (it sets how much stone a
-column even has), the rim is claimed next from the top down, the wall fills what is left below the rim to
-the drop, and the surface/fill buckets dress the interior. Every band takes only what the band above it
-left, so a short column runs out of stone gracefully rather than overlapping. The fourth is the
-architecture that lets any of these vary across the map.
+The base model (TP1–TP6) is validated by the prototype's figures. The rules below are agreed additions,
+recorded here before they are built — the prototype does not yet show them. Most are per-column depth knobs
+that share one **resolution order**: the bedrock floor is claimed first (it sets how much stone a column
+even has), then from the top down the rim (on an edge) or the surface stack (on an interior), then the wall
+fills the exposed riser below the rim to the drop, and **fill** — the required base — takes every block no
+enabled bucket claimed. Every band takes only what the band above it left and the bedrock floor always wins
+the bottom, so a short column runs out of stone gracefully rather than overlapping. The last two rules are
+orthogonal to the depth stack: the theming *scope* (TP10) and the material *patterns* (TP13).
 
 - **TP7** *Rim depth is configurable; the wall takes the rest.* The rim is the top **`rimDepth`** blocks of
   an edge column, not always one (2 or 3 are ordinary). The wall then occupies the remaining exposed height
@@ -214,6 +219,28 @@ architecture that lets any of these vary across the map.
   the interface-relative machinery TP6 already needs for the approach wall is the shape to generalize —
   resolve by interface, never by piece interior.
 
+- **TP11** *The surface is a layered stack with its own depth.* Not one block: an ordered run of layers
+  claimed from the top of an interior column — the standard being **one grass over two dirt**. It has a
+  total depth like the rim, and the same clamp: it cannot descend past what the bedrock floor leaves
+  (bedrock takes priority), so a shallow column drops the surface stack's **deepest** layers first and
+  keeps the topmost. Below the surface, fill takes the rest. Default `surface = [grass×1, dirt×2]`.
+
+- **TP12** *Surface, rim and wall are toggleable; fill is required and is the fallback.* Fill always claims
+  every block no enabled bucket took, so a theme is never partial. The fallbacks follow the treatments'
+  roles: turn **wall** off and its riser blocks become fill; turn **rim** off and its top blocks fall to
+  the **surface** stack first (an edge then reads as surface right up to the lip), and to fill only if
+  surface is off too; turn **surface** off and its blocks become fill. So any block resolves to its own
+  bucket if enabled, else the next treatment down that chain, else fill.
+
+- **TP13** *Buckets take patterns, not just a block (last to build).* Every bucket's material spec (§3)
+  generalizes to a **pattern** that varies the block across the bucket's cells. Surface and fill take
+  area/volume patterns — voronoi, fractal, cellular — over the footprint. Walls take either a **layered**
+  pattern (bands of material A then B up the riser, each a configurable depth) or **vertical runs** that
+  travel along the wall face and wrap the whole map perimeter (a 5-wide band of A, then 5-wide B, repeating
+  around every wall). Rim takes a pattern too. This is the final slice and it is cleanly separable: a
+  pattern only changes *which block* a bucket cell resolves to, never *which cells* are in the bucket — so
+  TP1–TP12 (the geometry) are unaffected by it and come first.
+
 ## Rule catalog
 
 | id | rule |
@@ -228,3 +255,6 @@ architecture that lets any of these vary across the map.
 | **TP8** *(planned)* | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
 | **TP9** *(planned)* | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |
 | **TP10** *(planned)* | Theming is scoped (full map, or per piece/collection) and resolved at interfaces; a piece with no qualifying interface has no rim/wall. |
+| **TP11** *(planned)* | The surface is a layered stack to a configured depth (grass over two dirt by default), clamped by the bedrock floor. |
+| **TP12** *(planned)* | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
+| **TP13** *(planned, last)* | Buckets take patterns, not just a block: area patterns (voronoi/fractal/cellular) for surface/fill, layered or map-wrapping vertical runs for walls, patterns for rim. |
