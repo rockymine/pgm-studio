@@ -1,0 +1,34 @@
+@namespace PgmStudio.Client.Features.Plan
+
+@* Picks the block a solid material places. The sixteen-colour families (stained clay, wool, stained glass)
+   are one entry in the list plus a row of colour swatches, so choosing "red stained clay" is a colour click
+   rather than a hunt through forty-eight dropdown lines. Swatch colours come from the export's own palette. *@
+
+<div class="block-picker">
+  <div class="block-picker-row">
+    <span class="block-chip" style="background:@Hex" title="@Name"></span>
+    <select class="field-input field-input--slim" value="@SelectedKey" @onchange="ChooseBlock">
+      @foreach (var group in Groups)
+      {
+        <optgroup label="@group.Key" @key="group.Key">
+          @foreach (var block in group)
+          {
+            <option value="@Key(block)">@OptionLabel(block)</option>
+          }
+        </optgroup>
+      }
+    </select>
+  </div>
+
+  @if (ShowColors && Family is not null)
+  {
+    <div class="block-picker-colors">
+      @foreach (var shade in Family)
+      {
+        <button type="button" class="block-swatch @(shade.Data == Data ? "block-swatch--on" : null)"
+                style="background:@shade.Hex" title="@shade.Name" @key="shade.Data"
+                @onclick="() => Pick(shade)"></button>
+      }
+    </div>
+  }
+</div>

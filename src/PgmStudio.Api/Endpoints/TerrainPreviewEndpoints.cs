@@ -1,7 +1,19 @@
 using FastEndpoints;
 using PgmStudio.Api.Services;
+using PgmStudio.Minecraft;
 
 namespace PgmStudio.Api.Endpoints;
+
+/// <summary>GET /api/terrain/blocks — the blocks a terrain-paint material may be built from
+/// (<see cref="TerrainPalette"/>), each with its id/data pair, display name, picker group and swatch colour.
+/// The Theme rail's block picker reads it, so the colour a picker shows is the colour the export places
+/// (docs/world-export/terrain-painting.md §3).</summary>
+public sealed class TerrainBlocksEndpoint : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/terrain/blocks"); AllowAnonymous(); }
+
+    public override Task HandleAsync(CancellationToken ct) => Send.OkAsync(TerrainPalette.Paintable, ct);
+}
 
 /// <summary>POST /api/terrain/theme-preview — body is a serialized terrain-paint theme (a <c>TerrainTheme</c>
 /// JSON); returns a top-down SVG swatch per themeable bucket (<c>rim</c>/<c>wall</c>/<c>surface</c>/<c>fill</c>)

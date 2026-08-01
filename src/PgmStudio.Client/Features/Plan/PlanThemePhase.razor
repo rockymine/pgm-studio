@@ -1,9 +1,10 @@
 @namespace PgmStudio.Client.Features.Plan
 
 @* Terrain-paint theming (docs/world-export/terrain-painting.md TP10), two steps: Create defines named themes
-   and previews their materials; Apply picks the map default, assigns themes to pieces/boxes, and shows the
-   themed map top-down. Edits funnel through the plan-bridge onto the plan doc (compiled into the intent's
-   theme scopes and painted at export); previews are server-rendered SVG through the real materials + palette. *@
+   — a paintbrush per bucket, each switchable between a solid, a stack, a team tint and the patterns, previewed
+   as it is edited; Apply picks the map default, assigns themes to pieces/boxes, and shows the themed map
+   top-down. Edits funnel through the plan-bridge onto the plan doc (compiled into the intent's theme scopes and
+   painted at export); previews are server-rendered SVG through the real materials + palette. *@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
@@ -18,10 +19,10 @@
       }
       else if (step == 0)
       {
-        @* ── Create: the theme registry + material previews ── *@
+        @* ── Create: the theme registry, then a paintbrush per bucket ── *@
         <Section Title="Themes">
-          <p class="section-desc">A theme is a full terrain-paint recipe — rim, wall, surface and fill materials.
-            Define one here, then apply it to the map in the next step.</p>
+          <p class="section-desc">A theme is a full terrain-paint recipe — one material per bucket, plus how
+            deep each reaches. Define one here, then apply it to the map in the next step.</p>
 
           @foreach (var id in State.Themes.Keys)
           {
@@ -38,42 +39,97 @@
           <Field Label="New theme">
             <div class="panel-actions">
               <input class="field-input" placeholder="name" @bind="NewName" @bind:event="oninput" />
-              <Button OnClick="AddTheme">Add</Button>
+              <Button Icon="plus" OnClick="AddTheme">Add</Button>
             </div>
           </Field>
         </Section>
 
-        @if (Selected is not null && State.Themes.ContainsKey(Selected))
+        @if (Selected is not null && Theme is not null)
         {
-          <Section Title="@($"Preview “{Selected}”")">
-            <p class="section-desc">The theme's materials, rendered over a sample with the real block palette —
-              a left-neutral / right-team split so a team tint shows both, and the perimeter arc across x so a
-              wall-run's stripes read.</p>
-            <div class="theme-swatches">
-              @foreach (var bucket in new[] { "rim", "wall", "surface", "fill" })
-              {
-                <figure class="theme-swatch" @key="bucket">
-                  <div class="theme-swatch-img">@((MarkupString)(Swatches.GetValueOrDefault(bucket) ?? ""))</div>
-                  <figcaption>@bucket</figcaption>
-                </figure>
-              }
-            </div>
+          @* the four paintbrushes: a toggle, a depth, a material, and what that material paints like *@
+          @foreach (var bucket in Buckets)
+          {
+            <Section Title="@bucket.Title" @key="bucket.Id">
+              <Actions>
+                @if (bucket.CanDisable)
+                {
+                  <Chip Active="@bucket.Enabled" OnClick="@bucket.Toggle">@(bucket.Enabled ? "Painting" : "Off")</Chip>
+                }
+                else
+                {
+                  <Badge Kind="dim">always paints</Badge>
+                }
+              </Actions>
+              <ChildContent>
+                <p class="section-desc">@bucket.Blurb</p>
+                @if (bucket.Enabled)
+                {
+                  <div class="bucket-editor">
+                    <div class="bucket-editor-form">
+                      @if (bucket.HasDepth)
+                      {
+                        <Field Label="Courses deep">
+                          <input class="field-input field-input--slim" type="number" min="1" step="1"
+                                 value="@bucket.Depth" @onchange="@bucket.SetDepth" />
+                        </Field>
+                      }
+                      <MaterialEditor Node="@bucket.Material" Blocks="Blocks" OnChanged="ThemeEdited" />
+                    </div>
+                    <figure class="bucket-editor-swatch">
+                      <div class="theme-swatch-img">@((MarkupString)(Swatches.GetValueOrDefault(bucket.Id) ?? ""))</div>
+                      <figcaption>neutral · team</figcaption>
+                    </figure>
+                  </div>
+                }
+                else
+                {
+                  <p class="section-desc">Off — its blocks fall through to @bucket.FallsTo.</p>
+                }
+              </ChildContent>
+            </Section>
+          }
+
+          <Section Title="Ground and edges">
+            <p class="section-desc">How far down the paint reaches, and which faces count as an edge worth capping.</p>
+            <Field Label="Bedrock floor">
+              <div class="panel-actions">
+                <select class="field-input field-input--slim" value="@BedrockMode" @onchange="SetBedrockMode">
+                  <option value="@AbsoluteBedrock">blocks up from the bottom</option>
+                  <option value="@RelativeBedrock">everything under the painted depth</option>
+                </select>
+                <input class="field-input field-input--slim" type="number" min="0" step="1"
+                       value="@BedrockValue" @onchange="SetBedrockValue" />
+              </div>
+            </Field>
+            <Field Label="Where the rim runs">
+              <Chip Active="@Flag(ThemeFields.Closed, false)" OnClick="ToggleClosed">
+                @(Flag(ThemeFields.Closed, false) ? "Every plateau boundary" : "Only where the ground drops")
+              </Chip>
+            </Field>
+            <Field Label="Where the wall runs">
+              <Chip Active="@Flag(ThemeFields.WallOnTerrainFaces, true)" OnClick="ToggleWallFaces">
+                @(Flag(ThemeFields.WallOnTerrainFaces, true) ? "Terrain and void risers" : "Only risers facing the void")
+              </Chip>
+            </Field>
           </Section>
 
-          <Section Title="@($"Edit “{Selected}”")">
+          <Section Title="This theme">
             <Field Label="Rename">
               <div class="panel-actions">
                 <input class="field-input" placeholder="@Selected" @bind="RenameTo" />
                 <Button OnClick="RenameTheme">Rename</Button>
-                <Button Variant="danger" OnClick="() => DeleteTheme(Selected)">Delete</Button>
+                <Button Variant="danger" Icon="trash-2" OnClick="DeleteSelected">Delete</Button>
               </div>
             </Field>
-            <Field Label="Theme JSON" Error="@JsonError">
-              <textarea class="field-input theme-json" spellcheck="false" @bind="ThemeJsonText"></textarea>
-            </Field>
-            <div class="panel-actions">
-              <Button Variant="primary" OnClick="ApplyThemeJson">Apply</Button>
-            </div>
+            <details class="theme-json-details">
+              <summary>Theme JSON</summary>
+              <Field Error="@JsonError">
+                <textarea class="field-input theme-json" spellcheck="false" @bind="ThemeJsonText"></textarea>
+              </Field>
+              <div class="panel-actions">
+                <Button Variant="primary" OnClick="ApplyThemeJson">Apply JSON</Button>
+              </div>
+            </details>
           </Section>
         }
       }

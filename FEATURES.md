@@ -2450,6 +2450,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   renders its top blocks). SVG previews via `TerrainPreview` + `/api/terrain/theme-preview` and
   `/theme-map-preview`. Built from the existing design system (Section/Field/ListRow/Badge). Tested: compiler
   bake + scope resolution. (G157)
+- **A theme is authored as a form, not as JSON (TP14).** The Create step's textarea is gone: a theme is now
+  **one section per paintable bucket** — rim, surface, wall, fill — each carrying whether it paints at all, how
+  many courses it claims, and a **`MaterialEditor`** that switches the bucket between every material kind and
+  **recurses into the materials a composite nests** (a stack's layers, a tint's neutral fallback, a voronoi
+  palette, a noise ramp's stops, a wall run's stripes), each entry addable and removable, each pattern's
+  scalars — patch size, scale, octaves, seed — an ordinary field. A new pattern arrives with two entries whose
+  blocks sit far apart in the palette, since one entry (or two blocks that share a colour, as stone and
+  cobblestone do) renders flat and reads as broken. Blocks come from **`TerrainPalette`** over
+  `GET /api/terrain/blocks` — a curated offer list named and coloured by `BlockPalette`, the same table the
+  preview and surface render use, so a picker swatch cannot promise a colour the export will not place — and
+  the three sixteen-colour families are offered as **one line plus a colour row** rather than forty-eight
+  dropdown entries. The editor mutates the **theme JSON node itself**, so there is no second model of a
+  material to fall out of step with the painter's, and every edit re-renders that bucket's swatch through the
+  real materials. The JSON stays, collapsed, as a read/write escape hatch. Tested: every offered block is one
+  `BlockPalette` knows, the families are whole, and the shipping default theme is expressible in what the
+  picker offers. (G158, TP14)
 - **Terrain team tint.** The **team tint is a general material** — the wool 0–15 damage scale on
   any colour-by-damage block, usable on **any** bucket and composable in a layer/pattern (`BucketContext`
   carries the cell's team) — the default puts it on the wall. Ownership resolves through **`TeamTerritory`**:

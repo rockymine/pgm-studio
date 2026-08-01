@@ -417,15 +417,14 @@ studio, G117/G118) is in `TODO.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
-- [ ] **G158 — visual theme/material editor for the Theme rail.** The terrain-paint theming model is fully
-  built and shipped (TP1–TP13, incl. scoped per-piece theming — see `FEATURES.md`), and the plan tool's **Theme**
-  rail authors it end to end: named themes, the map default, and per-piece / per-box assignment. What is still
-  raw is the **theme content** — a theme's materials are edited as a JSON textarea (`PlanThemePhase`), though the
-  Create step already previews the result (per-bucket swatches) and the Apply step renders the themed map
-  top-down (`TerrainPreview`). The follow-up is a visual **editor**: per-bucket material pickers (solid colour /
-  layered stack / team tint) and pattern builders (voronoi palette, noise ramp, wall-run stripes) writing the
-  same theme JSON, plus a small set of ready-made presets. Optional richer scoping: a **custom collection** target (a drawn set of pieces, not just
-  a box) and click-to-assign on the canvas (the `TeamAssignStep` pattern) rather than the per-item dropdowns.
+- [~] **G158 — the Theme rail's Apply step is still a column of dropdowns.** The Create step is a form now
+  (TP14, `FEATURES.md`) but Apply assigns themes through one `<select>` per piece and per box, which reads as a
+  list of ids rather than as a map. Two things would make it an authoring surface: **click-to-assign on the
+  plan canvas** (the `TeamAssignStep` pattern — pick a theme, click the pieces) instead of the per-item
+  dropdowns, and a **custom collection** target, a drawn set of pieces rather than only a box, since a theme
+  usually wants "these seven pieces" and no box groups exactly those. A handful of **ready-made theme presets**
+  belongs here too — the editor can now express a desert or a snowfield, but every author starts from the same
+  default and builds it by hand.
 
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**
