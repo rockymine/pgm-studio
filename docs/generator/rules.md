@@ -485,14 +485,17 @@ the stat corpus.
 
 ## ST — Stamped structures (export)
 
-- **ST1 [expert]** *Wool room piece* (optional): defines the full room **region**; its footprint is
-  stamped **solid bedrock from y=0 to its floor** (no tunnelling in from below); a **redstone line
-  with a torch at either end** lies on the last block row at the room's entrance interface — the
-  conventional marker for where entrance protection begins. The editor renders terrain↔wool-room
-  interfaces **red**.
-- **ST2 [expert]** *Spawn piece* (optional): defines the spawn **region**. Iron placed inside it is
-  **auto-renewed** in the generated XML (load-bearing for gameplay); lint: when a spawn piece
-  exists, iron markers belong inside it. Spawns have no redstone line.
+- **ST1 [expert]** *Wool room piece* (optional): defines the full room **region** and **sizes the
+  stamped cage** — the shell footprint is the piece inset one block, per the WX rules
+  (`docs/world-export/structures.md`). Its footprint is stamped **solid bedrock from y=0 to its
+  floor** (no tunnelling in from below); a **redstone line with a torch at either end** lies on the
+  last block row at each of the room's **entry interfaces** — every terrain↔room land seam and
+  every abutting build-zone edge (WX6) — the conventional marker for where entrance protection
+  begins. The editor renders terrain↔wool-room interfaces **red**.
+- **ST2 [expert]** *Spawn piece* (optional): defines the spawn **region** and **sizes the stamped
+  spawn room** (the same WX footprint rule). Iron placed inside it is **auto-renewed** in the
+  generated XML (load-bearing for gameplay); lint: when a spawn piece exists, iron markers belong
+  inside it. Spawns have no redstone line.
 - **ST3 [expert]** *Iron structure*: an iron marker stamps a **4×4×4 iron-block cube**.
 - **ST4 [corpus]** *Pre-built wall*: 2 blocks thick, full seam width, top = approach side +4,
   down to y=0. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every
@@ -561,6 +564,12 @@ both corrected.)
    teaching seed `build-region-examples.plan.json` — five zones stating the offset, the void-facing
    edge test, the terrain clearance and the corner turn. New rule, no existing rule changed; ST1's
    entrance line is unaffected and stays powered, which is what distinguishes the two on sight.
+8. **ST1/ST2 corrected: the piece sizes the stamp (2026-08-01, G31).** Author decision: the room
+   shell is the piece inset one block, never a fixed 8×8 — the footprint rules, the parity-driven
+   square pad, and the wall-parity door widths live as `WX1–WX7` in
+   `docs/world-export/structures.md`, which governs the stamped geometry. ST1's entrance line also
+   gains the build-zone interface (an abutting build zone is an entrance like any land seam — WX6),
+   which was previously unstated.
 
 ## Correction protocol
 

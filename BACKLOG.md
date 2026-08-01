@@ -402,14 +402,12 @@ studio, G117/G118) is in `TODO.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
-- [ ] **G31 — adaptive structure stamping (footprint presets).** The wool-cage/spawn-cube stamp is a
-  hardcoded 8×8 shell anchored on the marker alone; the room/spawn piece rect never reaches the stamper.
-  Make the piece dictate the footprint (piece inset one block, minimums in blocks), the marker the
-  spawn/wool pad (parity-driven 2×2 / 1×1 / 3×3, clearance-shifted), and the entry seams the doors; shell
-  presets stay data on the `DestroyableStyle` model, never schematics. The full design — the `WX*` rules
-  and the frame/shell/furnisher/preset split — is **`docs/world-export/structures.md`**; ST1/ST2 and
-  `sketch-world-export.md` §2/§5 are amended when it lands. (Pulled from `ideas.md`; G34 theming attaches
-  at the preset seam.)
+- [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
+  8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**
+  (`ShapeEmitter.RoomDepthCells` = 2, corridor widths in cells), so a small-cell board (cell ≤ 3) can emit
+  a wool room or spawn its own export refuses. Make the room depth/width floors cell-size-aware — enough
+  cells to reach the block minimum — through `MinBox` and the spawn profile; the composer's cell-5 boards
+  already clear it by construction, so this binds only when boards go small-cell.
 
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to

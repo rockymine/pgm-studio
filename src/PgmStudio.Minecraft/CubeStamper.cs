@@ -1,96 +1,93 @@
+using PgmStudio.Domain;
+
 namespace PgmStudio.Minecraft;
 
-/// <summary>Which structure variant a cube shell is — differs only in door count/size, the colour-strip
+/// <summary>Which structure variant a room shell is — differs only in door material/height, the colour-strip
 /// material, and its contents (chests vs monuments, stamped separately).</summary>
 public enum CubeKind { WoolCage, SpawnCube }
 
-/// <summary>The outward direction a wall faces (a spawn cube's single door faces one of these).</summary>
-public enum Facing { NegZ, PosZ, NegX, PosX }
-
 /// <summary>
-/// Stamps the shared 8×8 hollow-bedrock cube shell used by wool cages and spawn cubes
-/// (docs/contracts/sketch-world-export.md §2). Layers are floor-indexed (floor = 0, roof = 8): floor is
-/// bedrock with a 2×2 wool centre (the spawn/wool marker), walls are bedrock except a coloured strip at
-/// layer 4 (wool for cages, stained clay for spawns) and a missing course at layer 6 (light slit), and the
-/// roof is bedrock with a 4×4 centre hole. Doors start at layer 1: a wool cage gets four 2-wide × 3-tall
-/// stained-glass-pane doors (one per wall); a spawn cube gets a single 4-wide × 4-tall open-air door.
-///
-/// The cube is anchored on <c>(anchorX, anchorZ)</c> — the integer corner shared by the 2×2 wool centre —
-/// so the 8-wide footprint spans <c>anchorX-4 .. anchorX+3</c>; layer 0 sits at world <c>floorY</c>.
+/// Stamps the hollow-bedrock room shell used by wool cages and spawn cubes, sized by its
+/// <see cref="RoomFrame"/> (docs/world-export/structures.md WX1–WX7; the shipped 10×10 piece yields the
+/// original 8×8 shell). Layers are floor-indexed (floor = 0, roof = 8): the floor is bedrock with the
+/// frame's wool <see cref="RoomPad"/>, walls are bedrock except a coloured strip at layer 4 (wool for
+/// cages, stained clay for spawns) and a missing course at layer 6 (light slit), and the roof is bedrock
+/// with a centred hole that follows the shell (capped at 4×4). Doors start at layer 1, cut where the
+/// frame's entry interfaces are: stained-glass panes 3 tall for a wool cage, open air 4 tall for a spawn.
 /// </summary>
 public static class CubeStamper
 {
-    public const int Size = 8;             // footprint width/depth
-    public const int Half = Size / 2;      // anchor→corner offset (= low coord of the 2×2 centre)
-    public const int Max = Size - 1;       // far perimeter index (near perimeter = 0)
-    public const int Interior = 1;         // first interior (hollow) index
-    public const int InteriorMax = Size - 2; // last interior (hollow) index
-    public const int RoofLayer = 8;        // top course (bedrock + 4×4 hole) — also the highest layer written
+    public const int RoofLayer = 8;        // top course (bedrock + centre hole) — also the highest layer written
     public const int SlitLayer = 6;        // missing course — the light slit
     public const int StripLayer = 4;       // coloured strip (wool / stained clay)
+    public const int WoolDoorHeight = 3;   // stained-glass pane door, layers 1–3
+    public const int SpawnDoorHeight = 4;  // open-air door, layers 1–4
 
-    /// <summary>The 8×8 XZ footprint (min inclusive, max inclusive) of a cube anchored on
-    /// <paramref name="anchorX"/>/<paramref name="anchorZ"/> — the columns its shell stands on.</summary>
-    public static (int MinX, int MinZ, int MaxX, int MaxZ) Footprint(int anchorX, int anchorZ)
-        => (anchorX - Half, anchorZ - Half, anchorX + Half - 1, anchorZ + Half - 1);
-
-    public static void Stamp(VoxelWorld world, int anchorX, int anchorZ, int floorY, int color, CubeKind kind, Facing doorFacing = Facing.NegZ)
+    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY, int color, CubeKind kind)
     {
-        var x0 = anchorX - Half;
-        var z0 = anchorZ - Half;
-
-        void Set(int lx, int layer, int lz, int id, int data = 0)
-            => world.SetBlock(x0 + lx, floorY + layer, z0 + lz, id, data);
-
-        for (var lx = 0; lx < Size; lx++)
-        for (var lz = 0; lz < Size; lz++)
+        for (var x = frame.MinX; x < frame.MaxX; x++)
+        for (var z = frame.MinZ; z < frame.MaxZ; z++)
         {
-            // Floor (layer 0): bedrock, 2×2 wool centre (the two coords straddling the mid-line).
-            var center = lx is Half - 1 or Half && lz is Half - 1 or Half;
-            Set(lx, 0, lz, center ? Blocks.Wool : Blocks.Bedrock, center ? color : 0);
+            // Floor (layer 0): bedrock, with the frame's pad in wool.
+            var onPad = x >= frame.Pad.MinX && x < frame.Pad.MinX + frame.Pad.Size
+                && z >= frame.Pad.MinZ && z < frame.Pad.MinZ + frame.Pad.Size;
+            world.SetBlock(x, floorY, z, onPad ? Blocks.Wool : Blocks.Bedrock, onPad ? color : 0);
 
-            // Roof (top layer): bedrock with a centred 4×4 hole (left as air).
-            var roofHole = lx is >= Half - 2 and <= Half + 1 && lz is >= Half - 2 and <= Half + 1;
-            if (!roofHole) Set(lx, RoofLayer, lz, Blocks.Bedrock);
+            // Roof (top layer): bedrock with the centred hole left as air.
+            if (!InRoofHole(frame, x, z)) world.SetBlock(x, floorY + RoofLayer, z, Blocks.Bedrock);
 
             // Walls: perimeter cells only, layers 1..RoofLayer-1.
-            if (lx is not (0 or Max) && lz is not (0 or Max)) continue;
+            var onRing = x == frame.MinX || x == frame.MaxX - 1 || z == frame.MinZ || z == frame.MaxZ - 1;
+            if (!onRing) continue;
             for (var layer = 1; layer < RoofLayer; layer++)
             {
                 if (layer == SlitLayer) continue;   // light slit — no block
                 if (layer == StripLayer)
-                    Set(lx, layer, lz, kind == CubeKind.WoolCage ? Blocks.Wool : Blocks.StainedClay, color);
+                    world.SetBlock(x, floorY + layer, z, kind == CubeKind.WoolCage ? Blocks.Wool : Blocks.StainedClay, color);
                 else
-                    Set(lx, layer, lz, Blocks.Bedrock);
+                    world.SetBlock(x, floorY + layer, z, Blocks.Bedrock);
             }
         }
 
-        if (kind == CubeKind.WoolCage)
-        {
-            foreach (var facing in (ReadOnlySpan<Facing>)[Facing.NegZ, Facing.PosZ, Facing.NegX, Facing.PosX])
-                StampDoor(Set, facing, width: 2, height: 3, Blocks.StainedGlassPane, color);
-        }
-        else
-        {
-            StampDoor(Set, doorFacing, width: 4, height: 4, Blocks.Air, 0);
-        }
+        foreach (var door in frame.Doors)
+            StampDoor(world, frame, floorY, door,
+                kind == CubeKind.WoolCage ? Blocks.StainedGlassPane : Blocks.Air,
+                kind == CubeKind.WoolCage ? color : 0,
+                kind == CubeKind.WoolCage ? WoolDoorHeight : SpawnDoorHeight);
     }
 
-    private static void StampDoor(Action<int, int, int, int, int> set, Facing facing, int width, int height, int id, int data)
+    /// <summary>The roof hole's span over a shell <paramref name="shellSpan"/> wide: proportional (span − 4,
+    /// so the hole rim keeps two courses of roof) but capped at 4 — 3 on an odd shell, so it stays centred.
+    /// The shipped 8-wide shell keeps its 4×4 hole.</summary>
+    public static int RoofHoleSpan(int shellSpan)
     {
-        var lo = (Size - width) / 2;   // centred on the wall: width 2 → {3,4}, width 4 → {2..5}
+        var cap = shellSpan % 2 == 0 ? 4 : 3;
+        var floor = shellSpan % 2 == 0 ? 2 : 1;
+        return Math.Min(cap, Math.Max(shellSpan - 4, floor));
+    }
+
+    private static bool InRoofHole(RoomFrame frame, int x, int z)
+    {
+        var holeW = RoofHoleSpan(frame.Width);
+        var holeD = RoofHoleSpan(frame.Depth);
+        var holeMinX = frame.MinX + (frame.Width - holeW) / 2;
+        var holeMinZ = frame.MinZ + (frame.Depth - holeD) / 2;
+        return x >= holeMinX && x < holeMinX + holeW && z >= holeMinZ && z < holeMinZ + holeD;
+    }
+
+    private static void StampDoor(VoxelWorld world, RoomFrame frame, int floorY, RoomDoor door, int id, int data, int height)
+    {
         for (var layer = 1; layer <= height; layer++)
-        for (var t = lo; t < lo + width; t++)
+        for (var along = door.Lo; along < door.Lo + door.Width; along++)
         {
-            var (lx, lz) = facing switch
+            var (x, z) = door.Edge switch
             {
-                Facing.NegZ => (t, 0),
-                Facing.PosZ => (t, Max),
-                Facing.NegX => (0, t),
-                Facing.PosX => (Max, t),
-                _ => (t, 0),
+                RoomEdge.NegZ => (along, frame.MinZ),
+                RoomEdge.PosZ => (along, frame.MaxZ - 1),
+                RoomEdge.NegX => (frame.MinX, along),
+                _ => (frame.MaxX - 1, along),
             };
-            set(lx, layer, lz, id, data);
+            world.SetBlock(x, floorY + layer, z, id, data);
         }
     }
 }

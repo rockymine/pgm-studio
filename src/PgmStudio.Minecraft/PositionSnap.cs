@@ -13,6 +13,12 @@ public static class PositionSnap
     public static (int X, int Z) SnapXZ(double x, double z)
         => ((int)Math.Round(x, MidpointRounding.AwayFromZero), (int)Math.Round(z, MidpointRounding.AwayFromZero));
 
+    /// <summary>Round X/Z to the half-block lattice (nearest 0.5) — the marker lattice a room pad reads its
+    /// parity from (docs/world-export/structures.md WX3): a whole value is a grid line (2×2 pad), a .5 value
+    /// a block centre (1×1/3×3 pad).</summary>
+    public static (double X, double Z) SnapHalfXZ(double x, double z)
+        => (Math.Round(x * 2, MidpointRounding.AwayFromZero) / 2, Math.Round(z * 2, MidpointRounding.AwayFromZero) / 2);
+
     /// <summary>The surface top at <paramref name="cell"/> (the first air Y — where a structure floor rests),
     /// or <paramref name="fallback"/> when the cell has no terrain column.</summary>
     public static int SurfaceY((int X, int Z) cell, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int fallback)

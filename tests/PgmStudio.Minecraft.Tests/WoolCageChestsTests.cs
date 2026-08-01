@@ -1,4 +1,5 @@
 using fNbt;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Minecraft.Tests;
@@ -13,7 +14,8 @@ public sealed class WoolCageChestsTests
     public async Task Places_eight_chests_with_the_A_and_B_loadouts()
     {
         var world = new VoxelWorld();
-        WoolCageChests.Stamp(world, anchorX: 0, anchorZ: 0, floorY: 64);
+        var frame = RoomFrames.Resolve(-5, -5, 5, 5, 0, 0, [(-5, -5, 5, -5)], null, out _)!;
+        WoolCageChests.Stamp(world, frame, floorY: 64);
 
         // Chest blocks at all four interior corners, bottom (y=65) + top (y=66).
         await Assert.That(world.GetBlock(-3, 65, -3).Id).IsEqualTo(Blocks.Chest);

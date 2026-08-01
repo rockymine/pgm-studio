@@ -2405,12 +2405,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   sections; gzipped `level.dat` with world spawn + a real creation timestamp), the mirror of the read-only
   `AnvilRegion`. Write→read round-trip tested. (P9a, P9b)
 - **World synthesis + stampers** — `SketchTerrainBuilder` (bedrock floor at y=0 + stone fill from the sketch
-  columns, reporting each column's surface top), the shared `CubeStamper` 8×8 hollow-bedrock shell (roof
-  hole, layer-6 light slit, layer-4 colour strip, 2×2 floor wool, glass-pane / open doors), `WoolCageStamper`
+  columns, reporting each column's surface top), the shared `CubeStamper` hollow-bedrock room shell (roof
+  hole, layer-6 light slit, layer-4 colour strip, floor wool pad, glass-pane / open doors), `WoolCageStamper`
   + `WoolCageChests` (two-chest corner loadout), `SpawnCubeStamper` (spawn cube + auto-wired monuments:
   bedrock pedestal · air cell · wool-colour glass cap · label sign, placed by captured-wool count),
   `ObserverPlatformStamper` (solid 6×6 platform + four inward info boards), plus `SignBuilder`/`ChestBuilder`
-  and `PositionSnap` (integer X/Z, `ymax` Y, yaw→door facing). (P9c, P9d, P9g, P9h, P9i, P9j, P9l)
+  and `PositionSnap` (half-block-lattice X/Z, `ymax` Y, yaw→door facing). (P9c, P9d, P9g, P9h, P9i, P9j, P9l)
+- **Adaptive room frames — the piece sizes the stamp.** One `RoomFrame` per wool cage / spawn room
+  (`PgmStudio.Domain.RoomFrames`, the `WX1–WX7` rules in `docs/world-export/structures.md`): the shell
+  footprint is the role piece inset one block (10×10 → the original 8×8; minimum 8×8-block piece, WX2), the
+  marker's lattice parity picks the always-square pad (2×2 on a grid line, 3×3/1×1 on a block centre) with a
+  one-block wall clearance and minimal inward shift, the exported spawn/wool point follows the pad (WX5), and
+  doors are cut on the entry interfaces — terrain↔room land seams **and abutting build zones**, which also
+  carry the ST1 entrance redstone — at wall-parity widths (odd → 3, even → 4, 2 at the 4-across minimum;
+  door ≤ interior − 2, so door-wall monuments are never exposed). Monument seats and chest corners derive
+  from the interior (`MonumentSlots`/`InteriorCorners`), so capacity scales with the room and the validator
+  refuses over-capacity plans, plus WX2/WX3/WX6 refusals and the WX4 shift lint; the structure preview
+  consumes the same frames (`SketchWorldBuilder.WoolFrame`/`SpawnFrame`), so it cannot disagree with the
+  build; the composer legalizes emitted markers onto the lattice (`Composer.LegalizeMarker`, `box-4`).
+  Markerless/plain-piece intents keep the legacy marker-anchored default shell. (G31, WX1–WX7)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

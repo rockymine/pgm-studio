@@ -141,11 +141,75 @@ public static class PlanValidator
             if (!landPairs.Contains((w.A, w.B)))
                 Error($"wall '{w.A}'–'{w.B}' is not a shared land interface", w.A, w.B);
 
+        // WX2/WX3/WX6 + capacity — the stamped-room rules (docs/world-export/structures.md): a role piece
+        // must be big enough for its shell, the marker's pad must be square, a wool room must have an entry
+        // interface, and a spawn room must seat every monument it will host.
+        findings.AddRange(RoomFrameErrors(plan, d));
+
         // reachability over the fanned board: every wool reachable from each capturing team's spawn, and not
         // only via a spawn piece
         findings.AddRange(ReachabilityErrors(plan, d));
         return findings;
     }
+
+    // The stamped-room refusals (WX2/WX3/WX6 + monument capacity). Only role pieces are checked: a marker
+    // on a plain piece keeps the legacy marker-anchored default room, which cannot refuse.
+    private static IEnumerable<PlanFinding> RoomFrameErrors(PlanModel plan, ContactGraph d)
+    {
+        foreach (var w in plan.Placements.Wools)
+        {
+            var frame = ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, null, out var findings);
+            foreach (var finding in findings) yield return finding;
+            _ = frame;
+        }
+        foreach (var s in plan.Placements.Spawns)
+        {
+            var frame = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out var findings);
+            foreach (var finding in findings) yield return finding;
+            if (frame is null) continue;
+
+            // Capacity: this spawn will host a monument for every wool its team captures — on a symmetric
+            // board, every authored wool per opposing team. Truncating at stamp time silently drops goals.
+            var captured = plan.Placements.Wools.Count * Math.Max(1, d.Order - 1);
+            var seats = RoomFrames.MonumentSlots(frame, frame.Doors[0]).Count;
+            if (captured > seats)
+                yield return new PlanFinding(PlanSeverity.Error,
+                    $"spawn room on '{s.Piece}' seats {seats} monuments, {captured} captured wools need placing",
+                    null, [s.Piece]);
+        }
+    }
+
+    // Resolve the room frame the export would stamp for a role-piece marker, surfacing each WX refusal as
+    // an error finding. Null (with findings) on refusal, null (without) when the piece is plain or missing.
+    private static RoomFrame? ResolveFrame(
+        PlanModel plan, ContactGraph d, string kind, string pieceId, string role, double[] at,
+        RoomEdge? spawnDoorEdge, out List<PlanFinding> findings)
+    {
+        findings = [];
+        var piece = d.Piece(pieceId);
+        if (piece is null || piece.Value.Role != role) return null;
+
+        var rect = piece.Value.Rect;
+        var (markerX, markerZ) = ResolveBlock(rect, at, d.Cell);
+        List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = spawnDoorEdge is null
+            ? [.. PlanCompiler.WoolEntrySegments(d, pieceId)
+                .Select(seg => ((double)seg.MinX, (double)seg.MinZ, (double)seg.MaxX, (double)seg.MaxZ))]
+            : [];
+        var frame = RoomFrames.Resolve(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ,
+            markerX, markerZ, entries, spawnDoorEdge, out var refusal);
+        if (refusal is not null)
+            findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} on '{pieceId}': {refusal}", null, [pieceId]));
+        return frame;
+    }
+
+    // The spawn door's wall from the marker facing (front = −z, the board reading the editor renders).
+    private static RoomEdge DoorEdge(string facing) => facing switch
+    {
+        "back" => RoomEdge.PosZ,
+        "left" => RoomEdge.NegX,
+        "right" => RoomEdge.PosX,
+        _ => RoomEdge.NegZ,
+    };
 
     private static void CheckInside(ContactGraph d, string kind, string pieceId, double[] at, List<PlanFinding> findings)
     {
@@ -201,7 +265,7 @@ public static class PlanValidator
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
     public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<PlanFinding>>> LintRules =
     [
-        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintEl3, LintSt2,
+        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintEl3, LintSt2, LintWx4,
     ];
 
     private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
@@ -398,6 +462,18 @@ public static class PlanValidator
                 bx >= sp.Rect.MinX && bx <= sp.Rect.MaxX && bz >= sp.Rect.MinZ && bz <= sp.Rect.MaxZ);
             if (!inside) yield return Lint("ST2", $"iron at ({bx:0},{bz:0}) outside the spawn piece", ir.Piece);
         }
+    }
+
+    // WX4 — a pad shifted off its marker to keep the wall clearance. The export follows the pad (the
+    // emitted spawn/wool point moves with it), so the author is told rather than surprised.
+    private static IEnumerable<PlanFinding> LintWx4(PlanModel plan, ContactGraph d)
+    {
+        foreach (var w in plan.Placements.Wools)
+            if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, null, out _) is { Pad.Shifted: true })
+                yield return Lint("WX4", $"wool pad on '{w.Piece}' shifted inward to keep wall clearance — the exported wool point moves with it", w.Piece);
+        foreach (var s in plan.Placements.Spawns)
+            if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _) is { Pad.Shifted: true })
+                yield return Lint("WX4", $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
     }
 
     // ── shared helpers ──────────────────────────────────────────────────────────────────────────────────

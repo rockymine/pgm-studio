@@ -1,13 +1,14 @@
 using fNbt;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Minecraft;
 
 /// <summary>
-/// Stamps the wool-cage loot: two stacked chests in each of the four interior corners of the cube
+/// Stamps the wool-cage loot: two stacked chests in each of the four interior corners of the room
 /// (docs/contracts/sketch-world-export.md §2a). The lower chest (A) holds a row of planks ×16, a row of
 /// Speed I (3:00) potions, and a row of golden apples ×16; the upper chest (B) holds a row of diamond
-/// leggings, a row of Power I + Infinity bows, and a row of planks ×16. Anchored on the same
-/// <c>(anchorX, anchorZ)</c> / <c>floorY</c> as <see cref="CubeStamper"/>.
+/// leggings, a row of Power I + Infinity bows, and a row of planks ×16. Corners come from the room's
+/// <see cref="RoomFrame"/>, so the loadout rides any footprint.
 /// </summary>
 public static class WoolCageChests
 {
@@ -15,22 +16,12 @@ public static class WoolCageChests
     private const int EnchPower = 48;
     private const int EnchInfinity = 51;
 
-    public static void Stamp(VoxelWorld world, int anchorX, int anchorZ, int floorY)
+    public static void Stamp(VoxelWorld world, RoomFrame frame, int floorY)
     {
-        var x0 = anchorX - CubeStamper.Half;
-        var z0 = anchorZ - CubeStamper.Half;
-
-        // Interior corners (the hollow spans Interior..InteriorMax; its corners are the four combinations).
-        const int lo = CubeStamper.Interior, hi = CubeStamper.InteriorMax;
-        foreach (var (lx, lz) in (ReadOnlySpan<(int, int)>)[(lo, lo), (lo, hi), (hi, lo), (hi, hi)])
+        foreach (var (cornerX, cornerZ) in RoomFrames.InteriorCorners(frame))
         {
-            var wx = x0 + lx;
-            var wz = z0 + lz;
-            var bottomY = floorY + 1;   // resting on the bedrock floor
-            var topY = floorY + 2;
-
-            PlaceChest(world, wx, bottomY, wz, ChestA());
-            PlaceChest(world, wx, topY, wz, ChestB());
+            PlaceChest(world, cornerX, floorY + 1, cornerZ, ChestA());   // resting on the bedrock floor
+            PlaceChest(world, cornerX, floorY + 2, cornerZ, ChestB());
         }
     }
 

@@ -50,12 +50,13 @@ public static class PlanStructurePreview
 
         var boxes = new List<StructureBox>();
 
-        // Spawn cubes + wool cages: the 8×8 shell anchored on the snapped marker, resting on the columns it spans.
+        // Spawn cubes + wool cages: the frame-resolved shell (its plan piece, or the marker-anchored
+        // default), resting on the columns it spans — the same SketchWorldBuilder frames the build stamps.
         var teamColor = (intent.Teams ?? []).ToDictionary(t => t.Id, t => t.Color);
         foreach (var s in intent.Spawns)
-            boxes.Add(Cube("spawn-cube", teamColor.GetValueOrDefault(s.Team), s.Point, surface));
+            boxes.Add(RoomBox("spawn-cube", teamColor.GetValueOrDefault(s.Team), SketchWorldBuilder.SpawnFrame(s), surface));
         foreach (var w in intent.Wools ?? [])
-            boxes.Add(Cube("wool-cage", w.Color, w.Spawn, surface));
+            boxes.Add(RoomBox("wool-cage", w.Color, SketchWorldBuilder.WoolFrame(w), surface));
 
         // Destroyables: the same ObjectiveStamper.DestroyableBox the world build stamps from, so the preview
         // cannot show a structure the export would not place (OB8). Inclusive box → +1 for the exclusive frame.
@@ -97,13 +98,12 @@ public static class PlanStructurePreview
         return boxes;
     }
 
-    // The 8×8 shell, resting on the columns its footprint spans (max inclusive → +1 for the exclusive frame).
-    private static StructureBox Cube(
-        string kind, string? color, Pt at, IReadOnlyDictionary<(int X, int Z), int> surface)
+    // A frame-resolved room shell, resting on the columns its footprint spans (the frame is already
+    // exclusive-max, matching this drawing frame directly).
+    private static StructureBox RoomBox(
+        string kind, string? color, RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surface)
     {
-        var (ax, az) = PositionSnap.SnapXZ(at.X, at.Z);
-        var (minX, minZ, maxX, maxZ) = CubeStamper.Footprint(ax, az);
-        var floor = SketchWorldBuilder.SafeFloor(PositionSnap.SurfaceYOver(surface, minX, minZ, maxX, maxZ, 1));
-        return new StructureBox(kind, color, minX, minZ, maxX + 1, maxZ + 1, floor, floor + CubeHeight);
+        var floor = SketchWorldBuilder.FrameFloor(frame, surface);
+        return new StructureBox(kind, color, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ, floor, floor + CubeHeight);
     }
 }

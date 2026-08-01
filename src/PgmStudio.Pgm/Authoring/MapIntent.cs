@@ -167,6 +167,11 @@ public sealed class SpawnIntent
     [System.Text.Json.Serialization.JsonConverter(typeof(RectListJsonConverter))]
     public List<Rect> Protection { get; init; } = new();
     public double Yaw { get; init; }
+
+    /// <summary>The spawn-role plan piece the marker sits on — the rect that sizes the stamped spawn room
+    /// (docs/world-export/structures.md WX1). Null on hand-authored intents and on markers placed on a
+    /// plain piece: those keep the legacy marker-anchored default room.</summary>
+    public Rect? Piece { get; init; }
 }
 
 /// <summary>The observer/default spawn point.</summary>
@@ -193,6 +198,17 @@ public sealed class WoolIntent
     public List<Rect> Room { get; init; } = new();
     public Pt Spawn { get; init; }
     public List<MonumentIntent> Monuments { get; init; } = new();
+
+    /// <summary>The wool-room-role plan piece the marker sits on — the rect that sizes the stamped cage
+    /// (docs/world-export/structures.md WX1). Null on hand-authored intents and on markers placed on a
+    /// plain piece: those keep the legacy marker-anchored default cage.</summary>
+    public Rect? Piece { get; init; }
+
+    /// <summary>The room's entry interfaces (WX6), as degenerate rects on the room piece's boundary (zero
+    /// thickness across the seam), already fanned: every terrain↔room land seam plus every abutting
+    /// build-zone edge. The exporter cuts the cage doors and lays the entrance redstone on exactly these.
+    /// Empty when <see cref="Piece"/> is null (the legacy default cage keeps a door per wall).</summary>
+    public List<Rect> Entries { get; init; } = new();
 }
 
 /// <summary>A capture point: the team that captures this wool, and where they place it.</summary>

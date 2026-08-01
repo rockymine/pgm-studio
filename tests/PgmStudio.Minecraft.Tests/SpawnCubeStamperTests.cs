@@ -1,20 +1,24 @@
 using fNbt;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// Spawn cube + auto-wired monuments: the shell is stamped, and each captured wool becomes a bedrock
-/// pedestal + air cell + wool-colour glass cap + label sign, placed by count (door-wall corners first,
-/// then back-wall corners). Anchor (0,0), floor y=64, door facing -Z.
+/// Spawn cube + auto-wired monuments: the shell is stamped over its frame, and each captured wool becomes
+/// a bedrock pedestal + air cell + wool-colour glass cap + label sign, seated by
+/// <see cref="RoomFrames.MonumentSlots"/> (door-wall corners first, then back-wall corners, then the walls
+/// fill). Baseline frame: 10×10 piece centred on (0,0), floor y=64, door facing -Z.
 /// </summary>
 public sealed class SpawnCubeStamperTests
 {
+    private static RoomFrame Baseline() => RoomFrames.Resolve(-5, -5, 5, 5, 0, 0, [], RoomEdge.NegZ, out _)!;
+
     [Test]
     public async Task One_wool_places_a_single_monument_at_a_door_wall_corner()
     {
         var w = new VoxelWorld();
-        var placed = SpawnCubeStamper.Stamp(w, 0, 0, 64, teamColor: 11 /*blue*/, Facing.NegZ, ["red"]);
+        var placed = SpawnCubeStamper.Stamp(w, Baseline(), 64, teamColor: 11 /*blue*/, ["red"]);
 
         await Assert.That(placed.Count).IsEqualTo(1);
         var m = placed[0];
@@ -26,7 +30,7 @@ public sealed class SpawnCubeStamperTests
         await Assert.That(w.GetBlock(m.X, 66, m.Z)).IsEqualTo((Blocks.Air, 0));
         await Assert.That(w.GetBlock(m.X, 67, m.Z)).IsEqualTo((Blocks.StainedGlass, 14));
 
-        // Door-wall corner: near the -Z wall (local z=1 → world z=-3).
+        // Door-wall corner: the interior row against the -Z wall (world z=-3).
         await Assert.That(m.Z).IsEqualTo(-3);
     }
 
@@ -34,7 +38,7 @@ public sealed class SpawnCubeStamperTests
     public async Task Sign_faces_the_room_and_reads_place_the_colour_wool_here()
     {
         var w = new VoxelWorld();
-        var placed = SpawnCubeStamper.Stamp(w, 0, 0, 64, teamColor: 11, Facing.NegZ, ["light_blue"]);
+        var placed = SpawnCubeStamper.Stamp(w, Baseline(), 64, teamColor: 11, ["light_blue"]);
         var m = placed[0];
 
         // Sign is one cell toward centre from the pedestal (+Z), at pedestal height, facing south (data 3).
@@ -68,7 +72,7 @@ public sealed class SpawnCubeStamperTests
     public async Task Three_wools_use_both_door_corners_and_one_back_corner()
     {
         var w = new VoxelWorld();
-        var placed = SpawnCubeStamper.Stamp(w, 0, 0, 64, teamColor: 11, Facing.NegZ, ["red", "green", "yellow"]);
+        var placed = SpawnCubeStamper.Stamp(w, Baseline(), 64, teamColor: 11, ["red", "green", "yellow"]);
 
         await Assert.That(placed.Count).IsEqualTo(3);
         // Door-wall corners sit near z=-3; the third (back wall) sits near z=+2.
@@ -78,5 +82,20 @@ public sealed class SpawnCubeStamperTests
         await Assert.That(zs[2]).IsEqualTo(2);
         // Distinct corners (perp columns differ).
         await Assert.That(placed.Select(p => (p.X, p.Z)).Distinct().Count()).IsEqualTo(3);
+    }
+
+    [Test]
+    public async Task Minimum_room_seats_six_and_truncates_beyond_capacity()
+    {
+        // The 8×8-piece minimum: 4×4 interior, 2-wide door → 4 corners + 2 back-wall mids = 6 seats.
+        var frame = RoomFrames.Resolve(0, 0, 8, 8, 4, 4, [], RoomEdge.NegZ, out _)!;
+        var w = new VoxelWorld();
+        var placed = SpawnCubeStamper.Stamp(w, frame, 64, teamColor: 11,
+            ["red", "green", "yellow", "orange", "cyan", "purple", "lime"]);
+
+        await Assert.That(placed.Count).IsEqualTo(6);
+        // Every seat hugs a wall row of the interior [2,6): z ∈ {2,5}.
+        await Assert.That(placed.All(p => p.Z is 2 or 5)).IsTrue();
+        await Assert.That(placed.Select(p => (p.X, p.Z)).Distinct().Count()).IsEqualTo(6);
     }
 }

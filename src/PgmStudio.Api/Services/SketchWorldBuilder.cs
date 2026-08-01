@@ -24,30 +24,23 @@ public static class SketchWorldBuilder
         var terrain = SketchTerrainBuilder.Build(columns);
         var world = terrain.World;
         int Surface(int x, int z) => PositionSnap.SurfaceY((x, z), terrain.SurfaceTop, 1);
-        // A cube rests on the columns its shell spans, not on the one column at its anchor — the anchor is a
-        // grid line, and picking a side of it resolves different heights across the symmetry orbit.
-        int CubeFloor(int ax, int az)
-        {
-            var (minX, minZ, maxX, maxZ) = CubeStamper.Footprint(ax, az);
-            return SafeFloor(PositionSnap.SurfaceYOver(terrain.SurfaceTop, minX, minZ, maxX, maxZ, 1));
-        }
 
         var teams = intent.Teams ?? [];
         var wools = intent.Wools ?? [];
 
-        // ── Wool cages (anchored on the snapped wool spawn) ──────────────────────────────────────────
+        // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
+        var woolFrame = new RoomFrame[wools.Count];
         var woolFloor = new int[wools.Count];
-        var woolCell = new (int X, int Z)[wools.Count];
         for (var i = 0; i < wools.Count; i++)
         {
             var w = wools[i];
             var slug = ColorSlug(w, teams);
-            var (sx, sz) = PositionSnap.SnapXZ(w.Spawn.X, w.Spawn.Z);
-            var fy = CubeFloor(sx, sz);
-            WoolCageStamper.Stamp(world, sx, sz, fy, WoolColors.WoolDamage(slug));
+            var frame = WoolFrame(w);
+            var fy = FrameFloor(frame, terrain.SurfaceTop);
+            WoolCageStamper.Stamp(world, frame, fy, WoolColors.WoolDamage(slug));
+            woolFrame[i] = frame;
             woolFloor[i] = fy;
-            woolCell[i] = (sx, sz);
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
         }
 
@@ -57,13 +50,12 @@ public static class SketchWorldBuilder
         var resolvedSpawns = new List<SpawnIntent>(intent.Spawns.Count);
         foreach (var s in intent.Spawns)
         {
-            var (sx, sz) = PositionSnap.SnapXZ(s.Point.X, s.Point.Z);
-            var fy = CubeFloor(sx, sz);
-            var facing = PositionSnap.FacingFromYaw(s.Yaw);
+            var frame = SpawnFrame(s);
+            var fy = FrameFloor(frame, terrain.SurfaceTop);
 
             var captured = wools.Select((w, i) => (w, i))
                 .Where(x => Capturers(x.w, teams).Contains(s.Team)).ToList();
-            var placed = SpawnCubeStamper.Stamp(world, sx, sz, fy, WoolDataForTeam(s.Team, teams), facing,
+            var placed = SpawnCubeStamper.Stamp(world, frame, fy, WoolDataForTeam(s.Team, teams),
                 [.. captured.Select(x => ColorSlug(x.w, teams))]);
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
@@ -72,10 +64,13 @@ public static class SketchWorldBuilder
             resolvedSpawns.Add(new SpawnIntent
             {
                 Team = s.Team,
-                Point = new Pt(sx, fy + 1, sz),   // player stands on the cube floor
-                // Encase the auto-placed spawn cube (unless the author drew their own protection).
-                Protection = s.Protection.Count > 0 ? s.Protection : [CubeRect(sx, sz)],
+                // The player stands on the pad — the exported point follows it (WX5).
+                Point = new Pt(frame.Pad.CenterX, fy + 1, frame.Pad.CenterZ),
+                // Encase the auto-placed spawn room (unless the author drew their own protection).
+                Protection = s.Protection.Count > 0 ? s.Protection
+                    : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
                 Yaw = s.Yaw,
+                Piece = s.Piece,
             });
         }
 
@@ -83,13 +78,17 @@ public static class SketchWorldBuilder
         for (var i = 0; i < wools.Count; i++)
         {
             var w = wools[i];
+            var frame = woolFrame[i];
             resolvedWools[i] = new WoolIntent
             {
                 Owner = w.Owner,
                 Color = w.Color,
                 // Encase the auto-placed wool cage (unless the author drew their own room).
-                Room = w.Room.Count > 0 ? w.Room : [CubeRect(woolCell[i].X, woolCell[i].Z)],
-                Spawn = new Pt(woolCell[i].X, woolFloor[i], woolCell[i].Z),
+                Room = w.Room.Count > 0 ? w.Room : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
+                // The wool dispenses from the pad — the exported point follows it (WX5).
+                Spawn = new Pt(frame.Pad.CenterX, woolFloor[i], frame.Pad.CenterZ),
+                Piece = w.Piece,
+                Entries = w.Entries,
                 // Only teams that actually got a spawn cube have a placement cell; a capturer without a
                 // spawn has no world location, so skip it rather than emit a phantom monument at (0,0,0).
                 Monuments = [.. Capturers(w, teams)
@@ -245,13 +244,58 @@ public static class SketchWorldBuilder
     private const int MaxCubeFloor = VoxelWorld.MaxHeight - CubeStamper.RoofLayer - 1;
     internal static int SafeFloor(int y) => Math.Clamp(y, 1, MaxCubeFloor);
 
-    /// <summary>The XZ footprint of the cube anchored on <paramref name="cx"/>/<paramref name="cz"/>
-    /// (the integer 2×2 centre) — its blocks span <c>[anchor-Half, anchor+Half-1]</c>, so the rect is
-    /// anchor ± Half.</summary>
-    private static Rect CubeRect(int cx, int cz)
+    /// <summary>The floor a room shell rests on: the highest surface over the columns its footprint spans —
+    /// not the one at its marker, which is a grid line whose side does not survive the symmetry orbit.</summary>
+    public static int FrameFloor(RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surfaceTop)
+        => SafeFloor(PositionSnap.SurfaceYOver(surfaceTop, frame.MinX, frame.MinZ, frame.MaxX - 1, frame.MaxZ - 1, 1));
+
+    /// <summary>The frame the export stamps for a wool: resolved from its plan piece + entry interfaces when
+    /// it compiled from a plan (WX1/WX6), else the legacy marker-anchored default. Shared with the structure
+    /// preview so the drawn box and the stamped shell cannot disagree.</summary>
+    public static RoomFrame WoolFrame(WoolIntent w)
     {
-        const int half = CubeStamper.Half;
-        return new Rect(cx - half, cz - half, cx + half, cz + half);
+        if (w.Piece is { } piece && w.Entries.Count > 0)
+        {
+            var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
+            var frame = RoomFrames.Resolve(
+                (int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ, markerX, markerZ,
+                [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))], null, out _);
+            if (frame is not null) return frame;
+        }
+        return DefaultFrame(w.Spawn.X, w.Spawn.Z, null);
+    }
+
+    /// <inheritdoc cref="WoolFrame"/>
+    public static RoomFrame SpawnFrame(SpawnIntent s)
+    {
+        var doorEdge = PositionSnap.FacingFromYaw(s.Yaw);
+        if (s.Piece is { } piece)
+        {
+            var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
+            var frame = RoomFrames.Resolve(
+                (int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ, markerX, markerZ,
+                [], doorEdge, out _);
+            if (frame is not null) return frame;
+        }
+        return DefaultFrame(s.Point.X, s.Point.Z, doorEdge);
+    }
+
+    // The legacy default: the room a 10×10 piece centred on the integer-snapped marker resolves to — the
+    // original 8×8 shell, with a door per wall for a wool cage or the single yaw door for a spawn. Also the
+    // fallback when an authored piece refuses to frame (the validator gates plan exports, so reaching that
+    // fallback means a hand-edited intent — stamping the default beats failing the export).
+    private static RoomFrame DefaultFrame(double x, double z, RoomEdge? spawnDoorEdge)
+    {
+        var (anchorX, anchorZ) = PositionSnap.SnapXZ(x, z);
+        int minX = anchorX - 5, minZ = anchorZ - 5, maxX = anchorX + 5, maxZ = anchorZ + 5;
+        List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = spawnDoorEdge is null
+            ?
+            [
+                (minX, minZ, maxX, minZ), (minX, maxZ, maxX, maxZ),
+                (minX, minZ, minX, maxZ), (maxX, minZ, maxX, maxZ),
+            ]
+            : [];
+        return RoomFrames.Resolve(minX, minZ, maxX, maxZ, anchorX, anchorZ, entries, spawnDoorEdge, out _)!;
     }
 
     /// <summary>The teams that capture a wool: its authored monument teams, or — when none were authored

@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 
 namespace PgmStudio.Minecraft.Tests;
@@ -23,10 +24,10 @@ public sealed class PositionSnapTests
     [Test]
     public async Task Yaw_maps_to_the_door_facing()
     {
-        await Assert.That(PositionSnap.FacingFromYaw(0)).IsEqualTo(Facing.PosZ);     // south
-        await Assert.That(PositionSnap.FacingFromYaw(90)).IsEqualTo(Facing.NegX);    // west
-        await Assert.That(PositionSnap.FacingFromYaw(180)).IsEqualTo(Facing.NegZ);   // north
-        await Assert.That(PositionSnap.FacingFromYaw(-90)).IsEqualTo(Facing.PosX);   // east (wraps)
-        await Assert.That(PositionSnap.FacingFromYaw(370)).IsEqualTo(Facing.PosZ);   // wraps to ~10°
+        await Assert.That(PositionSnap.FacingFromYaw(0)).IsEqualTo(RoomEdge.PosZ);     // south
+        await Assert.That(PositionSnap.FacingFromYaw(90)).IsEqualTo(RoomEdge.NegX);    // west
+        await Assert.That(PositionSnap.FacingFromYaw(180)).IsEqualTo(RoomEdge.NegZ);   // north
+        await Assert.That(PositionSnap.FacingFromYaw(-90)).IsEqualTo(RoomEdge.PosX);   // east (wraps)
+        await Assert.That(PositionSnap.FacingFromYaw(370)).IsEqualTo(RoomEdge.PosZ);   // wraps to ~10°
     }
 }

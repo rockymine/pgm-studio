@@ -141,6 +141,9 @@ public static class PlanCompiler
                     Point = new Pt(px, piece.Value.Surface, pz),
                     // Protect the whole spawn piece the marker sits on, not just the stamped spawn cube.
                     Protection = [new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)],
+                    // A spawn-role piece sizes the stamped room (WX1); a plain piece keeps the default.
+                    Piece = piece.Value.Role == PlanRoles.Spawn
+                        ? new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ) : null,
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
                 });
             }
@@ -160,12 +163,23 @@ public static class PlanCompiler
                     : i == 0 ? teams[k].Color
                     : Dyes[dyeCursor++ % Dyes.Length];
                 var room = d.FanRect(piece.Value.Rect, k);
+                // A wool-room ROLE piece sizes the stamped cage and carries its entry interfaces (WX1/WX6);
+                // a wool on a plain piece keeps the legacy marker-anchored default cage.
+                var isRoomPiece = piece.Value.Role == PlanRoles.WoolRoom;
                 wools.Add(new WoolIntent
                 {
                     Owner = teams[k].Id,
                     Color = color,
                     // The room region is the whole wool-room piece the marker sits on, not just the stamped cage.
                     Room = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
+                    Piece = isRoomPiece ? new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ) : null,
+                    Entries = isRoomPiece
+                        ? [.. WoolEntrySegments(d, w.Piece).Select(seg =>
+                            {
+                                var fanned = d.FanRect(seg, k);
+                                return new Rect(fanned.MinX, fanned.MinZ, fanned.MaxX, fanned.MaxZ);
+                            })]
+                        : [],
                     Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
             }
@@ -267,11 +281,27 @@ public static class PlanCompiler
                     s.RoomFloors.Add(new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ));
             }
 
-        // ST1 entrance redstone — the last block row inside the room along each terrain↔wool-room seam.
+        // ST1 entrance redstone — the last block row inside the room along each entry interface: every
+        // terrain↔wool-room land seam, and every build-zone frontline edge on a room piece (WX6 — bridging
+        // in through the build region is an entrance like any seam).
         var lineSeen = new HashSet<(int, int, int, int)>();
+        var entranceSegments = new List<(BlockRect Room, int X1, int Z1, int X2, int Z2)>();
         foreach (var seg in d.InterfaceSegments.Where(g => g is { WoolRoom: true, Kind: ContactKind.Land }))
         {
-            var (ex1, ez1, ex2, ez2) = EntranceRow(d, seg);
+            var a = d.Piece(seg.A)!.Value;
+            var b = d.Piece(seg.B)!.Value;
+            var room = a.Role == PlanRoles.WoolRoom ? a : b;
+            entranceSegments.Add((room.Rect, seg.X1, seg.Z1, seg.X2, seg.Z2));
+        }
+        foreach (var edge in d.FrontlineEdges)
+        {
+            var piece = d.Piece(edge.Piece);
+            if (piece?.Role == PlanRoles.WoolRoom)
+                entranceSegments.Add((piece.Value.Rect, edge.X1, edge.Z1, edge.X2, edge.Z2));
+        }
+        foreach (var (roomRect, sx1, sz1, sx2, sz2) in entranceSegments)
+        {
+            var (ex1, ez1, ex2, ez2) = EntranceRow(roomRect, sx1, sz1, sx2, sz2);
             // Fan the row as a block-region rect, not as its two endpoints: a block at index c occupies
             // [c, c+1), so it mirrors to block −c−1, not −c. Reflecting the endpoint points lands a mirror
             // image one block off — inset into the room, or past its edge into the void. FanRect re-bounds
@@ -325,28 +355,44 @@ public static class PlanCompiler
         return s;
     }
 
-    // The redstone row: one block inside the wool room, running the shared-interface width, with the two
-    // endpoints (where the torches sit). Uses the border segment and the room piece's side of the seam.
-    private static (double X1, double Z1, double X2, double Z2) EntranceRow(ContactGraph d, InterfaceSegment seg)
+    // The redstone row: one block inside the wool room, running the entry-interface width, with the two
+    // endpoints (where the torches sit). The segment lies on the room piece's boundary — a piece↔piece
+    // border or a build-zone frontline edge — and the room's side of it picks the row.
+    private static (double X1, double Z1, double X2, double Z2) EntranceRow(
+        BlockRect room, int x1, int z1, int x2, int z2)
     {
-        var a = d.Piece(seg.A)!.Value;
-        var b = d.Piece(seg.B)!.Value;
-        var room = a.Role == PlanRoles.WoolRoom ? a : b;
-
-        if (seg.X1 == seg.X2)   // vertical seam at x = seam; room lies to one side
+        if (x1 == x2)   // vertical seam at x = seam; room lies to one side
         {
-            int seamX = seg.X1;
-            int col = room.Rect.MinX == seamX ? seamX : seamX - 1;   // first room block column
-            int loZ = Math.Min(seg.Z1, seg.Z2), hiZ = Math.Max(seg.Z1, seg.Z2);
+            int seamX = x1;
+            int col = room.MinX == seamX ? seamX : seamX - 1;   // first room block column
+            int loZ = Math.Min(z1, z2), hiZ = Math.Max(z1, z2);
             return (col, loZ, col, hiZ - 1);
         }
-        else                    // horizontal seam at z = seam
+        else            // horizontal seam at z = seam
         {
-            int seamZ = seg.Z1;
-            int row = room.Rect.MinZ == seamZ ? seamZ : seamZ - 1;
-            int loX = Math.Min(seg.X1, seg.X2), hiX = Math.Max(seg.X1, seg.X2);
+            int seamZ = z1;
+            int row = room.MinZ == seamZ ? seamZ : seamZ - 1;
+            int loX = Math.Min(x1, x2), hiX = Math.Max(x1, x2);
             return (loX, row, hiX - 1, row);
         }
+    }
+
+    /// <summary>The entry interfaces of a wool-room piece (WX6), as degenerate block rects on its boundary
+    /// (zero thickness across the seam): every terrain↔room land seam plus every build-zone frontline edge.
+    /// The world exporter cuts the cage doors and lays the entrance redstone on exactly these; empty means
+    /// the room is unreachable, which the validator refuses.</summary>
+    internal static List<BlockRect> WoolEntrySegments(ContactGraph d, string pieceId)
+    {
+        var segments = new List<BlockRect>();
+        foreach (var seg in d.InterfaceSegments)
+            if (seg is { WoolRoom: true, Kind: ContactKind.Land } && (seg.A == pieceId || seg.B == pieceId))
+                segments.Add(new BlockRect(Math.Min(seg.X1, seg.X2), Math.Min(seg.Z1, seg.Z2),
+                    Math.Max(seg.X1, seg.X2), Math.Max(seg.Z1, seg.Z2)));
+        foreach (var edge in d.FrontlineEdges)
+            if (edge.Piece == pieceId)
+                segments.Add(new BlockRect(Math.Min(edge.X1, edge.X2), Math.Min(edge.Z1, edge.Z2),
+                    Math.Max(edge.X1, edge.X2), Math.Max(edge.Z1, edge.Z2)));
+        return segments;
     }
 
     // A wall footprint: two blocks thick across the shared seam, the full interface width along it.

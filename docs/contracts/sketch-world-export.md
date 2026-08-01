@@ -39,15 +39,17 @@ footprint, never embedded in or floating above it.
 
 ---
 
-## 2. Cube template (shared 8×8×8 shell)
+## 2. Room shell template (shared hollow-bedrock shell)
 
-Both the **wool cage** and the **spawn cube** are a hollow **8×8×8 bedrock** shell. Layers are numbered **from
-the floor** (floor = layer 0, roof = layer 8). The two variants differ **only** in door count/size and
-contents (chests vs monuments) — the colour-strip size is identical:
+Both the **wool cage** and the **spawn cube** are a hollow **bedrock** shell whose footprint comes from the
+room's resolved frame — its plan piece inset one block, or the 8×8 marker-anchored default
+(`docs/world-export/structures.md`, WX1: the shipped 10×10 piece yields the original 8×8 shell). Layers are
+numbered **from the floor** (floor = layer 0, roof = layer 8). The two variants differ **only** in door
+material/height and contents (chests vs monuments) — the colour-strip course is identical:
 
 | Layer (from floor) | Wool cage | Spawn cube |
 |---|---|---|
-| 8 (roof) | bedrock, **4×4 centre hole** | bedrock, **4×4 centre hole** |
+| 8 (roof) | bedrock, **centred hole** (proportional, capped 4×4) | bedrock, **centred hole** |
 | 7 | bedrock | bedrock |
 | 6 | **missing** (light slit around all four walls) | **missing** (light slit) |
 | 5 | bedrock | bedrock |
@@ -55,12 +57,14 @@ contents (chests vs monuments) — the colour-strip size is identical:
 | 3 | bedrock | bedrock |
 | 2 | bedrock | bedrock |
 | 1 (doors begin) | bedrock + door opening | bedrock + door opening |
-| 0 (floor) | bedrock, **2×2 centre = wool** (room colour) — wool spawn point | bedrock, **2×2 centre = wool** (team colour) — player spawn |
+| 0 (floor) | bedrock, **wool pad** (room colour) — wool spawn point | bedrock, **wool pad** (team colour) — player spawn |
 
-**Doors** (begin at layer 1):
-- **Wool cage:** four doors, one centred per wall, each **2 wide × 3 tall** (layers 1–3), made of **stained-glass
-  panes (id 160) in the room's wool colour**, so players can enter from all sides.
-- **Spawn cube:** a **single 4×4 door** (layers 1–4) on one wall, **open (air)** — no glass.
+**Doors** (begin at layer 1; widths per `structures.md` WX7 — 4 on a roomy even wall, 3 on an odd wall, 2 at
+the 4-across minimum):
+- **Wool cage:** one door per **entry interface** (a land seam or an abutting build zone — WX6), **3 tall**
+  (layers 1–3), made of **stained-glass panes (id 160) in the room's wool colour**. The marker-anchored
+  default cage keeps a door per wall.
+- **Spawn cube:** a **single door, 4 tall** (layers 1–4) on the yaw-derived wall, **open (air)** — no glass.
 
 Colour: the layer-4 strip + the 2×2 floor wool follow the **room colour** (wool cage: wool, **no stained clay**)
 / **team colour** (spawn cube: clay strip, wool floor). Dye slug → data nibble (0–15) via `BlockColors`
@@ -159,12 +163,13 @@ world's date field). Crib the exact tag set from a real 1.8-era CTW `level.dat` 
 (`POST /api/map/{slug}/sketch/finish`) into Configure.** Normal Configure-imported maps ship a real world and
 export XML only — none of the structure synthesis or the constraints below touch them.
 
-- **The authored spawn / wool positions anchor the structures.** The spawn cube is centred on the player
-  `SpawnIntent.Point`; each wool cage is centred on its wool spawn point (the 2×2 floor-wool marker). Move the
-  point → move the cube. Setting these positions *is* how the author places the structures.
-- **X / Z must snap to full integers.** The cube has a 2×2 centre, and Minecraft block centres sit at `.5`, so
-  the de-facto midpoint is a whole integer. Spawn/wool X,Z must be stored as integers (not `.5`), or the 2×2
-  centre — and thus the whole cube — won't align to blocks.
+- **The room's plan piece sizes the structure; the marker places the pad.** A wool or spawn marker on a
+  role piece takes the shell its piece resolves to (`docs/world-export/structures.md` — the frame rules,
+  WX1–WX7); a marker with no piece (hand-authored / sketch-origin intents) keeps the marker-anchored 8×8
+  default shell. The exported spawn/wool point is the **pad centre**, following any clearance shift (WX5).
+- **X / Z live on the half-block lattice.** A whole coordinate is a grid line (the 2×2 pad straddles it); a
+  `.5` coordinate is a block centre (a 1×1/3×3 pad). Parity must match on both axes — the pad is always
+  square (WX3).
 - **Y snaps to the column top (`ymax`).** Player and wool spawns are forced to the **topmost layer** — the
   layer-segment `ymax` at that column (the DB blob is `ymin, ymax`) — so the cube floor rests on the terrain
   surface (structures sit *on top of* terrain, never embedded / floating).

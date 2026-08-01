@@ -7,43 +7,44 @@ namespace PgmStudio.Minecraft;
 public sealed record PlacedMonument(string WoolSlug, int X, int Y, int Z);
 
 /// <summary>
-/// Stamps a team's spawn cube (docs/contracts/sketch-world-export.md §2–3): the shared cube shell (team
-/// colour, single open-air door facing <paramref name="doorFacing"/>) plus its auto-wired in-cube
-/// monuments. Each monument = a bedrock pedestal (one block above the floor), an air placement cell, a
-/// wool-colour stained-glass cap, and a label sign against the pedestal facing the room. Placement follows
-/// the captured-wool count: 1–2 → the door-wall corners; 3–4 → also the back-wall corners; 5+ → a row
-/// filling the back wall (overflowing to the door wall).
+/// Stamps a team's spawn cube (docs/contracts/sketch-world-export.md §2–3): the shared shell over its
+/// <see cref="RoomFrame"/> (team colour, single open-air door on the frame's yaw-derived edge) plus its
+/// auto-wired in-cube monuments. Each monument = a bedrock pedestal (one block above the floor), an air
+/// placement cell, a wool-colour stained-glass cap, and a label sign against the pedestal facing the room.
+/// Seats come from <see cref="RoomFrames.MonumentSlots"/>: the door-wall corners, the back-wall corners,
+/// then the back wall filling inward and the door wall (skipping the door opening) — so capacity scales
+/// with the interior perimeter.
 /// </summary>
 public static class SpawnCubeStamper
 {
-    private readonly record struct Placement(int Lx, int Lz, Facing SignFacing, int SignDx, int SignDz);
-
     public static IReadOnlyList<PlacedMonument> Stamp(
-        VoxelWorld world, int anchorX, int anchorZ, int floorY, int teamColor, Facing doorFacing,
-        IReadOnlyList<string> capturedWools)
+        VoxelWorld world, RoomFrame frame, int floorY, int teamColor, IReadOnlyList<string> capturedWools)
     {
-        CubeStamper.Stamp(world, anchorX, anchorZ, floorY, teamColor, CubeKind.SpawnCube, doorFacing);
+        CubeStamper.Stamp(world, frame, floorY, teamColor, CubeKind.SpawnCube);
 
-        var x0 = anchorX - CubeStamper.Half;
-        var z0 = anchorZ - CubeStamper.Half;
+        var slots = RoomFrames.MonumentSlots(frame, frame.Doors[0]);
         var placed = new List<PlacedMonument>();
-
-        var placements = Placements(doorFacing, capturedWools.Count);
-        for (var i = 0; i < capturedWools.Count && i < placements.Count; i++)
+        for (var i = 0; i < capturedWools.Count && i < slots.Count; i++)
         {
-            var p = placements[i];
+            var slot = slots[i];
             var slug = capturedWools[i];
             var color = WoolColors.WoolDamage(slug);
-            var wx = x0 + p.Lx;
-            var wz = z0 + p.Lz;
 
-            world.SetBlock(wx, floorY + 1, wz, Blocks.Bedrock);                 // pedestal (elevated one block)
+            world.SetBlock(slot.X, floorY + 1, slot.Z, Blocks.Bedrock);                 // pedestal (elevated one block)
             // floorY + 2 is the air placement cell (wool goes here) — left air.
-            world.SetBlock(wx, floorY + 3, wz, Blocks.StainedGlass, color);      // wool-colour cap
+            world.SetBlock(slot.X, floorY + 3, slot.Z, Blocks.StainedGlass, color);      // wool-colour cap
 
-            SignBuilder.PlaceWallSign(world, wx + p.SignDx, floorY + 1, wz + p.SignDz, p.SignFacing, Label(slug));
+            // The sign hangs one cell toward the room centre, its face turned back at the pedestal's wall.
+            var (signDx, signDz, signFacing) = slot.Wall switch
+            {
+                RoomEdge.NegZ => (0, 1, RoomEdge.PosZ),
+                RoomEdge.PosZ => (0, -1, RoomEdge.NegZ),
+                RoomEdge.NegX => (1, 0, RoomEdge.PosX),
+                _ => (-1, 0, RoomEdge.NegX),
+            };
+            SignBuilder.PlaceWallSign(world, slot.X + signDx, floorY + 1, slot.Z + signDz, signFacing, Label(slug));
 
-            placed.Add(new PlacedMonument(slug, wx, floorY + 2, wz));
+            placed.Add(new PlacedMonument(slug, slot.X, floorY + 2, slot.Z));
         }
         return placed;
     }
@@ -63,44 +64,4 @@ public static class SpawnCubeStamper
 
     private static string DisplayName(string slug)
         => string.Join(' ', slug.Split('_').Select(w => w.Length == 0 ? w : char.ToUpperInvariant(w[0]) + w[1..]));
-
-    // Ordered monument positions for a captured-wool count, given the door facing.
-    private static List<Placement> Placements(Facing doorFacing, int count)
-    {
-        const int lo = CubeStamper.Interior, hi = CubeStamper.InteriorMax;   // interior corner coords (1, 6)
-        var axisIsZ = doorFacing is Facing.NegZ or Facing.PosZ;
-        // The near-axis local coord of the door-wall corners vs the back-wall corners.
-        var (doorNear, backNear) = doorFacing is Facing.NegZ or Facing.NegX ? (lo, hi) : (hi, lo);
-
-        var result = new List<Placement>();
-        if (count <= 4)
-        {
-            foreach (var near in (int[])[doorNear, backNear])
-                foreach (var perp in (int[])[lo, hi])
-                    result.Add(Make(near, perp, axisIsZ));
-            // Order: door corners first, then back corners.
-            result = [.. result.OrderBy(p => Near(p, axisIsZ) == doorNear ? 0 : 1)];
-        }
-        else
-        {
-            foreach (var near in (int[])[backNear, doorNear])          // fill back wall, then overflow to door wall
-                for (var perp = lo; perp <= hi; perp++)
-                    result.Add(Make(near, perp, axisIsZ));
-        }
-        return [.. result.Take(count)];
-    }
-
-    private static int Near(Placement p, bool axisIsZ) => axisIsZ ? p.Lz : p.Lx;
-
-    private static Placement Make(int near, int perp, bool axisIsZ)
-    {
-        var (lx, lz) = axisIsZ ? (perp, near) : (near, perp);
-        // Sign faces the cube centre (perpendicular walls sit at local 0/Max; centre straddles Half).
-        var toward = near < CubeStamper.Half ? 1 : -1;
-        var facing = axisIsZ
-            ? (toward > 0 ? Facing.PosZ : Facing.NegZ)
-            : (toward > 0 ? Facing.PosX : Facing.NegX);
-        var (dx, dz) = axisIsZ ? (0, toward) : (toward, 0);
-        return new Placement(lx, lz, facing, dx, dz);
-    }
 }
