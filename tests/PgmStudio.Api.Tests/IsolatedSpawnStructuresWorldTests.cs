@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PgmStudio.Api.Services;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
@@ -24,29 +25,31 @@ public sealed class IsolatedSpawnStructuresWorldTests
         return Path.Combine(dir.FullName, "tools", "seeds", "isolated-spawn.plan.json");
     }
 
-    /// <summary>The Y an iron cube rests at: the surface across its footprint, as the stamper resolves it. Not
-    /// the anchor column's surface — the anchor is a grid line, and probing one side of it disagrees across the
-    /// symmetry orbit (the seed's own marker sits at a terrain edge, where it read the y=1 fallback).</summary>
-    private static int IronBase(IronCube iron, IReadOnlyDictionary<(int X, int Z), int> surface)
-    {
-        var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(iron.X, iron.Z);
-        return PositionSnap.SurfaceYOver(surface, minX, minZ, maxX, maxZ, 1);
-    }
+    /// <summary>The Y an iron cube rests at: the surface across its footprint, as the stamper resolves it —
+    /// probing one column of a footprint disagrees across the symmetry orbit.</summary>
+    private static int IronBase(IronResolution iron, IReadOnlyDictionary<(int X, int Z), int> surface)
+        => PositionSnap.SurfaceYOver(surface, iron.MinX, iron.MinZ,
+            iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1, 1);
 
-    private static (VoxelWorld World, StructureIntent Structures, IReadOnlyDictionary<(int X, int Z), int> Surface) Build()
+    /// <summary>The first spawn-side renewable iron placement of the resolved intent (WX8).</summary>
+    private static IronResolution SpawnIron(MapIntent resolved)
+        => resolved.Spawns.SelectMany(s => SketchWorldBuilder.SpawnRoom(s).Iron).First(i => i.Placeable);
+
+    private static (VoxelWorld World, MapIntent Resolved, IReadOnlyDictionary<(int X, int Z), int> Surface) Build()
     {
         var plan = PlanModel.Parse(File.ReadAllText(SeedPath()))!;
         var (layout, intent) = PlanCompiler.Compile(plan);
         var layoutJson = JsonSerializer.Serialize(layout, SketchLayout.Json);
         var built = SketchWorldBuilder.Build(layoutJson, intent);
         var surface = SketchTerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson)).SurfaceTop;
-        return (built.World, built.ResolvedIntent.Structures!, surface);
+        return (built.World, built.ResolvedIntent, surface);
     }
 
     [Test]
     public async Task All_four_structure_kinds_land_in_the_built_world()
     {
-        var (w, s, surface) = Build();
+        var (w, resolved, surface) = Build();
+        var s = resolved.Structures!;
         int Surf(int x, int z) => surface.GetValueOrDefault((x, z), 1);
 
         // ST1 — a wool-room footprint is solid bedrock from the floor up through the surface block.
@@ -63,12 +66,13 @@ public sealed class IsolatedSpawnStructuresWorldTests
         var midZ = (line.Z1 + line.Z2) / 2;
         await Assert.That(w.GetBlock(midX, Surf(midX, midZ), midZ).Id).IsEqualTo(Blocks.RedstoneWire);
 
-        // ST2/ST3 — the renewable iron cube rests on the surface its footprint spans.
-        var iron = s.IronCubes.First(c => c.Renew);
-        var (ix, iz, _, _) = StructureStamper.IronCubeFootprint(iron.X, iron.Z);
+        // ST2/ST3 — the spawn's renewable iron cube (WX8) rests beside the room on the surface its
+        // footprint spans, clear of the shell.
+        var iron = SpawnIron(resolved);
         int ibase = IronBase(iron, surface);
-        await Assert.That(w.GetBlock(ix, ibase, iz).Id).IsEqualTo(Blocks.IronBlock);
-        await Assert.That(w.GetBlock(iron.X, ibase + 3, iron.Z).Id).IsEqualTo(Blocks.IronBlock);
+        await Assert.That(w.GetBlock(iron.MinX, ibase, iron.MinZ).Id).IsEqualTo(Blocks.IronBlock);
+        await Assert.That(w.GetBlock(iron.MinX + iron.Size - 1, ibase + iron.Size - 1, iron.MinZ + iron.Size - 1).Id)
+            .IsEqualTo(Blocks.IronBlock);
 
         // ST4 — the approach wall rises to its top height, nothing above it.
         var wall = s.Walls[0];
@@ -81,9 +85,9 @@ public sealed class IsolatedSpawnStructuresWorldTests
     [Test]
     public async Task Renewable_iron_cube_survives_the_anvil_round_trip()
     {
-        var (world, s, surface) = Build();
-        var iron = s.IronCubes.First(c => c.Renew);
-        var (ix, iz, _, _) = StructureStamper.IronCubeFootprint(iron.X, iron.Z);
+        var (world, resolved, surface) = Build();
+        var iron = SpawnIron(resolved);
+        var (ix, iz) = (iron.MinX, iron.MinZ);
         int ibase = IronBase(iron, surface);
 
         var dir = Path.Combine(Path.GetTempPath(), "isostruct_" + Guid.NewGuid().ToString("N"));

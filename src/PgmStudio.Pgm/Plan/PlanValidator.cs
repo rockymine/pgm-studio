@@ -164,14 +164,14 @@ public static class PlanValidator
         }
         foreach (var s in plan.Placements.Spawns)
         {
-            var frame = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out var findings);
+            var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out var findings);
             foreach (var finding in findings) yield return finding;
-            if (frame is null) continue;
+            if (room is null) continue;
 
             // Capacity: this spawn will host a monument for every wool its team captures — on a symmetric
             // board, every authored wool per opposing team. Truncating at stamp time silently drops goals.
             var captured = plan.Placements.Wools.Count * Math.Max(1, d.Order - 1);
-            var seats = RoomFrames.MonumentSlots(frame, frame.Doors[0]).Count;
+            var seats = RoomFrames.MonumentSlots(room.Frame, room.Frame.Doors[0]).Count;
             if (captured > seats)
                 yield return new PlanFinding(PlanSeverity.Error,
                     $"spawn room on '{s.Piece}' seats {seats} monuments, {captured} captured wools need placing",
@@ -179,9 +179,10 @@ public static class PlanValidator
         }
     }
 
-    // Resolve the room frame the export would stamp for a role-piece marker, surfacing each WX refusal as
-    // an error finding. Null (with findings) on refusal, null (without) when the piece is plain or missing.
-    private static RoomFrame? ResolveFrame(
+    // Resolve the room the export would stamp for a role-piece marker — including the piece's iron for a
+    // spawn — surfacing each WX refusal as an error finding. Null (with findings) on refusal, null
+    // (without) when the piece is plain or missing.
+    private static ResolvedRoom? ResolveFrame(
         PlanModel plan, ContactGraph d, string kind, string pieceId, string role, double[] at,
         RoomEdge? spawnDoorEdge, out List<PlanFinding> findings)
     {
@@ -195,11 +196,15 @@ public static class PlanValidator
             ? [.. PlanCompiler.WoolEntrySegments(d, pieceId)
                 .Select(seg => ((double)seg.MinX, (double)seg.MinZ, (double)seg.MaxX, (double)seg.MaxZ))]
             : [];
-        var frame = RoomFrames.Resolve(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ,
-            markerX, markerZ, entries, spawnDoorEdge, out var refusal);
+        List<(double X, double Z)> ironMarkers = spawnDoorEdge is null
+            ? []
+            : [.. plan.Placements.Iron.Where(ir => ir.Piece == pieceId)
+                .Select(ir => ResolveBlock(rect, ir.At, d.Cell))];
+        var room = RoomFrames.ResolveRoom(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ,
+            markerX, markerZ, entries, spawnDoorEdge, ironMarkers, out var refusal);
         if (refusal is not null)
             findings.Add(new PlanFinding(PlanSeverity.Error, $"{kind} on '{pieceId}': {refusal}", null, [pieceId]));
-        return frame;
+        return room;
     }
 
     // The spawn door's wall from the marker facing (front = −z, the board reading the editor renders).
@@ -265,7 +270,7 @@ public static class PlanValidator
     /// <summary>The lint table — one entry per checked rule; add a rule by appending a delegate.</summary>
     public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<PlanFinding>>> LintRules =
     [
-        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintEl3, LintSt2, LintWx4,
+        LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintEl3, LintSt2, LintWx4, LintWx8,
     ];
 
     private static PlanFinding Lint(string rule, string msg, params string[] subjects) =>
@@ -469,11 +474,28 @@ public static class PlanValidator
     private static IEnumerable<PlanFinding> LintWx4(PlanModel plan, ContactGraph d)
     {
         foreach (var w in plan.Placements.Wools)
-            if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, null, out _) is { Pad.Shifted: true })
+            if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, null, out _) is { Frame.Pad.Shifted: true })
                 yield return Lint("WX4", $"wool pad on '{w.Piece}' shifted inward to keep wall clearance — the exported wool point moves with it", w.Piece);
         foreach (var s in plan.Placements.Spawns)
-            if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _) is { Pad.Shifted: true })
+            if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _) is { Frame.Pad.Shifted: true })
                 yield return Lint("WX4", $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
+    }
+
+    // WX8/WX9 — an iron marker on a spawn piece that resolves unplaceable: the room has priority and
+    // stamps alone; the marker stays on the board and is flagged with the clearance requirement instead of
+    // silently disappearing from the world.
+    private static IEnumerable<PlanFinding> LintWx8(PlanModel plan, ContactGraph d)
+    {
+        foreach (var s in plan.Placements.Spawns)
+        {
+            var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _);
+            if (room is null) continue;
+            foreach (var iron in room.Iron.Where(i => !i.Placeable))
+                yield return Lint("WX8",
+                    $"iron at ({iron.MarkerX}, {iron.MarkerZ}) on '{s.Piece}' cannot be placed: no room size "
+                    + $"leaves {RoomFrames.IronGap} block clear of the shell for even the smallest cube — "
+                    + "the room has priority and stamps alone", s.Piece);
+        }
     }
 
     // ── shared helpers ──────────────────────────────────────────────────────────────────────────────────

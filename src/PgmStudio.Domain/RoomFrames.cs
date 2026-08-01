@@ -26,6 +26,16 @@ public readonly record struct RoomPad(int MinX, int MinZ, int Size, bool Shifted
 /// pedestal hugs (which side its label sign hangs toward the room centre from).</summary>
 public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
 
+/// <summary>One iron marker's resolution beside a spawn room (WX8/WX9): the cube footprint min corner and
+/// <see cref="Size"/> (4 or 2 on a grid-line marker, 3 on a block centre), or — when no legal strip exists
+/// even after the room yields and the cube degrades — an unplaceable marker (<see cref="Placeable"/>
+/// false): nothing stamps, the marker stays on the board, and validation flags it.</summary>
+public readonly record struct IronResolution(double MarkerX, double MarkerZ, int MinX, int MinZ, int Size, bool Placeable);
+
+/// <summary>A room resolution: the <see cref="Frame"/> (whose shell may have yielded to iron) plus the
+/// piece's <see cref="Iron"/> placements, one per marker in input order.</summary>
+public sealed record ResolvedRoom(RoomFrame Frame, IReadOnlyList<IronResolution> Iron);
+
 /// <summary>
 /// The resolved geometry of one stamped room, in absolute world blocks, all rects min-inclusive /
 /// max-exclusive: the shell footprint (the walls stand on its perimeter), the interior floor inside them,
@@ -82,18 +92,32 @@ public static class RoomFrames
     public static int DoorWidth(int interiorAcross) =>
         interiorAcross % 2 == 1 ? 3 : interiorAcross >= 6 ? 4 : 2;
 
-    /// <summary>
-    /// Resolve a room's frame from its piece rect, its marker, and its entry interfaces (WX1–WX7).
-    /// <paramref name="entries"/> are degenerate rects on the piece boundary (a seam or build-zone
-    /// interface segment; zero-thickness on the seam axis); pass a <paramref name="spawnDoorEdge"/> instead
-    /// for a spawn room's single yaw-derived door. Null with a <paramref name="refusal"/> message when a WX
-    /// rule refuses — the same wording the validator reports.
-    /// </summary>
+    /// <inheritdoc cref="ResolveRoom"/>
+    /// <remarks>The frame-only convenience: no iron markers, returns just the frame.</remarks>
     public static RoomFrame? Resolve(
         int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,
         double markerX, double markerZ,
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
         RoomEdge? spawnDoorEdge,
+        out string? refusal)
+        => ResolveRoom(pieceMinX, pieceMinZ, pieceMaxX, pieceMaxZ, markerX, markerZ,
+            entries, spawnDoorEdge, [], out refusal)?.Frame;
+
+    /// <summary>
+    /// Resolve a room from its piece rect, its marker, its entry interfaces, and the piece's iron markers
+    /// (WX1–WX9). <paramref name="entries"/> are degenerate rects on the piece boundary (a seam or
+    /// build-zone interface segment; zero-thickness on the seam axis); pass a
+    /// <paramref name="spawnDoorEdge"/> instead for a spawn room's single yaw-derived door.
+    /// <paramref name="ironMarkers"/> resolve to cubes outside the shell (the shell yields, the cube
+    /// degrades — WX8) or to unplaceable markers (WX9). Null with a <paramref name="refusal"/> message when
+    /// a WX rule refuses — the same wording the validator reports.
+    /// </summary>
+    public static ResolvedRoom? ResolveRoom(
+        int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,
+        double markerX, double markerZ,
+        IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
+        RoomEdge? spawnDoorEdge,
+        IReadOnlyList<(double X, double Z)> ironMarkers,
         out string? refusal)
     {
         refusal = null;
@@ -115,6 +139,14 @@ public static class RoomFrames
 
         // WX1 — the shell footprint is the piece inset by the one-block clean ring.
         int minX = pieceMinX + 1, minZ = pieceMinZ + 1, maxX = pieceMaxX - 1, maxZ = pieceMaxZ - 1;
+
+        // WX8 — each iron marker in turn: the cube sits outside the shell with one block of clear air,
+        // never fused. The room has priority: the shell pulls one edge back as far as WX2 and the room
+        // marker allow, the cube degrades by parity, and an unfittable marker resolves unplaceable (WX9).
+        var iron = new List<IronResolution>();
+        foreach (var (ironX, ironZ) in ironMarkers)
+            iron.Add(PlaceIron(ironX, ironZ, pieceMinX, pieceMinZ, pieceMaxX, pieceMaxZ,
+                markerX, markerZ, ref minX, ref minZ, ref maxX, ref maxZ));
 
         // The pad's allowed region is the interior inset by the wall clearance (WX4).
         var pad = PlacePad(markerX, markerZ,
@@ -159,7 +191,65 @@ public static class RoomFrames
             }
         }
 
-        return new RoomFrame(minX, minZ, maxX, maxZ, pad.Value, doors);
+        return new ResolvedRoom(new RoomFrame(minX, minZ, maxX, maxZ, pad.Value, doors), iron);
+    }
+
+    /// <summary>Air blocks kept between an iron cube and the room shell (WX8) — the same one-block
+    /// clearance the pad keeps to the walls.</summary>
+    public const int IronGap = 1;
+
+    // Resolve one iron marker against the current shell, shrinking the shell in place when a legal yield
+    // exists. Size ladder by parity: a grid-line marker centres 4 then 2, a block-centre marker centres 3;
+    // mixed parity centres nothing and is unplaceable outright. A shrink candidate pulls exactly one shell
+    // edge back to clear the cube plus gap, and is legal while the shell holds WX2 and the room marker
+    // stays inside the interior; the largest retained area wins, ties broken toward moving the edge
+    // farthest from the room marker — a marker-relative choice, so orbit images shrink mirror-consistently.
+    private static IronResolution PlaceIron(
+        double ironX, double ironZ, int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,
+        double markerX, double markerZ, ref int minX, ref int minZ, ref int maxX, ref int maxZ)
+    {
+        if (IsGridLine(ironX) != IsGridLine(ironZ))
+            return new IronResolution(ironX, ironZ, 0, 0, 0, Placeable: false);
+
+        int[] sizes = IsGridLine(ironX) ? [4, 2] : [3];
+        foreach (var size in sizes)
+        {
+            int Lo(double marker) => IsGridLine(marker) ? (int)marker - size / 2 : (int)Math.Floor(marker) - (size - 1) / 2;
+            int cubeMinX = Lo(ironX), cubeMinZ = Lo(ironZ);
+            int cubeMaxX = cubeMinX + size, cubeMaxZ = cubeMinZ + size;
+            if (cubeMinX < pieceMinX || cubeMinZ < pieceMinZ || cubeMaxX > pieceMaxX || cubeMaxZ > pieceMaxZ)
+                continue;   // off the piece at this size — try the smaller cube
+
+            bool Separated(int shellMinX, int shellMinZ, int shellMaxX, int shellMaxZ) =>
+                shellMaxX <= cubeMinX - IronGap || shellMinX >= cubeMaxX + IronGap
+                || shellMaxZ <= cubeMinZ - IronGap || shellMinZ >= cubeMaxZ + IronGap;
+            if (Separated(minX, minZ, maxX, maxZ))
+                return new IronResolution(ironX, ironZ, cubeMinX, cubeMinZ, size, Placeable: true);
+
+            var candidates = new List<(int MinX, int MinZ, int MaxX, int MaxZ, double EdgeDistance)>
+            {
+                // one shell edge pulled back per candidate; EdgeDistance = room marker to the moved edge,
+                // on that edge's own axis
+                (minX, minZ, cubeMinX - IronGap, maxZ, Math.Abs(markerX - (cubeMinX - IronGap))),
+                (cubeMaxX + IronGap, minZ, maxX, maxZ, Math.Abs(markerX - (cubeMaxX + IronGap))),
+                (minX, minZ, maxX, cubeMinZ - IronGap, Math.Abs(markerZ - (cubeMinZ - IronGap))),
+                (minX, cubeMaxZ + IronGap, maxX, maxZ, Math.Abs(markerZ - (cubeMaxZ + IronGap))),
+            };
+            // Legal while WX2 holds and the room marker stays inside the interior — the pad may still
+            // clamp with a WX4 shift, exactly as it can against an un-shrunk wall.
+            var legal = candidates
+                .Where(c => c.MaxX - c.MinX >= MinShellSpan && c.MaxZ - c.MinZ >= MinShellSpan
+                    && markerX >= c.MinX + 1 && markerX <= c.MaxX - 1
+                    && markerZ >= c.MinZ + 1 && markerZ <= c.MaxZ - 1)
+                .OrderByDescending(c => (c.MaxX - c.MinX) * (c.MaxZ - c.MinZ))
+                .ThenByDescending(c => c.EdgeDistance)
+                .ToList();
+            if (legal.Count == 0) continue;   // the room cannot yield this much — try the smaller cube
+
+            (minX, minZ, maxX, maxZ) = (legal[0].MinX, legal[0].MinZ, legal[0].MaxX, legal[0].MaxZ);
+            return new IronResolution(ironX, ironZ, cubeMinX, cubeMinZ, size, Placeable: true);
+        }
+        return new IronResolution(ironX, ironZ, 0, 0, 0, Placeable: false);
     }
 
     /// <summary>The interior corner cells (chest stacks in a wool cage), door-wall corners first.</summary>

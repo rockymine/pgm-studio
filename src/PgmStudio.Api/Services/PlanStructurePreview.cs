@@ -54,7 +54,20 @@ public static class PlanStructurePreview
         // default), resting on the columns it spans — the same SketchWorldBuilder frames the build stamps.
         var teamColor = (intent.Teams ?? []).ToDictionary(t => t.Id, t => t.Color);
         foreach (var s in intent.Spawns)
-            boxes.Add(RoomBox("spawn-cube", teamColor.GetValueOrDefault(s.Team), SketchWorldBuilder.SpawnFrame(s), surface));
+        {
+            var room = SketchWorldBuilder.SpawnRoom(s);
+            boxes.Add(RoomBox("spawn-cube", teamColor.GetValueOrDefault(s.Team), room.Frame, surface));
+            // Only a placeable iron cube is drawn (WX9): an unplaceable marker stamps nothing, so a box
+            // for it would show a structure the export refuses to place.
+            foreach (var iron in room.Iron.Where(i => i.Placeable))
+            {
+                var maxX = iron.MinX + iron.Size - 1;
+                var maxZ = iron.MinZ + iron.Size - 1;
+                var ironBase = PositionSnap.SurfaceYOver(surface, iron.MinX, iron.MinZ, maxX, maxZ, 1);
+                boxes.Add(new StructureBox("iron", null, iron.MinX, iron.MinZ, maxX + 1, maxZ + 1,
+                    ironBase, ironBase + iron.Size));
+            }
+        }
         foreach (var w in intent.Wools ?? [])
             boxes.Add(RoomBox("wool-cage", w.Color, SketchWorldBuilder.WoolFrame(w), surface));
 

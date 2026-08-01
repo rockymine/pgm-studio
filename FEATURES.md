@@ -2421,9 +2421,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   door ≤ interior − 2, so door-wall monuments are never exposed). Monument seats and chest corners derive
   from the interior (`MonumentSlots`/`InteriorCorners`), so capacity scales with the room and the validator
   refuses over-capacity plans, plus WX2/WX3/WX6 refusals and the WX4 shift lint; the structure preview
-  consumes the same frames (`SketchWorldBuilder.WoolFrame`/`SpawnFrame`), so it cannot disagree with the
+  consumes the same frames (`SketchWorldBuilder.WoolFrame`/`SpawnRoom`), so it cannot disagree with the
   build; the composer legalizes emitted markers onto the lattice (`Composer.LegalizeMarker`, `box-4`).
-  Markerless/plain-piece intents keep the legacy marker-anchored default shell. (G31, WX1–WX7)
+  Markerless/plain-piece intents keep the legacy marker-anchored default shell. Spawn-piece **iron**
+  resolves beside the room, never fused (WX8): the shell yields one edge (largest retained area, ties
+  breaking mirror-consistently away from the marker), the cube degrades by parity (grid line 4 → 2, block
+  centre 3), one block of air always between them, and the renewables wiring covers the resolved
+  footprints; an unfittable marker resolves **unplaceable** (WX9) — the room stamps alone, the preview
+  draws nothing for it, and the WX8 lint flags the marker with the clearance requirement. Placeability is
+  the general contract the objective-separation rules reuse (B37). (G31, WX1–WX9)
 - **Build-region outline — `BuildMarkerStamper`.** Every synthesised world marks its build regions with an
   unpowered redstone line at y=1, so a mapper can see where players may build without a block landing anywhere
   near the play surface (ST5). The line sits two blocks out from the region — one air block clear — and holds

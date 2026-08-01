@@ -144,6 +144,16 @@ public static class PlanCompiler
                     // A spawn-role piece sizes the stamped room (WX1); a plain piece keeps the default.
                     Piece = piece.Value.Role == PlanRoles.Spawn
                         ? new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ) : null,
+                    // Iron on a spawn-role piece rides the spawn — it resolves beside the room (WX8/WX9);
+                    // iron elsewhere keeps the legacy StructureIntent path below.
+                    Iron = piece.Value.Role == PlanRoles.Spawn
+                        ? [.. plan.Placements.Iron.Where(ir => ir.Piece == s.Piece).Select(ir =>
+                            {
+                                var (ix, iz) = Resolve(piece.Value.Rect, ir.At, d.Cell);
+                                var (fanX, fanZ) = d.FanPoint(ix, iz, k);
+                                return new Pt(fanX, piece.Value.Surface, fanZ);
+                            })]
+                        : [],
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
                 });
             }
@@ -319,10 +329,15 @@ public static class PlanCompiler
             }
         }
 
-        // ST2/ST3 iron cubes — one per iron marker; renew when the marker's piece is a spawn.
+        // ST2/ST3 iron cubes — one per iron marker; renew when the marker's piece is a spawn. Iron on a
+        // spawn-role piece that carries a spawn marker is absent here on purpose: it rides that
+        // SpawnIntent's Iron list and resolves beside the room (WX8).
+        var framedSpawnPieces = plan.Placements.Spawns
+            .Select(s => s.Piece).Where(id => d.Piece(id)?.Role == PlanRoles.Spawn).ToHashSet();
         var ironSeen = new HashSet<(int, int)>();
         foreach (var ir in plan.Placements.Iron)
         {
+            if (framedSpawnPieces.Contains(ir.Piece)) continue;
             var piece = d.Piece(ir.Piece);
             if (piece is null) continue;
             var (bx, bz) = Resolve(piece.Value.Rect, ir.At, d.Cell);

@@ -59,13 +59,19 @@ public sealed class PlanStructuresTests
     }
 
     [Test]
-    public async Task Iron_cube_renews_only_inside_a_spawn_piece()
+    public async Task Spawn_piece_iron_rides_the_spawn_and_loose_iron_stays_a_directive()
     {
-        var s = Structures();
-        await Assert.That(s.IronCubes.Any(c => c is { X: 25, Z: 5, Renew: true })).IsTrue();   // on the spawn piece
-        await Assert.That(s.IronCubes.Any(c => c is { X: 5, Z: 5, Renew: false })).IsTrue();   // loose on 'far'
-        // both fanned to the opposite team (2 renew images total).
-        await Assert.That(s.IronCubes.Count(c => c.Renew)).IsEqualTo(2);
+        var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(Json)!);
+        var s = intent.Structures!;
+        // Iron on the spawn piece is absent from the directives — it rides the spawn intent and resolves
+        // beside the room at export (WX8), fanned with its spawn to both teams.
+        await Assert.That(s.IronCubes.Any(c => c.Renew)).IsFalse();
+        await Assert.That(intent.Spawns.Count).IsEqualTo(2);
+        await Assert.That(intent.Spawns.All(sp => sp.Iron.Count == 1)).IsTrue();
+        await Assert.That(intent.Spawns.Any(sp => sp.Iron[0] is { X: 25, Z: 5 })).IsTrue();
+        // Loose iron on 'far' keeps the legacy marker-anchored directive, never renewed.
+        await Assert.That(s.IronCubes.Any(c => c is { X: 5, Z: 5, Renew: false })).IsTrue();
+        await Assert.That(s.IronCubes.Count).IsEqualTo(2);   // the loose marker + its orbit image only
     }
 
     [Test]

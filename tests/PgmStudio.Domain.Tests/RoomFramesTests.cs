@@ -142,6 +142,64 @@ public sealed class RoomFramesTests
         await Assert.That(slots.Skip(4).All(s => s.Z == 5)).IsTrue();
     }
 
+    // ── WX8/WX9 — iron beside the room ──────────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task Iron_at_a_back_cell_centre_shrinks_the_shell_and_takes_a_3x3()
+    {
+        // The 10×15 piece: spawn marker in the front region, centre-parity iron in the back — the shell
+        // gives up the back strip (8×9), the cube takes 3×3, one block of air between them.
+        var room = RoomFrames.ResolveRoom(0, 0, 10, 15, 5, 5, [], RoomEdge.NegZ, [(7.5, 12.5)], out _)!;
+        var iron = room.Iron[0];
+        await Assert.That(iron.Placeable).IsTrue();
+        await Assert.That((iron.MinX, iron.MinZ, iron.Size)).IsEqualTo((6, 11, 3));
+        await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
+            .IsEqualTo((1, 1, 9, 10));
+        // Separated: the shell ends at z=10, the cube starts at z=11.
+        await Assert.That(room.Frame.MaxZ).IsLessThanOrEqualTo(iron.MinZ - RoomFrames.IronGap);
+    }
+
+    [Test]
+    public async Task Grid_line_iron_carries_the_full_4x4()
+    {
+        var room = RoomFrames.ResolveRoom(0, 0, 10, 15, 5, 5, [], RoomEdge.NegZ, [(5, 10)], out _)!;
+        var iron = room.Iron[0];
+        await Assert.That((iron.MinX, iron.MinZ, iron.Size)).IsEqualTo((3, 8, 4));
+        await Assert.That((room.Frame.MaxZ - room.Frame.MinZ)).IsEqualTo(6);   // shell yielded to 8×6
+    }
+
+    [Test]
+    public async Task Iron_the_room_cannot_host_is_unplaceable_and_the_room_stands()
+    {
+        // The 10×10 piece with both markers: the shell cannot shrink below 6×6 and even a 3×3 cube finds
+        // no clear strip — the room has priority, the marker resolves unplaceable, nothing else changes.
+        var room = RoomFrames.ResolveRoom(0, 0, 10, 10, 5, 5, [], RoomEdge.NegZ, [(2.5, 2.5)], out _)!;
+        await Assert.That(room.Iron[0].Placeable).IsFalse();
+        await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
+            .IsEqualTo((1, 1, 9, 9));
+    }
+
+    [Test]
+    public async Task Mixed_parity_iron_is_unplaceable_outright()
+    {
+        // A grid line in x but a block centre in z centres no square cube — same square law as the pad.
+        var room = RoomFrames.ResolveRoom(0, 0, 10, 15, 5, 5, [], RoomEdge.NegZ, [(5, 12.5)], out _)!;
+        await Assert.That(room.Iron[0].Placeable).IsFalse();
+    }
+
+    [Test]
+    public async Task Iron_resolution_is_mirror_consistent()
+    {
+        // A wide flat piece and its mirror image (marker west + iron east, then marker east + iron west):
+        // the shrink choice must mirror with the geometry, or orbit images stamp different rooms.
+        var west = RoomFrames.ResolveRoom(0, 0, 20, 8, 4.5, 3.5, [], RoomEdge.NegZ, [(14, 4)], out _)!;
+        var east = RoomFrames.ResolveRoom(0, 0, 20, 8, 15.5, 3.5, [], RoomEdge.NegZ, [(6, 4)], out _)!;
+        await Assert.That(west.Iron[0].Placeable).IsTrue();
+        await Assert.That((west.Frame.MinX, west.Frame.MaxX)).IsEqualTo((1, 11));
+        await Assert.That((20 - east.Frame.MaxX, 20 - east.Frame.MinX)).IsEqualTo((1, 11));
+        await Assert.That(20 - (east.Iron[0].MinX + east.Iron[0].Size)).IsEqualTo(west.Iron[0].MinX);
+    }
+
     [Test]
     public async Task A_larger_room_gains_capacity_from_its_longer_walls()
     {

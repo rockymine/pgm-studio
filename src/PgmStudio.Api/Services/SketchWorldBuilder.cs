@@ -50,7 +50,8 @@ public static class SketchWorldBuilder
         var resolvedSpawns = new List<SpawnIntent>(intent.Spawns.Count);
         foreach (var s in intent.Spawns)
         {
-            var frame = SpawnFrame(s);
+            var room = SpawnRoom(s);
+            var frame = room.Frame;
             var fy = FrameFloor(frame, terrain.SurfaceTop);
 
             var captured = wools.Select((w, i) => (w, i))
@@ -60,6 +61,12 @@ public static class SketchWorldBuilder
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
                 monLoc[(captured[k].i, s.Team)] = new Pt(placed[k].X, placed[k].Y, placed[k].Z);
+
+            // The spawn's renewable iron: each placeable cube beside the room (WX8); an unplaceable
+            // marker stamps nothing — the validator already flagged it (WX9).
+            foreach (var iron in room.Iron)
+                if (iron.Placeable)
+                    StructureStamper.StampIronCubeAt(world, terrain.SurfaceTop, iron.MinX, iron.MinZ, iron.Size);
 
             resolvedSpawns.Add(new SpawnIntent
             {
@@ -71,6 +78,7 @@ public static class SketchWorldBuilder
                     : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
                 Yaw = s.Yaw,
                 Piece = s.Piece,
+                Iron = s.Iron,
             });
         }
 
@@ -232,12 +240,22 @@ public static class SketchWorldBuilder
         _ => Blocks.Obsidian,
     };
 
-    /// <summary>The XZ footprints of the renewable iron cubes (<see cref="IronCube.Renew"/>) — the regions the
-    /// map.xml renewables wiring covers so the mined ore regrows (ST2). Empty when there are none.</summary>
+    /// <summary>The XZ footprints (min/max inclusive) of the renewable iron cubes — the regions the map.xml
+    /// renewables wiring covers so the mined ore regrows (ST2): every placeable spawn-side cube (WX8) plus
+    /// any legacy <see cref="IronCube.Renew"/> directives an older stored intent still carries. Empty when
+    /// there are none.</summary>
     public static IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> RenewableCubeFootprints(MapIntent intent)
-        => intent.Structures is { } s
-            ? [.. s.IronCubes.Where(c => c.Renew).Select(c => StructureStamper.IronCubeFootprint(c.X, c.Z))]
-            : [];
+    {
+        var footprints = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
+        foreach (var s in intent.Spawns)
+            foreach (var iron in SpawnRoom(s).Iron)
+                if (iron.Placeable)
+                    footprints.Add((iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1));
+        if (intent.Structures is { } structures)
+            footprints.AddRange(structures.IronCubes.Where(c => c.Renew)
+                .Select(c => StructureStamper.IronCubeFootprint(c.X, c.Z)));
+        return footprints;
+    }
 
     // A cube's roof sits at floorY + RoofLayer, so the floor must leave that much headroom below the world
     // ceiling — clamp every structure floor here so an author-elevated island can't push a stamp past 255.
@@ -266,18 +284,21 @@ public static class SketchWorldBuilder
     }
 
     /// <inheritdoc cref="WoolFrame"/>
-    public static RoomFrame SpawnFrame(SpawnIntent s)
+    /// <remarks>A spawn resolves its room together with the piece's iron markers: the shell may yield to a
+    /// cube, and an unfittable marker comes back unplaceable (WX8/WX9) — nothing stamps for it.</remarks>
+    public static ResolvedRoom SpawnRoom(SpawnIntent s)
     {
         var doorEdge = PositionSnap.FacingFromYaw(s.Yaw);
         if (s.Piece is { } piece)
         {
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
-            var frame = RoomFrames.Resolve(
+            var room = RoomFrames.ResolveRoom(
                 (int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ, markerX, markerZ,
-                [], doorEdge, out _);
-            if (frame is not null) return frame;
+                [], doorEdge,
+                [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out _);
+            if (room is not null) return room;
         }
-        return DefaultFrame(s.Point.X, s.Point.Z, doorEdge);
+        return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdge), []);
     }
 
     // The legacy default: the room a 10×10 piece centred on the integer-snapped marker resolves to — the

@@ -76,6 +76,19 @@ public static class StructureStamper
         return (anchorX - half, anchorZ - half, anchorX + half - 1, anchorZ + half - 1);
     }
 
+    /// <summary>Place a <paramref name="size"/>³ iron-block cube over the given footprint min corner,
+    /// resting on the surface its footprint spans — the spawn-side renewable, sized by its marker's parity
+    /// (WX8; the legacy marker-anchored 4×4 is <see cref="StampIronCube"/>).</summary>
+    public static void StampIronCubeAt(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int size)
+    {
+        var baseY = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, minX + size - 1, minZ + size - 1, 1);
+        for (var lx = 0; lx < size; lx++)
+        for (var lz = 0; lz < size; lz++)
+        for (var ly = 0; ly < size; ly++)
+            world.SetBlock(minX + lx, baseY + ly, minZ + lz, Blocks.IronBlock);
+    }
+
     /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 up to <paramref name="topY"/>
     /// inclusive (ST4). Footprint is min-inclusive, max-exclusive; it is two blocks thick across the seam and
     /// spans the full shared-interface width along it.</summary>

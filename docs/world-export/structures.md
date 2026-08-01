@@ -107,7 +107,34 @@ marker is never freely placeable.
   monuments — are never exposed to the outside. Door *height* is untouched; room height stays out
   of G31's scope entirely.
 
-## 5. The code shape — frame, shell, furnishers, presets
+## 5. Iron and placeability
+
+Iron is spawn family — a renewable resource the spawn room exists beside — but it is a separate
+structure, and structures never fuse.
+
+- **WX8** *The room yields, the iron degrades, the room wins.* An iron marker on a spawn piece
+  stamps its cube **outside the room shell**, inside the piece, with **one block of clear air** to
+  the wall — never flush, never merged into a corner. Fitting is a two-sided negotiation with a
+  fixed priority: the shell pulls **one edge** back from its WX1 footprint by the minimum that
+  clears the cube — legal while the shell holds the WX2 minimum and the spawn marker stays inside
+  the interior (the pad may still clamp with a WX4 shift); among legal shrinks the largest retained
+  area wins, ties breaking toward the edge farthest from the spawn marker, so orbit images shrink
+  mirror-consistently. The cube itself degrades by marker parity — a **grid-line** marker centres
+  **4×4**, falling back to **2×2**; a **block-centre** marker centres **3×3**; mixed parity centres
+  nothing (the same square law as the pad). The renewables wiring covers exactly the resolved
+  footprints. `RoomFrames.ResolveRoom` owns the negotiation; `Composer`-emitted plans and authored
+  plans go through the same resolver.
+
+- **WX9** *Placeability is an attribute, not an exception.* Every structure marker resolves to
+  **placeable or not** (`IronPlacement.Placeable`). An unplaceable marker stamps **nothing** — the
+  room takes its full WX1 footprint — but the marker itself stays on the board: validation flags it
+  with the clearance requirement (the WX8 lint), and the structure preview draws **only placeable**
+  structures, so the iso view never shows a cube the export refuses to place. This is the general
+  contract for structure-vs-structure conflicts; the objective-separation rules (a core or
+  destroyable against monuments, or inside a spawn piece — where spawn protection would make an
+  enemy goal unbreakable) take the same attribute when they land (B37).
+
+## 6. The code shape — frame, shell, furnishers, presets
 
 The layering follows the destroyable/core precedent — one box function that the world build **and**
 the preview both call, so the stamped volume, the emitted region and the drawn box cannot disagree

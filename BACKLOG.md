@@ -174,6 +174,16 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
   neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
   91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
+- [ ] **B37 — Objective separation via WX9 placeability.** The stamped-structure placeability attribute
+  (`docs/world-export/structures.md` WX9, shipped for spawn iron) generalizes to the objectives: a **core
+  or destroyable too close to a wool monument** merges structures that must read apart, and one **inside a
+  spawn piece** is worse than ugly — the spawn's protection region makes an enemy goal unbreakable, so the
+  map is silently unwinnable. Resolve each objective marker to placeable-or-not against the room frames and
+  the other structures (minimum separations to be decided from the corpus), stamp only placeable ones,
+  refuse/flag the rest with the same marker-stays-visible discipline. Editor half: surface unplaceable
+  markers on the plan canvas (the highlight ring the validation tab already uses for pieces), not only in
+  the findings list.
+
 - [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
   `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
   `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts

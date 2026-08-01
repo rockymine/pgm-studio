@@ -172,6 +172,13 @@ public sealed class SpawnIntent
     /// (docs/world-export/structures.md WX1). Null on hand-authored intents and on markers placed on a
     /// plain piece: those keep the legacy marker-anchored default room.</summary>
     public Rect? Piece { get; init; }
+
+    /// <summary>Iron markers on the spawn piece (fanned world points). Each resolves to a renewable iron
+    /// cube beside the spawn room — outside the shell with one block of clear air, sized by the marker's
+    /// parity, the room yielding what WX2 allows (WX8) — or to an unplaceable marker that stamps nothing
+    /// and is flagged at validation (WX9). Empty on hand-authored intents and plain-piece spawns, whose
+    /// iron rides <see cref="StructureIntent.IronCubes"/> as before.</summary>
+    public List<Pt> Iron { get; init; } = new();
 }
 
 /// <summary>The observer/default spawn point.</summary>
