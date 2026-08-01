@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -5,25 +7,33 @@ using Microsoft.JSInterop;
 namespace PgmStudio.Client.Features.Plan;
 
 /// <summary>
-/// The Theme rail phase (docs/world-export/terrain-painting.md TP10): defines named terrain-paint themes, the
-/// map default, and per-piece / per-box assignments. It owns no plan state — every read and write goes through
-/// the plan-bridge <see cref="Handle"/> (the JS plan doc), and after each edit it re-pulls the bridge's theme
-/// state, so the phase always mirrors the document the compiler will read.
+/// The Theme rail phase (docs/world-export/terrain-painting.md TP10), two steps: <b>Create</b> defines named
+/// terrain-paint themes and previews each one's materials (rim/wall/surface/fill swatches rendered by the
+/// server through the real materials + block palette); <b>Apply</b> picks the map default, assigns themes to
+/// pieces/boxes, and shows the themes on the actual map top-down. It owns no plan state — every read and write
+/// goes through the plan-bridge <see cref="Handle"/>; previews are server-rendered SVG.
 /// </summary>
 public partial class PlanThemePhase
 {
     [Parameter] public IJSObjectReference? Handle { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
+    [Inject] public HttpClient Http { get; set; } = default!;
 
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
     private static readonly JsonSerializerOptions Pretty = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly string[] Steps = ["Create", "Apply"];
 
+    private int step;
     private ThemesState? State;
     private string? Selected;
     private string NewName = "";
     private string RenameTo = "";
     private string ThemeJsonText = "";
     private string? JsonError;
+
+    private Dictionary<string, string> Swatches = new();
+    private string? MapSvg;
+    private bool MapLoading;
 
     private sealed record ThemesState(
         Dictionary<string, JsonElement> Themes,
@@ -35,11 +45,18 @@ public partial class PlanThemePhase
 
     private sealed record PieceRef(string Id, string Role);
     private sealed record BoxRef(string Id, string Kind, List<string> Members);
+    private sealed record MapPreview(string Svg);
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Handle is not null && State is null) await Load();
+        if (Handle is not null && State is null)
+        {
+            await Load();
+            if (step == 0) await LoadSwatches();
+        }
     }
+
+    private Task OnBackStep() => step == 0 ? OnBack.InvokeAsync() : Goto(0);
 
     private async Task Load()
     {
@@ -62,15 +79,56 @@ public partial class PlanThemePhase
             ? JsonSerializer.Serialize(el, Pretty) : "";
     }
 
-    private void Select(string id) { Selected = id; RenameTo = ""; RefreshJsonText(); }
+    // ── step navigation: each step lazily loads its preview ──
+    private async Task Goto(int i)
+    {
+        step = i;
+        if (i == 0) await LoadSwatches();
+        else await LoadMapPreview();
+    }
+
+    private Task OnNextStep() => step == 0 ? Goto(1) : OnBack.InvokeAsync();
+
+    private async Task LoadSwatches()
+    {
+        Swatches = new();
+        if (Handle is null || Selected is null || State is null || !State.Themes.TryGetValue(Selected, out var el)) return;
+        try
+        {
+            var resp = await Http.PostAsync("api/terrain/theme-preview",
+                new StringContent(el.GetRawText(), Encoding.UTF8, "application/json"));
+            if (resp.IsSuccessStatusCode)
+                Swatches = await resp.Content.ReadFromJsonAsync<Dictionary<string, string>>() ?? new();
+        }
+        catch { /* leave the swatches empty on a preview failure */ }
+        StateHasChanged();
+    }
+
+    private async Task LoadMapPreview()
+    {
+        if (Handle is null) return;
+        MapLoading = true; StateHasChanged();
+        try
+        {
+            var planJson = await Handle.InvokeAsync<string>("exportJson");
+            var resp = await Http.PostAsync("api/terrain/theme-map-preview",
+                new StringContent(planJson, Encoding.UTF8, "application/json"));
+            MapSvg = resp.IsSuccessStatusCode ? (await resp.Content.ReadFromJsonAsync<MapPreview>())?.Svg : null;
+        }
+        catch { MapSvg = null; }
+        MapLoading = false; StateHasChanged();
+    }
+
+    // ── theme registry (Create step) ──
+    private async Task Select(string id) { Selected = id; RenameTo = ""; RefreshJsonText(); await LoadSwatches(); }
 
     private async Task AddTheme()
     {
         if (Handle is null) return;
-        var id = await Handle.InvokeAsync<string>("defineTheme", NewName);
+        Selected = await Handle.InvokeAsync<string>("defineTheme", NewName);
         NewName = "";
-        Selected = id;
         await Load();
+        await LoadSwatches();
     }
 
     private async Task DeleteTheme(string id)
@@ -79,31 +137,32 @@ public partial class PlanThemePhase
         await Handle.InvokeVoidAsync("deleteTheme", id);
         if (Selected == id) Selected = null;
         await Load();
+        await LoadSwatches();
     }
 
     private async Task RenameTheme()
     {
         if (Handle is null || Selected is null || string.IsNullOrWhiteSpace(RenameTo)) return;
-        var id = await Handle.InvokeAsync<string>("renameTheme", Selected, RenameTo);
-        Selected = id;
+        Selected = await Handle.InvokeAsync<string>("renameTheme", Selected, RenameTo);
         RenameTo = "";
-        await Load();
-    }
-
-    private async Task OnMapThemeChanged(ChangeEventArgs e)
-    {
-        if (Handle is null) return;
-        await Handle.InvokeVoidAsync("setMapTheme", (string?)e.Value ?? "");
         await Load();
     }
 
     private async Task ApplyThemeJson()
     {
         if (Handle is null || Selected is null) return;
-        var error = await Handle.InvokeAsync<string?>("setThemeJson", Selected, ThemeJsonText);
-        JsonError = error;
-        if (error is null) await Load();
+        JsonError = await Handle.InvokeAsync<string?>("setThemeJson", Selected, ThemeJsonText);
+        if (JsonError is null) { await Load(); await LoadSwatches(); }
         else StateHasChanged();
+    }
+
+    // ── application (Apply step) ──
+    private async Task OnMapThemeChanged(ChangeEventArgs e)
+    {
+        if (Handle is null) return;
+        await Handle.InvokeVoidAsync("setMapTheme", (string?)e.Value ?? "");
+        await Load();
+        await LoadMapPreview();
     }
 
     private async Task AssignPiece(string pieceId, string? themeId)
@@ -111,6 +170,7 @@ public partial class PlanThemePhase
         if (Handle is null) return;
         await Handle.InvokeVoidAsync("assignPiece", pieceId, themeId ?? "");
         await Load();
+        await LoadMapPreview();
     }
 
     private async Task AssignBox(string boxId, string? themeId)
@@ -118,5 +178,6 @@ public partial class PlanThemePhase
         if (Handle is null) return;
         await Handle.InvokeVoidAsync("assignBox", boxId, themeId ?? "");
         await Load();
+        await LoadMapPreview();
     }
 }

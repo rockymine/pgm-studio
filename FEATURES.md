@@ -2426,9 +2426,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **`TerrainThemeScope`** (the read side, `TeamTerritory`'s sibling) turns those into a per-cell `themeAt(x,z)`
   the painter reads (smallest footprint wins an overlap); `SketchWorldBuilder` paints through it. Boxes stay
   pure annotation — expanded to piece ids at compile, never read at export. Authored on the plan tool's new
-  **Theme** rail (`PlanThemePhase` + plan-bridge theme methods): define named themes, pick the map default, edit
-  a theme's JSON, and assign a theme to a piece or a box; built from the existing design system (Section/Field/
-  ListRow/Badge). Tested: compiler bake + scope resolution. (G157)
+  **Theme** rail (`PlanThemePhase` + plan-bridge theme methods), two steps: **Create** defines named themes and
+  **previews each one's materials** (rim/wall/surface/fill swatches server-rendered through the real materials +
+  `BlockPalette`, so a voronoi / noise / wall-run reads at a glance); **Apply** picks the map default, assigns
+  themes to pieces/boxes, and shows the **themed map top-down** (`TerrainPreview` compiles + paints the plan and
+  renders its top blocks). SVG previews via `TerrainPreview` + `/api/terrain/theme-preview` and
+  `/theme-map-preview`. Built from the existing design system (Section/Field/ListRow/Badge). Tested: compiler
+  bake + scope resolution. (G157)
 - **Terrain team tint.** The **team tint is a general material** — the wool 0–15 damage scale on
   any colour-by-damage block, usable on **any** bucket and composable in a layer/pattern (`BucketContext`
   carries the cell's team) — the default puts it on the wall. Ownership resolves through **`TeamTerritory`**:

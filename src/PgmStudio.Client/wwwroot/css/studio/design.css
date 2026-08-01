@@ -229,3 +229,12 @@
 
 /* Terrain-paint theme editor (TP10): a monospace, resizable JSON area — the one thing field-input isn't. */
 .theme-json { min-height: 200px; font-family: ui-monospace, "SF Mono", Menlo, monospace; resize: vertical; line-height: 1.4; }
+
+/* Theme preview swatches (TP10) — a per-bucket sample grid + the top-down applied-map render. */
+.theme-swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--space-3); }
+.theme-swatch { margin: 0; display: flex; flex-direction: column; gap: var(--space-1); align-items: center; }
+.theme-swatch-img { width: 100%; aspect-ratio: 1; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-deep); }
+.theme-swatch-img svg { width: 100%; height: 100%; display: block; }
+.theme-swatch figcaption { font-size: var(--font-xs); color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+.theme-map-preview { display: flex; justify-content: center; padding: var(--space-3); background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: auto; }
+.theme-map-preview svg { max-width: 100%; height: auto; }

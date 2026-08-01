@@ -1,24 +1,27 @@
 @namespace PgmStudio.Client.Features.Plan
 
-@* Terrain-paint theming (docs/world-export/terrain-painting.md TP10): define named themes, pick the map
-   default, and assign a theme to a piece or a box. The map default is the lowest layer; a box override sits
-   above it; a per-piece override wins. Edits funnel through the plan-bridge onto the plan doc (compiled into
-   the intent's theme scopes and painted at export). *@
+@* Terrain-paint theming (docs/world-export/terrain-painting.md TP10), two steps: Create defines named themes
+   and previews their materials; Apply picks the map default, assigns themes to pieces/boxes, and shows the
+   themed map top-down. Edits funnel through the plan-bridge onto the plan doc (compiled into the intent's
+   theme scopes and painted at export); previews are server-rendered SVG through the real materials + palette. *@
 
 <div class="phase-body">
   <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
-           BackEnabled="true" NextLabel="Draw" OnBack="OnBack" OnNext="OnBack" />
+           Steps="@Steps" CurrentStep="@step" BackEnabled="true"
+           NextLabel="@(step == 0 ? "Apply →" : "Done")"
+           OnStep="Goto" OnBack="OnBackStep" OnNext="OnNextStep" />
   <Workspace>
     <ContentColumn MaxWidth="720">
       @if (State is null)
       {
         <Section><p class="section-desc">Loading themes…</p></Section>
       }
-      else
+      else if (step == 0)
       {
+        @* ── Create: the theme registry + material previews ── *@
         <Section Title="Themes">
-          <p class="section-desc">A theme is a full terrain-paint recipe. The <b>map default</b> paints every cell no
-            scope claims; a box paints its members; a per-piece override wins over both.</p>
+          <p class="section-desc">A theme is a full terrain-paint recipe — rim, wall, surface and fill materials.
+            Define one here, then apply it to the map in the next step.</p>
 
           @foreach (var id in State.Themes.Keys)
           {
@@ -38,20 +41,25 @@
               <Button OnClick="AddTheme">Add</Button>
             </div>
           </Field>
-
-          <Field Label="Map default">
-            <select class="field-input" value="@State.MapTheme" @onchange="OnMapThemeChanged">
-              <option value="">(built-in default)</option>
-              @foreach (var id in State.Themes.Keys)
-              {
-                <option value="@id">@id</option>
-              }
-            </select>
-          </Field>
         </Section>
 
         @if (Selected is not null && State.Themes.ContainsKey(Selected))
         {
+          <Section Title="@($"Preview “{Selected}”")">
+            <p class="section-desc">The theme's materials, rendered over a sample with the real block palette —
+              a left-neutral / right-team split so a team tint shows both, and the perimeter arc across x so a
+              wall-run's stripes read.</p>
+            <div class="theme-swatches">
+              @foreach (var bucket in new[] { "rim", "wall", "surface", "fill" })
+              {
+                <figure class="theme-swatch" @key="bucket">
+                  <div class="theme-swatch-img">@((MarkupString)(Swatches.GetValueOrDefault(bucket) ?? ""))</div>
+                  <figcaption>@bucket</figcaption>
+                </figure>
+              }
+            </div>
+          </Section>
+
           <Section Title="@($"Edit “{Selected}”")">
             <Field Label="Rename">
               <div class="panel-actions">
@@ -68,6 +76,29 @@
             </div>
           </Section>
         }
+      }
+      else
+      {
+        @* ── Apply: map default + assignment + the themed map top-down ── *@
+        <Section Title="Applied map">
+          <p class="section-desc">The plan's terrain, painted through the theme scopes and rendered top-down.</p>
+          <div class="theme-map-preview">
+            @if (MapLoading) { <p class="section-desc">Rendering…</p> }
+            else if (MapSvg is not null) { @((MarkupString)MapSvg) }
+            else { <p class="section-desc">No preview.</p> }
+          </div>
+          <div class="panel-actions"><Button OnClick="LoadMapPreview">Refresh</Button></div>
+        </Section>
+
+        <Section Title="Map default">
+          <p class="section-desc">The lowest layer — paints every cell no scope claims.</p>
+          <Field>
+            <select class="field-input" value="@State.MapTheme" @onchange="OnMapThemeChanged">
+              <option value="">(built-in default)</option>
+              @foreach (var id in State.Themes.Keys) { <option value="@id">@id</option> }
+            </select>
+          </Field>
+        </Section>
 
         <Section Title="Assign to boxes">
           <p class="section-desc">A box paints all its member pieces — the collection layer, under per-piece overrides.</p>
