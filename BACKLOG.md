@@ -417,6 +417,17 @@ studio, G117/G118) is in `TODO.md`.
   side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
   raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
+- [ ] **G157 — terrain painting (walls, rims, plateaus).** The exported terrain is one flat block of
+  stone; a final world pass should dress it — clay walls, quartz rims, grass interior — reading the
+  per-column surface the terrain builder already carries. Model spec'd in
+  `docs/world-export/terrain-painting.md` (TP1–TP5): rim = the top-most block of an edge column, found
+  over the 8 neighbours so a reentrant corner never gaps, with an opt-in `closed` bool for the full
+  plateau outline; wall = the exposed riser between bedrock and rim; interior = the grass top. Paints
+  **stone only**, so bedrock at y=0 and the room-piece plateaus stay untouched by construction. Build as a
+  pure `TerrainPainter` over `SketchTerrain`, run last in `SketchWorldBuilder.Build`; materials are a
+  preset at the `structures.md` §6.4 seam (the first slice of G34, team-coloured walls the first knob). The
+  doc's case list is the fixture list. A visual prototype over two real seeds validated the detections.
+
 - [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
   8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**
   (`ShapeEmitter.RoomDepthCells` = 2, corridor widths in cells), so a small-cell board (cell ≤ 3) can emit
