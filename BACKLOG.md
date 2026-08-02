@@ -160,20 +160,17 @@ are Edit-specific. Full canvas spec: `docs/contracts/canvas-interaction.md`.
   separate.
 ## Backend, pipeline & internals (B / P / A)
 
-- [ ] **B44 — Theme + style tables: make terrain paint first-class, reusable data.** Themes are stored today
-  only as opaque JSON blobs (`plan_json`, then `map_intent_json` on `map_artifact`) with every material inlined
-  per bucket, so there is no library to browse or reuse — no way to find "every voronoi pattern," and every
-  author rebuilds the default by hand (`docs/world-export/finishing-model.md` §1, §3). Give the two things the
-  theme JSON already decomposes into their own tables: a **`style`** row — a reusable named material recipe
-  `{id, name, kind ∈ solid|layered|teamTint|voronoi|noise|wallRun, params_json}` (the nestable material subtree
-  stays in the JSON leaf, not over-normalized) — and a **`theme`** row (geometry knobs) plus a **`theme_bucket`**
-  binding `{theme_id, bucket ∈ rim|surface|wall|fill, style_id, depth, enabled}`, so a full theme is a
-  composition of styles that resolves to exactly the theme JSON the painter consumes. A map's *applied* theme is
-  a **snapshot copy** of a library theme (fork-on-apply, like the generator's plan doctrine) so later library
-  edits never silently repaint a shipped map. Includes the FluentMigrator migration lifting existing inline-blob
-  themes into styles + themes + bindings (dedupe identical materials), and retiring the Client↔server theme-material
+- [~] **B44 — Theme + style library: wire the new tables into the app.** The tables, store and HTTP surface
+  shipped (see `FEATURES.md` — `M0011` `style`/`theme`/`theme_bucket`, `ThemeStore`, `TerrainThemeComposer`,
+  the `styles`/`themes`/import/compose endpoints); what remains is making the app *use* the library instead of
+  inline blobs. Three slices: **(1)** a client library-browser UI — list/search styles by kind, list themes,
+  save the theme open in the finishing rail as a reusable library theme, start a new theme from a library one;
+  **(2)** apply-as-snapshot — a map's *applied* theme is a **snapshot copy** of a library theme (fork-on-apply,
+  like the generator's plan doctrine) so later library edits never silently repaint a shipped map; **(3)** a
+  data migration lifting the existing inline-blob themes (`plan_json`, `map_intent_json` on `map_artifact`) into
+  styles + themes + bindings, deduping identical materials, and retiring the Client↔server theme-material
   duplication (`Features/Plan/ThemeVocabulary.cs` vs the server `TerrainThemeJson` model) onto the one schema.
-  The settled piece of the finishing-model design; the cross-tool scoping and dressing sections there stay draft.
+  The cross-tool scoping and dressing sections of `docs/world-export/finishing-model.md` stay draft.
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the

@@ -409,6 +409,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   Plan-specific. Audit + design: `docs/contracts/primitive-styles.md`; canvas-interaction.md §10. (CV9)
 
 ## Backend / API (B)
+- **Terrain paint is first-class, reusable data — a style/theme library, not just inline blobs (B44).** The two
+  things a painter theme decomposes into now have their own tables (`M0011`): a **`style`** row is one reusable
+  named material recipe `{name, kind ∈ solid|layered|teamTint|voronoi|noise|wallRun, params_json}` — the nestable
+  material subtree stays in the JSON leaf, not over-normalized — and a **`theme`** row (the geometry knobs) plus
+  its **`theme_bucket`** bindings `{bucket ∈ rim|surface|wall|fill, style_id, depth, enabled}` compose those styles
+  into a full theme. `TerrainThemeComposer` (Minecraft, pure) is the lossless round-trip between a `TerrainTheme`
+  and those pieces; `ThemeStore` (Data) persists them, creating a theme with its bindings in one transaction and
+  cascading the bindings when a theme is forgotten while the styles survive. The HTTP surface is the full library:
+  `styles` CRUD (`GET /api/styles?kind=` is the "show every voronoi" browse), `themes` CRUD, `GET
+  /api/themes/{id}/json` reassembles a library theme back into the exact painter JSON, and `POST
+  /api/themes/import` lifts a whole theme JSON in as one style per bucket + a theme binding them (400, never 500,
+  on malformed JSON). Import-then-compose is byte-for-byte identity, proven end-to-end through the real database.
 - **A plan must carry a map before it can become one — the compile gate asks two questions, not one (B38, B39).**
   `PlanValidator` only ever asked whether what a plan *said* was coherent, so a plan that said **nothing**
   passed: an empty document compiled `200` into an empty layout and a spawn-less intent — a map that cannot

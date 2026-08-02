@@ -431,3 +431,64 @@ public static class PlanOrigin
     public const string Authored = "authored";
     public const string Imported = "imported";
 }
+
+/// <summary>A reusable terrain-paint <see cref="Style"/> — one named material recipe (see M0011). <see cref="Kind"/>
+/// is the material discriminator (<see cref="StyleKind"/>); <see cref="Params"/> is one serialized
+/// <c>TerrainMaterial</c>, the polymorphic subtree kept in the leaf. The unit a library is browsed and reused by.</summary>
+[Table("style")]
+public sealed class StyleRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("kind"), NotNull] public string Kind { get; set; } = "";
+    [Column("params_json"), NotNull] public string Params { get; set; } = "";
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>A terrain-paint theme's geometry knobs (see M0011). The per-bucket materials live in
+/// <see cref="ThemeBucketRow"/> — a theme is a composition of styles, not a monolith.</summary>
+[Table("theme")]
+public sealed class ThemeRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("bedrock_relative")] public bool BedrockRelative { get; set; }
+    [Column("bedrock_value")] public int BedrockValue { get; set; }
+    [Column("closed")] public bool Closed { get; set; }
+    [Column("wall_on_terrain_faces")] public bool WallOnTerrainFaces { get; set; }
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>One bucket binding of a <see cref="ThemeRow"/> (see M0011): the themeable bucket
+/// (<see cref="ThemeBucket"/>), the <see cref="StyleRow"/> that fills it, and the bucket's depth (rim/surface)
+/// and toggle. Unique per (theme, bucket); cascades with its theme, restricts its style.</summary>
+[Table("theme_bucket")]
+public sealed class ThemeBucketRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("theme_id"), NotNull] public long ThemeId { get; set; }
+    [Column("bucket"), NotNull] public string Bucket { get; set; } = "";
+    [Column("style_id"), NotNull] public long StyleId { get; set; }
+    [Column("depth")] public int Depth { get; set; }
+    [Column("enabled")] public bool Enabled { get; set; }
+}
+
+/// <summary>Well-known <see cref="StyleRow.Kind"/> values — the <c>TerrainMaterial</c> discriminator set.</summary>
+public static class StyleKind
+{
+    public const string Solid = "solid";
+    public const string Layered = "layered";
+    public const string TeamTint = "teamTint";
+    public const string Voronoi = "voronoi";
+    public const string Noise = "noise";
+    public const string WallRun = "wallRun";
+}
+
+/// <summary>Well-known <see cref="ThemeBucketRow.Bucket"/> values — the four themeable buckets (bedrock is fixed).</summary>
+public static class ThemeBucket
+{
+    public const string Rim = "rim";
+    public const string Surface = "surface";
+    public const string Wall = "wall";
+    public const string Fill = "fill";
+}
