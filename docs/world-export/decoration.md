@@ -193,7 +193,28 @@ with clearings between, so a forest reads as clumps rather than an even orchard.
 `DecorationStyle` variant of the boulder's stamper: the species templates as data rows, the recursive
 spline grower as a generator with its knobs, the grove clumping as the density-gated scatter of §5.
 
-## 7. What it reuses, and what it adds
+## 7. Water — ponds and channels (`DR-WA`)
+
+A channel begins exactly where the §4 path does — a dragged centerline and a radius, the same swept-disc
+band. What makes water its own tool is that it **cannot drape on the surface** the way gravel can: laid on
+a slope it reads as blue paint. Water has to sit in a **carved bed** and fill to a **level plane**. So a
+channel lowers `SurfaceTop` in its footprint to a bed (a shallow U-profile — deepest at the centerline,
+rising to the banks), and fills water from the bed up to one water height across the whole run; a pond is
+the closed version — an organic **basin**, the §5 boulder blob read concave, its outline wandered by the
+same FBM the rough path uses. This carve-and-level step is the one piece of decoration that changes
+elevation, so it belongs with the **G32-C** elevation pass as much as with this stage: the bed is negative
+terrain, and the water surface is a fixed-Y plane, not a draped follow of the ground.
+
+The rest is the read that makes water look like water. **Depth** shades the fill — shallow and light at the
+edge, dark toward the middle — from the bed profile. A **shoreline** band (sand or dirt) rings the water
+where the bank breaks the surface, the way the path carries a coarse-dirt edge. And **edge life** reuses the
+§3 flora overlay masked to the bank and surface: reeds scattered on the shore, lily pads on the still, deep
+water (blue-noise, sparse). Channels take a **form** — a clean-banked canal, a natural FBM-wandered edge, or
+a stream that narrows and shallows into riffles — and ponds and channels compose into one watershed on a
+single water level: basins joined by a watercourse, banked and planted throughout. Placement of standalone
+ponds is the §5 scatter aimed at low ground, with the plan's protected regions as exclusions.
+
+## 8. What it reuses, and what it adds
 
 The stage leans hard on machinery G157 and the sketch tools already shipped; the net-new surface is small
 and lands in the same realize seam.
@@ -204,14 +225,17 @@ and lands in the same realize seam.
 | Paths | the lasso capture; `SketchShape.Vertices`/`Radius`; the `Skeleton` disc-scan | a `"path"` branch in `RingOf`/`RasterShape` + its `toRing` twin; the gates | `DR-PA` |
 | Boulders | `ObjectiveStamper`'s mask-in-a-box; `BlockBox`; `SurfaceYOver` | a `DecorationStamper` + `DecorationStyle`/`Dimensions`; the ellipsoid/cairn masks | `DR-SC` |
 | Trees | the boulder stamper and scatter; the §4 path's swept-disc as the limb primitive | the species templates; the Catmull-Rom spline grower | `DR-TR` |
+| Water | the §4 path stroke (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | the carve-and-level bed (with G32-C); depth shading; the shoreline band | `DR-WA` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
 that gives a flat layout its heights; a boulder or tree seats on whatever surface that pass leaves, so the
-two compose but do not depend on each other. G142 (the roughen pass) shares this stage's architecture —
+two compose but do not depend on each other — except water, whose carved bed **is** an elevation change and
+so leans on G32-C directly. G142 (the roughen pass) shares this stage's architecture —
 last in realize, over the authored unit, symmetry re-fanned — and its edge-displacement operator is the
 path's rough edge; if both land, they share the noise operators rather than duplicating them.
 
 The build order follows the reuse gradient: flora first (it adds the least and reuses the most), then the
-path raster branch, then the `DecorationStamper` for boulders, then trees as a style on top of it. Each is
-a `DR*` slice of G161, carved off G34 the way G157 was — its own rules in this file, its own pass wired
+path raster branch, then the `DecorationStamper` for boulders, then trees as a style on top of it; water
+comes with (or after) G32-C, since its carved bed is the one decoration that needs the elevation pass. Each
+is a `DR*` slice of G161, carved off G34 the way G157 was — its own rules in this file, its own pass wired
 last into `SketchWorldBuilder.Build`, after the painter.
