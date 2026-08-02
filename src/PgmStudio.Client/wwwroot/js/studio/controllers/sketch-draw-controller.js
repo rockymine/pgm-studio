@@ -1,5 +1,5 @@
 /**
- * SketchDrawController — the four sketch draw tools (rectangle, circle, polygon, lasso) for
+ * SketchDrawController — the three sketch draw tools (rectangle, polygon, lasso) for
  * SketchCanvas. Same controller contract as the world draw controller (onMouseDown→bool, onMouseMove,
  * onMouseUp, cancel). Completed shapes are reported via onShapeCreated; the host assigns an id and
  * triggers the island recompute.
@@ -44,8 +44,8 @@ export class SketchDrawController {
   setOperation(op)      { this.#activeOperation = op; }
   get activeOperation() { return this.#activeOperation; }
 
-  /** Live dimensions of the in-progress draw as a compact block label (`W × D`, or `⌀ d` for a
-   *  circle), or "" when nothing is being drawn — fed to the canvas's on-canvas size readout. */
+  /** Live dimensions of the in-progress draw as a compact block label (`W × D`), or "" when nothing is
+   *  being drawn — fed to the canvas's on-canvas size readout. */
   activeDimLabel() {
     const ds = this.#drawState;
     if (!ds) return "";
@@ -53,7 +53,6 @@ export class SketchDrawController {
       const { min_x, max_x, min_z, max_z } = drawnBoundsFromBlocks(ds.startBx, ds.startBz, ds.currentBx, ds.currentBz);
       return `${max_x - min_x} × ${max_z - min_z}`;
     }
-    if (ds.type === "circle") return `⌀ ${ds.currentRadius * 2}`;
     if (ds.vertices?.length >= 2) {
       const xs = ds.vertices.map(v => v[0]), zs = ds.vertices.map(v => v[1]);
       return `${Math.max(...xs) - Math.min(...xs)} × ${Math.max(...zs) - Math.min(...zs)}`;
@@ -65,11 +64,6 @@ export class SketchDrawController {
   onMouseDown(bx, bz, activeTool) {
     if (activeTool === "rectangle") { this.#startRect(bx, bz); return true; }
     if (activeTool === "lasso")     { this.#startLasso(bx, bz); return true; }
-    if (activeTool === "circle") {
-      if (!this.#drawState) this.#startCircle(bx, bz);
-      else                  this.#completeCircle(bx, bz);
-      return true;
-    }
     if (activeTool === "polygon") {
       if (!this.#drawState) {
         this.#startPolygon(bx, bz);
@@ -91,7 +85,6 @@ export class SketchDrawController {
     if (!this.#drawState) return;
     const type = this.#drawState.type;
     if (type === "rectangle")    this.#updateRectPreview(bx, bz);
-    else if (type === "circle")  this.#updateCirclePreview(bx, bz);
     else if (type === "polygon") this.#updatePolygonPreview(bx, bz);
     else if (type === "lasso")   this.#addLassoPoint(bx, bz);
   }
@@ -129,12 +122,6 @@ export class SketchDrawController {
 
     if (ds.type === "rectangle") {
       painter.rect(drawnBoundsFromBlocks(ds.startBx, ds.startBz, ds.currentBx, ds.currentBz), style);
-    } else if (ds.type === "circle") {
-      const r = ds.currentRadius;
-      painter.ellipse({ min_x: ds.centerX - r, max_x: ds.centerX + r,
-                        min_z: ds.centerZ - r, max_z: ds.centerZ + r }, style);
-      painter.rect({ min_x: ds.centerX - 0.5, max_x: ds.centerX + 0.5,
-                     min_z: ds.centerZ - 0.5, max_z: ds.centerZ + 0.5 }, { fill: "var(--text-muted)" });
     } else if (ds.type === "polygon") {
       const runs = [];
       for (let i = 1; i < ds.vertices.length; i++)
@@ -209,29 +196,6 @@ export class SketchDrawController {
     this.#callbacks.onShapeCreated?.({
       type: "rectangle", operation: this.#activeOperation, override: false,
       min_x: minX, max_x: maxX, min_z: minZ, max_z: maxZ,
-    });
-  }
-
-  // Circle (two-click: center → radius) ────────────────────────────────────────
-  #startCircle(bx, bz) {
-    this.#drawState = { type: "circle", centerX: bx, centerZ: bz, currentRadius: 1 };
-    this.#repaint();
-  }
-
-  #updateCirclePreview(bx, bz) {
-    const { centerX, centerZ } = this.#drawState;
-    this.#drawState.currentRadius = Math.max(1, Math.round(Math.hypot(bx - centerX, bz - centerZ)));
-    this.#repaint();
-  }
-
-  #completeCircle(bx, bz) {
-    const { centerX, centerZ } = this.#drawState;
-    this.#drawState = null;
-    this.#repaint();
-    const radius = Math.max(1, Math.round(Math.hypot(bx - centerX, bz - centerZ)));
-    this.#callbacks.onShapeCreated?.({
-      type: "circle", operation: this.#activeOperation, override: false,
-      center_x: centerX, center_z: centerZ, radius,
     });
   }
 

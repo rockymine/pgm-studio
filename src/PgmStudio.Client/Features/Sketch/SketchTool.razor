@@ -59,8 +59,6 @@
                       @onclick='() => SetTool("select")'><i data-lucide="mouse-pointer-2"></i></button>
               <button class="draw-tool-btn @(tool == "rectangle" ? "draw-tool-btn--active" : null)" title="Rectangle"
                       @onclick='() => SetTool("rectangle")'><i data-lucide="rectangle-horizontal"></i></button>
-              <button class="draw-tool-btn @(tool == "circle" ? "draw-tool-btn--active" : null)" title="Circle"
-                      @onclick='() => SetTool("circle")'><i data-lucide="circle"></i></button>
               <button class="draw-tool-btn @(tool == "polygon" ? "draw-tool-btn--active" : null)" title="Polygon (click vertices, double-click to close)"
                       @onclick='() => SetTool("polygon")'><i data-lucide="pentagon"></i></button>
               <button class="draw-tool-btn @(tool == "lasso" ? "draw-tool-btn--active" : null)" title="Lasso (hold and trace)"
