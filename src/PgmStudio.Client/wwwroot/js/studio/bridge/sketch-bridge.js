@@ -393,6 +393,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef) {
     setShapesVisible(v){ canvas.setShapesVisible(v); },
     setMirrorVisible(v){ mirrorVisible = v; canvas.setMirrorVisible(v); refreshMirror(); },
     setChunkVisible(v) { canvas.setChunkVisible(v); },
+    setBlocksVisible(v){ canvas.setBlocksVisible(v); },
     setSnap(v)         { canvas.setSnapEnabled(v); },
     setView(v)         {
       if (v !== "iso") { view = "2d"; canvas.hideIso(); return; }

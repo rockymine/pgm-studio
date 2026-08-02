@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, boundsOfShapes, translateShape, rotateShape, scaleShape, splitShape, BEZIER_SAMPLES }
+import { toRing, circleToRing, sampleBezierEdge, ringCentroid, toBounds, containsPoint, rectToPolygon, boundsOfShapes, translateShape, rotateShape, scaleShape, splitShape, snapShape, BEZIER_SAMPLES }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/shape.js";
 
 const r6 = (v) => Math.round(v * 1e6) / 1e6;   // tame float noise from cos/sin
@@ -241,4 +241,34 @@ test("containsPoint includes the Bézier curve bulge (hit shape matches the draw
   assert.equal(containsPoint(curved, 5, 5), true);    // main body
   assert.equal(containsPoint(curved, 5, -2), true);   // inside the bulge — outside the raw vertex hull
   assert.equal(containsPoint(curved, 5, -5), false);  // beyond the bulge
+});
+
+// ── snapShape (S23 grid-align) ──────────────────────────────────────────────────
+test("snapShape rounds polygon vertices + Bézier controls to the block grid", () => {
+  const s = snapShape({
+    type: "polygon", id: "p", operation: "add", override: false,
+    vertices: [[0.4, 0.6], [10.5, 1.4], [3.2, 8.9]],
+    controls: { "0": { out: [2.7, 1.1], in: [-1.4, -1.6] } },
+  });
+  assert.deepEqual(s.vertices, [[0, 1], [11, 1], [3, 9]]);   // .5 rounds toward +∞ (Math.round)
+  assert.deepEqual(s.controls["0"], { out: [3, 1], in: [-1, -2] });
+  assert.equal(s.id, "p");            // identity + metadata ride through
+  assert.equal(s.operation, "add");
+});
+
+test("snapShape rounds a rectangle and keeps a ≥1 extent", () => {
+  const s = snapShape({ type: "rectangle", min_x: 1.2, max_x: 5.8, min_z: 3.4, max_z: 3.4 });
+  assert.deepEqual([s.min_x, s.max_x, s.min_z, s.max_z], [1, 6, 3, 4]);   // z collapsed → forced +1
+});
+
+test("snapShape rounds a circle centre and floors the radius at 1", () => {
+  const s = snapShape({ type: "circle", center_x: 2.6, center_z: -1.4, radius: 0.3 });
+  assert.deepEqual([s.center_x, s.center_z, s.radius], [3, -1, 1]);
+});
+
+test("snapShape carries height fields untouched", () => {
+  const s = snapShape({ type: "polygon", vertices: [[0, 0], [4, 0], [4, 4]], base_height: 3, anchor_heights: [1, 2, 3], floor: 5 });
+  assert.equal(s.base_height, 3);
+  assert.deepEqual(s.anchor_heights, [1, 2, 3]);
+  assert.equal(s.floor, 5);
 });

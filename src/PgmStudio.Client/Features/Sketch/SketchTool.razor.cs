@@ -21,6 +21,7 @@ public partial class SketchTool
     private bool mirrorOn = true;
     private bool shapesOn = false;
     private bool chunksOn = true;
+    private bool blocksOn = false;   // S23: the rasterized block-footprint preview
     private bool snapOn = true;
     private bool threeD = false;
     private bool isoUnavailable = false;   // 3-D preview couldn't initialise (no WebGL / module load failed)
@@ -136,6 +137,12 @@ public partial class SketchTool
     {
         chunksOn = !chunksOn;
         if (handle is not null) await handle.InvokeVoidAsync("setChunkVisible", chunksOn);
+    }
+
+    private async Task ToggleBlocks()
+    {
+        blocksOn = !blocksOn;
+        if (handle is not null) await handle.InvokeVoidAsync("setBlocksVisible", blocksOn);
     }
 
     private async Task ToggleSnap()

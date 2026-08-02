@@ -2544,6 +2544,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/contracts/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **Grid-aligned sketch — block-accurate WYSIWYG (S23).** The sketch is now honest about the voxelized world
+  it produces. Every stored shape is **block-integer**: `snapShape` (geometry/shape.js) rounds all coordinates
+  to the grid, enforced at the `addShape`/`updateShape` chokepoint, so no edit path — vertex drag, midpoint
+  insert, rotate/scale bake, placement — can leave a point between blocks (Bézier control handles snap too; the
+  curve still samples smoothly between them). A **Blocks** toggle overlays the *rasterized* footprint —
+  `geometry/rasterize.js` reproduces the C# `SketchRasterizer` exactly (same rings — circle 64-gon, Bézier
+  16/edge — the same cell-centre `(x+0.5, z+0.5)` fill, the same add/subtract/override set algebra), merged into
+  horizontal runs so a curve visibly reads as the stair-stepped cells it exports as, beneath its smooth outline.
+  This is the prerequisite that makes the sketch the block-accurate surface the finishing pass will live on
+  (`docs/world-export/finishing-model.md` §7). Parity is unit-tested both sides.
 - **Sketch editor** — `/maps/{slug}/sketch` (`SketchTool` + `SketchPanel`/`SketchInspector`): draw 2-D
   shapes → live islands + mirror, with select/op/override/delete/rename. Pure geometry in
   `geometry/shape.js` + `geometry/boolean.js`; canvas + draw/edit controllers + `render/sketch-render.js`;

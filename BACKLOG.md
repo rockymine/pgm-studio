@@ -53,17 +53,6 @@ the focus-integration polish remains.
 The Sketch depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection
 highlight); these are the parked / dormant / deferred slices.
 
-- [ ] **S23 — Grid-align the sketch tool (block-accurate WYSIWYG).** The sketch draws in continuous, freeform
-  coordinates today, which hides the fact that everything ends up in a voxelized world — a liability on its own,
-  and the thing that blocks the finishing pass from living here (`docs/world-export/finishing-model.md` §7). Make
-  the tool follow Minecraft-world rules: **snap every placed point/marker to a block centre**, and — the bigger
-  half of the win — make the **preview show the rasterized shape** (a Bézier/rounded curve still draws smoothly,
-  but you see the blocks it voxelizes into), storing a shape as **block coordinates + heights** (cheaper than
-  continuous, and the rasterization is needed downstream anyway via `SketchRasterizer`). Triangles/curves/rounded
-  edges all still work — grid-aligned, not blocky-authored. Independent value (honest WYSIWYG voxelization); it
-  is the prerequisite that makes the sketch the block-accurate surface the finishing pass (paint + dressing, which
-  runs on the rasterized world) needs — see the finishing-model doc §7-§8.
-
 - [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
   (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
   **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes

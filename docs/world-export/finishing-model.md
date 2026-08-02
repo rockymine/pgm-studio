@@ -163,12 +163,13 @@ sketch hides voxelization** (continuous Bézier coordinates), so dressing a rive
 The **configure stage** shows the rasterized world top-down (and an iso view) but cannot edit the shapes — it
 only draws XML regions over them. So neither hosts finishing without a change.
 
-The unlock is a **grid-aligned sketch** (task **S23**): every placed point snaps to a block centre, the preview
-shows the *rasterized* shape (curves and rounded edges still draw smoothly — the preview shows the blocks they
-voxelize into), and a shape stores as **block coordinates + heights** (cheaper than continuous, and the
-rasterization is needed downstream regardless). This is worth doing on its own — a tool that hides that
-everything voxelizes is a liability — and it is the prerequisite that makes the sketch the block-accurate
-surface the finishing pass needs.
+The unlock is a **grid-aligned sketch** (task **S23**, now landed): every placed point snaps to the block grid
+(`snapShape`, enforced at the store chokepoint), a **Blocks** toggle shows the *rasterized* footprint (curves
+and rounded edges still draw smoothly — the overlay shows the blocks they voxelize into, via a client
+`geometry/rasterize.js` that reproduces `SketchRasterizer` exactly), and a shape now stores as **block
+coordinates** (the rasterization is needed downstream regardless). This was worth doing on its own — a tool that
+hides that everything voxelizes is a liability — and it is the prerequisite that makes the sketch the
+block-accurate surface the finishing pass needs.
 
 With that in place the placement resolves: **finishing is a phase of the (grid-aligned) sketch, not a stage
 after configure**, because the sketch is then the one place that is both geometry-editable *and* block-accurate

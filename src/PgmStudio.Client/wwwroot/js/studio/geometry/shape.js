@@ -195,6 +195,44 @@ function scaleControls(controls, sc) {
   return out;
 }
 
+/**
+ * Snap every coordinate of a shape to the block grid (S23) — the invariant that keeps the sketch
+ * block-accurate: a placed point lands on a grid intersection, never between blocks, so what the author
+ * draws is exactly what rasterizes (the same integer cells the C# `SketchRasterizer` and the export
+ * consume). Pure — returns a new shape; id / operation / override / height fields ride through untouched
+ * (heights own their own rounding). Rectangles keep a ≥1 extent, circles a ≥1 radius. Bézier control
+ * handles snap too, so the *whole* stored shape is integer; the curve still samples smoothly between them.
+ */
+export function snapShape(shape) {
+  const rnd = (v) => Math.round(v);
+  if (shape.type === "rectangle") {
+    let min_x = rnd(shape.min_x), max_x = rnd(shape.max_x), min_z = rnd(shape.min_z), max_z = rnd(shape.max_z);
+    if (max_x <= min_x) max_x = min_x + 1;
+    if (max_z <= min_z) max_z = min_z + 1;
+    return { ...shape, min_x, max_x, min_z, max_z };
+  }
+  if (shape.type === "circle")
+    return { ...shape, center_x: rnd(shape.center_x), center_z: rnd(shape.center_z), radius: Math.max(1, rnd(shape.radius)) };
+  if (shape.vertices) {
+    const snapped = { ...shape, vertices: shape.vertices.map(([x, z]) => [rnd(x), rnd(z)]) };
+    if (shape.controls) snapped.controls = snapControls(shape.controls, rnd);
+    return snapped;
+  }
+  return { ...shape };
+}
+
+/** Snap a Bézier `controls` dict's absolute in/out points to the grid (new object). */
+function snapControls(controls, rnd) {
+  const out = {};
+  for (const [k, c] of Object.entries(controls)) {
+    const nc = {};
+    if (c.in)  nc.in  = [rnd(c.in[0]),  rnd(c.in[1])];
+    if (c.out) nc.out = [rnd(c.out[0]), rnd(c.out[1])];
+    out[k] = nc;
+  }
+  return out;
+}
+
 /** Intersection of segment a→b with edge p→q, or null. Returns the crossing `point`, `tAB` (param along
  *  a→b, for ordering the crossings) and `tPQ` (param along the edge, for the ring-split seam). */
 function segCross(a, b, p, q) {

@@ -23,7 +23,7 @@ import { CanvasBase } from "./canvas-base.js";
 import { svgEl } from "../render/svg.js";
 import { layerStack, INERT } from "../render/layer-stack.js";
 import { CanvasPainter } from "../render/canvas-painter.js";
-import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape, scaleShape, toRing } from "../geometry/shape.js";
+import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape, scaleShape, toRing, snapShape } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
 
 // Island scale handles (S21): normalized bbox position (0=min · 0.5=mid · 1=max) + which axes each drives +
@@ -46,8 +46,9 @@ const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ROTATE_ICON)
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintPlaceGhost, paintGhostIslands,
+  paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintPlaceGhost, paintGhostIslands, paintRaster,
 } from "../render/sketch-render.js";
+import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
@@ -97,6 +98,8 @@ export class SketchCanvas extends CanvasBase {
   #shapesVisible = false;
   #mirrorVisible = true;
   #chunkVisible  = true;
+  #blocksVisible = false;
+  #rasterRuns    = null;   // cached rasterized cell runs; recomputed on shape change while blocks are shown
 
   #draw = null;
   #edit = null;
@@ -184,13 +187,18 @@ export class SketchCanvas extends CanvasBase {
   armPlace(specs) { this.#placeSpecs = specs ?? null; this.setActiveTool("place"); }
   disarmPlace()   { this.#placeSpecs = null; this.#placeAt = null; this.#paintWorld(); }
 
+  // addShape / updateShape are the single chokepoint through which every drawn, moved, resized, rotated,
+  // scaled or vertex-edited shape reaches the stored map — so snapping here (S23) makes "shapes are
+  // block-integer" an invariant of the store, no matter which edit path produced the shape. A live drag
+  // re-applies from a pristine snapshot each frame, so snapping every frame gives a block-accurate preview
+  // without accumulating rounding error.
   addShape(shape) {
-    this.#shapes.set(shape.id, shape);
+    this.#shapes.set(shape.id, snapShape(shape));
     this.#renderSetup();   // grow the grid/frame to include the new shape, and repaint
   }
 
   updateShape(shape) {
-    this.#shapes.set(shape.id, shape);
+    this.#shapes.set(shape.id, snapShape(shape));
     if (this.#selectedId === shape.id) this.#edit?.refresh();
     this.#renderSetup();   // follow the shape as it's dragged/resized past the current edge
   }
@@ -238,6 +246,15 @@ export class SketchCanvas extends CanvasBase {
   setShapesVisible(v) { this.#shapesVisible = v; this.#paintWorld(); }
   setMirrorVisible(v) { this.#mirrorVisible = v; this.#paintWorld(); }
   setChunkVisible(v)  { this.#chunkVisible = v; this.#paintWorld(); }
+  setBlocksVisible(v) { this.#blocksVisible = v; this.#rebuildRaster(); this.#paintWorld(); }
+
+  // Rasterize the drawn shapes into the block cells they voxelize into (the S23 WYSIWYG preview), merged
+  // into horizontal runs so the fill is a few hundred rects, not one per block. Cached — recomputed only on
+  // a shape change while the Blocks layer is on, not per frame. (Only the primary footprint; the mirror
+  // copies already read as smooth polygons on their own layer.)
+  #rebuildRaster() {
+    this.#rasterRuns = this.#blocksVisible ? cellRuns(rasterizeShapes([...this.#shapes.values()])) : null;
+  }
 
   // ── isometric preview (S6) ─────────────────────────────────────────────────────
   // Swap the top-down viewport for a read-only iso render of the extruded islands. Lazily loads and
@@ -464,6 +481,7 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("axis",      () => paintAxis(painter, this.#gridBounds(), this.#center, this.#mode));
     painter.layer("mirror",    () => { if (this.#mirrorVisible) paintMirror(painter, this.#mirrorPolys); });
     painter.layer("ghost",     () => paintGhostIslands(painter, this.#ghostPolys));
+    painter.layer("raster",    () => { if (this.#blocksVisible) paintRaster(painter, this.#rasterRuns); });
     painter.layer("island",    () => paintIslands(painter, this.#islands));
     painter.layer("shapes",    () => this.#paintShapes());
     painter.layer("selection", () => this.#paintSelectionHighlight());
@@ -773,6 +791,7 @@ export class SketchCanvas extends CanvasBase {
   #renderSetup() {
     this.#tight = this.#contentBounds();
     this.#bbox = this.#viewBounds(this.#tight);   // the working area — drives the tint and fit()/pan
+    this.#rebuildRaster();                         // keep the block preview in step with the shapes (no-op when off)
     this.#paintWorld();
   }
 
