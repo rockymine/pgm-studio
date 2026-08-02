@@ -155,25 +155,27 @@ per species — oak's blob, birch's tall slim crown, spruce's layered cone, acac
 jungle's broad canopy, dark oak's two-wide trunk. Each is a parametric template (trunk height, canopy
 radius, canopy profile), not a copied schematic, and an oak grove is genuinely all most maps need.
 
-The interesting tree is **grown**, and the shape that reads as a tree is not a fractal — a recursive
-brancher reads as a fractal. It is a handful of **limbs sharing one base**, each a **centripetal
-Catmull-Rom spline** swept with a disc that starts a few blocks thick and tapers to one within a quarter
-of its length, then holds fine to the tip. The limbs rise together for a short shared trunk, then diverge;
-each may throw one short secondary limb from its upper half — not the deep twiggery a fractal grows — and
-leaf blobs gather on the ends into a canopy. A few knobs (limb count, spread, curve/gnarliness, taper,
-leaf size) span a design space from a columnar poplar to a wide spreading oak, hash-keyed per limb so a
-seed always grows the same tree. This is the workflow a Minecraft builder already uses by hand in Axiom's
-Catmull-Rom path tool — several splines pasted from one origin, thickened and tapered — and the realism
-lesson from generators like ez-tree (Dan Greenheck): a tree reads from **taper + curve + a canopy at the
-tips**, not from branch count. The swept-disc limb is worth noting twice: it is the §4 path's fill lifted
-one dimension (a capsule along a spline instead of a band along a stroke), so the tree and the path share
-one rasterization primitive.
+The interesting tree is **grown**, and the shape that reads as a tree is neither a fractal nor a straight
+pole — a recursive brancher reads as a fractal, and one clean spline reads as a mast. The model that works
+takes both halves. The skeleton is **recursive** — the ez-tree knobs of levels, children per level, and a
+per-level radius and length taper, with a gentle upward *force* — but **every branch is a gnarly stepped
+path smoothed into a flowing Catmull-Rom curve**. The trunk carries a slow noise sway so it wanders like a
+bonsai (up, twist, straighten) rather than rising dead straight; the limbs carry a sharper per-step jitter;
+both are pulled gently upright. Limbs branch to a **second degree**, and leaf blobs gather on the outer
+tips. A **stems** knob gives the trunk setups a real tree has — one stem that forks, a double, or a triple
+base — and the rest (trunk flow, branch angle, levels, leaf size) are hash-keyed so a seed always grows the
+same tree. This is the ez-tree lesson (Dan Greenheck) — a tree reads from **taper + curve + a canopy at the
+tips**, not from branch count — married to the Catmull-Rom flow a Minecraft builder draws by hand in
+Axiom's path tool. The stage renders it two ways: the **spine** (the centerlines and their thickness, each
+limb spline in its own colour) is the view the shape is designed against, and the voxelised blocks are the
+swept-disc fill of §4's path lifted one dimension (a capsule along a spline instead of a band along a
+stroke), so the tree and the path share one rasterization primitive.
 
 Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box.
 Placement is the same scatter, with one addition — a low-frequency density field gathers trees into groves
 with clearings between, so a forest reads as clumps rather than an even orchard. A `DR-TR` pass is a
-`DecorationStyle` variant of the boulder's stamper: the species templates as data rows, the spline grower
-as a generator with its knobs, the grove clumping as the density-gated scatter of §5.
+`DecorationStyle` variant of the boulder's stamper: the species templates as data rows, the recursive
+spline grower as a generator with its knobs, the grove clumping as the density-gated scatter of §5.
 
 ## 7. What it reuses, and what it adds
 
