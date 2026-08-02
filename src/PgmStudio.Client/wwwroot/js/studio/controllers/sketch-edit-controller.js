@@ -65,7 +65,11 @@ export class SketchEditController {
   }
 
   setSelected(id) {
-    if (id !== this.#selectedId) { this.#selectedVertex = -1; this.#slopeControls = []; }
+    if (id !== this.#selectedId) this.#selectedVertex = -1;
+    // Any (re)selection or deselection drops the slope-control marks and tells the host, so clicking out or
+    // hitting Esc clears them just like it clears the shape selection — even when the pop lands on the same
+    // shape (drilling out of a single-member island). setSelected is only ever called on a selection change.
+    this.#clearSlopeControls(id);
     this.#selectedId = id;
   }
 
